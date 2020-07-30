@@ -1,0 +1,52 @@
+{
+  "name": "starmap",
+  "private": true,
+  "description": "A utility map of the local region of our galaxy",
+  "version": "0.1.0",
+  "license": "MIT",
+  "scripts": {
+    "build": "gatsby build",
+    "develop": "gatsby develop",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "start": "npm run develop",
+    "serve": "gatsby serve",
+    "clean": "gatsby clean",
+    "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1",
+    "lint": "NODE_ENV=test npm-run-all --parallel lint:*",
+    "lint:js": "eslint \"**/*.js\"",
+    "lint:css": "stylelint '{src/theme,src/layouts,src/components}/**/*.{js,jsx}'",
+    "lint:import": "import-sort -l 'src/**/*.{js,jsx}'",
+    "lint:format": "prettier \"**/*.{js,md,html,json,yaml,yml}\" --check",
+    "fix": "npm-run-all --sequential fix:*",
+    "fix:js": "eslint \"**/*.js\" --fix",
+    "fix:import": "import-sort --write 'src/**/*.{js,jsx}'",
+    "fix:format": "prettier \"**/*.{js,md,html,json,yaml,yml}\" --write"
+  },
+  "dependencies": {
+    "gatsby": "^2.23.12",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.4.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "import-sort-cli": "^6.0.0",
+    "import-sort-parser-babylon": "^6.0.0",
+    "import-sort-style-module": "^6.0.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "2.0.5",
+    "stylelint": "^13.3.3",
+    "stylelint-config-recommended": "^3.0.0",
+    "stylelint-config-styled-components": "^0.1.1",
+    "stylelint-order": "^4.0.0",
+    "stylelint-processor-styled-components": "^1.10.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marcelkornblum/starmap"
+  },
+  "bugs": {
+    "url": "https://github.com/marcelkornblum/starmap/issues"
+  }
+}
