@@ -1,6 +1,14 @@
-body {
+html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
   background-color: #0a0a0a;
+  
+  /* Make it feel like a native app */
+  overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile */
+  overscroll-behavior-x: none; /* Prevents swipe navigation */
+  -webkit-touch-callout: none; /* Disables the iOS popup on long press */
+  user-select: none; /* Disables text selection (can be re-enabled on specific text elements) */
+  -webkit-user-select: none;
+  touch-action: none; /* Prevents browser handling of gestures (like pinch zoom) so our 3D canvas can handle them */
 }
