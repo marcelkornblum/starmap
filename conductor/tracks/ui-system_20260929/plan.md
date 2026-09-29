@@ -2,6 +2,7 @@
 
 ## Phase 1: Exploration & Global Tokens
 - [ ] Task: Create `docs/design-system.md` to map out the semantic vocabulary (surfaces, typographic scale, spacing ratios).
+- [ ] Task: Document the Component Taxonomy, defining strict structural categories (e.g., Layout Primitives, Interactive Atoms like Buttons, and Informational Blocks like Cards).
 - [ ] Task: Implement the global `tokens.css` file establishing the CSS variables for Light and Dark modes.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
