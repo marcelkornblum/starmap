@@ -13,7 +13,7 @@
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: Arbitrary Plane Rotation (TDD)
-- [ ] Task: Write failing unit tests for `rotateToOrbitalPlane(coords, inclination, ascendingNode)` asserting correct mathematical rotation (e.g., a standard 23.5-degree tilt).
-- [ ] Task: Implement `rotateToOrbitalPlane` until tests pass.
+- [ ] Task: Write failing unit tests for `rotateToOrbitalPlane(buffer, inclination, ascendingNode)` asserting correct mathematical rotation on a `Float32Array` buffer.
+- [ ] Task: Implement `rotateToOrbitalPlane` to mutate the buffer in-place with zero object allocation.
 - [ ] Task: Verify 100% test coverage on `rotateToOrbitalPlane`.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
