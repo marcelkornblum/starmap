@@ -1,7 +1,7 @@
 # Implementation Plan: Astro Math Core
 
 ## Phase 1: Test Infrastructure & Types
-- [ ] Task: Install and configure Vitest for the project.
+- [x] Task: Install and configure Vitest for the project. [81e2beb]
 - [ ] Task: Define the `StarmapNode` TypeScript interface (in `src/types/astro.ts`).
 - [ ] Task: Create `stars.fixture.json` in a `tests/fixtures/` directory, populated with 3-5 well-known stars extracted from `data/hygdata_v3.csv` to act as our mathematical control group.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
