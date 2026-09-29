@@ -332,8 +332,12 @@ Before requesting review:
     -   Performance acceptable on mobile
     -   Interactions feel native
 
-## Commit Guidelines
+## Git & Branching Rules
+- **No Direct Commits:** Commits directly to the `main` branch are strictly forbidden.
+- **Feature Branches:** All work must be done on a dedicated feature or chore branch (e.g., `feat/<track-name>`).
+- **Pull Requests:** Integration into `main` must occur exclusively via Pull Requests.
 
+## Commit Guidelines
 ### Message Format
 
 ```
