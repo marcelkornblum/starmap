@@ -5,8 +5,9 @@ This track is dedicated to defining the visual language and aesthetic requiremen
 
 ## Functional Requirements
 1. **Scene Definitions:** Document the specific UX goals and rendering requirements for the 3 core views (Galaxy, System, Planet). Define what data must be shown and what should be hidden to avoid clutter.
-2. **Mock Fixtures:** Generate hand-crafted JSON fixtures for a dummy "System" and "Planet" to fuel the visual prototypes.
-3. **3D Cartography Ruleset:** Document the strict visual representation rules for astronomical bodies, connections, and grids (e.g., schematic nodes vs. realistic spheres, line weights, typography in 3D space).
+2. **Interaction Paradigm:** Interrogate and strictly define the 3D control scheme for each scene (e.g., 2D clamped panning vs. orbital rotation vs. node-snapping). Document the exact boundaries to prevent users from getting lost in 3D space.
+3. **Mock Fixtures:** Generate hand-crafted JSON fixtures for a dummy "System" and "Planet" to fuel the visual prototypes.
+4. **3D Cartography Ruleset:** Document the strict visual representation rules for astronomical bodies, connections, and grids.
 4. **UI/3D Sync Mechanism:** Define and document the technical pattern for passing the CSS Token system (from the `ui-system` track) into the WebGL `<Canvas>` so materials and lighting react perfectly to Light/Dark mode toggles.
 5. **Isolated Prototyping:** Build isolated 3D component prototypes (e.g., a schematic star node, a system orbital ring) in Storybook to visually prove the aesthetic rules work.
 
