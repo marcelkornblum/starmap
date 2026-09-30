@@ -13,7 +13,7 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: Global Canvas & Route Loaders
-- [ ] Task: Wrap the application root in a single React Three Fiber `<Canvas>`.
-- [ ] Task: Implement the render-then-fetch loader pattern on the routes (using mock delays).
-- [ ] Task: Configure the routes to inject specific placeholder 3D scenes into the global canvas using `@react-three/drei` tunnel or view helpers.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Wrap the application root in a single React Three Fiber `<Canvas>`.
+- [x] Task: Implement the render-then-fetch loader pattern on the routes (using mock delays).
+- [x] Task: Configure the routes to inject specific placeholder 3D scenes into the global canvas using `@react-three/drei` tunnel or view helpers.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
