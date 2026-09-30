@@ -2,6 +2,18 @@
 
 All notable changes to the Starmap project are documented in this file.
 
+## [Data Pipeline] - 2026-09-30
+
+### Added
+- **Streaming ETL Pipeline (`scripts/build-data.ts`):**
+  - High-throughput Node.js streaming parser leveraging `csv-parser` to ingest 119k+ row `data/hygdata_v3.csv` without memory bottlenecks.
+  - Harmonizes raw catalog columns into strict `StarmapNode` entities with hierarchical name resolution and coordinate pre-calculation.
+  - Outputs minified static JSON (`public/data/stars.json`) in 2.2 seconds.
+- **Build & CI Automation:**
+  - Added `npm run build:data` script via `tsx`.
+  - Wired automated data generation into Vite build and GitHub Actions CI workflow.
+  - Comprehensive unit and integration test suite in `tests/dataPipeline.test.ts`.
+
 ## [Astro Math Core] - 2026-09-30
 
 ### Added

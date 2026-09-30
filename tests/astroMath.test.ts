@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   equatorialToCartesian,
   rotateToOrbitalPlane,
+  parseKinematicVector,
+  formatSectorId,
+  getSectorBounds,
+  DEFAULT_SECTOR_SIZE_PC,
+  PARSECS_PER_YEAR_TO_KMS,
   DEG_TO_RADIANS,
   EARTH_OBLIQUITY_DEG,
   EARTH_OBLIQUITY_RAD,
@@ -178,5 +183,67 @@ describe('rotateToOrbitalPlane', () => {
   it('performs bulk transformation efficiently without errors on empty or odd-length buffers', () => {
     const emptyBuffer = new Float32Array(0);
     expect(rotateToOrbitalPlane(emptyBuffer, 10, 10)).toBe(emptyBuffer);
+  });
+});
+
+describe('parseKinematicVector', () => {
+  it('returns undefined if Cartesian velocity components are missing or NaN', () => {
+    expect(parseKinematicVector(undefined, 0, 0)).toBeUndefined();
+    expect(parseKinematicVector(0, null, 0)).toBeUndefined();
+    expect(parseKinematicVector(0, 0, NaN)).toBeUndefined();
+  });
+
+  it('correctly parses zero velocity for Sol', () => {
+    const vec = parseKinematicVector(0, 0, 0, 0, 0, 0);
+    expect(vec).toBeDefined();
+    expect(vec?.vx).toBe(0);
+    expect(vec?.vy).toBe(0);
+    expect(vec?.vz).toBe(0);
+    expect(vec?.speed).toBe(0);
+    expect(vec?.radialVelocity).toBe(0);
+    expect(vec?.pmra).toBe(0);
+    expect(vec?.pmdec).toBe(0);
+  });
+
+  it('accurately converts pc/yr to km/s for Sirius kinematics', () => {
+    // Sirius in HYG: vx = -0.00000414, vy = 0.00002073, vz = -0.00001090 pc/yr, rv = -7.6 km/s
+    const vxPcYr = -0.00000414;
+    const vyPcYr = 0.00002073;
+    const vzPcYr = -0.0000109;
+    const rv = -7.6;
+    const pmra = -546.01;
+    const pmdec = -1223.07;
+
+    const vec = parseKinematicVector(vxPcYr, vyPcYr, vzPcYr, pmra, pmdec, rv);
+    expect(vec).toBeDefined();
+    expect(vec?.vx).toBeCloseTo(vxPcYr * PARSECS_PER_YEAR_TO_KMS, 2);
+    expect(vec?.vy).toBeCloseTo(vyPcYr * PARSECS_PER_YEAR_TO_KMS, 2);
+    expect(vec?.vz).toBeCloseTo(vzPcYr * PARSECS_PER_YEAR_TO_KMS, 2);
+    // Sirius relative space velocity is ~23.3 km/s
+    expect(vec?.speed).toBeCloseTo(23.25, 1);
+    expect(vec?.radialVelocity).toBe(-7.6);
+    expect(vec?.pmra).toBe(-546.01);
+    expect(vec?.pmdec).toBe(-1223.07);
+  });
+});
+
+describe('Spatial Sector Partitioning (formatSectorId & getSectorBounds)', () => {
+  it('formats coordinates into standardized 3D sector IDs', () => {
+    expect(formatSectorId(0, 0, 0)).toBe('sector_+000_+000_+000');
+    expect(formatSectorId(12.5, -34.8, 48.2)).toBe('sector_+000_-050_+025');
+    expect(formatSectorId(25, -25, 75)).toBe('sector_+025_-025_+075');
+    expect(formatSectorId(-0.1, -0.1, -0.1)).toBe('sector_-025_-025_-025');
+  });
+
+  it('correctly resolves bounding boxes from sector IDs', () => {
+    const bounds = getSectorBounds('sector_+025_-050_+000', DEFAULT_SECTOR_SIZE_PC);
+    expect(bounds).not.toBeNull();
+    expect(bounds?.min).toEqual({ x: 25, y: -50, z: 0 });
+    expect(bounds?.max).toEqual({ x: 50, y: -25, z: 25 });
+  });
+
+  it('returns null for invalid sector ID strings', () => {
+    expect(getSectorBounds('invalid_sector_name')).toBeNull();
+    expect(getSectorBounds('sector_+12_-34_+56')).toBeNull();
   });
 });

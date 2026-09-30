@@ -20,7 +20,7 @@
 - **Philosophy:** Strict component-based architecture. No inline styles or utility-class soup. All UI elements must pull from the central design token variables for consistency.
 
 ## Data and Content
-- **Data Source:** Preprocessed static JSON files fetched at runtime.
+- **Data Source:** Preprocessed static JSON files fetched at runtime (`public/data/stars.json`), generated offline via streaming Node.js pipeline (`scripts/build-data.ts`).
 - **Editorial Content:** MDX (Allows rendering React/3D components directly inside Markdown for the reference guides).
 
 ## Testing
