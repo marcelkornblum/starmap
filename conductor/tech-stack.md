@@ -23,6 +23,10 @@
 - **Data Source:** Preprocessed static JSON files fetched at runtime.
 - **Editorial Content:** MDX (Allows rendering React/3D components directly inside Markdown for the reference guides).
 
+## Testing
+- **Test Runner:** Vitest (Fast Vite-native test runner for unit and integration testing)
+- **Coverage Provider:** `@vitest/coverage-v8` (V8 AST code coverage analysis)
+
 ## Build and CI/CD
 - **Build Tool:** Vite
 - **Deployment:** GitHub Pages (via GitHub Actions).
