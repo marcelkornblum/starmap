@@ -5,9 +5,13 @@ import {
   parseHygRow,
   buildStarDataPipeline,
   starNodeToSystemSummary,
+  loadExoplanetCatalog,
+  matchExoplanetsForStar,
+  checkHabitableCandidate,
   type CatalogPayload,
 } from '../scripts/build-data';
-import type { StarmapNode, SectorPartitionManifest } from '../src/types/astro';
+import { DATA_SOURCES_REGISTRY, getDataSource, getDataSourcesByLayer } from '../scripts/sources.config';
+import type { StarmapNode, SectorPartitionManifest, ExoplanetRecord } from '../src/types/astro';
 
 describe('Data Pipeline - parseHygRow', () => {
   it('correctly maps Sol at origin', () => {
@@ -245,5 +249,113 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
     const originSector: SectorPartitionManifest = JSON.parse(fs.readFileSync(originSectorPath, 'utf-8'));
     expect(originSector.sectorId).toBe('sector_+000_+000_+000');
     expect(originSector.count).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('Declarative Data Sources Registry', () => {
+  it('defines all four agreed astronomical layers with valid metadata', () => {
+    const layers = new Set(DATA_SOURCES_REGISTRY.sources.map((s) => s.layer));
+    expect(layers).toContain('stellar-neighborhood');
+    expect(layers).toContain('exoplanetary-systems');
+    expect(layers).toContain('galactic-structures');
+    expect(layers).toContain('solar-system-bodies');
+
+    for (const source of DATA_SOURCES_REGISTRY.sources) {
+      expect(source.id).toBeTruthy();
+      expect(source.name).toBeTruthy();
+      expect(source.authority).toBeTruthy();
+      expect(source.localCachePath).toBeTruthy();
+      expect(source.contributions.length).toBeGreaterThan(0);
+      expect(source.targetArtifacts.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('supports helper lookups by ID and Layer', () => {
+    const hyg = getDataSource('stellar-neighborhood-hyg');
+    expect(hyg).toBeDefined();
+    expect(hyg?.layer).toBe('stellar-neighborhood');
+
+    const exoSources = getDataSourcesByLayer('exoplanetary-systems');
+    expect(exoSources).toHaveLength(1);
+    expect(exoSources[0].id).toBe('exoplanetary-systems-oec');
+  });
+});
+
+describe('Exoplanet Harmonization & Cross-Matching', () => {
+  it('evaluates habitable candidates by equilibrium temperature or stellar insolation', () => {
+    const habitablePlanet: ExoplanetRecord = {
+      id: 'test-planet-b',
+      name: 'Test b',
+      letter: 'b',
+      equilibriumTempK: 250,
+      orbit: {
+        semiMajorAxis: 1.0,
+        eccentricity: 0.01,
+        inclination: 0,
+        ascendingNode: 0,
+        argumentOfPeriapsis: 0,
+        meanAnomaly: 0,
+        periodDays: 365,
+      },
+    };
+
+    const scorchingPlanet: ExoplanetRecord = {
+      id: 'test-planet-c',
+      name: 'Test c',
+      letter: 'c',
+      equilibriumTempK: 1500,
+    };
+
+    expect(checkHabitableCandidate([habitablePlanet])).toBe(true);
+    expect(checkHabitableCandidate([scorchingPlanet])).toBe(false);
+  });
+
+  it('cross-matches exoplanets against stellar nodes using HD, HIP, and proper names', () => {
+    const hostMap = new Map<string, ExoplanetRecord[]>();
+    const samplePlanet: ExoplanetRecord = {
+      id: 'hd-154857-b',
+      name: 'HD 154857 b',
+      letter: 'b',
+      discoveryYear: 2004,
+    };
+    hostMap.set('hd 154857', [samplePlanet]);
+
+    const starNode: StarmapNode = {
+      id: 12345,
+      name: 'HD 154857',
+      hd: 154857,
+      ra: 17.1,
+      dec: -56.6,
+      dist: 64.2,
+      mag: 7.25,
+      absmag: 3.2,
+      x: 20,
+      y: 40,
+      z: -30,
+    };
+
+    const matched = matchExoplanetsForStar(starNode, hostMap);
+    expect(matched).toHaveLength(1);
+    expect(matched[0].name).toBe('HD 154857 b');
+
+    const summary = starNodeToSystemSummary(starNode, matched);
+    expect(summary.planetCount).toBe(1);
+    expect(summary.tags).toContain('ExoplanetHost');
+  });
+
+  it('loads and indexes exoplanets from raw CSV', () => {
+    const tempExoCsv = path.resolve('tests/fixtures/sample_exo.csv');
+    const content =
+      'name,binaryflag,mass,radius,period,semimajoraxis,eccentricity,periastron,longitude,ascendingnode,inclination,temperature\n' +
+      'HD 154857 b,0,2.24,,408.6,1.291,0.46,57,,,,,336.0\n';
+    fs.writeFileSync(tempExoCsv, content, 'utf-8');
+
+    const hostMap = loadExoplanetCatalog(tempExoCsv);
+    expect(hostMap.has('hd 154857')).toBe(true);
+    const planets = hostMap.get('hd 154857');
+    expect(planets).toHaveLength(1);
+    expect(planets?.[0].name).toBe('HD 154857 b');
+
+    if (fs.existsSync(tempExoCsv)) fs.unlinkSync(tempExoCsv);
   });
 });

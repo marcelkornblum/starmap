@@ -12,6 +12,7 @@ dist
 dist-ssr
 coverage
 public/data/
+data/raw/
 *.local
 
 # Editor directories and files

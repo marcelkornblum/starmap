@@ -251,3 +251,75 @@ export interface OrbitalPlaneOrientation {
  * Length is always 3 * N.
  */
 export type BulkCoordinateBuffer = Float32Array;
+
+/**
+ * Deep-sky galactic object or interstellar structure (Layer 3: clusters, remnants, pulsars, bubbles).
+ */
+export interface GalacticStructureRecord {
+  /** Unique identifier (e.g., 'hyades', 'pleiades', 'ursa-major-stream', 'vela-snr') */
+  id: string;
+  /** Primary display name */
+  name: string;
+  /** Classification of the galactic structure */
+  type:
+    | 'OpenCluster'
+    | 'GlobularCluster'
+    | 'SupernovaRemnant'
+    | 'Pulsar'
+    | 'PlanetaryNebula'
+    | 'InterstellarMedium'
+    | 'MovingGroup';
+  /** Cartesian X coordinate in parsecs (Equatorial J2000) */
+  x: number;
+  /** Cartesian Y coordinate in parsecs (Equatorial J2000) */
+  y: number;
+  /** Cartesian Z coordinate in parsecs (Equatorial J2000) */
+  z: number;
+  /** Distance from Sol in parsecs */
+  dist: number;
+  /** Approximate tidal or core radius in parsecs */
+  radiusPc?: number;
+  /** Estimated age in millions of years (Myr) */
+  ageMyr?: number;
+  /** Number of confirmed member stars */
+  memberCount?: number;
+  /** Cross-catalog designations (e.g., ['Melotte 25', 'Collinder 50', 'C 0424+157']) */
+  designations: string[];
+  /** Scientific description and context */
+  description: string;
+}
+
+/**
+ * Natural solar system body record with full Keplerian orbital elements (Layer 4).
+ */
+export interface SolarSystemBodyRecord {
+  /** Unique identifier (e.g., 'sol', 'earth', 'jupiter', 'europa', '433-eros') */
+  id: string;
+  /** Primary display name */
+  name: string;
+  /** Body classification */
+  classification:
+    | 'Star'
+    | 'Planet'
+    | 'DwarfPlanet'
+    | 'Moon'
+    | 'AsteroidNEO'
+    | 'AsteroidMainBelt'
+    | 'Comet';
+  /** Parent body identifier for moons or secondary companions (e.g. 'sol', 'earth', 'jupiter') */
+  parentBodyId?: string;
+  /** Mean physical radius in kilometers */
+  meanRadiusKm: number;
+  /** Mass in kilograms */
+  massKg?: number;
+  /** Standard gravitational parameter GM in km^3/s^2 */
+  gm?: number;
+  /** Geometric albedo */
+  albedo?: number;
+  /** Sidereal rotation period in hours */
+  rotationalPeriodHours?: number;
+  /** Full Keplerian orbital elements */
+  orbit?: KeplerianOrbit;
+  /** Categorization tags */
+  tags?: string[];
+}

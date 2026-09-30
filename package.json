@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:data && tsc -b && vite build",
+    "build": "npm run data:pipeline && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "build:data": "tsx scripts/build-data.ts"
+    "build:data": "tsx scripts/build-data.ts",
+    "data:fetch": "tsx scripts/fetch-sources.ts",
+    "data:build": "tsx scripts/build-data.ts",
+    "data:pipeline": "npm run data:fetch && npm run data:build"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

@@ -32,7 +32,7 @@ jobs:
       - name: Test
         run: npm test
       - name: Generate static data
-        run: npm run build:data
+        run: npm run data:pipeline
       - name: Build
         run: npm run build || echo "No build script found yet"
       - name: Upload artifact
