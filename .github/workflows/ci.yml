@@ -32,10 +32,12 @@ jobs:
         run: npm run lint || echo "No lint script found yet"
       - name: Test with Coverage
         run: npm run test:coverage
-      - name: Report Test Coverage
+      - name: Coverage comment
         if: github.event_name == 'pull_request'
-        uses: davelosert/vitest-coverage-report-action@v2
+        uses: MishaKav/pytest-coverage-comment@v1
         with:
+          pytest-xml-coverage-path: ./coverage/cobertura-coverage.xml
+          title: Test Coverage
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate static data
         run: npm run data:pipeline
