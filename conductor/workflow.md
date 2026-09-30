@@ -336,7 +336,9 @@ Before requesting review:
 - **No Direct Commits:** Commits directly to the `main` branch are strictly forbidden.
 - **Feature Branches:** All work must be done on a dedicated feature or chore branch (e.g., `feat/<track-name>`).
 - **Pull Requests:** Integration into `main` must occur exclusively via Pull Requests.
-- **Always Open a Pull Request:** The final step of any completed request or task is NOT just committing code; the branch must be pushed to origin and a Pull Request must be opened against `main` (e.g., via `gh pr create`).
+- **Mandatory Pre-PR Checks & Code Review:** Before opening any Pull Request, you must execute the full local quality suite (`npm run lint`, `npm run typecheck`, and `npm run test:coverage`), run `/code-review` to eradicate technical debt, and ensure all checks pass.
+- **Always Open a Pull Request:** The final step of any completed request or task is NOT just committing code; the branch must be pushed to origin and a Pull Request must be opened against `main` (via `gh pr create`).
+- **Verify CI Completion:** After opening the PR, ensure all automated CI tasks (`Lint`, `Type Check`, `Test`, `Build`, `CI Complete`) complete successfully.
 
 ## Commit Guidelines
 ### Message Format
@@ -381,7 +383,9 @@ A task is complete when:
 7.  Implementation notes added to `plan.md`
 8.  Changes committed with proper message
 9.  Git note with task summary attached to the commit
-10. Branch pushed to origin and Pull Request opened against `main` (via `gh pr create`)
+10. Local quality checks (`npm run lint`, `npm run typecheck`, `npm run test:coverage`) and `/code-review` passed cleanly
+11. Branch pushed to origin and Pull Request opened against `main` (via `gh pr create`)
+12. All automated CI tasks verified passing and complete
 
 ## Emergency Procedures
 
