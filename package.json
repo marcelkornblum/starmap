@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run data:pipeline && tsc -b && vite build",
+    "build": "tsc -b && vite build",
+    "build:all": "npm run data:pipeline && npm run build",
     "lint": "oxlint",
     "typecheck": "tsc -b",
     "preview": "vite preview",
