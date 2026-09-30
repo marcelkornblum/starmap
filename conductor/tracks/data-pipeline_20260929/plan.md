@@ -1,7 +1,7 @@
 # Implementation Plan: Data Pipeline
 
 ## Phase 1: Ingestion & Streaming
-- [ ] Task: Install `csv-parser` or similar Node.js streaming CSV library.
+- [x] Task: Install `csv-parser` or similar Node.js streaming CSV library. [fccc7db]
 - [ ] Task: Create `scripts/build-data.ts`.
 - [ ] Task: Implement the file read stream to pipe `data/hygdata_v3.csv` through the CSV parser without blowing up memory.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
