@@ -22,8 +22,10 @@ There are clear styleguides to follow; you can find them in `conductor/code_styl
 - **Blockers**: If you are blocked from working this way (e.g., security restrictions, environment issues), raise the issue immediately so it can be addressed directly with the user.
 - **No Unilateral API Changes**: Never unilaterally modify component APIs, parameter definitions, method signatures, or public interfaces. Always discuss and obtain explicit confirmation before altering existing component contracts.
 
-## Conductor Phase Gating & Track Execution
-- **Strict Phase Checkpoints**: When executing Conductor tracks, complete only the active phase and HALT immediately. Present a concise phase summary. Never begin work on a subsequent phase without direct, explicit permission.
+## Conductor Review Mode & Track Execution
+- **Review Mode Check**: Before starting any track, always ask the user which review mode they prefer:
+  - **Phase-by-Phase Review:** Complete only the active phase and HALT immediately. Present a concise phase summary and await explicit permission before proceeding to the next phase. Do not make autonomous git mutations during phase execution (the user controls the staging area).
+  - **Whole-Track Review in PR:** Execute all phases continuously through completion, running automated quality checks and the `code-review` skill at each phase boundary. Commit clean checkpoints on the feature branch, and present the completed track for review directly in the Pull Request.
 - **Pre-Flight Dependency Verification**: Never start implementing a track without first inspecting its `metadata.json` `"depends_on"` list and confirming all listed upstream tracks are marked `[x]` in `conductor/tracks.md`.
 - **Initiative-Scoped Archival**: Never archive a track belonging to an active initiative (`"initiative"` is set) upon individual track completion. Mark it `[x]` in `conductor/tracks/` so active phase tables and dependency links remain intact. Archive initiative tracks only at initiative closure (when all tracks in the initiative are complete and target architecture docs are promoted to `docs/`). Standalone tracks (`initiative: null`) may be archived upon completion.
 
