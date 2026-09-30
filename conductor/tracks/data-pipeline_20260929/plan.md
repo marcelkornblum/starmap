@@ -12,9 +12,9 @@
 - [x] Task: Calculate the base `[x, y, z]` for each star during the transform step. [945f798]
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [945f798]
 
-## Phase 3: Static Generation & Scripts
-- [ ] Task: Implement a write stream to output the finalized JSON array to `public/data/stars.json`.
-- [ ] Task: Ensure the output is minified to save bandwidth.
-- [ ] Task: Add `"build:data": "tsx scripts/build-data.ts"` to `package.json`.
-- [ ] Task: Update the CI GitHub Action (`.github/workflows/ci.yml`) to run `npm run build:data` before building the site, if necessary, or check the generated JSON into source control.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+## Phase 3: Static Generation & Scripts [checkpoint: a16f05b]
+- [x] Task: Implement a write stream to output the finalized JSON array to `public/data/stars.json`. [a16f05b]
+- [x] Task: Ensure the output is minified to save bandwidth. [a16f05b]
+- [x] Task: Add `"build:data": "tsx scripts/build-data.ts"` to `package.json`. [a16f05b]
+- [x] Task: Update the CI GitHub Action (`.github/workflows/ci.yml`) to run `npm run build:data` before building the site, if necessary, or check the generated JSON into source control. [a16f05b]
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [a16f05b]
