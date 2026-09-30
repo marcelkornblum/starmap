@@ -11,7 +11,7 @@ node_modules
 dist
 dist-ssr
 coverage
-public/data/*.json
+public/data/
 *.local
 
 # Editor directories and files

@@ -1,4 +1,8 @@
-import type { CartesianTuple } from '../types/astro';
+import type {
+  CartesianTuple,
+  CartesianCoordinates,
+  KinematicVector,
+} from '../types/astro';
 
 /** Multiplier to convert Right Ascension decimal hours [0, 24) to radians: (2 * PI) / 24 */
 export const HOURS_TO_RADIANS = Math.PI / 12;
@@ -157,4 +161,133 @@ export function rotateToOrbitalPlane(
   }
 
   return buffer;
+}
+
+/**
+ * Conversion factor from parsecs per Julian year (pc/yr) to kilometers per second (km/s).
+ * 1 pc = 3.085677581491367e13 km
+ * 1 Julian year = 31557600 s (365.25 days)
+ * 1 pc/yr = 977,792.22168 km/s
+ */
+export const PARSECS_PER_YEAR_TO_KMS = 977792.22168;
+
+/**
+ * Parses and converts Cartesian velocity components from parsecs per year into a formal
+ * KinematicVector in kilometers per second (km/s).
+ *
+ * @param vxPcPerYear Velocity component X in pc/yr (Equatorial J2000)
+ * @param vyPcPerYear Velocity component Y in pc/yr (Equatorial J2000)
+ * @param vzPcPerYear Velocity component Z in pc/yr (Equatorial J2000)
+ * @param pmra Optional proper motion in Right Ascension (mas/yr)
+ * @param pmdec Optional proper motion in Declination (mas/yr)
+ * @param radialVelocity Optional line-of-sight radial velocity (km/s)
+ * @returns KinematicVector in km/s or undefined if Cartesian velocity components are unavailable
+ */
+export function parseKinematicVector(
+  vxPcPerYear?: number | null,
+  vyPcPerYear?: number | null,
+  vzPcPerYear?: number | null,
+  pmra?: number | null,
+  pmdec?: number | null,
+  radialVelocity?: number | null,
+): KinematicVector | undefined {
+  if (
+    vxPcPerYear === undefined ||
+    vxPcPerYear === null ||
+    vyPcPerYear === undefined ||
+    vyPcPerYear === null ||
+    vzPcPerYear === undefined ||
+    vzPcPerYear === null ||
+    isNaN(vxPcPerYear) ||
+    isNaN(vyPcPerYear) ||
+    isNaN(vzPcPerYear)
+  ) {
+    return undefined;
+  }
+
+  const vx = vxPcPerYear * PARSECS_PER_YEAR_TO_KMS;
+  const vy = vyPcPerYear * PARSECS_PER_YEAR_TO_KMS;
+  const vz = vzPcPerYear * PARSECS_PER_YEAR_TO_KMS;
+  const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+
+  return {
+    vx,
+    vy,
+    vz,
+    speed,
+    pmra: pmra != null && !isNaN(pmra) ? pmra : undefined,
+    pmdec: pmdec != null && !isNaN(pmdec) ? pmdec : undefined,
+    radialVelocity:
+      radialVelocity != null && !isNaN(radialVelocity) ? radialVelocity : undefined,
+  };
+}
+
+/** Default 3D spatial partition sector cube side length in parsecs */
+export const DEFAULT_SECTOR_SIZE_PC = 25;
+
+/**
+ * Calculates the lower-bound axis alignment coordinate for a given 1D position.
+ *
+ * @param val Position along a Cartesian axis in parsecs
+ * @param size Sector dimension in parsecs (default: 25)
+ * @returns Aligned sector base coordinate
+ */
+export function getSectorCoordinate(
+  val: number,
+  size = DEFAULT_SECTOR_SIZE_PC,
+): number {
+  return Math.floor(val / size) * size;
+}
+
+/**
+ * Formats a formal 3D spatial sector identifier based on coordinates in parsecs.
+ * Uses uniform signed 3-digit zero-padded coordinates: e.g. "sector_+000_-050_+025".
+ *
+ * @param x Cartesian X in parsecs
+ * @param y Cartesian Y in parsecs
+ * @param z Cartesian Z in parsecs
+ * @param size Sector dimension in parsecs (default: 25)
+ * @returns Standardized sector identifier string
+ */
+export function formatSectorId(
+  x: number,
+  y: number,
+  z: number,
+  size = DEFAULT_SECTOR_SIZE_PC,
+): string {
+  const sx = getSectorCoordinate(x, size);
+  const sy = getSectorCoordinate(y, size);
+  const sz = getSectorCoordinate(z, size);
+
+  const formatCoord = (n: number) => {
+    const sign = n >= 0 ? '+' : '-';
+    const abs = Math.abs(n);
+    return `${sign}${String(abs).padStart(3, '0')}`;
+  };
+
+  return `sector_${formatCoord(sx)}_${formatCoord(sy)}_${formatCoord(sz)}`;
+}
+
+/**
+ * Resolves the 3D bounding box coordinates [min, max] for a given sector identifier.
+ *
+ * @param sectorId Standard sector identifier string (e.g. "sector_+000_-050_+025")
+ * @param size Sector dimension in parsecs (default: 25)
+ * @returns Bounding box with min and max CartesianCoordinates, or null if malformed
+ */
+export function getSectorBounds(
+  sectorId: string,
+  size = DEFAULT_SECTOR_SIZE_PC,
+): { min: CartesianCoordinates; max: CartesianCoordinates } | null {
+  const match = /^sector_([+-]\d{3})_([+-]\d{3})_([+-]\d{3})$/.exec(sectorId);
+  if (!match) return null;
+
+  const minX = parseInt(match[1], 10);
+  const minY = parseInt(match[2], 10);
+  const minZ = parseInt(match[3], 10);
+
+  return {
+    min: { x: minX, y: minY, z: minZ },
+    max: { x: minX + size, y: minY + size, z: minZ + size },
+  };
 }

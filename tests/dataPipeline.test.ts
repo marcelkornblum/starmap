@@ -1,8 +1,13 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { parseHygRow, buildStarDataPipeline } from '../scripts/build-data';
-import type { StarmapNode } from '../src/types/astro';
+import {
+  parseHygRow,
+  buildStarDataPipeline,
+  starNodeToSystemSummary,
+  type CatalogPayload,
+} from '../scripts/build-data';
+import type { StarmapNode, SectorPartitionManifest } from '../src/types/astro';
 
 describe('Data Pipeline - parseHygRow', () => {
   it('correctly maps Sol at origin', () => {
@@ -97,23 +102,90 @@ describe('Data Pipeline - parseHygRow', () => {
     const n5 = parseHygRow({ id: '999', ra: '0', dec: '0', dist: '10' });
     expect(n5?.name).toBe('HYG 999');
   });
+
+  it('correctly maps 3D velocity vector when kinematic columns are present', () => {
+    const rawRow: Record<string, string> = {
+      id: '32263',
+      proper: 'Sirius',
+      ra: '6.752481',
+      dec: '-16.716116',
+      dist: '2.6371',
+      mag: '-1.440',
+      absmag: '1.454',
+      vx: '-0.00000414',
+      vy: '0.00002073',
+      vz: '-0.00001090',
+      rv: '-7.6',
+      pmra: '-546.01',
+      pmdec: '-1223.07',
+    };
+
+    const node = parseHygRow(rawRow);
+    expect(node).not.toBeNull();
+    expect(node?.velocity).toBeDefined();
+    expect(node?.velocity?.speed).toBeCloseTo(23.25, 1);
+    expect(node?.velocity?.radialVelocity).toBe(-7.6);
+    expect(node?.velocity?.pmra).toBe(-546.01);
+    expect(node?.velocity?.pmdec).toBe(-1223.07);
+  });
 });
 
-describe('Data Pipeline - buildStarDataPipeline (Streaming)', () => {
+describe('Data Pipeline - starNodeToSystemSummary', () => {
+  it('collapses star into SystemSummaryNode with sector ID and tags', () => {
+    const star: StarmapNode = {
+      id: 0,
+      name: 'Sol',
+      properName: 'Sol',
+      ra: 0,
+      dec: 0,
+      dist: 0,
+      mag: -26.7,
+      absmag: 4.85,
+      spect: 'G2V',
+      ci: 0.656,
+      x: 0,
+      y: 0,
+      z: 0,
+      velocity: {
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        speed: 0,
+      },
+    };
+
+    const summary = starNodeToSystemSummary(star);
+    expect(summary.id).toBe('0');
+    expect(summary.name).toBe('Sol');
+    expect(summary.dist).toBe(0);
+    expect(summary.sectorId).toBe('sector_+000_+000_+000');
+    expect(summary.tags).toContain('HomeSystem');
+    expect(summary.tags).toContain('SolarNeighborhood10pc');
+    expect(summary.tags).toContain('NakedEye');
+    expect(summary.planetCount).toBe(8);
+    expect(summary.hasHabitableCandidate).toBe(true);
+  });
+});
+
+describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
   const tempCsvPath = path.resolve('tests/fixtures/sample_test.csv');
   const tempJsonPath = path.resolve('tests/fixtures/sample_output.json');
+  const tempCatalogsDir = path.resolve('tests/fixtures/catalogs');
+  const tempPartitionsDir = path.resolve('tests/fixtures/partitions');
 
   afterAll(() => {
     if (fs.existsSync(tempCsvPath)) fs.unlinkSync(tempCsvPath);
     if (fs.existsSync(tempJsonPath)) fs.unlinkSync(tempJsonPath);
+    if (fs.existsSync(tempCatalogsDir)) fs.rmSync(tempCatalogsDir, { recursive: true, force: true });
+    if (fs.existsSync(tempPartitionsDir)) fs.rmSync(tempPartitionsDir, { recursive: true, force: true });
   });
 
   it('streams CSV input and produces valid minified JSON array', async () => {
     const csvContent =
-      'id,proper,ra,dec,dist,mag,absmag,spect,ci,lum\n' +
-      '0,Sol,0.0,0.0,0.0,-26.7,4.85,G2V,0.656,1.0\n' +
-      '1,,1.0,10.0,50.0,6.5,2.0,A0,0.1,5.0\n' +
-      '2,InvalidStar,1.0,10.0,NaN,5.0,2.0,M0,1.2,0.5\n';
+      'id,proper,ra,dec,dist,mag,absmag,spect,ci,lum,vx,vy,vz,rv\n' +
+      '0,Sol,0.0,0.0,0.0,-26.7,4.85,G2V,0.656,1.0,0.0,0.0,0.0,0.0\n' +
+      '1,,1.0,10.0,50.0,6.0,2.0,A0,0.1,5.0,-0.00001,0.00002,-0.00001,15.0\n' +
+      '2,InvalidStar,1.0,10.0,NaN,5.0,2.0,M0,1.2,0.5,,,,\n';
 
     fs.writeFileSync(tempCsvPath, csvContent, 'utf-8');
 
@@ -122,12 +194,56 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming)', () => {
     expect(summary.totalRows).toBe(3);
     expect(summary.validStars).toBe(2);
     expect(summary.skippedRows).toBe(1);
+    expect(summary.kinematicCount).toBe(2);
 
     const generated = fs.readFileSync(tempJsonPath, 'utf-8');
     const parsed: StarmapNode[] = JSON.parse(generated);
 
     expect(parsed).toHaveLength(2);
     expect(parsed[0].name).toBe('Sol');
+    expect(parsed[0].velocity?.speed).toBe(0);
     expect(parsed[1].name).toBe('HYG 1');
+    expect(parsed[1].velocity?.radialVelocity).toBe(15.0);
+  });
+
+  it('generates formal catalogs and spatial partition sectors when options are provided', async () => {
+    const csvContent =
+      'id,proper,ra,dec,dist,mag,absmag,spect,ci,lum,vx,vy,vz,rv\n' +
+      '0,Sol,0.0,0.0,0.0,-26.7,4.85,G2V,0.656,1.0,0.0,0.0,0.0,0.0\n' +
+      '1,AlphaCen,1.0,10.0,1.3,0.0,4.3,G2V,0.7,1.5,0.00001,0.0,0.0,-22.0\n' +
+      '2,DistantFaint,2.0,20.0,50.0,12.0,8.0,M0,1.2,0.1,0.0,0.0,0.0,0.0\n';
+
+    fs.writeFileSync(tempCsvPath, csvContent, 'utf-8');
+
+    const summary = await buildStarDataPipeline(tempCsvPath, tempJsonPath, {
+      catalogsDir: tempCatalogsDir,
+      partitionsDir: tempPartitionsDir,
+      maxPartitionDistancePc: 100,
+    });
+
+    expect(summary.validStars).toBe(3);
+    expect(summary.localVolume10pcCount).toBe(2); // Sol & AlphaCen (dist <= 10)
+    expect(summary.referenceBrightCount).toBe(2); // Sol & AlphaCen (mag <= 6.5)
+
+    // Verify 10pc formal catalog
+    const cat10pcPath = path.join(tempCatalogsDir, 'solar-neighborhood-10pc.json');
+    expect(fs.existsSync(cat10pcPath)).toBe(true);
+    const cat10pc: CatalogPayload = JSON.parse(fs.readFileSync(cat10pcPath, 'utf-8'));
+    expect(cat10pc.header.catalogId).toBe('solar-neighborhood-10pc');
+    expect(cat10pc.systems).toHaveLength(2);
+
+    // Verify reference bright stars formal catalog
+    const brightPath = path.join(tempCatalogsDir, 'reference-bright-stars.json');
+    expect(fs.existsSync(brightPath)).toBe(true);
+    const brightCat: CatalogPayload = JSON.parse(fs.readFileSync(brightPath, 'utf-8'));
+    expect(brightCat.header.catalogId).toBe('reference-bright-stars');
+    expect(brightCat.systems).toHaveLength(2);
+
+    // Verify sector partitions
+    const originSectorPath = path.join(tempPartitionsDir, 'sector_+000_+000_+000.json');
+    expect(fs.existsSync(originSectorPath)).toBe(true);
+    const originSector: SectorPartitionManifest = JSON.parse(fs.readFileSync(originSectorPath, 'utf-8'));
+    expect(originSector.sectorId).toBe('sector_+000_+000_+000');
+    expect(originSector.count).toBeGreaterThanOrEqual(2);
   });
 });
