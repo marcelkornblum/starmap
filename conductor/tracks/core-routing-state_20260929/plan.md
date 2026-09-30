@@ -1,10 +1,10 @@
 # Implementation Plan: Core Routing & State
 
 ## Phase 1: Router & Navigation Enforcer
-- [ ] Task: Install and configure TanStack Router.
-- [ ] Task: Scaffold the 4 base routes (`/galaxy`, `/system/$systemId`, `/planet/$planetId`, `/reference`).
-- [ ] Task: Implement the `useStarmapNav` hook to enforce the `push` vs `replace` browser history rules.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Install and configure TanStack Router.
+- [x] Task: Scaffold the 4 base routes (`/galaxy`, `/system/$systemId`, `/planet/$planetId`, `/reference`).
+- [x] Task: Implement the `useStarmapNav` hook to enforce the `push` vs `replace` browser history rules.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: State Persistence & Ephemeral Stores
 - [ ] Task: Install Zustand.
