@@ -226,7 +226,8 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
     });
 
     expect(summary.validStars).toBe(3);
-    expect(summary.localVolume10pcCount).toBe(2); // Sol & AlphaCen (dist <= 10)
+    // Sol & AlphaCen from CSV + 3 RECONS supplement systems
+    expect(summary.localVolume10pcCount).toBe(5);
     expect(summary.referenceBrightCount).toBe(2); // Sol & AlphaCen (mag <= 6.5)
 
     // Verify 10pc formal catalog
@@ -234,7 +235,7 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
     expect(fs.existsSync(cat10pcPath)).toBe(true);
     const cat10pc: CatalogPayload = JSON.parse(fs.readFileSync(cat10pcPath, 'utf-8'));
     expect(cat10pc.header.catalogId).toBe('solar-neighborhood-10pc');
-    expect(cat10pc.systems).toHaveLength(2);
+    expect(cat10pc.systems).toHaveLength(5);
 
     // Verify reference bright stars formal catalog
     const brightPath = path.join(tempCatalogsDir, 'reference-bright-stars.json');

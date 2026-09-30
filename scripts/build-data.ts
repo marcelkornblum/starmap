@@ -8,8 +8,6 @@ import type {
   CatalogManifestHeader,
   ExoplanetRecord,
   SystemManifest,
-  GalacticStructureRecord,
-  SolarSystemBodyRecord,
 } from '../src/types/astro';
 import {
   equatorialToCartesian,
@@ -18,11 +16,18 @@ import {
   getSectorBounds,
   DEFAULT_SECTOR_SIZE_PC,
 } from '../src/utils/astroMath';
+import {
+  OFFICIAL_IAU_STAR_NAMES,
+  RECONS_10PC_SUPPLEMENT,
+  IAU_NAME_EXOWORLDS,
+  AAVSO_VARIABLE_CATALOG,
+  FULL_GALACTIC_STRUCTURES,
+  FULL_SOLAR_SYSTEM_BODIES,
+} from './fetch-sources';
 
 /**
  * Parses and harmonizes a raw CSV record from hygdata_v3 into a strict StarmapNode.
- * Attaches calculated Cartesian coordinates and 3D velocity vectors when present.
- * Returns null if the star record is invalid or missing distance coordinates.
+ * Attaches calculated Cartesian coordinates, 3D velocity vectors, and official IAU proper names.
  *
  * @param row Raw key-value mapping from CSV row
  * @returns Valid StarmapNode or null if skipped
@@ -42,8 +47,17 @@ export function parseHygRow(row: Record<string, string>): StarmapNode | null {
     return null;
   }
 
+  const hip = row.hip && row.hip.trim().length > 0 ? parseInt(row.hip, 10) : null;
+  const hd = row.hd && row.hd.trim().length > 0 ? parseInt(row.hd, 10) : null;
+
   // Derive human-readable primary display name
-  const properName = row.proper && row.proper.trim().length > 0 ? row.proper.trim() : undefined;
+  let properName = row.proper && row.proper.trim().length > 0 ? row.proper.trim() : undefined;
+
+  // Cross-reference official IAU Working Group on Star Names gazetteer
+  if (!properName && hip && OFFICIAL_IAU_STAR_NAMES[`hip-${hip}`]) {
+    properName = OFFICIAL_IAU_STAR_NAMES[`hip-${hip}`].properName;
+  }
+
   let name = properName;
 
   if (!name) {
@@ -53,10 +67,10 @@ export function parseHygRow(row: Record<string, string>): StarmapNode | null {
       name = `${row.bayer.trim()} ${row.con.trim()}`;
     } else if (row.gl && row.gl.trim().length > 0) {
       name = row.gl.trim();
-    } else if (row.hip && row.hip.trim().length > 0) {
-      name = `HIP ${row.hip.trim()}`;
-    } else if (row.hd && row.hd.trim().length > 0) {
-      name = `HD ${row.hd.trim()}`;
+    } else if (hip) {
+      name = `HIP ${hip}`;
+    } else if (hd) {
+      name = `HD ${hd}`;
     } else if (row.hr && row.hr.trim().length > 0) {
       name = `HR ${row.hr.trim()}`;
     } else {
@@ -78,8 +92,6 @@ export function parseHygRow(row: Record<string, string>): StarmapNode | null {
 
   const velocity = parseKinematicVector(rawVx, rawVy, rawVz, pmra, pmdec, rv);
 
-  const hip = row.hip && row.hip.trim().length > 0 ? parseInt(row.hip, 10) : null;
-  const hd = row.hd && row.hd.trim().length > 0 ? parseInt(row.hd, 10) : null;
   const hr = row.hr && row.hr.trim().length > 0 ? parseInt(row.hr, 10) : null;
   const flam = row.flam && row.flam.trim().length > 0 ? parseInt(row.flam, 10) : null;
   const gl = row.gl && row.gl.trim().length > 0 ? row.gl.trim() : null;
@@ -118,8 +130,8 @@ export function parseHygRow(row: Record<string, string>): StarmapNode | null {
 }
 
 /**
- * Loads and indexes exoplanets from the Open Exoplanet Catalogue CSV.
- * Returns a map of normalized host star identifiers to their confirmed exoplanets.
+ * Loads and indexes exoplanets from the Open Exoplanet Catalogue CSV,
+ * enriching with official IAU NameExoWorlds common designations.
  *
  * @param csvPath Path to raw OEC CSV file
  * @returns Map of host star keys to ExoplanetRecord arrays
@@ -161,9 +173,13 @@ export function loadExoplanetCatalog(csvPath: string): Map<string, ExoplanetReco
     const discoverymethod = parts[13]?.trim() || undefined;
     const discoveryyear = parseInt(parts[14], 10);
 
+    // Cross-match IAU NameExoWorlds official common nomenclature
+    const iauMatch = IAU_NAME_EXOWORLDS[planetName];
+    const displayName = iauMatch ? `${planetName} (${iauMatch.planetName})` : planetName;
+
     const planetRecord: ExoplanetRecord = {
       id: planetName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      name: planetName,
+      name: displayName,
       letter,
       discoveryYear: !isNaN(discoveryyear) ? discoveryyear : undefined,
       discoveryMethod: discoverymethod,
@@ -185,6 +201,12 @@ export function loadExoplanetCatalog(csvPath: string): Map<string, ExoplanetReco
       hostName.toLowerCase(),
       hostName.toLowerCase().replace(/\s+/g, ''),
     ];
+
+    // If host has an IAU NameExoWorlds star name, index by that too
+    if (iauMatch) {
+      keys.push(iauMatch.starName.toLowerCase());
+      keys.push(iauMatch.starName.toLowerCase().replace(/\s+/g, ''));
+    }
 
     for (const key of keys) {
       let bucket = hostMap.get(key);
@@ -277,8 +299,8 @@ export function checkHabitableCandidate(planets: ExoplanetRecord[], starLum?: nu
 }
 
 /**
- * Transforms a StarmapNode into a collapsed SystemSummaryNode with spatial sector tags
- * and attached exoplanetary metrics.
+ * Transforms a StarmapNode into a collapsed SystemSummaryNode with spatial sector tags,
+ * variability flags, and attached exoplanetary metrics.
  *
  * @param star Source StarmapNode
  * @param planets Optional attached exoplanet records
@@ -299,6 +321,13 @@ export function starNodeToSystemSummary(
   }
   if (star.name === 'Sol') {
     tags.push('HomeSystem');
+  }
+
+  // Cross-reference variable star index
+  if (star.properName && AAVSO_VARIABLE_CATALOG[star.properName]) {
+    tags.push('VariableStar');
+  } else if (AAVSO_VARIABLE_CATALOG[star.name]) {
+    tags.push('VariableStar');
   }
 
   const isSol = star.name === 'Sol';
@@ -346,10 +375,6 @@ export interface BuildPipelineOptions {
   solDir?: string;
   /** Optional path to raw exoplanet catalogue CSV */
   exoplanetsCsvPath?: string;
-  /** Optional path to raw galactic structures JSON */
-  galacticStructuresJsonPath?: string;
-  /** Optional path to raw solar system bodies JSON */
-  solarSystemBodiesJsonPath?: string;
   /** Maximum distance limit in parsecs for spatial sector partitioning (default: 100) */
   maxPartitionDistancePc?: number;
 }
@@ -379,7 +404,8 @@ export interface CatalogPayload {
 
 /**
  * Streams raw HYG CSV dataset, harmonizes into StarmapNode records with 3D velocities,
- * cross-matches exoplanets, emits formal catalogs, sector partitions, and multi-layer overlays.
+ * merges RECONS ground truth, cross-matches exoplanets, emits formal catalogs,
+ * sector partitions, and multi-layer overlays.
  *
  * @param inputCsvPath Absolute or relative path to raw CSV file
  * @param outputJsonPath Absolute or relative path to destination JSON file
@@ -516,6 +542,47 @@ export async function buildStarDataPipeline(
         validStars++;
       })
       .on('end', () => {
+        // Integrate RECONS 10-pc supplement (brown dwarfs & low-mass neighbors absent in HYG)
+        for (const recons of RECONS_10PC_SUPPLEMENT) {
+          const [rx, ry, rz] = equatorialToCartesian(recons.ra, recons.dec, recons.dist);
+          const rSectorId = formatSectorId(rx, ry, rz);
+          const matchedPlanets = matchExoplanetsForStar(
+            { id: 990000, name: recons.name, ra: recons.ra, dec: recons.dec, dist: recons.dist, mag: recons.mag, absmag: recons.absmag, x: rx, y: ry, z: rz },
+            exoplanetHostMap,
+          );
+
+          const rSummary: SystemSummaryNode = {
+            id: recons.id,
+            name: recons.name,
+            properName: recons.properName,
+            x: rx,
+            y: ry,
+            z: rz,
+            dist: recons.dist,
+            mag: recons.mag,
+            absmag: recons.absmag,
+            spect: recons.spect,
+            starCount: recons.starCount,
+            planetCount: matchedPlanets.length,
+            hasHabitableCandidate: matchedPlanets.length > 0,
+            sectorId: rSectorId,
+            tags: ['SolarNeighborhood10pc', 'RECONSGroundTruth', ...(matchedPlanets.length > 0 ? ['ExoplanetHost'] : [])],
+          };
+
+          if (recons.dist <= 10) {
+            local10pcSystems.push(rSummary);
+          }
+
+          if (options?.partitionsDir) {
+            let bucket = sectorMap.get(rSectorId);
+            if (!bucket) {
+              bucket = [];
+              sectorMap.set(rSectorId, bucket);
+            }
+            bucket.push(rSummary);
+          }
+        }
+
         writeStream.write(']');
         writeStream.end();
       })
@@ -537,7 +604,7 @@ export async function buildStarDataPipeline(
           header: {
             catalogId: 'solar-neighborhood-10pc',
             name: 'Solar Neighborhood 10-Parsec Census',
-            description: 'Comprehensive census of verified stellar systems within 10 parsecs of Sol',
+            description: 'Comprehensive census of verified stellar systems within 10 parsecs of Sol including RECONS ground truth',
             epoch: 'J2000',
             count: local10pcSystems.length,
             timestamp: nowIso,
@@ -549,7 +616,7 @@ export async function buildStarDataPipeline(
           header: {
             catalogId: 'reference-bright-stars',
             name: 'Photometric Reference Bright Stars (V <= 6.5, <= 100 pc)',
-            description: 'Navigational and naked-eye reference stars within the 100-parsec volume',
+            description: 'Navigational and naked-eye reference stars within the 100-parsec volume enriched with IAU official names',
             epoch: 'J2000',
             count: referenceBrightSystems.length,
             timestamp: nowIso,
@@ -615,7 +682,6 @@ export async function buildStarDataPipeline(
       }
 
       // 4. Write Layer 2 Exoplanet & Layer 3 Galactic Structure Overlays
-      let galacticStructuresCount = 0;
       if (options?.overlaysDir) {
         const resolvedOverlays = path.resolve(options.overlaysDir);
         if (!fs.existsSync(resolvedOverlays)) {
@@ -635,77 +701,91 @@ export async function buildStarDataPipeline(
           'utf-8',
         );
 
-        // Layer 3 Galactic structures overlay
-        const rawGalacticPath = options?.galacticStructuresJsonPath || 'data/raw/galactic-structures.json';
-        const resolvedGalactic = path.resolve(rawGalacticPath);
-        if (fs.existsSync(resolvedGalactic)) {
-          const rawStructures: GalacticStructureRecord[] = JSON.parse(
-            fs.readFileSync(resolvedGalactic, 'utf-8'),
-          );
-          galacticStructuresCount = rawStructures.length;
-
-          fs.writeFileSync(
-            path.join(resolvedOverlays, 'galactic-structures.json'),
-            JSON.stringify({
-              overlayId: 'galactic-structures',
-              title: 'Local Galactic Structures & Deep Sky',
-              count: rawStructures.length,
-              timestamp: nowIso,
-              structures: rawStructures,
-            }),
-            'utf-8',
-          );
-        }
+        // Layer 3 Galactic structures overlay (Full 21 structures: clusters, remnants, pulsars, nebulae)
+        fs.writeFileSync(
+          path.join(resolvedOverlays, 'galactic-structures.json'),
+          JSON.stringify({
+            overlayId: 'galactic-structures',
+            title: 'Local Galactic Structures, Clusters & Deep Sky',
+            count: FULL_GALACTIC_STRUCTURES.length,
+            timestamp: nowIso,
+            structures: FULL_GALACTIC_STRUCTURES,
+          }),
+          'utf-8',
+        );
       }
 
-      // 5. Write Layer 4 Solar System primary bodies & NEOs
-      let solarSystemBodiesCount = 0;
+      // 5. Write Layer 4 Solar System bodies (Primary, Asteroids, Comets, NEOs)
       if (options?.solDir) {
         const resolvedSol = path.resolve(options.solDir);
         if (!fs.existsSync(resolvedSol)) {
           fs.mkdirSync(resolvedSol, { recursive: true });
         }
 
-        const rawSolPath = options?.solarSystemBodiesJsonPath || 'data/raw/solar-system-bodies.json';
-        const resolvedSolRaw = path.resolve(rawSolPath);
+        const primaryBodies = FULL_SOLAR_SYSTEM_BODIES.filter(
+          (b) => b.classification === 'Star' || b.classification === 'Planet' || b.classification === 'DwarfPlanet' || b.classification === 'Moon',
+        );
+        const asteroids = FULL_SOLAR_SYSTEM_BODIES.filter(
+          (b) => b.classification === 'AsteroidMainBelt' || b.classification === 'AsteroidNEO',
+        );
+        const comets = FULL_SOLAR_SYSTEM_BODIES.filter(
+          (b) => b.classification === 'Comet',
+        );
+        const neos = FULL_SOLAR_SYSTEM_BODIES.filter(
+          (b) => b.classification === 'AsteroidNEO',
+        );
 
-        if (fs.existsSync(resolvedSolRaw)) {
-          const bodies: SolarSystemBodyRecord[] = JSON.parse(fs.readFileSync(resolvedSolRaw, 'utf-8'));
-          solarSystemBodiesCount = bodies.length;
+        fs.writeFileSync(
+          path.join(resolvedSol, 'ephemeris-primary-bodies.json'),
+          JSON.stringify({
+            datasetId: 'sol-primary-bodies',
+            title: 'Solar System Primary Bodies & Major Moons',
+            epoch: 'J2000',
+            count: primaryBodies.length,
+            timestamp: nowIso,
+            bodies: primaryBodies,
+          }),
+          'utf-8',
+        );
 
-          const primaryBodies = bodies.filter(
-            (b) => b.classification === 'Star' || b.classification === 'Planet' || b.classification === 'DwarfPlanet' || b.classification === 'Moon',
-          );
-          const minorBodies = bodies.filter(
-            (b) => b.classification === 'AsteroidNEO' || b.classification === 'AsteroidMainBelt' || b.classification === 'Comet',
-          );
+        fs.writeFileSync(
+          path.join(resolvedSol, 'orbital-elements-asteroids.json'),
+          JSON.stringify({
+            datasetId: 'sol-asteroids',
+            title: 'Solar System Asteroids, Trojans & Centaurs',
+            epoch: 'J2000',
+            count: asteroids.length,
+            timestamp: nowIso,
+            bodies: asteroids,
+          }),
+          'utf-8',
+        );
 
-          fs.writeFileSync(
-            path.join(resolvedSol, 'ephemeris-primary-bodies.json'),
-            JSON.stringify({
-              datasetId: 'sol-primary-bodies',
-              title: 'Solar System Primary Bodies & Major Moons',
-              epoch: 'J2000',
-              count: primaryBodies.length,
-              timestamp: nowIso,
-              bodies: primaryBodies,
-            }),
-            'utf-8',
-          );
+        fs.writeFileSync(
+          path.join(resolvedSol, 'orbital-elements-comets.json'),
+          JSON.stringify({
+            datasetId: 'sol-comets',
+            title: 'Solar System Periodic & Historic Comets',
+            epoch: 'J2000',
+            count: comets.length,
+            timestamp: nowIso,
+            bodies: comets,
+          }),
+          'utf-8',
+        );
 
-          fs.writeFileSync(
-            path.join(resolvedSol, 'orbital-elements-neo.json'),
-            JSON.stringify({
-              datasetId: 'sol-minor-bodies-neo',
-              title: 'Solar System Minor Planets & Near-Earth Objects',
-              epoch: 'J2000',
-              count: minorBodies.length,
-              timestamp: nowIso,
-              bodies: minorBodies,
-            }),
-            'utf-8',
-          );
-        }
+        fs.writeFileSync(
+          path.join(resolvedSol, 'orbital-elements-neo.json'),
+          JSON.stringify({
+            datasetId: 'sol-minor-bodies-neo',
+            title: 'Solar System Near-Earth Objects & Hazardous Asteroids',
+            epoch: 'J2000',
+            count: neos.length,
+            timestamp: nowIso,
+            bodies: neos,
+          }),
+          'utf-8',
+        );
       }
 
       resolve({
@@ -719,8 +799,8 @@ export async function buildStarDataPipeline(
         sectorPartitionCount: options?.partitionsDir ? sectorMap.size : undefined,
         exoplanetSystemCount: exoplanetHostSummaries.length,
         totalExoplanetsAttached,
-        galacticStructuresCount: options?.overlaysDir ? galacticStructuresCount : undefined,
-        solarSystemBodiesCount: options?.solDir ? solarSystemBodiesCount : undefined,
+        galacticStructuresCount: options?.overlaysDir ? FULL_GALACTIC_STRUCTURES.length : undefined,
+        solarSystemBodiesCount: options?.solDir ? FULL_SOLAR_SYSTEM_BODIES.length : undefined,
       });
     });
 
@@ -761,7 +841,7 @@ if (isDirectExecution) {
       console.log(`  - Skipped invalid rows: ${summary.skippedRows}`);
       console.log(`  - Base output: ${summary.outputPath}`);
       if (summary.localVolume10pcCount !== undefined) {
-        console.log(`  - Layer 1 (<= 10 pc census): ${summary.localVolume10pcCount} systems`);
+        console.log(`  - Layer 1 (<= 10 pc census): ${summary.localVolume10pcCount} systems (including RECONS ground truth)`);
       }
       if (summary.referenceBrightCount !== undefined) {
         console.log(`  - Layer 1 (Naked-eye V <= 6.5): ${summary.referenceBrightCount} systems`);
@@ -773,10 +853,10 @@ if (isDirectExecution) {
         console.log(`  - Layer 2 (Exoplanet host systems): ${summary.exoplanetSystemCount} systems (${summary.totalExoplanetsAttached} confirmed planets)`);
       }
       if (summary.galacticStructuresCount !== undefined) {
-        console.log(`  - Layer 3 (Galactic deep sky structures): ${summary.galacticStructuresCount} objects`);
+        console.log(`  - Layer 3 (Galactic deep sky structures): ${summary.galacticStructuresCount} objects (Clusters, SNRs, Pulsars, Nebulae)`);
       }
       if (summary.solarSystemBodiesCount !== undefined) {
-        console.log(`  - Layer 4 (Sol system primary & minor bodies): ${summary.solarSystemBodiesCount} bodies`);
+        console.log(`  - Layer 4 (Sol system primary & minor bodies): ${summary.solarSystemBodiesCount} bodies (Planets, Moons, Asteroids, Comets)`);
       }
     })
     .catch((err) => {

@@ -11,8 +11,7 @@ node_modules
 dist
 dist-ssr
 coverage
-public/data/
-data/raw/
+/data/
 *.local
 
 # Editor directories and files
