@@ -7,10 +7,10 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: State Persistence & Ephemeral Stores
-- [ ] Task: Install Zustand.
-- [ ] Task: Create `useSettingsStore` utilizing the `persist` middleware for `localStorage`.
-- [ ] Task: Create `useUIStore` for handling ephemeral, view-level and global transient state.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Install Zustand.
+- [x] Task: Create `useSettingsStore` utilizing the `persist` middleware for `localStorage`.
+- [x] Task: Create `useUIStore` for handling ephemeral, view-level and global transient state.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: Global Canvas & Route Loaders
 - [ ] Task: Wrap the application root in a single React Three Fiber `<Canvas>`.
