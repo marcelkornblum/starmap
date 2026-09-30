@@ -253,7 +253,9 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
 });
 
 describe('Declarative Data Sources Registry', () => {
-  it('defines all four agreed astronomical layers with valid metadata', () => {
+  it('defines all four agreed astronomical layers with valid metadata across 23 sources', () => {
+    expect(DATA_SOURCES_REGISTRY.sources.length).toBe(23);
+
     const layers = new Set(DATA_SOURCES_REGISTRY.sources.map((s) => s.layer));
     expect(layers).toContain('stellar-neighborhood');
     expect(layers).toContain('exoplanetary-systems');
@@ -265,19 +267,24 @@ describe('Declarative Data Sources Registry', () => {
       expect(source.name).toBeTruthy();
       expect(source.authority).toBeTruthy();
       expect(source.localCachePath).toBeTruthy();
+      expect(source.status).toBeTruthy();
       expect(source.contributions.length).toBeGreaterThan(0);
       expect(source.targetArtifacts.length).toBeGreaterThan(0);
     }
   });
 
   it('supports helper lookups by ID and Layer', () => {
-    const hyg = getDataSource('stellar-neighborhood-hyg');
+    const hyg = getDataSource('stellar-hyg-database');
     expect(hyg).toBeDefined();
     expect(hyg?.layer).toBe('stellar-neighborhood');
+    expect(hyg?.status).toBe('integrated');
 
     const exoSources = getDataSourcesByLayer('exoplanetary-systems');
-    expect(exoSources).toHaveLength(1);
-    expect(exoSources[0].id).toBe('exoplanetary-systems-oec');
+    expect(exoSources.length).toBeGreaterThanOrEqual(5);
+    expect(exoSources.some((s) => s.id === 'exoplanet-oec')).toBe(true);
+
+    const integratedSources = DATA_SOURCES_REGISTRY.sources.filter((s) => s.status === 'integrated');
+    expect(integratedSources.length).toBeGreaterThanOrEqual(4);
   });
 });
 

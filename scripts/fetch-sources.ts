@@ -486,9 +486,9 @@ export async function fetchAllDataSources(force = false): Promise<FetchSummary[]
         }
 
         let seedContent = '';
-        if (source.id === 'galactic-structures-local') {
+        if (source.id === 'galactic-structures-curated' || source.id === 'galactic-structures-local') {
           seedContent = JSON.stringify(SEED_GALACTIC_STRUCTURES, null, 2);
-        } else if (source.id === 'solar-system-horizons') {
+        } else if (source.id === 'solar-system-horizons-primary' || source.id === 'solar-system-horizons') {
           seedContent = JSON.stringify(SEED_SOLAR_SYSTEM_BODIES, null, 2);
         }
 

@@ -50,8 +50,14 @@ export interface DataSourceDefinition {
   fallbackUrl?: string;
   /** Local cache path relative to project root (e.g., 'data/raw/exoplanets.csv') */
   localCachePath: string;
-  /** Whether this source is actively enabled in the build pipeline */
+  /** Ingestion integration lifecycle status */
+  status: 'integrated' | 'staged' | 'planned';
+  /** Whether this source is actively executed in the build pipeline */
   enabled: boolean;
+  /** Estimated size of dataset in memory or on disk */
+  sizeEstimate?: string;
+  /** Frequency at which upstream authority updates this dataset */
+  updateFrequency?: string;
   /** Declarative list of scientific contributions provided by this source */
   contributions: DataSourceContribution[];
   /** Expected target artifact paths emitted into public/data/ */
