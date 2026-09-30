@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { equatorialToCartesian } from '../src/utils/astroMath'
+import {
+  equatorialToCartesian,
+  rotateToOrbitalPlane,
+  DEG_TO_RADIANS,
+} from '../src/utils/astroMath'
 import type { StarmapNode } from '../src/types/astro'
 import starsFixture from './fixtures/stars.fixture.json'
 
@@ -57,7 +61,6 @@ describe('equatorialToCartesian', () => {
       const [x, y, z] = equatorialToCartesian(star.ra, star.dec, star.dist)
 
       // Compare calculated XYZ against HYG CSV catalog XYZ coordinates
-      // HYG uses the exact same equatorial coordinate formula
       expect(x).toBeCloseTo(star.x, 3)
       expect(y).toBeCloseTo(star.y, 3)
       expect(z).toBeCloseTo(star.z, 3)
@@ -77,5 +80,90 @@ describe('equatorialToCartesian', () => {
     expect(buffer[3]).toBeCloseTo(0, 5)
     expect(buffer[4]).toBeCloseTo(5, 5)
     expect(buffer[5]).toBeCloseTo(0, 5)
+  })
+})
+
+describe('rotateToOrbitalPlane', () => {
+  it('leaves coordinates unchanged when inclination is 0 (identity rotation)', () => {
+    const buffer = new Float32Array([10, 20, 30, -5, 12, 42])
+    const returned = rotateToOrbitalPlane(buffer, 0, 0)
+
+    expect(returned).toBe(buffer) // Must mutate in-place and return same reference
+    expect(buffer[0]).toBeCloseTo(10, 5)
+    expect(buffer[1]).toBeCloseTo(20, 5)
+    expect(buffer[2]).toBeCloseTo(30, 5)
+    expect(buffer[3]).toBeCloseTo(-5, 5)
+    expect(buffer[4]).toBeCloseTo(12, 5)
+    expect(buffer[5]).toBeCloseTo(42, 5)
+  })
+
+  it("tilts coordinates by 23.5 degrees (Earth's ecliptic test)", () => {
+    // Star on Z-axis (North celestial pole): [0, 0, 100]
+    // Line of nodes Omega = 0 (tilt axis is X-axis)
+    const tiltDeg = 23.5
+    const tiltRad = tiltDeg * DEG_TO_RADIANS
+    const buffer = new Float32Array([0, 0, 100])
+
+    rotateToOrbitalPlane(buffer, tiltRad, 0)
+
+    // X should remain 0 (on rotation axis)
+    expect(buffer[0]).toBeCloseTo(0, 4)
+    // Y tilted by sin(23.5 deg) * 100
+    expect(buffer[1]).toBeCloseTo(100 * Math.sin(tiltRad), 4)
+    // Z tilted by cos(23.5 deg) * 100
+    expect(buffer[2]).toBeCloseTo(100 * Math.cos(tiltRad), 4)
+
+    // Radial distance must remain strictly preserved
+    const dist = Math.sqrt(buffer[0] ** 2 + buffer[1] ** 2 + buffer[2] ** 2)
+    expect(dist).toBeCloseTo(100, 4)
+  })
+
+  it('supports degrees option for convenience', () => {
+    const buffer = new Float32Array([0, 0, 100])
+    rotateToOrbitalPlane(buffer, 23.5, 0, { degrees: true })
+
+    const expectedRad = 23.5 * DEG_TO_RADIANS
+    expect(buffer[0]).toBeCloseTo(0, 4)
+    expect(buffer[1]).toBeCloseTo(100 * Math.sin(expectedRad), 4)
+    expect(buffer[2]).toBeCloseTo(100 * Math.cos(expectedRad), 4)
+  })
+
+  it('correctly rotates with non-zero ascending node', () => {
+    // Star initially at [100, 0, 0]
+    // Ascending node at 90 degrees (tilt axis is Y-axis)
+    // Tilting by 90 degrees around Y-axis brings X onto -Z or +Z
+    const buffer = new Float32Array([100, 0, 0])
+    rotateToOrbitalPlane(buffer, 90, 90, { degrees: true })
+
+    const dist = Math.sqrt(buffer[0] ** 2 + buffer[1] ** 2 + buffer[2] ** 2)
+    expect(dist).toBeCloseTo(100, 4)
+  })
+
+  it('preserves distances for bulk fixture stars during rotation', () => {
+    const stars = starsFixture as StarmapNode[]
+    const buffer = new Float32Array(stars.length * 3)
+
+    // Populate buffer with fixture XYZ coordinates
+    for (let i = 0; i < stars.length; i++) {
+      buffer[i * 3] = stars[i].x
+      buffer[i * 3 + 1] = stars[i].y
+      buffer[i * 3 + 2] = stars[i].z
+    }
+
+    // Rotate all stars by 45 degrees inclination, 30 degrees node
+    rotateToOrbitalPlane(buffer, 45, 30, { degrees: true })
+
+    for (let i = 0; i < stars.length; i++) {
+      const origDist = Math.sqrt(stars[i].x ** 2 + stars[i].y ** 2 + stars[i].z ** 2)
+      const rotatedDist = Math.sqrt(
+        buffer[i * 3] ** 2 + buffer[i * 3 + 1] ** 2 + buffer[i * 3 + 2] ** 2,
+      )
+      expect(rotatedDist).toBeCloseTo(origDist, 3)
+    }
+  })
+
+  it('performs bulk transformation efficiently without errors on empty or odd-length buffers', () => {
+    const emptyBuffer = new Float32Array(0)
+    expect(rotateToOrbitalPlane(emptyBuffer, 10, 10)).toBe(emptyBuffer)
   })
 })
