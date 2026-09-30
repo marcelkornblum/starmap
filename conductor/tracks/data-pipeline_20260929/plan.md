@@ -1,10 +1,10 @@
 # Implementation Plan: Data Pipeline
 
-## Phase 1: Ingestion & Streaming
+## Phase 1: Ingestion & Streaming [checkpoint: 945f798]
 - [x] Task: Install `csv-parser` or similar Node.js streaming CSV library. [fccc7db]
-- [ ] Task: Create `scripts/build-data.ts`.
-- [ ] Task: Implement the file read stream to pipe `data/hygdata_v3.csv` through the CSV parser without blowing up memory.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Create `scripts/build-data.ts`. [945f798]
+- [x] Task: Implement the file read stream to pipe `data/hygdata_v3.csv` through the CSV parser without blowing up memory. [945f798]
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md) [945f798]
 
 ## Phase 2: Harmonization & Math Integration
 - [ ] Task: Import `equatorialToCartesian` from the math track.
