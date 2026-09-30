@@ -336,6 +336,7 @@ Before requesting review:
 - **No Direct Commits:** Commits directly to the `main` branch are strictly forbidden.
 - **Feature Branches:** All work must be done on a dedicated feature or chore branch (e.g., `feat/<track-name>`).
 - **Pull Requests:** Integration into `main` must occur exclusively via Pull Requests.
+- **Always Open a Pull Request:** The final step of any completed request or task is NOT just committing code; the branch must be pushed to origin and a Pull Request must be opened against `main` (e.g., via `gh pr create`).
 
 ## Commit Guidelines
 ### Message Format
@@ -380,6 +381,7 @@ A task is complete when:
 7.  Implementation notes added to `plan.md`
 8.  Changes committed with proper message
 9.  Git note with task summary attached to the commit
+10. Branch pushed to origin and Pull Request opened against `main` (via `gh pr create`)
 
 ## Emergency Procedures
 

@@ -19,3 +19,5 @@ Always check the active track in `conductor/tracks/` before making any codebase 
 1. **Never Commit to Main:** You MUST NEVER commit directly to the `main` branch.
 2. **Always Use Feature Branches:** Before making any code changes or running tracks, you MUST checkout a new branch (e.g., `feat/<track-name>` or `chore/<task>`).
 3. **PRs Only:** All code must be integrated into `main` strictly via Pull Requests. Do not merge locally.
+4. **Always Open a Pull Request:** The final step of any completed request or task is NOT just committing changes—you MUST push the feature/chore branch to origin and open a Pull Request against `main` (e.g., via `gh pr create`).
+
