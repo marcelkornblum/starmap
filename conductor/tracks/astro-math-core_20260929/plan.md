@@ -9,7 +9,7 @@
 ## Phase 2: Core Coordinate Transformation (TDD)
 - [x] Task: Write failing unit tests for `equatorialToCartesian(ra, dec, dist)` verifying against the fixture data. [ac345ab]
 - [x] Task: Implement `equatorialToCartesian` (in `src/utils/astroMath.ts`) until tests pass. [ad122e8]
-- [ ] Task: Verify 100% test coverage on `equatorialToCartesian`.
+- [x] Task: Verify 100% test coverage on `equatorialToCartesian`. [e324ade]
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: Arbitrary Plane Rotation (TDD)
