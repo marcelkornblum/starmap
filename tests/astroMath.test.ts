@@ -3,6 +3,8 @@ import {
   equatorialToCartesian,
   rotateToOrbitalPlane,
   DEG_TO_RADIANS,
+  EARTH_OBLIQUITY_DEG,
+  EARTH_OBLIQUITY_RAD,
 } from '../src/utils/astroMath';
 import type { StarmapNode } from '../src/types/astro';
 import starsFixture from './fixtures/stars.fixture.json';
@@ -80,6 +82,17 @@ describe('equatorialToCartesian', () => {
     expect(buffer[3]).toBeCloseTo(0, 5);
     expect(buffer[4]).toBeCloseTo(5, 5);
     expect(buffer[5]).toBeCloseTo(0, 5);
+  });
+
+  it('throws RangeError when target buffer offset is invalid or overflows', () => {
+    const buffer = new Float32Array(3);
+    expect(() => equatorialToCartesian(0, 0, 10, buffer, -1)).toThrow(RangeError);
+    expect(() => equatorialToCartesian(0, 0, 10, buffer, 1)).toThrow(RangeError);
+  });
+
+  it('exports accurate astronomical constants including Earth obliquity', () => {
+    expect(EARTH_OBLIQUITY_DEG).toBeCloseTo(23.4393, 3);
+    expect(EARTH_OBLIQUITY_RAD).toBeCloseTo(23.4393 * DEG_TO_RADIANS, 5);
   });
 });
 

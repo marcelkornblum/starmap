@@ -9,6 +9,12 @@ export const DEG_TO_RADIANS = Math.PI / 180;
 /** Multiplier to convert radians to degrees: 180 / PI */
 export const RADIANS_TO_DEG = 180 / Math.PI;
 
+/** Obliquity of the Earth's ecliptic plane in degrees (epoch J2000) */
+export const EARTH_OBLIQUITY_DEG = 23.4392911;
+
+/** Obliquity of the Earth's ecliptic plane in radians (epoch J2000) */
+export const EARTH_OBLIQUITY_RAD = EARTH_OBLIQUITY_DEG * DEG_TO_RADIANS;
+
 /**
  * Options for orbital plane rotation transformations.
  */
@@ -53,15 +59,13 @@ export function equatorialToCartesian<
   offset?: number,
 ): T;
 
-export function equatorialToCartesian<
-  T extends Float32Array | Float64Array | number[] = CartesianTuple,
->(
+export function equatorialToCartesian(
   ra: number,
   dec: number,
   dist: number,
-  target?: T,
+  target?: Float32Array | Float64Array | number[],
   offset = 0,
-): T {
+): CartesianTuple | Float32Array | Float64Array | number[] {
   const raRad = ra * HOURS_TO_RADIANS;
   const decRad = dec * DEG_TO_RADIANS;
 
@@ -74,13 +78,21 @@ export function equatorialToCartesian<
   const y = dist * cosDec * sinRa;
   const z = dist * sinDec;
 
-  // If no target buffer provided, instantiate default CartesianTuple [x, y, z]
-  const out = (target ?? [0, 0, 0]) as unknown as T;
-  out[offset] = x;
-  out[offset + 1] = y;
-  out[offset + 2] = z;
+  if (!target) {
+    return [x, y, z];
+  }
 
-  return out;
+  if (offset < 0 || offset + 3 > target.length) {
+    throw new RangeError(
+      `Target buffer offset out of bounds: offset=${offset}, length=${target.length}`,
+    );
+  }
+
+  target[offset] = x;
+  target[offset + 1] = y;
+  target[offset + 2] = z;
+
+  return target;
 }
 
 /**
