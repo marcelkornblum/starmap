@@ -48,3 +48,8 @@ There are clear styleguides to follow; you can find them in `conductor/code_styl
    - Run a `/code-review` (or invoke the `code-review` skill) to identify and eliminate technical debt, code smells, or guideline violations before submitting.
 5. **Always Open a Pull Request:** The final step of any completed request or task is NOT just committing changes—you MUST push the feature/chore branch to origin and open a Pull Request against `main` (via `gh pr create`).
 6. **Verify CI Completion:** After opening the PR, monitor and ensure that all automated CI checks (`Lint`, `Type Check`, `Test`, `Build`, and `CI Complete`) complete successfully.
+7. **Automated AI Review Loop:**
+   - Once the PR is opened (as a non-draft), wait for the automated Gemini code review.
+   - Check back, inspect all comments, and address any defects or suggestions it raises.
+   - Request another review by commenting `/review` on the PR and repeat this loop until Gemini returns a clean pass (no unresolved findings).
+   - Once Gemini gives the all-clear, halt and wait for human review.
