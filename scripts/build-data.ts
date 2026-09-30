@@ -1472,7 +1472,7 @@ export async function buildCsvDataPipeline(
         local10pcCount: local10pcSystems.length,
         referenceBrightCount: referenceBrightSystems.length,
         sectorPartitionCount: options?.partitionsDir ? sectorMap.size : undefined,
-        exoplanetSystemCount: exoplanetHostSummaries.length,
+        exoplanetSystemCount: exoplanetHostSummaries.length || exoplanetSystemCount,
         totalExoplanets: totalExoplanetsAttached,
         totalExoplanetsAttached,
         galacticStructuresCount: options?.overlaysDir ? FULL_GALACTIC_STRUCTURES.length : undefined,

@@ -1,29 +1,31 @@
-# General Code Style Principles
+---
+trigger: always_on
+---
 
-This document outlines general coding principles that apply across all languages
-and frameworks used in this project.
+# General Coding Best Practices
 
-## Readability
+## Naming Conventions
+- **Outcome-Oriented**: Name variables, attributes, and functions based on their **outcome** or **intent**, not their internal representation.
+- **Verb-Noun Pattern**: Prefer the `verbNoun` pattern for functions/methods (e.g., `getUserProfile`, `saveConfiguration`, `calculateCartesianCoordinates`).
+- **Clarity over Brevity**: A descriptive name is always better than a cryptic one. Avoid abbreviations unless they are industry standard (e.g., `id`, `url`, `ra`, `dec`).
+- **Clean Refactoring**: When refactoring internal APIs, do not include import shims for backwards-compatibility; update the import paths everywhere in the codebase.
 
--   Code should be easy to read and understand by humans.
--   Avoid overly clever or obscure constructs.
+## Pattern Reuse & Consistency
+- **Idiomatic Usage**: Always use the most idiomatic patterns for TypeScript and React 19 (e.g., modern hooks, strict null checks, discriminated unions).
+- **Existing Patterns**: Research the codebase before implementing something new. If a pattern for your task already exists, reuse it to maintain consistency.
+- **DRY (Don't Repeat Yourself)**: Extract common logic into reusable functions or components, but avoid over-abstraction.
+- **YAGNI (You Aren't Gonna Need It)**: Do not over-build features until you know they are needed; a smaller, tighter surface area is superior.
 
-## Consistency
+## Logic & Flow
+- **Low Cognitive Load**: Write simple, clear paths of execution.
+- **Guard Clauses**: Use guard clauses to handle edge cases, missing data, and invalid parameters early, reducing nested `if/else` branches.
+- **Function Responsibility**: Keep functions small and focused strictly on a single concern. If a function handles multiple responsibilities, decompose it.
 
--   Follow existing patterns in the codebase.
--   Maintain consistent formatting, naming, and structure.
-
-## Simplicity
-
--   Prefer simple solutions over complex ones.
--   Break down complex problems into smaller, manageable parts.
-
-## Maintainability
-
--   Write code that is easy to modify and extend.
--   Minimize dependencies and coupling.
+## Error Handling
+- **Explicit Failure**: Throw errors early with clear, actionable messages. Specific error types/classes are preferred over generic strings.
+- **Fail Silently?**: Only fail silently if explicitly instructed, and ensure the reason is documented in code and covered by tests.
 
 ## Documentation
-
--   Document *why* something is done, not just *what*.
--   Keep documentation up-to-date with code changes.
+- **Self-Documenting Code**: Write code that is easy to understand without comments. If it is not clear, refactor it.
+- **Docblocks**: Use standard JSDoc/TSDoc formats to describe function parameters, return values, units of measure (e.g., parsecs, light-years, radians), and coordinate frames.
+- **Relative Links**: Always use relative file links (e.g., `[filename](../path/to/file)`) rather than absolute system paths when referencing other files in markdown documents, plans, or codebase documentation.
