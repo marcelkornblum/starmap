@@ -268,7 +268,10 @@ export interface GalacticStructureRecord {
     | 'Pulsar'
     | 'PlanetaryNebula'
     | 'InterstellarMedium'
-    | 'MovingGroup';
+    | 'MovingGroup'
+    | 'EmissionNebula'
+    | 'DarkNebula'
+    | 'DeepSkyLandmark';
   /** Cartesian X coordinate in parsecs (Equatorial J2000) */
   x: number;
   /** Cartesian Y coordinate in parsecs (Equatorial J2000) */
@@ -305,6 +308,7 @@ export interface SolarSystemBodyRecord {
     | 'Moon'
     | 'AsteroidNEO'
     | 'AsteroidMainBelt'
+    | 'AsteroidDistant'
     | 'Comet';
   /** Parent body identifier for moons or secondary companions (e.g. 'sol', 'earth', 'jupiter') */
   parentBodyId?: string;
