@@ -1,0 +1,173 @@
+@layer tokens {
+  :root {
+    /* ------------------------------------------------------------------------ */
+    /* 1. Literal Palette: Canonical Solarized in OKLCH Color Space             */
+    /* Perceptually uniform lightness, chroma, and hue angles                   */
+    /* ------------------------------------------------------------------------ */
+
+    /* Monotonic Neutrals */
+    --palette-solarized-base03: oklch(26.73% 0.0486 219.82); /* Dark: Canvas floor */
+    --palette-solarized-base02: oklch(30.92% 0.0518 219.65); /* Dark: Elevated panels / docks */
+    --palette-solarized-base01: oklch(52.30% 0.0283 219.14); /* Dark: Muted text; Light: Prominent text */
+    --palette-solarized-base00: oklch(56.82% 0.0285 221.90); /* Dark: Faint text; Light: Default text */
+    --palette-solarized-base0:  oklch(65.37% 0.0197 205.26); /* Dark: Default text; Light: Muted text */
+    --palette-solarized-base1:  oklch(69.79% 0.0159 196.79); /* Dark: Prominent text; Light: Faint text */
+    --palette-solarized-base2:  oklch(93.06% 0.0260 92.40);  /* Light: Elevated panels / docks */
+    --palette-solarized-base3:  oklch(97.35% 0.0261 90.10);  /* Light: Canvas floor */
+
+    /* Chromatic Accents */
+    --palette-solarized-yellow:  oklch(65.45% 0.1340 85.72);
+    --palette-solarized-orange:  oklch(58.08% 0.1732 39.50);
+    --palette-solarized-red:     oklch(58.63% 0.2064 27.12);
+    --palette-solarized-magenta: oklch(59.24% 0.2025 355.89);
+    --palette-solarized-violet:  oklch(58.23% 0.1261 279.10);
+    --palette-solarized-blue:    oklch(61.49% 0.1394 244.93);
+    --palette-solarized-cyan:    oklch(64.37% 0.1019 187.38);
+    --palette-solarized-green:   oklch(64.44% 0.1508 118.60);
+
+    /* Alpha Channel Swatches (Dark Theme Base: derived from base1 / base03) */
+    --palette-white-alpha-4:  oklch(69.79% 0.0159 196.79 / 0.04);
+    --palette-white-alpha-8:  oklch(69.79% 0.0159 196.79 / 0.08);
+    --palette-white-alpha-12: oklch(69.79% 0.0159 196.79 / 0.12);
+    --palette-white-alpha-16: oklch(69.79% 0.0159 196.79 / 0.16);
+    --palette-white-alpha-20: oklch(69.79% 0.0159 196.79 / 0.20);
+    --palette-white-alpha-24: oklch(69.79% 0.0159 196.79 / 0.24);
+    --palette-white-alpha-30: oklch(69.79% 0.0159 196.79 / 0.30);
+    --palette-white-alpha-32: oklch(69.79% 0.0159 196.79 / 0.32);
+    --palette-white-alpha-40: oklch(69.79% 0.0159 196.79 / 0.40);
+    --palette-white-alpha-50: oklch(69.79% 0.0159 196.79 / 0.50);
+    --palette-black-alpha-70: oklch(26.73% 0.0486 219.82 / 0.70);
+
+    /* Alpha Channel Swatches (Light Theme Base: derived from base01 / base3) */
+    --palette-black-alpha-4:  oklch(52.30% 0.0283 219.14 / 0.04);
+    --palette-black-alpha-8:  oklch(52.30% 0.0283 219.14 / 0.08);
+    --palette-black-alpha-12: oklch(52.30% 0.0283 219.14 / 0.12);
+    --palette-black-alpha-16: oklch(52.30% 0.0283 219.14 / 0.16);
+    --palette-black-alpha-20: oklch(52.30% 0.0283 219.14 / 0.20);
+    --palette-black-alpha-24: oklch(52.30% 0.0283 219.14 / 0.24);
+    --palette-black-alpha-30: oklch(52.30% 0.0283 219.14 / 0.30);
+    --palette-black-alpha-32: oklch(52.30% 0.0283 219.14 / 0.32);
+    --palette-black-alpha-40: oklch(52.30% 0.0283 219.14 / 0.40);
+    --palette-black-alpha-50: oklch(52.30% 0.0283 219.14 / 0.50);
+    --palette-light-scrim:    oklch(26.73% 0.0486 219.82 / 0.40);
+
+    /* ------------------------------------------------------------------------ */
+    /* 2. Literal Typography: Families & Mathematical Scale                     */
+    /* ------------------------------------------------------------------------ */
+    --font-family-sans:  system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-family-mono:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-family-serif: "Georgia", serif;
+
+    /* Major Third Scale (1.250) */
+    --type-base:        1rem;
+    --type-ratio:       1.25;
+
+    --type-scale-0:     var(--type-base);                                      /* 16.00px */
+    --type-scale-neg-1: calc(var(--type-scale-0) / var(--type-ratio));         /* 12.80px */
+    --type-scale-neg-2: calc(var(--type-scale-neg-1) / var(--type-ratio));     /* ~10.24px */
+    --type-scale-1:     calc(var(--type-scale-0) * var(--type-ratio));         /* 20.00px */
+    --type-scale-2:     calc(var(--type-scale-1) * var(--type-ratio));         /* 25.00px */
+    --type-scale-3:     calc(var(--type-scale-2) * var(--type-ratio));         /* ~31.25px */
+    --type-scale-4:     calc(var(--type-scale-3) * var(--type-ratio));         /* ~39.06px */
+
+    /* Line Height Multipliers */
+    --scalar-line-100: 1.0;
+    --scalar-line-115: 1.15;
+    --scalar-line-125: 1.25;
+    --scalar-line-140: 1.40;
+    --scalar-line-160: 1.60;
+
+    /* Tracking Offsets */
+    --scalar-track-tight:  -0.02em;
+    --scalar-track-normal:  0em;
+    --scalar-track-wide:    0.04em;
+    --scalar-track-wider:   0.08em;
+    --scalar-track-widest:  0.16em;
+
+    /* ------------------------------------------------------------------------ */
+    /* 3. Literal Spacing: Fibonacci Additive Sequence                          */
+    /* ------------------------------------------------------------------------ */
+    --space-unit:  1px;
+    --space-fib-1: calc(3 * var(--space-unit));                         /* 3px */
+    --space-fib-2: calc(5 * var(--space-unit));                         /* 5px */
+    --space-fib-3: calc(var(--space-fib-1) + var(--space-fib-2));       /* 8px */
+    --space-fib-4: calc(var(--space-fib-2) + var(--space-fib-3));       /* 13px */
+    --space-fib-5: calc(var(--space-fib-3) + var(--space-fib-4));       /* 21px */
+    --space-fib-6: calc(var(--space-fib-4) + var(--space-fib-5));       /* 34px */
+    --space-fib-7: calc(var(--space-fib-5) + var(--space-fib-6));       /* 55px */
+
+    /* ------------------------------------------------------------------------ */
+    /* 4. Literal Geometry & Strokes                                            */
+    /* ------------------------------------------------------------------------ */
+    --radius-0: 0px;
+    --radius-1: 2px;
+    --radius-2: 4px;
+
+    --stroke-width-0: 0px;
+    --stroke-width-1: 1px;
+    --stroke-width-2: 2px;
+
+    --stroke-style-none:   none;
+    --stroke-style-solid:  solid;
+    --stroke-style-dashed: dashed;
+    --stroke-style-dotted: dotted;
+
+    /* ------------------------------------------------------------------------ */
+    /* 5. Literal Elevation & Shadows                                           */
+    /* ------------------------------------------------------------------------ */
+    --elevation-0:     none;
+    --elevation-inset: inset 0 1px 3px oklch(0% 0 0 / 0.35);
+    --elevation-1:     0 1px 2px oklch(0% 0 0 / 0.25);
+    --elevation-2:     0 4px 12px oklch(0% 0 0 / 0.35);
+    --elevation-3:     0 8px 24px oklch(0% 0 0 / 0.45);
+    --elevation-4:     0 16px 40px oklch(0% 0 0 / 0.55);
+
+    /* ------------------------------------------------------------------------ */
+    /* 6. Literal Optics: Opacity & Blur Scales                                 */
+    /* ------------------------------------------------------------------------ */
+    --opacity-0:   0;
+    --opacity-5:   0.05;
+    --opacity-10:  0.10;
+    --opacity-15:  0.15;
+    --opacity-25:  0.25;
+    --opacity-40:  0.40;
+    --opacity-50:  0.50;
+    --opacity-70:  0.70;
+    --opacity-85:  0.85;
+    --opacity-90:  0.90;
+    --opacity-95:  0.95;
+    --opacity-100: 1.0;
+
+    --filter-blur-0: 0px;
+    --filter-blur-1: 4px;
+    --filter-blur-2: 8px;
+    --filter-blur-3: 16px;
+    --filter-blur-4: 24px;
+
+    /* ------------------------------------------------------------------------ */
+    /* 7. Literal Motion: Durations & Curves                                    */
+    /* ------------------------------------------------------------------------ */
+    --time-0: 0ms;
+    --time-1: 75ms;
+    --time-2: 150ms;
+    --time-3: 250ms;
+    --time-4: 400ms;
+
+    --curve-linear:  linear;
+    --curve-snappy:  cubic-bezier(0.2, 0, 0, 1);
+    --curve-spatial: cubic-bezier(0.4, 0, 0.2, 1);
+    --curve-in:      cubic-bezier(0.4, 0, 1, 1);
+
+    /* ------------------------------------------------------------------------ */
+    /* 8. Stacking Context (Z-Index Scale)                                      */
+    /* ------------------------------------------------------------------------ */
+    --z-canvas:  0;
+    --z-hud:     10;
+    --z-dock:    20;
+    --z-panel:   30;
+    --z-drawer:  40;
+    --z-popover: 50;
+    --z-modal:   60;
+    --z-toast:   70;
+  }
+}

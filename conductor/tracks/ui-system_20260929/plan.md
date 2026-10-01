@@ -1,10 +1,10 @@
 # Implementation Plan: UI System & Primitives
 
 ## Phase 1: Exploration & Global Tokens
-- [ ] Task: Create `docs/design-system.md` to map out the semantic vocabulary (surfaces, typographic scale, spacing ratios).
-- [ ] Task: Document the Component Taxonomy, defining strict structural categories (e.g., Layout Primitives, Interactive Atoms like Buttons, and Informational Blocks like Cards).
-- [ ] Task: Implement the global `tokens.css` file establishing the CSS variables for Light and Dark modes.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Create `docs/design-system.md` to map out the semantic vocabulary (surfaces, typographic scale, spacing ratios).
+- [x] Task: Document the Component Taxonomy, defining strict structural categories (e.g., Layout Primitives, Interactive Atoms like Buttons, and Informational Blocks like Cards).
+- [x] Task: Implement the global `tokens.css` file establishing the CSS variables for Light and Dark modes.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Composition Primitives
 - [ ] Task: Install and configure Storybook for the project.
