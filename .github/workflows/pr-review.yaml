@@ -18,11 +18,11 @@ concurrency:
 jobs:
   review:
     # Trigger conditions:
-    # 1. PR opened or marked ready for review (not draft)
+    # 1. PR opened or marked ready for review (not draft, not dependabot)
     # 2. PR comment starting with /review by a collaborator/contributor/owner
     # 3. Manual workflow_dispatch
     if: |
-      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.actor != 'dependabot[bot]') ||
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request &&
        startsWith(github.event.comment.body, '/review') &&
@@ -57,6 +57,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || github.event.inputs.pr_number }}
           REPO: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
