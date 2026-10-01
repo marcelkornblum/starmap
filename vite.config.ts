@@ -11,6 +11,11 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
     passWithNoTests: true,
+    server: {
+      deps: {
+        inline: ['three'],
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'json-summary', 'cobertura'],

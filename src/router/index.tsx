@@ -21,10 +21,10 @@ export interface StarmapSearchParams {
 }
 
 // Simulated network latency helper for render-then-fetch pattern
-export const simulateAsyncFetch = async <T,>(data: T, delayMs = 60): Promise<T> => {
+export async function simulateAsyncFetch<T>(data: T, delayMs = 60): Promise<T> {
   await new Promise((resolve) => setTimeout(resolve, delayMs));
   return data;
-};
+}
 
 // Root route definition with global search params validation
 export const rootRoute = createRootRoute({

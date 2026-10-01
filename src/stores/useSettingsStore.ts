@@ -42,7 +42,7 @@ const memoryStore = new Map<string, string>();
 export const fallbackStorage: Storage = {
   getItem: (key: string): string | null => memoryStore.get(key) ?? null,
   setItem: (key: string, value: string): void => {
-    memoryStore.set(key, value);
+    memoryStore.set(key, String(value));
   },
   removeItem: (key: string): void => {
     memoryStore.delete(key);
@@ -56,16 +56,19 @@ export const fallbackStorage: Storage = {
   },
 };
 
-export const resolveSettingsStorage = (): Storage => {
+export function resolveSettingsStorage(): Storage {
   if (typeof window !== 'undefined' && window.localStorage) {
     return window.localStorage;
   }
-  const globalCandidate = globalThis as unknown as { localStorage?: Storage };
-  if (globalCandidate.localStorage) {
-    return globalCandidate.localStorage;
+  if (
+    typeof globalThis !== 'undefined' &&
+    'localStorage' in globalThis &&
+    Boolean(globalThis.localStorage)
+  ) {
+    return globalThis.localStorage as Storage;
   }
   return fallbackStorage;
-};
+}
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(

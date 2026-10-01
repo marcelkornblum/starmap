@@ -9,6 +9,7 @@ This track establishes the fluid, responsive UI design system for Starmap, heavi
 3. **Component Token Interfaces:** UI components ("Blocks") must define localized CSS variables at the top of their CSS Modules. Global tokens are mapped to these local variables to create a strict, themeable Component API.
 4. **Comprehensive Storybook:** Every primitive and block must be fully documented and interactively testable in Storybook across all variants and themes.
 5. **Documentation & Guardrails:** Create clear guidelines for human developers (`docs/design-system.md`) and strict guardrails for AI agents (`.agents/AGENTS.md`) enforcing the CUBE architecture.
+6. **View Migration & Inline Style Elimination:** Migrate all existing application shell components and domain views to composition primitives, CSS modules, and semantic tokens, ensuring zero inline styles or magic numbers remain.
 
 ## Non-Functional Requirements
 - **No Magic Numbers:** Hardcoded hex values and arbitrary pixel spacing are strictly forbidden.
@@ -20,3 +21,5 @@ This track establishes the fluid, responsive UI design system for Starmap, heavi
 - [ ] Example UI blocks (e.g., Card, Toolbar) are built using the localized component token interface and cataloged.
 - [ ] Agent rules are updated to explicitly ban magic numbers and enforce primitive usage.
 - [ ] Developer documentation is finalized.
+- [ ] Existing views (`RootLayout`, `GalaxyView`, `SystemView`, `PlanetView`, `ReferenceView`) are refactored to eliminate inline styles in favour of primitives and token interfaces.
+

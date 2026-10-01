@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { router, routeTree, rootRoute } from '../src/router';
+import {
+  router,
+  routeTree,
+  rootRoute,
+  indexRoute,
+  galaxyRoute,
+  systemRoute,
+  planetRoute,
+  referenceRoute,
+} from '../src/router';
 import { useStarmapNav } from '../src/router/navigation';
 
 vi.mock('@tanstack/react-router', async () => {
@@ -30,10 +39,11 @@ describe('TanStack Router Architecture', () => {
     expect(routeTree.children?.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('validates search parameters correctly on rootRoute', () => {
+  it('validates search parameters correctly on rootRoute across all branches', () => {
     const validate = rootRoute.options.validateSearch as (search: Record<string, unknown>) => Record<string, unknown>;
     expect(validate).toBeDefined();
 
+    // Mixed string/number inputs
     const validated = validate({
       x: '12.5',
       y: 42,
@@ -49,6 +59,49 @@ describe('TanStack Router Architecture', () => {
     expect(validated.zoom).toBe(3);
     expect(validated.center).toBe('sol');
     expect(validated.customFilter).toBe('habitable');
+
+    // Empty search params (falsy branch)
+    const emptyValidated = validate({});
+    expect(emptyValidated.x).toBeUndefined();
+    expect(emptyValidated.y).toBeUndefined();
+    expect(emptyValidated.z).toBeUndefined();
+    expect(emptyValidated.zoom).toBeUndefined();
+    expect(emptyValidated.center).toBeUndefined();
+
+    // Pure numeric inputs and non-string center
+    const numericValidated = validate({
+      x: 100,
+      y: 200,
+      z: 300,
+      zoom: 5,
+      center: 999, // non-string -> undefined
+    });
+    expect(numericValidated.x).toBe(100);
+    expect(numericValidated.y).toBe(200);
+    expect(numericValidated.z).toBe(300);
+    expect(numericValidated.zoom).toBe(5);
+    expect(numericValidated.center).toBeUndefined();
+  });
+
+  it('renders index redirect component returning Navigate to /galaxy', () => {
+    const Component = indexRoute.options.component as unknown as () => { props: { to: string } };
+    expect(Component).toBeDefined();
+    const vnode = Component();
+    expect(vnode.props.to).toBe('/galaxy');
+  });
+
+  it('renders pending skeleton components for all core routes', () => {
+    const PendingGalaxy = galaxyRoute.options.pendingComponent as unknown as () => { props: { label: string } };
+    expect(PendingGalaxy().props.label).toContain('Galactic');
+
+    const PendingSystem = systemRoute.options.pendingComponent as unknown as () => { props: { label: string } };
+    expect(PendingSystem().props.label).toContain('System');
+
+    const PendingPlanet = planetRoute.options.pendingComponent as unknown as () => { props: { label: string } };
+    expect(PendingPlanet().props.label).toContain('Planetary');
+
+    const PendingRef = referenceRoute.options.pendingComponent as unknown as () => { props: { label: string } };
+    expect(PendingRef().props.label).toContain('Catalog');
   });
 });
 

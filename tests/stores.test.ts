@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   useSettingsStore,
   DEFAULT_SETTINGS,
@@ -88,6 +88,8 @@ describe('useSettingsStore (Persistent)', () => {
     expect(fallbackStorage.getItem('test-key')).toBe('test-value');
     expect(fallbackStorage.length).toBe(1);
     expect(fallbackStorage.key(0)).toBe('test-key');
+    expect(fallbackStorage.key(-1)).toBeNull();
+    expect(fallbackStorage.key(99)).toBeNull();
 
     fallbackStorage.removeItem('test-key');
     expect(fallbackStorage.getItem('test-key')).toBeNull();
@@ -100,9 +102,32 @@ describe('useSettingsStore (Persistent)', () => {
   });
 
   it('resolves storage gracefully across runtime environments', () => {
+    // Current environment (Node polyfill via globalThis.localStorage)
     const storage = resolveSettingsStorage();
     expect(storage).toBeDefined();
     expect(typeof storage.getItem).toBe('function');
+
+    // Environment with window.localStorage
+    const mockWindowStorage = { getItem: () => null } as unknown as Storage;
+    vi.stubGlobal('window', { localStorage: mockWindowStorage });
+    expect(resolveSettingsStorage()).toBe(mockWindowStorage);
+    vi.unstubAllGlobals();
+
+    // Environment with neither window.localStorage nor globalThis.localStorage
+    const origLocal = globalThis.localStorage;
+    // @ts-expect-error intentional environment simulation
+    delete globalThis.localStorage;
+    expect(resolveSettingsStorage()).toBe(fallbackStorage);
+    globalThis.localStorage = origLocal;
+  });
+});
+
+describe('Stores Index Re-exports', () => {
+  it('correctly re-exports settings and UI store symbols from index', async () => {
+    const stores = await import('../src/stores');
+    expect(stores.useSettingsStore).toBeDefined();
+    expect(stores.DEFAULT_SETTINGS).toBeDefined();
+    expect(stores.useUIStore).toBeDefined();
   });
 });
 

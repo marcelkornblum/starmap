@@ -3,6 +3,7 @@ import {
   equatorialToCartesian,
   rotateToOrbitalPlane,
   parseKinematicVector,
+  getSectorCoordinate,
   formatSectorId,
   getSectorBounds,
   DEFAULT_SECTOR_SIZE_PC,
@@ -93,6 +94,18 @@ describe('equatorialToCartesian', () => {
     const buffer = new Float32Array(3);
     expect(() => equatorialToCartesian(0, 0, 10, buffer, -1)).toThrow(RangeError);
     expect(() => equatorialToCartesian(0, 0, 10, buffer, 1)).toThrow(RangeError);
+    expect(() => equatorialToCartesian(0, 0, 0, buffer, -1)).toThrow(RangeError);
+    expect(() => equatorialToCartesian(0, 0, 0, buffer, 1)).toThrow(RangeError);
+    expect(() => equatorialToCartesian(0, 0, 10, buffer, 1.5)).toThrow(RangeError);
+  });
+
+  it('converts origin (Sol, distance 0) into provided target buffer', () => {
+    const buffer = new Float32Array([1, 2, 3]);
+    const res = equatorialToCartesian(0, 0, 0, buffer, 0);
+    expect(res).toBe(buffer);
+    expect(buffer[0]).toBe(0);
+    expect(buffer[1]).toBe(0);
+    expect(buffer[2]).toBe(0);
   });
 
   it('exports accurate astronomical constants including Earth obliquity', () => {
@@ -184,6 +197,13 @@ describe('rotateToOrbitalPlane', () => {
     const emptyBuffer = new Float32Array(0);
     expect(rotateToOrbitalPlane(emptyBuffer, 10, 10)).toBe(emptyBuffer);
   });
+
+  it('handles non-finite inclination or ascendingNode safely', () => {
+    const buffer = new Float32Array([10, 20, 30]);
+    expect(rotateToOrbitalPlane(buffer, NaN, 0)).toBe(buffer);
+    expect(rotateToOrbitalPlane(buffer, Infinity, 0)).toBe(buffer);
+    expect(rotateToOrbitalPlane(buffer, 23.5, NaN, { degrees: true })).toBe(buffer);
+  });
 });
 
 describe('parseKinematicVector', () => {
@@ -225,25 +245,64 @@ describe('parseKinematicVector', () => {
     expect(vec?.pmra).toBe(-546.01);
     expect(vec?.pmdec).toBe(-1223.07);
   });
+
+  it('handles undefined, null, or NaN optional proper motion and radial velocity', () => {
+    const vecOmitted = parseKinematicVector(0.00001, 0.00002, 0.00003);
+    expect(vecOmitted).toBeDefined();
+    expect(vecOmitted?.pmra).toBeUndefined();
+    expect(vecOmitted?.pmdec).toBeUndefined();
+    expect(vecOmitted?.radialVelocity).toBeUndefined();
+
+    const vecNull = parseKinematicVector(0.00001, 0.00002, 0.00003, null, null, null);
+    expect(vecNull).toBeDefined();
+    expect(vecNull?.pmra).toBeUndefined();
+    expect(vecNull?.pmdec).toBeUndefined();
+    expect(vecNull?.radialVelocity).toBeUndefined();
+
+    const vecNaN = parseKinematicVector(0.00001, 0.00002, 0.00003, NaN, NaN, NaN);
+    expect(vecNaN).toBeDefined();
+    expect(vecNaN?.pmra).toBeUndefined();
+    expect(vecNaN?.pmdec).toBeUndefined();
+    expect(vecNaN?.radialVelocity).toBeUndefined();
+  });
 });
 
 describe('Spatial Sector Partitioning (formatSectorId & getSectorBounds)', () => {
-  it('formats coordinates into standardized 3D sector IDs', () => {
+  it('aligns coordinates using getSectorCoordinate with default and custom sizes', () => {
+    expect(getSectorCoordinate(0)).toBe(0);
+    expect(getSectorCoordinate(12.5)).toBe(0);
+    expect(getSectorCoordinate(25)).toBe(25);
+    expect(getSectorCoordinate(-0.1)).toBe(-25);
+    expect(getSectorCoordinate(49, 50)).toBe(0);
+    expect(getSectorCoordinate(50, 50)).toBe(50);
+  });
+
+  it('formats coordinates into standardized 3D sector IDs with default and custom sizes', () => {
     expect(formatSectorId(0, 0, 0)).toBe('sector_+000_+000_+000');
     expect(formatSectorId(12.5, -34.8, 48.2)).toBe('sector_+000_-050_+025');
     expect(formatSectorId(25, -25, 75)).toBe('sector_+025_-025_+075');
     expect(formatSectorId(-0.1, -0.1, -0.1)).toBe('sector_-025_-025_-025');
+    expect(formatSectorId(45, -75, 120, 50)).toBe('sector_+000_-100_+100');
   });
 
-  it('correctly resolves bounding boxes from sector IDs', () => {
+  it('correctly resolves bounding boxes from sector IDs with default and custom sizes', () => {
     const bounds = getSectorBounds('sector_+025_-050_+000', DEFAULT_SECTOR_SIZE_PC);
     expect(bounds).not.toBeNull();
     expect(bounds?.min).toEqual({ x: 25, y: -50, z: 0 });
     expect(bounds?.max).toEqual({ x: 50, y: -25, z: 25 });
+
+    const customBounds = getSectorBounds('sector_+000_-100_+100', 50);
+    expect(customBounds).not.toBeNull();
+    expect(customBounds?.min).toEqual({ x: 0, y: -100, z: 100 });
+    expect(customBounds?.max).toEqual({ x: 50, y: -50, z: 150 });
   });
 
-  it('returns null for invalid sector ID strings', () => {
+  it('returns null for invalid sector ID strings and invalid sizes', () => {
     expect(getSectorBounds('invalid_sector_name')).toBeNull();
-    expect(getSectorBounds('sector_+12_-34_+56')).toBeNull();
+    expect(getSectorBounds('sector_+12_-34')).toBeNull();
+    expect(getSectorBounds('sector_abc_def_ghi')).toBeNull();
+    expect(getSectorBounds('sector_+025_-050_+000', 0)).toBeNull();
+    expect(getSectorBounds('sector_+025_-050_+000', -10)).toBeNull();
+    expect(getSectorBounds('sector_+025_-050_+000', NaN)).toBeNull();
   });
 });
