@@ -420,9 +420,11 @@ def main():
     )
     user_comment = get_env_var("USER_COMMENT")
 
-    if not gemini_key:
-        print("Error: GEMINI_API_KEY is not set.", file=sys.stderr)
-        sys.exit(1)
+    actor = get_env_var("GITHUB_ACTOR")
+    if actor == "dependabot[bot]":
+        print("Notice: Skipping Gemini review for dependabot PR. Exiting cleanly.")
+        sys.exit(0)
+
     if not github_token:
         print("Error: GITHUB_TOKEN is not set.", file=sys.stderr)
         sys.exit(1)
@@ -473,6 +475,10 @@ def main():
             "No relevant code modifications found in diff to review. Exiting cleanly."
         )
         sys.exit(0)
+
+    if not gemini_key:
+        print("Error: GEMINI_API_KEY is not set.", file=sys.stderr)
+        sys.exit(1)
 
     print(f"Reviewing {len(files_data)} modified code files...")
 
