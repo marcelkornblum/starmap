@@ -1,5 +1,5 @@
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,6 +9,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    setupFiles: ['./tests/setup.ts'],
     passWithNoTests: true,
     coverage: {
       provider: 'v8',
@@ -16,4 +17,5 @@ export default defineConfig({
       include: ['src/**'],
     },
   },
-})
+});
+
