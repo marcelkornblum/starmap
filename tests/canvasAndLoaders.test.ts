@@ -95,7 +95,7 @@ describe('Global Canvas SceneBridge', () => {
     expect(isValidElement(vnodeDefault)).toBe(true);
     if (isValidElement<{ 'data-testid': string; className?: string }>(vnodeDefault)) {
       expect(vnodeDefault.props['data-testid']).toBe('global-canvas-container');
-      expect(vnodeDefault.props.className).toBeDefined();
+      expect(vnodeDefault.props.className).toBeUndefined();
     }
 
     const vnodeCustom = GlobalCanvas({

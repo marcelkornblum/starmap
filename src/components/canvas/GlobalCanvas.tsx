@@ -2,7 +2,6 @@ import type React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { SceneOutlet } from './SceneBridge';
-import styles from './GlobalCanvas.module.css';
 
 export interface GlobalCanvasProps {
   className?: string;
@@ -13,15 +12,21 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
   className,
   style,
 }) => {
-  const combinedClassName = className
-    ? `${styles.container} ${className}`
-    : styles.container;
-
   return (
     <div
       data-testid="global-canvas-container"
-      className={combinedClassName}
-      style={style}
+      className={className}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 0,
+        pointerEvents: 'auto',
+        overflow: 'hidden',
+        ...style,
+      }}
     >
       <Canvas
         camera={{ position: [0, 5, 12], fov: 50 }}
