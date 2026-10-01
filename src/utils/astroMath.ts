@@ -70,6 +70,22 @@ export function equatorialToCartesian(
   target?: Float32Array | Float64Array | number[],
   offset = 0,
 ): CartesianTuple | Float32Array | Float64Array | number[] {
+  if (target && (!Number.isInteger(offset) || offset < 0 || offset + 3 > target.length)) {
+    throw new RangeError(
+      `Target buffer offset out of bounds: offset=${offset}, length=${target.length}`,
+    );
+  }
+
+  if (dist === 0) {
+    if (!target) {
+      return [0, 0, 0];
+    }
+    target[offset] = 0;
+    target[offset + 1] = 0;
+    target[offset + 2] = 0;
+    return target;
+  }
+
   const raRad = ra * HOURS_TO_RADIANS;
   const decRad = dec * DEG_TO_RADIANS;
 
@@ -84,12 +100,6 @@ export function equatorialToCartesian(
 
   if (!target) {
     return [x, y, z];
-  }
-
-  if (offset < 0 || offset + 3 > target.length) {
-    throw new RangeError(
-      `Target buffer offset out of bounds: offset=${offset}, length=${target.length}`,
-    );
   }
 
   target[offset] = x;
@@ -120,13 +130,14 @@ export function rotateToOrbitalPlane(
   ascendingNode = 0,
   options?: PlaneRotationOptions,
 ): Float32Array {
-  if (inclination === 0) {
+  if (!Number.isFinite(inclination) || inclination === 0) {
     return buffer;
   }
 
+  const safeAscendingNode = Number.isFinite(ascendingNode) ? ascendingNode : 0;
   const isDegrees = options?.degrees === true;
   const incRad = isDegrees ? inclination * DEG_TO_RADIANS : inclination;
-  const nodeRad = isDegrees ? ascendingNode * DEG_TO_RADIANS : ascendingNode;
+  const nodeRad = isDegrees ? safeAscendingNode * DEG_TO_RADIANS : safeAscendingNode;
 
   const cosInc = Math.cos(incRad);
   const sinInc = Math.sin(incRad);
@@ -198,9 +209,9 @@ export function parseKinematicVector(
     vyPcPerYear === null ||
     vzPcPerYear === undefined ||
     vzPcPerYear === null ||
-    isNaN(vxPcPerYear) ||
-    isNaN(vyPcPerYear) ||
-    isNaN(vzPcPerYear)
+    Number.isNaN(vxPcPerYear) ||
+    Number.isNaN(vyPcPerYear) ||
+    Number.isNaN(vzPcPerYear)
   ) {
     return undefined;
   }
@@ -215,10 +226,10 @@ export function parseKinematicVector(
     vy,
     vz,
     speed,
-    pmra: pmra != null && !isNaN(pmra) ? pmra : undefined,
-    pmdec: pmdec != null && !isNaN(pmdec) ? pmdec : undefined,
+    pmra: pmra != null && !Number.isNaN(pmra) ? pmra : undefined,
+    pmdec: pmdec != null && !Number.isNaN(pmdec) ? pmdec : undefined,
     radialVelocity:
-      radialVelocity != null && !isNaN(radialVelocity) ? radialVelocity : undefined,
+      radialVelocity != null && !Number.isNaN(radialVelocity) ? radialVelocity : undefined,
   };
 }
 
@@ -236,7 +247,15 @@ export function getSectorCoordinate(
   val: number,
   size = DEFAULT_SECTOR_SIZE_PC,
 ): number {
-  return Math.floor(val / size) * size;
+  if (!Number.isFinite(val)) {
+    throw new TypeError(`Coordinate value must be a finite number: ${val}`);
+  }
+  if (!Number.isFinite(size) || size <= 0) {
+    throw new RangeError(`Sector size must be a positive finite number: ${size}`);
+  }
+
+  const coord = Math.floor(val / size) * size;
+  return Object.is(coord, -0) ? 0 : coord;
 }
 
 /**
@@ -279,7 +298,11 @@ export function getSectorBounds(
   sectorId: string,
   size = DEFAULT_SECTOR_SIZE_PC,
 ): { min: CartesianCoordinates; max: CartesianCoordinates } | null {
-  const match = /^sector_([+-]\d{3})_([+-]\d{3})_([+-]\d{3})$/.exec(sectorId);
+  if (!Number.isFinite(size) || size <= 0) {
+    return null;
+  }
+
+  const match = /^sector_([+-]\d+)_([+-]\d+)_([+-]\d+)$/.exec(sectorId);
   if (!match) return null;
 
   const minX = parseInt(match[1], 10);

@@ -10,6 +10,17 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
   const [activeSceneKey, setActiveSceneKey] = useState<string | null>(null);
 
   const setScene = useCallback((scene: React.ReactNode, key?: string): void => {
+    if (scene === null && key !== undefined) {
+      setActiveSceneKey((currentKey) => {
+        if (currentKey === key) {
+          setActiveScene(null);
+          return null;
+        }
+        return currentKey;
+      });
+      return;
+    }
+
     setActiveScene(scene);
     setActiveSceneKey(key ?? null);
   }, []);
@@ -37,14 +48,17 @@ export const ScenePortal: React.FC<ScenePortalProps> = ({ sceneKey, children }) 
   useEffect(() => {
     setScene(children, sceneKey);
     return () => {
-      setScene(null, undefined);
+      setScene(null, sceneKey);
     };
   }, [children, sceneKey, setScene]);
 
   return null;
 };
 
-export const SceneOutlet: React.FC = () => {
+export interface SceneOutletProps {}
+
+export const SceneOutlet: React.FC<SceneOutletProps> = () => {
   const { activeScene } = useScene();
   return <>{activeScene}</>;
 };
+

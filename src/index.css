@@ -1,8 +1,10 @@
+@import './theme.css';
+
 html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #0a0a0a;
+  background-color: var(--color-bg-primary);
   
   /* Make it feel like a native app */
   overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile */

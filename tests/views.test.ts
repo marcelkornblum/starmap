@@ -7,6 +7,8 @@ import { PlanetView } from '../src/views/PlanetView';
 import { ReferenceView } from '../src/views/ReferenceView';
 import { SceneProvider } from '../src/components/canvas/SceneBridge';
 
+import { useParams } from '@tanstack/react-router';
+
 vi.mock('@tanstack/react-router', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@tanstack/react-router');
   return {
@@ -84,5 +86,24 @@ describe('View HUD Components (SSR/DOM)', () => {
     );
     expect(html).toContain('Astrodynamics Reference');
     expect(html).toContain('Astronomical Encyclopedia');
+  });
+
+  it('falls back to "unknown" when route parameters are missing in SystemView and PlanetView', () => {
+    vi.mocked(useParams).mockImplementation(() => ({}));
+    const elSystem = SystemView({});
+    triggerAllClickHandlers(elSystem);
+    const systemHtml = renderToString(
+      createElement(SceneProvider, null, createElement(SystemView)),
+    );
+    expect(systemHtml).toContain('UNKNOWN');
+
+    const elPlanet = PlanetView({});
+    triggerAllClickHandlers(elPlanet);
+    const planetHtml = renderToString(
+      createElement(SceneProvider, null, createElement(PlanetView)),
+    );
+    expect(planetHtml).toContain('UNKNOWN');
+
+    vi.mocked(useParams).mockImplementation(() => ({ systemId: 'sol', planetId: 'earth' }));
   });
 });
