@@ -7,7 +7,7 @@ import { useStarmapNav } from '../router/navigation';
 export interface PlanetViewProps {}
 
 export const PlanetView: React.FC<PlanetViewProps> = () => {
-  const params = useParams({ strict: false }) as { planetId?: string };
+  const params: Record<string, string | undefined> = useParams({ strict: false });
   const planetId = params.planetId ?? 'unknown';
   const nav = useStarmapNav();
 

@@ -9,4 +9,3 @@ export const App: React.FC<AppProps> = () => {
   return <RouterProvider router={router} />;
 };
 
-export default App;

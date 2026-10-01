@@ -43,14 +43,15 @@ There are clear styleguides to follow; you can find them in `conductor/code_styl
 
 ## Git & Branching Rules
 1. **Never Commit to Main:** You MUST NEVER commit directly to the `main` branch.
-2. **Always Use Feature Branches:** Before making any code changes or running tracks, you MUST checkout a new branch (e.g., `feat/<track-name>` or `chore/<task>`).
-3. **PRs Only:** All code must be integrated into `main` strictly via Pull Requests. Do not merge locally.
-4. **Mandatory Pre-PR Checks & Code Review:** Every time you finish any work, before opening a PR:
+2. **Never Force Push:** You MUST NEVER force push (`git push --force`, `git push -f`, or `--force-with-lease`) to any branch under any circumstances. Always resolve divergences and integration conflicts via standard Git merges and normal pushes.
+3. **Always Use Feature Branches:** Before making any code changes or running tracks, you MUST checkout a new branch (e.g., `feat/<track-name>` or `chore/<task>`).
+4. **PRs Only:** All code must be integrated into `main` strictly via Pull Requests. Do not merge locally.
+5. **Mandatory Pre-PR Checks & Code Review:** Every time you finish any work, before opening a PR:
    - Run the local quality suite: linting (`npm run lint`), type checking (`npm run typecheck`), and tests with coverage (`npm run test:coverage`). All must pass cleanly with zero errors.
    - Run a `/code-review` (or invoke the `code-review` skill) to identify and eliminate technical debt, code smells, or guideline violations before submitting.
-5. **Always Open a Pull Request:** The final step of any completed request or task is NOT just committing changes—you MUST push the feature/chore branch to origin and open a Pull Request against `main` (via `gh pr create`).
-6. **Verify CI Completion:** After opening the PR, monitor and ensure that all automated CI checks (`Lint`, `Type Check`, `Test`, `Build`, and `CI Complete`) complete successfully.
-7. **Automated AI Review Loop:**
+6. **Always Open a Pull Request:** The final step of any completed request or task is NOT just committing changes—you MUST push the feature/chore branch to origin and open a Pull Request against `main` (via `gh pr create`).
+7. **Verify CI Completion:** After opening the PR, monitor and ensure that all automated CI checks (`Lint`, `Type Check`, `Test`, `Build`, and `CI Complete`) complete successfully.
+8. **Automated AI Review Loop:**
    - Once the PR is opened (as a non-draft), wait for the automated Gemini code review.
    - Check back, inspect all comments, and address any defects or suggestions it raises.
    - Request another review by commenting `/review` on the PR and repeat this loop until Gemini returns a clean pass (no unresolved findings).

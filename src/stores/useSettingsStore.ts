@@ -39,7 +39,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
 
 // Fallback in-memory storage for non-browser/SSR environments
 const memoryStore = new Map<string, string>();
-const fallbackStorage: Storage = {
+export const fallbackStorage: Storage = {
   getItem: (key: string): string | null => memoryStore.get(key) ?? null,
   setItem: (key: string, value: string): void => {
     memoryStore.set(key, value);
@@ -54,6 +54,17 @@ const fallbackStorage: Storage = {
   get length(): number {
     return memoryStore.size;
   },
+};
+
+export const resolveSettingsStorage = (): Storage => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage;
+  }
+  const globalCandidate = globalThis as unknown as { localStorage?: Storage };
+  if (globalCandidate.localStorage) {
+    return globalCandidate.localStorage;
+  }
+  return fallbackStorage;
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -73,15 +84,7 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'starmap-settings',
-      storage: createJSONStorage(() => {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          return window.localStorage;
-        }
-        if (typeof globalThis !== 'undefined' && (globalThis as any).localStorage) {
-          return (globalThis as any).localStorage;
-        }
-        return fallbackStorage;
-      }),
+      storage: createJSONStorage(resolveSettingsStorage),
     },
   ),
 );

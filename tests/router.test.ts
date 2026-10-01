@@ -65,7 +65,7 @@ describe('useStarmapNav Navigation Enforcer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useNavigate).mockReturnValue(mockNavigate);
-    vi.mocked(useRouter).mockReturnValue(mockRouter as any);
+    vi.mocked(useRouter).mockReturnValue(mockRouter as unknown as ReturnType<typeof useRouter>);
   });
 
   it('enforces push (replace: false) on major view transition to /galaxy', async () => {
@@ -81,34 +81,37 @@ describe('useStarmapNav Navigation Enforcer', () => {
 
   it('enforces push (replace: false) on major view transition to /system/$systemId', async () => {
     const nav = useStarmapNav();
-    await nav.toSystem('sol');
+    await nav.toSystem('sol', { zoom: 5 });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
     expect(callArg.to).toBe('/system/$systemId');
     expect(callArg.params).toEqual({ systemId: 'sol' });
     expect(callArg.replace).toBe(false);
+    expect(callArg.search({ center: 'sol' })).toEqual({ center: 'sol', zoom: 5 });
   });
 
   it('enforces push (replace: false) on major view transition to /planet/$planetId', async () => {
     const nav = useStarmapNav();
-    await nav.toPlanet('earth');
+    await nav.toPlanet('earth', { zoom: 8 });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
     expect(callArg.to).toBe('/planet/$planetId');
     expect(callArg.params).toEqual({ planetId: 'earth' });
     expect(callArg.replace).toBe(false);
+    expect(callArg.search({ center: 'earth' })).toEqual({ center: 'earth', zoom: 8 });
   });
 
   it('enforces push (replace: false) on major view transition to /reference', async () => {
     const nav = useStarmapNav();
-    await nav.toReference();
+    await nav.toReference({ center: 'icrs' });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
     expect(callArg.to).toBe('/reference');
     expect(callArg.replace).toBe(false);
+    expect(callArg.search({})).toEqual({ center: 'icrs' });
   });
 
   it('enforces replace (replace: true) on intra-view parameter updates', async () => {

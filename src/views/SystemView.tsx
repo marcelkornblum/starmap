@@ -7,7 +7,7 @@ import { useStarmapNav } from '../router/navigation';
 export interface SystemViewProps {}
 
 export const SystemView: React.FC<SystemViewProps> = () => {
-  const params = useParams({ strict: false }) as { systemId?: string };
+  const params: Record<string, string | undefined> = useParams({ strict: false });
   const systemId = params.systemId ?? 'unknown';
   const nav = useStarmapNav();
 

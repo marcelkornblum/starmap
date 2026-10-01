@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SceneContext, useScene } from './SceneBridgeContext';
 
 export interface SceneProviderProps {
@@ -9,13 +9,18 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
   const [activeScene, setActiveScene] = useState<React.ReactNode>(null);
   const [activeSceneKey, setActiveSceneKey] = useState<string | null>(null);
 
-  const setScene = (scene: React.ReactNode, key?: string): void => {
+  const setScene = useCallback((scene: React.ReactNode, key?: string): void => {
     setActiveScene(scene);
     setActiveSceneKey(key ?? null);
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ activeScene, activeSceneKey, setScene }),
+    [activeScene, activeSceneKey, setScene],
+  );
 
   return (
-    <SceneContext.Provider value={{ activeScene, activeSceneKey, setScene }}>
+    <SceneContext.Provider value={contextValue}>
       {children}
     </SceneContext.Provider>
   );

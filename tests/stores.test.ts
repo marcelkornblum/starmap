@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useSettingsStore, DEFAULT_SETTINGS } from '../src/stores/useSettingsStore';
+import {
+  useSettingsStore,
+  DEFAULT_SETTINGS,
+  fallbackStorage,
+  resolveSettingsStorage,
+} from '../src/stores/useSettingsStore';
 import { useUIStore, INITIAL_UI_STATE } from '../src/stores/useUIStore';
 
 describe('useSettingsStore (Persistent)', () => {
@@ -76,6 +81,28 @@ describe('useSettingsStore (Persistent)', () => {
     const parsed = JSON.parse(saved as string);
     expect(parsed.state.theme).toBe('amoled');
     expect(parsed.state.showLabels).toBe(false);
+  });
+
+  it('supports fallbackStorage memory implementation', () => {
+    fallbackStorage.setItem('test-key', 'test-value');
+    expect(fallbackStorage.getItem('test-key')).toBe('test-value');
+    expect(fallbackStorage.length).toBe(1);
+    expect(fallbackStorage.key(0)).toBe('test-key');
+
+    fallbackStorage.removeItem('test-key');
+    expect(fallbackStorage.getItem('test-key')).toBeNull();
+    expect(fallbackStorage.length).toBe(0);
+
+    fallbackStorage.setItem('key-a', 'val-a');
+    fallbackStorage.setItem('key-b', 'val-b');
+    fallbackStorage.clear();
+    expect(fallbackStorage.length).toBe(0);
+  });
+
+  it('resolves storage gracefully across runtime environments', () => {
+    const storage = resolveSettingsStorage();
+    expect(storage).toBeDefined();
+    expect(typeof storage.getItem).toBe('function');
   });
 });
 

@@ -66,22 +66,42 @@ describe('Route Loaders & Render-Then-Fetch Pattern', () => {
   });
 
   it('executes loaders for galaxy, system, planet, and reference routes', async () => {
-    const galaxyLoader = galaxyRoute.options.loader as () => Promise<any>;
+    interface GalaxyData {
+      target: string;
+      nodeCount: number;
+    }
+    interface SystemData {
+      systemId: string;
+      spectralType: string;
+    }
+    interface PlanetData {
+      planetId: string;
+      classification: string;
+    }
+    interface ReferenceData {
+      catalog: string;
+    }
+
+    const galaxyLoader = galaxyRoute.options.loader as unknown as () => Promise<GalaxyData>;
     const galaxyData = await galaxyLoader();
     expect(galaxyData.target).toBe('Milky Way');
     expect(galaxyData.nodeCount).toBeGreaterThan(0);
 
-    const systemLoader = systemRoute.options.loader as (ctx: any) => Promise<any>;
+    const systemLoader = systemRoute.options.loader as unknown as (ctx: {
+      params: { systemId: string };
+    }) => Promise<SystemData>;
     const systemData = await systemLoader({ params: { systemId: 'alpha-centauri' } });
     expect(systemData.systemId).toBe('alpha-centauri');
     expect(systemData.spectralType).toBe('G2V');
 
-    const planetLoader = planetRoute.options.loader as (ctx: any) => Promise<any>;
+    const planetLoader = planetRoute.options.loader as unknown as (ctx: {
+      params: { planetId: string };
+    }) => Promise<PlanetData>;
     const planetData = await planetLoader({ params: { planetId: 'mars' } });
     expect(planetData.planetId).toBe('mars');
     expect(planetData.classification).toBe('Terrestrial');
 
-    const refLoader = referenceRoute.options.loader as () => Promise<any>;
+    const refLoader = referenceRoute.options.loader as unknown as () => Promise<ReferenceData>;
     const refData = await refLoader();
     expect(refData.catalog).toContain('ICRS/J2000');
   });

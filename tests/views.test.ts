@@ -17,8 +17,35 @@ vi.mock('@tanstack/react-router', async () => {
   };
 });
 
+interface ReactVNode {
+  props?: {
+    children?: ReactVNode | ReactVNode[] | string | null;
+    onClick?: () => void;
+  };
+}
+
+const triggerAllClickHandlers = (node: unknown): void => {
+  if (!node || typeof node !== 'object') {
+    return;
+  }
+  const vnode = node as ReactVNode;
+  if (typeof vnode.props?.onClick === 'function') {
+    vnode.props.onClick();
+  }
+  if (Array.isArray(vnode.props?.children)) {
+    for (const child of vnode.props.children) {
+      triggerAllClickHandlers(child);
+    }
+  } else if (vnode.props?.children && typeof vnode.props.children === 'object') {
+    triggerAllClickHandlers(vnode.props.children);
+  }
+};
+
 describe('View HUD Components (SSR/DOM)', () => {
   it('renders GalaxyView with title and navigation trigger', () => {
+    const el = GalaxyView({});
+    triggerAllClickHandlers(el);
+
     const html = renderToString(
       createElement(SceneProvider, null, createElement(GalaxyView)),
     );
@@ -27,6 +54,9 @@ describe('View HUD Components (SSR/DOM)', () => {
   });
 
   it('renders SystemView with system parameters and target buttons', () => {
+    const el = SystemView({});
+    triggerAllClickHandlers(el);
+
     const html = renderToString(
       createElement(SceneProvider, null, createElement(SystemView)),
     );
@@ -35,6 +65,9 @@ describe('View HUD Components (SSR/DOM)', () => {
   });
 
   it('renders PlanetView with planet classification and return trigger', () => {
+    const el = PlanetView({});
+    triggerAllClickHandlers(el);
+
     const html = renderToString(
       createElement(SceneProvider, null, createElement(PlanetView)),
     );
@@ -43,6 +76,9 @@ describe('View HUD Components (SSR/DOM)', () => {
   });
 
   it('renders ReferenceView with encyclopedia catalog info', () => {
+    const el = ReferenceView({});
+    triggerAllClickHandlers(el);
+
     const html = renderToString(
       createElement(SceneProvider, null, createElement(ReferenceView)),
     );
