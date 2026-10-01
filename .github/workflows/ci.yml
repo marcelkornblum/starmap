@@ -59,6 +59,8 @@ jobs:
         run: npm ci
       - name: Test with Coverage
         run: npm run test:coverage
+      - name: Test Python scripts
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Coverage comment
         if: github.event_name == 'pull_request'
         uses: MishaKav/pytest-coverage-comment@v1

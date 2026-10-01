@@ -1,0 +1,55 @@
+name: Dependabot Auto-Merge
+
+on:
+  schedule:
+    # Run every hour to check for Dependabot PRs that reached the 24-hour wait threshold
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Specific PR number to evaluate (leave empty to scan all open Dependabot PRs)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run mode (evaluate criteria without commenting, approving, or merging)'
+        required: false
+        type: boolean
+        default: false
+      min_age_hours:
+        description: 'Minimum wait time in hours since PR creation'
+        required: false
+        default: '24'
+
+concurrency:
+  group: dependabot-auto-merge
+  cancel-in-progress: false
+
+jobs:
+  auto-merge:
+    name: Auto-Merge Dependabot PRs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      checks: read
+      statuses: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Run Dependabot Auto-Merge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number || '' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          MIN_AGE_HOURS: ${{ github.event.inputs.min_age_hours || '24' }}
+        run: |
+          python3 .github/scripts/auto_merge_dependabot.py
