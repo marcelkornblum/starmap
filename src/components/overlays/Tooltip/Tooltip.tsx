@@ -1,27 +1,33 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import { useId, type HTMLAttributes, type ReactNode } from 'react';
 import styles from './Tooltip.module.css';
 
 export interface TooltipProps extends HTMLAttributes<HTMLDivElement> {
   text: ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
   children?: ReactNode;
+  id?: string;
 }
 
 export const Tooltip = ({
   text,
   position = 'top',
   children,
+  id: customId,
   className,
   ...rest
 }: TooltipProps) => {
+  const generatedId = useId();
+  const tooltipId = customId || generatedId;
+
   const combinedClassName = className
     ? `${styles.tooltip} ${className}`
     : styles.tooltip;
 
   return (
-    <div className={styles.tooltipWrapper}>
+    <div className={styles.tooltipWrapper} aria-describedby={tooltipId}>
       {children}
       <div
+        id={tooltipId}
         className={combinedClassName}
         data-position={position}
         role="tooltip"

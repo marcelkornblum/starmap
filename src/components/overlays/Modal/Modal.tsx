@@ -37,6 +37,13 @@ export const Modal = ({
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         {...rest}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.stopPropagation();
+            onClose();
+          }
+          rest.onKeyDown?.(e);
+        }}
         onClick={(e) => {
           e.stopPropagation();
           rest.onClick?.(e);
