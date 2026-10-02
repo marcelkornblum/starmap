@@ -1,9 +1,43 @@
 import type React from 'react';
+import { useState } from 'react';
 import { ScenePortal } from '../components/canvas/SceneBridge';
 import { GalaxyScene3D } from '../components/canvas/scenes/GalaxyScene3D';
 import { useStarmapNav } from '../router/navigation';
+import { Panel } from '../components/surfaces';
+import { Stack, Cluster, Button, Metric } from '../components/primitives';
+import { SystemControls } from '../components/domain';
+import type { ProjectionMode } from '../stores/useSettingsStore';
+import styles from './GalaxyView.module.css';
 
 export interface GalaxyViewProps {}
+
+export const GalaxyControlsDock: React.FC = () => {
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [timeSpeed, setTimeSpeed] = useState(1);
+  const [projection, setProjection] = useState<ProjectionMode>('3d');
+  const [showOrbits, setShowOrbits] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
+  const [showLabels, setShowLabels] = useState(true);
+
+  return (
+    <div className={styles.controlsDock}>
+      <SystemControls
+        isPlaying={isPlaying}
+        onTogglePlay={() => setIsPlaying((p) => !p)}
+        timeSpeed={timeSpeed}
+        onTimeSpeedChange={setTimeSpeed}
+        projection={projection}
+        onProjectionChange={setProjection}
+        showOrbits={showOrbits}
+        onToggleOrbits={setShowOrbits}
+        showGrid={showGrid}
+        onToggleGrid={setShowGrid}
+        showLabels={showLabels}
+        onToggleLabels={setShowLabels}
+      />
+    </div>
+  );
+};
 
 export const GalaxyView: React.FC<GalaxyViewProps> = () => {
   const nav = useStarmapNav();
@@ -14,45 +48,51 @@ export const GalaxyView: React.FC<GalaxyViewProps> = () => {
         <GalaxyScene3D />
       </ScenePortal>
 
-      <div
-        data-testid="galaxy-view-hud"
-        style={{
-          position: 'absolute',
-          top: '2rem',
-          left: '2rem',
-          padding: '1.5rem',
-          background: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(12px)',
-          borderRadius: '8px',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          color: '#fff',
-          maxWidth: '320px',
-          pointerEvents: 'auto',
-        }}
-      >
-        <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 700 }}>
-          Milky Way Atlas
-        </h2>
-        <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.4 }}>
-          Top-level navigational view of the local stellar neighborhood.
-        </p>
-        <button
-          type="button"
-          onClick={() => nav.toSystem('sol')}
-          style={{
-            background: '#646cff',
-            color: '#fff',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Target Sol System →
-        </button>
+      <div data-testid="galaxy-view-hud" className={styles.hudOverlay}>
+        <Panel padding="default">
+          <Stack gap="default">
+            <Stack gap="tight">
+              <h2 className={styles.title}>Milky Way Atlas</h2>
+              <p className={styles.description}>
+                Top-level navigational view of the local stellar neighborhood.
+              </p>
+            </Stack>
+
+            <Cluster gap="default">
+              <Metric label="Diameter" value="100,000" unit="ly" />
+              <Metric label="Sol to Core" value="26,000" unit="ly" />
+            </Cluster>
+
+            <Stack gap="tight">
+              <Button
+                variant="primary"
+                onClick={() => nav.toSystem('sol')}
+              >
+                Target Sol System →
+              </Button>
+
+              <Cluster gap="tight">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => nav.toSystem('alpha-centauri')}
+                >
+                  Alpha Centauri
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => nav.toSystem('sirius')}
+                >
+                  Sirius
+                </Button>
+              </Cluster>
+            </Stack>
+          </Stack>
+        </Panel>
       </div>
+
+      <GalaxyControlsDock />
     </>
   );
 };

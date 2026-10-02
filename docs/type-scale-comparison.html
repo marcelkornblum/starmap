@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Starmap Spacing Scale Comparison</title>
+  <style>
+    :root {
+      /* Shared Color Palette */
+      --bg-space: #07090e;
+      --bg-panel: #0f131c;
+      --bg-table-header: #151a26;
+      --bg-table-stripe: #121722;
+      --border-panel: #202738;
+      --border-subtle: #191f2d;
+      --text-primary: #f1f5f9;
+      --text-body: #cbd5e1;
+      --text-muted: #8090a7;
+      --text-accent: #38bdf8;
+      --text-data: #4ade80;
+
+      /* Agreed Semantic Font Roles (Major Third 1.250 Scale) */
+      --font-interface: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      --font-copy: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      --font-data: ui-monospace, "SF Mono", "Cascadia Code", "Source Code Pro", Menlo, monospace;
+
+      /* Locked Typography: Major Third 1.250 */
+      --text-xs: 0.640rem;  /* 10.2px */
+      --text-sm: 0.800rem;  /* 12.8px */
+      --text-base: 1.000rem;/* 16.0px */
+      --text-md: 1.250rem;  /* 20.0px */
+      --text-lg: 1.562rem;  /* 25.0px */
+    }
+
+    [data-theme="light"] {
+      --bg-space: #f1f5f9;
+      --bg-panel: #ffffff;
+      --bg-table-header: #f8fafc;
+      --bg-table-stripe: #f1f5f9;
+      --border-panel: #cbd5e1;
+      --border-subtle: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-body: #334155;
+      --text-muted: #64748b;
+      --text-accent: #0284c7;
+      --text-data: #166534;
+    }
+
+    /* Spacing Debug Overlays */
+    body.show-overlays .spaced-box {
+      outline: 1px dashed rgba(244, 63, 94, 0.4);
+      background-color: rgba(244, 63, 94, 0.05) !important;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-space);
+      color: var(--text-body);
+      font-family: var(--font-copy);
+      padding: 1rem;
+      min-height: 100vh;
+    }
+
+    @media (min-width: 768px) {
+      body {
+        padding: 2rem;
+      }
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-panel);
+      padding-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: var(--font-interface);
+      font-size: 1.25rem;
+      color: var(--text-primary);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      color: var(--text-body);
+      padding: 0.35rem 0.7rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--font-interface);
+      font-size: 0.75rem;
+      transition: all 0.15s ease;
+    }
+
+    .btn.active {
+      border-color: var(--text-accent);
+      color: var(--text-accent);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (min-width: 1024px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1440px) {
+      .grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .comparison-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .comparison-card.hidden {
+      display: none;
+    }
+
+    .ratio-badge {
+      display: inline-block;
+      font-family: var(--font-data);
+      font-size: var(--text-xs);
+      color: var(--text-accent);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+      align-self: flex-start;
+    }
+
+    .panel-title {
+      font-family: var(--font-interface);
+      font-size: var(--text-lg);
+      line-height: 1.25;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .panel-subtitle {
+      font-family: var(--font-interface);
+      font-size: var(--text-sm);
+      line-height: 1.4;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    .panel-description {
+      font-family: var(--font-copy);
+      font-size: var(--text-base);
+      line-height: 1.55;
+      font-weight: 400;
+      color: var(--text-body);
+    }
+
+    .epoch-readout {
+      font-family: var(--font-data);
+      font-size: var(--text-xs);
+      font-variant-numeric: tabular-nums;
+      font-weight: 400;
+      background: var(--bg-table-header);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .epoch-label {
+      color: var(--text-muted);
+    }
+
+    .epoch-val {
+      color: var(--text-data);
+      font-weight: 600;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+    }
+
+    th {
+      font-size: var(--text-xs);
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-panel);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      font-size: var(--text-sm);
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-body);
+      font-weight: 400;
+    }
+
+    td.num {
+      text-align: right;
+      color: var(--text-primary);
+    }
+
+    td.unit {
+      color: var(--text-muted);
+    }
+
+    tr:nth-child(even) td {
+      background: var(--bg-table-stripe);
+    }
+
+    /* ========================================================= */
+    /* 1. DENSE LINEAR 4PX GRID                                  */
+    /* ========================================================= */
+    .spacing-dense {
+      padding: 12px;
+      gap: 8px;
+    }
+    .spacing-dense .panel-header {
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .spacing-dense .epoch-readout {
+      padding: 4px 8px;
+    }
+    .spacing-dense th {
+      padding: 4px 6px;
+    }
+    .spacing-dense td {
+      padding: 4px 6px;
+    }
+
+    /* ========================================================= */
+    /* 2. HARMONIC 1.5x (Geometric / Every Layout)               */
+    /* Steps: 4px, 6px, 8px, 12px, 16px, 24px                    */
+    /* ========================================================= */
+    .spacing-harmonic-15 {
+      padding: 16px;
+      gap: 12px;
+    }
+    .spacing-harmonic-15 .panel-header {
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .spacing-harmonic-15 .epoch-readout {
+      padding: 6px 10px;
+    }
+    .spacing-harmonic-15 th {
+      padding: 6px 8px;
+    }
+    .spacing-harmonic-15 td {
+      padding: 6px 8px;
+    }
+
+    /* ========================================================= */
+    /* 3. HARMONIC 1.25x (Typographic Major Third Rhythm)        */
+    /* Steps: 8px, 10px, 12.5px, 16px, 20px                      */
+    /* ========================================================= */
+    .spacing-harmonic-125 {
+      padding: 20px;
+      gap: 16px;
+    }
+    .spacing-harmonic-125 .panel-header {
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .spacing-harmonic-125 .epoch-readout {
+      padding: 8px 12px;
+    }
+    .spacing-harmonic-125 th {
+      padding: 8px 10px;
+    }
+    .spacing-harmonic-125 td {
+      padding: 8px 10px;
+    }
+
+    /* ========================================================= */
+    /* 4. FIBONACCI GOLDEN RATIO (Additive Sequence)             */
+    /* Steps: 3px, 5px, 8px, 13px, 21px, 34px                    */
+    /* ========================================================= */
+    .spacing-golden {
+      padding: 21px;
+      gap: 13px;
+    }
+    .spacing-golden .panel-header {
+      padding-bottom: 13px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .spacing-golden .epoch-readout {
+      padding: 5px 8px;
+    }
+    .spacing-golden th {
+      padding: 5px 8px;
+    }
+    .spacing-golden td {
+      padding: 5px 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Spacing Scale Comparison (4 Models)</h1>
+      <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.2rem;">
+        Testing Linear 4px, Harmonic 1.5x, Harmonic 1.25x, and Fibonacci Golden Ratio on Major Third type.
+      </p>
+    </div>
+    <div class="controls">
+      <button class="btn active" onclick="showCard('all', this)">All</button>
+      <button class="btn" onclick="showCard('spacing-dense', this)">Dense 4px</button>
+      <button class="btn" onclick="showCard('spacing-harmonic-15', this)">Harmonic 1.5x</button>
+      <button class="btn" onclick="showCard('spacing-harmonic-125', this)">Harmonic 1.25x</button>
+      <button class="btn" onclick="showCard('spacing-golden', this)">Fibonacci / Golden</button>
+      <button class="btn" onclick="toggleOverlays(this)">Guides</button>
+      <button class="btn" onclick="toggleTheme()">Theme</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- Option 1: Dense Linear 4px -->
+    <div class="comparison-card spacing-dense spaced-box">
+      <div class="ratio-badge">1. Dense Linear Grid · 4px / 8px</div>
+      
+      <div class="panel-header spaced-box">
+        <div class="panel-title">EPSILON ERIDANI</div>
+        <div class="panel-subtitle">K2V Main-Sequence Star · Ran</div>
+      </div>
+
+      <p class="panel-description spaced-box">
+        Epsilon Eridani is a primary star in the constellation Eridanus, located 10.47 light-years from Sol. It possesses a prominent debris disk and at least one confirmed jovian exoplanet.
+      </p>
+
+      <div class="epoch-readout spaced-box">
+        <span class="epoch-label">EPOCH: J2000.0 (2026-10-01T20:00Z)</span>
+        <span class="epoch-val">10.475 LY</span>
+      </div>
+
+      <table class="spaced-box">
+        <thead>
+          <tr>
+            <th>Orbital Parameter</th>
+            <th style="text-align: right;">Value</th>
+            <th style="width: 3.5rem;">Unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Semi-Major Axis</td>
+            <td class="num">3.38</td>
+            <td class="unit">AU</td>
+          </tr>
+          <tr>
+            <td>Orbital Period</td>
+            <td class="num">2502.0</td>
+            <td class="unit">days</td>
+          </tr>
+          <tr>
+            <td>Eccentricity</td>
+            <td class="num">0.07</td>
+            <td class="unit">—</td>
+          </tr>
+          <tr>
+            <td>Inclination</td>
+            <td class="num">34.0</td>
+            <td class="unit">deg</td>
+          </tr>
+          <tr>
+            <td>Stellar Mass</td>
+            <td class="num">0.82</td>
+            <td class="unit">M☉</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Option 2: Harmonic 1.5x (Every Layout) -->
+    <div class="comparison-card spacing-harmonic-15 spaced-box">
+      <div class="ratio-badge">2. Harmonic 1.5x · Geometric (Every Layout)</div>
+      
+      <div class="panel-header spaced-box">
+        <div class="panel-title">EPSILON ERIDANI</div>
+        <div class="panel-subtitle">K2V Main-Sequence Star · Ran</div>
+      </div>
+
+      <p class="panel-description spaced-box">
+        Epsilon Eridani is a primary star in the constellation Eridanus, located 10.47 light-years from Sol. It possesses a prominent debris disk and at least one confirmed jovian exoplanet.
+      </p>
+
+      <div class="epoch-readout spaced-box">
+        <span class="epoch-label">EPOCH: J2000.0 (2026-10-01T20:00Z)</span>
+        <span class="epoch-val">10.475 LY</span>
+      </div>
+
+      <table class="spaced-box">
+        <thead>
+          <tr>
+            <th>Orbital Parameter</th>
+            <th style="text-align: right;">Value</th>
+            <th style="width: 3.5rem;">Unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Semi-Major Axis</td>
+            <td class="num">3.38</td>
+            <td class="unit">AU</td>
+          </tr>
+          <tr>
+            <td>Orbital Period</td>
+            <td class="num">2502.0</td>
+            <td class="unit">days</td>
+          </tr>
+          <tr>
+            <td>Eccentricity</td>
+            <td class="num">0.07</td>
+            <td class="unit">—</td>
+          </tr>
+          <tr>
+            <td>Inclination</td>
+            <td class="num">34.0</td>
+            <td class="unit">deg</td>
+          </tr>
+          <tr>
+            <td>Stellar Mass</td>
+            <td class="num">0.82</td>
+            <td class="unit">M☉</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Option 3: Harmonic 1.25x (Typographic Major Third) -->
+    <div class="comparison-card spacing-harmonic-125 spaced-box">
+      <div class="ratio-badge">3. Harmonic 1.25x · Type-Coupled (Major Third)</div>
+      
+      <div class="panel-header spaced-box">
+        <div class="panel-title">EPSILON ERIDANI</div>
+        <div class="panel-subtitle">K2V Main-Sequence Star · Ran</div>
+      </div>
+
+      <p class="panel-description spaced-box">
+        Epsilon Eridani is a primary star in the constellation Eridanus, located 10.47 light-years from Sol. It possesses a prominent debris disk and at least one confirmed jovian exoplanet.
+      </p>
+
+      <div class="epoch-readout spaced-box">
+        <span class="epoch-label">EPOCH: J2000.0 (2026-10-01T20:00Z)</span>
+        <span class="epoch-val">10.475 LY</span>
+      </div>
+
+      <table class="spaced-box">
+        <thead>
+          <tr>
+            <th>Orbital Parameter</th>
+            <th style="text-align: right;">Value</th>
+            <th style="width: 3.5rem;">Unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Semi-Major Axis</td>
+            <td class="num">3.38</td>
+            <td class="unit">AU</td>
+          </tr>
+          <tr>
+            <td>Orbital Period</td>
+            <td class="num">2502.0</td>
+            <td class="unit">days</td>
+          </tr>
+          <tr>
+            <td>Eccentricity</td>
+            <td class="num">0.07</td>
+            <td class="unit">—</td>
+          </tr>
+          <tr>
+            <td>Inclination</td>
+            <td class="num">34.0</td>
+            <td class="unit">deg</td>
+          </tr>
+          <tr>
+            <td>Stellar Mass</td>
+            <td class="num">0.82</td>
+            <td class="unit">M☉</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Option 4: Fibonacci Golden Ratio -->
+    <div class="comparison-card spacing-golden spaced-box">
+      <div class="ratio-badge">4. Fibonacci Golden Ratio (Additive: 5, 8, 13, 21)</div>
+      
+      <div class="panel-header spaced-box">
+        <div class="panel-title">EPSILON ERIDANI</div>
+        <div class="panel-subtitle">K2V Main-Sequence Star · Ran</div>
+      </div>
+
+      <p class="panel-description spaced-box">
+        Epsilon Eridani is a primary star in the constellation Eridanus, located 10.47 light-years from Sol. It possesses a prominent debris disk and at least one confirmed jovian exoplanet.
+      </p>
+
+      <div class="epoch-readout spaced-box">
+        <span class="epoch-label">EPOCH: J2000.0 (2026-10-01T20:00Z)</span>
+        <span class="epoch-val">10.475 LY</span>
+      </div>
+
+      <table class="spaced-box">
+        <thead>
+          <tr>
+            <th>Orbital Parameter</th>
+            <th style="text-align: right;">Value</th>
+            <th style="width: 3.5rem;">Unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Semi-Major Axis</td>
+            <td class="num">3.38</td>
+            <td class="unit">AU</td>
+          </tr>
+          <tr>
+            <td>Orbital Period</td>
+            <td class="num">2502.0</td>
+            <td class="unit">days</td>
+          </tr>
+          <tr>
+            <td>Eccentricity</td>
+            <td class="num">0.07</td>
+            <td class="unit">—</td>
+          </tr>
+          <tr>
+            <td>Inclination</td>
+            <td class="num">34.0</td>
+            <td class="unit">deg</td>
+          </tr>
+          <tr>
+            <td>Stellar Mass</td>
+            <td class="num">0.82</td>
+            <td class="unit">M☉</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      document.body.dataset.theme = document.body.dataset.theme === 'light' ? '' : 'light';
+    }
+
+    function toggleOverlays(btn) {
+      document.body.classList.toggle('show-overlays');
+      btn.classList.toggle('active');
+    }
+
+    function showCard(cardClass, btn) {
+      document.querySelectorAll('.controls .btn').forEach(b => {
+        if (b !== btn && b.textContent !== 'Theme' && b.textContent !== 'Guides') {
+          b.classList.remove('active');
+        }
+      });
+      if (btn.textContent !== 'Theme' && btn.textContent !== 'Guides') {
+        btn.classList.add('active');
+      }
+
+      const cards = document.querySelectorAll('.comparison-card');
+      if (cardClass === 'all') {
+        cards.forEach(c => c.classList.remove('hidden'));
+      } else {
+        cards.forEach(c => {
+          if (c.classList.contains(cardClass)) {
+            c.classList.remove('hidden');
+          } else {
+            c.classList.add('hidden');
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>

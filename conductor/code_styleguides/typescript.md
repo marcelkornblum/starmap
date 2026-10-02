@@ -1,81 +1,29 @@
-# Google TypeScript Style Guide Summary
+# TypeScript & React Style Guide
 
-This document summarizes key rules and best practices from the Google TypeScript
-Style Guide, which is enforced by the `gts` tool.
+This guide establishes the mandatory TypeScript and React standards for Starmap.
 
-## 1. Language Features
+## 1. Type Safety & Soundness
 
--   **Variable Declarations:** Always use `const` or `let`. **`var` is
-    forbidden.** Use `const` by default.
--   **Modules:** Use ES6 modules (`import`/`export`). **Do not use
-    `namespace`.**
--   **Exports:** Use named exports (`export {MyClass};`). **Do not use default
-    exports.**
--   **Classes:**
-    -   **Do not use `#private` fields.** Use TypeScript's `private` visibility
-        modifier.
-    -   Mark properties never reassigned outside the constructor with
-        `readonly`.
-    -   **Never use the `public` modifier** (it's the default). Restrict
-        visibility with `private` or `protected` where possible.
--   **Functions:** Prefer function declarations for named functions. Use arrow
-    functions for anonymous functions/callbacks.
--   **String Literals:** Use single quotes (`'`). Use template literals (`` `
-    ``) for interpolation and multi-line strings.
--   **Equality Checks:** Always use triple equals (`===`) and not equals
-    (`!==`).
--   **Type Assertions:** **Avoid type assertions (`x as SomeType`) and
-    non-nullability assertions (`y!`)**. If you must use them, provide a clear
-    justification.
+- **Avoid `any`:** Use `unknown`, discriminated unions, or generic parameters. Never use `any` to silence compiler errors.
+- **Avoid Type Assertions:** Avoid `as Type` casts and non-null assertions (`!`). Use explicit type guards and narrowing.
+- **Discriminated Unions:** Model distinct domain states, telemetry statuses, and entity variants using discriminated unions rather than optional flag combinations.
+- **No Empty Object Type (`{}`):** Prefer `Record<string, unknown>` or an explicit interface over `{}`.
+- **Explicit Signatures:** Let TypeScript infer trivial local variables, but explicitly type public interfaces, exported functions, and data-domain boundaries.
 
-## 2. Disallowed Features
+## 2. React Components & Architecture
 
--   **`any` Type:** **Avoid `any`**. Prefer `unknown` or a more specific type.
--   **Wrapper Objects:** Do not instantiate `String`, `Boolean`, or `Number`
-    wrapper classes.
--   **Automatic Semicolon Insertion (ASI):** Do not rely on it. **Explicitly end
-    all statements with a semicolon.**
--   **`const enum`:** Do not use `const enum`. Use plain `enum` instead.
--   **`eval()` and `Function(...string)`:** Forbidden.
+For comprehensive rules on component taxonomy, React 19 ref/props forwarding, WAI-ARIA semantics, and state lifecycle patterns, refer strictly to [components.md](./components.md).
 
-## 3. Naming
+- **Functional Components:** Define components as named `const` arrow functions.
+- **Explicit Props Interfaces:** Always declare a dedicated interface for component props (`[Component]Props`). Do not use inline object types.
+- **Named Exports Only:** Default exports are forbidden (except where strictly required by dynamic routing/lazy loading).
+- **Composition over Inheritance:** Compose layout exclusively via Every Layout primitives (`<Stack>`, `<Cluster>`, `<Grid>`, etc.). Components must never accept margin or positioning props.
+- **Props-to-Data Forwarding:** Forward component states and variants (e.g. `status`, `variant`, `confidence`) directly to HTML `data-*` attributes (`data-status={status}`) for CUBE styling. Never concatenate dynamic CSS class names.
+- **Single Responsibility:** Keep components focused strictly on presentation and user interaction. Decouple domain models, astronomical math, and state logic into dedicated modules and hooks.
 
--   **`UpperCamelCase`:** For classes, interfaces, types, enums, and decorators.
--   **`lowerCamelCase`:** For variables, parameters, functions, methods, and
-    properties.
--   **`CONSTANT_CASE`:** For global constant values, including enum values.
--   **`_` Prefix/Suffix:** **Do not use `_` as a prefix or suffix** for
-    identifiers, including for private properties.
+## 3. Naming Conventions
 
-## 4. Type System
-
--   **Type Inference:** Rely on type inference for simple, obvious types. Be
-    explicit for complex types.
--   **`undefined` and `null`:** Both are supported. Be consistent within your
-    project.
--   **Optional vs. `|undefined`:** Prefer optional parameters and fields (`?`)
-    over adding `|undefined` to the type.
--   **`Array<T>` Type:** Use `T[]` for simple types. Use `Array<T>` for more
-    complex union types (e.g., `Array<string | number>`).
--   **`{}` Type:** **Do not use `{}`**. Prefer `unknown`, `Record<string,
-    unknown>`, or `object`.
-
-## 5. Comments and Documentation
-
--   **JSDoc:** Use `/** JSDoc */` for documentation, `//` for implementation
-    comments.
--   **Redundancy:** **Do not declare types in `@param` or `@return` blocks**
-    (e.g., `/** @param {string} user */`). This is redundant in TypeScript.
--   **Add Information:** Comments must add information, not just restate the
-    code.
-
-*Source:
-[Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html)*
-
-## 6. React Specific Rules
-
--   **Components as the Core Architecture:** React components are the primary unit of reuse, logic, and architecture across the site. Do not build core concepts outside of components.
--   **Single Responsibility:** It is critical that components have a single, clearly defined responsibility. Logic and state must not bleed into or unnecessarily couple with other components.
--   **Component Definitions:** All React components must be defined as `const` arrow functions.
--   **Props Typing:** Always define an interface for component props (no inline types).
--   **Exports:** Use named exports only. Default exports are banned unless strictly required by a framework feature (e.g., `React.lazy` or TanStack Router file-based routing).
+- **`UpperCamelCase`:** Types, interfaces, React components, and enums.
+- **`lowerCamelCase`:** Variables, properties, functions, methods, and React hooks.
+- **`CONSTANT_CASE`:** Module-level constants, physical constants, and fixed enum values.
+- **Descriptive Identifiers:** Avoid abbreviations unless industry standard (e.g. `ra`, `dec`, `id`, `url`). Do not use `_` prefixes or suffixes.

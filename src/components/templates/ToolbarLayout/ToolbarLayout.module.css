@@ -1,0 +1,37 @@
+@layer blocks {
+  .toolbar {
+    --toolbar-bg: var(--surface-dock-bg);
+    --toolbar-border-color: var(--surface-dock-border-color);
+    --toolbar-border-width: var(--stroke-hairline);
+    --toolbar-padding: var(--space-fib-2) var(--space-fib-4);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-fib-3);
+    inline-size: 100%;
+    box-sizing: border-box;
+    background: var(--toolbar-bg);
+    border-block-end: var(--toolbar-border-width) solid var(--toolbar-border-color);
+    padding: var(--toolbar-padding);
+    margin: 0;
+  }
+
+  .slotStart {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+  }
+
+  .slotCenter {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+  }
+
+  .slotEnd {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+  }
+}

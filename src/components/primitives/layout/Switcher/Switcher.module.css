@@ -1,0 +1,54 @@
+@layer composition {
+  .switcher {
+    --switcher-gap: var(--space-stack-default);
+    --switcher-threshold: 30rem; /* ~480px */
+
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--switcher-gap);
+    margin: 0;
+    padding: 0;
+  }
+
+  .switcher > * {
+    flex-grow: 1;
+    flex-basis: calc((var(--switcher-threshold) - 100%) * 999);
+  }
+
+  /* Limit items: if more than limit, force vertical */
+  .switcher[data-limit="2"] > :nth-last-child(n+3),
+  .switcher[data-limit="2"] > :nth-last-child(n+3) ~ * {
+    flex-basis: 100%;
+  }
+
+  .switcher[data-limit="3"] > :nth-last-child(n+4),
+  .switcher[data-limit="3"] > :nth-last-child(n+4) ~ * {
+    flex-basis: 100%;
+  }
+
+  .switcher[data-limit="4"] > :nth-last-child(n+5),
+  .switcher[data-limit="4"] > :nth-last-child(n+5) ~ * {
+    flex-basis: 100%;
+  }
+}
+
+@layer exceptions {
+  .switcher[data-gap="none"] { --switcher-gap: 0; }
+  .switcher[data-gap="dense"] { --switcher-gap: var(--space-stack-dense); }
+  .switcher[data-gap="tight"] { --switcher-gap: var(--space-stack-tight); }
+  .switcher[data-gap="default"] { --switcher-gap: var(--space-stack-default); }
+  .switcher[data-gap="loose"] { --switcher-gap: var(--space-stack-loose); }
+  .switcher[data-gap="section"] { --switcher-gap: var(--space-stack-section); }
+  .switcher[data-gap="fib-1"] { --switcher-gap: var(--space-fib-1); }
+  .switcher[data-gap="fib-2"] { --switcher-gap: var(--space-fib-2); }
+  .switcher[data-gap="fib-3"] { --switcher-gap: var(--space-fib-3); }
+  .switcher[data-gap="fib-4"] { --switcher-gap: var(--space-fib-4); }
+  .switcher[data-gap="fib-5"] { --switcher-gap: var(--space-fib-5); }
+  .switcher[data-gap="fib-6"] { --switcher-gap: var(--space-fib-6); }
+  .switcher[data-gap="fib-7"] { --switcher-gap: var(--space-fib-7); }
+
+  .switcher[data-threshold="sm"] { --switcher-threshold: 20rem; }
+  .switcher[data-threshold="md"] { --switcher-threshold: 30rem; }
+  .switcher[data-threshold="lg"] { --switcher-threshold: 45rem; }
+  .switcher[data-threshold="xl"] { --switcher-threshold: 60rem; }
+}

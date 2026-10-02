@@ -1,0 +1,56 @@
+@layer blocks {
+  .skeleton {
+    --skeleton-bg: var(--surface-dock-bg);
+    --skeleton-border-color: var(--surface-dock-border-color);
+    --skeleton-border-width: var(--border-width-subtle);
+    --skeleton-border-style: var(--border-style-boundary);
+    --skeleton-radius: var(--radius-md);
+    --skeleton-padding: var(--space-inset-card);
+    --skeleton-color: var(--content-prominent);
+    --skeleton-font: var(--font-data);
+    --skeleton-gap: var(--space-cluster-compact);
+    --skeleton-indicator-color: var(--status-nominal);
+
+    position: absolute;
+    bottom: var(--space-stack-loose);
+    left: var(--space-stack-loose);
+    padding: var(--skeleton-padding);
+    background: var(--skeleton-bg);
+    border: var(--skeleton-border-width) var(--skeleton-border-style) var(--skeleton-border-color);
+    border-radius: var(--skeleton-radius);
+    color: var(--skeleton-color);
+    font-family: var(--skeleton-font);
+    font-size: var(--text-content-data-label-size);
+    letter-spacing: 0.05em;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--skeleton-gap);
+    backdrop-filter: blur(12px);
+    z-index: var(--layer-modal, 50);
+    pointer-events: none;
+  }
+
+  .indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--skeleton-indicator-color);
+    box-shadow: 0 0 8px var(--skeleton-indicator-color);
+    animation: pulse 1.2s infinite ease-in-out;
+  }
+
+  .label {
+    line-height: 1;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.35;
+      transform: scale(0.8);
+    }
+  }
+}

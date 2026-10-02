@@ -1,0 +1,36 @@
+@layer composition {
+  .stack {
+    --stack-gap: var(--space-stack-default);
+    --stack-align: stretch;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: var(--stack-align);
+    gap: var(--stack-gap);
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer exceptions {
+  .stack[data-gap="none"] { --stack-gap: 0; }
+  .stack[data-gap="dense"] { --stack-gap: var(--space-stack-dense); }
+  .stack[data-gap="tight"] { --stack-gap: var(--space-stack-tight); }
+  .stack[data-gap="default"] { --stack-gap: var(--space-stack-default); }
+  .stack[data-gap="loose"] { --stack-gap: var(--space-stack-loose); }
+  .stack[data-gap="section"] { --stack-gap: var(--space-stack-section); }
+  .stack[data-gap="fib-1"] { --stack-gap: var(--space-fib-1); }
+  .stack[data-gap="fib-2"] { --stack-gap: var(--space-fib-2); }
+  .stack[data-gap="fib-3"] { --stack-gap: var(--space-fib-3); }
+  .stack[data-gap="fib-4"] { --stack-gap: var(--space-fib-4); }
+  .stack[data-gap="fib-5"] { --stack-gap: var(--space-fib-5); }
+  .stack[data-gap="fib-6"] { --stack-gap: var(--space-fib-6); }
+  .stack[data-gap="fib-7"] { --stack-gap: var(--space-fib-7); }
+
+  .stack[data-align="start"] { --stack-align: flex-start; }
+  .stack[data-align="center"] { --stack-align: center; }
+  .stack[data-align="end"] { --stack-align: flex-end; }
+  .stack[data-align="stretch"] { --stack-align: stretch; }
+  .stack[data-align="baseline"] { --stack-align: baseline; }
+}

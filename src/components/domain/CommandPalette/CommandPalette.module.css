@@ -1,0 +1,100 @@
+@layer blocks {
+  .paletteContainer {
+    --palette-bg: var(--surface-modal-bg);
+    --palette-border-color: var(--surface-modal-border-color);
+    --palette-item-hover-bg: var(--state-hover-overlay);
+    --palette-item-selected-bg: var(--state-selected-bg);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-3);
+    font-family: var(--font-interface);
+    min-inline-size: min(80vw, 540px);
+  }
+
+  .searchRow {
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+
+  .resultsList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-block-size: 320px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-1);
+  }
+
+  .resultItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-fib-2) var(--space-fib-3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    background: transparent;
+    border: var(--stroke-hairline) solid transparent;
+    transition: background var(--duration-fast) var(--ease-standard);
+  }
+
+  .resultItem:hover {
+    background: var(--palette-item-hover-bg);
+  }
+
+  .resultItemContent {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .itemTitle {
+    font-size: var(--type-scale-0);
+    font-weight: 500;
+    color: var(--content-bright);
+  }
+
+  .itemSubtitle {
+    font-size: var(--type-scale--1);
+    color: var(--content-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .emptyNotice {
+    padding: var(--space-fib-4);
+    text-align: center;
+    color: var(--content-muted);
+    font-size: var(--type-scale-0);
+  }
+
+  .shortcutHint {
+    font-size: var(--type-scale--2);
+    color: var(--content-muted);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-fib-2);
+    padding-block-start: var(--space-fib-2);
+    border-block-start: var(--stroke-hairline) solid var(--palette-border-color);
+  }
+
+  .kbd {
+    background: var(--surface-inset-bg);
+    border: var(--stroke-hairline) solid var(--surface-panel-border-color);
+    border-radius: var(--radius-sm);
+    padding: 1px var(--space-fib-2);
+    font-family: var(--font-data);
+    font-size: var(--type-scale--2);
+    color: var(--content-base);
+  }
+}
+
+@layer exceptions {
+  .resultItem[data-active="true"] {
+    background: var(--palette-item-selected-bg);
+    border-color: var(--state-focus);
+  }
+}

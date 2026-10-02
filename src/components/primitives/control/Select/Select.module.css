@@ -1,0 +1,46 @@
+@layer blocks {
+  .select {
+    --select-bg: var(--ui-input-bg);
+    --select-color: var(--ui-input-color);
+    --select-border-color: var(--ui-input-border-color);
+    --select-border-width: var(--stroke-hairline);
+    --select-padding-inline: var(--space-inset-control-x);
+    --select-padding-block: var(--space-inset-control-y);
+    --select-font-size: var(--type-scale-0);
+    --select-radius: var(--radius-sm);
+
+    display: inline-flex;
+    box-sizing: border-box;
+    inline-size: 100%;
+    font-family: var(--font-interface);
+    font-size: var(--select-font-size);
+    padding-inline: var(--select-padding-inline);
+    padding-block: var(--select-padding-block);
+    background: var(--select-bg);
+    color: var(--select-color);
+    border: var(--select-border-width) solid var(--select-border-color);
+    border-radius: var(--select-radius);
+    outline: none;
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+    margin: 0;
+  }
+
+  .select:focus {
+    --select-border-color: var(--border-focus);
+    box-shadow: 0 0 0 1px var(--border-focus);
+  }
+
+  .select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@layer exceptions {
+  .select[data-size="sm"] {
+    --select-padding-inline: var(--space-fib-2);
+    --select-padding-block: var(--space-fib-1);
+    --select-font-size: var(--type-scale-neg-1);
+  }
+}

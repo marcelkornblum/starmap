@@ -1,0 +1,6 @@
+/* -------------------------------------------------------------------------- */
+/* Master Design Tokens Aggregator                                            */
+/* Imports the Literal layer (scales & swatches) and the Semantic layer       */
+/* -------------------------------------------------------------------------- */
+@import './tokens/literal.css';
+@import './tokens/semantic.css';

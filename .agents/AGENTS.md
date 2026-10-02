@@ -13,7 +13,15 @@ Always check the active track in `conductor/tracks/` before making any codebase 
 # Code Styleguides
 There are clear styleguides to follow; you can find them in `conductor/code_styleguides/`.
 
+## Design System & Styling Guardrails
+Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-css.md`:
+- **Modular CSS Only:** Scoped CSS Modules (`*.module.css`) only; zero inline styles (`style={{ ... }}` is strictly forbidden).
+- **Zero Outer Margins:** Components never declare external margin or positioning; layout flow is 100% owned by Composition Primitives (`<Stack>`, `<Cluster>`, etc.).
+- **Tokens First:** Zero hardcoded colors, spacings, or font sizes; all styling consumes semantic tokens (`var(--token-name)`).
+- **CUBE Exceptions via HTML `data-*`:** Variants and states mutate local token interfaces via `data-*` attributes (`data-status="critical"`). Dynamic `className` concatenation is forbidden.
+
 ---
+
 
 # Agent Behaviours & Persona
 

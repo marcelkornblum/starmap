@@ -1,0 +1,74 @@
+@layer blocks {
+  .metric {
+    --metric-bg: var(--surface-panel-bg);
+    --metric-border-color: var(--surface-panel-border-color);
+    --metric-border-width: var(--surface-panel-border-width);
+    --metric-border-style: var(--surface-panel-border-style);
+    --metric-padding: var(--space-fib-4);
+    --metric-value-color: var(--content-bright);
+    --metric-label-color: var(--content-muted);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+    padding: var(--metric-padding);
+    background: var(--metric-bg);
+    border: var(--metric-border-width) var(--metric-border-style) var(--metric-border-color);
+    border-radius: var(--radius-sm);
+    box-sizing: border-box;
+  }
+
+  .label {
+    font-size: var(--type-scale-neg-1);
+    color: var(--metric-label-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+
+  .valueRow {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-fib-2);
+  }
+
+  .value {
+    font-size: var(--type-scale-3);
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--metric-value-color);
+    line-height: 1.1;
+  }
+
+  .unit {
+    font-size: var(--type-scale-0);
+    color: var(--content-subtle);
+    font-family: var(--font-interface);
+  }
+
+  .trend {
+    font-size: var(--type-scale-neg-2);
+    color: var(--content-muted);
+    font-family: var(--font-interface);
+  }
+}
+
+@layer exceptions {
+  .metric[data-status="nominal"] {
+    --metric-value-color: var(--status-nominal);
+    --metric-border-color: var(--status-nominal);
+  }
+  .metric[data-status="caution"] {
+    --metric-value-color: var(--status-caution);
+    --metric-border-color: var(--status-caution);
+  }
+  .metric[data-status="critical"] {
+    --metric-value-color: var(--status-critical);
+    --metric-border-color: var(--status-critical);
+  }
+  .metric[data-status="info"] {
+    --metric-value-color: var(--status-info);
+    --metric-border-color: var(--status-info);
+  }
+}

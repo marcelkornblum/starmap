@@ -1,0 +1,65 @@
+@layer composition {
+  .sidebarContainer {
+    --sidebar-gap: var(--space-stack-default);
+    --sidebar-width: 280px;
+    --content-min: 50%;
+
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sidebar-gap);
+    align-items: stretch;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sidebarContainer[data-no-stretch="true"] {
+    align-items: flex-start;
+  }
+
+  .sidebarContainer > :first-child {
+    flex-basis: var(--sidebar-width);
+    flex-grow: 1;
+  }
+
+  .sidebarContainer > :last-child {
+    flex-basis: 0;
+    flex-grow: 999;
+    min-inline-size: var(--content-min);
+  }
+
+  /* Reversed layout when side="end" */
+  .sidebarContainer[data-side="end"] > :first-child {
+    flex-basis: 0;
+    flex-grow: 999;
+    min-inline-size: var(--content-min);
+  }
+
+  .sidebarContainer[data-side="end"] > :last-child {
+    flex-basis: var(--sidebar-width);
+    flex-grow: 1;
+  }
+}
+
+@layer exceptions {
+  .sidebarContainer[data-gap="none"] { --sidebar-gap: 0; }
+  .sidebarContainer[data-gap="dense"] { --sidebar-gap: var(--space-stack-dense); }
+  .sidebarContainer[data-gap="tight"] { --sidebar-gap: var(--space-stack-tight); }
+  .sidebarContainer[data-gap="default"] { --sidebar-gap: var(--space-stack-default); }
+  .sidebarContainer[data-gap="loose"] { --sidebar-gap: var(--space-stack-loose); }
+  .sidebarContainer[data-gap="section"] { --sidebar-gap: var(--space-stack-section); }
+  .sidebarContainer[data-gap="fib-1"] { --sidebar-gap: var(--space-fib-1); }
+  .sidebarContainer[data-gap="fib-2"] { --sidebar-gap: var(--space-fib-2); }
+  .sidebarContainer[data-gap="fib-3"] { --sidebar-gap: var(--space-fib-3); }
+  .sidebarContainer[data-gap="fib-4"] { --sidebar-gap: var(--space-fib-4); }
+  .sidebarContainer[data-gap="fib-5"] { --sidebar-gap: var(--space-fib-5); }
+  .sidebarContainer[data-gap="fib-6"] { --sidebar-gap: var(--space-fib-6); }
+  .sidebarContainer[data-gap="fib-7"] { --sidebar-gap: var(--space-fib-7); }
+
+  .sidebarContainer[data-width="sm"] { --sidebar-width: 220px; }
+  .sidebarContainer[data-width="md"] { --sidebar-width: 300px; }
+  .sidebarContainer[data-width="lg"] { --sidebar-width: 380px; }
+
+  .sidebarContainer[data-content-min="50%"] { --content-min: 50%; }
+  .sidebarContainer[data-content-min="60%"] { --content-min: 60%; }
+  .sidebarContainer[data-content-min="70%"] { --content-min: 70%; }
+}

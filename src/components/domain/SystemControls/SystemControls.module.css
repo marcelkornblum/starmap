@@ -1,0 +1,44 @@
+@layer blocks {
+  .controlsDock {
+    --controls-bg: var(--surface-dock-bg);
+    --controls-border-color: var(--surface-dock-border-color);
+    --controls-border-width: var(--surface-dock-border-width);
+    --controls-border-style: var(--surface-dock-border-style);
+    --controls-shadow: var(--surface-dock-shadow);
+    --controls-padding: var(--space-inset-card);
+
+    background: var(--controls-bg);
+    border: var(--controls-border-width) var(--controls-border-style) var(--controls-border-color);
+    box-shadow: var(--controls-shadow);
+    border-radius: var(--radius-lg);
+    padding: var(--controls-padding);
+    backdrop-filter: blur(var(--scrim-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--scrim-backdrop-blur));
+    font-family: var(--font-interface);
+  }
+
+  .sectionHeader {
+    font-size: var(--type-scale--1);
+    font-weight: 600;
+    color: var(--content-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+
+  .sliderWrapper {
+    min-inline-size: 160px;
+  }
+
+  .buttonGroup {
+    display: inline-flex;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: var(--stroke-hairline) solid var(--surface-panel-border-color);
+  }
+
+  .groupButton {
+    border-radius: 0;
+    border: none;
+  }
+}

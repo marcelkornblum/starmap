@@ -1,0 +1,5 @@
+/* -------------------------------------------------------------------------- */
+/* Starmap CSS Cascading Layers Order                                        */
+/* Controls global specificity order from lowest to highest.                 */
+/* -------------------------------------------------------------------------- */
+@layer reset, tokens, composition, blocks, exceptions, utilities;

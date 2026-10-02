@@ -1,0 +1,39 @@
+@layer blocks {
+  .card {
+    --card-bg: var(--surface-panel-bg);
+    --card-border-color: var(--surface-panel-border-color);
+    --card-border-width: var(--surface-panel-border-width);
+    --card-border-style: var(--surface-panel-border-style);
+    --card-shadow: var(--surface-panel-shadow);
+    --card-padding: var(--space-inset-card);
+    --card-radius: var(--radius-md);
+
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    background: var(--card-bg);
+    border: var(--card-border-width) var(--card-border-style) var(--card-border-color);
+    box-shadow: var(--card-shadow);
+    border-radius: var(--card-radius);
+    padding: var(--card-padding);
+    margin: 0;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                box-shadow var(--duration-fast) var(--ease-standard);
+  }
+}
+
+@layer exceptions {
+  .card[data-status="critical"] { --card-border-color: var(--status-critical); }
+  .card[data-status="caution"] { --card-border-color: var(--status-caution); }
+  .card[data-status="nominal"] { --card-border-color: var(--status-nominal); }
+  .card[data-status="info"] { --card-border-color: var(--status-info); }
+
+  .card[data-interactive="true"]:hover {
+    --card-border-color: var(--border-focus);
+    cursor: pointer;
+  }
+
+  .card[data-padding="none"] { --card-padding: 0; }
+  .card[data-padding="tight"] { --card-padding: var(--space-fib-4); }
+  .card[data-padding="loose"] { --card-padding: var(--space-fib-6); }
+}

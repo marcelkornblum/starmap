@@ -1,75 +1,53 @@
-# Google HTML/CSS Style Guide Summary
+# HTML & Modular CSS Style Guide
 
-This document summarizes key rules and best practices from the Google HTML/CSS
-Style Guide.
+All component styling must adhere to the design system specifications in `docs/design-system.md` and the component architecture standards in [components.md](./components.md).
 
-## 1. General Rules
+## 1. Core Invariants
 
--   **Protocol:** Use HTTPS for all embedded resources.
--   **Indentation:** Indent by 2 spaces. Do not use tabs.
--   **Capitalization:** Use only lowercase for all code (element names,
-    attributes, selectors, properties).
--   **Trailing Whitespace:** Remove all trailing whitespace.
--   **Encoding:** Use UTF-8 (without a BOM). Specify `<meta charset="utf-8">` in
-    HTML.
+- **Modular CSS Exclusively:** Every component must have a dedicated CSS Module (`<Component>.module.css`). Global styles are strictly restricted to `src/styles/` (`layers.css`, `tokens.css`, `index.css`).
+- **Zero Inline Styles:** Inline styles (`style={{ ... }}`) are strictly forbidden in JSX and HTML. Never use `style` attributes for dynamic properties, positioning, or theming.
+- **Zero Outer Margins:** Component blocks MUST NEVER define external `margin` or layout positioning. All spacing and structural flow are owned by Composition Primitives (`<Stack>`, `<Cluster>`, `<Grid>`).
+- **Semantic Tokens Only:** Hardcoded hex colors, raw pixel spacings, and arbitrary font sizes are strictly forbidden. All styling values must consume semantic tokens (`var(--token-name)`).
+- **Tabular Data Numerals:** Numeric measurements, coordinates, and astronomical data must use `--font-data` and `font-variant-numeric: tabular-nums`.
 
-## 2. HTML Style Rules
+## 2. CUBE CSS & Layer Architecture
 
--   **Document Type:** Use `<!doctype html>`.
--   **HTML Validity:** Use valid HTML.
--   **Semantics:** Use HTML elements according to their intended purpose (e.g.,
-    use `<p>` for paragraphs, not for spacing).
--   **Multimedia Fallback:** Provide `alt` text for images and
-    transcripts/captions for audio/video.
--   **Separation of Concerns:** Strictly separate structure (HTML), presentation
-    (CSS), and behavior (JavaScript). Link to CSS and JS from external files.
--   **`type` Attributes:** Omit `type` attributes for stylesheets (`<link>`) and
-    scripts (`<script>`).
+Component stylesheets must implement the CUBE pattern using `@layer blocks` and `@layer exceptions`:
 
-## 3. HTML Formatting Rules
+```css
+/* src/components/surfaces/Card/Card.module.css */
+@layer blocks {
+  .card {
+    /* 1. Local Token Interface at the top of the selector */
+    --card-bg:           var(--surface-panel-bg);
+    --card-border-color: var(--surface-panel-border-color);
+    --card-border-width: var(--surface-panel-border-width);
+    --card-border-style: var(--surface-panel-border-style);
+    --card-shadow:       var(--surface-panel-shadow);
+    --card-padding:      var(--space-inset-card);
 
--   **General:** Use a new line for every block, list, or table element, and
-    indent its children.
--   **Quotation Marks:** Use double quotation marks (`""`) for attribute values.
+    /* 2. Structural Declarations */
+    background: var(--card-bg);
+    border: var(--card-border-width) var(--card-border-style) var(--card-border-color);
+    box-shadow: var(--card-shadow);
+    padding: var(--card-padding);
+  }
+}
 
-## 4. CSS Style Rules
+@layer exceptions {
+  /* 3. Exceptions mutate ONLY the Local Token Interface via HTML data-* attributes */
+  .card[data-status="critical"] {
+    --card-border-color: var(--status-critical);
+  }
 
--   **CSS Validity:** Use valid CSS.
--   **Class Naming:** Use meaningful, generic names. Separate words with a
-    hyphen (`-`).
-    -   **Good:** `.video-player`, `.site-navigation`
-    -   **Bad:** `.vid`, `.red-text`
--   **ID Selectors:** Avoid using ID selectors for styling. Prefer class
-    selectors.
--   **Shorthand Properties:** Use shorthand properties where possible (e.g.,
-    `padding`, `font`).
--   **`0` and Units:** Omit units for `0` values (e.g., `margin: 0;`).
--   **Leading `0`s:** Always include leading `0`s for decimal values (e.g.,
-    `font-size: 0.8em;`).
--   **Hexadecimal Notation:** Use 3-character hex notation where possible (e.g.,
-    `#fff`).
--   **`!important`:** Avoid using `!important`.
+  .card[data-status="caution"] {
+    --card-border-color: var(--status-caution);
+  }
+}
+```
 
-## 5. CSS Formatting Rules
+## 3. Rules & Enforcement
 
--   **Declaration Order:** Alphabetize declarations within a rule.
--   **Indentation:** Indent all block content.
--   **Semicolons:** Use a semicolon after every declaration.
--   **Spacing:**
-    -   Use a space after a property name's colon (`font-weight: bold;`).
-    -   Use a space between the last selector and the opening brace (`.foo {`).
-    -   Start a new line for each selector and declaration.
--   **Rule Separation:** Separate rules with a new line.
--   **Quotation Marks:** Use single quotes (`''`) for attribute selectors and
-    property values (e.g., `[type='text']`).
-
-**BE CONSISTENT.** When editing code, match the existing style.
-
-*Source:
-[Google HTML/CSS Style Guide](https://google.github.io/styleguide/htmlcssguide.html)*
-
-## 6. CSS Modules Specific Rules
-
--   **Class Naming (Override):** Ignore the standard kebab-case rule. All CSS class names must be `camelCase`. This allows seamless dot notation access in JavaScript (e.g., `styles.navBar`).
--   **Tokens First:** All colors, font sizes, and spacing must use CSS Variables (`var(--token-name)`). Hardcoded hex codes and pixel values are banned in component CSS.
--   **Strict Scoping:** All styles must be scoped to their component via CSS Modules. Global styles are strictly limited to the root `theme.css`.
+1. **State & Variants:** Bind variants (`data-status`, `data-variant`, `data-density`) to HTML `data-*` attributes. Dynamic `className` string interpolation is forbidden.
+2. **Atomic Exception Overrides:** Exceptions mutate only the targeted custom property (e.g. `--card-border-color`), preserving base layout and geometry.
+3. **Class Naming:** Use `camelCase` for CSS Module exports (e.g. `styles.dataRow`).

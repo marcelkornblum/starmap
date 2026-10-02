@@ -1,0 +1,13 @@
+@layer blocks {
+  .container {
+    --canvas-z-index: var(--layer-canvas);
+
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: var(--canvas-z-index);
+    pointer-events: auto;
+    overflow: hidden;
+  }
+}

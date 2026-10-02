@@ -1,0 +1,63 @@
+@layer blocks {
+  .toggleContainer {
+    --toggle-width: 36px;
+    --toggle-height: 20px;
+    --toggle-thumb-size: 14px;
+    --toggle-bg: var(--ui-input-bg);
+    --toggle-border: var(--ui-input-border-color);
+    --toggle-thumb-bg: var(--content-muted);
+
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-3);
+    cursor: pointer;
+    font-family: var(--font-interface);
+    font-size: var(--type-scale-0);
+    user-select: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+    text-align: left;
+  }
+
+  .toggleContainer[data-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .switchTrack {
+    position: relative;
+    inline-size: var(--toggle-width);
+    block-size: var(--toggle-height);
+    background: var(--toggle-bg);
+    border: var(--stroke-hairline) solid var(--toggle-border);
+    border-radius: var(--radius-pill);
+    transition: background var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard);
+  }
+
+  .switchThumb {
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline-start: 2px;
+    inline-size: var(--toggle-thumb-size);
+    block-size: var(--toggle-thumb-size);
+    background: var(--toggle-thumb-bg);
+    border-radius: var(--radius-pill);
+    transition: transform var(--duration-fast) var(--ease-standard),
+                background var(--duration-fast) var(--ease-standard);
+  }
+}
+
+@layer exceptions {
+  .toggleContainer[data-checked="true"] .switchTrack {
+    --toggle-bg: var(--solarized-blue);
+    --toggle-border: var(--solarized-blue);
+  }
+
+  .toggleContainer[data-checked="true"] .switchThumb {
+    --toggle-thumb-bg: var(--solarized-base03);
+    transform: translateX(16px);
+  }
+}

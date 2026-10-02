@@ -1,0 +1,552 @@
+@layer tokens {
+  /* ------------------------------------------------------------------------ */
+  /* Shared Invariants (Typography Roles, Mechanics, Spacing & Motion)        */
+  /* ------------------------------------------------------------------------ */
+  :root {
+    /* Font Roles */
+    --font-interface: var(--font-family-sans);
+    --font-data:      var(--font-family-mono);
+    --font-copy:      var(--font-family-serif);
+
+    /* Typography Mechanics */
+    --leading-default:   var(--leading-body);
+    --leading-metric:    var(--scalar-line-100);
+    --leading-control:   var(--scalar-line-100);
+    --leading-display:   var(--scalar-line-115);
+    --leading-heading:   var(--scalar-line-125);
+    --leading-body:      var(--scalar-line-140);
+    --leading-prose:     var(--scalar-line-160);
+
+    --tracking-default:  var(--tracking-body);
+    --tracking-display:  var(--scalar-track-tight);
+    --tracking-body:     var(--scalar-track-normal);
+    --tracking-control:  var(--scalar-track-wide);
+    --tracking-eyebrow:  var(--scalar-track-wider);
+    --tracking-spatial:  var(--scalar-track-widest);
+
+    /* Domain A: On-Map Typography */
+    --text-map-region-size:             var(--type-scale-3);
+    --text-map-region-transform:        uppercase;
+    --text-map-region-tracking:         var(--tracking-spatial);
+
+    --text-map-system-size:             var(--type-scale-1);
+    --text-map-system-transform:        uppercase;
+    --text-map-system-tracking:         var(--tracking-control);
+
+    --text-map-planet-size:             var(--type-scale-0);
+    --text-map-planet-transform:        none;
+    --text-map-planet-tracking:         var(--tracking-body);
+
+    --text-map-satellite-size:          var(--type-scale-neg-1);
+    --text-map-satellite-transform:     none;
+    --text-map-satellite-tracking:      var(--tracking-body);
+
+    --text-map-phenomenon-size:         var(--type-scale-0);
+    --text-map-phenomenon-transform:    uppercase;
+    --text-map-phenomenon-tracking:     var(--tracking-control);
+
+    --text-map-structure-size:          var(--type-scale-neg-1);
+    --text-map-structure-transform:     none;
+    --text-map-structure-tracking:      var(--tracking-body);
+
+    --text-map-vehicle-size:            var(--type-scale-neg-2);
+    --text-map-vehicle-transform:       none;
+    --text-map-vehicle-tracking:        var(--tracking-body);
+
+    --text-map-scale-size:              var(--type-scale-neg-1);
+    --text-map-scale-transform:         none;
+    --text-map-scale-tracking:          var(--tracking-body);
+
+    --text-map-coordinate-size:         var(--type-scale-neg-1);
+    --text-map-coordinate-transform:    none;
+    --text-map-coordinate-tracking:     var(--tracking-body);
+
+    --text-map-annotation-size:         var(--type-scale-neg-2);
+    --text-map-annotation-transform:    none;
+    --text-map-annotation-tracking:     var(--tracking-body);
+
+    /* Domain B: Content Typography */
+    --text-content-eyebrow-size:        var(--type-scale-neg-1);
+    --text-content-eyebrow-transform:   uppercase;
+    --text-content-eyebrow-tracking:    var(--tracking-eyebrow);
+
+    --text-content-hero-title-size:     var(--type-scale-3);
+    --text-content-subtitle-size:       var(--type-scale-1);
+    --text-content-section-title-size:  var(--type-scale-1);
+
+    --text-content-badge-size:          var(--type-scale-neg-1);
+    --text-content-badge-weight:        600;
+    --text-content-badge-tracking:      var(--tracking-body);
+
+    --text-content-metric-value-size:   var(--type-scale-2);
+    --text-content-metric-unit-size:    var(--type-scale-neg-1);
+    --text-content-data-label-size:     var(--type-scale-neg-1);
+    --text-content-data-value-size:     var(--type-scale-neg-1);
+    --text-content-uncertainty-size:    var(--type-scale-neg-2);
+
+    --text-content-body-lead-size:      var(--type-scale-1);
+    --text-content-body-size:           var(--type-scale-0);
+
+    --text-content-catalog-id-size:     var(--type-scale-neg-2);
+    --text-content-footnote-size:       var(--type-scale-neg-2);
+
+    /* Domain C: UI Chrome Typography */
+    --text-ui-nav-tab-size:             var(--type-scale-0);
+    --text-ui-breadcrumb-size:          var(--type-scale-neg-1);
+    --text-ui-breadcrumb-active-size:   var(--type-scale-neg-1);
+
+    --text-ui-search-input-size:        var(--type-scale-1);
+    --text-ui-search-placeholder-size:  var(--type-scale-1);
+    --text-ui-search-shortcut-size:     var(--type-scale-neg-1);
+    --text-ui-search-result-title-size: var(--type-scale-0);
+    --text-ui-search-result-desc-size:  var(--type-scale-neg-1);
+
+    --text-ui-button-prominent-size:    var(--type-scale-0);
+    --text-ui-button-default-size:      var(--type-scale-0);
+    --text-ui-button-subtle-size:       var(--type-scale-neg-1);
+
+    --text-ui-input-size:               var(--type-scale-0);
+    --text-ui-input-placeholder-size:   var(--type-scale-0);
+    --text-ui-input-label-size:         var(--type-scale-neg-1);
+
+    --text-ui-modal-title-size:         var(--type-scale-2);
+    --text-ui-menu-item-size:           var(--type-scale-0);
+    --text-ui-tooltip-size:             var(--type-scale-neg-1);
+    --text-ui-toast-title-size:         var(--type-scale-0);
+    --text-ui-toast-message-size:       var(--type-scale-neg-1);
+
+    /* Spacing Semantics */
+    --space-inset-badge:         var(--space-fib-1) var(--space-fib-2);
+    --space-inset-control-x:     var(--space-fib-3);
+    --space-inset-control-y:     var(--space-fib-2);
+    --space-inset-cell-x:        var(--space-fib-3);
+    --space-inset-cell-y:        var(--space-fib-2);
+    --space-inset-card:          var(--space-fib-5);
+    --space-inset-panel:         var(--space-fib-5);
+    --space-inset-drawer:        var(--space-fib-6);
+    --space-inset-modal:         var(--space-fib-5);
+
+    --space-stack-dense:         var(--space-fib-2);
+    --space-stack-tight:         var(--space-fib-3);
+    --space-stack-control:       var(--space-fib-3);
+    --space-stack-default:       var(--space-fib-4);
+    --space-stack-loose:         var(--space-fib-5);
+    --space-stack-section:       var(--space-fib-5);
+
+    --space-cluster-dense:       var(--space-fib-2);
+    --space-cluster-tight:       var(--space-fib-2);
+    --space-cluster-default:     var(--space-fib-3);
+    --space-cluster-loose:       var(--space-fib-4);
+
+    --space-grid-gap:            var(--space-fib-4);
+    --space-viewport-edge:       var(--space-fib-5);
+
+    /* Structural Border Geometry & Styles */
+    --radius-none:               var(--radius-0);
+    --radius-container:          var(--radius-0);
+    --radius-control:            var(--radius-0);
+    --radius-badge:              var(--radius-0);
+
+    --border-style-default:      var(--border-style-boundary);
+    --border-style-boundary:     var(--stroke-style-solid);
+    --border-style-provisional:  var(--stroke-style-dashed);
+    --border-style-guide:        var(--stroke-style-dotted);
+
+    /* Motion Semantics */
+    --motion-duration-none:        var(--time-0);
+    --motion-duration-feedback:    var(--time-1);
+    --motion-duration-interactive: var(--time-2);
+    --motion-duration-overlay:     var(--time-3);
+    --motion-duration-spatial:     var(--time-4);
+    --motion-duration-default:     var(--motion-duration-interactive);
+
+    --motion-ease-default:         var(--curve-snappy);
+    --motion-ease-spatial:         var(--curve-spatial);
+
+    /* UI Element Optics Defaults */
+    --ui-button-prominent-opacity:       var(--opacity-100);
+    --ui-button-prominent-backdrop-blur: var(--filter-blur-0);
+
+    --ui-button-default-opacity:         var(--opacity-100);
+    --ui-button-default-backdrop-blur:   var(--filter-blur-0);
+
+    --ui-button-subtle-opacity:          var(--opacity-0);
+    --ui-button-subtle-backdrop-blur:    var(--filter-blur-0);
+
+    --ui-search-pill-opacity:            var(--opacity-100);
+    --ui-search-pill-backdrop-blur:      var(--filter-blur-0);
+
+    --ui-command-palette-opacity:        var(--opacity-100);
+    --ui-command-palette-backdrop-blur:  var(--filter-blur-2);
+
+    --ui-input-bg-opacity:               var(--opacity-100);
+    --ui-input-backdrop-blur:            var(--filter-blur-0);
+    --ui-input-border-opacity:           var(--opacity-15);
+
+    --ui-badge-fill-opacity:             var(--opacity-15);
+    --ui-badge-backdrop-blur:            var(--filter-blur-0);
+    --ui-badge-border-opacity:           var(--opacity-40);
+
+    --ui-tooltip-opacity:                var(--opacity-95);
+    --ui-tooltip-backdrop-blur:          var(--filter-blur-1);
+
+    --ui-hover-overlay-opacity:          var(--opacity-5);
+    --ui-hover-overlay-backdrop-blur:    var(--filter-blur-0);
+
+    --ui-active-overlay-opacity:         var(--opacity-10);
+    --ui-active-overlay-backdrop-blur:   var(--filter-blur-0);
+
+    --ui-disabled-opacity:               var(--opacity-40);
+    --ui-disabled-backdrop-blur:         var(--filter-blur-0);
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Dark Theme: Solarized Dark Baseline (OKLCH)                              */
+  /* ------------------------------------------------------------------------ */
+  :root,
+  [data-theme="dark"] {
+    /* Surfaces */
+    --surface-canvas-bg:           var(--palette-solarized-base03);
+    --surface-canvas-border-width: var(--stroke-width-0);
+    --surface-canvas-border-color: transparent;
+    --surface-canvas-border-style: var(--stroke-style-none);
+    --surface-canvas-shadow:       var(--elevation-0);
+    --surface-canvas-opacity:      var(--opacity-100);
+    --surface-canvas-backdrop-blur:var(--filter-blur-0);
+
+    --surface-inset-bg:            var(--palette-solarized-base03);
+    --surface-inset-border-width:  var(--stroke-width-1);
+    --surface-inset-border-color:  var(--palette-white-alpha-8);
+    --surface-inset-border-style:  var(--border-style-boundary);
+    --surface-inset-shadow:        var(--elevation-inset);
+    --surface-inset-opacity:       var(--opacity-100);
+    --surface-inset-backdrop-blur: var(--filter-blur-0);
+
+    --surface-hud-bg:              var(--palette-solarized-base02);
+    --surface-hud-border-width:    var(--stroke-width-1);
+    --surface-hud-border-color:    var(--palette-white-alpha-12);
+    --surface-hud-border-style:    var(--border-style-boundary);
+    --surface-hud-shadow:          var(--elevation-1);
+    --surface-hud-opacity:         var(--opacity-100);
+    --surface-hud-backdrop-blur:   var(--filter-blur-0);
+
+    --surface-dock-bg:             var(--palette-solarized-base02);
+    --surface-dock-border-width:   var(--stroke-width-1);
+    --surface-dock-border-color:   var(--palette-white-alpha-16);
+    --surface-dock-border-style:   var(--border-style-boundary);
+    --surface-dock-shadow:         var(--elevation-2);
+    --surface-dock-opacity:        var(--opacity-100);
+    --surface-dock-backdrop-blur:  var(--filter-blur-0);
+
+    --surface-panel-bg:            var(--palette-solarized-base02);
+    --surface-panel-border-width:  var(--stroke-width-1);
+    --surface-panel-border-color:  var(--palette-white-alpha-16);
+    --surface-panel-border-style:  var(--border-style-boundary);
+    --surface-panel-shadow:        var(--elevation-2);
+    --surface-panel-opacity:       var(--opacity-100);
+    --surface-panel-backdrop-blur: var(--filter-blur-0);
+
+    --surface-drawer-bg:           var(--palette-solarized-base02);
+    --surface-drawer-border-width: var(--stroke-width-2);
+    --surface-drawer-border-color: var(--palette-white-alpha-32);
+    --surface-drawer-border-style: var(--border-style-boundary);
+    --surface-drawer-shadow:       var(--elevation-3);
+    --surface-drawer-opacity:      var(--opacity-100);
+    --surface-drawer-backdrop-blur:var(--filter-blur-0);
+
+    --surface-popover-bg:          var(--palette-solarized-base02);
+    --surface-popover-border-width:var(--stroke-width-1);
+    --surface-popover-border-color:var(--palette-white-alpha-24);
+    --surface-popover-border-style:var(--border-style-boundary);
+    --surface-popover-shadow:      var(--elevation-3);
+    --surface-popover-opacity:     var(--opacity-100);
+    --surface-popover-backdrop-blur:var(--filter-blur-0);
+
+    --surface-modal-bg:            var(--palette-solarized-base02);
+    --surface-modal-border-width:  var(--stroke-width-2);
+    --surface-modal-border-color:  var(--palette-white-alpha-32);
+    --surface-modal-border-style:  var(--border-style-boundary);
+    --surface-modal-shadow:        var(--elevation-4);
+    --surface-modal-opacity:       var(--opacity-100);
+    --surface-modal-backdrop-blur: var(--filter-blur-0);
+    --scrim-backdrop:              var(--palette-black-alpha-70);
+    --scrim-backdrop-opacity:      var(--opacity-70);
+    --scrim-backdrop-blur:         var(--filter-blur-1);
+
+    --surface-toast-bg:            var(--palette-solarized-base02);
+    --surface-toast-border-width:  var(--stroke-width-1);
+    --surface-toast-border-color:  var(--palette-white-alpha-32);
+    --surface-toast-border-style:  var(--border-style-boundary);
+    --surface-toast-shadow:        var(--elevation-3);
+    --surface-toast-opacity:       var(--opacity-100);
+    --surface-toast-backdrop-blur: var(--filter-blur-0);
+
+    /* Content Contrast */
+    --content-prominent: var(--palette-solarized-base1);
+    --content-default:   var(--palette-solarized-base0);
+    --content-muted:     var(--palette-solarized-base01);
+    --content-faint:     var(--palette-solarized-base00);
+    --content-inverse:   var(--palette-solarized-base03);
+    --content-disabled:  var(--palette-solarized-base01);
+
+    /* Interactive Focus & States */
+    --state-focus:                var(--palette-solarized-cyan);
+    --state-focus-ring-color:     var(--state-focus);
+    --state-focus-ring-width:     var(--stroke-width-2);
+    --state-focus-ring-style:     var(--border-style-boundary);
+    --state-focus-ring-offset:    2px;
+    --state-focus-halo:           0 0 0 4px oklch(64.37% 0.1019 187.38 / 0.30);
+
+    --state-hover-overlay:        var(--palette-white-alpha-4);
+    --state-active-overlay:       var(--palette-white-alpha-8);
+
+    --state-selected-bg:          var(--palette-white-alpha-8);
+    --state-selected-border:      var(--state-focus);
+    --state-selected-content:     var(--content-prominent);
+
+    --state-disabled-content:     var(--content-faint);
+    --state-disabled-border:      var(--palette-white-alpha-8);
+    --state-disabled-surface:     transparent;
+    --state-disabled-cursor:      not-allowed;
+
+    /* Cartographic Chrome */
+    --chrome-grid-primary-color:         var(--palette-white-alpha-16);
+    --chrome-grid-primary-width:         var(--stroke-width-1);
+    --chrome-grid-primary-style:         var(--border-style-boundary);
+
+    --chrome-grid-secondary-color:       var(--palette-white-alpha-8);
+    --chrome-grid-secondary-width:       var(--stroke-width-1);
+    --chrome-grid-secondary-style:       var(--border-style-guide);
+
+    --chrome-range-ring-color:           var(--palette-white-alpha-12);
+    --chrome-range-ring-width:           var(--stroke-width-1);
+    --chrome-range-ring-style:           var(--border-style-boundary);
+
+    --chrome-range-tick-color:           var(--palette-white-alpha-24);
+    --chrome-range-tick-width:           var(--stroke-width-1);
+    --chrome-range-tick-style:           var(--border-style-boundary);
+
+    --chrome-reticle-bracket-color:      var(--palette-white-alpha-40);
+    --chrome-reticle-bracket-width:      var(--stroke-width-2);
+    --chrome-reticle-bracket-style:      var(--border-style-boundary);
+
+    --chrome-boresight-color:            var(--palette-white-alpha-30);
+    --chrome-boresight-width:            var(--stroke-width-1);
+    --chrome-boresight-style:            var(--border-style-boundary);
+
+    --chrome-axis-line-color:            var(--palette-white-alpha-20);
+    --chrome-axis-line-width:            var(--stroke-width-1);
+    --chrome-axis-line-style:            var(--border-style-boundary);
+
+    --chrome-heading-indicator-color:    var(--palette-white-alpha-50);
+    --chrome-heading-indicator-width:    var(--stroke-width-2);
+    --chrome-heading-indicator-style:    var(--border-style-boundary);
+
+    /* Confidence Indicators */
+    --confidence-confirmed:        var(--palette-solarized-green);
+    --confidence-confirmed-bg:     oklch(64.44% 0.1508 118.60 / 0.15);
+    --confidence-candidate:        var(--palette-solarized-yellow);
+    --confidence-candidate-bg:     oklch(65.45% 0.1340 85.72 / 0.15);
+    --confidence-theoretical:      var(--palette-solarized-violet);
+    --confidence-theoretical-bg:   oklch(58.23% 0.1261 279.10 / 0.15);
+
+    /* Telemetry Condition / Status */
+    --status-nominal:              var(--palette-solarized-green);
+    --status-nominal-bg:           oklch(64.44% 0.1508 118.60 / 0.15);
+    --status-caution:              var(--palette-solarized-yellow);
+    --status-caution-bg:           oklch(65.45% 0.1340 85.72 / 0.15);
+    --status-critical:             var(--palette-solarized-red);
+    --status-critical-bg:          oklch(58.63% 0.2064 27.12 / 0.15);
+
+    /* Domain Categories */
+    --category-star:               var(--palette-solarized-orange);
+    --category-star-bg:            oklch(58.08% 0.1732 39.50 / 0.15);
+    --category-planet:             var(--palette-solarized-cyan);
+    --category-planet-bg:          oklch(64.37% 0.1019 187.38 / 0.15);
+    --category-orbit:              var(--palette-solarized-violet);
+    --category-orbit-bg:           oklch(58.23% 0.1261 279.10 / 0.15);
+    --category-habitability:       var(--palette-solarized-green);
+    --category-habitability-bg:    oklch(64.44% 0.1508 118.60 / 0.15);
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Light Theme: Solarized Light Baseline (OKLCH)                            */
+  /* ------------------------------------------------------------------------ */
+  [data-theme="light"] {
+    /* Surfaces */
+    --surface-canvas-bg:           var(--palette-solarized-base3);
+    --surface-canvas-border-width: var(--stroke-width-0);
+    --surface-canvas-border-color: transparent;
+    --surface-canvas-border-style: var(--stroke-style-none);
+    --surface-canvas-shadow:       var(--elevation-0);
+    --surface-canvas-opacity:      var(--opacity-100);
+    --surface-canvas-backdrop-blur:var(--filter-blur-0);
+
+    --surface-inset-bg:            var(--palette-solarized-base3);
+    --surface-inset-border-width:  var(--stroke-width-1);
+    --surface-inset-border-color:  var(--palette-black-alpha-8);
+    --surface-inset-border-style:  var(--border-style-boundary);
+    --surface-inset-shadow:        var(--elevation-inset);
+    --surface-inset-opacity:       var(--opacity-100);
+    --surface-inset-backdrop-blur: var(--filter-blur-0);
+
+    --surface-hud-bg:              var(--palette-solarized-base2);
+    --surface-hud-border-width:    var(--stroke-width-1);
+    --surface-hud-border-color:    var(--palette-black-alpha-12);
+    --surface-hud-border-style:    var(--border-style-boundary);
+    --surface-hud-shadow:          var(--elevation-1);
+    --surface-hud-opacity:         var(--opacity-100);
+    --surface-hud-backdrop-blur:   var(--filter-blur-0);
+
+    --surface-dock-bg:             var(--palette-solarized-base2);
+    --surface-dock-border-width:   var(--stroke-width-1);
+    --surface-dock-border-color:   var(--palette-black-alpha-16);
+    --surface-dock-border-style:   var(--border-style-boundary);
+    --surface-dock-shadow:         var(--elevation-2);
+    --surface-dock-opacity:        var(--opacity-100);
+    --surface-dock-backdrop-blur:  var(--filter-blur-0);
+
+    --surface-panel-bg:            var(--palette-solarized-base2);
+    --surface-panel-border-width:  var(--stroke-width-1);
+    --surface-panel-border-color:  var(--palette-black-alpha-16);
+    --surface-panel-border-style:  var(--border-style-boundary);
+    --surface-panel-shadow:        var(--elevation-2);
+    --surface-panel-opacity:       var(--opacity-100);
+    --surface-panel-backdrop-blur: var(--filter-blur-0);
+
+    --surface-drawer-bg:           var(--palette-solarized-base2);
+    --surface-drawer-border-width: var(--stroke-width-2);
+    --surface-drawer-border-color: var(--palette-black-alpha-32);
+    --surface-drawer-border-style: var(--border-style-boundary);
+    --surface-drawer-shadow:       var(--elevation-3);
+    --surface-drawer-opacity:      var(--opacity-100);
+    --surface-drawer-backdrop-blur:var(--filter-blur-0);
+
+    --surface-popover-bg:          var(--palette-solarized-base2);
+    --surface-popover-border-width:var(--stroke-width-1);
+    --surface-popover-border-color:var(--palette-black-alpha-24);
+    --surface-popover-border-style:var(--border-style-boundary);
+    --surface-popover-shadow:      var(--elevation-3);
+    --surface-popover-opacity:     var(--opacity-100);
+    --surface-popover-backdrop-blur:var(--filter-blur-0);
+
+    --surface-modal-bg:            var(--palette-solarized-base2);
+    --surface-modal-border-width:  var(--stroke-width-2);
+    --surface-modal-border-color:  var(--palette-black-alpha-32);
+    --surface-modal-border-style:  var(--border-style-boundary);
+    --surface-modal-shadow:        var(--elevation-4);
+    --surface-modal-opacity:       var(--opacity-100);
+    --surface-modal-backdrop-blur: var(--filter-blur-0);
+    --scrim-backdrop:              var(--palette-light-scrim);
+    --scrim-backdrop-opacity:      var(--opacity-40);
+    --scrim-backdrop-blur:         var(--filter-blur-1);
+
+    --surface-toast-bg:            var(--palette-solarized-base2);
+    --surface-toast-border-width:  var(--stroke-width-1);
+    --surface-toast-border-color:  var(--palette-black-alpha-32);
+    --surface-toast-border-style:  var(--border-style-boundary);
+    --surface-toast-shadow:        var(--elevation-3);
+    --surface-toast-opacity:       var(--opacity-100);
+    --surface-toast-backdrop-blur: var(--filter-blur-0);
+
+    /* Content Contrast */
+    --content-prominent: var(--palette-solarized-base01);
+    --content-default:   var(--palette-solarized-base00);
+    --content-muted:     var(--palette-solarized-base1);
+    --content-faint:     var(--palette-solarized-base2);
+    --content-inverse:   var(--palette-solarized-base3);
+    --content-disabled:  var(--palette-solarized-base1);
+
+    /* Interactive Focus & States */
+    --state-focus:                var(--palette-solarized-blue);
+    --state-focus-ring-color:     var(--state-focus);
+    --state-focus-ring-width:     var(--stroke-width-2);
+    --state-focus-ring-style:     var(--border-style-boundary);
+    --state-focus-ring-offset:    2px;
+    --state-focus-halo:           0 0 0 4px oklch(61.49% 0.1394 244.93 / 0.30);
+
+    --state-hover-overlay:        var(--palette-black-alpha-4);
+    --state-active-overlay:       var(--palette-black-alpha-8);
+
+    --state-selected-bg:          var(--palette-black-alpha-8);
+    --state-selected-border:      var(--state-focus);
+    --state-selected-content:     var(--content-prominent);
+
+    --state-disabled-content:     var(--content-faint);
+    --state-disabled-border:      var(--palette-black-alpha-8);
+    --state-disabled-surface:     transparent;
+    --state-disabled-cursor:      not-allowed;
+
+    /* Cartographic Chrome */
+    --chrome-grid-primary-color:         var(--palette-black-alpha-16);
+    --chrome-grid-primary-width:         var(--stroke-width-1);
+    --chrome-grid-primary-style:         var(--border-style-boundary);
+
+    --chrome-grid-secondary-color:       var(--palette-black-alpha-8);
+    --chrome-grid-secondary-width:       var(--stroke-width-1);
+    --chrome-grid-secondary-style:       var(--border-style-guide);
+
+    --chrome-range-ring-color:           var(--palette-black-alpha-12);
+    --chrome-range-ring-width:           var(--stroke-width-1);
+    --chrome-range-ring-style:           var(--border-style-boundary);
+
+    --chrome-range-tick-color:           var(--palette-black-alpha-24);
+    --chrome-range-tick-width:           var(--stroke-width-1);
+    --chrome-range-tick-style:           var(--border-style-boundary);
+
+    --chrome-reticle-bracket-color:      var(--palette-black-alpha-40);
+    --chrome-reticle-bracket-width:      var(--stroke-width-2);
+    --chrome-reticle-bracket-style:      var(--border-style-boundary);
+
+    --chrome-boresight-color:            var(--palette-black-alpha-30);
+    --chrome-boresight-width:            var(--stroke-width-1);
+    --chrome-boresight-style:            var(--border-style-boundary);
+
+    --chrome-axis-line-color:            var(--palette-black-alpha-20);
+    --chrome-axis-line-width:            var(--stroke-width-1);
+    --chrome-axis-line-style:            var(--border-style-boundary);
+
+    --chrome-heading-indicator-color:    var(--palette-black-alpha-50);
+    --chrome-heading-indicator-width:    var(--stroke-width-2);
+    --chrome-heading-indicator-style:    var(--border-style-boundary);
+
+    /* Confidence Indicators */
+    --confidence-confirmed:        var(--palette-solarized-green);
+    --confidence-confirmed-bg:     oklch(64.44% 0.1508 118.60 / 0.12);
+    --confidence-candidate:        var(--palette-solarized-yellow);
+    --confidence-candidate-bg:     oklch(65.45% 0.1340 85.72 / 0.12);
+    --confidence-theoretical:      var(--palette-solarized-violet);
+    --confidence-theoretical-bg:   oklch(58.23% 0.1261 279.10 / 0.12);
+
+    /* Telemetry Condition / Status */
+    --status-nominal:              var(--palette-solarized-green);
+    --status-nominal-bg:           oklch(64.44% 0.1508 118.60 / 0.12);
+    --status-caution:              var(--palette-solarized-yellow);
+    --status-caution-bg:           oklch(65.45% 0.1340 85.72 / 0.12);
+    --status-critical:             var(--palette-solarized-red);
+    --status-critical-bg:          oklch(58.63% 0.2064 27.12 / 0.12);
+
+    /* Domain Categories */
+    --category-star:               var(--palette-solarized-orange);
+    --category-star-bg:            oklch(58.08% 0.1732 39.50 / 0.12);
+    --category-planet:             var(--palette-solarized-cyan);
+    --category-planet-bg:          oklch(64.37% 0.1019 187.38 / 0.12);
+    --category-orbit:              var(--palette-solarized-violet);
+    --category-orbit-bg:           oklch(58.23% 0.1261 279.10 / 0.12);
+    --category-habitability:       var(--palette-solarized-green);
+    --category-habitability-bg:    oklch(64.44% 0.1508 118.60 / 0.12);
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Reduced Motion Invariant                                                 */
+  /* ------------------------------------------------------------------------ */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --motion-duration-feedback:    0ms;
+      --motion-duration-interactive: 0ms;
+      --motion-duration-overlay:     0ms;
+      --motion-duration-spatial:     0ms;
+      --motion-duration-default:     0ms;
+    }
+  }
+}

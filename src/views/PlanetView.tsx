@@ -3,6 +3,9 @@ import { useParams } from '@tanstack/react-router';
 import { ScenePortal } from '../components/canvas/SceneBridge';
 import { PlanetScene3D } from '../components/canvas/scenes/PlanetScene3D';
 import { useStarmapNav } from '../router/navigation';
+import { Panel } from '../components/surfaces';
+import { Stack, Cluster, Button, Metric, Datum } from '../components/primitives';
+import styles from './PlanetView.module.css';
 
 export interface PlanetViewProps {}
 
@@ -11,56 +14,78 @@ export const PlanetView: React.FC<PlanetViewProps> = () => {
   const planetId = params.planetId ?? 'unknown';
   const nav = useStarmapNav();
 
+  const isEarth = planetId.toLowerCase() === 'earth';
+
   return (
     <>
       <ScenePortal sceneKey={`planet-${planetId}`}>
         <PlanetScene3D planetId={planetId} />
       </ScenePortal>
 
-      <div
-        data-testid="planet-view-hud"
-        style={{
-          position: 'absolute',
-          top: '2rem',
-          left: '2rem',
-          padding: '1.5rem',
-          background: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(12px)',
-          borderRadius: '8px',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          color: '#fff',
-          maxWidth: '320px',
-          pointerEvents: 'auto',
-        }}
-      >
-        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#10b981' }}>
-          Planetary Body
-        </span>
-        <h2 style={{ margin: '0.25rem 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 700 }}>
-          {planetId.toUpperCase()}
-        </h2>
-        <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.4 }}>
-          Surface inspection and atmospheric telemetry readout.
-        </p>
+      <div data-testid="planet-view-hud" className={styles.hudOverlay}>
+        <Panel padding="default">
+          <Stack gap="default">
+            <Stack gap="tight">
+              <span className={styles.eyebrow}>Planetary Body</span>
+              <h2 className={styles.title}>{planetId.toUpperCase()}</h2>
+              <p className={styles.description}>
+                Surface inspection and atmospheric telemetry readout.
+              </p>
+            </Stack>
 
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => nav.toSystem('sol')}
-            style={{
-              background: '#10b981',
-              color: '#fff',
-              border: 'none',
-              padding: '0.5rem 0.75rem',
-              borderRadius: '4px',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            ← Sol System
-          </button>
-        </div>
+            <Cluster gap="tight">
+              <Button
+                variant="primary"
+                onClick={() => nav.toSystem('sol')}
+              >
+                ← Sol System
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => nav.toGalaxy()}
+              >
+                Galaxy Atlas
+              </Button>
+            </Cluster>
+
+            <Cluster gap="default">
+              <Metric label="Radius" value={isEarth ? '6,371' : '—'} unit={isEarth ? 'km' : undefined} />
+              <Metric label="Gravity" value={isEarth ? '1.00' : '—'} unit={isEarth ? 'g' : undefined} />
+              <Metric label="Period" value={isEarth ? '365.25' : '—'} unit={isEarth ? 'd' : undefined} />
+            </Cluster>
+
+            <Stack gap="none">
+              <Datum
+                label="Semi-Major Axis"
+                value={isEarth ? '1.000' : '—'}
+                unit={isEarth ? 'AU' : undefined}
+              />
+              <Datum
+                label="Eccentricity"
+                value={isEarth ? '0.0167' : '—'}
+              />
+              <Datum
+                label="Axial Tilt"
+                value={isEarth ? '23.44' : '—'}
+                unit={isEarth ? '°' : undefined}
+              />
+              <Datum
+                label="Escape Velocity"
+                value={isEarth ? '11.19' : '—'}
+                unit={isEarth ? 'km/s' : undefined}
+              />
+              <Datum
+                label="Atmospheric Telemetry"
+                value={isEarth ? 'N₂ 78%, O₂ 21%, Ar 1%' : 'Awaiting Spectroscopy'}
+              />
+              <Datum
+                label="Habitable Zone"
+                value={isEarth ? 'Confirmed Habitable' : 'Undetermined'}
+                status={isEarth ? 'nominal' : 'caution'}
+              />
+            </Stack>
+          </Stack>
+        </Panel>
       </div>
     </>
   );

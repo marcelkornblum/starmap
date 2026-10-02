@@ -1,0 +1,77 @@
+@layer blocks {
+  .badge {
+    --badge-bg: var(--surface-dock-bg);
+    --badge-color: var(--content-default);
+    --badge-border-color: var(--surface-dock-border-color);
+
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+    padding: var(--space-inset-badge);
+    border-radius: var(--radius-sm);
+    font-size: var(--type-scale-neg-1);
+    font-family: var(--font-interface);
+    font-weight: 500;
+    line-height: 1.2;
+    background: var(--badge-bg);
+    color: var(--badge-color);
+    border: var(--stroke-hairline) solid var(--badge-border-color);
+    white-space: nowrap;
+  }
+}
+
+@layer exceptions {
+  /* Status variants */
+  .badge[data-status="nominal"] {
+    --badge-color: var(--status-nominal);
+    --badge-border-color: var(--status-nominal);
+  }
+  .badge[data-status="caution"] {
+    --badge-color: var(--status-caution);
+    --badge-border-color: var(--status-caution);
+  }
+  .badge[data-status="critical"] {
+    --badge-color: var(--status-critical);
+    --badge-border-color: var(--status-critical);
+  }
+  .badge[data-status="info"] {
+    --badge-color: var(--status-info);
+    --badge-border-color: var(--status-info);
+  }
+
+  /* Confidence variants */
+  .badge[data-confidence="confirmed"] {
+    --badge-color: var(--status-nominal);
+    --badge-border-color: var(--status-nominal);
+  }
+  .badge[data-confidence="candidate"] {
+    --badge-color: var(--status-caution);
+    --badge-border-color: var(--status-caution);
+  }
+  .badge[data-confidence="projected"] {
+    --badge-color: var(--status-info);
+    --badge-border-color: var(--status-info);
+  }
+  .badge[data-confidence="unverified"] {
+    --badge-color: var(--content-muted);
+    --badge-border-color: var(--border-subtle);
+  }
+
+  /* Category variants */
+  .badge[data-category="star"] {
+    --badge-color: var(--solarized-yellow);
+    --badge-border-color: var(--solarized-yellow);
+  }
+  .badge[data-category="planet"] {
+    --badge-color: var(--solarized-blue);
+    --badge-border-color: var(--solarized-blue);
+  }
+  .badge[data-category="nebula"] {
+    --badge-color: var(--solarized-magenta);
+    --badge-border-color: var(--solarized-magenta);
+  }
+  .badge[data-category="constellation"] {
+    --badge-color: var(--solarized-cyan);
+    --badge-border-color: var(--solarized-cyan);
+  }
+}

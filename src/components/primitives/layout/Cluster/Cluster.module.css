@@ -1,0 +1,44 @@
+@layer composition {
+  .cluster {
+    --cluster-gap: var(--space-cluster-default);
+    --cluster-align: center;
+    --cluster-justify: flex-start;
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: var(--cluster-align);
+    justify-content: var(--cluster-justify);
+    gap: var(--cluster-gap);
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer exceptions {
+  .cluster[data-gap="none"] { --cluster-gap: 0; }
+  .cluster[data-gap="dense"] { --cluster-gap: var(--space-cluster-dense); }
+  .cluster[data-gap="tight"] { --cluster-gap: var(--space-cluster-tight); }
+  .cluster[data-gap="default"] { --cluster-gap: var(--space-cluster-default); }
+  .cluster[data-gap="loose"] { --cluster-gap: var(--space-cluster-loose); }
+  .cluster[data-gap="section"] { --cluster-gap: var(--space-stack-section); }
+  .cluster[data-gap="fib-1"] { --cluster-gap: var(--space-fib-1); }
+  .cluster[data-gap="fib-2"] { --cluster-gap: var(--space-fib-2); }
+  .cluster[data-gap="fib-3"] { --cluster-gap: var(--space-fib-3); }
+  .cluster[data-gap="fib-4"] { --cluster-gap: var(--space-fib-4); }
+  .cluster[data-gap="fib-5"] { --cluster-gap: var(--space-fib-5); }
+  .cluster[data-gap="fib-6"] { --cluster-gap: var(--space-fib-6); }
+  .cluster[data-gap="fib-7"] { --cluster-gap: var(--space-fib-7); }
+
+  .cluster[data-align="start"] { --cluster-align: flex-start; }
+  .cluster[data-align="center"] { --cluster-align: center; }
+  .cluster[data-align="end"] { --cluster-align: flex-end; }
+  .cluster[data-align="stretch"] { --cluster-align: stretch; }
+  .cluster[data-align="baseline"] { --cluster-align: baseline; }
+
+  .cluster[data-justify="start"] { --cluster-justify: flex-start; }
+  .cluster[data-justify="center"] { --cluster-justify: center; }
+  .cluster[data-justify="end"] { --cluster-justify: flex-end; }
+  .cluster[data-justify="between"] { --cluster-justify: space-between; }
+  .cluster[data-justify="around"] { --cluster-justify: space-around; }
+  .cluster[data-justify="evenly"] { --cluster-justify: space-evenly; }
+}

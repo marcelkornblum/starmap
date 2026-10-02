@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
-import { GalaxyView } from '../src/views/GalaxyView';
-import { SystemView } from '../src/views/SystemView';
+import { GalaxyView, GalaxyControlsDock } from '../src/views/GalaxyView';
+import { SystemView, SystemControlsDock } from '../src/views/SystemView';
 import { PlanetView } from '../src/views/PlanetView';
 import { ReferenceView } from '../src/views/ReferenceView';
+import { RootHeader } from '../src/components/layout/RootLayout';
 import { SceneProvider } from '../src/components/canvas/SceneBridge';
 
 import { useParams } from '@tanstack/react-router';
@@ -13,6 +14,9 @@ vi.mock('@tanstack/react-router', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@tanstack/react-router');
   return {
     ...actual,
+    Link: vi.fn(({ to, children, ...props }: { to: string; children?: React.ReactNode }) =>
+      createElement('a', { href: to, ...props }, children),
+    ),
     useNavigate: vi.fn(() => vi.fn()),
     useRouter: vi.fn(() => ({ state: { location: { pathname: '/galaxy' } } })),
     useParams: vi.fn(() => ({ systemId: 'sol', planetId: 'earth' })),
@@ -23,6 +27,16 @@ interface ReactVNode {
   props?: {
     children?: ReactVNode | ReactVNode[] | string | null;
     onClick?: () => void;
+    onSelect?: (id: string) => void;
+    onSelectPlanet?: (id: string) => void;
+    onTogglePlay?: () => void;
+    onTimeSpeedChange?: (speed: number) => void;
+    onProjectionChange?: (proj: string) => void;
+    onToggleOrbits?: (show: boolean) => void;
+    onToggleGrid?: (show: boolean) => void;
+    onToggleLabels?: (show: boolean) => void;
+    onSelectItem?: (item: { id: string; title: string; category: string }) => void;
+    onClose?: () => void;
   };
 }
 
@@ -33,6 +47,39 @@ const triggerAllClickHandlers = (node: unknown): void => {
   const vnode = node as ReactVNode;
   if (typeof vnode.props?.onClick === 'function') {
     vnode.props.onClick();
+  }
+  if (typeof vnode.props?.onSelect === 'function') {
+    vnode.props.onSelect('earth');
+  }
+  if (typeof vnode.props?.onSelectPlanet === 'function') {
+    vnode.props.onSelectPlanet('earth');
+  }
+  if (typeof vnode.props?.onSelectItem === 'function') {
+    vnode.props.onSelectItem({ id: 'galaxy', title: 'Galaxy', category: 'coordinate' });
+    vnode.props.onSelectItem({ id: 'earth', title: 'Earth', category: 'planet' });
+    vnode.props.onSelectItem({ id: 'sol', title: 'Sol', category: 'star' });
+    vnode.props.onSelectItem({ id: 'reference', title: 'Reference', category: 'command' });
+  }
+  if (typeof vnode.props?.onClose === 'function') {
+    vnode.props.onClose();
+  }
+  if (typeof vnode.props?.onTogglePlay === 'function') {
+    vnode.props.onTogglePlay();
+  }
+  if (typeof vnode.props?.onTimeSpeedChange === 'function') {
+    vnode.props.onTimeSpeedChange(5);
+  }
+  if (typeof vnode.props?.onProjectionChange === 'function') {
+    vnode.props.onProjectionChange('top-down');
+  }
+  if (typeof vnode.props?.onToggleOrbits === 'function') {
+    vnode.props.onToggleOrbits(false);
+  }
+  if (typeof vnode.props?.onToggleGrid === 'function') {
+    vnode.props.onToggleGrid(false);
+  }
+  if (typeof vnode.props?.onToggleLabels === 'function') {
+    vnode.props.onToggleLabels(false);
   }
   if (Array.isArray(vnode.props?.children)) {
     for (const child of vnode.props.children) {
@@ -105,5 +152,20 @@ describe('View HUD Components (SSR/DOM)', () => {
     expect(planetHtml).toContain('UNKNOWN');
 
     vi.mocked(useParams).mockImplementation(() => ({ systemId: 'sol', planetId: 'earth' }));
+  });
+
+  it('renders interactive GalaxyControlsDock and SystemControlsDock controls', () => {
+    const galaxyControlsHtml = renderToString(createElement(GalaxyControlsDock));
+    expect(galaxyControlsHtml).toBeDefined();
+
+    const sysControlsHtml = renderToString(createElement(SystemControlsDock));
+    expect(sysControlsHtml).toBeDefined();
+  });
+
+  it('renders RootHeader navigation and command palette trigger', () => {
+    const headerHtml = renderToString(createElement(RootHeader));
+    expect(headerHtml).toContain('STARMAP');
+    expect(headerHtml).toContain('Galaxy');
+    expect(headerHtml).toContain('Search...');
   });
 });

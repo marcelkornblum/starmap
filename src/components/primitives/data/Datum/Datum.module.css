@@ -1,0 +1,51 @@
+@layer blocks {
+  .datum {
+    --datum-font-family: var(--font-interface);
+    --datum-font-size: var(--type-scale-0);
+    --datum-label-color: var(--content-muted);
+    --datum-value-color: var(--content-default);
+    --datum-border-color: var(--border-subtle);
+
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-block: var(--space-fib-2);
+    border-block-end: var(--stroke-hairline) solid var(--datum-border-color);
+    font-family: var(--datum-font-family);
+    font-size: var(--datum-font-size);
+  }
+
+  .label {
+    color: var(--datum-label-color);
+    font-size: var(--type-scale-neg-1);
+    white-space: nowrap;
+  }
+
+  .valueWrapper {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-fib-2);
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    color: var(--datum-value-color);
+    font-weight: 500;
+  }
+
+  .unit {
+    color: var(--content-subtle);
+    font-size: var(--type-scale-neg-2);
+    font-family: var(--font-interface);
+  }
+}
+
+@layer exceptions {
+  .datum[data-status="nominal"] { --datum-value-color: var(--status-nominal); }
+  .datum[data-status="caution"] { --datum-value-color: var(--status-caution); }
+  .datum[data-status="critical"] { --datum-value-color: var(--status-critical); }
+  .datum[data-status="info"] { --datum-value-color: var(--status-info); }
+
+  .datum[data-size="sm"] {
+    --datum-font-size: var(--type-scale-neg-1);
+    padding-block: var(--space-fib-1);
+  }
+}

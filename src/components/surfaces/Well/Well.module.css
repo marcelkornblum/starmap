@@ -1,0 +1,32 @@
+@layer blocks {
+  .well {
+    --well-bg: var(--surface-sunken-bg);
+    --well-border-color: var(--surface-inset-border-color);
+    --well-border-width: var(--surface-inset-border-width);
+    --well-border-style: var(--surface-inset-border-style);
+    --well-shadow: var(--surface-inset-shadow);
+    --well-padding: var(--space-fib-3);
+    --well-radius: var(--radius-sm);
+
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    background: var(--well-bg);
+    border: var(--well-border-width) var(--well-border-style) var(--well-border-color);
+    box-shadow: var(--well-shadow);
+    border-radius: var(--well-radius);
+    padding: var(--well-padding);
+    margin: 0;
+  }
+
+  .well[data-tabular="true"] {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer exceptions {
+  .well[data-padding="tight"] { --well-padding: var(--space-fib-2); }
+  .well[data-padding="default"] { --well-padding: var(--space-fib-3); }
+  .well[data-padding="loose"] { --well-padding: var(--space-fib-5); }
+}

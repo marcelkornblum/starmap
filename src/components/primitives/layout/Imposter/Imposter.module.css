@@ -1,0 +1,71 @@
+@layer composition {
+  .imposter {
+    --imposter-margin: var(--space-stack-default);
+
+    position: absolute;
+    box-sizing: border-box;
+    max-inline-size: calc(100% - (var(--imposter-margin) * 2));
+    max-block-size: calc(100% - (var(--imposter-margin) * 2));
+    overflow: auto;
+  }
+
+  .imposter[data-fixed="true"] {
+    position: fixed;
+  }
+
+  /* Centred */
+  .imposter[data-position="center"] {
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Anchored corners */
+  .imposter[data-position="top-left"] {
+    inset-block-start: var(--imposter-margin);
+    inset-inline-start: var(--imposter-margin);
+  }
+
+  .imposter[data-position="top-right"] {
+    inset-block-start: var(--imposter-margin);
+    inset-inline-end: var(--imposter-margin);
+  }
+
+  .imposter[data-position="bottom-left"] {
+    inset-block-end: var(--imposter-margin);
+    inset-inline-start: var(--imposter-margin);
+  }
+
+  .imposter[data-position="bottom-right"] {
+    inset-block-end: var(--imposter-margin);
+    inset-inline-end: var(--imposter-margin);
+  }
+
+  .imposter[data-position="top"] {
+    inset-block-start: var(--imposter-margin);
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+  }
+
+  .imposter[data-position="bottom"] {
+    inset-block-end: var(--imposter-margin);
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+@layer exceptions {
+  .imposter[data-margin="none"] { --imposter-margin: 0; }
+  .imposter[data-margin="dense"] { --imposter-margin: var(--space-stack-dense); }
+  .imposter[data-margin="tight"] { --imposter-margin: var(--space-stack-tight); }
+  .imposter[data-margin="default"] { --imposter-margin: var(--space-stack-default); }
+  .imposter[data-margin="loose"] { --imposter-margin: var(--space-stack-loose); }
+  .imposter[data-margin="section"] { --imposter-margin: var(--space-stack-section); }
+  .imposter[data-margin="fib-1"] { --imposter-margin: var(--space-fib-1); }
+  .imposter[data-margin="fib-2"] { --imposter-margin: var(--space-fib-2); }
+  .imposter[data-margin="fib-3"] { --imposter-margin: var(--space-fib-3); }
+  .imposter[data-margin="fib-4"] { --imposter-margin: var(--space-fib-4); }
+  .imposter[data-margin="fib-5"] { --imposter-margin: var(--space-fib-5); }
+  .imposter[data-margin="fib-6"] { --imposter-margin: var(--space-fib-6); }
+  .imposter[data-margin="fib-7"] { --imposter-margin: var(--space-fib-7); }
+}

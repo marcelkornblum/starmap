@@ -1,0 +1,65 @@
+@layer blocks {
+  .input {
+    --input-bg: var(--ui-input-bg);
+    --input-color: var(--ui-input-color);
+    --input-border-color: var(--ui-input-border-color);
+    --input-border-width: var(--stroke-hairline);
+    --input-padding-inline: var(--space-inset-control-x);
+    --input-padding-block: var(--space-inset-control-y);
+    --input-font-size: var(--type-scale-0);
+    --input-radius: var(--radius-sm);
+
+    display: inline-flex;
+    box-sizing: border-box;
+    inline-size: 100%;
+    font-family: var(--font-interface);
+    font-size: var(--input-font-size);
+    padding-inline: var(--input-padding-inline);
+    padding-block: var(--input-padding-block);
+    background: var(--input-bg);
+    color: var(--input-color);
+    border: var(--input-border-width) solid var(--input-border-color);
+    border-radius: var(--input-radius);
+    outline: none;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+    margin: 0;
+  }
+
+  .input::placeholder {
+    color: var(--content-subtle);
+  }
+
+  .input:focus {
+    --input-border-color: var(--border-focus);
+    box-shadow: 0 0 0 1px var(--border-focus);
+  }
+
+  .input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .input[data-tabular="true"] {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer exceptions {
+  .input[data-status="error"] {
+    --input-border-color: var(--status-critical);
+  }
+  .input[data-status="error"]:focus {
+    box-shadow: 0 0 0 1px var(--status-critical);
+  }
+
+  .input[data-status="success"] {
+    --input-border-color: var(--status-nominal);
+  }
+
+  .input[data-size="sm"] {
+    --input-padding-inline: var(--space-fib-2);
+    --input-padding-block: var(--space-fib-1);
+    --input-font-size: var(--type-scale-neg-1);
+  }
+}
