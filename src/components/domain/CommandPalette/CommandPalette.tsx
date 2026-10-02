@@ -52,20 +52,18 @@ const CommandPaletteContent = ({
     );
   }, [items, query]);
 
-  const safeActiveIndex = filteredItems.length > 0 ? Math.min(activeIndex, filteredItems.length - 1) : 0;
-  if (safeActiveIndex !== activeIndex) {
-    setActiveIndex(safeActiveIndex);
-  }
+  const safeActiveIndex =
+    filteredItems.length > 0 ? Math.min(activeIndex, filteredItems.length - 1) : 0;
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (filteredItems.length === 0) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveIndex((prev) => (prev + 1) % filteredItems.length);
+      setActiveIndex((safeActiveIndex + 1) % filteredItems.length);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
+      setActiveIndex((safeActiveIndex - 1 + filteredItems.length) % filteredItems.length);
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const selected = filteredItems[safeActiveIndex];
