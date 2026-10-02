@@ -53,16 +53,16 @@ describe('Tier 4: Domain Features', () => {
       expect(html).toContain('No orbital telemetry records available.');
     });
 
-    it('renders em-dash fallback for invalid or non-positive orbital period', () => {
+    it('renders em-dash fallback for invalid or non-positive orbital period and NaN elements', () => {
       const html = renderToString(
         createElement(OrbitTable, {
           orbits: [
             {
               id: 'anomaly',
               name: 'Anomaly',
-              semiMajorAxis: 1.0,
-              eccentricity: 0.0,
-              inclination: 0.0,
+              semiMajorAxis: Number.NaN,
+              eccentricity: Number.NaN,
+              inclination: Number.NaN,
               periodDays: -1,
             },
           ],
@@ -170,12 +170,13 @@ describe('Tier 4: Domain Features', () => {
             id: 'anomalous',
             name: 'Anomalous Star',
             luminosityLsun: -5.0,
-            distPc: 10,
+            distPc: -10,
           },
         })
       );
       expect(html).not.toContain('NaN');
       expect(html).not.toContain('0.95–1.37 AU');
+      expect(html).toContain('Distance unknown');
     });
 
     it('handles interactive callbacks for close, navigate, and planet selection', () => {

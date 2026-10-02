@@ -82,9 +82,21 @@ export const OrbitTable = ({
                 }}
               >
                 <td className={`${styles.cell} ${styles.cellName}`}>{row.name}</td>
-                <td className={styles.cell}>{row.semiMajorAxis.toFixed(3)}</td>
-                <td className={styles.cell}>{row.eccentricity.toFixed(4)}</td>
-                <td className={styles.cell}>{row.inclination.toFixed(2)}</td>
+                <td className={styles.cell}>
+                  {typeof row.semiMajorAxis === 'number' && !Number.isNaN(row.semiMajorAxis)
+                    ? row.semiMajorAxis.toFixed(3)
+                    : '—'}
+                </td>
+                <td className={styles.cell}>
+                  {typeof row.eccentricity === 'number' && !Number.isNaN(row.eccentricity)
+                    ? row.eccentricity.toFixed(4)
+                    : '—'}
+                </td>
+                <td className={styles.cell}>
+                  {typeof row.inclination === 'number' && !Number.isNaN(row.inclination)
+                    ? row.inclination.toFixed(2)
+                    : '—'}
+                </td>
                 <td className={styles.cell}>
                   {Number.isNaN(row.periodDays) || row.periodDays <= 0
                     ? '—'

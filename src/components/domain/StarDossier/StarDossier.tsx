@@ -56,7 +56,7 @@ export const StarDossier = ({
           )}
         </Cluster>
         <span className={styles.subtitle}>
-          {star.distPc !== undefined
+          {star.distPc !== undefined && star.distPc >= 0 && !Number.isNaN(star.distPc)
             ? `${star.distPc.toFixed(2)} pc (${(star.distPc * 3.26156).toFixed(2)} ly) from Sol`
             : 'Distance unknown'}
           {star.con ? ` • Constellation: ${star.con}` : ''}
