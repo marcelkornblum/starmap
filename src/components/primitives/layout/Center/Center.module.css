@@ -22,9 +22,18 @@
 
 @layer exceptions {
   .center[data-gutter="none"] { --center-gutter: 0; }
+  .center[data-gutter="dense"] { --center-gutter: var(--space-stack-dense); }
   .center[data-gutter="tight"] { --center-gutter: var(--space-stack-tight); }
   .center[data-gutter="default"] { --center-gutter: var(--space-stack-default); }
   .center[data-gutter="loose"] { --center-gutter: var(--space-stack-loose); }
+  .center[data-gutter="section"] { --center-gutter: var(--space-stack-section); }
+  .center[data-gutter="fib-1"] { --center-gutter: var(--space-fib-1); }
+  .center[data-gutter="fib-2"] { --center-gutter: var(--space-fib-2); }
+  .center[data-gutter="fib-3"] { --center-gutter: var(--space-fib-3); }
+  .center[data-gutter="fib-4"] { --center-gutter: var(--space-fib-4); }
+  .center[data-gutter="fib-5"] { --center-gutter: var(--space-fib-5); }
+  .center[data-gutter="fib-6"] { --center-gutter: var(--space-fib-6); }
+  .center[data-gutter="fib-7"] { --center-gutter: var(--space-fib-7); }
 
   .center[data-max="xs"] { --center-max: 20ch; }
   .center[data-max="sm"] { --center-max: 40ch; }

@@ -1,0 +1,65 @@
+@layer blocks {
+  .tooltipWrapper {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .tooltip {
+    --tooltip-bg: var(--surface-popover-bg);
+    --tooltip-color: var(--content-default);
+    --tooltip-border-color: var(--surface-popover-border-color);
+    --tooltip-border-width: var(--surface-popover-border-width);
+    --tooltip-border-style: var(--surface-popover-border-style);
+    --tooltip-shadow: var(--surface-popover-shadow);
+    --tooltip-padding: var(--space-fib-1) var(--space-fib-2);
+    --tooltip-radius: var(--radius-sm);
+    --tooltip-font-size: var(--text-ui-tooltip-size);
+
+    position: absolute;
+    box-sizing: border-box;
+    background: var(--tooltip-bg);
+    color: var(--tooltip-color);
+    border: var(--tooltip-border-width) var(--tooltip-border-style) var(--tooltip-border-color);
+    box-shadow: var(--tooltip-shadow);
+    border-radius: var(--tooltip-radius);
+    padding: var(--tooltip-padding);
+    font-size: var(--tooltip-font-size);
+    font-family: var(--font-interface);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 600;
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-standard);
+  }
+
+  .tooltipWrapper:hover .tooltip,
+  .tooltipWrapper:focus-within .tooltip {
+    opacity: 1;
+  }
+}
+
+@layer exceptions {
+  .tooltip[data-position="top"] {
+    inset-block-end: calc(100% + var(--space-fib-2));
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+  }
+
+  .tooltip[data-position="bottom"] {
+    inset-block-start: calc(100% + var(--space-fib-2));
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+  }
+
+  .tooltip[data-position="left"] {
+    inset-inline-end: calc(100% + var(--space-fib-2));
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+  }
+
+  .tooltip[data-position="right"] {
+    inset-inline-start: calc(100% + var(--space-fib-2));
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+  }
+}

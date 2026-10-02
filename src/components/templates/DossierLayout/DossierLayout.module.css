@@ -1,0 +1,25 @@
+@layer blocks {
+  .dossierContainer {
+    inline-size: 100%;
+    box-sizing: border-box;
+    margin: 0;
+  }
+
+  .headerSlot {
+    border-block-end: var(--stroke-hairline) solid var(--border-subtle);
+    padding-block-end: var(--space-fib-3);
+  }
+
+  .metricsSlot {
+    inline-size: 100%;
+  }
+
+  .contentSlot {
+    inline-size: 100%;
+  }
+
+  .actionsSlot {
+    border-block-start: var(--stroke-hairline) solid var(--border-subtle);
+    padding-block-start: var(--space-fib-3);
+  }
+}

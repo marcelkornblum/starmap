@@ -4,15 +4,15 @@
     --button-color: var(--ui-button-color);
     --button-border-color: var(--ui-button-border-color);
     --button-border-width: var(--stroke-hairline);
-    --button-padding-inline: var(--space-5);
-    --button-padding-block: var(--space-3);
+    --button-padding-inline: var(--space-fib-4);
+    --button-padding-block: var(--space-fib-2);
     --button-font-size: var(--type-scale-0);
     --button-radius: var(--radius-sm);
 
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-3);
+    gap: var(--space-fib-2);
     box-sizing: border-box;
     font-family: var(--font-interface);
     font-size: var(--button-font-size);
@@ -79,14 +79,14 @@
   }
 
   .button[data-size="sm"] {
-    --button-padding-inline: var(--space-4);
-    --button-padding-block: var(--space-2);
-    --button-font-size: var(--type-scale--1);
+    --button-padding-inline: var(--space-fib-3);
+    --button-padding-block: var(--space-fib-1);
+    --button-font-size: var(--type-scale-neg-1);
   }
 
   .button[data-size="lg"] {
-    --button-padding-inline: var(--space-6);
-    --button-padding-block: var(--space-4);
+    --button-padding-inline: var(--space-fib-5);
+    --button-padding-block: var(--space-fib-3);
     --button-font-size: var(--type-scale-1);
   }
 }

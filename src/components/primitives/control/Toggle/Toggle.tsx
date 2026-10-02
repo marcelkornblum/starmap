@@ -42,9 +42,9 @@ export const Toggle = ({
       aria-checked={checked}
       aria-disabled={disabled}
       tabIndex={disabled ? -1 : 0}
+      {...rest}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      {...rest}
     >
       <div className={styles.switchTrack}>
         <div className={styles.switchThumb} />

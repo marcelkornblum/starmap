@@ -7,7 +7,7 @@ const meta: Meta<typeof Cluster> = {
   argTypes: {
     gap: {
       control: 'select',
-      options: ['none', 'tight', 'default', 'loose', 'space-1', 'space-2', 'space-3', 'space-4', 'space-5', 'space-6', 'space-7', 'space-8', 'space-9'],
+      options: ['none', 'dense', 'tight', 'default', 'loose', 'section', 'fib-1', 'fib-2', 'fib-3', 'fib-4', 'fib-5', 'fib-6', 'fib-7'],
     },
     align: {
       control: 'select',

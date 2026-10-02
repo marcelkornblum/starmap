@@ -1,0 +1,68 @@
+@layer blocks {
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--surface-scrim-bg);
+    backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
+    display: grid;
+    place-items: center;
+    z-index: 1000;
+    padding: var(--space-fib-4);
+  }
+
+  .modal {
+    --modal-bg: var(--surface-modal-bg);
+    --modal-border-color: var(--surface-modal-border-color);
+    --modal-border-width: var(--surface-modal-border-width);
+    --modal-border-style: var(--surface-modal-border-style);
+    --modal-shadow: var(--surface-modal-shadow);
+    --modal-padding: var(--space-inset-modal);
+    --modal-radius: var(--radius-lg);
+
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    background: var(--modal-bg);
+    border: var(--modal-border-width) var(--modal-border-style) var(--modal-border-color);
+    box-shadow: var(--modal-shadow);
+    border-radius: var(--modal-radius);
+    padding: var(--modal-padding);
+    max-inline-size: min(90vw, 560px);
+    max-block-size: 85vh;
+    overflow: auto;
+    position: relative;
+    margin: 0;
+  }
+
+  .headerRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .title {
+    font-size: var(--type-scale-1);
+    font-weight: 600;
+    color: var(--content-bright);
+    margin: 0;
+  }
+
+  .closeButton {
+    background: transparent;
+    border: none;
+    color: var(--content-muted);
+    cursor: pointer;
+    font-size: var(--type-scale-1);
+    padding: var(--space-fib-1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+  }
+
+  .closeButton:hover {
+    color: var(--content-bright);
+    background: var(--surface-dock-bg);
+  }
+}

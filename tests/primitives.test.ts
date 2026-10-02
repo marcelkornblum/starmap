@@ -78,26 +78,26 @@ describe('Tier 1: Layout Primitives (Every Layout)', () => {
     const html = renderToString(
       createElement(
         Switcher,
-        { threshold: 'lg', limit: 3, gap: 'space-4' },
+        { threshold: 'lg', limit: 3, gap: 'fib-4' },
         createElement('div', null, '1'),
         createElement('div', null, '2')
       )
     );
     expect(html).toContain('data-threshold="lg"');
     expect(html).toContain('data-limit="3"');
-    expect(html).toContain('data-gap="space-4"');
+    expect(html).toContain('data-gap="fib-4"');
   });
 
   it('renders Grid with minWidth auto-fit', () => {
     const html = renderToString(
       createElement(
         Grid,
-        { minWidth: 'sm', gap: 'space-5' },
+        { minWidth: 'sm', gap: 'fib-5' },
         createElement('div', null, 'Cell')
       )
     );
     expect(html).toContain('data-min="sm"');
-    expect(html).toContain('data-gap="space-5"');
+    expect(html).toContain('data-gap="fib-5"');
   });
 
   it('renders Center with container bounds', () => {
@@ -120,7 +120,7 @@ describe('Tier 1: Layout Primitives (Every Layout)', () => {
         Cover,
         {
           minHeight: 'full',
-          gap: 'space-6',
+          gap: 'fib-6',
           header: createElement('header', null, 'Nav'),
           footer: createElement('footer', null, 'Status'),
         },

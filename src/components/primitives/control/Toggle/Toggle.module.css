@@ -9,7 +9,7 @@
 
     display: inline-flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--space-fib-3);
     cursor: pointer;
     font-family: var(--font-interface);
     font-size: var(--type-scale-0);

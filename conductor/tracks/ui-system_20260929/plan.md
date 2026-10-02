@@ -14,11 +14,11 @@
 - [x] Task: Phase Verification & Checkpoint (Run /code-review, push to PR, verify CI & Gemini review)
 
 ## Phase 3: Spatial Planes & Templates (Tier 2: Surfaces & Tier 3: Templates)
-- [ ] Task: Implement Tier 2 Surfaces (`<Card>`, `<Panel>`, `<Dock>`, `<Well>`).
-- [ ] Task: Implement Tier 2 Overlays (`<Modal>`, `<Drawer>`, `<Popover>`, `<Tooltip>`, `<Toast>`) with accessible ARIA semantics and CUBE exceptions.
-- [ ] Task: Implement Tier 3 Structural Layout Templates (`<DossierLayout>`, `<MetricStrip>`, `<ToolbarLayout>`).
-- [ ] Task: Unit tests and Storybook stories for Tier 2 and Tier 3 components.
-- [ ] Task: Phase Verification & Checkpoint (Run /code-review, push to PR, verify CI & Gemini review)
+- [x] Task: Implement Tier 2 Surfaces (`<Card>`, `<Panel>`, `<Dock>`, `<Well>`).
+- [x] Task: Implement Tier 2 Overlays (`<Modal>`, `<Drawer>`, `<Popover>`, `<Tooltip>`, `<Toast>`) with accessible ARIA semantics and CUBE exceptions.
+- [x] Task: Implement Tier 3 Structural Layout Templates (`<DossierLayout>`, `<MetricStrip>`, `<ToolbarLayout>`).
+- [x] Task: Unit tests and Storybook stories for Tier 2 and Tier 3 components.
+- [x] Task: Phase Verification & Checkpoint (Run /code-review, push to PR, verify CI & Gemini review)
 
 ## Phase 4: Domain Features (Tier 4: Application Assemblies)
 - [ ] Task: Implement `<StarDossier>` with spectral classification, habitable zone readouts, and exoplanet listings.

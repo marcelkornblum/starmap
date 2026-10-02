@@ -42,20 +42,24 @@
 
 @layer exceptions {
   .sidebarContainer[data-gap="none"] { --sidebar-gap: 0; }
+  .sidebarContainer[data-gap="dense"] { --sidebar-gap: var(--space-stack-dense); }
   .sidebarContainer[data-gap="tight"] { --sidebar-gap: var(--space-stack-tight); }
   .sidebarContainer[data-gap="default"] { --sidebar-gap: var(--space-stack-default); }
   .sidebarContainer[data-gap="loose"] { --sidebar-gap: var(--space-stack-loose); }
-  .sidebarContainer[data-gap="space-1"] { --sidebar-gap: var(--space-1); }
-  .sidebarContainer[data-gap="space-2"] { --sidebar-gap: var(--space-2); }
-  .sidebarContainer[data-gap="space-3"] { --sidebar-gap: var(--space-3); }
-  .sidebarContainer[data-gap="space-4"] { --sidebar-gap: var(--space-4); }
-  .sidebarContainer[data-gap="space-5"] { --sidebar-gap: var(--space-5); }
-  .sidebarContainer[data-gap="space-6"] { --sidebar-gap: var(--space-6); }
-  .sidebarContainer[data-gap="space-7"] { --sidebar-gap: var(--space-7); }
-  .sidebarContainer[data-gap="space-8"] { --sidebar-gap: var(--space-8); }
-  .sidebarContainer[data-gap="space-9"] { --sidebar-gap: var(--space-9); }
+  .sidebarContainer[data-gap="section"] { --sidebar-gap: var(--space-stack-section); }
+  .sidebarContainer[data-gap="fib-1"] { --sidebar-gap: var(--space-fib-1); }
+  .sidebarContainer[data-gap="fib-2"] { --sidebar-gap: var(--space-fib-2); }
+  .sidebarContainer[data-gap="fib-3"] { --sidebar-gap: var(--space-fib-3); }
+  .sidebarContainer[data-gap="fib-4"] { --sidebar-gap: var(--space-fib-4); }
+  .sidebarContainer[data-gap="fib-5"] { --sidebar-gap: var(--space-fib-5); }
+  .sidebarContainer[data-gap="fib-6"] { --sidebar-gap: var(--space-fib-6); }
+  .sidebarContainer[data-gap="fib-7"] { --sidebar-gap: var(--space-fib-7); }
 
   .sidebarContainer[data-width="sm"] { --sidebar-width: 220px; }
   .sidebarContainer[data-width="md"] { --sidebar-width: 300px; }
   .sidebarContainer[data-width="lg"] { --sidebar-width: 380px; }
+
+  .sidebarContainer[data-content-min="50%"] { --content-min: 50%; }
+  .sidebarContainer[data-content-min="60%"] { --content-min: 60%; }
+  .sidebarContainer[data-content-min="70%"] { --content-min: 70%; }
 }

@@ -1,0 +1,91 @@
+@layer blocks {
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--surface-scrim-bg);
+    backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
+    z-index: 900;
+  }
+
+  .drawer {
+    --drawer-bg: var(--surface-drawer-bg);
+    --drawer-border-color: var(--surface-drawer-border-color);
+    --drawer-border-width: var(--surface-drawer-border-width);
+    --drawer-border-style: var(--surface-drawer-border-style);
+    --drawer-shadow: var(--surface-drawer-shadow);
+    --drawer-padding: var(--space-inset-drawer);
+
+    position: fixed;
+    box-sizing: border-box;
+    background: var(--drawer-bg);
+    box-shadow: var(--drawer-shadow);
+    padding: var(--drawer-padding);
+    overflow: auto;
+    z-index: 901;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+  }
+
+  .headerRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .title {
+    font-size: var(--type-scale-1);
+    font-weight: 600;
+    color: var(--content-bright);
+    margin: 0;
+  }
+
+  .closeButton {
+    background: transparent;
+    border: none;
+    color: var(--content-muted);
+    cursor: pointer;
+    font-size: var(--type-scale-1);
+    padding: var(--space-fib-1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+  }
+
+  .closeButton:hover {
+    color: var(--content-bright);
+    background: var(--surface-dock-bg);
+  }
+}
+
+@layer exceptions {
+  .drawer[data-position="left"] {
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: min(85vw, 420px);
+    border-inline-end: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
+  }
+
+  .drawer[data-position="right"] {
+    inset-block: 0;
+    inset-inline-end: 0;
+    inline-size: min(85vw, 420px);
+    border-inline-start: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
+  }
+
+  .drawer[data-position="top"] {
+    inset-inline: 0;
+    inset-block-start: 0;
+    block-size: min(60vh, 360px);
+    border-block-end: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
+  }
+
+  .drawer[data-position="bottom"] {
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: min(60vh, 360px);
+    border-block-start: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
+  }
+}

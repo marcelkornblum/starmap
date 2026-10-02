@@ -4,8 +4,8 @@
     --input-color: var(--ui-input-color);
     --input-border-color: var(--ui-input-border-color);
     --input-border-width: var(--stroke-hairline);
-    --input-padding-inline: var(--space-4);
-    --input-padding-block: var(--space-3);
+    --input-padding-inline: var(--space-inset-control-x);
+    --input-padding-block: var(--space-inset-control-y);
     --input-font-size: var(--type-scale-0);
     --input-radius: var(--radius-sm);
 
@@ -58,8 +58,8 @@
   }
 
   .input[data-size="sm"] {
-    --input-padding-inline: var(--space-3);
-    --input-padding-block: var(--space-2);
-    --input-font-size: var(--type-scale--1);
+    --input-padding-inline: var(--space-fib-2);
+    --input-padding-block: var(--space-fib-1);
+    --input-font-size: var(--type-scale-neg-1);
   }
 }

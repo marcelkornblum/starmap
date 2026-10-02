@@ -15,18 +15,18 @@
 
 @layer exceptions {
   .stack[data-gap="none"] { --stack-gap: 0; }
+  .stack[data-gap="dense"] { --stack-gap: var(--space-stack-dense); }
   .stack[data-gap="tight"] { --stack-gap: var(--space-stack-tight); }
   .stack[data-gap="default"] { --stack-gap: var(--space-stack-default); }
   .stack[data-gap="loose"] { --stack-gap: var(--space-stack-loose); }
-  .stack[data-gap="space-1"] { --stack-gap: var(--space-1); }
-  .stack[data-gap="space-2"] { --stack-gap: var(--space-2); }
-  .stack[data-gap="space-3"] { --stack-gap: var(--space-3); }
-  .stack[data-gap="space-4"] { --stack-gap: var(--space-4); }
-  .stack[data-gap="space-5"] { --stack-gap: var(--space-5); }
-  .stack[data-gap="space-6"] { --stack-gap: var(--space-6); }
-  .stack[data-gap="space-7"] { --stack-gap: var(--space-7); }
-  .stack[data-gap="space-8"] { --stack-gap: var(--space-8); }
-  .stack[data-gap="space-9"] { --stack-gap: var(--space-9); }
+  .stack[data-gap="section"] { --stack-gap: var(--space-stack-section); }
+  .stack[data-gap="fib-1"] { --stack-gap: var(--space-fib-1); }
+  .stack[data-gap="fib-2"] { --stack-gap: var(--space-fib-2); }
+  .stack[data-gap="fib-3"] { --stack-gap: var(--space-fib-3); }
+  .stack[data-gap="fib-4"] { --stack-gap: var(--space-fib-4); }
+  .stack[data-gap="fib-5"] { --stack-gap: var(--space-fib-5); }
+  .stack[data-gap="fib-6"] { --stack-gap: var(--space-fib-6); }
+  .stack[data-gap="fib-7"] { --stack-gap: var(--space-fib-7); }
 
   .stack[data-align="start"] { --stack-align: flex-start; }
   .stack[data-align="center"] { --stack-align: center; }

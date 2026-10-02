@@ -16,18 +16,18 @@
 
 @layer exceptions {
   .box[data-padding="none"] { --box-padding: 0; }
+  .box[data-padding="dense"] { --box-padding: var(--space-stack-dense); }
   .box[data-padding="tight"] { --box-padding: var(--space-stack-tight); }
   .box[data-padding="default"] { --box-padding: var(--space-stack-default); }
   .box[data-padding="loose"] { --box-padding: var(--space-stack-loose); }
-  .box[data-padding="space-1"] { --box-padding: var(--space-1); }
-  .box[data-padding="space-2"] { --box-padding: var(--space-2); }
-  .box[data-padding="space-3"] { --box-padding: var(--space-3); }
-  .box[data-padding="space-4"] { --box-padding: var(--space-4); }
-  .box[data-padding="space-5"] { --box-padding: var(--space-5); }
-  .box[data-padding="space-6"] { --box-padding: var(--space-6); }
-  .box[data-padding="space-7"] { --box-padding: var(--space-7); }
-  .box[data-padding="space-8"] { --box-padding: var(--space-8); }
-  .box[data-padding="space-9"] { --box-padding: var(--space-9); }
+  .box[data-padding="section"] { --box-padding: var(--space-stack-section); }
+  .box[data-padding="fib-1"] { --box-padding: var(--space-fib-1); }
+  .box[data-padding="fib-2"] { --box-padding: var(--space-fib-2); }
+  .box[data-padding="fib-3"] { --box-padding: var(--space-fib-3); }
+  .box[data-padding="fib-4"] { --box-padding: var(--space-fib-4); }
+  .box[data-padding="fib-5"] { --box-padding: var(--space-fib-5); }
+  .box[data-padding="fib-6"] { --box-padding: var(--space-fib-6); }
+  .box[data-padding="fib-7"] { --box-padding: var(--space-fib-7); }
 
   .box[data-border="none"] { --box-border-color: transparent; }
   .box[data-border="subtle"] { --box-border-color: var(--border-subtle); }

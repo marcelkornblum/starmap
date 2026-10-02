@@ -27,9 +27,18 @@
 
 @layer exceptions {
   .cover[data-gap="none"] { --cover-gap: 0; }
+  .cover[data-gap="dense"] { --cover-gap: var(--space-stack-dense); }
   .cover[data-gap="tight"] { --cover-gap: var(--space-stack-tight); }
   .cover[data-gap="default"] { --cover-gap: var(--space-stack-default); }
   .cover[data-gap="loose"] { --cover-gap: var(--space-stack-loose); }
+  .cover[data-gap="section"] { --cover-gap: var(--space-stack-section); }
+  .cover[data-gap="fib-1"] { --cover-gap: var(--space-fib-1); }
+  .cover[data-gap="fib-2"] { --cover-gap: var(--space-fib-2); }
+  .cover[data-gap="fib-3"] { --cover-gap: var(--space-fib-3); }
+  .cover[data-gap="fib-4"] { --cover-gap: var(--space-fib-4); }
+  .cover[data-gap="fib-5"] { --cover-gap: var(--space-fib-5); }
+  .cover[data-gap="fib-6"] { --cover-gap: var(--space-fib-6); }
+  .cover[data-gap="fib-7"] { --cover-gap: var(--space-fib-7); }
 
   .cover[data-min-height="full"] { --cover-min-height: 100%; }
   .cover[data-min-height="viewport"] { --cover-min-height: 100vh; }

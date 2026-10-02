@@ -2,18 +2,18 @@ import type { HTMLAttributes, ReactNode } from 'react';
 
 export type SpacingScale =
   | 'none'
+  | 'dense'
   | 'tight'
   | 'default'
   | 'loose'
-  | 'space-1'
-  | 'space-2'
-  | 'space-3'
-  | 'space-4'
-  | 'space-5'
-  | 'space-6'
-  | 'space-7'
-  | 'space-8'
-  | 'space-9';
+  | 'section'
+  | 'fib-1'
+  | 'fib-2'
+  | 'fib-3'
+  | 'fib-4'
+  | 'fib-5'
+  | 'fib-6'
+  | 'fib-7';
 
 export type AlignItems = 'start' | 'center' | 'end' | 'stretch' | 'baseline';
 export type JustifyContent = 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';

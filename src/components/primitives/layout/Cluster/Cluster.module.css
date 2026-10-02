@@ -16,18 +16,18 @@
 
 @layer exceptions {
   .cluster[data-gap="none"] { --cluster-gap: 0; }
+  .cluster[data-gap="dense"] { --cluster-gap: var(--space-cluster-dense); }
   .cluster[data-gap="tight"] { --cluster-gap: var(--space-cluster-tight); }
   .cluster[data-gap="default"] { --cluster-gap: var(--space-cluster-default); }
   .cluster[data-gap="loose"] { --cluster-gap: var(--space-cluster-loose); }
-  .cluster[data-gap="space-1"] { --cluster-gap: var(--space-1); }
-  .cluster[data-gap="space-2"] { --cluster-gap: var(--space-2); }
-  .cluster[data-gap="space-3"] { --cluster-gap: var(--space-3); }
-  .cluster[data-gap="space-4"] { --cluster-gap: var(--space-4); }
-  .cluster[data-gap="space-5"] { --cluster-gap: var(--space-5); }
-  .cluster[data-gap="space-6"] { --cluster-gap: var(--space-6); }
-  .cluster[data-gap="space-7"] { --cluster-gap: var(--space-7); }
-  .cluster[data-gap="space-8"] { --cluster-gap: var(--space-8); }
-  .cluster[data-gap="space-9"] { --cluster-gap: var(--space-9); }
+  .cluster[data-gap="section"] { --cluster-gap: var(--space-stack-section); }
+  .cluster[data-gap="fib-1"] { --cluster-gap: var(--space-fib-1); }
+  .cluster[data-gap="fib-2"] { --cluster-gap: var(--space-fib-2); }
+  .cluster[data-gap="fib-3"] { --cluster-gap: var(--space-fib-3); }
+  .cluster[data-gap="fib-4"] { --cluster-gap: var(--space-fib-4); }
+  .cluster[data-gap="fib-5"] { --cluster-gap: var(--space-fib-5); }
+  .cluster[data-gap="fib-6"] { --cluster-gap: var(--space-fib-6); }
+  .cluster[data-gap="fib-7"] { --cluster-gap: var(--space-fib-7); }
 
   .cluster[data-align="start"] { --cluster-align: flex-start; }
   .cluster[data-align="center"] { --cluster-align: center; }

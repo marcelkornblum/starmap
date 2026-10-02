@@ -127,11 +127,14 @@
     --space-inset-modal:         var(--space-fib-5);
 
     --space-stack-dense:         var(--space-fib-2);
+    --space-stack-tight:         var(--space-fib-3);
     --space-stack-control:       var(--space-fib-3);
     --space-stack-default:       var(--space-fib-4);
+    --space-stack-loose:         var(--space-fib-5);
     --space-stack-section:       var(--space-fib-5);
 
     --space-cluster-dense:       var(--space-fib-2);
+    --space-cluster-tight:       var(--space-fib-2);
     --space-cluster-default:     var(--space-fib-3);
     --space-cluster-loose:       var(--space-fib-4);
 

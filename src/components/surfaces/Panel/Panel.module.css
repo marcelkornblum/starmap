@@ -1,0 +1,60 @@
+@layer blocks {
+  .panel {
+    --panel-bg: var(--surface-panel-bg);
+    --panel-border-color: var(--surface-panel-border-color);
+    --panel-border-width: var(--surface-panel-border-width);
+    --panel-border-style: var(--surface-panel-border-style);
+    --panel-shadow: var(--surface-panel-shadow);
+    --panel-padding: var(--space-inset-panel);
+    --panel-radius: var(--radius-md);
+
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    background: var(--panel-bg);
+    border: var(--panel-border-width) var(--panel-border-style) var(--panel-border-color);
+    box-shadow: var(--panel-shadow);
+    border-radius: var(--panel-radius);
+    overflow: hidden;
+    margin: 0;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-inline: var(--panel-padding);
+    padding-block: var(--space-fib-2);
+    border-block-end: var(--stroke-hairline) solid var(--border-subtle);
+    background: var(--surface-dock-bg);
+    font-weight: 600;
+    font-size: var(--type-scale-0);
+  }
+
+  .body {
+    padding: var(--panel-padding);
+    flex: 1 1 auto;
+  }
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-inline: var(--panel-padding);
+    padding-block: var(--space-fib-2);
+    border-block-start: var(--stroke-hairline) solid var(--border-subtle);
+    background: var(--surface-dock-bg);
+    font-size: var(--type-scale-neg-1);
+  }
+}
+
+@layer exceptions {
+  .panel[data-status="critical"] { --panel-border-color: var(--status-critical); }
+  .panel[data-status="caution"] { --panel-border-color: var(--status-caution); }
+  .panel[data-status="nominal"] { --panel-border-color: var(--status-nominal); }
+  .panel[data-status="info"] { --panel-border-color: var(--status-info); }
+
+  .panel[data-padding="none"] .body { padding: 0; }
+  .panel[data-padding="tight"] .body { padding: var(--space-fib-3); }
+  .panel[data-padding="loose"] .body { padding: var(--space-fib-6); }
+}

@@ -1,0 +1,60 @@
+@layer blocks {
+  .dock {
+    --dock-bg: var(--surface-dock-bg);
+    --dock-border-color: var(--surface-dock-border-color);
+    --dock-border-width: var(--surface-dock-border-width);
+    --dock-border-style: var(--surface-dock-border-style);
+    --dock-shadow: var(--surface-dock-shadow);
+    --dock-blur: var(--surface-dock-backdrop-blur);
+    --dock-padding: var(--space-fib-3);
+    --dock-radius: var(--radius-md);
+
+    display: flex;
+    box-sizing: border-box;
+    background: var(--dock-bg);
+    border: var(--dock-border-width) var(--dock-border-style) var(--dock-border-color);
+    box-shadow: var(--dock-shadow);
+    backdrop-filter: blur(var(--dock-blur));
+    -webkit-backdrop-filter: blur(var(--dock-blur));
+    border-radius: var(--dock-radius);
+    padding: var(--dock-padding);
+    z-index: 100;
+    margin: 0;
+  }
+}
+
+@layer exceptions {
+  .dock[data-position="top"] {
+    position: fixed;
+    inset-block-start: var(--space-viewport-edge);
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+  }
+
+  .dock[data-position="bottom"] {
+    position: fixed;
+    inset-block-end: var(--space-viewport-edge);
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+  }
+
+  .dock[data-position="left"] {
+    position: fixed;
+    inset-block-start: 50%;
+    inset-inline-start: var(--space-viewport-edge);
+    transform: translateY(-50%);
+    flex-direction: column;
+  }
+
+  .dock[data-position="right"] {
+    position: fixed;
+    inset-block-start: 50%;
+    inset-inline-end: var(--space-viewport-edge);
+    transform: translateY(-50%);
+    flex-direction: column;
+  }
+
+  .dock[data-padded="false"] {
+    padding: 0;
+  }
+}
