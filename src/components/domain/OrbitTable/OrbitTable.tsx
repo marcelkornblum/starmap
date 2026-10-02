@@ -98,7 +98,7 @@ export const OrbitTable = ({
                     : '—'}
                 </td>
                 <td className={styles.cell}>
-                  {Number.isNaN(row.periodDays) || row.periodDays <= 0
+                  {typeof row.periodDays !== 'number' || Number.isNaN(row.periodDays) || row.periodDays <= 0
                     ? '—'
                     : row.periodDays >= 1000
                     ? `${(row.periodDays / 365.25).toFixed(2)} y`
