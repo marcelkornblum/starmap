@@ -1,129 +1,99 @@
 # React Component Architecture & Design System Style Guide
 
-This style guide establishes the architectural, accessibility, state, and styling standards for React 19 components in Starmap.
+This guide establishes the universal architectural, accessibility, state, and styling standards for authoring React 19 components in Starmap. Every component—from base atom to application assembly—must adhere to these principles.
 
 ---
 
-## 1. Component Hierarchy & Taxonomy
+## 1. Architectural Taxonomy & Role Boundaries
 
-All interface elements strictly belong to one of four architectural tiers defined in `docs/design-system.md`:
+Every component occupies a distinct tier in the design system hierarchy (`docs/design-system.md`):
 
 - **Tier 1: Primitives**
-  - **Layout Primitives:** `<Stack>`, `<Cluster>`, `<Sidebar>`, `<Switcher>`, `<Grid>`, `<Center>`, `<Cover>`, `<Frame>`, `<Reel>`, `<Box>`, `<Imposter>`, `<Icon>`. Layout primitives own 100% of spatial flow, layout geometry, and spacing.
-  - **Data & Control Atoms:** `<Datum>`, `<Metric>`, `<Badge>`, `<Button>`, `<Input>`, `<Toggle>`, `<Slider>`, `<Select>`. Base interactive controls and formatted telemetry outputs.
+  - **Layout Primitives:** Own 100% of spatial flow, layout geometry, and spacing.
+  - **Atoms:** Base single-responsibility controls and data presentation elements.
 - **Tier 2: Surfaces & Overlays**
-  - **Surfaces:** `<Card>`, `<Panel>`, `<Dock>`, `<Well>`. Visual elevation and spatial planes.
-  - **Overlays:** `<Modal>`, `<Drawer>`, `<Popover>`, `<Tooltip>`, `<Toast>`. Ephemeral contextual planes.
+  - Provide spatial elevation, backdrop containment, and ephemeral contextual planes.
 - **Tier 3: Structural Templates**
-  - `<DossierLayout>`, `<MetricStrip>`, `<ToolbarLayout>`. Region containers combining Tier 1 and Tier 2 elements into standardized screen layouts.
-- **Tier 4: Domain Assemblies**
-  - `<StarDossier>`, `<OrbitTable>`, `<CommandPalette>`, `<SystemControls>`. High-level feature compositions bound to domain entities (stars, planets, Keplerian orbits, simulation clocks).
+  - Standardise macro screen regions by composing primitives and surfaces.
+- **Tier 4: Assemblies**
+  - High-level domain features bound to application models, telemetry, and state.
+
+**Role Invariants:**
+- **Zero Outer Margins:** Components never declare external `margin`, positioning offsets, or self-layout. Layout and flow are strictly owned by parent Composition Primitives (`<Stack>`, `<Cluster>`, `<Grid>`).
+- **Single Responsibility:** Presentation components remain decoupled from data-fetching and complex domain calculations.
 
 ---
 
-## 2. React 19 Standards & Component Contracts
+## 2. Interface Contracts & React 19 Conventions
 
-- **No `forwardRef`:** React 19 supports `ref` directly as a component prop. Declare `ref?: Ref<T>` directly within the component's props interface:
+- **Direct Ref Forwarding:** Do not use `forwardRef`. In React 19, `ref` is a standard component prop. Always include `ref?: Ref<T>` in the component's props interface when rendering a focusable or measurable element:
   ```tsx
-  export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  export interface ControlProps extends InputHTMLAttributes<HTMLInputElement> {
     ref?: Ref<HTMLInputElement>;
     sizeVariant?: 'sm' | 'md';
   }
   ```
-- **Standardised Prop Names:**
-  - **Variants:** `'primary' | 'secondary' | 'subtle' | 'danger'` (avoid ad-hoc names such as `'ghost'`).
-  - **Sizes:** `'sm' | 'md' | 'lg'` (avoid `'small'`, `'compact'`).
-  - **Spacing:** Consume the `SpacingScale` union (`'none' | 'dense' | 'tight' | 'default' | 'loose' | 'section' | 'fib-1'..'fib-7'`).
-  - **Flex Alignment:** `align: 'start' | 'center' | 'end' | 'stretch'` and `justify: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly'`.
-- **Props-to-Data Forwarding:** Forward component variants, statuses, and booleans directly to HTML `data-*` attributes (`data-status={status}`, `data-size={sizeVariant}`). Dynamic `className` string concatenation for variant switching is strictly forbidden.
-- **Native Attribute Forwarding on Custom Form Controls:** Form control wrappers (`<Input>`, `<Slider>`, `<Toggle>`) must forward native HTML attributes (`aria-label`, `disabled`, `step`, `min`, `max`, `value`, `onChange`) directly to the underlying `<input>` or `<button>` element rather than trapping them on outer container `<div>` elements.
+- **Standardised Prop Vocabulary:** Maintain consistent prop names and tokenized scale unions across the entire design system:
+  - **Visual Variants:** `variant: 'primary' | 'secondary' | 'subtle' | 'danger'`
+  - **Sizes:** `size: 'sm' | 'md' | 'lg'`
+  - **Spacing & Insets:** Consume the canonical `SpacingScale` (`'none' | 'dense' | 'tight' | 'default' | 'loose' | 'section' | 'fib-1'..'fib-7'`)
+  - **Spatial Alignment:** `align: 'start' | 'center' | 'end' | 'stretch'` and `justify: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly'`
+- **State-to-Data Reflection:** Reflect component variants, interactive states, and boolean flags directly onto HTML `data-*` attributes (`data-status={status}`, `data-selected={isSelected ? 'true' : undefined}`). Dynamic `className` string concatenation for variant switching is strictly forbidden.
+- **Transparent Attribute Spreading:** Wrapper components must pass native HTML attributes (`aria-*`, `disabled`, `value`, `onChange`, `onKeyDown`) directly to the underlying interactive element rather than trapping them on outer layout containers.
 
 ---
 
-## 3. Accessibility & WAI-ARIA Semantics
+## 3. Accessibility & Interaction Standards
 
-- **Native `<dialog>` for Modal Surfaces:**
-  - All modal overlays (`<Modal>`, `<Drawer>`) must use the native HTML5 `<dialog>` element with `::backdrop` styling.
-  - Manage visibility imperatively via `dialogRef.current?.showModal()` and `dialogRef.current?.close()`.
-  - **Dismissal Click-Check:** Prevent clicks on inner content or container padding from accidentally closing the dialog by validating the click coordinates against the bounding rectangle:
-    ```tsx
-    const handleDialogClick = (e: MouseEvent<HTMLDialogElement>) => {
-      const dialog = dialogRef.current;
-      if (!dialog) return;
-      const rect = dialog.getBoundingClientRect();
-      const isBackdropClick =
-        e.clientX < rect.left ||
-        e.clientX > rect.right ||
-        e.clientY < rect.top ||
-        e.clientY > rect.bottom;
-      if (isBackdropClick) onClose();
-    };
-    ```
-  - **Accessible Labelling:** Always link modal headers to the dialog container using `aria-labelledby` with a stable identifier generated via `useId()`.
-- **Toggle / Switch Semantics:**
-  - Implement toggles with a semantic `<button type="button" role="switch" aria-checked={checked}>`.
-  - Restrict keyboard toggling to the `Space` key (preventing default scroll behavior).
-- **Table Semantics vs Interactive Lists:**
-  - Never replace or override `<tr>` with `role="button"`, as this invalidates the table tree in assistive technology.
-  - For selectable rows, retain native table row semantics with `aria-selected={isSelected}`, `data-selectable="true"`, and `tabIndex={0}`, handling `Enter` and `Space` keyboard events.
-- **Preserving Described-By Chains:**
-  - When attaching tooltips or auxiliary text via `aria-describedby`, merge existing identifiers rather than replacing them:
-    ```tsx
-    const combinedDescribedBy = [existingDescribedBy, tooltipId].filter(Boolean).join(' ');
-    ```
-- **Combobox Pattern:**
-  - Search inputs and command palettes must follow the ARIA 1.2 Combobox pattern: `role="combobox"`, `aria-expanded`, `aria-controls={listboxId}`, `aria-autocomplete="list"`, `aria-activedescendant={activeOptionId}`.
+- **Native Capabilities First:** Prefer native HTML5 interactive elements (`<dialog>`, `<button>`, `<input>`, `<table>`) over `div`/`span` role emulation.
+- **Preserve Semantic Tree Integrity:** Never override or destructively replace structural HTML roles (e.g. table rows `<tr>` must retain table semantics; interactive rows augment with `aria-selected` and keyboard listeners rather than replacing the row with `role="button"`).
+- **Unambiguous Accessible Names:** All interactive controls, dialogs, and overlays must provide a programmatically determinable name:
+  - Modals and drawers must link their title to the container using `aria-labelledby` with a unique ID (`useId()`).
+  - Icon-only buttons and controls without visible text labels must provide an `aria-label`.
+- **Described-By Chain Preservation:** When associating auxiliary text or tooltips via `aria-describedby`, always compose with existing descriptors (`[existingDescribedBy, auxiliaryId].filter(Boolean).join(' ')`) rather than overwriting.
+- **WAI-ARIA Pattern Compliance:** Interactive controls must follow standard keyboard and focus paradigms:
+  - Switches (`role="switch"`) toggle on `Space`.
+  - Native dialogs isolate focus, close on Escape, and differentiate backdrop clicks from interior clicks.
+  - Comboboxes maintain proper relationships between the input, expanded state, and active listbox option.
 
 ---
 
-## 4. State Lifecycle & Render Purity
+## 4. State Lifecycle, Performance & Numerical Robustness
 
-- **Mount-Based Initialisation over Synchronous Effects:**
-  - Never call `setState` synchronously inside a `useEffect` on modal/dialog opening (triggers cascading re-renders and React Compiler warnings).
-  - Mount dynamic dialog content conditionally:
-    ```tsx
-    <Modal isOpen={isOpen} onClose={onClose} title="...">
-      {isOpen && <CommandPaletteContent items={items} onClose={onClose} />}
-    </Modal>
-    ```
-  - This ensures query state, cursor indexes, and scroll positions initialise naturally on mount with zero cascading effects.
-- **Search & Filtering Memoization:**
-  - Wrap catalog filtering, string searching, and intensive coordinate transformations in `useMemo` to protect the 60fps frame budget and eliminate input lag as celestial catalogs scale.
-- **Astronomical Calculations & Numerical Robustness:**
-  - Always guard mathematical operations against unexpected or anomalous catalog data:
-    - Guard `Math.sqrt` radicands against negative values using `Math.max(0, val)` to prevent `NaN` in habitable zone or orbital distance calculations.
-    - Guard divisions against zero denominators (`val / (divisor || 1)` or explicit guard clause) to avoid `Infinity`.
-- **Strict Event Listener Cleanup:**
-  - Any window or document event listeners (`keydown`, `pointermove`, `resize`) must be unregistered in the `useEffect` cleanup return function.
+- **Mount-Driven State Isolation:** Encapsulate transient overlay, form, or filter state within sub-components that mount conditionally when activated. Avoid synchronous `setState` inside `useEffect` on opening; initial state should compute naturally on initial mount.
+- **Boundary Defense & Numerical Safety:** Public component interfaces must gracefully handle unexpected or anomalous data:
+  - Guard mathematical calculations against negative radicands (`Math.max(0, val)` before `Math.sqrt`) to prevent `NaN` reaching the interface.
+  - Guard division operations against zero or undefined divisors to prevent `Infinity`.
+- **Computational Memoization:** Wrap non-trivial filtering, string searching, and intensive coordinate transformations in `useMemo` to safeguard the 60fps frame budget as data sets scale.
+- **Unconditional Resource Cleanup:** Any global event listeners (keyboard shortcuts, resize observers, animation frames) or timers registered within a component must define an explicit cleanup function in their lifecycle effect.
 
 ---
 
-## 5. CSS Module & Token Integration
+## 5. Modular CSS & Design Token Architecture
 
-- **Modular CSS Exclusively:** Every component must have a dedicated `<Component>.module.css` file. Zero inline styles (`style={{ ... }}` is strictly forbidden).
-- **Zero Literal Tokens:** Components must never reference literal palette tokens (e.g. `--palette-solarized-blue`, `--solarized-blue`). Only consume semantic tokens (`--state-focus`, `--surface-panel-bg`, `--content-bright`, etc.).
-- **Local Token Interface in `@layer blocks`:**
-  - Declare component-scoped custom properties (`--component-*`) at the root selector in `@layer blocks`:
+- **Modular CSS Exclusively:** Every component has a dedicated `<Component>.module.css` file. Inline styles (`style={{ ... }}`) are strictly forbidden.
+- **Zero Literal Tokens:** Component stylesheets must never reference literal palette values (`--palette-*`). Only consume semantic tokens (`--surface-*`, `--content-*`, `--state-*`, `--status-*`).
+- **The Local Token Interface Pattern:**
+  - Define component-scoped custom properties (`--component-*`) at the root selector in `@layer blocks`:
     ```css
     @layer blocks {
-      .dossier {
-        --dossier-bg: var(--surface-panel-bg);
-        --dossier-border-color: var(--surface-panel-border-color);
-        background: var(--dossier-bg);
-        border: var(--stroke-hairline) solid var(--dossier-border-color);
+      .component {
+        --component-bg:     var(--surface-panel-bg);
+        --component-border: var(--surface-panel-border-color);
+        background: var(--component-bg);
+        border: var(--stroke-hairline) solid var(--component-border);
       }
     }
     ```
-- **Exceptions in `@layer exceptions`:**
-  - Exceptions mutate only the local custom properties using HTML `data-*` selectors:
+- **Pure Exception Mutation:**
+  - In `@layer exceptions`, mutate only the local custom properties via HTML `data-*` selectors, preserving base geometry and layout:
     ```css
     @layer exceptions {
-      .dossier[data-status="critical"] {
-        --dossier-border-color: var(--status-critical);
+      .component[data-status="critical"] {
+        --component-border: var(--status-critical);
       }
     }
     ```
-- **Interactive Affordances & Focus Rings:**
+- **Accurate Interactive Affordances:**
   - Scope `cursor: pointer` only to elements that have active click handlers (`[data-selectable="true"]` or `[data-interactive="true"]`).
-  - Every interactive element must provide a `:focus-visible` ring using semantic focus tokens (`--state-focus`, `--state-focus-ring-width`).
-- **Zero Outer Margins:** Layout flow is owned exclusively by parent primitives. Never set `margin` or external positioning on component blocks.
+  - Every interactive element must provide a distinct `:focus-visible` ring using semantic focus tokens (`--state-focus`, `--state-focus-ring-width`).
