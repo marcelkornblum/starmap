@@ -25,7 +25,12 @@ export const Tooltip = ({
 
   const triggerElement = isValidElement(children)
     ? cloneElement(children as ReactElement<{ 'aria-describedby'?: string }>, {
-        'aria-describedby': tooltipId,
+        'aria-describedby': [
+          (children.props as { 'aria-describedby'?: string })?.['aria-describedby'],
+          tooltipId,
+        ]
+          .filter(Boolean)
+          .join(' ') || undefined,
       })
     : children;
 

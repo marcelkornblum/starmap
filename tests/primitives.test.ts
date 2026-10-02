@@ -296,16 +296,18 @@ describe('Tier 1: Control Primitives', () => {
     rendered.props.onClick?.({} as React.MouseEvent<HTMLDivElement>);
     expect(handleChange).toHaveBeenCalledWith(true);
 
+    // Enter should not trigger toggle (only Space per WAI-ARIA switch pattern)
     rendered.props.onKeyDown?.({ key: 'Enter', preventDefault: vi.fn() } as unknown as React.KeyboardEvent<HTMLDivElement>);
-    expect(handleChange).toHaveBeenCalledWith(true);
+    expect(handleChange).toHaveBeenCalledTimes(1);
 
+    // Space key triggers toggle
     rendered.props.onKeyDown?.({ key: ' ', preventDefault: vi.fn() } as unknown as React.KeyboardEvent<HTMLDivElement>);
-    expect(handleChange).toHaveBeenCalledWith(true);
+    expect(handleChange).toHaveBeenCalledTimes(2);
 
     // Disabled toggle
     const disabledToggle = Toggle({ checked: false, onChange: handleChange, disabled: true });
     disabledToggle.props.onClick?.({} as React.MouseEvent<HTMLDivElement>);
-    disabledToggle.props.onKeyDown?.({ key: 'Enter', preventDefault: vi.fn() } as unknown as React.KeyboardEvent<HTMLDivElement>);
+    disabledToggle.props.onKeyDown?.({ key: ' ', preventDefault: vi.fn() } as unknown as React.KeyboardEvent<HTMLDivElement>);
   });
 
   it('renders Slider range input with label and readout', () => {

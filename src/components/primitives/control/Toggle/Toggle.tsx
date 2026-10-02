@@ -27,7 +27,7 @@ export const Toggle = ({
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (!disabled && (e.key === ' ' || e.key === 'Enter')) {
+    if (!disabled && e.key === ' ') {
       e.preventDefault();
       onChange(!checked);
     }
