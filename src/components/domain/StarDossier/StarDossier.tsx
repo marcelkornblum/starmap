@@ -38,9 +38,10 @@ export const StarDossier = ({
     ? `${styles.starDossier} ${className}`
     : styles.starDossier;
 
-  const hasLuminosity = typeof star.luminosityLsun === 'number' && star.luminosityLsun > 0;
-  const hzInner = hasLuminosity ? 0.95 * Math.sqrt(star.luminosityLsun!) : undefined;
-  const hzOuter = hasLuminosity ? 1.37 * Math.sqrt(star.luminosityLsun!) : undefined;
+  const lum = star.luminosityLsun;
+  const hasLuminosity = typeof lum === 'number' && lum > 0;
+  const hzInner = hasLuminosity ? 0.95 * Math.sqrt(lum) : undefined;
+  const hzOuter = hasLuminosity ? 1.37 * Math.sqrt(lum) : undefined;
 
   const headerContent = (
     <div className={styles.headerRow}>
