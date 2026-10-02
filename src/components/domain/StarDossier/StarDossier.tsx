@@ -38,10 +38,9 @@ export const StarDossier = ({
     ? `${styles.starDossier} ${className}`
     : styles.starDossier;
 
-  const lum = star.luminosityLsun && star.luminosityLsun > 0 ? star.luminosityLsun : 1.0;
-  // Conservative circumstellar habitable zone boundaries based on Kopparapu et al.
-  const hzInner = 0.95 * Math.sqrt(lum);
-  const hzOuter = 1.37 * Math.sqrt(lum);
+  const hasLuminosity = typeof star.luminosityLsun === 'number' && star.luminosityLsun > 0;
+  const hzInner = hasLuminosity ? 0.95 * Math.sqrt(star.luminosityLsun!) : undefined;
+  const hzOuter = hasLuminosity ? 1.37 * Math.sqrt(star.luminosityLsun!) : undefined;
 
   const headerContent = (
     <div className={styles.headerRow}>
@@ -82,7 +81,11 @@ export const StarDossier = ({
       />
       <Metric
         label="Habitable Zone"
-        value={`${hzInner.toFixed(2)}–${hzOuter.toFixed(2)} AU`}
+        value={
+          hzInner !== undefined && hzOuter !== undefined
+            ? `${hzInner.toFixed(2)}–${hzOuter.toFixed(2)} AU`
+            : '—'
+        }
       />
       <Metric
         label="Effective Temp"
@@ -119,7 +122,12 @@ export const StarDossier = ({
               <div className={styles.planetList}>
                 {star.planets.map((planet) => {
                   const sma = planet.orbit?.semiMajorAxis;
-                  const isHabitable = sma !== undefined && sma >= hzInner && sma <= hzOuter;
+                  const isHabitable =
+                    hzInner !== undefined &&
+                    hzOuter !== undefined &&
+                    sma !== undefined &&
+                    sma >= hzInner &&
+                    sma <= hzOuter;
                   return (
                     <div
                       key={planet.id}
