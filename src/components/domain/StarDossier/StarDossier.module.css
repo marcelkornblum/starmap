@@ -1,0 +1,110 @@
+@layer blocks {
+  .starDossier {
+    --dossier-bg: var(--surface-panel-bg);
+    --dossier-border-color: var(--surface-panel-border-color);
+    --dossier-border-width: var(--surface-panel-border-width);
+    --dossier-border-style: var(--surface-panel-border-style);
+    --dossier-padding: var(--space-inset-card);
+
+    background: var(--dossier-bg);
+    border: var(--dossier-border-width) var(--dossier-border-style) var(--dossier-border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--dossier-padding);
+    font-family: var(--font-interface);
+  }
+
+  .headerRow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-fib-3);
+  }
+
+  .titleGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-1);
+  }
+
+  .title {
+    font-size: var(--type-scale-2);
+    font-weight: 700;
+    color: var(--content-bright);
+    margin: 0;
+  }
+
+  .subtitle {
+    font-size: var(--type-scale-0);
+    color: var(--content-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sectionTitle {
+    font-size: var(--type-scale-0);
+    font-weight: 600;
+    color: var(--content-bright);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+
+  .planetList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+  }
+
+  .planetItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-fib-2) var(--space-fib-3);
+    background: var(--surface-inset-bg);
+    border: var(--surface-inset-border-width) var(--surface-inset-border-style) var(--surface-inset-border-color);
+    border-radius: var(--radius-control, 4px);
+    transition: background var(--motion-duration-interactive, 150ms) var(--motion-ease-default, ease),
+                border-color var(--motion-duration-interactive, 150ms) var(--motion-ease-default, ease);
+  }
+
+  .planetItem[data-selectable="true"] {
+    cursor: pointer;
+  }
+
+  .planetItem[data-selectable="true"]:hover {
+    background: var(--state-hover-overlay);
+    border-color: var(--state-focus);
+  }
+
+  .planetItem[data-selectable="true"]:focus-visible {
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus);
+    outline-offset: 2px;
+  }
+
+  .planetName {
+    font-weight: 500;
+    color: var(--content-bright);
+    font-size: var(--type-scale-0);
+  }
+
+  .planetMetrics {
+    display: flex;
+    align-items: center;
+    gap: var(--space-fib-3);
+    font-size: var(--type-scale--1);
+    color: var(--content-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .overviewText {
+    font-size: var(--type-scale-0);
+    color: var(--content-base);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .emptyNotice {
+    color: var(--content-muted);
+    font-size: var(--type-scale-0);
+    font-style: italic;
+  }
+}

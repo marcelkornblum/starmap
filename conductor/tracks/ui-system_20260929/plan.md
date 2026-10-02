@@ -21,12 +21,12 @@
 - [x] Task: Phase Verification & Checkpoint (Run /code-review, push to PR, verify CI & Gemini review)
 
 ## Phase 4: Domain Features (Tier 4: Application Assemblies)
-- [ ] Task: Implement `<StarDossier>` with spectral classification, habitable zone readouts, and exoplanet listings.
-- [ ] Task: Implement `<OrbitTable>` displaying Keplerian elements with vertical tabular numeral alignment.
-- [ ] Task: Implement `<CommandPalette>` modal search interface for celestial entities and coordinates.
-- [ ] Task: Implement `<SystemControls>` HUD controls for time scrubbing, orbit projection toggles, and coordinate grids.
-- [ ] Task: Unit tests and Storybook stories for Tier 4 domain features.
-- [ ] Task: Phase Verification & Checkpoint (Run /code-review, push to PR, verify CI & Gemini review)
+- [x] Task: Implement `<StarDossier>` with spectral classification, habitable zone readouts, and exoplanet listings.
+- [x] Task: Implement `<OrbitTable>` displaying Keplerian elements with vertical tabular numeral alignment.
+- [x] Task: Implement `<CommandPalette>` modal search interface for celestial entities and coordinates.
+- [x] Task: Implement `<SystemControls>` HUD controls for time scrubbing, orbit projection toggles, and coordinate grids.
+- [x] Task: Unit tests and Storybook stories for Tier 4 domain features.
+- [x] Task: Phase Verification & Checkpoint (Run /code-review, push to PR, verify CI & Gemini review)
 
 ## Phase 5: View Migration & Inline Style Elimination
 - [ ] Task: Refactor application shell and layout (`RootLayout`, `GlobalCanvas`, `RouteSkeleton`) using Tier 1–3 primitives and semantic design tokens, eliminating all inline styles.
