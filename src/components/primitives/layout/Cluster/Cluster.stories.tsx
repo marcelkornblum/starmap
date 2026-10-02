@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Cluster } from './Cluster';
+import { Badge } from '../../data/Badge/Badge';
 
 const meta: Meta<typeof Cluster> = {
   title: 'Primitives/Layout/Cluster',
@@ -30,9 +31,9 @@ export const Default: Story = {
     justify: 'start',
     children: (
       <>
-        <span style={{ padding: '4px 8px', background: 'var(--surface-dock-bg)', border: '1px solid var(--surface-dock-border-color)' }}>Tag A</span>
-        <span style={{ padding: '4px 8px', background: 'var(--surface-dock-bg)', border: '1px solid var(--surface-dock-border-color)' }}>Tag B</span>
-        <span style={{ padding: '4px 8px', background: 'var(--surface-dock-bg)', border: '1px solid var(--surface-dock-border-color)' }}>Tag C</span>
+        <Badge>Tag A</Badge>
+        <Badge>Tag B</Badge>
+        <Badge>Tag C</Badge>
       </>
     ),
   },

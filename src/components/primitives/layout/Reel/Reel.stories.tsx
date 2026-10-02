@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Reel } from './Reel';
+import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Reel> = {
   title: 'Primitives/Layout/Reel',
@@ -27,11 +28,11 @@ export const Default: Story = {
     snap: true,
     children: (
       <>
-        <div style={{ padding: '24px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Reel Item 1</div>
-        <div style={{ padding: '24px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Reel Item 2</div>
-        <div style={{ padding: '24px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Reel Item 3</div>
-        <div style={{ padding: '24px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Reel Item 4</div>
-        <div style={{ padding: '24px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Reel Item 5</div>
+        <Box padding="loose" border="subtle" background="panel">Reel Item 1</Box>
+        <Box padding="loose" border="subtle" background="panel">Reel Item 2</Box>
+        <Box padding="loose" border="subtle" background="panel">Reel Item 3</Box>
+        <Box padding="loose" border="subtle" background="panel">Reel Item 4</Box>
+        <Box padding="loose" border="subtle" background="panel">Reel Item 5</Box>
       </>
     ),
   },

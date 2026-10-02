@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Sidebar } from './Sidebar';
+import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Sidebar> = {
   title: 'Primitives/Layout/Sidebar',
@@ -30,12 +31,12 @@ export const Default: Story = {
     gap: 'default',
     children: (
       <>
-        <div style={{ padding: '16px', background: 'var(--surface-dock-bg)', border: '1px solid var(--surface-dock-border-color)' }}>
+        <Box padding="default" border="subtle" background="dock">
           Sidebar Panel
-        </div>
-        <div style={{ padding: '16px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>
+        </Box>
+        <Box padding="default" border="subtle" background="panel">
           Main Content Area
-        </div>
+        </Box>
       </>
     ),
   },

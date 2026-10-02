@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Center } from './Center';
+import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Center> = {
   title: 'Primitives/Layout/Center',
@@ -25,9 +26,9 @@ export const Default: Story = {
     max: 'md',
     andText: false,
     children: (
-      <div style={{ padding: '24px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>
+      <Box padding="loose" border="subtle" background="panel">
         Centred content container restricted to 60ch with fluid guttering.
-      </div>
+      </Box>
     ),
   },
 };

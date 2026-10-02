@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { Select } from './Select';
+import { Center } from '../../layout/Center/Center';
 
 const meta: Meta<typeof Select> = {
   title: 'Primitives/Control/Select',
@@ -13,7 +14,7 @@ type Story = StoryObj<typeof Select>;
 const SelectDemo = () => {
   const [val, setVal] = useState('icrs');
   return (
-    <div style={{ maxWidth: '240px' }}>
+    <Center max="xs">
       <Select
         value={val}
         onChange={setVal}
@@ -23,7 +24,7 @@ const SelectDemo = () => {
           { value: 'ecliptic', label: 'Heliocentric Ecliptic' },
         ]}
       />
-    </div>
+    </Center>
   );
 };
 

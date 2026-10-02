@@ -29,7 +29,7 @@
 - [x] Task: Phase Verification & Checkpoint (Run /code-review, push to PR, verify CI & Gemini review)
 
 ## Phase 5: View Migration & Inline Style Elimination
-- [ ] Task: Refactor application shell and layout (`RootLayout`, `GlobalCanvas`, `RouteSkeleton`) using Tier 1–3 primitives and semantic design tokens, eliminating all inline styles.
-- [ ] Task: Refactor domain views (`GalaxyView`, `SystemView`, `PlanetView`, `ReferenceView`) to replace inline styles with CUBE CSS modules and Tier 4 assemblies.
-- [ ] Task: Perform codebase-wide audit to ensure zero hardcoded magic numbers or legacy inline styles remain across all views.
-- [ ] Task: Phase Verification & Checkpoint (Run /code-review, push to PR, verify CI & Gemini review)
+- [x] Task: Refactor application shell and layout (`RootLayout`, `GlobalCanvas`, `RouteSkeleton`) using Tier 1–3 primitives and semantic design tokens, eliminating all inline styles.
+- [x] Task: Refactor domain views (`GalaxyView`, `SystemView`, `PlanetView`, `ReferenceView`) to replace inline styles with CUBE CSS modules and Tier 4 assemblies.
+- [x] Task: Perform codebase-wide audit to ensure zero hardcoded magic numbers or legacy inline styles remain across all views.
+- [x] Task: Phase Verification & Checkpoint (Run /code-review, push to PR, verify CI & Gemini review)

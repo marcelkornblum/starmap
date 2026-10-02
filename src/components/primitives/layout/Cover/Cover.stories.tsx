@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Cover } from './Cover';
+import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Cover> = {
   title: 'Primitives/Layout/Cover',
@@ -22,13 +23,13 @@ type Story = StoryObj<typeof Cover>;
 export const Default: Story = {
   args: {
     minHeight: 'viewport',
-    header: <header style={{ borderBottom: '1px solid var(--surface-panel-border-color)', padding: '8px' }}>Starmap Header</header>,
+    header: <Box as="header" padding="tight" border="subtle" background="dock">Starmap Header</Box>,
     children: (
-      <div style={{ textAlign: 'center', padding: '32px' }}>
+      <Box padding="loose">
         <h2>Principal Mission Briefing</h2>
         <p>Centred vertically regardless of viewport dimension.</p>
-      </div>
+      </Box>
     ),
-    footer: <footer style={{ borderTop: '1px solid var(--surface-panel-border-color)', padding: '8px' }}>Telemetry Footer</footer>,
+    footer: <Box as="footer" padding="tight" border="subtle" background="dock">Telemetry Footer</Box>,
   },
 };

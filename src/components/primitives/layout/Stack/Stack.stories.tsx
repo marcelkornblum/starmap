@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Stack } from './Stack';
+import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Stack> = {
   title: 'Primitives/Layout/Stack',
@@ -25,9 +26,9 @@ export const Default: Story = {
     align: 'stretch',
     children: (
       <>
-        <div style={{ padding: '8px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Stack Item 1</div>
-        <div style={{ padding: '8px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Stack Item 2</div>
-        <div style={{ padding: '8px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Stack Item 3</div>
+        <Box padding="tight" border="subtle" background="panel">Stack Item 1</Box>
+        <Box padding="tight" border="subtle" background="panel">Stack Item 2</Box>
+        <Box padding="tight" border="subtle" background="panel">Stack Item 3</Box>
       </>
     ),
   },

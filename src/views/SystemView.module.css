@@ -1,0 +1,64 @@
+@layer blocks {
+  .hudOverlay {
+    --hud-offset: var(--space-stack-loose);
+    --hud-z-index: var(--layer-hud);
+    --hud-eyebrow-color: var(--content-accent);
+    --hud-title-size: var(--text-content-title-size);
+    --hud-body-size: var(--text-content-body-size);
+    --hud-text-color: var(--content-prominent);
+    --hud-muted-color: var(--content-muted);
+
+    position: absolute;
+    top: var(--hud-offset);
+    left: var(--hud-offset);
+    width: 360px;
+    max-width: calc(100vw - var(--hud-offset) * 2);
+    z-index: var(--hud-z-index);
+    pointer-events: auto;
+    max-height: calc(100vh - var(--hud-offset) * 2 - 80px);
+    overflow-y: auto;
+  }
+
+  .eyebrow {
+    font-family: var(--font-interface);
+    font-size: var(--text-content-caption-size);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--hud-eyebrow-color);
+  }
+
+  .title {
+    font-family: var(--font-interface);
+    font-size: var(--hud-title-size);
+    font-weight: 700;
+    color: var(--hud-text-color);
+    line-height: 1.2;
+  }
+
+  .description {
+    font-family: var(--font-interface);
+    font-size: var(--hud-body-size);
+    color: var(--hud-muted-color);
+    line-height: 1.5;
+  }
+
+  .orbitOverlay {
+    position: absolute;
+    top: var(--space-stack-loose);
+    right: var(--space-stack-loose);
+    width: 440px;
+    max-width: calc(100vw - var(--space-stack-loose) * 2);
+    z-index: var(--layer-hud);
+    pointer-events: auto;
+    max-height: calc(100vh - var(--space-stack-loose) * 2 - 80px);
+    overflow-y: auto;
+  }
+
+  .controlsDock {
+    position: absolute;
+    bottom: var(--space-stack-loose);
+    right: var(--space-stack-loose);
+    z-index: var(--layer-hud);
+    pointer-events: auto;
+  }
+}

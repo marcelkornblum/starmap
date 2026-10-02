@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Frame } from './Frame';
+import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Frame> = {
   title: 'Primitives/Layout/Frame',
@@ -19,9 +20,9 @@ export const Default: Story = {
   args: {
     ratio: '16:9',
     children: (
-      <div style={{ width: '100%', height: '100%', background: 'var(--surface-sunken-bg)', display: 'grid', placeItems: 'center', border: '1px dashed var(--border-subtle)' }}>
+      <Box padding="default" border="subtle" background="sunken">
         Frame 16:9 Target
-      </div>
+      </Box>
     ),
   },
 };

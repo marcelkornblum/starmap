@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Imposter } from './Imposter';
+import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Imposter> = {
   title: 'Primitives/Layout/Imposter',
@@ -26,16 +27,16 @@ export const Default: Story = {
     position: 'center',
     margin: 'default',
     children: (
-      <div style={{ padding: '16px', background: 'var(--surface-dock-bg)', border: '1px solid var(--surface-dock-border-color)' }}>
+      <Box padding="default" border="subtle" background="dock">
         Overlay Imposter Widget
-      </div>
+      </Box>
     ),
   },
   decorators: [
     (Story) => (
-      <div style={{ position: 'relative', width: '100%', height: '300px', background: 'var(--surface-canvas-bg)', border: '1px dashed var(--border-subtle)' }}>
+      <Box padding="none" border="subtle" background="canvas">
         <Story />
-      </div>
+      </Box>
     ),
   ],
 };

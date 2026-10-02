@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Grid } from './Grid';
+import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Grid> = {
   title: 'Primitives/Layout/Grid',
@@ -25,10 +26,10 @@ export const Default: Story = {
     gap: 'default',
     children: (
       <>
-        <div style={{ padding: '16px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Tile 1</div>
-        <div style={{ padding: '16px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Tile 2</div>
-        <div style={{ padding: '16px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Tile 3</div>
-        <div style={{ padding: '16px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>Tile 4</div>
+        <Box padding="default" border="subtle" background="panel">Tile 1</Box>
+        <Box padding="default" border="subtle" background="panel">Tile 2</Box>
+        <Box padding="default" border="subtle" background="panel">Tile 3</Box>
+        <Box padding="default" border="subtle" background="panel">Tile 4</Box>
       </>
     ),
   },

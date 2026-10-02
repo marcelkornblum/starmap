@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Switcher } from './Switcher';
+import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Switcher> = {
   title: 'Primitives/Layout/Switcher',
@@ -29,15 +30,15 @@ export const Default: Story = {
     gap: 'default',
     children: (
       <>
-        <div style={{ padding: '16px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>
+        <Box padding="default" border="subtle" background="panel">
           Switcher Item 1
-        </div>
-        <div style={{ padding: '16px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>
+        </Box>
+        <Box padding="default" border="subtle" background="panel">
           Switcher Item 2
-        </div>
-        <div style={{ padding: '16px', background: 'var(--surface-panel-bg)', border: '1px solid var(--surface-panel-border-color)' }}>
+        </Box>
+        <Box padding="default" border="subtle" background="panel">
           Switcher Item 3
-        </div>
+        </Box>
       </>
     ),
   },
