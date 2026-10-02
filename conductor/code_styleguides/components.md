@@ -54,7 +54,7 @@ Components are categorised into a strict four-tier hierarchy (`docs/design-syste
 
 ## 4. State Lifecycle, Resilience & Performance
 
-- **Respect Platform Lifecycles:** When integrating native browser primitives (such as the HTML5 Dialog API), rely on native lifecycle methods (`.showModal()`, `.close()`) and event mechanisms rather than fighting the platform with unneeded DOM mounting/unmounting thrash.
+- **Respect Platform Lifecycles & UA Display Contracts:** When integrating native browser primitives (such as `<dialog>` or `<details>`), leverage native lifecycle methods (`.showModal()`, `.close()`) rather than DOM mounting thrash, and preserve default user-agent visibility behaviours (e.g. maintaining `:not([open]) { display: none; }` when assigning custom author `display` values).
 - **Declarative State Reset:** UI components containing transient input or selection state should encapsulate that state locally. Prefer resetting transient state declaratively via key changes or explicit interaction callbacks rather than through synchronising `setState` calls inside reactive effects.
 - **Defensive Boundary Handling:** Public components must defensively guard rendering and calculations against missing, out-of-range, or anomalous inputs (e.g. `NaN`, negative square roots, zero division, or nullish properties) to guarantee reliable rendering under all domain edge cases.
 - **Computational Efficiency:** Memoize non-trivial calculations, filtering operations, and spatial coordinate transforms using `useMemo` to protect rendering budgets during telemetry updates and high-frequency animations.

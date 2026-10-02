@@ -20,6 +20,10 @@
     flex-direction: column;
   }
 
+  .drawer:not([open]) {
+    display: none;
+  }
+
   .drawerContent {
     background: var(--drawer-bg);
     box-shadow: var(--drawer-shadow);

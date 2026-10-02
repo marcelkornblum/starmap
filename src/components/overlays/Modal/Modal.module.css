@@ -23,6 +23,10 @@
     color: var(--content-default);
   }
 
+  .modal:not([open]) {
+    display: none;
+  }
+
   .modalContent {
     background: var(--modal-bg);
     border: var(--modal-border-width) var(--modal-border-style) var(--modal-border-color);
