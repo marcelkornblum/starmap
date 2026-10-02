@@ -1,4 +1,9 @@
 @layer blocks {
+  .popoverWrapper {
+    position: relative;
+    display: inline-flex;
+  }
+
   .popover {
     --popover-bg: var(--surface-popover-bg);
     --popover-border-color: var(--surface-popover-border-color);

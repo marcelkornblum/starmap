@@ -1,13 +1,4 @@
 @layer blocks {
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    background: var(--surface-scrim-bg);
-    backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
-    -webkit-backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
-    z-index: 1000;
-  }
-
   .modal {
     --modal-bg: var(--surface-modal-bg);
     --modal-border-color: var(--surface-modal-border-color);
@@ -18,10 +9,8 @@
     --modal-radius: var(--radius-lg);
 
     position: fixed;
-    inset-block-start: 50%;
-    inset-inline-start: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1001;
+    inset: 0;
+    margin: auto;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -33,7 +22,13 @@
     max-inline-size: min(90vw, 560px);
     max-block-size: 85vh;
     overflow: auto;
-    margin: 0;
+    color: var(--content-default);
+  }
+
+  .modal::backdrop {
+    background: var(--surface-scrim-bg);
+    backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
   }
 
   .headerRow {

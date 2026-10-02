@@ -326,10 +326,15 @@ describe('Tier 1: Control Primitives', () => {
     expect(html).toContain('value="12"');
     expect(html).toContain('Magnitude Threshold');
 
-    // Test input change
-    const rendered = Slider({ value: 12, min: 0, max: 20, onChange: handleChange });
-    const inputChild = rendered.props.children[1];
-    inputChild.props.onChange?.({ target: { value: '15' } } as React.ChangeEvent<HTMLInputElement>);
+    // Test input change inside React render context
+    let inputOnChange: ((e: React.ChangeEvent<HTMLInputElement>) => void) | undefined;
+    function SliderHarness() {
+      const el = Slider({ value: 12, min: 0, max: 20, onChange: handleChange });
+      inputOnChange = el.props.children[1]?.props.onChange;
+      return el;
+    }
+    renderToString(createElement(SliderHarness));
+    inputOnChange?.({ target: { value: '15' } } as React.ChangeEvent<HTMLInputElement>);
     expect(handleChange).toHaveBeenCalledWith(15);
   });
 

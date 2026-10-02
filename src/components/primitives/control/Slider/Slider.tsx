@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import { useId, type HTMLAttributes, type ReactNode } from 'react';
 import styles from './Slider.module.css';
 
 export interface SliderProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> {
@@ -22,6 +22,8 @@ export const Slider = ({
   className,
   ...rest
 }: SliderProps) => {
+  const generatedId = useId();
+  const inputId = rest.id || generatedId;
   const combinedClassName = className
     ? `${styles.sliderContainer} ${className}`
     : styles.sliderContainer;
@@ -30,11 +32,12 @@ export const Slider = ({
     <div className={combinedClassName} {...rest}>
       {label && (
         <div className={styles.labelRow}>
-          <span>{label}</span>
+          <label htmlFor={inputId}>{label}</label>
           <span className={styles.valueText}>{value}</span>
         </div>
       )}
       <input
+        id={inputId}
         type="range"
         min={min}
         max={max}

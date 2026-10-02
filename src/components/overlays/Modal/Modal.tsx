@@ -1,8 +1,8 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import { useRef, useEffect, type DialogHTMLAttributes, type ReactNode } from 'react';
 import { Stack } from '../../primitives';
 import styles from './Modal.module.css';
 
-export interface ModalProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
+export interface ModalProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'title'> {
   isOpen: boolean;
   onClose: () => void;
   title?: ReactNode;
@@ -17,6 +17,23 @@ export const Modal = ({
   className,
   ...rest
 }: ModalProps) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      if (!dialog.open) {
+        dialog.showModal?.();
+      }
+    } else {
+      if (dialog.open) {
+        dialog.close?.();
+      }
+    }
+  }, [isOpen]);
+
   if (!isOpen) {
     return null;
   }
@@ -26,41 +43,37 @@ export const Modal = ({
     : styles.modal;
 
   return (
-    <>
-      <div
-        className={styles.backdrop}
-        onClick={onClose}
-        role="presentation"
-      />
-      <div
-        className={combinedClassName}
-        role="dialog"
-        aria-modal="true"
-        aria-label={typeof title === 'string' ? title : undefined}
-        {...rest}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            e.stopPropagation();
-            onClose();
-          }
-          rest.onKeyDown?.(e);
-        }}
-      >
-        <Stack gap="default">
-          <div className={styles.headerRow}>
-            {title && <h2 className={styles.title}>{title}</h2>}
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={onClose}
-              aria-label="Close dialog"
-            >
-              ✕
-            </button>
-          </div>
-          <div>{children}</div>
-        </Stack>
-      </div>
-    </>
+    <dialog
+      ref={dialogRef}
+      className={combinedClassName}
+      role="dialog"
+      aria-modal="true"
+      aria-label={typeof title === 'string' ? title : undefined}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClick={(e) => {
+        if (e.target === dialogRef.current) {
+          onClose();
+        }
+      }}
+      {...rest}
+    >
+      <Stack gap="default">
+        <div className={styles.headerRow}>
+          {title && <h2 className={styles.title}>{title}</h2>}
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
+            ✕
+          </button>
+        </div>
+        <div>{children}</div>
+      </Stack>
+    </dialog>
   );
 };

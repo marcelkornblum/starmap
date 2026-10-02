@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode, KeyboardEvent } from 'react';
 import styles from './Toggle.module.css';
 
 export interface ToggleProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> {
@@ -26,7 +26,7 @@ export const Toggle = ({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (!disabled && (e.key === ' ' || e.key === 'Enter')) {
       e.preventDefault();
       onChange(!checked);
