@@ -1,0 +1,92 @@
+@layer blocks {
+  .button {
+    --button-bg: var(--ui-button-bg);
+    --button-color: var(--ui-button-color);
+    --button-border-color: var(--ui-button-border-color);
+    --button-border-width: var(--stroke-hairline);
+    --button-padding-inline: var(--space-5);
+    --button-padding-block: var(--space-3);
+    --button-font-size: var(--type-scale-0);
+    --button-radius: var(--radius-sm);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    box-sizing: border-box;
+    font-family: var(--font-interface);
+    font-size: var(--button-font-size);
+    font-weight: 500;
+    line-height: 1;
+    padding-inline: var(--button-padding-inline);
+    padding-block: var(--button-padding-block);
+    background: var(--button-bg);
+    color: var(--button-color);
+    border: var(--button-border-width) solid var(--button-border-color);
+    border-radius: var(--button-radius);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
+    margin: 0;
+  }
+
+  .button:hover:not(:disabled) {
+    --button-bg: var(--ui-button-hover-bg);
+  }
+
+  .button:active:not(:disabled) {
+    --button-bg: var(--ui-button-active-bg);
+  }
+
+  .button:focus-visible {
+    outline: var(--stroke-standard) solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  .button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@layer exceptions {
+  .button[data-variant="primary"] {
+    --button-bg: var(--solarized-blue);
+    --button-color: var(--solarized-base03);
+    --button-border-color: var(--solarized-blue);
+  }
+  .button[data-variant="primary"]:hover:not(:disabled) {
+    --button-bg: var(--solarized-cyan);
+    --button-border-color: var(--solarized-cyan);
+  }
+
+  .button[data-variant="subtle"] {
+    --button-bg: transparent;
+    --button-border-color: transparent;
+    --button-color: var(--content-default);
+  }
+  .button[data-variant="subtle"]:hover:not(:disabled) {
+    --button-bg: var(--surface-dock-bg);
+    --button-border-color: var(--border-subtle);
+  }
+
+  .button[data-variant="danger"] {
+    --button-bg: var(--status-critical);
+    --button-color: var(--solarized-base03);
+    --button-border-color: var(--status-critical);
+  }
+
+  .button[data-size="sm"] {
+    --button-padding-inline: var(--space-4);
+    --button-padding-block: var(--space-2);
+    --button-font-size: var(--type-scale--1);
+  }
+
+  .button[data-size="lg"] {
+    --button-padding-inline: var(--space-6);
+    --button-padding-block: var(--space-4);
+    --button-font-size: var(--type-scale-1);
+  }
+}

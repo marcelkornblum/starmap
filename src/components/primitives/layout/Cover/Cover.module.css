@@ -1,0 +1,36 @@
+@layer composition {
+  .cover {
+    --cover-gap: var(--space-stack-default);
+    --cover-min-height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+    min-block-size: var(--cover-min-height);
+    gap: var(--cover-gap);
+    margin: 0;
+    padding: var(--cover-gap);
+    box-sizing: border-box;
+  }
+
+  .cover > :first-child:not([data-principal="true"]) {
+    margin-block-end: auto;
+  }
+
+  .cover > [data-principal="true"] {
+    margin-block: auto;
+  }
+
+  .cover > :last-child:not([data-principal="true"]) {
+    margin-block-start: auto;
+  }
+}
+
+@layer exceptions {
+  .cover[data-gap="none"] { --cover-gap: 0; }
+  .cover[data-gap="tight"] { --cover-gap: var(--space-stack-tight); }
+  .cover[data-gap="default"] { --cover-gap: var(--space-stack-default); }
+  .cover[data-gap="loose"] { --cover-gap: var(--space-stack-loose); }
+
+  .cover[data-min-height="full"] { --cover-min-height: 100%; }
+  .cover[data-min-height="viewport"] { --cover-min-height: 100vh; }
+}

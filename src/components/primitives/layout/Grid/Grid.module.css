@@ -1,0 +1,34 @@
+@layer composition {
+  .grid {
+    --grid-gap: var(--space-stack-default);
+    --grid-min: 240px;
+
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--grid-min)), 1fr));
+    gap: var(--grid-gap);
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer exceptions {
+  .grid[data-gap="none"] { --grid-gap: 0; }
+  .grid[data-gap="tight"] { --grid-gap: var(--space-stack-tight); }
+  .grid[data-gap="default"] { --grid-gap: var(--space-stack-default); }
+  .grid[data-gap="loose"] { --grid-gap: var(--space-stack-loose); }
+  .grid[data-gap="space-1"] { --grid-gap: var(--space-1); }
+  .grid[data-gap="space-2"] { --grid-gap: var(--space-2); }
+  .grid[data-gap="space-3"] { --grid-gap: var(--space-3); }
+  .grid[data-gap="space-4"] { --grid-gap: var(--space-4); }
+  .grid[data-gap="space-5"] { --grid-gap: var(--space-5); }
+  .grid[data-gap="space-6"] { --grid-gap: var(--space-6); }
+  .grid[data-gap="space-7"] { --grid-gap: var(--space-7); }
+  .grid[data-gap="space-8"] { --grid-gap: var(--space-8); }
+  .grid[data-gap="space-9"] { --grid-gap: var(--space-9); }
+
+  .grid[data-min="xs"] { --grid-min: 160px; }
+  .grid[data-min="sm"] { --grid-min: 220px; }
+  .grid[data-min="md"] { --grid-min: 280px; }
+  .grid[data-min="lg"] { --grid-min: 360px; }
+  .grid[data-min="xl"] { --grid-min: 440px; }
+}

@@ -1,0 +1,35 @@
+@layer composition {
+  .center {
+    --center-max: 60ch;
+    --center-gutter: var(--space-stack-default);
+
+    box-sizing: content-box;
+    margin-inline: auto;
+    max-inline-size: var(--center-max);
+    padding-inline: var(--center-gutter);
+  }
+
+  .center[data-and-text="true"] {
+    text-align: center;
+  }
+
+  .center[data-intrinsic="true"] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@layer exceptions {
+  .center[data-gutter="none"] { --center-gutter: 0; }
+  .center[data-gutter="tight"] { --center-gutter: var(--space-stack-tight); }
+  .center[data-gutter="default"] { --center-gutter: var(--space-stack-default); }
+  .center[data-gutter="loose"] { --center-gutter: var(--space-stack-loose); }
+
+  .center[data-max="xs"] { --center-max: 20ch; }
+  .center[data-max="sm"] { --center-max: 40ch; }
+  .center[data-max="md"] { --center-max: 60ch; }
+  .center[data-max="lg"] { --center-max: 80ch; }
+  .center[data-max="xl"] { --center-max: 100ch; }
+  .center[data-max="full"] { --center-max: 100%; }
+}

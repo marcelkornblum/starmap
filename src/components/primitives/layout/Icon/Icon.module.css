@@ -1,0 +1,27 @@
+@layer composition {
+  .icon {
+    --icon-size: 1em;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--icon-size);
+    block-size: var(--icon-size);
+    vertical-align: -0.125em;
+    flex-shrink: 0;
+    fill: currentColor;
+    color: inherit;
+  }
+
+  .icon > svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}
+
+@layer exceptions {
+  .icon[data-size="sm"] { --icon-size: 0.875em; }
+  .icon[data-size="md"] { --icon-size: 1em; }
+  .icon[data-size="lg"] { --icon-size: 1.25em; }
+  .icon[data-size="xl"] { --icon-size: 1.5em; }
+}
