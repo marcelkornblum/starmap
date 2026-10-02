@@ -5,10 +5,7 @@
     background: var(--surface-scrim-bg);
     backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
     -webkit-backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
-    display: grid;
-    place-items: center;
     z-index: 1000;
-    padding: var(--space-fib-4);
   }
 
   .modal {
@@ -20,6 +17,11 @@
     --modal-padding: var(--space-inset-modal);
     --modal-radius: var(--radius-lg);
 
+    position: fixed;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -31,7 +33,6 @@
     max-inline-size: min(90vw, 560px);
     max-block-size: 85vh;
     overflow: auto;
-    position: relative;
     margin: 0;
   }
 

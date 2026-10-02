@@ -1,4 +1,4 @@
-import { useId, type HTMLAttributes, type ReactNode } from 'react';
+import { useId, isValidElement, cloneElement, type HTMLAttributes, type ReactNode } from 'react';
 import styles from './Tooltip.module.css';
 
 export interface TooltipProps extends HTMLAttributes<HTMLDivElement> {
@@ -23,9 +23,15 @@ export const Tooltip = ({
     ? `${styles.tooltip} ${className}`
     : styles.tooltip;
 
+  const triggerElement = isValidElement(children)
+    ? cloneElement(children as React.ReactElement<{ 'aria-describedby'?: string }>, {
+        'aria-describedby': tooltipId,
+      })
+    : children;
+
   return (
-    <div className={styles.tooltipWrapper} aria-describedby={tooltipId}>
-      {children}
+    <div className={styles.tooltipWrapper}>
+      {triggerElement}
       <div
         id={tooltipId}
         className={combinedClassName}

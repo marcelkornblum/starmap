@@ -112,7 +112,7 @@ describe('Tier 2: Overlays', () => {
     const html = renderToString(
       createElement(
         Popover,
-        { isOpen: true, position: 'top' },
+        { isOpen: true, position: 'top', 'aria-label': 'Stellar Details' },
         createElement('span', null, 'Stellar Details')
       )
     );
@@ -135,6 +135,7 @@ describe('Tier 2: Overlays', () => {
       )
     );
     expect(html).toContain('Luminosity');
+    expect(html).toContain('aria-describedby');
     expect(html).toContain('Spectral Lum: 3.828e26 W');
     expect(html).toContain('role="tooltip"');
     expect(html).toContain('data-position="right"');

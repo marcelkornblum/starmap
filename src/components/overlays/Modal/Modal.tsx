@@ -26,11 +26,12 @@ export const Modal = ({
     : styles.modal;
 
   return (
-    <div
-      className={styles.backdrop}
-      onClick={onClose}
-      role="presentation"
-    >
+    <>
+      <div
+        className={styles.backdrop}
+        onClick={onClose}
+        role="presentation"
+      />
       <div
         className={combinedClassName}
         role="dialog"
@@ -43,10 +44,6 @@ export const Modal = ({
             onClose();
           }
           rest.onKeyDown?.(e);
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          rest.onClick?.(e);
         }}
       >
         <Stack gap="default">
@@ -64,6 +61,6 @@ export const Modal = ({
           <div>{children}</div>
         </Stack>
       </div>
-    </div>
+    </>
   );
 };

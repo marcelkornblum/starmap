@@ -5,12 +5,14 @@ export interface PopoverProps extends HTMLAttributes<HTMLDivElement> {
   isOpen: boolean;
   position?: 'top' | 'bottom' | 'left' | 'right';
   children?: ReactNode;
+  role?: string;
 }
 
 export const Popover = ({
   isOpen,
   position = 'bottom',
   children,
+  role,
   className,
   ...rest
 }: PopoverProps) => {
@@ -22,11 +24,13 @@ export const Popover = ({
     ? `${styles.popover} ${className}`
     : styles.popover;
 
+  const resolvedRole = role ?? (rest['aria-label'] || rest['aria-labelledby'] ? 'region' : undefined);
+
   return (
     <div
       className={combinedClassName}
       data-position={position}
-      role="region"
+      role={resolvedRole}
       {...rest}
     >
       {children}
