@@ -291,23 +291,15 @@ describe('Tier 1: Control Primitives', () => {
     expect(html).toContain('aria-checked="true"');
     expect(html).toContain('Orbit Lines');
 
-    // Test click and keyboard handlers
+    // Test click and toggle handlers
     const rendered = Toggle({ checked: false, onChange: handleChange, label: 'Test' });
-    rendered.props.onClick?.({} as React.MouseEvent<HTMLDivElement>);
+    rendered.props.onClick?.({} as React.MouseEvent<HTMLButtonElement>);
     expect(handleChange).toHaveBeenCalledWith(true);
-
-    // Enter should not trigger toggle (only Space per WAI-ARIA switch pattern)
-    rendered.props.onKeyDown?.({ key: 'Enter', preventDefault: vi.fn() } as unknown as React.KeyboardEvent<HTMLDivElement>);
-    expect(handleChange).toHaveBeenCalledTimes(1);
-
-    // Space key triggers toggle
-    rendered.props.onKeyDown?.({ key: ' ', preventDefault: vi.fn() } as unknown as React.KeyboardEvent<HTMLDivElement>);
-    expect(handleChange).toHaveBeenCalledTimes(2);
 
     // Disabled toggle
     const disabledToggle = Toggle({ checked: false, onChange: handleChange, disabled: true });
-    disabledToggle.props.onClick?.({} as React.MouseEvent<HTMLDivElement>);
-    disabledToggle.props.onKeyDown?.({ key: ' ', preventDefault: vi.fn() } as unknown as React.KeyboardEvent<HTMLDivElement>);
+    disabledToggle.props.onClick?.({} as React.MouseEvent<HTMLButtonElement>);
+    expect(handleChange).toHaveBeenCalledTimes(1); // not called again
   });
 
   it('renders Slider range input with label and readout', () => {

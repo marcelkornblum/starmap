@@ -22,8 +22,10 @@ type Story = StoryObj<typeof Popover>;
 export const Default: Story = {
   render: (args) => (
     <Box padding="loose">
-      <Button variant="secondary">Target Anchor</Button>
-      <Popover {...args}>
+      <Popover
+        trigger={<Button variant="secondary">Target Anchor</Button>}
+        {...args}
+      >
         <div>Spectral type M2V details and stellar metallicity index.</div>
       </Popover>
     </Box>

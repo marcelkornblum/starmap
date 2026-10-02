@@ -1,4 +1,4 @@
-import { useRef, useEffect, type DialogHTMLAttributes, type ReactNode } from 'react';
+import { useRef, useEffect, useId, type DialogHTMLAttributes, type ReactNode } from 'react';
 import { Stack } from '../../primitives';
 import styles from './Modal.module.css';
 
@@ -18,6 +18,7 @@ export const Modal = ({
   ...rest
 }: ModalProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -44,7 +45,8 @@ export const Modal = ({
       className={combinedClassName}
       role="dialog"
       aria-modal="true"
-      aria-label={typeof title === 'string' ? title : undefined}
+      aria-labelledby={title ? (rest['aria-labelledby'] || titleId) : rest['aria-labelledby']}
+      aria-label={!title && typeof rest['aria-label'] === 'string' ? rest['aria-label'] : undefined}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -67,7 +69,7 @@ export const Modal = ({
       {isOpen && (
         <Stack gap="default">
           <div className={styles.headerRow}>
-            {title && <h2 className={styles.title}>{title}</h2>}
+            {title && <h2 id={titleId} className={styles.title}>{title}</h2>}
             <button
               type="button"
               className={styles.closeButton}

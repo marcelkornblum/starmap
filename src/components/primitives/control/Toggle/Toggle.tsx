@@ -1,7 +1,7 @@
-import type { HTMLAttributes, ReactNode, KeyboardEvent } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import styles from './Toggle.module.css';
 
-export interface ToggleProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> {
+export interface ToggleProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label?: ReactNode;
@@ -26,30 +26,22 @@ export const Toggle = ({
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (!disabled && e.key === ' ') {
-      e.preventDefault();
-      onChange(!checked);
-    }
-  };
-
   return (
-    <div
+    <button
+      type="button"
       className={combinedClassName}
       data-checked={checked ? 'true' : undefined}
       data-disabled={disabled ? 'true' : undefined}
       role="switch"
       aria-checked={checked}
-      aria-disabled={disabled}
-      tabIndex={disabled ? -1 : 0}
-      {...rest}
+      disabled={disabled}
       onClick={handleClick}
-      onKeyDown={handleKeyDown}
+      {...rest}
     >
       <div className={styles.switchTrack}>
         <div className={styles.switchThumb} />
       </div>
       {label && <span>{label}</span>}
-    </div>
+    </button>
   );
 };

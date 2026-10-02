@@ -14,6 +14,11 @@
     font-family: var(--font-interface);
     font-size: var(--type-scale-0);
     user-select: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+    text-align: left;
   }
 
   .toggleContainer[data-disabled="true"] {
