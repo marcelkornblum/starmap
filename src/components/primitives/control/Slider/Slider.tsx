@@ -1,7 +1,7 @@
-import { useId, type HTMLAttributes, type ReactNode } from 'react';
+import { useId, type InputHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
 import styles from './Slider.module.css';
 
-export interface SliderProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> {
+export interface SliderProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
   value: number;
   min: number;
   max: number;
@@ -9,6 +9,7 @@ export interface SliderProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onCha
   onChange: (val: number) => void;
   label?: ReactNode;
   disabled?: boolean;
+  containerProps?: HTMLAttributes<HTMLDivElement>;
 }
 
 export const Slider = ({
@@ -20,16 +21,17 @@ export const Slider = ({
   label,
   disabled = false,
   className,
+  containerProps,
   ...rest
 }: SliderProps) => {
   const generatedId = useId();
   const inputId = rest.id || generatedId;
-  const combinedClassName = className
-    ? `${styles.sliderContainer} ${className}`
+  const containerClassName = containerProps?.className
+    ? `${styles.sliderContainer} ${containerProps.className}`
     : styles.sliderContainer;
 
   return (
-    <div className={combinedClassName} {...rest}>
+    <div {...containerProps} className={containerClassName}>
       {label && (
         <div className={styles.labelRow}>
           <label htmlFor={inputId}>{label}</label>
@@ -45,8 +47,9 @@ export const Slider = ({
         value={value}
         disabled={disabled}
         aria-label={typeof label === 'string' ? label : undefined}
-        className={styles.rangeInput}
+        className={className ? `${styles.rangeInput} ${className}` : styles.rangeInput}
         onChange={(e) => onChange(Number(e.target.value))}
+        {...rest}
       />
     </div>
   );

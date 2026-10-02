@@ -1,13 +1,4 @@
 @layer blocks {
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    background: var(--surface-scrim-bg);
-    backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
-    -webkit-backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
-    z-index: 900;
-  }
-
   .drawer {
     --drawer-bg: var(--surface-drawer-bg);
     --drawer-border-color: var(--surface-drawer-border-color);
@@ -22,10 +13,18 @@
     box-shadow: var(--drawer-shadow);
     padding: var(--drawer-padding);
     overflow: auto;
-    z-index: 901;
+    border: none;
+    margin: 0;
+    max-width: none;
+    max-height: none;
     display: flex;
     flex-direction: column;
-    margin: 0;
+  }
+
+  .drawer::backdrop {
+    background: var(--surface-scrim-bg);
+    backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--surface-scrim-backdrop-blur));
   }
 
   .headerRow {

@@ -1,8 +1,8 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import { useRef, useEffect, type DialogHTMLAttributes, type ReactNode } from 'react';
 import { Stack } from '../../primitives';
 import styles from './Drawer.module.css';
 
-export interface DrawerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
+export interface DrawerProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'title'> {
   isOpen: boolean;
   onClose: () => void;
   position?: 'left' | 'right' | 'top' | 'bottom';
@@ -19,36 +19,47 @@ export const Drawer = ({
   className,
   ...rest
 }: DrawerProps) => {
-  if (!isOpen) {
-    return null;
-  }
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      if (!dialog.open) {
+        dialog.showModal?.();
+      }
+    } else {
+      if (dialog.open) {
+        dialog.close?.();
+      }
+    }
+  }, [isOpen]);
 
   const combinedClassName = className
     ? `${styles.drawer} ${className}`
     : styles.drawer;
 
   return (
-    <>
-      <div
-        className={styles.backdrop}
-        onClick={onClose}
-        role="presentation"
-      />
-      <div
-        className={combinedClassName}
-        data-position={position}
-        role="dialog"
-        aria-modal="true"
-        aria-label={typeof title === 'string' ? title : undefined}
-        {...rest}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            e.stopPropagation();
-            onClose();
-          }
-          rest.onKeyDown?.(e);
-        }}
-      >
+    <dialog
+      ref={dialogRef}
+      className={combinedClassName}
+      data-position={position}
+      role="dialog"
+      aria-modal="true"
+      aria-label={typeof title === 'string' ? title : undefined}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClick={(e) => {
+        if (e.target === dialogRef.current) {
+          onClose();
+        }
+      }}
+      {...rest}
+    >
+      {isOpen && (
         <Stack gap="default">
           <div className={styles.headerRow}>
             {title && <h2 className={styles.title}>{title}</h2>}
@@ -63,7 +74,7 @@ export const Drawer = ({
           </div>
           <div>{children}</div>
         </Stack>
-      </div>
-    </>
+      )}
+    </dialog>
   );
 };

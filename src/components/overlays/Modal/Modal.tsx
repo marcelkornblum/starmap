@@ -34,10 +34,6 @@ export const Modal = ({
     }
   }, [isOpen]);
 
-  if (!isOpen) {
-    return null;
-  }
-
   const combinedClassName = className
     ? `${styles.modal} ${className}`
     : styles.modal;
@@ -60,20 +56,22 @@ export const Modal = ({
       }}
       {...rest}
     >
-      <Stack gap="default">
-        <div className={styles.headerRow}>
-          {title && <h2 className={styles.title}>{title}</h2>}
-          <button
-            type="button"
-            className={styles.closeButton}
-            onClick={onClose}
-            aria-label="Close dialog"
-          >
-            ✕
-          </button>
-        </div>
-        <div>{children}</div>
-      </Stack>
+      {isOpen && (
+        <Stack gap="default">
+          <div className={styles.headerRow}>
+            {title && <h2 className={styles.title}>{title}</h2>}
+            <button
+              type="button"
+              className={styles.closeButton}
+              onClick={onClose}
+              aria-label="Close dialog"
+            >
+              ✕
+            </button>
+          </div>
+          <div>{children}</div>
+        </Stack>
+      )}
     </dialog>
   );
 };

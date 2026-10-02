@@ -85,7 +85,23 @@ describe('Tier 2: Overlays', () => {
     const closedHtml = renderToString(
       createElement(Modal, { isOpen: false, onClose }, createElement('p', null, 'Hidden'))
     );
-    expect(closedHtml).toBe('');
+    expect(closedHtml).toContain('<dialog');
+    expect(closedHtml).not.toContain('Hidden');
+
+    // Backdrop click simulation
+    let closeTriggered = false;
+    const testOnClose = () => { closeTriggered = true; };
+    const dialogElement = {
+      tagName: 'DIALOG',
+    };
+    let modalEl: any;
+    function ModalHarness() {
+      modalEl = Modal({ isOpen: true, onClose: testOnClose, title: 'Test' });
+      return modalEl;
+    }
+    renderToString(createElement(ModalHarness));
+    modalEl.props.onClick?.({ target: dialogElement } as unknown as React.MouseEvent<HTMLDialogElement>);
+    expect(closeTriggered).toBe(false);
   });
 
   it('renders Drawer when open with position', () => {
@@ -103,9 +119,10 @@ describe('Tier 2: Overlays', () => {
     expect(html).toContain('role="dialog"');
 
     const closedHtml = renderToString(
-      createElement(Drawer, { isOpen: false, onClose, position: 'left' })
+      createElement(Drawer, { isOpen: false, onClose, position: 'left' }, createElement('p', null, 'Hidden'))
     );
-    expect(closedHtml).toBe('');
+    expect(closedHtml).toContain('<dialog');
+    expect(closedHtml).not.toContain('Hidden');
   });
 
   it('renders Popover when open and returns null when closed', () => {
