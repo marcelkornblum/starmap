@@ -9,14 +9,25 @@
 
     position: fixed;
     box-sizing: border-box;
-    background: var(--drawer-bg);
-    box-shadow: var(--drawer-shadow);
-    padding: var(--drawer-padding);
-    overflow: auto;
+    background: transparent;
+    padding: 0;
+    overflow: visible;
     border: none;
     margin: 0;
     max-width: none;
     max-height: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .drawerContent {
+    background: var(--drawer-bg);
+    box-shadow: var(--drawer-shadow);
+    padding: var(--drawer-padding);
+    inline-size: 100%;
+    block-size: 100%;
+    box-sizing: border-box;
+    overflow: auto;
     display: flex;
     flex-direction: column;
   }

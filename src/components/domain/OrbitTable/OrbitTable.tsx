@@ -86,7 +86,9 @@ export const OrbitTable = ({
                 <td className={styles.cell}>{row.eccentricity.toFixed(4)}</td>
                 <td className={styles.cell}>{row.inclination.toFixed(2)}</td>
                 <td className={styles.cell}>
-                  {row.periodDays >= 1000
+                  {Number.isNaN(row.periodDays) || row.periodDays <= 0
+                    ? '—'
+                    : row.periodDays >= 1000
                     ? `${(row.periodDays / 365.25).toFixed(2)} y`
                     : `${row.periodDays.toFixed(1)} d`}
                 </td>

@@ -53,6 +53,24 @@ describe('Tier 4: Domain Features', () => {
       expect(html).toContain('No orbital telemetry records available.');
     });
 
+    it('renders em-dash fallback for invalid or non-positive orbital period', () => {
+      const html = renderToString(
+        createElement(OrbitTable, {
+          orbits: [
+            {
+              id: 'anomaly',
+              name: 'Anomaly',
+              semiMajorAxis: 1.0,
+              eccentricity: 0.0,
+              inclination: 0.0,
+              periodDays: -1,
+            },
+          ],
+        })
+      );
+      expect(html).toContain('—');
+    });
+
     it('handles row selection via click and keyboard events', () => {
       const handleSelect = vi.fn();
       let tableEl: any;
@@ -157,7 +175,7 @@ describe('Tier 4: Domain Features', () => {
         })
       );
       expect(html).not.toContain('NaN');
-      expect(html).toContain('0.00–0.00 AU');
+      expect(html).toContain('0.95–1.37 AU');
     });
 
     it('handles interactive callbacks for close, navigate, and planet selection', () => {

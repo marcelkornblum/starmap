@@ -52,35 +52,29 @@ export const Modal = ({
         onClose();
       }}
       onClick={(e) => {
-        const dialog = dialogRef.current;
-        if (!dialog) return;
-        const rect = dialog.getBoundingClientRect();
-        const isClickInside =
-          e.clientX >= rect.left &&
-          e.clientX <= rect.right &&
-          e.clientY >= rect.top &&
-          e.clientY <= rect.bottom;
-        if (!isClickInside) {
+        if (e.target === dialogRef.current) {
           onClose();
         }
       }}
       {...rest}
     >
       {isOpen && (
-        <Stack gap="default">
-          <div className={styles.headerRow}>
-            {title && <h2 id={titleId} className={styles.title}>{title}</h2>}
-            <button
-              type="button"
-              className={styles.closeButton}
-              onClick={onClose}
-              aria-label="Close dialog"
-            >
-              ✕
-            </button>
-          </div>
-          <div>{children}</div>
-        </Stack>
+        <div className={styles.modalContent}>
+          <Stack gap="default">
+            <div className={styles.headerRow}>
+              {title && <h2 id={titleId} className={styles.title}>{title}</h2>}
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={onClose}
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+            <div>{children}</div>
+          </Stack>
+        </div>
       )}
     </dialog>
   );
