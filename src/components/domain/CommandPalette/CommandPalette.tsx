@@ -52,6 +52,11 @@ const CommandPaletteContent = ({
     );
   }, [items, query]);
 
+  const safeActiveIndex = filteredItems.length > 0 ? Math.min(activeIndex, filteredItems.length - 1) : 0;
+  if (safeActiveIndex !== activeIndex) {
+    setActiveIndex(safeActiveIndex);
+  }
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (filteredItems.length === 0) return;
 
@@ -63,7 +68,7 @@ const CommandPaletteContent = ({
       setActiveIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const selected = filteredItems[activeIndex];
+      const selected = filteredItems[safeActiveIndex];
       if (selected) {
         selected.onSelect?.();
         onSelectItem?.(selected);
@@ -78,8 +83,8 @@ const CommandPaletteContent = ({
     onClose();
   };
 
-  const activeItemId = filteredItems[activeIndex]
-    ? `${listboxId}-option-${activeIndex}`
+  const activeItemId = filteredItems[safeActiveIndex]
+    ? `${listboxId}-option-${safeActiveIndex}`
     : undefined;
 
   return (
@@ -111,7 +116,7 @@ const CommandPaletteContent = ({
       >
         {filteredItems.length > 0 ? (
           filteredItems.map((item, index) => {
-            const isActive = index === activeIndex;
+            const isActive = index === safeActiveIndex;
             const itemId = `${listboxId}-option-${index}`;
             return (
               <li
