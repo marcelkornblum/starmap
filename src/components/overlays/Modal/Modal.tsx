@@ -58,24 +58,22 @@ export const Modal = ({
       }}
       {...rest}
     >
-      {isOpen && (
-        <div className={styles.modalContent}>
-          <Stack gap="default">
-            <div className={styles.headerRow}>
-              {title && <h2 id={titleId} className={styles.title}>{title}</h2>}
-              <button
-                type="button"
-                className={styles.closeButton}
-                onClick={onClose}
-                aria-label="Close dialog"
-              >
-                ✕
-              </button>
-            </div>
-            <div>{children}</div>
-          </Stack>
-        </div>
-      )}
+      <div className={styles.modalContent}>
+        <Stack gap="default">
+          <div className={styles.headerRow}>
+            {title && <h2 id={titleId} className={styles.title}>{title}</h2>}
+            <button
+              type="button"
+              className={styles.closeButton}
+              onClick={onClose}
+              aria-label="Close dialog"
+            >
+              ✕
+            </button>
+          </div>
+          <div>{children}</div>
+        </Stack>
+      </div>
     </dialog>
   );
 };

@@ -83,10 +83,10 @@ describe('Tier 2: Overlays', () => {
     expect(html).toContain('aria-modal="true"');
 
     const closedHtml = renderToString(
-      createElement(Modal, { isOpen: false, onClose }, createElement('p', null, 'Hidden'))
+      createElement(Modal, { isOpen: false, onClose }, createElement('p', null, 'Modal Body'))
     );
     expect(closedHtml).toContain('<dialog');
-    expect(closedHtml).not.toContain('Hidden');
+    expect(closedHtml).toContain('Modal Body');
 
     // Backdrop click simulation
     let closeTriggered = false;
@@ -100,6 +100,7 @@ describe('Tier 2: Overlays', () => {
       return modalEl;
     }
     renderToString(createElement(ModalHarness));
+    // Click on child/wrapper does not trigger close
     modalEl.props.onClick?.({ target: dialogElement } as unknown as React.MouseEvent<HTMLDialogElement>);
     expect(closeTriggered).toBe(false);
   });
@@ -119,10 +120,10 @@ describe('Tier 2: Overlays', () => {
     expect(html).toContain('role="dialog"');
 
     const closedHtml = renderToString(
-      createElement(Drawer, { isOpen: false, onClose, position: 'left' }, createElement('p', null, 'Hidden'))
+      createElement(Drawer, { isOpen: false, onClose, position: 'left' }, createElement('p', null, 'Drawer Body'))
     );
     expect(closedHtml).toContain('<dialog');
-    expect(closedHtml).not.toContain('Hidden');
+    expect(closedHtml).toContain('Drawer Body');
   });
 
   it('renders Popover when open and returns null when closed', () => {

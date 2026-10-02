@@ -165,14 +165,12 @@ export const CommandPalette = ({
       onClose={onClose}
       title="Atlas Command Palette"
     >
-      {isOpen && (
-        <CommandPaletteContent
-          items={items}
-          onSelectItem={onSelectItem}
-          onClose={onClose}
-          placeholder={placeholder}
-        />
-      )}
+      <CommandPaletteContent
+        items={items}
+        onSelectItem={onSelectItem}
+        onClose={onClose}
+        placeholder={placeholder}
+      />
     </Modal>
   );
 };

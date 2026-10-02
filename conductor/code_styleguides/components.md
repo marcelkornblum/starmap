@@ -60,7 +60,8 @@ Every component occupies a distinct tier in the design system hierarchy (`docs/d
 
 ## 4. State Lifecycle, Performance & Numerical Robustness
 
-- **Mount-Driven State Isolation:** Encapsulate transient overlay, form, or filter state within sub-components that mount conditionally when activated. Avoid synchronous `setState` inside `useEffect` on opening; initial state should compute naturally on initial mount.
+- **Native Dialog Display Lifecycle:** Do not conditionally mount/unmount child trees inside native `<dialog>` elements (`{isOpen && ...}`). Rely on native `.showModal()` and `.close()` to govern visibility. This eliminates DOM mounting thrash, enables CSS exit transitions, and preserves the browser's automatic focus restoration to the opening trigger.
+- **State Encapsulation & Key-Based Reset:** Encapsulate transient overlay, form, or filter state within dedicated sub-components. To re-initialise state upon opening, prefer passing a unique key (or resetting via explicit interaction events) rather than triggering synchronous `setState` in a `useEffect`.
 - **Boundary Defense & Numerical Safety:** Public component interfaces must gracefully handle unexpected or anomalous data:
   - Guard mathematical calculations against negative radicands (`Math.max(0, val)` before `Math.sqrt`) to prevent `NaN` reaching the interface.
   - Guard division operations against zero or undefined divisors to prevent `Infinity`.
