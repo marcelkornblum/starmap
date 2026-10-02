@@ -12,6 +12,8 @@ This guide establishes the mandatory TypeScript and React standards for Starmap.
 
 ## 2. React Components & Architecture
 
+For comprehensive rules on component taxonomy, React 19 ref/props forwarding, WAI-ARIA semantics, and state lifecycle patterns, refer strictly to [components.md](./components.md).
+
 - **Functional Components:** Define components as named `const` arrow functions.
 - **Explicit Props Interfaces:** Always declare a dedicated interface for component props (`[Component]Props`). Do not use inline object types.
 - **Named Exports Only:** Default exports are forbidden (except where strictly required by dynamic routing/lazy loading).

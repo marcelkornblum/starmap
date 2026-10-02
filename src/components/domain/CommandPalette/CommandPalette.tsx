@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useId, type KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, useId, useMemo, type KeyboardEvent } from 'react';
 import { Modal } from '../../overlays';
 import { Input, Badge, Cluster } from '../../primitives';
 import styles from './CommandPalette.module.css';
@@ -42,15 +42,15 @@ const CommandPaletteContent = ({
     inputRef.current?.focus();
   }, []);
 
-  const filteredItems = items.filter((item) => {
-    if (!query.trim()) return true;
+  const filteredItems = useMemo(() => {
+    if (!query.trim()) return items;
     const lower = query.toLowerCase();
-    return (
+    return items.filter((item) =>
       item.title.toLowerCase().includes(lower) ||
       (item.subtitle && item.subtitle.toLowerCase().includes(lower)) ||
       item.category.toLowerCase().includes(lower)
     );
-  });
+  }, [items, query]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (filteredItems.length === 0) return;

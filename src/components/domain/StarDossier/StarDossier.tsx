@@ -38,7 +38,7 @@ export const StarDossier = ({
     ? `${styles.starDossier} ${className}`
     : styles.starDossier;
 
-  const lum = star.luminosityLsun ?? 1.0;
+  const lum = Math.max(0, star.luminosityLsun ?? 1.0);
   // Conservative circumstellar habitable zone boundaries based on Kopparapu et al.
   const hzInner = 0.95 * Math.sqrt(lum);
   const hzOuter = 1.37 * Math.sqrt(lum);

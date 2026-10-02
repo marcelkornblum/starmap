@@ -14,6 +14,7 @@ You are an expert code reviewer acting as a Critical Friend. Your goal is to ide
    - [general.md](../../../conductor/code_styleguides/general.md)
    - [typescript.md](../../../conductor/code_styleguides/typescript.md)
    - [html-css.md](../../../conductor/code_styleguides/html-css.md)
+   - [components.md](../../../conductor/code_styleguides/components.md)
    - Check strict types (no `any`), Three.js resource disposal, WebGL 60fps frame budget, and numerical safety (NaN, division by zero).
 3. **Refactor**: Immediately apply necessary code and test edits using IDE tooling (`replace_file_content`, `write_to_file`) to eliminate technical debt and comply with standards. Do not prompt or wait for permission before making these improvements.
 4. **Validate & Iterate**: Re-run the local verification suite:

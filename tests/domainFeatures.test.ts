@@ -145,6 +145,21 @@ describe('Tier 4: Domain Features', () => {
       expect(html).toContain('No confirmed exoplanets cataloged in this system.');
     });
 
+    it('guards against negative luminosity without rendering NaN', () => {
+      const html = renderToString(
+        createElement(StarDossier, {
+          star: {
+            id: 'anomalous',
+            name: 'Anomalous Star',
+            luminosityLsun: -5.0,
+            distPc: 10,
+          },
+        })
+      );
+      expect(html).not.toContain('NaN');
+      expect(html).toContain('0.00–0.00 AU');
+    });
+
     it('handles interactive callbacks for close, navigate, and planet selection', () => {
       const handleClose = vi.fn();
       const handleNavigate = vi.fn();

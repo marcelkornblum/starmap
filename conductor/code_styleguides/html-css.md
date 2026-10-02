@@ -1,6 +1,6 @@
 # HTML & Modular CSS Style Guide
 
-All component styling must adhere to the design system specifications in `docs/design-system.md`.
+All component styling must adhere to the design system specifications in `docs/design-system.md` and the component architecture standards in [components.md](./components.md).
 
 ## 1. Core Invariants
 
