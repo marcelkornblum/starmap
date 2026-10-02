@@ -19,7 +19,7 @@ export const Tooltip = ({
     : styles.tooltip;
 
   return (
-    <div className={styles.tooltipWrapper} tabIndex={0}>
+    <div className={styles.tooltipWrapper}>
       {children}
       <div
         className={combinedClassName}

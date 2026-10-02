@@ -41,6 +41,7 @@ export const Slider = ({
         step={step}
         value={value}
         disabled={disabled}
+        aria-label={typeof label === 'string' ? label : undefined}
         className={styles.rangeInput}
         onChange={(e) => onChange(Number(e.target.value))}
       />
