@@ -3,7 +3,35 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { CartographicGrid } from './CartographicGrid';
 import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
+import starsFixture from '../../../../tests/fixtures/stars.fixture.json';
 import styles from './StorybookCanvasWrapper.module.css';
+
+/**
+ * Minimalist 3D dots for stars in the test fixture.
+ */
+const FixtureStars: React.FC = () => {
+  return (
+    <group name="fixture-stars">
+      {starsFixture.map((star) => {
+        const s = star.spect?.charAt(0).toUpperCase();
+        const color =
+          s === 'O' ? '#9db4ff' :
+          s === 'B' ? '#bbccff' :
+          s === 'A' ? '#f8f9ff' :
+          s === 'F' ? '#ffffed' :
+          s === 'G' ? '#fff4e8' :
+          s === 'K' ? '#ffd2a1' :
+          s === 'M' ? '#ffaa80' : '#ffffff';
+        return (
+          <mesh key={star.id} position={[star.x, star.y, star.z]} name={`star-dot-${star.id}`}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshBasicMaterial color={color} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+};
 
 const meta: Meta<typeof CartographicGrid> = {
   title: 'Canvas/Cartography/CartographicGrid',
@@ -47,12 +75,29 @@ export const Default: Story = {
 };
 
 /**
+ * Default view populated with stars from the fixture:
+ * Exactly like Default, with each star represented cleanly as a dot in 3D space.
+ */
+export const WithStars: Story = {
+  args: {
+    ...Default.args,
+  },
+  render: (args) => (
+    <>
+      <CartographicGrid {...args} />
+      <FixtureStars />
+    </>
+  ),
+};
+
+/**
  * Zoom-Adaptive Scaling Variant:
  * The instrument maintains an invariant visual footprint on screen.
  * Zooming in and out with OrbitControls modulates the real-world scale (metric volume in parsecs),
  * while dynamic concentric range rings continuously contract and expand according to the
  * logarithmic 1-2-5 progression (Significant vs Insignificant visual hierarchy).
  * The Galactic Centre bearing (+X Core) is styled with its golden accent token.
+ * Populated with the same fixture stars to observe world-scale dynamics.
  */
 export const ZoomAdaptiveScaling: Story = {
   args: {
@@ -67,26 +112,7 @@ export const ZoomAdaptiveScaling: Story = {
   render: (args) => (
     <>
       <CartographicGrid {...args} />
-      {/* Reference stars at fixed coordinates in space to visualize world-scale zoom dynamics */}
-      <group>
-        {[
-          { id: 'sol', pos: [0, 0, 0] as const, color: '#ffffff' },
-          { id: 'alpha-cen', pos: [1.34, -0.62, 0.45] as const, color: '#f59e0b' },
-          { id: 'barnard', pos: [-0.25, 1.78, 0.42] as const, color: '#ef4444' },
-          { id: 'sirius', pos: [-2.63, 1.84, -1.22] as const, color: '#60a5fa' },
-          { id: 'procyon', pos: [2.01, 3.12, -0.85] as const, color: '#fef08a' },
-          { id: 'eps-eri', pos: [-3.22, -0.54, 0.92] as const, color: '#f97316' },
-          { id: 'vega', pos: [7.54, 3.21, 2.15] as const, color: '#93c5fd' },
-          { id: 'altair', pos: [5.12, 1.45, -0.72] as const, color: '#e0e7ff' },
-          { id: 'fomalhaut', pos: [7.72, -4.14, 0.52] as const, color: '#c7d2fe' },
-          { id: 'arcturus', pos: [11.2, 8.4, 3.5] as const, color: '#fb923c' },
-        ].map((star) => (
-          <mesh key={star.id} position={star.pos}>
-            <sphereGeometry args={[0.1, 16, 16]} />
-            <meshBasicMaterial color={star.color} />
-          </mesh>
-        ))}
-      </group>
+      <FixtureStars />
     </>
   ),
 };
