@@ -29,7 +29,7 @@ export interface CartographicGridProps {
   adaptiveProjection?: boolean;
   /** Whether the instrument maintains an invariant visual footprint on screen while real-world scale and concentric rings adapt dynamically to zoom. Default: false */
   screenConstant?: boolean;
-  /** Reference camera distance at which aperture equals radius. Default: 22.65 */
+  /** Reference camera distance at which aperture equals radius. Default: 3.84 * radius */
   referenceDistance?: number;
   /** Angular threshold (cosine dot product) where transition begins (~20 deg from axis). Default: 0.94 */
   thresholdStart?: number;
@@ -86,8 +86,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   const scratchOrigin = useRef(new THREE.Vector3());
   const scratchCamDir = useRef(new THREE.Vector3());
 
-  // Auto-calculated reference distance ensuring instrument fits comfortably in viewport (~68% vertical span)
-  const effectiveRefDist = referenceDistance ?? radius * 4.8;
+  // Auto-calculated reference distance ensuring instrument fits comfortably in viewport (~85% vertical span, 25% larger footprint)
+  const effectiveRefDist = referenceDistance ?? radius * 3.84;
 
   const initialPosition = useMemo<[number, number, number]>(() => {
     if (position instanceof THREE.Vector3) {

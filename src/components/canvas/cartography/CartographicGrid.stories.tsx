@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Canvas, useThree } from '@react-three/fiber';
+import { useRef, useMemo } from 'react';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { CartographicGrid } from './CartographicGrid';
@@ -7,8 +8,58 @@ import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
 import starsFixture from '../../../../tests/fixtures/stars.fixture.json';
 import styles from './StorybookCanvasWrapper.module.css';
 
+interface StarDotProps {
+  star: (typeof starsFixture)[0];
+  color: string;
+  onClick: (star: (typeof starsFixture)[0]) => void;
+}
+
+/**
+ * Minimalist 3D dot representing a star.
+ * Screen-space invariance: The star dot never scales when the user zooms in or out,
+ * maintaining a crisp, invariant visual footprint on screen.
+ */
+const StarDot: React.FC<StarDotProps> = ({ star, color, onClick }) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const pos = useMemo(() => new THREE.Vector3(star.x, star.y, star.z), [star.x, star.y, star.z]);
+
+  useFrame(({ camera }) => {
+    if (!meshRef.current) return;
+    const dist = camera.position.distanceTo(pos);
+    // Invariant visual screen footprint: dots never scale with camera zoom or perspective changes
+    const fovFactor = camera instanceof THREE.PerspectiveCamera
+      ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
+      : 1.0;
+    const s = (dist / 18.12) * fovFactor;
+    meshRef.current.scale.set(s, s, s);
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      position={[star.x, star.y, star.z]}
+      name={`star-dot-${star.id}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(star);
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = 'auto';
+      }}
+    >
+      <sphereGeometry args={[0.08, 16, 16]} />
+      <meshBasicMaterial color={color} />
+    </mesh>
+  );
+};
+
 /**
  * Minimalist 3D dots for stars in the test fixture.
+ * The star dots never scale with camera zoom.
  * Clicking any star focuses the camera and OrbitControls directly on that star,
  * demonstrating how the CartographicGrid dynamically locks its origin to the camera focus point.
  */
@@ -38,25 +89,12 @@ const FixtureStars: React.FC = () => {
           s === 'K' ? '#ffd2a1' :
           s === 'M' ? '#ffaa80' : '#ffffff';
         return (
-          <mesh
+          <StarDot
             key={star.id}
-            position={[star.x, star.y, star.z]}
-            name={`star-dot-${star.id}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleStarClick(star);
-            }}
-            onPointerOver={(e) => {
-              e.stopPropagation();
-              document.body.style.cursor = 'pointer';
-            }}
-            onPointerOut={() => {
-              document.body.style.cursor = 'auto';
-            }}
-          >
-            <sphereGeometry args={[0.08, 16, 16]} />
-            <meshBasicMaterial color={color} />
-          </mesh>
+            star={star}
+            color={color}
+            onClick={handleStarClick}
+          />
         );
       })}
     </group>
@@ -73,7 +111,7 @@ const meta: Meta<typeof CartographicGrid> = {
     (Story) => (
       <div className={styles.viewportContainer}>
         <ThemeTokenBridge />
-        <Canvas camera={{ position: [14, 11, 14], fov: 45 }} gl={{ antialias: true, alpha: true }}>
+        <Canvas camera={{ position: [11.2, 8.8, 11.2], fov: 45 }} gl={{ antialias: true, alpha: true }}>
           <SceneTokenBridge />
           <Story />
           <OrbitControls makeDefault enableDamping dampingFactor={0.05} />
@@ -133,7 +171,7 @@ export const ZoomAdaptiveScaling: Story = {
   args: {
     radius: 10,
     screenConstant: true,
-    referenceDistance: 48,
+    referenceDistance: 38.4,
     showFins: true,
     showAxisLines: true,
     showFullDatumCircle: false,
