@@ -17,6 +17,6 @@ This track is dedicated to defining the visual language and aesthetic requiremen
 ## Acceptance Criteria
 - [ ] A comprehensive `docs/scene-requirements.md` document is created defining all 3 views.
 - [ ] `system.fixture.json` and `planet.fixture.json` are created for prototyping.
-- [ ] `docs/3d-visual-design.md` is created and approved.
-- [ ] The sync mechanism for passing CSS variables to Three.js materials is documented.
+- [x] `docs/3d-spatial-architecture.md` is created and approved (with `docs/3d-visual-design-notes.md` retained as scratchpad).
+- [x] The sync mechanism for passing CSS variables to Three.js materials is documented (`docs/threejs-token-sync.md`).
 - [ ] Storybook contains working, isolated 3D visual prototypes that successfully toggle between Light and Dark themes.

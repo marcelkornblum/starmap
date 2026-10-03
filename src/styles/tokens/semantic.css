@@ -310,20 +310,20 @@
     --state-disabled-cursor:      not-allowed;
 
     /* Cartographic Chrome */
-    --chrome-grid-primary-color:         var(--palette-white-alpha-16);
-    --chrome-grid-primary-width:         var(--stroke-width-1);
+    --chrome-grid-primary-color:         var(--palette-white-alpha-30);
+    --chrome-grid-primary-width:         var(--stroke-width-2);
     --chrome-grid-primary-style:         var(--border-style-boundary);
 
-    --chrome-grid-secondary-color:       var(--palette-white-alpha-8);
+    --chrome-grid-secondary-color:       var(--palette-white-alpha-16);
     --chrome-grid-secondary-width:       var(--stroke-width-1);
     --chrome-grid-secondary-style:       var(--border-style-guide);
 
-    --chrome-range-ring-color:           var(--palette-white-alpha-12);
+    --chrome-range-ring-color:           var(--palette-white-alpha-24);
     --chrome-range-ring-width:           var(--stroke-width-1);
     --chrome-range-ring-style:           var(--border-style-boundary);
 
-    --chrome-range-tick-color:           var(--palette-white-alpha-24);
-    --chrome-range-tick-width:           var(--stroke-width-1);
+    --chrome-range-tick-color:           var(--palette-white-alpha-40);
+    --chrome-range-tick-width:           var(--stroke-width-2);
     --chrome-range-tick-style:           var(--border-style-boundary);
 
     --chrome-reticle-bracket-color:      var(--palette-white-alpha-40);
@@ -334,9 +334,17 @@
     --chrome-boresight-width:            var(--stroke-width-1);
     --chrome-boresight-style:            var(--border-style-boundary);
 
-    --chrome-axis-line-color:            var(--palette-white-alpha-20);
-    --chrome-axis-line-width:            var(--stroke-width-1);
+    --chrome-axis-line-color:            var(--palette-white-alpha-30);
+    --chrome-axis-line-width:            var(--stroke-width-2);
     --chrome-axis-line-style:            var(--border-style-boundary);
+
+    --chrome-bearing-line-color:         var(--palette-white-alpha-50);
+    --chrome-bearing-line-width:         var(--stroke-width-2);
+    --chrome-bearing-line-style:         var(--border-style-boundary);
+
+    --chrome-bearing-core-color:         var(--palette-solarized-yellow);
+    --chrome-bearing-core-width:         var(--stroke-width-2);
+    --chrome-bearing-core-style:         var(--border-style-boundary);
 
     --chrome-heading-indicator-color:    var(--palette-white-alpha-50);
     --chrome-heading-indicator-width:    var(--stroke-width-2);
@@ -478,20 +486,20 @@
     --state-disabled-cursor:      not-allowed;
 
     /* Cartographic Chrome */
-    --chrome-grid-primary-color:         var(--palette-black-alpha-16);
-    --chrome-grid-primary-width:         var(--stroke-width-1);
+    --chrome-grid-primary-color:         var(--palette-black-alpha-30);
+    --chrome-grid-primary-width:         var(--stroke-width-2);
     --chrome-grid-primary-style:         var(--border-style-boundary);
 
-    --chrome-grid-secondary-color:       var(--palette-black-alpha-8);
+    --chrome-grid-secondary-color:       var(--palette-black-alpha-16);
     --chrome-grid-secondary-width:       var(--stroke-width-1);
     --chrome-grid-secondary-style:       var(--border-style-guide);
 
-    --chrome-range-ring-color:           var(--palette-black-alpha-12);
+    --chrome-range-ring-color:           var(--palette-black-alpha-24);
     --chrome-range-ring-width:           var(--stroke-width-1);
     --chrome-range-ring-style:           var(--border-style-boundary);
 
-    --chrome-range-tick-color:           var(--palette-black-alpha-24);
-    --chrome-range-tick-width:           var(--stroke-width-1);
+    --chrome-range-tick-color:           var(--palette-black-alpha-40);
+    --chrome-range-tick-width:           var(--stroke-width-2);
     --chrome-range-tick-style:           var(--border-style-boundary);
 
     --chrome-reticle-bracket-color:      var(--palette-black-alpha-40);
@@ -502,9 +510,17 @@
     --chrome-boresight-width:            var(--stroke-width-1);
     --chrome-boresight-style:            var(--border-style-boundary);
 
-    --chrome-axis-line-color:            var(--palette-black-alpha-20);
-    --chrome-axis-line-width:            var(--stroke-width-1);
+    --chrome-axis-line-color:            var(--palette-black-alpha-30);
+    --chrome-axis-line-width:            var(--stroke-width-2);
     --chrome-axis-line-style:            var(--border-style-boundary);
+
+    --chrome-bearing-line-color:         var(--palette-black-alpha-50);
+    --chrome-bearing-line-width:         var(--stroke-width-2);
+    --chrome-bearing-line-style:         var(--border-style-boundary);
+
+    --chrome-bearing-core-color:         var(--palette-solarized-yellow);
+    --chrome-bearing-core-width:         var(--stroke-width-2);
+    --chrome-bearing-core-style:         var(--border-style-boundary);
 
     --chrome-heading-indicator-color:    var(--palette-black-alpha-50);
     --chrome-heading-indicator-width:    var(--stroke-width-2);
