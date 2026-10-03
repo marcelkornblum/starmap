@@ -183,13 +183,13 @@ export function computeZoomAdaptiveRings(rAperture: number, maxRings = 6): Scale
       const r = step * unit;
       const rho = r / rAperture;
 
-      // Only candidate rings within visible fractional range [0.05, 1.05]
-      if (rho >= 0.05 && rho <= 1.05) {
+      // Only candidate rings within visible fractional range [0.05, 1.10]
+      if (rho >= 0.05 && rho <= 1.10) {
         // Significant line = exact power of 10 (step === 1)
         const isMajor = step === 1;
 
-        // Smooth fade at outer perimeter (rho in [0.85, 1.0])
-        const fadeOuter = Math.min(1, Math.max(0, (1.0 - rho) / 0.15));
+        // Smooth fade at outer perimeter (rho in [0.90, 1.08])
+        const fadeOuter = Math.min(1, Math.max(0, (1.08 - rho) / 0.18));
         // Smooth fade near focal center (rho in [0.05, 0.15])
         const fadeInner = Math.min(1, Math.max(0, (rho - 0.05) / 0.10));
         const fade = fadeOuter * fadeInner;

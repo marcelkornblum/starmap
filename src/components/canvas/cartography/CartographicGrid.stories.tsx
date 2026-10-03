@@ -60,7 +60,7 @@ export const ZoomAdaptiveScaling: Story = {
   args: {
     radius: 10,
     screenConstant: true,
-    referenceDistance: 22.65,
+    referenceDistance: 48,
     showFins: true,
     showAxisLines: true,
     showFullDatumCircle: false,
@@ -69,14 +69,15 @@ export const ZoomAdaptiveScaling: Story = {
   render: (args) => (
     <>
       <CartographicGrid {...args} />
-      {/* Sample galactic neighborhood stellar bodies to observe world-scale dynamics */}
-      <CelestialNode id="sol" name="Sol" position={[0, 0, 0]} state="focused" spectralType="G2V" />
+      {/* Sample galactic neighborhood stellar bodies to observe world-scale dynamics (pure WebGL reticles) */}
+      <CelestialNode id="sol" name="Sol" position={[0, 0, 0]} state="focused" spectralType="G2V" showLabel={false} />
       <CelestialNode
         id="alpha-cen"
         name="Alpha Centauri"
         position={[1.34, -0.62, 0.45]}
         state="active"
         spectralType="G2V"
+        showLabel={false}
       />
       <CelestialNode
         id="barnard"
@@ -84,6 +85,7 @@ export const ZoomAdaptiveScaling: Story = {
         position={[-0.25, 1.78, 0.42]}
         state="passive"
         spectralType="M4V"
+        showLabel={false}
       />
       <CelestialNode
         id="sirius"
@@ -91,6 +93,7 @@ export const ZoomAdaptiveScaling: Story = {
         position={[-2.63, 1.84, -1.22]}
         state="active"
         spectralType="A1V"
+        showLabel={false}
       />
       <CelestialNode
         id="procyon"
@@ -98,6 +101,7 @@ export const ZoomAdaptiveScaling: Story = {
         position={[2.01, 3.12, -0.85]}
         state="passive"
         spectralType="F5V"
+        showLabel={false}
       />
       <CelestialNode
         id="eps-eri"
@@ -105,6 +109,7 @@ export const ZoomAdaptiveScaling: Story = {
         position={[-3.22, -0.54, 0.92]}
         state="passive"
         spectralType="K2V"
+        showLabel={false}
       />
       <CelestialNode
         id="vega"
@@ -112,6 +117,7 @@ export const ZoomAdaptiveScaling: Story = {
         position={[7.54, 3.21, 2.15]}
         state="active"
         spectralType="A0V"
+        showLabel={false}
       />
       <CelestialNode
         id="altair"
@@ -119,6 +125,7 @@ export const ZoomAdaptiveScaling: Story = {
         position={[5.12, 1.45, -0.72]}
         state="passive"
         spectralType="A7V"
+        showLabel={false}
       />
       <CelestialNode
         id="fomalhaut"
@@ -126,6 +133,7 @@ export const ZoomAdaptiveScaling: Story = {
         position={[7.72, -4.14, 0.52]}
         state="passive"
         spectralType="A3V"
+        showLabel={false}
       />
       <CelestialNode
         id="arcturus"
@@ -133,6 +141,7 @@ export const ZoomAdaptiveScaling: Story = {
         position={[11.2, 8.4, 3.5]}
         state="passive"
         spectralType="K1III"
+        showLabel={false}
       />
     </>
   ),

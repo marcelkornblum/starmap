@@ -14,12 +14,16 @@ export interface ThreeTokenSnapshot {
   // Cartographic Graticules & Range Rings
   gridPrimaryColor: THREE.Color;
   gridPrimaryAlpha: number;
+  gridPrimaryWidth: number;
   gridSecondaryColor: THREE.Color;
   gridSecondaryAlpha: number;
+  gridSecondaryWidth: number;
   rangeRingColor: THREE.Color;
   rangeRingAlpha: number;
+  rangeRingWidth: number;
   rangeTickColor: THREE.Color;
   rangeTickAlpha: number;
+  rangeTickWidth: number;
 
   // Tactical Reticles & Bearings
   reticleBracketColor: THREE.Color;
@@ -165,21 +169,25 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     canvasOpacity: 1.0,
 
     gridPrimaryColor: makeLinearColor(chromeToneHex),
-    gridPrimaryAlpha: 0.16,
+    gridPrimaryAlpha: 0.30,
+    gridPrimaryWidth: 2,
     gridSecondaryColor: makeLinearColor(chromeToneHex),
-    gridSecondaryAlpha: 0.08,
+    gridSecondaryAlpha: 0.16,
+    gridSecondaryWidth: 1,
     rangeRingColor: makeLinearColor(chromeToneHex),
-    rangeRingAlpha: 0.12,
+    rangeRingAlpha: 0.24,
+    rangeRingWidth: 1,
     rangeTickColor: makeLinearColor(chromeToneHex),
-    rangeTickAlpha: 0.24,
+    rangeTickAlpha: 0.40,
+    rangeTickWidth: 2,
 
     reticleBracketColor: makeLinearColor(chromeToneHex),
     reticleBracketAlpha: 0.40,
     boresightColor: makeLinearColor(chromeToneHex),
     boresightAlpha: 0.30,
     axisLineColor: makeLinearColor(chromeToneHex),
-    axisLineAlpha: 0.20,
-    axisLineWidth: 1,
+    axisLineAlpha: 0.30,
+    axisLineWidth: 2,
     axisLineStyle: 'solid',
     bearingLineColor: makeLinearColor(chromeToneHex),
     bearingLineAlpha: 0.50,
@@ -259,9 +267,13 @@ export function extractThreeTokens(
 
   const canvasParsed = readColor('--surface-canvas-bg', fallback.canvasBg, 1.0);
   const gridPrimary = readColor('--chrome-grid-primary-color', fallback.gridPrimaryColor, fallback.gridPrimaryAlpha);
+  const gridPrimaryWidth = readWidth('--chrome-grid-primary-width', fallback.gridPrimaryWidth);
   const gridSecondary = readColor('--chrome-grid-secondary-color', fallback.gridSecondaryColor, fallback.gridSecondaryAlpha);
+  const gridSecondaryWidth = readWidth('--chrome-grid-secondary-width', fallback.gridSecondaryWidth);
   const rangeRing = readColor('--chrome-range-ring-color', fallback.rangeRingColor, fallback.rangeRingAlpha);
+  const rangeRingWidth = readWidth('--chrome-range-ring-width', fallback.rangeRingWidth);
   const rangeTick = readColor('--chrome-range-tick-color', fallback.rangeTickColor, fallback.rangeTickAlpha);
+  const rangeTickWidth = readWidth('--chrome-range-tick-width', fallback.rangeTickWidth);
   const reticleBracket = readColor('--chrome-reticle-bracket-color', fallback.reticleBracketColor, fallback.reticleBracketAlpha);
   const boresight = readColor('--chrome-boresight-color', fallback.boresightColor, fallback.boresightAlpha);
   const axisLine = readColor('--chrome-axis-line-color', fallback.axisLineColor, fallback.axisLineAlpha);
@@ -297,12 +309,16 @@ export function extractThreeTokens(
 
     gridPrimaryColor: gridPrimary.color,
     gridPrimaryAlpha: gridPrimary.alpha,
+    gridPrimaryWidth,
     gridSecondaryColor: gridSecondary.color,
     gridSecondaryAlpha: gridSecondary.alpha,
+    gridSecondaryWidth,
     rangeRingColor: rangeRing.color,
     rangeRingAlpha: rangeRing.alpha,
+    rangeRingWidth,
     rangeTickColor: rangeTick.color,
     rangeTickAlpha: rangeTick.alpha,
+    rangeTickWidth,
 
     reticleBracketColor: reticleBracket.color,
     reticleBracketAlpha: reticleBracket.alpha,

@@ -65,7 +65,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   showAxisLines = true,
   adaptiveProjection = true,
   screenConstant = false,
-  referenceDistance = 22.65,
+  referenceDistance,
   thresholdStart = 0.94,
   thresholdEnd = 0.985,
   transitionCorridor = 0.35,
@@ -75,6 +75,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   const { camera } = useThree();
 
   const baseFovRef = useRef<number | null>(null);
+
+  // Auto-calculated reference distance ensuring instrument fits comfortably in viewport (~68% vertical span)
+  const effectiveRefDist = referenceDistance ?? radius * 4.8;
 
   // Pool size: allocates either the explicit rangeRings count or 6 rings for dynamic zoom adaptation
   const poolSize = screenConstant ? Math.max(rangeRings.length, 6) : rangeRings.length;
@@ -88,6 +91,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         const initialR = isExplicit ? rangeRings[ringIdx] : radius * ((ringIdx + 1) / poolSize);
         const isMajor = ringIdx === majorRingIndex;
         const color = isMajor ? tokens.gridPrimaryColor : tokens.rangeRingColor;
+        const width = isMajor ? tokens.gridPrimaryWidth : tokens.rangeRingWidth;
         const baseAlpha = isMajor ? tokens.gridPrimaryAlpha * 1.5 : tokens.rangeRingAlpha;
 
         return QUADRANTS.map((quad) => {
@@ -96,6 +100,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
           const isInitialVisible = isExplicit && quad.qx === 1 && quad.qy === 1;
           const mat = new THREE.LineBasicMaterial({
             color,
+            linewidth: width,
             transparent: true,
             depthWrite: false,
             opacity: isInitialVisible ? baseAlpha : 0,
@@ -124,7 +129,37 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     tokens.rangeRingColor,
     tokens.gridPrimaryAlpha,
     tokens.rangeRingAlpha,
+    tokens.gridPrimaryWidth,
+    tokens.rangeRingWidth,
   ]);
+
+  // Memoize Perimeter Boundary Arcs for each fin using unit arc geometry scaled to active radius
+  const perimeterArcData = useMemo(() => {
+    const buildPlanePerimeter = (plane: 'xy' | 'xz' | 'yz') => {
+      return QUADRANTS.map((quad) => {
+        const geom = createQuadrantArcGeometry(1.0, plane, quad.startAngle, quad.endAngle);
+        const isInitialVisible = quad.qx === 1 && quad.qy === 1;
+        const mat = new THREE.LineBasicMaterial({
+          color: tokens.gridPrimaryColor,
+          linewidth: tokens.gridPrimaryWidth,
+          transparent: true,
+          depthWrite: false,
+          opacity: isInitialVisible ? tokens.gridPrimaryAlpha * 1.8 : 0,
+          visible: isInitialVisible,
+        });
+        const line = new THREE.Line(geom, mat);
+        line.scale.set(radius, radius, radius);
+        line.frustumCulled = false;
+        return { qx: quad.qx, qy: quad.qy, geom, mat, line };
+      });
+    };
+
+    return {
+      xy: buildPlanePerimeter('xy'),
+      xz: buildPlanePerimeter('xz'),
+      yz: buildPlanePerimeter('yz'),
+    };
+  }, [radius, tokens.gridPrimaryColor, tokens.gridPrimaryWidth, tokens.gridPrimaryAlpha]);
 
   // Memoize Quadrant Ticks for each plane using unit tick geometry scaled to active radius
   const tickData = useMemo(() => {
@@ -134,6 +169,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         const isInitialVisible = quad.qx === 1 && quad.qy === 1;
         const mat = new THREE.LineBasicMaterial({
           color: tokens.rangeTickColor,
+          linewidth: tokens.rangeTickWidth,
           transparent: true,
           depthWrite: false,
           opacity: isInitialVisible ? tokens.rangeTickAlpha : 0,
@@ -151,7 +187,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       xz: buildPlaneTicks('xz'),
       yz: buildPlaneTicks('yz'),
     };
-  }, [radius, tokens.rangeTickColor, tokens.rangeTickAlpha]);
+  }, [radius, tokens.rangeTickColor, tokens.rangeTickWidth, tokens.rangeTickAlpha]);
 
   // Structural Fin Axis Spokes: Only appear when both bordering fins rendered
   const axisSpokes = useMemo(() => {
@@ -222,20 +258,23 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
   // Mutable Scene Graph References (Preserving React Compiler optimization)
   const quadrantDataRef = useRef(quadrantData);
+  const perimeterArcDataRef = useRef(perimeterArcData);
   const tickDataRef = useRef(tickData);
   const axisSpokesRef = useRef(axisSpokes);
   const extendedBearingsRef = useRef(extendedBearings);
 
   useEffect(() => {
     quadrantDataRef.current = quadrantData;
+    perimeterArcDataRef.current = perimeterArcData;
     tickDataRef.current = tickData;
     axisSpokesRef.current = axisSpokes;
     extendedBearingsRef.current = extendedBearings;
-  }, [quadrantData, tickData, axisSpokes, extendedBearings]);
+  }, [quadrantData, perimeterArcData, tickData, axisSpokes, extendedBearings]);
 
   // Clean up geometries and materials on unmount
   useEffect(() => {
     const qData = quadrantDataRef.current;
+    const pData = perimeterArcDataRef.current;
     const tData = tickDataRef.current;
     const aSpokes = axisSpokesRef.current;
     const eBearings = extendedBearingsRef.current;
@@ -247,6 +286,10 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
             item.geom.dispose();
             item.mat.dispose();
           }
+        }
+        for (const pItem of pData[plane]) {
+          pItem.geom.dispose();
+          pItem.mat.dispose();
         }
         for (const tickItem of tData[plane]) {
           tickItem.geom.dispose();
@@ -284,16 +327,23 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   // Update base material colors from design tokens
   useEffect(() => {
     const qData = quadrantDataRef.current;
+    const pData = perimeterArcDataRef.current;
     const tData = tickDataRef.current;
     const aSpokes = axisSpokesRef.current;
     const eBearings = extendedBearingsRef.current;
 
     for (const plane of ['xy', 'xz', 'yz'] as const) {
+      pData[plane].forEach((pItem) => {
+        pItem.mat.color.copy(tokens.gridPrimaryColor);
+        pItem.mat.linewidth = tokens.gridPrimaryWidth;
+      });
       qData[plane].forEach((ringQuads, ringIdx) => {
         const isMajor = ringIdx === majorRingIndex;
         const color = isMajor ? tokens.gridPrimaryColor : tokens.rangeRingColor;
+        const width = isMajor ? tokens.gridPrimaryWidth : tokens.rangeRingWidth;
         for (const item of ringQuads) {
           item.mat.color.copy(color);
+          item.mat.linewidth = width;
         }
       });
       for (const tickItem of tData[plane]) {
@@ -338,6 +388,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     if (!showFins) return;
 
     const qData = quadrantDataRef.current;
+    const pArcData = perimeterArcDataRef.current;
     const tData = tickDataRef.current;
     const aSpokes = axisSpokesRef.current;
     const eBearings = extendedBearingsRef.current;
@@ -377,7 +428,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     if (screenConstant) {
       // Screen-constant scaling: aperture radius scales with distance to keep visual footprint invariant
       const camDist = activeCamera.position.distanceTo(origin);
-      currentRadius = radius * (camDist / referenceDistance);
+      currentRadius = radius * (camDist / effectiveRefDist);
       activeRings = computeZoomAdaptiveRings(currentRadius, poolSize);
     } else {
       currentRadius = radius;
@@ -415,7 +466,21 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       calcQuadWeight(quad.qx, quad.qy, sy, sz, wTransY, wTransZ, alphaX),
     );
 
-    // Update Concentric Range Rings across all planes (Significant vs Insignificant visual hierarchy)
+    // 5. Update Fin Perimeter Boundary Arcs with current aperture radius
+    for (const plane of ['xy', 'xz', 'yz'] as const) {
+      const pArcs = pArcData[plane];
+      const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
+      const qwList = plane === 'xy' ? qwXY : plane === 'xz' ? qwXZ : qwYZ;
+
+      pArcs.forEach((pItem, qIdx) => {
+        pItem.line.scale.set(currentRadius, currentRadius, currentRadius);
+        pItem.mat.color.copy(tokens.gridPrimaryColor);
+        pItem.mat.opacity = Math.max(tokens.gridPrimaryAlpha * 2.5, 0.45) * qwList[qIdx] * fadePlane;
+        pItem.mat.visible = pItem.mat.opacity > 0.001;
+      });
+    }
+
+    // 6. Update Concentric Range Rings across all planes (Significant vs Insignificant visual hierarchy)
     for (let ringIdx = 0; ringIdx < poolSize; ringIdx++) {
       const ringActive = ringIdx < activeRings.length;
       const ringInfo = ringActive ? activeRings[ringIdx] : null;
@@ -425,8 +490,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         const isMajor = ringInfo.isMajor;
         const color = isMajor ? tokens.gridPrimaryColor : tokens.rangeRingColor;
         const baseAlpha = isMajor
-          ? tokens.gridPrimaryAlpha * 1.6
-          : tokens.rangeRingAlpha * 0.7;
+          ? Math.max(tokens.gridPrimaryAlpha * 2.2, 0.40)
+          : Math.max(tokens.rangeRingAlpha * 1.8, 0.22);
         const ringFade = ringInfo.fade;
 
         for (const plane of ['xy', 'xz', 'yz'] as const) {
@@ -453,7 +518,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       }
     }
 
-    // Update perimeter ticks with current aperture radius
+    // 7. Update perimeter ticks with current aperture radius
     for (const plane of ['xy', 'xz', 'yz'] as const) {
       const ticks = tData[plane];
       const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
@@ -461,17 +526,18 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
       ticks.forEach((tickItem, qIdx) => {
         tickItem.line.scale.set(currentRadius, currentRadius, currentRadius);
-        tickItem.mat.opacity = tokens.rangeTickAlpha * qwList[qIdx] * fadePlane;
+        tickItem.mat.opacity = Math.max(tokens.rangeTickAlpha * 1.6, 0.35) * qwList[qIdx] * fadePlane;
         tickItem.mat.visible = tickItem.mat.opacity > 0.001;
       });
     }
 
-    // 5. Structural Axis Spokes Rule:
+    // 8. Structural Axis Spokes Rule:
     // "other than the two bearing axis lines, the rest should only appear when both bordering fins are rendered, IE never solo facing the camera."
+    const spokeBaseAlpha = Math.max(tokens.axisLineAlpha * 1.6, 0.30);
     // -X spoke bordered by XY (-X) and XZ (-X)
     const presenceXY_negX = Math.max(qwXY[1], qwXY[2]) * fadeXY;
     const presenceXZ_negX = Math.max(qwXZ[1], qwXZ[2]) * fadeXZ;
-    const alphaNegX = tokens.axisLineAlpha * Math.min(presenceXY_negX, presenceXZ_negX);
+    const alphaNegX = spokeBaseAlpha * Math.min(presenceXY_negX, presenceXZ_negX);
     aSpokes.negX.line.scale.set(currentRadius, currentRadius, currentRadius);
     aSpokes.negX.mat.opacity = alphaNegX;
     aSpokes.negX.mat.visible = alphaNegX > 0.001;
@@ -479,7 +545,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     // -Y spoke bordered by XY (-Y) and YZ (-Y)
     const presenceXY_negY = Math.max(qwXY[2], qwXY[3]) * fadeXY;
     const presenceYZ_negY = Math.max(qwYZ[1], qwYZ[2]) * fadeYZ;
-    const alphaNegY = tokens.axisLineAlpha * Math.min(presenceXY_negY, presenceYZ_negY);
+    const alphaNegY = spokeBaseAlpha * Math.min(presenceXY_negY, presenceYZ_negY);
     aSpokes.negY.line.scale.set(currentRadius, currentRadius, currentRadius);
     aSpokes.negY.mat.opacity = alphaNegY;
     aSpokes.negY.mat.visible = alphaNegY > 0.001;
@@ -487,7 +553,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     // +Z spoke bordered by XZ (+Z) and YZ (+Z)
     const presenceXZ_posZ = Math.max(qwXZ[0], qwXZ[1]) * fadeXZ;
     const presenceYZ_posZ = Math.max(qwYZ[0], qwYZ[1]) * fadeYZ;
-    const alphaPosZ = tokens.axisLineAlpha * Math.min(presenceXZ_posZ, presenceYZ_posZ);
+    const alphaPosZ = spokeBaseAlpha * Math.min(presenceXZ_posZ, presenceYZ_posZ);
     aSpokes.posZ.line.scale.set(currentRadius, currentRadius, currentRadius);
     aSpokes.posZ.mat.opacity = alphaPosZ;
     aSpokes.posZ.mat.visible = alphaPosZ > 0.001;
@@ -495,12 +561,12 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     // -Z spoke bordered by XZ (-Z) and YZ (-Z)
     const presenceXZ_negZ = Math.max(qwXZ[2], qwXZ[3]) * fadeXZ;
     const presenceYZ_negZ = Math.max(qwYZ[2], qwYZ[3]) * fadeYZ;
-    const alphaNegZ = tokens.axisLineAlpha * Math.min(presenceXZ_negZ, presenceYZ_negZ);
+    const alphaNegZ = spokeBaseAlpha * Math.min(presenceXZ_negZ, presenceYZ_negZ);
     aSpokes.negZ.line.scale.set(currentRadius, currentRadius, currentRadius);
     aSpokes.negZ.mat.opacity = alphaNegZ;
     aSpokes.negZ.mat.visible = alphaNegZ > 0.001;
 
-    // 6. Extended Bearing Lines
+    // 9. Extended Bearing Lines
     const bearingLen = currentRadius * 1.35;
     eBearings.core.line.scale.set(bearingLen, bearingLen, bearingLen);
     eBearings.core.mat.color.copy(tokens.bearingCoreColor);
@@ -514,10 +580,10 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     eBearings.orbital.mat.linewidth = tokens.bearingLineWidth;
     eBearings.orbital.mat.visible = true;
 
-    // 7. Adaptive Orthographic Switch: Narrow FOV and compensate zoom to maintain target footprint
+    // 10. Adaptive Orthographic Switch: Narrow FOV and compensate zoom to maintain target footprint
     if (adaptiveProjection && activeCamera instanceof THREE.PerspectiveCamera) {
       if (baseFovRef.current === null) {
-        baseFovRef.current = activeCamera.fov;
+        baseFovRef.current = activeCamera.fov < 15 ? 45 : activeCamera.fov;
       }
       const baseFov = baseFovRef.current;
       const targetFov = baseFov * (1 - 0.92 * maxAlpha); // 45 deg -> ~3.6 deg
@@ -537,6 +603,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         <group data-testid="travelling-fins">
           {/* XY Fin (Galactic Equator) */}
           <group data-testid="fin-xy">
+            {perimeterArcData.xy.map((pItem, qIdx) => (
+              <primitive key={`xy-perimeter-q${qIdx}`} object={pItem.line} data-testid={`xy-perimeter-q${qIdx}`} />
+            ))}
             {ringPoolIndices.map((ringIdx) => {
               const testId =
                 ringIdx < rangeRings.length ? `arc-tier-${rangeRings[ringIdx]}` : `arc-tier-pool-${ringIdx}`;
@@ -555,6 +624,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
           {/* XZ Fin (Core Meridian) */}
           <group data-testid="fin-xz">
+            {perimeterArcData.xz.map((pItem, qIdx) => (
+              <primitive key={`xz-perimeter-q${qIdx}`} object={pItem.line} data-testid={`xz-perimeter-q${qIdx}`} />
+            ))}
             {ringPoolIndices.map((ringIdx) => {
               const testId =
                 ringIdx < rangeRings.length ? `arc-tier-${rangeRings[ringIdx]}` : `arc-tier-pool-${ringIdx}`;
@@ -573,6 +645,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
           {/* YZ Fin (Transverse) */}
           <group data-testid="fin-yz">
+            {perimeterArcData.yz.map((pItem, qIdx) => (
+              <primitive key={`yz-perimeter-q${qIdx}`} object={pItem.line} data-testid={`yz-perimeter-q${qIdx}`} />
+            ))}
             {ringPoolIndices.map((ringIdx) => {
               const testId =
                 ringIdx < rangeRings.length ? `arc-tier-${rangeRings[ringIdx]}` : `arc-tier-pool-${ringIdx}`;
