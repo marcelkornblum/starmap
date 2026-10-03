@@ -5,12 +5,12 @@
 - [x] Task: Define coordinate graticules, reference planes, parsec range rings, and declination drop stems.
 - [x] Task: Define Keplerian orbit line styling, inclination cues, and directional trails (Finesse deferred to backlog).
 - [x] Task: Define decluttering and Level of Detail (LOD) thresholds across Galaxy, System, and Planet views.
-- [x] Task: Create `docs/3d-spatial-architecture.md` capturing these rules (supersedes `docs/3d-visual-design.md`).
+- [x] Task: Create `docs/3d-spatial-architecture.md` capturing finalized architectural decisions (with `docs/3d-visual-design-notes.md` retained as exploration scratchpad).
 - [ ] Task: Phase Verification & Checkpoint (Halt for User Review).
 
 ## Phase 2: Three.js Token Synchronisation Architecture
-- [ ] Task: Design and document the bridge pattern for reading CSS custom properties from the DOM and synchronising them into Three.js materials, uniforms, and scene lighting.
-- [ ] Task: Document reactivity and re-render lifecycle for theme toggling (Light/Dark mode) in WebGL.
+- [x] Task: Design and document the bridge pattern for reading CSS custom properties from the DOM and synchronising them into Three.js materials, uniforms, and scene lighting.
+- [x] Task: Document reactivity and re-render lifecycle for theme toggling (Light/Dark mode) in WebGL.
 - [ ] Task: Phase Verification & Checkpoint (Halt for User Review).
 
 ## Phase 3: UI Visual Language & Token Semantics

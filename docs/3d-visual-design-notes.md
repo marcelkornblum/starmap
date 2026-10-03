@@ -1,6 +1,8 @@
-# 3D Visual Language & Cartography
+# 3D Visual Language & Cartography (Exploration Notes & Scratchpad)
 
-This document tracks the exploration and design decisions for Starmap's 3D coordinate environment.
+> [!NOTE]
+> **Exploration Scratchpad:** This document contains exploratory notes and brainstormed concepts from Phase 1.
+> The **single authoritative specification** for finalized architectural and cartographic decisions is **[`docs/3d-spatial-architecture.md`](./3d-spatial-architecture.md)**.
 
 ---
 
