@@ -243,7 +243,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   }, [shouldRenderStalk, reticleSize]);
 
   return (
-    <group position={[x, y, z]} data-testid={`celestial-node-${id}`} data-state={state}>
+    <group position={[x, y, z]} name={`celestial-node-${id}`} userData={{ state }}>
       {/* Layer 1: Physical System Node (Unobstructed Centre) */}
       <mesh
         onClick={(e) => {
@@ -268,7 +268,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
         <group
           ref={reticleGroupRef}
           onBeforeRender={handleReticleBeforeRender as unknown as undefined}
-          data-testid="reticle-frame"
+          name="reticle-frame"
         >
           {classification === 'terrestrial' || classification === 'gas-giant' || classification === 'star' ? (
             <lineLoop geometry={reticleGeometry}>
@@ -294,7 +294,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
       {/* Strict Single-Stalk Rule: Drop Stalk down to Datum Plane Z=0 */}
       {shouldRenderStalk && stalkGeometry && (
-        <group data-testid="drop-stalk">
+        <group name="drop-stalk">
           <lineSegments geometry={stalkGeometry}>
             <lineBasicMaterial
               color={stalkColor}

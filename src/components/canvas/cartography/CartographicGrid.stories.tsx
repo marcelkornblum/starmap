@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { CartographicGrid } from './CartographicGrid';
-import { CelestialNode } from './CelestialNode';
 import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
 import styles from './StorybookCanvasWrapper.module.css';
 
@@ -32,15 +31,14 @@ type Story = StoryObj<typeof CartographicGrid>;
 /**
  * Default view: Perspective / non-ortho view.
  * 3 orthogonal fins (XY, XZ, YZ) each with a 90-degree curve,
- * 90-degree concentric range arcs on all three axes/planes,
+ * alternating concentric range arcs (dimmer and brighter lines),
  * two extended bearing lines (+X Core in golden accent, +Y Orbital in white alpha),
  * and the third axis line (+Z Pole) terminating at the radius length.
  */
 export const Default: Story = {
   args: {
     radius: 10,
-    rangeRings: [2.5, 5, 10],
-    majorRingIndex: 2,
+    rangeRings: [2, 4, 6, 8],
     showFins: true,
     showAxisLines: true,
     showFullDatumCircle: false,
@@ -69,80 +67,26 @@ export const ZoomAdaptiveScaling: Story = {
   render: (args) => (
     <>
       <CartographicGrid {...args} />
-      {/* Sample galactic neighborhood stellar bodies to observe world-scale dynamics (pure WebGL reticles) */}
-      <CelestialNode id="sol" name="Sol" position={[0, 0, 0]} state="focused" spectralType="G2V" showLabel={false} />
-      <CelestialNode
-        id="alpha-cen"
-        name="Alpha Centauri"
-        position={[1.34, -0.62, 0.45]}
-        state="active"
-        spectralType="G2V"
-        showLabel={false}
-      />
-      <CelestialNode
-        id="barnard"
-        name="Barnard's Star"
-        position={[-0.25, 1.78, 0.42]}
-        state="passive"
-        spectralType="M4V"
-        showLabel={false}
-      />
-      <CelestialNode
-        id="sirius"
-        name="Sirius"
-        position={[-2.63, 1.84, -1.22]}
-        state="active"
-        spectralType="A1V"
-        showLabel={false}
-      />
-      <CelestialNode
-        id="procyon"
-        name="Procyon"
-        position={[2.01, 3.12, -0.85]}
-        state="passive"
-        spectralType="F5V"
-        showLabel={false}
-      />
-      <CelestialNode
-        id="eps-eri"
-        name="Epsilon Eridani"
-        position={[-3.22, -0.54, 0.92]}
-        state="passive"
-        spectralType="K2V"
-        showLabel={false}
-      />
-      <CelestialNode
-        id="vega"
-        name="Vega"
-        position={[7.54, 3.21, 2.15]}
-        state="active"
-        spectralType="A0V"
-        showLabel={false}
-      />
-      <CelestialNode
-        id="altair"
-        name="Altair"
-        position={[5.12, 1.45, -0.72]}
-        state="passive"
-        spectralType="A7V"
-        showLabel={false}
-      />
-      <CelestialNode
-        id="fomalhaut"
-        name="Fomalhaut"
-        position={[7.72, -4.14, 0.52]}
-        state="passive"
-        spectralType="A3V"
-        showLabel={false}
-      />
-      <CelestialNode
-        id="arcturus"
-        name="Arcturus"
-        position={[11.2, 8.4, 3.5]}
-        state="passive"
-        spectralType="K1III"
-        showLabel={false}
-      />
+      {/* Reference stars at fixed coordinates in space to visualize world-scale zoom dynamics */}
+      <group>
+        {[
+          { id: 'sol', pos: [0, 0, 0] as const, color: '#ffffff' },
+          { id: 'alpha-cen', pos: [1.34, -0.62, 0.45] as const, color: '#f59e0b' },
+          { id: 'barnard', pos: [-0.25, 1.78, 0.42] as const, color: '#ef4444' },
+          { id: 'sirius', pos: [-2.63, 1.84, -1.22] as const, color: '#60a5fa' },
+          { id: 'procyon', pos: [2.01, 3.12, -0.85] as const, color: '#fef08a' },
+          { id: 'eps-eri', pos: [-3.22, -0.54, 0.92] as const, color: '#f97316' },
+          { id: 'vega', pos: [7.54, 3.21, 2.15] as const, color: '#93c5fd' },
+          { id: 'altair', pos: [5.12, 1.45, -0.72] as const, color: '#e0e7ff' },
+          { id: 'fomalhaut', pos: [7.72, -4.14, 0.52] as const, color: '#c7d2fe' },
+          { id: 'arcturus', pos: [11.2, 8.4, 3.5] as const, color: '#fb923c' },
+        ].map((star) => (
+          <mesh key={star.id} position={star.pos}>
+            <sphereGeometry args={[0.1, 16, 16]} />
+            <meshBasicMaterial color={star.color} />
+          </mesh>
+        ))}
+      </group>
     </>
   ),
 };
@@ -153,8 +97,7 @@ export const ZoomAdaptiveScaling: Story = {
 export const WithFullDatumCircles: Story = {
   args: {
     radius: 10,
-    rangeRings: [2.5, 5, 10],
-    majorRingIndex: 2,
+    rangeRings: [2, 4, 6, 8],
     showFins: true,
     showAxisLines: true,
     showFullDatumCircle: true,
@@ -163,13 +106,12 @@ export const WithFullDatumCircles: Story = {
 };
 
 /**
- * Macro galactic scale (50 pc aperture) with [10, 25, 50] pc concentric arcs.
+ * Macro galactic scale (50 pc aperture) with [10, 20, 30, 40] pc concentric arcs.
  */
 export const MacroGalacticScale: Story = {
   args: {
     radius: 50,
-    rangeRings: [10, 25, 50],
-    majorRingIndex: 2,
+    rangeRings: [10, 20, 30, 40],
     showFins: true,
     showAxisLines: true,
     showFullDatumCircle: false,

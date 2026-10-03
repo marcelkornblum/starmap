@@ -217,7 +217,6 @@ describe('3D Cartography Components', () => {
         }),
       );
       expect(html).toContain('celestial-node-star-1');
-      expect(html).toContain('data-state="passive"');
       expect(html).not.toContain('drop-stalk');
       expect(html).not.toContain('celestial-label');
     });
