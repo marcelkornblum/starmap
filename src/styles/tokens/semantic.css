@@ -342,6 +342,10 @@
     --chrome-bearing-line-width:         var(--stroke-width-2);
     --chrome-bearing-line-style:         var(--border-style-boundary);
 
+    --chrome-bearing-core-color:         var(--palette-solarized-yellow);
+    --chrome-bearing-core-width:         var(--stroke-width-2);
+    --chrome-bearing-core-style:         var(--border-style-boundary);
+
     --chrome-heading-indicator-color:    var(--palette-white-alpha-50);
     --chrome-heading-indicator-width:    var(--stroke-width-2);
     --chrome-heading-indicator-style:    var(--border-style-boundary);
@@ -513,6 +517,10 @@
     --chrome-bearing-line-color:         var(--palette-black-alpha-50);
     --chrome-bearing-line-width:         var(--stroke-width-2);
     --chrome-bearing-line-style:         var(--border-style-boundary);
+
+    --chrome-bearing-core-color:         var(--palette-solarized-yellow);
+    --chrome-bearing-core-width:         var(--stroke-width-2);
+    --chrome-bearing-core-style:         var(--border-style-boundary);
 
     --chrome-heading-indicator-color:    var(--palette-black-alpha-50);
     --chrome-heading-indicator-width:    var(--stroke-width-2);

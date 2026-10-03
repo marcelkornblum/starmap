@@ -155,3 +155,52 @@ export function computeTransitionWeights(
     wTransZ: calcTransWeight(camDirection.z),
   };
 }
+
+export interface ScaledRingInfo {
+  radius: number;
+  isMajor: boolean;
+  fade: number;
+}
+
+/**
+ * Computes logarithmic 1-2-5 progression concentric range rings dynamically adapted to active aperture radius (rAperture).
+ * As camera zooms in and out:
+ * - Zooming out: rings smoothly contract toward focal center, larger metric rings fade in at outer boundary.
+ * - Zooming in: rings smoothly expand toward boundary, dissolving at the perimeter, finer metric subdivisions emerge.
+ * - Two-tier visual hierarchy: Significant lines (powers of 10) vs Insignificant lines (2, 5 subdivisions).
+ */
+export function computeZoomAdaptiveRings(rAperture: number, maxRings = 6): ScaledRingInfo[] {
+  if (rAperture <= 0) return [];
+  const p = Math.floor(Math.log10(rAperture));
+  const candidateDecades = [p - 1, p, p + 1];
+  const steps = [1, 2, 5];
+
+  const candidates: ScaledRingInfo[] = [];
+
+  for (const dec of candidateDecades) {
+    const unit = Math.pow(10, dec);
+    for (const step of steps) {
+      const r = step * unit;
+      const rho = r / rAperture;
+
+      // Only candidate rings within visible fractional range [0.05, 1.05]
+      if (rho >= 0.05 && rho <= 1.05) {
+        // Significant line = exact power of 10 (step === 1)
+        const isMajor = step === 1;
+
+        // Smooth fade at outer perimeter (rho in [0.85, 1.0])
+        const fadeOuter = Math.min(1, Math.max(0, (1.0 - rho) / 0.15));
+        // Smooth fade near focal center (rho in [0.05, 0.15])
+        const fadeInner = Math.min(1, Math.max(0, (rho - 0.05) / 0.10));
+        const fade = fadeOuter * fadeInner;
+
+        if (fade > 0.001) {
+          candidates.push({ radius: r, isMajor, fade });
+        }
+      }
+    }
+  }
+
+  candidates.sort((a, b) => a.radius - b.radius);
+  return candidates.slice(0, maxRings);
+}

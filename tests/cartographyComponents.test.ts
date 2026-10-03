@@ -8,6 +8,7 @@ import {
   OrbitalRing,
   computeCardinalAlignment,
   computeTransitionWeights,
+  computeZoomAdaptiveRings,
 } from '../src/components/canvas/cartography';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
@@ -142,6 +143,64 @@ describe('3D Cartography Components', () => {
       // 3. Inside full circle threshold (maxAlpha = 1): transition weights suppressed
       const suppressedWeights = computeTransitionWeights(transXDir, 0.35, 1.0);
       expect(suppressedWeights.wTransX).toBe(0);
+    });
+
+    it('renders cleanly in screenConstant zoom-adaptive mode with bearing core styling', () => {
+      const html = renderToString(
+        createElement(CartographicGrid, {
+          radius: 10,
+          screenConstant: true,
+          referenceDistance: 20,
+        }),
+      );
+      expect(html).toContain('cartographic-grid');
+      expect(html).toContain('cardinal-bearings');
+      expect(html).toContain('bearing-core');
+    });
+
+    it('computes logarithmic 1-2-5 zoom-adaptive rings with significant hierarchy and fade envelopes', () => {
+      // 1. Edge case: zero or negative aperture returns empty array
+      expect(computeZoomAdaptiveRings(0)).toEqual([]);
+      expect(computeZoomAdaptiveRings(-5)).toEqual([]);
+
+      // 2. Standard scale rAperture = 10
+      const rings10 = computeZoomAdaptiveRings(10);
+      expect(rings10.length).toBeGreaterThan(0);
+      expect(rings10.length).toBeLessThanOrEqual(6);
+
+      // Verify ascending order
+      for (let i = 1; i < rings10.length; i++) {
+        expect(rings10[i].radius).toBeGreaterThan(rings10[i - 1].radius);
+      }
+
+      // Check isMajor classification: powers of 10 must have isMajor = true, subdivisions false
+      const ring1 = rings10.find((r) => Math.abs(r.radius - 1) < 1e-4);
+      const ring2 = rings10.find((r) => Math.abs(r.radius - 2) < 1e-4);
+      const ring5 = rings10.find((r) => Math.abs(r.radius - 5) < 1e-4);
+      const ring10 = rings10.find((r) => Math.abs(r.radius - 10) < 1e-4);
+
+      if (ring1) expect(ring1.isMajor).toBe(true);
+      if (ring2) expect(ring2.isMajor).toBe(false);
+      if (ring5) expect(ring5.isMajor).toBe(false);
+      if (ring10) expect(ring10.isMajor).toBe(true);
+
+      // Verify mid-aperture ring has full fade factor
+      if (ring5) {
+        // rho = 5/10 = 0.5, well within [0.15, 0.85] -> fade = 1.0
+        expect(ring5.fade).toBeCloseTo(1.0, 3);
+      }
+
+      // 3. Zoomed-in scale (rAperture = 2.0) produces fractional metric rings
+      const ringsZoomedIn = computeZoomAdaptiveRings(2.0);
+      expect(ringsZoomedIn.some((r) => r.radius < 1.0)).toBe(true);
+
+      // 4. Zoomed-out scale (rAperture = 100) produces larger metric rings
+      const ringsZoomedOut = computeZoomAdaptiveRings(100);
+      expect(ringsZoomedOut.some((r) => r.radius >= 10)).toBe(true);
+
+      // 5. Max rings parameter truncation
+      const capped = computeZoomAdaptiveRings(10, 3);
+      expect(capped.length).toBeLessThanOrEqual(3);
     });
   });
 

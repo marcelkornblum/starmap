@@ -104,6 +104,9 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(snapshot.axisLineStyle).toBe('solid');
     expect(snapshot.bearingLineWidth).toBe(2);
     expect(snapshot.bearingLineStyle).toBe('solid');
+    expect(snapshot.bearingCoreColor).toBeDefined();
+    expect(snapshot.bearingCoreWidth).toBe(2);
+    expect(snapshot.bearingCoreStyle).toBe('solid');
     // Fallback token retained when CSS variable is blank
     expect(snapshot.categoryStar).toBeDefined();
   });

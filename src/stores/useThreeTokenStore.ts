@@ -34,6 +34,10 @@ export interface ThreeTokenSnapshot {
   bearingLineAlpha: number;
   bearingLineWidth: number;
   bearingLineStyle: 'solid' | 'dashed' | 'dotted';
+  bearingCoreColor: THREE.Color;
+  bearingCoreAlpha: number;
+  bearingCoreWidth: number;
+  bearingCoreStyle: 'solid' | 'dashed' | 'dotted';
   headingIndicatorColor: THREE.Color;
   headingIndicatorAlpha: number;
 
@@ -181,6 +185,10 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     bearingLineAlpha: 0.50,
     bearingLineWidth: 2,
     bearingLineStyle: 'solid',
+    bearingCoreColor: makeLinearColor('#b58900'),
+    bearingCoreAlpha: 0.85,
+    bearingCoreWidth: 2,
+    bearingCoreStyle: 'solid',
     headingIndicatorColor: makeLinearColor(chromeToneHex),
     headingIndicatorAlpha: 0.50,
 
@@ -262,6 +270,9 @@ export function extractThreeTokens(
   const bearingLine = readColor('--chrome-bearing-line-color', fallback.bearingLineColor, fallback.bearingLineAlpha);
   const bearingLineWidth = readWidth('--chrome-bearing-line-width', fallback.bearingLineWidth);
   const bearingLineStyle = readStyle('--chrome-bearing-line-style', fallback.bearingLineStyle);
+  const bearingCore = readColor('--chrome-bearing-core-color', fallback.bearingCoreColor, fallback.bearingCoreAlpha);
+  const bearingCoreWidth = readWidth('--chrome-bearing-core-width', fallback.bearingCoreWidth);
+  const bearingCoreStyle = readStyle('--chrome-bearing-core-style', fallback.bearingCoreStyle);
   const heading = readColor('--chrome-heading-indicator-color', fallback.headingIndicatorColor, fallback.headingIndicatorAlpha);
 
   const stateFocus = readColor('--state-focus', fallback.stateFocus, 1.0);
@@ -305,6 +316,10 @@ export function extractThreeTokens(
     bearingLineAlpha: bearingLine.alpha,
     bearingLineWidth,
     bearingLineStyle,
+    bearingCoreColor: bearingCore.color,
+    bearingCoreAlpha: bearingCore.alpha,
+    bearingCoreWidth,
+    bearingCoreStyle,
     headingIndicatorColor: heading.color,
     headingIndicatorAlpha: heading.alpha,
 
