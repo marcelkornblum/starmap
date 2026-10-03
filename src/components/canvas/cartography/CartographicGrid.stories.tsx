@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
 import { CartographicGrid } from './CartographicGrid';
 import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
 import starsFixture from '../../../../tests/fixtures/stars.fixture.json';
@@ -8,8 +9,22 @@ import styles from './StorybookCanvasWrapper.module.css';
 
 /**
  * Minimalist 3D dots for stars in the test fixture.
+ * Clicking any star focuses the camera and OrbitControls directly on that star,
+ * demonstrating how the CartographicGrid dynamically locks its origin to the camera focus point.
  */
 const FixtureStars: React.FC = () => {
+  const { controls, camera } = useThree();
+
+  const handleStarClick = (star: (typeof starsFixture)[0]) => {
+    const ctrl = controls as any;
+    if (ctrl && ctrl.target instanceof THREE.Vector3) {
+      const offset = camera.position.clone().sub(ctrl.target);
+      ctrl.target.set(star.x, star.y, star.z);
+      camera.position.copy(ctrl.target).add(offset);
+      ctrl.update?.();
+    }
+  };
+
   return (
     <group name="fixture-stars">
       {starsFixture.map((star) => {
@@ -23,7 +38,22 @@ const FixtureStars: React.FC = () => {
           s === 'K' ? '#ffd2a1' :
           s === 'M' ? '#ffaa80' : '#ffffff';
         return (
-          <mesh key={star.id} position={[star.x, star.y, star.z]} name={`star-dot-${star.id}`}>
+          <mesh
+            key={star.id}
+            position={[star.x, star.y, star.z]}
+            name={`star-dot-${star.id}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStarClick(star);
+            }}
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              document.body.style.cursor = 'pointer';
+            }}
+            onPointerOut={() => {
+              document.body.style.cursor = 'auto';
+            }}
+          >
             <sphereGeometry args={[0.08, 16, 16]} />
             <meshBasicMaterial color={color} />
           </mesh>

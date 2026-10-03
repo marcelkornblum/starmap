@@ -158,6 +158,19 @@ describe('3D Cartography Components', () => {
       expect(html).toContain('bearing-core');
     });
 
+    it('renders cleanly with lockToFocusPoint and custom focusTarget', () => {
+      const targetVec = new THREE.Vector3(12, -4, 8);
+      const html = renderToString(
+        createElement(CartographicGrid, {
+          radius: 10,
+          lockToFocusPoint: true,
+          focusTarget: targetVec,
+        }),
+      );
+      expect(html).toContain('cartographic-grid');
+      expect(html).toContain('travelling-fins');
+    });
+
     it('computes logarithmic 1-2-5 zoom-adaptive rings with significant hierarchy and fade envelopes', () => {
       // 1. Edge case: zero or negative aperture returns empty array
       expect(computeZoomAdaptiveRings(0)).toEqual([]);

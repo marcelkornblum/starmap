@@ -37,8 +37,12 @@ export interface CartographicGridProps {
   thresholdEnd?: number;
   /** Angular corridor width for double-segment transition when crossing an axis. Default: 0.35 */
   transitionCorridor?: number;
-  /** Reference origin position. Default: [0, 0, 0] */
-  position?: [number, number, number];
+  /** Whether the grid origin dynamically locks to the camera focus point (e.g. OrbitControls target). Default: true */
+  lockToFocusPoint?: boolean;
+  /** Reference origin position fallback or manual position when lockToFocusPoint is false. Default: [0, 0, 0] */
+  position?: [number, number, number] | THREE.Vector3;
+  /** Optional explicit focus target to lock origin to (Vector3, object with position, or ref). */
+  focusTarget?: THREE.Vector3 | React.RefObject<THREE.Vector3 | THREE.Object3D | null>;
 }
 
 /**
@@ -55,6 +59,7 @@ export interface CartographicGridProps {
  * 6. Bordering Fin Rule: Structural axis lines only appear when both bordering fins are rendered (never solo facing camera).
  * 7. Zoom-Adaptive Scaling: When screenConstant is true, visual screen footprint is invariant, while real-world scale
  *    modulates dynamically with logarithmic 1-2-5 range rings (Significant vs Insignificant visual hierarchy).
+ * 8. Camera Focus Lock: Origin remains dynamically locked to the camera focus point (OrbitControls target).
  */
 export const CartographicGrid: React.FC<CartographicGridProps> = ({
   radius = 10,
@@ -69,15 +74,27 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   thresholdStart = 0.94,
   thresholdEnd = 0.985,
   transitionCorridor = 0.35,
+  lockToFocusPoint = true,
   position = [0, 0, 0],
+  focusTarget,
 }) => {
   const tokens = useThreeTokenStore((state) => state.tokens);
   const { camera } = useThree();
 
   const baseFovRef = useRef<number | null>(null);
+  const rootGroupRef = useRef<THREE.Group>(null);
+  const scratchOrigin = useRef(new THREE.Vector3());
+  const scratchCamDir = useRef(new THREE.Vector3());
 
   // Auto-calculated reference distance ensuring instrument fits comfortably in viewport (~68% vertical span)
   const effectiveRefDist = referenceDistance ?? radius * 4.8;
+
+  const initialPosition = useMemo<[number, number, number]>(() => {
+    if (position instanceof THREE.Vector3) {
+      return [position.x, position.y, position.z];
+    }
+    return position;
+  }, [position]);
 
   // Pool size: allocates either the explicit rangeRings count or 8 rings for dynamic zoom adaptation
   const poolSize = screenConstant ? Math.max(rangeRings.length, 8) : rangeRings.length;
@@ -383,8 +400,42 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     });
   }, [rangeRings, showFullDatumCircle]);
 
-  // Frame Loop: Dynamic zoom adaptation, smooth double-segment transitions, tighter cardinal alignment, bordering fin spokes
-  useFrame(({ camera: activeCamera }) => {
+  // Frame Loop: Dynamic zoom adaptation, smooth double-segment transitions, tighter cardinal alignment, camera focus lock
+  useFrame((state) => {
+    const activeCamera = state.camera;
+    const activeControls = state.controls as { target?: THREE.Vector3 } | undefined;
+
+    // Resolve camera focus point / origin
+    const origin = scratchOrigin.current;
+    if (position instanceof THREE.Vector3) {
+      origin.copy(position);
+    } else {
+      origin.set(position[0], position[1], position[2]);
+    }
+
+    if (focusTarget) {
+      if (focusTarget instanceof THREE.Vector3) {
+        origin.copy(focusTarget);
+      } else if ('current' in focusTarget && focusTarget.current) {
+        if (focusTarget.current instanceof THREE.Vector3) {
+          origin.copy(focusTarget.current);
+        } else if ('position' in focusTarget.current) {
+          origin.copy(focusTarget.current.position);
+        }
+      }
+    } else if (lockToFocusPoint) {
+      if (activeControls && activeControls.target instanceof THREE.Vector3) {
+        origin.copy(activeControls.target);
+      } else if ((activeCamera as any).target instanceof THREE.Vector3) {
+        origin.copy((activeCamera as any).target);
+      }
+    }
+
+    // Keep instrument origin locked to camera focus point
+    if (rootGroupRef.current) {
+      rootGroupRef.current.position.copy(origin);
+    }
+
     if (!showFins) return;
 
     const qData = quadrantDataRef.current;
@@ -393,9 +444,14 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     const aSpokes = axisSpokesRef.current;
     const eBearings = extendedBearingsRef.current;
 
-    // Camera direction relative to instrument origin
-    const origin = new THREE.Vector3(...position);
-    const camDir = activeCamera.position.clone().sub(origin).normalize();
+    // Camera direction and distance relative to instrument origin
+    const camDist = activeCamera.position.distanceTo(origin);
+    const camDir = scratchCamDir.current.copy(activeCamera.position).sub(origin);
+    if (camDist > 0.0001) {
+      camDir.divideScalar(camDist);
+    } else {
+      camDir.set(0, 0, 1);
+    }
 
     // 1. Cardinal alignment factors (with tightened thresholds)
     const { alphaX, alphaY, alphaZ, maxAlpha } = computeCardinalAlignment(
@@ -427,7 +483,6 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
     if (screenConstant) {
       // Screen-constant scaling: aperture radius scales with distance to keep visual footprint invariant
-      const camDist = activeCamera.position.distanceTo(origin);
       currentRadius = radius * (camDist / effectiveRefDist);
       activeRings = computeZoomAdaptiveRings(currentRadius, poolSize);
     } else {
@@ -600,7 +655,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   });
 
   return (
-    <group position={position} name="cartographic-grid">
+    <group ref={rootGroupRef} position={initialPosition} name="cartographic-grid">
       {/* Three Orthogonal Travelling Fins with Dynamic Quadrant Range Arcs */}
       {showFins && (
         <group name="travelling-fins">
