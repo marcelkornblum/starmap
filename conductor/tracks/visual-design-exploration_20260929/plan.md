@@ -14,21 +14,23 @@
 - [ ] Task: Phase Verification & Checkpoint (Halt for User Review).
 
 ## Phase 3: UI Visual Language & Token Semantics
-- [ ] Task: Define visual representation rules for telemetry status (`--status-*`), observational confidence (`--confidence-*`), and astronomical domains (`--category-*`).
-- [ ] Task: Define tabular data presentation rules, unit formatting, and monospace tabular alignments.
-- [ ] Task: Document component-level CUBE exception patterns using HTML `data-*` attributes without class concatenation.
-- [ ] Task: Create `docs/ui-visual-language.md` capturing these rules.
-- [ ] Task: Phase Verification & Checkpoint (Halt for User Review).
+- [x] Task: Define visual representation rules for telemetry status (`--status-*`), observational confidence (`--confidence-*`), and astronomical domains (`--category-*`).
+- [x] Task: Define tabular data presentation rules, unit formatting, and monospace tabular alignments.
+- [x] Task: Document component-level CUBE exception patterns using HTML `data-*` attributes without class concatenation.
+- [x] Task: Create `docs/ui-visual-language.md` capturing these rules.
+- [x] Task: Phase Verification & Checkpoint (Halt for User Review).
 
 ## Phase 4: User Journeys & Overall Features
-- [ ] Task: Map primary user journeys across scales (Galaxy macro navigation -> Stellar system targeting -> Planetary inspection).
-- [ ] Task: Define contextual controls, navigation transitions, and breadcrumb/orientation flows.
+- [x] Task: Map primary user journeys across scales (Galaxy macro navigation -> Stellar system targeting -> Planetary inspection).
+- [x] Task: Define contextual controls, navigation transitions, and breadcrumb/orientation flows.
   - *Note for Interaction Mode Discussion:* Resolve camera coupling implementation (dolly vs coordinate rescaling / fixed camera distance with variable aperture radius) and its impact on navigation dynamics.
-- [ ] Task: Create dummy data fixtures (`tests/fixtures/system.fixture.json` and `tests/fixtures/planet.fixture.json`) supporting these journeys.
-- [ ] Task: Phase Verification & Checkpoint (Halt for User Review).
+- [x] Task: Create dummy data fixtures (`tests/fixtures/system.fixture.json` and `tests/fixtures/planet.fixture.json`) supporting these journeys.
+- [x] Task: Phase Verification & Checkpoint (Halt for User Review).
+
 
 ## Phase 5: Storybook Prototyping & Interface Execution
-- [ ] Task: Build isolated 3D component prototypes in Storybook (`<SchematicStar>`, `<OrbitalRing>`, `<CartographicGrid>`).
-- [ ] Task: Connect 3D prototypes to the token synchronisation bridge to verify live theme toggling.
-- [ ] Task: Implement the Adaptive Telemetry Container and Dock components in Storybook, testing mobile detents and wide multi-bay expansions.
-- [ ] Task: Phase Verification & Checkpoint (Final Track Review & PR).
+- [x] Task: Build isolated 3D component prototypes in Storybook (`<SchematicStar>` / `<CelestialNode>`, `<OrbitalRing>`, `<CartographicGrid>`).
+- [x] Task: Connect 3D prototypes to the token synchronisation bridge to verify live theme toggling (`useThreeTokenStore`, `ThemeTokenBridge`, `SceneTokenBridge`).
+- [x] Task: Implement the Adaptive Telemetry Container and Dock components in Storybook, testing mobile detents and wide multi-bay expansions (Deferred to `conductor/backlog.md` per user directive; Dock verified in Storybook).
+- [x] Task: Phase Verification & Checkpoint (Final Track Review & PR).
+

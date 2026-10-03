@@ -59,3 +59,17 @@ Candidate features and ideas identified during architectural discussions, awaiti
 - **Kinematic Vector Terminus & Epoch Calibration:** Finalise the activation rules, specific astronomical epoch ($\Delta t$), and terminus styling (ghost pip vs tick) for projected dotted velocity vectors.
 - **Camera Coupling Implementation:** Resolve whether zoom is implemented via camera dolly with proportional aperture scaling vs fixed camera distance with variable scene aperture radius.
 - **Significance-Gated Data Filtering (Toponymic Hierarchy):** Explore dynamic prioritisation of entity visibility based on active survey queries or astronomical significance rather than arbitrary global culling.
+
+---
+
+## Core Architecture & Event System
+
+- **Unified 3D-2D Event & Telemetry Projection Bridge (Scheduled for 3D Engine Track):** Design and establish a rigorous, strongly typed interaction and event pipeline bridging 3D WebGL/Three.js scene events (raycasting, object pick/hover, camera transitions) and 2D DOM/HUD UI layers. Propagate entity interaction states (`passive`, `active`, `selected`, `focused`), project 3D entity coordinates to 2D screen-space pixels without layout thrashing, and tunnel camera action commands from 2D button clicks into the 3D scene.
+- **UI Component Inventory & Surface Registry:** Author and maintain the comprehensive inventory of all 2D UI and HUD components required across the application (`<SecondaryObjectsPane>`, `<TimeScrubber>`, `<Breadcrumbs>`, `<ScopeSwitcherChip>`, `<CommandPalette>`, `<AdaptiveTelemetryContainer>`, `<AttitudeMinimap>`, `<RoutePlanningBay>`, `<TourWaypointCard>`, `<ParameterComparator>`, `<CodexArticleView>`, `<CommsLagSimulator>`).
+
+
+---
+
+## Observability & Analytics
+
+- **Comprehensive Interaction & Performance Analytics:** Establish a clear, granular analytics and telemetry pipeline capturing detailed user journey events (POI selections, search behaviour, viewport transitions, tool interactions) and client-side runtime performance (frame rates, render passes, asset streaming latency, WebGL context events). Define a formal event taxonomy with strongly typed payloads decoupled from UI presentation logic.

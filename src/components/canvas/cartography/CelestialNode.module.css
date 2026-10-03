@@ -1,0 +1,34 @@
+.nodeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-block: var(--space-0-5, 2px);
+  padding-inline: var(--space-1);
+  font-family: var(--font-data);
+  font-size: var(--text-map-system-size);
+  letter-spacing: var(--text-map-system-tracking);
+  text-transform: var(--text-map-system-transform);
+  line-height: var(--leading-metric);
+  color: var(--content-prominent);
+  background-color: var(--surface-hud-bg);
+  border: var(--stroke-width-1) solid var(--chrome-grid-primary-color);
+  border-radius: var(--radius-sm, 2px);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.nodeLabel[data-state="focused"] {
+  border-color: var(--state-focus);
+  color: var(--state-focus);
+}
+
+.nodeLabel[data-state="selected"] {
+  border-color: var(--state-selected-border);
+  color: var(--content-prominent);
+}
+
+.spectralTag {
+  font-size: var(--text-content-catalog-id-size);
+  color: var(--content-muted);
+}

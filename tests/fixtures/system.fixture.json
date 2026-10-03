@@ -1,0 +1,314 @@
+[
+  {
+    "id": "sol",
+    "name": "Sol",
+    "properName": "Sun",
+    "x": 0.0,
+    "y": 0.0,
+    "z": 0.0,
+    "dist": 0.0,
+    "velocity": {
+      "vx": 0.0,
+      "vy": 0.0,
+      "vz": 0.0,
+      "speed": 0.0,
+      "radialVelocity": 0.0
+    },
+    "sectorId": "sector_+000_+000_+000",
+    "stars": [
+      {
+        "id": "sol-A",
+        "name": "Sol",
+        "componentDesignation": "A",
+        "spectralType": "G2V",
+        "mag": -26.74,
+        "absmag": 4.83,
+        "luminosityLsun": 1.0,
+        "massMsun": 1.0,
+        "radiusRsun": 1.0,
+        "effectiveTempK": 5778
+      }
+    ],
+    "planets": [
+      {
+        "id": "mercury",
+        "name": "Mercury",
+        "letter": "b",
+        "discoveryYear": -3000,
+        "discoveryMethod": "Naked Eye",
+        "massMearth": 0.055,
+        "radiusRearth": 0.383,
+        "equilibriumTempK": 440,
+        "esi": 0.6,
+        "orbit": {
+          "semiMajorAxis": 0.3871,
+          "eccentricity": 0.2056,
+          "inclination": 7.005,
+          "ascendingNode": 48.331,
+          "argumentOfPeriapsis": 29.124,
+          "meanAnomaly": 174.796,
+          "periodDays": 87.969
+        }
+      },
+      {
+        "id": "venus",
+        "name": "Venus",
+        "letter": "c",
+        "discoveryYear": -3000,
+        "discoveryMethod": "Naked Eye",
+        "massMearth": 0.815,
+        "radiusRearth": 0.949,
+        "equilibriumTempK": 232,
+        "esi": 0.44,
+        "orbit": {
+          "semiMajorAxis": 0.7233,
+          "eccentricity": 0.0067,
+          "inclination": 3.394,
+          "ascendingNode": 76.68,
+          "argumentOfPeriapsis": 54.884,
+          "meanAnomaly": 50.115,
+          "periodDays": 224.701
+        }
+      },
+      {
+        "id": "earth",
+        "name": "Earth",
+        "letter": "d",
+        "discoveryYear": -3000,
+        "discoveryMethod": "In Situ",
+        "massMearth": 1.0,
+        "radiusRearth": 1.0,
+        "equilibriumTempK": 255,
+        "esi": 1.0,
+        "orbit": {
+          "semiMajorAxis": 1.0,
+          "eccentricity": 0.0167,
+          "inclination": 0.0,
+          "ascendingNode": -11.26,
+          "argumentOfPeriapsis": 114.207,
+          "meanAnomaly": 358.617,
+          "periodDays": 365.256
+        }
+      },
+      {
+        "id": "mars",
+        "name": "Mars",
+        "letter": "e",
+        "discoveryYear": -3000,
+        "discoveryMethod": "Naked Eye",
+        "massMearth": 0.107,
+        "radiusRearth": 0.532,
+        "equilibriumTempK": 210,
+        "esi": 0.7,
+        "orbit": {
+          "semiMajorAxis": 1.5237,
+          "eccentricity": 0.0934,
+          "inclination": 1.85,
+          "ascendingNode": 49.558,
+          "argumentOfPeriapsis": 286.502,
+          "meanAnomaly": 19.373,
+          "periodDays": 686.98
+        }
+      },
+      {
+        "id": "jupiter",
+        "name": "Jupiter",
+        "letter": "f",
+        "discoveryYear": -3000,
+        "discoveryMethod": "Naked Eye",
+        "massMjup": 1.0,
+        "massMearth": 317.8,
+        "radiusRjup": 1.0,
+        "radiusRearth": 11.21,
+        "equilibriumTempK": 110,
+        "esi": 0.29,
+        "orbit": {
+          "semiMajorAxis": 5.2044,
+          "eccentricity": 0.0485,
+          "inclination": 1.303,
+          "ascendingNode": 100.464,
+          "argumentOfPeriapsis": 273.867,
+          "meanAnomaly": 20.02,
+          "periodDays": 4332.59
+        }
+      },
+      {
+        "id": "saturn",
+        "name": "Saturn",
+        "letter": "g",
+        "discoveryYear": -3000,
+        "discoveryMethod": "Naked Eye",
+        "massMjup": 0.299,
+        "massMearth": 95.2,
+        "radiusRjup": 0.843,
+        "radiusRearth": 9.45,
+        "equilibriumTempK": 81,
+        "esi": 0.25,
+        "orbit": {
+          "semiMajorAxis": 9.5826,
+          "eccentricity": 0.0555,
+          "inclination": 2.485,
+          "ascendingNode": 113.665,
+          "argumentOfPeriapsis": 339.392,
+          "meanAnomaly": 317.02,
+          "periodDays": 10759.22
+        }
+      },
+      {
+        "id": "uranus",
+        "name": "Uranus",
+        "letter": "h",
+        "discoveryYear": 1781,
+        "discoveryMethod": "Telescope",
+        "massMearth": 14.54,
+        "radiusRearth": 4.01,
+        "equilibriumTempK": 58,
+        "esi": 0.19,
+        "orbit": {
+          "semiMajorAxis": 19.2184,
+          "eccentricity": 0.0463,
+          "inclination": 0.773,
+          "ascendingNode": 74.006,
+          "argumentOfPeriapsis": 96.998,
+          "meanAnomaly": 142.238,
+          "periodDays": 30685.4
+        }
+      },
+      {
+        "id": "neptune",
+        "name": "Neptune",
+        "letter": "i",
+        "discoveryYear": 1846,
+        "discoveryMethod": "Theoretical Prediction",
+        "massMearth": 17.15,
+        "radiusRearth": 3.88,
+        "equilibriumTempK": 46,
+        "esi": 0.17,
+        "orbit": {
+          "semiMajorAxis": 30.1104,
+          "eccentricity": 0.0095,
+          "inclination": 1.77,
+          "ascendingNode": 131.784,
+          "argumentOfPeriapsis": 273.187,
+          "meanAnomaly": 256.228,
+          "periodDays": 60189.0
+        }
+      }
+    ],
+    "overviewText": "The Solar System is the gravitationally bound system of the Sun and the objects that orbit it. Formed 4.6 billion years ago from the gravitational collapse of a giant interstellar molecular cloud."
+  },
+  {
+    "id": "tau-ceti",
+    "name": "Tau Ceti",
+    "properName": "Tau Ceti",
+    "x": 3.154,
+    "y": 1.539,
+    "z": -1.002,
+    "dist": 3.65,
+    "velocity": {
+      "vx": -16.6,
+      "vy": -24.1,
+      "vz": 14.9,
+      "speed": 32.8,
+      "radialVelocity": -16.6
+    },
+    "sectorId": "sector_+000_+000_-000",
+    "stars": [
+      {
+        "id": "tau-ceti-A",
+        "name": "Tau Ceti",
+        "componentDesignation": "A",
+        "spectralType": "G8.5V",
+        "mag": 3.5,
+        "absmag": 5.68,
+        "luminosityLsun": 0.52,
+        "massMsun": 0.783,
+        "radiusRsun": 0.793,
+        "effectiveTempK": 5344
+      }
+    ],
+    "planets": [
+      {
+        "id": "tau-ceti-g",
+        "name": "Tau Ceti g",
+        "letter": "g",
+        "discoveryYear": 2017,
+        "discoveryMethod": "Radial Velocity",
+        "massMearth": 1.75,
+        "radiusRearth": 1.18,
+        "equilibriumTempK": 640,
+        "esi": 0.38,
+        "orbit": {
+          "semiMajorAxis": 0.133,
+          "eccentricity": 0.06,
+          "inclination": 0.0,
+          "ascendingNode": 0.0,
+          "argumentOfPeriapsis": 395.3,
+          "meanAnomaly": 0.0,
+          "periodDays": 20.0
+        }
+      },
+      {
+        "id": "tau-ceti-h",
+        "name": "Tau Ceti h",
+        "letter": "h",
+        "discoveryYear": 2017,
+        "discoveryMethod": "Radial Velocity",
+        "massMearth": 1.83,
+        "radiusRearth": 1.19,
+        "equilibriumTempK": 473,
+        "esi": 0.45,
+        "orbit": {
+          "semiMajorAxis": 0.243,
+          "eccentricity": 0.23,
+          "inclination": 0.0,
+          "ascendingNode": 0.0,
+          "argumentOfPeriapsis": 7.4,
+          "meanAnomaly": 0.0,
+          "periodDays": 49.41
+        }
+      },
+      {
+        "id": "tau-ceti-e",
+        "name": "Tau Ceti e",
+        "letter": "e",
+        "discoveryYear": 2012,
+        "discoveryMethod": "Radial Velocity",
+        "massMearth": 3.93,
+        "radiusRearth": 1.81,
+        "equilibriumTempK": 282,
+        "esi": 0.78,
+        "orbit": {
+          "semiMajorAxis": 0.538,
+          "eccentricity": 0.18,
+          "inclination": 0.0,
+          "ascendingNode": 0.0,
+          "argumentOfPeriapsis": 22.3,
+          "meanAnomaly": 0.0,
+          "periodDays": 162.87
+        }
+      },
+      {
+        "id": "tau-ceti-f",
+        "name": "Tau Ceti f",
+        "letter": "f",
+        "discoveryYear": 2012,
+        "discoveryMethod": "Radial Velocity",
+        "massMearth": 3.93,
+        "radiusRearth": 1.81,
+        "equilibriumTempK": 202,
+        "esi": 0.58,
+        "orbit": {
+          "semiMajorAxis": 1.334,
+          "eccentricity": 0.16,
+          "inclination": 0.0,
+          "ascendingNode": 0.0,
+          "argumentOfPeriapsis": 119.7,
+          "meanAnomaly": 0.0,
+          "periodDays": 636.13
+        }
+      }
+    ],
+    "overviewText": "Tau Ceti is a single G-type main-sequence star located approximately 11.9 light-years from the Solar System in the constellation Cetus. It is host to a prominent circumstellar debris disk and multiple confirmed exoplanet candidates."
+  }
+]
