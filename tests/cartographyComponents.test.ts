@@ -7,6 +7,7 @@ import {
   CelestialNode,
   OrbitalRing,
   computeCardinalAlignment,
+  computeTransitionWeights,
 } from '../src/components/canvas/cartography';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
@@ -111,11 +112,36 @@ describe('3D Cartography Components', () => {
       expect(yAlignment.alphaY).toBe(1);
       expect(yAlignment.alphaZ).toBe(0);
 
-      // 6. Near-axis intermediate transition (e.g. angle ~ 25 deg from Z)
-      const nearZDir = new THREE.Vector3(0.42, 0, 0.9).normalize();
+      // 6. Tightened threshold: ~25 deg off-axis has alpha = 0 (preserved perspective view)
+      const wideZDir = new THREE.Vector3(0.42, 0, 0.9).normalize();
+      expect(computeCardinalAlignment(wideZDir).alphaZ).toBe(0);
+
+      // 7. Right up close (< 20 deg, ~11 deg from Z): intermediate transition
+      const nearZDir = new THREE.Vector3(0.18, 0, 0.98).normalize();
       const nearZAlignment = computeCardinalAlignment(nearZDir);
       expect(nearZAlignment.alphaZ).toBeGreaterThan(0);
       expect(nearZAlignment.alphaZ).toBeLessThan(1);
+    });
+
+    it('computes transition weights correctly for double-segment axis transitions', () => {
+      // 1. Perspective view away from axes: zero transition weights
+      const perspDir = new THREE.Vector3(1, 1, 1).normalize();
+      const pWeights = computeTransitionWeights(perspDir);
+      expect(pWeights.wTransX).toBe(0);
+      expect(pWeights.wTransY).toBe(0);
+      expect(pWeights.wTransZ).toBe(0);
+
+      // 2. Approaching X=0 plane (|camDir.x| = 0.1 < 0.35): wTransX > 0, others 0
+      const transXDir = new THREE.Vector3(0.1, 0.7, 0.7).normalize();
+      const tWeights = computeTransitionWeights(transXDir);
+      expect(tWeights.wTransX).toBeGreaterThan(0);
+      expect(tWeights.wTransX).toBeLessThanOrEqual(1);
+      expect(tWeights.wTransY).toBe(0);
+      expect(tWeights.wTransZ).toBe(0);
+
+      // 3. Inside full circle threshold (maxAlpha = 1): transition weights suppressed
+      const suppressedWeights = computeTransitionWeights(transXDir, 0.35, 1.0);
+      expect(suppressedWeights.wTransX).toBe(0);
     });
   });
 

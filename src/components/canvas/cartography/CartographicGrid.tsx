@@ -3,6 +3,13 @@ import { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import {
+  QUADRANTS,
+  createQuadrantArcGeometry,
+  createQuadrantTickGeometry,
+  computeCardinalAlignment,
+  computeTransitionWeights,
+} from './cartographyMath';
 
 export interface CartographicGridProps {
   /** Outer focal aperture radius (R_fin) in scene coordinate units / parsecs. Default: 10 */
@@ -19,128 +26,14 @@ export interface CartographicGridProps {
   showAxisLines?: boolean;
   /** Whether to enable dynamic perspective-to-orthographic projection switching when looking along cardinal axes. Default: true */
   adaptiveProjection?: boolean;
-  /** Angular threshold (cosine dot product) where transition begins (~32 deg from axis). Default: 0.85 */
+  /** Angular threshold (cosine dot product) where transition begins (~20 deg from axis). Default: 0.94 */
   thresholdStart?: number;
-  /** Angular threshold (cosine dot product) where transition completes (~16 deg from axis). Default: 0.96 */
+  /** Angular threshold (cosine dot product) where transition completes (~10 deg from axis). Default: 0.985 */
   thresholdEnd?: number;
+  /** Angular corridor width for double-segment transition when crossing an axis. Default: 0.35 */
+  transitionCorridor?: number;
   /** Reference origin position. Default: [0, 0, 0] */
   position?: [number, number, number];
-}
-
-const ARC_STEPS = 128; // 128 segments around full circle; 32 segments per 90-degree quadrant
-const QUADRANT_STEPS = 32;
-const DEGREE_TICKS = [15, 30, 45, 60, 75]; // Perimeter degree markings
-
-/**
- * Fills a Float32Array with 129 vertices for a full circle starting from the active quadrant (sx, sy, sz).
- * Vertices 0..32 form the 90-degree quadrant arc closest to the camera.
- * Vertices 32..128 form the remaining 270 degrees completing the 360-degree loop.
- */
-function fillArcBuffer(
-  buffer: Float32Array,
-  radius: number,
-  plane: 'xy' | 'xz' | 'yz',
-  sx: number,
-  sy: number,
-  sz: number,
-  steps = ARC_STEPS,
-): void {
-  for (let i = 0; i <= steps; i++) {
-    const theta = (i / steps) * Math.PI * 2;
-    const cosT = Math.cos(theta);
-    const sinT = Math.sin(theta);
-    const idx = i * 3;
-
-    if (plane === 'xy') {
-      buffer[idx] = radius * cosT * sx;
-      buffer[idx + 1] = radius * sinT * sy;
-      buffer[idx + 2] = 0;
-    } else if (plane === 'xz') {
-      buffer[idx] = radius * cosT * sx;
-      buffer[idx + 1] = 0;
-      buffer[idx + 2] = radius * sinT * sz;
-    } else {
-      buffer[idx] = 0;
-      buffer[idx + 1] = radius * cosT * sy;
-      buffer[idx + 2] = radius * sinT * sz;
-    }
-  }
-}
-
-/**
- * Fills radial tick segments for the outer arc of a fin in the active quadrant.
- */
-function fillTickBuffer(
-  buffer: Float32Array,
-  radius: number,
-  plane: 'xy' | 'xz' | 'yz',
-  sx: number,
-  sy: number,
-  sz: number,
-  tickLength = 0.25,
-): void {
-  let idx = 0;
-  for (const deg of DEGREE_TICKS) {
-    const rad = (deg * Math.PI) / 180;
-    const cosR = Math.cos(rad);
-    const sinR = Math.sin(rad);
-    const rOuter = radius;
-    const rInner = radius - tickLength;
-
-    if (plane === 'xy') {
-      buffer[idx++] = rInner * cosR * sx;
-      buffer[idx++] = rInner * sinR * sy;
-      buffer[idx++] = 0;
-      buffer[idx++] = rOuter * cosR * sx;
-      buffer[idx++] = rOuter * sinR * sy;
-      buffer[idx++] = 0;
-    } else if (plane === 'xz') {
-      buffer[idx++] = rInner * cosR * sx;
-      buffer[idx++] = 0;
-      buffer[idx++] = rInner * sinR * sz;
-      buffer[idx++] = rOuter * cosR * sx;
-      buffer[idx++] = 0;
-      buffer[idx++] = rOuter * sinR * sz;
-    } else {
-      buffer[idx++] = 0;
-      buffer[idx++] = rInner * cosR * sy;
-      buffer[idx++] = rInner * sinR * sz;
-      buffer[idx++] = 0;
-      buffer[idx++] = rOuter * cosR * sy;
-      buffer[idx++] = rOuter * sinR * sz;
-    }
-  }
-}
-
-/**
- * Calculates the angular cardinal alignment factors for a given camera direction vector.
- * Smooth transition range: [thresholdStart = 0.85, thresholdEnd = 0.96].
- * - Standard perspective view (> 32 deg from axis) has alpha = 0 (3 full fins visible).
- * - Cardinal axis transition (< 32 deg) smoothly expands concentric circles and fades edge-on fins.
- * - Cardinal view (< 16 deg) has dot >= 0.96 -> alpha = 1.0 (complete orthographic lock).
- */
-export function computeCardinalAlignment(
-  camDirection: THREE.Vector3,
-  startThreshold = 0.85,
-  endThreshold = 0.96,
-): { alphaX: number; alphaY: number; alphaZ: number; maxAlpha: number } {
-  const dotX = Math.abs(camDirection.x);
-  const dotY = Math.abs(camDirection.y);
-  const dotZ = Math.abs(camDirection.z);
-
-  const calcSmoothAlpha = (dot: number): number => {
-    if (dot <= startThreshold) return 0;
-    if (dot >= endThreshold) return 1;
-    const t = (dot - startThreshold) / (endThreshold - startThreshold);
-    return t * t * (3 - 2 * t);
-  };
-
-  const alphaX = calcSmoothAlpha(dotX);
-  const alphaY = calcSmoothAlpha(dotY);
-  const alphaZ = calcSmoothAlpha(dotZ);
-  const maxAlpha = Math.max(alphaX, alphaY, alphaZ);
-
-  return { alphaX, alphaY, alphaZ, maxAlpha };
 }
 
 /**
@@ -149,9 +42,10 @@ export function computeCardinalAlignment(
  *
  * Dynamic Camera Coupling:
  * 1. Mobile Travelling Fins: The 90-degree quadrant bounded by the fins dynamically tracks the octant closest to the camera.
- * 2. Cardinal Alignment: As viewing angle approaches any axis, the camera smoothly switches to orthographic projection.
- * 3. Face-On Expansion: The concentric arcs on the face-on plane expand in real time from 90 degrees to full 360-degree circles.
- * 4. Edge-On Grazing Fade: The fins becoming edge-on smoothly fade to 0 opacity at the exact same rate.
+ * 2. Tightened Cardinal Alignment: Only within 20 deg of a cardinal axis does the concentric circle expand, locking at 10 deg.
+ * 3. Double-Segment Axis Transition: When transitioning across an axis outside the circle threshold, the incoming segment
+ *    renders alongside the current segment, forming a continuous 180-degree span without any sudden switch.
+ * 4. Edge-On Grazing Fade: Edge-on fins smoothly fade to 0 opacity during cardinal alignment.
  * 5. Distinct Prominent Bearings: Two extended horizontal bearing lines (+X Core, +Y Orbital) styled prominently.
  * 6. Bordering Fin Rule: Structural axis lines only appear when both bordering fins are rendered (never solo facing camera).
  */
@@ -163,8 +57,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   showFullDatumCircle = false,
   showAxisLines = true,
   adaptiveProjection = true,
-  thresholdStart = 0.85,
-  thresholdEnd = 0.96,
+  thresholdStart = 0.94,
+  thresholdEnd = 0.985,
+  transitionCorridor = 0.35,
   position = [0, 0, 0],
 }) => {
   const tokens = useThreeTokenStore((state) => state.tokens);
@@ -172,44 +67,172 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
   const baseFovRef = useRef<number | null>(null);
 
-  // Active octant signs (tracking the segment closest to the camera)
-  const signsRef = useRef<{ sx: number; sy: number; sz: number }>({ sx: 1, sy: 1, sz: 1 });
+  // Memoize 4 Quadrant Arc Lines for each plane (XY, XZ, YZ)
+  const quadrantData = useMemo(() => {
+    const buildPlaneArcs = (plane: 'xy' | 'xz' | 'yz') => {
+      return rangeRings.map((r, ringIdx) => {
+        const isMajor = ringIdx === majorRingIndex;
+        const color = isMajor ? tokens.gridPrimaryColor : tokens.rangeRingColor;
+        const baseAlpha = isMajor ? tokens.gridPrimaryAlpha * 1.5 : tokens.rangeRingAlpha;
 
-  // Memoize Arc Lines for each plane (XY, XZ, YZ)
-  const arcData = useMemo(() => {
-    const buildArcLines = (plane: 'xy' | 'xz' | 'yz') => {
-      return rangeRings.map((r) => {
-        const buffer = new Float32Array((ARC_STEPS + 1) * 3);
-        fillArcBuffer(buffer, r, plane, 1, 1, 1, ARC_STEPS);
-        const geom = new THREE.BufferGeometry();
-        geom.setAttribute('position', new THREE.BufferAttribute(buffer, 3));
-        geom.setDrawRange(0, QUADRANT_STEPS + 1);
-        geom.computeBoundingSphere();
-        const mat = new THREE.LineBasicMaterial({ transparent: true, depthWrite: false });
-        const line = new THREE.Line(geom, mat);
-        line.frustumCulled = false;
-        return { radius: r, buffer, geom, mat, line };
+        return QUADRANTS.map((quad) => {
+          const geom = createQuadrantArcGeometry(r, plane, quad.startAngle, quad.endAngle);
+          // Initial SSR / first-paint setup: Q0 (+1, +1) visible in default perspective view
+          const isInitialVisible = quad.qx === 1 && quad.qy === 1;
+          const mat = new THREE.LineBasicMaterial({
+            color,
+            transparent: true,
+            depthWrite: false,
+            opacity: isInitialVisible ? baseAlpha : 0,
+            visible: isInitialVisible,
+          });
+          const line = new THREE.Line(geom, mat);
+          line.frustumCulled = false;
+          return { radius: r, qx: quad.qx, qy: quad.qy, geom, mat, line };
+        });
       });
     };
 
     return {
-      xy: buildArcLines('xy'),
-      xz: buildArcLines('xz'),
-      yz: buildArcLines('yz'),
+      xy: buildPlaneArcs('xy'),
+      xz: buildPlaneArcs('xz'),
+      yz: buildPlaneArcs('yz'),
     };
-  }, [rangeRings]);
+  }, [rangeRings, majorRingIndex, tokens.gridPrimaryColor, tokens.rangeRingColor, tokens.gridPrimaryAlpha, tokens.rangeRingAlpha]);
+
+  // Memoize Quadrant Ticks for each plane
+  const tickData = useMemo(() => {
+    const tickLen = radius * 0.035;
+    const buildPlaneTicks = (plane: 'xy' | 'xz' | 'yz') => {
+      return QUADRANTS.map((quad) => {
+        const geom = createQuadrantTickGeometry(radius, plane, quad.startAngle, tickLen);
+        const isInitialVisible = quad.qx === 1 && quad.qy === 1;
+        const mat = new THREE.LineBasicMaterial({
+          color: tokens.rangeTickColor,
+          transparent: true,
+          depthWrite: false,
+          opacity: isInitialVisible ? tokens.rangeTickAlpha : 0,
+          visible: isInitialVisible,
+        });
+        const line = new THREE.LineSegments(geom, mat);
+        line.frustumCulled = false;
+        return { qx: quad.qx, qy: quad.qy, geom, mat, line };
+      });
+    };
+
+    return {
+      xy: buildPlaneTicks('xy'),
+      xz: buildPlaneTicks('xz'),
+      yz: buildPlaneTicks('yz'),
+    };
+  }, [radius, tokens.rangeTickColor, tokens.rangeTickAlpha]);
+
+  // Structural Fin Axis Spokes: Only appear when both bordering fins rendered
+  const axisSpokes = useMemo(() => {
+    const makeSpoke = (endPoint: [number, number, number], initialVisible = false) => {
+      const geom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(...endPoint),
+      ]);
+      geom.computeBoundingSphere();
+      const mat = new THREE.LineBasicMaterial({
+        color: tokens.axisLineColor,
+        linewidth: tokens.axisLineWidth,
+        transparent: true,
+        depthWrite: false,
+        opacity: initialVisible ? tokens.axisLineAlpha : 0,
+        visible: initialVisible,
+      });
+      const line = new THREE.LineSegments(geom, mat);
+      line.frustumCulled = false;
+      return { geom, mat, line };
+    };
+
+    return {
+      negX: makeSpoke([-radius, 0, 0], false),
+      negY: makeSpoke([0, -radius, 0], false),
+      posZ: makeSpoke([0, 0, radius], true),
+      negZ: makeSpoke([0, 0, -radius], false),
+    };
+  }, [radius, tokens.axisLineColor, tokens.axisLineWidth, tokens.axisLineAlpha]);
+
+  // Extended Cardinal Bearing Lines: +X (Galactic Core), +Y (Galactic Orbit)
+  const extendedBearings = useMemo(() => {
+    const bearingLen = radius * 1.35;
+    const makeBearing = (endPoint: [number, number, number]) => {
+      const geom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(...endPoint),
+      ]);
+      geom.computeBoundingSphere();
+      const mat = new THREE.LineBasicMaterial({
+        color: tokens.bearingLineColor,
+        linewidth: tokens.bearingLineWidth,
+        transparent: true,
+        depthWrite: false,
+        opacity: tokens.bearingLineAlpha,
+        visible: true,
+      });
+      const line = new THREE.LineSegments(geom, mat);
+      line.frustumCulled = false;
+      return { geom, mat, line };
+    };
+
+    return {
+      core: makeBearing([bearingLen, 0, 0]),
+      orbital: makeBearing([0, bearingLen, 0]),
+    };
+  }, [radius, tokens.bearingLineColor, tokens.bearingLineWidth, tokens.bearingLineAlpha]);
+
+  // Mutable Scene Graph References (Preserving React Compiler optimization)
+  const quadrantDataRef = useRef(quadrantData);
+  const tickDataRef = useRef(tickData);
+  const axisSpokesRef = useRef(axisSpokes);
+  const extendedBearingsRef = useRef(extendedBearings);
+
+  useEffect(() => {
+    quadrantDataRef.current = quadrantData;
+    tickDataRef.current = tickData;
+    axisSpokesRef.current = axisSpokes;
+    extendedBearingsRef.current = extendedBearings;
+  }, [quadrantData, tickData, axisSpokes, extendedBearings]);
 
   // Clean up geometries and materials on unmount
   useEffect(() => {
+    const qData = quadrantDataRef.current;
+    const tData = tickDataRef.current;
+    const aSpokes = axisSpokesRef.current;
+    const eBearings = extendedBearingsRef.current;
+
     return () => {
-      for (const list of [arcData.xy, arcData.xz, arcData.yz]) {
-        for (const item of list) {
-          item.geom.dispose();
-          item.mat.dispose();
+      for (const plane of ['xy', 'xz', 'yz'] as const) {
+        for (const ringQuads of qData[plane]) {
+          for (const item of ringQuads) {
+            item.geom.dispose();
+            item.mat.dispose();
+          }
+        }
+        for (const tickItem of tData[plane]) {
+          tickItem.geom.dispose();
+          tickItem.mat.dispose();
         }
       }
+
+      aSpokes.negX.geom.dispose();
+      aSpokes.negX.mat.dispose();
+      aSpokes.negY.geom.dispose();
+      aSpokes.negY.mat.dispose();
+      aSpokes.posZ.geom.dispose();
+      aSpokes.posZ.mat.dispose();
+      aSpokes.negZ.geom.dispose();
+      aSpokes.negZ.mat.dispose();
+
+      eBearings.core.geom.dispose();
+      eBearings.core.mat.dispose();
+      eBearings.orbital.geom.dispose();
+      eBearings.orbital.mat.dispose();
     };
-  }, [arcData]);
+  }, []);
 
   // Restore camera FOV and zoom on unmount
   useEffect(() => {
@@ -222,288 +245,201 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     };
   }, [camera]);
 
-  // Fin Ticks memoization
-  const tickData = useMemo(() => {
-    const tickLen = radius * 0.035;
-    const buildTicks = (plane: 'xy' | 'xz' | 'yz') => {
-      const buffer = new Float32Array(DEGREE_TICKS.length * 6);
-      fillTickBuffer(buffer, radius, plane, 1, 1, 1, tickLen);
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.BufferAttribute(buffer, 3));
-      geom.computeBoundingSphere();
-      const mat = new THREE.LineBasicMaterial({ transparent: true, depthWrite: false });
-      return { buffer, geom, mat, tickLen };
-    };
-
-    return {
-      xy: buildTicks('xy'),
-      xz: buildTicks('xz'),
-      yz: buildTicks('yz'),
-    };
-  }, [radius]);
-
-  useEffect(() => {
-    return () => {
-      tickData.xy.geom.dispose();
-      tickData.xy.mat.dispose();
-      tickData.xz.geom.dispose();
-      tickData.xz.mat.dispose();
-      tickData.yz.geom.dispose();
-      tickData.yz.mat.dispose();
-    };
-  }, [tickData]);
-
-  // Fin bounding structural axis segments (origin to fin radius edge)
-  const finAxisLines = useMemo(() => {
-    const bufX = new Float32Array([0, 0, 0, radius, 0, 0]);
-    const bufY = new Float32Array([0, 0, 0, 0, radius, 0]);
-    const bufZ = new Float32Array([0, 0, 0, 0, 0, radius]);
-
-    const geomX = new THREE.BufferGeometry();
-    geomX.setAttribute('position', new THREE.BufferAttribute(bufX, 3));
-    geomX.computeBoundingSphere();
-    const matX = new THREE.LineBasicMaterial({ transparent: true, depthWrite: false });
-
-    const geomY = new THREE.BufferGeometry();
-    geomY.setAttribute('position', new THREE.BufferAttribute(bufY, 3));
-    geomY.computeBoundingSphere();
-    const matY = new THREE.LineBasicMaterial({ transparent: true, depthWrite: false });
-
-    const geomZ = new THREE.BufferGeometry();
-    geomZ.setAttribute('position', new THREE.BufferAttribute(bufZ, 3));
-    geomZ.computeBoundingSphere();
-    const matZ = new THREE.LineBasicMaterial({ transparent: true, depthWrite: false });
-
-    return {
-      x: { buffer: bufX, geom: geomX, mat: matX },
-      y: { buffer: bufY, geom: geomY, mat: matY },
-      z: { buffer: bufZ, geom: geomZ, mat: matZ },
-    };
-  }, [radius]);
-
-  useEffect(() => {
-    return () => {
-      finAxisLines.x.geom.dispose();
-      finAxisLines.x.mat.dispose();
-      finAxisLines.y.geom.dispose();
-      finAxisLines.y.mat.dispose();
-      finAxisLines.z.geom.dispose();
-      finAxisLines.z.mat.dispose();
-    };
-  }, [finAxisLines]);
-
-  // Extended Horizontal Bearing Lines (+X Core, +Y Orbital)
-  const extendedBearings = useMemo(() => {
-    const bearingLen = radius * 1.35;
-    const corePoints = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(bearingLen, 0, 0)];
-    const orbitalPoints = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, bearingLen, 0)];
-
-    const geomCore = new THREE.BufferGeometry().setFromPoints(corePoints);
-    const geomOrbital = new THREE.BufferGeometry().setFromPoints(orbitalPoints);
-    geomCore.computeBoundingSphere();
-    geomOrbital.computeBoundingSphere();
-
-    const matCore = new THREE.LineBasicMaterial({ transparent: true, depthWrite: false });
-    const matOrbital = new THREE.LineBasicMaterial({ transparent: true, depthWrite: false });
-
-    return {
-      core: geomCore,
-      orbital: geomOrbital,
-      matCore,
-      matOrbital,
-    };
-  }, [radius]);
-
-  useEffect(() => {
-    return () => {
-      extendedBearings.core.dispose();
-      extendedBearings.orbital.dispose();
-      extendedBearings.matCore.dispose();
-      extendedBearings.matOrbital.dispose();
-    };
-  }, [extendedBearings]);
-
   // Update base material colors from design tokens
   useEffect(() => {
-    const updateRingMats = (list: typeof arcData.xy) => {
-      list.forEach((item, index) => {
-        const isMajor = index === majorRingIndex;
+    const qData = quadrantDataRef.current;
+    const tData = tickDataRef.current;
+    const aSpokes = axisSpokesRef.current;
+    const eBearings = extendedBearingsRef.current;
+
+    for (const plane of ['xy', 'xz', 'yz'] as const) {
+      qData[plane].forEach((ringQuads, ringIdx) => {
+        const isMajor = ringIdx === majorRingIndex;
         const color = isMajor ? tokens.gridPrimaryColor : tokens.rangeRingColor;
-        item.mat.color.copy(color);
+        for (const item of ringQuads) {
+          item.mat.color.copy(color);
+        }
       });
-    };
+      for (const tickItem of tData[plane]) {
+        tickItem.mat.color.copy(tokens.rangeTickColor);
+      }
+    }
 
-    updateRingMats(arcData.xy);
-    updateRingMats(arcData.xz);
-    updateRingMats(arcData.yz);
+    for (const spoke of [aSpokes.negX, aSpokes.negY, aSpokes.posZ, aSpokes.negZ]) {
+      spoke.mat.color.copy(tokens.axisLineColor);
+      spoke.mat.linewidth = tokens.axisLineWidth;
+    }
 
-    tickData.xy.mat.color.copy(tokens.rangeTickColor);
-    tickData.xz.mat.color.copy(tokens.rangeTickColor);
-    tickData.yz.mat.color.copy(tokens.rangeTickColor);
+    eBearings.core.mat.color.copy(tokens.bearingLineColor);
+    eBearings.core.mat.opacity = tokens.bearingLineAlpha;
+    eBearings.core.mat.linewidth = tokens.bearingLineWidth;
 
-    finAxisLines.x.mat.color.copy(tokens.axisLineColor);
-    finAxisLines.x.mat.linewidth = tokens.axisLineWidth;
-    finAxisLines.y.mat.color.copy(tokens.axisLineColor);
-    finAxisLines.y.mat.linewidth = tokens.axisLineWidth;
-    finAxisLines.z.mat.color.copy(tokens.axisLineColor);
-    finAxisLines.z.mat.linewidth = tokens.axisLineWidth;
-
-    // Prominent bearing line styling
-    extendedBearings.matCore.color.copy(tokens.bearingLineColor);
-    extendedBearings.matCore.opacity = tokens.bearingLineAlpha;
-    extendedBearings.matCore.linewidth = tokens.bearingLineWidth;
-    extendedBearings.matOrbital.color.copy(tokens.bearingLineColor);
-    extendedBearings.matOrbital.opacity = tokens.bearingLineAlpha;
-    extendedBearings.matOrbital.linewidth = tokens.bearingLineWidth;
-  }, [tokens, majorRingIndex, arcData, tickData, finAxisLines, extendedBearings]);
+    eBearings.orbital.mat.color.copy(tokens.bearingLineColor);
+    eBearings.orbital.mat.opacity = tokens.bearingLineAlpha;
+    eBearings.orbital.mat.linewidth = tokens.bearingLineWidth;
+  }, [tokens, majorRingIndex]);
 
   // Optional full 360-degree datum circles
   const fullDatumGeometries = useMemo(() => {
     if (!showFullDatumCircle) return [];
+    const steps = 128;
     return rangeRings.map((r) => {
-      const buffer = new Float32Array((ARC_STEPS + 1) * 3);
-      fillArcBuffer(buffer, r, 'xy', 1, 1, 1, ARC_STEPS);
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.BufferAttribute(buffer, 3));
+      const points: THREE.Vector3[] = [];
+      for (let i = 0; i <= steps; i++) {
+        const theta = (i / steps) * Math.PI * 2;
+        points.push(new THREE.Vector3(r * Math.cos(theta), r * Math.sin(theta), 0));
+      }
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
       geom.computeBoundingSphere();
       return geom;
     });
   }, [rangeRings, showFullDatumCircle]);
 
-  // Frame Loop: Active octant tracking, cardinal alignment, dynamic arc expansion, edge-on fading, adaptive projection
+  // Frame Loop: Smooth double-segment axis transitions, tighter cardinal alignment, bordering fin spoke rule, adaptive projection
   useFrame(({ camera: activeCamera }) => {
     if (!showFins) return;
 
-    // Vector from grid position to camera
+    const qData = quadrantDataRef.current;
+    const tData = tickDataRef.current;
+    const aSpokes = axisSpokesRef.current;
+
+    // Camera direction relative to instrument origin
     const origin = new THREE.Vector3(...position);
     const camDir = activeCamera.position.clone().sub(origin).normalize();
 
-    // 1. Determine active octant closest to camera (with hysteresis to prevent boundary chatter)
-    const DEAD_BAND = 0.005;
-    let sx = signsRef.current.sx;
-    let sy = signsRef.current.sy;
-    let sz = signsRef.current.sz;
-    if (camDir.x > DEAD_BAND) sx = 1;
-    else if (camDir.x < -DEAD_BAND) sx = -1;
-    if (camDir.y > DEAD_BAND) sy = 1;
-    else if (camDir.y < -DEAD_BAND) sy = -1;
-    if (camDir.z > DEAD_BAND) sz = 1;
-    else if (camDir.z < -DEAD_BAND) sz = -1;
-
-    if (
-      sx !== signsRef.current.sx ||
-      sy !== signsRef.current.sy ||
-      sz !== signsRef.current.sz
-    ) {
-      signsRef.current = { sx, sy, sz };
-
-      // In-place buffer update for travelling fins to bound the closest segment
-      for (const item of arcData.xy) {
-        fillArcBuffer(item.buffer, item.radius, 'xy', sx, sy, sz, ARC_STEPS);
-        item.geom.attributes.position.needsUpdate = true;
-        item.geom.computeBoundingSphere();
-      }
-      for (const item of arcData.xz) {
-        fillArcBuffer(item.buffer, item.radius, 'xz', sx, sy, sz, ARC_STEPS);
-        item.geom.attributes.position.needsUpdate = true;
-        item.geom.computeBoundingSphere();
-      }
-      for (const item of arcData.yz) {
-        fillArcBuffer(item.buffer, item.radius, 'yz', sx, sy, sz, ARC_STEPS);
-        item.geom.attributes.position.needsUpdate = true;
-        item.geom.computeBoundingSphere();
-      }
-
-      // Update ticks
-      fillTickBuffer(tickData.xy.buffer, radius, 'xy', sx, sy, sz, tickData.xy.tickLen);
-      tickData.xy.geom.attributes.position.needsUpdate = true;
-      tickData.xy.geom.computeBoundingSphere();
-      fillTickBuffer(tickData.xz.buffer, radius, 'xz', sx, sy, sz, tickData.xz.tickLen);
-      tickData.xz.geom.attributes.position.needsUpdate = true;
-      tickData.xz.geom.computeBoundingSphere();
-      fillTickBuffer(tickData.yz.buffer, radius, 'yz', sx, sy, sz, tickData.yz.tickLen);
-      tickData.yz.geom.attributes.position.needsUpdate = true;
-      tickData.yz.geom.computeBoundingSphere();
-
-      // Update structural fin axis lines to point into active octant
-      finAxisLines.x.buffer[3] = radius * sx;
-      finAxisLines.x.geom.attributes.position.needsUpdate = true;
-      finAxisLines.x.geom.computeBoundingSphere();
-      finAxisLines.y.buffer[4] = radius * sy;
-      finAxisLines.y.geom.attributes.position.needsUpdate = true;
-      finAxisLines.y.geom.computeBoundingSphere();
-      finAxisLines.z.buffer[5] = radius * sz;
-      finAxisLines.z.geom.attributes.position.needsUpdate = true;
-      finAxisLines.z.geom.computeBoundingSphere();
-    }
-
-    // 2. Cardinal alignment calculation
+    // 1. Cardinal alignment factors (with tightened thresholds)
     const { alphaX, alphaY, alphaZ, maxAlpha } = computeCardinalAlignment(
       camDir,
       thresholdStart,
       thresholdEnd,
     );
 
-    // 3. Arc Expansion: Face-on arcs expand from 90 deg (33 points) to 360 deg (129 points)
-    const countXY = Math.round((QUADRANT_STEPS + 1) + alphaZ * (ARC_STEPS - QUADRANT_STEPS));
-    const countXZ = Math.round((QUADRANT_STEPS + 1) + alphaY * (ARC_STEPS - QUADRANT_STEPS));
-    const countYZ = Math.round((QUADRANT_STEPS + 1) + alphaX * (ARC_STEPS - QUADRANT_STEPS));
+    // 2. Transition weights across coordinate planes (active when outside circle threshold)
+    const { wTransX, wTransY, wTransZ } = computeTransitionWeights(
+      camDir,
+      transitionCorridor,
+      maxAlpha,
+    );
 
-    for (const item of arcData.xy) item.geom.setDrawRange(0, countXY);
-    for (const item of arcData.xz) item.geom.setDrawRange(0, countXZ);
-    for (const item of arcData.yz) item.geom.setDrawRange(0, countYZ);
+    // Signs of primary octant closest to camera
+    const sx = camDir.x >= 0 ? 1 : -1;
+    const sy = camDir.y >= 0 ? 1 : -1;
+    const sz = camDir.z >= 0 ? 1 : -1;
 
-    // 4. Edge-On Fin Fading: Fins becoming edge-on smoothly fade to 0 opacity
+    // 3. Edge-on fin fading
     const fadeXY = 1 - Math.max(alphaX, alphaY);
     const fadeXZ = 1 - Math.max(alphaX, alphaZ);
     const fadeYZ = 1 - Math.max(alphaY, alphaZ);
 
-    arcData.xy.forEach((item, idx) => {
-      const isMajor = idx === majorRingIndex;
-      const baseAlpha = isMajor ? tokens.gridPrimaryAlpha * 1.5 : tokens.rangeRingAlpha;
-      item.mat.opacity = baseAlpha * fadeXY;
-      item.mat.visible = item.mat.opacity > 0.001;
-    });
-    tickData.xy.mat.opacity = tokens.rangeTickAlpha * fadeXY;
-    tickData.xy.mat.visible = tickData.xy.mat.opacity > 0.001;
+    // Helper: calculate quadrant weight for a plane
+    const calcQuadWeight = (
+      qx: number,
+      qy: number,
+      targetSx: number,
+      targetSy: number,
+      transX: number,
+      transY: number,
+      alphaNormal: number,
+    ): number => {
+      const matchX = qx === targetSx ? 1 : transX;
+      const matchY = qy === targetSy ? 1 : transY;
+      const segWeight = matchX * matchY;
+      return Math.max(segWeight, alphaNormal);
+    };
 
-    arcData.xz.forEach((item, idx) => {
-      const isMajor = idx === majorRingIndex;
-      const baseAlpha = isMajor ? tokens.gridPrimaryAlpha * 1.5 : tokens.rangeRingAlpha;
-      item.mat.opacity = baseAlpha * fadeXZ;
-      item.mat.visible = item.mat.opacity > 0.001;
-    });
-    tickData.xz.mat.opacity = tokens.rangeTickAlpha * fadeXZ;
-    tickData.xz.mat.visible = tickData.xz.mat.opacity > 0.001;
+    // Store per-quadrant weights for each plane to feed bordering spoke calculation
+    const qwXY: number[] = [];
+    const qwXZ: number[] = [];
+    const qwYZ: number[] = [];
 
-    arcData.yz.forEach((item, idx) => {
-      const isMajor = idx === majorRingIndex;
-      const baseAlpha = isMajor ? tokens.gridPrimaryAlpha * 1.5 : tokens.rangeRingAlpha;
-      item.mat.opacity = baseAlpha * fadeYZ;
-      item.mat.visible = item.mat.opacity > 0.001;
-    });
-    tickData.yz.mat.opacity = tokens.rangeTickAlpha * fadeYZ;
-    tickData.yz.mat.visible = tickData.yz.mat.opacity > 0.001;
+    // Update Plane XY
+    QUADRANTS.forEach((quad, qIdx) => {
+      const weight = calcQuadWeight(quad.qx, quad.qy, sx, sy, wTransX, wTransY, alphaZ);
+      qwXY.push(weight);
+      const effectiveAlpha = weight * fadeXY;
 
-    // 5. Structural Axis Spokes Rule:
+      qData.xy.forEach((ringQuads, ringIdx) => {
+        const isMajor = ringIdx === majorRingIndex;
+        const baseAlpha = isMajor ? tokens.gridPrimaryAlpha * 1.5 : tokens.rangeRingAlpha;
+        const item = ringQuads[qIdx];
+        item.mat.opacity = baseAlpha * effectiveAlpha;
+        item.mat.visible = item.mat.opacity > 0.001;
+      });
+
+      const tickItem = tData.xy[qIdx];
+      tickItem.mat.opacity = tokens.rangeTickAlpha * effectiveAlpha;
+      tickItem.mat.visible = tickItem.mat.opacity > 0.001;
+    });
+
+    // Update Plane XZ
+    QUADRANTS.forEach((quad, qIdx) => {
+      const weight = calcQuadWeight(quad.qx, quad.qy, sx, sz, wTransX, wTransZ, alphaY);
+      qwXZ.push(weight);
+      const effectiveAlpha = weight * fadeXZ;
+
+      qData.xz.forEach((ringQuads, ringIdx) => {
+        const isMajor = ringIdx === majorRingIndex;
+        const baseAlpha = isMajor ? tokens.gridPrimaryAlpha * 1.5 : tokens.rangeRingAlpha;
+        const item = ringQuads[qIdx];
+        item.mat.opacity = baseAlpha * effectiveAlpha;
+        item.mat.visible = item.mat.opacity > 0.001;
+      });
+
+      const tickItem = tData.xz[qIdx];
+      tickItem.mat.opacity = tokens.rangeTickAlpha * effectiveAlpha;
+      tickItem.mat.visible = tickItem.mat.opacity > 0.001;
+    });
+
+    // Update Plane YZ
+    QUADRANTS.forEach((quad, qIdx) => {
+      const weight = calcQuadWeight(quad.qx, quad.qy, sy, sz, wTransY, wTransZ, alphaX);
+      qwYZ.push(weight);
+      const effectiveAlpha = weight * fadeYZ;
+
+      qData.yz.forEach((ringQuads, ringIdx) => {
+        const isMajor = ringIdx === majorRingIndex;
+        const baseAlpha = isMajor ? tokens.gridPrimaryAlpha * 1.5 : tokens.rangeRingAlpha;
+        const item = ringQuads[qIdx];
+        item.mat.opacity = baseAlpha * effectiveAlpha;
+        item.mat.visible = item.mat.opacity > 0.001;
+      });
+
+      const tickItem = tData.yz[qIdx];
+      tickItem.mat.opacity = tokens.rangeTickAlpha * effectiveAlpha;
+      tickItem.mat.visible = tickItem.mat.opacity > 0.001;
+    });
+
+    // 4. Structural Axis Spokes Rule:
     // "other than the two bearing axis lines, the rest should only appear when both bordering fins are rendered, IE never solo facing the camera."
-    const fadeAxisX = Math.min(fadeXY, fadeXZ);
-    const fadeAxisY = Math.min(fadeXY, fadeYZ);
-    const fadeAxisZ = Math.min(fadeXZ, fadeYZ);
+    // -X spoke bordered by XY (-X) and XZ (-X)
+    const presenceXY_negX = Math.max(qwXY[1], qwXY[2]) * fadeXY;
+    const presenceXZ_negX = Math.max(qwXZ[1], qwXZ[2]) * fadeXZ;
+    const alphaNegX = tokens.axisLineAlpha * Math.min(presenceXY_negX, presenceXZ_negX);
+    aSpokes.negX.mat.opacity = alphaNegX;
+    aSpokes.negX.mat.visible = alphaNegX > 0.001;
 
-    // -X fin spoke only rendered when active quadrant is -X AND both bordering fins (XY and XZ) are rendered
-    finAxisLines.x.mat.opacity = tokens.axisLineAlpha * fadeAxisX;
-    finAxisLines.x.mat.visible = finAxisLines.x.mat.opacity > 0.001 && signsRef.current.sx < 0;
+    // -Y spoke bordered by XY (-Y) and YZ (-Y)
+    const presenceXY_negY = Math.max(qwXY[2], qwXY[3]) * fadeXY;
+    const presenceYZ_negY = Math.max(qwYZ[1], qwYZ[2]) * fadeYZ;
+    const alphaNegY = tokens.axisLineAlpha * Math.min(presenceXY_negY, presenceYZ_negY);
+    aSpokes.negY.mat.opacity = alphaNegY;
+    aSpokes.negY.mat.visible = alphaNegY > 0.001;
 
-    // -Y fin spoke only rendered when active quadrant is -Y AND both bordering fins (XY and YZ) are rendered
-    finAxisLines.y.mat.opacity = tokens.axisLineAlpha * fadeAxisY;
-    finAxisLines.y.mat.visible = finAxisLines.y.mat.opacity > 0.001 && signsRef.current.sy < 0;
+    // +Z spoke bordered by XZ (+Z) and YZ (+Z)
+    const presenceXZ_posZ = Math.max(qwXZ[0], qwXZ[1]) * fadeXZ;
+    const presenceYZ_posZ = Math.max(qwYZ[0], qwYZ[1]) * fadeYZ;
+    const alphaPosZ = tokens.axisLineAlpha * Math.min(presenceXZ_posZ, presenceYZ_posZ);
+    aSpokes.posZ.mat.opacity = alphaPosZ;
+    aSpokes.posZ.mat.visible = alphaPosZ > 0.001;
 
-    // Z fin spoke only rendered when both bordering fins (XZ and YZ) are rendered (never solo facing camera)
-    finAxisLines.z.mat.opacity = tokens.axisLineAlpha * fadeAxisZ;
-    finAxisLines.z.mat.visible = finAxisLines.z.mat.opacity > 0.001;
+    // -Z spoke bordered by XZ (-Z) and YZ (-Z)
+    const presenceXZ_negZ = Math.max(qwXZ[2], qwXZ[3]) * fadeXZ;
+    const presenceYZ_negZ = Math.max(qwYZ[2], qwYZ[3]) * fadeYZ;
+    const alphaNegZ = tokens.axisLineAlpha * Math.min(presenceXZ_negZ, presenceYZ_negZ);
+    aSpokes.negZ.mat.opacity = alphaNegZ;
+    aSpokes.negZ.mat.visible = alphaNegZ > 0.001;
 
-    // 6. Adaptive Orthographic Switch: Narrow FOV and compensate zoom to maintain target footprint
+    // 5. Adaptive Orthographic Switch: Narrow FOV and compensate zoom to maintain target footprint
     if (adaptiveProjection && activeCamera instanceof THREE.PerspectiveCamera) {
       if (baseFovRef.current === null) {
         baseFovRef.current = activeCamera.fov;
@@ -521,35 +457,49 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
   return (
     <group position={position} data-testid="cartographic-grid">
-      {/* Three Mobile Travelling Fins with Concentric Range Arcs (Closest Segment to Camera) */}
+      {/* Three Orthogonal Travelling Fins with Dynamic Quadrant Range Arcs */}
       {showFins && (
         <group data-testid="travelling-fins">
           {/* XY Fin (Galactic Equator) */}
           <group data-testid="fin-xy">
-            {arcData.xy.map((entry) => (
-              <primitive
-                key={`xy-arc-${entry.radius}`}
-                data-testid={`arc-tier-${entry.radius}`}
-                object={entry.line}
-              />
+            {rangeRings.map((r, ringIdx) => (
+              <group key={`xy-tier-${r}`} data-testid={`arc-tier-${r}`}>
+                {quadrantData.xy[ringIdx].map((q, qIdx) => (
+                  <primitive key={`xy-${r}-q${qIdx}`} object={q.line} />
+                ))}
+              </group>
             ))}
-            <lineSegments geometry={tickData.xy.geom} material={tickData.xy.mat} frustumCulled={false} />
+            {tickData.xy.map((qTick, qIdx) => (
+              <primitive key={`xy-ticks-q${qIdx}`} object={qTick.line} />
+            ))}
           </group>
 
           {/* XZ Fin (Core Meridian) */}
           <group data-testid="fin-xz">
-            {arcData.xz.map((entry) => (
-              <primitive key={`xz-arc-${entry.radius}`} object={entry.line} />
+            {rangeRings.map((r, ringIdx) => (
+              <group key={`xz-tier-${r}`} data-testid={`arc-tier-${r}`}>
+                {quadrantData.xz[ringIdx].map((q, qIdx) => (
+                  <primitive key={`xz-${r}-q${qIdx}`} object={q.line} />
+                ))}
+              </group>
             ))}
-            <lineSegments geometry={tickData.xz.geom} material={tickData.xz.mat} frustumCulled={false} />
+            {tickData.xz.map((qTick, qIdx) => (
+              <primitive key={`xz-ticks-q${qIdx}`} object={qTick.line} />
+            ))}
           </group>
 
           {/* YZ Fin (Transverse) */}
           <group data-testid="fin-yz">
-            {arcData.yz.map((entry) => (
-              <primitive key={`yz-arc-${entry.radius}`} object={entry.line} />
+            {rangeRings.map((r, ringIdx) => (
+              <group key={`yz-tier-${r}`} data-testid={`arc-tier-${r}`}>
+                {quadrantData.yz[ringIdx].map((q, qIdx) => (
+                  <primitive key={`yz-${r}-q${qIdx}`} object={q.line} />
+                ))}
+              </group>
             ))}
-            <lineSegments geometry={tickData.yz.geom} material={tickData.yz.mat} frustumCulled={false} />
+            {tickData.yz.map((qTick, qIdx) => (
+              <primitive key={`yz-ticks-q${qIdx}`} object={qTick.line} />
+            ))}
           </group>
         </group>
       )}
@@ -557,34 +507,15 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       {/* Axis Lines */}
       {showAxisLines && (
         <group data-testid="cardinal-bearings">
-          {/* Active Fin Structural Axis Spokes (Origin to Fin Edge, only when both bordering fins rendered) */}
-          <lineSegments
-            geometry={finAxisLines.x.geom}
-            material={finAxisLines.x.mat}
-            frustumCulled={false}
-          />
-          <lineSegments
-            geometry={finAxisLines.y.geom}
-            material={finAxisLines.y.mat}
-            frustumCulled={false}
-          />
-          <lineSegments
-            geometry={finAxisLines.z.geom}
-            material={finAxisLines.z.mat}
-            frustumCulled={false}
-          />
+          {/* Structural Fin Axis Spokes: Rendered only when both bordering fins rendered */}
+          <primitive object={axisSpokes.negX.line} />
+          <primitive object={axisSpokes.negY.line} />
+          <primitive object={axisSpokes.posZ.line} />
+          <primitive object={axisSpokes.negZ.line} />
 
           {/* Prominent Extended Cardinal Bearing Lines: +X (Galactic Core), +Y (Galactic Orbit) */}
-          <lineSegments
-            geometry={extendedBearings.core}
-            material={extendedBearings.matCore}
-            frustumCulled={false}
-          />
-          <lineSegments
-            geometry={extendedBearings.orbital}
-            material={extendedBearings.matOrbital}
-            frustumCulled={false}
-          />
+          <primitive object={extendedBearings.core.line} />
+          <primitive object={extendedBearings.orbital.line} />
         </group>
       )}
 

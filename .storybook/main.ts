@@ -12,6 +12,11 @@ const config: StorybookConfig = {
     "@storybook/addon-docs",
     "@storybook/addon-mcp"
   ],
-  "framework": "@storybook/react-vite"
+  "framework": "@storybook/react-vite",
+  async viteFinal(config) {
+    config.server = config.server || {};
+    config.server.allowedHosts = true;
+    return config;
+  },
 };
 export default config;
