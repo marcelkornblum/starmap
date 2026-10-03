@@ -30,7 +30,7 @@ const StarDot: React.FC<StarDotProps> = ({ star, color, onClick }) => {
     const fovFactor = camera instanceof THREE.PerspectiveCamera
       ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
       : 1.0;
-    const s = (dist / 18.12) * fovFactor;
+    const s = (dist / 16.47) * fovFactor;
     meshRef.current.scale.set(s, s, s);
   });
 
@@ -111,7 +111,7 @@ const meta: Meta<typeof CartographicGrid> = {
     (Story) => (
       <div className={styles.viewportContainer}>
         <ThemeTokenBridge />
-        <Canvas camera={{ position: [11.2, 8.8, 11.2], fov: 45 }} gl={{ antialias: true, alpha: true }}>
+        <Canvas camera={{ position: [10.18, 8.0, 10.18], fov: 45 }} gl={{ antialias: true, alpha: true }}>
           <SceneTokenBridge />
           <Story />
           <OrbitControls makeDefault enableDamping dampingFactor={0.05} />
@@ -171,7 +171,7 @@ export const ZoomAdaptiveScaling: Story = {
   args: {
     radius: 10,
     screenConstant: true,
-    referenceDistance: 38.4,
+    referenceDistance: 34.9,
     showFins: true,
     showAxisLines: true,
     showFullDatumCircle: false,
