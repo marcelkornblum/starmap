@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useRef, useLayoutEffect } from 'react';
+import { useRef, useLayoutEffect, useCallback } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -56,6 +56,22 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   const lastX = useRef(-999999);
   const lastY = useRef(-999999);
   const lastVisible = useRef(true);
+
+  const onOccludeRef = useRef(onOcclude);
+  useLayoutEffect(() => {
+    onOccludeRef.current = onOcclude;
+  }, [onOcclude]);
+
+  const nextHiddenRef = useRef<boolean | null>(null);
+  const rafScheduledRef = useRef(false);
+
+  const flushOccludeRaf = useCallback(() => {
+    rafScheduledRef.current = false;
+    if (nextHiddenRef.current !== null && onOccludeRef.current) {
+      onOccludeRef.current(nextHiddenRef.current);
+      nextHiddenRef.current = null;
+    }
+  }, []);
 
   const { gl, camera, size } = useThree();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -150,7 +166,13 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     if (onOcclude) {
       if (lastVisible.current !== isVisible) {
         lastVisible.current = isVisible;
-        onOcclude(!isVisible);
+        nextHiddenRef.current = !isVisible;
+        if (!rafScheduledRef.current && typeof requestAnimationFrame !== 'undefined') {
+          rafScheduledRef.current = true;
+          requestAnimationFrame(flushOccludeRaf);
+        } else if (typeof requestAnimationFrame === 'undefined') {
+          onOcclude(!isVisible);
+        }
       }
     } else if (lastVisible.current !== isVisible) {
       lastVisible.current = isVisible;

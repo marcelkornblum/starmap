@@ -89,10 +89,15 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     });
   }
 
-  function simpleTraverse(node: unknown, visitor: (n: any) => void) {
+  interface ASTNode {
+    type?: string;
+    [key: string]: any;
+  }
+
+  function simpleTraverse(node: unknown, visitor: (n: ASTNode) => void) {
     if (!node || typeof node !== 'object') return;
-    visitor(node);
-    const obj = node as Record<string, unknown>;
+    const obj = node as ASTNode;
+    visitor(obj);
     for (const key of Object.keys(obj)) {
       if (key === 'loc' || key === 'range' || key === 'comments') continue;
       const child = obj[key];
@@ -106,7 +111,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     }
   }
 
-  simpleTraverse(ast, (node: any) => {
+  simpleTraverse(ast, (node: ASTNode) => {
     // 1. Detect useFrame calls and inspect their hot-path callback bodies
     if (node.type === 'CallExpression') {
       const callee = node.callee;
