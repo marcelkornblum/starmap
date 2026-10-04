@@ -163,6 +163,10 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   });
   const scratchHitOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const scratchBoxRef = useRef<Box2D>({ left: 0, top: 0, right: 0, bottom: 0 });
+  const lastOccludedRef = useRef<boolean | null>(null);
+  const lastDisplacedRef = useRef<boolean | null>(null);
+  const lastTransformRef = useRef<string>('');
+  const lastSpectrumOccludedRef = useRef<boolean | null>(null);
   const registrationRef = useRef<CelestialFootprint>({
     id,
     state: currentState,
@@ -299,16 +303,33 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     );
     const isLabelVisible = labelEval.visible && shouldRenderLabel && !isBehindCamera;
     if (labelContainerRef.current) {
-      labelContainerRef.current.setAttribute('data-occluded', isLabelVisible ? 'false' : 'true');
+      if (lastOccludedRef.current !== isLabelVisible) {
+        lastOccludedRef.current = isLabelVisible;
+        labelContainerRef.current.setAttribute('data-occluded', isLabelVisible ? 'false' : 'true');
+      }
       if (labelEval.isDisplaced) {
-        labelContainerRef.current.setAttribute('data-displaced', 'true');
-        labelContainerRef.current.style.transform = `translate(${labelEval.displacementX}px, ${labelEval.displacementY}px)`;
+        const nextTransform = `translate(${labelEval.displacementX}px, ${labelEval.displacementY}px)`;
+        if (!lastDisplacedRef.current) {
+          lastDisplacedRef.current = true;
+          labelContainerRef.current.setAttribute('data-displaced', 'true');
+        }
+        if (lastTransformRef.current !== nextTransform) {
+          lastTransformRef.current = nextTransform;
+          labelContainerRef.current.style.transform = nextTransform;
+        }
       } else {
-        labelContainerRef.current.removeAttribute('data-displaced');
-        labelContainerRef.current.style.transform = '';
+        if (lastDisplacedRef.current) {
+          lastDisplacedRef.current = false;
+          labelContainerRef.current.removeAttribute('data-displaced');
+        }
+        if (lastTransformRef.current !== '') {
+          lastTransformRef.current = '';
+          labelContainerRef.current.style.transform = '';
+        }
       }
     }
-    if (spectrumFacetRef.current) {
+    if (spectrumFacetRef.current && lastSpectrumOccludedRef.current !== isLabelVisible) {
+      lastSpectrumOccludedRef.current = isLabelVisible;
       spectrumFacetRef.current.setAttribute('data-occluded', isLabelVisible ? 'false' : 'true');
     }
   });

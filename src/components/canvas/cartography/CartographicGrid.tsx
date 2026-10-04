@@ -932,7 +932,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         pArcs.forEach((pItem, qIdx) => {
           pItem.line.scale.set(currentRadius, currentRadius, currentRadius);
           pItem.mat.opacity = tokens.gridPrimaryAlpha * 0.7 * qwList[qIdx] * fadePlane;
-          pItem.mat.visible = pItem.mat.opacity > 0.001;
+          pItem.line.visible = pItem.mat.opacity > 0.001;
         });
       }
 
@@ -957,7 +957,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
             quads.forEach((item, qIdx) => {
               item.line.scale.set(r, r, r);
               item.mat.opacity = baseAlpha * ringFade * qwList[qIdx] * fadePlane;
-              item.mat.visible = item.mat.opacity > 0.001;
+              item.line.visible = item.mat.opacity > 0.001;
             });
           }
         } else {
@@ -966,7 +966,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
             const quads = qData[plane][ringIdx];
             quads.forEach((item) => {
               item.mat.opacity = 0;
-              item.mat.visible = false;
+              item.line.visible = false;
             });
           }
         }
@@ -981,7 +981,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         ticks.forEach((tickItem, qIdx) => {
           tickItem.line.scale.set(currentRadius, currentRadius, currentRadius);
           tickItem.mat.opacity = Math.max(tokens.rangeTickAlpha * 1.6, 0.35) * qwList[qIdx] * fadePlane;
-          tickItem.mat.visible = tickItem.mat.opacity > 0.001;
+          tickItem.line.visible = tickItem.mat.opacity > 0.001;
         });
       }
     }
@@ -996,7 +996,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       const alphaNegX = spokeBaseAlpha * Math.min(presenceXY_negX, presenceXZ_negX);
       aSpokes.negX.line.scale.set(currentRadius, currentRadius, currentRadius);
       aSpokes.negX.mat.opacity = alphaNegX;
-      aSpokes.negX.mat.visible = alphaNegX > 0.001;
+      aSpokes.negX.line.visible = alphaNegX > 0.001;
 
       // -Y spoke bordered by XY (-Y) and YZ (-Y)
       const presenceXY_negY = Math.max(qwXY[2], qwXY[3]) * fadeXY;
@@ -1004,7 +1004,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       const alphaNegY = spokeBaseAlpha * Math.min(presenceXY_negY, presenceYZ_negY);
       aSpokes.negY.line.scale.set(currentRadius, currentRadius, currentRadius);
       aSpokes.negY.mat.opacity = alphaNegY;
-      aSpokes.negY.mat.visible = alphaNegY > 0.001;
+      aSpokes.negY.line.visible = alphaNegY > 0.001;
 
       // +Z spoke bordered by XZ (+Z) and YZ (+Z)
       const presenceXZ_posZ = Math.max(qwXZ[0], qwXZ[1]) * fadeXZ;
@@ -1012,7 +1012,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       const alphaPosZ = spokeBaseAlpha * Math.min(presenceXZ_posZ, presenceYZ_posZ);
       aSpokes.posZ.line.scale.set(currentRadius, currentRadius, currentRadius);
       aSpokes.posZ.mat.opacity = alphaPosZ;
-      aSpokes.posZ.mat.visible = alphaPosZ > 0.001;
+      aSpokes.posZ.line.visible = alphaPosZ > 0.001;
 
       // -Z spoke bordered by XZ (-Z) and YZ (-Z)
       const presenceXZ_negZ = Math.max(qwXZ[2], qwXZ[3]) * fadeXZ;
@@ -1020,7 +1020,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       const alphaNegZ = spokeBaseAlpha * Math.min(presenceXZ_negZ, presenceYZ_negZ);
       aSpokes.negZ.line.scale.set(currentRadius, currentRadius, currentRadius);
       aSpokes.negZ.mat.opacity = alphaNegZ;
-      aSpokes.negZ.mat.visible = alphaNegZ > 0.001;
+      aSpokes.negZ.line.visible = alphaNegZ > 0.001;
 
     }
 
@@ -1037,25 +1037,25 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       const dBoundary = datumBoundaryDataRef.current;
       dBoundary.line.scale.set(currentRadius, currentRadius, 1);
       dBoundary.mat.opacity = tokens.datumPlaneAlpha;
-      dBoundary.mat.visible = tokens.datumPlaneAlpha > 0.001;
+      dBoundary.line.visible = tokens.datumPlaneAlpha > 0.001;
 
       // Disk Cardinal Bearings (1 radius long on the datum plane, terminating at perimeter rim)
       if (dBearings) {
         dBearings.core.line.scale.set(currentRadius, currentRadius, 1);
         dBearings.core.mat.opacity = tokens.bearingCoreAlpha;
-        dBearings.core.mat.visible = true;
+        dBearings.core.line.visible = true;
 
         dBearings.orbital.line.scale.set(currentRadius, currentRadius, 1);
         dBearings.orbital.mat.opacity = tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha;
-        dBearings.orbital.mat.visible = true;
+        dBearings.orbital.line.visible = true;
 
         dBearings.antiCore.line.scale.set(currentRadius, currentRadius, 1);
         dBearings.antiCore.mat.opacity = tokens.axisLineAlpha;
-        dBearings.antiCore.mat.visible = true;
+        dBearings.antiCore.line.visible = true;
 
         dBearings.antiOrbital.line.scale.set(currentRadius, currentRadius, 1);
         dBearings.antiOrbital.mat.opacity = tokens.axisLineAlpha;
-        dBearings.antiOrbital.mat.visible = true;
+        dBearings.antiOrbital.line.visible = true;
       }
 
       // Continuous concentric range rings on the datum plane
@@ -1071,21 +1071,17 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
             ringItem.line.scale.set(r, r, 1);
             ringItem.mat.opacity = baseAlpha;
-            ringItem.mat.visible = baseAlpha > 0.001;
+            ringItem.line.visible = baseAlpha > 0.001;
           } else {
             ringItem.mat.opacity = 0;
-            ringItem.mat.visible = false;
+            ringItem.line.visible = false;
           }
         }
       }
 
       if (datumFillDataRef.current) {
-        const { mesh, mat } = datumFillDataRef.current;
+        const { mesh } = datumFillDataRef.current;
         mesh.scale.set(currentRadius, currentRadius, 1);
-        mat.uniforms.uColor.value.copy(tokens.datumPlaneFillColor);
-        mat.uniforms.uAlpha.value = tokens.datumPlaneFillAlpha;
-        mat.uniforms.uInnerRadius.value = tokens.datumPlaneFillGradientInner;
-        mat.uniforms.uExponent.value = tokens.datumPlaneFillGradientExponent;
       }
     }
 
