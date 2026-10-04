@@ -43,7 +43,7 @@ export const DefaultPassive: Story = {
   args: {
     id: 'sirius',
     name: 'Sirius A',
-    position: [0, 0, 2.0],
+    position: [1.8, 1.4, 2.0],
     classification: 'star',
     state: 'passive',
     spectralType: 'A1V',
@@ -55,7 +55,7 @@ export const ActiveState: Story = {
   args: {
     id: 'sol',
     name: 'Sol',
-    position: [0, 0, 1.8],
+    position: [1.8, 1.4, 1.8],
     classification: 'star',
     state: 'active',
     spectralType: 'G2V',
@@ -67,7 +67,7 @@ export const SelectedWithStalk: Story = {
   args: {
     id: 'vega',
     name: 'Vega',
-    position: [1.2, 1.5, 2.5],
+    position: [1.8, 2.2, 2.5],
     classification: 'star',
     state: 'selected',
     spectralType: 'A0V',
@@ -79,10 +79,11 @@ export const FocusedPositiveZ: Story = {
   args: {
     id: 'alpha-centauri',
     name: 'Alpha Centauri A',
-    position: [0, 0, 2.5],
+    position: [2.0, 1.6, 2.5],
     classification: 'star',
     state: 'focused',
     spectralType: 'G2V',
+    showStalk: true,
   },
 };
 
@@ -90,10 +91,11 @@ export const FocusedNegativeZ: Story = {
   args: {
     id: 'proxima',
     name: 'Proxima Centauri',
-    position: [1.5, -1, -2.0],
+    position: [1.8, -1.5, -2.0],
     classification: 'star',
     state: 'focused',
     spectralType: 'M5.5Ve',
+    showStalk: true,
   },
 };
 
@@ -112,10 +114,11 @@ export const InteractiveStateCycle: Story = {
         <CelestialNode
           id="interactive-star"
           name="Betelgeuse"
-          position={[0, 0, 1.8]}
+          position={[1.8, 1.4, 2.2]}
           classification="star"
           state={state}
           spectralType="M1-M2Ia-ab"
+          showStalk={true}
           onClick={handleCycle}
         />
       );
@@ -127,15 +130,25 @@ export const InteractiveStateCycle: Story = {
 
 export const UniversalTaxonomyGallery: Story = {
   render: () => {
-    const classifications: Array<{ type: CelestialClassification; name: string; tag: string; x: number }> = [
-      { type: 'star', name: 'Sol', tag: 'G2V', x: -4.5 },
-      { type: 'brown-dwarf', name: 'Luhman 16', tag: 'L7.5', x: -3.2 },
-      { type: 'white-dwarf', name: 'Sirius B', tag: 'DA2', x: -1.9 },
-      { type: 'hazard', name: 'Crab Pulsar', tag: 'PSR', x: -0.6 },
-      { type: 'black-hole', name: 'Cygnus X-1', tag: 'BH', x: 0.7 },
-      { type: 'terrestrial', name: 'Earth', tag: '1.0 M⊕', x: 2.0 },
-      { type: 'gas-giant', name: 'Jupiter', tag: '318 M⊕', x: 3.3 },
-      { type: 'ice-giant', name: 'Neptune', tag: '17 M⊕', x: 4.6 },
+    const classifications: Array<{
+      type: CelestialClassification;
+      name: string;
+      tag: string;
+      x: number;
+      y: number;
+      z: number;
+    }> = [
+      { type: 'star', name: 'Sol', tag: 'G2V', x: -5.0, y: 1.5, z: 1.8 },
+      { type: 'brown-dwarf', name: 'Luhman 16', tag: 'L7.5', x: -4.0, y: 1.8, z: 1.8 },
+      { type: 'white-dwarf', name: 'Sirius B', tag: 'DA2', x: -3.0, y: 1.4, z: 1.8 },
+      { type: 'neutron-star', name: 'Crab Pulsar', tag: 'PSR', x: -2.0, y: 1.7, z: 1.8 },
+      { type: 'black-hole', name: 'Cygnus X-1', tag: 'BH', x: -1.0, y: 1.5, z: 1.8 },
+      { type: 'barycentre', name: 'Solar Barycentre', tag: 'BC', x: 0.2, y: 1.8, z: 1.8 },
+      { type: 'stellar-cluster', name: 'Pleiades', tag: 'M45', x: 1.4, y: 1.4, z: 1.8 },
+      { type: 'construct', name: 'Voyager 1', tag: 'ART', x: 2.5, y: 1.7, z: 1.8 },
+      { type: 'terrestrial', name: 'Earth', tag: '1.0 M⊕', x: 3.5, y: 1.5, z: 1.8 },
+      { type: 'gas-giant', name: 'Jupiter', tag: '318 M⊕', x: 4.5, y: 1.8, z: 1.8 },
+      { type: 'ice-giant', name: 'Neptune', tag: '17 M⊕', x: 5.5, y: 1.4, z: 1.8 },
     ];
 
     return (
@@ -145,10 +158,11 @@ export const UniversalTaxonomyGallery: Story = {
             key={item.type}
             id={item.type}
             name={item.name}
-            position={[item.x, 0, 1.2]}
+            position={[item.x, item.y, item.z]}
             classification={item.type}
             state="active"
             spectralType={item.tag}
+            showStalk={true}
           />
         ))}
       </group>

@@ -27,10 +27,19 @@ function getSpectralColor(spectralType?: string): string {
 
 export type CelestialClassification =
   | 'star'
+  | 'stellar-system'
   | 'brown-dwarf'
   | 'white-dwarf'
+  | 'degenerate-remnant'
+  | 'neutron-star'
   | 'hazard'
   | 'black-hole'
+  | 'singularity'
+  | 'barycentre'
+  | 'stellar-cluster'
+  | 'cluster'
+  | 'construct'
+  | 'artificial'
   | 'terrestrial'
   | 'gas-giant'
   | 'ice-giant';
@@ -54,102 +63,197 @@ export interface CelestialNodeProps {
 
 /**
  * Builds 2D line geometry in the local XY plane for each reticle taxonomy type.
+ * All reticle and footprint shapes are constructed as pairs of line segments for LineSegments.
  */
 function createReticleGeometry(classification: CelestialClassification, s: number): THREE.BufferGeometry {
   const points: THREE.Vector3[] = [];
 
   switch (classification) {
-    case 'star': {
-      // Closed 45-degree diamond
+    case 'star':
+    case 'stellar-system': {
+      // Closed 45-degree diamond: 4 connected edge segments
       points.push(
-        new THREE.Vector3(0, s, 0),
-        new THREE.Vector3(s, 0, 0),
-        new THREE.Vector3(0, -s, 0),
-        new THREE.Vector3(-s, 0, 0),
-        new THREE.Vector3(0, s, 0),
+        new THREE.Vector3(0, s, 0), new THREE.Vector3(s, 0, 0),
+        new THREE.Vector3(s, 0, 0), new THREE.Vector3(0, -s, 0),
+        new THREE.Vector3(0, -s, 0), new THREE.Vector3(-s, 0, 0),
+        new THREE.Vector3(-s, 0, 0), new THREE.Vector3(0, s, 0),
       );
       break;
     }
     case 'brown-dwarf': {
-      // Broken Diamond: Top and bottom vertical chevrons
+      // Broken Diamond: Top and bottom vertical chevrons (waist open)
       points.push(
-        new THREE.Vector3(-s, 0.25 * s, 0),
-        new THREE.Vector3(0, s, 0),
-        new THREE.Vector3(s, 0.25 * s, 0),
-        new THREE.Vector3(s, 0.25 * s, 0),
-        new THREE.Vector3(-s, -0.25 * s, 0),
-        new THREE.Vector3(0, -s, 0),
-        new THREE.Vector3(s, -0.25 * s, 0),
+        // Top chevron ︿
+        new THREE.Vector3(-0.6 * s, 0.4 * s, 0), new THREE.Vector3(0, s, 0),
+        new THREE.Vector3(0, s, 0), new THREE.Vector3(0.6 * s, 0.4 * s, 0),
+        // Bottom chevron ﹀
+        new THREE.Vector3(-0.6 * s, -0.4 * s, 0), new THREE.Vector3(0, -s, 0),
+        new THREE.Vector3(0, -s, 0), new THREE.Vector3(0.6 * s, -0.4 * s, 0),
       );
       break;
     }
-    case 'white-dwarf': {
-      // Fractured Diamond: 4 diagonal disjoint corner lines
-      const c = 0.5 * s;
+    case 'white-dwarf':
+    case 'degenerate-remnant': {
+      // Fractured Diamond: 4 disjoint diagonal corner brackets (mid-facets open)
+      const leg = 0.35 * s;
       points.push(
-        new THREE.Vector3(0, s, 0), new THREE.Vector3(c, c, 0),
-        new THREE.Vector3(s, 0, 0), new THREE.Vector3(c, -c, 0),
-        new THREE.Vector3(0, -s, 0), new THREE.Vector3(-c, -c, 0),
-        new THREE.Vector3(-s, 0, 0), new THREE.Vector3(-c, c, 0),
+        // Top corner ◥◤
+        new THREE.Vector3(-leg, s - leg, 0), new THREE.Vector3(0, s, 0),
+        new THREE.Vector3(0, s, 0), new THREE.Vector3(leg, s - leg, 0),
+        // Right corner
+        new THREE.Vector3(s - leg, leg, 0), new THREE.Vector3(s, 0, 0),
+        new THREE.Vector3(s, 0, 0), new THREE.Vector3(s - leg, -leg, 0),
+        // Bottom corner ◢◣
+        new THREE.Vector3(leg, -s + leg, 0), new THREE.Vector3(0, -s, 0),
+        new THREE.Vector3(0, -s, 0), new THREE.Vector3(-leg, -s + leg, 0),
+        // Left corner
+        new THREE.Vector3(-s + leg, -leg, 0), new THREE.Vector3(-s, 0, 0),
+        new THREE.Vector3(-s, 0, 0), new THREE.Vector3(-s + leg, leg, 0),
       );
       break;
     }
+    case 'neutron-star':
     case 'hazard': {
-      // Fractured diamond with outward radiating beam spines
+      // Relativistic Hazards: Fractured diamond with outward radiating beam spines (divergent beam geometry)
+      const leg = 0.35 * s;
       points.push(
-        // Diamond facets
-        new THREE.Vector3(-0.7 * s, 0.2 * s, 0), new THREE.Vector3(0, 0.7 * s, 0), new THREE.Vector3(0.7 * s, 0.2 * s, 0),
-        new THREE.Vector3(-0.7 * s, -0.2 * s, 0), new THREE.Vector3(0, -0.7 * s, 0), new THREE.Vector3(0.7 * s, -0.2 * s, 0),
-        // Lateral beam spines
-        new THREE.Vector3(-1.2 * s, 0, 0), new THREE.Vector3(-0.6 * s, 0, 0),
-        new THREE.Vector3(0.6 * s, 0, 0), new THREE.Vector3(1.2 * s, 0, 0),
+        // Fractured diamond corner brackets
+        new THREE.Vector3(-leg, s - leg, 0), new THREE.Vector3(0, s, 0),
+        new THREE.Vector3(0, s, 0), new THREE.Vector3(leg, s - leg, 0),
+        new THREE.Vector3(s - leg, leg, 0), new THREE.Vector3(s, 0, 0),
+        new THREE.Vector3(s, 0, 0), new THREE.Vector3(s - leg, -leg, 0),
+        new THREE.Vector3(leg, -s + leg, 0), new THREE.Vector3(0, -s, 0),
+        new THREE.Vector3(0, -s, 0), new THREE.Vector3(-leg, -s + leg, 0),
+        new THREE.Vector3(-s + leg, -leg, 0), new THREE.Vector3(-s, 0, 0),
+        new THREE.Vector3(-s, 0, 0), new THREE.Vector3(-s + leg, leg, 0),
+        // Outward radiating beam spines (divergent beam geometry)
+        new THREE.Vector3(0, s, 0), new THREE.Vector3(0, 1.6 * s, 0),
+        new THREE.Vector3(0, -s, 0), new THREE.Vector3(0, -1.6 * s, 0),
+        new THREE.Vector3(-s, 0, 0), new THREE.Vector3(-1.4 * s, 0, 0),
+        new THREE.Vector3(s, 0, 0), new THREE.Vector3(1.4 * s, 0, 0),
       );
       break;
     }
-    case 'black-hole': {
-      // 4 inward convergent spines targeting empty centre (infall geometry)
+    case 'black-hole':
+    case 'singularity': {
+      // Four sharp 1px inward-pointing convergent spines (► ◄ / ▼ ▲) targeting empty central coordinate
       const inner = 0.25 * s;
       const outer = 1.0 * s;
+      const barbL = 0.18 * s;
+      const barbW = 0.12 * s;
       points.push(
+        // Left spine (pointing inward to right ►)
         new THREE.Vector3(-outer, 0, 0), new THREE.Vector3(-inner, 0, 0),
+        new THREE.Vector3(-inner - barbL, barbW, 0), new THREE.Vector3(-inner, 0, 0),
+        new THREE.Vector3(-inner - barbL, -barbW, 0), new THREE.Vector3(-inner, 0, 0),
+
+        // Right spine (pointing inward to left ◄)
         new THREE.Vector3(outer, 0, 0), new THREE.Vector3(inner, 0, 0),
-        new THREE.Vector3(0, -outer, 0), new THREE.Vector3(0, -inner, 0),
+        new THREE.Vector3(inner + barbL, barbW, 0), new THREE.Vector3(inner, 0, 0),
+        new THREE.Vector3(inner + barbL, -barbW, 0), new THREE.Vector3(inner, 0, 0),
+
+        // Top spine (pointing inward down ▼)
         new THREE.Vector3(0, outer, 0), new THREE.Vector3(0, inner, 0),
+        new THREE.Vector3(barbW, inner + barbL, 0), new THREE.Vector3(0, inner, 0),
+        new THREE.Vector3(-barbW, inner + barbL, 0), new THREE.Vector3(0, inner, 0),
+
+        // Bottom spine (pointing inward up ▲)
+        new THREE.Vector3(0, -outer, 0), new THREE.Vector3(0, -inner, 0),
+        new THREE.Vector3(barbW, -inner - barbL, 0), new THREE.Vector3(0, -inner, 0),
+        new THREE.Vector3(-barbW, -inner - barbL, 0), new THREE.Vector3(0, -inner, 0),
+      );
+      break;
+    }
+    case 'barycentre': {
+      // Gravitational Barycentres: 1px Plus (+) with open centre
+      const arm = 0.6 * s;
+      const gap = 0.15 * s;
+      points.push(
+        new THREE.Vector3(-arm, 0, 0), new THREE.Vector3(-gap, 0, 0),
+        new THREE.Vector3(gap, 0, 0), new THREE.Vector3(arm, 0, 0),
+        new THREE.Vector3(0, -arm, 0), new THREE.Vector3(0, -gap, 0),
+        new THREE.Vector3(0, gap, 0), new THREE.Vector3(0, arm, 0),
+      );
+      break;
+    }
+    case 'stellar-cluster':
+    case 'cluster': {
+      // Stellar Clusters / Echelons: Floating Double Top Chevron (︽) with no bottom chevron
+      points.push(
+        // Lower top chevron
+        new THREE.Vector3(-0.6 * s, 0.25 * s, 0), new THREE.Vector3(0, 0.65 * s, 0),
+        new THREE.Vector3(0, 0.65 * s, 0), new THREE.Vector3(0.6 * s, 0.25 * s, 0),
+        // Upper top chevron
+        new THREE.Vector3(-0.6 * s, 0.55 * s, 0), new THREE.Vector3(0, 0.95 * s, 0),
+        new THREE.Vector3(0, 0.95 * s, 0), new THREE.Vector3(0.6 * s, 0.55 * s, 0),
+      );
+      break;
+    }
+    case 'construct':
+    case 'artificial': {
+      // Artificial Constructs & Vehicles: 90-degree orthogonal open corner box (┌ ┐ / └ ┘)
+      const b = 0.75 * s;
+      const leg = 0.35 * s;
+      points.push(
+        // Top-left ┌
+        new THREE.Vector3(-b, b - leg, 0), new THREE.Vector3(-b, b, 0),
+        new THREE.Vector3(-b, b, 0), new THREE.Vector3(-b + leg, b, 0),
+        // Top-right ┐
+        new THREE.Vector3(b - leg, b, 0), new THREE.Vector3(b, b, 0),
+        new THREE.Vector3(b, b, 0), new THREE.Vector3(b, b - leg, 0),
+        // Bottom-right ┘
+        new THREE.Vector3(b, -b + leg, 0), new THREE.Vector3(b, -b, 0),
+        new THREE.Vector3(b, -b, 0), new THREE.Vector3(b - leg, -b, 0),
+        // Bottom-left └
+        new THREE.Vector3(-b + leg, -b, 0), new THREE.Vector3(-b, -b, 0),
+        new THREE.Vector3(-b, -b, 0), new THREE.Vector3(-b, -b + leg, 0),
       );
       break;
     }
     case 'terrestrial': {
-      // Small 1px open circle (~0.35s)
-      const r = 0.35 * s;
+      // Small 1px open circle (~3-4px diameter, radius ~0.4s)
+      const r = 0.4 * s;
       const segs = 32;
-      for (let i = 0; i <= segs; i++) {
-        const th = (i / segs) * Math.PI * 2;
-        points.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0));
+      for (let i = 0; i < segs; i++) {
+        const th1 = (i / segs) * Math.PI * 2;
+        const th2 = ((i + 1) / segs) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(Math.cos(th1) * r, Math.sin(th1) * r, 0),
+          new THREE.Vector3(Math.cos(th2) * r, Math.sin(th2) * r, 0),
+        );
       }
       break;
     }
     case 'gas-giant': {
-      // Large 1px open circle (~0.7s)
-      const r = 0.7 * s;
+      // Large 1px open circle (~7-8px diameter, radius ~0.8s)
+      const r = 0.8 * s;
       const segs = 32;
-      for (let i = 0; i <= segs; i++) {
-        const th = (i / segs) * Math.PI * 2;
-        points.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0));
+      for (let i = 0; i < segs; i++) {
+        const th1 = (i / segs) * Math.PI * 2;
+        const th2 = ((i + 1) / segs) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(Math.cos(th1) * r, Math.sin(th1) * r, 0),
+          new THREE.Vector3(Math.cos(th2) * r, Math.sin(th2) * r, 0),
+        );
       }
       break;
     }
     case 'ice-giant': {
       // Ringed open circle: central disk + split lateral ring flanges
-      const r = 0.5 * s;
+      const r = 0.55 * s;
       const segs = 32;
-      for (let i = 0; i <= segs; i++) {
-        const th = (i / segs) * Math.PI * 2;
-        points.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0));
+      for (let i = 0; i < segs; i++) {
+        const th1 = (i / segs) * Math.PI * 2;
+        const th2 = ((i + 1) / segs) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(Math.cos(th1) * r, Math.sin(th1) * r, 0),
+          new THREE.Vector3(Math.cos(th2) * r, Math.sin(th2) * r, 0),
+        );
       }
       // Lateral ring flanges
       points.push(
-        new THREE.Vector3(-0.9 * s, 0, 0), new THREE.Vector3(-0.55 * s, 0, 0),
-        new THREE.Vector3(0.55 * s, 0, 0), new THREE.Vector3(0.9 * s, 0, 0),
+        new THREE.Vector3(-0.95 * s, 0, 0), new THREE.Vector3(-0.6 * s, 0, 0),
+        new THREE.Vector3(0.6 * s, 0, 0), new THREE.Vector3(0.95 * s, 0, 0),
       );
       break;
     }
@@ -209,6 +313,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   // Screen-space invariance and camera-facing refs
   const dotMeshRef = useRef<THREE.Mesh>(null);
   const reticleGroupRef = useRef<THREE.Group>(null);
+  const footprintGroupRef = useRef<THREE.Group>(null);
   const worldPosRef = useRef(new THREE.Vector3(x, y, z));
 
   useEffect(() => {
@@ -232,6 +337,11 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     if (reticleGroupRef.current) {
       reticleGroupRef.current.quaternion.copy(camera.quaternion);
       reticleGroupRef.current.scale.set(invScale, invScale, invScale);
+    }
+
+    // Datum footprint on plane: lies flat on Z=0 reference plane, scaled to match reticle size
+    if (footprintGroupRef.current) {
+      footprintGroupRef.current.scale.set(invScale, invScale, invScale);
     }
   });
 
@@ -269,15 +379,8 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
   const footprintGeometry = useMemo(() => {
     if (!shouldRenderStalk) return null;
-    const pts: THREE.Vector3[] = [];
-    const r = reticleSize * 0.5;
-    const segs = 24;
-    for (let i = 0; i <= segs; i++) {
-      const th = (i / segs) * Math.PI * 2;
-      pts.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0));
-    }
-    return new THREE.BufferGeometry().setFromPoints(pts);
-  }, [shouldRenderStalk, reticleSize]);
+    return createReticleGeometry(classification, reticleSize);
+  }, [shouldRenderStalk, classification, reticleSize]);
 
   return (
     <group position={[x, y, z]} name={`celestial-node-${id}`} userData={{ state }}>
@@ -304,25 +407,14 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       {/* Layer 2: Geometric Reticle & Typographic Label (Facing Camera, invariant screen size) */}
       {shouldRenderReticle && (
         <group ref={reticleGroupRef} name="reticle-frame">
-          {classification === 'terrestrial' || classification === 'gas-giant' || classification === 'star' ? (
-            <lineLoop geometry={reticleGeometry}>
-              <lineBasicMaterial
-                color={reticleColor}
-                opacity={reticleOpacity}
-                transparent
-                depthWrite={false}
-              />
-            </lineLoop>
-          ) : (
-            <lineSegments geometry={reticleGeometry}>
-              <lineBasicMaterial
-                color={reticleColor}
-                opacity={reticleOpacity}
-                transparent
-                depthWrite={false}
-              />
-            </lineSegments>
-          )}
+          <lineSegments geometry={reticleGeometry}>
+            <lineBasicMaterial
+              color={reticleColor}
+              opacity={reticleOpacity}
+              transparent
+              depthWrite={false}
+            />
+          </lineSegments>
 
           {/* Layer 3: Typographic Label (HTML Overlay with CUBE Tokens, never scales on screen) */}
           {shouldRenderLabel && (
@@ -366,17 +458,17 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
             />
           </lineSegments>
 
-          {/* Datum Footprint Ring stamped on Galactic Equator Z=0 */}
+          {/* Datum Footprint stamped on Galactic Equator Z=0, matching reticle shape */}
           {footprintGeometry && (
-            <group position={[0, 0, -z]}>
-              <lineLoop geometry={footprintGeometry}>
+            <group ref={footprintGroupRef} position={[0, 0, -z]} name="datum-footprint">
+              <lineSegments geometry={footprintGeometry}>
                 <lineBasicMaterial
                   color={stalkColor}
-                  opacity={0.5}
+                  opacity={0.45}
                   transparent
                   depthWrite={false}
                 />
-              </lineLoop>
+              </lineSegments>
             </group>
           )}
         </group>

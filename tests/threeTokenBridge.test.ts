@@ -99,7 +99,7 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(snapshot.theme).toBe('dark');
     expect(snapshot.canvasOpacity).toBe(0.9);
     expect(snapshot.gridPrimaryAlpha).toBe(0.2);
-    expect(snapshot.bearingLineAlpha).toBe(0.85);
+    expect(snapshot.bearingLineAlpha).toBe(0.35);
     expect(snapshot.axisLineWidth).toBe(2);
     expect(snapshot.axisLineStyle).toBe('solid');
     expect(snapshot.gridPrimaryWidth).toBe(2);
@@ -107,7 +107,7 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(snapshot.bearingLineWidth).toBe(2);
     expect(snapshot.bearingLineStyle).toBe('dashed');
     expect(snapshot.bearingOrbitalColor).toBeDefined();
-    expect(snapshot.bearingOrbitalAlpha).toBe(0.85);
+    expect(snapshot.bearingOrbitalAlpha).toBe(0.35);
     expect(snapshot.bearingOrbitalWidth).toBe(2);
     expect(snapshot.bearingOrbitalStyle).toBe('dashed');
     expect(snapshot.bearingCoreColor).toBeDefined();

@@ -338,15 +338,15 @@
     --chrome-axis-line-width:            var(--stroke-width-2);
     --chrome-axis-line-style:            var(--border-style-boundary);
 
-    --chrome-bearing-line-color:         var(--palette-solarized-red);
+    --chrome-bearing-line-color:         oklch(58.63% 0.2064 27.12 / 0.35);
     --chrome-bearing-line-width:         var(--stroke-width-2);
     --chrome-bearing-line-style:         dashed;
 
-    --chrome-bearing-orbital-color:      var(--palette-solarized-red);
+    --chrome-bearing-orbital-color:      oklch(58.63% 0.2064 27.12 / 0.35);
     --chrome-bearing-orbital-width:      var(--stroke-width-2);
     --chrome-bearing-orbital-style:      dashed;
 
-    --chrome-bearing-core-color:         var(--palette-solarized-yellow);
+    --chrome-bearing-core-color:         oklch(65.45% 0.1340 85.72 / 0.35);
     --chrome-bearing-core-width:         var(--stroke-width-2);
     --chrome-bearing-core-style:         var(--border-style-boundary);
 
@@ -518,15 +518,15 @@
     --chrome-axis-line-width:            var(--stroke-width-2);
     --chrome-axis-line-style:            var(--border-style-boundary);
 
-    --chrome-bearing-line-color:         var(--palette-solarized-red);
+    --chrome-bearing-line-color:         oklch(58.63% 0.2064 27.12 / 0.35);
     --chrome-bearing-line-width:         var(--stroke-width-2);
     --chrome-bearing-line-style:         dashed;
 
-    --chrome-bearing-orbital-color:      var(--palette-solarized-red);
+    --chrome-bearing-orbital-color:      oklch(58.63% 0.2064 27.12 / 0.35);
     --chrome-bearing-orbital-width:      var(--stroke-width-2);
     --chrome-bearing-orbital-style:      dashed;
 
-    --chrome-bearing-core-color:         var(--palette-solarized-yellow);
+    --chrome-bearing-core-color:         oklch(65.45% 0.1340 85.72 / 0.35);
     --chrome-bearing-core-width:         var(--stroke-width-2);
     --chrome-bearing-core-style:         var(--border-style-boundary);
 
