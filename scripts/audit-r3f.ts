@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parse } from '@babel/parser';
 
 export interface AuditDiagnostic {
@@ -372,7 +373,7 @@ export function runR3FAudit(): number {
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const exitCode = runR3FAudit();
   process.exit(exitCode);
 }

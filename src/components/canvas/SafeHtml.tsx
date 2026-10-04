@@ -56,6 +56,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   const lastX = useRef(-999999);
   const lastY = useRef(-999999);
   const lastVisible = useRef(true);
+  const lastZIndex = useRef<number | null>(null);
 
   const onOccludeRef = useRef(onOcclude);
   useLayoutEffect(() => {
@@ -205,7 +206,11 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
       const dist = scratchPos.current.distanceTo(camera.position);
       const aFactor = (zIndexRange[1] - zIndexRange[0]) / (camera.far - camera.near);
       const bFactor = zIndexRange[1] - aFactor * camera.far;
-      container.style.zIndex = `${Math.round(aFactor * dist + bFactor)}`;
+      const nextZIndex = Math.round(aFactor * dist + bFactor);
+      if (lastZIndex.current !== nextZIndex) {
+        lastZIndex.current = nextZIndex;
+        container.style.zIndex = String(nextZIndex);
+      }
     }
   });
 
