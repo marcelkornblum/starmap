@@ -103,7 +103,10 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   onPointerOver,
   onPointerOut,
 }) => {
-  const tokens = useThreeTokenStore((stateStore) => stateStore.tokens);
+  const stateFocus = useThreeTokenStore((stateStore) => stateStore.tokens.stateFocus);
+  const stateSelectedBorder = useThreeTokenStore((stateStore) => stateStore.tokens.stateSelectedBorder);
+  const reticleBracketColor = useThreeTokenStore((stateStore) => stateStore.tokens.reticleBracketColor);
+  const reticleBracketAlpha = useThreeTokenStore((stateStore) => stateStore.tokens.reticleBracketAlpha);
 
   const [x, y, z] = position;
   const [prevPropState, setPrevPropState] = useState(state);
@@ -312,14 +315,14 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
   // Reticle color and opacity (highlights interactive state)
   const reticleColor = isFocused
-    ? tokens.stateFocus
+    ? stateFocus
     : isSelected
-      ? tokens.stateSelectedBorder
-      : tokens.reticleBracketColor;
-  const reticleOpacity = isFocused ? 1.0 : isSelected ? 0.9 : tokens.reticleBracketAlpha;
+      ? stateSelectedBorder
+      : reticleBracketColor;
+  const reticleOpacity = isFocused ? 1.0 : isSelected ? 0.9 : reticleBracketAlpha;
 
   // Stalk color and opacity
-  const stalkColor = isFocused ? tokens.stateFocus : tokens.reticleBracketColor;
+  const stalkColor = isFocused ? stateFocus : reticleBracketColor;
   const stalkOpacity = isFocused ? 0.8 : 0.4;
 
   // Geometries memoized with Four-Facet Diamond Architecture
@@ -432,7 +435,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
         )}
 
         {/* Top-Right Facet: Typographic Label (System Designation) */}
-        {shouldRenderLabel && (
+        {shouldRenderReticle && shouldRenderLabel && (
           <Html
             position={[reticleSize * 1.15, reticleSize * 0.75, 0]}
             center={false}

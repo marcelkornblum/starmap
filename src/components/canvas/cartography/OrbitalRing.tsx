@@ -42,9 +42,10 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
   segments = 128,
   position = [0, 0, 0],
 }) => {
-  const tokens = useThreeTokenStore((state) => state.tokens);
+  const stateFocus = useThreeTokenStore((state) => state.tokens.stateFocus);
+  const categoryOrbit = useThreeTokenStore((state) => state.tokens.categoryOrbit);
 
-  const ringColor = isFocused ? tokens.stateFocus : tokens.categoryOrbit;
+  const ringColor = isFocused ? stateFocus : categoryOrbit;
   const ringOpacity = isFocused ? 0.95 : 0.45;
   const tickOpacity = isFocused ? 1.0 : 0.6;
 

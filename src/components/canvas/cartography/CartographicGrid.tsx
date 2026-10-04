@@ -166,14 +166,17 @@ const StalkedFootprintsLayer: React.FC<{
 
   useFrame(() => {
     const current = celestialOcclusionManager.getStalkedFootprints();
-    const hasChanged =
-      current.length !== stalked.length ||
-      current.some(
-        (c, i) =>
-          c.id !== stalked[i]?.id ||
-          c.state !== stalked[i]?.state ||
-          c.hasStalk !== stalked[i]?.hasStalk,
-      );
+    let hasChanged = current.length !== stalked.length;
+    if (!hasChanged) {
+      for (let i = 0; i < current.length; i++) {
+        const c = current[i];
+        const s = stalked[i];
+        if (c.id !== s?.id || c.state !== s?.state || c.hasStalk !== s?.hasStalk) {
+          hasChanged = true;
+          break;
+        }
+      }
+    }
     if (hasChanged) {
       setStalked([...current]);
     }
