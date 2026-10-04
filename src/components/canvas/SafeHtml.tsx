@@ -48,6 +48,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const scratchPos = useRef(new THREE.Vector3());
+  const scratchNdc = useRef(new THREE.Vector3());
   const rootRef = useRef<ReactDOM.Root | null>(null);
 
   const lastX = useRef(-999999);
@@ -103,7 +104,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
         </div>,
       );
     }
-  });
+  }, [children, className, dataTestId]);
 
   useFrame(() => {
     const container = containerRef.current;
@@ -113,21 +114,22 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     let y = 0;
     let isVisible = true;
 
+    groupRef.current.updateWorldMatrix(true, false);
+    scratchPos.current.setFromMatrixPosition(groupRef.current.matrixWorld);
+
     if (calculatePosition) {
       const coords = calculatePosition(groupRef.current, camera, size);
       x = coords[0];
       y = coords[1];
     } else {
-      groupRef.current.updateWorldMatrix(true, false);
-      const worldPos = scratchPos.current.setFromMatrixPosition(groupRef.current.matrixWorld);
-      worldPos.project(camera);
+      const ndc = scratchNdc.current.copy(scratchPos.current).project(camera);
 
       // Behind camera check
-      if (worldPos.z > 1.0) {
+      if (ndc.z > 1.0) {
         isVisible = false;
       } else {
-        x = (worldPos.x * 0.5 + 0.5) * size.width;
-        y = (-worldPos.y * 0.5 + 0.5) * size.height;
+        x = (ndc.x * 0.5 + 0.5) * size.width;
+        y = (-ndc.y * 0.5 + 0.5) * size.height;
       }
     }
 
@@ -156,7 +158,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
       isVisible &&
       (camera instanceof THREE.PerspectiveCamera || camera instanceof THREE.OrthographicCamera)
     ) {
-      const dist = groupRef.current.position.distanceTo(camera.position);
+      const dist = scratchPos.current.distanceTo(camera.position);
       const aFactor = (zIndexRange[1] - zIndexRange[0]) / (camera.far - camera.near);
       const bFactor = zIndexRange[1] - aFactor * camera.far;
       container.style.zIndex = `${Math.round(aFactor * dist + bFactor)}`;

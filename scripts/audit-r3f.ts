@@ -188,7 +188,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       }
 
       // Rule: No object literal allocations
-      if (node.type === 'ObjectLiteralExpression' || node.type === 'ObjectExpression') {
+      if (node.type === 'ObjectExpression') {
         addDiagnostic(
           node.loc.start,
           'no-alloc-in-use-frame',
@@ -199,7 +199,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       }
 
       // Rule: No array literal allocations
-      if (node.type === 'ArrayLiteralExpression' || node.type === 'ArrayExpression') {
+      if (node.type === 'ArrayExpression') {
         addDiagnostic(
           node.loc.start,
           'no-alloc-in-use-frame',
