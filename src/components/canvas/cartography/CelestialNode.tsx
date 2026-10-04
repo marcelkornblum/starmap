@@ -26,6 +26,15 @@ function getSpectralColor(spectralType?: string): string {
   }
 }
 
+const SHARED_STAR_DOT_GEOMETRY = new THREE.SphereGeometry(0.035, 16, 16);
+const SHARED_UNIT_CIRCLE_GEOMETRY = new THREE.CircleGeometry(1.0, 16);
+const SHARED_HITAREA_MATERIAL = new THREE.MeshBasicMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+});
+
 import {
   createReticleGeometry,
   type CelestialClassification,
@@ -130,6 +139,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const dotMeshRef = useRef<THREE.Mesh>(null);
   const reticleGroupRef = useRef<THREE.Group>(null);
   const worldPosRef = useRef(new THREE.Vector3(x, y, z));
+  const worldPosTupleRef = useRef<[number, number, number]>([x, y, z]);
   const scratchNdcRef = useRef(new THREE.Vector3());
   const labelContainerRef = useRef<HTMLDivElement>(null);
   const spectrumFacetRef = useRef<HTMLDivElement>(null);
@@ -137,6 +147,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
   useEffect(() => {
     worldPosRef.current.set(x, y, z);
+    worldPosTupleRef.current = [x, y, z];
   }, [x, y, z]);
 
   useEffect(() => {
@@ -210,7 +221,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     celestialOcclusionManager.register({
       id,
       state: currentState,
-      worldPos: [x, y, z],
+      worldPos: worldPosTupleRef.current,
       classification,
       reticleSize,
       hasStalk: shouldRenderStalk,
@@ -329,11 +340,11 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       {/* Layer 1: Physical System Node - 1px-2px invariant dot with permanent spectral hue */}
       <mesh
         ref={dotMeshRef}
+        geometry={SHARED_STAR_DOT_GEOMETRY}
         onClick={handleClick}
         onPointerOver={handlePointerOver}
         onPointerOut={handlePointerOut}
       >
-        <sphereGeometry args={[0.035, 16, 16]} />
         <meshBasicMaterial color={starColor} />
       </mesh>
 
@@ -342,18 +353,13 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
         {/* Invisible Hit Area matching the full reticle boundary */}
         <mesh
           name="reticle-hitarea"
+          geometry={SHARED_UNIT_CIRCLE_GEOMETRY}
+          material={SHARED_HITAREA_MATERIAL}
+          scale={[reticleSize * 1.35, reticleSize * 1.35, 1]}
           onClick={handleClick}
           onPointerOver={handlePointerOver}
           onPointerOut={handlePointerOut}
-        >
-          <circleGeometry args={[reticleSize * 1.35, 16]} />
-          <meshBasicMaterial
-            transparent
-            opacity={0}
-            depthWrite={false}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
+        />
 
         {/* Layer 2: Geometric Reticle Frame (Basic vs Full Composite Annotated) */}
         {shouldRenderReticle && (

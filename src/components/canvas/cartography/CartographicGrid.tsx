@@ -270,6 +270,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   const explicitFootprintsGroupRef = useRef<THREE.Group>(null);
   const scratchOrigin = useRef(new THREE.Vector3());
   const scratchCamDir = useRef(new THREE.Vector3());
+  const scratchQwXY = useRef([0, 0, 0, 0]);
+  const scratchQwXZ = useRef([0, 0, 0, 0]);
+  const scratchQwYZ = useRef([0, 0, 0, 0]);
 
   // Auto-calculated reference distance ensuring instrument fits comfortably in viewport (~93% vertical span)
   const effectiveRefDist = referenceDistance ?? radius * 3.49;
@@ -897,16 +900,16 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       return Math.max(segWeight, alphaNormal);
     };
 
-    // Calculate quadrant weights for each plane
-    const qwXY = QUADRANTS.map((quad) =>
-      calcQuadWeight(quad.qx, quad.qy, sx, sy, wTransX, wTransY, alphaZ),
-    );
-    const qwXZ = QUADRANTS.map((quad) =>
-      calcQuadWeight(quad.qx, quad.qy, sx, sz, wTransX, wTransZ, alphaY),
-    );
-    const qwYZ = QUADRANTS.map((quad) =>
-      calcQuadWeight(quad.qx, quad.qy, sy, sz, wTransY, wTransZ, alphaX),
-    );
+    // Calculate quadrant weights for each plane using pre-allocated scratch arrays (zero allocations)
+    const qwXY = scratchQwXY.current;
+    const qwXZ = scratchQwXZ.current;
+    const qwYZ = scratchQwYZ.current;
+    for (let qIdx = 0; qIdx < 4; qIdx++) {
+      const quad = QUADRANTS[qIdx];
+      qwXY[qIdx] = calcQuadWeight(quad.qx, quad.qy, sx, sy, wTransX, wTransY, alphaZ);
+      qwXZ[qIdx] = calcQuadWeight(quad.qx, quad.qy, sx, sz, wTransX, wTransZ, alphaY);
+      qwYZ[qIdx] = calcQuadWeight(quad.qx, quad.qy, sy, sz, wTransY, wTransZ, alphaX);
+    }
 
     // 5. Update Fin Perimeter Boundary Arcs with current aperture radius (Subtle perimeter boundary)
     if (showFins) {

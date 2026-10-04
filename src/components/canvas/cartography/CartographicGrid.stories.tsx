@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -8,41 +8,94 @@ import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
 import starsFixture from '../../../../tests/fixtures/stars.fixture.json';
 import styles from './StorybookCanvasWrapper.module.css';
 
-interface StarDotProps {
-  star: (typeof starsFixture)[0];
-  color: string;
-  onClick: (star: (typeof starsFixture)[0]) => void;
-}
+const SHARED_STAR_GEOMETRY = new THREE.SphereGeometry(0.08, 16, 16);
+const SHARED_STAR_MATERIAL = new THREE.MeshBasicMaterial();
+const scratchStarPos = new THREE.Vector3();
 
 /**
- * Minimalist 3D dot representing a star.
- * Screen-space invariance: The star dot never scales when the user zooms in or out,
- * maintaining a crisp, invariant visual footprint on screen.
+ * Minimalist 3D dots for stars in the test fixture.
+ * Rendered using a batched InstancedMesh with a single useFrame loop,
+ * maintaining a crisp, invariant visual footprint on screen with zero garbage collection.
+ * Clicking any star focuses the camera and OrbitControls directly on that star,
+ * demonstrating how the CartographicGrid dynamically locks its origin to the camera focus point.
  */
-const StarDot: React.FC<StarDotProps> = ({ star, color, onClick }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const pos = useMemo(() => new THREE.Vector3(star.x, star.y, star.z), [star.x, star.y, star.z]);
+const FixtureStars: React.FC = () => {
+  const { controls, camera } = useThree();
+  const instancedRef = useRef<THREE.InstancedMesh>(null);
+  const count = starsFixture.length;
+  const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  useFrame(({ camera }) => {
-    if (!meshRef.current) return;
-    const dist = camera.position.distanceTo(pos);
-    // Invariant visual screen footprint: dots never scale with camera zoom or perspective changes
-    const fovFactor = camera instanceof THREE.PerspectiveCamera
-      ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
-      : 1.0;
-    const s = (dist / 16.47) * fovFactor;
-    meshRef.current.scale.set(s, s, s);
+  // Initialize positions and spectral colors once
+  useEffect(() => {
+    if (!instancedRef.current) return;
+    const mesh = instancedRef.current;
+    const colorObj = new THREE.Color();
+
+    starsFixture.forEach((star, i) => {
+      dummy.position.set(star.x, star.y, star.z);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+
+      const s = star.spect?.charAt(0).toUpperCase();
+      const hex =
+        s === 'O' ? '#9db4ff' :
+        s === 'B' ? '#bbccff' :
+        s === 'A' ? '#f8f9ff' :
+        s === 'F' ? '#ffffed' :
+        s === 'G' ? '#fff4e8' :
+        s === 'K' ? '#ffd2a1' :
+        s === 'M' ? '#ffaa80' : '#ffffff';
+      colorObj.set(hex);
+      mesh.setColorAt(i, colorObj);
+    });
+
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  }, [dummy]);
+
+  // Single useFrame loop updating scale for invariant screen footprint across all stars
+  useFrame(({ camera: activeCam }) => {
+    if (!instancedRef.current) return;
+    const mesh = instancedRef.current;
+    const fovFactor =
+      activeCam instanceof THREE.PerspectiveCamera
+        ? Math.tan((activeCam.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
+        : 1.0;
+
+    for (let i = 0; i < count; i++) {
+      const star = starsFixture[i];
+      scratchStarPos.set(star.x, star.y, star.z);
+      const dist = activeCam.position.distanceTo(scratchStarPos);
+      const s = (dist / 16.47) * fovFactor;
+      dummy.position.set(star.x, star.y, star.z);
+      dummy.scale.set(s, s, s);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
   });
 
+  const handleClick = (e: any) => {
+    e.stopPropagation();
+    if (e.instanceId !== undefined && e.instanceId < count) {
+      const star = starsFixture[e.instanceId];
+      const ctrl = controls as any;
+      if (ctrl && ctrl.target instanceof THREE.Vector3) {
+        const offset = camera.position.clone().sub(ctrl.target);
+        ctrl.target.set(star.x, star.y, star.z);
+        camera.position.copy(ctrl.target).add(offset);
+        ctrl.update?.();
+      }
+    }
+  };
+
   return (
-    <mesh
-      ref={meshRef}
-      position={[star.x, star.y, star.z]}
-      name={`star-dot-${star.id}`}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick(star);
-      }}
+    <instancedMesh
+      ref={instancedRef}
+      args={[SHARED_STAR_GEOMETRY, SHARED_STAR_MATERIAL, count]}
+      name="fixture-stars"
+      onClick={handleClick}
       onPointerOver={(e) => {
         e.stopPropagation();
         document.body.style.cursor = 'pointer';
@@ -50,54 +103,7 @@ const StarDot: React.FC<StarDotProps> = ({ star, color, onClick }) => {
       onPointerOut={() => {
         document.body.style.cursor = 'auto';
       }}
-    >
-      <sphereGeometry args={[0.08, 16, 16]} />
-      <meshBasicMaterial color={color} />
-    </mesh>
-  );
-};
-
-/**
- * Minimalist 3D dots for stars in the test fixture.
- * The star dots never scale with camera zoom.
- * Clicking any star focuses the camera and OrbitControls directly on that star,
- * demonstrating how the CartographicGrid dynamically locks its origin to the camera focus point.
- */
-const FixtureStars: React.FC = () => {
-  const { controls, camera } = useThree();
-
-  const handleStarClick = (star: (typeof starsFixture)[0]) => {
-    const ctrl = controls as any;
-    if (ctrl && ctrl.target instanceof THREE.Vector3) {
-      const offset = camera.position.clone().sub(ctrl.target);
-      ctrl.target.set(star.x, star.y, star.z);
-      camera.position.copy(ctrl.target).add(offset);
-      ctrl.update?.();
-    }
-  };
-
-  return (
-    <group name="fixture-stars">
-      {starsFixture.map((star) => {
-        const s = star.spect?.charAt(0).toUpperCase();
-        const color =
-          s === 'O' ? '#9db4ff' :
-          s === 'B' ? '#bbccff' :
-          s === 'A' ? '#f8f9ff' :
-          s === 'F' ? '#ffffed' :
-          s === 'G' ? '#fff4e8' :
-          s === 'K' ? '#ffd2a1' :
-          s === 'M' ? '#ffaa80' : '#ffffff';
-        return (
-          <StarDot
-            key={star.id}
-            star={star}
-            color={color}
-            onClick={handleStarClick}
-          />
-        );
-      })}
-    </group>
+    />
   );
 };
 
