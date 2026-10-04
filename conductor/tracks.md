@@ -5,5 +5,6 @@
 - [x] **Track: Core Routing & State** *Link: [conductor/tracks/core-routing-state_20260929/index.md](./tracks/core-routing-state_20260929/index.md)*
 - [x] **Track: UI System & Primitives** *Link: [conductor/tracks/ui-system_20260929/index.md](./tracks/ui-system_20260929/index.md)*
 - [x] **Track: Visual Design Exploration** *Link: [conductor/tracks/visual-design-exploration_20260929/index.md](./tracks/visual-design-exploration_20260929/index.md)*
+- [ ] **Track: 3D Component Architecture Refactor** *Link: [conductor/tracks/3d-component-architecture_20261004/index.md](./tracks/3d-component-architecture_20261004/index.md)*
 - [ ] **Track: 3D Engine Implementation** *Link: [conductor/tracks/3d-engine-implementation_20260929/index.md](./tracks/3d-engine-implementation_20260929/index.md)*
 - [ ] **Track: Reference Engine & MDX** *Link: [conductor/tracks/reference-engine_20260929/index.md](./tracks/reference-engine_20260929/index.md)*
