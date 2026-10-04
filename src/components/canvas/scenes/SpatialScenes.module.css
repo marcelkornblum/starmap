@@ -1,0 +1,273 @@
+.viewportContainer {
+  inline-size: 100%;
+  block-size: 820px;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-container, 4px);
+  border: var(--stroke-width-1, 1px) solid var(--chrome-grid-primary-color, rgba(147, 161, 161, 0.25));
+  background-color: var(--surface-canvas-bg, #002b36);
+  font-family: var(--font-interface, sans-serif);
+  color: var(--text-color-primary, #fdf6e3);
+}
+
+.canvasWrapper {
+  inline-size: 100%;
+  block-size: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.topBar {
+  position: absolute;
+  inset-block-start: var(--space-viewport-edge, 16px);
+  inset-inline-start: var(--space-viewport-edge, 16px);
+  inset-inline-end: var(--space-viewport-edge, 16px);
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.breadcrumbBar {
+  background: var(--surface-hud-bg, rgba(7, 54, 66, 0.85));
+  border: var(--surface-hud-border-width, 1px) var(--surface-hud-border-style, solid) var(--surface-hud-border-color, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-control, 2px);
+  padding-block: var(--space-inset-control-y, 6px);
+  padding-inline: var(--space-inset-control-x, 12px);
+  backdrop-filter: var(--surface-hud-backdrop-blur, blur(6px));
+  display: flex;
+  align-items: center;
+  gap: var(--space-cluster-tight, 8px);
+  font-family: var(--font-data, monospace);
+  font-size: var(--type-scale-neg-1, 0.75rem);
+  pointer-events: auto;
+}
+
+.breadcrumbButton {
+  all: unset;
+  cursor: pointer;
+  color: var(--text-color-secondary, #93a1a1);
+  letter-spacing: var(--tracking-control, 0.05em);
+  transition: color var(--motion-duration-feedback, 120ms);
+}
+
+.breadcrumbButton:hover {
+  color: var(--state-focus, #268bd2);
+}
+
+.breadcrumbButton[data-active="true"] {
+  color: var(--text-color-primary, #fdf6e3);
+  font-weight: 600;
+  cursor: default;
+}
+
+.breadcrumbSeparator {
+  color: var(--text-color-muted, #586e75);
+  font-size: var(--type-scale-neg-2, 0.65rem);
+  user-select: none;
+}
+
+.modeToggleBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-cluster-dense, 6px);
+  background: var(--surface-hud-bg, rgba(7, 54, 66, 0.85));
+  border: var(--surface-hud-border-width, 1px) var(--surface-hud-border-style, solid) var(--surface-hud-border-color, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-control, 2px);
+  padding-block: var(--space-inset-control-y, 4px);
+  padding-inline: var(--space-inset-control-x, 8px);
+  backdrop-filter: var(--surface-hud-backdrop-blur, blur(6px));
+  pointer-events: auto;
+}
+
+.sidePaneLeft {
+  position: absolute;
+  inset-block-start: calc(var(--space-viewport-edge, 16px) + 44px);
+  inset-inline-start: var(--space-viewport-edge, 16px);
+  z-index: 10;
+  inline-size: 320px;
+  pointer-events: auto;
+}
+
+.sidePaneRight {
+  position: absolute;
+  inset-block-start: calc(var(--space-viewport-edge, 16px) + 44px);
+  inset-inline-end: var(--space-viewport-edge, 16px);
+  z-index: 10;
+  inline-size: 380px;
+  max-block-size: calc(100% - 130px);
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+.bottomDock {
+  position: absolute;
+  inset-block-end: var(--space-viewport-edge, 16px);
+  inset-inline-start: var(--space-viewport-edge, 16px);
+  inset-inline-end: var(--space-viewport-edge, 16px);
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.bottomDockLeft {
+  pointer-events: auto;
+  background: var(--surface-hud-bg, rgba(7, 54, 66, 0.85));
+  border: var(--surface-hud-border-width, 1px) var(--surface-hud-border-style, solid) var(--surface-hud-border-color, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-control, 2px);
+  padding: var(--space-inset-card, 12px);
+  backdrop-filter: var(--surface-hud-backdrop-blur, blur(6px));
+}
+
+.bottomDockRight {
+  pointer-events: auto;
+  background: var(--surface-hud-bg, rgba(7, 54, 66, 0.85));
+  border: var(--surface-hud-border-width, 1px) var(--surface-hud-border-style, solid) var(--surface-hud-border-color, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-control, 2px);
+  padding: var(--space-inset-card, 12px);
+  backdrop-filter: var(--surface-hud-backdrop-blur, blur(6px));
+}
+
+.manifestCard {
+  background: var(--surface-hud-bg, rgba(7, 54, 66, 0.85));
+  border: var(--surface-hud-border-width, 1px) var(--surface-hud-border-style, solid) var(--surface-hud-border-color, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-container, 4px);
+  backdrop-filter: var(--surface-hud-backdrop-blur, blur(6px));
+  overflow: hidden;
+}
+
+.manifestHeader {
+  padding-block: var(--space-inset-cell-y, 8px);
+  padding-inline: var(--space-inset-cell-x, 12px);
+  border-block-end: var(--surface-inset-border-width, 1px) var(--surface-inset-border-style, solid) var(--surface-inset-border-color, rgba(255, 255, 255, 0.08));
+  background: var(--surface-inset-bg, rgba(0, 43, 54, 0.6));
+  font-family: var(--font-data, monospace);
+  font-size: var(--type-scale-neg-1, 0.75rem);
+  letter-spacing: var(--tracking-control, 0.05em);
+  text-transform: uppercase;
+  color: var(--text-color-secondary, #93a1a1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.manifestCount {
+  color: var(--text-color-muted, #586e75);
+  font-size: var(--type-scale-neg-2, 0.65rem);
+}
+
+.manifestList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-block-size: 260px;
+  overflow-y: auto;
+}
+
+.manifestRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-block: var(--space-inset-cell-y, 8px);
+  padding-inline: var(--space-inset-cell-x, 12px);
+  cursor: pointer;
+  border-block-end: var(--stroke-width-1, 1px) solid rgba(255, 255, 255, 0.04);
+  transition: background-color var(--motion-duration-feedback, 120ms);
+  font-family: var(--font-data, monospace);
+  font-size: var(--type-scale-neg-1, 0.75rem);
+}
+
+.manifestRow:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.manifestRow[data-state="selected"] {
+  background-color: rgba(38, 139, 210, 0.18);
+  border-inline-start: var(--stroke-width-2, 2px) solid var(--state-focus, #268bd2);
+}
+
+.manifestRow[data-state="active"] {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.manifestItemName {
+  display: flex;
+  align-items: center;
+  gap: var(--space-cluster-tight, 6px);
+  color: var(--text-color-primary, #fdf6e3);
+  font-weight: 500;
+}
+
+.manifestItemMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-cluster-tight, 6px);
+  color: var(--text-color-secondary, #93a1a1);
+  font-size: var(--type-scale-neg-2, 0.65rem);
+}
+
+.badgePill {
+  font-size: var(--type-scale-neg-2, 0.65rem);
+  font-family: var(--font-data, monospace);
+  padding-block: 1px;
+  padding-inline: 6px;
+  border-radius: var(--radius-badge, 2px);
+  border: var(--stroke-width-1, 1px) solid rgba(255, 255, 255, 0.15);
+  color: var(--text-color-secondary, #93a1a1);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.telemetryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-grid-gap, 12px);
+}
+
+.telemetryItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-stack-dense, 4px);
+  font-family: var(--font-data, monospace);
+}
+
+.telemetryLabel {
+  font-size: var(--type-scale-neg-2, 0.65rem);
+  color: var(--text-color-muted, #586e75);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-control, 0.05em);
+}
+
+.telemetryValue {
+  font-size: var(--type-scale-0, 0.875rem);
+  color: var(--text-color-primary, #fdf6e3);
+  font-weight: 500;
+}
+
+.attitudeWidget {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-stack-dense, 4px);
+  font-family: var(--font-data, monospace);
+  font-size: var(--type-scale-neg-2, 0.65rem);
+}
+
+.attitudeHeader {
+  color: var(--text-color-muted, #586e75);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-control, 0.05em);
+  font-weight: 600;
+}
+
+.attitudeRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-cluster-default, 12px);
+  color: var(--text-color-secondary, #93a1a1);
+}
+
+.attitudeValue {
+  color: var(--text-color-primary, #fdf6e3);
+}
