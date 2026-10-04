@@ -931,11 +931,12 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
         const qwList = plane === 'xy' ? qwXY : plane === 'xz' ? qwXZ : qwYZ;
 
-        pArcs.forEach((pItem, qIdx) => {
+        for (let qIdx = 0; qIdx < pArcs.length; qIdx++) {
+          const pItem = pArcs[qIdx];
           pItem.line.scale.set(currentRadius, currentRadius, currentRadius);
           pItem.mat.opacity = tokens.gridPrimaryAlpha * 0.7 * qwList[qIdx] * fadePlane;
           pItem.line.visible = pItem.mat.opacity > 0.001;
-        });
+        }
       }
 
       // 6. Update Concentric Range Rings across all planes (Alternating Brighter vs Dimmer hierarchy)
@@ -956,20 +957,22 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
             const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
             const qwList = plane === 'xy' ? qwXY : plane === 'xz' ? qwXZ : qwYZ;
 
-            quads.forEach((item, qIdx) => {
+            for (let qIdx = 0; qIdx < quads.length; qIdx++) {
+              const item = quads[qIdx];
               item.line.scale.set(r, r, r);
               item.mat.opacity = baseAlpha * ringFade * qwList[qIdx] * fadePlane;
               item.line.visible = item.mat.opacity > 0.001;
-            });
+            }
           }
         } else {
           // Inactive ring in pool
           for (const plane of PLANES) {
             const quads = qData[plane][ringIdx];
-            quads.forEach((item) => {
+            for (let qIdx = 0; qIdx < quads.length; qIdx++) {
+              const item = quads[qIdx];
               item.mat.opacity = 0;
               item.line.visible = false;
-            });
+            }
           }
         }
       }
@@ -980,11 +983,12 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
         const qwList = plane === 'xy' ? qwXY : plane === 'xz' ? qwXZ : qwYZ;
 
-        ticks.forEach((tickItem, qIdx) => {
+        for (let qIdx = 0; qIdx < ticks.length; qIdx++) {
+          const tickItem = ticks[qIdx];
           tickItem.line.scale.set(currentRadius, currentRadius, currentRadius);
           tickItem.mat.opacity = Math.max(tokens.rangeTickAlpha * 1.6, 0.35) * qwList[qIdx] * fadePlane;
           tickItem.line.visible = tickItem.mat.opacity > 0.001;
-        });
+        }
       }
     }
 
