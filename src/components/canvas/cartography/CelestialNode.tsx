@@ -2,7 +2,7 @@ import type React from 'react';
 import { useMemo, useRef, useEffect, useState, Fragment } from 'react';
 import * as THREE from 'three';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { SafeHtml } from '../SafeHtml';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import {
@@ -494,7 +494,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
         {/* Top-Right Facet: Typographic Label (System Designation) */}
         {shouldRenderReticle && shouldRenderLabel && (
-          <Html
+          <SafeHtml
             key={`${id}-label`}
             position={[reticleSize * 1.15, reticleSize * 0.75, 0]}
             center={false}
@@ -508,12 +508,12 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
             >
               <span>{name}</span>
             </div>
-          </Html>
+          </SafeHtml>
         )}
 
         {/* Bottom-Right Facet: Solar Spectrum Type (placed tight to the reticle) */}
         {shouldRenderLabel && isAnnotated && spectralType && (
-          <Html
+          <SafeHtml
             key={`${id}-spectrum`}
             position={[reticleSize * 0.65, -reticleSize * 0.45, 0]}
             center={false}
@@ -532,13 +532,13 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
                 </Fragment>
               ))}
             </div>
-          </Html>
+          </SafeHtml>
         )}
       </group>
 
       {/* Typographic Label fallback if reticle is hidden (e.g. passive with explicit showLabel) */}
       {!shouldRenderReticle && shouldRenderLabel && (
-        <Html
+        <SafeHtml
           key={`${id}-fallback-label`}
           position={[0.2, 0.2, 0]}
           center={false}
@@ -552,13 +552,13 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
           >
             <span>{name}</span>
           </div>
-        </Html>
+        </SafeHtml>
       )}
 
       {/* Strict Single-Stalk Rule: Drop Stalk down to Datum Plane Z=0 */}
       {shouldRenderStalk && stalkGeometry && (
         <group name="drop-stalk">
-          <lineSegments geometry={stalkGeometry} data-color={stalkColor}>
+          <lineSegments geometry={stalkGeometry}>
             <primitive object={stalkMaterial} attach="material" />
           </lineSegments>
         </group>

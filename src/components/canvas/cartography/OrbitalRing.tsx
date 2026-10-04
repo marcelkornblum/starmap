@@ -276,7 +276,7 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
   });
 
   return (
-    <group position={position} data-testid="orbital-ring">
+    <group position={position} name="orbital-ring" data-testid="orbital-ring">
       <lineLoop
         geometry={orbitGeometry}
         name="orbit-path"
@@ -287,7 +287,6 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
           }
           onClick?.(bodyId);
         }}
-        data-color={resolvedColor}
       >
         <primitive object={orbitMaterial} attach="material" />
       </lineLoop>

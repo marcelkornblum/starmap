@@ -23,7 +23,6 @@
   --indicator-y: 0px;
   --indicator-color: var(--chrome-bearing-core-cue-color, var(--palette-solarized-yellow));
   --indicator-bg: var(--palette-black-alpha-70);
-  --indicator-border-color: color-mix(in srgb, var(--indicator-color) 50%, transparent);
 
   position: absolute;
   top: 0;
@@ -41,10 +40,10 @@
   text-transform: uppercase;
   color: var(--indicator-color);
   background: var(--indicator-bg);
-  border: var(--border-width-1) solid var(--indicator-border-color);
+  border: none;
   border-radius: var(--radius-badge);
   backdrop-filter: blur(var(--filter-blur-0));
-  box-shadow: 0 0 8px color-mix(in srgb, var(--indicator-color) 25%, transparent);
+  box-shadow: none;
   will-change: transform;
   transition: opacity var(--motion-duration-feedback) var(--motion-ease-default);
 }
@@ -52,12 +51,10 @@
 /* Bearing types */
 .indicator[data-bearing="core"] {
   --indicator-color: var(--chrome-bearing-core-cue-color, var(--palette-solarized-yellow));
-  --indicator-border-color: color-mix(in srgb, var(--indicator-color) 50%, transparent);
 }
 
 .indicator[data-bearing="orbital"] {
   --indicator-color: var(--chrome-bearing-orbital-cue-color, var(--palette-solarized-red));
-  --indicator-border-color: color-mix(in srgb, var(--indicator-color) 50%, transparent);
 }
 
 /* Edge alignments: transforms relative to the screen edge intersection point */
@@ -83,13 +80,11 @@
 
 /* Detached state */
 .indicator[data-detached="true"] {
-  border-style: dashed;
-  opacity: 0.85;
+  opacity: var(--opacity-85);
 }
 
 .indicator[data-detached="false"] {
-  border-style: solid;
-  opacity: 1;
+  opacity: var(--opacity-100);
 }
 
 .chevronWrapper {
@@ -111,4 +106,6 @@
 .label {
   font-variant-numeric: tabular-nums;
   line-height: var(--line-height-1);
+  color: var(--content-muted);
+  opacity: var(--opacity-50);
 }

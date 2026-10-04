@@ -2,7 +2,7 @@ import type React from 'react';
 import { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { SafeHtml } from '../SafeHtml';
 import {
   calculateScreenEdgeBearing,
   type ScreenEdgeSide,
@@ -177,7 +177,7 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
 
   return (
     <group ref={groupRef} name="screen-edge-bearings">
-      <Html
+      <SafeHtml
         calculatePosition={() => [0, 0]}
         wrapperClass={styles.htmlOverlayContainer}
         pointerEvents="none"
@@ -240,7 +240,7 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
             </div>
           )}
         </div>
-      </Html>
+      </SafeHtml>
     </group>
   );
 };
