@@ -13,20 +13,29 @@ export const ThemeTokenBridge: React.FC = () => {
   return null;
 };
 
+export interface SceneTokenBridgeProps {
+  /** When true (default), preserves canvas transparency so prepended HTML overlays render behind WebGL objects */
+  transparent?: boolean;
+}
+
 /**
  * WebGL / Three.js-side synchronization bridge component.
  * Mount inside the R3F <Canvas> tree to update clear colour and scene background.
  */
-export const SceneTokenBridge: React.FC = () => {
+export const SceneTokenBridge: React.FC<SceneTokenBridgeProps> = ({ transparent = true }) => {
   const { gl } = useThree();
   const tokens = useThreeTokenStore((state) => state.tokens);
 
   useEffect(() => {
     if (!gl) return;
-    gl.setClearColor(tokens.canvasBg, tokens.canvasOpacity);
-  }, [gl, tokens.canvasBg, tokens.canvasOpacity]);
+    if (transparent || tokens.canvasOpacity <= 0) {
+      gl.setClearColor(0x000000, 0);
+    } else {
+      gl.setClearColor(tokens.canvasBg, tokens.canvasOpacity);
+    }
+  }, [gl, transparent, tokens.canvasBg, tokens.canvasOpacity]);
 
-  if (tokens.canvasOpacity <= 0) {
+  if (transparent || tokens.canvasOpacity <= 0) {
     return null;
   }
 

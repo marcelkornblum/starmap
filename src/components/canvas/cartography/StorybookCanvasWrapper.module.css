@@ -8,6 +8,11 @@
   background-color: var(--surface-canvas-bg);
 }
 
+.viewportContainer canvas {
+  position: relative;
+  z-index: 1;
+}
+
 .controlsOverlay {
   position: absolute;
   inset-block-start: var(--space-3);

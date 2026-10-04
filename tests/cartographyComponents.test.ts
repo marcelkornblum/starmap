@@ -9,6 +9,11 @@ import {
   computeCardinalAlignment,
   computeTransitionWeights,
   computeZoomAdaptiveRings,
+  diamondIntersectsAABB,
+  circleIntersectsAABB,
+  boxIntersectsFootprint,
+  CelestialOcclusionManager,
+  celestialOcclusionManager,
 } from '../src/components/canvas/cartography';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
@@ -439,4 +444,147 @@ describe('3D Cartography Components', () => {
       expect(html).toContain('orbital-ring');
     });
   });
+
+  describe('CelestialOcclusionManager & Collision Geometry', () => {
+    beforeEach(() => {
+      celestialOcclusionManager.clear();
+    });
+
+    it('detects diamond reticle intersection correctly with L1 distance metric', () => {
+      const cx = 100;
+      const cy = 100;
+      const radius = 40; // diamond vertices at (60, 100), (140, 100), (100, 60), (100, 140)
+
+      // 1. Box completely inside diamond
+      expect(diamondIntersectsAABB(cx, cy, radius, { left: 95, top: 95, right: 105, bottom: 105 })).toBe(true);
+
+      // 2. Box overlapping diamond right corner (x=140)
+      expect(diamondIntersectsAABB(cx, cy, radius, { left: 135, top: 95, right: 155, bottom: 105 })).toBe(true);
+
+      // 3. Box overlapping diamond top diagonal edge (e.g. at x=120, y=70 -> dx=20, dy=30, sum=50 > 40: outside!)
+      expect(diamondIntersectsAABB(cx, cy, radius, { left: 125, top: 65, right: 140, bottom: 75 })).toBe(false);
+
+      // 4. Box barely touching diagonal edge (dx=20, dy=20, sum=40 == radius)
+      expect(diamondIntersectsAABB(cx, cy, radius, { left: 120, top: 80, right: 130, bottom: 90 })).toBe(true);
+
+      // 5. Far away box
+      expect(diamondIntersectsAABB(cx, cy, radius, { left: 200, top: 200, right: 250, bottom: 220 })).toBe(false);
+    });
+
+    it('detects star dot circle intersection correctly', () => {
+      const cx = 50;
+      const cy = 50;
+      const radius = 5;
+
+      // 1. Box covering circle
+      expect(circleIntersectsAABB(cx, cy, radius, { left: 45, top: 45, right: 55, bottom: 55 })).toBe(true);
+
+      // 2. Box grazing circle edge
+      expect(circleIntersectsAABB(cx, cy, radius, { left: 54, top: 50, right: 60, bottom: 52 })).toBe(true);
+
+      // 3. Box completely outside circle
+      expect(circleIntersectsAABB(cx, cy, radius, { left: 56, top: 50, right: 65, bottom: 55 })).toBe(false);
+    });
+
+    it('tests footprint intersection for diamond reticles and star circles', () => {
+      const footprint = {
+        id: 'test-node',
+        state: 'active' as const,
+        screenX: 100,
+        screenY: 100,
+        reticleRadius: 40,
+        starRadius: 5,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      };
+
+      // Intersecting reticle
+      expect(boxIntersectsFootprint({ left: 130, top: 90, right: 150, bottom: 110 }, footprint)).toBe(true);
+
+      // Not intersecting
+      expect(boxIntersectsFootprint({ left: 160, top: 160, right: 180, bottom: 180 }, footprint)).toBe(false);
+
+      // Hidden footprint returns false
+      expect(boxIntersectsFootprint({ left: 95, top: 95, right: 105, bottom: 105 }, { ...footprint, visible: false })).toBe(false);
+    });
+
+    it('evaluates label visibility according to authoritative occlusion rules', () => {
+      const manager = new CelestialOcclusionManager();
+
+      // Rule 1: When intersection occurs, unselected nodes disappear
+      const activeOccluded = manager.evaluateLabelVisibility('active', true);
+      expect(activeOccluded.visible).toBe(false);
+      expect(activeOccluded.behindCanvas).toBe(true);
+
+      const passiveOccluded = manager.evaluateLabelVisibility('passive', true);
+      expect(passiveOccluded.visible).toBe(false);
+
+      // Rule 2: When intersection occurs, selected or focused nodes remain visible behind canvas
+      const selectedOccluded = manager.evaluateLabelVisibility('selected', true);
+      expect(selectedOccluded.visible).toBe(true);
+      expect(selectedOccluded.behindCanvas).toBe(true);
+
+      const focusedOccluded = manager.evaluateLabelVisibility('focused', true);
+      expect(focusedOccluded.visible).toBe(true);
+      expect(focusedOccluded.behindCanvas).toBe(true);
+
+      // Rule 3: When no intersection occurs, all active states remain visible
+      const activeClean = manager.evaluateLabelVisibility('active', false);
+      expect(activeClean.visible).toBe(true);
+
+      const selectedClean = manager.evaluateLabelVisibility('selected', false);
+      expect(selectedClean.visible).toBe(true);
+    });
+
+    it('manages multi-node collision detection and registration lifecycle', () => {
+      const manager = new CelestialOcclusionManager();
+
+      // Register Node A (Sol) at (100, 100)
+      manager.register({
+        id: 'sol',
+        state: 'active',
+        screenX: 100,
+        screenY: 100,
+        reticleRadius: 40,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Register Node B (Alpha Centauri) at (220, 100)
+      manager.register({
+        id: 'alpha-centauri',
+        state: 'active',
+        screenX: 220,
+        screenY: 100,
+        reticleRadius: 40,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      expect(manager.size).toBe(2);
+
+      // Label 1: Placed between nodes, overlapping Node B's diamond reticle (left edge at 190 overlaps reticle at 220-40=180)
+      const collidingBox = { left: 190, top: 90, right: 240, bottom: 110 };
+      const collisionResult = manager.checkIntersection('sol', collidingBox);
+      expect(collisionResult.hasIntersection).toBe(true);
+      expect(collisionResult.collidingNodeId).toBe('alpha-centauri');
+
+      // Label 2: Placed far above, no overlap with any node
+      const safeBox = { left: 140, top: 10, right: 180, bottom: 30 };
+      const safeResult = manager.checkIntersection('sol', safeBox);
+      expect(safeResult.hasIntersection).toBe(false);
+
+      // Unregister Node B: collision should now be cleared
+      manager.unregister('alpha-centauri');
+      expect(manager.size).toBe(1);
+      const postUnregisterResult = manager.checkIntersection('sol', collidingBox, { checkSelf: false });
+      expect(postUnregisterResult.hasIntersection).toBe(false);
+    });
+  });
 });
+

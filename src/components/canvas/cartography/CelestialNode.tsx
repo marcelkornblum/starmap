@@ -1,9 +1,10 @@
 import type React from 'react';
 import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import { celestialOcclusionManager, type Box2D } from './celestialOcclusionRegistry';
 import styles from './CelestialNode.module.css';
 
 /**
@@ -464,6 +465,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   onPointerOut,
 }) => {
   const tokens = useThreeTokenStore((stateStore) => stateStore.tokens);
+  const { gl } = useThree();
 
   const [x, y, z] = position;
   const [prevPropState, setPrevPropState] = useState(state);
@@ -476,14 +478,15 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     }
   }
 
-  // Clean up cursor on unmount
+  // Clean up cursor and unregister from occlusion manager on unmount
   useEffect(() => {
     return () => {
+      celestialOcclusionManager.unregister(id);
       if (typeof document !== 'undefined') {
         document.body.style.cursor = 'auto';
       }
     };
-  }, []);
+  }, [id]);
 
   const currentState = internalState;
   const isSelected = currentState === 'selected';
@@ -504,12 +507,14 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const reticleGroupRef = useRef<THREE.Group>(null);
   const footprintGroupRef = useRef<THREE.Group>(null);
   const worldPosRef = useRef(new THREE.Vector3(x, y, z));
+  const labelContainerRef = useRef<HTMLDivElement>(null);
+  const spectrumFacetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     worldPosRef.current.set(x, y, z);
   }, [x, y, z]);
 
-  useFrame(({ camera }) => {
+  useFrame(({ camera, size }) => {
     const camDist = camera.position.distanceTo(worldPosRef.current);
     // Invariant screen footprint: neither dot nor reticle scales with camera zoom or perspective changes
     const fovFactor = camera instanceof THREE.PerspectiveCamera
@@ -531,6 +536,77 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     // Datum footprint on plane: lies flat on Z=0 reference plane, scaled to match reticle size
     if (footprintGroupRef.current) {
       footprintGroupRef.current.scale.set(invScale, invScale, invScale);
+    }
+
+    // --- Occlusion & Intersection Tracking ---
+    const ndc = worldPosRef.current.clone().project(camera);
+    const isBehindCamera = ndc.z > 1.0;
+    const screenX = (ndc.x * 0.5 + 0.5) * size.width;
+    const screenY = (-ndc.y * 0.5 + 0.5) * size.height;
+    const reticleRadius = (reticleSize / 13.644) * size.height;
+    const starRadius = Math.max(3, (0.035 / 13.644) * size.height);
+
+    // Compute label bounding box in screen pixels
+    let activeBox: Box2D | undefined;
+    if (labelContainerRef.current) {
+      const rect = labelContainerRef.current.getBoundingClientRect();
+      const canvasRect = gl?.domElement?.getBoundingClientRect();
+      if (canvasRect && rect.width > 0 && rect.height > 0) {
+        activeBox = {
+          left: rect.left - canvasRect.left,
+          top: rect.top - canvasRect.top,
+          right: rect.right - canvasRect.left,
+          bottom: rect.bottom - canvasRect.top,
+        };
+      }
+    }
+
+    // Fallback analytical box if DOM rect is unmeasured (e.g. initial frame or offscreen)
+    if (!activeBox && shouldRenderLabel) {
+      const estimatedW = name.length * 8 + (spectralType ? 45 : 0) + 12;
+      const estimatedH = 18;
+      const anchorX = screenX + 1.15 * reticleRadius;
+      const anchorY = screenY - 0.75 * reticleRadius;
+      activeBox = {
+        left: anchorX,
+        top: anchorY - estimatedH / 2,
+        right: anchorX + estimatedW,
+        bottom: anchorY + estimatedH / 2,
+      };
+    }
+
+    // Register footprint in occlusion manager
+    celestialOcclusionManager.register({
+      id,
+      state: currentState,
+      screenX,
+      screenY,
+      reticleRadius,
+      starRadius,
+      hasReticle: shouldRenderReticle,
+      labelBox: activeBox,
+      visible: !isBehindCamera,
+      updatedAt: performance.now(),
+    });
+
+    // Check if this label intersects ANY active star or reticle in the scene
+    let hasIntersection = false;
+    if (activeBox && !isBehindCamera && shouldRenderLabel) {
+      const checkResult = celestialOcclusionManager.checkIntersection(id, activeBox);
+      hasIntersection = checkResult.hasIntersection;
+    }
+
+    // Authoritative rule:
+    // If they intersect, label disappears UNLESS it is for a selected or focused element.
+    // Selected or focused elements appear behind the reticle and star, overlapping.
+    const evalResult = celestialOcclusionManager.evaluateLabelVisibility(currentState, hasIntersection);
+    const shouldShowLabel = evalResult.visible;
+
+    if (labelContainerRef.current) {
+      labelContainerRef.current.style.display = shouldShowLabel ? 'flex' : 'none';
+    }
+    if (spectrumFacetRef.current) {
+      spectrumFacetRef.current.style.display = shouldShowLabel ? 'flex' : 'none';
     }
   });
 
@@ -656,9 +732,15 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
           <Html
             position={[reticleSize * 1.15, reticleSize * 0.75, 0]}
             center={false}
+            prepend={true}
+            zIndexRange={[0, 0]}
             data-testid="celestial-label"
           >
-            <div className={styles.nodeLabel} data-state={currentState}>
+            <div
+              ref={labelContainerRef}
+              className={styles.nodeLabel}
+              data-state={currentState}
+            >
               <span>{name}</span>
               {!isAnnotated && spectralType && <span className={styles.spectralTag}>{spectralType}</span>}
             </div>
@@ -670,9 +752,15 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
           <Html
             position={[reticleSize * 1.15, -reticleSize * 0.75, 0]}
             center={false}
+            prepend={true}
+            zIndexRange={[0, 0]}
             data-testid="celestial-spectrum-facet"
           >
-            <div className={styles.spectralFacet} data-state={currentState}>
+            <div
+              ref={spectrumFacetRef}
+              className={styles.spectralFacet}
+              data-state={currentState}
+            >
               <span>{spectralType}</span>
             </div>
           </Html>
@@ -684,9 +772,15 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
         <Html
           position={[0.2, 0.2, 0]}
           center={false}
+          prepend={true}
+          zIndexRange={[0, 0]}
           data-testid="celestial-label"
         >
-          <div className={styles.nodeLabel} data-state={currentState}>
+          <div
+            ref={labelContainerRef}
+            className={styles.nodeLabel}
+            data-state={currentState}
+          >
             <span>{name}</span>
             {spectralType && <span className={styles.spectralTag}>{spectralType}</span>}
           </div>

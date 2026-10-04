@@ -186,3 +186,43 @@ export const UniversalTaxonomyGallery: Story = {
     );
   },
 };
+
+export const LabelOcclusionDemo: Story = {
+  name: 'Label Occlusion (Priority Behind Star & Reticle)',
+  render: () => {
+    const OcclusionDemo = () => {
+      const [selectedId, setSelectedId] = useState<string | null>(null);
+
+      return (
+        <group>
+          {/* Node 1: Primary star whose label points toward Node 2 */}
+          <CelestialNode
+            id="node-primary"
+            name="Alpha Centauri A"
+            position={[0.8, 1.2, 1.5]}
+            classification="star"
+            state={selectedId === 'node-primary' ? 'selected' : 'active'}
+            spectralType="G2V"
+            showStalk={true}
+            onClick={() => setSelectedId((prev) => (prev === 'node-primary' ? null : 'node-primary'))}
+          />
+
+          {/* Node 2: Secondary companion star situated directly in Node 1's label path */}
+          <CelestialNode
+            id="node-companion"
+            name="Alpha Centauri B"
+            position={[1.5, 1.6, 1.5]}
+            classification="star"
+            state={selectedId === 'node-companion' ? 'selected' : 'active'}
+            spectralType="K1V"
+            showStalk={true}
+            onClick={() => setSelectedId((prev) => (prev === 'node-companion' ? null : 'node-companion'))}
+          />
+        </group>
+      );
+    };
+
+    return <OcclusionDemo />;
+  },
+};
+
