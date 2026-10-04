@@ -154,13 +154,21 @@ const ReticleFootprintNode: React.FC<ReticleFootprintNodeProps> = ({
  * Automatically projects planar ground footprints on the Galactic Equator (Z=0)
  * for any CelestialNodes with active drop stalks in the scene.
  */
-const StalkedFootprintsLayer: React.FC<{
+interface StalkedFootprintsLayerProps {
   originRef: React.RefObject<THREE.Vector3>;
   initialPosition: [number, number, number];
   defaultColor: THREE.Color;
   defaultAlpha: number;
   tokens: ReturnType<typeof useThreeTokenStore.getState>['tokens'];
-}> = ({ originRef, initialPosition, defaultColor, defaultAlpha, tokens }) => {
+}
+
+const StalkedFootprintsLayer: React.FC<StalkedFootprintsLayerProps> = ({
+  originRef,
+  initialPosition,
+  defaultColor,
+  defaultAlpha,
+  tokens,
+}) => {
   const [stalked, setStalked] = useState<CelestialFootprint[]>([]);
   const groupRef = useRef<THREE.Group>(null);
 
@@ -178,7 +186,7 @@ const StalkedFootprintsLayer: React.FC<{
       }
     }
     if (hasChanged) {
-      setStalked([...current]);
+      setStalked(current.map((item) => ({ ...item })));
     }
     if (groupRef.current && originRef.current) {
       groupRef.current.position.set(-originRef.current.x, -originRef.current.y, 0.002);
@@ -613,7 +621,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
           opacity: isExplicit ? alpha : 0,
           visible: isExplicit,
         });
-        const line = new THREE.LineSegments(geom, mat);
+        const line = new THREE.Line(geom, mat);
         line.scale.set(initialR, initialR, 1);
         line.frustumCulled = false;
         return { geom, mat, line, qx: quad.qx, qy: quad.qy };
