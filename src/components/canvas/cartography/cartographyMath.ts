@@ -425,9 +425,9 @@ export function populateCurvedDashedLineBuffer(
  * Composed of:
  * 1. Gentle concentric circular arcs centered at the distant Galactic Centre (+X Core direction).
  * 2. Radial rays originating from the distant Galactic Centre and expanding outward.
- * Spaced by `gridGap` across `extent` in the local XY plane.
- * When `omitCoreAxis` is true, the radial ray at j=0 omits x >= 0 so the central point bearing (+X Core)
- * does not compete with an underlying axis line.
+ * Strictly bounded by [-extent, extent] x [-extent, extent] in the local XY plane.
+ * When `omitCoreAxis` is true, the ray at Y=0 is completely omitted so the Core bearing (+X Core)
+ * does not compete with an underlying axis line and does not extend away from the core in -X.
  */
 export function createGalacticPlanarGridGeometry(
   extent = 1200,
@@ -443,48 +443,104 @@ export function createGalacticPlanarGridGeometry(
   const safeSegments = Math.max(4, arcSegments);
 
   // Concentric circular arcs centered at Galactic Centre (+safeRgc, 0, 0)
-  const nArcs = Math.ceil(safeExtent / safeGap);
-  for (let i = -nArcs; i <= nArcs; i++) {
+  // Distance from (safeRgc, 0) to furthest point in [-safeExtent, safeExtent]^2:
+  const rMax = Math.hypot(safeRgc + safeExtent, safeExtent);
+  const minX0 = safeRgc - rMax;
+  const maxX0 = safeExtent;
+  const iMin = Math.floor(minX0 / safeGap);
+  const iMax = Math.floor(maxX0 / safeGap);
+
+  for (let i = iMin; i <= iMax; i++) {
     const x0 = i * safeGap;
-    const rArc = safeRgc - x0;
-    if (rArc <= safeExtent * 0.1) continue;
+    const R = safeRgc - x0;
+    if (R <= 0) continue;
 
-    // Angle span covering -safeExtent to +safeExtent in Y:
-    // y = rArc * sin(theta) => thetaMax = asin(min(0.95, safeExtent / rArc))
-    const thetaMax = Math.asin(Math.min(0.95, safeExtent / rArc));
-    for (let s = 0; s < safeSegments; s++) {
-      const t1 = -thetaMax + (s / safeSegments) * (2 * thetaMax);
-      const t2 = -thetaMax + ((s + 1) / safeSegments) * (2 * thetaMax);
+    // Circle equation: (x - safeRgc)^2 + y^2 = R^2
+    // x(theta) = safeRgc - R * cos(theta), y(theta) = R * sin(theta)
+    // Range of theta inside the bounding box [-safeExtent, safeExtent] x [-safeExtent, safeExtent]:
+    const cosEnterLeft = (safeRgc + safeExtent) / R;
+    const thetaStart = cosEnterLeft >= 1 ? 0 : Math.acos(Math.max(-1, cosEnterLeft));
 
-      const x1 = safeRgc - rArc * Math.cos(t1);
-      const y1 = rArc * Math.sin(t1);
-      const x2 = safeRgc - rArc * Math.cos(t2);
-      const y2 = rArc * Math.sin(t2);
+    const thetaMaxY = Math.asin(Math.min(1, safeExtent / R));
+    const cosExitRight = (safeRgc - safeExtent) / R;
+    const thetaMaxX = cosExitRight <= -1 ? Math.PI : Math.acos(Math.max(-1, Math.min(1, cosExitRight)));
+    const thetaEnd = Math.min(thetaMaxY, thetaMaxX);
 
-      points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
+    if (thetaEnd <= thetaStart) continue;
+
+    if (thetaStart === 0) {
+      // Continuous arc spanning across y=0 from -thetaEnd to +thetaEnd
+      const nSegs = Math.max(4, Math.ceil(safeSegments * (thetaEnd / (Math.PI * 0.5))));
+      for (let s = 0; s < nSegs; s++) {
+        const t1 = -thetaEnd + (s / nSegs) * (2 * thetaEnd);
+        const t2 = -thetaEnd + ((s + 1) / nSegs) * (2 * thetaEnd);
+
+        const x1 = safeRgc - R * Math.cos(t1);
+        const y1 = R * Math.sin(t1);
+        const x2 = safeRgc - R * Math.cos(t2);
+        const y2 = R * Math.sin(t2);
+
+        points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
+      }
+    } else {
+      // Arc enters box for y > 0 and y < 0 (left of x = -safeExtent at y=0)
+      const nSegs = Math.max(2, Math.ceil(safeSegments * ((thetaEnd - thetaStart) / (Math.PI * 0.5))));
+      for (let s = 0; s < nSegs; s++) {
+        const t1 = thetaStart + (s / nSegs) * (thetaEnd - thetaStart);
+        const t2 = thetaStart + ((s + 1) / nSegs) * (thetaEnd - thetaStart);
+
+        // Positive Y branch
+        const x1p = safeRgc - R * Math.cos(t1);
+        const y1p = R * Math.sin(t1);
+        const x2p = safeRgc - R * Math.cos(t2);
+        const y2p = R * Math.sin(t2);
+        points.push(new THREE.Vector3(x1p, y1p, 0), new THREE.Vector3(x2p, y2p, 0));
+
+        // Negative Y branch
+        const x1n = safeRgc - R * Math.cos(-t1);
+        const y1n = R * Math.sin(-t1);
+        const x2n = safeRgc - R * Math.cos(-t2);
+        const y2n = R * Math.sin(-t2);
+        points.push(new THREE.Vector3(x1n, y1n, 0), new THREE.Vector3(x2n, y2n, 0));
+      }
     }
   }
 
   // Radial rays from Galactic Centre (+safeRgc, 0, 0)
-  const nRays = Math.ceil(safeExtent / safeGap);
+  // Rays passing through (0, y0): equation y(x) = y0 * (1 - x / safeRgc)
+  // Maximum y0 for a ray intersecting the box [-safeExtent, safeExtent] x [-safeExtent, safeExtent]:
+  const y0Max = safeExtent / (1 - safeExtent / safeRgc);
+  const nRays = Math.ceil(y0Max / safeGap);
+
   for (let j = -nRays; j <= nRays; j++) {
-    const y0 = j * safeGap;
-
     if (j === 0 && omitCoreAxis) {
-      // The central point bearing (Core bearing along +X) must not compete with an axis line.
-      // Make the axis invisible where it touches the bearing (x >= 0).
-      const x1 = -safeExtent;
-      const y1 = 0;
-      const x2 = 0;
-      const y2 = 0;
-      points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
-    } else {
-      const x1 = -safeExtent;
-      const y1 = y0 * (1 - x1 / safeRgc);
-      const x2 = safeExtent;
-      const y2 = y0 * (1 - x2 / safeRgc);
+      // Omit the Core bearing axis (Y=0) entirely so it doesn't compete with the Core bearing
+      // and doesn't extend away from the core in -X
+      continue;
+    }
 
-      points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
+    const y0 = j * safeGap;
+    let x1: number;
+    let x2: number;
+
+    if (j === 0) {
+      x1 = -safeExtent;
+      x2 = safeExtent;
+    } else {
+      x1 = Math.max(-safeExtent, safeRgc * (1 - safeExtent / Math.abs(y0)));
+      x2 = safeExtent;
+    }
+
+    if (x1 >= x2) continue;
+
+    const segLen = x2 - x1;
+    const nSubSegs = Math.max(1, Math.ceil(segLen / safeGap));
+    for (let s = 0; s < nSubSegs; s++) {
+      const sx1 = x1 + (s / nSubSegs) * segLen;
+      const sx2 = x1 + ((s + 1) / nSubSegs) * segLen;
+      const sy1 = y0 * (1 - sx1 / safeRgc);
+      const sy2 = y0 * (1 - sx2 / safeRgc);
+      points.push(new THREE.Vector3(sx1, sy1, 0), new THREE.Vector3(sx2, sy2, 0));
     }
   }
 

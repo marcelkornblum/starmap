@@ -441,28 +441,40 @@ describe('3D Cartography Components', () => {
       expect(setup.up).toEqual([0, 0, 1]);
     });
 
-    it('omits positive X axis line in galactic planar grid where Core bearing runs when omitCoreAxis is true', () => {
+    it('omits Y=0 axis line in galactic planar grid entirely when omitCoreAxis is true, and clips strictly to domain', () => {
       // With omitCoreAxis = true (default)
       const geomOmit = createGalacticPlanarGridGeometry(100, 50, 500, 16, true);
       const posOmit = geomOmit.getAttribute('position');
-      let foundYZeroPositiveX = false;
+      let foundYZeroSegment = false;
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
       for (let i = 0; i < posOmit.count; i += 2) {
         const y1 = posOmit.getY(i);
         const y2 = posOmit.getY(i + 1);
         const x1 = posOmit.getX(i);
         const x2 = posOmit.getX(i + 1);
-        // Look for the radial ray on the y=0 axis line
+
+        minX = Math.min(minX, x1, x2);
+        maxX = Math.max(maxX, x1, x2);
+        minY = Math.min(minY, y1, y2);
+        maxY = Math.max(maxY, y1, y2);
+
+        // Look for any radial ray on the y=0 axis line (neither positive nor negative X)
         if (Math.abs(y1) < 1e-4 && Math.abs(y2) < 1e-4) {
-          // If a segment extends into x > 0 along the y=0 axis
-          if (x1 > 1e-4 || x2 > 1e-4) {
-            foundYZeroPositiveX = true;
-          }
+          foundYZeroSegment = true;
         }
       }
-      expect(foundYZeroPositiveX).toBe(false);
+
+      // No ray along Y=0 (Core axis is reserved for bearing line, not extending away from core)
+      expect(foundYZeroSegment).toBe(false);
+      // All vertices strictly contained in [-100, 100] x [-100, 100]
+      expect(minX).toBeGreaterThanOrEqual(-100 - 1e-4);
+      expect(maxX).toBeLessThanOrEqual(100 + 1e-4);
+      expect(minY).toBeGreaterThanOrEqual(-100 - 1e-4);
+      expect(maxY).toBeLessThanOrEqual(100 + 1e-4);
       geomOmit.dispose();
 
-      // With omitCoreAxis = false, y=0 axis line does extend to positive X
+      // With omitCoreAxis = false, y=0 axis line does extend across the domain
       const geomFull = createGalacticPlanarGridGeometry(100, 50, 500, 16, false);
       const posFull = geomFull.getAttribute('position');
       let foundFullPositiveX = false;

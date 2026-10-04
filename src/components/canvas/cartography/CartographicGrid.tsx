@@ -930,18 +930,18 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         dBoundary.visible = tokens.datumPlaneAlpha > 0.001;
       }
 
-      // Disk Cardinal Bearings: Extended offscreen across the planar grid (not truncated)
+      // Disk Cardinal Bearings: Terminate at footprint perimeter radius (1 radius long, not extended)
       const dCore = diskBearingLinesRef.current.core;
       if (dCore) {
-        dCore.scale.set(BEARING_EXTENT, BEARING_EXTENT, 1);
+        dCore.scale.set(currentRadius, currentRadius, 1);
         (dCore.material as THREE.LineBasicMaterial).opacity = tokens.bearingCoreAlpha;
         dCore.visible = true;
       }
 
-      // Orbital bearing on planar disk uses consistent unstretched dashed style following orbit curve
+      // Orbital bearing on planar disk follows orbit curve terminating at footprint radius
       const vCountDisk = populateCurvedDashedLineBuffer(
         diskOrbitalBuffer,
-        BEARING_EXTENT,
+        currentRadius,
         DEFAULT_GALACTIC_CENTER_DISTANCE,
         1,
         0.18 * invScale,
@@ -951,25 +951,16 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       posAttrDisk.needsUpdate = true;
       diskOrbitalGeom.setDrawRange(0, vCountDisk);
 
+      // Bearing line toward core must not extend away from core; suppress anti-core and anti-orbital
       const dAntiCore = diskBearingLinesRef.current.antiCore;
       if (dAntiCore) {
-        dAntiCore.scale.set(BEARING_EXTENT, BEARING_EXTENT, 1);
-        (dAntiCore.material as THREE.LineBasicMaterial).opacity = tokens.axisLineAlpha;
-        dAntiCore.visible = true;
+        dAntiCore.visible = false;
       }
 
-      // Anti-orbital bearing on planar disk curves retrograde along orbit
-      const vCountDiskAnti = populateCurvedDashedLineBuffer(
-        diskAntiOrbitalBuffer,
-        BEARING_EXTENT,
-        DEFAULT_GALACTIC_CENTER_DISTANCE,
-        -1,
-        0.18 * invScale,
-        0.12 * invScale,
-      );
-      const posAttrDiskAnti = diskAntiOrbitalGeom.getAttribute('position') as THREE.BufferAttribute;
-      posAttrDiskAnti.needsUpdate = true;
-      diskAntiOrbitalGeom.setDrawRange(0, vCountDiskAnti);
+      const dAntiOrbital = diskBearingLinesRef.current.antiOrbital;
+      if (dAntiOrbital) {
+        dAntiOrbital.visible = false;
+      }
 
       // Continuous concentric range rings on the datum plane
       for (let ringIdx = 0; ringIdx < poolSize; ringIdx++) {
@@ -1332,6 +1323,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                 name="bearing-anti-core"
                 geometry={bearingGeoms.antiCore}
                 scale={[radius, radius, 1]}
+                visible={false}
                 frustumCulled={false}
               >
                 <lineBasicMaterial
@@ -1347,6 +1339,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                 name="bearing-anti-orbital"
                 geometry={diskAntiOrbitalGeom}
                 scale={[1, 1, 1]}
+                visible={false}
                 frustumCulled={false}
               >
                 <lineBasicMaterial
