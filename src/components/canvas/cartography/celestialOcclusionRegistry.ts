@@ -1,3 +1,6 @@
+import * as THREE from 'three';
+import { DEFAULT_RETICLE_SIZE } from './reticleGeometry';
+
 /**
  * Celestial Occlusion & Collision Registry
  *
@@ -43,6 +46,7 @@ export interface LabelOcclusionResult {
 
 export interface CelestialFootprint {
   id: string;
+  name?: string;
   state: 'passive' | 'active' | 'selected' | 'focused';
   worldPos?: [number, number, number];
   classification?: string;
@@ -219,6 +223,56 @@ export class CelestialOcclusionManager {
     isDisplaced: false,
   };
   private scratchHitOffset: { x: number; y: number } = { x: 0, y: 0 };
+  private scratchVec = new THREE.Vector3();
+
+  /**
+   * Batch evaluate dynamic screen projections for all registered footprints.
+   */
+  public evaluate(camera: THREE.Camera, size: { width: number; height: number }): void {
+    for (const fp of this.footprints.values()) {
+      if (!fp.worldPos) continue;
+      this.scratchVec.set(fp.worldPos[0], fp.worldPos[1], fp.worldPos[2]);
+      const camDist = camera.position.distanceTo(this.scratchVec);
+      const ndc = this.scratchVec.project(camera);
+      const isBehind = ndc.z > 1.0;
+      fp.screenX = (ndc.x * 0.5 + 0.5) * size.width;
+      fp.screenY = (-ndc.y * 0.5 + 0.5) * size.height;
+      fp.camDist = camDist;
+      fp.visible = !isBehind;
+
+      // Dynamic screen-space footprint calculations
+      const reticleWorldSize = fp.reticleSize ?? DEFAULT_RETICLE_SIZE;
+      const reticleRadiusPx = (reticleWorldSize / 13.644) * size.height;
+      fp.reticleRadius = reticleRadiusPx;
+      fp.starRadius = Math.max(3, (0.035 / 13.644) * size.height);
+
+      // Compute screen-pixel label bounding box
+      const nameLength = fp.name ? fp.name.length : 8;
+      const estimatedW = nameLength * 8 + 14;
+      const estimatedH = 20;
+      const anchorX = fp.screenX + 1.15 * reticleRadiusPx;
+      const anchorY = fp.screenY - 0.75 * reticleRadiusPx;
+
+      if (!fp.labelBox) {
+        fp.labelBox = {
+          left: anchorX,
+          top: anchorY - estimatedH / 2,
+          right: anchorX + estimatedW,
+          bottom: anchorY + estimatedH / 2,
+        };
+      } else {
+        fp.labelBox.left = anchorX;
+        fp.labelBox.top = anchorY - estimatedH / 2;
+        fp.labelBox.right = anchorX + estimatedW;
+        fp.labelBox.bottom = anchorY + estimatedH / 2;
+      }
+
+      fp.updatedAt = performance.now();
+    }
+    this.gridDirty = true;
+    this.ensureGrid();
+    this.updateSignificantFootprints();
+  }
 
   private ensureGrid(): void {
     if (!this.gridDirty) return;
@@ -457,11 +511,6 @@ export class CelestialOcclusionManager {
     result.displacementY = 0;
     result.isDisplaced = false;
 
-    if (!labelBox) {
-      result.visible = false;
-      return result;
-    }
-
     const target = this.footprints.get(nodeId);
     if (!target || !target.visible || target.state === 'passive') {
       result.visible = false;
@@ -475,25 +524,37 @@ export class CelestialOcclusionManager {
       return result;
     }
 
+    const box = labelBox ?? target.labelBox;
+    if (!box) {
+      result.visible = true;
+      return result;
+    }
+
     this.ensureGrid();
 
-    // Candidate displacements (Spec 2.3: Screen-Space Displacement along thin 1px leader stems)
+    // Candidate displacements (Spec 2.3: Screen-Space Displacement along 8 radial leader stems)
     const r = target.reticleRadius;
+    const diag = r * 1.1 * 0.7071;
     const candidates = [
       { dx: 0, dy: 0 },
       { dx: 0, dy: r * 1.4 },       // Downward displacement
       { dx: r * 1.25, dy: 0 },      // Outward right displacement along leader stem
       { dx: 0, dy: -r * 1.4 },      // Upward displacement
+      { dx: -r * 1.25, dy: 0 },     // Leftward displacement
+      { dx: diag, dy: diag },       // Down-right
+      { dx: -diag, dy: diag },      // Down-left
+      { dx: diag, dy: -diag },      // Up-right
+      { dx: -diag, dy: -diag },     // Up-left
     ];
 
     const cBox = this.scratchCandidateBox;
 
     for (let cIdx = 0; cIdx < candidates.length; cIdx++) {
       const cand = candidates[cIdx];
-      cBox.left = labelBox.left + cand.dx;
-      cBox.top = labelBox.top + cand.dy;
-      cBox.right = labelBox.right + cand.dx;
-      cBox.bottom = labelBox.bottom + cand.dy;
+      cBox.left = box.left + cand.dx;
+      cBox.top = box.top + cand.dy;
+      cBox.right = box.right + cand.dx;
+      cBox.bottom = box.bottom + cand.dy;
 
       const cCenterX = (cBox.left + cBox.right) * 0.5;
       const cCenterY = (cBox.top + cBox.bottom) * 0.5;
@@ -636,6 +697,20 @@ export class CelestialOcclusionManager {
    */
   public get size(): number {
     return this.footprints.size;
+  }
+
+  /**
+   * Returns footprint for a given node id if registered.
+   */
+  public getFootprint(id: string): CelestialFootprint | undefined {
+    return this.footprints.get(id);
+  }
+
+  /**
+   * Returns an array of all registered footprints.
+   */
+  public getAllFootprints(): CelestialFootprint[] {
+    return Array.from(this.footprints.values());
   }
 
   /**

@@ -1,3 +1,16 @@
+.canvasContainer {
+  inline-size: 100vw;
+  block-size: 100vh;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--surface-canvas-bg);
+}
+
+.canvasContainer canvas {
+  position: relative;
+  z-index: var(--layer-canvas);
+}
+
 .viewportContainer {
   inline-size: 100%;
   block-size: 550px;
@@ -20,3 +33,74 @@
   z-index: var(--layer-hud);
   pointer-events: auto;
 }
+
+.demoOverlay {
+  position: absolute;
+  inset-block-start: var(--space-4);
+  inset-inline-start: var(--space-4);
+  z-index: var(--layer-hud);
+  background-color: var(--surface-overlay-bg);
+  color: var(--content-primary);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-container);
+  border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+  font-family: var(--font-data);
+  font-size: var(--text-caption-size);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.buttonRow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.demoButton {
+  padding: var(--space-1) var(--space-2);
+  background-color: transparent;
+  color: var(--content-primary);
+  border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+  border-radius: var(--radius-badge);
+  cursor: pointer;
+  font-family: var(--font-data);
+  font-size: var(--text-caption-size);
+}
+
+.demoButton[data-active="true"] {
+  background-color: var(--state-focus);
+  color: var(--content-inverse);
+  border-color: var(--state-focus);
+}
+
+.targetHighlight {
+  color: var(--color-primary-nominal, #58a6ff);
+}
+
+.diagTable {
+  border-collapse: collapse;
+  font-family: var(--font-data);
+  font-size: var(--text-caption-size);
+  margin-block-start: var(--space-2);
+}
+
+.diagTable th,
+.diagTable td {
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width-1) solid var(--border-subtle);
+  text-align: left;
+}
+
+.statusActive {
+  color: var(--color-status-success, #3fb950);
+}
+
+.statusOccluded {
+  color: var(--color-status-warning, #d29922);
+}
+
+.statusSuppressed {
+  color: var(--color-status-danger, #f85149);
+}
+

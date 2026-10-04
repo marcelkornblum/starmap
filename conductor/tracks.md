@@ -8,3 +8,8 @@
 - [ ] **Track: 3D Component Architecture Refactor** *Link: [conductor/tracks/3d-component-architecture_20261004/index.md](./tracks/3d-component-architecture_20261004/index.md)*
 - [ ] **Track: 3D Engine Implementation** *Link: [conductor/tracks/3d-engine-implementation_20260929/index.md](./tracks/3d-engine-implementation_20260929/index.md)*
 - [ ] **Track: Reference Engine & MDX** *Link: [conductor/tracks/reference-engine_20260929/index.md](./tracks/reference-engine_20260929/index.md)*
+- [ ] **Track: Visual Language Token Layer** *Link: [conductor/tracks/visual-language-tokens_20261004/index.md](./tracks/visual-language-tokens_20261004/index.md)*
+- [ ] **Track: Console UI Shell** *Link: [conductor/tracks/console-ui-shell_20261004/index.md](./tracks/console-ui-shell_20261004/index.md)*
+- [ ] **Track: Telemetry Container & Dossiers** *Link: [conductor/tracks/telemetry-container_20261004/index.md](./tracks/telemetry-container_20261004/index.md)*
+- [ ] **Track: Search & Discovery** *Link: [conductor/tracks/search-discovery_20261004/index.md](./tracks/search-discovery_20261004/index.md)*
+- [ ] **Track: Route & Measurement Mode** *Link: [conductor/tracks/route-measurement_20261004/index.md](./tracks/route-measurement_20261004/index.md)*

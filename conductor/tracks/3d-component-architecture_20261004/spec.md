@@ -30,9 +30,7 @@ This track delivers the full architectural refactoring and component decompositi
    - Implement `GalaxyScene.tsx`, `SystemScene.tsx`, and `PlanetScene.tsx` inside `SpatialViewport`.
    - Implement `PlanetBody.tsx` with uniform cartographic lighting (no day/night terminator) and classification-keyed surface texture.
    - Wire canonical scenes into routes and update Storybook stories to consume canonical scenes directly.
-7. **Canvas HUD & View Harmonisation:**
-   - Create `ViewportLayout`, `Heading`, `ViewControlsDock`, and `SecondaryObjectsPane`.
-   - Strip duplicate `.hudOverlay`, `.eyebrow`, `.title`, and positioning CSS from view modules (`GalaxyView.module.css`, `SystemView.module.css`, `PlanetView.module.css`).
+7. ~~**Canvas HUD & View Harmonisation**~~ — relocated to `console-ui-shell_20261004` (`ViewportLayout`, `Heading`, `ViewControlsDock`, HUD CSS stripping) and `telemetry-container_20261004` (`SecondaryObjectsPane`).
 
 ## Non-Functional Requirements
 
@@ -50,7 +48,6 @@ This track delivers the full architectural refactoring and component decompositi
 - [ ] Drop stalks extend on select/focus, retract on exit, and remain monochrome.
 - [ ] Body markers render at invariant screen-pixel size in monochrome.
 - [ ] Production scenes render in `GalaxyView`, `SystemView`, and `PlanetView` without placeholder geometry.
-- [ ] Duplicated view HUD CSS modules eliminated in favour of `ViewportLayout`.
 - [ ] Lint (`npm run lint`), typecheck (`npm run typecheck`), and tests (`npm run test:coverage`) pass with zero errors.
 
 ## Out of Scope

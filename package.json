@@ -4,13 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "build:all": "npm run data:pipeline && npm run typecheck && npm run build",
     "lint": "oxlint",
     "typecheck": "tsc -b",
     "audit:r3f": "tsx scripts/audit-r3f.ts",
-    "preview": "vite preview",
+    "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -18,7 +18,7 @@
     "data:fetch": "tsx scripts/fetch-sources.ts",
     "data:build": "tsx scripts/build-data.ts",
     "data:pipeline": "npm run data:fetch && npm run data:build",
-    "storybook": "storybook dev -p 6006",
+    "storybook": "storybook dev -p 6006 --host 0.0.0.0",
     "build-storybook": "storybook build"
   },
   "dependencies": {

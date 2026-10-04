@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useMemo, useRef, useEffect, useState, Fragment } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { SafeHtml } from '../SafeHtml';
@@ -17,6 +17,7 @@ import {
 } from './ScreenSpaceLineMaterial';
 import {
   createReticleGeometry,
+  formatDesignationTag,
   type CelestialClassification,
   type PlanetCensusEntry,
   type ReticleAnnotationOptions,
@@ -192,11 +193,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     worldPosTupleRef.current = [x, y, z];
   }, [x, y, z]);
 
-  // Split multiple spectral classifications separated by '+' into discrete tokens formatted with a centered dot
-  const spectralDesignations = useMemo(() => {
-    if (!spectralType) return [];
-    return spectralType.split(/\s*\+\s*/);
-  }, [spectralType]);
 
   useEffect(() => {
     const el = labelContainerRef.current;
@@ -529,7 +525,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
           <group
             name="celestial-spectrum-facet"
             data-testid="celestial-spectrum-facet"
-            data-spectral={spectralDesignations.join(' · ')}
+            data-spectral={formatDesignationTag(spectralType)}
           >
             <SafeHtml
               key={`${id}-spectrum`}
@@ -543,12 +539,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
                 className={styles.spectralFacet}
                 data-state={currentState}
               >
-                {spectralDesignations.map((desig, idx) => (
-                  <Fragment key={idx}>
-                    {idx > 0 && <span className={styles.facetSeparator}>·</span>}
-                    <span>{desig}</span>
-                  </Fragment>
-                ))}
+                <span>{formatDesignationTag(spectralType)}</span>
               </div>
             </SafeHtml>
           </group>

@@ -23,8 +23,7 @@ Welcome to the Starmap documentation repository. This directory houses the autho
   Defines the 3-tier scale hierarchy, global 4-tier interaction state taxonomy (`passive`, `active`, `selected`, `focused`), Universal Secondary Objects Pane, and authoritative cartographic rendering rules for all 3 views (**Galaxy Macro View**, **Stellar System View**, and **Planetary Inspection View**).
 * [**User Archetypes & Cross-Scale User Journeys** (`docs/user-journeys.md`)](./user-journeys.md)
   Detailed profiles, mental models, jobs to be done (JTBD), and 5 primary end-to-end user journeys for the **Sci-Fi Reader**, **Sci-Fi Author / Worldbuilder**, and **Casual Explorer**.
-* [**Feature Specifications & Backlog Registry** (`docs/feature-backlog.md`)](./feature-backlog.md)
-  Authoritative specifications and functional descriptions for all 22 system features, organized across 6 functional domains (Canvas Synchronization, Navigation & Relativistic Physics, Exploration Filters, Surfaces & Tours, Contextual Controls, and Encyclopedia Architecture).
+* **Feature backlog:** retired. Planned features live in `conductor/tracks/`; unplanned ideas in `conductor/backlog.md`.
 
 ### 4. Astronomical Data Pipeline
 * [**Astronomical Data Sources & Catalog Architecture** (`docs/data-sources.md`)](./data-sources.md)
@@ -44,7 +43,6 @@ Static, deterministic slices of real astronomical catalog data used for isolated
 ## Historical & Exploration Scratchpads
 
 The following files contain exploratory discovery notes and brainstorming captured during design tracks. They are retained for historical context, while the documents listed above serve as the binding authoritative specifications:
-* `docs/feature-backlog-notes.md`: Exploration scratchpad from Feature Backlog definition.
 * `docs/user-journeys-exploration-notes.md`: Exploration scratchpad from User Journeys mapping.
 * `docs/3d-visual-design-notes.md`: Exploration scratchpad from 3D spatial design.
 * `docs/2d-visual-design-notes.md`: Exploration scratchpad and visual reference catalog for 2D UI materiality, optical principles, and the 8-tier elevation stack.

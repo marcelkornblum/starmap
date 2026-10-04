@@ -671,15 +671,19 @@ describe('3D Cartography Components', () => {
       expect(html).not.toContain('data-testid="celestial-spectrum-facet"');
     });
 
-    it('generates multiplicity pips as solid star dots aligned towards the left point', () => {
+    it('generates multiplicity pips as solid star dots aligned towards the left point (0 for single, 2+ for multiples)', () => {
       const pointsSingle: THREE.Vector3[] = [];
       appendMultiplicityPips(pointsSingle, 1.0, 1);
-      // 1 star dot generated (outer ring + inner ring + spokes = 48 points)
-      expect(pointsSingle.length).toBe(48);
+      // Single star system renders 0 pips (Approach B)
+      expect(pointsSingle.length).toBe(0);
 
       const pointsBinary: THREE.Vector3[] = [];
       appendMultiplicityPips(pointsBinary, 1.0, 2);
       expect(pointsBinary.length).toBe(96); // 2 star dots
+
+      const pointsTriple: THREE.Vector3[] = [];
+      appendMultiplicityPips(pointsTriple, 1.0, 3);
+      expect(pointsTriple.length).toBe(144); // 3 star dots
 
       const pointsQuat: THREE.Vector3[] = [];
       appendMultiplicityPips(pointsQuat, 1.0, 4);

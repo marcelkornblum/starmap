@@ -617,6 +617,31 @@ export function checkHabitableCandidate(planets: ExoplanetRecord[], starLum?: nu
 }
 
 /**
+ * Classifies an exoplanet into a census category based on physical metrics:
+ * - Terrestrial: Rp <= 1.75 R_earth or Mp <= 10 M_earth
+ * - Ice Giant: 1.75 R_earth < Rp <= 6.0 R_earth or 10 M_earth < Mp <= 50 M_earth
+ * - Gas Giant: Rp > 6.0 R_earth or Mp > 50 M_earth
+ */
+export function classifyExoplanet(planet: ExoplanetRecord): 'terrestrial' | 'gas-giant' | 'ice-giant' {
+  const rEarth = planet.radiusRearth ?? (planet.radiusRjup !== undefined ? planet.radiusRjup * 11.209 : undefined);
+  const mEarth = planet.massMearth ?? (planet.massMjup !== undefined ? planet.massMjup * 317.83 : undefined);
+
+  if (rEarth !== undefined) {
+    if (rEarth <= 1.75) return 'terrestrial';
+    if (rEarth <= 6.0) return 'ice-giant';
+    return 'gas-giant';
+  }
+
+  if (mEarth !== undefined) {
+    if (mEarth <= 10.0) return 'terrestrial';
+    if (mEarth <= 50.0) return 'ice-giant';
+    return 'gas-giant';
+  }
+
+  return 'terrestrial';
+}
+
+/**
  * Transforms a StarmapNode into a collapsed SystemSummaryNode with spatial sector tags,
  * variability flags, and attached exoplanetary metrics.
  */
@@ -648,6 +673,18 @@ export function starNodeToSystemSummary(
   const planetCount = isSol ? 8 : planets.length;
   const hasHabitable = isSol ? true : checkHabitableCandidate(planets, star.lum);
 
+  let planetCensus: ('terrestrial' | 'gas-giant' | 'ice-giant')[] | undefined;
+  if (isSol) {
+    planetCensus = ['terrestrial', 'gas-giant', 'ice-giant'];
+  } else if (planets.length > 0) {
+    const present = (['terrestrial', 'gas-giant', 'ice-giant'] as const).filter((cat) =>
+      planets.some((p) => classifyExoplanet(p) === cat)
+    );
+    if (present.length > 0) {
+      planetCensus = present;
+    }
+  }
+
   if (planetCount > 0) {
     tags.push('ExoplanetHost');
   }
@@ -670,6 +707,7 @@ export function starNodeToSystemSummary(
     ci: star.ci,
     starCount: 1,
     planetCount,
+    planetCensus,
     hasHabitableCandidate: hasHabitable,
     sectorId,
     tags: tags.length > 0 ? tags : undefined,
@@ -1243,6 +1281,11 @@ export async function buildCsvDataPipeline(
             spect: recons.spect,
             starCount: recons.starCount,
             planetCount: matchedPlanets.length,
+            planetCensus: matchedPlanets.length > 0
+              ? (['terrestrial', 'gas-giant', 'ice-giant'] as const).filter((cat) =>
+                  matchedPlanets.some((p) => classifyExoplanet(p) === cat)
+                )
+              : undefined,
             hasHabitableCandidate: matchedPlanets.length > 0,
             sectorId: rSectorId,
             tags: ['SolarNeighborhood10pc', 'RECONSGroundTruth', ...(matchedPlanets.length > 0 ? ['ExoplanetHost'] : [])],
@@ -1556,6 +1599,7 @@ export async function buildGaiaDataPipeline(
       ci: 0.656,
       starCount: 1,
       planetCount: 8,
+      planetCensus: ['terrestrial', 'gas-giant', 'ice-giant'],
       hasHabitableCandidate: true,
       sectorId: 'sector_+000_+000_+000',
       tags: ['HomeSystem', 'SolarNeighborhood10pc', 'NakedEye', 'HabitableHost'],
@@ -1678,6 +1722,11 @@ function round2(n: number): number {
         spect: spect || 'Unknown',
         starCount: 1,
         planetCount: matchedPlanets.length,
+        planetCensus: matchedPlanets.length > 0
+          ? (['terrestrial', 'gas-giant', 'ice-giant'] as const).filter((cat) =>
+              matchedPlanets.some((p) => classifyExoplanet(p) === cat)
+            )
+          : undefined,
         hasHabitableCandidate: matchedPlanets.some((p) => (p.esi && p.esi > 0.7) || (p.equilibriumTempK && p.equilibriumTempK >= 200 && p.equilibriumTempK <= 320)),
         sectorId,
       };

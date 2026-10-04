@@ -40,6 +40,82 @@ const pinToViewportOrigin = (
   }
 };
 
+const LABEL_DIST_X = 44;
+const LABEL_DIST_Y = 22;
+const LABEL_HALF_WIDTH = 30;
+const LABEL_HALF_HEIGHT = 8;
+
+function applyBearingPlacement(
+  res: { x: number; y: number; edge: ScreenEdgeSide; angle: number; isAttached: boolean; visible: boolean },
+  rootEl: HTMLDivElement | null,
+  chevEl: HTMLDivElement | null,
+  labelEl: HTMLDivElement | null,
+  lastEdgeRef: React.MutableRefObject<ScreenEdgeSide | null>,
+  lastDetachedRef: React.MutableRefObject<boolean | null>,
+  width: number,
+  height: number,
+  safeMargin: number,
+): void {
+  if (!rootEl || !chevEl || !labelEl) return;
+  if (!res.visible) {
+    rootEl.style.opacity = '0';
+    rootEl.style.display = 'none';
+    return;
+  }
+
+  rootEl.style.display = 'block';
+  rootEl.style.opacity = '1';
+  rootEl.style.transform = `translate3d(${res.x.toFixed(1)}px, ${res.y.toFixed(1)}px, 0)`;
+  chevEl.style.transform = `translate(-50%, -50%) rotate(${res.angle.toFixed(1)}deg)`;
+
+  const angleRad = (res.angle * Math.PI) / 180;
+  const hx = Math.cos(angleRad);
+  const hy = Math.sin(angleRad);
+
+  let labelOffsetX = 0;
+  let labelOffsetY = 0;
+
+  if (res.edge === 'right') {
+    labelOffsetX = -LABEL_DIST_X;
+    labelOffsetY = 0;
+  } else if (res.edge === 'left') {
+    labelOffsetX = LABEL_DIST_X;
+    labelOffsetY = 0;
+  } else if (res.edge === 'top') {
+    labelOffsetX = 0;
+    labelOffsetY = LABEL_DIST_Y;
+  } else if (res.edge === 'bottom') {
+    labelOffsetX = 0;
+    labelOffsetY = -LABEL_DIST_Y;
+  } else {
+    if (Math.abs(hx) >= 0.25) {
+      labelOffsetX = hx < 0 ? -LABEL_DIST_X : LABEL_DIST_X;
+      labelOffsetY = 0;
+    } else {
+      labelOffsetX = 0;
+      labelOffsetY = hy > 0 ? LABEL_DIST_Y : -LABEL_DIST_Y;
+    }
+  }
+
+  const clampedLabelX = Math.min(width - safeMargin - LABEL_HALF_WIDTH, Math.max(safeMargin + LABEL_HALF_WIDTH, res.x + labelOffsetX));
+  const clampedLabelY = Math.min(height - safeMargin - LABEL_HALF_HEIGHT, Math.max(safeMargin + LABEL_HALF_HEIGHT, res.y + labelOffsetY));
+
+  const finalOffsetX = clampedLabelX - res.x;
+  const finalOffsetY = clampedLabelY - res.y;
+
+  labelEl.style.transform = `translate(calc(${finalOffsetX.toFixed(1)}px - 50%), calc(${finalOffsetY.toFixed(1)}px - 50%))`;
+
+  if (lastEdgeRef.current !== res.edge) {
+    lastEdgeRef.current = res.edge;
+    rootEl.setAttribute('data-edge', res.edge);
+  }
+  const isDetached = !res.isAttached;
+  if (lastDetachedRef.current !== isDetached) {
+    lastDetachedRef.current = isDetached;
+    rootEl.setAttribute('data-detached', isDetached ? 'true' : 'false');
+  }
+}
+
 /**
  * ScreenEdgeBearingIndicators: Visual HUD vector arrowheads that terminate
  * bearing lines at the screen boundary.
@@ -63,8 +139,10 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
   const groupRef = useRef<THREE.Group>(null);
   const coreRef = useRef<HTMLDivElement>(null);
   const coreChevronRef = useRef<HTMLDivElement>(null);
+  const coreLabelRef = useRef<HTMLDivElement>(null);
   const orbitalRef = useRef<HTMLDivElement>(null);
   const orbitalChevronRef = useRef<HTMLDivElement>(null);
+  const orbLabelRef = useRef<HTMLDivElement>(null);
 
   // Scratch objects for zero-allocation per-frame computation
   const scratchOrigin = useRef(new THREE.Vector3());
@@ -102,6 +180,7 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
     screenSize.width = width;
     screenSize.height = height;
 
+    const safeMargin = Math.min(margin, Math.min(width, height) * 0.45);
     // Resolve world origin
     const originVec = scratchOrigin.current;
     if (explicitOrigin) {
@@ -117,7 +196,7 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
     }
 
     // Update Core bearing indicator
-    if (showCore && coreRef.current) {
+    if (showCore) {
       const coreResult = calculateScreenEdgeBearing(
         activeCamera,
         screenSize,
@@ -129,32 +208,21 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
         scratchCoreResult.current,
         minLineLength,
       );
-
-      if (coreResult.visible) {
-        coreRef.current.style.setProperty('--indicator-x', `${coreResult.x}px`);
-        coreRef.current.style.setProperty('--indicator-y', `${coreResult.y}px`);
-
-        const isDetached = !coreResult.isAttached;
-        if (lastCoreEdge.current !== coreResult.edge) {
-          lastCoreEdge.current = coreResult.edge;
-          coreRef.current.setAttribute('data-edge', coreResult.edge);
-        }
-        if (lastCoreDetached.current !== isDetached) {
-          lastCoreDetached.current = isDetached;
-          coreRef.current.setAttribute('data-detached', isDetached ? 'true' : 'false');
-        }
-
-        if (coreChevronRef.current) {
-          coreChevronRef.current.style.transform = `rotate(${coreResult.angle}deg)`;
-        }
-        coreRef.current.style.display = '';
-      } else {
-        coreRef.current.style.display = 'none';
-      }
+      applyBearingPlacement(
+        coreResult,
+        coreRef.current,
+        coreChevronRef.current,
+        coreLabelRef.current,
+        lastCoreEdge,
+        lastCoreDetached,
+        width,
+        height,
+        safeMargin,
+      );
     }
 
     // Update Orbital bearing indicator
-    if (showOrbital && orbitalRef.current) {
+    if (showOrbital) {
       const orbResult = calculateScreenEdgeBearing(
         activeCamera,
         screenSize,
@@ -166,28 +234,17 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
         scratchOrbResult.current,
         minLineLength,
       );
-
-      if (orbResult.visible) {
-        orbitalRef.current.style.setProperty('--indicator-x', `${orbResult.x}px`);
-        orbitalRef.current.style.setProperty('--indicator-y', `${orbResult.y}px`);
-
-        const isDetached = !orbResult.isAttached;
-        if (lastOrbEdge.current !== orbResult.edge) {
-          lastOrbEdge.current = orbResult.edge;
-          orbitalRef.current.setAttribute('data-edge', orbResult.edge);
-        }
-        if (lastOrbDetached.current !== isDetached) {
-          lastOrbDetached.current = isDetached;
-          orbitalRef.current.setAttribute('data-detached', isDetached ? 'true' : 'false');
-        }
-
-        if (orbitalChevronRef.current) {
-          orbitalChevronRef.current.style.transform = `rotate(${orbResult.angle}deg)`;
-        }
-        orbitalRef.current.style.display = '';
-      } else {
-        orbitalRef.current.style.display = 'none';
-      }
+      applyBearingPlacement(
+        orbResult,
+        orbitalRef.current,
+        orbitalChevronRef.current,
+        orbLabelRef.current,
+        lastOrbEdge,
+        lastOrbDetached,
+        width,
+        height,
+        safeMargin,
+      );
     }
   });
 
@@ -225,20 +282,21 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
               data-detached="false"
               data-testid="bearing-indicator-core"
             >
-              <span className={styles.label}>CORE 000°</span>
-              <div className={styles.chevronWrapper} ref={coreChevronRef}>
+              <div className={styles.chevronWrapper} ref={coreChevronRef} aria-hidden="true">
                 <svg
                   className={styles.chevron}
                   viewBox="0 0 16 16"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
                 >
                   <path
                     d="M4 2.5L11.5 8L4 13.5L6.5 8L4 2.5Z"
                     fill="currentColor"
                   />
                 </svg>
+              </div>
+              <div className={styles.labelWrapper} ref={coreLabelRef}>
+                <span className={styles.label}>CORE 000°</span>
               </div>
             </div>
           )}
@@ -252,20 +310,21 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
               data-detached="false"
               data-testid="bearing-indicator-orbital"
             >
-              <span className={styles.label}>ORB 090°</span>
-              <div className={styles.chevronWrapper} ref={orbitalChevronRef}>
+              <div className={styles.chevronWrapper} ref={orbitalChevronRef} aria-hidden="true">
                 <svg
                   className={styles.chevron}
                   viewBox="0 0 16 16"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
                 >
                   <path
                     d="M4 2.5L11.5 8L4 13.5L6.5 8L4 2.5Z"
                     fill="currentColor"
                   />
                 </svg>
+              </div>
+              <div className={styles.labelWrapper} ref={orbLabelRef}>
+                <span className={styles.label}>ORB 090°</span>
               </div>
             </div>
           )}

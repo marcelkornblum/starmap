@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 export interface ScaledRingInfo {
   radius: number;
   isMajor: boolean;
@@ -87,4 +89,21 @@ export function computeZoomAdaptiveRings(rAperture: number, maxRings = 6): Scale
     });
   }
   return result;
+}
+
+/**
+ * Creates BufferGeometry for a full 360-degree circle in the XY plane.
+ */
+export function createCircleGeometry(radius = 1.0, steps = 128): THREE.BufferGeometry {
+  const buffer = new Float32Array(steps * 3);
+  for (let i = 0; i < steps; i++) {
+    const theta = (i / steps) * Math.PI * 2;
+    buffer[i * 3] = radius * Math.cos(theta);
+    buffer[i * 3 + 1] = radius * Math.sin(theta);
+    buffer[i * 3 + 2] = 0;
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(buffer, 3));
+  geom.computeBoundingSphere();
+  return geom;
 }

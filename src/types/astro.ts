@@ -102,6 +102,8 @@ export interface SystemSummaryNode {
   starCount: number;
   /** Total number of confirmed exoplanets */
   planetCount: number;
+  /** Categorized planetary census breakdown for tactical reticle facets */
+  planetCensus?: ('terrestrial' | 'gas-giant' | 'ice-giant')[];
   /** Flag indicating whether any planet resides in the habitable zone */
   hasHabitableCandidate: boolean;
   /** Spatial sector identifier, e.g. 'sector_+025_-050_+000' */

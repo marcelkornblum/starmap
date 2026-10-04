@@ -1,0 +1,353 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { type ThreeEvent, useFrame } from '@react-three/fiber';
+import { useSpatialEntityStoreApi, useSpatialEntityStore } from './SpatialEntityContext';
+import { BodyMarker } from './BodyMarker';
+import { Reticle } from './Reticle';
+import { DropStalk } from './DropStalk';
+import { KinematicVector } from './KinematicVector';
+import { OrbitPath } from './OrbitPath';
+import { EntityLabel } from './EntityLabel';
+import {
+  celestialOcclusionManager,
+  type CelestialFootprint,
+} from '../cartography/celestialOcclusionRegistry';
+import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
+import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../math/kepler';
+import type {
+  SpatialEntityDefinition,
+  CelestialInteractionState,
+} from './types';
+
+export interface CelestialEntityProps extends Partial<SpatialEntityDefinition> {
+  id: string;
+  name: string;
+  position?: [number, number, number] | THREE.Vector3;
+  debugHitarea?: boolean;
+  onClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
+  onPointerOver?: (id: string, e: ThreeEvent<PointerEvent>) => void;
+  onPointerOut?: (id: string, e: ThreeEvent<PointerEvent>) => void;
+  children?: React.ReactNode;
+}
+
+/**
+ * CelestialEntity: Unified architectural composite composing:
+ * - Layer 1: BodyMarker (Physical System Node, Invariant Screen Size)
+ * - Layer 2: Reticle (Tactical Geometric Reticle & Facet Decorations)
+ * - Layer 3: EntityLabel (Typographic Designation & Proximity Occlusion)
+ * - Supporting Features: DropStalk (§2.4), KinematicVector (§5), OrbitPath (§4.4).
+ */
+export const CelestialEntity: React.FC<CelestialEntityProps> = ({
+  id,
+  name,
+  position,
+  classification = 'star',
+  state: explicitState,
+  spectralType,
+  multiplicity = 1,
+  planets,
+  velocity,
+  orbit,
+  reticleSize = DEFAULT_RETICLE_SIZE,
+  showStalk: explicitShowStalk,
+  showLabel: explicitShowLabel = true,
+  enableOcclusion = true,
+  debugHitarea = false,
+  onClick,
+  onPointerOver,
+  onPointerOut,
+  children,
+}) => {
+  const storeApi = useSpatialEntityStoreApi();
+
+  // Subscribe to store state
+  const isHovered = useSpatialEntityStore((s) => s.hoveredId === id);
+  const derivedState = useSpatialEntityStore((s) => s.getEntityState(id));
+  const activeState: CelestialInteractionState =
+    isHovered && explicitState !== 'focused'
+      ? 'selected'
+      : (explicitState ?? derivedState);
+
+  const primaryEntityPos = useSpatialEntityStore((s) => {
+    if (!orbit?.primaryEntityId) return null;
+    const ent = s.entities[orbit.primaryEntityId];
+    return ent?.position ?? null;
+  });
+
+  const resolvedPrimaryPos = useMemo<THREE.Vector3>(() => {
+    if (primaryEntityPos) {
+      if (primaryEntityPos instanceof THREE.Vector3) return primaryEntityPos;
+      return new THREE.Vector3(primaryEntityPos[0], primaryEntityPos[1], primaryEntityPos[2]);
+    }
+    if (orbit?.primaryPosition) {
+      if (orbit.primaryPosition instanceof THREE.Vector3) return orbit.primaryPosition;
+      return new THREE.Vector3(orbit.primaryPosition[0], orbit.primaryPosition[1], orbit.primaryPosition[2]);
+    }
+    return new THREE.Vector3(0, 0, 0);
+  }, [primaryEntityPos, orbit?.primaryPosition]);
+
+  const resolvedPos = useMemo(() => {
+    if (orbit && (orbit.meanAnomaly !== undefined || position === undefined)) {
+      const [ox, oy, oz] = calculateKeplerianPosition(
+        orbit.semiMajorAxis,
+        orbit.eccentricity ?? 0,
+        orbit.inclination ?? 0,
+        orbit.ascendingNode ?? 0,
+        orbit.argumentOfPeriapsis ?? 0,
+        orbit.meanAnomaly ?? 0,
+      );
+      return new THREE.Vector3(
+        resolvedPrimaryPos.x + ox,
+        resolvedPrimaryPos.y + oy,
+        resolvedPrimaryPos.z + oz,
+      );
+    }
+    if (position instanceof THREE.Vector3) return position;
+    if (Array.isArray(position)) return new THREE.Vector3(position[0], position[1], position[2]);
+    return new THREE.Vector3(0, 0, 0);
+  }, [position, orbit, resolvedPrimaryPos]);
+
+  const resolvedVelocity = useMemo(() => {
+    if (velocity) {
+      if (velocity instanceof THREE.Vector3) return velocity;
+      return new THREE.Vector3(velocity[0], velocity[1], velocity[2]);
+    }
+    if (orbit && orbit.meanAnomaly !== undefined) {
+      const [vx, vy, vz] = calculateKeplerianVelocity(
+        orbit.semiMajorAxis,
+        orbit.eccentricity ?? 0,
+        orbit.inclination ?? 0,
+        orbit.ascendingNode ?? 0,
+        orbit.argumentOfPeriapsis ?? 0,
+        orbit.meanAnomaly ?? 0,
+      );
+      return new THREE.Vector3(vx, vy, vz);
+    }
+    return undefined;
+  }, [velocity, orbit]);
+
+  const orbitOffset = useMemo<[number, number, number]>(() => {
+    const ox = resolvedPrimaryPos.x - resolvedPos.x;
+    const oy = resolvedPrimaryPos.y - resolvedPos.y;
+    const oz = resolvedPrimaryPos.z - resolvedPos.z;
+    return [
+      Math.abs(ox) < 1e-6 ? 0 : Number(ox.toFixed(6)),
+      Math.abs(oy) < 1e-6 ? 0 : Number(oy.toFixed(6)),
+      Math.abs(oz) < 1e-6 ? 0 : Number(oz.toFixed(6)),
+    ];
+  }, [resolvedPrimaryPos, resolvedPos]);
+
+  // Register in SpatialEntityStore on mount
+  useEffect(() => {
+    storeApi.getState().registerEntity({
+      id,
+      name,
+      position: resolvedPos,
+      classification,
+      state: explicitState,
+      spectralType,
+      multiplicity,
+      planets,
+      velocity,
+      orbit,
+      reticleSize,
+    });
+
+    return () => {
+      storeApi.getState().unregisterEntity(id);
+    };
+  }, [storeApi, id, name, resolvedPos, classification, explicitState, spectralType, multiplicity, planets, velocity, orbit, reticleSize]);
+
+  // Occlusion evaluation refs
+  const footprintRef = useRef<CelestialFootprint>({
+    id,
+    name,
+    state: activeState,
+    worldPos: [resolvedPos.x, resolvedPos.y, resolvedPos.z],
+    classification,
+    reticleSize,
+    multiplicity,
+    planets,
+    screenX: 0,
+    screenY: 0,
+    camDist: 0,
+    reticleRadius: reticleSize,
+    starRadius: 0.035,
+    hasReticle: activeState !== 'passive',
+    visible: true,
+    updatedAt: 0,
+  });
+
+  // Keep footprint state fresh
+  useEffect(() => {
+    footprintRef.current.name = name;
+    footprintRef.current.state = activeState;
+    footprintRef.current.hasReticle = activeState !== 'passive';
+    footprintRef.current.reticleSize = reticleSize;
+    footprintRef.current.multiplicity = multiplicity;
+    footprintRef.current.planets = planets;
+    if (footprintRef.current.worldPos) {
+      footprintRef.current.worldPos[0] = resolvedPos.x;
+      footprintRef.current.worldPos[1] = resolvedPos.y;
+      footprintRef.current.worldPos[2] = resolvedPos.z;
+    }
+  }, [name, activeState, reticleSize, multiplicity, planets, resolvedPos]);
+
+  useEffect(() => {
+    if (enableOcclusion) {
+      celestialOcclusionManager.register(footprintRef.current);
+      return () => {
+        celestialOcclusionManager.unregister(id);
+      };
+    }
+  }, [enableOcclusion, id]);
+
+  const scratchNdcRef = useRef(new THREE.Vector3());
+  const scratchWorldPosRef = useRef(new THREE.Vector3());
+
+  useFrame(({ camera, size }) => {
+    if (!enableOcclusion) return;
+
+    scratchWorldPosRef.current.copy(resolvedPos);
+    const camDist = Math.max(camera.position.distanceTo(scratchWorldPosRef.current), 1e-4);
+    const ndc = scratchNdcRef.current.copy(scratchWorldPosRef.current).project(camera);
+    const isBehindCamera = ndc.z > 1.0;
+    const screenX = (ndc.x * 0.5 + 0.5) * size.width;
+    const screenY = (-ndc.y * 0.5 + 0.5) * size.height;
+    const reticleRadiusPx = (reticleSize / 13.644) * size.height;
+
+    const fp = footprintRef.current;
+    fp.screenX = screenX;
+    fp.screenY = screenY;
+    fp.camDist = camDist;
+    fp.reticleRadius = reticleRadiusPx;
+    fp.visible = !isBehindCamera;
+    fp.updatedAt = performance.now();
+
+    celestialOcclusionManager.register(fp);
+  });
+
+  // Single-Stalk Rule (§2.4): Drop stalk renders for selected or focused entities.
+  // Stays mounted during retraction (250ms) to ensure smooth exit animation before unmounting.
+  const isStalkTier = activeState === 'selected' || activeState === 'focused';
+  const [stalkMounted, setStalkMounted] = useState(isStalkTier);
+
+  useEffect(() => {
+    if (isStalkTier) {
+      setStalkMounted(true);
+    } else {
+      const timer = setTimeout(() => {
+        setStalkMounted(false);
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [isStalkTier]);
+
+  const shouldRenderStalk = explicitShowStalk ?? stalkMounted;
+  const isPassive = activeState === 'passive';
+
+  return (
+    <group
+      position={resolvedPos}
+      data-position={`${resolvedPos.x},${resolvedPos.y},${resolvedPos.z}`}
+      name={`celestial-entity-${id}`}
+    >
+      {/* Layer 1: Physical System Node (Monochrome, Invariant Screen Size) */}
+      <BodyMarker
+        id={id}
+        position={[0, 0, 0]}
+        reticleSize={reticleSize}
+        state={activeState}
+        debugHitarea={debugHitarea}
+        interactive={!isPassive}
+        onClick={isPassive ? undefined : (targetId, e) => {
+          storeApi.getState().setSelected(targetId);
+          onClick?.(targetId, e);
+        }}
+        onPointerOver={isPassive ? undefined : (targetId, e) => {
+          storeApi.getState().setHovered(targetId);
+          if (typeof document !== 'undefined') {
+            document.body.style.cursor = 'pointer';
+          }
+          onPointerOver?.(targetId, e);
+        }}
+        onPointerOut={isPassive ? undefined : (targetId, e) => {
+          storeApi.getState().setHovered(null);
+          if (typeof document !== 'undefined') {
+            document.body.style.cursor = 'auto';
+          }
+          onPointerOut?.(targetId, e);
+        }}
+      />
+
+      {/* Layer 2: Tactical Geometric Reticle (Universal Taxonomy Frames) */}
+      {activeState !== 'passive' && (
+        <Reticle
+          id={id}
+          position={[0, 0, 0]}
+          classification={classification}
+          state={activeState}
+          size={reticleSize}
+          multiplicity={multiplicity}
+          planets={planets}
+          spectralType={spectralType}
+        />
+      )}
+
+      {/* Layer 3: Typographic Label */}
+      {explicitShowLabel && (
+        <EntityLabel
+          id={id}
+          name={name}
+          position={[0, 0, 0]}
+          spectralType={spectralType}
+          state={activeState}
+          reticleSize={reticleSize}
+          footprintRef={footprintRef}
+        />
+      )}
+
+      {/* State-Driven Drop Stalk (§2.4) */}
+      {shouldRenderStalk && (
+        <DropStalk
+          id={id}
+          position={[0, 0, 0]}
+          entityZ={resolvedPos.z}
+          state={activeState}
+          classification={classification}
+          footprintSize={reticleSize}
+        />
+      )}
+
+      {/* Projected Kinematic Velocity Vector (§5) */}
+      {resolvedVelocity && (
+        <KinematicVector
+          id={id}
+          position={[0, 0, 0]}
+          velocity={resolvedVelocity}
+          state={activeState}
+        />
+      )}
+
+      {/* Keplerian Orbit Path (§4.4) */}
+      {orbit && (
+        <OrbitPath
+          id={id}
+          semiMajorAxis={orbit.semiMajorAxis}
+          eccentricity={orbit.eccentricity}
+          inclination={orbit.inclination}
+          ascendingNode={orbit.ascendingNode}
+          argumentOfPeriapsis={orbit.argumentOfPeriapsis}
+          state={activeState}
+          color={orbit.color}
+          lineStyle={orbit.lineStyle}
+          showPeriapsisTick={orbit.showPeriapsisTick}
+          showDirectionIndicator={orbit.showDirectionArrow}
+          position={orbitOffset}
+        />
+      )}
+
+      {children}
+    </group>
+  );
+};

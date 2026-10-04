@@ -1,82 +1,62 @@
 # Product Backlog
 
-Candidate features and ideas identified during architectural discussions, awaiting formal track planning and specification.
+Candidate features and ideas awaiting formal track planning. Items here are either too high-level or blocked on upstream tracks. Graduate via `conductor-new-track`.
+
+> Items absorbed into tracks on 2026-10-04: see `console-ui-shell`, `telemetry-container`, `search-discovery`, `route-measurement`, `3d-engine-implementation` and `reference-engine`. `docs/feature-backlog.md` was retired at the same time.
 
 ---
 
 ## Navigation & Spatial HUD
 
-- **Temporal Scrubber (Time Travel Control):** Interactive timeline scrubber allowing users to propagate planetary and stellar orbits forward and backward through time using Keplerian mechanics.
-- **Targeting Reticle & Celestial Brackets:** In-viewport HUD targeting brackets that lock onto selected stars or planets, tracking their screen-space coordinates during camera rotation and zoom.
-- **Galactic Orientation Compass:** Fixed HUD orientation indicator displaying galactic coordinate axes (Galactic North, Galactic Centre vector) relative to current camera heading.
-- **Floating Camera Controls & Presets:** Logarithmic zoom stepper buttons, camera reset, orbital view lock, and top-down ecliptic view toggle.
-- **Layer Visibility Toggles:** HUD controls for toggling visual rendering layers (constellation lines, habitable zones, coordinate grid, star names, velocity vectors, magnitude thresholds).
-- **Hierarchical Breadcrumb Trail:** Docked navigational breadcrumbs (e.g. Galaxy > Orion Arm > Local Bubble > Solar System > Earth) for jumping across scale domains.
-- **Celestial Command Palette (`Cmd+K`):** Fast search-and-jump modal palette to locate stars, exoplanets, constellations, or toggle visual rendering layers.
+- **Celestial Command Palette (`Cmd+K` / `/`):** Fast search-and-jump modal palette to locate stars, exoplanets, constellations, or toggle visual rendering layers. Currently a rough prototype only; needs a full production build. Natural home alongside `search-discovery`.
+- **Temporal Scrubber (Time Travel Control):** Interactive timeline scrubber allowing users to propagate planetary and stellar orbits forward and backward through time using Keplerian mechanics. *Blocked on an orbital propagation solver.*
 
 ---
 
-## Search & Discovery
+## Exploration, Tagging & Filters
 
-- **Floating Search Pill & Autocomplete Panel:** Omnipresent search pill with an anchored autocomplete result sheet showing celestial POIs, coordinates, and classification badges.
-- **Deep Catalog Filter Drawer:** Full-height slide-out drawer for multi-variable filtering of celestial bodies (by distance, spectral type, habitability index, exoplanet count).
-
----
-
-## Telemetry & Scientific Dossiers
-
-- **Real-Time Telemetry Readouts & Well:** Sunken inset console panels displaying live distance, apparent magnitude, radial velocity, and light-travel time from current viewpoint to targeted object.
-- **Orbital Telemetry Tables:** Docked inspector view rendering Keplerian orbital elements (semi-major axis, eccentricity, inclination, periapsis, orbital period).
-- **Celestial Dossier Sheets:** Contextual slide-out sheets containing astrophysical data (spectral classification, mass, radius, metallicity, habitability indicators) and schematic/visual previews.
-- **Spectral Classification Hover Tooltips:** Contextual tooltips decoding Morgan–Keenan spectral types (e.g. `G2V`, `M1III`) on star hover.
+- **Tags:** Flexible metadata tagging across celestial entities for search filtering, thematic categorisation and glanceable tags (e.g. `Habitable Zone`, `Super-Earth`, `Recent JWST Target`). *Needs a data-model decision in the pipeline.*
+- **Filters & Filter Sets:** Configure, save and share preset or custom filter criteria (e.g. "Habitable Zone candidates within 15 ly"). *After `search-discovery`.*
 
 ---
 
-## Route Planning & In-Universe Flight
+## Surfaces & Curated Tours
 
-- **Interstellar Route Planner:** Waypoint-based trajectory calculator plotting travel vectors and transit times between stellar systems.
-- **Route History & Bookmarks:** Flight log drawer persisting recent navigational trajectories and saved celestial coordinates.
-- **Warp / Transit Calculation Alerts:** System alert banners/toasts reporting trajectory calculation status or jump feasibility.
+- **Tour Waypoint Card:** Card variant with narrative elements and step-through controls (`◀ Previous Highlight` | `Next Highlight ▶`) for curated tours and guided journeys. *After `telemetry-container` card hierarchy.*
 
 ---
 
-## System Configuration & Accessibility
+## Route Planning & Communications
 
-- **System Settings Drawer:** Slide-out drawer for rendering performance, audio/SFX, measurement units (AU, parsecs, light-years), and theme switching (Light/Dark).
-- **Keyboard Shortcut Reference Modal:** Modal overlay documenting navigation keys, camera controls, and HUD shortcuts.
+- **Route History & Bookmarks:** Flight log drawer persisting recent trajectories and saved celestial coordinates. *After `route-measurement`.*
+- **Warp / Transit Calculation Alerts:** Alert banners/toasts reporting trajectory calculation status or jump feasibility. *After `route-measurement`.*
+- **Relativistic & Interplanetary Conversation Simulator (Comms Lag):** Visualises conversation over astronomical distances: exchanges subject to one-way and round-trip light-speed delays (Earth–Mars 3–22 min; Sol–Tau Ceti 11.9 yr), out-of-order responses, asynchronous queuing and desynchronisation. *After `route-measurement`.*
+
+---
+
+## System Configuration
+
+- **System Settings Drawer:** Rendering performance, audio/SFX, measurement units (AU, parsecs, light-years) and theme switching (Light/Dark).
 
 ---
 
 ## 3D Cartography & Visual Language Refinement
 
-- **Volumetric Media & Interstellar Media (ISM):** Finesse representation of diffuse 3D spatial volumes (molecular clouds, nebulae, star-forming regions, the Local Bubble void) via mathematical micro-dot point-density fields (cartographic stippling) and planar survey cross-hatching on datum planes.
-- **Multi-Scale Transition Mechanics:** Finesse dynamic datum plane shifts across scale boundaries (Galactic Equator $XY \rightarrow$ System Invariable/Ecliptic Plane $\rightarrow$ Planetary Rotational Equator) and visual indicators for inter-scale plane tilt angles.
+- **Volumetric Media & Interstellar Media (ISM):** Diffuse 3D volumes (molecular clouds, nebulae, star-forming regions, the Local Bubble void) via micro-dot point-density fields (cartographic stippling) and planar survey cross-hatching on datum planes.
 - **Keplerian Orbit Lines:** Finesse elliptical orbit styling in System View (solid vs stippled linework, periapsis/apoapsis ticks, ascending/descending nodes, inclination shading above/below the ecliptic).
 - **Typographic Hierarchy & Label Formatting (Layer 3):** Finesse typographic hierarchy, uppercase/tabular monospace formatting, font tokens, and exact offset geometry of system designations relative to reticle facets.
-- **Multi-Tier Reticle Priority Hierarchy (Phase 4):** Formalise the multi-tier priority occlusion hierarchy (which reticles yield to which under line-of-sight collisions) alongside User Journeys in Phase 4.
-- **Zoom-Level Clamping Calibration:** Calibrate specific zoom-tier clamping thresholds in interactive mockups to suppress ambient labels/reticles during macro zoom-out and prevent visual crowding.
-- **Far Horizon Fade Calibration:** Calibrate the specific distance-multiplier horizons and attenuation curves for background stars fading outside the active focal aperture ($R_{fin}$).
-- **Kinematic Vector Terminus & Epoch Calibration:** Finalise the activation rules, specific astronomical epoch ($\Delta t$), and terminus styling (ghost pip vs tick) for projected dotted velocity vectors.
-- **Camera Coupling Implementation:** Resolve whether zoom is implemented via camera dolly with proportional aperture scaling vs fixed camera distance with variable scene aperture radius.
-- **Orthographic Projection & Camera Navigation Paradigms:** Implement robust orthographic projection and formalise the camera navigation paradigms across 3D and 2D modes. Address continuous matrix blending/switching between narrow-FOV technical perspective (25°–35°) and pure orthographic projection when approaching cardinal planes ($XY$ Galactic Equator, $XZ$/$YZ$ profiles); resolve frustum-to-aperture scaling to maintain uniform visual proportions during transitions; eliminate depth buffer and clipping plane anomalies in orthographic mode; and establish modal navigation controls (constrained 2D pan/zoom when locked into orthographic chart view vs orbit/dolly in free 3D inspection, smooth critically damped camera glides, and consistent input mappings across devices).
-- **Significance-Gated Data Filtering (Toponymic Hierarchy):** Explore dynamic prioritisation of entity visibility based on active survey queries or astronomical significance rather than arbitrary global culling.
-
----
-
-## Core Architecture & Event System
-
-- **Unified 3D-2D Event & Telemetry Projection Bridge (Scheduled for 3D Engine Track):** Design and establish a rigorous, strongly typed interaction and event pipeline bridging 3D WebGL/Three.js scene events (raycasting, object pick/hover, camera transitions) and 2D DOM/HUD UI layers. Propagate entity interaction states (`passive`, `active`, `selected`, `focused`), project 3D entity coordinates to 2D screen-space pixels without layout thrashing, and tunnel camera action commands from 2D button clicks into the 3D scene.
-- **UI Component Inventory & Surface Registry:** Author and maintain the comprehensive inventory of all 2D UI and HUD components required across the application (`<SecondaryObjectsPane>`, `<TimeScrubber>`, `<Breadcrumbs>`, `<ScopeSwitcherChip>`, `<CommandPalette>`, `<AdaptiveTelemetryContainer>`, `<AttitudeMinimap>`, `<RoutePlanningBay>`, `<TourWaypointCard>`, `<ParameterComparator>`, `<CodexArticleView>`, `<CommsLagSimulator>`).
-
+- **Multi-Tier Reticle Priority Hierarchy:** Formalise which reticles yield to which under line-of-sight collisions.
+- **Kinematic Vector Terminus & Epoch Calibration:** Finalise activation rules, astronomical epoch ($\Delta t$) and terminus styling (ghost pip vs tick) for projected dotted velocity vectors.
+- **Significance-Gated Data Filtering (Toponymic Hierarchy):** Dynamic prioritisation of entity visibility based on active survey queries or astronomical significance rather than arbitrary global culling.
 
 ---
 
 ## Data Architecture & Spatial Ingestion
 
-- **Dynamic 3D Spatial Partitioning & Sector Streaming:** Client-side runtime data loading architecture and memory management pipeline for astronomical datasets, specifically tailored for 3D celestial positioning across the 100-parsec solar neighbourhood. Implements view-frustum and distance-gated asynchronous streaming of sharded 25-pc cubic spatial sectors (`public/data/partitions/sector_*.json`) or packed binary buffers (`Float32Array` Cartesian coordinates) directly into GPU instanced point buffers. Incorporates dynamic floating-origin shifting to eliminate 32-bit floating-point precision jitter when transitioning between macro (parsec-scale galactic coordinates) and micro (AU-scale heliocentric coordinates) reference frames, backed by client-side spatial indexing (octree or spatial hash grid) for sub-millisecond proximity queries, raycast hit detection, and LOD caching.
+- **Dynamic 3D Spatial Partitioning & Sector Streaming:** Client-side runtime loading and memory management for astronomical datasets across the 100-parsec neighbourhood. View-frustum and distance-gated asynchronous streaming of sharded 25-pc cubic sectors (`public/data/partitions/sector_*.json`) or packed binary buffers (`Float32Array`) into GPU instanced point buffers; floating-origin shifting to eliminate 32-bit precision jitter between parsec and AU frames; client-side spatial indexing (octree or spatial hash grid) for proximity queries, raycast hit detection and LOD caching.
 
 ---
 
 ## Observability & Analytics
 
-- **Comprehensive Interaction & Performance Analytics:** Establish a clear, granular analytics and telemetry pipeline capturing detailed user journey events (POI selections, search behaviour, viewport transitions, tool interactions) and client-side runtime performance (frame rates, render passes, asset streaming latency, WebGL context events). Define a formal event taxonomy with strongly typed payloads decoupled from UI presentation logic.
+- **Comprehensive Interaction & Performance Analytics:** Granular analytics capturing user journey events (POI selections, search behaviour, viewport transitions, tool interactions) and client-side runtime performance (frame rates, render passes, asset streaming latency, WebGL context events). Formal event taxonomy with strongly typed payloads decoupled from UI presentation logic.

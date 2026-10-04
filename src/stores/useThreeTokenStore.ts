@@ -383,7 +383,7 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
 
     // Kinematic Chrome
     kinematicColor: makeLinearColor(redHex),
-    kinematicAlpha: 0.85,
+    kinematicAlpha: 0.35,
 
     // Drop Stalks (Monochrome, State-Driven)
     stalkSelectedColor: makeLinearColor(stalkToneHex),
@@ -398,7 +398,7 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     footprintAlpha: 0.35,
     footprintSelectedColor: makeLinearColor(stalkToneHex),
     footprintSelectedAlpha: 0.70,
-    footprintFocusedColor: makeLinearColor(stalkToneHex),
+    footprintFocusedColor: makeLinearColor(focusHex),
     footprintFocusedAlpha: 0.85,
 
     // Orbits (Hairline, State-Driven)
@@ -407,9 +407,9 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     orbitWidth: 1,
     orbitStyle: 'dashed',
     orbitSelectedColor: makeLinearColor(redHex),
-    orbitSelectedAlpha: 0.85,
+    orbitSelectedAlpha: 0.35,
     orbitFocusedColor: makeLinearColor(redHex),
-    orbitFocusedAlpha: 0.85,
+    orbitFocusedAlpha: 0.35,
 
     // Routes (Kinematic Vector Chords)
     routeColor: makeLinearColor(redHex),
@@ -420,7 +420,7 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     // Motion
     stalkExtendDuration: 0.15,
     stalkExtendEase: parseCssCubicBezier('cubic-bezier(0.2, 0, 0, 1)'),
-    stalkRetractDuration: 0.0,
+    stalkRetractDuration: 0.1,
     stalkRetractEase: parseCssCubicBezier('cubic-bezier(0.4, 0, 1, 1)'),
     footprintStampDuration: 0.075,
 
@@ -553,6 +553,7 @@ export function extractThreeTokens(
   const bearingLineWidth = readWidth('--chrome-bearing-line-width', fallback.bearingLineWidth);
   const bearingLineStyle = readStyle('--chrome-bearing-line-style', fallback.bearingLineStyle);
   const bearingOrbital = readColor('--chrome-bearing-orbital-color', fallback.bearingOrbitalColor, fallback.bearingOrbitalAlpha);
+  const bearingOrbitalAlpha = readOpacity('--chrome-bearing-orbital-alpha', bearingOrbital.alpha !== 1 ? bearingOrbital.alpha : fallback.bearingOrbitalAlpha);
   const bearingOrbitalWidth = readWidth('--chrome-bearing-orbital-width', fallback.bearingOrbitalWidth);
   const bearingOrbitalStyle = readStyle('--chrome-bearing-orbital-style', fallback.bearingOrbitalStyle);
   const bearingCore = readColor('--chrome-bearing-core-color', fallback.bearingCoreColor, fallback.bearingCoreAlpha);
@@ -670,7 +671,7 @@ export function extractThreeTokens(
     bearingLineWidth,
     bearingLineStyle,
     bearingOrbitalColor: bearingOrbital.color,
-    bearingOrbitalAlpha: bearingOrbital.alpha,
+    bearingOrbitalAlpha,
     bearingOrbitalWidth,
     bearingOrbitalStyle,
     bearingCoreColor: bearingCore.color,

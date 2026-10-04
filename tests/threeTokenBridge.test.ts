@@ -134,7 +134,7 @@ describe('useThreeTokenStore & parseCssColor', () => {
 
     // New semantic tokens
     expect(snapshot.kinematicColor).toBeDefined();
-    expect(snapshot.kinematicAlpha).toBe(0.85);
+    expect(snapshot.kinematicAlpha).toBe(0.35);
     expect(snapshot.stalkSelectedAlpha).toBe(0.70);
     expect(snapshot.stalkFocusedAlpha).toBe(0.85);
     expect(snapshot.footprintAlpha).toBe(0.35);
@@ -143,7 +143,7 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(snapshot.routeWidth).toBe(3);
     expect(snapshot.routeStyle).toBe('solid');
     expect(snapshot.stalkExtendDuration).toBe(0.15);
-    expect(snapshot.stalkRetractDuration).toBe(0);
+    expect(snapshot.stalkRetractDuration).toBe(0.1);
     expect(snapshot.instrumentFootprint).toBe(16.47);
     expect(snapshot.cameraFovBase).toBe(45);
 

@@ -1,7 +1,7 @@
 # Implementation Plan: 3D Component Architecture Refactor
 
 ## Phase 0: Baseline & Track Setup
-- [x] Task: Create track artifacts and configure track registry with dependency on `3d-engine-implementation`.
+- [x] Task: Create track artifacts and register track as an upstream dependency of `3d-engine-implementation`.
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 1: Tokens, Line Material & Spatial Mathematics (TDD)
@@ -14,25 +14,25 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Instrument Decomposition & Camera Rig (TDD)
-- [ ] Task: Define `ReferenceFrame` interfaces and declarative presets (`GALACTIC_FRAME`, `SYSTEM_FRAME`, `PLANETARY_FRAME`).
-- [ ] Task: Decompose `CartographicGrid.tsx` into modular instrument primitives in `src/components/canvas/instrument/`: `SpatialFrameProvider`, `PlanarGrid`, `RangeRings`, `CoordinateFins` (with grazing fade and 360° Polar Cartographic Dial cardinal expansion), `BearingVectors`.
-- [ ] Task: Implement generic `ScreenEdgeCue` component driven by frame bearing definitions.
-- [ ] Task: Implement `CameraRig` component isolating camera frustum, reference FOV, and metric zoom scaling.
-- [ ] Task: Verify Galaxy, System, and Planet instrument rendering parity.
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Define `ReferenceFrame` interfaces and declarative presets (`GALACTIC_FRAME`, `SYSTEM_FRAME`, `PLANETARY_FRAME`).
+- [x] Task: Decompose `CartographicGrid.tsx` into modular instrument primitives in `src/components/canvas/instrument/`: `SpatialFrameProvider`, `PlanarGrid`, `RangeRings`, `CoordinateFins` (with grazing fade and 360° Polar Cartographic Dial cardinal expansion), `BearingVectors`.
+- [x] Task: Implement generic `ScreenEdgeCue` component driven by frame bearing definitions.
+- [x] Task: Implement `CameraRig` component isolating camera frustum, reference FOV, and metric zoom scaling.
+- [x] Task: Verify Galaxy, System, and Planet instrument rendering parity.
+- [x] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: Entity Store & Node Decomposition (TDD)
-- [ ] Task: Implement local per-viewport `useSpatialEntityStore` managing entity registration, interaction FSM (`passive`, `active`, `selected`, `focused`), and aperture queries.
-- [ ] Task: Implement `BodyMarkers` rendering central celestial markers at strictly invariant screen-pixel size in monochrome.
-- [ ] Task: Implement `Reticles` rendering category reticle frames and decorating facet components (multiplicity, label, census pips, spectral symbol).
-- [ ] Task: Implement `EntityLabels` with leader stems, collision displacement, and camera-proximity occlusion.
-- [ ] Task: Implement `DropStalks` with state-driven extend/retract animation, monochrome styling, and decoupled footprint token.
-- [ ] Task: Implement `KinematicVector` rendering projected dotted velocity vector to fixed-time delta Δt.
-- [ ] Task: Implement `OrbitPath` with state-driven kinematic styling and forced rendering on select/focus.
-- [ ] Task: Implement `OcclusionPass` for non-leaky O(n) per-frame occlusion evaluation.
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Implement local per-viewport `useSpatialEntityStore` managing entity registration, interaction FSM (`passive`, `active`, `selected`, `focused`), and aperture queries.
+- [x] Task: Implement `BodyMarkers` rendering central celestial markers at strictly invariant screen-pixel size in monochrome.
+- [x] Task: Implement `Reticles` rendering category reticle frames and decorating facet components (multiplicity, label, census pips, spectral symbol).
+- [x] Task: Implement `EntityLabels` with leader stems, collision displacement, and camera-proximity occlusion.
+- [x] Task: Implement `DropStalks` with state-driven extend/retract animation, monochrome styling, and decoupled footprint token.
+- [x] Task: Implement `KinematicVector` rendering projected dotted velocity vector to fixed-time delta Δt.
+- [x] Task: Implement `OrbitPath` with state-driven kinematic styling and forced rendering on select/focus.
+- [x] Task: Implement `OcclusionPass` for non-leaky O(n) per-frame occlusion evaluation.
+- [x] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 4: Production Scene Consolidation
 - [ ] Task: Implement `SpatialViewport` composition root.
@@ -43,12 +43,5 @@
 - [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
-## Phase 5: HUD & View Shell Harmonisation
-- [ ] Task: Implement `ViewportLayout` HUD slot template.
-- [ ] Task: Implement `Heading` typographic primitive.
-- [ ] Task: Implement `ViewControlsDock` consuming capabilities from the active `ReferenceFrame`.
-- [ ] Task: Implement `SecondaryObjectsPane` for secondary entity selection and sync.
-- [ ] Task: Strip duplicate `.hudOverlay`, `.eyebrow`, `.title`, and positioning CSS from view modules.
-- [ ] Task: Run end-to-end visual and navigation checks across Galaxy, System, and Planet views.
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+## ~~Phase 5: HUD & View Shell Harmonisation~~ (Relocated)
+> Moved out of this track. `ViewportLayout`, `Heading`, `ViewControlsDock` and HUD CSS stripping → `console-ui-shell_20261004`. `SecondaryObjectsPane` → `telemetry-container_20261004`. This track completes at Phase 4.
