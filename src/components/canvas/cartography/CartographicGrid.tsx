@@ -22,6 +22,8 @@ import {
   type CelestialFootprint,
 } from './celestialOcclusionRegistry';
 
+const PLANES = ['xy', 'xz', 'yz'] as const;
+
 /**
  * Creates BufferGeometry for a full 360-degree circle in the XY plane.
  */
@@ -308,7 +310,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   );
 
   // Auto-calculated reference distance ensuring instrument fits comfortably in viewport (~93% vertical span)
-  const effectiveRefDist = referenceDistance ?? radius * 3.49;
+  const effectiveRefDist = Math.max(0.001, referenceDistance ?? radius * 3.49);
 
   const posX = position instanceof THREE.Vector3 ? position.x : position[0];
   const posY = position instanceof THREE.Vector3 ? position.y : position[1];
@@ -671,7 +673,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     const dRings = datumRingData;
 
     return () => {
-      for (const plane of ['xy', 'xz', 'yz'] as const) {
+      for (const plane of PLANES) {
         for (const ringQuads of qData[plane]) {
           for (const item of ringQuads) {
             item.geom.dispose();
@@ -747,7 +749,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     const dBoundary = datumBoundaryDataRef.current;
     const dRings = datumRingDataRef.current;
 
-    for (const plane of ['xy', 'xz', 'yz'] as const) {
+    for (const plane of PLANES) {
       pData[plane].forEach((pItem) => {
         pItem.mat.color.copy(tokens.gridPrimaryColor);
         pItem.mat.linewidth = tokens.gridSecondaryWidth;
@@ -924,7 +926,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
     // 5. Update Fin Perimeter Boundary Arcs with current aperture radius (Subtle perimeter boundary)
     if (showFins) {
-      for (const plane of ['xy', 'xz', 'yz'] as const) {
+      for (const plane of PLANES) {
         const pArcs = pArcData[plane];
         const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
         const qwList = plane === 'xy' ? qwXY : plane === 'xz' ? qwXZ : qwYZ;
@@ -949,7 +951,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
             : Math.max(tokens.gridSecondaryAlpha * 1.1, 0.18);
           const ringFade = ringInfo.fade;
 
-          for (const plane of ['xy', 'xz', 'yz'] as const) {
+          for (const plane of PLANES) {
             const quads = qData[plane][ringIdx];
             const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
             const qwList = plane === 'xy' ? qwXY : plane === 'xz' ? qwXZ : qwYZ;
@@ -962,7 +964,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
           }
         } else {
           // Inactive ring in pool
-          for (const plane of ['xy', 'xz', 'yz'] as const) {
+          for (const plane of PLANES) {
             const quads = qData[plane][ringIdx];
             quads.forEach((item) => {
               item.mat.opacity = 0;
@@ -973,7 +975,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       }
 
       // 7. Update perimeter ticks with current aperture radius
-      for (const plane of ['xy', 'xz', 'yz'] as const) {
+      for (const plane of PLANES) {
         const ticks = tData[plane];
         const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
         const qwList = plane === 'xy' ? qwXY : plane === 'xz' ? qwXZ : qwYZ;

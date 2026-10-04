@@ -40,6 +40,8 @@ const SHARED_HITAREA_MATERIAL = new THREE.MeshBasicMaterial({
   side: THREE.DoubleSide,
 });
 
+const HTML_Z_INDEX_RANGE: [number, number] = [0, 0];
+
 import {
   createReticleGeometry,
   type CelestialClassification,
@@ -461,7 +463,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
             position={[reticleSize * 1.15, reticleSize * 0.75, 0]}
             center={false}
             prepend={true}
-            zIndexRange={[0, 0]}
+            zIndexRange={HTML_Z_INDEX_RANGE}
             data-testid="celestial-label"
           >
             <div
@@ -481,7 +483,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
             position={[reticleSize * 1.15, -reticleSize * 0.75, 0]}
             center={false}
             prepend={true}
-            zIndexRange={[0, 0]}
+            zIndexRange={HTML_Z_INDEX_RANGE}
             data-testid="celestial-spectrum-facet"
           >
             <div
@@ -501,7 +503,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
           position={[0.2, 0.2, 0]}
           center={false}
           prepend={true}
-          zIndexRange={[0, 0]}
+          zIndexRange={HTML_Z_INDEX_RANGE}
           data-testid="celestial-label"
         >
           <div
