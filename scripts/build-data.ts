@@ -21,6 +21,7 @@ import {
   getSectorBounds,
   DEFAULT_SECTOR_SIZE_PC,
 } from '../src/utils/astroMath';
+import { classifyPlanetPhysical } from '../src/components/canvas/math/astronomy';
 import {
   OFFICIAL_IAU_STAR_NAMES,
   RECONS_10PC_SUPPLEMENT,
@@ -623,22 +624,7 @@ export function checkHabitableCandidate(planets: ExoplanetRecord[], starLum?: nu
  * - Gas Giant: Rp > 6.0 R_earth or Mp > 50 M_earth
  */
 export function classifyExoplanet(planet: ExoplanetRecord): 'terrestrial' | 'gas-giant' | 'ice-giant' {
-  const rEarth = planet.radiusRearth ?? (planet.radiusRjup !== undefined ? planet.radiusRjup * 11.209 : undefined);
-  const mEarth = planet.massMearth ?? (planet.massMjup !== undefined ? planet.massMjup * 317.83 : undefined);
-
-  if (rEarth !== undefined) {
-    if (rEarth <= 1.75) return 'terrestrial';
-    if (rEarth <= 6.0) return 'ice-giant';
-    return 'gas-giant';
-  }
-
-  if (mEarth !== undefined) {
-    if (mEarth <= 10.0) return 'terrestrial';
-    if (mEarth <= 50.0) return 'ice-giant';
-    return 'gas-giant';
-  }
-
-  return 'terrestrial';
+  return classifyPlanetPhysical(planet);
 }
 
 /**

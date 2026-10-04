@@ -203,6 +203,18 @@ class ScreenSpatialGrid {
   }
 }
 
+const CANDIDATE_MULTIPLIERS = [
+  { x: 0, y: 0 },
+  { x: 0, y: 1.4 },               // Downward displacement
+  { x: 1.25, y: 0 },              // Outward right displacement along leader stem
+  { x: 0, y: -1.4 },              // Upward displacement
+  { x: -1.25, y: 0 },             // Leftward displacement
+  { x: 1.1 * 0.7071, y: 1.1 * 0.7071 },   // Down-right
+  { x: -1.1 * 0.7071, y: 1.1 * 0.7071 },  // Down-left
+  { x: 1.1 * 0.7071, y: -1.1 * 0.7071 },  // Up-right
+  { x: -1.1 * 0.7071, y: -1.1 * 0.7071 }, // Up-left
+] as const;
+
 export class CelestialOcclusionManager {
   private footprints = new Map<string, CelestialFootprint>();
   private significantFootprints: CelestialFootprint[] = [];
@@ -534,27 +546,17 @@ export class CelestialOcclusionManager {
 
     // Candidate displacements (Spec 2.3: Screen-Space Displacement along 8 radial leader stems)
     const r = target.reticleRadius;
-    const diag = r * 1.1 * 0.7071;
-    const candidates = [
-      { dx: 0, dy: 0 },
-      { dx: 0, dy: r * 1.4 },       // Downward displacement
-      { dx: r * 1.25, dy: 0 },      // Outward right displacement along leader stem
-      { dx: 0, dy: -r * 1.4 },      // Upward displacement
-      { dx: -r * 1.25, dy: 0 },     // Leftward displacement
-      { dx: diag, dy: diag },       // Down-right
-      { dx: -diag, dy: diag },      // Down-left
-      { dx: diag, dy: -diag },      // Up-right
-      { dx: -diag, dy: -diag },     // Up-left
-    ];
-
     const cBox = this.scratchCandidateBox;
 
-    for (let cIdx = 0; cIdx < candidates.length; cIdx++) {
-      const cand = candidates[cIdx];
-      cBox.left = box.left + cand.dx;
-      cBox.top = box.top + cand.dy;
-      cBox.right = box.right + cand.dx;
-      cBox.bottom = box.bottom + cand.dy;
+    for (let cIdx = 0; cIdx < CANDIDATE_MULTIPLIERS.length; cIdx++) {
+      const mult = CANDIDATE_MULTIPLIERS[cIdx];
+      const dx = mult.x * r;
+      const dy = mult.y * r;
+
+      cBox.left = box.left + dx;
+      cBox.top = box.top + dy;
+      cBox.right = box.right + dx;
+      cBox.bottom = box.bottom + dy;
 
       const cCenterX = (cBox.left + cBox.right) * 0.5;
       const cCenterY = (cBox.top + cBox.bottom) * 0.5;
@@ -600,9 +602,9 @@ export class CelestialOcclusionManager {
       // Valid non-colliding placement found
       result.visible = true;
       result.behindCanvas = true;
-      result.displacementX = cand.dx;
-      result.displacementY = cand.dy;
-      result.isDisplaced = cand.dx !== 0 || cand.dy !== 0;
+      result.displacementX = dx;
+      result.displacementY = dy;
+      result.isDisplaced = dx !== 0 || dy !== 0;
       return result;
     }
 

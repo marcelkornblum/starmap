@@ -30,6 +30,21 @@ export interface CelestialEntityProps extends Partial<SpatialEntityDefinition> {
   children?: React.ReactNode;
 }
 
+function isVelocityEqual(
+  v1?: THREE.Vector3 | [number, number, number],
+  v2?: THREE.Vector3 | [number, number, number],
+): boolean {
+  if (v1 === v2) return true;
+  if (!v1 || !v2) return false;
+  const x1 = 'x' in v1 ? v1.x : v1[0];
+  const y1 = 'y' in v1 ? v1.y : v1[1];
+  const z1 = 'z' in v1 ? v1.z : v1[2];
+  const x2 = 'x' in v2 ? v2.x : v2[0];
+  const y2 = 'y' in v2 ? v2.y : v2[1];
+  const z2 = 'z' in v2 ? v2.z : v2[2];
+  return x1 === x2 && y1 === y2 && z1 === z2;
+}
+
 /**
  * CelestialEntity: Unified architectural composite composing:
  * - Layer 1: BodyMarker (Physical System Node, Invariant Screen Size)
@@ -137,7 +152,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     ];
   }, [resolvedPrimaryPos, resolvedPos]);
 
-  // Register in SpatialEntityStore on mount
+  // Register in SpatialEntityStore on mount, unregister on unmount
   useEffect(() => {
     storeApi.getState().registerEntity({
       id,
@@ -156,7 +171,81 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     return () => {
       storeApi.getState().unregisterEntity(id);
     };
-  }, [storeApi, id, name, resolvedPos, classification, explicitState, spectralType, multiplicity, planets, velocity, orbit, reticleSize]);
+  }, [storeApi, id]);
+
+  // Synchronize prop changes to SpatialEntityStore with shallow comparison on complex objects
+  const prevEntityPropsRef = useRef({
+    name,
+    px: resolvedPos.x,
+    py: resolvedPos.y,
+    pz: resolvedPos.z,
+    classification,
+    state: explicitState,
+    spectralType,
+    multiplicity,
+    planets,
+    velocity,
+    orbit,
+    reticleSize,
+  });
+
+  useEffect(() => {
+    const prev = prevEntityPropsRef.current;
+    const posChanged = prev.px !== resolvedPos.x || prev.py !== resolvedPos.y || prev.pz !== resolvedPos.z;
+    const planetsChanged = prev.planets !== planets && (
+      !prev.planets || !planets || prev.planets.length !== planets.length ||
+      prev.planets.some((p, i) => p.name !== planets[i]?.name || p.classification !== planets[i]?.classification)
+    );
+    const orbitChanged = prev.orbit !== orbit && (
+      prev.orbit?.semiMajorAxis !== orbit?.semiMajorAxis ||
+      prev.orbit?.eccentricity !== orbit?.eccentricity ||
+      prev.orbit?.inclination !== orbit?.inclination ||
+      prev.orbit?.ascendingNode !== orbit?.ascendingNode ||
+      prev.orbit?.argumentOfPeriapsis !== orbit?.argumentOfPeriapsis
+    );
+    const velocityChanged = !isVelocityEqual(prev.velocity, velocity);
+
+    if (
+      prev.name !== name ||
+      posChanged ||
+      prev.classification !== classification ||
+      prev.state !== explicitState ||
+      prev.spectralType !== spectralType ||
+      prev.multiplicity !== multiplicity ||
+      prev.reticleSize !== reticleSize ||
+      planetsChanged ||
+      orbitChanged ||
+      velocityChanged
+    ) {
+      prevEntityPropsRef.current = {
+        name,
+        px: resolvedPos.x,
+        py: resolvedPos.y,
+        pz: resolvedPos.z,
+        classification,
+        state: explicitState,
+        spectralType,
+        multiplicity,
+        planets,
+        velocity,
+        orbit,
+        reticleSize,
+      };
+
+      storeApi.getState().updateEntity(id, {
+        name,
+        position: resolvedPos,
+        classification,
+        state: explicitState,
+        spectralType,
+        multiplicity,
+        planets,
+        velocity,
+        orbit,
+        reticleSize,
+      });
+    }
+  });
 
   // Occlusion evaluation refs
   const footprintRef = useRef<CelestialFootprint>({

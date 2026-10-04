@@ -35,41 +35,26 @@ export function formatDesignationTag(tag?: string): string {
   return tag.replace(/\s*\+\s*/g, '·').trim();
 }
 
+import {
+  classifyPlanetPhysical,
+  type PlanetPhysicalProperties,
+  type PlanetCensusClassification,
+} from '../math/astronomy';
+
+export {
+  classifyPlanetPhysical,
+  type PlanetPhysicalProperties,
+  type PlanetCensusClassification,
+};
+
 /**
  * Classifies a planetary record into an authoritative census category based on physical metrics:
  * - Terrestrial: Rp <= 1.75 R_earth or Mp <= 10 M_earth
  * - Ice Giant: 1.75 R_earth < Rp <= 6.0 R_earth or 10 M_earth < Mp <= 50 M_earth
  * - Gas Giant: Rp > 6.0 R_earth or Mp > 50 M_earth
  */
-export function classifyPlanet(planet: {
-  radiusRearth?: number;
-  radiusRjup?: number;
-  massMearth?: number;
-  massMjup?: number;
-  classification?: string;
-}): 'terrestrial' | 'gas-giant' | 'ice-giant' {
-  if (planet.classification) {
-    const norm = planet.classification.toLowerCase();
-    if (norm.includes('terrestrial') || norm.includes('rocky') || norm.includes('earth')) return 'terrestrial';
-    if (norm.includes('ice') || norm.includes('neptun')) return 'ice-giant';
-    if (norm.includes('gas') || norm.includes('jovian') || norm.includes('giant')) return 'gas-giant';
-  }
-  const rEarth = planet.radiusRearth ?? (planet.radiusRjup !== undefined ? planet.radiusRjup * 11.209 : undefined);
-  const mEarth = planet.massMearth ?? (planet.massMjup !== undefined ? planet.massMjup * 317.83 : undefined);
-
-  if (rEarth !== undefined) {
-    if (rEarth <= 1.75) return 'terrestrial';
-    if (rEarth <= 6.0) return 'ice-giant';
-    return 'gas-giant';
-  }
-
-  if (mEarth !== undefined) {
-    if (mEarth <= 10.0) return 'terrestrial';
-    if (mEarth <= 50.0) return 'ice-giant';
-    return 'gas-giant';
-  }
-
-  return 'terrestrial';
+export function classifyPlanet(planet: PlanetPhysicalProperties): PlanetCensusClassification {
+  return classifyPlanetPhysical(planet);
 }
 
 export interface ReticleAnnotationOptions {

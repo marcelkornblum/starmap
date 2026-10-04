@@ -4,3 +4,4 @@ export * from './aperture';
 export * from './bearings';
 export * from './tiers';
 export * from './kepler';
+export * from './astronomy';
