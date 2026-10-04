@@ -335,16 +335,16 @@
     --chrome-boresight-style:            var(--border-style-boundary);
 
     /* Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0) */
-    --chrome-datum-plane-color:          var(--palette-white-alpha-24);
-    --chrome-datum-plane-alpha:          0.24;
+    --chrome-datum-plane-color:          oklch(0.78 0.04 220 / 0.35);
+    --chrome-datum-plane-alpha:          0.35;
     --chrome-datum-plane-width:          var(--stroke-width-1);
     --chrome-datum-plane-major-color:    var(--palette-white-alpha-35);
     --chrome-datum-plane-major-alpha:    0.35;
     --chrome-datum-plane-minor-color:    var(--palette-white-alpha-16);
     --chrome-datum-plane-minor-alpha:    0.16;
-    --chrome-datum-plane-fill-color:     var(--palette-white-alpha-4);
-    --chrome-datum-plane-fill-alpha:     0.04;
-    --chrome-datum-plane-fill-gradient-inner: 0.55;
+    --chrome-datum-plane-fill-color:     #8cb8cc;
+    --chrome-datum-plane-fill-alpha:     0.16;
+    --chrome-datum-plane-fill-gradient-inner: 0.25;
     --chrome-datum-plane-fill-gradient-exponent: 2.0;
     --chrome-datum-footprint-color:      var(--color-primary-400);
     --chrome-datum-footprint-alpha:      0.85;
@@ -356,11 +356,11 @@
 
     --chrome-bearing-line-color:         oklch(58.63% 0.2064 27.12 / 0.35);
     --chrome-bearing-line-width:         var(--stroke-width-2);
-    --chrome-bearing-line-style:         dashed;
+    --chrome-bearing-line-style:         solid;
 
     --chrome-bearing-orbital-color:      oklch(58.63% 0.2064 27.12 / 0.35);
     --chrome-bearing-orbital-width:      var(--stroke-width-2);
-    --chrome-bearing-orbital-style:      dashed;
+    --chrome-bearing-orbital-style:      solid;
 
     --chrome-bearing-core-color:         oklch(65.45% 0.1340 85.72 / 0.35);
     --chrome-bearing-core-width:         var(--stroke-width-2);
@@ -531,16 +531,16 @@
     --chrome-boresight-style:            var(--border-style-boundary);
 
     /* Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0) */
-    --chrome-datum-plane-color:          var(--palette-black-alpha-24);
-    --chrome-datum-plane-alpha:          0.24;
+    --chrome-datum-plane-color:          oklch(0.35 0.05 220 / 0.35);
+    --chrome-datum-plane-alpha:          0.35;
     --chrome-datum-plane-width:          var(--stroke-width-1);
     --chrome-datum-plane-major-color:    var(--palette-black-alpha-35);
     --chrome-datum-plane-major-alpha:    0.35;
     --chrome-datum-plane-minor-color:    var(--palette-black-alpha-16);
     --chrome-datum-plane-minor-alpha:    0.16;
-    --chrome-datum-plane-fill-color:     var(--palette-black-alpha-4);
-    --chrome-datum-plane-fill-alpha:     0.04;
-    --chrome-datum-plane-fill-gradient-inner: 0.55;
+    --chrome-datum-plane-fill-color:     #073642;
+    --chrome-datum-plane-fill-alpha:     0.08;
+    --chrome-datum-plane-fill-gradient-inner: 0.25;
     --chrome-datum-plane-fill-gradient-exponent: 2.0;
     --chrome-datum-footprint-color:      var(--color-primary-600);
     --chrome-datum-footprint-alpha:      0.85;
@@ -552,11 +552,11 @@
 
     --chrome-bearing-line-color:         oklch(58.63% 0.2064 27.12 / 0.35);
     --chrome-bearing-line-width:         var(--stroke-width-2);
-    --chrome-bearing-line-style:         dashed;
+    --chrome-bearing-line-style:         solid;
 
     --chrome-bearing-orbital-color:      oklch(58.63% 0.2064 27.12 / 0.35);
     --chrome-bearing-orbital-width:      var(--stroke-width-2);
-    --chrome-bearing-orbital-style:      dashed;
+    --chrome-bearing-orbital-style:      solid;
 
     --chrome-bearing-core-color:         oklch(65.45% 0.1340 85.72 / 0.35);
     --chrome-bearing-core-width:         var(--stroke-width-2);

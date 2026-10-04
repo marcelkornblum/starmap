@@ -146,7 +146,8 @@ export const Default: Story = {
     referenceDistance: 34.9,
     showFins: true,
     showAxisLines: true,
-    showFullDatumCircle: false,
+    showGalacticPlane: true,
+    showFullDatumCircle: true,
     adaptiveProjection: true,
   },
   render: (args) => (
