@@ -38,6 +38,10 @@ export interface ThreeTokenSnapshot {
   bearingLineAlpha: number;
   bearingLineWidth: number;
   bearingLineStyle: 'solid' | 'dashed' | 'dotted';
+  bearingOrbitalColor: THREE.Color;
+  bearingOrbitalAlpha: number;
+  bearingOrbitalWidth: number;
+  bearingOrbitalStyle: 'solid' | 'dashed' | 'dotted';
   bearingCoreColor: THREE.Color;
   bearingCoreAlpha: number;
   bearingCoreWidth: number;
@@ -189,10 +193,14 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     axisLineAlpha: 0.30,
     axisLineWidth: 2,
     axisLineStyle: 'solid',
-    bearingLineColor: makeLinearColor(chromeToneHex),
-    bearingLineAlpha: 0.50,
+    bearingLineColor: makeLinearColor('#dc322f'),
+    bearingLineAlpha: 0.85,
     bearingLineWidth: 2,
-    bearingLineStyle: 'solid',
+    bearingLineStyle: 'dashed',
+    bearingOrbitalColor: makeLinearColor('#dc322f'),
+    bearingOrbitalAlpha: 0.85,
+    bearingOrbitalWidth: 2,
+    bearingOrbitalStyle: 'dashed',
     bearingCoreColor: makeLinearColor('#b58900'),
     bearingCoreAlpha: 0.85,
     bearingCoreWidth: 2,
@@ -282,6 +290,9 @@ export function extractThreeTokens(
   const bearingLine = readColor('--chrome-bearing-line-color', fallback.bearingLineColor, fallback.bearingLineAlpha);
   const bearingLineWidth = readWidth('--chrome-bearing-line-width', fallback.bearingLineWidth);
   const bearingLineStyle = readStyle('--chrome-bearing-line-style', fallback.bearingLineStyle);
+  const bearingOrbital = readColor('--chrome-bearing-orbital-color', bearingLine.color, bearingLine.alpha);
+  const bearingOrbitalWidth = readWidth('--chrome-bearing-orbital-width', bearingLineWidth);
+  const bearingOrbitalStyle = readStyle('--chrome-bearing-orbital-style', bearingLineStyle);
   const bearingCore = readColor('--chrome-bearing-core-color', fallback.bearingCoreColor, fallback.bearingCoreAlpha);
   const bearingCoreWidth = readWidth('--chrome-bearing-core-width', fallback.bearingCoreWidth);
   const bearingCoreStyle = readStyle('--chrome-bearing-core-style', fallback.bearingCoreStyle);
@@ -328,10 +339,14 @@ export function extractThreeTokens(
     axisLineAlpha: axisLine.alpha,
     axisLineWidth,
     axisLineStyle,
-    bearingLineColor: bearingLine.color,
-    bearingLineAlpha: bearingLine.alpha,
-    bearingLineWidth,
-    bearingLineStyle,
+    bearingLineColor: bearingOrbital.color,
+    bearingLineAlpha: bearingOrbital.alpha,
+    bearingLineWidth: bearingOrbitalWidth,
+    bearingLineStyle: bearingOrbitalStyle,
+    bearingOrbitalColor: bearingOrbital.color,
+    bearingOrbitalAlpha: bearingOrbital.alpha,
+    bearingOrbitalWidth: bearingOrbitalWidth,
+    bearingOrbitalStyle: bearingOrbitalStyle,
     bearingCoreColor: bearingCore.color,
     bearingCoreAlpha: bearingCore.alpha,
     bearingCoreWidth,

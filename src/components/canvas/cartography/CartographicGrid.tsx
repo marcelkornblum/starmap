@@ -238,11 +238,33 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
   // Extended Cardinal Bearing Lines: +X Galactic Centre (Core Accent), +Y Galactic Orbit (Bearing Line)
   const extendedBearings = useMemo(() => {
-    const makeBearing = (direction: [number, number, number], color: THREE.Color, alpha: number, width: number) => {
-      const geom = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(...direction),
-      ]);
+    const makeBearing = (
+      direction: [number, number, number],
+      color: THREE.Color,
+      alpha: number,
+      width: number,
+      style: 'solid' | 'dashed' | 'dotted' = 'solid',
+    ) => {
+      let points: THREE.Vector3[];
+      if (style === 'dashed') {
+        points = [];
+        const numDashes = 28;
+        const dir = new THREE.Vector3(...direction);
+        for (let i = 0; i < numDashes; i++) {
+          const tStart = i / numDashes;
+          const tEnd = (i + 0.6) / numDashes;
+          points.push(
+            dir.clone().multiplyScalar(tStart),
+            dir.clone().multiplyScalar(tEnd),
+          );
+        }
+      } else {
+        points = [
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(...direction),
+        ];
+      }
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
       geom.computeBoundingSphere();
       const mat = new THREE.LineBasicMaterial({
         color,
@@ -259,18 +281,41 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       return { geom, mat, line };
     };
 
+    const orbitalColor = tokens.bearingOrbitalColor ?? tokens.bearingLineColor;
+    const orbitalAlpha = tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha;
+    const orbitalWidth = tokens.bearingOrbitalWidth ?? tokens.bearingLineWidth;
+    const orbitalStyle = tokens.bearingOrbitalStyle ?? tokens.bearingLineStyle;
+
     return {
-      core: makeBearing([1, 0, 0], tokens.bearingCoreColor, tokens.bearingCoreAlpha, tokens.bearingCoreWidth),
-      orbital: makeBearing([0, 1, 0], tokens.bearingLineColor, tokens.bearingLineAlpha, tokens.bearingLineWidth),
+      core: makeBearing(
+        [1, 0, 0],
+        tokens.bearingCoreColor,
+        tokens.bearingCoreAlpha,
+        tokens.bearingCoreWidth,
+        tokens.bearingCoreStyle,
+      ),
+      orbital: makeBearing(
+        [0, 1, 0],
+        orbitalColor,
+        orbitalAlpha,
+        orbitalWidth,
+        orbitalStyle,
+      ),
     };
   }, [
     radius,
     tokens.bearingCoreColor,
     tokens.bearingCoreAlpha,
     tokens.bearingCoreWidth,
+    tokens.bearingCoreStyle,
     tokens.bearingLineColor,
     tokens.bearingLineAlpha,
     tokens.bearingLineWidth,
+    tokens.bearingLineStyle,
+    tokens.bearingOrbitalColor,
+    tokens.bearingOrbitalAlpha,
+    tokens.bearingOrbitalWidth,
+    tokens.bearingOrbitalStyle,
   ]);
 
   // Mutable Scene Graph References (Preserving React Compiler optimization)
@@ -378,10 +423,10 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     eBearings.core.mat.opacity = tokens.bearingCoreAlpha;
     eBearings.core.mat.linewidth = tokens.bearingCoreWidth;
 
-    // Galactic Orbital Bearing: Prominent white alpha bearing token
-    eBearings.orbital.mat.color.copy(tokens.bearingLineColor);
-    eBearings.orbital.mat.opacity = tokens.bearingLineAlpha;
-    eBearings.orbital.mat.linewidth = tokens.bearingLineWidth;
+    // Galactic Orbital Bearing: Solarized red dashed token
+    eBearings.orbital.mat.color.copy(tokens.bearingOrbitalColor ?? tokens.bearingLineColor);
+    eBearings.orbital.mat.opacity = tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha;
+    eBearings.orbital.mat.linewidth = tokens.bearingOrbitalWidth ?? tokens.bearingLineWidth;
   }, [tokens, majorRingIndex]);
 
   // Optional full 360-degree datum circles
@@ -635,9 +680,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     eBearings.core.mat.visible = true;
 
     eBearings.orbital.line.scale.set(bearingLen, bearingLen, bearingLen);
-    eBearings.orbital.mat.color.copy(tokens.bearingLineColor);
-    eBearings.orbital.mat.opacity = tokens.bearingLineAlpha;
-    eBearings.orbital.mat.linewidth = tokens.bearingLineWidth;
+    eBearings.orbital.mat.color.copy(tokens.bearingOrbitalColor ?? tokens.bearingLineColor);
+    eBearings.orbital.mat.opacity = tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha;
+    eBearings.orbital.mat.linewidth = tokens.bearingOrbitalWidth ?? tokens.bearingLineWidth;
     eBearings.orbital.mat.visible = true;
 
     // 10. Adaptive Orthographic Switch: Narrow FOV and compensate zoom to maintain target footprint

@@ -128,7 +128,7 @@ type Story = StoryObj<typeof CartographicGrid>;
  * Default view: Perspective / non-ortho view.
  * 3 orthogonal fins (XY, XZ, YZ) each with a 90-degree curve,
  * alternating concentric range arcs (dimmer and brighter lines),
- * two extended bearing lines (+X Core in golden accent, +Y Orbital in white alpha),
+ * two extended bearing lines (+X Core in Solarized yellow accent, +Y Orbital in dashed Solarized red),
  * and the third axis line (+Z Pole) terminating at the radius length.
  */
 export const Default: Story = {

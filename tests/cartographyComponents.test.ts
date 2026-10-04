@@ -156,6 +156,7 @@ describe('3D Cartography Components', () => {
       expect(html).toContain('cartographic-grid');
       expect(html).toContain('cardinal-bearings');
       expect(html).toContain('bearing-core');
+      expect(html).toContain('bearing-orbital');
     });
 
     it('renders cleanly with lockToFocusPoint and custom focusTarget', () => {
