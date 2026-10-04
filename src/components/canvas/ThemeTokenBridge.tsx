@@ -24,20 +24,21 @@ export interface SceneTokenBridgeProps {
  */
 export const SceneTokenBridge: React.FC<SceneTokenBridgeProps> = ({ transparent = true }) => {
   const { gl } = useThree();
-  const tokens = useThreeTokenStore((state) => state.tokens);
+  const canvasBg = useThreeTokenStore((state) => state.tokens.canvasBg);
+  const canvasOpacity = useThreeTokenStore((state) => state.tokens.canvasOpacity);
 
   useEffect(() => {
     if (!gl) return;
-    if (transparent || tokens.canvasOpacity <= 0) {
+    if (transparent || canvasOpacity <= 0) {
       gl.setClearColor(0x000000, 0);
     } else {
-      gl.setClearColor(tokens.canvasBg, tokens.canvasOpacity);
+      gl.setClearColor(canvasBg, canvasOpacity);
     }
-  }, [gl, transparent, tokens.canvasBg, tokens.canvasOpacity]);
+  }, [gl, transparent, canvasBg, canvasOpacity]);
 
-  if (transparent || tokens.canvasOpacity <= 0) {
+  if (transparent || canvasOpacity <= 0) {
     return null;
   }
 
-  return <color attach="background" args={[tokens.canvasBg]} />;
+  return <color attach="background" args={[canvasBg]} />;
 };

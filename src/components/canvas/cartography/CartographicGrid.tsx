@@ -93,6 +93,62 @@ export interface CartographicGridProps {
 }
 
 /**
+ * ReticleFootprintNode
+ * Dedicated subcomponent for rendering an individual planar reticle footprint.
+ * Manages geometry lifecycle with useMemo and cleanup via useEffect to prevent WebGL memory leaks.
+ */
+interface ReticleFootprintNodeProps {
+  id: string | number;
+  position: [number, number, number];
+  classification: CelestialClassification;
+  size: number;
+  color: THREE.Color | string;
+  opacity: number;
+  multiplicity?: number;
+  planets?: PlanetCensusEntry[];
+  isAnnotated?: boolean;
+}
+
+const ReticleFootprintNode: React.FC<ReticleFootprintNodeProps> = ({
+  id,
+  position,
+  classification,
+  size,
+  color,
+  opacity,
+  multiplicity,
+  planets,
+  isAnnotated,
+}) => {
+  const geom = useMemo(() => {
+    return createReticleGeometry(classification, size, {
+      multiplicity,
+      planets,
+      isAnnotated,
+    });
+  }, [classification, size, multiplicity, planets, isAnnotated]);
+
+  useEffect(() => {
+    return () => {
+      geom.dispose();
+    };
+  }, [geom]);
+
+  return (
+    <group position={position} name={`planar-footprint-${id}`}>
+      <lineSegments geometry={geom}>
+        <lineBasicMaterial
+          color={color}
+          opacity={opacity}
+          transparent
+          depthWrite={false}
+        />
+      </lineSegments>
+    </group>
+  );
+};
+
+/**
  * Dynamic Stalked Footprints Layer
  * Automatically projects planar ground footprints on the Galactic Equator (Z=0)
  * for any CelestialNodes with active drop stalks in the scene.
@@ -145,30 +201,19 @@ const StalkedFootprintsLayer: React.FC<{
             : defaultColor;
         const fpAlpha = isFocused ? 0.95 : isSelected ? 0.85 : defaultAlpha;
 
-        const geom = createReticleGeometry(
-          (node.classification as CelestialClassification) ?? 'star',
-          node.reticleSize ?? 0.45,
-          {
-            multiplicity: node.multiplicity,
-            planets: node.planets,
-            isAnnotated: isSelected || isFocused,
-          },
-        );
         return (
-          <group
+          <ReticleFootprintNode
             key={node.id}
+            id={node.id}
             position={[node.worldPos[0], node.worldPos[1], 0]}
-            name={`planar-footprint-${node.id}`}
-          >
-            <lineSegments geometry={geom}>
-              <lineBasicMaterial
-                color={fpColor}
-                opacity={fpAlpha}
-                transparent
-                depthWrite={false}
-              />
-            </lineSegments>
-          </group>
+            classification={(node.classification as CelestialClassification) ?? 'star'}
+            size={node.reticleSize ?? 0.45}
+            color={fpColor}
+            opacity={fpAlpha}
+            multiplicity={node.multiplicity}
+            planets={node.planets}
+            isAnnotated={isSelected || isFocused}
+          />
         );
       })}
     </group>
@@ -229,22 +274,34 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   // Auto-calculated reference distance ensuring instrument fits comfortably in viewport (~93% vertical span)
   const effectiveRefDist = referenceDistance ?? radius * 3.49;
 
+  const posX = position instanceof THREE.Vector3 ? position.x : position[0];
+  const posY = position instanceof THREE.Vector3 ? position.y : position[1];
+  const posZ = position instanceof THREE.Vector3 ? position.z : position[2];
+
   const initialPosition = useMemo<[number, number, number]>(() => {
-    if (position instanceof THREE.Vector3) {
-      return [position.x, position.y, position.z];
-    }
-    return [position[0], position[1], position[2]];
-  }, [
-    position instanceof THREE.Vector3 ? position.x : position[0],
-    position instanceof THREE.Vector3 ? position.y : position[1],
-    position instanceof THREE.Vector3 ? position.z : position[2],
-  ]);
+    return [posX, posY, posZ];
+  }, [posX, posY, posZ]);
 
   // Memoize primary planar ground footprint geometry stamped on Galactic Equator Z=0
   const primaryFootprintGeom = useMemo(() => {
     if (!showPlanarFootprint) return null;
     return createReticleGeometry(footprintClassification, footprintSize);
   }, [showPlanarFootprint, footprintClassification, footprintSize]);
+
+  useEffect(() => {
+    return () => {
+      primaryFootprintGeom?.dispose();
+    };
+  }, [primaryFootprintGeom]);
+
+  // Precompute static range rings for non-screenConstant rendering (avoids array allocations in useFrame)
+  const staticRangeRings = useMemo(() => {
+    return rangeRings.map((r, idx) => ({
+      radius: r,
+      isMajor: majorRingIndex !== undefined ? idx === majorRingIndex : idx % 2 === 1,
+      fade: 1.0,
+    }));
+  }, [rangeRings, majorRingIndex]);
 
   // Pool size: allocates either the explicit rangeRings count or 8 rings for dynamic zoom adaptation
   const poolSize = screenConstant ? Math.max(rangeRings.length, 8) : rangeRings.length;
@@ -821,11 +878,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       activeRings = computeZoomAdaptiveRings(currentRadius, poolSize);
     } else {
       currentRadius = radius;
-      activeRings = rangeRings.map((r, idx) => ({
-        radius: r,
-        isMajor: majorRingIndex !== undefined ? idx === majorRingIndex : idx % 2 === 1,
-        fade: 1.0,
-      }));
+      activeRings = staticRangeRings;
     }
 
     // Helper: calculate quadrant weight for a plane
@@ -1035,9 +1088,11 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       const targetZoom =
         Math.tan((targetFov * Math.PI) / 360) / Math.tan((baseFov * Math.PI) / 360);
 
-      activeCamera.fov = targetFov;
-      activeCamera.zoom = targetZoom;
-      activeCamera.updateProjectionMatrix();
+      if (Math.abs(activeCamera.fov - targetFov) > 1e-4 || Math.abs(activeCamera.zoom - targetZoom) > 1e-4) {
+        activeCamera.fov = targetFov;
+        activeCamera.zoom = targetZoom;
+        activeCamera.updateProjectionMatrix();
+      }
     }
   });
 
@@ -1168,29 +1223,18 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               {footprints.map((fp, idx) => {
                 const fpX = Array.isArray(fp.position) ? fp.position[0] : fp.position.x;
                 const fpY = Array.isArray(fp.position) ? fp.position[1] : fp.position.y;
-                const geom = createReticleGeometry(
-                  fp.classification ?? 'star',
-                  fp.size ?? footprintSize,
-                  {
-                    multiplicity: fp.multiplicity,
-                    planets: fp.planets,
-                  },
-                );
                 return (
-                  <group
+                  <ReticleFootprintNode
                     key={fp.id ?? idx}
+                    id={fp.id ?? idx}
                     position={[fpX, fpY, 0]}
-                    name={`planar-footprint-${fp.id ?? idx}`}
-                  >
-                    <lineSegments geometry={geom}>
-                      <lineBasicMaterial
-                        color={fp.color ?? tokens.datumFootprintColor}
-                        opacity={fp.opacity ?? tokens.datumFootprintAlpha}
-                        transparent
-                        depthWrite={false}
-                      />
-                    </lineSegments>
-                  </group>
+                    classification={fp.classification ?? 'star'}
+                    size={fp.size ?? footprintSize}
+                    color={fp.color ?? tokens.datumFootprintColor}
+                    opacity={fp.opacity ?? tokens.datumFootprintAlpha}
+                    multiplicity={fp.multiplicity}
+                    planets={fp.planets}
+                  />
                 );
               })}
             </group>

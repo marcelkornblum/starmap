@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
-import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { celestialOcclusionManager, type Box2D } from './celestialOcclusionRegistry';
@@ -90,7 +90,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   onPointerOut,
 }) => {
   const tokens = useThreeTokenStore((stateStore) => stateStore.tokens);
-  const { gl } = useThree();
 
   const [x, y, z] = position;
   const [prevPropState, setPrevPropState] = useState(state);
@@ -134,10 +133,35 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const scratchNdcRef = useRef(new THREE.Vector3());
   const labelContainerRef = useRef<HTMLDivElement>(null);
   const spectrumFacetRef = useRef<HTMLDivElement>(null);
+  const labelDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
 
   useEffect(() => {
     worldPosRef.current.set(x, y, z);
   }, [x, y, z]);
+
+  useEffect(() => {
+    const el = labelContainerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.borderBoxSize?.length > 0) {
+          labelDimensionsRef.current = {
+            width: entry.borderBoxSize[0].inlineSize,
+            height: entry.borderBoxSize[0].blockSize,
+          };
+        } else {
+          labelDimensionsRef.current = {
+            width: entry.contentRect.width,
+            height: entry.contentRect.height,
+          };
+        }
+      }
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [name, spectralType, isAnnotated]);
 
   useFrame(({ camera, size }) => {
     const camDist = camera.position.distanceTo(worldPosRef.current);
@@ -166,32 +190,19 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     const reticleRadius = (reticleSize / 13.644) * size.height;
     const starRadius = Math.max(3, (0.035 / 13.644) * size.height);
 
-    // Compute label bounding box in screen pixels
+    // Compute label bounding box in screen pixels analytically using cached dimensions (no DOM layout thrashing)
     let activeBox: Box2D | undefined;
-    if (labelContainerRef.current) {
-      const rect = labelContainerRef.current.getBoundingClientRect();
-      const canvasRect = gl?.domElement?.getBoundingClientRect();
-      if (canvasRect && rect.width > 0 && rect.height > 0) {
-        activeBox = {
-          left: rect.left - canvasRect.left,
-          top: rect.top - canvasRect.top,
-          right: rect.right - canvasRect.left,
-          bottom: rect.bottom - canvasRect.top,
-        };
-      }
-    }
-
-    // Fallback analytical box if DOM rect is unmeasured (e.g. initial frame or offscreen)
-    if (!activeBox && shouldRenderLabel) {
+    if (shouldRenderLabel) {
       const estimatedW = name.length * 8 + (spectralType ? 45 : 0) + 12;
-      const estimatedH = 18;
+      const w = labelDimensionsRef.current.width > 0 ? labelDimensionsRef.current.width : estimatedW;
+      const h = labelDimensionsRef.current.height > 0 ? labelDimensionsRef.current.height : 18;
       const anchorX = screenX + 1.15 * reticleRadius;
       const anchorY = screenY - 0.75 * reticleRadius;
       activeBox = {
         left: anchorX,
-        top: anchorY - estimatedH / 2,
-        right: anchorX + estimatedW,
-        bottom: anchorY + estimatedH / 2,
+        top: anchorY - h / 2,
+        right: anchorX + w,
+        bottom: anchorY + h / 2,
       };
     }
 
@@ -228,10 +239,10 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     const evalResult = celestialOcclusionManager.evaluateLabelVisibility(currentState, hasIntersection);
     const shouldShowLabel = evalResult.visible;
 
-    if (labelContainerRef.current) {
+    if (labelContainerRef.current && labelContainerRef.current.style.display !== (shouldShowLabel ? 'flex' : 'none')) {
       labelContainerRef.current.style.display = shouldShowLabel ? 'flex' : 'none';
     }
-    if (spectrumFacetRef.current) {
+    if (spectrumFacetRef.current && spectrumFacetRef.current.style.display !== (shouldShowLabel ? 'flex' : 'none')) {
       spectrumFacetRef.current.style.display = shouldShowLabel ? 'flex' : 'none';
     }
   });
@@ -257,6 +268,12 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     });
   }, [classification, reticleSize, multiplicity, planets, isAnnotated]);
 
+  useEffect(() => {
+    return () => {
+      reticleGeometry.dispose();
+    };
+  }, [reticleGeometry]);
+
   const stalkGeometry = useMemo(() => {
     if (!shouldRenderStalk) return null;
     if (z >= 0) {
@@ -271,12 +288,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       return new THREE.BufferGeometry().setFromPoints(dashedPts);
     }
   }, [shouldRenderStalk, z]);
-
-  useEffect(() => {
-    return () => {
-      reticleGeometry.dispose();
-    };
-  }, [reticleGeometry]);
 
   useEffect(() => {
     return () => {
