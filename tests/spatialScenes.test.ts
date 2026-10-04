@@ -8,8 +8,8 @@ import {
   SystemViewScene,
   PlanetaryViewScene,
   InteractiveNavigator,
-  FullUIStylingScene,
-} from '../src/components/canvas/scenes/SpatialScenes.stories';
+} from '../src/components/canvas/scenes/SpatialScenes';
+import { FullUIStylingScene } from '../src/components/canvas/scenes/FullUIStylingScene';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
 vi.mock('@react-three/drei', async (importOriginal) => {

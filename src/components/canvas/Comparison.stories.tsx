@@ -16,6 +16,7 @@ import {
 } from './entity';
 import { ThemeTokenBridge } from './ThemeTokenBridge';
 import { getStandardInitialCamera } from './cartography/cartographyMath';
+import styles from './Comparison.stories.module.css';
 
 const meta: Meta = {
   title: 'Canvas/SideBySideComparison',
@@ -30,23 +31,10 @@ const InstrumentSideBySide: React.FC = () => {
   const cam = getStandardInitialCamera(32, [0, 0, 0], 45);
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh' }}>
+    <div className={styles.container}>
       {/* Legacy CartographicGrid */}
-      <div style={{ flex: 1, position: 'relative', borderRight: '2px solid #555' }}>
-        <div
-          style={{
-            position: 'absolute',
-            top: '1rem',
-            left: '1rem',
-            zIndex: 10,
-            background: 'rgba(0,0,0,0.8)',
-            color: '#ffaa00',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-          }}
-        >
+      <div className={`${styles.pane} ${styles.paneBorder}`}>
+        <div className={styles.label}>
           LEGACY: CartographicGrid (Original God Component)
         </div>
         <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
@@ -57,21 +45,8 @@ const InstrumentSideBySide: React.FC = () => {
       </div>
 
       {/* New CartographicInstrument */}
-      <div style={{ flex: 1, position: 'relative' }}>
-        <div
-          style={{
-            position: 'absolute',
-            top: '1rem',
-            left: '1rem',
-            zIndex: 10,
-            background: 'rgba(0,0,0,0.8)',
-            color: '#00ffaa',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-          }}
-        >
+      <div className={styles.pane}>
+        <div className={`${styles.label} ${styles.labelActive}`}>
           NEW: CartographicInstrument (Decomposed Primitives)
         </div>
         <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
@@ -110,23 +85,10 @@ const EntitySideBySide: React.FC = () => {
   const cam = getStandardInitialCamera(16, [0, 0, 0], 45);
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh' }}>
+    <div className={styles.container}>
       {/* Legacy CelestialNode */}
-      <div style={{ flex: 1, position: 'relative', borderRight: '2px solid #555' }}>
-        <div
-          style={{
-            position: 'absolute',
-            top: '1rem',
-            left: '1rem',
-            zIndex: 10,
-            background: 'rgba(0,0,0,0.8)',
-            color: '#ffaa00',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-          }}
-        >
+      <div className={`${styles.pane} ${styles.paneBorder}`}>
+        <div className={styles.label}>
           LEGACY: CelestialNode (Layer 1-3 Monolith)
         </div>
         <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
@@ -159,21 +121,8 @@ const EntitySideBySide: React.FC = () => {
       </div>
 
       {/* New CelestialEntity */}
-      <div style={{ flex: 1, position: 'relative' }}>
-        <div
-          style={{
-            position: 'absolute',
-            top: '1rem',
-            left: '1rem',
-            zIndex: 10,
-            background: 'rgba(0,0,0,0.8)',
-            color: '#00ffaa',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-          }}
-        >
+      <div className={styles.pane}>
+        <div className={`${styles.label} ${styles.labelActive}`}>
           NEW: CelestialEntity (Decomposed 3-Layer Composite)
         </div>
         <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
