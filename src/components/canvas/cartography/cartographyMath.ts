@@ -162,31 +162,38 @@ export interface ScaledRingInfo {
   fade: number;
 }
 
+const SCRATCH_CANDIDATES: ScaledRingInfo[] = Array.from({ length: 12 }, () => ({
+  radius: 0,
+  isMajor: false,
+  fade: 0,
+}));
+
 /**
- * Computes logarithmic 1-2-5 progression concentric range rings dynamically adapted to active aperture radius (rAperture).
- * As camera zooms in and out:
- * - Zooming out: rings smoothly contract toward focal center, larger metric rings fade in at outer boundary.
- * - Zooming in: rings smoothly expand toward boundary, dissolving at the perimeter, finer metric subdivisions emerge.
- * - Two-tier visual hierarchy: Significant lines (powers of 10) vs Insignificant lines (2, 5 subdivisions).
+ * Populates pre-allocated target pool with logarithmic 1-2-5 progression concentric range rings with zero allocations.
+ * Returns the count of active rings.
  */
-export function computeZoomAdaptiveRings(rAperture: number, maxRings = 6): ScaledRingInfo[] {
-  if (rAperture <= 0) return [];
+export function populateZoomAdaptiveRings(
+  rAperture: number,
+  target: ScaledRingInfo[],
+  maxRings = 6,
+): number {
+  if (rAperture <= 0) return 0;
   const p = Math.floor(Math.log10(rAperture));
   const candidateDecades = [p - 1, p, p + 1];
   const steps = [1, 2, 5];
 
-  const candidates: ScaledRingInfo[] = [];
+  let candidateCount = 0;
 
-  for (const dec of candidateDecades) {
-    const unit = Math.pow(10, dec);
-    for (const step of steps) {
-      const r = step * unit;
+  for (let d = 0; d < 3; d++) {
+    const unit = Math.pow(10, candidateDecades[d]);
+    for (let s = 0; s < 3; s++) {
+      const r = steps[s] * unit;
       const rho = r / rAperture;
 
       // Only candidate rings within visible fractional range [0.05, 0.98]
       if (rho >= 0.05 && rho <= 0.98) {
         // Significant line = exact power of 10 (step === 1)
-        const isMajor = step === 1;
+        const isMajor = steps[s] === 1;
 
         // Smooth fade at outer perimeter (rho in [0.82, 0.98], fully dissolved before boundary 1.0)
         const fadeOuter = Math.min(1, Math.max(0, (0.98 - rho) / 0.16));
@@ -195,12 +202,65 @@ export function computeZoomAdaptiveRings(rAperture: number, maxRings = 6): Scale
         const fade = fadeOuter * fadeInner;
 
         if (fade > 0.001) {
-          candidates.push({ radius: r, isMajor, fade });
+          const slot = SCRATCH_CANDIDATES[candidateCount++];
+          slot.radius = r;
+          slot.isMajor = isMajor;
+          slot.fade = fade;
         }
       }
     }
   }
 
-  candidates.sort((a, b) => a.radius - b.radius);
-  return candidates.slice(0, maxRings);
+  // In-place insertion sort by radius (zero GC allocations)
+  for (let i = 1; i < candidateCount; i++) {
+    const itemR = SCRATCH_CANDIDATES[i].radius;
+    const itemM = SCRATCH_CANDIDATES[i].isMajor;
+    const itemF = SCRATCH_CANDIDATES[i].fade;
+    let j = i - 1;
+    while (j >= 0 && SCRATCH_CANDIDATES[j].radius > itemR) {
+      SCRATCH_CANDIDATES[j + 1].radius = SCRATCH_CANDIDATES[j].radius;
+      SCRATCH_CANDIDATES[j + 1].isMajor = SCRATCH_CANDIDATES[j].isMajor;
+      SCRATCH_CANDIDATES[j + 1].fade = SCRATCH_CANDIDATES[j].fade;
+      j--;
+    }
+    SCRATCH_CANDIDATES[j + 1].radius = itemR;
+    SCRATCH_CANDIDATES[j + 1].isMajor = itemM;
+    SCRATCH_CANDIDATES[j + 1].fade = itemF;
+  }
+
+  const count = Math.min(candidateCount, maxRings);
+  for (let i = 0; i < count; i++) {
+    const src = SCRATCH_CANDIDATES[i];
+    const dst = target[i];
+    dst.radius = src.radius;
+    dst.isMajor = src.isMajor;
+    dst.fade = src.fade;
+  }
+
+  return count;
+}
+
+/**
+ * Computes logarithmic 1-2-5 progression concentric range rings dynamically adapted to active aperture radius (rAperture).
+ * As camera zooms in and out:
+ * - Zooming out: rings smoothly contract toward focal center, larger metric rings fade in at outer boundary.
+ * - Zooming in: rings smoothly expand toward boundary, dissolving at the perimeter, finer metric subdivisions emerge.
+ * - Two-tier visual hierarchy: Significant lines (powers of 10) vs Insignificant lines (2, 5 subdivisions).
+ */
+export function computeZoomAdaptiveRings(rAperture: number, maxRings = 6): ScaledRingInfo[] {
+  const tempPool: ScaledRingInfo[] = Array.from({ length: maxRings }, () => ({
+    radius: 0,
+    isMajor: false,
+    fade: 0,
+  }));
+  const count = populateZoomAdaptiveRings(rAperture, tempPool, maxRings);
+  const result: ScaledRingInfo[] = [];
+  for (let i = 0; i < count; i++) {
+    result.push({
+      radius: tempPool[i].radius,
+      isMajor: tempPool[i].isMajor,
+      fade: tempPool[i].fade,
+    });
+  }
+  return result;
 }

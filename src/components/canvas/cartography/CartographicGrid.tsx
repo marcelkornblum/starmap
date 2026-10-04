@@ -9,7 +9,8 @@ import {
   createQuadrantTickGeometry,
   computeCardinalAlignment,
   computeTransitionWeights,
-  computeZoomAdaptiveRings,
+  populateZoomAdaptiveRings,
+  type ScaledRingInfo,
 } from './cartographyMath';
 import {
   createReticleGeometry,
@@ -220,6 +221,25 @@ const StalkedFootprintsLayer: React.FC<{
 };
 
 /**
+ * Calculates quadrant weight for a coordinate plane based on camera heading and transition parameters.
+ * Defined at module scope to eliminate per-frame closure allocations in useFrame.
+ */
+function calcQuadWeight(
+  qx: number,
+  qy: number,
+  targetSx: number,
+  targetSy: number,
+  transX: number,
+  transY: number,
+  alphaNormal: number,
+): number {
+  const matchX = qx === targetSx ? 1 : transX;
+  const matchY = qy === targetSy ? 1 : transY;
+  const segWeight = matchX * matchY;
+  return Math.max(segWeight, alphaNormal);
+}
+
+/**
  * CartographicGrid: Authoritative 3D spatial coordinate instrument.
  * Renders three mobile travelling orthogonal fins with 90-degree concentric range arcs on all three axes (XY, XZ, YZ).
  *
@@ -272,6 +292,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   const scratchQwXY = useRef([0, 0, 0, 0]);
   const scratchQwXZ = useRef([0, 0, 0, 0]);
   const scratchQwYZ = useRef([0, 0, 0, 0]);
+  const activeRingsPoolRef = useRef<ScaledRingInfo[]>(
+    Array.from({ length: 16 }, () => ({ radius: 0, isMajor: false, fade: 0 }))
+  );
 
   // Auto-calculated reference distance ensuring instrument fits comfortably in viewport (~93% vertical span)
   const effectiveRefDist = referenceDistance ?? radius * 3.49;
@@ -307,6 +330,13 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
   // Pool size: allocates either the explicit rangeRings count or 8 rings for dynamic zoom adaptation
   const poolSize = screenConstant ? Math.max(rangeRings.length, 8) : rangeRings.length;
+  if (activeRingsPoolRef.current.length < poolSize) {
+    activeRingsPoolRef.current = Array.from({ length: poolSize }, () => ({
+      radius: 0,
+      isMajor: false,
+      fade: 0,
+    }));
+  }
   const ringPoolIndices = useMemo(() => Array.from({ length: poolSize }, (_, i) => i), [poolSize]);
 
   // Memoize 4 Quadrant Arc Lines for each plane (XY, XZ, YZ) using unit arc geometry scaled per ring
@@ -841,34 +871,26 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
     // 4. Determine active aperture radius and concentric ring radii (static vs screenConstant)
     let currentRadius = radius;
-    let activeRings: Array<{ radius: number; isMajor: boolean; fade: number }> = [];
+    const activeRingsPool = activeRingsPoolRef.current;
+    let activeRingCount = 0;
 
     if (screenConstant) {
       // Screen-constant scaling: aperture radius scales with distance to keep visual footprint invariant
       // Clamp distance so instrument never collapses below 3.5 pc or causes near-plane occlusion
       const clampedCamDist = Math.max(camDist, 3.5);
       currentRadius = radius * (clampedCamDist / effectiveRefDist);
-      activeRings = computeZoomAdaptiveRings(currentRadius, poolSize);
+      activeRingCount = populateZoomAdaptiveRings(currentRadius, activeRingsPool, poolSize);
     } else {
       currentRadius = radius;
-      activeRings = staticRangeRings;
+      activeRingCount = staticRangeRings.length;
+      for (let i = 0; i < activeRingCount; i++) {
+        const src = staticRangeRings[i];
+        const dst = activeRingsPool[i];
+        dst.radius = src.radius;
+        dst.isMajor = src.isMajor;
+        dst.fade = src.fade;
+      }
     }
-
-    // Helper: calculate quadrant weight for a plane
-    const calcQuadWeight = (
-      qx: number,
-      qy: number,
-      targetSx: number,
-      targetSy: number,
-      transX: number,
-      transY: number,
-      alphaNormal: number,
-    ): number => {
-      const matchX = qx === targetSx ? 1 : transX;
-      const matchY = qy === targetSy ? 1 : transY;
-      const segWeight = matchX * matchY;
-      return Math.max(segWeight, alphaNormal);
-    };
 
     // Calculate quadrant weights for each plane using pre-allocated scratch arrays (zero allocations)
     const qwXY = scratchQwXY.current;
@@ -897,8 +919,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
       // 6. Update Concentric Range Rings across all planes (Alternating Brighter vs Dimmer hierarchy)
       for (let ringIdx = 0; ringIdx < poolSize; ringIdx++) {
-        const ringActive = ringIdx < activeRings.length;
-        const ringInfo = ringActive ? activeRings[ringIdx] : null;
+        const ringActive = ringIdx < activeRingCount;
+        const ringInfo = ringActive ? activeRingsPool[ringIdx] : null;
 
         if (ringInfo) {
           const r = ringInfo.radius;
@@ -1013,8 +1035,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       const touchZ = Math.max(0, Math.min(1, 1 - deltaZ / touchZCorridor));
 
       for (let ringIdx = 0; ringIdx < poolSize; ringIdx++) {
-        const ringActive = ringIdx < activeRings.length;
-        const ringInfo = ringActive ? activeRings[ringIdx] : null;
+        const ringActive = ringIdx < activeRingCount;
+        const ringInfo = ringActive ? activeRingsPool[ringIdx] : null;
         const ringItem = datumRingDataRef.current[ringIdx];
         if (ringItem) {
           if (ringInfo) {
