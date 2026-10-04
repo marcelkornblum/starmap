@@ -11,12 +11,12 @@ export interface GlobalCanvasProps {
   style?: React.CSSProperties;
 }
 
+const STANDARD_CAM = getStandardInitialCamera(14, [0, 0, 0], 50);
+
 export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
   className,
   style,
 }) => {
-  const standardCam = getStandardInitialCamera(14, [0, 0, 0], 50);
-
   return (
     <div
       data-testid="global-canvas-container"
@@ -25,9 +25,9 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
     >
       <Canvas
         camera={{
-          position: standardCam.position,
-          up: standardCam.up,
-          fov: standardCam.fov,
+          position: STANDARD_CAM.position,
+          up: STANDARD_CAM.up,
+          fov: STANDARD_CAM.fov,
         }}
         gl={{ antialias: true, alpha: true }}
       >
@@ -38,7 +38,7 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
 
         <SceneOutlet />
 
-        <OrbitControls makeDefault target={standardCam.target} enableDamping dampingFactor={0.05} />
+        <OrbitControls makeDefault target={STANDARD_CAM.target} enableDamping dampingFactor={0.05} />
       </Canvas>
     </div>
   );
