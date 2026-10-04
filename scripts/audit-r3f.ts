@@ -67,12 +67,13 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
   const lines = sourceText.split('\n');
 
   function addDiagnostic(
-    loc: { line: number; column: number },
+    loc: { line: number; column: number } | undefined,
     ruleId: string,
     severity: 'error' | 'warning',
     message: string,
     remediation: string
   ) {
+    if (!loc) return;
     if (isLineSuppressed(lines, loc.line, ruleId)) {
       return;
     }
@@ -91,7 +92,13 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
 
   interface ASTNode {
     type?: string;
-    [key: string]: any;
+    loc?: { start: { line: number; column: number }; end?: { line: number; column: number } };
+    callee?: ASTNode;
+    arguments?: ASTNode[];
+    body?: ASTNode;
+    name?: ASTNode & { name?: string };
+    property?: ASTNode & { name?: string };
+    [key: string]: unknown;
   }
 
   function simpleTraverse(node: unknown, visitor: (n: ASTNode) => void) {
@@ -187,12 +194,12 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     }
   });
 
-  function auditUseFrameCallback(frameBody: any) {
-    simpleTraverse(frameBody, (node: any) => {
+  function auditUseFrameCallback(frameBody: ASTNode) {
+    simpleTraverse(frameBody, (node: ASTNode) => {
       // Do not recurse into nested function definitions inside useFrame (e.g. event listeners)
       if (node !== frameBody && (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression')) {
         addDiagnostic(
-          node.loc.start,
+          node.loc?.start,
           'no-alloc-in-use-frame',
           'error',
           'Closure or helper function defined inside `useFrame`. This recreates function allocations 60 times per second.',
@@ -204,7 +211,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       // Rule: No object literal allocations
       if (node.type === 'ObjectExpression') {
         addDiagnostic(
-          node.loc.start,
+          node.loc?.start,
           'no-alloc-in-use-frame',
           'error',
           'Object literal `{ ... }` allocated inside high-frequency `useFrame` render loop. This causes continuous Garbage Collection pressure and frame drops.',
@@ -215,7 +222,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       // Rule: No array literal allocations
       if (node.type === 'ArrayExpression') {
         addDiagnostic(
-          node.loc.start,
+          node.loc?.start,
           'no-alloc-in-use-frame',
           'error',
           'Array literal `[ ... ]` allocated inside `useFrame`. This creates transient GC allocations 60 times per second.',
@@ -232,7 +239,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
             ? node.callee.property.name
             : 'Object';
         addDiagnostic(
-          node.loc.start,
+          node.loc?.start,
           'no-alloc-in-use-frame',
           'error',
           `Constructor invocation \`new ${className}()\` inside \`useFrame\`. Hot-path instantiations violate the zero-allocation 60fps budget.`,
@@ -246,7 +253,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
           const methodName = node.callee.property.name;
           if (['map', 'forEach', 'filter', 'some', 'every', 'reduce'].includes(methodName)) {
             addDiagnostic(
-              node.loc.start,
+              node.loc?.start,
               'no-alloc-in-use-frame',
               'error',
               `Array iterator callback \`.${methodName}()\` invoked inside \`useFrame\`. Iterators allocate closures on every frame.`,
@@ -254,7 +261,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
             );
           } else if (methodName === 'clone') {
             addDiagnostic(
-              node.loc.start,
+              node.loc?.start,
               'no-alloc-in-use-frame',
               'error',
               'Calling `.clone()` inside `useFrame` allocates a new instance on every frame.',
@@ -262,7 +269,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
             );
           } else if (['getBoundingClientRect', 'offsetWidth', 'offsetHeight'].includes(methodName)) {
             addDiagnostic(
-              node.loc.start,
+              node.loc?.start,
               'no-layout-in-use-frame',
               'error',
               `DOM layout measurement \`.${methodName}()\` inside \`useFrame\` forces synchronous reflow / layout thrashing.`,
@@ -271,9 +278,9 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
           }
         } else if (node.callee?.type === 'Identifier') {
           const funcName = node.callee.name;
-          if (/^set[A-Z]/.test(funcName)) {
+          if (funcName && /^set[A-Z]/.test(funcName)) {
             addDiagnostic(
-              node.loc.start,
+              node.loc?.start,
               'no-setstate-in-use-frame',
               'error',
               `React state updater \`${funcName}()\` invoked inside \`useFrame\`. State updates trigger synchronous React reconciliation cycles during the WebGL draw loop.`,
