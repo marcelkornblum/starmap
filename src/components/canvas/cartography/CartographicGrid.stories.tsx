@@ -131,74 +131,15 @@ export default meta;
 type Story = StoryObj<typeof CartographicGrid>;
 
 /**
- * Default view: Perspective / non-ortho view.
- * 3 orthogonal fins (XY, XZ, YZ) each with a 90-degree curve,
- * alternating concentric range arcs (dimmer and brighter lines),
- * two extended bearing lines (+X Core in Solarized yellow accent, +Y Orbital in dashed Solarized red),
- * and the third axis line (+Z Pole) terminating at the radius length.
- */
-export const Default: Story = {
-  args: {
-    radius: 10,
-    rangeRings: [2, 4, 6, 8],
-    showFins: true,
-    showAxisLines: true,
-    showGalacticPlane: true,
-    showPlanarFootprint: true,
-    footprintSize: 0.6,
-    showFullDatumCircle: true,
-    screenConstant: false,
-  },
-};
-
-/**
- * Explicit planar footprints stamped on the Galactic Equator (Z=0) datum plane.
- */
-export const WithPlanarFootprints: Story = {
-  args: {
-    radius: 10,
-    rangeRings: [2, 4, 6, 8],
-    showFins: true,
-    showAxisLines: true,
-    showGalacticPlane: true,
-    showPlanarFootprint: true,
-    footprintSize: 0.6,
-    footprintClassification: 'stellar-system',
-    footprints: [
-      { id: 'binary-1', position: [3, 2, 0], classification: 'stellar-system', size: 0.6, multiplicity: 2 },
-      { id: 'black-hole-1', position: [-4, 3, 0], classification: 'black-hole', size: 0.6 },
-      { id: 'hazard-1', position: [-3, -4, 0], classification: 'hazard', size: 0.5 },
-      { id: 'gas-giant-1', position: [4, -3, 0], classification: 'gas-giant', size: 0.5 },
-    ],
-  },
-};
-
-/**
- * Default view populated with stars from the fixture:
- * Exactly like Default, with each star represented cleanly as a dot in 3D space.
- */
-export const WithStars: Story = {
-  args: {
-    ...Default.args,
-  },
-  render: (args) => (
-    <>
-      <CartographicGrid {...args} />
-      <FixtureStars />
-    </>
-  ),
-};
-
-/**
- * Zoom-Adaptive Scaling Variant:
+ * Default view: Adaptive Zoom Scaling.
  * The instrument maintains an invariant visual footprint on screen.
  * Zooming in and out with OrbitControls modulates the real-world scale (metric volume in parsecs),
  * while dynamic concentric range rings continuously contract and expand according to the
  * logarithmic 1-2-5 progression (Significant vs Insignificant visual hierarchy).
  * The Galactic Centre bearing (+X Core) is styled with its golden accent token.
- * Populated with the same fixture stars to observe world-scale dynamics.
+ * Populated with fixture stars to observe world-scale dynamics.
  */
-export const ZoomAdaptiveScaling: Story = {
+export const Default: Story = {
   args: {
     radius: 10,
     screenConstant: true,
@@ -217,29 +158,29 @@ export const ZoomAdaptiveScaling: Story = {
 };
 
 /**
- * Optional full 360-degree datum circles on Z=0 enabled alongside the three orthogonal fins.
+ * Object Scaling:
+ * The instrument remains anchored to fixed metric dimensions in 3D world space.
+ * 3 orthogonal fins (XY, XZ, YZ) each with a 90-degree curve,
+ * alternating concentric range arcs, two extended bearing lines,
+ * and Galactic Equator planar footprints.
  */
-export const WithFullDatumCircles: Story = {
+export const ObjectScaling: Story = {
+  name: 'Object Scaling',
   args: {
     radius: 10,
     rangeRings: [2, 4, 6, 8],
     showFins: true,
     showAxisLines: true,
+    showGalacticPlane: true,
+    showPlanarFootprint: true,
+    footprintSize: 0.6,
     showFullDatumCircle: true,
     screenConstant: false,
   },
-};
-
-/**
- * Macro galactic scale (50 pc aperture) with [10, 20, 30, 40] pc concentric arcs.
- */
-export const MacroGalacticScale: Story = {
-  args: {
-    radius: 50,
-    rangeRings: [10, 20, 30, 40],
-    showFins: true,
-    showAxisLines: true,
-    showFullDatumCircle: true,
-    screenConstant: false,
-  },
+  render: (args) => (
+    <>
+      <CartographicGrid {...args} />
+      <FixtureStars />
+    </>
+  ),
 };

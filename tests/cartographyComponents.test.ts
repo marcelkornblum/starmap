@@ -508,18 +508,21 @@ describe('3D Cartography Components', () => {
   });
 
   describe('OrbitalRing', () => {
-    it('renders circular orbit with periapsis tick', () => {
+    it('renders circular orbit with periapsis tick and prograde direction indicator by default', () => {
       const html = renderToString(
         createElement(OrbitalRing, {
           semiMajorAxis: 2.0,
           eccentricity: 0,
           showPeriapsisTick: true,
+          showDirectionIndicator: true,
         }),
       );
       expect(html).toContain('orbital-ring');
+      expect(html).toContain('name="periapsis-tick"');
+      expect(html).toContain('name="prograde-indicator"');
     });
 
-    it('renders eccentric inclined orbit without periapsis tick when disabled', () => {
+    it('renders eccentric inclined orbit without ticks when disabled', () => {
       const html = renderToString(
         createElement(OrbitalRing, {
           semiMajorAxis: 3.5,
@@ -527,9 +530,12 @@ describe('3D Cartography Components', () => {
           inclination: 15,
           ascendingNode: 30,
           showPeriapsisTick: false,
+          showDirectionIndicator: false,
         }),
       );
       expect(html).toContain('orbital-ring');
+      expect(html).not.toContain('name="periapsis-tick"');
+      expect(html).not.toContain('name="prograde-indicator"');
     });
 
     it('applies focused state cleanly', () => {
@@ -537,6 +543,18 @@ describe('3D Cartography Components', () => {
         createElement(OrbitalRing, {
           semiMajorAxis: 1.0,
           isFocused: true,
+        }),
+      );
+      expect(html).toContain('orbital-ring');
+      expect(html).toContain('name="periapsis-tick"');
+      expect(html).toContain('name="prograde-indicator"');
+    });
+
+    it('supports custom color override', () => {
+      const html = renderToString(
+        createElement(OrbitalRing, {
+          semiMajorAxis: 1.5,
+          color: '#00ffcc',
         }),
       );
       expect(html).toContain('orbital-ring');

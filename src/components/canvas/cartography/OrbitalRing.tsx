@@ -19,6 +19,10 @@ export interface OrbitalRingProps {
   isFocused?: boolean;
   /** Whether to render a tick marker at periapsis. Default: true */
   showPeriapsisTick?: boolean;
+  /** Whether to render a prograde motion direction chevron along the orbit. Default: true */
+  showDirectionIndicator?: boolean;
+  /** Optional custom color override. Default: stateFocus if focused, gridPrimaryColor for tactical vector styling */
+  color?: THREE.Color | string;
   /** Number of radial curve segments. Default: 128 */
   segments?: number;
   /** Optional origin offset. Default: [0, 0, 0] */
@@ -26,9 +30,10 @@ export interface OrbitalRingProps {
 }
 
 /**
- * OrbitalRing: 3D Keplerian elliptical orbit ring.
+ * OrbitalRing: 3D Keplerian elliptical orbit ring rendered with tactical vector line styling.
  * Calculates Keplerian orbital geometry with focal anchoring at (0,0,0),
- * orbital plane inclination, ascending node orientation, and periapsis indication.
+ * orbital plane inclination, ascending node orientation, periapsis indication,
+ * and prograde velocity vector indicator.
  * Consumes design tokens via useThreeTokenStore with zero-shader-recompile in-place mutation.
  */
 export const OrbitalRing: React.FC<OrbitalRingProps> = ({
@@ -39,18 +44,24 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
   argumentOfPeriapsis = 0,
   isFocused = false,
   showPeriapsisTick = true,
+  showDirectionIndicator = true,
+  color,
   segments = 128,
   position = [0, 0, 0],
 }) => {
   const stateFocus = useThreeTokenStore((state) => state.tokens.stateFocus);
-  const categoryOrbit = useThreeTokenStore((state) => state.tokens.categoryOrbit);
+  const gridPrimaryColor = useThreeTokenStore((state) => state.tokens.gridPrimaryColor);
 
-  const ringColor = isFocused ? stateFocus : categoryOrbit;
-  const ringOpacity = isFocused ? 0.95 : 0.45;
-  const tickOpacity = isFocused ? 1.0 : 0.6;
+  const resolvedColor = useMemo(() => {
+    if (color) return color instanceof THREE.Color ? color : new THREE.Color(color);
+    return isFocused ? stateFocus : gridPrimaryColor;
+  }, [color, isFocused, stateFocus, gridPrimaryColor]);
+
+  const ringOpacity = isFocused ? 0.95 : 0.28;
+  const markerOpacity = isFocused ? 1.0 : 0.55;
 
   // Memoized geometry computation
-  const { orbitGeometry, tickGeometry } = useMemo(() => {
+  const { orbitGeometry, tickGeometry, directionGeometry } = useMemo(() => {
     const a = Number.isFinite(semiMajorAxis) && semiMajorAxis > 0 ? semiMajorAxis : 0.001;
     const e = Number.isFinite(eccentricity) ? Math.max(0, Math.min(0.99, eccentricity)) : 0;
     const omegaRad = argumentOfPeriapsis * DEG_TO_RADIANS;
@@ -83,7 +94,7 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
     let periapsisGeom: THREE.BufferGeometry | null = null;
     if (showPeriapsisTick) {
       const rPeri = a * (1 - e);
-      const tickHalfLen = a * 0.04;
+      const tickHalfLen = Math.max(0.04, Math.min(a * 0.04, 0.25));
       const phiPeri = omegaRad;
       const perpAngle = phiPeri + Math.PI / 2;
 
@@ -103,21 +114,70 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
       periapsisGeom.setAttribute('position', new THREE.BufferAttribute(tickBuffer, 3));
     }
 
-    return { orbitGeometry: geom, tickGeometry: periapsisGeom };
-  }, [semiMajorAxis, eccentricity, inclination, ascendingNode, argumentOfPeriapsis, showPeriapsisTick, segments]);
+    // Prograde motion direction indicator geometry (tangent chevron at theta = PI / 2)
+    let dirGeom: THREE.BufferGeometry | null = null;
+    if (showDirectionIndicator) {
+      const thetaDir = Math.PI / 2;
+      const rDir = (a * (1 - e * e)) / (1 + e * Math.cos(thetaDir));
+      const phiDir = thetaDir + omegaRad;
+
+      const px = rDir * Math.cos(phiDir);
+      const py = rDir * Math.sin(phiDir);
+
+      // Derivatives with respect to theta for tangent vector
+      const rPrime = (rDir * e * Math.sin(thetaDir)) / (1 + e * Math.cos(thetaDir));
+      const dx = rPrime * Math.cos(phiDir) - rDir * Math.sin(phiDir);
+      const dy = rPrime * Math.sin(phiDir) + rDir * Math.cos(phiDir);
+
+      const tanLen = Math.hypot(dx, dy);
+      if (tanLen > 1e-6) {
+        const tx = dx / tanLen;
+        const ty = dy / tanLen;
+        const nx = -ty;
+        const ny = tx;
+
+        const chevronSize = Math.max(0.05, Math.min(a * 0.04, 0.25));
+        const halfAhead = chevronSize * 0.5;
+        const halfSpan = chevronSize * 0.35;
+
+        const tipX = px + tx * halfAhead;
+        const tipY = py + ty * halfAhead;
+
+        const w1X = px - tx * halfAhead + nx * halfSpan;
+        const w1Y = py - ty * halfAhead + ny * halfSpan;
+
+        const w2X = px - tx * halfAhead - nx * halfSpan;
+        const w2Y = py - ty * halfAhead - ny * halfSpan;
+
+        const dirBuffer = new Float32Array([
+          w1X, w1Y, 0,
+          tipX, tipY, 0,
+          w2X, w2Y, 0,
+          tipX, tipY, 0,
+        ]);
+
+        rotateToOrbitalPlane(dirBuffer, inclination, ascendingNode, { degrees: true });
+        dirGeom = new THREE.BufferGeometry();
+        dirGeom.setAttribute('position', new THREE.BufferAttribute(dirBuffer, 3));
+      }
+    }
+
+    return { orbitGeometry: geom, tickGeometry: periapsisGeom, directionGeometry: dirGeom };
+  }, [semiMajorAxis, eccentricity, inclination, ascendingNode, argumentOfPeriapsis, showPeriapsisTick, showDirectionIndicator, segments]);
 
   useEffect(() => {
     return () => {
       orbitGeometry.dispose();
       tickGeometry?.dispose();
+      directionGeometry?.dispose();
     };
-  }, [orbitGeometry, tickGeometry]);
+  }, [orbitGeometry, tickGeometry, directionGeometry]);
 
   return (
     <group position={position} data-testid="orbital-ring">
       <lineLoop geometry={orbitGeometry}>
         <lineBasicMaterial
-          color={ringColor}
+          color={resolvedColor}
           opacity={ringOpacity}
           transparent
           depthWrite={false}
@@ -125,10 +185,21 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
       </lineLoop>
 
       {showPeriapsisTick && tickGeometry && (
-        <lineSegments geometry={tickGeometry}>
+        <lineSegments geometry={tickGeometry} name="periapsis-tick">
           <lineBasicMaterial
-            color={ringColor}
-            opacity={tickOpacity}
+            color={resolvedColor}
+            opacity={markerOpacity}
+            transparent
+            depthWrite={false}
+          />
+        </lineSegments>
+      )}
+
+      {showDirectionIndicator && directionGeometry && (
+        <lineSegments geometry={directionGeometry} name="prograde-indicator">
+          <lineBasicMaterial
+            color={resolvedColor}
+            opacity={markerOpacity}
             transparent
             depthWrite={false}
           />

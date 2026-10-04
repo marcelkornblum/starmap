@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { CelestialNode, type CelestialClassification, type CelestialInteractionState } from './CelestialNode';
+import { CelestialNode, type CelestialClassification } from './CelestialNode';
 import { CartographicGrid } from './CartographicGrid';
 import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
 import styles from './StorybookCanvasWrapper.module.css';
@@ -40,7 +40,6 @@ export default meta;
 type Story = StoryObj<typeof CelestialNode>;
 
 export const Default: Story = {
-  name: 'Default (Interactive Circumbinary System)',
   args: {
     id: 'kepler-47',
     name: 'Kepler-47',
@@ -57,96 +56,8 @@ export const Default: Story = {
   },
 };
 
-export const DefaultPassive: Story = {
-  args: {
-    id: 'sirius',
-    name: 'Sirius A',
-    position: [1.8, 1.4, 2.0],
-    classification: 'star',
-    state: 'passive',
-    spectralType: 'A1V',
-    showStalk: true,
-  },
-};
-
-export const ActiveState: Story = {
-  args: {
-    id: 'sol',
-    name: 'Sol',
-    position: [1.8, 1.4, 1.8],
-    classification: 'star',
-    state: 'active',
-    spectralType: 'G2V',
-    showStalk: true,
-  },
-};
-
-export const SelectedWithStalk: Story = {
-  args: {
-    id: 'vega',
-    name: 'Vega',
-    position: [1.8, 2.2, 2.5],
-    classification: 'star',
-    state: 'selected',
-    spectralType: 'A0V',
-    showStalk: true,
-  },
-};
-
-export const FocusedPositiveZ: Story = {
-  args: {
-    id: 'alpha-centauri',
-    name: 'Alpha Centauri A',
-    position: [2.0, 1.6, 2.5],
-    classification: 'star',
-    state: 'focused',
-    spectralType: 'G2V',
-    showStalk: true,
-  },
-};
-
-export const FocusedNegativeZ: Story = {
-  args: {
-    id: 'proxima',
-    name: 'Proxima Centauri',
-    position: [1.8, -1.5, -2.0],
-    classification: 'star',
-    state: 'focused',
-    spectralType: 'M5.5Ve',
-    showStalk: true,
-  },
-};
-
-export const InteractiveStateCycle: Story = {
-  render: () => {
-    const InteractiveDemo = () => {
-      const [state, setState] = useState<CelestialInteractionState>('active');
-      const states: CelestialInteractionState[] = ['passive', 'active', 'selected', 'focused'];
-
-      const handleCycle = () => {
-        const nextIdx = (states.indexOf(state) + 1) % states.length;
-        setState(states[nextIdx]);
-      };
-
-      return (
-        <CelestialNode
-          id="interactive-star"
-          name="Betelgeuse"
-          position={[1.8, 1.4, 2.2]}
-          classification="star"
-          state={state}
-          spectralType="M1-M2Ia-ab"
-          showStalk={true}
-          onClick={handleCycle}
-        />
-      );
-    };
-
-    return <InteractiveDemo />;
-  },
-};
-
-export const UniversalTaxonomyGallery: Story = {
+export const Taxonomy: Story = {
+  name: 'Taxonomy',
   render: () => {
     const classifications: Array<{
       type: CelestialClassification;
@@ -188,8 +99,8 @@ export const UniversalTaxonomyGallery: Story = {
   },
 };
 
-export const LabelOcclusionDemo: Story = {
-  name: 'Label Occlusion (Priority Behind Star & Reticle)',
+export const Occlusion: Story = {
+  name: 'Occlusion',
   render: () => {
     const OcclusionDemo = () => {
       const [selectedId, setSelectedId] = useState<string | null>(null);
