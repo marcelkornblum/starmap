@@ -1,13 +1,18 @@
 @layer blocks {
   .dossierContainer {
+    --dossier-border-width: var(--border-width-1);
+    --dossier-border-color: var(--surface-panel-border-color);
+    --dossier-border-style: var(--border-style-boundary);
+    --dossier-slot-padding: var(--space-stack-compact);
+
     inline-size: 100%;
     box-sizing: border-box;
     margin: 0;
   }
 
   .headerSlot {
-    border-block-end: var(--stroke-hairline) solid var(--border-subtle);
-    padding-block-end: var(--space-fib-3);
+    border-block-end: var(--dossier-border-width) var(--dossier-border-style) var(--dossier-border-color);
+    padding-block-end: var(--dossier-slot-padding);
   }
 
   .metricsSlot {
@@ -19,7 +24,7 @@
   }
 
   .actionsSlot {
-    border-block-start: var(--stroke-hairline) solid var(--border-subtle);
-    padding-block-start: var(--space-fib-3);
+    border-block-start: var(--dossier-border-width) var(--dossier-border-style) var(--dossier-border-color);
+    padding-block-start: var(--dossier-slot-padding);
   }
 }

@@ -2,17 +2,20 @@
   .toolbar {
     --toolbar-bg: var(--surface-dock-bg);
     --toolbar-border-color: var(--surface-dock-border-color);
-    --toolbar-border-width: var(--stroke-hairline);
-    --toolbar-padding: var(--space-fib-2) var(--space-fib-4);
+    --toolbar-border-width: var(--border-width-1);
+    --toolbar-border-style: var(--border-style-boundary);
+    --toolbar-padding: var(--space-inset-toolbar);
+    --toolbar-gap: var(--space-gap-layout);
+    --toolbar-slot-gap: var(--space-gap-list);
 
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-fib-3);
+    gap: var(--toolbar-gap);
     inline-size: 100%;
     box-sizing: border-box;
     background: var(--toolbar-bg);
-    border-block-end: var(--toolbar-border-width) solid var(--toolbar-border-color);
+    border-block-end: var(--toolbar-border-width) var(--toolbar-border-style) var(--toolbar-border-color);
     padding: var(--toolbar-padding);
     margin: 0;
   }
@@ -20,18 +23,18 @@
   .slotStart {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-fib-2);
+    gap: var(--toolbar-slot-gap);
   }
 
   .slotCenter {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-fib-2);
+    gap: var(--toolbar-slot-gap);
   }
 
   .slotEnd {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-fib-2);
+    gap: var(--toolbar-slot-gap);
   }
 }

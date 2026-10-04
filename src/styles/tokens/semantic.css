@@ -88,6 +88,7 @@
     --text-content-body-size:           var(--type-scale-0);
 
     --text-content-catalog-id-size:     var(--type-scale-neg-2);
+    --text-content-catalog-id-tracking: var(--tracking-control);
     --text-content-footnote-size:       var(--type-scale-neg-2);
 
     /* Domain C: UI Chrome Typography */
@@ -108,12 +109,19 @@
     --text-ui-input-size:               var(--type-scale-0);
     --text-ui-input-placeholder-size:   var(--type-scale-0);
     --text-ui-input-label-size:         var(--type-scale-neg-1);
+    --text-ui-toggle-size:              var(--type-scale-0);
 
     --text-ui-modal-title-size:         var(--type-scale-2);
     --text-ui-menu-item-size:           var(--type-scale-0);
     --text-ui-tooltip-size:             var(--type-scale-neg-1);
     --text-ui-toast-title-size:         var(--type-scale-0);
     --text-ui-toast-message-size:       var(--type-scale-neg-1);
+    --text-ui-kbd-size:                 var(--type-scale-neg-2);
+    --text-ui-table-header-size:        var(--type-scale-neg-1);
+    --text-ui-table-cell-size:          var(--type-scale-0);
+    --text-ui-dossier-title-size:       var(--type-scale-2);
+    --text-content-title-size:          var(--type-scale-2);
+    --text-content-caption-size:        var(--type-scale-neg-1);
 
     /* Spacing Semantics */
     --space-inset-badge:         var(--space-fib-1) var(--space-fib-2);
@@ -122,11 +130,41 @@
     --space-inset-cell-x:        var(--space-fib-3);
     --space-inset-cell-y:        var(--space-fib-2);
     --space-inset-card:          var(--space-fib-5);
+    --space-inset-card-tight:    var(--space-fib-4);
+    --space-inset-card-loose:    var(--space-fib-6);
     --space-inset-panel:         var(--space-fib-5);
+    --space-inset-panel-tight:   var(--space-fib-3);
+    --space-inset-panel-loose:   var(--space-fib-6);
+    --space-inset-well-tight:    var(--space-fib-2);
+    --space-inset-well-default:  var(--space-fib-3);
+    --space-inset-well-loose:    var(--space-fib-5);
     --space-inset-drawer:        var(--space-fib-6);
     --space-inset-modal:         var(--space-fib-5);
+    --space-inset-popover:       var(--space-fib-3);
+    --space-inset-tooltip:       var(--space-fib-1) var(--space-fib-2);
+    --space-inset-toast:         var(--space-fib-3);
+    --space-inset-toolbar:       var(--space-fib-2) var(--space-fib-4);
+    --space-offset-overlay:      var(--space-fib-2);
+
+    --space-inset-button-sm-x:   var(--space-fib-3);
+    --space-inset-button-sm-y:   var(--space-fib-1);
+    --space-inset-button-default-x: var(--space-fib-4);
+    --space-inset-button-default-y: var(--space-fib-2);
+    --space-inset-button-lg-x:   var(--space-fib-5);
+    --space-inset-button-lg-y:   var(--space-fib-3);
+    --space-inset-input-sm-x:    var(--space-fib-2);
+    --space-inset-input-sm-y:    var(--space-fib-1);
+
+    --space-gap-badge:           var(--space-fib-1);
+    --space-gap-datum:           var(--space-fib-2);
+    --space-gap-metric:          var(--space-fib-2);
+    --space-gap-control:         var(--space-fib-2);
+    --space-gap-item:            var(--space-fib-1);
+    --space-gap-list:            var(--space-fib-2);
+    --space-gap-layout:          var(--space-fib-3);
 
     --space-stack-dense:         var(--space-fib-2);
+    --space-stack-compact:       var(--space-fib-3);
     --space-stack-tight:         var(--space-fib-3);
     --space-stack-control:       var(--space-fib-3);
     --space-stack-default:       var(--space-fib-4);
@@ -134,6 +172,7 @@
     --space-stack-section:       var(--space-fib-5);
 
     --space-cluster-dense:       var(--space-fib-2);
+    --space-cluster-compact:     var(--space-fib-2);
     --space-cluster-tight:       var(--space-fib-2);
     --space-cluster-default:     var(--space-fib-3);
     --space-cluster-loose:       var(--space-fib-4);
@@ -147,10 +186,106 @@
     --radius-control:            var(--radius-0);
     --radius-badge:              var(--radius-0);
 
+    --surface-modal-radius:      var(--radius-container);
+    --surface-popover-radius:    var(--radius-container);
+    --surface-drawer-radius:     var(--radius-none);
+    --surface-toast-radius:      var(--radius-container);
+    --ui-tooltip-radius:         var(--radius-badge);
+    --ui-kbd-radius:             var(--radius-control);
+    --ui-table-radius:           var(--radius-container);
+
+    --radius-sm:                 var(--radius-control);
+    --radius-md:                 var(--radius-container);
+    --radius-lg:                 var(--radius-container);
+    --radius-pill:               var(--radius-control);
+
+    --border-width-1:            var(--stroke-width-1);
+    --border-width-2:            var(--stroke-width-2);
+    --border-width-subtle:       var(--border-width-1);
+
     --border-style-default:      var(--border-style-boundary);
     --border-style-boundary:     var(--stroke-style-solid);
     --border-style-provisional:  var(--stroke-style-dashed);
     --border-style-guide:        var(--stroke-style-dotted);
+
+    /* Control & Metric Dimensions */
+    --ui-control-height-default: calc(var(--space-fib-5) + var(--space-fib-3));
+    --ui-control-height-sm:      calc(var(--space-fib-4) + var(--space-fib-2));
+    --ui-slider-track-height:    6px;
+    --ui-slider-thumb-size:      16px;
+    --ui-toggle-track-width:     36px;
+    --ui-toggle-track-height:    20px;
+    --ui-toggle-thumb-size:      14px;
+    --ui-toggle-thumb-offset:    2px;
+    --ui-toggle-thumb-active-offset: 16px;
+    --ui-toggle-track-radius:    var(--radius-control);
+    --ui-toggle-thumb-radius:    var(--radius-control);
+
+    /* Elevation & Semantic Layers */
+    --layer-canvas:              var(--z-canvas);
+    --layer-hud:                 var(--z-hud);
+    --layer-dock:                var(--z-dock);
+    --layer-panel:               var(--z-panel);
+    --layer-drawer:              var(--z-drawer);
+    --layer-popover:             var(--z-popover);
+    --layer-modal:               var(--z-modal);
+    --layer-toast:               var(--z-toast);
+
+    /* Opacity Semantics */
+    --opacity-full:              var(--opacity-100);
+    --opacity-hidden:            var(--opacity-0);
+    --opacity-visible:           var(--opacity-100);
+    --ui-toggle-opacity:         var(--opacity-100);
+    --chrome-node-label-opacity: var(--opacity-100);
+    --chrome-node-label-opacity-occluded: var(--opacity-0);
+
+    /* UI Control Layout Metrics */
+    --ui-input-padding-x:        var(--space-inset-control-x);
+    --ui-input-padding-y:        var(--space-inset-control-y);
+    --ui-input-font-size:        var(--text-ui-input-size);
+    --ui-input-sm-padding-x:     var(--space-inset-input-sm-x);
+    --ui-input-sm-padding-y:     var(--space-inset-input-sm-y);
+    --ui-input-sm-font-size:     var(--type-scale-neg-1);
+
+    --ui-slider-track-border-width: var(--border-width-1);
+    --ui-slider-track-border-style: var(--border-style-boundary);
+    --ui-slider-track-radius:       var(--radius-control);
+    --ui-slider-thumb-radius:       var(--radius-control);
+    --ui-slider-gap:                var(--space-gap-control);
+
+    /* Data Telemetry Metrics */
+    --data-datum-font-size:         var(--text-content-data-value-size);
+    --data-datum-label-font-size:   var(--text-content-data-label-size);
+    --data-datum-value-weight:      500;
+    --data-datum-border-width:      var(--border-width-1);
+    --data-datum-border-style:      var(--border-style-provisional);
+    --data-datum-padding-y:         var(--space-inset-cell-y);
+    --data-datum-unit-font-size:    var(--text-content-metric-unit-size);
+    --data-datum-sm-font-size:      var(--type-scale-neg-2);
+    --data-datum-sm-padding-y:      var(--space-fib-1);
+
+    --data-metric-border-width:     var(--border-width-1);
+    --data-metric-border-style:     var(--border-style-boundary);
+    --data-metric-radius:           var(--radius-container);
+    --data-metric-padding:          var(--space-inset-well-default);
+    --data-metric-gap:              var(--space-gap-item);
+    --data-metric-label-font-size:  var(--text-content-data-label-size);
+    --data-metric-label-tracking:   0.05em;
+    --data-metric-label-weight:     600;
+    --data-metric-value-font-size:  var(--text-content-metric-value-size);
+    --data-metric-value-weight:     700;
+    --data-metric-value-leading:    var(--leading-metric);
+    --data-metric-unit-font-size:   var(--text-content-metric-unit-size);
+    --data-metric-trend-font-size:  var(--text-content-data-label-size);
+
+    /* Cartographic Cues & On-Map Nodes Dimensions */
+    --chrome-bearing-cue-gap:            var(--space-fib-1);
+    --chrome-bearing-cue-padding:        var(--space-inset-badge);
+    --chrome-bearing-chevron-size:       var(--space-fib-3);
+    --chrome-node-label-padding:         var(--space-inset-badge);
+    --chrome-node-label-gap:             var(--space-fib-1);
+    --chrome-node-facet-padding:         var(--space-inset-badge);
+    --chrome-node-facet-gap:             var(--space-fib-1);
 
     /* Motion Semantics */
     --motion-duration-none:        var(--time-0);
@@ -159,9 +294,11 @@
     --motion-duration-overlay:     var(--time-3);
     --motion-duration-spatial:     var(--time-4);
     --motion-duration-default:     var(--motion-duration-interactive);
+    --duration-fast:               var(--motion-duration-feedback);
 
     --motion-ease-default:         var(--curve-snappy);
     --motion-ease-spatial:         var(--curve-spatial);
+    --ease-standard:               var(--motion-ease-default);
 
     /* UI Element Optics Defaults */
     --ui-button-prominent-opacity:       var(--opacity-100);
@@ -272,6 +409,8 @@
     --scrim-backdrop:              var(--palette-black-alpha-70);
     --scrim-backdrop-opacity:      var(--opacity-70);
     --scrim-backdrop-blur:         var(--filter-blur-1);
+    --surface-scrim-bg:            var(--scrim-backdrop);
+    --surface-scrim-backdrop-blur: var(--scrim-backdrop-blur);
 
     --surface-toast-bg:            var(--palette-solarized-base02);
     --surface-toast-border-width:  var(--stroke-width-1);
@@ -283,11 +422,42 @@
 
     /* Content Contrast */
     --content-prominent: var(--palette-solarized-base1);
+    --content-bright:    var(--content-prominent);
     --content-default:   var(--palette-solarized-base0);
+    --content-base:      var(--content-default);
     --content-muted:     var(--palette-solarized-base01);
     --content-faint:     var(--palette-solarized-base00);
     --content-inverse:   var(--palette-solarized-base03);
     --content-disabled:  var(--palette-solarized-base01);
+    --content-accent:    var(--palette-solarized-cyan);
+
+    --interactive-primary: var(--state-focus);
+
+    --border-color-subtle:      var(--surface-panel-border-color);
+    --border-color-interactive: var(--state-focus);
+    --border-subtle:            var(--surface-panel-border-color);
+    --stroke-hairline:          var(--border-width-1);
+
+    --ui-table-header-bg:       var(--surface-dock-bg);
+    --ui-table-border-color:    var(--surface-panel-border-color);
+    --ui-table-row-hover-bg:    var(--state-hover-overlay);
+    --ui-table-row-selected-bg: var(--state-selected-bg);
+
+    --data-datum-label-color:   var(--content-muted);
+    --data-datum-value-color:   var(--content-default);
+    --data-datum-border-color:  var(--surface-panel-border-color);
+    --data-datum-unit-color:    var(--content-muted);
+
+    --data-metric-bg:           var(--surface-inset-bg);
+    --data-metric-border-color: var(--surface-inset-border-color);
+    --data-metric-value-color:  var(--content-prominent);
+    --data-metric-label-color:  var(--content-muted);
+    --data-metric-unit-color:   var(--content-muted);
+    --data-metric-trend-color:  var(--content-muted);
+
+    --border-default:           var(--surface-panel-border-color);
+    --border-focus:             var(--state-focus);
+    --surface-sunken-bg:        var(--surface-inset-bg);
 
     /* Interactive Focus & States */
     --state-focus:                var(--palette-solarized-cyan);
@@ -334,19 +504,80 @@
     --chrome-boresight-width:            var(--stroke-width-1);
     --chrome-boresight-style:            var(--border-style-boundary);
 
+    /* UI Control Profiles (Dark Theme) */
+    --ui-button-default-bg:              var(--palette-white-alpha-8);
+    --ui-button-default-color:           var(--content-default);
+    --ui-button-default-border-color:    var(--palette-white-alpha-16);
+    --ui-button-default-border-width:    var(--border-width-1);
+    --ui-button-default-border-style:    var(--border-style-boundary);
+    --ui-button-default-radius:          var(--radius-control);
+    --ui-button-default-hover-bg:        var(--palette-white-alpha-16);
+    --ui-button-default-active-bg:       var(--palette-white-alpha-24);
+
+    --ui-button-prominent-bg:            var(--state-focus);
+    --ui-button-prominent-color:         var(--content-inverse);
+    --ui-button-prominent-border-color:  var(--state-focus);
+    --ui-button-prominent-hover-bg:      var(--palette-solarized-blue);
+    --ui-button-prominent-active-bg:     var(--palette-solarized-blue);
+
+    --ui-button-subtle-bg:               transparent;
+    --ui-button-subtle-color:            var(--content-default);
+    --ui-button-subtle-border-color:     transparent;
+    --ui-button-subtle-hover-bg:         var(--surface-dock-bg);
+    --ui-button-subtle-hover-border-color: var(--palette-white-alpha-16);
+
+    --ui-button-danger-bg:               var(--status-critical);
+    --ui-button-danger-color:            var(--content-inverse);
+    --ui-button-danger-border-color:     var(--status-critical);
+
+    --ui-input-bg:                       var(--surface-inset-bg);
+    --ui-input-color:                    var(--content-default);
+    --ui-input-border-color:             var(--surface-inset-border-color);
+    --ui-input-border-width:             var(--border-width-1);
+    --ui-input-border-style:             var(--border-style-boundary);
+    --ui-input-radius:                   var(--radius-control);
+    --ui-input-placeholder-color:        var(--content-faint);
+
+    --ui-slider-track-bg:                var(--surface-inset-bg);
+    --ui-slider-track-border-color:      var(--surface-inset-border-color);
+    --ui-slider-thumb-bg:                var(--state-focus);
+
+    --ui-toggle-track-bg:                var(--surface-inset-bg);
+    --ui-toggle-track-border-color:      var(--surface-inset-border-color);
+    --ui-toggle-track-active-bg:         var(--state-focus);
+    --ui-toggle-track-active-border-color: var(--state-focus);
+    --ui-toggle-thumb-bg:                var(--content-muted);
+    --ui-toggle-thumb-active-bg:         var(--content-inverse);
+
+    /* Cartographic Cues & On-Map Nodes (Dark Theme) */
+    --chrome-bearing-cue-bg:             var(--palette-black-alpha-70);
+    --chrome-bearing-cue-backdrop-blur:  var(--filter-blur-0);
+    --chrome-bearing-cue-radius:         var(--radius-badge);
+    --chrome-bearing-cue-opacity-attached: var(--opacity-100);
+    --chrome-bearing-cue-opacity-detached: var(--opacity-85);
+    --chrome-bearing-cue-label-opacity:  var(--opacity-50);
+
+    --chrome-node-label-bg:              var(--surface-hud-bg);
+    --chrome-node-label-border-color:    var(--chrome-grid-primary-color);
+    --chrome-node-label-border-width:    var(--border-width-1);
+    --chrome-node-label-border-style:    var(--border-style-boundary);
+    --chrome-node-label-radius:          var(--radius-badge);
+    --chrome-node-facet-separator-color: var(--chrome-grid-primary-color);
+    --chrome-node-facet-separator-opacity: var(--opacity-85);
+
     /* Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0) */
-    --chrome-datum-plane-color:          oklch(0.78 0.04 220 / 0.35);
+    --chrome-datum-plane-color:          var(--palette-white-alpha-35);
     --chrome-datum-plane-alpha:          0.35;
     --chrome-datum-plane-width:          var(--stroke-width-1);
     --chrome-datum-plane-major-color:    var(--palette-white-alpha-35);
     --chrome-datum-plane-major-alpha:    0.35;
     --chrome-datum-plane-minor-color:    var(--palette-white-alpha-16);
     --chrome-datum-plane-minor-alpha:    0.16;
-    --chrome-datum-plane-fill-color:     #8cb8cc;
+    --chrome-datum-plane-fill-color:     var(--palette-solarized-base02);
     --chrome-datum-plane-fill-alpha:     0.16;
     --chrome-datum-plane-fill-gradient-inner: 0.25;
     --chrome-datum-plane-fill-gradient-exponent: 2.0;
-    --chrome-datum-footprint-color:      var(--color-primary-400);
+    --chrome-datum-footprint-color:      var(--state-focus);
     --chrome-datum-footprint-alpha:      0.25;
     --chrome-datum-footprint-width:      var(--stroke-width-2);
 
@@ -354,16 +585,16 @@
     --chrome-axis-line-width:            var(--stroke-width-1);
     --chrome-axis-line-style:            var(--border-style-boundary);
 
-    --chrome-bearing-line-color:         oklch(58.63% 0.2064 27.12 / 0.35);
+    --chrome-bearing-line-color:         var(--palette-red-alpha-35);
     --chrome-bearing-line-width:         var(--stroke-width-2);
     --chrome-bearing-line-style:         solid;
 
-    --chrome-bearing-orbital-color:      oklch(58.63% 0.2064 27.12 / 0.35);
+    --chrome-bearing-orbital-color:      var(--palette-red-alpha-35);
     --chrome-bearing-orbital-cue-color:  var(--palette-solarized-red);
     --chrome-bearing-orbital-width:      var(--stroke-width-2);
     --chrome-bearing-orbital-style:      dashed;
 
-    --chrome-bearing-core-color:         oklch(65.45% 0.1340 85.72 / 0.35);
+    --chrome-bearing-core-color:         var(--palette-yellow-alpha-35);
     --chrome-bearing-core-cue-color:     var(--palette-solarized-yellow);
     --chrome-bearing-core-width:         var(--stroke-width-2);
     --chrome-bearing-core-style:         var(--border-style-boundary);
@@ -374,29 +605,31 @@
 
     /* Confidence Indicators */
     --confidence-confirmed:        var(--palette-solarized-green);
-    --confidence-confirmed-bg:     oklch(64.44% 0.1508 118.60 / 0.15);
+    --confidence-confirmed-bg:     var(--palette-green-alpha-15);
     --confidence-candidate:        var(--palette-solarized-yellow);
-    --confidence-candidate-bg:     oklch(65.45% 0.1340 85.72 / 0.15);
+    --confidence-candidate-bg:     var(--palette-yellow-alpha-15);
     --confidence-theoretical:      var(--palette-solarized-violet);
-    --confidence-theoretical-bg:   oklch(58.23% 0.1261 279.10 / 0.15);
+    --confidence-theoretical-bg:   var(--palette-violet-alpha-15);
 
     /* Telemetry Condition / Status */
     --status-nominal:              var(--palette-solarized-green);
-    --status-nominal-bg:           oklch(64.44% 0.1508 118.60 / 0.15);
+    --status-nominal-bg:           var(--palette-green-alpha-15);
     --status-caution:              var(--palette-solarized-yellow);
-    --status-caution-bg:           oklch(65.45% 0.1340 85.72 / 0.15);
+    --status-caution-bg:           var(--palette-yellow-alpha-15);
     --status-critical:             var(--palette-solarized-red);
-    --status-critical-bg:          oklch(58.63% 0.2064 27.12 / 0.15);
+    --status-critical-bg:          var(--palette-red-alpha-35);
+    --status-info:                 var(--palette-solarized-blue);
+    --status-info-bg:              oklch(61.49% 0.1394 244.93 / 0.15);
 
     /* Domain Categories */
     --category-star:               var(--palette-solarized-orange);
-    --category-star-bg:            oklch(58.08% 0.1732 39.50 / 0.15);
+    --category-star-bg:            var(--palette-yellow-alpha-15);
     --category-planet:             var(--palette-solarized-cyan);
-    --category-planet-bg:          oklch(64.37% 0.1019 187.38 / 0.15);
+    --category-planet-bg:          var(--palette-cyan-alpha-30);
     --category-orbit:              var(--palette-solarized-violet);
-    --category-orbit-bg:           oklch(58.23% 0.1261 279.10 / 0.15);
+    --category-orbit-bg:           var(--palette-violet-alpha-15);
     --category-habitability:       var(--palette-solarized-green);
-    --category-habitability-bg:    oklch(64.44% 0.1508 118.60 / 0.15);
+    --category-habitability-bg:    var(--palette-green-alpha-15);
   }
 
   /* ------------------------------------------------------------------------ */
@@ -470,6 +703,8 @@
     --scrim-backdrop:              var(--palette-light-scrim);
     --scrim-backdrop-opacity:      var(--opacity-40);
     --scrim-backdrop-blur:         var(--filter-blur-1);
+    --surface-scrim-bg:            var(--scrim-backdrop);
+    --surface-scrim-backdrop-blur: var(--scrim-backdrop-blur);
 
     --surface-toast-bg:            var(--palette-solarized-base2);
     --surface-toast-border-width:  var(--stroke-width-1);
@@ -481,11 +716,42 @@
 
     /* Content Contrast */
     --content-prominent: var(--palette-solarized-base01);
+    --content-bright:    var(--content-prominent);
     --content-default:   var(--palette-solarized-base00);
+    --content-base:      var(--content-default);
     --content-muted:     var(--palette-solarized-base1);
     --content-faint:     var(--palette-solarized-base2);
     --content-inverse:   var(--palette-solarized-base3);
     --content-disabled:  var(--palette-solarized-base1);
+    --content-accent:    var(--palette-solarized-blue);
+
+    --interactive-primary: var(--palette-solarized-blue);
+
+    --border-color-subtle:      var(--surface-panel-border-color);
+    --border-color-interactive: var(--state-focus);
+    --border-subtle:            var(--surface-panel-border-color);
+    --stroke-hairline:          var(--border-width-1);
+
+    --ui-table-header-bg:       var(--surface-dock-bg);
+    --ui-table-border-color:    var(--surface-panel-border-color);
+    --ui-table-row-hover-bg:    var(--state-hover-overlay);
+    --ui-table-row-selected-bg: var(--state-selected-bg);
+
+    --data-datum-label-color:   var(--content-muted);
+    --data-datum-value-color:   var(--content-default);
+    --data-datum-border-color:  var(--surface-panel-border-color);
+    --data-datum-unit-color:    var(--content-muted);
+
+    --data-metric-bg:           var(--surface-inset-bg);
+    --data-metric-border-color: var(--surface-inset-border-color);
+    --data-metric-value-color:  var(--content-prominent);
+    --data-metric-label-color:  var(--content-muted);
+    --data-metric-unit-color:   var(--content-muted);
+    --data-metric-trend-color:  var(--content-muted);
+
+    --border-default:           var(--surface-panel-border-color);
+    --border-focus:             var(--state-focus);
+    --surface-sunken-bg:        var(--surface-inset-bg);
 
     /* Interactive Focus & States */
     --state-focus:                var(--palette-solarized-blue);
@@ -532,19 +798,80 @@
     --chrome-boresight-width:            var(--stroke-width-1);
     --chrome-boresight-style:            var(--border-style-boundary);
 
+    /* UI Control Profiles (Light Theme) */
+    --ui-button-default-bg:              var(--palette-black-alpha-8);
+    --ui-button-default-color:           var(--content-default);
+    --ui-button-default-border-color:    var(--palette-black-alpha-16);
+    --ui-button-default-border-width:    var(--border-width-1);
+    --ui-button-default-border-style:    var(--border-style-boundary);
+    --ui-button-default-radius:          var(--radius-control);
+    --ui-button-default-hover-bg:        var(--palette-black-alpha-16);
+    --ui-button-default-active-bg:       var(--palette-black-alpha-24);
+
+    --ui-button-prominent-bg:            var(--state-focus);
+    --ui-button-prominent-color:         var(--content-inverse);
+    --ui-button-prominent-border-color:  var(--state-focus);
+    --ui-button-prominent-hover-bg:      var(--palette-solarized-blue);
+    --ui-button-prominent-active-bg:     var(--palette-solarized-blue);
+
+    --ui-button-subtle-bg:               transparent;
+    --ui-button-subtle-color:            var(--content-default);
+    --ui-button-subtle-border-color:     transparent;
+    --ui-button-subtle-hover-bg:         var(--surface-dock-bg);
+    --ui-button-subtle-hover-border-color: var(--palette-black-alpha-16);
+
+    --ui-button-danger-bg:               var(--status-critical);
+    --ui-button-danger-color:            var(--content-inverse);
+    --ui-button-danger-border-color:     var(--status-critical);
+
+    --ui-input-bg:                       var(--surface-inset-bg);
+    --ui-input-color:                    var(--content-default);
+    --ui-input-border-color:             var(--surface-inset-border-color);
+    --ui-input-border-width:             var(--border-width-1);
+    --ui-input-border-style:             var(--border-style-boundary);
+    --ui-input-radius:                   var(--radius-control);
+    --ui-input-placeholder-color:        var(--content-faint);
+
+    --ui-slider-track-bg:                var(--surface-inset-bg);
+    --ui-slider-track-border-color:      var(--surface-inset-border-color);
+    --ui-slider-thumb-bg:                var(--state-focus);
+
+    --ui-toggle-track-bg:                var(--surface-inset-bg);
+    --ui-toggle-track-border-color:      var(--surface-inset-border-color);
+    --ui-toggle-track-active-bg:         var(--state-focus);
+    --ui-toggle-track-active-border-color: var(--state-focus);
+    --ui-toggle-thumb-bg:                var(--content-muted);
+    --ui-toggle-thumb-active-bg:         var(--content-inverse);
+
+    /* Cartographic Cues & On-Map Nodes (Light Theme) */
+    --chrome-bearing-cue-bg:             var(--palette-white-alpha-70);
+    --chrome-bearing-cue-backdrop-blur:  var(--filter-blur-0);
+    --chrome-bearing-cue-radius:         var(--radius-badge);
+    --chrome-bearing-cue-opacity-attached: var(--opacity-100);
+    --chrome-bearing-cue-opacity-detached: var(--opacity-85);
+    --chrome-bearing-cue-label-opacity:  var(--opacity-50);
+
+    --chrome-node-label-bg:              var(--surface-hud-bg);
+    --chrome-node-label-border-color:    var(--chrome-grid-primary-color);
+    --chrome-node-label-border-width:    var(--border-width-1);
+    --chrome-node-label-border-style:    var(--border-style-boundary);
+    --chrome-node-label-radius:          var(--radius-badge);
+    --chrome-node-facet-separator-color: var(--chrome-grid-primary-color);
+    --chrome-node-facet-separator-opacity: var(--opacity-85);
+
     /* Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0) */
-    --chrome-datum-plane-color:          oklch(0.35 0.05 220 / 0.35);
+    --chrome-datum-plane-color:          var(--palette-black-alpha-35);
     --chrome-datum-plane-alpha:          0.35;
     --chrome-datum-plane-width:          var(--stroke-width-1);
     --chrome-datum-plane-major-color:    var(--palette-black-alpha-35);
     --chrome-datum-plane-major-alpha:    0.35;
     --chrome-datum-plane-minor-color:    var(--palette-black-alpha-16);
     --chrome-datum-plane-minor-alpha:    0.16;
-    --chrome-datum-plane-fill-color:     #073642;
+    --chrome-datum-plane-fill-color:     var(--palette-solarized-base2);
     --chrome-datum-plane-fill-alpha:     0.08;
     --chrome-datum-plane-fill-gradient-inner: 0.25;
     --chrome-datum-plane-fill-gradient-exponent: 2.0;
-    --chrome-datum-footprint-color:      var(--color-primary-600);
+    --chrome-datum-footprint-color:      var(--state-focus);
     --chrome-datum-footprint-alpha:      0.25;
     --chrome-datum-footprint-width:      var(--stroke-width-2);
 
@@ -552,16 +879,16 @@
     --chrome-axis-line-width:            var(--stroke-width-1);
     --chrome-axis-line-style:            var(--border-style-boundary);
 
-    --chrome-bearing-line-color:         oklch(58.63% 0.2064 27.12 / 0.35);
+    --chrome-bearing-line-color:         var(--palette-red-alpha-35);
     --chrome-bearing-line-width:         var(--stroke-width-2);
     --chrome-bearing-line-style:         solid;
 
-    --chrome-bearing-orbital-color:      oklch(58.63% 0.2064 27.12 / 0.35);
+    --chrome-bearing-orbital-color:      var(--palette-red-alpha-35);
     --chrome-bearing-orbital-cue-color:  var(--palette-solarized-red);
     --chrome-bearing-orbital-width:      var(--stroke-width-2);
     --chrome-bearing-orbital-style:      dashed;
 
-    --chrome-bearing-core-color:         oklch(65.45% 0.1340 85.72 / 0.35);
+    --chrome-bearing-core-color:         var(--palette-yellow-alpha-35);
     --chrome-bearing-core-cue-color:     var(--palette-solarized-yellow);
     --chrome-bearing-core-width:         var(--stroke-width-2);
     --chrome-bearing-core-style:         var(--border-style-boundary);
@@ -572,29 +899,31 @@
 
     /* Confidence Indicators */
     --confidence-confirmed:        var(--palette-solarized-green);
-    --confidence-confirmed-bg:     oklch(64.44% 0.1508 118.60 / 0.12);
+    --confidence-confirmed-bg:     var(--palette-green-alpha-15);
     --confidence-candidate:        var(--palette-solarized-yellow);
-    --confidence-candidate-bg:     oklch(65.45% 0.1340 85.72 / 0.12);
+    --confidence-candidate-bg:     var(--palette-yellow-alpha-15);
     --confidence-theoretical:      var(--palette-solarized-violet);
-    --confidence-theoretical-bg:   oklch(58.23% 0.1261 279.10 / 0.12);
+    --confidence-theoretical-bg:   var(--palette-violet-alpha-15);
 
     /* Telemetry Condition / Status */
     --status-nominal:              var(--palette-solarized-green);
-    --status-nominal-bg:           oklch(64.44% 0.1508 118.60 / 0.12);
+    --status-nominal-bg:           var(--palette-green-alpha-15);
     --status-caution:              var(--palette-solarized-yellow);
-    --status-caution-bg:           oklch(65.45% 0.1340 85.72 / 0.12);
+    --status-caution-bg:           var(--palette-yellow-alpha-15);
     --status-critical:             var(--palette-solarized-red);
-    --status-critical-bg:          oklch(58.63% 0.2064 27.12 / 0.12);
+    --status-critical-bg:          var(--palette-red-alpha-35);
+    --status-info:                 var(--palette-solarized-blue);
+    --status-info-bg:              oklch(61.49% 0.1394 244.93 / 0.15);
 
     /* Domain Categories */
     --category-star:               var(--palette-solarized-orange);
-    --category-star-bg:            oklch(58.08% 0.1732 39.50 / 0.12);
+    --category-star-bg:            var(--palette-yellow-alpha-15);
     --category-planet:             var(--palette-solarized-cyan);
-    --category-planet-bg:          oklch(64.37% 0.1019 187.38 / 0.12);
+    --category-planet-bg:          var(--palette-cyan-alpha-30);
     --category-orbit:              var(--palette-solarized-violet);
-    --category-orbit-bg:           oklch(58.23% 0.1261 279.10 / 0.12);
+    --category-orbit-bg:           var(--palette-violet-alpha-15);
     --category-habitability:       var(--palette-solarized-green);
-    --category-habitability-bg:    oklch(64.44% 0.1508 118.60 / 0.12);
+    --category-habitability-bg:    var(--palette-green-alpha-15);
   }
 
   /* ------------------------------------------------------------------------ */

@@ -1,63 +1,77 @@
 @layer blocks {
   .toggleContainer {
-    --toggle-width: 36px;
-    --toggle-height: 20px;
-    --toggle-thumb-size: 14px;
-    --toggle-bg: var(--ui-input-bg);
-    --toggle-border: var(--ui-input-border-color);
-    --toggle-thumb-bg: var(--content-muted);
+    --toggle-width: var(--ui-toggle-track-width);
+    --toggle-height: var(--ui-toggle-track-height);
+    --toggle-radius: var(--ui-toggle-track-radius);
+    --toggle-track-bg: var(--ui-toggle-track-bg);
+    --toggle-track-border-color: var(--ui-toggle-track-border-color);
+    --toggle-track-border-width: var(--border-width-1);
+
+    --toggle-thumb-size: var(--ui-toggle-thumb-size);
+    --toggle-thumb-radius: var(--ui-toggle-thumb-radius);
+    --toggle-thumb-bg: var(--ui-toggle-thumb-bg);
+    --toggle-thumb-offset: var(--ui-toggle-thumb-offset);
+    --toggle-thumb-transform: translateX(0);
+
+    --toggle-gap: var(--space-gap-control);
+    --toggle-font-family: var(--font-interface);
+    --toggle-font-size: var(--text-ui-toggle-size);
+    --toggle-opacity: var(--ui-toggle-opacity);
+    --toggle-cursor: pointer;
+
+    --toggle-transition-duration: var(--motion-duration-interactive);
+    --toggle-transition-ease: var(--motion-ease-default);
 
     display: inline-flex;
     align-items: center;
-    gap: var(--space-fib-3);
-    cursor: pointer;
-    font-family: var(--font-interface);
-    font-size: var(--type-scale-0);
+    gap: var(--toggle-gap);
+    cursor: var(--toggle-cursor);
+    font-family: var(--toggle-font-family);
+    font-size: var(--toggle-font-size);
     user-select: none;
     background: transparent;
     border: none;
     padding: 0;
     color: inherit;
     text-align: left;
-  }
-
-  .toggleContainer[data-disabled="true"] {
-    opacity: 0.5;
-    cursor: not-allowed;
+    opacity: var(--toggle-opacity);
   }
 
   .switchTrack {
     position: relative;
     inline-size: var(--toggle-width);
     block-size: var(--toggle-height);
-    background: var(--toggle-bg);
-    border: var(--stroke-hairline) solid var(--toggle-border);
-    border-radius: var(--radius-pill);
-    transition: background var(--duration-fast) var(--ease-standard),
-                border-color var(--duration-fast) var(--ease-standard);
+    background: var(--toggle-track-bg);
+    border: var(--toggle-track-border-width) solid var(--toggle-track-border-color);
+    border-radius: var(--toggle-radius);
+    transition: background var(--toggle-transition-duration) var(--toggle-transition-ease),
+                border-color var(--toggle-transition-duration) var(--toggle-transition-ease);
   }
 
   .switchThumb {
     position: absolute;
-    inset-block-start: 2px;
-    inset-inline-start: 2px;
+    inset-block-start: var(--toggle-thumb-offset);
+    inset-inline-start: var(--toggle-thumb-offset);
     inline-size: var(--toggle-thumb-size);
     block-size: var(--toggle-thumb-size);
     background: var(--toggle-thumb-bg);
-    border-radius: var(--radius-pill);
-    transition: transform var(--duration-fast) var(--ease-standard),
-                background var(--duration-fast) var(--ease-standard);
+    border-radius: var(--toggle-thumb-radius);
+    transform: var(--toggle-thumb-transform);
+    transition: transform var(--toggle-transition-duration) var(--toggle-transition-ease),
+                background var(--toggle-transition-duration) var(--toggle-transition-ease);
   }
 }
 
 @layer exceptions {
-  .toggleContainer[data-checked="true"] .switchTrack {
-    --toggle-bg: var(--solarized-blue);
-    --toggle-border: var(--solarized-blue);
+  .toggleContainer[data-checked="true"] {
+    --toggle-track-bg: var(--ui-toggle-track-active-bg);
+    --toggle-track-border-color: var(--ui-toggle-track-active-border-color);
+    --toggle-thumb-bg: var(--ui-toggle-thumb-active-bg);
+    --toggle-thumb-transform: translateX(var(--ui-toggle-thumb-active-offset));
   }
 
-  .toggleContainer[data-checked="true"] .switchThumb {
-    --toggle-thumb-bg: var(--solarized-base03);
-    transform: translateX(16px);
+  .toggleContainer[data-disabled="true"] {
+    --toggle-opacity: var(--ui-disabled-opacity);
+    --toggle-cursor: not-allowed;
   }
 }

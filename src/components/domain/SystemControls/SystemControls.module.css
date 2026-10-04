@@ -6,11 +6,15 @@
     --controls-border-style: var(--surface-dock-border-style);
     --controls-shadow: var(--surface-dock-shadow);
     --controls-padding: var(--space-inset-card);
+    --controls-radius: var(--radius-container);
+    --controls-header-size: var(--text-content-caption-size);
+    --controls-group-border-width: var(--border-width-1);
+    --controls-group-radius: var(--radius-control);
 
     background: var(--controls-bg);
     border: var(--controls-border-width) var(--controls-border-style) var(--controls-border-color);
     box-shadow: var(--controls-shadow);
-    border-radius: var(--radius-lg);
+    border-radius: var(--controls-radius);
     padding: var(--controls-padding);
     backdrop-filter: blur(var(--scrim-backdrop-blur));
     -webkit-backdrop-filter: blur(var(--scrim-backdrop-blur));
@@ -18,7 +22,7 @@
   }
 
   .sectionHeader {
-    font-size: var(--type-scale--1);
+    font-size: var(--controls-header-size);
     font-weight: 600;
     color: var(--content-muted);
     text-transform: uppercase;
@@ -32,9 +36,9 @@
 
   .buttonGroup {
     display: inline-flex;
-    border-radius: var(--radius-sm);
+    border-radius: var(--controls-group-radius);
     overflow: hidden;
-    border: var(--stroke-hairline) solid var(--surface-panel-border-color);
+    border: var(--controls-group-border-width) solid var(--surface-panel-border-color);
   }
 
   .groupButton {

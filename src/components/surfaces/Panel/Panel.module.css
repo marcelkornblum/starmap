@@ -6,7 +6,7 @@
     --panel-border-style: var(--surface-panel-border-style);
     --panel-shadow: var(--surface-panel-shadow);
     --panel-padding: var(--space-inset-panel);
-    --panel-radius: var(--radius-md);
+    --panel-radius: var(--radius-container);
 
     display: flex;
     flex-direction: column;
@@ -24,11 +24,11 @@
     align-items: center;
     justify-content: space-between;
     padding-inline: var(--panel-padding);
-    padding-block: var(--space-fib-2);
-    border-block-end: var(--stroke-hairline) solid var(--border-subtle);
+    padding-block: var(--space-stack-dense);
+    border-block-end: var(--panel-border-width) var(--panel-border-style) var(--panel-border-color);
     background: var(--surface-dock-bg);
     font-weight: 600;
-    font-size: var(--type-scale-0);
+    font-size: var(--text-content-section-title-size);
   }
 
   .body {
@@ -41,10 +41,10 @@
     align-items: center;
     justify-content: space-between;
     padding-inline: var(--panel-padding);
-    padding-block: var(--space-fib-2);
-    border-block-start: var(--stroke-hairline) solid var(--border-subtle);
+    padding-block: var(--space-stack-dense);
+    border-block-start: var(--panel-border-width) var(--panel-border-style) var(--panel-border-color);
     background: var(--surface-dock-bg);
-    font-size: var(--type-scale-neg-1);
+    font-size: var(--text-content-footnote-size);
   }
 }
 
@@ -52,9 +52,9 @@
   .panel[data-status="critical"] { --panel-border-color: var(--status-critical); }
   .panel[data-status="caution"] { --panel-border-color: var(--status-caution); }
   .panel[data-status="nominal"] { --panel-border-color: var(--status-nominal); }
-  .panel[data-status="info"] { --panel-border-color: var(--status-info); }
+  .panel[data-status="info"] { --panel-border-color: var(--state-focus); }
 
   .panel[data-padding="none"] .body { padding: 0; }
-  .panel[data-padding="tight"] .body { padding: var(--space-fib-3); }
-  .panel[data-padding="loose"] .body { padding: var(--space-fib-6); }
+  .panel[data-padding="tight"] .body { padding: var(--space-inset-panel-tight); }
+  .panel[data-padding="loose"] .body { padding: var(--space-inset-panel-loose); }
 }

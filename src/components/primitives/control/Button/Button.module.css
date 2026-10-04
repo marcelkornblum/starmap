@@ -1,92 +1,96 @@
 @layer blocks {
   .button {
-    --button-bg: var(--ui-button-bg);
-    --button-color: var(--ui-button-color);
-    --button-border-color: var(--ui-button-border-color);
-    --button-border-width: var(--stroke-hairline);
-    --button-padding-inline: var(--space-fib-4);
-    --button-padding-block: var(--space-fib-2);
-    --button-font-size: var(--type-scale-0);
-    --button-radius: var(--radius-sm);
+    --button-bg: var(--ui-button-default-bg);
+    --button-color: var(--ui-button-default-color);
+    --button-border-color: var(--ui-button-default-border-color);
+    --button-border-width: var(--ui-button-default-border-width);
+    --button-border-style: var(--ui-button-default-border-style);
+    --button-padding-inline: var(--space-inset-button-default-x);
+    --button-padding-block: var(--space-inset-button-default-y);
+    --button-font-size: var(--text-ui-button-default-size);
+    --button-radius: var(--ui-button-default-radius);
+    --button-font-weight: 500;
+    --button-leading: var(--leading-control);
+    --button-gap: var(--space-cluster-dense);
 
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-fib-2);
+    gap: var(--button-gap);
     box-sizing: border-box;
     font-family: var(--font-interface);
     font-size: var(--button-font-size);
-    font-weight: 500;
-    line-height: 1;
+    font-weight: var(--button-font-weight);
+    line-height: var(--button-leading);
     padding-inline: var(--button-padding-inline);
     padding-block: var(--button-padding-block);
     background: var(--button-bg);
     color: var(--button-color);
-    border: var(--button-border-width) solid var(--button-border-color);
+    border: var(--button-border-width) var(--button-border-style) var(--button-border-color);
     border-radius: var(--button-radius);
     cursor: pointer;
     text-decoration: none;
-    transition: background var(--duration-fast) var(--ease-standard),
-                border-color var(--duration-fast) var(--ease-standard),
-                color var(--duration-fast) var(--ease-standard);
+    transition: background var(--motion-duration-feedback) var(--motion-ease-default),
+                border-color var(--motion-duration-feedback) var(--motion-ease-default),
+                color var(--motion-duration-feedback) var(--motion-ease-default);
     margin: 0;
   }
 
   .button:hover:not(:disabled) {
-    --button-bg: var(--ui-button-hover-bg);
+    --button-bg: var(--ui-button-default-hover-bg);
   }
 
   .button:active:not(:disabled) {
-    --button-bg: var(--ui-button-active-bg);
+    --button-bg: var(--ui-button-default-active-bg);
   }
 
   .button:focus-visible {
-    outline: var(--stroke-standard) solid var(--border-focus);
-    outline-offset: 2px;
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
   }
 
   .button:disabled {
-    opacity: 0.5;
+    opacity: var(--ui-disabled-opacity);
     cursor: not-allowed;
   }
 }
 
 @layer exceptions {
   .button[data-variant="primary"] {
-    --button-bg: var(--solarized-blue);
-    --button-color: var(--solarized-base03);
-    --button-border-color: var(--solarized-blue);
+    --button-bg: var(--ui-button-prominent-bg);
+    --button-color: var(--ui-button-prominent-color);
+    --button-border-color: var(--ui-button-prominent-border-color);
   }
   .button[data-variant="primary"]:hover:not(:disabled) {
-    --button-bg: var(--solarized-cyan);
-    --button-border-color: var(--solarized-cyan);
+    --button-bg: var(--ui-button-prominent-hover-bg);
+    --button-border-color: var(--ui-button-prominent-hover-bg);
   }
 
   .button[data-variant="subtle"] {
-    --button-bg: transparent;
-    --button-border-color: transparent;
-    --button-color: var(--content-default);
+    --button-bg: var(--ui-button-subtle-bg);
+    --button-border-color: var(--ui-button-subtle-border-color);
+    --button-color: var(--ui-button-subtle-color);
   }
   .button[data-variant="subtle"]:hover:not(:disabled) {
-    --button-bg: var(--surface-dock-bg);
-    --button-border-color: var(--border-subtle);
+    --button-bg: var(--ui-button-subtle-hover-bg);
+    --button-border-color: var(--ui-button-subtle-hover-border-color);
   }
 
   .button[data-variant="danger"] {
-    --button-bg: var(--status-critical);
-    --button-color: var(--solarized-base03);
-    --button-border-color: var(--status-critical);
+    --button-bg: var(--ui-button-danger-bg);
+    --button-color: var(--ui-button-danger-color);
+    --button-border-color: var(--ui-button-danger-border-color);
   }
 
   .button[data-size="sm"] {
-    --button-padding-inline: var(--space-fib-3);
-    --button-padding-block: var(--space-fib-1);
-    --button-font-size: var(--type-scale-neg-1);
+    --button-padding-inline: var(--space-inset-button-sm-x);
+    --button-padding-block: var(--space-inset-button-sm-y);
+    --button-font-size: var(--text-ui-button-subtle-size);
   }
 
   .button[data-size="lg"] {
-    --button-padding-inline: var(--space-fib-5);
-    --button-padding-block: var(--space-fib-3);
-    --button-font-size: var(--type-scale-1);
+    --button-padding-inline: var(--space-inset-button-lg-x);
+    --button-padding-block: var(--space-inset-button-lg-y);
+    --button-font-size: var(--text-ui-button-prominent-size);
   }
 }

@@ -3,20 +3,20 @@
   block-size: 550px;
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius-md, 8px);
-  border: var(--stroke-width-1) solid var(--chrome-grid-primary-color);
+  border-radius: var(--radius-container);
+  border: var(--border-width-1) var(--border-style-boundary) var(--chrome-grid-primary-color);
   background-color: var(--surface-canvas-bg);
 }
 
 .viewportContainer canvas {
   position: relative;
-  z-index: 1;
+  z-index: var(--layer-canvas);
 }
 
 .controlsOverlay {
   position: absolute;
-  inset-block-start: var(--space-3);
-  inset-inline-start: var(--space-3);
-  z-index: 10;
+  inset-block-start: var(--space-viewport-edge);
+  inset-inline-start: var(--space-viewport-edge);
+  z-index: var(--layer-hud);
   pointer-events: auto;
 }

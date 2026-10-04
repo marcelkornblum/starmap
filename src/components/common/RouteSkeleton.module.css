@@ -4,12 +4,13 @@
     --skeleton-border-color: var(--surface-dock-border-color);
     --skeleton-border-width: var(--border-width-subtle);
     --skeleton-border-style: var(--border-style-boundary);
-    --skeleton-radius: var(--radius-md);
+    --skeleton-radius: var(--radius-container);
     --skeleton-padding: var(--space-inset-card);
     --skeleton-color: var(--content-prominent);
     --skeleton-font: var(--font-data);
     --skeleton-gap: var(--space-cluster-compact);
     --skeleton-indicator-color: var(--status-nominal);
+    --skeleton-indicator-size: var(--space-cluster-default);
 
     position: absolute;
     bottom: var(--space-stack-loose);
@@ -25,17 +26,18 @@
     display: inline-flex;
     align-items: center;
     gap: var(--skeleton-gap);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(var(--scrim-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--scrim-backdrop-blur));
     z-index: var(--layer-modal, 50);
     pointer-events: none;
   }
 
   .indicator {
-    width: 8px;
-    height: 8px;
+    width: var(--skeleton-indicator-size);
+    height: var(--skeleton-indicator-size);
     border-radius: 50%;
     background: var(--skeleton-indicator-color);
-    box-shadow: 0 0 8px var(--skeleton-indicator-color);
+    box-shadow: 0 0 var(--skeleton-indicator-size) var(--skeleton-indicator-color);
     animation: pulse 1.2s infinite ease-in-out;
   }
 

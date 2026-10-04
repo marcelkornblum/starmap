@@ -37,7 +37,18 @@
     --palette-white-alpha-35: oklch(69.79% 0.0159 196.79 / 0.35);
     --palette-white-alpha-40: oklch(69.79% 0.0159 196.79 / 0.40);
     --palette-white-alpha-50: oklch(69.79% 0.0159 196.79 / 0.50);
+    --palette-white-alpha-70: oklch(69.79% 0.0159 196.79 / 0.70);
     --palette-black-alpha-70: oklch(26.73% 0.0486 219.82 / 0.70);
+
+    /* Chromatic Alpha Swatches */
+    --palette-red-alpha-35:    oklch(58.63% 0.2064 27.12 / 0.35);
+    --palette-yellow-alpha-35: oklch(65.45% 0.1340 85.72 / 0.35);
+    --palette-green-alpha-15:  oklch(64.44% 0.1508 118.60 / 0.15);
+    --palette-yellow-alpha-15: oklch(65.45% 0.1340 85.72 / 0.15);
+    --palette-violet-alpha-15: oklch(58.23% 0.1261 279.10 / 0.15);
+    --palette-cyan-alpha-15:   oklch(64.37% 0.1019 187.38 / 0.15);
+    --palette-cyan-alpha-30:   oklch(64.37% 0.1019 187.38 / 0.30);
+    --palette-cyan-alpha-35:   oklch(64.37% 0.1019 187.38 / 0.35);
 
     /* Alpha Channel Swatches (Light Theme Base: derived from base01 / base3) */
     --palette-black-alpha-4:  oklch(52.30% 0.0283 219.14 / 0.04);

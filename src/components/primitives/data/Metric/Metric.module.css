@@ -1,55 +1,57 @@
 @layer blocks {
   .metric {
-    --metric-bg: var(--surface-panel-bg);
-    --metric-border-color: var(--surface-panel-border-color);
-    --metric-border-width: var(--surface-panel-border-width);
-    --metric-border-style: var(--surface-panel-border-style);
-    --metric-padding: var(--space-fib-4);
-    --metric-value-color: var(--content-bright);
-    --metric-label-color: var(--content-muted);
+    --metric-bg: var(--data-metric-bg);
+    --metric-border-color: var(--data-metric-border-color);
+    --metric-border-width: var(--data-metric-border-width);
+    --metric-border-style: var(--data-metric-border-style);
+    --metric-radius: var(--data-metric-radius);
+    --metric-padding: var(--data-metric-padding);
+    --metric-gap: var(--data-metric-gap);
+    --metric-value-color: var(--data-metric-value-color);
+    --metric-label-color: var(--data-metric-label-color);
 
     display: flex;
     flex-direction: column;
-    gap: var(--space-fib-2);
+    gap: var(--metric-gap);
     padding: var(--metric-padding);
     background: var(--metric-bg);
     border: var(--metric-border-width) var(--metric-border-style) var(--metric-border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--metric-radius);
     box-sizing: border-box;
   }
 
   .label {
-    font-size: var(--type-scale-neg-1);
+    font-size: var(--data-metric-label-font-size);
     color: var(--metric-label-color);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
+    letter-spacing: var(--data-metric-label-tracking);
+    font-weight: var(--data-metric-label-weight);
   }
 
   .valueRow {
     display: flex;
     align-items: baseline;
-    gap: var(--space-fib-2);
+    gap: var(--space-gap-metric);
   }
 
   .value {
-    font-size: var(--type-scale-3);
+    font-size: var(--data-metric-value-font-size);
     font-family: var(--font-data);
     font-variant-numeric: tabular-nums;
-    font-weight: 700;
+    font-weight: var(--data-metric-value-weight);
     color: var(--metric-value-color);
-    line-height: 1.1;
+    line-height: var(--data-metric-value-leading);
   }
 
   .unit {
-    font-size: var(--type-scale-0);
-    color: var(--content-subtle);
+    font-size: var(--data-metric-unit-font-size);
+    color: var(--data-metric-unit-color);
     font-family: var(--font-interface);
   }
 
   .trend {
-    font-size: var(--type-scale-neg-2);
-    color: var(--content-muted);
+    font-size: var(--data-metric-trend-font-size);
+    color: var(--data-metric-trend-color);
     font-family: var(--font-interface);
   }
 }
@@ -68,7 +70,7 @@
     --metric-border-color: var(--status-critical);
   }
   .metric[data-status="info"] {
-    --metric-value-color: var(--status-info);
-    --metric-border-color: var(--status-info);
+    --metric-value-color: var(--state-focus);
+    --metric-border-color: var(--state-focus);
   }
 }
