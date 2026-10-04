@@ -362,37 +362,104 @@ export function populateDashedLineBuffer(
 }
 
 /**
+ * Fills a pre-allocated Float32Array with 3D line segment vertices for an unstretched dashed
+ * circular orbit curve around the Galactic Centre.
+ *
+ * Galactic Centre is located at (+rGc, 0, 0) relative to the orbit tangent at (0, 0, 0).
+ * Parametric circle of radius rGc:
+ *   x(s) = rGc * (1 - cos(s / rGc))
+ *   y(s) = signY * rGc * sin(s / rGc)
+ *   z(s) = 0
+ *
+ * Where:
+ * - s is arc length along the circular orbit from 0 to length
+ * - signY is +1 for prograde orbital (+Y) or -1 for retrograde / anti-orbital (-Y)
+ * - Each dash has exact unstretched metric length dashLen, separated by gapLen.
+ * Returns the number of vertices written (each vertex has 3 floats).
+ */
+export function populateCurvedDashedLineBuffer(
+  buffer: Float32Array,
+  length: number,
+  rGc: number,
+  signY: 1 | -1 = 1,
+  dashLen = LINE_STYLE_CONSTANTS.dashLength,
+  gapLen = LINE_STYLE_CONSTANTS.dashGap,
+): number {
+  if (rGc <= 0 || length <= 0) return 0;
+  const cycle = dashLen + gapLen;
+  let floatIdx = 0;
+  let vertexCount = 0;
+  const maxFloats = buffer.length - 6;
+
+  for (let s = 0; s < length && floatIdx <= maxFloats; s += cycle) {
+    const sEnd = Math.min(s + dashLen, length);
+    if (sEnd > s) {
+      const phi1 = s / rGc;
+      const phi2 = sEnd / rGc;
+
+      const x1 = rGc * (1 - Math.cos(phi1));
+      const y1 = (signY * rGc * Math.sin(phi1)) || 0;
+
+      const x2 = rGc * (1 - Math.cos(phi2));
+      const y2 = (signY * rGc * Math.sin(phi2)) || 0;
+
+      // Vertex 1
+      buffer[floatIdx++] = x1;
+      buffer[floatIdx++] = y1;
+      buffer[floatIdx++] = 0;
+
+      // Vertex 2
+      buffer[floatIdx++] = x2;
+      buffer[floatIdx++] = y2;
+      buffer[floatIdx++] = 0;
+
+      vertexCount += 2;
+    }
+  }
+
+  return vertexCount;
+}
+
+/**
  * Creates BufferGeometry for a nearly-squared off galactic coordinate grid on the datum plane (Z=0).
  * Composed of:
  * 1. Gentle concentric circular arcs centered at the distant Galactic Centre (+X Core direction).
  * 2. Radial rays originating from the distant Galactic Centre and expanding outward.
  * Spaced by `gridGap` across `extent` in the local XY plane.
+ * When `omitCoreAxis` is true, the radial ray at j=0 omits x >= 0 so the central point bearing (+X Core)
+ * does not compete with an underlying axis line.
  */
 export function createGalacticPlanarGridGeometry(
-  extent = 60,
-  gridGap = 2.0,
-  rGc = 250,
-  arcSegments = 32,
+  extent = 1200,
+  gridGap = 100,
+  rGc = 2000,
+  arcSegments = 64,
+  omitCoreAxis = true,
 ): THREE.BufferGeometry {
   const points: THREE.Vector3[] = [];
   const safeExtent = Math.max(1, extent);
   const safeGap = Math.max(0.1, gridGap);
-  const safeRgc = Math.max(safeExtent * 2, rGc);
-  const safeSegments = Math.max(2, arcSegments);
+  const safeRgc = Math.max(safeExtent * 1.5, rGc);
+  const safeSegments = Math.max(4, arcSegments);
 
   // Concentric circular arcs centered at Galactic Centre (+safeRgc, 0, 0)
   const nArcs = Math.ceil(safeExtent / safeGap);
   for (let i = -nArcs; i <= nArcs; i++) {
     const x0 = i * safeGap;
     const rArc = safeRgc - x0;
-    if (rArc <= safeExtent) continue;
+    if (rArc <= safeExtent * 0.1) continue;
 
+    // Angle span covering -safeExtent to +safeExtent in Y:
+    // y = rArc * sin(theta) => thetaMax = asin(min(0.95, safeExtent / rArc))
+    const thetaMax = Math.asin(Math.min(0.95, safeExtent / rArc));
     for (let s = 0; s < safeSegments; s++) {
-      const y1 = -safeExtent + (s / safeSegments) * (2 * safeExtent);
-      const y2 = -safeExtent + ((s + 1) / safeSegments) * (2 * safeExtent);
+      const t1 = -thetaMax + (s / safeSegments) * (2 * thetaMax);
+      const t2 = -thetaMax + ((s + 1) / safeSegments) * (2 * thetaMax);
 
-      const x1 = safeRgc - Math.sqrt(Math.max(0, rArc * rArc - y1 * y1));
-      const x2 = safeRgc - Math.sqrt(Math.max(0, rArc * rArc - y2 * y2));
+      const x1 = safeRgc - rArc * Math.cos(t1);
+      const y1 = rArc * Math.sin(t1);
+      const x2 = safeRgc - rArc * Math.cos(t2);
+      const y2 = rArc * Math.sin(t2);
 
       points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
     }
@@ -402,12 +469,23 @@ export function createGalacticPlanarGridGeometry(
   const nRays = Math.ceil(safeExtent / safeGap);
   for (let j = -nRays; j <= nRays; j++) {
     const y0 = j * safeGap;
-    const x1 = -safeExtent;
-    const y1 = y0 * (1 - x1 / safeRgc);
-    const x2 = safeExtent;
-    const y2 = y0 * (1 - x2 / safeRgc);
 
-    points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
+    if (j === 0 && omitCoreAxis) {
+      // The central point bearing (Core bearing along +X) must not compete with an axis line.
+      // Make the axis invisible where it touches the bearing (x >= 0).
+      const x1 = -safeExtent;
+      const y1 = 0;
+      const x2 = 0;
+      const y2 = 0;
+      points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
+    } else {
+      const x1 = -safeExtent;
+      const y1 = y0 * (1 - x1 / safeRgc);
+      const x2 = safeExtent;
+      const y2 = y0 * (1 - x2 / safeRgc);
+
+      points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
+    }
   }
 
   const geom = new THREE.BufferGeometry().setFromPoints(points);

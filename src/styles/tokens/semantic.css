@@ -347,7 +347,7 @@
     --chrome-datum-plane-fill-gradient-inner: 0.25;
     --chrome-datum-plane-fill-gradient-exponent: 2.0;
     --chrome-datum-footprint-color:      var(--color-primary-400);
-    --chrome-datum-footprint-alpha:      0.85;
+    --chrome-datum-footprint-alpha:      0.25;
     --chrome-datum-footprint-width:      var(--stroke-width-2);
 
     --chrome-axis-line-color:            var(--palette-white-alpha-16);
@@ -360,7 +360,7 @@
 
     --chrome-bearing-orbital-color:      oklch(58.63% 0.2064 27.12 / 0.35);
     --chrome-bearing-orbital-width:      var(--stroke-width-2);
-    --chrome-bearing-orbital-style:      solid;
+    --chrome-bearing-orbital-style:      dashed;
 
     --chrome-bearing-core-color:         oklch(65.45% 0.1340 85.72 / 0.35);
     --chrome-bearing-core-width:         var(--stroke-width-2);
@@ -543,7 +543,7 @@
     --chrome-datum-plane-fill-gradient-inner: 0.25;
     --chrome-datum-plane-fill-gradient-exponent: 2.0;
     --chrome-datum-footprint-color:      var(--color-primary-600);
-    --chrome-datum-footprint-alpha:      0.85;
+    --chrome-datum-footprint-alpha:      0.25;
     --chrome-datum-footprint-width:      var(--stroke-width-2);
 
     --chrome-axis-line-color:            var(--palette-black-alpha-16);
@@ -556,7 +556,7 @@
 
     --chrome-bearing-orbital-color:      oklch(58.63% 0.2064 27.12 / 0.35);
     --chrome-bearing-orbital-width:      var(--stroke-width-2);
-    --chrome-bearing-orbital-style:      solid;
+    --chrome-bearing-orbital-style:      dashed;
 
     --chrome-bearing-core-color:         oklch(65.45% 0.1340 85.72 / 0.35);
     --chrome-bearing-core-width:         var(--stroke-width-2);

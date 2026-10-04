@@ -117,14 +117,14 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(snapshot.datumPlaneFillGradientInner).toBe(0.25);
     expect(snapshot.datumPlaneFillGradientExponent).toBe(2.0);
     expect(snapshot.datumFootprintColor).toBeDefined();
-    expect(snapshot.datumFootprintAlpha).toBe(0.85);
+    expect(snapshot.datumFootprintAlpha).toBe(0.25);
     expect(snapshot.datumFootprintWidth).toBe(2);
     expect(snapshot.bearingLineWidth).toBe(2);
     expect(snapshot.bearingLineStyle).toBe('solid');
     expect(snapshot.bearingOrbitalColor).toBeDefined();
     expect(snapshot.bearingOrbitalAlpha).toBe(0.35);
     expect(snapshot.bearingOrbitalWidth).toBe(2);
-    expect(snapshot.bearingOrbitalStyle).toBe('solid');
+    expect(snapshot.bearingOrbitalStyle).toBe('dashed');
     expect(snapshot.bearingCoreColor).toBeDefined();
     expect(snapshot.bearingCoreWidth).toBe(2);
     expect(snapshot.bearingCoreStyle).toBe('solid');

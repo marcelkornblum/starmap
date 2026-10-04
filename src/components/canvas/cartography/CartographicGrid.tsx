@@ -12,7 +12,7 @@ import {
   computeCardinalAlignment,
   computeTransitionWeights,
   populateZoomAdaptiveRings,
-  populateDashedLineBuffer,
+  populateCurvedDashedLineBuffer,
   createGalacticPlanarGridGeometry,
   type ScaledRingInfo,
 } from './cartographyMath';
@@ -26,6 +26,11 @@ import {
 } from './celestialOcclusionRegistry';
 
 const PLANES = ['xy', 'xz', 'yz'] as const;
+
+/** Distance in parsecs that bearing lines extend into the galactic distance */
+const BEARING_EXTENT = 1200;
+/** Distance in parsecs to the Galactic Centre for planar grid and orbital curvature */
+const DEFAULT_GALACTIC_CENTER_DISTANCE = 2000;
 
 /**
  * Creates BufferGeometry for a full 360-degree circle in the XY plane.
@@ -263,7 +268,7 @@ const StalkedFootprintsLayer: React.FC<StalkedFootprintsLayerProps> = ({
           : isSelected
             ? tokens.stateSelectedBorder
             : defaultColor;
-        const fpAlpha = isFocused ? 0.95 : isSelected ? 0.85 : defaultAlpha;
+        const fpAlpha = isFocused ? 0.60 : isSelected ? 0.45 : defaultAlpha;
 
         return (
           <ReticleFootprintNode
@@ -475,14 +480,16 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
   // Pre-allocated buffers and geometries for unstretched dashed orbital bearing lines
   const gridOrbitalGeom = useMemo(() => new THREE.BufferGeometry(), []);
-  const gridOrbitalBuffer = useMemo(() => new Float32Array(6000), []);
+  const gridOrbitalBuffer = useMemo(() => new Float32Array(30000), []);
   const diskOrbitalGeom = useMemo(() => new THREE.BufferGeometry(), []);
-  const diskOrbitalBuffer = useMemo(() => new Float32Array(6000), []);
+  const diskOrbitalBuffer = useMemo(() => new Float32Array(30000), []);
+  const diskAntiOrbitalGeom = useMemo(() => new THREE.BufferGeometry(), []);
+  const diskAntiOrbitalBuffer = useMemo(() => new Float32Array(30000), []);
 
   // Memoize nearly-squared off galactic planar grid (arcs of concentric circles around distant Galactic Centre)
-  const effectivePlanarGridGap = planarGridGap ?? radius * 2;
+  const effectivePlanarGridGap = planarGridGap ?? 100;
   const galacticGridGeom = useMemo(() => {
-    return createGalacticPlanarGridGeometry(120, effectivePlanarGridGap, 500);
+    return createGalacticPlanarGridGeometry(1200, effectivePlanarGridGap, DEFAULT_GALACTIC_CENTER_DISTANCE);
   }, [effectivePlanarGridGap]);
 
   // Memoize unit circle geometries for datum boundary & concentric rings
@@ -528,11 +535,12 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       bearingGeoms.antiOrbital.dispose();
       gridOrbitalGeom.dispose();
       diskOrbitalGeom.dispose();
+      diskAntiOrbitalGeom.dispose();
       galacticGridGeom.dispose();
       circleGeom.dispose();
       fillCircleGeom.dispose();
     };
-  }, [quadrantGeoms, tickGeoms, spokeGeoms, bearingGeoms, gridOrbitalGeom, diskOrbitalGeom, galacticGridGeom, circleGeom, fillCircleGeom]);
+  }, [quadrantGeoms, tickGeoms, spokeGeoms, bearingGeoms, gridOrbitalGeom, diskOrbitalGeom, diskAntiOrbitalGeom, galacticGridGeom, circleGeom, fillCircleGeom]);
 
   // Restore camera FOV and zoom on unmount
   useEffect(() => {
@@ -609,6 +617,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   });
 
   const primaryFootprintRef = useRef<THREE.Group>(null);
+  const staticPlanarGridRef = useRef<THREE.Group>(null);
 
   const datumBoundaryLineRef = useRef<THREE.LineLoop | null>(null);
   const datumFillMeshRef = useRef<THREE.Mesh | null>(null);
@@ -856,19 +865,19 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         sNegZ.visible = alphaNegZ > 0.001;
       }
 
-      // Extended Bearings on Cartographic Grid Proper (+X Core, +Y Orbital Dashed)
-      const extendedLen = currentRadius * 1.35;
+      // Extended Bearings on Cartographic Grid Proper (+X Core, +Y Orbital Dashed following curve)
       const gCore = gridBearingLinesRef.current.core;
       if (gCore) {
-        gCore.scale.set(extendedLen, extendedLen, 1);
+        gCore.scale.set(BEARING_EXTENT, BEARING_EXTENT, 1);
         (gCore.material as THREE.LineBasicMaterial).opacity = tokens.bearingCoreAlpha;
         gCore.visible = true;
       }
 
-      const vCountGrid = populateDashedLineBuffer(
+      const vCountGrid = populateCurvedDashedLineBuffer(
         gridOrbitalBuffer,
-        extendedLen,
-        [0, 1, 0],
+        BEARING_EXTENT,
+        DEFAULT_GALACTIC_CENTER_DISTANCE,
+        1,
       );
       let posAttrGrid = gridOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
       if (!posAttrGrid || posAttrGrid.array !== gridOrbitalBuffer) {
@@ -884,6 +893,10 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       datumGroupRef.current.position.set(0, 0, -origin.z);
     }
 
+    if (staticPlanarGridRef.current) {
+      staticPlanarGridRef.current.position.set(-origin.x, -origin.y, 0);
+    }
+
     if (explicitFootprintsGroupRef.current) {
       explicitFootprintsGroupRef.current.position.set(-origin.x, -origin.y, 0.002);
     }
@@ -897,19 +910,19 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       }
 
       // Disk Cardinal Bearings: Extended offscreen across the planar grid (not truncated)
-      const extendedPlanarLen = Math.max(120, currentRadius * 5);
       const dCore = diskBearingLinesRef.current.core;
       if (dCore) {
-        dCore.scale.set(extendedPlanarLen, extendedPlanarLen, 1);
+        dCore.scale.set(BEARING_EXTENT, BEARING_EXTENT, 1);
         (dCore.material as THREE.LineBasicMaterial).opacity = tokens.bearingCoreAlpha;
         dCore.visible = true;
       }
 
-      // Orbital bearing on planar disk uses consistent unstretched dashed style extending offscreen
-      const vCountDisk = populateDashedLineBuffer(
+      // Orbital bearing on planar disk uses consistent unstretched dashed style following orbit curve
+      const vCountDisk = populateCurvedDashedLineBuffer(
         diskOrbitalBuffer,
-        extendedPlanarLen,
-        [0, 1, 0],
+        BEARING_EXTENT,
+        DEFAULT_GALACTIC_CENTER_DISTANCE,
+        1,
       );
       let posAttrDisk = diskOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
       if (!posAttrDisk || posAttrDisk.array !== diskOrbitalBuffer) {
@@ -921,17 +934,25 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
       const dAntiCore = diskBearingLinesRef.current.antiCore;
       if (dAntiCore) {
-        dAntiCore.scale.set(extendedPlanarLen, extendedPlanarLen, 1);
+        dAntiCore.scale.set(BEARING_EXTENT, BEARING_EXTENT, 1);
         (dAntiCore.material as THREE.LineBasicMaterial).opacity = tokens.axisLineAlpha;
         dAntiCore.visible = true;
       }
 
-      const dAntiOrbital = diskBearingLinesRef.current.antiOrbital;
-      if (dAntiOrbital) {
-        dAntiOrbital.scale.set(extendedPlanarLen, extendedPlanarLen, 1);
-        (dAntiOrbital.material as THREE.LineBasicMaterial).opacity = tokens.axisLineAlpha;
-        dAntiOrbital.visible = true;
+      // Anti-orbital bearing on planar disk curves retrograde along orbit
+      const vCountDiskAnti = populateCurvedDashedLineBuffer(
+        diskAntiOrbitalBuffer,
+        BEARING_EXTENT,
+        DEFAULT_GALACTIC_CENTER_DISTANCE,
+        -1,
+      );
+      let posAttrDiskAnti = diskAntiOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
+      if (!posAttrDiskAnti || posAttrDiskAnti.array !== diskAntiOrbitalBuffer) {
+        posAttrDiskAnti = new THREE.BufferAttribute(diskAntiOrbitalBuffer, 3);
+        diskAntiOrbitalGeom.setAttribute('position', posAttrDiskAnti);
       }
+      posAttrDiskAnti.needsUpdate = true;
+      diskAntiOrbitalGeom.setDrawRange(0, vCountDiskAnti);
 
       // Continuous concentric range rings on the datum plane
       for (let ringIdx = 0; ringIdx < poolSize; ringIdx++) {
@@ -1214,19 +1235,25 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
           {/* Nearly-squared off Galactic Planar Grid (concentric arcs about distant GC + radial rays) */}
           {showPlanarGrid && (
-            <lineSegments
-              name="planar-galactic-grid"
-              geometry={galacticGridGeom}
-              frustumCulled={false}
+            <group
+              ref={staticPlanarGridRef}
+              position={[-initialPosition[0], -initialPosition[1], 0]}
+              name="static-planar-grid-group"
             >
-              <lineBasicMaterial
-                color={tokens.datumPlaneMinorColor}
-                linewidth={tokens.datumPlaneWidth}
-                transparent
-                depthWrite={false}
-                opacity={tokens.datumPlaneMinorAlpha}
-              />
-            </lineSegments>
+              <lineSegments
+                name="planar-galactic-grid"
+                geometry={galacticGridGeom}
+                frustumCulled={false}
+              >
+                <lineBasicMaterial
+                  color={tokens.datumPlaneMinorColor}
+                  linewidth={tokens.datumPlaneWidth}
+                  transparent
+                  depthWrite={false}
+                  opacity={tokens.datumPlaneMinorAlpha}
+                />
+              </lineSegments>
+            </group>
           )}
 
           {/* Outermost Projected Aperture Boundary */}
@@ -1297,8 +1324,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               <lineSegments
                 ref={(el) => { diskBearingLinesRef.current.antiOrbital = el; }}
                 name="bearing-anti-orbital"
-                geometry={bearingGeoms.antiOrbital}
-                scale={[radius, radius, 1]}
+                geometry={diskAntiOrbitalGeom}
+                scale={[1, 1, 1]}
                 frustumCulled={false}
               >
                 <lineBasicMaterial

@@ -22,6 +22,7 @@ import {
   createGalacticPlanarGridGeometry,
   createStyledLinePoints,
   populateDashedLineBuffer,
+  populateCurvedDashedLineBuffer,
 } from '../src/components/canvas/cartography';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
@@ -340,6 +341,88 @@ describe('3D Cartography Components', () => {
       expect(posAttr).toBeDefined();
       expect(posAttr.count).toBeGreaterThan(0);
       geom.dispose();
+    });
+
+    it('populates curved dashed line buffer following circular orbit around galactic center', () => {
+      const buffer = new Float32Array(600);
+      const rGc = 1000;
+      // 1. Prograde (+Y)
+      const vCount = populateCurvedDashedLineBuffer(buffer, 10, rGc, 1);
+      expect(vCount).toBeGreaterThan(0);
+      expect(vCount % 2).toBe(0);
+      // First dash starts at 0, 0, 0
+      expect(buffer[0]).toBe(0);
+      expect(buffer[1]).toBe(0);
+      expect(buffer[2]).toBe(0);
+
+      // Dash end curves towards +X (Galactic Centre) with positive Y
+      expect(buffer[3]).toBeGreaterThan(0); // x2 > 0
+      expect(buffer[4]).toBeGreaterThan(0); // y2 > 0
+
+      // 2. Retrograde / Anti-orbital (-Y)
+      const bufferAnti = new Float32Array(600);
+      const vCountAnti = populateCurvedDashedLineBuffer(bufferAnti, 10, rGc, -1);
+      expect(vCountAnti).toBeGreaterThan(0);
+      // First dash starts at 0, 0, 0
+      expect(bufferAnti[0]).toBe(0);
+      expect(bufferAnti[1]).toBe(0);
+      // End curves towards +X (Galactic Centre) with negative Y
+      expect(bufferAnti[3]).toBeGreaterThan(0); // x2 > 0
+      expect(bufferAnti[4]).toBeLessThan(0); // y2 < 0
+
+      // 3. Invalid inputs return 0
+      expect(populateCurvedDashedLineBuffer(buffer, 0, rGc)).toBe(0);
+      expect(populateCurvedDashedLineBuffer(buffer, 10, -50)).toBe(0);
+    });
+
+    it('omits positive X axis line in galactic planar grid where Core bearing runs when omitCoreAxis is true', () => {
+      // With omitCoreAxis = true (default)
+      const geomOmit = createGalacticPlanarGridGeometry(100, 50, 500, 16, true);
+      const posOmit = geomOmit.getAttribute('position');
+      let foundYZeroPositiveX = false;
+      for (let i = 0; i < posOmit.count; i += 2) {
+        const y1 = posOmit.getY(i);
+        const y2 = posOmit.getY(i + 1);
+        const x1 = posOmit.getX(i);
+        const x2 = posOmit.getX(i + 1);
+        // Look for the radial ray on the y=0 axis line
+        if (Math.abs(y1) < 1e-4 && Math.abs(y2) < 1e-4) {
+          // If a segment extends into x > 0 along the y=0 axis
+          if (x1 > 1e-4 || x2 > 1e-4) {
+            foundYZeroPositiveX = true;
+          }
+        }
+      }
+      expect(foundYZeroPositiveX).toBe(false);
+      geomOmit.dispose();
+
+      // With omitCoreAxis = false, y=0 axis line does extend to positive X
+      const geomFull = createGalacticPlanarGridGeometry(100, 50, 500, 16, false);
+      const posFull = geomFull.getAttribute('position');
+      let foundFullPositiveX = false;
+      for (let i = 0; i < posFull.count; i += 2) {
+        const y1 = posFull.getY(i);
+        const y2 = posFull.getY(i + 1);
+        const x1 = posFull.getX(i);
+        const x2 = posFull.getX(i + 1);
+        if (Math.abs(y1) < 1e-4 && Math.abs(y2) < 1e-4) {
+          if (x1 > 1e-4 || x2 > 1e-4) {
+            foundFullPositiveX = true;
+          }
+        }
+      }
+      expect(foundFullPositiveX).toBe(true);
+      geomFull.dispose();
+    });
+
+    it('renders static planar grid group and respects token snapshot defaults for footprint alpha and orbital style', () => {
+      const html = renderToString(createElement(CartographicGrid, { radius: 10 }));
+      expect(html).toContain('name="static-planar-grid-group"');
+      expect(html).toContain('name="planar-galactic-grid"');
+
+      const tokens = useThreeTokenStore.getState().tokens;
+      expect(tokens.datumFootprintAlpha).toBe(0.25);
+      expect(tokens.bearingOrbitalStyle).toBe('dashed');
     });
   });
 
