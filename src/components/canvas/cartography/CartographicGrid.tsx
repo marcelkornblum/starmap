@@ -41,6 +41,42 @@ function createCircleGeometry(radius: number, steps = 128): THREE.BufferGeometry
   return geom;
 }
 
+const DATUM_FILL_VERTEX_SHADER = `
+  varying vec2 vPosition;
+  void main() {
+    vPosition = position.xy;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const DATUM_FILL_FRAGMENT_SHADER = `
+  uniform vec3 uColor;
+  uniform float uAlpha;
+  uniform float uInnerRadius;
+  uniform float uExponent;
+  varying vec2 vPosition;
+  void main() {
+    float r = length(vPosition);
+    if (r > 1.0) discard;
+
+    // Transparent in center (r < uInnerRadius):
+    float t = clamp((r - uInnerRadius) / (1.0 - uInnerRadius), 0.0, 1.0);
+    float smoothT = smoothstep(0.0, 1.0, t);
+    float curve = pow(smoothT, uExponent);
+
+    // Soft luminous halo near the outer rim (r in [0.70, 0.98]):
+    float rimGlow = smoothstep(0.70, 0.98, r);
+    float alpha = uAlpha * (curve * 0.65 + rimGlow * 0.35);
+
+    // Soft feathering at the extreme edge so it smoothly melts into the rim line:
+    float edgeFeather = 1.0 - smoothstep(0.985, 1.0, r);
+    alpha *= (0.8 + 0.2 * edgeFeather);
+
+    gl_FragColor = vec4(uColor, alpha);
+  }
+`;
+
+
 export interface PlanarFootprintItem {
   id: string;
   position: [number, number, number] | THREE.Vector3;
@@ -341,381 +377,119 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   }
   const ringPoolIndices = useMemo(() => Array.from({ length: poolSize }, (_, i) => i), [poolSize]);
 
-  // Memoize 4 Quadrant Arc Lines for each plane (XY, XZ, YZ) using unit arc geometry scaled per ring
-  const quadrantData = useMemo(() => {
-    const buildPlaneArcs = (plane: 'xy' | 'xz' | 'yz') => {
-      return ringPoolIndices.map((ringIdx) => {
-        const isExplicit = ringIdx < rangeRings.length;
-        const initialR = isExplicit ? rangeRings[ringIdx] : radius * ((ringIdx + 1) / poolSize);
-        const isMajor = majorRingIndex !== undefined ? ringIdx === majorRingIndex : ringIdx % 2 === 1;
-        const color = isMajor ? tokens.gridPrimaryColor : tokens.gridSecondaryColor;
-        const width = isMajor ? tokens.gridPrimaryWidth : tokens.gridSecondaryWidth;
-        const baseAlpha = isMajor ? tokens.gridPrimaryAlpha * 1.3 : tokens.gridSecondaryAlpha * 1.1;
-
-        return QUADRANTS.map((quad) => {
-          const geom = createQuadrantArcGeometry(1.0, plane, quad.startAngle, quad.endAngle);
-          // Initial SSR / first-paint setup: Q0 (+1, +1) visible in default perspective view
-          const isInitialVisible = isExplicit && quad.qx === 1 && quad.qy === 1;
-          const mat = new THREE.LineBasicMaterial({
-            color,
-            linewidth: width,
-            transparent: true,
-            depthWrite: false,
-            opacity: isInitialVisible ? baseAlpha : 0,
-            visible: isInitialVisible,
-          });
-          const line = new THREE.Line(geom, mat);
-          line.scale.set(initialR, initialR, initialR);
-          line.frustumCulled = false;
-          return { radius: initialR, qx: quad.qx, qy: quad.qy, geom, mat, line };
-        });
-      });
-    };
-
-    return {
-      xy: buildPlaneArcs('xy'),
-      xz: buildPlaneArcs('xz'),
-      yz: buildPlaneArcs('yz'),
-    };
-  }, [ringPoolIndices, rangeRings, radius, poolSize, majorRingIndex]);
-
-  // Memoize Perimeter Boundary Arcs for each fin using unit arc geometry scaled to active radius
-  const perimeterArcData = useMemo(() => {
-    const buildPlanePerimeter = (plane: 'xy' | 'xz' | 'yz') => {
+  // Memoize unit quadrant arc geometries for each plane (shared across all rings and perimeter arcs)
+  const quadrantGeoms = useMemo(() => {
+    const buildPlaneGeoms = (plane: 'xy' | 'xz' | 'yz') => {
       return QUADRANTS.map((quad) => {
         const geom = createQuadrantArcGeometry(1.0, plane, quad.startAngle, quad.endAngle);
-        const isInitialVisible = quad.qx === 1 && quad.qy === 1;
-        const mat = new THREE.LineBasicMaterial({
-          color: tokens.gridPrimaryColor,
-          linewidth: tokens.gridSecondaryWidth,
-          transparent: true,
-          depthWrite: false,
-          opacity: isInitialVisible ? tokens.gridPrimaryAlpha * 0.7 : 0,
-          visible: isInitialVisible,
-        });
-        const line = new THREE.Line(geom, mat);
-        line.scale.set(radius, radius, radius);
-        line.frustumCulled = false;
-        return { qx: quad.qx, qy: quad.qy, geom, mat, line };
+        geom.computeBoundingSphere();
+        return geom;
       });
     };
-
     return {
-      xy: buildPlanePerimeter('xy'),
-      xz: buildPlanePerimeter('xz'),
-      yz: buildPlanePerimeter('yz'),
+      xy: buildPlaneGeoms('xy'),
+      xz: buildPlaneGeoms('xz'),
+      yz: buildPlaneGeoms('yz'),
     };
-  }, [radius]);
+  }, []);
 
-  // Memoize Quadrant Ticks for each plane using unit tick geometry scaled to active radius
-  const tickData = useMemo(() => {
+  // Memoize unit quadrant tick geometries for each plane
+  const tickGeoms = useMemo(() => {
     const buildPlaneTicks = (plane: 'xy' | 'xz' | 'yz') => {
       return QUADRANTS.map((quad) => {
         const geom = createQuadrantTickGeometry(1.0, plane, quad.startAngle, 0.035);
-        const isInitialVisible = quad.qx === 1 && quad.qy === 1;
-        const mat = new THREE.LineBasicMaterial({
-          color: tokens.rangeTickColor,
-          linewidth: tokens.rangeTickWidth,
-          transparent: true,
-          depthWrite: false,
-          opacity: isInitialVisible ? tokens.rangeTickAlpha : 0,
-          visible: isInitialVisible,
-        });
-        const line = new THREE.LineSegments(geom, mat);
-        line.scale.set(radius, radius, radius);
-        line.frustumCulled = false;
-        return { qx: quad.qx, qy: quad.qy, geom, mat, line };
+        geom.computeBoundingSphere();
+        return geom;
       });
     };
-
     return {
       xy: buildPlaneTicks('xy'),
       xz: buildPlaneTicks('xz'),
       yz: buildPlaneTicks('yz'),
     };
-  }, [radius]);
-
-  // Structural Fin Axis Spokes: Only appear when both bordering fins rendered
-  const axisSpokes = useMemo(() => {
-    const makeSpoke = (direction: [number, number, number], initialVisible = false) => {
-      const geom = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(...direction),
-      ]);
-      geom.computeBoundingSphere();
-      const mat = new THREE.LineBasicMaterial({
-        color: tokens.axisLineColor,
-        linewidth: tokens.axisLineWidth,
-        transparent: true,
-        depthWrite: false,
-        opacity: initialVisible ? tokens.axisLineAlpha : 0,
-        visible: initialVisible,
-      });
-      const line = new THREE.LineSegments(geom, mat);
-      line.scale.set(radius, radius, radius);
-      line.frustumCulled = false;
-      return { geom, mat, line };
-    };
-
-    return {
-      negX: makeSpoke([-1, 0, 0], false),
-      negY: makeSpoke([0, -1, 0], false),
-      posZ: makeSpoke([0, 0, 1], true),
-      negZ: makeSpoke([0, 0, -1], false),
-    };
-  }, [radius]);
-
-  // Planar Disk Cardinal Bearing Lines: 1 radius long on the datum plane, solid crosshairs (+X Core, +Y Orbit, -X, -Y)
-  const diskBearings = useMemo(() => {
-    const makeBearing = (
-      direction: [number, number, number],
-      color: THREE.Color,
-      alpha: number,
-      width: number,
-    ) => {
-      const geom = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(...direction),
-      ]);
-      geom.computeBoundingSphere();
-      const mat = new THREE.LineBasicMaterial({
-        color,
-        linewidth: width,
-        transparent: true,
-        depthWrite: false,
-        opacity: alpha,
-        visible: true,
-      });
-      const line = new THREE.Line(geom, mat);
-      line.scale.set(radius, radius, 1);
-      line.frustumCulled = false;
-      return { geom, mat, line };
-    };
-
-    const orbitalColor = tokens.bearingOrbitalColor ?? tokens.bearingLineColor;
-    const orbitalAlpha = tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha;
-    const orbitalWidth = tokens.bearingOrbitalWidth ?? tokens.bearingLineWidth;
-
-    return {
-      core: makeBearing(
-        [1, 0, 0],
-        tokens.bearingCoreColor,
-        tokens.bearingCoreAlpha,
-        tokens.bearingCoreWidth,
-      ),
-      orbital: makeBearing(
-        [0, 1, 0],
-        orbitalColor,
-        orbitalAlpha,
-        orbitalWidth,
-      ),
-      antiCore: makeBearing(
-        [-1, 0, 0],
-        tokens.axisLineColor,
-        tokens.axisLineAlpha,
-        tokens.axisLineWidth,
-      ),
-      antiOrbital: makeBearing(
-        [0, -1, 0],
-        tokens.axisLineColor,
-        tokens.axisLineAlpha,
-        tokens.axisLineWidth,
-      ),
-    };
-  }, [radius]);
-
-  // Memoize Datum Plane Outermost Projected Aperture Boundary Circle
-  const datumBoundaryData = useMemo(() => {
-    const geom = createCircleGeometry(1.0, 128);
-    const mat = new THREE.LineBasicMaterial({
-      color: tokens.datumPlaneColor,
-      linewidth: tokens.datumPlaneWidth,
-      transparent: true,
-      depthWrite: false,
-      opacity: tokens.datumPlaneAlpha,
-      visible: true,
-    });
-    const line = new THREE.Line(geom, mat);
-    line.scale.set(radius, radius, 1);
-    line.frustumCulled = false;
-    return { geom, mat, line };
-  }, [radius]);
-
-  // Memoize Datum Plane Ethereal Gradient Fill Disc
-  const datumFillData = useMemo(() => {
-    const geom = new THREE.CircleGeometry(1.0, 128);
-    const mat = new THREE.ShaderMaterial({
-      uniforms: {
-        uColor: { value: tokens.datumPlaneFillColor },
-        uAlpha: { value: tokens.datumPlaneFillAlpha },
-        uInnerRadius: { value: tokens.datumPlaneFillGradientInner },
-        uExponent: { value: tokens.datumPlaneFillGradientExponent },
-      },
-      vertexShader: `
-        varying vec2 vPosition;
-        void main() {
-          vPosition = position.xy;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 uColor;
-        uniform float uAlpha;
-        uniform float uInnerRadius;
-        uniform float uExponent;
-        varying vec2 vPosition;
-        void main() {
-          float r = length(vPosition);
-          if (r > 1.0) discard;
-
-          // Transparent in center (r < uInnerRadius):
-          float t = clamp((r - uInnerRadius) / (1.0 - uInnerRadius), 0.0, 1.0);
-          float smoothT = smoothstep(0.0, 1.0, t);
-          float curve = pow(smoothT, uExponent);
-
-          // Soft luminous halo near the outer rim (r in [0.70, 0.98]):
-          float rimGlow = smoothstep(0.70, 0.98, r);
-          float alpha = uAlpha * (curve * 0.65 + rimGlow * 0.35);
-
-          // Soft feathering at the extreme edge so it smoothly melts into the rim line:
-          float edgeFeather = 1.0 - smoothstep(0.985, 1.0, r);
-          alpha *= (0.8 + 0.2 * edgeFeather);
-
-          gl_FragColor = vec4(uColor, alpha);
-        }
-      `,
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
-    const mesh = new THREE.Mesh(geom, mat);
-    mesh.frustumCulled = false;
-    return { geom, mat, mesh };
   }, []);
 
-  // Memoize Datum Plane Concentric Range Rings: full solid 360-degree circles driven by main grid tokens
-  const datumRingData = useMemo(() => {
-    return ringPoolIndices.map((ringIdx) => {
-      const isExplicit = ringIdx < rangeRings.length;
-      const initialR = isExplicit ? rangeRings[ringIdx] : radius * ((ringIdx + 1) / poolSize);
-      const isMajor = majorRingIndex !== undefined ? ringIdx === majorRingIndex : ringIdx % 2 === 1;
-      const color = isMajor ? tokens.gridPrimaryColor : tokens.gridSecondaryColor;
-      const width = isMajor ? tokens.gridPrimaryWidth : tokens.gridSecondaryWidth;
-      const alpha = isMajor ? tokens.gridPrimaryAlpha : tokens.gridSecondaryAlpha;
-
-      const geom = createCircleGeometry(1.0, 128);
+  // Memoize unit axis spoke geometries
+  const spokeGeoms = useMemo(() => {
+    const makeSpokeGeom = (direction: [number, number, number]) => {
+      const geom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(...direction),
+      ]);
       geom.computeBoundingSphere();
-      const mat = new THREE.LineBasicMaterial({
-        color,
-        linewidth: width,
-        transparent: true,
-        depthWrite: false,
-        opacity: isExplicit ? alpha : 0,
-        visible: isExplicit,
-      });
-      const line = new THREE.Line(geom, mat);
-      line.scale.set(initialR, initialR, 1);
-      line.frustumCulled = false;
-      return { ringIdx, geom, mat, line, isMajor, initialR };
-    });
-  }, [ringPoolIndices, rangeRings, radius, poolSize, majorRingIndex]);
+      return geom;
+    };
+    return {
+      negX: makeSpokeGeom([-1, 0, 0]),
+      negY: makeSpokeGeom([0, -1, 0]),
+      posZ: makeSpokeGeom([0, 0, 1]),
+      negZ: makeSpokeGeom([0, 0, -1]),
+    };
+  }, []);
 
-  // Mutable Scene Graph References (Preserving React Compiler optimization)
-  const quadrantDataRef = useRef(quadrantData);
-  const perimeterArcDataRef = useRef(perimeterArcData);
-  const tickDataRef = useRef(tickData);
-  const axisSpokesRef = useRef(axisSpokes);
-  const diskBearingsRef = useRef(diskBearings);
-  const datumBoundaryDataRef = useRef(datumBoundaryData);
-  const datumFillDataRef = useRef(datumFillData);
-  const datumRingDataRef = useRef(datumRingData);
+  // Memoize unit disk cardinal bearing geometries (1 radius long on the datum plane)
+  const bearingGeoms = useMemo(() => {
+    const makeBearingGeom = (direction: [number, number, number]) => {
+      const geom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(...direction),
+      ]);
+      geom.computeBoundingSphere();
+      return geom;
+    };
+    return {
+      core: makeBearingGeom([1, 0, 0]),
+      orbital: makeBearingGeom([0, 1, 0]),
+      antiCore: makeBearingGeom([-1, 0, 0]),
+      antiOrbital: makeBearingGeom([0, -1, 0]),
+    };
+  }, []);
 
-  useEffect(() => {
-    quadrantDataRef.current = quadrantData;
-    perimeterArcDataRef.current = perimeterArcData;
-    tickDataRef.current = tickData;
-    axisSpokesRef.current = axisSpokes;
-    diskBearingsRef.current = diskBearings;
-    datumBoundaryDataRef.current = datumBoundaryData;
-    datumFillDataRef.current = datumFillData;
-    datumRingDataRef.current = datumRingData;
-  }, [
-    quadrantData,
-    perimeterArcData,
-    tickData,
-    axisSpokes,
-    diskBearings,
-    datumBoundaryData,
-    datumFillData,
-    datumRingData,
+  // Memoize unit circle geometries for datum boundary & concentric rings
+  const circleGeom = useMemo(() => {
+    const geom = createCircleGeometry(1.0, 128);
+    geom.computeBoundingSphere();
+    return geom;
+  }, []);
+
+  const fillCircleGeom = useMemo(() => {
+    const geom = new THREE.CircleGeometry(1.0, 128);
+    geom.computeBoundingSphere();
+    return geom;
+  }, []);
+
+  // Memoize datum plane gradient fill shader uniforms
+  const datumFillUniforms = useMemo(() => ({
+    uColor: { value: tokens.datumPlaneFillColor },
+    uAlpha: { value: tokens.datumPlaneFillAlpha },
+    uInnerRadius: { value: tokens.datumPlaneFillGradientInner },
+    uExponent: { value: tokens.datumPlaneFillGradientExponent },
+  }), [
+    tokens.datumPlaneFillColor,
+    tokens.datumPlaneFillAlpha,
+    tokens.datumPlaneFillGradientInner,
+    tokens.datumPlaneFillGradientExponent,
   ]);
 
-  // Clean up geometries and materials on unmount or when structural data changes
+  // Clean up geometries on unmount
   useEffect(() => {
-    const qData = quadrantData;
-    const pData = perimeterArcData;
-    const tData = tickData;
-    const aSpokes = axisSpokes;
-    const dBear = diskBearings;
-    const dBoundary = datumBoundaryData;
-    const dFill = datumFillData;
-    const dRings = datumRingData;
-
     return () => {
       for (const plane of PLANES) {
-        for (const ringQuads of qData[plane]) {
-          for (const item of ringQuads) {
-            item.geom.dispose();
-            item.mat.dispose();
-          }
-        }
-        for (const pItem of pData[plane]) {
-          pItem.geom.dispose();
-          pItem.mat.dispose();
-        }
-        for (const tickItem of tData[plane]) {
-          tickItem.geom.dispose();
-          tickItem.mat.dispose();
-        }
+        for (const g of quadrantGeoms[plane]) g.dispose();
+        for (const g of tickGeoms[plane]) g.dispose();
       }
-
-      aSpokes.negX.geom.dispose();
-      aSpokes.negX.mat.dispose();
-      aSpokes.negY.geom.dispose();
-      aSpokes.negY.mat.dispose();
-      aSpokes.posZ.geom.dispose();
-      aSpokes.posZ.mat.dispose();
-      aSpokes.negZ.geom.dispose();
-      aSpokes.negZ.mat.dispose();
-
-      dBear.core.geom.dispose();
-      dBear.core.mat.dispose();
-      dBear.orbital.geom.dispose();
-      dBear.orbital.mat.dispose();
-      dBear.antiCore.geom.dispose();
-      dBear.antiCore.mat.dispose();
-      dBear.antiOrbital.geom.dispose();
-      dBear.antiOrbital.mat.dispose();
-
-      dBoundary.geom.dispose();
-      dBoundary.mat.dispose();
-      dFill.geom.dispose();
-      dFill.mat.dispose();
-      for (const ringItem of dRings) {
-        ringItem.geom.dispose();
-        ringItem.mat.dispose();
-      }
+      spokeGeoms.negX.dispose();
+      spokeGeoms.negY.dispose();
+      spokeGeoms.posZ.dispose();
+      spokeGeoms.negZ.dispose();
+      bearingGeoms.core.dispose();
+      bearingGeoms.orbital.dispose();
+      bearingGeoms.antiCore.dispose();
+      bearingGeoms.antiOrbital.dispose();
+      circleGeom.dispose();
+      fillCircleGeom.dispose();
     };
-  }, [
-    quadrantData,
-    perimeterArcData,
-    tickData,
-    axisSpokes,
-    diskBearings,
-    datumBoundaryData,
-    datumFillData,
-    datumRingData,
-  ]);
+  }, [quadrantGeoms, tickGeoms, spokeGeoms, bearingGeoms, circleGeom, fillCircleGeom]);
 
   // Restore camera FOV and zoom on unmount
   useEffect(() => {
@@ -728,81 +502,78 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     };
   }, [camera]);
 
-  // Update base material colors from design tokens
-  useEffect(() => {
-    const qData = quadrantDataRef.current;
-    const pData = perimeterArcDataRef.current;
-    const tData = tickDataRef.current;
-    const aSpokes = axisSpokesRef.current;
-    const dBear = diskBearingsRef.current;
-    const dBoundary = datumBoundaryDataRef.current;
-    const dRings = datumRingDataRef.current;
+  // Mutable Scene Graph References for useFrame
+  const perimeterLinesRef = useRef<{
+    xy: (THREE.Line | null)[];
+    xz: (THREE.Line | null)[];
+    yz: (THREE.Line | null)[];
+  }>({
+    xy: [null, null, null, null],
+    xz: [null, null, null, null],
+    yz: [null, null, null, null],
+  });
 
-    for (const plane of PLANES) {
-      pData[plane].forEach((pItem) => {
-        pItem.mat.color.copy(tokens.gridPrimaryColor);
-        pItem.mat.linewidth = tokens.gridSecondaryWidth;
-      });
-      qData[plane].forEach((ringQuads, ringIdx) => {
-        const isMajor = majorRingIndex !== undefined ? ringIdx === majorRingIndex : ringIdx % 2 === 1;
-        const color = isMajor ? tokens.gridPrimaryColor : tokens.gridSecondaryColor;
-        const width = isMajor ? tokens.gridPrimaryWidth : tokens.gridSecondaryWidth;
-        for (const item of ringQuads) {
-          item.mat.color.copy(color);
-          item.mat.linewidth = width;
-        }
-      });
-      for (const tickItem of tData[plane]) {
-        tickItem.mat.color.copy(tokens.rangeTickColor);
-        tickItem.mat.linewidth = tokens.rangeTickWidth;
-      }
-    }
+  const quadLinesRef = useRef<{
+    xy: (THREE.Line | null)[][];
+    xz: (THREE.Line | null)[][];
+    yz: (THREE.Line | null)[][];
+  }>({
+    xy: Array.from({ length: poolSize }, () => []),
+    xz: Array.from({ length: poolSize }, () => []),
+    yz: Array.from({ length: poolSize }, () => []),
+  });
 
-    for (const spoke of [aSpokes.negX, aSpokes.negY, aSpokes.posZ, aSpokes.negZ]) {
-      spoke.mat.color.copy(tokens.axisLineColor);
-      spoke.mat.linewidth = tokens.axisLineWidth;
-    }
+  const tickLinesRef = useRef<{
+    xy: (THREE.Line | null)[];
+    xz: (THREE.Line | null)[];
+    yz: (THREE.Line | null)[];
+  }>({
+    xy: [null, null, null, null],
+    xz: [null, null, null, null],
+    yz: [null, null, null, null],
+  });
 
-    // Planar Disk Cardinal Bearings (1 radius long, solid crosshairs)
-    if (dBear) {
-      dBear.core.mat.color.copy(tokens.bearingCoreColor);
-      dBear.core.mat.opacity = tokens.bearingCoreAlpha;
-      dBear.core.mat.linewidth = tokens.bearingCoreWidth;
+  const spokeLinesRef = useRef<{
+    negX: THREE.Line | null;
+    negY: THREE.Line | null;
+    posZ: THREE.Line | null;
+    negZ: THREE.Line | null;
+  }>({
+    negX: null,
+    negY: null,
+    posZ: null,
+    negZ: null,
+  });
 
-      dBear.orbital.mat.color.copy(tokens.bearingOrbitalColor ?? tokens.bearingLineColor);
-      dBear.orbital.mat.opacity = tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha;
-      dBear.orbital.mat.linewidth = tokens.bearingOrbitalWidth ?? tokens.bearingLineWidth;
+  const bearingLinesRef = useRef<{
+    core: THREE.Line | null;
+    orbital: THREE.Line | null;
+    antiCore: THREE.Line | null;
+    antiOrbital: THREE.Line | null;
+  }>({
+    core: null,
+    orbital: null,
+    antiCore: null,
+    antiOrbital: null,
+  });
 
-      dBear.antiCore.mat.color.copy(tokens.axisLineColor);
-      dBear.antiCore.mat.opacity = tokens.axisLineAlpha;
-      dBear.antiCore.mat.linewidth = tokens.axisLineWidth;
+  const datumBoundaryLineRef = useRef<THREE.Line | null>(null);
+  const datumFillMeshRef = useRef<THREE.Mesh | null>(null);
+  const datumRingLinesRef = useRef<(THREE.Line | null)[]>(
+    Array.from({ length: poolSize }, () => null)
+  );
 
-      dBear.antiOrbital.mat.color.copy(tokens.axisLineColor);
-      dBear.antiOrbital.mat.opacity = tokens.axisLineAlpha;
-      dBear.antiOrbital.mat.linewidth = tokens.axisLineWidth;
-    }
-
-    // Galactic Equator Datum Plane tokens
-    dBoundary.mat.color.copy(tokens.datumPlaneColor);
-    dBoundary.mat.linewidth = tokens.datumPlaneWidth;
-    dBoundary.mat.opacity = tokens.datumPlaneAlpha;
-
-    const fillMat = datumFillDataRef.current.mat;
-    fillMat.uniforms.uColor.value.copy(tokens.datumPlaneFillColor);
-    fillMat.uniforms.uAlpha.value = tokens.datumPlaneFillAlpha;
-    fillMat.uniforms.uInnerRadius.value = tokens.datumPlaneFillGradientInner;
-    fillMat.uniforms.uExponent.value = tokens.datumPlaneFillGradientExponent;
-
-    dRings.forEach((ringItem) => {
-      const isMajor = ringItem.isMajor;
-      const color = isMajor ? tokens.gridPrimaryColor : tokens.gridSecondaryColor;
-      const width = isMajor ? tokens.gridPrimaryWidth : tokens.gridSecondaryWidth;
-      const alpha = isMajor ? tokens.gridPrimaryAlpha : tokens.gridSecondaryAlpha;
-      ringItem.mat.color.copy(color);
-      ringItem.mat.linewidth = width;
-      ringItem.mat.opacity = alpha;
-    });
-  }, [tokens, majorRingIndex]);
+  // Sync ref pool array sizes if poolSize changes
+  if (quadLinesRef.current.xy.length !== poolSize) {
+    quadLinesRef.current = {
+      xy: Array.from({ length: poolSize }, () => []),
+      xz: Array.from({ length: poolSize }, () => []),
+      yz: Array.from({ length: poolSize }, () => []),
+    };
+  }
+  if (datumRingLinesRef.current.length !== poolSize) {
+    datumRingLinesRef.current = Array.from({ length: poolSize }, () => null);
+  }
 
   // Frame Loop: Dynamic zoom adaptation, smooth double-segment transitions, tighter cardinal alignment, camera focus lock
   useFrame((state) => {
@@ -839,12 +610,6 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     if (rootGroupRef.current) {
       rootGroupRef.current.position.copy(origin);
     }
-
-    const qData = quadrantDataRef.current;
-    const pArcData = perimeterArcDataRef.current;
-    const tData = tickDataRef.current;
-    const aSpokes = axisSpokesRef.current;
-    const dBearings = diskBearingsRef.current;
 
     // Camera direction and distance relative to instrument origin
     const camDist = activeCamera.position.distanceTo(origin);
@@ -916,15 +681,17 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     // 5. Update Fin Perimeter Boundary Arcs with current aperture radius (Subtle perimeter boundary)
     if (showFins) {
       for (const plane of PLANES) {
-        const pArcs = pArcData[plane];
+        const pLines = perimeterLinesRef.current[plane];
         const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
         const qwList = plane === 'xy' ? qwXY : plane === 'xz' ? qwXZ : qwYZ;
 
-        for (let qIdx = 0; qIdx < pArcs.length; qIdx++) {
-          const pItem = pArcs[qIdx];
-          pItem.line.scale.set(currentRadius, currentRadius, currentRadius);
-          pItem.mat.opacity = tokens.gridPrimaryAlpha * 0.7 * qwList[qIdx] * fadePlane;
-          pItem.line.visible = pItem.mat.opacity > 0.001;
+        for (let qIdx = 0; qIdx < 4; qIdx++) {
+          const line = pLines[qIdx];
+          if (!line) continue;
+          line.scale.set(currentRadius, currentRadius, currentRadius);
+          const mat = line.material as THREE.LineBasicMaterial;
+          mat.opacity = tokens.gridPrimaryAlpha * 0.7 * qwList[qIdx] * fadePlane;
+          line.visible = mat.opacity > 0.001;
         }
       }
 
@@ -942,25 +709,30 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
           const ringFade = ringInfo.fade;
 
           for (const plane of PLANES) {
-            const quads = qData[plane][ringIdx];
+            const quads = quadLinesRef.current[plane][ringIdx];
+            if (!quads) continue;
             const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
             const qwList = plane === 'xy' ? qwXY : plane === 'xz' ? qwXZ : qwYZ;
 
-            for (let qIdx = 0; qIdx < quads.length; qIdx++) {
-              const item = quads[qIdx];
-              item.line.scale.set(r, r, r);
-              item.mat.opacity = baseAlpha * ringFade * qwList[qIdx] * fadePlane;
-              item.line.visible = item.mat.opacity > 0.001;
+            for (let qIdx = 0; qIdx < 4; qIdx++) {
+              const line = quads[qIdx];
+              if (!line) continue;
+              line.scale.set(r, r, r);
+              const mat = line.material as THREE.LineBasicMaterial;
+              mat.opacity = baseAlpha * ringFade * qwList[qIdx] * fadePlane;
+              line.visible = mat.opacity > 0.001;
             }
           }
         } else {
           // Inactive ring in pool
           for (const plane of PLANES) {
-            const quads = qData[plane][ringIdx];
-            for (let qIdx = 0; qIdx < quads.length; qIdx++) {
-              const item = quads[qIdx];
-              item.mat.opacity = 0;
-              item.line.visible = false;
+            const quads = quadLinesRef.current[plane][ringIdx];
+            if (!quads) continue;
+            for (let qIdx = 0; qIdx < 4; qIdx++) {
+              const line = quads[qIdx];
+              if (!line) continue;
+              (line.material as THREE.LineBasicMaterial).opacity = 0;
+              line.visible = false;
             }
           }
         }
@@ -968,15 +740,17 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
       // 7. Update perimeter ticks with current aperture radius
       for (const plane of PLANES) {
-        const ticks = tData[plane];
+        const ticks = tickLinesRef.current[plane];
         const fadePlane = plane === 'xy' ? fadeXY : plane === 'xz' ? fadeXZ : fadeYZ;
         const qwList = plane === 'xy' ? qwXY : plane === 'xz' ? qwXZ : qwYZ;
 
-        for (let qIdx = 0; qIdx < ticks.length; qIdx++) {
-          const tickItem = ticks[qIdx];
-          tickItem.line.scale.set(currentRadius, currentRadius, currentRadius);
-          tickItem.mat.opacity = Math.max(tokens.rangeTickAlpha * 1.6, 0.35) * qwList[qIdx] * fadePlane;
-          tickItem.line.visible = tickItem.mat.opacity > 0.001;
+        for (let qIdx = 0; qIdx < 4; qIdx++) {
+          const line = ticks[qIdx];
+          if (!line) continue;
+          line.scale.set(currentRadius, currentRadius, currentRadius);
+          const mat = line.material as THREE.LineBasicMaterial;
+          mat.opacity = Math.max(tokens.rangeTickAlpha * 1.6, 0.35) * qwList[qIdx] * fadePlane;
+          line.visible = mat.opacity > 0.001;
         }
       }
     }
@@ -989,34 +763,45 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       const presenceXY_negX = Math.max(qwXY[1], qwXY[2]) * fadeXY;
       const presenceXZ_negX = Math.max(qwXZ[1], qwXZ[2]) * fadeXZ;
       const alphaNegX = spokeBaseAlpha * Math.min(presenceXY_negX, presenceXZ_negX);
-      aSpokes.negX.line.scale.set(currentRadius, currentRadius, currentRadius);
-      aSpokes.negX.mat.opacity = alphaNegX;
-      aSpokes.negX.line.visible = alphaNegX > 0.001;
+      const sNegX = spokeLinesRef.current.negX;
+      if (sNegX) {
+        sNegX.scale.set(currentRadius, currentRadius, currentRadius);
+        (sNegX.material as THREE.LineBasicMaterial).opacity = alphaNegX;
+        sNegX.visible = alphaNegX > 0.001;
+      }
 
       // -Y spoke bordered by XY (-Y) and YZ (-Y)
       const presenceXY_negY = Math.max(qwXY[2], qwXY[3]) * fadeXY;
       const presenceYZ_negY = Math.max(qwYZ[1], qwYZ[2]) * fadeYZ;
       const alphaNegY = spokeBaseAlpha * Math.min(presenceXY_negY, presenceYZ_negY);
-      aSpokes.negY.line.scale.set(currentRadius, currentRadius, currentRadius);
-      aSpokes.negY.mat.opacity = alphaNegY;
-      aSpokes.negY.line.visible = alphaNegY > 0.001;
+      const sNegY = spokeLinesRef.current.negY;
+      if (sNegY) {
+        sNegY.scale.set(currentRadius, currentRadius, currentRadius);
+        (sNegY.material as THREE.LineBasicMaterial).opacity = alphaNegY;
+        sNegY.visible = alphaNegY > 0.001;
+      }
 
       // +Z spoke bordered by XZ (+Z) and YZ (+Z)
       const presenceXZ_posZ = Math.max(qwXZ[0], qwXZ[1]) * fadeXZ;
       const presenceYZ_posZ = Math.max(qwYZ[0], qwYZ[1]) * fadeYZ;
       const alphaPosZ = spokeBaseAlpha * Math.min(presenceXZ_posZ, presenceYZ_posZ);
-      aSpokes.posZ.line.scale.set(currentRadius, currentRadius, currentRadius);
-      aSpokes.posZ.mat.opacity = alphaPosZ;
-      aSpokes.posZ.line.visible = alphaPosZ > 0.001;
+      const sPosZ = spokeLinesRef.current.posZ;
+      if (sPosZ) {
+        sPosZ.scale.set(currentRadius, currentRadius, currentRadius);
+        (sPosZ.material as THREE.LineBasicMaterial).opacity = alphaPosZ;
+        sPosZ.visible = alphaPosZ > 0.001;
+      }
 
       // -Z spoke bordered by XZ (-Z) and YZ (-Z)
       const presenceXZ_negZ = Math.max(qwXZ[2], qwXZ[3]) * fadeXZ;
       const presenceYZ_negZ = Math.max(qwYZ[2], qwYZ[3]) * fadeYZ;
       const alphaNegZ = spokeBaseAlpha * Math.min(presenceXZ_negZ, presenceYZ_negZ);
-      aSpokes.negZ.line.scale.set(currentRadius, currentRadius, currentRadius);
-      aSpokes.negZ.mat.opacity = alphaNegZ;
-      aSpokes.negZ.line.visible = alphaNegZ > 0.001;
-
+      const sNegZ = spokeLinesRef.current.negZ;
+      if (sNegZ) {
+        sNegZ.scale.set(currentRadius, currentRadius, currentRadius);
+        (sNegZ.material as THREE.LineBasicMaterial).opacity = alphaNegZ;
+        sNegZ.visible = alphaNegZ > 0.001;
+      }
     }
 
     // 9. Datum Plane Update (Galactic Equator Z=0)
@@ -1029,54 +814,64 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     }
 
     if (isDatumPlaneVisible) {
-      const dBoundary = datumBoundaryDataRef.current;
-      dBoundary.line.scale.set(currentRadius, currentRadius, 1);
-      dBoundary.mat.opacity = tokens.datumPlaneAlpha;
-      dBoundary.line.visible = tokens.datumPlaneAlpha > 0.001;
+      const dBoundary = datumBoundaryLineRef.current;
+      if (dBoundary) {
+        dBoundary.scale.set(currentRadius, currentRadius, 1);
+        (dBoundary.material as THREE.LineBasicMaterial).opacity = tokens.datumPlaneAlpha;
+        dBoundary.visible = tokens.datumPlaneAlpha > 0.001;
+      }
 
       // Disk Cardinal Bearings (1 radius long on the datum plane, terminating at perimeter rim)
-      if (dBearings) {
-        dBearings.core.line.scale.set(currentRadius, currentRadius, 1);
-        dBearings.core.mat.opacity = tokens.bearingCoreAlpha;
-        dBearings.core.line.visible = true;
+      const bCore = bearingLinesRef.current.core;
+      if (bCore) {
+        bCore.scale.set(currentRadius, currentRadius, 1);
+        (bCore.material as THREE.LineBasicMaterial).opacity = tokens.bearingCoreAlpha;
+        bCore.visible = true;
+      }
 
-        dBearings.orbital.line.scale.set(currentRadius, currentRadius, 1);
-        dBearings.orbital.mat.opacity = tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha;
-        dBearings.orbital.line.visible = true;
+      const bOrbital = bearingLinesRef.current.orbital;
+      if (bOrbital) {
+        bOrbital.scale.set(currentRadius, currentRadius, 1);
+        (bOrbital.material as THREE.LineBasicMaterial).opacity = tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha;
+        bOrbital.visible = true;
+      }
 
-        dBearings.antiCore.line.scale.set(currentRadius, currentRadius, 1);
-        dBearings.antiCore.mat.opacity = tokens.axisLineAlpha;
-        dBearings.antiCore.line.visible = true;
+      const bAntiCore = bearingLinesRef.current.antiCore;
+      if (bAntiCore) {
+        bAntiCore.scale.set(currentRadius, currentRadius, 1);
+        (bAntiCore.material as THREE.LineBasicMaterial).opacity = tokens.axisLineAlpha;
+        bAntiCore.visible = true;
+      }
 
-        dBearings.antiOrbital.line.scale.set(currentRadius, currentRadius, 1);
-        dBearings.antiOrbital.mat.opacity = tokens.axisLineAlpha;
-        dBearings.antiOrbital.line.visible = true;
+      const bAntiOrbital = bearingLinesRef.current.antiOrbital;
+      if (bAntiOrbital) {
+        bAntiOrbital.scale.set(currentRadius, currentRadius, 1);
+        (bAntiOrbital.material as THREE.LineBasicMaterial).opacity = tokens.axisLineAlpha;
+        bAntiOrbital.visible = true;
       }
 
       // Continuous concentric range rings on the datum plane
       for (let ringIdx = 0; ringIdx < poolSize; ringIdx++) {
+        const line = datumRingLinesRef.current[ringIdx];
+        if (!line) continue;
         const ringActive = ringIdx < activeRingCount;
         const ringInfo = ringActive ? activeRingsPool[ringIdx] : null;
-        const ringItem = datumRingDataRef.current[ringIdx];
-        if (ringItem) {
-          if (ringInfo) {
-            const r = ringInfo.radius;
-            const isMajor = ringInfo.isMajor;
-            const baseAlpha = (isMajor ? tokens.gridPrimaryAlpha : tokens.gridSecondaryAlpha) * ringInfo.fade;
+        if (ringInfo) {
+          const r = ringInfo.radius;
+          const isMajor = ringInfo.isMajor;
+          const baseAlpha = (isMajor ? tokens.gridPrimaryAlpha : tokens.gridSecondaryAlpha) * ringInfo.fade;
 
-            ringItem.line.scale.set(r, r, 1);
-            ringItem.mat.opacity = baseAlpha;
-            ringItem.line.visible = baseAlpha > 0.001;
-          } else {
-            ringItem.mat.opacity = 0;
-            ringItem.line.visible = false;
-          }
+          line.scale.set(r, r, 1);
+          (line.material as THREE.LineBasicMaterial).opacity = baseAlpha;
+          line.visible = baseAlpha > 0.001;
+        } else {
+          (line.material as THREE.LineBasicMaterial).opacity = 0;
+          line.visible = false;
         }
       }
 
-      if (datumFillDataRef.current) {
-        const { mesh } = datumFillDataRef.current;
-        mesh.scale.set(currentRadius, currentRadius, 1);
+      if (datumFillMeshRef.current) {
+        datumFillMeshRef.current.scale.set(currentRadius, currentRadius, 1);
       }
     }
 
@@ -1103,68 +898,103 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       {/* Three Orthogonal Travelling Fins with Dynamic Quadrant Range Arcs */}
       {showFins && (
         <group name="travelling-fins">
-          {/* XY Fin (Galactic Equator) */}
-          <group name="fin-xy">
-            {perimeterArcData.xy.map((pItem, qIdx) => (
-              <primitive key={`xy-perimeter-q${qIdx}`} object={pItem.line} name={`xy-perimeter-q${qIdx}`} />
-            ))}
-            {ringPoolIndices.map((ringIdx) => {
-              const testId =
-                ringIdx < rangeRings.length ? `arc-tier-${rangeRings[ringIdx]}` : `arc-tier-pool-${ringIdx}`;
-              return (
-                <group key={`xy-tier-${ringIdx}`} name={testId}>
-                  {quadrantData.xy[ringIdx].map((q, qIdx) => (
-                    <primitive key={`xy-${ringIdx}-q${qIdx}`} object={q.line} />
-                  ))}
-                </group>
-              );
-            })}
-            {tickData.xy.map((qTick, qIdx) => (
-              <primitive key={`xy-ticks-q${qIdx}`} object={qTick.line} />
-            ))}
-          </group>
+          {PLANES.map((plane) => (
+            <group key={`fin-${plane}`} name={`fin-${plane}`}>
+              {/* Perimeter Boundary Arcs */}
+              {QUADRANTS.map((quad, qIdx) => {
+                const isInitialVisible = quad.qx === 1 && quad.qy === 1;
+                return (
+                  <threeLine
+                    key={`${plane}-perimeter-q${qIdx}`}
+                    ref={(el) => {
+                      perimeterLinesRef.current[plane][qIdx] = el;
+                    }}
+                    name={`${plane}-perimeter-q${qIdx}`}
+                    geometry={quadrantGeoms[plane][qIdx]}
+                    scale={[radius, radius, radius]}
+                    visible={isInitialVisible}
+                    frustumCulled={false}
+                  >
+                    <lineBasicMaterial
+                      color={tokens.gridPrimaryColor}
+                      linewidth={tokens.gridSecondaryWidth}
+                      transparent
+                      depthWrite={false}
+                      opacity={isInitialVisible ? tokens.gridPrimaryAlpha * 0.7 : 0}
+                    />
+                  </threeLine>
+                );
+              })}
 
-          {/* XZ Fin (Core Meridian) */}
-          <group name="fin-xz">
-            {perimeterArcData.xz.map((pItem, qIdx) => (
-              <primitive key={`xz-perimeter-q${qIdx}`} object={pItem.line} name={`xz-perimeter-q${qIdx}`} />
-            ))}
-            {ringPoolIndices.map((ringIdx) => {
-              const testId =
-                ringIdx < rangeRings.length ? `arc-tier-${rangeRings[ringIdx]}` : `arc-tier-pool-${ringIdx}`;
-              return (
-                <group key={`xz-tier-${ringIdx}`} name={testId}>
-                  {quadrantData.xz[ringIdx].map((q, qIdx) => (
-                    <primitive key={`xz-${ringIdx}-q${qIdx}`} object={q.line} />
-                  ))}
-                </group>
-              );
-            })}
-            {tickData.xz.map((qTick, qIdx) => (
-              <primitive key={`xz-ticks-q${qIdx}`} object={qTick.line} />
-            ))}
-          </group>
+              {/* Concentric Tier Arcs */}
+              {ringPoolIndices.map((ringIdx) => {
+                const isExplicit = ringIdx < rangeRings.length;
+                const initialR = isExplicit ? rangeRings[ringIdx] : radius * ((ringIdx + 1) / poolSize);
+                const isMajor = majorRingIndex !== undefined ? ringIdx === majorRingIndex : ringIdx % 2 === 1;
+                const color = isMajor ? tokens.gridPrimaryColor : tokens.gridSecondaryColor;
+                const width = isMajor ? tokens.gridPrimaryWidth : tokens.gridSecondaryWidth;
+                const baseAlpha = isMajor ? tokens.gridPrimaryAlpha * 1.3 : tokens.gridSecondaryAlpha * 1.1;
+                const testId =
+                  ringIdx < rangeRings.length ? `arc-tier-${rangeRings[ringIdx]}` : `arc-tier-pool-${ringIdx}`;
 
-          {/* YZ Fin (Transverse) */}
-          <group name="fin-yz">
-            {perimeterArcData.yz.map((pItem, qIdx) => (
-              <primitive key={`yz-perimeter-q${qIdx}`} object={pItem.line} name={`yz-perimeter-q${qIdx}`} />
-            ))}
-            {ringPoolIndices.map((ringIdx) => {
-              const testId =
-                ringIdx < rangeRings.length ? `arc-tier-${rangeRings[ringIdx]}` : `arc-tier-pool-${ringIdx}`;
-              return (
-                <group key={`yz-tier-${ringIdx}`} name={testId}>
-                  {quadrantData.yz[ringIdx].map((q, qIdx) => (
-                    <primitive key={`yz-${ringIdx}-q${qIdx}`} object={q.line} />
-                  ))}
-                </group>
-              );
-            })}
-            {tickData.yz.map((qTick, qIdx) => (
-              <primitive key={`yz-ticks-q${qIdx}`} object={qTick.line} />
-            ))}
-          </group>
+                return (
+                  <group key={`${plane}-tier-${ringIdx}`} name={testId}>
+                    {QUADRANTS.map((quad, qIdx) => {
+                      const isInitialVisible = isExplicit && quad.qx === 1 && quad.qy === 1;
+                      return (
+                        <threeLine
+                          key={`${plane}-${ringIdx}-q${qIdx}`}
+                          ref={(el) => {
+                            if (!quadLinesRef.current[plane][ringIdx]) {
+                              quadLinesRef.current[plane][ringIdx] = [];
+                            }
+                            quadLinesRef.current[plane][ringIdx][qIdx] = el;
+                          }}
+                          geometry={quadrantGeoms[plane][qIdx]}
+                          scale={[initialR, initialR, initialR]}
+                          visible={isInitialVisible}
+                          frustumCulled={false}
+                        >
+                          <lineBasicMaterial
+                            color={color}
+                            linewidth={width}
+                            transparent
+                            depthWrite={false}
+                            opacity={isInitialVisible ? baseAlpha : 0}
+                          />
+                        </threeLine>
+                      );
+                    })}
+                  </group>
+                );
+              })}
+
+              {/* Quadrant Ticks */}
+              {QUADRANTS.map((quad, qIdx) => {
+                const isInitialVisible = quad.qx === 1 && quad.qy === 1;
+                return (
+                  <threeLine
+                    key={`${plane}-ticks-q${qIdx}`}
+                    ref={(el) => {
+                      tickLinesRef.current[plane][qIdx] = el;
+                    }}
+                    geometry={tickGeoms[plane][qIdx]}
+                    scale={[radius, radius, radius]}
+                    visible={isInitialVisible}
+                    frustumCulled={false}
+                  >
+                    <lineBasicMaterial
+                      color={tokens.rangeTickColor}
+                      linewidth={tokens.rangeTickWidth}
+                      transparent
+                      depthWrite={false}
+                      opacity={isInitialVisible ? Math.max(tokens.rangeTickAlpha * 1.6, 0.35) : 0}
+                    />
+                  </threeLine>
+                );
+              })}
+            </group>
+          ))}
         </group>
       )}
 
@@ -1172,10 +1002,66 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       {showAxisLines && (
         <group name="cardinal-bearings">
           {/* Structural Fin Axis Spokes: Rendered only when both bordering fins rendered */}
-          <primitive object={axisSpokes.negX.line} name="axis-spoke-neg-x" />
-          <primitive object={axisSpokes.negY.line} name="axis-spoke-neg-y" />
-          <primitive object={axisSpokes.posZ.line} name="axis-spoke-pos-z" />
-          <primitive object={axisSpokes.negZ.line} name="axis-spoke-neg-z" />
+          <threeLine
+            ref={(el) => { spokeLinesRef.current.negX = el; }}
+            name="axis-spoke-neg-x"
+            geometry={spokeGeoms.negX}
+            scale={[radius, radius, radius]}
+            frustumCulled={false}
+          >
+            <lineBasicMaterial
+              color={tokens.axisLineColor}
+              linewidth={tokens.axisLineWidth}
+              transparent
+              depthWrite={false}
+              opacity={tokens.axisLineAlpha}
+            />
+          </threeLine>
+          <threeLine
+            ref={(el) => { spokeLinesRef.current.negY = el; }}
+            name="axis-spoke-neg-y"
+            geometry={spokeGeoms.negY}
+            scale={[radius, radius, radius]}
+            frustumCulled={false}
+          >
+            <lineBasicMaterial
+              color={tokens.axisLineColor}
+              linewidth={tokens.axisLineWidth}
+              transparent
+              depthWrite={false}
+              opacity={tokens.axisLineAlpha}
+            />
+          </threeLine>
+          <threeLine
+            ref={(el) => { spokeLinesRef.current.posZ = el; }}
+            name="axis-spoke-pos-z"
+            geometry={spokeGeoms.posZ}
+            scale={[radius, radius, radius]}
+            frustumCulled={false}
+          >
+            <lineBasicMaterial
+              color={tokens.axisLineColor}
+              linewidth={tokens.axisLineWidth}
+              transparent
+              depthWrite={false}
+              opacity={tokens.axisLineAlpha}
+            />
+          </threeLine>
+          <threeLine
+            ref={(el) => { spokeLinesRef.current.negZ = el; }}
+            name="axis-spoke-neg-z"
+            geometry={spokeGeoms.negZ}
+            scale={[radius, radius, radius]}
+            frustumCulled={false}
+          >
+            <lineBasicMaterial
+              color={tokens.axisLineColor}
+              linewidth={tokens.axisLineWidth}
+              transparent
+              depthWrite={false}
+              opacity={tokens.axisLineAlpha}
+            />
+          </threeLine>
         </group>
       )}
 
@@ -1183,18 +1069,102 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       {isDatumPlaneVisible && (
         <group ref={datumGroupRef} position={[0, 0, -initialPosition[2]]} name="datum-plane">
           {/* Ethereal Planar Fill Disc with Radial Rim Gradient */}
-          <primitive object={datumFillData.mesh} name="datum-plane-fill" />
+          <mesh
+            ref={datumFillMeshRef}
+            name="datum-plane-fill"
+            geometry={fillCircleGeom}
+            frustumCulled={false}
+          >
+            <shaderMaterial
+              uniforms={datumFillUniforms}
+              vertexShader={DATUM_FILL_VERTEX_SHADER}
+              fragmentShader={DATUM_FILL_FRAGMENT_SHADER}
+              transparent
+              depthWrite={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
 
           {/* Outermost Projected Aperture Boundary */}
-          <primitive object={datumBoundaryData.line} name="datum-plane-boundary" />
+          <threeLine
+            ref={datumBoundaryLineRef}
+            name="datum-plane-boundary"
+            geometry={circleGeom}
+            scale={[radius, radius, 1]}
+            frustumCulled={false}
+          >
+            <lineBasicMaterial
+              color={tokens.datumPlaneColor}
+              linewidth={tokens.datumPlaneWidth}
+              transparent
+              depthWrite={false}
+              opacity={tokens.datumPlaneAlpha}
+            />
+          </threeLine>
 
           {/* Planar Disk Cardinal Bearing Lines (1 radius long, solid, terminating at perimeter rim) */}
           {showAxisLines && (
             <group name="disk-bearings">
-              <primitive object={diskBearings.core.line} name="bearing-core" />
-              <primitive object={diskBearings.orbital.line} name="bearing-orbital" />
-              <primitive object={diskBearings.antiCore.line} name="bearing-anti-core" />
-              <primitive object={diskBearings.antiOrbital.line} name="bearing-anti-orbital" />
+              <threeLine
+                ref={(el) => { bearingLinesRef.current.core = el; }}
+                name="bearing-core"
+                geometry={bearingGeoms.core}
+                scale={[radius, radius, 1]}
+                frustumCulled={false}
+              >
+                <lineBasicMaterial
+                  color={tokens.bearingCoreColor}
+                  linewidth={tokens.bearingCoreWidth}
+                  transparent
+                  depthWrite={false}
+                  opacity={tokens.bearingCoreAlpha}
+                />
+              </threeLine>
+              <threeLine
+                ref={(el) => { bearingLinesRef.current.orbital = el; }}
+                name="bearing-orbital"
+                geometry={bearingGeoms.orbital}
+                scale={[radius, radius, 1]}
+                frustumCulled={false}
+              >
+                <lineBasicMaterial
+                  color={tokens.bearingOrbitalColor ?? tokens.bearingLineColor}
+                  linewidth={tokens.bearingOrbitalWidth ?? tokens.bearingLineWidth}
+                  transparent
+                  depthWrite={false}
+                  opacity={tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha}
+                />
+              </threeLine>
+              <threeLine
+                ref={(el) => { bearingLinesRef.current.antiCore = el; }}
+                name="bearing-anti-core"
+                geometry={bearingGeoms.antiCore}
+                scale={[radius, radius, 1]}
+                frustumCulled={false}
+              >
+                <lineBasicMaterial
+                  color={tokens.axisLineColor}
+                  linewidth={tokens.axisLineWidth}
+                  transparent
+                  depthWrite={false}
+                  opacity={tokens.axisLineAlpha}
+                />
+              </threeLine>
+              <threeLine
+                ref={(el) => { bearingLinesRef.current.antiOrbital = el; }}
+                name="bearing-anti-orbital"
+                geometry={bearingGeoms.antiOrbital}
+                scale={[radius, radius, 1]}
+                frustumCulled={false}
+              >
+                <lineBasicMaterial
+                  color={tokens.axisLineColor}
+                  linewidth={tokens.axisLineWidth}
+                  transparent
+                  depthWrite={false}
+                  opacity={tokens.axisLineAlpha}
+                />
+              </threeLine>
             </group>
           )}
 
@@ -1251,16 +1221,35 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
           {/* Hierarchical Concentric Range Rings driven by Main Grid Tokens */}
           {showDatumRings &&
             ringPoolIndices.map((ringIdx) => {
+              const isExplicit = ringIdx < rangeRings.length;
+              const initialR = isExplicit ? rangeRings[ringIdx] : radius * ((ringIdx + 1) / poolSize);
+              const isMajor = majorRingIndex !== undefined ? ringIdx === majorRingIndex : ringIdx % 2 === 1;
+              const color = isMajor ? tokens.gridPrimaryColor : tokens.gridSecondaryColor;
+              const width = isMajor ? tokens.gridPrimaryWidth : tokens.gridSecondaryWidth;
+              const alpha = isMajor ? tokens.gridPrimaryAlpha : tokens.gridSecondaryAlpha;
               const testId =
                 ringIdx < rangeRings.length ? `full-ring-${rangeRings[ringIdx]}` : `full-ring-pool-${ringIdx}`;
-              const ringItem = datumRingData[ringIdx];
-              if (!ringItem) return null;
+
               return (
-                <primitive
+                <threeLine
                   key={`datum-ring-${ringIdx}`}
-                  object={ringItem.line}
+                  ref={(el) => {
+                    datumRingLinesRef.current[ringIdx] = el;
+                  }}
                   name={testId}
-                />
+                  geometry={circleGeom}
+                  scale={[initialR, initialR, 1]}
+                  visible={isExplicit}
+                  frustumCulled={false}
+                >
+                  <lineBasicMaterial
+                    color={color}
+                    linewidth={width}
+                    transparent
+                    depthWrite={false}
+                    opacity={isExplicit ? alpha : 0}
+                  />
+                </threeLine>
               );
             })}
         </group>
@@ -1268,3 +1257,4 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     </group>
   );
 };
+
