@@ -1,0 +1,22 @@
+.viewportContainer {
+  inline-size: 100%;
+  block-size: 550px;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-container);
+  border: var(--border-width-1) var(--border-style-boundary) var(--chrome-grid-primary-color);
+  background-color: var(--surface-canvas-bg);
+}
+
+.viewportContainer canvas {
+  position: relative;
+  z-index: var(--layer-canvas);
+}
+
+.controlsOverlay {
+  position: absolute;
+  inset-block-start: var(--space-viewport-edge);
+  inset-inline-start: var(--space-viewport-edge);
+  z-index: var(--layer-hud);
+  pointer-events: auto;
+}

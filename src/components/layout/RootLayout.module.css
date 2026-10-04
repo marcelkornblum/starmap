@@ -27,7 +27,8 @@
     justify-content: space-between;
     padding: var(--header-padding-y) var(--header-padding-x);
     background: var(--header-bg);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(var(--scrim-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--scrim-backdrop-blur));
     border-bottom: var(--header-border-width) var(--header-border-style) var(--header-border-color);
     color: var(--header-color);
     z-index: var(--layer-dock, 40);
@@ -59,7 +60,7 @@
     font-size: var(--text-content-body-size);
     color: var(--nav-color);
     text-decoration: none;
-    transition: color 150ms ease;
+    transition: color var(--motion-duration-interactive) var(--motion-ease-default);
   }
 
   .navLink:hover {
@@ -84,12 +85,13 @@
     padding: var(--space-inset-cell-y) var(--space-inset-cell-x);
     background: var(--surface-panel-bg);
     border: var(--border-width-subtle) var(--border-style-boundary) var(--border-color-subtle);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-control);
     color: var(--content-muted);
     font-family: var(--font-interface);
     font-size: var(--text-content-data-label-size);
     cursor: pointer;
-    transition: border-color 150ms ease, color 150ms ease;
+    transition: border-color var(--motion-duration-interactive) var(--motion-ease-default),
+                color var(--motion-duration-interactive) var(--motion-ease-default);
   }
 
   .searchButton:hover {
@@ -99,9 +101,9 @@
 
   .shortcutKey {
     font-family: var(--font-data);
-    font-size: 0.75rem;
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
+    font-size: var(--text-ui-kbd-size);
+    padding: var(--space-inset-badge);
+    border-radius: var(--radius-control);
     background: var(--surface-dock-bg);
     border: var(--border-width-subtle) var(--border-style-boundary) var(--border-color-subtle);
   }

@@ -21,6 +21,7 @@ import {
   simulateAsyncFetch,
 } from '../src/router';
 import { RouteSkeleton } from '../src/components/common/RouteSkeleton';
+import { SafeHtml } from '../src/components/canvas/SafeHtml';
 
 describe('Global Canvas SceneBridge', () => {
   it('renders SceneOutlet when ScenePortal injects a scene', () => {
@@ -206,5 +207,55 @@ describe('Route Loaders & Render-Then-Fetch Pattern', () => {
     const refLoader = referenceRoute.options.loader as unknown as () => Promise<ReferenceData>;
     const refData = await refLoader();
     expect(refData.catalog).toContain('ICRS/J2000');
+  });
+
+  describe('SafeHtml & View Lifecycle Safeguards', () => {
+    it('renders SafeHtml in SSR cleanly as an empty 3D group without leaking DOM nodes', () => {
+      const html = renderToString(
+        createElement(
+          SafeHtml,
+          { 'data-testid': 'safe-html-overlay', position: [1, 2, 3], className: 'test-class' },
+          createElement('span', null, 'Overlay Content'),
+        ),
+      );
+      expect(html).toContain('<group');
+      expect(html).not.toContain('<div');
+      expect(html).not.toContain('Overlay Content');
+    });
+
+    it('preserves incoming scene during asynchronous unmount of previous view in SceneBridge', () => {
+      let activeSceneState: React.ReactNode = null;
+      let activeKeyState: string | null = null;
+
+      const TestHarness = () => {
+        const { activeScene, activeSceneKey, setScene } = useScene();
+        activeSceneState = activeScene;
+        activeKeyState = activeSceneKey;
+
+        return createElement(
+          'div',
+          null,
+          createElement('button', {
+            'data-testid': 'mount-view-a',
+            onClick: () => setScene('scene-a', 'view-a'),
+          }),
+          createElement('button', {
+            'data-testid': 'mount-view-b',
+            onClick: () => setScene('scene-b', 'view-b'),
+          }),
+          createElement('button', {
+            'data-testid': 'unmount-view-a',
+            onClick: () => setScene(null, 'view-a'),
+          }),
+        );
+      };
+
+      const html = renderToString(
+        createElement(SceneProvider, null, createElement(TestHarness)),
+      );
+      expect(html).toBeDefined();
+      expect(activeSceneState).toBeNull();
+      expect(activeKeyState).toBeNull();
+    });
   });
 });

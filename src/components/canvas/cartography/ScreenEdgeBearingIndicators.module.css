@@ -1,0 +1,124 @@
+.htmlOverlayContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.indicator {
+  --indicator-x: 0px;
+  --indicator-y: 0px;
+  --indicator-color: var(--chrome-bearing-core-cue-color);
+  --indicator-bg: var(--chrome-bearing-cue-bg);
+  --indicator-padding: var(--chrome-bearing-cue-padding);
+  --indicator-gap: var(--chrome-bearing-cue-gap);
+  --indicator-radius: var(--chrome-bearing-cue-radius);
+  --indicator-backdrop-blur: var(--chrome-bearing-cue-backdrop-blur);
+  --indicator-chevron-size: var(--chrome-bearing-chevron-size);
+  --indicator-opacity-attached: var(--chrome-bearing-cue-opacity-attached);
+  --indicator-opacity-detached: var(--chrome-bearing-cue-opacity-detached);
+  --indicator-label-opacity: var(--chrome-bearing-cue-label-opacity);
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--indicator-gap);
+  padding: var(--indicator-padding);
+  font-family: var(--font-data);
+  font-size: var(--text-map-annotation-size);
+  letter-spacing: var(--tracking-control);
+  text-transform: uppercase;
+  color: var(--indicator-color);
+  background: var(--indicator-bg);
+  border: none;
+  border-radius: var(--indicator-radius);
+  backdrop-filter: blur(var(--indicator-backdrop-blur));
+  box-shadow: none;
+  will-change: transform;
+  transition: opacity var(--motion-duration-feedback) var(--motion-ease-default);
+}
+
+/* Bearing types */
+.indicator[data-bearing="core"] {
+  --indicator-color: var(--chrome-bearing-core-cue-color);
+}
+
+.indicator[data-bearing="orbital"] {
+  --indicator-color: var(--chrome-bearing-orbital-cue-color);
+}
+
+/* Edge alignments: transforms relative to the screen edge intersection point */
+.indicator[data-edge="right"] {
+  transform: translate(calc(var(--indicator-x) - 100%), calc(var(--indicator-y) - 50%));
+  flex-direction: row;
+}
+
+.indicator[data-edge="left"] {
+  transform: translate(var(--indicator-x), calc(var(--indicator-y) - 50%));
+  flex-direction: row-reverse;
+}
+
+.indicator[data-edge="top"] {
+  transform: translate(calc(var(--indicator-x) - 50%), var(--indicator-y));
+  flex-direction: column-reverse;
+}
+
+.indicator[data-edge="bottom"] {
+  transform: translate(calc(var(--indicator-x) - 50%), calc(var(--indicator-y) - 100%));
+  flex-direction: column;
+}
+
+.indicator[data-edge="none"] {
+  transform: translate(calc(var(--indicator-x) - 50%), calc(var(--indicator-y) - 50%));
+  flex-direction: row;
+}
+
+/* Detached state */
+.indicator[data-detached="true"] {
+  opacity: var(--indicator-opacity-detached);
+}
+
+.indicator[data-detached="false"] {
+  opacity: var(--indicator-opacity-attached);
+}
+
+.chevronWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--indicator-chevron-size);
+  height: var(--indicator-chevron-size);
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.chevron {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.label {
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-control);
+  color: var(--content-muted);
+  opacity: var(--indicator-label-opacity);
+}

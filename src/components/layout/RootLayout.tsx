@@ -3,6 +3,7 @@ import type React from 'react';
 import { Outlet, Link, useNavigate } from '@tanstack/react-router';
 import { SceneProvider } from '../canvas/SceneBridge';
 import { GlobalCanvas } from '../canvas/GlobalCanvas';
+import { ThemeTokenBridge } from '../canvas/ThemeTokenBridge';
 import { CommandPalette, type CommandPaletteItem } from '../domain';
 import styles from './RootLayout.module.css';
 
@@ -159,6 +160,7 @@ export const RootHeader: React.FC = () => {
 export const RootLayout: React.FC<RootLayoutProps> = () => {
   return (
     <SceneProvider>
+      <ThemeTokenBridge />
       <div className={[styles.starmapApp, 'starmap-app'].join(' ')}>
         {/* Persistent 3D WebGL Canvas Layer */}
         <GlobalCanvas />

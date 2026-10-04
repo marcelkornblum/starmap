@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { createElement } from 'react';
-import { Card, Panel, Dock, Well } from '../src/components/surfaces';
+import { Card, Panel, Dock, Well, Hud } from '../src/components/surfaces';
 import { Modal, Drawer, Popover, Tooltip, Toast } from '../src/components/overlays';
 import { DossierLayout, MetricStrip, ToolbarLayout } from '../src/components/templates';
 
@@ -64,6 +64,19 @@ describe('Tier 2: Surfaces', () => {
     expect(html).toContain('data-tabular="true"');
     expect(html).toContain('data-padding="tight"');
     expect(html).toContain('123.456 AU');
+  });
+
+  it('renders Hud with position and padded state', () => {
+    const html = renderToString(
+      createElement(
+        Hud,
+        { position: 'top', padded: true },
+        createElement('span', null, 'HUD Telemetry')
+      )
+    );
+    expect(html).toContain('data-position="top"');
+    expect(html).toContain('HUD Telemetry');
+    expect(html).toContain('<header');
   });
 });
 

@@ -6,8 +6,9 @@
     --dock-border-style: var(--surface-dock-border-style);
     --dock-shadow: var(--surface-dock-shadow);
     --dock-blur: var(--surface-dock-backdrop-blur);
-    --dock-padding: var(--space-fib-3);
-    --dock-radius: var(--radius-md);
+    --dock-padding: var(--space-inset-control-x);
+    --dock-radius: var(--radius-container);
+    --dock-z-index: var(--layer-dock);
 
     display: flex;
     box-sizing: border-box;
@@ -18,7 +19,7 @@
     -webkit-backdrop-filter: blur(var(--dock-blur));
     border-radius: var(--dock-radius);
     padding: var(--dock-padding);
-    z-index: 100;
+    z-index: var(--dock-z-index);
     margin: 0;
   }
 }

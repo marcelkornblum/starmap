@@ -1,12 +1,19 @@
 @layer blocks {
   .sliderContainer {
-    --slider-track-bg: var(--ui-input-bg);
-    --slider-border: var(--ui-input-border-color);
-    --slider-thumb-bg: var(--solarized-blue);
+    --slider-track-bg: var(--ui-slider-track-bg);
+    --slider-track-border-color: var(--ui-slider-track-border-color);
+    --slider-track-border-width: var(--ui-slider-track-border-width);
+    --slider-track-border-style: var(--ui-slider-track-border-style);
+    --slider-track-height: var(--ui-slider-track-height);
+    --slider-track-radius: var(--ui-slider-track-radius);
+    --slider-thumb-bg: var(--ui-slider-thumb-bg);
+    --slider-thumb-size: var(--ui-slider-thumb-size);
+    --slider-thumb-radius: var(--ui-slider-thumb-radius);
+    --slider-gap: var(--ui-slider-gap);
 
     display: flex;
     flex-direction: column;
-    gap: var(--space-fib-2);
+    gap: var(--slider-gap);
     inline-size: 100%;
     font-family: var(--font-interface);
   }
@@ -14,7 +21,7 @@
   .labelRow {
     display: flex;
     justify-content: space-between;
-    font-size: var(--type-scale-neg-1);
+    font-size: var(--text-content-data-label-size);
     color: var(--content-muted);
   }
 
@@ -28,10 +35,10 @@
     -webkit-appearance: none;
     appearance: none;
     inline-size: 100%;
-    block-size: 6px;
+    block-size: var(--slider-track-height);
     background: var(--slider-track-bg);
-    border: var(--stroke-hairline) solid var(--slider-border);
-    border-radius: var(--radius-pill);
+    border: var(--slider-track-border-width) var(--slider-track-border-style) var(--slider-track-border-color);
+    border-radius: var(--slider-track-radius);
     outline: none;
     cursor: pointer;
     margin: 0;
@@ -40,30 +47,30 @@
   .rangeInput::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    inline-size: 16px;
-    block-size: 16px;
-    border-radius: 50%;
+    inline-size: var(--slider-thumb-size);
+    block-size: var(--slider-thumb-size);
+    border-radius: var(--slider-thumb-radius);
     background: var(--slider-thumb-bg);
     cursor: pointer;
     border: none;
-    transition: transform var(--duration-fast) var(--ease-standard);
+    transition: transform var(--motion-duration-feedback) var(--motion-ease-default);
   }
 
   .rangeInput::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
+    transform: scale(1.15);
   }
 
   .rangeInput::-moz-range-thumb {
-    inline-size: 16px;
-    block-size: 16px;
-    border-radius: 50%;
+    inline-size: var(--slider-thumb-size);
+    block-size: var(--slider-thumb-size);
+    border-radius: var(--slider-thumb-radius);
     background: var(--slider-thumb-bg);
     cursor: pointer;
     border: none;
   }
 
   .rangeInput:focus-visible {
-    outline: var(--stroke-standard) solid var(--border-focus);
-    outline-offset: 2px;
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
   }
 }

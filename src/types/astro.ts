@@ -327,3 +327,48 @@ export interface SolarSystemBodyRecord {
   /** Categorization tags */
   tags?: string[];
 }
+
+/**
+ * Detailed planetary body record with physical, atmospheric, and observational telemetry
+ * for planetary inspection and micro views.
+ */
+export interface DetailedPlanetRecord {
+  id: string;
+  name: string;
+  systemId: string;
+  systemName: string;
+  classification: string;
+  letter?: string;
+  discoveryYear?: number | null;
+  discoveryMethod?: string;
+  meanRadiusKm?: number | null;
+  massKg?: number | null;
+  massMearth?: number | null;
+  radiusRearth?: number | null;
+  surfaceGravityG?: number | null;
+  surfaceGravityMs2?: number | null;
+  escapeVelocityKmS?: number | null;
+  rotationalPeriodHours?: number | null;
+  axialTiltDeg?: number | null;
+  albedo?: number | null;
+  surfacePressureBar?: number | null;
+  meanTemperatureK?: number | null;
+  equilibriumTempK?: number | null;
+  esi?: number | null;
+  atmosphere?: string | null;
+  magneticFieldGauss?: number | null;
+  hazardStatus?: 'nominal' | 'caution' | 'critical';
+  confidenceLevel?: 'direct-imaging' | 'in-situ' | 'transit-spectroscopy' | 'rv-constrained' | 'unconstrained' | 'high' | 'moderate' | 'low';
+  confidenceMethod?: string;
+  uncertainties?: Record<string, number>;
+  orbit?: KeplerianOrbit;
+  moons?: Array<{
+    id: string;
+    name: string;
+    meanRadiusKm: number;
+    massKg?: number;
+    orbitalPeriodDays?: number;
+  }>;
+  description?: string;
+}
+

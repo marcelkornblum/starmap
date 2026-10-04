@@ -5,10 +5,35 @@
     --dossier-border-width: var(--surface-panel-border-width);
     --dossier-border-style: var(--surface-panel-border-style);
     --dossier-padding: var(--space-inset-card);
+    --dossier-radius: var(--radius-container);
+
+    --dossier-header-gap: var(--space-gap-layout);
+    --dossier-title-gap: var(--space-gap-item);
+    --dossier-title-size: var(--text-ui-dossier-title-size);
+    --dossier-title-color: var(--content-prominent);
+    --dossier-subtitle-size: var(--text-content-body-size);
+    --dossier-section-title-size: var(--text-content-body-size);
+
+    --dossier-list-gap: var(--space-gap-list);
+    --dossier-item-padding: var(--space-inset-cell-y) var(--space-inset-cell-x);
+    --dossier-item-radius: var(--radius-control);
+    --dossier-item-name-color: var(--content-prominent);
+    --dossier-item-name-size: var(--text-content-body-size);
+
+    --dossier-metrics-gap: var(--space-gap-layout);
+    --dossier-metrics-size: var(--text-content-data-label-size);
+
+    --dossier-overview-size: var(--text-content-body-size);
+    --dossier-overview-color: var(--content-default);
+
+    --dossier-empty-size: var(--text-content-body-size);
+
+    --dossier-transition-duration: var(--motion-duration-interactive);
+    --dossier-transition-ease: var(--motion-ease-default);
 
     background: var(--dossier-bg);
     border: var(--dossier-border-width) var(--dossier-border-style) var(--dossier-border-color);
-    border-radius: var(--radius-lg);
+    border-radius: var(--dossier-radius);
     padding: var(--dossier-padding);
     font-family: var(--font-interface);
   }
@@ -17,32 +42,32 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: var(--space-fib-3);
+    gap: var(--dossier-header-gap);
   }
 
   .titleGroup {
     display: flex;
     flex-direction: column;
-    gap: var(--space-fib-1);
+    gap: var(--dossier-title-gap);
   }
 
   .title {
-    font-size: var(--type-scale-2);
+    font-size: var(--dossier-title-size);
     font-weight: 700;
-    color: var(--content-bright);
+    color: var(--dossier-title-color);
     margin: 0;
   }
 
   .subtitle {
-    font-size: var(--type-scale-0);
+    font-size: var(--dossier-subtitle-size);
     color: var(--content-muted);
     font-variant-numeric: tabular-nums;
   }
 
   .sectionTitle {
-    font-size: var(--type-scale-0);
+    font-size: var(--dossier-section-title-size);
     font-weight: 600;
-    color: var(--content-bright);
+    color: var(--dossier-title-color);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0;
@@ -51,19 +76,19 @@
   .planetList {
     display: flex;
     flex-direction: column;
-    gap: var(--space-fib-2);
+    gap: var(--dossier-list-gap);
   }
 
   .planetItem {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-fib-2) var(--space-fib-3);
+    padding: var(--dossier-item-padding);
     background: var(--surface-inset-bg);
     border: var(--surface-inset-border-width) var(--surface-inset-border-style) var(--surface-inset-border-color);
-    border-radius: var(--radius-control, 4px);
-    transition: background var(--motion-duration-interactive, 150ms) var(--motion-ease-default, ease),
-                border-color var(--motion-duration-interactive, 150ms) var(--motion-ease-default, ease);
+    border-radius: var(--dossier-item-radius);
+    transition: background var(--dossier-transition-duration) var(--dossier-transition-ease),
+                border-color var(--dossier-transition-duration) var(--dossier-transition-ease);
   }
 
   .planetItem[data-selectable="true"] {
@@ -82,29 +107,29 @@
 
   .planetName {
     font-weight: 500;
-    color: var(--content-bright);
-    font-size: var(--type-scale-0);
+    color: var(--dossier-item-name-color);
+    font-size: var(--dossier-item-name-size);
   }
 
   .planetMetrics {
     display: flex;
     align-items: center;
-    gap: var(--space-fib-3);
-    font-size: var(--type-scale--1);
+    gap: var(--dossier-metrics-gap);
+    font-size: var(--dossier-metrics-size);
     color: var(--content-muted);
     font-variant-numeric: tabular-nums;
   }
 
   .overviewText {
-    font-size: var(--type-scale-0);
-    color: var(--content-base);
-    line-height: 1.5;
+    font-size: var(--dossier-overview-size);
+    color: var(--dossier-overview-color);
+    line-height: var(--leading-prose);
     margin: 0;
   }
 
   .emptyNotice {
     color: var(--content-muted);
-    font-size: var(--type-scale-0);
+    font-size: var(--dossier-empty-size);
     font-style: italic;
   }
 }

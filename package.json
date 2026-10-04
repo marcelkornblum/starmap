@@ -9,6 +9,7 @@
     "build:all": "npm run data:pipeline && npm run typecheck && npm run build",
     "lint": "oxlint",
     "typecheck": "tsc -b",
+    "audit:r3f": "tsx scripts/audit-r3f.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

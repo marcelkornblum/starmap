@@ -3,19 +3,27 @@
     --badge-bg: var(--surface-dock-bg);
     --badge-color: var(--content-default);
     --badge-border-color: var(--surface-dock-border-color);
+    --badge-border-width: var(--border-width-1);
+    --badge-border-style: var(--border-style-boundary);
+    --badge-radius: var(--radius-badge);
+    --badge-padding: var(--space-inset-badge);
+    --badge-gap: var(--space-gap-badge);
+    --badge-font-size: var(--text-content-badge-size);
+    --badge-font-weight: var(--text-content-badge-weight);
+    --badge-leading: var(--leading-control);
 
     display: inline-flex;
     align-items: center;
-    gap: var(--space-fib-2);
-    padding: var(--space-inset-badge);
-    border-radius: var(--radius-sm);
-    font-size: var(--type-scale-neg-1);
+    gap: var(--badge-gap);
+    padding: var(--badge-padding);
+    border-radius: var(--badge-radius);
+    font-size: var(--badge-font-size);
     font-family: var(--font-interface);
-    font-weight: 500;
-    line-height: 1.2;
+    font-weight: var(--badge-font-weight);
+    line-height: var(--badge-leading);
     background: var(--badge-bg);
     color: var(--badge-color);
-    border: var(--stroke-hairline) solid var(--badge-border-color);
+    border: var(--badge-border-width) var(--badge-border-style) var(--badge-border-color);
     white-space: nowrap;
   }
 }
@@ -35,43 +43,43 @@
     --badge-border-color: var(--status-critical);
   }
   .badge[data-status="info"] {
-    --badge-color: var(--status-info);
-    --badge-border-color: var(--status-info);
+    --badge-color: var(--state-focus);
+    --badge-border-color: var(--state-focus);
   }
 
   /* Confidence variants */
   .badge[data-confidence="confirmed"] {
-    --badge-color: var(--status-nominal);
-    --badge-border-color: var(--status-nominal);
+    --badge-color: var(--confidence-confirmed);
+    --badge-border-color: var(--confidence-confirmed);
   }
   .badge[data-confidence="candidate"] {
-    --badge-color: var(--status-caution);
-    --badge-border-color: var(--status-caution);
+    --badge-color: var(--confidence-candidate);
+    --badge-border-color: var(--confidence-candidate);
   }
   .badge[data-confidence="projected"] {
-    --badge-color: var(--status-info);
-    --badge-border-color: var(--status-info);
+    --badge-color: var(--confidence-theoretical);
+    --badge-border-color: var(--confidence-theoretical);
   }
   .badge[data-confidence="unverified"] {
     --badge-color: var(--content-muted);
-    --badge-border-color: var(--border-subtle);
+    --badge-border-color: var(--surface-panel-border-color);
   }
 
   /* Category variants */
   .badge[data-category="star"] {
-    --badge-color: var(--solarized-yellow);
-    --badge-border-color: var(--solarized-yellow);
+    --badge-color: var(--category-star);
+    --badge-border-color: var(--category-star);
   }
   .badge[data-category="planet"] {
-    --badge-color: var(--solarized-blue);
-    --badge-border-color: var(--solarized-blue);
+    --badge-color: var(--category-planet);
+    --badge-border-color: var(--category-planet);
   }
   .badge[data-category="nebula"] {
-    --badge-color: var(--solarized-magenta);
-    --badge-border-color: var(--solarized-magenta);
+    --badge-color: var(--category-orbit);
+    --badge-border-color: var(--category-orbit);
   }
   .badge[data-category="constellation"] {
-    --badge-color: var(--solarized-cyan);
-    --badge-border-color: var(--solarized-cyan);
+    --badge-color: var(--category-planet);
+    --badge-border-color: var(--category-planet);
   }
 }

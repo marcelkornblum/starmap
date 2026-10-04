@@ -11,9 +11,12 @@
     --tooltip-border-width: var(--surface-popover-border-width);
     --tooltip-border-style: var(--surface-popover-border-style);
     --tooltip-shadow: var(--surface-popover-shadow);
-    --tooltip-padding: var(--space-fib-1) var(--space-fib-2);
-    --tooltip-radius: var(--radius-sm);
+    --tooltip-padding: var(--space-inset-tooltip);
+    --tooltip-radius: var(--ui-tooltip-radius);
     --tooltip-font-size: var(--text-ui-tooltip-size);
+    --tooltip-offset: var(--space-offset-overlay);
+    --tooltip-transition-duration: var(--motion-duration-feedback);
+    --tooltip-transition-ease: var(--motion-ease-default);
 
     position: absolute;
     box-sizing: border-box;
@@ -29,7 +32,7 @@
     pointer-events: none;
     z-index: 600;
     opacity: 0;
-    transition: opacity var(--duration-fast) var(--ease-standard);
+    transition: opacity var(--tooltip-transition-duration) var(--tooltip-transition-ease);
   }
 
   .tooltipWrapper:hover .tooltip,
@@ -40,25 +43,25 @@
 
 @layer exceptions {
   .tooltip[data-position="top"] {
-    inset-block-end: calc(100% + var(--space-fib-2));
+    inset-block-end: calc(100% + var(--tooltip-offset));
     inset-inline-start: 50%;
     transform: translateX(-50%);
   }
 
   .tooltip[data-position="bottom"] {
-    inset-block-start: calc(100% + var(--space-fib-2));
+    inset-block-start: calc(100% + var(--tooltip-offset));
     inset-inline-start: 50%;
     transform: translateX(-50%);
   }
 
   .tooltip[data-position="left"] {
-    inset-inline-end: calc(100% + var(--space-fib-2));
+    inset-inline-end: calc(100% + var(--tooltip-offset));
     inset-block-start: 50%;
     transform: translateY(-50%);
   }
 
   .tooltip[data-position="right"] {
-    inset-inline-start: calc(100% + var(--space-fib-2));
+    inset-inline-start: calc(100% + var(--tooltip-offset));
     inset-block-start: 50%;
     transform: translateY(-50%);
   }

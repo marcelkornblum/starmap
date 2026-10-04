@@ -44,3 +44,39 @@ Candidate features and ideas identified during architectural discussions, awaiti
 
 - **System Settings Drawer:** Slide-out drawer for rendering performance, audio/SFX, measurement units (AU, parsecs, light-years), and theme switching (Light/Dark).
 - **Keyboard Shortcut Reference Modal:** Modal overlay documenting navigation keys, camera controls, and HUD shortcuts.
+
+---
+
+## 3D Cartography & Visual Language Refinement
+
+- **Volumetric Media & Interstellar Media (ISM):** Finesse representation of diffuse 3D spatial volumes (molecular clouds, nebulae, star-forming regions, the Local Bubble void) via mathematical micro-dot point-density fields (cartographic stippling) and planar survey cross-hatching on datum planes.
+- **Multi-Scale Transition Mechanics:** Finesse dynamic datum plane shifts across scale boundaries (Galactic Equator $XY \rightarrow$ System Invariable/Ecliptic Plane $\rightarrow$ Planetary Rotational Equator) and visual indicators for inter-scale plane tilt angles.
+- **Keplerian Orbit Lines:** Finesse elliptical orbit styling in System View (solid vs stippled linework, periapsis/apoapsis ticks, ascending/descending nodes, inclination shading above/below the ecliptic).
+- **Typographic Hierarchy & Label Formatting (Layer 3):** Finesse typographic hierarchy, uppercase/tabular monospace formatting, font tokens, and exact offset geometry of system designations relative to reticle facets.
+- **Multi-Tier Reticle Priority Hierarchy (Phase 4):** Formalise the multi-tier priority occlusion hierarchy (which reticles yield to which under line-of-sight collisions) alongside User Journeys in Phase 4.
+- **Zoom-Level Clamping Calibration:** Calibrate specific zoom-tier clamping thresholds in interactive mockups to suppress ambient labels/reticles during macro zoom-out and prevent visual crowding.
+- **Far Horizon Fade Calibration:** Calibrate the specific distance-multiplier horizons and attenuation curves for background stars fading outside the active focal aperture ($R_{fin}$).
+- **Kinematic Vector Terminus & Epoch Calibration:** Finalise the activation rules, specific astronomical epoch ($\Delta t$), and terminus styling (ghost pip vs tick) for projected dotted velocity vectors.
+- **Camera Coupling Implementation:** Resolve whether zoom is implemented via camera dolly with proportional aperture scaling vs fixed camera distance with variable scene aperture radius.
+- **Orthographic Projection & Camera Navigation Paradigms:** Implement robust orthographic projection and formalise the camera navigation paradigms across 3D and 2D modes. Address continuous matrix blending/switching between narrow-FOV technical perspective (25°–35°) and pure orthographic projection when approaching cardinal planes ($XY$ Galactic Equator, $XZ$/$YZ$ profiles); resolve frustum-to-aperture scaling to maintain uniform visual proportions during transitions; eliminate depth buffer and clipping plane anomalies in orthographic mode; and establish modal navigation controls (constrained 2D pan/zoom when locked into orthographic chart view vs orbit/dolly in free 3D inspection, smooth critically damped camera glides, and consistent input mappings across devices).
+- **Significance-Gated Data Filtering (Toponymic Hierarchy):** Explore dynamic prioritisation of entity visibility based on active survey queries or astronomical significance rather than arbitrary global culling.
+
+---
+
+## Core Architecture & Event System
+
+- **Unified 3D-2D Event & Telemetry Projection Bridge (Scheduled for 3D Engine Track):** Design and establish a rigorous, strongly typed interaction and event pipeline bridging 3D WebGL/Three.js scene events (raycasting, object pick/hover, camera transitions) and 2D DOM/HUD UI layers. Propagate entity interaction states (`passive`, `active`, `selected`, `focused`), project 3D entity coordinates to 2D screen-space pixels without layout thrashing, and tunnel camera action commands from 2D button clicks into the 3D scene.
+- **UI Component Inventory & Surface Registry:** Author and maintain the comprehensive inventory of all 2D UI and HUD components required across the application (`<SecondaryObjectsPane>`, `<TimeScrubber>`, `<Breadcrumbs>`, `<ScopeSwitcherChip>`, `<CommandPalette>`, `<AdaptiveTelemetryContainer>`, `<AttitudeMinimap>`, `<RoutePlanningBay>`, `<TourWaypointCard>`, `<ParameterComparator>`, `<CodexArticleView>`, `<CommsLagSimulator>`).
+
+
+---
+
+## Data Architecture & Spatial Ingestion
+
+- **Dynamic 3D Spatial Partitioning & Sector Streaming:** Client-side runtime data loading architecture and memory management pipeline for astronomical datasets, specifically tailored for 3D celestial positioning across the 100-parsec solar neighbourhood. Implements view-frustum and distance-gated asynchronous streaming of sharded 25-pc cubic spatial sectors (`public/data/partitions/sector_*.json`) or packed binary buffers (`Float32Array` Cartesian coordinates) directly into GPU instanced point buffers. Incorporates dynamic floating-origin shifting to eliminate 32-bit floating-point precision jitter when transitioning between macro (parsec-scale galactic coordinates) and micro (AU-scale heliocentric coordinates) reference frames, backed by client-side spatial indexing (octree or spatial hash grid) for sub-millisecond proximity queries, raycast hit detection, and LOD caching.
+
+---
+
+## Observability & Analytics
+
+- **Comprehensive Interaction & Performance Analytics:** Establish a clear, granular analytics and telemetry pipeline capturing detailed user journey events (POI selections, search behaviour, viewport transitions, tool interactions) and client-side runtime performance (frame rates, render passes, asset streaming latency, WebGL context events). Define a formal event taxonomy with strongly typed payloads decoupled from UI presentation logic.

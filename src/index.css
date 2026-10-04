@@ -26,5 +26,10 @@
     -webkit-user-select: none;
     touch-action: none; /* Prevents browser handling of gestures so our 3D canvas can handle them */
   }
+
+  canvas {
+    position: relative;
+    z-index: 1;
+  }
 }
 

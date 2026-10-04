@@ -3,11 +3,12 @@
     --input-bg: var(--ui-input-bg);
     --input-color: var(--ui-input-color);
     --input-border-color: var(--ui-input-border-color);
-    --input-border-width: var(--stroke-hairline);
-    --input-padding-inline: var(--space-inset-control-x);
-    --input-padding-block: var(--space-inset-control-y);
-    --input-font-size: var(--type-scale-0);
-    --input-radius: var(--radius-sm);
+    --input-border-width: var(--ui-input-border-width);
+    --input-border-style: var(--ui-input-border-style);
+    --input-padding-inline: var(--ui-input-padding-x);
+    --input-padding-block: var(--ui-input-padding-y);
+    --input-font-size: var(--ui-input-font-size);
+    --input-radius: var(--ui-input-radius);
 
     display: inline-flex;
     box-sizing: border-box;
@@ -18,24 +19,24 @@
     padding-block: var(--input-padding-block);
     background: var(--input-bg);
     color: var(--input-color);
-    border: var(--input-border-width) solid var(--input-border-color);
+    border: var(--input-border-width) var(--input-border-style) var(--input-border-color);
     border-radius: var(--input-radius);
     outline: none;
-    transition: border-color var(--duration-fast) var(--ease-standard);
+    transition: border-color var(--motion-duration-feedback) var(--motion-ease-default);
     margin: 0;
   }
 
   .input::placeholder {
-    color: var(--content-subtle);
+    color: var(--ui-input-placeholder-color);
   }
 
   .input:focus {
-    --input-border-color: var(--border-focus);
-    box-shadow: 0 0 0 1px var(--border-focus);
+    --input-border-color: var(--state-focus);
+    box-shadow: 0 0 0 1px var(--state-focus);
   }
 
   .input:disabled {
-    opacity: 0.5;
+    opacity: var(--ui-disabled-opacity);
     cursor: not-allowed;
   }
 
@@ -58,8 +59,8 @@
   }
 
   .input[data-size="sm"] {
-    --input-padding-inline: var(--space-fib-2);
-    --input-padding-block: var(--space-fib-1);
-    --input-font-size: var(--type-scale-neg-1);
+    --input-padding-inline: var(--ui-input-sm-padding-x);
+    --input-padding-block: var(--ui-input-sm-padding-y);
+    --input-font-size: var(--ui-input-sm-font-size);
   }
 }

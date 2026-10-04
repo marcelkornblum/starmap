@@ -7,6 +7,16 @@
     --drawer-shadow: var(--surface-drawer-shadow);
     --drawer-padding: var(--space-inset-drawer);
 
+    --drawer-title-size: var(--text-content-section-title-size);
+    --drawer-title-weight: 600;
+    --drawer-title-color: var(--content-prominent);
+
+    --drawer-close-color: var(--content-muted);
+    --drawer-close-hover-color: var(--content-prominent);
+    --drawer-close-hover-bg: var(--surface-dock-bg);
+    --drawer-close-radius: var(--radius-control);
+    --drawer-close-padding: var(--space-gap-item);
+
     position: fixed;
     box-sizing: border-box;
     background: transparent;
@@ -49,28 +59,30 @@
   }
 
   .title {
-    font-size: var(--type-scale-1);
-    font-weight: 600;
-    color: var(--content-bright);
+    font-size: var(--drawer-title-size);
+    font-weight: var(--drawer-title-weight);
+    color: var(--drawer-title-color);
     margin: 0;
   }
 
   .closeButton {
     background: transparent;
     border: none;
-    color: var(--content-muted);
+    color: var(--drawer-close-color);
     cursor: pointer;
-    font-size: var(--type-scale-1);
-    padding: var(--space-fib-1);
+    font-size: var(--drawer-title-size);
+    padding: var(--drawer-close-padding);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-sm);
+    border-radius: var(--drawer-close-radius);
+    transition: color var(--motion-duration-interactive) var(--motion-ease-default),
+                background var(--motion-duration-interactive) var(--motion-ease-default);
   }
 
   .closeButton:hover {
-    color: var(--content-bright);
-    background: var(--surface-dock-bg);
+    color: var(--drawer-close-hover-color);
+    background: var(--drawer-close-hover-bg);
   }
 }
 

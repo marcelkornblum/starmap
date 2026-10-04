@@ -6,7 +6,18 @@
     --modal-border-style: var(--surface-modal-border-style);
     --modal-shadow: var(--surface-modal-shadow);
     --modal-padding: var(--space-inset-modal);
-    --modal-radius: var(--radius-lg);
+    --modal-radius: var(--surface-modal-radius);
+    --modal-color: var(--content-default);
+
+    --modal-title-font-size: var(--text-ui-modal-title-size);
+    --modal-title-font-weight: 600;
+    --modal-title-color: var(--content-prominent);
+
+    --modal-close-color: var(--content-muted);
+    --modal-close-hover-color: var(--content-prominent);
+    --modal-close-hover-bg: var(--surface-dock-bg);
+    --modal-close-radius: var(--radius-control);
+    --modal-close-padding: var(--space-gap-item);
 
     position: fixed;
     inset: 0;
@@ -20,7 +31,7 @@
     max-inline-size: min(90vw, 560px);
     max-block-size: 85vh;
     overflow: visible;
-    color: var(--content-default);
+    color: var(--modal-color);
   }
 
   .modal:not([open]) {
@@ -52,27 +63,29 @@
   }
 
   .title {
-    font-size: var(--type-scale-1);
-    font-weight: 600;
-    color: var(--content-bright);
+    font-size: var(--modal-title-font-size);
+    font-weight: var(--modal-title-font-weight);
+    color: var(--modal-title-color);
     margin: 0;
   }
 
   .closeButton {
     background: transparent;
     border: none;
-    color: var(--content-muted);
+    color: var(--modal-close-color);
     cursor: pointer;
-    font-size: var(--type-scale-1);
-    padding: var(--space-fib-1);
+    font-size: var(--modal-title-font-size);
+    padding: var(--modal-close-padding);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-sm);
+    border-radius: var(--modal-close-radius);
+    transition: color var(--motion-duration-interactive) var(--motion-ease-default),
+                background var(--motion-duration-interactive) var(--motion-ease-default);
   }
 
   .closeButton:hover {
-    color: var(--content-bright);
-    background: var(--surface-dock-bg);
+    color: var(--modal-close-hover-color);
+    background: var(--modal-close-hover-bg);
   }
 }

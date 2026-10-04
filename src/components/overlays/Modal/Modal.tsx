@@ -7,6 +7,7 @@ export interface ModalProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>
   onClose: () => void;
   title?: ReactNode;
   children?: ReactNode;
+  isModal?: boolean;
 }
 
 export const Modal = ({
@@ -14,6 +15,7 @@ export const Modal = ({
   onClose,
   title,
   children,
+  isModal = true,
   className,
   ...rest
 }: ModalProps) => {
@@ -26,14 +28,20 @@ export const Modal = ({
 
     if (isOpen) {
       if (!dialog.open) {
-        dialog.showModal?.();
+        if (isModal) {
+          dialog.showModal?.();
+        } else if (dialog.show) {
+          dialog.show();
+        } else {
+          dialog.setAttribute('open', '');
+        }
       }
     } else {
       if (dialog.open) {
         dialog.close?.();
       }
     }
-  }, [isOpen]);
+  }, [isOpen, isModal]);
 
   const combinedClassName = className
     ? `${styles.modal} ${className}`

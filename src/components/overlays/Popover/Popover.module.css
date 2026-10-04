@@ -10,8 +10,9 @@
     --popover-border-width: var(--surface-popover-border-width);
     --popover-border-style: var(--surface-popover-border-style);
     --popover-shadow: var(--surface-popover-shadow);
-    --popover-padding: var(--space-fib-3);
-    --popover-radius: var(--radius-md);
+    --popover-padding: var(--space-inset-popover);
+    --popover-radius: var(--surface-popover-radius);
+    --popover-offset: var(--space-offset-overlay);
 
     position: absolute;
     box-sizing: border-box;
@@ -27,25 +28,25 @@
 
 @layer exceptions {
   .popover[data-position="top"] {
-    inset-block-end: calc(100% + var(--space-fib-2));
+    inset-block-end: calc(100% + var(--popover-offset));
     inset-inline-start: 50%;
     transform: translateX(-50%);
   }
 
   .popover[data-position="bottom"] {
-    inset-block-start: calc(100% + var(--space-fib-2));
+    inset-block-start: calc(100% + var(--popover-offset));
     inset-inline-start: 50%;
     transform: translateX(-50%);
   }
 
   .popover[data-position="left"] {
-    inset-inline-end: calc(100% + var(--space-fib-2));
+    inset-inline-end: calc(100% + var(--popover-offset));
     inset-block-start: 50%;
     transform: translateY(-50%);
   }
 
   .popover[data-position="right"] {
-    inset-inline-start: calc(100% + var(--space-fib-2));
+    inset-inline-start: calc(100% + var(--popover-offset));
     inset-block-start: 50%;
     transform: translateY(-50%);
   }
