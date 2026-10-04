@@ -1,7 +1,8 @@
 import type React from 'react';
-import { useMemo, useRef, useEffect, useState } from 'react';
+import { useMemo, useRef, useEffect, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
+import { useShallow } from 'zustand/react/shallow';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import {
   QUADRANTS,
@@ -19,7 +20,6 @@ import {
 } from './reticleGeometry';
 import {
   celestialOcclusionManager,
-  type CelestialFootprint,
 } from './celestialOcclusionRegistry';
 
 const PLANES = ['xy', 'xz', 'yz'] as const;
@@ -171,25 +171,14 @@ const StalkedFootprintsLayer: React.FC<StalkedFootprintsLayerProps> = ({
   defaultAlpha,
   tokens,
 }) => {
-  const [stalked, setStalked] = useState<CelestialFootprint[]>([]);
+  const stalked = useSyncExternalStore(
+    celestialOcclusionManager.subscribeStalked,
+    celestialOcclusionManager.getStalkedFootprintsSnapshot,
+    celestialOcclusionManager.getStalkedFootprintsSnapshot,
+  );
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
-    const current = celestialOcclusionManager.getStalkedFootprints();
-    let hasChanged = current.length !== stalked.length;
-    if (!hasChanged) {
-      for (let i = 0; i < current.length; i++) {
-        const c = current[i];
-        const s = stalked[i];
-        if (c.id !== s?.id || c.state !== s?.state || c.hasStalk !== s?.hasStalk) {
-          hasChanged = true;
-          break;
-        }
-      }
-    }
-    if (hasChanged) {
-      setStalked(current.map((item) => ({ ...item })));
-    }
     if (groupRef.current && originRef.current) {
       groupRef.current.position.set(-originRef.current.x, -originRef.current.y, 0.002);
     }
@@ -290,7 +279,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   position = [0, 0, 0],
   focusTarget,
 }) => {
-  const tokens = useThreeTokenStore((state) => state.tokens);
+  const tokens = useThreeTokenStore(useShallow((state) => state.tokens));
   const { camera } = useThree();
 
   const isDatumPlaneVisible = showGalacticPlane ?? showFullDatumCircle ?? true;

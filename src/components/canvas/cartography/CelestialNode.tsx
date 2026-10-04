@@ -164,6 +164,11 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     isDisplaced: false,
   });
   const scratchHitOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const scratchNodeEvalStateRef = useRef({
+    isReticleSuppressed: false,
+    hitOffset: scratchHitOffsetRef.current,
+    labelEval: scratchLabelResultRef.current,
+  });
   const scratchBoxRef = useRef<Box2D>({ left: 0, top: 0, right: 0, bottom: 0 });
   const lastOccludedRef = useRef<boolean | null>(null);
   const lastDisplacedRef = useRef<boolean | null>(null);
@@ -282,27 +287,27 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     record.updatedAt = performance.now();
     celestialOcclusionManager.register(record);
 
+    // Centralized evaluation pass: reticle occlusion, hit-testing fan-out, and label displacement (O(1) spatial grid)
+    const { isReticleSuppressed, hitOffset, labelEval } = celestialOcclusionManager.evaluateNodeOcclusion(
+      id,
+      activeBox,
+      scratchNodeEvalStateRef.current,
+    );
+
     // Layer 2: Geometric Reticles - Priority Occlusion Masking (Spec 2.2)
     // Equal-priority reticles overlay directly; significant reticles (focused/selected) suppress lesser background reticles
-    const isReticleSuppressed = celestialOcclusionManager.evaluateReticleOcclusion(id);
     if (reticleLinesRef.current) {
       reticleLinesRef.current.visible = shouldRenderReticle && !isReticleSuppressed;
     }
 
     // Interactive Hit-Testing Fan-Out (Spec 2.2)
     // When nodes overlap in screen space, underlying invisible hit areas fan out radially so users can click overlapping nodes
-    const hitOffset = celestialOcclusionManager.evaluateHitAreaOffset(id, scratchHitOffsetRef.current);
     if (hitareaMeshRef.current) {
       const pxToLocal = reticleRadius > 0 ? reticleSize / reticleRadius : 0;
       hitareaMeshRef.current.position.set(hitOffset.x * pxToLocal, -hitOffset.y * pxToLocal, 0);
     }
 
     // Layer 3: Typographic Labels - Dynamic Screen-Space Displacement along thin 1px leader stem & Camera-Proximity Occlusion (Spec 2.3)
-    const labelEval = celestialOcclusionManager.evaluateLabelOcclusion(
-      id,
-      activeBox,
-      scratchLabelResultRef.current,
-    );
     const isLabelVisible = labelEval.visible && shouldRenderLabel && !isBehindCamera;
     if (labelContainerRef.current) {
       if (lastOccludedRef.current !== isLabelVisible) {

@@ -136,8 +136,78 @@ export function boxIntersectsFootprint(box: Box2D, footprint: CelestialFootprint
   return false;
 }
 
+/**
+ * 2D Screen-space spatial partition grid.
+ * Groups registered footprints into fixed pixel cells to convert O(N^2) pairwise
+ * intersection and distance checks into O(1) local neighborhood lookups.
+ */
+class ScreenSpatialGrid {
+  private cellSize: number;
+  private cells = new Map<number, CelestialFootprint[]>();
+  private arrayPool: CelestialFootprint[][] = [];
+
+  constructor(cellSize = 100) {
+    this.cellSize = cellSize;
+  }
+
+  private hash(cx: number, cy: number): number {
+    return (cx & 0xffff) | ((cy & 0xffff) << 16);
+  }
+
+  public clear(): void {
+    for (const arr of this.cells.values()) {
+      arr.length = 0;
+      this.arrayPool.push(arr);
+    }
+    this.cells.clear();
+  }
+
+  public insert(fp: CelestialFootprint): void {
+    const cx = Math.floor(fp.screenX / this.cellSize);
+    const cy = Math.floor(fp.screenY / this.cellSize);
+    const key = this.hash(cx, cy);
+    let arr = this.cells.get(key);
+    if (!arr) {
+      arr = this.arrayPool.pop() ?? [];
+      this.cells.set(key, arr);
+    }
+    arr.push(fp);
+  }
+
+  public forEachNearby(
+    x: number,
+    y: number,
+    radius: number,
+    cb: (item: CelestialFootprint) => boolean | void,
+  ): void {
+    const minCx = Math.floor((x - radius) / this.cellSize);
+    const maxCx = Math.floor((x + radius) / this.cellSize);
+    const minCy = Math.floor((y - radius) / this.cellSize);
+    const maxCy = Math.floor((y + radius) / this.cellSize);
+
+    for (let cx = minCx; cx <= maxCx; cx++) {
+      for (let cy = minCy; cy <= maxCy; cy++) {
+        const key = this.hash(cx, cy);
+        const arr = this.cells.get(key);
+        if (arr) {
+          for (let i = 0; i < arr.length; i++) {
+            if (cb(arr[i]) === false) return;
+          }
+        }
+      }
+    }
+  }
+}
+
 export class CelestialOcclusionManager {
   private footprints = new Map<string, CelestialFootprint>();
+  private significantFootprints: CelestialFootprint[] = [];
+  private grid = new ScreenSpatialGrid(100);
+  private gridDirty = true;
+
+  // Stalked footprints subscription
+  private stalkedListeners = new Set<() => void>();
+  private stalkedSnapshot: CelestialFootprint[] = [];
 
   // Scratch memory for zero-allocation candidate displacement checks
   private scratchCandidateBox: Box2D = { left: 0, top: 0, right: 0, bottom: 0 };
@@ -150,18 +220,90 @@ export class CelestialOcclusionManager {
   };
   private scratchHitOffset: { x: number; y: number } = { x: 0, y: 0 };
 
+  private ensureGrid(): void {
+    if (!this.gridDirty) return;
+    this.grid.clear();
+    for (const fp of this.footprints.values()) {
+      if (fp.visible) {
+        this.grid.insert(fp);
+      }
+    }
+    this.gridDirty = false;
+  }
+
+  private updateSignificantFootprints(): void {
+    this.significantFootprints = [];
+    for (const fp of this.footprints.values()) {
+      if (fp.visible && fp.hasReticle && (fp.state === 'selected' || fp.state === 'focused')) {
+        this.significantFootprints.push(fp);
+      }
+    }
+  }
+
+  private updateStalkedSnapshot(): void {
+    const list: CelestialFootprint[] = [];
+    for (const fp of this.footprints.values()) {
+      if (fp.hasStalk && fp.worldPos) {
+        list.push({ ...fp });
+      }
+    }
+    this.stalkedSnapshot = list;
+    for (const listener of this.stalkedListeners) {
+      listener();
+    }
+  }
+
+  public subscribeStalked = (listener: () => void): () => void => {
+    this.stalkedListeners.add(listener);
+    return () => {
+      this.stalkedListeners.delete(listener);
+    };
+  };
+
+  public getStalkedFootprintsSnapshot = (): CelestialFootprint[] => {
+    return this.stalkedSnapshot;
+  };
+
   /**
    * Register or update a celestial node's screen-space footprint.
    */
   public register(footprint: CelestialFootprint): void {
+    const existing = this.footprints.get(footprint.id);
+    const stalkChanged =
+      !existing ||
+      existing.hasStalk !== footprint.hasStalk ||
+      existing.state !== footprint.state;
+    const significanceChanged =
+      !existing ||
+      existing.state !== footprint.state ||
+      existing.visible !== footprint.visible;
+
     this.footprints.set(footprint.id, footprint);
+    this.gridDirty = true;
+
+    if (significanceChanged) {
+      this.updateSignificantFootprints();
+    }
+    if (stalkChanged) {
+      this.updateStalkedSnapshot();
+    }
   }
 
   /**
    * Unregister a celestial node when unmounted or hidden.
    */
   public unregister(id: string): void {
+    const existing = this.footprints.get(id);
     this.footprints.delete(id);
+    this.gridDirty = true;
+    if (existing) {
+      if (existing.state === 'selected' || existing.state === 'focused') {
+        this.updateSignificantFootprints();
+      }
+      if (existing.hasStalk) {
+        this.updateStalkedSnapshot();
+      }
+    }
   }
 
   /**
@@ -169,6 +311,10 @@ export class CelestialOcclusionManager {
    */
   public clear(): void {
     this.footprints.clear();
+    this.significantFootprints = [];
+    this.grid.clear();
+    this.gridDirty = false;
+    this.updateStalkedSnapshot();
   }
 
   /**
@@ -186,17 +332,23 @@ export class CelestialOcclusionManager {
       return false;
     }
 
-    // Check if colliding beneath any significant reticle in foreground or same depth
-    for (const [id, other] of this.footprints.entries()) {
-      if (id === nodeId || !other.visible || !other.hasReticle) continue;
+    if (this.significantFootprints.length === 0) {
+      return false;
+    }
 
-      if (other.state === 'selected' || other.state === 'focused') {
-        const dx = Math.abs(target.screenX - other.screenX);
-        const dy = Math.abs(target.screenY - other.screenY);
-        // Colliding within significant reticle's diamond bounds
-        if ((dx + dy) <= (target.reticleRadius + other.reticleRadius) * 0.75 && (target.camDist ?? 0) >= (other.camDist ?? 0)) {
-          return true; // Suppressed by significant priority mask
-        }
+    // Check if colliding beneath any significant reticle in foreground or same depth
+    for (let i = 0; i < this.significantFootprints.length; i++) {
+      const other = this.significantFootprints[i];
+      if (other.id === nodeId || !other.visible || !other.hasReticle) continue;
+
+      const dx = Math.abs(target.screenX - other.screenX);
+      const dy = Math.abs(target.screenY - other.screenY);
+      // Colliding within significant reticle's diamond bounds
+      if (
+        (dx + dy) <= (target.reticleRadius + other.reticleRadius) * 0.75 &&
+        (target.camDist ?? 0) >= (other.camDist ?? 0)
+      ) {
+        return true; // Suppressed by significant priority mask
       }
     }
 
@@ -212,19 +364,24 @@ export class CelestialOcclusionManager {
     labelBox: Box2D,
     options?: { checkSelf?: boolean },
   ): { hasIntersection: boolean; collidingNodeId?: string } {
+    this.ensureGrid();
     const checkSelf = options?.checkSelf ?? true;
+    const centerX = (labelBox.left + labelBox.right) * 0.5;
+    const centerY = (labelBox.top + labelBox.bottom) * 0.5;
+    const radius = Math.max(labelBox.right - labelBox.left, labelBox.bottom - labelBox.top) * 0.5 + 80;
 
-    for (const [id, footprint] of this.footprints.entries()) {
-      if (!checkSelf && id === sourceId) {
-        continue;
-      }
+    let result: { hasIntersection: boolean; collidingNodeId?: string } = { hasIntersection: false };
+
+    this.grid.forEachNearby(centerX, centerY, radius, (footprint) => {
+      if (!checkSelf && footprint.id === sourceId) return;
 
       if (boxIntersectsFootprint(labelBox, footprint)) {
-        return { hasIntersection: true, collidingNodeId: id };
+        result = { hasIntersection: true, collidingNodeId: footprint.id };
+        return false;
       }
-    }
+    });
 
-    return { hasIntersection: false };
+    return result;
   }
 
   /**
@@ -286,6 +443,8 @@ export class CelestialOcclusionManager {
       return result;
     }
 
+    this.ensureGrid();
+
     // Candidate displacements (Spec 2.3: Screen-Space Displacement along thin 1px leader stems)
     const r = target.reticleRadius;
     const candidates = [
@@ -304,57 +463,54 @@ export class CelestialOcclusionManager {
       cBox.right = labelBox.right + cand.dx;
       cBox.bottom = labelBox.bottom + cand.dy;
 
+      const cCenterX = (cBox.left + cBox.right) * 0.5;
+      const cCenterY = (cBox.top + cBox.bottom) * 0.5;
+      const searchRadius = Math.max(cBox.right - cBox.left, cBox.bottom - cBox.top) * 0.5 + 80;
+
       let collidesWithReticle = false;
       let collidesWithHigherPriorityLabel = false;
 
-      // 1. Authoritative Rule: labels should never occlude stars or reticles
-      for (const other of this.footprints.values()) {
-        if (!other.visible || !other.hasReticle) continue;
-        if (diamondIntersectsAABB(other.screenX, other.screenY, other.reticleRadius, cBox)) {
+      this.grid.forEachNearby(cCenterX, cCenterY, searchRadius, (other) => {
+        if (!other.visible) return;
+
+        // 1. Authoritative Rule: labels should never occlude stars or reticles
+        if (other.hasReticle && diamondIntersectsAABB(other.screenX, other.screenY, other.reticleRadius, cBox)) {
           collidesWithReticle = true;
-          break;
+          return false;
         }
-      }
 
-      if (collidesWithReticle) {
-        continue;
-      }
-
-      // 2. Camera-Proximity Occlusion with other labels
-      for (const [id, other] of this.footprints.entries()) {
-        if (id === nodeId || !other.visible || !other.labelBox) continue;
-
-        if (boxesIntersect(cBox, other.labelBox)) {
-          // Significant nodes have target immunity: ambient node yields
+        // 2. Camera-Proximity Occlusion with other labels
+        if (other.id !== nodeId && other.labelBox && boxesIntersect(cBox, other.labelBox)) {
           if (other.state === 'selected' || other.state === 'focused') {
             collidesWithHigherPriorityLabel = true;
-            break;
+            return false;
           }
 
-          // Both ambient: closer system retains its label, further system yields
           if (other.state === 'active') {
             const otherDist = other.camDist ?? 0;
             const targetDist = target.camDist ?? 0;
             if (otherDist < targetDist) {
               collidesWithHigherPriorityLabel = true;
-              break;
+              return false;
             } else if (otherDist === targetDist && other.id.localeCompare(target.id) < 0) {
               collidesWithHigherPriorityLabel = true;
-              break;
+              return false;
             }
           }
         }
+      });
+
+      if (collidesWithReticle || collidesWithHigherPriorityLabel) {
+        continue;
       }
 
-      if (!collidesWithHigherPriorityLabel) {
-        // Valid non-colliding placement found
-        result.visible = true;
-        result.behindCanvas = true;
-        result.displacementX = cand.dx;
-        result.displacementY = cand.dy;
-        result.isDisplaced = cand.dx !== 0 || cand.dy !== 0;
-        return result;
-      }
+      // Valid non-colliding placement found
+      result.visible = true;
+      result.behindCanvas = true;
+      result.displacementX = cand.dx;
+      result.displacementY = cand.dy;
+      result.isDisplaced = cand.dx !== 0 || cand.dy !== 0;
+      return result;
     }
 
     // Beyond displacement threshold: Camera-Proximity Occlusion suppresses the label
@@ -379,9 +535,12 @@ export class CelestialOcclusionManager {
     const target = this.footprints.get(nodeId);
     if (!target || !target.visible) return offset;
 
+    this.ensureGrid();
     const cluster: CelestialFootprint[] = [];
-    for (const other of this.footprints.values()) {
-      if (!other.visible) continue;
+    const searchRadius = target.reticleRadius * 2.0;
+
+    this.grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
+      if (!other.visible) return;
       const dx = target.screenX - other.screenX;
       const dy = target.screenY - other.screenY;
       const dist = Math.hypot(dx, dy);
@@ -389,7 +548,7 @@ export class CelestialOcclusionManager {
       if (dist <= threshold) {
         cluster.push(other);
       }
-    }
+    });
 
     if (cluster.length <= 1) {
       return offset;
@@ -414,9 +573,12 @@ export class CelestialOcclusionManager {
     const target = this.footprints.get(clickedId);
     if (!target || !target.visible) return clickedId;
 
+    this.ensureGrid();
     const cluster: CelestialFootprint[] = [];
-    for (const other of this.footprints.values()) {
-      if (!other.visible) continue;
+    const searchRadius = target.reticleRadius * 2.0;
+
+    this.grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
+      if (!other.visible) return;
       const dx = target.screenX - other.screenX;
       const dy = target.screenY - other.screenY;
       const dist = Math.hypot(dx, dy);
@@ -424,7 +586,7 @@ export class CelestialOcclusionManager {
       if (dist <= threshold) {
         cluster.push(other);
       }
-    }
+    });
 
     if (cluster.length <= 1) {
       return clickedId;
@@ -455,6 +617,33 @@ export class CelestialOcclusionManager {
       }
     }
     return stalked;
+  }
+
+  /**
+   * Evaluates all occlusion, hit area fan-out, and label displacement passes
+   * for a node in a single centralized call with zero object allocations.
+   */
+  public evaluateNodeOcclusion(
+    nodeId: string,
+    labelBox?: Box2D,
+    outState?: {
+      isReticleSuppressed: boolean;
+      hitOffset: { x: number; y: number };
+      labelEval: LabelOcclusionResult;
+    },
+  ): {
+    isReticleSuppressed: boolean;
+    hitOffset: { x: number; y: number };
+    labelEval: LabelOcclusionResult;
+  } {
+    const isReticleSuppressed = this.evaluateReticleOcclusion(nodeId);
+    const hitOffset = this.evaluateHitAreaOffset(nodeId, outState?.hitOffset);
+    const labelEval = this.evaluateLabelOcclusion(nodeId, labelBox, outState?.labelEval);
+    if (outState) {
+      outState.isReticleSuppressed = isReticleSuppressed;
+      return outState;
+    }
+    return { isReticleSuppressed, hitOffset, labelEval };
   }
 }
 
