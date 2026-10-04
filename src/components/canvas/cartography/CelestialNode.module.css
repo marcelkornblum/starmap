@@ -29,17 +29,6 @@
   visibility: hidden;
 }
 
-.nodeLabel[data-displaced="true"]::before {
-  content: '';
-  position: absolute;
-  left: -12px;
-  top: 50%;
-  width: 12px;
-  height: var(--stroke-width-1, 1px);
-  background-color: var(--chrome-grid-primary-color);
-  pointer-events: none;
-}
-
 .nodeLabel[data-state="focused"] {
   border-color: var(--state-focus);
   color: var(--state-focus);

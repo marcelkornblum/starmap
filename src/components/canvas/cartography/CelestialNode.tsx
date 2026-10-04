@@ -10,6 +10,7 @@ import {
   type CelestialFootprint,
   type LabelOcclusionResult,
 } from './celestialOcclusionRegistry';
+import { createStyledLinePoints } from './cartographyMath';
 import styles from './CelestialNode.module.css';
 
 /**
@@ -63,25 +64,12 @@ export interface CelestialNodeProps {
   reticleSize?: number;
   showStalk?: boolean;
   showLabel?: boolean;
+  enableOcclusion?: boolean;
   multiplicity?: number;
   planets?: PlanetCensusEntry[];
   onClick?: (id: string) => void;
   onPointerOver?: (id: string) => void;
   onPointerOut?: (id: string) => void;
-}
-
-/**
- * Creates segmented points for dashed negative-Z drop stalks.
- */
-function createDashedStalkPoints(zStart: number, zEnd: number, segments = 12): THREE.Vector3[] {
-  const points: THREE.Vector3[] = [];
-  const deltaZ = (zEnd - zStart) / segments;
-  for (let i = 0; i < segments; i += 2) {
-    const z1 = zStart + i * deltaZ;
-    const z2 = zStart + (i + 1) * deltaZ;
-    points.push(new THREE.Vector3(0, 0, z1), new THREE.Vector3(0, 0, z2));
-  }
-  return points;
 }
 
 /**
@@ -99,6 +87,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   reticleSize = 0.45,
   showStalk: explicitShowStalk,
   showLabel: explicitShowLabel,
+  enableOcclusion = true,
   multiplicity = 1,
   planets,
   onClick,
@@ -171,7 +160,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   });
   const scratchBoxRef = useRef<Box2D>({ left: 0, top: 0, right: 0, bottom: 0 });
   const lastOccludedRef = useRef<boolean | null>(null);
-  const lastDisplacedRef = useRef<boolean | null>(null);
   const lastTransformRef = useRef<string>('');
   const lastSpectrumOccludedRef = useRef<boolean | null>(null);
   const registrationRef = useRef<CelestialFootprint>({
@@ -288,11 +276,27 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     celestialOcclusionManager.register(record);
 
     // Centralized evaluation pass: reticle occlusion, hit-testing fan-out, and label displacement (O(1) spatial grid)
-    const { isReticleSuppressed, hitOffset, labelEval } = celestialOcclusionManager.evaluateNodeOcclusion(
-      id,
-      activeBox,
-      scratchNodeEvalStateRef.current,
-    );
+    let isReticleSuppressed = false;
+    let hitOffset = scratchHitOffsetRef.current;
+    let labelEval = scratchLabelResultRef.current;
+
+    if (enableOcclusion) {
+      const evalState = celestialOcclusionManager.evaluateNodeOcclusion(
+        id,
+        activeBox,
+        scratchNodeEvalStateRef.current,
+      );
+      isReticleSuppressed = evalState.isReticleSuppressed;
+      hitOffset = evalState.hitOffset;
+      labelEval = evalState.labelEval;
+    } else {
+      labelEval.visible = true;
+      labelEval.displacementX = 0;
+      labelEval.displacementY = 0;
+      labelEval.isDisplaced = false;
+      hitOffset.x = 0;
+      hitOffset.y = 0;
+    }
 
     // Layer 2: Geometric Reticles - Priority Occlusion Masking (Spec 2.2)
     // Equal-priority reticles overlay directly; significant reticles (focused/selected) suppress lesser background reticles
@@ -307,7 +311,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       hitareaMeshRef.current.position.set(hitOffset.x * pxToLocal, -hitOffset.y * pxToLocal, 0);
     }
 
-    // Layer 3: Typographic Labels - Dynamic Screen-Space Displacement along thin 1px leader stem & Camera-Proximity Occlusion (Spec 2.3)
+    // Layer 3: Typographic Labels - Dynamic Screen-Space Displacement & Camera-Proximity Occlusion (Spec 2.3)
     const isLabelVisible = labelEval.visible && shouldRenderLabel && !isBehindCamera;
     if (labelContainerRef.current) {
       if (lastOccludedRef.current !== isLabelVisible) {
@@ -316,23 +320,13 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       }
       if (labelEval.isDisplaced) {
         const nextTransform = `translate(${labelEval.displacementX}px, ${labelEval.displacementY}px)`;
-        if (!lastDisplacedRef.current) {
-          lastDisplacedRef.current = true;
-          labelContainerRef.current.setAttribute('data-displaced', 'true');
-        }
         if (lastTransformRef.current !== nextTransform) {
           lastTransformRef.current = nextTransform;
           labelContainerRef.current.style.transform = nextTransform;
         }
-      } else {
-        if (lastDisplacedRef.current) {
-          lastDisplacedRef.current = false;
-          labelContainerRef.current.removeAttribute('data-displaced');
-        }
-        if (lastTransformRef.current !== '') {
-          lastTransformRef.current = '';
-          labelContainerRef.current.style.transform = '';
-        }
+      } else if (lastTransformRef.current !== '') {
+        lastTransformRef.current = '';
+        labelContainerRef.current.style.transform = '';
       }
     }
     if (spectrumFacetRef.current && lastSpectrumOccludedRef.current !== isLabelVisible) {
@@ -377,8 +371,12 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
         new THREE.Vector3(0, 0, -z),
       ]);
     } else {
-      // Dashed vertical line for negative Z
-      const dashedPts = createDashedStalkPoints(0, -z, 10);
+      // Dashed vertical line for negative Z with consistent unstretched HTML-like styling
+      const dashedPts = createStyledLinePoints(
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 0, -z),
+        'dashed',
+      );
       return new THREE.BufferGeometry().setFromPoints(dashedPts);
     }
   }, [shouldRenderStalk, z]);
@@ -465,9 +463,9 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
         {/* Top-Right Facet: Typographic Label (System Designation) */}
         {shouldRenderReticle && shouldRenderLabel && (
           <Html
+            key={`${id}-label`}
             position={[reticleSize * 1.15, reticleSize * 0.75, 0]}
             center={false}
-            prepend={true}
             zIndexRange={HTML_Z_INDEX_RANGE}
             data-testid="celestial-label"
           >
@@ -482,12 +480,12 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
           </Html>
         )}
 
-        {/* Bottom-Right Facet: Solar Spectrum Type */}
+        {/* Bottom-Right Facet: Solar Spectrum Type (placed tight to the reticle) */}
         {shouldRenderLabel && isAnnotated && spectralType && (
           <Html
-            position={[reticleSize * 1.15, -reticleSize * 0.75, 0]}
+            key={`${id}-spectrum`}
+            position={[reticleSize * 0.65, -reticleSize * 0.45, 0]}
             center={false}
-            prepend={true}
             zIndexRange={HTML_Z_INDEX_RANGE}
             data-testid="celestial-spectrum-facet"
           >
@@ -505,9 +503,9 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       {/* Typographic Label fallback if reticle is hidden (e.g. passive with explicit showLabel) */}
       {!shouldRenderReticle && shouldRenderLabel && (
         <Html
+          key={`${id}-fallback-label`}
           position={[0.2, 0.2, 0]}
           center={false}
-          prepend={true}
           zIndexRange={HTML_Z_INDEX_RANGE}
           data-testid="celestial-label"
         >

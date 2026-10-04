@@ -32,28 +32,7 @@ const meta: Meta<typeof OrbitalRing> = {
 export default meta;
 type Story = StoryObj<typeof OrbitalRing>;
 
-export const Circular: Story = {
-  args: {
-    semiMajorAxis: 2.0,
-    eccentricity: 0,
-    inclination: 0,
-    isFocused: false,
-    showPeriapsisTick: true,
-  },
-};
-
-export const Eccentric: Story = {
-  args: {
-    semiMajorAxis: 2.5,
-    eccentricity: 0.35,
-    inclination: 0,
-    argumentOfPeriapsis: 30,
-    isFocused: false,
-    showPeriapsisTick: true,
-  },
-};
-
-export const InclinedAndEccentric: Story = {
+export const Default: Story = {
   args: {
     semiMajorAxis: 3.0,
     eccentricity: 0.2,
@@ -65,27 +44,3 @@ export const InclinedAndEccentric: Story = {
   },
 };
 
-export const FocusedHighlight: Story = {
-  args: {
-    semiMajorAxis: 2.0,
-    eccentricity: 0.05,
-    inclination: 7,
-    isFocused: true,
-    showPeriapsisTick: true,
-  },
-};
-
-export const MultiBodySystem: Story = {
-  render: () => (
-    <group>
-      {/* Mercury */}
-      <OrbitalRing semiMajorAxis={0.8} eccentricity={0.205} inclination={7.0} ascendingNode={48} />
-      {/* Venus */}
-      <OrbitalRing semiMajorAxis={1.4} eccentricity={0.007} inclination={3.4} ascendingNode={76} />
-      {/* Earth (Focused) */}
-      <OrbitalRing semiMajorAxis={2.0} eccentricity={0.017} inclination={0} isFocused={true} />
-      {/* Mars */}
-      <OrbitalRing semiMajorAxis={2.8} eccentricity={0.093} inclination={1.85} ascendingNode={49} />
-    </group>
-  ),
-};

@@ -90,14 +90,14 @@ export function appendMultiplicityPips(
   multiplicity: number,
 ): void {
   const count = Math.min(Math.max(multiplicity, 1), 4);
-  const dOut = 0.14 * s;
+  const dOut = 0.26 * s;
   const nX = -Math.SQRT1_2;
   const nY = Math.SQRT1_2;
   const dotR = (0.035 / 0.45) * s;
 
-  // Aligned towards left point (-s, 0): starting near left corner and stepping along top-left facet
-  const tStart = 0.12;
-  const tStep = 0.16;
+  // Aligned along the top-left facet with visual symmetry to planetary pips
+  const tStart = 0.22;
+  const tStep = 0.22;
 
   for (let i = 0; i < count; i++) {
     const t = tStart + i * tStep;

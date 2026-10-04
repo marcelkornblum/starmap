@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useShallow } from 'zustand/react/shallow';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+
 import {
   QUADRANTS,
   createQuadrantArcGeometry,
@@ -11,6 +12,8 @@ import {
   computeCardinalAlignment,
   computeTransitionWeights,
   populateZoomAdaptiveRings,
+  populateDashedLineBuffer,
+  createGalacticPlanarGridGeometry,
   type ScaledRingInfo,
 } from './cartographyMath';
 import {
@@ -28,8 +31,8 @@ const PLANES = ['xy', 'xz', 'yz'] as const;
  * Creates BufferGeometry for a full 360-degree circle in the XY plane.
  */
 function createCircleGeometry(radius: number, steps = 128): THREE.BufferGeometry {
-  const buffer = new Float32Array((steps + 1) * 3);
-  for (let i = 0; i <= steps; i++) {
+  const buffer = new Float32Array(steps * 3);
+  for (let i = 0; i < steps; i++) {
     const theta = (i / steps) * Math.PI * 2;
     buffer[i * 3] = radius * Math.cos(theta);
     buffer[i * 3 + 1] = radius * Math.sin(theta);
@@ -103,6 +106,10 @@ export interface CartographicGridProps {
   showFullDatumCircle?: boolean;
   /** Whether to render planar footprints stamped on the Galactic Equator (Z=0) datum plane. Default: true */
   showPlanarFootprint?: boolean;
+  /** Whether to render the nearly-squared off galactic planar grid on the datum plane. Default: true */
+  showPlanarGrid?: boolean;
+  /** Spacing between grid lines on the galactic planar grid (defaults to 2 radii of the footprint: radius * 2). */
+  planarGridGap?: number;
   /** Shape classification of the primary focus planar footprint. Default: 'star' */
   footprintClassification?: CelestialClassification;
   /** Radius of the primary planar footprint in scene coordinate units. Default: 0.45 */
@@ -173,8 +180,27 @@ const ReticleFootprintNode: React.FC<ReticleFootprintNodeProps> = ({
     };
   }, [geom]);
 
+  const groupRef = useRef<THREE.Group>(null);
+  const scratchPosRef = useRef(new THREE.Vector3());
+  const scratchDirRef = useRef(new THREE.Vector3());
+
+  useFrame(({ camera }) => {
+    if (!groupRef.current) return;
+    const worldP = scratchPosRef.current.set(position[0], position[1], 0);
+    const camDist = camera.position.distanceTo(worldP);
+    const camDir = scratchDirRef.current.copy(camera.position).sub(worldP);
+    if (camDist > 1e-4) camDir.divideScalar(camDist);
+    const { alphaZ } = computeCardinalAlignment(camDir);
+    const fovFactor = camera instanceof THREE.PerspectiveCamera
+      ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
+      : 1.0;
+    const invScale = (camDist / 16.47) * fovFactor;
+    const fpScale = THREE.MathUtils.lerp(invScale, 1.0, alphaZ);
+    groupRef.current.scale.set(fpScale, fpScale, 1);
+  });
+
   return (
-    <group position={position} name={`planar-footprint-${id}`}>
+    <group ref={groupRef} position={position} name={`planar-footprint-${id}`}>
       <lineSegments geometry={geom}>
         <lineBasicMaterial
           color={color}
@@ -301,6 +327,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   showGalacticPlane,
   showFullDatumCircle,
   showPlanarFootprint = true,
+  showPlanarGrid = true,
+  planarGridGap,
   footprintClassification = 'star',
   footprintSize = 0.45,
   footprints,
@@ -445,6 +473,18 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     };
   }, []);
 
+  // Pre-allocated buffers and geometries for unstretched dashed orbital bearing lines
+  const gridOrbitalGeom = useMemo(() => new THREE.BufferGeometry(), []);
+  const gridOrbitalBuffer = useMemo(() => new Float32Array(6000), []);
+  const diskOrbitalGeom = useMemo(() => new THREE.BufferGeometry(), []);
+  const diskOrbitalBuffer = useMemo(() => new Float32Array(6000), []);
+
+  // Memoize nearly-squared off galactic planar grid (arcs of concentric circles around distant Galactic Centre)
+  const effectivePlanarGridGap = planarGridGap ?? radius * 2;
+  const galacticGridGeom = useMemo(() => {
+    return createGalacticPlanarGridGeometry(120, effectivePlanarGridGap, 500);
+  }, [effectivePlanarGridGap]);
+
   // Memoize unit circle geometries for datum boundary & concentric rings
   const circleGeom = useMemo(() => {
     const geom = createCircleGeometry(1.0, 128);
@@ -486,10 +526,13 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       bearingGeoms.orbital.dispose();
       bearingGeoms.antiCore.dispose();
       bearingGeoms.antiOrbital.dispose();
+      gridOrbitalGeom.dispose();
+      diskOrbitalGeom.dispose();
+      galacticGridGeom.dispose();
       circleGeom.dispose();
       fillCircleGeom.dispose();
     };
-  }, [quadrantGeoms, tickGeoms, spokeGeoms, bearingGeoms, circleGeom, fillCircleGeom]);
+  }, [quadrantGeoms, tickGeoms, spokeGeoms, bearingGeoms, gridOrbitalGeom, diskOrbitalGeom, galacticGridGeom, circleGeom, fillCircleGeom]);
 
   // Restore camera FOV and zoom on unmount
   useEffect(() => {
@@ -504,9 +547,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
   // Mutable Scene Graph References for useFrame
   const perimeterLinesRef = useRef<{
-    xy: (THREE.Line | null)[];
-    xz: (THREE.Line | null)[];
-    yz: (THREE.Line | null)[];
+    xy: (THREE.LineSegments | null)[];
+    xz: (THREE.LineSegments | null)[];
+    yz: (THREE.LineSegments | null)[];
   }>({
     xy: [null, null, null, null],
     xz: [null, null, null, null],
@@ -514,9 +557,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   });
 
   const quadLinesRef = useRef<{
-    xy: (THREE.Line | null)[][];
-    xz: (THREE.Line | null)[][];
-    yz: (THREE.Line | null)[][];
+    xy: (THREE.LineSegments | null)[][];
+    xz: (THREE.LineSegments | null)[][];
+    yz: (THREE.LineSegments | null)[][];
   }>({
     xy: Array.from({ length: poolSize }, () => []),
     xz: Array.from({ length: poolSize }, () => []),
@@ -524,9 +567,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   });
 
   const tickLinesRef = useRef<{
-    xy: (THREE.Line | null)[];
-    xz: (THREE.Line | null)[];
-    yz: (THREE.Line | null)[];
+    xy: (THREE.LineSegments | null)[];
+    xz: (THREE.LineSegments | null)[];
+    yz: (THREE.LineSegments | null)[];
   }>({
     xy: [null, null, null, null],
     xz: [null, null, null, null],
@@ -534,10 +577,10 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   });
 
   const spokeLinesRef = useRef<{
-    negX: THREE.Line | null;
-    negY: THREE.Line | null;
-    posZ: THREE.Line | null;
-    negZ: THREE.Line | null;
+    negX: THREE.LineSegments | null;
+    negY: THREE.LineSegments | null;
+    posZ: THREE.LineSegments | null;
+    negZ: THREE.LineSegments | null;
   }>({
     negX: null,
     negY: null,
@@ -545,11 +588,19 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     negZ: null,
   });
 
-  const bearingLinesRef = useRef<{
-    core: THREE.Line | null;
-    orbital: THREE.Line | null;
-    antiCore: THREE.Line | null;
-    antiOrbital: THREE.Line | null;
+  const gridBearingLinesRef = useRef<{
+    core: THREE.LineSegments | null;
+    orbital: THREE.LineSegments | null;
+  }>({
+    core: null,
+    orbital: null,
+  });
+
+  const diskBearingLinesRef = useRef<{
+    core: THREE.LineSegments | null;
+    orbital: THREE.LineSegments | null;
+    antiCore: THREE.LineSegments | null;
+    antiOrbital: THREE.LineSegments | null;
   }>({
     core: null,
     orbital: null,
@@ -557,9 +608,11 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     antiOrbital: null,
   });
 
-  const datumBoundaryLineRef = useRef<THREE.Line | null>(null);
+  const primaryFootprintRef = useRef<THREE.Group>(null);
+
+  const datumBoundaryLineRef = useRef<THREE.LineLoop | null>(null);
   const datumFillMeshRef = useRef<THREE.Mesh | null>(null);
-  const datumRingLinesRef = useRef<(THREE.Line | null)[]>(
+  const datumRingLinesRef = useRef<(THREE.LineLoop | null)[]>(
     Array.from({ length: poolSize }, () => null)
   );
 
@@ -802,6 +855,28 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         (sNegZ.material as THREE.LineBasicMaterial).opacity = alphaNegZ;
         sNegZ.visible = alphaNegZ > 0.001;
       }
+
+      // Extended Bearings on Cartographic Grid Proper (+X Core, +Y Orbital Dashed)
+      const extendedLen = currentRadius * 1.35;
+      const gCore = gridBearingLinesRef.current.core;
+      if (gCore) {
+        gCore.scale.set(extendedLen, extendedLen, 1);
+        (gCore.material as THREE.LineBasicMaterial).opacity = tokens.bearingCoreAlpha;
+        gCore.visible = true;
+      }
+
+      const vCountGrid = populateDashedLineBuffer(
+        gridOrbitalBuffer,
+        extendedLen,
+        [0, 1, 0],
+      );
+      let posAttrGrid = gridOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
+      if (!posAttrGrid || posAttrGrid.array !== gridOrbitalBuffer) {
+        posAttrGrid = new THREE.BufferAttribute(gridOrbitalBuffer, 3);
+        gridOrbitalGeom.setAttribute('position', posAttrGrid);
+      }
+      posAttrGrid.needsUpdate = true;
+      gridOrbitalGeom.setDrawRange(0, vCountGrid);
     }
 
     // 9. Datum Plane Update (Galactic Equator Z=0)
@@ -821,33 +896,41 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         dBoundary.visible = tokens.datumPlaneAlpha > 0.001;
       }
 
-      // Disk Cardinal Bearings (1 radius long on the datum plane, terminating at perimeter rim)
-      const bCore = bearingLinesRef.current.core;
-      if (bCore) {
-        bCore.scale.set(currentRadius, currentRadius, 1);
-        (bCore.material as THREE.LineBasicMaterial).opacity = tokens.bearingCoreAlpha;
-        bCore.visible = true;
+      // Disk Cardinal Bearings: Extended offscreen across the planar grid (not truncated)
+      const extendedPlanarLen = Math.max(120, currentRadius * 5);
+      const dCore = diskBearingLinesRef.current.core;
+      if (dCore) {
+        dCore.scale.set(extendedPlanarLen, extendedPlanarLen, 1);
+        (dCore.material as THREE.LineBasicMaterial).opacity = tokens.bearingCoreAlpha;
+        dCore.visible = true;
       }
 
-      const bOrbital = bearingLinesRef.current.orbital;
-      if (bOrbital) {
-        bOrbital.scale.set(currentRadius, currentRadius, 1);
-        (bOrbital.material as THREE.LineBasicMaterial).opacity = tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha;
-        bOrbital.visible = true;
+      // Orbital bearing on planar disk uses consistent unstretched dashed style extending offscreen
+      const vCountDisk = populateDashedLineBuffer(
+        diskOrbitalBuffer,
+        extendedPlanarLen,
+        [0, 1, 0],
+      );
+      let posAttrDisk = diskOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
+      if (!posAttrDisk || posAttrDisk.array !== diskOrbitalBuffer) {
+        posAttrDisk = new THREE.BufferAttribute(diskOrbitalBuffer, 3);
+        diskOrbitalGeom.setAttribute('position', posAttrDisk);
+      }
+      posAttrDisk.needsUpdate = true;
+      diskOrbitalGeom.setDrawRange(0, vCountDisk);
+
+      const dAntiCore = diskBearingLinesRef.current.antiCore;
+      if (dAntiCore) {
+        dAntiCore.scale.set(extendedPlanarLen, extendedPlanarLen, 1);
+        (dAntiCore.material as THREE.LineBasicMaterial).opacity = tokens.axisLineAlpha;
+        dAntiCore.visible = true;
       }
 
-      const bAntiCore = bearingLinesRef.current.antiCore;
-      if (bAntiCore) {
-        bAntiCore.scale.set(currentRadius, currentRadius, 1);
-        (bAntiCore.material as THREE.LineBasicMaterial).opacity = tokens.axisLineAlpha;
-        bAntiCore.visible = true;
-      }
-
-      const bAntiOrbital = bearingLinesRef.current.antiOrbital;
-      if (bAntiOrbital) {
-        bAntiOrbital.scale.set(currentRadius, currentRadius, 1);
-        (bAntiOrbital.material as THREE.LineBasicMaterial).opacity = tokens.axisLineAlpha;
-        bAntiOrbital.visible = true;
+      const dAntiOrbital = diskBearingLinesRef.current.antiOrbital;
+      if (dAntiOrbital) {
+        dAntiOrbital.scale.set(extendedPlanarLen, extendedPlanarLen, 1);
+        (dAntiOrbital.material as THREE.LineBasicMaterial).opacity = tokens.axisLineAlpha;
+        dAntiOrbital.visible = true;
       }
 
       // Continuous concentric range rings on the datum plane
@@ -873,6 +956,17 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       if (datumFillMeshRef.current) {
         datumFillMeshRef.current.scale.set(currentRadius, currentRadius, 1);
       }
+    }
+
+    // 10. Dynamic Planar Footprint Scaling: matches star reticle screen size until orthographic mode
+    const fovFactor = activeCamera instanceof THREE.PerspectiveCamera
+      ? Math.tan((activeCamera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
+      : 1.0;
+    const invScale = (camDist / 16.47) * fovFactor;
+    const fpScale = THREE.MathUtils.lerp(invScale, 1.0, alphaZ);
+
+    if (primaryFootprintRef.current) {
+      primaryFootprintRef.current.scale.set(fpScale, fpScale, 1);
     }
 
     // 11. Adaptive Orthographic Switch: Narrow FOV and compensate zoom to maintain target footprint
@@ -904,7 +998,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               {QUADRANTS.map((quad, qIdx) => {
                 const isInitialVisible = quad.qx === 1 && quad.qy === 1;
                 return (
-                  <threeLine
+                  <lineSegments
                     key={`${plane}-perimeter-q${qIdx}`}
                     ref={(el) => {
                       perimeterLinesRef.current[plane][qIdx] = el;
@@ -922,7 +1016,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                       depthWrite={false}
                       opacity={isInitialVisible ? tokens.gridPrimaryAlpha * 0.7 : 0}
                     />
-                  </threeLine>
+                  </lineSegments>
                 );
               })}
 
@@ -942,7 +1036,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                     {QUADRANTS.map((quad, qIdx) => {
                       const isInitialVisible = isExplicit && quad.qx === 1 && quad.qy === 1;
                       return (
-                        <threeLine
+                        <lineSegments
                           key={`${plane}-${ringIdx}-q${qIdx}`}
                           ref={(el) => {
                             if (!quadLinesRef.current[plane][ringIdx]) {
@@ -962,7 +1056,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                             depthWrite={false}
                             opacity={isInitialVisible ? baseAlpha : 0}
                           />
-                        </threeLine>
+                        </lineSegments>
                       );
                     })}
                   </group>
@@ -973,11 +1067,12 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               {QUADRANTS.map((quad, qIdx) => {
                 const isInitialVisible = quad.qx === 1 && quad.qy === 1;
                 return (
-                  <threeLine
+                  <lineSegments
                     key={`${plane}-ticks-q${qIdx}`}
                     ref={(el) => {
                       tickLinesRef.current[plane][qIdx] = el;
                     }}
+                    name={`${plane}-ticks-q${qIdx}`}
                     geometry={tickGeoms[plane][qIdx]}
                     scale={[radius, radius, radius]}
                     visible={isInitialVisible}
@@ -990,7 +1085,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                       depthWrite={false}
                       opacity={isInitialVisible ? Math.max(tokens.rangeTickAlpha * 1.6, 0.35) : 0}
                     />
-                  </threeLine>
+                  </lineSegments>
                 );
               })}
             </group>
@@ -1002,7 +1097,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       {showAxisLines && (
         <group name="cardinal-bearings">
           {/* Structural Fin Axis Spokes: Rendered only when both bordering fins rendered */}
-          <threeLine
+          <lineSegments
             ref={(el) => { spokeLinesRef.current.negX = el; }}
             name="axis-spoke-neg-x"
             geometry={spokeGeoms.negX}
@@ -1016,8 +1111,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               depthWrite={false}
               opacity={tokens.axisLineAlpha}
             />
-          </threeLine>
-          <threeLine
+          </lineSegments>
+          <lineSegments
             ref={(el) => { spokeLinesRef.current.negY = el; }}
             name="axis-spoke-neg-y"
             geometry={spokeGeoms.negY}
@@ -1031,8 +1126,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               depthWrite={false}
               opacity={tokens.axisLineAlpha}
             />
-          </threeLine>
-          <threeLine
+          </lineSegments>
+          <lineSegments
             ref={(el) => { spokeLinesRef.current.posZ = el; }}
             name="axis-spoke-pos-z"
             geometry={spokeGeoms.posZ}
@@ -1046,8 +1141,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               depthWrite={false}
               opacity={tokens.axisLineAlpha}
             />
-          </threeLine>
-          <threeLine
+          </lineSegments>
+          <lineSegments
             ref={(el) => { spokeLinesRef.current.negZ = el; }}
             name="axis-spoke-neg-z"
             geometry={spokeGeoms.negZ}
@@ -1061,7 +1156,39 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               depthWrite={false}
               opacity={tokens.axisLineAlpha}
             />
-          </threeLine>
+          </lineSegments>
+
+          {/* Prominent Extended Cardinal Bearing Lines: +X (Galactic Core Accent), +Y (Galactic Orbit Dashed) */}
+          <lineSegments
+            ref={(el) => { gridBearingLinesRef.current.core = el; }}
+            name="bearing-core"
+            geometry={bearingGeoms.core}
+            scale={[radius * 1.35, radius * 1.35, 1]}
+            frustumCulled={false}
+          >
+            <lineBasicMaterial
+              color={tokens.bearingCoreColor}
+              linewidth={tokens.bearingCoreWidth}
+              transparent
+              depthWrite={false}
+              opacity={tokens.bearingCoreAlpha}
+            />
+          </lineSegments>
+          <lineSegments
+            ref={(el) => { gridBearingLinesRef.current.orbital = el; }}
+            name="bearing-orbital"
+            geometry={gridOrbitalGeom}
+            scale={[1, 1, 1]}
+            frustumCulled={false}
+          >
+            <lineBasicMaterial
+              color={tokens.bearingOrbitalColor ?? tokens.bearingLineColor}
+              linewidth={tokens.bearingOrbitalWidth ?? tokens.bearingLineWidth}
+              transparent
+              depthWrite={false}
+              opacity={tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha}
+            />
+          </lineSegments>
         </group>
       )}
 
@@ -1085,8 +1212,25 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
             />
           </mesh>
 
+          {/* Nearly-squared off Galactic Planar Grid (concentric arcs about distant GC + radial rays) */}
+          {showPlanarGrid && (
+            <lineSegments
+              name="planar-galactic-grid"
+              geometry={galacticGridGeom}
+              frustumCulled={false}
+            >
+              <lineBasicMaterial
+                color={tokens.datumPlaneMinorColor}
+                linewidth={tokens.datumPlaneWidth}
+                transparent
+                depthWrite={false}
+                opacity={tokens.datumPlaneMinorAlpha}
+              />
+            </lineSegments>
+          )}
+
           {/* Outermost Projected Aperture Boundary */}
-          <threeLine
+          <lineLoop
             ref={datumBoundaryLineRef}
             name="datum-plane-boundary"
             geometry={circleGeom}
@@ -1100,13 +1244,13 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               depthWrite={false}
               opacity={tokens.datumPlaneAlpha}
             />
-          </threeLine>
+          </lineLoop>
 
-          {/* Planar Disk Cardinal Bearing Lines (1 radius long, solid, terminating at perimeter rim) */}
+          {/* Planar Disk Cardinal Bearing Lines (1 radius long, terminating at perimeter rim) */}
           {showAxisLines && (
             <group name="disk-bearings">
-              <threeLine
-                ref={(el) => { bearingLinesRef.current.core = el; }}
+              <lineSegments
+                ref={(el) => { diskBearingLinesRef.current.core = el; }}
                 name="bearing-core"
                 geometry={bearingGeoms.core}
                 scale={[radius, radius, 1]}
@@ -1119,12 +1263,12 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                   depthWrite={false}
                   opacity={tokens.bearingCoreAlpha}
                 />
-              </threeLine>
-              <threeLine
-                ref={(el) => { bearingLinesRef.current.orbital = el; }}
+              </lineSegments>
+              <lineSegments
+                ref={(el) => { diskBearingLinesRef.current.orbital = el; }}
                 name="bearing-orbital"
-                geometry={bearingGeoms.orbital}
-                scale={[radius, radius, 1]}
+                geometry={diskOrbitalGeom}
+                scale={[1, 1, 1]}
                 frustumCulled={false}
               >
                 <lineBasicMaterial
@@ -1134,9 +1278,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                   depthWrite={false}
                   opacity={tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha}
                 />
-              </threeLine>
-              <threeLine
-                ref={(el) => { bearingLinesRef.current.antiCore = el; }}
+              </lineSegments>
+              <lineSegments
+                ref={(el) => { diskBearingLinesRef.current.antiCore = el; }}
                 name="bearing-anti-core"
                 geometry={bearingGeoms.antiCore}
                 scale={[radius, radius, 1]}
@@ -1149,9 +1293,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                   depthWrite={false}
                   opacity={tokens.axisLineAlpha}
                 />
-              </threeLine>
-              <threeLine
-                ref={(el) => { bearingLinesRef.current.antiOrbital = el; }}
+              </lineSegments>
+              <lineSegments
+                ref={(el) => { diskBearingLinesRef.current.antiOrbital = el; }}
                 name="bearing-anti-orbital"
                 geometry={bearingGeoms.antiOrbital}
                 scale={[radius, radius, 1]}
@@ -1164,13 +1308,13 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                   depthWrite={false}
                   opacity={tokens.axisLineAlpha}
                 />
-              </threeLine>
+              </lineSegments>
             </group>
           )}
 
           {/* Planar Ground Footprint stamped on Galactic Equator Z=0 beneath Focus Origin */}
           {showPlanarFootprint && primaryFootprintGeom && (
-            <group position={[0, 0, 0.002]} name="planar-footprint">
+            <group ref={primaryFootprintRef} position={[0, 0, 0.002]} name="planar-footprint">
               <lineSegments geometry={primaryFootprintGeom}>
                 <lineBasicMaterial
                   color={tokens.datumFootprintColor}
@@ -1231,7 +1375,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                 ringIdx < rangeRings.length ? `full-ring-${rangeRings[ringIdx]}` : `full-ring-pool-${ringIdx}`;
 
               return (
-                <threeLine
+                <lineLoop
                   key={`datum-ring-${ringIdx}`}
                   ref={(el) => {
                     datumRingLinesRef.current[ringIdx] = el;
@@ -1249,7 +1393,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
                     depthWrite={false}
                     opacity={isExplicit ? alpha : 0}
                   />
-                </threeLine>
+                </lineLoop>
               );
             })}
         </group>

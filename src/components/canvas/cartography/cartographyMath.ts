@@ -27,25 +27,37 @@ export function createQuadrantArcGeometry(
   endAngle: number,
   steps = QUADRANT_STEPS,
 ): THREE.BufferGeometry {
-  const buffer = new Float32Array((steps + 1) * 3);
-  for (let i = 0; i <= steps; i++) {
-    const theta = startAngle + (i / steps) * (endAngle - startAngle);
-    const u = radius * Math.cos(theta);
-    const v = radius * Math.sin(theta);
-    const idx = i * 3;
+  const buffer = new Float32Array(steps * 2 * 3);
+  let floatIdx = 0;
+  for (let i = 0; i < steps; i++) {
+    const t1 = startAngle + (i / steps) * (endAngle - startAngle);
+    const t2 = startAngle + ((i + 1) / steps) * (endAngle - startAngle);
+    const u1 = radius * Math.cos(t1);
+    const v1 = radius * Math.sin(t1);
+    const u2 = radius * Math.cos(t2);
+    const v2 = radius * Math.sin(t2);
 
     if (plane === 'xy') {
-      buffer[idx] = u;
-      buffer[idx + 1] = v;
-      buffer[idx + 2] = 0;
+      buffer[floatIdx++] = u1;
+      buffer[floatIdx++] = v1;
+      buffer[floatIdx++] = 0;
+      buffer[floatIdx++] = u2;
+      buffer[floatIdx++] = v2;
+      buffer[floatIdx++] = 0;
     } else if (plane === 'xz') {
-      buffer[idx] = u;
-      buffer[idx + 1] = 0;
-      buffer[idx + 2] = v;
+      buffer[floatIdx++] = u1;
+      buffer[floatIdx++] = 0;
+      buffer[floatIdx++] = v1;
+      buffer[floatIdx++] = u2;
+      buffer[floatIdx++] = 0;
+      buffer[floatIdx++] = v2;
     } else {
-      buffer[idx] = 0;
-      buffer[idx + 1] = u;
-      buffer[idx + 2] = v;
+      buffer[floatIdx++] = 0;
+      buffer[floatIdx++] = u1;
+      buffer[floatIdx++] = v1;
+      buffer[floatIdx++] = 0;
+      buffer[floatIdx++] = u2;
+      buffer[floatIdx++] = v2;
     }
   }
   const geom = new THREE.BufferGeometry();
@@ -263,4 +275,142 @@ export function computeZoomAdaptiveRings(rAperture: number, maxRings = 6): Scale
     });
   }
   return result;
+}
+
+export const LINE_STYLE_CONSTANTS = {
+  // Dashed pattern matching HTML/CSS border-style: dashed (clean, balanced ~1.5:1 ratio)
+  dashLength: 0.18,
+  dashGap: 0.12,
+  // Dotted pattern matching HTML/CSS border-style: dotted (small points with distinct gaps, 1:3 ratio)
+  dotLength: 0.04,
+  dotGap: 0.12,
+} as const;
+
+/**
+ * Builds segmented points for a styled line (dashed or dotted) between two 3D points.
+ * Ensures dashes or dots NEVER stretch or distort regardless of line length:
+ * each dash or dot retains identical metric length, matching HTML line styles.
+ */
+export function createStyledLinePoints(
+  p1: THREE.Vector3,
+  p2: THREE.Vector3,
+  style: 'solid' | 'dashed' | 'dotted' = 'dashed',
+  customDashLen?: number,
+  customGapLen?: number,
+): THREE.Vector3[] {
+  if (style === 'solid') {
+    return [p1.clone(), p2.clone()];
+  }
+  const dist = p1.distanceTo(p2);
+  if (dist <= 1e-5) return [];
+
+  const isDotted = style === 'dotted';
+  const dashLen = customDashLen ?? (isDotted ? LINE_STYLE_CONSTANTS.dotLength : LINE_STYLE_CONSTANTS.dashLength);
+  const gapLen = customGapLen ?? (isDotted ? LINE_STYLE_CONSTANTS.dotGap : LINE_STYLE_CONSTANTS.dashGap);
+  const cycle = dashLen + gapLen;
+  const dir = new THREE.Vector3().subVectors(p2, p1).divideScalar(dist);
+
+  const points: THREE.Vector3[] = [];
+  for (let d = 0; d < dist; d += cycle) {
+    const segEnd = Math.min(d + dashLen, dist);
+    if (segEnd > d) {
+      points.push(
+        p1.clone().addScaledVector(dir, d),
+        p1.clone().addScaledVector(dir, segEnd),
+      );
+    }
+  }
+  return points;
+}
+
+/**
+ * Fills a pre-allocated Float32Array with 3D line segment vertices for an unstretched dashed line.
+ * Points are generated along direction vector from 0 to length.
+ * Returns the number of vertices written (each vertex has 3 floats).
+ */
+export function populateDashedLineBuffer(
+  buffer: Float32Array,
+  length: number,
+  direction: [number, number, number],
+  dashLen = LINE_STYLE_CONSTANTS.dashLength,
+  gapLen = LINE_STYLE_CONSTANTS.dashGap,
+): number {
+  const cycle = dashLen + gapLen;
+  const [dx, dy, dz] = direction;
+  let floatIdx = 0;
+  let vertexCount = 0;
+  const maxFloats = buffer.length - 6;
+
+  for (let d = 0; d < length && floatIdx <= maxFloats; d += cycle) {
+    const dEnd = Math.min(d + dashLen, length);
+    if (dEnd > d) {
+      // Vertex 1 (start of dash)
+      buffer[floatIdx++] = dx * d;
+      buffer[floatIdx++] = dy * d;
+      buffer[floatIdx++] = dz * d;
+
+      // Vertex 2 (end of dash)
+      buffer[floatIdx++] = dx * dEnd;
+      buffer[floatIdx++] = dy * dEnd;
+      buffer[floatIdx++] = dz * dEnd;
+
+      vertexCount += 2;
+    }
+  }
+
+  return vertexCount;
+}
+
+/**
+ * Creates BufferGeometry for a nearly-squared off galactic coordinate grid on the datum plane (Z=0).
+ * Composed of:
+ * 1. Gentle concentric circular arcs centered at the distant Galactic Centre (+X Core direction).
+ * 2. Radial rays originating from the distant Galactic Centre and expanding outward.
+ * Spaced by `gridGap` across `extent` in the local XY plane.
+ */
+export function createGalacticPlanarGridGeometry(
+  extent = 60,
+  gridGap = 2.0,
+  rGc = 250,
+  arcSegments = 32,
+): THREE.BufferGeometry {
+  const points: THREE.Vector3[] = [];
+  const safeExtent = Math.max(1, extent);
+  const safeGap = Math.max(0.1, gridGap);
+  const safeRgc = Math.max(safeExtent * 2, rGc);
+  const safeSegments = Math.max(2, arcSegments);
+
+  // Concentric circular arcs centered at Galactic Centre (+safeRgc, 0, 0)
+  const nArcs = Math.ceil(safeExtent / safeGap);
+  for (let i = -nArcs; i <= nArcs; i++) {
+    const x0 = i * safeGap;
+    const rArc = safeRgc - x0;
+    if (rArc <= safeExtent) continue;
+
+    for (let s = 0; s < safeSegments; s++) {
+      const y1 = -safeExtent + (s / safeSegments) * (2 * safeExtent);
+      const y2 = -safeExtent + ((s + 1) / safeSegments) * (2 * safeExtent);
+
+      const x1 = safeRgc - Math.sqrt(Math.max(0, rArc * rArc - y1 * y1));
+      const x2 = safeRgc - Math.sqrt(Math.max(0, rArc * rArc - y2 * y2));
+
+      points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
+    }
+  }
+
+  // Radial rays from Galactic Centre (+safeRgc, 0, 0)
+  const nRays = Math.ceil(safeExtent / safeGap);
+  for (let j = -nRays; j <= nRays; j++) {
+    const y0 = j * safeGap;
+    const x1 = -safeExtent;
+    const y1 = y0 * (1 - x1 / safeRgc);
+    const x2 = safeExtent;
+    const y2 = y0 * (1 - x2 / safeRgc);
+
+    points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
+  }
+
+  const geom = new THREE.BufferGeometry().setFromPoints(points);
+  geom.computeBoundingSphere();
+  return geom;
 }

@@ -240,6 +240,37 @@ export class CelestialOcclusionManager {
     }
   }
 
+  private stalkedNotifyScheduled = false;
+
+  private areStalkedListsEqual(a: CelestialFootprint[], b: CelestialFootprint[]): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (
+        a[i].id !== b[i].id ||
+        a[i].state !== b[i].state ||
+        a[i].classification !== b[i].classification ||
+        a[i].reticleSize !== b[i].reticleSize ||
+        a[i].worldPos?.[0] !== b[i].worldPos?.[0] ||
+        a[i].worldPos?.[1] !== b[i].worldPos?.[1] ||
+        a[i].worldPos?.[2] !== b[i].worldPos?.[2]
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private notifyStalked(): void {
+    if (this.stalkedNotifyScheduled) return;
+    this.stalkedNotifyScheduled = true;
+    setTimeout(() => {
+      this.stalkedNotifyScheduled = false;
+      for (const listener of this.stalkedListeners) {
+        listener();
+      }
+    }, 0);
+  }
+
   private updateStalkedSnapshot(): void {
     const list: CelestialFootprint[] = [];
     for (const fp of this.footprints.values()) {
@@ -247,10 +278,11 @@ export class CelestialOcclusionManager {
         list.push({ ...fp });
       }
     }
-    this.stalkedSnapshot = list;
-    for (const listener of this.stalkedListeners) {
-      listener();
+    if (this.areStalkedListsEqual(this.stalkedSnapshot, list)) {
+      return;
     }
+    this.stalkedSnapshot = list;
+    this.notifyStalked();
   }
 
   public subscribeStalked = (listener: () => void): () => void => {
@@ -471,7 +503,7 @@ export class CelestialOcclusionManager {
       let collidesWithHigherPriorityLabel = false;
 
       this.grid.forEachNearby(cCenterX, cCenterY, searchRadius, (other) => {
-        if (!other.visible) return;
+        if (!other.visible || other.id === nodeId) return;
 
         // 1. Authoritative Rule: labels should never occlude stars or reticles
         if (other.hasReticle && diamondIntersectsAABB(other.screenX, other.screenY, other.reticleRadius, cBox)) {

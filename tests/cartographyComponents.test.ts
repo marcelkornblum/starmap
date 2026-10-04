@@ -19,6 +19,9 @@ import {
   appendMultiplicityPips,
   appendPlanetaryPips,
   createReticleGeometry,
+  createGalacticPlanarGridGeometry,
+  createStyledLinePoints,
+  populateDashedLineBuffer,
 } from '../src/components/canvas/cartography';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
@@ -62,6 +65,7 @@ describe('3D Cartography Components', () => {
       expect(html).toContain('arc-tier-2.5');
       expect(html).toContain('arc-tier-5');
       expect(html).toContain('arc-tier-10');
+      expect(html).toContain('xy-ticks-q0');
     });
 
     it('respects visibility flags for fins, datum plane, and axis lines', () => {
@@ -97,6 +101,7 @@ describe('3D Cartography Components', () => {
       expect(htmlDefault).toContain('bearing-anti-core');
       expect(htmlDefault).toContain('bearing-anti-orbital');
       expect(htmlDefault).toContain('planar-footprint');
+      expect(htmlDefault).toContain('planar-galactic-grid');
 
       const htmlHidden = renderToString(
         createElement(CartographicGrid, {
@@ -119,6 +124,19 @@ describe('3D Cartography Components', () => {
       );
       expect(htmlNoFootprint).toContain('datum-plane');
       expect(htmlNoFootprint).not.toContain('name="planar-footprint"');
+    });
+
+    it('renders galactic planar grid on datum plane by default and respects showPlanarGrid flag', () => {
+      const htmlDefault = renderToString(
+        createElement(CartographicGrid, { radius: 10 }),
+      );
+      expect(htmlDefault).toContain('name="planar-galactic-grid"');
+
+      const htmlNoGrid = renderToString(
+        createElement(CartographicGrid, { radius: 10, showPlanarGrid: false }),
+      );
+      expect(htmlNoGrid).toContain('datum-plane');
+      expect(htmlNoGrid).not.toContain('name="planar-galactic-grid"');
     });
 
     it('renders explicit planar footprints on datum plane when provided', () => {
@@ -285,6 +303,43 @@ describe('3D Cartography Components', () => {
       // 5. Max rings parameter truncation
       const capped = computeZoomAdaptiveRings(10, 3);
       expect(capped.length).toBeLessThanOrEqual(3);
+    });
+
+    it('creates unstretched styled line points for solid, dashed, and dotted styles', () => {
+      const p1 = new THREE.Vector3(0, 0, 0);
+      const p2 = new THREE.Vector3(0, 0, 3);
+
+      const solidPts = createStyledLinePoints(p1, p2, 'solid');
+      expect(solidPts.length).toBe(2);
+
+      const dashedPts = createStyledLinePoints(p1, p2, 'dashed');
+      expect(dashedPts.length).toBeGreaterThan(4);
+      // Segment pairs (must be even)
+      expect(dashedPts.length % 2).toBe(0);
+
+      const dottedPts = createStyledLinePoints(p1, p2, 'dotted');
+      expect(dottedPts.length).toBeGreaterThan(4);
+      expect(dottedPts.length % 2).toBe(0);
+    });
+
+    it('populates zero-allocation dashed line buffer with accurate vertex counts', () => {
+      const buffer = new Float32Array(600);
+      const vCount = populateDashedLineBuffer(buffer, 10, [0, 1, 0]);
+      expect(vCount).toBeGreaterThan(0);
+      expect(vCount % 2).toBe(0);
+      // First dash starts at 0, 0, 0
+      expect(buffer[0]).toBe(0);
+      expect(buffer[1]).toBe(0);
+      expect(buffer[2]).toBe(0);
+    });
+
+    it('creates galactic planar grid geometry with concentric arcs and radial rays', () => {
+      const geom = createGalacticPlanarGridGeometry(40, 20, 250);
+      expect(geom).toBeInstanceOf(THREE.BufferGeometry);
+      const posAttr = geom.getAttribute('position');
+      expect(posAttr).toBeDefined();
+      expect(posAttr.count).toBeGreaterThan(0);
+      geom.dispose();
     });
   });
 
