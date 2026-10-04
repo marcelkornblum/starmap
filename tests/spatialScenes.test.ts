@@ -8,6 +8,7 @@ import {
   SystemViewScene,
   PlanetaryViewScene,
   InteractiveNavigator,
+  FullUIStylingScene,
 } from '../src/components/canvas/scenes/SpatialScenes.stories';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
@@ -117,6 +118,59 @@ describe('SpatialScenes Storybook Suite', () => {
       expect(html).toContain('name="celestial-node-sol"');
       expect(html).not.toContain('Candidate Systems');
       expect(html).not.toContain('Inspect Sol System →');
+    });
+  });
+
+  describe('FullUIStylingScene', () => {
+    it('renders all 8 surface tiers and nested inset simultaneously in SSR', () => {
+      const html = renderToString(createElement(FullUIStylingScene));
+
+      // Root scene container
+      expect(html).toContain('data-testid="full-ui-styling-scene"');
+
+      // Tier 0: Canvas floor
+      expect(html).toContain('data-testid="surface-tier-0-canvas"');
+      expect(html).toContain('data-testid="mock-canvas"');
+
+      // Tier 1: HUD
+      expect(html).toContain('data-testid="surface-tier-1-hud"');
+      expect(html).toContain('✦ STARMAP // HUD');
+      expect(html).toContain('SENSORS ONLINE');
+      expect(html).toContain('RA: 18h 36m 56s');
+
+      // Tier 2: Dock
+      expect(html).toContain('data-testid="surface-tier-2-dock"');
+      expect(html).toContain('data-position="left"');
+
+      // Tier 3: Panel
+      expect(html).toContain('data-testid="surface-tier-3-panel"');
+      expect(html).toContain('Galactic Survey Dossier');
+      expect(html).toContain('1,280');
+      expect(html).toContain('8.12');
+
+      // Nested Inset: Well inside Panel with OrbitTable
+      expect(html).toContain('data-testid="surface-tier-nested-inset"');
+      expect(html).toContain('Nearby Astrometric Candidates');
+      expect(html).toContain('Mercury');
+      expect(html).toContain('Jupiter');
+
+      // Tier 4: Drawer
+      expect(html).toContain('data-testid="surface-tier-4-drawer"');
+      expect(html).toContain('Spectroscopic Filter Matrix');
+      expect(html).toContain('data-position="right"');
+
+      // Tier 5: Popover
+      expect(html).toContain('data-testid="surface-tier-5-popover"');
+      expect(html).toContain('Target Lock: Sol Barycentre');
+      expect(html).toContain('Sol Anchor Point');
+
+      // Tier 6: Modal
+      expect(html).toContain('data-testid="surface-tier-6-modal"');
+      expect(html).toContain('Astrodynamics Command Query');
+
+      // Tier 7: Toast
+      expect(html).toContain('data-testid="surface-tier-7-toast"');
+      expect(html).toContain('Telemetry Alert: Gravitational Perturbation');
     });
   });
 });

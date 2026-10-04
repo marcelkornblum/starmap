@@ -18,6 +18,7 @@ import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
 import { DEG_TO_RADIANS, rotateToOrbitalPlane } from '../../../utils/astroMath';
 
 import styles from './SpatialScenes.module.css';
+import { FullUIStylingScene } from './FullUIStylingScene';
 
 // -----------------------------------------------------------------------------
 // Metadata & Definitions
@@ -337,14 +338,16 @@ function getKeplerianPosition(
 // Story 1: Galactic Macro View Scene
 // -----------------------------------------------------------------------------
 
-interface GalacticViewSceneProps {
+export interface GalacticViewSceneProps {
   initialSelectedId?: string | null;
   onInspectSystem?: (systemId: string) => void;
+  className?: string;
 }
 
 export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
   initialSelectedId = null,
   onInspectSystem: _onInspectSystem,
+  className,
 }) => {
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -359,8 +362,12 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
     [selectedId],
   );
 
+  const containerClass = className
+    ? `${styles.viewportContainer} ${className}`
+    : styles.viewportContainer;
+
   return (
-    <div className={styles.viewportContainer}>
+    <div className={containerClass}>
       <div className={styles.canvasWrapper}>
         <Canvas
           camera={{
@@ -840,3 +847,13 @@ export const CrossScaleNavigator: Story = {
   name: '4. Interactive Multi-Scale Navigator',
   render: () => <InteractiveNavigator />,
 };
+
+export const FullUIStyling: Story = {
+  name: '5. Full UI Styling (8 Surface Tiers & Content Types)',
+  parameters: {
+    layout: 'fullscreen',
+  },
+  render: () => <FullUIStylingScene />,
+};
+
+export { FullUIStylingScene } from './FullUIStylingScene';

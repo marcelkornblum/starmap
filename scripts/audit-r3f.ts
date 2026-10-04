@@ -40,20 +40,25 @@ function isLineSuppressed(sourceText: string, targetLine: number, ruleId: string
 export function auditSourceFile(filePath: string, sourceText: string): AuditDiagnostic[] {
   const diagnostics: AuditDiagnostic[] = [];
 
-  let ast: any;
+  let ast: ReturnType<typeof parse>;
   try {
     ast = parse(sourceText, {
       sourceType: 'module',
       plugins: ['typescript', 'jsx'],
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const loc =
+      err && typeof err === 'object' && 'loc' in err
+        ? (err as { loc: { line?: number; column?: number } }).loc
+        : undefined;
     diagnostics.push({
       filePath,
-      line: err.loc?.line || 1,
-      column: err.loc?.column || 1,
+      line: loc?.line || 1,
+      column: loc?.column || 1,
       ruleId: 'parse-error',
       severity: 'error',
-      message: `Failed to parse file: ${err.message}`,
+      message: `Failed to parse file: ${message}`,
       snippet: '',
       remediation: 'Fix syntax error in file.',
     });

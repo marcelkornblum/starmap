@@ -15,7 +15,15 @@ import {
   ScreenSpaceLineMaterial,
   SCREEN_SPACE_LINE_CONSTANTS,
 } from './ScreenSpaceLineMaterial';
+import {
+  createReticleGeometry,
+  type CelestialClassification,
+  type PlanetCensusEntry,
+  type ReticleAnnotationOptions,
+} from './reticleGeometry';
 import styles from './CelestialNode.module.css';
+
+export type { CelestialClassification, PlanetCensusEntry, ReticleAnnotationOptions };
 
 /**
  * Maps spectral classification class to intrinsic stellar hue.
@@ -46,15 +54,6 @@ const SHARED_HITAREA_MATERIAL = new THREE.MeshBasicMaterial({
 });
 
 const HTML_Z_INDEX_RANGE: [number, number] = [0, 0];
-
-import {
-  createReticleGeometry,
-  type CelestialClassification,
-  type PlanetCensusEntry,
-  type ReticleAnnotationOptions,
-} from './reticleGeometry';
-
-export type { CelestialClassification, PlanetCensusEntry, ReticleAnnotationOptions };
 
 export type CelestialInteractionState = 'passive' | 'active' | 'selected' | 'focused';
 
@@ -165,6 +164,8 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const scratchBoxRef = useRef<Box2D>({ left: 0, top: 0, right: 0, bottom: 0 });
   const lastOccludedRef = useRef<boolean | null>(null);
   const lastTransformRef = useRef<string>('');
+  const lastXRef = useRef<number | null>(null);
+  const lastYRef = useRef<number | null>(null);
   const lastSpectrumOccludedRef = useRef<boolean | null>(null);
   const registrationRef = useRef<CelestialFootprint>({
     id,
@@ -329,12 +330,16 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
         labelContainerRef.current.setAttribute('data-occluded', isLabelVisible ? 'false' : 'true');
       }
       if (labelEval.isDisplaced) {
-        const nextTransform = `translate(${labelEval.displacementX}px, ${labelEval.displacementY}px)`;
-        if (lastTransformRef.current !== nextTransform) {
+        if (lastXRef.current !== labelEval.displacementX || lastYRef.current !== labelEval.displacementY) {
+          lastXRef.current = labelEval.displacementX;
+          lastYRef.current = labelEval.displacementY;
+          const nextTransform = `translate(${labelEval.displacementX}px, ${labelEval.displacementY}px)`;
           lastTransformRef.current = nextTransform;
           labelContainerRef.current.style.transform = nextTransform;
         }
       } else if (lastTransformRef.current !== '') {
+        lastXRef.current = null;
+        lastYRef.current = null;
         lastTransformRef.current = '';
         labelContainerRef.current.style.transform = '';
       }
@@ -398,7 +403,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       transparent: true,
       depthWrite: false,
     });
-  }, [isDashed, stalkColor, stalkOpacity]);
+  }, [isDashed]);
 
   useEffect(() => {
     stalkMaterial.setColor(stalkColor);

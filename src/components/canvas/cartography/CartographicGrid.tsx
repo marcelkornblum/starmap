@@ -512,9 +512,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
   // Memoize unit circle geometries for datum boundary & concentric rings
   const circleGeom = useMemo(() => {
-    const geom = createCircleGeometry(1.0, 128);
-    geom.computeBoundingSphere();
-    return geom;
+    return createCircleGeometry(1.0, 128);
   }, []);
 
   const fillCircleGeom = useMemo(() => {
@@ -523,17 +521,26 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     return geom;
   }, []);
 
-  // Memoize datum plane gradient fill shader uniforms
-  const datumFillUniforms = useMemo(() => ({
-    uColor: { value: tokens.datumPlaneFillColor },
+  // Stable datum plane gradient fill shader uniforms mutated in-place on token changes
+  const datumFillUniformsRef = useRef({
+    uColor: { value: new THREE.Color(tokens.datumPlaneFillColor) },
     uAlpha: { value: tokens.datumPlaneFillAlpha },
     uInnerRadius: { value: tokens.datumPlaneFillGradientInner },
     uExponent: { value: tokens.datumPlaneFillGradientExponent },
-  }), [
+  });
+  const datumFillUniforms = datumFillUniformsRef.current;
+
+  useEffect(() => {
+    datumFillUniforms.uColor.value.set(tokens.datumPlaneFillColor);
+    datumFillUniforms.uAlpha.value = tokens.datumPlaneFillAlpha;
+    datumFillUniforms.uInnerRadius.value = tokens.datumPlaneFillGradientInner;
+    datumFillUniforms.uExponent.value = tokens.datumPlaneFillGradientExponent;
+  }, [
     tokens.datumPlaneFillColor,
     tokens.datumPlaneFillAlpha,
     tokens.datumPlaneFillGradientInner,
     tokens.datumPlaneFillGradientExponent,
+    datumFillUniforms,
   ]);
 
   // Clean up geometries on unmount
@@ -1011,6 +1018,16 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       }
     }
   });
+
+  // Restore camera FOV and zoom if adaptiveProjection is dynamically toggled off
+  useEffect(() => {
+    if (!adaptiveProjection && camera instanceof THREE.PerspectiveCamera && baseFovRef.current !== null) {
+      camera.fov = baseFovRef.current;
+      camera.zoom = 1.0;
+      camera.updateProjectionMatrix();
+      baseFovRef.current = null;
+    }
+  }, [adaptiveProjection, camera]);
 
   return (
     <group ref={rootGroupRef} position={initialPosition} name="cartographic-grid">

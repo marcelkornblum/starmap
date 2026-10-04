@@ -8,6 +8,7 @@ export interface DrawerProps extends Omit<DialogHTMLAttributes<HTMLDialogElement
   position?: 'left' | 'right' | 'top' | 'bottom';
   title?: ReactNode;
   children?: ReactNode;
+  isModal?: boolean;
 }
 
 export const Drawer = ({
@@ -16,6 +17,7 @@ export const Drawer = ({
   position = 'right',
   title,
   children,
+  isModal = true,
   className,
   ...rest
 }: DrawerProps) => {
@@ -28,14 +30,20 @@ export const Drawer = ({
 
     if (isOpen) {
       if (!dialog.open) {
-        dialog.showModal?.();
+        if (isModal) {
+          dialog.showModal?.();
+        } else if (dialog.show) {
+          dialog.show();
+        } else {
+          dialog.setAttribute('open', '');
+        }
       }
     } else {
       if (dialog.open) {
         dialog.close?.();
       }
     }
-  }, [isOpen]);
+  }, [isOpen, isModal]);
 
   const combinedClassName = className
     ? `${styles.drawer} ${className}`
