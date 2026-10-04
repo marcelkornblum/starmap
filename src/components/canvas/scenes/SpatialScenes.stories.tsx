@@ -13,15 +13,6 @@ import {
   type PlanetCensusEntry,
 } from '../cartography';
 import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
-import { Stack, Cluster, Button, Badge } from '../../primitives';
-import { Panel } from '../../surfaces';
-import {
-  StarDossier,
-  OrbitTable,
-  SystemControls,
-  type StarDossierData,
-  type OrbitElementRow,
-} from '../../domain';
 import { DEG_TO_RADIANS, rotateToOrbitalPlane } from '../../../utils/astroMath';
 
 import styles from './SpatialScenes.module.css';
@@ -384,28 +375,11 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
 }) => {
   const [selectedId, setSelectedId] = useState<string>('sol');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [showFins, setShowFins] = useState<boolean>(true);
-  const [showPlanarGrid, setShowPlanarGrid] = useState<boolean>(true);
 
   const selectedSystem = useMemo(
     () => CANDIDATE_SYSTEMS.find((s) => s.id === selectedId) ?? CANDIDATE_SYSTEMS[0],
     [selectedId],
   );
-
-  const starDossierData: StarDossierData = useMemo(() => {
-    return {
-      id: selectedSystem.id,
-      name: selectedSystem.name,
-      properName: selectedSystem.name,
-      spectralType: selectedSystem.spectralType,
-      luminosityLsun: selectedSystem.luminosityLsun,
-      massMsun: selectedSystem.massMsun,
-      radiusRsun: selectedSystem.radiusRsun,
-      effectiveTempK: selectedSystem.effectiveTempK,
-      distPc: selectedSystem.distPc,
-      overviewText: selectedSystem.description,
-    };
-  }, [selectedSystem]);
 
   return (
     <div className={styles.viewportContainer}>
@@ -419,10 +393,10 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             radius={12}
             rangeRings={[2.5, 5, 10, 15]}
             majorRingIndex={2}
-            showFins={showFins}
+            showFins={true}
             showGalacticPlane={true}
             showPlanarFootprint={true}
-            showPlanarGrid={showPlanarGrid}
+            showPlanarGrid={true}
             planarGridGap={10}
             showAxisLines={true}
             lockToFocusPoint={true}
@@ -453,7 +427,13 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
                   planets={system.planetsList}
                   showStalk={isSelected} // STRICT SINGLE-STALK RULE: stalk only renders when selected/focused
                   reticleSize={0.45}
-                  onClick={(id) => setSelectedId(id)}
+                  onClick={(id) => {
+                    if (selectedId === id && onInspectSystem) {
+                      onInspectSystem(id);
+                    } else {
+                      setSelectedId(id);
+                    }
+                  }}
                   onPointerOver={(id) => setHoveredId(id)}
                   onPointerOut={() => setHoveredId(null)}
                 />
@@ -470,124 +450,6 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             maxDistance={55}
           />
         </Canvas>
-      </div>
-
-      {/* Top Breadcrumb Bar */}
-      <div className={styles.topBar}>
-        <nav aria-label="Breadcrumb" className={styles.breadcrumbBar}>
-          <button
-            type="button"
-            className={styles.breadcrumbButton}
-            data-active="true"
-          >
-            Local Volume (100 pc)
-          </button>
-          {selectedSystem && (
-            <>
-              <span className={styles.breadcrumbSeparator}>/</span>
-              <span className={styles.breadcrumbButton} data-active="true">
-                {selectedSystem.name}
-              </span>
-            </>
-          )}
-        </nav>
-
-        <div className={styles.modeToggleBar}>
-          <Button
-            size="sm"
-            variant={showFins ? 'primary' : 'secondary'}
-            onClick={() => setShowFins((v) => !v)}
-          >
-            {showFins ? 'Fins: On' : 'Fins: Off'}
-          </Button>
-          <Button
-            size="sm"
-            variant={showPlanarGrid ? 'primary' : 'secondary'}
-            onClick={() => setShowPlanarGrid((v) => !v)}
-          >
-            {showPlanarGrid ? 'Planar Grid: On' : 'Planar Grid: Off'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Secondary Objects Pane: Candidate Systems Manifest */}
-      <aside className={styles.sidePaneLeft} aria-label="Candidate Systems">
-        <div className={styles.manifestCard}>
-          <div className={styles.manifestHeader}>
-            <span>Candidate Systems</span>
-            <span className={styles.manifestCount}>{`${CANDIDATE_SYSTEMS.length} Systems`}</span>
-          </div>
-          <ul className={styles.manifestList}>
-            {CANDIDATE_SYSTEMS.map((sys) => {
-              const isSelected = sys.id === selectedId;
-              const isHovered = sys.id === hoveredId;
-              const rowState = isSelected ? 'selected' : isHovered ? 'active' : 'passive';
-
-              return (
-                <li
-                  key={sys.id}
-                  className={styles.manifestRow}
-                  data-state={rowState}
-                  onClick={() => setSelectedId(sys.id)}
-                  onMouseEnter={() => setHoveredId(sys.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                >
-                  <div className={styles.manifestItemName}>
-                    <span>{sys.name}</span>
-                    {sys.multiplicity > 1 && (
-                      <span className={styles.badgePill}>{`×${sys.multiplicity}`}</span>
-                    )}
-                  </div>
-                  <div className={styles.manifestItemMeta}>
-                    <span className={styles.badgePill}>{sys.spectralType}</span>
-                    <span>{`${sys.distPc.toFixed(1)} pc`}</span>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </aside>
-
-      {/* Primary Star Dossier & Telemetry Pane */}
-      <aside className={styles.sidePaneRight} aria-label="Star Telemetry Dossier">
-        <StarDossier
-          star={starDossierData}
-          onNavigateSystem={onInspectSystem ? () => onInspectSystem(selectedSystem.id) : undefined}
-        />
-      </aside>
-
-      {/* Attitude Minimap & Orientation HUD Dock */}
-      <div className={styles.bottomDock}>
-        <div className={styles.bottomDockLeft}>
-          <div className={styles.attitudeWidget}>
-            <div className={styles.attitudeHeader}>Galactic Compass</div>
-            <div className={styles.attitudeRow}>
-              <span>Core Bearing (l=0°):</span>
-              <span className={styles.attitudeValue}>+X Axis (Radial Inward)</span>
-            </div>
-            <div className={styles.attitudeRow}>
-              <span>Orbit Bearing (l=90°):</span>
-              <span className={styles.attitudeValue}>+Y Axis (Prograde Curvature)</span>
-            </div>
-            <div className={styles.attitudeRow}>
-              <span>Galactic Equator:</span>
-              <span className={styles.attitudeValue}>Z = 0.0 pc Datum Plane</span>
-            </div>
-          </div>
-        </div>
-
-        {onInspectSystem && (
-          <div className={styles.bottomDockRight}>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => onInspectSystem(selectedSystem.id)}
-            >
-              {`Inspect ${selectedSystem.name} System →`}
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -606,25 +468,15 @@ interface SystemViewSceneProps {
 export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
   systemId = 'sol',
   onInspectPlanet,
-  onNavigateGalaxy,
+  onNavigateGalaxy: _onNavigateGalaxy,
 }) => {
   const [selectedPlanetId, setSelectedPlanetId] = useState<string>('earth');
   const [hoveredPlanetId, setHoveredPlanetId] = useState<string | null>(null);
-  const [showOrbits, setShowOrbits] = useState<boolean>(true);
-  const [showFins, setShowFins] = useState<boolean>(true);
-  const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const [timeSpeed, setTimeSpeed] = useState<number>(1);
 
   const selectedPlanet = useMemo(
     () => SOL_PLANETS.find((p) => p.id === selectedPlanetId) ?? SOL_PLANETS[2],
     [selectedPlanetId],
   );
-
-  const systemDisplayName = useMemo(() => {
-    if (systemId === 'tau-ceti') return 'Tau Ceti System';
-    if (systemId === 'alpha-centauri') return 'Alpha Centauri System';
-    return 'Sol System';
-  }, [systemId]);
 
   // Compute 3D positions for planets along their Keplerian orbits
   const planetPositions = useMemo(() => {
@@ -643,19 +495,6 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
     return map;
   }, []);
 
-  const orbitRows: OrbitElementRow[] = useMemo(() => {
-    return SOL_PLANETS.map((planet) => ({
-      id: planet.id,
-      name: planet.name,
-      semiMajorAxis: planet.a,
-      eccentricity: planet.e,
-      inclination: planet.inc,
-      periodDays: planet.period,
-      periapsis: planet.peri,
-      node: planet.node,
-    }));
-  }, []);
-
   const selectedPos = planetPositions.get(selectedPlanetId) ?? [0, 0, 0];
 
   return (
@@ -671,7 +510,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
             radius={12}
             rangeRings={[1, 2, 5, 10, 15]}
             majorRingIndex={3}
-            showFins={showFins}
+            showFins={true}
             showGalacticPlane={true}
             showPlanarFootprint={true}
             showPlanarGrid={false}
@@ -683,8 +522,8 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
 
           {/* Central Host Star: Sol */}
           <CelestialNode
-            id="sol"
-            name="Sol (Host Star)"
+            id={systemId}
+            name={systemId === 'tau-ceti' ? 'Tau Ceti' : systemId === 'alpha-centauri' ? 'Alpha Centauri' : 'Sol'}
             position={[0, 0, 0]}
             classification="star"
             spectralType="G2V"
@@ -696,9 +535,6 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
           {/* Keplerian Elliptical Orbit Rings */}
           {SOL_PLANETS.map((planet) => {
             const isFocused = planet.id === selectedPlanetId;
-            // Focus Exception Rule: focused orbit always renders even if orbits are toggled off
-            if (!showOrbits && !isFocused) return null;
-
             return (
               <OrbitalRing
                 key={planet.id}
@@ -741,7 +577,13 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
                   state={interactionState}
                   showStalk={isSelected} // Drop stalk to the invariant plane (Z=0) when selected/focused
                   reticleSize={0.38}
-                  onClick={(id) => setSelectedPlanetId(id)}
+                  onClick={(id) => {
+                    if (selectedPlanetId === id && onInspectPlanet) {
+                      onInspectPlanet(id);
+                    } else {
+                      setSelectedPlanetId(id);
+                    }
+                  }}
                   onPointerOver={(id) => setHoveredPlanetId(id)}
                   onPointerOut={() => setHoveredPlanetId(null)}
                 />
@@ -759,128 +601,6 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
           />
         </Canvas>
       </div>
-
-      {/* Top Breadcrumb Bar */}
-      <div className={styles.topBar}>
-        <nav aria-label="Breadcrumb" className={styles.breadcrumbBar}>
-          <button
-            type="button"
-            className={styles.breadcrumbButton}
-            onClick={onNavigateGalaxy}
-          >
-            Local Volume
-          </button>
-          <span className={styles.breadcrumbSeparator}>/</span>
-          <button
-            type="button"
-            className={styles.breadcrumbButton}
-            data-active={!selectedPlanet}
-          >
-            {systemDisplayName}
-          </button>
-          {selectedPlanet && (
-            <>
-              <span className={styles.breadcrumbSeparator}>/</span>
-              <span className={styles.breadcrumbButton} data-active="true">
-                {selectedPlanet.name}
-              </span>
-            </>
-          )}
-        </nav>
-
-        <div className={styles.modeToggleBar}>
-          <Button
-            size="sm"
-            variant={showOrbits ? 'primary' : 'secondary'}
-            onClick={() => setShowOrbits((v) => !v)}
-          >
-            {showOrbits ? 'Orbits: Visible' : 'Orbits: Hidden'}
-          </Button>
-          <Button
-            size="sm"
-            variant={showFins ? 'primary' : 'secondary'}
-            onClick={() => setShowFins((v) => !v)}
-          >
-            {showFins ? 'Fins: On' : 'Fins: Off'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Secondary Pane: Keplerian Orbit Table */}
-      <aside className={styles.sidePaneRight} aria-label="Keplerian Orbital Telemetry">
-        <Stack gap="default">
-          <OrbitTable
-            orbits={orbitRows}
-            selectedId={selectedPlanetId}
-            onSelect={(id) => setSelectedPlanetId(id)}
-          />
-
-          <Panel padding="default">
-            <Stack gap="tight">
-              <Cluster gap="tight">
-                <h3 className={styles.manifestItemName}>{selectedPlanet.name}</h3>
-                <Badge status="info">{selectedPlanet.classification}</Badge>
-              </Cluster>
-              <div className={styles.telemetryGrid}>
-                <div className={styles.telemetryItem}>
-                  <span className={styles.telemetryLabel}>Semi-Major Axis</span>
-                  <span className={styles.telemetryValue}>{`${selectedPlanet.a.toFixed(3)} AU`}</span>
-                </div>
-                <div className={styles.telemetryItem}>
-                  <span className={styles.telemetryLabel}>Eccentricity</span>
-                  <span className={styles.telemetryValue}>{selectedPlanet.e.toFixed(4)}</span>
-                </div>
-                <div className={styles.telemetryItem}>
-                  <span className={styles.telemetryLabel}>Orbital Period</span>
-                  <span className={styles.telemetryValue}>{`${selectedPlanet.period.toFixed(1)} d`}</span>
-                </div>
-                <div className={styles.telemetryItem}>
-                  <span className={styles.telemetryLabel}>Inclination</span>
-                  <span className={styles.telemetryValue}>{`${selectedPlanet.inc.toFixed(2)}°`}</span>
-                </div>
-              </div>
-
-              {onInspectPlanet && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => onInspectPlanet(selectedPlanet.id)}
-                >
-                  {`Inspect ${selectedPlanet.name} →`}
-                </Button>
-              )}
-            </Stack>
-          </Panel>
-        </Stack>
-      </aside>
-
-      {/* Bottom Controls Dock */}
-      <div className={styles.bottomDock}>
-        <div className={styles.bottomDockLeft}>
-          <SystemControls
-            isPlaying={isPlaying}
-            onTogglePlay={() => setIsPlaying((p) => !p)}
-            timeSpeed={timeSpeed}
-            onTimeSpeedChange={setTimeSpeed}
-            showOrbits={showOrbits}
-            onToggleOrbits={setShowOrbits}
-            showGrid={showFins}
-            onToggleGrid={setShowFins}
-          />
-        </div>
-
-        {onInspectPlanet && (
-          <div className={styles.bottomDockRight}>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => onInspectPlanet(selectedPlanet.id)}
-            >
-              {`Inspect ${selectedPlanet.name} Planetary View →`}
-            </Button>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
@@ -897,14 +617,12 @@ interface PlanetaryViewSceneProps {
 
 export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
   planetId = 'earth',
-  onNavigateSystem,
-  onNavigateGalaxy,
+  onNavigateSystem: _onNavigateSystem,
+  onNavigateGalaxy: _onNavigateGalaxy,
 }) => {
   const isEarth = planetId.toLowerCase() === 'earth';
   const planetDisplayName = isEarth ? 'Earth' : planetId.charAt(0).toUpperCase() + planetId.slice(1);
-  const [daylightMode, setDaylightMode] = useState<boolean>(false);
   const [selectedMoon, setSelectedMoon] = useState<boolean>(false);
-  const [showFins, setShowFins] = useState<boolean>(true);
 
   // Lunar position along orbit: semi-major axis 3.8 scene units, inclination 5.14 deg
   const moonPos: [number, number, number] = useMemo(() => {
@@ -927,11 +645,11 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
           <SceneTokenBridge />
 
           {/* Dynamic Day/Night Terminator or Cartographic Daylight Mode */}
-          <ambientLight intensity={daylightMode ? 0.95 : 0.15} />
+          <ambientLight intensity={0.25} />
           {/* Directional sunlight radiating outward from the distant host star (+X direction) */}
           <directionalLight
             position={[25, 2, 0]}
-            intensity={daylightMode ? 0.35 : 2.2}
+            intensity={2.2}
             color="#fff8f0"
           />
 
@@ -940,7 +658,7 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
             radius={5.5}
             rangeRings={[1.5, 3.0, 5.0]}
             majorRingIndex={2}
-            showFins={showFins}
+            showFins={true}
             showGalacticPlane={true}
             showPlanarFootprint={true}
             showPlanarGrid={false}
@@ -954,7 +672,7 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
           <group position={[22, 0, 0]}>
             <CelestialNode
               id="sol-anchor"
-              name="Sol (Host Star Anchor)"
+              name="Sol"
               position={[0, 0, 0]}
               classification="star"
               spectralType="G2V"
@@ -1018,7 +736,7 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
             </Sphere>
             <CelestialNode
               id="moon"
-              name="Moon (Luna)"
+              name="Moon"
               position={[0, 0, 0]}
               classification="terrestrial"
               state={selectedMoon ? 'focused' : 'active'}
@@ -1037,184 +755,6 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
             maxDistance={18}
           />
         </Canvas>
-      </div>
-
-      {/* Top Breadcrumb Bar */}
-      <div className={styles.topBar}>
-        <nav aria-label="Breadcrumb" className={styles.breadcrumbBar}>
-          <button
-            type="button"
-            className={styles.breadcrumbButton}
-            onClick={onNavigateGalaxy}
-          >
-            Local Volume
-          </button>
-          <span className={styles.breadcrumbSeparator}>/</span>
-          <button
-            type="button"
-            className={styles.breadcrumbButton}
-            onClick={onNavigateSystem}
-          >
-            Sol System
-          </button>
-          <span className={styles.breadcrumbSeparator}>/</span>
-          <button
-            type="button"
-            className={styles.breadcrumbButton}
-            data-active={!selectedMoon}
-            onClick={() => setSelectedMoon(false)}
-          >
-            {planetDisplayName}
-          </button>
-          {selectedMoon && (
-            <>
-              <span className={styles.breadcrumbSeparator}>/</span>
-              <span className={styles.breadcrumbButton} data-active="true">
-                Moon (Luna)
-              </span>
-            </>
-          )}
-        </nav>
-
-        <div className={styles.modeToggleBar}>
-          <Button
-            size="sm"
-            variant={daylightMode ? 'primary' : 'secondary'}
-            onClick={() => setDaylightMode((v) => !v)}
-          >
-            {daylightMode ? 'Lighting: Daylight' : 'Lighting: Terminator'}
-          </Button>
-          <Button
-            size="sm"
-            variant={showFins ? 'primary' : 'secondary'}
-            onClick={() => setShowFins((v) => !v)}
-          >
-            {showFins ? 'Fins: On' : 'Fins: Off'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Secondary Objects Pane: Natural Satellites Manifest */}
-      <aside className={styles.sidePaneLeft} aria-label="Natural Satellites">
-        <div className={styles.manifestCard}>
-          <div className={styles.manifestHeader}>
-            <span>Natural Satellites</span>
-            <span className={styles.manifestCount}>1 Moon</span>
-          </div>
-          <ul className={styles.manifestList}>
-            <li
-              className={styles.manifestRow}
-              data-state={!selectedMoon ? 'selected' : 'passive'}
-              onClick={() => setSelectedMoon(false)}
-            >
-              <div className={styles.manifestItemName}>
-                <span>{`${planetDisplayName} (Primary)`}</span>
-              </div>
-              <div className={styles.manifestItemMeta}>
-                <span className={styles.badgePill}>1.0 M⊕</span>
-              </div>
-            </li>
-            <li
-              className={styles.manifestRow}
-              data-state={selectedMoon ? 'selected' : 'passive'}
-              onClick={() => setSelectedMoon(true)}
-            >
-              <div className={styles.manifestItemName}>
-                <span>Moon (Luna)</span>
-              </div>
-              <div className={styles.manifestItemMeta}>
-                <span className={styles.badgePill}>27.32 d</span>
-                <span>1,737 km</span>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </aside>
-
-      {/* Planetary Dossier Telemetry Panel */}
-      <aside className={styles.sidePaneRight} aria-label="Planetary Dossier Telemetry">
-        <Panel padding="default">
-          <Stack gap="default">
-            <Stack gap="tight">
-              <Cluster gap="tight">
-                <h2 className={styles.manifestItemName}>{planetDisplayName}</h2>
-                <Badge status="info">Terrestrial</Badge>
-                <Badge status="nominal">Habitable</Badge>
-              </Cluster>
-              <p className={styles.manifestCount}>
-                Third planet from Sol. Possesses a nitrogen-oxygen atmosphere, active plate tectonics, and a protective magnetosphere.
-              </p>
-            </Stack>
-
-            <div className={styles.telemetryGrid}>
-              <div className={styles.telemetryItem}>
-                <span className={styles.telemetryLabel}>Mean Radius</span>
-                <span className={styles.telemetryValue}>6,371 km</span>
-              </div>
-              <div className={styles.telemetryItem}>
-                <span className={styles.telemetryLabel}>Surface Gravity</span>
-                <span className={styles.telemetryValue}>1.00 g (9.81 m/s²)</span>
-              </div>
-              <div className={styles.telemetryItem}>
-                <span className={styles.telemetryLabel}>Orbital Period</span>
-                <span className={styles.telemetryValue}>365.26 d</span>
-              </div>
-              <div className={styles.telemetryItem}>
-                <span className={styles.telemetryLabel}>Rotational Period</span>
-                <span className={styles.telemetryValue}>23.93 h</span>
-              </div>
-              <div className={styles.telemetryItem}>
-                <span className={styles.telemetryLabel}>Axial Tilt</span>
-                <span className={styles.telemetryValue}>23.44°</span>
-              </div>
-              <div className={styles.telemetryItem}>
-                <span className={styles.telemetryLabel}>Escape Velocity</span>
-                <span className={styles.telemetryValue}>11.19 km/s</span>
-              </div>
-            </div>
-
-            <Stack gap="dense">
-              <span className={styles.telemetryLabel}>Atmospheric Composition</span>
-              <span className={styles.attitudeValue}>
-                N₂ 78.08%, O₂ 20.95%, Ar 0.93%, CO₂ 0.04%
-              </span>
-            </Stack>
-
-            <Cluster gap="tight">
-              <span className={styles.badgePill}>Confidence: High (In-Situ)</span>
-              <span className={styles.badgePill}>Hazard: Nominal</span>
-            </Cluster>
-          </Stack>
-        </Panel>
-      </aside>
-
-      {/* Bottom Orientation Dock */}
-      <div className={styles.bottomDock}>
-        <div className={styles.bottomDockLeft}>
-          <div className={styles.attitudeWidget}>
-            <div className={styles.attitudeHeader}>Planetary Orientation</div>
-            <div className={styles.attitudeRow}>
-              <span>Rotational Equator:</span>
-              <span className={styles.attitudeValue}>XY Plane (Z = Rotational Axis)</span>
-            </div>
-            <div className={styles.attitudeRow}>
-              <span>Host Star Bearing:</span>
-              <span className={styles.attitudeValue}>+X Radial Direction (Sol)</span>
-            </div>
-            <div className={styles.attitudeRow}>
-              <span>Orbital Velocity Vector:</span>
-              <span className={styles.attitudeValue}>+Y Prograde Direction</span>
-            </div>
-          </div>
-        </div>
-
-        {onNavigateSystem && (
-          <div className={styles.bottomDockRight}>
-            <Button variant="secondary" onClick={onNavigateSystem}>
-              ← Return to Sol System View
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -117,11 +117,7 @@ const meta: Meta<typeof CartographicGrid> = {
     (Story) => (
       <div className={styles.viewportContainer}>
         <ThemeTokenBridge />
-        <Canvas camera={{ position: [10.18, 8.0, 10.18], fov: 45 }} gl={{ antialias: true, alpha: true }}>
-          <SceneTokenBridge />
-          <Story />
-          <OrbitControls makeDefault enableDamping dampingFactor={0.05} minDistance={4.0} maxDistance={250} />
-        </Canvas>
+        <Story />
       </div>
     ),
   ],
@@ -130,6 +126,8 @@ const meta: Meta<typeof CartographicGrid> = {
 export default meta;
 type Story = StoryObj<typeof CartographicGrid>;
 
+const DEFAULT_OFFSET: [number, number, number] = [35, 45, 12];
+
 /**
  * Default view: Adaptive Zoom Scaling.
  * The instrument maintains an invariant visual footprint on screen.
@@ -137,7 +135,7 @@ type Story = StoryObj<typeof CartographicGrid>;
  * while dynamic concentric range rings continuously contract and expand according to the
  * logarithmic 1-2-5 progression (Significant vs Insignificant visual hierarchy).
  * The Galactic Centre bearing (+X Core) is styled with its golden accent token.
- * Populated with fixture stars to observe world-scale dynamics.
+ * Positioned offset from grid lines on X, Y, and Z dimensions (e.g. [35, 45, 12]) with stars omitted.
  */
 export const Default: Story = {
   args: {
@@ -148,14 +146,37 @@ export const Default: Story = {
     showAxisLines: true,
     showGalacticPlane: true,
     showFullDatumCircle: true,
+    showPlanarGrid: true,
+    planarGridGap: 100,
     adaptiveProjection: true,
+    position: DEFAULT_OFFSET,
   },
-  render: (args) => (
-    <>
-      <CartographicGrid {...args} />
-      <FixtureStars />
-    </>
-  ),
+  render: (args) => {
+    const target = (args.position instanceof THREE.Vector3
+      ? [args.position.x, args.position.y, args.position.z]
+      : args.position ?? DEFAULT_OFFSET) as [number, number, number];
+
+    return (
+      <Canvas
+        camera={{
+          position: [target[0] + 12.0, target[1] + 10.0, target[2] + 12.0],
+          fov: 45,
+        }}
+        gl={{ antialias: true, alpha: true }}
+      >
+        <SceneTokenBridge />
+        <CartographicGrid {...args} />
+        <OrbitControls
+          makeDefault
+          target={target}
+          enableDamping
+          dampingFactor={0.05}
+          minDistance={4.0}
+          maxDistance={250}
+        />
+      </Canvas>
+    );
+  },
 };
 
 /**
@@ -177,11 +198,24 @@ export const ObjectScaling: Story = {
     footprintSize: 0.6,
     showFullDatumCircle: true,
     screenConstant: false,
+    position: [0, 0, 0],
   },
   render: (args) => (
-    <>
+    <Canvas
+      camera={{ position: [10.18, 8.0, 10.18], fov: 45 }}
+      gl={{ antialias: true, alpha: true }}
+    >
+      <SceneTokenBridge />
       <CartographicGrid {...args} />
       <FixtureStars />
-    </>
+      <OrbitControls
+        makeDefault
+        target={[0, 0, 0]}
+        enableDamping
+        dampingFactor={0.05}
+        minDistance={4.0}
+        maxDistance={250}
+      />
+    </Canvas>
   ),
 };

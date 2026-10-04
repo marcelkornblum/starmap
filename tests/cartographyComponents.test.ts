@@ -457,7 +457,7 @@ describe('3D Cartography Components', () => {
       expect(html).toContain('data-state="active"');
       expect(html).not.toContain('drop-stalk');
       expect(html).toContain('Vega');
-      expect(html).toContain('A0V');
+      expect(html).not.toContain('A0V');
     });
 
     it('renders drop stalk down to datum when selected or focused (Single-Stalk Rule)', () => {
@@ -564,15 +564,18 @@ describe('3D Cartography Components', () => {
       expect(html).toContain('data-testid="celestial-label"');
       expect(html).toContain('Kepler-47');
 
-      // Bottom-Right Facet (Solar spectrum type separated in annotated mode)
+      // Bottom-Right Facet (Solar spectrum type separated in annotated mode with dot separator)
       expect(html).toContain('data-testid="celestial-spectrum-facet"');
-      expect(html).toContain('G6V + M3V');
+      expect(html).toContain('G6V');
+      expect(html).toContain('M3V');
+      expect(html).toContain('·');
+      expect(html).not.toContain(' + ');
 
       // Drop stalk present in selected state
       expect(html).toContain('drop-stalk');
     });
 
-    it('renders inline spectral tag in active state without separating into bottom-right facet', () => {
+    it('omits spectral tag from label in active state without separating into bottom-right facet', () => {
       const html = renderToString(
         createElement(CelestialNode, {
           id: 'kepler-active',
@@ -586,7 +589,7 @@ describe('3D Cartography Components', () => {
 
       expect(html).toContain('data-testid="celestial-label"');
       expect(html).toContain('Kepler-47');
-      expect(html).toContain('G6V + M3V');
+      expect(html).not.toContain('G6V');
       expect(html).not.toContain('data-testid="celestial-spectrum-facet"');
     });
 

@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useMemo, useRef, useEffect, useState } from 'react';
+import { useMemo, useRef, useEffect, useState, Fragment } from 'react';
 import * as THREE from 'three';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
@@ -187,6 +187,12 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     worldPosTupleRef.current = [x, y, z];
   }, [x, y, z]);
 
+  // Split multiple spectral classifications separated by '+' into discrete tokens formatted with a centered dot
+  const spectralDesignations = useMemo(() => {
+    if (!spectralType) return [];
+    return spectralType.split(/\s*\+\s*/);
+  }, [spectralType]);
+
   useEffect(() => {
     const el = labelContainerRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
@@ -241,7 +247,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     // Compute label bounding box in screen pixels analytically using cached dimensions (no DOM layout thrashing, zero allocations)
     let activeBox: Box2D | undefined;
     if (shouldRenderLabel) {
-      const estimatedW = name.length * 8 + (spectralType ? 45 : 0) + 12;
+      const estimatedW = name.length * 8 + 12;
       const w = labelDimensionsRef.current.width > 0 ? labelDimensionsRef.current.width : estimatedW;
       const h = labelDimensionsRef.current.height > 0 ? labelDimensionsRef.current.height : 18;
       const anchorX = screenX + 1.15 * reticleRadius;
@@ -475,7 +481,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
               data-state={currentState}
             >
               <span>{name}</span>
-              {!isAnnotated && spectralType && <span className={styles.spectralTag}>{spectralType}</span>}
             </div>
           </Html>
         )}
@@ -494,7 +499,12 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
               className={styles.spectralFacet}
               data-state={currentState}
             >
-              <span>{spectralType}</span>
+              {spectralDesignations.map((desig, idx) => (
+                <Fragment key={idx}>
+                  {idx > 0 && <span className={styles.facetSeparator}>·</span>}
+                  <span>{desig}</span>
+                </Fragment>
+              ))}
             </div>
           </Html>
         )}
@@ -515,7 +525,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
             data-state={currentState}
           >
             <span>{name}</span>
-            {spectralType && <span className={styles.spectralTag}>{spectralType}</span>}
           </div>
         </Html>
       )}

@@ -45,57 +45,74 @@ describe('SpatialScenes Storybook Suite', () => {
   });
 
   describe('GalacticViewScene', () => {
-    it('renders cleanly in SSR with candidate manifest and star dossier', () => {
+    it('renders cleanly in SSR with 3D cartography elements and stellar population', () => {
       const html = renderToString(createElement(GalacticViewScene));
-      expect(html).toContain('Candidate Systems');
+      expect(html).toContain('data-testid="mock-canvas"');
+      expect(html).toContain('name="cartographic-grid"');
+      expect(html).toContain('name="celestial-node-sol"');
       expect(html).toContain('Sol');
-      expect(html).toContain('Alpha Centauri');
-      expect(html).toContain('Tau Ceti');
-      expect(html).toContain('Galactic Compass');
+      expect(html).toContain('name="celestial-node-alpha-centauri"');
+      expect(html).toContain('name="celestial-node-tau-ceti"');
+      expect(html).not.toContain('Candidate Systems');
+      expect(html).not.toContain('Galactic Compass');
     });
 
     it('renders with custom onInspectSystem callback', () => {
       const onInspect = vi.fn();
       const html = renderToString(createElement(GalacticViewScene, { onInspectSystem: onInspect }));
-      expect(html).toContain('Inspect Sol System →');
+      expect(html).toContain('data-testid="mock-canvas"');
+      expect(html).toContain('name="cartographic-grid"');
     });
   });
 
   describe('SystemViewScene', () => {
-    it('renders cleanly in SSR with Keplerian orbit table and controls', () => {
+    it('renders cleanly in SSR with host star, Keplerian orbits, and planetary nodes', () => {
       const html = renderToString(createElement(SystemViewScene));
-      expect(html).toContain('Sol System');
-      expect(html).toContain('Mercury');
+      expect(html).toContain('data-testid="mock-canvas"');
+      expect(html).toContain('name="cartographic-grid"');
+      expect(html).toContain('name="celestial-node-sol"');
+      expect(html).toContain('Sol');
+      expect(html).toContain('name="celestial-node-mercury"');
+      expect(html).toContain('name="celestial-node-earth"');
       expect(html).toContain('Earth');
-      expect(html).toContain('Jupiter');
-      expect(html).toContain('Saturn');
-      expect(html).toContain('Semi-Major Axis');
+      expect(html).toContain('name="celestial-node-jupiter"');
+      expect(html).toContain('name="celestial-node-saturn"');
+      expect(html).toContain('name="orbit-path"');
+      expect(html).not.toContain('Semi-Major Axis');
     });
 
     it('handles systemId override for Tau Ceti', () => {
       const html = renderToString(createElement(SystemViewScene, { systemId: 'tau-ceti' }));
-      expect(html).toContain('Tau Ceti System');
+      expect(html).toContain('name="celestial-node-tau-ceti"');
+      expect(html).toContain('Tau Ceti');
     });
   });
 
   describe('PlanetaryViewScene', () => {
-    it('renders cleanly in SSR with natural satellites manifest and telemetry', () => {
+    it('renders cleanly in SSR with central planet, lunar orbit, and satellite node', () => {
       const html = renderToString(createElement(PlanetaryViewScene));
+      expect(html).toContain('data-testid="mock-canvas"');
+      expect(html).toContain('name="cartographic-grid"');
+      expect(html).toContain('name="celestial-node-planet-center-node"');
       expect(html).toContain('Earth');
-      expect(html).toContain('Natural Satellites');
-      expect(html).toContain('Moon (Luna)');
-      expect(html).toContain('Surface Gravity');
-      expect(html).toContain('Atmospheric Composition');
-      expect(html).toContain('Planetary Orientation');
+      expect(html).toContain('name="celestial-node-moon"');
+      expect(html).toContain('name="orbit-path"');
+      expect(html).not.toContain('Natural Satellites');
+      expect(html).not.toContain('Surface Gravity');
+      expect(html).not.toContain('Atmospheric Composition');
+      expect(html).not.toContain('Planetary Orientation');
     });
   });
 
   describe('InteractiveNavigator', () => {
-    it('renders initial galactic tier cleanly', () => {
+    it('renders initial galactic tier cleanly without 2D UI overlays', () => {
       const html = renderToString(createElement(InteractiveNavigator));
-      expect(html).toContain('Candidate Systems');
-      expect(html).toContain('Local Volume (100 pc)');
-      expect(html).toContain('Inspect Sol System →');
+      expect(html).toContain('data-testid="mock-canvas"');
+      expect(html).toContain('name="cartographic-grid"');
+      expect(html).toContain('name="celestial-node-sol"');
+      expect(html).toContain('Sol');
+      expect(html).not.toContain('Candidate Systems');
+      expect(html).not.toContain('Inspect Sol System →');
     });
   });
 });

@@ -80,3 +80,11 @@
   border-color: var(--state-selected-border);
   color: var(--content-secondary);
 }
+
+.facetSeparator {
+  display: inline-block;
+  padding-inline: var(--space-0-5, 2px);
+  color: var(--chrome-grid-primary-color);
+  opacity: 0.8;
+  user-select: none;
+}

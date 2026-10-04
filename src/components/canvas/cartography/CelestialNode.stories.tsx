@@ -40,18 +40,25 @@ export default meta;
 type Story = StoryObj<typeof CelestialNode>;
 
 export const Default: Story = {
+  name: 'Stellar System (Full Facets)',
   args: {
-    id: 'kepler-47',
-    name: 'Kepler-47',
+    id: 'kepler-90',
+    name: 'Kepler-90',
     position: [1.8, 1.4, 2.0],
     classification: 'star',
-    spectralType: 'G6V + M3V',
-    multiplicity: 2,
+    state: 'focused',
+    spectralType: 'G0V + M3V + M5V',
+    multiplicity: 3,
     showStalk: true,
     planets: [
-      { id: 'kepler-47-b', name: 'Kepler-47 b', classification: 'terrestrial' },
-      { id: 'kepler-47-d', name: 'Kepler-47 d', classification: 'ice-giant' },
-      { id: 'kepler-47-c', name: 'Kepler-47 c', classification: 'gas-giant' },
+      { id: 'kepler-90-b', name: 'Kepler-90 b', classification: 'terrestrial' },
+      { id: 'kepler-90-c', name: 'Kepler-90 c', classification: 'terrestrial' },
+      { id: 'kepler-90-i', name: 'Kepler-90 i', classification: 'terrestrial' },
+      { id: 'kepler-90-d', name: 'Kepler-90 d', classification: 'ice-giant' },
+      { id: 'kepler-90-e', name: 'Kepler-90 e', classification: 'ice-giant' },
+      { id: 'kepler-90-f', name: 'Kepler-90 f', classification: 'gas-giant' },
+      { id: 'kepler-90-g', name: 'Kepler-90 g', classification: 'gas-giant' },
+      { id: 'kepler-90-h', name: 'Kepler-90 h', classification: 'gas-giant' },
     ],
   },
 };
