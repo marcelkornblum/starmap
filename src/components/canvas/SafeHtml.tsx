@@ -11,7 +11,8 @@ export interface SafeHtmlProps {
     el: THREE.Object3D,
     camera: THREE.Camera,
     size: { width: number; height: number },
-  ) => [number, number];
+    target?: [number, number],
+  ) => [number, number] | void;
   center?: boolean;
   wrapperClass?: string;
   className?: string;
@@ -49,6 +50,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   const groupRef = useRef<THREE.Group>(null);
   const scratchPos = useRef(new THREE.Vector3());
   const scratchNdc = useRef(new THREE.Vector3());
+  const scratchTargetCoords = useRef<[number, number]>([0, 0]);
   const rootRef = useRef<ReactDOM.Root | null>(null);
 
   const lastX = useRef(-999999);
@@ -118,9 +120,21 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     scratchPos.current.setFromMatrixPosition(groupRef.current.matrixWorld);
 
     if (calculatePosition) {
-      const coords = calculatePosition(groupRef.current, camera, size);
-      x = coords[0];
-      y = coords[1];
+      scratchTargetCoords.current[0] = 0;
+      scratchTargetCoords.current[1] = 0;
+      const coords = calculatePosition(
+        groupRef.current,
+        camera,
+        size,
+        scratchTargetCoords.current,
+      );
+      if (coords) {
+        x = coords[0];
+        y = coords[1];
+      } else {
+        x = scratchTargetCoords.current[0];
+        y = scratchTargetCoords.current[1];
+      }
     } else {
       const ndc = scratchNdc.current.copy(scratchPos.current).project(camera);
 

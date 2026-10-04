@@ -90,12 +90,13 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     });
   }
 
-  function simpleTraverse(node: any, visitor: (n: any) => void) {
+  function simpleTraverse(node: unknown, visitor: (n: any) => void) {
     if (!node || typeof node !== 'object') return;
     visitor(node);
-    for (const key of Object.keys(node)) {
+    const obj = node as Record<string, unknown>;
+    for (const key of Object.keys(obj)) {
       if (key === 'loc' || key === 'range' || key === 'comments') continue;
-      const child = node[key];
+      const child = obj[key];
       if (Array.isArray(child)) {
         for (const item of child) {
           simpleTraverse(item, visitor);
@@ -134,7 +135,16 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
         callName === 'useStarmapStore' ||
         callName.endsWith('Store')
       ) {
-        const selectorArg = node.arguments[0];
+        let selectorArg = node.arguments[0];
+        if (
+          selectorArg &&
+          selectorArg.type === 'CallExpression' &&
+          selectorArg.callee?.type === 'Identifier' &&
+          selectorArg.callee.name === 'useShallow'
+        ) {
+          selectorArg = selectorArg.arguments[0];
+        }
+
         if (
           selectorArg &&
           (selectorArg.type === 'ArrowFunctionExpression' ||

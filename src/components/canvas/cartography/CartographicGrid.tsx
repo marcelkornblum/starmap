@@ -231,7 +231,10 @@ interface StalkedFootprintsLayerProps {
   initialPosition: [number, number, number];
   defaultColor: THREE.Color;
   defaultAlpha: number;
-  tokens: ReturnType<typeof useThreeTokenStore.getState>['tokens'];
+  tokens: {
+    stateFocus: THREE.Color;
+    stateSelectedBorder: THREE.Color;
+  };
 }
 
 const StalkedFootprintsLayer: React.FC<StalkedFootprintsLayerProps> = ({
@@ -352,7 +355,44 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   position = [0, 0, 0],
   focusTarget,
 }) => {
-  const tokens = useThreeTokenStore(useShallow((state) => state.tokens));
+  const tokens = useThreeTokenStore(
+    useShallow((state) => ({
+      axisLineAlpha: state.tokens.axisLineAlpha,
+      axisLineColor: state.tokens.axisLineColor,
+      axisLineWidth: state.tokens.axisLineWidth,
+      bearingCoreAlpha: state.tokens.bearingCoreAlpha,
+      bearingCoreColor: state.tokens.bearingCoreColor,
+      bearingCoreWidth: state.tokens.bearingCoreWidth,
+      bearingLineAlpha: state.tokens.bearingLineAlpha,
+      bearingLineColor: state.tokens.bearingLineColor,
+      bearingLineWidth: state.tokens.bearingLineWidth,
+      bearingOrbitalAlpha: state.tokens.bearingOrbitalAlpha,
+      bearingOrbitalColor: state.tokens.bearingOrbitalColor,
+      bearingOrbitalWidth: state.tokens.bearingOrbitalWidth,
+      datumFootprintAlpha: state.tokens.datumFootprintAlpha,
+      datumFootprintColor: state.tokens.datumFootprintColor,
+      datumPlaneAlpha: state.tokens.datumPlaneAlpha,
+      datumPlaneColor: state.tokens.datumPlaneColor,
+      datumPlaneFillAlpha: state.tokens.datumPlaneFillAlpha,
+      datumPlaneFillColor: state.tokens.datumPlaneFillColor,
+      datumPlaneFillGradientExponent: state.tokens.datumPlaneFillGradientExponent,
+      datumPlaneFillGradientInner: state.tokens.datumPlaneFillGradientInner,
+      datumPlaneMinorAlpha: state.tokens.datumPlaneMinorAlpha,
+      datumPlaneMinorColor: state.tokens.datumPlaneMinorColor,
+      datumPlaneWidth: state.tokens.datumPlaneWidth,
+      gridPrimaryAlpha: state.tokens.gridPrimaryAlpha,
+      gridPrimaryColor: state.tokens.gridPrimaryColor,
+      gridPrimaryWidth: state.tokens.gridPrimaryWidth,
+      gridSecondaryAlpha: state.tokens.gridSecondaryAlpha,
+      gridSecondaryColor: state.tokens.gridSecondaryColor,
+      gridSecondaryWidth: state.tokens.gridSecondaryWidth,
+      rangeTickAlpha: state.tokens.rangeTickAlpha,
+      rangeTickColor: state.tokens.rangeTickColor,
+      rangeTickWidth: state.tokens.rangeTickWidth,
+      stateFocus: state.tokens.stateFocus,
+      stateSelectedBorder: state.tokens.stateSelectedBorder,
+    }))
+  );
   const { camera } = useThree();
 
   const isDatumPlaneVisible = showGalacticPlane ?? showFullDatumCircle ?? true;

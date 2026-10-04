@@ -28,6 +28,17 @@ export interface ScreenEdgeBearingIndicatorsProps {
 
 const HTML_Z_INDEX_RANGE: [number, number] = [100, 0];
 const noopOcclude = () => {};
+const pinToViewportOrigin = (
+  _el: THREE.Object3D,
+  _camera: THREE.Camera,
+  _size: { width: number; height: number },
+  target?: [number, number],
+): void => {
+  if (target) {
+    target[0] = 0;
+    target[1] = 0;
+  }
+};
 
 /**
  * ScreenEdgeBearingIndicators: Visual HUD vector arrowheads that terminate
@@ -183,7 +194,7 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
   return (
     <group ref={groupRef} name="screen-edge-bearings">
       <SafeHtml
-        calculatePosition={() => [0, 0]}
+        calculatePosition={pinToViewportOrigin}
         wrapperClass={styles.htmlOverlayContainer}
         pointerEvents="none"
         onOcclude={noopOcclude}
