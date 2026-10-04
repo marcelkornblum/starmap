@@ -4,6 +4,9 @@ import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
 import {
   parseCssColor,
+  parseCssDuration,
+  parseCssPx,
+  parseCssCubicBezier,
   createDefaultTokenSnapshot,
   extractThreeTokens,
   useThreeTokenStore,
@@ -128,6 +131,22 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(snapshot.bearingCoreColor).toBeDefined();
     expect(snapshot.bearingCoreWidth).toBe(2);
     expect(snapshot.bearingCoreStyle).toBe('solid');
+
+    // New semantic tokens
+    expect(snapshot.kinematicColor).toBeDefined();
+    expect(snapshot.kinematicAlpha).toBe(0.85);
+    expect(snapshot.stalkSelectedAlpha).toBe(0.70);
+    expect(snapshot.stalkFocusedAlpha).toBe(0.85);
+    expect(snapshot.footprintAlpha).toBe(0.35);
+    expect(snapshot.orbitAlpha).toBe(0.24);
+    expect(snapshot.orbitStyle).toBe('dashed');
+    expect(snapshot.routeWidth).toBe(3);
+    expect(snapshot.routeStyle).toBe('solid');
+    expect(snapshot.stalkExtendDuration).toBe(0.15);
+    expect(snapshot.stalkRetractDuration).toBe(0);
+    expect(snapshot.instrumentFootprint).toBe(16.47);
+    expect(snapshot.cameraFovBase).toBe(45);
+
     // Fallback token retained when CSS variable is blank
     expect(snapshot.categoryStar).toBeDefined();
   });
@@ -143,5 +162,39 @@ describe('useThreeTokenStore & parseCssColor', () => {
 
   it('mounts ThemeTokenBridge cleanly in SSR without errors', () => {
     expect(() => renderToString(createElement(ThemeTokenBridge))).not.toThrow();
+  });
+});
+
+describe('CSS parsers (duration, cubic-bezier, px)', () => {
+  it('parses CSS duration strings into seconds', () => {
+    expect(parseCssDuration('150ms')).toBeCloseTo(0.15, 4);
+    expect(parseCssDuration('400ms')).toBeCloseTo(0.40, 4);
+    expect(parseCssDuration('0ms')).toBe(0);
+    expect(parseCssDuration('1.5s')).toBe(1.5);
+    expect(parseCssDuration('invalid', 0.25)).toBe(0.25);
+    expect(parseCssDuration('', 0.1)).toBe(0.1);
+  });
+
+  it('parses CSS px strings into numbers', () => {
+    expect(parseCssPx('16.47px')).toBe(16.47);
+    expect(parseCssPx('2px')).toBe(2);
+    expect(parseCssPx('45')).toBe(45);
+    expect(parseCssPx('', 10)).toBe(10);
+  });
+
+  it('parses cubic-bezier easing and solves progress smoothly', () => {
+    const linear = parseCssCubicBezier('linear');
+    expect(linear(0)).toBe(0);
+    expect(linear(0.5)).toBe(0.5);
+    expect(linear(1)).toBe(1);
+
+    const snappy = parseCssCubicBezier('cubic-bezier(0.2, 0, 0, 1)');
+    expect(snappy(0)).toBe(0);
+    expect(snappy(1)).toBe(1);
+    // At t=0.5, snappy curve is already high
+    expect(snappy(0.5)).toBeGreaterThan(0.7);
+
+    const invalid = parseCssCubicBezier('not-a-curve');
+    expect(invalid(0.5)).toBe(0.5);
   });
 });

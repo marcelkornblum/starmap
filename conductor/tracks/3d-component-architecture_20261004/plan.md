@@ -5,13 +5,13 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 1: Tokens, Line Material & Spatial Mathematics (TDD)
-- [ ] Task: Add semantic tokens in `src/styles/tokens/semantic.css` for motion durations/easings, kinematic chrome, stalks, footprints, orbits, routes, instrument alphas, and dash metrics.
-- [ ] Task: Update `useThreeTokenStore.ts` to read new semantic tokens, parse durations and bezier easings, and handle theme / reduced-motion updates.
-- [ ] Task: Write failing unit tests for pure spatial mathematics: logarithmic ring step generation, bearing vector resolution, aperture containment, and interaction tier derivation.
-- [ ] Task: Implement pure spatial maths library in `src/components/canvas/math/` until all tests pass with 100% coverage.
-- [ ] Task: Implement `CartoLineMaterial` shader/material supporting solid, dashed, and dotted screen-space lines with arbitrary pixel widths.
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Add semantic tokens in `src/styles/tokens/semantic.css` for motion durations/easings, kinematic chrome, stalks, footprints, orbits, routes, instrument alphas, and dash metrics.
+- [x] Task: Update `useThreeTokenStore.ts` to read new semantic tokens, parse durations and bezier easings, and handle theme / reduced-motion updates.
+- [x] Task: Write failing unit tests for pure spatial mathematics: logarithmic ring step generation, bearing vector resolution, aperture containment, and interaction tier derivation.
+- [x] Task: Implement pure spatial maths library in `src/components/canvas/math/` until all tests pass with 100% coverage.
+- [x] Task: Implement `CartoLineMaterial` shader/material supporting solid, dashed, and dotted screen-space lines with arbitrary pixel widths.
+- [x] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Instrument Decomposition & Camera Rig (TDD)
 - [ ] Task: Define `ReferenceFrame` interfaces and declarative presets (`GALACTIC_FRAME`, `SYSTEM_FRAME`, `PLANETARY_FRAME`).

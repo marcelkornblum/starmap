@@ -65,8 +65,67 @@ export interface ThreeTokenSnapshot {
   headingIndicatorColor: THREE.Color;
   headingIndicatorAlpha: number;
 
+  // Kinematic Chrome
+  kinematicColor: THREE.Color;
+  kinematicAlpha: number;
+
+  // Drop Stalks (Monochrome, State-Driven)
+  stalkSelectedColor: THREE.Color;
+  stalkSelectedAlpha: number;
+  stalkFocusedColor: THREE.Color;
+  stalkFocusedAlpha: number;
+  stalkWidth: number;
+  stalkStyle: 'solid' | 'dashed' | 'dotted';
+
+  // Datum Footprints (Decoupled, Monochrome Baseline)
+  footprintColor: THREE.Color;
+  footprintAlpha: number;
+  footprintSelectedColor: THREE.Color;
+  footprintSelectedAlpha: number;
+  footprintFocusedColor: THREE.Color;
+  footprintFocusedAlpha: number;
+
+  // Orbits (Hairline, State-Driven)
+  orbitColor: THREE.Color;
+  orbitAlpha: number;
+  orbitWidth: number;
+  orbitStyle: 'solid' | 'dashed' | 'dotted';
+  orbitSelectedColor: THREE.Color;
+  orbitSelectedAlpha: number;
+  orbitFocusedColor: THREE.Color;
+  orbitFocusedAlpha: number;
+
+  // Routes (Kinematic Vector Chords)
+  routeColor: THREE.Color;
+  routeAlpha: number;
+  routeWidth: number;
+  routeStyle: 'solid' | 'dashed' | 'dotted';
+
+  // Motion (Durations in seconds & Easing evaluators)
+  stalkExtendDuration: number;
+  stalkExtendEase: (t: number) => number;
+  stalkRetractDuration: number;
+  stalkRetractEase: (t: number) => number;
+  footprintStampDuration: number;
+
+  // Instrument Alphas & Dash Metrics
+  ringMajorAlpha: number;
+  ringMinorAlpha: number;
+  finPerimeterAlpha: number;
+  tickAlpha: number;
+  reticleActiveAlpha: number;
+  reticleSelectedAlpha: number;
+  reticleFocusedAlpha: number;
+  instrumentFootprint: number;
+  cameraFovBase: number;
+  dashSize: number;
+  dashGap: number;
+  dotSize: number;
+  dotGap: number;
+
   // Interactive & State Cues
   stateFocus: THREE.Color;
+  stateSelected: THREE.Color;
   stateSelectedBorder: THREE.Color;
   stateHoverOverlayAlpha: number;
 
@@ -171,6 +230,88 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
 }
 
 /**
+ * Creates a cubic bezier solver for the given control points (x1, y1, x2, y2).
+ * Maps progress x in [0, 1] to output y in [0, 1].
+ */
+export function createCubicBezierSolver(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): (x: number) => number {
+  return function solve(x: number): number {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let t = x;
+    for (let i = 0; i < 8; i++) {
+      const oneMinusT = 1 - t;
+      const bx = 3 * oneMinusT * oneMinusT * t * x1 + 3 * oneMinusT * t * t * x2 + t * t * t;
+      const diff = bx - x;
+      if (Math.abs(diff) < 1e-4) break;
+      const dxdt = 3 * oneMinusT * oneMinusT * x1 + 6 * oneMinusT * t * (x2 - x1) + 3 * t * t * (1 - x2);
+      if (Math.abs(dxdt) < 1e-6) break;
+      t -= diff / dxdt;
+      t = Math.max(0, Math.min(1, t));
+    }
+    const oneMinusT = 1 - t;
+    return 3 * oneMinusT * oneMinusT * t * y1 + 3 * oneMinusT * t * t * y2 + t * t * t;
+  };
+}
+
+/**
+ * Parses CSS easing string (cubic-bezier or linear) into an evaluation function.
+ */
+export function parseCssCubicBezier(cssEasing: string): (t: number) => number {
+  const trimmed = cssEasing.trim().toLowerCase();
+  if (!trimmed || trimmed === 'linear') return (t) => t;
+  const match = trimmed.match(
+    /^cubic-bezier\(\s*([\d.-]+)\s*,\s*([\d.-]+)\s*,\s*([\d.-]+)\s*,\s*([\d.-]+)\s*\)$/,
+  );
+  if (match) {
+    const [, x1, y1, x2, y2] = match;
+    return createCubicBezierSolver(
+      Number.parseFloat(x1),
+      Number.parseFloat(y1),
+      Number.parseFloat(x2),
+      Number.parseFloat(y2),
+    );
+  }
+  return (t) => t;
+}
+
+/**
+ * Parses CSS duration string ('150ms', '0.2s', '0') into seconds.
+ */
+export function parseCssDuration(cssDuration: string, defaultSeconds = 0): number {
+  const trimmed = cssDuration.trim().toLowerCase();
+  if (!trimmed) return defaultSeconds;
+  if (trimmed.endsWith('ms')) {
+    const val = Number.parseFloat(trimmed.slice(0, -2));
+    return Number.isFinite(val) ? val / 1000 : defaultSeconds;
+  }
+  if (trimmed.endsWith('s')) {
+    const val = Number.parseFloat(trimmed.slice(0, -1));
+    return Number.isFinite(val) ? val : defaultSeconds;
+  }
+  const val = Number.parseFloat(trimmed);
+  return Number.isFinite(val) ? val : defaultSeconds;
+}
+
+/**
+ * Parses CSS px / numeric scalar ('6px', '16.47') into number.
+ */
+export function parseCssPx(cssPx: string, defaultVal = 0): number {
+  const trimmed = cssPx.trim().toLowerCase();
+  if (!trimmed) return defaultVal;
+  if (trimmed.endsWith('px')) {
+    const val = Number.parseFloat(trimmed.slice(0, -2));
+    return Number.isFinite(val) ? val : defaultVal;
+  }
+  const val = Number.parseFloat(trimmed);
+  return Number.isFinite(val) ? val : defaultVal;
+}
+
+/**
  * Creates a default token snapshot for a given theme baseline.
  */
 export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 'dark'): ThreeTokenSnapshot {
@@ -179,10 +320,11 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
 
   const makeLinearColor = (hex: string) => new THREE.Color(hex);
 
-
   const canvasBgHex = isAmoled ? '#000000' : isLight ? '#fdf6e3' : '#002b36';
   const chromeToneHex = isLight ? '#586e75' : '#93a1a1';
   const focusHex = isLight ? '#268bd2' : '#2aa198';
+  const stalkToneHex = isLight ? '#263339' : '#e0e7e7';
+  const redHex = '#dc322f';
 
   return {
     canvasBg: makeLinearColor(canvasBgHex),
@@ -212,7 +354,7 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     datumPlaneFillAlpha: theme === 'light' ? 0.08 : 0.16,
     datumPlaneFillGradientInner: 0.25,
     datumPlaneFillGradientExponent: 2.0,
-    datumFootprintColor: makeLinearColor(theme === 'light' ? '#073642' : '#2aa198'),
+    datumFootprintColor: makeLinearColor(theme === 'light' ? '#586e75' : '#93a1a1'),
     datumFootprintAlpha: 0.25,
     datumFootprintWidth: 2,
 
@@ -224,11 +366,11 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     axisLineAlpha: 0.16,
     axisLineWidth: 1,
     axisLineStyle: 'solid',
-    bearingLineColor: makeLinearColor('#dc322f'),
+    bearingLineColor: makeLinearColor(redHex),
     bearingLineAlpha: 0.35,
     bearingLineWidth: 2,
     bearingLineStyle: 'solid',
-    bearingOrbitalColor: makeLinearColor('#dc322f'),
+    bearingOrbitalColor: makeLinearColor(redHex),
     bearingOrbitalAlpha: 0.35,
     bearingOrbitalWidth: 2,
     bearingOrbitalStyle: 'dashed',
@@ -239,7 +381,66 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     headingIndicatorColor: makeLinearColor(chromeToneHex),
     headingIndicatorAlpha: 0.50,
 
+    // Kinematic Chrome
+    kinematicColor: makeLinearColor(redHex),
+    kinematicAlpha: 0.85,
+
+    // Drop Stalks (Monochrome, State-Driven)
+    stalkSelectedColor: makeLinearColor(stalkToneHex),
+    stalkSelectedAlpha: 0.70,
+    stalkFocusedColor: makeLinearColor(stalkToneHex),
+    stalkFocusedAlpha: 0.85,
+    stalkWidth: 1,
+    stalkStyle: 'solid',
+
+    // Datum Footprints (Decoupled, Monochrome Baseline)
+    footprintColor: makeLinearColor(theme === 'light' ? '#586e75' : '#93a1a1'),
+    footprintAlpha: 0.35,
+    footprintSelectedColor: makeLinearColor(stalkToneHex),
+    footprintSelectedAlpha: 0.70,
+    footprintFocusedColor: makeLinearColor(stalkToneHex),
+    footprintFocusedAlpha: 0.85,
+
+    // Orbits (Hairline, State-Driven)
+    orbitColor: makeLinearColor(theme === 'light' ? '#586e75' : '#93a1a1'),
+    orbitAlpha: 0.24,
+    orbitWidth: 1,
+    orbitStyle: 'dashed',
+    orbitSelectedColor: makeLinearColor(redHex),
+    orbitSelectedAlpha: 0.85,
+    orbitFocusedColor: makeLinearColor(redHex),
+    orbitFocusedAlpha: 0.85,
+
+    // Routes (Kinematic Vector Chords)
+    routeColor: makeLinearColor(redHex),
+    routeAlpha: 0.90,
+    routeWidth: 3,
+    routeStyle: 'solid',
+
+    // Motion
+    stalkExtendDuration: 0.15,
+    stalkExtendEase: parseCssCubicBezier('cubic-bezier(0.2, 0, 0, 1)'),
+    stalkRetractDuration: 0.0,
+    stalkRetractEase: parseCssCubicBezier('cubic-bezier(0.4, 0, 1, 1)'),
+    footprintStampDuration: 0.075,
+
+    // Instrument Alphas & Dash Metrics
+    ringMajorAlpha: 0.45,
+    ringMinorAlpha: 0.20,
+    finPerimeterAlpha: 0.25,
+    tickAlpha: 0.40,
+    reticleActiveAlpha: 0.60,
+    reticleSelectedAlpha: 0.90,
+    reticleFocusedAlpha: 1.0,
+    instrumentFootprint: 16.47,
+    cameraFovBase: 45,
+    dashSize: 6,
+    dashGap: 4,
+    dotSize: 2,
+    dotGap: 4,
+
     stateFocus: makeLinearColor(focusHex),
+    stateSelected: makeLinearColor(focusHex),
     stateSelectedBorder: makeLinearColor(focusHex),
     stateHoverOverlayAlpha: 0.04,
 
@@ -250,7 +451,7 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
 
     statusNominal: makeLinearColor('#859900'),
     statusCaution: makeLinearColor('#b58900'),
-    statusCritical: makeLinearColor('#dc322f'),
+    statusCritical: makeLinearColor(redHex),
     confidenceConfirmed: makeLinearColor('#859900'),
     confidenceCandidate: makeLinearColor('#b58900'),
     confidenceTheoretical: makeLinearColor('#6c71c4'),
@@ -304,6 +505,22 @@ export function extractThreeTokens(
     return defaultVal;
   };
 
+  const readDuration = (varName: string, defaultVal: number): number => {
+    const raw = computed.getPropertyValue(varName).trim();
+    return parseCssDuration(raw, defaultVal);
+  };
+
+  const readEasing = (varName: string, defaultVal: (t: number) => number): ((t: number) => number) => {
+    const raw = computed.getPropertyValue(varName).trim();
+    if (!raw) return defaultVal;
+    return parseCssCubicBezier(raw);
+  };
+
+  const readPx = (varName: string, defaultVal: number): number => {
+    const raw = computed.getPropertyValue(varName).trim();
+    return parseCssPx(raw, defaultVal);
+  };
+
   const canvasParsed = readColor('--surface-canvas-bg', fallback.canvasBg, 1.0);
   const gridPrimary = readColor('--chrome-grid-primary-color', fallback.gridPrimaryColor, fallback.gridPrimaryAlpha);
   const gridPrimaryWidth = readWidth('--chrome-grid-primary-width', fallback.gridPrimaryWidth);
@@ -343,8 +560,57 @@ export function extractThreeTokens(
   const bearingCoreStyle = readStyle('--chrome-bearing-core-style', fallback.bearingCoreStyle);
   const heading = readColor('--chrome-heading-indicator-color', fallback.headingIndicatorColor, fallback.headingIndicatorAlpha);
 
+  // Kinematic Chrome
+  const kinematic = readColor('--chrome-kinematic-color', fallback.kinematicColor, fallback.kinematicAlpha);
+
+  // Drop Stalks
+  const stalkSelected = readColor('--chrome-stalk-selected-color', fallback.stalkSelectedColor, fallback.stalkSelectedAlpha);
+  const stalkFocused = readColor('--chrome-stalk-focused-color', fallback.stalkFocusedColor, fallback.stalkFocusedAlpha);
+  const stalkWidth = readWidth('--chrome-stalk-width', fallback.stalkWidth);
+  const stalkStyle = readStyle('--chrome-stalk-style', fallback.stalkStyle);
+
+  // Datum Footprints
+  const footprint = readColor('--chrome-footprint-color', fallback.footprintColor, fallback.footprintAlpha);
+  const footprintSelected = readColor('--chrome-footprint-selected-color', fallback.footprintSelectedColor, fallback.footprintSelectedAlpha);
+  const footprintFocused = readColor('--chrome-footprint-focused-color', fallback.footprintFocusedColor, fallback.footprintFocusedAlpha);
+
+  // Orbits
+  const orbit = readColor('--chrome-orbit-color', fallback.orbitColor, fallback.orbitAlpha);
+  const orbitWidth = readWidth('--chrome-orbit-width', fallback.orbitWidth);
+  const orbitStyle = readStyle('--chrome-orbit-style', fallback.orbitStyle);
+  const orbitSelected = readColor('--chrome-orbit-selected-color', fallback.orbitSelectedColor, fallback.orbitSelectedAlpha);
+  const orbitFocused = readColor('--chrome-orbit-focused-color', fallback.orbitFocusedColor, fallback.orbitFocusedAlpha);
+
+  // Routes
+  const route = readColor('--chrome-route-color', fallback.routeColor, fallback.routeAlpha);
+  const routeWidth = readWidth('--chrome-route-width', fallback.routeWidth);
+  const routeStyle = readStyle('--chrome-route-style', fallback.routeStyle);
+
+  // Motion
+  const stalkExtendDuration = readDuration('--chrome-stalk-extend-duration', fallback.stalkExtendDuration);
+  const stalkExtendEase = readEasing('--chrome-stalk-extend-ease', fallback.stalkExtendEase);
+  const stalkRetractDuration = readDuration('--chrome-stalk-retract-duration', fallback.stalkRetractDuration);
+  const stalkRetractEase = readEasing('--chrome-stalk-retract-ease', fallback.stalkRetractEase);
+  const footprintStampDuration = readDuration('--chrome-footprint-stamp-duration', fallback.footprintStampDuration);
+
+  // Instrument Alphas & Metrics
+  const ringMajorAlpha = readOpacity('--chrome-ring-major-alpha', fallback.ringMajorAlpha);
+  const ringMinorAlpha = readOpacity('--chrome-ring-minor-alpha', fallback.ringMinorAlpha);
+  const finPerimeterAlpha = readOpacity('--chrome-fin-perimeter-alpha', fallback.finPerimeterAlpha);
+  const tickAlpha = readOpacity('--chrome-tick-alpha', fallback.tickAlpha);
+  const reticleActiveAlpha = readOpacity('--chrome-reticle-alpha-active', fallback.reticleActiveAlpha);
+  const reticleSelectedAlpha = readOpacity('--chrome-reticle-alpha-selected', fallback.reticleSelectedAlpha);
+  const reticleFocusedAlpha = readOpacity('--chrome-reticle-alpha-focused', fallback.reticleFocusedAlpha);
+  const instrumentFootprint = readPx('--chrome-instrument-footprint', fallback.instrumentFootprint);
+  const cameraFovBase = readPx('--camera-fov-base', fallback.cameraFovBase);
+  const dashSize = readPx('--chrome-dash-size', fallback.dashSize);
+  const dashGap = readPx('--chrome-dash-gap', fallback.dashGap);
+  const dotSize = readPx('--chrome-dot-size', fallback.dotSize);
+  const dotGap = readPx('--chrome-dot-gap', fallback.dotGap);
+
   const stateFocus = readColor('--state-focus', fallback.stateFocus, 1.0);
-  const stateSelected = readColor('--state-selected-border', fallback.stateSelectedBorder, 1.0);
+  const stateSelected = readColor('--state-selected', fallback.stateSelected, 1.0);
+  const stateSelectedBorder = readColor('--state-selected-border', fallback.stateSelectedBorder, 1.0);
 
   const catStar = readColor('--category-star', fallback.categoryStar, 1.0);
   const catPlanet = readColor('--category-planet', fallback.categoryPlanet, 1.0);
@@ -414,8 +680,60 @@ export function extractThreeTokens(
     headingIndicatorColor: heading.color,
     headingIndicatorAlpha: heading.alpha,
 
+    kinematicColor: kinematic.color,
+    kinematicAlpha: kinematic.alpha,
+
+    stalkSelectedColor: stalkSelected.color,
+    stalkSelectedAlpha: stalkSelected.alpha,
+    stalkFocusedColor: stalkFocused.color,
+    stalkFocusedAlpha: stalkFocused.alpha,
+    stalkWidth,
+    stalkStyle,
+
+    footprintColor: footprint.color,
+    footprintAlpha: footprint.alpha,
+    footprintSelectedColor: footprintSelected.color,
+    footprintSelectedAlpha: footprintSelected.alpha,
+    footprintFocusedColor: footprintFocused.color,
+    footprintFocusedAlpha: footprintFocused.alpha,
+
+    orbitColor: orbit.color,
+    orbitAlpha: orbit.alpha,
+    orbitWidth,
+    orbitStyle,
+    orbitSelectedColor: orbitSelected.color,
+    orbitSelectedAlpha: orbitSelected.alpha,
+    orbitFocusedColor: orbitFocused.color,
+    orbitFocusedAlpha: orbitFocused.alpha,
+
+    routeColor: route.color,
+    routeAlpha: route.alpha,
+    routeWidth,
+    routeStyle,
+
+    stalkExtendDuration,
+    stalkExtendEase,
+    stalkRetractDuration,
+    stalkRetractEase,
+    footprintStampDuration,
+
+    ringMajorAlpha,
+    ringMinorAlpha,
+    finPerimeterAlpha,
+    tickAlpha,
+    reticleActiveAlpha,
+    reticleSelectedAlpha,
+    reticleFocusedAlpha,
+    instrumentFootprint,
+    cameraFovBase,
+    dashSize,
+    dashGap,
+    dotSize,
+    dotGap,
+
     stateFocus: stateFocus.color,
-    stateSelectedBorder: stateSelected.color,
+    stateSelected: stateSelected.color,
+    stateSelectedBorder: stateSelectedBorder.color,
     stateHoverOverlayAlpha: readOpacity('--ui-hover-overlay-opacity', fallback.stateHoverOverlayAlpha),
 
     categoryStar: catStar.color,

@@ -296,9 +296,17 @@
     --motion-duration-default:     var(--motion-duration-interactive);
     --duration-fast:               var(--motion-duration-feedback);
 
-    --motion-ease-default:         var(--curve-snappy);
+    --motion-ease-entry:           var(--curve-snappy);
+    --motion-ease-exit:            var(--curve-in);
+    --motion-ease-default:         var(--motion-ease-entry);
     --motion-ease-spatial:         var(--curve-spatial);
     --ease-standard:               var(--motion-ease-default);
+
+    --chrome-stalk-extend-duration: var(--motion-duration-interactive);
+    --chrome-stalk-extend-ease:     var(--motion-ease-entry);
+    --chrome-stalk-retract-duration: var(--motion-duration-none);
+    --chrome-stalk-retract-ease:     var(--motion-ease-exit);
+    --chrome-footprint-stamp-duration: var(--motion-duration-feedback);
 
     /* UI Element Optics Defaults */
     --ui-button-prominent-opacity:       var(--opacity-100);
@@ -470,8 +478,9 @@
     --state-hover-overlay:        var(--palette-white-alpha-4);
     --state-active-overlay:       var(--palette-white-alpha-8);
 
+    --state-selected:             var(--state-focus);
     --state-selected-bg:          var(--palette-white-alpha-8);
-    --state-selected-border:      var(--state-focus);
+    --state-selected-border:      var(--state-selected);
     --state-selected-content:     var(--content-prominent);
 
     --state-disabled-content:     var(--content-faint);
@@ -577,9 +586,60 @@
     --chrome-datum-plane-fill-alpha:     0.16;
     --chrome-datum-plane-fill-gradient-inner: 0.25;
     --chrome-datum-plane-fill-gradient-exponent: 2.0;
-    --chrome-datum-footprint-color:      var(--state-focus);
-    --chrome-datum-footprint-alpha:      0.25;
+    --chrome-datum-footprint-color:      var(--chrome-footprint-color);
+    --chrome-datum-footprint-alpha:      var(--chrome-footprint-alpha);
     --chrome-datum-footprint-width:      var(--stroke-width-2);
+
+    /* Kinematic Chrome */
+    --chrome-kinematic-color:            var(--palette-solarized-red);
+    --chrome-kinematic-alpha:            0.85;
+
+    /* Drop Stalks (Monochrome, State-Driven) */
+    --chrome-stalk-selected-color:       var(--palette-white-alpha-70);
+    --chrome-stalk-selected-alpha:       0.70;
+    --chrome-stalk-focused-color:        var(--palette-white-alpha-70);
+    --chrome-stalk-focused-alpha:        0.85;
+    --chrome-stalk-width:                var(--stroke-width-1);
+    --chrome-stalk-style:                solid;
+
+    /* Datum Footprints (Decoupled, Monochrome Baseline) */
+    --chrome-footprint-color:            var(--palette-white-alpha-35);
+    --chrome-footprint-alpha:            0.35;
+    --chrome-footprint-selected-color:   var(--palette-white-alpha-70);
+    --chrome-footprint-selected-alpha:   0.70;
+    --chrome-footprint-focused-color:    var(--palette-white-alpha-70);
+    --chrome-footprint-focused-alpha:    0.85;
+
+    /* Orbits (Hairline, State-Driven) */
+    --chrome-orbit-color:                var(--palette-white-alpha-24);
+    --chrome-orbit-alpha:                0.24;
+    --chrome-orbit-width:                var(--stroke-width-1);
+    --chrome-orbit-style:                dashed;
+    --chrome-orbit-selected-color:       var(--chrome-kinematic-color);
+    --chrome-orbit-selected-alpha:       0.85;
+    --chrome-orbit-focused-color:        var(--chrome-kinematic-color);
+    --chrome-orbit-focused-alpha:        0.85;
+
+    /* Routes (Kinematic Vector Chords) */
+    --chrome-route-color:                var(--chrome-kinematic-color);
+    --chrome-route-alpha:                0.90;
+    --chrome-route-width:                var(--stroke-width-3);
+    --chrome-route-style:                solid;
+
+    /* Instrument Alphas & Dash Metrics */
+    --chrome-ring-major-alpha:           0.45;
+    --chrome-ring-minor-alpha:           0.20;
+    --chrome-fin-perimeter-alpha:        0.25;
+    --chrome-tick-alpha:                 0.40;
+    --chrome-reticle-alpha-active:       0.60;
+    --chrome-reticle-alpha-selected:     0.90;
+    --chrome-reticle-alpha-focused:      1.0;
+    --chrome-instrument-footprint:       16.47;
+    --camera-fov-base:                   45;
+    --chrome-dash-size:                  6px;
+    --chrome-dash-gap:                   4px;
+    --chrome-dot-size:                   2px;
+    --chrome-dot-gap:                    4px;
 
     --chrome-axis-line-color:            var(--palette-white-alpha-16);
     --chrome-axis-line-width:            var(--stroke-width-1);
@@ -590,7 +650,7 @@
     --chrome-bearing-line-style:         solid;
 
     --chrome-bearing-orbital-color:      var(--palette-red-alpha-35);
-    --chrome-bearing-orbital-cue-color:  var(--palette-solarized-red);
+    --chrome-bearing-orbital-cue-color:  var(--chrome-kinematic-color);
     --chrome-bearing-orbital-width:      var(--stroke-width-2);
     --chrome-bearing-orbital-style:      dashed;
 
@@ -764,8 +824,9 @@
     --state-hover-overlay:        var(--palette-black-alpha-4);
     --state-active-overlay:       var(--palette-black-alpha-8);
 
+    --state-selected:             var(--state-focus);
     --state-selected-bg:          var(--palette-black-alpha-8);
-    --state-selected-border:      var(--state-focus);
+    --state-selected-border:      var(--state-selected);
     --state-selected-content:     var(--content-prominent);
 
     --state-disabled-content:     var(--content-faint);
@@ -871,9 +932,60 @@
     --chrome-datum-plane-fill-alpha:     0.08;
     --chrome-datum-plane-fill-gradient-inner: 0.25;
     --chrome-datum-plane-fill-gradient-exponent: 2.0;
-    --chrome-datum-footprint-color:      var(--state-focus);
-    --chrome-datum-footprint-alpha:      0.25;
+    --chrome-datum-footprint-color:      var(--chrome-footprint-color);
+    --chrome-datum-footprint-alpha:      var(--chrome-footprint-alpha);
     --chrome-datum-footprint-width:      var(--stroke-width-2);
+
+    /* Kinematic Chrome */
+    --chrome-kinematic-color:            var(--palette-solarized-red);
+    --chrome-kinematic-alpha:            0.85;
+
+    /* Drop Stalks (Monochrome, State-Driven) */
+    --chrome-stalk-selected-color:       var(--palette-black-alpha-70);
+    --chrome-stalk-selected-alpha:       0.70;
+    --chrome-stalk-focused-color:        var(--palette-black-alpha-70);
+    --chrome-stalk-focused-alpha:        0.85;
+    --chrome-stalk-width:                var(--stroke-width-1);
+    --chrome-stalk-style:                solid;
+
+    /* Datum Footprints (Decoupled, Monochrome Baseline) */
+    --chrome-footprint-color:            var(--palette-black-alpha-35);
+    --chrome-footprint-alpha:            0.35;
+    --chrome-footprint-selected-color:   var(--palette-black-alpha-70);
+    --chrome-footprint-selected-alpha:   0.70;
+    --chrome-footprint-focused-color:    var(--palette-black-alpha-70);
+    --chrome-footprint-focused-alpha:    0.85;
+
+    /* Orbits (Hairline, State-Driven) */
+    --chrome-orbit-color:                var(--palette-black-alpha-24);
+    --chrome-orbit-alpha:                0.24;
+    --chrome-orbit-width:                var(--stroke-width-1);
+    --chrome-orbit-style:                dashed;
+    --chrome-orbit-selected-color:       var(--chrome-kinematic-color);
+    --chrome-orbit-selected-alpha:       0.85;
+    --chrome-orbit-focused-color:        var(--chrome-kinematic-color);
+    --chrome-orbit-focused-alpha:        0.85;
+
+    /* Routes (Kinematic Vector Chords) */
+    --chrome-route-color:                var(--chrome-kinematic-color);
+    --chrome-route-alpha:                0.90;
+    --chrome-route-width:                var(--stroke-width-3);
+    --chrome-route-style:                solid;
+
+    /* Instrument Alphas & Dash Metrics */
+    --chrome-ring-major-alpha:           0.45;
+    --chrome-ring-minor-alpha:           0.20;
+    --chrome-fin-perimeter-alpha:        0.25;
+    --chrome-tick-alpha:                 0.40;
+    --chrome-reticle-alpha-active:       0.60;
+    --chrome-reticle-alpha-selected:     0.90;
+    --chrome-reticle-alpha-focused:      1.0;
+    --chrome-instrument-footprint:       16.47;
+    --camera-fov-base:                   45;
+    --chrome-dash-size:                  6px;
+    --chrome-dash-gap:                   4px;
+    --chrome-dot-size:                   2px;
+    --chrome-dot-gap:                    4px;
 
     --chrome-axis-line-color:            var(--palette-black-alpha-16);
     --chrome-axis-line-width:            var(--stroke-width-1);
@@ -884,7 +996,7 @@
     --chrome-bearing-line-style:         solid;
 
     --chrome-bearing-orbital-color:      var(--palette-red-alpha-35);
-    --chrome-bearing-orbital-cue-color:  var(--palette-solarized-red);
+    --chrome-bearing-orbital-cue-color:  var(--chrome-kinematic-color);
     --chrome-bearing-orbital-width:      var(--stroke-width-2);
     --chrome-bearing-orbital-style:      dashed;
 
@@ -936,6 +1048,9 @@
       --motion-duration-overlay:     0ms;
       --motion-duration-spatial:     0ms;
       --motion-duration-default:     0ms;
+      --chrome-stalk-extend-duration: 0ms;
+      --chrome-stalk-retract-duration: 0ms;
+      --chrome-footprint-stamp-duration: 0ms;
     }
   }
 }
