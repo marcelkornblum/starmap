@@ -39,6 +39,23 @@ const meta: Meta<typeof CelestialNode> = {
 export default meta;
 type Story = StoryObj<typeof CelestialNode>;
 
+export const Default: Story = {
+  name: 'Default (Interactive Circumbinary System)',
+  args: {
+    id: 'kepler-47',
+    name: 'Kepler-47',
+    position: [1.8, 1.4, 2.0],
+    classification: 'star',
+    spectralType: 'G6V + M3V',
+    multiplicity: 2,
+    planets: [
+      { id: 'kepler-47-b', name: 'Kepler-47 b', classification: 'terrestrial' },
+      { id: 'kepler-47-d', name: 'Kepler-47 d', classification: 'ice-giant' },
+      { id: 'kepler-47-c', name: 'Kepler-47 c', classification: 'gas-giant' },
+    ],
+  },
+};
+
 export const DefaultPassive: Story = {
   args: {
     id: 'sirius',

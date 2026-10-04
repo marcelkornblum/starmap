@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
@@ -46,6 +46,12 @@ export type CelestialClassification =
 
 export type CelestialInteractionState = 'passive' | 'active' | 'selected' | 'focused';
 
+export interface PlanetCensusEntry {
+  id: string;
+  name: string;
+  classification: 'terrestrial' | 'gas-giant' | 'ice-giant';
+}
+
 export interface CelestialNodeProps {
   id: string;
   name: string;
@@ -56,16 +62,143 @@ export interface CelestialNodeProps {
   reticleSize?: number;
   showStalk?: boolean;
   showLabel?: boolean;
+  multiplicity?: number;
+  planets?: PlanetCensusEntry[];
   onClick?: (id: string) => void;
   onPointerOver?: (id: string) => void;
   onPointerOut?: (id: string) => void;
+}
+
+export interface ReticleAnnotationOptions {
+  multiplicity?: number;
+  planets?: PlanetCensusEntry[];
+  isAnnotated?: boolean;
+}
+
+/**
+ * Appends stellar multiplicity pips along the outer edge of the Top-Left diamond facet.
+ * (Approach B: 0 pips for single star; 2 pips for binary/twin stars; 3 pips for trinary).
+ */
+function appendMultiplicityPips(
+  points: THREE.Vector3[],
+  s: number,
+  multiplicity: number,
+): void {
+  const count = Math.min(multiplicity, 4);
+  const dOut = 0.14 * s;
+  const nX = -Math.SQRT1_2;
+  const nY = Math.SQRT1_2;
+  const pipR = 0.045 * s;
+  const pipSegs = 8;
+
+  for (let i = 1; i <= count; i++) {
+    const t = i / (count + 1);
+    // Point on top-left edge: from (-s, 0) to (0, s)
+    const edgeX = (t - 1) * s;
+    const edgeY = t * s;
+    const cX = edgeX + dOut * nX;
+    const cY = edgeY + dOut * nY;
+
+    for (let p = 0; p < pipSegs; p++) {
+      const a1 = (p / pipSegs) * Math.PI * 2;
+      const a2 = ((p + 1) / pipSegs) * Math.PI * 2;
+      points.push(
+        new THREE.Vector3(cX + Math.cos(a1) * pipR, cY + Math.sin(a1) * pipR, 0),
+        new THREE.Vector3(cX + Math.cos(a2) * pipR, cY + Math.sin(a2) * pipR, 0),
+      );
+    }
+  }
+}
+
+/**
+ * Appends planetary system census pips along the outer edge of the Bottom-Left diamond facet.
+ * Renders miniature open circles for terrestrial planets, ringed circles for ice giants,
+ * and slashed circles for gas giants.
+ */
+function appendPlanetaryPips(
+  points: THREE.Vector3[],
+  s: number,
+  planets: PlanetCensusEntry[],
+): void {
+  const count = planets.length;
+  const dOut = 0.18 * s;
+  const nX = -Math.SQRT1_2;
+  const nY = -Math.SQRT1_2;
+
+  for (let i = 0; i < count; i++) {
+    const planet = planets[i];
+    const t = (i + 1) / (count + 1);
+    // Point on bottom-left edge: from (-s, 0) to (0, -s)
+    const edgeX = (t - 1) * s;
+    const edgeY = -t * s;
+    const cX = edgeX + dOut * nX;
+    const cY = edgeY + dOut * nY;
+
+    if (planet.classification === 'terrestrial') {
+      const pR = 0.04 * s;
+      const segs = 12;
+      for (let j = 0; j < segs; j++) {
+        const a1 = (j / segs) * Math.PI * 2;
+        const a2 = ((j + 1) / segs) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(cX + Math.cos(a1) * pR, cY + Math.sin(a1) * pR, 0),
+          new THREE.Vector3(cX + Math.cos(a2) * pR, cY + Math.sin(a2) * pR, 0),
+        );
+      }
+    } else if (planet.classification === 'gas-giant') {
+      const pR = 0.07 * s;
+      const segs = 16;
+      for (let j = 0; j < segs; j++) {
+        const a1 = (j / segs) * Math.PI * 2;
+        const a2 = ((j + 1) / segs) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(cX + Math.cos(a1) * pR, cY + Math.sin(a1) * pR, 0),
+          new THREE.Vector3(cX + Math.cos(a2) * pR, cY + Math.sin(a2) * pR, 0),
+        );
+      }
+      const gap = 0.02 * s;
+      const cos45 = Math.SQRT1_2;
+      const sin45 = Math.SQRT1_2;
+      points.push(
+        new THREE.Vector3(cX - pR * cos45, cY - pR * sin45, 0),
+        new THREE.Vector3(cX - gap * cos45, cY - gap * sin45, 0),
+        new THREE.Vector3(cX + gap * cos45, cY + gap * sin45, 0),
+        new THREE.Vector3(cX + pR * cos45, cY + pR * sin45, 0),
+      );
+    } else if (planet.classification === 'ice-giant') {
+      const pR = 0.05 * s;
+      const segs = 14;
+      for (let j = 0; j < segs; j++) {
+        const a1 = (j / segs) * Math.PI * 2;
+        const a2 = ((j + 1) / segs) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(cX + Math.cos(a1) * pR, cY + Math.sin(a1) * pR, 0),
+          new THREE.Vector3(cX + Math.cos(a2) * pR, cY + Math.sin(a2) * pR, 0),
+        );
+      }
+      const rInner = 0.055 * s;
+      const rOuter = 0.085 * s;
+      const cos45 = Math.SQRT1_2;
+      const sin45 = Math.SQRT1_2;
+      points.push(
+        new THREE.Vector3(cX - rOuter * cos45, cY - rOuter * sin45, 0),
+        new THREE.Vector3(cX - rInner * cos45, cY - rInner * sin45, 0),
+        new THREE.Vector3(cX + rInner * cos45, cY + rInner * sin45, 0),
+        new THREE.Vector3(cX + rOuter * cos45, cY + rOuter * sin45, 0),
+      );
+    }
+  }
 }
 
 /**
  * Builds 2D line geometry in the local XY plane for each reticle taxonomy type.
  * All reticle and footprint shapes are constructed as pairs of line segments for LineSegments.
  */
-function createReticleGeometry(classification: CelestialClassification, s: number): THREE.BufferGeometry {
+function createReticleGeometry(
+  classification: CelestialClassification,
+  s: number,
+  annotations?: ReticleAnnotationOptions,
+): THREE.BufferGeometry {
   const points: THREE.Vector3[] = [];
 
   switch (classification) {
@@ -78,6 +211,19 @@ function createReticleGeometry(classification: CelestialClassification, s: numbe
         new THREE.Vector3(0, -s, 0), new THREE.Vector3(-s, 0, 0),
         new THREE.Vector3(-s, 0, 0), new THREE.Vector3(0, s, 0),
       );
+
+      // The Four-Facet Diamond Architecture: Annotations in Selected or Focused State
+      if (annotations?.isAnnotated) {
+        // Top-Left Facet: Multiplicity census (Approach B: 2 pips for binary/twin stars, 3 pips for trinary)
+        if (annotations.multiplicity && annotations.multiplicity >= 2) {
+          appendMultiplicityPips(points, s, annotations.multiplicity);
+        }
+
+        // Bottom-Left Facet: Planetary system census (planetary symbology)
+        if (annotations.planets && annotations.planets.length > 0) {
+          appendPlanetaryPips(points, s, annotations.planets);
+        }
+      }
       break;
     }
     case 'brown-dwarf': {
@@ -306,11 +452,13 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   name,
   position,
   classification = 'star',
-  state = 'passive',
+  state,
   spectralType,
   reticleSize = 0.45,
   showStalk: explicitShowStalk,
   showLabel: explicitShowLabel,
+  multiplicity = 1,
+  planets,
   onClick,
   onPointerOver,
   onPointerOut,
@@ -318,11 +466,32 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const tokens = useThreeTokenStore((stateStore) => stateStore.tokens);
 
   const [x, y, z] = position;
-  const isSelected = state === 'selected';
-  const isFocused = state === 'focused';
-  const isPassive = state === 'passive';
+  const [prevPropState, setPrevPropState] = useState(state);
+  const [internalState, setInternalState] = useState<CelestialInteractionState>(state ?? 'active');
 
-  // Exactly one drop stalk rendered when selected or focused (Single-Stalk Rule)
+  if (state !== prevPropState) {
+    setPrevPropState(state);
+    if (state !== undefined) {
+      setInternalState(state);
+    }
+  }
+
+  // Clean up cursor on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.style.cursor = 'auto';
+      }
+    };
+  }, []);
+
+  const currentState = internalState;
+  const isSelected = currentState === 'selected';
+  const isFocused = currentState === 'focused';
+  const isPassive = currentState === 'passive';
+  const isAnnotated = isSelected || isFocused;
+
+  // Stalk rendered when selected or focused (Single-Stalk Rule)
   const shouldRenderStalk = explicitShowStalk !== undefined ? explicitShowStalk : isSelected || isFocused;
   const shouldRenderReticle = !isPassive;
   const shouldRenderLabel = explicitShowLabel !== undefined ? explicitShowLabel : !isPassive;
@@ -377,10 +546,14 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const stalkColor = isFocused ? tokens.stateFocus : tokens.reticleBracketColor;
   const stalkOpacity = isFocused ? 0.8 : 0.4;
 
-  // Geometries memoized
+  // Geometries memoized with Four-Facet Diamond Architecture
   const reticleGeometry = useMemo(() => {
-    return createReticleGeometry(classification, reticleSize);
-  }, [classification, reticleSize]);
+    return createReticleGeometry(classification, reticleSize, {
+      multiplicity,
+      planets,
+      isAnnotated,
+    });
+  }, [classification, reticleSize, multiplicity, planets, isAnnotated]);
 
   const stalkGeometry = useMemo(() => {
     if (!shouldRenderStalk) return null;
@@ -399,34 +572,75 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
   const footprintGeometry = useMemo(() => {
     if (!shouldRenderStalk) return null;
-    return createReticleGeometry(classification, reticleSize);
-  }, [shouldRenderStalk, classification, reticleSize]);
+    return createReticleGeometry(classification, reticleSize, {
+      multiplicity,
+      planets,
+      isAnnotated,
+    });
+  }, [shouldRenderStalk, classification, reticleSize, multiplicity, planets, isAnnotated]);
+
+  // Interactive rollover and click handlers
+  const handlePointerOver = (e: any) => {
+    e.stopPropagation();
+    if (typeof document !== 'undefined') {
+      document.body.style.cursor = 'pointer';
+    }
+    if (currentState !== 'focused') {
+      setInternalState('selected');
+    }
+    onPointerOver?.(id);
+  };
+
+  const handlePointerOut = (e: any) => {
+    e.stopPropagation();
+    if (typeof document !== 'undefined') {
+      document.body.style.cursor = 'auto';
+    }
+    if (currentState === 'selected') {
+      setInternalState(state === 'selected' ? 'selected' : (state ?? 'active'));
+    }
+    onPointerOut?.(id);
+  };
+
+  const handleClick = (e: any) => {
+    e.stopPropagation();
+    setInternalState((prev) => (prev === 'focused' ? 'selected' : 'focused'));
+    onClick?.(id);
+  };
 
   return (
-    <group position={[x, y, z]} name={`celestial-node-${id}`} userData={{ state }}>
+    <group position={[x, y, z]} name={`celestial-node-${id}`} userData={{ state: currentState }}>
       {/* Layer 1: Physical System Node - 1px-2px invariant dot with permanent spectral hue */}
       <mesh
         ref={dotMeshRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick?.(id);
-        }}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          onPointerOver?.(id);
-        }}
-        onPointerOut={(e) => {
-          e.stopPropagation();
-          onPointerOut?.(id);
-        }}
+        onClick={handleClick}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
       >
         <sphereGeometry args={[0.035, 16, 16]} />
         <meshBasicMaterial color={starColor} />
       </mesh>
 
-      {/* Layer 2: Geometric Reticle & Typographic Label (Facing Camera, invariant screen size) */}
-      {shouldRenderReticle && (
-        <group ref={reticleGroupRef} name="reticle-frame">
+      {/* Camera-Facing Reticle Frame and Invisible Interactive Hit Area */}
+      <group ref={reticleGroupRef} name="reticle-frame">
+        {/* Invisible Hit Area matching the full reticle boundary */}
+        <mesh
+          name="reticle-hitarea"
+          onClick={handleClick}
+          onPointerOver={handlePointerOver}
+          onPointerOut={handlePointerOut}
+        >
+          <circleGeometry args={[reticleSize * 1.35, 16]} />
+          <meshBasicMaterial
+            transparent
+            opacity={0}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+
+        {/* Layer 2: Geometric Reticle Frame (Basic vs Full Composite Annotated) */}
+        {shouldRenderReticle && (
           <lineSegments geometry={reticleGeometry}>
             <lineBasicMaterial
               color={reticleColor}
@@ -435,22 +649,35 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
               depthWrite={false}
             />
           </lineSegments>
+        )}
 
-          {/* Layer 3: Typographic Label (HTML Overlay with CUBE Tokens, never scales on screen) */}
-          {shouldRenderLabel && (
-            <Html
-              position={[reticleSize * 1.1, reticleSize * 0.8, 0]}
-              center={false}
-              data-testid="celestial-label"
-            >
-              <div className={styles.nodeLabel} data-state={state}>
-                <span>{name}</span>
-                {spectralType && <span className={styles.spectralTag}>{spectralType}</span>}
-              </div>
-            </Html>
-          )}
-        </group>
-      )}
+        {/* Top-Right Facet: Typographic Label (System Designation) */}
+        {shouldRenderLabel && (
+          <Html
+            position={[reticleSize * 1.15, reticleSize * 0.75, 0]}
+            center={false}
+            data-testid="celestial-label"
+          >
+            <div className={styles.nodeLabel} data-state={currentState}>
+              <span>{name}</span>
+              {!isAnnotated && spectralType && <span className={styles.spectralTag}>{spectralType}</span>}
+            </div>
+          </Html>
+        )}
+
+        {/* Bottom-Right Facet: Solar Spectrum Type */}
+        {shouldRenderLabel && isAnnotated && spectralType && (
+          <Html
+            position={[reticleSize * 1.15, -reticleSize * 0.75, 0]}
+            center={false}
+            data-testid="celestial-spectrum-facet"
+          >
+            <div className={styles.spectralFacet} data-state={currentState}>
+              <span>{spectralType}</span>
+            </div>
+          </Html>
+        )}
+      </group>
 
       {/* Typographic Label fallback if reticle is hidden (e.g. passive with explicit showLabel) */}
       {!shouldRenderReticle && shouldRenderLabel && (
@@ -459,7 +686,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
           center={false}
           data-testid="celestial-label"
         >
-          <div className={styles.nodeLabel} data-state={state}>
+          <div className={styles.nodeLabel} data-state={currentState}>
             <span>{name}</span>
             {spectralType && <span className={styles.spectralTag}>{spectralType}</span>}
           </div>

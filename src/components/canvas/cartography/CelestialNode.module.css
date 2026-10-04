@@ -32,3 +32,31 @@
   font-size: var(--text-content-catalog-id-size);
   color: var(--content-muted);
 }
+
+.spectralFacet {
+  display: inline-flex;
+  align-items: center;
+  padding-block: var(--space-0-5, 2px);
+  padding-inline: var(--space-1);
+  font-family: var(--font-data);
+  font-size: var(--text-content-catalog-id-size, 10px);
+  letter-spacing: var(--text-content-catalog-id-tracking, 0.05em);
+  line-height: var(--leading-metric);
+  color: var(--content-muted);
+  background-color: var(--surface-hud-bg);
+  border: var(--stroke-width-1) solid var(--chrome-grid-primary-color);
+  border-radius: var(--radius-sm, 2px);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.spectralFacet[data-state="focused"] {
+  border-color: var(--state-focus);
+  color: var(--state-focus);
+}
+
+.spectralFacet[data-state="selected"] {
+  border-color: var(--state-selected-border);
+  color: var(--content-secondary);
+}

@@ -337,6 +337,71 @@ describe('3D Cartography Components', () => {
         expect(html).toContain(`celestial-node-node-${classification}`);
       }
     });
+
+    it('renders camera-facing invisible hitarea mesh for pointer interactions', () => {
+      const html = renderToString(
+        createElement(CelestialNode, {
+          id: 'hitarea-test',
+          name: 'HitArea Star',
+          position: [0, 0, 1],
+          state: 'active',
+        }),
+      );
+      expect(html).toContain('name="reticle-hitarea"');
+    });
+
+    it('renders Four-Facet Diamond Architecture for circumbinary systems with planets when annotated', () => {
+      const html = renderToString(
+        createElement(CelestialNode, {
+          id: 'kepler-47',
+          name: 'Kepler-47',
+          position: [5, 5, 2],
+          classification: 'stellar-system',
+          state: 'selected',
+          spectralType: 'G6V + M3V',
+          multiplicity: 2,
+          planets: [
+            { id: 'b', name: 'Kepler-47 b', classification: 'terrestrial' },
+            { id: 'd', name: 'Kepler-47 d', classification: 'ice-giant' },
+            { id: 'c', name: 'Kepler-47 c', classification: 'gas-giant' },
+          ],
+        }),
+      );
+
+      // System container & hit area
+      expect(html).toContain('celestial-node-kepler-47');
+      expect(html).toContain('name="reticle-hitarea"');
+      expect(html).toContain('data-state="selected"');
+
+      // Top-Right Facet (Designation)
+      expect(html).toContain('data-testid="celestial-label"');
+      expect(html).toContain('Kepler-47');
+
+      // Bottom-Right Facet (Solar spectrum type separated in annotated mode)
+      expect(html).toContain('data-testid="celestial-spectrum-facet"');
+      expect(html).toContain('G6V + M3V');
+
+      // Drop stalk present in selected state
+      expect(html).toContain('drop-stalk');
+    });
+
+    it('renders inline spectral tag in active state without separating into bottom-right facet', () => {
+      const html = renderToString(
+        createElement(CelestialNode, {
+          id: 'kepler-active',
+          name: 'Kepler-47',
+          position: [5, 5, 2],
+          classification: 'stellar-system',
+          state: 'active',
+          spectralType: 'G6V + M3V',
+        }),
+      );
+
+      expect(html).toContain('data-testid="celestial-label"');
+      expect(html).toContain('Kepler-47');
+      expect(html).toContain('G6V + M3V');
+      expect(html).not.toContain('data-testid="celestial-spectrum-facet"');
+    });
   });
 
   describe('OrbitalRing', () => {
