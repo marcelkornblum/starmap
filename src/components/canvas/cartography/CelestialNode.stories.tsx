@@ -17,11 +17,19 @@ const meta: Meta<typeof CelestialNode> = {
     (Story) => (
       <div className={styles.viewportContainer}>
         <ThemeTokenBridge />
-        <Canvas camera={{ position: [5, 5, 5], fov: 45 }} gl={{ antialias: true, alpha: true }}>
+        <Canvas camera={{ position: [5, 5, 4], fov: 45 }} gl={{ antialias: true, alpha: true }}>
           <SceneTokenBridge />
-          <CartographicGrid radius={6} rangeRings={[2, 4, 6]} showFins={false} />
+          <CartographicGrid
+            radius={6}
+            rangeRings={[1, 2, 3, 4, 5, 6]}
+            showFins={false}
+            showFullDatumCircle={true}
+            showAxisLines={true}
+            lockToFocusPoint={false}
+            position={[0, 0, 0]}
+          />
           <Story />
-          <OrbitControls makeDefault enableDamping dampingFactor={0.05} />
+          <OrbitControls makeDefault enableDamping dampingFactor={0.05} minDistance={2.0} maxDistance={50} />
         </Canvas>
       </div>
     ),
@@ -35,10 +43,11 @@ export const DefaultPassive: Story = {
   args: {
     id: 'sirius',
     name: 'Sirius A',
-    position: [0, 0, 1.5],
+    position: [0, 0, 2.0],
     classification: 'star',
     state: 'passive',
     spectralType: 'A1V',
+    showStalk: true,
   },
 };
 
@@ -46,10 +55,11 @@ export const ActiveState: Story = {
   args: {
     id: 'sol',
     name: 'Sol',
-    position: [0, 0, 1.2],
+    position: [0, 0, 1.8],
     classification: 'star',
     state: 'active',
     spectralType: 'G2V',
+    showStalk: true,
   },
 };
 
@@ -57,10 +67,11 @@ export const SelectedWithStalk: Story = {
   args: {
     id: 'vega',
     name: 'Vega',
-    position: [1, 2, 2.0],
+    position: [1.2, 1.5, 2.5],
     classification: 'star',
     state: 'selected',
     spectralType: 'A0V',
+    showStalk: true,
   },
 };
 

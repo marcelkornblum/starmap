@@ -1,9 +1,29 @@
 import type React from 'react';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import styles from './CelestialNode.module.css';
+
+/**
+ * Maps spectral classification class to intrinsic stellar hue.
+ * Spectral colors never change with interaction state.
+ */
+function getSpectralColor(spectralType?: string): string {
+  if (!spectralType) return '#ffffff';
+  const s = spectralType.charAt(0).toUpperCase();
+  switch (s) {
+    case 'O': return '#9db4ff';
+    case 'B': return '#bbccff';
+    case 'A': return '#f8f9ff';
+    case 'F': return '#ffffed';
+    case 'G': return '#fff4e8';
+    case 'K': return '#ffd2a1';
+    case 'M': return '#ffaa80';
+    default: return '#ffffff';
+  }
+}
 
 export type CelestialClassification =
   | 'star'
@@ -183,22 +203,39 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const shouldRenderReticle = !isPassive;
   const shouldRenderLabel = explicitShowLabel !== undefined ? explicitShowLabel : !isPassive;
 
-  // Reticle group ref for native Three.js onBeforeRender orientation
+  // Star intrinsic spectral color (never changes with state)
+  const starColor = useMemo(() => getSpectralColor(spectralType), [spectralType]);
+
+  // Screen-space invariance and camera-facing refs
+  const dotMeshRef = useRef<THREE.Mesh>(null);
   const reticleGroupRef = useRef<THREE.Group>(null);
-  const handleReticleBeforeRender = (_renderer: unknown, _scene: unknown, camera: THREE.Camera) => {
+  const worldPosRef = useRef(new THREE.Vector3(x, y, z));
+
+  useEffect(() => {
+    worldPosRef.current.set(x, y, z);
+  }, [x, y, z]);
+
+  useFrame(({ camera }) => {
+    const camDist = camera.position.distanceTo(worldPosRef.current);
+    // Invariant screen footprint: neither dot nor reticle scales with camera zoom or perspective changes
+    const fovFactor = camera instanceof THREE.PerspectiveCamera
+      ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
+      : 1.0;
+    const invScale = (camDist / 16.47) * fovFactor;
+
+    // Star dot: invariant ~2px dot
+    if (dotMeshRef.current) {
+      dotMeshRef.current.scale.set(invScale, invScale, invScale);
+    }
+
+    // Reticle: always faces the camera and never scales on screen
     if (reticleGroupRef.current) {
       reticleGroupRef.current.quaternion.copy(camera.quaternion);
+      reticleGroupRef.current.scale.set(invScale, invScale, invScale);
     }
-  };
+  });
 
-  // Node color
-  const nodeColor = isFocused
-    ? tokens.stateFocus
-    : isSelected
-      ? tokens.stateSelectedBorder
-      : tokens.reticleBracketColor;
-
-  // Reticle color and opacity
+  // Reticle color and opacity (highlights interactive state)
   const reticleColor = isFocused
     ? tokens.stateFocus
     : isSelected
@@ -244,8 +281,9 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
   return (
     <group position={[x, y, z]} name={`celestial-node-${id}`} userData={{ state }}>
-      {/* Layer 1: Physical System Node (Unobstructed Centre) */}
+      {/* Layer 1: Physical System Node - 1px-2px invariant dot with permanent spectral hue */}
       <mesh
+        ref={dotMeshRef}
         onClick={(e) => {
           e.stopPropagation();
           onClick?.(id);
@@ -259,17 +297,13 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
           onPointerOut?.(id);
         }}
       >
-        <sphereGeometry args={[0.08, 16, 16]} />
-        <meshBasicMaterial color={nodeColor} />
+        <sphereGeometry args={[0.035, 16, 16]} />
+        <meshBasicMaterial color={starColor} />
       </mesh>
 
-      {/* Layer 2: Geometric Reticle (Oriented to Camera via onBeforeRender) */}
+      {/* Layer 2: Geometric Reticle & Typographic Label (Facing Camera, invariant screen size) */}
       {shouldRenderReticle && (
-        <group
-          ref={reticleGroupRef}
-          onBeforeRender={handleReticleBeforeRender as unknown as undefined}
-          name="reticle-frame"
-        >
+        <group ref={reticleGroupRef} name="reticle-frame">
           {classification === 'terrestrial' || classification === 'gas-giant' || classification === 'star' ? (
             <lineLoop geometry={reticleGeometry}>
               <lineBasicMaterial
@@ -289,7 +323,35 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
               />
             </lineSegments>
           )}
+
+          {/* Layer 3: Typographic Label (HTML Overlay with CUBE Tokens, never scales on screen) */}
+          {shouldRenderLabel && (
+            <Html
+              position={[reticleSize * 1.1, reticleSize * 0.8, 0]}
+              center={false}
+              data-testid="celestial-label"
+            >
+              <div className={styles.nodeLabel} data-state={state}>
+                <span>{name}</span>
+                {spectralType && <span className={styles.spectralTag}>{spectralType}</span>}
+              </div>
+            </Html>
+          )}
         </group>
+      )}
+
+      {/* Typographic Label fallback if reticle is hidden (e.g. passive with explicit showLabel) */}
+      {!shouldRenderReticle && shouldRenderLabel && (
+        <Html
+          position={[0.2, 0.2, 0]}
+          center={false}
+          data-testid="celestial-label"
+        >
+          <div className={styles.nodeLabel} data-state={state}>
+            <span>{name}</span>
+            {spectralType && <span className={styles.spectralTag}>{spectralType}</span>}
+          </div>
+        </Html>
       )}
 
       {/* Strict Single-Stalk Rule: Drop Stalk down to Datum Plane Z=0 */}
@@ -318,21 +380,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
             </group>
           )}
         </group>
-      )}
-
-      {/* Layer 3: Typographic Label (HTML Overlay with CUBE Tokens) */}
-      {shouldRenderLabel && (
-        <Html
-          position={[reticleSize * 1.1, reticleSize * 0.8, 0]}
-          center={false}
-          distanceFactor={15}
-          data-testid="celestial-label"
-        >
-          <div className={styles.nodeLabel} data-state={state}>
-            <span>{name}</span>
-            {spectralType && <span className={styles.spectralTag}>{spectralType}</span>}
-          </div>
-        </Html>
       )}
     </group>
   );

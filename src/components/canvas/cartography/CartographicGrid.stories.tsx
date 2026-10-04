@@ -114,7 +114,7 @@ const meta: Meta<typeof CartographicGrid> = {
         <Canvas camera={{ position: [10.18, 8.0, 10.18], fov: 45 }} gl={{ antialias: true, alpha: true }}>
           <SceneTokenBridge />
           <Story />
-          <OrbitControls makeDefault enableDamping dampingFactor={0.05} />
+          <OrbitControls makeDefault enableDamping dampingFactor={0.05} minDistance={4.0} maxDistance={250} />
         </Canvas>
       </div>
     ),

@@ -483,7 +483,9 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
     if (screenConstant) {
       // Screen-constant scaling: aperture radius scales with distance to keep visual footprint invariant
-      currentRadius = radius * (camDist / effectiveRefDist);
+      // Clamp distance so instrument never collapses below 3.5 pc or causes near-plane occlusion
+      const clampedCamDist = Math.max(camDist, 3.5);
+      currentRadius = radius * (clampedCamDist / effectiveRefDist);
       activeRings = computeZoomAdaptiveRings(currentRadius, poolSize);
     } else {
       currentRadius = radius;
