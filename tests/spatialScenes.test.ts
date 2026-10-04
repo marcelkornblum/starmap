@@ -137,6 +137,10 @@ describe('SpatialScenes Storybook Suite', () => {
       expect(html).toContain('✦ STARMAP // [Tier 1: HUD]');
       expect(html).toContain('SENSORS ONLINE');
       expect(html).toContain('RA: 18h 36m 56s');
+      expect(html).toContain('DRAWER');
+      expect(html).toContain('POPOVER');
+      expect(html).toContain('MODAL');
+      expect(html).toContain('TOAST');
 
       // Tier 2: Dock
       expect(html).toContain('data-testid="surface-tier-2-dock"');

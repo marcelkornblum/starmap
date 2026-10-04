@@ -143,16 +143,38 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             <Button
               size="sm"
               variant={isDrawerOpen ? 'primary' : 'subtle'}
+              title="Tier 4: Drawer - Spectroscopic Filter Matrix"
+              aria-label="Toggle Drawer"
               onClick={() => setIsDrawerOpen((prev) => !prev)}
             >
-              FILTERS
+              DRAWER
+            </Button>
+            <Button
+              size="sm"
+              variant={isPopoverOpen ? 'primary' : 'subtle'}
+              title="Tier 5: Popover - Sol Telemetry"
+              aria-label="Toggle Popover"
+              onClick={() => setIsPopoverOpen((prev) => !prev)}
+            >
+              POPOVER
             </Button>
             <Button
               size="sm"
               variant={isModalOpen ? 'primary' : 'subtle'}
+              title="Tier 6: Modal - Astrodynamics Command Query"
+              aria-label="Toggle Modal"
               onClick={() => setIsModalOpen((prev) => !prev)}
             >
-              COMMAND
+              MODAL
+            </Button>
+            <Button
+              size="sm"
+              variant={isToastVisible ? 'primary' : 'subtle'}
+              title="Tier 7: Toast - Gravitational Perturbation Alert"
+              aria-label="Toggle Toast"
+              onClick={() => setIsToastVisible((prev) => !prev)}
+            >
+              TOAST
             </Button>
           </Cluster>
         </Cluster>
