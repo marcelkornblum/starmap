@@ -25,6 +25,7 @@ export interface ScreenEdgeBearingIndicatorsProps {
 }
 
 const HTML_Z_INDEX_RANGE: [number, number] = [100, 0];
+const noopOcclude = () => {};
 
 /**
  * ScreenEdgeBearingIndicators: Visual HUD vector arrowheads that terminate
@@ -178,6 +179,9 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
     <group ref={groupRef} name="screen-edge-bearings">
       <Html
         calculatePosition={() => [0, 0]}
+        wrapperClass={styles.htmlOverlayContainer}
+        pointerEvents="none"
+        onOcclude={noopOcclude}
         zIndexRange={HTML_Z_INDEX_RANGE}
         data-testid="screen-edge-bearing-indicators"
       >

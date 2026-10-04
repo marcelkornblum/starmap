@@ -1,3 +1,13 @@
+.htmlOverlayContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
 .overlay {
   position: absolute;
   top: 0;
@@ -11,9 +21,9 @@
 .indicator {
   --indicator-x: 0px;
   --indicator-y: 0px;
-  --indicator-color: var(--chrome-bearing-core-color);
+  --indicator-color: var(--chrome-bearing-core-cue-color, var(--palette-solarized-yellow));
   --indicator-bg: var(--palette-black-alpha-70);
-  --indicator-border-color: color-mix(in srgb, var(--indicator-color) 40%, transparent);
+  --indicator-border-color: color-mix(in srgb, var(--indicator-color) 50%, transparent);
 
   position: absolute;
   top: 0;
@@ -41,13 +51,13 @@
 
 /* Bearing types */
 .indicator[data-bearing="core"] {
-  --indicator-color: var(--chrome-bearing-core-color);
-  --indicator-border-color: color-mix(in srgb, var(--chrome-bearing-core-color) 45%, transparent);
+  --indicator-color: var(--chrome-bearing-core-cue-color, var(--palette-solarized-yellow));
+  --indicator-border-color: color-mix(in srgb, var(--indicator-color) 50%, transparent);
 }
 
 .indicator[data-bearing="orbital"] {
-  --indicator-color: var(--chrome-bearing-orbital-color);
-  --indicator-border-color: color-mix(in srgb, var(--chrome-bearing-orbital-color) 45%, transparent);
+  --indicator-color: var(--chrome-bearing-orbital-cue-color, var(--palette-solarized-red));
+  --indicator-border-color: color-mix(in srgb, var(--indicator-color) 50%, transparent);
 }
 
 /* Edge alignments: transforms relative to the screen edge intersection point */
