@@ -47,4 +47,5 @@ The following files contain exploratory discovery notes and brainstorming captur
 * `docs/feature-backlog-notes.md`: Exploration scratchpad from Feature Backlog definition.
 * `docs/user-journeys-exploration-notes.md`: Exploration scratchpad from User Journeys mapping.
 * `docs/3d-visual-design-notes.md`: Exploration scratchpad from 3D spatial design.
+* `docs/2d-visual-design-notes.md`: Exploration scratchpad and visual reference catalog for 2D UI materiality, optical principles, and the 8-tier elevation stack.
 * `docs/ui-paradigm-exploration.md`: Exploration scratchpad from UI layout prototyping.
