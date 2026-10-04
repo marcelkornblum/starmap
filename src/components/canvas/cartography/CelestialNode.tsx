@@ -144,6 +144,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const labelContainerRef = useRef<HTMLDivElement>(null);
   const spectrumFacetRef = useRef<HTMLDivElement>(null);
   const labelDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const scratchBoxRef = useRef<Box2D>({ left: 0, top: 0, right: 0, bottom: 0 });
 
   useEffect(() => {
     worldPosRef.current.set(x, y, z);
@@ -201,7 +202,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     const reticleRadius = (reticleSize / 13.644) * size.height;
     const starRadius = Math.max(3, (0.035 / 13.644) * size.height);
 
-    // Compute label bounding box in screen pixels analytically using cached dimensions (no DOM layout thrashing)
+    // Compute label bounding box in screen pixels analytically using cached dimensions (no DOM layout thrashing, zero allocations)
     let activeBox: Box2D | undefined;
     if (shouldRenderLabel) {
       const estimatedW = name.length * 8 + (spectralType ? 45 : 0) + 12;
@@ -209,12 +210,12 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       const h = labelDimensionsRef.current.height > 0 ? labelDimensionsRef.current.height : 18;
       const anchorX = screenX + 1.15 * reticleRadius;
       const anchorY = screenY - 0.75 * reticleRadius;
-      activeBox = {
-        left: anchorX,
-        top: anchorY - h / 2,
-        right: anchorX + w,
-        bottom: anchorY + h / 2,
-      };
+      const box = scratchBoxRef.current;
+      box.left = anchorX;
+      box.top = anchorY - h / 2;
+      box.right = anchorX + w;
+      box.bottom = anchorY + h / 2;
+      activeBox = box;
     }
 
     // Register footprint in occlusion manager

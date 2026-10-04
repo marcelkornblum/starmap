@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useRef, useMemo, useEffect } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { Canvas, useThree, useFrame, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { CartographicGrid } from './CartographicGrid';
@@ -76,11 +76,11 @@ const FixtureStars: React.FC = () => {
     mesh.instanceMatrix.needsUpdate = true;
   });
 
-  const handleClick = (e: any) => {
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (e.instanceId !== undefined && e.instanceId < count) {
       const star = starsFixture[e.instanceId];
-      const ctrl = controls as any;
+      const ctrl = controls as unknown as { target?: THREE.Vector3; update?: () => void } | null;
       if (ctrl && ctrl.target instanceof THREE.Vector3) {
         const offset = camera.position.clone().sub(ctrl.target);
         ctrl.target.set(star.x, star.y, star.z);

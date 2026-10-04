@@ -171,8 +171,7 @@ const StalkedFootprintsLayer: React.FC<{
         (c, i) =>
           c.id !== stalked[i]?.id ||
           c.state !== stalked[i]?.state ||
-          c.hasStalk !== stalked[i]?.hasStalk ||
-          c.updatedAt !== stalked[i]?.updatedAt,
+          c.hasStalk !== stalked[i]?.hasStalk,
       );
     if (hasChanged) {
       setStalked([...current]);
@@ -820,8 +819,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     } else if (lockToFocusPoint) {
       if (activeControls && activeControls.target instanceof THREE.Vector3) {
         origin.copy(activeControls.target);
-      } else if ((activeCamera as any).target instanceof THREE.Vector3) {
-        origin.copy((activeCamera as any).target);
+      } else if ('target' in activeCamera && activeCamera.target instanceof THREE.Vector3) {
+        origin.copy(activeCamera.target);
       }
     }
 
