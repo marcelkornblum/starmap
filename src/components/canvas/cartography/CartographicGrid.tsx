@@ -222,7 +222,6 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   const baseFovRef = useRef<number | null>(null);
   const rootGroupRef = useRef<THREE.Group>(null);
   const datumGroupRef = useRef<THREE.Group>(null);
-  const datumFillRef = useRef<THREE.Mesh>(null);
   const explicitFootprintsGroupRef = useRef<THREE.Group>(null);
   const scratchOrigin = useRef(new THREE.Vector3());
   const scratchCamDir = useRef(new THREE.Vector3());
@@ -482,7 +481,53 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     return { geom, mat, line };
   }, [radius, tokens.datumPlaneColor, tokens.datumPlaneWidth, tokens.datumPlaneAlpha]);
 
-  // Memoize Datum Plane Concentric Range Rings (unit circle scaled dynamically in useFrame)
+  // Memoize Datum Plane Ethereal Gradient Fill Disc
+  const datumFillData = useMemo(() => {
+    const geom = new THREE.CircleGeometry(1.0, 64);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: tokens.datumPlaneFillColor },
+        uAlpha: { value: tokens.datumPlaneFillAlpha },
+        uInnerRadius: { value: tokens.datumPlaneFillGradientInner },
+        uExponent: { value: tokens.datumPlaneFillGradientExponent },
+      },
+      vertexShader: `
+        varying vec2 vPosition;
+        void main() {
+          vPosition = position.xy;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        uniform float uAlpha;
+        uniform float uInnerRadius;
+        uniform float uExponent;
+        varying vec2 vPosition;
+        void main() {
+          float r = length(vPosition);
+          if (r > 1.0) discard;
+          float t = clamp((r - uInnerRadius) / (1.0 - uInnerRadius), 0.0, 1.0);
+          float smoothT = t * t * (3.0 - 2.0 * t);
+          float curve = pow(smoothT, uExponent);
+          gl_FragColor = vec4(uColor, uAlpha * curve);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.frustumCulled = false;
+    return { geom, mat, mesh };
+  }, [
+    tokens.datumPlaneFillColor,
+    tokens.datumPlaneFillAlpha,
+    tokens.datumPlaneFillGradientInner,
+    tokens.datumPlaneFillGradientExponent,
+  ]);
+
+  // Memoize Datum Plane Concentric Range Rings divided into 4 quadrants for touching de-duplication
   const datumRingData = useMemo(() => {
     return ringPoolIndices.map((ringIdx) => {
       const isExplicit = ringIdx < rangeRings.length;
@@ -491,19 +536,25 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       const color = isMajor ? tokens.datumPlaneMajorColor : tokens.datumPlaneMinorColor;
       const width = tokens.datumPlaneWidth;
       const alpha = isMajor ? tokens.datumPlaneMajorAlpha : tokens.datumPlaneMinorAlpha;
-      const geom = createCircleGeometry(1.0, 128);
-      const mat = new THREE.LineBasicMaterial({
-        color,
-        linewidth: width,
-        transparent: true,
-        depthWrite: false,
-        opacity: isExplicit ? alpha : 0,
-        visible: isExplicit,
+
+      const quads = QUADRANTS.map((quad) => {
+        const geom = createQuadrantArcGeometry(1.0, 'xy', quad.startAngle, quad.endAngle);
+        geom.computeBoundingSphere();
+        const mat = new THREE.LineBasicMaterial({
+          color,
+          linewidth: width,
+          transparent: true,
+          depthWrite: false,
+          opacity: isExplicit ? alpha : 0,
+          visible: isExplicit,
+        });
+        const line = new THREE.LineSegments(geom, mat);
+        line.scale.set(initialR, initialR, 1);
+        line.frustumCulled = false;
+        return { geom, mat, line, qx: quad.qx, qy: quad.qy };
       });
-      const line = new THREE.Line(geom, mat);
-      line.scale.set(initialR, initialR, 1);
-      line.frustumCulled = false;
-      return { geom, mat, line };
+
+      return { ringIdx, quads, isMajor, initialR };
     });
   }, [
     ringPoolIndices,
@@ -525,6 +576,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   const axisSpokesRef = useRef(axisSpokes);
   const extendedBearingsRef = useRef(extendedBearings);
   const datumBoundaryDataRef = useRef(datumBoundaryData);
+  const datumFillDataRef = useRef(datumFillData);
   const datumRingDataRef = useRef(datumRingData);
 
   useEffect(() => {
@@ -534,8 +586,18 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     axisSpokesRef.current = axisSpokes;
     extendedBearingsRef.current = extendedBearings;
     datumBoundaryDataRef.current = datumBoundaryData;
+    datumFillDataRef.current = datumFillData;
     datumRingDataRef.current = datumRingData;
-  }, [quadrantData, perimeterArcData, tickData, axisSpokes, extendedBearings, datumBoundaryData, datumRingData]);
+  }, [
+    quadrantData,
+    perimeterArcData,
+    tickData,
+    axisSpokes,
+    extendedBearings,
+    datumBoundaryData,
+    datumFillData,
+    datumRingData,
+  ]);
 
   // Clean up geometries and materials on unmount
   useEffect(() => {
@@ -579,9 +641,13 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
       datumBoundaryDataRef.current.geom.dispose();
       datumBoundaryDataRef.current.mat.dispose();
-      for (const item of datumRingDataRef.current) {
-        item.geom.dispose();
-        item.mat.dispose();
+      datumFillDataRef.current.geom.dispose();
+      datumFillDataRef.current.mat.dispose();
+      for (const ringItem of datumRingDataRef.current) {
+        for (const quad of ringItem.quads) {
+          quad.geom.dispose();
+          quad.mat.dispose();
+        }
       }
     };
   }, []);
@@ -646,13 +712,21 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     dBoundary.mat.linewidth = tokens.datumPlaneWidth;
     dBoundary.mat.opacity = tokens.datumPlaneAlpha;
 
-    dRings.forEach((item, ringIdx) => {
-      const isMajor = majorRingIndex !== undefined ? ringIdx === majorRingIndex : ringIdx % 2 === 1;
+    const fillMat = datumFillDataRef.current.mat;
+    fillMat.uniforms.uColor.value.copy(tokens.datumPlaneFillColor);
+    fillMat.uniforms.uAlpha.value = tokens.datumPlaneFillAlpha;
+    fillMat.uniforms.uInnerRadius.value = tokens.datumPlaneFillGradientInner;
+    fillMat.uniforms.uExponent.value = tokens.datumPlaneFillGradientExponent;
+
+    dRings.forEach((ringItem) => {
+      const isMajor = ringItem.isMajor;
       const color = isMajor ? tokens.datumPlaneMajorColor : tokens.datumPlaneMinorColor;
       const alpha = isMajor ? tokens.datumPlaneMajorAlpha : tokens.datumPlaneMinorAlpha;
-      item.mat.color.copy(color);
-      item.mat.linewidth = tokens.datumPlaneWidth;
-      item.mat.opacity = alpha;
+      for (const quad of ringItem.quads) {
+        quad.mat.color.copy(color);
+        quad.mat.linewidth = tokens.datumPlaneWidth;
+        quad.mat.opacity = alpha;
+      }
     });
   }, [tokens, majorRingIndex]);
 
@@ -914,6 +988,11 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       dBoundary.mat.opacity = tokens.datumPlaneAlpha;
       dBoundary.mat.visible = tokens.datumPlaneAlpha > 0.001;
 
+      // Vertical distance from instrument center to datum plane
+      const deltaZ = Math.abs(origin.z);
+      const touchZCorridor = Math.max(0.5, currentRadius * 0.05);
+      const touchZ = Math.max(0, Math.min(1, 1 - deltaZ / touchZCorridor));
+
       for (let ringIdx = 0; ringIdx < poolSize; ringIdx++) {
         const ringActive = ringIdx < activeRings.length;
         const ringInfo = ringActive ? activeRings[ringIdx] : null;
@@ -923,25 +1002,35 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
             const r = ringInfo.radius;
             const isMajor = ringInfo.isMajor;
             const color = isMajor ? tokens.datumPlaneMajorColor : tokens.datumPlaneMinorColor;
-            const alpha = (isMajor ? tokens.datumPlaneMajorAlpha : tokens.datumPlaneMinorAlpha) * ringInfo.fade;
-            ringItem.line.scale.set(r, r, 1);
-            ringItem.mat.color.copy(color);
-            ringItem.mat.opacity = alpha;
-            ringItem.mat.visible = alpha > 0.001;
+            const baseAlpha = (isMajor ? tokens.datumPlaneMajorAlpha : tokens.datumPlaneMinorAlpha) * ringInfo.fade;
+
+            ringItem.quads.forEach((quad, qIdx) => {
+              // If travelling fin is rendering in this XY quadrant and touching datum plane, de-duplicate
+              const finPresence = showFins ? (qwXY[qIdx] * fadeXY) : 0;
+              const overlap = touchZ * finPresence;
+              const quadAlpha = baseAlpha * Math.max(0, 1 - overlap);
+
+              quad.line.scale.set(r, r, 1);
+              quad.mat.color.copy(color);
+              quad.mat.opacity = quadAlpha;
+              quad.mat.visible = quadAlpha > 0.001;
+            });
           } else {
-            ringItem.mat.opacity = 0;
-            ringItem.mat.visible = false;
+            ringItem.quads.forEach((quad) => {
+              quad.mat.opacity = 0;
+              quad.mat.visible = false;
+            });
           }
         }
       }
 
-      if (datumFillRef.current) {
-        datumFillRef.current.scale.set(currentRadius, currentRadius, 1);
-        const fillMat = datumFillRef.current.material as THREE.MeshBasicMaterial;
-        if (fillMat) {
-          fillMat.color.copy(tokens.datumPlaneFillColor);
-          fillMat.opacity = tokens.datumPlaneFillAlpha;
-        }
+      if (datumFillDataRef.current) {
+        const { mesh, mat } = datumFillDataRef.current;
+        mesh.scale.set(currentRadius, currentRadius, 1);
+        mat.uniforms.uColor.value.copy(tokens.datumPlaneFillColor);
+        mat.uniforms.uAlpha.value = tokens.datumPlaneFillAlpha;
+        mat.uniforms.uInnerRadius.value = tokens.datumPlaneFillGradientInner;
+        mat.uniforms.uExponent.value = tokens.datumPlaneFillGradientExponent;
       }
     }
 
@@ -1049,17 +1138,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       {/* Galactic Equator (Z=0) Datum Plane */}
       {isDatumPlaneVisible && (
         <group ref={datumGroupRef} position={[0, 0, -initialPosition[2]]} name="datum-plane">
-          {/* Ethereal Planar Fill Disc */}
-          <mesh ref={datumFillRef} name="datum-plane-fill">
-            <circleGeometry args={[1, 64]} />
-            <meshBasicMaterial
-              color={tokens.datumPlaneFillColor}
-              opacity={tokens.datumPlaneFillAlpha}
-              transparent
-              depthWrite={false}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
+          {/* Ethereal Planar Fill Disc with Radial Rim Gradient */}
+          <primitive object={datumFillData.mesh} name="datum-plane-fill" />
 
           {/* Outermost Projected Aperture Boundary */}
           <primitive object={datumBoundaryData.line} name="datum-plane-boundary" />
@@ -1125,17 +1205,23 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
             </group>
           )}
 
-          {/* Hierarchical Concentric Range Rings */}
+          {/* Hierarchical Concentric Range Rings with Touching De-Duplication */}
           {showDatumRings &&
             ringPoolIndices.map((ringIdx) => {
               const testId =
                 ringIdx < rangeRings.length ? `full-ring-${rangeRings[ringIdx]}` : `full-ring-pool-${ringIdx}`;
+              const ringItem = datumRingData[ringIdx];
+              if (!ringItem) return null;
               return (
-                <primitive
-                  key={`datum-ring-${ringIdx}`}
-                  object={datumRingData[ringIdx].line}
-                  name={testId}
-                />
+                <group key={`datum-ring-${ringIdx}`} name={testId}>
+                  {ringItem.quads.map((quad, qIdx) => (
+                    <primitive
+                      key={`datum-ring-${ringIdx}-quad-${qIdx}`}
+                      object={quad.line}
+                      name={`${testId}-quad-${qIdx}`}
+                    />
+                  ))}
+                </group>
               );
             })}
         </group>

@@ -88,6 +88,10 @@ describe('3D Cartography Components', () => {
       expect(htmlDefault).toContain('datum-plane-fill');
       expect(htmlDefault).toContain('datum-plane-boundary');
       expect(htmlDefault).toContain('full-ring-2');
+      expect(htmlDefault).toContain('full-ring-2-quad-0');
+      expect(htmlDefault).toContain('full-ring-2-quad-1');
+      expect(htmlDefault).toContain('full-ring-2-quad-2');
+      expect(htmlDefault).toContain('full-ring-2-quad-3');
       expect(htmlDefault).toContain('full-ring-4');
       expect(htmlDefault).toContain('full-ring-8');
       expect(htmlDefault).toContain('planar-footprint');

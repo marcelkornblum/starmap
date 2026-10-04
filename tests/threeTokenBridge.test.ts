@@ -113,7 +113,9 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(snapshot.datumPlaneMinorColor).toBeDefined();
     expect(snapshot.datumPlaneMinorAlpha).toBe(0.16);
     expect(snapshot.datumPlaneFillColor).toBeDefined();
-    expect(snapshot.datumPlaneFillAlpha).toBe(0.03);
+    expect(snapshot.datumPlaneFillAlpha).toBe(0.04);
+    expect(snapshot.datumPlaneFillGradientInner).toBe(0.55);
+    expect(snapshot.datumPlaneFillGradientExponent).toBe(2.0);
     expect(snapshot.datumFootprintColor).toBeDefined();
     expect(snapshot.datumFootprintAlpha).toBe(0.85);
     expect(snapshot.datumFootprintWidth).toBe(2);

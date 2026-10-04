@@ -140,7 +140,7 @@ export const Default: Story = {
     showGalacticPlane: true,
     showPlanarFootprint: true,
     footprintSize: 0.6,
-    showFullDatumCircle: false,
+    showFullDatumCircle: true,
     screenConstant: false,
   },
 };
@@ -233,7 +233,7 @@ export const MacroGalacticScale: Story = {
     rangeRings: [10, 20, 30, 40],
     showFins: true,
     showAxisLines: true,
-    showFullDatumCircle: false,
+    showFullDatumCircle: true,
     screenConstant: false,
   },
 };

@@ -35,6 +35,8 @@ export interface ThreeTokenSnapshot {
   datumPlaneMinorAlpha: number;
   datumPlaneFillColor: THREE.Color;
   datumPlaneFillAlpha: number;
+  datumPlaneFillGradientInner: number;
+  datumPlaneFillGradientExponent: number;
   datumFootprintColor: THREE.Color;
   datumFootprintAlpha: number;
   datumFootprintWidth: number;
@@ -207,7 +209,9 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     datumPlaneMinorColor: makeLinearColor(chromeToneHex),
     datumPlaneMinorAlpha: 0.16,
     datumPlaneFillColor: makeLinearColor(chromeToneHex),
-    datumPlaneFillAlpha: 0.03,
+    datumPlaneFillAlpha: 0.04,
+    datumPlaneFillGradientInner: 0.55,
+    datumPlaneFillGradientExponent: 2.0,
     datumFootprintColor: makeLinearColor(theme === 'light' ? '#073642' : '#2aa198'),
     datumFootprintAlpha: 0.85,
     datumFootprintWidth: 2,
@@ -318,6 +322,8 @@ export function extractThreeTokens(
   const datumPlaneMinorAlpha = readOpacity('--chrome-datum-plane-minor-alpha', datumPlaneMinor.alpha);
   const datumPlaneFill = readColor('--chrome-datum-plane-fill-color', fallback.datumPlaneFillColor, fallback.datumPlaneFillAlpha);
   const datumPlaneFillAlpha = readOpacity('--chrome-datum-plane-fill-alpha', datumPlaneFill.alpha);
+  const datumPlaneFillGradientInner = readOpacity('--chrome-datum-plane-fill-gradient-inner', fallback.datumPlaneFillGradientInner);
+  const datumPlaneFillGradientExponent = readOpacity('--chrome-datum-plane-fill-gradient-exponent', fallback.datumPlaneFillGradientExponent);
   const datumFootprint = readColor('--chrome-datum-footprint-color', fallback.datumFootprintColor, fallback.datumFootprintAlpha);
   const datumFootprintAlpha = readOpacity('--chrome-datum-footprint-alpha', datumFootprint.alpha);
   const datumFootprintWidth = readWidth('--chrome-datum-footprint-width', fallback.datumFootprintWidth);
@@ -379,6 +385,8 @@ export function extractThreeTokens(
     datumPlaneMinorAlpha,
     datumPlaneFillColor: datumPlaneFill.color,
     datumPlaneFillAlpha,
+    datumPlaneFillGradientInner,
+    datumPlaneFillGradientExponent,
     datumFootprintColor: datumFootprint.color,
     datumFootprintAlpha,
     datumFootprintWidth,
