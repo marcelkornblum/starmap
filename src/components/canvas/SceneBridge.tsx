@@ -45,6 +45,13 @@ export interface ScenePortalProps {
   children?: React.ReactNode;
 }
 
+/**
+ * Injects a 3D scene into the global canvas SceneOutlet.
+ *
+ * Note: `children` is included in the layout effect dependency array to ensure dynamic
+ * portal content stays reactive without stale closures. Consumers should memoize the passed
+ * scene element (e.g. via `useMemo`) if parent re-renders are frequent.
+ */
 export const ScenePortal: React.FC<ScenePortalProps> = ({ sceneKey, children }) => {
   const { setScene } = useScene();
 

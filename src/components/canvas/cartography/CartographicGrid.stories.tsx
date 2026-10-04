@@ -9,8 +9,6 @@ import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
 import starsFixture from '../../../../tests/fixtures/stars.fixture.json';
 import styles from './StorybookCanvasWrapper.module.css';
 
-const SHARED_STAR_GEOMETRY = new THREE.SphereGeometry(0.08, 16, 16);
-const SHARED_STAR_MATERIAL = new THREE.MeshBasicMaterial();
 const scratchStarPos = new THREE.Vector3();
 
 /**
@@ -94,7 +92,7 @@ const FixtureStars: React.FC = () => {
   return (
     <instancedMesh
       ref={instancedRef}
-      args={[SHARED_STAR_GEOMETRY, SHARED_STAR_MATERIAL, count]}
+      args={[undefined, undefined, count]}
       name="fixture-stars"
       onClick={handleClick}
       onPointerOver={(e) => {
@@ -104,7 +102,10 @@ const FixtureStars: React.FC = () => {
       onPointerOut={() => {
         document.body.style.cursor = 'auto';
       }}
-    />
+    >
+      <sphereGeometry args={[0.08, 16, 16]} />
+      <meshBasicMaterial />
+    </instancedMesh>
   );
 };
 
