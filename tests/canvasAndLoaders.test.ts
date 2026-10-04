@@ -210,17 +210,17 @@ describe('Route Loaders & Render-Then-Fetch Pattern', () => {
   });
 
   describe('SafeHtml & View Lifecycle Safeguards', () => {
-    it('renders SafeHtml in SSR cleanly with testid and children', () => {
+    it('renders SafeHtml in SSR cleanly as an empty 3D group without leaking DOM nodes', () => {
       const html = renderToString(
         createElement(
           SafeHtml,
-          { 'data-testid': 'safe-html-overlay', className: 'test-class' },
+          { 'data-testid': 'safe-html-overlay', position: [1, 2, 3], className: 'test-class' },
           createElement('span', null, 'Overlay Content'),
         ),
       );
-      expect(html).toContain('safe-html-overlay');
-      expect(html).toContain('test-class');
-      expect(html).toContain('Overlay Content');
+      expect(html).toContain('<group');
+      expect(html).not.toContain('<div');
+      expect(html).not.toContain('Overlay Content');
     });
 
     it('preserves incoming scene during asynchronous unmount of previous view in SceneBridge', () => {

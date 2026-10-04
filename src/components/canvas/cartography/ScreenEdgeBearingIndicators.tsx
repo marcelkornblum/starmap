@@ -192,7 +192,21 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
   });
 
   return (
-    <group ref={groupRef} name="screen-edge-bearings">
+    <group ref={groupRef} name="screen-edge-bearing-indicators">
+      {showCore && (
+        <group
+          name="bearing-indicator-core"
+          data-testid="bearing-indicator-core"
+          data-label="CORE 000°"
+        />
+      )}
+      {showOrbital && (
+        <group
+          name="bearing-indicator-orbital"
+          data-testid="bearing-indicator-orbital"
+          data-label="ORB 090°"
+        />
+      )}
       <SafeHtml
         calculatePosition={pinToViewportOrigin}
         wrapperClass={styles.htmlOverlayContainer}

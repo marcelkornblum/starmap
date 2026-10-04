@@ -462,7 +462,13 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   };
 
   return (
-    <group position={[x, y, z]} name={`celestial-node-${id}`} userData={{ state: currentState }}>
+    <group
+      position={[x, y, z]}
+      name={`celestial-node-${id}`}
+      userData={{ state: currentState, name }}
+      data-state={currentState}
+      data-name={name}
+    >
       {/* Layer 1: Physical System Node - 1px-2px invariant dot with permanent spectral hue */}
       <mesh
         ref={dotMeshRef}
@@ -499,9 +505,62 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
         {/* Top-Right Facet: Typographic Label (System Designation) */}
         {shouldRenderReticle && shouldRenderLabel && (
+          <group name="celestial-label" data-testid="celestial-label">
+            <SafeHtml
+              key={`${id}-label`}
+              position={[reticleSize * 1.15, reticleSize * 0.75, 0]}
+              center={false}
+              zIndexRange={HTML_Z_INDEX_RANGE}
+              data-testid="celestial-label"
+            >
+              <div
+                ref={labelContainerRef}
+                className={styles.nodeLabel}
+                data-state={currentState}
+              >
+                <span>{name}</span>
+              </div>
+            </SafeHtml>
+          </group>
+        )}
+
+        {/* Bottom-Right Facet: Solar Spectrum Type (placed tight to the reticle) */}
+        {shouldRenderLabel && isAnnotated && spectralType && (
+          <group
+            name="celestial-spectrum-facet"
+            data-testid="celestial-spectrum-facet"
+            data-spectral={spectralDesignations.join(' · ')}
+          >
+            <SafeHtml
+              key={`${id}-spectrum`}
+              position={[reticleSize * 0.65, -reticleSize * 0.45, 0]}
+              center={false}
+              zIndexRange={HTML_Z_INDEX_RANGE}
+              data-testid="celestial-spectrum-facet"
+            >
+              <div
+                ref={spectrumFacetRef}
+                className={styles.spectralFacet}
+                data-state={currentState}
+              >
+                {spectralDesignations.map((desig, idx) => (
+                  <Fragment key={idx}>
+                    {idx > 0 && <span className={styles.facetSeparator}>·</span>}
+                    <span>{desig}</span>
+                  </Fragment>
+                ))}
+              </div>
+            </SafeHtml>
+          </group>
+        )}
+      </group>
+
+      {/* Typographic Label fallback if reticle is hidden (e.g. passive with explicit showLabel) */}
+      {!shouldRenderReticle && shouldRenderLabel && (
+        <group name="celestial-label" data-testid="celestial-label">
           <SafeHtml
-            key={`${id}-label`}
-            position={[reticleSize * 1.15, reticleSize * 0.75, 0]}
+            key={`${id}-fallback-label`}
+            position={[0.2, 0.2, 0]}
             center={false}
             zIndexRange={HTML_Z_INDEX_RANGE}
             data-testid="celestial-label"
@@ -514,50 +573,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
               <span>{name}</span>
             </div>
           </SafeHtml>
-        )}
-
-        {/* Bottom-Right Facet: Solar Spectrum Type (placed tight to the reticle) */}
-        {shouldRenderLabel && isAnnotated && spectralType && (
-          <SafeHtml
-            key={`${id}-spectrum`}
-            position={[reticleSize * 0.65, -reticleSize * 0.45, 0]}
-            center={false}
-            zIndexRange={HTML_Z_INDEX_RANGE}
-            data-testid="celestial-spectrum-facet"
-          >
-            <div
-              ref={spectrumFacetRef}
-              className={styles.spectralFacet}
-              data-state={currentState}
-            >
-              {spectralDesignations.map((desig, idx) => (
-                <Fragment key={idx}>
-                  {idx > 0 && <span className={styles.facetSeparator}>·</span>}
-                  <span>{desig}</span>
-                </Fragment>
-              ))}
-            </div>
-          </SafeHtml>
-        )}
-      </group>
-
-      {/* Typographic Label fallback if reticle is hidden (e.g. passive with explicit showLabel) */}
-      {!shouldRenderReticle && shouldRenderLabel && (
-        <SafeHtml
-          key={`${id}-fallback-label`}
-          position={[0.2, 0.2, 0]}
-          center={false}
-          zIndexRange={HTML_Z_INDEX_RANGE}
-          data-testid="celestial-label"
-        >
-          <div
-            ref={labelContainerRef}
-            className={styles.nodeLabel}
-            data-state={currentState}
-          >
-            <span>{name}</span>
-          </div>
-        </SafeHtml>
+        </group>
       )}
 
       {/* Strict Single-Stalk Rule: Drop Stalk down to Datum Plane Z=0 */}

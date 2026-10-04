@@ -206,13 +206,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
 
 export const SafeHtml: React.FC<SafeHtmlProps> = (props) => {
   if (typeof document === 'undefined') {
-    return (
-      <group position={props.position}>
-        <div data-testid={props['data-testid']} className={props.className ?? props.wrapperClass}>
-          {props.children}
-        </div>
-      </group>
-    );
+    return <group position={props.position} />;
   }
   return <SafeHtmlClient {...props} />;
 };
