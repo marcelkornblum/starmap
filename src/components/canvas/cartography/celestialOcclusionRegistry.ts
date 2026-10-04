@@ -19,6 +19,12 @@ export interface Box2D {
 export interface CelestialFootprint {
   id: string;
   state: 'passive' | 'active' | 'selected' | 'focused';
+  worldPos?: [number, number, number];
+  classification?: string;
+  reticleSize?: number;
+  hasStalk?: boolean;
+  multiplicity?: number;
+  planets?: Array<{ id: string; name: string; classification: 'terrestrial' | 'gas-giant' | 'ice-giant' }>;
   screenX: number;
   screenY: number;
   reticleRadius: number;
@@ -62,17 +68,13 @@ export function circleIntersectsAABB(
 }
 
 /**
- * Checks if a label box intersects a target celestial footprint (reticle diamond or star dot).
+ * Checks if a label box intersects a target celestial footprint.
+ * Occlusion rules are strictly based on the reticle bounds (not the star bounds).
  */
 export function boxIntersectsFootprint(box: Box2D, footprint: CelestialFootprint): boolean {
   if (!footprint.visible) return false;
 
-  // 1. Star dot intersection (circular)
-  if (circleIntersectsAABB(footprint.screenX, footprint.screenY, footprint.starRadius, box)) {
-    return true;
-  }
-
-  // 2. Reticle intersection (diamond)
+  // Authoritative occlusion: based strictly on reticle diamond bounds
   if (footprint.hasReticle && diamondIntersectsAABB(footprint.screenX, footprint.screenY, footprint.reticleRadius, box)) {
     return true;
   }
@@ -158,6 +160,19 @@ export class CelestialOcclusionManager {
    */
   public get size(): number {
     return this.footprints.size;
+  }
+
+  /**
+   * Returns all registered footprints that have an active drop stalk.
+   */
+  public getStalkedFootprints(): CelestialFootprint[] {
+    const stalked: CelestialFootprint[] = [];
+    for (const fp of this.footprints.values()) {
+      if (fp.hasStalk && fp.worldPos) {
+        stalked.push(fp);
+      }
+    }
+    return stalked;
   }
 }
 

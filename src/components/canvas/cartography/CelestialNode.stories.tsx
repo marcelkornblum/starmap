@@ -48,6 +48,7 @@ export const Default: Story = {
     classification: 'star',
     spectralType: 'G6V + M3V',
     multiplicity: 2,
+    showStalk: true,
     planets: [
       { id: 'kepler-47-b', name: 'Kepler-47 b', classification: 'terrestrial' },
       { id: 'kepler-47-d', name: 'Kepler-47 d', classification: 'ice-giant' },

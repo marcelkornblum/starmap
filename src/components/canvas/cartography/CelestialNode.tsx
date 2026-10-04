@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { celestialOcclusionManager, type Box2D } from './celestialOcclusionRegistry';
@@ -26,32 +26,16 @@ function getSpectralColor(spectralType?: string): string {
   }
 }
 
-export type CelestialClassification =
-  | 'star'
-  | 'stellar-system'
-  | 'brown-dwarf'
-  | 'white-dwarf'
-  | 'degenerate-remnant'
-  | 'neutron-star'
-  | 'hazard'
-  | 'black-hole'
-  | 'singularity'
-  | 'barycentre'
-  | 'stellar-cluster'
-  | 'cluster'
-  | 'construct'
-  | 'artificial'
-  | 'terrestrial'
-  | 'gas-giant'
-  | 'ice-giant';
+import {
+  createReticleGeometry,
+  type CelestialClassification,
+  type PlanetCensusEntry,
+  type ReticleAnnotationOptions,
+} from './reticleGeometry';
+
+export type { CelestialClassification, PlanetCensusEntry, ReticleAnnotationOptions };
 
 export type CelestialInteractionState = 'passive' | 'active' | 'selected' | 'focused';
-
-export interface PlanetCensusEntry {
-  id: string;
-  name: string;
-  classification: 'terrestrial' | 'gas-giant' | 'ice-giant';
-}
 
 export interface CelestialNodeProps {
   id: string;
@@ -68,365 +52,6 @@ export interface CelestialNodeProps {
   onClick?: (id: string) => void;
   onPointerOver?: (id: string) => void;
   onPointerOut?: (id: string) => void;
-}
-
-export interface ReticleAnnotationOptions {
-  multiplicity?: number;
-  planets?: PlanetCensusEntry[];
-  isAnnotated?: boolean;
-}
-
-/**
- * Appends stellar multiplicity pips along the outer edge of the Top-Left diamond facet.
- * (Approach B: 0 pips for single star; 2 pips for binary/twin stars; 3 pips for trinary).
- */
-function appendMultiplicityPips(
-  points: THREE.Vector3[],
-  s: number,
-  multiplicity: number,
-): void {
-  const count = Math.min(multiplicity, 4);
-  const dOut = 0.14 * s;
-  const nX = -Math.SQRT1_2;
-  const nY = Math.SQRT1_2;
-  const pipR = 0.045 * s;
-  const pipSegs = 8;
-
-  for (let i = 1; i <= count; i++) {
-    const t = i / (count + 1);
-    // Point on top-left edge: from (-s, 0) to (0, s)
-    const edgeX = (t - 1) * s;
-    const edgeY = t * s;
-    const cX = edgeX + dOut * nX;
-    const cY = edgeY + dOut * nY;
-
-    for (let p = 0; p < pipSegs; p++) {
-      const a1 = (p / pipSegs) * Math.PI * 2;
-      const a2 = ((p + 1) / pipSegs) * Math.PI * 2;
-      points.push(
-        new THREE.Vector3(cX + Math.cos(a1) * pipR, cY + Math.sin(a1) * pipR, 0),
-        new THREE.Vector3(cX + Math.cos(a2) * pipR, cY + Math.sin(a2) * pipR, 0),
-      );
-    }
-  }
-}
-
-/**
- * Appends planetary system census pips along the outer edge of the Bottom-Left diamond facet.
- * Renders miniature open circles for terrestrial planets, ringed circles for ice giants,
- * and slashed circles for gas giants.
- */
-function appendPlanetaryPips(
-  points: THREE.Vector3[],
-  s: number,
-  planets: PlanetCensusEntry[],
-): void {
-  const count = planets.length;
-  const dOut = 0.18 * s;
-  const nX = -Math.SQRT1_2;
-  const nY = -Math.SQRT1_2;
-
-  for (let i = 0; i < count; i++) {
-    const planet = planets[i];
-    const t = (i + 1) / (count + 1);
-    // Point on bottom-left edge: from (-s, 0) to (0, -s)
-    const edgeX = (t - 1) * s;
-    const edgeY = -t * s;
-    const cX = edgeX + dOut * nX;
-    const cY = edgeY + dOut * nY;
-
-    if (planet.classification === 'terrestrial') {
-      const pR = 0.04 * s;
-      const segs = 12;
-      for (let j = 0; j < segs; j++) {
-        const a1 = (j / segs) * Math.PI * 2;
-        const a2 = ((j + 1) / segs) * Math.PI * 2;
-        points.push(
-          new THREE.Vector3(cX + Math.cos(a1) * pR, cY + Math.sin(a1) * pR, 0),
-          new THREE.Vector3(cX + Math.cos(a2) * pR, cY + Math.sin(a2) * pR, 0),
-        );
-      }
-    } else if (planet.classification === 'gas-giant') {
-      const pR = 0.07 * s;
-      const segs = 16;
-      for (let j = 0; j < segs; j++) {
-        const a1 = (j / segs) * Math.PI * 2;
-        const a2 = ((j + 1) / segs) * Math.PI * 2;
-        points.push(
-          new THREE.Vector3(cX + Math.cos(a1) * pR, cY + Math.sin(a1) * pR, 0),
-          new THREE.Vector3(cX + Math.cos(a2) * pR, cY + Math.sin(a2) * pR, 0),
-        );
-      }
-      const gap = 0.02 * s;
-      const cos45 = Math.SQRT1_2;
-      const sin45 = Math.SQRT1_2;
-      points.push(
-        new THREE.Vector3(cX - pR * cos45, cY - pR * sin45, 0),
-        new THREE.Vector3(cX - gap * cos45, cY - gap * sin45, 0),
-        new THREE.Vector3(cX + gap * cos45, cY + gap * sin45, 0),
-        new THREE.Vector3(cX + pR * cos45, cY + pR * sin45, 0),
-      );
-    } else if (planet.classification === 'ice-giant') {
-      const pR = 0.05 * s;
-      const segs = 14;
-      for (let j = 0; j < segs; j++) {
-        const a1 = (j / segs) * Math.PI * 2;
-        const a2 = ((j + 1) / segs) * Math.PI * 2;
-        points.push(
-          new THREE.Vector3(cX + Math.cos(a1) * pR, cY + Math.sin(a1) * pR, 0),
-          new THREE.Vector3(cX + Math.cos(a2) * pR, cY + Math.sin(a2) * pR, 0),
-        );
-      }
-      const rInner = 0.055 * s;
-      const rOuter = 0.085 * s;
-      const cos45 = Math.SQRT1_2;
-      const sin45 = Math.SQRT1_2;
-      points.push(
-        new THREE.Vector3(cX - rOuter * cos45, cY - rOuter * sin45, 0),
-        new THREE.Vector3(cX - rInner * cos45, cY - rInner * sin45, 0),
-        new THREE.Vector3(cX + rInner * cos45, cY + rInner * sin45, 0),
-        new THREE.Vector3(cX + rOuter * cos45, cY + rOuter * sin45, 0),
-      );
-    }
-  }
-}
-
-/**
- * Builds 2D line geometry in the local XY plane for each reticle taxonomy type.
- * All reticle and footprint shapes are constructed as pairs of line segments for LineSegments.
- */
-function createReticleGeometry(
-  classification: CelestialClassification,
-  s: number,
-  annotations?: ReticleAnnotationOptions,
-): THREE.BufferGeometry {
-  const points: THREE.Vector3[] = [];
-
-  switch (classification) {
-    case 'star':
-    case 'stellar-system': {
-      // Closed 45-degree diamond: 4 connected edge segments
-      points.push(
-        new THREE.Vector3(0, s, 0), new THREE.Vector3(s, 0, 0),
-        new THREE.Vector3(s, 0, 0), new THREE.Vector3(0, -s, 0),
-        new THREE.Vector3(0, -s, 0), new THREE.Vector3(-s, 0, 0),
-        new THREE.Vector3(-s, 0, 0), new THREE.Vector3(0, s, 0),
-      );
-
-      // The Four-Facet Diamond Architecture: Annotations in Selected or Focused State
-      if (annotations?.isAnnotated) {
-        // Top-Left Facet: Multiplicity census (Approach B: 2 pips for binary/twin stars, 3 pips for trinary)
-        if (annotations.multiplicity && annotations.multiplicity >= 2) {
-          appendMultiplicityPips(points, s, annotations.multiplicity);
-        }
-
-        // Bottom-Left Facet: Planetary system census (planetary symbology)
-        if (annotations.planets && annotations.planets.length > 0) {
-          appendPlanetaryPips(points, s, annotations.planets);
-        }
-      }
-      break;
-    }
-    case 'brown-dwarf': {
-      // Broken Diamond: Top and bottom vertical chevrons (waist open)
-      points.push(
-        // Top chevron ︿
-        new THREE.Vector3(-0.6 * s, 0.4 * s, 0), new THREE.Vector3(0, s, 0),
-        new THREE.Vector3(0, s, 0), new THREE.Vector3(0.6 * s, 0.4 * s, 0),
-        // Bottom chevron ﹀
-        new THREE.Vector3(-0.6 * s, -0.4 * s, 0), new THREE.Vector3(0, -s, 0),
-        new THREE.Vector3(0, -s, 0), new THREE.Vector3(0.6 * s, -0.4 * s, 0),
-      );
-      break;
-    }
-    case 'white-dwarf':
-    case 'degenerate-remnant': {
-      // Fractured Diamond: 4 disjoint diagonal corner brackets (mid-facets open)
-      const leg = 0.35 * s;
-      points.push(
-        // Top corner ◥◤
-        new THREE.Vector3(-leg, s - leg, 0), new THREE.Vector3(0, s, 0),
-        new THREE.Vector3(0, s, 0), new THREE.Vector3(leg, s - leg, 0),
-        // Right corner
-        new THREE.Vector3(s - leg, leg, 0), new THREE.Vector3(s, 0, 0),
-        new THREE.Vector3(s, 0, 0), new THREE.Vector3(s - leg, -leg, 0),
-        // Bottom corner ◢◣
-        new THREE.Vector3(leg, -s + leg, 0), new THREE.Vector3(0, -s, 0),
-        new THREE.Vector3(0, -s, 0), new THREE.Vector3(-leg, -s + leg, 0),
-        // Left corner
-        new THREE.Vector3(-s + leg, -leg, 0), new THREE.Vector3(-s, 0, 0),
-        new THREE.Vector3(-s, 0, 0), new THREE.Vector3(-s + leg, leg, 0),
-      );
-      break;
-    }
-    case 'neutron-star':
-    case 'hazard': {
-      // Relativistic Hazards: Fractured diamond with outward radiating beam spines (divergent beam geometry)
-      const leg = 0.35 * s;
-      points.push(
-        // Fractured diamond corner brackets
-        new THREE.Vector3(-leg, s - leg, 0), new THREE.Vector3(0, s, 0),
-        new THREE.Vector3(0, s, 0), new THREE.Vector3(leg, s - leg, 0),
-        new THREE.Vector3(s - leg, leg, 0), new THREE.Vector3(s, 0, 0),
-        new THREE.Vector3(s, 0, 0), new THREE.Vector3(s - leg, -leg, 0),
-        new THREE.Vector3(leg, -s + leg, 0), new THREE.Vector3(0, -s, 0),
-        new THREE.Vector3(0, -s, 0), new THREE.Vector3(-leg, -s + leg, 0),
-        new THREE.Vector3(-s + leg, -leg, 0), new THREE.Vector3(-s, 0, 0),
-        new THREE.Vector3(-s, 0, 0), new THREE.Vector3(-s + leg, leg, 0),
-        // Outward radiating beam spines (divergent beam geometry)
-        new THREE.Vector3(0, s, 0), new THREE.Vector3(0, 1.6 * s, 0),
-        new THREE.Vector3(0, -s, 0), new THREE.Vector3(0, -1.6 * s, 0),
-        new THREE.Vector3(-s, 0, 0), new THREE.Vector3(-1.4 * s, 0, 0),
-        new THREE.Vector3(s, 0, 0), new THREE.Vector3(1.4 * s, 0, 0),
-      );
-      break;
-    }
-    case 'black-hole':
-    case 'singularity': {
-      // Four sharp 1px inward-pointing convergent spines (► ◄ / ▼ ▲) targeting empty central coordinate
-      const inner = 0.25 * s;
-      const outer = 1.0 * s;
-      const barbL = 0.18 * s;
-      const barbW = 0.12 * s;
-      points.push(
-        // Left spine (pointing inward to right ►)
-        new THREE.Vector3(-outer, 0, 0), new THREE.Vector3(-inner, 0, 0),
-        new THREE.Vector3(-inner - barbL, barbW, 0), new THREE.Vector3(-inner, 0, 0),
-        new THREE.Vector3(-inner - barbL, -barbW, 0), new THREE.Vector3(-inner, 0, 0),
-
-        // Right spine (pointing inward to left ◄)
-        new THREE.Vector3(outer, 0, 0), new THREE.Vector3(inner, 0, 0),
-        new THREE.Vector3(inner + barbL, barbW, 0), new THREE.Vector3(inner, 0, 0),
-        new THREE.Vector3(inner + barbL, -barbW, 0), new THREE.Vector3(inner, 0, 0),
-
-        // Top spine (pointing inward down ▼)
-        new THREE.Vector3(0, outer, 0), new THREE.Vector3(0, inner, 0),
-        new THREE.Vector3(barbW, inner + barbL, 0), new THREE.Vector3(0, inner, 0),
-        new THREE.Vector3(-barbW, inner + barbL, 0), new THREE.Vector3(0, inner, 0),
-
-        // Bottom spine (pointing inward up ▲)
-        new THREE.Vector3(0, -outer, 0), new THREE.Vector3(0, -inner, 0),
-        new THREE.Vector3(barbW, -inner - barbL, 0), new THREE.Vector3(0, -inner, 0),
-        new THREE.Vector3(-barbW, -inner - barbL, 0), new THREE.Vector3(0, -inner, 0),
-      );
-      break;
-    }
-    case 'barycentre': {
-      // Gravitational Barycentres: 1px Plus (+) with open centre
-      const arm = 0.6 * s;
-      const gap = 0.15 * s;
-      points.push(
-        new THREE.Vector3(-arm, 0, 0), new THREE.Vector3(-gap, 0, 0),
-        new THREE.Vector3(gap, 0, 0), new THREE.Vector3(arm, 0, 0),
-        new THREE.Vector3(0, -arm, 0), new THREE.Vector3(0, -gap, 0),
-        new THREE.Vector3(0, gap, 0), new THREE.Vector3(0, arm, 0),
-      );
-      break;
-    }
-    case 'stellar-cluster':
-    case 'cluster': {
-      // Stellar Clusters / Echelons: Floating Double Top Chevron (︽) with no bottom chevron
-      points.push(
-        // Lower top chevron
-        new THREE.Vector3(-0.6 * s, 0.25 * s, 0), new THREE.Vector3(0, 0.65 * s, 0),
-        new THREE.Vector3(0, 0.65 * s, 0), new THREE.Vector3(0.6 * s, 0.25 * s, 0),
-        // Upper top chevron
-        new THREE.Vector3(-0.6 * s, 0.55 * s, 0), new THREE.Vector3(0, 0.95 * s, 0),
-        new THREE.Vector3(0, 0.95 * s, 0), new THREE.Vector3(0.6 * s, 0.55 * s, 0),
-      );
-      break;
-    }
-    case 'construct':
-    case 'artificial': {
-      // Artificial Constructs & Vehicles: 90-degree orthogonal open corner box (┌ ┐ / └ ┘)
-      const b = 0.75 * s;
-      const leg = 0.35 * s;
-      points.push(
-        // Top-left ┌
-        new THREE.Vector3(-b, b - leg, 0), new THREE.Vector3(-b, b, 0),
-        new THREE.Vector3(-b, b, 0), new THREE.Vector3(-b + leg, b, 0),
-        // Top-right ┐
-        new THREE.Vector3(b - leg, b, 0), new THREE.Vector3(b, b, 0),
-        new THREE.Vector3(b, b, 0), new THREE.Vector3(b, b - leg, 0),
-        // Bottom-right ┘
-        new THREE.Vector3(b, -b + leg, 0), new THREE.Vector3(b, -b, 0),
-        new THREE.Vector3(b, -b, 0), new THREE.Vector3(b - leg, -b, 0),
-        // Bottom-left └
-        new THREE.Vector3(-b + leg, -b, 0), new THREE.Vector3(-b, -b, 0),
-        new THREE.Vector3(-b, -b, 0), new THREE.Vector3(-b, -b + leg, 0),
-      );
-      break;
-    }
-    case 'terrestrial': {
-      // Small 1px open circle (~3-4px diameter, radius ~0.4s)
-      const r = 0.4 * s;
-      const segs = 32;
-      for (let i = 0; i < segs; i++) {
-        const th1 = (i / segs) * Math.PI * 2;
-        const th2 = ((i + 1) / segs) * Math.PI * 2;
-        points.push(
-          new THREE.Vector3(Math.cos(th1) * r, Math.sin(th1) * r, 0),
-          new THREE.Vector3(Math.cos(th2) * r, Math.sin(th2) * r, 0),
-        );
-      }
-      break;
-    }
-    case 'gas-giant': {
-      // Large 1px open circle (~7-8px diameter, radius ~0.8s) with a 45-degree slash through the middle and a gap around the central dot
-      const r = 0.8 * s;
-      const segs = 32;
-      for (let i = 0; i < segs; i++) {
-        const th1 = (i / segs) * Math.PI * 2;
-        const th2 = ((i + 1) / segs) * Math.PI * 2;
-        points.push(
-          new THREE.Vector3(Math.cos(th1) * r, Math.sin(th1) * r, 0),
-          new THREE.Vector3(Math.cos(th2) * r, Math.sin(th2) * r, 0),
-        );
-      }
-      // 45-degree slash through the middle with gap around central dot
-      const gap = 0.22 * s;
-      const cos45 = Math.SQRT1_2;
-      const sin45 = Math.SQRT1_2;
-      points.push(
-        // Lower-left segment
-        new THREE.Vector3(-r * cos45, -r * sin45, 0),
-        new THREE.Vector3(-gap * cos45, -gap * sin45, 0),
-        // Upper-right segment
-        new THREE.Vector3(gap * cos45, gap * sin45, 0),
-        new THREE.Vector3(r * cos45, r * sin45, 0),
-      );
-      break;
-    }
-    case 'ice-giant': {
-      // Ringed open circle: central disk + lateral ring ticks angled at 45 degrees
-      const r = 0.55 * s;
-      const segs = 32;
-      for (let i = 0; i < segs; i++) {
-        const th1 = (i / segs) * Math.PI * 2;
-        const th2 = ((i + 1) / segs) * Math.PI * 2;
-        points.push(
-          new THREE.Vector3(Math.cos(th1) * r, Math.sin(th1) * r, 0),
-          new THREE.Vector3(Math.cos(th2) * r, Math.sin(th2) * r, 0),
-        );
-      }
-      // Ring ticks angled at 45 degrees
-      const rInner = 0.6 * s;
-      const rOuter = 0.95 * s;
-      const cos45 = Math.SQRT1_2;
-      const sin45 = Math.SQRT1_2;
-      points.push(
-        // Lower-left tick
-        new THREE.Vector3(-rOuter * cos45, -rOuter * sin45, 0),
-        new THREE.Vector3(-rInner * cos45, -rInner * sin45, 0),
-        // Upper-right tick
-        new THREE.Vector3(rInner * cos45, rInner * sin45, 0),
-        new THREE.Vector3(rOuter * cos45, rOuter * sin45, 0),
-      );
-      break;
-    }
-  }
-
-  return new THREE.BufferGeometry().setFromPoints(points);
 }
 
 /**
@@ -505,7 +130,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   // Screen-space invariance and camera-facing refs
   const dotMeshRef = useRef<THREE.Mesh>(null);
   const reticleGroupRef = useRef<THREE.Group>(null);
-  const footprintGroupRef = useRef<THREE.Group>(null);
   const worldPosRef = useRef(new THREE.Vector3(x, y, z));
   const labelContainerRef = useRef<HTMLDivElement>(null);
   const spectrumFacetRef = useRef<HTMLDivElement>(null);
@@ -531,11 +155,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     if (reticleGroupRef.current) {
       reticleGroupRef.current.quaternion.copy(camera.quaternion);
       reticleGroupRef.current.scale.set(invScale, invScale, invScale);
-    }
-
-    // Datum footprint on plane: lies flat on Z=0 reference plane, scaled to match reticle size
-    if (footprintGroupRef.current) {
-      footprintGroupRef.current.scale.set(invScale, invScale, invScale);
     }
 
     // --- Occlusion & Intersection Tracking ---
@@ -579,6 +198,12 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     celestialOcclusionManager.register({
       id,
       state: currentState,
+      worldPos: [x, y, z],
+      classification,
+      reticleSize,
+      hasStalk: shouldRenderStalk,
+      multiplicity,
+      planets,
       screenX,
       screenY,
       reticleRadius,
@@ -646,17 +271,8 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     }
   }, [shouldRenderStalk, z]);
 
-  const footprintGeometry = useMemo(() => {
-    if (!shouldRenderStalk) return null;
-    return createReticleGeometry(classification, reticleSize, {
-      multiplicity,
-      planets,
-      isAnnotated,
-    });
-  }, [shouldRenderStalk, classification, reticleSize, multiplicity, planets, isAnnotated]);
-
   // Interactive rollover and click handlers
-  const handlePointerOver = (e: any) => {
+  const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
     if (typeof document !== 'undefined') {
       document.body.style.cursor = 'pointer';
@@ -667,7 +283,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     onPointerOver?.(id);
   };
 
-  const handlePointerOut = (e: any) => {
+  const handlePointerOut = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
     if (typeof document !== 'undefined') {
       document.body.style.cursor = 'auto';
@@ -678,7 +294,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     onPointerOut?.(id);
   };
 
-  const handleClick = (e: any) => {
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     setInternalState((prev) => (prev === 'focused' ? 'selected' : 'focused'));
     onClick?.(id);
@@ -798,20 +414,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
               depthWrite={false}
             />
           </lineSegments>
-
-          {/* Datum Footprint stamped on Galactic Equator Z=0, matching reticle shape */}
-          {footprintGeometry && (
-            <group ref={footprintGroupRef} position={[0, 0, -z]} name="datum-footprint">
-              <lineSegments geometry={footprintGeometry}>
-                <lineBasicMaterial
-                  color={stalkColor}
-                  opacity={0.45}
-                  transparent
-                  depthWrite={false}
-                />
-              </lineSegments>
-            </group>
-          )}
         </group>
       )}
     </group>

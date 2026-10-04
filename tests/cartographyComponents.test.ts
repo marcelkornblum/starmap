@@ -14,6 +14,9 @@ import {
   boxIntersectsFootprint,
   CelestialOcclusionManager,
   celestialOcclusionManager,
+  appendMultiplicityPips,
+  appendPlanetaryPips,
+  createReticleGeometry,
 } from '../src/components/canvas/cartography';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
@@ -87,6 +90,7 @@ describe('3D Cartography Components', () => {
       expect(htmlDefault).toContain('full-ring-2');
       expect(htmlDefault).toContain('full-ring-4');
       expect(htmlDefault).toContain('full-ring-8');
+      expect(htmlDefault).toContain('planar-footprint');
 
       const htmlHidden = renderToString(
         createElement(CartographicGrid, {
@@ -95,6 +99,36 @@ describe('3D Cartography Components', () => {
         }),
       );
       expect(htmlHidden).not.toContain('datum-plane');
+    });
+
+    it('renders planar ground footprint on datum plane by default and respects showPlanarFootprint flag', () => {
+      const htmlDefault = renderToString(
+        createElement(CartographicGrid, { radius: 10 }),
+      );
+      expect(htmlDefault).toContain('datum-plane');
+      expect(htmlDefault).toContain('name="planar-footprint"');
+
+      const htmlNoFootprint = renderToString(
+        createElement(CartographicGrid, { radius: 10, showPlanarFootprint: false }),
+      );
+      expect(htmlNoFootprint).toContain('datum-plane');
+      expect(htmlNoFootprint).not.toContain('name="planar-footprint"');
+    });
+
+    it('renders explicit planar footprints on datum plane when provided', () => {
+      const htmlWithFootprints = renderToString(
+        createElement(CartographicGrid, {
+          radius: 10,
+          footprints: [
+            { id: 'alpha', position: [3, 2, 0], classification: 'star' },
+            { id: 'beta', position: [-4, 1, 0], classification: 'gas-giant' },
+          ],
+        }),
+      );
+      expect(htmlWithFootprints).toContain('datum-plane');
+      expect(htmlWithFootprints).toContain('name="explicit-planar-footprints"');
+      expect(htmlWithFootprints).toContain('name="planar-footprint-alpha"');
+      expect(htmlWithFootprints).toContain('name="planar-footprint-beta"');
     });
 
     it('renders optional full 360-degree datum circles when enabled via showFullDatumCircle', () => {
@@ -294,6 +328,8 @@ describe('3D Cartography Components', () => {
       );
       expect(htmlSelected).toContain('celestial-node-star-3');
       expect(htmlSelected).toContain('drop-stalk');
+      expect(htmlSelected).not.toContain('datum-footprint');
+      expect(htmlSelected).not.toContain('planar-footprint');
 
       // Negative Z: dashed stalk
       const htmlFocusedNeg = renderToString(
@@ -306,6 +342,8 @@ describe('3D Cartography Components', () => {
       );
       expect(htmlFocusedNeg).toContain('celestial-node-star-4');
       expect(htmlFocusedNeg).toContain('drop-stalk');
+      expect(htmlFocusedNeg).not.toContain('datum-footprint');
+      expect(htmlFocusedNeg).not.toContain('planar-footprint');
     });
 
     it('renders reticle geometry cleanly for all taxonomy classifications', () => {
@@ -407,6 +445,60 @@ describe('3D Cartography Components', () => {
       expect(html).toContain('G6V + M3V');
       expect(html).not.toContain('data-testid="celestial-spectrum-facet"');
     });
+
+    it('generates multiplicity pips as solid star dots aligned towards the left point', () => {
+      const pointsSingle: THREE.Vector3[] = [];
+      appendMultiplicityPips(pointsSingle, 1.0, 1);
+      // 1 star dot generated (outer ring + inner ring + spokes = 48 points)
+      expect(pointsSingle.length).toBe(48);
+
+      const pointsBinary: THREE.Vector3[] = [];
+      appendMultiplicityPips(pointsBinary, 1.0, 2);
+      expect(pointsBinary.length).toBe(96); // 2 star dots
+
+      const pointsQuat: THREE.Vector3[] = [];
+      appendMultiplicityPips(pointsQuat, 1.0, 4);
+      expect(pointsQuat.length).toBe(192); // 4 star dots
+
+      // Verify dots are aligned towards the left point (all X coordinates negative, near left corner)
+      for (const pt of pointsQuat) {
+        expect(pt.x).toBeLessThan(0);
+      }
+    });
+
+    it('generates planetary symbols as boolean category presence at 2x-3x size', () => {
+      // 5 terrestrial planets, 3 gas giants, 2 ice giants -> strictly 3 symbols rendered
+      const manyPlanets = [
+        { id: '1', name: 'p1', classification: 'terrestrial' as const },
+        { id: '2', name: 'p2', classification: 'terrestrial' as const },
+        { id: '3', name: 'p3', classification: 'terrestrial' as const },
+        { id: '4', name: 'p4', classification: 'gas-giant' as const },
+        { id: '5', name: 'p5', classification: 'gas-giant' as const },
+        { id: '6', name: 'p6', classification: 'ice-giant' as const },
+      ];
+
+      const pointsBool: THREE.Vector3[] = [];
+      appendPlanetaryPips(pointsBool, 1.0, manyPlanets);
+
+      // Terrestrial (24 segs = 48 pts) + Gas Giant (28 segs = 56 pts + 4 slash pts = 60 pts) + Ice Giant (24 segs = 48 pts + 4 tick pts = 52 pts)
+      // Total points = 48 + 60 + 52 = 160 points
+      expect(pointsBool.length).toBe(160);
+
+      // Single category presence: only terrestrial
+      const pointsOnlyTerr: THREE.Vector3[] = [];
+      appendPlanetaryPips(pointsOnlyTerr, 1.0, [{ id: '1', name: 'Earth', classification: 'terrestrial' }]);
+      expect(pointsOnlyTerr.length).toBe(48);
+    });
+
+    it('creates reticle geometry with annotations in selected/focused state', () => {
+      const geom = createReticleGeometry('stellar-system', 1.0, {
+        multiplicity: 2,
+        planets: [{ id: '1', name: 'Earth', classification: 'terrestrial' }],
+        isAnnotated: true,
+      });
+      // 8 diamond points + 96 multiplicity points + 48 planetary points = 152 points
+      expect(geom.getAttribute('position').count).toBe(152);
+    });
   });
 
   describe('OrbitalRing', () => {
@@ -486,7 +578,7 @@ describe('3D Cartography Components', () => {
       expect(circleIntersectsAABB(cx, cy, radius, { left: 56, top: 50, right: 65, bottom: 55 })).toBe(false);
     });
 
-    it('tests footprint intersection for diamond reticles and star circles', () => {
+    it('tests footprint intersection strictly based on reticle bounds', () => {
       const footprint = {
         id: 'test-node',
         state: 'active' as const,
@@ -504,6 +596,9 @@ describe('3D Cartography Components', () => {
 
       // Not intersecting
       expect(boxIntersectsFootprint({ left: 160, top: 160, right: 180, bottom: 180 }, footprint)).toBe(false);
+
+      // Occlusion is based on reticle bounds, not star bounds: if hasReticle is false, returns false
+      expect(boxIntersectsFootprint({ left: 98, top: 98, right: 102, bottom: 102 }, { ...footprint, hasReticle: false })).toBe(false);
 
       // Hidden footprint returns false
       expect(boxIntersectsFootprint({ left: 95, top: 95, right: 105, bottom: 105 }, { ...footprint, visible: false })).toBe(false);

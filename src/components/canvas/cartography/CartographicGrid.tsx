@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
@@ -11,6 +11,15 @@ import {
   computeTransitionWeights,
   computeZoomAdaptiveRings,
 } from './cartographyMath';
+import {
+  createReticleGeometry,
+  type CelestialClassification,
+  type PlanetCensusEntry,
+} from './reticleGeometry';
+import {
+  celestialOcclusionManager,
+  type CelestialFootprint,
+} from './celestialOcclusionRegistry';
 
 /**
  * Creates BufferGeometry for a full 360-degree circle in the XY plane.
@@ -29,6 +38,17 @@ function createCircleGeometry(radius: number, steps = 128): THREE.BufferGeometry
   return geom;
 }
 
+export interface PlanarFootprintItem {
+  id: string;
+  position: [number, number, number] | THREE.Vector3;
+  classification?: CelestialClassification;
+  size?: number;
+  multiplicity?: number;
+  planets?: PlanetCensusEntry[];
+  color?: string | THREE.Color;
+  opacity?: number;
+}
+
 export interface CartographicGridProps {
   /** Outer focal aperture radius (R_fin) in scene coordinate units / parsecs. Default: 10 */
   radius?: number;
@@ -42,6 +62,14 @@ export interface CartographicGridProps {
   showGalacticPlane?: boolean;
   /** Deprecated alias for showGalacticPlane. Default: true */
   showFullDatumCircle?: boolean;
+  /** Whether to render planar footprints stamped on the Galactic Equator (Z=0) datum plane. Default: true */
+  showPlanarFootprint?: boolean;
+  /** Shape classification of the primary focus planar footprint. Default: 'star' */
+  footprintClassification?: CelestialClassification;
+  /** Radius of the primary planar footprint in scene coordinate units. Default: 0.45 */
+  footprintSize?: number;
+  /** Optional explicit list of planar footprints to render on the datum plane */
+  footprints?: PlanarFootprintItem[];
   /** Whether to render the 3 orthogonal axis lines (+X, +Y extended, +Z to radius). Default: true */
   showAxisLines?: boolean;
   /** Whether to enable dynamic perspective-to-orthographic projection switching when looking along cardinal axes. Default: true */
@@ -63,6 +91,89 @@ export interface CartographicGridProps {
   /** Optional explicit focus target to lock origin to (Vector3, object with position, or ref). */
   focusTarget?: THREE.Vector3 | React.RefObject<THREE.Vector3 | THREE.Object3D | null>;
 }
+
+/**
+ * Dynamic Stalked Footprints Layer
+ * Automatically projects planar ground footprints on the Galactic Equator (Z=0)
+ * for any CelestialNodes with active drop stalks in the scene.
+ */
+const StalkedFootprintsLayer: React.FC<{
+  originRef: React.RefObject<THREE.Vector3>;
+  initialPosition: [number, number, number];
+  defaultColor: THREE.Color;
+  defaultAlpha: number;
+  tokens: ReturnType<typeof useThreeTokenStore.getState>['tokens'];
+}> = ({ originRef, initialPosition, defaultColor, defaultAlpha, tokens }) => {
+  const [stalked, setStalked] = useState<CelestialFootprint[]>([]);
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    const current = celestialOcclusionManager.getStalkedFootprints();
+    const hasChanged =
+      current.length !== stalked.length ||
+      current.some(
+        (c, i) =>
+          c.id !== stalked[i]?.id ||
+          c.state !== stalked[i]?.state ||
+          c.hasStalk !== stalked[i]?.hasStalk ||
+          c.updatedAt !== stalked[i]?.updatedAt,
+      );
+    if (hasChanged) {
+      setStalked([...current]);
+    }
+    if (groupRef.current && originRef.current) {
+      groupRef.current.position.set(-originRef.current.x, -originRef.current.y, 0.002);
+    }
+  });
+
+  if (stalked.length === 0) return null;
+
+  return (
+    <group
+      ref={groupRef}
+      position={[-initialPosition[0], -initialPosition[1], 0.002]}
+      name="dynamic-stalked-footprints"
+    >
+      {stalked.map((node) => {
+        if (!node.worldPos) return null;
+        const isFocused = node.state === 'focused';
+        const isSelected = node.state === 'selected';
+        const fpColor = isFocused
+          ? tokens.stateFocus
+          : isSelected
+            ? tokens.stateSelectedBorder
+            : defaultColor;
+        const fpAlpha = isFocused ? 0.95 : isSelected ? 0.85 : defaultAlpha;
+
+        const geom = createReticleGeometry(
+          (node.classification as CelestialClassification) ?? 'star',
+          node.reticleSize ?? 0.45,
+          {
+            multiplicity: node.multiplicity,
+            planets: node.planets,
+            isAnnotated: isSelected || isFocused,
+          },
+        );
+        return (
+          <group
+            key={node.id}
+            position={[node.worldPos[0], node.worldPos[1], 0]}
+            name={`planar-footprint-${node.id}`}
+          >
+            <lineSegments geometry={geom}>
+              <lineBasicMaterial
+                color={fpColor}
+                opacity={fpAlpha}
+                transparent
+                depthWrite={false}
+              />
+            </lineSegments>
+          </group>
+        );
+      })}
+    </group>
+  );
+};
 
 /**
  * CartographicGrid: Authoritative 3D spatial coordinate instrument.
@@ -87,6 +198,10 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   showFins = true,
   showGalacticPlane,
   showFullDatumCircle,
+  showPlanarFootprint = true,
+  footprintClassification = 'star',
+  footprintSize = 0.45,
+  footprints,
   showAxisLines = true,
   adaptiveProjection = true,
   screenConstant = false,
@@ -101,16 +216,14 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   const tokens = useThreeTokenStore((state) => state.tokens);
   const { camera } = useThree();
 
-  const isDatumPlaneVisible = showGalacticPlane !== undefined
-    ? showGalacticPlane
-    : showFullDatumCircle !== undefined
-      ? showFullDatumCircle
-      : true;
+  const isDatumPlaneVisible = showGalacticPlane ?? true;
+  const showDatumRings = showFullDatumCircle ?? true;
 
   const baseFovRef = useRef<number | null>(null);
   const rootGroupRef = useRef<THREE.Group>(null);
   const datumGroupRef = useRef<THREE.Group>(null);
   const datumFillRef = useRef<THREE.Mesh>(null);
+  const explicitFootprintsGroupRef = useRef<THREE.Group>(null);
   const scratchOrigin = useRef(new THREE.Vector3());
   const scratchCamDir = useRef(new THREE.Vector3());
 
@@ -123,6 +236,12 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     }
     return position;
   }, [position]);
+
+  // Memoize primary planar ground footprint geometry stamped on Galactic Equator Z=0
+  const primaryFootprintGeom = useMemo(() => {
+    if (!showPlanarFootprint) return null;
+    return createReticleGeometry(footprintClassification, footprintSize);
+  }, [showPlanarFootprint, footprintClassification, footprintSize]);
 
   // Pool size: allocates either the explicit rangeRings count or 8 rings for dynamic zoom adaptation
   const poolSize = screenConstant ? Math.max(rangeRings.length, 8) : rangeRings.length;
@@ -784,6 +903,10 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       datumGroupRef.current.position.set(0, 0, -origin.z);
     }
 
+    if (explicitFootprintsGroupRef.current) {
+      explicitFootprintsGroupRef.current.position.set(-origin.x, -origin.y, 0.002);
+    }
+
     if (isDatumPlaneVisible) {
       const dBoundary = datumBoundaryDataRef.current;
       dBoundary.line.scale.set(currentRadius, currentRadius, 1);
@@ -941,18 +1064,80 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
           {/* Outermost Projected Aperture Boundary */}
           <primitive object={datumBoundaryData.line} name="datum-plane-boundary" />
 
+          {/* Planar Ground Footprint stamped on Galactic Equator Z=0 beneath Focus Origin */}
+          {showPlanarFootprint && primaryFootprintGeom && (
+            <group position={[0, 0, 0.002]} name="planar-footprint">
+              <lineSegments geometry={primaryFootprintGeom}>
+                <lineBasicMaterial
+                  color={tokens.datumFootprintColor}
+                  opacity={tokens.datumFootprintAlpha}
+                  transparent
+                  depthWrite={false}
+                />
+              </lineSegments>
+            </group>
+          )}
+
+          {/* Dynamic Stalked Footprints from active CelestialNodes */}
+          <StalkedFootprintsLayer
+            originRef={scratchOrigin}
+            initialPosition={initialPosition}
+            defaultColor={tokens.datumFootprintColor}
+            defaultAlpha={tokens.datumFootprintAlpha}
+            tokens={tokens}
+          />
+
+          {/* Explicit additional planar footprints stamped on Galactic Equator Z=0 */}
+          {footprints && footprints.length > 0 && (
+            <group
+              ref={explicitFootprintsGroupRef}
+              position={[-initialPosition[0], -initialPosition[1], 0.002]}
+              name="explicit-planar-footprints"
+            >
+              {footprints.map((fp, idx) => {
+                const fpX = Array.isArray(fp.position) ? fp.position[0] : fp.position.x;
+                const fpY = Array.isArray(fp.position) ? fp.position[1] : fp.position.y;
+                const geom = createReticleGeometry(
+                  fp.classification ?? 'star',
+                  fp.size ?? footprintSize,
+                  {
+                    multiplicity: fp.multiplicity,
+                    planets: fp.planets,
+                  },
+                );
+                return (
+                  <group
+                    key={fp.id ?? idx}
+                    position={[fpX, fpY, 0]}
+                    name={`planar-footprint-${fp.id ?? idx}`}
+                  >
+                    <lineSegments geometry={geom}>
+                      <lineBasicMaterial
+                        color={fp.color ?? tokens.datumFootprintColor}
+                        opacity={fp.opacity ?? tokens.datumFootprintAlpha}
+                        transparent
+                        depthWrite={false}
+                      />
+                    </lineSegments>
+                  </group>
+                );
+              })}
+            </group>
+          )}
+
           {/* Hierarchical Concentric Range Rings */}
-          {ringPoolIndices.map((ringIdx) => {
-            const testId =
-              ringIdx < rangeRings.length ? `full-ring-${rangeRings[ringIdx]}` : `full-ring-pool-${ringIdx}`;
-            return (
-              <primitive
-                key={`datum-ring-${ringIdx}`}
-                object={datumRingData[ringIdx].line}
-                name={testId}
-              />
-            );
-          })}
+          {showDatumRings &&
+            ringPoolIndices.map((ringIdx) => {
+              const testId =
+                ringIdx < rangeRings.length ? `full-ring-${rangeRings[ringIdx]}` : `full-ring-pool-${ringIdx}`;
+              return (
+                <primitive
+                  key={`datum-ring-${ringIdx}`}
+                  object={datumRingData[ringIdx].line}
+                  name={testId}
+                />
+              );
+            })}
         </group>
       )}
     </group>

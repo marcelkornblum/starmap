@@ -35,6 +35,9 @@ export interface ThreeTokenSnapshot {
   datumPlaneMinorAlpha: number;
   datumPlaneFillColor: THREE.Color;
   datumPlaneFillAlpha: number;
+  datumFootprintColor: THREE.Color;
+  datumFootprintAlpha: number;
+  datumFootprintWidth: number;
 
   // Tactical Reticles & Bearings
   reticleBracketColor: THREE.Color;
@@ -205,6 +208,9 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     datumPlaneMinorAlpha: 0.16,
     datumPlaneFillColor: makeLinearColor(chromeToneHex),
     datumPlaneFillAlpha: 0.03,
+    datumFootprintColor: makeLinearColor(theme === 'light' ? '#073642' : '#2aa198'),
+    datumFootprintAlpha: 0.85,
+    datumFootprintWidth: 2,
 
     reticleBracketColor: makeLinearColor(chromeToneHex),
     reticleBracketAlpha: 0.40,
@@ -312,6 +318,9 @@ export function extractThreeTokens(
   const datumPlaneMinorAlpha = readOpacity('--chrome-datum-plane-minor-alpha', datumPlaneMinor.alpha);
   const datumPlaneFill = readColor('--chrome-datum-plane-fill-color', fallback.datumPlaneFillColor, fallback.datumPlaneFillAlpha);
   const datumPlaneFillAlpha = readOpacity('--chrome-datum-plane-fill-alpha', datumPlaneFill.alpha);
+  const datumFootprint = readColor('--chrome-datum-footprint-color', fallback.datumFootprintColor, fallback.datumFootprintAlpha);
+  const datumFootprintAlpha = readOpacity('--chrome-datum-footprint-alpha', datumFootprint.alpha);
+  const datumFootprintWidth = readWidth('--chrome-datum-footprint-width', fallback.datumFootprintWidth);
   const reticleBracket = readColor('--chrome-reticle-bracket-color', fallback.reticleBracketColor, fallback.reticleBracketAlpha);
   const boresight = readColor('--chrome-boresight-color', fallback.boresightColor, fallback.boresightAlpha);
   const axisLine = readColor('--chrome-axis-line-color', fallback.axisLineColor, fallback.axisLineAlpha);
@@ -370,6 +379,9 @@ export function extractThreeTokens(
     datumPlaneMinorAlpha,
     datumPlaneFillColor: datumPlaneFill.color,
     datumPlaneFillAlpha,
+    datumFootprintColor: datumFootprint.color,
+    datumFootprintAlpha,
+    datumFootprintWidth,
 
     reticleBracketColor: reticleBracket.color,
     reticleBracketAlpha: reticleBracket.alpha,

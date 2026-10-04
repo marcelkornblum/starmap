@@ -344,6 +344,9 @@
     --chrome-datum-plane-minor-alpha:    0.16;
     --chrome-datum-plane-fill-color:     var(--palette-white-alpha-4);
     --chrome-datum-plane-fill-alpha:     0.03;
+    --chrome-datum-footprint-color:      var(--color-primary-400);
+    --chrome-datum-footprint-alpha:      0.85;
+    --chrome-datum-footprint-width:      var(--stroke-width-2);
 
     --chrome-axis-line-color:            var(--palette-white-alpha-35);
     --chrome-axis-line-width:            var(--stroke-width-2);
@@ -535,6 +538,9 @@
     --chrome-datum-plane-minor-alpha:    0.16;
     --chrome-datum-plane-fill-color:     var(--palette-black-alpha-4);
     --chrome-datum-plane-fill-alpha:     0.03;
+    --chrome-datum-footprint-color:      var(--color-primary-600);
+    --chrome-datum-footprint-alpha:      0.85;
+    --chrome-datum-footprint-width:      var(--stroke-width-2);
 
     --chrome-axis-line-color:            var(--palette-black-alpha-35);
     --chrome-axis-line-width:            var(--stroke-width-2);

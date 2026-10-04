@@ -137,8 +137,33 @@ export const Default: Story = {
     rangeRings: [2, 4, 6, 8],
     showFins: true,
     showAxisLines: true,
+    showGalacticPlane: true,
+    showPlanarFootprint: true,
+    footprintSize: 0.6,
     showFullDatumCircle: false,
     screenConstant: false,
+  },
+};
+
+/**
+ * Explicit planar footprints stamped on the Galactic Equator (Z=0) datum plane.
+ */
+export const WithPlanarFootprints: Story = {
+  args: {
+    radius: 10,
+    rangeRings: [2, 4, 6, 8],
+    showFins: true,
+    showAxisLines: true,
+    showGalacticPlane: true,
+    showPlanarFootprint: true,
+    footprintSize: 0.6,
+    footprintClassification: 'stellar-system',
+    footprints: [
+      { id: 'binary-1', position: [3, 2, 0], classification: 'stellar-system', size: 0.6, multiplicity: 2 },
+      { id: 'black-hole-1', position: [-4, 3, 0], classification: 'black-hole', size: 0.6 },
+      { id: 'hazard-1', position: [-3, -4, 0], classification: 'hazard', size: 0.5 },
+      { id: 'gas-giant-1', position: [4, -3, 0], classification: 'gas-giant', size: 0.5 },
+    ],
   },
 };
 
