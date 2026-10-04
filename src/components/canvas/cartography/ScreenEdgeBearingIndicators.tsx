@@ -18,6 +18,8 @@ export interface ScreenEdgeBearingIndicatorsProps {
   extent?: number;
   /** Safe padding margin from screen boundary in pixels (default: 28) */
   margin?: number;
+  /** Minimum screen-space line length in pixels before indicator is shown (default: 40) */
+  minLineLength?: number;
   /** Whether to show the Core bearing indicator (default: true) */
   showCore?: boolean;
   /** Whether to show the Orbital bearing indicator (default: true) */
@@ -43,6 +45,7 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
   rGc = 2000,
   extent = 2000,
   margin = 28,
+  minLineLength = 40,
   showCore = true,
   showOrbital = true,
 }) => {
@@ -113,6 +116,7 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
         rGc,
         extent,
         scratchCoreResult.current,
+        minLineLength,
       );
 
       if (coreResult.visible) {
@@ -149,6 +153,7 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
         rGc,
         extent,
         scratchOrbResult.current,
+        minLineLength,
       );
 
       if (orbResult.visible) {

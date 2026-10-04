@@ -86,6 +86,11 @@
   flex-direction: column;
 }
 
+.indicator[data-edge="none"] {
+  transform: translate(calc(var(--indicator-x) - 50%), calc(var(--indicator-y) - 50%));
+  flex-direction: row;
+}
+
 /* Detached state */
 .indicator[data-detached="true"] {
   opacity: var(--indicator-opacity-detached);

@@ -1340,6 +1340,60 @@ describe('3D Cartography Components', () => {
       expect(res.y).toBeCloseTo(300, 0); // Center Y
     });
 
+    it('anchors indicator at line terminus when bearing line ends on-screen', () => {
+      const cam = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+      cam.position.set(0, 0, 50);
+      cam.up.set(0, 1, 0);
+      cam.lookAt(0, 0, 0);
+      cam.updateMatrixWorld();
+      cam.updateProjectionMatrix();
+
+      // Extent 10 produces a ~241px line on a 1000x1000 screen, ending inside margin bounds
+      const res = calculateScreenEdgeBearing(
+        cam,
+        { width: 1000, height: 1000 },
+        28,
+        'core',
+        new THREE.Vector3(0, 0, 0),
+        2000,
+        10, // extent 10
+        undefined,
+        40, // minLineLength 40
+      );
+
+      expect(res.visible).toBe(true);
+      expect(res.isAttached).toBe(true);
+      expect(res.edge).toBe('none');
+      expect(res.x).toBeGreaterThan(600);
+      expect(res.x).toBeLessThan(900);
+      expect(res.y).toBeCloseTo(500, 0);
+      expect(res.angle).toBeCloseTo(0, 1);
+    });
+
+    it('suppresses indicator when bearing line length on-screen is below minLineLength', () => {
+      const cam = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+      cam.position.set(0, 0, 50);
+      cam.up.set(0, 1, 0);
+      cam.lookAt(0, 0, 0);
+      cam.updateMatrixWorld();
+      cam.updateProjectionMatrix();
+
+      // Extent 1 produces ~24px line on 1000x1000 screen (< 40px minLineLength)
+      const res = calculateScreenEdgeBearing(
+        cam,
+        { width: 1000, height: 1000 },
+        28,
+        'core',
+        new THREE.Vector3(0, 0, 0),
+        2000,
+        1, // extent 1
+        undefined,
+        40, // minLineLength 40
+      );
+
+      expect(res.visible).toBe(false);
+    });
+
     it('renders ScreenEdgeBearingIndicators component in SSR cleanly', () => {
       const html = renderToString(
         createElement(ScreenEdgeBearingIndicators, {}),

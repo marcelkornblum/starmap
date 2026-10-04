@@ -551,7 +551,7 @@ export function getStandardInitialCamera(
 }
 
 export type ScreenEdgeBearingType = 'core' | 'orbital';
-export type ScreenEdgeSide = 'top' | 'right' | 'bottom' | 'left';
+export type ScreenEdgeSide = 'top' | 'right' | 'bottom' | 'left' | 'none';
 
 export interface ScreenEdgeBearingResult {
   x: number;
@@ -568,17 +568,24 @@ const scratchPB = new THREE.Vector3();
 const scratchWorldPoint = new THREE.Vector3();
 const scratchHeadingDir = new THREE.Vector3();
 const scratchVCam = new THREE.Vector3();
+const scratchOriginCam = new THREE.Vector3();
+const scratchEndCam = new THREE.Vector3();
 
 /**
  * Calculates screen-space position, edge placement, and orientation angle for
  * cardinal bearing indicators (Galactic Core and Galactic Orbital).
  *
  * Implements Section 1.4 of docs/3d-spatial-architecture.md:
- * - When a 3D bearing line intersects the visible screen frustum, the indicator
- *   terminates at the viewport boundary (attached state, isAttached: true).
- * - When the bearing line exits the field of view or is directed away/behind the camera,
- *   the indicator detaches from the line and stays pinned to the nearest screen edge
- *   (detached state, isAttached: false) oriented toward the off-screen heading.
+ * - When a 3D bearing line intersects the visible screen frustum boundary, the indicator
+ *   terminates at the viewport perimeter (attached state, isAttached: true, edge in top/right/bottom/left).
+ * - When the bearing line's render cutoff (endpoint at extent) terminates within the visible screen area,
+ *   the indicator detaches from the screen edge and anchors directly at the visible line terminus
+ *   (attached state, isAttached: true, edge: 'none'), capping the line with an illuminated chevron.
+ *   If the projected line length is shorter than minLineLength (e.g. zoomed out), it is suppressed
+ *   to prevent cluttering the central focal hub.
+ * - When the bearing line is directed away or completely off-screen, the indicator detaches from the
+ *   3D line and pins to the nearest screen edge (detached state, isAttached: false) oriented toward
+ *   the off-screen heading.
  */
 export function calculateScreenEdgeBearing(
   camera: THREE.Camera,
@@ -589,6 +596,7 @@ export function calculateScreenEdgeBearing(
   rGc = 2000,
   extent = 2000,
   out?: ScreenEdgeBearingResult,
+  minLineLength = 40,
 ): ScreenEdgeBearingResult {
   const result = out ?? {
     x: 0,
@@ -712,6 +720,83 @@ export function calculateScreenEdgeBearing(
       result.y = Math.min(yMax, Math.max(yMin, sAy + u2 * dy));
       result.edge = exitEdge;
       result.angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+      result.isAttached = true;
+      result.visible = true;
+      return result;
+    }
+  }
+
+  // Check if bearing line terminus (at s = extent) is in front of camera and inside screen margins
+  if (bearingType === 'core') {
+    scratchWorldPoint.set(origin.x + extent, origin.y, origin.z);
+  } else {
+    const phi = extent / rGc;
+    scratchWorldPoint.set(
+      origin.x + rGc * (1 - Math.cos(phi)),
+      origin.y + rGc * Math.sin(phi),
+      origin.z,
+    );
+  }
+  scratchEndCam.copy(scratchWorldPoint).applyMatrix4(viewMatrix);
+  const endInFront = scratchEndCam.z <= -zNear;
+
+  if (endInFront) {
+    scratchEndCam.applyMatrix4(projMatrix);
+    const endScreenX = (scratchEndCam.x + 1) * 0.5 * width;
+    const endScreenY = (1 - scratchEndCam.y) * 0.5 * height;
+    const endInside =
+      endScreenX >= xMin &&
+      endScreenX <= xMax &&
+      endScreenY >= yMin &&
+      endScreenY <= yMax;
+
+    if (endInside) {
+      // Endpoint is on-screen. Check origin distance to cull if line is too short on screen
+      scratchOriginCam.copy(origin).applyMatrix4(viewMatrix);
+      const originInFront = scratchOriginCam.z <= -zNear;
+      if (originInFront) {
+        scratchOriginCam.applyMatrix4(projMatrix);
+        const originScreenX = (scratchOriginCam.x + 1) * 0.5 * width;
+        const originScreenY = (1 - scratchOriginCam.y) * 0.5 * height;
+        const lineLen = Math.hypot(endScreenX - originScreenX, endScreenY - originScreenY);
+        if (lineLen < minLineLength) {
+          result.visible = false;
+          return result;
+        }
+      }
+
+      // Calculate tangent angle at endpoint in screen space
+      const deltaS = Math.min(extent * 0.05, Math.max(1, extent / numSteps));
+      const sPrev = extent - deltaS;
+      if (bearingType === 'core') {
+        scratchWorldPoint.set(origin.x + sPrev, origin.y, origin.z);
+      } else {
+        const phiPrev = sPrev / rGc;
+        scratchWorldPoint.set(
+          origin.x + rGc * (1 - Math.cos(phiPrev)),
+          origin.y + rGc * Math.sin(phiPrev),
+          origin.z,
+        );
+      }
+      scratchPA.copy(scratchWorldPoint).applyMatrix4(viewMatrix);
+      if (scratchPA.z <= -zNear) {
+        scratchPA.applyMatrix4(projMatrix);
+        const prevScreenX = (scratchPA.x + 1) * 0.5 * width;
+        const prevScreenY = (1 - scratchPA.y) * 0.5 * height;
+        result.angle = (Math.atan2(endScreenY - prevScreenY, endScreenX - prevScreenX) * 180) / Math.PI;
+      } else {
+        if (bearingType === 'core') {
+          scratchVCam.set(1, 0, 0).transformDirection(viewMatrix);
+        } else {
+          const phi = extent / rGc;
+          scratchVCam.set(Math.sin(phi), Math.cos(phi), 0).transformDirection(viewMatrix);
+        }
+        result.angle = (Math.atan2(-scratchVCam.y, scratchVCam.x) * 180) / Math.PI;
+      }
+
+      result.x = endScreenX;
+      result.y = endScreenY;
+      result.edge = 'none';
       result.isAttached = true;
       result.visible = true;
       return result;
