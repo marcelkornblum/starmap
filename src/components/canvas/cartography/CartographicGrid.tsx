@@ -533,7 +533,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         tokens.axisLineWidth,
       ),
     };
-  }, [radius, tokens]);
+  }, [radius]);
 
   // Memoize Datum Plane Outermost Projected Aperture Boundary Circle
   const datumBoundaryData = useMemo(() => {
@@ -550,7 +550,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     line.scale.set(radius, radius, 1);
     line.frustumCulled = false;
     return { geom, mat, line };
-  }, [radius, tokens.datumPlaneColor, tokens.datumPlaneWidth, tokens.datumPlaneAlpha]);
+  }, [radius]);
 
   // Memoize Datum Plane Ethereal Gradient Fill Disc
   const datumFillData = useMemo(() => {
@@ -629,7 +629,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       line.frustumCulled = false;
       return { ringIdx, geom, mat, line, isMajor, initialR };
     });
-  }, [ringPoolIndices, rangeRings, radius, poolSize, majorRingIndex, tokens.gridPrimaryColor, tokens.gridSecondaryColor, tokens.gridPrimaryWidth, tokens.gridSecondaryWidth, tokens.gridPrimaryAlpha, tokens.gridSecondaryAlpha]);
+  }, [ringPoolIndices, rangeRings, radius, poolSize, majorRingIndex]);
 
   // Mutable Scene Graph References (Preserving React Compiler optimization)
   const quadrantDataRef = useRef(quadrantData);
