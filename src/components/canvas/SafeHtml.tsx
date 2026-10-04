@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -51,7 +51,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   const scratchPos = useRef(new THREE.Vector3());
   const scratchNdc = useRef(new THREE.Vector3());
   const scratchTargetCoords = useRef<[number, number]>([0, 0]);
-  const rootRef = useRef<ReactDOM.Root | null>(null);
+  const [root, setRoot] = useState<ReactDOM.Root | null>(null);
 
   const lastX = useRef(-999999);
   const lastY = useRef(-999999);
@@ -103,8 +103,8 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     const target = (gl.domElement?.parentNode as HTMLElement | null) ?? document.body;
     target.appendChild(div);
 
-    const root = ReactDOM.createRoot(div);
-    rootRef.current = root;
+    const newRoot = ReactDOM.createRoot(div);
+    setRoot(newRoot);
 
     return () => {
       // 1. Safely remove DOM element without throwing if target already detached
@@ -112,10 +112,11 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
         div.parentNode.removeChild(div);
       }
       containerRef.current = null;
+      setRoot(null);
       // 2. Safely unmount React root asynchronously so React's commit phase completes cleanly
       setTimeout(() => {
         try {
-          root.unmount();
+          newRoot.unmount();
         } catch {
           // Ignore unmount race if root was already discarded
         }
@@ -125,14 +126,14 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
 
   // Synchronize children rendering into root
   useLayoutEffect(() => {
-    if (rootRef.current) {
-      rootRef.current.render(
+    if (root) {
+      root.render(
         <div className={className} data-testid={dataTestId}>
           {children}
         </div>,
       );
     }
-  }, [children, className, dataTestId]);
+  }, [root, children, className, dataTestId]);
 
   useFrame(() => {
     const container = containerRef.current;

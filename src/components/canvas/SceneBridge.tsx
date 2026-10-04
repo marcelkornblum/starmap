@@ -47,15 +47,13 @@ export interface ScenePortalProps {
 
 export const ScenePortal: React.FC<ScenePortalProps> = ({ sceneKey, children }) => {
   const { setScene } = useScene();
-  const childrenRef = React.useRef(children);
-  childrenRef.current = children;
 
   useLayoutEffect(() => {
-    setScene(childrenRef.current, sceneKey);
+    setScene(children, sceneKey);
     return () => {
       setScene(null, sceneKey);
     };
-  }, [sceneKey, setScene]);
+  }, [children, sceneKey, setScene]);
 
   return null;
 };
