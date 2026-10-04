@@ -66,10 +66,10 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
     const e = Number.isFinite(eccentricity) ? Math.max(0, Math.min(0.99, eccentricity)) : 0;
     const omegaRad = argumentOfPeriapsis * DEG_TO_RADIANS;
 
-    // Buffer for orbit vertices: (segments + 1) * 3 floats
-    const orbitBuffer = new Float32Array((segments + 1) * 3);
+    // Buffer for orbit vertices: segments * 3 floats (closed automatically by LineLoop)
+    const orbitBuffer = new Float32Array(segments * 3);
 
-    for (let i = 0; i <= segments; i++) {
+    for (let i = 0; i < segments; i++) {
       const theta = (i / segments) * Math.PI * 2;
       // Keplerian polar equation with focus at origin:
       const r = (a * (1 - e * e)) / (1 + e * Math.cos(theta));

@@ -293,7 +293,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   const tokens = useThreeTokenStore((state) => state.tokens);
   const { camera } = useThree();
 
-  const isDatumPlaneVisible = showGalacticPlane ?? true;
+  const isDatumPlaneVisible = showGalacticPlane ?? showFullDatumCircle ?? true;
   const showDatumRings = showFullDatumCircle ?? true;
 
   const baseFovRef = useRef<number | null>(null);
