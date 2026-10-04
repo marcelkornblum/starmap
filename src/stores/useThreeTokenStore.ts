@@ -25,6 +25,17 @@ export interface ThreeTokenSnapshot {
   rangeTickAlpha: number;
   rangeTickWidth: number;
 
+  // Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0)
+  datumPlaneColor: THREE.Color;
+  datumPlaneAlpha: number;
+  datumPlaneWidth: number;
+  datumPlaneMajorColor: THREE.Color;
+  datumPlaneMajorAlpha: number;
+  datumPlaneMinorColor: THREE.Color;
+  datumPlaneMinorAlpha: number;
+  datumPlaneFillColor: THREE.Color;
+  datumPlaneFillAlpha: number;
+
   // Tactical Reticles & Bearings
   reticleBracketColor: THREE.Color;
   reticleBracketAlpha: number;
@@ -185,12 +196,22 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     rangeTickAlpha: 0.40,
     rangeTickWidth: 2,
 
+    datumPlaneColor: makeLinearColor(chromeToneHex),
+    datumPlaneAlpha: 0.24,
+    datumPlaneWidth: 1,
+    datumPlaneMajorColor: makeLinearColor(chromeToneHex),
+    datumPlaneMajorAlpha: 0.35,
+    datumPlaneMinorColor: makeLinearColor(chromeToneHex),
+    datumPlaneMinorAlpha: 0.16,
+    datumPlaneFillColor: makeLinearColor(chromeToneHex),
+    datumPlaneFillAlpha: 0.03,
+
     reticleBracketColor: makeLinearColor(chromeToneHex),
     reticleBracketAlpha: 0.40,
     boresightColor: makeLinearColor(chromeToneHex),
     boresightAlpha: 0.30,
     axisLineColor: makeLinearColor(chromeToneHex),
-    axisLineAlpha: 0.30,
+    axisLineAlpha: 0.35,
     axisLineWidth: 2,
     axisLineStyle: 'solid',
     bearingLineColor: makeLinearColor('#dc322f'),
@@ -282,6 +303,15 @@ export function extractThreeTokens(
   const rangeRingWidth = readWidth('--chrome-range-ring-width', fallback.rangeRingWidth);
   const rangeTick = readColor('--chrome-range-tick-color', fallback.rangeTickColor, fallback.rangeTickAlpha);
   const rangeTickWidth = readWidth('--chrome-range-tick-width', fallback.rangeTickWidth);
+  const datumPlane = readColor('--chrome-datum-plane-color', fallback.datumPlaneColor, fallback.datumPlaneAlpha);
+  const datumPlaneAlpha = readOpacity('--chrome-datum-plane-alpha', datumPlane.alpha);
+  const datumPlaneWidth = readWidth('--chrome-datum-plane-width', fallback.datumPlaneWidth);
+  const datumPlaneMajor = readColor('--chrome-datum-plane-major-color', fallback.datumPlaneMajorColor, fallback.datumPlaneMajorAlpha);
+  const datumPlaneMajorAlpha = readOpacity('--chrome-datum-plane-major-alpha', datumPlaneMajor.alpha);
+  const datumPlaneMinor = readColor('--chrome-datum-plane-minor-color', fallback.datumPlaneMinorColor, fallback.datumPlaneMinorAlpha);
+  const datumPlaneMinorAlpha = readOpacity('--chrome-datum-plane-minor-alpha', datumPlaneMinor.alpha);
+  const datumPlaneFill = readColor('--chrome-datum-plane-fill-color', fallback.datumPlaneFillColor, fallback.datumPlaneFillAlpha);
+  const datumPlaneFillAlpha = readOpacity('--chrome-datum-plane-fill-alpha', datumPlaneFill.alpha);
   const reticleBracket = readColor('--chrome-reticle-bracket-color', fallback.reticleBracketColor, fallback.reticleBracketAlpha);
   const boresight = readColor('--chrome-boresight-color', fallback.boresightColor, fallback.boresightAlpha);
   const axisLine = readColor('--chrome-axis-line-color', fallback.axisLineColor, fallback.axisLineAlpha);
@@ -330,6 +360,16 @@ export function extractThreeTokens(
     rangeTickColor: rangeTick.color,
     rangeTickAlpha: rangeTick.alpha,
     rangeTickWidth,
+
+    datumPlaneColor: datumPlane.color,
+    datumPlaneAlpha,
+    datumPlaneWidth,
+    datumPlaneMajorColor: datumPlaneMajor.color,
+    datumPlaneMajorAlpha,
+    datumPlaneMinorColor: datumPlaneMinor.color,
+    datumPlaneMinorAlpha,
+    datumPlaneFillColor: datumPlaneFill.color,
+    datumPlaneFillAlpha,
 
     reticleBracketColor: reticleBracket.color,
     reticleBracketAlpha: reticleBracket.alpha,

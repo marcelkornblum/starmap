@@ -334,7 +334,18 @@
     --chrome-boresight-width:            var(--stroke-width-1);
     --chrome-boresight-style:            var(--border-style-boundary);
 
-    --chrome-axis-line-color:            var(--palette-white-alpha-30);
+    /* Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0) */
+    --chrome-datum-plane-color:          var(--palette-white-alpha-24);
+    --chrome-datum-plane-alpha:          0.24;
+    --chrome-datum-plane-width:          var(--stroke-width-1);
+    --chrome-datum-plane-major-color:    var(--palette-white-alpha-35);
+    --chrome-datum-plane-major-alpha:    0.35;
+    --chrome-datum-plane-minor-color:    var(--palette-white-alpha-16);
+    --chrome-datum-plane-minor-alpha:    0.16;
+    --chrome-datum-plane-fill-color:     var(--palette-white-alpha-4);
+    --chrome-datum-plane-fill-alpha:     0.03;
+
+    --chrome-axis-line-color:            var(--palette-white-alpha-35);
     --chrome-axis-line-width:            var(--stroke-width-2);
     --chrome-axis-line-style:            var(--border-style-boundary);
 
@@ -514,7 +525,18 @@
     --chrome-boresight-width:            var(--stroke-width-1);
     --chrome-boresight-style:            var(--border-style-boundary);
 
-    --chrome-axis-line-color:            var(--palette-black-alpha-30);
+    /* Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0) */
+    --chrome-datum-plane-color:          var(--palette-black-alpha-24);
+    --chrome-datum-plane-alpha:          0.24;
+    --chrome-datum-plane-width:          var(--stroke-width-1);
+    --chrome-datum-plane-major-color:    var(--palette-black-alpha-35);
+    --chrome-datum-plane-major-alpha:    0.35;
+    --chrome-datum-plane-minor-color:    var(--palette-black-alpha-16);
+    --chrome-datum-plane-minor-alpha:    0.16;
+    --chrome-datum-plane-fill-color:     var(--palette-black-alpha-4);
+    --chrome-datum-plane-fill-alpha:     0.03;
+
+    --chrome-axis-line-color:            var(--palette-black-alpha-35);
     --chrome-axis-line-width:            var(--stroke-width-2);
     --chrome-axis-line-style:            var(--border-style-boundary);
 

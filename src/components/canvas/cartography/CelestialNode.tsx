@@ -225,7 +225,7 @@ function createReticleGeometry(classification: CelestialClassification, s: numbe
       break;
     }
     case 'gas-giant': {
-      // Large 1px open circle (~7-8px diameter, radius ~0.8s)
+      // Large 1px open circle (~7-8px diameter, radius ~0.8s) with a 45-degree slash through the middle and a gap around the central dot
       const r = 0.8 * s;
       const segs = 32;
       for (let i = 0; i < segs; i++) {
@@ -236,10 +236,22 @@ function createReticleGeometry(classification: CelestialClassification, s: numbe
           new THREE.Vector3(Math.cos(th2) * r, Math.sin(th2) * r, 0),
         );
       }
+      // 45-degree slash through the middle with gap around central dot
+      const gap = 0.22 * s;
+      const cos45 = Math.SQRT1_2;
+      const sin45 = Math.SQRT1_2;
+      points.push(
+        // Lower-left segment
+        new THREE.Vector3(-r * cos45, -r * sin45, 0),
+        new THREE.Vector3(-gap * cos45, -gap * sin45, 0),
+        // Upper-right segment
+        new THREE.Vector3(gap * cos45, gap * sin45, 0),
+        new THREE.Vector3(r * cos45, r * sin45, 0),
+      );
       break;
     }
     case 'ice-giant': {
-      // Ringed open circle: central disk + split lateral ring flanges
+      // Ringed open circle: central disk + lateral ring ticks angled at 45 degrees
       const r = 0.55 * s;
       const segs = 32;
       for (let i = 0; i < segs; i++) {
@@ -250,10 +262,18 @@ function createReticleGeometry(classification: CelestialClassification, s: numbe
           new THREE.Vector3(Math.cos(th2) * r, Math.sin(th2) * r, 0),
         );
       }
-      // Lateral ring flanges
+      // Ring ticks angled at 45 degrees
+      const rInner = 0.6 * s;
+      const rOuter = 0.95 * s;
+      const cos45 = Math.SQRT1_2;
+      const sin45 = Math.SQRT1_2;
       points.push(
-        new THREE.Vector3(-0.95 * s, 0, 0), new THREE.Vector3(-0.6 * s, 0, 0),
-        new THREE.Vector3(0.6 * s, 0, 0), new THREE.Vector3(0.95 * s, 0, 0),
+        // Lower-left tick
+        new THREE.Vector3(-rOuter * cos45, -rOuter * sin45, 0),
+        new THREE.Vector3(-rInner * cos45, -rInner * sin45, 0),
+        // Upper-right tick
+        new THREE.Vector3(rInner * cos45, rInner * sin45, 0),
+        new THREE.Vector3(rOuter * cos45, rOuter * sin45, 0),
       );
       break;
     }

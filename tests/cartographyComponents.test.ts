@@ -54,21 +54,45 @@ describe('3D Cartography Components', () => {
       expect(html).toContain('arc-tier-10');
     });
 
-    it('respects visibility flags for fins, full datum circle, and axis lines', () => {
+    it('respects visibility flags for fins, datum plane, and axis lines', () => {
       const htmlNoFins = renderToString(
         createElement(CartographicGrid, {
           radius: 10,
           showFins: false,
-          showFullDatumCircle: false,
+          showGalacticPlane: false,
           showAxisLines: false,
         }),
       );
       expect(htmlNoFins).toContain('cartographic-grid');
       expect(htmlNoFins).not.toContain('travelling-fins');
       expect(htmlNoFins).not.toContain('cardinal-bearings');
+      expect(htmlNoFins).not.toContain('datum-plane');
     });
 
-    it('renders optional full 360-degree datum circles when enabled', () => {
+    it('renders Galactic Equator datum plane by default and responds to showGalacticPlane flag', () => {
+      const htmlDefault = renderToString(
+        createElement(CartographicGrid, {
+          radius: 10,
+          rangeRings: [2, 4, 8],
+        }),
+      );
+      expect(htmlDefault).toContain('datum-plane');
+      expect(htmlDefault).toContain('datum-plane-fill');
+      expect(htmlDefault).toContain('datum-plane-boundary');
+      expect(htmlDefault).toContain('full-ring-2');
+      expect(htmlDefault).toContain('full-ring-4');
+      expect(htmlDefault).toContain('full-ring-8');
+
+      const htmlHidden = renderToString(
+        createElement(CartographicGrid, {
+          radius: 10,
+          showGalacticPlane: false,
+        }),
+      );
+      expect(htmlHidden).not.toContain('datum-plane');
+    });
+
+    it('renders optional full 360-degree datum circles when enabled via showFullDatumCircle', () => {
       const htmlWithFull = renderToString(
         createElement(CartographicGrid, {
           radius: 10,
@@ -76,6 +100,7 @@ describe('3D Cartography Components', () => {
           showFullDatumCircle: true,
         }),
       );
+      expect(htmlWithFull).toContain('datum-plane');
       expect(htmlWithFull).toContain('full-ring-5');
     });
 
