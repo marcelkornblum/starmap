@@ -122,6 +122,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     // 1. Detect useFrame calls and inspect their hot-path callback bodies
     if (node.type === 'CallExpression') {
       const callee = node.callee;
+      if (!callee) return;
       const callName =
         callee.type === 'Identifier'
           ? callee.name
@@ -130,11 +131,12 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
           : '';
 
       if (callName === 'useFrame') {
-        const callbackArg = node.arguments[0];
+        const callbackArg = node.arguments?.[0];
         if (
           callbackArg &&
           (callbackArg.type === 'ArrowFunctionExpression' ||
-            callbackArg.type === 'FunctionExpression')
+            callbackArg.type === 'FunctionExpression') &&
+          callbackArg.body
         ) {
           auditUseFrameCallback(callbackArg.body);
         }
@@ -146,14 +148,14 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
         callName === 'useStarmapStore' ||
         callName.endsWith('Store')
       ) {
-        let selectorArg = node.arguments[0];
+        let selectorArg = node.arguments?.[0];
         if (
           selectorArg &&
           selectorArg.type === 'CallExpression' &&
           selectorArg.callee?.type === 'Identifier' &&
           selectorArg.callee.name === 'useShallow'
         ) {
-          selectorArg = selectorArg.arguments[0];
+          selectorArg = selectorArg.arguments?.[0];
         }
 
         if (
@@ -165,7 +167,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
           if (body && body.type === 'MemberExpression' && body.property?.type === 'Identifier') {
             if (body.property.name === 'tokens') {
               addDiagnostic(
-                body.loc.start,
+                body.loc?.start,
                 'atomic-store-selectors',
                 'error',
                 'Whole-object store subscription detected (`state.tokens`). Subscribing to broad state objects forces full component re-renders whenever any design token changes.',
@@ -180,10 +182,10 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     // 3. Detect invalid JSX intrinsic tags (e.g. <threeLine>)
     if (node.type === 'JSXOpeningElement' || node.type === 'JSXSelfClosingElement') {
       if (node.name?.type === 'JSXIdentifier') {
-        const tagName = node.name.name.toLowerCase();
+        const tagName = node.name.name?.toLowerCase() ?? '';
         if (INVALID_R3F_TAGS.has(tagName)) {
           addDiagnostic(
-            node.name.loc.start,
+            node.name.loc?.start,
             'valid-r3f-intrinsics',
             'error',
             `Invalid React Three Fiber intrinsic element <${node.name.name}> detected. R3F intrinsic tags map directly to lowercase Three.js classes.`,
