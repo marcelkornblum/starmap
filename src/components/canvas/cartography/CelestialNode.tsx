@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
-import { celestialOcclusionManager, type Box2D } from './celestialOcclusionRegistry';
+import { celestialOcclusionManager, type Box2D, type CelestialFootprint } from './celestialOcclusionRegistry';
 import styles from './CelestialNode.module.css';
 
 /**
@@ -145,6 +145,24 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const spectrumFacetRef = useRef<HTMLDivElement>(null);
   const labelDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
   const scratchBoxRef = useRef<Box2D>({ left: 0, top: 0, right: 0, bottom: 0 });
+  const registrationRef = useRef<CelestialFootprint>({
+    id,
+    state: currentState,
+    worldPos: worldPosTupleRef.current,
+    classification,
+    reticleSize,
+    hasStalk: shouldRenderStalk,
+    multiplicity,
+    planets,
+    screenX: 0,
+    screenY: 0,
+    reticleRadius: 0,
+    starRadius: 0,
+    hasReticle: shouldRenderReticle,
+    labelBox: undefined,
+    visible: true,
+    updatedAt: 0,
+  });
 
   useEffect(() => {
     worldPosRef.current.set(x, y, z);
@@ -218,25 +236,25 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       activeBox = box;
     }
 
-    // Register footprint in occlusion manager
-    celestialOcclusionManager.register({
-      id,
-      state: currentState,
-      worldPos: worldPosTupleRef.current,
-      classification,
-      reticleSize,
-      hasStalk: shouldRenderStalk,
-      multiplicity,
-      planets,
-      screenX,
-      screenY,
-      reticleRadius,
-      starRadius,
-      hasReticle: shouldRenderReticle,
-      labelBox: activeBox,
-      visible: !isBehindCamera,
-      updatedAt: performance.now(),
-    });
+    // Reuse persistent scratch registration object stored in ref to avoid per-frame GC allocations
+    const record = registrationRef.current;
+    record.id = id;
+    record.state = currentState;
+    record.worldPos = worldPosTupleRef.current;
+    record.classification = classification;
+    record.reticleSize = reticleSize;
+    record.hasStalk = shouldRenderStalk;
+    record.multiplicity = multiplicity;
+    record.planets = planets;
+    record.screenX = screenX;
+    record.screenY = screenY;
+    record.reticleRadius = reticleRadius;
+    record.starRadius = starRadius;
+    record.hasReticle = shouldRenderReticle;
+    record.labelBox = activeBox;
+    record.visible = !isBehindCamera;
+    record.updatedAt = performance.now();
+    celestialOcclusionManager.register(record);
 
     // Check if this label intersects ANY active star or reticle in the scene
     let hasIntersection = false;
@@ -342,9 +360,6 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       <mesh
         ref={dotMeshRef}
         geometry={SHARED_STAR_DOT_GEOMETRY}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
       >
         <meshBasicMaterial color={starColor} />
       </mesh>

@@ -345,19 +345,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       xz: buildPlaneArcs('xz'),
       yz: buildPlaneArcs('yz'),
     };
-  }, [
-    ringPoolIndices,
-    rangeRings,
-    radius,
-    poolSize,
-    majorRingIndex,
-    tokens.gridPrimaryColor,
-    tokens.gridSecondaryColor,
-    tokens.gridPrimaryAlpha,
-    tokens.gridSecondaryAlpha,
-    tokens.gridPrimaryWidth,
-    tokens.gridSecondaryWidth,
-  ]);
+  }, [ringPoolIndices, rangeRings, radius, poolSize, majorRingIndex]);
 
   // Memoize Perimeter Boundary Arcs for each fin using unit arc geometry scaled to active radius
   const perimeterArcData = useMemo(() => {
@@ -385,7 +373,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       xz: buildPlanePerimeter('xz'),
       yz: buildPlanePerimeter('yz'),
     };
-  }, [radius, tokens.gridPrimaryColor, tokens.gridSecondaryWidth, tokens.gridPrimaryAlpha]);
+  }, [radius]);
 
   // Memoize Quadrant Ticks for each plane using unit tick geometry scaled to active radius
   const tickData = useMemo(() => {
@@ -413,7 +401,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       xz: buildPlaneTicks('xz'),
       yz: buildPlaneTicks('yz'),
     };
-  }, [radius, tokens.rangeTickColor, tokens.rangeTickWidth, tokens.rangeTickAlpha]);
+  }, [radius]);
 
   // Structural Fin Axis Spokes: Only appear when both bordering fins rendered
   const axisSpokes = useMemo(() => {
@@ -443,7 +431,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       posZ: makeSpoke([0, 0, 1], true),
       negZ: makeSpoke([0, 0, -1], false),
     };
-  }, [radius, tokens.axisLineColor, tokens.axisLineWidth, tokens.axisLineAlpha]);
+  }, [radius]);
 
   // Extended Cardinal Bearing Lines: +X Galactic Centre (Core Accent), +Y Galactic Orbit (Bearing Line)
   const extendedBearings = useMemo(() => {
@@ -511,21 +499,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         orbitalStyle,
       ),
     };
-  }, [
-    radius,
-    tokens.bearingCoreColor,
-    tokens.bearingCoreAlpha,
-    tokens.bearingCoreWidth,
-    tokens.bearingCoreStyle,
-    tokens.bearingLineColor,
-    tokens.bearingLineAlpha,
-    tokens.bearingLineWidth,
-    tokens.bearingLineStyle,
-    tokens.bearingOrbitalColor,
-    tokens.bearingOrbitalAlpha,
-    tokens.bearingOrbitalWidth,
-    tokens.bearingOrbitalStyle,
-  ]);
+  }, [radius]);
 
   // Memoize Datum Plane Outermost Projected Aperture Boundary Circle
   const datumBoundaryData = useMemo(() => {
@@ -542,7 +516,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     line.scale.set(radius, radius, 1);
     line.frustumCulled = false;
     return { geom, mat, line };
-  }, [radius, tokens.datumPlaneColor, tokens.datumPlaneWidth, tokens.datumPlaneAlpha]);
+  }, [radius]);
 
   // Memoize Datum Plane Ethereal Gradient Fill Disc
   const datumFillData = useMemo(() => {
@@ -583,12 +557,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     const mesh = new THREE.Mesh(geom, mat);
     mesh.frustumCulled = false;
     return { geom, mat, mesh };
-  }, [
-    tokens.datumPlaneFillColor,
-    tokens.datumPlaneFillAlpha,
-    tokens.datumPlaneFillGradientInner,
-    tokens.datumPlaneFillGradientExponent,
-  ]);
+  }, []);
 
   // Memoize Datum Plane Concentric Range Rings divided into 4 quadrants for touching de-duplication
   const datumRingData = useMemo(() => {
@@ -619,18 +588,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
       return { ringIdx, quads, isMajor, initialR };
     });
-  }, [
-    ringPoolIndices,
-    rangeRings,
-    radius,
-    poolSize,
-    majorRingIndex,
-    tokens.datumPlaneMajorColor,
-    tokens.datumPlaneMinorColor,
-    tokens.datumPlaneMajorAlpha,
-    tokens.datumPlaneMinorAlpha,
-    tokens.datumPlaneWidth,
-  ]);
+  }, [ringPoolIndices, rangeRings, radius, poolSize, majorRingIndex]);
 
   // Mutable Scene Graph References (Preserving React Compiler optimization)
   const quadrantDataRef = useRef(quadrantData);
@@ -662,13 +620,16 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     datumRingData,
   ]);
 
-  // Clean up geometries and materials on unmount
+  // Clean up geometries and materials on unmount or when structural data changes
   useEffect(() => {
-    const qData = quadrantDataRef.current;
-    const pData = perimeterArcDataRef.current;
-    const tData = tickDataRef.current;
-    const aSpokes = axisSpokesRef.current;
-    const eBearings = extendedBearingsRef.current;
+    const qData = quadrantData;
+    const pData = perimeterArcData;
+    const tData = tickData;
+    const aSpokes = axisSpokes;
+    const eBearings = extendedBearings;
+    const dBoundary = datumBoundaryData;
+    const dFill = datumFillData;
+    const dRings = datumRingData;
 
     return () => {
       for (const plane of ['xy', 'xz', 'yz'] as const) {
@@ -702,18 +663,27 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       eBearings.orbital.geom.dispose();
       eBearings.orbital.mat.dispose();
 
-      datumBoundaryDataRef.current.geom.dispose();
-      datumBoundaryDataRef.current.mat.dispose();
-      datumFillDataRef.current.geom.dispose();
-      datumFillDataRef.current.mat.dispose();
-      for (const ringItem of datumRingDataRef.current) {
+      dBoundary.geom.dispose();
+      dBoundary.mat.dispose();
+      dFill.geom.dispose();
+      dFill.mat.dispose();
+      for (const ringItem of dRings) {
         for (const quad of ringItem.quads) {
           quad.geom.dispose();
           quad.mat.dispose();
         }
       }
     };
-  }, []);
+  }, [
+    quadrantData,
+    perimeterArcData,
+    tickData,
+    axisSpokes,
+    extendedBearings,
+    datumBoundaryData,
+    datumFillData,
+    datumRingData,
+  ]);
 
   // Restore camera FOV and zoom on unmount
   useEffect(() => {
@@ -752,6 +722,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       });
       for (const tickItem of tData[plane]) {
         tickItem.mat.color.copy(tokens.rangeTickColor);
+        tickItem.mat.linewidth = tokens.rangeTickWidth;
       }
     }
 

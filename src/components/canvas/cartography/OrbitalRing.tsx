@@ -50,8 +50,8 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
 
   // Memoized geometry computation
   const { orbitGeometry, tickGeometry } = useMemo(() => {
-    const a = Math.max(0.001, semiMajorAxis);
-    const e = Math.max(0, Math.min(0.99, eccentricity));
+    const a = Number.isFinite(semiMajorAxis) && semiMajorAxis > 0 ? semiMajorAxis : 0.001;
+    const e = Number.isFinite(eccentricity) ? Math.max(0, Math.min(0.99, eccentricity)) : 0;
     const omegaRad = argumentOfPeriapsis * DEG_TO_RADIANS;
 
     // Buffer for orbit vertices: (segments + 1) * 3 floats
