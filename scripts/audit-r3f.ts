@@ -19,8 +19,7 @@ const INVALID_R3F_TAGS = new Set(['threeline']);
 /**
  * Checks whether a comment on the preceding line or current line suppresses the diagnostic.
  */
-function isLineSuppressed(sourceText: string, targetLine: number, ruleId: string): boolean {
-  const lines = sourceText.split('\n');
+function isLineSuppressed(lines: string[], targetLine: number, ruleId: string): boolean {
   const prevLine = targetLine > 1 ? lines[targetLine - 2] : '';
   const currentLine = lines[targetLine - 1] || '';
 
@@ -74,7 +73,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     message: string,
     remediation: string
   ) {
-    if (isLineSuppressed(sourceText, loc.line, ruleId)) {
+    if (isLineSuppressed(lines, loc.line, ruleId)) {
       return;
     }
     const snippet = (lines[loc.line - 1] || '').trim().slice(0, 80);

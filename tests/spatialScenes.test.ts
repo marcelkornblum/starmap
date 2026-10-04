@@ -134,43 +134,43 @@ describe('SpatialScenes Storybook Suite', () => {
 
       // Tier 1: HUD
       expect(html).toContain('data-testid="surface-tier-1-hud"');
-      expect(html).toContain('✦ STARMAP // HUD');
+      expect(html).toContain('✦ STARMAP // [Tier 1: HUD]');
       expect(html).toContain('SENSORS ONLINE');
       expect(html).toContain('RA: 18h 36m 56s');
 
       // Tier 2: Dock
       expect(html).toContain('data-testid="surface-tier-2-dock"');
-      expect(html).toContain('data-position="left"');
+      expect(html).toContain('data-position="right"');
 
       // Tier 3: Panel
       expect(html).toContain('data-testid="surface-tier-3-panel"');
-      expect(html).toContain('Galactic Survey Dossier');
+      expect(html).toContain('[Tier 3: Panel] Galactic Survey Dossier');
       expect(html).toContain('1,280');
       expect(html).toContain('8.12');
 
       // Nested Inset: Well inside Panel with OrbitTable
       expect(html).toContain('data-testid="surface-tier-nested-inset"');
-      expect(html).toContain('Nearby Astrometric Candidates');
+      expect(html).toContain('[Nested Inset: Well] Nearby Astrometric Candidates');
       expect(html).toContain('Mercury');
       expect(html).toContain('Jupiter');
 
       // Tier 4: Drawer
       expect(html).toContain('data-testid="surface-tier-4-drawer"');
-      expect(html).toContain('Spectroscopic Filter Matrix');
+      expect(html).toContain('[Tier 4: Drawer] Spectroscopic Filter Matrix');
       expect(html).toContain('data-position="right"');
 
       // Tier 5: Popover
       expect(html).toContain('data-testid="surface-tier-5-popover"');
-      expect(html).toContain('Target Lock: Sol Barycentre');
-      expect(html).toContain('Sol Anchor Point');
+      expect(html).toContain('[Tier 5: Popover] Target Lock: Sol Barycentre');
+      expect(html).toContain('[Tier 5: Popover] Sol Anchor Point');
 
       // Tier 6: Modal
       expect(html).toContain('data-testid="surface-tier-6-modal"');
-      expect(html).toContain('Astrodynamics Command Query');
+      expect(html).toContain('[Tier 6: Modal] Astrodynamics Command Query');
 
       // Tier 7: Toast
       expect(html).toContain('data-testid="surface-tier-7-toast"');
-      expect(html).toContain('Telemetry Alert: Gravitational Perturbation');
+      expect(html).toContain('[Tier 7: Toast] Telemetry Alert: Gravitational Perturbation');
     });
   });
 });

@@ -64,7 +64,7 @@
   .panelContainer {
     position: fixed;
     inset-block-start: calc(var(--space-viewport-edge) + var(--space-fib-6));
-    inset-inline-start: calc(var(--space-viewport-edge) + var(--space-fib-6) + var(--space-fib-3));
+    inset-inline-start: var(--space-viewport-edge);
     inline-size: min(85vw, 330px);
     max-block-size: calc(65vh - var(--space-viewport-edge));
     overflow-y: auto;
@@ -84,7 +84,7 @@
   .toastContainer {
     position: fixed;
     inset-block-end: var(--space-viewport-edge);
-    inset-inline-start: calc(var(--space-viewport-edge) + var(--space-fib-6) + var(--space-fib-3));
+    inset-inline-start: var(--space-viewport-edge);
     inline-size: min(85vw, 330px);
     z-index: var(--layer-toast);
   }
@@ -142,7 +142,7 @@
     position: fixed;
     inset-block-start: calc(var(--space-fib-6) + var(--space-fib-3));
     inset-block-end: 0;
-    inset-inline-end: 0;
+    inset-inline-end: calc(var(--space-inset-control-x) * 2 + 36px + var(--space-fib-2));
     inline-size: min(85vw, 320px);
     z-index: var(--layer-drawer);
     pointer-events: auto;
@@ -176,5 +176,18 @@
     font-family: var(--font-data);
     font-size: var(--text-content-footnote-size);
     color: var(--content-muted);
+  }
+}
+
+@layer exceptions {
+  /* Dock positioned directly against right viewport edge (no margin) */
+  .dockOverride[data-position="right"] {
+    position: fixed;
+    inset-block-start: 50%;
+    inset-inline-end: 0;
+    transform: translateY(-50%);
+    border-inline-end: none;
+    border-start-end-radius: var(--radius-none);
+    border-end-end-radius: var(--radius-none);
   }
 }

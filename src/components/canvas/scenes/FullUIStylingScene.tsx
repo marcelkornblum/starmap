@@ -121,10 +121,15 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
       {/* --------------------------------------------------------------------- */}
       {/* Tier 1: --surface-hud (Pinned reticles, tools, HUD telemetry bar)      */}
       {/* --------------------------------------------------------------------- */}
-      <Hud position="top" className={styles.hudBar} data-testid="surface-tier-1-hud">
+      <Hud
+        position="top"
+        className={styles.hudBar}
+        title="Tier 1: HUD - Starmap Telemetry"
+        data-testid="surface-tier-1-hud"
+      >
         <Cluster justify="between" align="center">
           <Cluster gap="default" align="center">
-            <span className={styles.brandTitle}>✦ STARMAP // HUD</span>
+            <span className={styles.brandTitle} title="Tier 1: HUD - Brand">✦ STARMAP // [Tier 1: HUD]</span>
             <Badge status="nominal">SENSORS ONLINE</Badge>
             <span className={styles.sectorLabel}>Sector: Orion-Cygnus Arm (Sol Region)</span>
           </Cluster>
@@ -156,24 +161,29 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
       {/* --------------------------------------------------------------------- */}
       {/* Tier 2: --surface-dock (Persistent navigation shelf docked to window) */}
       {/* --------------------------------------------------------------------- */}
-      <Dock position="left" data-testid="surface-tier-2-dock">
+      <Dock
+        position="right"
+        className={styles.dockOverride}
+        title="Tier 2: Dock"
+        data-testid="surface-tier-2-dock"
+      >
         <Stack gap="tight">
-          <Button variant="primary" size="sm" title="Galaxy Overview" aria-label="Galaxy Overview">
+          <Button variant="primary" size="sm" title="Tier 2: Dock - Galaxy Overview" aria-label="Galaxy Overview">
             GAL
           </Button>
-          <Button variant="subtle" size="sm" title="System Navigation" aria-label="System Navigation">
+          <Button variant="subtle" size="sm" title="Tier 2: Dock - System Navigation" aria-label="System Navigation">
             SYS
           </Button>
-          <Button variant="subtle" size="sm" title="Planetary Bodies" aria-label="Planetary Bodies">
+          <Button variant="subtle" size="sm" title="Tier 2: Dock - Planetary Bodies" aria-label="Planetary Bodies">
             PLN
           </Button>
-          <Button variant="subtle" size="sm" title="Astrometry Catalog" aria-label="Astrometry Catalog">
+          <Button variant="subtle" size="sm" title="Tier 2: Dock - Astrometry Catalog" aria-label="Astrometry Catalog">
             CAT
           </Button>
           <Button
             variant="subtle"
             size="sm"
-            title="Toggle Filter Drawer"
+            title="Tier 2: Dock - Toggle Filter Drawer"
             aria-label="Toggle Filter Drawer"
             onClick={() => setIsDrawerOpen((prev) => !prev)}
           >
@@ -187,7 +197,8 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
       {/* --------------------------------------------------------------------- */}
       <div className={styles.panelContainer} data-testid="surface-tier-3-panel">
         <Panel
-          header="Galactic Survey Dossier"
+          header="[Tier 3: Panel] Galactic Survey Dossier"
+          title="Tier 3: Panel - Galactic Survey Dossier"
           footer={
             <Cluster justify="between" align="center">
               <span>Epoch 2026.10 // Telemetry</span>
@@ -207,8 +218,8 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             </Cluster>
 
             {/* Nested Inset: --surface-inset (Sunken wells, inputs) */}
-            <Well tabular padding="tight" data-testid="surface-tier-nested-inset">
-              <OrbitTable caption="Nearby Astrometric Candidates" orbits={DEMO_ORBITS} />
+            <Well tabular padding="tight" title="Nested Inset: Well" data-testid="surface-tier-nested-inset">
+              <OrbitTable caption="[Nested Inset: Well] Nearby Astrometric Candidates" orbits={DEMO_ORBITS} />
             </Well>
 
             <Stack gap="dense">
@@ -224,7 +235,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
       {/* --------------------------------------------------------------------- */}
       {/* Tier 5: --surface-popover (Context flyouts, tooltips)                  */}
       {/* --------------------------------------------------------------------- */}
-      <div className={styles.popoverAnchor} data-testid="surface-tier-5-popover">
+      <div className={styles.popoverAnchor} data-testid="surface-tier-5-popover" title="Tier 5: Popover">
         <Popover
           isOpen={isPopoverOpen}
           position="bottom"
@@ -233,19 +244,20 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
               padding="tight"
               status="nominal"
               interactive
+              title="Tier 5: Popover - Sol Barycentre Anchor"
               onClick={() => setIsPopoverOpen((prev) => !prev)}
             >
               <Cluster gap="tight" align="center">
-                <span>Target Lock: Sol Barycentre [0, 0, 0]</span>
+                <span>[Tier 5: Popover] Target Lock: Sol Barycentre [0, 0, 0]</span>
                 <Badge status="nominal">LOCKED</Badge>
               </Cluster>
             </Card>
           }
         >
-          <div className={styles.popoverContent}>
+          <div className={styles.popoverContent} title="Tier 5: Popover - Sol Telemetry">
             <Stack gap="dense">
               <Cluster justify="between" align="center">
-                <strong>Sol Anchor Point</strong>
+                <strong title="Tier 5: Popover - Sol Anchor Point">[Tier 5: Popover] Sol Anchor Point</strong>
                 <Badge category="star">G2V</Badge>
               </Cluster>
               <p className={styles.popoverDesc}>
@@ -271,7 +283,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
       <Modal
         isOpen={isModalOpen}
         isModal={false}
-        title="Astrodynamics Command Query"
+        title="[Tier 6: Modal] Astrodynamics Command Query"
         onClose={() => setIsModalOpen(false)}
         className={styles.previewModal}
         data-testid="surface-tier-6-modal"
@@ -313,7 +325,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
         position="right"
         isOpen={isDrawerOpen}
         isModal={false}
-        title="Spectroscopic Filter Matrix"
+        title="[Tier 4: Drawer] Spectroscopic Filter Matrix"
         onClose={() => setIsDrawerOpen(false)}
         className={styles.previewDrawer}
         data-testid="surface-tier-4-drawer"
@@ -381,7 +393,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
         <div className={styles.toastContainer} data-testid="surface-tier-7-toast">
           <Toast
             status="caution"
-            title="Telemetry Alert: Gravitational Perturbation"
+            title="[Tier 7: Toast] Telemetry Alert: Gravitational Perturbation"
             message="Transient burst detected at galactic coordinates (l=0.12°, b=-0.04°). In-situ sensors observing 4.2 mas perturbation."
             onClose={() => setIsToastVisible(false)}
           />
