@@ -50,11 +50,16 @@ describe('SpatialScenes Storybook Suite', () => {
       expect(html).toContain('data-testid="mock-canvas"');
       expect(html).toContain('name="cartographic-grid"');
       expect(html).toContain('name="celestial-node-sol"');
-      expect(html).toContain('Sol');
       expect(html).toContain('name="celestial-node-alpha-centauri"');
       expect(html).toContain('name="celestial-node-tau-ceti"');
       expect(html).not.toContain('Candidate Systems');
       expect(html).not.toContain('Galactic Compass');
+    });
+
+    it('renders focused star label when initialSelectedId is provided', () => {
+      const html = renderToString(createElement(GalacticViewScene, { initialSelectedId: 'sol' }));
+      expect(html).toContain('name="celestial-node-sol"');
+      expect(html).toContain('Sol');
     });
 
     it('renders with custom onInspectSystem callback', () => {
@@ -110,7 +115,6 @@ describe('SpatialScenes Storybook Suite', () => {
       expect(html).toContain('data-testid="mock-canvas"');
       expect(html).toContain('name="cartographic-grid"');
       expect(html).toContain('name="celestial-node-sol"');
-      expect(html).toContain('Sol');
       expect(html).not.toContain('Candidate Systems');
       expect(html).not.toContain('Inspect Sol System →');
     });

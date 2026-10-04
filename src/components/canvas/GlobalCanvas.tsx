@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { SceneOutlet } from './SceneBridge';
 import { SceneTokenBridge } from './ThemeTokenBridge';
+import { getStandardInitialCamera } from './cartography/cartographyMath';
 import styles from './GlobalCanvas.module.css';
 
 export interface GlobalCanvasProps {
@@ -14,6 +15,8 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
   className,
   style,
 }) => {
+  const standardCam = getStandardInitialCamera(14, [0, 0, 0], 50);
+
   return (
     <div
       data-testid="global-canvas-container"
@@ -21,7 +24,11 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
       style={style}
     >
       <Canvas
-        camera={{ position: [0, 5, 12], fov: 50 }}
+        camera={{
+          position: standardCam.position,
+          up: standardCam.up,
+          fov: standardCam.fov,
+        }}
         gl={{ antialias: true, alpha: true }}
       >
         <SceneTokenBridge />
@@ -31,7 +38,7 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
 
         <SceneOutlet />
 
-        <OrbitControls makeDefault enableDamping dampingFactor={0.05} />
+        <OrbitControls makeDefault target={standardCam.target} enableDamping dampingFactor={0.05} />
       </Canvas>
     </div>
   );

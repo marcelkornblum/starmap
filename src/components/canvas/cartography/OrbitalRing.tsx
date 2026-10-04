@@ -1,9 +1,14 @@
 import type React from 'react';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import { useUIStore } from '../../../stores/useUIStore';
 import { rotateToOrbitalPlane, DEG_TO_RADIANS } from '../../../utils/astroMath';
-import { LINE_STYLE_CONSTANTS } from './cartographyMath';
+import {
+  ScreenSpaceLineMaterial,
+  SCREEN_SPACE_LINE_CONSTANTS,
+} from './ScreenSpaceLineMaterial';
 
 export interface OrbitalRingProps {
   /** Semi-major axis in AU or scene units */
@@ -16,28 +21,34 @@ export interface OrbitalRingProps {
   ascendingNode?: number;
   /** Argument of periapsis in degrees. Default: 0 */
   argumentOfPeriapsis?: number;
-  /** Whether this orbit belongs to the currently focused entity. Default: false */
+  /** Optional body ID this orbit belongs to. When selected in useUIStore, orbit intrinsically turns red. */
+  bodyId?: string;
+  /** Whether the orbit belongs to a selected or focused body (boosts opacity and applies bearing red color). Default: false */
   isFocused?: boolean;
+  /** Alias for isFocused (applies bearing red color and boosted opacity). Default: false */
+  isSelected?: boolean;
   /** Whether to render a tick marker at periapsis. Default: true */
   showPeriapsisTick?: boolean;
   /** Whether to render a prograde motion direction chevron along the orbit. Default: true */
   showDirectionIndicator?: boolean;
-  /** Tactical line styling. Default: 'dashed' (tactical vector styling). Can also be 'solid'. */
-  lineStyle?: 'dashed' | 'solid';
-  /** Optional custom color override. Default: stateFocus if focused, gridPrimaryColor for tactical vector styling */
+  /** Tactical line styling. Default: 'dashed' (schematic vector styling). Can also be 'solid' or 'dotted'. */
+  lineStyle?: 'dashed' | 'solid' | 'dotted';
+  /** Optional custom color override. Default: bearing red if selected/focused, gridPrimaryColor for passive orbits */
   color?: THREE.Color | string;
   /** Number of radial curve samples. Default: 256 */
   segments?: number;
   /** Optional origin offset. Default: [0, 0, 0] */
   position?: [number, number, number];
+  /** Optional click handler when clicking the orbit line directly */
+  onClick?: (bodyId?: string) => void;
 }
 
 /**
  * OrbitalRing: 3D Keplerian elliptical orbit ring rendered with tactical vector line styling.
  * Calculates Keplerian orbital geometry with focal anchoring at (0,0,0),
  * orbital plane inclination, ascending node orientation, periapsis indication,
- * prograde velocity vector indicator, and unstretched dashed vector linework.
- * Consumes design tokens via useThreeTokenStore with zero-shader-recompile in-place mutation.
+ * prograde velocity vector indicator, and perspective-invariant schematic linework.
+ * Intrinsically reacts to body selection via useUIStore.
  */
 export const OrbitalRing: React.FC<OrbitalRingProps> = ({
   semiMajorAxis,
@@ -45,27 +56,42 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
   inclination = 0,
   ascendingNode = 0,
   argumentOfPeriapsis = 0,
+  bodyId,
   isFocused = false,
+  isSelected = false,
   showPeriapsisTick = true,
   showDirectionIndicator = true,
   lineStyle = 'dashed',
   color,
   segments = 256,
   position = [0, 0, 0],
+  onClick,
 }) => {
-  const stateFocus = useThreeTokenStore((state) => state.tokens.stateFocus);
+  const bearingColor = useThreeTokenStore(
+    (state) => state.tokens.bearingOrbitalColor ?? state.tokens.bearingLineColor,
+  );
   const gridPrimaryColor = useThreeTokenStore((state) => state.tokens.gridPrimaryColor);
+  const selectedNodeId = useUIStore((state) => state.selectedNodeId);
+
+  // Intrinsic selection: orbit activates if explicitly focused/selected, or if its bodyId
+  // is selected in useUIStore (or if bodyId is omitted and any node in the scene is selected)
+  const isBodySelected = Boolean(bodyId)
+    ? selectedNodeId === bodyId
+    : Boolean(selectedNodeId);
+  const isActive = isFocused || isSelected || isBodySelected;
 
   const resolvedColor = useMemo(() => {
-    if (color) return color instanceof THREE.Color ? color : new THREE.Color(color);
-    return isFocused ? stateFocus : gridPrimaryColor;
-  }, [color, isFocused, stateFocus, gridPrimaryColor]);
+    if (color) return color instanceof THREE.Color ? `#${color.getHexString()}` : color;
+    const activeColor = isActive ? bearingColor : gridPrimaryColor;
+    return `#${activeColor.getHexString()}`;
+  }, [color, isActive, bearingColor, gridPrimaryColor]);
 
-  const ringOpacity = isFocused ? 0.95 : 0.32;
-  const markerOpacity = isFocused ? 1.0 : 0.60;
+  const ringOpacity = isActive ? 0.95 : 0.32;
+  const markerOpacity = isActive ? 1.0 : 0.60;
+  const scratchCenterRef = useRef(new THREE.Vector3());
 
   // Memoized geometry computation
-  const { orbitGeometry, tickGeometry, directionGeometry } = useMemo(() => {
+  const { orbitGeometry, tickGeometry, directionGeometry, perimeter } = useMemo(() => {
     const a = Number.isFinite(semiMajorAxis) && semiMajorAxis > 0 ? semiMajorAxis : 0.001;
     const e = Number.isFinite(eccentricity) ? Math.max(0, Math.min(0.99, eccentricity)) : 0;
     const omegaRad = argumentOfPeriapsis * DEG_TO_RADIANS;
@@ -94,67 +120,19 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
       cumulativeDist[i] = totalPerimeter;
     }
 
-    let geom: THREE.BufferGeometry;
-
-    if (lineStyle === 'solid') {
-      // Solid continuous line loop
-      const loopBuffer = new Float32Array(sampleCount * 3);
-      for (let i = 0; i < sampleCount; i++) {
-        loopBuffer[i * 3] = ptsX[i];
-        loopBuffer[i * 3 + 1] = ptsY[i];
-        loopBuffer[i * 3 + 2] = 0;
-      }
-      rotateToOrbitalPlane(loopBuffer, inclination, ascendingNode, { degrees: true });
-      geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.BufferAttribute(loopBuffer, 3));
-    } else {
-      // Tactical vector styling: unstretched dashes along the ellipse perimeter
-      const baseDash = LINE_STYLE_CONSTANTS.dashLength; // 0.2
-      const baseGap = LINE_STYLE_CONSTANTS.dashGap; // 0.1
-      const nominalCycle = baseDash + baseGap; // 0.3
-
-      // Whole number of cycles to close seamlessly around the full 360-degree orbit
-      const numCycles = Math.max(6, Math.round(totalPerimeter / nominalCycle));
-      const cycleLen = totalPerimeter / numCycles;
-      const scale = cycleLen / nominalCycle;
-      const dashLen = baseDash * scale;
-
-      const segmentBuffer = new Float32Array(numCycles * 2 * 3);
-      let bufIdx = 0;
-
-      let currSampleIdx = 0;
-      const getPointAtDist = (s: number): [number, number] => {
-        while (currSampleIdx < sampleCount && cumulativeDist[currSampleIdx + 1] < s) {
-          currSampleIdx++;
-        }
-        const s0 = cumulativeDist[currSampleIdx];
-        const s1 = cumulativeDist[currSampleIdx + 1];
-        const t = (s1 - s0) > 1e-7 ? (s - s0) / (s1 - s0) : 0;
-        const ix = ptsX[currSampleIdx] + (ptsX[currSampleIdx + 1] - ptsX[currSampleIdx]) * t;
-        const iy = ptsY[currSampleIdx] + (ptsY[currSampleIdx + 1] - ptsY[currSampleIdx]) * t;
-        return [ix, iy];
-      };
-
-      for (let c = 0; c < numCycles; c++) {
-        const sStart = c * cycleLen;
-        const sEnd = Math.min(sStart + dashLen, totalPerimeter);
-
-        const [x1, y1] = getPointAtDist(sStart);
-        const [x2, y2] = getPointAtDist(sEnd);
-
-        segmentBuffer[bufIdx++] = x1;
-        segmentBuffer[bufIdx++] = y1;
-        segmentBuffer[bufIdx++] = 0;
-
-        segmentBuffer[bufIdx++] = x2;
-        segmentBuffer[bufIdx++] = y2;
-        segmentBuffer[bufIdx++] = 0;
-      }
-
-      rotateToOrbitalPlane(segmentBuffer, inclination, ascendingNode, { degrees: true });
-      geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.BufferAttribute(segmentBuffer, 3));
+    // Continuous loop geometry sampled cleanly along the Keplerian ellipse
+    const loopBuffer = new Float32Array((sampleCount + 1) * 3);
+    const distBuffer = new Float32Array(sampleCount + 1);
+    for (let i = 0; i <= sampleCount; i++) {
+      loopBuffer[i * 3] = ptsX[i];
+      loopBuffer[i * 3 + 1] = ptsY[i];
+      loopBuffer[i * 3 + 2] = 0;
+      distBuffer[i] = cumulativeDist[i];
     }
+    rotateToOrbitalPlane(loopBuffer, inclination, ascendingNode, { degrees: true });
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(loopBuffer, 3));
+    geom.setAttribute('lineDistance', new THREE.BufferAttribute(distBuffer, 1));
 
     // Periapsis tick geometry (at theta = 0)
     let periapsisGeom: THREE.BufferGeometry | null = null;
@@ -228,7 +206,12 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
       }
     }
 
-    return { orbitGeometry: geom, tickGeometry: periapsisGeom, directionGeometry: dirGeom };
+    return {
+      orbitGeometry: geom,
+      tickGeometry: periapsisGeom,
+      directionGeometry: dirGeom,
+      perimeter: totalPerimeter,
+    };
   }, [
     semiMajorAxis,
     eccentricity,
@@ -237,39 +220,77 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
     argumentOfPeriapsis,
     showPeriapsisTick,
     showDirectionIndicator,
-    lineStyle,
     segments,
   ]);
+
+  const orbitMaterial = useMemo(() => {
+    return new ScreenSpaceLineMaterial({
+      color: resolvedColor,
+      opacity: ringOpacity,
+      lineStyle,
+      transparent: true,
+      depthWrite: false,
+    });
+  }, [lineStyle]);
+
+  useEffect(() => {
+    orbitMaterial.setColor(resolvedColor);
+    orbitMaterial.setOpacity(ringOpacity);
+  }, [orbitMaterial, resolvedColor, ringOpacity]);
 
   useEffect(() => {
     return () => {
       orbitGeometry.dispose();
       tickGeometry?.dispose();
       directionGeometry?.dispose();
+      orbitMaterial.dispose();
     };
-  }, [orbitGeometry, tickGeometry, directionGeometry]);
+  }, [orbitGeometry, tickGeometry, directionGeometry, orbitMaterial]);
+
+  // Perspective-invariant schematic line dashing update
+  useFrame(({ camera, size }) => {
+    orbitMaterial.updateResolution(camera, size.height);
+
+    if (lineStyle === 'dashed') {
+      const centerVec = scratchCenterRef.current.set(position[0], position[1], position[2]);
+      const camDist = camera.position.distanceTo(centerVec);
+      const proj11 = camera.projectionMatrix.elements[5];
+      const resScale = proj11 * (size.height * 0.5);
+      const approxScreenPerimeter = perimeter * (resScale / Math.max(0.001, camDist));
+      const nominalCycle = SCREEN_SPACE_LINE_CONSTANTS.dashSize + SCREEN_SPACE_LINE_CONSTANTS.gapSize; // 13px
+      const numCycles = Math.max(4, Math.round(approxScreenPerimeter / nominalCycle));
+      const actualCycle = approxScreenPerimeter / numCycles;
+      const microScale = actualCycle / nominalCycle;
+      orbitMaterial.setPattern(
+        SCREEN_SPACE_LINE_CONSTANTS.dashSize * microScale,
+        SCREEN_SPACE_LINE_CONSTANTS.gapSize * microScale,
+      );
+    } else if (lineStyle === 'dotted') {
+      orbitMaterial.setPattern(
+        SCREEN_SPACE_LINE_CONSTANTS.dotSize,
+        SCREEN_SPACE_LINE_CONSTANTS.dotGap,
+      );
+    } else {
+      orbitMaterial.setPattern(1.0, 0.0);
+    }
+  });
 
   return (
     <group position={position} data-testid="orbital-ring">
-      {lineStyle === 'solid' ? (
-        <lineLoop geometry={orbitGeometry} name="orbit-path">
-          <lineBasicMaterial
-            color={resolvedColor}
-            opacity={ringOpacity}
-            transparent
-            depthWrite={false}
-          />
-        </lineLoop>
-      ) : (
-        <lineSegments geometry={orbitGeometry} name="orbit-path">
-          <lineBasicMaterial
-            color={resolvedColor}
-            opacity={ringOpacity}
-            transparent
-            depthWrite={false}
-          />
-        </lineSegments>
-      )}
+      <lineLoop
+        geometry={orbitGeometry}
+        name="orbit-path"
+        onClick={(e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          if (bodyId) {
+            useUIStore.getState().setSelectedNodeId(bodyId);
+          }
+          onClick?.(bodyId);
+        }}
+        data-color={resolvedColor}
+      >
+        <primitive object={orbitMaterial} attach="material" />
+      </lineLoop>
 
       {showPeriapsisTick && tickGeometry && (
         <lineSegments geometry={tickGeometry} name="periapsis-tick">

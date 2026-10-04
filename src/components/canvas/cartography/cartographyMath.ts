@@ -332,8 +332,8 @@ export function populateDashedLineBuffer(
   buffer: Float32Array,
   length: number,
   direction: [number, number, number],
-  dashLen = LINE_STYLE_CONSTANTS.dashLength,
-  gapLen = LINE_STYLE_CONSTANTS.dashGap,
+  dashLen: number = LINE_STYLE_CONSTANTS.dashLength,
+  gapLen: number = LINE_STYLE_CONSTANTS.dashGap,
 ): number {
   const cycle = dashLen + gapLen;
   const [dx, dy, dz] = direction;
@@ -382,8 +382,8 @@ export function populateCurvedDashedLineBuffer(
   length: number,
   rGc: number,
   signY: 1 | -1 = 1,
-  dashLen = LINE_STYLE_CONSTANTS.dashLength,
-  gapLen = LINE_STYLE_CONSTANTS.dashGap,
+  dashLen: number = LINE_STYLE_CONSTANTS.dashLength,
+  gapLen: number = LINE_STYLE_CONSTANTS.dashGap,
 ): number {
   if (rGc <= 0 || length <= 0) return 0;
   const cycle = dashLen + gapLen;
@@ -491,4 +491,61 @@ export function createGalacticPlanarGridGeometry(
   const geom = new THREE.BufferGeometry().setFromPoints(points);
   geom.computeBoundingSphere();
   return geom;
+}
+
+/**
+ * Canonical Camera Initialisation Specification:
+ * - Camera begins elevated above the invariant Z=0 plane (positive Z).
+ * - Facing the direction of the Core Bearing (+X direction).
+ * - Slightly offset from the Core Bearing line (Y=0) in the direction AWAY from the Orbital Bearing (+Y),
+ *   which places the camera at negative Y (-Y).
+ * - Camera up-vector is Galactic North (+Z, [0, 0, 1]).
+ *
+ * Mathematically, for a scene centred at target T = [Tx, Ty, Tz] and distance R:
+ * - Elevation angle theta ~ 32 deg above the Z=0 plane:
+ *     z = Tz + R * sin(theta)
+ *     R_xy = R * cos(theta)
+ * - Yaw offset phi ~ 14 deg away from +X towards -Y (away from +Y Orbital Bearing):
+ *     x = Tx - R_xy * cos(phi)
+ *     y = Ty - R_xy * sin(phi)
+ * - Resulting eye position: [Tx - dx, Ty - dy, Tz + dz], facing towards +X, offset in -Y, elevated in +Z.
+ */
+export interface StandardCameraSetup {
+  position: [number, number, number];
+  target: [number, number, number];
+  up: [number, number, number];
+  fov: number;
+}
+
+export const STANDARD_CAMERA_DISTANCES = {
+  galactic: 28,
+  system: 22,
+  planetary: 90,
+  component: 12,
+} as const;
+
+export function getStandardInitialCamera(
+  distance: number,
+  target: [number, number, number] = [0, 0, 0],
+  fov = 45,
+): StandardCameraSetup {
+  const DEG_TO_RAD = Math.PI / 180;
+  const theta = 32 * DEG_TO_RAD; // ~32 deg elevation above invariant plane
+  const phi = 14 * DEG_TO_RAD;   // ~14 deg yaw offset from core bearing away from orbital bearing (-Y)
+
+  const zOffset = distance * Math.sin(theta);
+  const rXy = distance * Math.cos(theta);
+  const xOffset = rXy * Math.cos(phi);
+  const yOffset = rXy * Math.sin(phi);
+
+  return {
+    position: [
+      target[0] - xOffset,
+      target[1] - yOffset,
+      target[2] + zOffset,
+    ],
+    target: [target[0], target[1], target[2]],
+    up: [0, 0, 1],
+    fov,
+  };
 }

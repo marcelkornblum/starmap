@@ -125,7 +125,7 @@ export interface CartographicGridProps {
   showAxisLines?: boolean;
   /** Whether to enable dynamic perspective-to-orthographic projection switching when looking along cardinal axes. Default: true */
   adaptiveProjection?: boolean;
-  /** Whether the instrument maintains an invariant visual footprint on screen while real-world scale and concentric rings adapt dynamically to zoom. Default: false */
+  /** Whether the instrument maintains an invariant visual footprint on screen while real-world scale and concentric rings adapt dynamically to zoom. Default: true */
   screenConstant?: boolean;
   /** Reference camera distance at which aperture equals radius. Default: 3.49 * radius */
   referenceDistance?: number;
@@ -339,7 +339,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   footprints,
   showAxisLines = true,
   adaptiveProjection = true,
-  screenConstant = false,
+  screenConstant = true,
   referenceDistance,
   thresholdStart = 0.94,
   thresholdEnd = 0.985,
@@ -682,6 +682,11 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       camDir.set(0, 0, 1);
     }
 
+    const fovFactor = activeCamera instanceof THREE.PerspectiveCamera
+      ? Math.tan((activeCamera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
+      : 1.0;
+    const invScale = (camDist / 16.47) * fovFactor;
+
     // 1. Cardinal alignment factors (with tightened thresholds)
     const { alphaX, alphaY, alphaZ, maxAlpha } = computeCardinalAlignment(
       camDir,
@@ -878,6 +883,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         BEARING_EXTENT,
         DEFAULT_GALACTIC_CENTER_DISTANCE,
         1,
+        0.18 * invScale,
+        0.12 * invScale,
       );
       let posAttrGrid = gridOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
       if (!posAttrGrid || posAttrGrid.array !== gridOrbitalBuffer) {
@@ -923,6 +930,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         BEARING_EXTENT,
         DEFAULT_GALACTIC_CENTER_DISTANCE,
         1,
+        0.18 * invScale,
+        0.12 * invScale,
       );
       let posAttrDisk = diskOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
       if (!posAttrDisk || posAttrDisk.array !== diskOrbitalBuffer) {
@@ -945,6 +954,8 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         BEARING_EXTENT,
         DEFAULT_GALACTIC_CENTER_DISTANCE,
         -1,
+        0.18 * invScale,
+        0.12 * invScale,
       );
       let posAttrDiskAnti = diskAntiOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
       if (!posAttrDiskAnti || posAttrDiskAnti.array !== diskAntiOrbitalBuffer) {
@@ -980,10 +991,6 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     }
 
     // 10. Dynamic Planar Footprint Scaling: matches star reticle screen size until orthographic mode
-    const fovFactor = activeCamera instanceof THREE.PerspectiveCamera
-      ? Math.tan((activeCamera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
-      : 1.0;
-    const invScale = (camDist / 16.47) * fovFactor;
     const fpScale = THREE.MathUtils.lerp(invScale, 1.0, alphaZ);
 
     if (primaryFootprintRef.current) {

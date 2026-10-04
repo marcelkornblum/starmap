@@ -23,6 +23,8 @@ import {
   createStyledLinePoints,
   populateDashedLineBuffer,
   populateCurvedDashedLineBuffer,
+  getStandardInitialCamera,
+  STANDARD_CAMERA_DISTANCES,
 } from '../src/components/canvas/cartography';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
@@ -375,6 +377,51 @@ describe('3D Cartography Components', () => {
       expect(populateCurvedDashedLineBuffer(buffer, 10, -50)).toBe(0);
     });
 
+    it('computes canonical standard initial camera setup with correct orientation and bearings', () => {
+      const target: [number, number, number] = [0, 0, 0];
+      const setup = getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.galactic, target);
+
+      // Camera is elevated above the Z axis (z > 0)
+      expect(setup.position[2]).toBeGreaterThan(target[2]);
+
+      // Camera is located at negative X, facing the direction of the Core Bearing (+X)
+      expect(setup.position[0]).toBeLessThan(target[0]);
+
+      // Camera is offset in -Y away from the Orbital Bearing (+Y)
+      expect(setup.position[1]).toBeLessThan(target[1]);
+
+      // Camera up-vector is Galactic North (+Z)
+      expect(setup.up).toEqual([0, 0, 1]);
+
+      // Forward gaze vector check
+      const cam = new THREE.PerspectiveCamera(setup.fov, 1, 0.1, 1000);
+      cam.up.set(setup.up[0], setup.up[1], setup.up[2]);
+      cam.position.set(setup.position[0], setup.position[1], setup.position[2]);
+      cam.lookAt(target[0], target[1], target[2]);
+
+      const gaze = new THREE.Vector3();
+      cam.getWorldDirection(gaze);
+
+      // Forward gaze has positive X (facing Core bearing)
+      expect(gaze.x).toBeGreaterThan(0.7);
+      // Forward gaze has positive Y (looking slightly toward center from -Y)
+      expect(gaze.y).toBeGreaterThan(0.1);
+      // Forward gaze has negative Z (looking downward from above +Z)
+      expect(gaze.z).toBeLessThan(-0.4);
+    });
+
+    it('supports custom target and fov in getStandardInitialCamera', () => {
+      const target: [number, number, number] = [35, 45, 12];
+      const setup = getStandardInitialCamera(20, target, 50);
+
+      expect(setup.fov).toBe(50);
+      expect(setup.target).toEqual(target);
+      expect(setup.position[0]).toBeLessThan(target[0]);
+      expect(setup.position[1]).toBeLessThan(target[1]);
+      expect(setup.position[2]).toBeGreaterThan(target[2]);
+      expect(setup.up).toEqual([0, 0, 1]);
+    });
+
     it('omits positive X axis line in galactic planar grid where Core bearing runs when omitCoreAxis is true', () => {
       // With omitCoreAxis = true (default)
       const geomOmit = createGalacticPlanarGridGeometry(100, 50, 500, 16, true);
@@ -679,7 +726,9 @@ describe('3D Cartography Components', () => {
       expect(html).not.toContain('name="prograde-indicator"');
     });
 
-    it('applies focused state cleanly', () => {
+    it('applies focused state cleanly with bearing red color', () => {
+      const tokens = useThreeTokenStore.getState().tokens;
+      const expectedRed = `#${tokens.bearingOrbitalColor.getHexString()}`;
       const html = renderToString(
         createElement(OrbitalRing, {
           semiMajorAxis: 1.0,
@@ -689,6 +738,7 @@ describe('3D Cartography Components', () => {
       expect(html).toContain('orbital-ring');
       expect(html).toContain('name="periapsis-tick"');
       expect(html).toContain('name="prograde-indicator"');
+      expect(html).toContain(expectedRed);
     });
 
     it('supports custom color override', () => {

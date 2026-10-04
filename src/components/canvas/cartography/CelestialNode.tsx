@@ -4,13 +4,17 @@ import * as THREE from 'three';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import { useUIStore } from '../../../stores/useUIStore';
 import {
   celestialOcclusionManager,
   type Box2D,
   type CelestialFootprint,
   type LabelOcclusionResult,
 } from './celestialOcclusionRegistry';
-import { createStyledLinePoints } from './cartographyMath';
+import {
+  ScreenSpaceLineMaterial,
+  SCREEN_SPACE_LINE_CONSTANTS,
+} from './ScreenSpaceLineMaterial';
 import styles from './CelestialNode.module.css';
 
 /**
@@ -339,6 +343,10 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       lastSpectrumOccludedRef.current = isLabelVisible;
       spectrumFacetRef.current.setAttribute('data-occluded', isLabelVisible ? 'false' : 'true');
     }
+
+    if (stalkMaterial) {
+      stalkMaterial.updateResolution(camera, size.height);
+    }
   });
 
   // Reticle color and opacity (highlights interactive state)
@@ -370,28 +378,43 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
   const stalkGeometry = useMemo(() => {
     if (!shouldRenderStalk) return null;
-    if (z >= 0) {
-      // Solid vertical line (represented as two-point segment for lineSegments)
-      return new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0, -z),
-      ]);
-    } else {
-      // Dashed vertical line for negative Z with consistent unstretched HTML-like styling
-      const dashedPts = createStyledLinePoints(
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0, -z),
-        'dashed',
-      );
-      return new THREE.BufferGeometry().setFromPoints(dashedPts);
-    }
+    const geom = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 0, -z),
+    ]);
+    const distAttr = new Float32Array([0, Math.abs(z)]);
+    geom.setAttribute('lineDistance', new THREE.BufferAttribute(distAttr, 1));
+    return geom;
   }, [shouldRenderStalk, z]);
+
+  const isDashed = z < 0;
+  const stalkMaterial = useMemo(() => {
+    return new ScreenSpaceLineMaterial({
+      color: stalkColor,
+      opacity: stalkOpacity,
+      lineStyle: isDashed ? 'dashed' : 'solid',
+      dashSize: SCREEN_SPACE_LINE_CONSTANTS.dashSize,
+      gapSize: isDashed ? SCREEN_SPACE_LINE_CONSTANTS.gapSize : 0.0,
+      transparent: true,
+      depthWrite: false,
+    });
+  }, [isDashed, stalkColor, stalkOpacity]);
+
+  useEffect(() => {
+    stalkMaterial.setColor(stalkColor);
+    stalkMaterial.setOpacity(stalkOpacity);
+    stalkMaterial.setPattern(
+      SCREEN_SPACE_LINE_CONSTANTS.dashSize,
+      z < 0 ? SCREEN_SPACE_LINE_CONSTANTS.gapSize : 0.0,
+    );
+  }, [stalkMaterial, stalkColor, stalkOpacity, z]);
 
   useEffect(() => {
     return () => {
       stalkGeometry?.dispose();
+      stalkMaterial.dispose();
     };
-  }, [stalkGeometry]);
+  }, [stalkGeometry, stalkMaterial]);
 
   // Interactive rollover and click handlers
   const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
@@ -422,11 +445,14 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       const nextTargetId = celestialOcclusionManager.getCyclicSelectionTarget(id);
       if (nextTargetId !== id) {
         setInternalState('selected');
+        useUIStore.getState().setSelectedNodeId(nextTargetId);
         onClick?.(nextTargetId);
         return;
       }
     }
-    setInternalState((prev) => (prev === 'focused' ? 'selected' : 'focused'));
+    const nextState = currentState === 'focused' ? 'selected' : 'focused';
+    setInternalState(nextState);
+    useUIStore.getState().setSelectedNodeId(id);
     onClick?.(id);
   };
 
@@ -532,13 +558,8 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       {/* Strict Single-Stalk Rule: Drop Stalk down to Datum Plane Z=0 */}
       {shouldRenderStalk && stalkGeometry && (
         <group name="drop-stalk">
-          <lineSegments geometry={stalkGeometry}>
-            <lineBasicMaterial
-              color={stalkColor}
-              opacity={stalkOpacity}
-              transparent
-              depthWrite={false}
-            />
+          <lineSegments geometry={stalkGeometry} data-color={stalkColor}>
+            <primitive object={stalkMaterial} attach="material" />
           </lineSegments>
         </group>
       )}

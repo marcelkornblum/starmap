@@ -4,6 +4,7 @@ import { Canvas, useThree, useFrame, type ThreeEvent } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { CartographicGrid } from './CartographicGrid';
+import { getStandardInitialCamera } from './cartographyMath';
 import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
 import starsFixture from '../../../../tests/fixtures/stars.fixture.json';
 import styles from './StorybookCanvasWrapper.module.css';
@@ -156,11 +157,14 @@ export const Default: Story = {
       ? [args.position.x, args.position.y, args.position.z]
       : args.position ?? DEFAULT_OFFSET) as [number, number, number];
 
+    const standardCam = getStandardInitialCamera(28, target);
+
     return (
       <Canvas
         camera={{
-          position: [target[0] + 12.0, target[1] + 10.0, target[2] + 12.0],
-          fov: 45,
+          position: standardCam.position,
+          up: standardCam.up,
+          fov: standardCam.fov,
         }}
         gl={{ antialias: true, alpha: true }}
       >
@@ -168,7 +172,7 @@ export const Default: Story = {
         <CartographicGrid {...args} />
         <OrbitControls
           makeDefault
-          target={target}
+          target={standardCam.target}
           enableDamping
           dampingFactor={0.05}
           minDistance={4.0}
@@ -200,22 +204,29 @@ export const ObjectScaling: Story = {
     screenConstant: false,
     position: [0, 0, 0],
   },
-  render: (args) => (
-    <Canvas
-      camera={{ position: [10.18, 8.0, 10.18], fov: 45 }}
-      gl={{ antialias: true, alpha: true }}
-    >
-      <SceneTokenBridge />
-      <CartographicGrid {...args} />
-      <FixtureStars />
-      <OrbitControls
-        makeDefault
-        target={[0, 0, 0]}
-        enableDamping
-        dampingFactor={0.05}
-        minDistance={4.0}
-        maxDistance={250}
-      />
-    </Canvas>
-  ),
+  render: (args) => {
+    const standardCam = getStandardInitialCamera(20, [0, 0, 0]);
+    return (
+      <Canvas
+        camera={{
+          position: standardCam.position,
+          up: standardCam.up,
+          fov: standardCam.fov,
+        }}
+        gl={{ antialias: true, alpha: true }}
+      >
+        <SceneTokenBridge />
+        <CartographicGrid {...args} />
+        <FixtureStars />
+        <OrbitControls
+          makeDefault
+          target={standardCam.target}
+          enableDamping
+          dampingFactor={0.05}
+          minDistance={4.0}
+          maxDistance={250}
+        />
+      </Canvas>
+    );
+  },
 };

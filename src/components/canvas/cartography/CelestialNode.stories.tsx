@@ -4,8 +4,11 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { CelestialNode, type CelestialClassification } from './CelestialNode';
 import { CartographicGrid } from './CartographicGrid';
+import { getStandardInitialCamera } from './cartographyMath';
 import { SceneTokenBridge, ThemeTokenBridge } from '../ThemeTokenBridge';
 import styles from './StorybookCanvasWrapper.module.css';
+
+const standardCam = getStandardInitialCamera(8, [0, 0, 0]);
 
 const meta: Meta<typeof CelestialNode> = {
   title: 'Canvas/Cartography/CelestialNode',
@@ -17,7 +20,14 @@ const meta: Meta<typeof CelestialNode> = {
     (Story) => (
       <div className={styles.viewportContainer}>
         <ThemeTokenBridge />
-        <Canvas camera={{ position: [5, 5, 4], fov: 45 }} gl={{ antialias: true, alpha: true }}>
+        <Canvas
+          camera={{
+            position: standardCam.position,
+            up: standardCam.up,
+            fov: standardCam.fov,
+          }}
+          gl={{ antialias: true, alpha: true }}
+        >
           <SceneTokenBridge />
           <CartographicGrid
             radius={6}
@@ -29,7 +39,7 @@ const meta: Meta<typeof CelestialNode> = {
             position={[0, 0, 0]}
           />
           <Story />
-          <OrbitControls makeDefault enableDamping dampingFactor={0.05} minDistance={2.0} maxDistance={50} />
+          <OrbitControls makeDefault target={standardCam.target} enableDamping dampingFactor={0.05} minDistance={2.0} maxDistance={50} />
         </Canvas>
       </div>
     ),
