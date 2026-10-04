@@ -233,8 +233,12 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     if (position instanceof THREE.Vector3) {
       return [position.x, position.y, position.z];
     }
-    return position;
-  }, [position]);
+    return [position[0], position[1], position[2]];
+  }, [
+    position instanceof THREE.Vector3 ? position.x : position[0],
+    position instanceof THREE.Vector3 ? position.y : position[1],
+    position instanceof THREE.Vector3 ? position.z : position[2],
+  ]);
 
   // Memoize primary planar ground footprint geometry stamped on Galactic Equator Z=0
   const primaryFootprintGeom = useMemo(() => {
@@ -860,8 +864,6 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
         pArcs.forEach((pItem, qIdx) => {
           pItem.line.scale.set(currentRadius, currentRadius, currentRadius);
-          pItem.mat.color.copy(tokens.gridPrimaryColor);
-          pItem.mat.linewidth = tokens.gridSecondaryWidth;
           pItem.mat.opacity = tokens.gridPrimaryAlpha * 0.7 * qwList[qIdx] * fadePlane;
           pItem.mat.visible = pItem.mat.opacity > 0.001;
         });
@@ -875,8 +877,6 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         if (ringInfo) {
           const r = ringInfo.radius;
           const isMajor = ringInfo.isMajor;
-          const color = isMajor ? tokens.gridPrimaryColor : tokens.gridSecondaryColor;
-          const width = isMajor ? tokens.gridPrimaryWidth : tokens.gridSecondaryWidth;
           const baseAlpha = isMajor
             ? Math.max(tokens.gridPrimaryAlpha * 1.3, 0.38)
             : Math.max(tokens.gridSecondaryAlpha * 1.1, 0.18);
@@ -889,8 +889,6 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
 
             quads.forEach((item, qIdx) => {
               item.line.scale.set(r, r, r);
-              item.mat.color.copy(color);
-              item.mat.linewidth = width;
               item.mat.opacity = baseAlpha * ringFade * qwList[qIdx] * fadePlane;
               item.mat.visible = item.mat.opacity > 0.001;
             });
@@ -960,15 +958,11 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
       // 9. Extended Bearing Lines
       const bearingLen = currentRadius * 1.35;
       eBearings.core.line.scale.set(bearingLen, bearingLen, bearingLen);
-      eBearings.core.mat.color.copy(tokens.bearingCoreColor);
       eBearings.core.mat.opacity = tokens.bearingCoreAlpha;
-      eBearings.core.mat.linewidth = tokens.bearingCoreWidth;
       eBearings.core.mat.visible = true;
 
       eBearings.orbital.line.scale.set(bearingLen, bearingLen, bearingLen);
-      eBearings.orbital.mat.color.copy(tokens.bearingOrbitalColor ?? tokens.bearingLineColor);
       eBearings.orbital.mat.opacity = tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha;
-      eBearings.orbital.mat.linewidth = tokens.bearingOrbitalWidth ?? tokens.bearingLineWidth;
       eBearings.orbital.mat.visible = true;
     }
 
@@ -984,7 +978,6 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     if (isDatumPlaneVisible) {
       const dBoundary = datumBoundaryDataRef.current;
       dBoundary.line.scale.set(currentRadius, currentRadius, 1);
-      dBoundary.mat.color.copy(tokens.datumPlaneColor);
       dBoundary.mat.opacity = tokens.datumPlaneAlpha;
       dBoundary.mat.visible = tokens.datumPlaneAlpha > 0.001;
 
@@ -1001,7 +994,6 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
           if (ringInfo) {
             const r = ringInfo.radius;
             const isMajor = ringInfo.isMajor;
-            const color = isMajor ? tokens.datumPlaneMajorColor : tokens.datumPlaneMinorColor;
             const baseAlpha = (isMajor ? tokens.datumPlaneMajorAlpha : tokens.datumPlaneMinorAlpha) * ringInfo.fade;
 
             ringItem.quads.forEach((quad, qIdx) => {
@@ -1011,7 +1003,6 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               const quadAlpha = baseAlpha * Math.max(0, 1 - overlap);
 
               quad.line.scale.set(r, r, 1);
-              quad.mat.color.copy(color);
               quad.mat.opacity = quadAlpha;
               quad.mat.visible = quadAlpha > 0.001;
             });

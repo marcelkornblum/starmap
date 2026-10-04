@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { rotateToOrbitalPlane, DEG_TO_RADIANS } from '../../../utils/astroMath';
@@ -104,6 +104,13 @@ export const OrbitalRing: React.FC<OrbitalRingProps> = ({
 
     return { orbitGeometry: geom, tickGeometry: periapsisGeom };
   }, [semiMajorAxis, eccentricity, inclination, ascendingNode, argumentOfPeriapsis, showPeriapsisTick, segments]);
+
+  useEffect(() => {
+    return () => {
+      orbitGeometry.dispose();
+      tickGeometry?.dispose();
+    };
+  }, [orbitGeometry, tickGeometry]);
 
   return (
     <group position={position} data-testid="orbital-ring">

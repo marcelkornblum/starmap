@@ -39,5 +39,5 @@ export const SceneTokenBridge: React.FC<SceneTokenBridgeProps> = ({ transparent 
     return null;
   }
 
-  return <color attach="background" args={[tokens.canvasBg.r, tokens.canvasBg.g, tokens.canvasBg.b]} />;
+  return <color attach="background" args={[tokens.canvasBg]} />;
 };

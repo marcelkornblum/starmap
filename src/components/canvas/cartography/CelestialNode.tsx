@@ -131,6 +131,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const dotMeshRef = useRef<THREE.Mesh>(null);
   const reticleGroupRef = useRef<THREE.Group>(null);
   const worldPosRef = useRef(new THREE.Vector3(x, y, z));
+  const scratchNdcRef = useRef(new THREE.Vector3());
   const labelContainerRef = useRef<HTMLDivElement>(null);
   const spectrumFacetRef = useRef<HTMLDivElement>(null);
 
@@ -158,7 +159,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     }
 
     // --- Occlusion & Intersection Tracking ---
-    const ndc = worldPosRef.current.clone().project(camera);
+    const ndc = scratchNdcRef.current.copy(worldPosRef.current).project(camera);
     const isBehindCamera = ndc.z > 1.0;
     const screenX = (ndc.x * 0.5 + 0.5) * size.width;
     const screenY = (-ndc.y * 0.5 + 0.5) * size.height;
@@ -270,6 +271,18 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       return new THREE.BufferGeometry().setFromPoints(dashedPts);
     }
   }, [shouldRenderStalk, z]);
+
+  useEffect(() => {
+    return () => {
+      reticleGeometry.dispose();
+    };
+  }, [reticleGeometry]);
+
+  useEffect(() => {
+    return () => {
+      stalkGeometry?.dispose();
+    };
+  }, [stalkGeometry]);
 
   // Interactive rollover and click handlers
   const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
