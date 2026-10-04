@@ -968,7 +968,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
     }
 
     // 8. Structural Axis Spokes Rule:
-    // Matches the bearings luminance (axisLineAlpha 0.35)
+    // Non-bearing axis lines are less luminous, matching the minor concentric lines
     if (showAxisLines) {
       const spokeBaseAlpha = tokens.axisLineAlpha;
       // -X spoke bordered by XY (-X) and XZ (-X)

@@ -100,8 +100,8 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(snapshot.canvasOpacity).toBe(0.9);
     expect(snapshot.gridPrimaryAlpha).toBe(0.2);
     expect(snapshot.bearingLineAlpha).toBe(0.35);
-    expect(snapshot.axisLineAlpha).toBe(0.35);
-    expect(snapshot.axisLineWidth).toBe(2);
+    expect(snapshot.axisLineAlpha).toBe(0.16);
+    expect(snapshot.axisLineWidth).toBe(1);
     expect(snapshot.axisLineStyle).toBe('solid');
     expect(snapshot.gridPrimaryWidth).toBe(2);
     expect(snapshot.rangeTickWidth).toBe(2);

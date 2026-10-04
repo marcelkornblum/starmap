@@ -12,6 +12,8 @@ import {
   diamondIntersectsAABB,
   circleIntersectsAABB,
   boxIntersectsFootprint,
+  boxesIntersect,
+  diamondsIntersect,
   CelestialOcclusionManager,
   celestialOcclusionManager,
   appendMultiplicityPips,
@@ -683,6 +685,347 @@ describe('3D Cartography Components', () => {
       expect(manager.size).toBe(1);
       const postUnregisterResult = manager.checkIntersection('sol', collidingBox, { checkSelf: false });
       expect(postUnregisterResult.hasIntersection).toBe(false);
+    });
+
+    it('implements Layer 2 Priority Occlusion Masking for geometric reticles', () => {
+      const manager = new CelestialOcclusionManager();
+
+      // Ambient contact Sol at (100, 100), camDist 10
+      manager.register({
+        id: 'sol',
+        state: 'active',
+        screenX: 100,
+        screenY: 100,
+        camDist: 10,
+        reticleRadius: 40,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Ambient contact Sirius at (105, 105), camDist 12
+      manager.register({
+        id: 'sirius',
+        state: 'active',
+        screenX: 105,
+        screenY: 105,
+        camDist: 12,
+        reticleRadius: 40,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Rule: Equal-priority ambient reticles overlay directly without suppression
+      expect(manager.evaluateReticleOcclusion('sol')).toBe(false);
+      expect(manager.evaluateReticleOcclusion('sirius')).toBe(false);
+
+      // Now register focused target Vega at (100, 100), camDist 10
+      manager.register({
+        id: 'vega',
+        state: 'focused',
+        screenX: 100,
+        screenY: 100,
+        camDist: 10,
+        reticleRadius: 40,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Background ambient reticle Sirius (camDist 12 >= 10) colliding beneath focused Vega is suppressed
+      expect(manager.evaluateReticleOcclusion('sirius')).toBe(true);
+
+      // Significant reticle Vega is never suppressed
+      expect(manager.evaluateReticleOcclusion('vega')).toBe(false);
+
+      // Register foreground ambient contact Altair at (102, 102), camDist 5 (< 10)
+      manager.register({
+        id: 'altair',
+        state: 'active',
+        screenX: 102,
+        screenY: 102,
+        camDist: 5,
+        reticleRadius: 40,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Foreground ambient contact in front of background focused target is NOT suppressed
+      expect(manager.evaluateReticleOcclusion('altair')).toBe(false);
+    });
+
+    it('implements Layer 3 Dynamic Displacement along leader stems and Camera-Proximity Occlusion', () => {
+      const manager = new CelestialOcclusionManager();
+
+      // Register Node A (Vega) focused at (100, 100)
+      manager.register({
+        id: 'vega',
+        state: 'focused',
+        screenX: 100,
+        screenY: 100,
+        camDist: 10,
+        reticleRadius: 40,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Significant node has Target Immunity: always visible even if intersecting
+      const targetImmuneResult = manager.evaluateLabelOcclusion('vega', {
+        left: 90,
+        top: 90,
+        right: 140,
+        bottom: 110,
+      });
+      expect(targetImmuneResult.visible).toBe(true);
+      expect(targetImmuneResult.behindCanvas).toBe(true);
+
+      // Passive nodes have no visible labels
+      manager.register({
+        id: 'passive-star',
+        state: 'passive',
+        screenX: 300,
+        screenY: 300,
+        camDist: 10,
+        reticleRadius: 40,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+      expect(manager.evaluateLabelOcclusion('passive-star', {
+        left: 310,
+        top: 290,
+        right: 360,
+        bottom: 310,
+      }).visible).toBe(false);
+
+      // Test screen-space displacement along leader stem:
+      // Node B at (200, 200), reticleRadius 30.
+      // Another node C reticle sits at (240, 190) which blocks primary label placement at dx=0, dy=0.
+      // But downward candidate (dy = 30 * 1.4 = 42) clears the collision.
+      manager.register({
+        id: 'node-b',
+        state: 'active',
+        screenX: 200,
+        screenY: 200,
+        camDist: 15,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+      manager.register({
+        id: 'node-c',
+        state: 'active',
+        screenX: 240,
+        screenY: 190,
+        camDist: 20,
+        reticleRadius: 20,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Primary box at (230, 180, 270, 200) intersects Node C's reticle diamond (cx=240, cy=190, r=20)
+      const displaceResult = manager.evaluateLabelOcclusion('node-b', {
+        left: 230,
+        top: 180,
+        right: 270,
+        bottom: 200,
+      });
+      expect(displaceResult.visible).toBe(true);
+      expect(displaceResult.isDisplaced).toBe(true);
+      expect(displaceResult.displacementY).toBeGreaterThan(0);
+
+      // Camera-Proximity Occlusion:
+      // When two active labels collide, closer node retains its label, background node yields
+      manager.clear();
+      manager.register({
+        id: 'foreground-node',
+        state: 'active',
+        screenX: 100,
+        screenY: 100,
+        camDist: 10,
+        reticleRadius: 20,
+        starRadius: 4,
+        hasReticle: false,
+        labelBox: { left: 120, top: 90, right: 170, bottom: 110 },
+        visible: true,
+        updatedAt: 1000,
+      });
+      manager.register({
+        id: 'background-node',
+        state: 'active',
+        screenX: 100,
+        screenY: 100,
+        camDist: 30, // Much further back
+        reticleRadius: 20,
+        starRadius: 4,
+        hasReticle: false,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Background node label collides with foreground node's label at all candidate positions
+      // Surrounding with blocking obstacles so candidates fail
+      manager.register({
+        id: 'blocker-down',
+        state: 'active',
+        screenX: 145,
+        screenY: 135,
+        camDist: 5,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+      manager.register({
+        id: 'blocker-right',
+        state: 'active',
+        screenX: 175,
+        screenY: 100,
+        camDist: 5,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+      manager.register({
+        id: 'blocker-up',
+        state: 'active',
+        screenX: 145,
+        screenY: 65,
+        camDist: 5,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      const backgroundResult = manager.evaluateLabelOcclusion('background-node', {
+        left: 120,
+        top: 90,
+        right: 170,
+        bottom: 110,
+      });
+      // Camera-proximity occlusion suppresses background node label
+      expect(backgroundResult.visible).toBe(false);
+    });
+
+    it('implements Interactive Hit-Testing Fan-Out and Cyclic Selection', () => {
+      const manager = new CelestialOcclusionManager();
+
+      // Register isolated node
+      manager.register({
+        id: 'isolated',
+        state: 'active',
+        screenX: 50,
+        screenY: 50,
+        camDist: 10,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Isolated node has zero hitarea offset
+      const isolatedOffset = manager.evaluateHitAreaOffset('isolated');
+      expect(isolatedOffset.x).toBe(0);
+      expect(isolatedOffset.y).toBe(0);
+      expect(manager.getCyclicSelectionTarget('isolated')).toBe('isolated');
+
+      // Register 3 overlapping nodes at (200, 200)
+      manager.register({
+        id: 'node-1',
+        state: 'focused',
+        screenX: 200,
+        screenY: 200,
+        camDist: 10,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+      manager.register({
+        id: 'node-2',
+        state: 'active',
+        screenX: 202,
+        screenY: 198,
+        camDist: 12,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+      manager.register({
+        id: 'node-3',
+        state: 'active',
+        screenX: 199,
+        screenY: 201,
+        camDist: 15,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Hit areas invisibly fan out radially
+      const offset1 = { ...manager.evaluateHitAreaOffset('node-1') };
+      const offset2 = { ...manager.evaluateHitAreaOffset('node-2') };
+      const offset3 = { ...manager.evaluateHitAreaOffset('node-3') };
+
+      const dist1 = Math.hypot(offset1.x, offset1.y);
+      const dist2 = Math.hypot(offset2.x, offset2.y);
+      const dist3 = Math.hypot(offset3.x, offset3.y);
+
+      expect(dist1).toBeGreaterThan(0);
+      expect(dist2).toBeGreaterThan(0);
+      expect(dist3).toBeGreaterThan(0);
+
+      // Offsets point in different directions
+      expect(offset1).not.toEqual(offset2);
+      expect(offset2).not.toEqual(offset3);
+
+      // Cyclic selection advances deterministically in cluster sorted order
+      const nextFrom1 = manager.getCyclicSelectionTarget('node-1');
+      expect(nextFrom1).toBe('node-2');
+      const nextFrom2 = manager.getCyclicSelectionTarget('node-2');
+      expect(nextFrom2).toBe('node-3');
+      const nextFrom3 = manager.getCyclicSelectionTarget('node-3');
+      expect(nextFrom3).toBe('node-1'); // Wraps back to first node
+    });
+
+    it('verifies 2D geometric intersection primitives', () => {
+      // boxesIntersect
+      expect(boxesIntersect(
+        { left: 0, top: 0, right: 10, bottom: 10 },
+        { left: 5, top: 5, right: 15, bottom: 15 },
+      )).toBe(true);
+      expect(boxesIntersect(
+        { left: 0, top: 0, right: 10, bottom: 10 },
+        { left: 20, top: 20, right: 30, bottom: 30 },
+      )).toBe(false);
+
+      // diamondsIntersect
+      expect(diamondsIntersect(100, 100, 20, 115, 105, 20)).toBe(true); // dx=15, dy=5 -> 20 <= 40
+      expect(diamondsIntersect(100, 100, 20, 150, 150, 20)).toBe(false); // dx=50, dy=50 -> 100 > 40
     });
   });
 });

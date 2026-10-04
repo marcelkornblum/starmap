@@ -4,7 +4,12 @@ import * as THREE from 'three';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
-import { celestialOcclusionManager, type Box2D, type CelestialFootprint } from './celestialOcclusionRegistry';
+import {
+  celestialOcclusionManager,
+  type Box2D,
+  type CelestialFootprint,
+  type LabelOcclusionResult,
+} from './celestialOcclusionRegistry';
 import styles from './CelestialNode.module.css';
 
 /**
@@ -144,6 +149,16 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
   const labelContainerRef = useRef<HTMLDivElement>(null);
   const spectrumFacetRef = useRef<HTMLDivElement>(null);
   const labelDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const hitareaMeshRef = useRef<THREE.Mesh>(null);
+  const reticleLinesRef = useRef<THREE.LineSegments>(null);
+  const scratchLabelResultRef = useRef<LabelOcclusionResult>({
+    visible: true,
+    behindCanvas: true,
+    displacementX: 0,
+    displacementY: 0,
+    isDisplaced: false,
+  });
+  const scratchHitOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const scratchBoxRef = useRef<Box2D>({ left: 0, top: 0, right: 0, bottom: 0 });
   const registrationRef = useRef<CelestialFootprint>({
     id,
@@ -156,6 +171,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     planets,
     screenX: 0,
     screenY: 0,
+    camDist: 0,
     reticleRadius: 0,
     starRadius: 0,
     hasReticle: shouldRenderReticle,
@@ -248,6 +264,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     record.planets = planets;
     record.screenX = screenX;
     record.screenY = screenY;
+    record.camDist = camDist;
     record.reticleRadius = reticleRadius;
     record.starRadius = starRadius;
     record.hasReticle = shouldRenderReticle;
@@ -256,24 +273,40 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
     record.updatedAt = performance.now();
     celestialOcclusionManager.register(record);
 
-    // Check if this label intersects ANY active star or reticle in the scene
-    let hasIntersection = false;
-    if (activeBox && !isBehindCamera && shouldRenderLabel) {
-      const checkResult = celestialOcclusionManager.checkIntersection(id, activeBox);
-      hasIntersection = checkResult.hasIntersection;
+    // Layer 2: Geometric Reticles - Priority Occlusion Masking (Spec 2.2)
+    // Equal-priority reticles overlay directly; significant reticles (focused/selected) suppress lesser background reticles
+    const isReticleSuppressed = celestialOcclusionManager.evaluateReticleOcclusion(id);
+    if (reticleLinesRef.current) {
+      reticleLinesRef.current.visible = shouldRenderReticle && !isReticleSuppressed;
     }
 
-    // Authoritative rule:
-    // If they intersect, label disappears UNLESS it is for a selected or focused element.
-    // Selected or focused elements appear behind the reticle and star, overlapping.
-    const evalResult = celestialOcclusionManager.evaluateLabelVisibility(currentState, hasIntersection);
-    const shouldShowLabel = evalResult.visible;
-
-    if (labelContainerRef.current && labelContainerRef.current.style.display !== (shouldShowLabel ? 'flex' : 'none')) {
-      labelContainerRef.current.style.display = shouldShowLabel ? 'flex' : 'none';
+    // Interactive Hit-Testing Fan-Out (Spec 2.2)
+    // When nodes overlap in screen space, underlying invisible hit areas fan out radially so users can click overlapping nodes
+    const hitOffset = celestialOcclusionManager.evaluateHitAreaOffset(id, scratchHitOffsetRef.current);
+    if (hitareaMeshRef.current) {
+      const pxToLocal = reticleRadius > 0 ? reticleSize / reticleRadius : 0;
+      hitareaMeshRef.current.position.set(hitOffset.x * pxToLocal, -hitOffset.y * pxToLocal, 0);
     }
-    if (spectrumFacetRef.current && spectrumFacetRef.current.style.display !== (shouldShowLabel ? 'flex' : 'none')) {
-      spectrumFacetRef.current.style.display = shouldShowLabel ? 'flex' : 'none';
+
+    // Layer 3: Typographic Labels - Dynamic Screen-Space Displacement along thin 1px leader stem & Camera-Proximity Occlusion (Spec 2.3)
+    const labelEval = celestialOcclusionManager.evaluateLabelOcclusion(
+      id,
+      activeBox,
+      scratchLabelResultRef.current,
+    );
+    const isLabelVisible = labelEval.visible && shouldRenderLabel && !isBehindCamera;
+    if (labelContainerRef.current) {
+      labelContainerRef.current.setAttribute('data-occluded', isLabelVisible ? 'false' : 'true');
+      if (labelEval.isDisplaced) {
+        labelContainerRef.current.setAttribute('data-displaced', 'true');
+        labelContainerRef.current.style.transform = `translate(${labelEval.displacementX}px, ${labelEval.displacementY}px)`;
+      } else {
+        labelContainerRef.current.removeAttribute('data-displaced');
+        labelContainerRef.current.style.transform = '';
+      }
+    }
+    if (spectrumFacetRef.current) {
+      spectrumFacetRef.current.setAttribute('data-occluded', isLabelVisible ? 'false' : 'true');
     }
   });
 
@@ -350,6 +383,14 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+    if (currentState === 'focused') {
+      const nextTargetId = celestialOcclusionManager.getCyclicSelectionTarget(id);
+      if (nextTargetId !== id) {
+        setInternalState('selected');
+        onClick?.(nextTargetId);
+        return;
+      }
+    }
     setInternalState((prev) => (prev === 'focused' ? 'selected' : 'focused'));
     onClick?.(id);
   };
@@ -368,6 +409,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
       <group ref={reticleGroupRef} name="reticle-frame">
         {/* Invisible Hit Area matching the full reticle boundary */}
         <mesh
+          ref={hitareaMeshRef}
           name="reticle-hitarea"
           geometry={SHARED_UNIT_CIRCLE_GEOMETRY}
           material={SHARED_HITAREA_MATERIAL}
@@ -379,7 +421,7 @@ export const CelestialNode: React.FC<CelestialNodeProps> = ({
 
         {/* Layer 2: Geometric Reticle Frame (Basic vs Full Composite Annotated) */}
         {shouldRenderReticle && (
-          <lineSegments geometry={reticleGeometry}>
+          <lineSegments ref={reticleLinesRef} geometry={reticleGeometry}>
             <lineBasicMaterial
               color={reticleColor}
               opacity={reticleOpacity}
