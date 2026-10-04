@@ -12,7 +12,7 @@ This guide establishes the mandatory TypeScript and React standards for Starmap.
 
 ## 2. React Components & Architecture
 
-For comprehensive rules on component taxonomy, React 19 ref/props forwarding, WAI-ARIA semantics, and state lifecycle patterns, refer strictly to [components.md](./components.md).
+For comprehensive rules on component taxonomy, React 19 ref/props forwarding, WAI-ARIA semantics, and state lifecycle patterns, refer strictly to [components.md](./components.md). For 3D WebGL, Three.js, and React Three Fiber (R3F) canvas components, refer strictly to [webgl-r3f.md](./webgl-r3f.md).
 
 - **Functional Components:** Define components as named `const` arrow functions.
 - **Explicit Props Interfaces:** Always declare a dedicated interface for component props (`[Component]Props`). Do not use inline object types.

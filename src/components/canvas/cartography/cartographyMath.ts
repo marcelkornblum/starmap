@@ -549,3 +549,205 @@ export function getStandardInitialCamera(
     fov,
   };
 }
+
+export type ScreenEdgeBearingType = 'core' | 'orbital';
+export type ScreenEdgeSide = 'top' | 'right' | 'bottom' | 'left';
+
+export interface ScreenEdgeBearingResult {
+  x: number;
+  y: number;
+  edge: ScreenEdgeSide;
+  angle: number;
+  isAttached: boolean;
+  visible: boolean;
+}
+
+// Hoisted scratch variables for zero-allocation calculateScreenEdgeBearing
+const scratchPA = new THREE.Vector3();
+const scratchPB = new THREE.Vector3();
+const scratchWorldPoint = new THREE.Vector3();
+const scratchHeadingDir = new THREE.Vector3();
+const scratchVCam = new THREE.Vector3();
+
+/**
+ * Calculates screen-space position, edge placement, and orientation angle for
+ * cardinal bearing indicators (Galactic Core and Galactic Orbital).
+ *
+ * Implements Section 1.4 of docs/3d-spatial-architecture.md:
+ * - When a 3D bearing line intersects the visible screen frustum, the indicator
+ *   terminates at the viewport boundary (attached state, isAttached: true).
+ * - When the bearing line exits the field of view or is directed away/behind the camera,
+ *   the indicator detaches from the line and stays pinned to the nearest screen edge
+ *   (detached state, isAttached: false) oriented toward the off-screen heading.
+ */
+export function calculateScreenEdgeBearing(
+  camera: THREE.Camera,
+  screenSize: { width: number; height: number },
+  margin = 28,
+  bearingType: ScreenEdgeBearingType = 'core',
+  origin = new THREE.Vector3(0, 0, 0),
+  rGc = 2000,
+  extent = 2000,
+  out?: ScreenEdgeBearingResult,
+): ScreenEdgeBearingResult {
+  const result = out ?? {
+    x: 0,
+    y: 0,
+    edge: 'right' as ScreenEdgeSide,
+    angle: 0,
+    isAttached: false,
+    visible: false,
+  };
+
+  const width = Math.max(1, screenSize.width);
+  const height = Math.max(1, screenSize.height);
+  const safeMargin = Math.min(margin, Math.min(width, height) * 0.45);
+  const xMin = safeMargin;
+  const xMax = width - safeMargin;
+  const yMin = safeMargin;
+  const yMax = height - safeMargin;
+  const cx = width * 0.5;
+  const cy = height * 0.5;
+
+  const numSteps = 40;
+  const stepSize = extent / numSteps;
+
+  const viewMatrix = camera.matrixWorldInverse;
+  const projMatrix = camera.projectionMatrix;
+  const zNear = ('near' in camera && typeof camera.near === 'number') ? camera.near : 0.1;
+
+  // Evaluate segments along the bearing line to find forward screen-edge exit
+  for (let i = 0; i < numSteps; i++) {
+    const s0 = i * stepSize;
+    const s1 = (i + 1) * stepSize;
+
+    // Point 0 in camera coordinates
+    if (bearingType === 'core') {
+      scratchWorldPoint.set(origin.x + s0, origin.y, origin.z);
+    } else {
+      const phi = s0 / rGc;
+      scratchWorldPoint.set(
+        origin.x + rGc * (1 - Math.cos(phi)),
+        origin.y + rGc * Math.sin(phi),
+        origin.z,
+      );
+    }
+    scratchPA.copy(scratchWorldPoint).applyMatrix4(viewMatrix);
+
+    // Point 1 in camera coordinates
+    if (bearingType === 'core') {
+      scratchWorldPoint.set(origin.x + s1, origin.y, origin.z);
+    } else {
+      const phi = s1 / rGc;
+      scratchWorldPoint.set(
+        origin.x + rGc * (1 - Math.cos(phi)),
+        origin.y + rGc * Math.sin(phi),
+        origin.z,
+      );
+    }
+    scratchPB.copy(scratchWorldPoint).applyMatrix4(viewMatrix);
+
+    // Camera looks along -Z. Points in front of near clipping plane have z <= -zNear
+    const aBehind = scratchPA.z > -zNear;
+    const bBehind = scratchPB.z > -zNear;
+
+    if (aBehind && bBehind) continue;
+
+    if (aBehind && !bBehind) {
+      const t = (-zNear - scratchPA.z) / (scratchPB.z - scratchPA.z);
+      scratchPA.lerp(scratchPB, t);
+    } else if (!aBehind && bBehind) {
+      const t = (-zNear - scratchPA.z) / (scratchPB.z - scratchPA.z);
+      scratchPB.copy(scratchPA).lerp(scratchPB, t);
+    }
+
+    // Direct NDC projection
+    scratchPA.applyMatrix4(projMatrix);
+    scratchPB.applyMatrix4(projMatrix);
+
+    const sAx = (scratchPA.x + 1) * 0.5 * width;
+    const sAy = (1 - scratchPA.y) * 0.5 * height;
+    const sBx = (scratchPB.x + 1) * 0.5 * width;
+    const sBy = (1 - scratchPB.y) * 0.5 * height;
+
+    // Check if segment crosses screen margin bounding box (Liang-Barsky 2D clipping)
+    const dx = sBx - sAx;
+    const dy = sBy - sAy;
+    const p = [-dx, dx, -dy, dy];
+    const q = [sAx - xMin, xMax - sAx, sAy - yMin, yMax - sAy];
+    let u1 = 0;
+    let u2 = 1;
+    let exitEdge: ScreenEdgeSide | null = null;
+    let possible = true;
+
+    for (let k = 0; k < 4; k++) {
+      if (p[k] === 0) {
+        if (q[k] < 0) {
+          possible = false;
+          break;
+        }
+      } else {
+        const t = q[k] / p[k];
+        if (p[k] < 0) {
+          if (t > u2) {
+            possible = false;
+            break;
+          }
+          if (t > u1) u1 = t;
+        } else {
+          if (t < u1) {
+            possible = false;
+            break;
+          }
+          if (t < u2) {
+            u2 = t;
+            exitEdge = k === 1 ? 'right' : (k === 0 ? 'left' : (k === 3 ? 'bottom' : 'top'));
+          }
+        }
+      }
+    }
+
+    if (possible && u2 <= 1 && u2 >= 0 && exitEdge !== null) {
+      result.x = Math.min(xMax, Math.max(xMin, sAx + u2 * dx));
+      result.y = Math.min(yMax, Math.max(yMin, sAy + u2 * dy));
+      result.edge = exitEdge;
+      result.angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+      result.isAttached = true;
+      result.visible = true;
+      return result;
+    }
+  }
+
+  // Fallback to detached pinned edge: bearing heading direction relative to camera view
+  if (bearingType === 'core') {
+    scratchHeadingDir.set(1, 0, 0);
+  } else {
+    scratchHeadingDir.set(0, 1, 0);
+  }
+
+  scratchVCam.copy(scratchHeadingDir).transformDirection(viewMatrix);
+  let sx = scratchVCam.x;
+  let sy = -scratchVCam.y;
+  const len = Math.hypot(sx, sy);
+  if (len < 1e-6) {
+    sx = 1;
+    sy = 0;
+  } else {
+    sx /= len;
+    sy /= len;
+  }
+
+  const tx = sx > 0 ? (xMax - cx) / sx : (sx < 0 ? (xMin - cx) / sx : Infinity);
+  const ty = sy > 0 ? (yMax - cy) / sy : (sy < 0 ? (yMin - cy) / sy : Infinity);
+  const t = Math.min(tx, ty);
+
+  result.x = Math.min(xMax, Math.max(xMin, cx + t * sx));
+  result.y = Math.min(yMax, Math.max(yMin, cy + t * sy));
+  result.edge = tx < ty ? (sx > 0 ? 'right' : 'left') : (sy > 0 ? 'bottom' : 'top');
+  result.angle = (Math.atan2(sy, sx) * 180) / Math.PI;
+  result.isAttached = false;
+  result.visible = true;
+  return result;
+}
+
+

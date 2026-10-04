@@ -25,6 +25,8 @@ import {
   populateCurvedDashedLineBuffer,
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
+  ScreenEdgeBearingIndicators,
+  calculateScreenEdgeBearing,
 } from '../src/components/canvas/cartography';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
@@ -46,6 +48,7 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
       camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
       gl: { setClearColor: vi.fn() },
       scene: new THREE.Scene(),
+      size: { width: 1920, height: 1080 },
     }),
   };
 });
@@ -65,6 +68,9 @@ describe('3D Cartography Components', () => {
       expect(html).toContain('cartographic-grid');
       expect(html).toContain('travelling-fins');
       expect(html).toContain('cardinal-bearings');
+      expect(html).toContain('screen-edge-bearing-indicators');
+      expect(html).toContain('bearing-indicator-core');
+      expect(html).toContain('bearing-indicator-orbital');
       expect(html).toContain('arc-tier-2.5');
       expect(html).toContain('arc-tier-5');
       expect(html).toContain('arc-tier-10');
@@ -83,7 +89,20 @@ describe('3D Cartography Components', () => {
       expect(htmlNoFins).toContain('cartographic-grid');
       expect(htmlNoFins).not.toContain('travelling-fins');
       expect(htmlNoFins).not.toContain('cardinal-bearings');
+      expect(htmlNoFins).not.toContain('screen-edge-bearing-indicators');
       expect(htmlNoFins).not.toContain('datum-plane');
+    });
+
+    it('respects showScreenEdgeIndicators flag when axis lines are enabled', () => {
+      const htmlWithScreenEdge = renderToString(
+        createElement(CartographicGrid, { radius: 10, showScreenEdgeIndicators: true }),
+      );
+      expect(htmlWithScreenEdge).toContain('screen-edge-bearing-indicators');
+
+      const htmlWithoutScreenEdge = renderToString(
+        createElement(CartographicGrid, { radius: 10, showScreenEdgeIndicators: false }),
+      );
+      expect(htmlWithoutScreenEdge).not.toContain('screen-edge-bearing-indicators');
     });
 
     it('renders Galactic Equator datum plane by default and responds to showGalacticPlane flag', () => {
@@ -1235,6 +1254,115 @@ describe('3D Cartography Components', () => {
       // diamondsIntersect
       expect(diamondsIntersect(100, 100, 20, 115, 105, 20)).toBe(true); // dx=15, dy=5 -> 20 <= 40
       expect(diamondsIntersect(100, 100, 20, 150, 150, 20)).toBe(false); // dx=50, dy=50 -> 100 > 40
+    });
+  });
+
+  describe('ScreenEdgeBearingIndicators & Bearing Math', () => {
+    it('calculates screen-edge intersection for attached Core bearing (+X)', () => {
+      const cam = new THREE.PerspectiveCamera(45, 1920 / 1080, 0.1, 1000);
+      cam.position.set(0, -25, 10);
+      cam.up.set(0, 0, 1);
+      cam.lookAt(0, 0, 0);
+      cam.updateMatrixWorld();
+      cam.updateProjectionMatrix();
+
+      const res = calculateScreenEdgeBearing(cam, { width: 1920, height: 1080 }, 28, 'core');
+      expect(res.visible).toBe(true);
+      expect(res.isAttached).toBe(true);
+      expect(res.edge).toBe('right');
+      expect(res.x).toBeCloseTo(1892, 0); // 1920 - 28 margin
+      expect(res.y).toBeCloseTo(540, 0);  // Center Y
+      expect(res.angle).toBeCloseTo(0, 1); // Pointing right
+    });
+
+    it('calculates screen-edge intersection for attached Orbital bearing (+Y)', () => {
+      const cam = new THREE.PerspectiveCamera(45, 1920 / 1080, 0.1, 1000);
+      cam.position.set(0, -25, 10);
+      cam.up.set(0, 0, 1);
+      cam.lookAt(0, 0, 0);
+      cam.updateMatrixWorld();
+      cam.updateProjectionMatrix();
+
+      const res = calculateScreenEdgeBearing(cam, { width: 1920, height: 1080 }, 28, 'orbital');
+      expect(res.visible).toBe(true);
+      expect(res.isAttached).toBe(true);
+      expect(res.edge).toBe('top');
+      expect(res.y).toBeCloseTo(28, 0); // Top margin 28
+    });
+
+    it('detaches and pins to screen edge when camera is oriented away from bearing line', () => {
+      const cam = new THREE.PerspectiveCamera(45, 1920 / 1080, 0.1, 1000);
+      // Looking along +Y, so +X Core is off to the right
+      cam.position.set(0, 0, 10);
+      cam.up.set(0, 0, 1);
+      cam.lookAt(0, 50, 10);
+      cam.updateMatrixWorld();
+      cam.updateProjectionMatrix();
+
+      const resCore = calculateScreenEdgeBearing(cam, { width: 1920, height: 1080 }, 28, 'core');
+      expect(resCore.visible).toBe(true);
+      expect(resCore.isAttached).toBe(false);
+      expect(resCore.edge).toBe('right');
+      expect(resCore.x).toBe(1892);
+
+      // Looking along -Y, so +X Core is off to the left
+      cam.lookAt(0, -50, 10);
+      cam.updateMatrixWorld();
+      cam.updateProjectionMatrix();
+
+      const resCoreLeft = calculateScreenEdgeBearing(cam, { width: 1920, height: 1080 }, 28, 'core');
+      expect(resCoreLeft.visible).toBe(true);
+      expect(resCoreLeft.isAttached).toBe(false);
+      expect(resCoreLeft.edge).toBe('left');
+      expect(resCoreLeft.x).toBe(28);
+    });
+
+    it('respects custom screen margins and non-zero origins', () => {
+      const cam = new THREE.PerspectiveCamera(45, 800 / 600, 0.1, 1000);
+      const origin = new THREE.Vector3(100, 200, 50);
+      cam.position.set(100, 175, 60); // Offset (0, -25, 10) relative to origin
+      cam.up.set(0, 0, 1);
+      cam.lookAt(100, 200, 50);
+      cam.updateMatrixWorld();
+      cam.updateProjectionMatrix();
+
+      const res = calculateScreenEdgeBearing(
+        cam,
+        { width: 800, height: 600 },
+        40, // 40px margin
+        'core',
+        origin,
+      );
+      expect(res.visible).toBe(true);
+      expect(res.isAttached).toBe(true);
+      expect(res.edge).toBe('right');
+      expect(res.x).toBeCloseTo(760, 0); // 800 - 40 margin
+      expect(res.y).toBeCloseTo(300, 0); // Center Y
+    });
+
+    it('renders ScreenEdgeBearingIndicators component in SSR cleanly', () => {
+      const html = renderToString(
+        createElement(ScreenEdgeBearingIndicators, {}),
+      );
+      expect(html).toContain('screen-edge-bearing-indicators');
+      expect(html).toContain('bearing-indicator-core');
+      expect(html).toContain('bearing-indicator-orbital');
+      expect(html).toContain('CORE 000°');
+      expect(html).toContain('ORB 090°');
+    });
+
+    it('respects showCore and showOrbital flags in ScreenEdgeBearingIndicators', () => {
+      const htmlCoreOnly = renderToString(
+        createElement(ScreenEdgeBearingIndicators, { showCore: true, showOrbital: false }),
+      );
+      expect(htmlCoreOnly).toContain('bearing-indicator-core');
+      expect(htmlCoreOnly).not.toContain('bearing-indicator-orbital');
+
+      const htmlOrbOnly = renderToString(
+        createElement(ScreenEdgeBearingIndicators, { showCore: false, showOrbital: true }),
+      );
+      expect(htmlOrbOnly).not.toContain('bearing-indicator-core');
+      expect(htmlOrbOnly).toContain('bearing-indicator-orbital');
     });
   });
 });

@@ -230,3 +230,51 @@ export const ObjectScaling: Story = {
     );
   },
 };
+
+/**
+ * Screen-Edge Bearing Indicators:
+ * Demonstrates Section 1.4 of docs/3d-spatial-architecture.md:
+ * Both the Galactic Core Axis (l=0°) and Galactic Orbital Vector (l=90°) extend
+ * off-screen and terminate with illuminated vector arrowheads at the viewport boundary (28px safe margin).
+ * As the user orbits, pitches, or yaws OrbitControls, when a bearing vector leaves the field of view,
+ * its arrowhead detaches from the 3D line and pins to the nearest edge of the screen,
+ * ensuring cardinal orientation remains permanently legible.
+ */
+export const ScreenEdgeBearingCues: Story = {
+  name: 'Screen-Edge Bearing Indicators',
+  args: {
+    radius: 10,
+    showFins: true,
+    showAxisLines: true,
+    showScreenEdgeIndicators: true,
+    showGalacticPlane: true,
+    showFullDatumCircle: true,
+    showPlanarGrid: true,
+    screenConstant: true,
+    position: [0, 0, 0],
+  },
+  render: (args) => {
+    const standardCam = getStandardInitialCamera(28, [0, 0, 0]);
+    return (
+      <Canvas
+        camera={{
+          position: standardCam.position,
+          up: standardCam.up,
+          fov: standardCam.fov,
+        }}
+        gl={{ antialias: true, alpha: true }}
+      >
+        <SceneTokenBridge />
+        <CartographicGrid {...args} />
+        <OrbitControls
+          makeDefault
+          target={standardCam.target}
+          enableDamping
+          dampingFactor={0.05}
+          minDistance={4.0}
+          maxDistance={250}
+        />
+      </Canvas>
+    );
+  },
+};

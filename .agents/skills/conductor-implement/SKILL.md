@@ -30,8 +30,8 @@ You are the **Conductor Implementer**. You execute tasks from a track's `plan.md
 For each task in the active phase:
 1. **Red Phase:** Write failing unit/integration tests capturing the requirement. Run `npm test` to confirm expected failure.
 2. **Green Phase:** Implement minimal production code to pass tests. Run `npm test` to confirm green.
-3. **Refactor Phase:** Clean up code for clarity and adherence to style guides while keeping tests green.
-4. **Quality Check:** Run the `code-review` skill to audit code standards, check types, run coverage tests, and eliminate any technical debt.
+3. **Refactor Phase:** Clean up code for clarity and adherence to style guides ([webgl-r3f.md](../../../conductor/code_styleguides/webgl-r3f.md) for 3D/canvas components, [components.md](../../../conductor/code_styleguides/components.md) for UI) while keeping tests green.
+4. **Quality Check:** Run the `code-review` skill to audit code standards, check types, run coverage tests, execute `npm run audit:r3f` on any 3D/canvas changes, and eliminate any technical debt.
 5. Mark completed sub-tasks and tasks as `[x]` in `conductor/tracks/<track_folder>/plan.md` using IDE edit tools (`replace_file_content`).
 
 ## 3. Phase Checkpoint & Progression

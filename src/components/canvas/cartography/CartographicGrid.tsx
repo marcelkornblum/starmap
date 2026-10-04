@@ -24,6 +24,7 @@ import {
 import {
   celestialOcclusionManager,
 } from './celestialOcclusionRegistry';
+import { ScreenEdgeBearingIndicators } from './ScreenEdgeBearingIndicators';
 
 const PLANES = ['xy', 'xz', 'yz'] as const;
 
@@ -123,6 +124,8 @@ export interface CartographicGridProps {
   footprints?: PlanarFootprintItem[];
   /** Whether to render the 3 orthogonal axis lines (+X, +Y extended, +Z to radius). Default: true */
   showAxisLines?: boolean;
+  /** Whether to render screen-edge bearing indicators at viewport boundary. Default: true */
+  showScreenEdgeIndicators?: boolean;
   /** Whether to enable dynamic perspective-to-orthographic projection switching when looking along cardinal axes. Default: true */
   adaptiveProjection?: boolean;
   /** Whether the instrument maintains an invariant visual footprint on screen while real-world scale and concentric rings adapt dynamically to zoom. Default: true */
@@ -338,6 +341,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   footprintSize = 0.45,
   footprints,
   showAxisLines = true,
+  showScreenEdgeIndicators = true,
   adaptiveProjection = true,
   screenConstant = true,
   referenceDistance,
@@ -479,12 +483,26 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
   }, []);
 
   // Pre-allocated buffers and geometries for unstretched dashed orbital bearing lines
-  const gridOrbitalGeom = useMemo(() => new THREE.BufferGeometry(), []);
   const gridOrbitalBuffer = useMemo(() => new Float32Array(30000), []);
-  const diskOrbitalGeom = useMemo(() => new THREE.BufferGeometry(), []);
+  const gridOrbitalGeom = useMemo(() => {
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(gridOrbitalBuffer, 3));
+    return geom;
+  }, [gridOrbitalBuffer]);
+
   const diskOrbitalBuffer = useMemo(() => new Float32Array(30000), []);
-  const diskAntiOrbitalGeom = useMemo(() => new THREE.BufferGeometry(), []);
+  const diskOrbitalGeom = useMemo(() => {
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(diskOrbitalBuffer, 3));
+    return geom;
+  }, [diskOrbitalBuffer]);
+
   const diskAntiOrbitalBuffer = useMemo(() => new Float32Array(30000), []);
+  const diskAntiOrbitalGeom = useMemo(() => {
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(diskAntiOrbitalBuffer, 3));
+    return geom;
+  }, [diskAntiOrbitalBuffer]);
 
   // Memoize nearly-squared off galactic planar grid (arcs of concentric circles around distant Galactic Centre)
   const effectivePlanarGridGap = planarGridGap ?? 100;
@@ -886,11 +904,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         0.18 * invScale,
         0.12 * invScale,
       );
-      let posAttrGrid = gridOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
-      if (!posAttrGrid || posAttrGrid.array !== gridOrbitalBuffer) {
-        posAttrGrid = new THREE.BufferAttribute(gridOrbitalBuffer, 3);
-        gridOrbitalGeom.setAttribute('position', posAttrGrid);
-      }
+      const posAttrGrid = gridOrbitalGeom.getAttribute('position') as THREE.BufferAttribute;
       posAttrGrid.needsUpdate = true;
       gridOrbitalGeom.setDrawRange(0, vCountGrid);
     }
@@ -933,11 +947,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         0.18 * invScale,
         0.12 * invScale,
       );
-      let posAttrDisk = diskOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
-      if (!posAttrDisk || posAttrDisk.array !== diskOrbitalBuffer) {
-        posAttrDisk = new THREE.BufferAttribute(diskOrbitalBuffer, 3);
-        diskOrbitalGeom.setAttribute('position', posAttrDisk);
-      }
+      const posAttrDisk = diskOrbitalGeom.getAttribute('position') as THREE.BufferAttribute;
       posAttrDisk.needsUpdate = true;
       diskOrbitalGeom.setDrawRange(0, vCountDisk);
 
@@ -957,11 +967,7 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
         0.18 * invScale,
         0.12 * invScale,
       );
-      let posAttrDiskAnti = diskAntiOrbitalGeom.getAttribute('position') as THREE.BufferAttribute | undefined;
-      if (!posAttrDiskAnti || posAttrDiskAnti.array !== diskAntiOrbitalBuffer) {
-        posAttrDiskAnti = new THREE.BufferAttribute(diskAntiOrbitalBuffer, 3);
-        diskAntiOrbitalGeom.setAttribute('position', posAttrDiskAnti);
-      }
+      const posAttrDiskAnti = diskAntiOrbitalGeom.getAttribute('position') as THREE.BufferAttribute;
       posAttrDiskAnti.needsUpdate = true;
       diskAntiOrbitalGeom.setDrawRange(0, vCountDiskAnti);
 
@@ -1217,6 +1223,14 @@ export const CartographicGrid: React.FC<CartographicGridProps> = ({
               opacity={tokens.bearingOrbitalAlpha ?? tokens.bearingLineAlpha}
             />
           </lineSegments>
+
+          {/* Detachable Screen-Edge Heading Cues */}
+          {showScreenEdgeIndicators && (
+            <ScreenEdgeBearingIndicators
+              rGc={DEFAULT_GALACTIC_CENTER_DISTANCE}
+              extent={BEARING_EXTENT}
+            />
+          )}
         </group>
       )}
 
