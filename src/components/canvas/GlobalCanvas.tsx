@@ -32,9 +32,7 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
         gl={{ antialias: true, alpha: true }}
       >
         <SceneTokenBridge />
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[10, 15, 10]} intensity={1.2} />
-        <directionalLight position={[-10, -5, -10]} intensity={0.4} color="#6688aa" />
+        <ambientLight intensity={1.0} />
 
         <SceneOutlet />
 

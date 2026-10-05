@@ -1,8 +1,7 @@
 import type React from 'react';
 import { useState, useMemo, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Sphere } from '@react-three/drei';
-import * as THREE from 'three';
+import { OrbitControls } from '@react-three/drei';
 
 import {
   CelestialNode,
@@ -16,6 +15,7 @@ import {
 import { SceneTokenBridge } from '../ThemeTokenBridge';
 import { DEG_TO_RADIANS } from '../../../utils/astroMath';
 import { calculateKeplerianPosition } from '../math/kepler';
+import { PlanetBody } from './PlanetBody';
 
 import styles from './SpatialScenes.module.css';
 
@@ -591,14 +591,8 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
         >
           <SceneTokenBridge />
 
-          {/* Dynamic Day/Night Terminator or Cartographic Daylight Mode */}
-          <ambientLight intensity={0.25} />
-          {/* Directional sunlight radiating outward from the distant host star (+X direction) */}
-          <directionalLight
-            position={[200, 20, 0]}
-            intensity={2.2}
-            color="#fff8f0"
-          />
+          {/* Uniform Cartographic Lighting (Zero Day/Night Terminator) */}
+          <ambientLight intensity={1.0} />
 
           {/* Planetary Inspection Cartographic Grid dropped on the Rotational Equator (Z=0) */}
           <CartographicGrid
@@ -630,27 +624,15 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
             />
           </group>
 
-          {/* Planetary Body: Earth (accurate 1.0 R_earth radius) with 23.44° Axial Tilt */}
+          {/* Planetary Body: Uniform-lit procedurally textured PlanetBody with axial tilt */}
           <group rotation={[0, 0, 23.44 * DEG_TO_RADIANS]}>
-            {/* Earth Surface Sphere */}
-            <Sphere args={[1.0, 64, 64]} position={[0, 0, 0]}>
-              <meshStandardMaterial
-                color="#1d6391"
-                roughness={0.65}
-                metalness={0.12}
-              />
-            </Sphere>
-
-            {/* Atmospheric Haze Layer (+100 km Karman line) */}
-            <Sphere args={[1.015, 48, 48]} position={[0, 0, 0]}>
-              <meshStandardMaterial
-                color="#64b5f6"
-                transparent
-                opacity={0.32}
-                depthWrite={false}
-                side={THREE.DoubleSide}
-              />
-            </Sphere>
+            <PlanetBody
+              name={planetDisplayName}
+              classification="terrestrial"
+              radius={1.0}
+              minPixelSize={24}
+              fadeRange={16}
+            />
           </group>
 
           {/* Tactical Center-of-Mass Node */}

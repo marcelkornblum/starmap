@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import { rotateToOrbitalPlane, DEG_TO_RADIANS } from '../../../utils/astroMath';
 import {
   CartoLineMaterial,
@@ -58,6 +59,13 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
 
   const groupRef = useRef<THREE.Group>(null);
   const directionMatRef = useRef<THREE.MeshBasicMaterial>(null);
+  const arrowBillboardRef = useRef<THREE.Group>(null);
+
+  const scratchWorldTangent = useLazyRef(() => new THREE.Vector3());
+  const scratchCamDir = useLazyRef(() => new THREE.Vector3());
+  const scratchQuat = useLazyRef(() => new THREE.Quaternion());
+  const scratchArrowWorldPos = useLazyRef(() => new THREE.Vector3());
+  const scratchZAxis = useLazyRef(() => new THREE.Vector3(0, 0, 1));
 
   const isStateElevated = state === 'selected' || state === 'focused';
 
@@ -72,7 +80,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   const resolvedAlpha = isStateElevated ? kinematicAlpha : orbitAlpha;
 
   // Compute Keplerian geometry
-  const { orbitGeometry, tickGeometry, directionGeometry } = useMemo(() => {
+  const { orbitGeometry, tickGeometry, directionGeometry, arrowPosition, arrowTangent } = useMemo(() => {
     const a = Number.isFinite(semiMajorAxis) && semiMajorAxis > 0 ? semiMajorAxis : 0.001;
     const e = Number.isFinite(eccentricity) ? Math.max(0, Math.min(0.99, eccentricity)) : 0;
     const omegaRad = argumentOfPeriapsis * DEG_TO_RADIANS;
@@ -130,9 +138,11 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       tickGeom.computeBoundingSphere();
     }
 
-    // Direction indicator chevron geometry: sleek, compact swept dart matching ScreenEdgeCue
-    // Shortened to ~36% of previous length (0.40 * arrowSize vs 1.10 * arrowSize) while preserving normal width (0.70 * arrowSize)
+    // Direction indicator chevron: 2D billboarded swept dart matching ScreenEdgeCue
     let dirGeom: THREE.BufferGeometry | null = null;
+    let arrowPosition: [number, number, number] = [0, 0, 0];
+    let arrowTangent: [number, number, number] = [1, 0, 0];
+
     if (showDirectionIndicator) {
       const theta = Math.PI / 2;
       const xOrb = a * Math.cos(theta) - focalOffset;
@@ -140,40 +150,35 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       const xRot = xOrb * Math.cos(omegaRad) - yOrb * Math.sin(omegaRad);
       const yRot = xOrb * Math.sin(omegaRad) + yOrb * Math.cos(omegaRad);
 
+      const arrowPosBuf = new Float32Array([xRot, yRot, 0]);
+      rotateToOrbitalPlane(arrowPosBuf, inclination, ascendingNode, { degrees: true });
+      arrowPosition = [arrowPosBuf[0], arrowPosBuf[1], arrowPosBuf[2]];
+
       const tangent = new THREE.Vector3(-a * Math.sin(theta), b * Math.cos(theta), 0).normalize();
       const rotTangentX = tangent.x * Math.cos(omegaRad) - tangent.y * Math.sin(omegaRad);
       const rotTangentY = tangent.x * Math.sin(omegaRad) + tangent.y * Math.cos(omegaRad);
-      const normalX = -rotTangentY;
-      const normalY = rotTangentX;
-      const arrowSize = Math.max(0.06, a * 0.04);
+      const tanBuf = new Float32Array([rotTangentX, rotTangentY, 0]);
+      rotateToOrbitalPlane(tanBuf, inclination, ascendingNode, { degrees: true });
+      arrowTangent = [tanBuf[0], tanBuf[1], tanBuf[2]];
 
-      const tipDist = arrowSize * 0.24;
-      const wingDist = arrowSize * 0.16;
-      const notchDist = arrowSize * 0.05;
-      const wingWidth = arrowSize * 0.35;
-
-      // Swept dart geometry (tip, wings, and notched crotch)
-      const tipX = xRot + rotTangentX * tipDist;
-      const tipY = yRot + rotTangentY * tipDist;
-      const leftX = xRot - rotTangentX * wingDist + normalX * wingWidth;
-      const leftY = yRot - rotTangentY * wingDist + normalY * wingWidth;
-      const rightX = xRot - rotTangentX * wingDist - normalX * wingWidth;
-      const rightY = yRot - rotTangentY * wingDist - normalY * wingWidth;
-      const notchX = xRot - rotTangentX * notchDist;
-      const notchY = yRot - rotTangentY * notchDist;
+      // In local 2D screen space: pointing along local +X axis
+      // Tip forward (+X), wingtips swept back (-X) with normal span (Y)
+      const tipDist = 0.08;
+      const wingDist = 0.05;
+      const notchDist = 0.015;
+      const wingWidth = 0.11;
 
       const dirBuffer = new Float32Array([
         // Triangle 1: Tip -> Left -> Notch
-        tipX, tipY, 0,
-        leftX, leftY, 0,
-        notchX, notchY, 0,
+        tipDist, 0, 0,
+        -wingDist, wingWidth, 0,
+        -notchDist, 0, 0,
         // Triangle 2: Tip -> Notch -> Right
-        tipX, tipY, 0,
-        notchX, notchY, 0,
-        rightX, rightY, 0,
+        tipDist, 0, 0,
+        -notchDist, 0, 0,
+        -wingDist, -wingWidth, 0,
       ]);
 
-      rotateToOrbitalPlane(dirBuffer, inclination, ascendingNode, { degrees: true });
       dirGeom = new THREE.BufferGeometry();
       dirGeom.setAttribute('position', new THREE.BufferAttribute(dirBuffer, 3));
       dirGeom.computeVertexNormals();
@@ -184,6 +189,8 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       orbitGeometry: orbitLineGeom,
       tickGeometry: tickGeom,
       directionGeometry: dirGeom,
+      arrowPosition,
+      arrowTangent,
     };
   }, [semiMajorAxis, eccentricity, inclination, ascendingNode, argumentOfPeriapsis, segments, showPeriapsisTick, showDirectionIndicator]);
 
@@ -230,6 +237,28 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       }
       directionMatRef.current.opacity = resolvedAlpha;
     }
+
+    // 2D Billboarding: ensure chevron always faces camera flat-on, oriented to orbital motion
+    if (arrowBillboardRef.current && showDirectionIndicator) {
+      arrowBillboardRef.current.getWorldPosition(scratchArrowWorldPos.current);
+      const camDist = Math.max(camera.position.distanceTo(scratchArrowWorldPos.current), 1e-4);
+      const fovFactor = camera instanceof THREE.PerspectiveCamera
+        ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
+        : 1.0;
+      const invScale = (camDist / 16.47) * fovFactor;
+      arrowBillboardRef.current.scale.set(invScale, invScale, invScale);
+
+      // Transform 3D orbital tangent vector into camera view space
+      scratchWorldTangent.current.set(arrowTangent[0], arrowTangent[1], arrowTangent[2]);
+      scratchCamDir.current.copy(scratchWorldTangent.current).transformDirection(camera.matrixWorldInverse);
+
+      // 2D screen motion angle in camera view plane: atan2(camDir.y, camDir.x)
+      const screenAngle = Math.atan2(scratchCamDir.current.y, scratchCamDir.current.x);
+
+      // Face the camera flat-on, then roll around local Z by screenAngle
+      scratchQuat.current.setFromAxisAngle(scratchZAxis.current, screenAngle);
+      arrowBillboardRef.current.quaternion.copy(camera.quaternion).multiply(scratchQuat.current);
+    }
   });
 
   if (!shouldRender) return null;
@@ -259,19 +288,25 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
         </lineSegments>
       )}
 
-      {/* Prograde Direction Arrow Chevron (Sleek filled dart matching ScreenEdgeCue) */}
+      {/* Prograde Direction Arrow Chevron (2D Billboarded flat-on to camera, pointing along orbital tangent) */}
       {showDirectionIndicator && directionGeometry && (
-        <mesh name="orbit-direction-arrow">
-          <primitive object={directionGeometry} attach="geometry" />
-          <meshBasicMaterial
-            ref={directionMatRef}
-            color={resolvedColor}
-            opacity={resolvedAlpha}
-            side={THREE.DoubleSide}
-            transparent
-            depthWrite={false}
-          />
-        </mesh>
+        <group
+          ref={arrowBillboardRef}
+          position={arrowPosition}
+          name="orbit-direction-arrow-billboard"
+        >
+          <mesh name="orbit-direction-arrow">
+            <primitive object={directionGeometry} attach="geometry" />
+            <meshBasicMaterial
+              ref={directionMatRef}
+              color={resolvedColor}
+              opacity={resolvedAlpha}
+              side={THREE.DoubleSide}
+              transparent
+              depthWrite={false}
+            />
+          </mesh>
+        </group>
       )}
     </group>
   );

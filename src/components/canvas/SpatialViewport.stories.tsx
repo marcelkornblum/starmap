@@ -6,6 +6,7 @@ import { GALACTIC_FRAME, SYSTEM_FRAME, PLANETARY_FRAME } from './instrument/refe
 import { PlanetBody } from './scenes/PlanetBody';
 import { ThemeTokenBridge } from './ThemeTokenBridge';
 import { getStandardInitialCamera } from './cartography/cartographyMath';
+import { calculateKeplerianPosition } from './math/kepler';
 import type { SpatialEntityDefinition } from './entity/SpatialEntityStore';
 import styles from './cartography/StorybookCanvasWrapper.module.css';
 
@@ -144,35 +145,58 @@ export const SystemViewportWithOrbits: Story = {
   },
 };
 
+const LUNA_CALIBRATED_POS = calculateKeplerianPosition(60.34, 0.0549, 5.14, 125.08, 318.15, 135.0);
+
+const PLANETARY_STORY_ENTITIES: SpatialEntityDefinition[] = [
+  {
+    id: 'earth',
+    name: 'Earth',
+    classification: 'terrestrial',
+    position: [0, 0, 0],
+    showLabel: true,
+    enableOcclusion: true,
+    bodyRadius: 1.0,
+    bodyMinPixelSize: 24,
+    bodyFadeRange: 16,
+  },
+  {
+    id: 'luna',
+    name: 'Luna',
+    classification: 'terrestrial',
+    position: LUNA_CALIBRATED_POS,
+    state: 'active',
+    showLabel: true,
+    enableOcclusion: true,
+    bodyRadius: 0.272,
+    orbit: {
+      semiMajorAxis: 60.34,
+      eccentricity: 0.0549,
+      inclination: 5.14,
+      ascendingNode: 125.08,
+      argumentOfPeriapsis: 318.15,
+      period: 27.32,
+      meanAnomaly: 135.0,
+    },
+  },
+];
+
 export const PlanetaryViewportWithBespokeBody: Story = {
   name: '3. Planetary Viewport with Bespoke PlanetBody',
   args: {
     frame: PLANETARY_FRAME,
     mode: 'focus',
     showInstrument: true,
-    entities: [
-      {
-        id: 'luna',
-        name: 'Luna',
-        classification: 'terrestrial',
-        position: [3.8, 0, 0],
-        state: 'active',
-        orbit: {
-          semiMajorAxis: 3.84,
-          period: 27.3,
-        },
-      },
-    ],
+    entities: PLANETARY_STORY_ENTITIES,
   },
   render: (args) => {
-    const cam = getStandardInitialCamera(6, [0, 0, 0], 45);
+    const cam = getStandardInitialCamera(120, [0, 0, 0], 30);
     return (
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping />
+          <OrbitControls makeDefault target={cam.target} enableDamping minDistance={1.5} maxDistance={350} />
           <SpatialViewport {...args}>
-            <PlanetBody name="Earth" classification="terrestrial" radius={1.8} />
+            <PlanetBody name="Earth" classification="terrestrial" radius={1.0} minPixelSize={24} fadeRange={16} />
           </SpatialViewport>
         </Canvas>
       </div>
