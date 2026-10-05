@@ -254,7 +254,7 @@ export class CelestialOcclusionManager {
       if (!fp.worldPos) continue;
       this.scratchVec.set(fp.worldPos[0], fp.worldPos[1], fp.worldPos[2]);
       const camDist = camera.position.distanceTo(this.scratchVec);
-      const ndc = this.scratchVec.project(camera);
+      const ndc = this.scratchVec.project(camera); // Note: .project() mutates scratchVec in-place
       const isBehind = ndc.z > 1.0;
       fp.screenX = (ndc.x * 0.5 + 0.5) * size.width;
       fp.screenY = (-ndc.y * 0.5 + 0.5) * size.height;
