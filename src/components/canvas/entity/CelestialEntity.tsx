@@ -159,41 +159,44 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     ];
   }, [resolvedPrimaryPos.x, resolvedPrimaryPos.y, resolvedPrimaryPos.z, resolvedPos.x, resolvedPos.y, resolvedPos.z]);
 
-  // Register in SpatialEntityStore on mount, unregister on unmount
+  // Unregister entity from SpatialEntityStore on unmount or id change
   useEffect(() => {
-    storeApi.getState().registerEntity({
-      id,
-      name,
-      position: resolvedPos,
-      classification,
-      state: explicitState,
-      spectralType,
-      multiplicity,
-      planets,
-      velocity,
-      orbit,
-      reticleSize,
-    });
-
     return () => {
       storeApi.getState().unregisterEntity(id);
     };
   }, [storeApi, id]);
 
-  // Synchronize prop changes to SpatialEntityStore cleanly via standard dependency array
+  // Synchronize entity registration and prop changes to SpatialEntityStore cleanly
   useEffect(() => {
-    storeApi.getState().updateEntity(id, {
-      name,
-      position: resolvedPos,
-      classification,
-      state: explicitState,
-      spectralType,
-      multiplicity,
-      planets,
-      velocity,
-      orbit,
-      reticleSize,
-    });
+    const store = storeApi.getState();
+    if (!store.entities[id]) {
+      store.registerEntity({
+        id,
+        name,
+        position: resolvedPos,
+        classification,
+        state: explicitState,
+        spectralType,
+        multiplicity,
+        planets,
+        velocity,
+        orbit,
+        reticleSize,
+      });
+    } else {
+      store.updateEntity(id, {
+        name,
+        position: resolvedPos,
+        classification,
+        state: explicitState,
+        spectralType,
+        multiplicity,
+        planets,
+        velocity,
+        orbit,
+        reticleSize,
+      });
+    }
   }, [
     id,
     name,
