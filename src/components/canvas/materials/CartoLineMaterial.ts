@@ -10,9 +10,9 @@ import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
  */
 export const CARTO_LINE_CONSTANTS = {
   /** Screen-space dash length in pixels */
-  dashSize: 8.0,
+  dashSize: 14.0,
   /** Screen-space gap length in pixels */
-  gapSize: 5.0,
+  gapSize: 8.0,
   /** Screen-space dot length in pixels for stipple dotted lines */
   dotSize: 2.0,
   /** Screen-space gap length in pixels for stipple dotted lines */
@@ -340,7 +340,9 @@ export function createCartoLineMesh(
   if (width > 1.0) {
     const geom = createCartoLineGeometry(points);
     const mat = new CartoLineMaterial(params);
-    return new Line2(geom, mat);
+    const mesh = new Line2(geom, mat);
+    mesh.computeLineDistances();
+    return mesh;
   }
 
   const bufGeom = new THREE.BufferGeometry();
@@ -385,7 +387,9 @@ export function createCartoLineSegmentsMesh(
   if (width > 1.0) {
     const geom = createCartoLineSegmentsGeometry(segments);
     const mat = new CartoLineMaterial(params);
-    return new LineSegments2(geom, mat);
+    const mesh = new LineSegments2(geom, mat);
+    mesh.computeLineDistances();
+    return mesh;
   }
 
   const bufGeom = new THREE.BufferGeometry();

@@ -630,9 +630,10 @@ export class CelestialOcclusionManager {
   }
 
   /**
-   * Interactive Hit-Testing Fan-Out (Spec 2.2):
+   * Interactive Hit-Testing Collision Avoidance (Spec 2.2):
    * When systems overlap in screen space, underlying interactive hit-testing areas
-   * invisibly fan out radially around the cluster centroid without moving the graphics.
+   * move outward from the collision space (repelling away from colliding neighbors)
+   * so users can effortlessly click and select overlapping nodes without the graphics moving.
    */
   public evaluateHitAreaOffset(nodeId: string, outOffset?: { x: number; y: number }): { x: number; y: number } {
     const offset = outOffset ?? this.scratchHitOffset;
@@ -644,14 +645,14 @@ export class CelestialOcclusionManager {
 
     this.ensureGrid();
     const cluster: CelestialFootprint[] = [];
-    const searchRadius = target.reticleRadius * 2.0;
+    const searchRadius = target.reticleRadius * 2.5;
 
     this.grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
       if (!other.visible) return;
       const dx = target.screenX - other.screenX;
       const dy = target.screenY - other.screenY;
       const dist = Math.hypot(dx, dy);
-      const threshold = Math.max(target.reticleRadius, other.reticleRadius) * 0.8;
+      const threshold = Math.max(target.reticleRadius, other.reticleRadius) * 0.9;
       if (dist <= threshold) {
         cluster.push(other);
       }
@@ -661,12 +662,34 @@ export class CelestialOcclusionManager {
       return offset;
     }
 
-    cluster.sort((a, b) => a.id.localeCompare(b.id));
+    // 1. Calculate the centroid of the collision space
+    let centroidX = 0;
+    let centroidY = 0;
+    for (let i = 0; i < cluster.length; i++) {
+      centroidX += cluster[i].screenX;
+      centroidY += cluster[i].screenY;
+    }
+    centroidX /= cluster.length;
+    centroidY /= cluster.length;
+
+    // 2. Sort the cluster by polar angle from the collision centroid with ID tie-breaking
+    cluster.sort((a, b) => {
+      const angleA = Math.atan2(a.screenY - centroidY, a.screenX - centroidX);
+      const angleB = Math.atan2(b.screenY - centroidY, b.screenX - centroidX);
+      const diff = angleA - angleB;
+      if (Math.abs(diff) > 1e-4) return diff;
+      return a.id.localeCompare(b.id);
+    });
+
     const index = cluster.findIndex((fp) => fp.id === nodeId);
     if (index === -1) return offset;
 
-    const angle = (2 * Math.PI * index) / cluster.length;
-    const fanRadius = target.reticleRadius * 0.45;
+    // 3. Determine base angle pointing outward from collision space
+    const baseAngle = Math.atan2(cluster[0].screenY - centroidY, cluster[0].screenX - centroidX);
+    const angle = baseAngle + (2 * Math.PI * index) / cluster.length;
+
+    // Displacement magnitude: clears the hit area outward from the collision zone
+    const fanRadius = target.reticleRadius * 0.85;
     offset.x = fanRadius * Math.cos(angle);
     offset.y = fanRadius * Math.sin(angle);
     return offset;

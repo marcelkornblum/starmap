@@ -107,7 +107,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
     if (fp && fp.screenX !== undefined && fp.screenY !== undefined) {
       const estimatedW = name.length * 8 + 12;
       const w = labelDimensionsRef.current.width > 0 ? labelDimensionsRef.current.width : estimatedW;
-      const h = labelDimensionsRef.current.height > 0 ? labelDimensionsRef.current.height : 18;
+      const h = labelDimensionsRef.current.height > 0 ? labelDimensionsRef.current.height : (isAnnotated && spectralType ? 38 : 18);
       const anchorX = fp.screenX + 1.15 * fp.reticleRadius;
       const anchorY = fp.screenY - 0.75 * fp.reticleRadius;
       const box = scratchBoxRef.current;
@@ -156,8 +156,6 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
 
   const anchorX = reticleSize * 1.15;
   const anchorY = reticleSize * 0.75;
-  const spectralX = reticleSize * 0.65;
-  const spectralY = -reticleSize * 0.45;
 
   return (
     <group
@@ -168,35 +166,36 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
       position={resolvedPos}
     >
       <group ref={billboardRef}>
-        {/* Top-Right Facet: Typographic Label (System Designation) */}
+        {/* Top-Right Facet: Typographic Label (System Designation) & Facet Badge */}
         <SafeHtml position={[anchorX, anchorY, 0]} data-testid={`entity-label-${id}`}>
           <div
             ref={labelRef}
-            className={styles.nodeLabel}
+            className={styles.labelCluster}
             data-state={state}
             data-occluded="false"
             data-testid={`entity-label-inner-${id}`}
             style={offset ? { transform: `translate3d(${offset[0]}px, ${offset[1]}px, 0)` } : undefined}
           >
-            <svg className={styles.leaderLine} aria-hidden="true">
-              <line ref={leaderLineRef} visibility="hidden" />
-            </svg>
-            <span className={styles.name}>{name}</span>
+            <div className={styles.nodeLabel} data-state={state}>
+              <svg className={styles.leaderLine} aria-hidden="true">
+                <line ref={leaderLineRef} visibility="hidden" />
+              </svg>
+              <span className={styles.name}>{name}</span>
+            </div>
+
+            {/* Facet info: stacked cleanly below the designation without collision */}
+            {isAnnotated && spectralType && (
+              <div
+                className={styles.spectralFacet}
+                data-state={state}
+                data-spectral={formatDesignationTag(spectralType)}
+                data-testid="celestial-spectrum-facet"
+              >
+                <span>{formatDesignationTag(spectralType)}</span>
+              </div>
+            )}
           </div>
         </SafeHtml>
-
-        {/* Bottom-Right Facet: Solar Spectrum Type (tight to reticle when annotated) */}
-        {isAnnotated && spectralType && (
-          <SafeHtml position={[spectralX, spectralY, 0]} data-testid="celestial-spectrum-facet">
-            <div
-              className={styles.spectralFacet}
-              data-state={state}
-              data-spectral={formatDesignationTag(spectralType)}
-            >
-              <span>{formatDesignationTag(spectralType)}</span>
-            </div>
-          </SafeHtml>
-        )}
       </group>
     </group>
   );

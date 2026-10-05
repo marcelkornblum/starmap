@@ -78,7 +78,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
       const invScale = (camDist / 16.47) * fovFactor;
 
       const rSize = reticleSize ?? DEFAULT_RETICLE_SIZE;
-      const effectiveHitRadius = (hitRadius ?? (rSize * 1.35)) * invScale;
+      const effectiveHitRadius = (hitRadius ?? rSize) * invScale;
       hitareaRef.current.scale.set(effectiveHitRadius, effectiveHitRadius, 1);
 
       // Interactive Hit-Testing Fan-Out (Spec 2.2):
@@ -126,7 +126,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
               onPointerOut(id, e);
             } : undefined}
           >
-            <circleGeometry args={[0.5, 16]} />
+            <circleGeometry args={[1.0, 32]} />
             {debugHitarea ? (
               <meshBasicMaterial
                 color={0x00ffcc}

@@ -1,9 +1,14 @@
 import React, { useMemo, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { rotateToOrbitalPlane, DEG_TO_RADIANS } from '../../../utils/astroMath';
-import { ScreenSpaceLineMaterial } from '../cartography/ScreenSpaceLineMaterial';
+import {
+  CartoLineMaterial,
+  CARTO_LINE_CONSTANTS,
+} from '../materials/CartoLineMaterial';
 import type { CelestialInteractionState } from './types';
 
 export interface OrbitPathProps {
@@ -99,10 +104,8 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     }
 
     rotateToOrbitalPlane(loopBuffer, inclination, ascendingNode, { degrees: true });
-    const orbitGeom = new THREE.BufferGeometry();
-    orbitGeom.setAttribute('position', new THREE.BufferAttribute(loopBuffer, 3));
-    orbitGeom.setAttribute('lineDistance', new THREE.BufferAttribute(distBuffer, 1));
-    orbitGeom.computeBoundingSphere();
+    const orbitLineGeom = new LineGeometry();
+    orbitLineGeom.setPositions(loopBuffer);
 
     // Periapsis tick geometry
     let tickGeom: THREE.BufferGeometry | null = null;
@@ -126,7 +129,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       tickGeom.computeBoundingSphere();
     }
 
-    // Direction indicator chevron geometry
+    // Direction indicator chevron geometry: sleek swept dart matching ScreenEdgeCue
     let dirGeom: THREE.BufferGeometry | null = null;
     if (showDirectionIndicator) {
       const theta = Math.PI / 2;
@@ -140,44 +143,62 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       const rotTangentY = tangent.x * Math.sin(omegaRad) + tangent.y * Math.cos(omegaRad);
       const normalX = -rotTangentY;
       const normalY = rotTangentX;
-      const arrowSize = Math.max(0.05, a * 0.035);
+      const arrowSize = Math.max(0.06, a * 0.04);
 
-      const tipX = xRot + rotTangentX * arrowSize;
-      const tipY = yRot + rotTangentY * arrowSize;
-      const leftX = xRot - rotTangentX * arrowSize * 0.5 + normalX * arrowSize * 0.5;
-      const leftY = yRot - rotTangentY * arrowSize * 0.5 + normalY * arrowSize * 0.5;
-      const rightX = xRot - rotTangentX * arrowSize * 0.5 - normalX * arrowSize * 0.5;
-      const rightY = yRot - rotTangentY * arrowSize * 0.5 - normalY * arrowSize * 0.5;
+      // Tight swept dart geometry matching ScreenEdgeCue (tip, wings, and notched crotch)
+      const tipX = xRot + rotTangentX * (arrowSize * 0.65);
+      const tipY = yRot + rotTangentY * (arrowSize * 0.65);
+      const leftX = xRot - rotTangentX * (arrowSize * 0.45) + normalX * (arrowSize * 0.35);
+      const leftY = yRot - rotTangentY * (arrowSize * 0.45) + normalY * (arrowSize * 0.35);
+      const rightX = xRot - rotTangentX * (arrowSize * 0.45) - normalX * (arrowSize * 0.35);
+      const rightY = yRot - rotTangentY * (arrowSize * 0.45) - normalY * (arrowSize * 0.35);
+      const notchX = xRot - rotTangentX * (arrowSize * 0.15);
+      const notchY = yRot - rotTangentY * (arrowSize * 0.15);
 
       const dirBuffer = new Float32Array([
+        // Triangle 1: Tip -> Left -> Notch
+        tipX, tipY, 0,
         leftX, leftY, 0,
+        notchX, notchY, 0,
+        // Triangle 2: Tip -> Notch -> Right
         tipX, tipY, 0,
-        tipX, tipY, 0,
+        notchX, notchY, 0,
         rightX, rightY, 0,
       ]);
 
       rotateToOrbitalPlane(dirBuffer, inclination, ascendingNode, { degrees: true });
       dirGeom = new THREE.BufferGeometry();
       dirGeom.setAttribute('position', new THREE.BufferAttribute(dirBuffer, 3));
+      dirGeom.computeVertexNormals();
       dirGeom.computeBoundingSphere();
     }
 
     return {
-      orbitGeometry: orbitGeom,
+      orbitGeometry: orbitLineGeom,
       tickGeometry: tickGeom,
       directionGeometry: dirGeom,
     };
   }, [semiMajorAxis, eccentricity, inclination, ascendingNode, argumentOfPeriapsis, segments, showPeriapsisTick, showDirectionIndicator]);
 
   const lineMat = useMemo(() => {
-    return new ScreenSpaceLineMaterial({
+    return new CartoLineMaterial({
       color: resolvedColor,
       opacity: resolvedAlpha,
+      lineWidth: 2.0,
       lineStyle: lineStyle ?? orbitStyle ?? 'dashed',
+      dashSize: CARTO_LINE_CONSTANTS.dashSize,
+      gapSize: CARTO_LINE_CONSTANTS.gapSize,
       transparent: true,
       depthWrite: false,
     });
   }, [resolvedColor, resolvedAlpha, lineStyle, orbitStyle]);
+
+  const lineMesh = useMemo(() => {
+    const mesh = new Line2(orbitGeometry, lineMat);
+    mesh.computeLineDistances();
+    mesh.frustumCulled = false;
+    return mesh;
+  }, [orbitGeometry, lineMat]);
 
   useEffect(() => {
     return () => {
@@ -190,7 +211,9 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
 
   useFrame(({ camera, size }) => {
     if (!shouldRender) return;
-    lineMat.updateResolution(camera, size.height);
+    lineMat.updateResolution(camera, size.width, size.height);
+    lineMat.setColor(resolvedColor);
+    lineMat.setOpacity(resolvedAlpha);
   });
 
   if (!shouldRender) return null;
@@ -202,10 +225,10 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       name={`orbital-ring-${id}`}
       data-state-forced={String(!layerVisible && isStateElevated)}
     >
-      {/* 3D Keplerian Ellipse Line */}
-      <lineLoop name="orbit-path-line" material={lineMat}>
-        <primitive object={orbitGeometry} attach="geometry" />
-      </lineLoop>
+      {/* 3D Keplerian Ellipse Line (Screen-Space Invariant Dashed 2px Line) */}
+      <group name="orbit-path-line">
+        <primitive object={lineMesh} />
+      </group>
 
       {/* Periapsis Indicator Tick */}
       {showPeriapsisTick && tickGeometry && (
@@ -220,17 +243,18 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
         </lineSegments>
       )}
 
-      {/* Prograde Direction Arrow Chevron */}
+      {/* Prograde Direction Arrow Chevron (Sleek filled dart matching ScreenEdgeCue) */}
       {showDirectionIndicator && directionGeometry && (
-        <lineSegments name="orbit-direction-arrow">
+        <mesh name="orbit-direction-arrow">
           <primitive object={directionGeometry} attach="geometry" />
-          <lineBasicMaterial
+          <meshBasicMaterial
             color={resolvedColor}
             opacity={resolvedAlpha}
+            side={THREE.DoubleSide}
             transparent
             depthWrite={false}
           />
-        </lineSegments>
+        </mesh>
       )}
     </group>
   );

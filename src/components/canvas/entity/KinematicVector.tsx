@@ -1,8 +1,13 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
-import { populateDashedLineBuffer } from '../cartography/cartographyMath';
+import {
+  CartoLineMaterial,
+  CARTO_LINE_CONSTANTS,
+} from '../materials/CartoLineMaterial';
 import type { CelestialInteractionState } from './types';
 
 export interface KinematicVectorProps {
@@ -18,7 +23,7 @@ export interface KinematicVectorProps {
  * KinematicVector (§5: Projected Kinematic Velocity Vectors):
  * Renders a projected dotted/dashed velocity vector line to a fixed time delta Δt:
  * p(t + Δt) = p(t) + v * Δt.
- * Uses semantic kinematic color and perspective-invariant dashed line styling.
+ * Uses semantic kinematic color and perspective-invariant dashed line styling matching OrbitPath.
  */
 export const KinematicVector: React.FC<KinematicVectorProps> = ({
   id,
@@ -32,16 +37,14 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
   const kinematicAlpha = useThreeTokenStore((s) => s.tokens.kinematicAlpha);
 
   const groupRef = useRef<THREE.Group>(null);
-  const lineMeshRef = useRef<THREE.LineSegments>(null);
-  const lineMatRef = useRef<THREE.LineBasicMaterial>(null);
   const terminusRef = useRef<THREE.Mesh>(null);
   const terminusMatRef = useRef<THREE.MeshBasicMaterial>(null);
 
   // Render if explicitly visible or when entity is selected/focused and velocity is defined
   const isEnabled = explicitVisible ?? (state === 'selected' || state === 'focused');
 
-  const [p0, p1, dir, dist, hasVelocity] = useMemo(() => {
-    if (!velocity) return [null, null, null, 0, false];
+  const [p0, p1, dir, hasVelocity] = useMemo(() => {
+    if (!velocity) return [null, null, null, false];
 
     const posX = position instanceof THREE.Vector3 ? position.x : position[0];
     const posY = position instanceof THREE.Vector3 ? position.y : position[1];
@@ -52,7 +55,7 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
     const velZ = velocity instanceof THREE.Vector3 ? velocity.z : velocity[2];
 
     const speedSq = velX * velX + velY * velY + velZ * velZ;
-    if (speedSq < 1e-6) return [null, null, null, 0, false];
+    if (speedSq < 1e-6) return [null, null, null, false];
 
     const start = new THREE.Vector3(posX, posY, posZ);
     const end = new THREE.Vector3(
@@ -63,53 +66,54 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
     const distance = start.distanceTo(end);
     const direction = new THREE.Vector3().subVectors(end, start).divideScalar(distance);
 
-    return [start, end, direction, distance, true];
+    return [start, end, direction, true];
   }, [position, velocity, deltaTime]);
 
-  const lineBuffer = useMemo(() => new Float32Array(3000), []);
-  const lineGeom = useMemo(() => {
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute('position', new THREE.BufferAttribute(lineBuffer, 3));
-    return geom;
-  }, [lineBuffer]);
+  const lineGeom = useMemo(() => new LineGeometry(), []);
+  const lineMat = useMemo(() => {
+    return new CartoLineMaterial({
+      color: kinematicColor,
+      opacity: kinematicAlpha,
+      lineWidth: 2.0,
+      lineStyle: 'dashed',
+      dashSize: CARTO_LINE_CONSTANTS.dashSize,
+      gapSize: CARTO_LINE_CONSTANTS.gapSize,
+      transparent: true,
+      depthWrite: false,
+    });
+  }, [kinematicColor, kinematicAlpha]);
+
+  const lineMesh = useMemo(() => {
+    const mesh = new Line2(lineGeom, lineMat);
+    mesh.frustumCulled = false;
+    return mesh;
+  }, [lineGeom, lineMat]);
+
+  useEffect(() => {
+    if (!p0 || !p1) return;
+    lineGeom.setPositions([p0.x, p0.y, p0.z, p1.x, p1.y, p1.z]);
+    lineMesh.computeLineDistances();
+  }, [p0, p1, lineGeom, lineMesh]);
 
   useEffect(() => {
     return () => {
       lineGeom.dispose();
+      lineMat.dispose();
     };
-  }, [lineGeom]);
+  }, [lineGeom, lineMat]);
 
-  const scratchDirArr = useRef<[number, number, number]>([0, 0, 0]);
-
-  useFrame(({ camera }) => {
+  useFrame(({ camera, size }) => {
     if (!isEnabled || !hasVelocity || !p0 || !p1 || !dir) return;
+
+    lineMat.updateResolution(camera, size.width, size.height);
+    lineMat.setColor(kinematicColor);
+    lineMat.setOpacity(kinematicAlpha);
 
     const camDist = Math.max(camera.position.distanceTo(p0), 1e-4);
     const fovFactor = camera instanceof THREE.PerspectiveCamera
       ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
       : 1.0;
     const invScale = (camDist / 16.47) * fovFactor;
-
-    const dirArr = scratchDirArr.current;
-    dirArr[0] = dir.x;
-    dirArr[1] = dir.y;
-    dirArr[2] = dir.z;
-
-    const vCount = populateDashedLineBuffer(
-      lineBuffer,
-      dist,
-      dirArr,
-      0.18 * invScale,
-      0.12 * invScale,
-    );
-    const posAttr = lineGeom.getAttribute('position') as THREE.BufferAttribute;
-    posAttr.needsUpdate = true;
-    lineGeom.setDrawRange(0, vCount);
-
-    if (lineMatRef.current) {
-      lineMatRef.current.color.copy(kinematicColor);
-      lineMatRef.current.opacity = kinematicAlpha;
-    }
 
     if (terminusRef.current) {
       terminusRef.current.scale.set(invScale, invScale, invScale);
@@ -124,22 +128,10 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
 
   return (
     <group ref={groupRef} name={`kinematic-vector-${id}`}>
-      {/* Projected Velocity Vector Line (3D dashes with invariant screen scale) */}
-      <lineSegments
-        ref={lineMeshRef}
-        position={p0}
-        name="velocity-vector-line"
-        frustumCulled={false}
-      >
-        <primitive object={lineGeom} attach="geometry" />
-        <lineBasicMaterial
-          ref={lineMatRef}
-          color={kinematicColor}
-          opacity={kinematicAlpha}
-          transparent
-          depthWrite={false}
-        />
-      </lineSegments>
+      {/* Projected Velocity Vector Line (Screen-Space Invariant Dashed 2px Line) */}
+      <group name="velocity-vector-line">
+        <primitive object={lineMesh} />
+      </group>
 
       {/* Terminus Waypoint Pip */}
       <mesh ref={terminusRef} position={p1} name="velocity-vector-terminus">

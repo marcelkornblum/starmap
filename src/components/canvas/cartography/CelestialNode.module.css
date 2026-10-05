@@ -125,3 +125,22 @@
   stroke-dasharray: 2 2;
   opacity: 0.8;
 }
+
+.labelCluster {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2xs, 4px);
+  pointer-events: none;
+  user-select: none;
+  position: relative;
+  transition: opacity var(--motion-duration-interactive) var(--motion-ease-default),
+              transform var(--motion-duration-interactive) var(--motion-ease-default);
+}
+
+.labelCluster[data-occluded="true"] {
+  opacity: var(--chrome-node-label-opacity-occluded);
+  pointer-events: none;
+  visibility: hidden;
+}
+

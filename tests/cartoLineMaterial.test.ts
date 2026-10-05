@@ -15,8 +15,8 @@ import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 describe('CartoLineMaterial & CartoHairlineMaterial', () => {
   describe('CARTO_LINE_CONSTANTS', () => {
     it('defines standard cartographic screen-space line dimensions', () => {
-      expect(CARTO_LINE_CONSTANTS.dashSize).toBe(8.0);
-      expect(CARTO_LINE_CONSTANTS.gapSize).toBe(5.0);
+      expect(CARTO_LINE_CONSTANTS.dashSize).toBe(14.0);
+      expect(CARTO_LINE_CONSTANTS.gapSize).toBe(8.0);
       expect(CARTO_LINE_CONSTANTS.dotSize).toBe(2.0);
       expect(CARTO_LINE_CONSTANTS.dotGap).toBe(4.0);
       expect(CARTO_LINE_CONSTANTS.hairlineWidth).toBe(1.0);
