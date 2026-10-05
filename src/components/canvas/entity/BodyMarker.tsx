@@ -65,10 +65,10 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   const billboardRef = useRef<THREE.Group>(null);
   const groupRef = useRef<THREE.Group>(null);
 
+  const [posX, posY, posZ] = position instanceof THREE.Vector3 ? [position.x, position.y, position.z] : position;
   const resolvedPos = React.useMemo(() => {
-    if (position instanceof THREE.Vector3) return position;
-    return new THREE.Vector3(position[0], position[1], position[2]);
-  }, [position]);
+    return new THREE.Vector3(posX, posY, posZ);
+  }, [posX, posY, posZ]);
 
   useFrame(({ camera, size }) => {
     if (!markerRef.current || !groupRef.current) return;

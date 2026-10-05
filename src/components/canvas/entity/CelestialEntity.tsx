@@ -89,27 +89,45 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     return ent?.position ?? null;
   });
 
+  // Extract scalar coordinates to ensure robust memoization against literal reference changes
+  const pEntX = primaryEntityPos ? (primaryEntityPos instanceof THREE.Vector3 ? primaryEntityPos.x : primaryEntityPos[0]) : null;
+  const pEntY = primaryEntityPos ? (primaryEntityPos instanceof THREE.Vector3 ? primaryEntityPos.y : primaryEntityPos[1]) : null;
+  const pEntZ = primaryEntityPos ? (primaryEntityPos instanceof THREE.Vector3 ? primaryEntityPos.z : primaryEntityPos[2]) : null;
+
+  const orbPrimX = orbit?.primaryPosition ? (orbit.primaryPosition instanceof THREE.Vector3 ? orbit.primaryPosition.x : orbit.primaryPosition[0]) : null;
+  const orbPrimY = orbit?.primaryPosition ? (orbit.primaryPosition instanceof THREE.Vector3 ? orbit.primaryPosition.y : orbit.primaryPosition[1]) : null;
+  const orbPrimZ = orbit?.primaryPosition ? (orbit.primaryPosition instanceof THREE.Vector3 ? orbit.primaryPosition.z : orbit.primaryPosition[2]) : null;
+
   const resolvedPrimaryPos = useMemo<THREE.Vector3>(() => {
-    if (primaryEntityPos) {
-      if (primaryEntityPos instanceof THREE.Vector3) return primaryEntityPos;
-      return new THREE.Vector3(primaryEntityPos[0], primaryEntityPos[1], primaryEntityPos[2]);
+    if (pEntX !== null && pEntY !== null && pEntZ !== null) {
+      return new THREE.Vector3(pEntX, pEntY, pEntZ);
     }
-    if (orbit?.primaryPosition) {
-      if (orbit.primaryPosition instanceof THREE.Vector3) return orbit.primaryPosition;
-      return new THREE.Vector3(orbit.primaryPosition[0], orbit.primaryPosition[1], orbit.primaryPosition[2]);
+    if (orbPrimX !== null && orbPrimY !== null && orbPrimZ !== null) {
+      return new THREE.Vector3(orbPrimX, orbPrimY, orbPrimZ);
     }
     return new THREE.Vector3(0, 0, 0);
-  }, [primaryEntityPos, orbit?.primaryPosition]);
+  }, [pEntX, pEntY, pEntZ, orbPrimX, orbPrimY, orbPrimZ]);
+
+  const rawPosX = position ? (position instanceof THREE.Vector3 ? position.x : position[0]) : null;
+  const rawPosY = position ? (position instanceof THREE.Vector3 ? position.y : position[1]) : null;
+  const rawPosZ = position ? (position instanceof THREE.Vector3 ? position.z : position[2]) : null;
+
+  const orbitA = orbit?.semiMajorAxis;
+  const orbitE = orbit?.eccentricity ?? 0;
+  const orbitInc = orbit?.inclination ?? 0;
+  const orbitNode = orbit?.ascendingNode ?? 0;
+  const orbitPeri = orbit?.argumentOfPeriapsis ?? 0;
+  const orbitM = orbit?.meanAnomaly;
 
   const resolvedPos = useMemo(() => {
-    if (orbit && (orbit.meanAnomaly !== undefined || position === undefined)) {
+    if (orbitA !== undefined && (orbitM !== undefined || rawPosX === null)) {
       const [ox, oy, oz] = calculateKeplerianPosition(
-        orbit.semiMajorAxis,
-        orbit.eccentricity ?? 0,
-        orbit.inclination ?? 0,
-        orbit.ascendingNode ?? 0,
-        orbit.argumentOfPeriapsis ?? 0,
-        orbit.meanAnomaly ?? 0,
+        orbitA,
+        orbitE,
+        orbitInc,
+        orbitNode,
+        orbitPeri,
+        orbitM ?? 0,
       );
       return new THREE.Vector3(
         resolvedPrimaryPos.x + ox,
@@ -117,29 +135,33 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
         resolvedPrimaryPos.z + oz,
       );
     }
-    if (position instanceof THREE.Vector3) return position;
-    if (Array.isArray(position)) return new THREE.Vector3(position[0], position[1], position[2]);
+    if (rawPosX !== null && rawPosY !== null && rawPosZ !== null) {
+      return new THREE.Vector3(rawPosX, rawPosY, rawPosZ);
+    }
     return new THREE.Vector3(0, 0, 0);
-  }, [position, orbit, resolvedPrimaryPos]);
+  }, [rawPosX, rawPosY, rawPosZ, orbitA, orbitE, orbitInc, orbitNode, orbitPeri, orbitM, resolvedPrimaryPos]);
+
+  const velX = velocity ? (velocity instanceof THREE.Vector3 ? velocity.x : velocity[0]) : null;
+  const velY = velocity ? (velocity instanceof THREE.Vector3 ? velocity.y : velocity[1]) : null;
+  const velZ = velocity ? (velocity instanceof THREE.Vector3 ? velocity.z : velocity[2]) : null;
 
   const resolvedVelocity = useMemo(() => {
-    if (velocity) {
-      if (velocity instanceof THREE.Vector3) return velocity;
-      return new THREE.Vector3(velocity[0], velocity[1], velocity[2]);
+    if (velX !== null && velY !== null && velZ !== null) {
+      return new THREE.Vector3(velX, velY, velZ);
     }
-    if (orbit && orbit.meanAnomaly !== undefined) {
+    if (orbitA !== undefined && orbitM !== undefined) {
       const [vx, vy, vz] = calculateKeplerianVelocity(
-        orbit.semiMajorAxis,
-        orbit.eccentricity ?? 0,
-        orbit.inclination ?? 0,
-        orbit.ascendingNode ?? 0,
-        orbit.argumentOfPeriapsis ?? 0,
-        orbit.meanAnomaly ?? 0,
+        orbitA,
+        orbitE,
+        orbitInc,
+        orbitNode,
+        orbitPeri,
+        orbitM,
       );
       return new THREE.Vector3(vx, vy, vz);
     }
     return undefined;
-  }, [velocity, orbit]);
+  }, [velX, velY, velZ, orbitA, orbitE, orbitInc, orbitNode, orbitPeri, orbitM]);
 
   const orbitOffset = useMemo<[number, number, number]>(() => {
     const ox = resolvedPrimaryPos.x - resolvedPos.x;
@@ -150,7 +172,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
       Math.abs(oy) < 1e-6 ? 0 : Number(oy.toFixed(6)),
       Math.abs(oz) < 1e-6 ? 0 : Number(oz.toFixed(6)),
     ];
-  }, [resolvedPrimaryPos, resolvedPos]);
+  }, [resolvedPrimaryPos.x, resolvedPrimaryPos.y, resolvedPrimaryPos.z, resolvedPos.x, resolvedPos.y, resolvedPos.z]);
 
   // Register in SpatialEntityStore on mount, unregister on unmount
   useEffect(() => {
@@ -296,6 +318,12 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
 
   useFrame(({ camera, size }) => {
     if (!enableOcclusion) return;
+
+    // Batch Occlusion Optimization: If OcclusionPass is evaluating projections in a single batch pass,
+    // skip duplicate per-entity projection matrix multiplications.
+    if (celestialOcclusionManager.isBatchEvaluating()) {
+      return;
+    }
 
     scratchWorldPosRef.current.copy(resolvedPos);
     const camDist = Math.max(camera.position.distanceTo(scratchWorldPosRef.current), 1e-4);

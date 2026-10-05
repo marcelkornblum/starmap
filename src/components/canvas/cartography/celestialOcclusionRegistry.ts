@@ -236,11 +236,20 @@ export class CelestialOcclusionManager {
   };
   private scratchHitOffset: { x: number; y: number } = { x: 0, y: 0 };
   private scratchVec = new THREE.Vector3();
+  public lastEvaluationTime = 0;
+
+  /**
+   * Returns true if a centralized batch pass (e.g. OcclusionPass) is actively evaluating projections.
+   */
+  public isBatchEvaluating(): boolean {
+    return performance.now() - this.lastEvaluationTime < 250;
+  }
 
   /**
    * Batch evaluate dynamic screen projections for all registered footprints.
    */
   public evaluate(camera: THREE.Camera, size: { width: number; height: number }): void {
+    this.lastEvaluationTime = performance.now();
     for (const fp of this.footprints.values()) {
       if (!fp.worldPos) continue;
       this.scratchVec.set(fp.worldPos[0], fp.worldPos[1], fp.worldPos[2]);
@@ -251,6 +260,7 @@ export class CelestialOcclusionManager {
       fp.screenY = (-ndc.y * 0.5 + 0.5) * size.height;
       fp.camDist = camDist;
       fp.visible = !isBehind;
+      fp.updatedAt = this.lastEvaluationTime;
 
       // Dynamic screen-space footprint calculations
       const reticleWorldSize = fp.reticleSize ?? DEFAULT_RETICLE_SIZE;

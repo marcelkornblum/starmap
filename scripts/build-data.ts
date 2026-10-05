@@ -20,8 +20,8 @@ import {
   formatSectorId,
   getSectorBounds,
   DEFAULT_SECTOR_SIZE_PC,
+  classifyPlanetPhysical,
 } from '../src/utils/astroMath';
-import { classifyPlanetPhysical } from '../src/components/canvas/math/astronomy';
 import {
   OFFICIAL_IAU_STAR_NAMES,
   RECONS_10PC_SUPPLEMENT,
