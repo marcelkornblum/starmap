@@ -20,6 +20,7 @@ import {
   formatSectorId,
   getSectorBounds,
   DEFAULT_SECTOR_SIZE_PC,
+  classifyPlanetPhysical,
 } from '../src/utils/astroMath';
 import {
   OFFICIAL_IAU_STAR_NAMES,
@@ -617,6 +618,27 @@ export function checkHabitableCandidate(planets: ExoplanetRecord[], starLum?: nu
 }
 
 /**
+ * Classifies an exoplanet into a census category based on physical metrics:
+ * - Terrestrial: Rp <= 1.75 R_earth or Mp <= 10 M_earth
+ * - Ice Giant: 1.75 R_earth < Rp <= 6.0 R_earth or 10 M_earth < Mp <= 50 M_earth
+ * - Gas Giant: Rp > 6.0 R_earth or Mp > 50 M_earth
+ */
+export function classifyExoplanet(planet: ExoplanetRecord): 'terrestrial' | 'gas-giant' | 'ice-giant' {
+  return classifyPlanetPhysical(planet);
+}
+
+/**
+ * Computes the census categories of present exoplanets for a planetary system.
+ */
+export function getPlanetCensus(planets: ExoplanetRecord[]): ('terrestrial' | 'gas-giant' | 'ice-giant')[] | undefined {
+  if (planets.length === 0) return undefined;
+  const present = (['terrestrial', 'gas-giant', 'ice-giant'] as const).filter((cat) =>
+    planets.some((p) => classifyExoplanet(p) === cat)
+  );
+  return present.length > 0 ? present : undefined;
+}
+
+/**
  * Transforms a StarmapNode into a collapsed SystemSummaryNode with spatial sector tags,
  * variability flags, and attached exoplanetary metrics.
  */
@@ -648,6 +670,10 @@ export function starNodeToSystemSummary(
   const planetCount = isSol ? 8 : planets.length;
   const hasHabitable = isSol ? true : checkHabitableCandidate(planets, star.lum);
 
+  const planetCensus = isSol
+    ? (['terrestrial', 'gas-giant', 'ice-giant'] as ('terrestrial' | 'gas-giant' | 'ice-giant')[])
+    : getPlanetCensus(planets);
+
   if (planetCount > 0) {
     tags.push('ExoplanetHost');
   }
@@ -670,6 +696,7 @@ export function starNodeToSystemSummary(
     ci: star.ci,
     starCount: 1,
     planetCount,
+    planetCensus,
     hasHabitableCandidate: hasHabitable,
     sectorId,
     tags: tags.length > 0 ? tags : undefined,
@@ -1243,6 +1270,7 @@ export async function buildCsvDataPipeline(
             spect: recons.spect,
             starCount: recons.starCount,
             planetCount: matchedPlanets.length,
+            planetCensus: getPlanetCensus(matchedPlanets),
             hasHabitableCandidate: matchedPlanets.length > 0,
             sectorId: rSectorId,
             tags: ['SolarNeighborhood10pc', 'RECONSGroundTruth', ...(matchedPlanets.length > 0 ? ['ExoplanetHost'] : [])],
@@ -1556,6 +1584,7 @@ export async function buildGaiaDataPipeline(
       ci: 0.656,
       starCount: 1,
       planetCount: 8,
+      planetCensus: ['terrestrial', 'gas-giant', 'ice-giant'],
       hasHabitableCandidate: true,
       sectorId: 'sector_+000_+000_+000',
       tags: ['HomeSystem', 'SolarNeighborhood10pc', 'NakedEye', 'HabitableHost'],
@@ -1678,6 +1707,7 @@ function round2(n: number): number {
         spect: spect || 'Unknown',
         starCount: 1,
         planetCount: matchedPlanets.length,
+        planetCensus: getPlanetCensus(matchedPlanets),
         hasHabitableCandidate: matchedPlanets.some((p) => (p.esi && p.esi > 0.7) || (p.equilibriumTempK && p.equilibriumTempK >= 200 && p.equilibriumTempK <= 320)),
         sectorId,
       };

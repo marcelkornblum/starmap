@@ -1,3 +1,7 @@
+import * as THREE from 'three';
+import { DEFAULT_RETICLE_SIZE } from './reticleGeometry';
+import { reticleSizeToScreenPx } from '../engineConfig';
+
 /**
  * Celestial Occlusion & Collision Registry
  *
@@ -43,6 +47,7 @@ export interface LabelOcclusionResult {
 
 export interface CelestialFootprint {
   id: string;
+  name?: string;
   state: 'passive' | 'active' | 'selected' | 'focused';
   worldPos?: [number, number, number];
   classification?: string;
@@ -58,6 +63,9 @@ export interface CelestialFootprint {
   hasReticle: boolean;
   labelBox?: Box2D;
   visible: boolean;
+  hitAreaOffsetX?: number;
+  hitAreaOffsetY?: number;
+  hitAreaEvaluatedAt?: number;
   updatedAt: number;
 }
 
@@ -199,6 +207,18 @@ class ScreenSpatialGrid {
   }
 }
 
+const CANDIDATE_MULTIPLIERS = [
+  { x: 0, y: 0 },
+  { x: 0, y: 1.4 },               // Downward displacement
+  { x: 1.25, y: 0 },              // Outward right displacement along leader stem
+  { x: 0, y: -1.4 },              // Upward displacement
+  { x: -1.25, y: 0 },             // Leftward displacement
+  { x: 1.1 * 0.7071, y: 1.1 * 0.7071 },   // Down-right
+  { x: -1.1 * 0.7071, y: 1.1 * 0.7071 },  // Down-left
+  { x: 1.1 * 0.7071, y: -1.1 * 0.7071 },  // Up-right
+  { x: -1.1 * 0.7071, y: -1.1 * 0.7071 }, // Up-left
+] as const;
+
 export class CelestialOcclusionManager {
   private footprints = new Map<string, CelestialFootprint>();
   private significantFootprints: CelestialFootprint[] = [];
@@ -219,6 +239,69 @@ export class CelestialOcclusionManager {
     isDisplaced: false,
   };
   private scratchHitOffset: { x: number; y: number } = { x: 0, y: 0 };
+  private scratchVec = new THREE.Vector3();
+  private scratchCamSpaceVec = new THREE.Vector3();
+  public lastEvaluationTime = 0;
+
+  /**
+   * Returns true if a centralized batch pass (e.g. OcclusionPass) is actively evaluating projections.
+   */
+  public isBatchEvaluating(): boolean {
+    return performance.now() - this.lastEvaluationTime < 250;
+  }
+
+  /**
+   * Batch evaluate dynamic screen projections for all registered footprints.
+   */
+  public evaluate(camera: THREE.Camera, size: { width: number; height: number }): void {
+    this.lastEvaluationTime = performance.now();
+    const zNear = ('near' in camera && typeof camera.near === 'number') ? camera.near : 0.1;
+    for (const fp of this.footprints.values()) {
+      if (!fp.worldPos) continue;
+      this.scratchVec.set(fp.worldPos[0], fp.worldPos[1], fp.worldPos[2]);
+      const camDist = camera.position.distanceTo(this.scratchVec);
+      const isBehind = this.scratchCamSpaceVec.copy(this.scratchVec).applyMatrix4(camera.matrixWorldInverse).z > -zNear;
+      const ndc = this.scratchVec.project(camera); // Note: .project() mutates scratchVec in-place
+      fp.screenX = (ndc.x * 0.5 + 0.5) * size.width;
+      fp.screenY = (-ndc.y * 0.5 + 0.5) * size.height;
+      fp.camDist = camDist;
+      fp.visible = !isBehind;
+      fp.updatedAt = this.lastEvaluationTime;
+
+      // Dynamic screen-space footprint calculations
+      const reticleWorldSize = fp.reticleSize ?? DEFAULT_RETICLE_SIZE;
+      const reticleRadiusPx = reticleSizeToScreenPx(reticleWorldSize, size.height);
+      fp.reticleRadius = reticleRadiusPx;
+      fp.starRadius = Math.max(3, reticleSizeToScreenPx(0.035, size.height));
+
+      // Compute screen-pixel label bounding box
+      const nameLength = fp.name ? fp.name.length : 8;
+      const estimatedW = nameLength * 8 + 14;
+      const estimatedH = 20;
+      const anchorX = fp.screenX + 1.15 * reticleRadiusPx;
+      const anchorY = fp.screenY - 0.75 * reticleRadiusPx;
+
+      if (!fp.labelBox) {
+        fp.labelBox = {
+          left: anchorX,
+          top: anchorY - estimatedH / 2,
+          right: anchorX + estimatedW,
+          bottom: anchorY + estimatedH / 2,
+        };
+      } else {
+        fp.labelBox.left = anchorX;
+        fp.labelBox.top = anchorY - estimatedH / 2;
+        fp.labelBox.right = anchorX + estimatedW;
+        fp.labelBox.bottom = anchorY + estimatedH / 2;
+      }
+
+      fp.updatedAt = performance.now();
+    }
+    this.gridDirty = true;
+    this.ensureGrid();
+    this.updateSignificantFootprints();
+    this.updateHitAreaOffsets();
+  }
 
   private ensureGrid(): void {
     if (!this.gridDirty) return;
@@ -457,11 +540,6 @@ export class CelestialOcclusionManager {
     result.displacementY = 0;
     result.isDisplaced = false;
 
-    if (!labelBox) {
-      result.visible = false;
-      return result;
-    }
-
     const target = this.footprints.get(nodeId);
     if (!target || !target.visible || target.state === 'passive') {
       result.visible = false;
@@ -475,25 +553,27 @@ export class CelestialOcclusionManager {
       return result;
     }
 
+    const box = labelBox ?? target.labelBox;
+    if (!box) {
+      result.visible = true;
+      return result;
+    }
+
     this.ensureGrid();
 
-    // Candidate displacements (Spec 2.3: Screen-Space Displacement along thin 1px leader stems)
+    // Candidate displacements (Spec 2.3: Screen-Space Displacement along 8 radial leader stems)
     const r = target.reticleRadius;
-    const candidates = [
-      { dx: 0, dy: 0 },
-      { dx: 0, dy: r * 1.4 },       // Downward displacement
-      { dx: r * 1.25, dy: 0 },      // Outward right displacement along leader stem
-      { dx: 0, dy: -r * 1.4 },      // Upward displacement
-    ];
-
     const cBox = this.scratchCandidateBox;
 
-    for (let cIdx = 0; cIdx < candidates.length; cIdx++) {
-      const cand = candidates[cIdx];
-      cBox.left = labelBox.left + cand.dx;
-      cBox.top = labelBox.top + cand.dy;
-      cBox.right = labelBox.right + cand.dx;
-      cBox.bottom = labelBox.bottom + cand.dy;
+    for (let cIdx = 0; cIdx < CANDIDATE_MULTIPLIERS.length; cIdx++) {
+      const mult = CANDIDATE_MULTIPLIERS[cIdx];
+      const dx = mult.x * r;
+      const dy = mult.y * r;
+
+      cBox.left = box.left + dx;
+      cBox.top = box.top + dy;
+      cBox.right = box.right + dx;
+      cBox.bottom = box.bottom + dy;
 
       const cCenterX = (cBox.left + cBox.right) * 0.5;
       const cCenterY = (cBox.top + cBox.bottom) * 0.5;
@@ -539,9 +619,9 @@ export class CelestialOcclusionManager {
       // Valid non-colliding placement found
       result.visible = true;
       result.behindCanvas = true;
-      result.displacementX = cand.dx;
-      result.displacementY = cand.dy;
-      result.isDisplaced = cand.dx !== 0 || cand.dy !== 0;
+      result.displacementX = dx;
+      result.displacementY = dy;
+      result.isDisplaced = dx !== 0 || dy !== 0;
       return result;
     }
 
@@ -555,9 +635,92 @@ export class CelestialOcclusionManager {
   }
 
   /**
-   * Interactive Hit-Testing Fan-Out (Spec 2.2):
+   * Pre-calculate and cache hit area fan-out offsets for all visible footprints during the evaluate pass.
+   */
+  private updateHitAreaOffsets(): void {
+    const evalTime = this.lastEvaluationTime > 0 ? this.lastEvaluationTime : performance.now();
+    for (const fp of this.footprints.values()) {
+      if (!fp.visible) {
+        fp.hitAreaOffsetX = 0;
+        fp.hitAreaOffsetY = 0;
+        fp.hitAreaEvaluatedAt = evalTime;
+        continue;
+      }
+      if (fp.hitAreaEvaluatedAt === evalTime) {
+        continue;
+      }
+      this.computeHitAreaOffsetFor(fp, evalTime);
+    }
+  }
+
+  /**
+   * Computes hit area fan-out offsets for a target footprint and its overlapping cluster.
+   */
+  private computeHitAreaOffsetFor(
+    target: CelestialFootprint,
+    evalTime = this.lastEvaluationTime > 0 ? this.lastEvaluationTime : performance.now(),
+  ): void {
+    this.ensureGrid();
+    const cluster: CelestialFootprint[] = [];
+    const searchRadius = target.reticleRadius * 2.5;
+
+    this.grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
+      if (!other.visible) return;
+      const dx = target.screenX - other.screenX;
+      const dy = target.screenY - other.screenY;
+      const dist = Math.hypot(dx, dy);
+      const threshold = Math.max(target.reticleRadius, other.reticleRadius) * 0.9;
+      if (dist <= threshold) {
+        cluster.push(other);
+      }
+    });
+
+    if (cluster.length <= 1) {
+      target.hitAreaOffsetX = 0;
+      target.hitAreaOffsetY = 0;
+      target.hitAreaEvaluatedAt = evalTime;
+      return;
+    }
+
+    // 1. Calculate the centroid of the collision space
+    let centroidX = 0;
+    let centroidY = 0;
+    for (let i = 0; i < cluster.length; i++) {
+      centroidX += cluster[i].screenX;
+      centroidY += cluster[i].screenY;
+    }
+    centroidX /= cluster.length;
+    centroidY /= cluster.length;
+
+    // 2. Sort the cluster by polar angle from the collision centroid with ID tie-breaking
+    cluster.sort((a, b) => {
+      const angleA = Math.atan2(a.screenY - centroidY, a.screenX - centroidX);
+      const angleB = Math.atan2(b.screenY - centroidY, b.screenX - centroidX);
+      const diff = angleA - angleB;
+      if (Math.abs(diff) > 1e-4) return diff;
+      return a.id.localeCompare(b.id);
+    });
+
+    // 3. Determine base angle pointing outward from collision space and assign to all cluster members
+    const baseAngle = Math.atan2(cluster[0].screenY - centroidY, cluster[0].screenX - centroidX);
+    for (let i = 0; i < cluster.length; i++) {
+      const member = cluster[i];
+      const angle = baseAngle + (2 * Math.PI * i) / cluster.length;
+      const fanRadius = member.reticleRadius * 0.85;
+      member.hitAreaOffsetX = fanRadius * Math.cos(angle);
+      member.hitAreaOffsetY = fanRadius * Math.sin(angle);
+      member.hitAreaEvaluatedAt = evalTime;
+    }
+  }
+
+  /**
+   * Interactive Hit-Testing Collision Avoidance (Spec 2.2):
    * When systems overlap in screen space, underlying interactive hit-testing areas
-   * invisibly fan out radially around the cluster centroid without moving the graphics.
+   * move outward from the collision space (repelling away from colliding neighbors)
+   * so users can effortlessly click and select overlapping nodes without the graphics moving.
+   *
+   * Offsets are pre-calculated in the centralized evaluate pass, cached per-frame,
+   * and returned in O(1) time without per-frame per-marker spatial searches.
    */
   public evaluateHitAreaOffset(nodeId: string, outOffset?: { x: number; y: number }): { x: number; y: number } {
     const offset = outOffset ?? this.scratchHitOffset;
@@ -567,33 +730,13 @@ export class CelestialOcclusionManager {
     const target = this.footprints.get(nodeId);
     if (!target || !target.visible) return offset;
 
-    this.ensureGrid();
-    const cluster: CelestialFootprint[] = [];
-    const searchRadius = target.reticleRadius * 2.0;
-
-    this.grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
-      if (!other.visible) return;
-      const dx = target.screenX - other.screenX;
-      const dy = target.screenY - other.screenY;
-      const dist = Math.hypot(dx, dy);
-      const threshold = Math.max(target.reticleRadius, other.reticleRadius) * 0.8;
-      if (dist <= threshold) {
-        cluster.push(other);
-      }
-    });
-
-    if (cluster.length <= 1) {
-      return offset;
+    const evalTime = this.lastEvaluationTime > 0 ? this.lastEvaluationTime : performance.now();
+    if (target.hitAreaEvaluatedAt !== evalTime) {
+      this.computeHitAreaOffsetFor(target, evalTime);
     }
 
-    cluster.sort((a, b) => a.id.localeCompare(b.id));
-    const index = cluster.findIndex((fp) => fp.id === nodeId);
-    if (index === -1) return offset;
-
-    const angle = (2 * Math.PI * index) / cluster.length;
-    const fanRadius = target.reticleRadius * 0.45;
-    offset.x = fanRadius * Math.cos(angle);
-    offset.y = fanRadius * Math.sin(angle);
+    offset.x = target.hitAreaOffsetX ?? 0;
+    offset.y = target.hitAreaOffsetY ?? 0;
     return offset;
   }
 
@@ -636,6 +779,20 @@ export class CelestialOcclusionManager {
    */
   public get size(): number {
     return this.footprints.size;
+  }
+
+  /**
+   * Returns footprint for a given node id if registered.
+   */
+  public getFootprint(id: string): CelestialFootprint | undefined {
+    return this.footprints.get(id);
+  }
+
+  /**
+   * Returns an array of all registered footprints.
+   */
+  public getAllFootprints(): CelestialFootprint[] {
+    return Array.from(this.footprints.values());
   }
 
   /**

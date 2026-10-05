@@ -101,7 +101,7 @@ export interface ThreeTokenSnapshot {
 | `--chrome-reticle-bracket-color` | `THREE.Color` + `alpha` | Universal reticle frames (diamonds, chevrons) |
 | `--chrome-axis-line-color` | `THREE.Color` + `alpha` | Off-screen Core & Orbital bearing lines |
 | `--chrome-heading-indicator-color`| `THREE.Color` + `alpha` | Detachable screen-edge bearing arrowheads |
-| `--state-focus` | `THREE.Color` | Focused target reticle & single drop stalk |
+| `--state-focus` | `THREE.Color` | Focused target reticle & drop stalk |
 | `--state-selected-border` | `THREE.Color` | Selected waypoint & active inspection lock |
 | `--category-star` | `THREE.Color` | Stellar analytical query highlight |
 | `--category-planet` | `THREE.Color` | Exoplanet host query highlight |

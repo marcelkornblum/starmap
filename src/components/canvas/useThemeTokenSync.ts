@@ -25,28 +25,48 @@ export function useThemeTokenSync(): void {
     // 1. Resolve immediately on mount or store theme change
     resolveTokens();
 
-    if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') {
-      return;
+    // 2. Observe DOM mutations on documentElement (data-theme, class)
+    let observer: MutationObserver | undefined;
+    if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+      observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (
+            mutation.type === 'attributes' &&
+            (mutation.attributeName === 'data-theme' || mutation.attributeName === 'class')
+          ) {
+            resolveTokens();
+            break;
+          }
+        }
+      });
+
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme', 'class'],
+      });
     }
 
-    // 2. Observe DOM mutations on documentElement (data-theme, class)
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (
-          mutation.type === 'attributes' &&
-          (mutation.attributeName === 'data-theme' || mutation.attributeName === 'class')
-        ) {
-          resolveTokens();
-          break;
+    // 3. Listen to prefers-reduced-motion changes
+    let mql: MediaQueryList | undefined;
+    const handleMotionChange = () => resolveTokens();
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+      if (typeof mql.addEventListener === 'function') {
+        mql.addEventListener('change', handleMotionChange);
+      } else if (typeof (mql as unknown as { addListener: (cb: () => void) => void }).addListener === 'function') {
+        (mql as unknown as { addListener: (cb: () => void) => void }).addListener(handleMotionChange);
+      }
+    }
+
+    return () => {
+      observer?.disconnect();
+      if (mql) {
+        if (typeof mql.removeEventListener === 'function') {
+          mql.removeEventListener('change', handleMotionChange);
+        } else if (typeof (mql as unknown as { removeListener: (cb: () => void) => void }).removeListener === 'function') {
+          (mql as unknown as { removeListener: (cb: () => void) => void }).removeListener(handleMotionChange);
         }
       }
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme', 'class'],
-    });
-
-    return () => observer.disconnect();
+    };
   }, [resolveTokens]);
 }

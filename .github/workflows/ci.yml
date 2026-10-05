@@ -63,11 +63,11 @@ jobs:
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Coverage comment
         if: github.event_name == 'pull_request'
-        uses: MishaKav/pytest-coverage-comment@v1
-        with:
-          pytest-xml-coverage-path: ./coverage/cobertura-coverage.xml
-          title: Test Coverage
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: npm run coverage:comment
 
   build:
     name: Build

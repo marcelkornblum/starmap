@@ -25,11 +25,46 @@ export interface PlanetCensusEntry {
   classification: 'terrestrial' | 'gas-giant' | 'ice-giant';
 }
 
+/**
+ * Formats a designation or spectral classification tag for compact reticle facet display.
+ * Replaces spaced plus signs ("X + Y") with a tight vertically centred unicode dot ("X·Y")
+ * without surrounding whitespace, conserving precious reticle facet width.
+ */
+export function formatDesignationTag(tag?: string): string {
+  if (!tag) return '';
+  return tag.replace(/\s*\+\s*/g, '·').trim();
+}
+
+import {
+  classifyPlanetPhysical,
+  type PlanetPhysicalProperties,
+  type PlanetCensusClassification,
+} from '../math/astronomy';
+
+export {
+  classifyPlanetPhysical,
+  type PlanetPhysicalProperties,
+  type PlanetCensusClassification,
+};
+
+/**
+ * Classifies a planetary record into an authoritative census category based on physical metrics:
+ * - Terrestrial: Rp <= 1.75 R_earth or Mp <= 10 M_earth
+ * - Ice Giant: 1.75 R_earth < Rp <= 6.0 R_earth or 10 M_earth < Mp <= 50 M_earth
+ * - Gas Giant: Rp > 6.0 R_earth or Mp > 50 M_earth
+ */
+export function classifyPlanet(planet: PlanetPhysicalProperties): PlanetCensusClassification {
+  return classifyPlanetPhysical(planet);
+}
+
 export interface ReticleAnnotationOptions {
   multiplicity?: number;
   planets?: PlanetCensusEntry[];
   isAnnotated?: boolean;
 }
+
+/** Authoritative default reticle size in world units (~half of legacy 0.45) */
+export const DEFAULT_RETICLE_SIZE = 0.22;
 
 /**
  * Helper to append a solid star dot matching the central star's apparent size.
@@ -89,7 +124,9 @@ export function appendMultiplicityPips(
   s: number,
   multiplicity: number,
 ): void {
-  const count = Math.min(Math.max(multiplicity, 1), 4);
+  // Single star systems (multiplicity <= 1) render 0 pips; only twin (2) or more render
+  if (!multiplicity || multiplicity < 2) return;
+  const count = Math.min(multiplicity, 4);
   const dOut = 0.26 * s;
   const nX = -Math.SQRT1_2;
   const nY = Math.SQRT1_2;
@@ -235,8 +272,8 @@ export function createReticleGeometry(
 
       // The Four-Facet Diamond Architecture: Annotations in Selected or Focused State
       if (annotations?.isAnnotated) {
-        // Top-Left Facet: Multiplicity census (star elements same size dots as central star, left-aligned)
-        if (annotations.multiplicity && annotations.multiplicity >= 1) {
+        // Top-Left Facet: Multiplicity census (star elements same size dots as central star, left-aligned; 0 for single star)
+        if (annotations.multiplicity && annotations.multiplicity >= 2) {
           appendMultiplicityPips(points, s, annotations.multiplicity);
         }
 

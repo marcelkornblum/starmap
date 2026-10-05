@@ -2,7 +2,7 @@ import type React from 'react';
 import { useState } from 'react';
 import { useParams } from '@tanstack/react-router';
 import { ScenePortal } from '../components/canvas/SceneBridge';
-import { SystemScene3D } from '../components/canvas/scenes/SystemScene3D';
+import { SystemScene } from '../components/canvas/scenes/SystemScene';
 import { useStarmapNav } from '../router/navigation';
 import { Panel } from '../components/surfaces';
 import { Stack, Cluster, Button } from '../components/primitives';
@@ -148,7 +148,11 @@ export const SystemView: React.FC<SystemViewProps> = () => {
   return (
     <>
       <ScenePortal sceneKey={`system-${systemId}`}>
-        <SystemScene3D systemId={systemId} />
+        <SystemScene
+          systemId={systemId}
+          system={starData}
+          onInspectPlanet={(planetId) => nav.toPlanet(planetId)}
+        />
       </ScenePortal>
 
       {/* Main HUD Dossier */}

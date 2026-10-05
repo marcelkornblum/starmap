@@ -470,7 +470,8 @@ export function createGalacticPlanarGridGeometry(
 
     if (thetaStart === 0) {
       // Continuous arc spanning across y=0 from -thetaEnd to +thetaEnd
-      const nSegs = Math.max(4, Math.ceil(safeSegments * (thetaEnd / (Math.PI * 0.5))));
+      const arcLen = 2 * thetaEnd * R;
+      const nSegs = Math.max(16, Math.ceil(Math.max(safeSegments * (thetaEnd / (Math.PI * 0.5)), arcLen / 12)));
       for (let s = 0; s < nSegs; s++) {
         const t1 = -thetaEnd + (s / nSegs) * (2 * thetaEnd);
         const t2 = -thetaEnd + ((s + 1) / nSegs) * (2 * thetaEnd);
@@ -484,7 +485,8 @@ export function createGalacticPlanarGridGeometry(
       }
     } else {
       // Arc enters box for y > 0 and y < 0 (left of x = -safeExtent at y=0)
-      const nSegs = Math.max(2, Math.ceil(safeSegments * ((thetaEnd - thetaStart) / (Math.PI * 0.5))));
+      const arcLen = (thetaEnd - thetaStart) * R;
+      const nSegs = Math.max(8, Math.ceil(Math.max(safeSegments * ((thetaEnd - thetaStart) / (Math.PI * 0.5)), arcLen / 12)));
       for (let s = 0; s < nSegs; s++) {
         const t1 = thetaStart + (s / nSegs) * (thetaEnd - thetaStart);
         const t2 = thetaStart + ((s + 1) / nSegs) * (thetaEnd - thetaStart);
@@ -550,6 +552,112 @@ export function createGalacticPlanarGridGeometry(
 }
 
 /**
+ * Creates BufferGeometry for a circular coordinate grid on the datum plane (Z=0).
+ * Bounded strictly by the circle x^2 + y^2 <= radius^2.
+ * Composed of:
+ * 1. Gentle concentric circular arcs centered at the distant Galactic Centre (+X Core direction, at +rGc).
+ *    Intersection with x^2 + y^2 = R^2: x_int = x0 + (R^2 - x0^2) / (2 * rGc), y_int = sqrt(R^2 - x_int^2).
+ * 2. Radial rays originating from the distant Galactic Centre (+rGc, 0, 0) and expanding outward.
+ *    Intersection with x^2 + y^2 = R^2 via quadratic chord clipping.
+ * When `omitCoreAxis` is true, the ray at Y=0 is completely omitted so the Core bearing (+X Core)
+ * is the sole element along Y=0 and terminates at the centre (0, 0, 0) without continuing into -X.
+ */
+export function createCircularPlanarGridGeometry(
+  radius = 10,
+  gridGap = 2.5,
+  rGc = 2000,
+  arcSegments = 64,
+  omitCoreAxis = true,
+): THREE.BufferGeometry {
+  const coords: number[] = [];
+  const safeRadius = Math.max(0.5, radius);
+  const safeGap = Math.max(0.05, gridGap);
+  const safeRgc = Math.max(safeRadius * 2, rGc);
+  const R2 = safeRadius * safeRadius;
+
+  // 1. Concentric circular arcs centered at Galactic Centre (+safeRgc, 0, 0)
+  // Arc radius R_arc = safeRgc - x0, where x0 is the x-intercept at y = 0.
+  // x0 ranges across [-safeRadius, safeRadius] in steps of safeGap.
+  const iMin = Math.ceil(-safeRadius / safeGap);
+  const iMax = Math.floor(safeRadius / safeGap);
+
+  for (let i = iMin; i <= iMax; i++) {
+    const x0 = i * safeGap;
+    const Rarc = safeRgc - x0;
+    if (Rarc <= 0) continue;
+
+    // Intersection with circle x^2 + y^2 = R^2:
+    // (x - safeRgc)^2 + y^2 = Rarc^2 => R^2 - 2 * safeRgc * x = -2 * safeRgc * x0 + x0^2
+    const xInt = x0 + (R2 - x0 * x0) / (2 * safeRgc);
+    if (xInt > safeRadius || xInt < -safeRadius) continue;
+
+    const yInt = Math.sqrt(Math.max(0, R2 - xInt * xInt));
+    if (yInt < 1e-5) continue;
+
+    const sinThetaInt = Math.min(1, Math.max(0, yInt / Rarc));
+    const thetaInt = Math.asin(sinThetaInt);
+    if (thetaInt < 1e-5) continue;
+
+    const arcLen = 2 * thetaInt * Rarc;
+    const nSegs = Math.max(8, Math.ceil(Math.max(arcSegments * (thetaInt / (Math.PI * 0.5)), arcLen / (safeGap * 0.5))));
+    for (let s = 0; s < nSegs; s++) {
+      const t1 = -thetaInt + (s / nSegs) * (2 * thetaInt);
+      const t2 = -thetaInt + ((s + 1) / nSegs) * (2 * thetaInt);
+
+      const x1 = safeRgc - Rarc * Math.cos(t1);
+      const y1 = Rarc * Math.sin(t1);
+      const x2 = safeRgc - Rarc * Math.cos(t2);
+      const y2 = Rarc * Math.sin(t2);
+
+      coords.push(x1, y1, 0, x2, y2, 0);
+    }
+  }
+
+  // 2. Radial rays originating at Galactic Centre (+safeRgc, 0, 0)
+  // Ray equation through (0, y0): y(x) = y0 * (1 - x / safeRgc) = y0 - m * x, where m = y0 / safeRgc
+  // Intersection with x^2 + y^2 = R^2: (1 + m^2) x^2 - 2 m y0 x + (y0^2 - R^2) = 0
+  const y0Max = safeRadius / Math.sqrt(Math.max(1e-6, 1 - R2 / (safeRgc * safeRgc)));
+  const jMax = Math.floor(y0Max / safeGap);
+
+  for (let j = -jMax; j <= jMax; j++) {
+    if (j === 0 && omitCoreAxis) {
+      // Omit the Core bearing axis (Y=0) so the Core bearing is the sole line along that axis
+      // and terminates at (0, 0, 0) without continuing into -X
+      continue;
+    }
+
+    const y0 = j * safeGap;
+    const m = y0 / safeRgc;
+    const A = 1 + m * m;
+    const B = -2 * m * y0;
+    const disc = 4 * (A * R2 - y0 * y0);
+    if (disc < 0) continue;
+
+    const sqrtDisc = Math.sqrt(disc);
+    const x1 = (-B - sqrtDisc) / (2 * A);
+    const x2 = (-B + sqrtDisc) / (2 * A);
+    const y1 = y0 - m * x1;
+    const y2 = y0 - m * x2;
+
+    const segLen = Math.hypot(x2 - x1, y2 - y1);
+    const nSubSegs = Math.max(1, Math.ceil(segLen / safeGap));
+    for (let s = 0; s < nSubSegs; s++) {
+      const sx1 = x1 + (s / nSubSegs) * (x2 - x1);
+      const sy1 = y1 + (s / nSubSegs) * (y2 - y1);
+      const sx2 = x1 + ((s + 1) / nSubSegs) * (x2 - x1);
+      const sy2 = y1 + ((s + 1) / nSubSegs) * (y2 - y1);
+      coords.push(sx1, sy1, 0, sx2, sy2, 0);
+    }
+  }
+
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3));
+  geom.computeBoundingSphere();
+  return geom;
+}
+
+
+/**
  * Canonical Camera Initialisation Specification:
  * - Camera begins elevated above the invariant Z=0 plane (positive Z).
  * - Facing the direction of the Core Bearing (+X direction).
@@ -576,7 +684,7 @@ export interface StandardCameraSetup {
 export const STANDARD_CAMERA_DISTANCES = {
   galactic: 28,
   system: 22,
-  planetary: 90,
+  planetary: 120,
   component: 12,
 } as const;
 
@@ -618,14 +726,69 @@ export interface ScreenEdgeBearingResult {
   visible: boolean;
 }
 
-// Hoisted scratch variables for zero-allocation calculateScreenEdgeBearing
 const scratchPA = new THREE.Vector3();
 const scratchPB = new THREE.Vector3();
+const scratchLocalPoint = new THREE.Vector3();
 const scratchWorldPoint = new THREE.Vector3();
 const scratchHeadingDir = new THREE.Vector3();
 const scratchVCam = new THREE.Vector3();
 const scratchOriginCam = new THREE.Vector3();
 const scratchEndCam = new THREE.Vector3();
+const scratchBearingCamLocal = new THREE.Vector3();
+const scratchBearingInvQuat = new THREE.Quaternion();
+
+/**
+ * Calculates a smooth proximity fade factor (1.0 -> 0.0) for a bearing line
+ * as the camera approaches or comes close to intersecting it, preventing near-plane clipping
+ * and camera collisions.
+ */
+export function calculateBearingProximityFade(
+  cameraPosition: THREE.Vector3,
+  origin: THREE.Vector3,
+  bearingType: 'core' | 'orbital',
+  extent: number,
+  rGc: number,
+  apertureRadius: number,
+  orientation?: THREE.Quaternion,
+): number {
+  scratchBearingCamLocal.copy(cameraPosition).sub(origin);
+  if (orientation) {
+    scratchBearingInvQuat.copy(orientation).invert();
+    scratchBearingCamLocal.applyQuaternion(scratchBearingInvQuat);
+  }
+
+  const px = scratchBearingCamLocal.x;
+  const py = scratchBearingCamLocal.y;
+  const pz = scratchBearingCamLocal.z;
+
+  let d = 0;
+  if (bearingType === 'core') {
+    // Core bearing line segment: (0, 0, 0) to (extent, 0, 0) along +X
+    const t = Math.max(0, Math.min(extent, px));
+    const dx = px - t;
+    d = Math.sqrt(dx * dx + py * py + pz * pz);
+  } else {
+    // Orbital bearing curve: arc of circle radius rGc centered at (rGc, 0, 0) in Z=0 plane
+    const effectiveR = Math.max(rGc, 1.0);
+    const thetaRel = Math.atan2(py, effectiveR - px);
+    const s = effectiveR * thetaRel;
+    const sClamped = Math.max(0, Math.min(extent, s));
+    const angle = sClamped / effectiveR;
+    const closestX = effectiveR * (1 - Math.cos(angle));
+    const closestY = effectiveR * Math.sin(angle);
+    const dx = px - closestX;
+    const dy = py - closestY;
+    d = Math.sqrt(dx * dx + dy * dy + pz * pz);
+  }
+
+  const dEnd = Math.max(2.0, apertureRadius * 0.25);
+  const dStart = Math.max(6.0, apertureRadius * 0.75);
+
+  if (d >= dStart) return 1.0;
+  if (d <= dEnd) return 0.0;
+  const u = (d - dEnd) / (dStart - dEnd);
+  return u * u * (3 - 2 * u);
+}
 
 /**
  * Calculates screen-space position, edge placement, and orientation angle for
@@ -653,6 +816,7 @@ export function calculateScreenEdgeBearing(
   extent = 2000,
   out?: ScreenEdgeBearingResult,
   minLineLength = 40,
+  orientation?: THREE.Quaternion,
 ): ScreenEdgeBearingResult {
   const result = out ?? {
     x: 0,
@@ -687,27 +851,37 @@ export function calculateScreenEdgeBearing(
 
     // Point 0 in camera coordinates
     if (bearingType === 'core') {
-      scratchWorldPoint.set(origin.x + s0, origin.y, origin.z);
+      scratchLocalPoint.set(s0, 0, 0);
     } else {
       const phi = s0 / rGc;
-      scratchWorldPoint.set(
-        origin.x + rGc * (1 - Math.cos(phi)),
-        origin.y + rGc * Math.sin(phi),
-        origin.z,
+      scratchLocalPoint.set(
+        rGc * (1 - Math.cos(phi)),
+        rGc * Math.sin(phi),
+        0,
       );
+    }
+    if (orientation) {
+      scratchWorldPoint.copy(scratchLocalPoint).applyQuaternion(orientation).add(origin);
+    } else {
+      scratchWorldPoint.copy(scratchLocalPoint).add(origin);
     }
     scratchPA.copy(scratchWorldPoint).applyMatrix4(viewMatrix);
 
     // Point 1 in camera coordinates
     if (bearingType === 'core') {
-      scratchWorldPoint.set(origin.x + s1, origin.y, origin.z);
+      scratchLocalPoint.set(s1, 0, 0);
     } else {
       const phi = s1 / rGc;
-      scratchWorldPoint.set(
-        origin.x + rGc * (1 - Math.cos(phi)),
-        origin.y + rGc * Math.sin(phi),
-        origin.z,
+      scratchLocalPoint.set(
+        rGc * (1 - Math.cos(phi)),
+        rGc * Math.sin(phi),
+        0,
       );
+    }
+    if (orientation) {
+      scratchWorldPoint.copy(scratchLocalPoint).applyQuaternion(orientation).add(origin);
+    } else {
+      scratchWorldPoint.copy(scratchLocalPoint).add(origin);
     }
     scratchPB.copy(scratchWorldPoint).applyMatrix4(viewMatrix);
 
@@ -784,14 +958,19 @@ export function calculateScreenEdgeBearing(
 
   // Check if bearing line terminus (at s = extent) is in front of camera and inside screen margins
   if (bearingType === 'core') {
-    scratchWorldPoint.set(origin.x + extent, origin.y, origin.z);
+    scratchLocalPoint.set(extent, 0, 0);
   } else {
     const phi = extent / rGc;
-    scratchWorldPoint.set(
-      origin.x + rGc * (1 - Math.cos(phi)),
-      origin.y + rGc * Math.sin(phi),
-      origin.z,
+    scratchLocalPoint.set(
+      rGc * (1 - Math.cos(phi)),
+      rGc * Math.sin(phi),
+      0,
     );
+  }
+  if (orientation) {
+    scratchWorldPoint.copy(scratchLocalPoint).applyQuaternion(orientation).add(origin);
+  } else {
+    scratchWorldPoint.copy(scratchLocalPoint).add(origin);
   }
   scratchEndCam.copy(scratchWorldPoint).applyMatrix4(viewMatrix);
   const endInFront = scratchEndCam.z <= -zNear;
@@ -825,14 +1004,19 @@ export function calculateScreenEdgeBearing(
       const deltaS = Math.min(extent * 0.05, Math.max(1, extent / numSteps));
       const sPrev = extent - deltaS;
       if (bearingType === 'core') {
-        scratchWorldPoint.set(origin.x + sPrev, origin.y, origin.z);
+        scratchLocalPoint.set(sPrev, 0, 0);
       } else {
         const phiPrev = sPrev / rGc;
-        scratchWorldPoint.set(
-          origin.x + rGc * (1 - Math.cos(phiPrev)),
-          origin.y + rGc * Math.sin(phiPrev),
-          origin.z,
+        scratchLocalPoint.set(
+          rGc * (1 - Math.cos(phiPrev)),
+          rGc * Math.sin(phiPrev),
+          0,
         );
+      }
+      if (orientation) {
+        scratchWorldPoint.copy(scratchLocalPoint).applyQuaternion(orientation).add(origin);
+      } else {
+        scratchWorldPoint.copy(scratchLocalPoint).add(origin);
       }
       scratchPA.copy(scratchWorldPoint).applyMatrix4(viewMatrix);
       if (scratchPA.z <= -zNear) {
@@ -842,11 +1026,15 @@ export function calculateScreenEdgeBearing(
         result.angle = (Math.atan2(endScreenY - prevScreenY, endScreenX - prevScreenX) * 180) / Math.PI;
       } else {
         if (bearingType === 'core') {
-          scratchVCam.set(1, 0, 0).transformDirection(viewMatrix);
+          scratchHeadingDir.set(1, 0, 0);
         } else {
           const phi = extent / rGc;
-          scratchVCam.set(Math.sin(phi), Math.cos(phi), 0).transformDirection(viewMatrix);
+          scratchHeadingDir.set(Math.sin(phi), Math.cos(phi), 0);
         }
+        if (orientation) {
+          scratchHeadingDir.applyQuaternion(orientation);
+        }
+        scratchVCam.copy(scratchHeadingDir).transformDirection(viewMatrix);
         result.angle = (Math.atan2(-scratchVCam.y, scratchVCam.x) * 180) / Math.PI;
       }
 
@@ -864,6 +1052,9 @@ export function calculateScreenEdgeBearing(
     scratchHeadingDir.set(1, 0, 0);
   } else {
     scratchHeadingDir.set(0, 1, 0);
+  }
+  if (orientation) {
+    scratchHeadingDir.applyQuaternion(orientation);
   }
 
   scratchVCam.copy(scratchHeadingDir).transformDirection(viewMatrix);

@@ -19,7 +19,7 @@ Starmap structures spatial exploration across three strictly decoupled visual sc
 | :--- | :--- | :--- | :--- | :--- |
 | **1. Galaxy View** | $1\text{ to }100\text{ pc}$ | Galactic Equator ($XY, Z=0$), travelling fins | Parsecs ($\text{pc}$) / Light-years ($\text{ly}$) | Stellar distribution, clustering, interstellar routes, light-speed comms delay |
 | **2. System View** | $0.1\text{ to }100\text{ AU}$ | Stellar barycentre, system invariant plane | Astronomical Units ($\text{AU}$) / Light-minutes | Keplerian orbital rings, Habitable Zone band, planetary alignments, transfer windows |
-| **3. Planet View** | $10^3\text{ to }10^6\text{ km}$ | Planetary centre of mass, rotational axis | Kilometres ($\text{km}$) / Earth radii ($\text{R}_\oplus$) | Surface terminator, atmospheric limb, axial tilt, satellite system, physical parameters |
+| **3. Planet View** | $10^3\text{ to }10^6\text{ km}$ | Planetary centre of mass, rotational axis | Kilometres ($\text{km}$) / Earth radii ($\text{R}_\oplus$) | Atmospheric limb, axial tilt, satellite system, physical parameters |
 
 ---
 
@@ -51,8 +51,8 @@ A unified companion panel pattern deployed across all views to list child or in-
 - **The Casual Explorer:** Browse serendipitously via curated on-ramps ("Newly Discovered Exoplanet", "Extreme Worlds"), viewing glanceable narrative summary cards.
 
 ### 3.2 Rendered Geometry & Data Plane
-- **Stellar Nodes:** Billboards / sprites scaled logarithmically by apparent/absolute visual magnitude.
-- **Galactic Datum Floor & Drop Stalks:** Projected datum circle on the Galactic Equator ($Z=0$) directly beneath the focal centre. Vertical drop stalks connect stars above/below the equator to the datum plane.
+- **Stellar Nodes:** Monochrome markers at the universal invariant screen-space size; any magnitude, spectral, or other data encoding is applied only via analytical layers ([`3d-spatial-architecture.md` §2.1](./3d-spatial-architecture.md)).
+- **Galactic Datum Floor & Drop Stalks:** Projected datum circle on the Galactic Equator ($Z=0$) directly beneath the focal centre. Vertical drop stalks connect stars above/below the equator to the datum plane, with visibility governed by entity interaction state ([`3d-spatial-architecture.md` §2.4](./3d-spatial-architecture.md)).
 - **Travelling Coordinate Fins:** Three orthogonal mobile quarter-circle fins ($XY$, $XZ$, $YZ$) centered at the camera's focal point with degree tick marks along curved perimeter arcs.
 - **Bearing Vectors:** Cardinal galactic bearings for Galactic Core ($l=0^\circ$) and Galactic Orbit ($l=90^\circ$) projecting to screen edges with detachable pinned headings.
 - **Interstellar Route Chords:** 3D vector lines connecting selected multi-point route nodes, annotated with spatial distance ($\text{pc}/\text{ly}$), one-way radio delay, and transit durations.
@@ -79,7 +79,7 @@ A unified companion panel pattern deployed across all views to list child or in-
 - **Travelling Datum Circle:** Projected circle on the invariant plane directly beneath camera focus, identical to Galaxy View.
 - **Hierarchical Range Rings:** Concentric logarithmic distance rings scaling in Astronomical Units (e.g. $0.5, 1, 2, 5, 10, 20, 50\text{ AU}$).
 - **Travelling Coordinate Fins:** Three mobile orthogonal quarter-circle fins ($XY$, $XZ$, $YZ$) with curved perimeter degree tick marks, identical to Galaxy View.
-- **Vertical Drop Stalks:** Rendered from inclined bodies and asteroids down to the invariant plane ($Z=0$).
+- **Vertical Drop Stalks:** Rendered from inclined bodies and asteroids down to the invariant plane ($Z=0$), with visibility governed by entity interaction state ([`3d-spatial-architecture.md` §2.4](./3d-spatial-architecture.md)).
 
 ### 4.3 Bearing Vectors
 - **Default Bearing Vector:** Permanently points to the **barycentric central point** (ensuring the host star is never lost when panning out).
@@ -87,9 +87,10 @@ A unified companion panel pattern deployed across all views to list child or in-
 - **Secondary Bearing:** Points along the system's **prograde orbital direction** (direction of revolution).
 
 ### 4.4 Orbits & Routes
-- **Orbits as an Optional Layer:** Rendered as monochrome hairlines (`--border-subtle`).
-- **Focus Exception Rule:** A `focused` entity forces its orbit to render regardless of whether the orbits layer is toggled off.
-- **Orbital Routes:** Orbital routes use vector styling.
+- **Orbits as an Optional Layer:** Rendered as monochrome dashed (or dotted) hairlines at rest; the line pattern is a semantic token (`--chrome-orbit-style`), not a per-component choice.
+- **State-Driven Styling:** An orbit inherits its body's interaction state. `selected` and `focused` orbits take the kinematic colour (`--chrome-kinematic-color`); all colours and opacities per state are semantic tokens.
+- **State Exception Rule:** A `selected` or `focused` entity forces its orbit to render regardless of whether the orbits layer is toggled off (matching drop stalks, [`3d-spatial-architecture.md` §2.4](./3d-spatial-architecture.md)).
+- **Orbital Routes:** Routes render as a thick solid line in the kinematic colour, visually distinct from dashed/dotted orbits. Colour, width and pattern are semantic tokens (`--chrome-route-color`, `--chrome-route-width`, `--chrome-route-style`) so they can be retuned without code changes.
 
 ### 4.5 Astronomical Zones
 - **Status:** Open research topic. Rendering of the Circumstellar Habitable Zone (CHZ), frost line, and debris disks will follow broader architectural research findings.
@@ -121,22 +122,21 @@ A unified companion panel pattern deployed across all views to list child or in-
 - **Host Star Exception:** When the planet itself is in focus, the primary bearing vector switches to point outward toward the **Host Star**.
 - **Secondary Bearing Vector:** Points along the planet's **prograde orbital velocity vector** (direction of orbital motion around the star).
 
-### 5.4 Surface Lighting & Illumination
-- **Zoom-Dependent Shading:**
-  - When zoomed in close enough to resolve the planetary disk, dynamic day/night terminator lighting from the host star's direction is active.
-  - A HUD toggle allows switching to uniform cartographic daylight inspection for geographical/feature legibility.
-  - When zoomed out inspecting the wider moon system, the planet's surface shading suppresses into a simple symbolic node to prevent clutter.
+### 5.4 Planetary Disc Rendering
+- **Marker Always Present:** Every body, including the inspected planet, always carries its invariant-size marker and reticle ([`3d-spatial-architecture.md` §2.1–2.2](./3d-spatial-architecture.md)).
+- **Physical Disc:** The inspected planet additionally renders a physical disc at true scale. The disc is separate geometry and fades out as its projected diameter falls below the marker diameter, leaving the marker alone. Stars and moons remain marker-only.
+- **Uniform Lighting:** The disc is rendered with uniform (unlit) shading for geographical/feature legibility. There is no day/night terminator, no host-star directional light and no lighting toggle.
+- **Classification Texture:** The disc surface texture is selected by planetary classification via a classification-keyed texture manifest, with a neutral fallback for unclassified bodies. This is a physical surface depiction, not an analytical encoding (§2.1 of the spatial architecture still forbids hard-coded data-to-colour bindings).
 
 ### 5.5 Moons & Natural Satellites
 - **Consistency with System Orbits:** Moons and their orbits adhere to the exact same rules as planets in System View:
   - Moon nodes follow the global 4-tier reticle taxonomy (`passive`, `active`, `selected`, `focused`).
-  - Moon orbits render as monochrome hairlines (`--border-subtle`) as an optional layer.
-  - Exception: A `focused` moon forces its orbit to render regardless of layer setting.
-  - Orbital transfer routes between satellites use vector styling.
+  - Moon orbits follow the System View orbit rules in full (§4.4): optional layer, state-driven kinematic styling, and `selected` / `focused` moons force their orbit to render regardless of layer setting.
+  - Orbital transfer routes between satellites follow the route styling defined in §4.4.
 
 ### 5.6 Cull & Clutter Prevention Rules
 - **Background Stars:** Galactic background stars fade out completely into black space.
-- **Host Star Presence:** The host star is visible as a distant directional anchor using the **exact same cartographic symbology** (scaled glyph and reticle) as in the other views.
+- **Host Star Presence:** The host star is visible as a distant directional anchor using the **exact same cartographic symbology** (identical invariant-size marker and reticle) as in the other views.
 
 ### 5.7 Planetary Dossier Telemetry
 When inspecting a planet, the primary dossier panel presents:

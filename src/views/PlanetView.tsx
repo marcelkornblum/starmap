@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useParams } from '@tanstack/react-router';
 import { ScenePortal } from '../components/canvas/SceneBridge';
-import { PlanetScene3D } from '../components/canvas/scenes/PlanetScene3D';
+import { PlanetScene } from '../components/canvas/scenes/PlanetScene';
 import { useStarmapNav } from '../router/navigation';
 import { Panel } from '../components/surfaces';
 import { Stack, Cluster, Button, Metric, Datum } from '../components/primitives';
@@ -19,7 +19,11 @@ export const PlanetView: React.FC<PlanetViewProps> = () => {
   return (
     <>
       <ScenePortal sceneKey={`planet-${planetId}`}>
-        <PlanetScene3D planetId={planetId} />
+        <PlanetScene
+          planetId={planetId}
+          planetName={planetId.toUpperCase()}
+          classification={isEarth ? 'terrestrial' : 'terrestrial'}
+        />
       </ScenePortal>
 
       <div data-testid="planet-view-hud" className={styles.hudOverlay}>

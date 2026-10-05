@@ -3,9 +3,6 @@ import React, { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
 import {
-  CartographicGrid,
-  CelestialNode,
-  OrbitalRing,
   computeCardinalAlignment,
   computeTransitionWeights,
   computeZoomAdaptiveRings,
@@ -55,140 +52,12 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
 
 
 
-describe('3D Cartography Components', () => {
+describe('Cartography Mathematics & Occlusion Registry', () => {
   beforeEach(() => {
     useThreeTokenStore.getState().resetTokens();
   });
 
-  describe('CartographicGrid', () => {
-    it('renders with default parameters in SSR cleanly', () => {
-      const html = renderToString(
-        createElement(CartographicGrid, { radius: 10, rangeRings: [2.5, 5, 10] }),
-      );
-      expect(html).toContain('cartographic-grid');
-      expect(html).toContain('travelling-fins');
-      expect(html).toContain('cardinal-bearings');
-      expect(html).toContain('screen-edge-bearing-indicators');
-      expect(html).toContain('bearing-indicator-core');
-      expect(html).toContain('bearing-indicator-orbital');
-      expect(html).toContain('arc-tier-2.5');
-      expect(html).toContain('arc-tier-5');
-      expect(html).toContain('arc-tier-10');
-      expect(html).toContain('xy-ticks-q0');
-    });
-
-    it('respects visibility flags for fins, datum plane, and axis lines', () => {
-      const htmlNoFins = renderToString(
-        createElement(CartographicGrid, {
-          radius: 10,
-          showFins: false,
-          showGalacticPlane: false,
-          showAxisLines: false,
-        }),
-      );
-      expect(htmlNoFins).toContain('cartographic-grid');
-      expect(htmlNoFins).not.toContain('travelling-fins');
-      expect(htmlNoFins).not.toContain('cardinal-bearings');
-      expect(htmlNoFins).not.toContain('screen-edge-bearing-indicators');
-      expect(htmlNoFins).not.toContain('datum-plane');
-    });
-
-    it('respects showScreenEdgeIndicators flag when axis lines are enabled', () => {
-      const htmlWithScreenEdge = renderToString(
-        createElement(CartographicGrid, { radius: 10, showScreenEdgeIndicators: true }),
-      );
-      expect(htmlWithScreenEdge).toContain('screen-edge-bearing-indicators');
-
-      const htmlWithoutScreenEdge = renderToString(
-        createElement(CartographicGrid, { radius: 10, showScreenEdgeIndicators: false }),
-      );
-      expect(htmlWithoutScreenEdge).not.toContain('screen-edge-bearing-indicators');
-    });
-
-    it('renders Galactic Equator datum plane by default and responds to showGalacticPlane flag', () => {
-      const htmlDefault = renderToString(
-        createElement(CartographicGrid, {
-          radius: 10,
-          rangeRings: [2, 4, 8],
-        }),
-      );
-      expect(htmlDefault).toContain('datum-plane');
-      expect(htmlDefault).toContain('datum-plane-fill');
-      expect(htmlDefault).toContain('datum-plane-boundary');
-      expect(htmlDefault).toContain('full-ring-2');
-      expect(htmlDefault).toContain('full-ring-4');
-      expect(htmlDefault).toContain('full-ring-8');
-      expect(htmlDefault).toContain('bearing-core');
-      expect(htmlDefault).toContain('bearing-orbital');
-      expect(htmlDefault).toContain('bearing-anti-core');
-      expect(htmlDefault).toContain('bearing-anti-orbital');
-      expect(htmlDefault).toContain('planar-footprint');
-      expect(htmlDefault).toContain('planar-galactic-grid');
-
-      const htmlHidden = renderToString(
-        createElement(CartographicGrid, {
-          radius: 10,
-          showGalacticPlane: false,
-        }),
-      );
-      expect(htmlHidden).not.toContain('datum-plane');
-    });
-
-    it('renders planar ground footprint on datum plane by default and respects showPlanarFootprint flag', () => {
-      const htmlDefault = renderToString(
-        createElement(CartographicGrid, { radius: 10 }),
-      );
-      expect(htmlDefault).toContain('datum-plane');
-      expect(htmlDefault).toContain('name="planar-footprint"');
-
-      const htmlNoFootprint = renderToString(
-        createElement(CartographicGrid, { radius: 10, showPlanarFootprint: false }),
-      );
-      expect(htmlNoFootprint).toContain('datum-plane');
-      expect(htmlNoFootprint).not.toContain('name="planar-footprint"');
-    });
-
-    it('renders galactic planar grid on datum plane by default and respects showPlanarGrid flag', () => {
-      const htmlDefault = renderToString(
-        createElement(CartographicGrid, { radius: 10 }),
-      );
-      expect(htmlDefault).toContain('name="planar-galactic-grid"');
-
-      const htmlNoGrid = renderToString(
-        createElement(CartographicGrid, { radius: 10, showPlanarGrid: false }),
-      );
-      expect(htmlNoGrid).toContain('datum-plane');
-      expect(htmlNoGrid).not.toContain('name="planar-galactic-grid"');
-    });
-
-    it('renders explicit planar footprints on datum plane when provided', () => {
-      const htmlWithFootprints = renderToString(
-        createElement(CartographicGrid, {
-          radius: 10,
-          footprints: [
-            { id: 'alpha', position: [3, 2, 0], classification: 'star' },
-            { id: 'beta', position: [-4, 1, 0], classification: 'gas-giant' },
-          ],
-        }),
-      );
-      expect(htmlWithFootprints).toContain('datum-plane');
-      expect(htmlWithFootprints).toContain('name="explicit-planar-footprints"');
-      expect(htmlWithFootprints).toContain('name="planar-footprint-alpha"');
-      expect(htmlWithFootprints).toContain('name="planar-footprint-beta"');
-    });
-
-    it('renders optional full 360-degree datum circles when enabled via showFullDatumCircle', () => {
-      const htmlWithFull = renderToString(
-        createElement(CartographicGrid, {
-          radius: 10,
-          rangeRings: [5],
-          showFullDatumCircle: true,
-        }),
-      );
-      expect(htmlWithFull).toContain('datum-plane');
-      expect(htmlWithFull).toContain('full-ring-5');
-    });
-
+  describe('Cartography Mathematics', () => {
     it('computes cardinal alignment factors correctly across perspective and cardinal views', () => {
       // 1. Fully perspective view [1, 1, 1] normalized: all alignment factors must be 0
       const perspDir = new THREE.Vector3(1, 1, 1).normalize();
@@ -253,33 +122,6 @@ describe('3D Cartography Components', () => {
       // 3. Inside full circle threshold (maxAlpha = 1): transition weights suppressed
       const suppressedWeights = computeTransitionWeights(transXDir, 0.35, 1.0);
       expect(suppressedWeights.wTransX).toBe(0);
-    });
-
-    it('renders cleanly in screenConstant zoom-adaptive mode with bearing core styling', () => {
-      const html = renderToString(
-        createElement(CartographicGrid, {
-          radius: 10,
-          screenConstant: true,
-          referenceDistance: 20,
-        }),
-      );
-      expect(html).toContain('cartographic-grid');
-      expect(html).toContain('cardinal-bearings');
-      expect(html).toContain('bearing-core');
-      expect(html).toContain('bearing-orbital');
-    });
-
-    it('renders cleanly with lockToFocusPoint and custom focusTarget', () => {
-      const targetVec = new THREE.Vector3(12, -4, 8);
-      const html = renderToString(
-        createElement(CartographicGrid, {
-          radius: 10,
-          lockToFocusPoint: true,
-          focusTarget: targetVec,
-        }),
-      );
-      expect(html).toContain('cartographic-grid');
-      expect(html).toContain('travelling-fins');
     });
 
     it('computes logarithmic 1-2-5 zoom-adaptive rings with significant hierarchy and fade envelopes', () => {
@@ -492,194 +334,22 @@ describe('3D Cartography Components', () => {
       expect(foundFullPositiveX).toBe(true);
       geomFull.dispose();
     });
-
-    it('renders static planar grid group and respects token snapshot defaults for footprint alpha and orbital style', () => {
-      const html = renderToString(createElement(CartographicGrid, { radius: 10 }));
-      expect(html).toContain('name="static-planar-grid-group"');
-      expect(html).toContain('name="planar-galactic-grid"');
-
-      const tokens = useThreeTokenStore.getState().tokens;
-      expect(tokens.datumFootprintAlpha).toBe(0.25);
-      expect(tokens.bearingOrbitalStyle).toBe('dashed');
-    });
   });
 
-
-
-  describe('CelestialNode', () => {
-    it('renders in passive state without reticle or drop stalk', () => {
-      const html = renderToString(
-        createElement(CelestialNode, {
-          id: 'star-1',
-          name: 'Sirius',
-          position: [0, 0, 1.5],
-          state: 'passive',
-        }),
-      );
-      expect(html).toContain('celestial-node-star-1');
-      expect(html).not.toContain('drop-stalk');
-      expect(html).not.toContain('celestial-label');
-    });
-
-    it('renders in active state with reticle and label, but NO stalk (Single-Stalk Rule)', () => {
-      const html = renderToString(
-        createElement(CelestialNode, {
-          id: 'star-2',
-          name: 'Vega',
-          position: [1, 2, 3],
-          state: 'active',
-          spectralType: 'A0V',
-        }),
-      );
-      expect(html).toContain('celestial-node-star-2');
-      expect(html).toContain('data-state="active"');
-      expect(html).not.toContain('drop-stalk');
-      expect(html).toContain('Vega');
-      expect(html).not.toContain('A0V');
-    });
-
-    it('renders drop stalk down to datum when selected or focused (Single-Stalk Rule)', () => {
-      // Positive Z: solid stalk
-      const htmlSelected = renderToString(
-        createElement(CelestialNode, {
-          id: 'star-3',
-          name: 'Sol',
-          position: [0, 0, 2.0],
-          state: 'selected',
-        }),
-      );
-      expect(htmlSelected).toContain('celestial-node-star-3');
-      expect(htmlSelected).toContain('drop-stalk');
-      expect(htmlSelected).not.toContain('datum-footprint');
-      expect(htmlSelected).not.toContain('planar-footprint');
-
-      // Negative Z: dashed stalk
-      const htmlFocusedNeg = renderToString(
-        createElement(CelestialNode, {
-          id: 'star-4',
-          name: 'Proxima',
-          position: [1, 1, -2.5],
-          state: 'focused',
-        }),
-      );
-      expect(htmlFocusedNeg).toContain('celestial-node-star-4');
-      expect(htmlFocusedNeg).toContain('drop-stalk');
-      expect(htmlFocusedNeg).not.toContain('datum-footprint');
-      expect(htmlFocusedNeg).not.toContain('planar-footprint');
-    });
-
-    it('renders reticle geometry cleanly for all taxonomy classifications', () => {
-      const classifications = [
-        'star',
-        'stellar-system',
-        'brown-dwarf',
-        'white-dwarf',
-        'degenerate-remnant',
-        'neutron-star',
-        'hazard',
-        'black-hole',
-        'singularity',
-        'barycentre',
-        'stellar-cluster',
-        'cluster',
-        'construct',
-        'artificial',
-        'terrestrial',
-        'gas-giant',
-        'ice-giant',
-      ] as const;
-
-      for (const classification of classifications) {
-        const html = renderToString(
-          createElement(CelestialNode, {
-            id: `node-${classification}`,
-            name: classification,
-            position: [0, 0, 1],
-            classification,
-            state: 'active',
-          }),
-        );
-        expect(html).toContain(`celestial-node-node-${classification}`);
-      }
-    });
-
-    it('renders camera-facing invisible hitarea mesh for pointer interactions', () => {
-      const html = renderToString(
-        createElement(CelestialNode, {
-          id: 'hitarea-test',
-          name: 'HitArea Star',
-          position: [0, 0, 1],
-          state: 'active',
-        }),
-      );
-      expect(html).toContain('name="reticle-hitarea"');
-    });
-
-    it('renders Four-Facet Diamond Architecture for circumbinary systems with planets when annotated', () => {
-      const html = renderToString(
-        createElement(CelestialNode, {
-          id: 'kepler-47',
-          name: 'Kepler-47',
-          position: [5, 5, 2],
-          classification: 'stellar-system',
-          state: 'selected',
-          spectralType: 'G6V + M3V',
-          multiplicity: 2,
-          planets: [
-            { id: 'b', name: 'Kepler-47 b', classification: 'terrestrial' },
-            { id: 'd', name: 'Kepler-47 d', classification: 'ice-giant' },
-            { id: 'c', name: 'Kepler-47 c', classification: 'gas-giant' },
-          ],
-        }),
-      );
-
-      // System container & hit area
-      expect(html).toContain('celestial-node-kepler-47');
-      expect(html).toContain('name="reticle-hitarea"');
-      expect(html).toContain('data-state="selected"');
-
-      // Top-Right Facet (Designation)
-      expect(html).toContain('data-testid="celestial-label"');
-      expect(html).toContain('Kepler-47');
-
-      // Bottom-Right Facet (Solar spectrum type separated in annotated mode with dot separator)
-      expect(html).toContain('data-testid="celestial-spectrum-facet"');
-      expect(html).toContain('G6V');
-      expect(html).toContain('M3V');
-      expect(html).toContain('·');
-      expect(html).not.toContain(' + ');
-
-      // Drop stalk present in selected state
-      expect(html).toContain('drop-stalk');
-    });
-
-    it('omits spectral tag from label in active state without separating into bottom-right facet', () => {
-      const html = renderToString(
-        createElement(CelestialNode, {
-          id: 'kepler-active',
-          name: 'Kepler-47',
-          position: [5, 5, 2],
-          classification: 'stellar-system',
-          state: 'active',
-          spectralType: 'G6V + M3V',
-        }),
-      );
-
-      expect(html).toContain('data-testid="celestial-label"');
-      expect(html).toContain('Kepler-47');
-      expect(html).not.toContain('G6V');
-      expect(html).not.toContain('data-testid="celestial-spectrum-facet"');
-    });
-
-    it('generates multiplicity pips as solid star dots aligned towards the left point', () => {
+  describe('Reticle Geometry & Pips', () => {
+    it('generates multiplicity pips as solid star dots aligned towards the left point (0 for single, 2+ for multiples)', () => {
       const pointsSingle: THREE.Vector3[] = [];
       appendMultiplicityPips(pointsSingle, 1.0, 1);
-      // 1 star dot generated (outer ring + inner ring + spokes = 48 points)
-      expect(pointsSingle.length).toBe(48);
+      // Single star system renders 0 pips (Approach B)
+      expect(pointsSingle.length).toBe(0);
 
       const pointsBinary: THREE.Vector3[] = [];
       appendMultiplicityPips(pointsBinary, 1.0, 2);
       expect(pointsBinary.length).toBe(96); // 2 star dots
+
+      const pointsTriple: THREE.Vector3[] = [];
+      appendMultiplicityPips(pointsTriple, 1.0, 3);
+      expect(pointsTriple.length).toBe(144); // 3 star dots
 
       const pointsQuat: THREE.Vector3[] = [];
       appendMultiplicityPips(pointsQuat, 1.0, 4);
@@ -723,63 +393,6 @@ describe('3D Cartography Components', () => {
       });
       // 8 diamond points + 96 multiplicity points + 48 planetary points = 152 points
       expect(geom.getAttribute('position').count).toBe(152);
-    });
-  });
-
-  describe('OrbitalRing', () => {
-    it('renders circular orbit with periapsis tick and prograde direction indicator by default', () => {
-      const html = renderToString(
-        createElement(OrbitalRing, {
-          semiMajorAxis: 2.0,
-          eccentricity: 0,
-          showPeriapsisTick: true,
-          showDirectionIndicator: true,
-        }),
-      );
-      expect(html).toContain('orbital-ring');
-      expect(html).toContain('name="periapsis-tick"');
-      expect(html).toContain('name="prograde-indicator"');
-    });
-
-    it('renders eccentric inclined orbit without ticks when disabled', () => {
-      const html = renderToString(
-        createElement(OrbitalRing, {
-          semiMajorAxis: 3.5,
-          eccentricity: 0.4,
-          inclination: 15,
-          ascendingNode: 30,
-          showPeriapsisTick: false,
-          showDirectionIndicator: false,
-        }),
-      );
-      expect(html).toContain('orbital-ring');
-      expect(html).not.toContain('name="periapsis-tick"');
-      expect(html).not.toContain('name="prograde-indicator"');
-    });
-
-    it('applies focused state cleanly with bearing red color', () => {
-      const tokens = useThreeTokenStore.getState().tokens;
-      const expectedRed = `#${tokens.bearingOrbitalColor.getHexString()}`;
-      const html = renderToString(
-        createElement(OrbitalRing, {
-          semiMajorAxis: 1.0,
-          isFocused: true,
-        }),
-      );
-      expect(html).toContain('orbital-ring');
-      expect(html).toContain('name="periapsis-tick"');
-      expect(html).toContain('name="prograde-indicator"');
-      expect(html).toContain(expectedRed);
-    });
-
-    it('supports custom color override', () => {
-      const html = renderToString(
-        createElement(OrbitalRing, {
-          semiMajorAxis: 1.5,
-          color: '#00ffcc',
-        }),
-      );
-      expect(html).toContain('orbital-ring');
     });
   });
 

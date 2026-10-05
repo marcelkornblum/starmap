@@ -3,7 +3,12 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { SceneOutlet } from './SceneBridge';
 import { SceneTokenBridge } from './ThemeTokenBridge';
-import { getStandardInitialCamera } from './cartography/cartographyMath';
+import { GalaxyScene } from './scenes/GalaxyScene';
+import {
+  getStandardInitialCamera,
+  STANDARD_CAMERA_DISTANCES,
+} from './cartography/cartographyMath';
+import { CONTROLS_DAMPING_FACTOR } from './engineConfig';
 import styles from './GlobalCanvas.module.css';
 
 export interface GlobalCanvasProps {
@@ -11,7 +16,7 @@ export interface GlobalCanvasProps {
   style?: React.CSSProperties;
 }
 
-const STANDARD_CAM = getStandardInitialCamera(14, [0, 0, 0], 50);
+const STANDARD_CAM = getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.galactic, [0, 0, 0], 45);
 
 export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
   className,
@@ -33,12 +38,18 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
       >
         <SceneTokenBridge />
         <ambientLight intensity={0.6} />
-        <directionalLight position={[10, 15, 10]} intensity={1.2} />
-        <directionalLight position={[-10, -5, -10]} intensity={0.4} color="#6688aa" />
+        <directionalLight position={[10, 20, 15]} intensity={0.4} />
 
-        <SceneOutlet />
+        <SceneOutlet fallback={<GalaxyScene />} />
 
-        <OrbitControls makeDefault target={STANDARD_CAM.target} enableDamping dampingFactor={0.05} />
+        <OrbitControls
+          makeDefault
+          target={STANDARD_CAM.target}
+          enableDamping
+          dampingFactor={CONTROLS_DAMPING_FACTOR}
+          minDistance={2.5}
+          maxDistance={85}
+        />
       </Canvas>
     </div>
   );

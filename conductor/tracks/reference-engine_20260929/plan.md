@@ -15,3 +15,9 @@
 - [ ] Task: Build the `<Inline3DCard>` component utilizing `@react-three/drei`'s `<View>`.
 - [ ] Task: Embed the card into the sample MDX page and verify it correctly renders 3D elements inside the global WebGL canvas while scrolling.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+
+## Phase 4: Encyclopedia Architecture
+- [ ] Task: Implement article template (summary, parameter range, exemplar) and Relative Parameter Comparator.
+- [ ] Task: Implement category index with 3D exemplar cards.
+- [ ] Task: Implement encyclopedia breadcrumb hierarchy and classification deep-link icon.
+- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)

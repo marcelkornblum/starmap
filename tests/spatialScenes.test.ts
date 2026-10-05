@@ -8,8 +8,8 @@ import {
   SystemViewScene,
   PlanetaryViewScene,
   InteractiveNavigator,
-  FullUIStylingScene,
-} from '../src/components/canvas/scenes/SpatialScenes.stories';
+} from '../src/components/canvas/scenes/SpatialScenes';
+import { FullUIStylingScene } from '../src/components/canvas/scenes/FullUIStylingScene';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
@@ -50,16 +50,16 @@ describe('SpatialScenes Storybook Suite', () => {
       const html = renderToString(createElement(GalacticViewScene));
       expect(html).toContain('data-testid="mock-canvas"');
       expect(html).toContain('name="cartographic-grid"');
-      expect(html).toContain('name="celestial-node-sol"');
-      expect(html).toContain('name="celestial-node-alpha-centauri"');
-      expect(html).toContain('name="celestial-node-tau-ceti"');
+      expect(html).toContain('name="celestial-entity-sol"');
+      expect(html).toContain('name="celestial-entity-alpha-centauri"');
+      expect(html).toContain('name="celestial-entity-tau-ceti"');
       expect(html).not.toContain('Candidate Systems');
       expect(html).not.toContain('Galactic Compass');
     });
 
     it('renders focused star label when initialSelectedId is provided', () => {
       const html = renderToString(createElement(GalacticViewScene, { initialSelectedId: 'sol' }));
-      expect(html).toContain('name="celestial-node-sol"');
+      expect(html).toContain('name="celestial-entity-sol"');
       expect(html).toContain('Sol');
     });
 
@@ -76,20 +76,20 @@ describe('SpatialScenes Storybook Suite', () => {
       const html = renderToString(createElement(SystemViewScene));
       expect(html).toContain('data-testid="mock-canvas"');
       expect(html).toContain('name="cartographic-grid"');
-      expect(html).toContain('name="celestial-node-sol"');
+      expect(html).toContain('name="celestial-entity-sol"');
       expect(html).toContain('Sol');
-      expect(html).toContain('name="celestial-node-mercury"');
-      expect(html).toContain('name="celestial-node-earth"');
+      expect(html).toContain('name="celestial-entity-mercury"');
+      expect(html).toContain('name="celestial-entity-earth"');
       expect(html).toContain('Earth');
-      expect(html).toContain('name="celestial-node-jupiter"');
-      expect(html).toContain('name="celestial-node-saturn"');
-      expect(html).toContain('name="orbit-path"');
+      expect(html).toContain('name="celestial-entity-jupiter"');
+      expect(html).toContain('name="celestial-entity-saturn"');
+      expect(html).toContain('name="orbital-ring-earth"');
       expect(html).not.toContain('Semi-Major Axis');
     });
 
     it('handles systemId override for Tau Ceti', () => {
       const html = renderToString(createElement(SystemViewScene, { systemId: 'tau-ceti' }));
-      expect(html).toContain('name="celestial-node-tau-ceti"');
+      expect(html).toContain('name="celestial-entity-tau-ceti"');
       expect(html).toContain('Tau Ceti');
     });
   });
@@ -99,10 +99,10 @@ describe('SpatialScenes Storybook Suite', () => {
       const html = renderToString(createElement(PlanetaryViewScene));
       expect(html).toContain('data-testid="mock-canvas"');
       expect(html).toContain('name="cartographic-grid"');
-      expect(html).toContain('name="celestial-node-planet-center-node"');
+      expect(html).toContain('name="celestial-entity-earth"');
       expect(html).toContain('Earth');
-      expect(html).toContain('name="celestial-node-moon"');
-      expect(html).toContain('name="orbit-path"');
+      expect(html).toContain('name="celestial-entity-moon"');
+      expect(html).toContain('name="orbital-ring-moon"');
       expect(html).not.toContain('Natural Satellites');
       expect(html).not.toContain('Surface Gravity');
       expect(html).not.toContain('Atmospheric Composition');
@@ -115,7 +115,7 @@ describe('SpatialScenes Storybook Suite', () => {
       const html = renderToString(createElement(InteractiveNavigator));
       expect(html).toContain('data-testid="mock-canvas"');
       expect(html).toContain('name="cartographic-grid"');
-      expect(html).toContain('name="celestial-node-sol"');
+      expect(html).toContain('name="celestial-entity-sol"');
       expect(html).not.toContain('Candidate Systems');
       expect(html).not.toContain('Inspect Sol System →');
     });

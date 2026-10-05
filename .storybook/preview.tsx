@@ -1,8 +1,31 @@
 import type { Preview } from '@storybook/react-vite';
+import '../src/components/canvas/patchR3F';
 import '../src/index.css';
 
 const preview: Preview = {
   parameters: {
+    options: {
+      storySort: {
+        order: [
+          'Canvas',
+          [
+            'Production Scenes',
+            ['Spatial Viewport', 'Canonical Scenes'],
+            'Celestial Entities',
+            ['Celestial Entity', 'Planet Body'],
+            'Cartographic Instrument',
+            ['Cartographic Instrument'],
+            'Prototypes & Verification',
+            ['Spatial Scenes (Multi-Scale & UI PoC)'],
+          ],
+          'Surfaces',
+          'Overlays',
+          'Primitives',
+          'Templates',
+          'Domain',
+        ],
+      },
+    },
     controls: {
       matchers: {
        color: /(background|color)$/i,

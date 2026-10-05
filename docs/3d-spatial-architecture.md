@@ -69,7 +69,9 @@ To resolve spatial density without falsifying astronomical positions or creating
   * System multiplicity is communicated via symbolic HUD tokens (e.g. `×3`) rather than multiple colliding sub-pixel dots.
 * **Separation Boundary:** Binary, trinary, and multiple stellar bodies unpack into discrete celestial objects and Keplerian orbital paths only upon transitioning into **System View**.
 * **Zero Clustering, Zero Occlusion:** Physical system points **never cluster** into aggregate count badges and **never occlude**. Positional truth is absolute; every system in the volume is continuously represented at its true coordinate location.
-* **Monochrome Baseline & Invariant Screen Size:** Physical system dots are strictly monochrome with a consistent, invariant screen-space pixel diameter (never blooming or falling below sub-pixel visibility).
+* **Invariant Screen Size (All Celestial Bodies):** Every celestial body marker — stellar systems, stars, planets, moons, remnants, and all other classifications — renders at one identical, invariant screen-space pixel diameter at all times, across all views and zoom levels (never blooming, scaling with distance, or falling below sub-pixel visibility).
+* **Monochrome Baseline:** Celestial body markers are monochrome at the neutral baseline. Colour is reserved exclusively for user-selected analytical layers.
+* **No Hard-Coded Data Encodings:** No data attribute (spectral type, magnitude, luminosity, mass, temperature, etc.) is ever bound to a visual channel (colour, size, luminance, halo, opacity) in code. Such bindings exist only as user-selectable analytical layers.
 * **Analytical Halo Reservation:** Optical halos are strictly reserved for user-selected data layers (analytical filters/heatmaps); at neutral baseline, halos are disabled. Stellar luminance / magnitude is selectable as a data source driving the halo.
 
 ### 2.2 Geometric Reticles & Universal Taxonomy
@@ -87,16 +89,16 @@ To resolve spatial density without falsifying astronomical positions or creating
   * **Relativistic Hazards (Neutron Stars / Pulsars / Magnetars):** Fractured diamond with outward radiating beam spines (divergent beam geometry).
   * **Gravitational Singularities (Black Holes):** Four sharp 1px inward-pointing convergent spines (`► ◄ / ▼ ▲`) targeting an empty central coordinate (infall geometry; zero planetary circle confusion).
   * **Gravitational Barycentres:** 1px Plus (`+`) at true centre of mass.
-  * **Planetary Bodies (Open Circle Family):**
-    * *Terrestrial / Rocky:* Small 1px open circle (~3–4px diameter).
-    * *Gas Giant:* Large 1px open circle (~7–8px diameter).
-    * *Ice Giant:* Ringed open circle (open circle with split lateral ring flanges, keeping the central disk 100% open).
+  * **Planetary Bodies (Open Circle Family):** All planet reticles share one size envelope (the same as every other body reticle); category is conveyed by shape only, and size never varies with radius, mass or class.
+    * *Terrestrial / Rocky:* Plain 1px open circle.
+    * *Gas Giant:* Open circle crossed by a 45° slash with a central gap (keeping the centre open).
+    * *Ice Giant:* Open circle with radial ring ticks outside the circle, keeping the central disk 100% open.
   * **Stellar Clusters / Echelons:** Floating Double Top Chevron (`︽`) with no bottom chevron, crowning the cluster centroid.
   * **Artificial Constructs & Vehicles:** $90^\circ$ Orthogonal open corner box (`┌ ┐ / └ ┘`).
 * **The Four-Facet Diamond Architecture (Stellar Systems - Focus / Filtered State):**
   * **Top-Left:** Stellar multiplicity census (Approach B: 0 pips for single star; 2 pips for binary; 3 pips for trinary along outer edge).
   * **Top-Right:** Typographic label (system designation).
-  * **Bottom-Left:** Planetary system census (planetary symbology).
+  * **Bottom-Left:** Planetary system census (planetary symbology). These census pips are components decorating the reticle frame rather than reticles themselves; each pip is an independent census symbol with its own relative sizing, exempt from the primary reticle size rule.
   * **Bottom-Right:** Solar spectrum type.
 * **Priority Occlusion Masking:**
   * Equal-priority reticles (e.g. ambient contacts) overlay directly without suppression.
@@ -109,10 +111,14 @@ To resolve spatial density without falsifying astronomical positions or creating
 * **Orbit Hysteresis Buffer:** To prevent label popping or flickering during camera orbit, displacement and culling thresholds are governed by a hysteresis buffer with smooth alpha cross-fades.
 * **Target Immunity:** The active focused target's label is completely immune to proximity culling; it never yields to foreground ambient systems.
 
-### 2.4 The Strict Single-Stalk Rule
-* **Clean Ambient Starfield:** At rest, **zero stalks exist across the starfield**. All systems float unencumbered in 3D space.
-* **Selection / Focus Only:** Exactly **ONE vertical drop stalk** is rendered at any time, projecting strictly from the **currently focused or selected system** down to the **Galactic Equator datum plane** ($Z=0$).
-* **Elevation Symbology:** The single active stalk features:
+### 2.4 State-Driven Drop Stalks
+* **State Ownership:** Drop stalk visibility is a function of each entity's interaction state (`passive` / `active` / `selected` / `focused`, per [`scene-requirements.md` §2.1](./scene-requirements.md)). Stalks are never toggled per view or per scene; the state taxonomy is the sole authority.
+* **State Mapping:** Stalks render for entities in the **`selected`** and **`focused`** tiers; `passive` and `active` entities never carry stalks. Because hover applies the `selected` tier, hovering an entity projects its stalk, and multiple selected entities each carry their own stalk.
+* **Footprint Coupling:** The datum-plane ground footprint exists if and only if the entity's stalk exists. Its colour and opacity consume their own semantic tokens (`--chrome-footprint-*`), defaulting to the stalk's monochrome value, so it can be retuned independently of the stalk.
+* **Extend / Retract Motion:** On entering a stalk tier, the stalk extends from the entity down to the datum plane and the footprint stamps on arrival. On leaving, the stalk retracts (default: instant snap-off). Extend and retract each consume their own semantic motion tokens (duration + easing), so either can be retuned or disabled (mapped to the zero-duration token) without code changes. Reversals mid-motion continue from the current length (no restart or pop). `prefers-reduced-motion` renders stalks instantly.
+* **State Styling:** Stalks are monochrome chrome at every tier (they do not take the selected or focus colours); `selected` and `focused` differ only in opacity. Colour, opacity and line pattern consume semantic tokens; no hard-coded values.
+* **Projection:** Each rendered stalk projects vertically from the entity's true world position down to the active datum plane ($Z=0$).
+* **Elevation Symbology:** A rendered stalk features:
   * A 1px vertical line (solid for $+Z$ North Galactic Hemisphere, dashed for $-Z$ South Galactic Hemisphere).
   * A graduated tactical elevation tape indicating relative vertical offset ($\Delta z$) in parsecs.
   * A subtle geometric ground footprint stamped onto the Galactic Equator datum plane at the base of the stalk.
@@ -180,7 +186,7 @@ The map operates within an **unbounded continuous galactic starfield**, eliminat
 | **Core & Orbital Bearings** | **Persistent** | Active with detachable edge arrows | Active with detachable edge arrows | Active | Active |
 | **3 Mobile Traveling Fins** | **Persistent** | Follows camera center | Follows target center | Subdued | Subdued |
 | **Range Rings** | **Persistent** | Zoom-adaptive hierarchical | Zoom-adaptive hierarchical | Subdued | Subdued |
-| **Vertical Stalk** | **Contextual** | **Zero stalks**; 1 stalk appears on hover | **Exactly 1 stalk** on focused target | 1 stalk on selected waypoint | Zero stalks |
+| **Vertical Stalk** | **State-Driven** | Per entity state (§2.4) | Per entity state (§2.4) | Per entity state (§2.4) | Per entity state (§2.4) |
 | **Sliding Distance Tape ($R_{gal}$)** | **Active in Explore** | Slides continuously along Core axis | Pinned to target Core distance | Slides along active path | Static |
 | **Measurement Chords** | **Tool-Specific** | Hidden | Target-to-anchor chord | Multi-hop trajectory chords | Hidden |
 | **Colour & Filtering** | **Neutral Baseline** | Monochromatic baseline | Monochromatic baseline | Path highlighting / dimming | Chromatic query highlights |
@@ -189,4 +195,4 @@ The map operates within an **unbounded continuous galactic starfield**, eliminat
 * In **Explore Mode**, the entire tri-axial datum structure is anchored directly to the **camera's central focal point**.
 * As the user pans and navigates across the galactic starfield, the coordinate frame moves seamlessly with the camera.
 * Galactocentric distance markers ($R_{gal} \approx 8.19 \dots 8.21$ kpc) slide smoothly along the Core axis like a live vernier scale, continuously displaying the camera's true position within the Milky Way disk.
-* Stalks remain 100% suppressed until an entity is hovered or selected.
+* Stalk visibility follows entity interaction state (§2.4); Explore Mode applies no additional stalk rules.

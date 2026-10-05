@@ -25,7 +25,7 @@ import {
   Metric,
 } from '../../primitives';
 import { OrbitTable, type OrbitElementRow } from '../../domain';
-import { GalacticViewScene } from './SpatialScenes.stories';
+import { GalacticViewScene } from './SpatialScenes';
 import styles from './FullUIStylingScene.module.css';
 
 const DEMO_ORBITS: OrbitElementRow[] = [

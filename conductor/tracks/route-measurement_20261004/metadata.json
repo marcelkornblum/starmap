@@ -1,0 +1,12 @@
+{
+  "id": "route-measurement_20261004",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-10-04T23:16:00Z",
+  "updated_at": "2026-10-04T23:16:00Z",
+  "initiative": null,
+  "phase": 1,
+  "depends_on": [
+    "telemetry-container_20261004"
+  ]
+}
