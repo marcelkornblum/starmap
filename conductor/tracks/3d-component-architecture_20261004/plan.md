@@ -48,9 +48,9 @@
 >
 > **Bearing decisions:** Tilt is never independently configurable; it exists iff the frame declares a core bearing and follows that bearing's target. Orbital bearing is independent of the core bearing. Galactic: core bearing → Galactic Centre, always on. System: core bearing off for now (future: aim at barycentre, shown only when the instrument origin is far enough from it in screen terms). Planetary: no core bearing, no tilt.
 
-- [ ] Task: Fix interaction event semantics: idempotent `setSelected`/`setFocused`; cyclic selection keyed off `selectedId` (not rendered tier, so hover no longer triggers it); double-click focuses without clearing selection or firing `onInspect` twice.
-- [ ] Task: Single `SpatialFrameProvider` per viewport (remove nested provider in `CartographicInstrument`); single per-frame controls update; entities and instrument share one aperture.
-- [ ] Task: PlanetBody cross-fade: fix stale world-position read; replace foreign material mutation with a node alpha consumed by children.
+- [x] Task: Fix interaction event semantics: idempotent `setSelected`/`setFocused`; cyclic selection keyed off `selectedId` (not rendered tier, so hover no longer triggers it); double-click focuses without clearing selection or firing `onInspect` twice.
+- [x] Task: Single `SpatialFrameProvider` per viewport (remove nested provider in `CartographicInstrument`); single per-frame controls update; entities and instrument share one aperture.
+- [x] Task: PlanetBody cross-fade: fix stale world-position read; replace foreign material mutation with a node alpha consumed by children.
 - [ ] Task: **HALT: user verification in Storybook.**
 - [ ] Task: Store-owned interaction FSM (`deriveEntityTier` as sole derivation, `apertureIds` in store); remove `state`/`showStalk`/`showLabel`/`reticleSize`/`enableOcclusion` from entity contract.
 - [ ] Task: Frame-declared core bearing (optional) drives tilt; orbital bearing independent; frame-neutral prop naming; apply bearing decisions above.
