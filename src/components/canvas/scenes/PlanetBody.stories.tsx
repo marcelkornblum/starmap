@@ -4,6 +4,7 @@ import { OrbitControls } from '@react-three/drei';
 import { PlanetBody, type PlanetBodyProps } from './PlanetBody';
 import { CelestialEntity } from '../entity/CelestialEntity';
 import { SpatialEntityProvider } from '../entity/SpatialEntityContext';
+import { SpatialFrameProvider, PLANETARY_FRAME } from '../instrument';
 import { ThemeTokenBridge } from '../ThemeTokenBridge';
 import { getStandardInitialCamera } from '../cartography/cartographyMath';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
@@ -80,20 +81,25 @@ export const DistanceFadeTransition: Story = {
         <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
           <ThemeTokenBridge />
           <OrbitControls makeDefault target={cam.target} enableDamping minDistance={2} maxDistance={100} />
-          <SpatialEntityProvider>
-            {/* The physical PlanetBody fades out at distance */}
-            <PlanetBody {...args} />
-            {/* The invariant Reticle and BodyMarker seamlessly take over */}
-            <CelestialEntity
-              id="planet-target"
-              name="Target World"
-              position={[0, 0, 0]}
-              classification="terrestrial"
-              state="selected"
-              showLabel={true}
-              enableOcclusion={false}
-            />
-          </SpatialEntityProvider>
+          <SpatialFrameProvider frame={PLANETARY_FRAME}>
+            <SpatialEntityProvider>
+              {/* The physical PlanetBody fades out at distance */}
+              <PlanetBody {...args} />
+              {/* The invariant Reticle and BodyMarker seamlessly take over */}
+              <CelestialEntity
+                id="planet-target"
+                name="Target World"
+                position={[0, 0, 0]}
+                classification="terrestrial"
+                state="selected"
+                showLabel={true}
+                enableOcclusion={false}
+                bodyRadius={args.radius}
+                bodyMinPixelSize={args.minPixelSize}
+                bodyFadeRange={args.fadeRange}
+              />
+            </SpatialEntityProvider>
+          </SpatialFrameProvider>
         </Canvas>
       </div>
     );

@@ -7,16 +7,21 @@ import {
   CelestialEntity,
   SpatialEntityProvider,
   OcclusionPass,
+  useSpatialEntityStore,
+  useSpatialEntityStoreApi,
+  clearInteraction,
   type CelestialInteractionState,
 } from './index';
 import {
   CartographicInstrument,
+  SpatialFrameProvider,
   SYSTEM_FRAME,
   GALACTIC_FRAME,
 } from '../instrument';
 import { getStandardInitialCamera } from '../cartography/cartographyMath';
 import { celestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
 import { ThemeTokenBridge } from '../ThemeTokenBridge';
+import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<typeof CelestialEntity> = {
@@ -36,7 +41,7 @@ export const TaxonomicReticles: Story = {
     const systems = [
       {
         id: 'tax-sol',
-        name: 'Sol',
+        name: 'System',
         classification: 'star' as const,
         spectralType: 'G2V',
         multiplicity: 1,
@@ -53,28 +58,28 @@ export const TaxonomicReticles: Story = {
       },
       {
         id: 'tax-teide1',
-        name: 'Teide 1',
+        name: 'Brown Dwarf',
         classification: 'brown-dwarf' as const,
         spectralType: 'M8V',
         multiplicity: 1,
       },
       {
         id: 'tax-sirius-b',
-        name: 'Sirius B',
+        name: 'White Dwarf',
         classification: 'white-dwarf' as const,
         spectralType: 'DA2',
         multiplicity: 2,
       },
       {
         id: 'tax-cygnus-x1',
-        name: 'Cygnus X-1',
+        name: 'Singularity',
         classification: 'black-hole' as const,
         spectralType: 'HMXB',
         multiplicity: 2,
       },
       {
         id: 'tax-alpha-cen-ab',
-        name: 'Alpha Centauri AB',
+        name: 'Barycentre',
         classification: 'barycentre' as const,
         spectralType: 'G2V·K1V',
         multiplicity: 3,
@@ -85,14 +90,14 @@ export const TaxonomicReticles: Story = {
       },
       {
         id: 'tax-pleiades',
-        name: 'Pleiades',
+        name: 'Stellar Cluster',
         classification: 'stellar-cluster' as const,
         spectralType: 'OPEN-CL',
         multiplicity: 7,
       },
       {
         id: 'tax-oneill',
-        name: "O'Neill Station",
+        name: 'Construct',
         classification: 'construct' as const,
         spectralType: 'HAB-01',
         multiplicity: 1,
@@ -104,8 +109,9 @@ export const TaxonomicReticles: Story = {
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
+          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
           <ambientLight intensity={1} />
+          <SpatialFrameProvider frame={GALACTIC_FRAME}>
           <SpatialEntityProvider>
             <OcclusionPass />
             {systems.map((s, idx) => {
@@ -126,55 +132,125 @@ export const TaxonomicReticles: Story = {
               );
             })}
           </SpatialEntityProvider>
+          </SpatialFrameProvider>
         </Canvas>
       </div>
     );
   },
 };
 
+const SingleEntityInteractionContent: React.FC<{
+  isDistant: boolean;
+  setIsDistant: (v: boolean) => void;
+  cam: ReturnType<typeof getStandardInitialCamera>;
+}> = ({ isDistant, setIsDistant, cam }) => {
+  const storeApi = useSpatialEntityStoreApi();
+  const selectedId = useSpatialEntityStore((s) => s.selectedId);
+  const focusedId = useSpatialEntityStore((s) => s.focusedId);
+  const hoveredId = useSpatialEntityStore((s) => s.hoveredId);
+
+  const pos: [number, number, number] = isDistant ? [16, 0, 1.5] : [0, 0, 1.5];
+
+  const currentTier = isDistant
+    ? 'passive (outside aperture)'
+    : focusedId === 'demo-node'
+      ? 'focused (cyan reticle & datum footprint)'
+      : hoveredId === 'demo-node'
+        ? 'hovered (rollover preview)'
+        : selectedId === 'demo-node'
+          ? 'selected'
+          : 'active (in aperture)';
+
+  return (
+    <>
+      <div className={styles.demoOverlay}>
+        <div><strong>Spec 2.1 / 2.2 Single-Entity Interaction States</strong></div>
+        <div className={styles.buttonRow}>
+          <button
+            type="button"
+            className={styles.demoButton}
+            data-active={!isDistant}
+            onClick={() => setIsDistant(false)}
+          >
+            In Aperture (Active / Interactive)
+          </button>
+          <button
+            type="button"
+            className={styles.demoButton}
+            data-active={isDistant}
+            onClick={() => {
+              setIsDistant(true);
+              clearInteraction(storeApi);
+            }}
+          >
+            Outside Aperture (Passive / Non-Interactive)
+          </button>
+        </div>
+        <div>
+          Active Tier: <span className={styles.targetHighlight}>{currentTier}</span>
+        </div>
+        <div>
+          <em>
+            {isDistant
+              ? 'Passive entities outside aperture render as unreticled dots and ignore click & rollover events.'
+              : 'Hover to rollover (cursor: pointer, monochrome stalk and datum footprint). Click to focus (switches reticle and footprint to cyan focus colour). Click again or click empty canvas to deselect.'}
+          </em>
+        </div>
+      </div>
+
+      <Canvas
+        camera={{ position: cam.position, up: cam.up, fov: cam.fov }}
+        onPointerMissed={() => clearInteraction(storeApi)}
+      >
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <ThemeTokenBridge />
+          <OrbitControls
+            makeDefault
+            target={isDistant ? [16, 0, 0] : [0, 0, 0]}
+            enableDamping
+            dampingFactor={CONTROLS_DAMPING_FACTOR}
+          />
+          <ambientLight intensity={1} />
+          <CartographicInstrument showPlanarGrid showFins={false} />
+          <OcclusionPass />
+          <CelestialEntity
+            id="demo-node"
+            name="System"
+            position={pos}
+            classification="star"
+            spectralType="G2V"
+            multiplicity={2}
+            planets={[
+              { id: 'p1', name: 'Planet b', classification: 'terrestrial' },
+              { id: 'p2', name: 'Planet c', classification: 'gas-giant' },
+            ]}
+          />
+        </SpatialFrameProvider>
+      </Canvas>
+    </>
+  );
+};
+
+const SingleEntityInteractionStory: React.FC = () => {
+  const [isDistant, setIsDistant] = useState(false);
+  const cam = getStandardInitialCamera(12, [0, 0, 0], 35);
+
+  return (
+    <div className={styles.canvasContainer}>
+      <SpatialEntityProvider>
+        <SingleEntityInteractionContent
+          isDistant={isDistant}
+          setIsDistant={setIsDistant}
+          cam={cam}
+        />
+      </SpatialEntityProvider>
+    </div>
+  );
+};
+
 export const InteractionStates: Story = {
   name: '2. Interaction States (Passive, Active, Selected, Focused)',
-  render: () => {
-    const states: CelestialInteractionState[] = ['passive', 'active', 'selected', 'focused'];
-    const cam = getStandardInitialCamera(14, [0, 0, 0], 35);
-
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
-          <ambientLight intensity={1} />
-          <SpatialEntityProvider>
-            <OcclusionPass />
-            {states.map((st, idx) => {
-              const x = (idx - 1.5) * 2.2;
-              const z = idx % 2 === 0 ? 1.0 : -1.0;
-              return (
-                <CelestialEntity
-                  key={st}
-                  id={`state-${st}`}
-                  name={`State: ${st}`}
-                  position={[x, 0, z]}
-                  classification="star"
-                  state={st}
-                  spectralType="G2V"
-                  multiplicity={idx >= 2 ? 2 : 1}
-                  planets={
-                    idx >= 2
-                      ? [
-                          { id: 'p1', name: 'Planet b', classification: 'terrestrial' },
-                          { id: 'p2', name: 'Planet c', classification: 'gas-giant' },
-                        ]
-                      : undefined
-                  }
-                />
-              );
-            })}
-          </SpatialEntityProvider>
-        </Canvas>
-      </div>
-    );
-  },
+  render: () => <SingleEntityInteractionStory />,
 };
 
 export const DropStalksHemispheres: Story = {
@@ -185,8 +261,9 @@ export const DropStalksHemispheres: Story = {
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
-          <CartographicInstrument frame={GALACTIC_FRAME} showPlanarGrid showFins={false} />
+          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
+          <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <CartographicInstrument showPlanarGrid showFins={false} />
           <SpatialEntityProvider>
             <OcclusionPass />
             {/* Northern hemisphere (+Z): Solid stalk */}
@@ -208,6 +285,7 @@ export const DropStalksHemispheres: Story = {
               spectralType="A9II"
             />
           </SpatialEntityProvider>
+          </SpatialFrameProvider>
         </Canvas>
       </div>
     );
@@ -222,8 +300,9 @@ export const KinematicVectorAndOrbits: Story = {
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
-          <CartographicInstrument frame={SYSTEM_FRAME} showPlanarGrid showFins={false} />
+          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
+          <SpatialFrameProvider frame={SYSTEM_FRAME}>
+          <CartographicInstrument showPlanarGrid showFins={false} />
           <SpatialEntityProvider>
             <OcclusionPass />
             {/* Central star */}
@@ -255,6 +334,7 @@ export const KinematicVectorAndOrbits: Story = {
               }}
             />
           </SpatialEntityProvider>
+          </SpatialFrameProvider>
         </Canvas>
       </div>
     );
@@ -333,10 +413,14 @@ const InteractiveCompositeSceneDemo: React.FC = () => {
         <div><em>Note: Alpha Centauri A & B illustrate real-time label collision displacement and occlusion.</em></div>
       </div>
 
-      <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
+      <Canvas
+        camera={{ position: cam.position, up: cam.up, fov: cam.fov }}
+        onPointerMissed={() => setSelectedId(null)}
+      >
         <ThemeTokenBridge />
-        <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
-        <CartographicInstrument frame={GALACTIC_FRAME} showPlanarGrid showFins />
+        <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <CartographicInstrument showPlanarGrid showFins />
         <SpatialEntityProvider>
           <OcclusionPass />
           {systems.map((s) => {
@@ -359,6 +443,7 @@ const InteractiveCompositeSceneDemo: React.FC = () => {
             );
           })}
         </SpatialEntityProvider>
+        </SpatialFrameProvider>
       </Canvas>
     </div>
   );
@@ -655,10 +740,14 @@ const ClusteringAndCollisionDemo: React.FC = () => {
         )}
       </div>
 
-      <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
+      <Canvas
+        camera={{ position: cam.position, up: cam.up, fov: cam.fov }}
+        onPointerMissed={() => setSelectedId(null)}
+      >
         <ThemeTokenBridge />
-        <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
-        <CartographicInstrument frame={SYSTEM_FRAME} showPlanarGrid showFins={false} />
+        <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
+        <SpatialFrameProvider frame={SYSTEM_FRAME}>
+        <CartographicInstrument showPlanarGrid showFins={false} />
         <SpatialEntityProvider>
           <OcclusionPass />
           <DiagnosticMonitor onUpdate={setDiagnostics} />
@@ -682,6 +771,7 @@ const ClusteringAndCollisionDemo: React.FC = () => {
             );
           })}
         </SpatialEntityProvider>
+        </SpatialFrameProvider>
       </Canvas>
     </div>
   );

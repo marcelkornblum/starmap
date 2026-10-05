@@ -15,7 +15,20 @@ import {
   type CelestialFootprint,
 } from '../cartography/celestialOcclusionRegistry';
 import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
+import { reticleSizeToScreenPx } from '../engineConfig';
 import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../math/kepler';
+import {
+  projectedPixelDiameter,
+  nodeVisibility,
+  DEFAULT_BODY_MIN_PIXEL_SIZE,
+  DEFAULT_BODY_FADE_RANGE,
+  CROSSFADE_VISIBILITY_EPSILON,
+} from '../math/bodyCrossfade';
+import {
+  activateEntity,
+  focusEntity,
+  occlusionCyclicTargetResolver,
+} from './interactionActions';
 import type {
   SpatialEntityDefinition,
   CelestialInteractionState,
@@ -71,6 +84,8 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   const storeApi = useSpatialEntityStoreApi();
   const { frameRef } = useSpatialFrame();
   const nodeGroupRef = useRef<THREE.Group>(null);
+  const nodeAlphaRef = useRef(1);
+  const hasBodyCrossfade = bodyRadius !== undefined && bodyRadius > 0;
 
   const primaryEntityPos = useSpatialEntityStore((s) => {
     if (!orbit?.primaryEntityId) return null;
@@ -145,18 +160,19 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   const isFocused = useSpatialEntityStore((s) => s.focusedId === id);
   const storedEntityState = useSpatialEntityStore((s) => s.entities[id]?.state);
 
-  const baseState: CelestialInteractionState = isInAperture ? 'active' : 'passive';
   let activeState: CelestialInteractionState;
-  if (isFocused || explicitState === 'focused') {
+  if (explicitState === 'passive' || (!isInAperture && explicitState === undefined)) {
+    activeState = 'passive';
+  } else if (isFocused || explicitState === 'focused') {
     activeState = 'focused';
-  } else if (isHovered || isSelected || explicitState === 'selected') {
+  } else if (isSelected || explicitState === 'selected' || isHovered) {
     activeState = 'selected';
   } else if (explicitState) {
     activeState = explicitState;
   } else if (storedEntityState) {
     activeState = storedEntityState;
   } else {
-    activeState = baseState;
+    activeState = 'active';
   }
 
   const velX = velocity ? (velocity instanceof THREE.Vector3 ? velocity.x : velocity[0]) : null;
@@ -304,45 +320,23 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
       const inAperture = resolvedPos.distanceTo(fp) <= r;
       if (inAperture !== isInApertureRef.current) {
         isInApertureRef.current = inAperture;
+        // r3f-audit-disable-next-line no-setstate-in-use-frame
         setIsInAperture(inAperture);
       }
     }
 
-    // 2. Physical body scale cross-fade (§4: Seamless PlanetBody to Node Takeover)
-    if (bodyRadius !== undefined && bodyRadius > 0 && nodeGroupRef.current) {
-      const dist = Math.max(camera.position.distanceTo(scratchWorldPosRef.current), 1e-4);
-      let projectedPixelDiameter = 0;
-      if (camera instanceof THREE.PerspectiveCamera) {
-        const fovRad = (camera.fov * Math.PI) / 180;
-        const visibleHeightAtDist = 2 * Math.tan(fovRad / 2) * dist;
-        projectedPixelDiameter = ((2 * bodyRadius) / Math.max(0.001, visibleHeightAtDist)) * size.height;
-      } else if (camera instanceof THREE.OrthographicCamera) {
-        const frustumHeight = (camera.top - camera.bottom) / camera.zoom;
-        projectedPixelDiameter = ((2 * bodyRadius) / Math.max(0.001, frustumHeight)) * size.height;
-      }
-
-      const minPix = bodyMinPixelSize ?? 24;
-      const fadeR = bodyFadeRange ?? 16;
-      // Inverse alpha: 0 when projectedPixelDiameter >= minPix + fadeR, 1 when projectedPixelDiameter <= minPix
-      const nodeAlpha = THREE.MathUtils.clamp((minPix + fadeR - projectedPixelDiameter) / fadeR, 0, 1);
-
-      if (nodeAlpha <= 0.005) {
-        nodeGroupRef.current.visible = false;
-      } else {
-        nodeGroupRef.current.visible = true;
-        nodeGroupRef.current.traverse((child) => {
-          if ('material' in child && child.material) {
-            const mat = child.material as THREE.Material & { opacity?: number; transparent?: boolean };
-            if (typeof mat.opacity === 'number' && child.name !== 'celestial-hitarea') {
-              mat.transparent = true;
-              if (child.userData.baseOpacity === undefined) {
-                child.userData.baseOpacity = mat.opacity > 0 ? mat.opacity : 1.0;
-              }
-              mat.opacity = child.userData.baseOpacity * nodeAlpha;
-            }
-          }
-        });
-      }
+    // 2. Physical body cross-fade (§4: Seamless PlanetBody to Node Takeover).
+    // Publishes a node alpha consumed by BodyMarker and Reticle; never mutates child materials.
+    if (hasBodyCrossfade && bodyRadius !== undefined && nodeGroupRef.current) {
+      const worldPos = nodeGroupRef.current.getWorldPosition(scratchWorldPosRef.current);
+      const diameterPx = projectedPixelDiameter(camera, worldPos, bodyRadius, size.height);
+      const alpha = nodeVisibility(
+        diameterPx,
+        bodyMinPixelSize ?? DEFAULT_BODY_MIN_PIXEL_SIZE,
+        bodyFadeRange ?? DEFAULT_BODY_FADE_RANGE,
+      );
+      nodeAlphaRef.current = alpha;
+      nodeGroupRef.current.visible = alpha > CROSSFADE_VISIBILITY_EPSILON;
     }
 
     if (!enableOcclusion) return;
@@ -362,7 +356,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     const ndc = scratchNdcRef.current.copy(scratchWorldPosRef.current).project(camera);
     const screenX = (ndc.x * 0.5 + 0.5) * size.width;
     const screenY = (-ndc.y * 0.5 + 0.5) * size.height;
-    const reticleRadiusPx = (reticleSize / 13.644) * size.height;
+    const reticleRadiusPx = reticleSizeToScreenPx(reticleSize, size.height);
 
     const fp = footprintRef.current;
     fp.screenX = screenX;
@@ -406,31 +400,32 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
           id={id}
           position={[0, 0, 0]}
           reticleSize={reticleSize}
-          state={activeState}
           debugHitarea={debugHitarea}
-          interactive={true}
+          interactive={activeState !== 'passive'}
+          nodeAlphaRef={hasBodyCrossfade ? nodeAlphaRef : undefined}
           onClick={(targetId, e) => {
+            if (activeState === 'passive') return;
             if (onClick) {
               onClick(targetId, e);
             } else {
-              storeApi.getState().setSelected(targetId);
+              activateEntity(storeApi, targetId, occlusionCyclicTargetResolver);
             }
           }}
           onDoubleClick={(targetId, e) => {
+            if (activeState === 'passive') return;
             if (onDoubleClick) {
               onDoubleClick(targetId, e);
             } else {
-              storeApi.getState().setSelected(targetId);
-              if (storeApi.getState().focusedId !== targetId) {
-                storeApi.getState().setFocused(targetId);
-              }
+              focusEntity(storeApi, targetId);
             }
           }}
           onPointerOver={(targetId, e) => {
+            if (activeState === 'passive') return;
             storeApi.getState().setHovered(targetId);
             onPointerOver?.(targetId, e);
           }}
           onPointerOut={(targetId, e) => {
+            if (activeState === 'passive') return;
             storeApi.getState().setHovered(null);
             onPointerOut?.(targetId, e);
           }}
@@ -447,6 +442,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
             multiplicity={multiplicity}
             planets={planets}
             spectralType={spectralType}
+            nodeAlphaRef={hasBodyCrossfade ? nodeAlphaRef : undefined}
           />
         )}
       </group>

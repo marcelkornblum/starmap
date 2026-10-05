@@ -7,6 +7,7 @@ import { PlanetBody } from './scenes/PlanetBody';
 import { ThemeTokenBridge } from './ThemeTokenBridge';
 import { getStandardInitialCamera } from './cartography/cartographyMath';
 import { calculateKeplerianPosition } from './math/kepler';
+import { CONTROLS_DAMPING_FACTOR } from './engineConfig';
 import type { SpatialEntityDefinition } from './entity/SpatialEntityStore';
 import styles from './cartography/StorybookCanvasWrapper.module.css';
 
@@ -81,7 +82,7 @@ export const GalacticViewport: Story = {
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping />
+          <OrbitControls makeDefault target={cam.target} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
           <SpatialViewport {...args} />
         </Canvas>
       </div>
@@ -137,7 +138,7 @@ export const SystemViewportWithOrbits: Story = {
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping />
+          <OrbitControls makeDefault target={cam.target} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
           <SpatialViewport {...args} />
         </Canvas>
       </div>
@@ -194,7 +195,14 @@ export const PlanetaryViewportWithBespokeBody: Story = {
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping minDistance={1.5} maxDistance={350} />
+          <OrbitControls
+            makeDefault
+            target={cam.target}
+            enableDamping
+            dampingFactor={CONTROLS_DAMPING_FACTOR}
+            minDistance={1.5}
+            maxDistance={350}
+          />
           <SpatialViewport {...args}>
             <PlanetBody name="Earth" classification="terrestrial" radius={1.0} minPixelSize={24} fadeRange={16} />
           </SpatialViewport>

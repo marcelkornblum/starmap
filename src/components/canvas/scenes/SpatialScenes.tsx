@@ -10,6 +10,7 @@ import {
   type PlanetCensusEntry,
 } from '../cartography';
 import { SceneTokenBridge } from '../ThemeTokenBridge';
+import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import { GalaxyScene } from './GalaxyScene';
 import { SystemScene } from './SystemScene';
 import { PlanetScene } from './PlanetScene';
@@ -319,7 +320,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             makeDefault
             target={standardCam.target}
             enableDamping
-            dampingFactor={0.05}
+            dampingFactor={CONTROLS_DAMPING_FACTOR}
             minDistance={2.5}
             maxDistance={85}
           />
@@ -368,7 +369,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
             makeDefault
             target={standardCam.target}
             enableDamping
-            dampingFactor={0.05}
+            dampingFactor={CONTROLS_DAMPING_FACTOR}
             minDistance={2.0}
             maxDistance={45}
           />
@@ -429,7 +430,7 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
             makeDefault
             target={standardCam.target}
             enableDamping
-            dampingFactor={0.05}
+            dampingFactor={CONTROLS_DAMPING_FACTOR}
             minDistance={1.2}
             maxDistance={250}
           />

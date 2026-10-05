@@ -16,6 +16,7 @@ import {
   type PlanetCensusEntry,
 } from '../cartography/reticleGeometry';
 import { RangeRings } from './RangeRings';
+import { calculateScreenInvariantScale } from '../engineConfig';
 
 const DATUM_FILL_VERTEX_SHADER = `
 varying vec2 vPosition;
@@ -122,6 +123,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
   const datumPlaneMajorAlpha = useThreeTokenStore((s) => s.tokens.datumPlaneMajorAlpha);
   const datumPlaneMinorColor = useThreeTokenStore((s) => s.tokens.datumPlaneMinorColor);
   const datumPlaneMinorAlpha = useThreeTokenStore((s) => s.tokens.datumPlaneMinorAlpha);
+  const stateFocus = useThreeTokenStore((s) => s.tokens.stateFocus);
   const footprintColor = useThreeTokenStore((s) => s.tokens.footprintColor);
   const footprintAlpha = useThreeTokenStore((s) => s.tokens.footprintAlpha);
   const bearingCoreColor = useThreeTokenStore((s) => s.tokens.bearingCoreColor);
@@ -132,7 +134,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
   const isPlaneEnabled = enabled ?? frame.datumPlane.enabled;
   const isFillEnabled = showFill ?? frame.datumPlane.fill;
   const isGridEnabled = showPlanarGrid ?? frame.datumPlane.planarGrid;
-  const isFootprintEnabled = showPlanarFootprint ?? frame.datumPlane.footprints;
+  const isFootprintEnabled = showPlanarFootprint ?? false;
 
   const groupRef = useRef<THREE.Group>(null);
   const staticPlanarGridRef = useRef<THREE.Group>(null);
@@ -318,10 +320,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       diskCoreMatRef.current.opacity = bearingCoreAlpha * fadePlanar * coreProximityFade;
     }
 
-    const fovFactor = camera instanceof THREE.PerspectiveCamera
-      ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
-      : 1.0;
-    const invScale = (cameraDistance / 16.47) * fovFactor;
+    const invScale = calculateScreenInvariantScale(cameraDistance, camera);
 
     if (diskOrbitalRef.current && diskOrbitalGeom) {
       const showOrbital = showDiskBearings && orbitalProximityFade > 1e-3;
@@ -352,6 +351,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       primaryFootprintRef.current.visible = isFootprintEnabled && fadePlanar > 1e-3;
     }
     if (primaryFootprintMatRef.current) {
+      primaryFootprintMatRef.current.color.copy(stateFocus);
       primaryFootprintMatRef.current.opacity = footprintAlpha * fadePlanar;
     }
 

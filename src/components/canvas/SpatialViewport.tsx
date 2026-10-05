@@ -1,9 +1,10 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import { type ThreeEvent } from '@react-three/fiber';
 import {
   type ReferenceFrame,
   GALACTIC_FRAME,
+  createCustomReferenceFrame,
 } from './instrument/referenceFrame';
 import { CartographicInstrument } from './instrument/CartographicInstrument';
 import { SpatialFrameProvider } from './instrument/SpatialFrameProvider';
@@ -15,6 +16,12 @@ import {
 import { CelestialEntity } from './entity/CelestialEntity';
 import { OcclusionPass } from './entity/OcclusionPass';
 import { type SpatialEntityDefinition } from './entity/SpatialEntityStore';
+import {
+  activateEntity,
+  focusEntity,
+  clearInteraction,
+  occlusionCyclicTargetResolver,
+} from './entity/interactionActions';
 import { useUIStore } from '../../stores/useUIStore';
 
 export interface SpatialViewportProps {
@@ -30,7 +37,7 @@ export interface SpatialViewportProps {
   onSelect?: (id: string | null) => void;
   /** Optional custom children (e.g. PlanetBody, custom routes, bespoke layers) */
   children?: React.ReactNode;
-  /** Camera distance override */
+  /** Reference camera distance at which the instrument aperture equals the frame radius (screen-constant footprint calibration) */
   cameraDistance?: number;
   /** Camera target focus point */
   cameraTarget?: [number, number, number] | THREE.Vector3;
@@ -56,14 +63,11 @@ export interface SpatialViewportProps {
  * Inner viewport content with access to scoped SpatialEntityStore
  */
 const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
-  frame = GALACTIC_FRAME,
   entities = [],
   mode = 'explore',
   onInspect,
   onSelect,
   children,
-  cameraDistance,
-  cameraTarget,
   showInstrument = true,
   showPlanarFootprint = false,
   debugHitarea = false,
@@ -105,20 +109,15 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     });
   }, [storeApi, syncWithUIStore, onSelect]);
 
-  // Handle entity clicks (single click selects; clicking already-selected inspects)
+  // Single click: select, or advance cyclic selection when re-clicking the selected entity
   const handleEntityClick = useCallback(
-    (id: string, _e: ThreeEvent<MouseEvent>) => {
-      const currentSelected = storeApi.getState().selectedId;
-      if (currentSelected === id && onInspect) {
-        onInspect(id);
-      } else {
-        storeApi.getState().setSelected(id);
-      }
+    (id: string) => {
+      activateEntity(storeApi, id, occlusionCyclicTargetResolver);
     },
-    [storeApi, onInspect],
+    [storeApi],
   );
 
-  // Handle entity double-clicks (smooth camera transition centering instrument, elevates to focused tier)
+  // Double click: centre the instrument, focus the entity, and inspect (the single inspect gesture)
   const handleEntityDoubleClick = useCallback(
     (id: string, e: ThreeEvent<MouseEvent>) => {
       const entity = storeApi.getState().entities[id];
@@ -126,11 +125,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
         transitionTo(entity.position, { duration: focusTransitionDuration });
       }
 
-      storeApi.getState().setSelected(id);
-      if (storeApi.getState().focusedId !== id) {
-        storeApi.getState().setFocused(id);
-      }
-
+      focusEntity(storeApi, id);
       onInspect?.(id);
       onDoubleClick?.(id, e);
     },
@@ -148,25 +143,13 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     <group
       name="spatial-viewport"
       data-mode={mode}
-      onPointerMissed={() => {
-        storeApi.getState().setSelected(null);
-        if (storeApi.getState().focusedId !== null) {
-          storeApi.getState().setFocused(null);
-        }
-      }}
+      onPointerMissed={() => clearInteraction(storeApi)}
     >
       {/* Dynamic O(n) screen-space occlusion pass */}
       <OcclusionPass enabled={true} />
 
-      {/* Cartographic Instrument Primitives */}
-      {showInstrument && (
-        <CartographicInstrument
-          frame={frame}
-          referenceDistance={cameraDistance}
-          position={cameraTarget}
-          showPlanarFootprint={showPlanarFootprint}
-        />
-      )}
+      {/* Cartographic Instrument Primitives (consume the viewport's single SpatialFrameProvider) */}
+      {showInstrument && <CartographicInstrument showPlanarFootprint={showPlanarFootprint} />}
 
       {/* Decomposed Celestial Entities */}
       {entities.map((entity) => (
@@ -193,9 +176,23 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
  * entity composites, and bespoke planetary bodies.
  */
 export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
+  const { frame = GALACTIC_FRAME, cameraDistance } = props;
+
+  // Single source of the screen-constant reference distance for both instrument and entities.
+  // Preserves the instrument footprint previously derived from `cameraDistance`.
+  const resolvedFrame = useMemo(
+    () =>
+      cameraDistance
+        ? createCustomReferenceFrame(frame, {
+            referenceDistanceMultiplier: cameraDistance / frame.radius,
+          })
+        : frame,
+    [frame, cameraDistance],
+  );
+
   return (
     <SpatialFrameProvider
-      frame={props.frame}
+      frame={resolvedFrame}
       focusPoint={props.cameraTarget}
       lockToFocusPoint={true}
     >

@@ -4,6 +4,7 @@ import { OrbitControls } from '@react-three/drei';
 import { SceneOutlet } from './SceneBridge';
 import { SceneTokenBridge } from './ThemeTokenBridge';
 import { getStandardInitialCamera } from './cartography/cartographyMath';
+import { CONTROLS_DAMPING_FACTOR } from './engineConfig';
 import styles from './GlobalCanvas.module.css';
 
 export interface GlobalCanvasProps {
@@ -36,7 +37,7 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
 
         <SceneOutlet />
 
-        <OrbitControls makeDefault target={STANDARD_CAM.target} enableDamping dampingFactor={0.05} />
+        <OrbitControls makeDefault target={STANDARD_CAM.target} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
       </Canvas>
     </div>
   );

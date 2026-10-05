@@ -7,6 +7,7 @@ import {
   populateCurvedDashedLineBuffer,
   calculateBearingProximityFade,
 } from '../cartography/cartographyMath';
+import { calculateScreenInvariantScale } from '../engineConfig';
 
 export interface BearingVectorsProps {
   /** Whether to render axis spokes */
@@ -171,10 +172,7 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
       }
 
       if (orbitalProximityFade > 1e-4) {
-        const fovFactor = camera instanceof THREE.PerspectiveCamera
-          ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
-          : 1.0;
-        const invScale = (cameraDistance / 16.47) * fovFactor;
+        const invScale = calculateScreenInvariantScale(cameraDistance, camera);
 
         const vCount = populateCurvedDashedLineBuffer(
           orbitalBuffer,

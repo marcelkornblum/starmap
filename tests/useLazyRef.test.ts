@@ -22,6 +22,7 @@ describe('useLazyRef', () => {
 
     const TestComponent: React.FC = () => {
       const ref = useLazyRef(() => ({ value: 'alpha' }));
+      // oxlint-disable-next-line react/immutability
       holder.ref = ref;
       return createElement('div', null, ref.current.value);
     };

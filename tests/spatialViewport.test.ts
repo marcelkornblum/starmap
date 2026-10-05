@@ -156,9 +156,11 @@ describe('SpatialViewport Composition Root (Phase 4)', () => {
     expect(html).toContain('name="celestial-entity-distant-star"');
     expect(html).not.toContain('name="reticle-distant-star"');
 
-    // Both entities MUST maintain camera-facing interactive hitareas
+    // Sol is inside R_fin (10) -> active -> maintains camera-facing interactive hitarea
     expect(html).toContain('name="hitarea-billboard-sol-local"');
-    expect(html).toContain('name="hitarea-billboard-distant-star"');
+
+    // Distant star is outside R_fin (10) -> passive -> zero hitarea (never handles click or rollover)
+    expect(html).not.toContain('name="hitarea-billboard-distant-star"');
   });
 
   it('renders drop stalk and ground footprint attached to star upon selection', () => {

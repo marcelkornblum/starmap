@@ -14,6 +14,7 @@ import {
   DEFAULT_RETICLE_SIZE,
   formatDesignationTag,
 } from '../cartography/reticleGeometry';
+import { calculateScreenInvariantScale } from '../engineConfig';
 
 export interface EntityLabelProps {
   id: string;
@@ -92,10 +93,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
 
       billboardRef.current.getWorldPosition(scratchWorldPos.current);
       const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-      const fovFactor = camera instanceof THREE.PerspectiveCamera
-        ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
-        : 1.0;
-      const invScale = (camDist / 16.47) * fovFactor;
+      const invScale = calculateScreenInvariantScale(camDist, camera);
       billboardRef.current.scale.set(invScale, invScale, invScale);
     }
 

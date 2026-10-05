@@ -306,7 +306,7 @@ describe('Instrument Decomposition & Reference Frames (Phase 2)', () => {
     it('renders ScreenEdgeCue with indicator label and chevron in SSR', () => {
       const bearing = GALACTIC_FRAME.bearings[0]; // Core
       const html = renderToString(
-        createElement(ScreenEdgeCue, { bearing }),
+        createElement(SpatialFrameProvider, { frame: GALACTIC_FRAME }, createElement(ScreenEdgeCue, { bearing })),
       );
       expect(html).toContain('data-bearing="core"');
       expect(html).toContain('CORE 000°');
@@ -340,14 +340,17 @@ describe('Instrument Decomposition & Reference Frames (Phase 2)', () => {
   });
 
   describe('CartographicInstrument (Composite)', () => {
-    it('renders full galactic instrument matching legacy CartographicGrid DOM structure', () => {
-      const html = renderToString(
-        createElement(CartographicInstrument, {
-          frame: GALACTIC_FRAME,
-          radius: 10,
-          rangeRings: [2.5, 5, 10],
-        }),
+    const renderInstrument = (frame: typeof GALACTIC_FRAME, rangeRings: number[]) =>
+      renderToString(
+        createElement(
+          SpatialFrameProvider,
+          { frame },
+          createElement(CartographicInstrument, { rangeRings }),
+        ),
       );
+
+    it('renders full galactic instrument matching legacy CartographicGrid DOM structure', () => {
+      const html = renderInstrument(GALACTIC_FRAME, [2.5, 5, 10]);
       expect(html).toContain('name="cartographic-grid"');
       expect(html).toContain('name="datum-plane"');
       expect(html).toContain('name="range-rings"');
@@ -362,13 +365,7 @@ describe('Instrument Decomposition & Reference Frames (Phase 2)', () => {
     });
 
     it('renders system instrument with shared planar grid, datum plane, and bearings', () => {
-      const html = renderToString(
-        createElement(CartographicInstrument, {
-          frame: SYSTEM_FRAME,
-          radius: 10,
-          rangeRings: [1, 5, 10],
-        }),
-      );
+      const html = renderInstrument(SYSTEM_FRAME, [1, 5, 10]);
       expect(html).toContain('name="cartographic-grid"');
       expect(html).toContain('name="datum-plane"');
       expect(html).toContain('name="planar-galactic-grid"');
@@ -377,13 +374,7 @@ describe('Instrument Decomposition & Reference Frames (Phase 2)', () => {
     });
 
     it('renders planetary instrument with shared planar grid, datum fill, and bearings', () => {
-      const html = renderToString(
-        createElement(CartographicInstrument, {
-          frame: PLANETARY_FRAME,
-          radius: 10,
-          rangeRings: [2000, 5000, 10000],
-        }),
-      );
+      const html = renderInstrument(PLANETARY_FRAME, [2000, 5000, 10000]);
       expect(html).toContain('name="cartographic-grid"');
       expect(html).toContain('name="datum-plane-fill"');
       expect(html).toContain('name="planar-galactic-grid"');

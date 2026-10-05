@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import {
   CartographicInstrument,
+  SpatialFrameProvider,
   GALACTIC_FRAME,
   SYSTEM_FRAME,
   PLANETARY_FRAME,
@@ -11,6 +12,7 @@ import {
 } from './index';
 import { getStandardInitialCamera } from '../cartography/cartographyMath';
 import { ThemeTokenBridge } from '../ThemeTokenBridge';
+import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<typeof CartographicInstrument> = {
@@ -35,14 +37,15 @@ export const GalacticFrame: Story = {
           gl={{ antialias: true }}
         >
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
-          <CartographicInstrument
-            frame={GALACTIC_FRAME}
-            showPlanarGrid
-            showFins
-            showAxisLines
-            showScreenEdgeIndicators
-          />
+          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
+          <SpatialFrameProvider frame={GALACTIC_FRAME}>
+            <CartographicInstrument
+              showPlanarGrid
+              showFins
+              showAxisLines
+              showScreenEdgeIndicators
+            />
+          </SpatialFrameProvider>
         </Canvas>
       </div>
     );
@@ -61,20 +64,21 @@ export const SystemFrame: Story = {
           gl={{ antialias: true }}
         >
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
-          <CartographicInstrument
-            frame={SYSTEM_FRAME}
-            showPlanarGrid
-            showFins
-            showAxisLines
-            showScreenEdgeIndicators
-            footprints={[
-              { id: 'primary-star-a', position: [1.8, 0.6, 0], classification: 'star', multiplicity: 2 },
-              { id: 'companion-star-b', position: [-1.8, -0.6, 0], classification: 'star' },
-              { id: 'inner-terrestrial', position: [0.4, 3.2, 0], classification: 'terrestrial' },
-              { id: 'gas-giant-outer', position: [-3.8, 2.4, 0], classification: 'gas-giant' },
-            ]}
-          />
+          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
+          <SpatialFrameProvider frame={SYSTEM_FRAME}>
+            <CartographicInstrument
+              showPlanarGrid
+              showFins
+              showAxisLines
+              showScreenEdgeIndicators
+              footprints={[
+                { id: 'primary-star-a', position: [1.8, 0.6, 0], classification: 'star', multiplicity: 2 },
+                { id: 'companion-star-b', position: [-1.8, -0.6, 0], classification: 'star' },
+                { id: 'inner-terrestrial', position: [0.4, 3.2, 0], classification: 'terrestrial' },
+                { id: 'gas-giant-outer', position: [-3.8, 2.4, 0], classification: 'gas-giant' },
+              ]}
+            />
+          </SpatialFrameProvider>
         </Canvas>
       </div>
     );
@@ -93,19 +97,20 @@ export const PlanetaryFrame: Story = {
           gl={{ antialias: true }}
         >
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
-          <CartographicInstrument
-            frame={PLANETARY_FRAME}
-            showPlanarGrid
-            showFins
-            showAxisLines
-            showScreenEdgeIndicators
-            footprintClassification="terrestrial"
-            footprints={[
-              { id: 'major-moon', position: [1.2, 0.5, 0.1], classification: 'terrestrial' },
-              { id: 'orbital-facility', position: [-0.9, 0.8, -0.05], classification: 'construct' },
-            ]}
-          />
+          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
+          <SpatialFrameProvider frame={PLANETARY_FRAME}>
+            <CartographicInstrument
+              showPlanarGrid
+              showFins
+              showAxisLines
+              showScreenEdgeIndicators
+              footprintClassification="terrestrial"
+              footprints={[
+                { id: 'major-moon', position: [1.2, 0.5, 0.1], classification: 'terrestrial' },
+                { id: 'orbital-facility', position: [-0.9, 0.8, -0.05], classification: 'construct' },
+              ]}
+            />
+          </SpatialFrameProvider>
         </Canvas>
       </div>
     );
@@ -159,14 +164,15 @@ const InteractiveFrameSwitcherDemo: React.FC = () => {
         gl={{ antialias: true }}
       >
         <ThemeTokenBridge />
-        <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
-        <CartographicInstrument
-          frame={frameMap[activeFrame]}
-          showPlanarGrid
-          showFins
-          showAxisLines
-          showScreenEdgeIndicators
-        />
+        <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
+        <SpatialFrameProvider frame={frameMap[activeFrame]}>
+          <CartographicInstrument
+            showPlanarGrid
+            showFins
+            showAxisLines
+            showScreenEdgeIndicators
+          />
+        </SpatialFrameProvider>
       </Canvas>
     </div>
   );

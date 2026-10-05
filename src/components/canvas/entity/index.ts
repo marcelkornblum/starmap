@@ -1,6 +1,7 @@
 export * from './types';
 export * from './SpatialEntityStore';
 export * from './SpatialEntityContext';
+export * from './interactionActions';
 export * from './BodyMarker';
 export * from './Reticle';
 export * from './DropStalk';

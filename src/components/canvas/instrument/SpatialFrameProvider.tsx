@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
+import { FRAME_PRIORITY } from '../engineConfig';
 import {
   type ReferenceFrame,
   GALACTIC_FRAME,
@@ -99,12 +100,8 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     const s = stateRef.current;
     s.frame = frame;
     const camera = state.camera;
-    const controls = (state as unknown as { controls?: { target?: THREE.Vector3; update?: () => void } }).controls;
-
-    // Apply any active controls damping updates before reading camera matrices
-    if (controls && typeof controls.update === 'function') {
-      controls.update();
-    }
+    // Runs after drei OrbitControls (FRAME_PRIORITY.spatialFrame), so camera and target are already settled.
+    const controls = (state as unknown as { controls?: { target?: THREE.Vector3 } }).controls;
 
     // 1. Resolve Focus Point
     if (lockToFocusPoint) {
@@ -204,11 +201,11 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     } else {
       s.orientation.copy(scratchTiltQuat.current);
     }
-  }, -10);
+  }, FRAME_PRIORITY.spatialFrame);
 
   const contextValue = useMemo<SpatialFrameContextValue>(
     () => ({ frame, frameRef: stateRef }),
-    [frame],
+    [frame, stateRef],
   );
 
   return (
@@ -220,24 +217,15 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
 
 /**
  * Hook to access the active SpatialFrame state reference and configuration frame.
+ * Throws outside a `SpatialFrameProvider`: a silent fallback would render with a static,
+ * never-updated frame and hide wiring errors.
  */
 export function useSpatialFrame(): SpatialFrameContextValue {
   const ctx = useContext(SpatialFrameContext);
-  const fallbackRef = useRef<SpatialFrameState>({
-    frame: GALACTIC_FRAME,
-    focusPoint: new THREE.Vector3(),
-    cameraDistance: 35,
-    apertureRadius: GALACTIC_FRAME.radius,
-    cardinalAlignment: DEFAULT_CARDINAL_ALIGNMENT,
-    planeWeights: DEFAULT_PLANE_WEIGHTS,
-    orientation: new THREE.Quaternion(0, 0, 0, 1),
-  });
-
   if (!ctx) {
-    return {
-      frame: GALACTIC_FRAME,
-      frameRef: fallbackRef,
-    };
+    throw new Error(
+      'useSpatialFrame must be used within a SpatialFrameProvider (normally mounted by SpatialViewport).',
+    );
   }
   return ctx;
 }

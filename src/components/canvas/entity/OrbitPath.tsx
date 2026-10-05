@@ -10,6 +10,7 @@ import {
   CartoLineMaterial,
   CARTO_LINE_CONSTANTS,
 } from '../materials/CartoLineMaterial';
+import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 
 export interface OrbitPathProps {
@@ -242,10 +243,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     if (arrowBillboardRef.current && showDirectionIndicator) {
       arrowBillboardRef.current.getWorldPosition(scratchArrowWorldPos.current);
       const camDist = Math.max(camera.position.distanceTo(scratchArrowWorldPos.current), 1e-4);
-      const fovFactor = camera instanceof THREE.PerspectiveCamera
-        ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
-        : 1.0;
-      const invScale = (camDist / 16.47) * fovFactor;
+      const invScale = calculateScreenInvariantScale(camDist, camera);
       arrowBillboardRef.current.scale.set(invScale, invScale, invScale);
 
       // Transform 3D orbital tangent vector into camera view space

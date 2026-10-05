@@ -10,6 +10,7 @@ import {
   DEFAULT_RETICLE_SIZE,
   type CelestialClassification,
 } from '../cartography/reticleGeometry';
+import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 
 export interface DropStalkProps {
@@ -39,6 +40,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
   datumZ = 0,
 }) => {
   const stalkSelectedColor = useThreeTokenStore((s) => s.tokens.stalkSelectedColor);
+  const stalkFocusedColor = useThreeTokenStore((s) => s.tokens.stalkFocusedColor);
   const stalkFocusedAlpha = useThreeTokenStore((s) => s.tokens.stalkFocusedAlpha);
   const stalkSelectedAlpha = useThreeTokenStore((s) => s.tokens.stalkSelectedAlpha);
   const footprintColor = useThreeTokenStore((s) => s.tokens.footprintColor);
@@ -85,7 +87,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
   const { frameRef } = useSpatialFrame();
 
   // Stalk vertical line remains neutral / monochrome; datum reticle adopts state color
-  const stalkColor = stalkSelectedColor;
+  const stalkColor = state === 'focused' ? stalkFocusedColor : stalkSelectedColor;
   const stalkOpacity = state === 'focused' ? stalkFocusedAlpha : stalkSelectedAlpha;
 
   const resolvedFootprintColor = state === 'focused'
@@ -183,10 +185,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       if (footprintRef.current.visible) {
         footprintRef.current.getWorldPosition(scratchWorldPos.current);
         const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-        const fovFactor = camera instanceof THREE.PerspectiveCamera
-          ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
-          : 1.0;
-        const invScale = (camDist / 16.47) * fovFactor;
+        const invScale = calculateScreenInvariantScale(camDist, camera);
         footprintRef.current.scale.set(invScale, invScale, 1);
       }
     }
@@ -196,6 +195,8 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       footprintMatRef.current.opacity = resolvedFootprintAlpha * fadePlanar;
     }
 
+    lineMaterial.setColor(stalkColor);
+    lineMaterial.setOpacity(stalkOpacity);
     lineMaterial.updateResolution(camera, size.height);
   });
 

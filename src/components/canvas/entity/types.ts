@@ -9,6 +9,15 @@ export type { CelestialClassification, PlanetCensusEntry, ReticleAnnotationOptio
 
 export type CelestialInteractionState = 'passive' | 'active' | 'selected' | 'focused';
 
+/**
+ * Read-only per-frame handle to the node-representation alpha (0..1) published by
+ * CelestialEntity during the PlanetBody → node cross-fade. Consumers multiply it into
+ * their own material opacity each frame.
+ */
+export interface NodeAlphaRef {
+  readonly current: number;
+}
+
 export interface SpatialOrbitDefinition {
   /** Optional ID of the parent/primary entity this body revolves around (e.g. host star or primary planet). */
   primaryEntityId?: string;

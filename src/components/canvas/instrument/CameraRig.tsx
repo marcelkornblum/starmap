@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useSpatialFrame } from './SpatialFrameProvider';
+import { FRAME_PRIORITY } from '../engineConfig';
 
 export interface CameraRigProps {
   /** Baseline perspective field of view in degrees. Default: frame.camera.baseFov (45) */
@@ -54,7 +55,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       camera.zoom = 1.0;
       camera.updateProjectionMatrix();
     }
-  }, -5);
+  }, FRAME_PRIORITY.cameraRig);
 
   // Clean restoration when adaptiveProjection unmounts or toggles off
   useEffect(() => {

@@ -3,52 +3,20 @@ import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import type { CelestialClassification } from '../cartography/reticleGeometry';
+import {
+  projectedPixelDiameter,
+  bodyVisibility,
+  DEFAULT_BODY_MIN_PIXEL_SIZE,
+  DEFAULT_BODY_FADE_RANGE,
+  CROSSFADE_VISIBILITY_EPSILON,
+} from '../math/bodyCrossfade';
 
-export interface PlanetPalette {
-  baseColor: string;
-  accentColor: string;
-  atmosphereColor?: string;
-  bands?: string[];
-}
-
-export const CLASSIFICATION_PALETTES: Record<string, PlanetPalette> = {
-  terrestrial: {
-    baseColor: '#1c4d7d',
-    accentColor: '#3c7a52',
-    atmosphereColor: '#68b4e8',
-  },
-  'gas-giant': {
-    baseColor: '#c88c52',
-    accentColor: '#e0c088',
-    atmosphereColor: '#d6a066',
-    bands: ['#a86832', '#dca870', '#884c20', '#f0cca0', '#9c5c2c'],
-  },
-  'ice-giant': {
-    baseColor: '#3288a8',
-    accentColor: '#62c2d8',
-    atmosphereColor: '#88e4f8',
-    bands: ['#287090', '#3c98b8', '#226080', '#50b4d4'],
-  },
-  'brown-dwarf': {
-    baseColor: '#4a2218',
-    accentColor: '#803422',
-    atmosphereColor: '#682a1c',
-    bands: ['#381a14', '#5c281e', '#2e140e'],
-  },
-  star: {
-    baseColor: '#ffcc33',
-    accentColor: '#ff9900',
-    atmosphereColor: '#ffea88',
-  },
-};
-
-export function getClassificationPalette(classification: CelestialClassification): PlanetPalette {
-  return CLASSIFICATION_PALETTES[classification] ?? {
-    baseColor: '#4a607a',
-    accentColor: '#708ca8',
-    atmosphereColor: '#90b0d0',
-  };
-}
+import {
+  type PlanetPalette,
+  CLASSIFICATION_PALETTES,
+  getClassificationPalette,
+} from '../../../data/planetPalettes';
+export { type PlanetPalette, CLASSIFICATION_PALETTES, getClassificationPalette };
 
 /**
  * Generates an in-memory procedural cartographic texture matching classification.
@@ -145,13 +113,14 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
   position = [0, 0, 0],
   hasAtmosphere = true,
   atmosphereColor: explicitAtmoColor,
-  minPixelSize = 24,
-  fadeRange = 16,
+  minPixelSize = DEFAULT_BODY_MIN_PIXEL_SIZE,
+  fadeRange = DEFAULT_BODY_FADE_RANGE,
   children,
 }) => {
   const palette = useMemo(() => getClassificationPalette(classification), [classification]);
   const texture = useMemo(() => createPlanetTexture(classification, palette), [classification, palette]);
 
+  const groupRef = useRef<THREE.Group | null>(null);
   const surfaceMatRef = useRef<THREE.MeshBasicMaterial | null>(null);
   const atmoMatRef = useRef<THREE.MeshBasicMaterial | null>(null);
 
@@ -169,38 +138,28 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
   useFrame(() => {
     if (!surfaceMatRef.current) return;
 
-    // Calculate projected pixel diameter
-    scratchPos.current.set(resolvedPos[0], resolvedPos[1], resolvedPos[2]);
-    const dist = camera.position.distanceTo(scratchPos.current);
+    const worldPos = groupRef.current
+      ? groupRef.current.getWorldPosition(scratchPos.current)
+      : scratchPos.current.set(resolvedPos[0], resolvedPos[1], resolvedPos[2]);
 
-    let projectedPixelDiameter = minPixelSize + 1;
-    if (camera instanceof THREE.PerspectiveCamera) {
-      const fovRad = (camera.fov * Math.PI) / 180;
-      const visibleHeightAtDist = 2 * Math.tan(fovRad / 2) * dist;
-      projectedPixelDiameter = ((2 * radius) / Math.max(0.001, visibleHeightAtDist)) * size.height;
-    } else if (camera instanceof THREE.OrthographicCamera) {
-      const frustumHeight = (camera.top - camera.bottom) / camera.zoom;
-      projectedPixelDiameter = ((2 * radius) / Math.max(0.001, frustumHeight)) * size.height;
-    }
-
-    // Smooth opacity fade when approaching minPixelSize
-    const alpha = THREE.MathUtils.clamp((projectedPixelDiameter - minPixelSize) / fadeRange, 0, 1);
+    const diameterPx = projectedPixelDiameter(camera, worldPos, radius, size.height);
+    const alpha = bodyVisibility(diameterPx, minPixelSize, fadeRange);
 
     surfaceMatRef.current.opacity = alpha;
     surfaceMatRef.current.transparent = alpha < 0.999;
-    surfaceMatRef.current.visible = alpha > 0.01;
+    surfaceMatRef.current.visible = alpha > CROSSFADE_VISIBILITY_EPSILON;
 
     if (atmoMatRef.current) {
       atmoMatRef.current.opacity = alpha * 0.35;
       atmoMatRef.current.transparent = true;
-      atmoMatRef.current.visible = alpha > 0.01;
+      atmoMatRef.current.visible = alpha > CROSSFADE_VISIBILITY_EPSILON;
     }
   });
 
   const atmoColor = explicitAtmoColor ?? palette.atmosphereColor ?? '#88ccee';
 
   return (
-    <group position={resolvedPos} name={`planet-body-${name}`}>
+    <group ref={groupRef} position={resolvedPos} name={`planet-body-${name}`}>
       {/* Planetary Core Surface (Uniform Cartographic Lit) */}
       <mesh name="planet-surface">
         <sphereGeometry args={[radius, 48, 48]} />

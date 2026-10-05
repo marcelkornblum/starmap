@@ -7,6 +7,7 @@ import { SystemScene } from './SystemScene';
 import { PlanetScene } from './PlanetScene';
 import { PlanetBody } from './PlanetBody';
 import { getStandardInitialCamera } from '../cartography/cartographyMath';
+import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta = {
@@ -27,7 +28,7 @@ export const GalacticScale: Story = {
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping />
+          <OrbitControls makeDefault target={cam.target} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
           <GalaxyScene />
         </Canvas>
       </div>
@@ -43,7 +44,7 @@ export const SystemScale: Story = {
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping />
+          <OrbitControls makeDefault target={cam.target} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
           <SystemScene systemId="sol" />
         </Canvas>
       </div>
@@ -59,7 +60,7 @@ export const PlanetaryScale: Story = {
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping />
+          <OrbitControls makeDefault target={cam.target} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
           <PlanetScene planetId="earth" planetName="Earth" classification="terrestrial" />
         </Canvas>
       </div>
@@ -75,7 +76,7 @@ export const PlanetBodyManifest: Story = {
       <div className={styles.canvasContainer}>
         <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
           <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping />
+          <OrbitControls makeDefault target={cam.target} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
 
           {/* Terrestrial (Earth-like) */}
           <group position={[-6, 0, 0]}>

@@ -8,6 +8,7 @@ import {
   CartoLineMaterial,
   CARTO_LINE_CONSTANTS,
 } from '../materials/CartoLineMaterial';
+import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 
 export interface KinematicVectorProps {
@@ -110,10 +111,7 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
     lineMat.setOpacity(kinematicAlpha);
 
     const camDist = Math.max(camera.position.distanceTo(p0), 1e-4);
-    const fovFactor = camera instanceof THREE.PerspectiveCamera
-      ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
-      : 1.0;
-    const invScale = (camDist / 16.47) * fovFactor;
+    const invScale = calculateScreenInvariantScale(camDist, camera);
 
     if (terminusRef.current) {
       terminusRef.current.scale.set(invScale, invScale, invScale);

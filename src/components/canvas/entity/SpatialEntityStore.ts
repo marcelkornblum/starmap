@@ -62,8 +62,8 @@ export const createSpatialEntityStore = () => {
     },
 
     setHovered: (id) => set({ hoveredId: id }),
-    setSelected: (id) => set((s) => ({ selectedId: s.selectedId === id ? null : id })),
-    setFocused: (id) => set((s) => ({ focusedId: s.focusedId === id ? null : id })),
+    setSelected: (id) => set({ selectedId: id }),
+    setFocused: (id) => set({ focusedId: id }),
 
     getEntityState: (id) => {
       const state = get();

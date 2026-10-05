@@ -11,7 +11,8 @@ import {
   type PlanetCensusEntry,
 } from '../cartography/reticleGeometry';
 import { celestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
-import type { CelestialInteractionState } from './types';
+import { calculateScreenInvariantScale } from '../engineConfig';
+import type { CelestialInteractionState, NodeAlphaRef } from './types';
 
 export interface ReticleProps {
   id: string;
@@ -24,6 +25,8 @@ export interface ReticleProps {
   spectralType?: string;
   color?: string | THREE.Color;
   opacity?: number;
+  /** Optional cross-fade alpha multiplied into the resolved opacity each frame. */
+  nodeAlphaRef?: NodeAlphaRef;
 }
 
 /**
@@ -42,13 +45,17 @@ export const Reticle: React.FC<ReticleProps> = ({
   spectralType: _spectralType,
   color: explicitColor,
   opacity: explicitOpacity,
+  nodeAlphaRef,
 }) => {
   const stateFocus = useThreeTokenStore((s) => s.tokens.stateFocus);
-  const stateSelectedBorder = useThreeTokenStore((s) => s.tokens.stateSelectedBorder);
+  const stalkSelectedColor = useThreeTokenStore((s) => s.tokens.stalkSelectedColor);
   const reticleBracketColor = useThreeTokenStore((s) => s.tokens.reticleBracketColor);
-  const reticleBracketAlpha = useThreeTokenStore((s) => s.tokens.reticleBracketAlpha);
+  const reticleActiveAlpha = useThreeTokenStore((s) => s.tokens.reticleActiveAlpha);
+  const reticleSelectedAlpha = useThreeTokenStore((s) => s.tokens.reticleSelectedAlpha);
+  const reticleFocusedAlpha = useThreeTokenStore((s) => s.tokens.reticleFocusedAlpha);
 
   const groupRef = useRef<THREE.Group>(null);
+  const materialRef = useRef<THREE.LineBasicMaterial>(null);
 
   // Attention Gating: Annotations only activate in selected or focused states
   const isAnnotated = state === 'selected' || state === 'focused';
@@ -79,15 +86,16 @@ export const Reticle: React.FC<ReticleProps> = ({
   const resolvedColor = useMemo(() => {
     if (explicitColor) return explicitColor;
     if (state === 'focused') return stateFocus;
-    if (state === 'selected') return stateSelectedBorder;
+    if (state === 'selected') return stalkSelectedColor;
     return reticleBracketColor;
-  }, [explicitColor, state, stateFocus, stateSelectedBorder, reticleBracketColor]);
+  }, [explicitColor, state, stateFocus, stalkSelectedColor, reticleBracketColor]);
 
   const resolvedOpacity = useMemo(() => {
     if (explicitOpacity !== undefined) return explicitOpacity;
-    if (state === 'focused' || state === 'selected') return 1.0;
-    return reticleBracketAlpha;
-  }, [explicitOpacity, state, reticleBracketAlpha]);
+    if (state === 'focused') return reticleFocusedAlpha;
+    if (state === 'selected') return reticleSelectedAlpha;
+    return reticleActiveAlpha;
+  }, [explicitOpacity, state, reticleFocusedAlpha, reticleSelectedAlpha, reticleActiveAlpha]);
 
   const resolvedPos = useMemo(() => {
     if (!position) return undefined;
@@ -104,16 +112,18 @@ export const Reticle: React.FC<ReticleProps> = ({
 
       groupRef.current.getWorldPosition(scratchWorldPos.current);
       const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-      const fovFactor = camera instanceof THREE.PerspectiveCamera
-        ? Math.tan((camera.fov * Math.PI) / 360) / Math.tan((45 * Math.PI) / 360)
-        : 1.0;
-      const invScale = (camDist / 16.47) * fovFactor;
+      const invScale = calculateScreenInvariantScale(camDist, camera);
       groupRef.current.scale.set(invScale, invScale, invScale);
 
       // Priority Occlusion Masking for Geometric Reticles (Spec 2.2):
       // An active focused target or selected node occludes/suppresses lesser background reticles colliding directly beneath it.
       const isSuppressed = celestialOcclusionManager.evaluateReticleOcclusion(id);
       groupRef.current.visible = !isSuppressed;
+    }
+
+    if (materialRef.current) {
+      materialRef.current.color.set(resolvedColor);
+      materialRef.current.opacity = resolvedOpacity * (nodeAlphaRef?.current ?? 1);
     }
   });
 
@@ -123,6 +133,7 @@ export const Reticle: React.FC<ReticleProps> = ({
       <lineSegments name="reticle-geometry">
         <primitive object={reticleGeom} attach="geometry" />
         <lineBasicMaterial
+          ref={materialRef}
           color={resolvedColor}
           opacity={resolvedOpacity}
           transparent

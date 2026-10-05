@@ -15,6 +15,10 @@ import { EntityLabel } from '../src/components/canvas/entity/EntityLabel';
 import { CelestialEntity } from '../src/components/canvas/entity/CelestialEntity';
 import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../src/components/canvas/math/kepler';
 import { celestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
+import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/canvas/instrument';
+
+const renderInFrame = (element: React.ReactElement) =>
+  renderToString(createElement(SpatialFrameProvider, { frame: GALACTIC_FRAME }, element));
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();
@@ -92,15 +96,19 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       expect(store.getState().getEntityState('sirius')).toBe('passive');
     });
 
-    it('toggles selection and focus on and off when re-selecting active entity', () => {
+    it('sets selection and focus idempotently (re-setting the same id never clears it)', () => {
       store.getState().setSelected('sol');
       expect(store.getState().selectedId).toBe('sol');
       store.getState().setSelected('sol');
+      expect(store.getState().selectedId).toBe('sol');
+      store.getState().setSelected(null);
       expect(store.getState().selectedId).toBeNull();
 
       store.getState().setFocused('sol');
       expect(store.getState().focusedId).toBe('sol');
       store.getState().setFocused('sol');
+      expect(store.getState().focusedId).toBe('sol');
+      store.getState().setFocused(null);
       expect(store.getState().focusedId).toBeNull();
     });
 
@@ -216,7 +224,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
 
   describe('DropStalk primitive (§2.4: State-Driven Drop Stalks)', () => {
     it('does NOT render drop stalk in passive or active states (Single-Stalk Rule)', () => {
-      const htmlPassive = renderToString(
+      const htmlPassive = renderInFrame(
         createElement(DropStalk, {
           id: 'stalk-node',
           position: [0, 0, 5],
@@ -225,7 +233,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       );
       expect(htmlPassive).toBe('');
 
-      const htmlActive = renderToString(
+      const htmlActive = renderInFrame(
         createElement(DropStalk, {
           id: 'stalk-node',
           position: [0, 0, 5],
@@ -236,7 +244,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
     });
 
     it('renders drop stalk and ground footprint on datum in selected and focused states', () => {
-      const htmlSelected = renderToString(
+      const htmlSelected = renderInFrame(
         createElement(DropStalk, {
           id: 'stalk-node',
           position: [1, 2, 5],
@@ -247,7 +255,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       expect(htmlSelected).toContain('name="stalk-line"');
       expect(htmlSelected).toContain('name="stalk-footprint"');
 
-      const htmlFocused = renderToString(
+      const htmlFocused = renderInFrame(
         createElement(DropStalk, {
           id: 'stalk-node',
           position: [1, 2, 5],
@@ -258,7 +266,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
     });
 
     it('renders solid stalk for +Z (North) and dashed stalk for -Z (South)', () => {
-      const htmlNorth = renderToString(
+      const htmlNorth = renderInFrame(
         createElement(DropStalk, {
           id: 'north-stalk',
           position: [0, 0, 5],
@@ -267,7 +275,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       );
       expect(htmlNorth).toContain('data-hemisphere="north"');
 
-      const htmlSouth = renderToString(
+      const htmlSouth = renderInFrame(
         createElement(DropStalk, {
           id: 'south-stalk',
           position: [0, 0, -5],
@@ -278,7 +286,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
     });
 
     it('positions drop stalk and footprint in entity-local coordinates when entityZ is provided', () => {
-      const htmlLocal = renderToString(
+      const htmlLocal = renderInFrame(
         createElement(DropStalk, {
           id: 'local-stalk',
           position: [0, 0, 0],
@@ -379,7 +387,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
 
   describe('CelestialEntity composite', () => {
     it('coordinates BodyMarker, Reticle, Label, and DropStalk adhering to the 3-layer architecture', () => {
-      const html = renderToString(
+      const html = renderInFrame(
         createElement(CelestialEntity, {
           id: 'proxima',
           name: 'Proxima Centauri',
@@ -414,7 +422,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       expect(velZ).toBeCloseTo(0, 4);
 
       // CelestialEntity with orbit referring to primary
-      const html = renderToString(
+      const html = renderInFrame(
         createElement(CelestialEntity, {
           id: 'planet-earth',
           name: 'Earth',

@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
+import { FRAME_PRIORITY } from '../engineConfig';
 
 export interface CameraTransitionOptions {
   /** Transition duration in seconds. Default: 0.8 */
@@ -200,13 +201,13 @@ export function useCameraTransition(): CameraTransitionApi {
     };
   }, [controls, cancelTransition]);
 
-  // Frame animation loop
+  // Frame animation loop: runs before OrbitControls and the spatial frame (see FRAME_PRIORITY)
   useFrame(() => {
     const updated = controllerRef.current.update(camera, controls);
     if (updated) {
       invalidate();
     }
-  });
+  }, FRAME_PRIORITY.cameraTransition);
 
   const isTransitioning = useCallback(
     () => controllerRef.current.isTransitioning(),

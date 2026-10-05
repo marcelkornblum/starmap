@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { DEFAULT_RETICLE_SIZE } from './reticleGeometry';
+import { reticleSizeToScreenPx } from '../engineConfig';
 
 /**
  * Celestial Occlusion & Collision Registry
@@ -269,9 +270,9 @@ export class CelestialOcclusionManager {
 
       // Dynamic screen-space footprint calculations
       const reticleWorldSize = fp.reticleSize ?? DEFAULT_RETICLE_SIZE;
-      const reticleRadiusPx = (reticleWorldSize / 13.644) * size.height;
+      const reticleRadiusPx = reticleSizeToScreenPx(reticleWorldSize, size.height);
       fp.reticleRadius = reticleRadiusPx;
-      fp.starRadius = Math.max(3, (0.035 / 13.644) * size.height);
+      fp.starRadius = Math.max(3, reticleSizeToScreenPx(0.035, size.height));
 
       // Compute screen-pixel label bounding box
       const nameLength = fp.name ? fp.name.length : 8;
