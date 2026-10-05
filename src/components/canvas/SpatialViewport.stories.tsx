@@ -19,7 +19,6 @@ const SAMPLE_ENTITIES: SpatialEntityDefinition[] = [
     position: [0, 0, 0],
     spectralType: 'G2V',
     multiplicity: 1,
-    state: 'active',
   },
   {
     id: 'prox-cen',
@@ -28,7 +27,6 @@ const SAMPLE_ENTITIES: SpatialEntityDefinition[] = [
     position: [1.34, 0.45, -0.62],
     spectralType: 'M5.5V',
     multiplicity: 1,
-    state: 'selected',
   },
   {
     id: 'sirius',
@@ -37,7 +35,6 @@ const SAMPLE_ENTITIES: SpatialEntityDefinition[] = [
     position: [-1.61, -2.13, -0.55],
     spectralType: 'A1V',
     multiplicity: 2,
-    state: 'passive',
   },
 ];
 
@@ -104,14 +101,12 @@ export const SystemViewportWithOrbits: Story = {
         classification: 'star',
         position: [0, 0, 0],
         spectralType: 'G2V',
-        state: 'active',
       },
       {
         id: 'terrestrial-1',
         name: 'Earth',
         classification: 'terrestrial',
         position: [1.0, 0, 0],
-        state: 'selected',
         orbit: {
           semiMajorAxis: 1.0,
           eccentricity: 0.0167,
@@ -123,7 +118,6 @@ export const SystemViewportWithOrbits: Story = {
         name: 'Jupiter',
         classification: 'gas-giant',
         position: [2.5, 0, 0],
-        state: 'passive',
         orbit: {
           semiMajorAxis: 2.5,
           eccentricity: 0.048,
@@ -154,8 +148,6 @@ const PLANETARY_STORY_ENTITIES: SpatialEntityDefinition[] = [
     name: 'Earth',
     classification: 'terrestrial',
     position: [0, 0, 0],
-    showLabel: true,
-    enableOcclusion: true,
     bodyRadius: 1.0,
     bodyMinPixelSize: 24,
     bodyFadeRange: 16,
@@ -165,9 +157,6 @@ const PLANETARY_STORY_ENTITIES: SpatialEntityDefinition[] = [
     name: 'Luna',
     classification: 'terrestrial',
     position: LUNA_CALIBRATED_POS,
-    state: 'active',
-    showLabel: true,
-    enableOcclusion: true,
     bodyRadius: 0.272,
     orbit: {
       semiMajorAxis: 60.34,

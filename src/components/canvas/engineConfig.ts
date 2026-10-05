@@ -22,6 +22,7 @@ export const FRAME_PRIORITY = {
   cameraTransition: -2,
   spatialFrame: -0.5,
   cameraRig: -0.25,
+  entityAperture: -0.1,
 } as const;
 
 /**

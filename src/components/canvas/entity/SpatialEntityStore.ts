@@ -5,13 +5,17 @@ import type {
   CelestialInteractionState,
 } from './types';
 
+import { deriveEntityTier } from '../math/tiers';
+
 export type { SpatialEntityDefinition, CelestialInteractionState };
+export { deriveEntityTier };
 
 export interface SpatialEntityState {
   entities: Record<string, SpatialEntityDefinition>;
   hoveredId: string | null;
   selectedId: string | null;
   focusedId: string | null;
+  apertureIds: Set<string>;
 
   registerEntity: (entity: SpatialEntityDefinition) => void;
   unregisterEntity: (id: string) => void;
@@ -19,17 +23,25 @@ export interface SpatialEntityState {
   setHovered: (id: string | null) => void;
   setSelected: (id: string | null) => void;
   setFocused: (id: string | null) => void;
+  setEntityInAperture: (id: string, inAperture: boolean) => void;
+  setApertureIds: (ids: Set<string>) => void;
   getEntityState: (id: string) => CelestialInteractionState;
   getEntitiesInAperture: (center: THREE.Vector3, radius: number) => SpatialEntityDefinition[];
   getEntitiesByState: (state: CelestialInteractionState) => SpatialEntityDefinition[];
 }
 
-export const createSpatialEntityStore = () => {
+export const createSpatialEntityStore = (initial?: {
+  selectedId?: string | null;
+  focusedId?: string | null;
+  hoveredId?: string | null;
+  apertureIds?: Set<string>;
+}) => {
   return createStore<SpatialEntityState>((set, get) => ({
     entities: {},
-    hoveredId: null,
-    selectedId: null,
-    focusedId: null,
+    hoveredId: initial?.hoveredId ?? null,
+    selectedId: initial?.selectedId ?? null,
+    focusedId: initial?.focusedId ?? null,
+    apertureIds: initial?.apertureIds ?? new Set<string>(),
 
     registerEntity: (entity) => {
       set((state) => ({
@@ -44,7 +56,12 @@ export const createSpatialEntityStore = () => {
       set((state) => {
         const next = { ...state.entities };
         delete next[id];
-        return { entities: next };
+        let nextAperture = state.apertureIds;
+        if (state.apertureIds.has(id)) {
+          nextAperture = new Set(state.apertureIds);
+          nextAperture.delete(id);
+        }
+        return { entities: next, apertureIds: nextAperture };
       });
     },
 
@@ -65,15 +82,20 @@ export const createSpatialEntityStore = () => {
     setSelected: (id) => set({ selectedId: id }),
     setFocused: (id) => set({ focusedId: id }),
 
-    getEntityState: (id) => {
-      const state = get();
-      const entity = state.entities[id];
-      if (entity?.state) return entity.state;
-
-      if (state.focusedId === id) return 'focused';
-      if (state.selectedId === id || state.hoveredId === id) return 'selected';
-      return 'passive';
+    setEntityInAperture: (id, inAperture) => {
+      set((state) => {
+        const has = state.apertureIds.has(id);
+        if (has === inAperture) return state;
+        const next = new Set(state.apertureIds);
+        if (inAperture) next.add(id);
+        else next.delete(id);
+        return { apertureIds: next };
+      });
     },
+
+    setApertureIds: (apertureIds) => set({ apertureIds }),
+
+    getEntityState: (id) => deriveEntityTier(id, get()),
 
     getEntitiesInAperture: (center, radius) => {
       const state = get();

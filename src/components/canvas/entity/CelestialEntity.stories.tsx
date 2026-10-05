@@ -10,7 +10,6 @@ import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
   clearInteraction,
-  type CelestialInteractionState,
 } from './index';
 import {
   CartographicInstrument,
@@ -126,8 +125,7 @@ export const TaxonomicReticles: Story = {
                   spectralType={s.spectralType}
                   multiplicity={s.multiplicity}
                   planets={s.planets}
-                  state="selected"
-                  showStalk={false}
+                  stateOverride="active"
                 />
               );
             })}
@@ -272,7 +270,7 @@ export const DropStalksHemispheres: Story = {
               name="Polaris (+Z North)"
               position={[3, 2, 2.5]}
               classification="star"
-              state="selected"
+              stateOverride="selected"
               spectralType="F7Ib"
             />
             {/* Southern hemisphere (-Z): Dashed stalk */}
@@ -281,7 +279,7 @@ export const DropStalksHemispheres: Story = {
               name="Canopus (-Z South)"
               position={[-3, -2, -2.5]}
               classification="star"
-              state="selected"
+              stateOverride="selected"
               spectralType="A9II"
             />
           </SpatialEntityProvider>
@@ -311,7 +309,7 @@ export const KinematicVectorAndOrbits: Story = {
               name="Sol"
               position={[0, 0, 0]}
               classification="star"
-              state="focused"
+              stateOverride="focused"
               spectralType="G2V"
             />
             {/* Planet with orbit referring to central star, passing directly through entity */}
@@ -319,7 +317,7 @@ export const KinematicVectorAndOrbits: Story = {
               id="planet-1"
               name="Earth"
               classification="star"
-              state="selected"
+              stateOverride="selected"
               orbit={{
                 primaryEntityId: 'central-star',
                 semiMajorAxis: 3.0,
@@ -424,8 +422,6 @@ const InteractiveCompositeSceneDemo: React.FC = () => {
         <SpatialEntityProvider>
           <OcclusionPass />
           {systems.map((s) => {
-            const state: CelestialInteractionState =
-              selectedId === s.id ? 'focused' : 'active';
             return (
               <CelestialEntity
                 key={s.id}
@@ -433,7 +429,7 @@ const InteractiveCompositeSceneDemo: React.FC = () => {
                 name={s.name}
                 position={s.position}
                 classification={s.classification}
-                state={state}
+                stateOverride={selectedId === s.id ? 'focused' : undefined}
                 spectralType={s.spectralType}
                 multiplicity={s.multiplicity}
                 planets={s.planets}
@@ -752,8 +748,6 @@ const ClusteringAndCollisionDemo: React.FC = () => {
           <OcclusionPass />
           <DiagnosticMonitor onUpdate={setDiagnostics} />
           {activeSystems.map((s) => {
-            const state: CelestialInteractionState =
-              selectedId === s.id ? 'focused' : 'active';
             return (
               <CelestialEntity
                 key={s.id}
@@ -761,11 +755,10 @@ const ClusteringAndCollisionDemo: React.FC = () => {
                 name={s.name}
                 position={s.position}
                 classification={s.classification}
-                state={state}
+                stateOverride={selectedId === s.id ? 'focused' : undefined}
                 spectralType={s.spectralType}
                 multiplicity={s.multiplicity}
                 debugHitarea={debugHitarea}
-                showStalk={state === 'focused'}
                 onClick={(id) => setSelectedId((prev) => (prev === id ? null : id))}
               />
             );

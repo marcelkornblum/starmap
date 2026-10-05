@@ -15,7 +15,10 @@ import {
 } from './entity/SpatialEntityContext';
 import { CelestialEntity } from './entity/CelestialEntity';
 import { OcclusionPass } from './entity/OcclusionPass';
-import { type SpatialEntityDefinition } from './entity/SpatialEntityStore';
+import {
+  type SpatialEntityDefinition,
+  createSpatialEntityStore,
+} from './entity/SpatialEntityStore';
 import {
   activateEntity,
   focusEntity,
@@ -176,7 +179,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
  * entity composites, and bespoke planetary bodies.
  */
 export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
-  const { frame = GALACTIC_FRAME, cameraDistance } = props;
+  const { frame = GALACTIC_FRAME, cameraDistance, initialSelectedId } = props;
 
   // Single source of the screen-constant reference distance for both instrument and entities.
   // Preserves the instrument footprint previously derived from `cameraDistance`.
@@ -190,13 +193,44 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
     [frame, cameraDistance],
   );
 
+  const [scopedStore] = React.useState(() => {
+    const focusPoint = props.cameraTarget
+      ? (props.cameraTarget instanceof THREE.Vector3
+          ? props.cameraTarget
+          : new THREE.Vector3(props.cameraTarget[0], props.cameraTarget[1], props.cameraTarget[2]))
+      : new THREE.Vector3(0, 0, 0);
+    const apertureRadius = resolvedFrame.radius;
+    const rSq = apertureRadius * apertureRadius;
+    const initialAperture = new Set<string>();
+
+    if (props.entities) {
+      for (const e of props.entities) {
+        const p = e.position;
+        const x = p instanceof THREE.Vector3 ? p.x : p[0];
+        const y = p instanceof THREE.Vector3 ? p.y : p[1];
+        const z = p instanceof THREE.Vector3 ? p.z : p[2];
+        const dx = x - focusPoint.x;
+        const dy = y - focusPoint.y;
+        const dz = z - focusPoint.z;
+        if (dx * dx + dy * dy + dz * dz <= rSq) {
+          initialAperture.add(e.id);
+        }
+      }
+    }
+
+    return createSpatialEntityStore({
+      selectedId: initialSelectedId ?? null,
+      apertureIds: initialAperture,
+    });
+  });
+
   return (
     <SpatialFrameProvider
       frame={resolvedFrame}
       focusPoint={props.cameraTarget}
       lockToFocusPoint={true}
     >
-      <SpatialEntityProvider>
+      <SpatialEntityProvider store={scopedStore}>
         <SpatialViewportContent {...props} />
       </SpatialEntityProvider>
     </SpatialFrameProvider>

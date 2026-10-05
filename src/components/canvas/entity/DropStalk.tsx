@@ -171,7 +171,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       }
     }
 
-    const isVisible = p > 0.001;
+    const isVisible = p > 0.001 && Math.abs(deltaZ) > 1e-4;
     if (lineMeshRef.current) {
       lineMeshRef.current.visible = isVisible;
     }

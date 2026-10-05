@@ -103,7 +103,7 @@ describe('SpatialViewport Composition Root (Phase 4)', () => {
     const htmlDebug = renderToString(
       createElement(SpatialViewport, {
         frame: SYSTEM_FRAME,
-        entities: [{ ...sampleEntities[0], state: 'active' }],
+        entities: [sampleEntities[0]],
         debugHitarea: true,
       }),
     );
@@ -170,7 +170,6 @@ describe('SpatialViewport Composition Root (Phase 4)', () => {
         name: 'Sirius',
         classification: 'star',
         position: [-1.61, -2.13, -0.55],
-        state: 'selected',
       },
     ];
 
@@ -178,6 +177,7 @@ describe('SpatialViewport Composition Root (Phase 4)', () => {
       createElement(SpatialViewport, {
         frame: GALACTIC_FRAME,
         entities: selectedStar,
+        initialSelectedId: 'sirius',
       }),
     );
 

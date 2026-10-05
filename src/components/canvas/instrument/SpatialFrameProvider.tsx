@@ -229,3 +229,11 @@ export function useSpatialFrame(): SpatialFrameContextValue {
   }
   return ctx;
 }
+
+/**
+ * Safe hook to access the active SpatialFrame state reference, returning null if outside a provider.
+ */
+export function useSpatialFrameSafe(): SpatialFrameContextValue | null {
+  return useContext(SpatialFrameContext);
+}
+

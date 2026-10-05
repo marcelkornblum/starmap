@@ -42,16 +42,11 @@ export interface SpatialEntityDefinition {
   name: string;
   position: [number, number, number] | THREE.Vector3;
   classification?: CelestialClassification;
-  state?: CelestialInteractionState;
   spectralType?: string;
   multiplicity?: number;
   planets?: PlanetCensusEntry[];
   velocity?: [number, number, number] | THREE.Vector3;
   orbit?: SpatialOrbitDefinition;
-  reticleSize?: number;
-  showStalk?: boolean;
-  showLabel?: boolean;
-  enableOcclusion?: boolean;
   /** Radius of physical 3D sphere when rendered via PlanetBody (enables seamless node cross-fade) */
   bodyRadius?: number;
   bodyMinPixelSize?: number;

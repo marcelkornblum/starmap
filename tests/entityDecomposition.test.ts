@@ -112,15 +112,23 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       expect(store.getState().focusedId).toBeNull();
     });
 
-    it('supports explicit state override on entity definition', () => {
+    it('derives entity tier via deriveEntityTier in getEntityState', () => {
       const entity: SpatialEntityDefinition = {
         id: 'vega',
         name: 'Vega',
         position: [7.7, 0, 0],
         classification: 'star',
-        state: 'focused',
       };
       store.getState().registerEntity(entity);
+      expect(store.getState().getEntityState('vega')).toBe('passive');
+
+      store.getState().setEntityInAperture('vega', true);
+      expect(store.getState().getEntityState('vega')).toBe('active');
+
+      store.getState().setSelected('vega');
+      expect(store.getState().getEntityState('vega')).toBe('selected');
+
+      store.getState().setFocused('vega');
       expect(store.getState().getEntityState('vega')).toBe('focused');
     });
 
@@ -394,7 +402,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
           position: [1.3, 0.2, -0.8],
           classification: 'star',
           spectralType: 'M5.5V',
-          state: 'focused',
+          stateOverride: 'focused',
           velocity: [0.1, -0.05, 0.02],
         }),
       );
@@ -427,7 +435,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
           id: 'planet-earth',
           name: 'Earth',
           classification: 'star',
-          state: 'selected',
+          stateOverride: 'selected',
           orbit: {
             primaryPosition: [0, 0, 0],
             semiMajorAxis: 3.0,

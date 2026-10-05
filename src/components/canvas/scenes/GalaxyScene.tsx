@@ -33,8 +33,6 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
       spectralType: sys.spectralType,
       multiplicity: sys.multiplicity,
       planets: sys.planetsList,
-      showLabel: true,
-      enableOcclusion: true,
     }));
   }, [systems]);
 

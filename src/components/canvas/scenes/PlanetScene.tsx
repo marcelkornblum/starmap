@@ -62,8 +62,6 @@ export const PlanetScene: React.FC<PlanetSceneProps> = ({
           name: 'Luna',
           classification: 'terrestrial',
           position: [lunaX, lunaY, lunaZ],
-          showLabel: true,
-          enableOcclusion: true,
           bodyRadius: 0.272 * radius,
           orbit: {
             semiMajorAxis: lunaA,
@@ -86,8 +84,6 @@ export const PlanetScene: React.FC<PlanetSceneProps> = ({
     name: resolvedName,
     classification,
     position: [0, 0, 0],
-    showLabel: true,
-    enableOcclusion: true,
     bodyRadius: radius,
     bodyMinPixelSize: minPixelSize,
     bodyFadeRange: fadeRange,

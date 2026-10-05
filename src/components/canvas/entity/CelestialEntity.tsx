@@ -2,14 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { type ThreeEvent, useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
-import { useSpatialEntityStoreApi, useSpatialEntityStore } from './SpatialEntityContext';
+import { useSpatialEntityStoreApi, useSpatialEntityStore, useEntityTier } from './SpatialEntityContext';
 import { BodyMarker } from './BodyMarker';
 import { Reticle } from './Reticle';
 import { DropStalk } from './DropStalk';
 import { KinematicVector } from './KinematicVector';
 import { OrbitPath } from './OrbitPath';
 import { EntityLabel } from './EntityLabel';
-import { useSpatialFrame } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import {
   celestialOcclusionManager,
   type CelestialFootprint,
@@ -39,6 +39,7 @@ export interface CelestialEntityProps extends Partial<SpatialEntityDefinition> {
   name: string;
   position?: [number, number, number] | THREE.Vector3;
   debugHitarea?: boolean;
+  stateOverride?: CelestialInteractionState;
   bodyRadius?: number;
   bodyMinPixelSize?: number;
   bodyFadeRange?: number;
@@ -61,16 +62,12 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   name,
   position,
   classification = 'star',
-  state: explicitState,
+  stateOverride,
   spectralType,
   multiplicity = 1,
   planets,
   velocity,
   orbit,
-  reticleSize = DEFAULT_RETICLE_SIZE,
-  showStalk: explicitShowStalk,
-  showLabel: explicitShowLabel = true,
-  enableOcclusion = true,
   debugHitarea = false,
   bodyRadius,
   bodyMinPixelSize,
@@ -82,7 +79,6 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   children,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
-  const { frameRef } = useSpatialFrame();
   const nodeGroupRef = useRef<THREE.Group>(null);
   const nodeAlphaRef = useRef(1);
   const hasBodyCrossfade = bodyRadius !== undefined && bodyRadius > 0;
@@ -145,35 +141,20 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     return new THREE.Vector3(0, 0, 0);
   }, [rawPosX, rawPosY, rawPosZ, orbitA, orbitE, orbitInc, orbitNode, orbitPeri, orbitM, resolvedPrimaryPos]);
 
-  // Focal aperture (R_fin) proximity check (§2.1):
-  // Entities within R_fin of the camera focal point are 'active' (display tactical taxonomy reticle).
-  // Entities beyond R_fin remain 'passive' baseline unreticled dots to eliminate visual clutter.
-  const [isInAperture, setIsInAperture] = useState<boolean>(() => {
-    const fp = frameRef?.current?.focusPoint ?? new THREE.Vector3(0, 0, 0);
-    const r = frameRef?.current?.apertureRadius ?? 10;
-    return resolvedPos.distanceTo(fp) <= r;
-  });
-  const isInApertureRef = useRef(isInAperture);
+  const frameCtx = useSpatialFrameSafe();
 
-  const isHovered = useSpatialEntityStore((s) => s.hoveredId === id);
-  const isSelected = useSpatialEntityStore((s) => s.selectedId === id);
-  const isFocused = useSpatialEntityStore((s) => s.focusedId === id);
-  const storedEntityState = useSpatialEntityStore((s) => s.entities[id]?.state);
-
-  let activeState: CelestialInteractionState;
-  if (explicitState === 'passive' || (!isInAperture && explicitState === undefined)) {
-    activeState = 'passive';
-  } else if (isFocused || explicitState === 'focused') {
-    activeState = 'focused';
-  } else if (isSelected || explicitState === 'selected' || isHovered) {
-    activeState = 'selected';
-  } else if (explicitState) {
-    activeState = explicitState;
-  } else if (storedEntityState) {
-    activeState = storedEntityState;
-  } else {
-    activeState = 'active';
+  // Seed initial aperture containment synchronously for SSR & first render pass
+  if (frameCtx?.frameRef?.current) {
+    const { focusPoint, apertureRadius } = frameCtx.frameRef.current;
+    const inAperture = resolvedPos.distanceTo(focusPoint) <= apertureRadius;
+    if (inAperture && !storeApi.getState().apertureIds.has(id)) {
+      storeApi.getState().setEntityInAperture(id, true);
+    }
   }
+
+  // Derived visual tier from authoritative FSM store (§2.1 / §2.2)
+  const storeTier = useEntityTier(id);
+  const activeState = stateOverride ?? storeTier;
 
   const velX = velocity ? (velocity instanceof THREE.Vector3 ? velocity.x : velocity[0]) : null;
   const velY = velocity ? (velocity instanceof THREE.Vector3 ? velocity.y : velocity[1]) : null;
@@ -224,28 +205,28 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
         name,
         position: resolvedPos,
         classification,
-        state: explicitState,
         spectralType,
         multiplicity,
         planets,
         velocity: resolvedVelocity,
         orbit,
-        reticleSize,
         bodyRadius,
+        bodyMinPixelSize,
+        bodyFadeRange,
       });
     } else {
       store.updateEntity(id, {
         name,
         position: resolvedPos,
         classification,
-        state: explicitState,
         spectralType,
         multiplicity,
         planets,
         velocity: resolvedVelocity,
         orbit,
-        reticleSize,
         bodyRadius,
+        bodyMinPixelSize,
+        bodyFadeRange,
       });
     }
   }, [
@@ -253,14 +234,14 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     name,
     resolvedPos,
     classification,
-    explicitState,
     spectralType,
     multiplicity,
     planets,
     resolvedVelocity,
     orbit,
-    reticleSize,
     bodyRadius,
+    bodyMinPixelSize,
+    bodyFadeRange,
     storeApi,
   ]);
 
@@ -271,13 +252,13 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     state: activeState,
     worldPos: [resolvedPos.x, resolvedPos.y, resolvedPos.z],
     classification,
-    reticleSize,
+    reticleSize: DEFAULT_RETICLE_SIZE,
     multiplicity,
     planets,
     screenX: 0,
     screenY: 0,
     camDist: 0,
-    reticleRadius: reticleSize,
+    reticleRadius: DEFAULT_RETICLE_SIZE,
     starRadius: 0.035,
     hasReticle: activeState !== 'passive',
     visible: true,
@@ -289,7 +270,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     footprintRef.current.name = name;
     footprintRef.current.state = activeState;
     footprintRef.current.hasReticle = activeState !== 'passive';
-    footprintRef.current.reticleSize = reticleSize;
+    footprintRef.current.reticleSize = DEFAULT_RETICLE_SIZE;
     footprintRef.current.multiplicity = multiplicity;
     footprintRef.current.planets = planets;
     if (footprintRef.current.worldPos) {
@@ -297,35 +278,21 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
       footprintRef.current.worldPos[1] = resolvedPos.y;
       footprintRef.current.worldPos[2] = resolvedPos.z;
     }
-  }, [name, activeState, reticleSize, multiplicity, planets, resolvedPos]);
+  }, [name, activeState, multiplicity, planets, resolvedPos]);
 
   useEffect(() => {
-    if (enableOcclusion) {
-      celestialOcclusionManager.register(footprintRef.current);
-      return () => {
-        celestialOcclusionManager.unregister(id);
-      };
-    }
-  }, [enableOcclusion, id]);
+    celestialOcclusionManager.register(footprintRef.current);
+    return () => {
+      celestialOcclusionManager.unregister(id);
+    };
+  }, [id]);
 
   const scratchNdcRef = useLazyRef(() => new THREE.Vector3());
   const scratchWorldPosRef = useLazyRef(() => new THREE.Vector3());
   const scratchCamSpaceRef = useLazyRef(() => new THREE.Vector3());
 
   useFrame(({ camera, size }) => {
-    // 1. Evaluate focal aperture boundary crossing (R_fin)
-    if (frameRef?.current) {
-      const fp = frameRef.current.focusPoint;
-      const r = frameRef.current.apertureRadius;
-      const inAperture = resolvedPos.distanceTo(fp) <= r;
-      if (inAperture !== isInApertureRef.current) {
-        isInApertureRef.current = inAperture;
-        // r3f-audit-disable-next-line no-setstate-in-use-frame
-        setIsInAperture(inAperture);
-      }
-    }
-
-    // 2. Physical body cross-fade (§4: Seamless PlanetBody to Node Takeover).
+    // 1. Physical body cross-fade (§4: Seamless PlanetBody to Node Takeover).
     // Publishes a node alpha consumed by BodyMarker and Reticle; never mutates child materials.
     if (hasBodyCrossfade && bodyRadius !== undefined && nodeGroupRef.current) {
       const worldPos = nodeGroupRef.current.getWorldPosition(scratchWorldPosRef.current);
@@ -338,8 +305,6 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
       nodeAlphaRef.current = alpha;
       nodeGroupRef.current.visible = alpha > CROSSFADE_VISIBILITY_EPSILON;
     }
-
-    if (!enableOcclusion) return;
 
     // Batch Occlusion Optimization: If OcclusionPass is evaluating projections in a single batch pass,
     // skip duplicate per-entity projection matrix multiplications.
@@ -356,7 +321,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     const ndc = scratchNdcRef.current.copy(scratchWorldPosRef.current).project(camera);
     const screenX = (ndc.x * 0.5 + 0.5) * size.width;
     const screenY = (-ndc.y * 0.5 + 0.5) * size.height;
-    const reticleRadiusPx = reticleSizeToScreenPx(reticleSize, size.height);
+    const reticleRadiusPx = reticleSizeToScreenPx(DEFAULT_RETICLE_SIZE, size.height);
 
     const fp = footprintRef.current;
     fp.screenX = screenX;
@@ -385,8 +350,6 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     }
   }, [isStalkTier]);
 
-  const shouldRenderStalk = explicitShowStalk ?? stalkMounted;
-
   return (
     <group
       position={resolvedPos}
@@ -399,7 +362,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
         <BodyMarker
           id={id}
           position={[0, 0, 0]}
-          reticleSize={reticleSize}
+          reticleSize={DEFAULT_RETICLE_SIZE}
           debugHitarea={debugHitarea}
           interactive={activeState !== 'passive'}
           nodeAlphaRef={hasBodyCrossfade ? nodeAlphaRef : undefined}
@@ -438,7 +401,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
             position={[0, 0, 0]}
             classification={classification}
             state={activeState}
-            size={reticleSize}
+            size={DEFAULT_RETICLE_SIZE}
             multiplicity={multiplicity}
             planets={planets}
             spectralType={spectralType}
@@ -448,27 +411,27 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
       </group>
 
       {/* Layer 3: Typographic Label */}
-      {explicitShowLabel && (
+      {activeState !== 'passive' && (
         <EntityLabel
           id={id}
           name={name}
           position={[0, 0, 0]}
           spectralType={spectralType}
           state={activeState}
-          reticleSize={reticleSize}
+          reticleSize={DEFAULT_RETICLE_SIZE}
           footprintRef={footprintRef}
         />
       )}
 
       {/* State-Driven Drop Stalk (§2.4) */}
-      {shouldRenderStalk && (
+      {stalkMounted && (
         <DropStalk
           id={id}
           position={[0, 0, 0]}
           entityZ={resolvedPos.z}
           state={activeState}
           classification={classification}
-          footprintSize={reticleSize}
+          footprintSize={DEFAULT_RETICLE_SIZE}
         />
       )}
 

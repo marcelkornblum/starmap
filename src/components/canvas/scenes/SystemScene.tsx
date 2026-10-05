@@ -37,8 +37,6 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
       spectralType: explicitSystem?.spectralType ?? sysData.spectralType,
       multiplicity: sysData.multiplicity ?? 1,
       planets: sysData.planetsList,
-      showLabel: true,
-      enableOcclusion: true,
     };
 
     // 2. Planetary Bodies with Keplerian Orbits
@@ -51,15 +49,13 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
         name: p.name,
         position: [p.a, 0, 0],
         classification: p.classification,
-        showLabel: true,
-        enableOcclusion: true,
         orbit: {
           semiMajorAxis: p.a,
           eccentricity: p.e,
           inclination: p.inc,
           ascendingNode: p.node,
           argumentOfPeriapsis: p.peri,
-          periodDays: p.period,
+          period: p.period,
           meanAnomaly: p.meanAnomaly,
         },
       }));
@@ -72,15 +68,13 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
           name: p.name,
           position: [a, 0, 0],
           classification: p.classification,
-          showLabel: true,
-          enableOcclusion: true,
           orbit: {
             semiMajorAxis: a,
             eccentricity: 0.05 + index * 0.02,
             inclination: index * 1.5,
             ascendingNode: index * 25,
             argumentOfPeriapsis: index * 40,
-            periodDays: Math.round(Math.pow(a, 1.5) * 365.25),
+            period: Math.round(Math.pow(a, 1.5) * 365.25),
             meanAnomaly: (index * 60) % 360,
           },
         };
