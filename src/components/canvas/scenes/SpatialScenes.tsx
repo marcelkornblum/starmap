@@ -4,18 +4,15 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 
 import {
-  CelestialNode,
-  CartographicGrid,
-  OrbitalRing,
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
   type CelestialClassification,
   type PlanetCensusEntry,
 } from '../cartography';
 import { SceneTokenBridge } from '../ThemeTokenBridge';
-import { DEG_TO_RADIANS } from '../../../utils/astroMath';
-import { calculateKeplerianPosition } from '../math/kepler';
-import { PlanetBody } from './PlanetBody';
+import { GalaxyScene } from './GalaxyScene';
+import { SystemScene } from './SystemScene';
+import { PlanetScene } from './PlanetScene';
 
 import styles from './SpatialScenes.module.css';
 
@@ -292,20 +289,12 @@ export interface GalacticViewSceneProps {
 
 export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
   initialSelectedId = null,
-  onInspectSystem: _onInspectSystem,
+  onInspectSystem,
   className,
 }) => {
-  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-
   const standardCam = useMemo(
     () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.galactic, [0, 0, 0]),
     [],
-  );
-
-  const selectedSystem = useMemo(
-    () => (selectedId ? CANDIDATE_SYSTEMS.find((s) => s.id === selectedId) ?? null : null),
-    [selectedId],
   );
 
   const containerClass = className
@@ -326,53 +315,6 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
           <SceneTokenBridge />
           <ambientLight intensity={0.4} />
 
-          {/* Cartographic grid instrument anchored at Sol [0,0,0], screen-constant zoom adaptive */}
-          <CartographicGrid
-            radius={10}
-            screenConstant={true}
-            showFins={true}
-            showGalacticPlane={true}
-            showPlanarFootprint={true}
-            showPlanarGrid={true}
-            planarGridGap={100}
-            showAxisLines={true}
-            lockToFocusPoint={false}
-            position={[0, 0, 0]}
-            footprintClassification={selectedSystem?.classification ?? 'star'}
-          />
-
-          {/* Stellar Systems population adhering strictly to the Single-Stalk Rule */}
-          <group name="galactic-stars-population">
-            {CANDIDATE_SYSTEMS.map((system) => {
-              const isSelected = system.id === selectedId;
-              const isHovered = system.id === hoveredId;
-              const interactionState = isSelected
-                ? 'focused'
-                : isHovered
-                  ? 'active'
-                  : 'passive';
-
-              return (
-                <CelestialNode
-                  key={system.id}
-                  id={system.id}
-                  name={system.name}
-                  position={system.position}
-                  classification={system.classification}
-                  state={interactionState}
-                  spectralType={system.spectralType}
-                  multiplicity={system.multiplicity}
-                  planets={system.planetsList}
-                  showStalk={isSelected} // STRICT SINGLE-STALK RULE: stalk only renders when selected/focused
-                  reticleSize={0.45}
-                  onClick={(id) => setSelectedId(id)}
-                  onPointerOver={(id) => setHoveredId(id)}
-                  onPointerOut={() => setHoveredId(null)}
-                />
-              );
-            })}
-          </group>
-
           <OrbitControls
             makeDefault
             target={standardCam.target}
@@ -380,6 +322,11 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             dampingFactor={0.05}
             minDistance={2.5}
             maxDistance={85}
+          />
+
+          <GalaxyScene
+            initialSelectedId={initialSelectedId}
+            onInspectSystem={onInspectSystem}
           />
         </Canvas>
       </div>
@@ -398,31 +345,6 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
   onInspectPlanet,
   onNavigateGalaxy: _onNavigateGalaxy,
 }) => {
-  const [selectedPlanetId, setSelectedPlanetId] = useState<string>('earth');
-  const [hoveredPlanetId, setHoveredPlanetId] = useState<string | null>(null);
-
-  const selectedPlanet = useMemo(
-    () => SOL_PLANETS.find((p) => p.id === selectedPlanetId) ?? SOL_PLANETS[2],
-    [selectedPlanetId],
-  );
-
-  // Compute 3D positions for planets along their Keplerian orbits
-  const planetPositions = useMemo(() => {
-    const map = new Map<string, [number, number, number]>();
-    SOL_PLANETS.forEach((planet) => {
-      const pos = calculateKeplerianPosition(
-        planet.a,
-        planet.e,
-        planet.inc,
-        planet.node,
-        planet.peri,
-        planet.meanAnomaly,
-      );
-      map.set(planet.id, pos);
-    });
-    return map;
-  }, []);
-
   const standardCam = useMemo(
     () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.system, [0, 0, 0]),
     [],
@@ -441,87 +363,6 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
         >
           <SceneTokenBridge />
           <ambientLight intensity={0.5} />
-          <pointLight position={[0, 0, 0]} intensity={2.0} color="#ffeedd" />
-
-          {/* System Cartographic Grid centered at the Barycentre */}
-          <CartographicGrid
-            radius={12}
-            rangeRings={[1, 2, 5, 10, 15]}
-            majorRingIndex={3}
-            showFins={true}
-            showGalacticPlane={true}
-            showPlanarFootprint={true}
-            showPlanarGrid={false}
-            showAxisLines={true}
-            lockToFocusPoint={false}
-            position={[0, 0, 0]}
-            footprintClassification={selectedPlanet.classification}
-          />
-
-          {/* Central Host Star: Sol */}
-          <CelestialNode
-            id={systemId}
-            name={systemId === 'tau-ceti' ? 'Tau Ceti' : systemId === 'alpha-centauri' ? 'Alpha Centauri' : 'Sol'}
-            position={[0, 0, 0]}
-            classification="star"
-            spectralType="G2V"
-            reticleSize={0.65}
-            state="active"
-            showStalk={false}
-          />
-
-          {/* Keplerian Elliptical Orbit Rings */}
-          {SOL_PLANETS.map((planet) => {
-            const isFocused = planet.id === selectedPlanetId;
-            return (
-              <OrbitalRing
-                key={planet.id}
-                bodyId={planet.id}
-                semiMajorAxis={planet.a}
-                eccentricity={planet.e}
-                inclination={planet.inc}
-                ascendingNode={planet.node}
-                argumentOfPeriapsis={planet.peri}
-                isFocused={isFocused}
-                showPeriapsisTick={true}
-                showDirectionIndicator={true}
-              />
-            );
-          })}
-
-          {/* Planetary population rendered purely as CelestialNode */}
-          {SOL_PLANETS.map((planet) => {
-            const pos = planetPositions.get(planet.id) ?? [0, 0, 0];
-            const isSelected = planet.id === selectedPlanetId;
-            const isHovered = planet.id === hoveredPlanetId;
-            const interactionState = isSelected
-              ? 'focused'
-              : isHovered
-                ? 'active'
-                : 'passive';
-
-            return (
-              <CelestialNode
-                key={planet.id}
-                id={planet.id}
-                name={planet.name}
-                position={pos}
-                classification={planet.classification}
-                state={interactionState}
-                showStalk={isSelected} // Drop stalk to the invariant plane (Z=0) when selected/focused
-                reticleSize={0.38}
-                onClick={(id) => {
-                  if (selectedPlanetId === id && onInspectPlanet) {
-                    onInspectPlanet(id);
-                  } else {
-                    setSelectedPlanetId(id);
-                  }
-                }}
-                onPointerOver={(id) => setHoveredPlanetId(id)}
-                onPointerOut={() => setHoveredPlanetId(null)}
-              />
-            );
-          })}
 
           <OrbitControls
             makeDefault
@@ -530,6 +371,11 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
             dampingFactor={0.05}
             minDistance={2.0}
             maxDistance={45}
+          />
+
+          <SystemScene
+            systemId={systemId}
+            onInspectPlanet={onInspectPlanet}
           />
         </Canvas>
       </div>
@@ -559,19 +405,6 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
 }) => {
   const isEarth = planetId.toLowerCase() === 'earth';
   const planetDisplayName = isEarth ? 'Earth' : planetId.charAt(0).toUpperCase() + planetId.slice(1);
-  const [selectedMoon, setSelectedMoon] = useState<boolean>(false);
-
-  // Exact Keplerian 3D position along lunar orbit intersecting OrbitalRing with mathematical precision
-  const moonPos: [number, number, number] = useMemo(() => {
-    return calculateKeplerianPosition(
-      LUNAR_ORBIT.a,
-      LUNAR_ORBIT.e,
-      LUNAR_ORBIT.inc,
-      LUNAR_ORBIT.node,
-      LUNAR_ORBIT.peri,
-      LUNAR_ORBIT.meanAnomaly,
-    );
-  }, []);
 
   const standardCam = useMemo(
     () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, [0, 0, 0]),
@@ -590,89 +423,7 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
           gl={{ antialias: true, alpha: true }}
         >
           <SceneTokenBridge />
-
-          {/* Uniform Cartographic Lighting (Zero Day/Night Terminator) */}
           <ambientLight intensity={1.0} />
-
-          {/* Planetary Inspection Cartographic Grid dropped on the Rotational Equator (Z=0) */}
-          <CartographicGrid
-            radius={10}
-            screenConstant={true}
-            rangeRings={[1, 10, 30, 60]}
-            majorRingIndex={3}
-            showFins={true}
-            showGalacticPlane={true}
-            showPlanarFootprint={true}
-            showPlanarGrid={false}
-            showAxisLines={true}
-            lockToFocusPoint={false}
-            position={[0, 0, 0]}
-            footprintClassification="terrestrial"
-          />
-
-          {/* Distant Host Star Directional Anchor (Sol) along +X */}
-          <group position={[150, 0, 0]}>
-            <CelestialNode
-              id="sol-anchor"
-              name="Sol"
-              position={[0, 0, 0]}
-              classification="star"
-              spectralType="G2V"
-              reticleSize={0.45}
-              state="passive"
-              showStalk={false}
-            />
-          </group>
-
-          {/* Planetary Body: Uniform-lit procedurally textured PlanetBody with axial tilt */}
-          <group rotation={[0, 0, 23.44 * DEG_TO_RADIANS]}>
-            <PlanetBody
-              name={planetDisplayName}
-              classification="terrestrial"
-              radius={1.0}
-              minPixelSize={24}
-              fadeRange={16}
-            />
-          </group>
-
-          {/* Tactical Center-of-Mass Node */}
-          <CelestialNode
-            id="planet-center-node"
-            name={planetDisplayName}
-            position={[0, 0, 0]}
-            classification="terrestrial"
-            state={selectedMoon ? 'active' : 'focused'}
-            showStalk={false}
-            reticleSize={0.5}
-            onClick={() => setSelectedMoon(false)}
-          />
-
-          {/* Lunar Orbit Ring */}
-          <OrbitalRing
-            bodyId="moon"
-            semiMajorAxis={LUNAR_ORBIT.a}
-            eccentricity={LUNAR_ORBIT.e}
-            inclination={LUNAR_ORBIT.inc}
-            ascendingNode={LUNAR_ORBIT.node}
-            argumentOfPeriapsis={LUNAR_ORBIT.peri}
-            isFocused={selectedMoon}
-            showPeriapsisTick={true}
-            showDirectionIndicator={true}
-          />
-
-          {/* Moon (Luna) Satellite CelestialNode (pure vector celestial body, no fake sphere) */}
-          <group position={moonPos}>
-            <CelestialNode
-              id="moon"
-              name="Moon"
-              position={[0, 0, 0]}
-              classification="terrestrial"
-              state={selectedMoon ? 'focused' : 'active'}
-              showStalk={selectedMoon}
-              reticleSize={0.35}
-              onClick={() => setSelectedMoon(true)}
-            />
-          </group>
 
           <OrbitControls
             makeDefault
@@ -681,6 +432,12 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
             dampingFactor={0.05}
             minDistance={1.2}
             maxDistance={250}
+          />
+
+          <PlanetScene
+            planetId={planetId}
+            planetName={planetDisplayName}
+            classification="terrestrial"
           />
         </Canvas>
       </div>

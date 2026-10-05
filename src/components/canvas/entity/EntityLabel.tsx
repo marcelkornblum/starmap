@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import { SafeHtml } from '../SafeHtml';
-import styles from '../cartography/CelestialNode.module.css';
+import styles from './EntityLabel.module.css';
 import type { CelestialInteractionState } from './types';
 import {
   celestialOcclusionManager,

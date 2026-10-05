@@ -7,6 +7,7 @@ import type { SpatialEntityDefinition } from '../entity/SpatialEntityStore';
 
 export interface GalaxySceneProps {
   systems?: CandidateSystem[];
+  initialSelectedId?: string | null;
   onInspectSystem?: (systemId: string) => void;
   onSelectSystem?: (systemId: string | null) => void;
   debugHitarea?: boolean;
@@ -18,6 +19,7 @@ export interface GalaxySceneProps {
  */
 export const GalaxyScene: React.FC<GalaxySceneProps> = ({
   systems = CANDIDATE_SYSTEMS,
+  initialSelectedId,
   onInspectSystem,
   onSelectSystem,
   debugHitarea = false,
@@ -41,6 +43,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
       frame={GALACTIC_FRAME}
       entities={entities}
       cameraDistance={STANDARD_CAMERA_DISTANCES.galactic}
+      initialSelectedId={initialSelectedId}
       onInspect={onInspectSystem}
       onSelect={onSelectSystem}
       debugHitarea={debugHitarea}

@@ -42,6 +42,8 @@ export interface SpatialViewportProps {
   debugHitarea?: boolean;
   /** Sync selection bidirectionally with useUIStore */
   syncWithUIStore?: boolean;
+  /** Initial selected entity ID on mount */
+  initialSelectedId?: string | null;
   /** Whether to smoothly transition the camera and centre the instrument when double-clicking an entity. Defaults to true */
   enableFocusTransition?: boolean;
   /** Transition duration in seconds for smooth camera centering. Defaults to 0.8 */
@@ -66,6 +68,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   showPlanarFootprint = false,
   debugHitarea = false,
   syncWithUIStore = true,
+  initialSelectedId,
   enableFocusTransition = true,
   focusTransitionDuration = 0.8,
   onDoubleClick,
@@ -73,6 +76,13 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   const storeApi = useSpatialEntityStoreApi();
   const globalSelectedId = useUIStore((s) => s.selectedNodeId);
   const { transitionTo } = useCameraTransition();
+
+  // Initialize selection on mount if initialSelectedId is provided
+  useEffect(() => {
+    if (initialSelectedId) {
+      storeApi.getState().setSelected(initialSelectedId);
+    }
+  }, [initialSelectedId, storeApi]);
 
   // Synchronise external UI store selection inwards to spatial entity store
   useEffect(() => {
