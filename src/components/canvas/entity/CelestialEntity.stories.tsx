@@ -3,10 +3,12 @@ import { useState, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
+import { create } from 'zustand';
 import {
   CelestialEntity,
   SpatialEntityProvider,
   OcclusionPass,
+  ApertureEvaluator,
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
   clearInteraction,
@@ -149,12 +151,14 @@ const SingleEntityInteractionContent: React.FC<{
 
   const pos: [number, number, number] = isDistant ? [16, 0, 1.5] : [0, 0, 1.5];
 
-  const currentTier = isDistant
+  const isDemoInAperture = useSpatialEntityStore((s) => s.apertureIds.has('demo-node'));
+
+  const currentTier = !isDemoInAperture
     ? 'passive (outside aperture)'
     : focusedId === 'demo-node'
       ? 'focused (cyan reticle & datum footprint)'
       : hoveredId === 'demo-node'
-        ? 'hovered (rollover preview)'
+        ? 'hovered (rollover preview -> selected tier)'
         : selectedId === 'demo-node'
           ? 'selected'
           : 'active (in aperture)';
@@ -211,6 +215,7 @@ const SingleEntityInteractionContent: React.FC<{
           <ambientLight intensity={1} />
           <CartographicInstrument showPlanarGrid showFins={false} />
           <OcclusionPass />
+          <ApertureEvaluator />
           <CelestialEntity
             id="demo-node"
             name="System"
@@ -480,9 +485,15 @@ function createEmptyDiagnosticNode(): DiagnosticNode {
   };
 }
 
-const DiagnosticMonitor: React.FC<{
-  onUpdate: (nodes: DiagnosticNode[]) => void;
-}> = ({ onUpdate }) => {
+const useDiagnosticsStore = create<{
+  diagnostics: DiagnosticNode[];
+  setDiagnostics: (d: DiagnosticNode[]) => void;
+}>((set) => ({
+  diagnostics: [],
+  setDiagnostics: (diagnostics) => set({ diagnostics }),
+}));
+
+const DiagnosticMonitor: React.FC = () => {
   const frameCount = useRef(0);
   const poolRef = useRef<DiagnosticNode[]>([]);
 
@@ -518,19 +529,72 @@ const DiagnosticMonitor: React.FC<{
       item.labelOccluded = !labelEval.visible;
     }
 
-    onUpdate(pool.slice(0, len));
+    useDiagnosticsStore.getState().setDiagnostics(pool.slice(0, len));
   });
 
   return null;
+};
+
+const DiagnosticTable: React.FC = () => {
+  const diagnostics = useDiagnosticsStore((s) => s.diagnostics);
+  if (diagnostics.length === 0) return null;
+
+  return (
+    <table className={styles.diagTable}>
+      <thead>
+        <tr>
+          <th>Node</th>
+          <th>State</th>
+          <th>Screen (X, Y)</th>
+          <th>Depth</th>
+          <th>Hit Offset</th>
+          <th>Reticle</th>
+          <th>Label</th>
+        </tr>
+      </thead>
+      <tbody>
+        {diagnostics.map((d) => (
+          <tr key={d.id}>
+            <td><strong>{d.name}</strong></td>
+            <td>{d.state}</td>
+            <td>({d.screenX}, {d.screenY})</td>
+            <td>{d.camDist}</td>
+            <td>
+              {d.hitOffsetX !== 0 || d.hitOffsetY !== 0 ? (
+                <span className={styles.statusActive}>({d.hitOffsetX}, {d.hitOffsetY}) px</span>
+              ) : (
+                'None (0, 0)'
+              )}
+            </td>
+            <td>
+              {d.isReticleSuppressed ? (
+                <span className={styles.statusSuppressed}>Suppressed (Mask)</span>
+              ) : (
+                <span className={styles.statusActive}>Visible</span>
+              )}
+            </td>
+            <td>
+              {d.labelOccluded ? (
+                <span className={styles.statusOccluded}>Occluded (0%)</span>
+              ) : d.labelDisplaced ? (
+                <span className={styles.statusActive}>Displaced (Leader)</span>
+              ) : (
+                'Normal'
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 };
 
 const ClusteringAndCollisionDemo: React.FC = () => {
   const [scenario, setScenario] = useState<'binary' | 'priority' | 'crowded'>('binary');
   const [selectedId, setSelectedId] = useState<string | null>('bin-alpha');
   const [debugHitarea, setDebugHitarea] = useState<boolean>(true);
-  const [diagnostics, setDiagnostics] = useState<DiagnosticNode[]>([]);
 
-  const cam = getStandardInitialCamera(14, [0, 0, 0], 35);
+  const cam = getStandardInitialCamera(12, [0, 0, 0], 35);
 
   const binarySystems = [
     {
@@ -544,7 +608,7 @@ const ClusteringAndCollisionDemo: React.FC = () => {
     {
       id: 'bin-beta',
       name: 'Alpha Centauri B',
-      position: [0.08, 0.08, 0] as [number, number, number],
+      position: [0.18, 0.14, 0] as [number, number, number],
       classification: 'star' as const,
       spectralType: 'K1V',
       multiplicity: 2,
@@ -555,7 +619,7 @@ const ClusteringAndCollisionDemo: React.FC = () => {
     {
       id: 'pri-fg',
       name: 'Foreground Star',
-      position: [0, 0, 2] as [number, number, number],
+      position: [-0.41, -0.10, 0.26] as [number, number, number],
       classification: 'star' as const,
       spectralType: 'A0V',
       multiplicity: 1,
@@ -563,7 +627,7 @@ const ClusteringAndCollisionDemo: React.FC = () => {
     {
       id: 'pri-bg',
       name: 'Background Star',
-      position: [0, 0, -2.5] as [number, number, number],
+      position: [0.41, 0.10, -0.26] as [number, number, number],
       classification: 'star' as const,
       spectralType: 'M2V',
       multiplicity: 1,
@@ -582,7 +646,7 @@ const ClusteringAndCollisionDemo: React.FC = () => {
     {
       id: 'crowd-2',
       name: 'Rigel B',
-      position: [0.35, 0.2, 0.25] as [number, number, number],
+      position: [0.45, 0.3, 0.25] as [number, number, number],
       classification: 'star' as const,
       spectralType: 'B9V',
       multiplicity: 2,
@@ -590,7 +654,7 @@ const ClusteringAndCollisionDemo: React.FC = () => {
     {
       id: 'crowd-3',
       name: 'Rigel C',
-      position: [-0.3, 0.25, -0.3] as [number, number, number],
+      position: [-0.4, 0.35, -0.3] as [number, number, number],
       classification: 'white-dwarf' as const,
       spectralType: 'DA2',
       multiplicity: 1,
@@ -598,7 +662,7 @@ const ClusteringAndCollisionDemo: React.FC = () => {
     {
       id: 'crowd-4',
       name: 'Dense Dust Node',
-      position: [0.15, -0.3, 0.1] as [number, number, number],
+      position: [0.25, -0.4, 0.15] as [number, number, number],
       classification: 'brown-dwarf' as const,
       spectralType: 'L2',
       multiplicity: 1,
@@ -606,7 +670,7 @@ const ClusteringAndCollisionDemo: React.FC = () => {
     {
       id: 'crowd-5',
       name: 'Outer Companion',
-      position: [-0.25, -0.28, -0.45] as [number, number, number],
+      position: [-0.3, -0.35, -0.5] as [number, number, number],
       classification: 'star' as const,
       spectralType: 'M3V',
       multiplicity: 1,
@@ -614,7 +678,7 @@ const ClusteringAndCollisionDemo: React.FC = () => {
     {
       id: 'crowd-6',
       name: 'Background Source',
-      position: [0.4, -0.15, -0.9] as [number, number, number],
+      position: [0.4, -0.2, -1.0] as [number, number, number],
       classification: 'black-hole' as const,
       spectralType: 'HMXB',
       multiplicity: 1,
@@ -680,60 +744,13 @@ const ClusteringAndCollisionDemo: React.FC = () => {
           Active Selection: <span className={styles.targetHighlight}>{selectedId ?? 'None (Ambient)'}</span>
           {' | '}
           <em>
-            {scenario === 'binary' && 'Click the cluster to cycle selection between Alpha and Beta. Wireframes illustrate radial fan-out.'}
-            {scenario === 'priority' && 'Foreground star commands priority; background reticle is suppressed beneath it.'}
+            {scenario === 'binary' && 'Click the cluster to cycle selection between Alpha and Beta. Wireframes illustrate radial hitarea fan-out.'}
+            {scenario === 'priority' && 'Foreground star commands priority; background reticle is suppressed beneath it. Click foreground or background star to test.'}
             {scenario === 'crowded' && 'Labels displace radially along 8 leader directions or yield to 0% opacity based on proximity.'}
           </em>
         </div>
 
-        {diagnostics.length > 0 && (
-          <table className={styles.diagTable}>
-            <thead>
-              <tr>
-                <th>Node</th>
-                <th>State</th>
-                <th>Screen (X, Y)</th>
-                <th>Depth</th>
-                <th>Hit Offset</th>
-                <th>Reticle</th>
-                <th>Label</th>
-              </tr>
-            </thead>
-            <tbody>
-              {diagnostics.map((d) => (
-                <tr key={d.id}>
-                  <td><strong>{d.name}</strong></td>
-                  <td>{d.state}</td>
-                  <td>({d.screenX}, {d.screenY})</td>
-                  <td>{d.camDist}</td>
-                  <td>
-                    {d.hitOffsetX !== 0 || d.hitOffsetY !== 0 ? (
-                      <span className={styles.statusActive}>({d.hitOffsetX}, {d.hitOffsetY}) px</span>
-                    ) : (
-                      'None (0, 0)'
-                    )}
-                  </td>
-                  <td>
-                    {d.isReticleSuppressed ? (
-                      <span className={styles.statusSuppressed}>Suppressed (Mask)</span>
-                    ) : (
-                      <span className={styles.statusActive}>Visible</span>
-                    )}
-                  </td>
-                  <td>
-                    {d.labelOccluded ? (
-                      <span className={styles.statusOccluded}>Occluded (0%)</span>
-                    ) : d.labelDisplaced ? (
-                      <span className={styles.statusActive}>Displaced (Leader)</span>
-                    ) : (
-                      'Normal'
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <DiagnosticTable />
       </div>
 
       <Canvas
@@ -742,28 +759,33 @@ const ClusteringAndCollisionDemo: React.FC = () => {
       >
         <ThemeTokenBridge />
         <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-        <SpatialFrameProvider frame={SYSTEM_FRAME}>
-        <CartographicInstrument showPlanarGrid showFins={false} />
-        <SpatialEntityProvider>
-          <OcclusionPass />
-          <DiagnosticMonitor onUpdate={setDiagnostics} />
-          {activeSystems.map((s) => {
-            return (
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <CartographicInstrument showPlanarGrid showFins={false} />
+          <SpatialEntityProvider>
+            <OcclusionPass />
+            <ApertureEvaluator />
+            <DiagnosticMonitor />
+            {activeSystems.map((s) => (
               <CelestialEntity
                 key={s.id}
                 id={s.id}
                 name={s.name}
                 position={s.position}
                 classification={s.classification}
-                stateOverride={selectedId === s.id ? 'focused' : undefined}
+                stateOverride={selectedId === s.id ? 'focused' : 'active'}
                 spectralType={s.spectralType}
                 multiplicity={s.multiplicity}
                 debugHitarea={debugHitarea}
-                onClick={(id) => setSelectedId((prev) => (prev === id ? null : id))}
+                onClick={(id) => {
+                  if (scenario === 'binary') {
+                    setSelectedId((prev) => (prev === 'bin-alpha' ? 'bin-beta' : 'bin-alpha'));
+                  } else {
+                    setSelectedId((prev) => (prev === id ? null : id));
+                  }
+                }}
               />
-            );
-          })}
-        </SpatialEntityProvider>
+            ))}
+          </SpatialEntityProvider>
         </SpatialFrameProvider>
       </Canvas>
     </div>

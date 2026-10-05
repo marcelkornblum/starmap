@@ -11,6 +11,7 @@ import { SpatialFrameProvider } from './instrument/SpatialFrameProvider';
 import { useCameraTransition } from './instrument/useCameraTransition';
 import {
   SpatialEntityProvider,
+  ApertureEvaluator,
   useSpatialEntityStoreApi,
 } from './entity/SpatialEntityContext';
 import { CelestialEntity } from './entity/CelestialEntity';
@@ -150,6 +151,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     >
       {/* Dynamic O(n) screen-space occlusion pass */}
       <OcclusionPass enabled={true} />
+      <ApertureEvaluator />
 
       {/* Cartographic Instrument Primitives (consume the viewport's single SpatialFrameProvider) */}
       {showInstrument && <CartographicInstrument showPlanarFootprint={showPlanarFootprint} />}

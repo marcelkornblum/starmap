@@ -94,7 +94,6 @@ export const SpatialEntityProvider: React.FC<SpatialEntityProviderProps> = ({
 
   return (
     <SpatialEntityStoreContext.Provider value={activeStore}>
-      <ApertureEvaluator />
       {children}
     </SpatialEntityStoreContext.Provider>
   );
