@@ -256,8 +256,14 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     }
   }, [enableOcclusion, id]);
 
-  const scratchNdcRef = useRef(new THREE.Vector3());
-  const scratchWorldPosRef = useRef(new THREE.Vector3());
+  const scratchNdcRef = useRef<THREE.Vector3>(null!);
+  if (!scratchNdcRef.current) {
+    scratchNdcRef.current = new THREE.Vector3();
+  }
+  const scratchWorldPosRef = useRef<THREE.Vector3>(null!);
+  if (!scratchWorldPosRef.current) {
+    scratchWorldPosRef.current = new THREE.Vector3();
+  }
 
   useFrame(({ camera, size }) => {
     if (!enableOcclusion) return;

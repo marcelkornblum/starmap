@@ -94,7 +94,10 @@ export const Reticle: React.FC<ReticleProps> = ({
     return new THREE.Vector3(position[0], position[1], position[2]);
   }, [position]);
 
-  const scratchWorldPos = useRef(new THREE.Vector3());
+  const scratchWorldPos = useRef<THREE.Vector3>(null!);
+  if (!scratchWorldPos.current) {
+    scratchWorldPos.current = new THREE.Vector3();
+  }
 
   // Keep reticle billboarded to face camera directly with invariant screen-space scaling
   useFrame(({ camera }) => {

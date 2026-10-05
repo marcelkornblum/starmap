@@ -6,6 +6,7 @@ import {
   calculateScreenEdgeBearing,
   type ScreenEdgeSide,
   type ScreenEdgeBearingType,
+  type ScreenEdgeBearingResult,
 } from '../cartography/cartographyMath';
 import { useSpatialFrame } from './SpatialFrameProvider';
 import { type BearingDefinition } from './referenceFrame';
@@ -47,16 +48,25 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
   const chevronRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
 
-  const scratchOrigin = useRef(new THREE.Vector3());
-  const scratchScreenSize = useRef({ width: 0, height: 0 });
-  const scratchResult = useRef({
-    x: 0,
-    y: 0,
-    edge: 'right' as ScreenEdgeSide,
-    angle: 0,
-    isAttached: false,
-    visible: false,
-  });
+  const scratchOrigin = useRef<THREE.Vector3>(null!);
+  if (!scratchOrigin.current) {
+    scratchOrigin.current = new THREE.Vector3();
+  }
+  const scratchScreenSize = useRef<{ width: number; height: number }>(null!);
+  if (!scratchScreenSize.current) {
+    scratchScreenSize.current = { width: 0, height: 0 };
+  }
+  const scratchResult = useRef<ScreenEdgeBearingResult>(null!);
+  if (!scratchResult.current) {
+    scratchResult.current = {
+      x: 0,
+      y: 0,
+      edge: 'right' as ScreenEdgeSide,
+      angle: 0,
+      isAttached: false,
+      visible: false,
+    };
+  }
 
   const lastEdge = useRef<ScreenEdgeSide | null>(null);
   const lastDetached = useRef<boolean | null>(null);

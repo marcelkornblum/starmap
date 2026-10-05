@@ -47,11 +47,17 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
   const labelRef = useRef<HTMLDivElement>(null);
   const leaderLineRef = useRef<SVGLineElement>(null);
   const labelDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
-  const scratchBoxRef = useRef<Box2D>({ left: 0, top: 0, right: 0, bottom: 0 });
+  const scratchBoxRef = useRef<Box2D>(null!);
+  if (!scratchBoxRef.current) {
+    scratchBoxRef.current = { left: 0, top: 0, right: 0, bottom: 0 };
+  }
   const lastOccludedRef = useRef<boolean | null>(null);
   const lastXRef = useRef<number | null>(null);
   const lastYRef = useRef<number | null>(null);
-  const scratchWorldPos = useRef(new THREE.Vector3());
+  const scratchWorldPos = useRef<THREE.Vector3>(null!);
+  if (!scratchWorldPos.current) {
+    scratchWorldPos.current = new THREE.Vector3();
+  }
 
   const resolvedPos = useMemo(() => {
     if (!position) return [0, 0, 0] as [number, number, number];

@@ -79,7 +79,10 @@ export const DropStalk: React.FC<DropStalkProps> = ({
   const lineMeshRef = useRef<THREE.LineSegments>(null);
   const footprintRef = useRef<THREE.Group>(null);
   const footprintMatRef = useRef<THREE.LineBasicMaterial>(null);
-  const scratchWorldPos = useRef(new THREE.Vector3());
+  const scratchWorldPos = useRef<THREE.Vector3>(null!);
+  if (!scratchWorldPos.current) {
+    scratchWorldPos.current = new THREE.Vector3();
+  }
 
   const { frameRef } = useSpatialFrame();
 
