@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useState } from 'react';
 import { ScenePortal } from '../components/canvas/SceneBridge';
-import { GalaxyScene3D } from '../components/canvas/scenes/GalaxyScene3D';
+import { GalaxyScene } from '../components/canvas/scenes/GalaxyScene';
 import { useStarmapNav } from '../router/navigation';
 import { Panel } from '../components/surfaces';
 import { Stack, Cluster, Button, Metric } from '../components/primitives';
@@ -45,7 +45,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = () => {
   return (
     <>
       <ScenePortal sceneKey="galaxy">
-        <GalaxyScene3D />
+        <GalaxyScene onInspectSystem={(id) => nav.toSystem(id)} />
       </ScenePortal>
 
       <div data-testid="galaxy-view-hud" className={styles.hudOverlay}>

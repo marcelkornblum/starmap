@@ -35,13 +35,13 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 4: Production Scene Consolidation
-- [ ] Task: Implement `SpatialViewport` composition root.
-- [ ] Task: Implement canonical `GalaxyScene.tsx`, `SystemScene.tsx`, and `PlanetScene.tsx`.
-- [ ] Task: Implement `PlanetBody.tsx` with uniform-lit disc rendering and classification-keyed texture manifest.
-- [ ] Task: Wire canonical scenes into `GalaxyView`, `SystemView`, and `PlanetView`, replacing placeholder geometry.
-- [ ] Task: Update Storybook stories to consume canonical scenes directly.
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Implement `SpatialViewport` composition root.
+- [x] Task: Implement canonical `GalaxyScene.tsx`, `SystemScene.tsx`, and `PlanetScene.tsx`.
+- [x] Task: Implement `PlanetBody.tsx` with uniform-lit disc rendering and classification-keyed texture manifest.
+- [x] Task: Wire canonical scenes into `GalaxyView`, `SystemView`, and `PlanetView`, replacing placeholder geometry.
+- [x] Task: Update Storybook stories to consume canonical scenes directly.
+- [x] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## ~~Phase 5: HUD & View Shell Harmonisation~~ (Relocated)
 > Moved out of this track. `ViewportLayout`, `Heading`, `ViewControlsDock` and HUD CSS stripping → `console-ui-shell_20261004`. `SecondaryObjectsPane` → `telemetry-container_20261004`. This track completes at Phase 4.

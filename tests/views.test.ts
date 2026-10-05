@@ -54,6 +54,12 @@ const triggerAllClickHandlers = (node: unknown): void => {
   if (typeof vnode.props?.onSelectPlanet === 'function') {
     vnode.props.onSelectPlanet('earth');
   }
+  if (typeof (vnode.props as any)?.onInspectSystem === 'function') {
+    (vnode.props as any).onInspectSystem('sol');
+  }
+  if (typeof (vnode.props as any)?.onInspectPlanet === 'function') {
+    (vnode.props as any).onInspectPlanet('earth');
+  }
   if (typeof vnode.props?.onSelectItem === 'function') {
     vnode.props.onSelectItem({ id: 'galaxy', title: 'Galaxy', category: 'coordinate' });
     vnode.props.onSelectItem({ id: 'earth', title: 'Earth', category: 'planet' });
