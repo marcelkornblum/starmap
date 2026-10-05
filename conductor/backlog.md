@@ -42,6 +42,7 @@ Candidate features and ideas awaiting formal track planning. Items here are eith
 
 ## 3D Cartography & Visual Language Refinement
 
+- **High-Fidelity Celestial & Planetary Textures:** Generate and integrate rich, high-resolution procedural and photographic texture maps across all celestial bodies requiring physical surface or atmospheric visualisation (terrestrial surface geography, bathymetry, cloud decks, and night-side specular lights; gas giant turbulent atmospheric bands and storm vortices; ice giant hazes; brown dwarf thermal bands; and stellar photospheres). Support multi-scale LOD mipmaps, procedural shader fallbacks, and seamless texture streaming for close-up planetary inspection.
 - **Volumetric Media & Interstellar Media (ISM):** Diffuse 3D volumes (molecular clouds, nebulae, star-forming regions, the Local Bubble void) via micro-dot point-density fields (cartographic stippling) and planar survey cross-hatching on datum planes.
 - **Keplerian Orbit Lines:** Finesse elliptical orbit styling in System View (solid vs stippled linework, periapsis/apoapsis ticks, ascending/descending nodes, inclination shading above/below the ecliptic).
 - **Typographic Hierarchy & Label Formatting (Layer 3):** Finesse typographic hierarchy, uppercase/tabular monospace formatting, font tokens, and exact offset geometry of system designations relative to reticle facets.
