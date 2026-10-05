@@ -76,15 +76,14 @@ describe('Instrument Decomposition & Reference Frames (Phase 2)', () => {
       expect(SYSTEM_FRAME.orientation).toBeDefined();
     });
 
-    it('defines PLANETARY_FRAME with smaller radius than system, shared planar elements, and axial tilt orientation', () => {
+    it('defines PLANETARY_FRAME with calibrated planetary radius, shared planar elements, and axial tilt orientation', () => {
       expect(PLANETARY_FRAME.id).toBe('planetary');
       expect(PLANETARY_FRAME.unit).toBe('km');
-      expect(PLANETARY_FRAME.radius).toBe(3);
-      expect(PLANETARY_FRAME.radius).toBeLessThan(SYSTEM_FRAME.radius);
+      expect(PLANETARY_FRAME.radius).toBe(65);
       expect(PLANETARY_FRAME.datumPlane.enabled).toBe(true);
       expect(PLANETARY_FRAME.datumPlane.fill).toBe(true);
       expect(PLANETARY_FRAME.datumPlane.planarGrid).toBe(true);
-      expect(PLANETARY_FRAME.datumPlane.planarGridGap).toBe(0.75);
+      expect(PLANETARY_FRAME.datumPlane.planarGridGap).toBe(10.0);
       expect(PLANETARY_FRAME.datumPlane.footprints).toBe(true);
       expect(PLANETARY_FRAME.bearings.length).toBe(2);
       expect(PLANETARY_FRAME.bearings[0].id).toBe('core');

@@ -219,20 +219,20 @@ export const SYSTEM_FRAME: ReferenceFrame = {
 /**
  * PLANETARY_FRAME: Planetary close-inspection frame ($XY = \text{Equatorial Plane}$).
  * Shares planar grid, footprints, and bearings reoriented to the planetary rotational equator (23.44° axial tilt).
- * Radius is 3 km (smaller still than System 6 AU) with 0.75 km circular planar grid spacing.
+ * Radius is 65 Earth radii ($R_\oplus$), bounding Luna's Keplerian orbit ($a = 60.34 R_\oplus$) with 10.0 $R_\oplus$ planar grid spacing.
  */
 export const PLANETARY_FRAME: ReferenceFrame = {
   id: 'planetary',
   name: 'Planetary Frame',
   unit: 'km',
-  radius: 3,
+  radius: 65,
   screenConstant: true,
   referenceDistanceMultiplier: 3.49,
   camera: {
     baseFov: 30,
-    minDistance: 1,
-    maxDistance: 50,
-    defaultPosition: [0, -10, 6],
+    minDistance: 1.5,
+    maxDistance: 350,
+    defaultPosition: [0, -110, 65],
     defaultTarget: [0, 0, 0],
     adaptiveProjection: true,
     thresholdStart: 0.94,
@@ -243,7 +243,7 @@ export const PLANETARY_FRAME: ReferenceFrame = {
     fill: true,
     rings: true,
     planarGrid: true,
-    planarGridGap: 0.75,
+    planarGridGap: 10.0,
     footprints: true,
   },
   coordinateFins: {

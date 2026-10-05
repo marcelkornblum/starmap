@@ -26,6 +26,9 @@ export interface CelestialEntityProps extends Partial<SpatialEntityDefinition> {
   name: string;
   position?: [number, number, number] | THREE.Vector3;
   debugHitarea?: boolean;
+  bodyRadius?: number;
+  bodyMinPixelSize?: number;
+  bodyFadeRange?: number;
   onClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
   onPointerOver?: (id: string, e: ThreeEvent<PointerEvent>) => void;
   onPointerOut?: (id: string, e: ThreeEvent<PointerEvent>) => void;
@@ -55,6 +58,9 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   showLabel: explicitShowLabel = true,
   enableOcclusion = true,
   debugHitarea = false,
+  bodyRadius,
+  bodyMinPixelSize,
+  bodyFadeRange,
   onClick,
   onPointerOver,
   onPointerOut,
@@ -62,6 +68,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
 }) => {
   const storeApi = useSpatialEntityStoreApi();
   const { frameRef } = useSpatialFrame();
+  const nodeGroupRef = useRef<THREE.Group>(null);
 
   const primaryEntityPos = useSpatialEntityStore((s) => {
     if (!orbit?.primaryEntityId) return null;
@@ -206,6 +213,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
         velocity: resolvedVelocity,
         orbit,
         reticleSize,
+        bodyRadius,
       });
     } else {
       store.updateEntity(id, {
@@ -219,6 +227,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
         velocity: resolvedVelocity,
         orbit,
         reticleSize,
+        bodyRadius,
       });
     }
   }, [
@@ -233,6 +242,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     resolvedVelocity,
     orbit,
     reticleSize,
+    bodyRadius,
     storeApi,
   ]);
 
@@ -296,6 +306,43 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
       }
     }
 
+    // 2. Physical body scale cross-fade (§4: Seamless PlanetBody to Node Takeover)
+    if (bodyRadius !== undefined && bodyRadius > 0 && nodeGroupRef.current) {
+      const dist = Math.max(camera.position.distanceTo(scratchWorldPosRef.current), 1e-4);
+      let projectedPixelDiameter = 0;
+      if (camera instanceof THREE.PerspectiveCamera) {
+        const fovRad = (camera.fov * Math.PI) / 180;
+        const visibleHeightAtDist = 2 * Math.tan(fovRad / 2) * dist;
+        projectedPixelDiameter = ((2 * bodyRadius) / Math.max(0.001, visibleHeightAtDist)) * size.height;
+      } else if (camera instanceof THREE.OrthographicCamera) {
+        const frustumHeight = (camera.top - camera.bottom) / camera.zoom;
+        projectedPixelDiameter = ((2 * bodyRadius) / Math.max(0.001, frustumHeight)) * size.height;
+      }
+
+      const minPix = bodyMinPixelSize ?? 24;
+      const fadeR = bodyFadeRange ?? 16;
+      // Inverse alpha: 0 when projectedPixelDiameter >= minPix + fadeR, 1 when projectedPixelDiameter <= minPix
+      const nodeAlpha = THREE.MathUtils.clamp((minPix + fadeR - projectedPixelDiameter) / fadeR, 0, 1);
+
+      if (nodeAlpha <= 0.005) {
+        nodeGroupRef.current.visible = false;
+      } else {
+        nodeGroupRef.current.visible = true;
+        nodeGroupRef.current.traverse((child) => {
+          if ('material' in child && child.material) {
+            const mat = child.material as THREE.Material & { opacity?: number; transparent?: boolean };
+            if (typeof mat.opacity === 'number' && child.name !== 'celestial-hitarea') {
+              mat.transparent = true;
+              if (child.userData.baseOpacity === undefined) {
+                child.userData.baseOpacity = mat.opacity > 0 ? mat.opacity : 1.0;
+              }
+              mat.opacity = child.userData.baseOpacity * nodeAlpha;
+            }
+          }
+        });
+      }
+    }
+
     if (!enableOcclusion) return;
 
     // Batch Occlusion Optimization: If OcclusionPass is evaluating projections in a single batch pass,
@@ -350,44 +397,47 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
       data-position={`${resolvedPos.x},${resolvedPos.y},${resolvedPos.z}`}
       name={`celestial-entity-${id}`}
     >
-      {/* Layer 1: Physical System Node (Monochrome, Invariant Screen Size) */}
-      <BodyMarker
-        id={id}
-        position={[0, 0, 0]}
-        reticleSize={reticleSize}
-        state={activeState}
-        debugHitarea={debugHitarea}
-        interactive={true}
-        onClick={(targetId, e) => {
-          if (onClick) {
-            onClick(targetId, e);
-          } else {
-            storeApi.getState().setSelected(targetId);
-          }
-        }}
-        onPointerOver={(targetId, e) => {
-          storeApi.getState().setHovered(targetId);
-          onPointerOver?.(targetId, e);
-        }}
-        onPointerOut={(targetId, e) => {
-          storeApi.getState().setHovered(null);
-          onPointerOut?.(targetId, e);
-        }}
-      />
-
-      {/* Layer 2: Tactical Geometric Reticle (Universal Taxonomy Frames) */}
-      {activeState !== 'passive' && (
-        <Reticle
+      {/* Node Representation Group (Cross-fades inversely when bodyRadius is provided) */}
+      <group ref={nodeGroupRef} name={`node-representation-${id}`}>
+        {/* Layer 1: Physical System Node (Monochrome, Invariant Screen Size) */}
+        <BodyMarker
           id={id}
           position={[0, 0, 0]}
-          classification={classification}
+          reticleSize={reticleSize}
           state={activeState}
-          size={reticleSize}
-          multiplicity={multiplicity}
-          planets={planets}
-          spectralType={spectralType}
+          debugHitarea={debugHitarea}
+          interactive={true}
+          onClick={(targetId, e) => {
+            if (onClick) {
+              onClick(targetId, e);
+            } else {
+              storeApi.getState().setSelected(targetId);
+            }
+          }}
+          onPointerOver={(targetId, e) => {
+            storeApi.getState().setHovered(targetId);
+            onPointerOver?.(targetId, e);
+          }}
+          onPointerOut={(targetId, e) => {
+            storeApi.getState().setHovered(null);
+            onPointerOut?.(targetId, e);
+          }}
         />
-      )}
+
+        {/* Layer 2: Tactical Geometric Reticle (Universal Taxonomy Frames) */}
+        {activeState !== 'passive' && (
+          <Reticle
+            id={id}
+            position={[0, 0, 0]}
+            classification={classification}
+            state={activeState}
+            size={reticleSize}
+            multiplicity={multiplicity}
+            planets={planets}
+            spectralType={spectralType}
+          />
+        )}
+      </group>
 
       {/* Layer 3: Typographic Label */}
       {explicitShowLabel && (

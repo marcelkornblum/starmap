@@ -57,6 +57,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   const kinematicAlpha = useThreeTokenStore((s) => s.tokens.kinematicAlpha);
 
   const groupRef = useRef<THREE.Group>(null);
+  const directionMatRef = useRef<THREE.MeshBasicMaterial>(null);
 
   const isStateElevated = state === 'selected' || state === 'focused';
 
@@ -129,7 +130,8 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       tickGeom.computeBoundingSphere();
     }
 
-    // Direction indicator chevron geometry: sleek swept dart matching ScreenEdgeCue
+    // Direction indicator chevron geometry: sleek, compact swept dart matching ScreenEdgeCue
+    // Shortened to ~36% of previous length (0.40 * arrowSize vs 1.10 * arrowSize) while preserving normal width (0.70 * arrowSize)
     let dirGeom: THREE.BufferGeometry | null = null;
     if (showDirectionIndicator) {
       const theta = Math.PI / 2;
@@ -145,15 +147,20 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       const normalY = rotTangentX;
       const arrowSize = Math.max(0.06, a * 0.04);
 
-      // Tight swept dart geometry matching ScreenEdgeCue (tip, wings, and notched crotch)
-      const tipX = xRot + rotTangentX * (arrowSize * 0.65);
-      const tipY = yRot + rotTangentY * (arrowSize * 0.65);
-      const leftX = xRot - rotTangentX * (arrowSize * 0.45) + normalX * (arrowSize * 0.35);
-      const leftY = yRot - rotTangentY * (arrowSize * 0.45) + normalY * (arrowSize * 0.35);
-      const rightX = xRot - rotTangentX * (arrowSize * 0.45) - normalX * (arrowSize * 0.35);
-      const rightY = yRot - rotTangentY * (arrowSize * 0.45) - normalY * (arrowSize * 0.35);
-      const notchX = xRot - rotTangentX * (arrowSize * 0.15);
-      const notchY = yRot - rotTangentY * (arrowSize * 0.15);
+      const tipDist = arrowSize * 0.24;
+      const wingDist = arrowSize * 0.16;
+      const notchDist = arrowSize * 0.05;
+      const wingWidth = arrowSize * 0.35;
+
+      // Swept dart geometry (tip, wings, and notched crotch)
+      const tipX = xRot + rotTangentX * tipDist;
+      const tipY = yRot + rotTangentY * tipDist;
+      const leftX = xRot - rotTangentX * wingDist + normalX * wingWidth;
+      const leftY = yRot - rotTangentY * wingDist + normalY * wingWidth;
+      const rightX = xRot - rotTangentX * wingDist - normalX * wingWidth;
+      const rightY = yRot - rotTangentY * wingDist - normalY * wingWidth;
+      const notchX = xRot - rotTangentX * notchDist;
+      const notchY = yRot - rotTangentY * notchDist;
 
       const dirBuffer = new Float32Array([
         // Triangle 1: Tip -> Left -> Notch
@@ -214,6 +221,15 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     lineMat.updateResolution(camera, size.width, size.height);
     lineMat.setColor(resolvedColor);
     lineMat.setOpacity(resolvedAlpha);
+
+    if (directionMatRef.current) {
+      if (resolvedColor instanceof THREE.Color) {
+        directionMatRef.current.color.copy(resolvedColor);
+      } else {
+        directionMatRef.current.color.set(resolvedColor);
+      }
+      directionMatRef.current.opacity = resolvedAlpha;
+    }
   });
 
   if (!shouldRender) return null;
@@ -248,6 +264,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
         <mesh name="orbit-direction-arrow">
           <primitive object={directionGeometry} attach="geometry" />
           <meshBasicMaterial
+            ref={directionMatRef}
             color={resolvedColor}
             opacity={resolvedAlpha}
             side={THREE.DoubleSide}

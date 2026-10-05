@@ -55,7 +55,8 @@ describe('Canonical Production Scenes (Phase 4)', () => {
     expect(html).toContain('name="spatial-viewport"');
     expect(html).toContain('name="cartographic-grid"');
     expect(html).toContain('name="planet-body-Earth"');
-    expect(html).toContain('name="planet-surface"');
+    // Central planet entity (for seamless node takeover)
+    expect(html).toContain('name="celestial-entity-earth"');
     // Natural satellite (Luna)
     expect(html).toContain('name="celestial-entity-moon"');
     expect(html).toContain('name="orbital-ring-moon"');

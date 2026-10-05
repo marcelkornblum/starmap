@@ -43,5 +43,9 @@ export interface SpatialEntityDefinition {
   showStalk?: boolean;
   showLabel?: boolean;
   enableOcclusion?: boolean;
+  /** Radius of physical 3D sphere when rendered via PlanetBody (enables seamless node cross-fade) */
+  bodyRadius?: number;
+  bodyMinPixelSize?: number;
+  bodyFadeRange?: number;
   data?: Record<string, unknown>;
 }

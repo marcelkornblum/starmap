@@ -684,7 +684,7 @@ export interface StandardCameraSetup {
 export const STANDARD_CAMERA_DISTANCES = {
   galactic: 28,
   system: 22,
-  planetary: 90,
+  planetary: 120,
   component: 12,
 } as const;
 

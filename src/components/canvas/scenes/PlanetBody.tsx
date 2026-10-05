@@ -125,6 +125,7 @@ export interface PlanetBodyProps {
   hasAtmosphere?: boolean;
   atmosphereColor?: string;
   minPixelSize?: number;
+  fadeRange?: number;
   children?: React.ReactNode;
 }
 
@@ -144,7 +145,8 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
   position = [0, 0, 0],
   hasAtmosphere = true,
   atmosphereColor: explicitAtmoColor,
-  minPixelSize = 14,
+  minPixelSize = 24,
+  fadeRange = 16,
   children,
 }) => {
   const palette = useMemo(() => getClassificationPalette(classification), [classification]);
@@ -182,7 +184,6 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
     }
 
     // Smooth opacity fade when approaching minPixelSize
-    const fadeRange = 8;
     const alpha = THREE.MathUtils.clamp((projectedPixelDiameter - minPixelSize) / fadeRange, 0, 1);
 
     surfaceMatRef.current.opacity = alpha;
