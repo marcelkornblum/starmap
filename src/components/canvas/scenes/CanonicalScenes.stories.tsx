@@ -10,7 +10,7 @@ import { getStandardInitialCamera } from '../cartography/cartographyMath';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta = {
-  title: 'Canvas/Scenes/CanonicalScenes',
+  title: 'Canvas/Production Scenes/Canonical Scenes',
   parameters: {
     layout: 'fullscreen',
   },

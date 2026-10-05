@@ -110,7 +110,7 @@ const FixtureStars: React.FC = () => {
 };
 
 const meta: Meta<typeof CartographicGrid> = {
-  title: 'Canvas/Cartography/CartographicGrid',
+  title: 'Canvas/Legacy (Deprecated)/CartographicGrid',
   component: CartographicGrid,
   parameters: {
     layout: 'padded',

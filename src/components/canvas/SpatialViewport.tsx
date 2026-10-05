@@ -6,6 +6,7 @@ import {
   GALACTIC_FRAME,
 } from './instrument/referenceFrame';
 import { CartographicInstrument } from './instrument/CartographicInstrument';
+import { SpatialFrameProvider } from './instrument/SpatialFrameProvider';
 import {
   SpatialEntityProvider,
   useSpatialEntityStore,
@@ -35,6 +36,8 @@ export interface SpatialViewportProps {
   cameraTarget?: [number, number, number] | THREE.Vector3;
   /** Whether to show the cartographic instrument (PlanarGrid, fins, bearings, rings) */
   showInstrument?: boolean;
+  /** Whether to render planar footprints directly from the instrument. Defaults to false (entities own their stalks and footprints) */
+  showPlanarFootprint?: boolean;
   /** Debug hit areas */
   debugHitarea?: boolean;
   /** Sync selection bidirectionally with useUIStore */
@@ -54,6 +57,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   cameraDistance,
   cameraTarget,
   showInstrument = true,
+  showPlanarFootprint = false,
   debugHitarea = false,
   syncWithUIStore = true,
 }) => {
@@ -94,7 +98,13 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   );
 
   return (
-    <group name="spatial-viewport" data-mode={mode}>
+    <group
+      name="spatial-viewport"
+      data-mode={mode}
+      onPointerMissed={() => {
+        storeApi.getState().setSelected(null);
+      }}
+    >
       {/* Dynamic O(n) screen-space occlusion pass */}
       <OcclusionPass enabled={true} />
 
@@ -104,6 +114,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
           frame={frame}
           referenceDistance={cameraDistance}
           position={cameraTarget}
+          showPlanarFootprint={showPlanarFootprint}
         />
       )}
 
@@ -126,14 +137,20 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
 /**
  * SpatialViewport: Canonical Composition Root for 3D Cartography Scenes.
  * 
- * Sets up the scoped SpatialEntityStore provider per viewport instance,
+ * Sets up the scoped SpatialFrameProvider and SpatialEntityStore provider per viewport instance,
  * harmonises reference frames, and coordinates instrument primitives,
  * entity composites, and bespoke planetary bodies.
  */
 export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
   return (
-    <SpatialEntityProvider>
-      <SpatialViewportContent {...props} />
-    </SpatialEntityProvider>
+    <SpatialFrameProvider
+      frame={props.frame}
+      focusPoint={props.cameraTarget}
+      lockToFocusPoint={true}
+    >
+      <SpatialEntityProvider>
+        <SpatialViewportContent {...props} />
+      </SpatialEntityProvider>
+    </SpatialFrameProvider>
   );
 };

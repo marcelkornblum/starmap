@@ -14,7 +14,7 @@ import { ThemeTokenBridge } from '../ThemeTokenBridge';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<typeof CartographicInstrument> = {
-  title: 'Canvas/Instrument/CartographicInstrument',
+  title: 'Canvas/Cartographic Instrument/Cartographic Instrument',
   component: CartographicInstrument,
   parameters: {
     layout: 'fullscreen',
@@ -25,6 +25,7 @@ export default meta;
 type Story = StoryObj<typeof CartographicInstrument>;
 
 export const GalacticFrame: Story = {
+  name: '1. Galactic Reference Frame (Parsec Scale)',
   render: () => {
     const cam = getStandardInitialCamera(32, [0, 0, 0], 45);
     return (
@@ -49,6 +50,7 @@ export const GalacticFrame: Story = {
 };
 
 export const SystemFrame: Story = {
+  name: '2. System Reference Frame (AU Scale)',
   render: () => {
     // Stellar system frame: circular planar grid centered on barycentric centre (radius 6 AU, smaller than Galactic 10 pc)
     const cam = getStandardInitialCamera(18, [0, 0, 0], 40);
@@ -80,6 +82,7 @@ export const SystemFrame: Story = {
 };
 
 export const PlanetaryFrame: Story = {
+  name: '3. Planetary Reference Frame (Kilometre Scale)',
   render: () => {
     // Planetary frame: circular planar grid centered on the planet itself (radius 3 km, smaller still)
     const cam = getStandardInitialCamera(9, [0, 0, 0], 40);

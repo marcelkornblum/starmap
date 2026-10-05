@@ -109,4 +109,79 @@ describe('SpatialViewport Composition Root (Phase 4)', () => {
     );
     expect(htmlDebug).toContain('name="celestial-hitarea"');
   });
+
+  it('decouples planar footprints from instrument origin: instrument does not render rogue footprint', () => {
+    const html = renderToString(
+      createElement(SpatialViewport, {
+        frame: GALACTIC_FRAME,
+        entities: sampleEntities,
+      }),
+    );
+
+    // Instrument planar grid is present, but instrument's rogue center footprint is disabled
+    expect(html).toContain('name="planar-galactic-grid"');
+    expect(html).not.toContain('name="planar-footprint"');
+  });
+
+  it('evaluates R_fin focal aperture: entities inside aperture are active, entities outside are passive, all interactive', () => {
+    // GALACTIC_FRAME radius is 10. Sol is at (0,0,0) <= 10 -> active (reticle rendered)
+    // Distant star at (50, 0, 0) > 10 -> passive (unreticled dot)
+    const entitiesWithDistant: SpatialEntityDefinition[] = [
+      {
+        id: 'sol-local',
+        name: 'Sol',
+        classification: 'star',
+        position: [0, 0, 0],
+      },
+      {
+        id: 'distant-star',
+        name: 'Distant Star',
+        classification: 'star',
+        position: [50, 0, 0],
+      },
+    ];
+
+    const html = renderToString(
+      createElement(SpatialViewport, {
+        frame: GALACTIC_FRAME,
+        entities: entitiesWithDistant,
+      }),
+    );
+
+    // Sol is inside R_fin (10) -> active -> Reticle taxonomy frame rendered
+    expect(html).toContain('name="celestial-entity-sol-local"');
+    expect(html).toContain('name="reticle-sol-local"');
+
+    // Distant star is outside R_fin (10) -> passive -> Reticle omitted
+    expect(html).toContain('name="celestial-entity-distant-star"');
+    expect(html).not.toContain('name="reticle-distant-star"');
+
+    // Both entities MUST maintain camera-facing interactive hitareas
+    expect(html).toContain('name="hitarea-billboard-sol-local"');
+    expect(html).toContain('name="hitarea-billboard-distant-star"');
+  });
+
+  it('renders drop stalk and ground footprint attached to star upon selection', () => {
+    const selectedStar: SpatialEntityDefinition[] = [
+      {
+        id: 'sirius',
+        name: 'Sirius',
+        classification: 'star',
+        position: [-1.61, -2.13, -0.55],
+        state: 'selected',
+      },
+    ];
+
+    const html = renderToString(
+      createElement(SpatialViewport, {
+        frame: GALACTIC_FRAME,
+        entities: selectedStar,
+      }),
+    );
+
+    // Star is selected: drop stalk and footprint render at the star's location
+    expect(html).toContain('name="drop-stalk-sirius"');
+    expect(html).toContain('name="stalk-line"');
+    expect(html).toContain('name="stalk-footprint"');
+  });
 });

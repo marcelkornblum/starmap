@@ -13,7 +13,7 @@ export * from './SpatialScenes';
 export { FullUIStylingScene } from './FullUIStylingScene';
 
 const meta: Meta = {
-  title: 'Canvas/Scenes/SpatialScenes',
+  title: 'Canvas/Prototypes & Verification/Spatial Scenes (Multi-Scale & UI PoC)',
   parameters: {
     layout: 'padded',
   },
@@ -50,8 +50,13 @@ export const CrossScaleNavigator: Story = {
   render: () => <InteractiveNavigator />,
 };
 
+/**
+ * Spatial Scene 5: Full UI Styling PoC
+ * Demonstrates all 8 surface tiers, overlays, and domain controls overlaid on 3D canvas.
+ * Preserved as an active PoC reference bench.
+ */
 export const FullUIStyling: Story = {
-  name: '5. Full UI Styling (8 Surface Tiers & Content Types)',
+  name: '5. Full UI Styling (8 Surface Tiers & Content Types) [Active PoC]',
   parameters: {
     layout: 'fullscreen',
   },

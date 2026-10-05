@@ -9,6 +9,7 @@ import { DropStalk } from './DropStalk';
 import { KinematicVector } from './KinematicVector';
 import { OrbitPath } from './OrbitPath';
 import { EntityLabel } from './EntityLabel';
+import { useSpatialFrame } from '../instrument/SpatialFrameProvider';
 import {
   celestialOcclusionManager,
   type CelestialFootprint,
@@ -60,14 +61,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   children,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
-
-  // Subscribe to store state
-  const isHovered = useSpatialEntityStore((s) => s.hoveredId === id);
-  const derivedState = useSpatialEntityStore((s) => s.getEntityState(id));
-  const activeState: CelestialInteractionState =
-    isHovered && explicitState !== 'focused'
-      ? 'selected'
-      : (explicitState ?? derivedState);
+  const { frameRef } = useSpatialFrame();
 
   const primaryEntityPos = useSpatialEntityStore((s) => {
     if (!orbit?.primaryEntityId) return null;
@@ -126,6 +120,35 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     }
     return new THREE.Vector3(0, 0, 0);
   }, [rawPosX, rawPosY, rawPosZ, orbitA, orbitE, orbitInc, orbitNode, orbitPeri, orbitM, resolvedPrimaryPos]);
+
+  // Focal aperture (R_fin) proximity check (§2.1):
+  // Entities within R_fin of the camera focal point are 'active' (display tactical taxonomy reticle).
+  // Entities beyond R_fin remain 'passive' baseline unreticled dots to eliminate visual clutter.
+  const [isInAperture, setIsInAperture] = useState<boolean>(() => {
+    const fp = frameRef?.current?.focusPoint ?? new THREE.Vector3(0, 0, 0);
+    const r = frameRef?.current?.apertureRadius ?? 10;
+    return resolvedPos.distanceTo(fp) <= r;
+  });
+  const isInApertureRef = useRef(isInAperture);
+
+  const isHovered = useSpatialEntityStore((s) => s.hoveredId === id);
+  const isSelected = useSpatialEntityStore((s) => s.selectedId === id);
+  const isFocused = useSpatialEntityStore((s) => s.focusedId === id);
+  const storedEntityState = useSpatialEntityStore((s) => s.entities[id]?.state);
+
+  const baseState: CelestialInteractionState = isInAperture ? 'active' : 'passive';
+  let activeState: CelestialInteractionState;
+  if (isFocused || explicitState === 'focused') {
+    activeState = 'focused';
+  } else if (isHovered || isSelected || explicitState === 'selected') {
+    activeState = 'selected';
+  } else if (explicitState) {
+    activeState = explicitState;
+  } else if (storedEntityState) {
+    activeState = storedEntityState;
+  } else {
+    activeState = baseState;
+  }
 
   const velX = velocity ? (velocity instanceof THREE.Vector3 ? velocity.x : velocity[0]) : null;
   const velY = velocity ? (velocity instanceof THREE.Vector3 ? velocity.y : velocity[1]) : null;
@@ -262,6 +285,17 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   const scratchCamSpaceRef = useLazyRef(() => new THREE.Vector3());
 
   useFrame(({ camera, size }) => {
+    // 1. Evaluate focal aperture boundary crossing (R_fin)
+    if (frameRef?.current) {
+      const fp = frameRef.current.focusPoint;
+      const r = frameRef.current.apertureRadius;
+      const inAperture = resolvedPos.distanceTo(fp) <= r;
+      if (inAperture !== isInApertureRef.current) {
+        isInApertureRef.current = inAperture;
+        setIsInAperture(inAperture);
+      }
+    }
+
     if (!enableOcclusion) return;
 
     // Batch Occlusion Optimization: If OcclusionPass is evaluating projections in a single batch pass,
@@ -309,7 +343,6 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   }, [isStalkTier]);
 
   const shouldRenderStalk = explicitShowStalk ?? stalkMounted;
-  const isPassive = activeState === 'passive';
 
   return (
     <group
@@ -324,16 +357,19 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
         reticleSize={reticleSize}
         state={activeState}
         debugHitarea={debugHitarea}
-        interactive={!isPassive}
-        onClick={isPassive ? undefined : (targetId, e) => {
-          storeApi.getState().setSelected(targetId);
-          onClick?.(targetId, e);
+        interactive={true}
+        onClick={(targetId, e) => {
+          if (onClick) {
+            onClick(targetId, e);
+          } else {
+            storeApi.getState().setSelected(targetId);
+          }
         }}
-        onPointerOver={isPassive ? undefined : (targetId, e) => {
+        onPointerOver={(targetId, e) => {
           storeApi.getState().setHovered(targetId);
           onPointerOver?.(targetId, e);
         }}
-        onPointerOut={isPassive ? undefined : (targetId, e) => {
+        onPointerOut={(targetId, e) => {
           storeApi.getState().setHovered(null);
           onPointerOut?.(targetId, e);
         }}

@@ -20,7 +20,7 @@ import { ThemeTokenBridge } from '../ThemeTokenBridge';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<typeof CelestialEntity> = {
-  title: 'Canvas/Entity/CelestialEntity',
+  title: 'Canvas/Celestial Entities/Celestial Entity',
   component: CelestialEntity,
   parameters: {
     layout: 'fullscreen',
@@ -31,6 +31,7 @@ export default meta;
 type Story = StoryObj<typeof CelestialEntity>;
 
 export const TaxonomicReticles: Story = {
+  name: '1. Taxonomic Reticles & Facets',
   render: () => {
     const systems = [
       {
@@ -132,6 +133,7 @@ export const TaxonomicReticles: Story = {
 };
 
 export const InteractionStates: Story = {
+  name: '2. Interaction States (Passive, Active, Selected, Focused)',
   render: () => {
     const states: CelestialInteractionState[] = ['passive', 'active', 'selected', 'focused'];
     const cam = getStandardInitialCamera(14, [0, 0, 0], 35);
@@ -176,6 +178,7 @@ export const InteractionStates: Story = {
 };
 
 export const DropStalksHemispheres: Story = {
+  name: '3. Drop Stalks & Hemispheric Inversion',
   render: () => {
     const cam = getStandardInitialCamera(16, [0, 0, 0], 45);
     return (
@@ -212,6 +215,7 @@ export const DropStalksHemispheres: Story = {
 };
 
 export const KinematicVectorAndOrbits: Story = {
+  name: '4. Kinematic Vectors & Dashed Keplerian Orbits',
   render: () => {
     const cam = getStandardInitialCamera(14, [0, 0, 0], 45);
     return (
@@ -361,6 +365,7 @@ const InteractiveCompositeSceneDemo: React.FC = () => {
 };
 
 export const InteractiveCompositeScene: Story = {
+  name: '5. Interactive Composite Scene (Hitareas & Occlusion)',
   render: () => <InteractiveCompositeSceneDemo />,
 };
 
@@ -683,5 +688,6 @@ const ClusteringAndCollisionDemo: React.FC = () => {
 };
 
 export const ClusteringAndCollision: Story = {
+  name: '6. Taxonomic Clustering & Decluttering Test Bench',
   render: () => <ClusteringAndCollisionDemo />,
 };

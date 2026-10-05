@@ -4,6 +4,30 @@ import '../src/index.css';
 
 const preview: Preview = {
   parameters: {
+    options: {
+      storySort: {
+        order: [
+          'Canvas',
+          [
+            'Production Scenes',
+            ['Spatial Viewport', 'Canonical Scenes'],
+            'Celestial Entities',
+            ['Celestial Entity', 'Planet Body'],
+            'Cartographic Instrument',
+            ['Cartographic Instrument'],
+            'Prototypes & Verification',
+            ['Spatial Scenes (Multi-Scale & UI PoC)', 'Side-by-Side Architecture Comparison'],
+            'Legacy (Deprecated)',
+            ['CartographicGrid', 'CelestialNode', 'OrbitalRing'],
+          ],
+          'Surfaces',
+          'Overlays',
+          'Primitives',
+          'Templates',
+          'Domain',
+        ],
+      },
+    },
     controls: {
       matchers: {
        color: /(background|color)$/i,

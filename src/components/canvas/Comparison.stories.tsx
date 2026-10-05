@@ -19,7 +19,7 @@ import { getStandardInitialCamera } from './cartography/cartographyMath';
 import styles from './Comparison.stories.module.css';
 
 const meta: Meta = {
-  title: 'Canvas/SideBySideComparison',
+  title: 'Canvas/Prototypes & Verification/Side-by-Side Architecture Comparison',
   parameters: {
     layout: 'fullscreen',
   },
@@ -60,6 +60,7 @@ const InstrumentSideBySide: React.FC = () => {
 };
 
 export const InstrumentComparison: StoryObj = {
+  name: '1. Cartographic Instrument (Legacy vs Decomposed)',
   render: () => <InstrumentSideBySide />,
 };
 
@@ -162,5 +163,6 @@ const EntitySideBySide: React.FC = () => {
 };
 
 export const EntityComparison: StoryObj = {
+  name: '2. Celestial Entity (Legacy vs Decomposed)',
   render: () => <EntitySideBySide />,
 };

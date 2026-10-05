@@ -13,7 +13,7 @@ import styles from './StorybookCanvasWrapper.module.css';
 const standardCam = getStandardInitialCamera(12, [0, 0, 0]);
 
 const meta: Meta<typeof OrbitalRing> = {
-  title: 'Canvas/Cartography/OrbitalRing',
+  title: 'Canvas/Legacy (Deprecated)/OrbitalRing',
   component: OrbitalRing,
   parameters: {
     layout: 'padded',

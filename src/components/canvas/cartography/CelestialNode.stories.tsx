@@ -11,7 +11,7 @@ import styles from './StorybookCanvasWrapper.module.css';
 const standardCam = getStandardInitialCamera(8, [0, 0, 0]);
 
 const meta: Meta<typeof CelestialNode> = {
-  title: 'Canvas/Cartography/CelestialNode',
+  title: 'Canvas/Legacy (Deprecated)/CelestialNode',
   component: CelestialNode,
   parameters: {
     layout: 'padded',
