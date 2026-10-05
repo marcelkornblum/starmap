@@ -493,6 +493,8 @@ const useDiagnosticsStore = create<{
   setDiagnostics: (diagnostics) => set({ diagnostics }),
 }));
 
+const FALLBACK_LABEL_EVAL = { visible: true, isDisplaced: false };
+
 const DiagnosticMonitor: React.FC = () => {
   const frameCount = useRef(0);
   const poolRef = useRef<DiagnosticNode[]>([]);
@@ -515,7 +517,7 @@ const DiagnosticMonitor: React.FC = () => {
       const hitOffset = celestialOcclusionManager.evaluateHitAreaOffset(fp.id);
       const labelEval = fp.labelBox
         ? celestialOcclusionManager.evaluateLabelOcclusion(fp.id, fp.labelBox)
-        : { visible: true, isDisplaced: false };
+        : FALLBACK_LABEL_EVAL;
 
       const item = pool[i];
       item.id = fp.id;

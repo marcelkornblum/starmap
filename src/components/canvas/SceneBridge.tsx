@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useLayoutEffect } from 'react';
-import { SceneContext, useScene } from './SceneBridgeContext';
+import { SceneContext, useScene, useSceneStore } from './SceneBridgeContext';
 
 export interface SceneProviderProps {
   children: React.ReactNode;
@@ -17,6 +17,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
   });
 
   const setScene = useCallback((scene: React.ReactNode, key?: string): void => {
+    useSceneStore.getState().setScene(scene, key);
     setEntry((prev) => {
       if (scene === null && key !== undefined) {
         if (prev.key === key) {
@@ -65,10 +66,13 @@ export const ScenePortal: React.FC<ScenePortalProps> = ({ sceneKey, children }) 
   return null;
 };
 
-export interface SceneOutletProps {}
+export interface SceneOutletProps {
+  fallback?: React.ReactNode;
+}
 
-export const SceneOutlet: React.FC<SceneOutletProps> = () => {
+export const SceneOutlet: React.FC<SceneOutletProps> = ({ fallback = null }) => {
+  const storeScene = useSceneStore((s) => s.activeScene);
   const { activeScene } = useScene();
-  return <>{activeScene}</>;
+  return <>{storeScene ?? activeScene ?? fallback}</>;
 };
 

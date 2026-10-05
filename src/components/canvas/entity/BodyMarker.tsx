@@ -29,6 +29,9 @@ export interface BodyMarkerProps {
   onPointerOut?: (id: string, e: ThreeEvent<PointerEvent>) => void;
 }
 
+const SHARED_DOT_GEOMETRY = new THREE.SphereGeometry(0.5, 16, 16);
+const SHARED_HITAREA_GEOMETRY = new THREE.CircleGeometry(1.0, 32);
+
 /**
  * BodyMarker (Layer 1: Physical System Node):
  * Renders central celestial marker at strictly invariant screen-pixel size in monochrome.
@@ -108,8 +111,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   return (
     <group ref={groupRef} position={[posX, posY, posZ]} name={`body-marker-${id}`}>
       {/* Physical System Dot (Invariant Screen Size, Monochrome) */}
-      <mesh ref={markerRef} name="celestial-point-dot">
-        <sphereGeometry args={[0.5, 16, 16]} />
+      <mesh ref={markerRef} name="celestial-point-dot" geometry={SHARED_DOT_GEOMETRY}>
         <meshBasicMaterial
           ref={markerMaterialRef}
           color={color ?? reticleBracketColor}
@@ -124,6 +126,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
           <mesh
             ref={hitareaRef}
             name="celestial-hitarea"
+            geometry={SHARED_HITAREA_GEOMETRY}
             onClick={onClick ? (e) => {
               e.stopPropagation();
               onClick(id, e);
@@ -143,7 +146,6 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
               onPointerOut(id, e);
             } : undefined}
           >
-            <circleGeometry args={[1.0, 32]} />
             {debugHitarea ? (
               <meshBasicMaterial
                 color={stateFocus}
