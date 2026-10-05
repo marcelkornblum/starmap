@@ -153,9 +153,9 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     const oy = resolvedPrimaryPos.y - resolvedPos.y;
     const oz = resolvedPrimaryPos.z - resolvedPos.z;
     return [
-      Math.abs(ox) < 1e-6 ? 0 : Number(ox.toFixed(6)),
-      Math.abs(oy) < 1e-6 ? 0 : Number(oy.toFixed(6)),
-      Math.abs(oz) < 1e-6 ? 0 : Number(oz.toFixed(6)),
+      Math.abs(ox) < 1e-6 ? 0 : ox,
+      Math.abs(oy) < 1e-6 ? 0 : oy,
+      Math.abs(oz) < 1e-6 ? 0 : oz,
     ];
   }, [resolvedPrimaryPos.x, resolvedPrimaryPos.y, resolvedPrimaryPos.z, resolvedPos.x, resolvedPos.y, resolvedPos.z]);
 
