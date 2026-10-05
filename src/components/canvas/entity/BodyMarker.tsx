@@ -7,23 +7,6 @@ import { celestialOcclusionManager } from '../cartography/celestialOcclusionRegi
 import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
 import type { CelestialInteractionState } from './types';
 
-const SHARED_SPHERE_GEOM = new THREE.SphereGeometry(0.5, 16, 16);
-const SHARED_HITAREA_GEOM = new THREE.CircleGeometry(0.5, 16);
-const SHARED_HITAREA_MAT = new THREE.MeshBasicMaterial({
-  transparent: true,
-  opacity: 0,
-  depthWrite: false,
-  side: THREE.DoubleSide,
-});
-const DEBUG_HITAREA_MAT = new THREE.MeshBasicMaterial({
-  color: 0x00ffcc,
-  transparent: true,
-  opacity: 0.35,
-  wireframe: true,
-  depthWrite: false,
-  side: THREE.DoubleSide,
-});
-
 export interface BodyMarkerProps {
   id: string;
   position: [number, number, number] | THREE.Vector3;
@@ -64,6 +47,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   const hitareaRef = useRef<THREE.Mesh>(null);
   const billboardRef = useRef<THREE.Group>(null);
   const groupRef = useRef<THREE.Group>(null);
+  const worldPosRef = useRef(new THREE.Vector3());
 
   const [posX, posY, posZ] = position instanceof THREE.Vector3 ? [position.x, position.y, position.z] : position;
   const resolvedPos = React.useMemo(() => {
@@ -73,8 +57,9 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   useFrame(({ camera, size }) => {
     if (!markerRef.current || !groupRef.current) return;
 
-    // 1. Maintain invariant screen-space pixel diameter across perspective/ortho
-    const camDist = Math.max(camera.position.distanceTo(resolvedPos), 1e-4);
+    // 1. Retrieve the actual world position of this node (supports arbitrary parent transforms)
+    groupRef.current.getWorldPosition(worldPosRef.current);
+    const camDist = Math.max(camera.position.distanceTo(worldPosRef.current), 1e-4);
     let worldScale = (pixelSize / Math.max(size.height, 1)) * 2;
 
     if (camera instanceof THREE.PerspectiveCamera) {
@@ -112,7 +97,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
     <group ref={groupRef} position={resolvedPos} name={`body-marker-${id}`}>
       {/* Physical System Dot (Invariant Screen Size, Monochrome) */}
       <mesh ref={markerRef} name="celestial-point-dot">
-        <primitive object={SHARED_SPHERE_GEOM} attach="geometry" />
+        <sphereGeometry args={[0.5, 16, 16]} />
         <meshBasicMaterial
           color={color ?? reticleBracketColor}
           transparent
@@ -126,7 +111,6 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
           <mesh
             ref={hitareaRef}
             name="celestial-hitarea"
-            material={debugHitarea ? DEBUG_HITAREA_MAT : SHARED_HITAREA_MAT}
             onClick={onClick ? (e) => {
               e.stopPropagation();
               // Cyclic Selection (Spec 2.2): Only advance focus when clicking an already focused/selected node
@@ -145,7 +129,24 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
               onPointerOut(id, e);
             } : undefined}
           >
-            <primitive object={SHARED_HITAREA_GEOM} attach="geometry" />
+            <circleGeometry args={[0.5, 16]} />
+            {debugHitarea ? (
+              <meshBasicMaterial
+                color={0x00ffcc}
+                transparent
+                opacity={0.35}
+                wireframe
+                depthWrite={false}
+                side={THREE.DoubleSide}
+              />
+            ) : (
+              <meshBasicMaterial
+                transparent
+                opacity={0}
+                depthWrite={false}
+                side={THREE.DoubleSide}
+              />
+            )}
           </mesh>
         </group>
       )}
