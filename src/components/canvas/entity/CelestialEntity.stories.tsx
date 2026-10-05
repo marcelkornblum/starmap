@@ -513,7 +513,9 @@ const DiagnosticMonitor: React.FC = () => {
       const fp = footprints[i];
       const isReticleSuppressed = celestialOcclusionManager.evaluateReticleOcclusion(fp.id);
       const hitOffset = celestialOcclusionManager.evaluateHitAreaOffset(fp.id);
-      const labelEval = celestialOcclusionManager.evaluateLabelOcclusion(fp.id, fp.labelBox);
+      const labelEval = fp.labelBox
+        ? celestialOcclusionManager.evaluateLabelOcclusion(fp.id, fp.labelBox)
+        : { visible: true, isDisplaced: false };
 
       const item = pool[i];
       item.id = fp.id;
