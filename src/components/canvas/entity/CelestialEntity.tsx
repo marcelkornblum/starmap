@@ -179,7 +179,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
         spectralType,
         multiplicity,
         planets,
-        velocity,
+        velocity: resolvedVelocity,
         orbit,
         reticleSize,
       });
@@ -192,7 +192,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
         spectralType,
         multiplicity,
         planets,
-        velocity,
+        velocity: resolvedVelocity,
         orbit,
         reticleSize,
       });
@@ -206,7 +206,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     spectralType,
     multiplicity,
     planets,
-    velocity,
+    resolvedVelocity,
     orbit,
     reticleSize,
     storeApi,
@@ -264,6 +264,10 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   if (!scratchWorldPosRef.current) {
     scratchWorldPosRef.current = new THREE.Vector3();
   }
+  const scratchCamSpaceRef = useRef<THREE.Vector3>(null!);
+  if (!scratchCamSpaceRef.current) {
+    scratchCamSpaceRef.current = new THREE.Vector3();
+  }
 
   useFrame(({ camera, size }) => {
     if (!enableOcclusion) return;
@@ -276,8 +280,11 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
 
     scratchWorldPosRef.current.copy(resolvedPos);
     const camDist = Math.max(camera.position.distanceTo(scratchWorldPosRef.current), 1e-4);
+    const zNear = ('near' in camera && typeof camera.near === 'number') ? camera.near : 0.1;
+    const isBehindCamera = scratchCamSpaceRef.current
+      .copy(scratchWorldPosRef.current)
+      .applyMatrix4(camera.matrixWorldInverse).z > -zNear;
     const ndc = scratchNdcRef.current.copy(scratchWorldPosRef.current).project(camera);
-    const isBehindCamera = ndc.z > 1.0;
     const screenX = (ndc.x * 0.5 + 0.5) * size.width;
     const screenY = (-ndc.y * 0.5 + 0.5) * size.height;
     const reticleRadiusPx = (reticleSize / 13.644) * size.height;

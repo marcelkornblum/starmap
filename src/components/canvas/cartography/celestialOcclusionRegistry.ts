@@ -236,6 +236,7 @@ export class CelestialOcclusionManager {
   };
   private scratchHitOffset: { x: number; y: number } = { x: 0, y: 0 };
   private scratchVec = new THREE.Vector3();
+  private scratchCamSpaceVec = new THREE.Vector3();
   public lastEvaluationTime = 0;
 
   /**
@@ -250,12 +251,13 @@ export class CelestialOcclusionManager {
    */
   public evaluate(camera: THREE.Camera, size: { width: number; height: number }): void {
     this.lastEvaluationTime = performance.now();
+    const zNear = ('near' in camera && typeof camera.near === 'number') ? camera.near : 0.1;
     for (const fp of this.footprints.values()) {
       if (!fp.worldPos) continue;
       this.scratchVec.set(fp.worldPos[0], fp.worldPos[1], fp.worldPos[2]);
       const camDist = camera.position.distanceTo(this.scratchVec);
+      const isBehind = this.scratchCamSpaceVec.copy(this.scratchVec).applyMatrix4(camera.matrixWorldInverse).z > -zNear;
       const ndc = this.scratchVec.project(camera); // Note: .project() mutates scratchVec in-place
-      const isBehind = ndc.z > 1.0;
       fp.screenX = (ndc.x * 0.5 + 0.5) * size.width;
       fp.screenY = (-ndc.y * 0.5 + 0.5) * size.height;
       fp.camDist = camDist;
