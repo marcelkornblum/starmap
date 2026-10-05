@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import { SafeHtml } from '../SafeHtml';
 import {
   calculateScreenEdgeBearing,
@@ -48,25 +49,16 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
   const chevronRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
 
-  const scratchOrigin = useRef<THREE.Vector3>(null!);
-  if (!scratchOrigin.current) {
-    scratchOrigin.current = new THREE.Vector3();
-  }
-  const scratchScreenSize = useRef<{ width: number; height: number }>(null!);
-  if (!scratchScreenSize.current) {
-    scratchScreenSize.current = { width: 0, height: 0 };
-  }
-  const scratchResult = useRef<ScreenEdgeBearingResult>(null!);
-  if (!scratchResult.current) {
-    scratchResult.current = {
-      x: 0,
-      y: 0,
-      edge: 'right' as ScreenEdgeSide,
-      angle: 0,
-      isAttached: false,
-      visible: false,
-    };
-  }
+  const scratchOrigin = useLazyRef(() => new THREE.Vector3());
+  const scratchScreenSize = useLazyRef(() => ({ width: 0, height: 0 }));
+  const scratchResult = useLazyRef<ScreenEdgeBearingResult>(() => ({
+    x: 0,
+    y: 0,
+    edge: 'right' as ScreenEdgeSide,
+    angle: 0,
+    isAttached: false,
+    visible: false,
+  }));
 
   const lastEdge = useRef<ScreenEdgeSide | null>(null);
   const lastDetached = useRef<boolean | null>(null);

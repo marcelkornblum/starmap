@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 
 import { celestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
 import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
@@ -47,10 +48,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   const hitareaRef = useRef<THREE.Mesh>(null);
   const billboardRef = useRef<THREE.Group>(null);
   const groupRef = useRef<THREE.Group>(null);
-  const worldPosRef = useRef<THREE.Vector3>(null!);
-  if (!worldPosRef.current) {
-    worldPosRef.current = new THREE.Vector3();
-  }
+  const worldPosRef = useLazyRef(() => new THREE.Vector3());
   const [posX, posY, posZ] = position instanceof THREE.Vector3 ? [position.x, position.y, position.z] : position;
 
   useFrame(({ camera, size }) => {

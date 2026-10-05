@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { ScreenSpaceLineMaterial } from '../cartography/ScreenSpaceLineMaterial';
 import { useSpatialFrame } from '../instrument/SpatialFrameProvider';
@@ -79,10 +80,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
   const lineMeshRef = useRef<THREE.LineSegments>(null);
   const footprintRef = useRef<THREE.Group>(null);
   const footprintMatRef = useRef<THREE.LineBasicMaterial>(null);
-  const scratchWorldPos = useRef<THREE.Vector3>(null!);
-  if (!scratchWorldPos.current) {
-    scratchWorldPos.current = new THREE.Vector3();
-  }
+  const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
 
   const { frameRef } = useSpatialFrame();
 

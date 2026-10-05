@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { type ThreeEvent, useFrame } from '@react-three/fiber';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useSpatialEntityStoreApi, useSpatialEntityStore } from './SpatialEntityContext';
 import { BodyMarker } from './BodyMarker';
 import { Reticle } from './Reticle';
@@ -256,18 +257,9 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     }
   }, [enableOcclusion, id]);
 
-  const scratchNdcRef = useRef<THREE.Vector3>(null!);
-  if (!scratchNdcRef.current) {
-    scratchNdcRef.current = new THREE.Vector3();
-  }
-  const scratchWorldPosRef = useRef<THREE.Vector3>(null!);
-  if (!scratchWorldPosRef.current) {
-    scratchWorldPosRef.current = new THREE.Vector3();
-  }
-  const scratchCamSpaceRef = useRef<THREE.Vector3>(null!);
-  if (!scratchCamSpaceRef.current) {
-    scratchCamSpaceRef.current = new THREE.Vector3();
-  }
+  const scratchNdcRef = useLazyRef(() => new THREE.Vector3());
+  const scratchWorldPosRef = useLazyRef(() => new THREE.Vector3());
+  const scratchCamSpaceRef = useLazyRef(() => new THREE.Vector3());
 
   useFrame(({ camera, size }) => {
     if (!enableOcclusion) return;

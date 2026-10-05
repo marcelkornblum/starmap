@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import {
   type ReferenceFrame,
   GALACTIC_FRAME,
@@ -62,43 +63,30 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
   lockToFocusPoint = true,
   children,
 }) => {
-  const stateRef = useRef<SpatialFrameState>(null!);
-  if (!stateRef.current) {
-    stateRef.current = {
-      frame,
-      focusPoint: new THREE.Vector3(
-        Array.isArray(explicitFocusPoint) ? explicitFocusPoint[0] : explicitFocusPoint?.x ?? 0,
-        Array.isArray(explicitFocusPoint) ? explicitFocusPoint[1] : explicitFocusPoint?.y ?? 0,
-        Array.isArray(explicitFocusPoint) ? explicitFocusPoint[2] : explicitFocusPoint?.z ?? 0,
-      ),
-      cameraDistance: 35,
-      apertureRadius: frame.radius,
-      cardinalAlignment: DEFAULT_CARDINAL_ALIGNMENT,
-      planeWeights: DEFAULT_PLANE_WEIGHTS,
-      orientation: new THREE.Quaternion(0, 0, 0, 1),
-    };
-  }
+  const stateRef = useLazyRef<SpatialFrameState>(() => ({
+    frame,
+    focusPoint: new THREE.Vector3(
+      Array.isArray(explicitFocusPoint) ? explicitFocusPoint[0] : explicitFocusPoint?.x ?? 0,
+      Array.isArray(explicitFocusPoint) ? explicitFocusPoint[1] : explicitFocusPoint?.y ?? 0,
+      Array.isArray(explicitFocusPoint) ? explicitFocusPoint[2] : explicitFocusPoint?.z ?? 0,
+    ),
+    cameraDistance: 35,
+    apertureRadius: frame.radius,
+    cardinalAlignment: DEFAULT_CARDINAL_ALIGNMENT,
+    planeWeights: DEFAULT_PLANE_WEIGHTS,
+    orientation: new THREE.Quaternion(0, 0, 0, 1),
+  }));
 
-  const scratchCamDir = useRef<THREE.Vector3>(null!);
-  if (!scratchCamDir.current) scratchCamDir.current = new THREE.Vector3();
-  const scratchVCore = useRef<THREE.Vector3>(null!);
-  if (!scratchVCore.current) scratchVCore.current = new THREE.Vector3();
-  const scratchUCore = useRef<THREE.Vector3>(null!);
-  if (!scratchUCore.current) scratchUCore.current = new THREE.Vector3();
-  const scratchVOrbital = useRef<THREE.Vector3>(null!);
-  if (!scratchVOrbital.current) scratchVOrbital.current = new THREE.Vector3();
-  const scratchUOrbital = useRef<THREE.Vector3>(null!);
-  if (!scratchUOrbital.current) scratchUOrbital.current = new THREE.Vector3();
-  const scratchUZenith = useRef<THREE.Vector3>(null!);
-  if (!scratchUZenith.current) scratchUZenith.current = new THREE.Vector3();
-  const scratchBasisMatrix = useRef<THREE.Matrix4>(null!);
-  if (!scratchBasisMatrix.current) scratchBasisMatrix.current = new THREE.Matrix4();
-  const scratchEuler = useRef<THREE.Euler>(null!);
-  if (!scratchEuler.current) scratchEuler.current = new THREE.Euler();
-  const scratchBaseQuat = useRef<THREE.Quaternion>(null!);
-  if (!scratchBaseQuat.current) scratchBaseQuat.current = new THREE.Quaternion();
-  const scratchTiltQuat = useRef<THREE.Quaternion>(null!);
-  if (!scratchTiltQuat.current) scratchTiltQuat.current = new THREE.Quaternion();
+  const scratchCamDir = useLazyRef(() => new THREE.Vector3());
+  const scratchVCore = useLazyRef(() => new THREE.Vector3());
+  const scratchUCore = useLazyRef(() => new THREE.Vector3());
+  const scratchVOrbital = useLazyRef(() => new THREE.Vector3());
+  const scratchUOrbital = useLazyRef(() => new THREE.Vector3());
+  const scratchUZenith = useLazyRef(() => new THREE.Vector3());
+  const scratchBasisMatrix = useLazyRef(() => new THREE.Matrix4());
+  const scratchEuler = useLazyRef(() => new THREE.Euler());
+  const scratchBaseQuat = useLazyRef(() => new THREE.Quaternion());
+  const scratchTiltQuat = useLazyRef(() => new THREE.Quaternion());
 
   const coreBearingExtent = useMemo(() => {
     for (let i = 0; i < frame.bearings.length; i++) {

@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import {
   createReticleGeometry,
@@ -94,10 +95,7 @@ export const Reticle: React.FC<ReticleProps> = ({
     return new THREE.Vector3(position[0], position[1], position[2]);
   }, [position]);
 
-  const scratchWorldPos = useRef<THREE.Vector3>(null!);
-  if (!scratchWorldPos.current) {
-    scratchWorldPos.current = new THREE.Vector3();
-  }
+  const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
 
   // Keep reticle billboarded to face camera directly with invariant screen-space scaling
   useFrame(({ camera }) => {

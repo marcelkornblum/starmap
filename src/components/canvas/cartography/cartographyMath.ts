@@ -569,7 +569,7 @@ export function createCircularPlanarGridGeometry(
   arcSegments = 64,
   omitCoreAxis = true,
 ): THREE.BufferGeometry {
-  const points: THREE.Vector3[] = [];
+  const coords: number[] = [];
   const safeRadius = Math.max(0.5, radius);
   const safeGap = Math.max(0.05, gridGap);
   const safeRgc = Math.max(safeRadius * 2, rGc);
@@ -609,7 +609,7 @@ export function createCircularPlanarGridGeometry(
       const x2 = safeRgc - Rarc * Math.cos(t2);
       const y2 = Rarc * Math.sin(t2);
 
-      points.push(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0));
+      coords.push(x1, y1, 0, x2, y2, 0);
     }
   }
 
@@ -646,11 +646,12 @@ export function createCircularPlanarGridGeometry(
       const sy1 = y1 + (s / nSubSegs) * (y2 - y1);
       const sx2 = x1 + ((s + 1) / nSubSegs) * (x2 - x1);
       const sy2 = y1 + ((s + 1) / nSubSegs) * (y2 - y1);
-      points.push(new THREE.Vector3(sx1, sy1, 0), new THREE.Vector3(sx2, sy2, 0));
+      coords.push(sx1, sy1, 0, sx2, sy2, 0);
     }
   }
 
-  const geom = new THREE.BufferGeometry().setFromPoints(points);
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3));
   geom.computeBoundingSphere();
   return geom;
 }

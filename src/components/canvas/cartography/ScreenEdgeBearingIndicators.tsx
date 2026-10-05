@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { SafeHtml } from '../SafeHtml';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import {
   calculateScreenEdgeBearing,
   type ScreenEdgeSide,
@@ -146,36 +147,24 @@ export const ScreenEdgeBearingIndicators: React.FC<ScreenEdgeBearingIndicatorsPr
   const orbLabelRef = useRef<HTMLDivElement>(null);
 
   // Scratch objects for zero-allocation per-frame computation
-  const scratchOrigin = useRef<THREE.Vector3>(null!);
-  if (!scratchOrigin.current) {
-    scratchOrigin.current = new THREE.Vector3();
-  }
-  const scratchScreenSize = useRef<{ width: number; height: number }>(null!);
-  if (!scratchScreenSize.current) {
-    scratchScreenSize.current = { width: 0, height: 0 };
-  }
-  const scratchCoreResult = useRef<ScreenEdgeBearingResult>(null!);
-  if (!scratchCoreResult.current) {
-    scratchCoreResult.current = {
-      x: 0,
-      y: 0,
-      edge: 'right' as ScreenEdgeSide,
-      angle: 0,
-      isAttached: false,
-      visible: false,
-    };
-  }
-  const scratchOrbResult = useRef<ScreenEdgeBearingResult>(null!);
-  if (!scratchOrbResult.current) {
-    scratchOrbResult.current = {
-      x: 0,
-      y: 0,
-      edge: 'top' as ScreenEdgeSide,
-      angle: 0,
-      isAttached: false,
-      visible: false,
-    };
-  }
+  const scratchOrigin = useLazyRef(() => new THREE.Vector3());
+  const scratchScreenSize = useLazyRef(() => ({ width: 0, height: 0 }));
+  const scratchCoreResult = useLazyRef<ScreenEdgeBearingResult>(() => ({
+    x: 0,
+    y: 0,
+    edge: 'right' as ScreenEdgeSide,
+    angle: 0,
+    isAttached: false,
+    visible: false,
+  }));
+  const scratchOrbResult = useLazyRef<ScreenEdgeBearingResult>(() => ({
+    x: 0,
+    y: 0,
+    edge: 'top' as ScreenEdgeSide,
+    angle: 0,
+    isAttached: false,
+    visible: false,
+  }));
   const lastCoreEdge = useRef<ScreenEdgeSide | null>(null);
   const lastCoreDetached = useRef<boolean | null>(null);
   const lastOrbEdge = useRef<ScreenEdgeSide | null>(null);
