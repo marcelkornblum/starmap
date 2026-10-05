@@ -177,9 +177,6 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
 
     return () => {
       storeApi.getState().unregisterEntity(id);
-      if (typeof document !== 'undefined') {
-        document.body.style.removeProperty('cursor');
-      }
     };
   }, [storeApi, id]);
 
@@ -326,16 +323,10 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
         }}
         onPointerOver={isPassive ? undefined : (targetId, e) => {
           storeApi.getState().setHovered(targetId);
-          if (typeof document !== 'undefined') {
-            document.body.style.setProperty('cursor', 'pointer');
-          }
           onPointerOver?.(targetId, e);
         }}
         onPointerOut={isPassive ? undefined : (targetId, e) => {
           storeApi.getState().setHovered(null);
-          if (typeof document !== 'undefined') {
-            document.body.style.removeProperty('cursor');
-          }
           onPointerOut?.(targetId, e);
         }}
       />

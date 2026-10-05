@@ -48,11 +48,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   const billboardRef = useRef<THREE.Group>(null);
   const groupRef = useRef<THREE.Group>(null);
   const worldPosRef = useRef(new THREE.Vector3());
-
   const [posX, posY, posZ] = position instanceof THREE.Vector3 ? [position.x, position.y, position.z] : position;
-  const resolvedPos = React.useMemo(() => {
-    return new THREE.Vector3(posX, posY, posZ);
-  }, [posX, posY, posZ]);
 
   useFrame(({ camera, size }) => {
     if (!markerRef.current || !groupRef.current) return;
@@ -94,7 +90,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   });
 
   return (
-    <group ref={groupRef} position={resolvedPos} name={`body-marker-${id}`}>
+    <group ref={groupRef} position={[posX, posY, posZ]} name={`body-marker-${id}`}>
       {/* Physical System Dot (Invariant Screen Size, Monochrome) */}
       <mesh ref={markerRef} name="celestial-point-dot">
         <sphereGeometry args={[0.5, 16, 16]} />
