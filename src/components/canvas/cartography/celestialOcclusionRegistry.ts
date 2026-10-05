@@ -62,6 +62,9 @@ export interface CelestialFootprint {
   hasReticle: boolean;
   labelBox?: Box2D;
   visible: boolean;
+  hitAreaOffsetX?: number;
+  hitAreaOffsetY?: number;
+  hitAreaEvaluatedAt?: number;
   updatedAt: number;
 }
 
@@ -296,6 +299,7 @@ export class CelestialOcclusionManager {
     this.gridDirty = true;
     this.ensureGrid();
     this.updateSignificantFootprints();
+    this.updateHitAreaOffsets();
   }
 
   private ensureGrid(): void {
@@ -630,19 +634,31 @@ export class CelestialOcclusionManager {
   }
 
   /**
-   * Interactive Hit-Testing Collision Avoidance (Spec 2.2):
-   * When systems overlap in screen space, underlying interactive hit-testing areas
-   * move outward from the collision space (repelling away from colliding neighbors)
-   * so users can effortlessly click and select overlapping nodes without the graphics moving.
+   * Pre-calculate and cache hit area fan-out offsets for all visible footprints during the evaluate pass.
    */
-  public evaluateHitAreaOffset(nodeId: string, outOffset?: { x: number; y: number }): { x: number; y: number } {
-    const offset = outOffset ?? this.scratchHitOffset;
-    offset.x = 0;
-    offset.y = 0;
+  private updateHitAreaOffsets(): void {
+    const evalTime = this.lastEvaluationTime > 0 ? this.lastEvaluationTime : performance.now();
+    for (const fp of this.footprints.values()) {
+      if (!fp.visible) {
+        fp.hitAreaOffsetX = 0;
+        fp.hitAreaOffsetY = 0;
+        fp.hitAreaEvaluatedAt = evalTime;
+        continue;
+      }
+      if (fp.hitAreaEvaluatedAt === evalTime) {
+        continue;
+      }
+      this.computeHitAreaOffsetFor(fp, evalTime);
+    }
+  }
 
-    const target = this.footprints.get(nodeId);
-    if (!target || !target.visible) return offset;
-
+  /**
+   * Computes hit area fan-out offsets for a target footprint and its overlapping cluster.
+   */
+  private computeHitAreaOffsetFor(
+    target: CelestialFootprint,
+    evalTime = this.lastEvaluationTime > 0 ? this.lastEvaluationTime : performance.now(),
+  ): void {
     this.ensureGrid();
     const cluster: CelestialFootprint[] = [];
     const searchRadius = target.reticleRadius * 2.5;
@@ -659,7 +675,10 @@ export class CelestialOcclusionManager {
     });
 
     if (cluster.length <= 1) {
-      return offset;
+      target.hitAreaOffsetX = 0;
+      target.hitAreaOffsetY = 0;
+      target.hitAreaEvaluatedAt = evalTime;
+      return;
     }
 
     // 1. Calculate the centroid of the collision space
@@ -681,17 +700,42 @@ export class CelestialOcclusionManager {
       return a.id.localeCompare(b.id);
     });
 
-    const index = cluster.findIndex((fp) => fp.id === nodeId);
-    if (index === -1) return offset;
-
-    // 3. Determine base angle pointing outward from collision space
+    // 3. Determine base angle pointing outward from collision space and assign to all cluster members
     const baseAngle = Math.atan2(cluster[0].screenY - centroidY, cluster[0].screenX - centroidX);
-    const angle = baseAngle + (2 * Math.PI * index) / cluster.length;
+    for (let i = 0; i < cluster.length; i++) {
+      const member = cluster[i];
+      const angle = baseAngle + (2 * Math.PI * i) / cluster.length;
+      const fanRadius = member.reticleRadius * 0.85;
+      member.hitAreaOffsetX = fanRadius * Math.cos(angle);
+      member.hitAreaOffsetY = fanRadius * Math.sin(angle);
+      member.hitAreaEvaluatedAt = evalTime;
+    }
+  }
 
-    // Displacement magnitude: clears the hit area outward from the collision zone
-    const fanRadius = target.reticleRadius * 0.85;
-    offset.x = fanRadius * Math.cos(angle);
-    offset.y = fanRadius * Math.sin(angle);
+  /**
+   * Interactive Hit-Testing Collision Avoidance (Spec 2.2):
+   * When systems overlap in screen space, underlying interactive hit-testing areas
+   * move outward from the collision space (repelling away from colliding neighbors)
+   * so users can effortlessly click and select overlapping nodes without the graphics moving.
+   *
+   * Offsets are pre-calculated in the centralized evaluate pass, cached per-frame,
+   * and returned in O(1) time without per-frame per-marker spatial searches.
+   */
+  public evaluateHitAreaOffset(nodeId: string, outOffset?: { x: number; y: number }): { x: number; y: number } {
+    const offset = outOffset ?? this.scratchHitOffset;
+    offset.x = 0;
+    offset.y = 0;
+
+    const target = this.footprints.get(nodeId);
+    if (!target || !target.visible) return offset;
+
+    const evalTime = this.lastEvaluationTime > 0 ? this.lastEvaluationTime : performance.now();
+    if (target.hitAreaEvaluatedAt !== evalTime) {
+      this.computeHitAreaOffsetFor(target, evalTime);
+    }
+
+    offset.x = target.hitAreaOffsetX ?? 0;
+    offset.y = target.hitAreaOffsetY ?? 0;
     return offset;
   }
 

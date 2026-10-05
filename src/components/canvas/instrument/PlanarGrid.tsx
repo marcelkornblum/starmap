@@ -250,9 +250,8 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
     }
 
     if (staticPlanarGridRef.current) {
-      const scale = frame.radius > 0 ? apertureRadius / frame.radius : 1.0;
-      staticPlanarGridRef.current.scale.set(scale, scale, 1);
-      staticPlanarGridRef.current.position.set(0, 0, 0);
+      staticPlanarGridRef.current.scale.set(1, 1, 1);
+      staticPlanarGridRef.current.position.set(-focusPoint.x, -focusPoint.y, -focusPoint.z);
       staticPlanarGridRef.current.visible = isGridEnabled && !!gridGeom && fadePlanar > 1e-3;
     }
     if (gridMatRef.current) {
@@ -260,6 +259,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
     }
 
     if (fillMeshRef.current) {
+      fillMeshRef.current.position.set(0, 0, -focusPoint.z);
       fillMeshRef.current.scale.set(apertureRadius, apertureRadius, 1);
       fillMeshRef.current.visible = isFillEnabled && fadePlanar > 1e-3;
       const mat = fillMeshRef.current.material as THREE.ShaderMaterial;
@@ -270,6 +270,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
     fillUniforms.uAlpha.value = datumPlaneFillAlpha * fadePlanar;
 
     if (boundaryLineRef.current) {
+      boundaryLineRef.current.position.set(0, 0, -focusPoint.z);
       boundaryLineRef.current.scale.set(apertureRadius, apertureRadius, 1);
       boundaryLineRef.current.visible = fadePlanar > 1e-3;
     }
@@ -304,6 +305,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
     const showDiskBearings = !suppressDiskBearings && fadePlanar > 1e-3;
 
     if (diskBearingsRef.current) {
+      diskBearingsRef.current.position.set(0, 0, -focusPoint.z);
       diskBearingsRef.current.visible = showDiskBearings;
     }
 
@@ -342,10 +344,11 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       diskOrbitalMatRef.current.opacity = bearingOrbitalAlpha * fadePlanar * orbitalProximityFade;
     }
 
-    // Primary Footprint scaling & edge-on / ortho fade
+    // Primary Footprint scaling & edge-on / ortho fade (anchored at world origin)
     if (primaryFootprintRef.current) {
       const fpScale = THREE.MathUtils.lerp(invScale, 1.0, cardinalAlignment.alphaZ);
       primaryFootprintRef.current.scale.set(fpScale, fpScale, 1);
+      primaryFootprintRef.current.position.set(-focusPoint.x, -focusPoint.y, -focusPoint.z + 0.002);
       primaryFootprintRef.current.visible = isFootprintEnabled && fadePlanar > 1e-3;
     }
     if (primaryFootprintMatRef.current) {
@@ -353,6 +356,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
     }
 
     if (explicitFootprintsRef.current) {
+      explicitFootprintsRef.current.position.set(-focusPoint.x, -focusPoint.y, -focusPoint.z);
       explicitFootprintsRef.current.visible = fadePlanar > 1e-3;
       if (fadePlanar > 1e-3 && footprints && footprints.length > 0) {
         activeFadePlanar = fadePlanar;

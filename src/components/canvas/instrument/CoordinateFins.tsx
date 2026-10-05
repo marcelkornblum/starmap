@@ -75,14 +75,47 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
     };
   }, []);
 
+  // Memoize unit quadrant Z=0 baseline border geometries for each plane
+  const baselineGeoms = useMemo(() => {
+    const buildPlaneBaselines = (plane: 'xy' | 'xz' | 'yz') => {
+      return QUADRANTS.map((quad) => {
+        let points: THREE.Vector3[] = [];
+        if (plane === 'xz') {
+          // XZ vertical fin baseline along Z=0: straight line along X-axis
+          points = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(quad.qx, 0, 0)];
+        } else if (plane === 'yz') {
+          // YZ vertical fin baseline along Z=0: straight line along Y-axis
+          points = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, quad.qy, 0)];
+        } else {
+          // XY horizontal fin is entirely on Z=0: straight quadrant boundaries along both X and Y
+          points = [
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(quad.qx, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, quad.qy, 0),
+          ];
+        }
+        const geom = new THREE.BufferGeometry().setFromPoints(points);
+        geom.computeBoundingSphere();
+        return geom;
+      });
+    };
+    return {
+      xy: buildPlaneBaselines('xy'),
+      xz: buildPlaneBaselines('xz'),
+      yz: buildPlaneBaselines('yz'),
+    };
+  }, []);
+
   useEffect(() => {
     return () => {
       PLANES.forEach((p) => {
         quadrantGeoms[p].forEach((g) => g.dispose());
         tickGeoms[p].forEach((g) => g.dispose());
+        baselineGeoms[p].forEach((g) => g.dispose());
       });
     };
-  }, [quadrantGeoms, tickGeoms]);
+  }, [quadrantGeoms, tickGeoms, baselineGeoms]);
 
   // Object references for zero-allocation per-frame mutation
   const perimeterLinesRef = useRef<Record<string, (THREE.LineSegments | null)[]>>({
@@ -91,6 +124,17 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
     yz: [null, null, null, null],
   });
   const perimeterMatsRef = useRef<Record<string, (THREE.LineBasicMaterial | null)[]>>({
+    xy: [null, null, null, null],
+    xz: [null, null, null, null],
+    yz: [null, null, null, null],
+  });
+
+  const baselineLinesRef = useRef<Record<string, (THREE.LineSegments | null)[]>>({
+    xy: [null, null, null, null],
+    xz: [null, null, null, null],
+    yz: [null, null, null, null],
+  });
+  const baselineMatsRef = useRef<Record<string, (THREE.LineBasicMaterial | null)[]>>({
     xy: [null, null, null, null],
     xz: [null, null, null, null],
     yz: [null, null, null, null],
@@ -180,6 +224,17 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
             tMat.color.copy(rangeTickColor);
           }
         }
+
+        const bLine = baselineLinesRef.current[plane][q];
+        const bMat = baselineMatsRef.current[plane][q];
+        if (bLine && bMat) {
+          bLine.scale.set(apertureRadius, apertureRadius, apertureRadius);
+          bLine.visible = isVis;
+          if (isVis) {
+            bMat.opacity = finPerimeterAlpha * grazingFade * qw;
+            bMat.color.copy(gridSecondaryColor);
+          }
+        }
       }
 
       // 2. Concentric quadrant range arcs
@@ -239,6 +294,34 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
                 <lineBasicMaterial
                   ref={(el) => {
                     perimeterMatsRef.current[plane][qIdx] = el;
+                  }}
+                  color={gridSecondaryColor}
+                  opacity={finPerimeterAlpha}
+                  transparent
+                  depthWrite={false}
+                />
+              </lineSegments>
+            );
+          })}
+
+          {/* Fin Z=0 Baseline Borders */}
+          {QUADRANTS.map((quad, qIdx) => {
+            const isInitialVisible = quad.qx === 1 && quad.qy === 1;
+            return (
+              <lineSegments
+                key={`${plane}-baseline-q${qIdx}`}
+                ref={(el) => {
+                  baselineLinesRef.current[plane][qIdx] = el;
+                }}
+                name={`${plane}-baseline-q${qIdx}`}
+                visible={isInitialVisible}
+                scale={[frame.radius, frame.radius, frame.radius]}
+                frustumCulled={false}
+              >
+                <primitive object={baselineGeoms[plane][qIdx]} attach="geometry" />
+                <lineBasicMaterial
+                  ref={(el) => {
+                    baselineMatsRef.current[plane][qIdx] = el;
                   }}
                   color={gridSecondaryColor}
                   opacity={finPerimeterAlpha}

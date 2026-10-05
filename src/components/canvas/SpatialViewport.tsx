@@ -9,7 +9,6 @@ import { CartographicInstrument } from './instrument/CartographicInstrument';
 import { SpatialFrameProvider } from './instrument/SpatialFrameProvider';
 import {
   SpatialEntityProvider,
-  useSpatialEntityStore,
   useSpatialEntityStoreApi,
 } from './entity/SpatialEntityContext';
 import { CelestialEntity } from './entity/CelestialEntity';
@@ -62,18 +61,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   syncWithUIStore = true,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
-  const selectedEntityId = useSpatialEntityStore((s) => s.selectedId);
   const globalSelectedId = useUIStore((s) => s.selectedNodeId);
-  const setGlobalSelectedId = useUIStore((s) => s.setSelectedNodeId);
-
-  // Synchronise local store selection to UI store and callbacks
-  useEffect(() => {
-    if (!syncWithUIStore) return;
-    if (selectedEntityId !== globalSelectedId) {
-      setGlobalSelectedId(selectedEntityId);
-    }
-    onSelect?.(selectedEntityId);
-  }, [selectedEntityId, globalSelectedId, syncWithUIStore, setGlobalSelectedId, onSelect]);
 
   // Synchronise external UI store selection inwards to spatial entity store
   useEffect(() => {
@@ -83,6 +71,18 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       storeApi.getState().setSelected(globalSelectedId);
     }
   }, [globalSelectedId, syncWithUIStore, storeApi]);
+
+  // Synchronise local store selection changes outward to UI store and callbacks
+  useEffect(() => {
+    return storeApi.subscribe((state, prevState) => {
+      if (state.selectedId !== prevState.selectedId) {
+        if (syncWithUIStore && useUIStore.getState().selectedNodeId !== state.selectedId) {
+          useUIStore.getState().setSelectedNodeId(state.selectedId);
+        }
+        onSelect?.(state.selectedId);
+      }
+    });
+  }, [storeApi, syncWithUIStore, onSelect]);
 
   // Handle entity clicks (single click selects; clicking already-selected inspects)
   const handleEntityClick = useCallback(

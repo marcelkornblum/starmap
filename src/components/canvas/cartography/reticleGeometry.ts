@@ -125,7 +125,7 @@ export function appendMultiplicityPips(
   multiplicity: number,
 ): void {
   // Single star systems (multiplicity <= 1) render 0 pips; only twin (2) or more render
-  if (multiplicity < 2) return;
+  if (!multiplicity || multiplicity < 2) return;
   const count = Math.min(multiplicity, 4);
   const dOut = 0.26 * s;
   const nX = -Math.SQRT1_2;

@@ -80,6 +80,8 @@ const ALPHA_CENTAURI_PLANETS = [
   { id: 'proxima-d', name: 'Proxima d', classification: 'terrestrial' as const },
 ];
 
+const ALPHA_CENTAURI_VELOCITY = new THREE.Vector3(-0.4, 0.2, -0.1);
+
 const EntitySideBySide: React.FC = () => {
   const [selectedLegacy, setSelectedLegacy] = useState('sol-legacy');
   const [selectedNew, setSelectedNew] = useState('sol-new');
@@ -152,7 +154,7 @@ const EntitySideBySide: React.FC = () => {
               spectralType="G2V + K1V"
               multiplicity={3}
               planets={ALPHA_CENTAURI_PLANETS}
-              velocity={new THREE.Vector3(-0.4, 0.2, -0.1)}
+              velocity={ALPHA_CENTAURI_VELOCITY}
               onClick={(id) => setSelectedNew((prev) => (prev === id ? '' : id))}
             />
           </SpatialEntityProvider>
