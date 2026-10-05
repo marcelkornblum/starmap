@@ -19,6 +19,7 @@ export interface BodyMarkerProps {
   interactive?: boolean;
   debugHitarea?: boolean;
   onClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
+  onDoubleClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
   onPointerOver?: (id: string, e: ThreeEvent<PointerEvent>) => void;
   onPointerOut?: (id: string, e: ThreeEvent<PointerEvent>) => void;
 }
@@ -39,6 +40,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   interactive = true,
   debugHitarea = false,
   onClick,
+  onDoubleClick,
   onPointerOver,
   onPointerOut,
 }) => {
@@ -116,6 +118,10 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
                 ? celestialOcclusionManager.getCyclicSelectionTarget(id)
                 : id;
               onClick(targetId, e);
+            } : undefined}
+            onDoubleClick={onDoubleClick ? (e) => {
+              e.stopPropagation();
+              onDoubleClick(id, e);
             } : undefined}
             onPointerOver={onPointerOver ? (e) => {
               e.stopPropagation();

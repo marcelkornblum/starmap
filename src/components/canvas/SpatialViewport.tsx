@@ -7,6 +7,7 @@ import {
 } from './instrument/referenceFrame';
 import { CartographicInstrument } from './instrument/CartographicInstrument';
 import { SpatialFrameProvider } from './instrument/SpatialFrameProvider';
+import { useCameraTransition } from './instrument/useCameraTransition';
 import {
   SpatialEntityProvider,
   useSpatialEntityStoreApi,
@@ -41,6 +42,12 @@ export interface SpatialViewportProps {
   debugHitarea?: boolean;
   /** Sync selection bidirectionally with useUIStore */
   syncWithUIStore?: boolean;
+  /** Whether to smoothly transition the camera and centre the instrument when double-clicking an entity. Defaults to true */
+  enableFocusTransition?: boolean;
+  /** Transition duration in seconds for smooth camera centering. Defaults to 0.8 */
+  focusTransitionDuration?: number;
+  /** Double click callback on an entity */
+  onDoubleClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
 }
 
 /**
@@ -59,9 +66,13 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   showPlanarFootprint = false,
   debugHitarea = false,
   syncWithUIStore = true,
+  enableFocusTransition = true,
+  focusTransitionDuration = 0.8,
+  onDoubleClick,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
   const globalSelectedId = useUIStore((s) => s.selectedNodeId);
+  const { transitionTo } = useCameraTransition();
 
   // Synchronise external UI store selection inwards to spatial entity store
   useEffect(() => {
@@ -97,12 +108,41 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     [storeApi, onInspect],
   );
 
+  // Handle entity double-clicks (smooth camera transition centering instrument, elevates to focused tier)
+  const handleEntityDoubleClick = useCallback(
+    (id: string, e: ThreeEvent<MouseEvent>) => {
+      const entity = storeApi.getState().entities[id];
+      if (entity?.position && enableFocusTransition) {
+        transitionTo(entity.position, { duration: focusTransitionDuration });
+      }
+
+      storeApi.getState().setSelected(id);
+      if (storeApi.getState().focusedId !== id) {
+        storeApi.getState().setFocused(id);
+      }
+
+      onInspect?.(id);
+      onDoubleClick?.(id, e);
+    },
+    [
+      storeApi,
+      enableFocusTransition,
+      focusTransitionDuration,
+      transitionTo,
+      onInspect,
+      onDoubleClick,
+    ],
+  );
+
   return (
     <group
       name="spatial-viewport"
       data-mode={mode}
       onPointerMissed={() => {
         storeApi.getState().setSelected(null);
+        if (storeApi.getState().focusedId !== null) {
+          storeApi.getState().setFocused(null);
+        }
       }}
     >
       {/* Dynamic O(n) screen-space occlusion pass */}
@@ -125,6 +165,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
           {...entity}
           debugHitarea={debugHitarea}
           onClick={handleEntityClick}
+          onDoubleClick={handleEntityDoubleClick}
         />
       ))}
 

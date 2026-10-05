@@ -30,6 +30,7 @@ export interface CelestialEntityProps extends Partial<SpatialEntityDefinition> {
   bodyMinPixelSize?: number;
   bodyFadeRange?: number;
   onClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
+  onDoubleClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
   onPointerOver?: (id: string, e: ThreeEvent<PointerEvent>) => void;
   onPointerOut?: (id: string, e: ThreeEvent<PointerEvent>) => void;
   children?: React.ReactNode;
@@ -62,6 +63,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   bodyMinPixelSize,
   bodyFadeRange,
   onClick,
+  onDoubleClick,
   onPointerOver,
   onPointerOut,
   children,
@@ -412,6 +414,16 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
               onClick(targetId, e);
             } else {
               storeApi.getState().setSelected(targetId);
+            }
+          }}
+          onDoubleClick={(targetId, e) => {
+            if (onDoubleClick) {
+              onDoubleClick(targetId, e);
+            } else {
+              storeApi.getState().setSelected(targetId);
+              if (storeApi.getState().focusedId !== targetId) {
+                storeApi.getState().setFocused(targetId);
+              }
             }
           }}
           onPointerOver={(targetId, e) => {

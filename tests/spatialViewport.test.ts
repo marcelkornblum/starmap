@@ -184,4 +184,20 @@ describe('SpatialViewport Composition Root (Phase 4)', () => {
     expect(html).toContain('name="stalk-line"');
     expect(html).toContain('name="stalk-footprint"');
   });
+
+  it('accepts double-click and focus transition configuration props cleanly', () => {
+    const onDblClick = vi.fn();
+    const html = renderToString(
+      createElement(SpatialViewport, {
+        frame: GALACTIC_FRAME,
+        entities: sampleEntities,
+        enableFocusTransition: true,
+        focusTransitionDuration: 0.6,
+        onDoubleClick: onDblClick,
+      }),
+    );
+
+    expect(html).toContain('name="spatial-viewport"');
+    expect(html).toContain('name="celestial-entity-sol"');
+  });
 });

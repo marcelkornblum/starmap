@@ -8,3 +8,4 @@ export * from './ScreenEdgeCue';
 export * from './ScreenEdgeIndicators';
 export * from './CameraRig';
 export * from './CartographicInstrument';
+export * from './useCameraTransition';
