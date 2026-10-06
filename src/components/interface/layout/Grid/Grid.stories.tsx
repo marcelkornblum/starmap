@@ -3,7 +3,7 @@ import { Grid } from './Grid';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Grid> = {
-  title: 'POC/Primitives/Layout/Grid',
+  title: 'INTERFACE/Layout',
   component: Grid,
   argTypes: {
     minWidth: {
@@ -21,6 +21,7 @@ export default meta;
 type Story = StoryObj<typeof Grid>;
 
 export const Default: Story = {
+  name: 'Grid',
   args: {
     minWidth: 'md',
     gap: 'default',

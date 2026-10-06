@@ -3,7 +3,7 @@ import { Frame } from './Frame';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Frame> = {
-  title: 'POC/Primitives/Layout/Frame',
+  title: 'INTERFACE/Layout',
   component: Frame,
   argTypes: {
     ratio: {
@@ -17,6 +17,7 @@ export default meta;
 type Story = StoryObj<typeof Frame>;
 
 export const Default: Story = {
+  name: 'Frame',
   args: {
     ratio: '16:9',
     children: (

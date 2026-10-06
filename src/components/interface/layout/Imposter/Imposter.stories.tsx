@@ -3,7 +3,7 @@ import { Imposter } from './Imposter';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Imposter> = {
-  title: 'POC/Primitives/Layout/Imposter',
+  title: 'INTERFACE/Layout',
   component: Imposter,
   argTypes: {
     fixed: { control: 'boolean' },
@@ -22,6 +22,7 @@ export default meta;
 type Story = StoryObj<typeof Imposter>;
 
 export const Default: Story = {
+  name: 'Imposter',
   args: {
     fixed: false,
     position: 'center',

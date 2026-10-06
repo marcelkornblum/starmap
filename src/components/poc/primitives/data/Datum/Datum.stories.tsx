@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Datum } from './Datum';
-import { Stack } from '../../layout/Stack/Stack';
+import { Stack } from '../../../../interface/layout/Stack/Stack';
 import { Card } from '../../../surfaces/Card/Card';
 import styles from './Datum.stories.module.css';
 

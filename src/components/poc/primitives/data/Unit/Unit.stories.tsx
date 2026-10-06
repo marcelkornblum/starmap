@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Unit } from './Unit';
-import { Stack } from '../../layout/Stack/Stack';
-import { Cluster } from '../../layout/Cluster/Cluster';
+import { Stack } from '../../../../interface/layout/Stack/Stack';
+import { Cluster } from '../../../../interface/layout/Cluster/Cluster';
 import styles from './Unit.stories.module.css';
 
 const meta = {

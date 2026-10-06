@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Box } from './Box';
 
 const meta: Meta<typeof Box> = {
-  title: 'POC/Primitives/Layout/Box',
+  title: 'INTERFACE/Layout',
   component: Box,
   argTypes: {
     padding: {
@@ -24,6 +24,7 @@ export default meta;
 type Story = StoryObj<typeof Box>;
 
 export const Default: Story = {
+  name: 'Box',
   args: {
     padding: 'default',
     border: 'subtle',

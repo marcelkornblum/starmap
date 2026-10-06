@@ -3,7 +3,7 @@ import { Switcher } from './Switcher';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Switcher> = {
-  title: 'POC/Primitives/Layout/Switcher',
+  title: 'INTERFACE/Layout',
   component: Switcher,
   argTypes: {
     threshold: {
@@ -25,6 +25,7 @@ export default meta;
 type Story = StoryObj<typeof Switcher>;
 
 export const Default: Story = {
+  name: 'Switcher',
   args: {
     threshold: 'md',
     gap: 'default',

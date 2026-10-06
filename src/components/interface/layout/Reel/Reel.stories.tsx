@@ -3,7 +3,7 @@ import { Reel } from './Reel';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Reel> = {
-  title: 'POC/Primitives/Layout/Reel',
+  title: 'INTERFACE/Layout',
   component: Reel,
   argTypes: {
     itemWidth: {
@@ -22,6 +22,7 @@ export default meta;
 type Story = StoryObj<typeof Reel>;
 
 export const Default: Story = {
+  name: 'Reel',
   args: {
     itemWidth: 'md',
     gap: 'default',

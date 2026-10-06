@@ -7,8 +7,8 @@ import {
   type ThemeMode,
 } from '../../../../styles/tokens/paletteTheme';
 import { Button } from '../../primitives/control/Button/Button';
-import { Cluster } from '../../primitives/layout/Cluster/Cluster';
-import { Stack } from '../../primitives/layout/Stack/Stack';
+import { Cluster } from '../../../interface/layout/Cluster/Cluster';
+import { Stack } from '../../../interface/layout/Stack/Stack';
 import styles from './ThemeSwitcher.module.css';
 
 export interface ThemeSwitcherProps {
