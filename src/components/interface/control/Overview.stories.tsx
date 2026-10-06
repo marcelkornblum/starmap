@@ -76,7 +76,7 @@ const InteractiveToggle = () => {
   );
 };
 
-export const A_Overview: StoryObj = {
+export const Overview: StoryObj = {
   name: 'Overview',
   render: () => (
     <div style={{ height: '100dvh', overflowY: 'auto', padding: '2rem 0', fontFamily: 'sans-serif' }}>
