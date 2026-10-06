@@ -1,3 +1,3 @@
 export * from '../../interface/layout';
 export * from './data';
-export * from './control';
+export * from '../../interface/control';
