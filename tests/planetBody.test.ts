@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
-import { PlanetBody, getClassificationPalette } from '../src/components/canvas/scenes/PlanetBody';
+import { PlanetBody, getClassificationPalette } from '../src/components/poc/canvas/scenes/PlanetBody';
 
 let capturedFrameCallback: ((state: any, delta: number) => void) | null = null;
 

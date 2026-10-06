@@ -4,8 +4,8 @@ import {
   createRootRoute,
   Navigate,
 } from '@tanstack/react-router';
-import { RootLayout } from '../components/layout/RootLayout';
-import { RouteSkeleton } from '../components/common/RouteSkeleton';
+import { RootLayout } from '../components/poc/layout/RootLayout';
+import { RouteSkeleton } from '../components/poc/common/RouteSkeleton';
 import { GalaxyView } from '../views/GalaxyView';
 import { SystemView } from '../views/SystemView';
 import { PlanetView } from '../views/PlanetView';

@@ -28,13 +28,13 @@ describe('coverage-comment script', () => {
       branches: { total: 20, covered: 18, skipped: 0, pct: 90.0 },
       functions: { total: 10, covered: 10, skipped: 0, pct: 100.0 },
     },
-    '/repo/src/components/canvas/CelestialNode.tsx': {
+    '/re../src/components/poc/canvas/CelestialNode.tsx': {
       lines: { total: 100, covered: 40, skipped: 0, pct: 40.0 },
       statements: { total: 120, covered: 50, skipped: 0, pct: 41.7 },
       branches: { total: 50, covered: 15, skipped: 0, pct: 30.0 },
       functions: { total: 20, covered: 8, skipped: 0, pct: 40.0 },
     },
-    '/repo/src/components/layout/RootLayout.tsx': {
+    '/re../src/components/poc/layout/RootLayout.tsx': {
       lines: { total: 80, covered: 60, skipped: 0, pct: 75.0 },
       statements: { total: 90, covered: 70, skipped: 0, pct: 77.8 },
       branches: { total: 30, covered: 20, skipped: 0, pct: 66.7 },
@@ -77,7 +77,7 @@ describe('coverage-comment script', () => {
 
   it('computes correct module name from file path', () => {
     const srcDir = '/repo/src';
-    expect(computeModuleName('/repo/src/components/canvas/CelestialNode.tsx', srcDir)).toBe(
+    expect(computeModuleName('/re../src/components/poc/canvas/CelestialNode.tsx', srcDir)).toBe(
       'src/components/canvas'
     );
     expect(computeModuleName('/repo/src/stores/useSettingsStore.ts', srcDir)).toBe('src/stores');

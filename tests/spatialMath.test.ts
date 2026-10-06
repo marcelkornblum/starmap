@@ -4,22 +4,22 @@ import {
   computeZoomAdaptiveRings,
   populateZoomAdaptiveRings,
   type ScaledRingInfo,
-} from '../src/components/canvas/math/rings';
+} from '../src/components/poc/canvas/math/rings';
 import {
   computeCardinalAlignment,
   computeTransitionWeights,
   computeQuadrantWeight,
   computeAllPlaneQuadrantWeights,
-} from '../src/components/canvas/math/cardinal';
+} from '../src/components/poc/canvas/math/cardinal';
 import {
   computeApertureRadius,
   isInsideAperture,
   computePerimeterFade,
-} from '../src/components/canvas/math/aperture';
+} from '../src/components/poc/canvas/math/aperture';
 import {
   resolveBearingVector,
   generateCurvedOrbitPoints,
-} from '../src/components/canvas/math/bearings';
+} from '../src/components/poc/canvas/math/bearings';
 import {
   deriveEntityTier,
   isStalkVisible,
@@ -27,8 +27,8 @@ import {
   isOrbitForceRendered,
   type InteractionState,
   type InteractionTier,
-} from '../src/components/canvas/math/tiers';
-import { classifyPlanetPhysical } from '../src/components/canvas/math/astronomy';
+} from '../src/components/poc/canvas/math/tiers';
+import { classifyPlanetPhysical } from '../src/components/poc/canvas/math/astronomy';
 
 describe('Spatial Math: rings.ts', () => {
   it('computes logarithmic 1-2-5 progression rings for a given aperture radius', () => {

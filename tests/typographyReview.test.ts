@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
-import { TypographyReview } from '../src/components/domain/TypographyReview/TypographyReview';
+import { TypographyReview } from '../src/components/poc/domain/TypographyReview/TypographyReview';
 
 describe('TypographyReview Component', () => {
   it('renders panel with title, subtitle, badge, text description and data table', () => {

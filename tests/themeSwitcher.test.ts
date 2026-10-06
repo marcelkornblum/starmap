@@ -8,7 +8,7 @@ import {
   applyPalette,
   applyThemePalette,
 } from '../src/styles/tokens/paletteTheme';
-import { ThemeSwitcher } from '../src/components/domain/ThemeSwitcher/ThemeSwitcher';
+import { ThemeSwitcher } from '../src/components/poc/domain/ThemeSwitcher/ThemeSwitcher';
 
 const mockAttrs = new Map<string, string>();
 const mockDocumentElement = {
