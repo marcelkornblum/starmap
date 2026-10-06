@@ -9,6 +9,7 @@ import { Stack } from '../../interface/layout/Stack/Stack';
 import { Cluster } from '../../interface/layout/Cluster/Cluster';
 import { Box } from '../../interface/layout/Box/Box';
 import { Center } from '../../interface/layout/Center/Center';
+import { Grid } from '../../interface/layout/Grid/Grid';
 
 const meta: Meta = {
   title: 'INTERFACE/Control',
@@ -30,13 +31,10 @@ const Section = ({ title, description, children }: { title: string; description:
   </Box>
 );
 
-const InteractiveInput = () => {
+const InteractiveInput = ({ status, placeholder = 'Type here...' }: { status?: 'error' | 'success', placeholder?: string }) => {
   const [val, setVal] = useState('');
   return (
-    <Stack gap="tight">
-      <strong>Interactive</strong>
-      <Input value={val} onChange={(e) => setVal(e.target.value)} placeholder="Type here..." />
-    </Stack>
+    <Input value={val} onChange={(e) => setVal(e.target.value)} placeholder={placeholder} status={status} />
   );
 };
 
@@ -92,23 +90,65 @@ export const A_Overview: StoryObj = {
             </p>
           </div>
 
-          <Section title="Button" description="Primary interaction trigger.">
-            <Stack gap="tight">
-              <strong>Interactive</strong>
-              <Button variant="primary">Click Me</Button>
-            </Stack>
-            <Stack gap="tight">
-              <strong>Disabled</strong>
-              <Button variant="primary" disabled>Disabled</Button>
-            </Stack>
+          <Section title="Button" description="Primary interaction trigger. Available in various semantic variants and sizes.">
+            <Grid minWidth="sm" gap="loose">
+              <Stack gap="tight">
+                <strong>Primary</strong>
+                <Cluster gap="tight">
+                  <Button variant="primary">Interactive</Button>
+                  <Button variant="primary" disabled>Disabled</Button>
+                </Cluster>
+              </Stack>
+              <Stack gap="tight">
+                <strong>Secondary</strong>
+                <Cluster gap="tight">
+                  <Button variant="secondary">Interactive</Button>
+                  <Button variant="secondary" disabled>Disabled</Button>
+                </Cluster>
+              </Stack>
+              <Stack gap="tight">
+                <strong>Highlight</strong>
+                <Cluster gap="tight">
+                  <Button variant="highlight">Interactive</Button>
+                  <Button variant="highlight" disabled>Disabled</Button>
+                </Cluster>
+              </Stack>
+              <Stack gap="tight">
+                <strong>Subtle</strong>
+                <Cluster gap="tight">
+                  <Button variant="subtle">Interactive</Button>
+                  <Button variant="subtle" disabled>Disabled</Button>
+                </Cluster>
+              </Stack>
+              <Stack gap="tight">
+                <strong>Danger</strong>
+                <Cluster gap="tight">
+                  <Button variant="danger">Interactive</Button>
+                  <Button variant="danger" disabled>Disabled</Button>
+                </Cluster>
+              </Stack>
+            </Grid>
           </Section>
 
-          <Section title="Input" description="Text entry field.">
-            <InteractiveInput />
-            <Stack gap="tight">
-              <strong>Disabled</strong>
-              <Input placeholder="Restricted access..." disabled />
-            </Stack>
+          <Section title="Input" description="Text entry field for short-form alphanumeric data. Includes status states.">
+            <Cluster gap="loose">
+              <Stack gap="tight">
+                <strong>Default</strong>
+                <InteractiveInput placeholder="Enter value..." />
+              </Stack>
+              <Stack gap="tight">
+                <strong>Disabled</strong>
+                <Input placeholder="Restricted access..." disabled />
+              </Stack>
+              <Stack gap="tight">
+                <strong>Error Status</strong>
+                <InteractiveInput status="error" placeholder="Critical error..." />
+              </Stack>
+              <Stack gap="tight">
+                <strong>Error (Disabled)</strong>
+                <Input status="error" placeholder="Critical error..." disabled />
+              </Stack>
+            </Cluster>
           </Section>
 
           <Section title="Select" description="Native dropdown for picking from a list.">
