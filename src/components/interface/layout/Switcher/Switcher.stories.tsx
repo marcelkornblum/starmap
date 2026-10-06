@@ -30,12 +30,20 @@ export const Switcher: Story = {
     gap: 'default',
   },
   render: (args) => (
-    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
-      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
-        <div style={{ backgroundColor: '#ff5c5c', padding: '1.5rem' }}>1</div>
-        <div style={{ backgroundColor: '#5cff8a', padding: '1.5rem' }}>2</div>
-        <div style={{ backgroundColor: '#5c8aff', padding: '1.5rem' }}>3</div>
-      </Component>
+    <div style={{ fontFamily: 'sans-serif', padding: '1rem' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h2 style={{ margin: '0 0 0.5rem 0' }}>Switcher</h2>
+        <p style={{ margin: 0, color: '#555', maxWidth: '60ch' }}>
+          A responsive layout primitive that places items horizontally until the container hits a minimum threshold width, at which point it switches to a vertical stack.
+        </p>
+      </div>
+      <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
+        <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+          <div style={{ backgroundColor: '#ff5c5c', padding: '1.5rem' }}>1</div>
+          <div style={{ backgroundColor: '#5cff8a', padding: '1.5rem' }}>2</div>
+          <div style={{ backgroundColor: '#5c8aff', padding: '1.5rem' }}>3</div>
+        </Component>
+      </div>
     </div>
   ),
 };
