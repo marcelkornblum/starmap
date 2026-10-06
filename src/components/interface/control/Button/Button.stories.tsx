@@ -1,0 +1,53 @@
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Button } from './Button';
+import { Cluster } from '../../layout/Cluster/Cluster';
+import { Stack } from '../../layout/Stack/Stack';
+
+const meta: Meta<typeof Button> = {
+  title: 'INTERFACE/Control',
+  component: Button,
+  argTypes: {
+    variant: {
+      control: 'select',
+      options: ['primary', 'secondary', 'highlight', 'subtle', 'danger'],
+    },
+    size: {
+      control: 'radio',
+      options: ['sm', 'md', 'lg'],
+    },
+    disabled: { control: 'boolean' },
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof Button>;
+
+export const ButtonStory: Story = {
+  name: 'Button',
+  render: (args) => (
+    <div style={{ fontFamily: 'sans-serif', padding: '1rem' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h2 style={{ margin: '0 0 0.5rem 0' }}>Button</h2>
+        <p style={{ margin: 0, color: '#555', maxWidth: '60ch' }}>
+          The primary interaction trigger. Available in various semantic variants and sizes. Used to initiate actions, submit forms, or navigate.
+        </p>
+      </div>
+      <Stack gap="loose">
+        <Cluster gap="default" align="center">
+          <Button {...args} variant="primary">Primary</Button>
+          <Button {...args} variant="secondary">Secondary</Button>
+          <Button {...args} variant="highlight">Highlight</Button>
+          <Button {...args} variant="subtle">Subtle</Button>
+          <Button {...args} variant="danger">Danger</Button>
+        </Cluster>
+        <Cluster gap="default" align="center">
+          <Button {...args} variant="primary" disabled>Primary</Button>
+          <Button {...args} variant="secondary" disabled>Secondary</Button>
+          <Button {...args} variant="highlight" disabled>Highlight</Button>
+          <Button {...args} variant="subtle" disabled>Subtle</Button>
+          <Button {...args} variant="danger" disabled>Danger</Button>
+        </Cluster>
+      </Stack>
+    </div>
+  ),
+};

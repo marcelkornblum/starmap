@@ -6,7 +6,7 @@ import {
   applyPalette,
   type ThemeMode,
 } from '../../../../styles/tokens/paletteTheme';
-import { Button } from '../../primitives/control/Button/Button';
+import { Button } from '../../../interface/control/Button/Button';
 import { Cluster } from '../../../interface/layout/Cluster/Cluster';
 import { Stack } from '../../../interface/layout/Stack/Stack';
 import styles from './ThemeSwitcher.module.css';

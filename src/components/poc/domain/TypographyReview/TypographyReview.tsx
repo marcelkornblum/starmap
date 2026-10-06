@@ -5,7 +5,7 @@ import { Badge, type BadgeStatus } from '../../primitives/data/Badge/Badge';
 import { Metric } from '../../primitives/data/Metric/Metric';
 import { Datum } from '../../primitives/data/Datum/Datum';
 import { ConfidencePip } from '../../primitives/data/ConfidencePip/ConfidencePip';
-import { Button } from '../../primitives/control/Button/Button';
+import { Button } from '../../../interface/control/Button/Button';
 import { Cluster } from '../../../interface/layout/Cluster/Cluster';
 import { Stack } from '../../../interface/layout/Stack/Stack';
 import { OrbitTable, type OrbitElementRow } from '../OrbitTable/OrbitTable';
