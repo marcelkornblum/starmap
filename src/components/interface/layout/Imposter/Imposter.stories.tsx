@@ -28,10 +28,18 @@ export const Imposter: Story = {
     margin: 'default',
   },
   render: (args) => (
-    <div style={{ position: 'relative', width: '100%', height: '300px', backgroundColor: '#ffe6cc', overflow: 'hidden' }}>
-      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff', padding: '1rem' }}>
-        <div style={{ backgroundColor: '#ff5c5c', padding: '1rem', color: 'white' }}>Imposter Element</div>
-      </Component>
+    <div style={{ fontFamily: 'sans-serif', padding: '1rem' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h2 style={{ margin: '0 0 0.5rem 0' }}>Imposter</h2>
+        <p style={{ margin: 0, color: '#555', maxWidth: '60ch' }}>
+          A positioning primitive that floats above all other content. Used for modals, tooltips, and floating action buttons that need to break out of the document flow.
+        </p>
+      </div>
+      <div style={{ position: 'relative', width: '100%', height: '300px', backgroundColor: '#ffe6cc', overflow: 'hidden' }}>
+        <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff', padding: '1rem' }}>
+          <div style={{ backgroundColor: '#ff5c5c', padding: '1rem', color: 'white' }}>Imposter Element</div>
+        </Component>
+      </div>
     </div>
   ),
 };

@@ -26,12 +26,20 @@ export const Stack: Story = {
     align: 'stretch',
   },
   render: (args) => (
-    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
-      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
-        <div style={{ backgroundColor: '#ff5c5c', padding: '1rem' }}>1</div>
-        <div style={{ backgroundColor: '#5cff8a', padding: '1.5rem' }}>2</div>
-        <div style={{ backgroundColor: '#5c8aff', padding: '2rem' }}>3</div>
-      </Component>
+    <div style={{ fontFamily: 'sans-serif', padding: '1rem' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h2 style={{ margin: '0 0 0.5rem 0' }}>Stack</h2>
+        <p style={{ margin: 0, color: '#555', maxWidth: '60ch' }}>
+          A vertical flow primitive that stacks elements on top of each other, managing the vertical gap between them. It forms the backbone of standard document layouts.
+        </p>
+      </div>
+      <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
+        <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+          <div style={{ backgroundColor: '#ff5c5c', padding: '1rem' }}>1</div>
+          <div style={{ backgroundColor: '#5cff8a', padding: '1.5rem' }}>2</div>
+          <div style={{ backgroundColor: '#5c8aff', padding: '2rem' }}>3</div>
+        </Component>
+      </div>
     </div>
   ),
 };
