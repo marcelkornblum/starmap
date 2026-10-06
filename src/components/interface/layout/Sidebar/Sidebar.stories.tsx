@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Sidebar } from './Sidebar';
-import { Box } from '../Box/Box';
+import { Sidebar as Component } from './Sidebar';
 
-const meta: Meta<typeof Sidebar> = {
+const meta: Meta<typeof Component> = {
   title: 'INTERFACE/Layout',
-  component: Sidebar,
+  component: Component,
   argTypes: {
     side: {
       control: 'radio',
@@ -22,23 +21,21 @@ const meta: Meta<typeof Sidebar> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof Sidebar>;
+type Story = StoryObj<typeof Component>;
 
-export const Default: Story = {
+export const Sidebar: Story = {
   name: 'Sidebar',
   args: {
     side: 'start',
     sideWidth: 'md',
     gap: 'default',
-    children: (
-      <>
-        <Box padding="default" border="subtle" background="dock">
-          Sidebar Panel
-        </Box>
-        <Box padding="default" border="subtle" background="panel">
-          Main Content Area
-        </Box>
-      </>
-    ),
   },
+  render: (args) => (
+    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
+      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <div style={{ backgroundColor: '#ff5c5c', padding: '2rem' }}>Sidebar Panel</div>
+        <div style={{ backgroundColor: '#5c8aff', padding: '2rem' }}>Main Content</div>
+      </Component>
+    </div>
+  ),
 };

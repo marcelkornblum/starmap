@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Center } from './Center';
-import { Box } from '../Box/Box';
+import { Center as Component } from './Center';
 
-const meta: Meta<typeof Center> = {
+const meta: Meta<typeof Component> = {
   title: 'INTERFACE/Layout',
-  component: Center,
+  component: Component,
   argTypes: {
     max: {
       control: 'select',
@@ -19,17 +18,21 @@ const meta: Meta<typeof Center> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof Center>;
+type Story = StoryObj<typeof Component>;
 
-export const Default: Story = {
+export const Center: Story = {
   name: 'Center',
   args: {
     max: 'md',
     andText: false,
-    children: (
-      <Box padding="loose" border="subtle" background="panel">
-        Centred content container restricted to 60ch with fluid guttering.
-      </Box>
-    ),
   },
+  render: (args) => (
+    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
+      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <div style={{ backgroundColor: '#ff5c5c', padding: '1rem', color: 'white', textAlign: 'center' }}>
+          Centered Content (Max Width Constrained)
+        </div>
+      </Component>
+    </div>
+  ),
 };
