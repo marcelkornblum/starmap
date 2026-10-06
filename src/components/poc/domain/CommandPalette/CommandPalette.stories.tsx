@@ -43,7 +43,7 @@ const sampleItems: CommandPaletteItem[] = [
 ];
 
 const meta: Meta<typeof CommandPalette> = {
-  title: 'Domain/CommandPalette',
+  title: 'POC/Domain/CommandPalette',
   component: CommandPalette,
   argTypes: {
     isOpen: { control: 'boolean' },

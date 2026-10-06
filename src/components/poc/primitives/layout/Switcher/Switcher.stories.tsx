@@ -3,7 +3,7 @@ import { Switcher } from './Switcher';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Switcher> = {
-  title: 'Primitives/Layout/Switcher',
+  title: 'POC/Primitives/Layout/Switcher',
   component: Switcher,
   argTypes: {
     threshold: {

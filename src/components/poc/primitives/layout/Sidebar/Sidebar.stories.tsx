@@ -3,7 +3,7 @@ import { Sidebar } from './Sidebar';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Sidebar> = {
-  title: 'Primitives/Layout/Sidebar',
+  title: 'POC/Primitives/Layout/Sidebar',
   component: Sidebar,
   argTypes: {
     side: {

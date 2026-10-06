@@ -10,7 +10,7 @@ import { getStandardInitialCamera } from '../cartography/cartographyMath';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<PlanetBodyProps> = {
-  title: 'Canvas/Celestial Entities/Planet Body',
+  title: 'POC/Canvas/Celestial Entities/Planet Body',
   component: PlanetBody,
   parameters: {
     layout: 'fullscreen',

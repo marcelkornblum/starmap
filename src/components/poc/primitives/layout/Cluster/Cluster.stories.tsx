@@ -3,7 +3,7 @@ import { Cluster } from './Cluster';
 import { Badge } from '../../data/Badge/Badge';
 
 const meta: Meta<typeof Cluster> = {
-  title: 'Primitives/Layout/Cluster',
+  title: 'POC/Primitives/Layout/Cluster',
   component: Cluster,
   argTypes: {
     gap: {

@@ -4,7 +4,7 @@ import { Modal } from './Modal';
 import { Button, Cluster } from '../../primitives';
 
 const meta: Meta<typeof Modal> = {
-  title: 'Overlays/Modal',
+  title: 'POC/Overlays/Modal',
   component: Modal,
 };
 

@@ -3,7 +3,7 @@ import { Cover } from './Cover';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Cover> = {
-  title: 'Primitives/Layout/Cover',
+  title: 'POC/Primitives/Layout/Cover',
   component: Cover,
   argTypes: {
     minHeight: {

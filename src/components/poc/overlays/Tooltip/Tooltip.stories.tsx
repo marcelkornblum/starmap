@@ -3,7 +3,7 @@ import { Tooltip } from './Tooltip';
 import { Button, Box } from '../../primitives';
 
 const meta: Meta<typeof Tooltip> = {
-  title: 'Overlays/Tooltip',
+  title: 'POC/Overlays/Tooltip',
   component: Tooltip,
   argTypes: {
     position: {

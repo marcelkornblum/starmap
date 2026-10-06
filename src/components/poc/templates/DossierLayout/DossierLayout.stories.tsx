@@ -3,7 +3,7 @@ import { DossierLayout } from './DossierLayout';
 import { Metric, Datum, Badge, Button, Cluster } from '../../primitives';
 
 const meta: Meta<typeof DossierLayout> = {
-  title: 'Templates/DossierLayout',
+  title: 'POC/Templates/DossierLayout',
   component: DossierLayout,
 };
 

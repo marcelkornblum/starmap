@@ -5,7 +5,7 @@ import { Center } from '../../layout/Center/Center';
 import { Stack } from '../../layout/Stack/Stack';
 
 const meta: Meta<typeof Slider> = {
-  title: 'Primitives/Control/Slider',
+  title: 'POC/Primitives/Control/Slider',
   component: Slider,
 };
 

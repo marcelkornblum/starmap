@@ -5,7 +5,7 @@ import { Stack } from '../../layout/Stack/Stack';
 import { ConfidencePip } from '../ConfidencePip/ConfidencePip';
 
 const meta: Meta<typeof Badge> = {
-  title: 'Primitives/Data/Badge',
+  title: 'POC/Primitives/Data/Badge',
   component: Badge,
   parameters: {
     layout: 'centered',

@@ -63,7 +63,7 @@ const solData = {
 };
 
 const meta: Meta<typeof StarDossier> = {
-  title: 'Domain/StarDossier',
+  title: 'POC/Domain/StarDossier',
   component: StarDossier,
 };
 

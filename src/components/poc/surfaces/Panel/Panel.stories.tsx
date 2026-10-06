@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Panel } from './Panel';
 
 const meta: Meta<typeof Panel> = {
-  title: 'Surfaces/Panel',
+  title: 'POC/Surfaces/Panel',
   component: Panel,
 };
 

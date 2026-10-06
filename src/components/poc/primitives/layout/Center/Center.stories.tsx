@@ -3,7 +3,7 @@ import { Center } from './Center';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Center> = {
-  title: 'Primitives/Layout/Center',
+  title: 'POC/Primitives/Layout/Center',
   component: Center,
   argTypes: {
     max: {

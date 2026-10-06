@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TypographyReview } from './TypographyReview';
 
 const meta: Meta<typeof TypographyReview> = {
-  title: 'Domain/TypographyReview',
+  title: 'POC/Domain/TypographyReview',
   component: TypographyReview,
   parameters: {
     layout: 'fullscreen',

@@ -3,7 +3,7 @@ import { Frame } from './Frame';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Frame> = {
-  title: 'Primitives/Layout/Frame',
+  title: 'POC/Primitives/Layout/Frame',
   component: Frame,
   argTypes: {
     ratio: {

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Drawer } from './Drawer';
 
 const meta: Meta<typeof Drawer> = {
-  title: 'Overlays/Drawer',
+  title: 'POC/Overlays/Drawer',
   component: Drawer,
   argTypes: {
     position: {

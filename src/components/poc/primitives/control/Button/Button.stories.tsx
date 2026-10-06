@@ -3,7 +3,7 @@ import { Button } from './Button';
 import { Cluster } from '../../layout/Cluster/Cluster';
 
 const meta: Meta<typeof Button> = {
-  title: 'Primitives/Control/Button',
+  title: 'POC/Primitives/Control/Button',
   component: Button,
   parameters: {
     layout: 'centered',

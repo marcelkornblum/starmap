@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Well } from './Well';
 
 const meta: Meta<typeof Well> = {
-  title: 'Surfaces/Well',
+  title: 'POC/Surfaces/Well',
   component: Well,
 };
 

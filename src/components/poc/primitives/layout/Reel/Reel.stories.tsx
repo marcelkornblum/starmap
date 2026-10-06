@@ -3,7 +3,7 @@ import { Reel } from './Reel';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Reel> = {
-  title: 'Primitives/Layout/Reel',
+  title: 'POC/Primitives/Layout/Reel',
   component: Reel,
   argTypes: {
     itemWidth: {
