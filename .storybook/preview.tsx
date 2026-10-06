@@ -11,7 +11,7 @@ const preview: Preview = {
       },
     },
     options: {
-      storySort: (a: any, b: any) => {
+      storySort: (a, b) => {
         if (a.name === 'Overview') return -1;
         if (b.name === 'Overview') return 1;
         return a.id.localeCompare(b.id, undefined, { numeric: true });
