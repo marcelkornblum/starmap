@@ -456,6 +456,7 @@
     --interactive-primary: var(--state-focus);
 
     --border-color-subtle:      var(--palette-specular-white-8);
+    --border-color-prominent:   var(--palette-specular-white-30);
     --border-color-interactive: var(--state-focus);
     --border-subtle:            var(--palette-specular-white-8);
     --stroke-hairline:          var(--border-width-1);
@@ -1008,6 +1009,7 @@
     --interactive-primary: var(--state-focus);
 
     --border-color-subtle:      var(--palette-specular-black-12);
+    --border-color-prominent:   var(--palette-specular-black-30);
     --border-color-interactive: var(--state-focus);
     --border-subtle:            var(--palette-specular-black-12);
     --stroke-hairline:          var(--border-width-1);
