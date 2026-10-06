@@ -78,7 +78,7 @@ export const SystemControls = ({
         <Cluster gap="default" justify="between" align="center">
           <Cluster gap="tight" align="center">
             <Button
-              variant={effectiveIsPlaying ? 'primary' : 'secondary'}
+              variant={effectiveIsPlaying ? 'primary' : 'default'}
               size="sm"
               onClick={togglePlay}
               aria-label={effectiveIsPlaying ? 'Pause simulation' : 'Play simulation'}

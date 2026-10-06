@@ -9,7 +9,7 @@ const meta: Meta<typeof Button> = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['primary', 'secondary', 'highlight', 'subtle', 'danger'],
+      options: ['primary', 'subtle', 'danger', 'default'],
     },
     size: {
       control: 'radio',
@@ -34,16 +34,14 @@ export const ButtonStory: Story = {
       </div>
       <Stack gap="loose">
         <Cluster gap="default" align="center">
+          <Button {...args}>Default</Button>
           <Button {...args} variant="primary">Primary</Button>
-          <Button {...args} variant="secondary">Secondary</Button>
-          <Button {...args} variant="highlight">Highlight</Button>
           <Button {...args} variant="subtle">Subtle</Button>
           <Button {...args} variant="danger">Danger</Button>
         </Cluster>
         <Cluster gap="default" align="center">
+          <Button {...args} disabled>Default</Button>
           <Button {...args} variant="primary" disabled>Primary</Button>
-          <Button {...args} variant="secondary" disabled>Secondary</Button>
-          <Button {...args} variant="highlight" disabled>Highlight</Button>
           <Button {...args} variant="subtle" disabled>Subtle</Button>
           <Button {...args} variant="danger" disabled>Danger</Button>
         </Cluster>

@@ -31,7 +31,7 @@ export const Default: Story = {
         <span>RA: 18h 36m 56s | Dec: +38° 47′ 01″ | Epoch: J2000.0</span>
         <Cluster gap="tight">
           <Button size="sm" variant="subtle">GRID</Button>
-          <Button size="sm" variant="secondary">RESET</Button>
+          <Button size="sm" variant="default">RESET</Button>
         </Cluster>
       </Cluster>
     ),

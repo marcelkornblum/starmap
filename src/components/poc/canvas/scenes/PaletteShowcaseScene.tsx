@@ -523,7 +523,7 @@ export const PaletteShowcaseScene = () => {
         <div className={styles.chartBox}>
           <div className={styles.stateRow}>
             <Button variant="primary">Prominent Button</Button>
-            <Button variant="secondary">Secondary Button</Button>
+            <Button variant="default">Secondary Button</Button>
             <Button variant="subtle">Subtle Action</Button>
             <Toggle
               checked={toggleChecked}
