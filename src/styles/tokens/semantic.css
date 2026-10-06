@@ -454,6 +454,7 @@
     --content-accent:    var(--state-focus);
 
     --interactive-primary: var(--state-focus);
+    --color-control-default: var(--palette-control-handle-dark);
 
     --border-color-subtle:      var(--palette-specular-white-8);
     --border-color-interactive: var(--state-focus);
@@ -586,7 +587,7 @@
     --ui-input-placeholder-color:        var(--content-faint);
 
     /* UI Control Hardware & Dedicated State Indicators (Dark Theme) */
-    --ui-control-handle-bg:              var(--palette-control-handle-dark);
+    --ui-control-handle-bg:              var(--color-control-default);
     --ui-control-handle-hover-bg:        var(--palette-control-handle-dark-hover);
     --ui-control-active-bg:              var(--palette-control-active-dark);
     --ui-control-active-glow:            0 0 5px oklch(from var(--ui-control-active-bg) l c h / 0.75), 0 0 10px oklch(from var(--ui-control-active-bg) l c h / 0.35);
@@ -1006,6 +1007,7 @@
     --content-accent:    var(--state-focus);
 
     --interactive-primary: var(--state-focus);
+    --color-control-default: var(--palette-control-handle-light);
 
     --border-color-subtle:      var(--palette-specular-black-12);
     --border-color-interactive: var(--state-focus);
@@ -1137,7 +1139,7 @@
     --ui-input-placeholder-color:        var(--content-faint);
 
     /* UI Control Hardware & Dedicated State Indicators (Light Theme) */
-    --ui-control-handle-bg:              var(--palette-control-handle-light);
+    --ui-control-handle-bg:              var(--color-control-default);
     --ui-control-handle-hover-bg:        var(--palette-control-handle-light-hover);
     --ui-control-active-bg:              var(--palette-control-active-light);
     --ui-control-active-glow:            0 0 4px oklch(from var(--ui-control-active-bg) l c h / 0.60), 0 0 8px oklch(from var(--ui-control-active-bg) l c h / 0.25);
