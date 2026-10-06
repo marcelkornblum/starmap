@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Stack } from './Stack';
-import { Box } from '../Box/Box';
+import { Cluster } from './Cluster';
+import { Badge } from '../../../poc/primitives/data/Badge/Badge';
 
-const meta: Meta<typeof Stack> = {
-  title: 'POC/Primitives/Layout/Stack',
-  component: Stack,
+const meta: Meta<typeof Cluster> = {
+  title: 'INTERFACE/Layout',
+  component: Cluster,
   argTypes: {
     gap: {
       control: 'select',
@@ -14,21 +14,27 @@ const meta: Meta<typeof Stack> = {
       control: 'select',
       options: ['start', 'center', 'end', 'stretch', 'baseline'],
     },
+    justify: {
+      control: 'select',
+      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+    },
   },
 };
 
 export default meta;
-type Story = StoryObj<typeof Stack>;
+type Story = StoryObj<typeof Cluster>;
 
 export const Default: Story = {
+  name: 'Cluster',
   args: {
     gap: 'default',
-    align: 'stretch',
+    align: 'center',
+    justify: 'start',
     children: (
       <>
-        <Box padding="tight" border="subtle" background="panel">Stack Item 1</Box>
-        <Box padding="tight" border="subtle" background="panel">Stack Item 2</Box>
-        <Box padding="tight" border="subtle" background="panel">Stack Item 3</Box>
+        <Badge>Tag A</Badge>
+        <Badge>Tag B</Badge>
+        <Badge>Tag C</Badge>
       </>
     ),
   },

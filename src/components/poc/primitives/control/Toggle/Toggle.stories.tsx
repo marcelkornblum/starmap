@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { Toggle } from './Toggle';
-import { Stack } from '../../layout/Stack/Stack';
+import { Stack } from '../../../../interface/layout/Stack/Stack';
 
 const meta: Meta<typeof Toggle> = {
   title: 'POC/Primitives/Control/Toggle',

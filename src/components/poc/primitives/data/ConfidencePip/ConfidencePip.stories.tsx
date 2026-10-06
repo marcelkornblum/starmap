@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ConfidencePip } from './ConfidencePip';
-import { Cluster } from '../../layout/Cluster/Cluster';
-import { Stack } from '../../layout/Stack/Stack';
+import { Cluster } from '../../../../interface/layout/Cluster/Cluster';
+import { Stack } from '../../../../interface/layout/Stack/Stack';
 import styles from './ConfidencePip.stories.module.css';
 
 const meta = {

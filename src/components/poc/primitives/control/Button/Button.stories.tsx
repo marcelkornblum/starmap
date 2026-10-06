@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Button } from './Button';
-import { Cluster } from '../../layout/Cluster/Cluster';
+import { Cluster } from '../../../../interface/layout/Cluster/Cluster';
 
 const meta: Meta<typeof Button> = {
   title: 'POC/Primitives/Control/Button',

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { Select } from './Select';
-import { Center } from '../../layout/Center/Center';
+import { Center } from '../../../../interface/layout/Center/Center';
 
 const meta: Meta<typeof Select> = {
   title: 'POC/Primitives/Control/Select',

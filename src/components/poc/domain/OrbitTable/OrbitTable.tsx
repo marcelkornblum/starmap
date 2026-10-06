@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from 'react';
 import { ConfidencePip, type ConfidenceLevel, Unit, Quantity } from '../../primitives/data';
-import { Cluster } from '../../primitives/layout/Cluster/Cluster';
+import { Cluster } from '../../../interface/layout/Cluster/Cluster';
 import styles from './OrbitTable.module.css';
 
 export interface OrbitElementRow {

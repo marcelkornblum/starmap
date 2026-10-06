@@ -3,7 +3,7 @@ import { Cover } from './Cover';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Cover> = {
-  title: 'POC/Primitives/Layout/Cover',
+  title: 'INTERFACE/Layout',
   component: Cover,
   argTypes: {
     minHeight: {
@@ -21,6 +21,7 @@ export default meta;
 type Story = StoryObj<typeof Cover>;
 
 export const Default: Story = {
+  name: 'Cover',
   args: {
     minHeight: 'viewport',
     header: <Box as="header" padding="tight" border="subtle" background="dock">Starmap Header</Box>,

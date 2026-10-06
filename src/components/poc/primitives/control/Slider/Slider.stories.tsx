@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { Slider } from './Slider';
-import { Center } from '../../layout/Center/Center';
-import { Stack } from '../../layout/Stack/Stack';
+import { Center } from '../../../../interface/layout/Center/Center';
+import { Stack } from '../../../../interface/layout/Stack/Stack';
 
 const meta: Meta<typeof Slider> = {
   title: 'POC/Primitives/Control/Slider',

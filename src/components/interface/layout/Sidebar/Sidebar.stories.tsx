@@ -3,7 +3,7 @@ import { Sidebar } from './Sidebar';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Sidebar> = {
-  title: 'POC/Primitives/Layout/Sidebar',
+  title: 'INTERFACE/Layout',
   component: Sidebar,
   argTypes: {
     side: {
@@ -25,6 +25,7 @@ export default meta;
 type Story = StoryObj<typeof Sidebar>;
 
 export const Default: Story = {
+  name: 'Sidebar',
   args: {
     side: 'start',
     sideWidth: 'md',

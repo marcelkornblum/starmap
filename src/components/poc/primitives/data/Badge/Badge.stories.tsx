@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Badge } from './Badge';
-import { Cluster } from '../../layout/Cluster/Cluster';
-import { Stack } from '../../layout/Stack/Stack';
+import { Cluster } from '../../../../interface/layout/Cluster/Cluster';
+import { Stack } from '../../../../interface/layout/Stack/Stack';
 import { ConfidencePip } from '../ConfidencePip/ConfidencePip';
 
 const meta: Meta<typeof Badge> = {

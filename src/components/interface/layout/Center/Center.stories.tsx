@@ -3,7 +3,7 @@ import { Center } from './Center';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Center> = {
-  title: 'POC/Primitives/Layout/Center',
+  title: 'INTERFACE/Layout',
   component: Center,
   argTypes: {
     max: {
@@ -22,6 +22,7 @@ export default meta;
 type Story = StoryObj<typeof Center>;
 
 export const Default: Story = {
+  name: 'Center',
   args: {
     max: 'md',
     andText: false,
