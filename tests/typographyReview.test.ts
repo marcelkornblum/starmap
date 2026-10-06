@@ -39,7 +39,7 @@ describe('TypographyReview Component', () => {
     expect(html).toContain('Calibrate');
     expect(html).toContain('Telemetry Sync');
     expect(html).toContain('Propagate Target');
-    expect(html).toContain('data-variant="highlight"');
+    expect(html).toContain('data-variant="primary"');
 
     // ConfidencePip dots in table, datums, and footer
     expect(html).toContain('data-testid="confidence-pip-wrapper"');

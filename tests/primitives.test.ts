@@ -339,11 +339,11 @@ describe('Tier 1: Control Primitives', () => {
     const htmlHighlight = renderToString(
       createElement(
         Button,
-        { variant: 'highlight', size: 'md' },
+        { variant: 'primary', size: 'md' },
         'Focus Target'
       )
     );
-    expect(htmlHighlight).toContain('data-variant="highlight"');
+    expect(htmlHighlight).toContain('data-variant="primary"');
     expect(htmlHighlight).toContain('data-size="md"');
     expect(htmlHighlight).toContain('Focus Target');
   });

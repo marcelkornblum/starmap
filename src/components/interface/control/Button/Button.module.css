@@ -63,39 +63,19 @@
 }
 
 @layer exceptions {
-  .button[data-variant="highlight"],
   .button[data-variant="primary"] {
     --button-bg: var(--ui-button-highlight-bg);
     --button-color: var(--ui-button-highlight-color);
     --button-border-color: var(--ui-button-highlight-border-color);
     --button-shadow: var(--ui-button-highlight-shadow);
   }
-  .button[data-variant="highlight"]:hover:not(:disabled),
   .button[data-variant="primary"]:hover:not(:disabled) {
     --button-bg: var(--ui-button-highlight-hover-bg);
     --button-border-color: var(--ui-button-highlight-hover-border-color);
     --button-shadow: var(--ui-button-highlight-shadow);
   }
-  .button[data-variant="highlight"]:active:not(:disabled),
   .button[data-variant="primary"]:active:not(:disabled) {
     --button-bg: var(--ui-button-highlight-active-bg);
-  }
-
-  .button[data-variant="secondary"] {
-    --button-bg: var(--ui-button-default-bg);
-    --button-color: var(--ui-button-default-color);
-    --button-border-color: var(--ui-button-default-border-color);
-    --button-shadow: var(--ui-button-default-shadow);
-  }
-  .button[data-variant="secondary"]:hover:not(:disabled) {
-    --button-bg: var(--ui-button-default-hover-bg);
-    --button-border-color: var(--ui-button-default-hover-border-color);
-    --button-shadow: var(--ui-button-default-hover-shadow);
-  }
-  .button[data-variant="secondary"]:active:not(:disabled) {
-    --button-bg: var(--ui-button-default-active-bg);
-    --button-border-color: var(--ui-button-default-active-border-color);
-    --button-shadow: var(--ui-button-default-active-shadow);
   }
 
   .button[data-variant="subtle"] {

@@ -179,8 +179,8 @@ export const TypographyReview: React.FC<TypographyReviewProps> = ({
                 <div className={styles.subtitle}>{subtitleText}</div>
               </Stack>
               <Cluster gap="dense" align="center">
-                <Button variant="secondary" size="sm">Calibrate</Button>
-                <Button variant="highlight" size="sm">Telemetry Sync</Button>
+                <Button variant="default" size="sm">Calibrate</Button>
+                <Button variant="primary" size="sm">Telemetry Sync</Button>
                 <Badge status={badgeStatus}>{badgeText}</Badge>
               </Cluster>
             </Cluster>
@@ -193,8 +193,8 @@ export const TypographyReview: React.FC<TypographyReviewProps> = ({
               </Cluster>
               <Cluster gap="dense" align="center">
                 <Button variant="subtle" size="sm">Export CSV</Button>
-                <Button variant="secondary" size="sm">Inspect Slab</Button>
-                <Button variant="highlight" size="sm">Propagate Target</Button>
+                <Button variant="default" size="sm">Inspect Slab</Button>
+                <Button variant="primary" size="sm">Propagate Target</Button>
                 <Badge status="info">10.0 pc SURVEY</Badge>
               </Cluster>
             </Cluster>

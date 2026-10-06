@@ -73,14 +73,14 @@ export const GalaxyView: React.FC<GalaxyViewProps> = () => {
 
               <Cluster gap="tight">
                 <Button
-                  variant="secondary"
+                  variant="default"
                   size="sm"
                   onClick={() => nav.toSystem('alpha-centauri')}
                 >
                   Alpha Centauri
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="default"
                   size="sm"
                   onClick={() => nav.toSystem('sirius')}
                 >

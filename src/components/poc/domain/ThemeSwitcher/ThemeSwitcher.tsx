@@ -53,7 +53,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
         <div className={styles.modeSegmentGroup} role="group" aria-label="Theme mode switcher">
           <Button
             size="sm"
-            variant={!isLight ? 'highlight' : 'secondary'}
+            variant={!isLight ? 'primary' : 'default'}
             aria-pressed={!isLight}
             onClick={() => handleModeChange('dark')}
             title="Dark theme mode"
@@ -62,7 +62,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
           </Button>
           <Button
             size="sm"
-            variant={isLight ? 'highlight' : 'secondary'}
+            variant={isLight ? 'primary' : 'default'}
             aria-pressed={isLight}
             onClick={() => handleModeChange('light')}
             title="Light theme mode"
@@ -79,7 +79,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
               <Button
                 key={p.id}
                 size="sm"
-                variant={isActive ? 'highlight' : 'secondary'}
+                variant={isActive ? 'primary' : 'default'}
                 role="radio"
                 aria-checked={isActive}
                 title={`${p.label} - ${p.tagline}`}
@@ -103,7 +103,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
           <div className={styles.modeSegmentGroup} role="group" aria-label="Theme mode switcher">
             <Button
               size="sm"
-              variant={!isLight ? 'highlight' : 'secondary'}
+              variant={!isLight ? 'primary' : 'default'}
               aria-pressed={!isLight}
               onClick={() => handleModeChange('dark')}
               title="Dark theme mode"
@@ -112,7 +112,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
             </Button>
             <Button
               size="sm"
-              variant={isLight ? 'highlight' : 'secondary'}
+              variant={isLight ? 'primary' : 'default'}
               aria-pressed={isLight}
               onClick={() => handleModeChange('light')}
               title="Light theme mode"
@@ -129,7 +129,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
               <Button
                 key={p.id}
                 size="sm"
-                variant={isActive ? 'highlight' : 'secondary'}
+                variant={isActive ? 'primary' : 'default'}
                 role="radio"
                 aria-checked={isActive}
                 title={`${p.label} - ${p.tagline}`}

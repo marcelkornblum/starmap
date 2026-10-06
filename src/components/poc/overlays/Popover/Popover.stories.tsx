@@ -23,7 +23,7 @@ export const Default: Story = {
   render: (args) => (
     <Box padding="loose">
       <Popover
-        trigger={<Button variant="secondary">Target Anchor</Button>}
+        trigger={<Button variant="default">Target Anchor</Button>}
         {...args}
       >
         <div>Spectral type M2V details and stellar metallicity index.</div>

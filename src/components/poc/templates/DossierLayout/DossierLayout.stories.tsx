@@ -39,7 +39,7 @@ export const Default: Story = {
     actions: (
       <Cluster justify="end" gap="tight">
         <Button variant="subtle">Export FITS</Button>
-        <Button variant="secondary">Plot Orbit</Button>
+        <Button variant="default">Plot Orbit</Button>
       </Cluster>
     ),
   },

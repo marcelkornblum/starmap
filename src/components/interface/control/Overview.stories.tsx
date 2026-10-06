@@ -93,24 +93,17 @@ export const Overview: StoryObj = {
           <Section title="Button" description="Primary interaction trigger. Available in various semantic variants and sizes.">
             <Grid minWidth="sm" gap="loose">
               <Stack gap="tight">
+                <strong>Default</strong>
+                <Cluster gap="tight">
+                  <Button>Interactive</Button>
+                  <Button disabled>Disabled</Button>
+                </Cluster>
+              </Stack>
+              <Stack gap="tight">
                 <strong>Primary</strong>
                 <Cluster gap="tight">
                   <Button variant="primary">Interactive</Button>
                   <Button variant="primary" disabled>Disabled</Button>
-                </Cluster>
-              </Stack>
-              <Stack gap="tight">
-                <strong>Secondary</strong>
-                <Cluster gap="tight">
-                  <Button variant="secondary">Interactive</Button>
-                  <Button variant="secondary" disabled>Disabled</Button>
-                </Cluster>
-              </Stack>
-              <Stack gap="tight">
-                <strong>Highlight</strong>
-                <Cluster gap="tight">
-                  <Button variant="highlight">Interactive</Button>
-                  <Button variant="highlight" disabled>Disabled</Button>
                 </Cluster>
               </Stack>
               <Stack gap="tight">

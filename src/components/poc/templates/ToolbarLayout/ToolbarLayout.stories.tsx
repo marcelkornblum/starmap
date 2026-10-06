@@ -15,7 +15,7 @@ export const Default: Story = {
     start: (
       <Cluster gap="tight">
         <Button variant="primary" size="sm">Galaxy</Button>
-        <Button variant="secondary" size="sm">System</Button>
+        <Button variant="default" size="sm">System</Button>
         <Button variant="subtle" size="sm">Catalog</Button>
       </Cluster>
     ),
@@ -23,7 +23,7 @@ export const Default: Story = {
     end: (
       <Cluster gap="tight">
         <Input placeholder="Search celestial bodies..." sizeVariant="sm" />
-        <Button variant="secondary" size="sm">Settings</Button>
+        <Button variant="default" size="sm">Settings</Button>
       </Cluster>
     ),
   },

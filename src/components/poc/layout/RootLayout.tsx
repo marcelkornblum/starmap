@@ -136,7 +136,7 @@ export const RootHeader: React.FC = () => {
 
         <div className={styles.actionGroup}>
           <Button
-            variant="secondary"
+            variant="default"
             size="sm"
             className={styles.searchButton}
             onClick={handleOpenPalette}

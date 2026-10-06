@@ -175,7 +175,7 @@ export const SystemView: React.FC<SystemViewProps> = () => {
                 Target Earth →
               </Button>
               <Button
-                variant="secondary"
+                variant="default"
                 onClick={() => nav.toGalaxy()}
               >
                 ← Galaxy

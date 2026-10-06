@@ -150,7 +150,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             <Badge status="info">ZOOM 10.0 pc</Badge>
             <Button
               size="sm"
-              variant={isDrawerOpen ? 'highlight' : 'secondary'}
+              variant={isDrawerOpen ? 'primary' : 'default'}
               title="Tier 4: Drawer - Spectroscopic Filter Matrix"
               aria-label="Toggle Drawer"
               onClick={() => setIsDrawerOpen((prev) => !prev)}
@@ -159,7 +159,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             </Button>
             <Button
               size="sm"
-              variant={isPopoverOpen ? 'highlight' : 'secondary'}
+              variant={isPopoverOpen ? 'primary' : 'default'}
               title="Tier 5: Popover - Sol Telemetry"
               aria-label="Toggle Popover"
               onClick={() => setIsPopoverOpen((prev) => !prev)}
@@ -168,7 +168,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             </Button>
             <Button
               size="sm"
-              variant={isModalOpen ? 'highlight' : 'secondary'}
+              variant={isModalOpen ? 'primary' : 'default'}
               title="Tier 6: Modal - Astrodynamics Command Query"
               aria-label="Toggle Modal"
               onClick={() => setIsModalOpen((prev) => !prev)}
@@ -177,7 +177,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             </Button>
             <Button
               size="sm"
-              variant={isToastVisible ? 'highlight' : 'secondary'}
+              variant={isToastVisible ? 'primary' : 'default'}
               title="Tier 7: Toast - Gravitational Perturbation Alert"
               aria-label="Toggle Toast"
               onClick={() => setIsToastVisible((prev) => !prev)}
@@ -186,7 +186,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             </Button>
             <Button
               size="sm"
-              variant={isTooltipVisible ? 'highlight' : 'secondary'}
+              variant={isTooltipVisible ? 'primary' : 'default'}
               title="Tier 5: Tooltip - Spectroscopic Filter Matrix Hint"
               aria-label="Toggle Tooltip"
               onClick={() => setIsTooltipVisible((prev) => !prev)}
@@ -214,16 +214,16 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
         data-testid="surface-tier-2-dock"
       >
         <Cluster gap="tight" align="center">
-          <Button variant="highlight" size="sm" title="Tier 2: Dock - Galaxy Overview" aria-label="Galaxy Overview">
+          <Button variant="primary" size="sm" title="Tier 2: Dock - Galaxy Overview" aria-label="Galaxy Overview">
             GAL
           </Button>
-          <Button variant="secondary" size="sm" title="Tier 2: Dock - System Navigation" aria-label="System Navigation">
+          <Button variant="default" size="sm" title="Tier 2: Dock - System Navigation" aria-label="System Navigation">
             SYS
           </Button>
-          <Button variant="secondary" size="sm" title="Tier 2: Dock - Planetary Bodies" aria-label="Planetary Bodies">
+          <Button variant="default" size="sm" title="Tier 2: Dock - Planetary Bodies" aria-label="Planetary Bodies">
             PLN
           </Button>
-          <Button variant="secondary" size="sm" title="Tier 2: Dock - Astrometry Catalog" aria-label="Astrometry Catalog">
+          <Button variant="default" size="sm" title="Tier 2: Dock - Astrometry Catalog" aria-label="Astrometry Catalog">
             CAT
           </Button>
           <Tooltip
@@ -232,7 +232,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             className={isTooltipVisible ? styles.demoTooltip : undefined}
           >
             <Button
-              variant={isDrawerOpen ? 'highlight' : 'secondary'}
+              variant={isDrawerOpen ? 'primary' : 'default'}
               size="sm"
               title="Tier 2: Dock - Toggle Filter Drawer"
               aria-label="Toggle Filter Drawer"

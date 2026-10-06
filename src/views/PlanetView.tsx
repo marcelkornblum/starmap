@@ -45,7 +45,7 @@ export const PlanetView: React.FC<PlanetViewProps> = () => {
                 ← Sol System
               </Button>
               <Button
-                variant="secondary"
+                variant="default"
                 onClick={() => nav.toGalaxy()}
               >
                 Galaxy Atlas

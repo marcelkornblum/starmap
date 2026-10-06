@@ -20,7 +20,7 @@ export const Default: Story = {
   render: (args) => (
     <Box padding="loose">
       <Tooltip {...args}>
-        <Button variant="secondary">Hover Or Focus Me</Button>
+        <Button variant="default">Hover Or Focus Me</Button>
       </Tooltip>
     </Box>
   ),
