@@ -1,0 +1,21 @@
+@layer blocks {
+  .scale3 {
+    font-size: var(--type-scale-3);
+  }
+
+  .scale1 {
+    font-size: var(--type-scale-1);
+  }
+
+  .scale0 {
+    font-size: var(--type-scale-0);
+  }
+
+  .scaleNeg1 {
+    font-size: var(--type-scale-neg-1);
+  }
+
+  .scaleNeg2 {
+    font-size: var(--type-scale-neg-2);
+  }
+}

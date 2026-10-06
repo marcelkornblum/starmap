@@ -48,7 +48,7 @@ export const Reticle: React.FC<ReticleProps> = ({
   nodeAlphaRef,
 }) => {
   const stateFocus = useThreeTokenStore((s) => s.tokens.stateFocus);
-  const stalkSelectedColor = useThreeTokenStore((s) => s.tokens.stalkSelectedColor);
+  const stateSelected = useThreeTokenStore((s) => s.tokens.stateSelected);
   const reticleBracketColor = useThreeTokenStore((s) => s.tokens.reticleBracketColor);
   const reticleActiveAlpha = useThreeTokenStore((s) => s.tokens.reticleActiveAlpha);
   const reticleSelectedAlpha = useThreeTokenStore((s) => s.tokens.reticleSelectedAlpha);
@@ -86,9 +86,9 @@ export const Reticle: React.FC<ReticleProps> = ({
   const resolvedColor = useMemo(() => {
     if (explicitColor) return explicitColor;
     if (state === 'focused') return stateFocus;
-    if (state === 'selected') return stalkSelectedColor;
+    if (state === 'selected') return stateSelected;
     return reticleBracketColor;
-  }, [explicitColor, state, stateFocus, stalkSelectedColor, reticleBracketColor]);
+  }, [explicitColor, state, stateFocus, stateSelected, reticleBracketColor]);
 
   const resolvedOpacity = useMemo(() => {
     if (explicitOpacity !== undefined) return explicitOpacity;

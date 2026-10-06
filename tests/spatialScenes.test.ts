@@ -165,8 +165,8 @@ describe('SpatialScenes Storybook Suite', () => {
 
       // Tier 5: Popover
       expect(html).toContain('data-testid="surface-tier-5-popover"');
-      expect(html).toContain('[Tier 5: Popover] Target Lock: Sol Barycentre');
-      expect(html).toContain('[Tier 5: Popover] Sol Anchor Point');
+      expect(html).toContain('[Anchor Trigger] Sol Barycentre Target [0, 0, 0]');
+      expect(html).toContain('[Tier 5: Popover Glass] Sol Telemetry Dossier');
 
       // Tier 6: Modal
       expect(html).toContain('data-testid="surface-tier-6-modal"');

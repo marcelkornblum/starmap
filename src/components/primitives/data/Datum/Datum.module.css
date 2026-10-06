@@ -25,19 +25,9 @@
   }
 
   .valueWrapper {
-    display: inline-flex;
-    align-items: baseline;
-    gap: var(--space-gap-datum);
-    font-family: var(--font-data);
-    font-variant-numeric: tabular-nums;
-    color: var(--datum-value-color);
+    --quantity-gap: var(--space-gap-datum);
+    --quantity-color: var(--datum-value-color);
     font-weight: var(--data-datum-value-weight);
-  }
-
-  .unit {
-    color: var(--data-datum-unit-color);
-    font-size: var(--data-datum-unit-font-size);
-    font-family: var(--font-interface);
   }
 }
 
@@ -45,7 +35,7 @@
   .datum[data-status="nominal"] { --datum-value-color: var(--status-nominal); }
   .datum[data-status="caution"] { --datum-value-color: var(--status-caution); }
   .datum[data-status="critical"] { --datum-value-color: var(--status-critical); }
-  .datum[data-status="info"] { --datum-value-color: var(--state-focus); }
+  .datum[data-status="info"] { --datum-value-color: var(--status-info); }
 
   .datum[data-size="sm"] {
     --datum-font-size: var(--data-datum-sm-font-size);

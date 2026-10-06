@@ -321,8 +321,8 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
   const makeLinearColor = (hex: string) => new THREE.Color(hex);
 
   const canvasBgHex = isAmoled ? '#000000' : isLight ? '#fdf6e3' : '#002b36';
-  const chromeToneHex = isLight ? '#586e75' : '#93a1a1';
-  const focusHex = isLight ? '#268bd2' : '#2aa198';
+  const chromeToneHex = isLight ? '#586e75' : '#829fa6';
+  const focusHex = isLight ? '#007840' : '#00d078';
   const stalkToneHex = isLight ? '#263339' : '#e0e7e7';
   const redHex = '#dc322f';
 
@@ -396,8 +396,8 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     // Datum Footprints (Decoupled, Monochrome Baseline)
     footprintColor: makeLinearColor(theme === 'light' ? '#586e75' : '#93a1a1'),
     footprintAlpha: 0.35,
-    footprintSelectedColor: makeLinearColor(stalkToneHex),
-    footprintSelectedAlpha: 0.70,
+    footprintSelectedColor: makeLinearColor(focusHex),
+    footprintSelectedAlpha: 0.85,
     footprintFocusedColor: makeLinearColor(focusHex),
     footprintFocusedAlpha: 0.85,
 
@@ -473,22 +473,36 @@ export function extractThreeTokens(
 ): ThreeTokenSnapshot {
   const fallback = createDefaultTokenSnapshot(theme);
 
+  const resolveVar = (value: string): string => {
+    let current = value.trim();
+    let depth = 0;
+    while (current.startsWith('var(') && depth < 10) {
+      depth++;
+      const match = current.match(/^var\(\s*(--[a-zA-Z0-9_-]+)/);
+      if (!match) break;
+      const resolved = computed.getPropertyValue(match[1]).trim();
+      if (!resolved) break;
+      current = resolved;
+    }
+    return current;
+  };
+
   const readColor = (varName: string, defaultColor: THREE.Color, defaultAlpha: number): ParsedColorResult => {
-    const raw = computed.getPropertyValue(varName).trim();
+    const raw = resolveVar(computed.getPropertyValue(varName));
     if (!raw) return { color: defaultColor.clone(), alpha: defaultAlpha };
     const parsed = parseCssColor(raw);
     return parsed;
   };
 
   const readOpacity = (varName: string, defaultVal: number): number => {
-    const raw = computed.getPropertyValue(varName).trim();
+    const raw = resolveVar(computed.getPropertyValue(varName));
     if (!raw) return defaultVal;
     const val = Number.parseFloat(raw);
     return Number.isFinite(val) ? val : defaultVal;
   };
 
   const readWidth = (varName: string, defaultVal: number): number => {
-    const raw = computed.getPropertyValue(varName).trim();
+    const raw = resolveVar(computed.getPropertyValue(varName));
     if (!raw) return defaultVal;
     const val = Number.parseFloat(raw);
     return Number.isFinite(val) ? val : defaultVal;
@@ -498,7 +512,7 @@ export function extractThreeTokens(
     varName: string,
     defaultVal: 'solid' | 'dashed' | 'dotted',
   ): 'solid' | 'dashed' | 'dotted' => {
-    const raw = computed.getPropertyValue(varName).trim().toLowerCase();
+    const raw = resolveVar(computed.getPropertyValue(varName)).toLowerCase();
     if (raw === 'dashed' || raw === 'dotted' || raw === 'solid') {
       return raw;
     }
@@ -506,18 +520,18 @@ export function extractThreeTokens(
   };
 
   const readDuration = (varName: string, defaultVal: number): number => {
-    const raw = computed.getPropertyValue(varName).trim();
+    const raw = resolveVar(computed.getPropertyValue(varName));
     return parseCssDuration(raw, defaultVal);
   };
 
   const readEasing = (varName: string, defaultVal: (t: number) => number): ((t: number) => number) => {
-    const raw = computed.getPropertyValue(varName).trim();
+    const raw = resolveVar(computed.getPropertyValue(varName));
     if (!raw) return defaultVal;
     return parseCssCubicBezier(raw);
   };
 
   const readPx = (varName: string, defaultVal: number): number => {
-    const raw = computed.getPropertyValue(varName).trim();
+    const raw = resolveVar(computed.getPropertyValue(varName));
     return parseCssPx(raw, defaultVal);
   };
 

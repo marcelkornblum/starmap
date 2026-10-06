@@ -1,4 +1,6 @@
 import type { HTMLAttributes } from 'react';
+import { ConfidencePip, type ConfidenceLevel, Unit, Quantity } from '../../primitives/data';
+import { Cluster } from '../../primitives/layout/Cluster/Cluster';
 import styles from './OrbitTable.module.css';
 
 export interface OrbitElementRow {
@@ -10,6 +12,7 @@ export interface OrbitElementRow {
   periodDays: number; // days
   periapsis?: number; // degrees
   node?: number; // degrees
+  confidence?: ConfidenceLevel;
 }
 
 export interface OrbitTableProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onSelect'> {
@@ -49,16 +52,16 @@ export const OrbitTable = ({
               Body
             </th>
             <th scope="col" className={styles.headerCell}>
-              a (AU)
+              a <Unit>AU</Unit>
             </th>
             <th scope="col" className={styles.headerCell}>
               e
             </th>
             <th scope="col" className={styles.headerCell}>
-              i (°)
+              i <Unit>°</Unit>
             </th>
             <th scope="col" className={styles.headerCell}>
-              Period (d)
+              Period <Unit>d</Unit>
             </th>
           </tr>
         </thead>
@@ -81,7 +84,16 @@ export const OrbitTable = ({
                   }
                 }}
               >
-                <td className={`${styles.cell} ${styles.cellName}`}>{row.name}</td>
+                <td className={`${styles.cell} ${styles.cellName}`}>
+                  {row.confidence ? (
+                    <Cluster gap="dense" align="center">
+                      <span>{row.name}</span>
+                      <ConfidencePip confidence={row.confidence} />
+                    </Cluster>
+                  ) : (
+                    row.name
+                  )}
+                </td>
                 <td className={styles.cell}>
                   {typeof row.semiMajorAxis === 'number' && !Number.isNaN(row.semiMajorAxis)
                     ? row.semiMajorAxis.toFixed(3)
@@ -98,11 +110,18 @@ export const OrbitTable = ({
                     : '—'}
                 </td>
                 <td className={styles.cell}>
-                  {typeof row.periodDays !== 'number' || Number.isNaN(row.periodDays) || row.periodDays <= 0
-                    ? '—'
-                    : row.periodDays >= 1000
-                    ? `${(row.periodDays / 365.25).toFixed(2)} y`
-                    : `${row.periodDays.toFixed(1)} d`}
+                  {typeof row.periodDays !== 'number' || Number.isNaN(row.periodDays) || row.periodDays <= 0 ? (
+                    '—'
+                  ) : (
+                    <Quantity
+                      value={
+                        row.periodDays >= 1000
+                          ? (row.periodDays / 365.25).toFixed(2)
+                          : row.periodDays.toFixed(1)
+                      }
+                      unit={row.periodDays >= 1000 ? 'y' : 'd'}
+                    />
+                  )}
                 </td>
               </tr>
             );

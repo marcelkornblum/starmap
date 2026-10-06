@@ -10,6 +10,7 @@
     --toggle-thumb-size: var(--ui-toggle-thumb-size);
     --toggle-thumb-radius: var(--ui-toggle-thumb-radius);
     --toggle-thumb-bg: var(--ui-toggle-thumb-bg);
+    --toggle-thumb-glow: none;
     --toggle-thumb-offset: var(--ui-toggle-thumb-offset);
     --toggle-thumb-transform: translateX(0);
 
@@ -37,12 +38,18 @@
     opacity: var(--toggle-opacity);
   }
 
+  .toggleContainer:focus-visible {
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
+  }
+
   .switchTrack {
     position: relative;
     inline-size: var(--toggle-width);
     block-size: var(--toggle-height);
     background: var(--toggle-track-bg);
     border: var(--toggle-track-border-width) solid var(--toggle-track-border-color);
+    box-shadow: var(--surface-inset-shadow);
     border-radius: var(--toggle-radius);
     transition: background var(--toggle-transition-duration) var(--toggle-transition-ease),
                 border-color var(--toggle-transition-duration) var(--toggle-transition-ease);
@@ -55,10 +62,16 @@
     inline-size: var(--toggle-thumb-size);
     block-size: var(--toggle-thumb-size);
     background: var(--toggle-thumb-bg);
+    box-shadow: var(--toggle-thumb-glow);
     border-radius: var(--toggle-thumb-radius);
     transform: var(--toggle-thumb-transform);
     transition: transform var(--toggle-transition-duration) var(--toggle-transition-ease),
-                background var(--toggle-transition-duration) var(--toggle-transition-ease);
+                background var(--toggle-transition-duration) var(--toggle-transition-ease),
+                box-shadow var(--toggle-transition-duration) var(--toggle-transition-ease);
+  }
+
+  .toggleContainer:not([data-disabled="true"]):hover .switchThumb {
+    filter: brightness(1.15);
   }
 }
 
@@ -67,6 +80,7 @@
     --toggle-track-bg: var(--ui-toggle-track-active-bg);
     --toggle-track-border-color: var(--ui-toggle-track-active-border-color);
     --toggle-thumb-bg: var(--ui-toggle-thumb-active-bg);
+    --toggle-thumb-glow: var(--ui-toggle-thumb-active-glow);
     --toggle-thumb-transform: translateX(var(--ui-toggle-thumb-active-offset));
   }
 

@@ -15,7 +15,7 @@ import {
   Imposter,
   Icon,
 } from '../src/components/primitives/layout';
-import { Datum, Metric, Badge } from '../src/components/primitives/data';
+import { Datum, Metric, Badge, ConfidencePip, Unit, Quantity } from '../src/components/primitives/data';
 import {
   Button,
   Input,
@@ -247,6 +247,79 @@ describe('Tier 1: Data Primitives', () => {
     expect(htmlConfidence).toContain('data-confidence="confirmed"');
     expect(htmlConfidence).toContain('data-category="planet"');
   });
+
+  it('renders ConfidencePip dot with confidence level and glow metadata', () => {
+    const html = renderToString(
+      createElement(ConfidencePip, { confidence: 'confirmed', size: 'md' })
+    );
+    expect(html).toContain('data-testid="confidence-pip-wrapper"');
+    expect(html).toContain('data-confidence="confirmed"');
+    expect(html).toContain('data-size="md"');
+    expect(html).toContain('data-testid="confidence-pip-dot"');
+  });
+
+  it('renders Unit primitive with data-unit and optional parentheses', () => {
+    const htmlDefault = renderToString(createElement(Unit, null, 'AU'));
+    expect(htmlDefault).toContain('data-unit="true"');
+    expect(htmlDefault).toContain('AU');
+    expect(htmlDefault).not.toContain('(AU)');
+
+    const htmlParens = renderToString(createElement(Unit, { inParens: true }, 'AU'));
+    expect(htmlParens).toContain('data-unit="true"');
+    expect(htmlParens).toContain('(AU)');
+
+    const htmlEmpty = renderToString(createElement(Unit, null, ''));
+    expect(htmlEmpty).toBe('');
+
+    // Pre-instantiated Unit passed to Datum should not double-wrap
+    const htmlPreInstantiated = renderToString(
+      createElement(Datum, {
+        label: 'Velocity',
+        value: '-220',
+        unit: createElement(Unit, null, 'km/s'),
+      })
+    );
+    expect(htmlPreInstantiated).toContain('km/s');
+    expect((htmlPreInstantiated.match(/data-unit="true"/g) || []).length).toBe(1);
+  });
+
+  it('renders Quantity primitive with value, unit, and non-wrapping contract', () => {
+    const html = renderToString(
+      createElement(Quantity, {
+        value: '365.3',
+        unit: 'd',
+      })
+    );
+    expect(html).toContain('data-quantity="true"');
+    expect(html).toContain('365.3');
+    expect(html).toContain('data-unit="true"');
+    expect(html).toContain('d');
+    expect(html).not.toContain('data-no-gap="true"');
+
+    // Degree symbol automatically sets data-no-gap="true"
+    const htmlDegree = renderToString(
+      createElement(Quantity, {
+        value: '45.2',
+        unit: '°',
+      })
+    );
+    expect(htmlDegree).toContain('data-quantity="true"');
+    expect(htmlDegree).toContain('data-no-gap="true"');
+    expect(htmlDegree).toContain('45.2');
+    expect(htmlDegree).toContain('°');
+
+    // Pre-instantiated Unit inside Quantity
+    const htmlCustomUnit = renderToString(
+      createElement(Quantity, {
+        value: '1.496e8',
+        unit: createElement(Unit, null, 'km'),
+      })
+    );
+    expect(htmlCustomUnit).toContain('data-quantity="true"');
+    expect(htmlCustomUnit).toContain('1.496e8');
+    expect(htmlCustomUnit).toContain('km');
+    expect((htmlCustomUnit.match(/data-unit="true"/g) || []).length).toBe(1);
+  });
 });
 
 describe('Tier 1: Control Primitives', () => {
@@ -262,6 +335,17 @@ describe('Tier 1: Control Primitives', () => {
     expect(html).toContain('data-size="lg"');
     expect(html).toContain('disabled=""');
     expect(html).toContain('Engage');
+
+    const htmlHighlight = renderToString(
+      createElement(
+        Button,
+        { variant: 'highlight', size: 'md' },
+        'Focus Target'
+      )
+    );
+    expect(htmlHighlight).toContain('data-variant="highlight"');
+    expect(htmlHighlight).toContain('data-size="md"');
+    expect(htmlHighlight).toContain('Focus Target');
   });
 
   it('renders Input with tabular formatting and status', () => {
@@ -289,6 +373,7 @@ describe('Tier 1: Control Primitives', () => {
     const html = renderToString(element);
     expect(html).toContain('role="switch"');
     expect(html).toContain('aria-checked="true"');
+    expect(html).toContain('data-checked="true"');
     expect(html).toContain('Orbit Lines');
 
     // Test click and toggle handlers
@@ -300,6 +385,17 @@ describe('Tier 1: Control Primitives', () => {
     const disabledToggle = Toggle({ checked: false, onChange: handleChange, disabled: true });
     disabledToggle.props.onClick?.({} as React.MouseEvent<HTMLButtonElement>);
     expect(handleChange).toHaveBeenCalledTimes(1); // not called again
+
+    const htmlDisabled = renderToString(
+      createElement(Toggle, {
+        checked: false,
+        disabled: true,
+        onChange: handleChange,
+        label: 'Offline Track',
+      })
+    );
+    expect(htmlDisabled).toContain('data-disabled="true"');
+    expect(htmlDisabled).toContain('disabled=""');
   });
 
   it('renders Slider range input with label and readout', () => {

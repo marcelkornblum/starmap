@@ -2,10 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type UITheme = 'dark' | 'light' | 'amoled';
+export type ThemePalette = 'kepler' | 'cygnus' | 'carbon' | 'obsidian';
 export type ProjectionMode = '3d' | 'top-down';
 
 export interface SettingsState {
   theme: UITheme;
+  palette: ThemePalette;
   showLabels: boolean;
   showGrid: boolean;
   showOrbits: boolean;
@@ -15,6 +17,7 @@ export interface SettingsState {
 
 export interface SettingsActions {
   setTheme: (theme: UITheme) => void;
+  setPalette: (palette: ThemePalette) => void;
   toggleLabels: () => void;
   setShowLabels: (show: boolean) => void;
   toggleGrid: () => void;
@@ -30,6 +33,7 @@ export type SettingsStore = SettingsState & SettingsActions;
 
 export const DEFAULT_SETTINGS: SettingsState = {
   theme: 'dark',
+  palette: 'carbon',
   showLabels: true,
   showGrid: true,
   showOrbits: true,
@@ -75,6 +79,7 @@ export const useSettingsStore = create<SettingsStore>()(
     (set) => ({
       ...DEFAULT_SETTINGS,
       setTheme: (theme: UITheme) => set({ theme }),
+      setPalette: (palette: ThemePalette) => set({ palette }),
       toggleLabels: () => set((state) => ({ showLabels: !state.showLabels })),
       setShowLabels: (showLabels: boolean) => set({ showLabels }),
       toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),

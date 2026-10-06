@@ -1,10 +1,14 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import styles from './Badge.module.css';
 
+export type BadgeStatus = 'nominal' | 'caution' | 'critical' | 'info' | 'neutral';
+export type BadgeConfidence = 'confirmed' | 'candidate' | 'projected' | 'unverified';
+export type BadgeCategory = 'star' | 'planet' | 'nebula' | 'constellation';
+
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  status?: 'nominal' | 'caution' | 'critical' | 'info';
-  confidence?: 'confirmed' | 'candidate' | 'projected' | 'unverified';
-  category?: 'star' | 'planet' | 'nebula' | 'constellation';
+  status?: BadgeStatus;
+  confidence?: BadgeConfidence;
+  category?: BadgeCategory;
   children?: ReactNode;
 }
 

@@ -12,9 +12,10 @@
     --tooltip-border-style: var(--surface-popover-border-style);
     --tooltip-shadow: var(--surface-popover-shadow);
     --tooltip-padding: var(--space-inset-tooltip);
-    --tooltip-radius: var(--ui-tooltip-radius);
+    --tooltip-radius: var(--surface-popover-radius);
     --tooltip-font-size: var(--text-ui-tooltip-size);
     --tooltip-offset: var(--space-offset-overlay);
+    --tooltip-backdrop-blur: var(--surface-popover-backdrop-blur);
     --tooltip-transition-duration: var(--motion-duration-feedback);
     --tooltip-transition-ease: var(--motion-ease-default);
 
@@ -32,7 +33,32 @@
     pointer-events: none;
     z-index: 600;
     opacity: 0;
+    overflow: hidden;
+    backdrop-filter: blur(var(--tooltip-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--tooltip-backdrop-blur));
     transition: opacity var(--tooltip-transition-duration) var(--tooltip-transition-ease);
+  }
+
+  .tooltip::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: 100%;
+    background: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.08) 0%,
+      oklch(100% 0 0 / 0.02) 40%,
+      transparent 100%
+    );
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+
+  .tooltipContent {
+    position: relative;
+    z-index: 1;
   }
 
   .tooltipWrapper:hover .tooltip,

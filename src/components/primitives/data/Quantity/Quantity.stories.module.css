@@ -1,0 +1,20 @@
+@layer blocks {
+  .narrowContainer {
+    inline-size: 110px;
+    padding: var(--space-inset-card-sm, 12px);
+    border: 1px dashed var(--border-color-subtle);
+    border-radius: var(--radius-control);
+    background: var(--surface-inset-bg);
+  }
+
+  .caption {
+    font-size: var(--type-scale-neg-2);
+    color: var(--content-muted);
+  }
+
+  .headingWrapper {
+    font-size: var(--type-scale-neg-2);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+}
