@@ -5,17 +5,17 @@ import * as THREE from 'three';
 import {
   createSpatialEntityStore,
   type SpatialEntityDefinition,
-} from '../src/components/canvas/entity/SpatialEntityStore';
-import { BodyMarker } from '../src/components/canvas/entity/BodyMarker';
-import { Reticle } from '../src/components/canvas/entity/Reticle';
-import { DropStalk } from '../src/components/canvas/entity/DropStalk';
-import { KinematicVector } from '../src/components/canvas/entity/KinematicVector';
-import { OrbitPath } from '../src/components/canvas/entity/OrbitPath';
-import { EntityLabel } from '../src/components/canvas/entity/EntityLabel';
-import { CelestialEntity } from '../src/components/canvas/entity/CelestialEntity';
-import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../src/components/canvas/math/kepler';
-import { celestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
-import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/canvas/instrument';
+} from '../src/components/poc/canvas/entity/SpatialEntityStore';
+import { BodyMarker } from '../src/components/poc/canvas/entity/BodyMarker';
+import { Reticle } from '../src/components/poc/canvas/entity/Reticle';
+import { DropStalk } from '../src/components/poc/canvas/entity/DropStalk';
+import { KinematicVector } from '../src/components/poc/canvas/entity/KinematicVector';
+import { OrbitPath } from '../src/components/poc/canvas/entity/OrbitPath';
+import { EntityLabel } from '../src/components/poc/canvas/entity/EntityLabel';
+import { CelestialEntity } from '../src/components/poc/canvas/entity/CelestialEntity';
+import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../src/components/poc/canvas/math/kepler';
+import { celestialOcclusionManager } from '../src/components/poc/canvas/cartography/celestialOcclusionRegistry';
+import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/poc/canvas/instrument';
 
 const renderInFrame = (element: React.ReactElement) =>
   renderToString(createElement(SpatialFrameProvider, { frame: GALACTIC_FRAME }, element));

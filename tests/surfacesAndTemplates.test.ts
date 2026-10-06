@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { createElement } from 'react';
-import { Card, Panel, Dock, Well, Hud } from '../src/components/surfaces';
-import { Modal, Drawer, Popover, Tooltip, Toast } from '../src/components/overlays';
-import { DossierLayout, MetricStrip, ToolbarLayout } from '../src/components/templates';
+import { Card, Panel, Dock, Well, Hud } from '../src/components/poc/surfaces';
+import { Modal, Drawer, Popover, Tooltip, Toast } from '../src/components/poc/overlays';
+import { DossierLayout, MetricStrip, ToolbarLayout } from '../src/components/poc/templates';
 
 describe('Tier 2: Surfaces', () => {
   it('renders Card with status exception and padding', () => {

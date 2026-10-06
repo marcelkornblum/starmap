@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import './components/canvas/patchR3F';
+import './components/poc/canvas/patchR3F';
 import './index.css';
 import { App } from './App';
 

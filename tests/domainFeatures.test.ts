@@ -9,7 +9,7 @@ import {
   type OrbitElementRow,
   type StarDossierData,
   type CommandPaletteItem,
-} from '../src/components/domain';
+} from '../src/components/poc/domain';
 
 describe('Tier 4: Domain Features', () => {
   describe('OrbitTable', () => {
