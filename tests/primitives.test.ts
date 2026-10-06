@@ -22,7 +22,7 @@ import {
   Toggle,
   Slider,
   Select,
-} from '../src/components/poc/primitives/control';
+} from '../src/components/interface/control';
 
 describe('Tier 1: Layout Primitives (Every Layout)', () => {
   it('renders Stack with default and custom props', () => {

@@ -17,7 +17,7 @@ type Story = StoryObj<typeof Toggle>;
 export const ToggleStory: Story = {
   name: 'Toggle',
   render: (args) => (
-    <div style={{ fontFamily: 'sans-serif', padding: '1rem' }}>
+    <div style={{ fontFamily: 'sans-serif', padding: '1rem', height: '100dvh', overflowY: 'auto' }}>
       <div style={{ marginBottom: '2rem' }}>
         <h2 style={{ margin: '0 0 0.5rem 0' }}>Toggle</h2>
         <p style={{ margin: 0, color: '#555', maxWidth: '60ch' }}>
