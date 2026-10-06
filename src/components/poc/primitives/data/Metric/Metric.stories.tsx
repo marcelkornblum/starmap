@@ -3,7 +3,7 @@ import { Metric } from './Metric';
 import styles from './Metric.stories.module.css';
 
 const meta: Meta<typeof Metric> = {
-  title: 'Primitives/Data/Metric',
+  title: 'POC/Primitives/Data/Metric',
   component: Metric,
   parameters: {
     layout: 'centered',

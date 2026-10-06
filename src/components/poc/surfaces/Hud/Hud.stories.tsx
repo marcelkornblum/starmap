@@ -3,7 +3,7 @@ import { Hud } from './Hud';
 import { Cluster, Badge, Button } from '../../primitives';
 
 const meta: Meta<typeof Hud> = {
-  title: 'Surfaces/Hud',
+  title: 'POC/Surfaces/Hud',
   component: Hud,
   argTypes: {
     position: {

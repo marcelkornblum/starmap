@@ -39,7 +39,7 @@ const SAMPLE_ENTITIES: SpatialEntityDefinition[] = [
 ];
 
 const meta: Meta<SpatialViewportProps> = {
-  title: 'Canvas/Production Scenes/Spatial Viewport',
+  title: 'POC/Canvas/Production Scenes/Spatial Viewport',
   component: SpatialViewport,
   parameters: {
     layout: 'fullscreen',

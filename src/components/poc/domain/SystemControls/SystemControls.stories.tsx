@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { SystemControls } from './SystemControls';
 
 const meta: Meta<typeof SystemControls> = {
-  title: 'Domain/SystemControls',
+  title: 'POC/Domain/SystemControls',
   component: SystemControls,
   argTypes: {
     showOrbits: { control: 'boolean' },

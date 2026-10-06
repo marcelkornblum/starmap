@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Toast } from './Toast';
 
 const meta: Meta<typeof Toast> = {
-  title: 'Overlays/Toast',
+  title: 'POC/Overlays/Toast',
   component: Toast,
   argTypes: {
     status: {

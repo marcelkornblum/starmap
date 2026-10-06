@@ -11,7 +11,7 @@ import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta = {
-  title: 'Canvas/Production Scenes/Canonical Scenes',
+  title: 'POC/Canvas/Production Scenes/Canonical Scenes',
   parameters: {
     layout: 'fullscreen',
   },

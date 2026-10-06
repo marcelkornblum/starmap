@@ -45,7 +45,7 @@ const sampleOrbits: OrbitElementRow[] = [
 ];
 
 const meta: Meta<typeof OrbitTable> = {
-  title: 'Domain/OrbitTable',
+  title: 'POC/Domain/OrbitTable',
   component: OrbitTable,
 };
 

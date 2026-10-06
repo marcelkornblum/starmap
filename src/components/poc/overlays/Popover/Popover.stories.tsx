@@ -3,7 +3,7 @@ import { Popover } from './Popover';
 import { Button, Box } from '../../primitives';
 
 const meta: Meta<typeof Popover> = {
-  title: 'Overlays/Popover',
+  title: 'POC/Overlays/Popover',
   component: Popover,
   argTypes: {
     position: {

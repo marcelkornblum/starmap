@@ -3,7 +3,7 @@ import { ToolbarLayout } from './ToolbarLayout';
 import { Button, Input, Cluster } from '../../primitives';
 
 const meta: Meta<typeof ToolbarLayout> = {
-  title: 'Templates/ToolbarLayout',
+  title: 'POC/Templates/ToolbarLayout',
   component: ToolbarLayout,
 };
 

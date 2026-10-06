@@ -3,7 +3,7 @@ import { Stack } from './Stack';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Stack> = {
-  title: 'Primitives/Layout/Stack',
+  title: 'POC/Primitives/Layout/Stack',
   component: Stack,
   argTypes: {
     gap: {

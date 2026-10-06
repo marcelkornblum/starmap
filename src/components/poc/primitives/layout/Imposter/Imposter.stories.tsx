@@ -3,7 +3,7 @@ import { Imposter } from './Imposter';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Imposter> = {
-  title: 'Primitives/Layout/Imposter',
+  title: 'POC/Primitives/Layout/Imposter',
   component: Imposter,
   argTypes: {
     fixed: { control: 'boolean' },

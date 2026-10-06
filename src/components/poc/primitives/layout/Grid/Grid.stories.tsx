@@ -3,7 +3,7 @@ import { Grid } from './Grid';
 import { Box } from '../Box/Box';
 
 const meta: Meta<typeof Grid> = {
-  title: 'Primitives/Layout/Grid',
+  title: 'POC/Primitives/Layout/Grid',
   component: Grid,
   argTypes: {
     minWidth: {

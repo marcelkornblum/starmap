@@ -3,7 +3,7 @@ import { MetricStrip } from './MetricStrip';
 import { Metric } from '../../primitives';
 
 const meta: Meta<typeof MetricStrip> = {
-  title: 'Templates/MetricStrip',
+  title: 'POC/Templates/MetricStrip',
   component: MetricStrip,
 };
 

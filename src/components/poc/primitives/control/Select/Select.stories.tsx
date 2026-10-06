@@ -4,7 +4,7 @@ import { Select } from './Select';
 import { Center } from '../../layout/Center/Center';
 
 const meta: Meta<typeof Select> = {
-  title: 'Primitives/Control/Select',
+  title: 'POC/Primitives/Control/Select',
   component: Select,
 };
 

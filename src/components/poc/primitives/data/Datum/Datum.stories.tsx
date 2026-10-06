@@ -5,7 +5,7 @@ import { Card } from '../../../surfaces/Card/Card';
 import styles from './Datum.stories.module.css';
 
 const meta: Meta<typeof Datum> = {
-  title: 'Primitives/Data/Datum',
+  title: 'POC/Primitives/Data/Datum',
   component: Datum,
   parameters: {
     layout: 'centered',

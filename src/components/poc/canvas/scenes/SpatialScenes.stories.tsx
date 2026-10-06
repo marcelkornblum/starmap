@@ -15,7 +15,7 @@ export { FullUIStylingScene } from './FullUIStylingScene';
 export { PaletteShowcaseScene } from './PaletteShowcaseScene';
 
 const meta: Meta = {
-  title: 'Canvas/Prototypes & Verification/Spatial Scenes (Multi-Scale & UI PoC)',
+  title: 'POC/Canvas/Prototypes & Verification/Spatial Scenes (Multi-Scale & UI PoC)',
   parameters: {
     layout: 'padded',
   },

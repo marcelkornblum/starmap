@@ -4,7 +4,7 @@ import { Toggle } from './Toggle';
 import { Stack } from '../../layout/Stack/Stack';
 
 const meta: Meta<typeof Toggle> = {
-  title: 'Primitives/Control/Toggle',
+  title: 'POC/Primitives/Control/Toggle',
   component: Toggle,
 };
 

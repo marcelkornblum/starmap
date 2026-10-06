@@ -16,7 +16,7 @@ import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<typeof CartographicInstrument> = {
-  title: 'Canvas/Cartographic Instrument/Cartographic Instrument',
+  title: 'POC/Canvas/Cartographic Instrument/Cartographic Instrument',
   component: CartographicInstrument,
   parameters: {
     layout: 'fullscreen',

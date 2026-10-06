@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Icon } from './Icon';
 
 const meta: Meta<typeof Icon> = {
-  title: 'Primitives/Layout/Icon',
+  title: 'POC/Primitives/Layout/Icon',
   component: Icon,
   argTypes: {
     size: {

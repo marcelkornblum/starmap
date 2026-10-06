@@ -3,7 +3,7 @@ import { Dock } from './Dock';
 import { Cluster } from '../../primitives';
 
 const meta: Meta<typeof Dock> = {
-  title: 'Surfaces/Dock',
+  title: 'POC/Surfaces/Dock',
   component: Dock,
   argTypes: {
     position: {

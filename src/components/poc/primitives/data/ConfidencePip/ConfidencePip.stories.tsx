@@ -5,7 +5,7 @@ import { Stack } from '../../layout/Stack/Stack';
 import styles from './ConfidencePip.stories.module.css';
 
 const meta = {
-  title: 'Primitives/Data/ConfidencePip',
+  title: 'POC/Primitives/Data/ConfidencePip',
   component: ConfidencePip,
   parameters: {
     layout: 'centered',

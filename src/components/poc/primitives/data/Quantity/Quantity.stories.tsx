@@ -5,7 +5,7 @@ import { Cluster } from '../../layout/Cluster/Cluster';
 import styles from './Quantity.stories.module.css';
 
 const meta = {
-  title: 'Primitives/Data/Quantity',
+  title: 'POC/Primitives/Data/Quantity',
   component: Quantity,
   parameters: {
     layout: 'centered',

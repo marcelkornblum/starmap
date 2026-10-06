@@ -5,7 +5,7 @@ import { Cluster } from '../../layout/Cluster/Cluster';
 import styles from './Unit.stories.module.css';
 
 const meta = {
-  title: 'Primitives/Data/Unit',
+  title: 'POC/Primitives/Data/Unit',
   component: Unit,
   parameters: {
     layout: 'centered',

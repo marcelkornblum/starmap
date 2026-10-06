@@ -26,7 +26,7 @@ import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<typeof CelestialEntity> = {
-  title: 'Canvas/Celestial Entities/Celestial Entity',
+  title: 'POC/Canvas/Celestial Entities/Celestial Entity',
   component: CelestialEntity,
   parameters: {
     layout: 'fullscreen',
