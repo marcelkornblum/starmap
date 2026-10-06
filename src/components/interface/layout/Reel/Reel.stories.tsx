@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Reel } from './Reel';
-import { Box } from '../Box/Box';
+import { Reel as Component } from './Reel';
 
-const meta: Meta<typeof Reel> = {
+const meta: Meta<typeof Component> = {
   title: 'INTERFACE/Layout',
-  component: Reel,
+  component: Component,
   argTypes: {
     itemWidth: {
       control: 'select',
@@ -19,22 +18,23 @@ const meta: Meta<typeof Reel> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof Reel>;
+type Story = StoryObj<typeof Component>;
 
-export const Default: Story = {
+export const Reel: Story = {
   name: 'Reel',
   args: {
     itemWidth: 'md',
     gap: 'default',
     snap: true,
-    children: (
-      <>
-        <Box padding="loose" border="subtle" background="panel">Reel Item 1</Box>
-        <Box padding="loose" border="subtle" background="panel">Reel Item 2</Box>
-        <Box padding="loose" border="subtle" background="panel">Reel Item 3</Box>
-        <Box padding="loose" border="subtle" background="panel">Reel Item 4</Box>
-        <Box padding="loose" border="subtle" background="panel">Reel Item 5</Box>
-      </>
-    ),
   },
+  render: (args) => (
+    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
+      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <div style={{ backgroundColor: '#ff5c5c', padding: '2rem', flexShrink: 0, minWidth: '300px' }}>1</div>
+        <div style={{ backgroundColor: '#5cff8a', padding: '2rem', flexShrink: 0, minWidth: '300px' }}>2</div>
+        <div style={{ backgroundColor: '#5c8aff', padding: '2rem', flexShrink: 0, minWidth: '300px' }}>3</div>
+        <div style={{ backgroundColor: '#ffcc5c', padding: '2rem', flexShrink: 0, minWidth: '300px' }}>4</div>
+      </Component>
+    </div>
+  ),
 };

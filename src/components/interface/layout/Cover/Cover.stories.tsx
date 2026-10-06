@@ -1,36 +1,32 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Cover } from './Cover';
-import { Box } from '../Box/Box';
+import { Cover as Component } from './Cover';
 
-const meta: Meta<typeof Cover> = {
+const meta: Meta<typeof Component> = {
   title: 'INTERFACE/Layout',
-  component: Cover,
+  component: Component,
   argTypes: {
-    minHeight: {
-      control: 'radio',
-      options: ['viewport', 'full'],
-    },
-    gap: {
-      control: 'select',
-      options: ['none', 'tight', 'default', 'loose'],
-    },
+    minHeight: { control: 'text' },
   },
 };
 
 export default meta;
-type Story = StoryObj<typeof Cover>;
+type Story = StoryObj<typeof Component>;
 
-export const Default: Story = {
+export const Cover: Story = {
   name: 'Cover',
   args: {
     minHeight: 'viewport',
-    header: <Box as="header" padding="tight" border="subtle" background="dock">Starmap Header</Box>,
-    children: (
-      <Box padding="loose">
-        <h2>Principal Mission Briefing</h2>
-        <p>Centred vertically regardless of viewport dimension.</p>
-      </Box>
-    ),
-    footer: <Box as="footer" padding="tight" border="subtle" background="dock">Telemetry Footer</Box>,
   },
+  render: (args) => (
+    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
+      <Component 
+        {...args} 
+        style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}
+        header={<div style={{ backgroundColor: '#5c8aff', padding: '1rem' }}>Header</div>}
+        footer={<div style={{ backgroundColor: '#5cff8a', padding: '1rem' }}>Footer</div>}
+      >
+        <div style={{ backgroundColor: '#ff5c5c', padding: '2rem' }}>Principal Center Content</div>
+      </Component>
+    </div>
+  ),
 };

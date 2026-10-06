@@ -1,34 +1,28 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Box } from './Box';
+import { Box as Component } from './Box';
 
-const meta: Meta<typeof Box> = {
+const meta: Meta<typeof Component> = {
   title: 'INTERFACE/Layout',
-  component: Box,
+  component: Component,
   argTypes: {
     padding: {
       control: 'select',
       options: ['none', 'tight', 'default', 'loose'],
     },
-    border: {
-      control: 'select',
-      options: ['none', 'subtle', 'default', 'accent'],
-    },
-    background: {
-      control: 'select',
-      options: ['canvas', 'sunken', 'panel', 'dock', 'overlay'],
-    },
   },
 };
 
 export default meta;
-type Story = StoryObj<typeof Box>;
+type Story = StoryObj<typeof Component>;
 
-export const Default: Story = {
+export const Box: Story = {
   name: 'Box',
-  args: {
-    padding: 'default',
-    border: 'subtle',
-    background: 'panel',
-    children: 'Token-driven box container with standard padding and border styling.',
-  },
+  args: { padding: 'default' },
+  render: (args) => (
+    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
+      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <div style={{ backgroundColor: '#ff5c5c', padding: '1rem', color: 'white' }}>Box Content</div>
+      </Component>
+    </div>
+  ),
 };

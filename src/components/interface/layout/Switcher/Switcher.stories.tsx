@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Switcher } from './Switcher';
-import { Box } from '../Box/Box';
+import { Switcher as Component } from './Switcher';
 
-const meta: Meta<typeof Switcher> = {
+const meta: Meta<typeof Component> = {
   title: 'INTERFACE/Layout',
-  component: Switcher,
+  component: Component,
   argTypes: {
     threshold: {
       control: 'select',
@@ -22,25 +21,21 @@ const meta: Meta<typeof Switcher> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof Switcher>;
+type Story = StoryObj<typeof Component>;
 
-export const Default: Story = {
+export const Switcher: Story = {
   name: 'Switcher',
   args: {
     threshold: 'md',
     gap: 'default',
-    children: (
-      <>
-        <Box padding="default" border="subtle" background="panel">
-          Switcher Item 1
-        </Box>
-        <Box padding="default" border="subtle" background="panel">
-          Switcher Item 2
-        </Box>
-        <Box padding="default" border="subtle" background="panel">
-          Switcher Item 3
-        </Box>
-      </>
-    ),
   },
+  render: (args) => (
+    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
+      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <div style={{ backgroundColor: '#ff5c5c', padding: '1.5rem' }}>1</div>
+        <div style={{ backgroundColor: '#5cff8a', padding: '1.5rem' }}>2</div>
+        <div style={{ backgroundColor: '#5c8aff', padding: '1.5rem' }}>3</div>
+      </Component>
+    </div>
+  ),
 };

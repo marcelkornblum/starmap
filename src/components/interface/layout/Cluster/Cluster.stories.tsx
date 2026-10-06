@@ -1,41 +1,43 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Cluster } from './Cluster';
-import { Badge } from '../../../poc/primitives/data/Badge/Badge';
+import { Cluster as Component } from './Cluster';
 
-const meta: Meta<typeof Cluster> = {
+const meta: Meta<typeof Component> = {
   title: 'INTERFACE/Layout',
-  component: Cluster,
+  component: Component,
   argTypes: {
     gap: {
       control: 'select',
-      options: ['none', 'dense', 'tight', 'default', 'loose', 'section', 'fib-1', 'fib-2', 'fib-3', 'fib-4', 'fib-5', 'fib-6', 'fib-7'],
-    },
-    align: {
-      control: 'select',
-      options: ['start', 'center', 'end', 'stretch', 'baseline'],
+      options: ['none', 'dense', 'tight', 'default', 'loose', 'section'],
     },
     justify: {
       control: 'select',
-      options: ['start', 'center', 'end', 'between', 'around', 'evenly'],
+      options: ['start', 'end', 'center', 'between', 'around', 'evenly'],
+    },
+    align: {
+      control: 'select',
+      options: ['start', 'end', 'center', 'stretch', 'baseline'],
     },
   },
 };
 
 export default meta;
-type Story = StoryObj<typeof Cluster>;
+type Story = StoryObj<typeof Component>;
 
-export const Default: Story = {
+export const Cluster: Story = {
   name: 'Cluster',
   args: {
     gap: 'default',
-    align: 'center',
     justify: 'start',
-    children: (
-      <>
-        <Badge>Tag A</Badge>
-        <Badge>Tag B</Badge>
-        <Badge>Tag C</Badge>
-      </>
-    ),
+    align: 'center',
   },
+  render: (args) => (
+    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
+      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <div style={{ backgroundColor: '#ff5c5c', padding: '0.5rem 1rem' }}>1</div>
+        <div style={{ backgroundColor: '#5cff8a', padding: '0.5rem 2rem' }}>2</div>
+        <div style={{ backgroundColor: '#5c8aff', padding: '0.5rem 1.5rem' }}>3</div>
+        <div style={{ backgroundColor: '#ffcc5c', padding: '0.5rem 1rem' }}>4</div>
+      </Component>
+    </div>
+  ),
 };

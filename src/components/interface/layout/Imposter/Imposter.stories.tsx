@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Imposter } from './Imposter';
-import { Box } from '../Box/Box';
+import { Imposter as Component } from './Imposter';
 
-const meta: Meta<typeof Imposter> = {
+const meta: Meta<typeof Component> = {
   title: 'INTERFACE/Layout',
-  component: Imposter,
+  component: Component,
   argTypes: {
     fixed: { control: 'boolean' },
     position: {
@@ -19,25 +18,20 @@ const meta: Meta<typeof Imposter> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof Imposter>;
+type Story = StoryObj<typeof Component>;
 
-export const Default: Story = {
+export const Imposter: Story = {
   name: 'Imposter',
   args: {
     fixed: false,
     position: 'center',
     margin: 'default',
-    children: (
-      <Box padding="default" border="subtle" background="dock">
-        Overlay Imposter Widget
-      </Box>
-    ),
   },
-  decorators: [
-    (Story) => (
-      <Box padding="none" border="subtle" background="canvas">
-        <Story />
-      </Box>
-    ),
-  ],
+  render: (args) => (
+    <div style={{ position: 'relative', width: '100%', height: '300px', backgroundColor: '#ffe6cc', overflow: 'hidden' }}>
+      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff', padding: '1rem' }}>
+        <div style={{ backgroundColor: '#ff5c5c', padding: '1rem', color: 'white' }}>Imposter Element</div>
+      </Component>
+    </div>
+  ),
 };

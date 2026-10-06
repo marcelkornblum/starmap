@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Stack } from './Stack';
-import { Box } from '../Box/Box';
+import { Stack as Component } from './Stack';
 
-const meta: Meta<typeof Stack> = {
+const meta: Meta<typeof Component> = {
   title: 'INTERFACE/Layout',
-  component: Stack,
+  component: Component,
   argTypes: {
     gap: {
       control: 'select',
@@ -18,19 +17,21 @@ const meta: Meta<typeof Stack> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof Stack>;
+type Story = StoryObj<typeof Component>;
 
-export const Default: Story = {
+export const Stack: Story = {
   name: 'Stack',
   args: {
     gap: 'default',
     align: 'stretch',
-    children: (
-      <>
-        <Box padding="tight" border="subtle" background="panel">Stack Item 1</Box>
-        <Box padding="tight" border="subtle" background="panel">Stack Item 2</Box>
-        <Box padding="tight" border="subtle" background="panel">Stack Item 3</Box>
-      </>
-    ),
   },
+  render: (args) => (
+    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
+      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <div style={{ backgroundColor: '#ff5c5c', padding: '1rem' }}>1</div>
+        <div style={{ backgroundColor: '#5cff8a', padding: '1.5rem' }}>2</div>
+        <div style={{ backgroundColor: '#5c8aff', padding: '2rem' }}>3</div>
+      </Component>
+    </div>
+  ),
 };

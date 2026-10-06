@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Icon } from './Icon';
+import { Icon as Component } from './Icon';
 
-const meta: Meta<typeof Icon> = {
+const meta: Meta<typeof Component> = {
   title: 'INTERFACE/Layout',
-  component: Icon,
+  component: Component,
   argTypes: {
     size: {
       control: 'select',
@@ -13,18 +13,20 @@ const meta: Meta<typeof Icon> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof Icon>;
+type Story = StoryObj<typeof Component>;
 
-export const Default: Story = {
+export const Icon: Story = {
   name: 'Icon',
   args: {
-    size: 'md',
-    children: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-    ),
+    size: 'lg',
   },
+  render: (args) => (
+    <div style={{ backgroundColor: '#ffe6cc', padding: '1rem', display: 'inline-block' }}>
+      <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ff5c5c" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+        </svg>
+      </Component>
+    </div>
+  ),
 };
