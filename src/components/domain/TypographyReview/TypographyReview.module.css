@@ -1,0 +1,244 @@
+@layer blocks {
+  .reviewContainer {
+    /* ----------------------------------------------------------------------- */
+    /* 1. Local Token Interface                                                */
+    /* ----------------------------------------------------------------------- */
+    --review-font-interface:     var(--font-interface);
+    --review-font-data:          var(--font-data);
+    --review-font-copy:          var(--font-copy);
+    --review-type-base:          var(--type-base);
+    --review-type-ratio:         var(--type-ratio);
+
+    --review-title-size:         var(--text-content-hero-title-size);
+    --review-title-weight:       700;
+    --review-subtitle-size:      var(--text-content-subtitle-size);
+    --review-subtitle-transform: none;
+    --review-subtitle-tracking:  var(--tracking-body);
+    --review-body-size:          var(--text-content-body-size);
+    --review-body-leading:       var(--leading-prose);
+    --review-table-size:         var(--text-ui-table-cell-size);
+    --review-table-header-size:  var(--text-ui-table-header-size);
+
+    /* 2. Structural Declarations */
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-family: var(--review-font-interface);
+    font-size: var(--review-body-size);
+    color: var(--content-default);
+    background-color: var(--surface-canvas-bg);
+    padding-block-start: var(--space-viewport-edge);
+    padding-block-end: calc(var(--space-viewport-edge) * 3);
+    padding-inline: var(--space-viewport-edge);
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    touch-action: pan-y;
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .panelOverride {
+    inline-size: 100%;
+    max-inline-size: 780px;
+    flex-shrink: 0;
+  }
+
+  .specimenBar {
+    background: var(--surface-inset-bg);
+    border: var(--stroke-hairline) solid var(--surface-inset-border-color);
+    border-radius: var(--radius-control);
+    padding: var(--space-fib-2) var(--space-fib-3);
+    font-family: var(--review-font-data);
+    font-size: var(--text-content-caption-size);
+    font-variant-numeric: tabular-nums;
+    color: var(--content-muted);
+  }
+
+  .specimenChip {
+    color: var(--state-focus);
+    font-weight: 600;
+  }
+
+  /* ------------------------------------------------------------------------- */
+  /* Role 1: --font-interface (UI, Titles, Subtitles, Badges, Headers, Labels)  */
+  /* ------------------------------------------------------------------------- */
+  .title {
+    font-family: var(--review-font-interface);
+    font-size: var(--review-title-size);
+    font-weight: var(--review-title-weight);
+    color: var(--content-prominent);
+    line-height: var(--leading-heading);
+    letter-spacing: var(--tracking-display);
+    margin: 0;
+  }
+
+  .subtitle {
+    font-family: var(--review-font-interface);
+    font-size: var(--review-subtitle-size);
+    color: var(--content-muted);
+    text-transform: var(--review-subtitle-transform);
+    letter-spacing: var(--review-subtitle-tracking);
+    line-height: var(--leading-body);
+    margin: 0;
+  }
+
+  /* ------------------------------------------------------------------------- */
+  /* Role 2: --font-copy (Long-form Reading, Prose Descriptions, Lore)          */
+  /* ------------------------------------------------------------------------- */
+  .description {
+    font-family: var(--review-font-copy);
+    font-size: var(--review-body-size);
+    line-height: var(--review-body-leading);
+    color: var(--content-default);
+    margin: 0;
+  }
+
+  /* ------------------------------------------------------------------------- */
+  /* Role 3: --font-data (Tabular Figures, Numerals, Coordinates, Values)       */
+  /* ------------------------------------------------------------------------- */
+  .tableWrapper {
+    inline-size: 100%;
+  }
+
+  .tableWrapper :global(th) {
+    font-family: var(--review-font-interface);
+    font-size: var(--review-table-header-size);
+  }
+
+  .tableWrapper :global(td) {
+    font-family: var(--review-font-data);
+    font-size: var(--review-table-size);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer exceptions {
+  /* ------------------------------------------------------------------------- */
+  /* Role 1: --font-interface Font Variations                                   */
+  /* ------------------------------------------------------------------------- */
+  .reviewContainer[data-interface-font="inter"] {
+    --review-font-interface: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  .reviewContainer[data-interface-font="space-grotesk"] {
+    --review-font-interface: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  }
+  .reviewContainer[data-interface-font="outfit"] {
+    --review-font-interface: 'Outfit', system-ui, -apple-system, sans-serif;
+  }
+  .reviewContainer[data-interface-font="plus-jakarta"] {
+    --review-font-interface: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+  .reviewContainer[data-interface-font="system"] {
+    --review-font-interface: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .reviewContainer[data-interface-font="mono"] {
+    --review-font-interface: var(--review-font-data);
+  }
+
+  /* ------------------------------------------------------------------------- */
+  /* Role 2: --font-data Font Variations                                        */
+  /* ------------------------------------------------------------------------- */
+  .reviewContainer[data-data-font="jetbrains"] {
+    --review-font-data: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .reviewContainer[data-data-font="fira-code"] {
+    --review-font-data: 'Fira Code', ui-monospace, monospace;
+  }
+  .reviewContainer[data-data-font="space-mono"] {
+    --review-font-data: 'Space Mono', ui-monospace, monospace;
+  }
+  .reviewContainer[data-data-font="system-mono"] {
+    --review-font-data: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  /* ------------------------------------------------------------------------- */
+  /* Role 3: --font-copy Font Variations                                        */
+  /* ------------------------------------------------------------------------- */
+  .reviewContainer[data-copy-font="newsreader"] {
+    --review-font-copy: 'Newsreader', Georgia, serif;
+  }
+  .reviewContainer[data-copy-font="georgia"] {
+    --review-font-copy: 'Georgia', serif;
+  }
+  .reviewContainer[data-copy-font="sans"] {
+    --review-font-copy: var(--review-font-interface);
+  }
+
+  /* ------------------------------------------------------------------------- */
+  /* Modular Ratio Adjustments                                                 */
+  /* ------------------------------------------------------------------------- */
+  .reviewContainer[data-type-ratio="major-second"]   { --review-type-ratio: 1.125; --type-ratio: 1.125; }
+  .reviewContainer[data-type-ratio="minor-third"]    { --review-type-ratio: 1.200; --type-ratio: 1.200; }
+  .reviewContainer[data-type-ratio="major-third"]    { --review-type-ratio: 1.250; --type-ratio: 1.250; }
+  .reviewContainer[data-type-ratio="perfect-fourth"]  { --review-type-ratio: 1.333; --type-ratio: 1.333; }
+  .reviewContainer[data-type-ratio="augmented-fourth"]{ --review-type-ratio: 1.414; --type-ratio: 1.414; }
+
+  /* Mathematical scale computation within container scope from locked 1rem base */
+  .reviewContainer {
+    --calc-scale-neg-3: calc(var(--calc-scale-neg-2) / var(--review-type-ratio));
+    --calc-scale-neg-2: calc(var(--type-base) / (var(--review-type-ratio) * var(--review-type-ratio)));
+    --calc-scale-neg-1: calc(var(--type-base) / var(--review-type-ratio));
+    --calc-scale-0:     var(--type-base);
+    --calc-scale-1:     calc(var(--type-base) * var(--review-type-ratio));
+    --calc-scale-2:     calc(var(--calc-scale-1) * var(--review-type-ratio));
+    --calc-scale-3:     calc(var(--calc-scale-2) * var(--review-type-ratio));
+    --calc-scale-4:     calc(var(--calc-scale-3) * var(--review-type-ratio));
+  }
+
+  /* ------------------------------------------------------------------------- */
+  /* Title Size & Weight Options                                               */
+  /* ------------------------------------------------------------------------- */
+  .reviewContainer[data-title-size="scale-1"] { --review-title-size: var(--calc-scale-1); }
+  .reviewContainer[data-title-size="scale-2"] { --review-title-size: var(--calc-scale-2); }
+  .reviewContainer[data-title-size="scale-3"] { --review-title-size: var(--calc-scale-3); }
+  .reviewContainer[data-title-size="scale-4"] { --review-title-size: var(--calc-scale-4); }
+
+  .reviewContainer[data-title-weight="regular"]  { --review-title-weight: 400; }
+  .reviewContainer[data-title-weight="medium"]   { --review-title-weight: 500; }
+  .reviewContainer[data-title-weight="semibold"] { --review-title-weight: 600; }
+  .reviewContainer[data-title-weight="bold"]     { --review-title-weight: 700; }
+
+  /* ------------------------------------------------------------------------- */
+  /* Subtitle Size, Case & Tracking Options                                    */
+  /* ------------------------------------------------------------------------- */
+  .reviewContainer[data-subtitle-size="scale-neg-1"] { --review-subtitle-size: var(--calc-scale-neg-1); }
+  .reviewContainer[data-subtitle-size="scale-0"]     { --review-subtitle-size: var(--calc-scale-0); }
+  .reviewContainer[data-subtitle-size="scale-1"]     { --review-subtitle-size: var(--calc-scale-1); }
+
+  .reviewContainer[data-subtitle-case="none"]      { --review-subtitle-transform: none; }
+  .reviewContainer[data-subtitle-case="uppercase"] { --review-subtitle-transform: uppercase; }
+
+  .reviewContainer[data-subtitle-tracking="tight"]  { --review-subtitle-tracking: var(--tracking-display); }
+  .reviewContainer[data-subtitle-tracking="normal"] { --review-subtitle-tracking: var(--tracking-body); }
+  .reviewContainer[data-subtitle-tracking="wide"]   { --review-subtitle-tracking: var(--tracking-control); }
+  .reviewContainer[data-subtitle-tracking="wider"]  { --review-subtitle-tracking: var(--tracking-eyebrow); }
+  .reviewContainer[data-subtitle-tracking="widest"] { --review-subtitle-tracking: var(--tracking-spatial); }
+
+  /* ------------------------------------------------------------------------- */
+  /* Description Prose Size & Leading Options                                  */
+  /* ------------------------------------------------------------------------- */
+  .reviewContainer[data-description-size="scale-neg-1"] { --review-body-size: var(--calc-scale-neg-1); }
+  .reviewContainer[data-description-size="scale-0"]     { --review-body-size: var(--calc-scale-0); }
+  .reviewContainer[data-description-size="scale-1"]     { --review-body-size: var(--calc-scale-1); }
+
+  .reviewContainer[data-description-leading="body"]     { --review-body-leading: var(--leading-body); }
+  .reviewContainer[data-description-leading="prose"]    { --review-body-leading: var(--leading-prose); }
+  .reviewContainer[data-description-leading="heading"]  { --review-body-leading: var(--leading-heading); }
+
+  /* ------------------------------------------------------------------------- */
+  /* Table Data & Header Font Size Options                                     */
+  /* ------------------------------------------------------------------------- */
+  .reviewContainer[data-table-data-size="scale-neg-3"]   { --review-table-size: var(--calc-scale-neg-3); }
+  .reviewContainer[data-table-data-size="scale-neg-2"]   { --review-table-size: var(--calc-scale-neg-2); }
+  .reviewContainer[data-table-data-size="scale-neg-1"]   { --review-table-size: var(--calc-scale-neg-1); }
+  .reviewContainer[data-table-data-size="scale-0"]       { --review-table-size: var(--calc-scale-0); }
+
+  .reviewContainer[data-table-header-size="scale-neg-3"] { --review-table-header-size: var(--calc-scale-neg-3); }
+  .reviewContainer[data-table-header-size="scale-neg-2"] { --review-table-header-size: var(--calc-scale-neg-2); }
+  .reviewContainer[data-table-header-size="scale-neg-1"] { --review-table-header-size: var(--calc-scale-neg-1); }
+  .reviewContainer[data-table-header-size="scale-0"]     { --review-table-header-size: var(--calc-scale-0); }
+}

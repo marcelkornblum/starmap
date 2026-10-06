@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import styles from './Well.module.css';
 
 export interface WellProps extends HTMLAttributes<HTMLDivElement> {
-  padding?: 'tight' | 'default' | 'loose';
+  padding?: 'none' | 'tight' | 'default' | 'loose';
   tabular?: boolean;
   children?: ReactNode;
 }

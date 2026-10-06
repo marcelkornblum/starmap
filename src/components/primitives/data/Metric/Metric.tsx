@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react';
+import { Unit } from '../Unit/Unit';
 import styles from './Metric.module.css';
 
 export interface MetricProps extends HTMLAttributes<HTMLDivElement> {
@@ -22,6 +23,19 @@ export const Metric = ({
     ? `${styles.metric} ${className}`
     : styles.metric;
 
+  const renderUnit = () => {
+    if (!unit) return null;
+    if (
+      typeof unit === 'object' &&
+      unit !== null &&
+      'type' in unit &&
+      (unit.type === Unit || (unit.type as any)?.displayName === 'Unit')
+    ) {
+      return unit;
+    }
+    return <Unit className={styles.unit}>{unit}</Unit>;
+  };
+
   return (
     <div
       className={combinedClassName}
@@ -31,7 +45,7 @@ export const Metric = ({
       <span className={styles.label}>{label}</span>
       <div className={styles.valueRow}>
         <span className={styles.value}>{value}</span>
-        {unit && <span className={styles.unit}>{unit}</span>}
+        {renderUnit()}
       </div>
       {trend && <span className={styles.trend}>{trend}</span>}
     </div>

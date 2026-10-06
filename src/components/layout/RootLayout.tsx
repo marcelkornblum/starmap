@@ -5,6 +5,7 @@ import { SceneProvider } from '../canvas/SceneBridge';
 import { GlobalCanvas } from '../canvas/GlobalCanvas';
 import { ThemeTokenBridge } from '../canvas/ThemeTokenBridge';
 import { CommandPalette, type CommandPaletteItem } from '../domain';
+import { Button } from '../primitives';
 import styles from './RootLayout.module.css';
 
 export interface RootLayoutProps {}
@@ -134,15 +135,16 @@ export const RootHeader: React.FC = () => {
         </nav>
 
         <div className={styles.actionGroup}>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             className={styles.searchButton}
             onClick={handleOpenPalette}
             aria-label="Search celestial catalog (Command or Control K)"
           >
             <span>Search...</span>
             <kbd className={styles.shortcutKey}>⌘K</kbd>
-          </button>
+          </Button>
         </div>
       </header>
 

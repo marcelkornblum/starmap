@@ -1,0 +1,18 @@
+@layer blocks {
+  .unit {
+    --unit-font-family: var(--font-interface);
+    --unit-font-size: var(--text-unit-size, calc(1em / var(--type-ratio, 1.25)));
+    --unit-color: var(--content-unit, var(--content-muted));
+    --unit-font-weight: 400;
+
+    display: inline;
+    font-family: var(--unit-font-family);
+    font-size: var(--unit-font-size);
+    color: var(--unit-color);
+    font-weight: var(--unit-font-weight);
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    margin: 0;
+  }
+}

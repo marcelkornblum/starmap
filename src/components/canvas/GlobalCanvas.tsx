@@ -29,6 +29,7 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
       style={style}
     >
       <Canvas
+        flat
         camera={{
           position: STANDARD_CAM.position,
           up: STANDARD_CAM.up,

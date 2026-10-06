@@ -7,6 +7,7 @@
     --card-shadow: var(--surface-panel-shadow);
     --card-padding: var(--space-inset-card);
     --card-radius: var(--radius-container);
+    --card-backdrop-blur: var(--surface-panel-backdrop-blur);
 
     display: flex;
     flex-direction: column;
@@ -17,16 +18,39 @@
     border-radius: var(--card-radius);
     padding: var(--card-padding);
     margin: 0;
+    backdrop-filter: blur(var(--card-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--card-backdrop-blur));
     transition: border-color var(--motion-duration-feedback) var(--motion-ease-default),
                 box-shadow var(--motion-duration-feedback) var(--motion-ease-default);
   }
 }
 
 @layer exceptions {
-  .card[data-status="critical"] { --card-border-color: var(--status-critical); }
-  .card[data-status="caution"] { --card-border-color: var(--status-caution); }
-  .card[data-status="nominal"] { --card-border-color: var(--status-nominal); }
-  .card[data-status="info"] { --card-border-color: var(--state-focus); }
+  .card[data-status="nominal"] {
+    --card-bg: var(--status-nominal-surface);
+    --card-border-color: var(--status-nominal-border);
+    --card-shadow: var(--status-nominal-panel-shadow);
+  }
+  .card[data-status="caution"] {
+    --card-bg: var(--status-caution-surface);
+    --card-border-color: var(--status-caution-border);
+    --card-shadow: var(--status-caution-panel-shadow);
+  }
+  .card[data-status="critical"] {
+    --card-bg: var(--status-critical-surface);
+    --card-border-color: var(--status-critical-border);
+    --card-shadow: var(--status-critical-panel-shadow);
+  }
+  .card[data-status="info"] {
+    --card-bg: var(--status-info-surface);
+    --card-border-color: var(--status-info-border);
+    --card-shadow: var(--status-info-panel-shadow);
+  }
+  .card[data-status="neutral"] {
+    --card-bg: var(--status-neutral-surface);
+    --card-border-color: var(--status-neutral-border);
+    --card-shadow: var(--status-neutral-panel-shadow);
+  }
 
   .card[data-interactive="true"]:hover {
     --card-border-color: var(--state-selected-border);

@@ -25,6 +25,287 @@
     --palette-solarized-cyan:    oklch(64.37% 0.1019 187.38);
     --palette-solarized-green:   oklch(64.44% 0.1508 118.60);
 
+    /* ------------------------------------------------------------------------ */
+    /* 1a. Extended Interface & State Accents                                   */
+    /* Unambiguous focus/active accent and neutral telemetry state              */
+    /* ------------------------------------------------------------------------ */
+    --palette-accent-focus:         oklch(75.0% 0.190 156); /* Neodymium Emerald / Teal: High contrast control ring & active state */
+    --palette-accent-focus-hover:   oklch(80.0% 0.180 156);
+    --palette-accent-focus-active:  oklch(70.0% 0.200 156);
+    --palette-accent-focus-subtle:  oklch(75.0% 0.190 156 / 0.15);
+    --palette-accent-focus-halo:    0 0 0 3px oklch(75.0% 0.190 156 / 0.35);
+
+    --palette-accent-focus-light:        oklch(45.0% 0.175 156);
+    --palette-accent-focus-light-hover:  oklch(40.0% 0.175 156);
+    --palette-accent-focus-light-halo:   0 0 0 3px oklch(45.0% 0.175 156 / 0.25);
+
+    --palette-accent-neutral:       oklch(68.0% 0.050 198); /* Kepler Titanium Slate */
+    --palette-accent-neutral-subtle:oklch(68.0% 0.050 198 / 0.15);
+
+    /* Form Control Hardware & Indicators */
+    --palette-control-handle-dark:        oklch(68.0% 0.035 198); /* Mechanical titanium control handle */
+    --palette-control-handle-dark-hover:  oklch(76.0% 0.035 198);
+    --palette-control-handle-light:       oklch(45.0% 0.035 198);
+    --palette-control-handle-light-hover: oklch(35.0% 0.035 198);
+
+    --palette-control-active-dark:        oklch(82.0% 0.175 160); /* Luminous indicator dot */
+    --palette-control-active-light:       oklch(48.0% 0.175 160);
+
+    /* ------------------------------------------------------------------------ */
+    /* 1b. Data Visualisation Perceptual Ramps (10% - 100% Steps in OKLCH)      */
+    /* Equilateral triad + quaternary series, monotonic 7% lightness curve      */
+    /* ------------------------------------------------------------------------ */
+    /* Series 1: Azure (Ion Cyan / Blue - Hue 220) */
+    --palette-viz-azure-10:  oklch(28.0% 0.045 220);
+    --palette-viz-azure-20:  oklch(35.0% 0.070 220);
+    --palette-viz-azure-30:  oklch(42.0% 0.095 220);
+    --palette-viz-azure-40:  oklch(49.0% 0.120 220);
+    --palette-viz-azure-50:  oklch(56.0% 0.145 220);
+    --palette-viz-azure-60:  oklch(63.0% 0.165 220);
+    --palette-viz-azure-70:  oklch(70.0% 0.155 220);
+    --palette-viz-azure-80:  oklch(77.0% 0.135 220);
+    --palette-viz-azure-90:  oklch(84.0% 0.105 220);
+    --palette-viz-azure-100: oklch(91.0% 0.070 220);
+
+    /* Series 2: Amber (Solar Gold / Flare - Hue 80) */
+    --palette-viz-amber-10:  oklch(28.0% 0.045 80);
+    --palette-viz-amber-20:  oklch(35.0% 0.070 80);
+    --palette-viz-amber-30:  oklch(42.0% 0.095 80);
+    --palette-viz-amber-40:  oklch(49.0% 0.120 80);
+    --palette-viz-amber-50:  oklch(56.0% 0.145 80);
+    --palette-viz-amber-60:  oklch(63.0% 0.165 80);
+    --palette-viz-amber-70:  oklch(70.0% 0.155 80);
+    --palette-viz-amber-80:  oklch(77.0% 0.135 80);
+    --palette-viz-amber-90:  oklch(84.0% 0.105 80);
+    --palette-viz-amber-100: oklch(91.0% 0.070 80);
+
+    /* Series 3: Emerald (Spectral Flora / Aurora - Hue 160) */
+    --palette-viz-emerald-10:  oklch(28.0% 0.045 160);
+    --palette-viz-emerald-20:  oklch(35.0% 0.070 160);
+    --palette-viz-emerald-30:  oklch(42.0% 0.095 160);
+    --palette-viz-emerald-40:  oklch(49.0% 0.120 160);
+    --palette-viz-emerald-50:  oklch(56.0% 0.145 160);
+    --palette-viz-emerald-60:  oklch(63.0% 0.165 160);
+    --palette-viz-emerald-70:  oklch(70.0% 0.155 160);
+    --palette-viz-emerald-80:  oklch(77.0% 0.135 160);
+    --palette-viz-emerald-90:  oklch(84.0% 0.105 160);
+    --palette-viz-emerald-100: oklch(91.0% 0.070 160);
+
+    /* Series 4: Violet (Ultraviolet / Nebula - Hue 300) */
+    --palette-viz-violet-10:  oklch(28.0% 0.045 300);
+    --palette-viz-violet-20:  oklch(35.0% 0.070 300);
+    --palette-viz-violet-30:  oklch(42.0% 0.095 300);
+    --palette-viz-violet-40:  oklch(49.0% 0.120 300);
+    --palette-viz-violet-50:  oklch(56.0% 0.145 300);
+    --palette-viz-violet-60:  oklch(63.0% 0.165 300);
+    --palette-viz-violet-70:  oklch(70.0% 0.155 300);
+    --palette-viz-violet-80:  oklch(77.0% 0.135 300);
+    --palette-viz-violet-90:  oklch(84.0% 0.105 300);
+    --palette-viz-violet-100: oklch(91.0% 0.070 300);
+
+    /* ------------------------------------------------------------------------ */
+    /* 1c. Functional Surface Families in OKLCH                                 */
+    /* Deep celestial indigo-slate for Dark theme; paper/bone for Light theme   */
+    /* ------------------------------------------------------------------------ */
+    /* Dark Theme Surface Palette (Titanium slate hue 198) */
+    --palette-surface-canvas-dark:        oklch(6.8% 0.022 198);  /* Deep cosmic abyss floor */
+    --palette-surface-inset-dark:         oklch(10.6% 0.028 198); /* Sunken wells & grooves */
+    --palette-surface-chassis-dark:       oklch(15.4% 0.032 198); /* Family 1: HUD & Dock */
+    --palette-surface-slab-dark:          oklch(19.2% 0.036 198); /* Family 2: Panel & Drawer */
+    --palette-surface-overlay-dark:       oklch(22.6% 0.038 198); /* Family 3: Modal & Toast */
+    --palette-surface-overlay-glass-dark: oklch(21.6% 0.036 198 / 0.35); /* Smoked glass for popovers */
+
+    /* Light Theme Surface Palette */
+    --palette-surface-canvas-light:        oklch(96.8% 0.010 198);  /* Canvas paper floor */
+    --palette-surface-inset-light:         oklch(92.4% 0.014 198);  /* Sunken wells */
+    --palette-surface-chassis-light:       oklch(94.4% 0.012 198);  /* Family 1: HUD & Dock */
+    --palette-surface-slab-light:          oklch(98.6% 0.008 198);  /* Family 2: Panel & Drawer */
+    --palette-surface-overlay-light:       oklch(99.6% 0.005 198);  /* Family 3: Modal & Toast */
+    --palette-surface-overlay-glass-light: oklch(99.5% 0.005 198 / 0.35); /* Frosted glass */
+
+    /* ------------------------------------------------------------------------ */
+    /* 1d. Micro-Matte Material Tokens (Gradients, Grain & Bevels)              */
+    /* Directional 360px falloff geometry with rich atmospheric presence        */
+    /* ------------------------------------------------------------------------ */
+
+    /* Angular Micro-Matte Gradients (Dark Theme - 137deg Overhead-Left Vector) */
+    --gradient-surface-inset-dark: linear-gradient(
+      137deg,
+      oklch(9.6% 0.024 198) 0px,
+      oklch(10.6% 0.028 198) 180px,
+      oklch(11.4% 0.030 198) 360px,
+      oklch(11.4% 0.030 198) 100%
+    );
+    --gradient-surface-chassis-dark: linear-gradient(
+      137deg,
+      oklch(15.4% 0.032 198) 0px,
+      oklch(13.5% 0.028 198) 180px,
+      oklch(12.0% 0.025 198) 360px,
+      oklch(12.0% 0.025 198) 100%
+    );
+    --gradient-surface-slab-dark: linear-gradient(
+      137deg,
+      oklch(19.2% 0.036 198) 0px,
+      oklch(17.2% 0.032 198) 180px,
+      oklch(15.6% 0.028 198) 360px,
+      oklch(15.6% 0.028 198) 100%
+    );
+    --gradient-surface-overlay-dark: linear-gradient(
+      137deg,
+      oklch(22.6% 0.038 198 / 0.90) 0px,
+      oklch(19.6% 0.034 198 / 0.94) 180px,
+      oklch(17.6% 0.030 198 / 0.98) 360px,
+      oklch(17.6% 0.030 198 / 0.98) 100%
+    );
+    --gradient-surface-button-dark: linear-gradient(
+      137deg,
+      oklch(24.5% 0.038 198) 0px,
+      oklch(21.5% 0.034 198) 180px,
+      oklch(19.0% 0.030 198) 360px,
+      oklch(19.0% 0.030 198) 100%
+    );
+    --gradient-surface-button-hover-dark: linear-gradient(
+      137deg,
+      oklch(27.0% 0.040 198) 0px,
+      oklch(23.5% 0.036 198) 180px,
+      oklch(20.5% 0.032 198) 360px,
+      oklch(20.5% 0.032 198) 100%
+    );
+    --gradient-surface-button-active-dark: linear-gradient(
+      137deg,
+      oklch(21.5% 0.034 198) 0px,
+      oklch(19.0% 0.030 198) 180px,
+      oklch(17.5% 0.026 198) 360px,
+      oklch(17.5% 0.026 198) 100%
+    );
+    --gradient-surface-glass-dark: linear-gradient(
+      137deg,
+      oklch(24.0% 0.036 198 / 0.22) 0px,
+      oklch(20.0% 0.030 198 / 0.28) 180px,
+      oklch(16.0% 0.026 198 / 0.36) 360px,
+      oklch(16.0% 0.026 198 / 0.36) 100%
+    );
+
+    /* Angular Micro-Matte Gradients (Light Theme) */
+    --gradient-surface-inset-light: linear-gradient(
+      137deg,
+      oklch(91.5% 0.014 198) 0px,
+      oklch(92.4% 0.012 198) 180px,
+      oklch(93.5% 0.010 198) 360px,
+      oklch(93.5% 0.010 198) 100%
+    );
+    --gradient-surface-chassis-light: linear-gradient(
+      137deg,
+      oklch(94.4% 0.012 198) 0px,
+      oklch(93.0% 0.012 198) 180px,
+      oklch(91.5% 0.014 198) 360px,
+      oklch(91.5% 0.014 198) 100%
+    );
+    --gradient-surface-slab-light: linear-gradient(
+      137deg,
+      oklch(98.6% 0.008 198) 0px,
+      oklch(96.8% 0.010 198) 180px,
+      oklch(94.8% 0.012 198) 360px,
+      oklch(94.8% 0.012 198) 100%
+    );
+    --gradient-surface-overlay-light: linear-gradient(
+      137deg,
+      oklch(99.6% 0.005 198 / 0.90) 0px,
+      oklch(97.6% 0.007 198 / 0.94) 180px,
+      oklch(95.6% 0.009 198 / 0.98) 360px,
+      oklch(95.6% 0.009 198 / 0.98) 100%
+    );
+    --gradient-surface-button-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0) 0px,
+      oklch(98.5% 0.006 198) 180px,
+      oklch(96.5% 0.008 198) 360px,
+      oklch(96.5% 0.008 198) 100%
+    );
+    --gradient-surface-button-hover-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0) 0px,
+      oklch(99.5% 0.004 198) 180px,
+      oklch(98.0% 0.006 198) 360px,
+      oklch(98.0% 0.006 198) 100%
+    );
+    --gradient-surface-button-active-light: linear-gradient(
+      137deg,
+      oklch(97.0% 0.008 198) 0px,
+      oklch(95.5% 0.010 198) 180px,
+      oklch(94.0% 0.012 198) 360px,
+      oklch(94.0% 0.012 198) 100%
+    );
+    --gradient-surface-glass-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.22) 0px,
+      oklch(97.5% 0.007 198 / 0.28) 180px,
+      oklch(95.5% 0.009 198 / 0.36) 360px,
+      oklch(95.5% 0.009 198 / 0.36) 100%
+    );
+
+    /* Anodised Micro-Matte Grain (Monochrome SVG noise data URL) */
+    --texture-grain-matte: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128' width='128' height='128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.025 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+    /* Composed Material Fills (Grain Texture + Directional Gradient) */
+    --material-surface-inset-dark:   var(--texture-grain-matte), var(--gradient-surface-inset-dark);
+    --material-surface-chassis-dark: var(--texture-grain-matte), var(--gradient-surface-chassis-dark);
+    --material-surface-slab-dark:    var(--texture-grain-matte), var(--gradient-surface-slab-dark);
+    --material-surface-button-dark:  var(--texture-grain-matte), var(--gradient-surface-button-dark);
+    --material-surface-overlay-dark: var(--texture-grain-matte), var(--gradient-surface-overlay-dark);
+    --material-surface-glass-dark:   var(--texture-grain-matte), var(--gradient-surface-glass-dark);
+
+    --material-surface-inset-light:   var(--texture-grain-matte), var(--gradient-surface-inset-light);
+    --material-surface-chassis-light: var(--texture-grain-matte), var(--gradient-surface-chassis-light);
+    --material-surface-slab-light:    var(--texture-grain-matte), var(--gradient-surface-slab-light);
+    --material-surface-button-light:  var(--texture-grain-matte), var(--gradient-surface-button-light);
+    --material-surface-overlay-light: var(--texture-grain-matte), var(--gradient-surface-overlay-light);
+    --material-surface-glass-light:   var(--texture-grain-matte), var(--gradient-surface-glass-light);
+
+    /* Directional Overhead-Left Specular Bevels (Top & Left Highlights, Muted Right/Bottom) */
+    --bevel-top-rim-dark:      inset 0 1px 0 0 oklch(96% 0.020 198 / 0.22), inset 1px 0 0 0 oklch(96% 0.020 198 / 0.14);
+    --bevel-top-rim-subtle:    inset 0 1px 0 0 oklch(96% 0.020 198 / 0.14), inset 1px 0 0 0 oklch(96% 0.020 198 / 0.08);
+    --bevel-top-rim-prominent: inset 0 1px 0 0 oklch(96% 0.020 198 / 0.30), inset 1px 0 0 0 oklch(96% 0.020 198 / 0.18);
+    --bevel-top-rim-light:     inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+
+    /* Directional Overhead-Left Specular Bevels (Bottom & Right Highlights for Inset Wells) */
+    --bevel-bottom-rim-dark:      inset 0 -1px 0 0 oklch(96% 0.020 198 / 0.22), inset -1px 0 0 0 oklch(96% 0.020 198 / 0.14);
+    --bevel-bottom-rim-subtle:    inset 0 -1px 0 0 oklch(96% 0.020 198 / 0.14), inset -1px 0 0 0 oklch(96% 0.020 198 / 0.08);
+    --bevel-bottom-rim-prominent: inset 0 -1px 0 0 oklch(96% 0.020 198 / 0.30), inset -1px 0 0 0 oklch(96% 0.020 198 / 0.18);
+    --bevel-bottom-rim-light:     inset 0 -1px 0 0 oklch(100% 0 0 / 0.70), inset -1px 0 0 0 oklch(100% 0 0 / 0.40);
+
+    /* Inset Well Cavity Shadows (Inner overhang occlusion + bottom-right illuminated lip) */
+    --shadow-inset-well-dark:
+      inset 0 1px 2px 0 oklch(0% 0 0 / 0.60),
+      inset 0 3px 6px 0 oklch(0% 0 0 / 0.45),
+      inset 2px 0 4px 0 oklch(0% 0 0 / 0.30),
+      var(--bevel-bottom-rim-dark);
+
+    --shadow-inset-well-light:
+      inset 0 1px 2px 0 oklch(0% 0 0 / 0.18),
+      inset 0 2px 5px 0 oklch(0% 0 0 / 0.12),
+      inset 1px 0 3px 0 oklch(0% 0 0 / 0.08),
+      var(--bevel-bottom-rim-light);
+
+    /* Specular Hairline & Border Swatches (True Achromatic White & Black Alphas) */
+    --palette-specular-white-4:   oklch(100% 0 0 / 0.04);
+    --palette-specular-white-6:   oklch(100% 0 0 / 0.06);
+    --palette-specular-white-8:   oklch(100% 0 0 / 0.08);
+    --palette-specular-white-12:  oklch(100% 0 0 / 0.12);
+    --palette-specular-white-15:  oklch(100% 0 0 / 0.15);
+    --palette-specular-white-20:  oklch(100% 0 0 / 0.20);
+    --palette-specular-white-25:  oklch(100% 0 0 / 0.25);
+    --palette-specular-white-30:  oklch(100% 0 0 / 0.30);
+
+    --palette-specular-black-4:   oklch(0% 0 0 / 0.04);
+    --palette-specular-black-6:   oklch(0% 0 0 / 0.06);
+    --palette-specular-black-8:   oklch(0% 0 0 / 0.08);
+    --palette-specular-black-12:  oklch(0% 0 0 / 0.12);
+    --palette-specular-black-16:  oklch(0% 0 0 / 0.16);
+    --palette-specular-black-22:  oklch(0% 0 0 / 0.22);
+    --palette-specular-black-35:  oklch(0% 0 0 / 0.35);
+    --palette-specular-black-50:  oklch(0% 0 0 / 0.50);
+
     /* Alpha Channel Swatches (Dark Theme Base: derived from base1 / base03) */
     --palette-white-alpha-4:  oklch(69.79% 0.0159 196.79 / 0.04);
     --palette-white-alpha-8:  oklch(69.79% 0.0159 196.79 / 0.08);
@@ -78,6 +359,7 @@
     --type-scale-0:     var(--type-base);                                      /* 16.00px */
     --type-scale-neg-1: calc(var(--type-scale-0) / var(--type-ratio));         /* 12.80px */
     --type-scale-neg-2: calc(var(--type-scale-neg-1) / var(--type-ratio));     /* ~10.24px */
+    --type-scale-neg-3: calc(var(--type-scale-neg-2) / var(--type-ratio));     /* ~8.19px */
     --type-scale-1:     calc(var(--type-scale-0) * var(--type-ratio));         /* 20.00px */
     --type-scale-2:     calc(var(--type-scale-1) * var(--type-ratio));         /* 25.00px */
     --type-scale-3:     calc(var(--type-scale-2) * var(--type-ratio));         /* ~31.25px */
@@ -128,14 +410,37 @@
     --stroke-style-dotted: dotted;
 
     /* ------------------------------------------------------------------------ */
-    /* 5. Literal Elevation & Shadows                                           */
+    /* 5. Literal Elevation & Directional Shadows                               */
+    /* Dual-layer ambient + contact shadows with directional placement offsets  */
     /* ------------------------------------------------------------------------ */
-    --elevation-0:     none;
-    --elevation-inset: inset 0 1px 3px oklch(0% 0 0 / 0.35);
-    --elevation-1:     0 1px 2px oklch(0% 0 0 / 0.25);
-    --elevation-2:     0 4px 12px oklch(0% 0 0 / 0.35);
-    --elevation-3:     0 8px 24px oklch(0% 0 0 / 0.45);
-    --elevation-4:     0 16px 40px oklch(0% 0 0 / 0.55);
+    --elevation-0:             none;
+    --elevation-inset:         inset 0 2px 4px oklch(0% 0 0 / 0.45), inset 0 -1px 0 0 oklch(100% 0 0 / 0.06);
+    --elevation-inset-light:   inset 0 2px 4px oklch(0% 0 0 / 0.10), inset 0 -1px 0 0 oklch(100% 0 0 / 0.50);
+    --elevation-1:             0 1px 3px oklch(0% 0 0 / 0.25);
+    --elevation-2:       0 4px 14px oklch(0% 0 0 / 0.35), 0 1px 3px oklch(0% 0 0 / 0.20);
+    --elevation-3:       0 8px 24px oklch(0% 0 0 / 0.45), 0 2px 6px oklch(0% 0 0 / 0.25);
+    --elevation-4:       0 20px 48px oklch(0% 0 0 / 0.60), 0 4px 12px oklch(0% 0 0 / 0.35);
+
+    /* Directional Ambient Elevation Shadows (Linear & Raycast Calibrated)     */
+    /* Dual-layer with negative spread to eliminate haloing and sharpen boundaries */
+    --elevation-hud:     0 4px 16px -2px oklch(0% 0 0 / 0.35);
+    --elevation-dock:    0 -4px 16px -2px oklch(0% 0 0 / 0.45), 0 -1px 3px 0 oklch(0% 0 0 / 0.25);
+    --elevation-panel:   0 12px 32px -4px oklch(0% 0 0 / 0.50), 0 2px 8px -2px oklch(0% 0 0 / 0.40);
+    --elevation-drawer:  -12px 0 32px -4px oklch(0% 0 0 / 0.50), -3px 0 8px -2px oklch(0% 0 0 / 0.40);
+    --elevation-popover: 0 12px 32px -4px oklch(0% 0 0 / 0.55), 0 2px 8px -2px oklch(0% 0 0 / 0.35);
+    --elevation-button:  0 4px 12px -2px oklch(0% 0 0 / 0.40), 0 1px 3px 0 oklch(0% 0 0 / 0.25);
+    --elevation-modal:   0 24px 48px -8px oklch(0% 0 0 / 0.65), 0 4px 16px -2px oklch(0% 0 0 / 0.40);
+    --elevation-toast:   0 10px 28px -4px oklch(0% 0 0 / 0.50), 0 2px 8px -2px oklch(0% 0 0 / 0.30);
+
+    /* Light Theme Counterpart Shadows */
+    --elevation-hud-light:     0 4px 16px -2px oklch(0% 0 0 / 0.08);
+    --elevation-dock-light:    0 -4px 16px -2px oklch(0% 0 0 / 0.10), 0 -1px 3px 0 oklch(0% 0 0 / 0.05);
+    --elevation-panel-light:   0 12px 32px -4px oklch(0% 0 0 / 0.08), 0 2px 8px -2px oklch(0% 0 0 / 0.04);
+    --elevation-drawer-light:  -12px 0 32px -4px oklch(0% 0 0 / 0.10), -3px 0 8px -2px oklch(0% 0 0 / 0.05);
+    --elevation-popover-light: 0 12px 32px -4px oklch(0% 0 0 / 0.12), 0 2px 8px -2px oklch(0% 0 0 / 0.06);
+    --elevation-button-light:  0 4px 12px -2px oklch(0% 0 0 / 0.08), 0 1px 3px 0 oklch(0% 0 0 / 0.04);
+    --elevation-modal-light:   0 24px 48px -8px oklch(0% 0 0 / 0.18), 0 4px 16px -2px oklch(0% 0 0 / 0.08);
+    --elevation-toast-light:   0 10px 28px -4px oklch(0% 0 0 / 0.12), 0 2px 8px -2px oklch(0% 0 0 / 0.05);
 
     /* ------------------------------------------------------------------------ */
     /* 6. Literal Optics: Opacity & Blur Scales                                 */

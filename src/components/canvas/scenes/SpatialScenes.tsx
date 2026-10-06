@@ -286,12 +286,14 @@ export interface GalacticViewSceneProps {
   initialSelectedId?: string | null;
   onInspectSystem?: (systemId: string) => void;
   className?: string;
+  variant?: 'card' | 'fullscreen';
 }
 
 export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
   initialSelectedId = null,
   onInspectSystem,
   className,
+  variant = 'card',
 }) => {
   const standardCam = useMemo(
     () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.galactic, [0, 0, 0]),
@@ -303,9 +305,10 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
     : styles.viewportContainer;
 
   return (
-    <div className={containerClass}>
+    <div className={containerClass} data-variant={variant}>
       <div className={styles.canvasWrapper}>
         <Canvas
+          flat
           camera={{
             position: standardCam.position,
             up: standardCam.up,
@@ -355,6 +358,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
     <div className={styles.viewportContainer}>
       <div className={styles.canvasWrapper}>
         <Canvas
+          flat
           camera={{
             position: standardCam.position,
             up: standardCam.up,
@@ -416,6 +420,7 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
     <div className={styles.viewportContainer}>
       <div className={styles.canvasWrapper}>
         <Canvas
+          flat
           camera={{
             position: standardCam.position,
             up: standardCam.up,

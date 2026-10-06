@@ -4,7 +4,7 @@ import styles from './Panel.module.css';
 export interface PanelProps extends HTMLAttributes<HTMLDivElement> {
   header?: ReactNode;
   footer?: ReactNode;
-  status?: 'nominal' | 'caution' | 'critical' | 'info';
+  status?: 'nominal' | 'caution' | 'critical' | 'info' | 'neutral';
   padding?: 'none' | 'tight' | 'default' | 'loose';
   children?: ReactNode;
 }

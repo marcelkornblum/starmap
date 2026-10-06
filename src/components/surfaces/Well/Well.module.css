@@ -7,7 +7,9 @@
     --well-shadow: var(--surface-inset-shadow);
     --well-padding: var(--space-inset-well-default);
     --well-radius: var(--radius-container);
+    --well-gradient-overlay: var(--surface-inset-gradient-overlay);
 
+    position: relative;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -17,6 +19,22 @@
     border-radius: var(--well-radius);
     padding: var(--well-padding);
     margin: 0;
+    overflow: hidden;
+  }
+
+  .well::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--well-gradient-overlay);
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+
+  .well > * {
+    position: relative;
+    z-index: 1;
   }
 
   .well[data-tabular="true"] {
@@ -26,6 +44,7 @@
 }
 
 @layer exceptions {
+  .well[data-padding="none"] { --well-padding: 0; }
   .well[data-padding="tight"] { --well-padding: var(--space-inset-well-tight); }
   .well[data-padding="default"] { --well-padding: var(--space-inset-well-default); }
   .well[data-padding="loose"] { --well-padding: var(--space-inset-well-loose); }
