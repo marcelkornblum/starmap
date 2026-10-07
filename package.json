@@ -37,7 +37,7 @@
     "@types/react-dom": "^19.2.7",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "@vitest/coverage-v8": "^5.0.2",
+    "@vitest/coverage-v8": "^5.0.3",
     "csv-parser": "^3.2.1",
     "oxlint": "^1.81.0",
     "tsx": "^4.23.15",
