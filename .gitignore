@@ -36,3 +36,5 @@ storybook-static
 # Scratch runner
 runner.cjs
 scripts/scratch.*
+scratch/*.cjs
+scratch/*.js
