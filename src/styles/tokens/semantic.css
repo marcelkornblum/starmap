@@ -110,7 +110,6 @@
     --text-ui-input-size:               var(--type-scale-0);
     --text-ui-input-placeholder-size:   var(--type-scale-0);
     --text-ui-input-label-size:         var(--type-scale-neg-1);
-    --text-ui-toggle-size:              var(--type-scale-0);
 
     --text-ui-modal-title-size:         var(--type-scale-2);
     --text-ui-menu-item-size:           var(--type-scale-0);
@@ -212,17 +211,6 @@
     /* Control & Metric Dimensions */
     --ui-control-height-default: calc(var(--space-fib-5) + var(--space-fib-3));
     --ui-control-height-sm:      calc(var(--space-fib-4) + var(--space-fib-2));
-    --ui-slider-track-height:    2px;
-    --ui-slider-thumb-width:     3px;
-    --ui-slider-thumb-height:    14px;
-    --ui-slider-thumb-size:      var(--ui-slider-thumb-width);
-    --ui-toggle-track-width:     32px;
-    --ui-toggle-track-height:    16px;
-    --ui-toggle-thumb-size:      8px;
-    --ui-toggle-thumb-offset:    3px;
-    --ui-toggle-thumb-active-offset: 16px;
-    --ui-toggle-track-radius:    var(--radius-badge);
-    --ui-toggle-thumb-radius:    50%;
 
     /* Elevation & Semantic Layers */
     --layer-canvas:              var(--z-canvas);
@@ -238,23 +226,10 @@
     --opacity-full:              var(--opacity-100);
     --opacity-hidden:            var(--opacity-0);
     --opacity-visible:           var(--opacity-100);
-    --ui-toggle-opacity:         var(--opacity-100);
     --chrome-node-label-opacity: var(--opacity-100);
     --chrome-node-label-opacity-occluded: var(--opacity-0);
 
-    /* UI Control Layout Metrics */
-    --ui-input-padding-x:        var(--space-inset-control-x);
-    --ui-input-padding-y:        var(--space-inset-control-y);
-    --ui-input-font-size:        var(--text-ui-input-size);
-    --ui-input-sm-padding-x:     var(--space-inset-input-sm-x);
-    --ui-input-sm-padding-y:     var(--space-inset-input-sm-y);
-    --ui-input-sm-font-size:     var(--type-scale-neg-1);
 
-    --ui-slider-track-border-width: 0px;
-    --ui-slider-track-border-style: none;
-    --ui-slider-track-radius:       var(--radius-1);
-    --ui-slider-thumb-radius:       1px;
-    --ui-slider-gap:                var(--space-gap-control);
 
     /* Data Telemetry Metrics */
     --data-datum-font-size:         var(--text-content-data-value-size);
@@ -327,9 +302,6 @@
     --ui-command-palette-opacity:        var(--opacity-100);
     --ui-command-palette-backdrop-blur:  var(--filter-blur-2);
 
-    --ui-input-bg-opacity:               var(--opacity-100);
-    --ui-input-backdrop-blur:            var(--filter-blur-0);
-    --ui-input-border-opacity:           var(--opacity-15);
 
     --ui-badge-fill-opacity:             var(--opacity-15);
     --ui-badge-backdrop-blur:            var(--filter-blur-0);
@@ -454,7 +426,10 @@
     --content-accent:    var(--state-focus);
 
     --interactive-primary: var(--state-focus);
-    --color-control-default: var(--palette-control-handle-dark);
+    --ui-control-default:  var(--palette-control-handle-dark);
+    --ui-control-subtle:   var(--palette-control-subtle-dark);
+    --ui-control-hover:    var(--palette-control-handle-dark-hover);
+    --ui-control-active:   var(--palette-control-active-dark);
 
     --border-color-subtle:      var(--palette-specular-white-8);
     --border-color-interactive: var(--state-focus);
@@ -536,75 +511,30 @@
     --chrome-boresight-width:            var(--stroke-width-1);
     --chrome-boresight-style:            var(--border-style-boundary);
 
-    /* UI Control Profiles (Dark Theme) */
-    --ui-button-default-bg:              var(--material-surface-button-dark);
-    --ui-button-default-color:           var(--content-prominent);
-    --ui-button-default-border-color:    var(--palette-specular-black-50);
-    --ui-button-default-border-width:    var(--border-width-1);
-    --ui-button-default-border-style:    var(--border-style-boundary);
-    --ui-button-default-shadow:          inset 0 1px 2px 0 var(--palette-specular-black-35), inset 0 0 0 1px var(--palette-specular-white-8), 0 1px 0 0 var(--palette-specular-white-6);
-    --ui-button-default-radius:          var(--radius-control);
-    --ui-button-default-hover-bg:        var(--material-surface-button-hover-dark);
-    --ui-button-default-hover-border-color: var(--border-color-prominent);
-    --ui-button-default-hover-shadow:    var(--bevel-top-rim-prominent), var(--elevation-button);
-    --ui-button-default-active-bg:       var(--material-surface-button-active-dark);
-    --ui-button-default-active-border-color: var(--palette-black-alpha-70);
-    --ui-button-default-active-shadow:   inset 0 2px 4px 0 var(--palette-specular-black-50);
-
-    /* Highlight Button: subtle accent wash, tuned-down border, and prominent specular top rim */
-    --ui-button-highlight-bg:            linear-gradient(137deg, var(--palette-accent-focus-subtle), var(--palette-accent-focus-subtle)), var(--material-surface-button-dark);
-    --ui-button-highlight-hover-bg:      linear-gradient(137deg, oklch(from var(--palette-accent-focus) l c h / 0.22), oklch(from var(--palette-accent-focus) l c h / 0.22)), var(--material-surface-button-hover-dark);
-    --ui-button-highlight-active-bg:     linear-gradient(137deg, oklch(from var(--palette-accent-focus) l c h / 0.28), oklch(from var(--palette-accent-focus) l c h / 0.28)), var(--material-surface-button-active-dark);
-    --ui-button-highlight-color:         var(--content-prominent);
-    --ui-button-highlight-border-color:  oklch(from var(--state-focus) l c h / 0.30);
-    --ui-button-highlight-hover-border-color: oklch(from var(--palette-accent-focus-hover) l c h / 0.45);
-    --ui-button-highlight-shadow:        var(--bevel-top-rim-prominent), var(--elevation-button);
-
-    /* Primary alias to highlight tokens */
-    --ui-button-prominent-bg:            var(--ui-button-highlight-bg);
-    --ui-button-prominent-color:         var(--ui-button-highlight-color);
-    --ui-button-prominent-border-color:  var(--ui-button-highlight-border-color);
-    --ui-button-prominent-hover-bg:      var(--ui-button-highlight-hover-bg);
-    --ui-button-prominent-active-bg:     var(--ui-button-highlight-active-bg);
-
-    --ui-button-subtle-bg:               transparent;
-    --ui-button-subtle-color:            var(--content-default);
-    --ui-button-subtle-border-color:     transparent;
-    --ui-button-subtle-hover-bg:         var(--surface-dock-bg);
-    --ui-button-subtle-hover-border-color: var(--border-color-subtle);
-
-    --ui-button-danger-bg:               linear-gradient(137deg, oklch(from var(--status-critical) l c h / 0.15), oklch(from var(--status-critical) l c h / 0.15)), var(--material-surface-button-dark);
-    --ui-button-danger-color:            var(--content-prominent);
-    --ui-button-danger-border-color:     oklch(from var(--status-critical) l c h / 0.32);
-    --ui-button-danger-shadow:           var(--status-critical-bevel), var(--elevation-button);
-
-    --ui-input-bg:                       var(--surface-inset-bg);
-    --ui-input-color:                    var(--content-default);
-    --ui-input-border-color:             var(--surface-inset-border-color);
-    --ui-input-border-width:             var(--border-width-1);
-    --ui-input-border-style:             var(--border-style-boundary);
-    --ui-input-radius:                   var(--radius-control);
-    --ui-input-placeholder-color:        var(--content-faint);
+    /* UI Control General Mechanics & Elevation (Dark Theme) */
+    --ui-control-elevation:              var(--elevation-button);
+    --ui-control-depression:             inset 0 2px 4px 0 var(--palette-specular-black-50);
+    --ui-control-specular-l:             96%;
+    --ui-control-specular-c:             0.020;
+    --ui-control-subtle-hover-bg:        var(--palette-white-alpha-8);
+    --ui-control-subtle-active-bg:       var(--palette-white-alpha-12);
+    --ui-control-subtle-seamline-l:      38%;
+    --ui-control-subtle-seamline-c:      0.020;
+    /* UI Control Inset Wells & Cavities (Dark Theme) */
+    --ui-control-inset-bg:               var(--surface-inset-bg);
+    --ui-control-inset-border-color:     var(--surface-inset-border-color);
+    --ui-control-inset-shadow:           var(--surface-inset-shadow);
 
     /* UI Control Hardware & Dedicated State Indicators (Dark Theme) */
-    --ui-control-handle-bg:              var(--color-control-default);
-    --ui-control-handle-hover-bg:        var(--palette-control-handle-dark-hover);
-    --ui-control-active-bg:              var(--palette-control-active-dark);
-    --ui-control-active-glow:            0 0 5px oklch(from var(--ui-control-active-bg) l c h / 0.75), 0 0 10px oklch(from var(--ui-control-active-bg) l c h / 0.35);
+    --ui-control-default-bg:             var(--gradient-surface-button-dark);
+    --ui-control-hover-bg:               var(--gradient-surface-button-hover-dark);
+    --ui-control-active-bg:              linear-gradient(137deg, oklch(from var(--ui-control-active) l c h / 0.16), oklch(from var(--ui-control-active) l c h / 0.08)), var(--surface-inset-bg);
 
-    --ui-slider-track-bg:                var(--surface-inset-border-color);
-    --ui-slider-track-border-color:      transparent;
-    --ui-slider-thumb-bg:                var(--ui-control-handle-bg);
-    --ui-slider-thumb-hover-bg:          var(--ui-control-handle-hover-bg);
-    --ui-slider-thumb-glow:              none;
+    --ui-control-handle-bg:              var(--ui-control-default);
+    --ui-control-handle-hover-bg:        var(--ui-control-hover);
+    --ui-control-active-glow:            0 0 5px oklch(from var(--ui-control-active) l c h / 0.75), 0 0 10px oklch(from var(--ui-control-active) l c h / 0.35);
 
-    --ui-toggle-track-bg:                var(--surface-inset-bg);
-    --ui-toggle-track-border-color:      var(--border-color-subtle);
-    --ui-toggle-track-active-bg:         linear-gradient(137deg, oklch(from var(--ui-control-active-bg) l c h / 0.16), oklch(from var(--ui-control-active-bg) l c h / 0.08)), var(--surface-inset-bg);
-    --ui-toggle-track-active-border-color: oklch(from var(--ui-control-active-bg) l c h / 0.40);
-    --ui-toggle-thumb-bg:                var(--ui-control-handle-bg);
-    --ui-toggle-thumb-active-bg:         var(--ui-control-active-bg);
-    --ui-toggle-thumb-active-glow:       var(--ui-control-active-glow);
+
 
     /* Cartographic Cues & On-Map Nodes (Dark Theme) */
     --chrome-bearing-cue-bg:             var(--palette-black-alpha-70);
@@ -1007,7 +937,10 @@
     --content-accent:    var(--state-focus);
 
     --interactive-primary: var(--state-focus);
-    --color-control-default: var(--palette-control-handle-light);
+    --ui-control-default:  var(--palette-control-handle-light);
+    --ui-control-subtle:   var(--palette-control-subtle-light);
+    --ui-control-hover:    var(--palette-control-handle-light-hover);
+    --ui-control-active:   var(--palette-control-active-light);
 
     --border-color-subtle:      var(--palette-specular-black-12);
     --border-color-interactive: var(--state-focus);
@@ -1089,74 +1022,30 @@
     --chrome-boresight-width:            var(--stroke-width-1);
     --chrome-boresight-style:            var(--border-style-boundary);
 
-    /* UI Control Profiles (Light Theme) */
-    --ui-button-default-bg:              var(--material-surface-button-light);
-    --ui-button-default-color:           var(--content-prominent);
-    --ui-button-default-border-color:    var(--palette-specular-black-16);
-    --ui-button-default-border-width:    var(--border-width-1);
-    --ui-button-default-border-style:    var(--border-style-boundary);
-    --ui-button-default-shadow:          inset 0 1px 2px 0 var(--palette-specular-black-12), inset 0 0 0 1px var(--palette-specular-white-30), 0 1px 0 0 var(--palette-specular-white-70, oklch(100% 0 0 / 0.70));
-    --ui-button-default-radius:          var(--radius-control);
-    --ui-button-default-hover-bg:        var(--material-surface-button-hover-light);
-    --ui-button-default-hover-border-color: var(--border-color-prominent);
-    --ui-button-default-hover-shadow:    var(--bevel-top-rim-light), var(--elevation-button-light);
-    --ui-button-default-active-bg:       var(--material-surface-button-active-light);
-    --ui-button-default-active-border-color: var(--palette-specular-black-22);
-    --ui-button-default-active-shadow:   inset 0 2px 4px 0 var(--palette-specular-black-16);
-
-    /* Highlight Button (Light): subtle accent wash, tuned-down border, and specular top rim */
-    --ui-button-highlight-bg:            linear-gradient(137deg, var(--palette-accent-focus-light-subtle), var(--palette-accent-focus-light-subtle)), var(--material-surface-button-light);
-    --ui-button-highlight-hover-bg:      linear-gradient(137deg, oklch(from var(--palette-accent-focus-light) l c h / 0.20), oklch(from var(--palette-accent-focus-light) l c h / 0.20)), var(--material-surface-button-hover-light);
-    --ui-button-highlight-active-bg:     linear-gradient(137deg, oklch(from var(--palette-accent-focus-light) l c h / 0.26), oklch(from var(--palette-accent-focus-light) l c h / 0.26)), var(--material-surface-button-active-light);
-    --ui-button-highlight-color:         var(--content-prominent);
-    --ui-button-highlight-border-color:  oklch(from var(--state-focus) l c h / 0.35);
-    --ui-button-highlight-hover-border-color: oklch(from var(--palette-accent-focus-light-hover) l c h / 0.50);
-    --ui-button-highlight-shadow:        var(--bevel-top-rim-light), var(--elevation-button-light);
-
-    --ui-button-prominent-bg:            var(--ui-button-highlight-bg);
-    --ui-button-prominent-color:         var(--ui-button-highlight-color);
-    --ui-button-prominent-border-color:  var(--ui-button-highlight-border-color);
-    --ui-button-prominent-hover-bg:      var(--ui-button-highlight-hover-bg);
-    --ui-button-prominent-active-bg:     var(--ui-button-highlight-active-bg);
-
-    --ui-button-subtle-bg:               transparent;
-    --ui-button-subtle-color:            var(--content-default);
-    --ui-button-subtle-border-color:     transparent;
-    --ui-button-subtle-hover-bg:         var(--surface-dock-bg);
-    --ui-button-subtle-hover-border-color: var(--border-color-subtle);
-
-    --ui-button-danger-bg:               linear-gradient(137deg, oklch(from var(--status-critical) l c h / 0.12), oklch(from var(--status-critical) l c h / 0.12)), var(--material-surface-button-light);
-    --ui-button-danger-color:            var(--content-prominent);
-    --ui-button-danger-border-color:     oklch(from var(--status-critical) l c h / 0.35);
-    --ui-button-danger-shadow:           var(--status-critical-bevel), var(--elevation-button-light);
-
-    --ui-input-bg:                       var(--surface-inset-bg);
-    --ui-input-color:                    var(--content-default);
-    --ui-input-border-color:             var(--surface-inset-border-color);
-    --ui-input-border-width:             var(--border-width-1);
-    --ui-input-border-style:             var(--border-style-boundary);
-    --ui-input-radius:                   var(--radius-control);
-    --ui-input-placeholder-color:        var(--content-faint);
+    /* UI Control General Mechanics & Elevation (Light Theme) */
+    --ui-control-elevation:              var(--elevation-button-light);
+    --ui-control-depression:             inset 0 2px 4px 0 var(--palette-specular-black-16);
+    --ui-control-specular-l:             98%;
+    --ui-control-specular-c:             0.015;
+    --ui-control-subtle-hover-bg:        var(--surface-dock-bg);
+    --ui-control-subtle-active-bg:       var(--palette-black-alpha-8, oklch(0% 0 0 / 0.08));
+    --ui-control-subtle-seamline-l:      70%;
+    --ui-control-subtle-seamline-c:      0.015;
+    /* UI Control Inset Wells & Cavities (Light Theme) */
+    --ui-control-inset-bg:               var(--surface-inset-bg);
+    --ui-control-inset-border-color:     var(--surface-inset-border-color);
+    --ui-control-inset-shadow:           var(--surface-inset-shadow);
 
     /* UI Control Hardware & Dedicated State Indicators (Light Theme) */
-    --ui-control-handle-bg:              var(--color-control-default);
-    --ui-control-handle-hover-bg:        var(--palette-control-handle-light-hover);
-    --ui-control-active-bg:              var(--palette-control-active-light);
-    --ui-control-active-glow:            0 0 4px oklch(from var(--ui-control-active-bg) l c h / 0.60), 0 0 8px oklch(from var(--ui-control-active-bg) l c h / 0.25);
+    --ui-control-default-bg:             var(--gradient-surface-button-light);
+    --ui-control-hover-bg:               var(--gradient-surface-button-hover-light);
+    --ui-control-active-bg:              linear-gradient(137deg, oklch(from var(--ui-control-active) l c h / 0.12), oklch(from var(--ui-control-active) l c h / 0.06)), var(--surface-inset-bg);
 
-    --ui-slider-track-bg:                var(--surface-inset-border-color);
-    --ui-slider-track-border-color:      transparent;
-    --ui-slider-thumb-bg:                var(--ui-control-handle-bg);
-    --ui-slider-thumb-hover-bg:          var(--ui-control-handle-hover-bg);
-    --ui-slider-thumb-glow:              none;
+    --ui-control-handle-bg:              var(--ui-control-default);
+    --ui-control-handle-hover-bg:        var(--ui-control-hover);
+    --ui-control-active-glow:            0 0 4px oklch(from var(--ui-control-active) l c h / 0.60), 0 0 8px oklch(from var(--ui-control-active) l c h / 0.25);
 
-    --ui-toggle-track-bg:                var(--surface-inset-bg);
-    --ui-toggle-track-border-color:      var(--border-color-subtle);
-    --ui-toggle-track-active-bg:         linear-gradient(137deg, oklch(from var(--ui-control-active-bg) l c h / 0.12), oklch(from var(--ui-control-active-bg) l c h / 0.06)), var(--surface-inset-bg);
-    --ui-toggle-track-active-border-color: oklch(from var(--ui-control-active-bg) l c h / 0.40);
-    --ui-toggle-thumb-bg:                var(--ui-control-handle-bg);
-    --ui-toggle-thumb-active-bg:         var(--ui-control-active-bg);
-    --ui-toggle-thumb-active-glow:       var(--ui-control-active-glow);
+
 
     /* Cartographic Cues & On-Map Nodes (Light Theme) */
     --chrome-bearing-cue-bg:             var(--palette-white-alpha-70);

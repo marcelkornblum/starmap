@@ -51,3 +51,5 @@ Component stylesheets must implement the CUBE pattern using `@layer blocks` and 
 1. **State & Variants:** Bind variants (`data-status`, `data-variant`, `data-density`) to HTML `data-*` attributes. Dynamic `className` string interpolation is forbidden.
 2. **Atomic Exception Overrides:** Exceptions mutate only the targeted custom property (e.g. `--card-border-color`), preserving base layout and geometry.
 3. **Class Naming:** Use `camelCase` for CSS Module exports (e.g. `styles.dataRow`).
+4. **No Component-Specific Global Tokens:** Component-specific property tokens (`--<component>-*`) must never leak into global `src/styles/tokens/semantic.css`. Consume universal semantic primitives (`--ui-control-*`, `--surface-*`) exclusively through the Local Token Interface.
+5. **Physical Lighting & State Integration:** Respect the 137° directional lighting model (top-left specular highlights for raised surfaces; top-left overhang shadows and bottom-right specular lips for recessed wells). Derive dynamic state highlights (`:focus`, `:active`, `[data-status="error"]`) via relative OKLCH (`oklch(from var(--token) ...)`) rather than flat outlines.
