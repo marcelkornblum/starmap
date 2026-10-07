@@ -1,17 +1,22 @@
 @layer blocks {
   .sliderContainer {
-    --slider-track-bg: var(--ui-slider-track-bg);
-    --slider-track-border-color: var(--ui-slider-track-border-color);
-    --slider-track-border-width: var(--ui-slider-track-border-width);
-    --slider-track-border-style: var(--ui-slider-track-border-style);
-    --slider-track-height: var(--ui-slider-track-height);
-    --slider-track-radius: var(--ui-slider-track-radius);
-    --slider-thumb-bg: var(--ui-slider-thumb-bg);
-    --slider-thumb-width: var(--ui-slider-thumb-width);
-    --slider-thumb-height: var(--ui-slider-thumb-height);
-    --slider-thumb-radius: var(--ui-slider-thumb-radius);
-    --slider-thumb-glow: var(--ui-slider-thumb-glow);
-    --slider-gap: var(--ui-slider-gap);
+    /* Component Geometry & Layout */
+    --slider-track-height: 2px;
+    --slider-track-border-width: 0px;
+    --slider-track-border-style: none;
+    --slider-track-border-color: transparent;
+    --slider-track-radius: var(--radius-1);
+
+    --slider-thumb-width: 3px;
+    --slider-thumb-height: 14px;
+    --slider-thumb-radius: 1px;
+    --slider-gap: var(--space-gap-control);
+
+    /* Control Token API */
+    --slider-track-bg: oklch(from var(--ui-control-subtle) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.22);
+    --slider-thumb-bg: var(--ui-control-default);
+    --slider-thumb-hover-bg: var(--ui-control-hover);
+    --slider-thumb-glow: none;
 
     display: flex;
     flex-direction: column;
@@ -50,7 +55,7 @@
     block-size: var(--slider-track-height);
     background: var(--slider-track-bg);
     border: var(--slider-track-border-width) var(--slider-track-border-style) var(--slider-track-border-color);
-    box-shadow: var(--surface-inset-shadow);
+    box-shadow: none;
     border-radius: var(--slider-track-radius);
   }
 
@@ -59,7 +64,7 @@
     block-size: var(--slider-track-height);
     background: var(--slider-track-bg);
     border: var(--slider-track-border-width) var(--slider-track-border-style) var(--slider-track-border-color);
-    box-shadow: var(--surface-inset-shadow);
+    box-shadow: none;
     border-radius: var(--slider-track-radius);
   }
 

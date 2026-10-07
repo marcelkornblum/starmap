@@ -1,15 +1,16 @@
 @layer blocks {
   .input {
-    --input-bg: var(--ui-input-bg);
-    --input-color: var(--ui-input-color);
-    --input-border-color: var(--ui-input-border-color);
-    --input-border-width: var(--ui-input-border-width);
-    --input-border-style: var(--ui-input-border-style);
-    --input-padding-inline: var(--ui-input-padding-x);
-    --input-padding-block: var(--ui-input-padding-y);
-    --input-font-size: var(--ui-input-font-size);
-    --input-radius: var(--ui-input-radius);
-    --input-shadow: var(--surface-inset-shadow);
+    --input-bg: var(--ui-control-inset-bg);
+    --input-color: var(--content-default);
+    --input-border-color: var(--ui-control-inset-border-color);
+    --input-border-width: var(--border-width-1);
+    --input-border-style: var(--border-style-boundary);
+    --input-padding-inline: var(--space-inset-control-x);
+    --input-padding-block: var(--space-inset-control-y);
+    --input-font-size: var(--type-scale-0);
+    --input-radius: var(--radius-control);
+    --input-shadow: var(--ui-control-inset-shadow);
+    --input-placeholder-color: var(--content-faint);
 
     display: inline-flex;
     box-sizing: border-box;
@@ -30,11 +31,16 @@
   }
 
   .input::placeholder {
-    color: var(--ui-input-placeholder-color);
+    color: var(--input-placeholder-color);
   }
 
   .input:focus {
-    --input-border-color: var(--state-focus);
+    --input-border-color: oklch(from var(--state-focus) l c h / 0.40);
+    --input-shadow:
+      inset 0 -1px 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
+      inset -1px 0 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+      inset 0 0 4px 0 oklch(from var(--state-focus) l c h / 0.20),
+      var(--ui-control-inset-shadow);
     box-shadow: var(--input-shadow);
   }
 
@@ -51,10 +57,20 @@
 
 @layer exceptions {
   .input[data-status="error"] {
-    --input-border-color: var(--status-critical);
+    --input-border-color: oklch(from var(--status-critical) l c h / 0.40);
+    --input-shadow:
+      inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
+      inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+      inset 0 0 4px 0 oklch(from var(--status-critical) l c h / 0.20),
+      var(--ui-control-inset-shadow);
   }
   .input[data-status="error"]:focus {
-    --input-border-color: var(--status-critical);
+    --input-border-color: oklch(from var(--status-critical) l c h / 0.50);
+    --input-shadow:
+      inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.40),
+      inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.25),
+      inset 0 0 5px 0 oklch(from var(--status-critical) l c h / 0.25),
+      var(--ui-control-inset-shadow);
     box-shadow: var(--input-shadow);
   }
 
@@ -63,8 +79,8 @@
   }
 
   .input[data-size="sm"] {
-    --input-padding-inline: var(--ui-input-sm-padding-x);
-    --input-padding-block: var(--ui-input-sm-padding-y);
-    --input-font-size: var(--ui-input-sm-font-size);
+    --input-padding-inline: var(--space-inset-input-sm-x);
+    --input-padding-block: var(--space-inset-input-sm-y);
+    --input-font-size: var(--type-scale-neg-1);
   }
 }

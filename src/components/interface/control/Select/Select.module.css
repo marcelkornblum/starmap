@@ -1,14 +1,15 @@
 @layer blocks {
   .select {
-    --select-bg: var(--ui-input-bg);
-    --select-color: var(--ui-input-color);
-    --select-border-color: var(--ui-input-border-color);
-    --select-border-width: var(--ui-input-border-width);
-    --select-border-style: var(--ui-input-border-style);
-    --select-padding-inline: var(--ui-input-padding-x);
-    --select-padding-block: var(--ui-input-padding-y);
-    --select-font-size: var(--ui-input-font-size);
-    --select-radius: var(--ui-input-radius);
+    --select-bg: var(--ui-control-inset-bg);
+    --select-color: var(--content-default);
+    --select-border-color: var(--ui-control-inset-border-color);
+    --select-border-width: var(--border-width-1);
+    --select-border-style: var(--border-style-boundary);
+    --select-padding-inline: var(--space-inset-control-x);
+    --select-padding-block: var(--space-inset-control-y);
+    --select-font-size: var(--type-scale-0);
+    --select-radius: var(--radius-control);
+    --select-shadow: var(--ui-control-inset-shadow);
 
     display: inline-flex;
     box-sizing: border-box;
@@ -20,16 +21,23 @@
     background: var(--select-bg);
     color: var(--select-color);
     border: var(--select-border-width) var(--select-border-style) var(--select-border-color);
+    box-shadow: var(--select-shadow);
     border-radius: var(--select-radius);
     outline: none;
     cursor: pointer;
-    transition: border-color var(--motion-duration-feedback) var(--motion-ease-default);
+    transition: border-color var(--motion-duration-feedback) var(--motion-ease-default),
+                box-shadow var(--motion-duration-feedback) var(--motion-ease-default);
     margin: 0;
   }
 
   .select:focus {
-    --select-border-color: var(--state-focus);
-    box-shadow: none;
+    --select-border-color: oklch(from var(--state-focus) l c h / 0.40);
+    --select-shadow:
+      inset 0 -1px 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
+      inset -1px 0 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+      inset 0 0 4px 0 oklch(from var(--state-focus) l c h / 0.20),
+      var(--ui-control-inset-shadow);
+    box-shadow: var(--select-shadow);
   }
 
   .select:disabled {
@@ -39,9 +47,29 @@
 }
 
 @layer exceptions {
+  .select[data-status="error"] {
+    --select-border-color: oklch(from var(--status-critical) l c h / 0.40);
+    --select-shadow:
+      inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
+      inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+      inset 0 0 4px 0 oklch(from var(--status-critical) l c h / 0.20),
+      var(--ui-control-inset-shadow);
+    box-shadow: var(--select-shadow);
+  }
+
+  .select[data-status="error"]:focus {
+    --select-border-color: oklch(from var(--status-critical) l c h / 0.50);
+    --select-shadow:
+      inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.40),
+      inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.25),
+      inset 0 0 5px 0 oklch(from var(--status-critical) l c h / 0.25),
+      var(--ui-control-inset-shadow);
+    box-shadow: var(--select-shadow);
+  }
+
   .select[data-size="sm"] {
-    --select-padding-inline: var(--ui-input-sm-padding-x);
-    --select-padding-block: var(--ui-input-sm-padding-y);
-    --select-font-size: var(--ui-input-sm-font-size);
+    --select-padding-inline: var(--space-inset-input-sm-x);
+    --select-padding-block: var(--space-inset-input-sm-y);
+    --select-font-size: var(--type-scale-neg-1);
   }
 }

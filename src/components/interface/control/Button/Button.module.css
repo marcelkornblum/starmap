@@ -1,18 +1,22 @@
 @layer blocks {
   .button {
-    --button-bg: var(--ui-button-default-bg);
-    --button-color: var(--ui-button-default-color);
-    --button-border-color: var(--ui-button-default-border-color);
-    --button-border-width: var(--ui-button-default-border-width);
-    --button-border-style: var(--ui-button-default-border-style);
-    --button-shadow: var(--ui-button-default-shadow);
+    --button-bg: var(--ui-control-default-bg);
+    --button-color: var(--content-prominent);
+    --button-border-color: transparent;
+    --button-border-width: var(--border-width-1);
+    --button-border-style: var(--border-style-boundary);
+    --button-radius: var(--radius-control);
     --button-padding-inline: var(--space-inset-button-default-x);
     --button-padding-block: var(--space-inset-button-default-y);
     --button-font-size: var(--text-ui-button-default-size);
-    --button-radius: var(--ui-button-default-radius);
     --button-font-weight: 500;
     --button-leading: var(--leading-control);
     --button-gap: var(--space-cluster-dense);
+
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--ui-control-default) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.18),
+      inset 1px 0 0 0 oklch(from var(--ui-control-default) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.10),
+      var(--ui-control-elevation);
 
     display: inline-flex;
     align-items: center;
@@ -40,15 +44,21 @@
   }
 
   .button:hover:not(:disabled) {
-    --button-bg: var(--ui-button-default-hover-bg);
-    --button-border-color: var(--ui-button-default-hover-border-color);
-    --button-shadow: var(--ui-button-default-hover-shadow);
+    --button-bg: var(--ui-control-hover-bg);
+    --button-border-color: transparent;
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--ui-control-hover) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.30),
+      inset 1px 0 0 0 oklch(from var(--ui-control-hover) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.18),
+      var(--ui-control-elevation);
   }
 
   .button:active:not(:disabled) {
-    --button-bg: var(--ui-button-default-active-bg);
-    --button-border-color: var(--ui-button-default-active-border-color);
-    --button-shadow: var(--ui-button-default-active-shadow);
+    --button-bg: var(--ui-control-active-bg);
+    --button-border-color: oklch(from var(--ui-control-active) l c h / 0.40);
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--ui-control-active) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
+      inset 1px 0 0 0 oklch(from var(--ui-control-active) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+      var(--ui-control-depression);
   }
 
   .button:focus-visible {
@@ -63,40 +73,86 @@
 }
 
 @layer exceptions {
+  /* Variant: Primary */
   .button[data-variant="primary"] {
-    --button-bg: var(--ui-button-highlight-bg);
-    --button-color: var(--ui-button-highlight-color);
-    --button-border-color: var(--ui-button-highlight-border-color);
-    --button-shadow: var(--ui-button-highlight-shadow);
+    --button-bg: linear-gradient(137deg, oklch(from var(--state-focus) l c h / 0.15), oklch(from var(--state-focus) l c h / 0.15)), var(--ui-control-default-bg);
+    --button-color: var(--content-prominent);
+    --button-border-color: transparent;
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
+      inset 1px 0 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+      var(--ui-control-elevation);
   }
   .button[data-variant="primary"]:hover:not(:disabled) {
-    --button-bg: var(--ui-button-highlight-hover-bg);
-    --button-border-color: var(--ui-button-highlight-hover-border-color);
-    --button-shadow: var(--ui-button-highlight-shadow);
+    --button-bg: linear-gradient(137deg, oklch(from var(--palette-accent-focus-hover, var(--state-focus)) l c h / 0.22), oklch(from var(--palette-accent-focus-hover, var(--state-focus)) l c h / 0.22)), var(--ui-control-hover-bg);
+    --button-border-color: transparent;
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--palette-accent-focus-hover, var(--state-focus)) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.50),
+      inset 1px 0 0 0 oklch(from var(--palette-accent-focus-hover, var(--state-focus)) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.30),
+      var(--ui-control-elevation);
   }
   .button[data-variant="primary"]:active:not(:disabled) {
-    --button-bg: var(--ui-button-highlight-active-bg);
+    --button-bg: linear-gradient(137deg, oklch(from var(--state-focus) l c h / 0.28), oklch(from var(--state-focus) l c h / 0.28)), var(--ui-control-active-bg);
+    --button-border-color: oklch(from var(--state-focus) l c h / 0.40);
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.40),
+      inset 1px 0 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.25),
+      var(--ui-control-depression);
   }
 
+  /* Variant: Subtle */
   .button[data-variant="subtle"] {
-    --button-bg: var(--ui-button-subtle-bg);
-    --button-border-color: var(--ui-button-subtle-border-color);
-    --button-color: var(--ui-button-subtle-color);
-    --button-shadow: none;
+    --button-bg: transparent;
+    --button-color: var(--content-default);
+    --button-border-color: transparent;
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--ui-control-subtle) l c h / 0.35),
+      inset 1px 0 0 0 oklch(from var(--ui-control-subtle) l c h / 0.20);
   }
   .button[data-variant="subtle"]:hover:not(:disabled) {
-    --button-bg: var(--ui-button-subtle-hover-bg);
-    --button-border-color: var(--ui-button-subtle-hover-border-color);
-    --button-shadow: var(--bevel-top-rim-subtle);
+    --button-bg: var(--ui-control-subtle-hover-bg);
+    --button-border-color: transparent;
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--ui-control-hover) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+      inset 1px 0 0 0 oklch(from var(--ui-control-hover) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.12);
+  }
+  .button[data-variant="subtle"]:active:not(:disabled) {
+    --button-bg: var(--ui-control-subtle-active-bg);
+    --button-border-color: oklch(from var(--ui-control-active) l c h / 0.40);
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--ui-control-active) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.25),
+      inset 1px 0 0 0 oklch(from var(--ui-control-active) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.15),
+      var(--ui-control-depression);
   }
 
+  /* Variant: Danger */
   .button[data-variant="danger"] {
-    --button-bg: var(--ui-button-danger-bg);
-    --button-color: var(--ui-button-danger-color);
-    --button-border-color: var(--ui-button-danger-border-color);
-    --button-shadow: var(--ui-button-danger-shadow);
+    --button-bg: linear-gradient(137deg, oklch(from var(--status-critical) l c h / 0.15), oklch(from var(--status-critical) l c h / 0.15)), var(--ui-control-default-bg);
+    --button-color: var(--content-prominent);
+    --button-border-color: transparent;
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
+      inset 1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+      var(--ui-control-elevation);
+  }
+  .button[data-variant="danger"]:hover:not(:disabled) {
+    --button-bg: linear-gradient(137deg, oklch(from var(--status-critical) l c h / 0.22), oklch(from var(--status-critical) l c h / 0.22)), var(--ui-control-hover-bg);
+    --button-border-color: transparent;
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.50),
+      inset 1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.30),
+      var(--ui-control-elevation);
+  }
+  .button[data-variant="danger"]:active:not(:disabled) {
+    --button-bg: linear-gradient(137deg, oklch(from var(--status-critical) l c h / 0.28), oklch(from var(--status-critical) l c h / 0.28)), var(--ui-control-active-bg);
+    --button-border-color: oklch(from var(--status-critical) l c h / 0.40);
+    --button-shadow:
+      inset 0 1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.40),
+      inset 1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.25),
+      var(--ui-control-depression);
   }
 
+  /* Sizes */
   .button[data-size="sm"] {
     --button-padding-inline: var(--space-inset-button-sm-x);
     --button-padding-block: var(--space-inset-button-sm-y);
