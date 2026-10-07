@@ -8,7 +8,11 @@ const meta: Meta<typeof Input> = {
   argTypes: {
     status: {
       control: 'select',
-      options: ['nominal', 'critical', 'offline'],
+      options: ['error', 'success'],
+    },
+    sizeVariant: {
+      control: 'select',
+      options: ['sm', 'md'],
     },
     disabled: { control: 'boolean' },
   },
