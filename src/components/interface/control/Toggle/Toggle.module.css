@@ -9,7 +9,7 @@
     --toggle-thumb-size: 8px;
     --toggle-thumb-radius: 50%;
     --toggle-thumb-offset: 3px;
-    --toggle-thumb-active-offset: 16px;
+    --toggle-thumb-active-offset: calc(var(--toggle-width) - var(--toggle-thumb-size) - (var(--toggle-thumb-offset) * 2));
 
     --toggle-gap: var(--space-gap-control);
     --toggle-font-family: var(--font-interface);
