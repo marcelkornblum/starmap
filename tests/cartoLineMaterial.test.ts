@@ -8,7 +8,7 @@ import {
   createCartoLineSegmentsGeometry,
   createCartoLineMesh,
   createCartoLineSegmentsMesh,
-} from '../src/components/canvas/materials/CartoLineMaterial';
+} from '../src/components/poc/canvas/materials/CartoLineMaterial';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 

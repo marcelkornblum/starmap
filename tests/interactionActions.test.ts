@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createSpatialEntityStore, type SpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
+import { createSpatialEntityStore, type SpatialEntityStore } from '../src/components/poc/canvas/entity/SpatialEntityStore';
 import {
   activateEntity,
   focusEntity,
   clearInteraction,
-} from '../src/components/canvas/entity/interactionActions';
+} from '../src/components/poc/canvas/entity/interactionActions';
 
 describe('Entity interaction actions', () => {
   let store: SpatialEntityStore;

@@ -14,15 +14,15 @@ import {
   Box,
   Imposter,
   Icon,
-} from '../src/components/primitives/layout';
-import { Datum, Metric, Badge, ConfidencePip, Unit, Quantity } from '../src/components/primitives/data';
+} from '../src/components/poc/primitives/layout';
+import { Datum, Metric, Badge, ConfidencePip, Unit, Quantity } from '../src/components/poc/primitives/data';
 import {
   Button,
   Input,
   Toggle,
   Slider,
   Select,
-} from '../src/components/primitives/control';
+} from '../src/components/poc/primitives/control';
 
 describe('Tier 1: Layout Primitives (Every Layout)', () => {
   it('renders Stack with default and custom props', () => {

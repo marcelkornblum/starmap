@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
-import { GalaxyScene } from '../src/components/canvas/scenes/GalaxyScene';
-import { SystemScene } from '../src/components/canvas/scenes/SystemScene';
-import { PlanetScene } from '../src/components/canvas/scenes/PlanetScene';
+import { GalaxyScene } from '../src/components/poc/canvas/scenes/GalaxyScene';
+import { SystemScene } from '../src/components/poc/canvas/scenes/SystemScene';
+import { PlanetScene } from '../src/components/poc/canvas/scenes/PlanetScene';
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();

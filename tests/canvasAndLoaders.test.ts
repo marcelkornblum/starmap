@@ -5,14 +5,14 @@ import {
   SceneProvider,
   ScenePortal,
   SceneOutlet,
-} from '../src/components/canvas/SceneBridge';
-import { useScene } from '../src/components/canvas/SceneBridgeContext';
-import { GlobalCanvas } from '../src/components/canvas/GlobalCanvas';
-import { GalaxyScene3D } from '../src/components/canvas/scenes/GalaxyScene3D';
-import { PlanetScene3D } from '../src/components/canvas/scenes/PlanetScene3D';
-import { SystemScene3D } from '../src/components/canvas/scenes/SystemScene3D';
-import { ReferenceScene3D } from '../src/components/canvas/scenes/ReferenceScene3D';
-import { RootLayout } from '../src/components/layout/RootLayout';
+} from '../src/components/poc/canvas/SceneBridge';
+import { useScene } from '../src/components/poc/canvas/SceneBridgeContext';
+import { GlobalCanvas } from '../src/components/poc/canvas/GlobalCanvas';
+import { GalaxyScene3D } from '../src/components/poc/canvas/scenes/GalaxyScene3D';
+import { PlanetScene3D } from '../src/components/poc/canvas/scenes/PlanetScene3D';
+import { SystemScene3D } from '../src/components/poc/canvas/scenes/SystemScene3D';
+import { ReferenceScene3D } from '../src/components/poc/canvas/scenes/ReferenceScene3D';
+import { RootLayout } from '../src/components/poc/layout/RootLayout';
 import {
   galaxyRoute,
   systemRoute,
@@ -20,8 +20,8 @@ import {
   referenceRoute,
   simulateAsyncFetch,
 } from '../src/router';
-import { RouteSkeleton } from '../src/components/common/RouteSkeleton';
-import { SafeHtml } from '../src/components/canvas/SafeHtml';
+import { RouteSkeleton } from '../src/components/poc/common/RouteSkeleton';
+import { SafeHtml } from '../src/components/poc/canvas/SafeHtml';
 
 describe('Global Canvas SceneBridge', () => {
   it('renders SceneOutlet when ScenePortal injects a scene', () => {

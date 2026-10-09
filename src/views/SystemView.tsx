@@ -1,18 +1,18 @@
 import type React from 'react';
 import { useState } from 'react';
 import { useParams } from '@tanstack/react-router';
-import { ScenePortal } from '../components/canvas/SceneBridge';
-import { SystemScene } from '../components/canvas/scenes/SystemScene';
+import { ScenePortal } from '../components/poc/canvas/SceneBridge';
+import { SystemScene } from '../components/poc/canvas/scenes/SystemScene';
 import { useStarmapNav } from '../router/navigation';
-import { Panel } from '../components/surfaces';
-import { Stack, Cluster, Button } from '../components/primitives';
+import { Panel } from '../components/poc/surfaces';
+import { Stack, Cluster, Button } from '../components/poc/primitives';
 import {
   StarDossier,
   OrbitTable,
   SystemControls,
   type StarDossierData,
   type OrbitElementRow,
-} from '../components/domain';
+} from '../components/poc/domain';
 import type { ProjectionMode } from '../stores/useSettingsStore';
 import styles from './SystemView.module.css';
 
