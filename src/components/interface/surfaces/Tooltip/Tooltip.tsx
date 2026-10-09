@@ -84,7 +84,21 @@ export const Tooltip = ({
     let nextPos = position;
     let nextAlign: 'center' | 'start' | 'end' = 'center';
 
-    // 1. Vertical axis boundary check: flip if obstructed by viewport top/bottom
+    // 1. Lateral position boundary check and vertical fallback
+    if (nextPos === 'left' || nextPos === 'right') {
+      const fitsLeft = triggerRect.left - tooltipRect.width - margin >= 0;
+      const fitsRight = triggerRect.right + tooltipRect.width + margin <= window.innerWidth;
+
+      if (!fitsLeft && !fitsRight) {
+        nextPos = triggerRect.top - tooltipRect.height - margin >= 0 ? 'top' : 'bottom';
+      } else if (nextPos === 'left' && !fitsLeft) {
+        nextPos = 'right';
+      } else if (nextPos === 'right' && !fitsRight) {
+        nextPos = 'left';
+      }
+    }
+
+    // 2. Vertical axis boundary check: flip if obstructed by viewport top/bottom
     if (nextPos === 'top' && triggerRect.top - tooltipRect.height - margin < 0) {
       nextPos = 'bottom';
     } else if (
@@ -94,25 +108,19 @@ export const Tooltip = ({
       nextPos = 'top';
     }
 
-    // 2. Horizontal axis boundary check for lateral positions
-    if (nextPos === 'left' && triggerRect.left - tooltipRect.width - margin < 0) {
-      nextPos = 'right';
-    } else if (
-      nextPos === 'right' &&
-      triggerRect.right + tooltipRect.width + margin > window.innerWidth
-    ) {
-      nextPos = 'left';
-    }
-
     // 3. Horizontal alignment clamping for top/bottom positions
     if (nextPos === 'top' || nextPos === 'bottom') {
       const halfWidth = tooltipRect.width / 2;
       const triggerCenterX = triggerRect.left + triggerRect.width / 2;
+      const overflowsRight = triggerCenterX + halfWidth > window.innerWidth - margin;
+      const overflowsLeft = triggerCenterX - halfWidth < margin;
 
-      if (triggerCenterX + halfWidth > window.innerWidth - margin) {
+      if (overflowsRight && !overflowsLeft) {
         nextAlign = 'end';
-      } else if (triggerCenterX - halfWidth < margin) {
+      } else if (overflowsLeft && !overflowsRight) {
         nextAlign = 'start';
+      } else if (overflowsRight && overflowsLeft) {
+        nextAlign = triggerCenterX < window.innerWidth / 2 ? 'start' : 'end';
       } else {
         nextAlign = 'center';
       }
@@ -122,11 +130,15 @@ export const Tooltip = ({
     if (nextPos === 'left' || nextPos === 'right') {
       const halfHeight = tooltipRect.height / 2;
       const triggerCenterY = triggerRect.top + triggerRect.height / 2;
+      const overflowsBottom = triggerCenterY + halfHeight > window.innerHeight - margin;
+      const overflowsTop = triggerCenterY - halfHeight < margin;
 
-      if (triggerCenterY + halfHeight > window.innerHeight - margin) {
+      if (overflowsBottom && !overflowsTop) {
         nextAlign = 'end';
-      } else if (triggerCenterY - halfHeight < margin) {
+      } else if (overflowsTop && !overflowsBottom) {
         nextAlign = 'start';
+      } else if (overflowsBottom && overflowsTop) {
+        nextAlign = triggerCenterY < window.innerHeight / 2 ? 'start' : 'end';
       } else {
         nextAlign = 'center';
       }

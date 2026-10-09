@@ -219,6 +219,20 @@ describe('Tier 2: Overlays', () => {
     expect(htmlClosed).toBe('');
   });
 
+  it('renders multi-line Tooltip text with natural text wrapping', () => {
+    const longText = 'We have candidate confidence in this data based on spectroscopic confirmation';
+    const html = renderToString(
+      createElement(Tooltip, {
+        text: longText,
+        isOpen: true,
+        position: 'top',
+      })
+    );
+    expect(html).toContain(longText);
+    expect(html).toContain('data-position="top"');
+    expect(html).toContain('data-align="center"');
+  });
+
   it('renders Toast notification with status and dismiss button', () => {
     const onClose = vi.fn();
     const html = renderToString(
