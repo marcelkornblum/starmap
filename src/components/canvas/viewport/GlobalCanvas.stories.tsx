@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { GlobalCanvas, type GlobalCanvasProps } from './GlobalCanvas';
 import { SceneProvider } from './SceneBridge';
-import styles from '../StoryCanvas.module.css';
+import styles from '../../../../.storybook/helpers/StoryCanvas.module.css';
 
 const meta: Meta<GlobalCanvasProps> = {
   title: 'CANVAS/Viewport',
