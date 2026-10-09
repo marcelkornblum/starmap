@@ -1,10 +1,10 @@
 import type React from 'react';
 import { useState } from 'react';
 import { useParams } from '@tanstack/react-router';
-import { ScenePortal } from '../components/poc/canvas/SceneBridge';
-import { SystemScene } from '../components/poc/canvas/scenes/SystemScene';
+import { ScenePortal } from '../components/canvas/viewport/SceneBridge';
+import { SystemScene } from '../components/canvas/scenes/SystemScene';
 import { useStarmapNav } from '../router/navigation';
-import { Panel } from '../components/poc/surfaces';
+import { Panel } from '../components/interface/surfaces';
 import { Stack, Cluster, Button } from '../components/poc/primitives';
 import {
   StarDossier,
@@ -175,7 +175,7 @@ export const SystemView: React.FC<SystemViewProps> = () => {
                 Target Earth →
               </Button>
               <Button
-                variant="secondary"
+                variant="default"
                 onClick={() => nav.toGalaxy()}
               >
                 ← Galaxy

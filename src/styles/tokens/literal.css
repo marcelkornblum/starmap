@@ -48,6 +48,9 @@
     --palette-control-handle-light:       oklch(45.0% 0.035 198);
     --palette-control-handle-light-hover: oklch(35.0% 0.035 198);
 
+    --palette-control-subtle-dark:        oklch(38.0% 0.020 198); /* Recessed titanium seamline & subtle control boundary */
+    --palette-control-subtle-light:       oklch(70.0% 0.015 198);
+
     --palette-control-active-dark:        oklch(82.0% 0.175 160); /* Luminous indicator dot */
     --palette-control-active-light:       oklch(48.0% 0.175 160);
 

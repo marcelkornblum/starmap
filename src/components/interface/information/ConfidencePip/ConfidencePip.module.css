@@ -1,0 +1,137 @@
+@layer blocks {
+  .pipWrapper {
+    --pip-size: 6px;
+    --pip-color: var(--confidence-confirmed);
+    --pip-glow: var(--confidence-confirmed-glow);
+
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    line-height: 1;
+    box-sizing: border-box;
+    margin: 0;
+  }
+
+  .pipButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    color: inherit;
+    font: inherit;
+    line-height: 1;
+    position: relative;
+  }
+
+  /* Extended hit target without shifting typography flow */
+  .pipButton::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+  }
+
+  .pipButton:focus-visible {
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: 2px;
+  }
+
+  .dot {
+    display: block;
+    inline-size: var(--pip-size);
+    block-size: var(--pip-size);
+    border-radius: 50%;
+    background: var(--pip-color);
+    box-shadow: var(--pip-glow);
+    flex-shrink: 0;
+    transition: transform var(--motion-duration-feedback) var(--motion-ease-default),
+                box-shadow var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .pipButton:hover .dot {
+    transform: scale(1.25);
+  }
+
+  .tooltipContent {
+    position: relative;
+    z-index: 1;
+    display: inline;
+    line-height: inherit;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  .tooltipPrefix,
+  .tooltipSuffix {
+    color: var(--content-muted);
+  }
+
+  .levelName {
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+  }
+
+  .tooltipDetails {
+    color: var(--content-faint);
+    font-family: var(--font-data);
+    padding-inline-start: var(--space-cluster-dense);
+    border-inline-start: var(--stroke-hairline) solid var(--border-color-subtle);
+    display: inline-block;
+    margin-inline-start: var(--space-cluster-dense);
+  }
+}
+
+@layer exceptions {
+  /* Pip Sizes: calibrated smaller for inline typographic balance */
+  .pipWrapper[data-size="sm"] {
+    --pip-size: 4px;
+  }
+  .pipWrapper[data-size="md"] {
+    --pip-size: 6px;
+  }
+  .pipWrapper[data-size="lg"] {
+    --pip-size: 8px;
+  }
+
+  /* Confidence Optics */
+  .pipWrapper[data-confidence="confirmed"] {
+    --pip-color: var(--confidence-confirmed);
+    --pip-glow: var(--confidence-confirmed-glow);
+  }
+  .pipWrapper[data-confidence="candidate"] {
+    --pip-color: var(--confidence-candidate);
+    --pip-glow: var(--confidence-candidate-glow);
+  }
+  .pipWrapper[data-confidence="theoretical"],
+  .pipWrapper[data-confidence="projected"] {
+    --pip-color: var(--confidence-theoretical);
+    --pip-glow: var(--confidence-theoretical-glow);
+  }
+  .pipWrapper[data-confidence="unverified"] {
+    --pip-color: var(--content-muted);
+    --pip-glow: none;
+  }
+
+  /* Level Name Coloring inside Tooltip */
+  .levelName[data-confidence="confirmed"] {
+    color: var(--confidence-confirmed);
+  }
+  .levelName[data-confidence="candidate"] {
+    color: var(--confidence-candidate);
+  }
+  .levelName[data-confidence="theoretical"],
+  .levelName[data-confidence="projected"] {
+    color: var(--confidence-theoretical);
+  }
+  .levelName[data-confidence="unverified"] {
+    color: var(--content-muted);
+  }
+}

@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
-import { SpatialViewport } from '../src/components/poc/canvas/SpatialViewport';
-import { GALACTIC_FRAME, SYSTEM_FRAME, PLANETARY_FRAME } from '../src/components/poc/canvas/instrument/referenceFrame';
-import type { SpatialEntityDefinition } from '../src/components/poc/canvas/entity/SpatialEntityStore';
+import { SpatialViewport } from '../src/components/canvas/viewport/SpatialViewport';
+import { SpatialViewport as PocSpatialViewport } from '../src/components/poc/canvas/SpatialViewport';
+import { GALACTIC_FRAME, SYSTEM_FRAME, PLANETARY_FRAME } from '../src/components/canvas/instrument/referenceFrame';
+import type { SpatialEntityDefinition } from '../src/components/canvas/entity/SpatialEntityStore';
 import { useUIStore } from '../src/stores/useUIStore';
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
@@ -201,5 +202,9 @@ describe('SpatialViewport Composition Root (Phase 4)', () => {
 
     expect(html).toContain('name="spatial-viewport"');
     expect(html).toContain('name="celestial-entity-sol"');
+  });
+
+  it('maintains backwards-compatible re-exports from src/components/poc/canvas/SpatialViewport', () => {
+    expect(PocSpatialViewport).toBe(SpatialViewport);
   });
 });

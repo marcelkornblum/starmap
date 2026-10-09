@@ -22,6 +22,7 @@ Components are categorised into a strict four-tier hierarchy (`docs/design-syste
 - **Zero Outer Margins:** Components must never declare external `margin`, positioning offsets, or self-layout. Layout and flow are strictly owned by parent composition primitives.
 - **Presenter/Container Decoupling:** Presentation components (Tiers 1–3) must remain pure, deterministic, and decoupled from global stores or side-effects. Stateful orchestration and telemetry subscriptions belong exclusively in Tier 4 assemblies or dedicated container hooks.
 - **Testable Component Signatures:** Root presentation components must be cleanly inspectable and instantiable in non-DOM test environments without throwing unhandled hook or context errors.
+- **Production / Fixture Segregation:** Test fixtures, visual preview scaffolding, and Storybook decorators (such as `StoryCanvas`) must never reside within production component directories (`src/components/...`). They belong strictly in `.storybook/helpers/` or dedicated test utilities (`src/test-utils/`) to keep component packages pure and shippable.
 
 ---
 
@@ -61,8 +62,6 @@ Components are categorised into a strict four-tier hierarchy (`docs/design-syste
 - **Computational Efficiency:** Memoize non-trivial calculations, filtering operations, and spatial coordinate transforms using `useMemo` to protect rendering budgets during telemetry updates and high-frequency animations.
 - **Deterministic Resource Teardown:** All event listeners, timers, animation loops, and observers registered in effects must provide explicit, deterministic cleanup functions to prevent memory leaks.
 
----
-
 ## 5. Modular CSS & Design Token Architecture
 
 - **Strict Scoping:** Every component is styled exclusively via an adjacent CSS Module (`<Component>.module.css`). Inline styles (`style={{ ... }}`) are strictly forbidden.
@@ -88,4 +87,29 @@ Components are categorised into a strict four-tier hierarchy (`docs/design-syste
       }
     }
     ```
+- **Component-Internal Token Scoping (Preventing Global Token Pollution):**
+  - Never place component-specific properties (e.g. `--ui-button-*`, `--ui-input-*`, `--ui-slider-*`, `--ui-toggle-*`) in global `semantic.css`.
+  - Global semantic tokens must remain abstract and composable: universal surfaces (`--surface-*`), elevation/specular mechanics (`--ui-control-elevation`, `--ui-control-specular-l`, `--ui-control-specular-c`), control cavity layers (`--ui-control-inset-bg`, `--ui-control-inset-border-color`, `--ui-control-inset-shadow`), and hardware states (`--ui-control-default`, `--ui-control-subtle`, `--ui-control-hover`, `--ui-control-active`).
+  - Components declare their own private `--<component>-*` variables in their module block, mapping directly to these semantic tokens.
+- **Physical Lighting Model (137° Overhead Illumination):**
+  - Starmap simulates directional overhead-left illumination (137°):
+    - **Raised Controls (`<Button>`):** Top and left edges catch illuminated specular rims (`inset 0 1px 0 0 ...`, `inset 1px 0 0 0 ...`), while bottom and right edges cast exterior drop shadows.
+    - **Recessed Inset Wells & Grooves (`<Input>`, `<Select>`, `<Toggle>`, `<Slider>`):** Top and left edges receive interior overhang occlusion shadows, while bottom and right lips catch illuminated specular rim highlights (`inset 0 -1px 0 0 ...`, `inset -1px 0 0 0 ...`).
+- **Dynamic State Integration via Relative OKLCH:**
+  - Interactive states (`:focus`, `:active`) and status variants (`data-status="error"`) must integrate seamlessly into the physical lighting model. Avoid flat, disconnected outlines.
+  - Derive specular rims, border colors, and internal glow halos directly from the accent or status token via CSS Relative Colors:
+    ```css
+    .input:focus {
+      --input-border-color: oklch(from var(--state-focus) l c h / 0.40);
+      --input-shadow:
+        inset 0 -1px 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
+        inset -1px 0 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+        inset 0 0 4px 0 oklch(from var(--state-focus) l c h / 0.20),
+        var(--ui-control-inset-shadow);
+      box-shadow: var(--input-shadow);
+    }
+    ```
+  - For recessed track seamlines (`<Slider>`), source relative hue from `--ui-control-subtle` rather than foreground handle/thumb tokens.
+- **Scale-Appropriate Shadowing (Hairlines vs Cavities):**
+  - Standard cavity inset shadows (`--ui-control-inset-shadow`) incorporate multi-pixel blurs (3px, 6px) designed for volumetric inputs. When applied to 1px or 2px tracks/grooves, blur spreads swallow the element. Always use crisp specular strokes or `box-shadow: none` on sub-3px elements.
 - **Tabular Data Presentation:** All numeric telemetry, coordinates, and astronomical measurements must apply tabular numerals (`font-variant-numeric: tabular-nums`) and use data typography (`--font-data`).

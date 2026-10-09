@@ -1,0 +1,244 @@
+@layer blocks {
+  .storyWrapper {
+    font-family: var(--font-interface);
+    color: var(--content-primary);
+    padding: var(--space-4);
+    block-size: 100dvh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    max-inline-size: 960px;
+    margin-inline: auto;
+  }
+
+  .header {
+    margin-block-end: var(--space-5);
+  }
+
+  .title {
+    margin: 0;
+    font-size: var(--text-headline-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-header);
+    color: var(--content-primary);
+  }
+
+  .description {
+    margin: var(--space-1) 0 0 0;
+    font-size: var(--text-body-size);
+    line-height: var(--leading-body);
+    color: var(--content-muted);
+    max-inline-size: 65ch;
+  }
+
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding-block-end: var(--space-5);
+    border-block-end: var(--stroke-hairline) solid var(--border-color-subtle);
+  }
+
+  .sectionHeader {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .sectionTitle {
+    margin: 0;
+    font-size: var(--text-caption-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
+    color: var(--content-muted);
+  }
+
+  .sectionDescription {
+    margin: 0;
+    font-size: var(--text-caption-size);
+    color: var(--content-subtle);
+  }
+
+  .specimenCard {
+    background: var(--surface-panel-bg);
+    border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
+    border-radius: var(--surface-panel-radius);
+    padding: var(--space-4);
+    box-sizing: border-box;
+  }
+
+  /* Header specimen scale styles */
+  .displayHeader {
+    margin: 0;
+    font-size: var(--text-content-hero-title-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-header);
+    line-height: var(--leading-heading);
+    color: var(--content-prominent);
+  }
+
+  .h1Header {
+    margin: 0;
+    font-size: var(--text-content-title-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-header);
+    line-height: var(--leading-heading);
+    color: var(--content-primary);
+  }
+
+  .h2Header {
+    margin: 0;
+    font-size: var(--text-content-section-title-size);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    line-height: var(--leading-heading);
+    color: var(--content-primary);
+  }
+
+  .h3Header {
+    margin: 0;
+    font-size: var(--text-content-body-lead-size);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-body);
+    line-height: var(--leading-heading);
+    color: var(--content-primary);
+  }
+
+  .eyebrow {
+    margin: 0;
+    font-size: var(--text-content-eyebrow-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: var(--text-content-eyebrow-transform);
+    color: var(--content-muted);
+  }
+
+  .tokenLabel {
+    font-family: var(--font-data);
+    font-size: var(--text-micro-size);
+    color: var(--content-faint);
+    letter-spacing: var(--tracking-normal);
+  }
+
+  /* Prose flow */
+  .proseBlock {
+    max-inline-size: 65ch;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .leadProse {
+    margin: 0;
+    font-size: var(--text-content-body-lead-size);
+    line-height: var(--leading-prose);
+    color: var(--content-prominent);
+    font-family: var(--font-interface);
+  }
+
+  .bodyProse {
+    margin: 0;
+    font-size: var(--text-content-body-size);
+    line-height: var(--leading-prose);
+    color: var(--content-default);
+    font-family: var(--font-interface);
+  }
+
+  .footnote {
+    margin: 0;
+    font-size: var(--text-content-footnote-size);
+    line-height: var(--leading-body);
+    color: var(--content-subtle);
+    font-style: italic;
+  }
+
+  .codeSnippet {
+    font-family: var(--font-data);
+    font-size: var(--text-micro-size);
+    background: var(--surface-well-bg);
+    border: var(--stroke-hairline) solid var(--border-color-subtle);
+    border-radius: var(--surface-well-radius);
+    padding: 0.1em 0.4em;
+    color: var(--content-primary);
+  }
+
+  /* Mocked tabular data */
+  .tableContainer {
+    inline-size: 100%;
+    overflow-x: auto;
+    background: var(--surface-well-bg);
+    border: var(--surface-well-border-width) var(--surface-well-border-style) var(--surface-well-border-color);
+    border-radius: var(--surface-well-radius);
+    box-sizing: border-box;
+  }
+
+  .table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-interface);
+    font-size: var(--text-ui-table-cell-size);
+    color: var(--content-default);
+    text-align: start;
+  }
+
+  .caption {
+    padding: var(--space-3) var(--space-4);
+    text-align: start;
+    caption-side: top;
+    color: var(--content-muted);
+    font-size: var(--text-caption-size);
+    line-height: var(--leading-body);
+    border-block-end: var(--stroke-hairline) solid var(--border-color-subtle);
+    background: color-mix(in oklch, var(--surface-well-bg) 95%, var(--content-default) 5%);
+  }
+
+  .captionTitle {
+    font-weight: var(--font-weight-semibold);
+    color: var(--content-primary);
+    margin-inline-end: var(--space-2);
+  }
+
+  .th {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-ui-table-header-size);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
+    color: var(--content-muted);
+    border-block-end: var(--stroke-hairline) solid var(--border-color-subtle);
+    white-space: nowrap;
+    background: color-mix(in oklch, var(--surface-well-bg) 97%, var(--content-default) 3%);
+  }
+
+  .td {
+    padding: var(--space-2) var(--space-3);
+    border-block-end: var(--stroke-hairline) solid var(--border-color-subtle);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .tr:hover {
+    background: color-mix(in oklch, var(--surface-well-bg) 92%, var(--content-default) 8%);
+  }
+
+  .tr:last-child .td {
+    border-block-end: none;
+  }
+
+  .numericCell {
+    text-align: end;
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .targetName {
+    font-weight: var(--font-weight-medium);
+    color: var(--content-primary);
+  }
+
+  .classificationTag {
+    font-size: var(--text-micro-size);
+    color: var(--content-subtle);
+    letter-spacing: var(--tracking-wide);
+  }
+}

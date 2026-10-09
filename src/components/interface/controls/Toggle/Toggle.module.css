@@ -1,0 +1,95 @@
+@layer blocks {
+  .toggleContainer {
+    /* Component Geometry & Layout */
+    --toggle-width: 32px;
+    --toggle-height: 16px;
+    --toggle-radius: var(--radius-badge);
+    --toggle-track-border-width: var(--border-width-1);
+
+    --toggle-thumb-size: 8px;
+    --toggle-thumb-radius: 50%;
+    --toggle-thumb-offset: 3px;
+    --toggle-thumb-active-offset: calc(var(--toggle-width) - var(--toggle-thumb-size) - (var(--toggle-thumb-offset) * 2));
+
+    --toggle-gap: var(--space-gap-control);
+    --toggle-font-family: var(--font-interface);
+    --toggle-font-size: var(--type-scale-0);
+    --toggle-opacity: var(--opacity-100);
+    --toggle-cursor: pointer;
+
+    --toggle-transition-duration: var(--motion-duration-interactive);
+    --toggle-transition-ease: var(--motion-ease-default);
+
+    /* Control Token API (Default / Inactive) */
+    --toggle-track-bg: var(--ui-control-inset-bg);
+    --toggle-track-border-color: var(--ui-control-subtle);
+    --toggle-thumb-bg: var(--ui-control-default);
+    --toggle-thumb-glow: none;
+    --toggle-thumb-transform: translateX(0);
+
+    display: inline-flex;
+    align-items: center;
+    gap: var(--toggle-gap);
+    cursor: var(--toggle-cursor);
+    font-family: var(--toggle-font-family);
+    font-size: var(--toggle-font-size);
+    user-select: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+    text-align: left;
+    opacity: var(--toggle-opacity);
+  }
+
+  .toggleContainer:focus-visible {
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
+  }
+
+  .switchTrack {
+    position: relative;
+    inline-size: var(--toggle-width);
+    block-size: var(--toggle-height);
+    background: var(--toggle-track-bg);
+    border: var(--toggle-track-border-width) solid var(--toggle-track-border-color);
+    box-shadow: var(--ui-control-inset-shadow);
+    border-radius: var(--toggle-radius);
+    transition: background var(--toggle-transition-duration) var(--toggle-transition-ease),
+                border-color var(--toggle-transition-duration) var(--toggle-transition-ease);
+  }
+
+  .switchThumb {
+    position: absolute;
+    inset-block-start: var(--toggle-thumb-offset);
+    inset-inline-start: var(--toggle-thumb-offset);
+    inline-size: var(--toggle-thumb-size);
+    block-size: var(--toggle-thumb-size);
+    background: var(--toggle-thumb-bg);
+    box-shadow: var(--toggle-thumb-glow);
+    border-radius: var(--toggle-thumb-radius);
+    transform: var(--toggle-thumb-transform);
+    transition: transform var(--toggle-transition-duration) var(--toggle-transition-ease),
+                background var(--toggle-transition-duration) var(--toggle-transition-ease),
+                box-shadow var(--toggle-transition-duration) var(--toggle-transition-ease);
+  }
+
+  .toggleContainer:not([data-disabled="true"]):hover .switchThumb {
+    filter: brightness(1.15);
+  }
+}
+
+@layer exceptions {
+  .toggleContainer[data-checked="true"] {
+    --toggle-track-bg: var(--ui-control-active-bg);
+    --toggle-track-border-color: oklch(from var(--ui-control-active) l c h / 0.40);
+    --toggle-thumb-bg: var(--ui-control-active);
+    --toggle-thumb-glow: var(--ui-control-active-glow);
+    --toggle-thumb-transform: translateX(var(--toggle-thumb-active-offset));
+  }
+
+  .toggleContainer[data-disabled="true"] {
+    --toggle-opacity: var(--ui-disabled-opacity);
+    --toggle-cursor: not-allowed;
+  }
+}

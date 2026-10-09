@@ -26,7 +26,8 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
 # Agent Behaviours & Persona
 
 ## Operational Style
-- **Workflow Mimicry**: Your work must be visible to the user. Make edits using first-class IDE tooling (`replace_file_content`, `write_to_file`). Do not use raw bash redirects (e.g., `cat << EOF`) as they trigger security warnings.
+- **Workflow Mimicry**: Your work must be visible to the user. You MUST make edits using first-class IDE tooling (`replace_file_content`, `write_to_file`). 
+- **NO AD-HOC SCRIPTS**: Do NOT write temporary ad-hoc scripts (e.g. `cat << EOF > script.cjs`, `.sh` scripts, or `node` scripts) to execute bulk codebase mutations. This breaks the security sandbox and triggers manual permission blocks. Always prefer native IDE tool calls (like `replace_file_content`) even if it means making multiple parallel tool calls.
 - **Blockers**: If you are blocked from working this way (e.g., security restrictions, environment issues), raise the issue immediately so it can be addressed directly with the user.
 - **No Unilateral API Changes**: Never unilaterally modify component APIs, parameter definitions, method signatures, or public interfaces. Always discuss and obtain explicit confirmation before altering existing component contracts.
 

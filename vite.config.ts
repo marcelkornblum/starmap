@@ -19,7 +19,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'json-summary', 'cobertura'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.stories.@(js|jsx|mjs|ts|tsx)', 'src/main.tsx'],
+      exclude: ['src/**/*.stories.@(js|jsx|mjs|ts|tsx)', 'src/main.tsx', 'src/components/prototypes/**'],
       thresholds: {
         lines: 64,
         statements: 65,
