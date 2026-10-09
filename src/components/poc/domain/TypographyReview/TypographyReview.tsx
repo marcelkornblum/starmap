@@ -1,10 +1,10 @@
 import type React from 'react';
 import { Panel } from '../../surfaces/Panel/Panel';
 import { Well } from '../../surfaces/Well/Well';
-import { Badge, type BadgeStatus } from '../../primitives/data/Badge/Badge';
+import { Badge, type BadgeStatus } from '../../../interface/data/Badge/Badge';
 import { Metric } from '../../primitives/data/Metric/Metric';
-import { Datum } from '../../primitives/data/Datum/Datum';
-import { ConfidencePip } from '../../primitives/data/ConfidencePip/ConfidencePip';
+import { Datum } from '../../../interface/data/Datum/Datum';
+import { ConfidencePip } from '../../../interface/data/ConfidencePip/ConfidencePip';
 import { Button } from '../../../interface/control/Button/Button';
 import { Cluster } from '../../../interface/layout/Cluster/Cluster';
 import { Stack } from '../../../interface/layout/Stack/Stack';

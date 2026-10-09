@@ -15,7 +15,8 @@ import {
   Imposter,
   Icon,
 } from '../src/components/interface/layout';
-import { Datum, Metric, Badge, ConfidencePip, Unit, Quantity } from '../src/components/poc/primitives/data';
+import { Datum, Badge, ConfidencePip, Unit, Quantity } from '../src/components/interface/data';
+import { Metric } from '../src/components/poc/primitives/data';
 import {
   Button,
   Input,

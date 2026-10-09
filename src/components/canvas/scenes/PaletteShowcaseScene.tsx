@@ -6,9 +6,9 @@ import { Button } from '../../interface/control/Button/Button';
 import { Input } from '../../interface/control/Input/Input';
 import { Toggle } from '../../interface/control/Toggle/Toggle';
 import { Slider } from '../../interface/control/Slider/Slider';
-import { Badge } from '../../poc/primitives/data/Badge/Badge';
-import { Unit } from '../../poc/primitives/data/Unit/Unit';
-import { ConfidencePip } from '../../poc/primitives/data/ConfidencePip/ConfidencePip';
+import { Badge } from '../../interface/data/Badge/Badge';
+import { Unit } from '../../interface/data/Unit/Unit';
+import { ConfidencePip } from '../../interface/data/ConfidencePip/ConfidencePip';
 import { Toast } from '../../poc/overlays/Toast/Toast';
 import styles from './PaletteShowcaseScene.module.css';
 
