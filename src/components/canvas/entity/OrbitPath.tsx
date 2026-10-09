@@ -220,11 +220,26 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   useEffect(() => {
     return () => {
       orbitGeometry.dispose();
+    };
+  }, [orbitGeometry]);
+
+  useEffect(() => {
+    return () => {
       tickGeometry?.dispose();
+    };
+  }, [tickGeometry]);
+
+  useEffect(() => {
+    return () => {
       directionGeometry?.dispose();
+    };
+  }, [directionGeometry]);
+
+  useEffect(() => {
+    return () => {
       lineMat.dispose();
     };
-  }, [orbitGeometry, tickGeometry, directionGeometry, lineMat]);
+  }, [lineMat]);
 
   useFrame(({ camera, size }) => {
     if (!shouldRender) return;

@@ -101,9 +101,14 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
   useEffect(() => {
     return () => {
       lineGeom.dispose();
+    };
+  }, [lineGeom]);
+
+  useEffect(() => {
+    return () => {
       lineMat.dispose();
     };
-  }, [lineGeom, lineMat]);
+  }, [lineMat]);
 
   useFrame(({ camera, size }) => {
     if (!isEnabled || !hasVelocity || !p0 || !p1 || !dir) return;
