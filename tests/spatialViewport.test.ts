@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
 import { SpatialViewport } from '../src/components/poc/canvas/SpatialViewport';
-import { GALACTIC_FRAME, SYSTEM_FRAME, PLANETARY_FRAME } from '../src/components/poc/canvas/instrument/referenceFrame';
+import { GALACTIC_FRAME, SYSTEM_FRAME, PLANETARY_FRAME } from '../src/components/canvas/instrument/referenceFrame';
 import type { SpatialEntityDefinition } from '../src/components/poc/canvas/entity/SpatialEntityStore';
 import { useUIStore } from '../src/stores/useUIStore';
 

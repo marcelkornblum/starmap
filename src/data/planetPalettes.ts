@@ -1,4 +1,4 @@
-import type { CelestialClassification } from '../components/poc/canvas/cartography/reticleGeometry';
+import type { CelestialClassification } from '../components/canvas/cartography/reticleGeometry';
 
 /**
  * Surface colour and texture manifest for procedural planetary bodies.

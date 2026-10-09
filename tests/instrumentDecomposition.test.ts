@@ -16,9 +16,9 @@ import {
   ScreenEdgeIndicators,
   CameraRig,
   CartographicInstrument,
-} from '../src/components/poc/canvas/instrument';
-import { formatDesignationTag } from '../src/components/poc/canvas/cartography/reticleGeometry';
-import { createCircularPlanarGridGeometry } from '../src/components/poc/canvas/cartography/cartographyMath';
+} from '../src/components/canvas/instrument';
+import { formatDesignationTag } from '../src/components/canvas/cartography/reticleGeometry';
+import { createCircularPlanarGridGeometry } from '../src/components/canvas/cartography/cartographyMath';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();

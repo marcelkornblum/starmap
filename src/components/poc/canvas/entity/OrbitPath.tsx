@@ -9,8 +9,8 @@ import { rotateToOrbitalPlane, DEG_TO_RADIANS } from '../../../../utils/astroMat
 import {
   CartoLineMaterial,
   CARTO_LINE_CONSTANTS,
-} from '../materials/CartoLineMaterial';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+} from '../../../canvas/materials/CartoLineMaterial';
+import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
 import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 

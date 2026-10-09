@@ -1,7 +1,7 @@
 import type {
   CelestialClassification,
   PlanetCensusEntry,
-} from '../components/poc/canvas/cartography/reticleGeometry';
+} from '../components/canvas/cartography/reticleGeometry';
 
 /**
  * Astronomical candidate systems fixture for Galactic Atlas and System inspection scenes.

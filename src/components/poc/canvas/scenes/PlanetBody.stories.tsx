@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { StoryCanvas } from '../StoryCanvas';
+import { StoryCanvas } from '../../../canvas/StoryCanvas';
 import { PlanetBody, type PlanetBodyProps } from './PlanetBody';
 import { CelestialEntity } from '../entity/CelestialEntity';
 import { SpatialEntityProvider } from '../entity/SpatialEntityContext';
-import { SpatialFrameProvider, PLANETARY_FRAME } from '../instrument';
+import { SpatialFrameProvider, PLANETARY_FRAME } from '../../../canvas/instrument';
 
 const meta: Meta<PlanetBodyProps> = {
   title: 'POC/Canvas/Celestial Entities/Planet Body',

@@ -12,6 +12,10 @@ import { CONTROLS_DAMPING_FACTOR } from './engineConfig';
 import styles from './StoryCanvas.module.css';
 
 export interface StoryCanvasProps {
+  /** Story header title */
+  title?: string;
+  /** Story header usage and purpose description */
+  description?: string;
   /** Reference frame driving camera defaults, distance bounds, and lighting. Defaults to GALACTIC_FRAME */
   frame?: ReferenceFrame;
   /** Explicit camera position override */
@@ -42,6 +46,8 @@ export interface StoryCanvasProps {
  * and standard camera orientation.
  */
 export const StoryCanvas: React.FC<StoryCanvasProps> = ({
+  title,
+  description,
   frame = GALACTIC_FRAME,
   cameraPosition,
   cameraTarget,
@@ -84,7 +90,13 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
       data-testid="story-canvas-container"
       className={[styles.canvasContainer, className].filter(Boolean).join(' ')}
     >
-      {overlay}
+      {(title || description || overlay) && (
+        <div className={styles.storyBanner}>
+          {title && <h2 className={styles.storyTitle}>{title}</h2>}
+          {description && <p className={styles.storyDescription}>{description}</p>}
+          {overlay}
+        </div>
+      )}
       <Canvas
         flat
         camera={{

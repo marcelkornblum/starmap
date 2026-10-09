@@ -13,9 +13,9 @@ import { KinematicVector } from '../src/components/poc/canvas/entity/KinematicVe
 import { OrbitPath } from '../src/components/poc/canvas/entity/OrbitPath';
 import { EntityLabel } from '../src/components/poc/canvas/entity/EntityLabel';
 import { CelestialEntity } from '../src/components/poc/canvas/entity/CelestialEntity';
-import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../src/components/poc/canvas/math/kepler';
-import { celestialOcclusionManager } from '../src/components/poc/canvas/cartography/celestialOcclusionRegistry';
-import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/poc/canvas/instrument';
+import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../src/components/canvas/math/kepler';
+import { celestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
+import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/canvas/instrument';
 
 const renderInFrame = (element: React.ReactElement) =>
   renderToString(createElement(SpatialFrameProvider, { frame: GALACTIC_FRAME }, element));

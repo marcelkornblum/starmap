@@ -5,7 +5,7 @@ import type {
   CelestialInteractionState,
 } from './types';
 
-import { deriveEntityTier } from '../math/tiers';
+import { deriveEntityTier } from '../../../canvas/math/tiers';
 
 export type { SpatialEntityDefinition, CelestialInteractionState };
 export { deriveEntityTier };

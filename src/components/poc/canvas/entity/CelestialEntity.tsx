@@ -14,20 +14,20 @@ import { DropStalk } from './DropStalk';
 import { KinematicVector } from './KinematicVector';
 import { OrbitPath } from './OrbitPath';
 import { EntityLabel } from './EntityLabel';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
 import {
   type CelestialFootprint,
-} from '../cartography/celestialOcclusionRegistry';
-import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
+} from '../../../canvas/cartography/celestialOcclusionRegistry';
+import { DEFAULT_RETICLE_SIZE } from '../../../canvas/cartography/reticleGeometry';
 import { reticleSizeToScreenPx } from '../engineConfig';
-import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../math/kepler';
+import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../../../canvas/math/kepler';
 import {
   projectedPixelDiameter,
   nodeVisibility,
   DEFAULT_BODY_MIN_PIXEL_SIZE,
   DEFAULT_BODY_FADE_RANGE,
   CROSSFADE_VISIBILITY_EPSILON,
-} from '../math/bodyCrossfade';
+} from '../../../canvas/math/bodyCrossfade';
 import {
   activateEntity,
   focusEntity,

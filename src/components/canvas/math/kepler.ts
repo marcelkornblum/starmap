@@ -1,4 +1,4 @@
-import { DEG_TO_RADIANS, rotateToOrbitalPlane } from '../../../../utils/astroMath';
+import { DEG_TO_RADIANS, rotateToOrbitalPlane } from '../../../utils/astroMath';
 
 /**
  * Calculates 3D Cartesian position [x, y, z] on a Keplerian orbit for a given mean anomaly in degrees.

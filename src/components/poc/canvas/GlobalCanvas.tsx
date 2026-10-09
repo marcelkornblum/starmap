@@ -7,7 +7,7 @@ import { GalaxyScene } from './scenes/GalaxyScene';
 import {
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
-} from './cartography/cartographyMath';
+} from '../../canvas/cartography/cartographyMath';
 import { CONTROLS_DAMPING_FACTOR } from './engineConfig';
 import styles from './GlobalCanvas.module.css';
 

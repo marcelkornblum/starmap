@@ -1,0 +1,86 @@
+@layer blocks {
+  .canvasContainer {
+    inline-size: 100vw;
+    block-size: 100vh;
+    position: relative;
+    overflow: hidden;
+    background-color: var(--surface-canvas-bg);
+  }
+
+  .canvasContainer canvas {
+    position: relative;
+    z-index: var(--layer-canvas);
+  }
+
+  .storyBanner {
+    position: absolute;
+    inset-block-start: var(--space-4);
+    inset-inline-start: var(--space-4);
+    z-index: var(--layer-hud);
+    background-color: var(--surface-overlay-bg);
+    color: var(--content-primary);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-container);
+    border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+    backdrop-filter: blur(12px);
+    font-family: var(--font-data);
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    max-inline-size: 48ch;
+  }
+
+  .storyTitle {
+    font-weight: var(--font-weight-bold);
+    font-size: var(--text-caption-size);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
+    margin: 0;
+    color: var(--content-primary);
+  }
+
+  .storyDescription {
+    font-size: var(--text-caption-size);
+    line-height: var(--leading-control);
+    margin: 0;
+    color: var(--content-muted);
+  }
+
+  .diagnosticsGrid {
+    display: grid;
+    gap: var(--space-1);
+    font-size: var(--text-caption-size);
+    color: var(--content-muted);
+    font-variant-numeric: tabular-nums;
+    margin-block-start: var(--space-1);
+  }
+
+  .buttonRow {
+    display: flex;
+    gap: var(--space-2);
+    margin-block-start: var(--space-1);
+  }
+
+  .demoButton {
+    padding: var(--space-1) var(--space-2);
+    background-color: transparent;
+    color: var(--content-primary);
+    border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+    border-radius: var(--radius-badge);
+    cursor: pointer;
+    font-family: var(--font-data);
+    font-size: var(--text-caption-size);
+    line-height: var(--leading-control);
+    transition: background-color var(--motion-duration-feedback) var(--motion-ease-default),
+                color var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+}
+
+@layer exceptions {
+  .demoButton[data-active="true"] {
+    background-color: var(--state-focus);
+    color: var(--content-inverse);
+    border-color: var(--state-focus);
+  }
+}

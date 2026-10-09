@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { StoryCanvas } from './StoryCanvas';
+import { StoryCanvas } from '../../canvas/StoryCanvas';
 import { SpatialViewport, type SpatialViewportProps } from './SpatialViewport';
-import { GALACTIC_FRAME, SYSTEM_FRAME, PLANETARY_FRAME } from './instrument/referenceFrame';
+import { GALACTIC_FRAME, SYSTEM_FRAME, PLANETARY_FRAME } from '../../canvas/instrument/referenceFrame';
 import { PlanetBody } from './scenes/PlanetBody';
-import { calculateKeplerianPosition } from './math/kepler';
+import { calculateKeplerianPosition } from '../../canvas/math/kepler';
 import type { SpatialEntityDefinition } from './entity/SpatialEntityStore';
 
 const SAMPLE_ENTITIES: SpatialEntityDefinition[] = [

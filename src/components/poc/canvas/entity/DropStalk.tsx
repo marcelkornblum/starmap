@@ -3,13 +3,13 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../../stores/useThreeTokenStore';
-import { CartoHairlineMaterial } from '../materials/CartoLineMaterial';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { CartoHairlineMaterial } from '../../../canvas/materials/CartoLineMaterial';
+import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
 import {
   createReticleGeometry,
   DEFAULT_RETICLE_SIZE,
   type CelestialClassification,
-} from '../cartography/reticleGeometry';
+} from '../../../canvas/cartography/reticleGeometry';
 import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 

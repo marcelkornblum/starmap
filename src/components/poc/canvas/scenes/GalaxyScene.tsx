@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { SpatialViewport } from '../SpatialViewport';
-import { GALACTIC_FRAME } from '../instrument/referenceFrame';
-import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
+import { GALACTIC_FRAME } from '../../../canvas/instrument/referenceFrame';
+import { STANDARD_CAMERA_DISTANCES } from '../../../canvas/cartography/cartographyMath';
 import { CANDIDATE_SYSTEMS, type CandidateSystem } from '../../../../data';
 import type { SpatialEntityDefinition } from '../entity/SpatialEntityStore';
 

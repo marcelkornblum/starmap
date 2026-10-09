@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { SpatialViewport } from '../SpatialViewport';
-import { SYSTEM_FRAME } from '../instrument/referenceFrame';
-import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
+import { SYSTEM_FRAME } from '../../../canvas/instrument/referenceFrame';
+import { STANDARD_CAMERA_DISTANCES } from '../../../canvas/cartography/cartographyMath';
 import { CANDIDATE_SYSTEMS, SOL_PLANETS, type SolPlanetConfig } from '../../../../data';
 import type { SpatialEntityDefinition } from '../entity/SpatialEntityStore';
 import type { StarDossierData } from '../../domain';

@@ -6,12 +6,12 @@ import {
   GALACTIC_FRAME,
   createCustomReferenceFrame,
   type FrameLightingConfig,
-} from './instrument/referenceFrame';
-import { CartographicInstrument } from './instrument/CartographicInstrument';
-import { CameraRig } from './instrument/CameraRig';
-import { CartographicLighting } from './instrument/CartographicLighting';
-import { SpatialFrameProvider } from './instrument/SpatialFrameProvider';
-import { useCameraTransition } from './instrument/useCameraTransition';
+} from '../../canvas/instrument/referenceFrame';
+import { CartographicInstrument } from '../../canvas/instrument/CartographicInstrument';
+import { CameraRig } from '../../canvas/instrument/CameraRig';
+import { CartographicLighting } from '../../canvas/instrument/CartographicLighting';
+import { SpatialFrameProvider } from '../../canvas/instrument/SpatialFrameProvider';
+import { useCameraTransition } from '../../canvas/instrument/useCameraTransition';
 import {
   SpatialEntityProvider,
   ApertureEvaluator,

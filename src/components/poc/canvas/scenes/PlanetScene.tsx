@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 import { SpatialViewport } from '../SpatialViewport';
-import { PLANETARY_FRAME } from '../instrument/referenceFrame';
-import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
-import { calculateKeplerianPosition } from '../math/kepler';
+import { PLANETARY_FRAME } from '../../../canvas/instrument/referenceFrame';
+import { STANDARD_CAMERA_DISTANCES } from '../../../canvas/cartography/cartographyMath';
+import { calculateKeplerianPosition } from '../../../canvas/math/kepler';
 import { PlanetBody } from './PlanetBody';
 import type { SpatialEntityDefinition } from '../entity/SpatialEntityStore';
-import type { CelestialClassification } from '../cartography/reticleGeometry';
+import type { CelestialClassification } from '../../../canvas/cartography/reticleGeometry';
 
 export interface PlanetSceneProps {
   planetId?: string;

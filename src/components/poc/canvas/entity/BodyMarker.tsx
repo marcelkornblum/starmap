@@ -5,8 +5,8 @@ import { useThreeTokenStore } from '../../../../stores/useThreeTokenStore';
 import { useLazyRef } from '../../../../hooks/useLazyRef';
 
 import { useOcclusionManager } from './SpatialEntityContext';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
-import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
+import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
+import { DEFAULT_RETICLE_SIZE } from '../../../canvas/cartography/reticleGeometry';
 import {
   calculateScreenInvariantScale,
   reticleSizeToScreenPx,
