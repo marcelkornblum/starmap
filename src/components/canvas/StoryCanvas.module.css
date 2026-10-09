@@ -58,8 +58,30 @@
 
   .buttonRow {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-2);
     margin-block-start: var(--space-1);
+  }
+
+  .controlsCluster {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-block-start: var(--space-2);
+  }
+
+  .controlGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .groupLabel {
+    font-size: var(--text-caption-size);
+    font-weight: var(--font-weight-bold);
+    color: var(--content-muted);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
   }
 
   .demoButton {
