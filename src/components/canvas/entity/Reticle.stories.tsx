@@ -1,11 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { StoryCanvas } from '../StoryCanvas';
-import { CelestialEntity } from './CelestialEntity';
+import { Reticle } from './Reticle';
+import { BodyMarker } from './BodyMarker';
+import { EntityLabel } from './EntityLabel';
 import { SpatialEntityProvider, ApertureEvaluator } from './SpatialEntityContext';
 import { OcclusionPass } from './OcclusionPass';
 import { SpatialFrameProvider, SYSTEM_FRAME } from '../instrument';
+import { DEFAULT_RETICLE_SIZE, type CelestialClassification, type PlanetCensusEntry } from '../cartography/reticleGeometry';
 import type { CelestialInteractionState } from './types';
-import type { CelestialClassification, PlanetCensusEntry } from '../cartography/reticleGeometry';
 
 interface ReticleTaxonomyStoryArgs {
   state: CelestialInteractionState;
@@ -46,12 +48,20 @@ interface TaxonomyDef {
 
 const TAXONOMY_ENTRIES: TaxonomyDef[] = [
   // Row 1: Stellar & Degenerate Remnants
-  { id: 'tax-star', name: 'Sol', classification: 'star', spectralType: 'G2V', multiplicity: 1, row: 0, col: 0 },
+  {
+    id: 'tax-star',
+    name: 'Star',
+    classification: 'star',
+    spectralType: 'star',
+    multiplicity: 1,
+    row: 0,
+    col: 0,
+  },
   {
     id: 'tax-system',
-    name: 'Alpha Centauri',
+    name: 'Stellar System',
     classification: 'stellar-system',
-    spectralType: 'G2V·K1V',
+    spectralType: 'stellar-system',
     multiplicity: 2,
     planets: [
       { id: 'p1', name: 'b', classification: 'terrestrial' },
@@ -61,18 +71,98 @@ const TAXONOMY_ENTRIES: TaxonomyDef[] = [
     row: 0,
     col: 1,
   },
-  { id: 'tax-brown-dwarf', name: 'Luhman 16', classification: 'brown-dwarf', spectralType: 'L7.5', multiplicity: 1, row: 0, col: 2 },
-  { id: 'tax-white-dwarf', name: 'Sirius B', classification: 'white-dwarf', spectralType: 'DA2', multiplicity: 1, row: 0, col: 3 },
-  { id: 'tax-neutron-star', name: 'PSR B1919+21', classification: 'neutron-star', spectralType: 'Pulsar', multiplicity: 1, row: 0, col: 4 },
-  { id: 'tax-black-hole', name: 'Sagittarius A*', classification: 'black-hole', spectralType: 'Singularity', multiplicity: 1, row: 0, col: 5 },
+  {
+    id: 'tax-brown-dwarf',
+    name: 'Brown Dwarf',
+    classification: 'brown-dwarf',
+    spectralType: 'brown-dwarf',
+    multiplicity: 1,
+    row: 0,
+    col: 2,
+  },
+  {
+    id: 'tax-white-dwarf',
+    name: 'White Dwarf',
+    classification: 'white-dwarf',
+    spectralType: 'white-dwarf',
+    multiplicity: 1,
+    row: 0,
+    col: 3,
+  },
+  {
+    id: 'tax-neutron-star',
+    name: 'Neutron Star',
+    classification: 'neutron-star',
+    spectralType: 'neutron-star',
+    multiplicity: 1,
+    row: 0,
+    col: 4,
+  },
+  {
+    id: 'tax-black-hole',
+    name: 'Black Hole',
+    classification: 'black-hole',
+    spectralType: 'black-hole',
+    multiplicity: 1,
+    row: 0,
+    col: 5,
+  },
 
   // Row 2: Non-Stellar & Planetary Bodies
-  { id: 'tax-barycentre', name: 'Barycentre', classification: 'barycentre', spectralType: 'CM', multiplicity: 1, row: 1, col: 0 },
-  { id: 'tax-cluster', name: 'Pleiades', classification: 'cluster', spectralType: 'Cl*', multiplicity: 1, row: 1, col: 1 },
-  { id: 'tax-construct', name: 'Gateway Station', classification: 'construct', spectralType: 'Stn', multiplicity: 1, row: 1, col: 2 },
-  { id: 'tax-terrestrial', name: 'Proxima b', classification: 'terrestrial', spectralType: 'Terrestrial', multiplicity: 1, row: 1, col: 3 },
-  { id: 'tax-gas-giant', name: 'Jupiter', classification: 'gas-giant', spectralType: 'Gas Giant', multiplicity: 1, row: 1, col: 4 },
-  { id: 'tax-ice-giant', name: 'Neptune', classification: 'ice-giant', spectralType: 'Ice Giant', multiplicity: 1, row: 1, col: 5 },
+  {
+    id: 'tax-barycentre',
+    name: 'Barycentre',
+    classification: 'barycentre',
+    spectralType: 'barycentre',
+    multiplicity: 1,
+    row: 1,
+    col: 0,
+  },
+  {
+    id: 'tax-cluster',
+    name: 'Stellar Cluster',
+    classification: 'cluster',
+    spectralType: 'cluster',
+    multiplicity: 1,
+    row: 1,
+    col: 1,
+  },
+  {
+    id: 'tax-construct',
+    name: 'Construct',
+    classification: 'construct',
+    spectralType: 'construct',
+    multiplicity: 1,
+    row: 1,
+    col: 2,
+  },
+  {
+    id: 'tax-terrestrial',
+    name: 'Terrestrial',
+    classification: 'terrestrial',
+    spectralType: 'terrestrial',
+    multiplicity: 1,
+    row: 1,
+    col: 3,
+  },
+  {
+    id: 'tax-gas-giant',
+    name: 'Gas Giant',
+    classification: 'gas-giant',
+    spectralType: 'gas-giant',
+    multiplicity: 1,
+    row: 1,
+    col: 4,
+  },
+  {
+    id: 'tax-ice-giant',
+    name: 'Ice Giant',
+    classification: 'ice-giant',
+    spectralType: 'ice-giant',
+    multiplicity: 1,
+    row: 1,
+    col: 5,
+  },
 ];
 
 export const ReticleTaxonomyStory: Story = {
@@ -85,7 +175,7 @@ export const ReticleTaxonomyStory: Story = {
     return (
       <StoryCanvas
         title="Reticle Taxonomy & Facets"
-        description="Comprehensive taxonomic gallery exhibiting all 12 celestial reticle geometries with multi-facet annotations: corner brackets, multiplicity pips (TL), planetary census pips (TR), and spectral type tags (BR)."
+        description="Comprehensive taxonomic gallery exhibiting all 12 celestial reticle geometries with multi-facet annotations: corner brackets, multiplicity pips (TL), planetary census pips (TR), and spectral type tags (BR). Footprints are disabled."
         frame={SYSTEM_FRAME}
         cameraDistance={26}
       >
@@ -97,17 +187,34 @@ export const ReticleTaxonomyStory: Story = {
               const x = (entry.col - 2.5) * args.spacing;
               const y = (0.5 - entry.row) * (args.spacing * 0.9);
               return (
-                <CelestialEntity
-                  key={entry.id}
-                  id={entry.id}
-                  name={entry.name}
-                  classification={entry.classification}
-                  spectralType={entry.spectralType}
-                  multiplicity={entry.multiplicity}
-                  planets={entry.planets}
-                  position={[x, y, 0]}
-                  stateOverride={args.state}
-                />
+                <group key={entry.id} position={[x, y, 0]} name={`reticle-item-${entry.id}`}>
+                  {entry.classification !== 'barycentre' && (
+                    <BodyMarker
+                      id={`marker-${entry.id}`}
+                      position={[0, 0, 0]}
+                      reticleSize={DEFAULT_RETICLE_SIZE}
+                      interactive={false}
+                    />
+                  )}
+                  <Reticle
+                    id={entry.id}
+                    position={[0, 0, 0]}
+                    classification={entry.classification}
+                    state={args.state}
+                    size={DEFAULT_RETICLE_SIZE}
+                    multiplicity={entry.multiplicity}
+                    planets={entry.planets}
+                    spectralType={entry.spectralType}
+                  />
+                  <EntityLabel
+                    id={`label-${entry.id}`}
+                    name={entry.name}
+                    position={[0, 0, 0]}
+                    spectralType={entry.spectralType}
+                    state={args.state}
+                    reticleSize={DEFAULT_RETICLE_SIZE}
+                  />
+                </group>
               );
             })}
           </SpatialEntityProvider>
