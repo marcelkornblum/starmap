@@ -45,16 +45,66 @@
     margin-block-start: var(--space-2);
   }
 
-  /* Compact Gallery Grid */
+  /* Surface Gallery Stage Grid */
   .galleryGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: var(--space-4);
-    margin-block-start: var(--space-3);
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-6);
+    margin-block-start: var(--space-4);
   }
 
-  .surfaceTile {
-    min-block-size: 140px;
+  .stageCard {
+    background: var(--surface-panel-bg);
+    border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+    border-radius: var(--radius-container);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .stageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-inset-bg);
+    border-block-end: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+  }
+
+  .stageTier {
+    font-family: var(--font-data);
+    font-size: var(--text-caption-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
+    color: var(--content-primary);
+  }
+
+  .stageToken {
+    font-family: var(--font-data);
+    font-size: 10px;
+    color: var(--content-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Dedicated viewport canvas providing contrast and breathing space for the surface */
+  .stageViewport {
+    background-color: var(--surface-canvas-bg);
+    background-image: radial-gradient(var(--border-subtle) 1px, transparent 1px);
+    background-size: 16px 16px;
+    padding: var(--space-7) var(--space-5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 180px;
+    box-sizing: border-box;
+  }
+
+  /* The actual isolated surface specimen */
+  .surfaceFloat {
+    inline-size: 100%;
+    max-inline-size: 210px;
+    min-block-size: 100px;
     padding: var(--space-3);
     border-radius: var(--radius-container);
     display: flex;
@@ -64,7 +114,7 @@
     transition: transform var(--motion-duration-feedback) var(--motion-ease-default);
   }
 
-  .surfaceTile:hover {
+  .surfaceFloat:hover {
     transform: translateY(-2px);
   }
 
@@ -108,6 +158,18 @@
     font-family: var(--font-data);
     font-size: 10px;
     color: var(--content-subtle);
+  }
+
+  .stageFooter {
+    padding: var(--space-2) var(--space-3);
+    font-family: var(--font-data);
+    font-size: 10px;
+    color: var(--content-subtle);
+    background: var(--surface-inset-bg);
+    border-block-start: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   /* Architectural Breakdown Stack */
@@ -209,48 +271,56 @@
 
 @layer exceptions {
   /* Concrete Surface Tier Optical Profiles */
+  .surfaceFloat[data-surface="inset"],
   .surfaceTile[data-surface="inset"] {
     background: var(--surface-inset-bg);
     border: var(--surface-inset-border-width) var(--surface-inset-border-style) var(--surface-inset-border-color);
     box-shadow: var(--surface-inset-shadow);
   }
 
+  .surfaceFloat[data-surface="canvas"],
   .surfaceTile[data-surface="canvas"] {
     background: var(--surface-canvas-bg);
     border: var(--border-width-1) dashed var(--border-color-subtle);
     box-shadow: var(--surface-canvas-shadow);
   }
 
+  .surfaceFloat[data-surface="hud"],
   .surfaceTile[data-surface="hud"] {
     background: var(--surface-hud-bg);
     border: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
     box-shadow: var(--surface-hud-shadow);
   }
 
+  .surfaceFloat[data-surface="dock"],
   .surfaceTile[data-surface="dock"] {
     background: var(--surface-dock-bg);
     border: var(--surface-dock-border-width) var(--surface-dock-border-style) var(--surface-dock-border-color);
     box-shadow: var(--surface-dock-shadow);
   }
 
+  .surfaceFloat[data-surface="panel"],
   .surfaceTile[data-surface="panel"] {
     background: var(--surface-panel-bg);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
   }
 
+  .surfaceFloat[data-surface="card"],
   .surfaceTile[data-surface="card"] {
     background: var(--surface-panel-bg);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--border-color-subtle);
     box-shadow: var(--surface-panel-shadow);
   }
 
+  .surfaceFloat[data-surface="drawer"],
   .surfaceTile[data-surface="drawer"] {
     background: var(--surface-drawer-bg);
     border: var(--surface-drawer-border-width) var(--surface-drawer-border-style) var(--surface-drawer-border-color);
     box-shadow: var(--surface-drawer-shadow);
   }
 
+  .surfaceFloat[data-surface="popover"],
   .surfaceTile[data-surface="popover"] {
     background: var(--surface-popover-bg);
     border: var(--surface-popover-border-width) var(--surface-popover-border-style) var(--surface-popover-border-color);
@@ -259,6 +329,7 @@
     -webkit-backdrop-filter: blur(var(--surface-popover-backdrop-blur));
   }
 
+  .surfaceFloat[data-surface="modal"],
   .surfaceTile[data-surface="modal"] {
     background: var(--surface-modal-bg);
     border: var(--surface-modal-border-width) var(--surface-modal-border-style) var(--surface-modal-border-color);
@@ -267,6 +338,7 @@
     -webkit-backdrop-filter: blur(var(--surface-modal-backdrop-blur));
   }
 
+  .surfaceFloat[data-surface="toast"],
   .surfaceTile[data-surface="toast"] {
     background: var(--surface-toast-bg);
     border: var(--surface-toast-border-width) var(--surface-toast-border-style) var(--surface-toast-border-color);

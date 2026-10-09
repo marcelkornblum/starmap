@@ -200,29 +200,40 @@ export const SurfaceGalleryStory: StoryObj = {
       <header className={styles.header}>
         <h1 className={styles.title}>Surface Gallery (Compact Matrix)</h1>
         <p className={styles.description}>
-          Comparative optical palette rendering miniature tiles for every elevation tier
-          side-by-side on the canvas background. Notice the progressive lightening in
-          luminance, border crispness, and multi-layer edge shadows.
+          Comparative optical palette rendering miniature specimens for every elevation tier.
+          Each surface is isolated within a dedicated canvas stage with surrounding clearance
+          to expose fill colour, border treatment, corner radius, and edge shadow relief.
         </p>
       </header>
 
       <div className={styles.galleryGrid}>
         {SURFACE_TIERS.map((tier) => (
-          <div
-            key={tier.id}
-            className={styles.surfaceTile}
-            data-surface={tier.id}
-          >
-            <div className={styles.tileHeader}>
-              <span className={styles.tileTier}>{tier.tierNumber}</span>
-              <span className={styles.tileToken}>{tier.zIndex.split(' ')[0]}</span>
+          <article key={tier.id} className={styles.stageCard}>
+            <div className={styles.stageHeader}>
+              <span className={styles.stageTier}>{tier.tierNumber}</span>
+              <span className={styles.stageToken}>{tier.zIndex.split(' ')[0]}</span>
             </div>
 
-            <div className={styles.tileBody}>
-              <span className={styles.tileRole}>{tier.name}</span>
-              <span className={styles.tileShadowSpec}>{tier.surfaceToken}</span>
+            <div className={styles.stageViewport}>
+              <div
+                className={styles.surfaceFloat}
+                data-surface={tier.id}
+              >
+                <div className={styles.tileHeader}>
+                  <span className={styles.tileTier}>{tier.name}</span>
+                </div>
+
+                <div className={styles.tileBody}>
+                  <span className={styles.tileRole}>{tier.role.split(',')[0]}</span>
+                  <span className={styles.tileShadowSpec}>{tier.surfaceToken}</span>
+                </div>
+              </div>
             </div>
-          </div>
+
+            <div className={styles.stageFooter}>
+              <span>{tier.shadowToken}</span>
+            </div>
+          </article>
         ))}
       </div>
     </div>
