@@ -22,6 +22,7 @@ Components are categorised into a strict four-tier hierarchy (`docs/design-syste
 - **Zero Outer Margins:** Components must never declare external `margin`, positioning offsets, or self-layout. Layout and flow are strictly owned by parent composition primitives.
 - **Presenter/Container Decoupling:** Presentation components (Tiers 1–3) must remain pure, deterministic, and decoupled from global stores or side-effects. Stateful orchestration and telemetry subscriptions belong exclusively in Tier 4 assemblies or dedicated container hooks.
 - **Testable Component Signatures:** Root presentation components must be cleanly inspectable and instantiable in non-DOM test environments without throwing unhandled hook or context errors.
+- **Production / Fixture Segregation:** Test fixtures, visual preview scaffolding, and Storybook decorators (such as `StoryCanvas`) must never reside within production component directories (`src/components/...`). They belong strictly in `.storybook/helpers/` or dedicated test utilities (`src/test-utils/`) to keep component packages pure and shippable.
 
 ---
 
