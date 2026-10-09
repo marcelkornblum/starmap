@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { StoryCanvas } from '../StoryCanvas';
+import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
 import storyCanvasStyles from '../../../../.storybook/helpers/StoryCanvas.module.css';
 import {
   CartographicInstrument,

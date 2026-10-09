@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { StoryCanvas } from '../StoryCanvas';
+import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
 import { CameraRig } from './CameraRig';
 import { SpatialFrameProvider, GALACTIC_FRAME, PlanarGrid } from './index';
 

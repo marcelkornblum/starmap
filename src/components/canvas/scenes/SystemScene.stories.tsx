@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { StoryCanvas } from '../StoryCanvas';
+import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
 import { SYSTEM_FRAME } from '../instrument/referenceFrame';
 import { SystemScene, type SystemSceneProps } from './SystemScene';
 

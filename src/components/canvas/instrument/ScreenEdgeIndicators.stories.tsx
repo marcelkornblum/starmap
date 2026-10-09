@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { StoryCanvas } from '../StoryCanvas';
+import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
 import { ScreenEdgeIndicators } from './ScreenEdgeIndicators';
 import { SpatialFrameProvider, GALACTIC_FRAME } from './index';
 

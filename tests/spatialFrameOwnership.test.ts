@@ -14,7 +14,7 @@ import {
   CartographicLighting,
 } from '../src/components/canvas/instrument';
 import { SpatialViewport } from '../src/components/canvas/viewport/SpatialViewport';
-import { StoryCanvas } from '../src/components/canvas/StoryCanvas';
+import { StoryCanvas } from '../.storybook/helpers/StoryCanvas';
 import {
   FRAME_PRIORITY,
   ORBIT_CONTROLS_PRIORITY,
