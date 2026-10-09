@@ -182,7 +182,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
 
     // Footprint visibility & invariant screen-space scaling (stamps as stalk reaches datum)
     if (footprintRef.current) {
-      footprintRef.current.visible = (p > 0.85) && (fadePlanar > 1e-4);
+      footprintRef.current.visible = (p > 0.85) && (fadePlanar > 1e-4) && Math.abs(deltaZ) > 1e-4;
       if (footprintRef.current.visible) {
         footprintRef.current.getWorldPosition(scratchWorldPos.current);
         const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
