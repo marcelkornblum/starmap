@@ -3,10 +3,10 @@ import { ConfidencePip } from './ConfidencePip';
 import { Cluster } from '../../layouts/Cluster/Cluster';
 import { Stack } from '../../layouts/Stack/Stack';
 
-import storyStyles from '../dataStories.module.css';
+import storyStyles from '../informationStories.module.css';
 
 const meta = {
-  title: 'INTERFACE/Data',
+  title: 'INTERFACE/Information',
   component: ConfidencePip,
   parameters: {
     layout: 'centered',
