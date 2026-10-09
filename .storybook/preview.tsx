@@ -12,7 +12,13 @@ const preview: Preview = {
     },
     options: {
       storySort: (a, b) => {
-        const topNames = ['Overview', 'Full Instrument Assembly', 'CelestialEntity'];
+        const topNames = [
+          'Overview',
+          'Full Instrument Assembly',
+          'Full Entity Assembly',
+          'Reticle Taxonomy & Facets',
+          'Planetary Bodies & Reticle Cross-fade',
+        ];
         const aTop = topNames.indexOf(a.name);
         const bTop = topNames.indexOf(b.name);
         if (aTop !== -1 && bTop !== -1) return aTop - bTop;
