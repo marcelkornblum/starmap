@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { DEFAULT_RETICLE_SIZE } from './reticleGeometry';
-import { reticleSizeToScreenPx } from '../../poc/canvas/engineConfig';
+import { reticleSizeToScreenPx } from '../engineConfig';
 
 /**
  * Celestial Occlusion & Collision Registry

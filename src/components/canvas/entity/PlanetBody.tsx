@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
@@ -119,6 +119,12 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
 }) => {
   const palette = useMemo(() => getClassificationPalette(classification), [classification]);
   const texture = useMemo(() => createPlanetTexture(classification, palette), [classification, palette]);
+
+  useEffect(() => {
+    return () => {
+      texture?.dispose();
+    };
+  }, [texture]);
 
   const groupRef = useRef<THREE.Group | null>(null);
   const surfaceMatRef = useRef<THREE.MeshBasicMaterial | null>(null);
