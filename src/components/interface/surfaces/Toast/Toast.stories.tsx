@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Toast } from './Toast';
-import { Stack } from '../../layout/Stack/Stack';
+import { Stack } from '../../layouts/Stack/Stack';
 import storyStyles from '../surfaceStories.module.css';
 
 const meta: Meta<typeof Toast> = {

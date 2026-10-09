@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Hud } from './Hud';
-import { Stack } from '../../layout/Stack/Stack';
-import { Cluster } from '../../layout/Cluster/Cluster';
+import { Stack } from '../../layouts/Stack/Stack';
+import { Cluster } from '../../layouts/Cluster/Cluster';
 import { Badge } from '../../data/Badge/Badge';
-import { Button } from '../../control/Button/Button';
+import { Button } from '../../controls/Button/Button';
 import storyStyles from '../surfaceStories.module.css';
 
 const meta: Meta<typeof Hud> = {

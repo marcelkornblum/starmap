@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Dock } from './Dock';
-import { Stack } from '../../layout/Stack/Stack';
-import { Cluster } from '../../layout/Cluster/Cluster';
-import { Button } from '../../control/Button/Button';
+import { Stack } from '../../layouts/Stack/Stack';
+import { Cluster } from '../../layouts/Cluster/Cluster';
+import { Button } from '../../controls/Button/Button';
 import storyStyles from '../surfaceStories.module.css';
 
 const meta: Meta<typeof Dock> = {

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Datum } from './Datum';
-import { Stack } from '../../layout/Stack/Stack';
-import { Box } from '../../layout/Box/Box';
+import { Stack } from '../../layouts/Stack/Stack';
+import { Box } from '../../layouts/Box/Box';
 
 import storyStyles from '../dataStories.module.css';
 

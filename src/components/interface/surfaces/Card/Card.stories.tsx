@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Card } from './Card';
-import { Stack } from '../../layout/Stack/Stack';
-import { Cluster } from '../../layout/Cluster/Cluster';
+import { Stack } from '../../layouts/Stack/Stack';
+import { Cluster } from '../../layouts/Cluster/Cluster';
 import storyStyles from '../surfaceStories.module.css';
 
 const meta: Meta<typeof Card> = {
