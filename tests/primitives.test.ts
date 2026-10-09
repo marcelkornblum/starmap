@@ -454,4 +454,16 @@ describe('Tier 1: Control Primitives', () => {
     rendered.props.onChange?.({ target: { value: 'alpha-cen' } } as React.ChangeEvent<HTMLSelectElement>);
     expect(handleChange).toHaveBeenCalledWith('alpha-cen');
   });
+
+  it('exports canonical controls and layouts from interface/controls and interface/layouts', async () => {
+    const controls = await import('../src/components/interface/controls');
+    const layouts = await import('../src/components/interface/layouts');
+    const oldControl = await import('../src/components/interface/control');
+    const oldLayout = await import('../src/components/interface/layout');
+
+    expect(controls.Button).toBeDefined();
+    expect(controls.Button).toBe(oldControl.Button);
+    expect(layouts.Stack).toBeDefined();
+    expect(layouts.Stack).toBe(oldLayout.Stack);
+  });
 });

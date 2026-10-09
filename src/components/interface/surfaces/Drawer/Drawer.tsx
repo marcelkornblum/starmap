@@ -1,5 +1,5 @@
 import { useRef, useEffect, useId, type DialogHTMLAttributes, type ReactNode } from 'react';
-import { Stack } from '../../layout/Stack/Stack';
+import { Stack } from '../../layouts/Stack/Stack';
 import styles from './Drawer.module.css';
 
 export interface DrawerProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'title'> {

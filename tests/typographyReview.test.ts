@@ -98,4 +98,10 @@ describe('TypographyReview Component', () => {
     );
     expect(htmlWithoutSwitcher).not.toContain('aria-label="Theme mode switcher"');
   });
+
+  it('maintains parity between prototype and backwards-compatible re-export', async () => {
+    const { TypographyReview: PrototypeTypographyReview } = await import('../src/components/prototypes');
+    expect(PrototypeTypographyReview).toBeDefined();
+    expect(TypographyReview).toBe(PrototypeTypographyReview);
+  });
 });

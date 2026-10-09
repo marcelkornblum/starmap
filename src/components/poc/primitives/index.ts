@@ -1,3 +1,4 @@
-export * from '../../interface/layout';
+export * from '../../interface/layouts';
 export * from './data';
-export * from '../../interface/control';
+export * from '../../interface/controls';
+
