@@ -1,5 +1,5 @@
 // Setup global test environment polyfills
-import '../src/components/poc/canvas/patchR3F';
+import '../src/components/canvas/viewport/patchR3F';
 
 const memoryStore = new Map<string, string>();
 

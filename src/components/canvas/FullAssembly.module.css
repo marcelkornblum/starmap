@@ -1,0 +1,152 @@
+@layer blocks {
+  .assemblyContainer {
+    inline-size: 100vw;
+    block-size: 100vh;
+    position: relative;
+    overflow: hidden;
+    background-color: var(--surface-canvas-bg);
+  }
+
+  .hudOverlay {
+    position: absolute;
+    inset-block-start: var(--space-4);
+    inset-inline-start: var(--space-4);
+    z-index: var(--layer-hud);
+    background-color: var(--surface-overlay-bg);
+    color: var(--content-primary);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-container);
+    border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+    backdrop-filter: blur(16px);
+    font-family: var(--font-data);
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-inline-size: 52ch;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .title {
+    font-weight: var(--font-weight-bold);
+    font-size: var(--text-caption-size);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
+    margin: 0;
+    color: var(--content-primary);
+  }
+
+  .description {
+    font-size: var(--text-caption-size);
+    line-height: var(--leading-control);
+    margin: 0;
+    color: var(--content-muted);
+  }
+
+  .breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-caption-size);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
+    padding-block: var(--space-1);
+    border-block-end: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+  }
+
+  .crumbSeparator {
+    color: var(--content-subtle);
+  }
+
+  .crumbButton {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-family: var(--font-data);
+    font-size: var(--text-caption-size);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
+    color: var(--content-muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .crumbActive {
+    color: var(--state-focus);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .controlsGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .groupLabel {
+    font-size: var(--text-caption-size);
+    font-weight: var(--font-weight-bold);
+    color: var(--content-muted);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
+  }
+
+  .buttonRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .pillButton {
+    padding: var(--space-1) var(--space-2);
+    background-color: transparent;
+    color: var(--content-primary);
+    border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+    border-radius: var(--radius-badge);
+    cursor: pointer;
+    font-family: var(--font-data);
+    font-size: var(--text-caption-size);
+    line-height: var(--leading-control);
+    transition: background-color var(--motion-duration-feedback) var(--motion-ease-default),
+                color var(--motion-duration-feedback) var(--motion-ease-default),
+                border-color var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-1);
+    font-size: var(--text-caption-size);
+    color: var(--content-subtle);
+    margin-block-start: var(--space-1);
+    padding-block-start: var(--space-1);
+    border-block-start: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+  }
+
+  .legendItem {
+    display: flex;
+    gap: var(--space-1);
+  }
+
+  .keycap {
+    color: var(--content-muted);
+    font-weight: var(--font-weight-bold);
+  }
+}
+
+@layer exceptions {
+  .pillButton[data-active="true"] {
+    background-color: var(--state-focus);
+    color: var(--content-inverse);
+    border-color: var(--state-focus);
+  }
+
+  .crumbButton:hover {
+    color: var(--content-primary);
+  }
+}

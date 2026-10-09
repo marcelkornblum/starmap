@@ -13,7 +13,7 @@ import {
   CartographicInstrument,
   CartographicLighting,
 } from '../src/components/canvas/instrument';
-import { SpatialViewport } from '../src/components/poc/canvas/SpatialViewport';
+import { SpatialViewport } from '../src/components/canvas/viewport/SpatialViewport';
 import { StoryCanvas } from '../src/components/canvas/StoryCanvas';
 import {
   FRAME_PRIORITY,
@@ -21,7 +21,7 @@ import {
   REFERENCE_INSTRUMENT_FOOTPRINT,
   REFERENCE_FOV_DEG,
   SCREEN_HEIGHT_REFERENCE_SCALE,
-} from '../src/components/poc/canvas/engineConfig';
+} from '../src/components/canvas/engineConfig';
 import {
   SpatialEntityProvider,
   useOcclusionManager,

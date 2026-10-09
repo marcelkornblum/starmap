@@ -1,0 +1,1817 @@
+@layer blocks {
+  .container {
+    inline-size: 100%;
+    block-size: 100vh;
+    max-block-size: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    touch-action: pan-y;
+    user-select: text;
+    -webkit-user-select: text;
+    box-sizing: border-box;
+    background-color: var(--surface-canvas-bg);
+    color: var(--content-default);
+    font-family: var(--font-interface);
+    padding: var(--space-viewport-edge);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-section);
+  }
+
+  .header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-dense);
+  }
+
+  .title {
+    font-size: var(--text-content-title-size);
+    font-weight: 700;
+    color: var(--content-prominent);
+    letter-spacing: var(--scalar-track-tight);
+    margin: 0;
+  }
+
+  .description {
+    font-size: var(--text-content-body-size);
+    color: var(--content-muted);
+    line-height: var(--leading-body);
+    margin: 0;
+  }
+
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-default);
+  }
+
+  .sectionTitle {
+    font-size: var(--text-content-subtitle-size);
+    font-weight: 600;
+    color: var(--content-prominent);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-gap-item);
+  }
+
+  .sectionDesc {
+    font-size: var(--text-content-data-label-size);
+    color: var(--content-muted);
+    margin: 0;
+  }
+
+  /* Grid layout for cards and states */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--space-grid-gap);
+  }
+
+  .stateRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-cluster-default);
+  }
+
+  .inputCol {
+    flex: 1 1 240px;
+    max-inline-size: 320px;
+  }
+
+  .cardHeading {
+    margin: 0;
+    font-size: var(--text-content-subtitle-size);
+    color: var(--content-prominent);
+    font-weight: 600;
+  }
+
+  .cardBodyText {
+    margin: 0;
+    font-size: var(--text-content-caption-size);
+    color: var(--content-default);
+    line-height: var(--leading-body);
+  }
+
+  .cardHeaderRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .captionMuted {
+    font-size: var(--text-content-caption-size);
+    color: var(--content-muted);
+    font-family: var(--font-data);
+    margin: 0;
+  }
+
+  .toastRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-grid-gap);
+  }
+
+  .chartHeaderRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  :global(body[data-scheme]),
+  :global(html[data-scheme]) {
+    background-color: var(--surface-canvas-bg) !important;
+  }
+
+  .schemeBar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-cluster-default);
+    padding: var(--space-inset-card-tight);
+    background: var(--surface-inset-bg);
+    border-radius: var(--radius-control);
+    border: var(--border-width-1) solid var(--palette-specular-white-8);
+  }
+
+  .schemeButtonGroup {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-cluster-dense);
+  }
+
+  .modeButtonGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cluster-dense);
+    border-inline-start: var(--rule-hairline);
+    padding-inline-start: var(--space-cluster-default);
+  }
+
+  .depthVisualizer {
+    background: var(--surface-canvas-bg);
+    border: var(--border-width-1) dashed var(--palette-specular-white-15);
+    border-radius: var(--radius-container);
+    padding: var(--space-viewport-edge);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-default);
+    position: relative;
+  }
+
+  .depthLabel {
+    font-family: var(--font-data);
+    font-size: var(--text-content-caption-size);
+    color: var(--content-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mathBox {
+    background: var(--surface-inset-bg);
+    border: var(--border-width-1) solid var(--palette-specular-white-8);
+    border-radius: var(--radius-container);
+    padding: var(--space-inset-card);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-dense);
+    font-family: var(--font-data);
+    font-size: var(--text-content-caption-size);
+    color: var(--content-default);
+    line-height: var(--leading-body);
+  }
+
+  .mathFormula {
+    color: var(--state-focus);
+    font-weight: 600;
+  }
+
+  /* Data Viz Swatch Ladders */
+  .rampContainer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-compact);
+  }
+
+  .rampHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .rampName {
+    font-family: var(--font-data);
+    font-size: var(--text-content-data-label-size);
+    font-weight: 600;
+    color: var(--content-prominent);
+  }
+
+  .rampHue {
+    font-family: var(--font-data);
+    font-size: var(--text-content-caption-size);
+    color: var(--content-muted);
+  }
+
+  .swatchTrack {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: var(--space-fib-1);
+    box-sizing: border-box;
+  }
+
+  .swatch {
+    block-size: 52px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: var(--space-fib-1);
+    box-sizing: border-box;
+    border: var(--border-width-1) solid var(--palette-specular-white-8);
+  }
+
+  .swatchStep {
+    font-family: var(--font-data);
+    font-size: var(--text-content-caption-size);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--palette-solarized-base03);
+  }
+
+  /* Multi-series heat comparison chart */
+  .chartBox {
+    background: var(--surface-panel-bg);
+    border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
+    box-shadow: var(--surface-panel-shadow);
+    border-radius: var(--radius-container);
+    padding: var(--space-inset-panel);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-default);
+  }
+
+  .chartRow {
+    display: grid;
+    grid-template-columns: 80px repeat(10, 1fr);
+    align-items: center;
+    gap: var(--space-fib-2);
+  }
+
+  .chartSeriesLabel {
+    font-family: var(--font-data);
+    font-size: var(--text-content-caption-size);
+    font-weight: 600;
+    color: var(--content-prominent);
+  }
+
+  .chartCell {
+    block-size: 32px;
+    border-radius: var(--radius-1);
+    border: 1px solid var(--palette-specular-white-4);
+  }
+
+  /* Sunken Well & Panel demonstration styles */
+  .panelContentStack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-default);
+  }
+
+  .wellHeaderRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-block-end: var(--space-stack-dense);
+  }
+
+  .wellTitle {
+    font-size: var(--text-content-caption-size);
+    font-weight: 600;
+    color: var(--content-prominent);
+  }
+
+  .wellMetricsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-gap-item);
+  }
+
+  .wellMetricItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-1);
+  }
+
+  .wellMetricLabel {
+    font-size: var(--type-scale-neg-2);
+    color: var(--content-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--scalar-track-wide);
+    font-family: var(--font-data);
+  }
+
+  .wellMetricValue {
+    font-size: var(--text-content-data-value-size);
+    color: var(--content-prominent);
+    font-weight: 600;
+    font-family: var(--font-data);
+  }
+
+  /* Swatch Matrix styles */
+  .swatchGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-gap-item);
+  }
+
+  .swatchCard {
+    background: var(--surface-inset-bg);
+    border: var(--border-width-1) solid var(--palette-specular-white-8);
+    border-radius: var(--radius-container);
+    padding: var(--space-inset-card-tight);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-dense);
+  }
+
+  .swatchPreview {
+    block-size: 44px;
+    border-radius: var(--radius-control);
+    border: var(--border-width-1) solid var(--palette-specular-white-8);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .swatchInfo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-1);
+  }
+
+  .swatchTitle {
+    font-size: var(--text-content-caption-size);
+    font-weight: 600;
+    color: var(--content-prominent);
+  }
+
+  .swatchValue {
+    font-family: var(--font-data);
+    font-size: var(--type-scale-neg-2);
+    color: var(--content-muted);
+  }
+
+  .swatchToken {
+    font-family: var(--font-data);
+    font-size: var(--type-scale-neg-2);
+    color: var(--state-focus);
+  }
+
+  /* Live Treatment Preview Card */
+  .treatmentWidget {
+    background: var(--surface-panel-bg);
+    border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
+    box-shadow: var(--surface-panel-shadow);
+    border-radius: var(--radius-container);
+    padding: var(--space-inset-panel);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-default);
+  }
+
+  .treatmentWidgetHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-block-end: var(--rule-hairline);
+    padding-block-end: var(--space-stack-dense);
+  }
+
+  .multiBarContainer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-dense);
+  }
+
+  .multiBar {
+    display: flex;
+    inline-size: 100%;
+    block-size: 22px;
+    border-radius: var(--radius-control);
+    overflow: hidden;
+    border: var(--border-width-1) solid var(--palette-specular-white-8);
+  }
+
+  .multiBarSegment {
+    block-size: 100%;
+    transition: opacity var(--motion-duration-feedback) ease;
+  }
+
+  .multiBarLegend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-cluster-default);
+  }
+
+  .legendItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+    font-family: var(--font-data);
+    font-size: var(--type-scale-neg-2);
+    color: var(--content-muted);
+  }
+
+  .legendDot {
+    inline-size: 10px;
+    block-size: 10px;
+    border-radius: var(--radius-full);
+    border: var(--border-width-1) solid var(--palette-specular-white-8);
+  }
+}
+
+@layer exceptions {
+  /* Step label contrast exceptions: steps 10-40 need bright text, 50-100 dark text */
+  .swatch[data-step="10"] .swatchStep,
+  .swatch[data-step="20"] .swatchStep,
+  .swatch[data-step="30"] .swatchStep,
+  .swatch[data-step="40"] .swatchStep {
+    color: var(--palette-solarized-base1);
+  }
+
+  .swatch[data-step="50"] .swatchStep,
+  .swatch[data-step="60"] .swatchStep,
+  .swatch[data-step="70"] .swatchStep,
+  .swatch[data-step="80"] .swatchStep,
+  .swatch[data-step="90"] .swatchStep,
+  .swatch[data-step="100"] .swatchStep {
+    color: var(--palette-solarized-base03);
+  }
+
+  /* Azure Swatches */
+  .swatch[data-series="azure"][data-step="10"]  { background-color: var(--viz-azure-10); }
+  .swatch[data-series="azure"][data-step="20"]  { background-color: var(--viz-azure-20); }
+  .swatch[data-series="azure"][data-step="30"]  { background-color: var(--viz-azure-30); }
+  .swatch[data-series="azure"][data-step="40"]  { background-color: var(--viz-azure-40); }
+  .swatch[data-series="azure"][data-step="50"]  { background-color: var(--viz-azure-50); }
+  .swatch[data-series="azure"][data-step="60"]  { background-color: var(--viz-azure-60); }
+  .swatch[data-series="azure"][data-step="70"]  { background-color: var(--viz-azure-70); }
+  .swatch[data-series="azure"][data-step="80"]  { background-color: var(--viz-azure-80); }
+  .swatch[data-series="azure"][data-step="90"]  { background-color: var(--viz-azure-90); }
+  .swatch[data-series="azure"][data-step="100"] { background-color: var(--viz-azure-100); }
+
+  /* Amber Swatches */
+  .swatch[data-series="amber"][data-step="10"]  { background-color: var(--viz-amber-10); }
+  .swatch[data-series="amber"][data-step="20"]  { background-color: var(--viz-amber-20); }
+  .swatch[data-series="amber"][data-step="30"]  { background-color: var(--viz-amber-30); }
+  .swatch[data-series="amber"][data-step="40"]  { background-color: var(--viz-amber-40); }
+  .swatch[data-series="amber"][data-step="50"]  { background-color: var(--viz-amber-50); }
+  .swatch[data-series="amber"][data-step="60"]  { background-color: var(--viz-amber-60); }
+  .swatch[data-series="amber"][data-step="70"]  { background-color: var(--viz-amber-70); }
+  .swatch[data-series="amber"][data-step="80"]  { background-color: var(--viz-amber-80); }
+  .swatch[data-series="amber"][data-step="90"]  { background-color: var(--viz-amber-90); }
+  .swatch[data-series="amber"][data-step="100"] { background-color: var(--viz-amber-100); }
+
+  /* Emerald Swatches */
+  .swatch[data-series="emerald"][data-step="10"]  { background-color: var(--viz-emerald-10); }
+  .swatch[data-series="emerald"][data-step="20"]  { background-color: var(--viz-emerald-20); }
+  .swatch[data-series="emerald"][data-step="30"]  { background-color: var(--viz-emerald-30); }
+  .swatch[data-series="emerald"][data-step="40"]  { background-color: var(--viz-emerald-40); }
+  .swatch[data-series="emerald"][data-step="50"]  { background-color: var(--viz-emerald-50); }
+  .swatch[data-series="emerald"][data-step="60"]  { background-color: var(--viz-emerald-60); }
+  .swatch[data-series="emerald"][data-step="70"]  { background-color: var(--viz-emerald-70); }
+  .swatch[data-series="emerald"][data-step="80"]  { background-color: var(--viz-emerald-80); }
+  .swatch[data-series="emerald"][data-step="90"]  { background-color: var(--viz-emerald-90); }
+  .swatch[data-series="emerald"][data-step="100"] { background-color: var(--viz-emerald-100); }
+
+  /* Violet Swatches */
+  .swatch[data-series="violet"][data-step="10"]  { background-color: var(--viz-violet-10); }
+  .swatch[data-series="violet"][data-step="20"]  { background-color: var(--viz-violet-20); }
+  .swatch[data-series="violet"][data-step="30"]  { background-color: var(--viz-violet-30); }
+  .swatch[data-series="violet"][data-step="40"]  { background-color: var(--viz-violet-40); }
+  .swatch[data-series="violet"][data-step="50"]  { background-color: var(--viz-violet-50); }
+  .swatch[data-series="violet"][data-step="60"]  { background-color: var(--viz-violet-60); }
+  .swatch[data-series="violet"][data-step="70"]  { background-color: var(--viz-violet-70); }
+  .swatch[data-series="violet"][data-step="80"]  { background-color: var(--viz-violet-80); }
+  .swatch[data-series="violet"][data-step="90"]  { background-color: var(--viz-violet-90); }
+  .swatch[data-series="violet"][data-step="100"] { background-color: var(--viz-violet-100); }
+
+  /* Swatch preview fills */
+  .swatchPreview[data-preview="canvas"] { background-color: var(--surface-canvas-bg); }
+  .swatchPreview[data-preview="inset"]  { background-color: var(--surface-inset-bg); }
+  .swatchPreview[data-preview="chassis"] { background: var(--surface-hud-bg); }
+  .swatchPreview[data-preview="slab"]    { background: var(--surface-panel-bg); }
+  .swatchPreview[data-preview="overlay"] { background: var(--surface-modal-bg); }
+
+  .swatchPreview[data-preview="focus"]    { background-color: var(--state-focus); }
+  .swatchPreview[data-preview="neutral"]  { background-color: var(--status-neutral); }
+  .swatchPreview[data-preview="caution"]  { background-color: var(--status-caution); }
+  .swatchPreview[data-preview="critical"] { background-color: var(--status-critical); }
+  .swatchPreview[data-preview="nominal"]  { background-color: var(--status-nominal); }
+  .swatchPreview[data-preview="info"]     { background-color: var(--status-info); }
+
+  .swatchPreview[data-preview="text-prominent"] { background-color: var(--content-prominent); }
+  .swatchPreview[data-preview="text-default"]   { background-color: var(--content-default); }
+  .swatchPreview[data-preview="text-muted"]     { background-color: var(--content-muted); }
+  .swatchPreview[data-preview="text-faint"]     { background-color: var(--content-faint); }
+
+  .swatchPreview[data-preview="s1"] { background-color: var(--viz-azure-60); }
+  .swatchPreview[data-preview="s2"] { background-color: var(--viz-amber-60); }
+  .swatchPreview[data-preview="s3"] { background-color: var(--viz-emerald-60); }
+  .swatchPreview[data-preview="s4"] { background-color: var(--viz-violet-60); }
+
+  /* MultiBar Segments & Legend Dots */
+  .multiBarSegment[data-segment="s1"],
+  .legendDot[data-series="s1"] {
+    background-color: var(--viz-azure-60);
+    flex: 38;
+  }
+  .multiBarSegment[data-segment="s2"],
+  .legendDot[data-series="s2"] {
+    background-color: var(--viz-amber-60);
+    flex: 27;
+  }
+  .multiBarSegment[data-segment="s3"],
+  .legendDot[data-series="s3"] {
+    background-color: var(--viz-emerald-60);
+    flex: 20;
+  }
+  .multiBarSegment[data-segment="s4"],
+  .legendDot[data-series="s4"] {
+    background-color: var(--viz-violet-60);
+    flex: 15;
+  }
+
+  /* ========================================================================== */
+  /* Complete Whole-UI Theme Options (Surfaces, Borders, States, Text, Viz)     */
+  /* ========================================================================== */
+
+  /* Scheme 2: Stellar Basalt (Warm Bronze-Basalt & Solar Corona Gold) */
+  .container[data-scheme="spectral"] {
+    /* Surfaces */
+    --surface-canvas-bg: oklch(6.8% 0.015 70);
+    --surface-inset-bg: oklch(9.8% 0.018 70);
+
+    --gradient-surface-chassis-dark: linear-gradient(
+      137deg,
+      oklch(16.0% 0.024 70) 0px,
+      oklch(14.0% 0.020 70) 180px,
+      oklch(12.8% 0.018 70) 360px,
+      oklch(12.8% 0.018 70) 100%
+    );
+    --gradient-surface-slab-dark: linear-gradient(
+      137deg,
+      oklch(19.8% 0.028 70) 0px,
+      oklch(17.8% 0.024 70) 180px,
+      oklch(16.2% 0.020 70) 360px,
+      oklch(16.2% 0.020 70) 100%
+    );
+    --gradient-surface-overlay-dark: linear-gradient(
+      137deg,
+      oklch(22.8% 0.030 70 / 0.90) 0px,
+      oklch(19.8% 0.026 70 / 0.94) 180px,
+      oklch(17.8% 0.022 70 / 0.98) 360px,
+      oklch(17.8% 0.022 70 / 0.98) 100%
+    );
+    --gradient-surface-glass-dark: linear-gradient(
+      137deg,
+      oklch(21.8% 0.032 70 / 0.50) 0px,
+      oklch(18.8% 0.026 70 / 0.58) 180px,
+      oklch(16.2% 0.022 70 / 0.65) 360px,
+      oklch(16.2% 0.022 70 / 0.65) 100%
+    );
+
+    --material-surface-chassis-dark: var(--texture-grain-matte), var(--gradient-surface-chassis-dark);
+    --material-surface-slab-dark:    var(--texture-grain-matte), var(--gradient-surface-slab-dark);
+    --material-surface-overlay-dark: var(--texture-grain-matte), var(--gradient-surface-overlay-dark);
+    --material-surface-glass-dark:   var(--texture-grain-matte), var(--gradient-surface-glass-dark);
+
+    --surface-hud-bg:     var(--material-surface-chassis-dark);
+    --surface-dock-bg:    var(--material-surface-chassis-dark);
+    --surface-panel-bg:   var(--material-surface-slab-dark);
+    --surface-drawer-bg:  var(--material-surface-slab-dark);
+    --surface-popover-bg: var(--material-surface-glass-dark);
+    --surface-modal-bg:   var(--material-surface-overlay-dark);
+    --surface-toast-bg:   var(--material-surface-overlay-dark);
+
+    /* Borders & Specular Bevels */
+    --border-color-subtle:        oklch(95% 0.02 75 / 0.10);
+    --border-subtle:              oklch(95% 0.02 75 / 0.10);
+    --border-default:             oklch(95% 0.02 75 / 0.10);
+    --surface-panel-border-color: oklch(95% 0.02 75 / 0.10);
+    --rule-hairline-color:        oklch(95% 0.02 75 / 0.10);
+    --rule-hairline:              1px solid oklch(95% 0.02 75 / 0.10);
+
+    --bevel-top-rim-dark:       inset 0 1px 0 0 oklch(98% 0.03 75 / 0.22), inset 1px 0 0 0 oklch(98% 0.03 75 / 0.12);
+    --bevel-top-rim-subtle:     inset 0 1px 0 0 oklch(98% 0.03 75 / 0.14), inset 1px 0 0 0 oklch(98% 0.03 75 / 0.08);
+    --bevel-top-rim-prominent:  inset 0 1px 0 0 oklch(98% 0.03 75 / 0.30), inset 1px 0 0 0 oklch(98% 0.03 75 / 0.18);
+
+    --surface-panel-shadow:   var(--bevel-top-rim-dark), var(--elevation-panel);
+    --surface-hud-shadow:     var(--bevel-top-rim-subtle), var(--elevation-hud);
+    --surface-dock-shadow:    var(--bevel-top-rim-dark), var(--elevation-dock);
+    --surface-modal-shadow:   var(--bevel-top-rim-prominent), var(--elevation-modal);
+    --surface-toast-shadow:   var(--bevel-top-rim-dark), var(--elevation-toast);
+    --surface-popover-shadow: var(--bevel-top-rim-dark), var(--elevation-popover);
+
+    /* Interactive & Focus Accent (Solar Corona Gold) */
+    --state-focus:                         oklch(72.0% 0.190 75);
+    --state-focus-hover:                   oklch(76.0% 0.190 75);
+    --palette-accent-focus-hover:          oklch(76.0% 0.190 75);
+    --state-focus-halo:                    0 0 0 3px oklch(72.0% 0.190 75 / 0.35);
+    --state-focus-subtle:                  oklch(72.0% 0.190 75 / 0.15);
+    --interactive-primary:                 var(--state-focus);
+    --border-color-interactive:            var(--state-focus);
+    --border-focus:                        var(--state-focus);
+
+    --ui-button-prominent-bg:              var(--state-focus);
+    --ui-button-prominent-border-color:    var(--state-focus);
+    --ui-button-prominent-hover-bg:        var(--state-focus-hover);
+    --ui-button-prominent-color:           oklch(15.0% 0.03 75);
+    --ui-slider-thumb-bg:                  var(--state-focus);
+    --ui-toggle-track-active-bg:           var(--state-focus);
+    --ui-toggle-track-active-border-color: var(--state-focus);
+
+    /* Telemetry Status System */
+    --status-neutral:              oklch(72.0% 0.050 85);
+    --status-neutral-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(20.5% 0.030 85 / 0.92) 0px,
+      oklch(18.5% 0.022 85 / 0.95) 180px,
+      oklch(16.5% 0.016 85 / 0.98) 360px,
+      oklch(16.5% 0.016 85 / 0.98) 100%
+    );
+    --status-neutral-border:       oklch(72.0% 0.050 85 / 0.28);
+    --status-neutral-bevel:        inset 0 1px 0 0 oklch(85% 0.04 85 / 0.35), inset 1px 0 0 0 oklch(85% 0.04 85 / 0.20);
+    --status-neutral-toast-shadow: var(--status-neutral-bevel), var(--elevation-toast);
+    --status-neutral-panel-shadow: var(--status-neutral-bevel), var(--elevation-panel);
+
+    --status-caution:              oklch(68.0% 0.180 55);
+    --status-caution-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(20.0% 0.038 55 / 0.92) 0px,
+      oklch(18.0% 0.028 55 / 0.95) 180px,
+      oklch(16.5% 0.020 55 / 0.98) 360px,
+      oklch(16.5% 0.020 55 / 0.98) 100%
+    );
+    --status-caution-border:       oklch(68.0% 0.180 55 / 0.30);
+    --status-caution-bevel:        inset 0 1px 0 0 oklch(85% 0.08 55 / 0.35), inset 1px 0 0 0 oklch(85% 0.08 55 / 0.20);
+    --status-caution-toast-shadow: var(--status-caution-bevel), var(--elevation-toast);
+    --status-caution-panel-shadow: var(--status-caution-bevel), var(--elevation-panel);
+
+    --status-critical:             oklch(58.0% 0.220 22);
+    --status-critical-surface:     var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.5% 0.042 22 / 0.92) 0px,
+      oklch(17.5% 0.032 22 / 0.95) 180px,
+      oklch(16.0% 0.024 22 / 0.98) 360px,
+      oklch(16.0% 0.024 22 / 0.98) 100%
+    );
+    --status-critical-border:      oklch(58.0% 0.220 22 / 0.32);
+    --status-critical-bevel:       inset 0 1px 0 0 oklch(80% 0.10 22 / 0.35), inset 1px 0 0 0 oklch(80% 0.10 22 / 0.20);
+    --status-critical-toast-shadow:var(--status-critical-bevel), var(--elevation-toast);
+    --status-critical-panel-shadow:var(--status-critical-bevel), var(--elevation-panel);
+
+    --status-nominal:              var(--status-neutral);
+    --status-nominal-surface:      var(--status-neutral-surface);
+    --status-nominal-border:       var(--status-neutral-border);
+    --status-nominal-bevel:        var(--status-neutral-bevel);
+    --status-nominal-toast-shadow: var(--status-neutral-toast-shadow);
+    --status-nominal-panel-shadow: var(--status-neutral-panel-shadow);
+
+    --status-info:                 oklch(66.0% 0.130 195);
+    --status-info-surface:         var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.5% 0.034 195 / 0.92) 0px,
+      oklch(17.5% 0.025 195 / 0.95) 180px,
+      oklch(16.0% 0.018 195 / 0.98) 360px,
+      oklch(16.0% 0.018 195 / 0.98) 100%
+    );
+    --status-info-border:          oklch(66.0% 0.130 195 / 0.28);
+    --status-info-bevel:           inset 0 1px 0 0 oklch(85% 0.08 195 / 0.35), inset 1px 0 0 0 oklch(85% 0.08 195 / 0.20);
+    --status-info-toast-shadow:    var(--status-info-bevel), var(--elevation-toast);
+    --status-info-panel-shadow:    var(--status-info-bevel), var(--elevation-panel);
+
+    /* Content & Typography (Warm Ivory & Bronze) */
+    --content-prominent: oklch(93.0% 0.020 85);
+    --content-default:   oklch(80.0% 0.022 80);
+    --content-base:      oklch(80.0% 0.022 80);
+    --content-muted:     oklch(60.0% 0.025 75);
+    --content-faint:     oklch(45.0% 0.020 70);
+
+    /* Data Viz (Doppler, Solar Corona, H-Alpha, Lyman UV) */
+    --viz-azure-10:  oklch(28.0% 0.045 195);
+    --viz-azure-20:  oklch(35.0% 0.070 195);
+    --viz-azure-30:  oklch(42.0% 0.095 195);
+    --viz-azure-40:  oklch(49.0% 0.120 195);
+    --viz-azure-50:  oklch(56.0% 0.145 195);
+    --viz-azure-60:  oklch(63.0% 0.165 195);
+    --viz-azure-70:  oklch(70.0% 0.155 195);
+    --viz-azure-80:  oklch(77.0% 0.135 195);
+    --viz-azure-90:  oklch(84.0% 0.105 195);
+    --viz-azure-100: oklch(91.0% 0.070 195);
+
+    --viz-amber-10:  oklch(28.0% 0.045 85);
+    --viz-amber-20:  oklch(35.0% 0.070 85);
+    --viz-amber-30:  oklch(42.0% 0.095 85);
+    --viz-amber-40:  oklch(49.0% 0.120 85);
+    --viz-amber-50:  oklch(56.0% 0.145 85);
+    --viz-amber-60:  oklch(63.0% 0.165 85);
+    --viz-amber-70:  oklch(70.0% 0.155 85);
+    --viz-amber-80:  oklch(77.0% 0.135 85);
+    --viz-amber-90:  oklch(84.0% 0.105 85);
+    --viz-amber-100: oklch(91.0% 0.070 85);
+
+    --viz-emerald-10:  oklch(28.0% 0.045 25);
+    --viz-emerald-20:  oklch(35.0% 0.070 25);
+    --viz-emerald-30:  oklch(42.0% 0.095 25);
+    --viz-emerald-40:  oklch(49.0% 0.120 25);
+    --viz-emerald-50:  oklch(56.0% 0.145 25);
+    --viz-emerald-60:  oklch(63.0% 0.165 25);
+    --viz-emerald-70:  oklch(70.0% 0.155 25);
+    --viz-emerald-80:  oklch(77.0% 0.135 25);
+    --viz-emerald-90:  oklch(84.0% 0.105 25);
+    --viz-emerald-100: oklch(91.0% 0.070 25);
+
+    --viz-violet-10:  oklch(28.0% 0.045 280);
+    --viz-violet-20:  oklch(35.0% 0.070 280);
+    --viz-violet-30:  oklch(42.0% 0.095 280);
+    --viz-violet-40:  oklch(49.0% 0.120 280);
+    --viz-violet-50:  oklch(56.0% 0.145 280);
+    --viz-violet-60:  oklch(63.0% 0.165 280);
+    --viz-violet-70:  oklch(70.0% 0.155 280);
+    --viz-violet-80:  oklch(77.0% 0.135 280);
+    --viz-violet-90:  oklch(84.0% 0.105 280);
+    --viz-violet-100: oklch(91.0% 0.070 280);
+  }
+
+  /* Scheme 3: Achromatic Carbon (Precision Neutral Carbon & Laser Cyan) */
+  .container[data-scheme="viridis"] {
+    /* Surfaces */
+    --surface-canvas-bg: oklch(5.5% 0.004 240);
+    --surface-inset-bg: oklch(9.0% 0.005 240);
+
+    --gradient-surface-chassis-dark: linear-gradient(
+      137deg,
+      oklch(15.5% 0.008 240) 0px,
+      oklch(13.5% 0.006 240) 180px,
+      oklch(12.0% 0.005 240) 360px,
+      oklch(12.0% 0.005 240) 100%
+    );
+    --gradient-surface-slab-dark: linear-gradient(
+      137deg,
+      oklch(19.0% 0.008 240) 0px,
+      oklch(17.0% 0.006 240) 180px,
+      oklch(15.5% 0.005 240) 360px,
+      oklch(15.5% 0.005 240) 100%
+    );
+    --gradient-surface-overlay-dark: linear-gradient(
+      137deg,
+      oklch(22.0% 0.010 240 / 0.90) 0px,
+      oklch(19.0% 0.008 240 / 0.94) 180px,
+      oklch(17.0% 0.006 240 / 0.98) 360px,
+      oklch(17.0% 0.006 240 / 0.98) 100%
+    );
+    --gradient-surface-glass-dark: linear-gradient(
+      137deg,
+      oklch(20.5% 0.010 240 / 0.50) 0px,
+      oklch(17.5% 0.008 240 / 0.58) 180px,
+      oklch(15.5% 0.006 240 / 0.65) 360px,
+      oklch(15.5% 0.006 240 / 0.65) 100%
+    );
+
+    --material-surface-chassis-dark: var(--texture-grain-matte), var(--gradient-surface-chassis-dark);
+    --material-surface-slab-dark:    var(--texture-grain-matte), var(--gradient-surface-slab-dark);
+    --material-surface-overlay-dark: var(--texture-grain-matte), var(--gradient-surface-overlay-dark);
+    --material-surface-glass-dark:   var(--texture-grain-matte), var(--gradient-surface-glass-dark);
+
+    --surface-hud-bg:     var(--material-surface-chassis-dark);
+    --surface-dock-bg:    var(--material-surface-chassis-dark);
+    --surface-panel-bg:   var(--material-surface-slab-dark);
+    --surface-drawer-bg:  var(--material-surface-slab-dark);
+    --surface-popover-bg: var(--material-surface-glass-dark);
+    --surface-modal-bg:   var(--material-surface-overlay-dark);
+    --surface-toast-bg:   var(--material-surface-overlay-dark);
+
+    /* Borders & Specular Bevels (Precision Monochrome) */
+    --border-color-subtle:        oklch(100% 0 0 / 0.10);
+    --border-subtle:              oklch(100% 0 0 / 0.10);
+    --border-default:             oklch(100% 0 0 / 0.10);
+    --surface-panel-border-color: oklch(100% 0 0 / 0.10);
+    --rule-hairline-color:        oklch(100% 0 0 / 0.10);
+    --rule-hairline:              1px solid oklch(100% 0 0 / 0.10);
+
+    --bevel-top-rim-dark:       inset 0 1px 0 0 oklch(100% 0 0 / 0.24), inset 1px 0 0 0 oklch(100% 0 0 / 0.14);
+    --bevel-top-rim-subtle:     inset 0 1px 0 0 oklch(100% 0 0 / 0.14), inset 1px 0 0 0 oklch(100% 0 0 / 0.08);
+    --bevel-top-rim-prominent:  inset 0 1px 0 0 oklch(100% 0 0 / 0.32), inset 1px 0 0 0 oklch(100% 0 0 / 0.18);
+
+    --surface-panel-shadow:   var(--bevel-top-rim-dark), var(--elevation-panel);
+    --surface-hud-shadow:     var(--bevel-top-rim-subtle), var(--elevation-hud);
+    --surface-dock-shadow:    var(--bevel-top-rim-dark), var(--elevation-dock);
+    --surface-modal-shadow:   var(--bevel-top-rim-prominent), var(--elevation-modal);
+    --surface-toast-shadow:   var(--bevel-top-rim-dark), var(--elevation-toast);
+    --surface-popover-shadow: var(--bevel-top-rim-dark), var(--elevation-popover);
+
+    /* Interactive & Focus Accent (Precision Laser Cyan) */
+    --state-focus:                         oklch(74.0% 0.170 200);
+    --state-focus-hover:                   oklch(78.0% 0.170 200);
+    --palette-accent-focus-hover:          oklch(78.0% 0.170 200);
+    --state-focus-halo:                    0 0 0 3px oklch(74.0% 0.170 200 / 0.35);
+    --state-focus-subtle:                  oklch(74.0% 0.170 200 / 0.15);
+    --interactive-primary:                 var(--state-focus);
+    --border-color-interactive:            var(--state-focus);
+    --border-focus:                        var(--state-focus);
+
+    --ui-button-prominent-bg:              var(--state-focus);
+    --ui-button-prominent-border-color:    var(--state-focus);
+    --ui-button-prominent-hover-bg:        var(--state-focus-hover);
+    --ui-button-prominent-color:           oklch(15.0% 0.01 200);
+    --ui-slider-thumb-bg:                  var(--state-focus);
+    --ui-toggle-track-active-bg:           var(--state-focus);
+    --ui-toggle-track-active-border-color: var(--state-focus);
+
+    /* Telemetry Status System */
+    --status-neutral:              oklch(72.0% 0.020 240);
+    --status-neutral-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(20.0% 0.010 240 / 0.92) 0px,
+      oklch(18.0% 0.008 240 / 0.95) 180px,
+      oklch(16.0% 0.006 240 / 0.98) 360px,
+      oklch(16.0% 0.006 240 / 0.98) 100%
+    );
+    --status-neutral-border:       oklch(72.0% 0.020 240 / 0.28);
+    --status-neutral-bevel:        inset 0 1px 0 0 oklch(85% 0.02 240 / 0.35), inset 1px 0 0 0 oklch(85% 0.02 240 / 0.20);
+    --status-neutral-toast-shadow: var(--status-neutral-bevel), var(--elevation-toast);
+    --status-neutral-panel-shadow: var(--status-neutral-bevel), var(--elevation-panel);
+
+    --status-caution:              oklch(68.0% 0.160 70);
+    --status-caution-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.5% 0.038 70 / 0.92) 0px,
+      oklch(17.5% 0.028 70 / 0.95) 180px,
+      oklch(16.0% 0.020 70 / 0.98) 360px,
+      oklch(16.0% 0.020 70 / 0.98) 100%
+    );
+    --status-caution-border:       oklch(68.0% 0.160 70 / 0.28);
+    --status-caution-bevel:        inset 0 1px 0 0 oklch(85% 0.08 70 / 0.35), inset 1px 0 0 0 oklch(85% 0.08 70 / 0.20);
+    --status-caution-toast-shadow: var(--status-caution-bevel), var(--elevation-toast);
+    --status-caution-panel-shadow: var(--status-caution-bevel), var(--elevation-panel);
+
+    --status-critical:             oklch(58.0% 0.220 28);
+    --status-critical-surface:     var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.0% 0.042 28 / 0.92) 0px,
+      oklch(17.0% 0.032 28 / 0.95) 180px,
+      oklch(15.5% 0.024 28 / 0.98) 360px,
+      oklch(15.5% 0.024 28 / 0.98) 100%
+    );
+    --status-critical-border:      oklch(58.0% 0.220 28 / 0.32);
+    --status-critical-bevel:       inset 0 1px 0 0 oklch(80% 0.10 28 / 0.35), inset 1px 0 0 0 oklch(80% 0.10 28 / 0.20);
+    --status-critical-toast-shadow:var(--status-critical-bevel), var(--elevation-toast);
+    --status-critical-panel-shadow:var(--status-critical-bevel), var(--elevation-panel);
+
+    --status-nominal:              var(--status-neutral);
+    --status-nominal-surface:      var(--status-neutral-surface);
+    --status-nominal-border:       var(--status-neutral-border);
+    --status-nominal-bevel:        var(--status-neutral-bevel);
+    --status-nominal-toast-shadow: var(--status-neutral-toast-shadow);
+    --status-nominal-panel-shadow: var(--status-neutral-panel-shadow);
+
+    --status-info:                 oklch(64.0% 0.150 240);
+    --status-info-surface:         var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.0% 0.035 240 / 0.92) 0px,
+      oklch(17.0% 0.025 240 / 0.95) 180px,
+      oklch(15.5% 0.018 240 / 0.98) 360px,
+      oklch(15.5% 0.018 240 / 0.98) 100%
+    );
+    --status-info-border:          oklch(64.0% 0.150 240 / 0.28);
+    --status-info-bevel:           inset 0 1px 0 0 oklch(85% 0.08 240 / 0.35), inset 1px 0 0 0 oklch(85% 0.08 240 / 0.20);
+    --status-info-toast-shadow:    var(--status-info-bevel), var(--elevation-toast);
+    --status-info-panel-shadow:    var(--status-info-bevel), var(--elevation-panel);
+
+    /* Content & Typography (Pure Monochromatic Silver) */
+    --content-prominent: oklch(96.0% 0.002 240);
+    --content-default:   oklch(82.0% 0.004 240);
+    --content-base:      oklch(82.0% 0.004 240);
+    --content-muted:     oklch(60.0% 0.006 240);
+    --content-faint:     oklch(45.0% 0.006 240);
+
+    /* Data Viz (Perceptual Teal, Lime, Solar Yellow, Plasma Magenta) */
+    --viz-azure-10:  oklch(28.0% 0.045 185);
+    --viz-azure-20:  oklch(35.0% 0.070 185);
+    --viz-azure-30:  oklch(42.0% 0.095 185);
+    --viz-azure-40:  oklch(49.0% 0.120 185);
+    --viz-azure-50:  oklch(56.0% 0.145 185);
+    --viz-azure-60:  oklch(63.0% 0.165 185);
+    --viz-azure-70:  oklch(70.0% 0.155 185);
+    --viz-azure-80:  oklch(77.0% 0.135 185);
+    --viz-azure-90:  oklch(84.0% 0.105 185);
+    --viz-azure-100: oklch(91.0% 0.070 185);
+
+    --viz-amber-10:  oklch(28.0% 0.045 95);
+    --viz-amber-20:  oklch(35.0% 0.070 95);
+    --viz-amber-30:  oklch(42.0% 0.095 95);
+    --viz-amber-40:  oklch(49.0% 0.120 95);
+    --viz-amber-50:  oklch(56.0% 0.145 95);
+    --viz-amber-60:  oklch(63.0% 0.165 95);
+    --viz-amber-70:  oklch(70.0% 0.155 95);
+    --viz-amber-80:  oklch(77.0% 0.135 95);
+    --viz-amber-90:  oklch(84.0% 0.105 95);
+    --viz-amber-100: oklch(91.0% 0.070 95);
+
+    --viz-emerald-10:  oklch(28.0% 0.045 130);
+    --viz-emerald-20:  oklch(35.0% 0.070 130);
+    --viz-emerald-30:  oklch(42.0% 0.095 130);
+    --viz-emerald-40:  oklch(49.0% 0.120 130);
+    --viz-emerald-50:  oklch(56.0% 0.145 130);
+    --viz-emerald-60:  oklch(63.0% 0.165 130);
+    --viz-emerald-70:  oklch(70.0% 0.155 130);
+    --viz-emerald-80:  oklch(77.0% 0.135 130);
+    --viz-emerald-90:  oklch(84.0% 0.105 130);
+    --viz-emerald-100: oklch(91.0% 0.070 130);
+
+    --viz-violet-10:  oklch(28.0% 0.045 340);
+    --viz-violet-20:  oklch(35.0% 0.070 340);
+    --viz-violet-30:  oklch(42.0% 0.095 340);
+    --viz-violet-40:  oklch(49.0% 0.120 340);
+    --viz-violet-50:  oklch(56.0% 0.145 340);
+    --viz-violet-60:  oklch(63.0% 0.165 340);
+    --viz-violet-70:  oklch(70.0% 0.155 340);
+    --viz-violet-80:  oklch(77.0% 0.135 340);
+    --viz-violet-90:  oklch(84.0% 0.105 340);
+    --viz-violet-100: oklch(91.0% 0.070 340);
+  }
+
+  /* Scheme 4: Deep Cygnus Navy (Oceanic Midnight Starfield & Pulsar Amber) */
+  .container[data-scheme="cygnus"] {
+    --surface-canvas-bg: oklch(6.8% 0.040 238);
+    --surface-inset-bg: oklch(10.5% 0.045 238);
+
+    --gradient-surface-chassis-dark: linear-gradient(
+      137deg,
+      oklch(15.5% 0.050 238) 0px,
+      oklch(13.5% 0.046 238) 180px,
+      oklch(12.0% 0.042 238) 360px,
+      oklch(12.0% 0.042 238) 100%
+    );
+    --gradient-surface-slab-dark: linear-gradient(
+      137deg,
+      oklch(19.2% 0.052 238) 0px,
+      oklch(17.2% 0.048 238) 180px,
+      oklch(15.6% 0.044 238) 360px,
+      oklch(15.6% 0.044 238) 100%
+    );
+    --gradient-surface-overlay-dark: linear-gradient(
+      137deg,
+      oklch(22.8% 0.054 238 / 0.92) 0px,
+      oklch(19.8% 0.050 238 / 0.95) 180px,
+      oklch(17.8% 0.046 238 / 0.98) 360px,
+      oklch(17.8% 0.046 238 / 0.98) 100%
+    );
+    --gradient-surface-glass-dark: linear-gradient(
+      137deg,
+      oklch(21.8% 0.050 238 / 0.50) 0px,
+      oklch(18.8% 0.044 238 / 0.58) 180px,
+      oklch(16.0% 0.040 238 / 0.65) 360px,
+      oklch(16.0% 0.040 238 / 0.65) 100%
+    );
+
+    --material-surface-chassis-dark: var(--texture-grain-matte), var(--gradient-surface-chassis-dark);
+    --material-surface-slab-dark:    var(--texture-grain-matte), var(--gradient-surface-slab-dark);
+    --material-surface-overlay-dark: var(--texture-grain-matte), var(--gradient-surface-overlay-dark);
+    --material-surface-glass-dark:   var(--texture-grain-matte), var(--gradient-surface-glass-dark);
+
+    --surface-hud-bg:     var(--material-surface-chassis-dark);
+    --surface-dock-bg:    var(--material-surface-chassis-dark);
+    --surface-panel-bg:   var(--material-surface-slab-dark);
+    --surface-drawer-bg:  var(--material-surface-slab-dark);
+    --surface-popover-bg: var(--material-surface-glass-dark);
+    --surface-modal-bg:   var(--material-surface-overlay-dark);
+    --surface-toast-bg:   var(--material-surface-overlay-dark);
+
+    --border-color-subtle:        oklch(90% 0.020 238 / 0.08);
+    --border-subtle:              oklch(90% 0.020 238 / 0.08);
+    --border-default:             oklch(90% 0.020 238 / 0.08);
+    --surface-panel-border-color: oklch(90% 0.020 238 / 0.08);
+    --rule-hairline-color:        oklch(90% 0.020 238 / 0.08);
+    --rule-hairline:              1px solid oklch(90% 0.020 238 / 0.08);
+
+    --bevel-top-rim-dark:       inset 0 1px 0 0 oklch(92% 0.030 238 / 0.24), inset 1px 0 0 0 oklch(92% 0.030 238 / 0.14);
+    --bevel-top-rim-subtle:     inset 0 1px 0 0 oklch(92% 0.030 238 / 0.14), inset 1px 0 0 0 oklch(92% 0.030 238 / 0.08);
+    --bevel-top-rim-prominent:  inset 0 1px 0 0 oklch(92% 0.030 238 / 0.32), inset 1px 0 0 0 oklch(92% 0.030 238 / 0.18);
+
+    --surface-panel-shadow:   var(--bevel-top-rim-dark), var(--elevation-panel);
+    --surface-hud-shadow:     var(--bevel-top-rim-subtle), var(--elevation-hud);
+    --surface-dock-shadow:    var(--bevel-top-rim-dark), var(--elevation-dock);
+    --surface-modal-shadow:   var(--bevel-top-rim-prominent), var(--elevation-modal);
+    --surface-toast-shadow:   var(--bevel-top-rim-dark), var(--elevation-toast);
+    --surface-popover-shadow: var(--bevel-top-rim-dark), var(--elevation-popover);
+
+    --state-focus:                         oklch(74.0% 0.188 58);
+    --state-focus-hover:                   oklch(79.0% 0.180 58);
+    --palette-accent-focus-hover:          oklch(79.0% 0.180 58);
+    --state-focus-halo:                    0 0 0 3px oklch(74.0% 0.188 58 / 0.35);
+    --state-focus-subtle:                  oklch(74.0% 0.188 58 / 0.15);
+    --interactive-primary:                 var(--state-focus);
+    --border-color-interactive:            var(--state-focus);
+    --border-focus:                        var(--state-focus);
+
+    --ui-button-prominent-bg:              var(--state-focus);
+    --ui-button-prominent-border-color:    var(--state-focus);
+    --ui-button-prominent-hover-bg:        var(--state-focus-hover);
+    --ui-button-prominent-color:           oklch(15.0% 0.03 58);
+    --ui-slider-thumb-bg:                  var(--state-focus);
+    --ui-toggle-track-active-bg:           var(--state-focus);
+    --ui-toggle-track-active-border-color: var(--state-focus);
+
+    --status-neutral:              oklch(68.0% 0.065 238);
+    --status-neutral-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(20.0% 0.040 238 / 0.92) 0px,
+      oklch(18.0% 0.032 238 / 0.95) 180px,
+      oklch(16.5% 0.024 238 / 0.98) 360px,
+      oklch(16.5% 0.024 238 / 0.98) 100%
+    );
+    --status-neutral-border:       oklch(68.0% 0.065 238 / 0.28);
+    --status-neutral-bevel:        inset 0 1px 0 0 oklch(85% 0.04 238 / 0.35), inset 1px 0 0 0 oklch(85% 0.04 238 / 0.20);
+    --status-neutral-toast-shadow: var(--status-neutral-bevel), var(--elevation-toast);
+    --status-neutral-panel-shadow: var(--status-neutral-bevel), var(--elevation-panel);
+
+    --status-caution:              oklch(73.0% 0.165 72);
+    --status-caution-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.5% 0.040 72 / 0.92) 0px,
+      oklch(17.5% 0.030 72 / 0.95) 180px,
+      oklch(16.0% 0.022 72 / 0.98) 360px,
+      oklch(16.0% 0.022 72 / 0.98) 100%
+    );
+    --status-caution-border:       oklch(73.0% 0.165 72 / 0.28);
+    --status-caution-bevel:        inset 0 1px 0 0 oklch(85% 0.08 72 / 0.35), inset 1px 0 0 0 oklch(85% 0.08 72 / 0.20);
+    --status-caution-toast-shadow: var(--status-caution-bevel), var(--elevation-toast);
+    --status-caution-panel-shadow: var(--status-caution-bevel), var(--elevation-panel);
+
+    --status-critical:             oklch(59.0% 0.220 26);
+    --status-critical-surface:     var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.0% 0.042 26 / 0.92) 0px,
+      oklch(17.0% 0.032 26 / 0.95) 180px,
+      oklch(15.5% 0.024 26 / 0.98) 360px,
+      oklch(15.5% 0.024 26 / 0.98) 100%
+    );
+    --status-critical-border:      oklch(59.0% 0.220 26 / 0.32);
+    --status-critical-bevel:       inset 0 1px 0 0 oklch(80% 0.10 26 / 0.35), inset 1px 0 0 0 oklch(80% 0.10 26 / 0.20);
+    --status-critical-toast-shadow:var(--status-critical-bevel), var(--elevation-toast);
+    --status-critical-panel-shadow:var(--status-critical-bevel), var(--elevation-panel);
+
+    --status-nominal:              var(--status-neutral);
+    --status-nominal-surface:      var(--status-neutral-surface);
+    --status-nominal-border:       var(--status-neutral-border);
+    --status-nominal-bevel:        var(--status-neutral-bevel);
+    --status-nominal-toast-shadow: var(--status-neutral-toast-shadow);
+    --status-nominal-panel-shadow: var(--status-neutral-panel-shadow);
+
+    --status-info:                 oklch(65.0% 0.150 210);
+    --status-info-surface:         var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.5% 0.038 210 / 0.92) 0px,
+      oklch(17.5% 0.028 210 / 0.95) 180px,
+      oklch(16.0% 0.020 210 / 0.98) 360px,
+      oklch(16.0% 0.020 210 / 0.98) 100%
+    );
+    --status-info-border:          oklch(65.0% 0.150 210 / 0.28);
+    --status-info-bevel:           inset 0 1px 0 0 oklch(85% 0.08 210 / 0.35), inset 1px 0 0 0 oklch(85% 0.08 210 / 0.20);
+    --status-info-toast-shadow:    var(--status-info-bevel), var(--elevation-toast);
+    --status-info-panel-shadow:    var(--status-info-bevel), var(--elevation-panel);
+
+    --content-prominent: oklch(95.0% 0.015 238);
+    --content-default:   oklch(82.0% 0.022 238);
+    --content-base:      oklch(82.0% 0.022 238);
+    --content-muted:     oklch(64.0% 0.030 238);
+    --content-faint:     oklch(48.0% 0.035 238);
+
+    --viz-azure-10:  oklch(28.0% 0.045 225);
+    --viz-azure-20:  oklch(35.0% 0.070 225);
+    --viz-azure-30:  oklch(42.0% 0.095 225);
+    --viz-azure-40:  oklch(49.0% 0.120 225);
+    --viz-azure-50:  oklch(56.0% 0.145 225);
+    --viz-azure-60:  oklch(63.0% 0.165 225);
+    --viz-azure-70:  oklch(70.0% 0.155 225);
+    --viz-azure-80:  oklch(77.0% 0.135 225);
+    --viz-azure-90:  oklch(84.0% 0.105 225);
+    --viz-azure-100: oklch(91.0% 0.070 225);
+
+    --viz-amber-10:  oklch(28.0% 0.045 65);
+    --viz-amber-20:  oklch(35.0% 0.070 65);
+    --viz-amber-30:  oklch(42.0% 0.095 65);
+    --viz-amber-40:  oklch(49.0% 0.120 65);
+    --viz-amber-50:  oklch(56.0% 0.145 65);
+    --viz-amber-60:  oklch(63.0% 0.165 65);
+    --viz-amber-70:  oklch(70.0% 0.155 65);
+    --viz-amber-80:  oklch(77.0% 0.135 65);
+    --viz-amber-90:  oklch(84.0% 0.105 65);
+    --viz-amber-100: oklch(91.0% 0.070 65);
+
+    --viz-emerald-10:  oklch(28.0% 0.045 140);
+    --viz-emerald-20:  oklch(35.0% 0.070 140);
+    --viz-emerald-30:  oklch(42.0% 0.095 140);
+    --viz-emerald-40:  oklch(49.0% 0.120 140);
+    --viz-emerald-50:  oklch(56.0% 0.145 140);
+    --viz-emerald-60:  oklch(63.0% 0.165 140);
+    --viz-emerald-70:  oklch(70.0% 0.155 140);
+    --viz-emerald-80:  oklch(77.0% 0.135 140);
+    --viz-emerald-90:  oklch(84.0% 0.105 140);
+    --viz-emerald-100: oklch(91.0% 0.070 140);
+
+    --viz-violet-10:  oklch(28.0% 0.045 310);
+    --viz-violet-20:  oklch(35.0% 0.070 310);
+    --viz-violet-30:  oklch(42.0% 0.095 310);
+    --viz-violet-40:  oklch(49.0% 0.120 310);
+    --viz-violet-50:  oklch(56.0% 0.145 310);
+    --viz-violet-60:  oklch(63.0% 0.165 310);
+    --viz-violet-70:  oklch(70.0% 0.155 310);
+    --viz-violet-80:  oklch(77.0% 0.135 310);
+    --viz-violet-90:  oklch(84.0% 0.105 310);
+    --viz-violet-100: oklch(91.0% 0.070 310);
+  }
+
+  /* Scheme 5: High-Precision Spectral / Kepler (Titanium Slate & Neodymium Emerald) */
+  .container[data-scheme="kepler"] {
+    --surface-canvas-bg: oklch(6.8% 0.022 198);
+    --surface-inset-bg: oklch(10.6% 0.028 198);
+
+    --gradient-surface-chassis-dark: linear-gradient(
+      137deg,
+      oklch(15.4% 0.032 198) 0px,
+      oklch(13.5% 0.028 198) 180px,
+      oklch(12.0% 0.025 198) 360px,
+      oklch(12.0% 0.025 198) 100%
+    );
+    --gradient-surface-slab-dark: linear-gradient(
+      137deg,
+      oklch(19.2% 0.036 198) 0px,
+      oklch(17.2% 0.032 198) 180px,
+      oklch(15.6% 0.028 198) 360px,
+      oklch(15.6% 0.028 198) 100%
+    );
+    --gradient-surface-overlay-dark: linear-gradient(
+      137deg,
+      oklch(22.6% 0.038 198 / 0.92) 0px,
+      oklch(19.6% 0.034 198 / 0.95) 180px,
+      oklch(17.6% 0.030 198 / 0.98) 360px,
+      oklch(17.6% 0.030 198 / 0.98) 100%
+    );
+    --gradient-surface-glass-dark: linear-gradient(
+      137deg,
+      oklch(21.6% 0.036 198 / 0.50) 0px,
+      oklch(18.6% 0.030 198 / 0.58) 180px,
+      oklch(15.8% 0.026 198 / 0.65) 360px,
+      oklch(15.8% 0.026 198 / 0.65) 100%
+    );
+
+    --material-surface-chassis-dark: var(--texture-grain-matte), var(--gradient-surface-chassis-dark);
+    --material-surface-slab-dark:    var(--texture-grain-matte), var(--gradient-surface-slab-dark);
+    --material-surface-overlay-dark: var(--texture-grain-matte), var(--gradient-surface-overlay-dark);
+    --material-surface-glass-dark:   var(--texture-grain-matte), var(--gradient-surface-glass-dark);
+
+    --surface-hud-bg:     var(--material-surface-chassis-dark);
+    --surface-dock-bg:    var(--material-surface-chassis-dark);
+    --surface-panel-bg:   var(--material-surface-slab-dark);
+    --surface-drawer-bg:  var(--material-surface-slab-dark);
+    --surface-popover-bg: var(--material-surface-glass-dark);
+    --surface-modal-bg:   var(--material-surface-overlay-dark);
+    --surface-toast-bg:   var(--material-surface-overlay-dark);
+
+    --border-color-subtle:        oklch(94% 0.015 198 / 0.08);
+    --border-subtle:              oklch(94% 0.015 198 / 0.08);
+    --border-default:             oklch(94% 0.015 198 / 0.08);
+    --surface-panel-border-color: oklch(94% 0.015 198 / 0.08);
+    --rule-hairline-color:        oklch(94% 0.015 198 / 0.08);
+    --rule-hairline:              1px solid oklch(94% 0.015 198 / 0.08);
+
+    --bevel-top-rim-dark:       inset 0 1px 0 0 oklch(96% 0.020 198 / 0.22), inset 1px 0 0 0 oklch(96% 0.020 198 / 0.14);
+    --bevel-top-rim-subtle:     inset 0 1px 0 0 oklch(96% 0.020 198 / 0.14), inset 1px 0 0 0 oklch(96% 0.020 198 / 0.08);
+    --bevel-top-rim-prominent:  inset 0 1px 0 0 oklch(96% 0.020 198 / 0.30), inset 1px 0 0 0 oklch(96% 0.020 198 / 0.18);
+
+    --surface-panel-shadow:   var(--bevel-top-rim-dark), var(--elevation-panel);
+    --surface-hud-shadow:     var(--bevel-top-rim-subtle), var(--elevation-hud);
+    --surface-dock-shadow:    var(--bevel-top-rim-dark), var(--elevation-dock);
+    --surface-modal-shadow:   var(--bevel-top-rim-prominent), var(--elevation-modal);
+    --surface-toast-shadow:   var(--bevel-top-rim-dark), var(--elevation-toast);
+    --surface-popover-shadow: var(--bevel-top-rim-dark), var(--elevation-popover);
+
+    --state-focus:                         oklch(75.0% 0.190 156);
+    --state-focus-hover:                   oklch(80.0% 0.180 156);
+    --palette-accent-focus-hover:          oklch(80.0% 0.180 156);
+    --state-focus-halo:                    0 0 0 3px oklch(75.0% 0.190 156 / 0.35);
+    --state-focus-subtle:                  oklch(75.0% 0.190 156 / 0.15);
+    --interactive-primary:                 var(--state-focus);
+    --border-color-interactive:            var(--state-focus);
+    --border-focus:                        var(--state-focus);
+
+    --ui-button-prominent-bg:              var(--state-focus);
+    --ui-button-prominent-border-color:    var(--state-focus);
+    --ui-button-prominent-hover-bg:        var(--state-focus-hover);
+    --ui-button-prominent-color:           oklch(15.0% 0.02 156);
+    --ui-slider-thumb-bg:                  var(--state-focus);
+    --ui-toggle-track-active-bg:           var(--state-focus);
+    --ui-toggle-track-active-border-color: var(--state-focus);
+
+    --status-neutral:              oklch(68.0% 0.050 198);
+    --status-neutral-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(20.0% 0.030 198 / 0.92) 0px,
+      oklch(18.0% 0.022 198 / 0.95) 180px,
+      oklch(16.0% 0.016 198 / 0.98) 360px,
+      oklch(16.0% 0.016 198 / 0.98) 100%
+    );
+    --status-neutral-border:       oklch(68.0% 0.050 198 / 0.28);
+    --status-neutral-bevel:        inset 0 1px 0 0 oklch(85% 0.04 198 / 0.35), inset 1px 0 0 0 oklch(85% 0.04 198 / 0.20);
+    --status-neutral-toast-shadow: var(--status-neutral-bevel), var(--elevation-toast);
+    --status-neutral-panel-shadow: var(--status-neutral-bevel), var(--elevation-panel);
+
+    --status-caution:              oklch(74.0% 0.160 85);
+    --status-caution-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.5% 0.040 85 / 0.92) 0px,
+      oklch(17.5% 0.030 85 / 0.95) 180px,
+      oklch(16.0% 0.022 85 / 0.98) 360px,
+      oklch(16.0% 0.022 85 / 0.98) 100%
+    );
+    --status-caution-border:       oklch(74.0% 0.160 85 / 0.28);
+    --status-caution-bevel:        inset 0 1px 0 0 oklch(85% 0.08 85 / 0.35), inset 1px 0 0 0 oklch(85% 0.08 85 / 0.20);
+    --status-caution-toast-shadow: var(--status-caution-bevel), var(--elevation-toast);
+    --status-caution-panel-shadow: var(--status-caution-bevel), var(--elevation-panel);
+
+    --status-critical:             oklch(60.0% 0.220 26);
+    --status-critical-surface:     var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.0% 0.042 26 / 0.92) 0px,
+      oklch(17.0% 0.032 26 / 0.95) 180px,
+      oklch(15.5% 0.024 26 / 0.98) 360px,
+      oklch(15.5% 0.024 26 / 0.98) 100%
+    );
+    --status-critical-border:      oklch(60.0% 0.220 26 / 0.32);
+    --status-critical-bevel:       inset 0 1px 0 0 oklch(80% 0.10 26 / 0.35), inset 1px 0 0 0 oklch(80% 0.10 26 / 0.20);
+    --status-critical-toast-shadow:var(--status-critical-bevel), var(--elevation-toast);
+    --status-critical-panel-shadow:var(--status-critical-bevel), var(--elevation-panel);
+
+    --status-nominal:              var(--status-neutral);
+    --status-nominal-surface:      var(--status-neutral-surface);
+    --status-nominal-border:       var(--status-neutral-border);
+    --status-nominal-bevel:        var(--status-neutral-bevel);
+    --status-nominal-toast-shadow: var(--status-neutral-toast-shadow);
+    --status-nominal-panel-shadow: var(--status-neutral-panel-shadow);
+
+    --status-info:                 oklch(65.0% 0.150 235);
+    --status-info-surface:         var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.5% 0.038 235 / 0.92) 0px,
+      oklch(17.5% 0.028 235 / 0.95) 180px,
+      oklch(16.0% 0.020 235 / 0.98) 360px,
+      oklch(16.0% 0.020 235 / 0.98) 100%
+    );
+    --status-info-border:          oklch(65.0% 0.150 235 / 0.28);
+    --status-info-bevel:           inset 0 1px 0 0 oklch(85% 0.08 235 / 0.35), inset 1px 0 0 0 oklch(85% 0.08 235 / 0.20);
+    --status-info-toast-shadow:    var(--status-info-bevel), var(--elevation-toast);
+    --status-info-panel-shadow:    var(--status-info-bevel), var(--elevation-panel);
+
+    --content-prominent: oklch(95.0% 0.010 198);
+    --content-default:   oklch(82.0% 0.018 198);
+    --content-base:      oklch(82.0% 0.018 198);
+    --content-muted:     oklch(64.0% 0.024 198);
+    --content-faint:     oklch(48.0% 0.028 198);
+
+    --viz-azure-10:  oklch(28.0% 0.045 220);
+    --viz-azure-20:  oklch(35.0% 0.070 220);
+    --viz-azure-30:  oklch(42.0% 0.095 220);
+    --viz-azure-40:  oklch(49.0% 0.120 220);
+    --viz-azure-50:  oklch(56.0% 0.145 220);
+    --viz-azure-60:  oklch(63.0% 0.165 220);
+    --viz-azure-70:  oklch(70.0% 0.155 220);
+    --viz-azure-80:  oklch(77.0% 0.135 220);
+    --viz-azure-90:  oklch(84.0% 0.105 220);
+    --viz-azure-100: oklch(91.0% 0.070 220);
+
+    --viz-amber-10:  oklch(28.0% 0.045 80);
+    --viz-amber-20:  oklch(35.0% 0.070 80);
+    --viz-amber-30:  oklch(42.0% 0.095 80);
+    --viz-amber-40:  oklch(49.0% 0.120 80);
+    --viz-amber-50:  oklch(56.0% 0.145 80);
+    --viz-amber-60:  oklch(63.0% 0.165 80);
+    --viz-amber-70:  oklch(70.0% 0.155 80);
+    --viz-amber-80:  oklch(77.0% 0.135 80);
+    --viz-amber-90:  oklch(84.0% 0.105 80);
+    --viz-amber-100: oklch(91.0% 0.070 80);
+
+    --viz-emerald-10:  oklch(28.0% 0.045 160);
+    --viz-emerald-20:  oklch(35.0% 0.070 160);
+    --viz-emerald-30:  oklch(42.0% 0.095 160);
+    --viz-emerald-40:  oklch(49.0% 0.120 160);
+    --viz-emerald-50:  oklch(56.0% 0.145 160);
+    --viz-emerald-60:  oklch(63.0% 0.165 160);
+    --viz-emerald-70:  oklch(70.0% 0.155 160);
+    --viz-emerald-80:  oklch(77.0% 0.135 160);
+    --viz-emerald-90:  oklch(84.0% 0.105 160);
+    --viz-emerald-100: oklch(91.0% 0.070 160);
+
+    --viz-violet-10:  oklch(28.0% 0.045 300);
+    --viz-violet-20:  oklch(35.0% 0.070 300);
+    --viz-violet-30:  oklch(42.0% 0.095 300);
+    --viz-violet-40:  oklch(49.0% 0.120 300);
+    --viz-violet-50:  oklch(56.0% 0.145 300);
+    --viz-violet-60:  oklch(63.0% 0.165 300);
+    --viz-violet-70:  oklch(70.0% 0.155 300);
+    --viz-violet-80:  oklch(77.0% 0.135 300);
+    --viz-violet-90:  oklch(84.0% 0.105 300);
+    --viz-violet-100: oklch(91.0% 0.070 300);
+  }
+
+  /* ========================================================================== */
+  /* Light Mode Overrides (Inverted Elevation Surface Hierarchy)               */
+  /* ========================================================================== */
+
+  /* Default / Celestial Light Mode */
+  .container[data-theme="light"],
+  .container[data-scheme="celestial"][data-theme="light"] {
+    --surface-canvas-bg: oklch(96.5% 0.008 255);
+    --surface-inset-bg:  oklch(92.5% 0.012 255);
+
+    --gradient-surface-chassis-light: linear-gradient(
+      137deg,
+      oklch(95.5% 0.010 255) 0px,
+      oklch(94.0% 0.010 255) 180px,
+      oklch(92.5% 0.012 255) 360px,
+      oklch(92.5% 0.012 255) 100%
+    );
+    --gradient-surface-slab-light: linear-gradient(
+      137deg,
+      oklch(98.8% 0.006 255) 0px,
+      oklch(97.0% 0.008 255) 180px,
+      oklch(95.0% 0.010 255) 360px,
+      oklch(95.0% 0.010 255) 100%
+    );
+    --gradient-surface-overlay-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.92) 0px,
+      oklch(98.0% 0.004 255 / 0.95) 180px,
+      oklch(96.0% 0.006 255 / 0.98) 360px,
+      oklch(96.0% 0.006 255 / 0.98) 100%
+    );
+    --gradient-surface-glass-light: linear-gradient(
+      137deg,
+      oklch(99.5% 0.004 255 / 0.50) 0px,
+      oklch(97.5% 0.006 255 / 0.58) 180px,
+      oklch(95.5% 0.008 255 / 0.65) 360px,
+      oklch(95.5% 0.008 255 / 0.65) 100%
+    );
+
+    --material-surface-chassis-light: var(--texture-grain-matte), var(--gradient-surface-chassis-light);
+    --material-surface-slab-light:    var(--texture-grain-matte), var(--gradient-surface-slab-light);
+    --material-surface-overlay-light: var(--texture-grain-matte), var(--gradient-surface-overlay-light);
+    --material-surface-glass-light:   var(--texture-grain-matte), var(--gradient-surface-glass-light);
+
+    --surface-hud-bg:     var(--material-surface-chassis-light);
+    --surface-dock-bg:    var(--material-surface-chassis-light);
+    --surface-panel-bg:   var(--material-surface-slab-light);
+    --surface-drawer-bg:  var(--material-surface-slab-light);
+    --surface-popover-bg: var(--material-surface-glass-light);
+    --surface-modal-bg:   var(--material-surface-overlay-light);
+    --surface-toast-bg:   var(--material-surface-overlay-light);
+
+    --border-color-subtle:        oklch(0% 0 0 / 0.10);
+    --border-subtle:              oklch(0% 0 0 / 0.10);
+    --border-default:             oklch(0% 0 0 / 0.10);
+    --surface-panel-border-color: oklch(0% 0 0 / 0.10);
+    --rule-hairline-color:        oklch(0% 0 0 / 0.10);
+    --rule-hairline:              1px solid oklch(0% 0 0 / 0.10);
+
+    --bevel-top-rim-dark:       inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --bevel-top-rim-subtle:     inset 0 1px 0 0 oklch(100% 0 0 / 0.50), inset 1px 0 0 0 oklch(100% 0 0 / 0.30);
+    --bevel-top-rim-prominent:  inset 0 1px 0 0 oklch(100% 0 0 / 0.85), inset 1px 0 0 0 oklch(100% 0 0 / 0.55);
+
+    --surface-panel-shadow:   var(--bevel-top-rim-dark), var(--elevation-panel);
+    --surface-hud-shadow:     var(--bevel-top-rim-subtle), var(--elevation-hud);
+    --surface-dock-shadow:    var(--bevel-top-rim-dark), var(--elevation-dock);
+    --surface-modal-shadow:   var(--bevel-top-rim-prominent), var(--elevation-modal);
+    --surface-toast-shadow:   var(--bevel-top-rim-dark), var(--elevation-toast);
+    --surface-popover-shadow: var(--bevel-top-rim-dark), var(--elevation-popover);
+
+    --content-prominent: oklch(18.0% 0.025 255);
+    --content-default:   oklch(30.0% 0.025 255);
+    --content-base:      oklch(30.0% 0.025 255);
+    --content-muted:     oklch(50.0% 0.020 255);
+    --content-faint:     oklch(68.0% 0.015 255);
+
+    --state-focus:                         oklch(50.0% 0.230 262);
+    --state-focus-hover:                   oklch(45.0% 0.230 262);
+    --palette-accent-focus-hover:          oklch(45.0% 0.230 262);
+    --state-focus-halo:                    0 0 0 3px oklch(50.0% 0.230 262 / 0.25);
+    --state-focus-subtle:                  oklch(50.0% 0.230 262 / 0.12);
+    --interactive-primary:                 var(--state-focus);
+    --border-color-interactive:            var(--state-focus);
+    --border-focus:                        var(--state-focus);
+
+    --ui-button-prominent-bg:              var(--state-focus);
+    --ui-button-prominent-border-color:    var(--state-focus);
+    --ui-button-prominent-hover-bg:        var(--state-focus-hover);
+    --ui-button-prominent-color:           oklch(98% 0 0);
+    --ui-slider-thumb-bg:                  var(--state-focus);
+    --ui-toggle-track-active-bg:           var(--state-focus);
+    --ui-toggle-track-active-border-color: var(--state-focus);
+
+    --status-neutral:              oklch(48.0% 0.050 255);
+    --status-neutral-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(98.0% 0.015 255 / 0.94) 0px,
+      oklch(96.0% 0.012 255 / 0.96) 180px,
+      oklch(94.0% 0.010 255 / 0.98) 360px,
+      oklch(94.0% 0.010 255 / 0.98) 100%
+    );
+    --status-neutral-border:       oklch(48.0% 0.050 255 / 0.32);
+    --status-neutral-bevel:        inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --status-neutral-toast-shadow: var(--status-neutral-bevel), var(--elevation-toast);
+    --status-neutral-panel-shadow: var(--status-neutral-bevel), var(--elevation-panel);
+
+    --status-caution:              oklch(54.0% 0.160 78);
+    --status-caution-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(98.5% 0.025 78 / 0.94) 0px,
+      oklch(96.5% 0.020 78 / 0.96) 180px,
+      oklch(94.5% 0.015 78 / 0.98) 360px,
+      oklch(94.5% 0.015 78 / 0.98) 100%
+    );
+    --status-caution-border:       oklch(54.0% 0.160 78 / 0.32);
+    --status-caution-bevel:        inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --status-caution-toast-shadow: var(--status-caution-bevel), var(--elevation-toast);
+    --status-caution-panel-shadow: var(--status-caution-bevel), var(--elevation-panel);
+
+    --status-critical:             oklch(48.0% 0.210 28);
+    --status-critical-surface:     var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(98.0% 0.030 28 / 0.94) 0px,
+      oklch(96.0% 0.024 28 / 0.96) 180px,
+      oklch(94.0% 0.018 28 / 0.98) 360px,
+      oklch(94.0% 0.018 28 / 0.98) 100%
+    );
+    --status-critical-border:      oklch(48.0% 0.210 28 / 0.35);
+    --status-critical-bevel:       inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --status-critical-toast-shadow:var(--status-critical-bevel), var(--elevation-toast);
+    --status-critical-panel-shadow:var(--status-critical-bevel), var(--elevation-panel);
+
+    --status-nominal:              var(--status-neutral);
+    --status-nominal-surface:      var(--status-neutral-surface);
+    --status-nominal-border:       var(--status-neutral-border);
+    --status-nominal-bevel:        var(--status-neutral-bevel);
+    --status-nominal-toast-shadow: var(--status-neutral-toast-shadow);
+    --status-nominal-panel-shadow: var(--status-neutral-panel-shadow);
+
+    --status-info:                 oklch(48.0% 0.150 230);
+    --status-info-surface:         var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(98.5% 0.025 230 / 0.94) 0px,
+      oklch(96.5% 0.020 230 / 0.96) 180px,
+      oklch(94.5% 0.015 230 / 0.98) 360px,
+      oklch(94.5% 0.015 230 / 0.98) 100%
+    );
+    --status-info-border:          oklch(48.0% 0.150 230 / 0.32);
+    --status-info-bevel:           inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --status-info-toast-shadow:    var(--status-info-bevel), var(--elevation-toast);
+    --status-info-panel-shadow:    var(--status-info-bevel), var(--elevation-panel);
+  }
+
+  /* Scheme 2: Stellar Basalt in Light Mode */
+  .container[data-scheme="spectral"][data-theme="light"] {
+    --surface-canvas-bg: oklch(96.8% 0.016 85);
+    --surface-inset-bg:  oklch(92.0% 0.020 85);
+
+    --gradient-surface-chassis-light: linear-gradient(
+      137deg,
+      oklch(95.0% 0.018 85) 0px,
+      oklch(93.5% 0.018 85) 180px,
+      oklch(92.0% 0.020 85) 360px,
+      oklch(92.0% 0.020 85) 100%
+    );
+    --gradient-surface-slab-light: linear-gradient(
+      137deg,
+      oklch(98.8% 0.012 85) 0px,
+      oklch(97.0% 0.014 85) 180px,
+      oklch(95.0% 0.016 85) 360px,
+      oklch(95.0% 0.016 85) 100%
+    );
+    --gradient-surface-overlay-light: linear-gradient(
+      137deg,
+      oklch(99.6% 0.008 85 / 0.92) 0px,
+      oklch(97.8% 0.010 85 / 0.95) 180px,
+      oklch(95.8% 0.012 85 / 0.98) 360px,
+      oklch(95.8% 0.012 85 / 0.98) 100%
+    );
+
+    --content-prominent: oklch(18.0% 0.025 65);
+    --content-default:   oklch(30.0% 0.025 65);
+    --content-base:      oklch(30.0% 0.025 65);
+    --content-muted:     oklch(50.0% 0.020 70);
+    --content-faint:     oklch(68.0% 0.015 80);
+
+    --state-focus:       oklch(48.0% 0.170 65);
+    --state-focus-hover: oklch(43.0% 0.170 65);
+    --palette-accent-focus-hover: oklch(43.0% 0.170 65);
+    --state-focus-halo:  0 0 0 3px oklch(48.0% 0.170 65 / 0.25);
+    --state-focus-subtle: oklch(48.0% 0.170 65 / 0.12);
+
+    --status-neutral:    oklch(46.0% 0.045 72);
+    --status-nominal:    oklch(46.0% 0.045 72);
+    --status-caution:    oklch(52.0% 0.165 82);
+    --status-critical:   oklch(46.0% 0.205 32);
+    --status-info:       oklch(46.0% 0.145 225);
+  }
+
+  /* Scheme 3: Achromatic Carbon in Light Mode */
+  .container[data-scheme="viridis"][data-theme="light"] {
+    --surface-canvas-bg: oklch(97.0% 0.000 0);
+    --surface-inset-bg:  oklch(92.0% 0.000 0);
+
+    --gradient-surface-chassis-light: linear-gradient(
+      137deg,
+      oklch(94.0% 0.000 0) 0px,
+      oklch(92.5% 0.000 0) 180px,
+      oklch(91.0% 0.000 0) 360px,
+      oklch(91.0% 0.000 0) 100%
+    );
+    --gradient-surface-slab-light: linear-gradient(
+      137deg,
+      oklch(99.0% 0.000 0) 0px,
+      oklch(97.0% 0.000 0) 180px,
+      oklch(95.0% 0.000 0) 360px,
+      oklch(95.0% 0.000 0) 100%
+    );
+    --gradient-surface-overlay-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.92) 0px,
+      oklch(98.0% 0 0 / 0.95) 180px,
+      oklch(96.0% 0 0 / 0.98) 360px,
+      oklch(96.0% 0 0 / 0.98) 100%
+    );
+
+    --content-prominent: oklch(15.0% 0.000 0);
+    --content-default:   oklch(28.0% 0.000 0);
+    --content-base:      oklch(28.0% 0.000 0);
+    --content-muted:     oklch(48.0% 0.000 0);
+    --content-faint:     oklch(66.0% 0.000 0);
+
+    --state-focus:       oklch(44.0% 0.160 195);
+    --state-focus-hover: oklch(39.0% 0.160 195);
+    --palette-accent-focus-hover: oklch(39.0% 0.160 195);
+    --state-focus-halo:  0 0 0 3px oklch(44.0% 0.160 195 / 0.25);
+    --state-focus-subtle: oklch(44.0% 0.160 195 / 0.12);
+
+    --status-neutral:    oklch(45.0% 0.000 0);
+    --status-nominal:    oklch(45.0% 0.000 0);
+    --status-caution:    oklch(52.0% 0.160 88);
+    --status-critical:   oklch(46.0% 0.215 25);
+    --status-info:       oklch(46.0% 0.155 240);
+  }
+
+  /* Scheme 4: Deep Cygnus Navy in Light Mode */
+  .container[data-scheme="cygnus"][data-theme="light"] {
+    --surface-canvas-bg: oklch(96.5% 0.012 238);
+    --surface-inset-bg:  oklch(92.0% 0.018 238);
+
+    --gradient-surface-chassis-light: linear-gradient(
+      137deg,
+      oklch(94.2% 0.015 238) 0px,
+      oklch(92.8% 0.016 238) 180px,
+      oklch(91.2% 0.018 238) 360px,
+      oklch(91.2% 0.018 238) 100%
+    );
+    --gradient-surface-slab-light: linear-gradient(
+      137deg,
+      oklch(98.6% 0.008 238) 0px,
+      oklch(96.8% 0.010 238) 180px,
+      oklch(94.8% 0.012 238) 360px,
+      oklch(94.8% 0.012 238) 100%
+    );
+    --gradient-surface-overlay-light: linear-gradient(
+      137deg,
+      oklch(99.6% 0.005 238 / 0.92) 0px,
+      oklch(97.6% 0.007 238 / 0.95) 180px,
+      oklch(95.6% 0.009 238 / 0.98) 360px,
+      oklch(95.6% 0.009 238 / 0.98) 100%
+    );
+
+    --content-prominent: oklch(17.0% 0.035 238);
+    --content-default:   oklch(29.0% 0.032 238);
+    --content-base:      oklch(29.0% 0.032 238);
+    --content-muted:     oklch(49.0% 0.025 238);
+    --content-faint:     oklch(67.0% 0.020 238);
+
+    --state-focus:       oklch(48.0% 0.185 52);
+    --state-focus-hover: oklch(43.0% 0.185 52);
+    --palette-accent-focus-hover: oklch(43.0% 0.185 52);
+    --state-focus-halo:  0 0 0 3px oklch(48.0% 0.185 52 / 0.25);
+    --state-focus-subtle: oklch(48.0% 0.185 52 / 0.12);
+
+    --status-neutral:    oklch(46.0% 0.060 238);
+    --status-nominal:    oklch(46.0% 0.060 238);
+    --status-caution:    oklch(52.0% 0.165 72);
+    --status-critical:   oklch(46.0% 0.210 26);
+    --status-info:       oklch(46.0% 0.150 210);
+  }
+
+  /* Scheme 5: Kepler Spectral in Light Mode */
+  .container[data-scheme="kepler"][data-theme="light"] {
+    --surface-canvas-bg: oklch(96.8% 0.010 198);
+    --surface-inset-bg:  oklch(92.4% 0.014 198);
+
+    --gradient-surface-chassis-light: linear-gradient(
+      137deg,
+      oklch(94.4% 0.012 198) 0px,
+      oklch(93.0% 0.012 198) 180px,
+      oklch(91.5% 0.014 198) 360px,
+      oklch(91.5% 0.014 198) 100%
+    );
+    --gradient-surface-slab-light: linear-gradient(
+      137deg,
+      oklch(98.6% 0.008 198) 0px,
+      oklch(96.8% 0.010 198) 180px,
+      oklch(94.8% 0.012 198) 360px,
+      oklch(94.8% 0.012 198) 100%
+    );
+    --gradient-surface-overlay-light: linear-gradient(
+      137deg,
+      oklch(99.6% 0.005 198 / 0.92) 0px,
+      oklch(97.6% 0.007 198 / 0.95) 180px,
+      oklch(95.6% 0.009 198 / 0.98) 360px,
+      oklch(95.6% 0.009 198 / 0.98) 100%
+    );
+
+    --content-prominent: oklch(17.5% 0.028 198);
+    --content-default:   oklch(29.5% 0.026 198);
+    --content-base:      oklch(29.5% 0.026 198);
+    --content-muted:     oklch(49.5% 0.022 198);
+    --content-faint:     oklch(67.5% 0.018 198);
+
+    --state-focus:       oklch(45.0% 0.175 156);
+    --state-focus-hover: oklch(40.0% 0.175 156);
+    --palette-accent-focus-hover: oklch(40.0% 0.175 156);
+    --state-focus-halo:  0 0 0 3px oklch(45.0% 0.175 156 / 0.25);
+    --state-focus-subtle: oklch(45.0% 0.175 156 / 0.12);
+
+    --status-neutral:    oklch(46.0% 0.045 198);
+    --status-nominal:    oklch(46.0% 0.045 198);
+    --status-caution:    oklch(52.0% 0.160 85);
+    --status-critical:   oklch(46.0% 0.210 26);
+    --status-info:       oklch(46.0% 0.150 235);
+  }
+
+  /* ========================================================================== */
+  /* Observational Confidence Pips & Telemetry Displays                          */
+  /* ========================================================================== */
+  .confidenceSection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-default);
+  }
+
+  .confidenceGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-grid-gap);
+  }
+
+  .confidenceCard {
+    background: var(--surface-panel-bg);
+    border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
+    box-shadow: var(--surface-panel-shadow);
+    border-radius: var(--radius-container);
+    padding: var(--space-inset-panel);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-stack-dense);
+  }
+
+  .confidenceCardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-block-end: var(--rule-hairline);
+    padding-block-end: var(--space-stack-dense);
+  }
+
+  .confidenceMetricRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-block: var(--space-fib-2);
+    border-block-end: var(--rule-hairline);
+  }
+
+  .confidenceMetricRow:last-child {
+    border-block-end: none;
+  }
+
+  .confidenceLabelGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .confidenceLabel {
+    font-size: var(--type-scale-neg-1);
+    color: var(--content-default);
+    font-family: var(--font-interface);
+    font-weight: 500;
+  }
+
+  .confidenceSublabel {
+    font-size: var(--type-scale-neg-2);
+    color: var(--content-muted);
+    font-family: var(--font-data);
+  }
+
+  .confidenceValueGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .confidencePip {
+    inline-size: 8px;
+    block-size: 8px;
+    border-radius: var(--radius-full);
+    display: inline-block;
+    flex-shrink: 0;
+    transition: transform var(--motion-duration-feedback) ease, box-shadow var(--motion-duration-interactive) ease;
+  }
+
+  .confidencePip[data-confidence="confirmed"] {
+    background-color: var(--confidence-confirmed);
+    box-shadow: var(--confidence-confirmed-glow);
+  }
+
+  .confidencePip[data-confidence="candidate"] {
+    background-color: var(--confidence-candidate);
+    box-shadow: var(--confidence-candidate-glow);
+  }
+
+  .confidencePip[data-confidence="theoretical"] {
+    background-color: var(--confidence-theoretical);
+    box-shadow: var(--confidence-theoretical-glow);
+  }
+
+  .confidenceNumber {
+    font-size: var(--text-content-data-value-size);
+    font-weight: 600;
+    color: var(--content-prominent);
+    font-family: var(--font-data);
+  }
+
+  .confidenceUnit {
+    font-size: var(--type-scale-neg-2);
+    color: var(--content-muted);
+    font-family: var(--font-data);
+  }
+
+  .confidenceBadgeGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+  }
+
+  .confidencePill {
+    font-size: var(--type-scale-neg-2);
+    font-family: var(--font-data);
+    padding: 2px 6px;
+    border-radius: var(--radius-badge);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-1);
+    font-weight: 600;
+    letter-spacing: var(--scalar-track-tight);
+    border: var(--border-width-1) solid transparent;
+  }
+
+  .confidencePill[data-confidence="confirmed"] {
+    background: var(--confidence-confirmed-bg);
+    color: var(--confidence-confirmed);
+    border-color: oklch(from var(--confidence-confirmed) l c h / 0.35);
+  }
+
+  .confidencePill[data-confidence="candidate"] {
+    background: var(--confidence-candidate-bg);
+    color: var(--confidence-candidate);
+    border-color: oklch(from var(--confidence-candidate) l c h / 0.35);
+  }
+
+  .confidencePill[data-confidence="theoretical"] {
+    background: var(--confidence-theoretical-bg);
+    color: var(--confidence-theoretical);
+    border-color: oklch(from var(--confidence-theoretical) l c h / 0.35);
+  }
+}
+
