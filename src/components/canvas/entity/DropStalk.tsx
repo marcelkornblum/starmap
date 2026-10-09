@@ -133,10 +133,20 @@ export const DropStalk: React.FC<DropStalkProps> = ({
   useEffect(() => {
     return () => {
       lineGeom.dispose();
+    };
+  }, [lineGeom]);
+
+  useEffect(() => {
+    return () => {
       footprintGeom.dispose();
+    };
+  }, [footprintGeom]);
+
+  useEffect(() => {
+    return () => {
       lineMaterial.dispose();
     };
-  }, [lineGeom, footprintGeom, lineMaterial]);
+  }, [lineMaterial]);
 
   useFrame(({ camera, size }, delta) => {
     const target = isStalkTier ? 1.0 : 0.0;

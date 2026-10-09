@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import * as ReactDOM from 'react-dom/client';
+import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 
@@ -29,34 +29,30 @@ export interface SafeHtmlProps {
  * 1. Synchronous root.unmount() during commit phase: "Attempted to synchronously unmount a root while React was already rendering".
  * 2. Unchecked target.removeChild(el) throwing NotFoundError when the canvas container is detached.
  *
- * SafeHtml provides:
- * - Asynchronous, guarded unmounting (setTimeout with try/catch) preventing React commit aborts.
- * - Safe parent removal via el.parentNode check (immune to container unmounting order).
- * - Zero heap allocations inside useFrame (passes audit:r3f).
- * - Seamless SSR fallback maintaining data-testid attributes for testing suites.
+ * Uses React createPortal into a detached DOM node appended to canvas container,
+ * completely preserving React context trees and eliminating isolated nested root lifecycles.
  */
 const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   children,
   position,
   calculatePosition,
-  center = false,
+  center = true,
   wrapperClass,
   className,
-  pointerEvents = 'none',
+  pointerEvents = 'auto',
   zIndexRange,
   onOcclude,
   'data-testid': dataTestId,
 }) => {
-  const groupRef = useRef<THREE.Group>(null);
-  const scratchPos = useRef(new THREE.Vector3());
-  const scratchNdc = useRef(new THREE.Vector3());
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+  const groupRef = useRef<THREE.Group | null>(null);
+  const scratchPos = useRef<THREE.Vector3>(new THREE.Vector3());
+  const scratchNdc = useRef<THREE.Vector3>(new THREE.Vector3());
+  const scratchV4 = useRef<THREE.Vector4>(new THREE.Vector4());
   const scratchTargetCoords = useRef<[number, number]>([0, 0]);
-  const [root, setRoot] = useState<ReactDOM.Root | null>(null);
-
-  const lastX = useRef(-999999);
-  const lastY = useRef(-999999);
-  const lastVisible = useRef(true);
+  const lastTransform = useRef<string>('');
   const lastZIndex = useRef<number | null>(null);
+  const lastVisible = useRef<boolean | null>(null);
 
   const onOccludeRef = useRef(onOcclude);
   useLayoutEffect(() => {
@@ -102,49 +98,50 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
 
     const target = (gl.domElement?.parentNode as HTMLElement | null) ?? document.body;
     target.appendChild(div);
-
-    const newRoot = ReactDOM.createRoot(div);
-    setRoot(newRoot);
+    setContainer(div);
 
     return () => {
-      // 1. Safely remove DOM element without throwing if target already detached
       if (div.parentNode) {
         div.parentNode.removeChild(div);
       }
       containerRef.current = null;
-      setRoot(null);
-      // 2. Safely unmount React root asynchronously so React's commit phase completes cleanly
-      setTimeout(() => {
-        try {
-          newRoot.unmount();
-        } catch {
-          // Ignore unmount race if root was already discarded
-        }
-      }, 0);
+      setContainer(null);
     };
   }, [gl, pointerEvents, wrapperClass]);
 
-  // Synchronize children rendering into root
-  useLayoutEffect(() => {
-    if (root) {
-      root.render(
-        <div className={className} data-testid={dataTestId}>
-          {children}
-        </div>,
-      );
-    }
-  }, [root, children, className, dataTestId]);
-
   useFrame(() => {
-    const container = containerRef.current;
-    if (!container || !groupRef.current) return;
+    const activeContainer = containerRef.current;
+    if (!activeContainer || !groupRef.current) return;
+
+    groupRef.current.getWorldPosition(scratchPos.current);
+    const pos = scratchPos.current;
+
+    let isVisible = true;
+    if (camera instanceof THREE.PerspectiveCamera || camera instanceof THREE.OrthographicCamera) {
+      scratchV4.current.set(pos.x, pos.y, pos.z, 1.0).applyMatrix4(camera.matrixWorldInverse);
+      if (camera instanceof THREE.PerspectiveCamera) {
+        isVisible = scratchV4.current.z < -camera.near && scratchV4.current.z > -camera.far;
+      } else {
+        isVisible = scratchV4.current.z <= -camera.near && scratchV4.current.z >= -camera.far;
+      }
+    }
+
+    if (lastVisible.current !== isVisible) {
+      lastVisible.current = isVisible;
+      activeContainer.style.display = isVisible ? '' : 'none';
+      const hidden = !isVisible;
+      if (onOccludeRef.current) {
+        nextHiddenRef.current = hidden;
+        if (rafIdRef.current === null && typeof requestAnimationFrame !== 'undefined') {
+          rafIdRef.current = requestAnimationFrame(flushOccludeRaf);
+        }
+      }
+    }
+
+    if (!isVisible) return;
 
     let x = 0;
     let y = 0;
-    let isVisible = true;
-
-    groupRef.current.updateWorldMatrix(true, false);
-    scratchPos.current.setFromMatrixPosition(groupRef.current.matrixWorld);
 
     if (calculatePosition) {
       scratchTargetCoords.current[0] = 0;
@@ -164,39 +161,17 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
       }
     } else {
       const ndc = scratchNdc.current.copy(scratchPos.current).project(camera);
-
-      // Behind camera check
-      if (ndc.z > 1.0) {
-        isVisible = false;
-      } else {
-        x = (ndc.x * 0.5 + 0.5) * size.width;
-        y = (-ndc.y * 0.5 + 0.5) * size.height;
-      }
+      x = ((ndc.x + 1) * size.width) / 2;
+      y = ((-ndc.y + 1) * size.height) / 2;
     }
 
-    if (onOcclude) {
-      if (lastVisible.current !== isVisible) {
-        lastVisible.current = isVisible;
-        nextHiddenRef.current = !isVisible;
-        if (rafIdRef.current === null && typeof requestAnimationFrame !== 'undefined') {
-          rafIdRef.current = requestAnimationFrame(flushOccludeRaf);
-        } else if (typeof requestAnimationFrame === 'undefined') {
-          onOcclude(!isVisible);
-        }
-      }
-    } else if (lastVisible.current !== isVisible) {
-      lastVisible.current = isVisible;
-      container.style.display = isVisible ? '' : 'none';
-    }
+    const transform = center
+      ? `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0) translate3d(-50%, -50%, 0)`
+      : `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
 
-    if (isVisible && (Math.abs(lastX.current - x) > 0.05 || Math.abs(lastY.current - y) > 0.05)) {
-      lastX.current = x;
-      lastY.current = y;
-      if (center) {
-        container.style.transform = `translate3d(calc(${x}px - 50%), calc(${y}px - 50%), 0)`;
-      } else {
-        container.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-      }
+    if (lastTransform.current !== transform) {
+      lastTransform.current = transform;
+      activeContainer.style.transform = transform;
     }
 
     if (
@@ -210,12 +185,23 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
       const nextZIndex = Math.round(aFactor * dist + bFactor);
       if (lastZIndex.current !== nextZIndex) {
         lastZIndex.current = nextZIndex;
-        container.style.zIndex = String(nextZIndex);
+        activeContainer.style.zIndex = String(nextZIndex);
       }
     }
   });
 
-  return <group ref={groupRef} position={position} />;
+  return (
+    <>
+      <group ref={groupRef} position={position} />
+      {container &&
+        createPortal(
+          <div className={className} data-testid={dataTestId}>
+            {children}
+          </div>,
+          container
+        )}
+    </>
+  );
 };
 
 export const SafeHtml: React.FC<SafeHtmlProps> = (props) => {
