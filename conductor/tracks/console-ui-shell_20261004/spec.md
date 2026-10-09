@@ -1,6 +1,6 @@
 # Specification: Console UI Shell
 
-> **Status: Stub.** Scope captured from `conductor/backlog.md`, `docs/feature-backlog.md` (retired) and Phase 5 of `3d-component-architecture_20261004`. Refine via `conductor-new-track` before implementation.
+> **Status: Active.** Scope refined from architecture guidelines, `conductor/backlog.md`, and Phase 5 of `3d-component-architecture_20261004`.
 
 ## Overview
 Builds the production "Adaptive Hybrid Console" shell around the 3D canvas, replacing the per-view HUD overlays with a single layout that owns all 2D chrome placement.
