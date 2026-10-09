@@ -62,6 +62,23 @@ export const TooltipStory: Story = {
             </Tooltip>
           </Cluster>
         </section>
+        <section className={storyStyles.section}>
+          <h2 className={storyStyles.sectionTitle}>Screen Edge Clamping & Auto-Flipping</h2>
+          <p className={storyStyles.description}>
+            Tooltips automatically clamp to maintain a 12px margin from viewport edges and flip axes when clipped.
+          </p>
+          <Cluster justify="between" gap="loose">
+            <Tooltip text="Clamped to viewport left edge" position="top">
+              <Button size="sm" variant="subtle">Far Left Edge</Button>
+            </Tooltip>
+            <Tooltip text="Auto-flipped from bottom if near screen bottom" position="bottom">
+              <Button size="sm" variant="subtle">Viewport Center</Button>
+            </Tooltip>
+            <Tooltip text="Clamped to viewport right edge" position="top">
+              <Button size="sm" variant="subtle">Far Right Edge</Button>
+            </Tooltip>
+          </Cluster>
+        </section>
       </Stack>
     </div>
   ),
