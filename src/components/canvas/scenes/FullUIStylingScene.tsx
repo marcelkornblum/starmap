@@ -6,14 +6,12 @@ import {
   Panel,
   Well,
   Card,
-} from '../../poc/surfaces';
-import {
   Drawer,
   Modal,
   Popover,
   Tooltip,
   Toast,
-} from '../../poc/overlays';
+} from '../../interface/surfaces';
 import {
   Stack,
   Cluster,

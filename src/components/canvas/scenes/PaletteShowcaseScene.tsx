@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card } from '../../poc/surfaces/Card/Card';
-import { Panel } from '../../poc/surfaces/Panel/Panel';
-import { Well } from '../../poc/surfaces/Well/Well';
+import { Card } from '../../interface/surfaces/Card/Card';
+import { Panel } from '../../interface/surfaces/Panel/Panel';
+import { Well } from '../../interface/surfaces/Well/Well';
 import { Button } from '../../interface/control/Button/Button';
 import { Input } from '../../interface/control/Input/Input';
 import { Toggle } from '../../interface/control/Toggle/Toggle';
@@ -9,7 +9,7 @@ import { Slider } from '../../interface/control/Slider/Slider';
 import { Badge } from '../../interface/data/Badge/Badge';
 import { Unit } from '../../interface/data/Unit/Unit';
 import { ConfidencePip } from '../../interface/data/ConfidencePip/ConfidencePip';
-import { Toast } from '../../poc/overlays/Toast/Toast';
+import { Toast } from '../../interface/surfaces/Toast/Toast';
 import styles from './PaletteShowcaseScene.module.css';
 
 const STEPS = ['10', '20', '30', '40', '50', '60', '70', '80', '90', '100'] as const;

@@ -1,0 +1,277 @@
+@layer blocks {
+  .storyContainer {
+    font-family: var(--font-interface);
+    color: var(--content-primary);
+    padding: var(--space-5);
+    block-size: 100dvh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    background-color: var(--surface-canvas-bg);
+  }
+
+  .header {
+    margin-block-end: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-inline-size: 72ch;
+  }
+
+  .title {
+    margin: 0;
+    font-size: var(--text-headline-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-header);
+    color: var(--content-primary);
+    text-transform: uppercase;
+  }
+
+  .description {
+    margin: 0;
+    font-size: var(--text-body-size);
+    line-height: var(--leading-body);
+    color: var(--content-muted);
+  }
+
+  .formulaBox {
+    background: var(--surface-panel-bg);
+    border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-container);
+    font-family: var(--font-data);
+    font-size: var(--text-caption-size);
+    color: var(--state-focus);
+    letter-spacing: var(--tracking-control);
+    margin-block-start: var(--space-2);
+  }
+
+  /* Compact Gallery Grid */
+  .galleryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-4);
+    margin-block-start: var(--space-3);
+  }
+
+  .surfaceTile {
+    min-block-size: 140px;
+    padding: var(--space-3);
+    border-radius: var(--radius-container);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+    transition: transform var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .surfaceTile:hover {
+    transform: translateY(-2px);
+  }
+
+  .tileHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+
+  .tileTier {
+    font-family: var(--font-data);
+    font-size: var(--text-caption-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
+    color: var(--content-primary);
+  }
+
+  .tileToken {
+    font-family: var(--font-data);
+    font-size: 10px;
+    color: var(--content-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tileBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-block-start: var(--space-2);
+  }
+
+  .tileRole {
+    font-size: var(--text-caption-size);
+    font-weight: var(--font-weight-medium);
+    color: var(--content-secondary);
+  }
+
+  .tileShadowSpec {
+    font-family: var(--font-data);
+    font-size: 10px;
+    color: var(--content-subtle);
+  }
+
+  /* Architectural Breakdown Stack */
+  .breakdownStack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-block-start: var(--space-4);
+    max-inline-size: 800px;
+  }
+
+  .tierDetailCard {
+    background: var(--surface-panel-bg);
+    border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+    border-radius: var(--radius-container);
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    box-shadow: var(--surface-panel-shadow);
+  }
+
+  .tierMetaRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-block-end: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
+    padding-block-end: var(--space-2);
+  }
+
+  .tierBadgeGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .tierTag {
+    font-family: var(--font-data);
+    font-size: var(--text-caption-size);
+    font-weight: var(--font-weight-bold);
+    background: var(--state-focus);
+    color: var(--content-inverse);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-badge);
+    letter-spacing: var(--tracking-control);
+    text-transform: uppercase;
+  }
+
+  .tierName {
+    font-size: var(--text-body-size);
+    font-weight: var(--font-weight-bold);
+    color: var(--content-primary);
+  }
+
+  .tierZIndex {
+    font-family: var(--font-data);
+    font-size: var(--text-caption-size);
+    color: var(--content-muted);
+  }
+
+  .tierExplanation {
+    font-size: var(--text-body-size);
+    line-height: var(--leading-body);
+    color: var(--content-secondary);
+    margin: 0;
+  }
+
+  .tokenList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-2);
+    background: var(--surface-inset-bg);
+    border: var(--surface-inset-border-width) var(--surface-inset-border-style) var(--surface-inset-border-color);
+    padding: var(--space-3);
+    border-radius: var(--radius-container);
+    font-family: var(--font-data);
+    font-size: 11px;
+    color: var(--content-muted);
+  }
+
+  .tokenItem {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .tokenProp {
+    color: var(--content-subtle);
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: var(--tracking-control);
+  }
+
+  .tokenValue {
+    color: var(--content-primary);
+    font-weight: var(--font-weight-medium);
+  }
+}
+
+@layer exceptions {
+  /* Concrete Surface Tier Optical Profiles */
+  .surfaceTile[data-surface="inset"] {
+    background: var(--surface-inset-bg);
+    border: var(--surface-inset-border-width) var(--surface-inset-border-style) var(--surface-inset-border-color);
+    box-shadow: var(--surface-inset-shadow);
+  }
+
+  .surfaceTile[data-surface="canvas"] {
+    background: var(--surface-canvas-bg);
+    border: var(--border-width-1) dashed var(--border-color-subtle);
+    box-shadow: var(--surface-canvas-shadow);
+  }
+
+  .surfaceTile[data-surface="hud"] {
+    background: var(--surface-hud-bg);
+    border: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
+    box-shadow: var(--surface-hud-shadow);
+  }
+
+  .surfaceTile[data-surface="dock"] {
+    background: var(--surface-dock-bg);
+    border: var(--surface-dock-border-width) var(--surface-dock-border-style) var(--surface-dock-border-color);
+    box-shadow: var(--surface-dock-shadow);
+  }
+
+  .surfaceTile[data-surface="panel"] {
+    background: var(--surface-panel-bg);
+    border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
+    box-shadow: var(--surface-panel-shadow);
+  }
+
+  .surfaceTile[data-surface="card"] {
+    background: var(--surface-panel-bg);
+    border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--border-color-subtle);
+    box-shadow: var(--surface-panel-shadow);
+  }
+
+  .surfaceTile[data-surface="drawer"] {
+    background: var(--surface-drawer-bg);
+    border: var(--surface-drawer-border-width) var(--surface-drawer-border-style) var(--surface-drawer-border-color);
+    box-shadow: var(--surface-drawer-shadow);
+  }
+
+  .surfaceTile[data-surface="popover"] {
+    background: var(--surface-popover-bg);
+    border: var(--surface-popover-border-width) var(--surface-popover-border-style) var(--surface-popover-border-color);
+    box-shadow: var(--surface-popover-shadow);
+    backdrop-filter: blur(var(--surface-popover-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--surface-popover-backdrop-blur));
+  }
+
+  .surfaceTile[data-surface="modal"] {
+    background: var(--surface-modal-bg);
+    border: var(--surface-modal-border-width) var(--surface-modal-border-style) var(--surface-modal-border-color);
+    box-shadow: var(--surface-modal-shadow);
+    backdrop-filter: blur(var(--surface-modal-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--surface-modal-backdrop-blur));
+  }
+
+  .surfaceTile[data-surface="toast"] {
+    background: var(--surface-toast-bg);
+    border: var(--surface-toast-border-width) var(--surface-toast-border-style) var(--surface-toast-border-color);
+    box-shadow: var(--surface-toast-shadow);
+    backdrop-filter: blur(var(--surface-toast-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--surface-toast-backdrop-blur));
+  }
+}

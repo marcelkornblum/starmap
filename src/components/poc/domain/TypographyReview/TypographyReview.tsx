@@ -1,6 +1,6 @@
 import type React from 'react';
-import { Panel } from '../../surfaces/Panel/Panel';
-import { Well } from '../../surfaces/Well/Well';
+import { Panel } from '../../../interface/surfaces/Panel/Panel';
+import { Well } from '../../../interface/surfaces/Well/Well';
 import { Badge, type BadgeStatus } from '../../../interface/data/Badge/Badge';
 import { Metric } from '../../primitives/data/Metric/Metric';
 import { Datum } from '../../../interface/data/Datum/Datum';
