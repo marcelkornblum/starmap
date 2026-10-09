@@ -338,9 +338,9 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     occlusionManager.register(fp);
   });
 
-  // Single-Stalk Rule (§2.4): Drop stalk renders for selected or focused entities.
+  // Single-Stalk Rule (§2.4): Drop stalk renders for selected or focused entities with non-zero elevation off datum plane.
   // Stays mounted during retraction (250ms) to ensure smooth exit animation before unmounting.
-  const isStalkTier = activeState === 'selected' || activeState === 'focused';
+  const isStalkTier = (activeState === 'selected' || activeState === 'focused') && Math.abs(resolvedPos.z) > 1e-4;
   const [stalkMounted, setStalkMounted] = useState(isStalkTier);
 
   useEffect(() => {
