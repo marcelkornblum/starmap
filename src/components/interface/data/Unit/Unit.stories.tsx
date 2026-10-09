@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Unit } from './Unit';
-import { Stack } from '../../layout/Stack/Stack';
-import { Cluster } from '../../layout/Cluster/Cluster';
+import { Stack } from '../../layouts/Stack/Stack';
+import { Cluster } from '../../layouts/Cluster/Cluster';
 
 import storyStyles from '../dataStories.module.css';
 

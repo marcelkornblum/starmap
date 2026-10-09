@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Badge } from './Badge';
-import { Cluster } from '../../layout/Cluster/Cluster';
-import { Stack } from '../../layout/Stack/Stack';
+import { Cluster } from '../../layouts/Cluster/Cluster';
+import { Stack } from '../../layouts/Stack/Stack';
 import { ConfidencePip } from '../ConfidencePip/ConfidencePip';
 
 import storyStyles from '../dataStories.module.css';
