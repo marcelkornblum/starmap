@@ -1,0 +1,41 @@
+@layer blocks {
+  .edgeAvoidanceContainer {
+    inline-size: 100vw;
+    block-size: 100vh;
+    position: relative;
+    padding: var(--space-inset-card, 24px);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .topLeft {
+    position: absolute;
+    inset-inline-start: var(--space-inset-card, 24px);
+    inset-block-start: var(--space-inset-card, 24px);
+  }
+
+  .topRight {
+    position: absolute;
+    inset-inline-end: var(--space-inset-card, 24px);
+    inset-block-start: var(--space-inset-card, 24px);
+  }
+
+  .bottomLeft {
+    position: absolute;
+    inset-inline-start: var(--space-inset-card, 24px);
+    inset-block-end: var(--space-inset-card, 24px);
+  }
+
+  .bottomRight {
+    position: absolute;
+    inset-inline-end: var(--space-inset-card, 24px);
+    inset-block-end: var(--space-inset-card, 24px);
+  }
+
+  .center {
+    position: absolute;
+    inset-inline-start: 50%;
+    inset-block-start: 50%;
+    transform: translate(-50%, -50%);
+  }
+}

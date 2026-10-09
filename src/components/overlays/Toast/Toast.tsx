@@ -4,7 +4,7 @@ import styles from './Toast.module.css';
 export interface ToastProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   title: ReactNode;
   message?: ReactNode;
-  status?: 'nominal' | 'caution' | 'critical' | 'info';
+  status?: 'nominal' | 'caution' | 'critical' | 'info' | 'neutral';
   onClose?: () => void;
 }
 

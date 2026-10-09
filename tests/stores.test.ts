@@ -16,6 +16,7 @@ describe('useSettingsStore (Persistent)', () => {
   it('initializes with default settings', () => {
     const state = useSettingsStore.getState();
     expect(state.theme).toBe('dark');
+    expect(state.palette).toBe('carbon');
     expect(state.showLabels).toBe(true);
     expect(state.showGrid).toBe(true);
     expect(state.showOrbits).toBe(true);

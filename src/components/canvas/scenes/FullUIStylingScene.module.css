@@ -1,14 +1,16 @@
 @layer blocks {
   .fullUiContainer {
+    position: fixed;
+    inset: 0;
     inline-size: 100vw;
     block-size: 100vh;
-    position: relative;
     overflow: hidden;
     background-color: var(--surface-canvas-bg);
     font-family: var(--font-interface);
     color: var(--content-prominent);
     box-sizing: border-box;
     margin: 0;
+    padding: 0;
   }
 
   .canvasLayer {
@@ -17,9 +19,13 @@
     inline-size: 100%;
     block-size: 100%;
     z-index: var(--layer-canvas);
+    margin: 0;
+    padding: 0;
   }
 
   .canvasOverride {
+    position: absolute;
+    inset: 0;
     inline-size: 100%;
     block-size: 100%;
     border: none;
@@ -90,6 +96,17 @@
   }
 
   /* ------------------------------------------------------------------------- */
+  /* Theme & Palette Switcher Anchor                                           */
+  /* ------------------------------------------------------------------------- */
+  .themeSwitcherAnchor {
+    position: fixed;
+    inset-block-start: calc(var(--space-viewport-edge) + var(--space-fib-6));
+    inset-inline-end: var(--space-viewport-edge);
+    z-index: var(--layer-hud);
+    inline-size: min(90vw, 360px);
+  }
+
+  /* ------------------------------------------------------------------------- */
   /* Tier 5: --surface-popover                                                 */
   /* ------------------------------------------------------------------------- */
   .popoverAnchor {
@@ -140,12 +157,18 @@
   /* ------------------------------------------------------------------------- */
   .previewDrawer {
     position: fixed;
+    inset: auto;
     inset-block-start: calc(var(--space-fib-6) + var(--space-fib-3));
     inset-block-end: 0;
-    inset-inline-end: calc(var(--space-inset-control-x) * 2 + 36px + var(--space-fib-2));
+    inset-inline-start: auto;
+    inset-inline-end: 0;
     inline-size: min(85vw, 320px);
     z-index: var(--layer-drawer);
     pointer-events: auto;
+  }
+
+  .demoTooltip {
+    opacity: 1;
   }
 
   .previewDrawer::backdrop {
@@ -180,14 +203,20 @@
 }
 
 @layer exceptions {
-  /* Dock positioned directly against right viewport edge (no margin) */
-  .dockOverride[data-position="right"] {
-    position: fixed;
-    inset-block-start: 50%;
+  /* Ensure previewDrawer overrides any base drawer exception layers */
+  .previewDrawer[data-position="right"] {
+    inset-inline-start: auto;
     inset-inline-end: 0;
-    transform: translateY(-50%);
-    border-inline-end: none;
-    border-start-end-radius: var(--radius-none);
+  }
+
+  /* Dock positioned directly against bottom viewport edge (no margin) */
+  .dockOverride[data-position="bottom"] {
+    position: fixed;
+    inset-block-end: 0;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    border-block-end: none;
+    border-end-start-radius: var(--radius-none);
     border-end-end-radius: var(--radius-none);
   }
 }

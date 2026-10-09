@@ -9,6 +9,7 @@
     --input-padding-block: var(--ui-input-padding-y);
     --input-font-size: var(--ui-input-font-size);
     --input-radius: var(--ui-input-radius);
+    --input-shadow: var(--surface-inset-shadow);
 
     display: inline-flex;
     box-sizing: border-box;
@@ -20,9 +21,11 @@
     background: var(--input-bg);
     color: var(--input-color);
     border: var(--input-border-width) var(--input-border-style) var(--input-border-color);
+    box-shadow: var(--input-shadow);
     border-radius: var(--input-radius);
     outline: none;
-    transition: border-color var(--motion-duration-feedback) var(--motion-ease-default);
+    transition: border-color var(--motion-duration-feedback) var(--motion-ease-default),
+                box-shadow var(--motion-duration-feedback) var(--motion-ease-default);
     margin: 0;
   }
 
@@ -32,7 +35,7 @@
 
   .input:focus {
     --input-border-color: var(--state-focus);
-    box-shadow: 0 0 0 1px var(--state-focus);
+    box-shadow: var(--input-shadow);
   }
 
   .input:disabled {
@@ -51,7 +54,8 @@
     --input-border-color: var(--status-critical);
   }
   .input[data-status="error"]:focus {
-    box-shadow: 0 0 0 1px var(--status-critical);
+    --input-border-color: var(--status-critical);
+    box-shadow: var(--input-shadow);
   }
 
   .input[data-status="success"] {

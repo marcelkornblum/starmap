@@ -3,4 +3,5 @@
 /* Imports the Literal layer (scales & swatches) and the Semantic layer       */
 /* -------------------------------------------------------------------------- */
 @import './tokens/literal.css';
+@import './tokens/palettes.css';
 @import './tokens/semantic.css';

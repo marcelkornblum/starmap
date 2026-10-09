@@ -197,4 +197,21 @@ describe('CSS parsers (duration, cubic-bezier, px)', () => {
     const invalid = parseCssCubicBezier('not-a-curve');
     expect(invalid(0.5)).toBe(0.5);
   });
+
+  it('dereferences nested var() tokens down to literal values', () => {
+    const mockComputed = {
+      getPropertyValue: (prop: string) => {
+        if (prop === '--state-focus') return 'var(--palette-accent-focus)';
+        if (prop === '--palette-accent-focus') return 'oklch(75.0% 0.190 156)';
+        if (prop === '--chrome-reticle-alpha-focused') return 'var(--opacity-100)';
+        if (prop === '--opacity-100') return '1.0';
+        return '';
+      },
+    } as unknown as CSSStyleDeclaration;
+
+    const snapshot = extractThreeTokens(mockComputed, 'dark');
+    expect(snapshot.stateFocus.r).toBeCloseTo(0, 2);
+    expect(snapshot.stateFocus.g).toBeGreaterThan(0.6);
+    expect(snapshot.reticleFocusedAlpha).toBe(1.0);
+  });
 });

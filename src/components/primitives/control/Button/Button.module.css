@@ -5,6 +5,7 @@
     --button-border-color: var(--ui-button-default-border-color);
     --button-border-width: var(--ui-button-default-border-width);
     --button-border-style: var(--ui-button-default-border-style);
+    --button-shadow: var(--ui-button-default-shadow);
     --button-padding-inline: var(--space-inset-button-default-x);
     --button-padding-block: var(--space-inset-button-default-y);
     --button-font-size: var(--text-ui-button-default-size);
@@ -27,21 +28,27 @@
     background: var(--button-bg);
     color: var(--button-color);
     border: var(--button-border-width) var(--button-border-style) var(--button-border-color);
+    box-shadow: var(--button-shadow);
     border-radius: var(--button-radius);
     cursor: pointer;
     text-decoration: none;
     transition: background var(--motion-duration-feedback) var(--motion-ease-default),
                 border-color var(--motion-duration-feedback) var(--motion-ease-default),
-                color var(--motion-duration-feedback) var(--motion-ease-default);
+                color var(--motion-duration-feedback) var(--motion-ease-default),
+                box-shadow var(--motion-duration-feedback) var(--motion-ease-default);
     margin: 0;
   }
 
   .button:hover:not(:disabled) {
     --button-bg: var(--ui-button-default-hover-bg);
+    --button-border-color: var(--ui-button-default-hover-border-color);
+    --button-shadow: var(--ui-button-default-hover-shadow);
   }
 
   .button:active:not(:disabled) {
     --button-bg: var(--ui-button-default-active-bg);
+    --button-border-color: var(--ui-button-default-active-border-color);
+    --button-shadow: var(--ui-button-default-active-shadow);
   }
 
   .button:focus-visible {
@@ -56,30 +63,58 @@
 }
 
 @layer exceptions {
+  .button[data-variant="highlight"],
   .button[data-variant="primary"] {
-    --button-bg: var(--ui-button-prominent-bg);
-    --button-color: var(--ui-button-prominent-color);
-    --button-border-color: var(--ui-button-prominent-border-color);
+    --button-bg: var(--ui-button-highlight-bg);
+    --button-color: var(--ui-button-highlight-color);
+    --button-border-color: var(--ui-button-highlight-border-color);
+    --button-shadow: var(--ui-button-highlight-shadow);
   }
+  .button[data-variant="highlight"]:hover:not(:disabled),
   .button[data-variant="primary"]:hover:not(:disabled) {
-    --button-bg: var(--ui-button-prominent-hover-bg);
-    --button-border-color: var(--ui-button-prominent-hover-bg);
+    --button-bg: var(--ui-button-highlight-hover-bg);
+    --button-border-color: var(--ui-button-highlight-hover-border-color);
+    --button-shadow: var(--ui-button-highlight-shadow);
+  }
+  .button[data-variant="highlight"]:active:not(:disabled),
+  .button[data-variant="primary"]:active:not(:disabled) {
+    --button-bg: var(--ui-button-highlight-active-bg);
+  }
+
+  .button[data-variant="secondary"] {
+    --button-bg: var(--ui-button-default-bg);
+    --button-color: var(--ui-button-default-color);
+    --button-border-color: var(--ui-button-default-border-color);
+    --button-shadow: var(--ui-button-default-shadow);
+  }
+  .button[data-variant="secondary"]:hover:not(:disabled) {
+    --button-bg: var(--ui-button-default-hover-bg);
+    --button-border-color: var(--ui-button-default-hover-border-color);
+    --button-shadow: var(--ui-button-default-hover-shadow);
+  }
+  .button[data-variant="secondary"]:active:not(:disabled) {
+    --button-bg: var(--ui-button-default-active-bg);
+    --button-border-color: var(--ui-button-default-active-border-color);
+    --button-shadow: var(--ui-button-default-active-shadow);
   }
 
   .button[data-variant="subtle"] {
     --button-bg: var(--ui-button-subtle-bg);
     --button-border-color: var(--ui-button-subtle-border-color);
     --button-color: var(--ui-button-subtle-color);
+    --button-shadow: none;
   }
   .button[data-variant="subtle"]:hover:not(:disabled) {
     --button-bg: var(--ui-button-subtle-hover-bg);
     --button-border-color: var(--ui-button-subtle-hover-border-color);
+    --button-shadow: var(--bevel-top-rim-subtle);
   }
 
   .button[data-variant="danger"] {
     --button-bg: var(--ui-button-danger-bg);
     --button-color: var(--ui-button-danger-color);
     --button-border-color: var(--ui-button-danger-border-color);
+    --button-shadow: var(--ui-button-danger-shadow);
   }
 
   .button[data-size="sm"] {

@@ -10,6 +10,15 @@
   color: var(--content-prominent);
 }
 
+.viewportContainer[data-variant="fullscreen"] {
+  inline-size: 100%;
+  block-size: 100%;
+  position: absolute;
+  inset: 0;
+  border: none;
+  border-radius: var(--radius-none);
+}
+
 .canvasWrapper {
   inline-size: 100%;
   block-size: 100%;

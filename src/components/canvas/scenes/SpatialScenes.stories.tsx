@@ -7,10 +7,12 @@ import {
   InteractiveNavigator,
 } from './SpatialScenes';
 import { FullUIStylingScene } from './FullUIStylingScene';
+import { PaletteShowcaseScene } from './PaletteShowcaseScene';
 
 // Re-export scene components and fixtures so any Storybook users can import them cleanly
 export * from './SpatialScenes';
 export { FullUIStylingScene } from './FullUIStylingScene';
+export { PaletteShowcaseScene } from './PaletteShowcaseScene';
 
 const meta: Meta = {
   title: 'Canvas/Prototypes & Verification/Spatial Scenes (Multi-Scale & UI PoC)',
@@ -62,3 +64,17 @@ export const FullUIStyling: Story = {
   },
   render: () => <FullUIStylingScene />,
 };
+
+/**
+ * Spatial Scene 6: Palette & Data Visualisation Showcase
+ * Demonstrates enriched panel hue, Electric Ion Cobalt focus state,
+ * Neutral/Caution/Critical status set, and 10-step data viz gradient ramps.
+ */
+export const PaletteAndDataVizShowcase: Story = {
+  name: '6. Color Palette & Data Viz Showcase (Active PoC)',
+  parameters: {
+    layout: 'fullscreen',
+  },
+  render: () => <PaletteShowcaseScene />,
+};
+

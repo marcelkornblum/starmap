@@ -12,6 +12,7 @@ import {
  */
 export function useThemeTokenSync(): void {
   const theme = useSettingsStore((state) => state.theme);
+  const palette = useSettingsStore((state) => state.palette);
   const setTokens = useThreeTokenStore((state) => state.setTokens);
 
   const resolveTokens = useCallback(() => {
@@ -19,20 +20,22 @@ export function useThemeTokenSync(): void {
     const computed = window.getComputedStyle(document.documentElement);
     const snapshot = extractThreeTokens(computed, theme);
     setTokens(snapshot);
-  }, [theme, setTokens]);
+  }, [theme, palette, setTokens]);
 
   useEffect(() => {
     // 1. Resolve immediately on mount or store theme change
     resolveTokens();
 
-    // 2. Observe DOM mutations on documentElement (data-theme, class)
+    // 2. Observe DOM mutations on documentElement (data-theme, data-palette, class)
     let observer: MutationObserver | undefined;
     if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
       observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
           if (
             mutation.type === 'attributes' &&
-            (mutation.attributeName === 'data-theme' || mutation.attributeName === 'class')
+            (mutation.attributeName === 'data-theme' ||
+              mutation.attributeName === 'data-palette' ||
+              mutation.attributeName === 'class')
           ) {
             resolveTokens();
             break;
@@ -42,7 +45,7 @@ export function useThemeTokenSync(): void {
 
       observer.observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ['data-theme', 'class'],
+        attributeFilter: ['data-theme', 'data-palette', 'class'],
       });
     }
 

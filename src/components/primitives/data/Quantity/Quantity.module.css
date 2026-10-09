@@ -1,0 +1,24 @@
+@layer blocks {
+  .quantity {
+    --quantity-gap: var(--space-cluster-dense, 4px);
+    --quantity-font-family: var(--font-data);
+    --quantity-color: currentColor;
+
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--quantity-gap);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-family: var(--quantity-font-family);
+    color: var(--quantity-color);
+    margin: 0;
+  }
+
+  .quantity[data-no-gap="true"] {
+    gap: 0;
+  }
+
+  .value {
+    white-space: nowrap;
+  }
+}

@@ -32,10 +32,11 @@
     display: flex;
     align-items: baseline;
     gap: var(--space-gap-metric);
+    font-size: var(--data-metric-value-font-size);
   }
 
   .value {
-    font-size: var(--data-metric-value-font-size);
+    font-size: inherit;
     font-family: var(--font-data);
     font-variant-numeric: tabular-nums;
     font-weight: var(--data-metric-value-weight);
@@ -44,8 +45,8 @@
   }
 
   .unit {
-    font-size: var(--data-metric-unit-font-size);
-    color: var(--data-metric-unit-color);
+    font-size: var(--data-metric-unit-font-size, var(--text-unit-size));
+    color: var(--data-metric-unit-color, var(--content-unit));
     font-family: var(--font-interface);
   }
 
@@ -70,7 +71,7 @@
     --metric-border-color: var(--status-critical);
   }
   .metric[data-status="info"] {
-    --metric-value-color: var(--state-focus);
-    --metric-border-color: var(--state-focus);
+    --metric-value-color: var(--status-info);
+    --metric-border-color: var(--status-info-border);
   }
 }

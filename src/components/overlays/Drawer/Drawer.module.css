@@ -35,6 +35,7 @@
   }
 
   .drawerContent {
+    --drawer-backdrop-blur: var(--surface-drawer-backdrop-blur);
     background: var(--drawer-bg);
     box-shadow: var(--drawer-shadow);
     padding: var(--drawer-padding);
@@ -44,6 +45,26 @@
     overflow: auto;
     display: flex;
     flex-direction: column;
+    position: relative;
+    backdrop-filter: blur(var(--drawer-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--drawer-backdrop-blur));
+  }
+
+  .drawerContent::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: min(100%, 360px);
+    background: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.08) 0%,
+      oklch(100% 0 0 / 0.02) 40%,
+      transparent 100%
+    );
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
   }
 
   .drawer::backdrop {
@@ -90,12 +111,14 @@
   .drawer[data-position="left"] {
     inset-block: 0;
     inset-inline-start: 0;
+    inset-inline-end: auto;
     inline-size: min(85vw, 420px);
     border-inline-end: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
   }
 
   .drawer[data-position="right"] {
     inset-block: 0;
+    inset-inline-start: auto;
     inset-inline-end: 0;
     inline-size: min(85vw, 420px);
     border-inline-start: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
@@ -104,12 +127,14 @@
   .drawer[data-position="top"] {
     inset-inline: 0;
     inset-block-start: 0;
+    inset-block-end: auto;
     block-size: min(60vh, 360px);
     border-block-end: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
   }
 
   .drawer[data-position="bottom"] {
     inset-inline: 0;
+    inset-block-start: auto;
     inset-block-end: 0;
     block-size: min(60vh, 360px);
     border-block-start: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);

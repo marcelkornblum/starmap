@@ -1,0 +1,5 @@
+@layer blocks {
+  .listContainer {
+    inline-size: 320px;
+  }
+}
