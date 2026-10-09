@@ -541,7 +541,11 @@ export class CelestialOcclusionManager {
     result.isDisplaced = false;
 
     const target = this.footprints.get(nodeId);
-    if (!target || !target.visible || target.state === 'passive') {
+    if (!target) {
+      result.visible = true;
+      return result;
+    }
+    if (!target.visible || target.state === 'passive') {
       result.visible = false;
       return result;
     }

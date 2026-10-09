@@ -20,6 +20,7 @@ interface FullEntityStoryArgs {
   orbitSemiMajorAxis: number;
   orbitEccentricity: number;
   orbitInclination: number;
+  orbitMeanAnomaly: number;
 }
 
 const meta: Meta<FullEntityStoryArgs> = {
@@ -65,7 +66,7 @@ const meta: Meta<FullEntityStoryArgs> = {
     },
     elevationZ: {
       control: { type: 'range', min: -10, max: 10, step: 0.5 },
-      description: 'Elevation above/below the cartographic reference plane driving drop stalk height',
+      description: 'Primary elevation above/below datum plane driving focal height',
     },
     showKinematicVector: {
       control: 'boolean',
@@ -77,15 +78,19 @@ const meta: Meta<FullEntityStoryArgs> = {
     },
     orbitSemiMajorAxis: {
       control: { type: 'range', min: 4, max: 24, step: 1 },
-      description: 'Keplerian semi-major axis',
+      description: 'Keplerian semi-major axis in AU',
     },
     orbitEccentricity: {
       control: { type: 'range', min: 0, max: 0.85, step: 0.05 },
-      description: 'Keplerian orbital eccentricity',
+      description: 'Keplerian orbital eccentricity (0 = circular, >0 = elliptic)',
     },
     orbitInclination: {
-      control: { type: 'range', min: 0, max: 1.57, step: 0.05 },
-      description: 'Orbital plane inclination in radians',
+      control: { type: 'range', min: 0, max: 60, step: 1 },
+      description: 'Orbital plane inclination in degrees',
+    },
+    orbitMeanAnomaly: {
+      control: { type: 'range', min: 0, max: 360, step: 5 },
+      description: 'Orbital position angle along the Keplerian ellipse in degrees (0 = periapsis)',
     },
   },
 };
@@ -102,12 +107,13 @@ export const FullEntityAssemblyStory: Story = {
     state: 'selected',
     multiplicity: 2,
     planets: 6,
-    elevationZ: 4.5,
+    elevationZ: 3.5,
     showKinematicVector: true,
     showOrbit: true,
-    orbitSemiMajorAxis: 12,
-    orbitEccentricity: 0.35,
-    orbitInclination: 0.25,
+    orbitSemiMajorAxis: 11,
+    orbitEccentricity: 0.32,
+    orbitInclination: 14,
+    orbitMeanAnomaly: 45,
   },
   render: (args) => {
     const primaryZ = args.elevationZ;
@@ -123,7 +129,7 @@ export const FullEntityAssemblyStory: Story = {
     return (
       <StoryCanvas
         title="Full Entity Assembly"
-        description="Unified celestial entity composite demonstrating Layer 1 BodyMarker, Layer 2 Reticle with taxonomic brackets and facets, Layer 3 EntityLabel, vertical DropStalk to reference plane, KinematicVector, and Keplerian OrbitPath."
+        description="Unified celestial entity composite demonstrating Layer 1 BodyMarker, Layer 2 Reticle with taxonomic brackets and facets, Layer 3 EntityLabel, vertical DropStalk to reference plane, KinematicVector, and Keplerian OrbitPath strictly intersecting the entity's spatial coordinates."
         frame={GALACTIC_FRAME}
         cameraDistance={28}
       >
@@ -138,9 +144,9 @@ export const FullEntityAssemblyStory: Story = {
               spectralType={args.spectralType}
               multiplicity={args.multiplicity}
               planets={censusPlanets}
-              position={[0, 1.5, args.elevationZ]}
+              position={args.showOrbit ? undefined : [0, 1.5, args.elevationZ]}
               stateOverride={args.state}
-              velocity={args.showKinematicVector ? [2.8, 1.2, -0.9] : undefined}
+              velocity={args.showKinematicVector ? undefined : [0, 0, 0]}
               orbit={
                 args.showOrbit
                   ? {
@@ -148,8 +154,9 @@ export const FullEntityAssemblyStory: Story = {
                       semiMajorAxis: args.orbitSemiMajorAxis,
                       eccentricity: args.orbitEccentricity,
                       inclination: args.orbitInclination,
-                      ascendingNode: 0.4,
-                      argumentOfPeriapsis: 0.6,
+                      ascendingNode: 20,
+                      argumentOfPeriapsis: 35,
+                      meanAnomaly: args.orbitMeanAnomaly,
                       color: 'var(--color-accent, #40b0ff)',
                       showDirectionArrow: true,
                       showPeriapsisTick: true,

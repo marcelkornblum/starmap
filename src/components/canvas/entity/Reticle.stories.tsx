@@ -1,12 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { StoryCanvas } from '../StoryCanvas';
-import { Reticle } from './Reticle';
-import { BodyMarker } from './BodyMarker';
-import { EntityLabel } from './EntityLabel';
+import { CelestialEntity } from './CelestialEntity';
 import { SpatialEntityProvider, ApertureEvaluator } from './SpatialEntityContext';
 import { OcclusionPass } from './OcclusionPass';
 import { SpatialFrameProvider, SYSTEM_FRAME } from '../instrument';
-import { DEFAULT_RETICLE_SIZE, type CelestialClassification, type PlanetCensusEntry } from '../cartography/reticleGeometry';
+import type { CelestialClassification, PlanetCensusEntry } from '../cartography/reticleGeometry';
 import type { CelestialInteractionState } from './types';
 
 interface ReticleTaxonomyStoryArgs {
@@ -187,34 +185,17 @@ export const ReticleTaxonomyStory: Story = {
               const x = (entry.col - 2.5) * args.spacing;
               const y = (0.5 - entry.row) * (args.spacing * 0.9);
               return (
-                <group key={entry.id} position={[x, y, 0]} name={`reticle-item-${entry.id}`}>
-                  {entry.classification !== 'barycentre' && (
-                    <BodyMarker
-                      id={`marker-${entry.id}`}
-                      position={[0, 0, 0]}
-                      reticleSize={DEFAULT_RETICLE_SIZE}
-                      interactive={false}
-                    />
-                  )}
-                  <Reticle
-                    id={entry.id}
-                    position={[0, 0, 0]}
-                    classification={entry.classification}
-                    state={args.state}
-                    size={DEFAULT_RETICLE_SIZE}
-                    multiplicity={entry.multiplicity}
-                    planets={entry.planets}
-                    spectralType={entry.spectralType}
-                  />
-                  <EntityLabel
-                    id={`label-${entry.id}`}
-                    name={entry.name}
-                    position={[0, 0, 0]}
-                    spectralType={entry.spectralType}
-                    state={args.state}
-                    reticleSize={DEFAULT_RETICLE_SIZE}
-                  />
-                </group>
+                <CelestialEntity
+                  key={entry.id}
+                  id={entry.id}
+                  name={entry.name}
+                  classification={entry.classification}
+                  spectralType={entry.spectralType}
+                  multiplicity={entry.multiplicity}
+                  planets={entry.planets}
+                  position={[x, y, 0]}
+                  stateOverride={args.state}
+                />
               );
             })}
           </SpatialEntityProvider>
