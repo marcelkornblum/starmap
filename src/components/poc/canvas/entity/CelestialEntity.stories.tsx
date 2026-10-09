@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { create } from 'zustand';
-import { StoryCanvas } from '../StoryCanvas';
+import { StoryCanvas } from '../../../canvas/StoryCanvas';
 import {
   CelestialEntity,
   SpatialEntityProvider,
@@ -19,8 +19,8 @@ import {
   SpatialFrameProvider,
   SYSTEM_FRAME,
   GALACTIC_FRAME,
-} from '../instrument';
-import styles from '../cartography/StorybookCanvasWrapper.module.css';
+} from '../../../canvas/instrument';
+import styles from '../../../canvas/cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<typeof CelestialEntity> = {
   title: 'POC/Canvas/Celestial Entities/Celestial Entity',

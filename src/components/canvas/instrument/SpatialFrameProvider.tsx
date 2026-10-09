@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { useLazyRef } from '../../../../hooks/useLazyRef';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import {
   FRAME_PRIORITY,
   REFERENCE_FOV_DEG,
@@ -109,6 +109,11 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
   const scratchBaseQuat = useLazyRef(() => new THREE.Quaternion());
   const scratchTiltQuat = useLazyRef(() => new THREE.Quaternion());
 
+  const coreBearing = useMemo(
+    () => frame.bearings.find((b) => b.id === 'core'),
+    [frame],
+  );
+
   useFrame((state) => {
     const s = stateRef.current;
     s.frame = frame;
@@ -211,8 +216,6 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
 
     // Tilt is never independently configurable; it exists iff the frame declares a core bearing
     // and follows that bearing's target. Orbital bearing is independent of the core bearing.
-    const coreBearing = frame.bearings.find((b) => b.id === 'core');
-
     if (coreBearing) {
       let targetX = frame.centerDistance ?? coreBearing.extent ?? 2000;
       let targetY = 0;

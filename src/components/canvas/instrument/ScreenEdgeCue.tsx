@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { useLazyRef } from '../../../../hooks/useLazyRef';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import { SafeHtml } from '../SafeHtml';
 import {
   calculateScreenEdgeBearing,

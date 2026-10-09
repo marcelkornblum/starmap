@@ -4,7 +4,7 @@ import {
   projectedPixelDiameter,
   bodyVisibility,
   nodeVisibility,
-} from '../src/components/poc/canvas/math/bodyCrossfade';
+} from '../src/components/canvas/math/bodyCrossfade';
 
 const VIEWPORT_HEIGHT = 1000;
 

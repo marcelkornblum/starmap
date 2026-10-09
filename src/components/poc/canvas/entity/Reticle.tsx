@@ -9,9 +9,9 @@ import {
   DEFAULT_RETICLE_SIZE,
   type CelestialClassification,
   type PlanetCensusEntry,
-} from '../cartography/reticleGeometry';
+} from '../../../canvas/cartography/reticleGeometry';
 import { useOcclusionManager } from './SpatialEntityContext';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
 import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState, NodeAlphaRef } from './types';
 

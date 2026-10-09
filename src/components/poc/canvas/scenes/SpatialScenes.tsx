@@ -6,7 +6,7 @@ import { OrbitControls } from '@react-three/drei';
 import {
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
-} from '../cartography';
+} from '../../../canvas/cartography';
 import { SceneTokenBridge } from '../ThemeTokenBridge';
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import { GalaxyScene } from './GalaxyScene';

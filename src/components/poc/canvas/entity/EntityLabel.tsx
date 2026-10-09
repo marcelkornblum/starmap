@@ -6,15 +6,15 @@ import { SafeHtml } from '../SafeHtml';
 import styles from './EntityLabel.module.css';
 import type { CelestialInteractionState } from './types';
 import { useOcclusionManager } from './SpatialEntityContext';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
 import {
   type CelestialFootprint,
   type Box2D,
-} from '../cartography/celestialOcclusionRegistry';
+} from '../../../canvas/cartography/celestialOcclusionRegistry';
 import {
   DEFAULT_RETICLE_SIZE,
   formatDesignationTag,
-} from '../cartography/reticleGeometry';
+} from '../../../canvas/cartography/reticleGeometry';
 import { calculateScreenInvariantScale } from '../engineConfig';
 
 export interface EntityLabelProps {

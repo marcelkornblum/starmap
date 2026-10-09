@@ -2,14 +2,14 @@ import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../../hooks/useLazyRef';
-import type { CelestialClassification } from '../cartography/reticleGeometry';
+import type { CelestialClassification } from '../../../canvas/cartography/reticleGeometry';
 import {
   projectedPixelDiameter,
   bodyVisibility,
   DEFAULT_BODY_MIN_PIXEL_SIZE,
   DEFAULT_BODY_FADE_RANGE,
   CROSSFADE_VISIBILITY_EPSILON,
-} from '../math/bodyCrossfade';
+} from '../../../canvas/math/bodyCrossfade';
 
 import {
   type PlanetPalette,

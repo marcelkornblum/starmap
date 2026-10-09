@@ -10,22 +10,22 @@ import {
 import {
   computeCardinalAlignment as mathCardinal,
   computeTransitionWeights as mathTrans,
-} from '../src/components/poc/canvas/math/cardinal';
+} from '../src/components/canvas/math/cardinal';
 import {
   computeZoomAdaptiveRings as mathRings,
-} from '../src/components/poc/canvas/math/rings';
+} from '../src/components/canvas/math/rings';
 import {
   calculateBearingProximityFade as mathFade,
-} from '../src/components/poc/canvas/math/bearings';
+} from '../src/components/canvas/math/bearings';
 import {
   computeCardinalAlignment as cartoCardinal,
   computeTransitionWeights as cartoTrans,
   computeZoomAdaptiveRings as cartoRings,
   calculateBearingProximityFade as cartoFade,
-} from '../src/components/poc/canvas/cartography/cartographyMath';
+} from '../src/components/canvas/cartography/cartographyMath';
 import { DropStalk } from '../src/components/poc/canvas/entity/DropStalk';
-import { ScreenEdgeCue } from '../src/components/poc/canvas/instrument/ScreenEdgeCue';
-import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/poc/canvas/instrument';
+import { ScreenEdgeCue } from '../src/components/canvas/instrument/ScreenEdgeCue';
+import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/canvas/instrument';
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();

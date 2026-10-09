@@ -10,12 +10,12 @@ import {
   type SpatialEntityState,
   type CelestialInteractionState,
 } from './SpatialEntityStore';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
 import { FRAME_PRIORITY } from '../engineConfig';
 import {
   CelestialOcclusionManager,
   celestialOcclusionManager as defaultOcclusionManager,
-} from '../cartography/celestialOcclusionRegistry';
+} from '../../../canvas/cartography/celestialOcclusionRegistry';
 
 const SpatialEntityStoreContext = createContext<SpatialEntityStore | null>(null);
 export const OcclusionContext = createContext<CelestialOcclusionManager | null>(null);

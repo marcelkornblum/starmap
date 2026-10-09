@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { StoryCanvas } from '../StoryCanvas';
+import { StoryCanvas } from '../../../canvas/StoryCanvas';
 import {
   GALACTIC_FRAME,
   SYSTEM_FRAME,
   PLANETARY_FRAME,
-} from '../instrument/referenceFrame';
+} from '../../../canvas/instrument/referenceFrame';
 import { GalaxyScene } from './GalaxyScene';
 import { SystemScene } from './SystemScene';
 import { PlanetScene } from './PlanetScene';

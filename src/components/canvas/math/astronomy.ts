@@ -8,4 +8,4 @@ export {
   TERRESTRIAL_MAX_MASS_MEARTH,
   ICE_GIANT_MAX_RADIUS_REARTH,
   ICE_GIANT_MAX_MASS_MEARTH,
-} from '../../../../utils/astroMath';
+} from '../../../utils/astroMath';

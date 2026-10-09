@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useSpatialFrame } from './SpatialFrameProvider';
-import { useThreeTokenStore } from '../../../../stores/useThreeTokenStore';
+import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { createCircleGeometry } from '../math/rings';
 import {
   createCircularPlanarGridGeometry,

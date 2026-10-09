@@ -22,7 +22,7 @@ import {
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
   calculateScreenEdgeBearing,
-} from '../src/components/poc/canvas/cartography';
+} from '../src/components/canvas/cartography';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
 vi.mock('@react-three/drei', async (importOriginal) => {

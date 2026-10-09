@@ -12,9 +12,9 @@ import {
   CameraRig,
   CartographicInstrument,
   CartographicLighting,
-} from '../src/components/poc/canvas/instrument';
+} from '../src/components/canvas/instrument';
 import { SpatialViewport } from '../src/components/poc/canvas/SpatialViewport';
-import { StoryCanvas } from '../src/components/poc/canvas/StoryCanvas';
+import { StoryCanvas } from '../src/components/canvas/StoryCanvas';
 import {
   FRAME_PRIORITY,
   ORBIT_CONTROLS_PRIORITY,
@@ -26,7 +26,7 @@ import {
   SpatialEntityProvider,
   useOcclusionManager,
 } from '../src/components/poc/canvas/entity/SpatialEntityContext';
-import { CelestialOcclusionManager } from '../src/components/poc/canvas/cartography/celestialOcclusionRegistry';
+import { CelestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();
