@@ -192,6 +192,31 @@ describe('Tier 2: Overlays', () => {
     expect(html).toContain('Spectral Lum: 3.828e26 W');
     expect(html).toContain('role="tooltip"');
     expect(html).toContain('data-position="right"');
+    expect(html).toContain('data-align="center"');
+  });
+
+  it('renders Tooltip in controlled mode and standalone without children', () => {
+    const htmlOpen = renderToString(
+      createElement(Tooltip, {
+        text: 'Telemetry Lock Active',
+        isOpen: true,
+        position: 'top',
+        id: 'telemetry-tt',
+      })
+    );
+    expect(htmlOpen).toContain('id="telemetry-tt"');
+    expect(htmlOpen).toContain('Telemetry Lock Active');
+    expect(htmlOpen).toContain('data-position="top"');
+    expect(htmlOpen).toContain('data-align="center"');
+    expect(htmlOpen).toContain('data-state="open"');
+
+    const htmlClosed = renderToString(
+      createElement(Tooltip, {
+        text: 'Hidden Tooltip',
+        isOpen: false,
+      })
+    );
+    expect(htmlClosed).toBe('');
   });
 
   it('renders Toast notification with status and dismiss button', () => {

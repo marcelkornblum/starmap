@@ -1,13 +1,13 @@
 import {
   useState,
   useRef,
-  useEffect,
   useCallback,
   useId,
   type HTMLAttributes,
   type ReactNode,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
+import { Tooltip } from '../../surfaces/Tooltip/Tooltip';
 import styles from './ConfidencePip.module.css';
 
 export type ConfidenceLevel =
@@ -80,14 +80,10 @@ export const ConfidencePip = ({
   const generatedId = useId();
   const tooltipId = `confidence-tooltip-${generatedId}`;
   const containerRef = useRef<HTMLSpanElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(defaultOpen);
   const isControlled = controlledIsOpen !== undefined;
   const isOpen = isControlled ? controlledIsOpen : uncontrolledIsOpen;
-
-  const [effectivePosition, setEffectivePosition] = useState(tooltipPosition);
-  const [alignment, setAlignment] = useState<'center' | 'start' | 'end'>('center');
 
   const { canonical, defaultLabel } = normalizeConfidence(confidence);
   const displayLabel = label || defaultLabel.toLowerCase();
@@ -107,97 +103,28 @@ export const ConfidencePip = ({
     setOpen(!isOpen);
   };
 
-  // Close on outside click or Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleDocumentClick = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleDocumentClick);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('mousedown', handleDocumentClick);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, setOpen]);
-
-  // Viewport boundary detection and screen edge avoidance
-  useEffect(() => {
-    if (!isOpen || typeof window === 'undefined') return;
-
-    const computePlacement = () => {
-      const tooltipEl = tooltipRef.current;
-      const triggerEl = containerRef.current;
-      if (!tooltipEl || !triggerEl) return;
-
-      const triggerRect = triggerEl.getBoundingClientRect();
-      const tooltipRect = tooltipEl.getBoundingClientRect();
-      const margin = 12;
-
-      let pos = tooltipPosition;
-      let align: 'center' | 'start' | 'end' = 'center';
-
-      // Vertical boundary check: flip if obstructed by viewport top/bottom
-      if (pos === 'top' && triggerRect.top - tooltipRect.height - margin < 0) {
-        pos = 'bottom';
-      } else if (
-        pos === 'bottom' &&
-        triggerRect.bottom + tooltipRect.height + margin > window.innerHeight
-      ) {
-        pos = 'top';
-      }
-
-      // Horizontal boundary check for lateral positions
-      if (pos === 'left' && triggerRect.left - tooltipRect.width - margin < 0) {
-        pos = 'right';
-      } else if (
-        pos === 'right' &&
-        triggerRect.right + tooltipRect.width + margin > window.innerWidth
-      ) {
-        pos = 'left';
-      }
-
-      // Horizontal alignment clamping for top/bottom positions
-      if (pos === 'top' || pos === 'bottom') {
-        const halfWidth = tooltipRect.width / 2;
-        const triggerCenterX = triggerRect.left + triggerRect.width / 2;
-
-        if (triggerCenterX + halfWidth > window.innerWidth - margin) {
-          align = 'end';
-        } else if (triggerCenterX - halfWidth < margin) {
-          align = 'start';
-        } else {
-          align = 'center';
-        }
-      }
-
-      setEffectivePosition(pos);
-      setAlignment(align);
-    };
-
-    computePlacement();
-    window.addEventListener('resize', computePlacement);
-    window.addEventListener('scroll', computePlacement, true);
-    return () => {
-      window.removeEventListener('resize', computePlacement);
-      window.removeEventListener('scroll', computePlacement, true);
-    };
-  }, [isOpen, tooltipPosition]);
-
   const combinedClassName = className
     ? `${styles.pipWrapper} ${className}`
     : styles.pipWrapper;
+
+  const tooltipContent = (
+    <span className={styles.tooltipContent}>
+      <span className={styles.tooltipPrefix}>We have </span>
+      <span
+        className={styles.levelName}
+        data-confidence={canonical}
+        data-testid="confidence-level-name"
+      >
+        {displayLabel}
+      </span>
+      <span className={styles.tooltipSuffix}> confidence in this data</span>
+      {details && (
+        <span className={styles.tooltipDetails} data-testid="confidence-pip-details">
+          {details}
+        </span>
+      )}
+    </span>
+  );
 
   return (
     <span
@@ -222,32 +149,14 @@ export const ConfidencePip = ({
       </button>
 
       {isOpen && (
-        <div
-          ref={tooltipRef}
+        <Tooltip
           id={tooltipId}
-          role="tooltip"
-          className={styles.tooltip}
-          data-position={effectivePosition}
-          data-align={alignment}
+          text={tooltipContent}
+          position={tooltipPosition}
+          isOpen={true}
+          onOpenChange={setOpen}
           data-testid="confidence-pip-tooltip"
-        >
-          <span className={styles.tooltipContent}>
-            <span className={styles.tooltipPrefix}>We have </span>
-            <span
-              className={styles.levelName}
-              data-confidence={canonical}
-              data-testid="confidence-level-name"
-            >
-              {displayLabel}
-            </span>
-            <span className={styles.tooltipSuffix}> confidence in this data</span>
-            {details && (
-              <span className={styles.tooltipDetails} data-testid="confidence-pip-details">
-                {details}
-              </span>
-            )}
-          </span>
-        </div>
+        />
       )}
     </span>
   );
