@@ -12,7 +12,7 @@ const preview: Preview = {
     },
     options: {
       storySort: (a, b) => {
-        const topNames = ['Overview', 'Full Instrument Assembly'];
+        const topNames = ['Overview', 'Full Instrument Assembly', 'CelestialEntity'];
         const aTop = topNames.indexOf(a.name);
         const bTop = topNames.indexOf(b.name);
         if (aTop !== -1 && bTop !== -1) return aTop - bTop;

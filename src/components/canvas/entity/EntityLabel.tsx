@@ -1,20 +1,20 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { useLazyRef } from '../../../../hooks/useLazyRef';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import { SafeHtml } from '../SafeHtml';
 import styles from './EntityLabel.module.css';
 import type { CelestialInteractionState } from './types';
 import { useOcclusionManager } from './SpatialEntityContext';
-import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import {
   type CelestialFootprint,
   type Box2D,
-} from '../../../canvas/cartography/celestialOcclusionRegistry';
+} from '../cartography/celestialOcclusionRegistry';
 import {
   DEFAULT_RETICLE_SIZE,
   formatDesignationTag,
-} from '../../../canvas/cartography/reticleGeometry';
+} from '../cartography/reticleGeometry';
 import { calculateScreenInvariantScale } from '../engineConfig';
 
 export interface EntityLabelProps {

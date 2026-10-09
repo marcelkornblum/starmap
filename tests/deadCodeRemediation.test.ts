@@ -23,7 +23,7 @@ import {
   computeZoomAdaptiveRings as cartoRings,
   calculateBearingProximityFade as cartoFade,
 } from '../src/components/canvas/cartography/cartographyMath';
-import { DropStalk } from '../src/components/poc/canvas/entity/DropStalk';
+import { DropStalk } from '../src/components/canvas/entity/DropStalk';
 import { ScreenEdgeCue } from '../src/components/canvas/instrument/ScreenEdgeCue';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/canvas/instrument';
 

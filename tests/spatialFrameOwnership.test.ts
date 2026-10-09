@@ -25,7 +25,7 @@ import {
 import {
   SpatialEntityProvider,
   useOcclusionManager,
-} from '../src/components/poc/canvas/entity/SpatialEntityContext';
+} from '../src/components/canvas/entity/SpatialEntityContext';
 import { CelestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
 
 vi.mock('@react-three/drei', async (importOriginal) => {

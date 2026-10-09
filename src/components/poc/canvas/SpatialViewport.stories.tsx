@@ -4,7 +4,7 @@ import { SpatialViewport, type SpatialViewportProps } from './SpatialViewport';
 import { GALACTIC_FRAME, SYSTEM_FRAME, PLANETARY_FRAME } from '../../canvas/instrument/referenceFrame';
 import { PlanetBody } from './scenes/PlanetBody';
 import { calculateKeplerianPosition } from '../../canvas/math/kepler';
-import type { SpatialEntityDefinition } from './entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../../canvas/entity';
 
 const SAMPLE_ENTITIES: SpatialEntityDefinition[] = [
   {

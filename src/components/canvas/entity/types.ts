@@ -3,7 +3,7 @@ import type {
   CelestialClassification,
   PlanetCensusEntry,
   ReticleAnnotationOptions,
-} from '../../../canvas/cartography/reticleGeometry';
+} from '../cartography/reticleGeometry';
 
 export type { CelestialClassification, PlanetCensusEntry, ReticleAnnotationOptions };
 

@@ -1,17 +1,17 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { useLazyRef } from '../../../../hooks/useLazyRef';
-import { useThreeTokenStore } from '../../../../stores/useThreeTokenStore';
+import { useLazyRef } from '../../../hooks/useLazyRef';
+import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import {
   createReticleGeometry,
   classifyPlanet,
   DEFAULT_RETICLE_SIZE,
   type CelestialClassification,
   type PlanetCensusEntry,
-} from '../../../canvas/cartography/reticleGeometry';
+} from '../cartography/reticleGeometry';
 import { useOcclusionManager } from './SpatialEntityContext';
-import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState, NodeAlphaRef } from './types';
 

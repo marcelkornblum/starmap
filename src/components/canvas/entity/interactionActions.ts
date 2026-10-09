@@ -1,5 +1,5 @@
 import type { SpatialEntityStore } from './SpatialEntityStore';
-import { celestialOcclusionManager } from '../../../canvas/cartography/celestialOcclusionRegistry';
+import { celestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
 
 /** Resolves the next entity in an overlapping screen-space cluster (identity when isolated). */
 export type CyclicTargetResolver = (id: string) => string;
