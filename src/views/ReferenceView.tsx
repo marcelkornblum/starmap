@@ -1,5 +1,5 @@
 import type React from 'react';
-import { ScenePortal } from '../components/poc/canvas/SceneBridge';
+import { ScenePortal } from '../components/canvas/viewport/SceneBridge';
 import { useStarmapNav } from '../router/navigation';
 import { Panel, Card } from '../components/poc/surfaces';
 import { Stack, Button, Datum } from '../components/poc/primitives';

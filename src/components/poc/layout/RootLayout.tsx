@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import type React from 'react';
 import { Outlet, Link, useNavigate } from '@tanstack/react-router';
-import { SceneProvider } from '../canvas/SceneBridge';
-import { GlobalCanvas } from '../canvas/GlobalCanvas';
-import { ThemeTokenBridge } from '../canvas/ThemeTokenBridge';
+import { SceneProvider, GlobalCanvas } from '../../canvas/viewport';
+import { ThemeTokenBridge } from '../../canvas/ThemeTokenBridge';
 import { CommandPalette, type CommandPaletteItem } from '../domain';
 import { Button } from '../primitives';
 import styles from './RootLayout.module.css';

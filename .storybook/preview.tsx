@@ -1,5 +1,5 @@
 import type { Preview } from '@storybook/react-vite';
-import '../src/components/poc/canvas/patchR3F';
+import '../src/components/canvas/viewport/patchR3F';
 import '../src/index.css';
 
 const preview: Preview = {
@@ -14,6 +14,9 @@ const preview: Preview = {
       storySort: (a, b) => {
         const topNames = [
           'Overview',
+          'Multi-Scale Navigator',
+          'Full Assembly',
+          'Full Canvas Assembly',
           'Full Instrument Assembly',
           'Full Entity Assembly',
           'Reticle Taxonomy & Facets',

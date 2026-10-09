@@ -6,7 +6,7 @@ import { SystemView, SystemControlsDock } from '../src/views/SystemView';
 import { PlanetView } from '../src/views/PlanetView';
 import { ReferenceView } from '../src/views/ReferenceView';
 import { RootHeader } from '../src/components/poc/layout/RootLayout';
-import { SceneProvider } from '../src/components/poc/canvas/SceneBridge';
+import { SceneProvider } from '../src/components/canvas/viewport/SceneBridge';
 
 import { useParams } from '@tanstack/react-router';
 

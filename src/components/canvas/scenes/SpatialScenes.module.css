@@ -1,0 +1,31 @@
+@layer blocks {
+  .viewportContainer {
+    inline-size: 100%;
+    block-size: 820px;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-container);
+    border: var(--border-width-1) var(--border-style-boundary) var(--chrome-grid-primary-color);
+    background-color: var(--surface-canvas-bg);
+    font-family: var(--font-interface);
+    color: var(--content-prominent);
+  }
+
+  .canvasWrapper {
+    inline-size: 100%;
+    block-size: 100%;
+    position: relative;
+    z-index: var(--layer-canvas);
+  }
+}
+
+@layer exceptions {
+  .viewportContainer[data-variant="fullscreen"] {
+    inline-size: 100%;
+    block-size: 100%;
+    position: absolute;
+    inset: 0;
+    border: none;
+    border-radius: var(--radius-none);
+  }
+}

@@ -7,3 +7,5 @@ export * from './ThemeTokenBridge';
 export * from './engineConfig';
 export * from './useThemeTokenSync';
 export * from './entity';
+export * from './scenes';
+export * from './viewport';

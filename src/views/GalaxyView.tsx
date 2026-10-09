@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useState } from 'react';
-import { ScenePortal } from '../components/poc/canvas/SceneBridge';
-import { GalaxyScene } from '../components/poc/canvas/scenes/GalaxyScene';
+import { ScenePortal } from '../components/canvas/viewport/SceneBridge';
+import { GalaxyScene } from '../components/canvas/scenes/GalaxyScene';
 import { useStarmapNav } from '../router/navigation';
 import { Panel } from '../components/poc/surfaces';
 import { Stack, Cluster, Button, Metric } from '../components/poc/primitives';

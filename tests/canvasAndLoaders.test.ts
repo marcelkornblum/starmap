@@ -5,9 +5,16 @@ import {
   SceneProvider,
   ScenePortal,
   SceneOutlet,
+} from '../src/components/canvas/viewport/SceneBridge';
+import { useScene } from '../src/components/canvas/viewport/SceneBridgeContext';
+import { GlobalCanvas } from '../src/components/canvas/viewport/GlobalCanvas';
+import {
+  SceneProvider as PocSceneProvider,
+  ScenePortal as PocScenePortal,
+  SceneOutlet as PocSceneOutlet,
 } from '../src/components/poc/canvas/SceneBridge';
-import { useScene } from '../src/components/poc/canvas/SceneBridgeContext';
-import { GlobalCanvas } from '../src/components/poc/canvas/GlobalCanvas';
+import { useScene as usePocScene } from '../src/components/poc/canvas/SceneBridgeContext';
+import { GlobalCanvas as PocGlobalCanvas } from '../src/components/poc/canvas/GlobalCanvas';
 import { RootLayout } from '../src/components/poc/layout/RootLayout';
 import {
   galaxyRoute,
@@ -232,6 +239,14 @@ describe('Route Loaders & Render-Then-Fetch Pattern', () => {
       expect(html).toBeDefined();
       expect(activeSceneState).toBeNull();
       expect(activeKeyState).toBeNull();
+    });
+
+    it('maintains backwards-compatible re-exports from src/components/poc/canvas viewport files', () => {
+      expect(PocSceneProvider).toBe(SceneProvider);
+      expect(PocScenePortal).toBe(ScenePortal);
+      expect(PocSceneOutlet).toBe(SceneOutlet);
+      expect(usePocScene).toBe(useScene);
+      expect(PocGlobalCanvas).toBe(GlobalCanvas);
     });
   });
 });
