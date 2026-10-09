@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ScenePortal } from '../components/canvas/viewport/SceneBridge';
 import { GalaxyScene } from '../components/canvas/scenes/GalaxyScene';
 import { useStarmapNav } from '../router/navigation';
-import { Panel } from '../components/poc/surfaces';
+import { Panel } from '../components/interface/surfaces';
 import { Stack, Cluster, Button, Metric } from '../components/poc/primitives';
 import { SystemControls } from '../components/poc/domain';
 import type { ProjectionMode } from '../stores/useSettingsStore';

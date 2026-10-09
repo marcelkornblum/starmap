@@ -14,6 +14,8 @@ const preview: Preview = {
       storySort: (a, b) => {
         const topNames = [
           'Overview',
+          'Elevations & Spatial Hierarchy',
+          'Surface Gallery',
           'Multi-Scale Navigator',
           'Full Assembly',
           'Full Canvas Assembly',

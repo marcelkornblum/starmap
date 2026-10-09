@@ -4,7 +4,7 @@ import { useParams } from '@tanstack/react-router';
 import { ScenePortal } from '../components/canvas/viewport/SceneBridge';
 import { SystemScene } from '../components/canvas/scenes/SystemScene';
 import { useStarmapNav } from '../router/navigation';
-import { Panel } from '../components/poc/surfaces';
+import { Panel } from '../components/interface/surfaces';
 import { Stack, Cluster, Button } from '../components/poc/primitives';
 import {
   StarDossier,

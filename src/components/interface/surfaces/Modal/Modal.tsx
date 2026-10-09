@@ -1,5 +1,5 @@
 import { useRef, useEffect, useId, type DialogHTMLAttributes, type ReactNode } from 'react';
-import { Stack } from '../../primitives';
+import { Stack } from '../../layout/Stack/Stack';
 import styles from './Modal.module.css';
 
 export interface ModalProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'title'> {
