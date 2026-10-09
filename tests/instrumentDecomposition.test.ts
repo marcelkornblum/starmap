@@ -70,13 +70,12 @@ describe('Instrument Decomposition & Reference Frames (Phase 2)', () => {
       expect(SYSTEM_FRAME.datumPlane.planarGridGap).toBe(1.5);
       expect(SYSTEM_FRAME.datumPlane.fill).toBe(true);
       expect(SYSTEM_FRAME.datumPlane.footprints).toBe(true);
-      expect(SYSTEM_FRAME.bearings.length).toBe(2);
-      expect(SYSTEM_FRAME.bearings[0].id).toBe('core');
-      expect(SYSTEM_FRAME.bearings[1].id).toBe('orbital');
+      expect(SYSTEM_FRAME.bearings.length).toBe(1);
+      expect(SYSTEM_FRAME.bearings[0].id).toBe('orbital');
       expect(SYSTEM_FRAME.orientation).toBeDefined();
     });
 
-    it('defines PLANETARY_FRAME with calibrated planetary radius, shared planar elements, and axial tilt orientation', () => {
+    it('defines PLANETARY_FRAME with calibrated planetary radius, shared planar elements, and axial tilt orientation without core bearing', () => {
       expect(PLANETARY_FRAME.id).toBe('planetary');
       expect(PLANETARY_FRAME.unit).toBe('km');
       expect(PLANETARY_FRAME.radius).toBe(65);
@@ -85,9 +84,7 @@ describe('Instrument Decomposition & Reference Frames (Phase 2)', () => {
       expect(PLANETARY_FRAME.datumPlane.planarGrid).toBe(true);
       expect(PLANETARY_FRAME.datumPlane.planarGridGap).toBe(10.0);
       expect(PLANETARY_FRAME.datumPlane.footprints).toBe(true);
-      expect(PLANETARY_FRAME.bearings.length).toBe(2);
-      expect(PLANETARY_FRAME.bearings[0].id).toBe('core');
-      expect(PLANETARY_FRAME.bearings[1].id).toBe('orbital');
+      expect(PLANETARY_FRAME.bearings.length).toBe(0);
       expect(PLANETARY_FRAME.orientation).toBeDefined();
     });
 
@@ -364,22 +361,22 @@ describe('Instrument Decomposition & Reference Frames (Phase 2)', () => {
       expect(html).toContain('full-ring-10');
     });
 
-    it('renders system instrument with shared planar grid, datum plane, and bearings', () => {
+    it('renders system instrument with shared planar grid, datum plane, and orbital bearing (core bearing suppressed)', () => {
       const html = renderInstrument(SYSTEM_FRAME, [1, 5, 10]);
       expect(html).toContain('name="cartographic-grid"');
       expect(html).toContain('name="datum-plane"');
       expect(html).toContain('name="planar-galactic-grid"');
-      expect(html).toContain('CORE 000°');
+      expect(html).not.toContain('CORE 000°');
       expect(html).toContain('ORB 090°');
     });
 
-    it('renders planetary instrument with shared planar grid, datum fill, and bearings', () => {
+    it('renders planetary instrument with shared planar grid and datum fill without bearings', () => {
       const html = renderInstrument(PLANETARY_FRAME, [2000, 5000, 10000]);
       expect(html).toContain('name="cartographic-grid"');
       expect(html).toContain('name="datum-plane-fill"');
       expect(html).toContain('name="planar-galactic-grid"');
-      expect(html).toContain('CORE 000°');
-      expect(html).toContain('ORB 090°');
+      expect(html).not.toContain('CORE 000°');
+      expect(html).not.toContain('ORB 090°');
     });
   });
 
@@ -413,6 +410,38 @@ describe('Instrument Decomposition & Reference Frames (Phase 2)', () => {
       expect(q.x).toBeCloseTo(0, 3);
       expect(q.y).toBeGreaterThan(0); // Non-zero pitch rotation around orbital axis
       expect(q.z).toBeCloseTo(0, 3);
+    });
+
+    it('suppresses tilt when frame does not declare a core bearing', () => {
+      // For frames without a core bearing (e.g. PLANETARY_FRAME or SYSTEM_FRAME), tilt must be identity
+      const hasCore = SYSTEM_FRAME.bearings.some((b) => b.id === 'core');
+      expect(hasCore).toBe(false);
+
+      const hasPlanetaryCore = PLANETARY_FRAME.bearings.some((b) => b.id === 'core');
+      expect(hasPlanetaryCore).toBe(false);
+    });
+
+    it('supports frame-neutral props (centerDistance, showDatumPlane)', () => {
+      const html = renderToString(
+        createElement(
+          SpatialFrameProvider,
+          { frame: GALACTIC_FRAME },
+          createElement(BearingVectors, { centerDistance: 3000, extent: 1500 }),
+          createElement(PlanarGrid, { centerDistance: 3000 }),
+        ),
+      );
+      expect(html).toContain('name="bearing-vectors"');
+      expect(html).toContain('name="datum-plane"');
+
+      const htmlInstrument = renderToString(
+        createElement(
+          SpatialFrameProvider,
+          { frame: GALACTIC_FRAME },
+          createElement(CartographicInstrument, { showDatumPlane: false }),
+        ),
+      );
+      expect(htmlInstrument).toContain('name="cartographic-grid"');
+      expect(htmlInstrument).not.toContain('name="planar-galactic-grid"');
     });
   });
 });

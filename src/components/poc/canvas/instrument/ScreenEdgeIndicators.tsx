@@ -8,6 +8,9 @@ export interface ScreenEdgeIndicatorsProps {
   origin?: [number, number, number] | THREE.Vector3;
   margin?: number;
   extent?: number;
+  /** Distance to system/galactic centre for curved orbital calculation */
+  centerDistance?: number;
+  /** @deprecated Use centerDistance instead */
   rGc?: number;
   minLineLength?: number;
   /** Explicit override to show/hide Core bearing indicator */
@@ -20,7 +23,8 @@ export const ScreenEdgeIndicators: React.FC<ScreenEdgeIndicatorsProps> = ({
   origin,
   margin = 28,
   extent = 2000,
-  rGc = 2000,
+  centerDistance,
+  rGc,
   minLineLength = 40,
   showCore = true,
   showOrbital = true,
@@ -43,6 +47,7 @@ export const ScreenEdgeIndicators: React.FC<ScreenEdgeIndicatorsProps> = ({
           origin={origin}
           margin={margin}
           extent={extent}
+          centerDistance={centerDistance ?? rGc}
           rGc={rGc}
           minLineLength={minLineLength}
         />

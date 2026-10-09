@@ -1,15 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { StoryCanvas } from './StoryCanvas';
 import { SpatialViewport, type SpatialViewportProps } from './SpatialViewport';
 import { GALACTIC_FRAME, SYSTEM_FRAME, PLANETARY_FRAME } from './instrument/referenceFrame';
 import { PlanetBody } from './scenes/PlanetBody';
-import { ThemeTokenBridge } from './ThemeTokenBridge';
-import { getStandardInitialCamera } from './cartography/cartographyMath';
 import { calculateKeplerianPosition } from './math/kepler';
-import { CONTROLS_DAMPING_FACTOR } from './engineConfig';
 import type { SpatialEntityDefinition } from './entity/SpatialEntityStore';
-import styles from './cartography/StorybookCanvasWrapper.module.css';
 
 const SAMPLE_ENTITIES: SpatialEntityDefinition[] = [
   {
@@ -73,18 +68,11 @@ export const GalacticViewport: Story = {
     showInstrument: true,
     debugHitarea: false,
   },
-  render: (args) => {
-    const cam = getStandardInitialCamera(14, [0, 0, 0], 45);
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-          <SpatialViewport {...args} />
-        </Canvas>
-      </div>
-    );
-  },
+  render: (args) => (
+    <StoryCanvas frame={args.frame} cameraDistance={14}>
+      <SpatialViewport {...args} />
+    </StoryCanvas>
+  ),
 };
 
 export const SystemViewportWithOrbits: Story = {
@@ -126,18 +114,11 @@ export const SystemViewportWithOrbits: Story = {
       },
     ],
   },
-  render: (args) => {
-    const cam = getStandardInitialCamera(8, [0, 0, 0], 45);
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-          <SpatialViewport {...args} />
-        </Canvas>
-      </div>
-    );
-  },
+  render: (args) => (
+    <StoryCanvas frame={args.frame} cameraDistance={8}>
+      <SpatialViewport {...args} />
+    </StoryCanvas>
+  ),
 };
 
 const LUNA_CALIBRATED_POS = calculateKeplerianPosition(60.34, 0.0549, 5.14, 125.08, 318.15, 135.0);
@@ -178,25 +159,11 @@ export const PlanetaryViewportWithBespokeBody: Story = {
     showInstrument: true,
     entities: PLANETARY_STORY_ENTITIES,
   },
-  render: (args) => {
-    const cam = getStandardInitialCamera(120, [0, 0, 0], 30);
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
-          <ThemeTokenBridge />
-          <OrbitControls
-            makeDefault
-            target={cam.target}
-            enableDamping
-            dampingFactor={CONTROLS_DAMPING_FACTOR}
-            minDistance={1.5}
-            maxDistance={350}
-          />
-          <SpatialViewport {...args}>
-            <PlanetBody name="Earth" classification="terrestrial" radius={1.0} minPixelSize={24} fadeRange={16} />
-          </SpatialViewport>
-        </Canvas>
-      </div>
-    );
-  },
+  render: (args) => (
+    <StoryCanvas frame={args.frame} cameraDistance={120}>
+      <SpatialViewport {...args}>
+        <PlanetBody name="Earth" classification="terrestrial" radius={1.0} minPixelSize={24} fadeRange={16} />
+      </SpatialViewport>
+    </StoryCanvas>
+  ),
 };

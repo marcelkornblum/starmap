@@ -3,18 +3,17 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useSpatialFrame } from './SpatialFrameProvider';
 import { useThreeTokenStore } from '../../../../stores/useThreeTokenStore';
-import {
-  populateCurvedDashedLineBuffer,
-  calculateBearingProximityFade,
-} from '../cartography/cartographyMath';
-import { calculateScreenInvariantScale } from '../engineConfig';
+import { populateCurvedDashedLineBuffer } from '../cartography/cartographyMath';
+import { calculateBearingProximityFade } from '../math';
 
 export interface BearingVectorsProps {
   /** Whether to render axis spokes */
   showAxisLines?: boolean;
   /** Whether to render cardinal bearings (Core, Orbital, etc.) */
   showCardinalBearings?: boolean;
-  /** Distance to Galactic Centre for curved orbital calculation */
+  /** Distance to system/galactic centre for curved orbital calculation */
+  centerDistance?: number;
+  /** @deprecated Use centerDistance instead */
   rGc?: number;
   /** Extent to which extended bearings project into the scene (default: 1200) */
   extent?: number;
@@ -23,7 +22,8 @@ export interface BearingVectorsProps {
 export const BearingVectors: React.FC<BearingVectorsProps> = ({
   showAxisLines = true,
   showCardinalBearings = true,
-  rGc = 2000,
+  centerDistance,
+  rGc,
   extent = 1200,
 }) => {
   const { frame, frameRef } = useSpatialFrame();
@@ -95,7 +95,7 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
   const hasOrbital = frame.bearings.some((b) => b.id === 'orbital');
 
   useFrame(({ camera }) => {
-    const { apertureRadius, focusPoint, cameraDistance, planeWeights, orientation } = frameRef.current;
+    const { apertureRadius, focusPoint, planeWeights, orientation, screenScale } = frameRef.current;
 
     if (rootGroupRef.current) {
       rootGroupRef.current.position.copy(focusPoint);
@@ -133,13 +133,15 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
       }
     }
 
+    const effectiveCenterDistance = centerDistance ?? rGc ?? frame.centerDistance ?? 2000;
+
     // Bearing Proximity Fades: smoothly fade lines before hitting the camera
     const coreProximityFade = calculateBearingProximityFade(
       camera.position,
       focusPoint,
       'core',
       extent,
-      rGc,
+      effectiveCenterDistance,
       apertureRadius,
       orientation,
     );
@@ -148,7 +150,7 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
       focusPoint,
       'orbital',
       extent,
-      rGc,
+      effectiveCenterDistance,
       apertureRadius,
       orientation,
     );
@@ -172,12 +174,12 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
       }
 
       if (orbitalProximityFade > 1e-4) {
-        const invScale = calculateScreenInvariantScale(cameraDistance, camera);
+        const invScale = screenScale;
 
         const vCount = populateCurvedDashedLineBuffer(
           orbitalBuffer,
           extent,
-          rGc,
+          effectiveCenterDistance,
           1,
           0.18 * invScale,
           0.12 * invScale,

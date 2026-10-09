@@ -7,9 +7,8 @@ import {
   QUADRANTS,
   createQuadrantArcGeometry,
   createQuadrantTickGeometry,
-  populateZoomAdaptiveRings,
-  type ScaledRingInfo,
 } from '../cartography/cartographyMath';
+import { populateZoomAdaptiveRings, type ScaledRingInfo } from '../math';
 
 const PLANES = ['xy', 'xz', 'yz'] as const;
 const DEFAULT_FIXED_RINGS: readonly number[] = [2.5, 5, 10];

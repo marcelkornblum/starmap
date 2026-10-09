@@ -12,11 +12,17 @@ import {
 } from './SpatialEntityStore';
 import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { FRAME_PRIORITY } from '../engineConfig';
+import {
+  CelestialOcclusionManager,
+  celestialOcclusionManager as defaultOcclusionManager,
+} from '../cartography/celestialOcclusionRegistry';
 
 const SpatialEntityStoreContext = createContext<SpatialEntityStore | null>(null);
+export const OcclusionContext = createContext<CelestialOcclusionManager | null>(null);
 
 export interface SpatialEntityProviderProps {
   store?: SpatialEntityStore;
+  occlusionManager?: CelestialOcclusionManager;
   children: React.ReactNode;
 }
 
@@ -87,19 +93,29 @@ export const ApertureEvaluator: React.FC = () => {
 
 export const SpatialEntityProvider: React.FC<SpatialEntityProviderProps> = ({
   store: explicitStore,
+  occlusionManager: explicitManager,
   children,
 }) => {
   const [localStore] = React.useState(() => createSpatialEntityStore());
   const activeStore = explicitStore ?? localStore;
+  const [localManager] = React.useState(() => new CelestialOcclusionManager());
+  const activeManager = explicitManager ?? localManager;
 
   return (
     <SpatialEntityStoreContext.Provider value={activeStore}>
-      {children}
+      <OcclusionContext.Provider value={activeManager}>
+        {children}
+      </OcclusionContext.Provider>
     </SpatialEntityStoreContext.Provider>
   );
 };
 
 const defaultStore = createSpatialEntityStore();
+
+export function useOcclusionManager(): CelestialOcclusionManager {
+  const manager = useContext(OcclusionContext);
+  return manager ?? defaultOcclusionManager;
+}
 
 export function useSpatialEntityStore<T>(selector: (state: SpatialEntityState) => T): T {
   const store = useContext(SpatialEntityStoreContext);

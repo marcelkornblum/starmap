@@ -11,13 +11,16 @@ import {
 } from '../cartography/cartographyMath';
 import { useSpatialFrame } from './SpatialFrameProvider';
 import { type BearingDefinition } from './referenceFrame';
-import styles from '../cartography/ScreenEdgeBearingIndicators.module.css';
+import styles from './ScreenEdgeCue.module.css';
 
 export interface ScreenEdgeCueProps {
   bearing: BearingDefinition;
   origin?: [number, number, number] | THREE.Vector3;
   margin?: number;
   extent?: number;
+  /** Distance to system/galactic centre for curved orbital calculation */
+  centerDistance?: number;
+  /** @deprecated Use centerDistance instead */
   rGc?: number;
   minLineLength?: number;
 }
@@ -40,7 +43,8 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
   origin: explicitOrigin,
   margin = 28,
   extent = 2000,
-  rGc = 2000,
+  centerDistance,
+  rGc,
   minLineLength = 40,
 }) => {
   const { frameRef } = useSpatialFrame();
@@ -86,6 +90,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
     }
 
     const bType: ScreenEdgeBearingType = bearing.id === 'orbital' ? 'orbital' : 'core';
+    const effectiveCenterDistance = centerDistance ?? rGc ?? frameRef?.current?.frame?.centerDistance ?? 2000;
 
     calculateScreenEdgeBearing(
       activeCamera,
@@ -93,7 +98,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
       margin,
       bType,
       originVec,
-      rGc,
+      effectiveCenterDistance,
       bearing.extent ?? extent,
       scratchResult.current,
       minLineLength,

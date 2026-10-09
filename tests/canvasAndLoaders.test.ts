@@ -8,10 +8,6 @@ import {
 } from '../src/components/poc/canvas/SceneBridge';
 import { useScene } from '../src/components/poc/canvas/SceneBridgeContext';
 import { GlobalCanvas } from '../src/components/poc/canvas/GlobalCanvas';
-import { GalaxyScene3D } from '../src/components/poc/canvas/scenes/GalaxyScene3D';
-import { PlanetScene3D } from '../src/components/poc/canvas/scenes/PlanetScene3D';
-import { SystemScene3D } from '../src/components/poc/canvas/scenes/SystemScene3D';
-import { ReferenceScene3D } from '../src/components/poc/canvas/scenes/ReferenceScene3D';
 import { RootLayout } from '../src/components/poc/layout/RootLayout';
 import {
   galaxyRoute,
@@ -121,26 +117,6 @@ describe('Global Canvas SceneBridge', () => {
         expect(vnode.props.children.props.className).toContain('starmap-app');
       }
     }
-  });
-
-  it('renders all 3D scene placeholder components cleanly', () => {
-    const galaxyHtml = renderToString(createElement(GalaxyScene3D));
-    expect(galaxyHtml).toContain('galaxy-scene-3d');
-
-    const planetHtml = renderToString(
-      createElement(PlanetScene3D, { planetId: 'mars' }),
-    );
-    expect(planetHtml).toContain('planet-scene-3d');
-    expect(planetHtml).toContain('planet-anchor-mars');
-
-    const systemHtml = renderToString(
-      createElement(SystemScene3D, { systemId: 'alpha-centauri' }),
-    );
-    expect(systemHtml).toContain('system-scene-3d');
-    expect(systemHtml).toContain('label-alpha-centauri');
-
-    const refHtml = renderToString(createElement(ReferenceScene3D));
-    expect(refHtml).toContain('reference-scene-3d');
   });
 });
 

@@ -8,6 +8,7 @@ import {
   CartoLineMaterial,
   CARTO_LINE_CONSTANTS,
 } from '../materials/CartoLineMaterial';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 
@@ -40,6 +41,7 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
   const groupRef = useRef<THREE.Group>(null);
   const terminusRef = useRef<THREE.Mesh>(null);
   const terminusMatRef = useRef<THREE.MeshBasicMaterial>(null);
+  const frameCtx = useSpatialFrameSafe();
 
   // Render if explicitly visible or when entity is selected/focused and velocity is defined
   const isEnabled = explicitVisible ?? (state === 'selected' || state === 'focused');
@@ -111,7 +113,10 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
     lineMat.setOpacity(kinematicAlpha);
 
     const camDist = Math.max(camera.position.distanceTo(p0), 1e-4);
-    const invScale = calculateScreenInvariantScale(camDist, camera);
+    const frameState = frameCtx?.frameRef?.current;
+    const invScale = frameState
+      ? (camDist / frameState.referenceFootprint) * frameState.fovFactor
+      : calculateScreenInvariantScale(camDist, camera);
 
     if (terminusRef.current) {
       terminusRef.current.scale.set(invScale, invScale, invScale);

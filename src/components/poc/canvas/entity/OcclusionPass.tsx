@@ -1,6 +1,6 @@
 import React from 'react';
 import { useFrame } from '@react-three/fiber';
-import { celestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
+import { useOcclusionManager } from './SpatialEntityContext';
 
 export interface OcclusionPassProps {
   enabled?: boolean;
@@ -12,9 +12,11 @@ export interface OcclusionPassProps {
  * and camera-proximity occlusion for typographic labels.
  */
 export const OcclusionPass: React.FC<OcclusionPassProps> = ({ enabled = true }) => {
+  const occlusionManager = useOcclusionManager();
+
   useFrame(({ camera, size }) => {
     if (!enabled) return;
-    celestialOcclusionManager.evaluate(camera, size);
+    occlusionManager.evaluate(camera, size);
   });
 
   return null;

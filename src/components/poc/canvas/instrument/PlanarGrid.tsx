@@ -7,8 +7,8 @@ import { createCircleGeometry } from '../math/rings';
 import {
   createCircularPlanarGridGeometry,
   populateCurvedDashedLineBuffer,
-  calculateBearingProximityFade,
 } from '../cartography/cartographyMath';
+import { calculateBearingProximityFade } from '../math';
 import {
   createReticleGeometry,
   DEFAULT_RETICLE_SIZE,
@@ -16,7 +16,6 @@ import {
   type PlanetCensusEntry,
 } from '../cartography/reticleGeometry';
 import { RangeRings } from './RangeRings';
-import { calculateScreenInvariantScale } from '../engineConfig';
 
 const DATUM_FILL_VERTEX_SHADER = `
 varying vec2 vPosition;
@@ -87,7 +86,9 @@ export interface PlanarGridProps {
   footprintSize?: number;
   /** Explicit external footprints */
   footprints?: PlanarFootprintItem[];
-  /** Distance to Galactic Centre for curved ray alignment */
+  /** Distance to system/galactic centre for curved ray alignment */
+  centerDistance?: number;
+  /** @deprecated Use centerDistance instead */
   galacticCenterDistance?: number;
 }
 
@@ -112,6 +113,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
   footprintClassification = 'star',
   footprintSize = DEFAULT_RETICLE_SIZE,
   footprints,
+  centerDistance,
   galacticCenterDistance,
 }) => {
   const { frame, frameRef } = useSpatialFrame();
@@ -135,6 +137,9 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
   const isFillEnabled = showFill ?? frame.datumPlane.fill;
   const isGridEnabled = showPlanarGrid ?? frame.datumPlane.planarGrid;
   const isFootprintEnabled = showPlanarFootprint ?? false;
+
+  const hasCore = frame.bearings.some((b) => b.id === 'core');
+  const hasOrbital = frame.bearings.some((b) => b.id === 'orbital');
 
   const groupRef = useRef<THREE.Group>(null);
   const staticPlanarGridRef = useRef<THREE.Group>(null);
@@ -200,14 +205,15 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
   const gridGeom = useMemo(() => {
     if (!isPlaneEnabled || !isGridEnabled) return null;
     const gap = planarGridGap ?? frame.datumPlane.planarGridGap ?? 2.5;
-    const rGc = galacticCenterDistance ?? frame.centerDistance ?? 2000;
+    const effectiveCenterDistance = centerDistance ?? galacticCenterDistance ?? frame.centerDistance ?? 2000;
     const radius = frame.radius ?? 10;
-    return createCircularPlanarGridGeometry(radius, gap, rGc);
+    return createCircularPlanarGridGeometry(radius, gap, effectiveCenterDistance);
   }, [
     isPlaneEnabled,
     isGridEnabled,
     planarGridGap,
     frame.datumPlane.planarGridGap,
+    centerDistance,
     galacticCenterDistance,
     frame.centerDistance,
     frame.radius,
@@ -242,7 +248,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
 
   // Per-frame scaling and end-on / top-down ortho fade
   useFrame(({ camera }) => {
-    const { apertureRadius, focusPoint, cardinalAlignment, cameraDistance, planeWeights, orientation } = frameRef.current;
+    const { apertureRadius, focusPoint, cardinalAlignment, planeWeights, orientation, screenScale } = frameRef.current;
     const maxAlpha = planeWeights?.maxAlpha ?? Math.max(cardinalAlignment.alphaX, cardinalAlignment.alphaY, cardinalAlignment.alphaZ);
     const fadePlanar = Math.max(0, 1.0 - maxAlpha);
 
@@ -280,31 +286,35 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       boundaryMatRef.current.opacity = datumPlaneMajorAlpha * fadePlanar;
     }
 
-    const effectiveCenterDistance = galacticCenterDistance ?? frame.centerDistance ?? 2000;
+    const effectiveCenterDistance = centerDistance ?? galacticCenterDistance ?? frame.centerDistance ?? 2000;
 
     // Bearing proximity fade for disk bearings
-    const coreProximityFade = calculateBearingProximityFade(
-      camera.position,
-      focusPoint,
-      'core',
-      apertureRadius,
-      effectiveCenterDistance,
-      apertureRadius,
-      undefined,
-    );
-    const orbitalProximityFade = calculateBearingProximityFade(
-      camera.position,
-      focusPoint,
-      'orbital',
-      apertureRadius,
-      effectiveCenterDistance,
-      apertureRadius,
-      undefined,
-    );
+    const coreProximityFade = hasCore
+      ? calculateBearingProximityFade(
+          camera.position,
+          focusPoint,
+          'core',
+          apertureRadius,
+          effectiveCenterDistance,
+          apertureRadius,
+          undefined,
+        )
+      : 0;
+    const orbitalProximityFade = hasOrbital
+      ? calculateBearingProximityFade(
+          camera.position,
+          focusPoint,
+          'orbital',
+          apertureRadius,
+          effectiveCenterDistance,
+          apertureRadius,
+          undefined,
+        )
+      : 0;
 
     // Suppress planar length-R disk bearings when 3D instrument extended bearings are active at Z=0
     const suppressDiskBearings = frame.coordinateFins.enabled && Math.abs(focusPoint.z) < 1e-3;
-    const showDiskBearings = !suppressDiskBearings && fadePlanar > 1e-3;
+    const showDiskBearings = (hasCore || hasOrbital) && !suppressDiskBearings && fadePlanar > 1e-3;
 
     if (diskBearingsRef.current) {
       diskBearingsRef.current.position.set(0, 0, -focusPoint.z);
@@ -314,16 +324,16 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
     // Disk Cardinal Bearings: length R, terminating at perimeter rim
     if (diskCoreRef.current) {
       diskCoreRef.current.scale.set(apertureRadius, apertureRadius, 1);
-      diskCoreRef.current.visible = showDiskBearings && coreProximityFade > 1e-3;
+      diskCoreRef.current.visible = hasCore && showDiskBearings && coreProximityFade > 1e-3;
     }
     if (diskCoreMatRef.current) {
       diskCoreMatRef.current.opacity = bearingCoreAlpha * fadePlanar * coreProximityFade;
     }
 
-    const invScale = calculateScreenInvariantScale(cameraDistance, camera);
+    const invScale = screenScale;
 
     if (diskOrbitalRef.current && diskOrbitalGeom) {
-      const showOrbital = showDiskBearings && orbitalProximityFade > 1e-3;
+      const showOrbital = hasOrbital && showDiskBearings && orbitalProximityFade > 1e-3;
       diskOrbitalRef.current.visible = showOrbital;
       if (showOrbital) {
         const vCount = populateCurvedDashedLineBuffer(
@@ -423,37 +433,43 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       )}
 
       {/* Planar Disk Cardinal Bearings: 2 length-R lines (Core solid, Orbital curved dashed) */}
-      <group ref={diskBearingsRef} name="disk-bearings">
-        <lineSegments
-          ref={diskCoreRef}
-          name="bearing-core"
-          scale={[1, 1, 1]}
-          frustumCulled={false}
-        >
-          <primitive object={bearingCoreGeom} attach="geometry" />
-          <lineBasicMaterial
-            ref={diskCoreMatRef}
-            color={bearingCoreColor}
-            opacity={bearingCoreAlpha}
-            transparent
-            depthWrite={false}
-          />
-        </lineSegments>
-        <lineSegments
-          ref={diskOrbitalRef}
-          name="bearing-orbital"
-          frustumCulled={false}
-        >
-          <primitive object={diskOrbitalGeom} attach="geometry" />
-          <lineBasicMaterial
-            ref={diskOrbitalMatRef}
-            color={bearingOrbitalColor}
-            opacity={bearingOrbitalAlpha}
-            transparent
-            depthWrite={false}
-          />
-        </lineSegments>
-      </group>
+      {(hasCore || hasOrbital) && (
+        <group ref={diskBearingsRef} name="disk-bearings">
+          {hasCore && (
+            <lineSegments
+              ref={diskCoreRef}
+              name="bearing-core"
+              scale={[1, 1, 1]}
+              frustumCulled={false}
+            >
+              <primitive object={bearingCoreGeom} attach="geometry" />
+              <lineBasicMaterial
+                ref={diskCoreMatRef}
+                color={bearingCoreColor}
+                opacity={bearingCoreAlpha}
+                transparent
+                depthWrite={false}
+              />
+            </lineSegments>
+          )}
+          {hasOrbital && (
+            <lineSegments
+              ref={diskOrbitalRef}
+              name="bearing-orbital"
+              frustumCulled={false}
+            >
+              <primitive object={diskOrbitalGeom} attach="geometry" />
+              <lineBasicMaterial
+                ref={diskOrbitalMatRef}
+                color={bearingOrbitalColor}
+                opacity={bearingOrbitalAlpha}
+                transparent
+                depthWrite={false}
+              />
+            </lineSegments>
+          )}
+        </group>
+      )}
 
       {/* Primary Focus Planar Footprint */}
       {isFootprintEnabled && (
