@@ -3,10 +3,10 @@ import { Datum } from './Datum';
 import { Stack } from '../../layouts/Stack/Stack';
 import { Box } from '../../layouts/Box/Box';
 
-import storyStyles from '../dataStories.module.css';
+import storyStyles from '../informationStories.module.css';
 
 const meta: Meta<typeof Datum> = {
-  title: 'INTERFACE/Data',
+  title: 'INTERFACE/Information',
   component: Datum,
   parameters: {
     layout: 'centered',

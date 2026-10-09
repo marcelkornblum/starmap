@@ -4,10 +4,10 @@ import { Cluster } from '../../layouts/Cluster/Cluster';
 import { Stack } from '../../layouts/Stack/Stack';
 import { ConfidencePip } from '../ConfidencePip/ConfidencePip';
 
-import storyStyles from '../dataStories.module.css';
+import storyStyles from '../informationStories.module.css';
 
 const meta: Meta<typeof Badge> = {
-  title: 'INTERFACE/Data',
+  title: 'INTERFACE/Information',
   component: Badge,
   parameters: {
     layout: 'centered',

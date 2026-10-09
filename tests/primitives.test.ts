@@ -455,15 +455,27 @@ describe('Tier 1: Control Primitives', () => {
     expect(handleChange).toHaveBeenCalledWith('alpha-cen');
   });
 
-  it('exports canonical controls and layouts from interface/controls and interface/layouts', async () => {
+  it('exports canonical controls, layouts, and information from interface submodules', async () => {
     const controls = await import('../src/components/interface/controls');
     const layouts = await import('../src/components/interface/layouts');
+    const information = await import('../src/components/interface/information');
     const oldControl = await import('../src/components/interface/control');
     const oldLayout = await import('../src/components/interface/layout');
+    const oldData = await import('../src/components/interface/data');
 
     expect(controls.Button).toBeDefined();
     expect(controls.Button).toBe(oldControl.Button);
     expect(layouts.Stack).toBeDefined();
     expect(layouts.Stack).toBe(oldLayout.Stack);
+    expect(information.Datum).toBeDefined();
+    expect(information.Datum).toBe(oldData.Datum);
+    expect(information.Badge).toBeDefined();
+    expect(information.Badge).toBe(oldData.Badge);
+    expect(information.ConfidencePip).toBeDefined();
+    expect(information.ConfidencePip).toBe(oldData.ConfidencePip);
+    expect(information.Quantity).toBeDefined();
+    expect(information.Quantity).toBe(oldData.Quantity);
+    expect(information.Unit).toBeDefined();
+    expect(information.Unit).toBe(oldData.Unit);
   });
 });

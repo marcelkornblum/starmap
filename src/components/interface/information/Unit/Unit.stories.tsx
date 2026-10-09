@@ -3,10 +3,10 @@ import { Unit } from './Unit';
 import { Stack } from '../../layouts/Stack/Stack';
 import { Cluster } from '../../layouts/Cluster/Cluster';
 
-import storyStyles from '../dataStories.module.css';
+import storyStyles from '../informationStories.module.css';
 
 const meta = {
-  title: 'INTERFACE/Data',
+  title: 'INTERFACE/Information',
   component: Unit,
   parameters: {
     layout: 'centered',

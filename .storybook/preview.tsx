@@ -25,9 +25,9 @@ const preview: Preview = {
         if (aCatIdx !== -1 && bCatIdx === -1) return -1;
         if (bCatIdx !== -1 && aCatIdx === -1) return 1;
 
-        // In INTERFACE: Controls -> Data -> Surfaces -> Layouts
+        // In INTERFACE: Controls -> Information -> Surfaces -> Layouts
         if (aCategory === 'INTERFACE' && bCategory === 'INTERFACE') {
-          const interfaceSubOrder = ['Controls', 'Data', 'Surfaces', 'Layouts'];
+          const interfaceSubOrder = ['Controls', 'Information', 'Surfaces', 'Layouts'];
           const aSubIdx = interfaceSubOrder.indexOf(aSubcategory);
           const bSubIdx = interfaceSubOrder.indexOf(bSubcategory);
           if (aSubIdx !== -1 && bSubIdx !== -1 && aSubIdx !== bSubIdx) {
@@ -63,6 +63,7 @@ const preview: Preview = {
 
         const topNames = [
           'Overview',
+          'Typography',
           'Elevations & Spatial Hierarchy',
           'Surface Gallery',
           'Multi-Scale Navigator',
