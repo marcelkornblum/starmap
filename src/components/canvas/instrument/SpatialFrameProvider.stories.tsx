@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { StoryCanvas } from '../StoryCanvas';
 import { SafeHtml } from '../SafeHtml';
-import storyCanvasStyles from '../StoryCanvas.module.css';
+import storyCanvasStyles from '../../../../.storybook/helpers/StoryCanvas.module.css';
 import {
   SpatialFrameProvider,
   useSpatialFrame,

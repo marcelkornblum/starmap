@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { InteractiveNavigator } from './SpatialScenes';
-import styles from '../StoryCanvas.module.css';
+import styles from '../../../../.storybook/helpers/StoryCanvas.module.css';
 
 const meta: Meta<typeof InteractiveNavigator> = {
   title: 'CANVAS/Scenes',
