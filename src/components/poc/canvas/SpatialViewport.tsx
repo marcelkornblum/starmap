@@ -16,19 +16,15 @@ import {
   SpatialEntityProvider,
   ApertureEvaluator,
   useSpatialEntityStoreApi,
-} from './entity/SpatialEntityContext';
-import { CelestialEntity } from './entity/CelestialEntity';
-import { OcclusionPass } from './entity/OcclusionPass';
-import {
+  CelestialEntity,
+  OcclusionPass,
   type SpatialEntityDefinition,
   createSpatialEntityStore,
-} from './entity/SpatialEntityStore';
-import {
   activateEntity,
   focusEntity,
   clearInteraction,
   occlusionCyclicTargetResolver,
-} from './entity/interactionActions';
+} from '../../canvas/entity';
 import { useUIStore } from '../../../stores/useUIStore';
 
 export interface SpatialViewportProps {

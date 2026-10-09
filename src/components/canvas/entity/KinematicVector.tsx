@@ -3,12 +3,12 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
-import { useThreeTokenStore } from '../../../../stores/useThreeTokenStore';
+import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import {
   CartoLineMaterial,
   CARTO_LINE_CONSTANTS,
-} from '../../../canvas/materials/CartoLineMaterial';
-import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
+} from '../materials/CartoLineMaterial';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 

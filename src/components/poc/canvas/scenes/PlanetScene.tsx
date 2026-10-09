@@ -4,7 +4,7 @@ import { PLANETARY_FRAME } from '../../../canvas/instrument/referenceFrame';
 import { STANDARD_CAMERA_DISTANCES } from '../../../canvas/cartography/cartographyMath';
 import { calculateKeplerianPosition } from '../../../canvas/math/kepler';
 import { PlanetBody } from './PlanetBody';
-import type { SpatialEntityDefinition } from '../entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../../../canvas/entity';
 import type { CelestialClassification } from '../../../canvas/cartography/reticleGeometry';
 
 export interface PlanetSceneProps {

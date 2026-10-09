@@ -2,7 +2,7 @@ import React, { createContext, useContext } from 'react';
 import * as THREE from 'three';
 import { useStore } from 'zustand';
 import { useFrame } from '@react-three/fiber';
-import { useLazyRef } from '../../../../hooks/useLazyRef';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import {
   createSpatialEntityStore,
   deriveEntityTier,
@@ -10,12 +10,12 @@ import {
   type SpatialEntityState,
   type CelestialInteractionState,
 } from './SpatialEntityStore';
-import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { FRAME_PRIORITY } from '../engineConfig';
 import {
   CelestialOcclusionManager,
   celestialOcclusionManager as defaultOcclusionManager,
-} from '../../../canvas/cartography/celestialOcclusionRegistry';
+} from '../cartography/celestialOcclusionRegistry';
 
 const SpatialEntityStoreContext = createContext<SpatialEntityStore | null>(null);
 export const OcclusionContext = createContext<CelestialOcclusionManager | null>(null);

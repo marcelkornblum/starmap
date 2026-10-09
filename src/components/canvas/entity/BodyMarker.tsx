@@ -1,12 +1,12 @@
 import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { useThreeTokenStore } from '../../../../stores/useThreeTokenStore';
-import { useLazyRef } from '../../../../hooks/useLazyRef';
+import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 
 import { useOcclusionManager } from './SpatialEntityContext';
-import { useSpatialFrameSafe } from '../../../canvas/instrument/SpatialFrameProvider';
-import { DEFAULT_RETICLE_SIZE } from '../../../canvas/cartography/reticleGeometry';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
 import {
   calculateScreenInvariantScale,
   reticleSizeToScreenPx,

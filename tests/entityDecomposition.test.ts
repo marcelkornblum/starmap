@@ -5,17 +5,19 @@ import * as THREE from 'three';
 import {
   createSpatialEntityStore,
   type SpatialEntityDefinition,
-} from '../src/components/poc/canvas/entity/SpatialEntityStore';
-import { BodyMarker } from '../src/components/poc/canvas/entity/BodyMarker';
-import { Reticle } from '../src/components/poc/canvas/entity/Reticle';
-import { DropStalk } from '../src/components/poc/canvas/entity/DropStalk';
-import { KinematicVector } from '../src/components/poc/canvas/entity/KinematicVector';
-import { OrbitPath } from '../src/components/poc/canvas/entity/OrbitPath';
-import { EntityLabel } from '../src/components/poc/canvas/entity/EntityLabel';
-import { CelestialEntity } from '../src/components/poc/canvas/entity/CelestialEntity';
+} from '../src/components/canvas/entity/SpatialEntityStore';
+import { BodyMarker } from '../src/components/canvas/entity/BodyMarker';
+import { Reticle } from '../src/components/canvas/entity/Reticle';
+import { DropStalk } from '../src/components/canvas/entity/DropStalk';
+import { KinematicVector } from '../src/components/canvas/entity/KinematicVector';
+import { OrbitPath } from '../src/components/canvas/entity/OrbitPath';
+import { EntityLabel } from '../src/components/canvas/entity/EntityLabel';
+import { CelestialEntity } from '../src/components/canvas/entity/CelestialEntity';
 import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../src/components/canvas/math/kepler';
 import { celestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/canvas/instrument';
+import * as PocEntityExports from '../src/components/poc/canvas/entity';
+import * as CanvasEntityExports from '../src/components/canvas/entity';
 
 const renderInFrame = (element: React.ReactElement) =>
   renderToString(createElement(SpatialFrameProvider, { frame: GALACTIC_FRAME }, element));
@@ -559,6 +561,12 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
         }),
       );
       expect(htmlDebug).toContain('name="celestial-hitarea"');
+    });
+
+    it('maintains backwards-compatible re-exports from src/components/poc/canvas/entity', () => {
+      expect(PocEntityExports.CelestialEntity).toBe(CanvasEntityExports.CelestialEntity);
+      expect(PocEntityExports.BodyMarker).toBe(CanvasEntityExports.BodyMarker);
+      expect(PocEntityExports.PlanetBody).toBe(CanvasEntityExports.PlanetBody);
     });
   });
 });
