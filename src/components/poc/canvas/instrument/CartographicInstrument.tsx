@@ -4,7 +4,6 @@ import { PlanarGrid, type PlanarFootprintItem } from './PlanarGrid';
 import { CoordinateFins } from './CoordinateFins';
 import { BearingVectors } from './BearingVectors';
 import { ScreenEdgeIndicators } from './ScreenEdgeIndicators';
-import { CameraRig } from './CameraRig';
 import { type CelestialClassification } from '../cartography/reticleGeometry';
 
 export interface CartographicInstrumentProps {
@@ -14,7 +13,9 @@ export interface CartographicInstrumentProps {
   majorRingIndex?: number;
   /** Whether to render travelling coordinate fins */
   showFins?: boolean;
-  /** Whether to render datum plane (Galactic Equator) */
+  /** Whether to render datum plane */
+  showDatumPlane?: boolean;
+  /** @deprecated Use showDatumPlane instead */
   showGalacticPlane?: boolean;
   /** Whether to render planar footprints on datum */
   showPlanarFootprint?: boolean;
@@ -46,6 +47,7 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = ({
   rangeRings,
   majorRingIndex,
   showFins,
+  showDatumPlane,
   showGalacticPlane,
   showPlanarFootprint = false,
   footprintClassification,
@@ -59,17 +61,15 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = ({
 }) => {
   const { frame } = useSpatialFrame();
   const finsEnabled = showFins ?? frame.coordinateFins.enabled;
+  const isPlaneEnabled = showDatumPlane ?? showGalacticPlane;
   const centerDistance = frame.centerDistance ?? 2000;
   const extent = frame.extent ?? 1200;
 
   return (
     <group name="cartographic-grid">
-      {/* Camera Rig (Frustum, Reference FOV, Ortho Blending) */}
-      <CameraRig />
-
       {/* Datum Floor, Planar Grid & Datum Range Rings */}
       <PlanarGrid
-        enabled={showGalacticPlane}
+        enabled={isPlaneEnabled}
         showPlanarGrid={showPlanarGrid}
         planarGridGap={planarGridGap}
         rings={rangeRings}
@@ -78,6 +78,7 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = ({
         footprintClassification={footprintClassification}
         footprintSize={footprintSize}
         footprints={footprints}
+        centerDistance={centerDistance}
         galacticCenterDistance={centerDistance}
       />
 
@@ -86,12 +87,21 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = ({
 
       {/* Bearing Vectors & Spoke Lines */}
       {showAxisLines && finsEnabled && (
-        <BearingVectors showAxisLines={showAxisLines} rGc={centerDistance} extent={extent} />
+        <BearingVectors
+          showAxisLines={showAxisLines}
+          centerDistance={centerDistance}
+          rGc={centerDistance}
+          extent={extent}
+        />
       )}
 
       {/* Detachable Screen-Edge Heading Cues */}
       {showAxisLines && showScreenEdgeIndicators && finsEnabled && (
-        <ScreenEdgeIndicators rGc={centerDistance} extent={extent} />
+        <ScreenEdgeIndicators
+          centerDistance={centerDistance}
+          rGc={centerDistance}
+          extent={extent}
+        />
       )}
 
       {children}

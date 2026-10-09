@@ -4,7 +4,8 @@ import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../../stores/useThreeTokenStore';
 import { useLazyRef } from '../../../../hooks/useLazyRef';
 
-import { celestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
+import { useOcclusionManager } from './SpatialEntityContext';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
 import {
   calculateScreenInvariantScale,
@@ -61,6 +62,8 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   const billboardRef = useRef<THREE.Group>(null);
   const groupRef = useRef<THREE.Group>(null);
   const worldPosRef = useLazyRef(() => new THREE.Vector3());
+  const occlusionManager = useOcclusionManager();
+  const frameCtx = useSpatialFrameSafe();
   const [posX, posY, posZ] = position instanceof THREE.Vector3 ? [position.x, position.y, position.z] : position;
 
   useEffect(() => {
@@ -94,14 +97,16 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
     if (billboardRef.current && hitareaRef.current) {
       billboardRef.current.quaternion.copy(camera.quaternion);
 
-      const invScale = calculateScreenInvariantScale(camDist, camera);
+      const invScale = frameCtx?.frameRef?.current
+        ? (camDist / frameCtx.frameRef.current.referenceFootprint) * frameCtx.frameRef.current.fovFactor
+        : calculateScreenInvariantScale(camDist, camera);
       const rSize = reticleSize ?? DEFAULT_RETICLE_SIZE;
       const effectiveHitRadius = (hitRadius ?? rSize) * invScale;
       hitareaRef.current.scale.set(effectiveHitRadius, effectiveHitRadius, 1);
 
       // Interactive Hit-Testing Fan-Out (Spec 2.2):
       // When systems overlap in screen space, underlying invisible hit areas fan out radially around cluster centroid
-      const hitOffset = celestialOcclusionManager.evaluateHitAreaOffset(id);
+      const hitOffset = occlusionManager.evaluateHitAreaOffset(id);
       const reticleRadiusPx = reticleSizeToScreenPx(rSize, size.height);
       const pxToLocal = reticleRadiusPx > 0 ? (rSize * invScale) / reticleRadiusPx : 0;
       hitareaRef.current.position.set(hitOffset.x * pxToLocal, -hitOffset.y * pxToLocal, 0);

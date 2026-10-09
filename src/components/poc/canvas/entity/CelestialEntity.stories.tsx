@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { create } from 'zustand';
+import { StoryCanvas } from '../StoryCanvas';
 import {
   CelestialEntity,
   SpatialEntityProvider,
@@ -12,6 +12,7 @@ import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
   clearInteraction,
+  useOcclusionManager,
 } from './index';
 import {
   CartographicInstrument,
@@ -19,10 +20,6 @@ import {
   SYSTEM_FRAME,
   GALACTIC_FRAME,
 } from '../instrument';
-import { getStandardInitialCamera } from '../cartography/cartographyMath';
-import { celestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
-import { ThemeTokenBridge } from '../ThemeTokenBridge';
-import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<typeof CelestialEntity> = {
@@ -104,15 +101,9 @@ export const TaxonomicReticles: Story = {
         multiplicity: 1,
       },
     ];
-    const cam = getStandardInitialCamera(18, [0, 0, 0], 35);
-
     return (
-      <div className={styles.canvasContainer}>
-        <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-          <ambientLight intensity={1} />
-          <SpatialFrameProvider frame={GALACTIC_FRAME}>
+      <StoryCanvas frame={GALACTIC_FRAME} cameraDistance={18} fov={35}>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
           <SpatialEntityProvider>
             <OcclusionPass />
             {systems.map((s, idx) => {
@@ -132,9 +123,8 @@ export const TaxonomicReticles: Story = {
               );
             })}
           </SpatialEntityProvider>
-          </SpatialFrameProvider>
-        </Canvas>
-      </div>
+        </SpatialFrameProvider>
+      </StoryCanvas>
     );
   },
 };
@@ -142,8 +132,7 @@ export const TaxonomicReticles: Story = {
 const SingleEntityInteractionContent: React.FC<{
   isDistant: boolean;
   setIsDistant: (v: boolean) => void;
-  cam: ReturnType<typeof getStandardInitialCamera>;
-}> = ({ isDistant, setIsDistant, cam }) => {
+}> = ({ isDistant, setIsDistant }) => {
   const storeApi = useSpatialEntityStoreApi();
   const selectedId = useSpatialEntityStore((s) => s.selectedId);
   const focusedId = useSpatialEntityStore((s) => s.focusedId);
@@ -163,91 +152,83 @@ const SingleEntityInteractionContent: React.FC<{
           ? 'selected'
           : 'active (in aperture)';
 
-  return (
-    <>
-      <div className={styles.demoOverlay}>
-        <div><strong>Spec 2.1 / 2.2 Single-Entity Interaction States</strong></div>
-        <div className={styles.buttonRow}>
-          <button
-            type="button"
-            className={styles.demoButton}
-            data-active={!isDistant}
-            onClick={() => setIsDistant(false)}
-          >
-            In Aperture (Active / Interactive)
-          </button>
-          <button
-            type="button"
-            className={styles.demoButton}
-            data-active={isDistant}
-            onClick={() => {
-              setIsDistant(true);
-              clearInteraction(storeApi);
-            }}
-          >
-            Outside Aperture (Passive / Non-Interactive)
-          </button>
-        </div>
-        <div>
-          Active Tier: <span className={styles.targetHighlight}>{currentTier}</span>
-        </div>
-        <div>
-          <em>
-            {isDistant
-              ? 'Passive entities outside aperture render as unreticled dots and ignore click & rollover events.'
-              : 'Hover to rollover (cursor: pointer, monochrome stalk and datum footprint). Click to focus (switches reticle and footprint to cyan focus colour). Click again or click empty canvas to deselect.'}
-          </em>
-        </div>
+  const overlay = (
+    <div className={styles.demoOverlay}>
+      <div><strong>Spec 2.1 / 2.2 Single-Entity Interaction States</strong></div>
+      <div className={styles.buttonRow}>
+        <button
+          type="button"
+          className={styles.demoButton}
+          data-active={!isDistant}
+          onClick={() => setIsDistant(false)}
+        >
+          In Aperture (Active / Interactive)
+        </button>
+        <button
+          type="button"
+          className={styles.demoButton}
+          data-active={isDistant}
+          onClick={() => {
+            setIsDistant(true);
+            clearInteraction(storeApi);
+          }}
+        >
+          Outside Aperture (Passive / Non-Interactive)
+        </button>
       </div>
+      <div>
+        Active Tier: <span className={styles.targetHighlight}>{currentTier}</span>
+      </div>
+      <div>
+        <em>
+          {isDistant
+            ? 'Passive entities outside aperture render as unreticled dots and ignore click & rollover events.'
+            : 'Hover to rollover (cursor: pointer, monochrome stalk and datum footprint). Click to focus (switches reticle and footprint to cyan focus colour). Click again or click empty canvas to deselect.'}
+        </em>
+      </div>
+    </div>
+  );
 
-      <Canvas
-        camera={{ position: cam.position, up: cam.up, fov: cam.fov }}
-        onPointerMissed={() => clearInteraction(storeApi)}
-      >
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <ThemeTokenBridge />
-          <OrbitControls
-            makeDefault
-            target={isDistant ? [16, 0, 0] : [0, 0, 0]}
-            enableDamping
-            dampingFactor={CONTROLS_DAMPING_FACTOR}
-          />
-          <ambientLight intensity={1} />
-          <CartographicInstrument showPlanarGrid showFins={false} />
-          <OcclusionPass />
-          <ApertureEvaluator />
-          <CelestialEntity
-            id="demo-node"
-            name="System"
-            position={pos}
-            classification="star"
-            spectralType="G2V"
-            multiplicity={2}
-            planets={[
-              { id: 'p1', name: 'Planet b', classification: 'terrestrial' },
-              { id: 'p2', name: 'Planet c', classification: 'gas-giant' },
-            ]}
-          />
-        </SpatialFrameProvider>
-      </Canvas>
-    </>
+  return (
+    <StoryCanvas
+      frame={GALACTIC_FRAME}
+      cameraDistance={12}
+      cameraTarget={isDistant ? [16, 0, 0] : [0, 0, 0]}
+      fov={35}
+      overlay={overlay}
+      onPointerMissed={() => clearInteraction(storeApi)}
+    >
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <CartographicInstrument showPlanarGrid showFins={false} />
+        <OcclusionPass />
+        <ApertureEvaluator />
+        <CelestialEntity
+          id="demo-node"
+          name="System"
+          position={pos}
+          classification="star"
+          spectralType="G2V"
+          multiplicity={2}
+          planets={[
+            { id: 'p1', name: 'Planet b', classification: 'terrestrial' },
+            { id: 'p2', name: 'Planet c', classification: 'gas-giant' },
+          ]}
+        />
+      </SpatialFrameProvider>
+    </StoryCanvas>
   );
 };
 
 const SingleEntityInteractionStory: React.FC = () => {
   const [isDistant, setIsDistant] = useState(false);
-  const cam = getStandardInitialCamera(12, [0, 0, 0], 35);
 
   return (
-    <div className={styles.canvasContainer}>
-      <SpatialEntityProvider>
-        <SingleEntityInteractionContent
-          isDistant={isDistant}
-          setIsDistant={setIsDistant}
-          cam={cam}
-        />
-      </SpatialEntityProvider>
-    </div>
+    <SpatialEntityProvider>
+      <SingleEntityInteractionContent
+        isDistant={isDistant}
+        setIsDistant={setIsDistant}
+      />
+    </SpatialEntityProvider>
   );
 };
 
@@ -258,53 +239,42 @@ export const InteractionStates: Story = {
 
 export const DropStalksHemispheres: Story = {
   name: '3. Drop Stalks & Hemispheric Inversion',
-  render: () => {
-    const cam = getStandardInitialCamera(16, [0, 0, 0], 45);
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-          <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <CartographicInstrument showPlanarGrid showFins={false} />
-          <SpatialEntityProvider>
-            <OcclusionPass />
-            {/* Northern hemisphere (+Z): Solid stalk */}
-            <CelestialEntity
-              id="star-north"
-              name="Polaris (+Z North)"
-              position={[3, 2, 2.5]}
-              classification="star"
-              stateOverride="selected"
-              spectralType="F7Ib"
-            />
-            {/* Southern hemisphere (-Z): Dashed stalk */}
-            <CelestialEntity
-              id="star-south"
-              name="Canopus (-Z South)"
-              position={[-3, -2, -2.5]}
-              classification="star"
-              stateOverride="selected"
-              spectralType="A9II"
-            />
-          </SpatialEntityProvider>
-          </SpatialFrameProvider>
-        </Canvas>
-      </div>
-    );
-  },
+  render: () => (
+    <StoryCanvas frame={GALACTIC_FRAME} cameraDistance={16}>
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <CartographicInstrument showPlanarGrid showFins={false} />
+        <SpatialEntityProvider>
+          <OcclusionPass />
+          {/* Northern hemisphere (+Z): Solid stalk */}
+          <CelestialEntity
+            id="star-north"
+            name="Polaris (+Z North)"
+            position={[3, 2, 2.5]}
+            classification="star"
+            stateOverride="selected"
+            spectralType="F7Ib"
+          />
+          {/* Southern hemisphere (-Z): Dashed stalk */}
+          <CelestialEntity
+            id="star-south"
+            name="Canopus (-Z South)"
+            position={[-3, -2, -2.5]}
+            classification="star"
+            stateOverride="selected"
+            spectralType="A9II"
+          />
+        </SpatialEntityProvider>
+      </SpatialFrameProvider>
+    </StoryCanvas>
+  ),
 };
 
 export const KinematicVectorAndOrbits: Story = {
   name: '4. Kinematic Vectors & Dashed Keplerian Orbits',
   render: () => {
-    const cam = getStandardInitialCamera(14, [0, 0, 0], 45);
     return (
-      <div className={styles.canvasContainer}>
-        <Canvas camera={{ position: cam.position, up: cam.up, fov: cam.fov }}>
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-          <SpatialFrameProvider frame={SYSTEM_FRAME}>
+      <StoryCanvas frame={SYSTEM_FRAME} cameraDistance={14} fov={45}>
+        <SpatialFrameProvider frame={SYSTEM_FRAME}>
           <CartographicInstrument showPlanarGrid showFins={false} />
           <SpatialEntityProvider>
             <OcclusionPass />
@@ -337,16 +307,14 @@ export const KinematicVectorAndOrbits: Story = {
               }}
             />
           </SpatialEntityProvider>
-          </SpatialFrameProvider>
-        </Canvas>
-      </div>
+        </SpatialFrameProvider>
+      </StoryCanvas>
     );
   },
 };
 
 const InteractiveCompositeSceneDemo: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>('alpha-centauri-a');
-  const cam = getStandardInitialCamera(28, [0, 0, 0], 40);
 
   const systems = [
     {
@@ -408,21 +376,23 @@ const InteractiveCompositeSceneDemo: React.FC = () => {
     },
   ];
 
-  return (
-    <div className={styles.canvasContainer}>
-      <div className={styles.demoOverlay}>
-        <div><strong>Click any system node to select & inspect:</strong></div>
-        <div>Active target: <span className={styles.targetHighlight}>{selectedId ?? 'None'}</span></div>
-        <div><em>Note: Alpha Centauri A & B illustrate real-time label collision displacement and occlusion.</em></div>
-      </div>
+  const overlay = (
+    <div className={styles.demoOverlay}>
+      <div><strong>Click any system node to select & inspect:</strong></div>
+      <div>Active target: <span className={styles.targetHighlight}>{selectedId ?? 'None'}</span></div>
+      <div><em>Note: Alpha Centauri A & B illustrate real-time label collision displacement and occlusion.</em></div>
+    </div>
+  );
 
-      <Canvas
-        camera={{ position: cam.position, up: cam.up, fov: cam.fov }}
-        onPointerMissed={() => setSelectedId(null)}
-      >
-        <ThemeTokenBridge />
-        <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+  return (
+    <StoryCanvas
+      frame={GALACTIC_FRAME}
+      cameraDistance={28}
+      fov={40}
+      overlay={overlay}
+      onPointerMissed={() => setSelectedId(null)}
+    >
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
         <CartographicInstrument showPlanarGrid showFins />
         <SpatialEntityProvider>
           <OcclusionPass />
@@ -444,9 +414,8 @@ const InteractiveCompositeSceneDemo: React.FC = () => {
             );
           })}
         </SpatialEntityProvider>
-        </SpatialFrameProvider>
-      </Canvas>
-    </div>
+      </SpatialFrameProvider>
+    </StoryCanvas>
   );
 };
 
@@ -498,12 +467,13 @@ const FALLBACK_LABEL_EVAL = { visible: true, isDisplaced: false };
 const DiagnosticMonitor: React.FC = () => {
   const frameCount = useRef(0);
   const poolRef = useRef<DiagnosticNode[]>([]);
+  const occlusionManager = useOcclusionManager();
 
   useFrame(() => {
     frameCount.current++;
     if (frameCount.current % 10 !== 0) return;
 
-    const footprints = celestialOcclusionManager.getAllFootprints();
+    const footprints = occlusionManager.getAllFootprints();
     const len = footprints.length;
     const pool = poolRef.current;
     while (pool.length < len) {
@@ -513,10 +483,10 @@ const DiagnosticMonitor: React.FC = () => {
 
     for (let i = 0; i < len; i++) {
       const fp = footprints[i];
-      const isReticleSuppressed = celestialOcclusionManager.evaluateReticleOcclusion(fp.id);
-      const hitOffset = celestialOcclusionManager.evaluateHitAreaOffset(fp.id);
+      const isReticleSuppressed = occlusionManager.evaluateReticleOcclusion(fp.id);
+      const hitOffset = occlusionManager.evaluateHitAreaOffset(fp.id);
       const labelEval = fp.labelBox
-        ? celestialOcclusionManager.evaluateLabelOcclusion(fp.id, fp.labelBox)
+        ? occlusionManager.evaluateLabelOcclusion(fp.id, fp.labelBox)
         : FALLBACK_LABEL_EVAL;
 
       const item = pool[i];
@@ -597,8 +567,6 @@ const ClusteringAndCollisionDemo: React.FC = () => {
   const [scenario, setScenario] = useState<'binary' | 'priority' | 'crowded'>('binary');
   const [selectedId, setSelectedId] = useState<string | null>('bin-alpha');
   const [debugHitarea, setDebugHitarea] = useState<boolean>(true);
-
-  const cam = getStandardInitialCamera(12, [0, 0, 0], 35);
 
   const binarySystems = [
     {
@@ -696,103 +664,104 @@ const ClusteringAndCollisionDemo: React.FC = () => {
         ? prioritySystems
         : crowdedSystems;
 
-  return (
-    <div className={styles.canvasContainer}>
-      <div className={styles.demoOverlay}>
-        <div><strong>Spec 2.2 / 2.3 Clustering & Collision Diagnostics</strong></div>
-        <div className={styles.buttonRow}>
-          <button
-            type="button"
-            className={styles.demoButton}
-            data-active={scenario === 'binary'}
-            onClick={() => {
-              setScenario('binary');
-              setSelectedId('bin-alpha');
-            }}
-          >
-            1. Overlapping Binary (HitArea Fan-Out)
-          </button>
-          <button
-            type="button"
-            className={styles.demoButton}
-            data-active={scenario === 'priority'}
-            onClick={() => {
-              setScenario('priority');
-              setSelectedId('pri-fg');
-            }}
-          >
-            2. Priority Reticle Mask
-          </button>
-          <button
-            type="button"
-            className={styles.demoButton}
-            data-active={scenario === 'crowded'}
-            onClick={() => {
-              setScenario('crowded');
-              setSelectedId(null);
-            }}
-          >
-            3. Crowded Cluster (8-Way Displacement)
-          </button>
-          <button
-            type="button"
-            className={styles.demoButton}
-            data-active={debugHitarea}
-            onClick={() => setDebugHitarea((v) => !v)}
-          >
-            {debugHitarea ? 'HitArea Wireframes: ON' : 'HitArea Wireframes: OFF'}
-          </button>
-        </div>
-
-        <div>
-          Active Selection: <span className={styles.targetHighlight}>{selectedId ?? 'None (Ambient)'}</span>
-          {' | '}
-          <em>
-            {scenario === 'binary' && 'Click the cluster to cycle selection between Alpha and Beta. Wireframes illustrate radial hitarea fan-out.'}
-            {scenario === 'priority' && 'Foreground star commands priority; background reticle is suppressed beneath it. Click foreground or background star to test.'}
-            {scenario === 'crowded' && 'Labels displace radially along 8 leader directions or yield to 0% opacity based on proximity.'}
-          </em>
-        </div>
-
-        <DiagnosticTable />
+  const overlay = (
+    <div className={styles.demoOverlay}>
+      <div><strong>Spec 2.2 / 2.3 Clustering & Collision Diagnostics</strong></div>
+      <div className={styles.buttonRow}>
+        <button
+          type="button"
+          className={styles.demoButton}
+          data-active={scenario === 'binary'}
+          onClick={() => {
+            setScenario('binary');
+            setSelectedId('bin-alpha');
+          }}
+        >
+          1. Overlapping Binary (HitArea Fan-Out)
+        </button>
+        <button
+          type="button"
+          className={styles.demoButton}
+          data-active={scenario === 'priority'}
+          onClick={() => {
+            setScenario('priority');
+            setSelectedId('pri-fg');
+          }}
+        >
+          2. Priority Reticle Mask
+        </button>
+        <button
+          type="button"
+          className={styles.demoButton}
+          data-active={scenario === 'crowded'}
+          onClick={() => {
+            setScenario('crowded');
+            setSelectedId(null);
+          }}
+        >
+          3. Crowded Cluster (8-Way Displacement)
+        </button>
+        <button
+          type="button"
+          className={styles.demoButton}
+          data-active={debugHitarea}
+          onClick={() => setDebugHitarea((v) => !v)}
+        >
+          {debugHitarea ? 'HitArea Wireframes: ON' : 'HitArea Wireframes: OFF'}
+        </button>
       </div>
 
-      <Canvas
-        camera={{ position: cam.position, up: cam.up, fov: cam.fov }}
-        onPointerMissed={() => setSelectedId(null)}
-      >
-        <ThemeTokenBridge />
-        <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <CartographicInstrument showPlanarGrid showFins={false} />
-          <SpatialEntityProvider>
-            <OcclusionPass />
-            <ApertureEvaluator />
-            <DiagnosticMonitor />
-            {activeSystems.map((s) => (
-              <CelestialEntity
-                key={s.id}
-                id={s.id}
-                name={s.name}
-                position={s.position}
-                classification={s.classification}
-                stateOverride={selectedId === s.id ? 'focused' : 'active'}
-                spectralType={s.spectralType}
-                multiplicity={s.multiplicity}
-                debugHitarea={debugHitarea}
-                onClick={(id) => {
-                  if (scenario === 'binary') {
-                    setSelectedId((prev) => (prev === 'bin-alpha' ? 'bin-beta' : 'bin-alpha'));
-                  } else {
-                    setSelectedId((prev) => (prev === id ? null : id));
-                  }
-                }}
-              />
-            ))}
-          </SpatialEntityProvider>
-        </SpatialFrameProvider>
-      </Canvas>
+      <div>
+        Active Selection: <span className={styles.targetHighlight}>{selectedId ?? 'None (Ambient)'}</span>
+        {' | '}
+        <em>
+          {scenario === 'binary' && 'Click the cluster to cycle selection between Alpha and Beta. Wireframes illustrate radial hitarea fan-out.'}
+          {scenario === 'priority' && 'Foreground star commands priority; background reticle is suppressed beneath it. Click foreground or background star to test.'}
+          {scenario === 'crowded' && 'Labels displace radially along 8 leader directions or yield to 0% opacity based on proximity.'}
+        </em>
+      </div>
+
+      <DiagnosticTable />
     </div>
+  );
+
+  return (
+    <StoryCanvas
+      frame={GALACTIC_FRAME}
+      cameraDistance={12}
+      fov={35}
+      overlay={overlay}
+      onPointerMissed={() => setSelectedId(null)}
+    >
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <CartographicInstrument showPlanarGrid showFins={false} />
+        <SpatialEntityProvider>
+          <OcclusionPass />
+          <ApertureEvaluator />
+          <DiagnosticMonitor />
+          {activeSystems.map((s) => (
+            <CelestialEntity
+              key={s.id}
+              id={s.id}
+              name={s.name}
+              position={s.position}
+              classification={s.classification}
+              stateOverride={selectedId === s.id ? 'focused' : 'active'}
+              spectralType={s.spectralType}
+              multiplicity={s.multiplicity}
+              debugHitarea={debugHitarea}
+              onClick={(id) => {
+                if (scenario === 'binary') {
+                  setSelectedId((prev) => (prev === 'bin-alpha' ? 'bin-beta' : 'bin-alpha'));
+                } else {
+                  setSelectedId((prev) => (prev === id ? null : id));
+                }
+              }}
+            />
+          ))}
+        </SpatialEntityProvider>
+      </SpatialFrameProvider>
+    </StoryCanvas>
   );
 };
 

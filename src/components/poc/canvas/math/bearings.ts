@@ -42,3 +42,59 @@ export function generateCurvedOrbitPoints(
 
   return points;
 }
+
+const scratchBearingCamLocal = new THREE.Vector3();
+const scratchBearingInvQuat = new THREE.Quaternion();
+
+/**
+ * Calculates a smooth proximity fade factor (1.0 -> 0.0) for a bearing line
+ * as the camera approaches or comes close to intersecting it, preventing near-plane clipping
+ * and camera collisions.
+ */
+export function calculateBearingProximityFade(
+  cameraPosition: THREE.Vector3,
+  origin: THREE.Vector3,
+  bearingType: 'core' | 'orbital',
+  extent: number,
+  centerDistance: number,
+  apertureRadius: number,
+  orientation?: THREE.Quaternion,
+): number {
+  scratchBearingCamLocal.copy(cameraPosition).sub(origin);
+  if (orientation) {
+    scratchBearingInvQuat.copy(orientation).invert();
+    scratchBearingCamLocal.applyQuaternion(scratchBearingInvQuat);
+  }
+
+  const px = scratchBearingCamLocal.x;
+  const py = scratchBearingCamLocal.y;
+  const pz = scratchBearingCamLocal.z;
+
+  let d = 0;
+  if (bearingType === 'core') {
+    // Core bearing line segment: (0, 0, 0) to (extent, 0, 0) along +X
+    const t = Math.max(0, Math.min(extent, px));
+    const dx = px - t;
+    d = Math.sqrt(dx * dx + py * py + pz * pz);
+  } else {
+    // Orbital bearing curve: arc of circle radius centerDistance centered at (centerDistance, 0, 0) in Z=0 plane
+    const effectiveR = Math.max(centerDistance, 1.0);
+    const thetaRel = Math.atan2(py, effectiveR - px);
+    const s = effectiveR * thetaRel;
+    const sClamped = Math.max(0, Math.min(extent, s));
+    const angle = sClamped / effectiveR;
+    const closestX = effectiveR * (1 - Math.cos(angle));
+    const closestY = effectiveR * Math.sin(angle);
+    const dx = px - closestX;
+    const dy = py - closestY;
+    d = Math.sqrt(dx * dx + dy * dy + pz * pz);
+  }
+
+  const dEnd = Math.max(2.0, apertureRadius * 0.25);
+  const dStart = Math.max(6.0, apertureRadius * 0.75);
+
+  if (d >= dStart) return 1.0;
+  if (d <= dEnd) return 0.0;
+  const u = (d - dEnd) / (dStart - dEnd);
+  return u * u * (3 - 2 * u);
+}

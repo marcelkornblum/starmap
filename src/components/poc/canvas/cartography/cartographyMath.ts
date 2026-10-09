@@ -113,169 +113,16 @@ export function createQuadrantTickGeometry(
   return geom;
 }
 
-/**
- * Calculates the angular cardinal alignment factors for a given camera direction vector.
- * Smooth transition range: [thresholdStart = 0.94 (~20 deg), thresholdEnd = 0.985 (~10 deg)].
- * - Standard perspective view (> 20 deg from axis) has alpha = 0 (3 full fins visible).
- * - Cardinal axis transition (< 20 deg) smoothly expands concentric circles and fades edge-on fins.
- * - Cardinal view (< 10 deg) has dot >= 0.985 -> alpha = 1.0 (complete orthographic lock).
- */
-export function computeCardinalAlignment(
-  camDirection: THREE.Vector3,
-  startThreshold = 0.94,
-  endThreshold = 0.985,
-): { alphaX: number; alphaY: number; alphaZ: number; maxAlpha: number } {
-  const dotX = Math.abs(camDirection.x);
-  const dotY = Math.abs(camDirection.y);
-  const dotZ = Math.abs(camDirection.z);
+export {
+  computeCardinalAlignment,
+  computeTransitionWeights,
+} from '../math/cardinal';
 
-  const calcSmoothAlpha = (dot: number): number => {
-    if (dot <= startThreshold) return 0;
-    if (dot >= endThreshold) return 1;
-    const t = (dot - startThreshold) / (endThreshold - startThreshold);
-    return t * t * (3 - 2 * t);
-  };
-
-  const alphaX = calcSmoothAlpha(dotX);
-  const alphaY = calcSmoothAlpha(dotY);
-  const alphaZ = calcSmoothAlpha(dotZ);
-  const maxAlpha = Math.max(alphaX, alphaY, alphaZ);
-
-  return { alphaX, alphaY, alphaZ, maxAlpha };
-}
-
-/**
- * Calculates transition weights across coordinate planes when moving between octants outside the circle threshold.
- * When approaching an axis plane (|camDir.c| < tauTrans), the incoming segment renders alongside the current segment,
- * joining to form a continuous double segment (180 deg span) across the boundary with zero snapping.
- */
-export function computeTransitionWeights(
-  camDirection: THREE.Vector3,
-  tauTrans = 0.35,
-  maxAlpha = 0,
-): { wTransX: number; wTransY: number; wTransZ: number } {
-  const calcTransWeight = (c: number): number => {
-    const d = Math.abs(c);
-    if (d >= tauTrans) return 0;
-    const t = 1 - d / tauTrans;
-    return t * t * (3 - 2 * t) * (1 - maxAlpha);
-  };
-
-  return {
-    wTransX: calcTransWeight(camDirection.x),
-    wTransY: calcTransWeight(camDirection.y),
-    wTransZ: calcTransWeight(camDirection.z),
-  };
-}
-
-export interface ScaledRingInfo {
-  radius: number;
-  isMajor: boolean;
-  fade: number;
-}
-
-const SCRATCH_CANDIDATES: ScaledRingInfo[] = Array.from({ length: 12 }, () => ({
-  radius: 0,
-  isMajor: false,
-  fade: 0,
-}));
-
-/**
- * Populates pre-allocated target pool with logarithmic 1-2-5 progression concentric range rings with zero allocations.
- * Returns the count of active rings.
- */
-export function populateZoomAdaptiveRings(
-  rAperture: number,
-  target: ScaledRingInfo[],
-  maxRings = 6,
-): number {
-  if (rAperture <= 0) return 0;
-  const p = Math.floor(Math.log10(rAperture));
-  const candidateDecades = [p - 1, p, p + 1];
-  const steps = [1, 2, 5];
-
-  let candidateCount = 0;
-
-  for (let d = 0; d < 3; d++) {
-    const unit = Math.pow(10, candidateDecades[d]);
-    for (let s = 0; s < 3; s++) {
-      const r = steps[s] * unit;
-      const rho = r / rAperture;
-
-      // Only candidate rings within visible fractional range [0.05, 0.98]
-      if (rho >= 0.05 && rho <= 0.98) {
-        // Significant line = exact power of 10 (step === 1)
-        const isMajor = steps[s] === 1;
-
-        // Smooth fade at outer perimeter (rho in [0.82, 0.98], fully dissolved before boundary 1.0)
-        const fadeOuter = Math.min(1, Math.max(0, (0.98 - rho) / 0.16));
-        // Smooth fade near focal center (rho in [0.05, 0.15])
-        const fadeInner = Math.min(1, Math.max(0, (rho - 0.05) / 0.10));
-        const fade = fadeOuter * fadeInner;
-
-        if (fade > 0.001) {
-          const slot = SCRATCH_CANDIDATES[candidateCount++];
-          slot.radius = r;
-          slot.isMajor = isMajor;
-          slot.fade = fade;
-        }
-      }
-    }
-  }
-
-  // In-place insertion sort by radius (zero GC allocations)
-  for (let i = 1; i < candidateCount; i++) {
-    const itemR = SCRATCH_CANDIDATES[i].radius;
-    const itemM = SCRATCH_CANDIDATES[i].isMajor;
-    const itemF = SCRATCH_CANDIDATES[i].fade;
-    let j = i - 1;
-    while (j >= 0 && SCRATCH_CANDIDATES[j].radius > itemR) {
-      SCRATCH_CANDIDATES[j + 1].radius = SCRATCH_CANDIDATES[j].radius;
-      SCRATCH_CANDIDATES[j + 1].isMajor = SCRATCH_CANDIDATES[j].isMajor;
-      SCRATCH_CANDIDATES[j + 1].fade = SCRATCH_CANDIDATES[j].fade;
-      j--;
-    }
-    SCRATCH_CANDIDATES[j + 1].radius = itemR;
-    SCRATCH_CANDIDATES[j + 1].isMajor = itemM;
-    SCRATCH_CANDIDATES[j + 1].fade = itemF;
-  }
-
-  const count = Math.min(candidateCount, maxRings);
-  for (let i = 0; i < count; i++) {
-    const src = SCRATCH_CANDIDATES[i];
-    const dst = target[i];
-    dst.radius = src.radius;
-    dst.isMajor = src.isMajor;
-    dst.fade = src.fade;
-  }
-
-  return count;
-}
-
-/**
- * Computes logarithmic 1-2-5 progression concentric range rings dynamically adapted to active aperture radius (rAperture).
- * As camera zooms in and out:
- * - Zooming out: rings smoothly contract toward focal center, larger metric rings fade in at outer boundary.
- * - Zooming in: rings smoothly expand toward boundary, dissolving at the perimeter, finer metric subdivisions emerge.
- * - Two-tier visual hierarchy: Significant lines (powers of 10) vs Insignificant lines (2, 5 subdivisions).
- */
-export function computeZoomAdaptiveRings(rAperture: number, maxRings = 6): ScaledRingInfo[] {
-  const tempPool: ScaledRingInfo[] = Array.from({ length: maxRings }, () => ({
-    radius: 0,
-    isMajor: false,
-    fade: 0,
-  }));
-  const count = populateZoomAdaptiveRings(rAperture, tempPool, maxRings);
-  const result: ScaledRingInfo[] = [];
-  for (let i = 0; i < count; i++) {
-    result.push({
-      radius: tempPool[i].radius,
-      isMajor: tempPool[i].isMajor,
-      fade: tempPool[i].fade,
-    });
-  }
-  return result;
-}
+export {
+  type ScaledRingInfo,
+  populateZoomAdaptiveRings,
+  computeZoomAdaptiveRings,
+} from '../math/rings';
 
 export const LINE_STYLE_CONSTANTS = {
   // Dashed pattern matching HTML/CSS border-style: dashed (clean, balanced ~1.5:1 ratio)
@@ -380,12 +227,12 @@ export function populateDashedLineBuffer(
 export function populateCurvedDashedLineBuffer(
   buffer: Float32Array,
   length: number,
-  rGc: number,
+  centerDistance: number,
   signY: 1 | -1 = 1,
   dashLen: number = LINE_STYLE_CONSTANTS.dashLength,
   gapLen: number = LINE_STYLE_CONSTANTS.dashGap,
 ): number {
-  if (rGc <= 0 || length <= 0) return 0;
+  if (centerDistance <= 0 || length <= 0) return 0;
   const cycle = dashLen + gapLen;
   let floatIdx = 0;
   let vertexCount = 0;
@@ -394,14 +241,14 @@ export function populateCurvedDashedLineBuffer(
   for (let s = 0; s < length && floatIdx <= maxFloats; s += cycle) {
     const sEnd = Math.min(s + dashLen, length);
     if (sEnd > s) {
-      const phi1 = s / rGc;
-      const phi2 = sEnd / rGc;
+      const phi1 = s / centerDistance;
+      const phi2 = sEnd / centerDistance;
 
-      const x1 = rGc * (1 - Math.cos(phi1));
-      const y1 = (signY * rGc * Math.sin(phi1)) || 0;
+      const x1 = centerDistance * (1 - Math.cos(phi1));
+      const y1 = (signY * centerDistance * Math.sin(phi1)) || 0;
 
-      const x2 = rGc * (1 - Math.cos(phi2));
-      const y2 = (signY * rGc * Math.sin(phi2)) || 0;
+      const x2 = centerDistance * (1 - Math.cos(phi2));
+      const y2 = (signY * centerDistance * Math.sin(phi2)) || 0;
 
       // Vertex 1
       buffer[floatIdx++] = x1;
@@ -432,14 +279,14 @@ export function populateCurvedDashedLineBuffer(
 export function createGalacticPlanarGridGeometry(
   extent = 1200,
   gridGap = 100,
-  rGc = 2000,
+  centerDistance = 2000,
   arcSegments = 64,
   omitCoreAxis = true,
 ): THREE.BufferGeometry {
   const points: THREE.Vector3[] = [];
   const safeExtent = Math.max(1, extent);
   const safeGap = Math.max(0.1, gridGap);
-  const safeRgc = Math.max(safeExtent * 1.5, rGc);
+  const safeRgc = Math.max(safeExtent * 1.5, centerDistance);
   const safeSegments = Math.max(4, arcSegments);
 
   // Concentric circular arcs centered at Galactic Centre (+safeRgc, 0, 0)
@@ -565,14 +412,14 @@ export function createGalacticPlanarGridGeometry(
 export function createCircularPlanarGridGeometry(
   radius = 10,
   gridGap = 2.5,
-  rGc = 2000,
+  centerDistance = 2000,
   arcSegments = 64,
   omitCoreAxis = true,
 ): THREE.BufferGeometry {
   const coords: number[] = [];
   const safeRadius = Math.max(0.5, radius);
   const safeGap = Math.max(0.05, gridGap);
-  const safeRgc = Math.max(safeRadius * 2, rGc);
+  const safeRgc = Math.max(safeRadius * 2, centerDistance);
   const R2 = safeRadius * safeRadius;
 
   // 1. Concentric circular arcs centered at Galactic Centre (+safeRgc, 0, 0)
@@ -734,61 +581,7 @@ const scratchHeadingDir = new THREE.Vector3();
 const scratchVCam = new THREE.Vector3();
 const scratchOriginCam = new THREE.Vector3();
 const scratchEndCam = new THREE.Vector3();
-const scratchBearingCamLocal = new THREE.Vector3();
-const scratchBearingInvQuat = new THREE.Quaternion();
-
-/**
- * Calculates a smooth proximity fade factor (1.0 -> 0.0) for a bearing line
- * as the camera approaches or comes close to intersecting it, preventing near-plane clipping
- * and camera collisions.
- */
-export function calculateBearingProximityFade(
-  cameraPosition: THREE.Vector3,
-  origin: THREE.Vector3,
-  bearingType: 'core' | 'orbital',
-  extent: number,
-  rGc: number,
-  apertureRadius: number,
-  orientation?: THREE.Quaternion,
-): number {
-  scratchBearingCamLocal.copy(cameraPosition).sub(origin);
-  if (orientation) {
-    scratchBearingInvQuat.copy(orientation).invert();
-    scratchBearingCamLocal.applyQuaternion(scratchBearingInvQuat);
-  }
-
-  const px = scratchBearingCamLocal.x;
-  const py = scratchBearingCamLocal.y;
-  const pz = scratchBearingCamLocal.z;
-
-  let d = 0;
-  if (bearingType === 'core') {
-    // Core bearing line segment: (0, 0, 0) to (extent, 0, 0) along +X
-    const t = Math.max(0, Math.min(extent, px));
-    const dx = px - t;
-    d = Math.sqrt(dx * dx + py * py + pz * pz);
-  } else {
-    // Orbital bearing curve: arc of circle radius rGc centered at (rGc, 0, 0) in Z=0 plane
-    const effectiveR = Math.max(rGc, 1.0);
-    const thetaRel = Math.atan2(py, effectiveR - px);
-    const s = effectiveR * thetaRel;
-    const sClamped = Math.max(0, Math.min(extent, s));
-    const angle = sClamped / effectiveR;
-    const closestX = effectiveR * (1 - Math.cos(angle));
-    const closestY = effectiveR * Math.sin(angle);
-    const dx = px - closestX;
-    const dy = py - closestY;
-    d = Math.sqrt(dx * dx + dy * dy + pz * pz);
-  }
-
-  const dEnd = Math.max(2.0, apertureRadius * 0.25);
-  const dStart = Math.max(6.0, apertureRadius * 0.75);
-
-  if (d >= dStart) return 1.0;
-  if (d <= dEnd) return 0.0;
-  const u = (d - dEnd) / (dStart - dEnd);
-  return u * u * (3 - 2 * u);
-}
+export { calculateBearingProximityFade } from '../math/bearings';
 
 /**
  * Calculates screen-space position, edge placement, and orientation angle for
@@ -812,7 +605,7 @@ export function calculateScreenEdgeBearing(
   margin = 28,
   bearingType: ScreenEdgeBearingType = 'core',
   origin = new THREE.Vector3(0, 0, 0),
-  rGc = 2000,
+  centerDistance = 2000,
   extent = 2000,
   out?: ScreenEdgeBearingResult,
   minLineLength = 40,
@@ -853,10 +646,10 @@ export function calculateScreenEdgeBearing(
     if (bearingType === 'core') {
       scratchLocalPoint.set(s0, 0, 0);
     } else {
-      const phi = s0 / rGc;
+      const phi = s0 / centerDistance;
       scratchLocalPoint.set(
-        rGc * (1 - Math.cos(phi)),
-        rGc * Math.sin(phi),
+        centerDistance * (1 - Math.cos(phi)),
+        centerDistance * Math.sin(phi),
         0,
       );
     }
@@ -871,10 +664,10 @@ export function calculateScreenEdgeBearing(
     if (bearingType === 'core') {
       scratchLocalPoint.set(s1, 0, 0);
     } else {
-      const phi = s1 / rGc;
+      const phi = s1 / centerDistance;
       scratchLocalPoint.set(
-        rGc * (1 - Math.cos(phi)),
-        rGc * Math.sin(phi),
+        centerDistance * (1 - Math.cos(phi)),
+        centerDistance * Math.sin(phi),
         0,
       );
     }
@@ -960,10 +753,10 @@ export function calculateScreenEdgeBearing(
   if (bearingType === 'core') {
     scratchLocalPoint.set(extent, 0, 0);
   } else {
-    const phi = extent / rGc;
+    const phi = extent / centerDistance;
     scratchLocalPoint.set(
-      rGc * (1 - Math.cos(phi)),
-      rGc * Math.sin(phi),
+      centerDistance * (1 - Math.cos(phi)),
+      centerDistance * Math.sin(phi),
       0,
     );
   }
@@ -1006,10 +799,10 @@ export function calculateScreenEdgeBearing(
       if (bearingType === 'core') {
         scratchLocalPoint.set(sPrev, 0, 0);
       } else {
-        const phiPrev = sPrev / rGc;
+        const phiPrev = sPrev / centerDistance;
         scratchLocalPoint.set(
-          rGc * (1 - Math.cos(phiPrev)),
-          rGc * Math.sin(phiPrev),
+          centerDistance * (1 - Math.cos(phiPrev)),
+          centerDistance * Math.sin(phiPrev),
           0,
         );
       }
@@ -1028,7 +821,7 @@ export function calculateScreenEdgeBearing(
         if (bearingType === 'core') {
           scratchHeadingDir.set(1, 0, 0);
         } else {
-          const phi = extent / rGc;
+          const phi = extent / centerDistance;
           scratchHeadingDir.set(Math.sin(phi), Math.cos(phi), 0);
         }
         if (orientation) {

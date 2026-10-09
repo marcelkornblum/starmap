@@ -15,13 +15,45 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   baseFov: explicitBaseFov,
   adaptiveProjection: explicitAdaptive,
 }) => {
-  const { camera } = useThree();
+  const threeState = useThree() as { camera: THREE.Camera; controls?: { minDistance?: number; maxDistance?: number } };
+  const camera = threeState.camera;
+  const controls = threeState.controls;
   const { frame, frameRef } = useSpatialFrame();
 
   const isAdaptive = explicitAdaptive ?? frame.camera.adaptiveProjection ?? true;
   const configuredBaseFov = explicitBaseFov ?? frame.camera.baseFov;
 
+  // Synchronise controls distances
+  if (controls) {
+    if (typeof frame.camera.minDistance === 'number' && controls.minDistance !== frame.camera.minDistance) {
+      controls.minDistance = frame.camera.minDistance;
+    }
+    if (typeof frame.camera.maxDistance === 'number' && controls.maxDistance !== frame.camera.maxDistance) {
+      controls.maxDistance = frame.camera.maxDistance;
+    }
+  }
+
   const baseFovRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!controls) return;
+    const prevMin = controls.minDistance;
+    const prevMax = controls.maxDistance;
+
+    if (typeof frame.camera.minDistance === 'number') {
+      controls.minDistance = frame.camera.minDistance;
+    }
+    if (typeof frame.camera.maxDistance === 'number') {
+      controls.maxDistance = frame.camera.maxDistance;
+    }
+
+    return () => {
+      if (controls) {
+        if (prevMin !== undefined) controls.minDistance = prevMin;
+        if (prevMax !== undefined) controls.maxDistance = prevMax;
+      }
+    };
+  }, [controls, frame.camera.minDistance, frame.camera.maxDistance]);
 
   useFrame(() => {
     if (!isAdaptive || !(camera instanceof THREE.PerspectiveCamera)) return;

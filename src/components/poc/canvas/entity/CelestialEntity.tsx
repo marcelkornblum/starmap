@@ -2,7 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { type ThreeEvent, useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../../hooks/useLazyRef';
-import { useSpatialEntityStoreApi, useSpatialEntityStore, useEntityTier } from './SpatialEntityContext';
+import {
+  useSpatialEntityStoreApi,
+  useSpatialEntityStore,
+  useEntityTier,
+  useOcclusionManager,
+} from './SpatialEntityContext';
 import { BodyMarker } from './BodyMarker';
 import { Reticle } from './Reticle';
 import { DropStalk } from './DropStalk';
@@ -11,7 +16,6 @@ import { OrbitPath } from './OrbitPath';
 import { EntityLabel } from './EntityLabel';
 import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import {
-  celestialOcclusionManager,
   type CelestialFootprint,
 } from '../cartography/celestialOcclusionRegistry';
 import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
@@ -27,7 +31,6 @@ import {
 import {
   activateEntity,
   focusEntity,
-  occlusionCyclicTargetResolver,
 } from './interactionActions';
 import type {
   SpatialEntityDefinition,
@@ -79,6 +82,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   children,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
+  const occlusionManager = useOcclusionManager();
   const nodeGroupRef = useRef<THREE.Group>(null);
   const nodeAlphaRef = useRef(1);
   const hasBodyCrossfade = bodyRadius !== undefined && bodyRadius > 0;
@@ -281,11 +285,11 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   }, [name, activeState, multiplicity, planets, resolvedPos]);
 
   useEffect(() => {
-    celestialOcclusionManager.register(footprintRef.current);
+    occlusionManager.register(footprintRef.current);
     return () => {
-      celestialOcclusionManager.unregister(id);
+      occlusionManager.unregister(id);
     };
-  }, [id]);
+  }, [occlusionManager, id]);
 
   const scratchNdcRef = useLazyRef(() => new THREE.Vector3());
   const scratchWorldPosRef = useLazyRef(() => new THREE.Vector3());
@@ -308,7 +312,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
 
     // Batch Occlusion Optimization: If OcclusionPass is evaluating projections in a single batch pass,
     // skip duplicate per-entity projection matrix multiplications.
-    if (celestialOcclusionManager.isBatchEvaluating()) {
+    if (occlusionManager.isBatchEvaluating()) {
       return;
     }
 
@@ -331,7 +335,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     fp.visible = !isBehindCamera;
     fp.updatedAt = performance.now();
 
-    celestialOcclusionManager.register(fp);
+    occlusionManager.register(fp);
   });
 
   // Single-Stalk Rule (§2.4): Drop stalk renders for selected or focused entities.
@@ -371,7 +375,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
             if (onClick) {
               onClick(targetId, e);
             } else {
-              activateEntity(storeApi, targetId, occlusionCyclicTargetResolver);
+              activateEntity(storeApi, targetId, (tId) => occlusionManager.getCyclicSelectionTarget(tId));
             }
           }}
           onDoubleClick={(targetId, e) => {

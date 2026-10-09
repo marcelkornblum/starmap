@@ -19,6 +19,7 @@ import {
 import {
   resolveBearingVector,
   generateCurvedOrbitPoints,
+  calculateBearingProximityFade,
 } from '../src/components/poc/canvas/math/bearings';
 import {
   deriveEntityTier,
@@ -208,6 +209,25 @@ describe('Spatial Math: bearings.ts', () => {
       const distToCenter = pt.distanceTo(center);
       expect(distToCenter).toBeCloseTo(radius, 1);
     }
+  });
+
+  it('calculates bearing proximity fade smoothly when camera approaches bearing vector', () => {
+    const origin = new THREE.Vector3(0, 0, 0);
+    // Camera far from bearing line -> fade is 1.0 (fully visible)
+    const camFar = new THREE.Vector3(0, 50, 50);
+    const fadeFar = calculateBearingProximityFade(camFar, origin, 'core', 1200, 2000, 20);
+    expect(fadeFar).toBe(1.0);
+
+    // Camera extremely close to bearing line -> fade is 0.0 (fully transparent)
+    const camNear = new THREE.Vector3(100, 1.0, 0.5);
+    const fadeNear = calculateBearingProximityFade(camNear, origin, 'core', 1200, 2000, 20);
+    expect(fadeNear).toBe(0.0);
+
+    // Camera in transition zone -> 0 < fade < 1
+    const camMid = new THREE.Vector3(100, 10, 0);
+    const fadeMid = calculateBearingProximityFade(camMid, origin, 'core', 1200, 2000, 20);
+    expect(fadeMid).toBeGreaterThan(0.0);
+    expect(fadeMid).toBeLessThan(1.0);
   });
 });
 

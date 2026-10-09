@@ -10,6 +10,7 @@ import {
   CartoLineMaterial,
   CARTO_LINE_CONSTANTS,
 } from '../materials/CartoLineMaterial';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 
@@ -61,6 +62,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   const groupRef = useRef<THREE.Group>(null);
   const directionMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const arrowBillboardRef = useRef<THREE.Group>(null);
+  const frameCtx = useSpatialFrameSafe();
 
   const scratchWorldTangent = useLazyRef(() => new THREE.Vector3());
   const scratchCamDir = useLazyRef(() => new THREE.Vector3());
@@ -243,7 +245,10 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     if (arrowBillboardRef.current && showDirectionIndicator) {
       arrowBillboardRef.current.getWorldPosition(scratchArrowWorldPos.current);
       const camDist = Math.max(camera.position.distanceTo(scratchArrowWorldPos.current), 1e-4);
-      const invScale = calculateScreenInvariantScale(camDist, camera);
+      const frameState = frameCtx?.frameRef?.current;
+      const invScale = frameState
+        ? (camDist / frameState.referenceFootprint) * frameState.fovFactor
+        : calculateScreenInvariantScale(camDist, camera);
       arrowBillboardRef.current.scale.set(invScale, invScale, invScale);
 
       // Transform 3D orbital tangent vector into camera view space

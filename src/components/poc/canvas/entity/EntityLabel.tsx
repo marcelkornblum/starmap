@@ -5,8 +5,9 @@ import { useLazyRef } from '../../../../hooks/useLazyRef';
 import { SafeHtml } from '../SafeHtml';
 import styles from './EntityLabel.module.css';
 import type { CelestialInteractionState } from './types';
+import { useOcclusionManager } from './SpatialEntityContext';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import {
-  celestialOcclusionManager,
   type CelestialFootprint,
   type Box2D,
 } from '../cartography/celestialOcclusionRegistry';
@@ -54,6 +55,8 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
   const lastXRef = useRef<number | null>(null);
   const lastYRef = useRef<number | null>(null);
   const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
+  const occlusionManager = useOcclusionManager();
+  const frameCtx = useSpatialFrameSafe();
 
   const resolvedPos = useMemo(() => {
     if (!position) return [0, 0, 0] as [number, number, number];
@@ -93,14 +96,16 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
 
       billboardRef.current.getWorldPosition(scratchWorldPos.current);
       const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-      const invScale = calculateScreenInvariantScale(camDist, camera);
+      const invScale = frameCtx?.frameRef?.current
+        ? (camDist / frameCtx.frameRef.current.referenceFootprint) * frameCtx.frameRef.current.fovFactor
+        : calculateScreenInvariantScale(camDist, camera);
       billboardRef.current.scale.set(invScale, invScale, invScale);
     }
 
     if (!labelRef.current) return;
 
     // Retrieve screen footprint from occlusion manager to construct accurate activeBox
-    const fp = celestialOcclusionManager.getFootprint(id);
+    const fp = occlusionManager.getFootprint(id);
     let activeBox: Box2D | undefined;
     if (fp && fp.screenX !== undefined && fp.screenY !== undefined) {
       const estimatedW = name.length * 8 + 12;
@@ -117,7 +122,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
       activeBox = box;
     }
 
-    const evalState = celestialOcclusionManager.evaluateNodeOcclusion(id, activeBox);
+    const evalState = occlusionManager.evaluateNodeOcclusion(id, activeBox);
     const isVisible = evalState.labelEval.visible && !isOccluded;
 
     if (lastOccludedRef.current !== !isVisible) {

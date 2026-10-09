@@ -53,11 +53,11 @@
 - [x] Task: PlanetBody cross-fade: fix stale world-position read; replace foreign material mutation with a node alpha consumed by children.
 - [x] Task: **HALT: user verification in Storybook.**
 - [x] Task: Store-owned interaction FSM (`deriveEntityTier` as sole derivation, `apertureIds` in store); remove `state`/`showStalk`/`showLabel`/`reticleSize`/`enableOcclusion` from entity contract.
-- [ ] Task: Frame-declared core bearing (optional) drives tilt; orbital bearing independent; frame-neutral prop naming; apply bearing decisions above.
-- [ ] Task: Centralise screen-scale constants in `SpatialFrameState`; per-viewport occlusion manager.
-- [ ] Task: Frame-driven camera rig and lighting; shared story canvas.
-- [ ] Task: Remove dead code (`*Scene3D`, legacy indicators, duplicate maths, legacy line materials); move fixtures to data.
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
+- [x] Task: Frame-declared core bearing (optional) drives tilt; orbital bearing independent; frame-neutral prop naming; apply bearing decisions above.
+- [x] Task: Centralise screen-scale constants in `SpatialFrameState`; per-viewport occlusion manager.
+- [x] Task: Frame-driven camera rig and lighting; shared story canvas.
+- [x] Task: Remove dead code (`*Scene3D`, legacy indicators, duplicate maths, legacy line materials); move fixtures to data.
+- [x] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
 
 ## ~~Phase 5: HUD & View Shell Harmonisation~~ (Relocated)
 > Moved out of this track. `ViewportLayout`, `Heading`, `ViewControlsDock` and HUD CSS stripping → `console-ui-shell_20261004`. `SecondaryObjectsPane` → `telemetry-container_20261004`. This track completes at Phase 4.

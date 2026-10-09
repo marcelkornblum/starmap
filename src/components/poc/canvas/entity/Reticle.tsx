@@ -10,7 +10,8 @@ import {
   type CelestialClassification,
   type PlanetCensusEntry,
 } from '../cartography/reticleGeometry';
-import { celestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
+import { useOcclusionManager } from './SpatialEntityContext';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState, NodeAlphaRef } from './types';
 
@@ -56,6 +57,8 @@ export const Reticle: React.FC<ReticleProps> = ({
 
   const groupRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.LineBasicMaterial>(null);
+  const occlusionManager = useOcclusionManager();
+  const frameCtx = useSpatialFrameSafe();
 
   // Attention Gating: Annotations only activate in selected or focused states
   const isAnnotated = state === 'selected' || state === 'focused';
@@ -112,12 +115,14 @@ export const Reticle: React.FC<ReticleProps> = ({
 
       groupRef.current.getWorldPosition(scratchWorldPos.current);
       const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-      const invScale = calculateScreenInvariantScale(camDist, camera);
+      const invScale = frameCtx?.frameRef?.current
+        ? (camDist / frameCtx.frameRef.current.referenceFootprint) * frameCtx.frameRef.current.fovFactor
+        : calculateScreenInvariantScale(camDist, camera);
       groupRef.current.scale.set(invScale, invScale, invScale);
 
       // Priority Occlusion Masking for Geometric Reticles (Spec 2.2):
       // An active focused target or selected node occludes/suppresses lesser background reticles colliding directly beneath it.
-      const isSuppressed = celestialOcclusionManager.evaluateReticleOcclusion(id);
+      const isSuppressed = occlusionManager.evaluateReticleOcclusion(id);
       groupRef.current.visible = !isSuppressed;
     }
 

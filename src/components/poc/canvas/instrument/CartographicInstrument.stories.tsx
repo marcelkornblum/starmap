@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { StoryCanvas } from '../StoryCanvas';
 import {
   CartographicInstrument,
   SpatialFrameProvider,
@@ -10,9 +9,6 @@ import {
   PLANETARY_FRAME,
   type ReferenceFrame,
 } from './index';
-import { getStandardInitialCamera } from '../cartography/cartographyMath';
-import { ThemeTokenBridge } from '../ThemeTokenBridge';
-import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<typeof CartographicInstrument> = {
@@ -28,93 +24,61 @@ type Story = StoryObj<typeof CartographicInstrument>;
 
 export const GalacticFrame: Story = {
   name: '1. Galactic Reference Frame (Parsec Scale)',
-  render: () => {
-    const cam = getStandardInitialCamera(32, [0, 0, 0], 45);
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas
-          camera={{ position: cam.position, up: cam.up, fov: cam.fov, near: 0.1, far: 2000 }}
-          gl={{ antialias: true }}
-        >
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-          <SpatialFrameProvider frame={GALACTIC_FRAME}>
-            <CartographicInstrument
-              showPlanarGrid
-              showFins
-              showAxisLines
-              showScreenEdgeIndicators
-            />
-          </SpatialFrameProvider>
-        </Canvas>
-      </div>
-    );
-  },
+  render: () => (
+    <StoryCanvas frame={GALACTIC_FRAME} cameraDistance={32}>
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <CartographicInstrument
+          showPlanarGrid
+          showFins
+          showAxisLines
+          showScreenEdgeIndicators
+        />
+      </SpatialFrameProvider>
+    </StoryCanvas>
+  ),
 };
 
 export const SystemFrame: Story = {
   name: '2. System Reference Frame (AU Scale)',
-  render: () => {
-    // Stellar system frame: circular planar grid centered on barycentric centre (radius 6 AU, smaller than Galactic 10 pc)
-    const cam = getStandardInitialCamera(18, [0, 0, 0], 40);
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas
-          camera={{ position: cam.position, up: cam.up, fov: cam.fov, near: 0.1, far: 1000 }}
-          gl={{ antialias: true }}
-        >
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-          <SpatialFrameProvider frame={SYSTEM_FRAME}>
-            <CartographicInstrument
-              showPlanarGrid
-              showFins
-              showAxisLines
-              showScreenEdgeIndicators
-              footprints={[
-                { id: 'primary-star-a', position: [1.8, 0.6, 0], classification: 'star', multiplicity: 2 },
-                { id: 'companion-star-b', position: [-1.8, -0.6, 0], classification: 'star' },
-                { id: 'inner-terrestrial', position: [0.4, 3.2, 0], classification: 'terrestrial' },
-                { id: 'gas-giant-outer', position: [-3.8, 2.4, 0], classification: 'gas-giant' },
-              ]}
-            />
-          </SpatialFrameProvider>
-        </Canvas>
-      </div>
-    );
-  },
+  render: () => (
+    <StoryCanvas frame={SYSTEM_FRAME} cameraDistance={18}>
+      <SpatialFrameProvider frame={SYSTEM_FRAME}>
+        <CartographicInstrument
+          showPlanarGrid
+          showFins
+          showAxisLines
+          showScreenEdgeIndicators
+          footprints={[
+            { id: 'primary-star-a', position: [1.8, 0.6, 0], classification: 'star', multiplicity: 2 },
+            { id: 'companion-star-b', position: [-1.8, -0.6, 0], classification: 'star' },
+            { id: 'inner-terrestrial', position: [0.4, 3.2, 0], classification: 'terrestrial' },
+            { id: 'gas-giant-outer', position: [-3.8, 2.4, 0], classification: 'gas-giant' },
+          ]}
+        />
+      </SpatialFrameProvider>
+    </StoryCanvas>
+  ),
 };
 
 export const PlanetaryFrame: Story = {
   name: '3. Planetary Reference Frame (Kilometre Scale)',
-  render: () => {
-    // Planetary frame: circular planar grid centered on the planet itself (radius 3 km, smaller still)
-    const cam = getStandardInitialCamera(9, [0, 0, 0], 40);
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas
-          camera={{ position: cam.position, up: cam.up, fov: cam.fov, near: 0.01, far: 500 }}
-          gl={{ antialias: true }}
-        >
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-          <SpatialFrameProvider frame={PLANETARY_FRAME}>
-            <CartographicInstrument
-              showPlanarGrid
-              showFins
-              showAxisLines
-              showScreenEdgeIndicators
-              footprintClassification="terrestrial"
-              footprints={[
-                { id: 'major-moon', position: [1.2, 0.5, 0.1], classification: 'terrestrial' },
-                { id: 'orbital-facility', position: [-0.9, 0.8, -0.05], classification: 'construct' },
-              ]}
-            />
-          </SpatialFrameProvider>
-        </Canvas>
-      </div>
-    );
-  },
+  render: () => (
+    <StoryCanvas frame={PLANETARY_FRAME} cameraDistance={9}>
+      <SpatialFrameProvider frame={PLANETARY_FRAME}>
+        <CartographicInstrument
+          showPlanarGrid
+          showFins
+          showAxisLines
+          showScreenEdgeIndicators
+          footprintClassification="terrestrial"
+          footprints={[
+            { id: 'major-moon', position: [1.2, 0.5, 0.1], classification: 'terrestrial' },
+            { id: 'orbital-facility', position: [-0.9, 0.8, -0.05], classification: 'construct' },
+          ]}
+        />
+      </SpatialFrameProvider>
+    </StoryCanvas>
+  ),
 };
 
 const InteractiveFrameSwitcherDemo: React.FC = () => {
@@ -125,56 +89,54 @@ const InteractiveFrameSwitcherDemo: React.FC = () => {
     planetary: PLANETARY_FRAME,
   };
   const camDist = activeFrame === 'galactic' ? 32 : (activeFrame === 'system' ? 18 : 9);
-  const cam = getStandardInitialCamera(camDist, [0, 0, 0], 45);
+
+  const overlay = (
+    <div className={styles.demoOverlay}>
+      <span><strong>Select Metric Volume:</strong></span>
+      <div className={styles.buttonRow}>
+        <button
+          type="button"
+          className={styles.demoButton}
+          data-active={activeFrame === 'galactic'}
+          onClick={() => setActiveFrame('galactic')}
+        >
+          Galactic (50 ly)
+        </button>
+        <button
+          type="button"
+          className={styles.demoButton}
+          data-active={activeFrame === 'system'}
+          onClick={() => setActiveFrame('system')}
+        >
+          System (40 AU)
+        </button>
+        <button
+          type="button"
+          className={styles.demoButton}
+          data-active={activeFrame === 'planetary'}
+          onClick={() => setActiveFrame('planetary')}
+        >
+          Planetary (2M km)
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <div className={styles.canvasContainer}>
-      <div className={styles.demoOverlay}>
-        <span><strong>Select Metric Volume:</strong></span>
-        <div className={styles.buttonRow}>
-          <button
-            type="button"
-            className={styles.demoButton}
-            data-active={activeFrame === 'galactic'}
-            onClick={() => setActiveFrame('galactic')}
-          >
-            Galactic (50 ly)
-          </button>
-          <button
-            type="button"
-            className={styles.demoButton}
-            data-active={activeFrame === 'system'}
-            onClick={() => setActiveFrame('system')}
-          >
-            System (40 AU)
-          </button>
-          <button
-            type="button"
-            className={styles.demoButton}
-            data-active={activeFrame === 'planetary'}
-            onClick={() => setActiveFrame('planetary')}
-          >
-            Planetary (2M km)
-          </button>
-        </div>
-      </div>
-
-      <Canvas
-        camera={{ position: cam.position, up: cam.up, fov: cam.fov, near: 0.05, far: 2000 }}
-        gl={{ antialias: true }}
-      >
-        <ThemeTokenBridge />
-        <OrbitControls makeDefault target={[0, 0, 0]} enableDamping dampingFactor={CONTROLS_DAMPING_FACTOR} />
-        <SpatialFrameProvider frame={frameMap[activeFrame]}>
-          <CartographicInstrument
-            showPlanarGrid
-            showFins
-            showAxisLines
-            showScreenEdgeIndicators
-          />
-        </SpatialFrameProvider>
-      </Canvas>
-    </div>
+    <StoryCanvas
+      frame={frameMap[activeFrame]}
+      cameraDistance={camDist}
+      overlay={overlay}
+    >
+      <SpatialFrameProvider frame={frameMap[activeFrame]}>
+        <CartographicInstrument
+          showPlanarGrid
+          showFins
+          showAxisLines
+          showScreenEdgeIndicators
+        />
+      </SpatialFrameProvider>
+    </StoryCanvas>
   );
 };
 

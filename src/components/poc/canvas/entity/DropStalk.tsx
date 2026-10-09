@@ -3,8 +3,8 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../../stores/useThreeTokenStore';
-import { ScreenSpaceLineMaterial } from '../cartography/ScreenSpaceLineMaterial';
-import { useSpatialFrame } from '../instrument/SpatialFrameProvider';
+import { CartoHairlineMaterial } from '../materials/CartoLineMaterial';
+import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import {
   createReticleGeometry,
   DEFAULT_RETICLE_SIZE,
@@ -84,7 +84,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
   const footprintMatRef = useRef<THREE.LineBasicMaterial>(null);
   const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
 
-  const { frameRef } = useSpatialFrame();
+  const frameCtx = useSpatialFrameSafe();
 
   // Stalk vertical line remains neutral / monochrome; datum reticle adopts state color
   const stalkColor = state === 'focused' ? stalkFocusedColor : stalkSelectedColor;
@@ -121,7 +121,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
   }, [classification, footprintSize]);
 
   const lineMaterial = useMemo(() => {
-    return new ScreenSpaceLineMaterial({
+    return new CartoHairlineMaterial({
       color: stalkColor,
       opacity: stalkOpacity,
       lineStyle: isDashed ? 'dashed' : 'solid',
@@ -176,7 +176,8 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       lineMeshRef.current.visible = isVisible;
     }
 
-    const planeWeights = frameRef.current?.planeWeights;
+    const frameState = frameCtx?.frameRef?.current;
+    const planeWeights = frameState?.planeWeights;
     const fadePlanar = planeWeights ? Math.max(0, 1.0 - planeWeights.maxAlpha) : 1.0;
 
     // Footprint visibility & invariant screen-space scaling (stamps as stalk reaches datum)
@@ -185,7 +186,9 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       if (footprintRef.current.visible) {
         footprintRef.current.getWorldPosition(scratchWorldPos.current);
         const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-        const invScale = calculateScreenInvariantScale(camDist, camera);
+        const invScale = frameState
+          ? (camDist / frameState.referenceFootprint) * frameState.fovFactor
+          : calculateScreenInvariantScale(camDist, camera);
         footprintRef.current.scale.set(invScale, invScale, 1);
       }
     }

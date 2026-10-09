@@ -5,8 +5,11 @@ import {
   type ReferenceFrame,
   GALACTIC_FRAME,
   createCustomReferenceFrame,
+  type FrameLightingConfig,
 } from './instrument/referenceFrame';
 import { CartographicInstrument } from './instrument/CartographicInstrument';
+import { CameraRig } from './instrument/CameraRig';
+import { CartographicLighting } from './instrument/CartographicLighting';
 import { SpatialFrameProvider } from './instrument/SpatialFrameProvider';
 import { useCameraTransition } from './instrument/useCameraTransition';
 import {
@@ -61,6 +64,8 @@ export interface SpatialViewportProps {
   focusTransitionDuration?: number;
   /** Double click callback on an entity */
   onDoubleClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
+  /** Frame-driven cartographic lighting override or false to disable */
+  lighting?: Partial<FrameLightingConfig> | false;
 }
 
 /**
@@ -80,6 +85,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   enableFocusTransition = true,
   focusTransitionDuration = 0.8,
   onDoubleClick,
+  lighting,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
   const globalSelectedId = useUIStore((s) => s.selectedNodeId);
@@ -152,6 +158,14 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       {/* Dynamic O(n) screen-space occlusion pass */}
       <OcclusionPass enabled={true} />
       <ApertureEvaluator />
+
+      {/* Frame-driven camera rig and lighting */}
+      <CameraRig />
+      {lighting !== false && (
+        <CartographicLighting
+          lightingOverride={typeof lighting === 'object' ? lighting : undefined}
+        />
+      )}
 
       {/* Cartographic Instrument Primitives (consume the viewport's single SpatialFrameProvider) */}
       {showInstrument && <CartographicInstrument showPlanarFootprint={showPlanarFootprint} />}

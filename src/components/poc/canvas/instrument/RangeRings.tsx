@@ -3,11 +3,11 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useSpatialFrame } from './SpatialFrameProvider';
 import { useThreeTokenStore } from '../../../../stores/useThreeTokenStore';
-import { createCircleGeometry } from '../math/rings';
 import {
+  createCircleGeometry,
   populateZoomAdaptiveRings,
   type ScaledRingInfo,
-} from '../cartography/cartographyMath';
+} from '../math/rings';
 
 const DEFAULT_FIXED_RINGS: readonly number[] = [2.5, 5, 10];
 

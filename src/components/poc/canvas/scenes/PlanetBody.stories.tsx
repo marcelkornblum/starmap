@@ -1,13 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { StoryCanvas } from '../StoryCanvas';
 import { PlanetBody, type PlanetBodyProps } from './PlanetBody';
 import { CelestialEntity } from '../entity/CelestialEntity';
 import { SpatialEntityProvider } from '../entity/SpatialEntityContext';
 import { SpatialFrameProvider, PLANETARY_FRAME } from '../instrument';
-import { ThemeTokenBridge } from '../ThemeTokenBridge';
-import { getStandardInitialCamera } from '../cartography/cartographyMath';
-import styles from '../cartography/StorybookCanvasWrapper.module.css';
 
 const meta: Meta<PlanetBodyProps> = {
   title: 'POC/Canvas/Celestial Entities/Planet Body',
@@ -52,18 +48,11 @@ export const InteractiveInspector: Story = {
     hasAtmosphere: true,
     minPixelSize: 14,
   },
-  render: (args) => {
-    const cam = getStandardInitialCamera(7, [0, 0, 0], 45);
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping />
-          <PlanetBody {...args} />
-        </Canvas>
-      </div>
-    );
-  },
+  render: (args) => (
+    <StoryCanvas frame={PLANETARY_FRAME} cameraDistance={7}>
+      <PlanetBody {...args} />
+    </StoryCanvas>
+  ),
 };
 
 export const DistanceFadeTransition: Story = {
@@ -74,77 +63,62 @@ export const DistanceFadeTransition: Story = {
     radius: 1.5,
     minPixelSize: 16,
   },
-  render: (args) => {
-    const cam = getStandardInitialCamera(15, [0, 0, 0], 45);
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping minDistance={2} maxDistance={100} />
-          <SpatialFrameProvider frame={PLANETARY_FRAME}>
-            <SpatialEntityProvider>
-              {/* The physical PlanetBody fades out at distance */}
-              <PlanetBody {...args} />
-              {/* The invariant Reticle and BodyMarker seamlessly take over */}
-              <CelestialEntity
-                id="planet-target"
-                name="Target World"
-                position={[0, 0, 0]}
-                classification="terrestrial"
-                stateOverride="selected"
-                bodyRadius={args.radius}
-                bodyMinPixelSize={args.minPixelSize}
-                bodyFadeRange={args.fadeRange}
-              />
-            </SpatialEntityProvider>
-          </SpatialFrameProvider>
-        </Canvas>
-      </div>
-    );
-  },
+  render: (args) => (
+    <StoryCanvas frame={PLANETARY_FRAME} cameraDistance={15}>
+      <SpatialFrameProvider frame={PLANETARY_FRAME}>
+        <SpatialEntityProvider>
+          {/* The physical PlanetBody fades out at distance */}
+          <PlanetBody {...args} />
+          {/* The invariant Reticle and BodyMarker seamlessly take over */}
+          <CelestialEntity
+            id="planet-target"
+            name="Target World"
+            position={[0, 0, 0]}
+            classification="terrestrial"
+            stateOverride="selected"
+            bodyRadius={args.radius}
+            bodyMinPixelSize={args.minPixelSize}
+            bodyFadeRange={args.fadeRange}
+          />
+        </SpatialEntityProvider>
+      </SpatialFrameProvider>
+    </StoryCanvas>
+  ),
 };
 
 export const SolarSystemBodies: Story = {
   name: '3. Solar System Bodies (Planetary Census)',
-  render: () => {
-    const cam = getStandardInitialCamera(16, [0, 0, 0], 45);
-    return (
-      <div className={styles.canvasContainer}>
-        <Canvas camera={{ position: cam.position, fov: cam.fov, up: cam.up }}>
-          <ThemeTokenBridge />
-          <OrbitControls makeDefault target={cam.target} enableDamping />
+  render: () => (
+    <StoryCanvas frame={PLANETARY_FRAME} cameraDistance={16}>
+      {/* Mercury */}
+      <group position={[-9, 0, 0]}>
+        <PlanetBody name="Mercury" classification="terrestrial" radius={0.8} hasAtmosphere={false} />
+      </group>
 
-          {/* Mercury */}
-          <group position={[-9, 0, 0]}>
-            <PlanetBody name="Mercury" classification="terrestrial" radius={0.8} hasAtmosphere={false} />
-          </group>
+      {/* Venus */}
+      <group position={[-5.5, 0, 0]}>
+        <PlanetBody name="Venus" classification="terrestrial" radius={1.4} atmosphereColor="#d8a860" />
+      </group>
 
-          {/* Venus */}
-          <group position={[-5.5, 0, 0]}>
-            <PlanetBody name="Venus" classification="terrestrial" radius={1.4} atmosphereColor="#d8a860" />
-          </group>
+      {/* Earth */}
+      <group position={[-2, 0, 0]}>
+        <PlanetBody name="Earth" classification="terrestrial" radius={1.5} atmosphereColor="#68b4e8" />
+      </group>
 
-          {/* Earth */}
-          <group position={[-2, 0, 0]}>
-            <PlanetBody name="Earth" classification="terrestrial" radius={1.5} atmosphereColor="#68b4e8" />
-          </group>
+      {/* Mars */}
+      <group position={[1.5, 0, 0]}>
+        <PlanetBody name="Mars" classification="terrestrial" radius={1.0} hasAtmosphere={false} />
+      </group>
 
-          {/* Mars */}
-          <group position={[1.5, 0, 0]}>
-            <PlanetBody name="Mars" classification="terrestrial" radius={1.0} hasAtmosphere={false} />
-          </group>
+      {/* Jupiter */}
+      <group position={[6.5, 0, 0]}>
+        <PlanetBody name="Jupiter" classification="gas-giant" radius={2.8} />
+      </group>
 
-          {/* Jupiter */}
-          <group position={[6.5, 0, 0]}>
-            <PlanetBody name="Jupiter" classification="gas-giant" radius={2.8} />
-          </group>
-
-          {/* Neptune */}
-          <group position={[12, 0, 0]}>
-            <PlanetBody name="Neptune" classification="ice-giant" radius={2.0} />
-          </group>
-        </Canvas>
-      </div>
-    );
-  },
+      {/* Neptune */}
+      <group position={[12, 0, 0]}>
+        <PlanetBody name="Neptune" classification="ice-giant" radius={2.0} />
+      </group>
+    </StoryCanvas>
+  ),
 };

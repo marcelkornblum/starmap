@@ -21,6 +21,8 @@ export interface BearingDefinition {
   extent?: number;
   /** Whether the bearing exhibits orbital curvature (like the Galactic Orbital vector) */
   curvedDash?: boolean;
+  /** Optional target point for core bearing towards which instrument tilts */
+  target?: [number, number, number] | THREE.Vector3;
 }
 
 export interface RangeRingConfig {
@@ -46,6 +48,14 @@ export interface CameraRigConfig {
   thresholdEnd?: number;
 }
 
+export interface FrameLightingConfig {
+  ambientIntensity: number;
+  ambientColor?: string | THREE.Color;
+  directionalIntensity?: number;
+  directionalColor?: string | THREE.Color;
+  directionalPosition?: [number, number, number];
+}
+
 export interface ReferenceFrame {
   id: string;
   name: string;
@@ -55,6 +65,7 @@ export interface ReferenceFrame {
   screenConstant: boolean;
   referenceDistanceMultiplier: number;
   camera: CameraRigConfig;
+  lighting?: FrameLightingConfig;
   datumPlane: {
     enabled: boolean;
     fill: boolean;
@@ -102,6 +113,11 @@ export const GALACTIC_FRAME: ReferenceFrame = {
     thresholdStart: 0.94,
     thresholdEnd: 0.985,
   },
+  lighting: {
+    ambientIntensity: 0.4,
+    directionalIntensity: 0.4,
+    directionalPosition: [10, 20, 15],
+  },
   datumPlane: {
     enabled: true,
     fill: true,
@@ -125,6 +141,7 @@ export const GALACTIC_FRAME: ReferenceFrame = {
       showEdgeCue: true,
       cueLabel: 'CORE 000°',
       extent: 1200,
+      target: [2000, 0, 0],
       style: 'solid',
     },
     {
@@ -169,6 +186,11 @@ export const SYSTEM_FRAME: ReferenceFrame = {
     thresholdStart: 0.94,
     thresholdEnd: 0.985,
   },
+  lighting: {
+    ambientIntensity: 0.5,
+    directionalIntensity: 0.5,
+    directionalPosition: [10, 20, 15],
+  },
   datumPlane: {
     enabled: true,
     fill: true,
@@ -185,15 +207,6 @@ export const SYSTEM_FRAME: ReferenceFrame = {
     polarDialExpansion: true,
   },
   bearings: [
-    {
-      id: 'core',
-      name: 'CORE',
-      angle: 0,
-      showEdgeCue: true,
-      cueLabel: 'CORE 000°',
-      extent: 1200,
-      style: 'solid',
-    },
     {
       id: 'orbital',
       name: 'ORB',
@@ -238,6 +251,10 @@ export const PLANETARY_FRAME: ReferenceFrame = {
     thresholdStart: 0.94,
     thresholdEnd: 0.985,
   },
+  lighting: {
+    ambientIntensity: 1.0,
+    directionalIntensity: 0.0,
+  },
   datumPlane: {
     enabled: true,
     fill: true,
@@ -253,27 +270,7 @@ export const PLANETARY_FRAME: ReferenceFrame = {
     rangeArcs: true,
     polarDialExpansion: true,
   },
-  bearings: [
-    {
-      id: 'core',
-      name: 'CORE',
-      angle: 0,
-      showEdgeCue: true,
-      cueLabel: 'CORE 000°',
-      extent: 1200,
-      style: 'solid',
-    },
-    {
-      id: 'orbital',
-      name: 'ORB',
-      angle: 90,
-      showEdgeCue: true,
-      cueLabel: 'ORB 090°',
-      extent: 1200,
-      curvedDash: true,
-      style: 'dashed',
-    },
-  ],
+  bearings: [],
   rangeRings: {
     progression: '1-2-5',
     minDecade: 100,
@@ -299,6 +296,9 @@ export function createCustomReferenceFrame(
       ...base.camera,
       ...(overrides.camera ?? {}),
     },
+    lighting: overrides.lighting
+      ? { ...(base.lighting ?? { ambientIntensity: 0.6 }), ...overrides.lighting }
+      : base.lighting,
     datumPlane: {
       ...base.datumPlane,
       ...(overrides.datumPlane ?? {}),
