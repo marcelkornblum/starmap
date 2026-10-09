@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from 'react';
-import { ConfidencePip, type ConfidenceLevel, Unit, Quantity } from '../../primitives/data';
+import { ConfidencePip, type ConfidenceLevel, Unit, Quantity } from '../../../interface/data';
 import { Cluster } from '../../../interface/layout/Cluster/Cluster';
 import styles from './OrbitTable.module.css';
 
