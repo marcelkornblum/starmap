@@ -62,9 +62,11 @@
   .tooltipContent {
     position: relative;
     z-index: 1;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-cluster-dense);
+    display: inline;
+    line-height: inherit;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
   }
 
   .tooltipPrefix,
@@ -82,6 +84,8 @@
     font-family: var(--font-data);
     padding-inline-start: var(--space-cluster-dense);
     border-inline-start: var(--stroke-hairline) solid var(--border-color-subtle);
+    display: inline-block;
+    margin-inline-start: var(--space-cluster-dense);
   }
 }
 

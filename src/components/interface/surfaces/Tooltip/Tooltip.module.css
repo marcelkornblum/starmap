@@ -30,8 +30,12 @@
     font-size: var(--tooltip-font-size);
     font-family: var(--font-interface);
     inline-size: max-content;
-    max-inline-size: min(360px, calc(100vw - 24px));
+    max-inline-size: min(280px, calc(100vw - 32px));
     white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+    text-wrap: pretty;
+    line-height: var(--leading-dense, 1.35);
     pointer-events: none;
     z-index: 600;
     opacity: 0;
@@ -39,6 +43,12 @@
     backdrop-filter: blur(var(--tooltip-backdrop-blur));
     -webkit-backdrop-filter: blur(var(--tooltip-backdrop-blur));
     transition: opacity var(--tooltip-transition-duration) var(--tooltip-transition-ease);
+  }
+
+  @media (max-width: 480px) {
+    .tooltip {
+      max-inline-size: min(220px, calc(100vw - 24px));
+    }
   }
 
   .tooltip::before {
@@ -61,9 +71,11 @@
   .tooltipContent {
     position: relative;
     z-index: 1;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-cluster-dense);
+    display: block;
+    line-height: inherit;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
   }
 
   .tooltipWrapper:hover .tooltip,
