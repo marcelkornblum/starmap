@@ -7,6 +7,6 @@
   "initiative": null,
   "phase": 1,
   "depends_on": [
-    "console-ui-shell_20261004"
+    "interaction-controls_20261010"
   ]
 }
