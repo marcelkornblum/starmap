@@ -8,6 +8,6 @@
   "phase": 1,
   "depends_on": [
     "3d-component-architecture_20261004",
-    "console-ui-shell_20261004"
+    "camera-orthographic-projection_20261010"
   ]
 }
