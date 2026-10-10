@@ -1,0 +1,12 @@
+{
+  "id": "minimap-scene-transitions_20261010",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-10-10T00:46:00Z",
+  "updated_at": "2026-10-10T00:46:00Z",
+  "initiative": null,
+  "phase": 1,
+  "depends_on": [
+    "interaction-controls_20261010"
+  ]
+}
