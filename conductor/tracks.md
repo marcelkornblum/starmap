@@ -9,6 +9,7 @@
 - [x] **Track: Visual Language Token Layer** *Link: [conductor/tracks/visual-language-tokens_20261004/index.md](./tracks/visual-language-tokens_20261004/index.md)*
 - [ ] **Track: Camera & Orthographic Projection** *Link: [conductor/tracks/camera-orthographic-projection_20261010/index.md](./tracks/camera-orthographic-projection_20261010/index.md)*
 - [ ] **Track: Interaction Controls** *Link: [conductor/tracks/interaction-controls_20261010/index.md](./tracks/interaction-controls_20261010/index.md)*
+- [ ] **Track: Minimap & Scene Transitions** *Link: [conductor/tracks/minimap-scene-transitions_20261010/index.md](./tracks/minimap-scene-transitions_20261010/index.md)*
 - [ ] **Track: Telemetry Container & Dossiers** *Link: [conductor/tracks/telemetry-container_20261004/index.md](./tracks/telemetry-container_20261004/index.md)*
 - [ ] **Track: Console UI Shell** *Link: [conductor/tracks/console-ui-shell_20261004/index.md](./tracks/console-ui-shell_20261004/index.md)*
 - [ ] **Track: 3D Engine Implementation** *Link: [conductor/tracks/3d-engine-implementation_20260929/index.md](./tracks/3d-engine-implementation_20260929/index.md)*

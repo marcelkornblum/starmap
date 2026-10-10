@@ -6,21 +6,28 @@
 > Do NOT invent layout architectures, slot templates, or component designs unilaterally.
 > Before writing any code, the agent MUST explicitly ask the user for confirmation and alignment on the exact structure, layout behaviour, and technical contract.
 
-## Phase 1: Adaptive Console Framework (Overlay vs Docked Workstation)
+## Phase 1: References & Exploration (Game UIs, Codexes & Infinite Canvas Maps)
+- [ ] Task: Research and benchmark game HUDs vs in-game encyclopaedias (Elite Dangerous, Homeworld, Star Citizen, Civilization, Destiny).
+- [ ] Task: Research infinite canvas and map navigation patterns (Google Earth, Figma, Apple Maps, SkySafari) across desktop, tablet, and mobile.
+- [ ] Task: Document architectural patterns for layout co-presence, split workstations, and detents in `docs/ui-shell-references.md`.
+- [ ] Task: Align and confirm the concrete shell layout geometry and component contracts with the user.
+- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+
+## Phase 2: Adaptive Console Framework (Overlay vs Docked Workstation)
 - [ ] Task: Write unit tests for console shell state machine (Overlay vs Docked mode, mobile detents: Peek / Partial / Full).
 - [ ] Task: Implement the Adaptive Console Shell layout container managing canvas bounds and 2D workstation co-presence with zero inline styles.
 - [ ] Task: Implement 3D camera viewport compensation hook synchronising canvas offset and aspect ratio on dock toggle.
 - [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
-## Phase 2: Selection-Aware Breadcrumbs & Shell Header
+## Phase 3: Selection-Aware Breadcrumbs & Shell Header
 - [ ] Task: Write unit tests for `Breadcrumbs` navigation component reflecting active hierarchy and emitting upward navigation.
 - [ ] Task: Implement `Breadcrumbs` component and shell top bar with keyboard navigation and active state styling.
 - [ ] Task: Create Storybook story for Breadcrumbs and Shell Header.
 - [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
-## Phase 3: Total View Decoupling & Route Integration
+## Phase 4: Total View Decoupling & Route Integration
 - [ ] Task: Refactor `GalaxyView`, `SystemView`, and `PlanetView` to plug into shell slots (`canvas`, `workspace`, `controls`).
 - [ ] Task: Strip duplicate root HUD CSS and absolute positioning from all view modules.
 - [ ] Task: Verify seamless navigation between Atlas and Encyclopedia routes inside the continuous shell.
