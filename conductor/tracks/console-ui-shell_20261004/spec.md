@@ -1,39 +1,35 @@
 # Specification: Console UI Shell
 
-> **Status: Active.** Scope refined from architecture guidelines, `conductor/backlog.md`, and Phase 5 of `3d-component-architecture_20261004`.
-
 ## Overview
-Builds the production "Adaptive Hybrid Console" shell around the 3D canvas, replacing the per-view HUD overlays with a single layout that owns all 2D chrome placement.
+Builds the production "Adaptive Hybrid Console" shell around the 3D canvas and domain panels, orchestrating screen real estate between the 2D workstation chrome and the 3D WebGL renderer.
 
 ## Scope
 
-1. **Viewport Layout & Typography** *(moved from `3d-component-architecture` Phase 5)*
-   - `ViewportLayout` HUD slot template (canvas, dock, telemetry slot, edge slots).
-   - `Heading` typographic primitive.
-   - Strip duplicate `.hudOverlay`, `.eyebrow`, `.title` and positioning CSS from `GalaxyView`, `SystemView`, `PlanetView` modules.
-2. **Persistent Dock**
-   - Global navigation and search entry point.
-   - **Persistent top-level modes:** Map vs Encyclopedia/Codex as global anchors (former Feature 20).
-3. **Unified Selection Pipeline** (former Feature 2)
-   - Selecting an entity from any 2D surface or by clicking its 3D reticle dispatches the same pipeline: camera focal lock, reticle state promotion, telemetry activation.
-   - Typed 2D → 3D camera commands (the 2D half of the former "Unified 3D-2D Event Bridge").
-4. **Selection-Aware Breadcrumbs** (former Feature 13)
-   - Terminal segment reflects the current selection (`Local Volume → Tau Ceti → Tau Ceti e`).
-   - Clicking a parent segment navigates up and clears child selection.
-5. **View Controls** *(`ViewControlsDock` moved from `3d-component-architecture` Phase 5)*
-   - Capabilities sourced from the active `ReferenceFrame`.
-   - Layer visibility toggles (constellation lines, habitable zones, grid, names, velocity vectors, magnitude thresholds).
-   - Camera controls and presets (logarithmic zoom stepper, reset, orbital lock, top-down ecliptic toggle).
-6. **Keyboard Shortcut Reference Modal.**
+1. **Adaptive Console Frame (Layout & Canvas Co-presence):**
+   - Coordinates the physical split between the 3D Canvas Area, the Coplanar Dock, and the Telemetry Workstation.
+   - Dual Workstation Modes:
+     - **Overlay Mode:** Canvas is full-bleed ($100\text{vw} \times 100\text{vh}$); transient panels float over the top.
+     - **Docked Mode (Split Workstation):** The 2D workspace locks flush to the side or bottom. The shell physically resizes the 3D canvas container so space objects and 2D data exist side-by-side with zero occlusion.
+   - **3D Camera Viewport Compensation:** When toggling between Overlay and Docked modes, notifies the WebGL camera rig to update projection aspect ratio and optical offset, keeping the focused target centred in the visible canvas area.
+   - **Mobile Responsive Detents:** Bottom sheet chassis supporting stepped vertical detents (Peek $\to$ Partial $\to$ Full).
+2. **Selection-Aware Breadcrumbs & Shell Header:**
+   - Top-level spatial locator (`Local Volume → Tau Ceti → Tau Ceti e`) reflecting current navigation state.
+   - Upward navigation event dispatching.
+3. **Total View Decoupling:**
+   - Strips all view modules (`GalaxyView`, `SystemView`, `PlanetView`, `ReferenceView`) of root positioning, ad-hoc HUD divs, and duplicate layout CSS.
+   - Views become pure content providers that plug into the shell's declared slots (`canvas`, `workspace`, `controls`).
 
 ## Out of Scope
-- Telemetry container, dossiers, Secondary Objects Pane (`telemetry-container_20261004`).
-- Search results, scoping, filters, command palette (`search-discovery_20261004` / backlog).
+- Heading typographic primitive (moved upstream to `telemetry-container_20261004`).
+- Persistent Dock implementation (moved upstream to `telemetry-container_20261004`).
+- ViewControlsDock implementation (moved upstream to `interaction-controls_20261010`).
+- Selection pipeline & camera focal locks (moved to `3d-engine-implementation_20260929`).
+- Keyboard shortcut modal (moved to `conductor/backlog.md`).
 
 ## Acceptance Criteria
-- [ ] No view module declares HUD positioning; all placement owned by `ViewportLayout`.
-- [ ] Dock renders on all views with Map/Encyclopedia modes.
-- [ ] 2D and 3D selection dispatch an identical pipeline (tested).
+- [ ] Starmap runs inside a single, continuous shell across all routes.
+- [ ] Toggling between Overlay and Docked modes resizes canvas cleanly with camera viewport compensation.
 - [ ] Breadcrumbs reflect and clear selection correctly.
-- [ ] Layer toggles and camera presets drive the scene via shared state.
+- [ ] Mobile viewports support Peek, Partial, and Full sheet detents.
+- [ ] No view module declares window-level HUD positioning or margin hacks.
 - [ ] `npm run lint`, `npm run typecheck`, `npm run test:coverage` pass.

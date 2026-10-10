@@ -8,6 +8,7 @@ Candidate features and ideas awaiting formal track planning. Items here are eith
 
 ## Navigation & Spatial HUD
 
+- **Keyboard Shortcut Reference Modal:** Accessible keymap cheat-sheet modal detailing global navigation bindings, camera presets, and layer toggles.
 - **Celestial Command Palette (`Cmd+K` / `/`):** Fast search-and-jump modal palette to locate stars, exoplanets, constellations, or toggle visual rendering layers. Currently a rough prototype only; needs a full production build. Natural home alongside `search-discovery`.
 - **Temporal Scrubber (Time Travel Control):** Interactive timeline scrubber allowing users to propagate planetary and stellar orbits forward and backward through time using Keplerian mechanics. *Blocked on an orbital propagation solver.*
 

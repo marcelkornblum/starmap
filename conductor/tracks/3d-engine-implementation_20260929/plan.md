@@ -12,8 +12,9 @@
 - [ ] Task: Integrate `@react-three/postprocessing` (e.g., Bloom) if defined in the visual design spec.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
-## Phase 3: Scale Transitions, Projection Bridge & HUD Hooks
+## Phase 3: Scale Transitions, Selection Pipeline & Projection Bridge
 - [ ] Task: Implement multi-scale datum plane transitions with tilt indicators.
+- [ ] Task: Implement unified selection pipeline (2D ↔ 3D selection, raycast focal lock, reticle state promotion).
 - [ ] Task: Implement 3D → 2D screen-space projection bridge.
 - [ ] Task: Implement galactic orientation compass / attitude minimap.
 - [ ] Task: Implement 3D-synchronised search framing.

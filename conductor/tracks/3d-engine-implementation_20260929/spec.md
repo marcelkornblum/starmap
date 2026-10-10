@@ -15,7 +15,9 @@ This track builds the actual WebGL scenes and rendering pipelines for Starmap. I
 3. **Materials & Shaders:** Write the custom shaders or standard materials to match the Cartography Rules, ensuring they dynamically react to the UI's Light/Dark mode tokens.
 4. **Post-Processing Pipeline:** Implement `@react-three/postprocessing` to add high-performance visual polish, only if dictated by the design spec.
 5. **Route Integration:** Connect the canonical scenes to the routing tunnel so they seamlessly swap when the URL changes.
-6. **3D → 2D Projection Bridge:** Project 3D entity coordinates to 2D screen-space without layout thrashing, propagating interaction state to DOM/HUD layers (the 3D half of the former "Unified 3D-2D Event Bridge"; the 2D → 3D half lives in `console-ui-shell_20261004`).
+6. **Unified Selection Pipeline & Projection Bridge:**
+   - Full 2D ↔ 3D selection bridge: selecting an entity from 2D lists or clicking its 3D reticle dispatches the identical pipeline: camera focal lock, reticle state promotion (`passive` → `active` → `selected` → `focused`), and interaction event broadcasting.
+   - Screen-space projection: projects 3D entity coordinates to 2D screen-space without layout thrashing.
 7. **3D-Synchronised Search Framing:** As search/palette input changes, highlight matching candidates and reframe camera/aperture to enclose all matches.
 
 ## Non-Functional Requirements

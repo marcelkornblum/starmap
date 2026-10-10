@@ -7,20 +7,21 @@ Delivers the Adaptive Telemetry Container and the entity information surfaces it
 
 ## Scope
 
-1. **Adaptive Telemetry Container**
-   - Overlay and docked modes; mobile detents (peek / partial / full); multi-bay expansion on wide displays.
+1. **Foundational Domain Elements (Heading & Dock)**
+   - `Heading` typographic primitive: eyebrow, title, and subtitle slots with zero outer margins and semantic tokens.
+   - Persistent `Dock` navigation component: Map vs Encyclopedia mode anchors and search palette trigger.
 2. **Card Hierarchy & Rationalisation** (former Feature 8)
    - Summary, telemetry and system preview structured as one coherent hierarchy, avoiding component proliferation.
 3. **Anchor-Independent Telemetry** (former Feature 4)
    - Intrinsic properties first; distance only when a secondary anchor or route is designated.
-4. **Content Surfaces**
+4. **Content Surfaces & Domain Panels**
    - Real-time telemetry readouts and well (distance, apparent magnitude, radial velocity, light-travel time).
-   - Orbital telemetry tables (Keplerian elements).
+   - Orbital telemetry tables (Keplerian elements) with tabular numerals.
    - Celestial dossier sheets (spectral class, mass, radius, metallicity, habitability indicators).
    - Spectral classification hover tooltips (Morgan–Keenan decoding).
    - External authority deep-links: Wikipedia, NASA Exoplanet Archive, SIMBAD (former Feature 15).
 5. **Secondary Objects Pane** *(moved from `3d-component-architecture` Phase 5)*
-   - Bi-directional 2D list ↔ 3D map synchronisation (former Feature 7): row hover highlights reticle and vice versa; selection uses the unified pipeline from `console-ui-shell_20261004`.
+   - Bi-directional 2D list ↔ 3D map synchronisation: row hover highlights reticle and vice versa.
 
 ## Out of Scope
 - Route / measurement planning (`route-measurement_20261004`).
