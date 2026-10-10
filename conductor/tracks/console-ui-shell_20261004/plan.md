@@ -1,5 +1,11 @@
 # Implementation Plan: Console UI Shell
 
+> [!CAUTION]
+> **CRITICAL AGENT INSTRUCTION:**
+> The agent is NOT to be trusted and MUST ask what to do often in order to avoid making mistakes.
+> Do NOT invent layout architectures, slot templates, or component designs unilaterally.
+> Before writing any code, the agent MUST explicitly ask the user for confirmation and alignment on the exact structure, layout behavior, and technical contract.
+
 ## Phase 1: Viewport Layout & Heading Primitive
 - [ ] Task: Write unit tests for `Heading` typographic primitive (`src/components/interface/information/Heading`) supporting eyebrow, title, and subtitle slots with zero outer margins and semantic tokens.
 - [ ] Task: Implement `Heading` primitive and configure Storybook story in `src/components/interface/information/Heading/Heading.stories.tsx`.
