@@ -222,24 +222,34 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       expect(camera.zoom).toBe(1.0);
     });
 
-    it('mitigates polar singularity when unlocking from top pole', () => {
-      const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
-      // Place camera directly on the +Z pole
+    it('preserves camera orientation, up vector, and panned target when unlocking from top pole', () => {
       camera.position.set(0, 0, 50);
       camera.up.set(0, 1, 0);
       camera.lookAt(target);
 
+      const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
       applyOrthographicLock(camera, orthoCam, target, 16 / 9, mockControls as any);
+
+      // Simulate a pan during orthographic lock
+      const panDelta = new THREE.Vector3(15, 25, 0);
+      target.add(panDelta);
+      orthoCam.position.add(panDelta);
+
       releaseOrthographicLock(orthoCam, camera, target, 45, mockControls as any);
 
-      // Camera is slightly tilted off pure +Z pole (by ~1 degree) to avoid collinearity with [0, 0, 1] up vector
-      expect(camera.up).toEqual(new THREE.Vector3(0, 0, 1));
-      expect(camera.position.y).not.toBe(0);
-      expect(camera.position.distanceTo(target)).toBeCloseTo(50, 1);
+      // Camera orientation and up vector are preserved without artificial tilt
+      expect(camera.position.x).toBeCloseTo(15, 4);
+      expect(camera.position.y).toBeCloseTo(25, 4);
+      expect(camera.position.z).toBeCloseTo(50, 4);
+      expect(camera.up).toEqual(new THREE.Vector3(0, 1, 0));
+      expect(camera.quaternion.angleTo(orthoCam.quaternion)).toBeCloseTo(0, 5);
+      expect(mockControls.target.x).toBe(15);
+      expect(mockControls.target.y).toBe(25);
+      expect(mockControls.target.z).toBe(0);
       expect(mockControls.update).toHaveBeenCalled();
     });
 
-    it('mitigates polar singularity when unlocking from bottom pole with legacy fallback', () => {
+    it('preserves camera orientation and distance with legacy single-camera signature', () => {
       camera.position.set(0, 0, -50);
       camera.up.set(0, 1, 0);
       camera.lookAt(target);
@@ -247,9 +257,7 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       applyOrthographicLock(camera, mockControls as any, 45);
       releaseOrthographicLock(camera, mockControls as any, 45);
 
-      expect(camera.up).toEqual(new THREE.Vector3(0, 0, 1));
-      expect(camera.position.y).not.toBe(0);
-      expect(camera.position.distanceTo(target)).toBeCloseTo(50, 1);
+      expect(camera.position.distanceTo(target)).toBeCloseTo(50, 4);
       expect(mockControls.update).toHaveBeenCalled();
     });
   });

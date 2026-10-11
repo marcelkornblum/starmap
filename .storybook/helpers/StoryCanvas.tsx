@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -9,8 +9,6 @@ import {
 } from '../../src/components/canvas/instrument/referenceFrame';
 import { getStandardInitialCamera } from '../../src/components/canvas/cartography/cartographyMath';
 import { CONTROLS_DAMPING_FACTOR } from '../../src/components/canvas/engineConfig';
-import { useCameraStore } from '../../src/stores/useCameraStore';
-import * as THREE from 'three';
 import styles from './StoryCanvas.module.css';
 
 export interface StoryCanvasProps {
@@ -146,26 +144,38 @@ const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
   minDistance,
   maxDistance,
 }) => {
-  const isLocked = useCameraStore((s) => s.isLocked);
+  const internalRef = useRef<OrbitControlsImpl>(null);
+  const prevTargetRef = useRef<[number, number, number] | null>(null);
+
+  // Initialise target once, and only update if explicit prop coordinates change
+  useEffect(() => {
+    const controls = internalRef.current;
+    if (!controls) return;
+    const prev = prevTargetRef.current;
+    if (!prev || prev[0] !== target[0] || prev[1] !== target[1] || prev[2] !== target[2]) {
+      controls.target.set(target[0], target[1], target[2]);
+      controls.update();
+      prevTargetRef.current = [target[0], target[1], target[2]];
+    }
+  }, [target]);
+
+  const setControlsRef = (instance: OrbitControlsImpl | null) => {
+    (internalRef as React.MutableRefObject<OrbitControlsImpl | null>).current = instance;
+    if (controlsRef) {
+      if (typeof controlsRef === 'function') {
+        controlsRef(instance);
+      } else {
+        (controlsRef as React.MutableRefObject<OrbitControlsImpl | null>).current = instance;
+      }
+    }
+  };
 
   return (
     <OrbitControls
-      ref={controlsRef}
+      ref={setControlsRef}
       makeDefault
-      target={target}
-      enableDamping={!isLocked}
-      enableRotate={!isLocked}
       enablePan={true}
       screenSpacePanning={true}
-      mouseButtons={{
-        LEFT: isLocked ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE,
-        MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: THREE.MOUSE.PAN,
-      }}
-      touches={{
-        ONE: isLocked ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE,
-        TWO: THREE.TOUCH.DOLLY_PAN,
-      }}
       dampingFactor={CONTROLS_DAMPING_FACTOR}
       minDistance={minDistance}
       maxDistance={maxDistance}

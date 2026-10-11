@@ -315,34 +315,15 @@ export function releaseOrthographicLock(
     const perspCam = perspOrControls;
     const target = targetOrFov;
 
-    // 1. Restore perspective camera position and distance matching ortho view
+    // 1. Restore perspective camera position, distance, and orientation matching ortho view exactly
     synchronizePerspectiveWithOrtho(orthoCam, perspCam, target, baseFov);
 
-    // 2. Polar singularity mitigation:
-    // If camera is near the +Z or -Z pole with up=[0, 1, 0], tilt slightly by ~1 deg
-    // so that switching back to Z-up [0, 0, 1] does not cause collinearity or gimbal flip.
-    const dist = perspCam.position.distanceTo(target);
-    const camDir = new THREE.Vector3()
-      .copy(perspCam.position)
-      .sub(target)
-      .divideScalar(Math.max(dist, 1e-4));
-    const isNearPole = Math.abs(camDir.z) > 0.999;
-    if (isNearPole && dist > 1e-4) {
-      const signZ = Math.sign(camDir.z) || 1;
-      const tiltAngle = (1 * Math.PI) / 180;
-      const newZ = dist * Math.cos(tiltAngle) * signZ;
-      const newY = -dist * Math.sin(tiltAngle);
-      perspCam.position.set(target.x, target.y + newY, target.z + newZ);
-      perspCam.up.set(0, 0, 1);
-      perspCam.lookAt(target);
-    } else {
-      perspCam.up.set(0, 0, 1);
-    }
-    perspCam.updateProjectionMatrix();
-
-    // 3. Unlock controls: transfer controls.object back to perspCam, re-enable rotation, restore left click & single touch to orbit
+    // 2. Unlock controls: transfer controls.object back to perspCam, re-enable rotation, restore left click & single touch to orbit
     if (controls) {
       if ('object' in controls) controls.object = perspCam;
+      if ('target' in controls && controls.target) {
+        controls.target.copy(target);
+      }
       if ('enableRotate' in controls) controls.enableRotate = true;
       controls.enablePan = true;
       controls.screenSpacePanning = true;
@@ -370,21 +351,6 @@ export function releaseOrthographicLock(
       camera.fov = effectiveBaseFov;
       camera.zoom = 1.0;
       camera.updateProjectionMatrix();
-    }
-
-    const dist = camera.position.length();
-    const isNearPole = Math.abs(camera.position.z) / Math.max(dist, 1e-4) > 0.999;
-    if (isNearPole && dist > 1e-4) {
-      const signZ = Math.sign(camera.position.z) || 1;
-      const tiltAngle = (1 * Math.PI) / 180;
-      const newZ = dist * Math.cos(tiltAngle) * signZ;
-      const newY = -dist * Math.sin(tiltAngle);
-      camera.position.set(0, newY, newZ);
-      camera.up.set(0, 0, 1);
-      camera.lookAt(0, 0, 0);
-      legacyControls?.update?.();
-    } else {
-      camera.up.set(0, 0, 1);
     }
   }
 }

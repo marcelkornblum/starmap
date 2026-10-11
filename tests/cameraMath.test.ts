@@ -224,6 +224,34 @@ describe('Camera Math: cameraMath.ts', () => {
       expect(orthoCam.top).toBeCloseTo(expectedTop, 4);
       expect(orthoCam.bottom).toBeCloseTo(-expectedTop, 4);
     });
+
+    it('preserves camera orientation, focal plane scale, and panned target when synchronizing back from panned ortho view', () => {
+      const focalPoint = new THREE.Vector3(0, 0, 0);
+      const initialDistance = 50;
+      const baseFov = 45;
+      const aspect = 16 / 9;
+
+      const perspCam = new THREE.PerspectiveCamera(baseFov, aspect, 0.1, 1000);
+      perspCam.position.set(0, 0, initialDistance);
+      perspCam.up.set(0, 1, 0);
+      perspCam.lookAt(focalPoint);
+
+      const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
+      synchronizeOrthoWithPerspective(perspCam, orthoCam, focalPoint, aspect);
+
+      // Simulate user panning in ortho mode by (20, 15, 0)
+      const panDelta = new THREE.Vector3(20, 15, 0);
+      orthoCam.position.add(panDelta);
+      focalPoint.add(panDelta);
+
+      synchronizePerspectiveWithOrtho(orthoCam, perspCam, focalPoint, baseFov);
+
+      expect(perspCam.position.x).toBeCloseTo(20, 4);
+      expect(perspCam.position.y).toBeCloseTo(15, 4);
+      expect(perspCam.position.z).toBeCloseTo(initialDistance, 4);
+      expect(perspCam.quaternion.angleTo(orthoCam.quaternion)).toBeCloseTo(0, 5);
+      expect(perspCam.position.distanceTo(focalPoint)).toBeCloseTo(initialDistance, 4);
+    });
   });
 
   describe('getClosestCardinalAxis', () => {
