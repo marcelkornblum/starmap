@@ -77,4 +77,37 @@ describe('Camera Store: useCameraStore.ts', () => {
 
     expect(useCameraStore.getState()).toEqual(expect.objectContaining(INITIAL_CAMERA_STATE));
   });
+
+  describe('Camera Presets & Action Dispatchers', () => {
+    it('queues preset requests via applyPreset', () => {
+      useCameraStore.getState().applyPreset('top-down');
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('top-down');
+
+      useCameraStore.getState().clearPresetRequest();
+      expect(useCameraStore.getState().pendingPresetRequest).toBeNull();
+
+      useCameraStore.getState().applyPreset('reset');
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('reset');
+
+      useCameraStore.getState().applyPreset('orbital-lock');
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('orbital-lock');
+
+      useCameraStore.getState().applyPreset('radial');
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('radial');
+    });
+
+    it('exposes dedicated convenience action dispatchers for presets', () => {
+      useCameraStore.getState().setTopDownView();
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('top-down');
+
+      useCameraStore.getState().resetView();
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('reset');
+
+      useCameraStore.getState().setOrbitalLockView();
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('orbital-lock');
+
+      useCameraStore.getState().setRadialView();
+      expect(useCameraStore.getState().pendingPresetRequest).toBe('radial');
+    });
+  });
 });

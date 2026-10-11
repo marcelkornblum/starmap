@@ -332,5 +332,48 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       });
     }
   });
+
+  describe('Camera Presets Navigation & Execution', () => {
+    it('executes top-down preset transitioning to top cardinal view', () => {
+      const controller = new CardinalTransitionController();
+      controller.start(camera, target, 'top', 0.35, undefined, 0);
+      controller.update(camera, mockControls, 350);
+
+      expect(controller.isTransitioning()).toBe(false);
+      const dir = new THREE.Vector3().copy(camera.position).sub(target).normalize();
+      expect(dir.z).toBeCloseTo(1, 4);
+    });
+
+    it('executes reset preset returning camera to reference frame default position and target', () => {
+      camera.position.set(100, 200, 300);
+      mockControls.target.set(50, 50, 50);
+
+      const defaultPos = [0, -35, 20] as const;
+      const defaultTgt = [0, 0, 0] as const;
+
+      camera.position.set(defaultPos[0], defaultPos[1], defaultPos[2]);
+      mockControls.target.set(defaultTgt[0], defaultTgt[1], defaultTgt[2]);
+      camera.up.set(0, 0, 1);
+      camera.lookAt(mockControls.target);
+
+      expect(camera.position.x).toBe(0);
+      expect(camera.position.y).toBe(-35);
+      expect(camera.position.z).toBe(20);
+      expect(mockControls.target.x).toBe(0);
+      expect(mockControls.target.y).toBe(0);
+      expect(mockControls.target.z).toBe(0);
+    });
+
+    it('executes orbital-lock preset transitioning to equatorial/front view', () => {
+      const controller = new CardinalTransitionController();
+      controller.start(camera, target, 'front', 0.35, undefined, 0);
+      controller.update(camera, mockControls, 350);
+
+      expect(controller.isTransitioning()).toBe(false);
+      const dir = new THREE.Vector3().copy(camera.position).sub(target).normalize();
+      expect(dir.y).toBeCloseTo(-1, 4);
+      expect(dir.z).toBeCloseTo(0, 4);
+    });
+  });
 });
 

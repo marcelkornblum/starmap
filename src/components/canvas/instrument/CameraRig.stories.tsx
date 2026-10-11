@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
+import { DoubleSide } from 'three';
 import storyCanvasStyles from '../../../../.storybook/helpers/StoryCanvas.module.css';
 import { CameraRig } from './CameraRig';
-import { SpatialFrameProvider, GALACTIC_FRAME, PlanarGrid } from './index';
+import { SpatialFrameProvider, GALACTIC_FRAME, SYSTEM_FRAME, PlanarGrid } from './index';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import type { CardinalDirection } from '../math/cameraMath';
 
@@ -72,6 +73,40 @@ const CameraControlsHud: React.FC = () => {
               {dir.toUpperCase()}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className={storyCanvasStyles.controlGroup}>
+        <span className={storyCanvasStyles.groupLabel}>Camera Presets</span>
+        <div className={storyCanvasStyles.buttonRow}>
+          <button
+            type="button"
+            className={storyCanvasStyles.demoButton}
+            onClick={() => useCameraStore.getState().setTopDownView()}
+          >
+            Top-Down Ecliptic
+          </button>
+          <button
+            type="button"
+            className={storyCanvasStyles.demoButton}
+            onClick={() => useCameraStore.getState().resetView()}
+          >
+            Reset View
+          </button>
+          <button
+            type="button"
+            className={storyCanvasStyles.demoButton}
+            onClick={() => useCameraStore.getState().setOrbitalLockView()}
+          >
+            Orbital Lock
+          </button>
+          <button
+            type="button"
+            className={storyCanvasStyles.demoButton}
+            onClick={() => useCameraStore.getState().setRadialView()}
+          >
+            Radial 3D
+          </button>
         </div>
       </div>
     </div>
@@ -152,6 +187,42 @@ export const CameraRigStory: Story = {
         <mesh position={[4, 4, -8]}>
           <boxGeometry args={[1.2, 1.2, 1.2]} />
           <meshBasicMaterial color="#ff4081" wireframe />
+        </mesh>
+      </SpatialFrameProvider>
+    </StoryCanvas>
+  ),
+};
+
+export const CameraRigSystemStory: Story = {
+  name: 'CameraRig (System Frame)',
+  render: (args) => (
+    <StoryCanvas
+      title="CameraRig (System Frame)"
+      description="Camera controls, presets, and logarithmic zoom stepping configured for the System reference frame (1.5 AU grid spacing, 2–150 AU distance range)."
+      frame={SYSTEM_FRAME}
+      cameraDistance={24}
+      bannerContent={<CameraControlsHud />}
+    >
+      <SpatialFrameProvider frame={SYSTEM_FRAME}>
+        <CameraRig {...args} />
+        <PlanarGrid showPlanarGrid />
+
+        {/* Central Star representation */}
+        <mesh position={[0, 0, 0]}>
+          <sphereGeometry args={[0.8, 32, 32]} />
+          <meshBasicMaterial color="#ffcc00" />
+        </mesh>
+
+        {/* Invariable Plane planetary orbit ring */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[5.95, 6.05, 64]} />
+          <meshBasicMaterial color="#00e5ff" side={DoubleSide} />
+        </mesh>
+
+        {/* Orbiting planet marker */}
+        <mesh position={[6, 0, 0]}>
+          <sphereGeometry args={[0.3, 16, 16]} />
+          <meshBasicMaterial color="#40c4ff" />
         </mesh>
       </SpatialFrameProvider>
     </StoryCanvas>

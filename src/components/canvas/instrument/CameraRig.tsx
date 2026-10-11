@@ -9,6 +9,8 @@ import {
   releaseOrthographicLock,
   handleDiscreteSnapOnEnd,
   syncControlsDistance,
+  resetPerspectiveCamera,
+  orientRadialPerspectiveCamera,
   type OrbitControlsLike,
 } from './cameraRigControls';
 import {
@@ -18,6 +20,8 @@ import {
 } from '../math/cameraMath';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
+
+const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
 
 export interface CameraRigProps {
   /** Baseline perspective field of view in degrees. Default: frame.camera.baseFov (45) */
@@ -63,7 +67,6 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   const snapThresholdRad = (snapThresholdDeg * Math.PI) / 180;
 
   const controllerRef = useLazyRef(() => new CardinalTransitionController());
-  const scratchTarget = useLazyRef(() => new THREE.Vector3(0, 0, 0));
 
   // Maintain persistent perspective and orthographic camera instances
   const perspCamRef = useRef<THREE.PerspectiveCamera | null>(
@@ -84,24 +87,17 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     const prevMin = controls.minDistance;
     const prevMax = controls.maxDistance;
 
-    if (typeof frame.camera.minDistance === 'number') {
-      controls.minDistance = frame.camera.minDistance;
-    }
-    if (typeof frame.camera.maxDistance === 'number') {
-      controls.maxDistance = frame.camera.maxDistance;
-    }
+    syncControlsDistance(controls, frame.camera.minDistance, frame.camera.maxDistance);
 
     return () => {
-      if (controls) {
-        if (prevMin !== undefined) controls.minDistance = prevMin;
-        if (prevMax !== undefined) controls.maxDistance = prevMax;
-      }
+      syncControlsDistance(controls, prevMin, prevMax);
     };
   }, [controls, frame.camera.minDistance, frame.camera.maxDistance]);
 
   // Hook into camera store
   const isLocked = useCameraStore((s) => s.isLocked);
   const pendingAxisRequest = useCameraStore((s) => s.pendingAxisRequest);
+  const pendingPresetRequest = useCameraStore((s) => s.pendingPresetRequest);
 
   // Lock to true orthographic camera
   const lockToOrthographic = useCallback(
@@ -113,7 +109,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       if (!perspCam || !orthoCam) return;
 
       const currentControls = (state as { controls?: OrbitControlsLike }).controls;
-      const target = currentControls?.target ?? scratchTarget.current;
+      const target = currentControls?.target ?? FALLBACK_TARGET;
       const width = state.size?.width ?? 1920;
       const height = state.size?.height ?? 1080;
       const aspect = width / Math.max(height, 1);
@@ -129,7 +125,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
 
       state.invalidate?.();
     },
-    [get, scratchTarget, orthoCamRef],
+    [get, orthoCamRef],
   );
 
   // Restore to standard 3D perspective camera
@@ -140,7 +136,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     if (!perspCam || !orthoCam) return;
 
     const currentControls = (state as { controls?: OrbitControlsLike }).controls;
-    const target = currentControls?.target ?? scratchTarget.current;
+    const target = currentControls?.target ?? FALLBACK_TARGET;
 
     releaseOrthographicLock(orthoCam, perspCam, target, configuredBaseFov, currentControls);
     state.set?.({ camera: perspCam });
@@ -148,7 +144,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     useCameraStore.getState().setActiveCardinal(null);
     useCameraStore.getState().setMode('perspective');
     state.invalidate?.();
-  }, [get, configuredBaseFov, scratchTarget, orthoCamRef]);
+  }, [get, configuredBaseFov, orthoCamRef]);
 
   // Glide to a designated cardinal axis
   const glideToCardinal = useCallback(
@@ -159,7 +155,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       if (!perspCam) return;
 
       const currentControls = (state as { controls?: OrbitControlsLike }).controls;
-      const target = currentControls?.target ?? scratchTarget.current;
+      const target = currentControls?.target ?? FALLBACK_TARGET;
 
       if (currentCamera instanceof THREE.OrthographicCamera && orthoCamRef.current) {
         synchronizePerspectiveWithOrtho(orthoCamRef.current, perspCam, target, configuredBaseFov);
@@ -186,7 +182,6 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       snapDuration,
       configuredBaseFov,
       controllerRef,
-      scratchTarget,
       lockToOrthographic,
       orthoCamRef,
     ],
@@ -198,6 +193,74 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     useCameraStore.getState().clearAxisRequest();
     glideToCardinal(pendingAxisRequest);
   }, [pendingAxisRequest, glideToCardinal]);
+
+  // Handle programmatic preset requests
+  useEffect(() => {
+    if (!pendingPresetRequest) return;
+    const preset = pendingPresetRequest;
+    useCameraStore.getState().clearPresetRequest();
+
+    const state = get();
+    const activeControls = (state as { controls?: OrbitControlsLike }).controls;
+
+    switch (preset) {
+      case 'top-down':
+        glideToCardinal('top');
+        break;
+
+      case 'reset': {
+        const defaultPos = frame.camera.defaultPosition ?? [0, -35, 20];
+        const defaultTgt = frame.camera.defaultTarget ?? [0, 0, 0];
+        const currentCamera = state.camera;
+        const perspCam =
+          perspCamRef.current ??
+          (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
+
+        if (currentCamera instanceof THREE.OrthographicCamera && orthoCamRef.current && perspCam) {
+          unlockFromOrthographic();
+        }
+
+        if (perspCam) {
+          resetPerspectiveCamera(perspCam, defaultPos, defaultTgt, configuredBaseFov, activeControls);
+          state.invalidate?.();
+        }
+        break;
+      }
+
+      case 'orbital-lock':
+        glideToCardinal('front');
+        break;
+
+      case 'radial': {
+        const currentCamera = state.camera;
+        const perspCam =
+          perspCamRef.current ??
+          (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
+        if (currentCamera instanceof THREE.OrthographicCamera && orthoCamRef.current && perspCam) {
+          unlockFromOrthographic();
+        }
+
+        const target = activeControls?.target ?? FALLBACK_TARGET;
+        const dist = perspCam ? perspCam.position.distanceTo(target) : 32;
+
+        if (perspCam) {
+          orientRadialPerspectiveCamera(perspCam, target, dist, activeControls);
+          state.invalidate?.();
+        }
+        break;
+      }
+    }
+  }, [
+    pendingPresetRequest,
+    get,
+    glideToCardinal,
+    unlockFromOrthographic,
+    frame.camera.defaultPosition,
+    frame.camera.defaultTarget,
+    configuredBaseFov,
+    perspCamRef,
+    orthoCamRef,
+  ]);
 
   // Handle lock state changes from external store toggle
   useEffect(() => {
@@ -244,7 +307,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
 
       const currentCamera = get().camera;
       const perspCam = perspCamRef.current ?? currentCamera;
-      const target = controls.target ?? scratchTarget.current;
+      const target = controls.target ?? FALLBACK_TARGET;
       handleDiscreteSnapOnEnd(perspCam, target, snapThresholdRad, (cardinal) => {
         glideToCardinal(cardinal);
       });
@@ -264,7 +327,6 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     snapThresholdRad,
     glideToCardinal,
     controllerRef,
-    scratchTarget,
   ]);
 
   // Frame update loop
@@ -301,7 +363,6 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   // Cleanup on unmount: restore perspective and unlock
   useEffect(() => {
     const controller = controllerRef.current;
-    const scratch = scratchTarget.current;
     const orthoCam = orthoCamRef.current;
     return () => {
       controller.cancel();
@@ -311,14 +372,14 @@ export const CameraRig: React.FC<CameraRigProps> = ({
         releaseOrthographicLock(
           orthoCam,
           perspCamRef.current,
-          scratch,
+          FALLBACK_TARGET,
           configuredBaseFov,
           activeControls,
         );
         state.set?.({ camera: perspCamRef.current });
       }
     };
-  }, [get, configuredBaseFov, controllerRef, scratchTarget, orthoCamRef]);
+  }, [get, configuredBaseFov, controllerRef, orthoCamRef]);
 
   return null;
 };

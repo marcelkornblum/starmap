@@ -19,9 +19,10 @@
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: Camera Presets & Storybook Verification
-- [ ] Task: Write unit tests for camera presets: top-down ecliptic, reset, and orbital lock.
-- [ ] Task: Expose headless camera action dispatchers in `useCameraStore` / `CameraRig`.
-- [ ] Task: Create Storybook harness verifying projection blending, discrete snap-on-release, orthographic lock, axis navigation buttons, glide transitions, and presets across Galaxy and System scenes.
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Write unit tests for camera presets: top-down ecliptic, reset, and orbital lock.
+- [x] Task: Expose headless camera action dispatchers in `useCameraStore` / `CameraRig`.
+- [x] Task: Create Storybook harness verifying projection blending, discrete snap-on-release, orthographic lock, axis navigation buttons, glide transitions, and presets across Galaxy and System scenes.
+- [x] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+
 

@@ -410,3 +410,53 @@ export function handleDiscreteSnapOnEnd(
   }
   return false;
 }
+
+/**
+ * Resets a perspective camera to canonical frame coordinates and clears zoom/FOV overrides.
+ */
+export function resetPerspectiveCamera(
+  cam: THREE.PerspectiveCamera,
+  position: readonly [number, number, number],
+  target: readonly [number, number, number],
+  fov: number,
+  controls?: OrbitControlsLike,
+): void {
+  cam.position.set(position[0], position[1], position[2]);
+  cam.up.set(0, 0, 1);
+  if (controls) {
+    controls.target?.set(target[0], target[1], target[2]);
+    controls.update?.();
+  } else {
+    cam.lookAt(target[0], target[1], target[2]);
+  }
+  cam.fov = fov;
+  cam.zoom = 1.0;
+  cam.updateProjectionMatrix();
+}
+
+/**
+ * Positions perspective camera at an elevated radial isometric viewpoint (e.g. 30 deg pitch, -45 deg yaw).
+ */
+export function orientRadialPerspectiveCamera(
+  cam: THREE.PerspectiveCamera,
+  target: THREE.Vector3,
+  distance: number,
+  controls?: OrbitControlsLike,
+): void {
+  const safeDist = Math.max(1, distance);
+  const elev = Math.sin((30 * Math.PI) / 180);
+  const planeR = Math.cos((30 * Math.PI) / 180);
+  const posX = target.x + safeDist * planeR * Math.cos((-45 * Math.PI) / 180);
+  const posY = target.y + safeDist * planeR * Math.sin((-45 * Math.PI) / 180);
+  const posZ = target.z + safeDist * elev;
+
+  cam.position.set(posX, posY, posZ);
+  cam.up.set(0, 0, 1);
+  if (controls) {
+    controls.update?.();
+  } else {
+    cam.lookAt(target);
+  }
+  cam.updateMatrixWorld();
+}
+

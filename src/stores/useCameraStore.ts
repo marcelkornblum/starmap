@@ -20,7 +20,11 @@ export interface CameraState {
   zoom: number;
   /** Pending programmatic axis navigation request */
   pendingAxisRequest: CardinalDirection | null;
+  /** Pending programmatic preset request */
+  pendingPresetRequest: CameraPreset | null;
 }
+
+export type CameraPreset = 'top-down' | 'reset' | 'orbital-lock' | 'radial';
 
 export interface CameraActions {
   setMode: (mode: CameraProjectionMode) => void;
@@ -34,6 +38,12 @@ export interface CameraActions {
   ) => void;
   requestAxisView: (direction: CardinalDirection) => void;
   clearAxisRequest: () => void;
+  applyPreset: (preset: CameraPreset) => void;
+  clearPresetRequest: () => void;
+  setTopDownView: () => void;
+  resetView: () => void;
+  setOrbitalLockView: () => void;
+  setRadialView: () => void;
   resetCameraState: () => void;
 }
 
@@ -48,6 +58,7 @@ export const INITIAL_CAMERA_STATE: CameraState = {
   focalDistance: 10,
   zoom: 1.0,
   pendingAxisRequest: null,
+  pendingPresetRequest: null,
 };
 
 export const useCameraStore = create<CameraStore>()((set) => ({
@@ -83,5 +94,11 @@ export const useCameraStore = create<CameraStore>()((set) => ({
     }),
   requestAxisView: (direction: CardinalDirection) => set({ pendingAxisRequest: direction }),
   clearAxisRequest: () => set({ pendingAxisRequest: null }),
+  applyPreset: (preset: CameraPreset) => set({ pendingPresetRequest: preset }),
+  clearPresetRequest: () => set({ pendingPresetRequest: null }),
+  setTopDownView: () => set({ pendingPresetRequest: 'top-down' }),
+  resetView: () => set({ pendingPresetRequest: 'reset' }),
+  setOrbitalLockView: () => set({ pendingPresetRequest: 'orbital-lock' }),
+  setRadialView: () => set({ pendingPresetRequest: 'radial' }),
   resetCameraState: () => set({ ...INITIAL_CAMERA_STATE }),
 }));
