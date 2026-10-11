@@ -8,6 +8,7 @@ import {
   applyOrthographicLock,
   releaseOrthographicLock,
   handleDiscreteSnapOnEnd,
+  syncControlsDistance,
   type OrbitControlsLike,
 } from './cameraRigControls';
 import {
@@ -65,27 +66,18 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   const scratchTarget = useLazyRef(() => new THREE.Vector3(0, 0, 0));
 
   // Maintain persistent perspective and orthographic camera instances
-  const perspCamRef = useRef<THREE.PerspectiveCamera | null>(null);
-  if (camera instanceof THREE.PerspectiveCamera && !perspCamRef.current) {
-    perspCamRef.current = camera;
-  }
+  const perspCamRef = useRef<THREE.PerspectiveCamera | null>(
+    camera instanceof THREE.PerspectiveCamera ? camera : null,
+  );
+  useEffect(() => {
+    if (camera instanceof THREE.PerspectiveCamera) {
+      perspCamRef.current = camera;
+    }
+  }, [camera]);
   const orthoCamRef = useLazyRef(() => new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 2000));
 
   // Controls distance constraints synchronisation (immediate for SSR & runtime)
-  if (controls) {
-    if (
-      typeof frame.camera.minDistance === 'number' &&
-      controls.minDistance !== frame.camera.minDistance
-    ) {
-      controls.minDistance = frame.camera.minDistance;
-    }
-    if (
-      typeof frame.camera.maxDistance === 'number' &&
-      controls.maxDistance !== frame.camera.maxDistance
-    ) {
-      controls.maxDistance = frame.camera.maxDistance;
-    }
-  }
+  syncControlsDistance(controls, frame.camera.minDistance, frame.camera.maxDistance);
 
   useEffect(() => {
     if (!controls) return;
@@ -309,15 +301,17 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   // Cleanup on unmount: restore perspective and unlock
   useEffect(() => {
     const controller = controllerRef.current;
+    const scratch = scratchTarget.current;
+    const orthoCam = orthoCamRef.current;
     return () => {
       controller.cancel();
       if (useCameraStore.getState().isLocked && perspCamRef.current) {
         const state = get();
         const activeControls = (state as { controls?: OrbitControlsLike }).controls;
         releaseOrthographicLock(
-          orthoCamRef.current,
+          orthoCam,
           perspCamRef.current,
-          scratchTarget.current,
+          scratch,
           configuredBaseFov,
           activeControls,
         );

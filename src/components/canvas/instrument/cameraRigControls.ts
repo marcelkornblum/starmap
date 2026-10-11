@@ -20,7 +20,26 @@ export interface OrbitControlsLike {
   screenSpacePanning?: boolean;
   mouseButtons?: { LEFT: number; MIDDLE?: number; RIGHT?: number };
   touches?: { ONE: number; TWO?: number };
+  minDistance?: number;
+  maxDistance?: number;
   update?: (() => void) | Function;
+}
+
+/**
+ * Synchronises controls min/max distance constraints with frame camera definition.
+ */
+export function syncControlsDistance(
+  controls?: OrbitControlsLike,
+  minDistance?: number,
+  maxDistance?: number,
+): void {
+  if (!controls) return;
+  if (typeof minDistance === 'number' && controls.minDistance !== minDistance) {
+    controls.minDistance = minDistance;
+  }
+  if (typeof maxDistance === 'number' && controls.maxDistance !== maxDistance) {
+    controls.maxDistance = maxDistance;
+  }
 }
 
 /**
@@ -43,6 +62,8 @@ export class CardinalTransitionController {
   private startUp = new THREE.Vector3();
   private endUp = new THREE.Vector3();
   private rotationAxis = new THREE.Vector3();
+  private currentDir = new THREE.Vector3();
+  private currentUp = new THREE.Vector3();
   private totalAngle = 0;
 
   public isTransitioning(): boolean {
@@ -135,27 +156,27 @@ export class CardinalTransitionController {
 
     // 1. Interpolate direction along the great-circle spherical arc
     const currentAngle = this.totalAngle * t;
-    const currentDir = new THREE.Vector3()
+    this.currentDir
       .copy(this.startDir)
       .applyAxisAngle(this.rotationAxis, currentAngle)
       .normalize();
 
     // 2. Camera position maintained at exact radius R from focus target
-    camera.position.copy(this.target).addScaledVector(currentDir, this.radius);
+    camera.position.copy(this.target).addScaledVector(this.currentDir, this.radius);
 
     // 3. Interpolate up vector smoothly and project orthogonal to view direction
-    const currentUp = new THREE.Vector3().lerpVectors(this.startUp, this.endUp, t).normalize();
-    const dotUpView = currentUp.dot(currentDir);
+    this.currentUp.lerpVectors(this.startUp, this.endUp, t).normalize();
+    const dotUpView = this.currentUp.dot(this.currentDir);
     if (Math.abs(dotUpView) > 0.99) {
-      if (Math.abs(this.rotationAxis.dot(currentDir)) < 0.9) {
-        currentUp.copy(this.rotationAxis);
+      if (Math.abs(this.rotationAxis.dot(this.currentDir)) < 0.9) {
+        this.currentUp.copy(this.rotationAxis);
       } else {
-        currentUp.set(0, 1, 0);
+        this.currentUp.set(0, 1, 0);
       }
     } else {
-      currentUp.addScaledVector(currentDir, -dotUpView).normalize();
+      this.currentUp.addScaledVector(this.currentDir, -dotUpView).normalize();
     }
-    camera.up.copy(currentUp);
+    camera.up.copy(this.currentUp);
 
     // 4. Invariant: Camera continuously points at the target
     camera.lookAt(this.target);
@@ -302,7 +323,7 @@ export function releaseOrthographicLock(
       const tiltAngle = (1 * Math.PI) / 180;
       const newZ = dist * Math.cos(tiltAngle) * signZ;
       const newY = -dist * Math.sin(tiltAngle);
-      perspCam.position.copy(target).add(new THREE.Vector3(0, newY, newZ));
+      perspCam.position.set(target.x, target.y + newY, target.z + newZ);
       perspCam.up.set(0, 0, 1);
       perspCam.lookAt(target);
     } else {
