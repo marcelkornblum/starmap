@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { ThemeTokenBridge } from '../../src/components/canvas/ThemeTokenBridge';
@@ -144,6 +144,8 @@ const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
   minDistance,
   maxDistance,
 }) => {
+  const threeCamera = useThree((s) => s.camera);
+  const stableCameraRef = useRef(threeCamera);
   const internalRef = useRef<OrbitControlsImpl>(null);
   const prevTargetRef = useRef<[number, number, number] | null>(null);
 
@@ -173,6 +175,7 @@ const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
   return (
     <OrbitControls
       ref={setControlsRef}
+      camera={stableCameraRef.current}
       makeDefault
       enablePan={true}
       screenSpacePanning={true}

@@ -94,6 +94,9 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     };
   }, [controls, frame.camera.minDistance, frame.camera.maxDistance]);
 
+  const persistentTargetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
+  const justUnlockedRef = useRef<boolean>(false);
+
   // Hook into camera store
   const isLocked = useCameraStore((s) => s.isLocked);
   const pendingAxisRequest = useCameraStore((s) => s.pendingAxisRequest);
@@ -109,7 +112,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       if (!perspCam || !orthoCam) return;
 
       const currentControls = (state as { controls?: OrbitControlsLike }).controls;
-      const target = currentControls?.target ?? FALLBACK_TARGET;
+      const target = currentControls?.target ? persistentTargetRef.current.copy(currentControls.target) : persistentTargetRef.current;
       const width = state.size?.width ?? 1920;
       const height = state.size?.height ?? 1080;
       const aspect = width / Math.max(height, 1);
@@ -136,13 +139,20 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     if (!perspCam || !orthoCam) return;
 
     const currentControls = (state as { controls?: OrbitControlsLike }).controls;
-    const target = currentControls?.target ?? FALLBACK_TARGET;
+    const target = currentControls?.target
+      ? persistentTargetRef.current.copy(currentControls.target)
+      : persistentTargetRef.current;
 
     releaseOrthographicLock(orthoCam, perspCam, target, configuredBaseFov, currentControls);
     state.set?.({ camera: perspCam });
     useCameraStore.getState().setLocked(false);
     useCameraStore.getState().setActiveCardinal(null);
     useCameraStore.getState().setMode('perspective');
+    useCameraStore.getState().setCameraTransform(
+      [perspCam.position.x, perspCam.position.y, perspCam.position.z],
+      [target.x, target.y, target.z],
+    );
+    justUnlockedRef.current = true;
     state.invalidate?.();
   }, [get, configuredBaseFov, orthoCamRef]);
 
@@ -332,6 +342,20 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   // Frame update loop
   useFrame((state) => {
     const activeControls = (state as { controls?: OrbitControlsLike }).controls;
+
+    // Track or restore target across controls recreations
+    if (activeControls?.target) {
+      if (justUnlockedRef.current) {
+        if (activeControls.target.distanceTo(persistentTargetRef.current) > 1e-4) {
+          activeControls.target.copy(persistentTargetRef.current);
+          activeControls.update?.();
+        }
+        justUnlockedRef.current = false;
+      } else {
+        persistentTargetRef.current.copy(activeControls.target);
+      }
+    }
+
     const updated = controllerRef.current.update(state.camera, activeControls);
     if (updated) {
       state.invalidate();
