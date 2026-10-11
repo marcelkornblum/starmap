@@ -12,11 +12,11 @@
 
 
 ## Phase 2: Logarithmic Zoom & Glide Transitions
-- [ ] Task: Write unit tests for logarithmic zoom stepping and critically damped target glide curves.
-- [ ] Task: Implement smooth target transition controller with configurable duration and easing tokens.
-- [ ] Task: Integrate logarithmic zoom constraints tailored to `GALACTIC_FRAME`, `SYSTEM_FRAME`, and `PLANETARY_FRAME`.
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Write unit tests for logarithmic zoom stepping and critically damped target glide curves.
+- [x] Task: Implement smooth target transition controller with configurable duration and easing tokens.
+- [x] Task: Integrate logarithmic zoom constraints tailored to `GALACTIC_FRAME`, `SYSTEM_FRAME`, and `PLANETARY_FRAME`.
+- [x] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: Camera Presets & Storybook Verification
 - [ ] Task: Write unit tests for camera presets: top-down ecliptic, reset, and orbital lock.

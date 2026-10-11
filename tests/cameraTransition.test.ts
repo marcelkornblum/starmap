@@ -181,6 +181,78 @@ describe('CameraTransitionController & useCameraTransition', () => {
       expect(lookAtSpy).toHaveBeenCalled();
       lookAtSpy.mockRestore();
     });
+
+    it('executes glide transition with criticallyDamped easing and zero overshoot', () => {
+      const controller = new CameraTransitionController();
+      const targetPos = new THREE.Vector3(100, 50, -20);
+      const onComplete = vi.fn();
+
+      controller.start(
+        mockCamera,
+        targetPos,
+        mockControls.target,
+        { duration: 1.0, easing: 'criticallyDamped', onComplete },
+        1000,
+      );
+
+      // Check multiple intermediate points ensuring no overshoot
+      for (let tMs = 1100; tMs <= 1900; tMs += 100) {
+        controller.update(mockCamera, mockControls, tMs);
+        expect(mockControls.target.x).toBeLessThanOrEqual(100);
+        expect(mockControls.target.y).toBeLessThanOrEqual(50);
+        expect(mockControls.target.z).toBeGreaterThanOrEqual(-20);
+      }
+
+      // Finish at t=2000ms
+      controller.update(mockCamera, mockControls, 2000);
+      expect(mockControls.target.x).toBeCloseTo(100, 4);
+      expect(mockControls.target.y).toBeCloseTo(50, 4);
+      expect(mockControls.target.z).toBeCloseTo(-20, 4);
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    it('supports custom easing functions', () => {
+      const controller = new CameraTransitionController();
+      const linearEasing = (t: number) => t;
+
+      controller.start(
+        mockCamera,
+        new THREE.Vector3(10, 0, 0),
+        mockControls.target,
+        { duration: 1.0, easing: linearEasing },
+        1000,
+      );
+
+      // At 25% time, linear easing should be at exactly 2.5
+      controller.update(mockCamera, mockControls, 1250);
+      expect(mockControls.target.x).toBeCloseTo(2.5, 3);
+    });
+
+    it('interpolates target distance logarithmically when logarithmicDistance is enabled', () => {
+      const controller = new CameraTransitionController();
+      // Set camera at (0, 0, 100) relative to target (0, 0, 0) -> distance = 100
+      mockCamera.position.set(0, 0, 100);
+      mockControls.target.set(0, 0, 0);
+
+      // Target distance: 1 (over 2 orders of magnitude: 100 -> 1)
+      controller.start(
+        mockCamera,
+        new THREE.Vector3(0, 0, 0),
+        mockControls.target,
+        { duration: 1.0, targetDistance: 1, logarithmicDistance: true, easing: (t) => t },
+        1000,
+      );
+
+      // At midpoint (t = 0.5s = 1500ms), distance must be geometric mean: sqrt(100 * 1) = 10
+      controller.update(mockCamera, mockControls, 1500);
+      const midDist = mockCamera.position.distanceTo(mockControls.target);
+      expect(midDist).toBeCloseTo(10, 2);
+
+      // At completion (t = 1.0s = 2000ms), distance is 1.0
+      controller.update(mockCamera, mockControls, 2000);
+      const finalDist = mockCamera.position.distanceTo(mockControls.target);
+      expect(finalDist).toBeCloseTo(1, 4);
+    });
   });
 
   describe('useCameraTransition Hook Component Harness', () => {

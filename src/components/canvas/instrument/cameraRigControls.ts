@@ -8,8 +8,17 @@ import {
   getCardinalUp,
   synchronizeOrthoWithPerspective,
   synchronizePerspectiveWithOrtho,
+  criticallyDamped,
+  calculateLogarithmicZoomStep,
+  interpolateLogarithmicDistance,
   type CardinalDirection,
 } from '../math/cameraMath';
+
+export {
+  criticallyDamped,
+  calculateLogarithmicZoomStep,
+  interpolateLogarithmicDistance,
+};
 
 export interface OrbitControlsLike {
   object?: THREE.Camera;

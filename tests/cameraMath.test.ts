@@ -11,7 +11,15 @@ import {
   getCardinalDirectionFromVector,
   getCardinalNormal,
   getCardinalUp,
+  criticallyDamped,
+  calculateLogarithmicZoomStep,
+  interpolateLogarithmicDistance,
 } from '../src/components/canvas/math/cameraMath';
+import {
+  GALACTIC_FRAME,
+  SYSTEM_FRAME,
+  PLANETARY_FRAME,
+} from '../src/components/canvas/instrument/referenceFrame';
 
 describe('Camera Math: cameraMath.ts', () => {
   describe('calculateOrthographicFrustum & Screen Space Equivalence', () => {
@@ -286,6 +294,105 @@ describe('Camera Math: cameraMath.ts', () => {
       expect(getCardinalNormal('back')).toEqual(new THREE.Vector3(0, 1, 0));
       expect(getCardinalNormal('right')).toEqual(new THREE.Vector3(1, 0, 0));
       expect(getCardinalNormal('left')).toEqual(new THREE.Vector3(-1, 0, 0));
+    });
+  });
+
+  describe('Critically Damped Glide Curves: cameraMath.ts', () => {
+    it('evaluates boundary conditions at t=0 and t=1', () => {
+      expect(criticallyDamped(0)).toBe(0);
+      expect(criticallyDamped(1)).toBe(1);
+      expect(criticallyDamped(-0.5)).toBe(0);
+      expect(criticallyDamped(1.5)).toBe(1);
+    });
+
+    it('is strictly monotonic and non-decreasing over [0, 1]', () => {
+      let prev = -1;
+      for (let i = 0; i <= 50; i++) {
+        const val = criticallyDamped(i / 50);
+        expect(val).toBeGreaterThanOrEqual(prev);
+        prev = val;
+      }
+    });
+
+    it('guarantees zero overshoot across all progress intervals', () => {
+      for (let i = 0; i <= 100; i++) {
+        const val = criticallyDamped(i / 100);
+        expect(val).toBeLessThanOrEqual(1.0);
+        expect(val).toBeGreaterThanOrEqual(0.0);
+      }
+    });
+
+    it('exhibits smooth critically damped deceleration in the final quarter', () => {
+      // Rate of progress in the second half [0.75 -> 1.0] should be much smaller than [0.25 -> 0.50]
+      const earlyDelta = criticallyDamped(0.5) - criticallyDamped(0.25);
+      const lateDelta = criticallyDamped(1.0) - criticallyDamped(0.75);
+      expect(earlyDelta).toBeGreaterThan(lateDelta);
+    });
+  });
+
+  describe('Logarithmic Zoom Stepping & Interpolation: cameraMath.ts', () => {
+    it('scales distance geometrically on positive and negative step deltas', () => {
+      const initial = 100;
+      const factor = 1.15;
+      const zoomedIn = calculateLogarithmicZoomStep(initial, 1, 1, 1000, factor);
+      expect(zoomedIn).toBeCloseTo(initial / factor, 4);
+
+      const zoomedOut = calculateLogarithmicZoomStep(initial, -1, 1, 1000, factor);
+      expect(zoomedOut).toBeCloseTo(initial * factor, 4);
+    });
+
+    it('is strictly reversible: N zoom-in steps followed by N zoom-out steps returns to initial distance', () => {
+      let dist = 50;
+      for (let i = 0; i < 5; i++) {
+        dist = calculateLogarithmicZoomStep(dist, 1, 1, 1000, 1.2);
+      }
+      for (let i = 0; i < 5; i++) {
+        dist = calculateLogarithmicZoomStep(dist, -1, 1, 1000, 1.2);
+      }
+      expect(dist).toBeCloseTo(50, 3);
+    });
+
+    it('enforces min and max distance constraints without NaN or singularity', () => {
+      const min = 5;
+      const max = 500;
+
+      // Extreme zoom in
+      const clampedMin = calculateLogarithmicZoomStep(6, 100, min, max);
+      expect(clampedMin).toBe(min);
+
+      // Extreme zoom out
+      const clampedMax = calculateLogarithmicZoomStep(400, -100, min, max);
+      expect(clampedMax).toBe(max);
+    });
+
+    it('logarithmically interpolates distance returning exact geometric mean at t=0.5', () => {
+      const start = 1;
+      const end = 100;
+      expect(interpolateLogarithmicDistance(start, end, 0)).toBe(1);
+      expect(interpolateLogarithmicDistance(start, end, 1)).toBe(100);
+
+      // Geometric mean of 1 and 100 is 10
+      expect(interpolateLogarithmicDistance(start, end, 0.5)).toBeCloseTo(10, 4);
+    });
+
+    it('respects reference frame zoom constraints for Galactic, System, and Planetary frames', () => {
+      // GALACTIC_FRAME: [minDistance: 5 pc, maxDistance: 500 pc]
+      const galMin = GALACTIC_FRAME.camera.minDistance!;
+      const galMax = GALACTIC_FRAME.camera.maxDistance!;
+      expect(calculateLogarithmicZoomStep(10, 50, galMin, galMax)).toBe(galMin);
+      expect(calculateLogarithmicZoomStep(100, -50, galMin, galMax)).toBe(galMax);
+
+      // SYSTEM_FRAME: [minDistance: 2 AU, maxDistance: 150 AU]
+      const sysMin = SYSTEM_FRAME.camera.minDistance!;
+      const sysMax = SYSTEM_FRAME.camera.maxDistance!;
+      expect(calculateLogarithmicZoomStep(5, 50, sysMin, sysMax)).toBe(sysMin);
+      expect(calculateLogarithmicZoomStep(50, -50, sysMin, sysMax)).toBe(sysMax);
+
+      // PLANETARY_FRAME: [minDistance: 1.5 km, maxDistance: 350 km]
+      const planMin = PLANETARY_FRAME.camera.minDistance!;
+      const planMax = PLANETARY_FRAME.camera.maxDistance!;
+      expect(calculateLogarithmicZoomStep(3, 50, planMin, planMax)).toBe(planMin);
+      expect(calculateLogarithmicZoomStep(200, -50, planMin, planMax)).toBe(planMax);
     });
   });
 });

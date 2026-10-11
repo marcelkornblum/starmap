@@ -239,3 +239,71 @@ export function getCardinalUp(dir: CardinalDirection): THREE.Vector3 {
   return new THREE.Vector3(x, y, z);
 }
 
+/**
+ * Normalized critically damped easing function over t in [0, 1].
+ * Provides rapid initial acceleration and asymptotic, critically damped deceleration with zero overshoot.
+ *
+ * @param t - Normalized progress in [0, 1]
+ * @param lambda - Damping coefficient controlling deceleration curvature (default: 6.0)
+ */
+export function criticallyDamped(t: number, lambda = 6.0): number {
+  if (t <= 0 || !Number.isFinite(t)) return 0;
+  if (t >= 1) return 1;
+  const safeLambda = Math.max(1e-3, lambda);
+  const num = 1 - (1 + safeLambda * t) * Math.exp(-safeLambda * t);
+  const den = 1 - (1 + safeLambda) * Math.exp(-safeLambda);
+  return Math.max(0, Math.min(1, num / den));
+}
+
+/**
+ * Calculates logarithmic zoom step distance clamped within the reference frame min/max bounds.
+ * Scaling is geometric (log-linear), guaranteeing consistent perceived zoom velocity across
+ * multiple orders of astronomical magnitude (from parsecs down to AU and kilometres).
+ *
+ * @param currentDistance - Current distance from camera to focal target
+ * @param delta - Normalized scroll/step delta (>0 for zoom in / closer, <0 for zoom out / farther)
+ * @param minDistance - Frame camera minDistance
+ * @param maxDistance - Frame camera maxDistance
+ * @param stepFactor - Geometric scaling factor per unit step (default: 1.15)
+ */
+export function calculateLogarithmicZoomStep(
+  currentDistance: number,
+  delta: number,
+  minDistance: number,
+  maxDistance: number,
+  stepFactor: number = 1.15,
+): number {
+  const safeCurrent = Number.isFinite(currentDistance) ? Math.max(1e-4, currentDistance) : 10;
+  const safeMin = Number.isFinite(minDistance) ? Math.max(1e-4, minDistance) : 1;
+  const safeMax = Number.isFinite(maxDistance) ? Math.max(safeMin, maxDistance) : 1000;
+  const safeFactor = Number.isFinite(stepFactor) ? Math.max(1.01, stepFactor) : 1.15;
+  const safeDelta = Number.isFinite(delta) ? delta : 0;
+
+  // Geometric scaling: zoom in (delta > 0) reduces distance; zoom out (delta < 0) increases distance
+  const newDistance = safeCurrent * Math.pow(safeFactor, -safeDelta);
+  return Math.max(safeMin, Math.min(safeMax, newDistance));
+}
+
+/**
+ * Logarithmically interpolates distance between startDistance and endDistance over normalized progress t [0, 1].
+ * Guarantees smooth geometric scaling across multiple orders of magnitude without near-zero collapse or depth precision artifacts.
+ *
+ * @param startDistance - Initial distance
+ * @param endDistance - Destination distance
+ * @param t - Normalized progress in [0, 1]
+ */
+export function interpolateLogarithmicDistance(
+  startDistance: number,
+  endDistance: number,
+  t: number,
+): number {
+  const safeStart = Number.isFinite(startDistance) ? Math.max(1e-4, startDistance) : 1;
+  const safeEnd = Number.isFinite(endDistance) ? Math.max(1e-4, endDistance) : 1;
+  const clampedT = Number.isFinite(t) ? Math.max(0, Math.min(1, t)) : 0;
+
+  // In log space: ln(d) = (1 - t) * ln(d_start) + t * ln(d_end)
+  // d(t) = d_start * (d_end / d_start)^t
+  return safeStart * Math.pow(safeEnd / safeStart, clampedT);
+}
+
+
