@@ -162,6 +162,10 @@ const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
         MIDDLE: THREE.MOUSE.DOLLY,
         RIGHT: THREE.MOUSE.PAN,
       }}
+      touches={{
+        ONE: isLocked ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN,
+      }}
       dampingFactor={CONTROLS_DAMPING_FACTOR}
       minDistance={minDistance}
       maxDistance={maxDistance}

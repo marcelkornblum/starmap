@@ -19,6 +19,7 @@ export interface OrbitControlsLike {
   enablePan?: boolean;
   screenSpacePanning?: boolean;
   mouseButtons?: { LEFT: number; MIDDLE?: number; RIGHT?: number };
+  touches?: { ONE: number; TWO?: number };
   update?: (() => void) | Function;
 }
 
@@ -214,13 +215,14 @@ export function applyOrthographicLock(
     // 1. Synchronise ortho frustum and transform with perspective camera at focal point
     synchronizeOrthoWithPerspective(perspCam, orthoCam, target, effectiveAspect);
 
-    // 2. Lock controls: transfer controls.object to orthoCam, disable rotation, map left button to 2D pan
+    // 2. Lock controls: transfer controls.object to orthoCam, disable rotation, map left button & single touch to 2D pan
     if (controls) {
       if ('object' in controls) controls.object = orthoCam;
       if ('enableRotate' in controls) controls.enableRotate = false;
       controls.enablePan = true;
       controls.screenSpacePanning = true;
       if (controls.mouseButtons) controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+      if (controls.touches) controls.touches.ONE = THREE.TOUCH.PAN;
       if ('enabled' in controls) controls.enabled = true;
       controls.update?.();
     }
@@ -235,6 +237,7 @@ export function applyOrthographicLock(
       legacyControls.enablePan = true;
       legacyControls.screenSpacePanning = true;
       if (legacyControls.mouseButtons) legacyControls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+      if (legacyControls.touches) legacyControls.touches.ONE = THREE.TOUCH.PAN;
       if ('enabled' in legacyControls) legacyControls.enabled = true;
       legacyControls.update?.();
     }
@@ -307,13 +310,14 @@ export function releaseOrthographicLock(
     }
     perspCam.updateProjectionMatrix();
 
-    // 3. Unlock controls: transfer controls.object back to perspCam, re-enable rotation, restore left click to orbit
+    // 3. Unlock controls: transfer controls.object back to perspCam, re-enable rotation, restore left click & single touch to orbit
     if (controls) {
       if ('object' in controls) controls.object = perspCam;
       if ('enableRotate' in controls) controls.enableRotate = true;
       controls.enablePan = true;
       controls.screenSpacePanning = true;
       if (controls.mouseButtons) controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+      if (controls.touches) controls.touches.ONE = THREE.TOUCH.ROTATE;
       if ('enabled' in controls) controls.enabled = true;
       controls.update?.();
     }
@@ -328,6 +332,7 @@ export function releaseOrthographicLock(
       legacyControls.enablePan = true;
       legacyControls.screenSpacePanning = true;
       if (legacyControls.mouseButtons) legacyControls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+      if (legacyControls.touches) legacyControls.touches.ONE = THREE.TOUCH.ROTATE;
       if ('enabled' in legacyControls) legacyControls.enabled = true;
       legacyControls.update?.();
     }

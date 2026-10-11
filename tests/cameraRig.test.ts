@@ -16,6 +16,7 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
     target: THREE.Vector3;
     enableRotate: boolean;
     mouseButtons: { LEFT: number; MIDDLE: number; RIGHT: number };
+    touches?: { ONE: number; TWO: number };
     update: ReturnType<typeof vi.fn>;
   };
 
@@ -36,6 +37,10 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
         LEFT: THREE.MOUSE.ROTATE,
         MIDDLE: THREE.MOUSE.DOLLY,
         RIGHT: THREE.MOUSE.PAN,
+      },
+      touches: {
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN,
       },
       update: vi.fn(),
     };
@@ -173,6 +178,7 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       expect(mockControls.object).toBe(orthoCam);
       expect(mockControls.enableRotate).toBe(false);
       expect(mockControls.mouseButtons.LEFT).toBe(THREE.MOUSE.PAN);
+      expect((mockControls as any).touches.ONE).toBe(THREE.TOUCH.PAN);
       expect((mockControls as any).screenSpacePanning).toBe(true);
       expect((mockControls as any).enablePan).toBe(true);
       expect(mockControls.update).toHaveBeenCalled();
@@ -196,6 +202,7 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       expect(mockControls.object).toBe(camera);
       expect(mockControls.enableRotate).toBe(true);
       expect(mockControls.mouseButtons.LEFT).toBe(THREE.MOUSE.ROTATE);
+      expect((mockControls as any).touches.ONE).toBe(THREE.TOUCH.ROTATE);
       expect(camera.fov).toBe(45);
       expect(camera.zoom).toBe(1.0);
       expect(camera.position.distanceTo(target)).toBeCloseTo(initialDistance, 4);
@@ -262,17 +269,17 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       expect(mockStartSnap).not.toHaveBeenCalled();
     });
 
-    it('triggers snap and lock when drag ends within 20 degrees of a cardinal axis (matching planar grid fade)', () => {
-      // Position camera 18 degrees away from +Z axis (inside the 20-deg fade zone)
+    it('triggers snap and lock when drag ends within capture threshold (default 10 degrees) of a cardinal axis', () => {
+      // Position camera 8 degrees away from +Z axis (inside the 10-deg snap zone)
       const dist = 50;
-      const angleRad = (18 * Math.PI) / 180;
+      const angleRad = (8 * Math.PI) / 180;
       camera.position.set(0, dist * Math.sin(angleRad), dist * Math.cos(angleRad));
 
       const mockStartSnap = vi.fn();
       const snapped = handleDiscreteSnapOnEnd(
         camera,
         target,
-        (20 * Math.PI) / 180,
+        (10 * Math.PI) / 180,
         mockStartSnap,
       );
 
@@ -280,15 +287,17 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       expect(mockStartSnap).toHaveBeenCalledWith('top');
     });
 
-    it('does not trigger snap when drag ends further than 20 degrees from all cardinal axes', () => {
-      // Position camera 35 degrees away from all axes
-      camera.position.set(30, 30, 30);
+    it('does not trigger snap when drag ends further than 10 degrees from all cardinal axes', () => {
+      // Position camera 15 degrees away from +Z axis
+      const dist = 50;
+      const angleRad = (15 * Math.PI) / 180;
+      camera.position.set(0, dist * Math.sin(angleRad), dist * Math.cos(angleRad));
 
       const mockStartSnap = vi.fn();
       const snapped = handleDiscreteSnapOnEnd(
         camera,
         target,
-        (20 * Math.PI) / 180,
+        (10 * Math.PI) / 180,
         mockStartSnap,
       );
 

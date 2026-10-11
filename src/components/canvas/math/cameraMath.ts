@@ -198,11 +198,11 @@ export const CARDINAL_CONFIG: Record<
 
 /**
  * Returns whether a normalized camera direction vector is within a threshold angle of any cardinal axis.
- * Default threshold is 20 degrees (~0.349 rad, matching planar grid fade threshold 0.94).
+ * Default threshold is 10 degrees (~0.175 rad).
  */
 export function isNearCardinalAxis(
   camDir: THREE.Vector3,
-  thresholdAngleRad: number = (20 * Math.PI) / 180,
+  thresholdAngleRad: number = (10 * Math.PI) / 180,
 ): boolean {
   const closest = getClosestCardinalAxis(camDir);
   const dot = camDir.dot(closest);

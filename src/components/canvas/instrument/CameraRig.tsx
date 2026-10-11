@@ -25,7 +25,7 @@ export interface CameraRigProps {
   adaptiveProjection?: boolean;
   /** Whether to snap smoothly to the nearest cardinal axis on pointer drag release. Default: true */
   snapOnRelease?: boolean;
-  /** Cardinal capture angle in degrees for snap-on-release. Default: 20 */
+  /** Cardinal capture angle in degrees for snap-on-release. Default: 10 */
   snapThresholdDeg?: number;
   /** Duration in seconds for snap-to-cardinal glide. Default: 0.35 */
   snapDuration?: number;
@@ -34,7 +34,7 @@ export interface CameraRigProps {
 export const CameraRig: React.FC<CameraRigProps> = ({
   baseFov: explicitBaseFov,
   snapOnRelease = true,
-  snapThresholdDeg = 20,
+  snapThresholdDeg = 10,
   snapDuration = 0.35,
 }) => {
   const threeState = useThree() as {
@@ -283,7 +283,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       state.invalidate();
     }
 
-    // Strict runtime guard: if locked, tilt is completely disabled and left click is screen-space pan
+    // Strict runtime guard: if locked, tilt is completely disabled and left click & single touch are screen-space pan
     if (isLocked && activeControls) {
       if (activeControls.enableRotate) {
         activeControls.enableRotate = false;
@@ -296,6 +296,9 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       }
       if (activeControls.mouseButtons && activeControls.mouseButtons.LEFT !== THREE.MOUSE.PAN) {
         activeControls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+      }
+      if (activeControls.touches && activeControls.touches.ONE !== THREE.TOUCH.PAN) {
+        activeControls.touches.ONE = THREE.TOUCH.PAN;
       }
       if (activeControls.object !== orthoCamRef.current && orthoCamRef.current) {
         activeControls.object = orthoCamRef.current;

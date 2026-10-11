@@ -245,13 +245,13 @@ describe('Camera Math: cameraMath.ts', () => {
   });
 
   describe('Cardinal Direction & Snap Detection: cameraMath.ts', () => {
-    it('detects proximity to cardinal axes within 15 degrees', () => {
-      // 10 degrees offset from +Z (cos(10 deg) ~ 0.9848 > cos(15 deg) ~ 0.9659)
-      const nearZ = new THREE.Vector3(0, Math.sin((10 * Math.PI) / 180), Math.cos((10 * Math.PI) / 180)).normalize();
+    it('detects proximity to cardinal axes within default 10 degrees', () => {
+      // 5 degrees offset from +Z (cos(5 deg) ~ 0.996 > cos(10 deg) ~ 0.9848)
+      const nearZ = new THREE.Vector3(0, Math.sin((5 * Math.PI) / 180), Math.cos((5 * Math.PI) / 180)).normalize();
       expect(isNearCardinalAxis(nearZ)).toBe(true);
 
-      // 25 degrees offset from +Z (cos(25 deg) ~ 0.9063 < cos(15 deg) ~ 0.9659)
-      const farZ = new THREE.Vector3(0, Math.sin((25 * Math.PI) / 180), Math.cos((25 * Math.PI) / 180)).normalize();
+      // 15 degrees offset from +Z (cos(15 deg) ~ 0.9659 < cos(10 deg) ~ 0.9848)
+      const farZ = new THREE.Vector3(0, Math.sin((15 * Math.PI) / 180), Math.cos((15 * Math.PI) / 180)).normalize();
       expect(isNearCardinalAxis(farZ)).toBe(false);
 
       // Exactly on +X axis
