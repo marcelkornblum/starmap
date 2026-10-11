@@ -9,6 +9,8 @@ import {
 } from '../../src/components/canvas/instrument/referenceFrame';
 import { getStandardInitialCamera } from '../../src/components/canvas/cartography/cartographyMath';
 import { CONTROLS_DAMPING_FACTOR } from '../../src/components/canvas/engineConfig';
+import { useCameraStore } from '../../src/stores/useCameraStore';
+import * as THREE from 'three';
 import styles from './StoryCanvas.module.css';
 
 export interface StoryCanvasProps {
@@ -30,6 +32,8 @@ export interface StoryCanvasProps {
   enableControls?: boolean;
   /** Custom controls ref */
   controlsRef?: React.Ref<OrbitControlsImpl>;
+  /** Content rendered inside the story banner card (e.g. diagnostic controls) */
+  bannerContent?: React.ReactNode;
   /** Optional DOM overlay rendered above the canvas (e.g. diagnostics, HUD, story controls) */
   overlay?: React.ReactNode;
   /** Canvas child elements */
@@ -55,6 +59,7 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
   fov,
   enableControls = true,
   controlsRef,
+  bannerContent,
   overlay,
   children,
   className,
@@ -85,42 +90,81 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
     cameraPosition,
   ]);
 
+  const canvasCamera = useMemo(
+    () => ({
+      position: cam.position,
+      up: cam.up,
+      fov: cam.fov,
+    }),
+    [cam.position, cam.up, cam.fov],
+  );
+
   return (
     <div
       data-testid="story-canvas-container"
       className={[styles.canvasContainer, className].filter(Boolean).join(' ')}
     >
-      {(title || description || overlay) && (
+      {(title || description || bannerContent) && (
         <div className={styles.storyBanner}>
           {title && <h2 className={styles.storyTitle}>{title}</h2>}
           {description && <p className={styles.storyDescription}>{description}</p>}
-          {overlay}
+          {bannerContent}
         </div>
       )}
       <Canvas
         flat
-        camera={{
-          position: cam.position,
-          up: cam.up,
-          fov: cam.fov,
-        }}
+        camera={canvasCamera}
         gl={{ antialias: true, alpha: true }}
         onPointerMissed={onPointerMissed}
       >
         <ThemeTokenBridge />
         {enableControls && (
-          <OrbitControls
-            ref={controlsRef}
-            makeDefault
+          <OrbitControlsBridge
+            controlsRef={controlsRef}
             target={cam.target}
-            enableDamping
-            dampingFactor={CONTROLS_DAMPING_FACTOR}
             minDistance={frame.camera.minDistance}
             maxDistance={frame.camera.maxDistance}
           />
         )}
         {children}
       </Canvas>
+      {overlay}
     </div>
+  );
+};
+
+interface OrbitControlsBridgeProps {
+  controlsRef?: React.Ref<OrbitControlsImpl>;
+  target: [number, number, number];
+  minDistance?: number;
+  maxDistance?: number;
+}
+
+const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
+  controlsRef,
+  target,
+  minDistance,
+  maxDistance,
+}) => {
+  const isLocked = useCameraStore((s) => s.isLocked);
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      makeDefault
+      target={target}
+      enableDamping={!isLocked}
+      enableRotate={!isLocked}
+      enablePan={true}
+      screenSpacePanning={true}
+      mouseButtons={{
+        LEFT: isLocked ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN,
+      }}
+      dampingFactor={CONTROLS_DAMPING_FACTOR}
+      minDistance={minDistance}
+      maxDistance={maxDistance}
+    />
   );
 };

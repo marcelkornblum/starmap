@@ -18,12 +18,12 @@ export function projectedPixelDiameter(
   viewportHeight: number,
 ): number {
   if (camera instanceof THREE.OrthographicCamera) {
-    const frustumHeight = (camera.top - camera.bottom) / camera.zoom;
+    const frustumHeight = (camera.top - camera.bottom) / Math.max(camera.zoom, 1e-4);
     return ((2 * worldRadius) / Math.max(0.001, frustumHeight)) * viewportHeight;
   }
   if (camera instanceof THREE.PerspectiveCamera) {
     const distance = Math.max(camera.position.distanceTo(worldPos), 1e-4);
-    const visibleHeight = 2 * Math.tan((camera.fov * Math.PI) / 360) * distance;
+    const visibleHeight = (2 * Math.tan((camera.fov * Math.PI) / 360) * distance) / Math.max(camera.zoom, 1e-4);
     return ((2 * worldRadius) / Math.max(0.001, visibleHeight)) * viewportHeight;
   }
   return 0;

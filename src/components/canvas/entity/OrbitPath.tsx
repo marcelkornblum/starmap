@@ -262,7 +262,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       const camDist = Math.max(camera.position.distanceTo(scratchArrowWorldPos.current), 1e-4);
       const frameState = frameCtx?.frameRef?.current;
       const invScale = frameState
-        ? (camDist / frameState.referenceFootprint) * frameState.fovFactor
+        ? frameState.screenScale
         : calculateScreenInvariantScale(camDist, camera);
       arrowBillboardRef.current.scale.set(invScale, invScale, invScale);
 

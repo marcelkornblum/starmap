@@ -11,6 +11,7 @@ Establishes the interactive navigation modes, professional 3D camera control par
 2. **Navigation Modes & Paradigms:**
    - 3D Navigation modes: Free Orbit mode, Constrained Ecliptic/System plane mode, and Top-Down Cartographic survey mode.
    - Pointer and gesture interaction mapping (pan, orbit, zoom, pinch) aligned with the active navigation mode.
+   - Control dampening & polar singularity mitigation: Explore dampening rotational sensitivity and controls near coordinate poles ($Y \approx \pm 1$, $Z \approx \pm 1$) to prevent gimbal lock and erratic camera yaw without forcing roll alignment.
 3. **Layer Visibility & Filter Controls:**
    - Visual layer visibility toggles driven by `useSettingsStore` and the active `ReferenceFrame`:
      - Keplerian orbits (`showOrbits`)

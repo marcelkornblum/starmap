@@ -130,7 +130,7 @@ const FullInstrumentAssemblyDemo: React.FC = () => {
       description="Complete cartographic suite integrating PlanarGrid, CoordinateFins, BearingVectors, ScreenEdgeIndicators, CameraRig, and CartographicLighting with real-time metric volume switching."
       frame={frameMap[activeFrame]}
       cameraDistance={camDist}
-      overlay={controlsOverlay}
+      bannerContent={controlsOverlay}
     >
       <SpatialFrameProvider frame={frameMap[activeFrame]}>
         <CartographicLighting />

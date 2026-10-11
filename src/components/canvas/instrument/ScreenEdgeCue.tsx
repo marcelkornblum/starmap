@@ -197,6 +197,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
         wrapperClass={styles.htmlOverlayContainer}
         calculatePosition={pinToViewportOrigin}
         zIndexRange={HTML_Z_INDEX_RANGE}
+        pointerEvents="none"
       >
         <div
           ref={rootRef}

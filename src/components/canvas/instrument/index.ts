@@ -7,6 +7,7 @@ export * from './BearingVectors';
 export * from './ScreenEdgeCue';
 export * from './ScreenEdgeIndicators';
 export * from './CameraRig';
+export * from './cameraRigControls';
 export * from './CartographicInstrument';
 export * from './CartographicLighting';
 export * from './useCameraTransition';

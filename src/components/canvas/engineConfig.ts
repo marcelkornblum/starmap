@@ -60,19 +60,23 @@ export function calculateScreenInvariantScale(
   referenceFootprint = REFERENCE_INSTRUMENT_FOOTPRINT,
   referenceFovDeg = REFERENCE_FOV_DEG,
 ): number {
-  const fov =
-    camera && typeof camera === 'object' && 'fov' in camera && typeof (camera as { fov: unknown }).fov === 'number'
-      ? (camera as { fov: number }).fov
-      : undefined;
-  const fovFactor =
-    camera &&
-    typeof camera === 'object' &&
-    'isPerspectiveCamera' in camera &&
-    (camera as { isPerspectiveCamera: boolean }).isPerspectiveCamera &&
-    fov !== undefined
-      ? Math.tan(((fov * Math.PI) / 360)) / Math.tan((referenceFovDeg * Math.PI) / 360)
-      : 1.0;
-  return (camDist / referenceFootprint) * fovFactor;
+  if (camera && typeof camera === 'object') {
+    if ('isOrthographicCamera' in camera && (camera as { isOrthographicCamera: boolean }).isOrthographicCamera) {
+      const ortho = camera as unknown as { top: number; bottom: number; zoom?: number };
+      const zoom = typeof ortho.zoom === 'number' ? Math.max(ortho.zoom, 1e-4) : 1.0;
+      const visibleHeight = (ortho.top - ortho.bottom) / zoom;
+      const refVisibleHeight = 2 * referenceFootprint * Math.tan((referenceFovDeg * Math.PI) / 360);
+      return visibleHeight / refVisibleHeight;
+    }
+    if ('isPerspectiveCamera' in camera && (camera as { isPerspectiveCamera: boolean }).isPerspectiveCamera) {
+      const persp = camera as unknown as { fov?: number; zoom?: number };
+      const fov = typeof persp.fov === 'number' ? persp.fov : referenceFovDeg;
+      const zoom = typeof persp.zoom === 'number' ? Math.max(persp.zoom, 1e-4) : 1.0;
+      const fovFactor = (Math.tan((fov * Math.PI) / 360) / Math.tan((referenceFovDeg * Math.PI) / 360)) / zoom;
+      return (camDist / referenceFootprint) * fovFactor;
+    }
+  }
+  return camDist / referenceFootprint;
 }
 
 /**

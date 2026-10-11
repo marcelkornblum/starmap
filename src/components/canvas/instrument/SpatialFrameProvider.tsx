@@ -149,28 +149,49 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     s.referenceFovDeg = frame.camera.baseFov ?? REFERENCE_FOV_DEG;
     s.screenHeightReferenceScale = SCREEN_HEIGHT_REFERENCE_SCALE;
 
-    const fov =
-      camera && typeof camera === 'object' && 'fov' in camera && typeof (camera as { fov: unknown }).fov === 'number'
-        ? (camera as { fov: number }).fov
-        : s.referenceFovDeg;
+    const isOrtho =
+      camera &&
+      typeof camera === 'object' &&
+      'isOrthographicCamera' in camera &&
+      (camera as { isOrthographicCamera: boolean }).isOrthographicCamera;
     const isPersp =
       camera &&
       typeof camera === 'object' &&
       'isPerspectiveCamera' in camera &&
       (camera as { isPerspectiveCamera: boolean }).isPerspectiveCamera;
-    const fovFactor =
-      isPersp && fov !== undefined
-        ? Math.tan((fov * Math.PI) / 360) / Math.tan((s.referenceFovDeg * Math.PI) / 360)
-        : 1.0;
+
+    let fovFactor = 1.0;
+    let screenScale = 1.0;
+    let effectiveApertureDist = camDist;
+
+    if (isOrtho) {
+      const ortho = camera as { top: number; bottom: number; zoom?: number };
+      const zoom = typeof ortho.zoom === 'number' ? Math.max(ortho.zoom, 1e-4) : 1.0;
+      const visibleHeight = (ortho.top - ortho.bottom) / zoom;
+      const refVisibleHeight = 2 * s.referenceFootprint * Math.tan((s.referenceFovDeg * Math.PI) / 360);
+      screenScale = visibleHeight / refVisibleHeight;
+      fovFactor = screenScale / Math.max(camDist / s.referenceFootprint, 1e-4);
+      effectiveApertureDist = visibleHeight / (2 * Math.tan((s.referenceFovDeg * Math.PI) / 360));
+    } else if (isPersp) {
+      const persp = camera as { fov?: number; zoom?: number };
+      const fov = typeof persp.fov === 'number' ? persp.fov : s.referenceFovDeg;
+      const zoom = typeof persp.zoom === 'number' ? Math.max(persp.zoom, 1e-4) : 1.0;
+      fovFactor = (Math.tan((fov * Math.PI) / 360) / Math.tan((s.referenceFovDeg * Math.PI) / 360)) / zoom;
+      screenScale = (camDist / s.referenceFootprint) * fovFactor;
+      effectiveApertureDist = camDist * fovFactor;
+    } else {
+      screenScale = camDist / s.referenceFootprint;
+    }
+
     s.fovFactor = fovFactor;
-    s.screenScale = (camDist / s.referenceFootprint) * fovFactor;
+    s.screenScale = screenScale;
 
     const camDir = scratchCamDir.current.copy(camera.position).sub(s.focusPoint).divideScalar(camDist);
 
     // 3. Aperture Radius
     const refDist = frame.radius * frame.referenceDistanceMultiplier;
     s.apertureRadius = computeApertureRadius(
-      camDist,
+      effectiveApertureDist,
       frame.radius,
       refDist,
       frame.screenConstant,

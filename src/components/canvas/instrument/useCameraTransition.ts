@@ -2,7 +2,7 @@ import { useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
-import { FRAME_PRIORITY } from '../../poc/canvas/engineConfig';
+import { FRAME_PRIORITY } from '../engineConfig';
 
 export interface CameraTransitionOptions {
   /** Transition duration in seconds. Default: 0.8 */
