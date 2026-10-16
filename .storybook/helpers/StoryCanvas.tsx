@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { useMemo, useRef, useEffect } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { ThemeTokenBridge } from '../../src/components/canvas/ThemeTokenBridge';
@@ -30,6 +30,8 @@ export interface StoryCanvasProps {
   enableControls?: boolean;
   /** Custom controls ref */
   controlsRef?: React.Ref<OrbitControlsImpl>;
+  /** Content rendered inside the story banner card (e.g. diagnostic controls) */
+  bannerContent?: React.ReactNode;
   /** Optional DOM overlay rendered above the canvas (e.g. diagnostics, HUD, story controls) */
   overlay?: React.ReactNode;
   /** Canvas child elements */
@@ -55,6 +57,7 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
   fov,
   enableControls = true,
   controlsRef,
+  bannerContent,
   overlay,
   children,
   className,
@@ -85,42 +88,100 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
     cameraPosition,
   ]);
 
+  const canvasCamera = useMemo(
+    () => ({
+      position: cam.position,
+      up: cam.up,
+      fov: cam.fov,
+    }),
+    [cam.position, cam.up, cam.fov],
+  );
+
   return (
     <div
       data-testid="story-canvas-container"
       className={[styles.canvasContainer, className].filter(Boolean).join(' ')}
     >
-      {(title || description || overlay) && (
+      {(title || description || bannerContent) && (
         <div className={styles.storyBanner}>
           {title && <h2 className={styles.storyTitle}>{title}</h2>}
           {description && <p className={styles.storyDescription}>{description}</p>}
-          {overlay}
+          {bannerContent}
         </div>
       )}
       <Canvas
         flat
-        camera={{
-          position: cam.position,
-          up: cam.up,
-          fov: cam.fov,
-        }}
+        camera={canvasCamera}
         gl={{ antialias: true, alpha: true }}
         onPointerMissed={onPointerMissed}
       >
         <ThemeTokenBridge />
         {enableControls && (
-          <OrbitControls
-            ref={controlsRef}
-            makeDefault
+          <OrbitControlsBridge
+            controlsRef={controlsRef}
             target={cam.target}
-            enableDamping
-            dampingFactor={CONTROLS_DAMPING_FACTOR}
             minDistance={frame.camera.minDistance}
             maxDistance={frame.camera.maxDistance}
           />
         )}
         {children}
       </Canvas>
+      {overlay}
     </div>
+  );
+};
+
+interface OrbitControlsBridgeProps {
+  controlsRef?: React.Ref<OrbitControlsImpl>;
+  target: [number, number, number];
+  minDistance?: number;
+  maxDistance?: number;
+}
+
+const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
+  controlsRef,
+  target,
+  minDistance,
+  maxDistance,
+}) => {
+  const threeCamera = useThree((s) => s.camera);
+  const stableCameraRef = useRef(threeCamera);
+  const internalRef = useRef<OrbitControlsImpl>(null);
+  const prevTargetRef = useRef<[number, number, number] | null>(null);
+
+  // Initialise target once, and only update if explicit prop coordinates change
+  useEffect(() => {
+    const controls = internalRef.current;
+    if (!controls) return;
+    const prev = prevTargetRef.current;
+    if (!prev || prev[0] !== target[0] || prev[1] !== target[1] || prev[2] !== target[2]) {
+      controls.target.set(target[0], target[1], target[2]);
+      controls.update();
+      prevTargetRef.current = [target[0], target[1], target[2]];
+    }
+  }, [target]);
+
+  const setControlsRef = (instance: OrbitControlsImpl | null) => {
+    (internalRef as React.MutableRefObject<OrbitControlsImpl | null>).current = instance;
+    if (controlsRef) {
+      if (typeof controlsRef === 'function') {
+        controlsRef(instance);
+      } else {
+        (controlsRef as React.MutableRefObject<OrbitControlsImpl | null>).current = instance;
+      }
+    }
+  };
+
+  return (
+    <OrbitControls
+      ref={setControlsRef}
+      camera={stableCameraRef.current}
+      makeDefault
+      enablePan={true}
+      screenSpacePanning={true}
+      dampingFactor={CONTROLS_DAMPING_FACTOR}
+      minDistance={minDistance}
+      maxDistance={maxDistance}
+    />
   );
 };

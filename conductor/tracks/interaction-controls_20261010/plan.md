@@ -3,6 +3,7 @@
 ## Phase 1: References & Exploration (Professional 3D Control Paradigms)
 - [ ] Task: Research and benchmark control methods across CAD, DCC (Blender, Maya), GIS, observatories (Stellarium, Aladin), and space flight systems.
 - [ ] Task: Document input mapping matrices (orbit, pan, dolly, pinch, roll) across desktop, tablet, and mobile in `docs/3d-interaction-controls.md`.
+- [ ] Task: Explore control dampening techniques near coordinate poles to mitigate gimbal lock and erratic camera yaw without forced roll snapping.
 - [ ] Task: Synthesise and ratify control paradigms for Starmap navigation modes with the user.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 

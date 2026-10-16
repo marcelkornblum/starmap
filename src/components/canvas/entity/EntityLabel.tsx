@@ -97,7 +97,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
       billboardRef.current.getWorldPosition(scratchWorldPos.current);
       const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
       const invScale = frameCtx?.frameRef?.current
-        ? (camDist / frameCtx.frameRef.current.referenceFootprint) * frameCtx.frameRef.current.fovFactor
+        ? frameCtx.frameRef.current.screenScale
         : calculateScreenInvariantScale(camDist, camera);
       billboardRef.current.scale.set(invScale, invScale, invScale);
     }

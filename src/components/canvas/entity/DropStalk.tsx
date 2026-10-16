@@ -197,7 +197,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
         footprintRef.current.getWorldPosition(scratchWorldPos.current);
         const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
         const invScale = frameState
-          ? (camDist / frameState.referenceFootprint) * frameState.fovFactor
+          ? frameState.screenScale
           : calculateScreenInvariantScale(camDist, camera);
         footprintRef.current.scale.set(invScale, invScale, 1);
       }

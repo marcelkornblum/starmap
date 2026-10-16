@@ -2,13 +2,27 @@ import { useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
-import { FRAME_PRIORITY } from '../../poc/canvas/engineConfig';
+import { FRAME_PRIORITY } from '../engineConfig';
+
+import {
+  criticallyDamped,
+  interpolateLogarithmicDistance,
+} from '../math/cameraMath';
+
+export type CameraTransitionEasing =
+  | 'easeInOutCubic'
+  | 'criticallyDamped'
+  | ((t: number) => number);
 
 export interface CameraTransitionOptions {
   /** Transition duration in seconds. Default: 0.8 */
   duration?: number;
   /** Optional target camera distance from focal point. Preserves current distance if omitted */
   targetDistance?: number;
+  /** Easing curve: 'easeInOutCubic' (default), 'criticallyDamped', or custom function */
+  easing?: CameraTransitionEasing;
+  /** Whether to interpolate camera distance logarithmically across astronomical scales. Default: true */
+  logarithmicDistance?: boolean;
   /** Callback invoked when transition successfully completes */
   onComplete?: () => void;
   /** Callback invoked if transition is cancelled by user input */
@@ -49,7 +63,12 @@ export class CameraTransitionController {
   private startCamPos = new THREE.Vector3();
   private endCamPos = new THREE.Vector3();
 
+  private startDist = 0;
+  private endDist = 0;
+  private useLogDist = false;
+
   private scratchOffset = new THREE.Vector3();
+  private scratchDir = new THREE.Vector3();
   private scratchCurrentTarget = new THREE.Vector3();
   private scratchCurrentCamPos = new THREE.Vector3();
 
@@ -91,9 +110,20 @@ export class CameraTransitionController {
     this.scratchOffset.copy(camera.position).sub(this.startTarget);
     const currentDist = this.scratchOffset.length();
     const targetDist = options?.targetDistance ?? currentDist;
+    this.startDist = Math.max(1e-4, currentDist);
+    this.endDist = Math.max(1e-4, targetDist);
+    this.useLogDist =
+      (options?.logarithmicDistance ?? true) &&
+      Math.abs(this.endDist - this.startDist) > 1e-3;
+
+    if (currentDist > 1e-4) {
+      this.scratchDir.copy(this.scratchOffset).normalize();
+    } else {
+      this.scratchDir.set(0, 0, 1);
+    }
 
     if (options?.targetDistance !== undefined && currentDist > 1e-4) {
-      this.scratchOffset.normalize().multiplyScalar(targetDist);
+      this.scratchOffset.copy(this.scratchDir).multiplyScalar(targetDist);
     }
 
     // 4. Configure start and end camera positions
@@ -117,10 +147,25 @@ export class CameraTransitionController {
     const elapsed = (now - this.startTime) / 1000;
     const dur = Math.max(this.duration, 0.001);
     const progress = Math.min(elapsed / dur, 1.0);
-    const t = easeInOutCubic(progress);
+
+    let t: number;
+    const easing = this.options?.easing ?? 'easeInOutCubic';
+    if (typeof easing === 'function') {
+      t = easing(progress);
+    } else if (easing === 'criticallyDamped') {
+      t = criticallyDamped(progress);
+    } else {
+      t = easeInOutCubic(progress);
+    }
 
     this.scratchCurrentTarget.lerpVectors(this.startTarget, this.endTarget, t);
-    this.scratchCurrentCamPos.lerpVectors(this.startCamPos, this.endCamPos, t);
+
+    if (this.useLogDist) {
+      const d = interpolateLogarithmicDistance(this.startDist, this.endDist, t);
+      this.scratchCurrentCamPos.copy(this.scratchCurrentTarget).addScaledVector(this.scratchDir, d);
+    } else {
+      this.scratchCurrentCamPos.lerpVectors(this.startCamPos, this.endCamPos, t);
+    }
 
     if (controls && controls.target instanceof THREE.Vector3) {
       controls.target.copy(this.scratchCurrentTarget);

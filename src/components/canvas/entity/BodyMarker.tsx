@@ -86,9 +86,9 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
 
     if (camera instanceof THREE.PerspectiveCamera) {
       const vFovRad = (camera.fov * Math.PI) / 180;
-      worldScale *= Math.tan(vFovRad / 2) * camDist;
+      worldScale *= (Math.tan(vFovRad / 2) * camDist) / Math.max(camera.zoom, 1e-4);
     } else if (camera instanceof THREE.OrthographicCamera) {
-      worldScale *= (camera.top - camera.bottom) / 2;
+      worldScale *= (camera.top - camera.bottom) / (2 * Math.max(camera.zoom, 1e-4));
     }
 
     markerRef.current.scale.set(worldScale, worldScale, worldScale);
@@ -98,7 +98,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
       billboardRef.current.quaternion.copy(camera.quaternion);
 
       const invScale = frameCtx?.frameRef?.current
-        ? (camDist / frameCtx.frameRef.current.referenceFootprint) * frameCtx.frameRef.current.fovFactor
+        ? frameCtx.frameRef.current.screenScale
         : calculateScreenInvariantScale(camDist, camera);
       const rSize = reticleSize ?? DEFAULT_RETICLE_SIZE;
       const effectiveHitRadius = (hitRadius ?? rSize) * invScale;

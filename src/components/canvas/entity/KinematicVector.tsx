@@ -120,7 +120,7 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
     const camDist = Math.max(camera.position.distanceTo(p0), 1e-4);
     const frameState = frameCtx?.frameRef?.current;
     const invScale = frameState
-      ? (camDist / frameState.referenceFootprint) * frameState.fovFactor
+      ? frameState.screenScale
       : calculateScreenInvariantScale(camDist, camera);
 
     if (terminusRef.current) {
