@@ -5,8 +5,8 @@ import { GalaxyView, GalaxyControlsDock } from '../src/views/GalaxyView';
 import { SystemView, SystemControlsDock } from '../src/views/SystemView';
 import { PlanetView } from '../src/views/PlanetView';
 import { ReferenceView } from '../src/views/ReferenceView';
-import { RootHeader } from '../src/components/layout/RootLayout';
-import { SceneProvider } from '../src/components/canvas/SceneBridge';
+import { RootHeader } from '../src/components/poc/layout/RootLayout';
+import { SceneProvider } from '../src/components/poc/canvas/SceneBridge';
 
 import { useParams } from '@tanstack/react-router';
 

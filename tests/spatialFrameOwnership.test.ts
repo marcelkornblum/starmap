@@ -10,11 +10,11 @@ import {
   useSpatialFrame,
   CameraRig,
   CartographicInstrument,
-} from '../src/components/canvas/instrument';
+} from '../src/components/poc/canvas/instrument';
 import {
   FRAME_PRIORITY,
   ORBIT_CONTROLS_PRIORITY,
-} from '../src/components/canvas/engineConfig';
+} from '../src/components/poc/canvas/engineConfig';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();

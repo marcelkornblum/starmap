@@ -6,8 +6,8 @@ import {
   easeInOutCubic,
   CameraTransitionController,
   useCameraTransition,
-} from '../src/components/canvas/instrument/useCameraTransition';
-import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
+} from '../src/components/poc/canvas/instrument/useCameraTransition';
+import { createSpatialEntityStore } from '../src/components/poc/canvas/entity/SpatialEntityStore';
 
 let mockCamera: THREE.PerspectiveCamera;
 let mockControls: {

@@ -12,7 +12,7 @@ import {
   useThreeTokenStore,
 } from '../src/stores/useThreeTokenStore';
 import { useSettingsStore } from '../src/stores/useSettingsStore';
-import { ThemeTokenBridge } from '../src/components/canvas/ThemeTokenBridge';
+import { ThemeTokenBridge } from '../src/components/poc/canvas/ThemeTokenBridge';
 
 describe('useThreeTokenStore & parseCssColor', () => {
   beforeEach(() => {
