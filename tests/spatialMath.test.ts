@@ -4,22 +4,23 @@ import {
   computeZoomAdaptiveRings,
   populateZoomAdaptiveRings,
   type ScaledRingInfo,
-} from '../src/components/poc/canvas/math/rings';
+} from '../src/components/canvas/math/rings';
 import {
   computeCardinalAlignment,
   computeTransitionWeights,
   computeQuadrantWeight,
   computeAllPlaneQuadrantWeights,
-} from '../src/components/poc/canvas/math/cardinal';
+} from '../src/components/canvas/math/cardinal';
 import {
   computeApertureRadius,
   isInsideAperture,
   computePerimeterFade,
-} from '../src/components/poc/canvas/math/aperture';
+} from '../src/components/canvas/math/aperture';
 import {
   resolveBearingVector,
   generateCurvedOrbitPoints,
-} from '../src/components/poc/canvas/math/bearings';
+  calculateBearingProximityFade,
+} from '../src/components/canvas/math/bearings';
 import {
   deriveEntityTier,
   isStalkVisible,
@@ -27,8 +28,8 @@ import {
   isOrbitForceRendered,
   type InteractionState,
   type InteractionTier,
-} from '../src/components/poc/canvas/math/tiers';
-import { classifyPlanetPhysical } from '../src/components/poc/canvas/math/astronomy';
+} from '../src/components/canvas/math/tiers';
+import { classifyPlanetPhysical } from '../src/components/canvas/math/astronomy';
 
 describe('Spatial Math: rings.ts', () => {
   it('computes logarithmic 1-2-5 progression rings for a given aperture radius', () => {
@@ -208,6 +209,25 @@ describe('Spatial Math: bearings.ts', () => {
       const distToCenter = pt.distanceTo(center);
       expect(distToCenter).toBeCloseTo(radius, 1);
     }
+  });
+
+  it('calculates bearing proximity fade smoothly when camera approaches bearing vector', () => {
+    const origin = new THREE.Vector3(0, 0, 0);
+    // Camera far from bearing line -> fade is 1.0 (fully visible)
+    const camFar = new THREE.Vector3(0, 50, 50);
+    const fadeFar = calculateBearingProximityFade(camFar, origin, 'core', 1200, 2000, 20);
+    expect(fadeFar).toBe(1.0);
+
+    // Camera extremely close to bearing line -> fade is 0.0 (fully transparent)
+    const camNear = new THREE.Vector3(100, 1.0, 0.5);
+    const fadeNear = calculateBearingProximityFade(camNear, origin, 'core', 1200, 2000, 20);
+    expect(fadeNear).toBe(0.0);
+
+    // Camera in transition zone -> 0 < fade < 1
+    const camMid = new THREE.Vector3(100, 10, 0);
+    const fadeMid = calculateBearingProximityFade(camMid, origin, 'core', 1200, 2000, 20);
+    expect(fadeMid).toBeGreaterThan(0.0);
+    expect(fadeMid).toBeLessThan(1.0);
   });
 });
 

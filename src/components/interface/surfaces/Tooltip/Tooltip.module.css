@@ -1,0 +1,157 @@
+@layer blocks {
+  .tooltipWrapper {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .tooltip {
+    --tooltip-bg: var(--surface-popover-bg);
+    --tooltip-color: var(--content-default);
+    --tooltip-border-color: var(--surface-popover-border-color);
+    --tooltip-border-width: var(--surface-popover-border-width);
+    --tooltip-border-style: var(--surface-popover-border-style);
+    --tooltip-shadow: var(--surface-popover-shadow);
+    --tooltip-padding: var(--space-inset-tooltip);
+    --tooltip-radius: var(--surface-popover-radius);
+    --tooltip-font-size: var(--text-ui-tooltip-size);
+    --tooltip-offset: var(--space-offset-overlay);
+    --tooltip-backdrop-blur: var(--surface-popover-backdrop-blur);
+    --tooltip-transition-duration: var(--motion-duration-feedback);
+    --tooltip-transition-ease: var(--motion-ease-default);
+
+    position: absolute;
+    box-sizing: border-box;
+    background: var(--tooltip-bg);
+    color: var(--tooltip-color);
+    border: var(--tooltip-border-width) var(--tooltip-border-style) var(--tooltip-border-color);
+    box-shadow: var(--tooltip-shadow);
+    border-radius: var(--tooltip-radius);
+    padding: var(--tooltip-padding);
+    font-size: var(--tooltip-font-size);
+    font-family: var(--font-interface);
+    inline-size: max-content;
+    max-inline-size: min(280px, calc(100vw - 32px));
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+    text-wrap: pretty;
+    line-height: var(--leading-dense, 1.35);
+    pointer-events: none;
+    z-index: 600;
+    opacity: 0;
+    overflow: hidden;
+    backdrop-filter: blur(var(--tooltip-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--tooltip-backdrop-blur));
+    transition: opacity var(--tooltip-transition-duration) var(--tooltip-transition-ease);
+  }
+
+  @media (max-width: 480px) {
+    .tooltip {
+      max-inline-size: min(220px, calc(100vw - 24px));
+    }
+  }
+
+  .tooltip::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: 100%;
+    background: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.08) 0%,
+      oklch(100% 0 0 / 0.02) 40%,
+      transparent 100%
+    );
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+
+  .tooltipContent {
+    position: relative;
+    z-index: 1;
+    display: block;
+    line-height: inherit;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  .tooltipWrapper:hover .tooltip,
+  .tooltipWrapper:focus-within .tooltip {
+    opacity: 1;
+  }
+}
+
+@layer exceptions {
+  /* Top position alignments */
+  .tooltip[data-position="top"] {
+    inset-block-end: calc(100% + var(--tooltip-offset));
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+  }
+  .tooltip[data-position="top"][data-align="start"] {
+    inset-inline-start: 0;
+    transform: none;
+  }
+  .tooltip[data-position="top"][data-align="end"] {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+    transform: none;
+  }
+
+  /* Bottom position alignments */
+  .tooltip[data-position="bottom"] {
+    inset-block-start: calc(100% + var(--tooltip-offset));
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+  }
+  .tooltip[data-position="bottom"][data-align="start"] {
+    inset-inline-start: 0;
+    transform: none;
+  }
+  .tooltip[data-position="bottom"][data-align="end"] {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+    transform: none;
+  }
+
+  /* Left position alignments */
+  .tooltip[data-position="left"] {
+    inset-inline-end: calc(100% + var(--tooltip-offset));
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+  }
+  .tooltip[data-position="left"][data-align="start"] {
+    inset-block-start: 0;
+    transform: none;
+  }
+  .tooltip[data-position="left"][data-align="end"] {
+    inset-block-start: auto;
+    inset-block-end: 0;
+    transform: none;
+  }
+
+  /* Right position alignments */
+  .tooltip[data-position="right"] {
+    inset-inline-start: calc(100% + var(--tooltip-offset));
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+  }
+  .tooltip[data-position="right"][data-align="start"] {
+    inset-block-start: 0;
+    transform: none;
+  }
+  .tooltip[data-position="right"][data-align="end"] {
+    inset-block-start: auto;
+    inset-block-end: 0;
+    transform: none;
+  }
+
+  /* Explicit open state (e.g. for controlled tooltips or confidence pip) */
+  .tooltip[data-state="open"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

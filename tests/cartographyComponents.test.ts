@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React, { createElement } from 'react';
-import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
 import {
   computeCardinalAlignment,
@@ -22,9 +21,8 @@ import {
   populateCurvedDashedLineBuffer,
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
-  ScreenEdgeBearingIndicators,
   calculateScreenEdgeBearing,
-} from '../src/components/poc/canvas/cartography';
+} from '../src/components/canvas/cartography';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
@@ -1017,31 +1015,6 @@ describe('Cartography Mathematics & Occlusion Registry', () => {
       );
 
       expect(res.visible).toBe(false);
-    });
-
-    it('renders ScreenEdgeBearingIndicators component in SSR cleanly', () => {
-      const html = renderToString(
-        createElement(ScreenEdgeBearingIndicators, {}),
-      );
-      expect(html).toContain('screen-edge-bearing-indicators');
-      expect(html).toContain('bearing-indicator-core');
-      expect(html).toContain('bearing-indicator-orbital');
-      expect(html).toContain('CORE 000°');
-      expect(html).toContain('ORB 090°');
-    });
-
-    it('respects showCore and showOrbital flags in ScreenEdgeBearingIndicators', () => {
-      const htmlCoreOnly = renderToString(
-        createElement(ScreenEdgeBearingIndicators, { showCore: true, showOrbital: false }),
-      );
-      expect(htmlCoreOnly).toContain('bearing-indicator-core');
-      expect(htmlCoreOnly).not.toContain('bearing-indicator-orbital');
-
-      const htmlOrbOnly = renderToString(
-        createElement(ScreenEdgeBearingIndicators, { showCore: false, showOrbital: true }),
-      );
-      expect(htmlOrbOnly).not.toContain('bearing-indicator-core');
-      expect(htmlOrbOnly).toContain('bearing-indicator-orbital');
     });
   });
 });

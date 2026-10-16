@@ -1,0 +1,149 @@
+@layer blocks {
+  .nodeLabel {
+    --node-label-bg: var(--chrome-node-label-bg);
+    --node-label-color: var(--chrome-node-label-color, var(--status-nominal));
+    --node-label-border-color: var(--chrome-node-label-border-color, var(--status-nominal));
+    --node-label-border-width: var(--chrome-node-label-border-width);
+    --node-label-border-style: var(--chrome-node-label-border-style);
+    --node-label-radius: var(--chrome-node-label-radius);
+    --node-label-padding: var(--chrome-node-label-padding);
+    --node-label-gap: var(--chrome-node-label-gap);
+    --node-label-opacity: var(--chrome-node-label-opacity);
+
+    display: inline-flex;
+    align-items: center;
+    gap: var(--node-label-gap);
+    padding: var(--node-label-padding);
+    font-family: var(--font-data);
+    font-size: var(--text-map-system-size);
+    letter-spacing: var(--text-map-system-tracking);
+    text-transform: var(--text-map-system-transform);
+    line-height: var(--leading-metric);
+    color: var(--node-label-color);
+    background-color: var(--node-label-bg);
+    border: var(--node-label-border-width) var(--node-label-border-style) var(--node-label-border-color);
+    border-radius: var(--node-label-radius);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    position: relative;
+    opacity: var(--node-label-opacity);
+    transition: opacity var(--motion-duration-interactive) var(--motion-ease-default),
+                transform var(--motion-duration-interactive) var(--motion-ease-default),
+                border-color var(--motion-duration-feedback) var(--motion-ease-default),
+                color var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .spectralTag {
+    font-size: var(--text-content-catalog-id-size);
+    letter-spacing: var(--text-content-catalog-id-tracking);
+    color: var(--status-nominal);
+  }
+
+  .spectralFacet {
+    --node-facet-bg: var(--chrome-node-label-bg);
+    --node-facet-color: var(--status-nominal);
+    --node-facet-border-color: var(--chrome-node-label-border-color, var(--status-nominal));
+    --node-facet-border-width: var(--chrome-node-label-border-width);
+    --node-facet-border-style: var(--chrome-node-label-border-style);
+    --node-facet-radius: var(--chrome-node-label-radius);
+    --node-facet-padding: var(--chrome-node-facet-padding);
+    --node-facet-opacity: var(--chrome-node-label-opacity);
+
+    display: inline-flex;
+    align-items: center;
+    padding: var(--node-facet-padding);
+    font-family: var(--font-data);
+    font-size: var(--text-content-catalog-id-size);
+    letter-spacing: var(--text-content-catalog-id-tracking);
+    line-height: var(--leading-metric);
+    color: var(--node-facet-color);
+    background-color: var(--node-facet-bg);
+    border: var(--node-facet-border-width) var(--node-facet-border-style) var(--node-facet-border-color);
+    border-radius: var(--node-facet-radius);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    opacity: var(--node-facet-opacity);
+    transition: opacity var(--motion-duration-interactive) var(--motion-ease-default),
+                border-color var(--motion-duration-feedback) var(--motion-ease-default),
+                color var(--motion-duration-feedback) var(--motion-ease-default);
+  }
+
+  .facetSeparator {
+    display: inline-block;
+    padding-inline: var(--space-gap-badge);
+    color: var(--chrome-node-facet-separator-color);
+    opacity: var(--chrome-node-facet-separator-opacity);
+    user-select: none;
+  }
+
+  .leaderLine {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .leaderLine line {
+    stroke: var(--chrome-node-label-border-color);
+    stroke-width: 1px;
+    stroke-dasharray: 2 2;
+    opacity: 0.8;
+  }
+
+  .labelCluster {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2xs, 4px);
+    pointer-events: none;
+    user-select: none;
+    position: relative;
+    transition: opacity var(--motion-duration-interactive) var(--motion-ease-default),
+                transform var(--motion-duration-interactive) var(--motion-ease-default);
+  }
+}
+
+@layer exceptions {
+  .nodeLabel[data-occluded="true"] {
+    --node-label-opacity: var(--chrome-node-label-opacity-occluded);
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  .nodeLabel[data-state="focused"] {
+    --node-label-border-color: var(--chrome-node-label-focused-border-color, var(--state-focus));
+    --node-label-color: var(--chrome-node-label-focused-color, var(--state-focus));
+  }
+
+  .nodeLabel[data-state="selected"] {
+    --node-label-border-color: var(--chrome-node-label-selected-border-color, var(--state-selected-border));
+    --node-label-color: var(--chrome-node-label-selected-color, var(--content-prominent));
+  }
+
+  .spectralFacet[data-occluded="true"] {
+    --node-facet-opacity: var(--chrome-node-label-opacity-occluded);
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  .spectralFacet[data-state="focused"] {
+    --node-facet-border-color: var(--chrome-node-label-focused-border-color, var(--state-focus));
+    --node-facet-color: var(--chrome-node-label-focused-color, var(--state-focus));
+  }
+
+  .spectralFacet[data-state="selected"] {
+    --node-facet-border-color: var(--chrome-node-label-selected-border-color, var(--state-selected-border));
+    --node-facet-color: var(--content-default);
+  }
+
+  .labelCluster[data-occluded="true"] {
+    opacity: var(--chrome-node-label-opacity-occluded);
+    pointer-events: none;
+    visibility: hidden;
+  }
+}

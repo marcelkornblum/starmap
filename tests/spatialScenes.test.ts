@@ -8,8 +8,15 @@ import {
   SystemViewScene,
   PlanetaryViewScene,
   InteractiveNavigator,
+} from '../src/components/canvas/scenes/SpatialScenes';
+import { FullUIStylingScene } from '../src/components/canvas/scenes/FullUIStylingScene';
+import {
+  GalacticViewScene as PocGalacticViewScene,
+  SystemViewScene as PocSystemViewScene,
+  PlanetaryViewScene as PocPlanetaryViewScene,
+  InteractiveNavigator as PocInteractiveNavigator,
 } from '../src/components/poc/canvas/scenes/SpatialScenes';
-import { FullUIStylingScene } from '../src/components/poc/canvas/scenes/FullUIStylingScene';
+import { FullUIStylingScene as PocFullUIStylingScene } from '../src/components/poc/canvas/scenes/FullUIStylingScene';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
@@ -175,6 +182,14 @@ describe('SpatialScenes Storybook Suite', () => {
       // Tier 7: Toast
       expect(html).toContain('data-testid="surface-tier-7-toast"');
       expect(html).toContain('[Tier 7: Toast] Telemetry Alert: Gravitational Perturbation');
+    });
+
+    it('maintains backwards-compatible re-exports from src/components/poc/canvas/scenes', () => {
+      expect(PocGalacticViewScene).toBe(GalacticViewScene);
+      expect(PocSystemViewScene).toBe(SystemViewScene);
+      expect(PocPlanetaryViewScene).toBe(PlanetaryViewScene);
+      expect(PocInteractiveNavigator).toBe(InteractiveNavigator);
+      expect(PocFullUIStylingScene).toBe(FullUIStylingScene);
     });
   });
 });

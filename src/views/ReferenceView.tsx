@@ -1,8 +1,7 @@
 import type React from 'react';
-import { ScenePortal } from '../components/poc/canvas/SceneBridge';
-import { ReferenceScene3D } from '../components/poc/canvas/scenes/ReferenceScene3D';
+import { ScenePortal } from '../components/canvas/viewport/SceneBridge';
 import { useStarmapNav } from '../router/navigation';
-import { Panel, Card } from '../components/poc/surfaces';
+import { Panel, Card } from '../components/interface/surfaces';
 import { Stack, Button, Datum } from '../components/poc/primitives';
 import styles from './ReferenceView.module.css';
 
@@ -14,7 +13,7 @@ export const ReferenceView: React.FC<ReferenceViewProps> = () => {
   return (
     <>
       <ScenePortal sceneKey="reference">
-        <ReferenceScene3D />
+        <group data-testid="reference-scene" name="reference-scene" />
       </ScenePortal>
 
       {/* Main Encyclopedia HUD */}

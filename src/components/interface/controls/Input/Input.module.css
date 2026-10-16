@@ -1,0 +1,86 @@
+@layer blocks {
+  .input {
+    --input-bg: var(--ui-control-inset-bg);
+    --input-color: var(--content-default);
+    --input-border-color: var(--ui-control-inset-border-color);
+    --input-border-width: var(--border-width-1);
+    --input-border-style: var(--border-style-boundary);
+    --input-padding-inline: var(--space-inset-control-x);
+    --input-padding-block: var(--space-inset-control-y);
+    --input-font-size: var(--type-scale-0);
+    --input-radius: var(--radius-control);
+    --input-shadow: var(--ui-control-inset-shadow);
+    --input-placeholder-color: var(--content-faint);
+
+    display: inline-flex;
+    box-sizing: border-box;
+    inline-size: 100%;
+    font-family: var(--font-interface);
+    font-size: var(--input-font-size);
+    padding-inline: var(--input-padding-inline);
+    padding-block: var(--input-padding-block);
+    background: var(--input-bg);
+    color: var(--input-color);
+    border: var(--input-border-width) var(--input-border-style) var(--input-border-color);
+    box-shadow: var(--input-shadow);
+    border-radius: var(--input-radius);
+    outline: none;
+    transition: border-color var(--motion-duration-feedback) var(--motion-ease-default),
+                box-shadow var(--motion-duration-feedback) var(--motion-ease-default);
+    margin: 0;
+  }
+
+  .input::placeholder {
+    color: var(--input-placeholder-color);
+  }
+
+  .input:focus {
+    --input-border-color: oklch(from var(--state-focus) l c h / 0.40);
+    --input-shadow:
+      inset 0 -1px 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
+      inset -1px 0 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+      inset 0 0 4px 0 oklch(from var(--state-focus) l c h / 0.20),
+      var(--ui-control-inset-shadow);
+    box-shadow: var(--input-shadow);
+  }
+
+  .input:disabled {
+    opacity: var(--ui-disabled-opacity);
+    cursor: not-allowed;
+  }
+
+  .input[data-tabular="true"] {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer exceptions {
+  .input[data-status="error"] {
+    --input-border-color: oklch(from var(--status-critical) l c h / 0.40);
+    --input-shadow:
+      inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
+      inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
+      inset 0 0 4px 0 oklch(from var(--status-critical) l c h / 0.20),
+      var(--ui-control-inset-shadow);
+  }
+  .input[data-status="error"]:focus {
+    --input-border-color: oklch(from var(--status-critical) l c h / 0.50);
+    --input-shadow:
+      inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.40),
+      inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.25),
+      inset 0 0 5px 0 oklch(from var(--status-critical) l c h / 0.25),
+      var(--ui-control-inset-shadow);
+    box-shadow: var(--input-shadow);
+  }
+
+  .input[data-status="success"] {
+    --input-border-color: var(--status-nominal);
+  }
+
+  .input[data-size="sm"] {
+    --input-padding-inline: var(--space-inset-input-sm-x);
+    --input-padding-block: var(--space-inset-input-sm-y);
+    --input-font-size: var(--type-scale-neg-1);
+  }
+}
