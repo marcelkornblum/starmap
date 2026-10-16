@@ -8,6 +8,7 @@
     --toast-padding: var(--space-inset-toast);
     --toast-radius: var(--surface-toast-radius);
     --toast-gap: var(--space-gap-layout);
+    --toast-backdrop-blur: var(--surface-toast-backdrop-blur);
 
     --toast-content-gap: var(--space-gap-item);
     --toast-title-size: var(--text-ui-toast-title-size);
@@ -33,6 +34,8 @@
     box-shadow: var(--toast-shadow);
     border-radius: var(--toast-radius);
     padding: var(--toast-padding);
+    backdrop-filter: blur(var(--toast-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--toast-backdrop-blur));
     min-inline-size: min(100%, 280px);
     max-inline-size: min(100%, 420px);
     margin: 0;
@@ -78,8 +81,33 @@
 }
 
 @layer exceptions {
-  .toast[data-status="nominal"] { --toast-border-color: var(--status-nominal); }
-  .toast[data-status="caution"] { --toast-border-color: var(--status-caution); }
-  .toast[data-status="critical"] { --toast-border-color: var(--status-critical); }
-  .toast[data-status="info"] { --toast-border-color: var(--status-info); }
+  .toast[data-status="nominal"] {
+    --toast-bg: var(--status-nominal-surface);
+    --toast-border-color: var(--status-nominal-border);
+    --toast-shadow: var(--status-nominal-toast-shadow);
+  }
+
+  .toast[data-status="caution"] {
+    --toast-bg: var(--status-caution-surface);
+    --toast-border-color: var(--status-caution-border);
+    --toast-shadow: var(--status-caution-toast-shadow);
+  }
+
+  .toast[data-status="critical"] {
+    --toast-bg: var(--status-critical-surface);
+    --toast-border-color: var(--status-critical-border);
+    --toast-shadow: var(--status-critical-toast-shadow);
+  }
+
+  .toast[data-status="info"] {
+    --toast-bg: var(--status-info-surface);
+    --toast-border-color: var(--status-info-border);
+    --toast-shadow: var(--status-info-toast-shadow);
+  }
+
+  .toast[data-status="neutral"] {
+    --toast-bg: var(--status-neutral-surface);
+    --toast-border-color: var(--status-neutral-border);
+    --toast-shadow: var(--status-neutral-toast-shadow);
+  }
 }

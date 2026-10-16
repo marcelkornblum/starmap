@@ -97,7 +97,7 @@
 
   .planetItem[data-selectable="true"]:hover {
     background: var(--state-hover-overlay);
-    border-color: var(--state-focus);
+    border-color: var(--border-color-prominent);
   }
 
   .planetItem[data-selectable="true"]:focus-visible {

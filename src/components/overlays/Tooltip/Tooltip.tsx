@@ -44,7 +44,7 @@ export const Tooltip = ({
         role="tooltip"
         {...rest}
       >
-        {text}
+        <span className={styles.tooltipContent}>{text}</span>
       </div>
     </div>
   );

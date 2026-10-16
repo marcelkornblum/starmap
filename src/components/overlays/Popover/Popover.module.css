@@ -13,6 +13,7 @@
     --popover-padding: var(--space-inset-popover);
     --popover-radius: var(--surface-popover-radius);
     --popover-offset: var(--space-offset-overlay);
+    --popover-backdrop-blur: var(--surface-popover-backdrop-blur);
 
     position: absolute;
     box-sizing: border-box;
@@ -23,6 +24,26 @@
     padding: var(--popover-padding);
     z-index: 500;
     margin: 0;
+    overflow: hidden;
+    backdrop-filter: blur(var(--popover-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--popover-backdrop-blur));
+  }
+
+  .popover::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: min(100%, 360px);
+    background: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.08) 0%,
+      oklch(100% 0 0 / 0.02) 40%,
+      transparent 100%
+    );
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
   }
 }
 

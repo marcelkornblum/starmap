@@ -11,6 +11,7 @@ import {
   Drawer,
   Modal,
   Popover,
+  Tooltip,
   Toast,
 } from '../../overlays';
 import {
@@ -24,7 +25,7 @@ import {
   Datum,
   Metric,
 } from '../../primitives';
-import { OrbitTable, type OrbitElementRow } from '../../domain';
+import { OrbitTable, ThemeSwitcher, type OrbitElementRow } from '../../domain';
 import { GalacticViewScene } from './SpatialScenes';
 import styles from './FullUIStylingScene.module.css';
 
@@ -76,6 +77,7 @@ export interface FullUIStylingSceneProps {
   initialModalOpen?: boolean;
   initialPopoverOpen?: boolean;
   initialToastVisible?: boolean;
+  initialTooltipVisible?: boolean;
 }
 
 /**
@@ -87,7 +89,7 @@ export interface FullUIStylingSceneProps {
  * Tier 2: --surface-dock (Persistent Navigation Shelf: Dock)
  * Tier 3: --surface-panel (Dossiers & Telemetry: Panel)
  * Tier 4: --surface-drawer (Full-Height Sliding Filters: Drawer)
- * Tier 5: --surface-popover (Context Flyouts & Tooltips: Popover)
+ * Tier 5: --surface-popover (Context Flyouts & Tooltips: Popover, Tooltip)
  * Tier 6: --surface-modal (Command Palette & Dialogues: Modal)
  * Tier 7: --surface-toast (Transient System Alerts: Toast)
  * Nested: --surface-inset (Sunken Wells & Tabular Insets: Well)
@@ -97,11 +99,13 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
   initialModalOpen = true,
   initialPopoverOpen = true,
   initialToastVisible = true,
+  initialTooltipVisible = true,
 }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(initialDrawerOpen);
   const [isModalOpen, setIsModalOpen] = useState(initialModalOpen);
   const [isPopoverOpen, setIsPopoverOpen] = useState(initialPopoverOpen);
   const [isToastVisible, setIsToastVisible] = useState(initialToastVisible);
+  const [isTooltipVisible, setIsTooltipVisible] = useState(initialTooltipVisible);
 
   // Drawer form control states
   const [parallaxCutoff, setParallaxCutoff] = useState(45);
@@ -115,7 +119,11 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
       {/* Tier 0: --surface-canvas (3D WebGL Floor)                            */}
       {/* --------------------------------------------------------------------- */}
       <div className={styles.canvasLayer} data-testid="surface-tier-0-canvas">
-        <GalacticViewScene className={styles.canvasOverride} />
+        <GalacticViewScene
+          variant="fullscreen"
+          className={styles.canvasOverride}
+          initialSelectedId="sol"
+        />
       </div>
 
       {/* --------------------------------------------------------------------- */}
@@ -142,7 +150,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             <Badge status="info">ZOOM 10.0 pc</Badge>
             <Button
               size="sm"
-              variant={isDrawerOpen ? 'primary' : 'subtle'}
+              variant={isDrawerOpen ? 'highlight' : 'secondary'}
               title="Tier 4: Drawer - Spectroscopic Filter Matrix"
               aria-label="Toggle Drawer"
               onClick={() => setIsDrawerOpen((prev) => !prev)}
@@ -151,7 +159,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             </Button>
             <Button
               size="sm"
-              variant={isPopoverOpen ? 'primary' : 'subtle'}
+              variant={isPopoverOpen ? 'highlight' : 'secondary'}
               title="Tier 5: Popover - Sol Telemetry"
               aria-label="Toggle Popover"
               onClick={() => setIsPopoverOpen((prev) => !prev)}
@@ -160,7 +168,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             </Button>
             <Button
               size="sm"
-              variant={isModalOpen ? 'primary' : 'subtle'}
+              variant={isModalOpen ? 'highlight' : 'secondary'}
               title="Tier 6: Modal - Astrodynamics Command Query"
               aria-label="Toggle Modal"
               onClick={() => setIsModalOpen((prev) => !prev)}
@@ -169,49 +177,71 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             </Button>
             <Button
               size="sm"
-              variant={isToastVisible ? 'primary' : 'subtle'}
+              variant={isToastVisible ? 'highlight' : 'secondary'}
               title="Tier 7: Toast - Gravitational Perturbation Alert"
               aria-label="Toggle Toast"
               onClick={() => setIsToastVisible((prev) => !prev)}
             >
               TOAST
             </Button>
+            <Button
+              size="sm"
+              variant={isTooltipVisible ? 'highlight' : 'secondary'}
+              title="Tier 5: Tooltip - Spectroscopic Filter Matrix Hint"
+              aria-label="Toggle Tooltip"
+              onClick={() => setIsTooltipVisible((prev) => !prev)}
+            >
+              TOOLTIP
+            </Button>
           </Cluster>
         </Cluster>
       </Hud>
 
       {/* --------------------------------------------------------------------- */}
+      {/* Theme & Palette Switcher Widget                                       */}
+      {/* --------------------------------------------------------------------- */}
+      <div className={styles.themeSwitcherAnchor} data-testid="prototype-theme-switcher">
+        <ThemeSwitcher />
+      </div>
+
+      {/* --------------------------------------------------------------------- */}
       {/* Tier 2: --surface-dock (Persistent navigation shelf docked to window) */}
       {/* --------------------------------------------------------------------- */}
       <Dock
-        position="right"
+        position="bottom"
         className={styles.dockOverride}
         title="Tier 2: Dock"
         data-testid="surface-tier-2-dock"
       >
-        <Stack gap="tight">
-          <Button variant="primary" size="sm" title="Tier 2: Dock - Galaxy Overview" aria-label="Galaxy Overview">
+        <Cluster gap="tight" align="center">
+          <Button variant="highlight" size="sm" title="Tier 2: Dock - Galaxy Overview" aria-label="Galaxy Overview">
             GAL
           </Button>
-          <Button variant="subtle" size="sm" title="Tier 2: Dock - System Navigation" aria-label="System Navigation">
+          <Button variant="secondary" size="sm" title="Tier 2: Dock - System Navigation" aria-label="System Navigation">
             SYS
           </Button>
-          <Button variant="subtle" size="sm" title="Tier 2: Dock - Planetary Bodies" aria-label="Planetary Bodies">
+          <Button variant="secondary" size="sm" title="Tier 2: Dock - Planetary Bodies" aria-label="Planetary Bodies">
             PLN
           </Button>
-          <Button variant="subtle" size="sm" title="Tier 2: Dock - Astrometry Catalog" aria-label="Astrometry Catalog">
+          <Button variant="secondary" size="sm" title="Tier 2: Dock - Astrometry Catalog" aria-label="Astrometry Catalog">
             CAT
           </Button>
-          <Button
-            variant="subtle"
-            size="sm"
-            title="Tier 2: Dock - Toggle Filter Drawer"
-            aria-label="Toggle Filter Drawer"
-            onClick={() => setIsDrawerOpen((prev) => !prev)}
+          <Tooltip
+            text="[Tier 5: Tooltip] Toggle Filter Matrix"
+            position="top"
+            className={isTooltipVisible ? styles.demoTooltip : undefined}
           >
-            FLT
-          </Button>
-        </Stack>
+            <Button
+              variant={isDrawerOpen ? 'highlight' : 'secondary'}
+              size="sm"
+              title="Tier 2: Dock - Toggle Filter Drawer"
+              aria-label="Toggle Filter Drawer"
+              onClick={() => setIsDrawerOpen((prev) => !prev)}
+            >
+              FLT
+            </Button>
+          </Tooltip>
+        </Cluster>
       </Dock>
 
       {/* --------------------------------------------------------------------- */}
@@ -240,7 +270,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
             </Cluster>
 
             {/* Nested Inset: --surface-inset (Sunken wells, inputs) */}
-            <Well tabular padding="tight" title="Nested Inset: Well" data-testid="surface-tier-nested-inset">
+            <Well tabular padding="none" title="Nested Inset: Well" data-testid="surface-tier-nested-inset">
               <OrbitTable caption="[Nested Inset: Well] Nearby Astrometric Candidates" orbits={DEMO_ORBITS} />
             </Well>
 
@@ -266,11 +296,11 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
               padding="tight"
               status="nominal"
               interactive
-              title="Tier 5: Popover - Sol Barycentre Anchor"
+              title="Popover Trigger: Sol Barycentre Anchor"
               onClick={() => setIsPopoverOpen((prev) => !prev)}
             >
               <Cluster gap="tight" align="center">
-                <span>[Tier 5: Popover] Target Lock: Sol Barycentre [0, 0, 0]</span>
+                <span>[Anchor Trigger] Sol Barycentre Target [0, 0, 0]</span>
                 <Badge status="nominal">LOCKED</Badge>
               </Cluster>
             </Card>
@@ -279,7 +309,7 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
           <div className={styles.popoverContent} title="Tier 5: Popover - Sol Telemetry">
             <Stack gap="dense">
               <Cluster justify="between" align="center">
-                <strong title="Tier 5: Popover - Sol Anchor Point">[Tier 5: Popover] Sol Anchor Point</strong>
+                <strong title="Tier 5: Popover Glass - Sol Telemetry Dossier">[Tier 5: Popover Glass] Sol Telemetry Dossier</strong>
                 <Badge category="star">G2V</Badge>
               </Cluster>
               <p className={styles.popoverDesc}>

@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react';
+import { Quantity } from '../Quantity/Quantity';
 import styles from './Datum.module.css';
 
 export interface DatumProps extends HTMLAttributes<HTMLDivElement> {
@@ -30,10 +31,7 @@ export const Datum = ({
       {...rest}
     >
       <span className={styles.label}>{label}</span>
-      <span className={styles.valueWrapper}>
-        <span>{value}</span>
-        {unit && <span className={styles.unit}>{unit}</span>}
-      </span>
+      <Quantity value={value} unit={unit} className={styles.valueWrapper} />
     </div>
   );
 };

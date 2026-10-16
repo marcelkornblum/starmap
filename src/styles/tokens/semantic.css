@@ -79,7 +79,8 @@
     --text-content-badge-tracking:      var(--tracking-body);
 
     --text-content-metric-value-size:   var(--type-scale-2);
-    --text-content-metric-unit-size:    var(--type-scale-neg-1);
+    --text-content-metric-unit-size:    calc(1em / var(--type-ratio));
+    --text-unit-size:                   calc(1em / var(--type-ratio));
     --text-content-data-label-size:     var(--type-scale-neg-1);
     --text-content-data-value-size:     var(--type-scale-neg-1);
     --text-content-uncertainty-size:    var(--type-scale-neg-2);
@@ -116,9 +117,9 @@
     --text-ui-tooltip-size:             var(--type-scale-neg-1);
     --text-ui-toast-title-size:         var(--type-scale-0);
     --text-ui-toast-message-size:       var(--type-scale-neg-1);
-    --text-ui-kbd-size:                 var(--type-scale-neg-2);
-    --text-ui-table-header-size:        var(--type-scale-neg-1);
-    --text-ui-table-cell-size:          var(--type-scale-0);
+    --text-ui-table-header-size:        var(--type-scale-neg-2);
+    --text-ui-table-cell-size:          var(--type-scale-neg-1);
+    --text-ui-table-unit-size:          calc(1em / var(--type-ratio));
     --text-ui-dossier-title-size:       var(--type-scale-2);
     --text-content-title-size:          var(--type-scale-2);
     --text-content-caption-size:        var(--type-scale-neg-1);
@@ -184,7 +185,7 @@
     --radius-none:               var(--radius-0);
     --radius-container:          var(--radius-0);
     --radius-control:            var(--radius-0);
-    --radius-badge:              var(--radius-0);
+    --radius-badge:              var(--radius-1);
 
     --surface-modal-radius:      var(--radius-container);
     --surface-popover-radius:    var(--radius-container);
@@ -211,15 +212,17 @@
     /* Control & Metric Dimensions */
     --ui-control-height-default: calc(var(--space-fib-5) + var(--space-fib-3));
     --ui-control-height-sm:      calc(var(--space-fib-4) + var(--space-fib-2));
-    --ui-slider-track-height:    6px;
-    --ui-slider-thumb-size:      16px;
-    --ui-toggle-track-width:     36px;
-    --ui-toggle-track-height:    20px;
-    --ui-toggle-thumb-size:      14px;
-    --ui-toggle-thumb-offset:    2px;
+    --ui-slider-track-height:    2px;
+    --ui-slider-thumb-width:     3px;
+    --ui-slider-thumb-height:    14px;
+    --ui-slider-thumb-size:      var(--ui-slider-thumb-width);
+    --ui-toggle-track-width:     32px;
+    --ui-toggle-track-height:    16px;
+    --ui-toggle-thumb-size:      8px;
+    --ui-toggle-thumb-offset:    3px;
     --ui-toggle-thumb-active-offset: 16px;
-    --ui-toggle-track-radius:    var(--radius-control);
-    --ui-toggle-thumb-radius:    var(--radius-control);
+    --ui-toggle-track-radius:    var(--radius-badge);
+    --ui-toggle-thumb-radius:    50%;
 
     /* Elevation & Semantic Layers */
     --layer-canvas:              var(--z-canvas);
@@ -247,10 +250,10 @@
     --ui-input-sm-padding-y:     var(--space-inset-input-sm-y);
     --ui-input-sm-font-size:     var(--type-scale-neg-1);
 
-    --ui-slider-track-border-width: var(--border-width-1);
-    --ui-slider-track-border-style: var(--border-style-boundary);
-    --ui-slider-track-radius:       var(--radius-control);
-    --ui-slider-thumb-radius:       var(--radius-control);
+    --ui-slider-track-border-width: 0px;
+    --ui-slider-track-border-style: none;
+    --ui-slider-track-radius:       var(--radius-1);
+    --ui-slider-thumb-radius:       1px;
     --ui-slider-gap:                var(--space-gap-control);
 
     /* Data Telemetry Metrics */
@@ -351,7 +354,7 @@
   :root,
   [data-theme="dark"] {
     /* Surfaces */
-    --surface-canvas-bg:           var(--palette-solarized-base03);
+    --surface-canvas-bg:           var(--palette-surface-canvas-dark);
     --surface-canvas-border-width: var(--stroke-width-0);
     --surface-canvas-border-color: transparent;
     --surface-canvas-border-style: var(--stroke-style-none);
@@ -359,102 +362,121 @@
     --surface-canvas-opacity:      var(--opacity-100);
     --surface-canvas-backdrop-blur:var(--filter-blur-0);
 
-    --surface-inset-bg:            var(--palette-solarized-base03);
+    --surface-inset-bg:            var(--material-surface-inset-dark);
     --surface-inset-border-width:  var(--stroke-width-1);
-    --surface-inset-border-color:  var(--palette-white-alpha-8);
+    --surface-inset-border-color:  var(--border-color-subtle);
     --surface-inset-border-style:  var(--border-style-boundary);
-    --surface-inset-shadow:        var(--elevation-inset);
+    --surface-inset-shadow:        var(--shadow-inset-well-dark);
+    --surface-inset-bevel:         var(--bevel-bottom-rim-dark);
+    --surface-inset-gradient-overlay: linear-gradient(
+      137deg,
+      oklch(0% 0 0 / 0.22) 0%,
+      oklch(0% 0 0 / 0.05) 35%,
+      transparent 70%,
+      oklch(100% 0 0 / 0.03) 100%
+    );
     --surface-inset-opacity:       var(--opacity-100);
     --surface-inset-backdrop-blur: var(--filter-blur-0);
 
-    --surface-hud-bg:              var(--palette-solarized-base02);
+    /* Family 1: Chassis Frame (HUD & Dock - Opaque Matte) */
+    --surface-hud-bg:              var(--material-surface-chassis-dark);
     --surface-hud-border-width:    var(--stroke-width-1);
-    --surface-hud-border-color:    var(--palette-white-alpha-12);
+    --surface-hud-border-color:    var(--palette-specular-white-8);
     --surface-hud-border-style:    var(--border-style-boundary);
-    --surface-hud-shadow:          var(--elevation-1);
+    --surface-hud-shadow:          var(--bevel-top-rim-subtle), var(--elevation-hud);
     --surface-hud-opacity:         var(--opacity-100);
     --surface-hud-backdrop-blur:   var(--filter-blur-0);
 
-    --surface-dock-bg:             var(--palette-solarized-base02);
+    --surface-dock-bg:             var(--material-surface-chassis-dark);
     --surface-dock-border-width:   var(--stroke-width-1);
-    --surface-dock-border-color:   var(--palette-white-alpha-16);
+    --surface-dock-border-color:   var(--palette-specular-white-8);
     --surface-dock-border-style:   var(--border-style-boundary);
-    --surface-dock-shadow:         var(--elevation-2);
+    --surface-dock-shadow:         var(--bevel-top-rim-dark), var(--elevation-dock);
     --surface-dock-opacity:        var(--opacity-100);
     --surface-dock-backdrop-blur:  var(--filter-blur-0);
 
-    --surface-panel-bg:            var(--palette-solarized-base02);
+    /* Family 2: Task Slabs (Panel & Drawer - Opaque Matte) */
+    --surface-panel-bg:            var(--material-surface-slab-dark);
     --surface-panel-border-width:  var(--stroke-width-1);
-    --surface-panel-border-color:  var(--palette-white-alpha-16);
+    --surface-panel-border-color:  var(--palette-specular-white-8);
     --surface-panel-border-style:  var(--border-style-boundary);
-    --surface-panel-shadow:        var(--elevation-2);
+    --surface-panel-shadow:        var(--bevel-top-rim-dark), var(--elevation-panel);
     --surface-panel-opacity:       var(--opacity-100);
     --surface-panel-backdrop-blur: var(--filter-blur-0);
 
-    --surface-drawer-bg:           var(--palette-solarized-base02);
-    --surface-drawer-border-width: var(--stroke-width-2);
-    --surface-drawer-border-color: var(--palette-white-alpha-32);
+    --surface-drawer-bg:           var(--material-surface-slab-dark);
+    --surface-drawer-border-width: var(--stroke-width-1);
+    --surface-drawer-border-color: var(--palette-specular-white-8);
     --surface-drawer-border-style: var(--border-style-boundary);
-    --surface-drawer-shadow:       var(--elevation-3);
+    --surface-drawer-shadow:       var(--bevel-top-rim-dark), var(--elevation-drawer);
     --surface-drawer-opacity:      var(--opacity-100);
     --surface-drawer-backdrop-blur:var(--filter-blur-0);
 
-    --surface-popover-bg:          var(--palette-solarized-base02);
+    /* Family 3: Floating Overlays (Popover, Modal, Toast) */
+    --surface-popover-bg:          var(--material-surface-glass-dark);
     --surface-popover-border-width:var(--stroke-width-1);
-    --surface-popover-border-color:var(--palette-white-alpha-24);
+    --surface-popover-border-color:var(--palette-specular-white-8);
     --surface-popover-border-style:var(--border-style-boundary);
-    --surface-popover-shadow:      var(--elevation-3);
+    --surface-popover-shadow:      var(--bevel-top-rim-dark), var(--elevation-popover);
     --surface-popover-opacity:     var(--opacity-100);
-    --surface-popover-backdrop-blur:var(--filter-blur-0);
+    --surface-popover-backdrop-blur:var(--filter-blur-3);
 
-    --surface-modal-bg:            var(--palette-solarized-base02);
-    --surface-modal-border-width:  var(--stroke-width-2);
-    --surface-modal-border-color:  var(--palette-white-alpha-32);
+    --surface-modal-bg:            var(--material-surface-overlay-dark);
+    --surface-modal-border-width:  var(--stroke-width-1);
+    --surface-modal-border-color:  var(--palette-specular-white-12);
     --surface-modal-border-style:  var(--border-style-boundary);
-    --surface-modal-shadow:        var(--elevation-4);
+    --surface-modal-shadow:        var(--bevel-top-rim-prominent), var(--elevation-modal);
     --surface-modal-opacity:       var(--opacity-100);
-    --surface-modal-backdrop-blur: var(--filter-blur-0);
+    --surface-modal-backdrop-blur: var(--filter-blur-4);
     --scrim-backdrop:              var(--palette-black-alpha-70);
     --scrim-backdrop-opacity:      var(--opacity-70);
     --scrim-backdrop-blur:         var(--filter-blur-1);
     --surface-scrim-bg:            var(--scrim-backdrop);
     --surface-scrim-backdrop-blur: var(--scrim-backdrop-blur);
 
-    --surface-toast-bg:            var(--palette-solarized-base02);
+    --surface-toast-bg:            var(--material-surface-overlay-dark);
     --surface-toast-border-width:  var(--stroke-width-1);
-    --surface-toast-border-color:  var(--palette-white-alpha-32);
+    --surface-toast-border-color:  var(--palette-specular-white-8);
     --surface-toast-border-style:  var(--border-style-boundary);
-    --surface-toast-shadow:        var(--elevation-3);
+    --surface-toast-shadow:        var(--bevel-top-rim-dark), var(--elevation-toast);
     --surface-toast-opacity:       var(--opacity-100);
-    --surface-toast-backdrop-blur: var(--filter-blur-0);
+    --surface-toast-backdrop-blur: var(--filter-blur-3);
 
     /* Content Contrast */
-    --content-prominent: var(--palette-solarized-base1);
+    --content-prominent: oklch(95.0% 0.010 198);
     --content-bright:    var(--content-prominent);
-    --content-default:   var(--palette-solarized-base0);
+    --content-default:   oklch(82.0% 0.018 198);
     --content-base:      var(--content-default);
-    --content-muted:     var(--palette-solarized-base01);
-    --content-faint:     var(--palette-solarized-base00);
-    --content-inverse:   var(--palette-solarized-base03);
-    --content-disabled:  var(--palette-solarized-base01);
-    --content-accent:    var(--palette-solarized-cyan);
+    --content-muted:     oklch(64.0% 0.024 198);
+    --content-faint:     oklch(48.0% 0.028 198);
+    --content-inverse:   oklch(15.0% 0.020 198);
+    --content-disabled:  oklch(64.0% 0.024 198);
+    --content-accent:    var(--state-focus);
 
     --interactive-primary: var(--state-focus);
 
-    --border-color-subtle:      var(--surface-panel-border-color);
+    --border-color-subtle:      var(--palette-specular-white-8);
     --border-color-interactive: var(--state-focus);
-    --border-subtle:            var(--surface-panel-border-color);
+    --border-subtle:            var(--palette-specular-white-8);
     --stroke-hairline:          var(--border-width-1);
 
-    --ui-table-header-bg:       var(--surface-dock-bg);
-    --ui-table-border-color:    var(--surface-panel-border-color);
+    /* Internal Hairline Rules (Dividers & Row Separators) */
+    --rule-hairline-width:      var(--stroke-hairline);
+    --rule-hairline-color:      var(--border-color-subtle);
+    --rule-hairline-style:      var(--border-style-boundary);
+    --rule-hairline:            var(--rule-hairline-width) var(--rule-hairline-style) var(--rule-hairline-color);
+
+    --ui-table-header-bg:       transparent;
+    --ui-table-border-color:    var(--border-color-subtle);
     --ui-table-row-hover-bg:    var(--state-hover-overlay);
+    --ui-table-row-hover-shadow: var(--palette-specular-white-8);
     --ui-table-row-selected-bg: var(--state-selected-bg);
 
     --data-datum-label-color:   var(--content-muted);
     --data-datum-value-color:   var(--content-default);
-    --data-datum-border-color:  var(--surface-panel-border-color);
+    --data-datum-border-color:  var(--border-color-subtle);
     --data-datum-unit-color:    var(--content-muted);
+    --content-unit:             var(--content-muted);
 
     --data-metric-bg:           var(--surface-inset-bg);
     --data-metric-border-color: var(--surface-inset-border-color);
@@ -463,24 +485,24 @@
     --data-metric-unit-color:   var(--content-muted);
     --data-metric-trend-color:  var(--content-muted);
 
-    --border-default:           var(--surface-panel-border-color);
+    --border-default:           var(--palette-specular-white-8);
     --border-focus:             var(--state-focus);
     --surface-sunken-bg:        var(--surface-inset-bg);
 
     /* Interactive Focus & States */
-    --state-focus:                var(--palette-solarized-cyan);
+    --state-focus:                var(--palette-accent-focus);
     --state-focus-ring-color:     var(--state-focus);
     --state-focus-ring-width:     var(--stroke-width-2);
     --state-focus-ring-style:     var(--border-style-boundary);
     --state-focus-ring-offset:    2px;
-    --state-focus-halo:           0 0 0 4px oklch(64.37% 0.1019 187.38 / 0.30);
+    --state-focus-halo:           var(--palette-accent-focus-halo);
 
     --state-hover-overlay:        var(--palette-white-alpha-4);
     --state-active-overlay:       var(--palette-white-alpha-8);
 
-    --state-selected:             var(--state-focus);
+    --state-selected:             var(--content-prominent);
     --state-selected-bg:          var(--palette-white-alpha-8);
-    --state-selected-border:      var(--state-selected);
+    --state-selected-border:      var(--border-color-prominent);
     --state-selected-content:     var(--content-prominent);
 
     --state-disabled-content:     var(--content-faint);
@@ -514,30 +536,46 @@
     --chrome-boresight-style:            var(--border-style-boundary);
 
     /* UI Control Profiles (Dark Theme) */
-    --ui-button-default-bg:              var(--palette-white-alpha-8);
-    --ui-button-default-color:           var(--content-default);
-    --ui-button-default-border-color:    var(--palette-white-alpha-16);
+    --ui-button-default-bg:              var(--material-surface-button-dark);
+    --ui-button-default-color:           var(--content-prominent);
+    --ui-button-default-border-color:    var(--palette-specular-black-50);
     --ui-button-default-border-width:    var(--border-width-1);
     --ui-button-default-border-style:    var(--border-style-boundary);
+    --ui-button-default-shadow:          inset 0 1px 2px 0 var(--palette-specular-black-35), inset 0 0 0 1px var(--palette-specular-white-8), 0 1px 0 0 var(--palette-specular-white-6);
     --ui-button-default-radius:          var(--radius-control);
-    --ui-button-default-hover-bg:        var(--palette-white-alpha-16);
-    --ui-button-default-active-bg:       var(--palette-white-alpha-24);
+    --ui-button-default-hover-bg:        var(--material-surface-button-hover-dark);
+    --ui-button-default-hover-border-color: var(--border-color-prominent);
+    --ui-button-default-hover-shadow:    var(--bevel-top-rim-prominent), var(--elevation-button);
+    --ui-button-default-active-bg:       var(--material-surface-button-active-dark);
+    --ui-button-default-active-border-color: var(--palette-black-alpha-70);
+    --ui-button-default-active-shadow:   inset 0 2px 4px 0 var(--palette-specular-black-50);
 
-    --ui-button-prominent-bg:            var(--state-focus);
-    --ui-button-prominent-color:         var(--content-inverse);
-    --ui-button-prominent-border-color:  var(--state-focus);
-    --ui-button-prominent-hover-bg:      var(--palette-solarized-blue);
-    --ui-button-prominent-active-bg:     var(--palette-solarized-blue);
+    /* Highlight Button: subtle accent wash, tuned-down border, and prominent specular top rim */
+    --ui-button-highlight-bg:            linear-gradient(137deg, var(--palette-accent-focus-subtle), var(--palette-accent-focus-subtle)), var(--material-surface-button-dark);
+    --ui-button-highlight-hover-bg:      linear-gradient(137deg, oklch(from var(--palette-accent-focus) l c h / 0.22), oklch(from var(--palette-accent-focus) l c h / 0.22)), var(--material-surface-button-hover-dark);
+    --ui-button-highlight-active-bg:     linear-gradient(137deg, oklch(from var(--palette-accent-focus) l c h / 0.28), oklch(from var(--palette-accent-focus) l c h / 0.28)), var(--material-surface-button-active-dark);
+    --ui-button-highlight-color:         var(--content-prominent);
+    --ui-button-highlight-border-color:  oklch(from var(--state-focus) l c h / 0.30);
+    --ui-button-highlight-hover-border-color: oklch(from var(--palette-accent-focus-hover) l c h / 0.45);
+    --ui-button-highlight-shadow:        var(--bevel-top-rim-prominent), var(--elevation-button);
+
+    /* Primary alias to highlight tokens */
+    --ui-button-prominent-bg:            var(--ui-button-highlight-bg);
+    --ui-button-prominent-color:         var(--ui-button-highlight-color);
+    --ui-button-prominent-border-color:  var(--ui-button-highlight-border-color);
+    --ui-button-prominent-hover-bg:      var(--ui-button-highlight-hover-bg);
+    --ui-button-prominent-active-bg:     var(--ui-button-highlight-active-bg);
 
     --ui-button-subtle-bg:               transparent;
     --ui-button-subtle-color:            var(--content-default);
     --ui-button-subtle-border-color:     transparent;
     --ui-button-subtle-hover-bg:         var(--surface-dock-bg);
-    --ui-button-subtle-hover-border-color: var(--palette-white-alpha-16);
+    --ui-button-subtle-hover-border-color: var(--border-color-subtle);
 
-    --ui-button-danger-bg:               var(--status-critical);
-    --ui-button-danger-color:            var(--content-inverse);
-    --ui-button-danger-border-color:     var(--status-critical);
+    --ui-button-danger-bg:               linear-gradient(137deg, oklch(from var(--status-critical) l c h / 0.15), oklch(from var(--status-critical) l c h / 0.15)), var(--material-surface-button-dark);
+    --ui-button-danger-color:            var(--content-prominent);
+    --ui-button-danger-border-color:     oklch(from var(--status-critical) l c h / 0.32);
+    --ui-button-danger-shadow:           var(--status-critical-bevel), var(--elevation-button);
 
     --ui-input-bg:                       var(--surface-inset-bg);
     --ui-input-color:                    var(--content-default);
@@ -547,16 +585,25 @@
     --ui-input-radius:                   var(--radius-control);
     --ui-input-placeholder-color:        var(--content-faint);
 
-    --ui-slider-track-bg:                var(--surface-inset-bg);
-    --ui-slider-track-border-color:      var(--surface-inset-border-color);
-    --ui-slider-thumb-bg:                var(--state-focus);
+    /* UI Control Hardware & Dedicated State Indicators (Dark Theme) */
+    --ui-control-handle-bg:              var(--palette-control-handle-dark);
+    --ui-control-handle-hover-bg:        var(--palette-control-handle-dark-hover);
+    --ui-control-active-bg:              var(--palette-control-active-dark);
+    --ui-control-active-glow:            0 0 5px oklch(from var(--ui-control-active-bg) l c h / 0.75), 0 0 10px oklch(from var(--ui-control-active-bg) l c h / 0.35);
+
+    --ui-slider-track-bg:                var(--surface-inset-border-color);
+    --ui-slider-track-border-color:      transparent;
+    --ui-slider-thumb-bg:                var(--ui-control-handle-bg);
+    --ui-slider-thumb-hover-bg:          var(--ui-control-handle-hover-bg);
+    --ui-slider-thumb-glow:              none;
 
     --ui-toggle-track-bg:                var(--surface-inset-bg);
-    --ui-toggle-track-border-color:      var(--surface-inset-border-color);
-    --ui-toggle-track-active-bg:         var(--state-focus);
-    --ui-toggle-track-active-border-color: var(--state-focus);
-    --ui-toggle-thumb-bg:                var(--content-muted);
-    --ui-toggle-thumb-active-bg:         var(--content-inverse);
+    --ui-toggle-track-border-color:      var(--border-color-subtle);
+    --ui-toggle-track-active-bg:         linear-gradient(137deg, oklch(from var(--ui-control-active-bg) l c h / 0.16), oklch(from var(--ui-control-active-bg) l c h / 0.08)), var(--surface-inset-bg);
+    --ui-toggle-track-active-border-color: oklch(from var(--ui-control-active-bg) l c h / 0.40);
+    --ui-toggle-thumb-bg:                var(--ui-control-handle-bg);
+    --ui-toggle-thumb-active-bg:         var(--ui-control-active-bg);
+    --ui-toggle-thumb-active-glow:       var(--ui-control-active-glow);
 
     /* Cartographic Cues & On-Map Nodes (Dark Theme) */
     --chrome-bearing-cue-bg:             var(--palette-black-alpha-70);
@@ -567,11 +614,16 @@
     --chrome-bearing-cue-label-opacity:  var(--opacity-50);
 
     --chrome-node-label-bg:              var(--surface-hud-bg);
-    --chrome-node-label-border-color:    var(--chrome-grid-primary-color);
+    --chrome-node-label-color:           var(--status-nominal);
+    --chrome-node-label-border-color:    var(--status-nominal);
+    --chrome-node-label-selected-color:  var(--content-prominent);
+    --chrome-node-label-selected-border-color: var(--state-selected-border);
+    --chrome-node-label-focused-color:   var(--state-focus);
+    --chrome-node-label-focused-border-color: var(--state-focus);
     --chrome-node-label-border-width:    var(--border-width-1);
     --chrome-node-label-border-style:    var(--border-style-boundary);
     --chrome-node-label-radius:          var(--radius-badge);
-    --chrome-node-facet-separator-color: var(--chrome-grid-primary-color);
+    --chrome-node-facet-separator-color: var(--status-nominal);
     --chrome-node-facet-separator-opacity: var(--opacity-85);
 
     /* Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0) */
@@ -605,8 +657,8 @@
     /* Datum Footprints (Decoupled, Monochrome Baseline) */
     --chrome-footprint-color:            var(--palette-white-alpha-35);
     --chrome-footprint-alpha:            0.35;
-    --chrome-footprint-selected-color:   var(--palette-white-alpha-70);
-    --chrome-footprint-selected-alpha:   0.70;
+    --chrome-footprint-selected-color:   var(--state-selected);
+    --chrome-footprint-selected-alpha:   0.85;
     --chrome-footprint-focused-color:    var(--state-focus);
     --chrome-footprint-focused-alpha:    0.85;
 
@@ -664,23 +716,179 @@
     --chrome-heading-indicator-width:    var(--stroke-width-2);
     --chrome-heading-indicator-style:    var(--border-style-boundary);
 
-    /* Confidence Indicators */
-    --confidence-confirmed:        var(--palette-solarized-green);
-    --confidence-confirmed-bg:     var(--palette-green-alpha-15);
-    --confidence-candidate:        var(--palette-solarized-yellow);
-    --confidence-candidate-bg:     var(--palette-yellow-alpha-15);
-    --confidence-theoretical:      var(--palette-solarized-violet);
-    --confidence-theoretical-bg:   var(--palette-violet-alpha-15);
+    /* Observational Confidence Indicators & Glow Optics */
+    --confidence-confirmed:        oklch(75.0% 0.160 160);
+    --confidence-confirmed-bg:     oklch(75.0% 0.160 160 / 0.15);
+    --confidence-confirmed-glow:   0 0 5px oklch(75.0% 0.160 160 / 0.70), 0 0 10px oklch(75.0% 0.160 160 / 0.35);
+    --confidence-candidate:        oklch(78.0% 0.160 80);
+    --confidence-candidate-bg:     oklch(78.0% 0.160 80 / 0.15);
+    --confidence-candidate-glow:   0 0 5px oklch(78.0% 0.160 80 / 0.70), 0 0 10px oklch(78.0% 0.160 80 / 0.35);
+    --confidence-theoretical:      oklch(72.0% 0.180 300);
+    --confidence-theoretical-bg:   oklch(72.0% 0.180 300 / 0.15);
+    --confidence-theoretical-glow: 0 0 5px oklch(72.0% 0.180 300 / 0.70), 0 0 10px oklch(72.0% 0.180 300 / 0.35);
 
-    /* Telemetry Condition / Status */
-    --status-nominal:              var(--palette-solarized-green);
-    --status-nominal-bg:           var(--palette-green-alpha-15);
-    --status-caution:              var(--palette-solarized-yellow);
-    --status-caution-bg:           var(--palette-yellow-alpha-15);
-    --status-critical:             var(--palette-solarized-red);
-    --status-critical-bg:          var(--palette-red-alpha-35);
-    --status-info:                 var(--palette-solarized-blue);
-    --status-info-bg:              oklch(61.49% 0.1394 244.93 / 0.15);
+    /* Telemetry Condition / Status (Nominal is Calibrated Baseline Neutral) */
+    --status-nominal:              var(--palette-accent-neutral);
+    --status-nominal-bg:           var(--palette-accent-neutral-subtle);
+    --status-caution:              oklch(74.0% 0.160 85);
+    --status-caution-bg:           oklch(74.0% 0.160 85 / 0.15);
+    --status-critical:             oklch(60.0% 0.220 26);
+    --status-critical-bg:          oklch(60.0% 0.220 26 / 0.25);
+    --status-info:                 oklch(65.0% 0.150 235);
+    --status-info-bg:              oklch(65.0% 0.150 235 / 0.15);
+
+    /* Telemetry Condition / Status Surfaces & Subtle Borders (Dark Theme) */
+    --status-nominal-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(20.0% 0.030 198 / 0.92) 0px,
+      oklch(18.0% 0.022 198 / 0.95) 180px,
+      oklch(16.0% 0.016 198 / 0.98) 360px,
+      oklch(16.0% 0.016 198 / 0.98) 100%
+    );
+    --status-nominal-border:       oklch(68.0% 0.050 198 / 0.28);
+    --status-nominal-bevel:        inset 0 1px 0 0 oklch(85% 0.04 198 / 0.35), inset 1px 0 0 0 oklch(85% 0.04 198 / 0.20);
+    --status-nominal-toast-shadow: var(--status-nominal-bevel), var(--elevation-toast);
+    --status-nominal-panel-shadow: var(--status-nominal-bevel), var(--elevation-panel);
+
+    --status-caution-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.5% 0.040 85 / 0.92) 0px,
+      oklch(17.5% 0.030 85 / 0.95) 180px,
+      oklch(16.0% 0.022 85 / 0.98) 360px,
+      oklch(16.0% 0.022 85 / 0.98) 100%
+    );
+    --status-caution-border:       oklch(74.0% 0.160 85 / 0.28);
+    --status-caution-bevel:        inset 0 1px 0 0 oklch(85% 0.08 85 / 0.35), inset 1px 0 0 0 oklch(85% 0.08 85 / 0.20);
+    --status-caution-toast-shadow: var(--status-caution-bevel), var(--elevation-toast);
+    --status-caution-panel-shadow: var(--status-caution-bevel), var(--elevation-panel);
+
+    --status-critical-surface:     var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.0% 0.042 26 / 0.92) 0px,
+      oklch(17.0% 0.032 26 / 0.95) 180px,
+      oklch(15.5% 0.024 26 / 0.98) 360px,
+      oklch(15.5% 0.024 26 / 0.98) 100%
+    );
+    --status-critical-border:      oklch(60.0% 0.220 26 / 0.32);
+    --status-critical-bevel:       inset 0 1px 0 0 oklch(80% 0.10 26 / 0.35), inset 1px 0 0 0 oklch(80% 0.10 26 / 0.20);
+    --status-critical-toast-shadow:var(--status-critical-bevel), var(--elevation-toast);
+    --status-critical-panel-shadow:var(--status-critical-bevel), var(--elevation-panel);
+
+    --status-info-surface:         var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(19.5% 0.038 235 / 0.92) 0px,
+      oklch(17.5% 0.028 235 / 0.95) 180px,
+      oklch(16.0% 0.020 235 / 0.98) 360px,
+      oklch(16.0% 0.020 235 / 0.98) 100%
+    );
+    --status-info-border:          oklch(65.0% 0.150 235 / 0.28);
+    --status-info-bevel:           inset 0 1px 0 0 oklch(85% 0.08 235 / 0.35), inset 1px 0 0 0 oklch(85% 0.08 235 / 0.20);
+    --status-info-toast-shadow:    var(--status-info-bevel), var(--elevation-toast);
+    --status-info-panel-shadow:    var(--status-info-bevel), var(--elevation-panel);
+
+    --status-neutral:              var(--palette-accent-neutral);
+    --status-neutral-bg:           var(--palette-accent-neutral-subtle);
+    --status-neutral-surface:      var(--status-nominal-surface);
+    --status-neutral-border:       var(--status-nominal-border);
+    --status-neutral-bevel:        var(--status-nominal-bevel);
+    --status-neutral-toast-shadow: var(--status-nominal-toast-shadow);
+    --status-neutral-panel-shadow: var(--status-nominal-panel-shadow);
+
+    /* ------------------------------------------------------------------------ */
+    /* Data Visualisation Ramps (10% - 100% Steps in OKLCH)                     */
+    /* Monotonic lightness curve, colorblind-safe equilateral triad             */
+    /* ------------------------------------------------------------------------ */
+    /* Series 1: Azure (Ion Blue - Hue 220) */
+    --viz-azure-10:   var(--palette-viz-azure-10);
+    --viz-azure-20:   var(--palette-viz-azure-20);
+    --viz-azure-30:   var(--palette-viz-azure-30);
+    --viz-azure-40:   var(--palette-viz-azure-40);
+    --viz-azure-50:   var(--palette-viz-azure-50);
+    --viz-azure-60:   var(--palette-viz-azure-60);
+    --viz-azure-70:   var(--palette-viz-azure-70);
+    --viz-azure-80:   var(--palette-viz-azure-80);
+    --viz-azure-90:   var(--palette-viz-azure-90);
+    --viz-azure-100:  var(--palette-viz-azure-100);
+
+    --viz-series-1-10:  var(--viz-azure-10);
+    --viz-series-1-20:  var(--viz-azure-20);
+    --viz-series-1-30:  var(--viz-azure-30);
+    --viz-series-1-40:  var(--viz-azure-40);
+    --viz-series-1-50:  var(--viz-azure-50);
+    --viz-series-1-60:  var(--viz-azure-60);
+    --viz-series-1-70:  var(--viz-azure-70);
+    --viz-series-1-80:  var(--viz-azure-80);
+    --viz-series-1-90:  var(--viz-azure-90);
+    --viz-series-1-100: var(--viz-azure-100);
+
+    /* Series 2: Amber (Solar Gold - Hue 75) */
+    --viz-amber-10:   var(--palette-viz-amber-10);
+    --viz-amber-20:   var(--palette-viz-amber-20);
+    --viz-amber-30:   var(--palette-viz-amber-30);
+    --viz-amber-40:   var(--palette-viz-amber-40);
+    --viz-amber-50:   var(--palette-viz-amber-50);
+    --viz-amber-60:   var(--palette-viz-amber-60);
+    --viz-amber-70:   var(--palette-viz-amber-70);
+    --viz-amber-80:   var(--palette-viz-amber-80);
+    --viz-amber-90:   var(--palette-viz-amber-90);
+    --viz-amber-100:  var(--palette-viz-amber-100);
+
+    --viz-series-2-10:  var(--viz-amber-10);
+    --viz-series-2-20:  var(--viz-amber-20);
+    --viz-series-2-30:  var(--viz-amber-30);
+    --viz-series-2-40:  var(--viz-amber-40);
+    --viz-series-2-50:  var(--viz-amber-50);
+    --viz-series-2-60:  var(--viz-amber-60);
+    --viz-series-2-70:  var(--viz-amber-70);
+    --viz-series-2-80:  var(--viz-amber-80);
+    --viz-series-2-90:  var(--viz-amber-90);
+    --viz-series-2-100: var(--viz-amber-100);
+
+    /* Series 3: Emerald (Flora / Aurora - Hue 145) */
+    --viz-emerald-10:   var(--palette-viz-emerald-10);
+    --viz-emerald-20:   var(--palette-viz-emerald-20);
+    --viz-emerald-30:   var(--palette-viz-emerald-30);
+    --viz-emerald-40:   var(--palette-viz-emerald-40);
+    --viz-emerald-50:   var(--palette-viz-emerald-50);
+    --viz-emerald-60:   var(--palette-viz-emerald-60);
+    --viz-emerald-70:   var(--palette-viz-emerald-70);
+    --viz-emerald-80:   var(--palette-viz-emerald-80);
+    --viz-emerald-90:   var(--palette-viz-emerald-90);
+    --viz-emerald-100:  var(--palette-viz-emerald-100);
+
+    --viz-series-3-10:  var(--viz-emerald-10);
+    --viz-series-3-20:  var(--viz-emerald-20);
+    --viz-series-3-30:  var(--viz-emerald-30);
+    --viz-series-3-40:  var(--viz-emerald-40);
+    --viz-series-3-50:  var(--viz-emerald-50);
+    --viz-series-3-60:  var(--viz-emerald-60);
+    --viz-series-3-70:  var(--viz-emerald-70);
+    --viz-series-3-80:  var(--viz-emerald-80);
+    --viz-series-3-90:  var(--viz-emerald-90);
+    --viz-series-3-100: var(--viz-emerald-100);
+
+    /* Series 4: Violet (Nebula - Hue 305) */
+    --viz-violet-10:   var(--palette-viz-violet-10);
+    --viz-violet-20:   var(--palette-viz-violet-20);
+    --viz-violet-30:   var(--palette-viz-violet-30);
+    --viz-violet-40:   var(--palette-viz-violet-40);
+    --viz-violet-50:   var(--palette-viz-violet-50);
+    --viz-violet-60:   var(--palette-viz-violet-60);
+    --viz-violet-70:   var(--palette-viz-violet-70);
+    --viz-violet-80:   var(--palette-viz-violet-80);
+    --viz-violet-90:   var(--palette-viz-violet-90);
+    --viz-violet-100:  var(--palette-viz-violet-100);
+
+    --viz-series-4-10:  var(--viz-violet-10);
+    --viz-series-4-20:  var(--viz-violet-20);
+    --viz-series-4-30:  var(--viz-violet-30);
+    --viz-series-4-40:  var(--viz-violet-40);
+    --viz-series-4-50:  var(--viz-violet-50);
+    --viz-series-4-60:  var(--viz-violet-60);
+    --viz-series-4-70:  var(--viz-violet-70);
+    --viz-series-4-80:  var(--viz-violet-80);
+    --viz-series-4-90:  var(--viz-violet-90);
+    --viz-series-4-100: var(--viz-violet-100);
 
     /* Domain Categories */
     --category-star:               var(--palette-solarized-orange);
@@ -698,7 +906,7 @@
   /* ------------------------------------------------------------------------ */
   [data-theme="light"] {
     /* Surfaces */
-    --surface-canvas-bg:           var(--palette-solarized-base3);
+    --surface-canvas-bg:           var(--palette-surface-canvas-light);
     --surface-canvas-border-width: var(--stroke-width-0);
     --surface-canvas-border-color: transparent;
     --surface-canvas-border-style: var(--stroke-style-none);
@@ -706,102 +914,121 @@
     --surface-canvas-opacity:      var(--opacity-100);
     --surface-canvas-backdrop-blur:var(--filter-blur-0);
 
-    --surface-inset-bg:            var(--palette-solarized-base3);
+    --surface-inset-bg:            var(--material-surface-inset-light);
     --surface-inset-border-width:  var(--stroke-width-1);
-    --surface-inset-border-color:  var(--palette-black-alpha-8);
+    --surface-inset-border-color:  var(--border-color-subtle);
     --surface-inset-border-style:  var(--border-style-boundary);
-    --surface-inset-shadow:        var(--elevation-inset);
+    --surface-inset-shadow:        var(--shadow-inset-well-light);
+    --surface-inset-bevel:         var(--bevel-bottom-rim-light);
+    --surface-inset-gradient-overlay: linear-gradient(
+      137deg,
+      oklch(0% 0 0 / 0.08) 0%,
+      oklch(0% 0 0 / 0.02) 35%,
+      transparent 70%,
+      oklch(100% 0 0 / 0.35) 100%
+    );
     --surface-inset-opacity:       var(--opacity-100);
     --surface-inset-backdrop-blur: var(--filter-blur-0);
 
-    --surface-hud-bg:              var(--palette-solarized-base2);
+    /* Family 1: Chassis Frame (HUD & Dock - Opaque Matte) */
+    --surface-hud-bg:              var(--material-surface-chassis-light);
     --surface-hud-border-width:    var(--stroke-width-1);
-    --surface-hud-border-color:    var(--palette-black-alpha-12);
+    --surface-hud-border-color:    var(--palette-specular-black-6);
     --surface-hud-border-style:    var(--border-style-boundary);
-    --surface-hud-shadow:          var(--elevation-1);
+    --surface-hud-shadow:          var(--bevel-top-rim-light), var(--elevation-hud-light);
     --surface-hud-opacity:         var(--opacity-100);
     --surface-hud-backdrop-blur:   var(--filter-blur-0);
 
-    --surface-dock-bg:             var(--palette-solarized-base2);
+    --surface-dock-bg:             var(--material-surface-chassis-light);
     --surface-dock-border-width:   var(--stroke-width-1);
-    --surface-dock-border-color:   var(--palette-black-alpha-16);
+    --surface-dock-border-color:   var(--palette-specular-black-6);
     --surface-dock-border-style:   var(--border-style-boundary);
-    --surface-dock-shadow:         var(--elevation-2);
+    --surface-dock-shadow:         var(--bevel-top-rim-light), var(--elevation-dock-light);
     --surface-dock-opacity:        var(--opacity-100);
     --surface-dock-backdrop-blur:  var(--filter-blur-0);
 
-    --surface-panel-bg:            var(--palette-solarized-base2);
+    /* Family 2: Task Slabs (Panel & Drawer - Opaque Matte) */
+    --surface-panel-bg:            var(--material-surface-slab-light);
     --surface-panel-border-width:  var(--stroke-width-1);
-    --surface-panel-border-color:  var(--palette-black-alpha-16);
+    --surface-panel-border-color:  var(--palette-specular-black-12);
     --surface-panel-border-style:  var(--border-style-boundary);
-    --surface-panel-shadow:        var(--elevation-2);
+    --surface-panel-shadow:        var(--bevel-top-rim-light), var(--elevation-panel-light);
     --surface-panel-opacity:       var(--opacity-100);
     --surface-panel-backdrop-blur: var(--filter-blur-0);
 
-    --surface-drawer-bg:           var(--palette-solarized-base2);
-    --surface-drawer-border-width: var(--stroke-width-2);
-    --surface-drawer-border-color: var(--palette-black-alpha-32);
+    --surface-drawer-bg:           var(--material-surface-slab-light);
+    --surface-drawer-border-width: var(--stroke-width-1);
+    --surface-drawer-border-color: var(--palette-specular-black-12);
     --surface-drawer-border-style: var(--border-style-boundary);
-    --surface-drawer-shadow:       var(--elevation-3);
+    --surface-drawer-shadow:       var(--bevel-top-rim-light), var(--elevation-drawer-light);
     --surface-drawer-opacity:      var(--opacity-100);
     --surface-drawer-backdrop-blur:var(--filter-blur-0);
 
-    --surface-popover-bg:          var(--palette-solarized-base2);
+    /* Family 3: Floating Overlays (Popover, Modal, Toast) */
+    --surface-popover-bg:          var(--material-surface-glass-light);
     --surface-popover-border-width:var(--stroke-width-1);
-    --surface-popover-border-color:var(--palette-black-alpha-24);
+    --surface-popover-border-color:var(--palette-specular-black-12);
     --surface-popover-border-style:var(--border-style-boundary);
-    --surface-popover-shadow:      var(--elevation-3);
+    --surface-popover-shadow:      var(--bevel-top-rim-light), var(--elevation-popover-light);
     --surface-popover-opacity:     var(--opacity-100);
-    --surface-popover-backdrop-blur:var(--filter-blur-0);
+    --surface-popover-backdrop-blur:var(--filter-blur-3);
 
-    --surface-modal-bg:            var(--palette-solarized-base2);
-    --surface-modal-border-width:  var(--stroke-width-2);
-    --surface-modal-border-color:  var(--palette-black-alpha-32);
+    --surface-modal-bg:            var(--material-surface-overlay-light);
+    --surface-modal-border-width:  var(--stroke-width-1);
+    --surface-modal-border-color:  var(--palette-specular-black-16);
     --surface-modal-border-style:  var(--border-style-boundary);
-    --surface-modal-shadow:        var(--elevation-4);
+    --surface-modal-shadow:        var(--bevel-top-rim-light), var(--elevation-modal-light);
     --surface-modal-opacity:       var(--opacity-100);
-    --surface-modal-backdrop-blur: var(--filter-blur-0);
+    --surface-modal-backdrop-blur: var(--filter-blur-4);
     --scrim-backdrop:              var(--palette-light-scrim);
     --scrim-backdrop-opacity:      var(--opacity-40);
     --scrim-backdrop-blur:         var(--filter-blur-1);
     --surface-scrim-bg:            var(--scrim-backdrop);
     --surface-scrim-backdrop-blur: var(--scrim-backdrop-blur);
 
-    --surface-toast-bg:            var(--palette-solarized-base2);
+    --surface-toast-bg:            var(--material-surface-overlay-light);
     --surface-toast-border-width:  var(--stroke-width-1);
-    --surface-toast-border-color:  var(--palette-black-alpha-32);
+    --surface-toast-border-color:  var(--palette-specular-black-12);
     --surface-toast-border-style:  var(--border-style-boundary);
-    --surface-toast-shadow:        var(--elevation-3);
+    --surface-toast-shadow:        var(--bevel-top-rim-light), var(--elevation-toast-light);
     --surface-toast-opacity:       var(--opacity-100);
-    --surface-toast-backdrop-blur: var(--filter-blur-0);
+    --surface-toast-backdrop-blur: var(--filter-blur-3);
 
     /* Content Contrast */
-    --content-prominent: var(--palette-solarized-base01);
+    --content-prominent: oklch(17.5% 0.028 198);
     --content-bright:    var(--content-prominent);
-    --content-default:   var(--palette-solarized-base00);
+    --content-default:   oklch(29.5% 0.026 198);
     --content-base:      var(--content-default);
-    --content-muted:     var(--palette-solarized-base1);
-    --content-faint:     var(--palette-solarized-base2);
-    --content-inverse:   var(--palette-solarized-base3);
-    --content-disabled:  var(--palette-solarized-base1);
-    --content-accent:    var(--palette-solarized-blue);
+    --content-muted:     oklch(49.5% 0.022 198);
+    --content-faint:     oklch(67.5% 0.018 198);
+    --content-inverse:   oklch(98.0% 0.005 198);
+    --content-disabled:  oklch(49.5% 0.022 198);
+    --content-accent:    var(--state-focus);
 
-    --interactive-primary: var(--palette-solarized-blue);
+    --interactive-primary: var(--state-focus);
 
-    --border-color-subtle:      var(--surface-panel-border-color);
+    --border-color-subtle:      var(--palette-specular-black-12);
     --border-color-interactive: var(--state-focus);
-    --border-subtle:            var(--surface-panel-border-color);
+    --border-subtle:            var(--palette-specular-black-12);
     --stroke-hairline:          var(--border-width-1);
 
-    --ui-table-header-bg:       var(--surface-dock-bg);
-    --ui-table-border-color:    var(--surface-panel-border-color);
+    /* Internal Hairline Rules (Dividers & Row Separators) */
+    --rule-hairline-width:      var(--stroke-hairline);
+    --rule-hairline-color:      var(--border-color-subtle);
+    --rule-hairline-style:      var(--border-style-boundary);
+    --rule-hairline:            var(--rule-hairline-width) var(--rule-hairline-style) var(--rule-hairline-color);
+
+    --ui-table-header-bg:       transparent;
+    --ui-table-border-color:    var(--border-color-subtle);
     --ui-table-row-hover-bg:    var(--state-hover-overlay);
+    --ui-table-row-hover-shadow: var(--palette-specular-black-4);
     --ui-table-row-selected-bg: var(--state-selected-bg);
 
     --data-datum-label-color:   var(--content-muted);
     --data-datum-value-color:   var(--content-default);
-    --data-datum-border-color:  var(--surface-panel-border-color);
+    --data-datum-border-color:  var(--border-color-subtle);
     --data-datum-unit-color:    var(--content-muted);
+    --content-unit:             var(--content-muted);
 
     --data-metric-bg:           var(--surface-inset-bg);
     --data-metric-border-color: var(--surface-inset-border-color);
@@ -810,24 +1037,24 @@
     --data-metric-unit-color:   var(--content-muted);
     --data-metric-trend-color:  var(--content-muted);
 
-    --border-default:           var(--surface-panel-border-color);
+    --border-default:           var(--palette-specular-black-16);
     --border-focus:             var(--state-focus);
     --surface-sunken-bg:        var(--surface-inset-bg);
 
     /* Interactive Focus & States */
-    --state-focus:                var(--palette-solarized-blue);
+    --state-focus:                var(--palette-accent-focus-light);
     --state-focus-ring-color:     var(--state-focus);
     --state-focus-ring-width:     var(--stroke-width-2);
     --state-focus-ring-style:     var(--border-style-boundary);
     --state-focus-ring-offset:    2px;
-    --state-focus-halo:           0 0 0 4px oklch(61.49% 0.1394 244.93 / 0.30);
+    --state-focus-halo:           var(--palette-accent-focus-light-halo);
 
     --state-hover-overlay:        var(--palette-black-alpha-4);
     --state-active-overlay:       var(--palette-black-alpha-8);
 
-    --state-selected:             var(--state-focus);
+    --state-selected:             var(--content-prominent);
     --state-selected-bg:          var(--palette-black-alpha-8);
-    --state-selected-border:      var(--state-selected);
+    --state-selected-border:      var(--border-color-prominent);
     --state-selected-content:     var(--content-prominent);
 
     --state-disabled-content:     var(--content-faint);
@@ -861,30 +1088,45 @@
     --chrome-boresight-style:            var(--border-style-boundary);
 
     /* UI Control Profiles (Light Theme) */
-    --ui-button-default-bg:              var(--palette-black-alpha-8);
-    --ui-button-default-color:           var(--content-default);
-    --ui-button-default-border-color:    var(--palette-black-alpha-16);
+    --ui-button-default-bg:              var(--material-surface-button-light);
+    --ui-button-default-color:           var(--content-prominent);
+    --ui-button-default-border-color:    var(--palette-specular-black-16);
     --ui-button-default-border-width:    var(--border-width-1);
     --ui-button-default-border-style:    var(--border-style-boundary);
+    --ui-button-default-shadow:          inset 0 1px 2px 0 var(--palette-specular-black-12), inset 0 0 0 1px var(--palette-specular-white-30), 0 1px 0 0 var(--palette-specular-white-70, oklch(100% 0 0 / 0.70));
     --ui-button-default-radius:          var(--radius-control);
-    --ui-button-default-hover-bg:        var(--palette-black-alpha-16);
-    --ui-button-default-active-bg:       var(--palette-black-alpha-24);
+    --ui-button-default-hover-bg:        var(--material-surface-button-hover-light);
+    --ui-button-default-hover-border-color: var(--border-color-prominent);
+    --ui-button-default-hover-shadow:    var(--bevel-top-rim-light), var(--elevation-button-light);
+    --ui-button-default-active-bg:       var(--material-surface-button-active-light);
+    --ui-button-default-active-border-color: var(--palette-specular-black-22);
+    --ui-button-default-active-shadow:   inset 0 2px 4px 0 var(--palette-specular-black-16);
 
-    --ui-button-prominent-bg:            var(--state-focus);
-    --ui-button-prominent-color:         var(--content-inverse);
-    --ui-button-prominent-border-color:  var(--state-focus);
-    --ui-button-prominent-hover-bg:      var(--palette-solarized-blue);
-    --ui-button-prominent-active-bg:     var(--palette-solarized-blue);
+    /* Highlight Button (Light): subtle accent wash, tuned-down border, and specular top rim */
+    --ui-button-highlight-bg:            linear-gradient(137deg, var(--palette-accent-focus-light-subtle), var(--palette-accent-focus-light-subtle)), var(--material-surface-button-light);
+    --ui-button-highlight-hover-bg:      linear-gradient(137deg, oklch(from var(--palette-accent-focus-light) l c h / 0.20), oklch(from var(--palette-accent-focus-light) l c h / 0.20)), var(--material-surface-button-hover-light);
+    --ui-button-highlight-active-bg:     linear-gradient(137deg, oklch(from var(--palette-accent-focus-light) l c h / 0.26), oklch(from var(--palette-accent-focus-light) l c h / 0.26)), var(--material-surface-button-active-light);
+    --ui-button-highlight-color:         var(--content-prominent);
+    --ui-button-highlight-border-color:  oklch(from var(--state-focus) l c h / 0.35);
+    --ui-button-highlight-hover-border-color: oklch(from var(--palette-accent-focus-light-hover) l c h / 0.50);
+    --ui-button-highlight-shadow:        var(--bevel-top-rim-light), var(--elevation-button-light);
+
+    --ui-button-prominent-bg:            var(--ui-button-highlight-bg);
+    --ui-button-prominent-color:         var(--ui-button-highlight-color);
+    --ui-button-prominent-border-color:  var(--ui-button-highlight-border-color);
+    --ui-button-prominent-hover-bg:      var(--ui-button-highlight-hover-bg);
+    --ui-button-prominent-active-bg:     var(--ui-button-highlight-active-bg);
 
     --ui-button-subtle-bg:               transparent;
     --ui-button-subtle-color:            var(--content-default);
     --ui-button-subtle-border-color:     transparent;
     --ui-button-subtle-hover-bg:         var(--surface-dock-bg);
-    --ui-button-subtle-hover-border-color: var(--palette-black-alpha-16);
+    --ui-button-subtle-hover-border-color: var(--border-color-subtle);
 
-    --ui-button-danger-bg:               var(--status-critical);
-    --ui-button-danger-color:            var(--content-inverse);
-    --ui-button-danger-border-color:     var(--status-critical);
+    --ui-button-danger-bg:               linear-gradient(137deg, oklch(from var(--status-critical) l c h / 0.12), oklch(from var(--status-critical) l c h / 0.12)), var(--material-surface-button-light);
+    --ui-button-danger-color:            var(--content-prominent);
+    --ui-button-danger-border-color:     oklch(from var(--status-critical) l c h / 0.35);
+    --ui-button-danger-shadow:           var(--status-critical-bevel), var(--elevation-button-light);
 
     --ui-input-bg:                       var(--surface-inset-bg);
     --ui-input-color:                    var(--content-default);
@@ -894,16 +1136,25 @@
     --ui-input-radius:                   var(--radius-control);
     --ui-input-placeholder-color:        var(--content-faint);
 
-    --ui-slider-track-bg:                var(--surface-inset-bg);
-    --ui-slider-track-border-color:      var(--surface-inset-border-color);
-    --ui-slider-thumb-bg:                var(--state-focus);
+    /* UI Control Hardware & Dedicated State Indicators (Light Theme) */
+    --ui-control-handle-bg:              var(--palette-control-handle-light);
+    --ui-control-handle-hover-bg:        var(--palette-control-handle-light-hover);
+    --ui-control-active-bg:              var(--palette-control-active-light);
+    --ui-control-active-glow:            0 0 4px oklch(from var(--ui-control-active-bg) l c h / 0.60), 0 0 8px oklch(from var(--ui-control-active-bg) l c h / 0.25);
+
+    --ui-slider-track-bg:                var(--surface-inset-border-color);
+    --ui-slider-track-border-color:      transparent;
+    --ui-slider-thumb-bg:                var(--ui-control-handle-bg);
+    --ui-slider-thumb-hover-bg:          var(--ui-control-handle-hover-bg);
+    --ui-slider-thumb-glow:              none;
 
     --ui-toggle-track-bg:                var(--surface-inset-bg);
-    --ui-toggle-track-border-color:      var(--surface-inset-border-color);
-    --ui-toggle-track-active-bg:         var(--state-focus);
-    --ui-toggle-track-active-border-color: var(--state-focus);
-    --ui-toggle-thumb-bg:                var(--content-muted);
-    --ui-toggle-thumb-active-bg:         var(--content-inverse);
+    --ui-toggle-track-border-color:      var(--border-color-subtle);
+    --ui-toggle-track-active-bg:         linear-gradient(137deg, oklch(from var(--ui-control-active-bg) l c h / 0.12), oklch(from var(--ui-control-active-bg) l c h / 0.06)), var(--surface-inset-bg);
+    --ui-toggle-track-active-border-color: oklch(from var(--ui-control-active-bg) l c h / 0.40);
+    --ui-toggle-thumb-bg:                var(--ui-control-handle-bg);
+    --ui-toggle-thumb-active-bg:         var(--ui-control-active-bg);
+    --ui-toggle-thumb-active-glow:       var(--ui-control-active-glow);
 
     /* Cartographic Cues & On-Map Nodes (Light Theme) */
     --chrome-bearing-cue-bg:             var(--palette-white-alpha-70);
@@ -914,11 +1165,16 @@
     --chrome-bearing-cue-label-opacity:  var(--opacity-50);
 
     --chrome-node-label-bg:              var(--surface-hud-bg);
-    --chrome-node-label-border-color:    var(--chrome-grid-primary-color);
+    --chrome-node-label-color:           var(--status-nominal);
+    --chrome-node-label-border-color:    var(--status-nominal);
+    --chrome-node-label-selected-color:  var(--content-prominent);
+    --chrome-node-label-selected-border-color: var(--state-selected-border);
+    --chrome-node-label-focused-color:   var(--state-focus);
+    --chrome-node-label-focused-border-color: var(--state-focus);
     --chrome-node-label-border-width:    var(--border-width-1);
     --chrome-node-label-border-style:    var(--border-style-boundary);
     --chrome-node-label-radius:          var(--radius-badge);
-    --chrome-node-facet-separator-color: var(--chrome-grid-primary-color);
+    --chrome-node-facet-separator-color: var(--status-nominal);
     --chrome-node-facet-separator-opacity: var(--opacity-85);
 
     /* Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0) */
@@ -952,8 +1208,8 @@
     /* Datum Footprints (Decoupled, Monochrome Baseline) */
     --chrome-footprint-color:            var(--palette-black-alpha-35);
     --chrome-footprint-alpha:            0.35;
-    --chrome-footprint-selected-color:   var(--palette-black-alpha-70);
-    --chrome-footprint-selected-alpha:   0.70;
+    --chrome-footprint-selected-color:   var(--state-selected);
+    --chrome-footprint-selected-alpha:   0.85;
     --chrome-footprint-focused-color:    var(--state-focus);
     --chrome-footprint-focused-alpha:    0.85;
 
@@ -1012,22 +1268,174 @@
     --chrome-heading-indicator-style:    var(--border-style-boundary);
 
     /* Confidence Indicators */
-    --confidence-confirmed:        var(--palette-solarized-green);
-    --confidence-confirmed-bg:     var(--palette-green-alpha-15);
-    --confidence-candidate:        var(--palette-solarized-yellow);
-    --confidence-candidate-bg:     var(--palette-yellow-alpha-15);
-    --confidence-theoretical:      var(--palette-solarized-violet);
-    --confidence-theoretical-bg:   var(--palette-violet-alpha-15);
+    /* Observational Confidence Indicators & Glow Optics (Light Theme) */
+    --confidence-confirmed:        oklch(50.0% 0.160 160);
+    --confidence-confirmed-bg:     oklch(50.0% 0.160 160 / 0.15);
+    --confidence-confirmed-glow:   0 0 4px oklch(50.0% 0.160 160 / 0.50), 0 0 8px oklch(50.0% 0.160 160 / 0.25);
+    --confidence-candidate:        oklch(54.0% 0.160 80);
+    --confidence-candidate-bg:     oklch(54.0% 0.160 80 / 0.15);
+    --confidence-candidate-glow:   0 0 4px oklch(54.0% 0.160 80 / 0.50), 0 0 8px oklch(54.0% 0.160 80 / 0.25);
+    --confidence-theoretical:      oklch(48.0% 0.140 300);
+    --confidence-theoretical-bg:   oklch(48.0% 0.140 300 / 0.15);
+    --confidence-theoretical-glow: 0 0 4px oklch(48.0% 0.140 300 / 0.50), 0 0 8px oklch(48.0% 0.140 300 / 0.25);
 
-    /* Telemetry Condition / Status */
-    --status-nominal:              var(--palette-solarized-green);
-    --status-nominal-bg:           var(--palette-green-alpha-15);
-    --status-caution:              var(--palette-solarized-yellow);
-    --status-caution-bg:           var(--palette-yellow-alpha-15);
-    --status-critical:             var(--palette-solarized-red);
-    --status-critical-bg:          var(--palette-red-alpha-35);
-    --status-info:                 var(--palette-solarized-blue);
-    --status-info-bg:              oklch(61.49% 0.1394 244.93 / 0.15);
+    /* Telemetry Condition / Status (Nominal is Calibrated Baseline Neutral) */
+    --status-nominal:              oklch(46.0% 0.045 198);
+    --status-nominal-bg:           oklch(46.0% 0.045 198 / 0.15);
+    --status-caution:              oklch(52.0% 0.160 85);
+    --status-caution-bg:           oklch(52.0% 0.160 85 / 0.15);
+    --status-critical:             oklch(46.0% 0.210 26);
+    --status-critical-bg:          oklch(46.0% 0.210 26 / 0.25);
+    --status-info:                 oklch(46.0% 0.150 235);
+    --status-info-bg:              oklch(46.0% 0.150 235 / 0.15);
+
+    /* Telemetry Condition / Status Surfaces & Subtle Borders (Light Theme) */
+    --status-nominal-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(98.0% 0.015 198 / 0.94) 0px,
+      oklch(96.0% 0.012 198 / 0.96) 180px,
+      oklch(94.0% 0.010 198 / 0.98) 360px,
+      oklch(94.0% 0.010 198 / 0.98) 100%
+    );
+    --status-nominal-border:       oklch(46.0% 0.045 198 / 0.32);
+    --status-nominal-bevel:        inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --status-nominal-toast-shadow: var(--status-nominal-bevel), var(--elevation-toast-light);
+    --status-nominal-panel-shadow: var(--status-nominal-bevel), var(--elevation-panel-light);
+
+    --status-caution-surface:      var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(98.5% 0.025 85 / 0.94) 0px,
+      oklch(96.5% 0.020 85 / 0.96) 180px,
+      oklch(94.5% 0.015 85 / 0.98) 360px,
+      oklch(94.5% 0.015 85 / 0.98) 100%
+    );
+    --status-caution-border:       oklch(52.0% 0.160 85 / 0.32);
+    --status-caution-bevel:        inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --status-caution-toast-shadow: var(--status-caution-bevel), var(--elevation-toast-light);
+    --status-caution-panel-shadow: var(--status-caution-bevel), var(--elevation-panel-light);
+
+    --status-critical-surface:     var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(98.0% 0.030 26 / 0.94) 0px,
+      oklch(96.0% 0.024 26 / 0.96) 180px,
+      oklch(94.0% 0.018 26 / 0.98) 360px,
+      oklch(94.0% 0.018 26 / 0.98) 100%
+    );
+    --status-critical-border:      oklch(46.0% 0.210 26 / 0.35);
+    --status-critical-bevel:       inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --status-critical-toast-shadow:var(--status-critical-bevel), var(--elevation-toast-light);
+    --status-critical-panel-shadow:var(--status-critical-bevel), var(--elevation-panel-light);
+
+    --status-info-surface:         var(--texture-grain-matte), linear-gradient(
+      137deg,
+      oklch(98.5% 0.025 235 / 0.94) 0px,
+      oklch(96.5% 0.020 235 / 0.96) 180px,
+      oklch(94.5% 0.015 235 / 0.98) 360px,
+      oklch(94.5% 0.015 235 / 0.98) 100%
+    );
+    --status-info-border:          oklch(46.0% 0.150 235 / 0.32);
+    --status-info-bevel:           inset 0 1px 0 0 oklch(100% 0 0 / 0.70), inset 1px 0 0 0 oklch(100% 0 0 / 0.40);
+    --status-info-toast-shadow:    var(--status-info-bevel), var(--elevation-toast-light);
+    --status-info-panel-shadow:    var(--status-info-bevel), var(--elevation-panel-light);
+
+    --status-neutral:              oklch(46.0% 0.045 198);
+    --status-neutral-bg:           oklch(46.0% 0.045 198 / 0.15);
+    --status-neutral-surface:      var(--status-nominal-surface);
+    --status-neutral-border:       var(--status-nominal-border);
+    --status-neutral-bevel:        var(--status-nominal-bevel);
+    --status-neutral-toast-shadow: var(--status-nominal-toast-shadow);
+    --status-neutral-panel-shadow: var(--status-nominal-panel-shadow);
+
+    /* ------------------------------------------------------------------------ */
+    /* Data Visualisation Ramps (Light Theme)                                   */
+    /* ------------------------------------------------------------------------ */
+    --viz-azure-10:   var(--palette-viz-azure-10);
+    --viz-azure-20:   var(--palette-viz-azure-20);
+    --viz-azure-30:   var(--palette-viz-azure-30);
+    --viz-azure-40:   var(--palette-viz-azure-40);
+    --viz-azure-50:   var(--palette-viz-azure-50);
+    --viz-azure-60:   var(--palette-viz-azure-60);
+    --viz-azure-70:   var(--palette-viz-azure-70);
+    --viz-azure-80:   var(--palette-viz-azure-80);
+    --viz-azure-90:   var(--palette-viz-azure-90);
+    --viz-azure-100:  var(--palette-viz-azure-100);
+
+    --viz-series-1-10:  var(--viz-azure-10);
+    --viz-series-1-20:  var(--viz-azure-20);
+    --viz-series-1-30:  var(--viz-azure-30);
+    --viz-series-1-40:  var(--viz-azure-40);
+    --viz-series-1-50:  var(--viz-azure-50);
+    --viz-series-1-60:  var(--viz-azure-60);
+    --viz-series-1-70:  var(--viz-azure-70);
+    --viz-series-1-80:  var(--viz-azure-80);
+    --viz-series-1-90:  var(--viz-azure-90);
+    --viz-series-1-100: var(--viz-azure-100);
+
+    --viz-amber-10:   var(--palette-viz-amber-10);
+    --viz-amber-20:   var(--palette-viz-amber-20);
+    --viz-amber-30:   var(--palette-viz-amber-30);
+    --viz-amber-40:   var(--palette-viz-amber-40);
+    --viz-amber-50:   var(--palette-viz-amber-50);
+    --viz-amber-60:   var(--palette-viz-amber-60);
+    --viz-amber-70:   var(--palette-viz-amber-70);
+    --viz-amber-80:   var(--palette-viz-amber-80);
+    --viz-amber-90:   var(--palette-viz-amber-90);
+    --viz-amber-100:  var(--palette-viz-amber-100);
+
+    --viz-series-2-10:  var(--viz-amber-10);
+    --viz-series-2-20:  var(--viz-amber-20);
+    --viz-series-2-30:  var(--viz-amber-30);
+    --viz-series-2-40:  var(--viz-amber-40);
+    --viz-series-2-50:  var(--viz-amber-50);
+    --viz-series-2-60:  var(--viz-amber-60);
+    --viz-series-2-70:  var(--viz-amber-70);
+    --viz-series-2-80:  var(--viz-amber-80);
+    --viz-series-2-90:  var(--viz-amber-90);
+    --viz-series-2-100: var(--viz-amber-100);
+
+    --viz-emerald-10:   var(--palette-viz-emerald-10);
+    --viz-emerald-20:   var(--palette-viz-emerald-20);
+    --viz-emerald-30:   var(--palette-viz-emerald-30);
+    --viz-emerald-40:   var(--palette-viz-emerald-40);
+    --viz-emerald-50:   var(--palette-viz-emerald-50);
+    --viz-emerald-60:   var(--palette-viz-emerald-60);
+    --viz-emerald-70:   var(--palette-viz-emerald-70);
+    --viz-emerald-80:   var(--palette-viz-emerald-80);
+    --viz-emerald-90:   var(--palette-viz-emerald-90);
+    --viz-emerald-100:  var(--palette-viz-emerald-100);
+
+    --viz-series-3-10:  var(--viz-emerald-10);
+    --viz-series-3-20:  var(--viz-emerald-20);
+    --viz-series-3-30:  var(--viz-emerald-30);
+    --viz-series-3-40:  var(--viz-emerald-40);
+    --viz-series-3-50:  var(--viz-emerald-50);
+    --viz-series-3-60:  var(--viz-emerald-60);
+    --viz-series-3-70:  var(--viz-emerald-70);
+    --viz-series-3-80:  var(--viz-emerald-80);
+    --viz-series-3-90:  var(--viz-emerald-90);
+    --viz-series-3-100: var(--viz-emerald-100);
+
+    --viz-violet-10:   var(--palette-viz-violet-10);
+    --viz-violet-20:   var(--palette-viz-violet-20);
+    --viz-violet-30:   var(--palette-viz-violet-30);
+    --viz-violet-40:   var(--palette-viz-violet-40);
+    --viz-violet-50:   var(--palette-viz-violet-50);
+    --viz-violet-60:   var(--palette-viz-violet-60);
+    --viz-violet-70:   var(--palette-viz-violet-70);
+    --viz-violet-80:   var(--palette-viz-violet-80);
+    --viz-violet-90:   var(--palette-viz-violet-90);
+    --viz-violet-100:  var(--palette-viz-violet-100);
+
+    --viz-series-4-10:  var(--viz-violet-10);
+    --viz-series-4-20:  var(--viz-violet-20);
+    --viz-series-4-30:  var(--viz-violet-30);
+    --viz-series-4-40:  var(--viz-violet-40);
+    --viz-series-4-50:  var(--viz-violet-50);
+    --viz-series-4-60:  var(--viz-violet-60);
+    --viz-series-4-70:  var(--viz-violet-70);
+    --viz-series-4-80:  var(--viz-violet-80);
+    --viz-series-4-90:  var(--viz-violet-90);
+    --viz-series-4-100: var(--viz-violet-100);
 
     /* Domain Categories */
     --category-star:               var(--palette-solarized-orange);

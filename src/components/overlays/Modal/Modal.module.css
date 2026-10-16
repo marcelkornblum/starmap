@@ -39,6 +39,7 @@
   }
 
   .modalContent {
+    --modal-backdrop-blur: var(--surface-modal-backdrop-blur);
     background: var(--modal-bg);
     border: var(--modal-border-width) var(--modal-border-style) var(--modal-border-color);
     box-shadow: var(--modal-shadow);
@@ -46,8 +47,28 @@
     padding: var(--modal-padding);
     inline-size: 100%;
     box-sizing: border-box;
+    position: relative;
     overflow: auto;
     max-block-size: 85vh;
+    backdrop-filter: blur(var(--modal-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--modal-backdrop-blur));
+  }
+
+  .modalContent::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    block-size: min(100%, 360px);
+    background: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.08) 0%,
+      oklch(100% 0 0 / 0.02) 40%,
+      transparent 100%
+    );
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
   }
 
   .modal::backdrop {

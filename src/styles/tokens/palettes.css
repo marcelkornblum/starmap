@@ -1,0 +1,634 @@
+@layer tokens {
+  /* ------------------------------------------------------------------------ */
+  /* Palette 1: Kepler Spectral                                               */
+  /* Titanium slate (hue 198) with Neodymium Emerald focus (hue 156)           */
+  /* ------------------------------------------------------------------------ */
+  [data-palette="kepler"] {
+    --palette-accent-focus:         oklch(75.0% 0.190 156);
+    --palette-accent-focus-hover:   oklch(80.0% 0.180 156);
+    --palette-accent-focus-active:  oklch(70.0% 0.200 156);
+    --palette-accent-focus-subtle:  oklch(75.0% 0.190 156 / 0.14);
+    --palette-accent-focus-halo:    0 0 0 3px oklch(75.0% 0.190 156 / 0.35);
+
+    --palette-accent-focus-light:        oklch(45.0% 0.175 156);
+    --palette-accent-focus-light-hover:  oklch(40.0% 0.175 156);
+    --palette-accent-focus-light-subtle: oklch(45.0% 0.175 156 / 0.12);
+    --palette-accent-focus-light-halo:   0 0 0 3px oklch(45.0% 0.175 156 / 0.25);
+
+    --palette-accent-neutral:       oklch(68.0% 0.050 198);
+    --palette-accent-neutral-subtle:oklch(68.0% 0.050 198 / 0.15);
+
+    /* Dark Surfaces */
+    --palette-surface-canvas-dark:        oklch(6.8% 0.022 198);
+    --palette-surface-inset-dark:         oklch(10.6% 0.028 198);
+    --palette-surface-chassis-dark:       oklch(15.4% 0.032 198);
+    --palette-surface-slab-dark:          oklch(19.2% 0.036 198);
+    --palette-surface-overlay-dark:       oklch(22.6% 0.038 198);
+    --palette-surface-overlay-glass-dark: oklch(21.6% 0.036 198 / 0.35);
+
+    /* Light Surfaces */
+    --palette-surface-canvas-light:        oklch(96.8% 0.010 198);
+    --palette-surface-inset-light:         oklch(92.4% 0.014 198);
+    --palette-surface-chassis-light:       oklch(94.4% 0.012 198);
+    --palette-surface-slab-light:          oklch(98.6% 0.008 198);
+    --palette-surface-overlay-light:       oklch(99.6% 0.005 198);
+    --palette-surface-overlay-glass-light: oklch(99.5% 0.005 198 / 0.35);
+
+    /* Dark Directional Gradients */
+    --gradient-surface-inset-dark: linear-gradient(
+      137deg,
+      oklch(9.6% 0.024 198) 0px,
+      oklch(10.6% 0.028 198) 180px,
+      oklch(11.4% 0.030 198) 360px,
+      oklch(11.4% 0.030 198) 100%
+    );
+    --gradient-surface-chassis-dark: linear-gradient(
+      137deg,
+      oklch(15.4% 0.032 198) 0px,
+      oklch(13.5% 0.028 198) 180px,
+      oklch(12.0% 0.025 198) 360px,
+      oklch(12.0% 0.025 198) 100%
+    );
+    --gradient-surface-slab-dark: linear-gradient(
+      137deg,
+      oklch(19.2% 0.036 198) 0px,
+      oklch(17.2% 0.032 198) 180px,
+      oklch(15.6% 0.028 198) 360px,
+      oklch(15.6% 0.028 198) 100%
+    );
+    --gradient-surface-overlay-dark: linear-gradient(
+      137deg,
+      oklch(22.6% 0.038 198 / 0.90) 0px,
+      oklch(19.6% 0.034 198 / 0.94) 180px,
+      oklch(17.6% 0.030 198 / 0.98) 360px,
+      oklch(17.6% 0.030 198 / 0.98) 100%
+    );
+    --gradient-surface-glass-dark: linear-gradient(
+      137deg,
+      oklch(24.0% 0.036 198 / 0.22) 0px,
+      oklch(20.0% 0.030 198 / 0.28) 180px,
+      oklch(16.0% 0.026 198 / 0.36) 360px,
+      oklch(16.0% 0.026 198 / 0.36) 100%
+    );
+
+    /* Light Directional Gradients */
+    --gradient-surface-inset-light: linear-gradient(
+      137deg,
+      oklch(91.5% 0.014 198) 0px,
+      oklch(92.4% 0.012 198) 180px,
+      oklch(93.5% 0.010 198) 360px,
+      oklch(93.5% 0.010 198) 100%
+    );
+    --gradient-surface-chassis-light: linear-gradient(
+      137deg,
+      oklch(94.4% 0.012 198) 0px,
+      oklch(93.0% 0.012 198) 180px,
+      oklch(91.5% 0.014 198) 360px,
+      oklch(91.5% 0.014 198) 100%
+    );
+    --gradient-surface-slab-light: linear-gradient(
+      137deg,
+      oklch(98.6% 0.008 198) 0px,
+      oklch(96.8% 0.010 198) 180px,
+      oklch(94.8% 0.012 198) 360px,
+      oklch(94.8% 0.012 198) 100%
+    );
+    --gradient-surface-overlay-light: linear-gradient(
+      137deg,
+      oklch(99.6% 0.005 198 / 0.90) 0px,
+      oklch(97.6% 0.007 198 / 0.94) 180px,
+      oklch(95.6% 0.009 198 / 0.98) 360px,
+      oklch(95.6% 0.009 198 / 0.98) 100%
+    );
+    --gradient-surface-glass-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.22) 0px,
+      oklch(97.5% 0.007 198 / 0.28) 180px,
+      oklch(95.5% 0.009 198 / 0.36) 360px,
+      oklch(95.5% 0.009 198 / 0.36) 100%
+    );
+
+    /* Button Surface Gradients (Kepler) */
+    --gradient-surface-button-dark: linear-gradient(
+      137deg,
+      oklch(24.5% 0.038 198) 0px,
+      oklch(21.5% 0.034 198) 180px,
+      oklch(19.0% 0.030 198) 360px,
+      oklch(19.0% 0.030 198) 100%
+    );
+    --gradient-surface-button-hover-dark: linear-gradient(
+      137deg,
+      oklch(27.0% 0.040 198) 0px,
+      oklch(23.5% 0.036 198) 180px,
+      oklch(20.5% 0.032 198) 360px,
+      oklch(20.5% 0.032 198) 100%
+    );
+    --gradient-surface-button-active-dark: linear-gradient(
+      137deg,
+      oklch(21.5% 0.034 198) 0px,
+      oklch(19.0% 0.030 198) 180px,
+      oklch(17.5% 0.026 198) 360px,
+      oklch(17.5% 0.026 198) 100%
+    );
+    --gradient-surface-button-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0) 0px,
+      oklch(98.5% 0.006 198) 180px,
+      oklch(96.5% 0.008 198) 360px,
+      oklch(96.5% 0.008 198) 100%
+    );
+    --gradient-surface-button-hover-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0) 0px,
+      oklch(99.5% 0.004 198) 180px,
+      oklch(98.0% 0.006 198) 360px,
+      oklch(98.0% 0.006 198) 100%
+    );
+    --gradient-surface-button-active-light: linear-gradient(
+      137deg,
+      oklch(97.0% 0.008 198) 0px,
+      oklch(95.5% 0.010 198) 180px,
+      oklch(94.0% 0.012 198) 360px,
+      oklch(94.0% 0.012 198) 100%
+    );
+
+    /* Inset Well Bottom & Right Specular Bevels (Kepler) */
+    --bevel-bottom-rim-dark:  inset 0 -1px 0 0 oklch(96% 0.020 198 / 0.22), inset -1px 0 0 0 oklch(96% 0.020 198 / 0.14);
+    --bevel-bottom-rim-light: inset 0 -1px 0 0 oklch(100% 0 0 / 0.70), inset -1px 0 0 0 oklch(100% 0 0 / 0.40);
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Palette 2: Cygnus Navy                                                   */
+  /* Deep Marine Navy (hue 238) with Pulsar Beacon Amber focus (hue 58)        */
+  /* ------------------------------------------------------------------------ */
+  [data-palette="cygnus"] {
+    --palette-accent-focus:         oklch(74.0% 0.188 58);
+    --palette-accent-focus-hover:   oklch(79.0% 0.180 58);
+    --palette-accent-focus-active:  oklch(69.0% 0.195 58);
+    --palette-accent-focus-subtle:  oklch(74.0% 0.188 58 / 0.15);
+    --palette-accent-focus-halo:    0 0 0 3px oklch(74.0% 0.188 58 / 0.35);
+
+    --palette-accent-focus-light:        oklch(48.0% 0.185 52);
+    --palette-accent-focus-light-hover:  oklch(43.0% 0.185 52);
+    --palette-accent-focus-light-subtle: oklch(48.0% 0.185 52 / 0.12);
+    --palette-accent-focus-light-halo:   0 0 0 3px oklch(48.0% 0.185 52 / 0.25);
+
+    --palette-accent-neutral:       oklch(68.0% 0.065 238);
+    --palette-accent-neutral-subtle:oklch(68.0% 0.065 238 / 0.15);
+
+    /* Dark Surfaces */
+    --palette-surface-canvas-dark:        oklch(6.8% 0.040 238);
+    --palette-surface-inset-dark:         oklch(10.5% 0.045 238);
+    --palette-surface-chassis-dark:       oklch(15.5% 0.042 238);
+    --palette-surface-slab-dark:          oklch(19.2% 0.046 238);
+    --palette-surface-overlay-dark:       oklch(22.8% 0.048 238);
+    --palette-surface-overlay-glass-dark: oklch(21.8% 0.046 238 / 0.35);
+
+    /* Light Surfaces */
+    --palette-surface-canvas-light:        oklch(96.5% 0.012 238);
+    --palette-surface-inset-light:         oklch(92.0% 0.018 238);
+    --palette-surface-chassis-light:       oklch(94.2% 0.015 238);
+    --palette-surface-slab-light:          oklch(98.6% 0.010 238);
+    --palette-surface-overlay-light:       oklch(99.6% 0.008 238);
+    --palette-surface-overlay-glass-light: oklch(99.5% 0.008 238 / 0.35);
+
+    /* Dark Directional Gradients */
+    --gradient-surface-inset-dark: linear-gradient(
+      137deg,
+      oklch(9.5% 0.042 238) 0px,
+      oklch(10.5% 0.045 238) 180px,
+      oklch(11.5% 0.048 238) 360px,
+      oklch(11.5% 0.048 238) 100%
+    );
+    --gradient-surface-chassis-dark: linear-gradient(
+      137deg,
+      oklch(15.5% 0.042 238) 0px,
+      oklch(13.6% 0.038 238) 180px,
+      oklch(12.0% 0.034 238) 360px,
+      oklch(12.0% 0.034 238) 100%
+    );
+    --gradient-surface-slab-dark: linear-gradient(
+      137deg,
+      oklch(19.2% 0.046 238) 0px,
+      oklch(17.2% 0.042 238) 180px,
+      oklch(15.6% 0.038 238) 360px,
+      oklch(15.6% 0.038 238) 100%
+    );
+    --gradient-surface-overlay-dark: linear-gradient(
+      137deg,
+      oklch(22.8% 0.048 238 / 0.90) 0px,
+      oklch(19.8% 0.044 238 / 0.94) 180px,
+      oklch(17.8% 0.040 238 / 0.98) 360px,
+      oklch(17.8% 0.040 238 / 0.98) 100%
+    );
+    --gradient-surface-glass-dark: linear-gradient(
+      137deg,
+      oklch(24.0% 0.046 238 / 0.22) 0px,
+      oklch(20.0% 0.040 238 / 0.28) 180px,
+      oklch(16.0% 0.035 238 / 0.36) 360px,
+      oklch(16.0% 0.035 238 / 0.36) 100%
+    );
+
+    /* Light Directional Gradients */
+    --gradient-surface-inset-light: linear-gradient(
+      137deg,
+      oklch(91.0% 0.018 238) 0px,
+      oklch(92.0% 0.016 238) 180px,
+      oklch(93.0% 0.014 238) 360px,
+      oklch(93.0% 0.014 238) 100%
+    );
+    --gradient-surface-chassis-light: linear-gradient(
+      137deg,
+      oklch(94.2% 0.015 238) 0px,
+      oklch(92.8% 0.015 238) 180px,
+      oklch(91.2% 0.017 238) 360px,
+      oklch(91.2% 0.017 238) 100%
+    );
+    --gradient-surface-slab-light: linear-gradient(
+      137deg,
+      oklch(98.6% 0.010 238) 0px,
+      oklch(96.8% 0.012 238) 180px,
+      oklch(94.8% 0.014 238) 360px,
+      oklch(94.8% 0.014 238) 100%
+    );
+    --gradient-surface-overlay-light: linear-gradient(
+      137deg,
+      oklch(99.6% 0.008 238 / 0.90) 0px,
+      oklch(97.6% 0.010 238 / 0.94) 180px,
+      oklch(95.6% 0.012 238 / 0.98) 360px,
+      oklch(95.6% 0.012 238 / 0.98) 100%
+    );
+    --gradient-surface-glass-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.22) 0px,
+      oklch(97.5% 0.009 238 / 0.28) 180px,
+      oklch(95.5% 0.011 238 / 0.36) 360px,
+      oklch(95.5% 0.011 238 / 0.36) 100%
+    );
+
+    /* Button Surface Gradients (Cygnus) */
+    --gradient-surface-button-dark: linear-gradient(
+      137deg,
+      oklch(24.5% 0.048 238) 0px,
+      oklch(21.5% 0.044 238) 180px,
+      oklch(19.0% 0.040 238) 360px,
+      oklch(19.0% 0.040 238) 100%
+    );
+    --gradient-surface-button-hover-dark: linear-gradient(
+      137deg,
+      oklch(27.0% 0.050 238) 0px,
+      oklch(23.5% 0.046 238) 180px,
+      oklch(20.5% 0.042 238) 360px,
+      oklch(20.5% 0.042 238) 100%
+    );
+    --gradient-surface-button-active-dark: linear-gradient(
+      137deg,
+      oklch(21.5% 0.044 238) 0px,
+      oklch(19.0% 0.040 238) 180px,
+      oklch(17.5% 0.036 238) 360px,
+      oklch(17.5% 0.036 238) 100%
+    );
+    --gradient-surface-button-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0) 0px,
+      oklch(98.5% 0.008 238) 180px,
+      oklch(96.5% 0.010 238) 360px,
+      oklch(96.5% 0.010 238) 100%
+    );
+    --gradient-surface-button-hover-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0) 0px,
+      oklch(99.5% 0.006 238) 180px,
+      oklch(98.0% 0.008 238) 360px,
+      oklch(98.0% 0.008 238) 100%
+    );
+    --gradient-surface-button-active-light: linear-gradient(
+      137deg,
+      oklch(97.0% 0.010 238) 0px,
+      oklch(95.5% 0.012 238) 180px,
+      oklch(94.0% 0.014 238) 360px,
+      oklch(94.0% 0.014 238) 100%
+    );
+
+    /* Inset Well Bottom & Right Specular Bevels (Cygnus) */
+    --bevel-bottom-rim-dark:  inset 0 -1px 0 0 oklch(96% 0.020 238 / 0.22), inset -1px 0 0 0 oklch(96% 0.020 238 / 0.14);
+    --bevel-bottom-rim-light: inset 0 -1px 0 0 oklch(100% 0 0 / 0.70), inset -1px 0 0 0 oklch(100% 0 0 / 0.40);
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Palette 3: Achromatic Carbon (Default)                                   */
+  /* Pure neutral graphite/OLED (C=0) with Precision Laser Cyan focus (hue 195) */
+  /* ------------------------------------------------------------------------ */
+  :root,
+  [data-palette="carbon"] {
+    --palette-accent-focus:         oklch(78.0% 0.172 195);
+    --palette-accent-focus-hover:   oklch(82.0% 0.165 195);
+    --palette-accent-focus-active:  oklch(73.0% 0.180 195);
+    --palette-accent-focus-subtle:  oklch(78.0% 0.172 195 / 0.14);
+    --palette-accent-focus-halo:    0 0 0 3px oklch(78.0% 0.172 195 / 0.35);
+
+    --palette-accent-focus-light:        oklch(44.0% 0.160 195);
+    --palette-accent-focus-light-hover:  oklch(39.0% 0.160 195);
+    --palette-accent-focus-light-subtle: oklch(44.0% 0.160 195 / 0.12);
+    --palette-accent-focus-light-halo:   0 0 0 3px oklch(44.0% 0.160 195 / 0.25);
+
+    --palette-accent-neutral:       oklch(70.0% 0.000 0);
+    --palette-accent-neutral-subtle:oklch(70.0% 0.000 0 / 0.15);
+
+    /* Dark Surfaces */
+    --palette-surface-canvas-dark:        oklch(5.5% 0.000 0);
+    --palette-surface-inset-dark:         oklch(9.5% 0.000 0);
+    --palette-surface-chassis-dark:       oklch(14.5% 0.000 0);
+    --palette-surface-slab-dark:          oklch(18.0% 0.000 0);
+    --palette-surface-overlay-dark:       oklch(21.5% 0.000 0);
+    --palette-surface-overlay-glass-dark: oklch(20.5% 0.000 0 / 0.35);
+
+    /* Light Surfaces */
+    --palette-surface-canvas-light:        oklch(97.0% 0.000 0);
+    --palette-surface-inset-light:         oklch(92.0% 0.000 0);
+    --palette-surface-chassis-light:       oklch(94.0% 0.000 0);
+    --palette-surface-slab-light:          oklch(99.0% 0.000 0);
+    --palette-surface-overlay-light:       oklch(100% 0.000 0);
+    --palette-surface-overlay-glass-light: oklch(99.5% 0.000 0 / 0.35);
+
+    /* Dark Directional Gradients */
+    --gradient-surface-inset-dark: linear-gradient(
+      137deg,
+      oklch(8.5% 0.000 0) 0px,
+      oklch(9.5% 0.000 0) 180px,
+      oklch(10.5% 0.000 0) 360px,
+      oklch(10.5% 0.000 0) 100%
+    );
+    --gradient-surface-chassis-dark: linear-gradient(
+      137deg,
+      oklch(14.5% 0.000 0) 0px,
+      oklch(12.8% 0.000 0) 180px,
+      oklch(11.0% 0.000 0) 360px,
+      oklch(11.0% 0.000 0) 100%
+    );
+    --gradient-surface-slab-dark: linear-gradient(
+      137deg,
+      oklch(18.0% 0.000 0) 0px,
+      oklch(16.2% 0.000 0) 180px,
+      oklch(14.5% 0.000 0) 360px,
+      oklch(14.5% 0.000 0) 100%
+    );
+    --gradient-surface-overlay-dark: linear-gradient(
+      137deg,
+      oklch(21.5% 0.000 0 / 0.90) 0px,
+      oklch(18.8% 0.000 0 / 0.94) 180px,
+      oklch(16.5% 0.000 0 / 0.98) 360px,
+      oklch(16.5% 0.000 0 / 0.98) 100%
+    );
+    --gradient-surface-glass-dark: linear-gradient(
+      137deg,
+      oklch(23.0% 0.000 0 / 0.22) 0px,
+      oklch(19.0% 0.000 0 / 0.28) 180px,
+      oklch(15.0% 0.000 0 / 0.36) 360px,
+      oklch(15.0% 0.000 0 / 0.36) 100%
+    );
+
+    /* Light Directional Gradients */
+    --gradient-surface-inset-light: linear-gradient(
+      137deg,
+      oklch(91.0% 0.000 0) 0px,
+      oklch(92.0% 0.000 0) 180px,
+      oklch(93.0% 0.000 0) 360px,
+      oklch(93.0% 0.000 0) 100%
+    );
+    --gradient-surface-chassis-light: linear-gradient(
+      137deg,
+      oklch(94.0% 0.000 0) 0px,
+      oklch(92.5% 0.000 0) 180px,
+      oklch(91.0% 0.000 0) 360px,
+      oklch(91.0% 0.000 0) 100%
+    );
+    --gradient-surface-slab-light: linear-gradient(
+      137deg,
+      oklch(99.0% 0.000 0) 0px,
+      oklch(97.0% 0.000 0) 180px,
+      oklch(95.0% 0.000 0) 360px,
+      oklch(95.0% 0.000 0) 100%
+    );
+    --gradient-surface-overlay-light: linear-gradient(
+      137deg,
+      oklch(100% 0.000 0 / 0.90) 0px,
+      oklch(98.0% 0.000 0 / 0.94) 180px,
+      oklch(96.0% 0.000 0 / 0.98) 360px,
+      oklch(96.0% 0.000 0 / 0.98) 100%
+    );
+    --gradient-surface-glass-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.22) 0px,
+      oklch(98.0% 0.000 0 / 0.28) 180px,
+      oklch(96.0% 0.000 0 / 0.36) 360px,
+      oklch(96.0% 0.000 0 / 0.36) 100%
+    );
+
+    /* Button Surface Gradients (Carbon) */
+    --gradient-surface-button-dark: linear-gradient(
+      137deg,
+      oklch(23.5% 0.000 0) 0px,
+      oklch(20.5% 0.000 0) 180px,
+      oklch(18.0% 0.000 0) 360px,
+      oklch(18.0% 0.000 0) 100%
+    );
+    --gradient-surface-button-hover-dark: linear-gradient(
+      137deg,
+      oklch(26.0% 0.000 0) 0px,
+      oklch(22.5% 0.000 0) 180px,
+      oklch(19.5% 0.000 0) 360px,
+      oklch(19.5% 0.000 0) 100%
+    );
+    --gradient-surface-button-active-dark: linear-gradient(
+      137deg,
+      oklch(20.5% 0.000 0) 0px,
+      oklch(18.0% 0.000 0) 180px,
+      oklch(16.5% 0.000 0) 360px,
+      oklch(16.5% 0.000 0) 100%
+    );
+    --gradient-surface-button-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0) 0px,
+      oklch(98.8% 0.000 0) 180px,
+      oklch(97.0% 0.000 0) 360px,
+      oklch(97.0% 0.000 0) 100%
+    );
+    --gradient-surface-button-hover-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0) 0px,
+      oklch(99.6% 0.000 0) 180px,
+      oklch(98.5% 0.000 0) 360px,
+      oklch(98.5% 0.000 0) 100%
+    );
+    --gradient-surface-button-active-light: linear-gradient(
+      137deg,
+      oklch(98.0% 0.000 0) 0px,
+      oklch(96.5% 0.000 0) 180px,
+      oklch(95.0% 0.000 0) 360px,
+      oklch(95.0% 0.000 0) 100%
+    );
+
+    /* Inset Well Bottom & Right Specular Bevels (Carbon) */
+    --bevel-bottom-rim-dark:  inset 0 -1px 0 0 oklch(96% 0 0 / 0.22), inset -1px 0 0 0 oklch(96% 0 0 / 0.14);
+    --bevel-bottom-rim-light: inset 0 -1px 0 0 oklch(100% 0 0 / 0.70), inset -1px 0 0 0 oklch(100% 0 0 / 0.40);
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Palette 4: Celestial Obsidian                                            */
+  /* Cold indigo-slate (hue 255) with Electric Ion Cobalt focus (hue 262)      */
+  /* ------------------------------------------------------------------------ */
+  [data-palette="obsidian"] {
+    --palette-accent-focus:         oklch(65.0% 0.235 262);
+    --palette-accent-focus-hover:   oklch(70.0% 0.225 262);
+    --palette-accent-focus-active:  oklch(60.0% 0.245 262);
+    --palette-accent-focus-subtle:  oklch(65.0% 0.235 262 / 0.15);
+    --palette-accent-focus-halo:    0 0 0 3px oklch(65.0% 0.235 262 / 0.35);
+
+    --palette-accent-focus-light:        oklch(50.0% 0.230 262);
+    --palette-accent-focus-light-hover:  oklch(45.0% 0.230 262);
+    --palette-accent-focus-light-subtle: oklch(50.0% 0.230 262 / 0.12);
+    --palette-accent-focus-light-halo:   0 0 0 3px oklch(50.0% 0.230 262 / 0.25);
+
+    --palette-accent-neutral:       oklch(70.0% 0.055 255);
+    --palette-accent-neutral-subtle:oklch(70.0% 0.055 255 / 0.15);
+
+    /* Dark Surfaces */
+    --palette-surface-canvas-dark:        oklch(6.5% 0.020 255);
+    --palette-surface-inset-dark:         oklch(10.5% 0.026 255);
+    --palette-surface-chassis-dark:       oklch(16.0% 0.030 255);
+    --palette-surface-slab-dark:          oklch(19.5% 0.034 255);
+    --palette-surface-overlay-dark:       oklch(22.5% 0.036 255);
+    --palette-surface-overlay-glass-dark: oklch(21.5% 0.034 255 / 0.35);
+
+    /* Light Surfaces */
+    --palette-surface-canvas-light:        oklch(96.5% 0.008 255);
+    --palette-surface-inset-light:         oklch(92.5% 0.012 255);
+    --palette-surface-chassis-light:       oklch(95.5% 0.010 255);
+    --palette-surface-slab-light:          oklch(98.8% 0.006 255);
+    --palette-surface-overlay-light:       oklch(100% 0.004 255);
+    --palette-surface-overlay-glass-light: oklch(99.5% 0.004 255 / 0.35);
+
+    /* Dark Directional Gradients */
+    --gradient-surface-inset-dark: linear-gradient(
+      137deg,
+      oklch(9.5% 0.024 255) 0px,
+      oklch(10.5% 0.026 255) 180px,
+      oklch(11.5% 0.028 255) 360px,
+      oklch(11.5% 0.028 255) 100%
+    );
+    --gradient-surface-chassis-dark: linear-gradient(
+      137deg,
+      oklch(16.0% 0.030 255) 0px,
+      oklch(14.2% 0.028 255) 180px,
+      oklch(12.5% 0.025 255) 360px,
+      oklch(12.5% 0.025 255) 100%
+    );
+    --gradient-surface-slab-dark: linear-gradient(
+      137deg,
+      oklch(19.5% 0.034 255) 0px,
+      oklch(17.5% 0.030 255) 180px,
+      oklch(16.0% 0.026 255) 360px,
+      oklch(16.0% 0.026 255) 100%
+    );
+    --gradient-surface-overlay-dark: linear-gradient(
+      137deg,
+      oklch(22.5% 0.036 255 / 0.90) 0px,
+      oklch(19.8% 0.032 255 / 0.94) 180px,
+      oklch(17.5% 0.028 255 / 0.98) 360px,
+      oklch(17.5% 0.028 255 / 0.98) 100%
+    );
+    --gradient-surface-glass-dark: linear-gradient(
+      137deg,
+      oklch(23.5% 0.034 255 / 0.22) 0px,
+      oklch(19.8% 0.030 255 / 0.28) 180px,
+      oklch(16.5% 0.026 255 / 0.36) 360px,
+      oklch(16.5% 0.026 255 / 0.36) 100%
+    );
+
+    /* Light Directional Gradients */
+    --gradient-surface-inset-light: linear-gradient(
+      137deg,
+      oklch(91.5% 0.012 255) 0px,
+      oklch(92.5% 0.012 255) 180px,
+      oklch(93.5% 0.010 255) 360px,
+      oklch(93.5% 0.010 255) 100%
+    );
+    --gradient-surface-chassis-light: linear-gradient(
+      137deg,
+      oklch(95.5% 0.010 255) 0px,
+      oklch(94.0% 0.010 255) 180px,
+      oklch(92.5% 0.010 255) 360px,
+      oklch(92.5% 0.010 255) 100%
+    );
+    --gradient-surface-slab-light: linear-gradient(
+      137deg,
+      oklch(98.8% 0.006 255) 0px,
+      oklch(97.0% 0.008 255) 180px,
+      oklch(95.0% 0.010 255) 360px,
+      oklch(95.0% 0.010 255) 100%
+    );
+    --gradient-surface-overlay-light: linear-gradient(
+      137deg,
+      oklch(100% 0.004 255 / 0.90) 0px,
+      oklch(98.0% 0.006 255 / 0.94) 180px,
+      oklch(96.0% 0.008 255 / 0.98) 360px,
+      oklch(96.0% 0.008 255 / 0.98) 100%
+    );
+    --gradient-surface-glass-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0 / 0.22) 0px,
+      oklch(98.0% 0.005 255 / 0.28) 180px,
+      oklch(96.0% 0.007 255 / 0.36) 360px,
+      oklch(96.0% 0.007 255 / 0.36) 100%
+    );
+
+    /* Button Surface Gradients (Obsidian) */
+    --gradient-surface-button-dark: linear-gradient(
+      137deg,
+      oklch(24.5% 0.040 255) 0px,
+      oklch(21.5% 0.035 255) 180px,
+      oklch(19.0% 0.030 255) 360px,
+      oklch(19.0% 0.030 255) 100%
+    );
+    --gradient-surface-button-hover-dark: linear-gradient(
+      137deg,
+      oklch(27.0% 0.042 255) 0px,
+      oklch(23.5% 0.038 255) 180px,
+      oklch(20.5% 0.034 255) 360px,
+      oklch(20.5% 0.034 255) 100%
+    );
+    --gradient-surface-button-active-dark: linear-gradient(
+      137deg,
+      oklch(21.5% 0.035 255) 0px,
+      oklch(19.0% 0.030 255) 180px,
+      oklch(17.5% 0.026 255) 360px,
+      oklch(17.5% 0.026 255) 100%
+    );
+    --gradient-surface-button-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0) 0px,
+      oklch(98.8% 0.006 255) 180px,
+      oklch(97.0% 0.008 255) 360px,
+      oklch(97.0% 0.008 255) 100%
+    );
+    --gradient-surface-button-hover-light: linear-gradient(
+      137deg,
+      oklch(100% 0 0) 0px,
+      oklch(99.6% 0.004 255) 180px,
+      oklch(98.5% 0.006 255) 360px,
+      oklch(98.5% 0.006 255) 100%
+    );
+    --gradient-surface-button-active-light: linear-gradient(
+      137deg,
+      oklch(98.0% 0.006 255) 0px,
+      oklch(96.5% 0.008 255) 180px,
+      oklch(95.0% 0.010 255) 360px,
+      oklch(95.0% 0.010 255) 100%
+    );
+
+    /* Inset Well Bottom & Right Specular Bevels (Obsidian) */
+    --bevel-bottom-rim-dark:  inset 0 -1px 0 0 oklch(96% 0.020 255 / 0.22), inset -1px 0 0 0 oklch(96% 0.020 255 / 0.14);
+    --bevel-bottom-rim-light: inset 0 -1px 0 0 oklch(100% 0 0 / 0.70), inset -1px 0 0 0 oklch(100% 0 0 / 0.40);
+  }
+}

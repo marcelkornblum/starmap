@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import styles from './Card.module.css';
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  status?: 'nominal' | 'caution' | 'critical' | 'info';
+  status?: 'nominal' | 'caution' | 'critical' | 'info' | 'neutral';
   interactive?: boolean;
   padding?: 'none' | 'tight' | 'default' | 'loose';
   children?: ReactNode;

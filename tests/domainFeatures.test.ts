@@ -43,8 +43,15 @@ describe('Tier 4: Domain Features', () => {
       expect(html).toContain('Jupiter');
       expect(html).toContain('1.000');
       expect(html).toContain('0.0167');
-      expect(html).toContain('365.3 d');
-      expect(html).toContain('11.86 y'); // >= 1000 days rendered in years
+      expect(html).toContain('365.3');
+      expect(html).toContain('11.86');
+      expect(html).toContain('>AU</span>');
+      expect(html).toContain('>°</span>');
+      expect(html).toContain('>d</span>');
+      expect(html).toContain('>y</span>');
+      expect(html).not.toContain('(AU)');
+      expect(html).not.toContain('(°)');
+      expect(html).not.toContain('(d)');
       expect(html).toContain('data-selected="true"');
     });
 
