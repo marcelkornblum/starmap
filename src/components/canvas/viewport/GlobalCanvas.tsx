@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { SceneOutlet } from './SceneBridge';
 import { SceneTokenBridge } from '../ThemeTokenBridge';
+import { SafeHtmlPortalOutlet } from '../SafeHtml';
 import { GalaxyScene } from '../scenes/GalaxyScene';
 import {
   getStandardInitialCamera,
@@ -52,6 +53,7 @@ export const GlobalCanvas: React.FC<GlobalCanvasProps> = ({
           maxDistance={85}
         />
       </Canvas>
+      <SafeHtmlPortalOutlet />
     </div>
   );
 };

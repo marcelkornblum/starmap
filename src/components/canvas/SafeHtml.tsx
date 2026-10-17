@@ -1,8 +1,48 @@
 import type React from 'react';
-import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
+
+const portalRegistry = new Map<symbol, React.ReactPortal>();
+const portalListeners = new Set<() => void>();
+let portalSnapshot: React.ReactPortal[] = [];
+
+function emitPortalChange(): void {
+  portalSnapshot = Array.from(portalRegistry.values());
+  for (const listener of portalListeners) {
+    listener();
+  }
+}
+
+function subscribePortals(listener: () => void): () => void {
+  portalListeners.add(listener);
+  return () => {
+    portalListeners.delete(listener);
+  };
+}
+
+function getPortalSnapshot(): React.ReactPortal[] {
+  return portalSnapshot;
+}
+
+const EMPTY_PORTALS: React.ReactPortal[] = [];
+function getServerPortalSnapshot(): React.ReactPortal[] {
+  return EMPTY_PORTALS;
+}
+
+/**
+ * Renders active SafeHtml portals inside the outer react-dom tree (outside R3F's <Canvas>)
+ * so HTML/SVG children are reconciled by react-dom and inherit the full React Context tree.
+ */
+export const SafeHtmlPortalOutlet: React.FC = () => {
+  const portals = useSyncExternalStore(
+    subscribePortals,
+    getPortalSnapshot,
+    getServerPortalSnapshot,
+  );
+  return <>{portals}</>;
+};
 
 export interface SafeHtmlProps {
   children?: React.ReactNode;
@@ -29,8 +69,8 @@ export interface SafeHtmlProps {
  * 1. Synchronous root.unmount() during commit phase: "Attempted to synchronously unmount a root while React was already rendering".
  * 2. Unchecked target.removeChild(el) throwing NotFoundError when the canvas container is detached.
  *
- * Uses a dedicated react-dom/client root (so HTML/SVG children are reconciled by react-dom rather
- * than R3F's THREE namespace reconciler) and defers root.unmount() via queueMicrotask.
+ * Tunnels a react-dom createPortal out to SafeHtmlPortalOutlet (mounted outside R3F's <Canvas>)
+ * so HTML/SVG children are reconciled by react-dom while preserving the outer React Context tree.
  */
 const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   children,
@@ -80,12 +120,14 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
 
   const { gl, camera, size } = useThree();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const rootRef = useRef<Root | null>(null);
-  const unmountedRef = useRef<boolean>(false);
+  const portalKeyRef = useRef<symbol | null>(null);
+  if (portalKeyRef.current === null) {
+    portalKeyRef.current = Symbol('safe-html-portal');
+  }
 
   useLayoutEffect(() => {
     if (typeof document === 'undefined') return;
-    unmountedRef.current = false;
+    const key = portalKeyRef.current!;
 
     const div = document.createElement('div');
     div.style.position = 'absolute';
@@ -97,40 +139,35 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     const target = (gl.domElement?.parentNode as HTMLElement | null) ?? document.body;
     target.appendChild(div);
 
-    const root = createRoot(div);
-    rootRef.current = root;
-
     return () => {
-      unmountedRef.current = true;
       containerRef.current = null;
-      rootRef.current = null;
-      queueMicrotask(() => {
-        try {
-          root.unmount();
-        } catch {
-          // Ignore unmount errors if container was already torn down
-        }
-        if (div.parentNode) {
-          div.parentNode.removeChild(div);
-        }
-      });
+      portalRegistry.delete(key);
+      emitPortalChange();
+      if (div.parentNode) {
+        div.parentNode.removeChild(div);
+      }
     };
   }, [gl]);
 
   useLayoutEffect(() => {
     const div = containerRef.current;
-    if (div) {
-      div.style.pointerEvents = pointerEvents;
-      div.className = wrapperClass ?? '';
-    }
-    if (rootRef.current && !unmountedRef.current) {
-      rootRef.current.render(
+    if (!div) return;
+    div.style.pointerEvents = pointerEvents;
+    div.className = wrapperClass ?? '';
+
+    const key = portalKeyRef.current!;
+    portalRegistry.set(
+      key,
+      createPortal(
         <div className={className} data-testid={dataTestId}>
           {children}
         </div>,
-      );
-    }
-  }, [children, className, dataTestId, pointerEvents, wrapperClass]);
+        div,
+        key.description,
+      ),
+    );
+    emitPortalChange();
+  }, [gl, children, className, dataTestId, pointerEvents, wrapperClass]);
 
   useFrame(() => {
     const activeContainer = containerRef.current;

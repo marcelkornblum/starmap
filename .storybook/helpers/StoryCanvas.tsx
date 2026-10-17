@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { ThemeTokenBridge } from '../../src/components/canvas/ThemeTokenBridge';
+import { SafeHtmlPortalOutlet } from '../../src/components/canvas/SafeHtml';
 import {
   type ReferenceFrame,
   GALACTIC_FRAME,
@@ -126,6 +127,7 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
         )}
         {children}
       </Canvas>
+      <SafeHtmlPortalOutlet />
       {overlay}
     </div>
   );

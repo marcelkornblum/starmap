@@ -8,6 +8,7 @@ import {
   STANDARD_CAMERA_DISTANCES,
 } from '../cartography';
 import { SceneTokenBridge } from '../ThemeTokenBridge';
+import { SafeHtmlPortalOutlet } from '../SafeHtml';
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import { GalaxyScene } from './GalaxyScene';
 import { SystemScene } from './SystemScene';
@@ -78,6 +79,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             onInspectSystem={onInspectSystem}
           />
         </Canvas>
+        <SafeHtmlPortalOutlet />
       </div>
     </div>
   );
@@ -136,6 +138,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
             onInspectPlanet={onInspectPlanet}
           />
         </Canvas>
+        <SafeHtmlPortalOutlet />
       </div>
     </div>
   );
@@ -198,6 +201,7 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
             classification="terrestrial"
           />
         </Canvas>
+        <SafeHtmlPortalOutlet />
       </div>
     </div>
   );

@@ -193,7 +193,7 @@ describe('Route Loaders & Render-Then-Fetch Pattern', () => {
   });
 
   describe('SafeHtml & View Lifecycle Safeguards', () => {
-    it('renders SafeHtml in SSR cleanly as an empty 3D group without leaking DOM nodes', () => {
+    it('renders SafeHtml and SafeHtmlPortalOutlet in SSR cleanly without leaking DOM nodes', () => {
       const html = renderToString(
         createElement(
           SafeHtml,

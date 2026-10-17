@@ -73,9 +73,9 @@ export interface CapturedScreenshot {
 }
 
 /**
- * Resolves the primary IPv4 LAN address of the current host, falling back to 192.168.1.124.
+ * Resolves the primary IPv4 LAN address of the current host, falling back to 127.0.0.1.
  */
-export function resolveLanIp(fallback = '192.168.1.124'): string {
+export function resolveLanIp(fallback = '127.0.0.1'): string {
   const interfaces = os.networkInterfaces();
   for (const entries of Object.values(interfaces)) {
     if (!entries) continue;
@@ -210,14 +210,15 @@ export function generateMarkdownGallery(
 }
 
 async function isServerReachable(url: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 1500);
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 1500);
     const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timer);
     return response.ok || response.status < 500;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -247,21 +248,22 @@ async function ensureDevServer(baseUrl: string, port: number): Promise<ChildProc
 
 export async function runCapture(options: CaptureOptions): Promise<CapturedScreenshot[]> {
   fs.mkdirSync(options.outDir, { recursive: true });
-  const spawnedServer = await ensureDevServer(options.baseUrl, options.port);
-
-  const browser = await chromium.launch({
-    headless: true,
-    args: [
-      '--use-gl=angle',
-      '--use-angle=swiftshader',
-      '--enable-webgl',
-      '--ignore-gpu-blocklist',
-    ],
-  });
-
+  let spawnedServer: ChildProcess | null = null;
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
   const results: CapturedScreenshot[] = [];
 
   try {
+    spawnedServer = await ensureDevServer(options.baseUrl, options.port);
+    browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--use-gl=angle',
+        '--use-angle=swiftshader',
+        '--enable-webgl',
+        '--ignore-gpu-blocklist',
+      ],
+    });
+
     for (const route of options.routes) {
       const routeSlug = slugifyRoute(route);
       const targetUrl = /^https?:\/\//.test(route)
@@ -297,7 +299,9 @@ export async function runCapture(options: CaptureOptions): Promise<CapturedScree
       }
     }
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close();
+    }
     if (spawnedServer) {
       spawnedServer.kill('SIGTERM');
     }
