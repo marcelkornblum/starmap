@@ -70,13 +70,13 @@ export const RootHeader: React.FC = () => {
     (item: CommandPaletteItem) => {
       setIsPaletteOpen(false);
       if (item.id === 'galaxy') {
-        void navigate({ to: '/galaxy' });
+        void navigate({ to: '/poc/galaxy' });
       } else if (item.category === 'planet') {
-        void navigate({ to: '/planet/$planetId', params: { planetId: item.id } });
+        void navigate({ to: '/poc/planet/$planetId', params: { planetId: item.id } });
       } else if (item.category === 'star' || item.category === 'system') {
-        void navigate({ to: '/system/$systemId', params: { systemId: item.id } });
+        void navigate({ to: '/poc/system/$systemId', params: { systemId: item.id } });
       } else if (item.id === 'reference') {
-        void navigate({ to: '/reference' });
+        void navigate({ to: '/poc/reference' });
       }
     },
     [navigate],
@@ -102,14 +102,14 @@ export const RootHeader: React.FC = () => {
 
         <nav className={styles.navGroup} aria-label="Primary Navigation">
           <Link
-            to="/galaxy"
+            to="/poc/galaxy"
             className={styles.navLink}
             activeProps={{ className: styles.navLinkActive }}
           >
             Galaxy
           </Link>
           <Link
-            to="/system/$systemId"
+            to="/poc/system/$systemId"
             params={{ systemId: 'sol' }}
             className={styles.navLink}
             activeProps={{ className: styles.navLinkActive }}
@@ -117,7 +117,7 @@ export const RootHeader: React.FC = () => {
             System (Sol)
           </Link>
           <Link
-            to="/planet/$planetId"
+            to="/poc/planet/$planetId"
             params={{ planetId: 'earth' }}
             className={styles.navLink}
             activeProps={{ className: styles.navLinkActive }}
@@ -125,7 +125,7 @@ export const RootHeader: React.FC = () => {
             Planet (Earth)
           </Link>
           <Link
-            to="/reference"
+            to="/poc/reference"
             className={styles.navLink}
             activeProps={{ className: styles.navLinkActive }}
           >

@@ -14,11 +14,13 @@ Both the Vite application server and Storybook are locked to `0.0.0.0` with `str
 | **Starmap App (Preview)** | `npm run preview` | [`http://192.168.1.124:4173`](http://192.168.1.124:4173) | `http://codebox:4173` |
 | **Storybook Component Explorer** | `npm run storybook` | [`http://192.168.1.124:6006`](http://192.168.1.124:6006) | `http://codebox:6006` |
 
-### Canonical Application Routes
-- **Galaxy View:** [`http://192.168.1.124:5173/galaxy`](http://192.168.1.124:5173/galaxy)
-- **System View (Sol):** [`http://192.168.1.124:5173/system/sol`](http://192.168.1.124:5173/system/sol)
-- **Planet View (Earth):** [`http://192.168.1.124:5173/planet/earth`](http://192.168.1.124:5173/planet/earth)
-- **Reference / Encyclopedia View:** [`http://192.168.1.124:5173/reference`](http://192.168.1.124:5173/reference)
+### Application Entry & Quarantined POC Reference Routes
+- **Clean-Slate Application Root (`/`):** [`http://192.168.1.124:5173/`](http://192.168.1.124:5173/) *(Active journey views and paths are added screen-by-screen during Stage 1)*
+- **Quarantined POC Reference Routes (`/poc/*`):**
+  - [`http://192.168.1.124:5173/poc/galaxy`](http://192.168.1.124:5173/poc/galaxy)
+  - [`http://192.168.1.124:5173/poc/system/sol`](http://192.168.1.124:5173/poc/system/sol)
+  - [`http://192.168.1.124:5173/poc/planet/earth`](http://192.168.1.124:5173/poc/planet/earth)
+  - [`http://192.168.1.124:5173/poc/reference`](http://192.168.1.124:5173/poc/reference)
 
 ---
 
@@ -35,11 +37,11 @@ At every visual checkpoint or option comparison, the agent runs `npm run capture
 ### Usage
 
 ```bash
-# Capture all 4 canonical routes across all 5 viewports into an artifact directory:
+# Capture default route (/) across all 5 viewports into an artifact directory:
 npm run capture:views -- --out-dir=/path/to/artifact/dir/screenshots
 
-# Capture specific routes or query states:
-npm run capture:views -- --routes=/galaxy,/system/sol --out-dir=/path/to/artifact/dir/screenshots
+# Capture specific journey routes or query states:
+npm run capture:views -- --routes=/,/poc/galaxy --out-dir=/path/to/artifact/dir/screenshots
 
 # Capture Storybook iframe stories on port 6006:
 npm run capture:views -- --port=6006 --routes="/iframe.html?id=canvas-fullassembly--galaxy-scale" --out-dir=/path/to/artifact/dir/screenshots

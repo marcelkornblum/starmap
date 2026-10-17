@@ -28,7 +28,7 @@
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 4: Total View Decoupling & Route Integration
-- [ ] Task: Refactor `GalaxyView`, `SystemView`, and `PlanetView` to plug into shell slots (`canvas`, `workspace`, `controls`).
+- [ ] Task: Wire the Stage 1 ratified scaffolding views into the shell slots (`canvas`, `workspace`, `controls`).
 - [ ] Task: Strip duplicate root HUD CSS and absolute positioning from all view modules.
 - [ ] Task: Verify seamless navigation between Atlas and Encyclopedia routes inside the continuous shell.
 - [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.

@@ -3,13 +3,14 @@ import {
   createRoute,
   createRootRoute,
   Navigate,
+  Outlet,
 } from '@tanstack/react-router';
 import { RootLayout } from '../components/poc/layout/RootLayout';
 import { RouteSkeleton } from '../components/poc/common/RouteSkeleton';
-import { GalaxyView } from '../views/GalaxyView';
-import { SystemView } from '../views/SystemView';
-import { PlanetView } from '../views/PlanetView';
-import { ReferenceView } from '../views/ReferenceView';
+import { GalaxyView } from '../views/poc/GalaxyView';
+import { SystemView } from '../views/poc/SystemView';
+import { PlanetView } from '../views/poc/PlanetView';
+import { ReferenceView } from '../views/poc/ReferenceView';
 
 export interface StarmapSearchParams {
   x?: number;
@@ -26,9 +27,9 @@ export async function simulateAsyncFetch<T>(data: T, delayMs = 60): Promise<T> {
   return data;
 }
 
-// Root route definition with global search params validation
+// Root route definition with global search params validation and unopinionated Outlet
 export const rootRoute = createRootRoute({
-  component: RootLayout,
+  component: Outlet,
   validateSearch: (search: Record<string, unknown>): StarmapSearchParams => {
     return {
       ...search,
@@ -41,16 +42,28 @@ export const rootRoute = createRootRoute({
   },
 });
 
-// Index redirects to /galaxy
+// Clean-slate root index route — views and paths will be defined from scratch during Stage 1 Journeys
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => <Navigate to="/galaxy" />,
+  component: () => <div data-testid="clean-slate-root" />,
 });
 
-// Base 4 routes with render-then-fetch loaders and instant skeleton state
-export const galaxyRoute = createRoute({
+// Quarantined POC layout and routes under /poc/* for reference
+export const pocRoute = createRoute({
   getParentRoute: () => rootRoute,
+  path: '/poc',
+  component: RootLayout,
+});
+
+export const pocIndexRoute = createRoute({
+  getParentRoute: () => pocRoute,
+  path: '/',
+  component: () => <Navigate to="/poc/galaxy" />,
+});
+
+export const galaxyRoute = createRoute({
+  getParentRoute: () => pocRoute,
   path: '/galaxy',
   component: GalaxyView,
   pendingComponent: () => <RouteSkeleton label="Scanning Galactic Field..." />,
@@ -61,7 +74,7 @@ export const galaxyRoute = createRoute({
 });
 
 export const systemRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => pocRoute,
   path: '/system/$systemId',
   component: SystemView,
   pendingComponent: () => <RouteSkeleton label="Resolving Star System Telemetry..." />,
@@ -72,7 +85,7 @@ export const systemRoute = createRoute({
 });
 
 export const planetRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => pocRoute,
   path: '/planet/$planetId',
   component: PlanetView,
   pendingComponent: () => <RouteSkeleton label="Acquiring Planetary Orbit Data..." />,
@@ -83,7 +96,7 @@ export const planetRoute = createRoute({
 });
 
 export const referenceRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => pocRoute,
   path: '/reference',
   component: ReferenceView,
   pendingComponent: () => <RouteSkeleton label="Accessing Celestial Catalog..." />,
@@ -95,10 +108,13 @@ export const referenceRoute = createRoute({
 
 export const routeTree = rootRoute.addChildren([
   indexRoute,
-  galaxyRoute,
-  systemRoute,
-  planetRoute,
-  referenceRoute,
+  pocRoute.addChildren([
+    pocIndexRoute,
+    galaxyRoute,
+    systemRoute,
+    planetRoute,
+    referenceRoute,
+  ]),
 ]);
 
 export const router = createRouter({

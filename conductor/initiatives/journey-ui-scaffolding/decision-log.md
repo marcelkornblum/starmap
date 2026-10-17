@@ -42,3 +42,18 @@ This document records all architectural, data-model, interaction, and UI scaffol
      - *Trade-off:* Port drift breaks bookmarks on LAN devices; lacks side-by-side multi-viewport visual history in conversation artifacts.
   2. *Locked LAN Ports (`5173` / `6006`) + Automated 5-Viewport Playwright Capture Script (`npm run capture:views`):* Configure `strictPort: true` and `allowedHosts: true` on `0.0.0.0`, and capture automated screenshots across Mobile Portrait (`390×844`), Tablet Portrait (`768×1024`), Tablet Landscape (`1024×768`), Desktop Standard (`1440×900`), and Desktop Ultrawide (`2560×1440`).
 - **Decision:** Adopt **Option 2**. Every visual checkpoint and option review must include clickable LAN URLs (`http://192.168.1.124:5173` / `http://192.168.1.124:6006`) and embedded multi-viewport Playwright screenshots.
+
+---
+
+### DEC-003: Quarantine Existing POC Views Under `src/views/poc/` & Start Stage 1 with a Clean-Slate Router
+- **Date:** 2026-10-17
+- **Status:** `Ratified`
+- **Scope:** View Architecture, Routing & Track Specifications
+- **Context:** The codebase previously contained 4 hardcoded views (`GalaxyView`, `SystemView`, `PlanetView`, `ReferenceView`) mounted at `/galaxy`, `/system/$systemId`, `/planet/$planetId`, and `/reference` with a global `RootLayout` header/canvas. Keeping them as the active top-level routes biased Stage 1 into assuming those exact 4 views and URL paths.
+- **Options Considered:**
+  1. *Move to `src/views/poc/` and Mount Under `/poc/*` While `/` Starts as a Clean Slate:* Move the existing views into `src/views/poc/`, mount them under `/poc/*` (`/poc/galaxy`, `/poc/system/$systemId`, `/poc/planet/$planetId`, `/poc/reference`) for reference, make `/` a completely blank slate with zero layout or route assumptions, and strip pre-assumed view names and URL paths from the Initiative and Track 01–05 specs/plans.
+     - *Trade-off:* Preserves existing POC code and tests for reference at `/poc/*` while giving Stage 1 a 100% unopinionated root canvas/router.
+  2. *Quarantine in `src/views/poc/` and Unmount from Router Completely:* Keep the files on disk only and remove them from the router.
+     - *Trade-off:* Cannot inspect the old POC screens over LAN without re-mounting them.
+- **Decision:** Adopt **Option 1**. Existing views live in `src/views/poc/` and are mounted under `/poc/*` for reference; `/` renders `CleanSlateRoot` with zero assumptions about which views exist or what their paths are. All Stage 1 journey tracks decide screen boundaries, view names, and URL paths from scratch one step at a time.
+

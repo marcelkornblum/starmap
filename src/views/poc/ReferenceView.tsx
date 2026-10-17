@@ -1,8 +1,8 @@
 import type React from 'react';
-import { ScenePortal } from '../components/canvas/viewport/SceneBridge';
-import { useStarmapNav } from '../router/navigation';
-import { Panel, Card } from '../components/interface/surfaces';
-import { Stack, Button, Datum } from '../components/poc/primitives';
+import { ScenePortal } from '../../components/canvas/viewport/SceneBridge';
+import { useStarmapNav } from '../../router/navigation';
+import { Panel, Card } from '../../components/interface/surfaces';
+import { Stack, Button, Datum } from '../../components/poc/primitives';
 import styles from './ReferenceView.module.css';
 
 export interface ReferenceViewProps {}

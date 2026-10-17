@@ -52,10 +52,7 @@ export const STANDARD_VIEWPORTS: readonly ViewportPreset[] = [
 ] as const;
 
 export const DEFAULT_CAPTURE_ROUTES: readonly string[] = [
-  '/galaxy',
-  '/system/sol',
-  '/planet/earth',
-  '/reference',
+  '/',
 ] as const;
 
 export interface CaptureOptions {

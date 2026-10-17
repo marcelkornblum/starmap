@@ -24,7 +24,7 @@ Builds the production "Adaptive Hybrid Console" shell around the 3D canvas and d
    - Top-level spatial locator (`Local Volume → Tau Ceti → Tau Ceti e`) reflecting current navigation state.
    - Upward navigation event dispatching.
 4. **Total View Decoupling:**
-   - Strips all view modules (`GalaxyView`, `SystemView`, `PlanetView`, `ReferenceView`) of root positioning, ad-hoc HUD divs, and duplicate layout CSS.
+   - Strips all Stage 1 ratified view modules of root positioning, ad-hoc HUD divs, and duplicate layout CSS.
    - Views become pure content providers that plug into the shell's declared slots (`canvas`, `workspace`, `controls`).
 
 ## Out of Scope

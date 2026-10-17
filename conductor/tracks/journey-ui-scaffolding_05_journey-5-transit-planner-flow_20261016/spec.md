@@ -1,17 +1,18 @@
 # Specification: Journey 5 Data Model & Feature Requirements (Intra-System Logistics & Orbital Timing)
 
 > [!CAUTION]
-> **STRICT STAGE 1 RULE — WHAT ON-SCREEN, NOT HOW TO PRESENT IT:**
-> This track defines **only** the required features, view data models, selectors, and interface state logic for Journey 5 ([`docs/user-journeys.md`](../../../docs/user-journeys.md#L94-L103)).
+> **STRICT STAGE 1 RULE — CLEAN SLATE VIEWS & WHAT ON-SCREEN, NOT HOW TO PRESENT IT:**
+> This track defines **only** the required screens/views, URL paths, features, view data models, selectors, and interface state logic for Journey 5 ([`docs/user-journeys.md`](../../../docs/user-journeys.md#L94-L103)).
+> - **Zero Pre-Assumed Views or Paths:** Do NOT assume view names or URL paths ahead of time; decide whether each step layers onto an existing scaffolding view or introduces a new view/route.
 > - **Zero Presentation Assumptions:** Do NOT design timeline scrubber visuals, HUD docks, or transfer panel chrome.
-> - **One Decision at a Time:** Every orbital propagation parameter, transfer calculation model, and solar conjunction threshold must be discussed one by one with the user via `ask_question`, recording options and trade-offs in [`decision-log.md`](../../initiatives/journey-ui-scaffolding/decision-log.md) and [`view-requirements.md`](../../initiatives/journey-ui-scaffolding/view-requirements.md).
+> - **One Decision at a Time:** Every screen boundary, orbital propagation parameter, transfer calculation model, and solar conjunction threshold must be discussed one by one with the user via `ask_question`, recording options and trade-offs in [`decision-log.md`](../../initiatives/journey-ui-scaffolding/decision-log.md) and [`view-requirements.md`](../../initiatives/journey-ui-scaffolding/view-requirements.md).
 
 ## Overview
 Walks step-by-step through **Journey 5: Intra-System Logistics & Orbital Timing (The Transit Planner Flow)** to define and implement the view data models, orbital mechanics calculators, and state transitions for intra-system departure/arrival selection, temporal epoch scrubbing, instantaneous separation and comms delay, Hohmann vs continuous-thrust brachistochrone transfer profiles, and solar conjunction blackout detection.
 
 ## Scope (Journey 5 Steps)
 
-1. **Step 1 — Intra-System Departure & Arrival Anchor Data Model (`SystemView`):**
+1. **Step 1 — Intra-System Departure & Arrival Anchor Data Model:**
    - Define the selection state for pairing two orbital bodies within a stellar system (e.g. *Earth* $\to$ *Mars* or *Tau Ceti e* $\to$ *Tau Ceti f*).
 2. **Step 2 & 3 — Temporal Epoch Scrubbing & Instantaneous Orbital Separation Model:**
    - Define the temporal state (`epochTime`, `timeMultiplier`, `isPlaying`) driving Keplerian mean anomaly propagation across all bodies in the active system.
@@ -29,6 +30,6 @@ Walks step-by-step through **Journey 5: Intra-System Logistics & Orbital Timing 
 - [ ] Every step of Journey 5 is interrogated one decision at a time with the user; all options and trade-offs are recorded in `decision-log.md`.
 - [ ] On-screen data and action requirements discovered in Journey 5 are recorded in `view-requirements.md`.
 - [ ] Pure TypeScript orbital propagation, Hohmann transfer, brachistochrone torchship, and solar conjunction blackout calculators are implemented with unit tests (>80% coverage).
-- [ ] Minimal diagnostic view harness allows stepping through Journey 5 on `http://192.168.1.124:5173` with multi-viewport Playwright screenshots captured.
+- [ ] Scaffolding views allow stepping through Journey 5 on `http://192.168.1.124:5173` with multi-viewport Playwright screenshots captured.
 - [ ] Cross-journey synthesis review conducted with the user to confirm Stage 2 UI track boundaries.
 - [ ] `npm run lint`, `npm run typecheck`, and `npm run test:coverage` pass cleanly.
