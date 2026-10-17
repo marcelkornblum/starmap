@@ -26,6 +26,11 @@
 
 ---
 
+## Backlog
+- [ ] **Feature: Custom Shortlink & Curated Landing URLs (`/go/<slug>`)** — Support friendly, memorable entry-point URLs (e.g., `/go/hail-mary`, `/go/dune`, `/go/trappist`, `/go/voyager`) that resolve to customised landing experiences with pre-configured camera framing, active fictional canon layers, selected targets/routes, and tailored onboarding context.
+
+---
+
 ## Archived Tracks (`conductor/archive/tracks/`)
 - [x] **Track: Astro Math Core** *Link: [conductor/archive/tracks/astro-math-core_20260929/index.md](./archive/tracks/astro-math-core_20260929/index.md)*
 - [x] **Track: Data Pipeline** *Link: [conductor/archive/tracks/data-pipeline_20260929/index.md](./archive/tracks/data-pipeline_20260929/index.md)*

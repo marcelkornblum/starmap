@@ -49,3 +49,9 @@ Items logged here are held for later consideration and graduation into formal tr
 - **Considerations to Evaluate:**
   - Dynamic per-route `<title>`, `<meta name="description">`, canonical URLs, and Open Graph / Twitter Card metadata for system, body, search, and canon layer URLs.
   - Crawlability & indexing strategy for an SPA/3D web app (e.g., static pre-rendering / SSG for high-value landmark systems and fictional canons, `sitemap.xml` generation from the Core/Canon indices, and Schema.org / JSON-LD structured data).
+
+### FS-008: Custom Shortlink & Curated Landing URLs (`/go/<slug>`)
+- **Concept:** Support friendly, memorable entry-point URLs (e.g., `/go/xxx` such as `/go/hail-mary`, `/go/dune`, `/go/voyager`, `/go/trappist`) to make shared links and curated landing experiences cleaner and more inviting.
+- **Behaviour:**
+  - Resolves a short slug into a customised application setup and entry point (e.g., activating a specific fictional canon layer, pre-selecting a target system or multi-leg route, framing the camera at an ideal vantage point, or opening a tailored welcome/onboarding briefing).
+
