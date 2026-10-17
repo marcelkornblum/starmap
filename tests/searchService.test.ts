@@ -1,14 +1,25 @@
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
+import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import {
+  DetailsPanel,
   SearchResultItem,
   formatPlanetCountSummary,
   shouldDisplaySpectralBadge,
 } from '../src/components/domain';
 import { Search } from '../src/components/search';
+import {
+  clearDetailsRepositoryCache,
+  decodeDetailRecord,
+  fetchDetailRecord,
+  fetchSummaryNode,
+  getCachedDetailRecord,
+  getCachedExoplanetFromSystem,
+  getCachedSummaryNode,
+} from '../src/data/detailsRepository';
 import {
   clearSearchRepositoryCache,
   fetchSearchShard,
@@ -16,6 +27,14 @@ import {
   loadSearchCorpusForFilter,
   mergeSearchShards,
 } from '../src/data/searchRepository';
+import {
+  buildFocusedEntityDetails,
+  buildIntrinsicSystemSummary,
+  buildPlanetCompositionSummary,
+  classifyExoplanetComposition,
+  isExoplanetHabitableCandidate,
+  resolveFocusedCanonAnnotations,
+} from '../src/services/detailsService';
 import {
   SEARCH_CATEGORIES,
   buildResultTargetLink,
@@ -789,8 +808,10 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       '<li data-testid="systems-selected-item" data-entity-id="gaia-2452378776434477184">Tau Ceti</li>',
     );
     expect(searchHtml).toContain('<ul data-testid="systems-focused-list"></ul>');
+    // When nothing is focused, Details panel does not show at all
+    expect(searchHtml).not.toContain('data-testid="details-panel"');
 
-    // 2. Clicking through to '/galaxy/tau-ceti?focus=tau-ceti-e' clears selected (since ?q= is not in URL) and focuses 'tau Ceti e'
+    // 2. Clicking through to '/galaxy/tau-ceti?focus=tau-ceti-e' clears selected (since ?q= is not in URL), focuses 'tau Ceti e', and renders Details panel
     const focusChildHtml = renderToString(
       createElement(
         SpatialEntityProvider,
@@ -811,8 +832,17 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       '<li data-testid="systems-focused-item" data-entity-id="tau-ceti-e">tau Ceti e</li>',
     );
     expect(focusChildHtml).toContain('<ul data-testid="systems-selected-list"></ul>');
+    expect(focusChildHtml).toContain('data-testid="details-panel"');
+    expect(focusChildHtml).toContain('<h2 id="details-panel-heading">Details</h2>');
+    expect(focusChildHtml).toContain('<h3 id="details-peek-heading">Peek</h3>');
+    expect(focusChildHtml).toContain('<h3 id="details-partial-heading">Partial</h3>');
+    expect(focusChildHtml).toContain('<h3 id="details-full-heading">Full</h3>');
+    expect(focusChildHtml).toContain('data-testid="details-button-centre"');
+    expect(focusChildHtml).toContain('data-testid="details-button-directions"');
+    expect(focusChildHtml).toContain('Project Hail Mary');
+    expect(focusChildHtml).toContain('Adrian');
 
-    // 3. Clicking through to '/galaxy/tau-ceti' focuses 'Tau Ceti'
+    // 3. Clicking through to '/galaxy/tau-ceti' focuses 'Tau Ceti' and shows Details panel with Peek, Partial, and Full detents
     const focusSystemHtml = renderToString(
       createElement(
         SpatialEntityProvider,
@@ -832,8 +862,15 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(focusSystemHtml).toContain(
       '<li data-testid="systems-focused-item" data-entity-id="gaia-2452378776434477184">Tau Ceti</li>',
     );
+    expect(focusSystemHtml).toContain('data-testid="details-panel"');
+    expect(focusSystemHtml).toContain('<span data-testid="details-spectral-badge">G8V</span>');
+    expect(focusSystemHtml).toContain('<span data-testid="details-reticle-type">[stellar-system]</span>');
+    expect(focusSystemHtml).toContain('4 planets');
+    expect(focusSystemHtml).toContain('Centre');
+    expect(focusSystemHtml).toContain('Directions');
+    expect(focusSystemHtml).toContain('Tau Ceti (Astrophage Destination)');
 
-    // 4. Navigating to '/galaxy' (nothing in URL) clears both focused and selected states
+    // 4. Navigating to '/galaxy' (nothing in URL) clears both focused and selected states and hides Details panel
     const cleanHtml = renderToString(
       createElement(
         SpatialEntityProvider,
@@ -850,6 +887,251 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(store.getState().getEntitiesByState('selected')).toEqual([]);
     expect(cleanHtml).toContain('<ul data-testid="systems-focused-list"></ul>');
     expect(cleanHtml).toContain('<ul data-testid="systems-selected-list"></ul>');
+    expect(cleanHtml).not.toContain('data-testid="details-panel"');
+  });
+
+  it('evaluates detailsService builders, detailsRepository bucket lookups, and DetailsPanel decomposition across all branches', async () => {
+    // 1. DetailsPanel returns null when details is null
+    expect(renderToString(createElement(DetailsPanel, { details: null }))).toBe('');
+    expect(buildFocusedEntityDetails({ focusedEntity: null })).toBeNull();
+
+    // 2. classifyExoplanetComposition & isExoplanetHabitableCandidate
+    expect(classifyExoplanetComposition({ massMearth: 1.2, radiusRearth: 1.1 })).toBe('terrestrial');
+    expect(classifyExoplanetComposition({ massMearth: 15, radiusRearth: 3.5 })).toBe('ice-giant');
+    expect(classifyExoplanetComposition({ massMearth: 300, radiusRearth: 11 })).toBe('gas-giant');
+
+    expect(isExoplanetHabitableCandidate({ esi: 0.82 })).toBe(true);
+    expect(isExoplanetHabitableCandidate({ equilibriumTempK: 260 })).toBe(true);
+    expect(isExoplanetHabitableCandidate({ equilibriumTempK: 800, esi: 0.2 })).toBe(false);
+
+    // 3. buildPlanetCompositionSummary
+    expect(buildPlanetCompositionSummary([], 0, false)).toBe('0 confirmed planets');
+    expect(buildPlanetCompositionSummary([], 1, false, ['gas-giant'])).toBe('1 planet (gas-giant)');
+    expect(buildPlanetCompositionSummary([], 2, true)).toBe(
+      '2 planets (terrestrial · Habitable zone candidate)',
+    );
+    expect(
+      buildPlanetCompositionSummary(
+        [
+          {
+            id: 'p1',
+            name: 'P1',
+            composition: 'terrestrial',
+            isHabitableCandidate: true,
+          },
+          {
+            id: 'p2',
+            name: 'P2',
+            composition: 'ice-giant',
+            isHabitableCandidate: false,
+          },
+          {
+            id: 'p3',
+            name: 'P3',
+            composition: 'gas-giant',
+            isHabitableCandidate: false,
+          },
+        ],
+        3,
+        true,
+      ),
+    ).toBe('3 planets (1 terrestrial · 1 ice-giant · 1 gas-giant · Habitable zone candidate)');
+
+    // 4. buildIntrinsicSystemSummary
+    expect(
+      buildIntrinsicSystemSummary({
+        name: 'Custom',
+        systemName: 'Custom',
+        isChildEntity: false,
+        starCount: 2,
+        planetCount: 0,
+        hasHabitableCandidate: false,
+        manifestOverview: '  Explicit overview prose.  ',
+      }),
+    ).toBe('Explicit overview prose.');
+    expect(
+      buildIntrinsicSystemSummary({
+        name: 'Hyades',
+        systemName: 'Hyades',
+        isChildEntity: false,
+        starCount: 1,
+        planetCount: 0,
+        hasHabitableCandidate: false,
+        structureDescription: 'Open cluster in Taurus.',
+      }),
+    ).toBe('Open cluster in Taurus.');
+    expect(
+      buildIntrinsicSystemSummary({
+        name: 'Binary Star',
+        systemName: 'Binary Star',
+        isChildEntity: false,
+        spectralType: 'Unknown',
+        starCount: 2,
+        planetCount: 1,
+        hasHabitableCandidate: false,
+      }),
+    ).toBe('Binary Star is a 2-star system hosting 1 confirmed planet.');
+
+    // 5. resolveFocusedCanonAnnotations
+    const annotations = resolveFocusedCanonAnnotations(
+      'canon-project-hail-mary:tau-ceti-e',
+      'gaia-2452378776434477184',
+    );
+    expect(annotations[0]?.inUniverseName).toBe('Adrian');
+    expect(annotations.some((a) => a.inUniverseName === 'Tau Ceti (Astrophage Destination)')).toBe(
+      true,
+    );
+
+    // 6. detailsRepository shard caching, decoding (sys, str, sol), and error handling
+    clearDetailsRepositoryCache();
+    expect(getCachedSummaryNode('')).toBeUndefined();
+    expect(getCachedDetailRecord('')).toBeUndefined();
+    expect(await fetchSummaryNode('')).toBeUndefined();
+    expect(await fetchDetailRecord('')).toBeUndefined();
+    expect(getCachedExoplanetFromSystem('gaia-2452378776434477184', 'tau-ceti-e')).toBeUndefined();
+
+    const decodedStr = decodeDetailRecord(
+      {
+        t: 'str',
+        n: 'Orion Nebula',
+        k: 8,
+        p: [-340, -210, -130],
+        d: 'Diffuse emission nebula.',
+      },
+      'ngc-1976',
+    );
+    expect(decodedStr.kind).toBe('structure');
+
+    const decodedSol = decodeDetailRecord(
+      {
+        t: 'sol',
+        n: 'Earth',
+        k: 2,
+        r: 6371,
+      },
+      'earth',
+    );
+    expect(decodedSol.kind).toBe('solar-body');
+
+    const mockFetch = vi.fn(async (url: string) => {
+      if (url.includes('/data/summaries/')) {
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: async () => ({
+            i: '1',
+            c: 1,
+            d: {
+              'gaia-2452378776434477184': {
+                n: 'Tau Ceti',
+                p: [-3.1, -0.4, -2.0],
+                m: 3.5,
+                M: 5.69,
+                s: 'G8V',
+                u: 1,
+                k: 2,
+                e: 1,
+                h: 1,
+                g: 14,
+              },
+            },
+          }),
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          i: '1',
+          c: 1,
+          d: {
+            'gaia-2452378776434477184': {
+              t: 'sys',
+              n: 'Tau Ceti',
+              p: [-3.1, -0.4, -2.0],
+              S: [
+                {
+                  i: 'tau-ceti-A',
+                  n: 'Tau Ceti A',
+                  s: 'G8V',
+                  m: 3.5,
+                  M: 5.69,
+                  u: 0.78,
+                  r: 0.79,
+                  l: 0.52,
+                  T: 5344,
+                },
+              ],
+              E: [
+                {
+                  i: 'tau-ceti-e',
+                  n: 'Tau Ceti e',
+                  l: 'e',
+                  y: 2017,
+                  d: 1,
+                  e: 3.93,
+                  r: 1.8,
+                  T: 270,
+                  o: [0.538, 0.18, 0, 0, 0, 0, 162.87],
+                },
+                {
+                  i: 'tau-ceti-g',
+                  n: 'Tau Ceti g',
+                  l: 'g',
+                  o: [0.133, 0.06, 0, 0, 0, 0, 20.0],
+                },
+              ],
+            },
+          },
+        }),
+      };
+    }) as unknown as typeof fetch;
+
+    const summary = await fetchSummaryNode('gaia-2452378776434477184', mockFetch);
+    expect(summary?.name).toBe('Tau Ceti');
+    // Second call hits cache
+    expect(await fetchSummaryNode('gaia-2452378776434477184', mockFetch)).toBeDefined();
+
+    const detail = await fetchDetailRecord('gaia-2452378776434477184', mockFetch);
+    expect(detail?.kind).toBe('system');
+    expect(await fetchDetailRecord('gaia-2452378776434477184', mockFetch)).toBeDefined();
+    expect(getCachedExoplanetFromSystem('gaia-2452378776434477184', 'tau-ceti-e')?.name).toBe(
+      'Tau Ceti e',
+    );
+
+    // Build full FocusedEntityDetails with manifest, summaryNode, and THREE.Vector3 position
+    const fullDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        position: new THREE.Vector3(-3.1, -0.4, -2.0),
+        classification: 'stellar-system',
+      },
+      summaryNode: summary,
+      systemDetail: detail,
+    });
+    expect(fullDetails).not.toBeNull();
+    expect(fullDetails?.planets.map((p) => p.id)).toEqual(['tau-ceti-g', 'tau-ceti-e']);
+
+    const fullHtml = renderToString(createElement(DetailsPanel, { details: fullDetails }));
+    expect(fullHtml).toContain('a = 0.538 AU');
+    expect(fullHtml).toContain('P = 162.87 d');
+    expect(fullHtml).toContain('3.93 M⊕');
+    expect(fullHtml).toContain('270 K');
+    expect(fullHtml).toContain('data-testid="details-astrometry-tags"');
+
+    // Error handling in detailsRepository
+    clearDetailsRepositoryCache();
+    const failFetch = vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      statusText: 'Error',
+    })) as unknown as typeof fetch;
+    await expect(fetchSummaryNode('sol', failFetch)).rejects.toThrow('500');
+    await expect(fetchDetailRecord('sol', failFetch)).rejects.toThrow('500');
+    clearDetailsRepositoryCache();
   });
 });
 

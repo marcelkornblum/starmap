@@ -1,10 +1,19 @@
-import type React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
 } from '../components/canvas/entity/SpatialEntityContext';
-import { SearchResultItem } from '../components/domain';
+import { DetailsPanel, SearchResultItem } from '../components/domain';
 import { Search } from '../components/search';
+import {
+  fetchDetailRecord,
+  fetchSummaryNode,
+  getCachedDetailRecord,
+  getCachedSummaryNode,
+} from '../data/detailsRepository';
+import { getCachedCorpusForFilter } from '../data/searchRepository';
+import { buildFocusedEntityDetails } from '../services/detailsService';
+import { findFocusedEntryInCorpus } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 
 export interface MainViewProps {
@@ -66,6 +75,63 @@ export const SystemsPanel: React.FC = () => {
   );
 };
 
+interface FocusedDetailsRegionProps {
+  readonly initialCorpus?: readonly CompactSearchEntry[];
+}
+
+const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
+  initialCorpus,
+}) => {
+  const storeApi = useSpatialEntityStoreApi();
+  useSpatialEntityStore((state) => state.entities);
+  useSpatialEntityStore((state) => state.focusedId);
+
+  const [, setShardTick] = useState<number>(0);
+
+  const focusedEntity = storeApi.getState().getEntitiesByState('focused')[0] ?? null;
+  const activeCorpus =
+    initialCorpus ?? getCachedCorpusForFilter('all') ?? [];
+  const matchedEntry = focusedEntity
+    ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
+    : undefined;
+  const targetSystemId = matchedEntry?.s ?? focusedEntity?.id ?? '';
+
+  useEffect(() => {
+    if (!focusedEntity || initialCorpus || typeof window === 'undefined') {
+      return;
+    }
+
+    let cancelled = false;
+    void Promise.all([
+      fetchSummaryNode(targetSystemId).catch(() => undefined),
+      fetchDetailRecord(targetSystemId).catch(() => undefined),
+      focusedEntity.id !== targetSystemId
+        ? fetchDetailRecord(focusedEntity.id).catch(() => undefined)
+        : Promise.resolve(undefined),
+    ]).then(() => {
+      if (!cancelled) {
+        setShardTick((n) => n + 1);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [focusedEntity, initialCorpus, targetSystemId]);
+
+  const focusedDetails = buildFocusedEntityDetails({
+    focusedEntity,
+    corpus: activeCorpus,
+    summaryNode: getCachedSummaryNode(targetSystemId),
+    systemDetail: getCachedDetailRecord(targetSystemId),
+    entityDetail: focusedEntity
+      ? getCachedDetailRecord(focusedEntity.id)
+      : undefined,
+  });
+
+  return <DetailsPanel details={focusedDetails} />;
+};
+
 export const MainView: React.FC<MainViewProps> = ({
   initialCorpus,
   locationPathname,
@@ -88,6 +154,8 @@ export const MainView: React.FC<MainViewProps> = ({
         />
       </Search.Root>
       <SystemsPanel />
+      <FocusedDetailsRegion initialCorpus={initialCorpus} />
     </main>
   );
 };
+
