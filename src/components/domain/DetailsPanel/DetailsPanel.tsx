@@ -254,15 +254,23 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                           {' — '}
                         </>
                       ) : null}
-                      <a
-                        href={
-                          annotation.layerHref ||
-                          buildCanonLayerGalaxyHref(annotation.layerId)
+                      <Badge
+                        status={
+                          annotation.kind === 'scientific-overlay'
+                            ? 'info'
+                            : 'neutral'
                         }
-                        data-testid="details-canon-link"
                       >
-                        {annotation.layerTitle}
-                      </a>
+                        <a
+                          href={
+                            annotation.layerHref ||
+                            buildCanonLayerGalaxyHref(annotation.layerId)
+                          }
+                          data-testid="details-canon-link"
+                        >
+                          {annotation.layerTitle}
+                        </a>
+                      </Badge>
                     </summary>
                     <p data-testid="details-canon-text">{annotation.text}</p>
                     {annotation.tags.length > 0 ? (
