@@ -8,6 +8,8 @@ import {
 import { RootLayout } from '../components/poc/layout/RootLayout';
 import { RouteSkeleton } from '../components/poc/common/RouteSkeleton';
 import { MainView } from '../views/MainView';
+import { MetricDetailView } from '../views/MetricDetailView';
+import { MetricsListView } from '../views/MetricsListView';
 import { PlanetTypeDetailView } from '../views/PlanetTypeDetailView';
 import { PlanetTypesListView } from '../views/PlanetTypesListView';
 import { SearchView } from '../views/SearchView';
@@ -115,6 +117,18 @@ export const planetTypeDetailRoute = createRoute({
   component: PlanetTypeDetailView,
 });
 
+export const metricsListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/metrics',
+  component: MetricsListView,
+});
+
+export const metricDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/metrics/$metricId',
+  component: MetricDetailView,
+});
+
 // Quarantined POC layout and routes under /poc/* for reference
 export const pocRoute = createRoute({
   getParentRoute: () => pocRouteParent,
@@ -183,6 +197,8 @@ export const routeTree = rootRoute.addChildren([
   starTypeDetailRoute,
   planetTypesListRoute,
   planetTypeDetailRoute,
+  metricsListRoute,
+  metricDetailRoute,
   pocRoute.addChildren([
     pocIndexRoute,
     galaxyRoute,

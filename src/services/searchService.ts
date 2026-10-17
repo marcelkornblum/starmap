@@ -808,6 +808,24 @@ export const buildPlanetTypeGuideHref = (planetType?: string): string => {
   return `${PLANET_TYPES_GUIDE_PATH}/${encodeURIComponent(trimmed)}`;
 };
 
+export const METRICS_GUIDE_PATH = '/guide/metrics' as const;
+
+/**
+ * Pure unit function building the URL to the Telemetry Metrics Guide view for a given
+ * physical/orbital metric (`/guide/metrics/<metricId>`, e.g. `/guide/metrics/semi-major-axis`).
+ * Falls back to the Metrics list view (`/guide/metrics`) when the metricId is empty or `'Unknown'`.
+ */
+export const buildMetricGuideHref = (metricId?: string): string => {
+  if (!metricId) {
+    return METRICS_GUIDE_PATH;
+  }
+  const trimmed = metricId.trim();
+  if (!trimmed || trimmed === 'Unknown') {
+    return METRICS_GUIDE_PATH;
+  }
+  return `${METRICS_GUIDE_PATH}/${encodeURIComponent(trimmed)}`;
+};
+
 export const KNOWN_SYSTEM_TAGS = [
   'HomeSystem',
   'SolarNeighborhood10pc',

@@ -6,10 +6,12 @@ import {
 import {
   PLANET_COMPOSITION_TYPES,
   buildCanonLayerGalaxyHref,
+  buildMetricGuideHref,
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
   buildTagGalaxyHref,
 } from '../../../services/searchService';
+import { Badge, Quantity, Unit } from '../../interface/information';
 import { shouldDisplaySpectralBadge } from '../SearchResultItem/SearchResultItem';
 
 export interface DetailsPanelProps {
@@ -35,9 +37,11 @@ const renderSummaryWithSpectralLink = (
     <Fragment key={index}>
       {part}
       {index < parts.length - 1 ? (
-        <a href={href} data-testid="details-summary-spectral-link">
-          {spectralType}
-        </a>
+        <Badge category="star">
+          <a href={href} data-testid="details-summary-spectral-link">
+            {spectralType}
+          </a>
+        </Badge>
       ) : null}
     </Fragment>
   ));
@@ -60,13 +64,14 @@ const renderSummaryWithPlanetTypeLinks = (summary: string): ReactNode => {
     ).includes(part);
     if (isPlanetType) {
       return (
-        <a
-          key={index}
-          href={buildPlanetTypeGuideHref(part)}
-          data-testid="details-summary-planet-type-link"
-        >
-          {part}
-        </a>
+        <Badge key={index} category="planet">
+          <a
+            href={buildPlanetTypeGuideHref(part)}
+            data-testid="details-summary-planet-type-link"
+          >
+            {part}
+          </a>
+        </Badge>
       );
     }
     return <Fragment key={index}>{part}</Fragment>;
@@ -129,12 +134,14 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
           {hasSpectBadge && spectralType ? (
             <>
               {' '}
-              <a
-                href={buildStarTypeGuideHref(spectralType)}
-                data-testid="details-spectral-badge"
-              >
-                {spectralType}
-              </a>
+              <Badge category="star">
+                <a
+                  href={buildStarTypeGuideHref(spectralType)}
+                  data-testid="details-spectral-badge"
+                >
+                  {spectralType}
+                </a>
+              </Badge>
             </>
           ) : null}
           {' · '}
@@ -167,7 +174,19 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
             <dd data-testid="details-astrometry-sector">{sectorId}</dd>
             <dt>Coordinates (J2000 pc)</dt>
             <dd data-testid="details-astrometry-coords">
-              {`${coordinatesPc[0]}, ${coordinatesPc[1]}, ${coordinatesPc[2]}`}
+              <Quantity
+                value={`${coordinatesPc[0]}, ${coordinatesPc[1]}, ${coordinatesPc[2]}`}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref('galactic-coordinates')}
+                      data-testid="details-metric-unit-link"
+                    >
+                      pc
+                    </a>
+                  </Unit>
+                }
+              />
             </dd>
             {tags.length > 0 ? (
               <>
@@ -175,13 +194,15 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                 <dd data-testid="details-astrometry-tags">
                   {tags.map((tag, index) => (
                     <Fragment key={tag}>
-                      {index > 0 ? ', ' : null}
-                      <a
-                        href={buildTagGalaxyHref(tag)}
-                        data-testid="details-astrometry-tag-link"
-                      >
-                        {tag}
-                      </a>
+                      {index > 0 ? ' ' : null}
+                      <Badge status="neutral">
+                        <a
+                          href={buildTagGalaxyHref(tag)}
+                          data-testid="details-astrometry-tag-link"
+                        >
+                          {tag}
+                        </a>
+                      </Badge>
                     </Fragment>
                   ))}
                 </dd>
@@ -249,13 +270,15 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                         {'Tags: '}
                         {annotation.tags.map((tag, index) => (
                           <Fragment key={tag}>
-                            {index > 0 ? ', ' : null}
-                            <a
-                              href={buildTagGalaxyHref(tag)}
-                              data-testid="details-canon-tag-link"
-                            >
-                              {tag}
-                            </a>
+                            {index > 0 ? ' ' : null}
+                            <Badge status="neutral">
+                              <a
+                                href={buildTagGalaxyHref(tag)}
+                                data-testid="details-canon-tag-link"
+                              >
+                                {tag}
+                              </a>
+                            </Badge>
                           </Fragment>
                         ))}
                       </p>
@@ -294,16 +317,46 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                   </a>
                   {' ('}
                   {shouldDisplaySpectralBadge(star.spectralType) ? (
-                    <a
-                      href={buildStarTypeGuideHref(star.spectralType)}
-                      data-testid="details-star-spectral-link"
-                    >
-                      {star.spectralType}
-                    </a>
+                    <Badge category="star">
+                      <a
+                        href={buildStarTypeGuideHref(star.spectralType)}
+                        data-testid="details-star-spectral-link"
+                      >
+                        {star.spectralType}
+                      </a>
+                    </Badge>
                   ) : (
                     star.spectralType
                   )}
-                  {`, V ${star.mag}, M_V ${star.absmag})`}
+                  {', '}
+                  <Quantity
+                    value={star.mag}
+                    unit={
+                      <Unit>
+                        <a
+                          href={buildMetricGuideHref('stellar-magnitude')}
+                          data-testid="details-metric-unit-link"
+                        >
+                          V
+                        </a>
+                      </Unit>
+                    }
+                  />
+                  {', '}
+                  <Quantity
+                    value={star.absmag}
+                    unit={
+                      <Unit>
+                        <a
+                          href={buildMetricGuideHref('stellar-magnitude')}
+                          data-testid="details-metric-unit-link"
+                        >
+                          M_V
+                        </a>
+                      </Unit>
+                    }
+                  />
+                  {')'}
                 </li>
               ))}
             </ul>
@@ -336,26 +389,87 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                   >
                     {planet.name}
                   </a>
-                  {' ['}
-                  <a
-                    href={buildPlanetTypeGuideHref(planet.composition)}
-                    data-testid="details-planet-type-link"
-                  >
-                    {planet.composition}
-                  </a>
-                  {']'}
-                  {planet.semiMajorAxisAu !== undefined
-                    ? ` · a = ${planet.semiMajorAxisAu} AU`
-                    : ''}
-                  {planet.periodDays !== undefined
-                    ? ` · P = ${planet.periodDays} d`
-                    : ''}
-                  {planet.massMearth !== undefined
-                    ? ` · ${planet.massMearth} M⊕`
-                    : ''}
-                  {planet.equilibriumTempK !== undefined
-                    ? ` · ${planet.equilibriumTempK} K`
-                    : ''}
+                  {' '}
+                  <Badge category="planet">
+                    <a
+                      href={buildPlanetTypeGuideHref(planet.composition)}
+                      data-testid="details-planet-type-link"
+                    >
+                      {planet.composition}
+                    </a>
+                  </Badge>
+                  {planet.semiMajorAxisAu !== undefined ? (
+                    <>
+                      {' · a = '}
+                      <Quantity
+                        value={planet.semiMajorAxisAu}
+                        unit={
+                          <Unit>
+                            <a
+                              href={buildMetricGuideHref('semi-major-axis')}
+                              data-testid="details-metric-unit-link"
+                            >
+                              AU
+                            </a>
+                          </Unit>
+                        }
+                      />
+                    </>
+                  ) : null}
+                  {planet.periodDays !== undefined ? (
+                    <>
+                      {' · P = '}
+                      <Quantity
+                        value={planet.periodDays}
+                        unit={
+                          <Unit>
+                            <a
+                              href={buildMetricGuideHref('orbital-period')}
+                              data-testid="details-metric-unit-link"
+                            >
+                              d
+                            </a>
+                          </Unit>
+                        }
+                      />
+                    </>
+                  ) : null}
+                  {planet.massMearth !== undefined ? (
+                    <>
+                      {' · '}
+                      <Quantity
+                        value={planet.massMearth}
+                        unit={
+                          <Unit>
+                            <a
+                              href={buildMetricGuideHref('planetary-mass')}
+                              data-testid="details-metric-unit-link"
+                            >
+                              M⊕
+                            </a>
+                          </Unit>
+                        }
+                      />
+                    </>
+                  ) : null}
+                  {planet.equilibriumTempK !== undefined ? (
+                    <>
+                      {' · '}
+                      <Quantity
+                        value={planet.equilibriumTempK}
+                        unit={
+                          <Unit>
+                            <a
+                              href={buildMetricGuideHref('equilibrium-temperature')}
+                              data-testid="details-metric-unit-link"
+                            >
+                              K
+                            </a>
+                          </Unit>
+                        }
+                      />
+                    </>
+                  ) : null}
                 </li>
               ))}
             </ul>

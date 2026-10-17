@@ -3,6 +3,7 @@ import {
   buildStarTypeGuideHref,
   type SearchResultItem as SearchResultItemModel,
 } from '../../../services/searchService';
+import { Badge } from '../../interface/information';
 
 export interface SearchResultItemProps {
   readonly result: SearchResultItemModel;
@@ -41,12 +42,14 @@ const renderVariationContent = (
         <span data-testid="result-variation-stars">
           {' ('}
           {hasSpect && spectralType ? (
-            <a
-              href={buildStarTypeGuideHref(spectralType)}
-              data-testid="result-spectral-badge"
-            >
-              {spectralType}
-            </a>
+            <Badge category="star">
+              <a
+                href={buildStarTypeGuideHref(spectralType)}
+                data-testid="result-spectral-badge"
+              >
+                {spectralType}
+              </a>
+            </Badge>
           ) : null}
           {hasSpect && planetSummary ? ' · ' : null}
           {planetSummary ? (

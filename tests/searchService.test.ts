@@ -40,10 +40,12 @@ import {
   sortCanonAnnotations,
 } from '../src/services/detailsService';
 import {
+  METRICS_GUIDE_PATH,
   PLANET_TYPES_GUIDE_PATH,
   SEARCH_CATEGORIES,
   STAR_TYPES_GUIDE_PATH,
   buildCanonLayerGalaxyHref,
+  buildMetricGuideHref,
   buildPlanetTypeGuideHref,
   buildResultTargetLink,
   buildSearchViewHref,
@@ -79,6 +81,11 @@ import {
 } from '../src/services/searchService';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
 import { MainView } from '../src/views/MainView';
+import {
+  MetricDetailView,
+  extractMetricIdFromPathname,
+} from '../src/views/MetricDetailView';
+import { MetricsListView } from '../src/views/MetricsListView';
 import {
   PlanetTypeDetailView,
   extractPlanetTypeFromPathname,
@@ -1182,10 +1189,19 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(fullDetails?.planets.map((p) => p.id)).toEqual(['tau-ceti-g', 'tau-ceti-e']);
 
     const fullHtml = renderToString(createElement(DetailsPanel, { details: fullDetails }));
-    expect(fullHtml).toContain('a = 0.538 AU');
-    expect(fullHtml).toContain('P = 162.87 d');
-    expect(fullHtml).toContain('3.93 M⊕');
-    expect(fullHtml).toContain('270 K');
+    expect(fullHtml).toContain('a = ');
+    expect(fullHtml).toContain('0.538');
+    expect(fullHtml).toContain('href="/guide/metrics/semi-major-axis"');
+    expect(fullHtml).toContain('P = ');
+    expect(fullHtml).toContain('162.87');
+    expect(fullHtml).toContain('href="/guide/metrics/orbital-period"');
+    expect(fullHtml).toContain('3.93');
+    expect(fullHtml).toContain('href="/guide/metrics/planetary-mass"');
+    expect(fullHtml).toContain('270');
+    expect(fullHtml).toContain('href="/guide/metrics/equilibrium-temperature"');
+    expect(fullHtml).toContain('href="/guide/metrics/stellar-magnitude"');
+    expect(fullHtml).toContain('href="/guide/metrics/galactic-coordinates"');
+    expect(fullHtml).toContain('data-testid="details-metric-unit-link"');
     expect(fullHtml).toContain('data-testid="details-astrometry-tags"');
 
     // Error handling in detailsRepository
@@ -1198,6 +1214,42 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     await expect(fetchSummaryNode('sol', failFetch)).rejects.toThrow('500');
     await expect(fetchDetailRecord('sol', failFetch)).rejects.toThrow('500');
     clearDetailsRepositoryCache();
+  });
+
+  it('links telemetry unit badges to /guide/metrics/$metricId and renders MetricsListView and MetricDetailView', () => {
+    expect(METRICS_GUIDE_PATH).toBe('/guide/metrics');
+    expect(buildMetricGuideHref('semi-major-axis')).toBe(
+      '/guide/metrics/semi-major-axis',
+    );
+    expect(buildMetricGuideHref('  orbital-period  ')).toBe(
+      '/guide/metrics/orbital-period',
+    );
+    expect(buildMetricGuideHref('')).toBe('/guide/metrics');
+    expect(buildMetricGuideHref('Unknown')).toBe('/guide/metrics');
+
+    expect(extractMetricIdFromPathname('/guide/metrics/semi-major-axis')).toBe(
+      'semi-major-axis',
+    );
+    expect(extractMetricIdFromPathname('/galaxy')).toBe('');
+
+    const listViewHtml = renderToString(createElement(MetricsListView));
+    expect(listViewHtml).toContain('data-testid="metrics-list-view-root"');
+    expect(listViewHtml).toContain('Telemetry Metrics');
+
+    const detailViewHtml = renderToString(
+      createElement(MetricDetailView, {
+        locationPathname: '/guide/metrics/semi-major-axis',
+      }),
+    );
+    expect(detailViewHtml).toContain('data-testid="metric-detail-view-root"');
+    expect(detailViewHtml).toContain('data-metric-id="semi-major-axis"');
+    expect(detailViewHtml).toContain('Metric: semi-major-axis');
+    expect(detailViewHtml).toContain('href="/guide/metrics"');
+
+    const explicitPropDetailHtml = renderToString(
+      createElement(MetricDetailView, { metricId: 'planetary-mass' }),
+    );
+    expect(explicitPropDetailHtml).toContain('data-metric-id="planetary-mass"');
   });
 
   it('links all stellar classifications to /guide/star-types/$starType and renders StarTypesListView and StarTypeDetailView', () => {
