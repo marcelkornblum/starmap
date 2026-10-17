@@ -1,10 +1,10 @@
 import type React from 'react';
 import { useParams } from '@tanstack/react-router';
-import { ScenePortal } from '../components/canvas/viewport/SceneBridge';
-import { PlanetScene } from '../components/canvas/scenes/PlanetScene';
-import { useStarmapNav } from '../router/navigation';
-import { Panel } from '../components/interface/surfaces';
-import { Stack, Cluster, Button, Metric, Datum } from '../components/poc/primitives';
+import { ScenePortal } from '../../components/canvas/viewport/SceneBridge';
+import { PlanetScene } from '../../components/canvas/scenes/PlanetScene';
+import { useStarmapNav } from '../../router/navigation';
+import { Panel } from '../../components/interface/surfaces';
+import { Stack, Cluster, Button, Metric, Datum } from '../../components/poc/primitives';
 import styles from './PlanetView.module.css';
 
 export interface PlanetViewProps {}

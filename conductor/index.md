@@ -11,9 +11,13 @@
 
 -   [Workflow](./workflow.md)
 -   [Code Style Guides](./code_styleguides/)
+-   [Local Network Review & Multi-Viewport Screenshots](../docs/local-review-and-screenshots.md)
 
-## Tracks
+## Tracks & Initiatives
 
 - [Tracks Registry](./tracks.md)
+- [Active Initiative: Journey-Driven View Data Models & UI Scaffolding](./initiatives/journey-ui-scaffolding/index.md)
+- [Decision Log](./initiatives/journey-ui-scaffolding/decision-log.md)
+- [View Requirements Inventory](./initiatives/journey-ui-scaffolding/view-requirements.md)
 - [Tracks Directory](./tracks/)
 - [Backlog](./backlog.md)

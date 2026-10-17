@@ -1,6 +1,8 @@
-# Specification: Route & Measurement Mode
+# Specification: Route & Measurement UI Surfaces
 
-> **Status: Stub.** Scope captured from `conductor/backlog.md` and `docs/feature-backlog.md` (retired). Refine via `conductor-new-track` before implementation.
+> [!IMPORTANT]
+> **Stage 2 Flexible Placeholder (`journey-ui-scaffolding`):**
+> Underlying 2-point, multi-leg, and intra-system route calculation data models are established in Stage 1 (Tracks 01, 02 & 05). This Stage 2 track covers the UI presentation surfaces and 3D chord overlays to be sequenced and refined against the [View Requirements Inventory](../../initiatives/journey-ui-scaffolding/view-requirements.md) and [Decision Log](../../initiatives/journey-ui-scaffolding/decision-log.md) after Stage 1 completes.
 
 ## Overview
 Delivers point-to-point measurement and interstellar route planning.

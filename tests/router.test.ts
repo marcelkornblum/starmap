@@ -4,6 +4,7 @@ import {
   routeTree,
   rootRoute,
   indexRoute,
+  pocIndexRoute,
   galaxyRoute,
   systemRoute,
   planetRoute,
@@ -23,20 +24,22 @@ vi.mock('@tanstack/react-router', async () => {
 import { useNavigate, useRouter } from '@tanstack/react-router';
 
 describe('TanStack Router Architecture', () => {
-  it('registers all 4 core base routes and index redirect', () => {
+  it('registers clean-slate root route and quarantined /poc/* reference routes', () => {
     const flatRoutes = router.routesByPath;
 
     expect(flatRoutes['/']).toBeDefined();
-    expect(flatRoutes['/galaxy']).toBeDefined();
-    expect(flatRoutes['/system/$systemId']).toBeDefined();
-    expect(flatRoutes['/planet/$planetId']).toBeDefined();
-    expect(flatRoutes['/reference']).toBeDefined();
+    expect(flatRoutes['/poc']).toBeDefined();
+    expect(router.routesById['/poc/']).toBeDefined();
+    expect(flatRoutes['/poc/galaxy']).toBeDefined();
+    expect(flatRoutes['/poc/system/$systemId']).toBeDefined();
+    expect(flatRoutes['/poc/planet/$planetId']).toBeDefined();
+    expect(flatRoutes['/poc/reference']).toBeDefined();
   });
 
   it('contains expected route tree structure', () => {
     expect(routeTree).toBeDefined();
     expect(routeTree.children).toBeDefined();
-    expect(routeTree.children?.length).toBeGreaterThanOrEqual(4);
+    expect(routeTree.children?.length).toBe(2);
   });
 
   it('validates search parameters correctly on rootRoute across all branches', () => {
@@ -83,14 +86,19 @@ describe('TanStack Router Architecture', () => {
     expect(numericValidated.center).toBeUndefined();
   });
 
-  it('renders index redirect component returning Navigate to /galaxy', () => {
-    const Component = indexRoute.options.component as unknown as () => { props: { to: string } };
-    expect(Component).toBeDefined();
-    const vnode = Component();
-    expect(vnode.props.to).toBe('/galaxy');
+  it('renders clean-slate root at / and Navigate to /poc/galaxy at /poc/', () => {
+    const IndexComponent = indexRoute.options.component as unknown as () => { props: { 'data-testid': string } };
+    expect(IndexComponent).toBeDefined();
+    const rootVnode = IndexComponent();
+    expect(rootVnode.props['data-testid']).toBe('clean-slate-root');
+
+    const PocIndexComponent = pocIndexRoute.options.component as unknown as () => { props: { to: string } };
+    expect(PocIndexComponent).toBeDefined();
+    const vnode = PocIndexComponent();
+    expect(vnode.props.to).toBe('/poc/galaxy');
   });
 
-  it('renders pending skeleton components for all core routes', () => {
+  it('renders pending skeleton components for all quarantined POC routes', () => {
     const PendingGalaxy = galaxyRoute.options.pendingComponent as unknown as () => { props: { label: string } };
     expect(PendingGalaxy().props.label).toContain('Galactic');
 
@@ -110,7 +118,7 @@ describe('useStarmapNav Navigation Enforcer', () => {
   const mockRouter = {
     state: {
       location: {
-        pathname: '/galaxy',
+        pathname: '/poc/galaxy',
       },
     },
   };
@@ -121,48 +129,48 @@ describe('useStarmapNav Navigation Enforcer', () => {
     vi.mocked(useRouter).mockReturnValue(mockRouter as unknown as ReturnType<typeof useRouter>);
   });
 
-  it('enforces push (replace: false) on major view transition to /galaxy', async () => {
+  it('enforces push (replace: false) on major view transition to /poc/galaxy', async () => {
     const nav = useStarmapNav();
     await nav.toGalaxy({ zoom: 2 });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
-    expect(callArg.to).toBe('/galaxy');
+    expect(callArg.to).toBe('/poc/galaxy');
     expect(callArg.replace).toBe(false);
     expect(callArg.search({ x: 10 })).toEqual({ x: 10, zoom: 2 });
   });
 
-  it('enforces push (replace: false) on major view transition to /system/$systemId', async () => {
+  it('enforces push (replace: false) on major view transition to /poc/system/$systemId', async () => {
     const nav = useStarmapNav();
     await nav.toSystem('sol', { zoom: 5 });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
-    expect(callArg.to).toBe('/system/$systemId');
+    expect(callArg.to).toBe('/poc/system/$systemId');
     expect(callArg.params).toEqual({ systemId: 'sol' });
     expect(callArg.replace).toBe(false);
     expect(callArg.search({ center: 'sol' })).toEqual({ center: 'sol', zoom: 5 });
   });
 
-  it('enforces push (replace: false) on major view transition to /planet/$planetId', async () => {
+  it('enforces push (replace: false) on major view transition to /poc/planet/$planetId', async () => {
     const nav = useStarmapNav();
     await nav.toPlanet('earth', { zoom: 8 });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
-    expect(callArg.to).toBe('/planet/$planetId');
+    expect(callArg.to).toBe('/poc/planet/$planetId');
     expect(callArg.params).toEqual({ planetId: 'earth' });
     expect(callArg.replace).toBe(false);
     expect(callArg.search({ center: 'earth' })).toEqual({ center: 'earth', zoom: 8 });
   });
 
-  it('enforces push (replace: false) on major view transition to /reference', async () => {
+  it('enforces push (replace: false) on major view transition to /poc/reference', async () => {
     const nav = useStarmapNav();
     await nav.toReference({ center: 'icrs' });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
-    expect(callArg.to).toBe('/reference');
+    expect(callArg.to).toBe('/poc/reference');
     expect(callArg.replace).toBe(false);
     expect(callArg.search({})).toEqual({ center: 'icrs' });
   });
@@ -180,6 +188,6 @@ describe('useStarmapNav Navigation Enforcer', () => {
 
   it('exposes currentPath from router state', () => {
     const nav = useStarmapNav();
-    expect(nav.currentPath).toBe('/galaxy');
+    expect(nav.currentPath).toBe('/poc/galaxy');
   });
 });

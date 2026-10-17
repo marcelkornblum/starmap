@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
-import { GalaxyView, GalaxyControlsDock } from '../src/views/GalaxyView';
-import { SystemView, SystemControlsDock } from '../src/views/SystemView';
-import { PlanetView } from '../src/views/PlanetView';
-import { ReferenceView } from '../src/views/ReferenceView';
+import { GalaxyView, GalaxyControlsDock } from '../src/views/poc/GalaxyView';
+import { SystemView, SystemControlsDock } from '../src/views/poc/SystemView';
+import { PlanetView } from '../src/views/poc/PlanetView';
+import { ReferenceView } from '../src/views/poc/ReferenceView';
 import { RootHeader } from '../src/components/poc/layout/RootLayout';
 import { SceneProvider } from '../src/components/canvas/viewport/SceneBridge';
 
@@ -18,7 +18,7 @@ vi.mock('@tanstack/react-router', async () => {
       createElement('a', { href: to, ...props }, children),
     ),
     useNavigate: vi.fn(() => vi.fn()),
-    useRouter: vi.fn(() => ({ state: { location: { pathname: '/galaxy' } } })),
+    useRouter: vi.fn(() => ({ state: { location: { pathname: '/poc/galaxy' } } })),
     useParams: vi.fn(() => ({ systemId: 'sol', planetId: 'earth' })),
   };
 });

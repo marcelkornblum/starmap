@@ -1,5 +1,9 @@
 # Specification: Console UI Shell
 
+> [!IMPORTANT]
+> **Stage 2 Flexible Placeholder (`journey-ui-scaffolding`):**
+> This track is held in Stage 2 of the [Journey-Driven View Data Models & UI Scaffolding Initiative](../../initiatives/journey-ui-scaffolding/index.md). Its exact presentation scope, slot structure, and sequencing will be revisited and ratified against the [View Requirements Inventory](../../initiatives/journey-ui-scaffolding/view-requirements.md) and [Decision Log](../../initiatives/journey-ui-scaffolding/decision-log.md) once Stage 1 (Tracks 01–05) is complete.
+
 ## Overview
 Builds the production "Adaptive Hybrid Console" shell around the 3D canvas and domain panels, orchestrating screen real estate between the 2D workstation chrome and the 3D WebGL renderer.
 
@@ -20,7 +24,7 @@ Builds the production "Adaptive Hybrid Console" shell around the 3D canvas and d
    - Top-level spatial locator (`Local Volume → Tau Ceti → Tau Ceti e`) reflecting current navigation state.
    - Upward navigation event dispatching.
 4. **Total View Decoupling:**
-   - Strips all view modules (`GalaxyView`, `SystemView`, `PlanetView`, `ReferenceView`) of root positioning, ad-hoc HUD divs, and duplicate layout CSS.
+   - Strips all Stage 1 ratified view modules of root positioning, ad-hoc HUD divs, and duplicate layout CSS.
    - Views become pure content providers that plug into the shell's declared slots (`canvas`, `workspace`, `controls`).
 
 ## Out of Scope
