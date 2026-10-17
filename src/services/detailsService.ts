@@ -30,6 +30,7 @@ export type PlanetCompositionClass = 'terrestrial' | 'ice-giant' | 'gas-giant';
 export interface FocusedStarDetail {
   readonly id: string;
   readonly name: string;
+  readonly href?: string;
   readonly componentDesignation: string;
   readonly spectralType: string;
   readonly mag: number;
@@ -43,6 +44,7 @@ export interface FocusedStarDetail {
 export interface FocusedPlanetDetail {
   readonly id: string;
   readonly name: string;
+  readonly href?: string;
   readonly letter?: string;
   readonly composition: PlanetCompositionClass;
   readonly semiMajorAxisAu?: number;
@@ -319,6 +321,23 @@ export const buildSystemDetailsHref = (systemNameOrId: string): string => {
 };
 
 /**
+ * Pure unit function building the URL to the System View with a specific child star or planet
+ * set to focus (`/system/<systemSlug>?focus=<elementSlug>`, e.g. `/system/tau-ceti?focus=tau-ceti-e`).
+ */
+export const buildSystemElementFocusHref = (
+  systemNameOrId: string,
+  elementNameOrId: string,
+): string => {
+  const baseHref = buildSystemDetailsHref(systemNameOrId);
+  const focusSlug = toUrlSlug(elementNameOrId) || elementNameOrId.trim();
+  if (!focusSlug) {
+    return baseHref;
+  }
+  const params = new URLSearchParams({ focus: focusSlug });
+  return `${baseHref}?${params.toString()}`;
+};
+
+/**
  * Pure resolver gathering all canon layer annotations (`FS-001` / `FS-002`) relevant to a focused
  * entity and its host star system, ordered with factual (`scientific-overlay`) layers before
  * fictional (`fictional-canon`) layers and supporting user-curated layer ordering.
@@ -381,6 +400,7 @@ const toCoordinatesTuple = (
 
 const mapManifestToStarsAndPlanets = (
   manifest: SystemManifest,
+  systemNameOrId: string,
 ): {
   readonly stars: readonly FocusedStarDetail[];
   readonly planets: readonly FocusedPlanetDetail[];
@@ -388,6 +408,7 @@ const mapManifestToStarsAndPlanets = (
   const stars: FocusedStarDetail[] = manifest.stars.map((s) => ({
     id: s.id,
     name: s.name,
+    href: buildSystemElementFocusHref(systemNameOrId, s.name || s.id),
     componentDesignation: s.componentDesignation ?? 'A',
     spectralType: s.spectralType,
     mag: s.mag,
@@ -411,6 +432,7 @@ const mapManifestToStarsAndPlanets = (
   const planets: FocusedPlanetDetail[] = sortedPlanets.map((p) => ({
     id: p.id,
     name: p.name,
+    href: buildSystemElementFocusHref(systemNameOrId, p.name || p.id),
     ...(p.letter ? { letter: p.letter } : {}),
     composition: classifyExoplanetComposition(p),
     ...(p.orbit?.semiMajorAxis !== undefined
@@ -512,7 +534,10 @@ export const buildFocusedEntityDetails = (
   let planets: readonly FocusedPlanetDetail[] = [];
 
   if (sysManifest) {
-    const mapped = mapManifestToStarsAndPlanets(sysManifest);
+    const mapped = mapManifestToStarsAndPlanets(
+      sysManifest,
+      systemName || systemId,
+    );
     stars = mapped.stars;
     planets = mapped.planets;
   } else {
@@ -522,6 +547,10 @@ export const buildFocusedEntityDetails = (
         {
           id: `${systemId}-A`,
           name: systemName,
+          href: buildSystemElementFocusHref(
+            systemName || systemId,
+            systemName || `${systemId}-A`,
+          ),
           componentDesignation: 'A',
           spectralType,
           mag: summaryNode?.mag ?? matchedSystemEntry?.m?.[0] ?? 0,
@@ -533,9 +562,14 @@ export const buildFocusedEntityDetails = (
     const corpusPlanets: FocusedPlanetDetail[] = [];
     for (const entry of corpus) {
       if (entry.k === 2 && entry.s === systemId) {
+        const planetName = resolveResultDisplayTitle(entry);
         corpusPlanets.push({
           id: entry.i,
-          name: resolveResultDisplayTitle(entry),
+          name: planetName,
+          href: buildSystemElementFocusHref(
+            systemName || systemId,
+            planetName || entry.i,
+          ),
           composition: 'terrestrial',
           isHabitableCandidate: false,
         });

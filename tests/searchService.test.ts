@@ -32,6 +32,7 @@ import {
   buildIntrinsicSystemSummary,
   buildPlanetCompositionSummary,
   buildSystemDetailsHref,
+  buildSystemElementFocusHref,
   classifyExoplanetComposition,
   isExoplanetHabitableCandidate,
   resolveCanonLayerKindPriority,
@@ -1384,6 +1385,18 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(
       detailsHtml.match(/href="\/guide\/planet-types\/terrestrial"/g)?.length,
     ).toBeGreaterThanOrEqual(2);
+
+    // Star and planet names in DetailsPanel link to /system/<systemSlug>?focus=<elementSlug>
+    expect(buildSystemElementFocusHref('Tau Ceti', 'tau Ceti e')).toBe(
+      '/system/tau-ceti?focus=tau-ceti-e',
+    );
+    expect(buildSystemElementFocusHref('Tau Ceti', '')).toBe(
+      '/system/tau-ceti',
+    );
+    expect(detailsHtml).toContain('data-testid="details-star-name-link"');
+    expect(detailsHtml).toContain('href="/system/tau-ceti?focus=tau-ceti"');
+    expect(detailsHtml).toContain('data-testid="details-planet-name-link"');
+    expect(detailsHtml).toContain('href="/system/tau-ceti?focus=tau-ceti-e"');
 
     // PlanetTypesListView and PlanetTypeDetailView render cleanly
     const listViewHtml = renderToString(createElement(PlanetTypesListView));

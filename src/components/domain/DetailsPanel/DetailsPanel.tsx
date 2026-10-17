@@ -1,5 +1,8 @@
 import { Fragment, type ReactNode } from 'react';
-import type { FocusedEntityDetails } from '../../../services/detailsService';
+import {
+  buildSystemElementFocusHref,
+  type FocusedEntityDetails,
+} from '../../../services/detailsService';
 import {
   PLANET_COMPOSITION_TYPES,
   buildCanonLayerGalaxyHref,
@@ -277,7 +280,19 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                   data-testid="details-star-item"
                   data-star-id={star.id}
                 >
-                  {`${star.name} (`}
+                  <a
+                    href={
+                      star.href ??
+                      buildSystemElementFocusHref(
+                        systemName || systemId,
+                        star.name || star.id,
+                      )
+                    }
+                    data-testid="details-star-name-link"
+                  >
+                    {star.name}
+                  </a>
+                  {' ('}
                   {shouldDisplaySpectralBadge(star.spectralType) ? (
                     <a
                       href={buildStarTypeGuideHref(star.spectralType)}
@@ -309,7 +324,19 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                   data-planet-id={planet.id}
                   data-composition={planet.composition}
                 >
-                  {`${planet.name} [`}
+                  <a
+                    href={
+                      planet.href ??
+                      buildSystemElementFocusHref(
+                        systemName || systemId,
+                        planet.name || planet.id,
+                      )
+                    }
+                    data-testid="details-planet-name-link"
+                  >
+                    {planet.name}
+                  </a>
+                  {' ['}
                   <a
                     href={buildPlanetTypeGuideHref(planet.composition)}
                     data-testid="details-planet-type-link"
