@@ -71,6 +71,11 @@ export interface FocusedCanonAnnotation {
   readonly tags: readonly string[];
 }
 
+export interface CanonAnnotationOrderOptions {
+  readonly kindOrder?: readonly DatasetLayerKind[];
+  readonly layerIdOrder?: readonly string[];
+}
+
 export interface FocusedEntityDetails {
   readonly id: string;
   readonly systemId: string;
@@ -83,17 +88,17 @@ export interface FocusedEntityDetails {
   readonly planetCount: number;
   readonly planetCompositionSummary: string;
   readonly hasHabitableCandidate: boolean;
-  // Detent 2: Partial
   readonly systemSummary: string;
-  readonly centreHref: string;
+  // Detent 2: Partial
+  readonly coordinatesPc: readonly [number, number, number];
+  readonly sectorId: string;
+  readonly tags: readonly string[];
+  readonly systemDetailsHref: string;
   readonly directionsHref: string;
   // Detent 3: Full
   readonly stars: readonly FocusedStarDetail[];
   readonly planets: readonly FocusedPlanetDetail[];
   readonly canonAnnotations: readonly FocusedCanonAnnotation[];
-  readonly coordinatesPc: readonly [number, number, number];
-  readonly sectorId: string;
-  readonly tags: readonly string[];
 }
 
 export interface BuildFocusedEntityDetailsInput {
@@ -103,6 +108,7 @@ export interface BuildFocusedEntityDetailsInput {
   readonly systemDetail?: DecodedDetailRecord;
   readonly entityDetail?: DecodedDetailRecord;
   readonly activeLayers?: readonly DatasetLayerManifest[];
+  readonly canonOrderOptions?: CanonAnnotationOrderOptions;
 }
 
 /**
@@ -241,14 +247,87 @@ export const buildIntrinsicSystemSummary = (input: {
   return `${input.systemName} is a ${spectPart}${starMultiplicityPart}${planetPart}${hzPart}.`;
 };
 
+export const DEFAULT_CANON_LAYER_KIND_ORDER: readonly DatasetLayerKind[] = [
+  'scientific-overlay',
+  'custom-user',
+  'fictional-canon',
+];
+
 /**
- * Pure resolver gathering all canon layer annotations (`FS-001`) relevant to a focused
- * entity and its host star system, placing direct entity matches first.
+ * Dedicated hook resolving the numeric sort priority of a dataset layer kind.
+ * Defaults to factual/scientific overlays (`scientific-overlay`) first, followed by
+ * user-curated (`custom-user`) and fictional (`fictional-canon`) layers.
+ */
+export const resolveCanonLayerKindPriority = (
+  kind: DatasetLayerKind,
+  kindOrder: readonly DatasetLayerKind[] = DEFAULT_CANON_LAYER_KIND_ORDER,
+): number => {
+  const index = kindOrder.indexOf(kind);
+  return index >= 0 ? index : kindOrder.length;
+};
+
+/**
+ * Pure comparator for ordering `FocusedCanonAnnotation` records:
+ * 1. Explicit user-curated `layerIdOrder` (when provided)
+ * 2. Layer kind priority (`scientific-overlay` factual layers before `fictional-canon` layers)
+ * 3. Stable insertion order (preserving direct entity matches before system-wide matches within the same kind)
+ */
+export const sortCanonAnnotations = (
+  annotations: readonly FocusedCanonAnnotation[],
+  options?: CanonAnnotationOrderOptions,
+): readonly FocusedCanonAnnotation[] => {
+  const kindOrder = options?.kindOrder ?? DEFAULT_CANON_LAYER_KIND_ORDER;
+  const layerIdOrder = options?.layerIdOrder;
+
+  return annotations
+    .map((annotation, index) => ({ annotation, index }))
+    .sort((a, b) => {
+      if (layerIdOrder && layerIdOrder.length > 0) {
+        const rankA = layerIdOrder.indexOf(a.annotation.layerId);
+        const rankB = layerIdOrder.indexOf(b.annotation.layerId);
+        const normA = rankA >= 0 ? rankA : Number.POSITIVE_INFINITY;
+        const normB = rankB >= 0 ? rankB : Number.POSITIVE_INFINITY;
+        if (normA !== normB) {
+          return normA - normB;
+        }
+      }
+
+      const kindPriorityA = resolveCanonLayerKindPriority(
+        a.annotation.kind,
+        kindOrder,
+      );
+      const kindPriorityB = resolveCanonLayerKindPriority(
+        b.annotation.kind,
+        kindOrder,
+      );
+      if (kindPriorityA !== kindPriorityB) {
+        return kindPriorityA - kindPriorityB;
+      }
+
+      return a.index - b.index;
+    })
+    .map((entry) => entry.annotation);
+};
+
+/**
+ * Pure unit function building the URL to the System View for a given star system
+ * (`/system/<systemSlug>`, e.g. `/system/tau-ceti`).
+ */
+export const buildSystemDetailsHref = (systemNameOrId: string): string => {
+  const slug = toUrlSlug(systemNameOrId);
+  return `/system/${encodeURIComponent(slug || systemNameOrId.trim() || 'sol')}`;
+};
+
+/**
+ * Pure resolver gathering all canon layer annotations (`FS-001` / `FS-002`) relevant to a focused
+ * entity and its host star system, ordered with factual (`scientific-overlay`) layers before
+ * fictional (`fictional-canon`) layers and supporting user-curated layer ordering.
  */
 export const resolveFocusedCanonAnnotations = (
   targetId: string,
   systemId: string,
   activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  orderOptions?: CanonAnnotationOrderOptions,
 ): readonly FocusedCanonAnnotation[] => {
   const layersArray = [...activeLayers];
   const rawTargetKey = targetId.includes(':')
@@ -288,7 +367,7 @@ export const resolveFocusedCanonAnnotations = (
     });
   }
 
-  return annotations;
+  return sortCanonAnnotations(annotations, orderOptions);
 };
 
 const toCoordinatesTuple = (
@@ -373,6 +452,7 @@ export const buildFocusedEntityDetails = (
     systemDetail,
     entityDetail,
     activeLayers,
+    canonOrderOptions,
   } = input;
 
   if (!focusedEntity) {
@@ -507,8 +587,7 @@ export const buildFocusedEntityDetails = (
   });
 
   const systemSlug = toUrlSlug(systemName || systemId);
-  const focusSlug = toUrlSlug(focusedEntity.name || focusedEntity.id);
-  const centreHref = `/galaxy/${encodeURIComponent(systemSlug)}?center=${encodeURIComponent(focusSlug)}`;
+  const systemDetailsHref = buildSystemDetailsHref(systemName || systemId);
   const directionsHref = `/galaxy/${encodeURIComponent(systemSlug)}?anchor=sol`;
 
   const coordinatesPc: readonly [number, number, number] = sysManifest
@@ -526,6 +605,7 @@ export const buildFocusedEntityDetails = (
     focusedEntity.id,
     systemId,
     activeLayers,
+    canonOrderOptions,
   );
 
   const tags = summaryNode?.tags ?? [];
@@ -542,13 +622,13 @@ export const buildFocusedEntityDetails = (
     planetCompositionSummary,
     hasHabitableCandidate,
     systemSummary,
-    centreHref,
+    coordinatesPc,
+    sectorId,
+    tags,
+    systemDetailsHref,
     directionsHref,
     stars,
     planets,
     canonAnnotations,
-    coordinatesPc,
-    sectorId,
-    tags,
   };
 };

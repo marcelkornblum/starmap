@@ -31,9 +31,12 @@ import {
   buildFocusedEntityDetails,
   buildIntrinsicSystemSummary,
   buildPlanetCompositionSummary,
+  buildSystemDetailsHref,
   classifyExoplanetComposition,
   isExoplanetHabitableCandidate,
+  resolveCanonLayerKindPriority,
   resolveFocusedCanonAnnotations,
+  sortCanonAnnotations,
 } from '../src/services/detailsService';
 import {
   SEARCH_CATEGORIES,
@@ -847,7 +850,8 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(focusChildHtml).toContain('<h3 id="details-peek-heading">Peek</h3>');
     expect(focusChildHtml).toContain('<h3 id="details-partial-heading">Partial</h3>');
     expect(focusChildHtml).toContain('<h3 id="details-full-heading">Full</h3>');
-    expect(focusChildHtml).toContain('data-testid="details-button-centre"');
+    expect(focusChildHtml).toContain('data-testid="details-button-system-details"');
+    expect(focusChildHtml).toContain('href="/system/tau-ceti"');
     expect(focusChildHtml).toContain('data-testid="details-button-directions"');
     expect(focusChildHtml).toContain('Project Hail Mary');
     expect(focusChildHtml).toContain('Adrian');
@@ -878,9 +882,21 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     );
     expect(focusSystemHtml).toContain('<span data-testid="details-reticle-type">[stellar-system]</span>');
     expect(focusSystemHtml).toContain('4 planets');
-    expect(focusSystemHtml).toContain('Centre');
+    expect(focusSystemHtml).toContain(
+      '<a href="/system/tau-ceti" data-testid="details-button-system-details">Details</a>',
+    );
     expect(focusSystemHtml).toContain('Directions');
     expect(focusSystemHtml).toContain('Tau Ceti (Astrophage Destination)');
+    expect(focusSystemHtml).toContain('data-testid="details-canon-accordion"');
+
+    // Verify Peek contains systemSummary, and Partial contains Astrometry
+    const peekSplit = focusSystemHtml.split('data-testid="details-detent-partial"')[0] ?? '';
+    const partialSplit =
+      focusSystemHtml
+        .split('data-testid="details-detent-partial"')[1]
+        ?.split('data-testid="details-detent-full"')[0] ?? '';
+    expect(peekSplit).toContain('data-testid="details-system-summary"');
+    expect(partialSplit).toContain('data-testid="details-astrometry-section"');
 
     // 4. Navigating to '/galaxy' (nothing in URL) clears both focused and selected states and hides Details panel
     const cleanHtml = renderToString(
@@ -906,6 +922,8 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     // 1. DetailsPanel returns null when details is null
     expect(renderToString(createElement(DetailsPanel, { details: null }))).toBe('');
     expect(buildFocusedEntityDetails({ focusedEntity: null })).toBeNull();
+    expect(buildSystemDetailsHref('tau-ceti')).toBe('/system/tau-ceti');
+    expect(buildSystemDetailsHref('')).toBe('/system/sol');
 
     // 2. classifyExoplanetComposition & isExoplanetHabitableCandidate
     expect(classifyExoplanetComposition({ massMearth: 1.2, radiusRearth: 1.1 })).toBe('terrestrial');
@@ -984,15 +1002,35 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       }),
     ).toBe('Binary Star is a 2-star system hosting 1 confirmed planet.');
 
-    // 5. resolveFocusedCanonAnnotations
+    // 5. resolveFocusedCanonAnnotations & sortCanonAnnotations (factual before fictional, plus custom ordering)
+    expect(resolveCanonLayerKindPriority('scientific-overlay')).toBe(0);
+    expect(resolveCanonLayerKindPriority('custom-user')).toBe(1);
+    expect(resolveCanonLayerKindPriority('fictional-canon')).toBe(2);
+    expect(
+      resolveCanonLayerKindPriority(
+        'unknown-kind' as unknown as 'scientific-overlay',
+      ),
+    ).toBe(3);
+
     const annotations = resolveFocusedCanonAnnotations(
       'canon-project-hail-mary:tau-ceti-e',
       'gaia-2452378776434477184',
     );
-    expect(annotations[0]?.inUniverseName).toBe('Adrian');
+    // Factual 'scientific-overlay' layer appears first
+    expect(annotations[0]?.kind).toBe('scientific-overlay');
+    expect(annotations[0]?.layerTitle).toBe('Interstellar Missions & SETI Landmarks');
+    // Within 'fictional-canon', the direct planet annotation ('Adrian') appears before system-level annotations
+    expect(annotations[1]?.inUniverseName).toBe('Adrian');
     expect(annotations.some((a) => a.inUniverseName === 'Tau Ceti (Astrophage Destination)')).toBe(
       true,
     );
+
+    // Custom user-curated layerIdOrder overrides default ordering
+    const customOrdered = sortCanonAnnotations(annotations, {
+      layerIdOrder: ['canon-halo', 'canon-project-hail-mary'],
+    });
+    expect(customOrdered[0]?.layerId).toBe('canon-halo');
+    expect(customOrdered[1]?.layerId).toBe('canon-project-hail-mary');
 
     // 6. detailsRepository shard caching, decoding (sys, str, sol), and error handling
     clearDetailsRepositoryCache();

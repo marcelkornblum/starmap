@@ -57,12 +57,13 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
     starCount,
     planetCompositionSummary,
     systemSummary,
-    stars,
-    planets,
-    canonAnnotations,
     coordinatesPc,
     sectorId,
     tags,
+    systemDetailsHref,
+    stars,
+    planets,
+    canonAnnotations,
   } = details;
 
   const hasSpectBadge = shouldDisplaySpectralBadge(spectralType);
@@ -108,6 +109,9 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
         <p data-testid="details-planet-composition">
           {planetCompositionSummary}
         </p>
+        <p data-testid="details-system-summary">
+          {renderSummaryWithSpectralLink(systemSummary, spectralType)}
+        </p>
       </section>
 
       <section
@@ -115,13 +119,37 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
         data-testid="details-detent-partial"
       >
         <h3 id="details-partial-heading">Partial</h3>
-        <p data-testid="details-system-summary">
-          {renderSummaryWithSpectralLink(systemSummary, spectralType)}
-        </p>
+        <section
+          aria-labelledby="details-astrometry-heading"
+          data-testid="details-astrometry-section"
+        >
+          <h4 id="details-astrometry-heading">Astrometry</h4>
+          <dl data-testid="details-astrometry-list">
+            <dt>System ID</dt>
+            <dd data-testid="details-astrometry-system-id">{systemId}</dd>
+            <dt>Sector</dt>
+            <dd data-testid="details-astrometry-sector">{sectorId}</dd>
+            <dt>Coordinates (J2000 pc)</dt>
+            <dd data-testid="details-astrometry-coords">
+              {`${coordinatesPc[0]}, ${coordinatesPc[1]}, ${coordinatesPc[2]}`}
+            </dd>
+            {tags.length > 0 ? (
+              <>
+                <dt>Tags</dt>
+                <dd data-testid="details-astrometry-tags">
+                  {tags.join(', ')}
+                </dd>
+              </>
+            ) : null}
+          </dl>
+        </section>
         <div data-testid="details-actions">
-          <button type="button" data-testid="details-button-centre">
-            Centre
-          </button>{' '}
+          <a
+            href={systemDetailsHref}
+            data-testid="details-button-system-details"
+          >
+            Details
+          </a>{' '}
           <button type="button" data-testid="details-button-directions">
             Directions
           </button>
@@ -146,23 +174,28 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                   key={`${annotation.layerId}:${annotation.targetId}`}
                   data-testid="details-canon-item"
                   data-layer-id={annotation.layerId}
+                  data-layer-kind={annotation.kind}
                   data-target-id={annotation.targetId}
                 >
-                  <strong>
-                    <a
-                      href={
-                        annotation.layerHref ||
-                        buildCanonLayerGalaxyHref(annotation.layerId)
-                      }
-                      data-testid="details-canon-link"
-                    >
-                      {annotation.layerTitle}
-                    </a>
-                  </strong>
-                  {annotation.inUniverseName
-                    ? ` — ${annotation.inUniverseName}`
-                    : ''}
-                  {`: ${annotation.text}`}
+                  <details data-testid="details-canon-accordion">
+                    <summary data-testid="details-canon-summary">
+                      <strong>
+                        <a
+                          href={
+                            annotation.layerHref ||
+                            buildCanonLayerGalaxyHref(annotation.layerId)
+                          }
+                          data-testid="details-canon-link"
+                        >
+                          {annotation.layerTitle}
+                        </a>
+                      </strong>
+                      {annotation.inUniverseName
+                        ? ` — ${annotation.inUniverseName}`
+                        : ''}
+                    </summary>
+                    <p data-testid="details-canon-text">{annotation.text}</p>
+                  </details>
                 </li>
               ))}
             </ul>
@@ -233,31 +266,6 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
             </ul>
           </section>
         ) : null}
-
-        <section
-          aria-labelledby="details-astrometry-heading"
-          data-testid="details-astrometry-section"
-        >
-          <h4 id="details-astrometry-heading">Astrometry</h4>
-          <dl data-testid="details-astrometry-list">
-            <dt>System ID</dt>
-            <dd data-testid="details-astrometry-system-id">{systemId}</dd>
-            <dt>Sector</dt>
-            <dd data-testid="details-astrometry-sector">{sectorId}</dd>
-            <dt>Coordinates (J2000 pc)</dt>
-            <dd data-testid="details-astrometry-coords">
-              {`${coordinatesPc[0]}, ${coordinatesPc[1]}, ${coordinatesPc[2]}`}
-            </dd>
-            {tags.length > 0 ? (
-              <>
-                <dt>Tags</dt>
-                <dd data-testid="details-astrometry-tags">
-                  {tags.join(', ')}
-                </dd>
-              </>
-            ) : null}
-          </dl>
-        </section>
       </section>
     </section>
   );
