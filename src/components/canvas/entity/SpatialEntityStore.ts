@@ -14,6 +14,7 @@ export interface SpatialEntityState {
   entities: Record<string, SpatialEntityDefinition>;
   hoveredId: string | null;
   selectedId: string | null;
+  selectedIds: Set<string>;
   focusedId: string | null;
   apertureIds: Set<string>;
 
@@ -22,6 +23,7 @@ export interface SpatialEntityState {
   updateEntity: (id: string, updates: Partial<SpatialEntityDefinition>) => void;
   setHovered: (id: string | null) => void;
   setSelected: (id: string | null) => void;
+  setSelectedIds: (ids: Iterable<string>) => void;
   setFocused: (id: string | null) => void;
   setEntityInAperture: (id: string, inAperture: boolean) => void;
   setApertureIds: (ids: Set<string>) => void;
@@ -32,28 +34,53 @@ export interface SpatialEntityState {
 
 export const createSpatialEntityStore = (initial?: {
   selectedId?: string | null;
+  selectedIds?: Iterable<string>;
   focusedId?: string | null;
   hoveredId?: string | null;
   apertureIds?: Set<string>;
 }) => {
+  const initialSelectedSet = new Set<string>(
+    initial?.selectedIds ?? (initial?.selectedId ? [initial.selectedId] : []),
+  );
+  const initialSelectedId =
+    initial?.selectedId !== undefined
+      ? initial.selectedId
+      : (initialSelectedSet.values().next().value ?? null);
+
   return createStore<SpatialEntityState>((set, get) => ({
     entities: {},
     hoveredId: initial?.hoveredId ?? null,
-    selectedId: initial?.selectedId ?? null,
+    selectedId: initialSelectedId,
+    selectedIds: initialSelectedSet,
     focusedId: initial?.focusedId ?? null,
     apertureIds: initial?.apertureIds ?? new Set<string>(),
 
     registerEntity: (entity) => {
-      set((state) => ({
-        entities: {
-          ...state.entities,
-          [entity.id]: entity,
-        },
-      }));
+      set((state) => {
+        const existing = state.entities[entity.id];
+        if (
+          existing &&
+          existing.name === entity.name &&
+          existing.classification === entity.classification &&
+          existing.spectralType === entity.spectralType &&
+          existing.position === entity.position
+        ) {
+          return state;
+        }
+        return {
+          entities: {
+            ...state.entities,
+            [entity.id]: entity,
+          },
+        };
+      });
     },
 
     unregisterEntity: (id) => {
       set((state) => {
+        if (!(id in state.entities) && !state.apertureIds.has(id)) {
+          return state;
+        }
         const next = { ...state.entities };
         delete next[id];
         let nextAperture = state.apertureIds;
@@ -78,9 +105,43 @@ export const createSpatialEntityStore = (initial?: {
       });
     },
 
-    setHovered: (id) => set({ hoveredId: id }),
-    setSelected: (id) => set({ selectedId: id }),
-    setFocused: (id) => set({ focusedId: id }),
+    setHovered: (id) =>
+      set((state) => (state.hoveredId === id ? state : { hoveredId: id })),
+
+    setSelected: (id) =>
+      set((state) => {
+        if (
+          state.selectedId === id &&
+          state.selectedIds.size === (id ? 1 : 0) &&
+          (id === null || state.selectedIds.has(id))
+        ) {
+          return state;
+        }
+        return {
+          selectedId: id,
+          selectedIds: id ? new Set<string>([id]) : new Set<string>(),
+        };
+      }),
+
+    setSelectedIds: (ids) =>
+      set((state) => {
+        const nextSelectedIds = new Set<string>(ids);
+        const nextSelectedId = nextSelectedIds.values().next().value ?? null;
+        if (
+          state.selectedId === nextSelectedId &&
+          state.selectedIds.size === nextSelectedIds.size &&
+          Array.from(nextSelectedIds).every((item) => state.selectedIds.has(item))
+        ) {
+          return state;
+        }
+        return {
+          selectedId: nextSelectedId,
+          selectedIds: nextSelectedIds,
+        };
+      }),
+
+    setFocused: (id) =>
+      set((state) => (state.focusedId === id ? state : { focusedId: id })),
 
     setEntityInAperture: (id, inAperture) => {
       set((state) => {

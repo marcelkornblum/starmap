@@ -143,6 +143,30 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       const inAperture = store.getState().getEntitiesInAperture(center, 10);
       expect(inAperture.map((e) => e.id)).toEqual(['a', 'b']);
     });
+
+    it('supports multi-entity selection via setSelectedIds and queries entities by state', () => {
+      store.getState().registerEntity({ id: 'sol', name: 'Sol', position: [0, 0, 0] });
+      store.getState().registerEntity({ id: 'tau-ceti', name: 'Tau Ceti', position: [-3.1, -0.4, -2.0] });
+      store.getState().registerEntity({ id: 'keid', name: 'Keid', position: [-2.5, -3.6, -2.4] });
+
+      store.getState().setSelectedIds(['sol', 'tau-ceti']);
+      expect(store.getState().selectedId).toBe('sol');
+      expect(store.getState().getEntitiesByState('selected').map((e) => e.id)).toEqual(['sol', 'tau-ceti']);
+
+      // Re-setting identical selection set is idempotent
+      store.getState().setSelectedIds(['sol', 'tau-ceti']);
+      expect(store.getState().getEntitiesByState('selected').map((e) => e.id)).toEqual(['sol', 'tau-ceti']);
+
+      // Focusing one of the selected entities promotes it to focused tier
+      store.getState().setFocused('tau-ceti');
+      expect(store.getState().getEntitiesByState('focused').map((e) => e.id)).toEqual(['tau-ceti']);
+      expect(store.getState().getEntitiesByState('selected').map((e) => e.id)).toEqual(['sol']);
+
+      // Clearing selection removes entities from selected state
+      store.getState().setSelectedIds([]);
+      expect(store.getState().selectedId).toBeNull();
+      expect(store.getState().getEntitiesByState('selected')).toEqual([]);
+    });
   });
 
   describe('BodyMarker primitive (Layer 1: Physical System Node)', () => {

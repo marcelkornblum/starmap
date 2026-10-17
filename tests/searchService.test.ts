@@ -1,6 +1,8 @@
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import {
   SearchResultItem,
   formatPlanetCountSummary,
@@ -21,6 +23,9 @@ import {
   buildUpdatedSearchUrl,
   compareSearchResultItems,
   executeCatalogSearch,
+  extractUrlFocusSlug,
+  findFocusedEntryInCorpus,
+  formatSlugFallbackTitle,
   isArtificialSpacecraftEntry,
   isChildOfHostSystem,
   isSearchCategoryFilter,
@@ -28,13 +33,16 @@ import {
   parseSearchUrlParams,
   resolveEntityKind,
   resolveEntryCategory,
+  resolveFocusedEntityFromCorpus,
   resolveResultDisplayTitle,
   resolveResultSystemTitle,
   resolveReticleType,
+  resolveSelectedSystemsFromSearchResults,
   scoreSearchEntry,
   toSearchResultItem,
 } from '../src/services/searchService';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
+import { MainView } from '../src/views/MainView';
 
 const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
   {
@@ -620,6 +628,228 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       globalThis.fetch = originalFetch;
       clearSearchRepositoryCache();
     }
+  });
+
+  it('resolves selected systems from both direct system results and non-system results (planets, minor bodies, fiction)', () => {
+    // Direct star system + child planets/fiction in Tau Ceti deduplicate to Tau Ceti
+    const tauResults = executeCatalogSearch(SAMPLE_CORPUS, {
+      query: 'Tau Ceti',
+      filter: 'all',
+    });
+    const tauSelected = resolveSelectedSystemsFromSearchResults(tauResults);
+    expect(tauSelected).toEqual([
+      {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        position: [-3.1, -0.4, -2.0],
+        classification: 'stellar-system',
+        spectralType: 'G8V',
+      },
+    ]);
+
+    // Non-system minor body ("433 Eros") resolves its parent system ("Sol")
+    const erosResults = executeCatalogSearch(SAMPLE_CORPUS, {
+      query: '433 Eros',
+      filter: 'all',
+    });
+    const erosSelected = resolveSelectedSystemsFromSearchResults(erosResults);
+    expect(erosSelected).toEqual([
+      {
+        id: 'sol',
+        name: 'Sol',
+        position: [0, 0, 0],
+        classification: 'stellar-system',
+      },
+    ]);
+
+    // Non-system fictional planet ("Vulcan") with filter='fiction' resolves parent system ("Keid")
+    const vulcanResults = executeCatalogSearch(SAMPLE_CORPUS, {
+      query: 'Vulcan',
+      filter: 'fiction',
+    });
+    const vulcanSelected = resolveSelectedSystemsFromSearchResults(vulcanResults);
+    expect(vulcanSelected).toEqual([
+      {
+        id: 'gaia-3195919528989223040',
+        name: 'Keid',
+        position: [-2.5, -3.6, -2.4],
+        classification: 'stellar-system',
+      },
+    ]);
+
+    // Non-system child body without systemName falls back to systemId and [0,0,0] when position is absent
+    const orphanChildResults = executeCatalogSearch(
+      [
+        {
+          i: 'orphan-planet',
+          k: 2,
+          n: 'Orphan Planet',
+          s: 'custom-sys-1',
+          a: 'orphanplanet',
+        },
+      ],
+      { query: 'Orphan Planet' },
+    );
+    expect(resolveSelectedSystemsFromSearchResults(orphanChildResults)).toEqual([
+      {
+        id: 'custom-sys-1',
+        name: 'custom-sys-1',
+        position: [0, 0, 0],
+        classification: 'stellar-system',
+      },
+    ]);
+
+    // Galactic structure without systemId produces no selected star system
+    const nebulaResults = executeCatalogSearch(SAMPLE_CORPUS, {
+      query: 'Orion Nebula',
+      filter: 'structures',
+    });
+    expect(resolveSelectedSystemsFromSearchResults(nebulaResults)).toEqual([]);
+
+    // Empty search produces no selected systems
+    const emptyResults = executeCatalogSearch(SAMPLE_CORPUS, { query: '' });
+    expect(resolveSelectedSystemsFromSearchResults(emptyResults)).toEqual([]);
+  });
+
+  it('extracts URL focus slugs and resolves focused entities from corpus or fallback', () => {
+    expect(extractUrlFocusSlug('/galaxy/tau-ceti', '')).toBe('tau-ceti');
+    expect(extractUrlFocusSlug('/galaxy/tau-ceti', '?focus=tau-ceti-e')).toBe('tau-ceti-e');
+    expect(extractUrlFocusSlug('/system/sol', '?focus=earth')).toBe('earth');
+    expect(extractUrlFocusSlug('/galaxy/---', '?focus=---')).toBeNull();
+    expect(extractUrlFocusSlug('/', '')).toBeNull();
+    expect(extractUrlFocusSlug('/galaxy', '?q=Tau+Ceti')).toBeNull();
+    expect(extractUrlFocusSlug('/search', '?q=Tau+Ceti')).toBeNull();
+
+    expect(formatSlugFallbackTitle('tau-ceti')).toBe('Tau Ceti');
+    expect(findFocusedEntryInCorpus('   ', SAMPLE_CORPUS)).toBeUndefined();
+    expect(resolveFocusedEntityFromCorpus('   ', SAMPLE_CORPUS)).toBeNull();
+
+    // Resolves star system when slug matches both star system and child/fictional entry
+    const focusedTau = resolveFocusedEntityFromCorpus('tau-ceti', SAMPLE_CORPUS);
+    expect(focusedTau).toEqual({
+      id: 'gaia-2452378776434477184',
+      name: 'Tau Ceti',
+      position: [-3.1, -0.4, -2.0],
+      classification: 'stellar-system',
+      spectralType: 'G8V',
+    });
+
+    // Resolves child planet when ?focus=tau-ceti-e is in URL
+    const focusedPlanet = resolveFocusedEntityFromCorpus('tau-ceti-e', SAMPLE_CORPUS);
+    expect(focusedPlanet).toEqual({
+      id: 'tau-ceti-e',
+      name: 'tau Ceti e',
+      position: [-3.1, -0.4, -2.0],
+      classification: 'terrestrial',
+    });
+
+    // Resolves body without explicit position (e.g. Earth in Sol) to [0, 0, 0]
+    const focusedEarth = resolveFocusedEntityFromCorpus('earth', SAMPLE_CORPUS);
+    expect(focusedEarth).toEqual({
+      id: 'earth',
+      name: 'Earth',
+      position: [0, 0, 0],
+      classification: 'terrestrial',
+    });
+
+    // Falls back cleanly when corpus is not yet loaded
+    expect(resolveFocusedEntityFromCorpus('tau-ceti', [])).toEqual({
+      id: 'tau-ceti',
+      name: 'Tau Ceti',
+      position: [0, 0, 0],
+      classification: 'stellar-system',
+    });
+  });
+
+  it('renders Systems panel in MainView with Focused and Selected lists synchronized to search results and URL', () => {
+    const store = createSpatialEntityStore();
+
+    // 1. Searching on '/' selects matching systems and parent systems of non-system results, with nothing focused
+    const searchHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store },
+        createElement(MainView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/',
+          locationSearch: '?q=Adrian',
+        }),
+      ),
+    );
+
+    expect(searchHtml).toContain('<h2 id="systems-panel-heading">Systems</h2>');
+    expect(searchHtml).toContain('<h3 id="systems-focused-heading">Focused</h3>');
+    expect(searchHtml).toContain('<h3 id="systems-selected-heading">Selected</h3>');
+    // "Adrian" is a fictional entry in the Tau Ceti system -> Tau Ceti becomes selected
+    expect(store.getState().getEntitiesByState('selected').map((e) => e.name)).toEqual([
+      'Tau Ceti',
+    ]);
+    expect(store.getState().getEntitiesByState('focused')).toEqual([]);
+    expect(searchHtml).toContain(
+      '<li data-testid="systems-selected-item" data-entity-id="gaia-2452378776434477184">Tau Ceti</li>',
+    );
+    expect(searchHtml).toContain('<ul data-testid="systems-focused-list"></ul>');
+
+    // 2. Clicking through to '/galaxy/tau-ceti?focus=tau-ceti-e' clears selected (since ?q= is not in URL) and focuses 'tau Ceti e'
+    const focusChildHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store },
+        createElement(MainView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/galaxy/tau-ceti',
+          locationSearch: '?focus=tau-ceti-e',
+        }),
+      ),
+    );
+
+    expect(store.getState().getEntitiesByState('selected')).toEqual([]);
+    expect(store.getState().getEntitiesByState('focused').map((e) => e.name)).toEqual([
+      'tau Ceti e',
+    ]);
+    expect(focusChildHtml).toContain(
+      '<li data-testid="systems-focused-item" data-entity-id="tau-ceti-e">tau Ceti e</li>',
+    );
+    expect(focusChildHtml).toContain('<ul data-testid="systems-selected-list"></ul>');
+
+    // 3. Clicking through to '/galaxy/tau-ceti' focuses 'Tau Ceti'
+    const focusSystemHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store },
+        createElement(MainView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/galaxy/tau-ceti',
+          locationSearch: '',
+        }),
+      ),
+    );
+
+    expect(store.getState().getEntitiesByState('selected')).toEqual([]);
+    expect(store.getState().getEntitiesByState('focused').map((e) => e.name)).toEqual([
+      'Tau Ceti',
+    ]);
+    expect(focusSystemHtml).toContain(
+      '<li data-testid="systems-focused-item" data-entity-id="gaia-2452378776434477184">Tau Ceti</li>',
+    );
+
+    // 4. Navigating to '/galaxy' (nothing in URL) clears both focused and selected states
+    const cleanHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store },
+        createElement(MainView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/galaxy',
+          locationSearch: '',
+        }),
+      ),
+    );
+
+    expect(store.getState().getEntitiesByState('focused')).toEqual([]);
+    expect(store.getState().getEntitiesByState('selected')).toEqual([]);
+    expect(cleanHtml).toContain('<ul data-testid="systems-focused-list"></ul>');
+    expect(cleanHtml).toContain('<ul data-testid="systems-selected-list"></ul>');
   });
 });
 

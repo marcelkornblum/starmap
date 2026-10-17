@@ -1,4 +1,5 @@
 import type { CelestialClassification } from '../components/canvas/cartography/reticleGeometry';
+import type { SpatialEntityDefinition } from '../components/canvas/entity/types';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 import { expandGouldOrConstellationSuffix, normalizeCleanKey } from '../utils/nomenclature';
 
@@ -633,7 +634,7 @@ export const executeCatalogSearch = (
     return createEmptyGroupedResults(normalised.rawTrimmed, filter);
   }
 
-  const systemNameById = new Map<string, string>();
+  const systemNameById = new Map<string, string>([['sol', 'Sol']]);
   const stronglyMatchedSystemIds = new Set<string>();
 
   if (options.systemEntries) {
@@ -720,3 +721,161 @@ export const executeCatalogSearch = (
     groups,
   };
 };
+
+/**
+ * Pure unit function resolving all deduplicated star system entities that should be
+ * marked `selected` in `SpatialEntityStore` from a set of grouped search results.
+ * Includes direct star-system results as well as the parent star systems (`systemId`)
+ * of non-system-level results (planets, moons, dwarf planets, minor bodies, fictional entries).
+ */
+export const resolveSelectedSystemsFromSearchResults = (
+  results: GroupedSearchResults,
+): readonly SpatialEntityDefinition[] => {
+  const systemsById = new Map<string, SpatialEntityDefinition>();
+
+  for (const meta of SEARCH_CATEGORIES) {
+    const group = results.groups[meta.key];
+    for (const item of group.items) {
+      if (item.category === 'stars') {
+        systemsById.set(item.id, {
+          id: item.id,
+          name: item.name,
+          position: item.position
+            ? [item.position[0], item.position[1], item.position[2]]
+            : [0, 0, 0],
+          classification: item.reticleType,
+          ...(item.spectralType ? { spectralType: item.spectralType } : {}),
+        });
+      } else if (item.systemId && !systemsById.has(item.systemId)) {
+        const resolvedSystemName =
+          item.systemName ??
+          (item.systemId === 'sol' ? 'Sol' : item.systemId);
+        systemsById.set(item.systemId, {
+          id: item.systemId,
+          name: resolvedSystemName,
+          position: item.position
+            ? [item.position[0], item.position[1], item.position[2]]
+            : [0, 0, 0],
+          classification: 'stellar-system',
+        });
+      }
+    }
+  }
+
+  return Array.from(systemsById.values());
+};
+
+/**
+ * Pure parser extracting the focused target slug from a URL `pathname` and `searchString`.
+ * Priority:
+ * 1. Explicit `?focus=<slug>` query parameter (e.g. `/galaxy/tau-ceti?focus=tau-ceti-e`)
+ * 2. Route path segment `/galaxy/$systemId` or `/system/$systemId` (e.g. `/galaxy/tau-ceti`)
+ * 3. `null` when no focus parameter or system route segment is present in the URL.
+ */
+export const extractUrlFocusSlug = (
+  pathname: string,
+  searchString: string,
+): string | null => {
+  const params = new URLSearchParams(searchString);
+  const focusParam = params.get('focus');
+  if (focusParam) {
+    const slug = toUrlSlug(focusParam);
+    if (slug.length > 0) {
+      return slug;
+    }
+  }
+
+  const routeMatch = /^\/(?:galaxy|system)\/([^/?#]+)/i.exec(pathname.trim());
+  if (routeMatch?.[1]) {
+    const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
+    if (slug.length > 0) {
+      return slug;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Pure formatter turning a URL slug (e.g. `'tau-ceti'`) into a human-readable fallback title (`'Tau Ceti'`).
+ */
+export const formatSlugFallbackTitle = (slug: string): string =>
+  slug
+    .trim()
+    .split(/[-_\s]+/)
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+/**
+ * Pure lookup finding the matching `CompactSearchEntry` in a corpus for a focused URL slug or ID.
+ * Prefers direct star-system entries when multiple entries share the same slug.
+ */
+export const findFocusedEntryInCorpus = (
+  focusSlug: string,
+  corpus: readonly CompactSearchEntry[],
+): CompactSearchEntry | undefined => {
+  const targetSlug = toUrlSlug(focusSlug);
+  const targetLower = focusSlug.trim().toLowerCase();
+  if (!targetSlug) {
+    return undefined;
+  }
+
+  let nonStarMatch: CompactSearchEntry | undefined;
+
+  for (const entry of corpus) {
+    const idLower = entry.i.toLowerCase();
+    const nameSlug = toUrlSlug(resolveResultDisplayTitle(entry));
+    const idSlug = toUrlSlug(entry.i);
+
+    if (
+      idLower === targetLower ||
+      nameSlug === targetSlug ||
+      idSlug === targetSlug
+    ) {
+      if (resolveEntryCategory(entry) === 'stars') {
+        return entry;
+      }
+      if (!nonStarMatch) {
+        nonStarMatch = entry;
+      }
+    }
+  }
+
+  return nonStarMatch;
+};
+
+/**
+ * Pure unit function resolving the `SpatialEntityDefinition` to mark `focused` in
+ * `SpatialEntityStore` from a URL focus slug and search corpus.
+ */
+export const resolveFocusedEntityFromCorpus = (
+  focusSlug: string,
+  corpus: readonly CompactSearchEntry[],
+): SpatialEntityDefinition | null => {
+  const targetSlug = toUrlSlug(focusSlug);
+  if (!targetSlug) {
+    return null;
+  }
+
+  const matched = findFocusedEntryInCorpus(focusSlug, corpus);
+  if (matched) {
+    return {
+      id: matched.i,
+      name: resolveResultDisplayTitle(matched),
+      position: matched.p
+        ? [matched.p[0], matched.p[1], matched.p[2]]
+        : [0, 0, 0],
+      classification: resolveReticleType(matched),
+      ...(matched.m?.[1] ? { spectralType: matched.m[1] } : {}),
+    };
+  }
+
+  return {
+    id: targetSlug,
+    name: formatSlugFallbackTitle(targetSlug),
+    position: [0, 0, 0],
+    classification: 'stellar-system',
+  };
+};
+
