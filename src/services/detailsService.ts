@@ -608,7 +608,33 @@ export const buildFocusedEntityDetails = (
     canonOrderOptions,
   );
 
-  const tags = summaryNode?.tags ?? [];
+  const fallbackTags: string[] = [];
+  if (!summaryNode?.tags) {
+    if (systemId === 'sol' || matchedSystemEntry?.h === 1) {
+      fallbackTags.push('HomeSystem');
+    }
+    const [cx, cy, cz] = coordinatesPc;
+    const distPc = Math.sqrt(cx * cx + cy * cy + cz * cz);
+    if (
+      (distPc > 0 && distPc <= 10) ||
+      systemId === 'sol' ||
+      matchedSystemEntry?.h === 1
+    ) {
+      fallbackTags.push('SolarNeighborhood10pc');
+    }
+    const apparentMag = matchedSystemEntry?.m?.[0] ?? matchedCorpusEntry?.m?.[0];
+    if (apparentMag !== undefined && apparentMag <= 6.5) {
+      fallbackTags.push('NakedEye');
+    }
+    if (planetCount > 0) {
+      fallbackTags.push('ExoplanetHost');
+    }
+    if (hasHabitableCandidate) {
+      fallbackTags.push('HabitableCandidate');
+    }
+  }
+
+  const tags = summaryNode?.tags ?? fallbackTags;
 
   return {
     id: focusedEntity.id,

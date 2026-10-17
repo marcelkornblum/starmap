@@ -12,6 +12,8 @@ import {
   mainSystemRoute,
   starTypesListRoute,
   starTypeDetailRoute,
+  planetTypesListRoute,
+  planetTypeDetailRoute,
   pocIndexRoute,
   galaxyRoute,
   systemRoute,
@@ -19,6 +21,8 @@ import {
   referenceRoute,
 } from '../src/router';
 import { MainView } from '../src/views/MainView';
+import { PlanetTypeDetailView } from '../src/views/PlanetTypeDetailView';
+import { PlanetTypesListView } from '../src/views/PlanetTypesListView';
 import { SearchView } from '../src/views/SearchView';
 import { StarTypeDetailView } from '../src/views/StarTypeDetailView';
 import { StarTypesListView } from '../src/views/StarTypesListView';
@@ -48,6 +52,8 @@ describe('TanStack Router Architecture', () => {
     expect(flatRoutes['/system/$systemId']).toBeDefined();
     expect(flatRoutes['/guide/star-types']).toBeDefined();
     expect(flatRoutes['/guide/star-types/$starType']).toBeDefined();
+    expect(flatRoutes['/guide/planet-types']).toBeDefined();
+    expect(flatRoutes['/guide/planet-types/$planetType']).toBeDefined();
     expect(flatRoutes['/poc']).toBeDefined();
     expect(router.routesById['/poc/']).toBeDefined();
     expect(flatRoutes['/poc/galaxy']).toBeDefined();
@@ -59,7 +65,7 @@ describe('TanStack Router Architecture', () => {
   it('contains expected route tree structure', () => {
     expect(routeTree).toBeDefined();
     expect(routeTree.children).toBeDefined();
-    expect(routeTree.children?.length).toBe(8);
+    expect(routeTree.children?.length).toBe(10);
   });
 
   it('validates search parameters correctly on rootRoute across all branches', () => {
@@ -124,6 +130,8 @@ describe('TanStack Router Architecture', () => {
     expect(mainSystemRoute.options.component).toBe(SystemView);
     expect(starTypesListRoute.options.component).toBe(StarTypesListView);
     expect(starTypeDetailRoute.options.component).toBe(StarTypeDetailView);
+    expect(planetTypesListRoute.options.component).toBe(PlanetTypesListView);
+    expect(planetTypeDetailRoute.options.component).toBe(PlanetTypeDetailView);
     const html = renderToString(createElement(MainView));
 
     expect(html).toContain('data-testid="clean-slate-root"');

@@ -20,12 +20,14 @@ import {
   executeCatalogSearch,
   extractUrlCanonLayerId,
   extractUrlFocusSlug,
+  extractUrlTagFocus,
   findFocusedEntryInCorpus,
   isSearchCategoryFilter,
   parseSearchUrlParams,
   resolveFocusedEntityFromCorpus,
   resolveSelectedSystemsFromCanonLayer,
   resolveSelectedSystemsFromSearchResults,
+  resolveSelectedSystemsFromTag,
   type GroupedSearchResults,
   type SearchCategoryFilter,
   type SearchResultItem,
@@ -102,9 +104,15 @@ const syncSelectedSystemsToStore = (
     results.query.trim().length === 0
       ? extractUrlCanonLayerId(activeSearch)
       : null;
+  const tagFocus =
+    results.query.trim().length === 0 && !canonLayerId
+      ? extractUrlTagFocus(activeSearch)
+      : null;
   const selectedSystems = canonLayerId
     ? resolveSelectedSystemsFromCanonLayer(canonLayerId, corpus)
-    : resolveSelectedSystemsFromSearchResults(results);
+    : tagFocus
+      ? resolveSelectedSystemsFromTag(tagFocus, corpus)
+      : resolveSelectedSystemsFromSearchResults(results);
   const state = store.getState();
   for (const system of selectedSystems) {
     state.registerEntity(system);

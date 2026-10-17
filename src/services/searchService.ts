@@ -784,6 +784,96 @@ export const buildStarTypeGuideHref = (spectralType: string): string => {
   return `${STAR_TYPES_GUIDE_PATH}/${encodeURIComponent(trimmed)}`;
 };
 
+export const PLANET_TYPES_GUIDE_PATH = '/guide/planet-types' as const;
+
+export const PLANET_COMPOSITION_TYPES = [
+  'terrestrial',
+  'ice-giant',
+  'gas-giant',
+] as const;
+
+/**
+ * Pure unit function building the URL to the Planet Type Guide view for a given
+ * planetary composition class (`/guide/planet-types/<planetType>`, e.g. `/guide/planet-types/terrestrial`).
+ * Falls back to the Planet Types list view (`/guide/planet-types`) when the class is empty or `'Unknown'`.
+ */
+export const buildPlanetTypeGuideHref = (planetType?: string): string => {
+  if (!planetType) {
+    return PLANET_TYPES_GUIDE_PATH;
+  }
+  const trimmed = planetType.trim();
+  if (!trimmed || trimmed === 'Unknown') {
+    return PLANET_TYPES_GUIDE_PATH;
+  }
+  return `${PLANET_TYPES_GUIDE_PATH}/${encodeURIComponent(trimmed)}`;
+};
+
+export const KNOWN_SYSTEM_TAGS = [
+  'HomeSystem',
+  'SolarNeighborhood10pc',
+  'NakedEye',
+  'ExoplanetHost',
+  'HabitableCandidate',
+  'VariableStar',
+  'RECONSGroundTruth',
+  'HabitableHost',
+] as const;
+
+/**
+ * Pure unit function building the URL to the Galaxy View with a tag focus query parameter
+ * (`/galaxy?focus=<tag>`, e.g. `/galaxy?focus=ExoplanetHost`).
+ */
+export const buildTagGalaxyHref = (tag: string): string => {
+  const trimmed = tag.trim();
+  const params = new URLSearchParams({ focus: trimmed });
+  return `/galaxy?${params.toString()}`;
+};
+
+/**
+ * Pure unit function checking whether a candidate string matches a known catalog system tag
+ * or a canon layer annotation tag.
+ */
+export const isCatalogOrCanonTag = (
+  candidateTag: string,
+  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+): boolean => {
+  const trimmed = candidateTag.trim();
+  if (!trimmed) {
+    return false;
+  }
+  const lower = trimmed.toLowerCase();
+  if (KNOWN_SYSTEM_TAGS.some((tag) => tag.toLowerCase() === lower)) {
+    return true;
+  }
+  for (const layer of activeLayers) {
+    for (const entry of Object.values(layer.entries)) {
+      if (entry.tags?.some((tag) => tag.toLowerCase() === lower)) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+/**
+ * Pure parser extracting an active catalog or canon tag from a URL search string (`?focus=<tag>`).
+ */
+export const extractUrlTagFocus = (
+  searchString: string,
+  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+): string | null => {
+  const params = new URLSearchParams(searchString);
+  const focusParam = params.get('focus');
+  if (
+    focusParam &&
+    !findCanonLayerById(focusParam, activeLayers) &&
+    isCatalogOrCanonTag(focusParam, activeLayers)
+  ) {
+    return focusParam.trim();
+  }
+  return null;
+};
+
 /**
  * Pure unit function building the URL to the Galaxy View with a canon layer query parameter
  * (`/galaxy?focus=<layerId>`, e.g. `/galaxy?focus=canon-project-hail-mary`).
@@ -845,7 +935,8 @@ export const extractUrlCanonLayerId = (
  * Pure parser extracting the focused target slug from a URL `pathname` and `searchString`.
  * Priority:
  * 1. Explicit `?focus=<slug>` query parameter (e.g. `/galaxy/tau-ceti?focus=tau-ceti-e`),
- *    excluding canon layer IDs (`?focus=canon-project-hail-mary`) which select canon systems instead.
+ *    excluding canon layer IDs (`?focus=canon-project-hail-mary`) and catalog/canon tags
+ *    (`?focus=ExoplanetHost`) which select matching systems instead.
  * 2. Route path segment `/galaxy/$systemId` or `/system/$systemId` (e.g. `/galaxy/tau-ceti`)
  * 3. `null` when no entity focus parameter or system route segment is present in the URL.
  */
@@ -856,7 +947,11 @@ export const extractUrlFocusSlug = (
 ): string | null => {
   const params = new URLSearchParams(searchString);
   const focusParam = params.get('focus');
-  if (focusParam && !findCanonLayerById(focusParam, activeLayers)) {
+  if (
+    focusParam &&
+    !findCanonLayerById(focusParam, activeLayers) &&
+    !isCatalogOrCanonTag(focusParam, activeLayers)
+  ) {
     const slug = toUrlSlug(focusParam);
     if (slug.length > 0) {
       return slug;
@@ -921,6 +1016,132 @@ export const findFocusedEntryInCorpus = (
   }
 
   return nonStarMatch;
+};
+
+/**
+ * Pure predicate determining whether a star-system `CompactSearchEntry` satisfies
+ * a catalog system tag (`SolarNeighborhood10pc`, `NakedEye`, `ExoplanetHost`, etc.).
+ */
+export const doesSystemEntryMatchTag = (
+  entry: CompactSearchEntry,
+  tag: string,
+): boolean => {
+  if (resolveEntryCategory(entry) !== 'stars') {
+    return false;
+  }
+  const tagLower = tag.trim().toLowerCase();
+  if (!tagLower) {
+    return false;
+  }
+
+  if (tagLower === 'homesystem') {
+    return entry.h === 1 || entry.i.toLowerCase() === 'sol';
+  }
+  if (
+    tagLower === 'solarneighborhood10pc' ||
+    tagLower === 'reconsgroundtruth'
+  ) {
+    if (entry.h === 1 || entry.i.toLowerCase() === 'sol') {
+      return true;
+    }
+    if (!entry.p) {
+      return false;
+    }
+    const [x, y, z] = entry.p;
+    return Math.sqrt(x * x + y * y + z * z) <= 10;
+  }
+  if (tagLower === 'nakedeye') {
+    return (
+      entry.h === 1 ||
+      (entry.m?.[0] !== undefined && entry.m[0] <= 6.5)
+    );
+  }
+  if (tagLower === 'exoplanethost') {
+    return (entry.m?.[2] ?? 0) > 0;
+  }
+  if (tagLower === 'habitablecandidate' || tagLower === 'habitablehost') {
+    return entry.m?.[3] === 1;
+  }
+  if (tagLower === 'variablestar') {
+    return Boolean(entry.a && /\bvar\b/i.test(entry.a));
+  }
+  return false;
+};
+
+/**
+ * Pure unit function resolving all deduplicated host star systems that match a
+ * catalog system tag (`ExoplanetHost`, `SolarNeighborhood10pc`, `NakedEye`, etc.)
+ * or a canon layer annotation tag, returning `SpatialEntityDefinition` records
+ * to be marked `selected` in `SpatialEntityStore`.
+ */
+export const resolveSelectedSystemsFromTag = (
+  tag: string,
+  corpus: readonly CompactSearchEntry[],
+  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+): readonly SpatialEntityDefinition[] => {
+  const trimmed = tag.trim();
+  if (!trimmed) {
+    return [];
+  }
+  const tagLower = trimmed.toLowerCase();
+  const systemsById = new Map<string, SpatialEntityDefinition>();
+
+  for (const entry of corpus) {
+    if (doesSystemEntryMatchTag(entry, trimmed)) {
+      systemsById.set(entry.i, {
+        id: entry.i,
+        name: resolveResultDisplayTitle(entry),
+        position: entry.p ? [entry.p[0], entry.p[1], entry.p[2]] : [0, 0, 0],
+        classification: resolveReticleType(entry),
+        ...(entry.m?.[1] ? { spectralType: entry.m[1] } : {}),
+      });
+    }
+  }
+
+  for (const layer of activeLayers) {
+    for (const entry of Object.values(layer.entries)) {
+      if (!entry.tags?.some((t) => t.toLowerCase() === tagLower)) {
+        continue;
+      }
+      const systemId = entry.systemId || entry.targetId;
+      if (!systemId || systemsById.has(systemId)) {
+        continue;
+      }
+      const matched = findFocusedEntryInCorpus(systemId, corpus);
+      if (matched) {
+        systemsById.set(matched.i, {
+          id: matched.i,
+          name: resolveResultDisplayTitle(matched),
+          position: matched.p
+            ? [matched.p[0], matched.p[1], matched.p[2]]
+            : [0, 0, 0],
+          classification: resolveReticleType(matched),
+          ...(matched.m?.[1] ? { spectralType: matched.m[1] } : {}),
+        });
+      } else if (systemId === 'sol') {
+        systemsById.set('sol', {
+          id: 'sol',
+          name: 'Sol',
+          position: [0, 0, 0],
+          classification: 'stellar-system',
+          spectralType: 'G2V',
+        });
+      } else {
+        const fallbackName =
+          entry.targetType === 'system' && entry.inUniverseName
+            ? entry.inUniverseName
+            : formatSlugFallbackTitle(systemId);
+        systemsById.set(systemId, {
+          id: systemId,
+          name: fallbackName,
+          position: [0, 0, 0],
+          classification: 'stellar-system',
+        });
+      }
+    }
+  }
+
+  return Array.from(systemsById.values());
 };
 
 /**
@@ -1015,5 +1236,6 @@ export const resolveFocusedEntityFromCorpus = (
     classification: 'stellar-system',
   };
 };
+
 
 

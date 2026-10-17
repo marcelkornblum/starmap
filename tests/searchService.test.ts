@@ -39,21 +39,27 @@ import {
   sortCanonAnnotations,
 } from '../src/services/detailsService';
 import {
+  PLANET_TYPES_GUIDE_PATH,
   SEARCH_CATEGORIES,
   STAR_TYPES_GUIDE_PATH,
   buildCanonLayerGalaxyHref,
+  buildPlanetTypeGuideHref,
   buildResultTargetLink,
   buildSearchViewHref,
   buildStarTypeGuideHref,
+  buildTagGalaxyHref,
   buildUpdatedSearchUrl,
   compareSearchResultItems,
+  doesSystemEntryMatchTag,
   executeCatalogSearch,
   extractUrlCanonLayerId,
   extractUrlFocusSlug,
+  extractUrlTagFocus,
   findCanonLayerById,
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
   isArtificialSpacecraftEntry,
+  isCatalogOrCanonTag,
   isChildOfHostSystem,
   isSearchCategoryFilter,
   normaliseSearchQuery,
@@ -66,12 +72,21 @@ import {
   resolveReticleType,
   resolveSelectedSystemsFromCanonLayer,
   resolveSelectedSystemsFromSearchResults,
+  resolveSelectedSystemsFromTag,
   scoreSearchEntry,
   toSearchResultItem,
 } from '../src/services/searchService';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
 import { MainView } from '../src/views/MainView';
-import { StarTypeDetailView } from '../src/views/StarTypeDetailView';
+import {
+  PlanetTypeDetailView,
+  extractPlanetTypeFromPathname,
+} from '../src/views/PlanetTypeDetailView';
+import { PlanetTypesListView } from '../src/views/PlanetTypesListView';
+import {
+  StarTypeDetailView,
+  extractStarTypeFromPathname,
+} from '../src/views/StarTypeDetailView';
 import { StarTypesListView } from '../src/views/StarTypesListView';
 
 const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
@@ -1273,7 +1288,11 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     const detailsHtml = renderToString(
       createElement(DetailsPanel, { details: focusedDetails }),
     );
+    expect(detailsHtml).toContain('data-testid="details-canon-item-title"');
     expect(detailsHtml).toContain('data-testid="details-canon-link"');
+    expect(
+      detailsHtml.indexOf('data-testid="details-canon-item-title"'),
+    ).toBeLessThan(detailsHtml.indexOf('data-testid="details-canon-link"'));
     expect(detailsHtml).toContain(
       'href="/galaxy?focus=canon-project-hail-mary"',
     );
@@ -1321,6 +1340,149 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     );
     expect(html).toContain(
       '<li data-testid="systems-selected-item" data-entity-id="gaia-3195919528989223040">Keid</li>',
+    );
+  });
+
+  it('links planet type labels in DetailsPanel to /guide/planet-types/$planetType and renders PlanetTypesListView and PlanetTypeDetailView', () => {
+    expect(PLANET_TYPES_GUIDE_PATH).toBe('/guide/planet-types');
+    expect(buildPlanetTypeGuideHref('terrestrial')).toBe(
+      '/guide/planet-types/terrestrial',
+    );
+    expect(buildPlanetTypeGuideHref('  ice-giant  ')).toBe(
+      '/guide/planet-types/ice-giant',
+    );
+    expect(buildPlanetTypeGuideHref('gas-giant')).toBe(
+      '/guide/planet-types/gas-giant',
+    );
+    expect(buildPlanetTypeGuideHref('')).toBe('/guide/planet-types');
+    expect(buildPlanetTypeGuideHref('Unknown')).toBe('/guide/planet-types');
+
+    expect(extractPlanetTypeFromPathname('/guide/planet-types/terrestrial')).toBe(
+      'terrestrial',
+    );
+    expect(extractPlanetTypeFromPathname('/galaxy')).toBe('');
+    expect(extractStarTypeFromPathname('/guide/star-types/G8V')).toBe('G8V');
+    expect(extractStarTypeFromPathname('/galaxy')).toBe('');
+
+    const focusedDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        position: [-3.1, -0.4, -2.0],
+        classification: 'stellar-system',
+      },
+      corpus: SAMPLE_CORPUS,
+    });
+    const detailsHtml = renderToString(
+      createElement(DetailsPanel, { details: focusedDetails }),
+    );
+
+    // Peek planet composition summary links terrestrial to /guide/planet-types/terrestrial
+    expect(detailsHtml).toContain('data-testid="details-summary-planet-type-link"');
+    // Full Planets list links terrestrial to /guide/planet-types/terrestrial
+    expect(detailsHtml).toContain('data-testid="details-planet-type-link"');
+    expect(
+      detailsHtml.match(/href="\/guide\/planet-types\/terrestrial"/g)?.length,
+    ).toBeGreaterThanOrEqual(2);
+
+    // PlanetTypesListView and PlanetTypeDetailView render cleanly
+    const listViewHtml = renderToString(createElement(PlanetTypesListView));
+    expect(listViewHtml).toContain('data-testid="planet-types-list-view-root"');
+    expect(listViewHtml).toContain('Planet Types');
+
+    const detailViewHtml = renderToString(
+      createElement(PlanetTypeDetailView, {
+        locationPathname: '/guide/planet-types/terrestrial',
+      }),
+    );
+    expect(detailViewHtml).toContain('data-testid="planet-type-detail-view-root"');
+    expect(detailViewHtml).toContain('data-planet-type="terrestrial"');
+    expect(detailViewHtml).toContain('Planet Type: terrestrial');
+    expect(detailViewHtml).toContain('href="/guide/planet-types"');
+  });
+
+  it('links Astrometry and Canon tags in DetailsPanel to /galaxy?focus=<tag> and selects all matching systems when MainView loads', () => {
+    expect(buildTagGalaxyHref('ExoplanetHost')).toBe(
+      '/galaxy?focus=ExoplanetHost',
+    );
+    expect(isCatalogOrCanonTag('ExoplanetHost')).toBe(true);
+    expect(isCatalogOrCanonTag('SolarNeighborhood10pc')).toBe(true);
+    expect(isCatalogOrCanonTag('seti')).toBe(true);
+    expect(isCatalogOrCanonTag('')).toBe(false);
+    expect(isCatalogOrCanonTag('tau-ceti-e')).toBe(false);
+
+    expect(extractUrlTagFocus('?focus=ExoplanetHost')).toBe('ExoplanetHost');
+    expect(extractUrlTagFocus('?focus=seti')).toBe('seti');
+    expect(extractUrlTagFocus('?focus=canon-project-hail-mary')).toBeNull();
+    expect(extractUrlTagFocus('?focus=tau-ceti-e')).toBeNull();
+    expect(extractUrlTagFocus('')).toBeNull();
+
+    // extractUrlFocusSlug ignores catalog/canon tags in ?focus= so no fake entity is focused
+    expect(extractUrlFocusSlug('/galaxy', '?focus=ExoplanetHost')).toBeNull();
+
+    // doesSystemEntryMatchTag evaluates all catalog system tags
+    const solEntry = SAMPLE_CORPUS[0]!;
+    const tauEntry = SAMPLE_CORPUS[1]!;
+    const planetEntry = SAMPLE_CORPUS.find((e) => e.i === 'tau-ceti-e')!;
+    expect(doesSystemEntryMatchTag(solEntry, 'HomeSystem')).toBe(true);
+    expect(doesSystemEntryMatchTag(solEntry, 'SolarNeighborhood10pc')).toBe(true);
+    expect(doesSystemEntryMatchTag(solEntry, 'NakedEye')).toBe(true);
+    expect(doesSystemEntryMatchTag(tauEntry, 'ExoplanetHost')).toBe(true);
+    expect(doesSystemEntryMatchTag(tauEntry, 'HabitableCandidate')).toBe(true);
+    expect(doesSystemEntryMatchTag(tauEntry, 'VariableStar')).toBe(false);
+    expect(doesSystemEntryMatchTag(tauEntry, '')).toBe(false);
+    expect(doesSystemEntryMatchTag(planetEntry, 'ExoplanetHost')).toBe(false);
+
+    // DetailsPanel renders clickable tag links in both Partial Astrometry and Full Canon accordions
+    const focusedDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        position: [-3.1, -0.4, -2.0],
+        classification: 'stellar-system',
+      },
+      corpus: SAMPLE_CORPUS,
+    });
+    const detailsHtml = renderToString(
+      createElement(DetailsPanel, { details: focusedDetails }),
+    );
+    expect(detailsHtml).toContain('data-testid="details-astrometry-tag-link"');
+    expect(detailsHtml).toContain('href="/galaxy?focus=SolarNeighborhood10pc"');
+    expect(detailsHtml).toContain('href="/galaxy?focus=NakedEye"');
+    expect(detailsHtml).toContain('href="/galaxy?focus=ExoplanetHost"');
+    expect(detailsHtml).toContain('data-testid="details-canon-tag-link"');
+
+    // resolveSelectedSystemsFromTag resolves both catalog system tags and canon annotation tags
+    expect(resolveSelectedSystemsFromTag('', SAMPLE_CORPUS)).toEqual([]);
+    const exoplanetHosts = resolveSelectedSystemsFromTag(
+      'ExoplanetHost',
+      SAMPLE_CORPUS,
+    );
+    expect(exoplanetHosts.some((s) => s.name === 'Sol')).toBe(true);
+    expect(exoplanetHosts.some((s) => s.name === 'Tau Ceti')).toBe(true);
+
+    const setiSystems = resolveSelectedSystemsFromTag('seti', SAMPLE_CORPUS);
+    expect(setiSystems.some((s) => s.name === 'Tau Ceti')).toBe(true);
+
+    // MainView loading /galaxy?focus=ExoplanetHost selects all matching systems and focuses nothing
+    const store = createSpatialEntityStore();
+    const html = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store },
+        createElement(MainView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/galaxy',
+          locationSearch: '?focus=ExoplanetHost',
+        }),
+      ),
+    );
+    const selected = store.getState().getEntitiesByState('selected');
+    expect(selected.map((s) => s.name)).toContain('Tau Ceti');
+    expect(store.getState().getEntitiesByState('focused')).toEqual([]);
+    expect(html).not.toContain('data-testid="details-panel"');
+    expect(html).toContain(
+      '<li data-testid="systems-selected-item" data-entity-id="gaia-2452378776434477184">Tau Ceti</li>',
     );
   });
 });
