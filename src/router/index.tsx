@@ -7,12 +7,18 @@ import {
 } from '@tanstack/react-router';
 import { RootLayout } from '../components/poc/layout/RootLayout';
 import { RouteSkeleton } from '../components/poc/common/RouteSkeleton';
+import { MainView } from '../views/MainView';
+import { SearchView } from '../views/SearchView';
+import { SystemView } from '../views/SystemView';
 import { GalaxyView } from '../views/poc/GalaxyView';
-import { SystemView } from '../views/poc/SystemView';
+import { SystemView as PocSystemView } from '../views/poc/SystemView';
 import { PlanetView } from '../views/poc/PlanetView';
 import { ReferenceView } from '../views/poc/ReferenceView';
 
 export interface StarmapSearchParams {
+  q?: string;
+  searchCategory?: string;
+  focus?: string;
   x?: number;
   y?: number;
   z?: number;
@@ -33,6 +39,12 @@ export const rootRoute = createRootRoute({
   validateSearch: (search: Record<string, unknown>): StarmapSearchParams => {
     return {
       ...search,
+      q: typeof search.q === 'string' && search.q.length > 0 ? search.q : undefined,
+      searchCategory:
+        typeof search.searchCategory === 'string' && search.searchCategory.length > 0
+          ? search.searchCategory
+          : undefined,
+      focus: typeof search.focus === 'string' && search.focus.length > 0 ? search.focus : undefined,
       x: typeof search.x === 'number' ? search.x : (search.x ? Number(search.x) : undefined),
       y: typeof search.y === 'number' ? search.y : (search.y ? Number(search.y) : undefined),
       z: typeof search.z === 'number' ? search.z : (search.z ? Number(search.z) : undefined),
@@ -42,11 +54,35 @@ export const rootRoute = createRootRoute({
   },
 });
 
-// Clean-slate root index route — views and paths will be defined from scratch during Stage 1 Journeys
+// Root index route — progressively scaffolded during Stage 1 Journeys
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => <div data-testid="clean-slate-root" />,
+  component: MainView,
+});
+
+export const mainSearchRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/search',
+  component: SearchView,
+});
+
+export const mainGalaxyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/galaxy',
+  component: MainView,
+});
+
+export const mainGalaxySystemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/galaxy/$systemId',
+  component: MainView,
+});
+
+export const mainSystemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/system/$systemId',
+  component: SystemView,
 });
 
 // Quarantined POC layout and routes under /poc/* for reference
@@ -76,7 +112,7 @@ export const galaxyRoute = createRoute({
 export const systemRoute = createRoute({
   getParentRoute: () => pocRoute,
   path: '/system/$systemId',
-  component: SystemView,
+  component: PocSystemView,
   pendingComponent: () => <RouteSkeleton label="Resolving Star System Telemetry..." />,
   pendingMs: 0,
   loader: async ({ params }) => {
@@ -108,6 +144,10 @@ export const referenceRoute = createRoute({
 
 export const routeTree = rootRoute.addChildren([
   indexRoute,
+  mainSearchRoute,
+  mainGalaxyRoute,
+  mainGalaxySystemRoute,
+  mainSystemRoute,
   pocRoute.addChildren([
     pocIndexRoute,
     galaxyRoute,

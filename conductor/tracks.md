@@ -1,10 +1,10 @@
 # Tracks Registry
 
 ## Initiative: Journey-Driven View Data Models & UI Scaffolding (`journey-ui-scaffolding`)
-*Overview: [conductor/initiatives/journey-ui-scaffolding/index.md](./initiatives/journey-ui-scaffolding/index.md) | [Decision Log](./initiatives/journey-ui-scaffolding/decision-log.md) | [View Requirements](./initiatives/journey-ui-scaffolding/view-requirements.md)*
+*Overview: [conductor/initiatives/journey-ui-scaffolding/index.md](./initiatives/journey-ui-scaffolding/index.md) | [Decision Log](./initiatives/journey-ui-scaffolding/decision-log.md) | [View Requirements](./initiatives/journey-ui-scaffolding/view-requirements.md) | [Features Scratchpad](./initiatives/journey-ui-scaffolding/feature-scratchpad.md)*
 
 ### Stage 1: Journey Feature Discovery & View Data Models (Zero Presentation Assumptions)
-- [ ] **Track 01: Journey 1 — Target Acquisition, System Summary, 2-Point Route & Scale Transitions (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md](./tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md)*
+- [~] **Track 01: Journey 1 — Target Acquisition, System Summary, 2-Point Route & Scale Transitions (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md](./tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md)*
 - [ ] **Track 02: Journey 2 — Spatial Anchor, Intent Filters, Candidate Sync & Multi-Leg Network (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_02_journey-2-author-flow_20261016/index.md](./tracks/journey-ui-scaffolding_02_journey-2-author-flow_20261016/index.md)*
 - [ ] **Track 03: Journey 3 — Curated On-Ramps, Narrative Waypoints & Step-Through (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_03_journey-3-explorer-flow_20261016/index.md](./tracks/journey-ui-scaffolding_03_journey-3-explorer-flow_20261016/index.md)*
 - [ ] **Track 04: Journey 4 — Classification Deep-Links, Encyclopedia Articles, Parameter Comparator & Category Index (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md](./tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md)*

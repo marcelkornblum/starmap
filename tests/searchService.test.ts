@@ -1,0 +1,900 @@
+import { createElement } from 'react';
+import { renderToString } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  SearchResultItem,
+  formatPlanetCountSummary,
+  shouldDisplaySpectralBadge,
+} from '../src/components/domain';
+import { Search } from '../src/components/search';
+import {
+  clearSearchRepositoryCache,
+  fetchSearchShard,
+  getCachedCorpusForFilter,
+  loadSearchCorpusForFilter,
+  mergeSearchShards,
+} from '../src/data/searchRepository';
+import {
+  SEARCH_CATEGORIES,
+  buildResultTargetLink,
+  buildSearchViewHref,
+  buildUpdatedSearchUrl,
+  compareSearchResultItems,
+  executeCatalogSearch,
+  isArtificialSpacecraftEntry,
+  isChildOfHostSystem,
+  isSearchCategoryFilter,
+  normaliseSearchQuery,
+  parseSearchUrlParams,
+  resolveEntityKind,
+  resolveEntryCategory,
+  resolveResultDisplayTitle,
+  resolveResultSystemTitle,
+  resolveReticleType,
+  scoreSearchEntry,
+  toSearchResultItem,
+} from '../src/services/searchService';
+import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
+
+const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
+  {
+    i: 'sol',
+    n: 'Sol',
+    m: [-26.74, 'G2V', 8, 1],
+    h: 1,
+    a: 'sol sun',
+  },
+  {
+    i: 'gaia-2452378776434477184',
+    n: 'Tau Ceti',
+    p: [-3.1, -0.4, -2.0],
+    m: [3.5, 'G8V', 4, 1],
+    a: 'tauceti hd10700 hip8102 gl71',
+  },
+  {
+    i: 'gaia-3195919528989223040',
+    n: 'Keid',
+    p: [-2.5, -3.6, -2.4],
+    m: [4.43, 'K0.5V', 1],
+    a: 'keid omicron2eridani 40eridani hd26965 hip19849',
+  },
+  {
+    i: 'tau-ceti-e',
+    k: 2,
+    n: 'tau Ceti e',
+    s: 'gaia-2452378776434477184',
+    p: [-3.1, -0.4, -2.0],
+    a: 'taucetie',
+  },
+  {
+    i: 'earth',
+    k: 2,
+    n: 'Earth',
+    s: 'sol',
+    h: 1,
+    a: 'earth',
+  },
+  {
+    i: 'moon',
+    k: 3,
+    n: 'Moon',
+    s: 'sol',
+    h: 1,
+    a: 'moon luna',
+  },
+  {
+    i: 'pluto',
+    k: 4,
+    n: 'Pluto',
+    s: 'sol',
+    h: 1,
+    a: 'pluto 134340pluto',
+  },
+  {
+    i: 'ngc-1976',
+    k: 5,
+    n: 'Orion Nebula',
+    p: [-340, -210, -130],
+    a: 'orionnebula m42 ngc1976',
+  },
+  {
+    i: 'mpc-433',
+    k: 6,
+    n: '433 Eros',
+    s: 'sol',
+    h: 1,
+    a: '433eros eros',
+  },
+  {
+    i: 'canon-project-hail-mary:gaia-2452378776434477184',
+    k: 7,
+    n: 'Tau Ceti (Astrophage Destination)',
+    s: 'gaia-2452378776434477184',
+    w: 'canon-project-hail-mary',
+    c: 'Project Hail Mary',
+    p: [-3.1, -0.4, -2.0],
+    a: 'taucetiastrophagedestination projecthailmary hailmary astrophage petrova',
+  },
+  {
+    i: 'canon-project-hail-mary:tau-ceti-e',
+    k: 7,
+    n: 'Adrian',
+    s: 'gaia-2452378776434477184',
+    w: 'canon-project-hail-mary',
+    c: 'Project Hail Mary',
+    p: [-3.1, -0.4, -2.0],
+    a: 'adrian projecthailmary taumoebaworld taumoeba',
+  },
+  {
+    i: 'canon-star-trek:vulcan',
+    k: 7,
+    n: 'Vulcan (NiVar)',
+    s: 'gaia-3195919528989223040',
+    w: 'canon-star-trek',
+    c: 'Star Trek Canon',
+    p: [-2.5, -3.6, -2.4],
+    a: 'vulcannivar startrekcanon vulcan nivar tkhasi federation',
+  },
+];
+
+describe('searchService (Pure Service Layer)', () => {
+  it('exposes the 5 canonical search categories in display order', () => {
+    expect(SEARCH_CATEGORIES.map((c) => c.key)).toEqual([
+      'stars',
+      'planets',
+      'structures',
+      'minor-bodies',
+      'fiction',
+    ]);
+  });
+
+  it('maps CompactSearchEntry kind codes to the 5 search categories and entity kinds', () => {
+    expect(resolveEntryCategory(SAMPLE_CORPUS[0])).toBe('stars');
+    expect(resolveEntityKind(SAMPLE_CORPUS[0])).toBe('star-system');
+
+    expect(resolveEntryCategory(SAMPLE_CORPUS[3])).toBe('planets');
+    expect(resolveEntityKind(SAMPLE_CORPUS[3])).toBe('planet');
+
+    expect(resolveEntryCategory(SAMPLE_CORPUS[5])).toBe('planets');
+    expect(resolveEntityKind(SAMPLE_CORPUS[5])).toBe('moon');
+
+    expect(resolveEntryCategory(SAMPLE_CORPUS[6])).toBe('planets');
+    expect(resolveEntityKind(SAMPLE_CORPUS[6])).toBe('dwarf-planet');
+
+    expect(resolveEntryCategory(SAMPLE_CORPUS[7])).toBe('structures');
+    expect(resolveEntityKind(SAMPLE_CORPUS[7])).toBe('galactic-structure');
+
+    expect(resolveEntryCategory(SAMPLE_CORPUS[8])).toBe('minor-bodies');
+    expect(resolveEntityKind(SAMPLE_CORPUS[8])).toBe('minor-body');
+
+    expect(resolveEntryCategory(SAMPLE_CORPUS[9])).toBe('fiction');
+    expect(resolveEntityKind(SAMPLE_CORPUS[9])).toBe('fictional-entry');
+  });
+
+  it('normalises and expands astronomical Bayer/Flamsteed shorthand in queries', () => {
+    const normTau = normaliseSearchQuery('Tau Cet');
+    expect(normTau.expandedLower).toBe('tau ceti');
+    expect(normTau.cleanKey).toBe('tauceti');
+
+    const norm40Eri = normaliseSearchQuery('40 Eri');
+    expect(norm40Eri.expandedLower).toBe('40 eridani');
+    expect(norm40Eri.cleanKey).toBe('40eridani');
+  });
+
+  it('scores exact, alias, ID, prefix, substring, and multi-token matches deterministically', () => {
+    const exactQuery = normaliseSearchQuery('Tau Ceti');
+    expect(scoreSearchEntry(SAMPLE_CORPUS[1], exactQuery)).toBe(1000);
+    expect(scoreSearchEntry(SAMPLE_CORPUS[3], exactQuery)).toBe(750);
+    expect(scoreSearchEntry(SAMPLE_CORPUS[7], exactQuery)).toBe(0);
+
+    const idQuery = normaliseSearchQuery('ngc-1976');
+    expect(scoreSearchEntry(SAMPLE_CORPUS[7], idQuery)).toBeGreaterThanOrEqual(850);
+
+    const multiTokenQuery = normaliseSearchQuery('Star Trek NiVar');
+    expect(scoreSearchEntry(SAMPLE_CORPUS[11], multiTokenQuery)).toBe(450);
+  });
+
+  it('executes a catalog search across all categories and includes child entities of matched systems', () => {
+    const results = executeCatalogSearch(SAMPLE_CORPUS, {
+      query: '40 Eri',
+      filter: 'all',
+    });
+
+    expect(results.totalMatches).toBeGreaterThanOrEqual(2);
+    expect(results.groups.stars.items.map((i) => i.name)).toContain('Keid');
+    expect(results.groups.fiction.items.map((i) => i.name)).toContain('Vulcan (NiVar)');
+  });
+
+  it('matches fictional canon entries by work/franchise title', () => {
+    const results = executeCatalogSearch(SAMPLE_CORPUS, {
+      query: 'Project Hail Mary',
+      filter: 'all',
+    });
+
+    expect(results.groups.fiction.totalMatches).toBe(2);
+    expect(results.groups.fiction.items.map((i) => i.name)).toEqual(
+      expect.arrayContaining(['Tau Ceti (Astrophage Destination)', 'Adrian']),
+    );
+  });
+
+  it('restricts results to the selected category when a specific filter is applied', () => {
+    const results = executeCatalogSearch(SAMPLE_CORPUS, {
+      query: 'Tau Ceti',
+      filter: 'planets',
+    });
+
+    expect(results.groups.stars.items).toHaveLength(0);
+    expect(results.groups.fiction.items).toHaveLength(0);
+    expect(results.groups.planets.items.map((i) => i.name)).toEqual(['tau Ceti e']);
+  });
+
+  it('returns empty groups when the query is blank', () => {
+    const results = executeCatalogSearch(SAMPLE_CORPUS, {
+      query: '   ',
+      filter: 'all',
+    });
+
+    expect(results.totalMatches).toBe(0);
+    for (const cat of SEARCH_CATEGORIES) {
+      expect(results.groups[cat.key].items).toHaveLength(0);
+    }
+  });
+});
+
+describe('searchRepository (Data Repository Layer)', () => {
+  it('merges shards and deduplicates by entry ID', () => {
+    const merged = mergeSearchShards([
+      [SAMPLE_CORPUS[0], SAMPLE_CORPUS[1]],
+      [SAMPLE_CORPUS[1], SAMPLE_CORPUS[2]],
+    ]);
+    expect(merged).toHaveLength(3);
+    expect(merged.map((e) => e.i)).toEqual([
+      'sol',
+      'gaia-2452378776434477184',
+      'gaia-3195919528989223040',
+    ]);
+  });
+
+  it('fetches and validates search shards via custom fetcher', async () => {
+    clearSearchRepositoryCache();
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        i: 'search-fiction',
+        n: 'Fiction',
+        c: 2,
+        t: '2026-10-17T00:00:00Z',
+        d: [SAMPLE_CORPUS[9], SAMPLE_CORPUS[10]],
+      }),
+    });
+
+    const entries = await loadSearchCorpusForFilter(
+      'fiction',
+      mockFetch as unknown as typeof fetch,
+    );
+    expect(mockFetch).toHaveBeenCalledWith('/data/search/fiction.json');
+    expect(entries).toHaveLength(2);
+  });
+
+  it('loads core, structures, and minor-bodies shards in parallel when filter is all', async () => {
+    clearSearchRepositoryCache();
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        i: url,
+        n: url,
+        c: 1,
+        t: '2026-10-17T00:00:00Z',
+        d: url.includes('minor-bodies')
+          ? [SAMPLE_CORPUS[8]]
+          : url.includes('structures')
+            ? [SAMPLE_CORPUS[7]]
+            : [SAMPLE_CORPUS[0]],
+      }),
+    }));
+
+    const entries = await loadSearchCorpusForFilter(
+      'all',
+      mockFetch as unknown as typeof fetch,
+    );
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(entries.map((e) => e.i)).toEqual(['sol', 'ngc-1976', 'mpc-433']);
+  });
+
+  it('throws a descriptive error when shard fetch fails or returns invalid schema', async () => {
+    const failingFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({}),
+    });
+
+    await expect(
+      fetchSearchShard('fiction', failingFetch as unknown as typeof fetch),
+    ).rejects.toThrow(/Failed to load search shard "fiction"/);
+
+    const invalidSchemaFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ invalid: true }),
+    });
+
+    await expect(
+      fetchSearchShard('fiction', invalidSchemaFetch as unknown as typeof fetch),
+    ).rejects.toThrow(/Invalid search index envelope/);
+  });
+});
+
+describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Search.Results>, <SearchResultItem>)', () => {
+  it('renders populated search results with domain SearchResultItem, clean galaxy URLs, reticle types, spectral/planet summaries, and zero pc numbers', () => {
+    const html = renderToString(
+      createElement(
+        Search.Root,
+        {
+          initialCorpus: SAMPLE_CORPUS,
+          initialQuery: 'Tau Ceti',
+          initialFilter: 'all',
+        },
+        createElement(Search.Panel),
+        createElement(Search.Results, {
+          renderItem: (result) =>
+            createElement(Search.ResultItem, {
+              key: result.id,
+              result,
+            }),
+        }),
+      ),
+    );
+
+    expect(html).toContain('data-status="ready"');
+    expect(html).toContain('data-testid="search-result-item"');
+    expect(html).toContain('Tau Ceti');
+    expect(html).toContain('tau Ceti e');
+    expect(html).toContain('Tau Ceti (Astrophage Destination)');
+    expect(html).toContain('Adrian');
+    expect(html).toContain('[stellar-system]');
+    expect(html).toContain('[terrestrial]');
+    expect(html).toContain('data-testid="result-variation-stars"');
+    expect(html).toContain('<span data-testid="result-spectral-badge">G8V</span>');
+    expect(html).toContain('<span data-testid="result-planet-summary">4 planets</span>');
+    expect(html).toContain('data-testid="result-variation-planets"');
+    expect(html).toContain('data-testid="result-variation-fiction"');
+    expect(html).not.toContain(' pc');
+    // System links to /galaxy/<systemname>, child items link to /galaxy/<systemname>?focus=<itemname>
+    expect(html).toContain('href="/galaxy/tau-ceti"');
+    expect(html).toContain('href="/galaxy/tau-ceti?focus=tau-ceti-e"');
+    expect(html).toContain('href="/galaxy/tau-ceti?focus=adrian"');
+  });
+
+  it('routes Solar System child bodies to /system/sol?focus=<itemname>', () => {
+    const html = renderToString(
+      createElement(
+        Search.Root,
+        {
+          initialCorpus: SAMPLE_CORPUS,
+          initialQuery: 'Earth',
+          initialFilter: 'all',
+        },
+        createElement(Search.Panel),
+        createElement(Search.Results),
+      ),
+    );
+
+    expect(html).toContain('href="/system/sol?focus=earth"');
+    expect(html).toContain('[terrestrial]');
+  });
+
+  it('truncates results per category when limitPerCategory is set, renders filtered /search links under populated headings, and omits empty category sections', () => {
+    const html = renderToString(
+      createElement(
+        Search.Root,
+        {
+          initialCorpus: SAMPLE_CORPUS,
+          initialQuery: 'Sol',
+          initialFilter: 'all',
+          limitPerCategory: 2,
+        },
+        createElement(Search.Panel),
+        createElement(Search.Results, {
+          searchViewPath: '/search',
+        }),
+      ),
+    );
+
+    // SAMPLE_CORPUS has 3 Solar System planets/moons/dwarf-planets (Earth, Moon, Ceres); limitPerCategory=2 truncates to 2
+    expect(html).toContain('Earth');
+    expect(html).toContain('Moon');
+    expect(html).not.toContain('Ceres');
+    expect(html).toContain('href="/search?q=Sol"');
+    expect(html).toContain('href="/search?q=Sol&amp;searchCategory=stars"');
+    expect(html).toContain('href="/search?q=Sol&amp;searchCategory=planets"');
+    // Empty categories for query "Sol" (structures, minor-bodies, fiction) are omitted completely
+    expect(html).not.toContain('data-testid="search-results-group-structures"');
+    expect(html).not.toContain('data-testid="search-results-group-minor-bodies"');
+    expect(html).not.toContain('data-testid="search-results-group-fiction"');
+    expect(html).not.toContain('No matching results.');
+  });
+
+  it('supports composing <Search.Input /> (always bundled with Clear search button) without <Search.CategoryFilter /> for hardcoded/locked-category contexts', () => {
+    const html = renderToString(
+      createElement(
+        Search.Root,
+        {
+          initialCorpus: SAMPLE_CORPUS,
+          initialQuery: 'Tau',
+          initialFilter: 'stars',
+          syncUrl: false,
+        },
+        createElement(Search.Panel, null, createElement(Search.Input)),
+        createElement(Search.Results),
+      ),
+    );
+
+    expect(html).toContain('id="starmap-search-input"');
+    expect(html).toContain('data-testid="search-clear-button"');
+    expect(html).not.toContain('id="starmap-search-filter"');
+    expect(html).toContain('Tau Ceti');
+    expect(html).not.toContain('tau Ceti e');
+  });
+
+  it('evaluates dedicated searchService hooks, reticle taxonomy, URL state helpers, and SearchResultItem formatters', async () => {
+    // 1. isSearchCategoryFilter
+    expect(isSearchCategoryFilter('all')).toBe(true);
+    expect(isSearchCategoryFilter('stars')).toBe(true);
+    expect(isSearchCategoryFilter('planets')).toBe(true);
+    expect(isSearchCategoryFilter('invalid')).toBe(false);
+    expect(isSearchCategoryFilter(null)).toBe(false);
+
+    // 2. isChildOfHostSystem & isArtificialSpacecraftEntry
+    expect(isChildOfHostSystem('earth', 'sol')).toBe(true);
+    expect(isChildOfHostSystem('sol', 'sol')).toBe(false);
+    expect(isChildOfHostSystem('phm:tau-ceti', 'tau-ceti')).toBe(false);
+    expect(isChildOfHostSystem('earth', undefined)).toBe(false);
+
+    expect(isArtificialSpacecraftEntry({ i: 'voyager-1', k: 6, n: 'Voyager 1' })).toBe(true);
+    expect(
+      isArtificialSpacecraftEntry({
+        i: 'custom-probe',
+        k: 6,
+        n: 'Custom Probe',
+        a: 'customprobe spacecraft',
+      }),
+    ).toBe(true);
+    expect(isArtificialSpacecraftEntry({ i: '433-eros', k: 6, n: '433 Eros' })).toBe(false);
+
+    // 3. resolveResultDisplayTitle & resolveResultSystemTitle
+    expect(resolveResultDisplayTitle({ i: 'sol', n: '  Sol  ' })).toBe('Sol');
+    expect(resolveResultDisplayTitle({ i: 'fallback-id', n: '   ' })).toBe('fallback-id');
+    const sysMap = new Map<string, string>([['sol', 'Sol']]);
+    expect(resolveResultSystemTitle({ i: 'earth', k: 2, n: 'Earth', s: 'sol' }, sysMap)).toBe('Sol');
+    expect(resolveResultSystemTitle({ i: 'sol', n: 'Sol' }, sysMap)).toBeUndefined();
+
+    // 4. resolveReticleType across all branches
+    expect(resolveReticleType({ i: 's1', n: 'WD', m: [11, 'DA2', 0] })).toBe('white-dwarf');
+    expect(resolveReticleType({ i: 's2', n: 'BD', m: [16, 'T8', 0] })).toBe('brown-dwarf');
+    expect(resolveReticleType({ i: 's3', n: 'PSR', m: [20, 'PSR', 0] })).toBe('neutron-star');
+    expect(resolveReticleType({ i: 'jupiter', k: 2, n: 'Jupiter' })).toBe('gas-giant');
+    expect(resolveReticleType({ i: 'neptune', k: 2, n: 'Neptune' })).toBe('ice-giant');
+    expect(resolveReticleType({ i: 'snr-crab', k: 5, n: 'Crab Remnant' })).toBe('hazard');
+    expect(resolveReticleType({ i: 'voyager-1', k: 6, n: 'Voyager 1' })).toBe('artificial');
+    expect(resolveReticleType({ i: '433-eros', k: 6, n: '433 Eros' })).toBe('terrestrial');
+    expect(
+      resolveReticleType({ i: 'phm:tau-ceti', k: 7, n: 'Tau Ceti', s: 'tau-ceti' }),
+    ).toBe('stellar-system');
+
+    // 5. buildResultTargetLink & buildSearchViewHref & URL state helpers
+    expect(
+      buildResultTargetLink({
+        id: 'tau-ceti-e',
+        name: 'tau Ceti e',
+        systemId: 'gaia-123',
+      }),
+    ).toEqual({
+      targetView: 'galaxy',
+      href: '/galaxy/gaia-123?focus=tau-ceti-e',
+    });
+    expect(buildSearchViewHref('   ', 'all')).toBe('/search');
+    expect(parseSearchUrlParams('?q=Voyager&searchCategory=minor-bodies')).toEqual({
+      query: 'Voyager',
+      filter: 'minor-bodies',
+    });
+    expect(parseSearchUrlParams('?searchCategory=unknown', 'Sol', 'stars')).toEqual({
+      query: 'Sol',
+      filter: 'stars',
+    });
+    expect(
+      buildUpdatedSearchUrl('/search', '?foo=bar', '#top', 'Tau Ceti', 'planets'),
+    ).toBe('/search?foo=bar&q=Tau+Ceti&searchCategory=planets#top');
+    expect(
+      buildUpdatedSearchUrl('/search', '?q=Old&searchCategory=stars', '', '   ', 'all'),
+    ).toBe('/search');
+
+    // 6. compareSearchResultItems & scoreSearchEntry edge cases
+    expect(scoreSearchEntry({ i: 'sol', n: 'Sol' }, normaliseSearchQuery('   '))).toBe(0);
+    expect(
+      scoreSearchEntry({ i: 'tau-ceti', n: 'Tau Ceti' }, normaliseSearchQuery('TauCeti')),
+    ).toBe(950);
+    const itemA = toSearchResultItem(
+      { i: 'a', n: 'Alpha', p: [3, 4, 0] },
+      800,
+    );
+    const itemB = toSearchResultItem(
+      { i: 'b', n: 'Beta', p: [6, 8, 0] },
+      800,
+    );
+    const itemB2 = toSearchResultItem(
+      { i: 'b2', n: 'Gamma', p: [3, 4, 0] },
+      800,
+    );
+    expect(compareSearchResultItems(itemA, itemB)).toBeLessThan(0);
+    expect(compareSearchResultItems(itemA, itemB2)).toBeLessThan(0);
+
+    // 7. executeCatalogSearch with systemEntries relational lookup
+    const relResults = executeCatalogSearch(
+      [
+        {
+          i: 'tau-ceti-e',
+          k: 2,
+          n: 'Planet E',
+          s: 'sys-tau-ceti',
+          a: 'planete',
+        },
+      ],
+      {
+        query: 'Tau Ceti',
+        filter: 'planets',
+        systemEntries: [
+          {
+            i: 'sys-tau-ceti',
+            n: 'Tau Ceti',
+            a: 'tauceti',
+          },
+        ],
+      },
+    );
+    expect(relResults.groups.planets.items.map((i) => i.id)).toContain('tau-ceti-e');
+    expect(relResults.groups.planets.items[0]?.systemName).toBe('Tau Ceti');
+
+    // 8. SearchResultItem domain helpers & variation branches
+    expect(shouldDisplaySpectralBadge(undefined)).toBe(false);
+    expect(shouldDisplaySpectralBadge('Unknown')).toBe(false);
+    expect(shouldDisplaySpectralBadge('G2V')).toBe(true);
+    expect(formatPlanetCountSummary(undefined)).toBeNull();
+    expect(formatPlanetCountSummary(0)).toBeNull();
+    expect(formatPlanetCountSummary(1)).toBe('1 planet');
+    expect(formatPlanetCountSummary(4)).toBe('4 planets');
+
+    const starNoMeta = toSearchResultItem({ i: 's-bare', n: 'Bare Star', m: [-1, 'Unknown', 0] }, 900);
+    const starOnePlanet = toSearchResultItem({ i: 's-one', n: 'One Planet Star', m: [4, 'K1V', 1] }, 900);
+    const fictionNoCanon = toSearchResultItem({ i: 'f-bare', k: 7, n: 'Mystery World' }, 900);
+
+    expect(renderToString(createElement(SearchResultItem, { result: starNoMeta }))).not.toContain(
+      'data-testid="result-variation-stars"',
+    );
+    expect(renderToString(createElement(SearchResultItem, { result: starOnePlanet }))).toContain(
+      '1 planet',
+    );
+    expect(renderToString(createElement(SearchResultItem, { result: fictionNoCanon }))).toContain(
+      '<span data-testid="result-variation-fiction"></span>',
+    );
+
+    // 9. getCachedCorpusForFilter & shard cache eviction on failure
+    clearSearchRepositoryCache();
+    expect(getCachedCorpusForFilter('all')).toBeUndefined();
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({
+        i: 'test',
+        n: 'Test',
+        c: 1,
+        t: '2026-10-16T00:00:00Z',
+        d: [{ i: 'sol', n: 'Sol' }],
+      }),
+    })) as unknown as typeof fetch;
+    try {
+      await fetchSearchShard('core');
+      await fetchSearchShard('structures');
+      await fetchSearchShard('minor-bodies');
+      expect(getCachedCorpusForFilter('all')).toHaveLength(1);
+      // Subsequent loadSearchCorpusForFilter('all') hits the resolvedFilterCache fast-path
+      expect(await loadSearchCorpusForFilter('all')).toHaveLength(1);
+
+      await loadSearchCorpusForFilter('stars');
+      expect(getCachedCorpusForFilter('stars')).toHaveLength(1);
+      clearSearchRepositoryCache();
+      await fetchSearchShard('planets');
+      expect(getCachedCorpusForFilter('planets')).toHaveLength(1);
+
+      clearSearchRepositoryCache();
+      globalThis.fetch = vi.fn(async () => ({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      })) as unknown as typeof fetch;
+      await expect(fetchSearchShard('core')).rejects.toThrow('500');
+    } finally {
+      globalThis.fetch = originalFetch;
+      clearSearchRepositoryCache();
+    }
+  });
+});
+
+describe('Archetype 1 Search Trigger Coverage (GAP-01 through GAP-08 Verification)', () => {
+  it('resolves every single evidence-based search trigger across all 5 categories in core.json', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const coreEnvelope = JSON.parse(
+      fs.readFileSync(path.resolve('public/data/search/core.json'), 'utf-8'),
+    );
+    const coreCorpus: readonly CompactSearchEntry[] = coreEnvelope.d;
+
+    const triggers = [
+      // Category 1: Hard Sci-Fi Novels, Films, TV & Games
+      'Project Hail Mary',
+      'Tau Ceti',
+      'Adrian',
+      '40 Eridani',
+      'Erid',
+      'Keid',
+      'Star Trek',
+      'Vulcan',
+      'NiVar',
+      'Axanar',
+      'Wolf 359',
+      'Andoria',
+      'Tellar',
+      '61 Cygni',
+      'Risa',
+      'Three-Body Problem',
+      'Trisolaris',
+      'Alpha Centauri',
+      'Avatar',
+      'Pandora',
+      'Polyphemus',
+      'Halo',
+      'Reach',
+      'Harvest',
+      'Dune',
+      'Arrakis',
+      'Caladan',
+      'Giedi Prime',
+      'The Expanse',
+      'Bobiverse',
+      'Rana',
+      'Revelation Space',
+      'Resurgam',
+      'Yellowstone',
+      "Sky's Edge",
+      'Alien',
+      'LV-426',
+      'Zeta Reticuli',
+      'Contact',
+      'Vega',
+      'Forbidden Planet',
+      'Altair',
+      '2001',
+      'Aurora',
+      'The Dispossessed',
+      'Hyperion',
+      'Foundation',
+      // Category 2: Breaking Exoplanet News, JWST Targets & IAU NameExoWorlds
+      'Proxima Centauri',
+      'Proxima Centauri b',
+      "Barnard's Star",
+      "Barnard's Star b",
+      'Lalande 21185',
+      'Gl 411',
+      'Epsilon Eridani',
+      'Epsilon Eridani b',
+      'Ran',
+      'AEgir',
+      'Lacaille 9352',
+      'GJ 887 b',
+      'Ross 128',
+      'Ross 128 b',
+      'Epsilon Indi',
+      'Eps Ind Ab',
+      'GJ 1061',
+      "Luyten's Star",
+      'GJ 273',
+      "Teegarden's Star",
+      "Teegarden's Star b",
+      'HD 20794',
+      'HD 20794 d',
+      '82 G. Eridani',
+      'TRAPPIST-1',
+      'TRAPPIST-1 e',
+      'LHS 475',
+      'LHS 475 b',
+      '55 Cancri',
+      '55 Cancri e',
+      'Copernicus',
+      'Janssen',
+      'GJ 1214',
+      'GJ 1214 b',
+      'LHS 1140',
+      'LHS 1140 b',
+      '51 Pegasi',
+      '51 Pegasi b',
+      'Helvetios',
+      'Dimidium',
+      'Beta Pictoris',
+      'Beta Pictoris b',
+      'HD 189733 b',
+      'TOI-700',
+      'TOI-700 d',
+      'K2-18',
+      'K2-18 b',
+      'HR 8799',
+      'HD 209458 b',
+      'Osiris',
+      'Kepler-186 f',
+      'Kepler-452 b',
+      'WASP-39 b',
+      'WASP-96 b',
+      'PSR B1257+12',
+      // Category 3: Interstellar Missions, Spacecraft & SETI Benchmarks
+      'Voyager',
+      'Voyager 1',
+      'Gliese 445',
+      'Gl 445',
+      'Voyager 2',
+      'Ross 248',
+      'GJ 905',
+      'Pioneer 10',
+      'Pioneer 11',
+      'New Horizons',
+      'JWST',
+      'Breakthrough Starshot',
+      'Project Daedalus',
+      'Project Longshot',
+      'Project Ozma',
+      'Arecibo',
+      'M13',
+      'Hercules Cluster',
+      'Wow! Signal',
+      "Tabby's Star",
+      // Category 4: Solar Neighbourhood (10 pc), Naked-Eye Superlatives & Deep-Sky
+      'Rigil Kentaurus',
+      'Alpha Centauri A',
+      'Toliman',
+      'Alpha-2 Centauri',
+      'Luhman 16',
+      'WISE 0855',
+      'Gl 406',
+      'Sirius',
+      'UV Ceti',
+      'Luyten 726-8',
+      'Gl 65',
+      'Ross 154',
+      'Gl 729',
+      'EZ Aquarii',
+      'Struve 2398',
+      'Groombridge 34',
+      'DX Cancri',
+      'YZ Ceti',
+      'Procyon',
+      "Kapteyn's Star",
+      'Lacaille 8760',
+      "Van Maanen's Star",
+      'Canopus',
+      'Arcturus',
+      'Capella',
+      'Aldebaran',
+      'Spica',
+      'Fomalhaut',
+      'Regulus',
+      'Achernar',
+      'Betelgeuse',
+      'Rigel',
+      'Antares',
+      'Deneb',
+      'Polaris',
+      'Pleiades',
+      'M45',
+      'Seven Sisters',
+      'Hyades',
+      'Praesepe',
+      'Beehive Cluster',
+      'M44',
+      'Orion Nebula',
+      'M42',
+      'Crab Nebula',
+      'M1',
+      'Ring Nebula',
+      'M57',
+      'Dumbbell Nebula',
+      'M27',
+      'Eagle Nebula',
+      'M16',
+      'Lagoon Nebula',
+      'M8',
+      'Carina Nebula',
+      'NGC 3372',
+      'Veil Nebula',
+      'Helix Nebula',
+      'Omega Centauri',
+      'Vela Supernova Remnant',
+      'Vela Pulsar',
+      'Geminga',
+      'Local Interstellar Cloud',
+      // Category 5: Local Solar System Benchmarks
+      'Sol',
+      'Sun',
+      'Mercury',
+      'Venus',
+      'Earth',
+      'Mars',
+      'Jupiter',
+      'Saturn',
+      'Uranus',
+      'Neptune',
+      'Moon',
+      'Luna',
+      'Pluto',
+      'Ceres',
+      'Haumea',
+      'Makemake',
+      'Eris',
+      'Sedna',
+      'Quaoar',
+      'Orcus',
+      'Gonggong',
+      'Io',
+      'Europa',
+      'Ganymede',
+      'Callisto',
+      'Phobos',
+      'Deimos',
+      'Titan',
+      'Enceladus',
+      'Triton',
+      'Charon',
+      'Mimas',
+      'Tethys',
+      'Dione',
+      'Rhea',
+      'Iapetus',
+      'Phoebe',
+      'Miranda',
+      'Ariel',
+      'Umbriel',
+      'Titania',
+      'Oberon',
+      '4 Vesta',
+      '2 Pallas',
+      '10 Hygiea',
+      '16 Psyche',
+      '624 Hektor',
+      '433 Eros',
+      '99942 Apophis',
+      '101955 Bennu',
+      '162173 Ryugu',
+      '25143 Itokawa',
+      '65803 Didymos',
+      '2060 Chiron',
+      '486958 Arrokoth',
+      '1P/Halley',
+      '2P/Encke',
+      '67P/Churyumov-Gerasimenko',
+      'Oumuamua',
+      '2I/Borisov',
+      '3I/ATLAS',
+    ];
+
+    const missing: string[] = [];
+    for (const term of triggers) {
+      const res = executeCatalogSearch(coreCorpus, { query: term, filter: 'all' });
+      if (res.totalMatches === 0) {
+        missing.push(term);
+      }
+    }
+
+    expect(missing).toEqual([]);
+  }, 30000);
+});
+

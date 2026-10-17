@@ -23,6 +23,24 @@ import {
   classifyPlanetPhysical,
 } from '../src/utils/astroMath';
 import {
+  expandGouldOrConstellationSuffix,
+  expandGlieseVariants,
+  resolveStarProperName,
+  resolveStarDisplayName,
+  collectStarLookupKeys,
+} from '../src/utils/nomenclature';
+import {
+  buildShardedSummariesAndDetails,
+  buildSearchIndices,
+  encodeSectorPartition,
+} from '../src/utils/compactDataCodec';
+import {
+  encodeLayerManifest,
+  buildLayerIndexManifest,
+  buildSearchEntriesFromLayers,
+  SEED_FICTIONAL_CANON_LAYERS,
+} from '../src/utils/datasetLayerCodec';
+import {
   OFFICIAL_IAU_STAR_NAMES,
   RECONS_10PC_SUPPLEMENT,
   IAU_NAME_EXOWORLDS,
@@ -203,6 +221,9 @@ export interface HygCrossMatch {
   id: number;
   hip?: number | null;
   hd?: number | null;
+  hr?: number | null;
+  gl?: string;
+  bf?: string;
   proper?: string;
   bayer?: string;
   flam?: number;
@@ -210,28 +231,45 @@ export interface HygCrossMatch {
   spect?: string;
   ci?: number;
   lum?: number;
+  ra?: number;
+  dec?: number;
+  dist?: number;
+  mag?: number;
+  absmag?: number;
+  pmra?: number;
+  pmdec?: number;
+  rv?: number;
+  raDegJ2016?: number;
+  decDegJ2016?: number;
 }
 
 /**
- * Indexes HYG database by Hipparcos number and coordinate hash for cross-referencing.
+ * Indexes HYG database by Hipparcos number and epoch-propagated coordinate buckets for cross-referencing.
  */
 export function loadHygCrossMatch(csvPath: string): {
   byHip: Map<number, HygCrossMatch>;
   byCoord: Map<string, HygCrossMatch>;
+  byCoordCandidates: Map<string, HygCrossMatch[]>;
+  allItems: HygCrossMatch[];
 } {
   const byHip = new Map<number, HygCrossMatch>();
   const byCoord = new Map<string, HygCrossMatch>();
+  const byCoordCandidates = new Map<string, HygCrossMatch[]>();
+  const allItems: HygCrossMatch[] = [];
   const resolved = path.resolve(csvPath);
-  if (!fs.existsSync(resolved)) return { byHip, byCoord };
+  if (!fs.existsSync(resolved)) return { byHip, byCoord, byCoordCandidates, allItems };
 
   const content = fs.readFileSync(resolved, 'utf-8');
   const lines = content.split('\n');
-  if (lines.length <= 1) return { byHip, byCoord };
+  if (lines.length <= 1) return { byHip, byCoord, byCoordCandidates, allItems };
 
   const header = lines[0].split(',');
   const idIdx = header.indexOf('id');
   const hipIdx = header.indexOf('hip');
   const hdIdx = header.indexOf('hd');
+  const hrIdx = header.indexOf('hr');
+  const glIdx = header.indexOf('gl');
+  const bfIdx = header.indexOf('bf');
   const properIdx = header.indexOf('proper');
   const bayerIdx = header.indexOf('bayer');
   const flamIdx = header.indexOf('flam');
@@ -241,6 +279,23 @@ export function loadHygCrossMatch(csvPath: string): {
   const lumIdx = header.indexOf('lum');
   const raIdx = header.indexOf('ra');
   const decIdx = header.indexOf('dec');
+  const distIdx = header.indexOf('dist');
+  const magIdx = header.indexOf('mag');
+  const absmagIdx = header.indexOf('absmag');
+  const pmraIdx = header.indexOf('pmra');
+  const pmdecIdx = header.indexOf('pmdec');
+  const rvIdx = header.indexOf('rv');
+
+  function addCandidate(cellKey: string, item: HygCrossMatch) {
+    let list = byCoordCandidates.get(cellKey);
+    if (!list) {
+      list = [];
+      byCoordCandidates.set(cellKey, list);
+    }
+    if (!list.includes(item)) {
+      list.push(item);
+    }
+  }
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -249,32 +304,181 @@ export function loadHygCrossMatch(csvPath: string): {
     const id = parseInt(parts[idIdx], 10);
     if (isNaN(id)) continue;
 
-    const hip = parts[hipIdx] ? parseInt(parts[hipIdx], 10) : null;
-    const hd = parts[hdIdx] ? parseInt(parts[hdIdx], 10) : null;
-    const proper = parts[properIdx]?.trim() || undefined;
-    const bayer = parts[bayerIdx]?.trim() || undefined;
-    const flam = parts[flamIdx] ? parseInt(parts[flamIdx], 10) : undefined;
-    const con = parts[conIdx]?.trim() || undefined;
-    const spect = parts[spectIdx]?.trim() || undefined;
-    const ci = parts[ciIdx] ? parseFloat(parts[ciIdx]) : undefined;
-    const lum = parts[lumIdx] ? parseFloat(parts[lumIdx]) : undefined;
-    const ra = parts[raIdx] ? parseFloat(parts[raIdx]) : undefined;
-    const dec = parts[decIdx] ? parseFloat(parts[decIdx]) : undefined;
+    const hip = hipIdx >= 0 && parts[hipIdx] ? parseInt(parts[hipIdx], 10) : null;
+    const hd = hdIdx >= 0 && parts[hdIdx] ? parseInt(parts[hdIdx], 10) : null;
+    const hr = hrIdx >= 0 && parts[hrIdx] ? parseInt(parts[hrIdx], 10) : null;
+    const gl = glIdx >= 0 ? parts[glIdx]?.trim() || undefined : undefined;
+    const bf = bfIdx >= 0 ? parts[bfIdx]?.trim() || undefined : undefined;
+    const proper = properIdx >= 0 ? parts[properIdx]?.trim() || undefined : undefined;
+    const bayer = bayerIdx >= 0 ? parts[bayerIdx]?.trim() || undefined : undefined;
+    const flam = flamIdx >= 0 && parts[flamIdx] ? parseInt(parts[flamIdx], 10) : undefined;
+    const con = conIdx >= 0 ? parts[conIdx]?.trim() || undefined : undefined;
+    const spect = spectIdx >= 0 ? parts[spectIdx]?.trim() || undefined : undefined;
+    const ci = ciIdx >= 0 && parts[ciIdx] ? parseFloat(parts[ciIdx]) : undefined;
+    const lum = lumIdx >= 0 && parts[lumIdx] ? parseFloat(parts[lumIdx]) : undefined;
+    const ra = raIdx >= 0 && parts[raIdx] ? parseFloat(parts[raIdx]) : undefined;
+    const dec = decIdx >= 0 && parts[decIdx] ? parseFloat(parts[decIdx]) : undefined;
+    const dist = distIdx >= 0 && parts[distIdx] ? parseFloat(parts[distIdx]) : undefined;
+    const mag = magIdx >= 0 && parts[magIdx] ? parseFloat(parts[magIdx]) : undefined;
+    const absmag = absmagIdx >= 0 && parts[absmagIdx] ? parseFloat(parts[absmagIdx]) : undefined;
+    const pmra = pmraIdx >= 0 && parts[pmraIdx] ? parseFloat(parts[pmraIdx]) : 0;
+    const pmdec = pmdecIdx >= 0 && parts[pmdecIdx] ? parseFloat(parts[pmdecIdx]) : 0;
+    const rv = rvIdx >= 0 && parts[rvIdx] ? parseFloat(parts[rvIdx]) : 0;
 
-    const item: HygCrossMatch = { id, hip, hd, proper, bayer, flam, con, spect, ci, lum };
+    let raDegJ2016: number | undefined;
+    let decDegJ2016: number | undefined;
+    if (ra !== undefined && dec !== undefined && !isNaN(ra) && !isNaN(dec)) {
+      const cosDec = Math.max(0.05, Math.cos((dec * Math.PI) / 180));
+      raDegJ2016 = ((ra * 15 + ((isNaN(pmra) ? 0 : pmra) * 16) / (3600000 * cosDec)) % 360 + 360) % 360;
+      decDegJ2016 = Math.max(-90, Math.min(90, dec + ((isNaN(pmdec) ? 0 : pmdec) * 16) / 3600000));
+    }
+
+    const item: HygCrossMatch = {
+      id,
+      hip,
+      hd,
+      hr,
+      gl,
+      bf,
+      proper,
+      bayer,
+      flam,
+      con,
+      spect,
+      ci,
+      lum,
+      ra,
+      dec,
+      dist,
+      mag,
+      absmag,
+      pmra: isNaN(pmra) ? 0 : pmra,
+      pmdec: isNaN(pmdec) ? 0 : pmdec,
+      rv: isNaN(rv) ? 0 : rv,
+      raDegJ2016,
+      decDegJ2016,
+    };
+
+    allItems.push(item);
     if (hip) byHip.set(hip, item);
-    if (ra !== undefined && dec !== undefined) {
-      // Coordinate key: round to ~0.05 deg (~3 arcmin)
-      const key = `${(ra * 15).toFixed(1)}_${dec.toFixed(1)}`;
-      byCoord.set(key, item);
+    if (ra !== undefined && dec !== undefined && !isNaN(ra) && !isNaN(dec)) {
+      const j2000Key = `${(ra * 15).toFixed(1)}_${dec.toFixed(1)}`;
+      const existing = byCoord.get(j2000Key);
+      if (!existing || (item.mag ?? 99) < (existing.mag ?? 99)) {
+        byCoord.set(j2000Key, item);
+      }
+      addCandidate(j2000Key, item);
+      if (raDegJ2016 !== undefined && decDegJ2016 !== undefined) {
+        const j2016Key = `${raDegJ2016.toFixed(1)}_${decDegJ2016.toFixed(1)}`;
+        addCandidate(j2016Key, item);
+      }
     }
   }
 
-  return { byHip, byCoord };
+  return { byHip, byCoord, byCoordCandidates, allItems };
+}
+
+function findBestHygMatch(
+  raDeg: number,
+  decDeg: number,
+  distPc: number,
+  gmag: number,
+  byCoordCandidates: Map<string, HygCrossMatch[]>,
+  matchedHygIds: Set<number>,
+): HygCrossMatch | undefined {
+  if (byCoordCandidates.size === 0) return undefined;
+
+  const cosDec = Math.max(0.05, Math.cos((decDeg * Math.PI) / 180));
+  let bestCandidate: HygCrossMatch | undefined;
+  let bestScore = Infinity;
+
+  const offsets = [-0.1, 0, 0.1];
+  for (const dRa of offsets) {
+    for (const dDec of offsets) {
+      const rKey = ((raDeg + dRa + 360) % 360).toFixed(1);
+      const dKey = (decDeg + dDec).toFixed(1);
+      const list = byCoordCandidates.get(`${rKey}_${dKey}`);
+      if (!list) continue;
+
+      for (const cand of list) {
+        if (cand.id === 0 || matchedHygIds.has(cand.id)) continue;
+        if (cand.ra === undefined || cand.dec === undefined) continue;
+
+        const candRa16 = cand.raDegJ2016 ?? cand.ra * 15;
+        const candDec16 = cand.decDegJ2016 ?? cand.dec;
+        const dRa16 = Math.min(Math.abs(raDeg - candRa16), 360 - Math.abs(raDeg - candRa16)) * cosDec;
+        const dDec16 = Math.abs(decDeg - candDec16);
+        const sep16 = Math.hypot(dRa16, dDec16);
+
+        const candRa00 = cand.ra * 15;
+        const candDec00 = cand.dec;
+        const dRa00 = Math.min(Math.abs(raDeg - candRa00), 360 - Math.abs(raDeg - candRa00)) * cosDec;
+        const dDec00 = Math.abs(decDeg - candDec00);
+        const sep00 = Math.hypot(dRa00, dDec00);
+
+        const sepDeg = Math.min(sep16, sep00);
+        if (sepDeg > 0.08) continue;
+
+        const candMag = cand.mag ?? gmag;
+        const magDiff = Math.abs(gmag - candMag);
+        if (magDiff > 3.5) continue;
+
+        if (cand.dist !== undefined && cand.dist > 0 && cand.dist < 1000) {
+          const minDist = Math.max(0.5, Math.min(distPc, cand.dist));
+          if (minDist <= 25 && Math.abs(distPc - cand.dist) / minDist > 0.6) {
+            continue;
+          }
+        }
+
+        const score = sepDeg * 25 + magDiff * 0.25 + (cand.hip ? 0 : 0.05);
+        if (score < bestScore) {
+          bestScore = score;
+          bestCandidate = cand;
+        }
+      }
+    }
+  }
+
+  if (bestCandidate) {
+    matchedHygIds.add(bestCandidate.id);
+  }
+  return bestCandidate;
+}
+
+function mergeExoplanetRecords(existing: ExoplanetRecord, incoming: ExoplanetRecord): ExoplanetRecord {
+  return {
+    ...existing,
+    name: existing.name.includes('(') ? existing.name : incoming.name.includes('(') ? incoming.name : existing.name,
+    discoveryYear: existing.discoveryYear ?? incoming.discoveryYear,
+    discoveryMethod: existing.discoveryMethod ?? incoming.discoveryMethod,
+    massMjup: existing.massMjup ?? incoming.massMjup,
+    massMearth: existing.massMearth ?? incoming.massMearth,
+    radiusRjup: existing.radiusRjup ?? incoming.radiusRjup,
+    radiusRearth: existing.radiusRearth ?? incoming.radiusRearth,
+    equilibriumTempK: existing.equilibriumTempK ?? incoming.equilibriumTempK,
+    esi: existing.esi ?? incoming.esi,
+    orbit: existing.orbit?.semiMajorAxis ? existing.orbit : incoming.orbit ?? existing.orbit,
+    confidence:
+      existing.confidence === 'confirmed' || incoming.confidence === 'confirmed'
+        ? 'confirmed'
+        : existing.confidence ?? incoming.confidence ?? 'confirmed',
+    ...(() => {
+      let flags = (existing.theoreticalFlags ?? 0) | (incoming.theoreticalFlags ?? 0);
+      const existingHasMeasuredTemp =
+        existing.equilibriumTempK !== undefined && !((existing.theoreticalFlags ?? 0) & 1);
+      const incomingHasMeasuredTemp =
+        incoming.equilibriumTempK !== undefined && !((incoming.theoreticalFlags ?? 0) & 1);
+      if (existingHasMeasuredTemp || incomingHasMeasuredTemp) {
+        flags &= ~(1 | 8);
+      }
+      return flags > 0 ? { theoreticalFlags: flags } : {};
+    })(),
+  };
 }
 
 /**
  * Loads and harmonizes exoplanet catalogs across OEC, NASA Exoplanet Archive, and Exoplanet.eu.
+ * Includes all entries (confirmed and retracted candidates) and computes derived M_earth and radiative T_eq when missing.
  */
 export function loadAllExoplanetCatalogs(
   oecCsv: string,
@@ -282,6 +486,7 @@ export function loadAllExoplanetCatalogs(
   euCsv: string,
 ): Map<string, ExoplanetRecord[]> {
   const hostMap = new Map<string, ExoplanetRecord[]>();
+  const hasNasaCatalog = fs.existsSync(nasaCsv);
 
   function addPlanet(hostKey: string, planet: ExoplanetRecord) {
     const key = hostKey.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -290,13 +495,26 @@ export function loadAllExoplanetCatalogs(
       bucket = [];
       hostMap.set(key, bucket);
     }
-    // Check if planet letter or designation already present
-    if (!bucket.some((p) => p.letter === planet.letter || p.id === planet.id)) {
+    const existingIdx = bucket.findIndex((p) => p.letter === planet.letter || p.id === planet.id);
+    if (existingIdx === -1) {
       bucket.push(planet);
+    } else {
+      bucket[existingIdx] = mergeExoplanetRecords(bucket[existingIdx], planet);
     }
   }
 
-  // 1. Ingest Open Exoplanet Catalogue
+  function enrichWithIauExoWorld(rawPlanetName: string, expandedPlanetName: string, record: ExoplanetRecord, hostName: string) {
+    const iauMatch = IAU_NAME_EXOWORLDS[rawPlanetName] ?? IAU_NAME_EXOWORLDS[expandedPlanetName];
+    if (iauMatch && !record.name.includes(iauMatch.planetName)) {
+      record.name = `${expandedPlanetName} (${iauMatch.planetName})`;
+    }
+    addPlanet(hostName, record);
+    if (iauMatch) {
+      addPlanet(iauMatch.starName, record);
+    }
+  }
+
+  // 1. Ingest Open Exoplanet Catalogue (including retracted candidates)
   if (fs.existsSync(oecCsv)) {
     const lines = fs.readFileSync(oecCsv, 'utf-8').split('\n');
     for (let i = 1; i < lines.length; i++) {
@@ -316,26 +534,54 @@ export function loadAllExoplanetCatalogs(
       const period = parseFloat(parts[4]);
       const mass = parseFloat(parts[2]);
       const radius = parseFloat(parts[3]);
-      const temperature = parseFloat(parts[11]);
+      let temperature = parseFloat(parts[11]);
       const discoverymethod = parts[13]?.trim() || undefined;
       const discoveryyear = parseInt(parts[14], 10);
+      const hostRadiusRsun = parseFloat(parts[20]);
+      const hostTempK = parseFloat(parts[22]);
+
+      let derivedTemp = false;
+      // Derive radiative equilibrium temperature when blank in OEC (Bond albedo A = 0.3)
+      if (
+        isNaN(temperature) &&
+        !isNaN(hostTempK) &&
+        hostTempK > 0 &&
+        !isNaN(hostRadiusRsun) &&
+        hostRadiusRsun > 0 &&
+        !isNaN(semimajoraxis) &&
+        semimajoraxis > 0
+      ) {
+        const hostRadiusAu = hostRadiusRsun * 0.00465047;
+        temperature = Math.round(hostTempK * Math.pow(1 - 0.3, 0.25) * Math.sqrt(hostRadiusAu / (2 * semimajoraxis)) * 100) / 100;
+        derivedTemp = true;
+      }
+
+      const mEarth = !isNaN(mass) ? Math.round(mass * 317.828 * 100) / 100 : undefined;
+      const rEarth = !isNaN(radius) ? Math.round(radius * 11.209 * 100) / 100 : undefined;
 
       // Estimate Earth Similarity Index (ESI)
       let esi: number | undefined;
-      const rEarth = !isNaN(radius) ? radius * 11.209 : undefined;
       if (rEarth !== undefined && !isNaN(temperature)) {
         const rTerm = 1 - Math.abs((rEarth - 1) / (rEarth + 1));
         const tTerm = 1 - Math.abs((temperature - 288) / (temperature + 288));
         esi = Math.max(0, Math.min(1, Math.sqrt(Math.max(0, rTerm * tTerm))));
       }
 
+      let theoreticalFlags = 0;
+      if (derivedTemp) {
+        theoreticalFlags |= 1;
+        if (esi !== undefined) theoreticalFlags |= 8;
+      }
+
+      const expandedPlanetName = expandGouldOrConstellationSuffix(planetName);
       const record: ExoplanetRecord = {
-        id: planetName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        name: planetName,
+        id: expandedPlanetName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        name: expandedPlanetName,
         letter,
         discoveryYear: !isNaN(discoveryyear) ? discoveryyear : undefined,
         discoveryMethod: discoverymethod,
         massMjup: !isNaN(mass) ? mass : undefined,
+        massMearth: mEarth,
         radiusRjup: !isNaN(radius) ? radius : undefined,
         radiusRearth: rEarth,
         equilibriumTempK: !isNaN(temperature) ? temperature : undefined,
@@ -349,14 +595,16 @@ export function loadAllExoplanetCatalogs(
           meanAnomaly: 0,
           periodDays: !isNaN(period) ? period : 0,
         },
+        confidence: hasNasaCatalog ? 'candidate' : 'confirmed',
+        ...(theoreticalFlags > 0 ? { theoreticalFlags } : {}),
       };
 
-      addPlanet(hostName, record);
+      enrichWithIauExoWorld(planetName, expandedPlanetName, record, hostName);
     }
   }
 
   // 2. Ingest NASA Exoplanet Archive
-  if (fs.existsSync(nasaCsv)) {
+  if (hasNasaCatalog) {
     const lines = fs.readFileSync(nasaCsv, 'utf-8').split('\n');
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -383,14 +631,15 @@ export function loadAllExoplanetCatalogs(
         esi = Math.max(0, Math.min(1, Math.sqrt(Math.max(0, rTerm * tTerm))));
       }
 
+      const expandedPlanetName = expandGouldOrConstellationSuffix(planetName);
       const record: ExoplanetRecord = {
-        id: planetName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        name: planetName,
+        id: expandedPlanetName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        name: expandedPlanetName,
         letter,
         discoveryYear: !isNaN(discoveryyear) ? discoveryyear : undefined,
         discoveryMethod: discoverymethod,
         massMearth: !isNaN(massEarth) ? massEarth : undefined,
-        massMjup: !isNaN(massEarth) ? massEarth / 317.8 : undefined,
+        massMjup: !isNaN(massEarth) ? massEarth / 317.828 : undefined,
         radiusRearth: !isNaN(radiusEarth) ? radiusEarth : undefined,
         radiusRjup: !isNaN(radiusEarth) ? radiusEarth / 11.209 : undefined,
         equilibriumTempK: !isNaN(temperature) ? temperature : undefined,
@@ -404,9 +653,10 @@ export function loadAllExoplanetCatalogs(
           meanAnomaly: 0,
           periodDays: !isNaN(period) ? period : 0,
         },
+        confidence: 'confirmed',
       };
 
-      addPlanet(hostName, record);
+      enrichWithIauExoWorld(planetName, expandedPlanetName, record, hostName);
     }
   }
 
@@ -434,14 +684,17 @@ export function loadAllExoplanetCatalogs(
       const discYear = parseInt(parts[24], 10);
       const detectionType = parts[63]?.trim() || undefined;
 
+      const expandedPlanetName = expandGouldOrConstellationSuffix(planetName);
       const record: ExoplanetRecord = {
-        id: planetName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        name: planetName,
+        id: expandedPlanetName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        name: expandedPlanetName,
         letter,
         discoveryYear: !isNaN(discYear) ? discYear : undefined,
         discoveryMethod: detectionType,
         massMjup: !isNaN(mass) ? mass : undefined,
+        massMearth: !isNaN(mass) ? Math.round(mass * 317.828 * 100) / 100 : undefined,
         radiusRjup: !isNaN(radius) ? radius : undefined,
+        radiusRearth: !isNaN(radius) ? Math.round(radius * 11.209 * 100) / 100 : undefined,
         orbit: {
           semiMajorAxis: !isNaN(semimajoraxis) ? semimajoraxis : 0,
           eccentricity: !isNaN(eccentricity) ? eccentricity : 0,
@@ -451,9 +704,10 @@ export function loadAllExoplanetCatalogs(
           meanAnomaly: 0,
           periodDays: !isNaN(period) ? period : 0,
         },
+        confidence: hasNasaCatalog ? 'candidate' : 'confirmed',
       };
 
-      addPlanet(hostName, record);
+      enrichWithIauExoWorld(planetName, expandedPlanetName, record, hostName);
     }
   }
 
@@ -528,11 +782,13 @@ export function loadExoplanetCatalog(csvPath: string): Map<string, ExoplanetReco
     const keys = [
       hostName.toLowerCase(),
       hostName.toLowerCase().replace(/\s+/g, ''),
+      hostName.toLowerCase().replace(/[^a-z0-9]/g, ''),
     ];
 
     if (iauMatch) {
       keys.push(iauMatch.starName.toLowerCase());
       keys.push(iauMatch.starName.toLowerCase().replace(/\s+/g, ''));
+      keys.push(iauMatch.starName.toLowerCase().replace(/[^a-z0-9]/g, ''));
     }
 
     for (const key of keys) {
@@ -541,7 +797,9 @@ export function loadExoplanetCatalog(csvPath: string): Map<string, ExoplanetReco
         bucket = [];
         hostMap.set(key, bucket);
       }
-      bucket.push(planetRecord);
+      if (!bucket.some((p) => p.id === planetRecord.id)) {
+        bucket.push(planetRecord);
+      }
     }
   }
 
@@ -549,51 +807,54 @@ export function loadExoplanetCatalog(csvPath: string): Map<string, ExoplanetReco
 }
 
 /**
- * Cross-matches a stellar node against the indexed exoplanet catalog.
+ * Cross-matches a stellar node against the indexed exoplanet catalog across all candidate
+ * lookup keys (properName, expanded/abbreviated Bayer & Flamsteed, HD, HIP, and Gliese),
+ * merging matched planets across multiple host aliases by letter.
  */
 export function matchExoplanetsForStar(
-  star: StarmapNode,
+  star: StarmapNode & { aliases?: string[] },
   hostMap: Map<string, ExoplanetRecord[]>,
 ): ExoplanetRecord[] {
   if (hostMap.size === 0) return [];
 
-  const candidateKeys: string[] = [];
+  const candidateKeys = new Set<string>(collectStarLookupKeys(star));
 
-  if (star.properName) {
-    candidateKeys.push(star.properName.toLowerCase());
-    candidateKeys.push(star.properName.toLowerCase().replace(/\s+/g, ''));
-  }
-  if (star.name) {
-    candidateKeys.push(star.name.toLowerCase());
-    candidateKeys.push(star.name.toLowerCase().replace(/\s+/g, ''));
-  }
-  if (star.hd) {
-    candidateKeys.push(`hd ${star.hd}`.toLowerCase());
-    candidateKeys.push(`hd${star.hd}`.toLowerCase());
-  }
-  if (star.hip) {
-    candidateKeys.push(`hip ${star.hip}`.toLowerCase());
-    candidateKeys.push(`hip${star.hip}`.toLowerCase());
-  }
-  if (star.gl) {
-    candidateKeys.push(star.gl.toLowerCase());
-    candidateKeys.push(star.gl.toLowerCase().replace(/\s+/g, ''));
-    candidateKeys.push(star.gl.toLowerCase().replace('gl ', 'gj '));
-    candidateKeys.push(star.gl.toLowerCase().replace('gl ', 'gliese '));
-  }
-
-  for (const key of candidateKeys) {
-    const matched = hostMap.get(key);
-    if (matched && matched.length > 0) {
-      const uniqueMap = new Map<string, ExoplanetRecord>();
-      for (const p of matched) {
-        uniqueMap.set(p.id, p);
-      }
-      return Array.from(uniqueMap.values());
+  if (star.aliases) {
+    for (const alias of star.aliases) {
+      candidateKeys.add(alias.toLowerCase());
+      candidateKeys.add(alias.toLowerCase().replace(/[^a-z0-9]/g, ''));
     }
   }
 
-  return [];
+  // Include spaced lowercase keys for backward compatibility with loadExoplanetCatalog
+  if (star.properName) candidateKeys.add(star.properName.toLowerCase());
+  if (star.name) candidateKeys.add(star.name.toLowerCase());
+  if (star.hd) candidateKeys.add(`hd ${star.hd}`.toLowerCase());
+  if (star.hip) candidateKeys.add(`hip ${star.hip}`.toLowerCase());
+  if (star.gl) {
+    for (const variant of expandGlieseVariants(star.gl)) {
+      candidateKeys.add(variant.toLowerCase());
+    }
+  }
+
+  const mergedByLetter = new Map<string, ExoplanetRecord>();
+
+  for (const key of candidateKeys) {
+    const matched = hostMap.get(key);
+    if (!matched || matched.length === 0) continue;
+
+    for (const planet of matched) {
+      const dedupKey = planet.letter || planet.id;
+      const existing = mergedByLetter.get(dedupKey);
+      if (!existing) {
+        mergedByLetter.set(dedupKey, planet);
+      } else {
+        mergedByLetter.set(dedupKey, mergeExoplanetRecords(existing, planet));
+      }
+    }
+  }
+
+  return Array.from(mergedByLetter.values());
 }
 
 /**
@@ -707,7 +968,11 @@ export function starNodeToSystemSummary(
  * Loads all deep-sky galactic structures across Layers 3 & 4.
  */
 export function loadAllGalacticStructures(): GalacticStructureRecord[] {
-  const structures: GalacticStructureRecord[] = [];
+  const structures: GalacticStructureRecord[] = FULL_GALACTIC_STRUCTURES.map((seed) => ({
+    ...seed,
+    type: seed.type as GalacticStructureRecord['type'],
+    confidence: 'confirmed' as const,
+  }));
 
   // 1. Cantat-Gaudin Open Clusters (2,017 clusters)
   const cgPath = path.resolve('data/raw/cantat_gaudin_clusters.dat');
@@ -723,7 +988,8 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
       const logAge = parseFloat(line.substring(135, 142).trim());
 
       if (name && !isNaN(ra) && !isNaN(dec)) {
-        const dist = plx > 0 ? 1000 / plx : 500;
+        const hasPlx = plx > 0;
+        const dist = hasPlx ? 1000 / plx : 500;
         const [x, y, z] = equatorialToCartesian(ra / 15, dec, dist);
         structures.push({
           id: `cluster-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
@@ -737,6 +1003,8 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
           memberCount: !isNaN(nbStars) ? nbStars : undefined,
           designations: [name],
           description: `Galactic open star cluster cataloged in Cantat-Gaudin Gaia survey.`,
+          confidence: hasPlx ? 'confirmed' : 'theoretical',
+          ...(hasPlx ? {} : { theoreticalFlags: 1 }),
         });
       }
     }
@@ -776,6 +1044,7 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
           dist: distPc,
           designations: [id, ...(name ? [name] : [])],
           description: `Milky Way halo globular cluster from Harris (2010) catalog.`,
+          confidence: 'confirmed',
         });
       }
     }
@@ -811,6 +1080,8 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
           dist: distPc,
           designations: [snrId],
           description: `Galactic supernova remnant from Green's SNR Catalogue.`,
+          confidence: 'theoretical',
+          theoreticalFlags: 1,
         });
       }
     }
@@ -840,6 +1111,8 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
           dist: distPc,
           designations: [jname],
           description: `Rotation-powered pulsar from ATNF Pulsar Database.`,
+          confidence: 'theoretical',
+          theoreticalFlags: 1,
         });
       }
     }
@@ -874,6 +1147,8 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
           dist: distPc,
           designations: [`B ${bNum}`, `Barnard ${bNum}`],
           description: `Dark absorption cloud cataloged by E. E. Barnard.`,
+          confidence: 'theoretical',
+          theoreticalFlags: 1,
         });
       }
     }
@@ -915,6 +1190,14 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
           else if (type === 'PN') structType = 'PlanetaryNebula';
           else if (type === 'Neb') structType = 'EmissionNebula';
 
+          const messierNum = messier ? parseInt(messier, 10) : NaN;
+          const messierDesignations =
+            messier && !isNaN(messierNum)
+              ? [`M${messierNum}`, `M ${messierNum}`, `Messier ${messierNum}`, `M ${messier}`]
+              : messier
+                ? [`M ${messier}`]
+                : [];
+
           structures.push({
             id: `ngc-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
             name: commonNames ? `${name} (${commonNames})` : name,
@@ -923,8 +1206,10 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
             y,
             z,
             dist: distPc,
-            designations: [name, ...(messier ? [`M ${messier}`] : []), ...(commonNames ? [commonNames] : [])],
+            designations: [name, ...messierDesignations, ...(commonNames ? [commonNames] : [])],
             description: `Deep sky landmark cataloged in OpenNGC.`,
+            confidence: 'theoretical',
+            theoreticalFlags: 1,
           });
         }
       }
@@ -943,12 +1228,11 @@ export function loadAllSolarSystemBodies(): {
   distantAsteroids: SolarSystemBodyRecord[];
   comets: SolarSystemBodyRecord[];
 } {
-  // 1. Primary bodies (Horizons seed)
-  const primaryJson = path.resolve('data/raw/solar-system-bodies.json');
-  let primaryBodies: SolarSystemBodyRecord[] = [];
-  if (fs.existsSync(primaryJson)) {
-    primaryBodies = JSON.parse(fs.readFileSync(primaryJson, 'utf-8'));
-  }
+  // 1. Primary & Curated Solar System bodies (Horizons seed + FULL_SOLAR_SYSTEM_BODIES)
+  const primaryBodies: SolarSystemBodyRecord[] = FULL_SOLAR_SYSTEM_BODIES.map((b) => ({
+    ...(b as SolarSystemBodyRecord),
+    confidence: 'confirmed' as const,
+  }));
 
   // 2. Potentially Hazardous Asteroids (PHAs from MPC)
   const phaAsteroids: SolarSystemBodyRecord[] = [];
@@ -965,6 +1249,7 @@ export function loadAllSolarSystemBodies(): {
         const inc = parseFloat(line.substring(59, 68));
         const e = parseFloat(line.substring(70, 79));
         const a = parseFloat(line.substring(92, 103));
+        const uCode = line.length >= 106 ? parseInt(line.substring(105, 106).trim(), 10) : NaN;
         const name = line.substring(166, 194).trim() || desig;
 
         if (desig && !isNaN(a) && !isNaN(e)) {
@@ -990,6 +1275,8 @@ export function loadAllSolarSystemBodies(): {
               epoch: 'J2000',
             },
             tags: ['PHA', 'NEO', 'MinorPlanetCenter'],
+            confidence: !isNaN(uCode) && uCode >= 3 ? 'candidate' : 'confirmed',
+            theoreticalFlags: 1,
           });
         }
       }
@@ -1011,6 +1298,7 @@ export function loadAllSolarSystemBodies(): {
         const inc = parseFloat(line.substring(59, 68));
         const e = parseFloat(line.substring(70, 79));
         const a = parseFloat(line.substring(92, 103));
+        const uCode = line.length >= 106 ? parseInt(line.substring(105, 106).trim(), 10) : NaN;
         const name = line.substring(166, 194).trim() || desig;
 
         if (desig && !isNaN(a) && !isNaN(e)) {
@@ -1035,6 +1323,8 @@ export function loadAllSolarSystemBodies(): {
               epoch: 'J2000',
             },
             tags: ['OuterSolarSystem', 'CentaurOrTNO', 'MinorPlanetCenter'],
+            confidence: !isNaN(uCode) && uCode >= 3 ? 'candidate' : 'confirmed',
+            theoreticalFlags: 1,
           });
         }
       }
@@ -1054,7 +1344,7 @@ export function loadAllSolarSystemBodies(): {
         const peri = parseFloat(line.substring(51, 59));
         const node = parseFloat(line.substring(61, 69));
         const inc = parseFloat(line.substring(71, 79));
-        const name = line.substring(80, 110)?.trim() || desig;
+        const name = (line.length > 102 ? line.substring(102, 158).trim() : '') || desig;
 
         if (desig && !isNaN(qPerihelion) && !isNaN(e)) {
           const a = e < 1 ? qPerihelion / (1 - e) : qPerihelion;
@@ -1078,6 +1368,8 @@ export function loadAllSolarSystemBodies(): {
               epoch: 'J2000',
             },
             tags: ['Comet', 'MinorPlanetCenter'],
+            confidence: 'confirmed',
+            theoreticalFlags: 1,
           });
         }
       }
@@ -1093,6 +1385,10 @@ export interface BuildPipelineOptions {
   systemsDir?: string;
   overlaysDir?: string;
   solDir?: string;
+  summariesDir?: string;
+  detailsDir?: string;
+  searchDir?: string;
+  compactFormat?: boolean;
   exoplanetsCsvPath?: string;
   maxPartitionDistancePc?: number;
 }
@@ -1548,6 +1844,9 @@ export async function buildGaiaDataPipeline(
     const local10pcSystems: SystemSummaryNode[] = [];
     const referenceBrightSystems: SystemSummaryNode[] = [];
     const exoplanetHostSummaries: SystemSummaryNode[] = [];
+    const cataloguedSummaries: SystemSummaryNode[] = [];
+    const allSystemManifests: SystemManifest[] = [];
+    const starAliasesById = new Map<string, string[]>();
     const sectorMap = new Map<string, SystemSummaryNode[]>();
     const sectorManifestsMap = new Map<string, SystemManifest[]>();
 
@@ -1593,6 +1892,8 @@ export async function buildGaiaDataPipeline(
 
     local10pcSystems.push(solSummary);
     referenceBrightSystems.push(solSummary);
+    cataloguedSummaries.push(solSummary);
+    starAliasesById.set('sol', ['Sol', 'Sun', 'Solar System']);
     let solBucket = sectorMap.get('sector_+000_+000_+000');
     if (!solBucket) {
       solBucket = [];
@@ -1606,31 +1907,47 @@ export async function buildGaiaDataPipeline(
     totalStars++;
     totalKinematics++;
 
-    const rl = readline.createInterface({
-      input: fs.createReadStream(resolvedGcns).pipe(zlib.createGunzip()),
-      crlfDelay: Infinity,
-    });
+    const matchedHygIds = new Set<number>();
 
-    rl.on('line', (line: string) => {
-      if (line.length < 130) return;
+    function round3(n: number): number {
+      return Math.round(n * 1000) / 1000;
+    }
+    function round2(n: number): number {
+      return Math.round(n * 100) / 100;
+    }
 
-      const sourceId = line.substring(2, 21).trim();
-      const ra = parseFloat(line.substring(22, 36).trim());
-      const dec = parseFloat(line.substring(45, 59).trim());
-      const plx = parseFloat(line.substring(68, 77).trim());
-      const pmra = parseFloat(line.substring(86, 95).trim());
-      const pmdec = parseFloat(line.substring(104, 113).trim());
-      const gmag = parseFloat(line.substring(122, 130).trim());
-      const bpmag = parseFloat(line.substring(141, 149).trim());
-      const rpmag = parseFloat(line.substring(160, 168).trim());
-      const rvStr = line.substring(198, 206).trim();
-      const rv = rvStr ? parseFloat(rvStr) : null;
+    function findOfficialStarName(hygMatch: HygCrossMatch | undefined) {
+      if (!hygMatch) return undefined;
+      if (hygMatch.hip && OFFICIAL_IAU_STAR_NAMES[`hip-${hygMatch.hip}`]) {
+        return OFFICIAL_IAU_STAR_NAMES[`hip-${hygMatch.hip}`];
+      }
+      if (hygMatch.gl) {
+        if (OFFICIAL_IAU_STAR_NAMES[`gl-${hygMatch.gl}`]) {
+          return OFFICIAL_IAU_STAR_NAMES[`gl-${hygMatch.gl}`];
+        }
+        const glKey = `gl-${hygMatch.gl.toLowerCase().replace(/^(?:gl|gj|gliese)\s*/i, '').replace(/\s+/g, '')}`;
+        if (OFFICIAL_IAU_STAR_NAMES[glKey]) {
+          return OFFICIAL_IAU_STAR_NAMES[glKey];
+        }
+      }
+      return undefined;
+    }
 
-      if (isNaN(ra) || isNaN(dec) || isNaN(plx) || plx <= 0) return;
-
-      const dist = 1000.0 / plx;
-      if (dist > maxPartitionDist) return;
-
+    function ingestStarEntry(
+      sysId: string,
+      sourceId: string,
+      ra: number,
+      dec: number,
+      dist: number,
+      pmra: number,
+      pmdec: number,
+      rv: number | null,
+      gmag: number,
+      bpmag: number,
+      rpmag: number,
+      hygMatch: HygCrossMatch | undefined,
+      ePlx?: number,
+    ) {
       // Coordinate transform
       const [x, y, z] = equatorialToCartesian(ra / 15, dec, dist);
 
@@ -1638,35 +1955,45 @@ export async function buildGaiaDataPipeline(
       const velocity = computeGaiaKinematics(ra, dec, dist, isNaN(pmra) ? 0 : pmra, isNaN(pmdec) ? 0 : pmdec, rv);
       totalKinematics++;
 
-      // Cross-match HYG and IAU names
-      const coordKey = `${ra.toFixed(1)}_${dec.toFixed(1)}`;
-      const hygMatch = hygCrossMatch.byCoord.get(coordKey);
-      let properName: string | undefined = hygMatch?.proper;
+      const iauCatalogName =
+        hygMatch?.hip && iauProperStars.has(hygMatch.hip)
+          ? iauProperStars.get(hygMatch.hip)
+          : undefined;
+      const officialMatch = findOfficialStarName(hygMatch);
 
-      if (hygMatch?.hip && iauProperStars.has(hygMatch.hip)) {
-        properName = iauProperStars.get(hygMatch.hip);
+      const properName = resolveStarProperName({
+        hygProperName: hygMatch?.proper,
+        iauProperName: iauCatalogName,
+        officialProperName: officialMatch?.properName,
+      });
+
+      const extraAliases: string[] = [];
+      if (officialMatch) {
+        if (officialMatch.properName) extraAliases.push(officialMatch.properName);
+        if (officialMatch.aliases) extraAliases.push(...officialMatch.aliases);
       }
 
-      let name = properName;
-      if (!name) {
-        if (hygMatch?.bayer && hygMatch?.con) {
-          name = `${hygMatch.bayer} ${hygMatch.con}`;
-        } else if (hygMatch?.hip) {
-          name = `HIP ${hygMatch.hip}`;
-        } else if (hygMatch?.hd) {
-          name = `HD ${hygMatch.hd}`;
-        } else {
-          name = `Gaia DR3 ${sourceId}`;
-        }
-      }
+      const name = resolveStarDisplayName({
+        properName,
+        bayer: hygMatch?.bayer,
+        con: hygMatch?.con,
+        flam: hygMatch?.flam,
+        gl: hygMatch?.gl,
+        hip: hygMatch?.hip,
+        hd: hygMatch?.hd,
+        sourceId,
+      });
 
-      const mag = !isNaN(gmag) ? gmag : 15.0;
-      const ci = !isNaN(bpmag) && !isNaN(rpmag) ? bpmag - rpmag : hygMatch?.ci || null;
+      const mag = !isNaN(gmag) ? gmag : hygMatch?.mag ?? 15.0;
+      const ci = !isNaN(bpmag) && !isNaN(rpmag) ? bpmag - rpmag : hygMatch?.ci ?? null;
       const absmag = mag - 5 * (Math.log10(dist) - 1);
+
+      let theoreticalFlags = 0;
 
       // Estimate spectral type from BP-RP color or HYG match
       let spect = hygMatch?.spect;
       if (!spect && ci !== null) {
+        theoreticalFlags |= 1;
         if (ci < 0.0) spect = 'O/B';
         else if (ci < 0.3) spect = 'A';
         else if (ci < 0.6) spect = 'F';
@@ -1675,19 +2002,42 @@ export async function buildGaiaDataPipeline(
         else spect = 'M';
       }
 
-      // Cross-match exoplanets
-      const cleanKey = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const matchedPlanets = exoplanetHostMap.get(cleanKey) || [];
+      if (rv === null || isNaN(rv)) {
+        theoreticalFlags |= 2;
+      }
+
+      const plxMas = dist > 0 ? 1000.0 / dist : 0;
+      const isCandidateParallax =
+        ePlx !== undefined && !isNaN(ePlx) && plxMas > 0 && ePlx / plxMas >= 0.1;
+
+      const lookupInput = {
+        id: totalStars,
+        name,
+        properName,
+        hip: hygMatch?.hip,
+        hd: hygMatch?.hd,
+        hr: hygMatch?.hr,
+        gl: hygMatch?.gl,
+        bayer: hygMatch?.bayer,
+        flam: hygMatch?.flam,
+        con: hygMatch?.con,
+        bf: hygMatch?.bf,
+        aliases: extraAliases.length > 0 ? extraAliases : undefined,
+        ra: ra / 15,
+        dec,
+        dist,
+        mag,
+        absmag,
+        x,
+        y,
+        z,
+      };
+
+      // Cross-match exoplanets across all star lookup keys
+      const matchedPlanets = matchExoplanetsForStar(lookupInput, exoplanetHostMap);
       if (matchedPlanets.length > 0) {
         totalExoplanets += matchedPlanets.length;
       }
-
-function round3(n: number): number {
-  return Math.round(n * 1000) / 1000;
-}
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
-}
 
       const sectorId = formatSectorId(x, y, z);
       const tags: string[] = [];
@@ -1696,7 +2046,7 @@ function round2(n: number): number {
       if (matchedPlanets.length > 0) tags.push('ExoplanetHost');
 
       const summary: SystemSummaryNode = {
-        id: `gaia-${sourceId}`,
+        id: sysId,
         name,
         x: round3(x),
         y: round3(y),
@@ -1710,7 +2060,9 @@ function round2(n: number): number {
         planetCensus: getPlanetCensus(matchedPlanets),
         hasHabitableCandidate: matchedPlanets.some((p) => (p.esi && p.esi > 0.7) || (p.equilibriumTempK && p.equilibriumTempK >= 200 && p.equilibriumTempK <= 320)),
         sectorId,
+        confidence: isCandidateParallax ? 'candidate' : 'confirmed',
       };
+      if (theoreticalFlags > 0) summary.theoreticalFlags = theoreticalFlags;
       if (properName) summary.properName = properName;
       if (ci !== null && ci !== undefined) summary.ci = round2(ci);
       if (tags.length > 0) summary.tags = tags;
@@ -1735,6 +2087,13 @@ function round2(n: number): number {
         exoplanetHostSummaries.push(summary);
       }
 
+      const isCatalogued =
+        Boolean(hygMatch) || dist <= 10 || mag <= 6.5 || matchedPlanets.length > 0;
+      if (isCatalogued) {
+        cataloguedSummaries.push(summary);
+        starAliasesById.set(sysId, collectStarLookupKeys(lookupInput));
+      }
+
       // Add to spatial sector partition bucket
       let bucket = sectorMap.get(sectorId);
       if (!bucket) {
@@ -1744,15 +2103,18 @@ function round2(n: number): number {
       bucket.push(summary);
 
       // Add to detailed system manifest if exoplanets or bright
-      if (options?.systemsDir && (matchedPlanets.length > 0 || mag <= 4.0)) {
+      if (
+        (options?.systemsDir || options?.detailsDir || options?.searchDir) &&
+        (matchedPlanets.length > 0 || mag <= 4.0)
+      ) {
         let manifestBucket = sectorManifestsMap.get(sectorId);
         if (!manifestBucket) {
           manifestBucket = [];
           sectorManifestsMap.set(sectorId, manifestBucket);
         }
 
-        manifestBucket.push({
-          id: `gaia-${sourceId}`,
+        const sysManifest: SystemManifest = {
+          id: sysId,
           name,
           properName,
           x: round3(x),
@@ -1777,7 +2139,9 @@ function round2(n: number): number {
             },
           ],
           planets: matchedPlanets,
-        });
+        };
+        manifestBucket.push(sysManifest);
+        allSystemManifests.push(sysManifest);
       }
 
       // Write to base stars.json
@@ -1796,6 +2160,8 @@ function round2(n: number): number {
       if (properName) starRecord.properName = properName;
       if (hygMatch?.hip) starRecord.hip = hygMatch.hip;
       if (hygMatch?.hd) starRecord.hd = hygMatch.hd;
+      if (hygMatch?.hr) starRecord.hr = hygMatch.hr;
+      if (hygMatch?.gl) starRecord.gl = hygMatch.gl;
       if (hygMatch?.bayer) starRecord.bayer = hygMatch.bayer;
       if (hygMatch?.flam) starRecord.flam = hygMatch.flam;
       if (hygMatch?.con) starRecord.con = hygMatch.con;
@@ -1813,9 +2179,227 @@ function round2(n: number): number {
       writeStream.write(',');
       writeStream.write(JSON.stringify(starRecord));
       totalStars++;
+    }
+
+    const rl = readline.createInterface({
+      input: fs.createReadStream(resolvedGcns).pipe(zlib.createGunzip()),
+      crlfDelay: Infinity,
+    });
+
+    rl.on('line', (line: string) => {
+      if (line.length < 130) return;
+
+      const sourceId = line.substring(2, 21).trim();
+      const ra = parseFloat(line.substring(22, 36).trim());
+      const dec = parseFloat(line.substring(45, 59).trim());
+      const plx = parseFloat(line.substring(68, 77).trim());
+      const ePlx = parseFloat(line.substring(78, 85).trim());
+      const pmra = parseFloat(line.substring(86, 95).trim());
+      const pmdec = parseFloat(line.substring(104, 113).trim());
+      const gmag = parseFloat(line.substring(122, 130).trim());
+      const bpmag = parseFloat(line.substring(141, 149).trim());
+      const rpmag = parseFloat(line.substring(160, 168).trim());
+      const rvStr = line.substring(198, 206).trim();
+      const rv = rvStr ? parseFloat(rvStr) : null;
+
+      if (isNaN(ra) || isNaN(dec) || isNaN(plx) || plx <= 0) return;
+
+      const dist = 1000.0 / plx;
+      if (dist > maxPartitionDist) return;
+
+      const hygMatch = findBestHygMatch(
+        ra,
+        dec,
+        dist,
+        !isNaN(gmag) ? gmag : 15.0,
+        hygCrossMatch.byCoordCandidates,
+        matchedHygIds,
+      );
+
+      ingestStarEntry(
+        `gaia-${sourceId}`,
+        sourceId,
+        ra,
+        dec,
+        dist,
+        pmra,
+        pmdec,
+        rv,
+        gmag,
+        bpmag,
+        rpmag,
+        hygMatch,
+        ePlx,
+      );
     });
 
     rl.on('close', () => {
+      // Supplement bright/nearby HYG stars missing from Gaia DR3 GCNS (e.g. CCD-saturated first-magnitude stars)
+      for (const hyg of hygCrossMatch.allItems) {
+        if (hyg.id === 0 || matchedHygIds.has(hyg.id)) continue;
+        const officialMatch = findOfficialStarName(hyg);
+        if (!hyg.dist || hyg.dist <= 0 || (hyg.dist > maxPartitionDist && !officialMatch)) continue;
+        if (hyg.ra === undefined || hyg.dec === undefined) continue;
+
+        const isNotable =
+          Boolean(officialMatch) ||
+          (hyg.mag !== undefined && hyg.mag <= 6.5) ||
+          hyg.dist <= 10 ||
+          Boolean(hyg.proper) ||
+          Boolean(hyg.bayer) ||
+          Boolean(hyg.flam);
+        if (!isNotable) continue;
+
+        matchedHygIds.add(hyg.id);
+        const sysId = hyg.hip ? `hip-${hyg.hip}` : `hyg-${hyg.id}`;
+        const sourceId = hyg.hip ? String(hyg.hip) : String(hyg.id);
+        ingestStarEntry(
+          sysId,
+          sourceId,
+          hyg.ra * 15,
+          hyg.dec,
+          hyg.dist,
+          hyg.pmra ?? 0,
+          hyg.pmdec ?? 0,
+          hyg.rv ?? 0,
+          hyg.mag ?? 6.5,
+          NaN,
+          NaN,
+          hyg,
+        );
+      }
+
+      // Supplement RECONS / curated brown dwarfs, red dwarfs & distant landmark exoplanet hosts
+      for (const recons of RECONS_10PC_SUPPLEMENT) {
+        if (
+          cataloguedSummaries.some(
+            (s) => s.id === recons.id || s.name.toLowerCase() === recons.name.toLowerCase(),
+          )
+        ) {
+          continue;
+        }
+
+        const [rx, ry, rz] = equatorialToCartesian(recons.ra, recons.dec, recons.dist);
+        const rSectorId = formatSectorId(rx, ry, rz);
+        const reconsLookup = {
+          id: totalStars,
+          name: recons.name,
+          properName: recons.properName,
+          aliases: recons.aliases,
+          ra: recons.ra,
+          dec: recons.dec,
+          dist: recons.dist,
+          mag: recons.mag,
+          absmag: recons.absmag,
+          x: rx,
+          y: ry,
+          z: rz,
+        };
+
+        const matchedPlanets = matchExoplanetsForStar(reconsLookup, exoplanetHostMap);
+        if (matchedPlanets.length > 0) {
+          totalExoplanets += matchedPlanets.length;
+        }
+
+        const rTags: string[] = [];
+        if (recons.dist <= 10) rTags.push('SolarNeighborhood10pc', 'RECONSGroundTruth');
+        if (matchedPlanets.length > 0) rTags.push('ExoplanetHost');
+
+        const rSummary: SystemSummaryNode = {
+          id: recons.id,
+          name: recons.name,
+          properName: recons.properName,
+          x: round3(rx),
+          y: round3(ry),
+          z: round3(rz),
+          dist: round3(recons.dist),
+          mag: round2(recons.mag),
+          absmag: round2(recons.absmag),
+          spect: recons.spect,
+          starCount: recons.starCount,
+          planetCount: matchedPlanets.length,
+          planetCensus: getPlanetCensus(matchedPlanets),
+          hasHabitableCandidate: matchedPlanets.some(
+            (p) =>
+              (p.esi && p.esi > 0.7) ||
+              (p.equilibriumTempK && p.equilibriumTempK >= 200 && p.equilibriumTempK <= 320),
+          ),
+          sectorId: rSectorId,
+          confidence: 'confirmed',
+          ...(rTags.length > 0 ? { tags: rTags } : {}),
+        };
+
+        cataloguedSummaries.push(rSummary);
+        starAliasesById.set(recons.id, collectStarLookupKeys(reconsLookup));
+
+        if (recons.dist <= 10) {
+          local10pcSystems.push(rSummary);
+          local10pcCount++;
+        }
+        if (matchedPlanets.length > 0) {
+          exoplanetHostSummaries.push(rSummary);
+        }
+
+        if (recons.dist <= maxPartitionDist) {
+          let bucket = sectorMap.get(rSectorId);
+          if (!bucket) {
+            bucket = [];
+            sectorMap.set(rSectorId, bucket);
+          }
+          bucket.push(rSummary);
+        }
+
+        if (options?.systemsDir || options?.detailsDir || options?.searchDir) {
+          let manifestBucket = sectorManifestsMap.get(rSectorId);
+          if (!manifestBucket) {
+            manifestBucket = [];
+            sectorManifestsMap.set(rSectorId, manifestBucket);
+          }
+          const sysManifest: SystemManifest = {
+            id: recons.id,
+            name: recons.name,
+            properName: recons.properName,
+            x: round3(rx),
+            y: round3(ry),
+            z: round3(rz),
+            dist: round3(recons.dist),
+            velocity: { vx: 0, vy: 0, vz: 0, speed: 0 },
+            sectorId: rSectorId,
+            stars: [
+              {
+                id: `${recons.id}-A`,
+                name: recons.name,
+                componentDesignation: 'A',
+                spectralType: recons.spect,
+                mag: round2(recons.mag),
+                absmag: round2(recons.absmag),
+              },
+            ],
+            planets: matchedPlanets,
+          };
+          manifestBucket.push(sysManifest);
+          allSystemManifests.push(sysManifest);
+        }
+
+        const starRecord: Record<string, unknown> = {
+          id: totalStars,
+          name: recons.name,
+          properName: recons.properName,
+          ra: round3(recons.ra),
+          dec: round3(recons.dec),
+          dist: round3(recons.dist),
+          mag: round2(recons.mag),
+          absmag: round2(recons.absmag),
+          spect: recons.spect,
+          x: round3(rx),
+          y: round3(ry),
+          z: round3(rz),
+        };
+        writeStream.write(',');
+        writeStream.write(JSON.stringify(starRecord));
+        totalStars++;
+      }
+
       writeStream.write(']');
       writeStream.end();
     });
@@ -1875,7 +2459,8 @@ function round2(n: number): number {
             systems,
           };
 
-          fs.writeFileSync(path.join(resolvedPartitions, `${sectorId}.json`), JSON.stringify(manifest), 'utf-8');
+          const payload = options.compactFormat ? encodeSectorPartition(manifest) : manifest;
+          fs.writeFileSync(path.join(resolvedPartitions, `${sectorId}.json`), JSON.stringify(payload), 'utf-8');
         }
       }
 
@@ -1891,6 +2476,12 @@ function round2(n: number): number {
 
       // 4. Ingest and write Layer 3 Galactic Structures & Deep Sky
       let galacticCount = 0;
+      let allStructures: GalacticStructureRecord[] = [];
+      if (options?.overlaysDir || options?.detailsDir || options?.searchDir) {
+        allStructures = loadAllGalacticStructures();
+        galacticCount = allStructures.length;
+      }
+
       if (options?.overlaysDir) {
         const resolvedOverlays = path.resolve(options.overlaysDir);
         if (!fs.existsSync(resolvedOverlays)) fs.mkdirSync(resolvedOverlays, { recursive: true });
@@ -1909,8 +2500,6 @@ function round2(n: number): number {
         );
 
         // Layer 3 Deep sky structures
-        const allStructures = loadAllGalacticStructures();
-        galacticCount = allStructures.length;
         fs.writeFileSync(
           path.join(resolvedOverlays, 'galactic-structures.json'),
           JSON.stringify({
@@ -1922,72 +2511,155 @@ function round2(n: number): number {
           }),
           'utf-8',
         );
+
+        // Dataset Layering Registry & Seed Fictional Canon Layers (FS-001 & FS-002 — DEC-007)
+        const layersDir = path.join(resolvedOverlays, 'layers');
+        if (!fs.existsSync(layersDir)) fs.mkdirSync(layersDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(layersDir, 'index.json'),
+          JSON.stringify(buildLayerIndexManifest(SEED_FICTIONAL_CANON_LAYERS)),
+          'utf-8',
+        );
+        for (const layer of SEED_FICTIONAL_CANON_LAYERS) {
+          fs.writeFileSync(
+            path.join(layersDir, `${layer.layerId}.json`),
+            JSON.stringify(encodeLayerManifest(layer)),
+            'utf-8',
+          );
+        }
       }
 
       // 5. Ingest and write Layer 4 Solar System natural bodies & orbits
       let solarBodiesCount = 0;
-      if (options?.solDir) {
-        const resolvedSol = path.resolve(options.solDir);
-        if (!fs.existsSync(resolvedSol)) fs.mkdirSync(resolvedSol, { recursive: true });
-
+      let allSolarBodies: SolarSystemBodyRecord[] = [];
+      if (options?.solDir || options?.detailsDir || options?.searchDir) {
         const { primaryBodies, phaAsteroids, distantAsteroids, comets } = loadAllSolarSystemBodies();
-        solarBodiesCount = primaryBodies.length + phaAsteroids.length + distantAsteroids.length + comets.length;
+        allSolarBodies = [...primaryBodies, ...phaAsteroids, ...distantAsteroids, ...comets];
+        solarBodiesCount = allSolarBodies.length;
 
-        // Primary bodies & major moons
-        fs.writeFileSync(
-          path.join(resolvedSol, 'ephemeris-primary-bodies.json'),
-          JSON.stringify({
-            datasetId: 'sol-primary-bodies',
-            title: 'Solar System Primary Bodies & Major Moons',
-            epoch: 'J2000',
-            count: primaryBodies.length,
-            timestamp: nowIso,
-            bodies: primaryBodies,
-          }),
-          'utf-8',
-        );
+        if (options?.solDir) {
+          const resolvedSol = path.resolve(options.solDir);
+          if (!fs.existsSync(resolvedSol)) fs.mkdirSync(resolvedSol, { recursive: true });
 
-        // Distant Asteroids (Centaurs, Trojans, KBOs)
-        fs.writeFileSync(
-          path.join(resolvedSol, 'orbital-elements-asteroids.json'),
-          JSON.stringify({
-            datasetId: 'sol-asteroids-distant',
-            title: 'Solar System Centaurs, Trojans & Kuiper Belt Objects',
-            epoch: 'J2000',
-            count: distantAsteroids.length,
-            timestamp: nowIso,
-            bodies: distantAsteroids,
-          }),
-          'utf-8',
-        );
+          // Primary bodies & major moons
+          fs.writeFileSync(
+            path.join(resolvedSol, 'ephemeris-primary-bodies.json'),
+            JSON.stringify({
+              datasetId: 'sol-primary-bodies',
+              title: 'Solar System Primary Bodies & Major Moons',
+              epoch: 'J2000',
+              count: primaryBodies.length,
+              timestamp: nowIso,
+              bodies: primaryBodies,
+            }),
+            'utf-8',
+          );
 
-        // Near-Earth Objects & PHAs
-        fs.writeFileSync(
-          path.join(resolvedSol, 'orbital-elements-neo.json'),
-          JSON.stringify({
-            datasetId: 'sol-minor-bodies-pha',
-            title: 'Solar System Potentially Hazardous Asteroids (PHAs)',
-            epoch: 'J2000',
-            count: phaAsteroids.length,
-            timestamp: nowIso,
-            bodies: phaAsteroids,
-          }),
-          'utf-8',
-        );
+          // Distant Asteroids (Centaurs, Trojans, KBOs)
+          fs.writeFileSync(
+            path.join(resolvedSol, 'orbital-elements-asteroids.json'),
+            JSON.stringify({
+              datasetId: 'sol-asteroids-distant',
+              title: 'Solar System Centaurs, Trojans & Kuiper Belt Objects',
+              epoch: 'J2000',
+              count: distantAsteroids.length,
+              timestamp: nowIso,
+              bodies: distantAsteroids,
+            }),
+            'utf-8',
+          );
 
-        // Comets
-        fs.writeFileSync(
-          path.join(resolvedSol, 'orbital-elements-comets.json'),
-          JSON.stringify({
-            datasetId: 'sol-comets',
-            title: 'Solar System Periodic & Historic Comets',
-            epoch: 'J2000',
-            count: comets.length,
-            timestamp: nowIso,
-            bodies: comets,
-          }),
-          'utf-8',
-        );
+          // Near-Earth Objects & PHAs
+          fs.writeFileSync(
+            path.join(resolvedSol, 'orbital-elements-neo.json'),
+            JSON.stringify({
+              datasetId: 'sol-minor-bodies-pha',
+              title: 'Solar System Potentially Hazardous Asteroids (PHAs)',
+              epoch: 'J2000',
+              count: phaAsteroids.length,
+              timestamp: nowIso,
+              bodies: phaAsteroids,
+            }),
+            'utf-8',
+          );
+
+          // Comets
+          fs.writeFileSync(
+            path.join(resolvedSol, 'orbital-elements-comets.json'),
+            JSON.stringify({
+              datasetId: 'sol-comets',
+              title: 'Solar System Periodic & Historic Comets',
+              epoch: 'J2000',
+              count: comets.length,
+              timestamp: nowIso,
+              bodies: comets,
+            }),
+            'utf-8',
+          );
+        }
+      }
+
+      // 6. Write 36-bucket O(1) dictionary shards for summaries/ and details/ (DEC-006)
+      if (options?.summariesDir || options?.detailsDir) {
+        const { summariesByBucket, detailsByBucket } = buildShardedSummariesAndDetails({
+          systems: cataloguedSummaries,
+          manifests: allSystemManifests,
+          structures: allStructures,
+          solarBodies: allSolarBodies,
+        });
+
+        if (options.summariesDir) {
+          const resolvedSummaries = path.resolve(options.summariesDir);
+          if (!fs.existsSync(resolvedSummaries)) fs.mkdirSync(resolvedSummaries, { recursive: true });
+          for (const [bucket, env] of summariesByBucket.entries()) {
+            fs.writeFileSync(path.join(resolvedSummaries, `${bucket}.json`), JSON.stringify(env), 'utf-8');
+          }
+        }
+
+        if (options.detailsDir) {
+          const resolvedDetails = path.resolve(options.detailsDir);
+          if (!fs.existsSync(resolvedDetails)) fs.mkdirSync(resolvedDetails, { recursive: true });
+          for (const [bucket, env] of detailsByBucket.entries()) {
+            fs.writeFileSync(path.join(resolvedDetails, `${bucket}.json`), JSON.stringify(env), 'utf-8');
+          }
+        }
+      }
+
+      // 7. Write Dual-Tier & Category-Sharded Search Indices (DEC-004, DEC-006 & DEC-007)
+      if (options?.searchDir) {
+        const resolvedSearch = path.resolve(options.searchDir);
+        if (!fs.existsSync(resolvedSearch)) fs.mkdirSync(resolvedSearch, { recursive: true });
+
+        const coordsById = new Map<string, [number, number, number]>();
+        for (const sys of cataloguedSummaries) {
+          coordsById.set(sys.id, [sys.x, sys.y, sys.z]);
+        }
+        for (const man of allSystemManifests) {
+          for (const pl of man.planets) {
+            coordsById.set(pl.id, [man.x, man.y, man.z]);
+          }
+        }
+        for (const st of allStructures) {
+          coordsById.set(st.id, [st.x, st.y, st.z]);
+        }
+        const fictionEntries = buildSearchEntriesFromLayers(SEED_FICTIONAL_CANON_LAYERS, coordsById);
+
+        const indices = buildSearchIndices({
+          systems: cataloguedSummaries,
+          manifests: allSystemManifests,
+          structures: allStructures,
+          solarBodies: allSolarBodies,
+          starAliasesById,
+          fictionEntries,
+        });
+
+        fs.writeFileSync(path.join(resolvedSearch, 'core.json'), JSON.stringify(indices.core), 'utf-8');
+        fs.writeFileSync(path.join(resolvedSearch, 'full.json'), JSON.stringify(indices.full), 'utf-8');
+        fs.writeFileSync(path.join(resolvedSearch, 'stars.json'), JSON.stringify(indices.stars), 'utf-8');
+        fs.writeFileSync(path.join(resolvedSearch, 'planets.json'), JSON.stringify(indices.planets), 'utf-8');
+        fs.writeFileSync(path.join(resolvedSearch, 'structures.json'), JSON.stringify(indices.structures), 'utf-8');
+        fs.writeFileSync(path.join(resolvedSearch, 'minor-bodies.json'), JSON.stringify(indices.minorBodies), 'utf-8');
+        fs.writeFileSync(path.join(resolvedSearch, 'fiction.json'), JSON.stringify(indices.fiction), 'utf-8');
       }
 
       resolve({
@@ -2042,6 +2714,9 @@ if (isDirectExecution) {
   const systemsDir = process.env.SYSTEMS_DIR || 'public/data/systems';
   const overlaysDir = process.env.OVERLAYS_DIR || 'public/data/overlays';
   const solDir = process.env.SOL_DIR || 'public/data/sol';
+  const summariesDir = process.env.SUMMARIES_DIR || 'public/data/summaries';
+  const detailsDir = process.env.DETAILS_DIR || 'public/data/details';
+  const searchDir = process.env.SEARCH_DIR || 'public/data/search';
 
   console.log(`Starting Data Pipeline: Ingesting Gaia DR3 GCNS from ${gcnsGz}...`);
   const startTime = Date.now();
@@ -2052,7 +2727,11 @@ if (isDirectExecution) {
     systemsDir,
     overlaysDir,
     solDir,
+    summariesDir,
+    detailsDir,
+    searchDir,
     maxPartitionDistancePc: 100,
+    compactFormat: true,
   })
     .then((summary) => {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
