@@ -33,9 +33,10 @@ __pycache__/
 *storybook.log
 storybook-static
 
-# Scratch runner
+# Scratch runner & local screenshot artifacts
 runner.cjs
 scripts/scratch.*
 scratch/*.cjs
 scratch/*.js
 scratch/*.png
+artifacts/

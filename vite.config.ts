@@ -13,6 +13,18 @@ export default defineConfig({
   plugins: [react()],
   // Automatically set base path for GitHub Pages based on standard repo name
   base: process.env.GITHUB_ACTIONS ? '/starmap/' : '/',
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    allowedHosts: true,
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 4173,
+    strictPort: true,
+    allowedHosts: true,
+  },
   test: {
     passWithNoTests: true,
     coverage: {

@@ -1,5 +1,9 @@
 # Specification: Telemetry Container & Panels
 
+> [!IMPORTANT]
+> **Stage 2 Flexible Placeholder (`journey-ui-scaffolding`):**
+> This track is held in Stage 2 of the [Journey-Driven View Data Models & UI Scaffolding Initiative](../../initiatives/journey-ui-scaffolding/index.md). Its exact presentation scope, detents, and sequencing will be revisited and ratified against the [View Requirements Inventory](../../initiatives/journey-ui-scaffolding/view-requirements.md) and [Decision Log](../../initiatives/journey-ui-scaffolding/decision-log.md) once Stage 1 (Tracks 01–05) is complete.
+
 ## Overview
 Delivers the Adaptive Telemetry Container, the foundational domain elements (`Heading` and `Dock`), the three-tier **System Information Panel** (Peek, Partial, Full), and the **Secondary Objects Pane**.
 

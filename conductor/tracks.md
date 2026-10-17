@@ -1,18 +1,37 @@
 # Tracks Registry
 
-- [x] **Track: Astro Math Core** *Link: [conductor/tracks/astro-math-core_20260929/index.md](./tracks/astro-math-core_20260929/index.md)*
-- [x] **Track: Data Pipeline** *Link: [conductor/tracks/data-pipeline_20260929/index.md](./tracks/data-pipeline_20260929/index.md)*
-- [x] **Track: Core Routing & State** *Link: [conductor/tracks/core-routing-state_20260929/index.md](./tracks/core-routing-state_20260929/index.md)*
-- [x] **Track: UI System & Primitives** *Link: [conductor/tracks/ui-system_20260929/index.md](./tracks/ui-system_20260929/index.md)*
-- [x] **Track: Visual Design Exploration** *Link: [conductor/tracks/visual-design-exploration_20260929/index.md](./tracks/visual-design-exploration_20260929/index.md)*
-- [x] **Track: 3D Component Architecture Refactor** *Link: [conductor/tracks/3d-component-architecture_20261004/index.md](./tracks/3d-component-architecture_20261004/index.md)*
-- [x] **Track: Visual Language Token Layer** *Link: [conductor/tracks/visual-language-tokens_20261004/index.md](./tracks/visual-language-tokens_20261004/index.md)*
-- [x] **Track: Camera & Orthographic Projection** *Link: [conductor/tracks/camera-orthographic-projection_20261010/index.md](./tracks/camera-orthographic-projection_20261010/index.md)*
+## Initiative: Journey-Driven View Data Models & UI Scaffolding (`journey-ui-scaffolding`)
+*Overview: [conductor/initiatives/journey-ui-scaffolding/index.md](./initiatives/journey-ui-scaffolding/index.md) | [Decision Log](./initiatives/journey-ui-scaffolding/decision-log.md) | [View Requirements](./initiatives/journey-ui-scaffolding/view-requirements.md)*
+
+### Stage 1: Journey Feature Discovery & View Data Models (Zero Presentation Assumptions)
+- [ ] **Track 01: Journey 1 — Target Acquisition, System Summary, 2-Point Route & Scale Transitions (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md](./tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md)*
+- [ ] **Track 02: Journey 2 — Spatial Anchor, Intent Filters, Candidate Sync & Multi-Leg Network (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_02_journey-2-author-flow_20261016/index.md](./tracks/journey-ui-scaffolding_02_journey-2-author-flow_20261016/index.md)*
+- [ ] **Track 03: Journey 3 — Curated On-Ramps, Narrative Waypoints & Step-Through (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_03_journey-3-explorer-flow_20261016/index.md](./tracks/journey-ui-scaffolding_03_journey-3-explorer-flow_20261016/index.md)*
+- [ ] **Track 04: Journey 4 — Classification Deep-Links, Encyclopedia Articles, Parameter Comparator & Category Index (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md](./tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md)*
+- [ ] **Track 05: Journey 5 — Intra-System Transfer Logistics, Temporal Scrubbing & Conjunction Geometry (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_05_journey-5-transit-planner-flow_20261016/index.md](./tracks/journey-ui-scaffolding_05_journey-5-transit-planner-flow_20261016/index.md)*
+
+### Stage 2: UI Chrome, Telemetry & View Wiring (Flexible Placeholders — Sequenced Post-Stage 1)
+- [ ] **Track: Console UI Shell** *Link: [conductor/tracks/console-ui-shell_20261004/index.md](./tracks/console-ui-shell_20261004/index.md)*
+- [ ] **Track: Telemetry Container & Dossiers** *Link: [conductor/tracks/telemetry-container_20261004/index.md](./tracks/telemetry-container_20261004/index.md)*
+- [ ] **Track: Search & Discovery UI Surfaces** *Link: [conductor/tracks/search-discovery_20261004/index.md](./tracks/search-discovery_20261004/index.md)*
+- [ ] **Track: Route & Measurement UI Surfaces** *Link: [conductor/tracks/route-measurement_20261004/index.md](./tracks/route-measurement_20261004/index.md)*
+
+---
+
+## Standalone & Downstream Tracks
 - [ ] **Track: Interaction Controls** *Link: [conductor/tracks/interaction-controls_20261010/index.md](./tracks/interaction-controls_20261010/index.md)*
 - [ ] **Track: Minimap & Scene Transitions** *Link: [conductor/tracks/minimap-scene-transitions_20261010/index.md](./tracks/minimap-scene-transitions_20261010/index.md)*
-- [ ] **Track: Telemetry Container & Dossiers** *Link: [conductor/tracks/telemetry-container_20261004/index.md](./tracks/telemetry-container_20261004/index.md)*
-- [ ] **Track: Console UI Shell** *Link: [conductor/tracks/console-ui-shell_20261004/index.md](./tracks/console-ui-shell_20261004/index.md)*
 - [ ] **Track: 3D Engine Implementation** *Link: [conductor/tracks/3d-engine-implementation_20260929/index.md](./tracks/3d-engine-implementation_20260929/index.md)*
-- [ ] **Track: Search & Discovery** *Link: [conductor/tracks/search-discovery_20261004/index.md](./tracks/search-discovery_20261004/index.md)*
 - [ ] **Track: Reference Engine & MDX** *Link: [conductor/tracks/reference-engine_20260929/index.md](./tracks/reference-engine_20260929/index.md)*
-- [ ] **Track: Route & Measurement Mode** *Link: [conductor/tracks/route-measurement_20261004/index.md](./tracks/route-measurement_20261004/index.md)*
+
+---
+
+## Archived Tracks (`conductor/archive/tracks/`)
+- [x] **Track: Astro Math Core** *Link: [conductor/archive/tracks/astro-math-core_20260929/index.md](./archive/tracks/astro-math-core_20260929/index.md)*
+- [x] **Track: Data Pipeline** *Link: [conductor/archive/tracks/data-pipeline_20260929/index.md](./archive/tracks/data-pipeline_20260929/index.md)*
+- [x] **Track: Core Routing & State** *Link: [conductor/archive/tracks/core-routing-state_20260929/index.md](./archive/tracks/core-routing-state_20260929/index.md)*
+- [x] **Track: UI System & Primitives** *Link: [conductor/archive/tracks/ui-system_20260929/index.md](./archive/tracks/ui-system_20260929/index.md)*
+- [x] **Track: Visual Design Exploration** *Link: [conductor/archive/tracks/visual-design-exploration_20260929/index.md](./archive/tracks/visual-design-exploration_20260929/index.md)*
+- [x] **Track: 3D Component Architecture Refactor** *Link: [conductor/archive/tracks/3d-component-architecture_20261004/index.md](./archive/tracks/3d-component-architecture_20261004/index.md)*
+- [x] **Track: Visual Language Token Layer** *Link: [conductor/archive/tracks/visual-language-tokens_20261004/index.md](./archive/tracks/visual-language-tokens_20261004/index.md)*
+- [x] **Track: Camera & Orthographic Projection** *Link: [conductor/archive/tracks/camera-orthographic-projection_20261010/index.md](./archive/tracks/camera-orthographic-projection_20261010/index.md)*

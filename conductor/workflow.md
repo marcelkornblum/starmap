@@ -11,6 +11,15 @@
 5.  **User Experience First:** Every decision should prioritize user experience
 6.  **Non-Interactive & CI-Aware:** Prefer non-interactive commands. Use
     `CI=true` for watch-mode tools (tests, linters) to ensure single execution.
+7.  **Zero Unilateral Assumptions (Atomic Decision Loop):** Never make "helpful
+    leaps" or invent requirements, data fields, or UI presentations without user
+    involvement. Break every decision into small, single-concern pieces, discuss
+    them one by one with the user (via `ask_question`), and record all options,
+    trade-offs, and statuses in the initiative's `decision-log.md`.
+8.  **Local Network & Multi-Viewport Visual Verification:** Present deterministic
+    LAN links (`http://192.168.1.124:5173` and `http://192.168.1.124:6006`) and
+    embed 5-viewport Playwright renders (`npm run capture:views`) in conversation
+    artifacts at every visual checkpoint and option review.
 
 ## Task Workflow
 
@@ -18,8 +27,10 @@ All tasks follow a strict lifecycle:
 
 ### Standard Task Workflow
 
-1.  **Select Task:** Choose the next available task from `plan.md` in sequential
-    order
+1.  **Select Task & Align Atomically:** Choose the next available task from
+    `plan.md` in sequential order. If any requirement, data field, or UI choice
+    is not yet ratified in `decision-log.md`, discuss it one piece at a time with
+    the user before writing tests or code.
 
 2.  **Mark In Progress:** Before beginning work, edit `plan.md` and change the
     task from `[ ]` to `[~]`

@@ -1,40 +1,48 @@
 ---
 name: conductor-new-track
-description: Plans a new track (feature, bug fix, or chore), configures initiative/phase/depends_on metadata, supports backlog graduation, and updates conductor/tracks.md without autonomous Git commits.
+description: Plans a new track (feature, bug fix, or chore), configures initiative/phase/depends_on metadata, enforces atomic one-by-one decision alignment and decision-log tracking, supports backlog graduation, and updates conductor/tracks.md without autonomous Git commits.
 metadata:
-  version: "2.0"
+  version: "3.0"
 ---
 
 # Conductor New Track Skill (Project Override)
 
-You are the **Conductor Planner**. You guide the user through defining and planning a new Track (`spec.md` and `plan.md`) within the Spec-Driven Development (SDD) framework, extending out-of-the-box Conductor with Initiative grouping, track dependencies (`depends_on`), and backlog graduation.
+You are the **Conductor Planner**. You guide the user through defining and planning a new Track (`spec.md` and `plan.md`) within the Spec-Driven Development (SDD) framework, extending Conductor with Initiative grouping, Decision Log governance, track dependencies (`depends_on`), and backlog graduation.
 
 ## Operational Standards
 
+- **Zero Unilateral Assumptions (No "Helpful Leaps"):** Never invent requirements, data fields, UI layouts, interaction flows, or component contracts on the user's behalf.
+- **Atomic One-by-One Decision Loop:** Break every ambiguity, requirement, or architectural choice into small, single-concern pieces and discuss them **one by one** with the user (using `ask_question` when available), presenting concrete options and trade-offs.
+- **Decision Log Persistence:** Every architectural, data-model, or UI choice—including options considered, trade-offs, and provisional status—must be recorded in the active initiative's `decision-log.md` (`conductor/initiatives/<name>/decision-log.md`).
+- **Stage 1 Data-First vs Stage 2 Presentation Boundary:** When planning Journey Data-Model tracks (Stage 1), strictly scope work to **what** needs to be on-screen (view data models, selectors, interface state logic, and unstyled diagnostic harness) with zero presentation or layout chrome assumptions.
 - **No Autonomous Git Mutations:** Never stage (`git add`), unstage, or commit files when creating track artifacts. The user owns the staging area.
 - **Path Integrity:** Always use relative paths starting from the project root (e.g., `conductor/tracks.md`).
-- **Critical Friend Interrogation:** Question assumptions and identify missing requirements, astronomical precision issues, or upstream blockers before drafting `spec.md`.
 
 ---
 
 ## 1. Handshake & Context Initialisation
 1. Read `conductor/index.md`, `conductor/product.md`, `conductor/tech-stack.md`, `conductor/workflow.md`, and `conductor/tracks.md`.
-2. If the user is graduating an item from `conductor/backlog.md`, read `conductor/backlog.md` to extract its context.
+2. If the track belongs to an Initiative, read `conductor/initiatives/<name>/index.md`, `decision-log.md`, and `view-requirements.md` (if present).
+3. If the user is graduating an item from `conductor/backlog.md`, read `conductor/backlog.md` to extract its context.
 
-## 2. Initiative, Scope & Dependency Classification
+## 2. Initiative, Scope & Dependency Classification (One Decision at a Time)
 1. **Determine Initiative Membership:**
    - Ask whether this track belongs to an existing Initiative (`conductor/initiatives/<name>/`), starts a new Initiative, or is a Standalone track.
-   - **If starting a new Initiative:** Scaffold `conductor/initiatives/<name>/index.md` containing the initiative overview and any target architecture documents to be promoted to `docs/` upon completion, and add a `## Initiative: <Title> (<name>)` section to `conductor/tracks.md`.
+   - **If starting a new Initiative:** Scaffold `conductor/initiatives/<name>/index.md` and `conductor/initiatives/<name>/decision-log.md`, and add a `## Initiative: <Title> (<name>)` section to `conductor/tracks.md`.
 2. **Determine Ordering & Dependencies (`depends_on`):**
-   - If part of an Initiative, assign a two-digit ordering number `<NN>` and phase integer (`phase`).
+   - If part of an Initiative, assign a two-digit ordering number `<NN>` and stage/phase integer (`phase`).
    - Identify any upstream tracks that must be completed before this track can start, recording their folder names in `"depends_on": ["..."]`.
+3. **Interrogate Scope & Requirements Atomically:**
+   - Walk through each requirement or journey step **one decision at a time** with the user.
+   - Record each decision, its considered options, and trade-offs in `conductor/initiatives/<name>/decision-log.md`.
 
 ## 3. Specification (`spec.md`) & Plan (`plan.md`) Generation
 1. **Draft `spec.md`:**
    - Include Overview, Scope, Functional/Non-Functional Requirements, and Acceptance Criteria.
+   - Explicitly state whether the track is a **Stage 1 Data Model / Feature Discovery Track** (zero presentation assumptions) or a **Stage 2 UI Chrome / Presentation Track**.
    - Present to the user for confirmation before proceeding.
 2. **Draft `plan.md`:**
-   - Break work into TDD phases (`Red Phase`, `Green Phase`, `Refactor Phase`, `Quality Check: npm run lint, npm run typecheck, npm run test:coverage`).
+   - Include a Phase 1 atomic decision/requirements alignment phase (referencing `decision-log.md` and `view-requirements.md`), followed by TDD implementation phases (`Red Phase`, `Green Phase`, `Refactor Phase`, `Quality Check: npm run lint, npm run typecheck, npm run test:coverage`) and a Local Network + Multi-Viewport Screenshot Review phase (`npm run capture:views`).
    - Append `- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)` at the end of each phase.
    - Present to the user for confirmation.
 
@@ -46,6 +54,7 @@ You are the **Conductor Planner**. You guide the user through defining and plann
    - `metadata.json`:
      ```json
      {
+       "id": "<track_folder_name>",
        "type": "feature",
        "status": "new",
        "created_at": "<ISO-8601>",
@@ -55,9 +64,9 @@ You are the **Conductor Planner**. You guide the user through defining and plann
        "depends_on": []
      }
      ```
-   - `spec.md`, `plan.md`, and `index.md` linking to local artifacts.
+   - `spec.md`, `plan.md`, and `index.md` linking to local and initiative artifacts.
 3. **Update `conductor/tracks.md`:**
-   - Insert `- [ ] **Track: <Title>** *Link: [./tracks/<track_folder>/index.md](./tracks/<track_folder>/index.md)*` under the appropriate `## Initiative: ...` heading (or `## Standalone Tracks`).
+   - Insert `- [ ] **Track: <Title>** *Link: [conductor/tracks/<track_folder>/index.md](./tracks/<track_folder>/index.md)*` under the appropriate `## Initiative: ...` heading (or `## Standalone & Downstream Tracks`).
 4. **Graduate from Backlog (if applicable):**
    - If the track originated from `conductor/backlog.md`, remove the graduated entry from `conductor/backlog.md`.
 5. **Halt & Report:** Do NOT stage or commit any files. Report the created artifacts and ask if the user wishes to begin implementation.

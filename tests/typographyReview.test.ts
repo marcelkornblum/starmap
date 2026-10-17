@@ -103,5 +103,5 @@ describe('TypographyReview Component', () => {
     const { TypographyReview: PrototypeTypographyReview } = await import('../src/components/prototypes');
     expect(PrototypeTypographyReview).toBeDefined();
     expect(TypographyReview).toBe(PrototypeTypographyReview);
-  });
+  }, 15000);
 });

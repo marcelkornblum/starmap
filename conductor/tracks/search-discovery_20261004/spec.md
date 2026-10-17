@@ -1,6 +1,8 @@
-# Specification: Search & Discovery
+# Specification: Search & Discovery UI Surfaces
 
-> **Status: Stub.** Scope captured from `conductor/backlog.md` and `docs/feature-backlog.md` (retired). Refine via `conductor-new-track` before implementation.
+> [!IMPORTANT]
+> **Stage 2 Flexible Placeholder (`journey-ui-scaffolding`):**
+> Underlying search & intent filter data models are established in Stage 1 (Tracks 01 & 02). This Stage 2 track covers the UI presentation surfaces (Search Pill, Autocomplete Panel, Filter Drawer) to be sequenced and refined against the [View Requirements Inventory](../../initiatives/journey-ui-scaffolding/view-requirements.md) and [Decision Log](../../initiatives/journey-ui-scaffolding/decision-log.md) after Stage 1 completes.
 
 ## Overview
 Delivers the search entry point and catalogue filtering surfaces, feeding results into the unified selection pipeline.
