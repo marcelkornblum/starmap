@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Breadcrumbs } from '../components/domain';
 import { METRICS_GUIDE_PATH } from '../services/searchService';
 
 export interface MetricDetailViewProps {
@@ -26,6 +27,14 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
       data-testid="metric-detail-view-root"
       data-metric-id={resolvedMetricId}
     >
+      <Breadcrumbs
+        items={[
+          { label: 'Galaxy', href: '/galaxy' },
+          { label: 'Guide' },
+          { label: 'Telemetry Metrics', href: METRICS_GUIDE_PATH },
+          { label: resolvedMetricId || 'Telemetry Metric' },
+        ]}
+      />
       <h1>
         {resolvedMetricId
           ? `Telemetry Metric: ${resolvedMetricId}`

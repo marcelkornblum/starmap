@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Breadcrumbs } from '../components/domain';
 import { STAR_TYPES_GUIDE_PATH } from '../services/searchService';
 
 export interface StarTypeDetailViewProps {
@@ -25,6 +26,14 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
       data-testid="star-type-detail-view-root"
       data-star-type={resolvedStarType}
     >
+      <Breadcrumbs
+        items={[
+          { label: 'Galaxy', href: '/galaxy' },
+          { label: 'Guide' },
+          { label: 'Star Types', href: STAR_TYPES_GUIDE_PATH },
+          { label: resolvedStarType || 'Star Type' },
+        ]}
+      />
       <h1>{resolvedStarType ? `Star Type: ${resolvedStarType}` : 'Star Type'}</h1>
       <p>
         <a href={STAR_TYPES_GUIDE_PATH} data-testid="star-types-list-link">

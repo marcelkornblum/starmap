@@ -5,8 +5,10 @@ import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import {
+  Breadcrumbs,
   DetailsPanel,
   SearchResultItem,
+  SystemElementsPanel,
   formatPlanetCountSummary,
   shouldDisplaySpectralBadge,
 } from '../src/components/domain';
@@ -33,6 +35,8 @@ import {
   buildPlanetCompositionSummary,
   buildSystemDetailsHref,
   buildSystemElementFocusHref,
+  buildSystemElementsSummary,
+  buildSystemViewBreadcrumbs,
   classifyExoplanetComposition,
   isExoplanetHabitableCandidate,
   resolveCanonLayerKindPriority,
@@ -57,10 +61,12 @@ import {
   executeCatalogSearch,
   extractUrlCanonLayerId,
   extractUrlFocusSlug,
+  extractUrlSystemSlug,
   extractUrlTagFocus,
   findCanonLayerById,
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
+  hasExplicitFocusParam,
   isArtificialSpacecraftEntry,
   isCatalogOrCanonTag,
   isChildOfHostSystem,
@@ -91,11 +97,13 @@ import {
   extractPlanetTypeFromPathname,
 } from '../src/views/PlanetTypeDetailView';
 import { PlanetTypesListView } from '../src/views/PlanetTypesListView';
+import { SearchView } from '../src/views/SearchView';
 import {
   StarTypeDetailView,
   extractStarTypeFromPathname,
 } from '../src/views/StarTypeDetailView';
 import { StarTypesListView } from '../src/views/StarTypesListView';
+import { SystemView } from '../src/views/SystemView';
 
 const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
   {
@@ -1559,6 +1567,259 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(html).toContain(
       '<li data-testid="systems-selected-item" data-entity-id="gaia-2452378776434477184">Tau Ceti</li>',
     );
+  });
+
+  it('renders Breadcrumbs at the top of every view, populates entity-specific telemetry in DetailsPanel, and renders Bodies and System Elements panels in SystemView', () => {
+    expect(extractUrlSystemSlug('/system/tau-ceti')).toBe('tau-ceti');
+    expect(extractUrlSystemSlug('/galaxy/tau-ceti')).toBe('tau-ceti');
+    expect(extractUrlSystemSlug('/search')).toBeNull();
+    expect(hasExplicitFocusParam('?focus=tau-ceti-e')).toBe(true);
+    expect(hasExplicitFocusParam('')).toBe(false);
+
+    // Empty breadcrumbs returns null
+    expect(renderToString(createElement(Breadcrumbs, { items: [] }))).toBe('');
+    expect(
+      renderToString(createElement(SystemElementsPanel, { elements: null })),
+    ).toBe('');
+    expect(buildSystemElementsSummary({ details: null })).toBeNull();
+
+    // Guide & Search views render breadcrumbs at top
+    expect(renderToString(createElement(SearchView))).toContain(
+      'data-testid="view-breadcrumbs"',
+    );
+    expect(renderToString(createElement(StarTypesListView))).toContain(
+      'data-testid="view-breadcrumbs"',
+    );
+    expect(
+      renderToString(
+        createElement(StarTypeDetailView, {
+          locationPathname: '/guide/star-types/G8V',
+        }),
+      ),
+    ).toContain('data-testid="view-breadcrumbs"');
+    expect(renderToString(createElement(PlanetTypesListView))).toContain(
+      'data-testid="view-breadcrumbs"',
+    );
+    expect(
+      renderToString(
+        createElement(PlanetTypeDetailView, {
+          locationPathname: '/guide/planet-types/terrestrial',
+        }),
+      ),
+    ).toContain('data-testid="view-breadcrumbs"');
+    expect(renderToString(createElement(MetricsListView))).toContain(
+      'data-testid="view-breadcrumbs"',
+    );
+    expect(
+      renderToString(
+        createElement(MetricDetailView, {
+          locationPathname: '/guide/metrics/semi-major-axis',
+        }),
+      ),
+    ).toContain('data-testid="view-breadcrumbs"');
+
+    // SystemView at /system/tau-ceti?focus=tau-ceti-e renders Breadcrumbs, Bodies, Details (planet telemetry), and System Elements
+    const sysStore = createSpatialEntityStore();
+    const sysHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store: sysStore },
+        createElement(SystemView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/system/tau-ceti',
+          locationSearch: '?focus=tau-ceti-e',
+        }),
+      ),
+    );
+    expect(sysHtml).toContain('data-testid="view-breadcrumbs"');
+    expect(sysHtml).toContain('data-testid="bodies-panel"');
+    expect(sysHtml).toContain('data-testid="bodies-focused-item"');
+    expect(sysHtml).toContain('data-testid="details-panel"');
+    expect(sysHtml).toContain('data-focused-kind="planet"');
+    expect(sysHtml).toContain('data-testid="details-planet-telemetry-section"');
+    expect(sysHtml).toContain('data-testid="system-elements-panel"');
+    expect(sysHtml).toContain('data-testid="system-elements-stars-section"');
+    expect(sysHtml).toContain('data-testid="system-elements-planets-section"');
+    expect(sysHtml).toContain('data-testid="system-elements-canon-section"');
+
+    // SystemView at /system/sol renders Moons & Dwarf Planets and Minor Bodies & Spacecraft sections
+    const solStore = createSpatialEntityStore();
+    const solHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store: solStore },
+        createElement(SystemView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/system/sol',
+          locationSearch: '',
+        }),
+      ),
+    );
+    expect(solHtml).toContain('data-testid="system-elements-moons-section"');
+    expect(solHtml).toContain(
+      'data-testid="system-elements-minor-bodies-section"',
+    );
+
+    // Entity-specific telemetry branches in buildFocusedEntityDetails + DetailsPanel:
+    // 1. Star focus (?focus=tau-ceti)
+    const starDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        position: [-3.1, -0.4, -2.0],
+        classification: 'stellar-system',
+      },
+      corpus: SAMPLE_CORPUS,
+      urlSystemSlug: 'tau-ceti',
+      hasExplicitFocus: true,
+    });
+    expect(starDetails?.focusedKind).toBe('star');
+    expect(starDetails?.starTelemetry).toBeDefined();
+    const starHtml = renderToString(
+      createElement(DetailsPanel, { details: starDetails }),
+    );
+    expect(starHtml).toContain('data-testid="details-star-telemetry-section"');
+
+    // 2. Planet focus with full SystemManifest (testing semiMajorAxisAu, periodDays, eccentricity, massMearth, equilibriumTempK, discoveryYear, discoveryMethod)
+    const manifestPlanetDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'tau-ceti-b',
+        name: 'tau-ceti-b',
+        position: [0, 0, 0],
+        classification: 'stellar-system',
+      },
+      corpus: SAMPLE_CORPUS,
+      urlSystemSlug: 'tau-ceti',
+      hasExplicitFocus: true,
+      systemDetail: {
+        kind: 'system',
+        record: {
+          id: 'gaia-2452378776434477184',
+          name: 'Tau Ceti',
+          x: -3.1,
+          y: -0.4,
+          z: -2.0,
+          dist: 3.65,
+          sectorId: 'S-1',
+          stars: [
+            {
+              id: 'gaia-2452378776434477184-A',
+              name: 'Tau Ceti',
+              componentDesignation: 'A',
+              spectralType: 'G8V',
+              mag: 3.5,
+              absmag: 5.69,
+              massMsun: 0.78,
+              radiusRsun: 0.79,
+              luminosityLsun: 0.52,
+              effectiveTempK: 5344,
+            },
+          ],
+          planets: [
+            {
+              id: 'tau-ceti-b',
+              name: 'Tau Ceti b',
+              letter: 'b',
+              massMearth: 2.0,
+              radiusRearth: 1.2,
+              equilibriumTempK: 475,
+              discoveryYear: 2012,
+              discoveryMethod: 'Radial Velocity',
+              orbit: {
+                semiMajorAxis: 0.105,
+                periodDays: 13.9,
+                eccentricity: 0.16,
+                inclination: 0,
+                ascendingNode: 0,
+                argumentOfPeriapsis: 0,
+                meanAnomaly: 0,
+              },
+            },
+          ],
+        },
+      },
+    });
+    expect(manifestPlanetDetails?.focusedKind).toBe('planet');
+    expect(manifestPlanetDetails?.name).toBe('Tau Ceti b');
+    const manifestPlanetHtml = renderToString(
+      createElement(DetailsPanel, { details: manifestPlanetDetails }),
+    );
+    expect(manifestPlanetHtml).toContain(
+      'data-testid="details-planet-telemetry-section"',
+    );
+    expect(manifestPlanetHtml).toContain(
+      'data-testid="details-planet-telemetry-discovery"',
+    );
+
+    // 3. Minor-body focus (Moon k=3, Dwarf Planet k=4, Asteroid/Minor Body k=6, Spacecraft k=6)
+    for (const bodyId of ['moon', 'pluto', 'mpc-433', 'voyager-1']) {
+      const bodyDetails = buildFocusedEntityDetails({
+        focusedEntity: {
+          id: bodyId,
+          name: bodyId,
+          position: [0, 0, 0],
+          classification: 'terrestrial',
+        },
+        corpus: [
+          ...SAMPLE_CORPUS,
+          { i: 'voyager-1', n: 'Voyager 1', k: 6, s: 'sol', h: 1 },
+        ],
+      });
+      expect(bodyDetails?.focusedKind).toBe('minor-body');
+      const bodyHtml = renderToString(
+        createElement(DetailsPanel, { details: bodyDetails }),
+      );
+      expect(bodyHtml).toContain(
+        'data-testid="details-minor-body-telemetry-section"',
+      );
+    }
+
+    // 4. Structure focus (k=7)
+    const structDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'hyades',
+        name: 'Hyades',
+        position: [15, -40, -18],
+        classification: 'cluster',
+      },
+      corpus: SAMPLE_CORPUS,
+      entityDetail: {
+        kind: 'structure',
+        record: {
+          id: 'hyades',
+          name: 'Hyades',
+          type: 'OpenCluster',
+          x: 15,
+          y: -40,
+          z: -18,
+          dist: 47,
+          designations: ['Melotte 25'],
+          radiusPc: 3.0,
+          description: 'Nearest open cluster.',
+        },
+      },
+    });
+    expect(structDetails?.focusedKind).toBe('structure');
+    const structHtml = renderToString(
+      createElement(DetailsPanel, { details: structDetails }),
+    );
+    expect(structHtml).toContain(
+      'data-testid="details-structure-telemetry-section"',
+    );
+    expect(structHtml).toContain(
+      'data-testid="details-structure-telemetry-radius"',
+    );
+
+    // buildSystemViewBreadcrumbs covers both system root and sub-element focus
+    expect(buildSystemViewBreadcrumbs(starDetails, 'tau-ceti', true)).toEqual([
+      { label: 'Galaxy', href: '/galaxy' },
+      { label: 'Tau Ceti', href: '/system/tau-ceti' },
+      { label: 'Tau Ceti' },
+    ]);
+    expect(buildSystemViewBreadcrumbs(null, 'tau-ceti', false)).toEqual([
+      { label: 'Galaxy', href: '/galaxy' },
+      { label: 'tau-ceti' },
+    ]);
   });
 });
 

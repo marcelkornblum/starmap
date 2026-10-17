@@ -138,6 +138,7 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
     systemId,
     name,
     systemName,
+    focusedKind = 'system',
     spectralType,
     reticleType,
     starCount,
@@ -147,6 +148,10 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
     sectorId,
     tags,
     systemDetailsHref,
+    starTelemetry,
+    planetTelemetry,
+    minorBodyTelemetry,
+    structureTelemetry,
     stars,
     planets,
     canonAnnotations,
@@ -160,6 +165,7 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
       data-testid="details-panel"
       data-entity-id={id}
       data-system-id={systemId}
+      data-focused-kind={focusedKind}
     >
       <h2 id="details-panel-heading">Details</h2>
 
@@ -194,6 +200,148 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
             {`${starCount} ${starCount === 1 ? 'star' : 'stars'}`}
           </span>
         </p>
+        {planetTelemetry ? (
+          <p data-testid="details-focused-entity-peek">
+            <Badge category="planet">
+              <a
+                href={buildPlanetTypeGuideHref(planetTelemetry.composition)}
+                data-testid="details-focused-planet-type-link"
+              >
+                {planetTelemetry.composition}
+              </a>
+            </Badge>
+            {planetTelemetry.isHabitableCandidate ? (
+              <>
+                {' '}
+                <Badge status="nominal">
+                  <a
+                    href={buildTagGalaxyHref('HabitableCandidate')}
+                    data-testid="details-focused-planet-habitable-link"
+                  >
+                    Habitable zone
+                  </a>
+                </Badge>
+              </>
+            ) : null}
+            {planetTelemetry.semiMajorAxisAu !== undefined ? (
+              <>
+                {' · a = '}
+                <Quantity
+                  value={planetTelemetry.semiMajorAxisAu}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('semi-major-axis')}
+                        data-testid="details-metric-unit-link"
+                      >
+                        AU
+                      </a>
+                    </Unit>
+                  }
+                />
+              </>
+            ) : null}
+            {planetTelemetry.periodDays !== undefined ? (
+              <>
+                {' · P = '}
+                <Quantity
+                  value={planetTelemetry.periodDays}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('orbital-period')}
+                        data-testid="details-metric-unit-link"
+                      >
+                        d
+                      </a>
+                    </Unit>
+                  }
+                />
+              </>
+            ) : null}
+            {planetTelemetry.massMearth !== undefined ? (
+              <>
+                {' · '}
+                <Quantity
+                  value={planetTelemetry.massMearth}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('planetary-mass')}
+                        data-testid="details-metric-unit-link"
+                      >
+                        M⊕
+                      </a>
+                    </Unit>
+                  }
+                />
+              </>
+            ) : null}
+            {planetTelemetry.equilibriumTempK !== undefined ? (
+              <>
+                {' · '}
+                <Quantity
+                  value={planetTelemetry.equilibriumTempK}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('equilibrium-temperature')}
+                        data-testid="details-metric-unit-link"
+                      >
+                        K
+                      </a>
+                    </Unit>
+                  }
+                />
+              </>
+            ) : null}
+          </p>
+        ) : null}
+        {starTelemetry ? (
+          <p data-testid="details-focused-entity-peek">
+            {`Component ${starTelemetry.componentDesignation} · `}
+            <Quantity
+              value={starTelemetry.mag}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('stellar-magnitude')}
+                    data-testid="details-metric-unit-link"
+                  >
+                    V
+                  </a>
+                </Unit>
+              }
+            />
+            {' · '}
+            <Quantity
+              value={starTelemetry.absmag}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('stellar-magnitude')}
+                    data-testid="details-metric-unit-link"
+                  >
+                    M_V
+                  </a>
+                </Unit>
+              }
+            />
+          </p>
+        ) : null}
+        {minorBodyTelemetry ? (
+          <p data-testid="details-focused-entity-peek">
+            <Badge status="neutral">{minorBodyTelemetry.categoryLabel}</Badge>
+            {minorBodyTelemetry.parentBodyName
+              ? ` · ${minorBodyTelemetry.parentBodyName}`
+              : null}
+          </p>
+        ) : null}
+        {structureTelemetry ? (
+          <p data-testid="details-focused-entity-peek">
+            <Badge status="info">{structureTelemetry.structureType}</Badge>
+          </p>
+        ) : null}
         <p data-testid="details-planet-composition">
           {renderSummaryWithPlanetTypeLinks(planetCompositionSummary)}
         </p>
@@ -207,6 +355,267 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
         data-testid="details-detent-partial"
       >
         <h3 id="details-partial-heading">Partial</h3>
+        {starTelemetry ? (
+          <section
+            aria-labelledby="details-star-telemetry-heading"
+            data-testid="details-star-telemetry-section"
+          >
+            <h4 id="details-star-telemetry-heading">Stellar Telemetry</h4>
+            <dl data-testid="details-star-telemetry-list">
+              <dt>Component</dt>
+              <dd data-testid="details-star-telemetry-component">
+                {starTelemetry.componentDesignation}
+              </dd>
+              <dt>Spectral Class</dt>
+              <dd data-testid="details-star-telemetry-spectral">
+                {shouldDisplaySpectralBadge(starTelemetry.spectralType) ? (
+                  <Badge category="star">
+                    <a
+                      href={buildStarTypeGuideHref(starTelemetry.spectralType)}
+                      data-testid="details-star-telemetry-spectral-link"
+                    >
+                      {starTelemetry.spectralType}
+                    </a>
+                  </Badge>
+                ) : (
+                  starTelemetry.spectralType
+                )}
+              </dd>
+              <dt>Apparent Magnitude</dt>
+              <dd data-testid="details-star-telemetry-mag">
+                <Quantity
+                  value={starTelemetry.mag}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('stellar-magnitude')}
+                        data-testid="details-metric-unit-link"
+                      >
+                        V
+                      </a>
+                    </Unit>
+                  }
+                />
+              </dd>
+              <dt>Absolute Magnitude</dt>
+              <dd data-testid="details-star-telemetry-absmag">
+                <Quantity
+                  value={starTelemetry.absmag}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('stellar-magnitude')}
+                        data-testid="details-metric-unit-link"
+                      >
+                        M_V
+                      </a>
+                    </Unit>
+                  }
+                />
+              </dd>
+            </dl>
+          </section>
+        ) : null}
+        {planetTelemetry ? (
+          <section
+            aria-labelledby="details-planet-telemetry-heading"
+            data-testid="details-planet-telemetry-section"
+          >
+            <h4 id="details-planet-telemetry-heading">Planetary Telemetry</h4>
+            <dl data-testid="details-planet-telemetry-list">
+              <dt>Composition</dt>
+              <dd data-testid="details-planet-telemetry-composition">
+                <Badge category="planet">
+                  <a
+                    href={buildPlanetTypeGuideHref(planetTelemetry.composition)}
+                    data-testid="details-planet-telemetry-type-link"
+                  >
+                    {planetTelemetry.composition}
+                  </a>
+                </Badge>
+              </dd>
+              <dt>Habitable Zone</dt>
+              <dd data-testid="details-planet-telemetry-habitable">
+                {planetTelemetry.isHabitableCandidate ? (
+                  <Badge status="nominal">
+                    <a
+                      href={buildTagGalaxyHref('HabitableCandidate')}
+                      data-testid="details-planet-telemetry-habitable-link"
+                    >
+                      Habitable zone
+                    </a>
+                  </Badge>
+                ) : (
+                  'Outside optimistic zone'
+                )}
+              </dd>
+              {planetTelemetry.semiMajorAxisAu !== undefined ? (
+                <>
+                  <dt>Semi-Major Axis (a)</dt>
+                  <dd data-testid="details-planet-telemetry-axis">
+                    <Quantity
+                      value={planetTelemetry.semiMajorAxisAu}
+                      unit={
+                        <Unit>
+                          <a
+                            href={buildMetricGuideHref('semi-major-axis')}
+                            data-testid="details-metric-unit-link"
+                          >
+                            AU
+                          </a>
+                        </Unit>
+                      }
+                    />
+                  </dd>
+                </>
+              ) : null}
+              {planetTelemetry.periodDays !== undefined ? (
+                <>
+                  <dt>Orbital Period (P)</dt>
+                  <dd data-testid="details-planet-telemetry-period">
+                    <Quantity
+                      value={planetTelemetry.periodDays}
+                      unit={
+                        <Unit>
+                          <a
+                            href={buildMetricGuideHref('orbital-period')}
+                            data-testid="details-metric-unit-link"
+                          >
+                            d
+                          </a>
+                        </Unit>
+                      }
+                    />
+                  </dd>
+                </>
+              ) : null}
+              {planetTelemetry.eccentricity !== undefined ? (
+                <>
+                  <dt>Eccentricity (e)</dt>
+                  <dd data-testid="details-planet-telemetry-eccentricity">
+                    {planetTelemetry.eccentricity}
+                  </dd>
+                </>
+              ) : null}
+              {planetTelemetry.massMearth !== undefined ? (
+                <>
+                  <dt>Mass</dt>
+                  <dd data-testid="details-planet-telemetry-mass">
+                    <Quantity
+                      value={planetTelemetry.massMearth}
+                      unit={
+                        <Unit>
+                          <a
+                            href={buildMetricGuideHref('planetary-mass')}
+                            data-testid="details-metric-unit-link"
+                          >
+                            M⊕
+                          </a>
+                        </Unit>
+                      }
+                    />
+                  </dd>
+                </>
+              ) : null}
+              {planetTelemetry.equilibriumTempK !== undefined ? (
+                <>
+                  <dt>Equilibrium Temp</dt>
+                  <dd data-testid="details-planet-telemetry-temp">
+                    <Quantity
+                      value={planetTelemetry.equilibriumTempK}
+                      unit={
+                        <Unit>
+                          <a
+                            href={buildMetricGuideHref(
+                              'equilibrium-temperature',
+                            )}
+                            data-testid="details-metric-unit-link"
+                          >
+                            K
+                          </a>
+                        </Unit>
+                      }
+                    />
+                  </dd>
+                </>
+              ) : null}
+              {planetTelemetry.discoveryYear !== undefined ||
+              planetTelemetry.discoveryMethod ? (
+                <>
+                  <dt>Discovery</dt>
+                  <dd data-testid="details-planet-telemetry-discovery">
+                    {[
+                      planetTelemetry.discoveryYear,
+                      planetTelemetry.discoveryMethod,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </dd>
+                </>
+              ) : null}
+            </dl>
+          </section>
+        ) : null}
+        {minorBodyTelemetry ? (
+          <section
+            aria-labelledby="details-minor-body-telemetry-heading"
+            data-testid="details-minor-body-telemetry-section"
+          >
+            <h4 id="details-minor-body-telemetry-heading">Body Telemetry</h4>
+            <dl data-testid="details-minor-body-telemetry-list">
+              <dt>Classification</dt>
+              <dd data-testid="details-minor-body-telemetry-class">
+                <Badge status="neutral">
+                  {minorBodyTelemetry.categoryLabel}
+                </Badge>
+              </dd>
+              {minorBodyTelemetry.parentBodyName ? (
+                <>
+                  <dt>Host System</dt>
+                  <dd data-testid="details-minor-body-telemetry-parent">
+                    {minorBodyTelemetry.parentBodyName}
+                  </dd>
+                </>
+              ) : null}
+            </dl>
+          </section>
+        ) : null}
+        {structureTelemetry ? (
+          <section
+            aria-labelledby="details-structure-telemetry-heading"
+            data-testid="details-structure-telemetry-section"
+          >
+            <h4 id="details-structure-telemetry-heading">
+              Structure Telemetry
+            </h4>
+            <dl data-testid="details-structure-telemetry-list">
+              <dt>Structure Type</dt>
+              <dd data-testid="details-structure-telemetry-type">
+                <Badge status="info">{structureTelemetry.structureType}</Badge>
+              </dd>
+              {structureTelemetry.radiusPc !== undefined ? (
+                <>
+                  <dt>Radius</dt>
+                  <dd data-testid="details-structure-telemetry-radius">
+                    <Quantity
+                      value={structureTelemetry.radiusPc}
+                      unit={
+                        <Unit>
+                          <a
+                            href={buildMetricGuideHref('galactic-coordinates')}
+                            data-testid="details-metric-unit-link"
+                          >
+                            pc
+                          </a>
+                        </Unit>
+                      }
+                    />
+                  </dd>
+                </>
+              ) : null}
+            </dl>
+          </section>
+        ) : null}
         <section
           aria-labelledby="details-astrometry-heading"
           data-testid="details-astrometry-section"

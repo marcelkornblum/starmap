@@ -988,6 +988,39 @@ export const extractUrlFocusSlug = (
 };
 
 /**
+ * Pure parser extracting the host system slug from a `/galaxy/$systemId` or `/system/$systemId` route path.
+ */
+export const extractUrlSystemSlug = (pathname: string): string | null => {
+  const routeMatch = /^\/(?:galaxy|system)\/([^/?#]+)/i.exec(pathname.trim());
+  if (routeMatch?.[1]) {
+    const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
+    if (slug.length > 0) {
+      return slug;
+    }
+  }
+  return null;
+};
+
+/**
+ * Pure predicate checking whether a URL search string contains an explicit entity `?focus=<slug>` parameter.
+ */
+export const hasExplicitFocusParam = (
+  searchString: string,
+  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+): boolean => {
+  const params = new URLSearchParams(searchString);
+  const focusParam = params.get('focus');
+  if (
+    !focusParam ||
+    findCanonLayerById(focusParam, activeLayers) ||
+    isCatalogOrCanonTag(focusParam, activeLayers)
+  ) {
+    return false;
+  }
+  return toUrlSlug(focusParam).length > 0;
+};
+
+/**
  * Pure formatter turning a URL slug (e.g. `'tau-ceti'`) into a human-readable fallback title (`'Tau Ceti'`).
  */
 export const formatSlugFallbackTitle = (slug: string): string =>

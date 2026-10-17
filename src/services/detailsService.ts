@@ -18,7 +18,10 @@ import {
 } from '../utils/datasetLayerCodec';
 import {
   buildCanonLayerGalaxyHref,
+  extractUrlSystemSlug,
   findFocusedEntryInCorpus,
+  hasExplicitFocusParam,
+  isArtificialSpacecraftEntry,
   resolveEntryCategory,
   resolveResultDisplayTitle,
   resolveReticleType,
@@ -26,6 +29,13 @@ import {
 } from './searchService';
 
 export type PlanetCompositionClass = 'terrestrial' | 'ice-giant' | 'gas-giant';
+
+export type FocusedEntityKind =
+  | 'system'
+  | 'star'
+  | 'planet'
+  | 'minor-body'
+  | 'structure';
 
 export interface FocusedStarDetail {
   readonly id: string;
@@ -78,11 +88,47 @@ export interface CanonAnnotationOrderOptions {
   readonly layerIdOrder?: readonly string[];
 }
 
+export interface FocusedStarTelemetry {
+  readonly componentDesignation: string;
+  readonly spectralType: string;
+  readonly mag: number;
+  readonly absmag: number;
+  readonly massMsun?: number;
+  readonly radiusRsun?: number;
+  readonly luminosityLsun?: number;
+  readonly effectiveTempK?: number;
+}
+
+export interface FocusedPlanetTelemetry {
+  readonly composition: PlanetCompositionClass;
+  readonly isHabitableCandidate: boolean;
+  readonly semiMajorAxisAu?: number;
+  readonly periodDays?: number;
+  readonly eccentricity?: number;
+  readonly massMearth?: number;
+  readonly radiusRearth?: number;
+  readonly equilibriumTempK?: number;
+  readonly discoveryYear?: number;
+  readonly discoveryMethod?: string;
+}
+
+export interface FocusedMinorBodyTelemetry {
+  readonly categoryLabel: string;
+  readonly parentBodyName?: string;
+}
+
+export interface FocusedStructureTelemetry {
+  readonly structureType: string;
+  readonly radiusPc?: number;
+  readonly dimensionsPc?: readonly [number, number, number];
+}
+
 export interface FocusedEntityDetails {
   readonly id: string;
   readonly systemId: string;
   readonly name: string;
   readonly systemName: string;
+  readonly focusedKind?: FocusedEntityKind;
   // Detent 1: Peek
   readonly spectralType?: string;
   readonly reticleType: CelestialClassification;
@@ -97,9 +143,32 @@ export interface FocusedEntityDetails {
   readonly tags: readonly string[];
   readonly systemDetailsHref: string;
   readonly directionsHref: string;
+  readonly starTelemetry?: FocusedStarTelemetry;
+  readonly planetTelemetry?: FocusedPlanetTelemetry;
+  readonly minorBodyTelemetry?: FocusedMinorBodyTelemetry;
+  readonly structureTelemetry?: FocusedStructureTelemetry;
   // Detent 3: Full
   readonly stars: readonly FocusedStarDetail[];
   readonly planets: readonly FocusedPlanetDetail[];
+  readonly canonAnnotations: readonly FocusedCanonAnnotation[];
+}
+
+export interface SystemElementBodyItem {
+  readonly id: string;
+  readonly name: string;
+  readonly href: string;
+  readonly categoryLabel: string;
+}
+
+export interface SystemElementsSummary {
+  readonly systemId: string;
+  readonly systemName: string;
+  readonly systemHref: string;
+  readonly focusedEntityId?: string;
+  readonly stars: readonly FocusedStarDetail[];
+  readonly planets: readonly FocusedPlanetDetail[];
+  readonly moonsAndDwarfPlanets: readonly SystemElementBodyItem[];
+  readonly minorBodiesAndSpacecraft: readonly SystemElementBodyItem[];
   readonly canonAnnotations: readonly FocusedCanonAnnotation[];
 }
 
@@ -111,6 +180,8 @@ export interface BuildFocusedEntityDetailsInput {
   readonly entityDetail?: DecodedDetailRecord;
   readonly activeLayers?: readonly DatasetLayerManifest[];
   readonly canonOrderOptions?: CanonAnnotationOrderOptions;
+  readonly urlSystemSlug?: string | null;
+  readonly hasExplicitFocus?: boolean;
 }
 
 /**
@@ -455,6 +526,21 @@ const mapManifestToStarsAndPlanets = (
   return { stars, planets };
 };
 
+const resolveMinorBodyCategoryLabel = (entry?: CompactSearchEntry): string => {
+  switch (entry?.k) {
+    case 3:
+      return 'Moon';
+    case 4:
+      return 'Dwarf Planet';
+    case 6:
+      return isArtificialSpacecraftEntry(entry)
+        ? 'Spacecraft'
+        : 'Asteroid / Minor Body';
+    default:
+      return 'Celestial Body';
+  }
+};
+
 /**
  * Pure domain builder that assembles a single `FocusedEntityDetails` object
  * for decomposition by `<DetailsPanel>` across its 3 detents (`Peek`, `Partial`, `Full`).
@@ -471,6 +557,8 @@ export const buildFocusedEntityDetails = (
     entityDetail,
     activeLayers,
     canonOrderOptions,
+    urlSystemSlug,
+    hasExplicitFocus = false,
   } = input;
 
   if (!focusedEntity) {
@@ -478,17 +566,9 @@ export const buildFocusedEntityDetails = (
   }
 
   const matchedCorpusEntry = findFocusedEntryInCorpus(focusedEntity.id, corpus);
-  const systemId =
-    matchedCorpusEntry?.s ??
-    (summaryNode ? summaryNode.id : undefined) ??
-    focusedEntity.id;
-
-  const matchedSystemEntry =
-    systemId !== focusedEntity.id
-      ? findFocusedEntryInCorpus(systemId, corpus)
-      : matchedCorpusEntry && resolveEntryCategory(matchedCorpusEntry) === 'stars'
-        ? matchedCorpusEntry
-        : undefined;
+  const urlMatchedSystemEntry = urlSystemSlug
+    ? findFocusedEntryInCorpus(urlSystemSlug, corpus)
+    : undefined;
 
   const sysManifest =
     systemDetail?.kind === 'system'
@@ -504,6 +584,21 @@ export const buildFocusedEntityDetails = (
         ? systemDetail.record
         : undefined;
 
+  const systemId =
+    matchedCorpusEntry?.s ??
+    (summaryNode ? summaryNode.id : undefined) ??
+    (sysManifest ? sysManifest.id : undefined) ??
+    urlMatchedSystemEntry?.s ??
+    urlMatchedSystemEntry?.i ??
+    focusedEntity.id;
+
+  const matchedSystemEntry =
+    systemId !== focusedEntity.id
+      ? findFocusedEntryInCorpus(systemId, corpus)
+      : matchedCorpusEntry && resolveEntryCategory(matchedCorpusEntry) === 'stars'
+        ? matchedCorpusEntry
+        : urlMatchedSystemEntry;
+
   const systemName =
     sysManifest?.name ??
     summaryNode?.name ??
@@ -512,19 +607,6 @@ export const buildFocusedEntityDetails = (
       : systemId === 'sol'
         ? 'Sol'
         : focusedEntity.name);
-
-  const spectralType =
-    focusedEntity.spectralType ??
-    sysManifest?.stars[0]?.spectralType ??
-    summaryNode?.spect ??
-    matchedSystemEntry?.m?.[1] ??
-    matchedCorpusEntry?.m?.[1];
-
-  const reticleType: CelestialClassification =
-    (focusedEntity.classification as CelestialClassification | undefined) ??
-    (matchedCorpusEntry
-      ? resolveReticleType(matchedCorpusEntry)
-      : 'stellar-system');
 
   let stars: readonly FocusedStarDetail[] = [];
   let planets: readonly FocusedPlanetDetail[] = [];
@@ -537,8 +619,13 @@ export const buildFocusedEntityDetails = (
     stars = mapped.stars;
     planets = mapped.planets;
   } else {
-    // Fallback to corpus child planet entries and primary star entry when manifest shard hasn't loaded yet
-    if (spectralType && spectralType !== 'Unknown') {
+    const fallbackSpectral =
+      focusedEntity.spectralType ??
+      summaryNode?.spect ??
+      matchedSystemEntry?.m?.[1] ??
+      matchedCorpusEntry?.m?.[1];
+
+    if (fallbackSpectral && fallbackSpectral !== 'Unknown') {
       stars = [
         {
           id: `${systemId}-A`,
@@ -548,7 +635,7 @@ export const buildFocusedEntityDetails = (
             systemName || `${systemId}-A`,
           ),
           componentDesignation: 'A',
-          spectralType,
+          spectralType: fallbackSpectral,
           mag: summaryNode?.mag ?? matchedSystemEntry?.m?.[0] ?? 0,
           absmag: summaryNode?.absmag ?? 0,
         },
@@ -559,6 +646,13 @@ export const buildFocusedEntityDetails = (
     for (const entry of corpus) {
       if (entry.k === 2 && entry.s === systemId) {
         const planetName = resolveResultDisplayTitle(entry);
+        const idLower = entry.i.toLowerCase();
+        const composition: PlanetCompositionClass =
+          idLower === 'jupiter' || idLower === 'saturn'
+            ? 'gas-giant'
+            : idLower === 'uranus' || idLower === 'neptune'
+              ? 'ice-giant'
+              : 'terrestrial';
         corpusPlanets.push({
           id: entry.i,
           name: planetName,
@@ -566,15 +660,80 @@ export const buildFocusedEntityDetails = (
             systemName || systemId,
             planetName || entry.i,
           ),
-          composition: 'terrestrial',
+          composition,
           isHabitableCandidate:
-            entry.i.toLowerCase() === 'earth' ||
-            entry.i.toLowerCase() === 'tau-ceti-e',
+            idLower === 'earth' || idLower === 'tau-ceti-e',
         });
       }
     }
     planets = corpusPlanets;
   }
+
+  const focusIdSlug = toUrlSlug(focusedEntity.id);
+  const focusNameSlug = toUrlSlug(focusedEntity.name);
+  const matchedPlanetDetail = planets.find((p) => {
+    const pId = toUrlSlug(p.id);
+    const pName = toUrlSlug(p.name);
+    return (
+      pId === focusIdSlug ||
+      pName === focusIdSlug ||
+      (focusNameSlug.length > 0 &&
+        (pId === focusNameSlug || pName === focusNameSlug))
+    );
+  });
+  const matchedStarDetail = stars.find((s) => {
+    const sId = toUrlSlug(s.id);
+    const sName = toUrlSlug(s.name);
+    return (
+      sId === focusIdSlug ||
+      sName === focusIdSlug ||
+      (focusNameSlug.length > 0 &&
+        (sId === focusNameSlug || sName === focusNameSlug))
+    );
+  });
+
+  const focusedKind: FocusedEntityKind =
+    structureRecord ||
+    matchedCorpusEntry?.k === 5 ||
+    focusedEntity.classification === 'cluster' ||
+    focusedEntity.classification === 'stellar-cluster'
+      ? 'structure'
+      : matchedPlanetDetail || matchedCorpusEntry?.k === 2
+        ? 'planet'
+        : matchedCorpusEntry &&
+            (matchedCorpusEntry.k === 3 ||
+              matchedCorpusEntry.k === 4 ||
+              matchedCorpusEntry.k === 6)
+          ? 'minor-body'
+          : matchedStarDetail &&
+              (hasExplicitFocus || focusedEntity.id !== systemId)
+            ? 'star'
+            : 'system';
+
+  const resolvedName =
+    matchedPlanetDetail?.name ??
+    (focusedKind === 'star' && matchedStarDetail
+      ? matchedStarDetail.name
+      : undefined) ??
+    focusedEntity.name;
+
+  const spectralType =
+    (focusedKind === 'star' && matchedStarDetail
+      ? matchedStarDetail.spectralType
+      : undefined) ??
+    focusedEntity.spectralType ??
+    sysManifest?.stars[0]?.spectralType ??
+    summaryNode?.spect ??
+    matchedSystemEntry?.m?.[1] ??
+    matchedCorpusEntry?.m?.[1];
+
+  const reticleType: CelestialClassification =
+    focusedKind === 'planet'
+      ? (matchedPlanetDetail?.composition ?? 'terrestrial')
+      : (focusedEntity.classification as CelestialClassification | undefined) ??
+        (matchedCorpusEntry
+          ? resolveReticleType(matchedCorpusEntry)
+          : 'stellar-system');
 
   const starCount =
     sysManifest && sysManifest.stars.length > 0
@@ -604,10 +763,13 @@ export const buildFocusedEntityDetails = (
     summaryNode?.planetCensus,
   );
 
-  const isChildEntity = focusedEntity.id !== systemId;
+  const isChildEntity =
+    focusedEntity.id !== systemId ||
+    focusedKind === 'planet' ||
+    focusedKind === 'minor-body';
 
   const systemSummary = buildIntrinsicSystemSummary({
-    name: focusedEntity.name,
+    name: resolvedName,
     systemName,
     isChildEntity,
     spectralType,
@@ -676,11 +838,89 @@ export const buildFocusedEntityDetails = (
   }
   const tags = baseTags;
 
+  const starSource = matchedStarDetail ?? stars[0];
+  const starTelemetry: FocusedStarTelemetry | undefined =
+    focusedKind === 'star' && starSource
+      ? {
+          componentDesignation: starSource.componentDesignation,
+          spectralType: starSource.spectralType,
+          mag: starSource.mag,
+          absmag: starSource.absmag,
+          ...(starSource.massMsun !== undefined
+            ? { massMsun: starSource.massMsun }
+            : {}),
+          ...(starSource.radiusRsun !== undefined
+            ? { radiusRsun: starSource.radiusRsun }
+            : {}),
+          ...(starSource.luminosityLsun !== undefined
+            ? { luminosityLsun: starSource.luminosityLsun }
+            : {}),
+          ...(starSource.effectiveTempK !== undefined
+            ? { effectiveTempK: starSource.effectiveTempK }
+            : {}),
+        }
+      : undefined;
+
+  const planetTelemetry: FocusedPlanetTelemetry | undefined =
+    focusedKind === 'planet'
+      ? {
+          composition: matchedPlanetDetail?.composition ?? 'terrestrial',
+          isHabitableCandidate: Boolean(
+            matchedPlanetDetail?.isHabitableCandidate ||
+              focusedEntity.id.toLowerCase() === 'earth' ||
+              focusedEntity.id.toLowerCase() === 'tau-ceti-e',
+          ),
+          ...(matchedPlanetDetail?.semiMajorAxisAu !== undefined
+            ? { semiMajorAxisAu: matchedPlanetDetail.semiMajorAxisAu }
+            : {}),
+          ...(matchedPlanetDetail?.periodDays !== undefined
+            ? { periodDays: matchedPlanetDetail.periodDays }
+            : {}),
+          ...(matchedPlanetDetail?.eccentricity !== undefined
+            ? { eccentricity: matchedPlanetDetail.eccentricity }
+            : {}),
+          ...(matchedPlanetDetail?.massMearth !== undefined
+            ? { massMearth: matchedPlanetDetail.massMearth }
+            : {}),
+          ...(matchedPlanetDetail?.radiusRearth !== undefined
+            ? { radiusRearth: matchedPlanetDetail.radiusRearth }
+            : {}),
+          ...(matchedPlanetDetail?.equilibriumTempK !== undefined
+            ? { equilibriumTempK: matchedPlanetDetail.equilibriumTempK }
+            : {}),
+          ...(matchedPlanetDetail?.discoveryYear !== undefined
+            ? { discoveryYear: matchedPlanetDetail.discoveryYear }
+            : {}),
+          ...(matchedPlanetDetail?.discoveryMethod
+            ? { discoveryMethod: matchedPlanetDetail.discoveryMethod }
+            : {}),
+        }
+      : undefined;
+
+  const minorBodyTelemetry: FocusedMinorBodyTelemetry | undefined =
+    focusedKind === 'minor-body'
+      ? {
+          categoryLabel: resolveMinorBodyCategoryLabel(matchedCorpusEntry),
+          parentBodyName: systemName,
+        }
+      : undefined;
+
+  const structureTelemetry: FocusedStructureTelemetry | undefined =
+    focusedKind === 'structure'
+      ? {
+          structureType: structureRecord?.type ?? 'Galactic Structure',
+          ...(structureRecord?.radiusPc !== undefined
+            ? { radiusPc: structureRecord.radiusPc }
+            : {}),
+        }
+      : undefined;
+
   return {
     id: focusedEntity.id,
     systemId,
-    name: focusedEntity.name,
+    name: resolvedName,
     systemName,
+    focusedKind,
     ...(spectralType && spectralType !== 'Unknown' ? { spectralType } : {}),
     reticleType,
     starCount,
@@ -693,8 +933,122 @@ export const buildFocusedEntityDetails = (
     tags,
     systemDetailsHref,
     directionsHref,
+    ...(starTelemetry ? { starTelemetry } : {}),
+    ...(planetTelemetry ? { planetTelemetry } : {}),
+    ...(minorBodyTelemetry ? { minorBodyTelemetry } : {}),
+    ...(structureTelemetry ? { structureTelemetry } : {}),
     stars,
     planets,
     canonAnnotations,
   };
 };
+
+export interface BuildSystemElementsSummaryInput {
+  readonly details: FocusedEntityDetails | null;
+  readonly corpus?: readonly CompactSearchEntry[];
+}
+
+/**
+ * Pure domain builder assembling a `SystemElementsSummary` showing all elements in the host system
+ * broken into sections (`Stars`, `Planets`, `Moons & Dwarf Planets`, `Minor Bodies & Spacecraft`, `Canon Layers`).
+ */
+export const buildSystemElementsSummary = (
+  input: BuildSystemElementsSummaryInput,
+): SystemElementsSummary | null => {
+  const { details, corpus = [] } = input;
+  if (!details) {
+    return null;
+  }
+
+  const { systemId, systemName, id: focusedEntityId, stars, planets } = details;
+  const systemHref = buildSystemDetailsHref(systemName || systemId);
+
+  const moonsAndDwarfPlanets: SystemElementBodyItem[] = [];
+  const minorBodiesAndSpacecraft: SystemElementBodyItem[] = [];
+
+  for (const entry of corpus) {
+    if (entry.s !== systemId) {
+      continue;
+    }
+    const name = resolveResultDisplayTitle(entry);
+    const href = buildSystemElementFocusHref(
+      systemName || systemId,
+      name || entry.i,
+    );
+    if (entry.k === 3 || entry.k === 4) {
+      moonsAndDwarfPlanets.push({
+        id: entry.i,
+        name,
+        href,
+        categoryLabel: entry.k === 3 ? 'Moon' : 'Dwarf Planet',
+      });
+    } else if (entry.k === 6) {
+      minorBodiesAndSpacecraft.push({
+        id: entry.i,
+        name,
+        href,
+        categoryLabel: isArtificialSpacecraftEntry(entry)
+          ? 'Spacecraft'
+          : 'Minor Body',
+      });
+    }
+  }
+
+  const systemCanonAnnotations = resolveFocusedCanonAnnotations(
+    systemId,
+    systemId,
+  );
+
+  return {
+    systemId,
+    systemName,
+    systemHref,
+    focusedEntityId,
+    stars,
+    planets,
+    moonsAndDwarfPlanets,
+    minorBodiesAndSpacecraft,
+    canonAnnotations: systemCanonAnnotations,
+  };
+};
+
+export interface BreadcrumbRouteLink {
+  readonly label: string;
+  readonly href?: string;
+}
+
+/**
+ * Pure builder producing the breadcrumb trail for the active System or Galaxy view.
+ */
+export const buildSystemViewBreadcrumbs = (
+  details: FocusedEntityDetails | null,
+  urlSystemSlug: string | null,
+  hasExplicitFocus: boolean,
+): readonly BreadcrumbRouteLink[] => {
+  const items: BreadcrumbRouteLink[] = [
+    { label: 'Galaxy', href: '/galaxy' },
+  ];
+
+  const sysName = details?.systemName ?? urlSystemSlug ?? 'Sol';
+  const sysHref =
+    details?.systemDetailsHref ?? buildSystemDetailsHref(sysName);
+
+  const isSubElementFocused =
+    Boolean(details) &&
+    (hasExplicitFocus ||
+      (details !== null &&
+        details.focusedKind !== undefined &&
+        details.focusedKind !== 'system'));
+
+  if (isSubElementFocused && details) {
+    items.push({ label: sysName, href: sysHref });
+    items.push({ label: details.name });
+  } else {
+    items.push({ label: sysName });
+  }
+
+  return items;
+};
+
+export { extractUrlSystemSlug, hasExplicitFocusParam };
+

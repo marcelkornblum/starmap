@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Breadcrumbs } from '../components/domain';
 import { PLANET_TYPES_GUIDE_PATH } from '../services/searchService';
 
 export interface PlanetTypeDetailViewProps {
@@ -26,6 +27,14 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
       data-testid="planet-type-detail-view-root"
       data-planet-type={resolvedPlanetType}
     >
+      <Breadcrumbs
+        items={[
+          { label: 'Galaxy', href: '/galaxy' },
+          { label: 'Guide' },
+          { label: 'Planet Types', href: PLANET_TYPES_GUIDE_PATH },
+          { label: resolvedPlanetType || 'Planet Type' },
+        ]}
+      />
       <h1>
         {resolvedPlanetType
           ? `Planet Type: ${resolvedPlanetType}`

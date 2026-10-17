@@ -3,7 +3,12 @@ import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
 } from '../components/canvas/entity/SpatialEntityContext';
-import { DetailsPanel, SearchResultItem } from '../components/domain';
+import {
+  Breadcrumbs,
+  DetailsPanel,
+  SearchResultItem,
+  type BreadcrumbItem,
+} from '../components/domain';
 import { Search } from '../components/search';
 import {
   fetchDetailRecord,
@@ -13,7 +18,12 @@ import {
 } from '../data/detailsRepository';
 import { getCachedCorpusForFilter } from '../data/searchRepository';
 import { buildFocusedEntityDetails } from '../services/detailsService';
-import { findFocusedEntryInCorpus } from '../services/searchService';
+import {
+  extractUrlFocusSlug,
+  extractUrlSystemSlug,
+  findFocusedEntryInCorpus,
+  hasExplicitFocusParam,
+} from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 
 export interface MainViewProps {
@@ -21,6 +31,35 @@ export interface MainViewProps {
   readonly locationPathname?: string;
   readonly locationSearch?: string;
 }
+
+const MainBreadcrumbsRegion: React.FC<{
+  readonly locationPathname?: string;
+  readonly locationSearch?: string;
+}> = ({ locationPathname, locationSearch }) => {
+  const storeApi = useSpatialEntityStoreApi();
+  useSpatialEntityStore((state) => state.entities);
+  useSpatialEntityStore((state) => state.focusedId);
+
+  const pathname =
+    locationPathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : '/galaxy');
+  const search =
+    locationSearch ??
+    (typeof window !== 'undefined' ? window.location.search : '');
+
+  const focusSlug = extractUrlFocusSlug(pathname, search);
+  const focusedEntity =
+    storeApi.getState().getEntitiesByState('focused')[0] ?? null;
+
+  const items: BreadcrumbItem[] = focusSlug
+    ? [
+        { label: 'Galaxy', href: '/galaxy' },
+        { label: focusedEntity?.name ?? focusSlug },
+      ]
+    : [{ label: 'Galaxy' }];
+
+  return <Breadcrumbs items={items} />;
+};
 
 export const SystemsPanel: React.FC = () => {
   const storeApi = useSpatialEntityStoreApi();
@@ -77,10 +116,14 @@ export const SystemsPanel: React.FC = () => {
 
 interface FocusedDetailsRegionProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
+  readonly locationPathname?: string;
+  readonly locationSearch?: string;
 }
 
 const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
   initialCorpus,
+  locationPathname,
+  locationSearch,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
   useSpatialEntityStore((state) => state.entities);
@@ -88,13 +131,31 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
 
   const [, setShardTick] = useState<number>(0);
 
-  const focusedEntity = storeApi.getState().getEntitiesByState('focused')[0] ?? null;
-  const activeCorpus =
-    initialCorpus ?? getCachedCorpusForFilter('all') ?? [];
+  const pathname =
+    locationPathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : '/galaxy');
+  const search =
+    locationSearch ??
+    (typeof window !== 'undefined' ? window.location.search : '');
+
+  const urlSystemSlug = extractUrlSystemSlug(pathname);
+  const hasExplicitFocus = hasExplicitFocusParam(search);
+
+  const focusedEntity =
+    storeApi.getState().getEntitiesByState('focused')[0] ?? null;
+  const activeCorpus = initialCorpus ?? getCachedCorpusForFilter('all') ?? [];
   const matchedEntry = focusedEntity
     ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
     : undefined;
-  const targetSystemId = matchedEntry?.s ?? focusedEntity?.id ?? '';
+  const urlSystemEntry = urlSystemSlug
+    ? findFocusedEntryInCorpus(urlSystemSlug, activeCorpus)
+    : undefined;
+  const targetSystemId =
+    matchedEntry?.s ??
+    urlSystemEntry?.s ??
+    urlSystemEntry?.i ??
+    focusedEntity?.id ??
+    '';
 
   useEffect(() => {
     if (!focusedEntity || initialCorpus || typeof window === 'undefined') {
@@ -127,6 +188,8 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
     entityDetail: focusedEntity
       ? getCachedDetailRecord(focusedEntity.id)
       : undefined,
+    urlSystemSlug,
+    hasExplicitFocus,
   });
 
   return <DetailsPanel details={focusedDetails} />;
@@ -139,6 +202,10 @@ export const MainView: React.FC<MainViewProps> = ({
 }) => {
   return (
     <main data-testid="clean-slate-root">
+      <MainBreadcrumbsRegion
+        locationPathname={locationPathname}
+        locationSearch={locationSearch}
+      />
       <Search.Root
         limitPerCategory={3}
         initialCorpus={initialCorpus}
@@ -154,8 +221,11 @@ export const MainView: React.FC<MainViewProps> = ({
         />
       </Search.Root>
       <SystemsPanel />
-      <FocusedDetailsRegion initialCorpus={initialCorpus} />
+      <FocusedDetailsRegion
+        initialCorpus={initialCorpus}
+        locationPathname={locationPathname}
+        locationSearch={locationSearch}
+      />
     </main>
   );
 };
-
