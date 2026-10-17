@@ -1,10 +1,10 @@
 import type React from 'react';
-import { useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react';
+import { useId, useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 
-const portalRegistry = new Map<symbol, React.ReactPortal>();
+const portalRegistry = new Map<string, React.ReactPortal>();
 const portalListeners = new Set<() => void>();
 let portalSnapshot: React.ReactPortal[] = [];
 
@@ -120,14 +120,10 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
 
   const { gl, camera, size } = useThree();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const portalKeyRef = useRef<symbol | null>(null);
-  if (portalKeyRef.current === null) {
-    portalKeyRef.current = Symbol('safe-html-portal');
-  }
+  const portalId = useId();
 
   useLayoutEffect(() => {
     if (typeof document === 'undefined') return;
-    const key = portalKeyRef.current!;
 
     const div = document.createElement('div');
     div.style.position = 'absolute';
@@ -141,13 +137,13 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
 
     return () => {
       containerRef.current = null;
-      portalRegistry.delete(key);
+      portalRegistry.delete(portalId);
       emitPortalChange();
       if (div.parentNode) {
         div.parentNode.removeChild(div);
       }
     };
-  }, [gl]);
+  }, [gl, portalId]);
 
   useLayoutEffect(() => {
     const div = containerRef.current;
@@ -155,19 +151,18 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     div.style.pointerEvents = pointerEvents;
     div.className = wrapperClass ?? '';
 
-    const key = portalKeyRef.current!;
     portalRegistry.set(
-      key,
+      portalId,
       createPortal(
         <div className={className} data-testid={dataTestId}>
           {children}
         </div>,
         div,
-        key.description,
+        portalId,
       ),
     );
     emitPortalChange();
-  }, [gl, children, className, dataTestId, pointerEvents, wrapperClass]);
+  }, [gl, portalId, children, className, dataTestId, pointerEvents, wrapperClass]);
 
   useFrame(() => {
     const activeContainer = containerRef.current;
