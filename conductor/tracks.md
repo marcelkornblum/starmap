@@ -28,6 +28,7 @@
 
 ## Backlog
 - [ ] **Feature: Custom Shortlink & Curated Landing URLs (`/go/<slug>`)** — Support friendly, memorable entry-point URLs (e.g., `/go/hail-mary`, `/go/dune`, `/go/trappist`, `/go/voyager`) that resolve to customised landing experiences with pre-configured camera framing, active fictional canon layers, selected targets/routes, and tailored onboarding context.
+- [ ] **Feature: GitHub Feature Requests & Bug Reports Integration** — Provide a simple, low-friction way for users to submit feature requests, data/canon corrections, and bug reports directly to GitHub Issues (e.g., an in-app feedback action that opens pre-populated GitHub Issue forms/templates with current URL/view/entity context).
 
 ---
 

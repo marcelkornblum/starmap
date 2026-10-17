@@ -55,3 +55,9 @@ Items logged here are held for later consideration and graduation into formal tr
 - **Behaviour:**
   - Resolves a short slug into a customised application setup and entry point (e.g., activating a specific fictional canon layer, pre-selecting a target system or multi-leg route, framing the camera at an ideal vantage point, or opening a tailored welcome/onboarding briefing).
 
+### FS-009: GitHub Feature Requests & Bug Reports Integration
+- **Concept:** Give users a simple, frictionless path to submit feature requests, missing star/canon suggestions, and bug reports on GitHub.
+- **Behaviour:**
+  - Structured `.github/ISSUE_TEMPLATE/` forms (Bug Report, Feature Request, Canon/Data Addition) paired with an in-app feedback link/action that pre-populates the GitHub New Issue URL with relevant context (e.g., current route URL, active view, or selected celestial entity).
+
+
