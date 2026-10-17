@@ -46,3 +46,4 @@ You act as a **Principal Software Engineer & Critical Friend** reviewing complet
 2. Confirm the commit message with the user and commit changes on the feature/chore branch.
 3. Push branch to `origin` and open a Pull Request against `main` (via `gh pr create`).
 4. Verify that all CI checks (`Lint`, `Type Check`, `Test`, `Build`, `CI Complete`) complete successfully.
+5. Wait for the automated Gemini code review, address any findings, explicitly mark addressed review threads as resolved on GitHub (via `gh api graphql` `resolveReviewThread`, as the Gemini bot does not resolve threads itself), and comment `/review` to re-run until a clean pass is achieved.

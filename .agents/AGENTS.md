@@ -70,5 +70,6 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
 8. **Automated AI Review Loop:**
    - Once the PR is opened (as a non-draft), wait for the automated Gemini code review.
    - Check back, inspect all comments, and address any defects or suggestions it raises.
-   - Request another review by commenting `/review` on the PR and repeat this loop until Gemini returns a clean pass (no unresolved findings).
+   - **Mark Addressed Comments as Resolved:** The Gemini reviewer bot does not resolve review threads automatically. As soon as you push a fix addressing a review comment, explicitly mark its review thread as resolved on GitHub (via `gh api graphql` `resolveReviewThread` mutation).
+   - Request another review by commenting `/review` on the PR and repeat this loop until Gemini returns a clean pass (zero unresolved findings).
    - Once Gemini gives the all-clear, halt and wait for human review.
