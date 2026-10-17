@@ -1,6 +1,8 @@
 import type { CelestialClassification } from '../components/canvas/cartography/reticleGeometry';
 import type { SpatialEntityDefinition } from '../components/canvas/entity/types';
+import type { DatasetLayerManifest } from '../types/astro';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { SEED_FICTIONAL_CANON_LAYERS } from '../utils/datasetLayerCodec';
 import { expandGouldOrConstellationSuffix, normalizeCleanKey } from '../utils/nomenclature';
 
 export type SearchCategoryKey =
@@ -766,19 +768,95 @@ export const resolveSelectedSystemsFromSearchResults = (
 };
 
 /**
+ * Base path for the stellar classification guide views (`/guide/star-types` and `/guide/star-types/$starType`).
+ */
+export const STAR_TYPES_GUIDE_PATH = '/guide/star-types';
+
+/**
+ * Pure unit function building the URL to the stellar classification detail guide view
+ * (`/guide/star-types/<starType>`, e.g. `/guide/star-types/G8V`).
+ */
+export const buildStarTypeGuideHref = (spectralType: string): string => {
+  const trimmed = spectralType.trim();
+  if (!trimmed || trimmed === 'Unknown') {
+    return STAR_TYPES_GUIDE_PATH;
+  }
+  return `${STAR_TYPES_GUIDE_PATH}/${encodeURIComponent(trimmed)}`;
+};
+
+/**
+ * Pure unit function building the URL to the Galaxy View with a canon layer query parameter
+ * (`/galaxy?focus=<layerId>`, e.g. `/galaxy?focus=canon-project-hail-mary`).
+ */
+export const buildCanonLayerGalaxyHref = (layerId: string): string => {
+  const trimmed = layerId.trim();
+  const params = new URLSearchParams({ focus: trimmed });
+  return `/galaxy?${params.toString()}`;
+};
+
+/**
+ * Pure lookup finding a dataset layer manifest (`FS-001` / `FS-002`) by its `layerId` or slug.
+ */
+export const findCanonLayerById = (
+  candidateId: string,
+  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+): DatasetLayerManifest | undefined => {
+  const trimmed = candidateId.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const targetLower = trimmed.toLowerCase();
+  const targetSlug = toUrlSlug(trimmed);
+  return activeLayers.find(
+    (layer) =>
+      layer.layerId.toLowerCase() === targetLower ||
+      toUrlSlug(layer.layerId) === targetSlug,
+  );
+};
+
+/**
+ * Pure parser extracting an active canon layer ID from a URL search string.
+ * Supports both `?focus=<layerId>` (when `<layerId>` matches a known canon layer)
+ * and `?canon=<layerId>`.
+ */
+export const extractUrlCanonLayerId = (
+  searchString: string,
+  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+): string | null => {
+  const params = new URLSearchParams(searchString);
+  const canonParam = params.get('canon');
+  if (canonParam) {
+    const matched = findCanonLayerById(canonParam, activeLayers);
+    if (matched) {
+      return matched.layerId;
+    }
+  }
+  const focusParam = params.get('focus');
+  if (focusParam) {
+    const matched = findCanonLayerById(focusParam, activeLayers);
+    if (matched) {
+      return matched.layerId;
+    }
+  }
+  return null;
+};
+
+/**
  * Pure parser extracting the focused target slug from a URL `pathname` and `searchString`.
  * Priority:
- * 1. Explicit `?focus=<slug>` query parameter (e.g. `/galaxy/tau-ceti?focus=tau-ceti-e`)
+ * 1. Explicit `?focus=<slug>` query parameter (e.g. `/galaxy/tau-ceti?focus=tau-ceti-e`),
+ *    excluding canon layer IDs (`?focus=canon-project-hail-mary`) which select canon systems instead.
  * 2. Route path segment `/galaxy/$systemId` or `/system/$systemId` (e.g. `/galaxy/tau-ceti`)
- * 3. `null` when no focus parameter or system route segment is present in the URL.
+ * 3. `null` when no entity focus parameter or system route segment is present in the URL.
  */
 export const extractUrlFocusSlug = (
   pathname: string,
   searchString: string,
+  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
 ): string | null => {
   const params = new URLSearchParams(searchString);
   const focusParam = params.get('focus');
-  if (focusParam) {
+  if (focusParam && !findCanonLayerById(focusParam, activeLayers)) {
     const slug = toUrlSlug(focusParam);
     if (slug.length > 0) {
       return slug;
@@ -846,6 +924,65 @@ export const findFocusedEntryInCorpus = (
 };
 
 /**
+ * Pure unit function resolving all deduplicated host star systems that have annotations
+ * in a specified canon layer (`layerId`), returning `SpatialEntityDefinition` records
+ * to be marked `selected` in `SpatialEntityStore`.
+ */
+export const resolveSelectedSystemsFromCanonLayer = (
+  layerId: string,
+  corpus: readonly CompactSearchEntry[],
+  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+): readonly SpatialEntityDefinition[] => {
+  const layer = findCanonLayerById(layerId, activeLayers);
+  if (!layer) {
+    return [];
+  }
+
+  const systemsById = new Map<string, SpatialEntityDefinition>();
+
+  for (const entry of Object.values(layer.entries)) {
+    const systemId = entry.systemId || entry.targetId;
+    if (!systemId || systemsById.has(systemId)) {
+      continue;
+    }
+
+    const matched = findFocusedEntryInCorpus(systemId, corpus);
+    if (matched) {
+      systemsById.set(matched.i, {
+        id: matched.i,
+        name: resolveResultDisplayTitle(matched),
+        position: matched.p
+          ? [matched.p[0], matched.p[1], matched.p[2]]
+          : [0, 0, 0],
+        classification: resolveReticleType(matched),
+        ...(matched.m?.[1] ? { spectralType: matched.m[1] } : {}),
+      });
+    } else if (systemId === 'sol') {
+      systemsById.set('sol', {
+        id: 'sol',
+        name: 'Sol',
+        position: [0, 0, 0],
+        classification: 'stellar-system',
+        spectralType: 'G2V',
+      });
+    } else {
+      const fallbackName =
+        entry.targetType === 'system' && entry.inUniverseName
+          ? entry.inUniverseName
+          : formatSlugFallbackTitle(systemId);
+      systemsById.set(systemId, {
+        id: systemId,
+        name: fallbackName,
+        position: [0, 0, 0],
+        classification: 'stellar-system',
+      });
+    }
+  }
+
+  return Array.from(systemsById.values());
+};
+
+/**
  * Pure unit function resolving the `SpatialEntityDefinition` to mark `focused` in
  * `SpatialEntityStore` from a URL focus slug and search corpus.
  */
@@ -878,4 +1015,5 @@ export const resolveFocusedEntityFromCorpus = (
     classification: 'stellar-system',
   };
 };
+
 

@@ -37,12 +37,17 @@ import {
 } from '../src/services/detailsService';
 import {
   SEARCH_CATEGORIES,
+  STAR_TYPES_GUIDE_PATH,
+  buildCanonLayerGalaxyHref,
   buildResultTargetLink,
   buildSearchViewHref,
+  buildStarTypeGuideHref,
   buildUpdatedSearchUrl,
   compareSearchResultItems,
   executeCatalogSearch,
+  extractUrlCanonLayerId,
   extractUrlFocusSlug,
+  findCanonLayerById,
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
   isArtificialSpacecraftEntry,
@@ -56,12 +61,15 @@ import {
   resolveResultDisplayTitle,
   resolveResultSystemTitle,
   resolveReticleType,
+  resolveSelectedSystemsFromCanonLayer,
   resolveSelectedSystemsFromSearchResults,
   scoreSearchEntry,
   toSearchResultItem,
 } from '../src/services/searchService';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
 import { MainView } from '../src/views/MainView';
+import { StarTypeDetailView } from '../src/views/StarTypeDetailView';
+import { StarTypesListView } from '../src/views/StarTypesListView';
 
 const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
   {
@@ -383,7 +391,9 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(html).toContain('[stellar-system]');
     expect(html).toContain('[terrestrial]');
     expect(html).toContain('data-testid="result-variation-stars"');
-    expect(html).toContain('<span data-testid="result-spectral-badge">G8V</span>');
+    expect(html).toContain(
+      '<a href="/guide/star-types/G8V" data-testid="result-spectral-badge">G8V</a>',
+    );
     expect(html).toContain('<span data-testid="result-planet-summary">4 planets</span>');
     expect(html).toContain('data-testid="result-variation-planets"');
     expect(html).toContain('data-testid="result-variation-fiction"');
@@ -863,7 +873,9 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       '<li data-testid="systems-focused-item" data-entity-id="gaia-2452378776434477184">Tau Ceti</li>',
     );
     expect(focusSystemHtml).toContain('data-testid="details-panel"');
-    expect(focusSystemHtml).toContain('<span data-testid="details-spectral-badge">G8V</span>');
+    expect(focusSystemHtml).toContain(
+      '<a href="/guide/star-types/G8V" data-testid="details-spectral-badge">G8V</a>',
+    );
     expect(focusSystemHtml).toContain('<span data-testid="details-reticle-type">[stellar-system]</span>');
     expect(focusSystemHtml).toContain('4 planets');
     expect(focusSystemHtml).toContain('Centre');
@@ -1132,6 +1144,146 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     await expect(fetchSummaryNode('sol', failFetch)).rejects.toThrow('500');
     await expect(fetchDetailRecord('sol', failFetch)).rejects.toThrow('500');
     clearDetailsRepositoryCache();
+  });
+
+  it('links all stellar classifications to /guide/star-types/$starType and renders StarTypesListView and StarTypeDetailView', () => {
+    expect(STAR_TYPES_GUIDE_PATH).toBe('/guide/star-types');
+    expect(buildStarTypeGuideHref('G8V')).toBe('/guide/star-types/G8V');
+    expect(buildStarTypeGuideHref('  M5.5Ve  ')).toBe('/guide/star-types/M5.5Ve');
+    expect(buildStarTypeGuideHref('')).toBe('/guide/star-types');
+    expect(buildStarTypeGuideHref('Unknown')).toBe('/guide/star-types');
+
+    // SearchResultItem spectral badge links to /guide/star-types/G8V
+    const searchRes = executeCatalogSearch(SAMPLE_CORPUS, {
+      query: 'Tau Ceti',
+      filter: 'stars',
+    });
+    const tauItem = searchRes.groups.stars.items[0]!;
+    const itemHtml = renderToString(
+      createElement(SearchResultItem, { result: tauItem }),
+    );
+    expect(itemHtml).toContain('href="/guide/star-types/G8V"');
+    expect(itemHtml).toContain('data-testid="result-spectral-badge"');
+
+    // DetailsPanel links G8V in Peek badge, Partial summary, and Full Stars list
+    const focusedDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        position: [-3.1, -0.4, -2.0],
+        classification: 'stellar-system',
+        spectralType: 'G8V',
+      },
+      corpus: SAMPLE_CORPUS,
+    });
+    const detailsHtml = renderToString(
+      createElement(DetailsPanel, { details: focusedDetails }),
+    );
+    expect(detailsHtml).toContain('data-testid="details-spectral-badge"');
+    expect(detailsHtml).toContain('data-testid="details-summary-spectral-link"');
+    expect(detailsHtml).toContain('data-testid="details-star-spectral-link"');
+    expect(detailsHtml.match(/href="\/guide\/star-types\/G8V"/g)?.length).toBeGreaterThanOrEqual(
+      3,
+    );
+
+    // StarTypesListView and StarTypeDetailView render cleanly
+    const listViewHtml = renderToString(createElement(StarTypesListView));
+    expect(listViewHtml).toContain('data-testid="star-types-list-view-root"');
+    expect(listViewHtml).toContain('Star Types');
+
+    const detailViewHtml = renderToString(
+      createElement(StarTypeDetailView, { starType: 'G8V' }),
+    );
+    expect(detailViewHtml).toContain('data-testid="star-type-detail-view-root"');
+    expect(detailViewHtml).toContain('data-star-type="G8V"');
+    expect(detailViewHtml).toContain('Star Type: G8V');
+    expect(detailViewHtml).toContain('href="/guide/star-types"');
+  });
+
+  it('links each canon title in DetailsPanel to /galaxy?focus=<layerId> and selects all annotated systems when MainView loads', () => {
+    expect(buildCanonLayerGalaxyHref('canon-project-hail-mary')).toBe(
+      '/galaxy?focus=canon-project-hail-mary',
+    );
+    expect(findCanonLayerById('canon-project-hail-mary')?.title).toBe(
+      'Project Hail Mary',
+    );
+    expect(findCanonLayerById('')).toBeUndefined();
+    expect(findCanonLayerById('non-existent-layer')).toBeUndefined();
+
+    expect(extractUrlCanonLayerId('?focus=canon-project-hail-mary')).toBe(
+      'canon-project-hail-mary',
+    );
+    expect(extractUrlCanonLayerId('?canon=canon-halo')).toBe('canon-halo');
+    expect(extractUrlCanonLayerId('?focus=tau-ceti-e')).toBeNull();
+    expect(extractUrlCanonLayerId('')).toBeNull();
+
+    // extractUrlFocusSlug ignores canon layer IDs in ?focus= so no fake entity is focused
+    expect(
+      extractUrlFocusSlug('/galaxy', '?focus=canon-project-hail-mary'),
+    ).toBeNull();
+
+    // DetailsPanel renders clickable canon links
+    const focusedDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        position: [-3.1, -0.4, -2.0],
+        classification: 'stellar-system',
+      },
+      corpus: SAMPLE_CORPUS,
+    });
+    const detailsHtml = renderToString(
+      createElement(DetailsPanel, { details: focusedDetails }),
+    );
+    expect(detailsHtml).toContain('data-testid="details-canon-link"');
+    expect(detailsHtml).toContain(
+      'href="/galaxy?focus=canon-project-hail-mary"',
+    );
+    expect(detailsHtml).toContain('href="/galaxy?focus=canon-halo"');
+
+    // resolveSelectedSystemsFromCanonLayer resolves all annotated systems
+    const phmSystems = resolveSelectedSystemsFromCanonLayer(
+      'canon-project-hail-mary',
+      SAMPLE_CORPUS,
+    );
+    expect(phmSystems.map((s) => s.name)).toEqual(['Tau Ceti', 'Keid']);
+    expect(
+      resolveSelectedSystemsFromCanonLayer('non-existent-canon', SAMPLE_CORPUS),
+    ).toEqual([]);
+
+    // Fallback when corpus is empty and when Sol is included (e.g. canon-star-trek)
+    const stSystemsEmptyCorpus = resolveSelectedSystemsFromCanonLayer(
+      'canon-star-trek',
+      [],
+    );
+    expect(stSystemsEmptyCorpus.some((s) => s.id === 'sol' && s.name === 'Sol')).toBe(
+      true,
+    );
+
+    // MainView loading /galaxy?focus=canon-project-hail-mary selects all systems in that canon and focuses nothing
+    const store = createSpatialEntityStore();
+    const html = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store },
+        createElement(MainView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/galaxy',
+          locationSearch: '?focus=canon-project-hail-mary',
+        }),
+      ),
+    );
+
+    const selected = store.getState().getEntitiesByState('selected');
+    expect(selected.map((s) => s.name)).toEqual(['Tau Ceti', 'Keid']);
+    expect(store.getState().getEntitiesByState('focused')).toEqual([]);
+    expect(html).not.toContain('data-testid="details-panel"');
+    expect(html).toContain(
+      '<li data-testid="systems-selected-item" data-entity-id="gaia-2452378776434477184">Tau Ceti</li>',
+    );
+    expect(html).toContain(
+      '<li data-testid="systems-selected-item" data-entity-id="gaia-3195919528989223040">Keid</li>',
+    );
   });
 });
 

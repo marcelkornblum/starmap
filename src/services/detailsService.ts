@@ -17,6 +17,7 @@ import {
   resolveSystemLayerEntries,
 } from '../utils/datasetLayerCodec';
 import {
+  buildCanonLayerGalaxyHref,
   findFocusedEntryInCorpus,
   resolveEntryCategory,
   resolveResultDisplayTitle,
@@ -58,6 +59,7 @@ export interface FocusedPlanetDetail {
 export interface FocusedCanonAnnotation {
   readonly layerId: string;
   readonly layerTitle: string;
+  readonly layerHref: string;
   readonly kind: DatasetLayerKind;
   readonly targetId: string;
   readonly targetType: DatasetLayerTargetType;
@@ -269,6 +271,7 @@ export const resolveFocusedCanonAnnotations = (
     annotations.push({
       layerId: item.layerId,
       layerTitle: item.layerTitle,
+      layerHref: buildCanonLayerGalaxyHref(item.layerId),
       kind: item.kind,
       targetId: item.entry.targetId,
       targetType: item.entry.targetType,

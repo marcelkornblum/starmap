@@ -9,6 +9,8 @@ import { RootLayout } from '../components/poc/layout/RootLayout';
 import { RouteSkeleton } from '../components/poc/common/RouteSkeleton';
 import { MainView } from '../views/MainView';
 import { SearchView } from '../views/SearchView';
+import { StarTypeDetailView } from '../views/StarTypeDetailView';
+import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
 import { GalaxyView } from '../views/poc/GalaxyView';
 import { SystemView as PocSystemView } from '../views/poc/SystemView';
@@ -19,6 +21,7 @@ export interface StarmapSearchParams {
   q?: string;
   searchCategory?: string;
   focus?: string;
+  canon?: string;
   x?: number;
   y?: number;
   z?: number;
@@ -45,6 +48,7 @@ export const rootRoute = createRootRoute({
           ? search.searchCategory
           : undefined,
       focus: typeof search.focus === 'string' && search.focus.length > 0 ? search.focus : undefined,
+      canon: typeof search.canon === 'string' && search.canon.length > 0 ? search.canon : undefined,
       x: typeof search.x === 'number' ? search.x : (search.x ? Number(search.x) : undefined),
       y: typeof search.y === 'number' ? search.y : (search.y ? Number(search.y) : undefined),
       z: typeof search.z === 'number' ? search.z : (search.z ? Number(search.z) : undefined),
@@ -83,6 +87,18 @@ export const mainSystemRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/system/$systemId',
   component: SystemView,
+});
+
+export const starTypesListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/star-types',
+  component: StarTypesListView,
+});
+
+export const starTypeDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/star-types/$starType',
+  component: StarTypeDetailView,
 });
 
 // Quarantined POC layout and routes under /poc/* for reference
@@ -148,6 +164,8 @@ export const routeTree = rootRoute.addChildren([
   mainGalaxyRoute,
   mainGalaxySystemRoute,
   mainSystemRoute,
+  starTypesListRoute,
+  starTypeDetailRoute,
   pocRoute.addChildren([
     pocIndexRoute,
     galaxyRoute,

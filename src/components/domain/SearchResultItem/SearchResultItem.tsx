@@ -1,5 +1,8 @@
 import type { MouseEvent, ReactNode } from 'react';
-import type { SearchResultItem as SearchResultItemModel } from '../../../services/searchService';
+import {
+  buildStarTypeGuideHref,
+  type SearchResultItem as SearchResultItemModel,
+} from '../../../services/searchService';
 
 export interface SearchResultItemProps {
   readonly result: SearchResultItemModel;
@@ -37,8 +40,13 @@ const renderVariationContent = (
       return (
         <span data-testid="result-variation-stars">
           {' ('}
-          {hasSpect ? (
-            <span data-testid="result-spectral-badge">{spectralType}</span>
+          {hasSpect && spectralType ? (
+            <a
+              href={buildStarTypeGuideHref(spectralType)}
+              data-testid="result-spectral-badge"
+            >
+              {spectralType}
+            </a>
           ) : null}
           {hasSpect && planetSummary ? ' · ' : null}
           {planetSummary ? (

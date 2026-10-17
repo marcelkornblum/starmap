@@ -10,6 +10,8 @@ import {
   mainGalaxyRoute,
   mainGalaxySystemRoute,
   mainSystemRoute,
+  starTypesListRoute,
+  starTypeDetailRoute,
   pocIndexRoute,
   galaxyRoute,
   systemRoute,
@@ -18,6 +20,8 @@ import {
 } from '../src/router';
 import { MainView } from '../src/views/MainView';
 import { SearchView } from '../src/views/SearchView';
+import { StarTypeDetailView } from '../src/views/StarTypeDetailView';
+import { StarTypesListView } from '../src/views/StarTypesListView';
 import { SystemView } from '../src/views/SystemView';
 import { SEARCH_CATEGORIES } from '../src/services/searchService';
 import { useStarmapNav } from '../src/router/navigation';
@@ -42,6 +46,8 @@ describe('TanStack Router Architecture', () => {
     expect(flatRoutes['/galaxy']).toBeDefined();
     expect(flatRoutes['/galaxy/$systemId']).toBeDefined();
     expect(flatRoutes['/system/$systemId']).toBeDefined();
+    expect(flatRoutes['/guide/star-types']).toBeDefined();
+    expect(flatRoutes['/guide/star-types/$starType']).toBeDefined();
     expect(flatRoutes['/poc']).toBeDefined();
     expect(router.routesById['/poc/']).toBeDefined();
     expect(flatRoutes['/poc/galaxy']).toBeDefined();
@@ -53,7 +59,7 @@ describe('TanStack Router Architecture', () => {
   it('contains expected route tree structure', () => {
     expect(routeTree).toBeDefined();
     expect(routeTree.children).toBeDefined();
-    expect(routeTree.children?.length).toBe(6);
+    expect(routeTree.children?.length).toBe(8);
   });
 
   it('validates search parameters correctly on rootRoute across all branches', () => {
@@ -65,6 +71,7 @@ describe('TanStack Router Architecture', () => {
       q: 'Tau Ceti',
       searchCategory: 'stars',
       focus: 'tau-ceti-e',
+      canon: 'canon-project-hail-mary',
       x: '12.5',
       y: 42,
       z: 'not-a-number',
@@ -76,6 +83,7 @@ describe('TanStack Router Architecture', () => {
     expect(validated.q).toBe('Tau Ceti');
     expect(validated.searchCategory).toBe('stars');
     expect(validated.focus).toBe('tau-ceti-e');
+    expect(validated.canon).toBe('canon-project-hail-mary');
     expect(validated.x).toBe(12.5);
     expect(validated.y).toBe(42);
     expect(Number.isNaN(validated.z)).toBe(true);
@@ -86,6 +94,7 @@ describe('TanStack Router Architecture', () => {
     // Empty search params (falsy branch)
     const emptyValidated = validate({});
     expect(emptyValidated.q).toBeUndefined();
+    expect(emptyValidated.canon).toBeUndefined();
     expect(emptyValidated.x).toBeUndefined();
     expect(emptyValidated.y).toBeUndefined();
     expect(emptyValidated.z).toBeUndefined();
@@ -113,6 +122,8 @@ describe('TanStack Router Architecture', () => {
     expect(mainGalaxySystemRoute.options.component).toBe(MainView);
     expect(mainSearchRoute.options.component).toBe(SearchView);
     expect(mainSystemRoute.options.component).toBe(SystemView);
+    expect(starTypesListRoute.options.component).toBe(StarTypesListView);
+    expect(starTypeDetailRoute.options.component).toBe(StarTypeDetailView);
     const html = renderToString(createElement(MainView));
 
     expect(html).toContain('data-testid="clean-slate-root"');

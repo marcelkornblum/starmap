@@ -1,9 +1,41 @@
+import { Fragment, type ReactNode } from 'react';
 import type { FocusedEntityDetails } from '../../../services/detailsService';
+import {
+  buildCanonLayerGalaxyHref,
+  buildStarTypeGuideHref,
+} from '../../../services/searchService';
 import { shouldDisplaySpectralBadge } from '../SearchResultItem/SearchResultItem';
 
 export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
 }
+
+const renderSummaryWithSpectralLink = (
+  summary: string,
+  spectralType?: string,
+): ReactNode => {
+  if (
+    !spectralType ||
+    !shouldDisplaySpectralBadge(spectralType) ||
+    !summary.includes(spectralType)
+  ) {
+    return summary;
+  }
+
+  const parts = summary.split(spectralType);
+  const href = buildStarTypeGuideHref(spectralType);
+
+  return parts.map((part, index) => (
+    <Fragment key={index}>
+      {part}
+      {index < parts.length - 1 ? (
+        <a href={href} data-testid="details-summary-spectral-link">
+          {spectralType}
+        </a>
+      ) : null}
+    </Fragment>
+  ));
+};
 
 /**
  * Domain Component (`<DetailsPanel>`): accepts a single `FocusedEntityDetails | null`
@@ -57,10 +89,15 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
             </span>
           ) : null}{' '}
           <span data-testid="details-reticle-type">{`[${reticleType}]`}</span>
-          {hasSpectBadge ? (
+          {hasSpectBadge && spectralType ? (
             <>
               {' '}
-              <span data-testid="details-spectral-badge">{spectralType}</span>
+              <a
+                href={buildStarTypeGuideHref(spectralType)}
+                data-testid="details-spectral-badge"
+              >
+                {spectralType}
+              </a>
             </>
           ) : null}
           {' · '}
@@ -78,7 +115,9 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
         data-testid="details-detent-partial"
       >
         <h3 id="details-partial-heading">Partial</h3>
-        <p data-testid="details-system-summary">{systemSummary}</p>
+        <p data-testid="details-system-summary">
+          {renderSummaryWithSpectralLink(systemSummary, spectralType)}
+        </p>
         <div data-testid="details-actions">
           <button type="button" data-testid="details-button-centre">
             Centre
@@ -109,7 +148,17 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                   data-layer-id={annotation.layerId}
                   data-target-id={annotation.targetId}
                 >
-                  <strong>{annotation.layerTitle}</strong>
+                  <strong>
+                    <a
+                      href={
+                        annotation.layerHref ||
+                        buildCanonLayerGalaxyHref(annotation.layerId)
+                      }
+                      data-testid="details-canon-link"
+                    >
+                      {annotation.layerTitle}
+                    </a>
+                  </strong>
                   {annotation.inUniverseName
                     ? ` — ${annotation.inUniverseName}`
                     : ''}
@@ -133,7 +182,18 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                   data-testid="details-star-item"
                   data-star-id={star.id}
                 >
-                  {`${star.name} (${star.spectralType}, V ${star.mag}, M_V ${star.absmag})`}
+                  {`${star.name} (`}
+                  {shouldDisplaySpectralBadge(star.spectralType) ? (
+                    <a
+                      href={buildStarTypeGuideHref(star.spectralType)}
+                      data-testid="details-star-spectral-link"
+                    >
+                      {star.spectralType}
+                    </a>
+                  ) : (
+                    star.spectralType
+                  )}
+                  {`, V ${star.mag}, M_V ${star.absmag})`}
                 </li>
               ))}
             </ul>

@@ -18,11 +18,13 @@ import {
   buildSearchViewHref,
   buildUpdatedSearchUrl,
   executeCatalogSearch,
+  extractUrlCanonLayerId,
   extractUrlFocusSlug,
   findFocusedEntryInCorpus,
   isSearchCategoryFilter,
   parseSearchUrlParams,
   resolveFocusedEntityFromCorpus,
+  resolveSelectedSystemsFromCanonLayer,
   resolveSelectedSystemsFromSearchResults,
   type GroupedSearchResults,
   type SearchCategoryFilter,
@@ -93,8 +95,16 @@ const syncSearchUrlParams = (
 const syncSelectedSystemsToStore = (
   store: SpatialEntityStore,
   results: GroupedSearchResults,
+  activeSearch = '',
+  corpus: readonly CompactSearchEntry[] = [],
 ): void => {
-  const selectedSystems = resolveSelectedSystemsFromSearchResults(results);
+  const canonLayerId =
+    results.query.trim().length === 0
+      ? extractUrlCanonLayerId(activeSearch)
+      : null;
+  const selectedSystems = canonLayerId
+    ? resolveSelectedSystemsFromCanonLayer(canonLayerId, corpus)
+    : resolveSelectedSystemsFromSearchResults(results);
   const state = store.getState();
   for (const system of selectedSystems) {
     state.registerEntity(system);
@@ -197,7 +207,12 @@ export const SearchRoot = ({
             limitPerCategory,
           });
 
-    syncSelectedSystemsToStore(store, computed);
+    const focusCorpus =
+      initialCorpus ??
+      initialSystemEntries ??
+      initialAvailableCorpus ??
+      [];
+    syncSelectedSystemsToStore(store, computed, activeSearch, focusCorpus);
 
     if (
       syncUrl ||
@@ -208,11 +223,6 @@ export const SearchRoot = ({
         activePathname,
         activeSearch,
       );
-      const focusCorpus =
-        initialCorpus ??
-        initialSystemEntries ??
-        initialAvailableCorpus ??
-        [];
       syncUrlFocusToStore(
         store,
         initialFocusSlug,
@@ -228,11 +238,27 @@ export const SearchRoot = ({
   const prevUrlKeyRef = useRef<string>(`${activePathname}${activeSearch}`);
 
   const updateResultsAndSelection = useCallback(
-    (nextResults: GroupedSearchResults): void => {
+    (
+      nextResults: GroupedSearchResults,
+      overrideSearch?: string,
+      overrideCorpus?: readonly CompactSearchEntry[],
+    ): void => {
       setResults(nextResults);
-      syncSelectedSystemsToStore(store, nextResults);
+      const effectiveSearch = overrideSearch ?? activeSearch;
+      const effectiveCorpus =
+        overrideCorpus ??
+        initialCorpus ??
+        getCachedCorpusForFilter('all') ??
+        getCachedCorpusForFilter(nextResults.filter) ??
+        [];
+      syncSelectedSystemsToStore(
+        store,
+        nextResults,
+        effectiveSearch,
+        effectiveCorpus,
+      );
     },
-    [store],
+    [activeSearch, initialCorpus, store],
   );
 
   const submitSearch = useCallback(
@@ -474,6 +500,19 @@ export const SearchRoot = ({
             if (starsShard) {
               focusCorpus = mergeSearchShards([focusCorpus, starsShard]);
             }
+          }
+
+          if (startQuery.trim().length === 0) {
+            syncSelectedSystemsToStore(
+              store,
+              executeCatalogSearch([], {
+                query: '',
+                filter: startFilter,
+                limitPerCategory,
+              }),
+              activeSearch,
+              focusCorpus,
+            );
           }
 
           syncUrlFocusToStore(
