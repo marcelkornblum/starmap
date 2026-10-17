@@ -1,6 +1,6 @@
 import type React from 'react';
-import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 
@@ -29,8 +29,8 @@ export interface SafeHtmlProps {
  * 1. Synchronous root.unmount() during commit phase: "Attempted to synchronously unmount a root while React was already rendering".
  * 2. Unchecked target.removeChild(el) throwing NotFoundError when the canvas container is detached.
  *
- * Uses React createPortal into a detached DOM node appended to canvas container,
- * completely preserving React context trees and eliminating isolated nested root lifecycles.
+ * Uses a dedicated react-dom/client root (so HTML/SVG children are reconciled by react-dom rather
+ * than R3F's THREE namespace reconciler) and defers root.unmount() via queueMicrotask.
  */
 const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   children,
@@ -44,7 +44,6 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   onOcclude,
   'data-testid': dataTestId,
 }) => {
-  const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const groupRef = useRef<THREE.Group | null>(null);
   const scratchPos = useRef<THREE.Vector3>(new THREE.Vector3());
   const scratchNdc = useRef<THREE.Vector3>(new THREE.Vector3());
@@ -81,33 +80,57 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
 
   const { gl, camera, size } = useThree();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<Root | null>(null);
+  const unmountedRef = useRef<boolean>(false);
 
   useLayoutEffect(() => {
     if (typeof document === 'undefined') return;
+    unmountedRef.current = false;
 
     const div = document.createElement('div');
     div.style.position = 'absolute';
     div.style.top = '0';
     div.style.left = '0';
-    div.style.pointerEvents = pointerEvents;
     div.style.transformOrigin = '0 0';
-    if (wrapperClass) {
-      div.className = wrapperClass;
-    }
     containerRef.current = div;
 
     const target = (gl.domElement?.parentNode as HTMLElement | null) ?? document.body;
     target.appendChild(div);
-    setContainer(div);
+
+    const root = createRoot(div);
+    rootRef.current = root;
 
     return () => {
-      if (div.parentNode) {
-        div.parentNode.removeChild(div);
-      }
+      unmountedRef.current = true;
       containerRef.current = null;
-      setContainer(null);
+      rootRef.current = null;
+      queueMicrotask(() => {
+        try {
+          root.unmount();
+        } catch {
+          // Ignore unmount errors if container was already torn down
+        }
+        if (div.parentNode) {
+          div.parentNode.removeChild(div);
+        }
+      });
     };
-  }, [gl, pointerEvents, wrapperClass]);
+  }, [gl]);
+
+  useLayoutEffect(() => {
+    const div = containerRef.current;
+    if (div) {
+      div.style.pointerEvents = pointerEvents;
+      div.className = wrapperClass ?? '';
+    }
+    if (rootRef.current && !unmountedRef.current) {
+      rootRef.current.render(
+        <div className={className} data-testid={dataTestId}>
+          {children}
+        </div>,
+      );
+    }
+  }, [children, className, dataTestId, pointerEvents, wrapperClass]);
 
   useFrame(() => {
     const activeContainer = containerRef.current;
@@ -190,18 +213,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     }
   });
 
-  return (
-    <>
-      <group ref={groupRef} position={position} />
-      {container &&
-        createPortal(
-          <div className={className} data-testid={dataTestId}>
-            {children}
-          </div>,
-          container
-        )}
-    </>
-  );
+  return <group ref={groupRef} position={position} />;
 };
 
 export const SafeHtml: React.FC<SafeHtmlProps> = (props) => {
