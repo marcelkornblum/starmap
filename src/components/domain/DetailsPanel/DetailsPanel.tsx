@@ -18,6 +18,32 @@ export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
 }
 
+const HABITABLE_CANDIDATE_PHRASE = 'Habitable zone candidate';
+const HABITABLE_CANDIDATE_LOWER_PHRASE = 'habitable zone candidate';
+
+const renderTextWithHabitableBadge = (
+  text: string,
+  testId: string,
+): ReactNode => {
+  if (!text.includes(HABITABLE_CANDIDATE_LOWER_PHRASE)) {
+    return text;
+  }
+  const parts = text.split(HABITABLE_CANDIDATE_LOWER_PHRASE);
+  const href = buildTagGalaxyHref('HabitableCandidate');
+  return parts.map((part, idx) => (
+    <Fragment key={idx}>
+      {part}
+      {idx < parts.length - 1 ? (
+        <Badge status="nominal">
+          <a href={href} data-testid={testId}>
+            {HABITABLE_CANDIDATE_LOWER_PHRASE}
+          </a>
+        </Badge>
+      ) : null}
+    </Fragment>
+  ));
+};
+
 const renderSummaryWithSpectralLink = (
   summary: string,
   spectralType?: string,
@@ -27,7 +53,10 @@ const renderSummaryWithSpectralLink = (
     !shouldDisplaySpectralBadge(spectralType) ||
     !summary.includes(spectralType)
   ) {
-    return summary;
+    return renderTextWithHabitableBadge(
+      summary,
+      'details-summary-habitable-link',
+    );
   }
 
   const parts = summary.split(spectralType);
@@ -35,7 +64,7 @@ const renderSummaryWithSpectralLink = (
 
   return parts.map((part, index) => (
     <Fragment key={index}>
-      {part}
+      {renderTextWithHabitableBadge(part, 'details-summary-habitable-link')}
       {index < parts.length - 1 ? (
         <Badge category="star">
           <a href={href} data-testid="details-summary-spectral-link">
@@ -47,17 +76,21 @@ const renderSummaryWithSpectralLink = (
   ));
 };
 
-const PLANET_TYPE_TOKEN_REGEX = new RegExp(
-  `(${PLANET_COMPOSITION_TYPES.join('|')})`,
+const PLANET_SUMMARY_TOKEN_REGEX = new RegExp(
+  `(${[...PLANET_COMPOSITION_TYPES, HABITABLE_CANDIDATE_PHRASE].join('|')})`,
   'g',
 );
 
 const renderSummaryWithPlanetTypeLinks = (summary: string): ReactNode => {
-  if (!PLANET_COMPOSITION_TYPES.some((t) => summary.includes(t))) {
+  const hasPlanetType = PLANET_COMPOSITION_TYPES.some((t) =>
+    summary.includes(t),
+  );
+  const hasHabitablePhrase = summary.includes(HABITABLE_CANDIDATE_PHRASE);
+  if (!hasPlanetType && !hasHabitablePhrase) {
     return summary;
   }
 
-  const parts = summary.split(PLANET_TYPE_TOKEN_REGEX);
+  const parts = summary.split(PLANET_SUMMARY_TOKEN_REGEX);
   return parts.map((part, index) => {
     const isPlanetType = (
       PLANET_COMPOSITION_TYPES as readonly string[]
@@ -68,6 +101,18 @@ const renderSummaryWithPlanetTypeLinks = (summary: string): ReactNode => {
           <a
             href={buildPlanetTypeGuideHref(part)}
             data-testid="details-summary-planet-type-link"
+          >
+            {part}
+          </a>
+        </Badge>
+      );
+    }
+    if (part === HABITABLE_CANDIDATE_PHRASE) {
+      return (
+        <Badge key={index} status="nominal">
+          <a
+            href={buildTagGalaxyHref('HabitableCandidate')}
+            data-testid="details-habitable-zone-link"
           >
             {part}
           </a>
@@ -195,7 +240,14 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                   {tags.map((tag, index) => (
                     <Fragment key={tag}>
                       {index > 0 ? ' ' : null}
-                      <Badge status="neutral">
+                      <Badge
+                        status={
+                          tag === 'HabitableCandidate' ||
+                          tag === 'HabitableHost'
+                            ? 'nominal'
+                            : 'neutral'
+                        }
+                      >
                         <a
                           href={buildTagGalaxyHref(tag)}
                           data-testid="details-astrometry-tag-link"
@@ -406,6 +458,19 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                       {planet.composition}
                     </a>
                   </Badge>
+                  {planet.isHabitableCandidate ? (
+                    <>
+                      {' '}
+                      <Badge status="nominal">
+                        <a
+                          href={buildTagGalaxyHref('HabitableCandidate')}
+                          data-testid="details-planet-habitable-link"
+                        >
+                          Habitable zone
+                        </a>
+                      </Badge>
+                    </>
+                  ) : null}
                   {planet.semiMajorAxisAu !== undefined ? (
                     <>
                       {' · a = '}

@@ -1511,10 +1511,14 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     const detailsHtml = renderToString(
       createElement(DetailsPanel, { details: focusedDetails }),
     );
+    expect(detailsHtml).toContain('data-testid="details-habitable-zone-link"');
+    expect(detailsHtml).toContain('data-testid="details-summary-habitable-link"');
+    expect(detailsHtml).toContain('data-testid="details-planet-habitable-link"');
     expect(detailsHtml).toContain('data-testid="details-astrometry-tag-link"');
     expect(detailsHtml).toContain('href="/galaxy?focus=SolarNeighborhood10pc"');
     expect(detailsHtml).toContain('href="/galaxy?focus=NakedEye"');
     expect(detailsHtml).toContain('href="/galaxy?focus=ExoplanetHost"');
+    expect(detailsHtml).toContain('href="/galaxy?focus=HabitableCandidate"');
     expect(detailsHtml).toContain('data-testid="details-canon-tag-link"');
 
     // resolveSelectedSystemsFromTag resolves both catalog system tags and canon annotation tags
@@ -1526,10 +1530,16 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(exoplanetHosts.some((s) => s.name === 'Sol')).toBe(true);
     expect(exoplanetHosts.some((s) => s.name === 'Tau Ceti')).toBe(true);
 
+    const habitableHosts = resolveSelectedSystemsFromTag(
+      'HabitableCandidate',
+      SAMPLE_CORPUS,
+    );
+    expect(habitableHosts.map((s) => s.name)).toEqual(['Sol', 'Tau Ceti']);
+
     const setiSystems = resolveSelectedSystemsFromTag('seti', SAMPLE_CORPUS);
     expect(setiSystems.some((s) => s.name === 'Tau Ceti')).toBe(true);
 
-    // MainView loading /galaxy?focus=ExoplanetHost selects all matching systems and focuses nothing
+    // MainView loading /galaxy?focus=HabitableCandidate selects all matching systems and focuses nothing
     const store = createSpatialEntityStore();
     const html = renderToString(
       createElement(
@@ -1538,12 +1548,12 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
         createElement(MainView, {
           initialCorpus: SAMPLE_CORPUS,
           locationPathname: '/galaxy',
-          locationSearch: '?focus=ExoplanetHost',
+          locationSearch: '?focus=HabitableCandidate',
         }),
       ),
     );
     const selected = store.getState().getEntitiesByState('selected');
-    expect(selected.map((s) => s.name)).toContain('Tau Ceti');
+    expect(selected.map((s) => s.name)).toEqual(['Sol', 'Tau Ceti']);
     expect(store.getState().getEntitiesByState('focused')).toEqual([]);
     expect(html).not.toContain('data-testid="details-panel"');
     expect(html).toContain(

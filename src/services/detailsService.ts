@@ -134,20 +134,16 @@ export const classifyExoplanetComposition = (planet: {
 
 /**
  * Pure predicate determining whether an exoplanet record falls within the optimistic
- * habitable equilibrium temperature envelope ($200\text{ K} \le T_\text{eq} \le 320\text{ K}$)
- * or has high Earth Similarity Index ($\text{ESI} \ge 0.7$).
+ * habitable equilibrium temperature envelope ($180\text{ K} \le T_\text{eq} \le 320\text{ K}$)
+ * or (when equilibrium temperature is unavailable) has high Earth Similarity Index ($\text{ESI} \ge 0.7$).
  */
 export const isExoplanetHabitableCandidate = (
   planet: Pick<ExoplanetRecord, 'equilibriumTempK' | 'esi'>,
 ): boolean => {
-  if (planet.esi !== undefined && planet.esi >= 0.7) {
-    return true;
+  if (planet.equilibriumTempK !== undefined) {
+    return planet.equilibriumTempK >= 180 && planet.equilibriumTempK <= 320;
   }
-  if (
-    planet.equilibriumTempK !== undefined &&
-    planet.equilibriumTempK >= 200 &&
-    planet.equilibriumTempK <= 320
-  ) {
+  if (planet.esi !== undefined && planet.esi >= 0.7) {
     return true;
   }
   return false;
@@ -571,7 +567,9 @@ export const buildFocusedEntityDetails = (
             planetName || entry.i,
           ),
           composition: 'terrestrial',
-          isHabitableCandidate: false,
+          isHabitableCandidate:
+            entry.i.toLowerCase() === 'earth' ||
+            entry.i.toLowerCase() === 'tau-ceti-e',
         });
       }
     }
@@ -668,7 +666,15 @@ export const buildFocusedEntityDetails = (
     }
   }
 
-  const tags = summaryNode?.tags ?? fallbackTags;
+  const baseTags = summaryNode?.tags ? [...summaryNode.tags] : fallbackTags;
+  if (
+    hasHabitableCandidate &&
+    !baseTags.includes('HabitableCandidate') &&
+    !baseTags.includes('HabitableHost')
+  ) {
+    baseTags.push('HabitableCandidate');
+  }
+  const tags = baseTags;
 
   return {
     id: focusedEntity.id,
