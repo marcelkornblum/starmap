@@ -233,6 +233,7 @@ async function ensureDevServer(baseUrl: string, port: number): Promise<ChildProc
     cwd: process.cwd(),
     stdio: 'ignore',
     detached: false,
+    shell: process.platform === 'win32',
   });
 
   const deadline = Date.now() + 20_000;
