@@ -197,5 +197,20 @@ This document records all architectural, data-model, interaction, and UI scaffol
      - `Full` omits the system-wide `Stars` (`data-testid="details-stars-section"`) and `Planets` (`data-testid="details-planets-section"`) lists when `focusedKind === 'planet'`.
   3. **Orbiting Bodies List (`data-testid="details-orbiting-bodies-section"`):**
      - `CompactSearchEntry` in `src/utils/compactDataCodec.ts` precalculates `o: body.parentBodyId` whenever a moon or minor body orbits a parent body other than `'sol'`.
-     - `buildFocusedEntityDetails` resolves `orbitingBodies` for the focused planet and `<DetailsPanel>` renders an `Orbiting Bodies` section in `Full` linking each moon or orbiting body to `/system/$systemId?focus=<bodySlug>`.
+     - `buildFocusedEntityDetails` resolves `orbitingBodies` for the focused planet and `<DetailsPanel>` renders an `Orbiting Bodies` section in `Full` linking each moon or orbiting body to `/system/$systemId?focus=<bodySlug>` (or `/planet/$planetId?focus=<bodySlug>` on `PlanetView`).
+
+---
+
+### DEC-012: Planetary View (`/planet/$planetId`), `<PlanetaryElementsPanel>`, & Planet Drill-Down Link
+- **Date:** 2026-10-18
+- **Status:** `Ratified`
+- **Scope:** `src/views/PlanetView.tsx`, `src/components/domain/PlanetaryElementsPanel/PlanetaryElementsPanel.tsx`, `src/services/detailsService.ts`, `src/services/searchService.ts`, `src/router/index.tsx`
+- **Context:** Extending the Galaxy → System hierarchy with a dedicated Planetary View (`/planet/$planetId`) that mirrors the System View structure (`Breadcrumbs`, `Search`, `Bodies` panel, `DetailsPanel`, and an `Orbital Bodies` panel).
+- **Decision:**
+  1. **Route & View Boundary (`/planet/$planetId`):**
+     - `/planet/$planetId` (`?focus=`) mounts [`PlanetView`](file:///home/marcel/projects/starmap/src/views/PlanetView.tsx) (`data-testid="planet-view-root"`), composing `<Breadcrumbs />` (`Galaxy` → `<System Name>` → `<Planet Name>`, or `Galaxy` → `<System Name>` → `<Planet Name>` → `<Focused Orbiting Body>` when `?focus=<bodySlug>` is set), `<Search.Root>`, `Bodies` (`Focused` & `Selected`) panel (`data-testid="bodies-panel"`), `<DetailsPanel details={focusedDetails} />`, and `<PlanetaryElementsPanel elements={planetaryElements} />`.
+  2. **Planet Drill-Down Link in `<DetailsPanel>`:**
+     - When `focusedKind === 'planet'`, the existing `Details` action link (`data-testid="details-button-system-details"`) in `<DetailsPanel>` points directly to `/planet/<planetSlug>` (`buildPlanetDetailsHref`), avoiding a redundant second action link.
+  3. **Orbital Bodies Panel (`<PlanetaryElementsPanel>`):**
+     - Renders `Orbital Bodies` (`data-testid="planetary-elements-panel"`) broken into `Planet`, `Moons`, `Minor Bodies & Spacecraft`, and `Canon Layers`, with each moon or orbital body linking to `/planet/$planetId?focus=<bodySlug>`.
 

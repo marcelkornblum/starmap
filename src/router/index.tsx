@@ -13,13 +13,14 @@ import { MetricDetailView } from '../views/MetricDetailView';
 import { MetricsListView } from '../views/MetricsListView';
 import { PlanetTypeDetailView } from '../views/PlanetTypeDetailView';
 import { PlanetTypesListView } from '../views/PlanetTypesListView';
+import { PlanetView } from '../views/PlanetView';
 import { SearchView } from '../views/SearchView';
 import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
 import { GalaxyView } from '../views/poc/GalaxyView';
 import { SystemView as PocSystemView } from '../views/poc/SystemView';
-import { PlanetView } from '../views/poc/PlanetView';
+import { PlanetView as PocPlanetView } from '../views/poc/PlanetView';
 import { ReferenceView } from '../views/poc/ReferenceView';
 
 export interface StarmapSearchParams {
@@ -109,6 +110,12 @@ export const mainSystemRoute = createRoute({
   component: SystemView,
 });
 
+export const mainPlanetRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/planet/$planetId',
+  component: PlanetView,
+});
+
 export const starTypesListRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/guide/star-types',
@@ -184,7 +191,7 @@ export const systemRoute = createRoute({
 export const planetRoute = createRoute({
   getParentRoute: () => pocRoute,
   path: '/planet/$planetId',
-  component: PlanetView,
+  component: PocPlanetView,
   pendingComponent: () => <RouteSkeleton label="Acquiring Planetary Orbit Data..." />,
   pendingMs: 0,
   loader: async ({ params }) => {
@@ -209,6 +216,7 @@ export const routeTree = rootRoute.addChildren([
   mainGalaxyRoute,
   mainGalaxySystemRoute,
   mainSystemRoute,
+  mainPlanetRoute,
   starTypesListRoute,
   starTypeDetailRoute,
   planetTypesListRoute,

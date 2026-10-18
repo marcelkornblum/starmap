@@ -8,6 +8,10 @@ export {
   type DetailsPanelProps,
 } from './DetailsPanel/DetailsPanel';
 export {
+  PlanetaryElementsPanel,
+  type PlanetaryElementsPanelProps,
+} from './PlanetaryElementsPanel/PlanetaryElementsPanel';
+export {
   SearchResultItem,
   formatPlanetCountSummary,
   shouldDisplaySpectralBadge,

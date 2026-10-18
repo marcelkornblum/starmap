@@ -764,7 +764,7 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
           </section>
         ) : null}
 
-        {focusedKind === 'planet' &&
+        {(focusedKind === 'planet' || focusedKind === 'minor-body') &&
         orbitingBodies &&
         orbitingBodies.length > 0 ? (
           <section
@@ -792,7 +792,7 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
           </section>
         ) : null}
 
-        {focusedKind !== 'planet' && stars.length > 0 ? (
+        {isSystemOrStarFocus && stars.length > 0 ? (
           <section
             aria-labelledby="details-stars-heading"
             data-testid="details-stars-section"
@@ -865,7 +865,7 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
           </section>
         ) : null}
 
-        {focusedKind !== 'planet' && planets.length > 0 ? (
+        {isSystemOrStarFocus && planets.length > 0 ? (
           <section
             aria-labelledby="details-planets-heading"
             data-testid="details-planets-section"

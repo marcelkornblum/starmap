@@ -102,20 +102,33 @@ This living document accumulates **which screens/views and URL paths exist** and
       - `Full`: `Canon Layers`, `Stars` list (`data-testid="details-stars-section"`), and `Planets` list (`data-testid="details-planets-section"`).
     - **When `focusedKind === 'planet'`:**
       - `Peek`: Planet header (`<Planet Name> (<System Name>) [<composition>]`), planet telemetry peek line (composition badge, habitable zone badge, `a` in `AU`, `P` in `d`, mass in `M⊕`, `T_eq` in `K`), and a **planet-specific summary** (`data-testid="details-system-summary"`: `"<Planet> is a <composition> planet orbiting <System>, within the [habitable zone candidate] with <N> catalogued bodies in orbit."`). System-wide star count and planet composition summary (`7 planets (...)`) are omitted.
-      - `Partial`: `Planetary Telemetry` (`Composition`, `Habitable Zone`, `Semi-Major Axis`, `Orbital Period`, `Eccentricity`, `Mass`, `Equilibrium Temp`, `Discovery`), `Astrometry`, and actions.
-      - `Full`: `Canon Layers` (specific to the planet + host system) and `Orbiting Bodies` (`data-testid="details-orbiting-bodies-section"`, listing moons and any other catalogued bodies in orbit around that planet with links to `/system/$systemId?focus=<bodySlug>`). System-wide `Stars` and `Planets` lists are omitted.
+      - `Partial`: `Planetary Telemetry` (`Composition`, `Habitable Zone`, `Semi-Major Axis`, `Orbital Period`, `Eccentricity`, `Mass`, `Equilibrium Temp`, `Discovery`), `Astrometry`, and actions (`Details` link `data-testid="details-button-system-details"` points directly to `/planet/$planetId`).
+      - `Full`: `Canon Layers` (specific to the planet + host system) and `Orbiting Bodies` (`data-testid="details-orbiting-bodies-section"`, listing moons and any other catalogued bodies in orbit around that planet with links to `/system/$systemId?focus=<bodySlug>` on System View or `/planet/$planetId?focus=<bodySlug>` on Planet View). System-wide `Stars` and `Planets` lists are omitted.
     - **When `focusedKind === 'minor-body'`:**
-      - `Peek`: Body header, classification badge + parent body name, and summary.
+      - `Peek`: Body header, classification badge + parent body name, and body-specific summary (`"<Name> is a <moon|dwarf planet|asteroid / minor body> orbiting <ParentBody>."`).
       - `Partial`: `Body Telemetry` (`Classification`, `Host System` / parent body) and `Astrometry`.
-      - `Full`: `Canon Layers`.
+      - `Full`: `Canon Layers` and `Orbiting Bodies` (if the body has moons, e.g. Pluto → Charon).
 - **System Elements Panel (`<SystemElementsPanel elements={systemElements} />`, [`src/components/domain/SystemElementsPanel/SystemElementsPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/SystemElementsPanel/SystemElementsPanel.tsx)):**
   - Shows every catalogued element in the host system broken into sections (`Stars`, `Planets`, `Moons & Dwarf Planets`, `Minor Bodies & Spacecraft`, `Canon Layers`), with each body name linking to `/system/$systemId?focus=<bodySlug>` and highlighting the currently focused body (`data-focused="true"`).
 
-### 2.4 Guide Views (`/guide/*`)
+### 2.4 Planetary View (`/planet/$planetId` — [`src/views/PlanetView.tsx`](file:///home/marcel/projects/starmap/src/views/PlanetView.tsx))
+- **Functional Component Boundary:** Dedicated planetary system inspection view composing `<Breadcrumbs />` (`Galaxy` → `<System Name>` → `<Planet Name>`, or `Galaxy` → `<System Name>` → `<Planet Name>` → `<Focused Orbiting Body>` when `?focus=<bodySlug>` is set), `<Search.Root>` + `<Search.Panel />` + `<Search.Results />`, `Bodies` panel (`data-testid="bodies-panel"`), `<DetailsPanel details={focusedDetails} />` (`data-testid="details-panel"`), and `<PlanetaryElementsPanel elements={planetaryElements} />` (`data-testid="planetary-elements-panel"`).
+- **Bodies Panel (`data-testid="bodies-panel"`):**
+  - Heading: `Bodies`
+  - `Focused` (`<ul data-testid="bodies-focused-list">`) — defaults to focusing the host planet from `/planet/$planetId`, or focuses the orbiting body specified by `?focus=<bodySlug>`.
+  - `Selected` (`<ul data-testid="bodies-selected-list">`) — highlighted bodies resolved from `?select=` or `?q=`.
+- **Details Panel (`<DetailsPanel details={focusedDetails} />`, `data-testid="details-panel"`):**
+  - Displays the focused planet (`focusedKind === 'planet'`) or the focused orbiting moon / minor body (`focusedKind === 'minor-body'`) across `Peek`, `Partial`, and `Full` detents.
+- **Planetary Elements Panel (`<PlanetaryElementsPanel elements={planetaryElements} />`, [`src/components/domain/PlanetaryElementsPanel/PlanetaryElementsPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/PlanetaryElementsPanel/PlanetaryElementsPanel.tsx)):**
+  - Heading: `Orbital Bodies` (`data-testid="planetary-elements-panel"`).
+  - Shows the host planet (`Planet` section, `data-testid="planetary-elements-planet-section"`) and all catalogued orbital bodies and annotations broken into structured sections (`Moons` `data-testid="planetary-elements-moons-section"`, `Minor Bodies & Spacecraft` `data-testid="planetary-elements-minor-bodies-section"`, and `Canon Layers` `data-testid="planetary-elements-canon-section"`), with each moon or orbital body linking to `/planet/$planetId?focus=<bodySlug>`.
+
+### 2.5 Guide Views (`/guide/*`)
 - **Star Types Guide (`/guide/star-types` — [`src/views/StarTypesListView.tsx`](file:///home/marcel/projects/starmap/src/views/StarTypesListView.tsx), `/guide/star-types/$starType` — [`src/views/StarTypeDetailView.tsx`](file:///home/marcel/projects/starmap/src/views/StarTypeDetailView.tsx)):**
   - Linked from all spectral class `<Badge category="star">` pills across Search and Details panels.
 - **Planet Types Guide (`/guide/planet-types` — [`src/views/PlanetTypesListView.tsx`](file:///home/marcel/projects/starmap/src/views/PlanetTypesListView.tsx), `/guide/planet-types/$planetType` — [`src/views/PlanetTypeDetailView.tsx`](file:///home/marcel/projects/starmap/src/views/PlanetTypeDetailView.tsx)):**
   - Linked from all planetary composition `<Badge category="planet">` pills (`terrestrial`, `ice-giant`, `gas-giant`).
 - **Telemetry Metrics Guide (`/guide/metrics` — [`src/views/MetricsListView.tsx`](file:///home/marcel/projects/starmap/src/views/MetricsListView.tsx), `/guide/metrics/$metricId` — [`src/views/MetricDetailView.tsx`](file:///home/marcel/projects/starmap/src/views/MetricDetailView.tsx)):**
   - Linked from `<Unit>` badges inside `<Quantity>` components (`AU` → `semi-major-axis`, `d` → `orbital-period`, `M⊕` → `planetary-mass`, `K` → `equilibrium-temperature`, `V`/`M_V` → `stellar-magnitude`, `pc` → `galactic-coordinates`).
+
 

@@ -7,6 +7,7 @@ import { createSpatialEntityStore } from '../src/components/canvas/entity/Spatia
 import {
   Breadcrumbs,
   DetailsPanel,
+  PlanetaryElementsPanel,
   SearchResultItem,
   SystemElementsPanel,
   formatPlanetCountSummary,
@@ -33,6 +34,10 @@ import {
   buildFocusedEntityDetails,
   buildIntrinsicSystemSummary,
   buildPlanetCompositionSummary,
+  buildPlanetDetailsHref,
+  buildPlanetElementFocusHref,
+  buildPlanetaryElementsSummary,
+  buildPlanetViewBreadcrumbs,
   buildSystemDetailsHref,
   buildSystemElementFocusHref,
   buildSystemElementsSummary,
@@ -61,6 +66,7 @@ import {
   executeCatalogSearch,
   extractUrlCanonLayerId,
   extractUrlFocusSlug,
+  extractUrlPlanetSlug,
   extractUrlSystemSlug,
   extractUrlTagFocus,
   findCanonLayerById,
@@ -97,6 +103,7 @@ import {
   extractPlanetTypeFromPathname,
 } from '../src/views/PlanetTypeDetailView';
 import { PlanetTypesListView } from '../src/views/PlanetTypesListView';
+import { PlanetView } from '../src/views/PlanetView';
 import { SearchView } from '../src/views/SearchView';
 import {
   StarTypeDetailView,
@@ -892,7 +899,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(focusChildHtml).toContain('<h3 id="details-partial-heading">Partial</h3>');
     expect(focusChildHtml).toContain('<h3 id="details-full-heading">Full</h3>');
     expect(focusChildHtml).toContain('data-testid="details-button-system-details"');
-    expect(focusChildHtml).toContain('href="/system/tau-ceti"');
+    expect(focusChildHtml).toContain('href="/planet/tau-ceti-e"');
     expect(focusChildHtml).toContain('data-testid="details-button-directions"');
     expect(focusChildHtml).toContain('Project Hail Mary');
     expect(focusChildHtml).toContain('Adrian');
@@ -1695,7 +1702,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(sysHtml).toContain('data-testid="system-elements-planets-section"');
     expect(sysHtml).toContain('data-testid="system-elements-canon-section"');
 
-    // SystemView at /system/sol?focus=earth renders Orbiting Bodies (Moon) in DetailsPanel Full
+    // SystemView at /system/sol?focus=earth renders Orbiting Bodies (Moon) in DetailsPanel Full and links Details button to /planet/earth
     const earthFocusStore = createSpatialEntityStore();
     const earthFocusHtml = renderToString(
       createElement(
@@ -1716,6 +1723,99 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     );
     expect(earthFocusHtml).toContain('href="/system/sol?focus=moon"');
     expect(earthFocusHtml).toContain('1 catalogued body in orbit.');
+    expect(earthFocusHtml).toContain(
+      '<a href="/planet/earth" data-testid="details-button-system-details">Details</a>',
+    );
+
+    // PlanetView at /planet/earth renders Breadcrumbs (Galaxy -> Sol -> Earth), Bodies, DetailsPanel, and PlanetaryElementsPanel (Orbital Bodies)
+    expect(extractUrlPlanetSlug('/planet/earth')).toBe('earth');
+    expect(extractUrlPlanetSlug('/system/sol')).toBeNull();
+    expect(buildPlanetDetailsHref('earth')).toBe('/planet/earth');
+    expect(buildPlanetDetailsHref('')).toBe('/planet/earth');
+    expect(buildPlanetElementFocusHref('jupiter', 'europa')).toBe(
+      '/planet/jupiter?focus=europa',
+    );
+    expect(buildPlanetElementFocusHref('jupiter', '')).toBe('/planet/jupiter');
+    expect(
+      renderToString(createElement(PlanetaryElementsPanel, { elements: null })),
+    ).toBe('');
+    expect(buildPlanetaryElementsSummary({ details: null })).toBeNull();
+    expect(buildPlanetViewBreadcrumbs(null, null, 'earth', false)).toEqual([
+      { label: 'Galaxy', href: '/galaxy' },
+      { label: 'System', href: '/system/system' },
+      { label: 'Earth' },
+    ]);
+
+    const planetStore = createSpatialEntityStore();
+    const planetHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store: planetStore },
+        createElement(PlanetView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/planet/earth',
+          locationSearch: '',
+        }),
+      ),
+    );
+    expect(planetHtml).toContain('data-testid="planet-view-root"');
+    expect(planetHtml).toContain('data-testid="view-breadcrumbs"');
+    expect(planetHtml).toContain('href="/galaxy"');
+    expect(planetHtml).toContain('href="/system/sol"');
+    expect(planetHtml).toContain('data-testid="bodies-panel"');
+    expect(planetHtml).toContain('data-testid="details-panel"');
+    expect(planetHtml).toContain('data-focused-kind="planet"');
+    expect(planetHtml).toContain('href="/planet/earth?focus=moon"');
+    expect(planetHtml).toContain('data-testid="planetary-elements-panel"');
+    expect(planetHtml).toContain(
+      'data-testid="planetary-elements-planet-section"',
+    );
+    expect(planetHtml).toContain(
+      'data-testid="planetary-elements-moons-section"',
+    );
+    expect(planetHtml).toContain(
+      'data-testid="planetary-elements-moon-link"',
+    );
+
+    // PlanetView at /planet/earth?focus=moon focuses Moon (minor-body) and renders Galaxy -> Sol -> Earth -> Moon breadcrumbs
+    const moonFocusStore = createSpatialEntityStore();
+    const moonFocusHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store: moonFocusStore },
+        createElement(PlanetView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/planet/earth',
+          locationSearch: '?focus=moon',
+        }),
+      ),
+    );
+    expect(moonFocusHtml).toContain('data-focused-kind="minor-body"');
+    expect(moonFocusHtml).toContain('href="/planet/earth"');
+    expect(moonFocusHtml).toContain(
+      'Moon is a moon orbiting Earth.',
+    );
+
+    // PlanetView at /planet/tau-ceti-e renders exoplanet with canon layer and empty moons message
+    const exoPlanetStore = createSpatialEntityStore();
+    const exoPlanetHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store: exoPlanetStore },
+        createElement(PlanetView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/planet/tau-ceti-e',
+          locationSearch: '',
+        }),
+      ),
+    );
+    expect(exoPlanetHtml).toContain(
+      'data-testid="planetary-elements-moons-empty"',
+    );
+    expect(exoPlanetHtml).toContain(
+      'data-testid="planetary-elements-canon-section"',
+    );
+    expect(exoPlanetHtml).toContain('Adrian');
 
     // SystemView at /system/sol renders Moons & Dwarf Planets and Minor Bodies & Spacecraft sections
     const solStore = createSpatialEntityStore();

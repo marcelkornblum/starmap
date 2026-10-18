@@ -11,6 +11,7 @@ import {
   mainGalaxyRoute,
   mainGalaxySystemRoute,
   mainSystemRoute,
+  mainPlanetRoute,
   starTypesListRoute,
   starTypeDetailRoute,
   planetTypesListRoute,
@@ -28,6 +29,7 @@ import { MetricDetailView } from '../src/views/MetricDetailView';
 import { MetricsListView } from '../src/views/MetricsListView';
 import { PlanetTypeDetailView } from '../src/views/PlanetTypeDetailView';
 import { PlanetTypesListView } from '../src/views/PlanetTypesListView';
+import { PlanetView } from '../src/views/PlanetView';
 import { SearchView } from '../src/views/SearchView';
 import { StarTypeDetailView } from '../src/views/StarTypeDetailView';
 import { StarTypesListView } from '../src/views/StarTypesListView';
@@ -55,6 +57,7 @@ describe('TanStack Router Architecture', () => {
     expect(flatRoutes['/galaxy']).toBeDefined();
     expect(flatRoutes['/galaxy/$systemId']).toBeDefined();
     expect(flatRoutes['/system/$systemId']).toBeDefined();
+    expect(flatRoutes['/planet/$planetId']).toBeDefined();
     expect(flatRoutes['/guide/star-types']).toBeDefined();
     expect(flatRoutes['/guide/star-types/$starType']).toBeDefined();
     expect(flatRoutes['/guide/planet-types']).toBeDefined();
@@ -72,7 +75,7 @@ describe('TanStack Router Architecture', () => {
   it('contains expected route tree structure', () => {
     expect(routeTree).toBeDefined();
     expect(routeTree.children).toBeDefined();
-    expect(routeTree.children?.length).toBe(12);
+    expect(routeTree.children?.length).toBe(13);
   });
 
   it('validates search parameters correctly on rootRoute across all branches and keeps : and , unencoded in stringifyStarmapSearch', () => {
@@ -141,12 +144,13 @@ describe('TanStack Router Architecture', () => {
     expect(numericValidated.center).toBeUndefined();
   });
 
-  it('maps /, /galaxy, and /galaxy/$systemId to MainView, /search to SearchView, and /system/$systemId to SystemView', () => {
+  it('maps /, /galaxy, and /galaxy/$systemId to MainView, /search to SearchView, /system/$systemId to SystemView, and /planet/$planetId to PlanetView', () => {
     expect(indexRoute.options.component).toBe(MainView);
     expect(mainGalaxyRoute.options.component).toBe(MainView);
     expect(mainGalaxySystemRoute.options.component).toBe(MainView);
     expect(mainSearchRoute.options.component).toBe(SearchView);
     expect(mainSystemRoute.options.component).toBe(SystemView);
+    expect(mainPlanetRoute.options.component).toBe(PlanetView);
     expect(starTypesListRoute.options.component).toBe(StarTypesListView);
     expect(starTypeDetailRoute.options.component).toBe(StarTypeDetailView);
     expect(planetTypesListRoute.options.component).toBe(PlanetTypesListView);
@@ -179,6 +183,11 @@ describe('TanStack Router Architecture', () => {
     expect(systemViewHtml).toContain('data-testid="system-view-root"');
     expect(systemViewHtml).toContain('data-testid="search-panel"');
     expect(systemViewHtml).not.toContain('data-testid="search-results-panel"');
+
+    const planetViewHtml = renderToString(createElement(PlanetView));
+    expect(planetViewHtml).toContain('data-testid="planet-view-root"');
+    expect(planetViewHtml).toContain('data-testid="search-panel"');
+    expect(planetViewHtml).not.toContain('data-testid="search-results-panel"');
 
     const PocIndexComponent = pocIndexRoute.options.component as unknown as () => { props: { to: string } };
     expect(PocIndexComponent).toBeDefined();

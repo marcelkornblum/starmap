@@ -26,6 +26,7 @@ import {
 } from '../utils/datasetLayerCodec';
 import {
   buildCanonLayerGalaxyHref,
+  extractUrlPlanetSlug,
   extractUrlSystemSlug,
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
@@ -238,6 +239,20 @@ export interface SystemElementsSummary {
   readonly canonAnnotations: readonly FocusedCanonAnnotation[];
 }
 
+export interface PlanetaryElementsSummary {
+  readonly planetId: string;
+  readonly planetName: string;
+  readonly planetHref: string;
+  readonly systemId: string;
+  readonly systemName: string;
+  readonly systemHref: string;
+  readonly focusedEntityId?: string;
+  readonly planetDetail?: FocusedPlanetDetail;
+  readonly moons: readonly SystemElementBodyItem[];
+  readonly minorBodiesAndSpacecraft: readonly SystemElementBodyItem[];
+  readonly canonAnnotations: readonly FocusedCanonAnnotation[];
+}
+
 export interface BuildFocusedEntityDetailsInput {
   readonly focusedEntity: SpatialEntityDefinition | null | undefined;
   readonly corpus?: readonly CompactSearchEntry[];
@@ -247,6 +262,7 @@ export interface BuildFocusedEntityDetailsInput {
   readonly activeLayers?: readonly DatasetLayerManifest[];
   readonly canonOrderOptions?: CanonAnnotationOrderOptions;
   readonly urlSystemSlug?: string | null;
+  readonly urlPlanetSlug?: string | null;
   readonly hasExplicitFocus?: boolean;
 }
 
@@ -401,6 +417,8 @@ export const buildIntrinsicSystemSummarySegments = (input: {
   readonly planetComposition?: PlanetCompositionClass;
   readonly planetIsHabitable?: boolean;
   readonly orbitingBodyCount?: number;
+  readonly minorBodyCategoryLabel?: string;
+  readonly minorBodyParentName?: string;
   readonly manifestOverview?: string;
   readonly structureDescription?: string;
 }): readonly SystemSummarySegment[] => {
@@ -432,6 +450,21 @@ export const buildIntrinsicSystemSummarySegments = (input: {
       });
     }
     return segments;
+  }
+
+  if (input.focusedKind === 'minor-body') {
+    const catLabel = (input.minorBodyCategoryLabel ?? 'celestial body').toLowerCase();
+    const parentName = input.minorBodyParentName ?? input.systemName;
+    const count = input.orbitingBodyCount ?? 0;
+    const orbitSuffix =
+      count > 0
+        ? ` with ${count} catalogued ${count === 1 ? 'body' : 'bodies'} in orbit.`
+        : '.';
+    const text =
+      catLabel === 'spacecraft'
+        ? `${input.name} is a spacecraft operating in the ${input.systemName} system.`
+        : `${input.name} is a ${catLabel} orbiting ${parentName}${orbitSuffix}`;
+    return [{ kind: 'text', text }];
   }
 
   const allowManifestOverview =
@@ -527,6 +560,8 @@ export const buildIntrinsicSystemSummary = (input: {
   readonly planetComposition?: PlanetCompositionClass;
   readonly planetIsHabitable?: boolean;
   readonly orbitingBodyCount?: number;
+  readonly minorBodyCategoryLabel?: string;
+  readonly minorBodyParentName?: string;
   readonly manifestOverview?: string;
   readonly structureDescription?: string;
 }): string =>
@@ -619,6 +654,32 @@ export const buildSystemElementFocusHref = (
   elementNameOrId: string,
 ): string => {
   const baseHref = buildSystemDetailsHref(systemNameOrId);
+  const focusSlug = toUrlSlug(elementNameOrId) || elementNameOrId.trim();
+  if (!focusSlug) {
+    return baseHref;
+  }
+  const params = new URLSearchParams({ focus: focusSlug });
+  return `${baseHref}?${params.toString()}`;
+};
+
+/**
+ * Pure unit function building the URL to the Planetary View for a given planet
+ * (`/planet/<planetSlug>`, e.g. `/planet/jupiter` or `/planet/tau-ceti-e`).
+ */
+export const buildPlanetDetailsHref = (planetNameOrId: string): string => {
+  const slug = toUrlSlug(planetNameOrId);
+  return `/planet/${encodeURIComponent(slug || planetNameOrId.trim() || 'earth')}`;
+};
+
+/**
+ * Pure unit function building the URL to the Planetary View with a specific orbiting body
+ * set to focus (`/planet/<planetSlug>?focus=<elementSlug>`, e.g. `/planet/jupiter?focus=europa`).
+ */
+export const buildPlanetElementFocusHref = (
+  planetNameOrId: string,
+  elementNameOrId: string,
+): string => {
+  const baseHref = buildPlanetDetailsHref(planetNameOrId);
   const focusSlug = toUrlSlug(elementNameOrId) || elementNameOrId.trim();
   if (!focusSlug) {
     return baseHref;
@@ -777,6 +838,7 @@ const resolveOrbitingBodies = (
   planetTargetSlugs: ReadonlySet<string>,
   systemNameOrId: string,
   corpus: readonly CompactSearchEntry[],
+  urlPlanetSlug?: string | null,
 ): readonly SystemElementBodyItem[] => {
   if (planetTargetSlugs.size === 0 || corpus.length === 0) {
     return [];
@@ -794,7 +856,9 @@ const resolveOrbitingBodies = (
     items.push({
       id: entry.i,
       name,
-      href: buildSystemElementFocusHref(systemNameOrId, name || entry.i),
+      href: urlPlanetSlug
+        ? buildPlanetElementFocusHref(urlPlanetSlug, name || entry.i)
+        : buildSystemElementFocusHref(systemNameOrId, name || entry.i),
       categoryLabel: resolveMinorBodyCategoryLabel(entry),
     });
   }
@@ -818,6 +882,7 @@ export const buildFocusedEntityDetails = (
     activeLayers,
     canonOrderOptions,
     urlSystemSlug,
+    urlPlanetSlug,
     hasExplicitFocus = false,
   } = input;
 
@@ -1006,13 +1071,28 @@ export const buildFocusedEntityDetails = (
   );
 
   const orbitingBodies: readonly SystemElementBodyItem[] =
-    focusedKind === 'planet'
+    focusedKind === 'planet' || focusedKind === 'minor-body'
       ? resolveOrbitingBodies(
           planetTargetSlugs,
           systemName || systemId,
           corpus,
+          urlPlanetSlug,
         )
       : [];
+
+  const minorBodyCategoryLabel =
+    focusedKind === 'minor-body'
+      ? resolveMinorBodyCategoryLabel(matchedCorpusEntry)
+      : undefined;
+
+  const minorBodyParentName =
+    focusedKind === 'minor-body'
+      ? solarBodyRecord?.parentBodyId
+        ? formatSlugFallbackTitle(solarBodyRecord.parentBodyId)
+        : matchedCorpusEntry?.o
+          ? formatSlugFallbackTitle(matchedCorpusEntry.o)
+          : systemName
+      : undefined;
 
   const reticleType: CelestialClassification =
     focusedKind === 'planet'
@@ -1094,6 +1174,8 @@ export const buildFocusedEntityDetails = (
     planetComposition,
     planetIsHabitable,
     orbitingBodyCount: orbitingBodies.length,
+    minorBodyCategoryLabel,
+    minorBodyParentName,
     manifestOverview: sysManifest?.overviewText,
     structureDescription: structureRecord?.description,
   };
@@ -1102,7 +1184,10 @@ export const buildFocusedEntityDetails = (
   const systemSummary = buildIntrinsicSystemSummary(summaryInput);
 
   const systemSlug = toUrlSlug(systemName || systemId);
-  const systemDetailsHref = buildSystemDetailsHref(systemName || systemId);
+  const systemDetailsHref =
+    focusedKind === 'planet'
+      ? buildPlanetDetailsHref(resolvedName || focusedEntity.id)
+      : buildSystemDetailsHref(systemName || systemId);
   const directionsHref = `/galaxy/${encodeURIComponent(systemSlug)}?anchor=sol`;
 
   const coordinatesPc: readonly [number, number, number] = sysManifest
@@ -1280,12 +1365,8 @@ export const buildFocusedEntityDetails = (
       ...baseDetails,
       focusedKind: 'minor-body',
       minorBodyTelemetry: {
-        categoryLabel: resolveMinorBodyCategoryLabel(matchedCorpusEntry),
-        parentBodyName: solarBodyRecord?.parentBodyId
-          ? formatSlugFallbackTitle(solarBodyRecord.parentBodyId)
-          : matchedCorpusEntry?.o
-            ? formatSlugFallbackTitle(matchedCorpusEntry.o)
-            : systemName,
+        categoryLabel: minorBodyCategoryLabel ?? resolveMinorBodyCategoryLabel(matchedCorpusEntry),
+        parentBodyName: minorBodyParentName ?? systemName,
       },
     };
   }
@@ -1378,6 +1459,234 @@ export const buildSystemElementsSummary = (
   };
 };
 
+export interface BuildPlanetaryElementsSummaryInput {
+  readonly details: FocusedEntityDetails | null;
+  readonly urlPlanetSlug?: string | null;
+  readonly planetEntityDetail?: DecodedDetailRecord;
+  readonly corpus?: readonly CompactSearchEntry[];
+  readonly activeLayers?: readonly DatasetLayerManifest[];
+}
+
+const resolveDirectTargetCanonAnnotations = (
+  targetIds: readonly string[],
+  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+): readonly FocusedCanonAnnotation[] => {
+  const layersArray = [...activeLayers];
+  const seen = new Set<string>();
+  const annotations: FocusedCanonAnnotation[] = [];
+
+  for (const targetId of targetIds) {
+    const rawTargetKey = targetId.includes(':')
+      ? (targetId.split(':')[1] ?? targetId)
+      : targetId;
+    for (const item of resolveEntityLayers(rawTargetKey, layersArray)) {
+      const dedupeKey = `${item.layerId}:${item.entry.targetId}`;
+      if (seen.has(dedupeKey)) {
+        continue;
+      }
+      seen.add(dedupeKey);
+      annotations.push({
+        layerId: item.layerId,
+        layerTitle: item.layerTitle,
+        layerHref: buildCanonLayerGalaxyHref(item.layerId),
+        kind: item.kind,
+        targetId: item.entry.targetId,
+        targetType: item.entry.targetType,
+        ...(item.entry.inUniverseName
+          ? { inUniverseName: item.entry.inUniverseName }
+          : {}),
+        ...(item.entry.workTitle ? { workTitle: item.entry.workTitle } : {}),
+        text: item.entry.text,
+        ...(item.source?.creator ? { creator: item.source.creator } : {}),
+        ...(item.source?.publicationYear
+          ? { publicationYear: item.source.publicationYear }
+          : {}),
+        tags: item.entry.tags ?? [],
+      });
+    }
+  }
+
+  return sortCanonAnnotations(annotations);
+};
+
+/**
+ * Pure domain builder assembling a `PlanetaryElementsSummary` showing the host planet and all
+ * catalogued bodies in orbit around it (`Planet`, `Moons`, `Minor Bodies & Spacecraft`, `Canon Layers`).
+ */
+export const buildPlanetaryElementsSummary = (
+  input: BuildPlanetaryElementsSummaryInput,
+): PlanetaryElementsSummary | null => {
+  const {
+    details,
+    urlPlanetSlug,
+    planetEntityDetail,
+    corpus = [],
+    activeLayers,
+  } = input;
+  if (!details && !urlPlanetSlug) {
+    return null;
+  }
+
+  const planetCorpusEntry = urlPlanetSlug
+    ? findFocusedEntryInCorpus(urlPlanetSlug, corpus)
+    : details?.focusedKind === 'planet'
+      ? findFocusedEntryInCorpus(details.id, corpus)
+      : undefined;
+
+  const planetId =
+    planetCorpusEntry?.i ??
+    (details?.focusedKind === 'planet'
+      ? details.id
+      : (urlPlanetSlug ?? details?.id ?? 'earth'));
+
+  const matchedPlanetFromDetails = details?.planets.find((p) => {
+    const pId = toUrlSlug(p.id);
+    const pName = toUrlSlug(p.name);
+    const targetSlug = toUrlSlug(urlPlanetSlug ?? planetId);
+    return pId === targetSlug || pName === targetSlug;
+  });
+
+  const planetName =
+    matchedPlanetFromDetails?.name ??
+    (planetCorpusEntry
+      ? resolveResultDisplayTitle(planetCorpusEntry)
+      : details?.focusedKind === 'planet'
+        ? details.name
+        : formatSlugFallbackTitle(urlPlanetSlug ?? details?.name ?? 'Earth'));
+
+  const planetHref = buildPlanetDetailsHref(planetName || planetId);
+  const systemId = details?.systemId ?? planetCorpusEntry?.s ?? 'sol';
+  const systemEntry = findFocusedEntryInCorpus(systemId, corpus);
+  const systemName =
+    details?.systemName ??
+    (systemEntry
+      ? resolveResultDisplayTitle(systemEntry)
+      : formatSlugFallbackTitle(systemId));
+  const systemHref = buildSystemDetailsHref(systemName || systemId);
+
+  const planetSolarRecord =
+    planetEntityDetail?.kind === 'solar-body'
+      ? planetEntityDetail.record
+      : undefined;
+
+  const planetDetail: FocusedPlanetDetail | undefined =
+    matchedPlanetFromDetails
+      ? {
+          ...matchedPlanetFromDetails,
+          href: planetHref,
+        }
+      : details?.focusedKind === 'planet'
+        ? {
+            id: planetId,
+            name: planetName,
+            href: planetHref,
+            composition: details.planetTelemetry.composition,
+            isHabitableCandidate: details.planetTelemetry.isHabitableCandidate,
+            ...(details.planetTelemetry.semiMajorAxisAu !== undefined
+              ? { semiMajorAxisAu: details.planetTelemetry.semiMajorAxisAu }
+              : {}),
+            ...(details.planetTelemetry.periodDays !== undefined
+              ? { periodDays: details.planetTelemetry.periodDays }
+              : {}),
+            ...(details.planetTelemetry.eccentricity !== undefined
+              ? { eccentricity: details.planetTelemetry.eccentricity }
+              : {}),
+            ...(details.planetTelemetry.massMearth !== undefined
+              ? { massMearth: details.planetTelemetry.massMearth }
+              : {}),
+            ...(details.planetTelemetry.radiusRearth !== undefined
+              ? { radiusRearth: details.planetTelemetry.radiusRearth }
+              : {}),
+            ...(details.planetTelemetry.equilibriumTempK !== undefined
+              ? { equilibriumTempK: details.planetTelemetry.equilibriumTempK }
+              : {}),
+          }
+        : planetCorpusEntry
+          ? {
+              id: planetId,
+              name: planetName,
+              href: planetHref,
+              composition: resolveCorpusEntryComposition(planetCorpusEntry),
+              isHabitableCandidate: planetCorpusEntry.z === 1,
+              ...(planetSolarRecord?.orbit?.semiMajorAxis !== undefined
+                ? { semiMajorAxisAu: planetSolarRecord.orbit.semiMajorAxis }
+                : {}),
+              ...(planetSolarRecord?.orbit?.periodDays !== undefined
+                ? { periodDays: planetSolarRecord.orbit.periodDays }
+                : {}),
+              ...(planetSolarRecord?.orbit?.eccentricity !== undefined
+                ? { eccentricity: planetSolarRecord.orbit.eccentricity }
+                : {}),
+            }
+          : undefined;
+
+  const planetTargetSlugs = new Set<string>(
+    [
+      toUrlSlug(planetId),
+      toUrlSlug(planetName),
+      urlPlanetSlug ? toUrlSlug(urlPlanetSlug) : '',
+    ].filter((s) => s.length > 0),
+  );
+
+  const moons: SystemElementBodyItem[] = [];
+  const minorBodiesAndSpacecraft: SystemElementBodyItem[] = [];
+
+  for (const entry of corpus) {
+    if (!entry.o) {
+      continue;
+    }
+    const parentSlug = toUrlSlug(entry.o);
+    if (!planetTargetSlugs.has(parentSlug)) {
+      continue;
+    }
+    const name = resolveResultDisplayTitle(entry);
+    const href = buildPlanetElementFocusHref(
+      planetName || planetId,
+      name || entry.i,
+    );
+    if (entry.k === 3 || entry.k === 4) {
+      moons.push({
+        id: entry.i,
+        name,
+        href,
+        categoryLabel: entry.k === 3 ? 'Moon' : 'Dwarf Planet',
+      });
+    } else {
+      minorBodiesAndSpacecraft.push({
+        id: entry.i,
+        name,
+        href,
+        categoryLabel: resolveMinorBodyCategoryLabel(entry),
+      });
+    }
+  }
+
+  const targetIdsForCanon = [
+    planetId,
+    planetName,
+    ...moons.map((m) => m.id),
+    ...minorBodiesAndSpacecraft.map((b) => b.id),
+  ];
+  const directCanon = resolveDirectTargetCanonAnnotations(
+    targetIdsForCanon,
+    activeLayers,
+  );
+
+  return {
+    planetId,
+    planetName,
+    planetHref,
+    systemId,
+    systemName,
+    systemHref,
+    ...(details?.id ? { focusedEntityId: details.id } : {}),
+    ...(planetDetail ? { planetDetail } : {}),
+    moons,
+    minorBodiesAndSpacecraft,
+    canonAnnotations: directCanon,
+  };
+};
+
 export interface BreadcrumbRouteLink {
   readonly label: string;
   readonly href?: string;
@@ -1396,8 +1705,7 @@ export const buildSystemViewBreadcrumbs = (
   ];
 
   const sysName = details?.systemName ?? urlSystemSlug ?? 'System';
-  const sysHref =
-    details?.systemDetailsHref ?? buildSystemDetailsHref(sysName);
+  const sysHref = buildSystemDetailsHref(sysName);
 
   const isSubElementFocused =
     Boolean(details) &&
@@ -1414,4 +1722,51 @@ export const buildSystemViewBreadcrumbs = (
   return items;
 };
 
-export { extractUrlSystemSlug, hasExplicitFocusParam };
+/**
+ * Pure builder producing the breadcrumb trail for the active Planetary view (`/planet/$planetId`).
+ */
+export const buildPlanetViewBreadcrumbs = (
+  details: FocusedEntityDetails | null,
+  planetaryElements: PlanetaryElementsSummary | null,
+  urlPlanetSlug: string | null,
+  hasExplicitFocus: boolean,
+): readonly BreadcrumbRouteLink[] => {
+  const items: BreadcrumbRouteLink[] = [
+    { label: 'Galaxy', href: '/galaxy' },
+  ];
+
+  const sysName =
+    planetaryElements?.systemName ?? details?.systemName ?? 'System';
+  const sysHref =
+    planetaryElements?.systemHref ?? buildSystemDetailsHref(sysName);
+  items.push({ label: sysName, href: sysHref });
+
+  const planetName =
+    planetaryElements?.planetName ??
+    (details?.focusedKind === 'planet' ? details.name : undefined) ??
+    (urlPlanetSlug ? formatSlugFallbackTitle(urlPlanetSlug) : 'Planet');
+  const planetHref =
+    planetaryElements?.planetHref ?? buildPlanetDetailsHref(planetName);
+
+  const planetIdSlug = toUrlSlug(
+    planetaryElements?.planetId ?? urlPlanetSlug ?? planetName,
+  );
+  const planetNameSlug = toUrlSlug(planetName);
+
+  const isSubElementFocused =
+    details !== null &&
+    hasExplicitFocus &&
+    toUrlSlug(details.id) !== planetIdSlug &&
+    toUrlSlug(details.name) !== planetNameSlug;
+
+  if (isSubElementFocused && details) {
+    items.push({ label: planetName, href: planetHref });
+    items.push({ label: details.name });
+  } else {
+    items.push({ label: planetName });
+  }
+
+  return items;
+};
+
+export { extractUrlPlanetSlug, extractUrlSystemSlug, hasExplicitFocusParam };

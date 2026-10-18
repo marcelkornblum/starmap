@@ -30,6 +30,7 @@ export const SystemElementsPanel = ({ elements }: SystemElementsPanelProps) => {
   const {
     systemId,
     systemName,
+    focusedEntityId,
     stars,
     planets,
     moonsAndDwarfPlanets,
@@ -57,6 +58,7 @@ export const SystemElementsPanel = ({ elements }: SystemElementsPanelProps) => {
                 key={star.id}
                 data-testid="system-elements-star-item"
                 data-star-id={star.id}
+                data-focused={focusedEntityId === star.id ? 'true' : undefined}
               >
                 <a
                   href={
@@ -133,6 +135,9 @@ export const SystemElementsPanel = ({ elements }: SystemElementsPanelProps) => {
                 data-testid="system-elements-planet-item"
                 data-planet-id={planet.id}
                 data-composition={planet.composition}
+                data-focused={
+                  focusedEntityId === planet.id ? 'true' : undefined
+                }
               >
                 <a
                   href={
@@ -264,6 +269,7 @@ export const SystemElementsPanel = ({ elements }: SystemElementsPanelProps) => {
                 key={body.id}
                 data-testid="system-elements-moon-item"
                 data-body-id={body.id}
+                data-focused={focusedEntityId === body.id ? 'true' : undefined}
               >
                 <a
                   href={body.href}
@@ -293,6 +299,7 @@ export const SystemElementsPanel = ({ elements }: SystemElementsPanelProps) => {
                 key={body.id}
                 data-testid="system-elements-minor-body-item"
                 data-body-id={body.id}
+                data-focused={focusedEntityId === body.id ? 'true' : undefined}
               >
                 <a
                   href={body.href}

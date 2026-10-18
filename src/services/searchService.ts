@@ -1002,7 +1002,9 @@ export const extractUrlFocusSlug = (
     }
   }
 
-  const routeMatch = /^\/(?:galaxy|system)\/([^/?#]+)/i.exec(pathname.trim());
+  const routeMatch = /^\/(?:galaxy|system|planet)\/([^/?#]+)/i.exec(
+    pathname.trim(),
+  );
   if (routeMatch?.[1]) {
     const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
     if (slug.length > 0) {
@@ -1018,6 +1020,20 @@ export const extractUrlFocusSlug = (
  */
 export const extractUrlSystemSlug = (pathname: string): string | null => {
   const routeMatch = /^\/(?:galaxy|system)\/([^/?#]+)/i.exec(pathname.trim());
+  if (routeMatch?.[1]) {
+    const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
+    if (slug.length > 0) {
+      return slug;
+    }
+  }
+  return null;
+};
+
+/**
+ * Pure parser extracting the host planet slug from a `/planet/$planetId` route path.
+ */
+export const extractUrlPlanetSlug = (pathname: string): string | null => {
+  const routeMatch = /^\/planet\/([^/?#]+)/i.exec(pathname.trim());
   if (routeMatch?.[1]) {
     const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
     if (slug.length > 0) {
