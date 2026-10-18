@@ -3,6 +3,7 @@ export type InteractionTier = 'passive' | 'active' | 'selected' | 'focused';
 export interface InteractionState {
   hoveredId?: string | null;
   selectedId?: string | null;
+  selectedIds?: Set<string> | ReadonlyArray<string>;
   focusedId?: string | null;
   apertureIds: Set<string> | ReadonlyArray<string>;
 }
@@ -11,7 +12,7 @@ export interface InteractionState {
  * Pure interaction state machine deriving tier for any given entity.
  * Priority:
  * 1. 'focused'   - if entity is focusedId
- * 2. 'selected'  - if entity is selectedId OR hoveredId (hover maps to selected tier per §2.4)
+ * 2. 'selected'  - if entity is selectedId, in selectedIds, OR hoveredId (hover maps to selected tier per §2.4)
  * 3. 'active'    - if entity is within aperture radius
  * 4. 'passive'   - default background starfield
  */
@@ -19,7 +20,12 @@ export function deriveEntityTier(id: string, state: InteractionState): Interacti
   if (id === state.focusedId) {
     return 'focused';
   }
-  if (id === state.selectedId || id === state.hoveredId) {
+  const isInSelectedSet = state.selectedIds
+    ? state.selectedIds instanceof Set
+      ? state.selectedIds.has(id)
+      : state.selectedIds.includes(id)
+    : false;
+  if (id === state.selectedId || id === state.hoveredId || isInSelectedSet) {
     return 'selected';
   }
   const isInAperture = state.apertureIds instanceof Set

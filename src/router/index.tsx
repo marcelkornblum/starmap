@@ -2,23 +2,49 @@ import {
   createRouter,
   createRoute,
   createRootRoute,
+  defaultStringifySearch,
   Navigate,
   Outlet,
 } from '@tanstack/react-router';
 import { RootLayout } from '../components/poc/layout/RootLayout';
 import { RouteSkeleton } from '../components/poc/common/RouteSkeleton';
+import { MainView } from '../views/MainView';
+import { MetricDetailView } from '../views/MetricDetailView';
+import { MetricsListView } from '../views/MetricsListView';
+import { PlanetTypeDetailView } from '../views/PlanetTypeDetailView';
+import { PlanetTypesListView } from '../views/PlanetTypesListView';
+import { PlanetView } from '../views/PlanetView';
+import { SearchView } from '../views/SearchView';
+import { StarTypeDetailView } from '../views/StarTypeDetailView';
+import { StarTypesListView } from '../views/StarTypesListView';
+import { SystemView } from '../views/SystemView';
 import { GalaxyView } from '../views/poc/GalaxyView';
-import { SystemView } from '../views/poc/SystemView';
-import { PlanetView } from '../views/poc/PlanetView';
+import { SystemView as PocSystemView } from '../views/poc/SystemView';
+import { PlanetView as PocPlanetView } from '../views/poc/PlanetView';
 import { ReferenceView } from '../views/poc/ReferenceView';
 
 export interface StarmapSearchParams {
+  q?: string;
+  searchCategory?: string;
+  focus?: string;
+  select?: string;
+  canon?: string;
   x?: number;
   y?: number;
   z?: number;
   zoom?: number;
   center?: string;
   [key: string]: unknown;
+}
+
+/**
+ * RFC 3986 §3.4 search string serializer preserving literal `:` and `,` characters
+ * for clean `?select=tag:habitable-candidate,canon:project-hail-mary,sol` URLs.
+ */
+export function stringifyStarmapSearch(search: Record<string, unknown>): string {
+  return defaultStringifySearch(search)
+    .replace(/%3A/gi, ':')
+    .replace(/%2C/gi, ',');
 }
 
 // Simulated network latency helper for render-then-fetch pattern
@@ -33,6 +59,17 @@ export const rootRoute = createRootRoute({
   validateSearch: (search: Record<string, unknown>): StarmapSearchParams => {
     return {
       ...search,
+      q: typeof search.q === 'string' && search.q.length > 0 ? search.q : undefined,
+      searchCategory:
+        typeof search.searchCategory === 'string' && search.searchCategory.length > 0
+          ? search.searchCategory
+          : undefined,
+      focus: typeof search.focus === 'string' && search.focus.length > 0 ? search.focus : undefined,
+      select:
+        typeof search.select === 'string' && search.select.length > 0
+          ? search.select
+          : undefined,
+      canon: typeof search.canon === 'string' && search.canon.length > 0 ? search.canon : undefined,
       x: typeof search.x === 'number' ? search.x : (search.x ? Number(search.x) : undefined),
       y: typeof search.y === 'number' ? search.y : (search.y ? Number(search.y) : undefined),
       z: typeof search.z === 'number' ? search.z : (search.z ? Number(search.z) : undefined),
@@ -42,19 +79,86 @@ export const rootRoute = createRootRoute({
   },
 });
 
-// Clean-slate root index route — views and paths will be defined from scratch during Stage 1 Journeys
+// Root index route — progressively scaffolded during Stage 1 Journeys
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => <div data-testid="clean-slate-root" />,
+  component: MainView,
+});
+
+export const mainSearchRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/search',
+  component: SearchView,
+});
+
+export const mainGalaxyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/galaxy',
+  component: MainView,
+});
+
+export const mainGalaxySystemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/galaxy/$systemId',
+  component: MainView,
+});
+
+export const mainSystemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/system/$systemId',
+  component: SystemView,
+});
+
+export const mainPlanetRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/planet/$planetId',
+  component: PlanetView,
+});
+
+export const starTypesListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/star-types',
+  component: StarTypesListView,
+});
+
+export const starTypeDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/star-types/$starType',
+  component: StarTypeDetailView,
+});
+
+export const planetTypesListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/planet-types',
+  component: PlanetTypesListView,
+});
+
+export const planetTypeDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/planet-types/$planetType',
+  component: PlanetTypeDetailView,
+});
+
+export const metricsListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/metrics',
+  component: MetricsListView,
+});
+
+export const metricDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/metrics/$metricId',
+  component: MetricDetailView,
 });
 
 // Quarantined POC layout and routes under /poc/* for reference
 export const pocRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => pocRouteParent,
   path: '/poc',
   component: RootLayout,
 });
+export const pocRouteParent = rootRoute;
 
 export const pocIndexRoute = createRoute({
   getParentRoute: () => pocRoute,
@@ -76,7 +180,7 @@ export const galaxyRoute = createRoute({
 export const systemRoute = createRoute({
   getParentRoute: () => pocRoute,
   path: '/system/$systemId',
-  component: SystemView,
+  component: PocSystemView,
   pendingComponent: () => <RouteSkeleton label="Resolving Star System Telemetry..." />,
   pendingMs: 0,
   loader: async ({ params }) => {
@@ -87,7 +191,7 @@ export const systemRoute = createRoute({
 export const planetRoute = createRoute({
   getParentRoute: () => pocRoute,
   path: '/planet/$planetId',
-  component: PlanetView,
+  component: PocPlanetView,
   pendingComponent: () => <RouteSkeleton label="Acquiring Planetary Orbit Data..." />,
   pendingMs: 0,
   loader: async ({ params }) => {
@@ -108,6 +212,17 @@ export const referenceRoute = createRoute({
 
 export const routeTree = rootRoute.addChildren([
   indexRoute,
+  mainSearchRoute,
+  mainGalaxyRoute,
+  mainGalaxySystemRoute,
+  mainSystemRoute,
+  mainPlanetRoute,
+  starTypesListRoute,
+  starTypeDetailRoute,
+  planetTypesListRoute,
+  planetTypeDetailRoute,
+  metricsListRoute,
+  metricDetailRoute,
   pocRoute.addChildren([
     pocIndexRoute,
     galaxyRoute,
@@ -120,6 +235,7 @@ export const routeTree = rootRoute.addChildren([
 export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
+  stringifySearch: stringifyStarmapSearch,
 });
 
 declare module '@tanstack/react-router' {

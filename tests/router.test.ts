@@ -1,15 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createElement } from 'react';
+import { renderToString } from 'react-dom/server';
 import {
   router,
   routeTree,
   rootRoute,
+  stringifyStarmapSearch,
   indexRoute,
+  mainSearchRoute,
+  mainGalaxyRoute,
+  mainGalaxySystemRoute,
+  mainSystemRoute,
+  mainPlanetRoute,
+  starTypesListRoute,
+  starTypeDetailRoute,
+  planetTypesListRoute,
+  planetTypeDetailRoute,
+  metricsListRoute,
+  metricDetailRoute,
   pocIndexRoute,
   galaxyRoute,
   systemRoute,
   planetRoute,
   referenceRoute,
 } from '../src/router';
+import { MainView } from '../src/views/MainView';
+import { MetricDetailView } from '../src/views/MetricDetailView';
+import { MetricsListView } from '../src/views/MetricsListView';
+import { PlanetTypeDetailView } from '../src/views/PlanetTypeDetailView';
+import { PlanetTypesListView } from '../src/views/PlanetTypesListView';
+import { PlanetView } from '../src/views/PlanetView';
+import { SearchView } from '../src/views/SearchView';
+import { StarTypeDetailView } from '../src/views/StarTypeDetailView';
+import { StarTypesListView } from '../src/views/StarTypesListView';
+import { SystemView } from '../src/views/SystemView';
+import { SEARCH_CATEGORIES } from '../src/services/searchService';
 import { useStarmapNav } from '../src/router/navigation';
 
 vi.mock('@tanstack/react-router', async () => {
@@ -24,10 +49,21 @@ vi.mock('@tanstack/react-router', async () => {
 import { useNavigate, useRouter } from '@tanstack/react-router';
 
 describe('TanStack Router Architecture', () => {
-  it('registers clean-slate root route and quarantined /poc/* reference routes', () => {
+  it('registers clean-slate root routes and quarantined /poc/* reference routes', () => {
     const flatRoutes = router.routesByPath;
 
     expect(flatRoutes['/']).toBeDefined();
+    expect(flatRoutes['/search']).toBeDefined();
+    expect(flatRoutes['/galaxy']).toBeDefined();
+    expect(flatRoutes['/galaxy/$systemId']).toBeDefined();
+    expect(flatRoutes['/system/$systemId']).toBeDefined();
+    expect(flatRoutes['/planet/$planetId']).toBeDefined();
+    expect(flatRoutes['/guide/star-types']).toBeDefined();
+    expect(flatRoutes['/guide/star-types/$starType']).toBeDefined();
+    expect(flatRoutes['/guide/planet-types']).toBeDefined();
+    expect(flatRoutes['/guide/planet-types/$planetType']).toBeDefined();
+    expect(flatRoutes['/guide/metrics']).toBeDefined();
+    expect(flatRoutes['/guide/metrics/$metricId']).toBeDefined();
     expect(flatRoutes['/poc']).toBeDefined();
     expect(router.routesById['/poc/']).toBeDefined();
     expect(flatRoutes['/poc/galaxy']).toBeDefined();
@@ -39,15 +75,20 @@ describe('TanStack Router Architecture', () => {
   it('contains expected route tree structure', () => {
     expect(routeTree).toBeDefined();
     expect(routeTree.children).toBeDefined();
-    expect(routeTree.children?.length).toBe(2);
+    expect(routeTree.children?.length).toBe(13);
   });
 
-  it('validates search parameters correctly on rootRoute across all branches', () => {
+  it('validates search parameters correctly on rootRoute across all branches and keeps : and , unencoded in stringifyStarmapSearch', () => {
     const validate = rootRoute.options.validateSearch as (search: Record<string, unknown>) => Record<string, unknown>;
     expect(validate).toBeDefined();
 
     // Mixed string/number inputs
     const validated = validate({
+      q: 'Tau Ceti',
+      searchCategory: 'stars',
+      focus: 'tau-ceti-e',
+      select: 'tag:habitable-candidate,canon:project-hail-mary,sol',
+      canon: 'canon-project-hail-mary',
       x: '12.5',
       y: 42,
       z: 'not-a-number',
@@ -56,6 +97,13 @@ describe('TanStack Router Architecture', () => {
       customFilter: 'habitable',
     });
 
+    expect(validated.q).toBe('Tau Ceti');
+    expect(validated.searchCategory).toBe('stars');
+    expect(validated.focus).toBe('tau-ceti-e');
+    expect(validated.select).toBe(
+      'tag:habitable-candidate,canon:project-hail-mary,sol',
+    );
+    expect(validated.canon).toBe('canon-project-hail-mary');
     expect(validated.x).toBe(12.5);
     expect(validated.y).toBe(42);
     expect(Number.isNaN(validated.z)).toBe(true);
@@ -63,8 +111,18 @@ describe('TanStack Router Architecture', () => {
     expect(validated.center).toBe('sol');
     expect(validated.customFilter).toBe('habitable');
 
+    expect(
+      stringifyStarmapSearch({
+        select: 'tag:habitable-candidate,canon:project-hail-mary,sol',
+        focus: 'tau-ceti',
+      }),
+    ).toBe('?select=tag:habitable-candidate,canon:project-hail-mary,sol&focus=tau-ceti');
+
     // Empty search params (falsy branch)
     const emptyValidated = validate({});
+    expect(emptyValidated.q).toBeUndefined();
+    expect(emptyValidated.select).toBeUndefined();
+    expect(emptyValidated.canon).toBeUndefined();
     expect(emptyValidated.x).toBeUndefined();
     expect(emptyValidated.y).toBeUndefined();
     expect(emptyValidated.z).toBeUndefined();
@@ -86,11 +144,50 @@ describe('TanStack Router Architecture', () => {
     expect(numericValidated.center).toBeUndefined();
   });
 
-  it('renders clean-slate root at / and Navigate to /poc/galaxy at /poc/', () => {
-    const IndexComponent = indexRoute.options.component as unknown as () => { props: { 'data-testid': string } };
-    expect(IndexComponent).toBeDefined();
-    const rootVnode = IndexComponent();
-    expect(rootVnode.props['data-testid']).toBe('clean-slate-root');
+  it('maps /, /galaxy, and /galaxy/$systemId to MainView, /search to SearchView, /system/$systemId to SystemView, and /planet/$planetId to PlanetView', () => {
+    expect(indexRoute.options.component).toBe(MainView);
+    expect(mainGalaxyRoute.options.component).toBe(MainView);
+    expect(mainGalaxySystemRoute.options.component).toBe(MainView);
+    expect(mainSearchRoute.options.component).toBe(SearchView);
+    expect(mainSystemRoute.options.component).toBe(SystemView);
+    expect(mainPlanetRoute.options.component).toBe(PlanetView);
+    expect(starTypesListRoute.options.component).toBe(StarTypesListView);
+    expect(starTypeDetailRoute.options.component).toBe(StarTypeDetailView);
+    expect(planetTypesListRoute.options.component).toBe(PlanetTypesListView);
+    expect(planetTypeDetailRoute.options.component).toBe(PlanetTypeDetailView);
+    expect(metricsListRoute.options.component).toBe(MetricsListView);
+    expect(metricDetailRoute.options.component).toBe(MetricDetailView);
+    const html = renderToString(createElement(MainView));
+
+    expect(html).toContain('data-testid="clean-slate-root"');
+    expect(html).toContain('data-testid="search-panel"');
+    expect(html).toContain('>Search</h2>');
+    expect(html).toContain('id="starmap-search-input"');
+    expect(html).toContain('data-testid="search-clear-button"');
+    expect(html).toContain('>Clear search</button>');
+    expect(html).toContain('id="starmap-search-filter"');
+    expect(html).not.toContain('>Enter</button>');
+    // Search Results panel is hidden when there is no search query
+    expect(html).not.toContain('data-testid="search-results-panel"');
+
+    for (const category of SEARCH_CATEGORIES) {
+      expect(html).toContain(`<option value="${category.key}">${category.heading.replace(/&/g, '&amp;')}</option>`);
+    }
+
+    const searchViewHtml = renderToString(createElement(SearchView));
+    expect(searchViewHtml).toContain('data-testid="search-view-root"');
+    expect(searchViewHtml).toContain('data-testid="search-panel"');
+    expect(searchViewHtml).not.toContain('data-testid="search-results-panel"');
+
+    const systemViewHtml = renderToString(createElement(SystemView));
+    expect(systemViewHtml).toContain('data-testid="system-view-root"');
+    expect(systemViewHtml).toContain('data-testid="search-panel"');
+    expect(systemViewHtml).not.toContain('data-testid="search-results-panel"');
+
+    const planetViewHtml = renderToString(createElement(PlanetView));
+    expect(planetViewHtml).toContain('data-testid="planet-view-root"');
+    expect(planetViewHtml).toContain('data-testid="search-panel"');
+    expect(planetViewHtml).not.toContain('data-testid="search-results-panel"');
 
     const PocIndexComponent = pocIndexRoute.options.component as unknown as () => { props: { to: string } };
     expect(PocIndexComponent).toBeDefined();

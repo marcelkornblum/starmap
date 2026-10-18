@@ -1,10 +1,10 @@
 # Tracks Registry
 
 ## Initiative: Journey-Driven View Data Models & UI Scaffolding (`journey-ui-scaffolding`)
-*Overview: [conductor/initiatives/journey-ui-scaffolding/index.md](./initiatives/journey-ui-scaffolding/index.md) | [Decision Log](./initiatives/journey-ui-scaffolding/decision-log.md) | [View Requirements](./initiatives/journey-ui-scaffolding/view-requirements.md)*
+*Overview: [conductor/initiatives/journey-ui-scaffolding/index.md](./initiatives/journey-ui-scaffolding/index.md) | [Decision Log](./initiatives/journey-ui-scaffolding/decision-log.md) | [View Requirements](./initiatives/journey-ui-scaffolding/view-requirements.md) | [Features Scratchpad](./initiatives/journey-ui-scaffolding/feature-scratchpad.md)*
 
 ### Stage 1: Journey Feature Discovery & View Data Models (Zero Presentation Assumptions)
-- [ ] **Track 01: Journey 1 — Target Acquisition, System Summary, 2-Point Route & Scale Transitions (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md](./tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md)*
+- [~] **Track 01: Journey 1 — Target Acquisition, System Summary, 2-Point Route & Scale Transitions (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md](./tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md)*
 - [ ] **Track 02: Journey 2 — Spatial Anchor, Intent Filters, Candidate Sync & Multi-Leg Network (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_02_journey-2-author-flow_20261016/index.md](./tracks/journey-ui-scaffolding_02_journey-2-author-flow_20261016/index.md)*
 - [ ] **Track 03: Journey 3 — Curated On-Ramps, Narrative Waypoints & Step-Through (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_03_journey-3-explorer-flow_20261016/index.md](./tracks/journey-ui-scaffolding_03_journey-3-explorer-flow_20261016/index.md)*
 - [ ] **Track 04: Journey 4 — Classification Deep-Links, Encyclopedia Articles, Parameter Comparator & Category Index (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md](./tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md)*
@@ -23,6 +23,12 @@
 - [ ] **Track: Minimap & Scene Transitions** *Link: [conductor/tracks/minimap-scene-transitions_20261010/index.md](./tracks/minimap-scene-transitions_20261010/index.md)*
 - [ ] **Track: 3D Engine Implementation** *Link: [conductor/tracks/3d-engine-implementation_20260929/index.md](./tracks/3d-engine-implementation_20260929/index.md)*
 - [ ] **Track: Reference Engine & MDX** *Link: [conductor/tracks/reference-engine_20260929/index.md](./tracks/reference-engine_20260929/index.md)*
+
+---
+
+## Backlog
+- [ ] **Feature: Custom Shortlink & Curated Landing URLs (`/go/<slug>`)** — Support friendly, memorable entry-point URLs (e.g., `/go/hail-mary`, `/go/dune`, `/go/trappist`, `/go/voyager`) that resolve to customised landing experiences with pre-configured camera framing, active fictional canon layers, selected targets/routes, and tailored onboarding context.
+- [ ] **Feature: GitHub Feature Requests & Bug Reports Integration** — Provide a simple, low-friction way for users to submit feature requests, data/canon corrections, and bug reports directly to GitHub Issues (e.g., an in-app feedback action that opens pre-populated GitHub Issue forms/templates with current URL/view/entity context).
 
 ---
 

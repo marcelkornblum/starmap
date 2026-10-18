@@ -23,7 +23,7 @@ export const OcclusionContext = createContext<CelestialOcclusionManager | null>(
 export interface SpatialEntityProviderProps {
   store?: SpatialEntityStore;
   occlusionManager?: CelestialOcclusionManager;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 /**
