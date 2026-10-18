@@ -479,7 +479,7 @@ function mergeExoplanetRecords(existing: ExoplanetRecord, incoming: ExoplanetRec
       if (existingHasMeasuredTemp || incomingHasMeasuredTemp) {
         flags &= ~(1 | 8);
       }
-      return flags > 0 ? { theoreticalFlags: flags } : {};
+      return { theoreticalFlags: flags > 0 ? flags : undefined };
     })(),
   };
 }
