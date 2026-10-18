@@ -2,9 +2,10 @@ import { Fragment, type ReactNode } from 'react';
 import {
   buildSystemElementFocusHref,
   type FocusedEntityDetails,
+  type PlanetCompositionCount,
+  type SystemSummarySegment,
 } from '../../../services/detailsService';
 import {
-  PLANET_COMPOSITION_TYPES,
   buildCanonLayerGalaxyHref,
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
@@ -18,110 +19,99 @@ export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
 }
 
-const HABITABLE_CANDIDATE_PHRASE = 'Habitable zone candidate';
-const HABITABLE_CANDIDATE_LOWER_PHRASE = 'habitable zone candidate';
-
-const renderTextWithHabitableBadge = (
-  text: string,
-  testId: string,
+const renderPlanetComposition = (
+  planetCount: number,
+  breakdown: readonly PlanetCompositionCount[],
+  hasHabitableCandidate: boolean,
 ): ReactNode => {
-  if (!text.includes(HABITABLE_CANDIDATE_LOWER_PHRASE)) {
-    return text;
-  }
-  const parts = text.split(HABITABLE_CANDIDATE_LOWER_PHRASE);
-  const href = buildTagGalaxyHref('HabitableCandidate');
-  return parts.map((part, idx) => (
-    <Fragment key={idx}>
-      {part}
-      {idx < parts.length - 1 ? (
-        <Badge status="nominal">
-          <a href={href} data-testid={testId}>
-            {HABITABLE_CANDIDATE_LOWER_PHRASE}
-          </a>
-        </Badge>
-      ) : null}
-    </Fragment>
-  ));
-};
-
-const renderSummaryWithSpectralLink = (
-  summary: string,
-  spectralType?: string,
-): ReactNode => {
-  if (
-    !spectralType ||
-    !shouldDisplaySpectralBadge(spectralType) ||
-    !summary.includes(spectralType)
-  ) {
-    return renderTextWithHabitableBadge(
-      summary,
-      'details-summary-habitable-link',
-    );
+  if (planetCount <= 0) {
+    return '0 confirmed planets';
   }
 
-  const parts = summary.split(spectralType);
-  const href = buildStarTypeGuideHref(spectralType);
+  const countLabel = `${planetCount} ${planetCount === 1 ? 'planet' : 'planets'} (`;
+  const hasNumericCounts = breakdown.some((b) => b.count !== undefined);
+  const separator = hasNumericCounts ? ' · ' : ', ';
 
-  return parts.map((part, index) => (
-    <Fragment key={index}>
-      {renderTextWithHabitableBadge(part, 'details-summary-habitable-link')}
-      {index < parts.length - 1 ? (
-        <Badge category="star">
-          <a href={href} data-testid="details-summary-spectral-link">
-            {spectralType}
-          </a>
-        </Badge>
+  return (
+    <>
+      {countLabel}
+      {breakdown.map((item, idx) => (
+        <Fragment key={`${item.composition}-${idx}`}>
+          {idx > 0 ? separator : null}
+          {item.count !== undefined ? `${item.count} ` : null}
+          <Badge category="planet">
+            <a
+              href={buildPlanetTypeGuideHref(item.composition)}
+              data-testid="details-summary-planet-type-link"
+            >
+              {item.composition}
+            </a>
+          </Badge>
+        </Fragment>
+      ))}
+      {hasHabitableCandidate ? (
+        <>
+          {breakdown.length > 0 ? ' · ' : null}
+          <Badge status="nominal">
+            <a
+              href={buildTagGalaxyHref('HabitableCandidate')}
+              data-testid="details-habitable-zone-link"
+            >
+              Habitable zone candidate
+            </a>
+          </Badge>
+        </>
       ) : null}
-    </Fragment>
-  ));
-};
-
-const PLANET_SUMMARY_TOKEN_REGEX = new RegExp(
-  `(${[...PLANET_COMPOSITION_TYPES, HABITABLE_CANDIDATE_PHRASE].join('|')})`,
-  'g',
-);
-
-const renderSummaryWithPlanetTypeLinks = (summary: string): ReactNode => {
-  const hasPlanetType = PLANET_COMPOSITION_TYPES.some((t) =>
-    summary.includes(t),
+      {')'}
+    </>
   );
-  const hasHabitablePhrase = summary.includes(HABITABLE_CANDIDATE_PHRASE);
-  if (!hasPlanetType && !hasHabitablePhrase) {
-    return summary;
-  }
+};
 
-  const parts = summary.split(PLANET_SUMMARY_TOKEN_REGEX);
-  return parts.map((part, index) => {
-    const isPlanetType = (
-      PLANET_COMPOSITION_TYPES as readonly string[]
-    ).includes(part);
-    if (isPlanetType) {
+const renderSystemSummarySegments = (
+  segments: readonly SystemSummarySegment[],
+): ReactNode =>
+  segments.map((seg, idx) => {
+    if (seg.kind === 'spectral-badge') {
+      if (!shouldDisplaySpectralBadge(seg.spectralType)) {
+        return <Fragment key={idx}>{seg.spectralType}</Fragment>;
+      }
       return (
-        <Badge key={index} category="planet">
+        <Badge key={idx} category="star">
           <a
-            href={buildPlanetTypeGuideHref(part)}
+            href={buildStarTypeGuideHref(seg.spectralType)}
+            data-testid="details-summary-spectral-link"
+          >
+            {seg.spectralType}
+          </a>
+        </Badge>
+      );
+    }
+    if (seg.kind === 'planet-type-badge') {
+      return (
+        <Badge key={idx} category="planet">
+          <a
+            href={buildPlanetTypeGuideHref(seg.composition)}
             data-testid="details-summary-planet-type-link"
           >
-            {part}
+            {seg.composition}
           </a>
         </Badge>
       );
     }
-    if (part === HABITABLE_CANDIDATE_PHRASE) {
+    if (seg.kind === 'habitable-badge') {
       return (
-        <Badge key={index} status="nominal">
+        <Badge key={idx} status="nominal">
           <a
             href={buildTagGalaxyHref('HabitableCandidate')}
-            data-testid="details-habitable-zone-link"
+            data-testid="details-summary-habitable-link"
           >
-            {part}
+            {seg.label}
           </a>
         </Badge>
       );
     }
-    return <Fragment key={index}>{part}</Fragment>;
+    return <Fragment key={idx}>{seg.text}</Fragment>;
   });
-};
 
 /**
  * Domain Component (`<DetailsPanel>`): accepts a single `FocusedEntityDetails | null`
@@ -138,12 +128,14 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
     systemId,
     name,
     systemName,
-    focusedKind = 'system',
+    focusedKind,
     spectralType,
     reticleType,
     starCount,
-    planetCompositionSummary,
-    systemSummary,
+    planetCount,
+    planetCompositionBreakdown,
+    hasHabitableCandidate,
+    systemSummarySegments,
     coordinatesPc,
     sectorId,
     tags,
@@ -154,10 +146,13 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
     structureTelemetry,
     stars,
     planets,
+    orbitingBodies,
     canonAnnotations,
   } = details;
 
   const hasSpectBadge = shouldDisplaySpectralBadge(spectralType);
+  const isSystemOrStarFocus =
+    focusedKind === 'system' || focusedKind === 'star';
 
   return (
     <section
@@ -182,7 +177,7 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
             </span>
           ) : null}{' '}
           <span data-testid="details-reticle-type">{`[${reticleType}]`}</span>
-          {hasSpectBadge && spectralType ? (
+          {isSystemOrStarFocus && hasSpectBadge && spectralType ? (
             <>
               {' '}
               <Badge category="star">
@@ -195,10 +190,14 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
               </Badge>
             </>
           ) : null}
-          {' · '}
-          <span data-testid="details-star-count">
-            {`${starCount} ${starCount === 1 ? 'star' : 'stars'}`}
-          </span>
+          {isSystemOrStarFocus ? (
+            <>
+              {' · '}
+              <span data-testid="details-star-count">
+                {`${starCount} ${starCount === 1 ? 'star' : 'stars'}`}
+              </span>
+            </>
+          ) : null}
         </p>
         {planetTelemetry ? (
           <p data-testid="details-focused-entity-peek">
@@ -342,11 +341,17 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
             <Badge status="info">{structureTelemetry.structureType}</Badge>
           </p>
         ) : null}
-        <p data-testid="details-planet-composition">
-          {renderSummaryWithPlanetTypeLinks(planetCompositionSummary)}
-        </p>
+        {isSystemOrStarFocus ? (
+          <p data-testid="details-planet-composition">
+            {renderPlanetComposition(
+              planetCount,
+              planetCompositionBreakdown,
+              hasHabitableCandidate,
+            )}
+          </p>
+        ) : null}
         <p data-testid="details-system-summary">
-          {renderSummaryWithSpectralLink(systemSummary, spectralType)}
+          {renderSystemSummarySegments(systemSummarySegments)}
         </p>
       </section>
 
@@ -759,7 +764,35 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
           </section>
         ) : null}
 
-        {stars.length > 0 ? (
+        {focusedKind === 'planet' &&
+        orbitingBodies &&
+        orbitingBodies.length > 0 ? (
+          <section
+            aria-labelledby="details-orbiting-bodies-heading"
+            data-testid="details-orbiting-bodies-section"
+          >
+            <h4 id="details-orbiting-bodies-heading">Orbiting Bodies</h4>
+            <ul data-testid="details-orbiting-bodies-list">
+              {orbitingBodies.map((body) => (
+                <li
+                  key={body.id}
+                  data-testid="details-orbiting-body-item"
+                  data-body-id={body.id}
+                >
+                  <a
+                    href={body.href}
+                    data-testid="details-orbiting-body-link"
+                  >
+                    {body.name}
+                  </a>{' '}
+                  <Badge status="neutral">{body.categoryLabel}</Badge>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {focusedKind !== 'planet' && stars.length > 0 ? (
           <section
             aria-labelledby="details-stars-heading"
             data-testid="details-stars-section"
@@ -832,7 +865,7 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
           </section>
         ) : null}
 
-        {planets.length > 0 ? (
+        {focusedKind !== 'planet' && planets.length > 0 ? (
           <section
             aria-labelledby="details-planets-heading"
             data-testid="details-planets-section"

@@ -133,6 +133,7 @@ const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
     n: 'tau Ceti e',
     s: 'gaia-2452378776434477184',
     p: [-3.1, -0.4, -2.0],
+    z: 1,
     a: 'taucetie',
   },
   {
@@ -141,6 +142,7 @@ const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
     n: 'Earth',
     s: 'sol',
     h: 1,
+    z: 1,
     a: 'earth',
   },
   {
@@ -148,6 +150,7 @@ const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
     k: 3,
     n: 'Moon',
     s: 'sol',
+    o: 'earth',
     h: 1,
     a: 'moon luna',
   },
@@ -523,7 +526,14 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(isChildOfHostSystem('phm:tau-ceti', 'tau-ceti')).toBe(false);
     expect(isChildOfHostSystem('earth', undefined)).toBe(false);
 
-    expect(isArtificialSpacecraftEntry({ i: 'voyager-1', k: 6, n: 'Voyager 1' })).toBe(true);
+    expect(
+      isArtificialSpacecraftEntry({
+        i: 'voyager-1',
+        k: 6,
+        n: 'Voyager 1',
+        u: 'artificial',
+      }),
+    ).toBe(true);
     expect(
       isArtificialSpacecraftEntry({
         i: 'custom-probe',
@@ -545,10 +555,10 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(resolveReticleType({ i: 's1', n: 'WD', m: [11, 'DA2', 0] })).toBe('white-dwarf');
     expect(resolveReticleType({ i: 's2', n: 'BD', m: [16, 'T8', 0] })).toBe('brown-dwarf');
     expect(resolveReticleType({ i: 's3', n: 'PSR', m: [20, 'PSR', 0] })).toBe('neutron-star');
-    expect(resolveReticleType({ i: 'jupiter', k: 2, n: 'Jupiter' })).toBe('gas-giant');
-    expect(resolveReticleType({ i: 'neptune', k: 2, n: 'Neptune' })).toBe('ice-giant');
+    expect(resolveReticleType({ i: 'jupiter', k: 2, n: 'Jupiter', u: 'gas-giant' })).toBe('gas-giant');
+    expect(resolveReticleType({ i: 'neptune', k: 2, n: 'Neptune', u: 'ice-giant' })).toBe('ice-giant');
     expect(resolveReticleType({ i: 'snr-crab', k: 5, n: 'Crab Remnant' })).toBe('hazard');
-    expect(resolveReticleType({ i: 'voyager-1', k: 6, n: 'Voyager 1' })).toBe('artificial');
+    expect(resolveReticleType({ i: 'voyager-1', k: 6, n: 'Voyager 1', u: 'artificial' })).toBe('artificial');
     expect(resolveReticleType({ i: '433-eros', k: 6, n: '433 Eros' })).toBe('terrestrial');
     expect(
       resolveReticleType({ i: 'phm:tau-ceti', k: 7, n: 'Tau Ceti', s: 'tau-ceti' }),
@@ -1314,26 +1324,30 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(detailViewHtml).toContain('href="/guide/star-types"');
   });
 
-  it('links each canon title in DetailsPanel to /galaxy?focus=<layerId> and selects all annotated systems when MainView loads', () => {
+  it('links each canon title in DetailsPanel to /galaxy?select=canon:<canonSlug> and selects all annotated systems when MainView loads', () => {
     expect(buildCanonLayerGalaxyHref('canon-project-hail-mary')).toBe(
-      '/galaxy?focus=canon-project-hail-mary',
+      '/galaxy?select=canon:project-hail-mary',
     );
+    expect(buildCanonLayerGalaxyHref('   ')).toBe('/galaxy');
     expect(findCanonLayerById('canon-project-hail-mary')?.title).toBe(
+      'Project Hail Mary',
+    );
+    expect(findCanonLayerById('project-hail-mary')?.title).toBe(
       'Project Hail Mary',
     );
     expect(findCanonLayerById('')).toBeUndefined();
     expect(findCanonLayerById('non-existent-layer')).toBeUndefined();
 
-    expect(extractUrlCanonLayerId('?focus=canon-project-hail-mary')).toBe(
+    expect(extractUrlCanonLayerId('?select=canon:project-hail-mary')).toBe(
       'canon-project-hail-mary',
     );
     expect(extractUrlCanonLayerId('?canon=canon-halo')).toBe('canon-halo');
     expect(extractUrlCanonLayerId('?focus=tau-ceti-e')).toBeNull();
     expect(extractUrlCanonLayerId('')).toBeNull();
 
-    // extractUrlFocusSlug ignores canon layer IDs in ?focus= so no fake entity is focused
+    // extractUrlFocusSlug only reads ?focus= or route path segments, never ?select=
     expect(
-      extractUrlFocusSlug('/galaxy', '?focus=canon-project-hail-mary'),
+      extractUrlFocusSlug('/galaxy', '?select=canon:project-hail-mary'),
     ).toBeNull();
 
     // DetailsPanel renders clickable canon links
@@ -1355,9 +1369,9 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       detailsHtml.indexOf('data-testid="details-canon-item-title"'),
     ).toBeLessThan(detailsHtml.indexOf('data-testid="details-canon-link"'));
     expect(detailsHtml).toContain(
-      'href="/galaxy?focus=canon-project-hail-mary"',
+      'href="/galaxy?select=canon:project-hail-mary"',
     );
-    expect(detailsHtml).toContain('href="/galaxy?focus=canon-halo"');
+    expect(detailsHtml).toContain('href="/galaxy?select=canon:halo"');
 
     // resolveSelectedSystemsFromCanonLayer resolves all annotated systems
     const phmSystems = resolveSelectedSystemsFromCanonLayer(
@@ -1378,7 +1392,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       true,
     );
 
-    // MainView loading /galaxy?focus=canon-project-hail-mary selects all systems in that canon and focuses nothing
+    // MainView loading /galaxy?select=canon:project-hail-mary selects all systems in that canon and focuses nothing
     const store = createSpatialEntityStore();
     const html = renderToString(
       createElement(
@@ -1387,7 +1401,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
         createElement(MainView, {
           initialCorpus: SAMPLE_CORPUS,
           locationPathname: '/galaxy',
-          locationSearch: '?focus=canon-project-hail-mary',
+          locationSearch: '?select=canon:project-hail-mary',
         }),
       ),
     );
@@ -1474,34 +1488,43 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(detailViewHtml).toContain('href="/guide/planet-types"');
   });
 
-  it('links Astrometry and Canon tags in DetailsPanel to /galaxy?focus=<tag> and selects all matching systems when MainView loads', () => {
+  it('links Astrometry and Canon tags in DetailsPanel to /galaxy?select=tag:<tagSlug> and supports multi-entity ?select= lists alongside ?focus=', () => {
     expect(buildTagGalaxyHref('ExoplanetHost')).toBe(
-      '/galaxy?focus=ExoplanetHost',
+      '/galaxy?select=tag:exoplanet-host',
     );
+    expect(buildTagGalaxyHref('HabitableCandidate')).toBe(
+      '/galaxy?select=tag:habitable-candidate',
+    );
+    expect(buildTagGalaxyHref('   ')).toBe('/galaxy');
     expect(isCatalogOrCanonTag('ExoplanetHost')).toBe(true);
+    expect(isCatalogOrCanonTag('exoplanet-host')).toBe(true);
     expect(isCatalogOrCanonTag('SolarNeighborhood10pc')).toBe(true);
+    expect(isCatalogOrCanonTag('solar-neighborhood-10pc')).toBe(true);
     expect(isCatalogOrCanonTag('seti')).toBe(true);
     expect(isCatalogOrCanonTag('')).toBe(false);
     expect(isCatalogOrCanonTag('tau-ceti-e')).toBe(false);
 
-    expect(extractUrlTagFocus('?focus=ExoplanetHost')).toBe('ExoplanetHost');
-    expect(extractUrlTagFocus('?focus=seti')).toBe('seti');
-    expect(extractUrlTagFocus('?focus=canon-project-hail-mary')).toBeNull();
+    expect(extractUrlTagFocus('?select=tag:exoplanet-host')).toBe('exoplanet-host');
+    expect(extractUrlTagFocus('?select=tag:seti')).toBe('seti');
+    expect(extractUrlTagFocus('?select=canon:project-hail-mary')).toBeNull();
     expect(extractUrlTagFocus('?focus=tau-ceti-e')).toBeNull();
     expect(extractUrlTagFocus('')).toBeNull();
 
-    // extractUrlFocusSlug ignores catalog/canon tags in ?focus= so no fake entity is focused
-    expect(extractUrlFocusSlug('/galaxy', '?focus=ExoplanetHost')).toBeNull();
+    // extractUrlFocusSlug ignores ?select= so no fake entity is focused
+    expect(extractUrlFocusSlug('/galaxy', '?select=tag:exoplanet-host')).toBeNull();
 
-    // doesSystemEntryMatchTag evaluates all catalog system tags
+    // doesSystemEntryMatchTag evaluates all catalog system tags (both PascalCase and kebab-case)
     const solEntry = SAMPLE_CORPUS[0]!;
     const tauEntry = SAMPLE_CORPUS[1]!;
     const planetEntry = SAMPLE_CORPUS.find((e) => e.i === 'tau-ceti-e')!;
     expect(doesSystemEntryMatchTag(solEntry, 'HomeSystem')).toBe(true);
+    expect(doesSystemEntryMatchTag(solEntry, 'home-system')).toBe(true);
     expect(doesSystemEntryMatchTag(solEntry, 'SolarNeighborhood10pc')).toBe(true);
+    expect(doesSystemEntryMatchTag(solEntry, 'solar-neighborhood-10pc')).toBe(true);
     expect(doesSystemEntryMatchTag(solEntry, 'NakedEye')).toBe(true);
     expect(doesSystemEntryMatchTag(tauEntry, 'ExoplanetHost')).toBe(true);
     expect(doesSystemEntryMatchTag(tauEntry, 'HabitableCandidate')).toBe(true);
+    expect(doesSystemEntryMatchTag(tauEntry, 'habitable-candidate')).toBe(true);
     expect(doesSystemEntryMatchTag(tauEntry, 'VariableStar')).toBe(false);
     expect(doesSystemEntryMatchTag(tauEntry, '')).toBe(false);
     expect(doesSystemEntryMatchTag(planetEntry, 'ExoplanetHost')).toBe(false);
@@ -1523,23 +1546,23 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(detailsHtml).toContain('data-testid="details-summary-habitable-link"');
     expect(detailsHtml).toContain('data-testid="details-planet-habitable-link"');
     expect(detailsHtml).toContain('data-testid="details-astrometry-tag-link"');
-    expect(detailsHtml).toContain('href="/galaxy?focus=SolarNeighborhood10pc"');
-    expect(detailsHtml).toContain('href="/galaxy?focus=NakedEye"');
-    expect(detailsHtml).toContain('href="/galaxy?focus=ExoplanetHost"');
-    expect(detailsHtml).toContain('href="/galaxy?focus=HabitableCandidate"');
+    expect(detailsHtml).toContain('href="/galaxy?select=tag:solar-neighborhood-10pc"');
+    expect(detailsHtml).toContain('href="/galaxy?select=tag:naked-eye"');
+    expect(detailsHtml).toContain('href="/galaxy?select=tag:exoplanet-host"');
+    expect(detailsHtml).toContain('href="/galaxy?select=tag:habitable-candidate"');
     expect(detailsHtml).toContain('data-testid="details-canon-tag-link"');
 
     // resolveSelectedSystemsFromTag resolves both catalog system tags and canon annotation tags
     expect(resolveSelectedSystemsFromTag('', SAMPLE_CORPUS)).toEqual([]);
     const exoplanetHosts = resolveSelectedSystemsFromTag(
-      'ExoplanetHost',
+      'exoplanet-host',
       SAMPLE_CORPUS,
     );
     expect(exoplanetHosts.some((s) => s.name === 'Sol')).toBe(true);
     expect(exoplanetHosts.some((s) => s.name === 'Tau Ceti')).toBe(true);
 
     const habitableHosts = resolveSelectedSystemsFromTag(
-      'HabitableCandidate',
+      'habitable-candidate',
       SAMPLE_CORPUS,
     );
     expect(habitableHosts.map((s) => s.name)).toEqual(['Sol', 'Tau Ceti']);
@@ -1547,7 +1570,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     const setiSystems = resolveSelectedSystemsFromTag('seti', SAMPLE_CORPUS);
     expect(setiSystems.some((s) => s.name === 'Tau Ceti')).toBe(true);
 
-    // MainView loading /galaxy?focus=HabitableCandidate selects all matching systems and focuses nothing
+    // MainView loading /galaxy?select=tag:habitable-candidate selects all matching systems and focuses nothing
     const store = createSpatialEntityStore();
     const html = renderToString(
       createElement(
@@ -1556,7 +1579,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
         createElement(MainView, {
           initialCorpus: SAMPLE_CORPUS,
           locationPathname: '/galaxy',
-          locationSearch: '?focus=HabitableCandidate',
+          locationSearch: '?select=tag:habitable-candidate',
         }),
       ),
     );
@@ -1567,6 +1590,33 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(html).toContain(
       '<li data-testid="systems-selected-item" data-entity-id="gaia-2452378776434477184">Tau Ceti</li>',
     );
+
+    // MainView loading /galaxy?select=sol,keid&focus=tau-ceti selects Sol + Keid and focuses Tau Ceti
+    const multiStore = createSpatialEntityStore();
+    const multiHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store: multiStore },
+        createElement(MainView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/galaxy',
+          locationSearch: '?select=sol,keid&focus=tau-ceti',
+        }),
+      ),
+    );
+    expect(
+      multiStore
+        .getState()
+        .getEntitiesByState('selected')
+        .map((s) => s.name),
+    ).toEqual(['Sol', 'Keid']);
+    expect(
+      multiStore
+        .getState()
+        .getEntitiesByState('focused')
+        .map((s) => s.name),
+    ).toEqual(['Tau Ceti']);
+    expect(multiHtml).toContain('data-testid="details-panel"');
   });
 
   it('renders Breadcrumbs at the top of every view, populates entity-specific telemetry in DetailsPanel, and renders Bodies and System Elements panels in SystemView', () => {
@@ -1637,10 +1687,35 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(sysHtml).toContain('data-testid="details-panel"');
     expect(sysHtml).toContain('data-focused-kind="planet"');
     expect(sysHtml).toContain('data-testid="details-planet-telemetry-section"');
+    expect(sysHtml).not.toContain('data-testid="details-planet-composition"');
+    expect(sysHtml).not.toContain('data-testid="details-stars-section"');
+    expect(sysHtml).not.toContain('data-testid="details-planets-section"');
     expect(sysHtml).toContain('data-testid="system-elements-panel"');
     expect(sysHtml).toContain('data-testid="system-elements-stars-section"');
     expect(sysHtml).toContain('data-testid="system-elements-planets-section"');
     expect(sysHtml).toContain('data-testid="system-elements-canon-section"');
+
+    // SystemView at /system/sol?focus=earth renders Orbiting Bodies (Moon) in DetailsPanel Full
+    const earthFocusStore = createSpatialEntityStore();
+    const earthFocusHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store: earthFocusStore },
+        createElement(SystemView, {
+          initialCorpus: SAMPLE_CORPUS,
+          locationPathname: '/system/sol',
+          locationSearch: '?focus=earth',
+        }),
+      ),
+    );
+    expect(earthFocusHtml).toContain(
+      'data-testid="details-orbiting-bodies-section"',
+    );
+    expect(earthFocusHtml).toContain(
+      'data-testid="details-orbiting-body-link"',
+    );
+    expect(earthFocusHtml).toContain('href="/system/sol?focus=moon"');
+    expect(earthFocusHtml).toContain('1 catalogued body in orbit.');
 
     // SystemView at /system/sol renders Moons & Dwarf Planets and Minor Bodies & Spacecraft sections
     const solStore = createSpatialEntityStore();
@@ -1741,6 +1816,9 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     });
     expect(manifestPlanetDetails?.focusedKind).toBe('planet');
     expect(manifestPlanetDetails?.name).toBe('Tau Ceti b');
+    expect(manifestPlanetDetails?.systemSummary).toBe(
+      'Tau Ceti b is a terrestrial planet orbiting Tau Ceti.',
+    );
     const manifestPlanetHtml = renderToString(
       createElement(DetailsPanel, { details: manifestPlanetDetails }),
     );
@@ -1749,6 +1827,15 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     );
     expect(manifestPlanetHtml).toContain(
       'data-testid="details-planet-telemetry-discovery"',
+    );
+    expect(manifestPlanetHtml).not.toContain(
+      'data-testid="details-planet-composition"',
+    );
+    expect(manifestPlanetHtml).not.toContain(
+      'data-testid="details-stars-section"',
+    );
+    expect(manifestPlanetHtml).not.toContain(
+      'data-testid="details-planets-section"',
     );
 
     // 3. Minor-body focus (Moon k=3, Dwarf Planet k=4, Asteroid/Minor Body k=6, Spacecraft k=6)
@@ -1809,6 +1896,42 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(structHtml).toContain(
       'data-testid="details-structure-telemetry-radius"',
     );
+    expect(structHtml).not.toContain('data-testid="details-star-count"');
+    expect(structHtml).not.toContain('data-testid="details-planet-composition"');
+
+    // 5. Precalculated planetCompositionCounts (b) and tag bitmask (g) on search corpus entries
+    const precalcSolDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'sol',
+        name: 'Sol',
+        position: [0, 0, 0],
+        classification: 'stellar-system',
+      },
+      corpus: [
+        {
+          i: 'sol',
+          n: 'Sol',
+          m: [-26.74, 'G2V', 8, 1],
+          b: [4, 2, 2],
+          g: 1 | 2 | 4 | 16,
+          h: 1,
+        },
+      ],
+    });
+    expect(precalcSolDetails?.planetCompositionBreakdown).toEqual([
+      { composition: 'terrestrial', count: 4 },
+      { composition: 'ice-giant', count: 2 },
+      { composition: 'gas-giant', count: 2 },
+    ]);
+    expect(precalcSolDetails?.planetCompositionSummary).toBe(
+      '8 planets (4 terrestrial · 2 ice-giant · 2 gas-giant · Habitable zone candidate)',
+    );
+    expect(precalcSolDetails?.tags).toEqual([
+      'HomeSystem',
+      'SolarNeighborhood10pc',
+      'NakedEye',
+      'HabitableCandidate',
+    ]);
 
     // buildSystemViewBreadcrumbs covers both system root and sub-element focus
     expect(buildSystemViewBreadcrumbs(starDetails, 'tau-ceti', true)).toEqual([

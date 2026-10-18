@@ -1,6 +1,7 @@
 import type { CelestialClassification } from '../components/canvas/cartography/reticleGeometry';
 import type { SpatialEntityDefinition } from '../components/canvas/entity/types';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
+import type { PlanetCompositionClass } from '../data/guideCatalog';
 import type {
   DatasetLayerKind,
   DatasetLayerManifest,
@@ -9,8 +10,15 @@ import type {
   SystemManifest,
   SystemSummaryNode,
 } from '../types/astro';
-import { formatSectorId } from '../utils/astroMath';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import {
+  computePlanetCompositionCounts,
+  formatSectorId,
+  isPlanetHabitableCandidate,
+} from '../utils/astroMath';
+import {
+  decodeTagsMask,
+  type CompactSearchEntry,
+} from '../utils/compactDataCodec';
 import {
   SEED_FICTIONAL_CANON_LAYERS,
   resolveEntityLayers,
@@ -20,6 +28,7 @@ import {
   buildCanonLayerGalaxyHref,
   extractUrlSystemSlug,
   findFocusedEntryInCorpus,
+  formatSlugFallbackTitle,
   hasExplicitFocusParam,
   isArtificialSpacecraftEntry,
   resolveEntryCategory,
@@ -28,7 +37,7 @@ import {
   toUrlSlug,
 } from './searchService';
 
-export type PlanetCompositionClass = 'terrestrial' | 'ice-giant' | 'gas-giant';
+export type { PlanetCompositionClass };
 
 export type FocusedEntityKind =
   | 'system'
@@ -36,6 +45,17 @@ export type FocusedEntityKind =
   | 'planet'
   | 'minor-body'
   | 'structure';
+
+export interface PlanetCompositionCount {
+  readonly composition: PlanetCompositionClass;
+  readonly count?: number;
+}
+
+export type SystemSummarySegment =
+  | { readonly kind: 'text'; readonly text: string }
+  | { readonly kind: 'spectral-badge'; readonly spectralType: string }
+  | { readonly kind: 'planet-type-badge'; readonly composition: PlanetCompositionClass }
+  | { readonly kind: 'habitable-badge'; readonly label: string };
 
 export interface FocusedStarDetail {
   readonly id: string;
@@ -123,35 +143,81 @@ export interface FocusedStructureTelemetry {
   readonly dimensionsPc?: readonly [number, number, number];
 }
 
-export interface FocusedEntityDetails {
+export interface FocusedEntityDetailsBase {
   readonly id: string;
   readonly systemId: string;
   readonly name: string;
   readonly systemName: string;
-  readonly focusedKind?: FocusedEntityKind;
   // Detent 1: Peek
   readonly spectralType?: string;
   readonly reticleType: CelestialClassification;
   readonly starCount: number;
   readonly planetCount: number;
+  readonly planetCompositionBreakdown: readonly PlanetCompositionCount[];
   readonly planetCompositionSummary: string;
   readonly hasHabitableCandidate: boolean;
   readonly systemSummary: string;
+  readonly systemSummarySegments: readonly SystemSummarySegment[];
   // Detent 2: Partial
   readonly coordinatesPc: readonly [number, number, number];
   readonly sectorId: string;
   readonly tags: readonly string[];
   readonly systemDetailsHref: string;
   readonly directionsHref: string;
-  readonly starTelemetry?: FocusedStarTelemetry;
-  readonly planetTelemetry?: FocusedPlanetTelemetry;
-  readonly minorBodyTelemetry?: FocusedMinorBodyTelemetry;
-  readonly structureTelemetry?: FocusedStructureTelemetry;
   // Detent 3: Full
   readonly stars: readonly FocusedStarDetail[];
   readonly planets: readonly FocusedPlanetDetail[];
+  readonly orbitingBodies?: readonly SystemElementBodyItem[];
   readonly canonAnnotations: readonly FocusedCanonAnnotation[];
 }
+
+export interface FocusedSystemEntityDetails extends FocusedEntityDetailsBase {
+  readonly focusedKind: 'system';
+  readonly starTelemetry?: undefined;
+  readonly planetTelemetry?: undefined;
+  readonly minorBodyTelemetry?: undefined;
+  readonly structureTelemetry?: undefined;
+}
+
+export interface FocusedStarEntityDetails extends FocusedEntityDetailsBase {
+  readonly focusedKind: 'star';
+  readonly starTelemetry: FocusedStarTelemetry;
+  readonly planetTelemetry?: undefined;
+  readonly minorBodyTelemetry?: undefined;
+  readonly structureTelemetry?: undefined;
+}
+
+export interface FocusedPlanetEntityDetails extends FocusedEntityDetailsBase {
+  readonly focusedKind: 'planet';
+  readonly planetTelemetry: FocusedPlanetTelemetry;
+  readonly orbitingBodies: readonly SystemElementBodyItem[];
+  readonly starTelemetry?: undefined;
+  readonly minorBodyTelemetry?: undefined;
+  readonly structureTelemetry?: undefined;
+}
+
+export interface FocusedMinorBodyEntityDetails extends FocusedEntityDetailsBase {
+  readonly focusedKind: 'minor-body';
+  readonly minorBodyTelemetry: FocusedMinorBodyTelemetry;
+  readonly starTelemetry?: undefined;
+  readonly planetTelemetry?: undefined;
+  readonly structureTelemetry?: undefined;
+}
+
+export interface FocusedStructureEntityDetails extends FocusedEntityDetailsBase {
+  readonly focusedKind: 'structure';
+  readonly structureTelemetry: FocusedStructureTelemetry;
+  readonly starTelemetry?: undefined;
+  readonly planetTelemetry?: undefined;
+  readonly minorBodyTelemetry?: undefined;
+}
+
+export type FocusedEntityDetails =
+  | FocusedSystemEntityDetails
+  | FocusedStarEntityDetails
+  | FocusedPlanetEntityDetails
+  | FocusedMinorBodyEntityDetails
+  | FocusedStructureEntityDetails;
 
 export interface SystemElementBodyItem {
   readonly id: string;
@@ -185,13 +251,17 @@ export interface BuildFocusedEntityDetailsInput {
 }
 
 /**
- * Pure classifier mapping a planet's mass ($M_\oplus$) or radius ($R_\oplus$) to its
- * canonical composition class (`terrestrial`, `ice-giant`, or `gas-giant`).
+ * Pure classifier mapping a planet's precalculated composition or mass ($M_\oplus$) / radius ($R_\oplus$)
+ * to its canonical composition class (`terrestrial`, `ice-giant`, or `gas-giant`).
  */
 export const classifyExoplanetComposition = (planet: {
   readonly massMearth?: number;
   readonly radiusRearth?: number;
+  readonly composition?: PlanetCompositionClass;
 }): PlanetCompositionClass => {
+  if (planet.composition) {
+    return planet.composition;
+  }
   const mass = planet.massMearth ?? 0;
   const radius = planet.radiusRearth ?? 0;
   if (mass >= 50 || radius >= 6) {
@@ -209,15 +279,68 @@ export const classifyExoplanetComposition = (planet: {
  * or (when equilibrium temperature is unavailable) has high Earth Similarity Index ($\text{ESI} \ge 0.7$).
  */
 export const isExoplanetHabitableCandidate = (
-  planet: Pick<ExoplanetRecord, 'equilibriumTempK' | 'esi'>,
-): boolean => {
-  if (planet.equilibriumTempK !== undefined) {
-    return planet.equilibriumTempK >= 180 && planet.equilibriumTempK <= 320;
+  planet: Pick<
+    ExoplanetRecord,
+    'equilibriumTempK' | 'esi' | 'isHabitableCandidate'
+  >,
+): boolean => isPlanetHabitableCandidate(planet);
+
+/**
+ * Pure builder producing the structured planet composition breakdown for the Peek detent.
+ * Reads precalculated composition counts `[terrestrial, iceGiant, gasGiant]` when available.
+ */
+export const buildPlanetCompositionBreakdown = (
+  planets: readonly FocusedPlanetDetail[],
+  fallbackCount: number,
+  fallbackCensus?: readonly PlanetCompositionClass[],
+  precalculatedCounts?: readonly [number, number, number],
+): readonly PlanetCompositionCount[] => {
+  const totalCount = Math.max(planets.length, fallbackCount);
+  if (totalCount <= 0) {
+    return [];
   }
-  if (planet.esi !== undefined && planet.esi >= 0.7) {
-    return true;
+
+  const hasPrecalculated =
+    precalculatedCounts !== undefined &&
+    (precalculatedCounts[0] > 0 ||
+      precalculatedCounts[1] > 0 ||
+      precalculatedCounts[2] > 0);
+
+  if (hasPrecalculated && precalculatedCounts) {
+    const items: PlanetCompositionCount[] = [];
+    if (precalculatedCounts[0] > 0) {
+      items.push({ composition: 'terrestrial', count: precalculatedCounts[0] });
+    }
+    if (precalculatedCounts[1] > 0) {
+      items.push({ composition: 'ice-giant', count: precalculatedCounts[1] });
+    }
+    if (precalculatedCounts[2] > 0) {
+      items.push({ composition: 'gas-giant', count: precalculatedCounts[2] });
+    }
+    return items;
   }
-  return false;
+
+  if (planets.length > 0 && planets.length >= totalCount) {
+    const [terrestrial, iceGiant, gasGiant] =
+      computePlanetCompositionCounts(planets) ?? [0, 0, 0];
+    const items: PlanetCompositionCount[] = [];
+    if (terrestrial > 0) {
+      items.push({ composition: 'terrestrial', count: terrestrial });
+    }
+    if (iceGiant > 0) {
+      items.push({ composition: 'ice-giant', count: iceGiant });
+    }
+    if (gasGiant > 0) {
+      items.push({ composition: 'gas-giant', count: gasGiant });
+    }
+    return items;
+  }
+
+  if (fallbackCensus && fallbackCensus.length > 0) {
+    return fallbackCensus.map((composition) => ({ composition }));
+  }
+
+  return [{ composition: 'terrestrial' }];
 };
 
 /**
@@ -228,6 +351,7 @@ export const buildPlanetCompositionSummary = (
   fallbackCount: number,
   hasHabitableCandidate: boolean,
   fallbackCensus?: readonly PlanetCompositionClass[],
+  precalculatedCounts?: readonly [number, number, number],
 ): string => {
   const totalCount = Math.max(planets.length, fallbackCount);
   if (totalCount <= 0) {
@@ -235,30 +359,22 @@ export const buildPlanetCompositionSummary = (
   }
 
   const countLabel = `${totalCount} ${totalCount === 1 ? 'planet' : 'planets'}`;
+  const breakdown = buildPlanetCompositionBreakdown(
+    planets,
+    fallbackCount,
+    fallbackCensus,
+    precalculatedCounts,
+  );
+
+  const hasNumericCounts = breakdown.some((b) => b.count !== undefined);
   const breakdownParts: string[] = [];
 
-  if (planets.length > 0 && planets.length >= totalCount) {
-    const counts: Record<PlanetCompositionClass, number> = {
-      terrestrial: 0,
-      'ice-giant': 0,
-      'gas-giant': 0,
-    };
-    for (const p of planets) {
-      counts[p.composition]++;
+  if (hasNumericCounts) {
+    for (const item of breakdown) {
+      breakdownParts.push(`${item.count} ${item.composition}`);
     }
-    if (counts.terrestrial > 0) {
-      breakdownParts.push(`${counts.terrestrial} terrestrial`);
-    }
-    if (counts['ice-giant'] > 0) {
-      breakdownParts.push(`${counts['ice-giant']} ice-giant`);
-    }
-    if (counts['gas-giant'] > 0) {
-      breakdownParts.push(`${counts['gas-giant']} gas-giant`);
-    }
-  } else if (fallbackCensus && fallbackCensus.length > 0) {
-    breakdownParts.push(fallbackCensus.join(', '));
-  } else {
-    breakdownParts.push('terrestrial');
+  } else if (breakdown.length > 0) {
+    breakdownParts.push(breakdown.map((item) => item.composition).join(', '));
   }
 
   if (hasHabitableCandidate) {
@@ -269,34 +385,103 @@ export const buildPlanetCompositionSummary = (
 };
 
 /**
- * Pure builder producing the intrinsic system/entity summary prose for the Partial detent.
- * Never includes unprompted Sol distances unless explicitly part of a route calculation.
+ * Pure builder producing the structured summary segments for the Partial detent,
+ * allowing UI components to render spectral-type and habitable-zone badges directly
+ * from data without regular expression parsing.
  */
-export const buildIntrinsicSystemSummary = (input: {
+export const buildIntrinsicSystemSummarySegments = (input: {
   readonly name: string;
   readonly systemName: string;
   readonly isChildEntity: boolean;
+  readonly focusedKind?: FocusedEntityKind;
   readonly spectralType?: string;
   readonly starCount: number;
   readonly planetCount: number;
   readonly hasHabitableCandidate: boolean;
+  readonly planetComposition?: PlanetCompositionClass;
+  readonly planetIsHabitable?: boolean;
+  readonly orbitingBodyCount?: number;
   readonly manifestOverview?: string;
   readonly structureDescription?: string;
-}): string => {
-  if (input.manifestOverview && input.manifestOverview.trim().length > 0) {
-    return input.manifestOverview.trim();
-  }
-  if (
-    input.structureDescription &&
-    input.structureDescription.trim().length > 0
-  ) {
-    return input.structureDescription.trim();
+}): readonly SystemSummarySegment[] => {
+  if (input.focusedKind === 'planet') {
+    const composition = input.planetComposition ?? 'terrestrial';
+    const count = input.orbitingBodyCount ?? 0;
+    const orbitSuffix =
+      count > 0
+        ? ` with ${count} catalogued ${count === 1 ? 'body' : 'bodies'} in orbit.`
+        : '.';
+    const segments: SystemSummarySegment[] = [
+      { kind: 'text', text: `${input.name} is a ` },
+      { kind: 'planet-type-badge', composition },
+    ];
+    if (input.planetIsHabitable) {
+      segments.push({
+        kind: 'text',
+        text: ` planet orbiting ${input.systemName}, within the `,
+      });
+      segments.push({
+        kind: 'habitable-badge',
+        label: 'habitable zone candidate',
+      });
+      segments.push({ kind: 'text', text: orbitSuffix });
+    } else {
+      segments.push({
+        kind: 'text',
+        text: ` planet orbiting ${input.systemName}${orbitSuffix}`,
+      });
+    }
+    return segments;
   }
 
-  const spectPart =
-    input.spectralType && input.spectralType !== 'Unknown'
-      ? `${input.spectralType} `
-      : '';
+  const allowManifestOverview =
+    input.focusedKind === undefined || input.focusedKind === 'system';
+  const customProse =
+    allowManifestOverview &&
+    input.manifestOverview &&
+    input.manifestOverview.trim().length > 0
+      ? input.manifestOverview.trim()
+      : input.structureDescription &&
+          input.structureDescription.trim().length > 0
+        ? input.structureDescription.trim()
+        : undefined;
+
+  if (customProse) {
+    const hzPhrase = 'habitable zone candidate';
+    const lower = customProse.toLowerCase();
+    const matchIdx = lower.indexOf(hzPhrase);
+    if (matchIdx === -1) {
+      return [{ kind: 'text', text: customProse }];
+    }
+    const before = customProse.slice(0, matchIdx);
+    const matchedLabel = customProse.slice(matchIdx, matchIdx + hzPhrase.length);
+    const after = customProse.slice(matchIdx + hzPhrase.length);
+    const segments: SystemSummarySegment[] = [];
+    if (before.length > 0) {
+      segments.push({ kind: 'text', text: before });
+    }
+    segments.push({ kind: 'habitable-badge', label: matchedLabel });
+    if (after.length > 0) {
+      segments.push({ kind: 'text', text: after });
+    }
+    return segments;
+  }
+
+  const segments: SystemSummarySegment[] = [];
+  const prefix =
+    input.isChildEntity && input.name !== input.systemName
+      ? `${input.name} is a catalogued body in the ${input.systemName} `
+      : `${input.systemName} is a `;
+  segments.push({ kind: 'text', text: prefix });
+
+  if (input.spectralType && input.spectralType !== 'Unknown') {
+    segments.push({
+      kind: 'spectral-badge',
+      spectralType: input.spectralType,
+    });
+    segments.push({ kind: 'text', text: ' ' });
+  }
+
   const starMultiplicityPart =
     input.starCount > 1
       ? `${input.starCount}-star system`
@@ -305,16 +490,54 @@ export const buildIntrinsicSystemSummary = (input: {
     input.planetCount > 0
       ? ` hosting ${input.planetCount} confirmed ${input.planetCount === 1 ? 'planet' : 'planets'}`
       : ' with no confirmed exoplanets catalogued';
-  const hzPart = input.hasHabitableCandidate
-    ? ', including a habitable zone candidate'
-    : '';
 
-  if (input.isChildEntity && input.name !== input.systemName) {
-    return `${input.name} is a catalogued body in the ${input.systemName} ${spectPart}${starMultiplicityPart}${planetPart}${hzPart}.`;
+  if (input.hasHabitableCandidate) {
+    segments.push({
+      kind: 'text',
+      text: `${starMultiplicityPart}${planetPart}, including a `,
+    });
+    segments.push({
+      kind: 'habitable-badge',
+      label: 'habitable zone candidate',
+    });
+    segments.push({ kind: 'text', text: '.' });
+  } else {
+    segments.push({
+      kind: 'text',
+      text: `${starMultiplicityPart}${planetPart}.`,
+    });
   }
 
-  return `${input.systemName} is a ${spectPart}${starMultiplicityPart}${planetPart}${hzPart}.`;
+  return segments;
 };
+
+/**
+ * Pure builder producing the intrinsic system/entity summary prose for the Partial detent.
+ * Never includes unprompted Sol distances unless explicitly part of a route calculation.
+ */
+export const buildIntrinsicSystemSummary = (input: {
+  readonly name: string;
+  readonly systemName: string;
+  readonly isChildEntity: boolean;
+  readonly focusedKind?: FocusedEntityKind;
+  readonly spectralType?: string;
+  readonly starCount: number;
+  readonly planetCount: number;
+  readonly hasHabitableCandidate: boolean;
+  readonly planetComposition?: PlanetCompositionClass;
+  readonly planetIsHabitable?: boolean;
+  readonly orbitingBodyCount?: number;
+  readonly manifestOverview?: string;
+  readonly structureDescription?: string;
+}): string =>
+  buildIntrinsicSystemSummarySegments(input)
+    .map((seg) => {
+      if (seg.kind === 'text') return seg.text;
+      if (seg.kind === 'spectral-badge') return seg.spectralType;
+      if (seg.kind === 'planet-type-badge') return seg.composition;
+      return seg.label;
+    })
+    .join('');
 
 export const DEFAULT_CANON_LAYER_KIND_ORDER: readonly DatasetLayerKind[] = [
   'scientific-overlay',
@@ -541,8 +764,45 @@ const resolveMinorBodyCategoryLabel = (entry?: CompactSearchEntry): string => {
   }
 };
 
+const resolveCorpusEntryComposition = (
+  entry?: CompactSearchEntry,
+): PlanetCompositionClass => {
+  if (entry?.u === 'gas-giant' || entry?.u === 'ice-giant') {
+    return entry.u;
+  }
+  return 'terrestrial';
+};
+
+const resolveOrbitingBodies = (
+  planetTargetSlugs: ReadonlySet<string>,
+  systemNameOrId: string,
+  corpus: readonly CompactSearchEntry[],
+): readonly SystemElementBodyItem[] => {
+  if (planetTargetSlugs.size === 0 || corpus.length === 0) {
+    return [];
+  }
+  const items: SystemElementBodyItem[] = [];
+  for (const entry of corpus) {
+    if (!entry.o) {
+      continue;
+    }
+    const parentSlug = toUrlSlug(entry.o);
+    if (!planetTargetSlugs.has(parentSlug)) {
+      continue;
+    }
+    const name = resolveResultDisplayTitle(entry);
+    items.push({
+      id: entry.i,
+      name,
+      href: buildSystemElementFocusHref(systemNameOrId, name || entry.i),
+      categoryLabel: resolveMinorBodyCategoryLabel(entry),
+    });
+  }
+  return items;
+};
+
 /**
- * Pure domain builder that assembles a single `FocusedEntityDetails` object
+ * Pure domain builder that assembles a single `FocusedEntityDetails` discriminated union
  * for decomposition by `<DetailsPanel>` across its 3 detents (`Peek`, `Partial`, `Full`).
  * Returns `null` when nothing is focused.
  */
@@ -584,6 +844,13 @@ export const buildFocusedEntityDetails = (
         ? systemDetail.record
         : undefined;
 
+  const solarBodyRecord =
+    entityDetail?.kind === 'solar-body'
+      ? entityDetail.record
+      : systemDetail?.kind === 'solar-body'
+        ? systemDetail.record
+        : undefined;
+
   const systemId =
     matchedCorpusEntry?.s ??
     (summaryNode ? summaryNode.id : undefined) ??
@@ -604,8 +871,8 @@ export const buildFocusedEntityDetails = (
     summaryNode?.name ??
     (matchedSystemEntry
       ? resolveResultDisplayTitle(matchedSystemEntry)
-      : systemId === 'sol'
-        ? 'Sol'
+      : systemId !== focusedEntity.id
+        ? formatSlugFallbackTitle(systemId)
         : focusedEntity.name);
 
   let stars: readonly FocusedStarDetail[] = [];
@@ -646,13 +913,6 @@ export const buildFocusedEntityDetails = (
     for (const entry of corpus) {
       if (entry.k === 2 && entry.s === systemId) {
         const planetName = resolveResultDisplayTitle(entry);
-        const idLower = entry.i.toLowerCase();
-        const composition: PlanetCompositionClass =
-          idLower === 'jupiter' || idLower === 'saturn'
-            ? 'gas-giant'
-            : idLower === 'uranus' || idLower === 'neptune'
-              ? 'ice-giant'
-              : 'terrestrial';
         corpusPlanets.push({
           id: entry.i,
           name: planetName,
@@ -660,9 +920,8 @@ export const buildFocusedEntityDetails = (
             systemName || systemId,
             planetName || entry.i,
           ),
-          composition,
-          isHabitableCandidate:
-            idLower === 'earth' || idLower === 'tau-ceti-e',
+          composition: resolveCorpusEntryComposition(entry),
+          isHabitableCandidate: entry.z === 1,
         });
       }
     }
@@ -698,14 +957,16 @@ export const buildFocusedEntityDetails = (
     focusedEntity.classification === 'cluster' ||
     focusedEntity.classification === 'stellar-cluster'
       ? 'structure'
-      : matchedPlanetDetail || matchedCorpusEntry?.k === 2
+      : matchedPlanetDetail ||
+          matchedCorpusEntry?.k === 2 ||
+          solarBodyRecord?.classification === 'Planet'
         ? 'planet'
         : matchedCorpusEntry &&
             (matchedCorpusEntry.k === 3 ||
               matchedCorpusEntry.k === 4 ||
               matchedCorpusEntry.k === 6)
           ? 'minor-body'
-          : matchedStarDetail &&
+          : (matchedStarDetail || solarBodyRecord?.classification === 'Star') &&
               (hasExplicitFocus || focusedEntity.id !== systemId)
             ? 'star'
             : 'system';
@@ -727,18 +988,46 @@ export const buildFocusedEntityDetails = (
     matchedSystemEntry?.m?.[1] ??
     matchedCorpusEntry?.m?.[1];
 
+  const planetComposition: PlanetCompositionClass =
+    matchedPlanetDetail?.composition ??
+    resolveCorpusEntryComposition(matchedCorpusEntry);
+
+  const planetIsHabitable = Boolean(
+    matchedPlanetDetail?.isHabitableCandidate || matchedCorpusEntry?.z === 1,
+  );
+
+  const planetTargetSlugs = new Set<string>(
+    [
+      focusIdSlug,
+      focusNameSlug,
+      matchedPlanetDetail ? toUrlSlug(matchedPlanetDetail.id) : '',
+      matchedPlanetDetail ? toUrlSlug(matchedPlanetDetail.name) : '',
+    ].filter((s) => s.length > 0),
+  );
+
+  const orbitingBodies: readonly SystemElementBodyItem[] =
+    focusedKind === 'planet'
+      ? resolveOrbitingBodies(
+          planetTargetSlugs,
+          systemName || systemId,
+          corpus,
+        )
+      : [];
+
   const reticleType: CelestialClassification =
     focusedKind === 'planet'
-      ? (matchedPlanetDetail?.composition ?? 'terrestrial')
+      ? planetComposition
       : (focusedEntity.classification as CelestialClassification | undefined) ??
         (matchedCorpusEntry
           ? resolveReticleType(matchedCorpusEntry)
           : 'stellar-system');
 
   const starCount =
-    sysManifest && sysManifest.stars.length > 0
-      ? sysManifest.stars.length
-      : (summaryNode?.starCount ?? 1);
+    focusedKind === 'structure'
+      ? 0
+      : sysManifest && sysManifest.stars.length > 0
+        ? sysManifest.stars.length
+        : (summaryNode?.starCount ?? 1);
 
   const fallbackPlanetCount =
     summaryNode?.planetCount ??
@@ -747,13 +1036,37 @@ export const buildFocusedEntityDetails = (
     planets.length;
 
   const planetCount =
-    sysManifest !== undefined ? sysManifest.planets.length : fallbackPlanetCount;
+    focusedKind === 'structure'
+      ? 0
+      : sysManifest !== undefined
+        ? sysManifest.planets.length
+        : fallbackPlanetCount;
 
-  const hasHabitableCandidate = Boolean(
-    summaryNode?.hasHabitableCandidate ||
-      matchedSystemEntry?.m?.[3] === 1 ||
-      matchedCorpusEntry?.m?.[3] === 1 ||
-      planets.some((p) => p.isHabitableCandidate),
+  const hasHabitableCandidate =
+    focusedKind === 'structure'
+      ? false
+      : Boolean(
+          sysManifest?.hasHabitableCandidate ||
+            summaryNode?.hasHabitableCandidate ||
+            matchedSystemEntry?.m?.[3] === 1 ||
+            matchedCorpusEntry?.m?.[3] === 1 ||
+            matchedCorpusEntry?.z === 1 ||
+            planets.some((p) => p.isHabitableCandidate),
+        );
+
+  const precalculatedCompositionCounts =
+    sysManifest?.planetCompositionCounts ??
+    summaryNode?.planetCompositionCounts ??
+    matchedSystemEntry?.b ??
+    (matchedCorpusEntry && resolveEntryCategory(matchedCorpusEntry) === 'stars'
+      ? matchedCorpusEntry.b
+      : undefined);
+
+  const planetCompositionBreakdown = buildPlanetCompositionBreakdown(
+    planets,
+    planetCount,
+    summaryNode?.planetCensus,
+    precalculatedCompositionCounts,
   );
 
   const planetCompositionSummary = buildPlanetCompositionSummary(
@@ -761,6 +1074,7 @@ export const buildFocusedEntityDetails = (
     planetCount,
     hasHabitableCandidate,
     summaryNode?.planetCensus,
+    precalculatedCompositionCounts,
   );
 
   const isChildEntity =
@@ -768,17 +1082,24 @@ export const buildFocusedEntityDetails = (
     focusedKind === 'planet' ||
     focusedKind === 'minor-body';
 
-  const systemSummary = buildIntrinsicSystemSummary({
+  const summaryInput = {
     name: resolvedName,
     systemName,
     isChildEntity,
+    focusedKind,
     spectralType,
     starCount,
     planetCount,
     hasHabitableCandidate,
+    planetComposition,
+    planetIsHabitable,
+    orbitingBodyCount: orbitingBodies.length,
     manifestOverview: sysManifest?.overviewText,
     structureDescription: structureRecord?.description,
-  });
+  };
+
+  const systemSummarySegments = buildIntrinsicSystemSummarySegments(summaryInput);
+  const systemSummary = buildIntrinsicSystemSummary(summaryInput);
 
   const systemSlug = toUrlSlug(systemName || systemId);
   const systemDetailsHref = buildSystemDetailsHref(systemName || systemId);
@@ -788,7 +1109,9 @@ export const buildFocusedEntityDetails = (
     ? [sysManifest.x, sysManifest.y, sysManifest.z]
     : summaryNode
       ? [summaryNode.x, summaryNode.y, summaryNode.z]
-      : toCoordinatesTuple(focusedEntity.position);
+      : structureRecord
+        ? [structureRecord.x, structureRecord.y, structureRecord.z]
+        : toCoordinatesTuple(focusedEntity.position);
 
   const sectorId =
     sysManifest?.sectorId ??
@@ -802,18 +1125,29 @@ export const buildFocusedEntityDetails = (
     canonOrderOptions,
   );
 
+  const precalculatedMask =
+    matchedSystemEntry?.g ??
+    (matchedCorpusEntry && resolveEntryCategory(matchedCorpusEntry) === 'stars'
+      ? matchedCorpusEntry.g
+      : undefined);
+
+  const precalculatedTags =
+    sysManifest?.tags ??
+    summaryNode?.tags ??
+    (precalculatedMask !== undefined
+      ? decodeTagsMask(precalculatedMask)
+      : undefined);
+
   const fallbackTags: string[] = [];
-  if (!summaryNode?.tags) {
-    if (systemId === 'sol' || matchedSystemEntry?.h === 1) {
+  if (!precalculatedTags && focusedKind !== 'structure') {
+    const isHomeSystem =
+      matchedSystemEntry?.h === 1 || matchedCorpusEntry?.h === 1;
+    if (isHomeSystem) {
       fallbackTags.push('HomeSystem');
     }
     const [cx, cy, cz] = coordinatesPc;
     const distPc = Math.sqrt(cx * cx + cy * cy + cz * cz);
-    if (
-      (distPc > 0 && distPc <= 10) ||
-      systemId === 'sol' ||
-      matchedSystemEntry?.h === 1
-    ) {
+    if ((distPc > 0 && distPc <= 10) || isHomeSystem) {
       fallbackTags.push('SolarNeighborhood10pc');
     }
     const apparentMag = matchedSystemEntry?.m?.[0] ?? matchedCorpusEntry?.m?.[0];
@@ -828,7 +1162,7 @@ export const buildFocusedEntityDetails = (
     }
   }
 
-  const baseTags = summaryNode?.tags ? [...summaryNode.tags] : fallbackTags;
+  const baseTags = precalculatedTags ? [...precalculatedTags] : fallbackTags;
   if (
     hasHabitableCandidate &&
     !baseTags.includes('HabitableCandidate') &&
@@ -838,108 +1172,140 @@ export const buildFocusedEntityDetails = (
   }
   const tags = baseTags;
 
-  const starSource = matchedStarDetail ?? stars[0];
-  const starTelemetry: FocusedStarTelemetry | undefined =
-    focusedKind === 'star' && starSource
-      ? {
-          componentDesignation: starSource.componentDesignation,
-          spectralType: starSource.spectralType,
-          mag: starSource.mag,
-          absmag: starSource.absmag,
-          ...(starSource.massMsun !== undefined
-            ? { massMsun: starSource.massMsun }
-            : {}),
-          ...(starSource.radiusRsun !== undefined
-            ? { radiusRsun: starSource.radiusRsun }
-            : {}),
-          ...(starSource.luminosityLsun !== undefined
-            ? { luminosityLsun: starSource.luminosityLsun }
-            : {}),
-          ...(starSource.effectiveTempK !== undefined
-            ? { effectiveTempK: starSource.effectiveTempK }
-            : {}),
-        }
-      : undefined;
-
-  const planetTelemetry: FocusedPlanetTelemetry | undefined =
-    focusedKind === 'planet'
-      ? {
-          composition: matchedPlanetDetail?.composition ?? 'terrestrial',
-          isHabitableCandidate: Boolean(
-            matchedPlanetDetail?.isHabitableCandidate ||
-              focusedEntity.id.toLowerCase() === 'earth' ||
-              focusedEntity.id.toLowerCase() === 'tau-ceti-e',
-          ),
-          ...(matchedPlanetDetail?.semiMajorAxisAu !== undefined
-            ? { semiMajorAxisAu: matchedPlanetDetail.semiMajorAxisAu }
-            : {}),
-          ...(matchedPlanetDetail?.periodDays !== undefined
-            ? { periodDays: matchedPlanetDetail.periodDays }
-            : {}),
-          ...(matchedPlanetDetail?.eccentricity !== undefined
-            ? { eccentricity: matchedPlanetDetail.eccentricity }
-            : {}),
-          ...(matchedPlanetDetail?.massMearth !== undefined
-            ? { massMearth: matchedPlanetDetail.massMearth }
-            : {}),
-          ...(matchedPlanetDetail?.radiusRearth !== undefined
-            ? { radiusRearth: matchedPlanetDetail.radiusRearth }
-            : {}),
-          ...(matchedPlanetDetail?.equilibriumTempK !== undefined
-            ? { equilibriumTempK: matchedPlanetDetail.equilibriumTempK }
-            : {}),
-          ...(matchedPlanetDetail?.discoveryYear !== undefined
-            ? { discoveryYear: matchedPlanetDetail.discoveryYear }
-            : {}),
-          ...(matchedPlanetDetail?.discoveryMethod
-            ? { discoveryMethod: matchedPlanetDetail.discoveryMethod }
-            : {}),
-        }
-      : undefined;
-
-  const minorBodyTelemetry: FocusedMinorBodyTelemetry | undefined =
-    focusedKind === 'minor-body'
-      ? {
-          categoryLabel: resolveMinorBodyCategoryLabel(matchedCorpusEntry),
-          parentBodyName: systemName,
-        }
-      : undefined;
-
-  const structureTelemetry: FocusedStructureTelemetry | undefined =
-    focusedKind === 'structure'
-      ? {
-          structureType: structureRecord?.type ?? 'Galactic Structure',
-          ...(structureRecord?.radiusPc !== undefined
-            ? { radiusPc: structureRecord.radiusPc }
-            : {}),
-        }
-      : undefined;
-
-  return {
+  const baseDetails: FocusedEntityDetailsBase = {
     id: focusedEntity.id,
     systemId,
     name: resolvedName,
     systemName,
-    focusedKind,
     ...(spectralType && spectralType !== 'Unknown' ? { spectralType } : {}),
     reticleType,
     starCount,
     planetCount,
+    planetCompositionBreakdown,
     planetCompositionSummary,
     hasHabitableCandidate,
     systemSummary,
+    systemSummarySegments,
     coordinatesPc,
     sectorId,
     tags,
     systemDetailsHref,
     directionsHref,
-    ...(starTelemetry ? { starTelemetry } : {}),
-    ...(planetTelemetry ? { planetTelemetry } : {}),
-    ...(minorBodyTelemetry ? { minorBodyTelemetry } : {}),
-    ...(structureTelemetry ? { structureTelemetry } : {}),
     stars,
     planets,
+    ...(orbitingBodies.length > 0 ? { orbitingBodies } : {}),
     canonAnnotations,
+  };
+
+  if (focusedKind === 'star') {
+    const starSource = matchedStarDetail ?? stars[0];
+    return {
+      ...baseDetails,
+      focusedKind: 'star',
+      starTelemetry: starSource
+        ? {
+            componentDesignation: starSource.componentDesignation,
+            spectralType: starSource.spectralType,
+            mag: starSource.mag,
+            absmag: starSource.absmag,
+            ...(starSource.massMsun !== undefined
+              ? { massMsun: starSource.massMsun }
+              : {}),
+            ...(starSource.radiusRsun !== undefined
+              ? { radiusRsun: starSource.radiusRsun }
+              : {}),
+            ...(starSource.luminosityLsun !== undefined
+              ? { luminosityLsun: starSource.luminosityLsun }
+              : {}),
+            ...(starSource.effectiveTempK !== undefined
+              ? { effectiveTempK: starSource.effectiveTempK }
+              : {}),
+          }
+        : {
+            componentDesignation: 'A',
+            spectralType: spectralType ?? 'Unknown',
+            mag: summaryNode?.mag ?? matchedSystemEntry?.m?.[0] ?? 0,
+            absmag: summaryNode?.absmag ?? 0,
+          },
+    };
+  }
+
+  if (focusedKind === 'planet') {
+    const fallbackSemiMajorAxis = solarBodyRecord?.orbit?.semiMajorAxis;
+    const fallbackPeriodDays = solarBodyRecord?.orbit?.periodDays;
+    const fallbackEccentricity = solarBodyRecord?.orbit?.eccentricity;
+    return {
+      ...baseDetails,
+      focusedKind: 'planet',
+      orbitingBodies,
+      planetTelemetry: {
+        composition: planetComposition,
+        isHabitableCandidate: planetIsHabitable,
+        ...(matchedPlanetDetail?.semiMajorAxisAu !== undefined
+          ? { semiMajorAxisAu: matchedPlanetDetail.semiMajorAxisAu }
+          : fallbackSemiMajorAxis !== undefined
+            ? { semiMajorAxisAu: fallbackSemiMajorAxis }
+            : {}),
+        ...(matchedPlanetDetail?.periodDays !== undefined
+          ? { periodDays: matchedPlanetDetail.periodDays }
+          : fallbackPeriodDays !== undefined
+            ? { periodDays: fallbackPeriodDays }
+            : {}),
+        ...(matchedPlanetDetail?.eccentricity !== undefined
+          ? { eccentricity: matchedPlanetDetail.eccentricity }
+          : fallbackEccentricity !== undefined
+            ? { eccentricity: fallbackEccentricity }
+            : {}),
+        ...(matchedPlanetDetail?.massMearth !== undefined
+          ? { massMearth: matchedPlanetDetail.massMearth }
+          : {}),
+        ...(matchedPlanetDetail?.radiusRearth !== undefined
+          ? { radiusRearth: matchedPlanetDetail.radiusRearth }
+          : {}),
+        ...(matchedPlanetDetail?.equilibriumTempK !== undefined
+          ? { equilibriumTempK: matchedPlanetDetail.equilibriumTempK }
+          : {}),
+        ...(matchedPlanetDetail?.discoveryYear !== undefined
+          ? { discoveryYear: matchedPlanetDetail.discoveryYear }
+          : {}),
+        ...(matchedPlanetDetail?.discoveryMethod
+          ? { discoveryMethod: matchedPlanetDetail.discoveryMethod }
+          : {}),
+      },
+    };
+  }
+
+  if (focusedKind === 'minor-body') {
+    return {
+      ...baseDetails,
+      focusedKind: 'minor-body',
+      minorBodyTelemetry: {
+        categoryLabel: resolveMinorBodyCategoryLabel(matchedCorpusEntry),
+        parentBodyName: solarBodyRecord?.parentBodyId
+          ? formatSlugFallbackTitle(solarBodyRecord.parentBodyId)
+          : matchedCorpusEntry?.o
+            ? formatSlugFallbackTitle(matchedCorpusEntry.o)
+            : systemName,
+      },
+    };
+  }
+
+  if (focusedKind === 'structure') {
+    return {
+      ...baseDetails,
+      focusedKind: 'structure',
+      structureTelemetry: {
+        structureType: structureRecord?.type ?? 'Galactic Structure',
+        ...(structureRecord?.radiusPc !== undefined
+          ? { radiusPc: structureRecord.radiusPc }
+          : {}),
+      },
+    };
+  }
+
+  return {
+    ...baseDetails,
+    focusedKind: 'system',
   };
 };
 
@@ -1029,16 +1395,14 @@ export const buildSystemViewBreadcrumbs = (
     { label: 'Galaxy', href: '/galaxy' },
   ];
 
-  const sysName = details?.systemName ?? urlSystemSlug ?? 'Sol';
+  const sysName = details?.systemName ?? urlSystemSlug ?? 'System';
   const sysHref =
     details?.systemDetailsHref ?? buildSystemDetailsHref(sysName);
 
   const isSubElementFocused =
     Boolean(details) &&
     (hasExplicitFocus ||
-      (details !== null &&
-        details.focusedKind !== undefined &&
-        details.focusedKind !== 'system'));
+      (details !== null && details.focusedKind !== 'system'));
 
   if (isSubElementFocused && details) {
     items.push({ label: sysName, href: sysHref });
@@ -1051,4 +1415,3 @@ export const buildSystemViewBreadcrumbs = (
 };
 
 export { extractUrlSystemSlug, hasExplicitFocusParam };
-

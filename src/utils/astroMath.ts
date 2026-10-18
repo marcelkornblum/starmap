@@ -368,3 +368,80 @@ export function classifyPlanetPhysical(planet: PlanetPhysicalProperties): Planet
 
   return 'terrestrial';
 }
+
+export interface PlanetHabitabilityInput {
+  readonly equilibriumTempK?: number;
+  readonly esi?: number;
+  readonly semiMajorAxis?: number;
+  readonly tags?: readonly string[];
+  readonly isHabitableCandidate?: boolean;
+}
+
+/**
+ * Authoritative predicate evaluating whether a planet or exoplanet falls within the
+ * optimistic habitable zone envelope ($180\text{ K} \le T_\text{eq} \le 320\text{ K}$,
+ * $\text{ESI} \ge 0.7$, stellar insolation bounds, or curated `'HabitableWorld'` tag).
+ */
+export function isPlanetHabitableCandidate(
+  planet: PlanetHabitabilityInput,
+  starLum?: number,
+): boolean {
+  if (planet.isHabitableCandidate !== undefined) {
+    return planet.isHabitableCandidate;
+  }
+  if (planet.tags && planet.tags.length > 0) {
+    return planet.tags.includes('HabitableWorld');
+  }
+  if (
+    planet.equilibriumTempK !== undefined &&
+    planet.equilibriumTempK >= 180 &&
+    planet.equilibriumTempK <= 320
+  ) {
+    return true;
+  }
+  if (planet.esi !== undefined && planet.esi >= 0.7) {
+    return true;
+  }
+  if (
+    starLum !== undefined &&
+    starLum > 0 &&
+    planet.semiMajorAxis !== undefined &&
+    planet.semiMajorAxis > 0
+  ) {
+    const hzInner = 0.75 * Math.sqrt(starLum);
+    const hzOuter = 1.77 * Math.sqrt(starLum);
+    if (planet.semiMajorAxis >= hzInner && planet.semiMajorAxis <= hzOuter) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Computes the precalculated tuple `[terrestrialCount, iceGiantCount, gasGiantCount]`
+ * for a list of planets in a star system.
+ */
+export function computePlanetCompositionCounts(
+  planets: readonly (PlanetPhysicalProperties & {
+    readonly composition?: PlanetCensusClassification;
+  })[],
+): [terrestrial: number, iceGiant: number, gasGiant: number] | undefined {
+  if (planets.length === 0) {
+    return undefined;
+  }
+  let terrestrial = 0;
+  let iceGiant = 0;
+  let gasGiant = 0;
+  for (const p of planets) {
+    const comp = p.composition ?? classifyPlanetPhysical(p);
+    if (comp === 'gas-giant') {
+      gasGiant++;
+    } else if (comp === 'ice-giant') {
+      iceGiant++;
+    } else {
+      terrestrial++;
+    }
+  }
+  return [terrestrial, iceGiant, gasGiant];
+}
+

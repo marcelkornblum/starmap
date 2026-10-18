@@ -2,6 +2,7 @@ import {
   createRouter,
   createRoute,
   createRootRoute,
+  defaultStringifySearch,
   Navigate,
   Outlet,
 } from '@tanstack/react-router';
@@ -25,6 +26,7 @@ export interface StarmapSearchParams {
   q?: string;
   searchCategory?: string;
   focus?: string;
+  select?: string;
   canon?: string;
   x?: number;
   y?: number;
@@ -32,6 +34,16 @@ export interface StarmapSearchParams {
   zoom?: number;
   center?: string;
   [key: string]: unknown;
+}
+
+/**
+ * RFC 3986 §3.4 search string serializer preserving literal `:` and `,` characters
+ * for clean `?select=tag:habitable-candidate,canon:project-hail-mary,sol` URLs.
+ */
+export function stringifyStarmapSearch(search: Record<string, unknown>): string {
+  return defaultStringifySearch(search)
+    .replace(/%3A/gi, ':')
+    .replace(/%2C/gi, ',');
 }
 
 // Simulated network latency helper for render-then-fetch pattern
@@ -52,6 +64,10 @@ export const rootRoute = createRootRoute({
           ? search.searchCategory
           : undefined,
       focus: typeof search.focus === 'string' && search.focus.length > 0 ? search.focus : undefined,
+      select:
+        typeof search.select === 'string' && search.select.length > 0
+          ? search.select
+          : undefined,
       canon: typeof search.canon === 'string' && search.canon.length > 0 ? search.canon : undefined,
       x: typeof search.x === 'number' ? search.x : (search.x ? Number(search.x) : undefined),
       y: typeof search.y === 'number' ? search.y : (search.y ? Number(search.y) : undefined),
@@ -211,6 +227,7 @@ export const routeTree = rootRoute.addChildren([
 export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
+  stringifySearch: stringifyStarmapSearch,
 });
 
 declare module '@tanstack/react-router' {

@@ -161,3 +161,41 @@ This document records all architectural, data-model, interaction, and UI scaffol
   3. **Contextual Picker Support & URL Parameter Naming:**
      - Category filtering in URLs uses the explicit `?searchCategory=` GET parameter so it does not collide with future view filters.
      - `<Search.Root>` supports `limitPerCategory` (3 on `MainView` / `SystemView`, unlimited on `SearchView`), `syncUrl={false}` for embedded pickers that should not mutate the URL bar, `initialFilter` for hardcoded category scopes, and `onSelectResult` to intercept result selection when picking an entity into local state rather than navigating.
+
+---
+
+### DEC-010: Precalculated Data Pipeline, Discriminated Details Model, & Orthogonal `?focus=` / `?select=` URL Grammar
+- **Date:** 2026-10-17
+- **Status:** `Ratified`
+- **Scope:** `scripts/build-data.ts`, `src/utils/compactDataCodec.ts`, `src/data/guideCatalog.ts`, `src/services/searchService.ts`, `src/services/detailsService.ts`, `src/components/domain/DetailsPanel/DetailsPanel.tsx`, `src/router/index.tsx`
+- **Context:** Consolidating architectural hygiene across data precalculation, details view modeling, and URL query parameter grammar before expanding further screens.
+- **Decision:**
+  1. **Zero Hardcoding & Full Data-Layer Precalculation:**
+     - All entity reticle classifications (`u`), planetary compositions (`c` / `u`), habitable-zone flags (`z` / `h`), system planet composition breakdowns (`b: [terrestrial, iceGiant, gasGiant]`), and system tag bitmasks (`g`) are precalculated at build time in `scripts/build-data.ts` and `src/utils/compactDataCodec.ts`.
+     - Sol's star body is stored under `'sol-A'` in `detailsByBucket` so `details/s.json['sol']` holds Sol's full `SystemManifest` (`t: 'sys'`).
+  2. **Structured Details Model & 5-Way Discriminated Union:**
+     - `FocusedEntityDetails` in `src/services/detailsService.ts` is a 5-way discriminated union on `focusedKind` (`'system' | 'star' | 'planet' | 'minor-body' | 'structure'`), exposing structured `planetCompositionBreakdown` and `systemSummarySegments` arrays so `DetailsPanel.tsx` renders zero stringly-typed regex splits and omits stellar-system-only Peek fields when `focusedKind === 'structure'`.
+     - Guide catalog constants and href builders live in `src/data/guideCatalog.ts`.
+  3. **Orthogonal `?focus=` and `?select=` URL Query Parameter Grammar:**
+     - `?focus=<entityId>` is strictly single-entity (`string | undefined`), opening `DetailsPanel` and focusing that entity.
+     - `?select=<tokens>` accepts a comma-separated list of explicit entity IDs (`sol,tau-ceti`), tag shortcuts (`tag:habitable-candidate`, `tag:exoplanet-host`), and canon shortcuts (`canon:project-hail-mary`), resolving and unioning all matching entities into `SpatialEntityStore.selectedIds`.
+     - `createRouter` in `src/router/index.tsx` configures `stringifySearch` (`stringifyStarmapSearch`) to keep RFC 3986 `:` and `,` characters unencoded in the URL bar.
+
+---
+
+### DEC-011: Planet-Focused `<DetailsPanel>` & Precalculated Orbiting Bodies (`o: parentBodyId`)
+- **Date:** 2026-10-17
+- **Status:** `Ratified`
+- **Scope:** `src/utils/compactDataCodec.ts`, `src/services/detailsService.ts`, `src/components/domain/DetailsPanel/DetailsPanel.tsx`
+- **Context:** When a planet is focused on the System View (`/system/$systemId?focus=<planetSlug>`), `<DetailsPanel>` was previously rendering host-system information (the host system's `overviewText` or system summary sentence, the system-wide `N planets (...)` composition summary in `Peek`, and the system-wide `Stars` and `Planets` lists in `Full`).
+- **Decision:**
+  1. **Planet-Specific Summary Sentence (`data-testid="details-system-summary"`):**
+     - `manifestOverview` (`sysManifest.overviewText`) is restricted to `focusedKind === 'system'`.
+     - When `focusedKind === 'planet'`, `buildIntrinsicSystemSummarySegments` generates a planet-specific summary: `"<Planet> is a [<composition>] planet orbiting <System>, within the [habitable zone candidate] with <N> catalogued bodies in orbit."`
+  2. **Omit Host-System Aggregates on Planet Focus:**
+     - When `focusedKind === 'planet'` (or `'minor-body'`), `Peek` omits the host star spectral badge, star count (`data-testid="details-star-count"`), and system-wide planet composition breakdown (`data-testid="details-planet-composition"`).
+     - `Full` omits the system-wide `Stars` (`data-testid="details-stars-section"`) and `Planets` (`data-testid="details-planets-section"`) lists when `focusedKind === 'planet'`.
+  3. **Orbiting Bodies List (`data-testid="details-orbiting-bodies-section"`):**
+     - `CompactSearchEntry` in `src/utils/compactDataCodec.ts` precalculates `o: body.parentBodyId` whenever a moon or minor body orbits a parent body other than `'sol'`.
+     - `buildFocusedEntityDetails` resolves `orbitingBodies` for the focused planet and `<DetailsPanel>` renders an `Orbiting Bodies` section in `Full` linking each moon or orbiting body to `/system/$systemId?focus=<bodySlug>`.
+

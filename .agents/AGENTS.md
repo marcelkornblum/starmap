@@ -20,6 +20,10 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
 - **Tokens First:** Zero hardcoded colors, spacings, or font sizes; all styling consumes semantic tokens (`var(--token-name)`).
 - **CUBE Exceptions via HTML `data-*`:** Variants and states mutate local token interfaces via `data-*` attributes (`data-status="critical"`). Dynamic `className` concatenation is forbidden.
 
+## Data Layer & Zero-Hardcoding Guardrails
+- **Zero Hardcoded Entity Attributes:** Never hardcode entity names, classifications, compositions, habitability flags, spacecraft lists, or orbital parent relationships inside runtime UI or service layers (`src/`).
+- **Precalculate in the Build-Time Data Pipeline:** Everything displayed in panels (`composition`, `isHabitableCandidate`, `planetCompositionCounts`, `tags` bitmasks, non-default reticle classifications, and `parentBodyId` orbital hierarchy) must be precalculated in the build-time data pipeline (`scripts/build-data.ts` and `src/utils/compactDataCodec.ts`) and read directly from the decoded data structures at runtime.
+
 ---
 
 

@@ -39,11 +39,10 @@ export interface SystemViewProps {
   readonly locationSearch?: string;
 }
 
-const useResolvedSystemDetails = ({
-  initialCorpus,
-  locationPathname,
-  locationSearch,
-}: SystemViewProps): {
+const useResolvedSystemDetails = (
+  { initialCorpus, locationPathname, locationSearch }: SystemViewProps,
+  shouldFetchShards = false,
+): {
   readonly focusedDetails: FocusedEntityDetails | null;
   readonly activeCorpus: readonly CompactSearchEntry[];
   readonly urlSystemSlug: string | null;
@@ -86,7 +85,12 @@ const useResolvedSystemDetails = ({
     '';
 
   useEffect(() => {
-    if (!targetSystemId || initialCorpus || typeof window === 'undefined') {
+    if (
+      !shouldFetchShards ||
+      !targetSystemId ||
+      initialCorpus ||
+      typeof window === 'undefined'
+    ) {
       return;
     }
 
@@ -107,7 +111,7 @@ const useResolvedSystemDetails = ({
     return () => {
       cancelled = true;
     };
-  }, [focusedEntity, initialCorpus, targetSystemId]);
+  }, [focusedEntity, initialCorpus, shouldFetchShards, targetSystemId]);
 
   const focusedDetails = buildFocusedEntityDetails({
     focusedEntity,
@@ -131,7 +135,7 @@ const useResolvedSystemDetails = ({
 
 const SystemBreadcrumbsRegion: React.FC<SystemViewProps> = (props) => {
   const { focusedDetails, urlSystemSlug, hasExplicitFocus } =
-    useResolvedSystemDetails(props);
+    useResolvedSystemDetails(props, false);
   const items = buildSystemViewBreadcrumbs(
     focusedDetails,
     urlSystemSlug,
@@ -198,7 +202,10 @@ export const BodiesPanel: React.FC<SystemViewProps> = (props) => {
 };
 
 const SystemDetailsAndElementsRegion: React.FC<SystemViewProps> = (props) => {
-  const { focusedDetails, activeCorpus } = useResolvedSystemDetails(props);
+  const { focusedDetails, activeCorpus } = useResolvedSystemDetails(
+    props,
+    true,
+  );
   const systemElements = buildSystemElementsSummary({
     details: focusedDetails,
     corpus: activeCorpus,

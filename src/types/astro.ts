@@ -109,6 +109,8 @@ export interface SystemSummaryNode {
   planetCount: number;
   /** Categorized planetary census breakdown for tactical reticle facets */
   planetCensus?: ('terrestrial' | 'gas-giant' | 'ice-giant')[];
+  /** Precalculated counts of planets by composition class [terrestrial, iceGiant, gasGiant] */
+  planetCompositionCounts?: [terrestrial: number, iceGiant: number, gasGiant: number];
   /** Flag indicating whether any planet resides in the habitable zone */
   hasHabitableCandidate: boolean;
   /** Spatial sector identifier, e.g. 'sector_+025_-050_+000' */
@@ -158,6 +160,10 @@ export interface ExoplanetRecord {
   radiusRearth?: number;
   equilibriumTempK?: number;
   esi?: number;
+  /** Precalculated planetary composition classification ('terrestrial' | 'ice-giant' | 'gas-giant') */
+  composition?: 'terrestrial' | 'ice-giant' | 'gas-giant';
+  /** Precalculated flag indicating whether the planet falls within the optimistic habitable zone */
+  isHabitableCandidate?: boolean;
   orbit?: KeplerianOrbit;
   /** Observational confidence tier ('confirmed' = NASA consensus, 'candidate' = OEC/Eu candidate/retracted) */
   confidence?: ObservationalConfidence;
@@ -196,6 +202,12 @@ export interface SystemManifest {
   sectorId: string;
   stars: StellarComponent[];
   planets: ExoplanetRecord[];
+  /** Precalculated counts of planets by composition class [terrestrial, iceGiant, gasGiant] */
+  planetCompositionCounts?: [terrestrial: number, iceGiant: number, gasGiant: number];
+  /** Precalculated flag indicating whether any planet resides in the habitable zone */
+  hasHabitableCandidate?: boolean;
+  /** Precalculated categorization tags for the system */
+  tags?: string[];
   overviewText?: string;
 }
 

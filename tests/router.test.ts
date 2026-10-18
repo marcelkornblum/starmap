@@ -5,6 +5,7 @@ import {
   router,
   routeTree,
   rootRoute,
+  stringifyStarmapSearch,
   indexRoute,
   mainSearchRoute,
   mainGalaxyRoute,
@@ -74,7 +75,7 @@ describe('TanStack Router Architecture', () => {
     expect(routeTree.children?.length).toBe(12);
   });
 
-  it('validates search parameters correctly on rootRoute across all branches', () => {
+  it('validates search parameters correctly on rootRoute across all branches and keeps : and , unencoded in stringifyStarmapSearch', () => {
     const validate = rootRoute.options.validateSearch as (search: Record<string, unknown>) => Record<string, unknown>;
     expect(validate).toBeDefined();
 
@@ -83,6 +84,7 @@ describe('TanStack Router Architecture', () => {
       q: 'Tau Ceti',
       searchCategory: 'stars',
       focus: 'tau-ceti-e',
+      select: 'tag:habitable-candidate,canon:project-hail-mary,sol',
       canon: 'canon-project-hail-mary',
       x: '12.5',
       y: 42,
@@ -95,6 +97,9 @@ describe('TanStack Router Architecture', () => {
     expect(validated.q).toBe('Tau Ceti');
     expect(validated.searchCategory).toBe('stars');
     expect(validated.focus).toBe('tau-ceti-e');
+    expect(validated.select).toBe(
+      'tag:habitable-candidate,canon:project-hail-mary,sol',
+    );
     expect(validated.canon).toBe('canon-project-hail-mary');
     expect(validated.x).toBe(12.5);
     expect(validated.y).toBe(42);
@@ -103,9 +108,17 @@ describe('TanStack Router Architecture', () => {
     expect(validated.center).toBe('sol');
     expect(validated.customFilter).toBe('habitable');
 
+    expect(
+      stringifyStarmapSearch({
+        select: 'tag:habitable-candidate,canon:project-hail-mary,sol',
+        focus: 'tau-ceti',
+      }),
+    ).toBe('?select=tag:habitable-candidate,canon:project-hail-mary,sol&focus=tau-ceti');
+
     // Empty search params (falsy branch)
     const emptyValidated = validate({});
     expect(emptyValidated.q).toBeUndefined();
+    expect(emptyValidated.select).toBeUndefined();
     expect(emptyValidated.canon).toBeUndefined();
     expect(emptyValidated.x).toBeUndefined();
     expect(emptyValidated.y).toBeUndefined();

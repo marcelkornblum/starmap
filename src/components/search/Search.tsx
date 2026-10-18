@@ -18,16 +18,13 @@ import {
   buildSearchViewHref,
   buildUpdatedSearchUrl,
   executeCatalogSearch,
-  extractUrlCanonLayerId,
   extractUrlFocusSlug,
-  extractUrlTagFocus,
   findFocusedEntryInCorpus,
   isSearchCategoryFilter,
   parseSearchUrlParams,
   resolveFocusedEntityFromCorpus,
-  resolveSelectedSystemsFromCanonLayer,
   resolveSelectedSystemsFromSearchResults,
-  resolveSelectedSystemsFromTag,
+  resolveSelectedSystemsFromUrlSelect,
   type GroupedSearchResults,
   type SearchCategoryFilter,
   type SearchResultItem,
@@ -100,18 +97,13 @@ const syncSelectedSystemsToStore = (
   activeSearch = '',
   corpus: readonly CompactSearchEntry[] = [],
 ): void => {
-  const canonLayerId =
+  const urlSelected =
     results.query.trim().length === 0
-      ? extractUrlCanonLayerId(activeSearch)
-      : null;
-  const tagFocus =
-    results.query.trim().length === 0 && !canonLayerId
-      ? extractUrlTagFocus(activeSearch)
-      : null;
-  const selectedSystems = canonLayerId
-    ? resolveSelectedSystemsFromCanonLayer(canonLayerId, corpus)
-    : tagFocus
-      ? resolveSelectedSystemsFromTag(tagFocus, corpus)
+      ? resolveSelectedSystemsFromUrlSelect(activeSearch, corpus)
+      : [];
+  const selectedSystems =
+    urlSelected.length > 0
+      ? urlSelected
       : resolveSelectedSystemsFromSearchResults(results);
   const state = store.getState();
   for (const system of selectedSystems) {
@@ -231,12 +223,7 @@ export const SearchRoot = ({
         activePathname,
         activeSearch,
       );
-      syncUrlFocusToStore(
-        store,
-        initialFocusSlug,
-        focusCorpus,
-        fallbackFocusIdRef,
-      );
+      syncUrlFocusToStore(store, initialFocusSlug, focusCorpus);
     }
 
     return computed;

@@ -1,3 +1,4 @@
+import type { CelestialClassification } from '../components/canvas/cartography/reticleGeometry';
 import type {
   ObservationalConfidence,
   SystemSummaryNode,
@@ -9,7 +10,12 @@ import type {
   SolarSystemBodyRecord,
   SectorPartitionManifest,
 } from '../types/astro';
-import { formatSectorId } from './astroMath';
+import {
+  classifyPlanetPhysical,
+  computePlanetCompositionCounts,
+  formatSectorId,
+  isPlanetHabitableCandidate,
+} from './astroMath';
 import {
   buildCleanKeys,
   expandGlieseVariants,
@@ -129,7 +135,7 @@ function decodePlanetCensusMask(
   return result.length > 0 ? result : undefined;
 }
 
-const SYSTEM_TAG_BITS: Record<string, number> = {
+export const SYSTEM_TAG_BITS: Record<string, number> = {
   HomeSystem: 1,
   SolarNeighborhood10pc: 2,
   NakedEye: 4,
@@ -145,7 +151,7 @@ const BIT_TO_SYSTEM_TAG: [number, string][] = Object.entries(SYSTEM_TAG_BITS).ma
   tag,
 ]);
 
-function encodeTagsMask(tags?: string[]): number | undefined {
+export function encodeTagsMask(tags?: readonly string[]): number | undefined {
   if (!tags || tags.length === 0) return undefined;
   let mask = 0;
   for (const tag of tags) {
@@ -154,7 +160,7 @@ function encodeTagsMask(tags?: string[]): number | undefined {
   return mask > 0 ? mask : undefined;
 }
 
-function decodeTagsMask(mask?: number): string[] | undefined {
+export function decodeTagsMask(mask?: number): string[] | undefined {
   if (!mask) return undefined;
   const tags: string[] = [];
   for (const [bit, tag] of BIT_TO_SYSTEM_TAG) {
@@ -176,6 +182,7 @@ export interface CompactSummaryNode {
   u?: number;
   k?: number;
   e?: number;
+  b?: [number, number, number];
   h?: 1;
   g?: number;
   q?: string;
@@ -227,6 +234,14 @@ export function encodeSummaryNode(
   const censusMask = encodePlanetCensusMask(node.planetCensus);
   if (censusMask !== undefined) {
     compact.e = censusMask;
+  }
+  if (
+    node.planetCompositionCounts &&
+    (node.planetCompositionCounts[0] > 0 ||
+      node.planetCompositionCounts[1] > 0 ||
+      node.planetCompositionCounts[2] > 0)
+  ) {
+    compact.b = node.planetCompositionCounts;
   }
   if (node.hasHabitableCandidate) {
     compact.h = 1;
@@ -300,6 +315,10 @@ export function decodeSummaryNode(
   const planetCensus = decodePlanetCensusMask(compact.e);
   if (planetCensus) {
     result.planetCensus = planetCensus;
+  }
+
+  if (compact.b) {
+    result.planetCompositionCounts = [compact.b[0], compact.b[1], compact.b[2]];
   }
 
   const tags = decodeTagsMask(compact.g);
@@ -382,6 +401,18 @@ const CODE_TO_DISCOVERY_METHOD: Record<number, string> = {
   6: 'Timing',
 };
 
+const PLANET_COMP_TO_CODE: Record<'terrestrial' | 'ice-giant' | 'gas-giant', 1 | 2 | 3> = {
+  terrestrial: 1,
+  'ice-giant': 2,
+  'gas-giant': 3,
+};
+
+const CODE_TO_PLANET_COMP: Record<number, 'terrestrial' | 'ice-giant' | 'gas-giant'> = {
+  1: 'terrestrial',
+  2: 'ice-giant',
+  3: 'gas-giant',
+};
+
 export interface CompactStellarComponent {
   i: string;
   n: string;
@@ -407,6 +438,8 @@ export interface CompactExoplanet {
   R?: number;
   T?: number;
   s?: number;
+  c?: 2 | 3;
+  h?: 1;
   o?: OrbitTuple;
   C?: 2 | 3 | 4;
   f?: number;
@@ -422,6 +455,9 @@ export interface CompactSystemManifest {
   q?: string;
   S: CompactStellarComponent[];
   E: CompactExoplanet[];
+  b?: [number, number, number];
+  h?: 1;
+  g?: number;
   o?: string;
 }
 
@@ -447,6 +483,24 @@ export function encodeExoplanet(planet: ExoplanetRecord): CompactExoplanet {
   }
   if (planet.equilibriumTempK !== undefined) compact.T = planet.equilibriumTempK;
   if (planet.esi !== undefined) compact.s = Math.round(planet.esi * 1000) / 1000;
+
+  const comp = planet.composition ?? classifyPlanetPhysical(planet);
+  const compCode = PLANET_COMP_TO_CODE[comp];
+  if (compCode !== 1) {
+    compact.c = compCode;
+  }
+
+  const isHz =
+    planet.isHabitableCandidate ??
+    isPlanetHabitableCandidate({
+      equilibriumTempK: planet.equilibriumTempK,
+      esi: planet.esi,
+      semiMajorAxis: planet.orbit?.semiMajorAxis,
+    });
+  if (isHz) {
+    compact.h = 1;
+  }
+
   const orbitTuple = encodeOrbitTuple(planet.orbit);
   if (orbitTuple) compact.o = orbitTuple;
   if (planet.confidence && planet.confidence !== 'confirmed') {
@@ -472,6 +526,18 @@ export function decodeExoplanet(compact: CompactExoplanet): ExoplanetRecord {
   const discoveryMethod =
     typeof compact.d === 'number' ? CODE_TO_DISCOVERY_METHOD[compact.d] : compact.d;
 
+  const orbit = decodeOrbitTuple(compact.o);
+  const composition =
+    (compact.c ? CODE_TO_PLANET_COMP[compact.c] : undefined) ??
+    classifyPlanetPhysical({ massMearth, massMjup, radiusRearth, radiusRjup });
+  const isHabitableCandidate =
+    compact.h === 1 ||
+    isPlanetHabitableCandidate({
+      equilibriumTempK: compact.T,
+      esi: compact.s,
+      semiMajorAxis: orbit?.semiMajorAxis,
+    });
+
   const result: ExoplanetRecord = {
     id: compact.i,
     name: compact.n,
@@ -484,7 +550,9 @@ export function decodeExoplanet(compact: CompactExoplanet): ExoplanetRecord {
     radiusRjup,
     equilibriumTempK: compact.T,
     esi: compact.s,
-    orbit: decodeOrbitTuple(compact.o),
+    composition,
+    isHabitableCandidate,
+    orbit,
     confidence: compact.C ? (CODE_TO_CONFIDENCE[compact.C] ?? 'confirmed') : 'confirmed',
   };
   if (compact.f && compact.f > 0) {
@@ -529,6 +597,31 @@ export function encodeSystemManifest(
     compact.v = [sys.velocity.vx, sys.velocity.vy, sys.velocity.vz];
   }
   if (!options?.omitSectorId && sys.sectorId) compact.q = sys.sectorId;
+  const counts = sys.planetCompositionCounts ?? computePlanetCompositionCounts(sys.planets);
+  if (counts && (counts[0] > 0 || counts[1] > 0 || counts[2] > 0)) {
+    compact.b = counts;
+  }
+  const hasHz =
+    sys.hasHabitableCandidate ??
+    sys.planets.some(
+      (p) =>
+        p.isHabitableCandidate ??
+        isPlanetHabitableCandidate(
+          {
+            equilibriumTempK: p.equilibriumTempK,
+            esi: p.esi,
+            semiMajorAxis: p.orbit?.semiMajorAxis,
+          },
+          sys.stars[0]?.luminosityLsun,
+        ),
+    );
+  if (hasHz) {
+    compact.h = 1;
+  }
+  const tagsMask = encodeTagsMask(sys.tags);
+  if (tagsMask !== undefined) {
+    compact.g = tagsMask;
+  }
   if (sys.overviewText) compact.o = sys.overviewText;
 
   return compact;
@@ -558,6 +651,11 @@ export function decodeSystemManifest(
   }));
 
   const planets: ExoplanetRecord[] = compact.E.map(decodeExoplanet);
+  const planetCompositionCounts =
+    compact.b ?? computePlanetCompositionCounts(planets);
+  const hasHabitableCandidate =
+    compact.h === 1 || planets.some((p) => Boolean(p.isHabitableCandidate));
+  const tags = decodeTagsMask(compact.g);
 
   const result: SystemManifest = {
     id,
@@ -570,6 +668,9 @@ export function decodeSystemManifest(
     sectorId,
     stars,
     planets,
+    ...(planetCompositionCounts ? { planetCompositionCounts } : {}),
+    hasHabitableCandidate,
+    ...(tags ? { tags } : {}),
     overviewText: compact.o,
   };
 
@@ -862,10 +963,12 @@ export function buildShardedSummariesAndDetails(input: {
   }
 
   for (const body of input.solarBodies) {
-    const bucketKey = getShardKey(body.id);
+    const targetId =
+      body.id === 'sol' && body.classification === 'Star' ? 'sol-A' : body.id;
+    const bucketKey = getShardKey(targetId);
     const env = detailsByBucket.get(bucketKey);
     if (!env) continue;
-    env.d[body.id] = {
+    env.d[targetId] = {
       t: 'sol',
       ...encodeSolarSystemBody(body, { omitId: true }),
     };
@@ -889,6 +992,16 @@ export interface CompactSearchEntry {
   s?: string;
   p?: [number, number, number];
   m?: SearchSummaryTuple;
+  /** Precalculated system tags bitmask (`SYSTEM_TAG_BITS`) */
+  g?: number;
+  /** Precalculated planet composition counts `[terrestrial, iceGiant, gasGiant]` */
+  b?: [number, number, number];
+  /** Precalculated reticle / composition classification when non-default */
+  u?: CelestialClassification;
+  /** Precalculated habitable zone candidate flag (`1` = true) on planet entries (`k: 2`) */
+  z?: 1;
+  /** Precalculated parent body ID (`parentBodyId`) when orbiting a planet/dwarf-planet (e.g. `'earth'`, `'jupiter'`) */
+  o?: string;
   h?: 1;
   a?: string;
   w?: string;
@@ -1039,6 +1152,30 @@ export function buildSearchIndices(input: {
     if (sys.id === 'sol' || sys.name === 'Sol') {
       entry.h = 1;
     }
+    const tagsMask = encodeTagsMask(sys.tags);
+    if (tagsMask !== undefined) {
+      entry.g = tagsMask;
+    }
+    if (
+      sys.planetCompositionCounts &&
+      (sys.planetCompositionCounts[0] > 0 ||
+        sys.planetCompositionCounts[1] > 0 ||
+        sys.planetCompositionCounts[2] > 0)
+    ) {
+      entry.b = sys.planetCompositionCounts;
+    }
+    const spectUpper = (sys.spect ?? '').trim().toUpperCase();
+    if (spectUpper.startsWith('D')) {
+      entry.u = 'white-dwarf';
+    } else if (
+      spectUpper.startsWith('L') ||
+      spectUpper.startsWith('T') ||
+      spectUpper.startsWith('Y')
+    ) {
+      entry.u = 'brown-dwarf';
+    } else if (spectUpper.startsWith('PSR')) {
+      entry.u = 'neutron-star';
+    }
     if (cleanKeys) {
       entry.a = cleanKeys;
     }
@@ -1051,8 +1188,11 @@ export function buildSearchIndices(input: {
     }
   }
 
-  // 2. Index Exoplanets from System Manifests
+  // 2. Index Exoplanets from System Manifests (excluding Sol, whose planets are indexed in Step 3)
   for (const manifest of input.manifests) {
+    if (manifest.id === 'sol') {
+      continue;
+    }
     const hostAliases = input.starAliasesById?.get(manifest.id) ?? [];
     for (const planet of manifest.planets) {
       const cleanKeys = buildCleanKeys([
@@ -1063,6 +1203,18 @@ export function buildSearchIndices(input: {
         ...hostAliases.map((alias) => `${alias} ${planet.letter}`),
       ]);
 
+      const comp = planet.composition ?? classifyPlanetPhysical(planet);
+      const isHz =
+        planet.isHabitableCandidate ??
+        isPlanetHabitableCandidate(
+          {
+            equilibriumTempK: planet.equilibriumTempK,
+            esi: planet.esi,
+            semiMajorAxis: planet.orbit?.semiMajorAxis,
+          },
+          manifest.stars[0]?.luminosityLsun,
+        );
+
       const planetEntry: CompactSearchEntry = {
         i: planet.id,
         k: 2,
@@ -1071,6 +1223,12 @@ export function buildSearchIndices(input: {
         p: [manifest.x, manifest.y, manifest.z],
         a: cleanKeys,
       };
+      if (comp !== 'terrestrial') {
+        planetEntry.u = comp;
+      }
+      if (isHz) {
+        planetEntry.z = 1;
+      }
 
       planetsEntries.push(planetEntry);
       coreEntries.push(planetEntry);
@@ -1098,6 +1256,33 @@ export function buildSearchIndices(input: {
         h: 1,
         a: cleanKeys,
       };
+      if (body.parentBodyId && body.parentBodyId !== 'sol') {
+        entry.o = body.parentBodyId;
+      }
+      if (body.classification === 'Planet') {
+        const mEarth =
+          body.massKg !== undefined ? body.massKg / 5.97237e24 : undefined;
+        const rEarth = body.meanRadiusKm / 6371.0;
+        const comp = classifyPlanetPhysical({
+          massMearth: mEarth,
+          radiusRearth: rEarth,
+          classification: body.tags?.join(' '),
+        });
+        if (comp !== 'terrestrial') {
+          entry.u = comp;
+        }
+        if (
+          isPlanetHabitableCandidate(
+            {
+              semiMajorAxis: body.orbit?.semiMajorAxis,
+              tags: body.tags,
+            },
+            1.0,
+          )
+        ) {
+          entry.z = 1;
+        }
+      }
       planetsEntries.push(entry);
       coreEntries.push(entry);
       fullEntries.push(entry);
@@ -1110,6 +1295,12 @@ export function buildSearchIndices(input: {
         h: 1,
         a: cleanKeys,
       };
+      if (body.parentBodyId && body.parentBodyId !== 'sol') {
+        entry.o = body.parentBodyId;
+      }
+      if (body.tags?.includes('Spacecraft')) {
+        entry.u = 'artificial';
+      }
       minorBodiesEntries.push(entry);
       fullEntries.push(entry);
       if (isCoreSearchMinorBody(body)) {
@@ -1132,6 +1323,9 @@ export function buildSearchIndices(input: {
       ],
       a: cleanKeys,
     };
+    if (struct.type === 'Pulsar' || struct.type === 'SupernovaRemnant') {
+      entry.u = 'hazard';
+    }
 
     structuresEntries.push(entry);
     fullEntries.push(entry);

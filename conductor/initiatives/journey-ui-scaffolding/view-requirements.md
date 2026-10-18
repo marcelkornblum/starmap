@@ -23,8 +23,23 @@ This living document accumulates **which screens/views and URL paths exist** and
 
 ## 2. Discovered Views & On-Screen Data/Action Inventory
 
-### 2.1 Main View (`/`, `/galaxy`, `/galaxy/$systemId`, `/system/$systemId` — [`src/views/MainView.tsx`](file:///home/marcel/projects/starmap/src/views/MainView.tsx))
-- **Functional Component Boundary:** Composes `<Search.Root>`, `<Search.Panel />`, `<Search.Results />` ([`src/components/search/Search.tsx`](file:///home/marcel/projects/starmap/src/components/search/Search.tsx)), and the domain component `<SearchResultItem>` ([`src/components/domain/SearchResultItem/SearchResultItem.tsx`](file:///home/marcel/projects/starmap/src/components/domain/SearchResultItem/SearchResultItem.tsx)), backed by pure unit functions in [`src/services/searchService.ts`](file:///home/marcel/projects/starmap/src/services/searchService.ts) and shard caching in [`src/data/searchRepository.ts`](file:///home/marcel/projects/starmap/src/data/searchRepository.ts).
+### 2.0 Global Navigation & URL Grammar (All Views)
+- **Top-of-View Breadcrumbs (`<Breadcrumbs />`, [`src/components/domain/Breadcrumbs/Breadcrumbs.tsx`](file:///home/marcel/projects/starmap/src/components/domain/Breadcrumbs/Breadcrumbs.tsx)):**
+  - Every view renders `<Breadcrumbs items={...} />` (`data-testid="view-breadcrumbs"`) at the top of the screen:
+    - Main View (`/`, `/galaxy`, `/galaxy/$systemId`): `Galaxy` (or `Galaxy > <Focused Entity>`)
+    - Search View (`/search`): `Galaxy > Search`
+    - System View (`/system/$systemId`): `Galaxy > <System Name>` (or `Galaxy > <System Name> > <Focused Body>`)
+    - Guide Views (`/guide/*`): `Galaxy > Guide: <Category>` (or `Galaxy > Guide: <Category> > <Term>`)
+- **Orthogonal `?focus=` and `?select=` URL Grammar (`DEC-010`, [`src/router/index.tsx`](file:///home/marcel/projects/starmap/src/router/index.tsx)):**
+  - `?focus=<entityId>` — Single focused entity (drives the `Focused` list and populates `<DetailsPanel>`).
+  - `?select=<token1>,<token2>,...` — Comma-separated list of selection tokens (keeps `:` and `,` unencoded via custom `stringifyStarmapSearch`):
+    - Plain entity/system slug: `sol`, `tau-ceti`, `keid`
+    - Tag shortcut: `tag:<tagSlug>` (e.g. `?select=tag:habitable-candidate`, `?select=tag:exoplanet-host`)
+    - Canon shortcut: `canon:<canonSlug>` (e.g. `?select=canon:project-hail-mary`, `?select=canon:star-trek`)
+  - Composable: e.g. `/galaxy?select=canon:project-hail-mary&focus=tau-ceti` or `/galaxy?select=sol,keid&focus=tau-ceti`.
+
+### 2.1 Main View (`/`, `/galaxy`, `/galaxy/$systemId` — [`src/views/MainView.tsx`](file:///home/marcel/projects/starmap/src/views/MainView.tsx))
+- **Functional Component Boundary:** Composes `<Breadcrumbs />`, `<Search.Root>`, `<Search.Panel />`, `<Search.Results />` ([`src/components/search/Search.tsx`](file:///home/marcel/projects/starmap/src/components/search/Search.tsx)), `<SearchResultItem>` ([`src/components/domain/SearchResultItem/SearchResultItem.tsx`](file:///home/marcel/projects/starmap/src/components/domain/SearchResultItem/SearchResultItem.tsx)), the `Systems` (`Focused` & `Selected`) panel, and `<DetailsPanel>` ([`src/components/domain/DetailsPanel/DetailsPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/DetailsPanel/DetailsPanel.tsx)).
 - **Search Panel (`<Search.Panel />`, `data-testid="search-panel"`):**
   - Heading: `Search`
   - Query input (`<input type="search" name="query" />` — triggers search immediately on each key press and dynamically syncs the `?q=` URL GET parameter via `history.replaceState`)
@@ -54,19 +69,53 @@ This living document accumulates **which screens/views and URL paths exist** and
           - Child items inside a system on Galaxy View (exoplanets, fictional worlds) link to `/galaxy/<systemname>?focus=<itemname>` (e.g. `/galaxy/tau-ceti?focus=tau-ceti-e`, `/galaxy/tau-ceti?focus=adrian`)
           - Solar System child bodies (`isSolarSystem && systemId === 'sol'`) link to `/system/sol?focus=<itemname>` (e.g. `/system/sol?focus=earth`)
         - Reticle classification badge (`<span data-testid="result-reticle-type">[{reticleType}]</span>`)
-      - **Variation `stars` (`data-testid="result-variation-stars"`):** Unpacks `spectralType` badge (`data-testid="result-spectral-badge"`) and `planetCount` summary (`data-testid="result-planet-summary"`).
+      - **Variation `stars` (`data-testid="result-variation-stars"`):** Unpacks `spectralType` `<Badge category="star">` linking to `/guide/star-types/$starType` (`data-testid="result-spectral-badge"`) and `planetCount` summary (`data-testid="result-planet-summary"`).
       - **Variation `planets` (`data-testid="result-variation-planets"`):** Unpacks planet sub-kind attribute (`data-planet-kind="planet" | "moon" | "dwarf-planet"`).
       - **Variation `structures` (`data-testid="result-variation-structures"`):** Deep-sky structure variation hook.
       - **Variation `minor-bodies` (`data-testid="result-variation-minor-bodies"`):** Solar System minor-body variation hook.
       - **Variation `fiction` (`data-testid="result-variation-fiction"`):** Unpacks canon work/franchise title (`canonTitle`).
       - **Omitted fields:** Heliocentric parsec (`pc`) distance numbers are omitted from result rows.
+- **Systems Panel (`data-testid="systems-panel"`):**
+  - Synchronised to `SpatialEntityStore`:
+    - `Focused` (`<ul data-testid="systems-focused-list">`) — populated from `/galaxy/$systemId` or `?focus=<entityId>`.
+    - `Selected` (`<ul data-testid="systems-selected-list">`) — populated from active search results (`?q=`) or `?select=` tokens (`tag:<slug>`, `canon:<slug>`, `<entityId>`).
+- **Details Panel (`<DetailsPanel details={focusedDetails} />`, `data-testid="details-panel"`):**
+  - Rendered only when an entity is focused (`details !== null`).
+  - Broken into 3 detent sections (`Peek`, `Partial`, `Full`) consuming the `FocusedEntityDetails` discriminated union (`focusedKind: 'system' | 'star' | 'planet' | 'minor-body' | 'structure'`).
 
 ### 2.2 Search View (`/search` — [`src/views/SearchView.tsx`](file:///home/marcel/projects/starmap/src/views/SearchView.tsx))
-- **Functional Component Boundary:** Dedicated full-results search view composing `<Search.Root>`, `<Search.Panel />`, `<Search.Results />`, and `<SearchResultItem result={result} />`.
+- **Functional Component Boundary:** Dedicated full-results search view composing `<Breadcrumbs />`, `<Search.Root>`, `<Search.Panel />`, `<Search.Results />`, and `<SearchResultItem result={result} />`.
 - **URL State & Intent:** Hydrates initial query (`?q=`) and category filter (`?searchCategory=`) from the URL on entry (including deep-links from Main View's `View all search results` and per-category `View all <Heading>` links) and keeps `?q=` and `?searchCategory=` synchronised on every keystroke or filter change.
 - **Untruncated Category Lists:** Displays full matching result lists across any of the 5 categories that have matches (without the Main View's 3-item-per-category truncation), omitting headings and lists for categories with zero matches.
 
+### 2.3 System View (`/system/$systemId` — [`src/views/SystemView.tsx`](file:///home/marcel/projects/starmap/src/views/SystemView.tsx))
+- **Functional Component Boundary:** Dedicated intra-system inspection view composing `<Breadcrumbs />`, `Bodies` panel (`data-testid="bodies-panel"`), `<DetailsPanel details={focusedDetails} />` (`data-testid="details-panel"`), and `<SystemElementsPanel elements={systemElements} />` (`data-testid="system-elements-panel"`).
+- **Bodies Panel (`data-testid="bodies-panel"`):**
+  - Heading: `Bodies`
+  - `Focused` (`<ul data-testid="bodies-focused-list">`) — the active focused body or system root (`/system/$systemId` defaults to focusing the host system; `/system/$systemId?focus=<bodySlug>` focuses the specified star, planet, moon, dwarf planet, or minor body).
+  - `Selected` (`<ul data-testid="bodies-selected-list">`) — highlighted bodies resolved from `?select=`.
+- **Details Panel (`<DetailsPanel details={focusedDetails} />`, `data-testid="details-panel"`):**
+  - Decomposes the focused entity into `Peek`, `Partial`, and `Full` detents tailored to `focusedKind`:
+    - **When `focusedKind === 'system'` or `'star'`:**
+      - `Peek`: Header with reticle type, spectral `<Badge category="star">`, star count, system-wide planet composition breakdown (`data-testid="details-planet-composition"`), and system summary (`data-testid="details-system-summary"`). When `focusedKind === 'star'`, includes component & magnitude peek line.
+      - `Partial`: `Stellar Telemetry` (for `'star'`), `Astrometry` (`System ID`, `Sector`, `Coordinates`, clickable `Tags` badges), and `Details` / `Directions` actions.
+      - `Full`: `Canon Layers`, `Stars` list (`data-testid="details-stars-section"`), and `Planets` list (`data-testid="details-planets-section"`).
+    - **When `focusedKind === 'planet'`:**
+      - `Peek`: Planet header (`<Planet Name> (<System Name>) [<composition>]`), planet telemetry peek line (composition badge, habitable zone badge, `a` in `AU`, `P` in `d`, mass in `M⊕`, `T_eq` in `K`), and a **planet-specific summary** (`data-testid="details-system-summary"`: `"<Planet> is a <composition> planet orbiting <System>, within the [habitable zone candidate] with <N> catalogued bodies in orbit."`). System-wide star count and planet composition summary (`7 planets (...)`) are omitted.
+      - `Partial`: `Planetary Telemetry` (`Composition`, `Habitable Zone`, `Semi-Major Axis`, `Orbital Period`, `Eccentricity`, `Mass`, `Equilibrium Temp`, `Discovery`), `Astrometry`, and actions.
+      - `Full`: `Canon Layers` (specific to the planet + host system) and `Orbiting Bodies` (`data-testid="details-orbiting-bodies-section"`, listing moons and any other catalogued bodies in orbit around that planet with links to `/system/$systemId?focus=<bodySlug>`). System-wide `Stars` and `Planets` lists are omitted.
+    - **When `focusedKind === 'minor-body'`:**
+      - `Peek`: Body header, classification badge + parent body name, and summary.
+      - `Partial`: `Body Telemetry` (`Classification`, `Host System` / parent body) and `Astrometry`.
+      - `Full`: `Canon Layers`.
+- **System Elements Panel (`<SystemElementsPanel elements={systemElements} />`, [`src/components/domain/SystemElementsPanel/SystemElementsPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/SystemElementsPanel/SystemElementsPanel.tsx)):**
+  - Shows every catalogued element in the host system broken into sections (`Stars`, `Planets`, `Moons & Dwarf Planets`, `Minor Bodies & Spacecraft`, `Canon Layers`), with each body name linking to `/system/$systemId?focus=<bodySlug>` and highlighting the currently focused body (`data-focused="true"`).
 
-
-
+### 2.4 Guide Views (`/guide/*`)
+- **Star Types Guide (`/guide/star-types` — [`src/views/StarTypesListView.tsx`](file:///home/marcel/projects/starmap/src/views/StarTypesListView.tsx), `/guide/star-types/$starType` — [`src/views/StarTypeDetailView.tsx`](file:///home/marcel/projects/starmap/src/views/StarTypeDetailView.tsx)):**
+  - Linked from all spectral class `<Badge category="star">` pills across Search and Details panels.
+- **Planet Types Guide (`/guide/planet-types` — [`src/views/PlanetTypesListView.tsx`](file:///home/marcel/projects/starmap/src/views/PlanetTypesListView.tsx), `/guide/planet-types/$planetType` — [`src/views/PlanetTypeDetailView.tsx`](file:///home/marcel/projects/starmap/src/views/PlanetTypeDetailView.tsx)):**
+  - Linked from all planetary composition `<Badge category="planet">` pills (`terrestrial`, `ice-giant`, `gas-giant`).
+- **Telemetry Metrics Guide (`/guide/metrics` — [`src/views/MetricsListView.tsx`](file:///home/marcel/projects/starmap/src/views/MetricsListView.tsx), `/guide/metrics/$metricId` — [`src/views/MetricDetailView.tsx`](file:///home/marcel/projects/starmap/src/views/MetricDetailView.tsx)):**
+  - Linked from `<Unit>` badges inside `<Quantity>` components (`AU` → `semi-major-axis`, `d` → `orbital-period`, `M⊕` → `planetary-mass`, `K` → `equilibrium-temperature`, `V`/`M_V` → `stellar-magnitude`, `pc` → `galactic-coordinates`).
 

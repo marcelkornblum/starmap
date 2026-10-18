@@ -21,6 +21,8 @@ import {
   getSectorBounds,
   DEFAULT_SECTOR_SIZE_PC,
   classifyPlanetPhysical,
+  computePlanetCompositionCounts,
+  isPlanetHabitableCandidate,
 } from '../src/utils/astroMath';
 import {
   expandGouldOrConstellationSuffix,
@@ -861,21 +863,17 @@ export function matchExoplanetsForStar(
  * Evaluates whether an exoplanetary system contains a plausible habitable zone candidate.
  */
 export function checkHabitableCandidate(planets: ExoplanetRecord[], starLum?: number): boolean {
-  for (const p of planets) {
-    // 1. Direct equilibrium temperature range [200 K, 320 K]
-    if (p.equilibriumTempK !== undefined && p.equilibriumTempK >= 200 && p.equilibriumTempK <= 320) {
-      return true;
-    }
-    // 2. Insolation / habitable zone approximation based on stellar luminosity (AU)
-    if (starLum !== undefined && starLum > 0 && p.orbit?.semiMajorAxis) {
-      const hzInner = 0.75 * Math.sqrt(starLum);
-      const hzOuter = 1.77 * Math.sqrt(starLum);
-      if (p.orbit.semiMajorAxis >= hzInner && p.orbit.semiMajorAxis <= hzOuter) {
-        return true;
-      }
-    }
-  }
-  return false;
+  return planets.some((p) =>
+    isPlanetHabitableCandidate(
+      {
+        equilibriumTempK: p.equilibriumTempK,
+        esi: p.esi,
+        semiMajorAxis: p.orbit?.semiMajorAxis,
+        isHabitableCandidate: p.isHabitableCandidate,
+      },
+      starLum,
+    ),
+  );
 }
 
 /**
@@ -885,7 +883,138 @@ export function checkHabitableCandidate(planets: ExoplanetRecord[], starLum?: nu
  * - Gas Giant: Rp > 6.0 R_earth or Mp > 50 M_earth
  */
 export function classifyExoplanet(planet: ExoplanetRecord): 'terrestrial' | 'gas-giant' | 'ice-giant' {
-  return classifyPlanetPhysical(planet);
+  return planet.composition ?? classifyPlanetPhysical(planet);
+}
+
+/**
+ * Enriches an array of ExoplanetRecords in-place with precalculated `composition`
+ * and `isHabitableCandidate` flags.
+ */
+export function enrichPlanetsWithPrecalculatedFields(
+  planets: ExoplanetRecord[],
+  starLum?: number,
+): ExoplanetRecord[] {
+  return planets.map((p) => {
+    const composition = p.composition ?? classifyPlanetPhysical(p);
+    const isHabitableCandidate =
+      p.isHabitableCandidate ??
+      isPlanetHabitableCandidate(
+        {
+          equilibriumTempK: p.equilibriumTempK,
+          esi: p.esi,
+          semiMajorAxis: p.orbit?.semiMajorAxis,
+        },
+        starLum,
+      );
+    return {
+      ...p,
+      composition,
+      isHabitableCandidate,
+    };
+  });
+}
+
+/**
+ * Builds the authoritative `SystemManifest` for the Solar System (`sol`) from `FULL_SOLAR_SYSTEM_BODIES`,
+ * converting all catalogued Solar System planets into `ExoplanetRecord` entries with precalculated
+ * physical metrics, equilibrium temperatures, compositions, and habitable-zone flags.
+ */
+export function buildSolSystemManifest(
+  solarBodies: readonly SolarSystemBodyRecord[] = FULL_SOLAR_SYSTEM_BODIES as unknown as SolarSystemBodyRecord[],
+): SystemManifest {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const round4 = (n: number) => Math.round(n * 10000) / 10000;
+  const hostTempK = 5778;
+  const hostRadiusAu = 1.0 * 0.00465047;
+
+  const solPlanets: ExoplanetRecord[] = solarBodies
+    .filter((b) => b.classification === 'Planet')
+    .map((b) => {
+      const massMearth =
+        b.massKg !== undefined ? round2(b.massKg / 5.97237e24) : undefined;
+      const massMjup =
+        b.massKg !== undefined ? round4(b.massKg / 1.8982e27) : undefined;
+      const radiusRearth = round2(b.meanRadiusKm / 6371.0);
+      const radiusRjup = round4(b.meanRadiusKm / 69911.0);
+      const a = b.orbit?.semiMajorAxis;
+      const albedo = b.albedo ?? 0.3;
+      const equilibriumTempK =
+        a && a > 0
+          ? round2(
+              hostTempK *
+                Math.pow(Math.max(0, 1 - Math.min(0.99, albedo)), 0.25) *
+                Math.sqrt(hostRadiusAu / (2 * a)),
+            )
+          : undefined;
+      const composition = classifyPlanetPhysical({
+        massMearth,
+        radiusRearth,
+        classification: b.tags?.join(' '),
+      });
+      const isHabitableCandidate = isPlanetHabitableCandidate(
+        {
+          equilibriumTempK,
+          semiMajorAxis: a,
+          tags: b.tags,
+        },
+        1.0,
+      );
+
+      return {
+        id: b.id,
+        name: b.name,
+        letter: '',
+        massMearth,
+        massMjup,
+        radiusRearth,
+        radiusRjup,
+        equilibriumTempK,
+        composition,
+        isHabitableCandidate,
+        orbit: b.orbit,
+        confidence: 'confirmed',
+      };
+    });
+
+  const planetCompositionCounts = computePlanetCompositionCounts(solPlanets);
+  const hasHabitableCandidate = solPlanets.some((p) => Boolean(p.isHabitableCandidate));
+
+  return {
+    id: 'sol',
+    name: 'Sol',
+    properName: 'Sun',
+    x: 0,
+    y: 0,
+    z: 0,
+    dist: 0,
+    velocity: { vx: 0, vy: 0, vz: 0, speed: 0 },
+    sectorId: 'sector_+000_+000_+000',
+    stars: [
+      {
+        id: 'sol-A',
+        name: 'Sol',
+        componentDesignation: 'A',
+        spectralType: 'G2V',
+        mag: -26.74,
+        absmag: 4.83,
+        luminosityLsun: 1.0,
+        massMsun: 1.0,
+        radiusRsun: 1.0,
+        effectiveTempK: 5778,
+      },
+    ],
+    planets: solPlanets,
+    planetCompositionCounts,
+    hasHabitableCandidate,
+    tags: [
+      'HomeSystem',
+      'SolarNeighborhood10pc',
+      'NakedEye',
+      'ExoplanetHost',
+      'HabitableCandidate',
+      'HabitableHost',
+    ],
+  };
 }
 
 /**
@@ -927,13 +1056,15 @@ export function starNodeToSystemSummary(
     tags.push('VariableStar');
   }
 
-  const isSol = star.name === 'Sol';
-  const planetCount = isSol ? 8 : planets.length;
-  const hasHabitable = isSol ? true : checkHabitableCandidate(planets, star.lum);
+  const effectivePlanets =
+    star.name === 'Sol' && planets.length === 0
+      ? buildSolSystemManifest().planets
+      : enrichPlanetsWithPrecalculatedFields(planets, star.lum);
 
-  const planetCensus = isSol
-    ? (['terrestrial', 'gas-giant', 'ice-giant'] as ('terrestrial' | 'gas-giant' | 'ice-giant')[])
-    : getPlanetCensus(planets);
+  const planetCount = effectivePlanets.length;
+  const hasHabitable = checkHabitableCandidate(effectivePlanets, star.lum);
+  const planetCensus = getPlanetCensus(effectivePlanets);
+  const planetCompositionCounts = computePlanetCompositionCounts(effectivePlanets);
 
   if (planetCount > 0) {
     tags.push('ExoplanetHost');
@@ -958,6 +1089,7 @@ export function starNodeToSystemSummary(
     starCount: 1,
     planetCount,
     planetCensus,
+    ...(planetCompositionCounts ? { planetCompositionCounts } : {}),
     hasHabitableCandidate: hasHabitable,
     sectorId,
     tags: tags.length > 0 ? tags : undefined,
@@ -1509,29 +1641,46 @@ export async function buildCsvDataPipeline(
               sectorManifestsMap.set(sectorId, manifestBucket);
             }
 
-            manifestBucket.push({
-              id: String(node.id),
-              name: node.name,
-              properName: node.properName,
-              x: node.x,
-              y: node.y,
-              z: node.z,
-              dist: node.dist,
-              velocity: node.velocity,
-              sectorId,
-              stars: [
-                {
+            if (node.name === 'Sol') {
+              const solManifest = buildSolSystemManifest();
+              manifestBucket.push({
+                ...solManifest,
+                id: String(node.id),
+                stars: solManifest.stars.map((s) => ({
+                  ...s,
                   id: `${node.id}-A`,
                   name: node.name,
-                  componentDesignation: 'A',
-                  spectralType: node.spect || 'Unknown',
-                  mag: node.mag,
-                  absmag: node.absmag,
-                  luminosityLsun: node.lum,
-                },
-              ],
-              planets: matchedPlanets,
-            });
+                })),
+              });
+            } else {
+              const enriched = enrichPlanetsWithPrecalculatedFields(matchedPlanets);
+              manifestBucket.push({
+                id: String(node.id),
+                name: node.name,
+                properName: node.properName,
+                x: node.x,
+                y: node.y,
+                z: node.z,
+                dist: node.dist,
+                velocity: node.velocity,
+                sectorId,
+                stars: [
+                  {
+                    id: `${node.id}-A`,
+                    name: node.name,
+                    componentDesignation: 'A',
+                    spectralType: node.spect || 'Unknown',
+                    mag: node.mag,
+                    absmag: node.absmag,
+                    luminosityLsun: node.lum,
+                  },
+                ],
+                planets: enriched,
+                planetCompositionCounts: summary.planetCompositionCounts,
+                hasHabitableCandidate: summary.hasHabitableCandidate,
+                tags: summary.tags,
+              });
+            }
           }
         }
 
@@ -1548,10 +1697,19 @@ export async function buildCsvDataPipeline(
         for (const recons of RECONS_10PC_SUPPLEMENT) {
           const [rx, ry, rz] = equatorialToCartesian(recons.ra, recons.dec, recons.dist);
           const rSectorId = formatSectorId(rx, ry, rz);
-          const matchedPlanets = matchExoplanetsForStar(
-            { id: 990000, name: recons.name, ra: recons.ra, dec: recons.dec, dist: recons.dist, mag: recons.mag, absmag: recons.absmag, x: rx, y: ry, z: rz },
-            exoplanetHostMap,
+          const matchedPlanets = enrichPlanetsWithPrecalculatedFields(
+            matchExoplanetsForStar(
+              { id: 990000, name: recons.name, ra: recons.ra, dec: recons.dec, dist: recons.dist, mag: recons.mag, absmag: recons.absmag, x: rx, y: ry, z: rz },
+              exoplanetHostMap,
+            ),
           );
+          const hasHabitableCandidate = matchedPlanets.some((p) => Boolean(p.isHabitableCandidate));
+          const rTags = [
+            'SolarNeighborhood10pc',
+            'RECONSGroundTruth',
+            ...(matchedPlanets.length > 0 ? ['ExoplanetHost'] : []),
+            ...(hasHabitableCandidate ? ['HabitableCandidate'] : []),
+          ];
 
           const rSummary: SystemSummaryNode = {
             id: recons.id,
@@ -1567,9 +1725,10 @@ export async function buildCsvDataPipeline(
             starCount: recons.starCount,
             planetCount: matchedPlanets.length,
             planetCensus: getPlanetCensus(matchedPlanets),
-            hasHabitableCandidate: matchedPlanets.length > 0,
+            planetCompositionCounts: computePlanetCompositionCounts(matchedPlanets),
+            hasHabitableCandidate,
             sectorId: rSectorId,
-            tags: ['SolarNeighborhood10pc', 'RECONSGroundTruth', ...(matchedPlanets.length > 0 ? ['ExoplanetHost'] : [])],
+            tags: rTags,
           };
 
           if (recons.dist <= 10) {
@@ -1869,6 +2028,8 @@ export async function buildGaiaDataPipeline(
       velocity: { vx: 0, vy: 0, vz: 0, speed: 0, radialVelocity: 0 },
     };
 
+    const solManifest = buildSolSystemManifest();
+
     const solSummary: SystemSummaryNode = {
       id: 'sol',
       name: 'Sol',
@@ -1882,11 +2043,12 @@ export async function buildGaiaDataPipeline(
       spect: 'G2V',
       ci: 0.656,
       starCount: 1,
-      planetCount: 8,
+      planetCount: solManifest.planets.length,
       planetCensus: ['terrestrial', 'gas-giant', 'ice-giant'],
+      planetCompositionCounts: solManifest.planetCompositionCounts,
       hasHabitableCandidate: true,
       sectorId: 'sector_+000_+000_+000',
-      tags: ['HomeSystem', 'SolarNeighborhood10pc', 'NakedEye', 'HabitableHost'],
+      tags: solManifest.tags,
       velocity: solNode.velocity,
     };
 
@@ -1900,6 +2062,16 @@ export async function buildGaiaDataPipeline(
       sectorMap.set('sector_+000_+000_+000', solBucket);
     }
     solBucket.push(solSummary);
+
+    if (options?.systemsDir || options?.detailsDir || options?.searchDir) {
+      let solManifestBucket = sectorManifestsMap.get('sector_+000_+000_+000');
+      if (!solManifestBucket) {
+        solManifestBucket = [];
+        sectorManifestsMap.set('sector_+000_+000_+000', solManifestBucket);
+      }
+      solManifestBucket.push(solManifest);
+      allSystemManifests.push(solManifest);
+    }
 
     const writeStream = fs.createWriteStream(resolvedOutput, { encoding: 'utf-8' });
     writeStream.write('[');
@@ -2034,16 +2206,22 @@ export async function buildGaiaDataPipeline(
       };
 
       // Cross-match exoplanets across all star lookup keys
-      const matchedPlanets = matchExoplanetsForStar(lookupInput, exoplanetHostMap);
+      const matchedPlanets = enrichPlanetsWithPrecalculatedFields(
+        matchExoplanetsForStar(lookupInput, exoplanetHostMap),
+      );
       if (matchedPlanets.length > 0) {
         totalExoplanets += matchedPlanets.length;
       }
+
+      const hasHabitableCandidate = matchedPlanets.some((p) => Boolean(p.isHabitableCandidate));
+      const planetCompositionCounts = computePlanetCompositionCounts(matchedPlanets);
 
       const sectorId = formatSectorId(x, y, z);
       const tags: string[] = [];
       if (dist <= 10) tags.push('SolarNeighborhood10pc');
       if (mag <= 6.5) tags.push('NakedEye');
       if (matchedPlanets.length > 0) tags.push('ExoplanetHost');
+      if (hasHabitableCandidate) tags.push('HabitableCandidate');
 
       const summary: SystemSummaryNode = {
         id: sysId,
@@ -2058,7 +2236,8 @@ export async function buildGaiaDataPipeline(
         starCount: 1,
         planetCount: matchedPlanets.length,
         planetCensus: getPlanetCensus(matchedPlanets),
-        hasHabitableCandidate: matchedPlanets.some((p) => (p.esi && p.esi > 0.7) || (p.equilibriumTempK && p.equilibriumTempK >= 200 && p.equilibriumTempK <= 320)),
+        planetCompositionCounts,
+        hasHabitableCandidate,
         sectorId,
         confidence: isCandidateParallax ? 'candidate' : 'confirmed',
       };
@@ -2139,6 +2318,9 @@ export async function buildGaiaDataPipeline(
             },
           ],
           planets: matchedPlanets,
+          planetCompositionCounts,
+          hasHabitableCandidate,
+          ...(tags.length > 0 ? { tags } : {}),
         };
         manifestBucket.push(sysManifest);
         allSystemManifests.push(sysManifest);
@@ -2296,14 +2478,20 @@ export async function buildGaiaDataPipeline(
           z: rz,
         };
 
-        const matchedPlanets = matchExoplanetsForStar(reconsLookup, exoplanetHostMap);
+        const matchedPlanets = enrichPlanetsWithPrecalculatedFields(
+          matchExoplanetsForStar(reconsLookup, exoplanetHostMap),
+        );
         if (matchedPlanets.length > 0) {
           totalExoplanets += matchedPlanets.length;
         }
 
+        const hasHabitableCandidate = matchedPlanets.some((p) => Boolean(p.isHabitableCandidate));
+        const planetCompositionCounts = computePlanetCompositionCounts(matchedPlanets);
+
         const rTags: string[] = [];
         if (recons.dist <= 10) rTags.push('SolarNeighborhood10pc', 'RECONSGroundTruth');
         if (matchedPlanets.length > 0) rTags.push('ExoplanetHost');
+        if (hasHabitableCandidate) rTags.push('HabitableCandidate');
 
         const rSummary: SystemSummaryNode = {
           id: recons.id,
@@ -2319,11 +2507,8 @@ export async function buildGaiaDataPipeline(
           starCount: recons.starCount,
           planetCount: matchedPlanets.length,
           planetCensus: getPlanetCensus(matchedPlanets),
-          hasHabitableCandidate: matchedPlanets.some(
-            (p) =>
-              (p.esi && p.esi > 0.7) ||
-              (p.equilibriumTempK && p.equilibriumTempK >= 200 && p.equilibriumTempK <= 320),
-          ),
+          planetCompositionCounts,
+          hasHabitableCandidate,
           sectorId: rSectorId,
           confidence: 'confirmed',
           ...(rTags.length > 0 ? { tags: rTags } : {}),
@@ -2376,6 +2561,9 @@ export async function buildGaiaDataPipeline(
               },
             ],
             planets: matchedPlanets,
+            planetCompositionCounts,
+            hasHabitableCandidate,
+            ...(rTags.length > 0 ? { tags: rTags } : {}),
           };
           manifestBucket.push(sysManifest);
           allSystemManifests.push(sysManifest);
