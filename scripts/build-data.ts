@@ -394,9 +394,15 @@ function findBestHygMatch(
   let bestCandidate: HygCrossMatch | undefined;
   let bestScore = Infinity;
 
-  const offsets = [-0.1, 0, 0.1];
-  for (const dRa of offsets) {
-    for (const dDec of offsets) {
+  const decOffsets = [-0.1, 0, 0.1];
+  const maxRaSteps = Math.min(20, Math.ceil(1 / cosDec));
+  const raOffsets: number[] = [];
+  for (let step = -maxRaSteps; step <= maxRaSteps; step++) {
+    raOffsets.push(step * 0.1);
+  }
+
+  for (const dRa of raOffsets) {
+    for (const dDec of decOffsets) {
       const rKey = ((raDeg + dRa + 360) % 360).toFixed(1);
       const dKey = (decDeg + dDec).toFixed(1);
       const list = byCoordCandidates.get(`${rKey}_${dKey}`);
@@ -2573,6 +2579,7 @@ export async function buildGaiaDataPipeline(
           id: totalStars,
           name: recons.name,
           properName: recons.properName,
+          // StarmapNode.ra defines Right Ascension in decimal hours [0, 24); recons.ra is in hours matching stars.json
           ra: round3(recons.ra),
           dec: round3(recons.dec),
           dist: round3(recons.dist),
