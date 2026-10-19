@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DEFAULT_RETICLE_SIZE } from './reticleGeometry';
+import { DEFAULT_RETICLE_SIZE, type PlanetCensusEntry } from './reticleGeometry';
 import { reticleSizeToScreenPx } from '../engineConfig';
 
 /**
@@ -54,7 +54,7 @@ export interface CelestialFootprint {
   reticleSize?: number;
   hasStalk?: boolean;
   multiplicity?: number;
-  planets?: Array<{ id: string; name: string; classification: 'terrestrial' | 'gas-giant' | 'ice-giant' }>;
+  planets?: PlanetCensusEntry[];
   screenX: number;
   screenY: number;
   camDist?: number; // Euclidean distance to camera for camera-proximity occlusion

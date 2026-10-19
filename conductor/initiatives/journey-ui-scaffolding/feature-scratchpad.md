@@ -60,4 +60,33 @@ Items logged here are held for later consideration and graduation into formal tr
 - **Behaviour:**
   - Structured `.github/ISSUE_TEMPLATE/` forms (Bug Report, Feature Request, Canon/Data Addition) paired with an in-app feedback link/action that pre-populates the GitHub New Issue URL with relevant context (e.g., current route URL, active view, or selected celestial entity).
 
+### FS-010: Dedicated `<CanonLayersPanel />` (Journey 3: Serendipitous & Canon Discovery)
+- **Concept:** Since `Canon Layers` are narrative/universe metadata rather than physical orbital data, they were removed from `<BodiesPanel />` (`DEC-018`) while remaining on `<DetailsPanel />`.
+- **Behaviour:**
+  - Introduce a dedicated `<CanonLayersPanel />` in Journey 3 (`conductor/tracks/journey-ui-scaffolding_03_...`) for browsing, toggling, and stepping through fictional universe canons and narrative annotations across `GalaxyView`, `SystemView`, and `PlanetView`.
 
+### FS-011: 3D Guide Renderings, Edge-Truncated Cross-Section Cutaways, 3-Slice Yerkes Combinator & Comparative Metric Visualiser (Stage 3 R3F Integration)
+- **Concept:** Every Guide list item and detail view (`/guide/star-types`, `/guide/star-types/$starType`, `/guide/planet-types`, `/guide/planet-types/$planetType`, `/guide/metrics`, `/guide/metrics/$metricId`) exposes a 3D rendering viewport slot (`data-testid="guide-3d-preview"`).
+- **Behaviour:**
+  - **Oversized Edge-Truncated 3D Spheres with Internal Cross-Section Cutaways (`data-testid="guide-3d-cross-section"`):**
+    - Star and planet 3D spheres are rendered at a larger comparative scale and offset above/against the edge of their preview container so the sphere is truncated by the frame boundary and exposes a 3D cutaway cross-section of the interior structure (e.g., Stellar Core → Radiative Zone → Convective Envelope → Photosphere; Planetary Iron-Nickel Core → Silicate/Metallic-Hydrogen Mantle → Ice/Gas Envelope → Crust/Cloud Tops).
+  - **3-Slice Yerkes Spectral Combinator (`data-testid="star-type-combinator"` on `/guide/star-types/$starType`):**
+    - Interactive 3-slice selector ("flip-book" in 3 slices: **Slice 1: Spectral Class `O`–`D`**, **Slice 2: Temperature Subdivision `0`–`9`**, **Slice 3: Luminosity Class `I`–`VII`**) that dynamically updates the 3D star sphere's scale, blackbody colour, cutaway layers, and computed telemetry ($T_{\text{eff}}$, $R_\odot$, $L_\odot$, Habitable Zone $\text{AU}$).
+  - **3D Comparative Metric Visualiser (`data-testid="metric-comparative-3d"`), Familiar Units (`light-years`, `light-minutes`, `°C`, `Earth years`), & Focused-Entity Context (`?focus=<entityId>`):**
+    - Metric list and detail pages convert technical astronomical units into familiar units (`pc` → `light-years (ly)` & `trillion km`, `AU` → `light-minutes` & `million km`, `d` → `Earth years`, `K` → `°C / °F`) and render a 3D comparative visualisation (`data-testid="metric-comparative-3d"`) comparing **Earth / Sol** against whichever entity was focused when navigating to the metric page (`?focus=<entityId>`).
+
+### FS-012: Choreographed View & Intra-View State Transitions (3D Camera Fly/Zoom & Interface Panel Hide/Snap-Back)
+- **Concept:** Smooth, choreographed transitions both **between distinct views** (e.g., `/galaxy/$systemId` $\leftrightarrow$ `/system/$systemId` $\leftrightarrow$ `/planet/$planetId`, or 3D Map $\leftrightarrow$ Guide) and **between configurations of the same view** (e.g., changing `focused` entity `/galaxy/sol` $\rightarrow$ `/galaxy/tau-ceti`, changing `?center=`, or updating `?select=` collections).
+- **Behaviour:**
+  1. **Animated 3D Fly / Zoom Camera Choreography:**
+     - **Intra-View Config Changes:** When switching focus, centering (`?center=`), or framing a new `?select=` candidate set within the same view (`GalaxyView`, `SystemView`, `PlanetView`), the 3D camera glides smoothly along an eased trajectory (interpolating target origin, azimuth/elevation, and dolly distance) while range rings and reticles dynamically rescale.
+     - **Cross-Scale View Transitions (`Galaxy` $\leftrightarrow$ `System` $\leftrightarrow$ `Planet`):** Entering a system (`/galaxy/tau-ceti` $\rightarrow$ `/system/tau-ceti`) or inspecting a planet (`/system/tau-ceti?focus=tau-ceti-e` $\rightarrow$ `/planet/tau-ceti-e`) performs a continuous zoom/fly-in into the target coordinate frame (dissolving parsec drop stalks and galactic grids as AU orbital rings and the circumstellar Habitable Zone materialise, and vice versa when ascending).
+  2. **Interface Panels Hiding & Snapping Back:**
+     - During active 3D camera flight/zoom or view/configuration transitions, HUD interface panels (`<DetailsPanel />`, `<PreviewPanel />`, `<Search.Panel />`, `<Minimap />`) smoothly retract/hide (or collapse to non-obstructing states) so the 3D spatial transition is unobstructed, then snap/slide back into place hydrated with the destination state once the camera settles.
+     - Respects `prefers-reduced-motion` by falling back to instant or cross-faded state transitions when reduced motion is requested.
+
+### FS-013: Camera `center` vs. Entity `focused` Independence & Conditional `Centre` CTA Visibility (Stage 3 R3F Integration)
+- **Concept:** Camera `center` (the 3D focal origin of the viewport) and `focused` (the active inspection target in `<DetailsPanel />` / `<PreviewPanel />`) are independent states:
+  1. **Initial Load:** Cold-loading a focused view (e.g. `/galaxy/tau-ceti`, `/system/tau-ceti`, `/planet/tau-ceti-e` with no explicit `?center=` or `?x=&y=&z=` override) initially centres the 3D camera on that view's primary target.
+  2. **Independent Movement & Focus Changes:** Panning the 3D camera moves the center point independently of `focused`, and applying focus (`?focus=<id>`) to inspect an item does not automatically re-centre the camera onto that item.
+  3. **Conditional `Centre` CTA Visibility:** Once the live 3D R3F canvas reports its active camera target/center point, the `Centre` CTA button (`data-testid="details-button-center"`) in `<DetailsPanel />` should **only** be rendered/visible when the 3D canvas's current center point does not match the currently focused entity.

@@ -323,47 +323,66 @@ export interface PlanetPhysicalProperties {
   classification?: string;
 }
 
-export type PlanetCensusClassification = 'terrestrial' | 'gas-giant' | 'ice-giant';
+export type PlanetCensusClassification = 'terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant';
 
 /** Conversion constants between Jupiter and Earth units */
 export const RJUP_TO_REARTH = 11.209;
 export const MJUP_TO_MEARTH = 317.83;
 
 /** Physical classification thresholds */
-export const TERRESTRIAL_MAX_RADIUS_REARTH = 1.75;
-export const TERRESTRIAL_MAX_MASS_MEARTH = 10.0;
+export const TERRESTRIAL_MAX_RADIUS_REARTH = 1.25;
+export const TERRESTRIAL_MAX_MASS_MEARTH = 2.0;
+export const SUPER_EARTH_MAX_RADIUS_REARTH = 2.0;
+export const SUPER_EARTH_MAX_MASS_MEARTH = 10.0;
 export const ICE_GIANT_MAX_RADIUS_REARTH = 6.0;
 export const ICE_GIANT_MAX_MASS_MEARTH = 50.0;
 
 /**
  * Authoritative classification of a planet or exoplanet based on physical metrics:
- * - Terrestrial: Rp <= 1.75 R_earth or Mp <= 10 M_earth
- * - Ice Giant: 1.75 R_earth < Rp <= 6.0 R_earth or 10 M_earth < Mp <= 50 M_earth
- * - Gas Giant: Rp > 6.0 R_earth or Mp > 50 M_earth
+ * - Terrestrial: Rp <= 1.25 R_earth and Mp <= 2.0 M_earth
+ * - Super-Earth: 1.25 R_earth < Rp <= 2.0 R_earth or 2.0 M_earth < Mp <= 10.0 M_earth
+ * - Ice Giant: 2.0 R_earth < Rp <= 6.0 R_earth or 10.0 M_earth < Mp <= 50.0 M_earth
+ * - Gas Giant: Rp > 6.0 R_earth or Mp > 50.0 M_earth
  *
  * Falls back to explicit string classification or terrestrial default if physical values are absent.
  */
 export function classifyPlanetPhysical(planet: PlanetPhysicalProperties): PlanetCensusClassification {
   if (planet.classification) {
     const norm = planet.classification.toLowerCase();
-    if (norm.includes('terrestrial') || norm.includes('rocky') || norm.includes('earth')) return 'terrestrial';
-    if (norm.includes('ice') || norm.includes('neptun')) return 'ice-giant';
-    if (norm.includes('gas') || norm.includes('jovian') || norm.includes('giant')) return 'gas-giant';
+    if (norm.includes('super-earth') || norm.includes('super earth') || norm.includes('superearth')) {
+      return 'super-earth';
+    }
+    if (norm.includes('terrestrial') || norm.includes('rocky') || norm.includes('earth')) {
+      return 'terrestrial';
+    }
+    if (norm.includes('ice') || norm.includes('neptun')) {
+      return 'ice-giant';
+    }
+    if (norm.includes('gas') || norm.includes('jovian') || norm.includes('giant')) {
+      return 'gas-giant';
+    }
   }
 
   const rEarth = planet.radiusRearth ?? (planet.radiusRjup !== undefined ? planet.radiusRjup * RJUP_TO_REARTH : undefined);
   const mEarth = planet.massMearth ?? (planet.massMjup !== undefined ? planet.massMjup * MJUP_TO_MEARTH : undefined);
 
   if (rEarth !== undefined) {
-    if (rEarth <= TERRESTRIAL_MAX_RADIUS_REARTH) return 'terrestrial';
-    if (rEarth <= ICE_GIANT_MAX_RADIUS_REARTH) return 'ice-giant';
-    return 'gas-giant';
+    if (rEarth > ICE_GIANT_MAX_RADIUS_REARTH) return 'gas-giant';
+    if (rEarth > SUPER_EARTH_MAX_RADIUS_REARTH) return 'ice-giant';
+    if (
+      rEarth > TERRESTRIAL_MAX_RADIUS_REARTH ||
+      (mEarth !== undefined && mEarth > TERRESTRIAL_MAX_MASS_MEARTH && mEarth <= SUPER_EARTH_MAX_MASS_MEARTH)
+    ) {
+      return 'super-earth';
+    }
+    return 'terrestrial';
   }
 
   if (mEarth !== undefined) {
-    if (mEarth <= TERRESTRIAL_MAX_MASS_MEARTH) return 'terrestrial';
-    if (mEarth <= ICE_GIANT_MAX_MASS_MEARTH) return 'ice-giant';
-    return 'gas-giant';
+    if (mEarth > ICE_GIANT_MAX_MASS_MEARTH) return 'gas-giant';
+    if (mEarth > SUPER_EARTH_MAX_MASS_MEARTH) return 'ice-giant';
+    if (mEarth > TERRESTRIAL_MAX_MASS_MEARTH) return 'super-earth';
+    return 'terrestrial';
   }
 
   return 'terrestrial';
@@ -418,18 +437,19 @@ export function isPlanetHabitableCandidate(
 }
 
 /**
- * Computes the precalculated tuple `[terrestrialCount, iceGiantCount, gasGiantCount]`
+ * Computes the precalculated tuple `[terrestrialCount, superEarthCount, iceGiantCount, gasGiantCount]`
  * for a list of planets in a star system.
  */
 export function computePlanetCompositionCounts(
   planets: readonly (PlanetPhysicalProperties & {
     readonly composition?: PlanetCensusClassification;
   })[],
-): [terrestrial: number, iceGiant: number, gasGiant: number] | undefined {
+): [terrestrial: number, superEarth: number, iceGiant: number, gasGiant: number] | undefined {
   if (planets.length === 0) {
     return undefined;
   }
   let terrestrial = 0;
+  let superEarth = 0;
   let iceGiant = 0;
   let gasGiant = 0;
   for (const p of planets) {
@@ -438,10 +458,326 @@ export function computePlanetCompositionCounts(
       gasGiant++;
     } else if (comp === 'ice-giant') {
       iceGiant++;
+    } else if (comp === 'super-earth') {
+      superEarth++;
     } else {
       terrestrial++;
     }
   }
-  return [terrestrial, iceGiant, gasGiant];
+  return [terrestrial, superEarth, iceGiant, gasGiant];
+}
+
+/**
+ * Computes surface gravity in Earth standard gravity units (g = 9.81 m/s^2).
+ * Formula: g = M / R^2. When radius is unavailable, mass-radius power law is used.
+ */
+export function computePlanetSurfaceGravityG(planet: {
+  readonly massMearth?: number;
+  readonly radiusRearth?: number;
+}): number | undefined {
+  if (
+    planet.massMearth !== undefined &&
+    planet.massMearth > 0 &&
+    planet.radiusRearth !== undefined &&
+    planet.radiusRearth > 0
+  ) {
+    return Math.round((planet.massMearth / (planet.radiusRearth * planet.radiusRearth)) * 100) / 100;
+  }
+  if (planet.massMearth !== undefined && planet.massMearth > 0 && planet.radiusRearth === undefined) {
+    const estR = planet.massMearth <= 10 ? Math.pow(planet.massMearth, 0.28) : Math.pow(planet.massMearth, 0.59);
+    return Math.round((planet.massMearth / (estR * estR)) * 100) / 100;
+  }
+  return undefined;
+}
+
+/**
+ * Predicate determining whether an exoplanet is tidally locked (synchronous rotation).
+ * Considers orbital period <= 30 days or semi-major axis <= 0.15 AU.
+ */
+export function isPlanetTidallyLocked(planet: {
+  readonly periodDays?: number;
+  readonly semiMajorAxisAu?: number;
+}): boolean {
+  return Boolean(
+    (planet.periodDays !== undefined && planet.periodDays > 0 && planet.periodDays <= 30) ||
+      (planet.semiMajorAxisAu !== undefined && planet.semiMajorAxisAu > 0 && planet.semiMajorAxisAu <= 0.15),
+  );
+}
+
+export const SYSTEM_HAZARD_BITS = {
+  FLARE_STAR: 1,
+  IONISING_RADIATION: 2,
+  VARIABLE_FLUX: 4,
+} as const;
+
+/**
+ * Computes bitmask of stellar environmental hazards:
+ * - FLARE_STAR (bit 1): Chromospheric flare activity (emission lines, UV/flare variable)
+ * - IONISING_RADIATION (bit 2): Hard UV/X-ray flux (hot O/B/D/white dwarf/pulsar, L >= 25 Lsun, Teff >= 10,000 K)
+ * - VARIABLE_FLUX (bit 4): Bolometric fluctuations (not already a flare star)
+ */
+export function computeSystemHazardMask(input: {
+  readonly spect?: string;
+  readonly lum?: number;
+  readonly effectiveTempK?: number;
+  readonly varType?: string;
+  readonly tags?: readonly string[];
+}): number {
+  let mask = 0;
+
+  const isFlareStar = Boolean(
+    (input.spect && (/[KM]\d*(?:\.\d+)?V?e\b/i.test(input.spect) || /\bdMe\b/i.test(input.spect))) ||
+      (input.varType && /\b(?:UV|flare)\b/i.test(input.varType)),
+  );
+  if (isFlareStar) {
+    mask |= SYSTEM_HAZARD_BITS.FLARE_STAR;
+  }
+
+  const spectUpper = (input.spect ?? '').trim().toUpperCase();
+  const isDwarfPrefix = (input.spect ?? '').trim().startsWith('d');
+  const isIonising = Boolean(
+    (spectUpper &&
+      !isDwarfPrefix &&
+      (spectUpper.startsWith('O') ||
+        spectUpper.startsWith('B') ||
+        spectUpper.startsWith('D') ||
+        spectUpper.startsWith('PSR') ||
+        spectUpper.startsWith('Q') ||
+        spectUpper.startsWith('WN') ||
+        spectUpper.startsWith('WC'))) ||
+      (input.lum !== undefined && input.lum >= 25) ||
+      (input.effectiveTempK !== undefined && input.effectiveTempK >= 10000),
+  );
+  if (isIonising) {
+    mask |= SYSTEM_HAZARD_BITS.IONISING_RADIATION;
+  }
+
+  const isVariable =
+    !isFlareStar &&
+    Boolean(input.tags?.includes('VariableStar') || (input.varType !== undefined && input.varType !== 'V*'));
+  if (isVariable) {
+    mask |= SYSTEM_HAZARD_BITS.VARIABLE_FLUX;
+  }
+
+  return mask;
+}
+
+export const PLANET_HAZARD_BITS = {
+  EXTREME_HEAT: 1,
+  CRYOGENIC_COLD: 2,
+  HIGH_GRAVITY: 4,
+  TIDAL_LOCKING: 8,
+  HIGH_ECCENTRICITY: 16,
+} as const;
+
+/**
+ * Computes bitmask of planetary environmental hazards:
+ * - EXTREME_HEAT (bit 1): Teq > 373 K
+ * - CRYOGENIC_COLD (bit 2): Teq > 0 && Teq < 180 K
+ * - HIGH_GRAVITY (bit 4): g >= 1.2
+ * - TIDAL_LOCKING (bit 8): synchronous rotation
+ * - HIGH_ECCENTRICITY (bit 16): e >= 0.20
+ */
+export function computePlanetHazardMask(input: {
+  readonly equilibriumTempK?: number;
+  readonly surfaceGravityG?: number;
+  readonly periodDays?: number;
+  readonly semiMajorAxisAu?: number;
+  readonly eccentricity?: number;
+}): number {
+  let mask = 0;
+
+  if (input.equilibriumTempK !== undefined && input.equilibriumTempK > 373) {
+    mask |= PLANET_HAZARD_BITS.EXTREME_HEAT;
+  }
+  if (input.equilibriumTempK !== undefined && input.equilibriumTempK > 0 && input.equilibriumTempK < 180) {
+    mask |= PLANET_HAZARD_BITS.CRYOGENIC_COLD;
+  }
+  if (input.surfaceGravityG !== undefined && input.surfaceGravityG >= 1.2) {
+    mask |= PLANET_HAZARD_BITS.HIGH_GRAVITY;
+  }
+  if (isPlanetTidallyLocked({ periodDays: input.periodDays, semiMajorAxisAu: input.semiMajorAxisAu })) {
+    mask |= PLANET_HAZARD_BITS.TIDAL_LOCKING;
+  }
+  if (input.eccentricity !== undefined && input.eccentricity >= 0.2) {
+    mask |= PLANET_HAZARD_BITS.HIGH_ECCENTRICITY;
+  }
+
+  return mask;
+}
+
+export const PARSEC_TO_LY = 3.261563777;
+export const AU_TO_KM = 149597870.7;
+export const AU_TO_LIGHT_MINUTES = 8.316746397;
+export const STANDARD_G_MPS2 = 9.80665;
+export const LY_PER_YEAR2_PER_G = 1.03227554;
+
+/**
+ * Computes 3D Euclidean distance and coordinate deltas between two points.
+ */
+export function computeEuclideanDistance3D(
+  p1: readonly [number, number, number],
+  p2: readonly [number, number, number],
+): {
+  readonly distance: number;
+  readonly dx: number;
+  readonly dy: number;
+  readonly dz: number;
+} {
+  const dx = p2[0] - p1[0];
+  const dy = p2[1] - p1[1];
+  const dz = p2[2] - p1[2];
+  const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  return { distance, dx, dy, dz };
+}
+
+/**
+ * Computes relativistic interstellar transit metrics with midpoint flip-and-burn.
+ */
+export function computeInterstellarRelativisticTransit(
+  distanceLy: number,
+  properAccelerationG: number,
+): {
+  readonly shipProperTimeYears: number;
+  readonly coordinateTimeYears: number;
+  readonly peakBetaC: number;
+  readonly peakLorentzGamma: number;
+  readonly turnaroundDistanceLy: number;
+} {
+  if (distanceLy <= 0 || properAccelerationG <= 0) {
+    return {
+      shipProperTimeYears: 0,
+      coordinateTimeYears: 0,
+      peakBetaC: 0,
+      peakLorentzGamma: 1,
+      turnaroundDistanceLy: 0,
+    };
+  }
+  const alpha = properAccelerationG * LY_PER_YEAR2_PER_G;
+  const peakLorentzGamma = (alpha * distanceLy) / 2 + 1;
+  const shipProperTimeYears = (2 / alpha) * Math.acosh(peakLorentzGamma);
+  const coordinateTimeYears = (2 / alpha) * Math.sqrt(peakLorentzGamma * peakLorentzGamma - 1);
+  const peakBetaC = Math.sqrt(Math.max(0, 1 - 1 / (peakLorentzGamma * peakLorentzGamma)));
+  const turnaroundDistanceLy = distanceLy / 2;
+  return {
+    shipProperTimeYears,
+    coordinateTimeYears,
+    peakBetaC,
+    peakLorentzGamma,
+    turnaroundDistanceLy,
+  };
+}
+
+/**
+ * Computes interstellar transit metrics at constant fraction of light speed (beta = v/c).
+ */
+export function computeInterstellarConstantBetaTransit(
+  distanceLy: number,
+  betaC: number,
+): {
+  readonly shipProperTimeYears: number;
+  readonly coordinateTimeYears: number;
+  readonly cruiseBetaC: number;
+  readonly lorentzGamma: number;
+} {
+  if (distanceLy <= 0) {
+    return {
+      shipProperTimeYears: 0,
+      coordinateTimeYears: 0,
+      cruiseBetaC: 0,
+      lorentzGamma: 1,
+    };
+  }
+  const cruiseBetaC = Math.min(0.999999, Math.max(1e-6, betaC));
+  const lorentzGamma = 1 / Math.sqrt(1 - cruiseBetaC * cruiseBetaC);
+  const coordinateTimeYears = distanceLy / cruiseBetaC;
+  const shipProperTimeYears = coordinateTimeYears / lorentzGamma;
+  return {
+    shipProperTimeYears,
+    coordinateTimeYears,
+    cruiseBetaC,
+    lorentzGamma,
+  };
+}
+
+/**
+ * Computes intra-system brachistochrone continuous burn transit time and delta-v.
+ */
+export function computeIntraSystemBrachistochroneTransit(
+  distanceAu: number,
+  accelerationG: number,
+): {
+  readonly transitDays: number;
+  readonly transitHours: number;
+  readonly peakVelocityKms: number;
+  readonly deltaVKms: number;
+  readonly turnaroundDistanceAu: number;
+} {
+  const distanceMeters = Math.max(0, distanceAu) * AU_TO_KM * 1000;
+  const accelMps2 = Math.max(1e-6, accelerationG) * STANDARD_G_MPS2;
+  const timeSeconds = 2 * Math.sqrt(distanceMeters / accelMps2);
+  const transitHours = timeSeconds / 3600;
+  const transitDays = timeSeconds / 86400;
+  const peakVelocityKms = Math.sqrt(accelMps2 * distanceMeters) / 1000;
+  const deltaVKms = 2 * peakVelocityKms;
+  const turnaroundDistanceAu = distanceAu / 2;
+  return {
+    transitDays,
+    transitHours,
+    peakVelocityKms,
+    deltaVKms,
+    turnaroundDistanceAu,
+  };
+}
+
+/**
+ * Computes Hohmann transfer orbit parameters and required delta-V budget.
+ */
+export function computeHohmannTransferOrbit(
+  r1Au: number,
+  r2Au: number,
+  centralStarMassMsun = 1.0,
+): {
+  readonly transitDays: number;
+  readonly transitMonths: number;
+  readonly semiMajorAxisTransferAu: number;
+  readonly deltaVDepartureKms: number;
+  readonly deltaVArrivalKms: number;
+  readonly totalDeltaVKms: number;
+  readonly synodicPeriodDays?: number;
+} {
+  const r1 = Math.max(1e-4, r1Au);
+  const r2 = Math.max(1e-4, r2Au);
+  const mStar = Math.max(1e-3, centralStarMassMsun);
+  const semiMajorAxisTransferAu = (r1 + r2) / 2;
+  const transitYears = 0.5 * Math.sqrt(Math.pow(semiMajorAxisTransferAu, 3) / mStar);
+  const transitDays = transitYears * 365.25;
+  const transitMonths = transitDays / 30.4375;
+
+  const v1 = 29.7847 * Math.sqrt(mStar / r1);
+  const v2 = 29.7847 * Math.sqrt(mStar / r2);
+  const vTrans1 = 29.7847 * Math.sqrt(mStar * (2 / r1 - 1 / semiMajorAxisTransferAu));
+  const vTrans2 = 29.7847 * Math.sqrt(mStar * (2 / r2 - 1 / semiMajorAxisTransferAu));
+
+  const deltaVDepartureKms = Math.abs(vTrans1 - v1);
+  const deltaVArrivalKms = Math.abs(v2 - vTrans2);
+  const totalDeltaVKms = deltaVDepartureKms + deltaVArrivalKms;
+
+  const p1Days = Math.sqrt(Math.pow(r1, 3) / mStar) * 365.25;
+  const p2Days = Math.sqrt(Math.pow(r2, 3) / mStar) * 365.25;
+  const synodicPeriodDays =
+    Math.abs(p1Days - p2Days) > 1e-2
+      ? (p1Days * p2Days) / Math.abs(p1Days - p2Days)
+      : undefined;
+
+  return {
+    transitDays,
+    transitMonths,
+    semiMajorAxisTransferAu,
+    deltaVDepartureKms,
+    deltaVArrivalKms,
+    totalDeltaVKms,
+    synodicPeriodDays,
+  };
 }
 

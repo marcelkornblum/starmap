@@ -13,6 +13,8 @@ import type {
 import {
   classifyPlanetPhysical,
   computePlanetCompositionCounts,
+  computePlanetHazardMask,
+  computePlanetSurfaceGravityG,
   formatSectorId,
   isPlanetHabitableCandidate,
 } from './astroMath';
@@ -107,14 +109,18 @@ export function decodeOrbitTuple(tuple?: OrbitTuple): KeplerianOrbit | undefined
   };
 }
 
-const PLANET_CENSUS_BITS: Record<'terrestrial' | 'ice-giant' | 'gas-giant', number> = {
+const PLANET_CENSUS_BITS: Record<
+  'terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant',
+  number
+> = {
   terrestrial: 1,
   'ice-giant': 2,
   'gas-giant': 4,
+  'super-earth': 8,
 };
 
 function encodePlanetCensusMask(
-  census?: ('terrestrial' | 'gas-giant' | 'ice-giant')[],
+  census?: ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[],
 ): number | undefined {
   if (!census || census.length === 0) return undefined;
   let mask = 0;
@@ -126,10 +132,11 @@ function encodePlanetCensusMask(
 
 function decodePlanetCensusMask(
   mask?: number,
-): ('terrestrial' | 'gas-giant' | 'ice-giant')[] | undefined {
+): ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[] | undefined {
   if (!mask) return undefined;
-  const result: ('terrestrial' | 'gas-giant' | 'ice-giant')[] = [];
+  const result: ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[] = [];
   if (mask & 1) result.push('terrestrial');
+  if (mask & 8) result.push('super-earth');
   if (mask & 4) result.push('gas-giant');
   if (mask & 2) result.push('ice-giant');
   return result.length > 0 ? result : undefined;
@@ -182,12 +189,13 @@ export interface CompactSummaryNode {
   u?: number;
   k?: number;
   e?: number;
-  b?: [number, number, number];
+  b?: [number, number, number, number] | [number, number, number];
   h?: 1;
   g?: number;
   q?: string;
   C?: 2 | 3 | 4;
   f?: number;
+  H?: number;
 }
 
 export function encodeSummaryNode(
@@ -237,9 +245,10 @@ export function encodeSummaryNode(
   }
   if (
     node.planetCompositionCounts &&
-    (node.planetCompositionCounts[0] > 0 ||
-      node.planetCompositionCounts[1] > 0 ||
-      node.planetCompositionCounts[2] > 0)
+    ((node.planetCompositionCounts[0] ?? 0) > 0 ||
+      (node.planetCompositionCounts[1] ?? 0) > 0 ||
+      (node.planetCompositionCounts[2] ?? 0) > 0 ||
+      (node.planetCompositionCounts[3] !== undefined && node.planetCompositionCounts[3] > 0))
   ) {
     compact.b = node.planetCompositionCounts;
   }
@@ -261,6 +270,9 @@ export function encodeSummaryNode(
   }
   if (node.theoreticalFlags && node.theoreticalFlags > 0) {
     compact.f = node.theoreticalFlags;
+  }
+  if (node.hazardMask && node.hazardMask > 0) {
+    compact.H = node.hazardMask;
   }
 
   return compact;
@@ -318,7 +330,11 @@ export function decodeSummaryNode(
   }
 
   if (compact.b) {
-    result.planetCompositionCounts = [compact.b[0], compact.b[1], compact.b[2]];
+    if (compact.b.length === 4) {
+      result.planetCompositionCounts = [compact.b[0], compact.b[1], compact.b[2], compact.b[3]];
+    } else {
+      result.planetCompositionCounts = [compact.b[0], compact.b[1], compact.b[2]];
+    }
   }
 
   const tags = decodeTagsMask(compact.g);
@@ -328,6 +344,10 @@ export function decodeSummaryNode(
 
   if (compact.f && compact.f > 0) {
     result.theoreticalFlags = compact.f;
+  }
+
+  if (compact.H && compact.H > 0) {
+    result.hazardMask = compact.H;
   }
 
   return result;
@@ -401,16 +421,18 @@ const CODE_TO_DISCOVERY_METHOD: Record<number, string> = {
   6: 'Timing',
 };
 
-const PLANET_COMP_TO_CODE: Record<'terrestrial' | 'ice-giant' | 'gas-giant', 1 | 2 | 3> = {
+const PLANET_COMP_TO_CODE: Record<'terrestrial' | 'ice-giant' | 'gas-giant' | 'super-earth', 1 | 2 | 3 | 4> = {
   terrestrial: 1,
   'ice-giant': 2,
   'gas-giant': 3,
+  'super-earth': 4,
 };
 
-const CODE_TO_PLANET_COMP: Record<number, 'terrestrial' | 'ice-giant' | 'gas-giant'> = {
+const CODE_TO_PLANET_COMP: Record<number, 'terrestrial' | 'ice-giant' | 'gas-giant' | 'super-earth'> = {
   1: 'terrestrial',
   2: 'ice-giant',
   3: 'gas-giant',
+  4: 'super-earth',
 };
 
 export interface CompactStellarComponent {
@@ -438,7 +460,9 @@ export interface CompactExoplanet {
   R?: number;
   T?: number;
   s?: number;
-  c?: 2 | 3;
+  c?: 2 | 3 | 4;
+  g?: number;
+  H?: number;
   h?: 1;
   o?: OrbitTuple;
   C?: 2 | 3 | 4;
@@ -455,10 +479,11 @@ export interface CompactSystemManifest {
   q?: string;
   S: CompactStellarComponent[];
   E: CompactExoplanet[];
-  b?: [number, number, number];
+  b?: [number, number, number, number] | [number, number, number];
   h?: 1;
   g?: number;
   o?: string;
+  H?: number;
 }
 
 export function encodeExoplanet(planet: ExoplanetRecord): CompactExoplanet {
@@ -483,11 +508,25 @@ export function encodeExoplanet(planet: ExoplanetRecord): CompactExoplanet {
   }
   if (planet.equilibriumTempK !== undefined) compact.T = planet.equilibriumTempK;
   if (planet.esi !== undefined) compact.s = Math.round(planet.esi * 1000) / 1000;
+  const surfaceGravityG =
+    planet.surfaceGravityG ?? computePlanetSurfaceGravityG(planet);
+  if (surfaceGravityG !== undefined) compact.g = surfaceGravityG;
+
+  const hazardMask =
+    planet.hazardMask ??
+    computePlanetHazardMask({
+      equilibriumTempK: planet.equilibriumTempK,
+      surfaceGravityG,
+      periodDays: planet.orbit?.periodDays,
+      semiMajorAxisAu: planet.orbit?.semiMajorAxis,
+      eccentricity: planet.orbit?.eccentricity,
+    });
+  if (hazardMask > 0) compact.H = hazardMask;
 
   const comp = planet.composition ?? classifyPlanetPhysical(planet);
   const compCode = PLANET_COMP_TO_CODE[comp];
   if (compCode !== 1) {
-    compact.c = compCode;
+    compact.c = compCode as 2 | 3 | 4;
   }
 
   const isHz =
@@ -538,6 +577,20 @@ export function decodeExoplanet(compact: CompactExoplanet): ExoplanetRecord {
       semiMajorAxis: orbit?.semiMajorAxis,
     });
 
+  const surfaceGravityG =
+    compact.g ??
+    computePlanetSurfaceGravityG({ massMearth, radiusRearth });
+
+  const hazardMask =
+    compact.H ??
+    computePlanetHazardMask({
+      equilibriumTempK: compact.T,
+      surfaceGravityG,
+      periodDays: orbit?.periodDays,
+      semiMajorAxisAu: orbit?.semiMajorAxis,
+      eccentricity: orbit?.eccentricity,
+    });
+
   const result: ExoplanetRecord = {
     id: compact.i,
     name: compact.n,
@@ -550,6 +603,8 @@ export function decodeExoplanet(compact: CompactExoplanet): ExoplanetRecord {
     radiusRjup,
     equilibriumTempK: compact.T,
     esi: compact.s,
+    ...(surfaceGravityG !== undefined ? { surfaceGravityG } : {}),
+    ...(hazardMask > 0 ? { hazardMask } : {}),
     composition,
     isHabitableCandidate,
     orbit,
@@ -598,7 +653,13 @@ export function encodeSystemManifest(
   }
   if (!options?.omitSectorId && sys.sectorId) compact.q = sys.sectorId;
   const counts = sys.planetCompositionCounts ?? computePlanetCompositionCounts(sys.planets);
-  if (counts && (counts[0] > 0 || counts[1] > 0 || counts[2] > 0)) {
+  if (
+    counts &&
+    ((counts[0] ?? 0) > 0 ||
+      (counts[1] ?? 0) > 0 ||
+      (counts[2] ?? 0) > 0 ||
+      (counts[3] !== undefined && counts[3] > 0))
+  ) {
     compact.b = counts;
   }
   const hasHz =
@@ -623,6 +684,9 @@ export function encodeSystemManifest(
     compact.g = tagsMask;
   }
   if (sys.overviewText) compact.o = sys.overviewText;
+  if (sys.hazardMask && sys.hazardMask > 0) {
+    compact.H = sys.hazardMask;
+  }
 
   return compact;
 }
@@ -672,6 +736,7 @@ export function decodeSystemManifest(
     hasHabitableCandidate,
     ...(tags ? { tags } : {}),
     overviewText: compact.o,
+    ...(compact.H && compact.H > 0 ? { hazardMask: compact.H } : {}),
   };
 
   if (compact.v) {
@@ -994,14 +1059,24 @@ export interface CompactSearchEntry {
   m?: SearchSummaryTuple;
   /** Precalculated system tags bitmask (`SYSTEM_TAG_BITS`) */
   g?: number;
-  /** Precalculated planet composition counts `[terrestrial, iceGiant, gasGiant]` */
-  b?: [number, number, number];
+  /** Precalculated planet composition counts `[terrestrial, superEarth, iceGiant, gasGiant]` or legacy 3-tuple */
+  b?: [number, number, number, number] | [number, number, number];
   /** Precalculated reticle / composition classification when non-default */
-  u?: CelestialClassification;
+  u?: CelestialClassification | 'super-earth' | 'sub-neptune';
+  /** Precalculated environmental hazard bitmask (`SYSTEM_HAZARD_BITS` or `PLANET_HAZARD_BITS`) */
+  H?: number;
   /** Precalculated habitable zone candidate flag (`1` = true) on planet entries (`k: 2`) */
   z?: 1;
+  /** Precalculated 1-indexed radial orbital rank within parent system or host planet (1 = closest orbit to primary, N = furthest) */
+  r?: number;
+  /** Precalculated orbital region overlap ('belt' = Main Asteroid Belt, 'kuiper' = Kuiper Belt / Outer Disk) */
+  e?: 'belt' | 'kuiper';
   /** Precalculated parent body ID (`parentBodyId`) when orbiting a planet/dwarf-planet (e.g. `'earth'`, `'jupiter'`) */
   o?: string;
+  /** Precalculated orbital semi-major axis in AU (`semiMajorAxisAu`) */
+  A?: number;
+  /** Precalculated orbital period in days (`periodDays`) */
+  P?: number;
   h?: 1;
   a?: string;
   w?: string;
@@ -1158,11 +1233,15 @@ export function buildSearchIndices(input: {
     }
     if (
       sys.planetCompositionCounts &&
-      (sys.planetCompositionCounts[0] > 0 ||
-        sys.planetCompositionCounts[1] > 0 ||
-        sys.planetCompositionCounts[2] > 0)
+      ((sys.planetCompositionCounts[0] ?? 0) > 0 ||
+        (sys.planetCompositionCounts[1] ?? 0) > 0 ||
+        (sys.planetCompositionCounts[2] ?? 0) > 0 ||
+        (sys.planetCompositionCounts[3] !== undefined && sys.planetCompositionCounts[3] > 0))
     ) {
       entry.b = sys.planetCompositionCounts;
+    }
+    if (sys.hazardMask && sys.hazardMask > 0) {
+      entry.H = sys.hazardMask;
     }
     const spectUpper = (sys.spect ?? '').trim().toUpperCase();
     if (spectUpper.startsWith('D')) {
@@ -1194,6 +1273,18 @@ export function buildSearchIndices(input: {
       continue;
     }
     const hostAliases = input.starAliasesById?.get(manifest.id) ?? [];
+    const sortedPlanets = [...manifest.planets].sort(
+      (a, b) =>
+        (a.orbit?.semiMajorAxis ?? Number.POSITIVE_INFINITY) -
+        (b.orbit?.semiMajorAxis ?? Number.POSITIVE_INFINITY),
+    );
+    const exoplanetRankMap = new Map<string, number>();
+    sortedPlanets.forEach((p, idx) => {
+      if (p.orbit?.semiMajorAxis !== undefined) {
+        exoplanetRankMap.set(p.id, idx + 1);
+      }
+    });
+
     for (const planet of manifest.planets) {
       const cleanKeys = buildCleanKeys([
         planet.name,
@@ -1223,11 +1314,34 @@ export function buildSearchIndices(input: {
         p: [manifest.x, manifest.y, manifest.z],
         a: cleanKeys,
       };
+      if (exoplanetRankMap.has(planet.id)) {
+        planetEntry.r = exoplanetRankMap.get(planet.id);
+      }
+      if (planet.orbit?.semiMajorAxis !== undefined) {
+        planetEntry.A = Math.round(planet.orbit.semiMajorAxis * 10000) / 10000;
+      }
+      if (planet.orbit?.periodDays !== undefined) {
+        planetEntry.P = Math.round(planet.orbit.periodDays * 1000) / 1000;
+      }
       if (comp !== 'terrestrial') {
         planetEntry.u = comp;
       }
       if (isHz) {
         planetEntry.z = 1;
+      }
+      const surfaceGravityG =
+        planet.surfaceGravityG ?? computePlanetSurfaceGravityG(planet);
+      const hazardMask =
+        planet.hazardMask ??
+        computePlanetHazardMask({
+          equilibriumTempK: planet.equilibriumTempK,
+          surfaceGravityG,
+          periodDays: planet.orbit?.periodDays,
+          semiMajorAxisAu: planet.orbit?.semiMajorAxis,
+          eccentricity: planet.orbit?.eccentricity,
+        });
+      if (hazardMask > 0) {
+        planetEntry.H = hazardMask;
       }
 
       planetsEntries.push(planetEntry);
@@ -1237,8 +1351,42 @@ export function buildSearchIndices(input: {
   }
 
   // 3. Index Solar System Bodies (Planets, Dwarf Planets, Moons vs Minor Bodies)
+  const orbitRankMap = new Map<string, number>();
+  const solarBodiesByParent = new Map<string, SolarSystemBodyRecord[]>();
+
   for (const body of input.solarBodies) {
     if (body.classification === 'Star') continue;
+    if (body.orbit?.semiMajorAxis !== undefined && body.orbit.semiMajorAxis > 0) {
+      const parentKey =
+        body.parentBodyId && body.parentBodyId !== 'sol'
+          ? body.parentBodyId
+          : 'sol';
+      let list = solarBodiesByParent.get(parentKey);
+      if (!list) {
+        list = [];
+        solarBodiesByParent.set(parentKey, list);
+      }
+      list.push(body);
+    }
+  }
+
+  for (const [, bodies] of solarBodiesByParent) {
+    bodies.sort((a, b) => {
+      const diff = (a.orbit?.semiMajorAxis ?? 0) - (b.orbit?.semiMajorAxis ?? 0);
+      if (diff !== 0) return diff;
+      return a.id.localeCompare(b.id);
+    });
+    bodies.forEach((b, idx) => {
+      orbitRankMap.set(b.id, idx + 1);
+    });
+  }
+
+  for (const body of input.solarBodies) {
+    if (body.classification === 'Star') continue;
+    const parentKey =
+      body.parentBodyId && body.parentBodyId !== 'sol'
+        ? body.parentBodyId
+        : 'sol';
     const cleanKeys = buildCleanKeys([body.name, body.id, ...(body.tags ?? [])]);
 
     if (
@@ -1258,6 +1406,38 @@ export function buildSearchIndices(input: {
       };
       if (body.parentBodyId && body.parentBodyId !== 'sol') {
         entry.o = body.parentBodyId;
+      }
+      if (orbitRankMap.has(body.id)) {
+        entry.r = orbitRankMap.get(body.id);
+      }
+      if (body.orbit?.semiMajorAxis !== undefined) {
+        entry.A = Math.round(body.orbit.semiMajorAxis * 10000) / 10000;
+      }
+      if (body.orbit?.periodDays !== undefined) {
+        entry.P = Math.round(body.orbit.periodDays * 1000) / 1000;
+      }
+      if (parentKey === 'sol') {
+        if (
+          body.orbit?.semiMajorAxis !== undefined &&
+          body.orbit.semiMajorAxis >= 0.75 &&
+          body.orbit.semiMajorAxis <= 1.77
+        ) {
+          entry.z = 1;
+        }
+        if (
+          body.classification === 'DwarfPlanet' &&
+          body.orbit?.semiMajorAxis !== undefined &&
+          body.orbit.semiMajorAxis >= 2.0 &&
+          body.orbit.semiMajorAxis <= 3.5
+        ) {
+          entry.e = 'belt';
+        } else if (
+          body.classification === 'DwarfPlanet' &&
+          body.orbit?.semiMajorAxis !== undefined &&
+          body.orbit.semiMajorAxis >= 30
+        ) {
+          entry.e = 'kuiper';
+        }
       }
       if (body.classification === 'Planet') {
         const mEarth =
@@ -1282,6 +1462,19 @@ export function buildSearchIndices(input: {
         ) {
           entry.z = 1;
         }
+        const surfaceGravityG =
+          mEarth !== undefined && rEarth > 0
+            ? computePlanetSurfaceGravityG({ massMearth: mEarth, radiusRearth: rEarth })
+            : undefined;
+        const hazardMask = computePlanetHazardMask({
+          surfaceGravityG,
+          periodDays: body.orbit?.periodDays,
+          semiMajorAxisAu: body.orbit?.semiMajorAxis,
+          eccentricity: body.orbit?.eccentricity,
+        });
+        if (hazardMask > 0) {
+          entry.H = hazardMask;
+        }
       }
       planetsEntries.push(entry);
       coreEntries.push(entry);
@@ -1297,6 +1490,35 @@ export function buildSearchIndices(input: {
       };
       if (body.parentBodyId && body.parentBodyId !== 'sol') {
         entry.o = body.parentBodyId;
+      }
+      if (orbitRankMap.has(body.id)) {
+        entry.r = orbitRankMap.get(body.id);
+      }
+      if (body.orbit?.semiMajorAxis !== undefined) {
+        entry.A = Math.round(body.orbit.semiMajorAxis * 10000) / 10000;
+      }
+      if (body.orbit?.periodDays !== undefined) {
+        entry.P = Math.round(body.orbit.periodDays * 1000) / 1000;
+      }
+      if (parentKey === 'sol') {
+        if (
+          body.orbit?.semiMajorAxis !== undefined &&
+          body.orbit.semiMajorAxis >= 0.75 &&
+          body.orbit.semiMajorAxis <= 1.77
+        ) {
+          entry.z = 1;
+        }
+        if (
+          body.classification === 'AsteroidMainBelt' ||
+          (body.classification === 'Comet' &&
+            body.orbit?.semiMajorAxis !== undefined &&
+            body.orbit.semiMajorAxis >= 2.0 &&
+            body.orbit.semiMajorAxis <= 3.5)
+        ) {
+          entry.e = 'belt';
+        } else if (body.classification === 'AsteroidDistant') {
+          entry.e = 'kuiper';
+        }
       }
       if (body.tags?.includes('Spacecraft')) {
         entry.u = 'artificial';

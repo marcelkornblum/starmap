@@ -8,3 +8,4 @@ export * from './Modal/Modal';
 export * from './Popover/Popover';
 export * from './Toast/Toast';
 export * from './Tooltip/Tooltip';
+export * from './DetentSheet';

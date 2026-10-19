@@ -16,6 +16,7 @@ export interface SpatialEntityState {
   selectedId: string | null;
   selectedIds: Set<string>;
   focusedId: string | null;
+  focusedIds: Set<string>;
   apertureIds: Set<string>;
 
   registerEntity: (entity: SpatialEntityDefinition) => void;
@@ -25,6 +26,7 @@ export interface SpatialEntityState {
   setSelected: (id: string | null) => void;
   setSelectedIds: (ids: Iterable<string>) => void;
   setFocused: (id: string | null) => void;
+  setFocusedIds: (ids: Iterable<string>) => void;
   setEntityInAperture: (id: string, inAperture: boolean) => void;
   setApertureIds: (ids: Set<string>) => void;
   getEntityState: (id: string) => CelestialInteractionState;
@@ -36,6 +38,7 @@ export const createSpatialEntityStore = (initial?: {
   selectedId?: string | null;
   selectedIds?: Iterable<string>;
   focusedId?: string | null;
+  focusedIds?: Iterable<string>;
   hoveredId?: string | null;
   apertureIds?: Set<string>;
 }) => {
@@ -47,12 +50,21 @@ export const createSpatialEntityStore = (initial?: {
       ? initial.selectedId
       : (initialSelectedSet.values().next().value ?? null);
 
+  const initialFocusedSet = new Set<string>(
+    initial?.focusedIds ?? (initial?.focusedId ? [initial.focusedId] : []),
+  );
+  const initialFocusedId =
+    initial?.focusedId !== undefined
+      ? initial.focusedId
+      : (initialFocusedSet.values().next().value ?? null);
+
   return createStore<SpatialEntityState>((set, get) => ({
     entities: {},
     hoveredId: initial?.hoveredId ?? null,
     selectedId: initialSelectedId,
     selectedIds: initialSelectedSet,
-    focusedId: initial?.focusedId ?? null,
+    focusedId: initialFocusedId,
+    focusedIds: initialFocusedSet,
     apertureIds: initial?.apertureIds ?? new Set<string>(),
 
     registerEntity: (entity) => {
@@ -141,7 +153,36 @@ export const createSpatialEntityStore = (initial?: {
       }),
 
     setFocused: (id) =>
-      set((state) => (state.focusedId === id ? state : { focusedId: id })),
+      set((state) => {
+        if (
+          state.focusedId === id &&
+          state.focusedIds.size === (id ? 1 : 0) &&
+          (id === null || state.focusedIds.has(id))
+        ) {
+          return state;
+        }
+        return {
+          focusedId: id,
+          focusedIds: id ? new Set<string>([id]) : new Set<string>(),
+        };
+      }),
+
+    setFocusedIds: (ids) =>
+      set((state) => {
+        const nextFocusedIds = new Set<string>(ids);
+        const nextFocusedId = nextFocusedIds.values().next().value ?? null;
+        if (
+          state.focusedId === nextFocusedId &&
+          state.focusedIds.size === nextFocusedIds.size &&
+          Array.from(nextFocusedIds).every((item) => state.focusedIds.has(item))
+        ) {
+          return state;
+        }
+        return {
+          focusedId: nextFocusedId,
+          focusedIds: nextFocusedIds,
+        };
+      }),
 
     setEntityInAperture: (id, inAperture) => {
       set((state) => {
@@ -183,7 +224,13 @@ export const createSpatialEntityStore = (initial?: {
     getEntitiesByState: (targetState) => {
       const state = get();
       const matches: SpatialEntityDefinition[] = [];
+      if (targetState === 'focused' && state.focusedId && state.entities[state.focusedId]) {
+        matches.push(state.entities[state.focusedId]);
+      }
       for (const id in state.entities) {
+        if (targetState === 'focused' && id === state.focusedId) {
+          continue;
+        }
         if (state.getEntityState(id) === targetState) {
           matches.push(state.entities[id]);
         }

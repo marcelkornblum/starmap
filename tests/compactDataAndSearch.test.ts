@@ -411,4 +411,133 @@ describe('Step 2: 36-Bucket Shard Key & Compact 1-Letter Codecs (DEC-004 & DEC-0
     expect(tauEntry?.a).toContain('hd10700');
     expect(tauEntry?.m).toEqual([3.5, 'G8V', 7, 1]);
   });
+
+  it('precalculates orbital rank r and region overlap e and z on exoplanets and solar bodies (DEC-014)', () => {
+    const dummyOrbit = (semiMajorAxis: number) => ({
+      semiMajorAxis,
+      eccentricity: 0.01,
+      inclination: 0,
+      ascendingNode: 0,
+      argumentOfPeriapsis: 0,
+      meanAnomaly: 0,
+      periodDays: 365,
+    });
+
+    const manifests: SystemManifest[] = [
+      {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        x: 3.156,
+        y: 1.54,
+        z: -1.003,
+        dist: 3.652,
+        sectorId: 'sector_+000_+000_-025',
+        stars: [
+          {
+            id: '2452378776434477184-A',
+            name: 'Tau Ceti',
+            componentDesignation: 'A',
+            spectralType: 'G8V',
+            mag: 3.5,
+            absmag: 5.69,
+          },
+        ],
+        planets: [
+          {
+            id: 'tau-ceti-f',
+            name: 'Tau Ceti f',
+            letter: 'f',
+            orbit: dummyOrbit(1.334),
+          },
+          {
+            id: 'tau-ceti-e',
+            name: 'Tau Ceti e',
+            letter: 'e',
+            orbit: dummyOrbit(0.538),
+          },
+        ],
+      },
+    ];
+
+    const solarBodies: SolarSystemBodyRecord[] = [
+      {
+        id: 'earth',
+        name: 'Earth',
+        classification: 'Planet',
+        parentBodyId: 'sol',
+        meanRadiusKm: 6371,
+        orbit: dummyOrbit(1.0),
+      },
+      {
+        id: 'moon',
+        name: 'Moon',
+        classification: 'Moon',
+        parentBodyId: 'earth',
+        meanRadiusKm: 1737,
+        orbit: dummyOrbit(0.00257),
+      },
+      {
+        id: 'ceres',
+        name: 'Ceres',
+        classification: 'DwarfPlanet',
+        parentBodyId: 'sol',
+        meanRadiusKm: 473,
+        orbit: dummyOrbit(2.77),
+      },
+      {
+        id: 'pluto',
+        name: 'Pluto',
+        classification: 'DwarfPlanet',
+        parentBodyId: 'sol',
+        meanRadiusKm: 1188,
+        orbit: dummyOrbit(39.48),
+      },
+      {
+        id: 'vesta',
+        name: 'Vesta',
+        classification: 'AsteroidMainBelt',
+        parentBodyId: 'sol',
+        meanRadiusKm: 262,
+        orbit: dummyOrbit(2.36),
+      },
+    ];
+
+    const indices = buildSearchIndices({
+      systems: [],
+      manifests,
+      structures: [],
+      solarBodies,
+    });
+
+    // Exoplanet ranks ordered by semiMajorAxis
+    const tauE = indices.planets.d.find((e) => e.i === 'tau-ceti-e');
+    const tauF = indices.planets.d.find((e) => e.i === 'tau-ceti-f');
+    expect(tauE?.r).toBe(1);
+    expect(tauF?.r).toBe(2);
+
+    // Solar bodies heliocentric rank: Earth (1.0) -> Vesta (2.36) -> Ceres (2.77) -> Pluto (39.48)
+    const earth = indices.planets.d.find((e) => e.i === 'earth');
+    const vesta = indices.minorBodies.d.find((e) => e.i === 'vesta');
+    const ceres = indices.planets.d.find((e) => e.i === 'ceres');
+    const pluto = indices.planets.d.find((e) => e.i === 'pluto');
+    const moon = indices.planets.d.find((e) => e.i === 'moon');
+
+    expect(earth?.r).toBe(1);
+    expect(earth?.z).toBe(1);
+    expect(earth?.e).toBeUndefined();
+
+    expect(vesta?.r).toBe(2);
+    expect(vesta?.e).toBe('belt');
+
+    expect(ceres?.r).toBe(3);
+    expect(ceres?.e).toBe('belt');
+
+    expect(pluto?.r).toBe(4);
+    expect(pluto?.e).toBe('kuiper');
+
+    // Moon orbits earth (parentKey === 'earth') -> rank 1 in earth orbit
+    expect(moon?.r).toBe(1);
+    expect(moon?.o).toBe('earth');
+    expect(moon?.e).toBeUndefined();
+  });
 });

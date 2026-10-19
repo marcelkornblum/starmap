@@ -108,9 +108,11 @@ export interface SystemSummaryNode {
   /** Total number of confirmed exoplanets */
   planetCount: number;
   /** Categorized planetary census breakdown for tactical reticle facets */
-  planetCensus?: ('terrestrial' | 'gas-giant' | 'ice-giant')[];
-  /** Precalculated counts of planets by composition class [terrestrial, iceGiant, gasGiant] */
-  planetCompositionCounts?: [terrestrial: number, iceGiant: number, gasGiant: number];
+  planetCensus?: ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[];
+  /** Precalculated counts of planets by composition class [terrestrial, superEarth, iceGiant, gasGiant] */
+  planetCompositionCounts?:
+    | [terrestrial: number, superEarth: number, iceGiant: number, gasGiant: number]
+    | [terrestrial: number, iceGiant: number, gasGiant: number];
   /** Flag indicating whether any planet resides in the habitable zone */
   hasHabitableCandidate: boolean;
   /** Spatial sector identifier, e.g. 'sector_+025_-050_+000' */
@@ -121,6 +123,8 @@ export interface SystemSummaryNode {
   confidence?: ObservationalConfidence;
   /** Bitmask indicating which fields are mathematically modelled ('theoretical': 1=spect, 2=rv) */
   theoreticalFlags?: number;
+  /** Precalculated stellar environmental hazard bitmask (FLARE_STAR: 1, IONISING_RADIATION: 2, VARIABLE_FLUX: 4) */
+  hazardMask?: number;
 }
 
 /**
@@ -160,8 +164,12 @@ export interface ExoplanetRecord {
   radiusRearth?: number;
   equilibriumTempK?: number;
   esi?: number;
-  /** Precalculated planetary composition classification ('terrestrial' | 'ice-giant' | 'gas-giant') */
-  composition?: 'terrestrial' | 'ice-giant' | 'gas-giant';
+  /** Surface gravity in Earth standard gravity units (g = 9.81 m/s^2) */
+  surfaceGravityG?: number;
+  /** Precalculated planetary environmental hazard bitmask */
+  hazardMask?: number;
+  /** Precalculated planetary composition classification ('terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant') */
+  composition?: 'terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant';
   /** Precalculated flag indicating whether the planet falls within the optimistic habitable zone */
   isHabitableCandidate?: boolean;
   orbit?: KeplerianOrbit;
@@ -202,13 +210,17 @@ export interface SystemManifest {
   sectorId: string;
   stars: StellarComponent[];
   planets: ExoplanetRecord[];
-  /** Precalculated counts of planets by composition class [terrestrial, iceGiant, gasGiant] */
-  planetCompositionCounts?: [terrestrial: number, iceGiant: number, gasGiant: number];
+  /** Precalculated counts of planets by composition class [terrestrial, superEarth, iceGiant, gasGiant] */
+  planetCompositionCounts?:
+    | [terrestrial: number, superEarth: number, iceGiant: number, gasGiant: number]
+    | [terrestrial: number, iceGiant: number, gasGiant: number];
   /** Precalculated flag indicating whether any planet resides in the habitable zone */
   hasHabitableCandidate?: boolean;
   /** Precalculated categorization tags for the system */
   tags?: string[];
   overviewText?: string;
+  /** Precalculated stellar environmental hazard bitmask (FLARE_STAR: 1, IONISING_RADIATION: 2, VARIABLE_FLUX: 4) */
+  hazardMask?: number;
 }
 
 /**

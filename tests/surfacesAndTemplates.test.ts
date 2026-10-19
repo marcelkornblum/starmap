@@ -25,7 +25,6 @@ import { Drawer as PocDrawer } from '../src/components/poc/overlays/Drawer/Drawe
 import { Popover as PocPopover } from '../src/components/poc/overlays/Popover/Popover';
 import { Tooltip as PocTooltip } from '../src/components/poc/overlays/Tooltip/Tooltip';
 import { Toast as PocToast } from '../src/components/poc/overlays/Toast/Toast';
-import { DossierLayout, MetricStrip, ToolbarLayout } from '../src/components/poc/templates';
 
 describe('Tier 2: Surfaces', () => {
   it('renders Card with status exception and padding', () => {
@@ -251,52 +250,6 @@ describe('Tier 2: Overlays', () => {
   });
 });
 
-describe('Tier 3: Templates', () => {
-  it('renders DossierLayout with all slots', () => {
-    const html = renderToString(
-      createElement(
-        DossierLayout,
-        {
-          header: createElement('header', null, 'Planet Dossier Header'),
-          metrics: createElement('div', null, 'Planet Metrics'),
-          actions: createElement('footer', null, 'Dossier Actions'),
-        },
-        createElement('main', null, 'Keplerian Elements Data')
-      )
-    );
-    expect(html).toContain('Planet Dossier Header');
-    expect(html).toContain('Planet Metrics');
-    expect(html).toContain('Keplerian Elements Data');
-    expect(html).toContain('Dossier Actions');
-  });
-
-  it('renders MetricStrip in Grid', () => {
-    const html = renderToString(
-      createElement(
-        MetricStrip,
-        { minWidth: 'md' },
-        createElement('div', null, 'Metric 1'),
-        createElement('div', null, 'Metric 2')
-      )
-    );
-    expect(html).toContain('data-min="md"');
-    expect(html).toContain('Metric 1');
-    expect(html).toContain('Metric 2');
-  });
-
-  it('renders ToolbarLayout with start, center, and end slots', () => {
-    const html = renderToString(
-      createElement(ToolbarLayout, {
-        start: createElement('span', null, 'Nav Tabs'),
-        center: createElement('span', null, 'Search Title'),
-        end: createElement('span', null, 'HUD Actions'),
-      })
-    );
-    expect(html).toContain('Nav Tabs');
-    expect(html).toContain('Search Title');
-    expect(html).toContain('HUD Actions');
-  });
-});
 
 describe('Tier 2: Surfaces & Overlays Backwards-Compatible Re-exports', () => {
   it('preserves barrel re-exports from poc/surfaces and poc/overlays', () => {

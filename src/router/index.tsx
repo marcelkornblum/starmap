@@ -8,7 +8,9 @@ import {
 } from '@tanstack/react-router';
 import { RootLayout } from '../components/poc/layout/RootLayout';
 import { RouteSkeleton } from '../components/poc/common/RouteSkeleton';
-import { MainView } from '../views/MainView';
+import { GalaxyView } from '../views/GalaxyView';
+import { HazardDetailView } from '../views/HazardDetailView';
+import { HazardsListView } from '../views/HazardsListView';
 import { MetricDetailView } from '../views/MetricDetailView';
 import { MetricsListView } from '../views/MetricsListView';
 import { PlanetTypeDetailView } from '../views/PlanetTypeDetailView';
@@ -18,7 +20,7 @@ import { SearchView } from '../views/SearchView';
 import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
-import { GalaxyView } from '../views/poc/GalaxyView';
+import { GalaxyView as PocGalaxyView } from '../views/poc/GalaxyView';
 import { SystemView as PocSystemView } from '../views/poc/SystemView';
 import { PlanetView as PocPlanetView } from '../views/poc/PlanetView';
 import { ReferenceView } from '../views/poc/ReferenceView';
@@ -29,11 +31,16 @@ export interface StarmapSearchParams {
   focus?: string;
   select?: string;
   canon?: string;
+  route?: string;
+  journeyOption?: string;
   x?: number;
   y?: number;
   z?: number;
   zoom?: number;
   center?: string;
+  az?: number;
+  el?: number;
+  dist?: number;
   [key: string]: unknown;
 }
 
@@ -70,11 +77,19 @@ export const rootRoute = createRootRoute({
           ? search.select
           : undefined,
       canon: typeof search.canon === 'string' && search.canon.length > 0 ? search.canon : undefined,
-      x: typeof search.x === 'number' ? search.x : (search.x ? Number(search.x) : undefined),
-      y: typeof search.y === 'number' ? search.y : (search.y ? Number(search.y) : undefined),
-      z: typeof search.z === 'number' ? search.z : (search.z ? Number(search.z) : undefined),
-      zoom: typeof search.zoom === 'number' ? search.zoom : (search.zoom ? Number(search.zoom) : undefined),
+      route: typeof search.route === 'string' && search.route.length > 0 ? search.route : undefined,
+      journeyOption:
+        typeof search.journeyOption === 'string' && search.journeyOption.length > 0
+          ? search.journeyOption
+          : undefined,
+      x: typeof search.x === 'number' ? search.x : (search.x !== undefined && search.x !== '' ? Number(search.x) : undefined),
+      y: typeof search.y === 'number' ? search.y : (search.y !== undefined && search.y !== '' ? Number(search.y) : undefined),
+      z: typeof search.z === 'number' ? search.z : (search.z !== undefined && search.z !== '' ? Number(search.z) : undefined),
+      zoom: typeof search.zoom === 'number' ? search.zoom : (search.zoom !== undefined && search.zoom !== '' ? Number(search.zoom) : undefined),
       center: typeof search.center === 'string' ? search.center : undefined,
+      az: typeof search.az === 'number' ? search.az : (search.az !== undefined && search.az !== '' ? Number(search.az) : undefined),
+      el: typeof search.el === 'number' ? search.el : (search.el !== undefined && search.el !== '' ? Number(search.el) : undefined),
+      dist: typeof search.dist === 'number' ? search.dist : (search.dist !== undefined && search.dist !== '' ? Number(search.dist) : undefined),
     };
   },
 });
@@ -83,7 +98,7 @@ export const rootRoute = createRootRoute({
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: MainView,
+  component: GalaxyView,
 });
 
 export const mainSearchRoute = createRoute({
@@ -95,13 +110,13 @@ export const mainSearchRoute = createRoute({
 export const mainGalaxyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/galaxy',
-  component: MainView,
+  component: GalaxyView,
 });
 
 export const mainGalaxySystemRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/galaxy/$systemId',
-  component: MainView,
+  component: GalaxyView,
 });
 
 export const mainSystemRoute = createRoute({
@@ -152,6 +167,18 @@ export const metricDetailRoute = createRoute({
   component: MetricDetailView,
 });
 
+export const hazardsListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/hazards',
+  component: HazardsListView,
+});
+
+export const hazardDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/hazards/$hazardId',
+  component: HazardDetailView,
+});
+
 // Quarantined POC layout and routes under /poc/* for reference
 export const pocRoute = createRoute({
   getParentRoute: () => pocRouteParent,
@@ -169,7 +196,7 @@ export const pocIndexRoute = createRoute({
 export const galaxyRoute = createRoute({
   getParentRoute: () => pocRoute,
   path: '/galaxy',
-  component: GalaxyView,
+  component: PocGalaxyView,
   pendingComponent: () => <RouteSkeleton label="Scanning Galactic Field..." />,
   pendingMs: 0,
   loader: async () => {
@@ -223,6 +250,8 @@ export const routeTree = rootRoute.addChildren([
   planetTypeDetailRoute,
   metricsListRoute,
   metricDetailRoute,
+  hazardsListRoute,
+  hazardDetailRoute,
   pocRoute.addChildren([
     pocIndexRoute,
     galaxyRoute,

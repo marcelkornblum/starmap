@@ -49,10 +49,10 @@ You are an expert code reviewer acting as a Critical Friend. Your goal is to ide
      - Zero `any` casts. Explicitly type R3F event arguments using `ThreeEvent<MouseEvent>`. Use `in` operator type guards to narrow objects instead of unsafe casts.
 
 3. **Refactor**: Immediately apply necessary code and test edits using IDE tooling (`replace_file_content`, `write_to_file`) to eliminate technical debt and comply with standards. Do not prompt or wait for permission before making these improvements.
-4. **Validate & Iterate**: Re-run the local verification suite:
+4. **Validate & Iterate (via `qa-verifier` on `Model: "flash"` or Single-Command Parallel Runs)**: Run the local verification suite without chaining commands (`&&`, `||`, `;`, `|` are forbidden so subagents never stall on permission prompts):
    - `npm run lint`
    - `npm run typecheck`
    - `npm run test:coverage`
    - `npm run audit:r3f` (for 3D WebGL / canvas changes)
-   If any linter, type check, audit, or test fails, resolve the issues until the entire suite passes cleanly.
+   When invoked from the main orchestrator, delegate execution of these checks (and mechanical lint/type fixes) to the `qa-verifier` subagent with `Model: "flash"`. If any linter, type check, audit, or test fails, resolve the issues until the entire suite passes cleanly.
 5. **Completion**: Once all quality checks pass successfully, hand control back to the user or return to the calling workflow.

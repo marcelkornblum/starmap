@@ -65,6 +65,14 @@ describe('capture-views utilities', () => {
     expect(custom.routes).toEqual(['/galaxy', '/reference']);
     expect(custom.outDir).toBe('/tmp/shots');
     expect(custom.waitMs).toBe(500);
+
+    const queryWithCommas = parseCaptureArgs([
+      '--routes=/galaxy/tau-ceti?route=sol,tau-ceti,/system/sol?route=earth,mars',
+    ]);
+    expect(queryWithCommas.routes).toEqual([
+      '/galaxy/tau-ceti?route=sol,tau-ceti',
+      '/system/sol?route=earth,mars',
+    ]);
   });
 
   it('generates Markdown carousel galleries with LAN links and absolute screenshot paths', () => {

@@ -132,4 +132,22 @@
     font-size: var(--dossier-empty-size);
     font-style: italic;
   }
+
+  .headerSlot {
+    border-block-end: var(--border-width-1) var(--border-style-boundary) var(--surface-panel-border-color);
+    padding-block-end: var(--space-stack-compact);
+  }
+
+  .metricsSlot {
+    inline-size: 100%;
+  }
+
+  .contentSlot {
+    inline-size: 100%;
+  }
+
+  .actionsSlot {
+    border-block-start: var(--border-width-1) var(--border-style-boundary) var(--surface-panel-border-color);
+    padding-block-start: var(--space-stack-compact);
+  }
 }

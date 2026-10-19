@@ -381,6 +381,23 @@ describe('Cartography Mathematics & Occlusion Registry', () => {
       const pointsOnlyTerr: THREE.Vector3[] = [];
       appendPlanetaryPips(pointsOnlyTerr, 1.0, [{ id: '1', name: 'Earth', classification: 'terrestrial' }]);
       expect(pointsOnlyTerr.length).toBe(48);
+
+      // Single category presence: only super-earth (24 segs * 2 rings = 48 segs = 96 points)
+      const pointsOnlySuperEarth: THREE.Vector3[] = [];
+      appendPlanetaryPips(pointsOnlySuperEarth, 1.0, [{ id: '2', name: 'Tau Ceti e', classification: 'super-earth' }]);
+      expect(pointsOnlySuperEarth.length).toBe(96);
+
+      // All 4 categories present (count > 3 triggers tStep = 0.22):
+      // Terrestrial (48) + Super-Earth (96) + Gas Giant (60) + Ice Giant (52) = 256 points
+      const allFourPlanets = [
+        { id: '1', name: 'Earth', classification: 'terrestrial' as const },
+        { id: '2', name: 'Tau Ceti e', classification: 'super-earth' as const },
+        { id: '3', name: 'Jupiter', classification: 'gas-giant' as const },
+        { id: '4', name: 'Neptune', classification: 'ice-giant' as const },
+      ];
+      const pointsAllFour: THREE.Vector3[] = [];
+      appendPlanetaryPips(pointsAllFour, 1.0, allFourPlanets);
+      expect(pointsAllFour.length).toBe(256);
     });
 
     it('creates reticle geometry with annotations in selected/focused state', () => {
@@ -391,6 +408,13 @@ describe('Cartography Mathematics & Occlusion Registry', () => {
       });
       // 8 diamond points + 96 multiplicity points + 48 planetary points = 152 points
       expect(geom.getAttribute('position').count).toBe(152);
+    });
+
+    it('creates concentric double-circle reticle geometry for super-earth', () => {
+      const geom = createReticleGeometry('super-earth', 1.0);
+      // Concentric double circle: 32 segs inner (64 pts) + 32 segs outer (64 pts) = 128 points
+      expect(geom.getAttribute('position').count).toBe(128);
+      geom.dispose();
     });
   });
 

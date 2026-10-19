@@ -23,6 +23,9 @@ import {
   classifyPlanetPhysical,
   computePlanetCompositionCounts,
   isPlanetHabitableCandidate,
+  computePlanetSurfaceGravityG,
+  computeSystemHazardMask,
+  computePlanetHazardMask,
 } from '../src/utils/astroMath';
 import {
   expandGouldOrConstellationSuffix,
@@ -888,13 +891,13 @@ export function checkHabitableCandidate(planets: ExoplanetRecord[], starLum?: nu
  * - Ice Giant: 1.75 R_earth < Rp <= 6.0 R_earth or 10 M_earth < Mp <= 50 M_earth
  * - Gas Giant: Rp > 6.0 R_earth or Mp > 50 M_earth
  */
-export function classifyExoplanet(planet: ExoplanetRecord): 'terrestrial' | 'gas-giant' | 'ice-giant' {
+export function classifyExoplanet(planet: ExoplanetRecord): 'terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant' {
   return planet.composition ?? classifyPlanetPhysical(planet);
 }
 
 /**
  * Enriches an array of ExoplanetRecords in-place with precalculated `composition`
- * and `isHabitableCandidate` flags.
+ * and `isHabitableCandidate` flags, surface gravity, and environmental hazard masks.
  */
 export function enrichPlanetsWithPrecalculatedFields(
   planets: ExoplanetRecord[],
@@ -912,10 +915,24 @@ export function enrichPlanetsWithPrecalculatedFields(
         },
         starLum,
       );
+    const surfaceGravityG =
+      p.surfaceGravityG ?? computePlanetSurfaceGravityG(p);
+    const hazardMask =
+      p.hazardMask ??
+      computePlanetHazardMask({
+        equilibriumTempK: p.equilibriumTempK,
+        surfaceGravityG,
+        periodDays: p.orbit?.periodDays,
+        semiMajorAxisAu: p.orbit?.semiMajorAxis,
+        eccentricity: p.orbit?.eccentricity,
+      });
+
     return {
       ...p,
       composition,
       isHabitableCandidate,
+      ...(surfaceGravityG !== undefined ? { surfaceGravityG } : {}),
+      ...(hazardMask > 0 ? { hazardMask } : {}),
     };
   });
 }
@@ -965,6 +982,17 @@ export function buildSolSystemManifest(
         },
         1.0,
       );
+      const surfaceGravityG = computePlanetSurfaceGravityG({
+        massMearth,
+        radiusRearth,
+      });
+      const hazardMask = computePlanetHazardMask({
+        equilibriumTempK,
+        surfaceGravityG,
+        periodDays: b.orbit?.periodDays,
+        semiMajorAxisAu: a,
+        eccentricity: b.orbit?.eccentricity,
+      });
 
       return {
         id: b.id,
@@ -975,6 +1003,8 @@ export function buildSolSystemManifest(
         radiusRearth,
         radiusRjup,
         equilibriumTempK,
+        surfaceGravityG,
+        ...(hazardMask > 0 ? { hazardMask } : {}),
         composition,
         isHabitableCandidate,
         orbit: b.orbit,
@@ -1026,9 +1056,9 @@ export function buildSolSystemManifest(
 /**
  * Computes the census categories of present exoplanets for a planetary system.
  */
-export function getPlanetCensus(planets: ExoplanetRecord[]): ('terrestrial' | 'gas-giant' | 'ice-giant')[] | undefined {
+export function getPlanetCensus(planets: ExoplanetRecord[]): ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[] | undefined {
   if (planets.length === 0) return undefined;
-  const present = (['terrestrial', 'gas-giant', 'ice-giant'] as const).filter((cat) =>
+  const present = (['terrestrial', 'super-earth', 'gas-giant', 'ice-giant'] as const).filter((cat) =>
     planets.some((p) => classifyExoplanet(p) === cat)
   );
   return present.length > 0 ? present : undefined;
@@ -1079,6 +1109,12 @@ export function starNodeToSystemSummary(
     tags.push('HabitableCandidate');
   }
 
+  const hazardMask = computeSystemHazardMask({
+    spect: star.spect,
+    lum: star.lum,
+    tags,
+  });
+
   return {
     id: String(star.id),
     name: star.name,
@@ -1099,6 +1135,7 @@ export function starNodeToSystemSummary(
     hasHabitableCandidate: hasHabitable,
     sectorId,
     tags: tags.length > 0 ? tags : undefined,
+    ...(hazardMask > 0 ? { hazardMask } : {}),
   };
 }
 
@@ -2229,6 +2266,12 @@ export async function buildGaiaDataPipeline(
       if (matchedPlanets.length > 0) tags.push('ExoplanetHost');
       if (hasHabitableCandidate) tags.push('HabitableCandidate');
 
+      const hazardMask = computeSystemHazardMask({
+        spect,
+        lum: hygMatch?.lum !== undefined && !Number.isNaN(hygMatch.lum) ? hygMatch.lum : undefined,
+        tags,
+      });
+
       const summary: SystemSummaryNode = {
         id: sysId,
         name,
@@ -2251,6 +2294,7 @@ export async function buildGaiaDataPipeline(
       if (properName) summary.properName = properName;
       if (ci !== null && ci !== undefined) summary.ci = round2(ci);
       if (tags.length > 0) summary.tags = tags;
+      if (hazardMask > 0) summary.hazardMask = hazardMask;
       if (velocity) {
         summary.velocity = {
           vx: round2(velocity.vx),
@@ -2327,6 +2371,7 @@ export async function buildGaiaDataPipeline(
           planetCompositionCounts,
           hasHabitableCandidate,
           ...(tags.length > 0 ? { tags } : {}),
+          ...(hazardMask > 0 ? { hazardMask } : {}),
         };
         manifestBucket.push(sysManifest);
         allSystemManifests.push(sysManifest);

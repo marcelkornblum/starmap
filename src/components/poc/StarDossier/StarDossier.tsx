@@ -1,11 +1,9 @@
 import type { HTMLAttributes } from 'react';
 import type { ExoplanetRecord } from '../../../types/astro';
-import { Stack, Cluster } from '../../interface/layouts';
+import { Stack, Cluster, Grid } from '../../interface/layouts';
 import { Button } from '../../interface/controls';
 import { Badge } from '../../interface/data';
 import { Metric } from '../Metric/Metric';
-import { DossierLayout } from '../DossierLayout/DossierLayout';
-import { MetricStrip } from '../MetricStrip/MetricStrip';
 import styles from './StarDossier.module.css';
 
 export interface StarDossierData {
@@ -75,7 +73,7 @@ export const StarDossier = ({
   );
 
   const metricsContent = (
-    <MetricStrip minWidth="sm">
+    <Grid minWidth="sm" gap="default">
       <Metric
         label="Spectral Class"
         value={star.spectralType || 'Unknown'}
@@ -96,7 +94,7 @@ export const StarDossier = ({
         label="Effective Temp"
         value={star.effectiveTempK !== undefined ? `${star.effectiveTempK.toLocaleString()} K` : '—'}
       />
-    </MetricStrip>
+    </Grid>
   );
 
   const actionContent = onNavigateSystem ? (
@@ -109,70 +107,71 @@ export const StarDossier = ({
 
   return (
     <div className={combinedClassName} {...rest}>
-      <DossierLayout
-        header={headerContent}
-        metrics={metricsContent}
-        actions={actionContent}
-      >
-        <Stack gap="section">
-          {star.overviewText && (
-            <p className={styles.overviewText}>{star.overviewText}</p>
-          )}
-
-          <Stack gap="default">
-            <h3 className={styles.sectionTitle}>
-              Exoplanet Inventory ({star.planets?.length ?? 0})
-            </h3>
-            {star.planets && star.planets.length > 0 ? (
-              <div className={styles.planetList}>
-                {star.planets.map((planet) => {
-                  const sma = planet.orbit?.semiMajorAxis;
-                  const isHabitable =
-                    hzInner !== undefined &&
-                    hzOuter !== undefined &&
-                    sma !== undefined &&
-                    sma >= hzInner &&
-                    sma <= hzOuter;
-                  return (
-                    <div
-                      key={planet.id}
-                      className={styles.planetItem}
-                      role={onSelectPlanet ? 'button' : undefined}
-                      tabIndex={onSelectPlanet ? 0 : undefined}
-                      data-selectable={onSelectPlanet ? 'true' : undefined}
-                      onClick={() => onSelectPlanet?.(planet.id)}
-                      onKeyDown={(e) => {
-                        if (onSelectPlanet && (e.key === 'Enter' || e.key === ' ')) {
-                          e.preventDefault();
-                          onSelectPlanet(planet.id);
-                        }
-                      }}
-                    >
-                      <Cluster gap="tight">
-                        <span className={styles.planetName}>{planet.name}</span>
-                        {isHabitable && <Badge status="nominal">Habitable Zone</Badge>}
-                      </Cluster>
-                      <div className={styles.planetMetrics}>
-                        {sma !== undefined && <span>{sma.toFixed(2)} AU</span>}
-                        {planet.orbit?.periodDays !== undefined && (
-                          <span>{planet.orbit.periodDays.toFixed(1)} d</span>
-                        )}
-                        {planet.massMearth !== undefined && (
-                          <span>{planet.massMearth.toFixed(1)} M⊕</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className={styles.emptyNotice}>
-                No confirmed exoplanets cataloged in this system.
-              </div>
+      <Stack gap="section">
+        <div className={styles.headerSlot}>{headerContent}</div>
+        {metricsContent && <div className={styles.metricsSlot}>{metricsContent}</div>}
+        <div className={styles.contentSlot}>
+          <Stack gap="section">
+            {star.overviewText && (
+              <p className={styles.overviewText}>{star.overviewText}</p>
             )}
+
+            <Stack gap="default">
+              <h3 className={styles.sectionTitle}>
+                Exoplanet Inventory ({star.planets?.length ?? 0})
+              </h3>
+              {star.planets && star.planets.length > 0 ? (
+                <div className={styles.planetList}>
+                  {star.planets.map((planet) => {
+                    const sma = planet.orbit?.semiMajorAxis;
+                    const isHabitable =
+                      hzInner !== undefined &&
+                      hzOuter !== undefined &&
+                      sma !== undefined &&
+                      sma >= hzInner &&
+                      sma <= hzOuter;
+                    return (
+                      <div
+                        key={planet.id}
+                        className={styles.planetItem}
+                        role={onSelectPlanet ? 'button' : undefined}
+                        tabIndex={onSelectPlanet ? 0 : undefined}
+                        data-selectable={onSelectPlanet ? 'true' : undefined}
+                        onClick={() => onSelectPlanet?.(planet.id)}
+                        onKeyDown={(e) => {
+                          if (onSelectPlanet && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
+                            onSelectPlanet(planet.id);
+                          }
+                        }}
+                      >
+                        <Cluster gap="tight">
+                          <span className={styles.planetName}>{planet.name}</span>
+                          {isHabitable && <Badge status="nominal">Habitable Zone</Badge>}
+                        </Cluster>
+                        <div className={styles.planetMetrics}>
+                          {sma !== undefined && <span>{sma.toFixed(2)} AU</span>}
+                          {planet.orbit?.periodDays !== undefined && (
+                            <span>{planet.orbit.periodDays.toFixed(1)} d</span>
+                          )}
+                          {planet.massMearth !== undefined && (
+                            <span>{planet.massMearth.toFixed(1)} M⊕</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className={styles.emptyNotice}>
+                  No confirmed exoplanets cataloged in this system.
+                </div>
+              )}
+            </Stack>
           </Stack>
-        </Stack>
-      </DossierLayout>
+        </div>
+        {actionContent && <div className={styles.actionsSlot}>{actionContent}</div>}
+      </Stack>
     </div>
   );
 };

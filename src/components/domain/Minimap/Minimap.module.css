@@ -1,0 +1,55 @@
+.minimapPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.viewportSlot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.referenceFrame {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.telemetry {
+  margin: 0;
+  font-family: var(--font-interface);
+  font-size: var(--text-xs);
+  color: var(--content-secondary);
+}
+
+.markersList {
+  margin: 0;
+  padding-left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-family: var(--font-interface);
+  font-size: var(--text-xs);
+}
+
+.markerItem {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.markerLink {
+  color: var(--content-primary);
+  text-decoration: none;
+}
+
+.markerLink:hover {
+  text-decoration: underline;
+}
+
+.markerRole {
+  color: var(--content-muted);
+}

@@ -203,14 +203,14 @@ describe('Tier 4: Domain Features', () => {
       }
       renderToString(createElement(DossierHarness));
 
-      const dossierLayout = dossierEl.props.children;
+      const stackChildren = dossierEl.props.children.props.children;
       // Header close button
-      const closeBtn = dossierLayout.props.header.props.children[1];
+      const closeBtn = stackChildren[0].props.children.props.children[1];
       closeBtn.props.onClick?.();
       expect(handleClose).toHaveBeenCalled();
 
       // Action button
-      const actionBtn = dossierLayout.props.actions.props.children;
+      const actionBtn = stackChildren[3].props.children.props.children;
       actionBtn.props.onClick?.();
       expect(handleNavigate).toHaveBeenCalledWith('sol');
     });

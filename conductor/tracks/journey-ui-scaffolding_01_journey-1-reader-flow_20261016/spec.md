@@ -33,8 +33,8 @@ Walks step-by-step through **Journey 1: Target Acquisition & Travel Planning (Th
    - Render the ratified scaffolding views, raw structured view data models, requirement notes, and action triggers on the ratified routes so the user can step through Journey 1 end-to-end over LAN (`http://192.168.1.124:5173`) and review multi-viewport screenshots.
 
 ## Acceptance Criteria
-- [ ] Every step of Journey 1 (including screen boundaries and URL paths) is interrogated one decision at a time with the user; all options and trade-offs are recorded in `decision-log.md`.
-- [ ] Discovered views, routes, and on-screen data/action requirements for Journey 1 are recorded in `view-requirements.md`.
-- [ ] Pure TypeScript view data models, selectors, and astro-math travel/relativistic helpers are implemented with unit tests (>80% coverage).
-- [ ] Clean-slate scaffolding views allow stepping through Journey 1 on `http://192.168.1.124:5173` with multi-viewport Playwright screenshots captured.
-- [ ] `npm run lint`, `npm run typecheck`, and `npm run test:coverage` pass cleanly.
+- [x] Every step of Journey 1 (including screen boundaries and URL paths) is interrogated one decision at a time with the user; all options and trade-offs are recorded in `decision-log.md`.
+- [x] Discovered views, routes, and on-screen data/action requirements for Journey 1 are recorded in `view-requirements.md`.
+- [x] Pure TypeScript view data models, selectors, and astro-math travel/relativistic helpers are implemented with unit tests (>80% coverage).
+- [x] Clean-slate scaffolding views allow stepping through Journey 1 on `http://192.168.1.124:5173` with multi-viewport Playwright screenshots captured.
+- [x] `npm run lint`, `npm run typecheck`, and `npm run test:coverage` pass cleanly.

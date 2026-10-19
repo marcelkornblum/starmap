@@ -3,12 +3,23 @@ import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
 } from '../components/canvas/entity/SpatialEntityContext';
+import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
 import {
+  BodiesPanel,
   Breadcrumbs,
+  CanvasLayer,
+  ControlBar,
   DetailsPanel,
+  DirectionsPanel,
+  Minimap,
+  PreviewPanel,
   SearchResultItem,
-  SystemElementsPanel,
 } from '../components/domain';
+import {
+  buildJourneyPlan,
+  extractUrlJourneyOptionId,
+  extractUrlRouteStops,
+} from '../services/journeyService';
 import { Search } from '../components/search';
 import {
   fetchDetailRecord,
@@ -22,14 +33,21 @@ import {
 } from '../data/searchRepository';
 import {
   buildFocusedEntityDetails,
-  buildSystemElementsSummary,
+  buildFocusedPreviewSummary,
+  buildSystemBodiesSummary,
+  buildSystemMinimapOrientation,
+  buildSystemOrbitalSchematic,
   buildSystemViewBreadcrumbs,
+  extractUrlSceneCameraState,
   type FocusedEntityDetails,
 } from '../services/detailsService';
 import {
+  extractUrlFocusSlug,
   extractUrlSystemSlug,
   findFocusedEntryInCorpus,
   hasExplicitFocusParam,
+  resolveFocusedEntityFromCorpus,
+  resolveSelectedSystemsFromUrlSelect,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 
@@ -44,6 +62,8 @@ const useResolvedSystemDetails = (
   shouldFetchShards = false,
 ): {
   readonly focusedDetails: FocusedEntityDetails | null;
+  readonly systemContextDetails: FocusedEntityDetails | null;
+  readonly focusedEntity: SpatialEntityDefinition | null;
   readonly activeCorpus: readonly CompactSearchEntry[];
   readonly urlSystemSlug: string | null;
   readonly hasExplicitFocus: boolean;
@@ -62,15 +82,20 @@ const useResolvedSystemDetails = (
     (typeof window !== 'undefined' ? window.location.search : '');
 
   const urlSystemSlug = extractUrlSystemSlug(pathname);
+  const urlFocusSlug = extractUrlFocusSlug(pathname, search);
   const hasExplicitFocus = hasExplicitFocusParam(search);
 
-  const focusedEntity =
-    storeApi.getState().getEntitiesByState('focused')[0] ?? null;
   const activeCorpus =
     initialCorpus ??
     getCachedCorpusForFilter('all') ??
     getCachedCorpusForFilter('stars') ??
     [];
+
+  const focusedEntity =
+    storeApi.getState().getEntitiesByState('focused')[0] ??
+    (urlFocusSlug
+      ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
+      : null);
   const matchedEntry = focusedEntity
     ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
     : undefined;
@@ -82,6 +107,7 @@ const useResolvedSystemDetails = (
     urlSystemEntry?.s ??
     urlSystemEntry?.i ??
     focusedEntity?.id ??
+    urlSystemSlug ??
     '';
 
   useEffect(() => {
@@ -113,7 +139,7 @@ const useResolvedSystemDetails = (
     };
   }, [focusedEntity, initialCorpus, shouldFetchShards, targetSystemId]);
 
-  const focusedDetails = buildFocusedEntityDetails({
+  const systemContextDetails = buildFocusedEntityDetails({
     focusedEntity,
     corpus: activeCorpus,
     summaryNode: getCachedSummaryNode(targetSystemId),
@@ -123,121 +149,130 @@ const useResolvedSystemDetails = (
       : undefined,
     urlSystemSlug,
     hasExplicitFocus,
+    viewScope: 'system',
+    currentPathname: pathname,
+    currentSearch: search,
   });
+
+  const focusedDetails = focusedEntity ? systemContextDetails : null;
 
   return {
     focusedDetails,
+    systemContextDetails,
+    focusedEntity,
     activeCorpus,
     urlSystemSlug,
     hasExplicitFocus,
   };
 };
 
-const SystemBreadcrumbsRegion: React.FC<SystemViewProps> = (props) => {
-  const { focusedDetails, urlSystemSlug, hasExplicitFocus } =
-    useResolvedSystemDetails(props, false);
-  const items = buildSystemViewBreadcrumbs(
-    focusedDetails,
-    urlSystemSlug,
-    hasExplicitFocus,
-  );
-  return <Breadcrumbs items={items} />;
-};
-
-export const BodiesPanel: React.FC<SystemViewProps> = (props) => {
+export const SystemView: React.FC<SystemViewProps> = (props) => {
+  const { initialCorpus, locationPathname, locationSearch } = props;
   const storeApi = useSpatialEntityStoreApi();
-  useSpatialEntityStore((state) => state.entities);
-  useSpatialEntityStore((state) => state.focusedId);
   useSpatialEntityStore((state) => state.selectedId);
   useSpatialEntityStore((state) => state.selectedIds);
-  useSpatialEntityStore((state) => state.hoveredId);
 
-  const { focusedDetails } = useResolvedSystemDetails(props);
+  const {
+    focusedDetails,
+    systemContextDetails,
+    focusedEntity,
+    activeCorpus,
+    urlSystemSlug,
+  } = useResolvedSystemDetails(props, true);
 
-  const state = storeApi.getState();
-  const focusedEntities = state.getEntitiesByState('focused');
-  const selectedEntities = state.getEntitiesByState('selected');
+  const pathname =
+    locationPathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : '/system/sol');
+  const targetId = extractUrlSystemSlug(pathname) ?? 'sol';
+  const search =
+    locationSearch ??
+    (typeof window !== 'undefined' ? window.location.search : '');
+  const cameraState = extractUrlSceneCameraState(search);
 
-  return (
-    <section aria-labelledby="bodies-panel-heading" data-testid="bodies-panel">
-      <h2 id="bodies-panel-heading">Bodies</h2>
-      <section
-        aria-labelledby="bodies-focused-heading"
-        data-testid="bodies-focused-section"
-      >
-        <h3 id="bodies-focused-heading">Focused</h3>
-        <ul data-testid="bodies-focused-list">
-          {focusedEntities.map((entity) => (
-            <li
-              key={entity.id}
-              data-testid="bodies-focused-item"
-              data-entity-id={entity.id}
-            >
-              {focusedDetails && focusedDetails.id === entity.id
-                ? focusedDetails.name
-                : entity.name}
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section
-        aria-labelledby="bodies-selected-heading"
-        data-testid="bodies-selected-section"
-      >
-        <h3 id="bodies-selected-heading">Selected</h3>
-        <ul data-testid="bodies-selected-list">
-          {selectedEntities.map((entity) => (
-            <li
-              key={entity.id}
-              data-testid="bodies-selected-item"
-              data-entity-id={entity.id}
-            >
-              {entity.name}
-            </li>
-          ))}
-        </ul>
-      </section>
-    </section>
+  const breadcrumbs = buildSystemViewBreadcrumbs(
+    systemContextDetails,
+    urlSystemSlug,
   );
-};
 
-const SystemDetailsAndElementsRegion: React.FC<SystemViewProps> = (props) => {
-  const { focusedDetails, activeCorpus } = useResolvedSystemDetails(
-    props,
-    true,
-  );
-  const systemElements = buildSystemElementsSummary({
-    details: focusedDetails,
+  const storeSelected = storeApi
+    .getState()
+    .getEntitiesByState('selected');
+  const selectedEntities =
+    storeSelected.length > 0
+      ? storeSelected
+      : resolveSelectedSystemsFromUrlSelect(search, activeCorpus);
+  const selectedEntityIds = selectedEntities.map((e) => e.id);
+
+  const systemBodies = buildSystemBodiesSummary({
+    details: systemContextDetails,
     corpus: activeCorpus,
+    selectedEntityIds,
+    focusedEntityId: focusedEntity?.id,
   });
 
-  return (
-    <>
-      <DetailsPanel details={focusedDetails} />
-      <SystemElementsPanel elements={systemElements} />
-    </>
+  const orbitalSchematic = buildSystemOrbitalSchematic(
+    systemBodies,
+    activeCorpus,
   );
-};
 
-export const SystemView: React.FC<SystemViewProps> = ({
-  initialCorpus,
-  locationPathname,
-  locationSearch,
-}) => {
+  const focusedPreview = buildFocusedPreviewSummary(
+    focusedDetails,
+    focusedEntity ? getCachedDetailRecord(focusedEntity.id) : undefined,
+  );
+
+  const minimapOrientation = systemBodies
+    ? buildSystemMinimapOrientation(
+        systemBodies,
+        orbitalSchematic,
+        systemContextDetails ?? focusedDetails,
+        focusedEntity,
+        selectedEntities,
+        cameraState,
+      )
+    : null;
+
+  const routeStops = extractUrlRouteStops(search);
+  const routeOptionId = extractUrlJourneyOptionId(search);
+  const activeJourney = routeStops
+    ? buildJourneyPlan({
+        stops: routeStops,
+        selectedOptionId: routeOptionId,
+        corpus: activeCorpus,
+        viewScope: 'system',
+        currentPathname: pathname,
+        currentSearch: search,
+      })
+    : null;
+
   return (
     <main data-testid="system-view-root">
-      <SystemBreadcrumbsRegion
-        initialCorpus={initialCorpus}
-        locationPathname={locationPathname}
-        locationSearch={locationSearch}
+      <CanvasLayer
+        scope="system"
+        targetId={targetId}
+        centerId={cameraState.center}
+        centerCoordinates={
+          cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
+            ? [cameraState.x, cameraState.y, cameraState.z]
+            : undefined
+        }
+        cameraAzimuthDeg={cameraState.az}
+        cameraElevationDeg={cameraState.el}
+        cameraDistance={cameraState.dist}
+        journeyLegs={activeJourney?.chordLegs}
+        activeJourneyMethod={
+          activeJourney?.selectedOption?.id ??
+          activeJourney?.options[0]?.id
+        }
       />
+      <Breadcrumbs items={breadcrumbs} />
+      <ControlBar scope="system" />
       <Search.Root
         limitPerCategory={3}
         initialCorpus={initialCorpus}
         locationPathname={locationPathname}
         locationSearch={locationSearch}
       >
-        <Search.Panel />
+        <Search.Panel scope="system" />
         <Search.Results
           searchViewPath="/search"
           renderItem={(result) => (
@@ -245,16 +280,14 @@ export const SystemView: React.FC<SystemViewProps> = ({
           )}
         />
       </Search.Root>
-      <BodiesPanel
-        initialCorpus={initialCorpus}
-        locationPathname={locationPathname}
-        locationSearch={locationSearch}
-      />
-      <SystemDetailsAndElementsRegion
-        initialCorpus={initialCorpus}
-        locationPathname={locationPathname}
-        locationSearch={locationSearch}
-      />
+      {activeJourney ? (
+        <DirectionsPanel journey={activeJourney} />
+      ) : (
+        <DetailsPanel details={focusedDetails} />
+      )}
+      <PreviewPanel preview={focusedPreview} />
+      <Minimap orientation={minimapOrientation} />
+      <BodiesPanel elements={systemBodies} schematic={orbitalSchematic} />
     </main>
   );
 };

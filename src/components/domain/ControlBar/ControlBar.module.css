@@ -1,0 +1,47 @@
+.controlBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.timeController {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.modeGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.shortcutsList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-interface);
+  font-size: var(--text-xs);
+  color: var(--content-secondary);
+}
+
+.shortcutItem {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.kbd {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs);
+  padding: 0.1em 0.3em;
+  border-radius: var(--radius-xs, 2px);
+  background-color: var(--surface-raised);
+  border: var(--border-width-1) solid var(--border-subtle);
+  color: var(--content-prominent);
+}
+

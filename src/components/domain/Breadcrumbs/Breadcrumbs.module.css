@@ -1,0 +1,47 @@
+@layer domain {
+  .breadcrumbsNav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-fib-4);
+    flex-wrap: wrap;
+  }
+
+  .breadcrumbsList {
+    display: flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .breadcrumbItem {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+  }
+
+  .breadcrumbItem + .breadcrumbItem::before {
+    content: '/';
+    color: var(--content-muted);
+  }
+
+  .companionLink {
+    font-family: var(--font-interface);
+    font-size: var(--text-ui-button-size);
+    font-weight: 600;
+    color: var(--content-accent);
+    text-decoration: none;
+    padding: var(--space-inset-button-sm-y) var(--space-inset-button-sm-x);
+    border: var(--border-width-1) solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-overlay);
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+
+  .companionLink:hover {
+    background-color: var(--surface-raised);
+    color: var(--content-prominent);
+  }
+}

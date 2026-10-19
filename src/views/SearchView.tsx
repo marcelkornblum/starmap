@@ -12,7 +12,7 @@ export const SearchView: React.FC = () => {
         ]}
       />
       <Search.Root>
-        <Search.Panel />
+        <Search.Panel scope="search" />
         <Search.Results
           renderItem={(result) => (
             <SearchResultItem key={result.id} result={result} />

@@ -30,6 +30,7 @@ import {
   type SearchResultItem,
 } from '../../services/searchService';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
+import { extractUrlRouteStops } from '../../services/journeyService';
 import { useSpatialEntityStoreApi } from '../canvas/entity/SpatialEntityContext';
 import type { SpatialEntityStore } from '../canvas/entity/SpatialEntityStore';
 import { SearchResultItem as SearchResultItemRow } from '../domain';
@@ -117,9 +118,13 @@ const syncUrlFocusToStore = (
   focusSlug: string | null,
   corpus: readonly CompactSearchEntry[],
   fallbackFocusIdRef?: { current: string | null },
+  activeSearch = '',
 ): void => {
   const state = store.getState();
-  if (!focusSlug) {
+  const routeStops = extractUrlRouteStops(activeSearch);
+  const firstRouteStop = routeStops && routeStops.length > 0 ? routeStops[0] : null;
+
+  if (!focusSlug && !firstRouteStop) {
     if (fallbackFocusIdRef?.current) {
       state.unregisterEntity(fallbackFocusIdRef.current);
       fallbackFocusIdRef.current = null;
@@ -128,24 +133,47 @@ const syncUrlFocusToStore = (
     return;
   }
 
-  const entity = resolveFocusedEntityFromCorpus(focusSlug, corpus);
-  if (!entity) {
+  const primaryEntity = focusSlug
+    ? resolveFocusedEntityFromCorpus(focusSlug, corpus)
+    : null;
+  const routeOriginEntity = firstRouteStop
+    ? resolveFocusedEntityFromCorpus(firstRouteStop, corpus)
+    : null;
+
+  if (!primaryEntity && !routeOriginEntity) {
     state.setFocused(null);
     return;
   }
 
   if (
     fallbackFocusIdRef?.current &&
-    fallbackFocusIdRef.current !== entity.id
+    fallbackFocusIdRef.current !== primaryEntity?.id &&
+    fallbackFocusIdRef.current !== routeOriginEntity?.id
   ) {
     state.unregisterEntity(fallbackFocusIdRef.current);
   }
-  if (fallbackFocusIdRef) {
+  if (fallbackFocusIdRef && focusSlug && primaryEntity) {
     const matchedInCorpus = findFocusedEntryInCorpus(focusSlug, corpus);
-    fallbackFocusIdRef.current = matchedInCorpus ? null : entity.id;
+    fallbackFocusIdRef.current = matchedInCorpus ? null : primaryEntity.id;
   }
-  state.registerEntity(entity);
-  state.setFocused(entity.id);
+
+  const focusedIds: string[] = [];
+  if (primaryEntity) {
+    state.registerEntity(primaryEntity);
+    focusedIds.push(primaryEntity.id);
+  }
+  if (routeOriginEntity) {
+    state.registerEntity(routeOriginEntity);
+    if (!focusedIds.includes(routeOriginEntity.id)) {
+      focusedIds.push(routeOriginEntity.id);
+    }
+  }
+
+  if (focusedIds.length === 1) {
+    state.setFocused(focusedIds[0]);
+  } else {
+    state.setFocusedIds(focusedIds);
+  }
 };
 
 export const SearchRoot = ({
@@ -223,7 +251,13 @@ export const SearchRoot = ({
         activePathname,
         activeSearch,
       );
-      syncUrlFocusToStore(store, initialFocusSlug, focusCorpus);
+      syncUrlFocusToStore(
+        store,
+        initialFocusSlug,
+        focusCorpus,
+        undefined,
+        activeSearch,
+      );
     }
 
     return computed;
@@ -425,6 +459,7 @@ export const SearchRoot = ({
           focusSlug,
           initialCorpus,
           fallbackFocusIdRef,
+          activeSearch,
         );
       }
       return;
@@ -452,7 +487,9 @@ export const SearchRoot = ({
         if (cancelled) {
           return;
         }
+
         const systemEntries = coreShard ?? getCachedCorpusForFilter('all');
+
         if (startQuery.trim().length > 0) {
           const computed = executeCatalogSearch(corpus, {
             query: startQuery,
@@ -515,6 +552,7 @@ export const SearchRoot = ({
             focusSlug,
             focusCorpus,
             fallbackFocusIdRef,
+            activeSearch,
           );
         }
       })
@@ -684,18 +722,24 @@ export const SearchCategoryFilterSelect = ({
 export interface SearchPanelProps {
   readonly heading?: string;
   readonly children?: ReactNode;
+  readonly scope?: 'galaxy' | 'system' | 'planet' | 'search';
 }
 
 export const SearchPanel = ({
   heading = 'Search',
   children,
+  scope,
 }: SearchPanelProps) => {
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
   };
 
   return (
-    <section aria-labelledby="search-panel-heading" data-testid="search-panel">
+    <section
+      aria-labelledby="search-panel-heading"
+      data-testid="search-panel"
+      data-scope={scope}
+    >
       <h2 id="search-panel-heading">{heading}</h2>
       <form role="search" onSubmit={handleSubmit}>
         {children ?? (

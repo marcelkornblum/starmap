@@ -7,11 +7,16 @@ export interface UnitProps extends HTMLAttributes<HTMLSpanElement> {
    * If true, renders unit surrounded by parentheses, e.g. (AU).
    */
   inParens?: boolean;
+  /**
+   * Optional URL linking the unit to its metric guide definition.
+   */
+  href?: string;
 }
 
 export const Unit = ({
   children,
   inParens = false,
+  href,
   className,
   ...rest
 }: UnitProps) => {
@@ -29,9 +34,17 @@ export const Unit = ({
       : <>({children})</>
     : children;
 
+  const inner = href ? (
+    <a href={href} className={styles.unitLink}>
+      {content}
+    </a>
+  ) : (
+    content
+  );
+
   return (
     <span className={combinedClassName} data-unit="true" {...rest}>
-      {content}
+      {inner}
     </span>
   );
 };
