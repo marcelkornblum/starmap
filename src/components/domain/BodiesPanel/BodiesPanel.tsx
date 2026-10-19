@@ -1,4 +1,4 @@
-import type React from 'react';
+import React, { useMemo } from 'react';
 import {
   buildPlanetaryOrbitalSchematic,
   buildSystemOrbitalSchematic,
@@ -7,6 +7,7 @@ import {
 } from '../../../services/detailsService';
 import { Badge } from '../../interface/information';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
+import styles from './BodiesPanel.module.css';
 
 export interface BodiesPanelProps {
   readonly elements: BodiesPanelSummary | null;
@@ -14,6 +15,12 @@ export interface BodiesPanelProps {
 }
 
 export const BodiesPanel: React.FC<BodiesPanelProps> = ({ elements, schematic }) => {
+  const selectedEntityIds = elements?.selectedEntityIds;
+  const selectedSet = useMemo(
+    () => new Set(selectedEntityIds ?? []),
+    [selectedEntityIds],
+  );
+
   if (!elements) {
     return null;
   }
@@ -22,11 +29,8 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({ elements, schematic })
     scope,
     systemId,
     focusedEntityId,
-    selectedEntityIds,
     minorBodiesAndSpacecraft,
   } = elements;
-
-  const selectedSet = new Set(selectedEntityIds ?? []);
 
   const resolvedSchematic =
     schematic ??
@@ -41,8 +45,9 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({ elements, schematic })
       data-scope={scope}
       data-system-id={systemId}
       data-planet-id={scope === 'planet' ? elements.planetId : undefined}
+      className={styles.root}
     >
-      <h2 id="bodies-panel-heading">
+      <h2 id="bodies-panel-heading" className={styles.heading}>
         {scope === 'system' ? 'System Bodies' : 'Planetary Bodies'}
       </h2>
 
@@ -52,8 +57,11 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({ elements, schematic })
         data-scope={scope}
         data-system-id={systemId}
         data-planet-id={scope === 'planet' ? elements.planetId : undefined}
+        className={styles.section}
       >
-        <h3 id="bodies-schematic-heading">Orbital Schematic</h3>
+        <h3 id="bodies-schematic-heading" className={styles.sectionHeading}>
+          Orbital Schematic
+        </h3>
         {resolvedSchematic && resolvedSchematic.items.length > 0 ? (
           <OrbitalSchematicList items={resolvedSchematic.items} />
         ) : (
@@ -65,11 +73,15 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({ elements, schematic })
         <section
           aria-labelledby="bodies-minor-bodies-heading"
           data-testid="bodies-minor-bodies-section"
+          className={styles.section}
         >
-          <h3 id="bodies-minor-bodies-heading">
+          <h3 id="bodies-minor-bodies-heading" className={styles.sectionHeading}>
             Minor Bodies &amp; Spacecraft
           </h3>
-          <ul data-testid="bodies-minor-bodies-list">
+          <ul
+            data-testid="bodies-minor-bodies-list"
+            className={styles.minorBodiesList}
+          >
             {minorBodiesAndSpacecraft.map((body) => (
               <li
                 key={body.id}
@@ -77,6 +89,7 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({ elements, schematic })
                 data-body-id={body.id}
                 data-focused={focusedEntityId === body.id ? 'true' : undefined}
                 data-selected={selectedSet.has(body.id) ? 'true' : undefined}
+                className={styles.minorBodyItem}
               >
                 <a href={body.href} data-testid="bodies-minor-body-link">
                   {body.name}

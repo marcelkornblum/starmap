@@ -38,7 +38,7 @@
 .comparisonRatio {
   padding: var(--space-fib-2) var(--space-fib-3);
   border-radius: var(--radius-sm);
-  background-color: var(--palette-accent-focus-subtle);
+  background-color: var(--surface-overlay);
   color: var(--content-accent);
   font-family: var(--font-data);
   font-weight: 600;

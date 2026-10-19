@@ -37,8 +37,10 @@
   overflow: hidden;
 }
 
-.detailPreviewSlot {
-  height: 210px;
+@layer exceptions {
+  .previewSlot[data-detail="true"] {
+    height: 210px;
+  }
 }
 
 .sphereVisual {

@@ -51,26 +51,21 @@ export type Guide3DPreviewProps =
   | GuideHazardPreviewProps;
 
 export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
-  const rootClass = [
-    styles.previewSlot,
-    props.isDetail ? styles.detailPreviewSlot : undefined,
-    props.className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const detailAttr = props.isDetail ? 'true' : undefined;
 
   if (props.kind === 'star') {
     return (
       <div
         data-testid="guide-3d-preview"
         data-preview-kind="star"
+        data-detail={detailAttr}
         data-spectral-class={props.spectralClass}
         data-spectral-letter={props.spectralLetter}
         data-luminosity-class={props.luminosityClass}
         data-radius-rsun={props.radiusRsun}
         data-temp-k={props.tempK}
         data-chromaticity-hex={props.chromaticityHex}
-        className={rootClass}
+        className={styles.previewSlot}
       >
         <div
           className={styles.sphereVisual}
@@ -88,10 +83,11 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
       <div
         data-testid="guide-3d-preview"
         data-preview-kind="planet"
+        data-detail={detailAttr}
         data-composition={props.composition}
         data-radius-rearth={props.radiusRearth}
         data-texture-theme={props.textureTheme}
-        className={rootClass}
+        className={styles.previewSlot}
       >
         <div
           className={styles.sphereVisual}
@@ -109,10 +105,11 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
       <div
         data-testid="guide-3d-preview"
         data-preview-kind="hazard"
+        data-detail={detailAttr}
         data-hazard-id={props.hazardId}
         data-hazard-domain={props.domain}
         data-hazard-severity={props.severity}
-        className={rootClass}
+        className={styles.previewSlot}
       >
         <div
           className={styles.sphereVisual}
@@ -132,10 +129,11 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
     <div
       data-testid="guide-3d-preview"
       data-preview-kind="metric"
+      data-detail={detailAttr}
       data-metric-id={props.metricId}
       data-unit={props.unit}
       data-comparison-target={props.comparisonTarget}
-      className={rootClass}
+      className={styles.previewSlot}
     >
       <div className={styles.metricComparisonStage}>
         <div className={styles.metricEntityStage}>
