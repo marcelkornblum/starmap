@@ -684,18 +684,24 @@ export const SearchCategoryFilterSelect = ({
 export interface SearchPanelProps {
   readonly heading?: string;
   readonly children?: ReactNode;
+  readonly scope?: 'galaxy' | 'system' | 'planet' | 'search';
 }
 
 export const SearchPanel = ({
   heading = 'Search',
   children,
+  scope,
 }: SearchPanelProps) => {
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
   };
 
   return (
-    <section aria-labelledby="search-panel-heading" data-testid="search-panel">
+    <section
+      aria-labelledby="search-panel-heading"
+      data-testid="search-panel"
+      data-scope={scope}
+    >
       <h2 id="search-panel-heading">{heading}</h2>
       <form role="search" onSubmit={handleSubmit}>
         {children ?? (

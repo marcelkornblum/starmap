@@ -115,10 +115,6 @@ const meta: Meta<typeof TypographyReview> = {
       control: 'text',
       description: 'Body description text',
     },
-    showThemeSwitcher: {
-      control: 'boolean',
-      description: 'Show interactive theme switcher bar at the top',
-    },
   },
 };
 
@@ -148,7 +144,6 @@ export const DefaultCarbon: Story = {
     palette: 'carbon',
     theme: 'dark',
     selectedOrbitId: 'earth',
-    showThemeSwitcher: true,
   },
 };
 

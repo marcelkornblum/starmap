@@ -1000,6 +1000,10 @@ export interface CompactSearchEntry {
   u?: CelestialClassification;
   /** Precalculated habitable zone candidate flag (`1` = true) on planet entries (`k: 2`) */
   z?: 1;
+  /** Precalculated 1-indexed radial orbital rank within parent system or host planet (1 = closest orbit to primary, N = furthest) */
+  r?: number;
+  /** Precalculated orbital region overlap ('belt' = Main Asteroid Belt, 'kuiper' = Kuiper Belt / Outer Disk) */
+  e?: 'belt' | 'kuiper';
   /** Precalculated parent body ID (`parentBodyId`) when orbiting a planet/dwarf-planet (e.g. `'earth'`, `'jupiter'`) */
   o?: string;
   h?: 1;
@@ -1194,6 +1198,18 @@ export function buildSearchIndices(input: {
       continue;
     }
     const hostAliases = input.starAliasesById?.get(manifest.id) ?? [];
+    const sortedPlanets = [...manifest.planets].sort(
+      (a, b) =>
+        (a.orbit?.semiMajorAxis ?? Number.POSITIVE_INFINITY) -
+        (b.orbit?.semiMajorAxis ?? Number.POSITIVE_INFINITY),
+    );
+    const exoplanetRankMap = new Map<string, number>();
+    sortedPlanets.forEach((p, idx) => {
+      if (p.orbit?.semiMajorAxis !== undefined) {
+        exoplanetRankMap.set(p.id, idx + 1);
+      }
+    });
+
     for (const planet of manifest.planets) {
       const cleanKeys = buildCleanKeys([
         planet.name,
@@ -1223,6 +1239,9 @@ export function buildSearchIndices(input: {
         p: [manifest.x, manifest.y, manifest.z],
         a: cleanKeys,
       };
+      if (exoplanetRankMap.has(planet.id)) {
+        planetEntry.r = exoplanetRankMap.get(planet.id);
+      }
       if (comp !== 'terrestrial') {
         planetEntry.u = comp;
       }
@@ -1237,8 +1256,42 @@ export function buildSearchIndices(input: {
   }
 
   // 3. Index Solar System Bodies (Planets, Dwarf Planets, Moons vs Minor Bodies)
+  const orbitRankMap = new Map<string, number>();
+  const solarBodiesByParent = new Map<string, SolarSystemBodyRecord[]>();
+
   for (const body of input.solarBodies) {
     if (body.classification === 'Star') continue;
+    if (body.orbit?.semiMajorAxis !== undefined && body.orbit.semiMajorAxis > 0) {
+      const parentKey =
+        body.parentBodyId && body.parentBodyId !== 'sol'
+          ? body.parentBodyId
+          : 'sol';
+      let list = solarBodiesByParent.get(parentKey);
+      if (!list) {
+        list = [];
+        solarBodiesByParent.set(parentKey, list);
+      }
+      list.push(body);
+    }
+  }
+
+  for (const [, bodies] of solarBodiesByParent) {
+    bodies.sort((a, b) => {
+      const diff = (a.orbit?.semiMajorAxis ?? 0) - (b.orbit?.semiMajorAxis ?? 0);
+      if (diff !== 0) return diff;
+      return a.id.localeCompare(b.id);
+    });
+    bodies.forEach((b, idx) => {
+      orbitRankMap.set(b.id, idx + 1);
+    });
+  }
+
+  for (const body of input.solarBodies) {
+    if (body.classification === 'Star') continue;
+    const parentKey =
+      body.parentBodyId && body.parentBodyId !== 'sol'
+        ? body.parentBodyId
+        : 'sol';
     const cleanKeys = buildCleanKeys([body.name, body.id, ...(body.tags ?? [])]);
 
     if (
@@ -1258,6 +1311,32 @@ export function buildSearchIndices(input: {
       };
       if (body.parentBodyId && body.parentBodyId !== 'sol') {
         entry.o = body.parentBodyId;
+      }
+      if (orbitRankMap.has(body.id)) {
+        entry.r = orbitRankMap.get(body.id);
+      }
+      if (parentKey === 'sol') {
+        if (
+          body.orbit?.semiMajorAxis !== undefined &&
+          body.orbit.semiMajorAxis >= 0.75 &&
+          body.orbit.semiMajorAxis <= 1.77
+        ) {
+          entry.z = 1;
+        }
+        if (
+          body.classification === 'DwarfPlanet' &&
+          body.orbit?.semiMajorAxis !== undefined &&
+          body.orbit.semiMajorAxis >= 2.0 &&
+          body.orbit.semiMajorAxis <= 3.5
+        ) {
+          entry.e = 'belt';
+        } else if (
+          body.classification === 'DwarfPlanet' &&
+          body.orbit?.semiMajorAxis !== undefined &&
+          body.orbit.semiMajorAxis >= 30
+        ) {
+          entry.e = 'kuiper';
+        }
       }
       if (body.classification === 'Planet') {
         const mEarth =
@@ -1297,6 +1376,29 @@ export function buildSearchIndices(input: {
       };
       if (body.parentBodyId && body.parentBodyId !== 'sol') {
         entry.o = body.parentBodyId;
+      }
+      if (orbitRankMap.has(body.id)) {
+        entry.r = orbitRankMap.get(body.id);
+      }
+      if (parentKey === 'sol') {
+        if (
+          body.orbit?.semiMajorAxis !== undefined &&
+          body.orbit.semiMajorAxis >= 0.75 &&
+          body.orbit.semiMajorAxis <= 1.77
+        ) {
+          entry.z = 1;
+        }
+        if (
+          body.classification === 'AsteroidMainBelt' ||
+          (body.classification === 'Comet' &&
+            body.orbit?.semiMajorAxis !== undefined &&
+            body.orbit.semiMajorAxis >= 2.0 &&
+            body.orbit.semiMajorAxis <= 3.5)
+        ) {
+          entry.e = 'belt';
+        } else if (body.classification === 'AsteroidDistant') {
+          entry.e = 'kuiper';
+        }
       }
       if (body.tags?.includes('Spacecraft')) {
         entry.u = 'artificial';

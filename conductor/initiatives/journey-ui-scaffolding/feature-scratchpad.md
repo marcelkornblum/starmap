@@ -60,4 +60,20 @@ Items logged here are held for later consideration and graduation into formal tr
 - **Behaviour:**
   - Structured `.github/ISSUE_TEMPLATE/` forms (Bug Report, Feature Request, Canon/Data Addition) paired with an in-app feedback link/action that pre-populates the GitHub New Issue URL with relevant context (e.g., current route URL, active view, or selected celestial entity).
 
+### FS-010: Dedicated `<CanonLayersPanel />` (Journey 3: Serendipitous & Canon Discovery)
+- **Concept:** Since `Canon Layers` are narrative/universe metadata rather than physical orbital data, they were removed from `<BodiesPanel />` (`DEC-018`) while remaining on `<DetailsPanel />`.
+- **Behaviour:**
+  - Introduce a dedicated `<CanonLayersPanel />` in Journey 3 (`conductor/tracks/journey-ui-scaffolding_03_...`) for browsing, toggling, and stepping through fictional universe canons and narrative annotations across `GalaxyView`, `SystemView`, and `PlanetView`.
+
+### FS-011: 3D Guide Renderings, Edge-Truncated Cross-Section Cutaways, 3-Slice Yerkes Combinator & Comparative Metric Visualiser (Stage 3 R3F Integration)
+- **Concept:** Every Guide list item and detail view (`/guide/star-types`, `/guide/star-types/$starType`, `/guide/planet-types`, `/guide/planet-types/$planetType`, `/guide/metrics`, `/guide/metrics/$metricId`) exposes a 3D rendering viewport slot (`data-testid="guide-3d-preview"`).
+- **Behaviour:**
+  - **Oversized Edge-Truncated 3D Spheres with Internal Cross-Section Cutaways (`data-testid="guide-3d-cross-section"`):**
+    - Star and planet 3D spheres are rendered at a larger comparative scale and offset above/against the edge of their preview container so the sphere is truncated by the frame boundary and exposes a 3D cutaway cross-section of the interior structure (e.g., Stellar Core → Radiative Zone → Convective Envelope → Photosphere; Planetary Iron-Nickel Core → Silicate/Metallic-Hydrogen Mantle → Ice/Gas Envelope → Crust/Cloud Tops).
+  - **3-Slice Yerkes Spectral Combinator (`data-testid="star-type-combinator"` on `/guide/star-types/$starType`):**
+    - Interactive 3-slice selector ("flip-book" in 3 slices: **Slice 1: Spectral Class `O`–`D`**, **Slice 2: Temperature Subdivision `0`–`9`**, **Slice 3: Luminosity Class `I`–`VII`**) that dynamically updates the 3D star sphere's scale, blackbody colour, cutaway layers, and computed telemetry ($T_{\text{eff}}$, $R_\odot$, $L_\odot$, Habitable Zone $\text{AU}$).
+  - **3D Comparative Metric Visualiser (`data-testid="metric-comparative-3d"`), Familiar Units (`light-years`, `light-minutes`, `°C`, `Earth years`), & Focused-Entity Context (`?focus=<entityId>`):**
+    - Metric list and detail pages convert technical astronomical units into familiar units (`pc` → `light-years (ly)` & `trillion km`, `AU` → `light-minutes` & `million km`, `d` → `Earth years`, `K` → `°C / °F`) and render a 3D comparative visualisation (`data-testid="metric-comparative-3d"`) comparing **Earth / Sol** against whichever entity was focused when navigating to the metric page (`?focus=<entityId>`).
+
+
 

@@ -15,4 +15,15 @@
     white-space: nowrap;
     margin: 0;
   }
+
+  .unitLink {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+  }
+
+  .unitLink:hover {
+    text-decoration-style: solid;
+  }
 }

@@ -1,0 +1,459 @@
+@layer views {
+  .guideRoot {
+    --star-chromaticity-o: #9bb0ff;
+    --star-chromaticity-b: #aabfff;
+    --star-chromaticity-a: #cad7ff;
+    --star-chromaticity-f: #f8f7ff;
+    --star-chromaticity-g: #fff4ea;
+    --star-chromaticity-k: #ffd2a1;
+    --star-chromaticity-m: #ffcc6f;
+    --star-chromaticity-l: #ff6b3d;
+    --star-chromaticity-d: #e6f0ff;
+
+    --planet-theme-terrestrial: #4da6ff;
+    --planet-theme-ice-giant: #5ce6e6;
+    --planet-theme-gas-giant: #e6a85c;
+
+    --sphere-highlight-high: rgba(255, 255, 255, 0.92);
+    --sphere-highlight-mid: rgba(255, 255, 255, 0.45);
+    --sphere-highlight-low: rgba(255, 255, 255, 0.25);
+    --sphere-highlight-band: rgba(255, 255, 255, 0.16);
+    --sphere-shadow-soft: rgba(0, 0, 0, 0.35);
+    --sphere-shadow-band: rgba(0, 0, 0, 0.22);
+    --sphere-shadow-deep: rgba(0, 0, 0, 0.55);
+    --sphere-shadow-inset: rgba(0, 0, 0, 0.75);
+    --sphere-shadow-base: rgba(0, 0, 0, 0.82);
+    --sphere-planet-dark: #05070b;
+    --sphere-planet-glow: rgba(120, 180, 255, 0.25);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-4);
+    padding: var(--space-inset-panel);
+    color: var(--content-default);
+    font-family: var(--font-interface);
+    max-width: 1200px;
+  }
+
+  .sectionNav {
+    display: flex;
+    border-bottom: var(--border-width-1) solid var(--border-subtle);
+    padding-bottom: var(--space-fib-3);
+  }
+
+  .sectionNavList {
+    display: flex;
+    gap: var(--space-fib-4);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .sectionNavLink {
+    color: var(--content-muted);
+    text-decoration: none;
+    font-size: var(--text-ui-nav-tab-size);
+    font-weight: 500;
+    padding: var(--space-fib-2) var(--space-fib-3);
+    border-radius: var(--radius-sm);
+    transition: color 150ms ease, background-color 150ms ease;
+  }
+
+  .sectionNavLink:hover {
+    color: var(--content-prominent);
+    background-color: var(--surface-overlay);
+  }
+
+  .sectionNavLink[aria-current='page'] {
+    color: var(--content-accent);
+    background-color: var(--surface-overlay);
+    font-weight: 600;
+  }
+
+  .cardList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-fib-4);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .cardItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-3);
+    padding: var(--space-inset-card);
+    border: var(--border-width-1) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+  }
+
+  .cardLink {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-3);
+    color: inherit;
+    text-decoration: none;
+    width: 100%;
+    height: 100%;
+  }
+
+  .cardLink:hover {
+    text-decoration: none;
+  }
+
+  .previewSlot {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 168px;
+    border-radius: var(--radius-sm);
+    background: radial-gradient(circle at center, var(--surface-overlay) 0%, var(--surface-base) 100%);
+    border: var(--border-width-1) solid var(--border-subtle);
+    overflow: hidden;
+  }
+
+  .detailPreviewSlot {
+    height: 210px;
+  }
+
+  .sphereVisual {
+    position: relative;
+    width: 108px;
+    height: 108px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 200ms ease, height 200ms ease, transform 200ms ease;
+  }
+
+  /* Common comparative scale for Star Types list & detail views */
+  .previewSlot[data-spectral-class="O"] .sphereVisual,
+  .previewSlot[data-spectral-letter="O"] .sphereVisual {
+    width: 210px;
+    height: 210px;
+  }
+  .previewSlot[data-spectral-class="B"] .sphereVisual,
+  .previewSlot[data-spectral-letter="B"] .sphereVisual {
+    width: 176px;
+    height: 176px;
+  }
+  .previewSlot[data-spectral-class="A"] .sphereVisual,
+  .previewSlot[data-spectral-letter="A"] .sphereVisual {
+    width: 148px;
+    height: 148px;
+  }
+  .previewSlot[data-spectral-class="F"] .sphereVisual,
+  .previewSlot[data-spectral-letter="F"] .sphereVisual {
+    width: 126px;
+    height: 126px;
+  }
+  .previewSlot[data-spectral-class="G"] .sphereVisual,
+  .previewSlot[data-spectral-letter="G"] .sphereVisual {
+    width: 108px;
+    height: 108px;
+  }
+  .previewSlot[data-spectral-class="K"] .sphereVisual,
+  .previewSlot[data-spectral-letter="K"] .sphereVisual {
+    width: 90px;
+    height: 90px;
+  }
+  .previewSlot[data-spectral-class="M"] .sphereVisual,
+  .previewSlot[data-spectral-letter="M"] .sphereVisual {
+    width: 68px;
+    height: 68px;
+  }
+  .previewSlot[data-spectral-class="L/T/Y"] .sphereVisual,
+  .previewSlot[data-spectral-letter="L"] .sphereVisual {
+    width: 48px;
+    height: 48px;
+  }
+  .previewSlot[data-spectral-class="D"] .sphereVisual,
+  .previewSlot[data-spectral-letter="D"] .sphereVisual,
+  .previewSlot[data-luminosity-class="VII"] .sphereVisual {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* Luminosity class expansion on the 3-slice combinator */
+  .previewSlot[data-luminosity-class="I"] .sphereVisual {
+    transform: scale(1.65);
+  }
+  .previewSlot[data-luminosity-class="III"] .sphereVisual {
+    transform: scale(1.35);
+  }
+  .previewSlot[data-luminosity-class="IV"] .sphereVisual {
+    transform: scale(1.15);
+  }
+
+  /* Common comparative scale for Planet Types */
+  .previewSlot[data-preview-kind="planet"][data-composition="Terrestrial"] .sphereVisual {
+    width: 80px;
+    height: 80px;
+    color: var(--planet-theme-terrestrial);
+  }
+  .previewSlot[data-preview-kind="planet"][data-composition="Ice Giant"] .sphereVisual {
+    width: 136px;
+    height: 136px;
+    color: var(--planet-theme-ice-giant);
+  }
+  .previewSlot[data-preview-kind="planet"][data-composition="Gas Giant"] .sphereVisual {
+    width: 200px;
+    height: 200px;
+    color: var(--planet-theme-gas-giant);
+  }
+
+  .sphereCore {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 32% 28%, var(--sphere-highlight-high) 0%, var(--sphere-highlight-low) 28%, transparent 55%),
+      radial-gradient(circle at 65% 68%, var(--sphere-shadow-soft) 0%, transparent 48%),
+      radial-gradient(circle at 40% 38%, #ffffff 0%, currentColor 54%, var(--sphere-shadow-base) 100%);
+    box-shadow:
+      inset -8px -8px 18px var(--sphere-shadow-deep),
+      0 0 28px currentColor;
+  }
+
+  .sphereVisual[data-kind="planet"] .sphereCore {
+    background:
+      radial-gradient(circle at 30% 28%, var(--sphere-highlight-mid) 0%, transparent 40%),
+      repeating-linear-gradient(
+        -14deg,
+        var(--sphere-highlight-band) 0px,
+        var(--sphere-highlight-band) 5px,
+        var(--sphere-shadow-band) 5px,
+        var(--sphere-shadow-band) 11px
+      ),
+      radial-gradient(circle at 35% 35%, currentColor 0%, currentColor 62%, var(--sphere-planet-dark) 100%);
+    box-shadow: inset -10px -10px 20px var(--sphere-shadow-inset), 0 0 14px var(--sphere-planet-glow);
+  }
+
+  .previewSlot[data-chromaticity-hex="#9bb0ff"] .sphereVisual { color: var(--star-chromaticity-o); }
+  .previewSlot[data-chromaticity-hex="#aabfff"] .sphereVisual { color: var(--star-chromaticity-b); }
+  .previewSlot[data-chromaticity-hex="#cad7ff"] .sphereVisual { color: var(--star-chromaticity-a); }
+  .previewSlot[data-chromaticity-hex="#f8f7ff"] .sphereVisual { color: var(--star-chromaticity-f); }
+  .previewSlot[data-chromaticity-hex="#fff4ea"] .sphereVisual { color: var(--star-chromaticity-g); }
+  .previewSlot[data-chromaticity-hex="#ffd2a1"] .sphereVisual { color: var(--star-chromaticity-k); }
+  .previewSlot[data-chromaticity-hex="#ffcc6f"] .sphereVisual { color: var(--star-chromaticity-m); }
+  .previewSlot[data-chromaticity-hex="#ff6b3d"] .sphereVisual { color: var(--star-chromaticity-l); }
+  .previewSlot[data-chromaticity-hex="#e6f0ff"] .sphereVisual { color: var(--star-chromaticity-d); }
+
+  .metricVisual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-data);
+    font-size: var(--type-scale-2);
+    color: var(--content-accent);
+  }
+
+  .metricComparisonStage {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: var(--space-fib-3);
+    width: 100%;
+    padding: 0 var(--space-fib-3);
+  }
+
+  .metricEntityStage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-fib-2);
+  }
+
+  .metricEntityStage .sphereVisual {
+    width: 56px;
+    height: 56px;
+  }
+
+  .metricEntityStage .sphereVisual[data-baseline="Sol"] {
+    color: var(--star-chromaticity-g);
+  }
+
+  .metricEntityStage .sphereVisual[data-baseline="Earth"] {
+    color: var(--planet-theme-terrestrial);
+  }
+
+  .metricEntityStage .sphereVisual[data-target="true"] {
+    width: 68px;
+    height: 68px;
+    color: var(--star-chromaticity-k);
+  }
+
+  .stageCaption {
+    font-family: var(--font-data);
+    font-size: var(--text-content-caption-size);
+    color: var(--content-prominent);
+    text-align: center;
+  }
+
+  .familiarConversion {
+    margin: 0;
+    font-family: var(--font-data);
+    font-size: var(--type-scale-0);
+    color: var(--content-accent);
+  }
+
+  .telemetryDl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: var(--space-fib-4);
+    row-gap: var(--space-fib-2);
+    padding: var(--space-inset-card-tight);
+    background-color: var(--surface-overlay);
+    border-radius: var(--radius-sm);
+    border: var(--border-width-1) solid var(--border-subtle);
+    margin: 0;
+  }
+
+  .telemetryDl dt {
+    font-family: var(--font-interface);
+    font-weight: 600;
+    color: var(--content-muted);
+  }
+
+  .telemetryDl dd {
+    margin: 0;
+    font-family: var(--font-data);
+    color: var(--content-prominent);
+  }
+
+  .combinatorSection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-fib-4);
+    align-items: start;
+    padding: var(--space-inset-card);
+    border: var(--border-width-1) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+  }
+
+  .combinatorControls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-3);
+  }
+
+  .sliceRow {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+  }
+
+  .sliceButtonGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-fib-2);
+  }
+
+  .sliceButton {
+    appearance: none;
+    border: var(--border-width-1) solid var(--border-subtle);
+    background-color: var(--surface-overlay);
+    color: var(--content-default);
+    padding: var(--space-inset-button-sm-y) var(--space-inset-button-sm-x);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-data);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+
+  .sliceButton:hover {
+    background-color: var(--surface-base);
+    color: var(--content-prominent);
+  }
+
+  .sliceButton[aria-pressed='true'] {
+    border-color: var(--palette-accent-focus);
+    background-color: var(--palette-accent-focus-subtle);
+    color: var(--content-prominent);
+  }
+
+  .sliceEffect {
+    font-size: var(--text-content-caption-size);
+    color: var(--content-muted);
+    margin: 0;
+  }
+
+  .combinatorOutput {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-3);
+    padding: var(--space-inset-card-tight);
+    border: var(--border-width-1) solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-overlay);
+  }
+
+  .examplesList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .exampleItem {
+    padding: var(--space-fib-2) var(--space-fib-3);
+    border-left: var(--border-width-2) solid var(--content-accent);
+    background-color: var(--surface-overlay);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+
+  .comparativeSection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-3);
+    padding: var(--space-inset-card);
+    border: var(--border-width-1) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--surface-raised);
+  }
+
+  .comparisonGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-fib-4);
+  }
+
+  .comparisonColumn {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+    padding: var(--space-inset-card-tight);
+    background-color: var(--surface-overlay);
+    border-radius: var(--radius-sm);
+    border: var(--border-width-1) solid var(--border-subtle);
+  }
+
+  .comparisonColumn h4 {
+    margin: 0;
+    font-size: var(--type-scale-1);
+    color: var(--content-muted);
+  }
+
+  .comparisonColumn p {
+    margin: 0;
+    font-family: var(--font-data);
+  }
+
+  .comparisonRatio {
+    padding: var(--space-fib-2) var(--space-fib-3);
+    border-radius: var(--radius-sm);
+    background-color: var(--palette-accent-focus-subtle);
+    color: var(--content-accent);
+    font-family: var(--font-data);
+    font-weight: 600;
+  }
+}

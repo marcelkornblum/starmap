@@ -25,22 +25,26 @@ This living document accumulates **which screens/views and URL paths exist** and
 
 ### 2.0 Global Navigation & URL Grammar (All Views)
 - **Top-of-View Breadcrumbs (`<Breadcrumbs />`, [`src/components/domain/Breadcrumbs/Breadcrumbs.tsx`](file:///home/marcel/projects/starmap/src/components/domain/Breadcrumbs/Breadcrumbs.tsx)):**
-  - Every view renders `<Breadcrumbs items={...} />` (`data-testid="view-breadcrumbs"`) at the top of the screen:
-    - Main View (`/`, `/galaxy`, `/galaxy/$systemId`): `Galaxy` (or `Galaxy > <Focused Entity>`)
+  - Every view renders `<Breadcrumbs items={...} />` (`data-testid="view-breadcrumbs"`) at the top of the screen representing the **spatial View / Route Hierarchy only** (never the `?focus=` parameter per `DEC-015`):
+    - Galaxy View (`/`, `/galaxy`, `/galaxy/$systemId`): `Galaxy`
     - Search View (`/search`): `Galaxy > Search`
-    - System View (`/system/$systemId`): `Galaxy > <System Name>` (or `Galaxy > <System Name> > <Focused Body>`)
+    - System View (`/system/$systemId`): `Galaxy > <System Name>`
+    - Planet View (`/planet/$planetId`): `Galaxy > <System Name> > <Planet Name>`
     - Guide Views (`/guide/*`): `Galaxy > Guide: <Category>` (or `Galaxy > Guide: <Category> > <Term>`)
-- **Orthogonal `?focus=` and `?select=` URL Grammar (`DEC-010`, [`src/router/index.tsx`](file:///home/marcel/projects/starmap/src/router/index.tsx)):**
-  - `?focus=<entityId>` — Single focused entity (drives the `Focused` list and populates `<DetailsPanel>`).
+- **Orthogonal `?focus=`, `?select=`, and `?center=` / Camera URL Grammar (`DEC-010`, `DEC-015`, `DEC-021`, [`src/router/index.tsx`](file:///home/marcel/projects/starmap/src/router/index.tsx)):**
+  - `?focus=<entityId>` — Single focused entity (populates `<DetailsPanel>` and `<PreviewPanel>`). Visiting `/system/$systemId` or `/planet/$planetId` without `?focus=` enters that view with `focusedId === null` and **hides `<DetailsPanel />` and `<PreviewPanel />`**, while `<BodiesPanel />`, `<OrbitalSchematicPanel />`, `<Minimap />`, `<ControlBar />`, and `<CanvasLayer />` still render.
   - `?select=<token1>,<token2>,...` — Comma-separated list of selection tokens (keeps `:` and `,` unencoded via custom `stringifyStarmapSearch`):
     - Plain entity/system slug: `sol`, `tau-ceti`, `keid`
     - Tag shortcut: `tag:<tagSlug>` (e.g. `?select=tag:habitable-candidate`, `?select=tag:exoplanet-host`)
     - Canon shortcut: `canon:<canonSlug>` (e.g. `?select=canon:project-hail-mary`, `?select=canon:star-trek`)
-  - Composable: e.g. `/galaxy?select=canon:project-hail-mary&focus=tau-ceti` or `/galaxy?select=sol,keid&focus=tau-ceti`.
+  - `?center=<entityId>` (or `?x=<num>&y=<num>&z=<num>` when free-panned) + `?az=<deg>&el=<deg>&dist=<num>` (or `?zoom=<num>`):
+    - Encodes the active 3D view reference point and relative camera orientation/distance across `GalaxyView`, `SystemView`, and `PlanetView`.
+    - Clicking the `Centre` link (`data-testid="details-button-center"`) in `<DetailsPanel />` sets `?center=<entityId>` and updates `<Minimap />` and `<CanvasLayer />` coordinates.
+  - Composable: e.g. `/galaxy?select=canon:project-hail-mary&focus=tau-ceti&center=tau-ceti`.
 
-### 2.1 Main View (`/`, `/galaxy`, `/galaxy/$systemId` — [`src/views/MainView.tsx`](file:///home/marcel/projects/starmap/src/views/MainView.tsx))
-- **Functional Component Boundary:** Composes `<Breadcrumbs />`, `<Search.Root>`, `<Search.Panel />`, `<Search.Results />` ([`src/components/search/Search.tsx`](file:///home/marcel/projects/starmap/src/components/search/Search.tsx)), `<SearchResultItem>` ([`src/components/domain/SearchResultItem/SearchResultItem.tsx`](file:///home/marcel/projects/starmap/src/components/domain/SearchResultItem/SearchResultItem.tsx)), the `Systems` (`Focused` & `Selected`) panel, and `<DetailsPanel>` ([`src/components/domain/DetailsPanel/DetailsPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/DetailsPanel/DetailsPanel.tsx)).
-- **Search Panel (`<Search.Panel />`, `data-testid="search-panel"`):**
+### 2.1 Galaxy View (`/`, `/galaxy`, `/galaxy/$systemId` — [`src/views/GalaxyView.tsx`](file:///home/marcel/projects/starmap/src/views/GalaxyView.tsx))
+- **Functional Component Boundary:** Root `<main data-testid="galaxy-view-root">` composing `<CanvasLayer scope="galaxy" />`, `<Breadcrumbs />`, `<Search.Root>`, `<Search.Panel scope="galaxy" />`, `<Search.Results />`, `<SearchResultItem>`, `<Minimap orientation={minimapOrientation} />`, `<ControlBar scope="galaxy" />`, `<DetailsPanel details={focusedDetails} />`, and `<PreviewPanel preview={focusedPreview} />`.
+- **Search Panel (`<Search.Panel scope="galaxy" />`, `data-testid="search-panel"`, `data-scope="galaxy"`):**
   - Heading: `Search`
   - Query input (`<input type="search" name="query" />` — triggers search immediately on each key press and dynamically syncs the `?q=` URL GET parameter via `history.replaceState`)
   - Clear search button (`<button type="button" data-testid="search-clear-button">Clear search</button>` — clears the search term, removes `?q=` from the URL bar, and hides the `Search Results` panel)
@@ -55,7 +59,7 @@ This living document accumulates **which screens/views and URL paths exist** and
   - **Conditional Visibility:** Hidden completely when the search query is empty (`query.trim().length === 0`).
   - Heading: `Search Results`
   - Full search view link (`<a href="/search?q=..." data-testid="search-view-link">View all search results</a>`)
-  - Result group sections (`<h3>` + filtered `/search` link `<a href="/search?q=...&searchCategory=<category>" data-testid="search-category-link-<category>">View all <Heading></a>` + populated `<ul>` of matching `<SearchResultItem result={result} />` domain rows truncated to **3 per category** via `limitPerCategory={3}` on Main View). **Empty categories (`group.items.length === 0`) are omitted completely—neither their heading nor an empty list is rendered:**
+  - Result group sections (`<h3>` + filtered `/search` link `<a href="/search?q=...&searchCategory=<category>" data-testid="search-category-link-<category>">View all <Heading></a>` + populated `<ul>` of matching `<SearchResultItem result={result} />` domain rows truncated to **3 per category** via `limitPerCategory={3}` on Galaxy View). **Empty categories (`group.items.length === 0`) are omitted completely—neither their heading nor an empty list is rendered:**
     - `Stars & Stellar Systems` (`stars`)
     - `Planets, Exoplanets & Moons` (`planets`)
     - `Galactic Structures & Deep Sky` (`structures`)
@@ -75,60 +79,76 @@ This living document accumulates **which screens/views and URL paths exist** and
       - **Variation `minor-bodies` (`data-testid="result-variation-minor-bodies"`):** Solar System minor-body variation hook.
       - **Variation `fiction` (`data-testid="result-variation-fiction"`):** Unpacks canon work/franchise title (`canonTitle`).
       - **Omitted fields:** Heliocentric parsec (`pc`) distance numbers are omitted from result rows.
-- **Systems Panel (`data-testid="systems-panel"`):**
-  - Synchronised to `SpatialEntityStore`:
-    - `Focused` (`<ul data-testid="systems-focused-list">`) — populated from `/galaxy/$systemId` or `?focus=<entityId>`.
-    - `Selected` (`<ul data-testid="systems-selected-list">`) — populated from active search results (`?q=`) or `?select=` tokens (`tag:<slug>`, `canon:<slug>`, `<entityId>`).
+- **Minimap Panel (`<Minimap orientation={minimapOrientation} />`, [`src/components/domain/Minimap/Minimap.tsx`](file:///home/marcel/projects/starmap/src/components/domain/Minimap/Minimap.tsx)):**
+  - Always rendered on `GalaxyView` (`data-testid="minimap-panel"`, `data-scope="galaxy"`, `data-anchor-id`).
+  - Exposes `<div data-testid="minimap-viewport-slot">`, galactic reference frame telemetry (`[x, y, z] pc` and heliocentric distance `d`, updating when `?center=<entityId>` or `?x=&y=&z=` is set), and active markers (`origin` for Sol plus any `anchor`, `focused`, and `selected` systems).
+- **Control Bar (`<ControlBar scope="galaxy" />`, [`src/components/domain/ControlBar/ControlBar.tsx`](file:///home/marcel/projects/starmap/src/components/domain/ControlBar/ControlBar.tsx)):**
+  - Always rendered on `GalaxyView` (`data-testid="control-bar"`, `data-scope="galaxy"`).
+  - Contains the Time Controller (`data-testid="control-bar-time-controller"`: Play/Pause button, speed scrubber, and `<input type="datetime-local">` picker), Control Mode & Layer Toggles (`3D` / `Top-Down`, `Orbits`, `Grid`, `Labels`), and Keyboard Shortcut indicators (`<kbd>`).
 - **Details Panel (`<DetailsPanel details={focusedDetails} />`, `data-testid="details-panel"`):**
   - Rendered only when an entity is focused (`details !== null`).
-  - Broken into 3 detent sections (`Peek`, `Partial`, `Full`) consuming the `FocusedEntityDetails` discriminated union (`focusedKind: 'system' | 'star' | 'planet' | 'minor-body' | 'structure'`).
+  - Broken into 3 detent sections (`Peek`, `Partial`, `Full`) consuming the `FocusedEntityDetails` discriminated union (`focusedKind: 'system' | 'star' | 'planet' | 'minor-body' | 'structure'`) per `DEC-022`, `DEC-025`, and `DEC-026`:
+    - `Peek`: Header (`starCount` shown only for `'system'`), entity peek telemetry line, planet composition breakdown (for `'system'` only per `DEC-025`), and summary.
+    - `Partial`: CTAs at the top (`Details` `data-testid="details-button-system-details"` rendered only when a deeper 3D view exists per `DEC-026`, `Centre` `data-testid="details-button-center"`, `Directions` `data-testid="details-button-directions"`), followed immediately by `Canon Layers` (`data-testid="details-canon-section"`, always in the same position across all variants), and child/system body lists (`Stars` + `Planets` for `'system'` only per `DEC-025`, `Orbiting Bodies` for `'planet'` / `'minor-body'`).
+    - `Full`: Intrinsic Telemetry (`Stellar` / `Planetary` / `Body` / `Structure` Telemetry including `massMsun`, `radiusRsun`, `luminosityLsun`, `effectiveTempK`, `inclinationDeg`, `radiusRearth`) and `Astrometry` (`System ID`, `Sector`, `Coordinates`, clickable `Tags` badges).
+- **Focus Preview Panel (`<PreviewPanel preview={focusedPreview} />`, [`src/components/domain/PreviewPanel/PreviewPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/PreviewPanel/PreviewPanel.tsx)):**
+  - Rendered only when an entity is focused (`preview !== null`).
+  - Heading: `Focus Preview` (`data-testid="preview-panel"`, `data-preview-mode="system-orbits" | "planetary-system" | "object-orbit"`, `data-target-id`, `data-focused-kind`).
+  - Exposes a 3D viewport mount slot (`data-testid="preview-canvas-slot"`), the focused target's orbital geometry (`inclinationDeg`, `eccentricity`, `semiMajorAxisAu`), and the child orbit lines list (`data-testid="preview-orbits-list"`).
 
 ### 2.2 Search View (`/search` — [`src/views/SearchView.tsx`](file:///home/marcel/projects/starmap/src/views/SearchView.tsx))
-- **Functional Component Boundary:** Dedicated full-results search view composing `<Breadcrumbs />`, `<Search.Root>`, `<Search.Panel />`, `<Search.Results />`, and `<SearchResultItem result={result} />`.
-- **URL State & Intent:** Hydrates initial query (`?q=`) and category filter (`?searchCategory=`) from the URL on entry (including deep-links from Main View's `View all search results` and per-category `View all <Heading>` links) and keeps `?q=` and `?searchCategory=` synchronised on every keystroke or filter change.
-- **Untruncated Category Lists:** Displays full matching result lists across any of the 5 categories that have matches (without the Main View's 3-item-per-category truncation), omitting headings and lists for categories with zero matches.
+- **Functional Component Boundary:** Root `<main data-testid="search-view-root">` composing `<Breadcrumbs />`, `<Search.Root>`, `<Search.Panel scope="search" />`, `<Search.Results />`, and `<SearchResultItem result={result} />`.
+- **URL State & Intent:** Hydrates initial query (`?q=`) and category filter (`?searchCategory=`) from the URL on entry (including deep-links from Galaxy View's `View all search results` and per-category `View all <Heading>` links) and keeps `?q=` and `?searchCategory=` synchronised on every keystroke or filter change.
+- **Untruncated Category Lists:** Displays full matching result lists across any of the 5 categories that have matches (without the Galaxy View's 3-item-per-category truncation), omitting headings and lists for categories with zero matches.
 
 ### 2.3 System View (`/system/$systemId` — [`src/views/SystemView.tsx`](file:///home/marcel/projects/starmap/src/views/SystemView.tsx))
-- **Functional Component Boundary:** Dedicated intra-system inspection view composing `<Breadcrumbs />`, `Bodies` panel (`data-testid="bodies-panel"`), `<DetailsPanel details={focusedDetails} />` (`data-testid="details-panel"`), and `<SystemElementsPanel elements={systemElements} />` (`data-testid="system-elements-panel"`).
-- **Bodies Panel (`data-testid="bodies-panel"`):**
-  - Heading: `Bodies`
-  - `Focused` (`<ul data-testid="bodies-focused-list">`) — the active focused body or system root (`/system/$systemId` defaults to focusing the host system; `/system/$systemId?focus=<bodySlug>` focuses the specified star, planet, moon, dwarf planet, or minor body).
-  - `Selected` (`<ul data-testid="bodies-selected-list">`) — highlighted bodies resolved from `?select=`.
+- **Functional Component Boundary:** Root `<main data-testid="system-view-root">` composing `<CanvasLayer scope="system" />`, `<Breadcrumbs />` (`Galaxy > <System Name>`), `<Search.Root>`, `<Search.Panel scope="system" />`, `<Minimap orientation={minimapOrientation} />` (`data-testid="minimap-panel"`, `data-scope="system"`), `<ControlBar scope="system" />` (`data-testid="control-bar"`, `data-scope="system"`), `<DetailsPanel details={focusedDetails} />` (`data-testid="details-panel"`, rendered only when `?focus=` is active), `<PreviewPanel preview={focusedPreview} />` (`data-testid="preview-panel"`, rendered only when `?focus=` is active), and `<BodiesPanel elements={systemBodies} schematic={orbitalSchematic} />` (`data-testid="bodies-panel"`, `data-scope="system"`).
+- **Minimap Panel (`<Minimap orientation={minimapOrientation} />`, [`src/components/domain/Minimap/Minimap.tsx`](file:///home/marcel/projects/starmap/src/components/domain/Minimap/Minimap.tsx)):**
+  - Always rendered on `SystemView` (`data-testid="minimap-panel"`, `data-scope="system"`, `data-anchor-id`).
+  - Exposes `<div data-testid="minimap-viewport-slot">`, system reference frame telemetry (`coordinatesPc`, `outerOrbitalRadiusAu`, `habitableZoneAu`, `orbitingBodyCount`, updating when `?center=<bodyId>` is active), and active `anchor`, `focused`, and `selected` body markers.
+- **Control Bar (`<ControlBar scope="system" />`, `data-testid="control-bar"`, `data-scope="system"`):**
+  - Always rendered on `SystemView` with Time Controller, Control Mode & Layer Toggles, and Keyboard Shortcut indicators.
 - **Details Panel (`<DetailsPanel details={focusedDetails} />`, `data-testid="details-panel"`):**
-  - Decomposes the focused entity into `Peek`, `Partial`, and `Full` detents tailored to `focusedKind`:
-    - **When `focusedKind === 'system'` or `'star'`:**
-      - `Peek`: Header with reticle type, spectral `<Badge category="star">`, star count, system-wide planet composition breakdown (`data-testid="details-planet-composition"`), and system summary (`data-testid="details-system-summary"`). When `focusedKind === 'star'`, includes component & magnitude peek line.
-      - `Partial`: `Stellar Telemetry` (for `'star'`), `Astrometry` (`System ID`, `Sector`, `Coordinates`, clickable `Tags` badges), and `Details` / `Directions` actions.
-      - `Full`: `Canon Layers`, `Stars` list (`data-testid="details-stars-section"`), and `Planets` list (`data-testid="details-planets-section"`).
-    - **When `focusedKind === 'planet'`:**
-      - `Peek`: Planet header (`<Planet Name> (<System Name>) [<composition>]`), planet telemetry peek line (composition badge, habitable zone badge, `a` in `AU`, `P` in `d`, mass in `M⊕`, `T_eq` in `K`), and a **planet-specific summary** (`data-testid="details-system-summary"`: `"<Planet> is a <composition> planet orbiting <System>, within the [habitable zone candidate] with <N> catalogued bodies in orbit."`). System-wide star count and planet composition summary (`7 planets (...)`) are omitted.
-      - `Partial`: `Planetary Telemetry` (`Composition`, `Habitable Zone`, `Semi-Major Axis`, `Orbital Period`, `Eccentricity`, `Mass`, `Equilibrium Temp`, `Discovery`), `Astrometry`, and actions (`Details` link `data-testid="details-button-system-details"` points directly to `/planet/$planetId`).
-      - `Full`: `Canon Layers` (specific to the planet + host system) and `Orbiting Bodies` (`data-testid="details-orbiting-bodies-section"`, listing moons and any other catalogued bodies in orbit around that planet with links to `/system/$systemId?focus=<bodySlug>` on System View or `/planet/$planetId?focus=<bodySlug>` on Planet View). System-wide `Stars` and `Planets` lists are omitted.
-    - **When `focusedKind === 'minor-body'`:**
-      - `Peek`: Body header, classification badge + parent body name, and body-specific summary (`"<Name> is a <moon|dwarf planet|asteroid / minor body> orbiting <ParentBody>."`).
-      - `Partial`: `Body Telemetry` (`Classification`, `Host System` / parent body) and `Astrometry`.
-      - `Full`: `Canon Layers` and `Orbiting Bodies` (if the body has moons, e.g. Pluto → Charon).
-- **System Elements Panel (`<SystemElementsPanel elements={systemElements} />`, [`src/components/domain/SystemElementsPanel/SystemElementsPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/SystemElementsPanel/SystemElementsPanel.tsx)):**
-  - Shows every catalogued element in the host system broken into sections (`Stars`, `Planets`, `Moons & Dwarf Planets`, `Minor Bodies & Spacecraft`, `Canon Layers`), with each body name linking to `/system/$systemId?focus=<bodySlug>` and highlighting the currently focused body (`data-focused="true"`).
+  - Rendered only when `?focus=<slug>` is present in the URL (`focusedEntity !== null`).
+  - Decomposes the focused entity into `Peek`, `Partial` (`Details` / `Centre` / `Directions` CTAs at the top, followed by `Canon Layers`, then `Stars`/`Planets` for `'system'` or `Orbiting Bodies` for `'planet'`/`'minor-body'`), and `Full` (intrinsic telemetry + `Astrometry`) detents per `DEC-022`, `DEC-025`, and `DEC-026`.
+- **Focus Preview Panel (`<PreviewPanel preview={focusedPreview} />`, [`src/components/domain/PreviewPanel/PreviewPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/PreviewPanel/PreviewPanel.tsx)):**
+  - Rendered only when `?focus=<slug>` is present in the URL (`preview !== null`).
+  - Heading: `Focus Preview` (`data-testid="preview-panel"`, `data-preview-mode="planetary-system" | "object-orbit" | "system-orbits"`), exposing the 3D preview mount slot (`data-testid="preview-canvas-slot"`), focused body inclination (`inclinationDeg`), eccentricity (`eccentricity`), semi-major axis (`semiMajorAxisAu`), and child orbit lines (`data-testid="preview-orbits-list"`).
+- **Bodies Panel (`<BodiesPanel elements={systemBodies} schematic={orbitalSchematic} />`, [`src/components/domain/BodiesPanel/BodiesPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/BodiesPanel/BodiesPanel.tsx)):**
+  - Heading: `System Bodies` (`data-testid="bodies-panel"`, `data-scope="system"`).
+  - Per `DEC-023` and `DEC-024`, embeds the `Orbital Schematic` (`<OrbitalSchematicList />` with `<OrbitalSchematicItem />` ordered from closest orbit `data-orbit-rank="0"` to furthest `1..N`, nesting planetary moons via `item.children`, and linking spectral, planet-type, and habitable-zone badges) followed by deduplicated `Minor Bodies & Spacecraft` (`data-testid="bodies-minor-bodies-section"`).
 
-### 2.4 Planetary View (`/planet/$planetId` — [`src/views/PlanetView.tsx`](file:///home/marcel/projects/starmap/src/views/PlanetView.tsx))
-- **Functional Component Boundary:** Dedicated planetary system inspection view composing `<Breadcrumbs />` (`Galaxy` → `<System Name>` → `<Planet Name>`, or `Galaxy` → `<System Name>` → `<Planet Name>` → `<Focused Orbiting Body>` when `?focus=<bodySlug>` is set), `<Search.Root>` + `<Search.Panel />` + `<Search.Results />`, `Bodies` panel (`data-testid="bodies-panel"`), `<DetailsPanel details={focusedDetails} />` (`data-testid="details-panel"`), and `<PlanetaryElementsPanel elements={planetaryElements} />` (`data-testid="planetary-elements-panel"`).
-- **Bodies Panel (`data-testid="bodies-panel"`):**
-  - Heading: `Bodies`
-  - `Focused` (`<ul data-testid="bodies-focused-list">`) — defaults to focusing the host planet from `/planet/$planetId`, or focuses the orbiting body specified by `?focus=<bodySlug>`.
-  - `Selected` (`<ul data-testid="bodies-selected-list">`) — highlighted bodies resolved from `?select=` or `?q=`.
+### 2.4 Planet View (`/planet/$planetId` — [`src/views/PlanetView.tsx`](file:///home/marcel/projects/starmap/src/views/PlanetView.tsx))
+- **Functional Component Boundary:** Root `<main data-testid="planet-view-root">` composing `<CanvasLayer scope="planet" />`, `<Breadcrumbs />` (`Galaxy` → `<System Name>` → `<Planet Name>`), `<Search.Root>` + `<Search.Panel scope="planet" />` + `<Search.Results />`, `<Minimap orientation={minimapOrientation} />` (`data-testid="minimap-panel"`, `data-scope="planet"`), `<ControlBar scope="planet" />` (`data-testid="control-bar"`, `data-scope="planet"`), `<DetailsPanel details={focusedDetails} />` (`data-testid="details-panel"`, rendered only when `?focus=` is active), `<PreviewPanel preview={focusedPreview} />` (`data-testid="preview-panel"`, rendered only when `?focus=` is active), and `<BodiesPanel elements={planetaryBodies} schematic={orbitalSchematic} />` (`data-testid="bodies-panel"`, `data-scope="planet"`).
+- **Minimap Panel (`<Minimap orientation={minimapOrientation} />`, [`src/components/domain/Minimap/Minimap.tsx`](file:///home/marcel/projects/starmap/src/components/domain/Minimap/Minimap.tsx)):**
+  - Always rendered on `PlanetView` (`data-testid="minimap-panel"`, `data-scope="planet"`, `data-anchor-id`).
+  - Exposes `<div data-testid="minimap-viewport-slot">`, planetary subsystem reference frame telemetry (`parentSemiMajorAxisAu`, `orbitingBodyCount`, updating when `?center=<bodyId>` is active), and active `anchor`, `focused`, and `selected` body markers.
+- **Control Bar (`<ControlBar scope="planet" />`, `data-testid="control-bar"`, `data-scope="planet"`):**
+  - Always rendered on `PlanetView` with Time Controller, Control Mode & Layer Toggles, and Keyboard Shortcut indicators.
 - **Details Panel (`<DetailsPanel details={focusedDetails} />`, `data-testid="details-panel"`):**
-  - Displays the focused planet (`focusedKind === 'planet'`) or the focused orbiting moon / minor body (`focusedKind === 'minor-body'`) across `Peek`, `Partial`, and `Full` detents.
-- **Planetary Elements Panel (`<PlanetaryElementsPanel elements={planetaryElements} />`, [`src/components/domain/PlanetaryElementsPanel/PlanetaryElementsPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/PlanetaryElementsPanel/PlanetaryElementsPanel.tsx)):**
-  - Heading: `Orbital Bodies` (`data-testid="planetary-elements-panel"`).
-  - Shows the host planet (`Planet` section, `data-testid="planetary-elements-planet-section"`) and all catalogued orbital bodies and annotations broken into structured sections (`Moons` `data-testid="planetary-elements-moons-section"`, `Minor Bodies & Spacecraft` `data-testid="planetary-elements-minor-bodies-section"`, and `Canon Layers` `data-testid="planetary-elements-canon-section"`), with each moon or orbital body linking to `/planet/$planetId?focus=<bodySlug>`.
+  - Rendered only when `?focus=<slug>` is present in the URL (`focusedEntity !== null`).
+  - Displays the focused planet (`focusedKind === 'planet'`) or the focused orbiting moon / minor body (`focusedKind === 'minor-body'`) across `Peek`, `Partial` (`Centre` / `Directions` CTAs at the top, followed by `Canon Layers`, then `Orbiting Bodies`), and `Full` (intrinsic telemetry + `Astrometry`) detents per `DEC-022` and `DEC-026`.
+- **Focus Preview Panel (`<PreviewPanel preview={focusedPreview} />`, [`src/components/domain/PreviewPanel/PreviewPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/PreviewPanel/PreviewPanel.tsx)):**
+  - Rendered only when `?focus=<slug>` is present in the URL (`preview !== null`).
+  - Heading: `Focus Preview` (`data-testid="preview-panel"`, `data-preview-mode="object-orbit" | "planetary-system"`), exposing the 3D preview mount slot (`data-testid="preview-canvas-slot"`), focused body inclination (`inclinationDeg`), eccentricity (`eccentricity`), semi-major axis (`semiMajorAxisAu`), and child orbit lines (`data-testid="preview-orbits-list"`).
+- **Bodies Panel (`<BodiesPanel elements={planetaryBodies} schematic={orbitalSchematic} />`, [`src/components/domain/BodiesPanel/BodiesPanel.tsx`](file:///home/marcel/projects/starmap/src/components/domain/BodiesPanel/BodiesPanel.tsx)):**
+  - Heading: `Planetary Bodies` (`data-testid="bodies-panel"`, `data-scope="planet"`).
+  - Per `DEC-023` and `DEC-024`, embeds the `Orbital Schematic` (`<OrbitalSchematicList />` rendering the host planet `data-orbit-rank="0"` at the top followed by moons `data-orbit-rank="1..N"`) in place of the separate `Planet` and `Moons` lists, followed by deduplicated `Minor Bodies & Spacecraft` (`data-testid="bodies-minor-bodies-section"`).
 
-### 2.5 Guide Views (`/guide/*`)
-- **Star Types Guide (`/guide/star-types` — [`src/views/StarTypesListView.tsx`](file:///home/marcel/projects/starmap/src/views/StarTypesListView.tsx), `/guide/star-types/$starType` — [`src/views/StarTypeDetailView.tsx`](file:///home/marcel/projects/starmap/src/views/StarTypeDetailView.tsx)):**
-  - Linked from all spectral class `<Badge category="star">` pills across Search and Details panels.
-- **Planet Types Guide (`/guide/planet-types` — [`src/views/PlanetTypesListView.tsx`](file:///home/marcel/projects/starmap/src/views/PlanetTypesListView.tsx), `/guide/planet-types/$planetType` — [`src/views/PlanetTypeDetailView.tsx`](file:///home/marcel/projects/starmap/src/views/PlanetTypeDetailView.tsx)):**
-  - Linked from all planetary composition `<Badge category="planet">` pills (`terrestrial`, `ice-giant`, `gas-giant`).
-- **Telemetry Metrics Guide (`/guide/metrics` — [`src/views/MetricsListView.tsx`](file:///home/marcel/projects/starmap/src/views/MetricsListView.tsx), `/guide/metrics/$metricId` — [`src/views/MetricDetailView.tsx`](file:///home/marcel/projects/starmap/src/views/MetricDetailView.tsx)):**
-  - Linked from `<Unit>` badges inside `<Quantity>` components (`AU` → `semi-major-axis`, `d` → `orbital-period`, `M⊕` → `planetary-mass`, `K` → `equilibrium-temperature`, `V`/`M_V` → `stellar-magnitude`, `pc` → `galactic-coordinates`).
+### 2.5 Guide Views (`/guide/*` — `DEC-027`, `DEC-028` & `DEC-029`)
+- **Top-Level Breadcrumbs, Persistent `Guide` ↔ `Map` Link, Shared Navigation & Full-Item List Links:**
+  - `<Breadcrumbs />` starts at `Guide` (`Guide > Star Types [> <Star Type>]`, `Guide > Planet Types [> <Planet Type>]`, `Guide > Telemetry Metrics [> <Metric>]`), never nested inside `Galaxy`.
+  - `<Breadcrumbs />` renders a persistent companion link (`data-testid="breadcrumbs-companion-link"`) next to the breadcrumb trail: on 3D views it links to `/guide/star-types` (`Guide`), and on Guide views it links to `/galaxy` (`Map`).
+  - Shared `<nav aria-label="Guide sections" data-testid="guide-section-nav">` links `/guide/star-types`, `/guide/planet-types`, and `/guide/metrics`.
+  - Every item card on `StarTypesListView`, `PlanetTypesListView`, and `MetricsListView` links directly to its detail route.
+- **3D Rendering Slots (`data-testid="guide-3d-preview"`):**
+  - Rendered on every card in the list views and at the top of each detail view with common-scale radii (`data-radius-rsun`, `data-radius-rearth`) and blackbody chromaticity colours (`data-chromaticity-hex`, `data-temp-k`). (True 3D cross-section cutaways are logged in `FS-011` for Stage 3 R3F integration.)
+- **Interactive 3-Slice Yerkes Spectral Classification Combinator (`data-testid="star-type-combinator"` on `/guide/star-types/$starType`):**
+  - Breaks any stellar classification (e.g. `G2V`, `G8.5V`) into 3 interactive slices (`data-testid="combinator-slice-class"` `O`–`D`, `data-testid="combinator-slice-subdivision"` `0`–`9`, and `data-testid="combinator-slice-luminosity"` `I`–`VII`), dynamically computing and updating the 3D star sphere's scale, colour, and physical telemetry (`data-testid="combinator-computed-telemetry"`).
+- **Comparative Measures, Familiar Unit Conversions & Focused-Entity Comparison (`data-testid="metric-comparative-3d"`, `data-testid="metric-familiar-conversion"`):**
+  - Both `MetricsListView` and `MetricDetailView` display familiar unit conversions (e.g. `pc` → `light-years (ly)`, `AU` → `light-minutes / million km`, `K` → `°C / °F`, `d` → `Earth years`).
+  - Metric `<Unit>` links in `<DetailsPanel />` and `<PreviewPanel />` pass `?focus=<entityId>` so `/guide/metrics/$metricId?focus=<entityId>` renders a 3D comparative measure (`data-testid="metric-comparative-3d"`) comparing the focused entity (e.g. *Tau Ceti*, *Tau Ceti e*) directly against **Earth** or **Sol** in both scientific and familiar units.
+
+
 
 

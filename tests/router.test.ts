@@ -24,7 +24,7 @@ import {
   planetRoute,
   referenceRoute,
 } from '../src/router';
-import { MainView } from '../src/views/MainView';
+import { GalaxyView } from '../src/views/GalaxyView';
 import { MetricDetailView } from '../src/views/MetricDetailView';
 import { MetricsListView } from '../src/views/MetricsListView';
 import { PlanetTypeDetailView } from '../src/views/PlanetTypeDetailView';
@@ -95,6 +95,9 @@ describe('TanStack Router Architecture', () => {
       zoom: '3',
       center: 'sol',
       customFilter: 'habitable',
+      az: '45.5',
+      el: -15,
+      dist: '120.8',
     });
 
     expect(validated.q).toBe('Tau Ceti');
@@ -110,6 +113,9 @@ describe('TanStack Router Architecture', () => {
     expect(validated.zoom).toBe(3);
     expect(validated.center).toBe('sol');
     expect(validated.customFilter).toBe('habitable');
+    expect(validated.az).toBe(45.5);
+    expect(validated.el).toBe(-15);
+    expect(validated.dist).toBe(120.8);
 
     expect(
       stringifyStarmapSearch({
@@ -128,26 +134,35 @@ describe('TanStack Router Architecture', () => {
     expect(emptyValidated.z).toBeUndefined();
     expect(emptyValidated.zoom).toBeUndefined();
     expect(emptyValidated.center).toBeUndefined();
+    expect(emptyValidated.az).toBeUndefined();
+    expect(emptyValidated.el).toBeUndefined();
+    expect(emptyValidated.dist).toBeUndefined();
 
-    // Pure numeric inputs and non-string center
+    // Pure numeric inputs, 0 values, and non-string center
     const numericValidated = validate({
       x: 100,
       y: 200,
       z: 300,
       zoom: 5,
       center: 999, // non-string -> undefined
+      az: 0,
+      el: '0',
+      dist: 0,
     });
     expect(numericValidated.x).toBe(100);
     expect(numericValidated.y).toBe(200);
     expect(numericValidated.z).toBe(300);
     expect(numericValidated.zoom).toBe(5);
     expect(numericValidated.center).toBeUndefined();
+    expect(numericValidated.az).toBe(0);
+    expect(numericValidated.el).toBe(0);
+    expect(numericValidated.dist).toBe(0);
   });
 
-  it('maps /, /galaxy, and /galaxy/$systemId to MainView, /search to SearchView, /system/$systemId to SystemView, and /planet/$planetId to PlanetView', () => {
-    expect(indexRoute.options.component).toBe(MainView);
-    expect(mainGalaxyRoute.options.component).toBe(MainView);
-    expect(mainGalaxySystemRoute.options.component).toBe(MainView);
+  it('maps /, /galaxy, and /galaxy/$systemId to GalaxyView, /search to SearchView, /system/$systemId to SystemView, and /planet/$planetId to PlanetView', () => {
+    expect(indexRoute.options.component).toBe(GalaxyView);
+    expect(mainGalaxyRoute.options.component).toBe(GalaxyView);
+    expect(mainGalaxySystemRoute.options.component).toBe(GalaxyView);
     expect(mainSearchRoute.options.component).toBe(SearchView);
     expect(mainSystemRoute.options.component).toBe(SystemView);
     expect(mainPlanetRoute.options.component).toBe(PlanetView);
@@ -157,9 +172,9 @@ describe('TanStack Router Architecture', () => {
     expect(planetTypeDetailRoute.options.component).toBe(PlanetTypeDetailView);
     expect(metricsListRoute.options.component).toBe(MetricsListView);
     expect(metricDetailRoute.options.component).toBe(MetricDetailView);
-    const html = renderToString(createElement(MainView));
+    const html = renderToString(createElement(GalaxyView));
 
-    expect(html).toContain('data-testid="clean-slate-root"');
+    expect(html).toContain('data-testid="galaxy-view-root"');
     expect(html).toContain('data-testid="search-panel"');
     expect(html).toContain('>Search</h2>');
     expect(html).toContain('id="starmap-search-input"');

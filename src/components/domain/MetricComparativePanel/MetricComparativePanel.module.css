@@ -1,0 +1,45 @@
+.comparativeSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-fib-3);
+  padding: var(--space-inset-card);
+  border: var(--border-width-1) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+}
+
+.comparisonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-fib-4);
+}
+
+.comparisonColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-fib-2);
+  padding: var(--space-inset-card-tight);
+  background-color: var(--surface-overlay);
+  border-radius: var(--radius-sm);
+  border: var(--border-width-1) solid var(--border-subtle);
+}
+
+.comparisonColumn h4 {
+  margin: 0;
+  font-size: var(--type-scale-1);
+  color: var(--content-muted);
+}
+
+.comparisonColumn p {
+  margin: 0;
+  font-family: var(--font-data);
+}
+
+.comparisonRatio {
+  padding: var(--space-fib-2) var(--space-fib-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--palette-accent-focus-subtle);
+  color: var(--content-accent);
+  font-family: var(--font-data);
+  font-weight: 600;
+}

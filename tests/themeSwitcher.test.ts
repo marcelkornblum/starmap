@@ -1,6 +1,4 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
-import { renderToString } from 'react-dom/server';
-import { createElement } from 'react';
 import { useSettingsStore } from '../src/stores/useSettingsStore';
 import {
   THEME_PALETTES,
@@ -8,7 +6,6 @@ import {
   applyPalette,
   applyThemePalette,
 } from '../src/styles/tokens/paletteTheme';
-import { ThemeSwitcher } from '../src/components/poc/domain/ThemeSwitcher/ThemeSwitcher';
 
 const mockAttrs = new Map<string, string>();
 const mockDocumentElement = {
@@ -85,31 +82,6 @@ describe('Theme & Palette Management', () => {
       expect(document.documentElement.getAttribute('data-theme')).toBe('light');
       expect(useSettingsStore.getState().palette).toBe('obsidian');
       expect(useSettingsStore.getState().theme).toBe('light');
-    });
-  });
-
-  describe('ThemeSwitcher Widget Component', () => {
-    it('renders mode switcher and all 4 palette options', () => {
-      const html = renderToString(createElement(ThemeSwitcher));
-
-      expect(html).toContain('DARK');
-      expect(html).toContain('LIGHT');
-      expect(html).toContain('Kepler');
-      expect(html).toContain('Cygnus');
-      expect(html).toContain('Carbon');
-      expect(html).toContain('Obsidian');
-      expect(html).toContain('data-testid="theme-palette-switcher"');
-    });
-
-    it('renders in compact mode with role attributes', () => {
-      const html = renderToString(createElement(ThemeSwitcher, { compact: true }));
-
-      expect(html).toContain('role="group"');
-      expect(html).toContain('role="radiogroup"');
-      expect(html).toContain('Kepler');
-      expect(html).toContain('Cygnus');
-      expect(html).toContain('Carbon');
-      expect(html).toContain('Obsidian');
     });
   });
 });

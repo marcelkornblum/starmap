@@ -4,15 +4,22 @@ import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
+  METRIC_ALIASES,
   METRIC_GUIDE_ENTRIES,
+  METRIC_LABEL_TO_SLUG,
   METRICS_GUIDE_PATH,
   PLANET_COMPOSITION_TYPES,
   PLANET_TYPE_GUIDE_ENTRIES,
   PLANET_TYPES_GUIDE_PATH,
+  resolveMetricSlugFromLabel,
   STAR_TYPE_GUIDE_ENTRIES,
   STAR_TYPES_GUIDE_PATH,
   type GuideCatalogEntry,
+  type GuideExampleTarget,
+  type MetricGuideEntry,
   type PlanetCompositionClass,
+  type PlanetTypeGuideEntry,
+  type StarTypeGuideEntry,
 } from '../data/guideCatalog';
 import type { DatasetLayerManifest } from '../types/astro';
 import {
@@ -26,15 +33,22 @@ export {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
+  METRIC_ALIASES,
   METRIC_GUIDE_ENTRIES,
+  METRIC_LABEL_TO_SLUG,
   METRICS_GUIDE_PATH,
   PLANET_COMPOSITION_TYPES,
   PLANET_TYPE_GUIDE_ENTRIES,
   PLANET_TYPES_GUIDE_PATH,
+  resolveMetricSlugFromLabel,
   STAR_TYPE_GUIDE_ENTRIES,
   STAR_TYPES_GUIDE_PATH,
   type GuideCatalogEntry,
+  type GuideExampleTarget,
+  type MetricGuideEntry,
   type PlanetCompositionClass,
+  type PlanetTypeGuideEntry,
+  type StarTypeGuideEntry,
 };
 
 export type SearchCategoryKey =
@@ -1002,7 +1016,7 @@ export const extractUrlFocusSlug = (
     }
   }
 
-  const routeMatch = /^\/(?:galaxy|system|planet)\/([^/?#]+)/i.exec(
+  const routeMatch = /^\/galaxy\/([^/?#]+)/i.exec(
     pathname.trim(),
   );
   if (routeMatch?.[1]) {
@@ -1339,6 +1353,12 @@ export const resolveFocusedEntityFromCorpus = (
     classification: 'stellar-system',
   };
 };
+
+export {
+  type SceneCameraUrlState,
+  extractUrlSceneCameraState,
+  buildCenterEntityHref,
+} from './detailsService';
 
 
 

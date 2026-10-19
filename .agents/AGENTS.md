@@ -43,6 +43,7 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
 - **Local Network & Multi-Viewport Screenshot Review**: At every visual checkpoint or option review:
   1. Present clickable local-network URLs (`http://192.168.1.124:5173/...` for App, `http://192.168.1.124:6006/...` for Storybook).
   2. Run `npm run capture:views` to capture live Playwright renders across all 5 standard viewports (`390×844` Mobile Portrait, `768×1024` Tablet Portrait, `1024×768` Tablet Landscape, `1440×900` Desktop Standard, `2560×1440` Desktop Ultrawide) and embed them in a conversation artifact.
+- **Context Compaction Marker**: Whenever a context compaction occurs, begin your next chat response with a horizontal rule and minimal note (`---\n*Context compacted*`) so the user can see when compaction happened.
 
 ## Conductor Review Mode & Track Execution
 - **Review Mode Check**: Before starting any track, always ask the user which review mode they prefer:
@@ -50,6 +51,21 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
   - **Whole-Track Review in PR:** Execute all phases continuously through completion (pausing for any unratified atomic decisions), running automated quality checks and the `code-review` skill at each phase boundary. Commit clean checkpoints on the feature branch, and present the completed track for review directly in the Pull Request.
 - **Pre-Flight Dependency Verification**: Never start implementing a track without first inspecting its `metadata.json` `"depends_on"` list and confirming all listed upstream tracks are marked `[x]` in `conductor/tracks.md` (including `## Archived Tracks` / `conductor/archive/tracks/`).
 - **Initiative-Scoped Archival**: Never archive a track belonging to an active initiative (`"initiative"` is set) upon individual track completion. Mark it `[x]` in `conductor/tracks/` so active phase tables and dependency links remain intact. Archive initiative tracks only at initiative closure (when all tracks in the initiative are complete and target architecture/decision docs are promoted to `docs/`). Standalone tracks (`initiative: null`) may be archived upon completion.
+
+## Flash Subagent Delegation & Permission-Safe Execution (Mandatory)
+- **Explicit User Mandate for `Model: "flash"`**: By standing user instruction, the user explicitly requests and mandates `Model: "flash"` (Gemini 3.8 Flash) on `invoke_subagent` calls for all operational jobs: codebase/data reconnaissance, TDD unit/integration implementation of ratified decisions, data-pipeline builds, lint/typecheck/coverage/R3F verification, and multi-viewport Playwright screenshot capture. Do NOT use `Model: "inherit"` for these jobs unless explicitly instructed by the user.
+- **Role Split — Main Orchestrator vs. `flash` Subagents**:
+  - **Main Orchestrator**: Owns user dialogue, Journey Onboarding Briefings, one-by-one atomic decision alignment (`ask_question`), `decision-log.md` / `view-requirements.md` / `plan.md` updates, Critical Friend architectural interrogation, and writing user-facing conversation artifacts (`UserFacing: true`) in `<appDataDir>/brain/<conversation-id>/`.
+  - **Specialised `flash` Subagents (define via `define_subagent` & spawn via `invoke_subagent` with `Model: "flash"` so they remain visible in the UI subagent panel and maintain lean context windows)**:
+    1. `codebase-researcher` (`enable_write_tools: false`): Multi-file codebase, type, test, and data-shard inspection.
+    2. `tdd-worker` (`enable_write_tools: true`): Red/Green/Refactor unit tests, selectors, `scripts/build-data.ts` precalculations, and scaffolding view wiring once a decision is ratified.
+    3. `qa-verifier` (`enable_write_tools: true`): Runs `npm run lint`, `npm run typecheck`, `npm run test:coverage`, and `npm run audit:r3f` in parallel single commands and resolves mechanical lint/type issues.
+    4. `screenshot-capturer` (`enable_write_tools: true`): Runs `npm run capture:views -- --routes=<routes> --out-dir=<artifactDir>/screenshots` across all 5 standard viewports and returns the LAN links and Markdown `carousel` blocks.
+- **Permission-Safe Subagent Rules (Prevent `waiting_for_input` Stalls)**:
+  1. **Single-Command `run_command` Only**: Never chain commands with `&&`, `||`, `;`, pipes `|`, redirection `>`, or subshells `$()` in `run_command`. Compound shell strings trigger manual permission review. Invoke one `npm run <script>` or `npx <tool>` command per `run_command` call (use parallel `run_command` tool calls when running multiple checks).
+  2. **Workspace-Scoped File Tools**: Subagents must only invoke `view_file`, `replace_file_content`, and `write_to_file` on paths inside `/home/marcel/projects/starmap`. Never read or write `~/.gemini/...` using IDE file tools from a subagent; only the parent agent writes artifacts inside `<appDataDir>/brain/<conversation-id>/`.
+  3. **No Ad-Hoc Inline Scripts**: Never run `node -e`, `python3 -c`, `sed`, `awk`, or `cat << EOF` via `run_command`.
+  4. **Self-Contained `capture:views`**: Subagents must never start foreground `npm run dev`; `scripts/capture-views.ts` automatically reuses or spawns/stops Vite on `127.0.0.1:5173`.
 
 ## Persona: The Critical Friend
 - **Expertise**: You are an expert software developer and 3D web systems architect.

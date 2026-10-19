@@ -1,0 +1,92 @@
+.combinatorSection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-fib-4);
+  align-items: start;
+  padding: var(--space-inset-card);
+  border: var(--border-width-1) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-raised);
+}
+
+.combinatorOutput {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-fib-3);
+  padding: var(--space-inset-card-tight);
+  border: var(--border-width-1) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-overlay);
+}
+
+.combinatorControls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-fib-3);
+}
+
+.sliceRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-fib-2);
+}
+
+.sliceButtonGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-fib-2);
+}
+
+.sliceButton {
+  appearance: none;
+  border: var(--border-width-1) solid var(--border-subtle);
+  background-color: var(--surface-overlay);
+  color: var(--content-default);
+  padding: var(--space-inset-button-sm-y) var(--space-inset-button-sm-x);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-data);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.sliceButton:hover {
+  background-color: var(--surface-base);
+  color: var(--content-prominent);
+}
+
+.sliceButton[aria-pressed='true'] {
+  border-color: var(--palette-accent-focus);
+  background-color: var(--palette-accent-focus-subtle);
+  color: var(--content-prominent);
+}
+
+.sliceEffect {
+  font-size: var(--text-content-caption-size);
+  color: var(--content-muted);
+  margin: 0;
+}
+
+.telemetryDl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: var(--space-fib-4);
+  row-gap: var(--space-fib-2);
+  padding: var(--space-inset-card-tight);
+  background-color: var(--surface-overlay);
+  border-radius: var(--radius-sm);
+  border: var(--border-width-1) solid var(--border-subtle);
+  margin: 0;
+}
+
+.telemetryDl dt {
+  font-family: var(--font-interface);
+  font-weight: 600;
+  color: var(--content-muted);
+}
+
+.telemetryDl dd {
+  margin: 0;
+  font-family: var(--font-data);
+  color: var(--content-prominent);
+}

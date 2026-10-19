@@ -16,7 +16,7 @@ import { Stack, Cluster } from '../../interface/layouts';
 import { Button, Input, Slider, Toggle } from '../../interface/controls';
 import { Badge, Datum } from '../../interface/data';
 import { Metric } from '../../poc/Metric/Metric';
-import { OrbitTable, ThemeSwitcher, type OrbitElementRow } from '../../poc';
+import { OrbitTable, type OrbitElementRow } from '../../poc';
 import { GalacticViewScene } from '../../canvas/scenes/SpatialScenes';
 import styles from './FullUIStyling.module.css';
 
@@ -188,12 +188,6 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
         </Cluster>
       </Hud>
 
-      {/* --------------------------------------------------------------------- */}
-      {/* Theme & Palette Switcher Widget                                       */}
-      {/* --------------------------------------------------------------------- */}
-      <div className={styles.themeSwitcherAnchor} data-testid="prototype-theme-switcher">
-        <ThemeSwitcher />
-      </div>
 
       {/* --------------------------------------------------------------------- */}
       {/* Tier 2: --surface-dock (Persistent navigation shelf docked to window) */}

@@ -9,7 +9,6 @@ import { Cluster } from '../../interface/layouts/Cluster/Cluster';
 import { Stack } from '../../interface/layouts/Stack/Stack';
 import { Metric } from '../../poc/Metric/Metric';
 import { OrbitTable, type OrbitElementRow } from '../../poc/OrbitTable/OrbitTable';
-import { ThemeSwitcher } from '../../poc/ThemeSwitcher/ThemeSwitcher';
 import type { ThemePalette, UITheme } from '../../../stores/useSettingsStore';
 import styles from './TypographyReview.module.css';
 
@@ -56,8 +55,6 @@ export interface TypographyReviewProps {
   descriptionText?: string;
   /** Selected orbit row in table */
   selectedOrbitId?: string;
-  /** Show theme switcher widget inside review view */
-  showThemeSwitcher?: boolean;
 }
 
 const DEFAULT_REVIEW_ORBITS: OrbitElementRow[] = [
@@ -130,7 +127,6 @@ export const TypographyReview: React.FC<TypographyReviewProps> = ({
   badgeText = 'VERIFIED SURVEY',
   descriptionText = 'High-precision Keplerian orbital elements and astrometric telemetry for candidate terrestrial and Jovian worlds within the local stellar neighbourhood. All radial velocities and proper motions are calibrated against the Gaia DR3 celestial reference frame and adjusted for Solar barycentric motion.',
   selectedOrbitId = 'earth',
-  showThemeSwitcher = true,
 }) => {
   return (
     <div
@@ -153,22 +149,17 @@ export const TypographyReview: React.FC<TypographyReviewProps> = ({
       data-testid="typography-review-container"
     >
       <Stack gap="default" className={styles.panelOverride}>
-        {/* Top Header / Switcher Bar */}
-        {showThemeSwitcher && (
-          <Cluster justify="between" align="center">
-            <div className={styles.specimenBar}>
-              <span>UI (--font-interface): </span>
-              <span className={styles.specimenChip}>{interfaceFont}</span>
-              <span> · DATA (--font-data): </span>
-              <span className={styles.specimenChip}>{dataFont}</span>
-              <span> · PROSE (--font-copy): </span>
-              <span className={styles.specimenChip}>{copyFont}</span>
-              <span> · RATIO: </span>
-              <span className={styles.specimenChip}>{typeRatio}</span>
-            </div>
-            <ThemeSwitcher compact />
-          </Cluster>
-        )}
+        {/* Top Specimen Bar */}
+        <div className={styles.specimenBar}>
+          <span>UI (--font-interface): </span>
+          <span className={styles.specimenChip}>{interfaceFont}</span>
+          <span> · DATA (--font-data): </span>
+          <span className={styles.specimenChip}>{dataFont}</span>
+          <span> · PROSE (--font-copy): </span>
+          <span className={styles.specimenChip}>{copyFont}</span>
+          <span> · RATIO: </span>
+          <span className={styles.specimenChip}>{typeRatio}</span>
+        </div>
 
         {/* Target Review Panel */}
         <Panel

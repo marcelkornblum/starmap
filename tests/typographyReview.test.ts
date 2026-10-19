@@ -87,17 +87,6 @@ describe('TypographyReview Component', () => {
     expect(html).not.toContain('style=');
   });
 
-  it('renders theme switcher when enabled and omits when disabled', () => {
-    const htmlWithSwitcher = renderToString(
-      createElement(TypographyReview, { showThemeSwitcher: true })
-    );
-    expect(htmlWithSwitcher).toContain('aria-label="Theme mode switcher"');
-
-    const htmlWithoutSwitcher = renderToString(
-      createElement(TypographyReview, { showThemeSwitcher: false })
-    );
-    expect(htmlWithoutSwitcher).not.toContain('aria-label="Theme mode switcher"');
-  });
 
   it('maintains parity between prototype and backwards-compatible re-export', async () => {
     const { TypographyReview: PrototypeTypographyReview } = await import('../src/components/prototypes');

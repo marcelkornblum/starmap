@@ -23,7 +23,7 @@ import {
   Datum,
   Metric,
 } from '../../poc/primitives';
-import { OrbitTable, ThemeSwitcher, type OrbitElementRow } from '../../poc/domain';
+import { OrbitTable, type OrbitElementRow } from '../../poc/domain';
 import { GalacticViewScene } from './SpatialScenes';
 import styles from './FullUIStylingScene.module.css';
 
@@ -195,12 +195,6 @@ export const FullUIStylingScene: React.FC<FullUIStylingSceneProps> = ({
         </Cluster>
       </Hud>
 
-      {/* --------------------------------------------------------------------- */}
-      {/* Theme & Palette Switcher Widget                                       */}
-      {/* --------------------------------------------------------------------- */}
-      <div className={styles.themeSwitcherAnchor} data-testid="prototype-theme-switcher">
-        <ThemeSwitcher />
-      </div>
 
       {/* --------------------------------------------------------------------- */}
       {/* Tier 2: --surface-dock (Persistent navigation shelf docked to window) */}

@@ -31,26 +31,27 @@ You are the **Conductor Implementer**. You execute tasks from a track's `plan.md
   1. **Phase-by-Phase / Screen-by-Screen Review:** Complete only the active phase/screen, update checkboxes in `plan.md`, present LAN links and multi-viewport screenshots, and HALT immediately to await explicit permission before proceeding. Do not autonomously commit code (the user controls the staging area).
   2. **Whole-Track Review in PR:** Execute phases continuously through completion (still pausing for any unratified atomic decisions). Commit clean, logical checkpoints on the feature branch as phases finish, and present the completed track with multi-viewport screenshots for review.
 - **Pre-Flight Dependency Gate (CRITICAL):** Before starting or resuming any track, read its `metadata.json` `"depends_on"` list and check `conductor/tracks.md` (including `## Archived Tracks` / `conductor/archive/tracks/`). If any listed upstream track is not marked `[x]` or archived, HALT immediately and report the incomplete upstream dependencies to the user.
-- **Quality Gates via `code-review` Skill:** At the end of each task or phase, invoke the `code-review` skill to run linting (`npm run lint`), type checking (`npm run typecheck`), and tests with coverage (`npm run test:coverage`), auditing code against guidelines and proactively eliminating technical debt.
+-- **Quality Gates & Subagent Offloading (`Model: "flash"` — CRITICAL):** By standing user instruction, define and use permission-safe `Model: "flash"` subagents (`codebase-researcher`, `tdd-worker`, `qa-verifier`, `screenshot-capturer`) for codebase reconnaissance, ratified TDD implementation, quality checks (`npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:r3f`), and 5-viewport Playwright screenshot capture (`npm run capture:views`). Never chain commands with `&&`, `||`, `;`, or `|` in `run_command`, and keep all subagent IDE file tool calls strictly inside `/home/marcel/projects/starmap`.
 
 ---
 
 ## 1. Track Selection, Pre-Flight Gates & Journey Briefing
 1. Read `conductor/tracks/<track_folder>/metadata.json` and `conductor/tracks.md`.
 2. Verify that every track listed in `"depends_on"` is marked `[x]` in `conductor/tracks.md` (either in active sections or under `## Archived Tracks` / `conductor/archive/tracks/`). If any upstream dependency is `[ ]` or `[~]`, halt and inform the user.
-3. Read `conductor/tracks/<track_folder>/spec.md`, `plan.md`, and `docs/user-journeys.md`. If `"initiative"` is set, also read `conductor/initiatives/<initiative>/decision-log.md` and `view-requirements.md`.
-4. If starting a new track, update its checkbox in `conductor/tracks.md` to `[~]` and its `metadata.json` `"status"` to `"in_progress"` using IDE edit tools (`replace_file_content`).
-5. **If this is a Journey Track:** Present the **Journey Onboarding Briefing** (Archetype, Mental Model, Deal-Breakers, JTBDs, and End-to-End Flow) and **HALT** so the user can read it and tell you where to start. Do not propose options or launch questions until the user responds.
+3. Read `conductor/tracks/<track_folder>/spec.md`, `plan.md`, and `docs/user-journeys.md` (or delegate broad codebase/track reconnaissance to `codebase-researcher` on `Model: "flash"`). If `"initiative"` is set, also read `conductor/initiatives/<initiative>/decision-log.md` and `view-requirements.md`.
+4. Ensure the four permission-safe `flash` subagents (`codebase-researcher`, `tdd-worker`, `qa-verifier`, `screenshot-capturer`) are defined for the session via `define_subagent`.
+5. If starting a new track, update its checkbox in `conductor/tracks.md` to `[~]` and its `metadata.json` `"status"` to `"in_progress"` using IDE edit tools (`replace_file_content`).
+6. **If this is a Journey Track:** Present the **Journey Onboarding Briefing** (Archetype, Mental Model, Deal-Breakers, JTBDs, and End-to-End Flow) in a commentable artifact (`UserFacing: true`) and **HALT** so the user can read it and tell you where to start. Do not propose options or launch questions until the user responds.
 
-## 2. Screen-by-Screen / Phase Execution Loop (Atomic Alignment + Red-Green-Refactor + Layering)
+## 2. Screen-by-Screen / Phase Execution Loop (Atomic Alignment + Flash Subagent TDD/QA/Screenshots)
 For each screen or task in the active phase:
-1. **Atomic Decision Alignment (One by One):** Walk through each data field, action, and requirement note for the current screen **one decision at a time** with the user via `ask_question`, and update `decision-log.md` and `view-requirements.md` before writing code.
-2. **Red Phase:** Write failing unit/integration tests capturing the ratified data model, selector, and scaffolding view requirements. Run `npm test` to confirm expected failure.
-3. **Green Phase:** Implement the view data model/selectors and layer the data and requirement notes onto the scaffolding view. Run `npm test` to confirm green.
-4. **Refactor Phase:** Clean up code for clarity and adherence to style guides ([webgl-r3f.md](../../../conductor/code_styleguides/webgl-r3f.md) for 3D/canvas components, [components.md](../../../conductor/code_styleguides/components.md) for UI) while keeping tests green.
-5. **Visual & LAN Checkpoint:** Provide clickable LAN URLs (`http://192.168.1.124:5173/...`) and run `npm run capture:views` to embed 5-viewport Playwright screenshots in a conversation artifact.
-6. **Quality Check:** Run the `code-review` skill to audit code standards, check types, run coverage tests, execute `npm run audit:r3f` on any 3D/canvas changes, and eliminate any technical debt.
-7. Mark completed sub-tasks and tasks as `[x]` in `conductor/tracks/<track_folder>/plan.md` using IDE edit tools (`replace_file_content`).
+1. **Pre-Decision Reconnaissance (`codebase-researcher` on `flash`):** Delegate multi-file inspection of existing types, services, selectors, and data shards to `codebase-researcher` (`Model: "flash"`) so the main context stays lean.
+2. **Atomic Decision Alignment (Main Orchestrator — One by One):** Walk through each data field, action, and requirement note for the current screen **one decision at a time** with the user via `ask_question`, and update `decision-log.md` and `view-requirements.md` before writing code.
+3. **Red/Green/Refactor TDD (`tdd-worker` on `flash`):** Once the atomic decisions for the step are ratified, delegate the well-specified Red/Green/Refactor implementation (unit tests, pure service/selector logic, data-pipeline precalculations, and scaffolding view wiring) to `tdd-worker` (`Model: "flash"`), enforcing single-command `npx vitest run <test-file>` execution and Starmap styleguides.
+4. **Parallel Visual Capture & Quality Check (`screenshot-capturer` & `qa-verifier` on `flash`):**
+   - Invoke `screenshot-capturer` (`Model: "flash"`) to run `npm run capture:views -- --routes=<routes> --out-dir=<artifactDir>/screenshots` as a single command and return the LAN URLs (`http://192.168.1.124:5173/...`) and Markdown `carousel` blocks.
+   - In parallel, invoke `qa-verifier` (`Model: "flash"`) to run `npm run lint`, `npm run typecheck`, `npm run test:coverage`, and `npm run audit:r3f` (on any 3D/canvas changes) as separate parallel single-command `run_command` calls and resolve any mechanical lint/type issues.
+5. **Artifact & Plan Update (Main Orchestrator):** Write the visual review artifact (`UserFacing: true`) in `<appDataDir>/brain/<conversation-id>/` embedding the 5-viewport screenshots and LAN links, and mark completed tasks as `[x]` in `conductor/tracks/<track_folder>/plan.md` using `replace_file_content`.
 
 ## 3. Phase Checkpoint & Progression
 When all tasks in the current phase/screen are marked `[x]`:

@@ -47,8 +47,8 @@ For complete TypeScript interfaces, compact 1-letter JSON wire keys, and worked 
 3. Extract **Candidate Celestial Entities**:
    - For each star system, planet, moon, or station mentioned in the source material, record its **in-universe name**, **claimed real-sky star/planet designation** (Proper name, Bayer/Flamsteed, Gliese/GJ, HD, HIP), and **role in the work**.
 
-### Step 2: Cross-Match Against Starmap's Catalog
-Resolve every candidate entity against Starmap's built search indices (`public/data/search/core.json`, `public/data/search/stars.json`, `public/data/search/planets.json`):
+### Step 2: Cross-Match Against Starmap's Catalog (via `codebase-researcher` on `Model: "flash"`)
+Delegate catalog cross-matching against Starmap's built search indices (`public/data/search/core.json`, `public/data/search/stars.json`, `public/data/search/planets.json`) to `codebase-researcher` (`Model: "flash"`):
 1. Search for the real-sky star or planet using normalized clean keys (`buildCleanKeys` in `src/utils/nomenclature.ts`) or by inspecting `public/data/search/stars.json` and `public/data/search/planets.json`.
 2. Classify each matched entity's `targetType` and `targetId`:
    - **Real Star System (`targetType: 'system'`):**
@@ -83,11 +83,11 @@ Before writing to `src/utils/datasetLayerCodec.ts` or running `npm run build:dat
    - **Excluded / Unmapped Lore Entities:** Any purely fictional systems or stars outside the 100-pc catalog that were excluded.
 2. **HALT** and ask the user to review the artifact (and confirm the authoritative `source.url` and any `'candidate'` / `'theoretical'` mappings).
 
-### Step 5: Emit, Build & Verify
-Once ratified by the user:
+### Step 5: Emit, Build & Verify (via `tdd-worker` & `qa-verifier` on `Model: "flash"`)
+Once ratified by the user, delegate emission, data build, and verification to `tdd-worker` / `qa-verifier` (`Model: "flash"`) using separate single-command `run_command` calls (zero `&&` chaining):
 1. Add or update the `DatasetLayerManifest` in `SEED_FICTIONAL_CANON_LAYERS` inside [`src/utils/datasetLayerCodec.ts`](file:///home/marcel/projects/starmap/src/utils/datasetLayerCodec.ts).
 2. Run `npm run build:data` to regenerate:
    - `public/data/overlays/layers/index.json`
    - `public/data/overlays/layers/<layerId>.json`
    - `public/data/search/fiction.json`, `public/data/search/core.json`, and `public/data/search/full.json`
-3. Run `npx vitest run tests/datasetLayerCodec.test.ts` and `npm run typecheck` to verify lossless round-trip encoding and search index generation.
+3. Run `npx vitest run tests/datasetLayerCodec.test.ts` and `npm run typecheck` as separate single commands to verify lossless round-trip encoding and search index generation.
