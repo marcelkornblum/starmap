@@ -74,10 +74,13 @@ import {
   SEARCH_CATEGORIES,
   STAR_TYPES_GUIDE_PATH,
   buildCanonLayerGalaxyHref,
+  buildCollectionGalaxyHref,
   buildMetricGuideHref,
+  buildPlanetTypeGalaxyHref,
   buildPlanetTypeGuideHref,
   buildResultTargetLink,
   buildSearchViewHref,
+  buildStarTypeGalaxyHref,
   buildStarTypeGuideHref,
   buildTagGalaxyHref,
   buildUpdatedSearchUrl,
@@ -99,6 +102,7 @@ import {
   isSearchCategoryFilter,
   normaliseSearchQuery,
   parseSearchUrlParams,
+  parseUrlSelectTokens,
   resolveEntityKind,
   resolveEntryCategory,
   resolveFocusedEntityFromCorpus,
@@ -106,12 +110,21 @@ import {
   resolveResultSystemTitle,
   resolveReticleType,
   resolveSelectedSystemsFromCanonLayer,
+  resolveSelectedSystemsFromCollection,
+  resolveSelectedSystemsFromPlanetType,
   resolveSelectedSystemsFromSearchResults,
+  resolveSelectedSystemsFromStarType,
   resolveSelectedSystemsFromTag,
+  resolveSelectedSystemsFromUrlSelect,
   scoreSearchEntry,
   toSearchResultItem,
+  SEED_CURATED_COLLECTIONS,
+  QUERY_CLEAN_KEY_TO_TAG_SLUG,
 } from '../src/services/searchService';
-import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
+import {
+  SYSTEM_TAG_BITS,
+  type CompactSearchEntry,
+} from '../src/utils/compactDataCodec';
 import { GalaxyView } from '../src/views/GalaxyView';
 import {
   MetricDetailView,
@@ -396,6 +409,43 @@ describe('searchService (Pure Service Layer)', () => {
       expect(results.groups[cat.key].items).toHaveLength(0);
     }
   });
+
+  it('resolves Greek Bayer, numbered Bayer, and two-word constellation queries with top score (>= 900)', () => {
+    const searchCorpus: CompactSearchEntry[] = [
+      ...SAMPLE_CORPUS,
+      {
+        i: 'gaia-alpha-cen',
+        n: 'Alpha Centauri',
+        p: [-1.3, 0.0, 0.0],
+        a: 'alphacentauri rigilkentaurus',
+      },
+      {
+        i: 'gaia-sirius',
+        n: 'Sirius',
+        p: [-2.6, 0.0, 0.0],
+        a: 'sirius alphacanismajoris',
+      },
+    ];
+
+    const testQueries = [
+      { q: 'τ Cet', expectedName: 'Tau Ceti', minScore: 900 },
+      { q: 'τ Ceti', expectedName: 'Tau Ceti', minScore: 900 },
+      { q: 'α Cen', expectedName: 'Alpha Centauri', minScore: 900 },
+      { q: 'omi 2 Eridani', expectedName: 'Keid', minScore: 900 },
+      { q: 'alp Canis Majoris', expectedName: 'Sirius', minScore: 900 },
+    ];
+
+    for (const { q, expectedName, minScore } of testQueries) {
+      const results = executeCatalogSearch(searchCorpus, {
+        query: q,
+        filter: 'stars',
+      });
+      const topStar = results.groups.stars.items[0];
+      expect(topStar, `Query "${q}" should produce a top star match`).toBeDefined();
+      expect(topStar?.name).toBe(expectedName);
+      expect(topStar?.score).toBeGreaterThanOrEqual(minScore);
+    }
+  });
 });
 
 describe('searchRepository (Data Repository Layer)', () => {
@@ -523,7 +573,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     // System links to /galaxy/<systemname>, child items link to /galaxy/<systemname>?focus=<itemname>
     expect(html).toContain('href="/galaxy/tau-ceti"');
     expect(html).toContain('href="/galaxy/tau-ceti?focus=tau-ceti-e"');
-    expect(html).toContain('href="/galaxy/tau-ceti?focus=adrian"');
+    expect(html).toContain('href="/galaxy/tau-ceti?focus=adrian&amp;select=canon:project-hail-mary"');
   });
 
   it('routes Solar System child bodies to /system/sol?focus=<itemname>', () => {
@@ -3935,5 +3985,414 @@ describe('Nested Moons, Scoped Star Focus & Contextual Details Drill-Down CTA (D
     expect(structureDetails?.systemDetailsHref).toBeUndefined();
   });
 });
+
+describe('Option C ?select= URL Grammar & Canon Target Links', () => {
+  it('produces select=canon:<shortSlug> for fictional canon search result items while keeping non-canon links unchanged', () => {
+    // 1. Fictional system-level canon entry
+    const fictionSystemEntry: CompactSearchEntry = {
+      i: 'canon-project-hail-mary:gaia-2452378776434477184',
+      k: 7,
+      n: 'Tau Ceti (Astrophage Destination)',
+      s: 'gaia-2452378776434477184',
+      w: 'canon-project-hail-mary',
+      c: 'Project Hail Mary',
+    };
+    const fictionSystemTarget = buildResultTargetLink({
+      id: fictionSystemEntry.i,
+      name: fictionSystemEntry.n,
+      systemId: fictionSystemEntry.s,
+      systemName: 'Tau Ceti',
+      canonLayerId: fictionSystemEntry.w,
+    });
+    expect(fictionSystemTarget).toEqual({
+      targetView: 'galaxy',
+      href: '/galaxy/tau-ceti?select=canon:project-hail-mary',
+    });
+
+    const fictionSystemItem = toSearchResultItem(fictionSystemEntry, 850, 'Tau Ceti');
+    expect(fictionSystemItem.href).toBe('/galaxy/tau-ceti?select=canon:project-hail-mary');
+
+    // 2. Fictional child body canon entry
+    const fictionChildEntry: CompactSearchEntry = {
+      i: 'canon-project-hail-mary:erid',
+      k: 7,
+      n: 'Erid',
+      s: '40-eridani',
+      w: 'canon-project-hail-mary',
+      c: 'Project Hail Mary',
+    };
+    const fictionChildTarget = buildResultTargetLink({
+      id: fictionChildEntry.i,
+      name: fictionChildEntry.n,
+      systemId: fictionChildEntry.s,
+      systemName: '40 Eridani',
+      canonLayerId: fictionChildEntry.w,
+    });
+    expect(fictionChildTarget).toEqual({
+      targetView: 'galaxy',
+      href: '/galaxy/40-eridani?focus=erid&select=canon:project-hail-mary',
+    });
+
+    const fictionChildItem = toSearchResultItem(fictionChildEntry, 850, '40 Eridani');
+    expect(fictionChildItem.href).toBe('/galaxy/40-eridani?focus=erid&select=canon:project-hail-mary');
+
+    // 3. Non-canon star entry
+    const starEntry: CompactSearchEntry = {
+      i: 'sol',
+      k: 1,
+      n: 'Sol',
+      h: 1,
+    };
+    const starTarget = buildResultTargetLink({
+      id: starEntry.i,
+      name: starEntry.n,
+      isSolarSystem: true,
+    });
+    expect(starTarget).toEqual({
+      targetView: 'galaxy',
+      href: '/galaxy/sol',
+    });
+
+    // 4. Non-canon solar system planet entry (routes to /system/sol?focus=earth)
+    const earthTarget = buildResultTargetLink({
+      id: 'earth',
+      name: 'Earth',
+      systemId: 'sol',
+      isSolarSystem: true,
+    });
+    expect(earthTarget).toEqual({
+      targetView: 'system',
+      href: '/system/sol?focus=earth',
+    });
+
+    // 5. Non-canon exoplanet entry
+    const exoTarget = buildResultTargetLink({
+      id: 'tau-ceti-e',
+      name: 'Tau Ceti e',
+      systemId: 'tau-ceti',
+      systemName: 'Tau Ceti',
+    });
+    expect(exoTarget).toEqual({
+      targetView: 'galaxy',
+      href: '/galaxy/tau-ceti?focus=tau-ceti-e',
+    });
+  });
+
+  it('parses Option C tokens: tag:<slug>, canon:<slug>, star-type:<slug>, planet-type:<slug>, collection:<slug>, and entity slugs', () => {
+    // 1. Individual tokens
+    expect(parseUrlSelectTokens('?select=tag:habitable-candidate')).toEqual([
+      { kind: 'tag', tag: 'habitable-candidate' },
+    ]);
+    expect(parseUrlSelectTokens('?select=canon:project-hail-mary')).toEqual([
+      { kind: 'canon', layerId: 'canon-project-hail-mary' },
+    ]);
+    expect(parseUrlSelectTokens('?select=star-type:g')).toEqual([
+      { kind: 'star-type', starType: 'g' },
+    ]);
+    expect(parseUrlSelectTokens('?select=star-type:g2v')).toEqual([
+      { kind: 'star-type', starType: 'g2v' },
+    ]);
+    expect(parseUrlSelectTokens('?select=star-type:white-dwarf')).toEqual([
+      { kind: 'star-type', starType: 'white-dwarf' },
+    ]);
+    expect(parseUrlSelectTokens('?select=planet-type:super-earth')).toEqual([
+      { kind: 'planet-type', planetType: 'super-earth' },
+    ]);
+    expect(parseUrlSelectTokens('?select=planet-type:gas-giant')).toEqual([
+      { kind: 'planet-type', planetType: 'gas-giant' },
+    ]);
+    expect(parseUrlSelectTokens('?select=collection:extreme-worlds')).toEqual([
+      { kind: 'collection', collectionId: 'extreme-worlds' },
+    ]);
+    expect(parseUrlSelectTokens('?select=collection:newly-discovered')).toEqual([
+      { kind: 'collection', collectionId: 'newly-discovered' },
+    ]);
+    expect(parseUrlSelectTokens('?select=sol')).toEqual([
+      { kind: 'entity', slug: 'sol' },
+    ]);
+
+    // 2. Comma-separated combination
+    const multi = parseUrlSelectTokens('?select=star-type:g,canon:project-hail-mary,sol');
+    expect(multi).toEqual([
+      { kind: 'star-type', starType: 'g' },
+      { kind: 'canon', layerId: 'canon-project-hail-mary' },
+      { kind: 'entity', slug: 'sol' },
+    ]);
+  });
+
+  it('resolves selected systems from star types, planet types, collections, and combined ?select= query', () => {
+    const testCorpus: readonly CompactSearchEntry[] = [
+      {
+        i: 'sol',
+        n: 'Sol',
+        k: 1,
+        m: [-26.74, 'G2V', 8, 1],
+        b: [4, 2, 2], // [terrestrial, subNeptune, gasGiant]
+        p: [0, 0, 0],
+        h: 1,
+      },
+      {
+        i: 'tau-ceti',
+        n: 'Tau Ceti',
+        k: 1,
+        m: [3.5, 'G8V', 4, 1],
+        b: [2, 1, 0],
+        p: [-3.1, -0.4, -2.0],
+      },
+      {
+        i: 'keid',
+        n: 'Keid',
+        k: 1,
+        m: [4.43, 'K0.5V', 1],
+        p: [-2.5, -3.6, -2.4],
+      },
+      {
+        i: 'sirius-b',
+        n: 'Sirius B',
+        k: 1,
+        m: [8.44, 'DA2', 0],
+        p: [-0.5, 2.5, -0.6],
+      },
+      {
+        i: 'luhman-16',
+        n: 'Luhman 16',
+        k: 1,
+        m: [14.0, 'L7.5', 0],
+        p: [-1.0, 1.5, -0.8],
+      },
+      {
+        i: 'tau-ceti-e',
+        n: 'Tau Ceti e',
+        k: 2,
+        s: 'tau-ceti',
+        u: 'super-earth',
+      },
+      {
+        i: 'earth',
+        n: 'Earth',
+        k: 2,
+        s: 'sol',
+        u: 'terrestrial',
+      },
+      {
+        i: 'jupiter',
+        n: 'Jupiter',
+        k: 2,
+        s: 'sol',
+        u: 'gas-giant',
+      },
+    ];
+
+    // Star-type resolution:
+    // ?select=star-type:g -> Sol (G2V) and Tau Ceti (G8V)
+    const gStars = resolveSelectedSystemsFromStarType('g', testCorpus);
+    expect(gStars.map((s) => s.name)).toEqual(['Sol', 'Tau Ceti']);
+
+    // ?select=star-type:g2v -> Sol (G2V) only
+    const g2vStars = resolveSelectedSystemsFromStarType('g2v', testCorpus);
+    expect(g2vStars.map((s) => s.name)).toEqual(['Sol']);
+
+    // Compact / substellar reticle classes
+    const whiteDwarfs = resolveSelectedSystemsFromStarType('white-dwarf', testCorpus);
+    expect(whiteDwarfs.map((s) => s.name)).toEqual(['Sirius B']);
+
+    const brownDwarfs = resolveSelectedSystemsFromStarType('brown-dwarf', testCorpus);
+    expect(brownDwarfs.map((s) => s.name)).toEqual(['Luhman 16']);
+
+    // Planet-type resolution (from child planet entries entry.k === 2 with entry.u):
+    const superEarthSystems = resolveSelectedSystemsFromPlanetType('super-earth', testCorpus);
+    expect(superEarthSystems.map((s) => s.name)).toEqual(['Tau Ceti']);
+
+    const gasGiantSystems = resolveSelectedSystemsFromPlanetType('gas-giant', testCorpus);
+    expect(gasGiantSystems.map((s) => s.name)).toEqual(['Sol']);
+
+    // Planet-type fallback when no child planet entries exist in corpus (reading entry.b):
+    const starOnlyCorpus = testCorpus.filter((e) => e.k !== 2);
+    const fallbackTerrestrial = resolveSelectedSystemsFromPlanetType('terrestrial', starOnlyCorpus);
+    expect(fallbackTerrestrial.map((s) => s.name)).toEqual(['Sol', 'Tau Ceti']);
+
+    const fallbackGasGiant = resolveSelectedSystemsFromPlanetType('gas-giant', starOnlyCorpus);
+    expect(fallbackGasGiant.map((s) => s.name)).toEqual(['Sol']);
+
+    // Curated collection resolution:
+    expect(SEED_CURATED_COLLECTIONS.length).toBeGreaterThanOrEqual(2);
+    expect(SEED_CURATED_COLLECTIONS.some((c) => c.id === 'extreme-worlds')).toBe(true);
+    expect(SEED_CURATED_COLLECTIONS.some((c) => c.id === 'newly-discovered')).toBe(true);
+
+    const extremeWorlds = resolveSelectedSystemsFromCollection('extreme-worlds', testCorpus);
+    expect(extremeWorlds.length).toBeGreaterThan(0);
+    expect(extremeWorlds.some((s) => s.id === 'tau-ceti' || s.id === 'sol' || s.name === 'Tau Ceti' || s.name === 'Sol')).toBe(true);
+
+    const newlyDiscovered = resolveSelectedSystemsFromCollection('newly-discovered', testCorpus);
+    expect(newlyDiscovered.length).toBeGreaterThan(0);
+
+    // resolveSelectedSystemsFromUrlSelect with combined grammar
+    const combined = resolveSelectedSystemsFromUrlSelect(
+      '?select=star-type:g2v,collection:extreme-worlds',
+      testCorpus,
+    );
+    expect(combined.some((s) => s.id === 'sol')).toBe(true);
+  });
+
+  it('builds canonical galaxy view URLs using helper functions', () => {
+    expect(buildStarTypeGalaxyHref('G')).toBe('/galaxy?select=star-type:g');
+    expect(buildStarTypeGalaxyHref('g2v')).toBe('/galaxy?select=star-type:g2v');
+    expect(buildStarTypeGalaxyHref('')).toBe('/galaxy');
+
+    expect(buildPlanetTypeGalaxyHref('super-earth')).toBe('/galaxy?select=planet-type:super-earth');
+    expect(buildPlanetTypeGalaxyHref('Super-Earth')).toBe('/galaxy?select=planet-type:super-earth');
+    expect(buildPlanetTypeGalaxyHref('')).toBe('/galaxy');
+
+    expect(buildCollectionGalaxyHref('extreme-worlds')).toBe('/galaxy?select=collection:extreme-worlds');
+    expect(buildCollectionGalaxyHref('Newly Discovered')).toBe('/galaxy?select=collection:newly-discovered');
+    expect(buildCollectionGalaxyHref('')).toBe('/galaxy');
+  });
+
+  it('buildResultTargetLink & toSearchResultItem support tagSlug parameter with select=tag:<slug> URL', () => {
+    // 1. Standard star system with tagSlug
+    const systemResult = buildResultTargetLink({
+      id: 'tau-ceti',
+      name: 'Tau Ceti',
+      tagSlug: 'habitable-candidate',
+    });
+    expect(systemResult.targetView).toBe('galaxy');
+    expect(systemResult.href).toBe('/galaxy/tau-ceti?select=tag:habitable-candidate');
+
+    // 2. Solar system child body with tagSlug
+    const solChildResult = buildResultTargetLink({
+      id: 'earth',
+      name: 'Earth',
+      systemId: 'sol',
+      systemName: 'Sol',
+      isSolarSystem: true,
+      tagSlug: 'habitable-candidate',
+    });
+    expect(solChildResult.targetView).toBe('system');
+    expect(solChildResult.href).toBe('/system/sol?focus=earth&select=tag:habitable-candidate');
+
+    // 3. canonLayerId takes precedence over tagSlug when both are present
+    const canonPrecedenceResult = buildResultTargetLink({
+      id: 'tau-ceti',
+      name: 'Tau Ceti',
+      canonLayerId: 'canon-project-hail-mary',
+      tagSlug: 'habitable-candidate',
+    });
+    expect(canonPrecedenceResult.href).toBe('/galaxy/tau-ceti?select=canon:project-hail-mary');
+
+    // 4. toSearchResultItem passes tagSlug through to href
+    const entry: CompactSearchEntry = {
+      i: 'tau-ceti',
+      k: 1,
+      n: 'Tau Ceti',
+      m: [3.5, 'G8.5V', 4, 1],
+      g: SYSTEM_TAG_BITS.HabitableCandidate,
+    };
+    const item = toSearchResultItem(entry, 650, undefined, 'habitable-candidate');
+    expect(item.href).toBe('/galaxy/tau-ceti?select=tag:habitable-candidate');
+  });
+
+  it('surfaces matching star systems via entry.g bitmask on tag queries with select=tag:<slug> href', () => {
+    // Verify static mapping keys
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['habitable']).toBe('habitable-candidate');
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['habitablecandidate']).toBe('habitable-candidate');
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['habitablehost']).toBe('habitable-candidate');
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['habitablezone']).toBe('habitable-candidate');
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['nakedeye']).toBe('naked-eye');
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['solarneighborhood']).toBe('solar-neighborhood-10pc');
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['solarneighborhood10pc']).toBe('solar-neighborhood-10pc');
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['exoplanethost']).toBe('exoplanet-host');
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['variablestar']).toBe('variable-star');
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['reconsgroundtruth']).toBe('recons-ground-truth');
+    expect(QUERY_CLEAN_KEY_TO_TAG_SLUG['homesystem']).toBe('home-system');
+
+    const corpusWithTags: CompactSearchEntry[] = [
+      {
+        i: 'tau-ceti',
+        k: 1,
+        n: 'Tau Ceti',
+        p: [-3.6, 0.6, -0.7],
+        m: [3.5, 'G8.5V', 4, 1],
+        g: SYSTEM_TAG_BITS.HabitableCandidate,
+      },
+      {
+        i: 'sirius',
+        k: 1,
+        n: 'Sirius',
+        p: [-1.6, 2.1, -0.4],
+        m: [-1.46, 'A1V', 0],
+        g: SYSTEM_TAG_BITS.NakedEye,
+      },
+      {
+        i: 'barnard',
+        k: 1,
+        n: "Barnard's Star",
+        p: [-0.1, 1.8, 0.4],
+        m: [9.54, 'M4V', 1],
+        g: SYSTEM_TAG_BITS.SolarNeighborhood10pc,
+      },
+      {
+        i: 'habitable-harbor',
+        k: 1,
+        n: 'Habitable Harbor',
+        p: [1.0, 2.0, 3.0],
+        m: [4.0, 'K2V', 2, 1],
+        g: SYSTEM_TAG_BITS.HabitableCandidate,
+      },
+      {
+        i: 'earth',
+        k: 2,
+        n: 'Earth',
+        s: 'sol',
+        h: 1,
+      },
+    ];
+
+    // 1. Searching "habitable" matches Tau Ceti via entry.g (score 650) and Habitable Harbor via direct match (score 750) + tagSlug
+    const habitableResults = executeCatalogSearch(corpusWithTags, {
+      query: 'habitable',
+    });
+    expect(habitableResults.groups.stars.items.length).toBe(2);
+
+    // Habitable Harbor has directScore > 0, so its score is > 650, but it gets tagSlug attached
+    const harborItem = habitableResults.groups.stars.items.find((it) => it.id === 'habitable-harbor');
+    expect(harborItem).toBeDefined();
+    expect(harborItem?.score).toBeGreaterThan(650);
+    expect(harborItem?.href).toBe('/galaxy/habitable-harbor?select=tag:habitable-candidate');
+
+    // Tau Ceti has directScore === 0, so it gets scored at 650 with tagSlug attached
+    const tauCetiItem = habitableResults.groups.stars.items.find((it) => it.id === 'tau-ceti');
+    expect(tauCetiItem).toBeDefined();
+    expect(tauCetiItem?.score).toBe(650);
+    expect(tauCetiItem?.href).toBe('/galaxy/tau-ceti?select=tag:habitable-candidate');
+
+    // Sirius should NOT be in the habitable candidate stars group
+    expect(habitableResults.groups.stars.items.some((it) => it.id === 'sirius')).toBe(false);
+
+    // 1b. Searching "habitable candidate" matches Tau Ceti at score 650 with select=tag:habitable-candidate
+    const habitableCandidateResults = executeCatalogSearch(corpusWithTags, {
+      query: 'habitable candidate',
+    });
+    const tauCetiCandidateItem = habitableCandidateResults.groups.stars.items.find((it) => it.id === 'tau-ceti');
+    expect(tauCetiCandidateItem?.score).toBe(650);
+    expect(tauCetiCandidateItem?.href).toBe('/galaxy/tau-ceti?select=tag:habitable-candidate');
+
+    // 2. Searching "naked eye" surfaces Sirius via entry.g bitmask at score 650
+    const nakedEyeResults = executeCatalogSearch(corpusWithTags, {
+      query: 'naked eye',
+    });
+    expect(nakedEyeResults.groups.stars.items.length).toBe(1);
+    const siriusItem = nakedEyeResults.groups.stars.items[0];
+    expect(siriusItem.id).toBe('sirius');
+    expect(siriusItem.score).toBe(650);
+    expect(siriusItem.href).toBe('/galaxy/sirius?select=tag:naked-eye');
+
+    // 3. Normal query not in QUERY_CLEAN_KEY_TO_TAG_SLUG produces clean URLs without select=tag:...
+    const siriusDirectResults = executeCatalogSearch(corpusWithTags, {
+      query: 'Sirius',
+    });
+    expect(siriusDirectResults.groups.stars.items[0].href).toBe('/galaxy/sirius');
+  });
+});
+
 
 

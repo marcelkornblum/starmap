@@ -91,6 +91,7 @@ To resolve spatial density without falsifying astronomical positions or creating
   * **Gravitational Barycentres:** 1px Plus (`+`) at true centre of mass.
   * **Planetary Bodies (Open Circle Family):** All planet reticles share one size envelope (the same as every other body reticle); category is conveyed by shape only, and size never varies with radius, mass or class.
     * *Terrestrial / Rocky:* Plain 1px open circle.
+    * *Super-Earth:* Concentric double 1px open circle (inner and outer open rings keeping the centre 100% open).
     * *Gas Giant:* Open circle crossed by a 45° slash with a central gap (keeping the centre open).
     * *Ice Giant:* Open circle with radial ring ticks outside the circle, keeping the central disk 100% open.
   * **Stellar Clusters / Echelons:** Floating Double Top Chevron (`︽`) with no bottom chevron, crowning the cluster centroid.

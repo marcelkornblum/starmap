@@ -8,19 +8,24 @@ import {
   STAR_TYPES_GUIDE_PATH,
   PLANET_TYPES_GUIDE_PATH,
   METRICS_GUIDE_PATH,
+  HAZARDS_GUIDE_PATH,
   buildStarTypeGuideHref,
   buildPlanetTypeGuideHref,
   buildMetricGuideHref,
+  buildHazardGuideHref,
+  resolveHazardGuideEntry,
   METRIC_LABEL_TO_SLUG,
   resolveMetricSlugFromLabel,
   METRIC_ALIASES,
   STAR_TYPE_GUIDE_ENTRIES,
   PLANET_TYPE_GUIDE_ENTRIES,
   METRIC_GUIDE_ENTRIES,
+  HAZARD_GUIDE_ENTRIES,
   type GuideExampleTarget,
   type StarTypeGuideEntry,
   type PlanetTypeGuideEntry,
   type MetricGuideEntry,
+  type HazardGuideEntry,
   type GuideCatalogEntry,
   type PlanetCompositionClass,
 } from '../data/guideCatalog';
@@ -30,19 +35,24 @@ export {
   STAR_TYPES_GUIDE_PATH,
   PLANET_TYPES_GUIDE_PATH,
   METRICS_GUIDE_PATH,
+  HAZARDS_GUIDE_PATH,
   buildStarTypeGuideHref,
   buildPlanetTypeGuideHref,
   buildMetricGuideHref,
+  buildHazardGuideHref,
+  resolveHazardGuideEntry,
   METRIC_LABEL_TO_SLUG,
   resolveMetricSlugFromLabel,
   METRIC_ALIASES,
   STAR_TYPE_GUIDE_ENTRIES,
   PLANET_TYPE_GUIDE_ENTRIES,
   METRIC_GUIDE_ENTRIES,
+  HAZARD_GUIDE_ENTRIES,
   type GuideExampleTarget,
   type StarTypeGuideEntry,
   type PlanetTypeGuideEntry,
   type MetricGuideEntry,
+  type HazardGuideEntry,
   type GuideCatalogEntry,
   type PlanetCompositionClass,
 };
@@ -558,6 +568,23 @@ export const resolveMetricComparison = (
       targetValue = `${tEq} K`;
       targetFamiliar = `≈ ${celsius} °C`;
       relativeRatioLabel = `${celsius >= 0 ? `+${celsius}` : celsius} °C surface equilibrium`;
+      break;
+    }
+    case 'surface-gravity': {
+      baselineValue = '1.00 g';
+      baselineFamiliar = '1.00 g (9.81 m/s²)';
+      const g =
+        details?.planetTelemetry?.surfaceGravityG ??
+        (details?.planets?.[0]?.massMearth && details?.planets?.[0]?.radiusRearth
+          ? Math.round(
+              (details.planets[0].massMearth /
+                (details.planets[0].radiusRearth * details.planets[0].radiusRearth)) *
+                100,
+            ) / 100
+          : 1.2);
+      targetValue = `${g.toFixed(2)} g`;
+      targetFamiliar = `≈ ${(g * 9.81).toFixed(2)} m/s²`;
+      relativeRatioLabel = `${g.toFixed(2)}× Earth gravity`;
       break;
     }
     default:

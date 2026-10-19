@@ -4,4 +4,5 @@ export {
   type GuideStarPreviewProps,
   type GuidePlanetPreviewProps,
   type GuideMetricPreviewProps,
+  type GuideHazardPreviewProps,
 } from './Guide3DPreview';

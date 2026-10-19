@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import {
   buildSystemElementFocusHref,
+  type EntityHazardItem,
   type FocusedCanonAnnotation,
   type FocusedEntityDetails,
   type FocusedPlanetDetail,
@@ -16,11 +17,17 @@ import {
   buildStarTypeGuideHref,
   buildTagGalaxyHref,
 } from '../../../services/searchService';
+import {
+  buildHazardGuideHref,
+  HAZARDS_GUIDE_PATH,
+} from '../../../services/guideService';
+import { DetentSheet, type DetentLevel } from '../../interface/surfaces/DetentSheet';
 import { Badge, Quantity, Unit } from '../../interface/information';
 import { shouldDisplaySpectralBadge } from '../SearchResultItem/SearchResultItem';
 
 export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
+  readonly activeDetent?: DetentLevel;
 }
 
 const renderPlanetComposition = (
@@ -230,6 +237,48 @@ const renderOrbitingBodies = (
     </section>
   );
 };
+
+const renderHazards = (
+  hazards: readonly EntityHazardItem[],
+): ReactNode => (
+  <section
+    aria-labelledby="details-hazards-heading"
+    data-testid="details-hazards-section"
+  >
+    <h4 id="details-hazards-heading">Environmental Hazards</h4>
+    {hazards.length === 0 ? (
+      <p data-testid="details-hazards-nominal">
+        <Badge status="nominal">
+          <a href={HAZARDS_GUIDE_PATH} data-testid="details-hazards-guide-link">
+            0 hazards
+          </a>
+        </Badge>{' '}
+        Nominal environment
+      </p>
+    ) : (
+      <ul data-testid="details-hazards-list">
+        {hazards.map((hazard) => (
+          <li
+            key={hazard.code}
+            data-testid="details-hazard-item"
+            data-hazard-code={hazard.code}
+            data-hazard-severity={hazard.severity}
+          >
+            <Badge status={hazard.severity === 'critical' ? 'critical' : 'caution'}>
+              <a
+                href={buildHazardGuideHref(hazard.code)}
+                data-testid="details-hazard-guide-link"
+              >
+                {hazard.label}
+              </a>
+            </Badge>{' '}
+            <span>{hazard.description}</span>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+);
 
 const renderStars = (
   stars: readonly FocusedStarDetail[],
@@ -453,7 +502,7 @@ const renderPlanets = (
  * domain property (`details`), returns `null` when nothing is focused, and decomposes
  * the focused entity's data into the 3 detent areas (`Peek`, `Partial`, `Full`).
  */
-export const DetailsPanel = ({ details }: DetailsPanelProps) => {
+export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
   if (!details) {
     return null;
   }
@@ -488,23 +537,34 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
   const hasSpectBadge = shouldDisplaySpectralBadge(spectralType);
   const isSystemFocus = focusedKind === 'system';
 
-  return (
-    <section
-      aria-labelledby="details-panel-heading"
-      data-testid="details-panel"
-      data-entity-id={id}
-      data-system-id={systemId}
-      data-focused-kind={focusedKind}
-    >
-      <h2 id="details-panel-heading">Details</h2>
+  const hazardBadgeStatus: 'critical' | 'caution' | 'nominal' =
+    details.hazardCount > 0
+      ? details.hazards.some((h) => h.severity === 'critical')
+        ? 'critical'
+        : 'caution'
+      : 'nominal';
 
-      <section
-        aria-labelledby="details-peek-heading"
-        data-testid="details-detent-peek"
-      >
-        <h3 id="details-peek-heading">Peek</h3>
-        <p data-testid="details-peek-header">
-          <strong data-testid="details-peek-name">{name}</strong>
+  const hazardSummaryBadge = (
+    <span data-testid="details-hazard-summary">
+      <Badge status={hazardBadgeStatus}>
+        <a
+          href={
+            details.hazards.length === 1
+              ? buildHazardGuideHref(details.hazards[0]?.code)
+              : HAZARDS_GUIDE_PATH
+          }
+          data-testid="details-hazard-summary-link"
+        >
+          {details.hazardSummaryLabel}
+        </a>
+      </Badge>
+    </span>
+  );
+
+  const peekContent = (
+    <>
+      <p data-testid="details-peek-header">
+        <strong data-testid="details-peek-name">{name}</strong>
           {name !== systemName ? (
             <span data-testid="details-peek-system-name">
               {` (${systemName})`}
@@ -628,6 +688,8 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                 />
               </>
             ) : null}
+            {' · '}
+            {hazardSummaryBadge}
           </p>
         ) : null}
         {starTelemetry ? (
@@ -660,6 +722,8 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                 </Unit>
               }
             />
+            {' · '}
+            {hazardSummaryBadge}
           </p>
         ) : null}
         {minorBodyTelemetry ? (
@@ -668,6 +732,8 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
             {minorBodyTelemetry.parentBodyName
               ? ` · ${minorBodyTelemetry.parentBodyName}`
               : null}
+            {' · '}
+            {hazardSummaryBadge}
           </p>
         ) : null}
         {structureTelemetry ? (
@@ -682,55 +748,57 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
               planetCompositionBreakdown,
               hasHabitableCandidate,
             )}
+            {' · '}
+            {hazardSummaryBadge}
           </p>
         ) : null}
         <p data-testid="details-system-summary">
           {renderSystemSummarySegments(systemSummarySegments)}
         </p>
-      </section>
+    </>
+  );
 
-      <section
-        aria-labelledby="details-partial-heading"
-        data-testid="details-detent-partial"
-      >
-        <h3 id="details-partial-heading">Partial</h3>
-        <div data-testid="details-actions">
-          {systemDetailsHref ? (
-            <>
-              <a
-                href={systemDetailsHref}
-                data-testid="details-button-system-details"
-              >
-                Details
-              </a>{' '}
-            </>
-          ) : null}
-          <a
-            href={details.centerHref ?? `/galaxy?center=${encodeURIComponent(id)}&focus=${encodeURIComponent(id)}`}
-            data-testid="details-button-center"
-          >
-            Centre
-          </a>{' '}
-          <button type="button" data-testid="details-button-directions">
-            Directions
-          </button>
-        </div>
-        {renderCanonLayers(canonAnnotations)}
-        {renderOrbitingBodies(focusedKind, orbitingBodies)}
-        {isSystemFocus ? renderStars(stars, systemName || systemId) : null}
-        {isSystemFocus ? renderPlanets(planets, systemName || systemId) : null}
-      </section>
+  const partialContent = (
+    <>
+      <div data-testid="details-actions">
+        {systemDetailsHref ? (
+          <>
+            <a
+              href={systemDetailsHref}
+              data-testid="details-button-system-details"
+            >
+              Details
+            </a>{' '}
+          </>
+        ) : null}
+        <a
+          href={details.centerHref ?? `/galaxy?center=${encodeURIComponent(id)}&focus=${encodeURIComponent(id)}`}
+          data-testid="details-button-center"
+        >
+          Centre
+        </a>{' '}
+        <a
+          href={details.directionsHref}
+          data-testid="details-button-directions"
+        >
+          Directions
+        </a>
+      </div>
+      {renderHazards(details.hazards)}
+      {renderCanonLayers(canonAnnotations)}
+      {renderOrbitingBodies(focusedKind, orbitingBodies)}
+      {isSystemFocus ? renderStars(stars, systemName || systemId) : null}
+      {isSystemFocus ? renderPlanets(planets, systemName || systemId) : null}
+    </>
+  );
 
-      <section
-        aria-labelledby="details-full-heading"
-        data-testid="details-detent-full"
-      >
-        <h3 id="details-full-heading">Full</h3>
-        {starTelemetry ? (
-          <section
-            aria-labelledby="details-star-telemetry-heading"
-            data-testid="details-star-telemetry-section"
-          >
+  const fullContent = (
+    <>
+      {starTelemetry ? (
+        <section
+          aria-labelledby="details-star-telemetry-heading"
+          data-testid="details-star-telemetry-section"
+        >
             <h4 id="details-star-telemetry-heading">Stellar Telemetry</h4>
             <dl data-testid="details-star-telemetry-list">
               <dt>Component</dt>
@@ -1008,6 +1076,26 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                   </dd>
                 </>
               ) : null}
+              {planetTelemetry.surfaceGravityG !== undefined ? (
+                <>
+                  <dt>Surface Gravity</dt>
+                  <dd data-testid="details-planet-telemetry-gravity">
+                    <Quantity
+                      value={planetTelemetry.surfaceGravityG}
+                      unit={
+                        <Unit>
+                          <a
+                            href={buildMetricGuideHref('surface-gravity', id)}
+                            data-testid="details-metric-unit-link"
+                          >
+                            g
+                          </a>
+                        </Unit>
+                      }
+                    />
+                  </dd>
+                </>
+              ) : null}
               {planetTelemetry.equilibriumTempK !== undefined ? (
                 <>
                   <dt>Equilibrium Temp</dt>
@@ -1031,6 +1119,20 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
                   </dd>
                 </>
               ) : null}
+              {planetTelemetry.esi !== undefined ? (
+                <>
+                  <dt>Earth Similarity (ESI)</dt>
+                  <dd data-testid="details-planet-telemetry-esi">
+                    {planetTelemetry.esi.toFixed(2)}
+                  </dd>
+                </>
+              ) : null}
+              <dt>Tidal Status</dt>
+              <dd data-testid="details-planet-telemetry-tidal">
+                {planetTelemetry.isTidallyLocked
+                  ? 'Tidally locked (synchronous)'
+                  : 'Free rotation'}
+              </dd>
               {planetTelemetry.discoveryYear !== undefined ||
               planetTelemetry.discoveryMethod ? (
                 <>
@@ -1163,8 +1265,21 @@ export const DetailsPanel = ({ details }: DetailsPanelProps) => {
             ) : null}
           </dl>
         </section>
-      </section>
+    </>
+  );
 
-    </section>
+  return (
+    <DetentSheet
+      testIdPrefix="details"
+      heading="Details"
+      headingId="details-panel-heading"
+      activeDetent={activeDetent}
+      data-entity-id={id}
+      data-system-id={systemId}
+      data-focused-kind={focusedKind}
+      peek={peekContent}
+      partial={partialContent}
+      full={fullContent}
+    />
   );
 };

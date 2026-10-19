@@ -24,7 +24,9 @@ import {
   focusEntity,
   clearInteraction,
   occlusionCyclicTargetResolver,
+  JourneyChord,
 } from '../entity';
+import type { JourneyChordLeg } from '../cartography';
 import { useUIStore } from '../../../stores/useUIStore';
 
 export interface SpatialViewportProps {
@@ -62,6 +64,10 @@ export interface SpatialViewportProps {
   onDoubleClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
   /** Frame-driven cartographic lighting override or false to disable */
   lighting?: Partial<FrameLightingConfig> | false;
+  /** Journey chord legs to render in the viewport */
+  journeyLegs?: readonly JourneyChordLeg[];
+  /** Active transit method ID for visual chord styling */
+  activeJourneyMethod?: string;
 }
 
 /**
@@ -82,6 +88,8 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   focusTransitionDuration = 0.8,
   onDoubleClick,
   lighting,
+  journeyLegs,
+  activeJourneyMethod,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
   const globalSelectedId = useUIStore((s) => s.selectedNodeId);
@@ -176,6 +184,11 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
           onDoubleClick={handleEntityDoubleClick}
         />
       ))}
+
+      {/* 3D Journey Chord visualization */}
+      {journeyLegs && journeyLegs.length > 0 ? (
+        <JourneyChord legs={journeyLegs} activeMethodId={activeJourneyMethod} />
+      ) : null}
 
       {/* Custom bespoke visuals (e.g. PlanetBody, route corridors) */}
       {children}

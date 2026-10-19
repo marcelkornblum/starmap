@@ -11,3 +11,4 @@ export * from './EntityLabel';
 export * from './CelestialEntity';
 export * from './OcclusionPass';
 export * from './PlanetBody';
+export * from './JourneyChord';

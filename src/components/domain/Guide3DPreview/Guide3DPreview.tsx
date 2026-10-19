@@ -35,10 +35,20 @@ export interface GuideMetricPreviewProps {
   readonly className?: string;
 }
 
+export interface GuideHazardPreviewProps {
+  readonly kind: 'hazard';
+  readonly hazardId?: string;
+  readonly domain?: 'stellar' | 'planetary';
+  readonly severity?: 'warning' | 'critical';
+  readonly isDetail?: boolean;
+  readonly className?: string;
+}
+
 export type Guide3DPreviewProps =
   | GuideStarPreviewProps
   | GuidePlanetPreviewProps
-  | GuideMetricPreviewProps;
+  | GuideMetricPreviewProps
+  | GuideHazardPreviewProps;
 
 export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
   const rootClass = [
@@ -87,6 +97,28 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
           className={styles.sphereVisual}
           data-kind="planet"
           data-theme={props.textureTheme}
+        >
+          <span className={styles.sphereCore} />
+        </div>
+      </div>
+    );
+  }
+
+  if (props.kind === 'hazard') {
+    return (
+      <div
+        data-testid="guide-3d-preview"
+        data-preview-kind="hazard"
+        data-hazard-id={props.hazardId}
+        data-hazard-domain={props.domain}
+        data-hazard-severity={props.severity}
+        className={rootClass}
+      >
+        <div
+          className={styles.sphereVisual}
+          data-kind="hazard"
+          data-domain={props.domain}
+          data-severity={props.severity}
         >
           <span className={styles.sphereCore} />
         </div>

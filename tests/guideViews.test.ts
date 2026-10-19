@@ -13,6 +13,9 @@ import {
   STAR_TYPES_GUIDE_PATH,
   PLANET_TYPES_GUIDE_PATH,
   METRICS_GUIDE_PATH,
+  HAZARDS_GUIDE_PATH,
+  HAZARD_GUIDE_ENTRIES,
+  resolveHazardGuideEntry,
 } from '../src/services/guideService';
 import { StarTypesListView } from '../src/views/StarTypesListView';
 import { StarTypeDetailView } from '../src/views/StarTypeDetailView';
@@ -20,6 +23,8 @@ import { PlanetTypesListView } from '../src/views/PlanetTypesListView';
 import { PlanetTypeDetailView } from '../src/views/PlanetTypeDetailView';
 import { MetricsListView } from '../src/views/MetricsListView';
 import { MetricDetailView } from '../src/views/MetricDetailView';
+import { HazardsListView } from '../src/views/HazardsListView';
+import { HazardDetailView } from '../src/views/HazardDetailView';
 
 describe('DEC-027: Guide Service & Pure Resolvers', () => {
   describe('STAR_TYPE_GUIDE_ENTRIES catalog', () => {
@@ -48,8 +53,8 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
 
     it('contains specific required benchmark examples for key stellar classes', () => {
       const gEntry = STAR_TYPE_GUIDE_ENTRIES.find((e) => e.id === 'g');
-      expect(gEntry?.examples.some((ex) => ex.name === 'Sol' && ex.href === '/system/sol')).toBe(true);
-      expect(gEntry?.examples.some((ex) => ex.name === 'Tau Ceti' && ex.href === '/system/tau-ceti')).toBe(true);
+      expect(gEntry?.examples.some((ex) => ex.name === 'Sol' && ex.href === '/galaxy/sol?select=star-type:g')).toBe(true);
+      expect(gEntry?.examples.some((ex) => ex.name === 'Tau Ceti' && ex.href === '/galaxy/tau-ceti?select=star-type:g')).toBe(true);
       expect(gEntry?.examples.some((ex) => ex.name.includes('Alpha Centauri A'))).toBe(true);
 
       const kEntry = STAR_TYPE_GUIDE_ENTRIES.find((e) => e.id === 'k');
@@ -154,9 +159,9 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
   });
 
   describe('PLANET_TYPE_GUIDE_ENTRIES & resolvePlanetTypeGuideEntry', () => {
-    it('contains all 3 planetary classifications', () => {
+    it('contains all 4 planetary classifications (DEC-032)', () => {
       const ids = PLANET_TYPE_GUIDE_ENTRIES.map((e) => e.id);
-      expect(ids).toEqual(['terrestrial', 'ice-giant', 'gas-giant']);
+      expect(ids).toEqual(['terrestrial', 'super-earth', 'ice-giant', 'gas-giant']);
 
       for (const entry of PLANET_TYPE_GUIDE_ENTRIES) {
         expect(entry.composition).toBeTruthy();
@@ -178,6 +183,9 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
       const terrestrial = resolvePlanetTypeGuideEntry('terrestrial');
       expect(terrestrial?.interiorLayers).toEqual(['Iron-Nickel Core', 'Silicate Mantle', 'Rocky Crust']);
 
+      const superEarth = resolvePlanetTypeGuideEntry('super-earth');
+      expect(superEarth?.interiorLayers).toEqual(['Metallic Core', 'Silicate Mantle', 'Crust / Ocean Layer']);
+
       const iceGiant = resolvePlanetTypeGuideEntry('ice-giant');
       expect(iceGiant?.interiorLayers).toEqual([
         'Rock-Ice Core',
@@ -195,9 +203,12 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
 
     it('contains expected planetary benchmark examples', () => {
       const terrestrial = resolvePlanetTypeGuideEntry('terrestrial');
-      expect(terrestrial?.examples.some((ex) => ex.name === 'Earth' && ex.href === '/planet/earth')).toBe(true);
-      expect(terrestrial?.examples.some((ex) => ex.name.includes('Tau Ceti e'))).toBe(true);
+      expect(terrestrial?.examples.some((ex) => ex.name === 'Earth' && ex.href === '/system/sol?focus=earth&select=planet-type:terrestrial')).toBe(true);
       expect(terrestrial?.examples.some((ex) => ex.name.includes('Proxima Centauri b'))).toBe(true);
+
+      const superEarth = resolvePlanetTypeGuideEntry('super-earth');
+      expect(superEarth?.examples.some((ex) => ex.name.includes('Tau Ceti e'))).toBe(true);
+      expect(superEarth?.examples.some((ex) => ex.name.includes('Tau Ceti f'))).toBe(true);
 
       const iceGiant = resolvePlanetTypeGuideEntry('ice-giant');
       expect(iceGiant?.examples.some((ex) => ex.name === 'Uranus')).toBe(true);
@@ -228,10 +239,11 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
       'planetary-mass',
       'planetary-radius',
       'equilibrium-temperature',
+      'surface-gravity',
     ];
 
-    it('covers all 12 required metrics with full telemetry metadata', () => {
-      expect(METRIC_GUIDE_ENTRIES.length).toBe(12);
+    it('covers all 13 required metrics with full telemetry metadata', () => {
+      expect(METRIC_GUIDE_ENTRIES.length).toBe(13);
       for (const slug of requiredMetricSlugs) {
         const entry = resolveMetricGuideEntry(slug);
         expect(entry, `Expected metric slug ${slug} to resolve`).not.toBeNull();
@@ -314,6 +326,16 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
       expect(comparison?.targetFamiliar).toContain('°C');
     });
 
+    it('resolves metric comparison for surface-gravity with focus=tau-ceti-e', () => {
+      const comparison = resolveMetricComparison('surface-gravity', 'tau-ceti-e');
+      expect(comparison).not.toBeNull();
+      expect(comparison?.metricId).toBe('surface-gravity');
+      expect(comparison?.baselineName).toBe('Earth');
+      expect(comparison?.baselineValue).toBe('1.00 g');
+      expect(comparison?.targetValue).toContain('g');
+      expect(comparison?.relativeRatioLabel).toContain('Earth gravity');
+    });
+
     it('falls back to default benchmark when focusedEntityId is omitted', () => {
       const stellarComp = resolveMetricComparison('stellar-mass');
       expect(stellarComp?.targetId).toBe('tau-ceti');
@@ -352,6 +374,66 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
       const whiteDwarf = computeSpectralCombination('D', '2', 'VII');
       expect(whiteDwarf.combinedCode).toBe('D2VII');
       expect(whiteDwarf.radiusRsun).toBeCloseTo(0.012, 3);
+    });
+  });
+
+  describe('HAZARD_GUIDE_ENTRIES & resolveHazardGuideEntry', () => {
+    const expectedHazardIds = [
+      'flare-star',
+      'ionising-radiation',
+      'variable-flux',
+      'extreme-heat',
+      'cryogenic-cold',
+      'high-gravity',
+      'tidal-locking',
+      'high-eccentricity',
+    ];
+
+    it('contains all 8 authoritative environmental hazards (DEC-032)', () => {
+      const ids = HAZARD_GUIDE_ENTRIES.map((h) => h.id);
+      expect(ids).toEqual(expectedHazardIds);
+
+      for (const entry of HAZARD_GUIDE_ENTRIES) {
+        expect(entry.id).toBeTruthy();
+        expect(entry.title).toBeTruthy();
+        expect(entry.domain).toMatch(/^(stellar|planetary)$/);
+        expect(entry.domainLabel).toMatch(/^(Stellar System Hazard|Planetary Hazard)$/);
+        expect(entry.severity).toMatch(/^(warning|critical)$/);
+        expect(entry.summary).toBeTruthy();
+        expect(entry.thresholdCriteria).toBeTruthy();
+        expect(entry.physicalMechanism).toBeTruthy();
+        expect(entry.operationalImpact).toBeTruthy();
+        expect(entry.mitigationNotes).toBeTruthy();
+        expect(entry.href).toBe(`${HAZARDS_GUIDE_PATH}/${entry.id}`);
+        expect(entry.examples.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('resolves hazard guide entries by id and returns undefined for unknown id', () => {
+      const flare = resolveHazardGuideEntry('flare-star');
+      expect(flare).toBeDefined();
+      expect(flare?.id).toBe('flare-star');
+      expect(flare?.domain).toBe('stellar');
+      expect(flare?.severity).toBe('warning');
+
+      const tidal = resolveHazardGuideEntry('tidal-locking');
+      expect(tidal).toBeDefined();
+      expect(tidal?.id).toBe('tidal-locking');
+      expect(tidal?.domain).toBe('planetary');
+
+      expect(resolveHazardGuideEntry('unknown-hazard')).toBeUndefined();
+      expect(resolveHazardGuideEntry('')).toBeUndefined();
+    });
+
+    it('contains specific benchmark examples for hazards', () => {
+      const flare = resolveHazardGuideEntry('flare-star');
+      expect(flare?.examples.some((ex) => ex.name.includes('Proxima Centauri'))).toBe(true);
+
+      const highGrav = resolveHazardGuideEntry('high-gravity');
+      expect(highGrav?.examples.some((ex) => ex.name.includes('Tau Ceti e'))).toBe(true);
+
+      const tidal = resolveHazardGuideEntry('tidal-locking');
+      expect(tidal?.examples.some((ex) => ex.name.includes('Proxima Centauri b'))).toBe(true);
     });
   });
 });
@@ -543,6 +625,52 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
       expect(html).toContain('light-minutes');
       expect(html).toContain('data-testid="metric-comparison-ratio"');
       expect(html).toContain('Earth orbit');
+    });
+  });
+
+  describe('HazardsListView', () => {
+    it('renders root, breadcrumbs without Galaxy, section nav, 3D previews, and full-card links for all 8 hazards', () => {
+      const html = renderToString(createElement(HazardsListView));
+
+      expect(html).toContain('data-testid="hazards-list-view-root"');
+      expect(html).toContain('data-testid="guide-section-nav"');
+      expect(html).not.toContain('>Galaxy<');
+      expect(html).toContain('<h1>Environmental Hazards</h1>');
+      expect(html).toContain('data-testid="hazards-guide-list"');
+      expect(html).toContain('data-testid="hazards-guide-item"');
+      expect(html).toContain('data-hazard-id="flare-star"');
+      expect(html).toContain('data-hazard-id="tidal-locking"');
+      expect(html).toContain('data-testid="hazards-guide-link"');
+      expect(html).toContain('href="/guide/hazards/flare-star"');
+      expect(html).toContain('data-testid="guide-3d-preview"');
+      expect(html).toContain('data-preview-kind="hazard"');
+    });
+  });
+
+  describe('HazardDetailView', () => {
+    it('renders hazard detail view with telemetry dl, summary, examples, and 3D preview for flare-star', () => {
+      const html = renderToString(createElement(HazardDetailView, { hazardId: 'flare-star' }));
+
+      expect(html).toContain('data-testid="hazard-detail-view-root"');
+      expect(html).toContain('data-hazard-id="flare-star"');
+      expect(html).toContain('data-testid="guide-section-nav"');
+      expect(html).not.toContain('>Galaxy<');
+      expect(html).toContain('<h1>Environmental Hazard: Stellar flare activity</h1>');
+      expect(html).toContain('data-testid="hazards-list-link"');
+      expect(html).toContain('data-testid="guide-detail-summary"');
+      expect(html).toContain('data-testid="guide-detail-telemetry"');
+      expect(html).toContain('data-testid="guide-3d-preview"');
+      expect(html).toContain('data-preview-kind="hazard"');
+      expect(html).toContain('data-testid="guide-examples-list"');
+      expect(html).toContain('Proxima Centauri');
+    });
+
+    it('renders fallback gracefully when hazardId is not found', () => {
+      const html = renderToString(createElement(HazardDetailView, { hazardId: 'unknown-hazard' }));
+
+      expect(html).toContain('data-testid="hazard-detail-view-root"');
+      expect(html).toContain('data-testid="hazard-detail-fallback"');
+      expect(html).toContain('data-testid="hazards-list-link"');
     });
   });
 });

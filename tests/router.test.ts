@@ -64,6 +64,8 @@ describe('TanStack Router Architecture', () => {
     expect(flatRoutes['/guide/planet-types/$planetType']).toBeDefined();
     expect(flatRoutes['/guide/metrics']).toBeDefined();
     expect(flatRoutes['/guide/metrics/$metricId']).toBeDefined();
+    expect(flatRoutes['/guide/hazards']).toBeDefined();
+    expect(flatRoutes['/guide/hazards/$hazardId']).toBeDefined();
     expect(flatRoutes['/poc']).toBeDefined();
     expect(router.routesById['/poc/']).toBeDefined();
     expect(flatRoutes['/poc/galaxy']).toBeDefined();
@@ -75,7 +77,7 @@ describe('TanStack Router Architecture', () => {
   it('contains expected route tree structure', () => {
     expect(routeTree).toBeDefined();
     expect(routeTree.children).toBeDefined();
-    expect(routeTree.children?.length).toBe(13);
+    expect(routeTree.children?.length).toBe(15);
   });
 
   it('validates search parameters correctly on rootRoute across all branches and keeps : and , unencoded in stringifyStarmapSearch', () => {

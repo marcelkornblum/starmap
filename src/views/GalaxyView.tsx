@@ -8,10 +8,16 @@ import {
   CanvasLayer,
   ControlBar,
   DetailsPanel,
+  DirectionsPanel,
   Minimap,
   PreviewPanel,
   SearchResultItem,
 } from '../components/domain';
+import {
+  buildJourneyPlan,
+  extractUrlJourneyOptionId,
+  extractUrlRouteStops,
+} from '../services/journeyService';
 import { Search } from '../components/search';
 import {
   fetchDetailRecord,
@@ -125,6 +131,8 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
     urlSystemSlug,
     hasExplicitFocus,
     viewScope: 'galaxy',
+    currentPathname: pathname,
+    currentSearch: search,
   });
 
   const focusedPreview = buildFocusedPreviewSummary(
@@ -149,9 +157,26 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
     [focusedEntity, selectedEntities, focusedDetails, cameraState, centerEntity],
   );
 
+  const routeStops = extractUrlRouteStops(search);
+  const routeOptionId = extractUrlJourneyOptionId(search);
+  const activeJourney = routeStops
+    ? buildJourneyPlan({
+        stops: routeStops,
+        selectedOptionId: routeOptionId,
+        corpus: activeCorpus,
+        viewScope: 'galaxy',
+        currentPathname: pathname,
+        currentSearch: search,
+      })
+    : null;
+
   return (
     <>
-      <DetailsPanel details={focusedDetails} />
+      {activeJourney ? (
+        <DirectionsPanel journey={activeJourney} />
+      ) : (
+        <DetailsPanel details={focusedDetails} />
+      )}
       <PreviewPanel preview={focusedPreview} />
       <Minimap orientation={minimapOrientation} />
     </>
@@ -163,10 +188,26 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   locationPathname,
   locationSearch,
 }) => {
+  const pathname =
+    locationPathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : '/galaxy');
   const search =
     locationSearch ??
     (typeof window !== 'undefined' ? window.location.search : '');
   const cameraState = extractUrlSceneCameraState(search);
+  const activeCorpus = initialCorpus ?? getCachedCorpusForFilter('all') ?? [];
+  const routeStops = extractUrlRouteStops(search);
+  const routeOptionId = extractUrlJourneyOptionId(search);
+  const activeJourney = routeStops
+    ? buildJourneyPlan({
+        stops: routeStops,
+        selectedOptionId: routeOptionId,
+        corpus: activeCorpus,
+        viewScope: 'galaxy',
+        currentPathname: pathname,
+        currentSearch: search,
+      })
+    : null;
 
   return (
     <main data-testid="galaxy-view-root">
@@ -181,6 +222,11 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         cameraAzimuthDeg={cameraState.az}
         cameraElevationDeg={cameraState.el}
         cameraDistance={cameraState.dist}
+        journeyLegs={activeJourney?.chordLegs}
+        activeJourneyMethod={
+          activeJourney?.selectedOption?.id ??
+          activeJourney?.options[0]?.id
+        }
       />
       <GalaxyBreadcrumbsRegion
         locationPathname={locationPathname}

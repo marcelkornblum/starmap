@@ -51,6 +51,7 @@ export {
   type GuideStarPreviewProps,
   type GuidePlanetPreviewProps,
   type GuideMetricPreviewProps,
+  type GuideHazardPreviewProps,
 } from './Guide3DPreview';
 export {
   StarTypeCombinator,
@@ -64,4 +65,8 @@ export {
   GuideExamplesList,
   type GuideExamplesListProps,
 } from './GuideExamplesList';
+export {
+  DirectionsPanel,
+  type DirectionsPanelProps,
+} from './DirectionsPanel';
 

@@ -9,6 +9,8 @@ import {
 import { RootLayout } from '../components/poc/layout/RootLayout';
 import { RouteSkeleton } from '../components/poc/common/RouteSkeleton';
 import { GalaxyView } from '../views/GalaxyView';
+import { HazardDetailView } from '../views/HazardDetailView';
+import { HazardsListView } from '../views/HazardsListView';
 import { MetricDetailView } from '../views/MetricDetailView';
 import { MetricsListView } from '../views/MetricsListView';
 import { PlanetTypeDetailView } from '../views/PlanetTypeDetailView';
@@ -29,6 +31,8 @@ export interface StarmapSearchParams {
   focus?: string;
   select?: string;
   canon?: string;
+  route?: string;
+  journeyOption?: string;
   x?: number;
   y?: number;
   z?: number;
@@ -73,6 +77,11 @@ export const rootRoute = createRootRoute({
           ? search.select
           : undefined,
       canon: typeof search.canon === 'string' && search.canon.length > 0 ? search.canon : undefined,
+      route: typeof search.route === 'string' && search.route.length > 0 ? search.route : undefined,
+      journeyOption:
+        typeof search.journeyOption === 'string' && search.journeyOption.length > 0
+          ? search.journeyOption
+          : undefined,
       x: typeof search.x === 'number' ? search.x : (search.x !== undefined && search.x !== '' ? Number(search.x) : undefined),
       y: typeof search.y === 'number' ? search.y : (search.y !== undefined && search.y !== '' ? Number(search.y) : undefined),
       z: typeof search.z === 'number' ? search.z : (search.z !== undefined && search.z !== '' ? Number(search.z) : undefined),
@@ -158,6 +167,18 @@ export const metricDetailRoute = createRoute({
   component: MetricDetailView,
 });
 
+export const hazardsListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/hazards',
+  component: HazardsListView,
+});
+
+export const hazardDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guide/hazards/$hazardId',
+  component: HazardDetailView,
+});
+
 // Quarantined POC layout and routes under /poc/* for reference
 export const pocRoute = createRoute({
   getParentRoute: () => pocRouteParent,
@@ -229,6 +250,8 @@ export const routeTree = rootRoute.addChildren([
   planetTypeDetailRoute,
   metricsListRoute,
   metricDetailRoute,
+  hazardsListRoute,
+  hazardDetailRoute,
   pocRoute.addChildren([
     pocIndexRoute,
     galaxyRoute,

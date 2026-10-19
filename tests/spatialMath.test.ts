@@ -308,8 +308,10 @@ describe('Spatial Math: tiers.ts (State Machine & Stalk/Orbit Rules)', () => {
 describe('Spatial Math: astronomy.ts', () => {
   it('classifies planets based on radius thresholds (R_earth)', () => {
     expect(classifyPlanetPhysical({ radiusRearth: 1.0 })).toBe('terrestrial');
-    expect(classifyPlanetPhysical({ radiusRearth: 1.75 })).toBe('terrestrial');
-    expect(classifyPlanetPhysical({ radiusRearth: 1.76 })).toBe('ice-giant');
+    expect(classifyPlanetPhysical({ radiusRearth: 1.25 })).toBe('terrestrial');
+    expect(classifyPlanetPhysical({ radiusRearth: 1.75 })).toBe('super-earth');
+    expect(classifyPlanetPhysical({ radiusRearth: 2.0 })).toBe('super-earth');
+    expect(classifyPlanetPhysical({ radiusRearth: 2.01 })).toBe('ice-giant');
     expect(classifyPlanetPhysical({ radiusRearth: 4.0 })).toBe('ice-giant');
     expect(classifyPlanetPhysical({ radiusRearth: 6.0 })).toBe('ice-giant');
     expect(classifyPlanetPhysical({ radiusRearth: 6.1 })).toBe('gas-giant');
@@ -327,7 +329,9 @@ describe('Spatial Math: astronomy.ts', () => {
 
   it('classifies planets based on mass thresholds when radius is missing', () => {
     expect(classifyPlanetPhysical({ massMearth: 1.0 })).toBe('terrestrial');
-    expect(classifyPlanetPhysical({ massMearth: 10.0 })).toBe('terrestrial');
+    expect(classifyPlanetPhysical({ massMearth: 2.0 })).toBe('terrestrial');
+    expect(classifyPlanetPhysical({ massMearth: 5.0 })).toBe('super-earth');
+    expect(classifyPlanetPhysical({ massMearth: 10.0 })).toBe('super-earth');
     expect(classifyPlanetPhysical({ massMearth: 10.1 })).toBe('ice-giant');
     expect(classifyPlanetPhysical({ massMearth: 30.0 })).toBe('ice-giant');
     expect(classifyPlanetPhysical({ massMearth: 50.0 })).toBe('ice-giant');
@@ -335,8 +339,10 @@ describe('Spatial Math: astronomy.ts', () => {
   });
 
   it('converts Jupiter mass to Earth mass for classification', () => {
-    // 0.02 Mjup = ~6.36 Mearth -> terrestrial
-    expect(classifyPlanetPhysical({ massMjup: 0.02 })).toBe('terrestrial');
+    // 0.005 Mjup = ~1.59 Mearth -> terrestrial
+    expect(classifyPlanetPhysical({ massMjup: 0.005 })).toBe('terrestrial');
+    // 0.02 Mjup = ~6.36 Mearth -> super-earth
+    expect(classifyPlanetPhysical({ massMjup: 0.02 })).toBe('super-earth');
     // 0.1 Mjup = ~31.78 Mearth -> ice-giant
     expect(classifyPlanetPhysical({ massMjup: 0.1 })).toBe('ice-giant');
     // 1.0 Mjup = ~317.83 Mearth -> gas-giant
@@ -345,7 +351,7 @@ describe('Spatial Math: astronomy.ts', () => {
 
   it('honors explicit classification string if present', () => {
     expect(classifyPlanetPhysical({ classification: 'Terrestrial Planet' })).toBe('terrestrial');
-    expect(classifyPlanetPhysical({ classification: 'Rocky Super-Earth' })).toBe('terrestrial');
+    expect(classifyPlanetPhysical({ classification: 'Rocky Super-Earth' })).toBe('super-earth');
     expect(classifyPlanetPhysical({ classification: 'Sub-Neptune / Ice Giant' })).toBe('ice-giant');
     expect(classifyPlanetPhysical({ classification: 'Gas Giant Jovian' })).toBe('gas-giant');
   });

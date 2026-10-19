@@ -13,7 +13,9 @@
 - [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
-## Phase 3: Navigation Modes & Layer State Store
+## Phase 3: Unified Keyboard Shortcut Registry, Navigation Modes & Layer State Store
+- [ ] Task: Write unit tests for the unified keyboard shortcut registry and global keybinding dispatcher (`/`, `Ctrl+K`/`Cmd+K` search focus, `Escape` dismiss/blur, `ArrowUp`/`ArrowDown`/`Enter` result navigation, `W/A/S/D`, `Q/E`, `+/-`, `R`, `G`, `L`, `O`, `Space`) including editable input focus guards.
+- [ ] Task: Implement the unified keyboard shortcut registry and hook so `<ControlBar />` `<Key />` tiles and global keyboard listeners share a single source of truth.
 - [ ] Task: Write unit tests for navigation mode transitions (Free Orbit, Ecliptic, Top-Down) in `src/stores/useSettingsStore.ts`.
 - [ ] Task: Extend layer visibility state with typed toggles for grid, orbits, stalks, labels, and vectors.
 - [ ] Task: Wire layer visibility state and input-capability-aware gesture/key handlers to canvas scene elements and verify reactive updates.

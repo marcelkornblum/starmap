@@ -16,13 +16,14 @@ export type CelestialClassification =
   | 'construct'
   | 'artificial'
   | 'terrestrial'
+  | 'super-earth'
   | 'gas-giant'
   | 'ice-giant';
 
 export interface PlanetCensusEntry {
   id: string;
   name: string;
-  classification: 'terrestrial' | 'gas-giant' | 'ice-giant';
+  classification: 'terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant';
 }
 
 /**
@@ -150,13 +151,14 @@ export function appendMultiplicityPips(
 
 const CATEGORY_ORDER: Array<PlanetCensusEntry['classification']> = [
   'terrestrial',
+  'super-earth',
   'gas-giant',
   'ice-giant',
 ];
 
 /**
  * Appends planetary system census symbols along the outer edge of the Bottom-Left diamond facet.
- * Represents presence of each planetary category as a boolean (terrestrial, gas-giant, ice-giant),
+ * Represents presence of each planetary category as a boolean (terrestrial, super-earth, gas-giant, ice-giant),
  * rendered at 2x-3x size and aligned towards the left point of the reticle (-s, 0).
  */
 export function appendPlanetaryPips(
@@ -178,7 +180,7 @@ export function appendPlanetaryPips(
 
   // Aligned towards the left point (-s, 0) of the reticle along the bottom-left facet
   const tStart = 0.18;
-  const tStep = 0.30;
+  const tStep = count > 3 ? 0.22 : 0.30;
 
   for (let i = 0; i < count; i++) {
     const category = presentCategories[i];
@@ -199,6 +201,27 @@ export function appendPlanetaryPips(
         points.push(
           new THREE.Vector3(cX + Math.cos(a1) * pR, cY + Math.sin(a1) * pR, 0),
           new THREE.Vector3(cX + Math.cos(a2) * pR, cY + Math.sin(a2) * pR, 0),
+        );
+      }
+    } else if (category === 'super-earth') {
+      // Concentric double open circle with open centre (inner 0.07s, outer 0.12s)
+      const pRInner = 0.07 * s;
+      const pROuter = 0.12 * s;
+      const segs = 24;
+      for (let j = 0; j < segs; j++) {
+        const a1 = (j / segs) * Math.PI * 2;
+        const a2 = ((j + 1) / segs) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(cX + Math.cos(a1) * pRInner, cY + Math.sin(a1) * pRInner, 0),
+          new THREE.Vector3(cX + Math.cos(a2) * pRInner, cY + Math.sin(a2) * pRInner, 0),
+        );
+      }
+      for (let j = 0; j < segs; j++) {
+        const a1 = (j / segs) * Math.PI * 2;
+        const a2 = ((j + 1) / segs) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(cX + Math.cos(a1) * pROuter, cY + Math.sin(a1) * pROuter, 0),
+          new THREE.Vector3(cX + Math.cos(a2) * pROuter, cY + Math.sin(a2) * pROuter, 0),
         );
       }
     } else if (category === 'gas-giant') {
@@ -424,6 +447,29 @@ export function createReticleGeometry(
         points.push(
           new THREE.Vector3(Math.cos(th1) * r, Math.sin(th1) * r, 0),
           new THREE.Vector3(Math.cos(th2) * r, Math.sin(th2) * r, 0),
+        );
+      }
+      break;
+    }
+    case 'super-earth': {
+      // Concentric double 1px open circle (rInner = 0.35 * s, rOuter = 0.55 * s, segs = 32) with open centre
+      const rInner = 0.35 * s;
+      const rOuter = 0.55 * s;
+      const segs = 32;
+      for (let i = 0; i < segs; i++) {
+        const th1 = (i / segs) * Math.PI * 2;
+        const th2 = ((i + 1) / segs) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(Math.cos(th1) * rInner, Math.sin(th1) * rInner, 0),
+          new THREE.Vector3(Math.cos(th2) * rInner, Math.sin(th2) * rInner, 0),
+        );
+      }
+      for (let i = 0; i < segs; i++) {
+        const th1 = (i / segs) * Math.PI * 2;
+        const th2 = ((i + 1) / segs) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(Math.cos(th1) * rOuter, Math.sin(th1) * rOuter, 0),
+          new THREE.Vector3(Math.cos(th2) * rOuter, Math.sin(th2) * rOuter, 0),
         );
       }
       break;

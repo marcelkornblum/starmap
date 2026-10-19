@@ -435,7 +435,77 @@ This document records all architectural, data-model, interaction, and UI scaffol
     - On 3D / Map views (`items[0]?.label !== 'Guide'`): links to `/guide/star-types` with label `Guide`.
     - On Guide views (`items[0]?.label === 'Guide'`): links to `/galaxy` with label `Map`.
 
+### DEC-030: Unicode Greek Bayer Transliteration, Superscript Digits, Two-Word Constellation Genitives & Space-Separated Numbered Bayer Expansion
+- **Date:** 2026-10-19
+- **Status:** Ratified
+- **Context:** During Journey 1 Step 1 (Target Acquisition) review, two nomenclature edge cases were identified in `src/utils/nomenclature.ts`:
+  1. Copy-pasted Unicode Greek Bayer strings (`"τ Ceti"`, `"τ Cet"`, `"α Centauri"`, `"ε Eri b"`, `"π³ Ori"`) had their Greek characters stripped by `normalizeCleanKey` (`replace(/[^a-z0-9]/g, '')`), reducing `"τ Ceti"` to `"ceti"` and matching every star in Cetus instead of `Tau Ceti`.
+  2. `expandGouldOrConstellationSuffix` only inspected the single final word for a constellation genitive and only expanded `starTokens[0]` when `starTokens.length === 2`, causing the 11 two-word IAU constellation genitives (`"alp Canis Majoris"`, `"ρ Coronae Borealis b"`) and space-separated numbered Bayer queries (`"omi 2 Eridani"`, `"pi 3 Ori"`) to bypass Greek Bayer expansion.
+- **Decision (Ratified):**
+  - Export `UNICODE_GREEK_TO_LATIN_MAP`, `SUPERSCRIPT_DIGIT_MAP`, and `transliterateGreekAndSuperscripts` in `src/utils/nomenclature.ts` and apply them in both `expandGreekBayer` and `normalizeCleanKey`.
+  - Update `expandGouldOrConstellationSuffix` to match both 2-word and 1-word trailing IAU constellation genitives and collapse space-separated numbered Bayer prefixes (`["omi", "2"]` $\rightarrow$ `"Omicron-2"`) while keeping Gould designations (`"82 G. Eridani"`) untouched.
 
+### DEC-031: Collection-Surfaced Search Target Links & Option C `?select=` URL Grammar (`canon:`, `tag:`, `star-type:`, `planet-type:`, `collection:`)
+- **Date:** 2026-10-19
+- **Status:** Ratified
+- **Context:** When a user clicks a search result surfaced from a collection (such as a fictional canon `"Project Hail Mary"` or a system tag `"Habitable Candidate"`), navigating to `/galaxy/tau-ceti` previously cleared `selectedIds`, losing the rest of the collection in the 3D scene. Additionally, other user journeys (Journey 3 curated tours and Journey 4 Guide-to-Map jumps) benefit from a unified `?select=` token grammar without adding runtime string parsing overhead to keystroke search.
+- **Decision (Ratified):**
+  - **Collection-Surfaced Search Target Links (`buildResultTargetLink` & `executeCatalogSearch`):**
+    - Any search result with `canonLayerId` (`entry.w`) serialises `select=canon:<shortSlug>` onto its target `href` (e.g. `/galaxy/tau-ceti?select=canon:project-hail-mary`, `/galaxy/40-eridani?focus=erid&select=canon:project-hail-mary`).
+    - Perform an $O(1)$ pre-loop lookup (`QUERY_CLEAN_KEY_TO_TAG_SLUG`) in `executeCatalogSearch` against the precalculated `entry.g` system tag bitmask (`SYSTEM_TAG_BITS`); when a query matches a system tag, surface matching star systems (`(entry.g & bit) !== 0`) with `select=tag:<tagSlug>` on their target `href` (`/galaxy/tau-ceti?select=tag:habitable-candidate`).
+  - **Option C `?select=` URL Token Grammar (`parseUrlSelectTokens` & `resolveSelectedSystemsFromUrlSelect`):**
+    - Support 5 collection prefixes plus explicit entity slugs on URL load (zero keystroke search overhead):
+      1. `canon:<slug>` (`SEED_FICTIONAL_CANON_LAYERS`)
+      2. `tag:<slug>` (precalculated `entry.g` bitmask / canon tags)
+      3. `star-type:<slug>` (precalculated `entry.m[1]` spectral string / `entry.u` compact class; wired into `STAR_TYPE_GUIDE_ENTRIES` example links)
+      4. `planet-type:<slug>` (precalculated `entry.u` planet class / `entry.b` composition counts tuple; wired into `PLANET_TYPE_GUIDE_ENTRIES` example links)
+      5. `collection:<slug>` (`SEED_CURATED_COLLECTIONS` for Journey 3 curated sets such as `extreme-worlds` and `newly-discovered`)
+      6. `<entityId>` (explicit individual entities)
 
+### DEC-032: 4-Class Planet Taxonomy (`terrestrial`, `super-earth`, `ice-giant`, `gas-giant`), `super-earth` Concentric Double-Circle Reticle, and Precalculated Environmental Hazards Across `<DetailsPanel />` Detents
+- **Date:** 2026-10-19
+- **Status:** Ratified
+- **Context:** During Journey 1 Step 2 (Spatial Framing, Planet Composition Summary & Environmental Hazard Summary) review:
+  1. `classifyPlanetPhysical` previously collapsed all worlds $\le 1.75\,R_\oplus$ or $\le 10\,M_\oplus$ into `'terrestrial'`. Expanding to 4 canonical classes (`'terrestrial'`, `'super-earth'`, `'ice-giant'`, `'gas-giant'`) requires unifying naming across `astroMath.ts`, `guideCatalog.ts`, `compactDataCodec.ts`, and `reticleGeometry.ts` (including a dedicated `super-earth` reticle and 4th pip on the bottom-left diamond facet).
+  2. Focusing a star component (`focusedKind === 'star'`) on `SystemView` must remain strictly scoped to the star (never pulling in system planet composition).
+  3. Environmental hazards must be precalculated in the build-time data pipeline (`scripts/build-data.ts` and `src/utils/compactDataCodec.ts`) for both systems/stars (`flare-star`, `ionising-radiation`, `variable-flux`) and planets (`extreme-heat`, `cryogenic-cold`, `high-gravity`, `tidal-locking`, `high-eccentricity`). Rather than storing a duplicate `host-flare-exposure` code on individual planet records, any entity focused inside a system with a hazard (`system`, `star`, `planet`, `minor-body`) inherits and displays the host system's hazards via the existing `systemId` relationship alongside its own intrinsic hazards.
+  4. `<DetailsPanel />` needs hazard summaries and planetary telemetry distributed cleanly across its three detents (`Peek`, `Partial`, `Full`).
+- **Decision (Ratified):**
+  - **4-Class Planetary Taxonomy & Reticle Symbology:**
+    - Unify `PlanetCensusClassification` and `PLANET_COMPOSITION_TYPES` as `['terrestrial', 'super-earth', 'ice-giant', 'gas-giant']`:
+      - `terrestrial`: $R \le 1.25\,R_\oplus$ and $M \le 2.0\,M_\oplus$
+      - `super-earth`: $1.25 < R \le 2.0\,R_\oplus$ or $2.0 < M \le 10.0\,M_\oplus$ (with $R \le 2.0\,R_\oplus$)
+      - `ice-giant`: $2.0 < R \le 6.0\,R_\oplus$ or $10.0 < M \le 50.0\,M_\oplus$
+      - `gas-giant`: $R > 6.0\,R_\oplus$ or $M > 50.0\,M_\oplus$
+    - Upgrade `computePlanetCompositionCounts` and `planetCompositionCounts` (`entry.b`) to a 4-tuple `[terrestrial, superEarth, iceGiant, gasGiant]` (retaining backward-compatible decoding for 3-element legacy test tuples).
+    - Add `'super-earth'` to `PLANET_TYPE_GUIDE_ENTRIES` (`/guide/planet-types/super-earth`) and add `'surface-gravity'` to `METRIC_GUIDE_ENTRIES` (`/guide/metrics/surface-gravity`).
+    - In `src/components/canvas/cartography/reticleGeometry.ts` and `docs/3d-spatial-architecture.md` §2.2, represent `'super-earth'` as a **concentric double 1px open circle** (inner + outer open rings with an unobstructed open centre) both as a standalone reticle (`createReticleGeometry`) and as a planetary census pip on the bottom-left diamond facet (`appendPlanetaryPips`).
+  - **Precalculated Environmental Hazards, System Hazard Inheritance & Detent Placement:**
+    - Precalculate `SYSTEM_HAZARD_BITS` (`flare-star = 1`, `ionising-radiation = 2`, `variable-flux = 4`) and `PLANET_HAZARD_BITS` (`extreme-heat = 1`, `cryogenic-cold = 2`, `high-gravity = 4`, `tidal-locking = 8`, `high-eccentricity = 16`) plus `surfaceGravityG` in `astroMath.ts`, `compactDataCodec.ts`, and `scripts/build-data.ts`.
+    - In `buildFocusedEntityDetails` (`src/services/detailsService.ts`), resolve `systemHazards` from the host system (`systemId`) and include them in `details.hazards` and `details.hazardCount` for every entity in that system (`system`, `star`, `planet`, `minor-body`), merged with any planet-level hazards (`[...systemHazards, ...planetHazards]`).
+    - **`Peek` Detent:** Keep `details-planet-composition` strictly on `focusedKind === 'system'`. Render `<span data-testid="details-hazard-summary">` badge (`0 hazards` nominal or `N hazards` warning/critical, linking to `/guide/hazards` or `/guide/hazards/$hazardId`) across all system entities (`system`, `star`, `planet`, `minor-body`).
+    - **`Partial` Detent:** Render `<section data-testid="details-hazards-section">` (`<h4>Environmental Hazards</h4>`) with either `<p data-testid="details-hazards-nominal"><Badge status="nominal"><a href="/guide/hazards">0 hazards</a></Badge> Nominal environment</p>` or `<ul data-testid="details-hazards-list">` listing each active system and planetary hazard badge (linked to `/guide/hazards/$hazardId`) and plain-language description.
+    - **`Full` Detent:** In `Planetary Telemetry` (`data-testid="details-planet-telemetry-list"`), render `Surface Gravity` (`data-testid="details-planet-telemetry-gravity"`, unit `g` linked to `/guide/metrics/surface-gravity?focus=<id>`), `Tidal Status` (`data-testid="details-planet-telemetry-tidal"`), and `Earth Similarity (ESI)` (`data-testid="details-planet-telemetry-esi"`).
+  - **Environmental Hazards Guide Section (`/guide/hazards` & `/guide/hazards/$hazardId`):**
+    - Add `HAZARDS_GUIDE_PATH = '/guide/hazards'` and `HAZARD_GUIDE_ENTRIES` covering all 8 environmental hazards (`flare-star`, `ionising-radiation`, `variable-flux`, `extreme-heat`, `cryogenic-cold`, `high-gravity`, `tidal-locking`, `high-eccentricity`) to `src/data/guideCatalog.ts` and `src/services/guideService.ts`.
+    - Mount `HazardsListView` (`/guide/hazards`) and `HazardDetailView` (`/guide/hazards/$hazardId`) in `src/router/index.tsx` and add `Environmental Hazards` to `<GuideSectionNav />`.
 
-
+### DEC-033: Shared `<DetentSheet />`, Dedicated `journeyService.ts`, Two-Stage `<DirectionsPanel />`, Defensive Route Gating (`Coming soon`), Under-the-Hood Origin Focus & General 3D `<JourneyChord />`
+- **Date:** 2026-10-19
+- **Status:** Ratified
+- **Context:** For Journey 1 Step 3 (Route Finding & Benchmark Calculations):
+  1. `<DetailsPanel />` and the new `<DirectionsPanel />` share the 3-detent container anatomy (`Peek`, `Partial`, `Full`) without `<DirectionsPanel />` being coupled to entity details.
+  2. Clicking `Directions` on any entity must NOT load a new top-level view or mutate the user's existing selection or primary focus (`focusedId`); instead, it appends `?route=<origin>,<target>` onto the current URL and gives the first route stop (`routeStops[0]`, i.e. `sol` or `earth`) focus under the hood (`focusedIds`) solely for 3D canvas representation.
+  3. All route finding, relativistic interstellar transit math, and intra-system orbital transfer math must live in a dedicated `src/services/journeyService.ts` (backed by pure equations in `src/utils/astroMath.ts`), with zero hardcoded entity attributes except `DEFAULT_INTERSTELLAR_ORIGIN_ID = 'sol'` and `DEFAULT_INTRA_SYSTEM_ORIGIN_ID = 'earth'` strictly as the default first-step origin.
+  4. Routes must be defensively gated for v1: users may not travel between objects in different systems, and at the galaxy level may only travel between star systems themselves. Clicking `Directions` when a route is not allowed (cross-system body routes, non-system stops at the galaxy scope, or identical origin/destination `sol,sol` / `earth,earth`) must open `<DirectionsPanel />` in a `"Coming soon"` state (`status: 'coming-soon'`, `data-testid="directions-coming-soon"`) with zero 3D chords.
+  5. Supported routes open a two-stage `<DirectionsPanel />` in the same pane: Stage 1 lists propulsion/transfer options with a top summary (`topSummaryTime`, e.g. journey time), and clicking an option opens Stage 2 (`?journeyOption=<optionId>`) displaying full telemetry stats in the same pane alongside a multi-leg 3D `<JourneyChord />` on the canvas.
+- **Decision (Ratified):**
+  - **Shared `<DetentSheet />` (`src/components/interface/surfaces/DetentSheet/DetentSheet.tsx`):** Reusable `Peek` / `Partial` / `Full` sheet primitive consumed by both `<DetailsPanel />` (`testIdPrefix="details"`) and `<DirectionsPanel />` (`testIdPrefix="directions"`).
+  - **Dedicated Journey Service (`src/services/journeyService.ts`) & Pure Transit Math (`src/utils/astroMath.ts`):**
+    - `computeEuclideanDistance3D`, `computeInterstellarRelativisticTransit` (1g continuous relativistic brachistochrone $\tau = \frac{2c}{a}\operatorname{arcosh}\!\left(1 + \frac{a d}{2 c^2}\right)$), `computeInterstellarConstantBetaTransit` ($0.1c$ / $0.05c$ cruise + $0.00057c$ reference probe), `computeIntraSystemBrachistochroneTransit`, and `computeHohmannTransferOrbit`.
+    - `buildDirectionsTriggerHref` preserves `currentPathname` and `currentSearch`, using `sol` (galaxy scope) or `earth` (system/planet scope) strictly as the default Step 1 origin.
+    - `buildJourneyPlan` validates route endpoints and returns `status: 'coming-soon'` (with explanatory `statusReason` and `chordLegs: []`) whenever stops span different systems (`hasCrossSystemBodyStop`), include non-system bodies at galaxy scope (`hasNonSystemInGalaxy`), or form a self-loop (`hasSelfLoop`).
+  - **Under-the-Hood Origin Focus (`src/components/search/Search.tsx`):**
+    - `syncUrlFocusToStore` preserves `focusSlug` as primary `focusedId` (`focusedIds[0]`) so `DetailsPanel`, `PreviewPanel`, and `Minimap` never flip away from the user's focused target, while appending `routeStops[0]` to `focusedIds` under the hood for 3D canvas representation.
+  - **General 3D `<JourneyChord />` (`src/components/canvas/cartography/journeyChordGeometry.ts` & `src/components/canvas/entity/JourneyChord.tsx`):**
+    - Multi-leg 3D chord geometry, $\Delta z$ elevation projection segments, screen-invariant waypoint markers, and `<SafeHtml>` midpoint callouts with zero hardcoded origins, step counts, or propulsion methods.

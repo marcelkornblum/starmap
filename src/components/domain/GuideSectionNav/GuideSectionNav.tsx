@@ -3,11 +3,12 @@ import {
   STAR_TYPES_GUIDE_PATH,
   PLANET_TYPES_GUIDE_PATH,
   METRICS_GUIDE_PATH,
+  HAZARDS_GUIDE_PATH,
 } from '../../../services/guideService';
 import styles from './GuideSectionNav.module.css';
 
 export interface GuideSectionNavProps {
-  readonly currentSection?: 'star-types' | 'planet-types' | 'metrics';
+  readonly currentSection?: 'star-types' | 'planet-types' | 'metrics' | 'hazards';
 }
 
 export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection }) => {
@@ -43,6 +44,15 @@ export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection
             aria-current={currentSection === 'metrics' ? 'page' : undefined}
           >
             Telemetry Metrics
+          </a>
+        </li>
+        <li>
+          <a
+            href={HAZARDS_GUIDE_PATH}
+            className={styles.sectionNavLink}
+            aria-current={currentSection === 'hazards' ? 'page' : undefined}
+          >
+            Environmental Hazards
           </a>
         </li>
       </ul>

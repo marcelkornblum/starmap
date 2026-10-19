@@ -15,6 +15,11 @@ Establishes the interactive navigation modes, professional 3D camera control par
      - **`hasKeyboard` Active:** Render `<Key />` keyboard shortcut tiles and keycap bindings in the HUD (`ControlBar` / `ViewControlsDock`). Hide keyboard tiles when no keyboard capability is present.
      - **`hasTouch` Active:** Render explicit on-screen touch controls, touch-sized manipulation affordances, and multi-touch gesture indicators.
      - **Hybrid / Multi-Modal (`hasKeyboard && hasTouch`, etc.):** Render **both** keyboard tiles and touch controls simultaneously when both input types are present, accommodating every permutation (`mouse + keyboard`, `touch only`, `touch + keyboard`, `mouse + touch + keyboard`) explicitly.
+   - **Unified Keyboard Shortcut Registry & Global Dispatcher:**
+     - Centralise all keyboard shortcuts into a single declarative registry and global keybinding dispatcher (respecting editable input focus guards `<input>`, `<textarea>`, `<select>`, `contentEditable`) so that every `<Key />` tile displayed in `ControlBar` is backed by the exact same binding definition:
+       - **Search & Command Activation:** `/` or `Ctrl+K` / `Cmd+K` focuses `#starmap-search-input`; `Escape` blurs/dismisses active search or clears transient selection; `ArrowUp` / `ArrowDown` and `Enter` navigate and commit search results.
+       - **Camera & Spatial Framing:** `W` / `A` / `S` / `D` pan, `Q` / `E` rotate/orbit, `+` / `-` zoom, `R` reset/re-centre camera.
+       - **Layer & Temporal Toggles:** `G` toggle cartographic grid, `L` toggle labels, `O` toggle orbits (system/planet scale), `Space` play/pause simulation clock.
    - **Deterministic Override & Test Harness:** Expose input capability overrides in `useSettingsStore` and Storybook parameters so unit tests and Playwright E2E suites can deterministically simulate and verify every single input type and combination independently of viewport size.
 3. **Navigation Modes & Paradigms:**
    - 3D Navigation modes: Free Orbit mode, Constrained Ecliptic/System plane mode, and Top-Down Cartographic survey mode.
@@ -44,6 +49,7 @@ Establishes the interactive navigation modes, professional 3D camera control par
 - [ ] Input capability detector (`useInputCapabilities` / store slice) accurately detects and reactively updates `hasKeyboard`, `hasTouch`, `hasMouse`, and `hasTrackpad` via initial probing and live event promotion, with deterministic override support for testing.
 - [ ] HUD explicitly adapts to active input capabilities: keyboard-equipped setups render keyboard shortcut tiles, touch-equipped setups render touch controls, and hybrid setups (`hasKeyboard && hasTouch`) render both simultaneously.
 - [ ] Automated unit and integration tests explicitly verify each input modality (`keyboard`, `touch`, `mouse`, `trackpad`) and combined permutations (`keyboard-only`, `touch-only`, `mouse+keyboard`, `touch+keyboard`, `all`).
+- [ ] Unified keyboard shortcut registry and dispatcher binds every `<Key />` HUD tile (`/`, `Ctrl+K`, `Escape`, arrow result navigation, `Enter`, `W/A/S/D`, `Q/E`, `+/-`, `R`, `G`, `L`, `O`, `Space`) with input-element focus guards and 100% unit test coverage.
 - [ ] Navigation modes switch cleanly and reconfigure gesture/key behaviour on the camera.
 - [ ] Layer visibility toggles instantly update 3D cartographic elements without component remounts.
 - [ ] Interactive timeline scrubber scrubs planetary positions forward and backward in real time without lag.

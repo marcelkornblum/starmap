@@ -122,7 +122,7 @@ export function parseCaptureArgs(
   let port = 5173;
   let lanHost = defaultLanHost;
   let baseUrl = '';
-  let routes: string[] = [...DEFAULT_CAPTURE_ROUTES];
+  let customRoutes: string[] = [];
   let outDir = path.resolve(process.cwd(), 'artifacts/screenshots');
   let waitMs = 1200;
 
@@ -134,13 +134,17 @@ export function parseCaptureArgs(
       lanHost = arg.slice('--lan-host='.length).trim() || defaultLanHost;
     } else if (arg.startsWith('--base-url=')) {
       baseUrl = arg.slice('--base-url='.length).trim().replace(/\/+$/, '');
-    } else if (arg.startsWith('--routes=')) {
-      const list = arg
-        .slice('--routes='.length)
-        .split(',')
+    } else if (arg.startsWith('--routes=') || arg.startsWith('--route=')) {
+      const raw = arg.startsWith('--routes=')
+        ? arg.slice('--routes='.length)
+        : arg.slice('--route='.length);
+      const tokens = raw.includes(',/') || raw.includes(',http')
+        ? raw.split(/,(?=\/|https?:\/\/)/)
+        : raw.split(',');
+      const list = tokens
         .map((r) => r.trim())
         .filter(Boolean);
-      if (list.length > 0) routes = list;
+      customRoutes.push(...list);
     } else if (arg.startsWith('--out-dir=')) {
       const target = arg.slice('--out-dir='.length).trim();
       if (target) outDir = path.resolve(process.cwd(), target);
@@ -153,6 +157,8 @@ export function parseCaptureArgs(
   if (!baseUrl) {
     baseUrl = `http://127.0.0.1:${port}`;
   }
+
+  const routes = customRoutes.length > 0 ? customRoutes : [...DEFAULT_CAPTURE_ROUTES];
 
   return {
     baseUrl,

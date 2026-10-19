@@ -12,8 +12,11 @@ import {
   PLANET_TYPE_GUIDE_ENTRIES,
   PLANET_TYPES_GUIDE_PATH,
   resolveMetricSlugFromLabel,
+  SEED_CURATED_COLLECTIONS,
   STAR_TYPE_GUIDE_ENTRIES,
   STAR_TYPES_GUIDE_PATH,
+  type CuratedCollection,
+  type CuratedCollectionWaypoint,
   type GuideCatalogEntry,
   type GuideExampleTarget,
   type MetricGuideEntry,
@@ -41,8 +44,11 @@ export {
   PLANET_TYPE_GUIDE_ENTRIES,
   PLANET_TYPES_GUIDE_PATH,
   resolveMetricSlugFromLabel,
+  SEED_CURATED_COLLECTIONS,
   STAR_TYPE_GUIDE_ENTRIES,
   STAR_TYPES_GUIDE_PATH,
+  type CuratedCollection,
+  type CuratedCollectionWaypoint,
   type GuideCatalogEntry,
   type GuideExampleTarget,
   type MetricGuideEntry,
@@ -111,6 +117,7 @@ export interface SearchResultItem {
   readonly isSolarSystem?: boolean;
   readonly canonLayerId?: string;
   readonly canonTitle?: string;
+  readonly tagSlug?: string;
   readonly score: number;
 }
 
@@ -233,6 +240,12 @@ export const resolveReticleType = (
   entry: CompactSearchEntry,
 ): CelestialClassification => {
   if (entry.u) {
+    if (entry.u === 'super-earth') {
+      return 'super-earth';
+    }
+    if (entry.u === 'sub-neptune') {
+      return 'ice-giant';
+    }
     return entry.u;
   }
 
@@ -290,6 +303,8 @@ export interface ResultLinkInput {
   readonly systemId?: string;
   readonly systemName?: string;
   readonly isSolarSystem?: boolean;
+  readonly canonLayerId?: string;
+  readonly tagSlug?: string;
 }
 
 export const toUrlSlug = (value: string): string =>
@@ -304,18 +319,34 @@ export const toUrlSlug = (value: string): string =>
  * (`/galaxy/<systemname>` or `/galaxy/<systemname>?focus=<itemname>` for child items) or the
  * System View (`/system/sol?focus=<itemname>` for bodies inside our Solar System `sol`, per `FS-003`),
  * capturing strictly state and intent in the URL.
+ * When canonLayerId is present, produces `href` with `select=canon:<shortSlug>` preserving literal `:`.
+ * When tagSlug is present (and canonLayerId is not), produces `href` with `select=tag:<tagSlug>` preserving literal `:`.
  */
 export const buildResultTargetLink = (
   input: ResultLinkInput,
 ): { readonly targetView: SearchTargetView; readonly href: string } => {
   const isChildOfSystem = isChildOfHostSystem(input.id, input.systemId);
 
+  const canonSlug = input.canonLayerId
+    ? toUrlSlug(input.canonLayerId.trim().replace(/^canon[:-]/i, ''))
+    : undefined;
+
+  const tagSlug = input.tagSlug
+    ? toUrlSlug(input.tagSlug.trim().replace(/^tag:/i, ''))
+    : undefined;
+
   if (input.isSolarSystem === true && input.systemId === 'sol' && isChildOfSystem) {
     const focusSlug = toUrlSlug(input.name || input.id);
     const params = new URLSearchParams({ focus: focusSlug });
+    if (canonSlug) {
+      params.set('select', `canon:${canonSlug}`);
+    } else if (tagSlug) {
+      params.set('select', `tag:${tagSlug}`);
+    }
+    const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
     return {
       targetView: 'system',
-      href: `/system/sol?${params.toString()}`,
+      href: `/system/sol?${qs}`,
     };
   }
 
@@ -324,18 +355,21 @@ export const buildResultTargetLink = (
   );
   const encodedSystemSlug = encodeURIComponent(systemSlug);
 
+  const params = new URLSearchParams();
   if (isChildOfSystem) {
     const focusSlug = toUrlSlug(input.name || input.id);
-    const params = new URLSearchParams({ focus: focusSlug });
-    return {
-      targetView: 'galaxy',
-      href: `/galaxy/${encodedSystemSlug}?${params.toString()}`,
-    };
+    params.set('focus', focusSlug);
   }
+  if (canonSlug) {
+    params.set('select', `canon:${canonSlug}`);
+  } else if (tagSlug) {
+    params.set('select', `tag:${tagSlug}`);
+  }
+  const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
 
   return {
     targetView: 'galaxy',
-    href: `/galaxy/${encodedSystemSlug}`,
+    href: qs.length > 0 ? `/galaxy/${encodedSystemSlug}?${qs}` : `/galaxy/${encodedSystemSlug}`,
   };
 };
 
@@ -557,6 +591,7 @@ export const toSearchResultItem = (
   entry: CompactSearchEntry,
   score: number,
   systemName?: string,
+  tagSlug?: string,
 ): SearchResultItem => {
   const displayName = resolveResultDisplayTitle(entry);
   const category = resolveEntryCategory(entry);
@@ -586,6 +621,8 @@ export const toSearchResultItem = (
     systemId: entry.s,
     systemName,
     isSolarSystem,
+    canonLayerId: entry.w,
+    tagSlug,
   });
 
   return {
@@ -607,6 +644,7 @@ export const toSearchResultItem = (
     ...(isSolarSystem ? { isSolarSystem } : {}),
     ...(entry.w ? { canonLayerId: entry.w } : {}),
     ...(entry.c ? { canonTitle: entry.c } : {}),
+    ...(tagSlug ? { tagSlug } : {}),
     score,
   };
 };
@@ -653,6 +691,20 @@ const createEmptyGroupedResults = (
   };
 };
 
+export const QUERY_CLEAN_KEY_TO_TAG_SLUG: Readonly<Record<string, string>> = {
+  habitable: 'habitable-candidate',
+  habitablecandidate: 'habitable-candidate',
+  habitablehost: 'habitable-candidate',
+  habitablezone: 'habitable-candidate',
+  nakedeye: 'naked-eye',
+  solarneighborhood: 'solar-neighborhood-10pc',
+  solarneighborhood10pc: 'solar-neighborhood-10pc',
+  exoplanethost: 'exoplanet-host',
+  variablestar: 'variable-star',
+  reconsgroundtruth: 'recons-ground-truth',
+  homesystem: 'home-system',
+};
+
 /**
  * Pure service unit function that executes a search against an in-memory array of
  * `CompactSearchEntry` records, resolves relational child entities attached to strongly
@@ -670,6 +722,10 @@ export const executeCatalogSearch = (
   if (!normalised.cleanKey) {
     return createEmptyGroupedResults(normalised.rawTrimmed, filter);
   }
+
+  const matchedTagSlug =
+    QUERY_CLEAN_KEY_TO_TAG_SLUG[normalised.cleanKey] ??
+    QUERY_CLEAN_KEY_TO_TAG_SLUG[normalised.rawCleanKey];
 
   const systemNameById = new Map<string, string>();
   const stronglyMatchedSystemIds = new Set<string>();
@@ -704,8 +760,16 @@ export const executeCatalogSearch = (
     const category = resolveEntryCategory(entry);
     const directScore = scoreSearchEntry(entry, normalised);
 
-    if (directScore > 0) {
-      if (category === 'stars' && directScore >= 700) {
+    const matchesTag =
+      matchedTagSlug !== undefined &&
+      category === 'stars' &&
+      doesSystemEntryMatchTag(entry, matchedTagSlug);
+
+    const effectiveScore = directScore > 0 ? directScore : (matchesTag ? 650 : 0);
+    const itemTagSlug = matchesTag ? matchedTagSlug : undefined;
+
+    if (effectiveScore > 0) {
+      if (category === 'stars' && effectiveScore >= 700) {
         stronglyMatchedSystemIds.add(entry.i);
       }
       if (filter === 'all' || filter === category) {
@@ -713,7 +777,7 @@ export const executeCatalogSearch = (
           resolveResultSystemTitle(entry, systemNameById) ??
           (entry.h === 1 && entry.s ? formatSlugFallbackTitle(entry.s) : undefined);
         matchedByCategory[category].push(
-          toSearchResultItem(entry, directScore, hostName),
+          toSearchResultItem(entry, effectiveScore, hostName, itemTagSlug),
         );
       }
     } else if (
@@ -891,6 +955,33 @@ export const buildCanonLayerGalaxyHref = (layerId: string): string => {
 };
 
 /**
+ * Pure unit function building the URL to the Galaxy View with a star-type shortcut in `?select=`
+ * (`/galaxy?select=star-type:<starTypeSlug>`, e.g. `/galaxy?select=star-type:g`).
+ */
+export const buildStarTypeGalaxyHref = (starType: string): string => {
+  const slug = toUrlSlug(starType.trim().replace(/^star-type:/i, ''));
+  return slug ? `/galaxy?select=star-type:${slug}` : '/galaxy';
+};
+
+/**
+ * Pure unit function building the URL to the Galaxy View with a planet-type shortcut in `?select=`
+ * (`/galaxy?select=planet-type:<planetTypeSlug>`, e.g. `/galaxy?select=planet-type:super-earth`).
+ */
+export const buildPlanetTypeGalaxyHref = (planetType: string): string => {
+  const slug = toUrlSlug(planetType.trim().replace(/^planet-type:/i, ''));
+  return slug ? `/galaxy?select=planet-type:${slug}` : '/galaxy';
+};
+
+/**
+ * Pure unit function building the URL to the Galaxy View with a collection shortcut in `?select=`
+ * (`/galaxy?select=collection:<collectionSlug>`, e.g. `/galaxy?select=collection:extreme-worlds`).
+ */
+export const buildCollectionGalaxyHref = (collectionId: string): string => {
+  const slug = toUrlSlug(collectionId.trim().replace(/^collection:/i, ''));
+  return slug ? `/galaxy?select=collection:${slug}` : '/galaxy';
+};
+
+/**
  * Pure lookup finding a dataset layer manifest (`FS-001` / `FS-002`) by its `layerId` or short slug
  * (e.g. matching both `'canon-project-hail-mary'` and `'project-hail-mary'`).
  */
@@ -919,10 +1010,14 @@ export const findCanonLayerById = (
 export type UrlSelectToken =
   | { readonly kind: 'tag'; readonly tag: string }
   | { readonly kind: 'canon'; readonly layerId: string }
+  | { readonly kind: 'star-type'; readonly starType: string }
+  | { readonly kind: 'planet-type'; readonly planetType: string }
+  | { readonly kind: 'collection'; readonly collectionId: string }
   | { readonly kind: 'entity'; readonly slug: string };
 
 /**
- * Pure parser extracting structured selection tokens (`tag:<slug>`, `canon:<slug>`, or `<entityId>`)
+ * Pure parser extracting structured selection tokens (`tag:<slug>`, `canon:<slug>`, `star-type:<slug>`,
+ * `planet-type:<slug>`, `collection:<slug>`, or `<entityId>`)
  * from a URL search string's `?select=` parameter (plus legacy `?canon=` support).
  */
 export const parseUrlSelectTokens = (
@@ -956,6 +1051,33 @@ export const parseUrlSelectTokens = (
         const matchedLayer = findCanonLayerById(canonMatch[1], activeLayers);
         if (matchedLayer) {
           tokens.push({ kind: 'canon', layerId: matchedLayer.layerId });
+        }
+        continue;
+      }
+
+      const starTypeMatch = /^star-type:(.+)$/i.exec(token);
+      if (starTypeMatch?.[1]) {
+        const candidateStarType = toUrlSlug(starTypeMatch[1]);
+        if (candidateStarType.length > 0) {
+          tokens.push({ kind: 'star-type', starType: candidateStarType });
+        }
+        continue;
+      }
+
+      const planetTypeMatch = /^planet-type:(.+)$/i.exec(token);
+      if (planetTypeMatch?.[1]) {
+        const candidatePlanetType = toUrlSlug(planetTypeMatch[1]);
+        if (candidatePlanetType.length > 0) {
+          tokens.push({ kind: 'planet-type', planetType: candidatePlanetType });
+        }
+        continue;
+      }
+
+      const collectionMatch = /^collection:(.+)$/i.exec(token);
+      if (collectionMatch?.[1]) {
+        const candidateCollection = toUrlSlug(collectionMatch[1]);
+        if (candidateCollection.length > 0) {
+          tokens.push({ kind: 'collection', collectionId: candidateCollection });
         }
         continue;
       }
@@ -1277,13 +1399,200 @@ export const resolveSelectedSystemsFromCanonLayer = (
 };
 
 /**
+ * Pure unit function resolving all deduplicated star systems that match a specified star type
+ * (e.g. 'G', 'G2V', 'white-dwarf', 'brown-dwarf', 'neutron-star') from `?select=star-type:<starType>`.
+ */
+export const resolveSelectedSystemsFromStarType = (
+  starType: string,
+  corpus: readonly CompactSearchEntry[],
+): readonly SpatialEntityDefinition[] => {
+  const normStarType = toUrlSlug(starType.trim().replace(/^star-type:/i, ''));
+  if (!normStarType) {
+    return [];
+  }
+
+  const cleanStarType = normStarType.replace(/[^a-z0-9]/g, '');
+  const isReticleClass =
+    normStarType === 'white-dwarf' ||
+    normStarType === 'brown-dwarf' ||
+    normStarType === 'neutron-star';
+
+  const systemsById = new Map<string, SpatialEntityDefinition>();
+
+  for (const entry of corpus) {
+    if (resolveEntryCategory(entry) !== 'stars') {
+      continue;
+    }
+
+    let matches = false;
+    if (isReticleClass) {
+      matches = resolveReticleType(entry) === normStarType;
+    } else {
+      const entrySpectClean = (entry.m?.[1] ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+      matches = entrySpectClean.length > 0 && entrySpectClean.startsWith(cleanStarType);
+    }
+
+    if (matches) {
+      systemsById.set(entry.i, {
+        id: entry.i,
+        name: resolveResultDisplayTitle(entry),
+        position: entry.p ? [entry.p[0], entry.p[1], entry.p[2]] : [0, 0, 0],
+        classification: resolveReticleType(entry),
+        ...(entry.m?.[1] ? { spectralType: entry.m[1] } : {}),
+      });
+    }
+  }
+
+  return Array.from(systemsById.values());
+};
+
+/**
+ * Pure unit function resolving all deduplicated host star systems of matching planet entries
+ * (e.g. 'terrestrial', 'super-earth', 'sub-neptune', 'gas-giant') from `?select=planet-type:<planetType>`.
+ * Falls back to star `entry.b` composition counts tuple [terrestrialAndSuperEarth, subNeptune, gasGiant]
+ * when no child planet entries are in the corpus.
+ */
+export const resolveSelectedSystemsFromPlanetType = (
+  planetType: string,
+  corpus: readonly CompactSearchEntry[],
+): readonly SpatialEntityDefinition[] => {
+  const normPlanetType = toUrlSlug(planetType.trim().replace(/^planet-type:/i, ''));
+  if (!normPlanetType) {
+    return [];
+  }
+
+  const systemsById = new Map<string, SpatialEntityDefinition>();
+  const matchingHostSystemIds = new Set<string>();
+
+  // Check child planet entries (entry.k === 2)
+  const childPlanetEntries = corpus.filter((e) => e.k === 2);
+  for (const planet of childPlanetEntries) {
+    const rawType = planet.u ? toUrlSlug(planet.u) : resolveReticleType(planet);
+    const matches =
+      rawType === normPlanetType ||
+      (normPlanetType === 'super-earth' && rawType === 'super-earth') ||
+      (normPlanetType === 'terrestrial' && rawType === 'terrestrial') ||
+      (normPlanetType === 'sub-neptune' && (rawType === 'sub-neptune' || rawType === 'ice-giant')) ||
+      (normPlanetType === 'ice-giant' && (rawType === 'ice-giant' || rawType === 'sub-neptune')) ||
+      (normPlanetType === 'gas-giant' && rawType === 'gas-giant');
+
+    if (matches && planet.s) {
+      matchingHostSystemIds.add(planet.s);
+    }
+  }
+
+  // Fallback to star entry.b composition counts tuple [terrestrial, superEarth, iceGiant, gasGiant]
+  // or legacy [terrestrialAndSuperEarth, subNeptune, gasGiant] when no child planet entries are in the corpus (or when no child planets matched)
+  if (childPlanetEntries.length === 0 || matchingHostSystemIds.size === 0) {
+    for (const entry of corpus) {
+      if (resolveEntryCategory(entry) === 'stars' && entry.b) {
+        let count = 0;
+        if (entry.b.length === 4) {
+          if (normPlanetType === 'terrestrial') count = entry.b[0] ?? 0;
+          else if (normPlanetType === 'super-earth') count = entry.b[1] ?? 0;
+          else if (normPlanetType === 'sub-neptune' || normPlanetType === 'ice-giant') count = entry.b[2] ?? 0;
+          else if (normPlanetType === 'gas-giant') count = entry.b[3] ?? 0;
+        } else {
+          // Legacy 3-tuple
+          if (normPlanetType === 'terrestrial' || normPlanetType === 'super-earth') count = entry.b[0] ?? 0;
+          else if (normPlanetType === 'sub-neptune' || normPlanetType === 'ice-giant') count = entry.b[1] ?? 0;
+          else if (normPlanetType === 'gas-giant') count = entry.b[2] ?? 0;
+        }
+        if (count > 0) {
+          matchingHostSystemIds.add(entry.i);
+        }
+      }
+    }
+  }
+
+  for (const hostId of matchingHostSystemIds) {
+    const matched = findFocusedEntryInCorpus(hostId, corpus);
+    if (matched) {
+      systemsById.set(matched.i, {
+        id: matched.i,
+        name: resolveResultDisplayTitle(matched),
+        position: matched.p ? [matched.p[0], matched.p[1], matched.p[2]] : [0, 0, 0],
+        classification: resolveReticleType(matched),
+        ...(matched.m?.[1] ? { spectralType: matched.m[1] } : {}),
+      });
+    } else {
+      systemsById.set(hostId, {
+        id: hostId,
+        name: formatSlugFallbackTitle(hostId),
+        position: [0, 0, 0],
+        classification: 'stellar-system',
+      });
+    }
+  }
+
+  return Array.from(systemsById.values());
+};
+
+/**
+ * Pure unit function resolving all deduplicated systems belonging to a curated collection
+ * (e.g. 'extreme-worlds', 'newly-discovered') from `?select=collection:<collectionId>`.
+ */
+export const resolveSelectedSystemsFromCollection = (
+  collectionId: string,
+  corpus: readonly CompactSearchEntry[],
+  collections: readonly CuratedCollection[] = SEED_CURATED_COLLECTIONS,
+): readonly SpatialEntityDefinition[] => {
+  const targetSlug = toUrlSlug(collectionId.trim().replace(/^collection:/i, ''));
+  if (!targetSlug) {
+    return [];
+  }
+
+  const collection = collections.find(
+    (c) => toUrlSlug(c.id) === targetSlug || c.id === collectionId,
+  );
+  if (!collection) {
+    return [];
+  }
+
+  const systemsById = new Map<string, SpatialEntityDefinition>();
+  const systemIds = new Set<string>(collection.systemIds);
+  if (collection.waypoints) {
+    for (const wp of collection.waypoints) {
+      systemIds.add(wp.systemId ?? wp.targetId);
+    }
+  }
+
+  for (const sysId of systemIds) {
+    const matched = findFocusedEntryInCorpus(sysId, corpus);
+    if (matched) {
+      systemsById.set(matched.i, {
+        id: matched.i,
+        name: resolveResultDisplayTitle(matched),
+        position: matched.p ? [matched.p[0], matched.p[1], matched.p[2]] : [0, 0, 0],
+        classification: resolveReticleType(matched),
+        ...(matched.m?.[1] ? { spectralType: matched.m[1] } : {}),
+      });
+    } else {
+      systemsById.set(sysId, {
+        id: sysId,
+        name: formatSlugFallbackTitle(sysId),
+        position: [0, 0, 0],
+        classification: 'stellar-system',
+      });
+    }
+  }
+
+  return Array.from(systemsById.values());
+};
+
+/**
  * Pure unit function resolving all deduplicated entities selected via `?select=`
- * (supporting comma-separated `tag:<slug>`, `canon:<slug>`, and explicit `<entityId>` tokens).
+ * (supporting comma-separated `tag:<slug>`, `canon:<slug>`, `star-type:<slug>`,
+ * `planet-type:<slug>`, `collection:<slug>`, and explicit `<entityId>` tokens).
  */
 export const resolveSelectedSystemsFromUrlSelect = (
   searchString: string,
   corpus: readonly CompactSearchEntry[],
   activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  collections: readonly CuratedCollection[] = SEED_CURATED_COLLECTIONS,
 ): readonly SpatialEntityDefinition[] => {
   const tokens = parseUrlSelectTokens(searchString, activeLayers);
   if (tokens.length === 0) {
@@ -1306,6 +1615,28 @@ export const resolveSelectedSystemsFromUrlSelect = (
         token.layerId,
         corpus,
         activeLayers,
+      )) {
+        entitiesById.set(sys.id, sys);
+      }
+    } else if (token.kind === 'star-type') {
+      for (const sys of resolveSelectedSystemsFromStarType(
+        token.starType,
+        corpus,
+      )) {
+        entitiesById.set(sys.id, sys);
+      }
+    } else if (token.kind === 'planet-type') {
+      for (const sys of resolveSelectedSystemsFromPlanetType(
+        token.planetType,
+        corpus,
+      )) {
+        entitiesById.set(sys.id, sys);
+      }
+    } else if (token.kind === 'collection') {
+      for (const sys of resolveSelectedSystemsFromCollection(
+        token.collectionId,
+        corpus,
+        collections,
       )) {
         entitiesById.set(sys.id, sys);
       }
@@ -1335,12 +1666,16 @@ export const resolveFocusedEntityFromCorpus = (
 
   const matched = findFocusedEntryInCorpus(focusSlug, corpus);
   if (matched) {
+    const rawCoords = matched as { x?: number; y?: number; z?: number };
+    const position: [number, number, number] = matched.p
+      ? [matched.p[0], matched.p[1], matched.p[2]]
+      : typeof rawCoords.x === 'number' && typeof rawCoords.y === 'number' && typeof rawCoords.z === 'number'
+        ? [rawCoords.x, rawCoords.y, rawCoords.z]
+        : [0, 0, 0];
     return {
       id: matched.i,
       name: resolveResultDisplayTitle(matched),
-      position: matched.p
-        ? [matched.p[0], matched.p[1], matched.p[2]]
-        : [0, 0, 0],
+      position,
       classification: resolveReticleType(matched),
       ...(matched.m?.[1] ? { spectralType: matched.m[1] } : {}),
     };

@@ -120,21 +120,188 @@ export const IAU_CONSTELLATION_GENITIVE_MAP: Record<string, string> = {
   vul: 'Vulpeculae',
 };
 
+export const UNICODE_GREEK_TO_LATIN_MAP: Record<string, string> = {
+  α: 'alpha',
+  β: 'beta',
+  γ: 'gamma',
+  δ: 'delta',
+  ε: 'epsilon',
+  ζ: 'zeta',
+  η: 'eta',
+  θ: 'theta',
+  ϑ: 'theta',
+  ι: 'iota',
+  κ: 'kappa',
+  ϰ: 'kappa',
+  λ: 'lambda',
+  μ: 'mu',
+  ν: 'nu',
+  ξ: 'xi',
+  ο: 'omicron',
+  π: 'pi',
+  ϖ: 'pi',
+  ρ: 'rho',
+  ϱ: 'rho',
+  σ: 'sigma',
+  ς: 'sigma',
+  τ: 'tau',
+  υ: 'upsilon',
+  φ: 'phi',
+  ϕ: 'phi',
+  χ: 'chi',
+  ψ: 'psi',
+  ω: 'omega',
+  Α: 'Alpha',
+  Β: 'Beta',
+  Γ: 'Gamma',
+  Δ: 'Delta',
+  Ε: 'Epsilon',
+  Ζ: 'Zeta',
+  Η: 'Eta',
+  Θ: 'Theta',
+  Ι: 'Iota',
+  Κ: 'Kappa',
+  Λ: 'Lambda',
+  Μ: 'Mu',
+  Ν: 'Nu',
+  Ξ: 'Xi',
+  Ο: 'Omicron',
+  Π: 'Pi',
+  Ρ: 'Rho',
+  Σ: 'Sigma',
+  Τ: 'Tau',
+  Υ: 'Upsilon',
+  Φ: 'Phi',
+  Χ: 'Chi',
+  Ψ: 'Psi',
+  Ω: 'Omega',
+};
+
+export const SUPERSCRIPT_DIGIT_MAP: Record<string, string> = {
+  '¹': '1',
+  '²': '2',
+  '³': '3',
+  '⁴': '4',
+  '⁵': '5',
+  '⁶': '6',
+  '⁷': '7',
+  '⁸': '8',
+  '⁹': '9',
+  '⁰': '0',
+};
+
 /**
- * Expands a HYG Greek Bayer abbreviation (e.g. "Alp", "Eps", "Kap-1", "Omi-2")
- * into its full Latinized Greek letter name ("Alpha", "Epsilon", "Kappa-1", "Omicron-2").
+ * Transliterates Unicode Greek characters (α–ω, Α–Ω, ς) into Latin names
+ * and Unicode superscript digits (¹–⁹, ⁰) into standard Arabic digits.
+ */
+export function transliterateGreekAndSuperscripts(raw: string): string {
+  let result = '';
+  for (const char of raw) {
+    if (UNICODE_GREEK_TO_LATIN_MAP[char]) {
+      result += UNICODE_GREEK_TO_LATIN_MAP[char];
+    } else if (SUPERSCRIPT_DIGIT_MAP[char]) {
+      result += SUPERSCRIPT_DIGIT_MAP[char];
+    } else {
+      result += char;
+    }
+  }
+  return result;
+}
+
+const GREEK_CANONICAL_EXPANSION_MAP: Record<string, string> = {
+  alp: 'Alpha',
+  alpha: 'Alpha',
+  bet: 'Beta',
+  beta: 'Beta',
+  gam: 'Gamma',
+  gamma: 'Gamma',
+  del: 'Delta',
+  delta: 'Delta',
+  eps: 'Epsilon',
+  epsilon: 'Epsilon',
+  zet: 'Zeta',
+  zeta: 'Zeta',
+  eta: 'Eta',
+  the: 'Theta',
+  theta: 'Theta',
+  iot: 'Iota',
+  iota: 'Iota',
+  kap: 'Kappa',
+  kappa: 'Kappa',
+  lam: 'Lambda',
+  lambda: 'Lambda',
+  mu: 'Mu',
+  nu: 'Nu',
+  xi: 'Xi',
+  omi: 'Omicron',
+  omicron: 'Omicron',
+  pi: 'Pi',
+  rho: 'Rho',
+  sig: 'Sigma',
+  sigma: 'Sigma',
+  tau: 'Tau',
+  ups: 'Upsilon',
+  upsilon: 'Upsilon',
+  phi: 'Phi',
+  chi: 'Chi',
+  psi: 'Psi',
+  ome: 'Omega',
+  omega: 'Omega',
+};
+
+/**
+ * Pure predicate determining whether a token is a recognized Greek Bayer prefix
+ * in Latin abbreviation, Latin full name, or Unicode Greek script.
+ */
+export function isGreekBayerPrefix(token: string): boolean {
+  const trimmed = token.trim();
+  if (!trimmed) return false;
+  const transliterated =
+    UNICODE_GREEK_TO_LATIN_MAP[trimmed]?.toLowerCase() ?? trimmed.toLowerCase();
+  return Boolean(GREEK_CANONICAL_EXPANSION_MAP[transliterated]);
+}
+
+/**
+ * Expands a HYG Greek Bayer abbreviation (e.g. "Alp", "Eps", "Kap-1", "Omi-2"),
+ * Greek Unicode character (e.g. "τ", "α", "ε", "π³", "ο²"), or full name
+ * into its full Latinized Greek letter name ("Alpha", "Epsilon", "Kappa-1", "Pi-3", "Omicron-2").
  */
 export function expandGreekBayer(bayer: string): string {
   const trimmed = bayer.trim();
-  const match = trimmed.match(/^([A-Za-z]+)(-\d+|\d+)?$/);
+  if (!trimmed) return trimmed;
+
+  const match = trimmed.match(
+    /^([A-Za-z\u0370-\u03FF\u1F00-\u1FFF]+)(?:(?:-|\s+)([0-9]+)|([¹²³⁴⁵⁶⁷⁸⁹⁰]+)|([0-9]+))?$/,
+  );
   if (!match) return trimmed;
 
-  const prefix = match[1].toLowerCase();
-  const suffix = match[2] || '';
-  const expanded = GREEK_BAYER_MAP[prefix];
+  const rawPrefix = match[1];
+  const hyphenOrSpaceSuffix = match[2];
+  const superscriptSuffix = match[3];
+  const plainDigitSuffix = match[4];
+
+  const transliterated =
+    UNICODE_GREEK_TO_LATIN_MAP[rawPrefix]?.toLowerCase() ?? rawPrefix.toLowerCase();
+  const expanded = GREEK_CANONICAL_EXPANSION_MAP[transliterated];
   if (!expanded) return trimmed;
 
-  return `${expanded}${suffix}`;
+  if (hyphenOrSpaceSuffix !== undefined) {
+    return `${expanded}-${hyphenOrSpaceSuffix}`;
+  }
+
+  if (superscriptSuffix !== undefined) {
+    const digits = superscriptSuffix
+      .split('')
+      .map((ch) => SUPERSCRIPT_DIGIT_MAP[ch] ?? ch)
+      .join('');
+    return `${expanded}-${digits}`;
+  }
+
+  if (plainDigitSuffix !== undefined) {
+    return `${expanded}${plainDigitSuffix}`;
+  }
+
+  return expanded;
 }
 
 /**
@@ -175,9 +342,10 @@ const KNOWN_GENITIVE_MAP: Record<string, string> = Object.fromEntries(
 );
 
 /**
- * Expands trailing IAU 3-letter constellation abbreviations and Greek Bayer prefixes
+ * Expands trailing IAU constellation abbreviations (or full genitives) and Greek Bayer prefixes
  * in Gould, Bayer, or exoplanet strings (e.g. "82 G. Eri" -> "82 G. Eridani",
- * "Tau Cet" -> "Tau Ceti", "tau Ceti e" -> "Tau Ceti e", "eps Eridani b" -> "Epsilon Eridani b").
+ * "Tau Cet" -> "Tau Ceti", "tau Ceti e" -> "Tau Ceti e", "alp Canis Majoris" -> "Alpha Canis Majoris",
+ * "omi 2 Eri" -> "Omicron-2 Eridani", "pi 3 Ori" -> "Pi-3 Orionis").
  */
 export function expandGouldOrConstellationSuffix(rawName: string): string {
   const trimmed = rawName.trim();
@@ -198,25 +366,56 @@ export function expandGouldOrConstellationSuffix(rawName: string): string {
     if (popped) trailingSuffix.unshift(popped);
   }
 
-  const lastStarToken = starTokens[starTokens.length - 1];
-  const lowerLast = lastStarToken.toLowerCase();
-  const genitive = IAU_CONSTELLATION_GENITIVE_MAP[lowerLast] || KNOWN_GENITIVE_MAP[lowerLast];
-  if (!genitive) return trimmed;
+  let genitive: string | undefined;
+  let constellationTokenCount = 0;
 
-  starTokens[starTokens.length - 1] = genitive;
-
-  if (starTokens.length === 2) {
-    starTokens[0] = expandGreekBayer(starTokens[0]);
+  // 1. Check for two-word IAU constellation genitive (e.g. "Canis Majoris", "Ursae Majoris")
+  if (starTokens.length >= 2) {
+    const lastTwo = `${starTokens[starTokens.length - 2]} ${starTokens[starTokens.length - 1]}`.toLowerCase();
+    if (KNOWN_GENITIVE_MAP[lastTwo]) {
+      genitive = KNOWN_GENITIVE_MAP[lastTwo];
+      constellationTokenCount = 2;
+    }
   }
 
-  return [...starTokens, ...trailingSuffix].join(' ');
+  // 2. Check for single-word IAU constellation abbreviation or genitive (e.g. "Cet", "Ceti", "Eri")
+  if (!genitive && starTokens.length >= 1) {
+    const lastOne = starTokens[starTokens.length - 1].toLowerCase();
+    genitive = IAU_CONSTELLATION_GENITIVE_MAP[lastOne] || KNOWN_GENITIVE_MAP[lastOne];
+    if (genitive) {
+      constellationTokenCount = 1;
+    }
+  }
+
+  if (!genitive) return trimmed;
+
+  const remainingStarTokens = starTokens.slice(0, starTokens.length - constellationTokenCount);
+
+  // If there are exactly two remaining tokens before constellation, check for space-separated numbered Bayer:
+  // e.g. "omi 2 Eri" -> remainingStarTokens = ['omi', '2'] -> "Omicron-2"
+  if (
+    remainingStarTokens.length === 2 &&
+    isGreekBayerPrefix(remainingStarTokens[0]) &&
+    (/^\d+$/.test(remainingStarTokens[1]) || /^[¹²³⁴⁵⁶⁷⁸⁹⁰]+$/.test(remainingStarTokens[1]))
+  ) {
+    const prefix = expandGreekBayer(remainingStarTokens[0]);
+    const digits = transliterateGreekAndSuperscripts(remainingStarTokens[1]);
+    remainingStarTokens.splice(0, 2, `${prefix}-${digits}`);
+  } else if (remainingStarTokens.length === 1) {
+    remainingStarTokens[0] = expandGreekBayer(remainingStarTokens[0]);
+  }
+
+  return [...remainingStarTokens, genitive, ...trailingSuffix].join(' ');
 }
 
 /**
- * Normalizes a raw designation or query into a lowercase alphanumeric clean key.
+ * Normalizes a raw designation or query into a lowercase alphanumeric clean key,
+ * transliterating Unicode Greek characters (e.g. "τ" -> "tau", "α" -> "alpha")
+ * and Unicode superscript digits (e.g. "³" -> "3").
  */
 export function normalizeCleanKey(raw: string): string {
-  return raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const transliterated = transliterateGreekAndSuperscripts(raw);
+  return transliterated.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 /**

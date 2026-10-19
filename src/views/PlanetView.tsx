@@ -9,10 +9,16 @@ import {
   CanvasLayer,
   ControlBar,
   DetailsPanel,
+  DirectionsPanel,
   Minimap,
   PreviewPanel,
   SearchResultItem,
 } from '../components/domain';
+import {
+  buildJourneyPlan,
+  extractUrlJourneyOptionId,
+  extractUrlRouteStops,
+} from '../services/journeyService';
 import { Search } from '../components/search';
 import {
   fetchDetailRecord,
@@ -163,6 +169,8 @@ const useResolvedPlanetDetails = (
     urlPlanetSlug,
     hasExplicitFocus,
     viewScope: 'planet',
+    currentPathname: pathname,
+    currentSearch: search,
   });
 
   const focusedDetails = focusedEntity ? systemContextDetails : null;
@@ -228,6 +236,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     minimapOrientation,
     planetaryBodies,
     orbitalSchematic,
+    activeCorpus,
     urlPlanetSlug,
   } = useResolvedPlanetDetails(props, true);
 
@@ -246,6 +255,19 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     urlPlanetSlug,
   );
 
+  const routeStops = extractUrlRouteStops(search);
+  const routeOptionId = extractUrlJourneyOptionId(search);
+  const activeJourney = routeStops
+    ? buildJourneyPlan({
+        stops: routeStops,
+        selectedOptionId: routeOptionId,
+        corpus: activeCorpus,
+        viewScope: 'planet',
+        currentPathname: pathname,
+        currentSearch: search,
+      })
+    : null;
+
   return (
     <main data-testid="planet-view-root">
       <CanvasLayer
@@ -260,6 +282,11 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
         cameraAzimuthDeg={cameraState.az}
         cameraElevationDeg={cameraState.el}
         cameraDistance={cameraState.dist}
+        journeyLegs={activeJourney?.chordLegs}
+        activeJourneyMethod={
+          activeJourney?.selectedOption?.id ??
+          activeJourney?.options[0]?.id
+        }
       />
       <Breadcrumbs items={breadcrumbs} />
       <ControlBar scope="planet" />
@@ -277,7 +304,11 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
           )}
         />
       </Search.Root>
-      <DetailsPanel details={focusedDetails} />
+      {activeJourney ? (
+        <DirectionsPanel journey={activeJourney} />
+      ) : (
+        <DetailsPanel details={focusedDetails} />
+      )}
       <PreviewPanel preview={focusedPreview} />
       <Minimap orientation={minimapOrientation} />
       <BodiesPanel elements={planetaryBodies} schematic={orbitalSchematic} />

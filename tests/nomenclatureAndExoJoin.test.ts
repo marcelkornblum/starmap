@@ -3,12 +3,17 @@ import path from 'node:path';
 import fs from 'node:fs';
 import {
   expandBayerOrFlamsteed,
+  expandGreekBayer,
   expandGouldOrConstellationSuffix,
   expandGlieseVariants,
   resolveStarProperName,
   resolveStarDisplayName,
   buildCleanKeys,
   collectStarLookupKeys,
+  normalizeCleanKey,
+  UNICODE_GREEK_TO_LATIN_MAP,
+  SUPERSCRIPT_DIGIT_MAP,
+  transliterateGreekAndSuperscripts,
 } from '../src/utils/nomenclature';
 import {
   isSearchableStarSystem,
@@ -53,6 +58,66 @@ describe('Step 1: Nomenclature Expansion & Substring-Deduplicated Clean Keys', (
     expect(expandGouldOrConstellationSuffix('ups And b')).toBe('Upsilon Andromedae b');
     expect(expandGouldOrConstellationSuffix('kap-1 Cet')).toBe('Kappa-1 Ceti');
     expect(expandGouldOrConstellationSuffix('Sirius')).toBe('Sirius');
+  });
+
+  it('transliterates Unicode Greek Bayer characters and superscripts deterministically', () => {
+    expect(expandGreekBayer('τ')).toBe('Tau');
+    expect(expandGreekBayer('α')).toBe('Alpha');
+    expect(expandGreekBayer('ε')).toBe('Epsilon');
+    expect(expandGreekBayer('π³')).toBe('Pi-3');
+    expect(expandGreekBayer('π-3')).toBe('Pi-3');
+    expect(expandGreekBayer('ο²')).toBe('Omicron-2');
+    expect(expandGreekBayer('Kap-1')).toBe('Kappa-1');
+    expect(expandGreekBayer('Alp1')).toBe('Alpha1');
+
+    expect(expandGouldOrConstellationSuffix('τ Cet')).toBe('Tau Ceti');
+    expect(expandGouldOrConstellationSuffix('τ Ceti')).toBe('Tau Ceti');
+    expect(expandGouldOrConstellationSuffix('τ Cet e')).toBe('Tau Ceti e');
+    expect(expandGouldOrConstellationSuffix('α Cen')).toBe('Alpha Centauri');
+    expect(expandGouldOrConstellationSuffix('ε Eri b')).toBe('Epsilon Eridani b');
+    expect(expandGouldOrConstellationSuffix('π³ Ori')).toBe('Pi-3 Orionis');
+
+    expect(normalizeCleanKey('τ Ceti')).toBe('tauceti');
+    expect(normalizeCleanKey('α Centauri')).toBe('alphacentauri');
+    expect(normalizeCleanKey('τ')).toBe('tau');
+    expect(normalizeCleanKey('π³ Orionis')).toBe('pi3orionis');
+  });
+
+  it('handles two-word IAU constellation genitives and space-separated numbered Bayer designations', () => {
+    // All 11 two-word IAU constellation genitives
+    expect(expandGouldOrConstellationSuffix('alp Canis Majoris')).toBe('Alpha Canis Majoris');
+    expect(expandGouldOrConstellationSuffix('bet Canis Minoris')).toBe('Beta Canis Minoris');
+    expect(expandGouldOrConstellationSuffix('xi Ursae Majoris A')).toBe('Xi Ursae Majoris A');
+    expect(expandGouldOrConstellationSuffix('del Ursae Minoris')).toBe('Delta Ursae Minoris');
+    expect(expandGouldOrConstellationSuffix('ρ Coronae Borealis b')).toBe('Rho Coronae Borealis b');
+    expect(expandGouldOrConstellationSuffix('alp Coronae Australis')).toBe('Alpha Coronae Australis');
+    expect(expandGouldOrConstellationSuffix('alp Piscis Austrini')).toBe('Alpha Piscis Austrini');
+    expect(expandGouldOrConstellationSuffix('bet Comae Berenices')).toBe('Beta Comae Berenices');
+    expect(expandGouldOrConstellationSuffix('alp Canum Venaticorum')).toBe('Alpha Canum Venaticorum');
+    expect(expandGouldOrConstellationSuffix('bet Leonis Minoris')).toBe('Beta Leonis Minoris');
+    expect(expandGouldOrConstellationSuffix('alp Trianguli Australis')).toBe('Alpha Trianguli Australis');
+
+    // Space-separated numbered Bayer designations with abbreviated or full constellation names
+    expect(expandGouldOrConstellationSuffix('omi 2 Eri')).toBe('Omicron-2 Eridani');
+    expect(expandGouldOrConstellationSuffix('omi 2 Eridani')).toBe('Omicron-2 Eridani');
+    expect(expandGouldOrConstellationSuffix('pi 3 Ori')).toBe('Pi-3 Orionis');
+    expect(expandGouldOrConstellationSuffix('kap 1 Sculptoris')).toBe('Kappa-1 Sculptoris');
+    expect(expandGouldOrConstellationSuffix('π 3 Orionis')).toBe('Pi-3 Orionis');
+
+    // Gould designations remain completely unchanged
+    expect(expandGouldOrConstellationSuffix('82 G. Eri')).toBe('82 G. Eridani');
+    expect(expandGouldOrConstellationSuffix('82 G. Eridani')).toBe('82 G. Eridani');
+  });
+
+  it('exports UNICODE_GREEK_TO_LATIN_MAP, SUPERSCRIPT_DIGIT_MAP, and transliterateGreekAndSuperscripts helper', () => {
+    expect(UNICODE_GREEK_TO_LATIN_MAP['α']).toBe('alpha');
+    expect(UNICODE_GREEK_TO_LATIN_MAP['τ']).toBe('tau');
+    expect(UNICODE_GREEK_TO_LATIN_MAP['ς']).toBe('sigma');
+    expect(UNICODE_GREEK_TO_LATIN_MAP['Ω']).toBe('Omega');
+    expect(SUPERSCRIPT_DIGIT_MAP['¹']).toBe('1');
+    expect(SUPERSCRIPT_DIGIT_MAP['³']).toBe('3');
+    expect(transliterateGreekAndSuperscripts('π³')).toBe('pi3');
+    expect(transliterateGreekAndSuperscripts('α Cen')).toBe('alpha Cen');
   });
 
   it('expands Gliese / GJ / Gl designations into all three canonical variants', () => {

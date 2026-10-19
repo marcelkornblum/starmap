@@ -12,8 +12,15 @@ import type {
 } from '../types/astro';
 import {
   computePlanetCompositionCounts,
+  classifyPlanetPhysical,
+  computePlanetSurfaceGravityG,
+  computePlanetHazardMask,
+  computeSystemHazardMask,
+  isPlanetTidallyLocked,
   formatSectorId,
   isPlanetHabitableCandidate,
+  PLANET_HAZARD_BITS,
+  SYSTEM_HAZARD_BITS,
 } from '../utils/astroMath';
 import {
   decodeTagsMask,
@@ -37,8 +44,109 @@ import {
   resolveReticleType,
   toUrlSlug,
 } from './searchService';
+import { buildDirectionsTriggerHref } from './journeyService';
 
 export type { PlanetCompositionClass };
+
+export type HazardSeverity = 'warning' | 'critical';
+
+export interface EntityHazardItem {
+  readonly code: string;
+  readonly label: string;
+  readonly severity: HazardSeverity;
+  readonly description: string;
+}
+
+export function decodeSystemHazards(mask?: number): readonly EntityHazardItem[] {
+  if (!mask || mask <= 0) return [];
+  const hazards: EntityHazardItem[] = [];
+
+  if (mask & SYSTEM_HAZARD_BITS.FLARE_STAR) {
+    hazards.push({
+      code: 'flare-star',
+      label: 'Stellar flare activity',
+      severity: 'warning',
+      description: 'Active stellar chromosphere flare events producing ultraviolet and X-ray radiation spikes.',
+    });
+  }
+
+  if (mask & SYSTEM_HAZARD_BITS.IONISING_RADIATION) {
+    hazards.push({
+      code: 'ionising-radiation',
+      label: 'Hard ionising radiation',
+      severity: 'critical',
+      description: 'High-energy ionizing flux from high-temperature stellar surface or degenerate remnant.',
+    });
+  }
+
+  if (mask & SYSTEM_HAZARD_BITS.VARIABLE_FLUX) {
+    hazards.push({
+      code: 'variable-flux',
+      label: 'Variable stellar flux',
+      severity: 'warning',
+      description: 'Significant bolometric luminosity fluctuations across periodic stellar cycles.',
+    });
+  }
+
+  return hazards;
+}
+
+export function decodePlanetHazards(mask?: number): readonly EntityHazardItem[] {
+  if (!mask || mask <= 0) return [];
+  const hazards: EntityHazardItem[] = [];
+
+  if (mask & PLANET_HAZARD_BITS.EXTREME_HEAT) {
+    hazards.push({
+      code: 'extreme-heat',
+      label: 'Extreme thermal flux',
+      severity: 'critical',
+      description: 'Surface equilibrium temperature exceeds 373 K (boiling point of water at 1 atm).',
+    });
+  }
+
+  if (mask & PLANET_HAZARD_BITS.CRYOGENIC_COLD) {
+    hazards.push({
+      code: 'cryogenic-cold',
+      label: 'Cryogenic surface temperature',
+      severity: 'warning',
+      description: 'Surface equilibrium temperature drops below 180 K, freezing volatile compounds.',
+    });
+  }
+
+  if (mask & PLANET_HAZARD_BITS.HIGH_GRAVITY) {
+    hazards.push({
+      code: 'high-gravity',
+      label: 'High surface gravity',
+      severity: 'warning',
+      description: 'Surface gravitational acceleration exceeds 1.2 g Earth standard.',
+    });
+  }
+
+  if (mask & PLANET_HAZARD_BITS.TIDAL_LOCKING) {
+    hazards.push({
+      code: 'tidal-locking',
+      label: 'Tidally locked (synchronous)',
+      severity: 'warning',
+      description: 'Rotational period synchronised with orbital period, creating permanent day/night hemispheres.',
+    });
+  }
+
+  if (mask & PLANET_HAZARD_BITS.HIGH_ECCENTRICITY) {
+    hazards.push({
+      code: 'high-eccentricity',
+      label: 'High orbital eccentricity',
+      severity: 'warning',
+      description: 'Orbital eccentricity exceeds 0.20, driving severe seasonal climate variability.',
+    });
+  }
+
+  return hazards;
+}
+
+export function formatHazardSummaryLabel(count: number): string {
+  if (count <= 0) return '0 hazards';
+  return `${count} ${count === 1 ? 'hazard' : 'hazards'}`;
+}
 
 export type FocusedEntityKind =
   | 'system'
@@ -85,9 +193,14 @@ export interface FocusedPlanetDetail {
   readonly massMearth?: number;
   readonly radiusRearth?: number;
   readonly equilibriumTempK?: number;
+  readonly esi?: number;
+  readonly surfaceGravityG?: number;
+  readonly isTidallyLocked?: boolean;
   readonly discoveryYear?: number;
   readonly discoveryMethod?: string;
   readonly isHabitableCandidate: boolean;
+  readonly hazardCount?: number;
+  readonly hazards?: readonly EntityHazardItem[];
 }
 
 export interface FocusedCanonAnnotation {
@@ -131,8 +244,13 @@ export interface FocusedPlanetTelemetry {
   readonly massMearth?: number;
   readonly radiusRearth?: number;
   readonly equilibriumTempK?: number;
+  readonly esi?: number;
+  readonly surfaceGravityG?: number;
+  readonly isTidallyLocked: boolean;
   readonly discoveryYear?: number;
   readonly discoveryMethod?: string;
+  readonly hazardCount: number;
+  readonly hazards: readonly EntityHazardItem[];
 }
 
 export interface FocusedMinorBodyTelemetry {
@@ -159,6 +277,9 @@ export interface FocusedEntityDetailsBase {
   readonly planetCompositionBreakdown: readonly PlanetCompositionCount[];
   readonly planetCompositionSummary: string;
   readonly hasHabitableCandidate: boolean;
+  readonly hazardCount: number;
+  readonly hazards: readonly EntityHazardItem[];
+  readonly hazardSummaryLabel: string;
   readonly systemSummary: string;
   readonly systemSummarySegments: readonly SystemSummarySegment[];
   // Detent 2: Partial
@@ -275,6 +396,8 @@ export interface BuildFocusedEntityDetailsInput {
   readonly urlPlanetSlug?: string | null;
   readonly hasExplicitFocus?: boolean;
   readonly viewScope?: 'galaxy' | 'system' | 'planet';
+  readonly currentPathname?: string;
+  readonly currentSearch?: string;
 }
 
 /**
@@ -289,15 +412,7 @@ export const classifyExoplanetComposition = (planet: {
   if (planet.composition) {
     return planet.composition;
   }
-  const mass = planet.massMearth ?? 0;
-  const radius = planet.radiusRearth ?? 0;
-  if (mass >= 50 || radius >= 6) {
-    return 'gas-giant';
-  }
-  if (mass >= 10 || radius >= 2) {
-    return 'ice-giant';
-  }
-  return 'terrestrial';
+  return classifyPlanetPhysical(planet);
 };
 
 /**
@@ -314,13 +429,16 @@ export const isExoplanetHabitableCandidate = (
 
 /**
  * Pure builder producing the structured planet composition breakdown for the Peek detent.
- * Reads precalculated composition counts `[terrestrial, iceGiant, gasGiant]` when available.
+ * Reads precalculated composition counts `[terrestrial, superEarth, iceGiant, gasGiant]`
+ * or legacy `[terrestrial, iceGiant, gasGiant]` when available.
  */
 export const buildPlanetCompositionBreakdown = (
   planets: readonly FocusedPlanetDetail[],
   fallbackCount: number,
   fallbackCensus?: readonly PlanetCompositionClass[],
-  precalculatedCounts?: readonly [number, number, number],
+  precalculatedCounts?:
+    | readonly [number, number, number, number]
+    | readonly [number, number, number],
 ): readonly PlanetCompositionCount[] => {
   const totalCount = Math.max(planets.length, fallbackCount);
   if (totalCount <= 0) {
@@ -329,30 +447,50 @@ export const buildPlanetCompositionBreakdown = (
 
   const hasPrecalculated =
     precalculatedCounts !== undefined &&
-    (precalculatedCounts[0] > 0 ||
-      precalculatedCounts[1] > 0 ||
-      precalculatedCounts[2] > 0);
+    ((precalculatedCounts[0] ?? 0) > 0 ||
+      (precalculatedCounts[1] ?? 0) > 0 ||
+      (precalculatedCounts[2] ?? 0) > 0 ||
+      (precalculatedCounts[3] !== undefined && precalculatedCounts[3] > 0));
 
   if (hasPrecalculated && precalculatedCounts) {
     const items: PlanetCompositionCount[] = [];
-    if (precalculatedCounts[0] > 0) {
-      items.push({ composition: 'terrestrial', count: precalculatedCounts[0] });
-    }
-    if (precalculatedCounts[1] > 0) {
-      items.push({ composition: 'ice-giant', count: precalculatedCounts[1] });
-    }
-    if (precalculatedCounts[2] > 0) {
-      items.push({ composition: 'gas-giant', count: precalculatedCounts[2] });
+    if (precalculatedCounts.length === 4) {
+      if (precalculatedCounts[0] > 0) {
+        items.push({ composition: 'terrestrial', count: precalculatedCounts[0] });
+      }
+      if (precalculatedCounts[1] > 0) {
+        items.push({ composition: 'super-earth', count: precalculatedCounts[1] });
+      }
+      if (precalculatedCounts[2] > 0) {
+        items.push({ composition: 'ice-giant', count: precalculatedCounts[2] });
+      }
+      if (precalculatedCounts[3] > 0) {
+        items.push({ composition: 'gas-giant', count: precalculatedCounts[3] });
+      }
+    } else {
+      // Legacy 3-tuple [terrestrial, iceGiant, gasGiant]
+      if (precalculatedCounts[0] > 0) {
+        items.push({ composition: 'terrestrial', count: precalculatedCounts[0] });
+      }
+      if (precalculatedCounts[1] > 0) {
+        items.push({ composition: 'ice-giant', count: precalculatedCounts[1] });
+      }
+      if (precalculatedCounts[2] > 0) {
+        items.push({ composition: 'gas-giant', count: precalculatedCounts[2] });
+      }
     }
     return items;
   }
 
   if (planets.length > 0 && planets.length >= totalCount) {
-    const [terrestrial, iceGiant, gasGiant] =
-      computePlanetCompositionCounts(planets) ?? [0, 0, 0];
+    const counts = computePlanetCompositionCounts(planets) ?? [0, 0, 0, 0];
+    const [terrestrial, superEarth, iceGiant, gasGiant] = counts;
     const items: PlanetCompositionCount[] = [];
     if (terrestrial > 0) {
       items.push({ composition: 'terrestrial', count: terrestrial });
+    }
+    if (superEarth > 0) {
+      items.push({ composition: 'super-earth', count: superEarth });
     }
     if (iceGiant > 0) {
       items.push({ composition: 'ice-giant', count: iceGiant });
@@ -378,7 +516,9 @@ export const buildPlanetCompositionSummary = (
   fallbackCount: number,
   hasHabitableCandidate: boolean,
   fallbackCensus?: readonly PlanetCompositionClass[],
-  precalculatedCounts?: readonly [number, number, number],
+  precalculatedCounts?:
+    | readonly [number, number, number, number]
+    | readonly [number, number, number],
 ): string => {
   const totalCount = Math.max(planets.length, fallbackCount);
   if (totalCount <= 0) {
@@ -827,12 +967,21 @@ export const resolveFocusedCanonAnnotations = (
 };
 
 const toCoordinatesTuple = (
-  pos: SpatialEntityDefinition['position'],
+  pos: SpatialEntityDefinition['position'] | undefined,
 ): readonly [number, number, number] => {
   if (Array.isArray(pos)) {
-    return [pos[0], pos[1], pos[2]];
+    const x = Number.isFinite(pos[0]) ? pos[0] : 0;
+    const y = Number.isFinite(pos[1]) ? pos[1] : 0;
+    const z = Number.isFinite(pos[2]) ? pos[2] : 0;
+    return [x, y, z];
   }
-  return [pos.x, pos.y, pos.z];
+  if (pos && typeof pos === 'object') {
+    const x = Number.isFinite(pos.x) ? pos.x : 0;
+    const y = Number.isFinite(pos.y) ? pos.y : 0;
+    const z = Number.isFinite(pos.z) ? pos.z : 0;
+    return [x, y, z];
+  }
+  return [0, 0, 0];
 };
 
 const mapManifestToStarsAndPlanets = (
@@ -866,35 +1015,63 @@ const mapManifestToStarsAndPlanets = (
       (b.orbit?.semiMajorAxis ?? Number.POSITIVE_INFINITY),
   );
 
-  const planets: FocusedPlanetDetail[] = sortedPlanets.map((p) => ({
-    id: p.id,
-    name: p.name,
-    href: buildSystemElementFocusHref(systemNameOrId, p.name || p.id),
-    ...(p.letter ? { letter: p.letter } : {}),
-    composition: classifyExoplanetComposition(p),
-    ...(p.orbit?.semiMajorAxis !== undefined
-      ? { semiMajorAxisAu: p.orbit.semiMajorAxis }
-      : {}),
-    ...(p.orbit?.periodDays !== undefined
-      ? { periodDays: p.orbit.periodDays }
-      : {}),
-    ...(p.orbit?.eccentricity !== undefined
-      ? { eccentricity: p.orbit.eccentricity }
-      : {}),
-    ...(p.orbit?.inclination !== undefined
-      ? { inclinationDeg: p.orbit.inclination }
-      : {}),
-    ...(p.massMearth !== undefined ? { massMearth: p.massMearth } : {}),
-    ...(p.radiusRearth !== undefined ? { radiusRearth: p.radiusRearth } : {}),
-    ...(p.equilibriumTempK !== undefined
-      ? { equilibriumTempK: p.equilibriumTempK }
-      : {}),
-    ...(p.discoveryYear !== undefined
-      ? { discoveryYear: p.discoveryYear }
-      : {}),
-    ...(p.discoveryMethod ? { discoveryMethod: p.discoveryMethod } : {}),
-    isHabitableCandidate: isExoplanetHabitableCandidate(p),
-  }));
+  const planets: FocusedPlanetDetail[] = sortedPlanets.map((p) => {
+    const composition = classifyExoplanetComposition(p);
+    const surfaceGravityG =
+      p.surfaceGravityG ?? computePlanetSurfaceGravityG(p);
+    const isTidallyLocked =
+      p.orbit !== undefined
+        ? isPlanetTidallyLocked({
+            periodDays: p.orbit.periodDays,
+            semiMajorAxisAu: p.orbit.semiMajorAxis,
+          })
+        : false;
+    const effectiveHazardMask =
+      p.hazardMask ??
+      computePlanetHazardMask({
+        equilibriumTempK: p.equilibriumTempK,
+        surfaceGravityG,
+        periodDays: p.orbit?.periodDays,
+        semiMajorAxisAu: p.orbit?.semiMajorAxis,
+        eccentricity: p.orbit?.eccentricity,
+      });
+    const hazards = decodePlanetHazards(effectiveHazardMask);
+
+    return {
+      id: p.id,
+      name: p.name,
+      href: buildSystemElementFocusHref(systemNameOrId, p.name || p.id),
+      ...(p.letter ? { letter: p.letter } : {}),
+      composition,
+      ...(p.orbit?.semiMajorAxis !== undefined
+        ? { semiMajorAxisAu: p.orbit.semiMajorAxis }
+        : {}),
+      ...(p.orbit?.periodDays !== undefined
+        ? { periodDays: p.orbit.periodDays }
+        : {}),
+      ...(p.orbit?.eccentricity !== undefined
+        ? { eccentricity: p.orbit.eccentricity }
+        : {}),
+      ...(p.orbit?.inclination !== undefined
+        ? { inclinationDeg: p.orbit.inclination }
+        : {}),
+      ...(p.massMearth !== undefined ? { massMearth: p.massMearth } : {}),
+      ...(p.radiusRearth !== undefined ? { radiusRearth: p.radiusRearth } : {}),
+      ...(p.equilibriumTempK !== undefined
+        ? { equilibriumTempK: p.equilibriumTempK }
+        : {}),
+      ...(p.esi !== undefined ? { esi: p.esi } : {}),
+      ...(surfaceGravityG !== undefined ? { surfaceGravityG } : {}),
+      ...(isTidallyLocked ? { isTidallyLocked } : {}),
+      ...(p.discoveryYear !== undefined
+        ? { discoveryYear: p.discoveryYear }
+        : {}),
+      ...(p.discoveryMethod ? { discoveryMethod: p.discoveryMethod } : {}),
+      isHabitableCandidate: isExoplanetHabitableCandidate(p),
+      hazardCount: hazards.length,
+      hazards,
+    };
+  });
 
   return { stars, planets };
 };
@@ -917,7 +1094,11 @@ const resolveMinorBodyCategoryLabel = (entry?: CompactSearchEntry): string => {
 const resolveCorpusEntryComposition = (
   entry?: CompactSearchEntry,
 ): PlanetCompositionClass => {
-  if (entry?.u === 'gas-giant' || entry?.u === 'ice-giant') {
+  if (
+    entry?.u === 'gas-giant' ||
+    entry?.u === 'ice-giant' ||
+    entry?.u === 'super-earth'
+  ) {
     return entry.u;
   }
   return 'terrestrial';
@@ -974,6 +1155,8 @@ export const buildFocusedEntityDetails = (
     urlPlanetSlug,
     hasExplicitFocus = false,
     viewScope: inputViewScope,
+    currentPathname,
+    currentSearch,
   } = input;
 
   if (!focusedEntity && !urlSystemSlug) {
@@ -1071,6 +1254,7 @@ export const buildFocusedEntityDetails = (
     for (const entry of corpus) {
       if (entry.k === 2 && entry.s === systemId) {
         const planetName = resolveResultDisplayTitle(entry);
+        const hazards = entry.H !== undefined ? decodePlanetHazards(entry.H) : undefined;
         corpusPlanets.push({
           id: entry.i,
           name: planetName,
@@ -1080,6 +1264,9 @@ export const buildFocusedEntityDetails = (
           ),
           composition: resolveCorpusEntryComposition(entry),
           isHabitableCandidate: entry.z === 1,
+          ...(hazards !== undefined
+            ? { hazards, hazardCount: hazards.length }
+            : {}),
         });
       }
     }
@@ -1281,9 +1468,6 @@ export const buildFocusedEntityDetails = (
   const systemSummarySegments = buildIntrinsicSystemSummarySegments(summaryInput);
   const systemSummary = buildIntrinsicSystemSummary(summaryInput);
 
-  const systemSlug = toUrlSlug(systemName || systemId);
-  const directionsHref = `/galaxy/${encodeURIComponent(systemSlug)}?anchor=sol`;
-
   const coordinatesPc: readonly [number, number, number] =
     sysManifest && Number.isFinite(sysManifest.x)
       ? [sysManifest.x, sysManifest.y, sysManifest.z]
@@ -1378,6 +1562,105 @@ export const buildFocusedEntityDetails = (
     );
   }
 
+  const directionsHref = buildDirectionsTriggerHref({
+    viewScope,
+    focusedId: focusedEntity?.id ?? systemId,
+    systemId,
+    focusedKind,
+    currentPathname,
+    currentSearch,
+    hasExplicitFocus,
+  });
+
+  const rawSystemHazardMask =
+    sysManifest?.hazardMask ??
+    summaryNode?.hazardMask ??
+    matchedSystemEntry?.H ??
+    (matchedCorpusEntry && resolveEntryCategory(matchedCorpusEntry) === 'stars'
+      ? matchedCorpusEntry.H
+      : undefined);
+
+  const effectiveSystemHazardMask =
+    rawSystemHazardMask ??
+    computeSystemHazardMask({
+      spect: spectralType,
+      tags,
+    });
+
+  const systemHazards = decodeSystemHazards(effectiveSystemHazardMask);
+
+  const fallbackSemiMajorAxis = solarBodyRecord?.orbit?.semiMajorAxis;
+  const fallbackPeriodDays = solarBodyRecord?.orbit?.periodDays;
+  const fallbackEccentricity = solarBodyRecord?.orbit?.eccentricity;
+  const fallbackInclination = solarBodyRecord?.orbit?.inclination;
+
+  const semiMajorAxisAu =
+    matchedPlanetDetail?.semiMajorAxisAu ?? fallbackSemiMajorAxis;
+  const periodDays =
+    matchedPlanetDetail?.periodDays ?? fallbackPeriodDays;
+  const eccentricity =
+    matchedPlanetDetail?.eccentricity ?? fallbackEccentricity;
+  const inclinationDeg =
+    matchedPlanetDetail?.inclinationDeg ?? fallbackInclination;
+
+  const surfaceGravityG =
+    matchedPlanetDetail?.surfaceGravityG ??
+    (solarBodyRecord && solarBodyRecord.massKg && solarBodyRecord.meanRadiusKm
+      ? computePlanetSurfaceGravityG({
+          massMearth: solarBodyRecord.massKg / 5.97237e24,
+          radiusRearth: solarBodyRecord.meanRadiusKm / 6371.0,
+        })
+      : computePlanetSurfaceGravityG({
+          massMearth: matchedPlanetDetail?.massMearth,
+          radiusRearth: matchedPlanetDetail?.radiusRearth,
+        }));
+
+  const isTidallyLocked =
+    matchedPlanetDetail?.isTidallyLocked ??
+    isPlanetTidallyLocked({
+      periodDays,
+      semiMajorAxisAu,
+    });
+
+  const esi =
+    matchedPlanetDetail?.esi ??
+    (matchedPlanetDetail?.radiusRearth && matchedPlanetDetail?.equilibriumTempK
+      ? Math.round(
+          Math.sqrt(
+            Math.max(
+              0,
+              (1 - Math.abs((matchedPlanetDetail.radiusRearth - 1) / (matchedPlanetDetail.radiusRearth + 1))) *
+                (1 - Math.abs((matchedPlanetDetail.equilibriumTempK - 288) / (matchedPlanetDetail.equilibriumTempK + 288))),
+            ),
+          ) * 100,
+        ) / 100
+      : undefined);
+
+  const computedPlanetHazardMask =
+    matchedCorpusEntry?.H ??
+    computePlanetHazardMask({
+      equilibriumTempK: matchedPlanetDetail?.equilibriumTempK,
+      surfaceGravityG,
+      periodDays,
+      semiMajorAxisAu,
+      eccentricity,
+    });
+
+  const planetHazards =
+    matchedPlanetDetail?.hazards && matchedPlanetDetail.hazards.length > 0
+      ? matchedPlanetDetail.hazards
+      : decodePlanetHazards(computedPlanetHazardMask);
+
+  const hazards =
+    focusedKind === 'planet'
+      ? [...systemHazards, ...planetHazards]
+      : focusedKind === 'system' || focusedKind === 'star' || focusedKind === 'minor-body'
+        ? systemHazards
+        : [];
+
+  const hazardCount = hazards.length;
+  const hazardSummaryLabel = formatHazardSummaryLabel(hazardCount);
+
   const baseDetails: FocusedEntityDetailsBase = {
     id: focusedEntity?.id ?? systemId,
     systemId,
@@ -1390,6 +1673,9 @@ export const buildFocusedEntityDetails = (
     planetCompositionBreakdown,
     planetCompositionSummary,
     hasHabitableCandidate,
+    hazardCount,
+    hazards,
+    hazardSummaryLabel,
     systemSummary,
     systemSummarySegments,
     coordinatesPc,
@@ -1439,10 +1725,6 @@ export const buildFocusedEntityDetails = (
   }
 
   if (focusedKind === 'planet') {
-    const fallbackSemiMajorAxis = solarBodyRecord?.orbit?.semiMajorAxis;
-    const fallbackPeriodDays = solarBodyRecord?.orbit?.periodDays;
-    const fallbackEccentricity = solarBodyRecord?.orbit?.eccentricity;
-    const fallbackInclination = solarBodyRecord?.orbit?.inclination;
     return {
       ...baseDetails,
       focusedKind: 'planet',
@@ -1450,26 +1732,10 @@ export const buildFocusedEntityDetails = (
       planetTelemetry: {
         composition: planetComposition,
         isHabitableCandidate: planetIsHabitable,
-        ...(matchedPlanetDetail?.semiMajorAxisAu !== undefined
-          ? { semiMajorAxisAu: matchedPlanetDetail.semiMajorAxisAu }
-          : fallbackSemiMajorAxis !== undefined
-            ? { semiMajorAxisAu: fallbackSemiMajorAxis }
-            : {}),
-        ...(matchedPlanetDetail?.periodDays !== undefined
-          ? { periodDays: matchedPlanetDetail.periodDays }
-          : fallbackPeriodDays !== undefined
-            ? { periodDays: fallbackPeriodDays }
-            : {}),
-        ...(matchedPlanetDetail?.eccentricity !== undefined
-          ? { eccentricity: matchedPlanetDetail.eccentricity }
-          : fallbackEccentricity !== undefined
-            ? { eccentricity: fallbackEccentricity }
-            : {}),
-        ...(matchedPlanetDetail?.inclinationDeg !== undefined
-          ? { inclinationDeg: matchedPlanetDetail.inclinationDeg }
-          : fallbackInclination !== undefined
-            ? { inclinationDeg: fallbackInclination }
-            : {}),
+        ...(semiMajorAxisAu !== undefined ? { semiMajorAxisAu } : {}),
+        ...(periodDays !== undefined ? { periodDays } : {}),
+        ...(eccentricity !== undefined ? { eccentricity } : {}),
+        ...(inclinationDeg !== undefined ? { inclinationDeg } : {}),
         ...(matchedPlanetDetail?.massMearth !== undefined
           ? { massMearth: matchedPlanetDetail.massMearth }
           : {}),
@@ -1479,12 +1745,17 @@ export const buildFocusedEntityDetails = (
         ...(matchedPlanetDetail?.equilibriumTempK !== undefined
           ? { equilibriumTempK: matchedPlanetDetail.equilibriumTempK }
           : {}),
+        ...(esi !== undefined ? { esi } : {}),
+        ...(surfaceGravityG !== undefined ? { surfaceGravityG } : {}),
+        isTidallyLocked,
         ...(matchedPlanetDetail?.discoveryYear !== undefined
           ? { discoveryYear: matchedPlanetDetail.discoveryYear }
           : {}),
         ...(matchedPlanetDetail?.discoveryMethod
           ? { discoveryMethod: matchedPlanetDetail.discoveryMethod }
           : {}),
+        hazardCount: hazards.length,
+        hazards,
       },
     };
   }
