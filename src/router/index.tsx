@@ -31,6 +31,7 @@ export interface StarmapSearchParams {
   focus?: string;
   select?: string;
   canon?: string;
+  layer?: string;
   route?: string;
   journeyOption?: string;
   x?: number;
@@ -77,6 +78,10 @@ export const rootRoute = createRootRoute({
           ? search.select
           : undefined,
       canon: typeof search.canon === 'string' && search.canon.length > 0 ? search.canon : undefined,
+      layer:
+        typeof search.layer === 'string' && search.layer.trim()
+          ? search.layer.trim()
+          : undefined,
       route: typeof search.route === 'string' && search.route.length > 0 ? search.route : undefined,
       journeyOption:
         typeof search.journeyOption === 'string' && search.journeyOption.length > 0

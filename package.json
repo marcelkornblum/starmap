@@ -21,7 +21,8 @@
     "data:pipeline": "npm run data:fetch && npm run data:build",
     "storybook": "storybook dev -p 6006 --host 0.0.0.0 --exact-port --no-open",
     "build-storybook": "storybook build",
-    "capture:views": "tsx scripts/capture-views.ts"
+    "capture:views": "tsx scripts/capture-views.ts",
+    "sync:discoveries": "tsx scripts/sync-discoveries.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

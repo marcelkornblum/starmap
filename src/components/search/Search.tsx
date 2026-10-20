@@ -31,6 +31,7 @@ import {
 } from '../../services/searchService';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import { extractUrlRouteStops } from '../../services/journeyService';
+import { pickRandomLayerOverviewHref } from '../../services/layerCardService';
 import { useSpatialEntityStoreApi } from '../canvas/entity/SpatialEntityContext';
 import type { SpatialEntityStore } from '../canvas/entity/SpatialEntityStore';
 import { SearchResultItem as SearchResultItemRow } from '../domain';
@@ -98,9 +99,16 @@ const syncSelectedSystemsToStore = (
   activeSearch = '',
   corpus: readonly CompactSearchEntry[] = [],
 ): void => {
+  const windowSearch =
+    typeof window !== 'undefined' ? window.location.search : '';
+  const searchToUse =
+    windowSearch && !activeSearch.includes('layer=') && windowSearch.includes('layer=')
+      ? `${activeSearch}${activeSearch.includes('?') ? '&' : '?'}${windowSearch.replace(/^\?/, '')}`
+      : activeSearch || windowSearch;
+
   const urlSelected =
     results.query.trim().length === 0
-      ? resolveSelectedSystemsFromUrlSelect(activeSearch, corpus)
+      ? resolveSelectedSystemsFromUrlSelect(searchToUse, corpus)
       : [];
   const selectedSystems =
     urlSelected.length > 0
@@ -734,6 +742,16 @@ export const SearchPanel = ({
     event.preventDefault();
   };
 
+  const handleExplore = (): void => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const currentLayer = new URLSearchParams(window.location.search).get('layer');
+    const nextHref = pickRandomLayerOverviewHref(currentLayer);
+    window.history.pushState({}, '', nextHref);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
   return (
     <section
       aria-labelledby="search-panel-heading"
@@ -746,6 +764,13 @@ export const SearchPanel = ({
           <>
             <SearchInput />
             <SearchCategoryFilterSelect />
+            <button
+              type="button"
+              data-testid="search-explore-button"
+              onClick={handleExplore}
+            >
+              Explore
+            </button>
           </>
         )}
       </form>

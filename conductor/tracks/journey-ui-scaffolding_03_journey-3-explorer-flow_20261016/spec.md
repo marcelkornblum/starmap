@@ -27,8 +27,8 @@ Walks step-by-step through **Journey 3: Serendipitous Discovery (The Casual Expl
    - Create `.agents/skills/astro-news-curator/SKILL.md` (and update `.agents/skills/canon-layer-author/SKILL.md`), `scripts/sync-discoveries.ts` (`npm run sync:discoveries`), and `.github/workflows/discoveries-sync.yml` (`cron` + `workflow_dispatch`) to audit NASA Exoplanet Archive `< 100 pc` recent publications and keep catalog/layer items current.
 
 ## Acceptance Criteria
-- [ ] Every step of Journey 3 is interrogated one decision at a time with the user; all options and trade-offs are recorded in `decision-log.md`.
-- [ ] On-screen data and action requirements discovered in Journey 3 are recorded in `view-requirements.md`.
-- [ ] Pure TypeScript curated collection schemas, waypoint selectors, and tour state logic are implemented with unit tests (>80% coverage).
-- [ ] Scaffolding views allow stepping through Journey 3 on `http://192.168.1.124:5173` with multi-viewport Playwright screenshots captured.
-- [ ] `npm run lint`, `npm run typecheck`, and `npm run test:coverage` pass cleanly.
+- [x] Every step of Journey 3 is interrogated one decision at a time with the user; all options and trade-offs are recorded in `decision-log.md`.
+- [x] On-screen data and action requirements discovered in Journey 3 are recorded in `view-requirements.md`.
+- [x] Pure TypeScript curated collection schemas, waypoint selectors, and tour state logic are implemented with unit tests (>80% coverage).
+- [x] Scaffolding views allow stepping through Journey 3 on `http://192.168.1.124:5173` with multi-viewport Playwright screenshots captured.
+- [x] `npm run lint`, `npm run typecheck`, and `npm run test:coverage` pass cleanly.

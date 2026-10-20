@@ -1,0 +1,33 @@
+name: Sync Recent Discoveries
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync-discoveries:
+    name: Sync Recent Discoveries (< 100 pc)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Run discovery sync audit
+        run: npm run sync:discoveries
+      - name: Create Pull Request if changes detected
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "feat(data): sync recent exoplanet discoveries from NASA Archive"
+          title: "feat(data): sync recent exoplanet discoveries (< 100 pc)"
+          body: "Automated weekly sync of recent exoplanet discoveries within 100 pc from NASA Exoplanet Archive."
+          branch: "chore/sync-discoveries"
+          delete-branch: true

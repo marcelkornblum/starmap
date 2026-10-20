@@ -69,11 +69,17 @@ Delegate catalog cross-matching against Starmap's built search indices (`public/
 
 ### Step 3: Draft Node Entries & Search Aliases
 For each matched entity, draft a flattened `DatasetLayerEntry`:
+- `order` (`o`): Positive integer indicating the sequence of this node during guided layer exploration in `<LayerCard />`.
+- `parentBodyId` (`p`): Parent planetary body ID for moons and sub-satellites (e.g. `'jupiter'`, `'earth'`) enabling direct Orbit-Context navigation to `/planet/<parentPlanetSlug>?focus=<itemSlug>`.
 - `inUniverseName` (`u`): Concise in-universe title with real-sky context where helpful, e.g. `"Reach (Epsilon Eridani II)"` or `"Adrian"`.
 - `text` (`x`): 1–2 sentences (max ~220 characters) explaining the entity's significance in the work, written in Starmap's objective encyclopedic tone.
 - `workTitle` (`w`): Specific book/installment title if the layer spans multiple works.
-- `aliases` (`a`): High-value search terms (in-universe names, faction names, ship names, species names) so typing any of them in Starmap's search bar surfaces this node.
-- `tags` (`g`): 1–3 short thematic tags.
+- `aliases` (`a`): High-value search terms (in-universe names, faction names, ship names, species names) indexed into unified search (`public/data/search/layers.json`) under the `layers` category.
+- `tags` (`g`): 1–3 short thematic tags. Clicking any tag navigates to `/galaxy?select=tag:<tagSlug>`.
+
+### Step 3b: Unified Search & Guided LayerCard Navigation
+- **Unified Layer Search (`category: layers`):** Both parent layer overview nodes and individual layer items are indexed into `public/data/search/layers.json`, allowing direct search discovery.
+- **Deep-Linking via `?layer=`:** Selecting a layer item produces a clean RFC 3986 URL `?select=layer:<layerSlug>&layer=<layerSlug>:<itemSlug>`, opening the HUD `<LayerCard />` with step-by-step Previous/Next guided tour controls.
 
 ### Step 4: Interactive Review Checkpoint (Mandatory Halt)
 Before writing to `src/utils/datasetLayerCodec.ts` or running `npm run build:data`:

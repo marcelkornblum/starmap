@@ -616,6 +616,7 @@ export const buildFocusedEntityDetails = (
     systemId,
     activeLayers,
     canonOrderOptions,
+    corpus,
   );
 
   const precalculatedMask =

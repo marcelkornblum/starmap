@@ -10,6 +10,7 @@ import {
   ControlBar,
   DetailsPanel,
   DirectionsPanel,
+  LayerCard,
   Minimap,
   PreviewPanel,
   SearchResultItem,
@@ -20,6 +21,7 @@ import {
   extractUrlRouteStops,
 } from '../services/journeyService';
 import { Search } from '../components/search';
+import { resolveActiveLayerCard } from '../services/layerCardService';
 import {
   fetchDetailRecord,
   fetchSummaryNode,
@@ -268,6 +270,15 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
       })
     : null;
 
+  const searchParams = new URLSearchParams(search);
+  const layerParam = searchParams.get('layer');
+  const activeLayerCard = resolveActiveLayerCard({
+    layerParam,
+    currentPathname: pathname,
+    currentSearch: search,
+    corpus: activeCorpus,
+  });
+
   return (
     <main data-testid="planet-view-root">
       <CanvasLayer
@@ -304,6 +315,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
           )}
         />
       </Search.Root>
+      <LayerCard card={activeLayerCard} />
       {activeJourney ? (
         <DirectionsPanel journey={activeJourney} />
       ) : (

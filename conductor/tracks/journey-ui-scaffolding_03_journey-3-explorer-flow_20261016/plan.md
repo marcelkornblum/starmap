@@ -16,7 +16,7 @@
 
 ## Phase 3: Step 3 & 4 — `<Search.Panel>` `Explore` Button, Non-Blocking `<LayerCard />`, `<DetailsPanel />` Deep-Links & News/Discovery Pipeline (`DEC-039`–`DEC-040`)
 - [x] Task: Align one decision at a time on `<Search.Panel>` `Explore` button, `<LayerCard />` (`Overview` + `Item` modes without scrim), `<DetailsPanel />` layer annotation deep-links, and `astro-news-curator` skill + `scripts/sync-discoveries.ts` / `.github/workflows/discoveries-sync.yml`; record in `decision-log.md` and `view-requirements.md`.
-- [ ] Task: Red/Green/Refactor TDD — Implement `layerService.ts` (`resolveActiveLayerCard`, `pickRandomLayerHref`), `<LayerCard />` (`src/components/domain/LayerCard/`), `<Search.Panel>` `Explore` button, `<DetailsPanel />` layer annotation links, and wire `<LayerCard />` onto `GalaxyView`, `SystemView`, and `PlanetView` with unit/component tests.
-- [ ] Task: Create `.agents/skills/astro-news-curator/SKILL.md` (and update `.agents/skills/canon-layer-author/SKILL.md`), `scripts/sync-discoveries.ts` (`npm run sync:discoveries`), and `.github/workflows/discoveries-sync.yml` with tests.
-- [ ] Task: Run `npm run capture:views` (5 viewports), verify quality (`npm run lint`, `npm run typecheck`, `npm run test:coverage`), and present LAN URLs + screenshots.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Red/Green/Refactor TDD — Implement `layerService.ts` (`resolveActiveLayerCard`, `pickRandomLayerHref`), `<LayerCard />` (`src/components/domain/LayerCard/`), `<Search.Panel>` `Explore` button, `<DetailsPanel />` layer annotation links, and wire `<LayerCard />` onto `GalaxyView`, `SystemView`, and `PlanetView` with unit/component tests.
+- [x] Task: Create `.agents/skills/astro-news-curator/SKILL.md` (and update `.agents/skills/canon-layer-author/SKILL.md`), `scripts/sync-discoveries.ts` (`npm run sync:discoveries`), and `.github/workflows/discoveries-sync.yml` with tests.
+- [x] Task: Run `npm run capture:views` (5 viewports), verify quality (`npm run lint`, `npm run typecheck`, `npm run test:coverage`), and present LAN URLs + screenshots.
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
