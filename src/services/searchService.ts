@@ -186,10 +186,10 @@ export const isChildOfHostSystem = (entryId: string, systemId?: string): boolean
 
 /**
  * Pure predicate determining whether a search entry represents an artificial spacecraft / probe.
- * Reads precalculated `entry.u === 'artificial'` or the `'spacecraft'` alias token.
+ * Reads precalculated `entry.u === 'construct'` or the `'spacecraft'` alias token.
  */
 export const isArtificialSpacecraftEntry = (entry: CompactSearchEntry): boolean => {
-  if (entry.u === 'artificial') {
+  if (entry.u === 'construct') {
     return true;
   }
   return Boolean(entry.a && entry.a.split(' ').includes('spacecraft'));
@@ -309,7 +309,7 @@ export const resolveReticleType = (
 
   if (category === 'minor-bodies') {
     if (isArtificialSpacecraftEntry(entry)) {
-      return 'artificial';
+      return 'construct';
     }
     return 'terrestrial';
   }

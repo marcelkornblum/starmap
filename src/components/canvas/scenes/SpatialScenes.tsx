@@ -55,6 +55,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
       <div className={styles.canvasWrapper}>
         <Canvas
           flat
+          dpr={1}
           camera={{
             position: standardCam.position,
             up: standardCam.up,
@@ -114,6 +115,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
       <div className={styles.canvasWrapper}>
         <Canvas
           flat
+          dpr={1}
           camera={{
             position: standardCam.position,
             up: standardCam.up,
@@ -176,6 +178,7 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
       <div className={styles.canvasWrapper}>
         <Canvas
           flat
+          dpr={1}
           camera={{
             position: standardCam.position,
             up: standardCam.up,

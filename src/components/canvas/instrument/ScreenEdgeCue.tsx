@@ -66,6 +66,12 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
 
   const lastEdge = useRef<ScreenEdgeSide | null>(null);
   const lastDetached = useRef<boolean | null>(null);
+  const lastVisible = useRef<boolean | null>(null);
+  const lastX = useRef<number>(Number.NaN);
+  const lastY = useRef<number>(Number.NaN);
+  const lastAngle = useRef<number>(Number.NaN);
+  const lastOffsetX = useRef<number>(Number.NaN);
+  const lastOffsetY = useRef<number>(Number.NaN);
 
   useFrame(({ camera: activeCamera, size: viewportSize }) => {
     const width = viewportSize?.width || (typeof window !== 'undefined' ? window.innerWidth : 1920);
@@ -113,15 +119,33 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
     if (!rootEl || !chevEl || !labelEl) return;
 
     if (!res.visible) {
-      rootEl.style.opacity = '0';
-      rootEl.style.display = 'none';
+      if (lastVisible.current !== false) {
+        lastVisible.current = false;
+        rootEl.style.opacity = '0';
+        rootEl.style.display = 'none';
+      }
       return;
     }
 
-    rootEl.style.display = 'block';
-    rootEl.style.opacity = '1';
-    rootEl.style.transform = `translate3d(${res.x.toFixed(1)}px, ${res.y.toFixed(1)}px, 0)`;
-    chevEl.style.transform = `translate(-50%, -50%) rotate(${res.angle.toFixed(1)}deg)`;
+    if (lastVisible.current !== true) {
+      lastVisible.current = true;
+      rootEl.style.display = 'block';
+      rootEl.style.opacity = '1';
+    }
+
+    const qX = Math.round(res.x * 10) / 10;
+    const qY = Math.round(res.y * 10) / 10;
+    if (lastX.current !== qX || lastY.current !== qY) {
+      lastX.current = qX;
+      lastY.current = qY;
+      rootEl.style.transform = `translate3d(${qX.toFixed(1)}px, ${qY.toFixed(1)}px, 0)`;
+    }
+
+    const qAngle = Math.round(res.angle * 10) / 10;
+    if (lastAngle.current !== qAngle) {
+      lastAngle.current = qAngle;
+      chevEl.style.transform = `translate(-50%, -50%) rotate(${qAngle.toFixed(1)}deg)`;
+    }
 
     // Chevron maintains course pinned at line terminus.
     // Label is placed adjacent to chevron with screen boundary collision avoidance:
@@ -167,10 +191,14 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
     const clampedLabelX = Math.min(width - safeMargin - hw, Math.max(safeMargin + hw, res.x + labelOffsetX));
     const clampedLabelY = Math.min(height - safeMargin - hh, Math.max(safeMargin + hh, res.y + labelOffsetY));
 
-    const finalOffsetX = clampedLabelX - res.x;
-    const finalOffsetY = clampedLabelY - res.y;
+    const finalOffsetX = Math.round((clampedLabelX - res.x) * 10) / 10;
+    const finalOffsetY = Math.round((clampedLabelY - res.y) * 10) / 10;
 
-    labelEl.style.transform = `translate(calc(${finalOffsetX.toFixed(1)}px - 50%), calc(${finalOffsetY.toFixed(1)}px - 50%))`;
+    if (lastOffsetX.current !== finalOffsetX || lastOffsetY.current !== finalOffsetY) {
+      lastOffsetX.current = finalOffsetX;
+      lastOffsetY.current = finalOffsetY;
+      labelEl.style.transform = `translate(calc(${finalOffsetX.toFixed(1)}px - 50%), calc(${finalOffsetY.toFixed(1)}px - 50%))`;
+    }
 
     if (lastEdge.current !== res.edge) {
       rootEl.setAttribute('data-edge', res.edge);

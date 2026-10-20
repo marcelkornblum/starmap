@@ -87,7 +87,11 @@ export const Reticle: React.FC<ReticleProps> = ({
   }, [reticleGeom]);
 
   const resolvedColor = useMemo(() => {
-    if (explicitColor) return explicitColor;
+    if (explicitColor) {
+      return explicitColor instanceof THREE.Color
+        ? explicitColor
+        : new THREE.Color(explicitColor);
+    }
     if (state === 'focused') return stateFocus;
     if (state === 'selected') return stateSelected;
     return reticleBracketColor;
@@ -99,6 +103,12 @@ export const Reticle: React.FC<ReticleProps> = ({
     if (state === 'selected') return reticleSelectedAlpha;
     return reticleActiveAlpha;
   }, [explicitOpacity, state, reticleFocusedAlpha, reticleSelectedAlpha, reticleActiveAlpha]);
+
+  useEffect(() => {
+    if (materialRef.current) {
+      materialRef.current.color.copy(resolvedColor);
+    }
+  }, [resolvedColor]);
 
   const resolvedPos = useMemo(() => {
     if (!position) return undefined;
@@ -127,7 +137,6 @@ export const Reticle: React.FC<ReticleProps> = ({
     }
 
     if (materialRef.current) {
-      materialRef.current.color.set(resolvedColor);
       materialRef.current.opacity = resolvedOpacity * (nodeAlphaRef?.current ?? 1);
     }
   });

@@ -1,5 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Button,
+  Cluster,
+  Datum,
+  Heading,
+  Stack,
+  Unit,
+} from '../../interface';
+import {
   buildStarTypeGuideHref,
   computeSpectralCombination,
 } from '../../../services/guideService';
@@ -48,20 +56,33 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
           isDetail
         />
 
-        <h3>Classification: {combination.combinedCode}</h3>
+        <Heading as="h3">Classification: {combination.combinedCode}</Heading>
 
-        <dl data-testid="combinator-computed-telemetry" className={styles.telemetryDl}>
-          <dt>Effective Temperature</dt>
-          <dd>{combination.effectiveTempK} K</dd>
-          <dt>Radius</dt>
-          <dd>{combination.radiusRsun} R☉</dd>
-          <dt>Bolometric Luminosity</dt>
-          <dd>{combination.luminosityLsun} L☉</dd>
-          <dt>Habitable Zone</dt>
-          <dd>{combination.habitableZoneAu}</dd>
-          <dt>Chromaticity</dt>
-          <dd>{combination.chromaticityHex}</dd>
-        </dl>
+        <Stack gap="none" data-testid="combinator-computed-telemetry">
+          <Datum
+            label="Effective Temperature"
+            value={combination.effectiveTempK}
+            unit={<Unit href="/guide/metrics/effective-temperature">K</Unit>}
+          />
+          <Datum
+            label="Radius"
+            value={combination.radiusRsun}
+            unit={<Unit href="/guide/metrics/stellar-radius">R☉</Unit>}
+          />
+          <Datum
+            label="Bolometric Luminosity"
+            value={combination.luminosityLsun}
+            unit={<Unit href="/guide/metrics/stellar-luminosity">L☉</Unit>}
+          />
+          <Datum
+            label="Habitable Zone"
+            value={combination.habitableZoneAu}
+          />
+          <Datum
+            label="Chromaticity"
+            value={combination.chromaticityHex}
+          />
+        </Stack>
 
         <p>
           <a
@@ -74,7 +95,7 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
       </div>
 
       <div className={styles.combinatorControls}>
-        <h2 id="star-type-combinator-heading">Yerkes Spectral Combinator</h2>
+        <Heading as="h2" id="star-type-combinator-heading">Yerkes Spectral Combinator</Heading>
         <p>
           Interactive 3-slice combinator illustrating how spectral temperature class,
           subdivision, and luminosity class dictate stellar astrophysics.
@@ -82,19 +103,19 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
 
         <div data-testid="combinator-slice-class" className={styles.sliceRow}>
           <strong>Slice 1: Spectral Class</strong>
-          <div className={styles.sliceButtonGroup}>
+          <Cluster gap="dense" className={styles.sliceButtonGroup}>
             {CLASS_CHOICES.map((cls) => (
-              <button
+              <Button
                 key={cls}
-                type="button"
+                size="sm"
+                variant={selectedClass === cls ? 'primary' : 'default'}
                 aria-pressed={selectedClass === cls}
                 onClick={() => setSelectedClass(cls)}
-                className={styles.sliceButton}
               >
                 {cls}
-              </button>
+              </Button>
             ))}
-          </div>
+          </Cluster>
           <p data-testid="combinator-class-effect" className={styles.sliceEffect}>
             {combination.classEffect}
           </p>
@@ -102,19 +123,19 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
 
         <div data-testid="combinator-slice-subdivision" className={styles.sliceRow}>
           <strong>Slice 2: Subdivision (0–9)</strong>
-          <div className={styles.sliceButtonGroup}>
+          <Cluster gap="dense" className={styles.sliceButtonGroup}>
             {SUBDIVISION_CHOICES.map((sub) => (
-              <button
+              <Button
                 key={sub}
-                type="button"
+                size="sm"
+                variant={selectedSub === sub ? 'primary' : 'default'}
                 aria-pressed={selectedSub === sub}
                 onClick={() => setSelectedSub(sub)}
-                className={styles.sliceButton}
               >
                 {sub}
-              </button>
+              </Button>
             ))}
-          </div>
+          </Cluster>
           <p data-testid="combinator-subdivision-effect" className={styles.sliceEffect}>
             {combination.subdivisionEffect}
           </p>
@@ -122,19 +143,19 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
 
         <div data-testid="combinator-slice-luminosity" className={styles.sliceRow}>
           <strong>Slice 3: Luminosity Class</strong>
-          <div className={styles.sliceButtonGroup}>
+          <Cluster gap="dense" className={styles.sliceButtonGroup}>
             {LUMINOSITY_CHOICES.map((lum) => (
-              <button
+              <Button
                 key={lum}
-                type="button"
+                size="sm"
+                variant={selectedLum === lum ? 'primary' : 'default'}
                 aria-pressed={selectedLum === lum}
                 onClick={() => setSelectedLum(lum)}
-                className={styles.sliceButton}
               >
                 {lum}
-              </button>
+              </Button>
             ))}
-          </div>
+          </Cluster>
           <p data-testid="combinator-luminosity-effect" className={styles.sliceEffect}>
             {combination.luminosityEffect}
           </p>

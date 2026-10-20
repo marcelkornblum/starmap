@@ -8,23 +8,8 @@ import {
 } from '../src/components/canvas/viewport/SceneBridge';
 import { useScene } from '../src/components/canvas/viewport/SceneBridgeContext';
 import { GlobalCanvas } from '../src/components/canvas/viewport/GlobalCanvas';
-import {
-  SceneProvider as PocSceneProvider,
-  ScenePortal as PocScenePortal,
-  SceneOutlet as PocSceneOutlet,
-} from '../src/components/poc/canvas/SceneBridge';
-import { useScene as usePocScene } from '../src/components/poc/canvas/SceneBridgeContext';
-import { GlobalCanvas as PocGlobalCanvas } from '../src/components/poc/canvas/GlobalCanvas';
-import { RootLayout } from '../src/components/poc/layout/RootLayout';
-import {
-  galaxyRoute,
-  systemRoute,
-  planetRoute,
-  referenceRoute,
-  simulateAsyncFetch,
-} from '../src/router';
-import { RouteSkeleton } from '../src/components/poc/common/RouteSkeleton';
-import { SafeHtml } from '../src/components/poc/canvas/SafeHtml';
+import { simulateAsyncFetch } from '../src/router';
+import { SafeHtml } from '../src/components/canvas/SafeHtml';
 
 describe('Global Canvas SceneBridge', () => {
   it('renders SceneOutlet when ScenePortal injects a scene', () => {
@@ -114,139 +99,62 @@ describe('Global Canvas SceneBridge', () => {
       expect(vnodeCustom.props.style?.opacity).toBe(0.9);
     }
   });
-
-  it('renders RootLayout shell structure with header, canvas, and outlet', () => {
-    const vnode = RootLayout({});
-    expect(isValidElement(vnode)).toBe(true);
-    if (isValidElement<{ children: React.ReactNode }>(vnode)) {
-      expect(vnode.type).toBe(SceneProvider);
-      if (isValidElement<{ className: string }>(vnode.props.children)) {
-        expect(vnode.props.children.props.className).toContain('starmap-app');
-      }
-    }
-  });
 });
 
 describe('Route Loaders & Render-Then-Fetch Pattern', () => {
-  it('provides pendingComponent skeleton for all 4 core routes', () => {
-    expect(galaxyRoute.options.pendingComponent).toBeDefined();
-    expect(systemRoute.options.pendingComponent).toBeDefined();
-    expect(planetRoute.options.pendingComponent).toBeDefined();
-    expect(referenceRoute.options.pendingComponent).toBeDefined();
-  });
-
-  it('renders RouteSkeleton component with custom or default label', () => {
-    const defaultHtml = renderToString(createElement(RouteSkeleton));
-    expect(defaultHtml).toContain('Loading Target Telemetry...');
-
-    const customHtml = renderToString(
-      createElement(RouteSkeleton, { label: 'Scanning Galactic Cluster...' }),
-    );
-    expect(customHtml).toContain('Scanning Galactic Cluster...');
-  });
-
   it('simulates async fetch with data preservation', async () => {
     const payload = { target: 'Sirius', dist: 2.64 };
     const result = await simulateAsyncFetch(payload, 10);
     expect(result).toEqual(payload);
   });
+});
 
-  it('executes loaders for galaxy, system, planet, and reference routes', async () => {
-    interface GalaxyData {
-      target: string;
-      nodeCount: number;
-    }
-    interface SystemData {
-      systemId: string;
-      spectralType: string;
-    }
-    interface PlanetData {
-      planetId: string;
-      classification: string;
-    }
-    interface ReferenceData {
-      catalog: string;
-    }
-
-    const galaxyLoader = galaxyRoute.options.loader as unknown as () => Promise<GalaxyData>;
-    const galaxyData = await galaxyLoader();
-    expect(galaxyData.target).toBe('Milky Way');
-    expect(galaxyData.nodeCount).toBeGreaterThan(0);
-
-    const systemLoader = systemRoute.options.loader as unknown as (ctx: {
-      params: { systemId: string };
-    }) => Promise<SystemData>;
-    const systemData = await systemLoader({ params: { systemId: 'alpha-centauri' } });
-    expect(systemData.systemId).toBe('alpha-centauri');
-    expect(systemData.spectralType).toBe('G2V');
-
-    const planetLoader = planetRoute.options.loader as unknown as (ctx: {
-      params: { planetId: string };
-    }) => Promise<PlanetData>;
-    const planetData = await planetLoader({ params: { planetId: 'mars' } });
-    expect(planetData.planetId).toBe('mars');
-    expect(planetData.classification).toBe('Terrestrial');
-
-    const refLoader = referenceRoute.options.loader as unknown as () => Promise<ReferenceData>;
-    const refData = await refLoader();
-    expect(refData.catalog).toContain('ICRS/J2000');
+describe('SafeHtml & View Lifecycle Safeguards', () => {
+  it('renders SafeHtml and SafeHtmlPortalOutlet in SSR cleanly without leaking DOM nodes', () => {
+    const html = renderToString(
+      createElement(
+        SafeHtml,
+        { 'data-testid': 'safe-html-overlay', position: [1, 2, 3], className: 'test-class' },
+        createElement('span', null, 'Overlay Content'),
+      ),
+    );
+    expect(html).toContain('<group');
+    expect(html).not.toContain('<div');
+    expect(html).not.toContain('Overlay Content');
   });
 
-  describe('SafeHtml & View Lifecycle Safeguards', () => {
-    it('renders SafeHtml and SafeHtmlPortalOutlet in SSR cleanly without leaking DOM nodes', () => {
-      const html = renderToString(
-        createElement(
-          SafeHtml,
-          { 'data-testid': 'safe-html-overlay', position: [1, 2, 3], className: 'test-class' },
-          createElement('span', null, 'Overlay Content'),
-        ),
+  it('preserves incoming scene during asynchronous unmount of previous view in SceneBridge', () => {
+    let activeSceneState: React.ReactNode = null;
+    let activeKeyState: string | null = null;
+
+    const TestHarness = () => {
+      const { activeScene, activeSceneKey, setScene } = useScene();
+      activeSceneState = activeScene;
+      activeKeyState = activeSceneKey;
+
+      return createElement(
+        'div',
+        null,
+        createElement('button', {
+          'data-testid': 'mount-view-a',
+          onClick: () => setScene('scene-a', 'view-a'),
+        }),
+        createElement('button', {
+          'data-testid': 'mount-view-b',
+          onClick: () => setScene('scene-b', 'view-b'),
+        }),
+        createElement('button', {
+          'data-testid': 'unmount-view-a',
+          onClick: () => setScene(null, 'view-a'),
+        }),
       );
-      expect(html).toContain('<group');
-      expect(html).not.toContain('<div');
-      expect(html).not.toContain('Overlay Content');
-    });
+    };
 
-    it('preserves incoming scene during asynchronous unmount of previous view in SceneBridge', () => {
-      let activeSceneState: React.ReactNode = null;
-      let activeKeyState: string | null = null;
-
-      const TestHarness = () => {
-        const { activeScene, activeSceneKey, setScene } = useScene();
-        activeSceneState = activeScene;
-        activeKeyState = activeSceneKey;
-
-        return createElement(
-          'div',
-          null,
-          createElement('button', {
-            'data-testid': 'mount-view-a',
-            onClick: () => setScene('scene-a', 'view-a'),
-          }),
-          createElement('button', {
-            'data-testid': 'mount-view-b',
-            onClick: () => setScene('scene-b', 'view-b'),
-          }),
-          createElement('button', {
-            'data-testid': 'unmount-view-a',
-            onClick: () => setScene(null, 'view-a'),
-          }),
-        );
-      };
-
-      const html = renderToString(
-        createElement(SceneProvider, null, createElement(TestHarness)),
-      );
-      expect(html).toBeDefined();
-      expect(activeSceneState).toBeNull();
-      expect(activeKeyState).toBeNull();
-    });
-
-    it('maintains backwards-compatible re-exports from src/components/poc/canvas viewport files', () => {
-      expect(PocSceneProvider).toBe(SceneProvider);
-      expect(PocScenePortal).toBe(ScenePortal);
-      expect(PocSceneOutlet).toBe(SceneOutlet);
-      expect(usePocScene).toBe(useScene);
-      expect(PocGlobalCanvas).toBe(GlobalCanvas);
-    });
+    const html = renderToString(
+      createElement(SceneProvider, null, createElement(TestHarness)),
+    );
+    expect(html).toBeDefined();
+    expect(activeSceneState).toBeNull();
+    expect(activeKeyState).toBeNull();
   });
 });

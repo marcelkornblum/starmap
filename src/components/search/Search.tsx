@@ -33,6 +33,7 @@ import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import { useRouter } from '@tanstack/react-router';
 import { extractUrlRouteStops } from '../../services/journeyService';
 import { parseLayerQueryParam, pickRandomLayerOverviewHref } from '../../services/layerCardService';
+import { Button, Heading, Input, Select } from '../interface';
 import { useSpatialEntityStoreApi } from '../canvas/entity/SpatialEntityContext';
 import type { SpatialEntityStore } from '../canvas/entity/SpatialEntityStore';
 import { SearchResultItem as SearchResultItemRow } from '../domain';
@@ -672,20 +673,21 @@ export const SearchInput = ({
   return (
     <>
       <label htmlFor={id}>{label}</label>
-      <input
+      <Input
         id={id}
         name="query"
         type="search"
         value={query}
         onChange={handleQueryChange}
       />
-      <button
+      <Button
         type="button"
+        size="sm"
         data-testid="search-clear-button"
         onClick={handleClearQuery}
       >
         Clear search
-      </button>
+      </Button>
     </>
   );
 };
@@ -701,29 +703,27 @@ export const SearchCategoryFilterSelect = ({
 }: SearchCategoryFilterProps) => {
   const { filter, setFilter } = useSearchContext();
 
-  const handleFilterChange = (event: ChangeEvent<HTMLSelectElement>): void => {
-    const nextValue = event.target.value;
-    if (isSearchCategoryFilter(nextValue)) {
-      setFilter(nextValue);
-    }
-  };
-
   return (
     <>
       <label htmlFor={id}>{label}</label>
-      <select
+      <Select
         id={id}
         name="searchCategory"
+        sizeVariant="sm"
         value={filter}
-        onChange={handleFilterChange}
-      >
-        <option value="all">All Categories</option>
-        {SEARCH_CATEGORIES.map((category) => (
-          <option key={category.key} value={category.key}>
-            {category.heading}
-          </option>
-        ))}
-      </select>
+        options={[
+          { value: 'all', label: 'All Categories' },
+          ...SEARCH_CATEGORIES.map((category) => ({
+            value: category.key,
+            label: category.heading,
+          })),
+        ]}
+        onChange={(nextValue) => {
+          if (isSearchCategoryFilter(nextValue)) {
+            setFilter(nextValue);
+          }
+        }}
+      />
     </>
   );
 };
@@ -770,19 +770,20 @@ export const SearchPanel = ({
       data-testid="search-panel"
       data-scope={scope}
     >
-      <h2 id="search-panel-heading">{heading}</h2>
+      <Heading as="h2" id="search-panel-heading">{heading}</Heading>
       <form role="search" onSubmit={handleSubmit}>
         {children ?? (
           <>
             <SearchInput />
             <SearchCategoryFilterSelect />
-            <button
+            <Button
               type="button"
+              size="sm"
               data-testid="search-explore-button"
               onClick={handleExplore}
             >
               Explore
-            </button>
+            </Button>
           </>
         )}
       </form>
@@ -814,7 +815,7 @@ export const SearchResults = ({
       data-testid="search-results-panel"
       data-status={status}
     >
-      <h2 id="search-results-heading">{heading}</h2>
+      <Heading as="h2" id="search-results-heading">{heading}</Heading>
       {searchViewPath ? (
         <p>
           <a
@@ -841,7 +842,7 @@ export const SearchResults = ({
             data-category={category.key}
             data-testid={`search-results-group-${category.key}`}
           >
-            <h3>{category.heading}</h3>
+            <Heading as="h3">{category.heading}</Heading>
             {searchViewPath ? (
               <p>
                 <a

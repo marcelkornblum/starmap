@@ -5,16 +5,12 @@ export type CelestialClassification =
   | 'stellar-system'
   | 'brown-dwarf'
   | 'white-dwarf'
-  | 'degenerate-remnant'
   | 'neutron-star'
   | 'hazard'
   | 'black-hole'
-  | 'singularity'
   | 'barycentre'
   | 'stellar-cluster'
-  | 'cluster'
   | 'construct'
-  | 'artificial'
   | 'terrestrial'
   | 'super-earth'
   | 'gas-giant'
@@ -319,8 +315,7 @@ export function createReticleGeometry(
       );
       break;
     }
-    case 'white-dwarf':
-    case 'degenerate-remnant': {
+    case 'white-dwarf': {
       // Fractured Diamond: 4 disjoint diagonal corner brackets (mid-facets open)
       const leg = 0.35 * s;
       points.push(
@@ -361,8 +356,7 @@ export function createReticleGeometry(
       );
       break;
     }
-    case 'black-hole':
-    case 'singularity': {
+    case 'black-hole': {
       // Four sharp 1px inward-pointing convergent spines (► ◄ / ▼ ▲) targeting empty central coordinate
       const inner = 0.25 * s;
       const outer = 1.0 * s;
@@ -403,8 +397,7 @@ export function createReticleGeometry(
       );
       break;
     }
-    case 'stellar-cluster':
-    case 'cluster': {
+    case 'stellar-cluster': {
       // Stellar Clusters / Echelons: Floating Double Top Chevron (︽) with no bottom chevron
       points.push(
         // Lower top chevron
@@ -416,8 +409,7 @@ export function createReticleGeometry(
       );
       break;
     }
-    case 'construct':
-    case 'artificial': {
+    case 'construct': {
       // Artificial Constructs & Vehicles: 90-degree orthogonal open corner box (┌ ┐ / └ ┘)
       const b = 0.75 * s;
       const leg = 0.35 * s;

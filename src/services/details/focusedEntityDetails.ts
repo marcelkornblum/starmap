@@ -17,6 +17,7 @@ import {
   buildMetricGuideHref,
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
+  isArtificialSpacecraftEntry,
   resolveEntryCategory,
   resolveResultDisplayTitle,
   resolveReticleType,
@@ -54,9 +55,22 @@ import type {
   FocusedEntityKind,
   FocusedPlanetDetail,
   FocusedStarDetail,
+  MinorBodyClassification,
   PlanetCompositionClass,
+  StructureSymbolType,
   SystemElementBodyItem,
+  SystemElementCategoryKey,
 } from './types';
+
+export const resolveStructureSymbolType = (structureType?: string): StructureSymbolType => {
+  if (!structureType) return 'stellar-cluster';
+  const lower = structureType.toLowerCase();
+  if (lower.includes('pulsar')) return 'neutron-star';
+  if (lower.includes('supernova') || lower.includes('remnant')) return 'supernova-remnant';
+  if (lower.includes('interstellar') || lower.includes('ism')) return 'ism';
+  if (lower.includes('nebula')) return 'nebula';
+  return 'stellar-cluster';
+};
 
 export const mapManifestToStarsAndPlanets = (
   manifest: SystemManifest,
@@ -187,10 +201,22 @@ const resolveOrbitingBodies = (
     }
     const name = resolveResultDisplayTitle(entry);
     const parentPlanetSlug = urlPlanetSlug || parentSlug;
+    const isMoon = entry.k === 3;
+    const isDwarf = entry.k === 4;
+    const isSpacecraft = isArtificialSpacecraftEntry(entry);
+    const categoryKey: SystemElementCategoryKey = isMoon
+      ? 'moon'
+      : isDwarf
+        ? 'dwarf-planet'
+        : isSpacecraft
+          ? 'spacecraft'
+          : 'asteroid';
+
     items.push({
       id: entry.i,
       name,
       href: buildPlanetElementFocusHref(parentPlanetSlug, name || entry.i),
+      categoryKey,
       categoryLabel: resolveMinorBodyCategoryLabel(entry),
     });
   }
@@ -393,7 +419,6 @@ export const buildFocusedEntityDetails = (
       ? 'system'
       : structureRecord ||
         matchedCorpusEntry?.k === 5 ||
-        focusedEntity.classification === 'cluster' ||
         focusedEntity.classification === 'stellar-cluster'
         ? 'structure'
         : matchedPlanetDetail ||
@@ -459,12 +484,20 @@ export const buildFocusedEntityDetails = (
       if (entry.k !== 4 && entry.k !== 6) continue;
       if (isDwarfPlanetInDisk(entry, disk)) {
         const name = resolveResultDisplayTitle(entry);
+        const isSpacecraft = isArtificialSpacecraftEntry(entry);
+        const categoryKey: SystemElementCategoryKey = entry.k === 4
+          ? 'dwarf-planet'
+          : isSpacecraft
+            ? 'spacecraft'
+            : 'asteroid';
+
         items.push({
           id: entry.i,
           name,
           href: urlPlanet
             ? buildPlanetElementFocusHref(urlPlanet, name || entry.i)
             : buildSystemElementFocusHref(systemNameOrId, name || entry.i),
+          categoryKey,
           categoryLabel: resolveMinorBodyCategoryLabel(entry),
         });
       }
@@ -911,10 +944,25 @@ export const buildFocusedEntityDetails = (
   }
 
   if (focusedKind === 'minor-body') {
+    const isSpacecraft = matchedCorpusEntry ? isArtificialSpacecraftEntry(matchedCorpusEntry) : false;
+    const isMoon = matchedCorpusEntry?.k === 3 || minorBodyCategoryLabel === 'Moon';
+    const isDwarf = matchedCorpusEntry?.k === 4 || minorBodyCategoryLabel === 'Dwarf Planet';
+    const isComet = minorBodyCategoryLabel === 'Comet';
+    const classification: MinorBodyClassification = isMoon
+      ? 'moon'
+      : isDwarf
+        ? 'dwarf-planet'
+        : isSpacecraft
+          ? 'construct'
+          : isComet
+            ? 'comet'
+            : 'asteroid';
+
     return {
       ...baseDetails,
       focusedKind: 'minor-body',
       minorBodyTelemetry: {
+        classification,
         categoryLabel: minorBodyCategoryLabel ?? resolveMinorBodyCategoryLabel(matchedCorpusEntry),
         parentBodyName: minorBodyParentName ?? systemName,
       },
@@ -927,6 +975,7 @@ export const buildFocusedEntityDetails = (
       focusedKind: 'structure',
       structureTelemetry: {
         structureType: structureRecord?.type ?? 'Galactic Structure',
+        symbolType: resolveStructureSymbolType(structureRecord?.type),
         ...(structureRecord?.radiusPc !== undefined
           ? { radiusPc: structureRecord.radiusPc }
           : {}),

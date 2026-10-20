@@ -27,3 +27,9 @@ For comprehensive rules on component taxonomy, React 19 ref/props forwarding, WA
 - **`lowerCamelCase`:** Variables, properties, functions, methods, and React hooks.
 - **`CONSTANT_CASE`:** Module-level constants, physical constants, and fixed enum values.
 - **Descriptive Identifiers:** Avoid abbreviations unless industry standard (e.g. `ra`, `dec`, `id`, `url`). Do not use `_` prefixes or suffixes.
+
+## 4. Testing Standards
+
+- **Pure Service & Selector Tests:** Test domain logic, astronomical calculations, URL state resolvers, and data transformations directly against the pure TypeScript data structures returned by service functions (`src/services/`, `src/utils/`).
+- **Semantic DOM Queries Over HTML Substring Matching:** Never use `renderToString(...)` with `expect(html).toContain(...)` to assert on formatted punctuation (`[...]`, `' · '`, parentheses) or raw HTML tag substrings. Substring assertions break when values are decomposed into `<Quantity>` and `<Unit>` child elements and incentivise keeping raw text glue instead of proper UI primitives.
+- **Component Contract Assertions:** Render components with `@testing-library/react` (`render`, `screen.getByTestId`, `screen.getByRole`) and assert on semantic `data-*` attributes (`data-datum="true"`, `data-data-table="true"`, `data-quantity="true"`, `data-status`, `data-reticle`), WAI-ARIA roles and states (`role="switch"`, `aria-checked`, `role="table"`), `href` targets, and normalised element text content.

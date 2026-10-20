@@ -7,7 +7,6 @@ import {
   type FocusedEntityDetails,
   type FocusedPlanetDetail,
   type FocusedStarDetail,
-  type PlanetCompositionCount,
   type SystemElementBodyItem,
   type SystemSummarySegment,
 } from '../../../services/detailsService';
@@ -23,103 +22,62 @@ import {
   HAZARDS_GUIDE_PATH,
 } from '../../../services/guideService';
 import { DetentSheet, type DetentLevel } from '../../interface/surfaces/DetentSheet';
-import { Badge, Quantity, Unit } from '../../interface/information';
-import { shouldDisplaySpectralBadge } from '../SearchResultItem/SearchResultItem';
+import {
+  Badge,
+  Button,
+  CelestialBadge,
+  Cluster,
+  ConfidencePip,
+  type ConfidenceLevel,
+  DataTable,
+  Datum,
+  HazardBadge,
+  Heading,
+  Quantity,
+  SpectralBadge,
+  Stack,
+  Unit,
+} from '../../interface';
+import { PlanetCensus } from '../PlanetCensus';
 
 export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
   readonly activeDetent?: DetentLevel;
 }
 
-const renderPlanetComposition = (
-  planetCount: number,
-  breakdown: readonly PlanetCompositionCount[],
-  hasHabitableCandidate: boolean,
-): ReactNode => {
-  if (planetCount <= 0) {
-    return '0 confirmed planets';
-  }
-
-  const countLabel = `${planetCount} ${planetCount === 1 ? 'planet' : 'planets'} (`;
-  const hasNumericCounts = breakdown.some((b) => b.count !== undefined);
-  const separator = hasNumericCounts ? ' · ' : ', ';
-
-  return (
-    <>
-      {countLabel}
-      {breakdown.map((item, idx) => (
-        <Fragment key={`${item.composition}-${idx}`}>
-          {idx > 0 ? separator : null}
-          {item.count !== undefined ? `${item.count} ` : null}
-          <Badge category="planet">
-            <a
-              href={buildPlanetTypeGuideHref(item.composition)}
-              data-testid="details-summary-planet-type-link"
-            >
-              {item.composition}
-            </a>
-          </Badge>
-        </Fragment>
-      ))}
-      {hasHabitableCandidate ? (
-        <>
-          {breakdown.length > 0 ? ' · ' : null}
-          <Badge status="nominal">
-            <a
-              href={buildTagGalaxyHref('HabitableCandidate')}
-              data-testid="details-habitable-zone-link"
-            >
-              Habitable zone candidate
-            </a>
-          </Badge>
-        </>
-      ) : null}
-      {')'}
-    </>
-  );
-};
-
 const renderSystemSummarySegments = (
   segments: readonly SystemSummarySegment[],
 ): ReactNode =>
   segments.map((seg, idx) => {
     if (seg.kind === 'spectral-badge') {
-      if (!shouldDisplaySpectralBadge(seg.spectralType)) {
-        return <Fragment key={idx}>{seg.spectralType}</Fragment>;
-      }
       return (
-        <Badge key={idx} category="star">
-          <a
-            href={buildStarTypeGuideHref(seg.spectralType)}
-            data-testid="details-summary-spectral-link"
-          >
-            {seg.spectralType}
-          </a>
-        </Badge>
+        <SpectralBadge
+          key={idx}
+          spectralType={seg.spectralType}
+          href={buildStarTypeGuideHref(seg.spectralType)}
+          fallback={seg.spectralType}
+          data-testid="details-summary-spectral-link"
+        />
       );
     }
     if (seg.kind === 'planet-type-badge') {
       return (
-        <Badge key={idx} category="planet">
-          <a
-            href={buildPlanetTypeGuideHref(seg.composition)}
-            data-testid="details-summary-planet-type-link"
-          >
-            {seg.composition}
-          </a>
-        </Badge>
+        <CelestialBadge
+          key={idx}
+          type={seg.composition}
+          href={buildPlanetTypeGuideHref(seg.composition)}
+          data-testid="details-summary-planet-type-link"
+        />
       );
     }
     if (seg.kind === 'habitable-badge') {
       return (
-        <Badge key={idx} status="nominal">
-          <a
-            href={buildTagGalaxyHref('HabitableCandidate')}
-            data-testid="details-summary-habitable-link"
-          >
-            {seg.label}
-          </a>
-        </Badge>
+        <CelestialBadge
+          key={idx}
+          type="habitable-zone"
+          href={buildTagGalaxyHref('HabitableCandidate')}
+          data-testid="details-summary-habitable-link"
+        />
       );
     }
     return <Fragment key={idx}>{seg.text}</Fragment>;
@@ -136,7 +94,9 @@ const renderCanonLayers = (
       aria-labelledby="details-canon-heading"
       data-testid="details-canon-section"
     >
-      <h4 id="details-canon-heading">Canon Layers</h4>
+      <Heading as="h4" size="eyebrow" id="details-canon-heading">
+        Canon Layers
+      </Heading>
       <ul data-testid="details-canon-list">
         {canonAnnotations.map((annotation) => (
           <li
@@ -181,16 +141,13 @@ const renderCanonLayers = (
                       ? 'info'
                       : 'neutral'
                   }
+                  href={
+                    annotation.layerHref ||
+                    buildLayerGalaxyHref(annotation.layerId)
+                  }
+                  data-testid="details-canon-link"
                 >
-                  <a
-                    href={
-                      annotation.layerHref ||
-                      buildLayerGalaxyHref(annotation.layerId)
-                    }
-                    data-testid="details-canon-link"
-                  >
-                    {annotation.layerTitle}
-                  </a>
+                  {annotation.layerTitle}
                 </Badge>
               </summary>
               <p data-testid="details-canon-text">{annotation.text}</p>
@@ -200,13 +157,12 @@ const renderCanonLayers = (
                   {annotation.tags.map((tag, index) => (
                     <Fragment key={tag}>
                       {index > 0 ? ' ' : null}
-                      <Badge status="neutral">
-                        <a
-                          href={buildTagGalaxyHref(tag)}
-                          data-testid="details-canon-tag-link"
-                        >
-                          {tag}
-                        </a>
+                      <Badge
+                        status="neutral"
+                        href={buildTagGalaxyHref(tag)}
+                        data-testid="details-canon-tag-link"
+                      >
+                        {tag}
                       </Badge>
                     </Fragment>
                   ))}
@@ -237,24 +193,44 @@ const renderOrbitingBodies = (
       aria-labelledby="details-orbiting-bodies-heading"
       data-testid="details-orbiting-bodies-section"
     >
-      <h4 id="details-orbiting-bodies-heading">{heading}</h4>
-      <ul data-testid="details-orbiting-bodies-list">
-        {orbitingBodies.map((body) => (
-          <li
-            key={body.id}
-            data-testid="details-orbiting-body-item"
-            data-body-id={body.id}
-          >
-            <a
-              href={body.href}
-              data-testid="details-orbiting-body-link"
+      <Heading as="h4" size="eyebrow" id="details-orbiting-bodies-heading">
+        {heading}
+      </Heading>
+      <DataTable data-testid="details-orbiting-bodies-list">
+        <DataTable.Head>
+          <DataTable.Row>
+            <DataTable.HeaderCell>Body</DataTable.HeaderCell>
+            <DataTable.HeaderCell>Category</DataTable.HeaderCell>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
+          {orbitingBodies.map((body) => (
+            <DataTable.Row
+              key={body.id}
+              data-testid="details-orbiting-body-item"
+              data-body-id={body.id}
             >
-              {body.name}
-            </a>{' '}
-            <Badge status="neutral">{body.categoryLabel}</Badge>
-          </li>
-        ))}
-      </ul>
+              <DataTable.Cell>
+                <a
+                  href={body.href}
+                  data-testid="details-orbiting-body-link"
+                >
+                  {body.name}
+                </a>
+              </DataTable.Cell>
+              <DataTable.Cell>
+                <CelestialBadge
+                  type={
+                    body.categoryKey === 'spacecraft'
+                      ? 'construct'
+                      : (body.categoryKey ?? 'asteroid')
+                  }
+                />
+              </DataTable.Cell>
+            </DataTable.Row>
+          ))}
+        </DataTable.Body>
+      </DataTable>
     </section>
   );
 };
@@ -266,37 +242,58 @@ const renderHazards = (
     aria-labelledby="details-hazards-heading"
     data-testid="details-hazards-section"
   >
-    <h4 id="details-hazards-heading">Environmental Hazards</h4>
+    <Heading as="h4" size="eyebrow" id="details-hazards-heading">
+      Environmental Hazards
+    </Heading>
     {hazards.length === 0 ? (
-      <p data-testid="details-hazards-nominal">
-        <Badge status="nominal">
-          <a href={HAZARDS_GUIDE_PATH} data-testid="details-hazards-guide-link">
-            0 hazards
-          </a>
-        </Badge>{' '}
-        Nominal environment
-      </p>
+      <Stack gap="none" data-testid="details-hazards-nominal">
+        <Datum
+          label="Status"
+          value="Nominal environment"
+          unit={
+            <Quantity
+              value={0}
+              unit={
+                <Unit>
+                  <a href={HAZARDS_GUIDE_PATH} data-testid="details-hazards-guide-link">
+                    hazards
+                  </a>
+                </Unit>
+              }
+            />
+          }
+        />
+      </Stack>
     ) : (
-      <ul data-testid="details-hazards-list">
-        {hazards.map((hazard) => (
-          <li
-            key={hazard.code}
-            data-testid="details-hazard-item"
-            data-hazard-code={hazard.code}
-            data-hazard-severity={hazard.severity}
-          >
-            <Badge status={hazard.severity === 'critical' ? 'critical' : 'caution'}>
-              <a
-                href={buildHazardGuideHref(hazard.code)}
-                data-testid="details-hazard-guide-link"
-              >
-                {hazard.label}
-              </a>
-            </Badge>{' '}
-            <span>{hazard.description}</span>
-          </li>
-        ))}
-      </ul>
+      <DataTable data-testid="details-hazards-list">
+        <DataTable.Head>
+          <DataTable.Row>
+            <DataTable.HeaderCell>Hazard</DataTable.HeaderCell>
+            <DataTable.HeaderCell>Operational Impact</DataTable.HeaderCell>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
+          {hazards.map((hazard) => (
+            <DataTable.Row
+              key={hazard.code}
+              data-testid="details-hazard-item"
+              data-hazard-code={hazard.code}
+              data-hazard-severity={hazard.severity}
+            >
+              <DataTable.Cell>
+                <HazardBadge
+                  code={hazard.code}
+                  label={hazard.label}
+                  severity={hazard.severity}
+                  href={buildHazardGuideHref(hazard.code)}
+                  data-testid="details-hazard-guide-link"
+                />
+              </DataTable.Cell>
+              <DataTable.Cell>{hazard.description}</DataTable.Cell>
+            </DataTable.Row>
+          ))}
+        </DataTable.Body>
+      </DataTable>
     )}
   </section>
 );
@@ -313,71 +310,81 @@ const renderStars = (
       aria-labelledby="details-stars-heading"
       data-testid="details-stars-section"
     >
-      <h4 id="details-stars-heading">Stars</h4>
-      <ul data-testid="details-stars-list">
-        {stars.map((star) => (
-          <li
-            key={star.id}
-            data-testid="details-star-item"
-            data-star-id={star.id}
-          >
-            <a
-              href={
-                star.href ??
-                buildSystemElementFocusHref(
-                  systemNameOrId,
-                  star.name || star.id,
-                )
-              }
-              data-testid="details-star-name-link"
+      <Heading as="h4" size="eyebrow" id="details-stars-heading">
+        Stars
+      </Heading>
+      <DataTable data-testid="details-stars-list">
+        <DataTable.Head>
+          <DataTable.Row>
+            <DataTable.HeaderCell>Star</DataTable.HeaderCell>
+            <DataTable.HeaderCell>Class</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">Apparent Mag</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">Absolute Mag</DataTable.HeaderCell>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
+          {stars.map((star) => (
+            <DataTable.Row
+              key={star.id}
+              data-testid="details-star-item"
+              data-star-id={star.id}
             >
-              {star.name}
-            </a>
-            {' ('}
-            {shouldDisplaySpectralBadge(star.spectralType) ? (
-              <Badge category="star">
+              <DataTable.Cell>
                 <a
-                  href={buildStarTypeGuideHref(star.spectralType)}
-                  data-testid="details-star-spectral-link"
+                  href={
+                    star.href ??
+                    buildSystemElementFocusHref(
+                      systemNameOrId,
+                      star.name || star.id,
+                    )
+                  }
+                  data-testid="details-star-name-link"
                 >
-                  {star.spectralType}
+                  {star.name}
                 </a>
-              </Badge>
-            ) : (
-              star.spectralType
-            )}
-            {', '}
-            <Quantity
-              value={star.mag}
-              unit={
-                <Unit>
-                  <a
-                    href={buildMetricGuideHref('stellar-magnitude', star.id)}
-                    data-testid="details-metric-unit-link"
-                  >
-                    V
-                  </a>
-                </Unit>
-              }
-            />
-            {', '}
-            <Quantity
-              value={star.absmag}
-              unit={
-                <Unit>
-                  <a
-                    href={buildMetricGuideHref('stellar-magnitude', star.id)}
-                    data-testid="details-metric-unit-link"
-                  >
-                    M_V
-                  </a>
-                </Unit>
-              }
-            />
-            {')'}
-          </li>
-        ))}
-      </ul>
+              </DataTable.Cell>
+              <DataTable.Cell>
+                <SpectralBadge
+                  spectralType={star.spectralType}
+                  href={buildStarTypeGuideHref(star.spectralType)}
+                  fallback={star.spectralType}
+                  data-testid="details-star-spectral-link"
+                />
+              </DataTable.Cell>
+              <DataTable.Cell numeric>
+                <Quantity
+                  value={star.mag}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('stellar-magnitude', star.id)}
+                        data-testid="details-metric-unit-link"
+                      >
+                        V
+                      </a>
+                    </Unit>
+                  }
+                />
+              </DataTable.Cell>
+              <DataTable.Cell numeric>
+                <Quantity
+                  value={star.absmag}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('stellar-magnitude', star.id)}
+                        data-testid="details-metric-unit-link"
+                      >
+                        M_V
+                      </a>
+                    </Unit>
+                  }
+                />
+              </DataTable.Cell>
+            </DataTable.Row>
+          ))}
+        </DataTable.Body>
+      </DataTable>
     </section>
   );
 };
@@ -394,126 +401,141 @@ const renderPlanets = (
       aria-labelledby="details-planets-heading"
       data-testid="details-planets-section"
     >
-      <h4 id="details-planets-heading">Planets</h4>
-      <ul data-testid="details-planets-list">
-        {planets.map((planet) => (
-          <li
-            key={planet.id}
-            data-testid="details-planet-item"
-            data-planet-id={planet.id}
-            data-composition={planet.composition}
-          >
-            <a
-              href={
-                planet.href ??
-                buildSystemElementFocusHref(
-                  systemNameOrId,
-                  planet.name || planet.id,
-                )
-              }
-              data-testid="details-planet-name-link"
+      <Heading as="h4" size="eyebrow" id="details-planets-heading">
+        Planets
+      </Heading>
+      <DataTable data-testid="details-planets-list">
+        <DataTable.Head>
+          <DataTable.Row>
+            <DataTable.HeaderCell>Planet</DataTable.HeaderCell>
+            <DataTable.HeaderCell>Type</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">a</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">P</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">Mass</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">Temp</DataTable.HeaderCell>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
+          {planets.map((planet) => (
+            <DataTable.Row
+              key={planet.id}
+              data-testid="details-planet-item"
+              data-planet-id={planet.id}
+              data-composition={planet.composition}
             >
-              {planet.name}
-            </a>{' '}
-            <Badge category="planet">
-              <a
-                href={buildPlanetTypeGuideHref(planet.composition)}
-                data-testid="details-planet-type-link"
-              >
-                {planet.composition}
-              </a>
-            </Badge>
-            {planet.isHabitableCandidate ? (
-              <>
-                {' '}
-                <Badge status="nominal">
-                  <a
-                    href={buildTagGalaxyHref('HabitableCandidate')}
-                    data-testid="details-planet-habitable-link"
-                  >
-                    Habitable zone
-                  </a>
-                </Badge>
-              </>
-            ) : null}
-            {planet.semiMajorAxisAu !== undefined ? (
-              <>
-                {' · a = '}
-                <Quantity
-                  value={planet.semiMajorAxisAu}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('semi-major-axis', planet.id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        AU
-                      </a>
-                    </Unit>
+              <DataTable.Cell>
+                <a
+                  href={
+                    planet.href ??
+                    buildSystemElementFocusHref(
+                      systemNameOrId,
+                      planet.name || planet.id,
+                    )
                   }
-                />
-              </>
-            ) : null}
-            {planet.periodDays !== undefined ? (
-              <>
-                {' · P = '}
-                <Quantity
-                  value={planet.periodDays}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('orbital-period', planet.id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        d
-                      </a>
-                    </Unit>
-                  }
-                />
-              </>
-            ) : null}
-            {planet.massMearth !== undefined ? (
-              <>
-                {' · '}
-                <Quantity
-                  value={planet.massMearth}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('planetary-mass', planet.id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        M⊕
-                      </a>
-                    </Unit>
-                  }
-                />
-              </>
-            ) : null}
-            {planet.equilibriumTempK !== undefined ? (
-              <>
-                {' · '}
-                <Quantity
-                  value={planet.equilibriumTempK}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref(
-                          'equilibrium-temperature',
-                          planet.id,
-                        )}
-                        data-testid="details-metric-unit-link"
-                      >
-                        K
-                      </a>
-                    </Unit>
-                  }
-                />
-              </>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+                  data-testid="details-planet-name-link"
+                >
+                  {planet.name}
+                </a>
+              </DataTable.Cell>
+              <DataTable.Cell>
+                <Cluster gap="tight" align="center">
+                  <CelestialBadge
+                    type={planet.composition}
+                    href={buildPlanetTypeGuideHref(planet.composition)}
+                    data-testid="details-planet-type-link"
+                  />
+                  {planet.isHabitableCandidate ? (
+                    <CelestialBadge
+                      type="habitable-zone"
+                      href={buildTagGalaxyHref('HabitableCandidate')}
+                      data-testid="details-planet-habitable-link"
+                    />
+                  ) : null}
+                </Cluster>
+              </DataTable.Cell>
+              <DataTable.Cell numeric>
+                {planet.semiMajorAxisAu !== undefined ? (
+                  <Quantity
+                    value={planet.semiMajorAxisAu}
+                    unit={
+                      <Unit>
+                        <a
+                          href={buildMetricGuideHref('semi-major-axis', planet.id)}
+                          data-testid="details-metric-unit-link"
+                        >
+                          AU
+                        </a>
+                      </Unit>
+                    }
+                  />
+                ) : (
+                  '—'
+                )}
+              </DataTable.Cell>
+              <DataTable.Cell numeric>
+                {planet.periodDays !== undefined ? (
+                  <Quantity
+                    value={planet.periodDays}
+                    unit={
+                      <Unit>
+                        <a
+                          href={buildMetricGuideHref('orbital-period', planet.id)}
+                          data-testid="details-metric-unit-link"
+                        >
+                          d
+                        </a>
+                      </Unit>
+                    }
+                  />
+                ) : (
+                  '—'
+                )}
+              </DataTable.Cell>
+              <DataTable.Cell numeric>
+                {planet.massMearth !== undefined ? (
+                  <Quantity
+                    value={planet.massMearth}
+                    unit={
+                      <Unit>
+                        <a
+                          href={buildMetricGuideHref('planetary-mass', planet.id)}
+                          data-testid="details-metric-unit-link"
+                        >
+                          M⊕
+                        </a>
+                      </Unit>
+                    }
+                  />
+                ) : (
+                  '—'
+                )}
+              </DataTable.Cell>
+              <DataTable.Cell numeric>
+                {planet.equilibriumTempK !== undefined ? (
+                  <Quantity
+                    value={planet.equilibriumTempK}
+                    unit={
+                      <Unit>
+                        <a
+                          href={buildMetricGuideHref(
+                            'equilibrium-temperature',
+                            planet.id,
+                          )}
+                          data-testid="details-metric-unit-link"
+                        >
+                          K
+                        </a>
+                      </Unit>
+                    }
+                  />
+                ) : (
+                  '—'
+                )}
+              </DataTable.Cell>
+            </DataTable.Row>
+          ))}
+        </DataTable.Body>
+      </DataTable>
     </section>
   );
 };
@@ -530,73 +552,86 @@ const renderDisks = (
       aria-labelledby="details-disks-heading"
       data-testid="details-disks-section"
     >
-      <h4 id="details-disks-heading">Circumstellar Belts & Disks</h4>
-      <ul data-testid="details-disks-list">
-        {disks.map((disk) => (
-          <li
-            key={disk.id}
-            data-testid="details-disk-item"
-            data-disk-id={disk.id}
-            data-kind={disk.kind}
-          >
-            <a
-              href={
-                disk.href ??
-                buildSystemElementFocusHref(
-                  systemNameOrId,
-                  disk.name || disk.id,
-                )
-              }
-              data-testid="details-disk-name-link"
+      <Heading as="h4" size="eyebrow" id="details-disks-heading">
+        Circumstellar Belts & Disks
+      </Heading>
+      <DataTable data-testid="details-disks-list">
+        <DataTable.Head>
+          <DataTable.Row>
+            <DataTable.HeaderCell>Belt / Disk</DataTable.HeaderCell>
+            <DataTable.HeaderCell>Classification</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">Span</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">Temp</DataTable.HeaderCell>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
+          {disks.map((disk) => (
+            <DataTable.Row
+              key={disk.id}
+              data-testid="details-disk-item"
+              data-disk-id={disk.id}
+              data-kind={disk.kind}
             >
-              {disk.name}
-            </a>{' '}
-            <Badge
-              status={
-                disk.kind === 'asteroid-belt'
-                  ? 'caution'
-                  : disk.kind === 'kuiper-belt'
-                    ? 'info'
-                    : 'neutral'
-              }
-            >
-              {disk.kindLabel}
-            </Badge>
-            {' · '}
-            <Quantity
-              value={`${disk.innerRadiusAu}–${disk.outerRadiusAu}`}
-              unit={
-                <Unit>
-                  <a
-                    href={disk.guideHref}
-                    data-testid="details-disk-unit-link"
-                  >
-                    AU
-                  </a>
-                </Unit>
-              }
-            />
-            {disk.tempK !== undefined ? (
-              <>
-                {' · '}
+              <DataTable.Cell>
+                <a
+                  href={
+                    disk.href ??
+                    buildSystemElementFocusHref(
+                      systemNameOrId,
+                      disk.name || disk.id,
+                    )
+                  }
+                  data-testid="details-disk-name-link"
+                >
+                  {disk.name}
+                </a>
+              </DataTable.Cell>
+              <DataTable.Cell>
+                <Cluster gap="tight" align="center">
+                  <CelestialBadge type={disk.kind} />
+                  {disk.confidence ? (
+                    <ConfidencePip confidence={disk.confidence as ConfidenceLevel} size="sm" />
+                  ) : null}
+                </Cluster>
+              </DataTable.Cell>
+              <DataTable.Cell numeric>
                 <Quantity
-                  value={disk.tempK}
+                  value={`${disk.innerRadiusAu}–${disk.outerRadiusAu}`}
                   unit={
                     <Unit>
                       <a
-                        href={buildMetricGuideHref('equilibrium-temperature', disk.id)}
-                        data-testid="details-disk-temp-link"
+                        href={disk.guideHref}
+                        data-testid="details-disk-unit-link"
                       >
-                        K
+                        AU
                       </a>
                     </Unit>
                   }
                 />
-              </>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+              </DataTable.Cell>
+              <DataTable.Cell numeric>
+                {disk.tempK !== undefined ? (
+                  <Quantity
+                    value={disk.tempK}
+                    unit={
+                      <Unit>
+                        <a
+                          href={buildMetricGuideHref('equilibrium-temperature', disk.id)}
+                          data-testid="details-disk-temp-link"
+                        >
+                          K
+                        </a>
+                      </Unit>
+                    }
+                  />
+                ) : (
+                  '—'
+                )}
+              </DataTable.Cell>
+            </DataTable.Row>
+          ))}
+        </DataTable.Body>
+      </DataTable>
     </section>
   );
 };
@@ -639,7 +674,6 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
     canonAnnotations,
   } = details;
 
-  const hasSpectBadge = shouldDisplaySpectralBadge(spectralType);
   const isSystemFocus = focusedKind === 'system';
 
   const hazardBadgeStatus: 'critical' | 'caution' | 'nominal' =
@@ -649,219 +683,88 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
         : 'caution'
       : 'nominal';
 
-  const hazardSummaryBadge = (
-    <span data-testid="details-hazard-summary">
-      <Badge status={hazardBadgeStatus}>
-        <a
+  const hazardSummaryNode =
+    details.hazardCount === 0 ? (
+      <span data-testid="details-hazard-summary">
+        <Quantity
+          value={0}
+          unit={
+            <Unit>
+              <a
+                href={HAZARDS_GUIDE_PATH}
+                data-testid="details-hazard-summary-link"
+              >
+                hazards
+              </a>
+            </Unit>
+          }
+        />
+      </span>
+    ) : (
+      <span data-testid="details-hazard-summary">
+        <HazardBadge
+          label={details.hazardSummaryLabel}
+          severity={hazardBadgeStatus === 'critical' ? 'critical' : 'caution'}
           href={
             details.hazards.length === 1
               ? buildHazardGuideHref(details.hazards[0]?.code)
               : HAZARDS_GUIDE_PATH
           }
           data-testid="details-hazard-summary-link"
-        >
-          {details.hazardSummaryLabel}
-        </a>
-      </Badge>
-    </span>
-  );
+        />
+      </span>
+    );
 
   const peekContent = (
     <>
-      <p data-testid="details-peek-header">
+      <Cluster gap="tight" align="center" data-testid="details-peek-header">
         <strong data-testid="details-peek-name">{name}</strong>
-          {name !== systemName ? (
-            <span data-testid="details-peek-system-name">
-              {` (${systemName})`}
-            </span>
-          ) : null}{' '}
-          <span data-testid="details-reticle-type">{`[${reticleType}]`}</span>
-          {(isSystemFocus || focusedKind === 'star') && hasSpectBadge && spectralType ? (
-            <>
-              {' '}
-              <Badge category="star">
-                <a
-                  href={buildStarTypeGuideHref(spectralType)}
-                  data-testid="details-spectral-badge"
-                >
-                  {spectralType}
-                </a>
-              </Badge>
-            </>
-          ) : null}
-          {isSystemFocus ? (
-            <>
-              {' · '}
-              <span data-testid="details-star-count">
-                {`${starCount} ${starCount === 1 ? 'star' : 'stars'}`}
-              </span>
-            </>
-          ) : null}
-        </p>
-        {planetTelemetry ? (
-          <p data-testid="details-focused-entity-peek">
-            <Badge category="planet">
-              <a
-                href={buildPlanetTypeGuideHref(planetTelemetry.composition)}
-                data-testid="details-focused-planet-type-link"
-              >
-                {planetTelemetry.composition}
-              </a>
-            </Badge>
-            {planetTelemetry.isHabitableCandidate ? (
-              <>
-                {' '}
-                <Badge status="nominal">
-                  <a
+        {name !== systemName ? (
+          <Badge status="neutral" data-testid="details-peek-system-name">
+            {systemName}
+          </Badge>
+        ) : null}
+        <CelestialBadge type={reticleType} data-testid="details-reticle-type" />
+        {(isSystemFocus || focusedKind === 'star') && spectralType ? (
+          <SpectralBadge
+            spectralType={spectralType}
+            href={buildStarTypeGuideHref(spectralType)}
+            data-testid="details-spectral-badge"
+          />
+        ) : null}
+        {isSystemFocus ? (
+          <Quantity
+            data-testid="details-star-count"
+            value={starCount}
+            unit={starCount === 1 ? 'star' : 'stars'}
+          />
+        ) : null}
+      </Cluster>
+      {planetTelemetry ? (
+        <Stack gap="none" data-testid="details-focused-entity-peek">
+          <Datum
+            label="Classification"
+            value={
+              <Cluster gap="tight" align="center">
+                <CelestialBadge
+                  type={planetTelemetry.composition}
+                  href={buildPlanetTypeGuideHref(planetTelemetry.composition)}
+                  data-testid="details-planet-type-link"
+                />
+                {planetTelemetry.isHabitableCandidate ? (
+                  <CelestialBadge
+                    type="habitable-zone"
                     href={buildTagGalaxyHref('HabitableCandidate')}
-                    data-testid="details-focused-planet-habitable-link"
-                  >
-                    Habitable zone
-                  </a>
-                </Badge>
-              </>
-            ) : null}
-            {planetTelemetry.semiMajorAxisAu !== undefined ? (
-              <>
-                {' · a = '}
-                <Quantity
-                  value={planetTelemetry.semiMajorAxisAu}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('semi-major-axis', id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        AU
-                      </a>
-                    </Unit>
-                  }
-                />
-              </>
-            ) : null}
-            {planetTelemetry.periodDays !== undefined ? (
-              <>
-                {' · P = '}
-                <Quantity
-                  value={planetTelemetry.periodDays}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('orbital-period', id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        d
-                      </a>
-                    </Unit>
-                  }
-                />
-              </>
-            ) : null}
-            {planetTelemetry.massMearth !== undefined ? (
-              <>
-                {' · '}
-                <Quantity
-                  value={planetTelemetry.massMearth}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('planetary-mass', id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        M⊕
-                      </a>
-                    </Unit>
-                  }
-                />
-              </>
-            ) : null}
-            {planetTelemetry.equilibriumTempK !== undefined ? (
-              <>
-                {' · '}
-                <Quantity
-                  value={planetTelemetry.equilibriumTempK}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('equilibrium-temperature', id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        K
-                      </a>
-                    </Unit>
-                  }
-                />
-              </>
-            ) : null}
-            {' · '}
-            {hazardSummaryBadge}
-          </p>
-        ) : null}
-        {starTelemetry ? (
-          <p data-testid="details-focused-entity-peek">
-            {`Component ${starTelemetry.componentDesignation} · `}
-            <Quantity
-              value={starTelemetry.mag}
-              unit={
-                <Unit>
-                  <a
-                    href={buildMetricGuideHref('stellar-magnitude', id)}
-                    data-testid="details-metric-unit-link"
-                  >
-                    V
-                  </a>
-                </Unit>
-              }
-            />
-            {' · '}
-            <Quantity
-              value={starTelemetry.absmag}
-              unit={
-                <Unit>
-                  <a
-                    href={buildMetricGuideHref('stellar-magnitude', id)}
-                    data-testid="details-metric-unit-link"
-                  >
-                    M_V
-                  </a>
-                </Unit>
-              }
-            />
-            {' · '}
-            {hazardSummaryBadge}
-          </p>
-        ) : null}
-        {minorBodyTelemetry ? (
-          <p data-testid="details-focused-entity-peek">
-            <Badge status="neutral">{minorBodyTelemetry.categoryLabel}</Badge>
-            {minorBodyTelemetry.parentBodyName
-              ? ` · ${minorBodyTelemetry.parentBodyName}`
-              : null}
-            {' · '}
-            {hazardSummaryBadge}
-          </p>
-        ) : null}
-        {structureTelemetry ? (
-          <p data-testid="details-focused-entity-peek">
-            <Badge status="info">{structureTelemetry.structureType}</Badge>
-          </p>
-        ) : null}
-        {diskTelemetry ? (
-          <p data-testid="details-focused-entity-peek">
-            <Badge
-              status={
-                diskTelemetry.classification === 'asteroid-belt'
-                  ? 'caution'
-                  : diskTelemetry.classification === 'kuiper-belt'
-                    ? 'info'
-                    : 'neutral'
-              }
-            >
-              {diskTelemetry.classificationLabel}
-            </Badge>
-            {' · '}
-            <Quantity
-              value={`${diskTelemetry.innerRadiusAu}–${diskTelemetry.outerRadiusAu}`}
+                    data-testid="details-planet-habitable-link"
+                  />
+                ) : null}
+              </Cluster>
+            }
+          />
+          {planetTelemetry.semiMajorAxisAu !== undefined ? (
+            <Datum
+              label="Semi-Major Axis (a)"
+              value={planetTelemetry.semiMajorAxisAu}
               unit={
                 <Unit>
                   <a
@@ -873,71 +776,224 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
                 </Unit>
               }
             />
-            {diskTelemetry.tempK !== undefined ? (
-              <>
-                {' · '}
-                <Quantity
-                  value={diskTelemetry.tempK}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('equilibrium-temperature', id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        K
-                      </a>
-                    </Unit>
-                  }
-                />
-              </>
-            ) : null}
-            {' · '}
-            {hazardSummaryBadge}
-          </p>
-        ) : null}
-        {isSystemFocus ? (
-          <p data-testid="details-planet-composition">
-            {renderPlanetComposition(
-              planetCount,
-              planetCompositionBreakdown,
-              hasHabitableCandidate,
-            )}
-            {' · '}
-            {hazardSummaryBadge}
-          </p>
-        ) : null}
-        <p data-testid="details-system-summary">
-          {renderSystemSummarySegments(systemSummarySegments)}
-        </p>
+          ) : null}
+          {planetTelemetry.periodDays !== undefined ? (
+            <Datum
+              label="Orbital Period (P)"
+              value={planetTelemetry.periodDays}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('orbital-period', id)}
+                    data-testid="details-metric-unit-link"
+                  >
+                    d
+                  </a>
+                </Unit>
+              }
+            />
+          ) : null}
+          {planetTelemetry.massMearth !== undefined ? (
+            <Datum
+              label="Mass"
+              value={planetTelemetry.massMearth}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('planetary-mass', id)}
+                    data-testid="details-metric-unit-link"
+                  >
+                    M⊕
+                  </a>
+                </Unit>
+              }
+            />
+          ) : null}
+          {planetTelemetry.equilibriumTempK !== undefined ? (
+            <Datum
+              label="Equilibrium Temp"
+              value={planetTelemetry.equilibriumTempK}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('equilibrium-temperature', id)}
+                    data-testid="details-metric-unit-link"
+                  >
+                    K
+                  </a>
+                </Unit>
+              }
+            />
+          ) : null}
+          <Datum label="Hazards" value={hazardSummaryNode} />
+        </Stack>
+      ) : null}
+      {starTelemetry ? (
+        <Stack gap="none" data-testid="details-focused-entity-peek">
+          <Datum
+            label="Component"
+            value={`Component ${starTelemetry.componentDesignation}`}
+          />
+          <Datum
+            label="Apparent Magnitude"
+            value={starTelemetry.mag}
+            unit={
+              <Unit>
+                <a
+                  href={buildMetricGuideHref('stellar-magnitude', id)}
+                  data-testid="details-metric-unit-link"
+                >
+                  V
+                </a>
+              </Unit>
+            }
+          />
+          <Datum
+            label="Absolute Magnitude"
+            value={starTelemetry.absmag}
+            unit={
+              <Unit>
+                <a
+                  href={buildMetricGuideHref('stellar-magnitude', id)}
+                  data-testid="details-metric-unit-link"
+                >
+                  M_V
+                </a>
+              </Unit>
+            }
+          />
+          <Datum label="Hazards" value={hazardSummaryNode} />
+        </Stack>
+      ) : null}
+      {minorBodyTelemetry ? (
+        <Stack gap="none" data-testid="details-focused-entity-peek">
+          <Datum
+            label="Classification"
+            value={<CelestialBadge type={minorBodyTelemetry.classification} showLabel />}
+          />
+          {minorBodyTelemetry.parentBodyName ? (
+            <Datum
+              label="Parent Body"
+              value={minorBodyTelemetry.parentBodyName}
+            />
+          ) : null}
+          <Datum label="Hazards" value={hazardSummaryNode} />
+        </Stack>
+      ) : null}
+      {structureTelemetry ? (
+        <Stack gap="none" data-testid="details-focused-entity-peek">
+          <Datum
+            label="Structure Type"
+            value={
+              <Cluster gap="tight" align="center">
+                <CelestialBadge type={structureTelemetry.symbolType} />
+                <Badge status="info">{structureTelemetry.structureType}</Badge>
+              </Cluster>
+            }
+          />
+        </Stack>
+      ) : null}
+      {diskTelemetry ? (
+        <Stack gap="none" data-testid="details-focused-entity-peek">
+          <Datum
+            label="Classification"
+            value={
+              <CelestialBadge
+                type={diskTelemetry.classification}
+                href={buildMetricGuideHref('semi-major-axis', id)}
+                data-testid="details-disk-classification-link"
+              />
+            }
+          />
+          <Datum
+            label="Radial Span"
+            value={`${diskTelemetry.innerRadiusAu}–${diskTelemetry.outerRadiusAu}`}
+            unit={
+              <Unit>
+                <a
+                  href={buildMetricGuideHref('semi-major-axis', id)}
+                  data-testid="details-metric-unit-link"
+                >
+                  AU
+                </a>
+              </Unit>
+            }
+          />
+          {diskTelemetry.tempK !== undefined ? (
+            <Datum
+              label="Estimated Temp"
+              value={diskTelemetry.tempK}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('equilibrium-temperature', id)}
+                    data-testid="details-metric-unit-link"
+                  >
+                    K
+                  </a>
+                </Unit>
+              }
+            />
+          ) : null}
+          <Datum label="Hazards" value={hazardSummaryNode} />
+        </Stack>
+      ) : null}
+      {isSystemFocus ? (
+        <Stack gap="none">
+          <Datum
+            data-testid="details-planet-composition"
+            label="Planets"
+            value={
+              <PlanetCensus
+                planetCount={planetCount}
+                breakdown={planetCompositionBreakdown}
+                hasHabitableCandidate={hasHabitableCandidate}
+                habitableHref={buildTagGalaxyHref('HabitableCandidate')}
+                planetTypeHrefBuilder={buildPlanetTypeGuideHref}
+                planetTypeTestId="details-summary-planet-type-link"
+                habitableTestId="details-habitable-zone-link"
+              />
+            }
+          />
+          <Datum label="Hazards" value={hazardSummaryNode} />
+        </Stack>
+      ) : null}
+      <p data-testid="details-system-summary">
+        {renderSystemSummarySegments(systemSummarySegments)}
+      </p>
     </>
   );
 
   const partialContent = (
     <>
-      <div data-testid="details-actions">
+      <Cluster gap="default" data-testid="details-cta-group">
         {systemDetailsHref ? (
-          <>
-            <a
-              href={systemDetailsHref}
-              data-testid="details-button-system-details"
-            >
-              Details
-            </a>{' '}
-          </>
+          <Button
+            href={systemDetailsHref}
+            variant="default"
+            data-testid="details-button-system-details"
+          >
+            Details
+          </Button>
         ) : null}
-        <a
-          href={details.centerHref ?? `/galaxy?center=${encodeURIComponent(id)}&focus=${encodeURIComponent(id)}`}
+        <Button
+          href={
+            details.centerHref ??
+            `/galaxy?center=${encodeURIComponent(id)}&focus=${encodeURIComponent(id)}`
+          }
+          variant="default"
           data-testid="details-button-center"
         >
           Centre
-        </a>{' '}
-        <a
+        </Button>
+        <Button
           href={details.directionsHref}
+          variant="primary"
           data-testid="details-button-directions"
         >
           Directions
-        </a>
-      </div>
+        </Button>
+      </Cluster>
       {renderHazards(details.hazards)}
       {renderCanonLayers(canonAnnotations)}
       {renderOrbitingBodies(focusedKind, orbitingBodies)}
@@ -954,516 +1010,473 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
           aria-labelledby="details-star-telemetry-heading"
           data-testid="details-star-telemetry-section"
         >
-            <h4 id="details-star-telemetry-heading">Stellar Telemetry</h4>
-            <dl data-testid="details-star-telemetry-list">
-              <dt>Component</dt>
-              <dd data-testid="details-star-telemetry-component">
-                {starTelemetry.componentDesignation}
-              </dd>
-              <dt>Spectral Class</dt>
-              <dd data-testid="details-star-telemetry-spectral">
-                {shouldDisplaySpectralBadge(starTelemetry.spectralType) ? (
-                  <Badge category="star">
-                    <a
-                      href={buildStarTypeGuideHref(starTelemetry.spectralType)}
-                      data-testid="details-star-telemetry-spectral-link"
-                    >
-                      {starTelemetry.spectralType}
-                    </a>
-                  </Badge>
-                ) : (
-                  starTelemetry.spectralType
-                )}
-              </dd>
-              <dt>Apparent Magnitude</dt>
-              <dd data-testid="details-star-telemetry-mag">
-                <Quantity
-                  value={starTelemetry.mag}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('stellar-magnitude', id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        V
-                      </a>
-                    </Unit>
-                  }
+          <Heading as="h4" size="eyebrow" id="details-star-telemetry-heading">
+            Stellar Telemetry
+          </Heading>
+          <Stack gap="none" data-testid="details-star-telemetry-list">
+            <Datum
+              label="Component"
+              valueTestId="details-star-telemetry-component"
+              value={starTelemetry.componentDesignation}
+            />
+            <Datum
+              label="Spectral Class"
+              valueTestId="details-star-telemetry-spectral"
+              value={
+                <SpectralBadge
+                  spectralType={starTelemetry.spectralType}
+                  href={buildStarTypeGuideHref(starTelemetry.spectralType)}
+                  fallback={starTelemetry.spectralType}
+                  data-testid="details-star-telemetry-spectral-link"
                 />
-              </dd>
-              <dt>Absolute Magnitude</dt>
-              <dd data-testid="details-star-telemetry-absmag">
-                <Quantity
-                  value={starTelemetry.absmag}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('stellar-magnitude', id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        M_V
-                      </a>
-                    </Unit>
-                  }
-                />
-              </dd>
-              {starTelemetry.massMsun !== undefined ? (
-                <>
-                  <dt>Mass</dt>
-                  <dd data-testid="details-star-telemetry-mass">
-                    <Quantity
-                      value={starTelemetry.massMsun}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('stellar-mass', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            M☉
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              {starTelemetry.radiusRsun !== undefined ? (
-                <>
-                  <dt>Radius</dt>
-                  <dd data-testid="details-star-telemetry-radius">
-                    <Quantity
-                      value={starTelemetry.radiusRsun}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('stellar-radius', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            R☉
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              {starTelemetry.luminosityLsun !== undefined ? (
-                <>
-                  <dt>Luminosity</dt>
-                  <dd data-testid="details-star-telemetry-luminosity">
-                    <Quantity
-                      value={starTelemetry.luminosityLsun}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('stellar-luminosity', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            L☉
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              {starTelemetry.effectiveTempK !== undefined ? (
-                <>
-                  <dt>Effective Temp</dt>
-                  <dd data-testid="details-star-telemetry-temp">
-                    <Quantity
-                      value={starTelemetry.effectiveTempK}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('effective-temperature', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            K
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-            </dl>
-          </section>
-        ) : null}
-        {planetTelemetry ? (
-          <section
-            aria-labelledby="details-planet-telemetry-heading"
-            data-testid="details-planet-telemetry-section"
-          >
-            <h4 id="details-planet-telemetry-heading">Planetary Telemetry</h4>
-            <dl data-testid="details-planet-telemetry-list">
-              <dt>Composition</dt>
-              <dd data-testid="details-planet-telemetry-composition">
-                <Badge category="planet">
+              }
+            />
+            <Datum
+              label="Apparent Magnitude"
+              valueTestId="details-star-telemetry-mag"
+              value={starTelemetry.mag}
+              unit={
+                <Unit>
                   <a
-                    href={buildPlanetTypeGuideHref(planetTelemetry.composition)}
-                    data-testid="details-planet-telemetry-type-link"
+                    href={buildMetricGuideHref('stellar-magnitude', id)}
+                    data-testid="details-metric-unit-link"
                   >
-                    {planetTelemetry.composition}
+                    V
                   </a>
-                </Badge>
-              </dd>
-              <dt>Habitable Zone</dt>
-              <dd data-testid="details-planet-telemetry-habitable">
-                {planetTelemetry.isHabitableCandidate ? (
-                  <Badge status="nominal">
+                </Unit>
+              }
+            />
+            <Datum
+              label="Absolute Magnitude"
+              valueTestId="details-star-telemetry-absmag"
+              value={starTelemetry.absmag}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('stellar-magnitude', id)}
+                    data-testid="details-metric-unit-link"
+                  >
+                    M_V
+                  </a>
+                </Unit>
+              }
+            />
+            {starTelemetry.massMsun !== undefined ? (
+              <Datum
+                label="Mass"
+                valueTestId="details-star-telemetry-mass"
+                value={starTelemetry.massMsun}
+                unit={
+                  <Unit>
                     <a
-                      href={buildTagGalaxyHref('HabitableCandidate')}
-                      data-testid="details-planet-telemetry-habitable-link"
+                      href={buildMetricGuideHref('stellar-mass', id)}
+                      data-testid="details-metric-unit-link"
                     >
-                      Habitable zone
+                      M☉
                     </a>
-                  </Badge>
+                  </Unit>
+                }
+              />
+            ) : null}
+            {starTelemetry.radiusRsun !== undefined ? (
+              <Datum
+                label="Radius"
+                valueTestId="details-star-telemetry-radius"
+                value={starTelemetry.radiusRsun}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref('stellar-radius', id)}
+                      data-testid="details-metric-unit-link"
+                    >
+                      R☉
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+            {starTelemetry.luminosityLsun !== undefined ? (
+              <Datum
+                label="Luminosity"
+                valueTestId="details-star-telemetry-luminosity"
+                value={starTelemetry.luminosityLsun}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref('stellar-luminosity', id)}
+                      data-testid="details-metric-unit-link"
+                    >
+                      L☉
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+            {starTelemetry.effectiveTempK !== undefined ? (
+              <Datum
+                label="Effective Temp"
+                valueTestId="details-star-telemetry-temp"
+                value={starTelemetry.effectiveTempK}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref('effective-temperature', id)}
+                      data-testid="details-metric-unit-link"
+                    >
+                      K
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+          </Stack>
+        </section>
+      ) : null}
+      {planetTelemetry ? (
+        <section
+          aria-labelledby="details-planet-telemetry-heading"
+          data-testid="details-planet-telemetry-section"
+        >
+          <Heading as="h4" size="eyebrow" id="details-planet-telemetry-heading">
+            Planetary Telemetry
+          </Heading>
+          <Stack gap="none" data-testid="details-planet-telemetry-list">
+            <Datum
+              label="Composition"
+              valueTestId="details-planet-telemetry-composition"
+              value={
+                <CelestialBadge
+                  type={planetTelemetry.composition}
+                  href={buildPlanetTypeGuideHref(planetTelemetry.composition)}
+                  data-testid="details-planet-telemetry-type-link"
+                />
+              }
+            />
+            <Datum
+              data-testid="details-planet-telemetry-habitable"
+              label="Habitability"
+              valueTestId="details-planet-telemetry-habitability"
+              value={
+                planetTelemetry.isHabitableCandidate ? (
+                  <CelestialBadge
+                    type="habitable-zone"
+                    href="/guide/planet-types/habitable-zone"
+                    data-testid="details-planet-telemetry-habitable-link"
+                  />
                 ) : (
                   'Outside optimistic zone'
-                )}
-              </dd>
-              {planetTelemetry.semiMajorAxisAu !== undefined ? (
-                <>
-                  <dt>Semi-Major Axis (a)</dt>
-                  <dd data-testid="details-planet-telemetry-axis">
-                    <Quantity
-                      value={planetTelemetry.semiMajorAxisAu}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('semi-major-axis', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            AU
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              {planetTelemetry.periodDays !== undefined ? (
-                <>
-                  <dt>Orbital Period (P)</dt>
-                  <dd data-testid="details-planet-telemetry-period">
-                    <Quantity
-                      value={planetTelemetry.periodDays}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('orbital-period', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            d
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              {planetTelemetry.eccentricity !== undefined ? (
-                <>
-                  <dt>Eccentricity (e)</dt>
-                  <dd data-testid="details-planet-telemetry-eccentricity">
-                    {planetTelemetry.eccentricity}
-                  </dd>
-                </>
-              ) : null}
-              {planetTelemetry.inclinationDeg !== undefined ? (
-                <>
-                  <dt>Inclination (i)</dt>
-                  <dd data-testid="details-planet-telemetry-inclination">
-                    <Quantity
-                      value={planetTelemetry.inclinationDeg}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('orbital-inclination', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            °
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              {planetTelemetry.massMearth !== undefined ? (
-                <>
-                  <dt>Mass</dt>
-                  <dd data-testid="details-planet-telemetry-mass">
-                    <Quantity
-                      value={planetTelemetry.massMearth}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('planetary-mass', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            M⊕
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              {planetTelemetry.radiusRearth !== undefined ? (
-                <>
-                  <dt>Radius</dt>
-                  <dd data-testid="details-planet-telemetry-radius">
-                    <Quantity
-                      value={planetTelemetry.radiusRearth}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('planetary-radius', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            R⊕
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              {planetTelemetry.surfaceGravityG !== undefined ? (
-                <>
-                  <dt>Surface Gravity</dt>
-                  <dd data-testid="details-planet-telemetry-gravity">
-                    <Quantity
-                      value={planetTelemetry.surfaceGravityG}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('surface-gravity', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            g
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              {planetTelemetry.equilibriumTempK !== undefined ? (
-                <>
-                  <dt>Equilibrium Temp</dt>
-                  <dd data-testid="details-planet-telemetry-temp">
-                    <Quantity
-                      value={planetTelemetry.equilibriumTempK}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref(
-                              'equilibrium-temperature',
-                              id,
-                            )}
-                            data-testid="details-metric-unit-link"
-                          >
-                            K
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              {planetTelemetry.esi !== undefined ? (
-                <>
-                  <dt>Earth Similarity (ESI)</dt>
-                  <dd data-testid="details-planet-telemetry-esi">
-                    {planetTelemetry.esi.toFixed(2)}
-                  </dd>
-                </>
-              ) : null}
-              <dt>Tidal Status</dt>
-              <dd data-testid="details-planet-telemetry-tidal">
-                {planetTelemetry.isTidallyLocked
-                  ? 'Tidally locked (synchronous)'
-                  : 'Free rotation'}
-              </dd>
-              {planetTelemetry.discoveryYear !== undefined ||
-              planetTelemetry.discoveryMethod ? (
-                <>
-                  <dt>Discovery</dt>
-                  <dd data-testid="details-planet-telemetry-discovery">
-                    {[
-                      planetTelemetry.discoveryYear,
-                      planetTelemetry.discoveryMethod,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </dd>
-                </>
-              ) : null}
-            </dl>
-          </section>
-        ) : null}
-        {diskTelemetry ? (
-          <section
-            aria-labelledby="details-disk-telemetry-heading"
-            data-testid="details-disk-telemetry-section"
-          >
-            <h4 id="details-disk-telemetry-heading">
-              Circumstellar Disk Telemetry
-            </h4>
-            <dl data-testid="details-disk-telemetry-list">
-              <dt>Classification</dt>
-              <dd data-testid="details-disk-telemetry-classification">
-                <Badge
-                  status={
-                    diskTelemetry.classification === 'asteroid-belt'
-                      ? 'caution'
-                      : diskTelemetry.classification === 'kuiper-belt'
-                        ? 'info'
-                        : 'neutral'
-                  }
-                >
-                  {diskTelemetry.classificationLabel}
-                </Badge>
-              </dd>
-              <dt>Radial Span</dt>
-              <dd data-testid="details-disk-telemetry-span">
-                <Quantity
-                  value={`${diskTelemetry.innerRadiusAu}–${diskTelemetry.outerRadiusAu}`}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('semi-major-axis', id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        AU
-                      </a>
-                    </Unit>
-                  }
-                />
-              </dd>
-              <dt>Midpoint Radius</dt>
-              <dd data-testid="details-disk-telemetry-midpoint">
-                <Quantity
-                  value={diskTelemetry.semiMajorAxisAu}
-                  unit={
-                    <Unit>
-                      <a
-                        href={buildMetricGuideHref('semi-major-axis', id)}
-                        data-testid="details-metric-unit-link"
-                      >
-                        AU
-                      </a>
-                    </Unit>
-                  }
-                />
-              </dd>
-              {diskTelemetry.tempK !== undefined ? (
-                <>
-                  <dt>Estimated Temp</dt>
-                  <dd data-testid="details-disk-telemetry-temp">
-                    <Quantity
-                      value={diskTelemetry.tempK}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref(
-                              'equilibrium-temperature',
-                              id,
-                            )}
-                            data-testid="details-metric-unit-link"
-                          >
-                            K
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-              <dt>Composition</dt>
-              <dd data-testid="details-disk-telemetry-composition">
-                {diskTelemetry.composition}
-              </dd>
-            </dl>
-          </section>
-        ) : null}
-        {minorBodyTelemetry ? (
-          <section
-            aria-labelledby="details-minor-body-telemetry-heading"
-            data-testid="details-minor-body-telemetry-section"
-          >
-            <h4 id="details-minor-body-telemetry-heading">Body Telemetry</h4>
-            <dl data-testid="details-minor-body-telemetry-list">
-              <dt>Classification</dt>
-              <dd data-testid="details-minor-body-telemetry-class">
-                <Badge status="neutral">
-                  {minorBodyTelemetry.categoryLabel}
-                </Badge>
-              </dd>
-              {minorBodyTelemetry.parentBodyName ? (
-                <>
-                  <dt>Host System</dt>
-                  <dd data-testid="details-minor-body-telemetry-parent">
-                    {minorBodyTelemetry.parentBodyName}
-                  </dd>
-                </>
-              ) : null}
-            </dl>
-          </section>
-        ) : null}
-        {structureTelemetry ? (
-          <section
-            aria-labelledby="details-structure-telemetry-heading"
-            data-testid="details-structure-telemetry-section"
-          >
-            <h4 id="details-structure-telemetry-heading">
-              Structure Telemetry
-            </h4>
-            <dl data-testid="details-structure-telemetry-list">
-              <dt>Structure Type</dt>
-              <dd data-testid="details-structure-telemetry-type">
-                <Badge status="info">{structureTelemetry.structureType}</Badge>
-              </dd>
-              {structureTelemetry.radiusPc !== undefined ? (
-                <>
-                  <dt>Radius</dt>
-                  <dd data-testid="details-structure-telemetry-radius">
-                    <Quantity
-                      value={structureTelemetry.radiusPc}
-                      unit={
-                        <Unit>
-                          <a
-                            href={buildMetricGuideHref('galactic-coordinates', id)}
-                            data-testid="details-metric-unit-link"
-                          >
-                            pc
-                          </a>
-                        </Unit>
-                      }
-                    />
-                  </dd>
-                </>
-              ) : null}
-            </dl>
-          </section>
-        ) : null}
+                )
+              }
+            />
+            {planetTelemetry.semiMajorAxisAu !== undefined ? (
+              <Datum
+                label="Semi-Major Axis (a)"
+                valueTestId="details-planet-telemetry-axis"
+                value={planetTelemetry.semiMajorAxisAu}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref('semi-major-axis', id)}
+                      data-testid="details-metric-unit-link"
+                    >
+                      AU
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+            {planetTelemetry.periodDays !== undefined ? (
+              <Datum
+                label="Orbital Period (P)"
+                valueTestId="details-planet-telemetry-period"
+                value={planetTelemetry.periodDays}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref('orbital-period', id)}
+                      data-testid="details-metric-unit-link"
+                    >
+                      d
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+            {planetTelemetry.eccentricity !== undefined ? (
+              <Datum
+                label="Eccentricity"
+                valueTestId="details-planet-telemetry-eccentricity"
+                value={planetTelemetry.eccentricity}
+              />
+            ) : null}
+            {planetTelemetry.inclinationDeg !== undefined ? (
+              <Datum
+                label="Inclination (i)"
+                valueTestId="details-planet-telemetry-inclination"
+                value={planetTelemetry.inclinationDeg}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref('orbital-inclination', id)}
+                      data-testid="details-metric-unit-link"
+                    >
+                      °
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+            {planetTelemetry.massMearth !== undefined ? (
+              <Datum
+                label="Mass"
+                valueTestId="details-planet-telemetry-mass"
+                value={planetTelemetry.massMearth}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref('planetary-mass', id)}
+                      data-testid="details-metric-unit-link"
+                    >
+                      M⊕
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+            {planetTelemetry.radiusRearth !== undefined ? (
+              <Datum
+                label="Radius"
+                valueTestId="details-planet-telemetry-radius"
+                value={planetTelemetry.radiusRearth}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref('planetary-radius', id)}
+                      data-testid="details-metric-unit-link"
+                    >
+                      R⊕
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+            {planetTelemetry.surfaceGravityG !== undefined ? (
+              <Datum
+                label="Surface Gravity"
+                valueTestId="details-planet-telemetry-gravity"
+                value={planetTelemetry.surfaceGravityG}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref('surface-gravity', id)}
+                      data-testid="details-metric-unit-link"
+                    >
+                      g
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+            {planetTelemetry.equilibriumTempK !== undefined ? (
+              <Datum
+                label="Equilibrium Temp"
+                valueTestId="details-planet-telemetry-temp"
+                value={planetTelemetry.equilibriumTempK}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref(
+                        'equilibrium-temperature',
+                        id,
+                      )}
+                      data-testid="details-metric-unit-link"
+                    >
+                      K
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+            {planetTelemetry.esi !== undefined ? (
+              <Datum
+                label="Earth Similarity Index (ESI)"
+                valueTestId="details-planet-telemetry-esi"
+                value={planetTelemetry.esi.toFixed(2)}
+              />
+            ) : null}
+            <Datum
+              data-testid="details-planet-telemetry-tidal-status"
+              label="Tidal Status"
+              valueTestId="details-planet-telemetry-tidal"
+              value={
+                planetTelemetry.isTidallyLocked ? (
+                  <Badge status="caution">
+                    Tidally locked (synchronous)
+                  </Badge>
+                ) : (
+                  'Free rotation'
+                )
+              }
+            />
+            {planetTelemetry.discoveryYear !== undefined ||
+            planetTelemetry.discoveryMethod ? (
+              <Datum
+                label="Discovery"
+                valueTestId="details-planet-telemetry-discovery"
+                value={[
+                  planetTelemetry.discoveryYear,
+                  planetTelemetry.discoveryMethod,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              />
+            ) : null}
+          </Stack>
+        </section>
+      ) : null}
+      {diskTelemetry ? (
         <section
-          aria-labelledby="details-astrometry-heading"
-          data-testid="details-astrometry-section"
+          aria-labelledby="details-disk-telemetry-heading"
+          data-testid="details-disk-telemetry-section"
         >
-          <h4 id="details-astrometry-heading">Astrometry</h4>
-          <dl data-testid="details-astrometry-list">
-            <dt>System ID</dt>
-            <dd data-testid="details-astrometry-system-id">{systemId}</dd>
-            <dt>Sector</dt>
-            <dd data-testid="details-astrometry-sector">{sectorId}</dd>
-            <dt>Coordinates (J2000 pc)</dt>
-            <dd data-testid="details-astrometry-coords">
-              <Quantity
-                value={`${coordinatesPc[0]}, ${coordinatesPc[1]}, ${coordinatesPc[2]}`}
+          <Heading as="h4" size="eyebrow" id="details-disk-telemetry-heading">
+            Circumstellar Disk Telemetry
+          </Heading>
+          <Stack gap="none" data-testid="details-disk-telemetry-list">
+            <Datum
+              label="Classification"
+              valueTestId="details-disk-telemetry-classification"
+              value={
+                <CelestialBadge
+                  type={diskTelemetry.classification}
+                  href={buildMetricGuideHref('semi-major-axis', id)}
+                  data-testid="details-disk-classification-link"
+                />
+              }
+            />
+            {diskTelemetry.confidence ? (
+              <Datum
+                label="Observational Confidence"
+                valueTestId="details-disk-telemetry-confidence"
+                confidence={diskTelemetry.confidence as ConfidenceLevel}
+                value={
+                  <Badge confidence={diskTelemetry.confidence as any}>
+                    {diskTelemetry.confidence}
+                  </Badge>
+                }
+              />
+            ) : null}
+            <Datum
+              label="Radial Span"
+              valueTestId="details-disk-telemetry-span"
+              value={`${diskTelemetry.innerRadiusAu}–${diskTelemetry.outerRadiusAu}`}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('semi-major-axis', id)}
+                    data-testid="details-metric-unit-link"
+                  >
+                    AU
+                  </a>
+                </Unit>
+              }
+            />
+            <Datum
+              label="Midpoint Radius"
+              valueTestId="details-disk-telemetry-midpoint"
+              value={diskTelemetry.semiMajorAxisAu}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('semi-major-axis', id)}
+                    data-testid="details-metric-unit-link"
+                  >
+                    AU
+                  </a>
+                </Unit>
+              }
+            />
+            {diskTelemetry.tempK !== undefined ? (
+              <Datum
+                label="Estimated Temp"
+                valueTestId="details-disk-telemetry-temp"
+                value={diskTelemetry.tempK}
+                unit={
+                  <Unit>
+                    <a
+                      href={buildMetricGuideHref(
+                        'equilibrium-temperature',
+                        id,
+                      )}
+                      data-testid="details-metric-unit-link"
+                    >
+                      K
+                    </a>
+                  </Unit>
+                }
+              />
+            ) : null}
+            <Datum
+              label="Composition"
+              valueTestId="details-disk-telemetry-composition"
+              value={diskTelemetry.composition}
+            />
+          </Stack>
+        </section>
+      ) : null}
+      {minorBodyTelemetry ? (
+        <section
+          aria-labelledby="details-minor-body-telemetry-heading"
+          data-testid="details-minor-body-telemetry-section"
+        >
+          <Heading as="h4" size="eyebrow" id="details-minor-body-telemetry-heading">
+            Body Telemetry
+          </Heading>
+          <Stack gap="none" data-testid="details-minor-body-telemetry-list">
+            <Datum
+              label="Classification"
+              valueTestId="details-minor-body-telemetry-class"
+              value={
+                <CelestialBadge
+                  type={minorBodyTelemetry.classification}
+                  showLabel
+                />
+              }
+            />
+            {minorBodyTelemetry.parentBodyName ? (
+              <Datum
+                label="Host System"
+                valueTestId="details-minor-body-telemetry-parent"
+                value={minorBodyTelemetry.parentBodyName}
+              />
+            ) : null}
+          </Stack>
+        </section>
+      ) : null}
+      {structureTelemetry ? (
+        <section
+          aria-labelledby="details-structure-telemetry-heading"
+          data-testid="details-structure-telemetry-section"
+        >
+          <Heading as="h4" size="eyebrow" id="details-structure-telemetry-heading">
+            Structure Telemetry
+          </Heading>
+          <Stack gap="none" data-testid="details-structure-telemetry-list">
+            <Datum
+              label="Structure Type"
+              valueTestId="details-structure-telemetry-type"
+              value={
+                <Cluster gap="tight" align="center">
+                  <CelestialBadge type={structureTelemetry.symbolType} />
+                  <Badge status="info">{structureTelemetry.structureType}</Badge>
+                </Cluster>
+              }
+            />
+            {structureTelemetry.radiusPc !== undefined ? (
+              <Datum
+                label="Radius"
+                valueTestId="details-structure-telemetry-radius"
+                value={structureTelemetry.radiusPc}
                 unit={
                   <Unit>
                     <a
@@ -1475,11 +1488,49 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
                   </Unit>
                 }
               />
-            </dd>
-            {tags.length > 0 ? (
-              <>
-                <dt>Tags</dt>
-                <dd data-testid="details-astrometry-tags">
+            ) : null}
+          </Stack>
+        </section>
+      ) : null}
+      <section
+        aria-labelledby="details-astrometry-heading"
+        data-testid="details-astrometry-section"
+      >
+        <Heading as="h4" size="eyebrow" id="details-astrometry-heading">
+          Astrometry
+        </Heading>
+        <Stack gap="none" data-testid="details-astrometry-list">
+          <Datum
+            label="System ID"
+            valueTestId="details-astrometry-system-id"
+            value={systemId}
+          />
+          <Datum
+            label="Sector"
+            valueTestId="details-astrometry-sector"
+            value={sectorId}
+          />
+          <Datum
+            label="Coordinates (J2000 pc)"
+            valueTestId="details-astrometry-coords"
+            value={`${coordinatesPc[0]}, ${coordinatesPc[1]}, ${coordinatesPc[2]}`}
+            unit={
+              <Unit>
+                <a
+                  href={buildMetricGuideHref('galactic-coordinates', id)}
+                  data-testid="details-metric-unit-link"
+                >
+                  pc
+                </a>
+              </Unit>
+            }
+          />
+          {tags.length > 0 ? (
+            <Datum
+              label="Tags"
+              valueTestId="details-astrometry-tags"
+              value={
+                <>
                   {tags.map((tag, index) => (
                     <Fragment key={tag}>
                       {index > 0 ? ' ' : null}
@@ -1500,11 +1551,12 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
                       </Badge>
                     </Fragment>
                   ))}
-                </dd>
-              </>
-            ) : null}
-          </dl>
-        </section>
+                </>
+              }
+            />
+          ) : null}
+        </Stack>
+      </section>
     </>
   );
 

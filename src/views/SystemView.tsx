@@ -15,6 +15,7 @@ import {
   Minimap,
   PreviewPanel,
   SearchResultItem,
+  SpatialShell,
 } from '../components/domain';
 import {
   buildJourneyPlan,
@@ -278,50 +279,57 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
   });
 
   return (
-    <main data-testid="system-view-root">
-      <CanvasLayer
-        scope="system"
-        targetId={targetId}
-        centerId={cameraState.center}
-        centerCoordinates={
-          cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
-            ? [cameraState.x, cameraState.y, cameraState.z]
-            : undefined
-        }
-        cameraAzimuthDeg={cameraState.az}
-        cameraElevationDeg={cameraState.el}
-        cameraDistance={cameraState.dist}
-        journeyLegs={activeJourney?.chordLegs}
-        activeJourneyMethod={
-          activeJourney?.selectedOption?.id ??
-          activeJourney?.options[0]?.id
-        }
-      />
-      <Breadcrumbs items={breadcrumbs} />
-      <ControlBar scope="system" />
-      <Search.Root
-        limitPerCategory={3}
-        initialCorpus={initialCorpus}
-        locationPathname={locationPathname}
-        locationSearch={locationSearch}
-      >
-        <Search.Panel scope="system" />
-        <Search.Results
-          searchViewPath="/search"
-          renderItem={(result) => (
-            <SearchResultItem key={result.id} result={result} />
-          )}
+    <SpatialShell
+      testId="system-view-root"
+      canvas={
+        <CanvasLayer
+          scope="system"
+          targetId={targetId}
+          centerId={cameraState.center}
+          centerCoordinates={
+            cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
+              ? [cameraState.x, cameraState.y, cameraState.z]
+              : undefined
+          }
+          cameraAzimuthDeg={cameraState.az}
+          cameraElevationDeg={cameraState.el}
+          cameraDistance={cameraState.dist}
+          journeyLegs={activeJourney?.chordLegs}
+          activeJourneyMethod={
+            activeJourney?.selectedOption?.id ??
+            activeJourney?.options[0]?.id
+          }
         />
-      </Search.Root>
-      <LayerCard card={activeLayerCard} />
-      {activeJourney ? (
-        <DirectionsPanel journey={activeJourney} />
-      ) : (
-        <DetailsPanel details={focusedDetails} />
-      )}
-      <PreviewPanel preview={focusedPreview} />
-      <Minimap orientation={minimapOrientation} />
-      <BodiesPanel elements={systemBodies} schematic={orbitalSchematic} />
-    </main>
+      }
+      breadcrumbs={<Breadcrumbs items={breadcrumbs} />}
+      controls={<ControlBar scope="system" />}
+      search={
+        <Search.Root
+          limitPerCategory={3}
+          initialCorpus={initialCorpus}
+          locationPathname={locationPathname}
+          locationSearch={locationSearch}
+        >
+          <Search.Panel scope="system" />
+          <Search.Results
+            searchViewPath="/search"
+            renderItem={(result) => (
+              <SearchResultItem key={result.id} result={result} />
+            )}
+          />
+        </Search.Root>
+      }
+      layerCard={<LayerCard card={activeLayerCard} />}
+      primaryFloat={
+        activeJourney ? (
+          <DirectionsPanel journey={activeJourney} />
+        ) : (
+          <DetailsPanel details={focusedDetails} />
+        )
+      }
+      preview={<PreviewPanel preview={focusedPreview} />}
+      minimap={<Minimap orientation={minimapOrientation} />}
+      bodies={<BodiesPanel elements={systemBodies} schematic={orbitalSchematic} />}
+    />
   );
 };

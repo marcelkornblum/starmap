@@ -39,7 +39,7 @@ const meta: Meta<FullEntityStoryArgs> = {
         'neutron-star',
         'black-hole',
         'barycentre',
-        'cluster',
+        'stellar-cluster',
         'construct',
         'terrestrial',
         'gas-giant',

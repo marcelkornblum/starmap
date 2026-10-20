@@ -21,6 +21,11 @@ Candidate features and ideas awaiting formal track planning. Items here are eith
 
 ## Exploration, User Layers & Saved Workspaces
 
+- **Dataset Layers & Tag Taxonomy Audit, Renaming & Expansion:**
+  - **Concise Layer Titles & Entry Names:** Audit all existing `DatasetLayerManifest` titles and entry `inUniverseName` strings so they render cleanly in `<Badge>` pills, `<LayerCard>` headers, and `<DetailsPanel>` accordions without parenthetical bloat (e.g. *"Remembrance of Earth’s Past (Three-Body)"* $\rightarrow$ *"Three-Body"*, *"Dune Universe (Known Universe)"* $\rightarrow$ *"Dune"*, *"Star Trek Canon"* $\rightarrow$ *"Star Trek"*, stripping parenthetical subtitles from `inUniverseName`).
+  - **Layer Reorganisation & Splitting:** Break up grab-bag anthology layers into coherent, single-purpose layers—splitting `canon-classic-scifi` (*"Classic Hard Sci-Fi Landmarks"*) into dedicated franchise layers (*Alien*, *2001: A Space Odyssey*, *Foundation*, *Hyperion*, *Contact*, *Aurora*) and separating `overlay-interstellar-missions` into distinct layers for physical Deep-Space Probes (*Voyager*, *Pioneer*, *New Horizons*), Interstellar Propulsion Concepts (*Breakthrough Starshot*, *Project Daedalus*, *Project Longshot*), and Radio SETI Landmarks (*Project Ozma*, *Arecibo Message*, *Wow! Signal*).
+  - **Catalog Expansion:** Curate and cross-match a broader collection of fictional canon layers and scientific/historical overlays onto the 100-parsec catalogue.
+  - **System & Planet Tag Taxonomy Unification:** Audit and rationalise `SYSTEM_TAG_BITS` and planet tags (`HabitableCandidate`, `HabitableHost`, `HabitableWorld`, `ExoplanetHost`, `NakedEye`, `SolarNeighborhood10pc`, `VariableStar`, `RECONSGroundTruth`) so tag slugs, bitmasks, and UI labels are 100% consistent across build scripts, search filters, and panels.
 - **User-Authored Layers, Saved Workspaces, Route Bookmarks & Filter Presets (`FS-002`, `FS-015`):**
   - Unified user persistence and custom layer authoring built on the `DatasetLayerManifest` (`kind: 'custom-user'`) architecture.
   - Create, name (e.g. *"Outer Colony Reach"*), save, and import/export custom user layers, personal lore annotations, and tagged star clusters across systems.

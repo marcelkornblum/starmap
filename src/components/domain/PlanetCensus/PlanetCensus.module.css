@@ -1,0 +1,25 @@
+@layer blocks {
+  .census {
+    --cluster-gap: var(--space-fib-4);
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    margin: 0;
+    gap: var(--space-fib-4);
+  }
+
+  .item {
+    --cluster-gap: var(--space-fib-1);
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    margin: 0;
+    gap: var(--space-fib-1);
+  }
+}
+
+@layer exceptions {
+  .census[data-planet-census="true"] {
+    color: var(--content-default);
+  }
+}

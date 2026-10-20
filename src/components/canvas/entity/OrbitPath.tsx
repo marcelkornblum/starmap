@@ -241,12 +241,9 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
     };
   }, [lineMat]);
 
-  useFrame(({ camera, size }) => {
-    if (!shouldRender) return;
-    lineMat.updateResolution(camera, size.width, size.height);
+  useEffect(() => {
     lineMat.setColor(resolvedColor);
     lineMat.setOpacity(resolvedAlpha);
-
     if (directionMatRef.current) {
       if (resolvedColor instanceof THREE.Color) {
         directionMatRef.current.color.copy(resolvedColor);
@@ -255,6 +252,11 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       }
       directionMatRef.current.opacity = resolvedAlpha;
     }
+  }, [lineMat, resolvedColor, resolvedAlpha]);
+
+  useFrame(({ camera, size }) => {
+    if (!shouldRender) return;
+    lineMat.updateResolution(camera, size.width, size.height);
 
     // 2D Billboarding: ensure chevron always faces camera flat-on, oriented to orbital motion
     if (arrowBillboardRef.current && showDirectionIndicator) {

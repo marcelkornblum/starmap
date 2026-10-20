@@ -3,11 +3,8 @@ import {
   createRoute,
   createRootRoute,
   defaultStringifySearch,
-  Navigate,
   Outlet,
 } from '@tanstack/react-router';
-import { RootLayout } from '../components/poc/layout/RootLayout';
-import { RouteSkeleton } from '../components/poc/common/RouteSkeleton';
 import { GalaxyView } from '../views/GalaxyView';
 import { HazardDetailView } from '../views/HazardDetailView';
 import { HazardsListView } from '../views/HazardsListView';
@@ -20,10 +17,6 @@ import { SearchView } from '../views/SearchView';
 import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
-import { GalaxyView as PocGalaxyView } from '../views/poc/GalaxyView';
-import { SystemView as PocSystemView } from '../views/poc/SystemView';
-import { PlanetView as PocPlanetView } from '../views/poc/PlanetView';
-import { ReferenceView } from '../views/poc/ReferenceView';
 
 export interface StarmapSearchParams {
   q?: string;
@@ -182,64 +175,6 @@ export const hazardDetailRoute = createRoute({
   component: HazardDetailView,
 });
 
-// Quarantined POC layout and routes under /poc/* for reference
-export const pocRoute = createRoute({
-  getParentRoute: () => pocRouteParent,
-  path: '/poc',
-  component: RootLayout,
-});
-export const pocRouteParent = rootRoute;
-
-export const pocIndexRoute = createRoute({
-  getParentRoute: () => pocRoute,
-  path: '/',
-  component: () => <Navigate to="/poc/galaxy" />,
-});
-
-export const galaxyRoute = createRoute({
-  getParentRoute: () => pocRoute,
-  path: '/galaxy',
-  component: PocGalaxyView,
-  pendingComponent: () => <RouteSkeleton label="Scanning Galactic Field..." />,
-  pendingMs: 0,
-  loader: async () => {
-    return simulateAsyncFetch({ target: 'Milky Way', nodeCount: 119614 });
-  },
-});
-
-export const systemRoute = createRoute({
-  getParentRoute: () => pocRoute,
-  path: '/system/$systemId',
-  component: PocSystemView,
-  pendingComponent: () => <RouteSkeleton label="Resolving Star System Telemetry..." />,
-  pendingMs: 0,
-  loader: async ({ params }) => {
-    return simulateAsyncFetch({ systemId: params.systemId, spectralType: 'G2V' });
-  },
-});
-
-export const planetRoute = createRoute({
-  getParentRoute: () => pocRoute,
-  path: '/planet/$planetId',
-  component: PocPlanetView,
-  pendingComponent: () => <RouteSkeleton label="Acquiring Planetary Orbit Data..." />,
-  pendingMs: 0,
-  loader: async ({ params }) => {
-    return simulateAsyncFetch({ planetId: params.planetId, classification: 'Terrestrial' });
-  },
-});
-
-export const referenceRoute = createRoute({
-  getParentRoute: () => pocRoute,
-  path: '/reference',
-  component: ReferenceView,
-  pendingComponent: () => <RouteSkeleton label="Accessing Celestial Catalog..." />,
-  pendingMs: 0,
-  loader: async () => {
-    return simulateAsyncFetch({ catalog: 'ICRS/J2000 Encyclopedia' });
-  },
-});
-
 export const routeTree = rootRoute.addChildren([
   indexRoute,
   mainSearchRoute,
@@ -255,13 +190,6 @@ export const routeTree = rootRoute.addChildren([
   metricDetailRoute,
   hazardsListRoute,
   hazardDetailRoute,
-  pocRoute.addChildren([
-    pocIndexRoute,
-    galaxyRoute,
-    systemRoute,
-    planetRoute,
-    referenceRoute,
-  ]),
 ]);
 
 export const router = createRouter({

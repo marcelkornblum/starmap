@@ -5,7 +5,14 @@ import {
   GuideExamplesList,
   GuideSectionNav,
 } from '../components/domain';
-import { Badge } from '../components/interface';
+import {
+  Button,
+  CelestialBadge,
+  Cluster,
+  Datum,
+  Heading,
+  Stack,
+} from '../components/interface';
 import {
   PLANET_TYPES_GUIDE_PATH,
   resolvePlanetTypeGuideEntry,
@@ -51,18 +58,20 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
         ]}
       />
       <GuideSectionNav currentSection="planet-types" />
-      <h1>
+      <Heading as="h1">
         {resolvedPlanetType
           ? `Planet Type: ${resolvedPlanetType}`
           : 'Planet Type'}
-      </h1>
+      </Heading>
       <p>
-        <a
+        <Button
           href={PLANET_TYPES_GUIDE_PATH}
+          variant="subtle"
+          size="sm"
           data-testid="planet-types-list-link"
         >
           All Planet Types
-        </a>
+        </Button>
       </p>
 
       {entry ? (
@@ -76,24 +85,20 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
               isDetail
             />
 
-            <div>
-              <Badge category="planet">{entry.composition}</Badge>{' '}
+            <Cluster gap="tight" align="center">
+              <CelestialBadge type={entry.composition} />
               <strong>{entry.title}</strong>
-            </div>
+            </Cluster>
 
             <p data-testid="guide-detail-summary">{entry.summary}</p>
 
-            <h3>Geophysical & Atmospheric Telemetry</h3>
-            <dl data-testid="guide-detail-telemetry" className={styles.telemetryDl}>
-              <dt>Mass Range</dt>
-              <dd>{entry.massRangeMearth}</dd>
-              <dt>Radius Range</dt>
-              <dd>{entry.radiusRangeRearth}</dd>
-              <dt>Bulk Composition</dt>
-              <dd>{entry.bulkComposition}</dd>
-              <dt>Habitability</dt>
-              <dd>{entry.habitabilityNotes}</dd>
-            </dl>
+            <Heading as="h3">Geophysical & Atmospheric Telemetry</Heading>
+            <Stack gap="none" data-testid="guide-detail-telemetry">
+              <Datum label="Mass Range" value={entry.massRangeMearth} />
+              <Datum label="Radius Range" value={entry.radiusRangeRearth} />
+              <Datum label="Bulk Composition" value={entry.bulkComposition} />
+              <Datum label="Habitability" value={entry.habitabilityNotes} />
+            </Stack>
           </section>
 
           <GuideExamplesList examples={entry.examples} />

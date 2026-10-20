@@ -14,6 +14,7 @@ import {
   Minimap,
   PreviewPanel,
   SearchResultItem,
+  SpatialShell,
 } from '../components/domain';
 import {
   buildJourneyPlan,
@@ -280,50 +281,57 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
   });
 
   return (
-    <main data-testid="planet-view-root">
-      <CanvasLayer
-        scope="planet"
-        targetId={targetId}
-        centerId={cameraState.center}
-        centerCoordinates={
-          cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
-            ? [cameraState.x, cameraState.y, cameraState.z]
-            : undefined
-        }
-        cameraAzimuthDeg={cameraState.az}
-        cameraElevationDeg={cameraState.el}
-        cameraDistance={cameraState.dist}
-        journeyLegs={activeJourney?.chordLegs}
-        activeJourneyMethod={
-          activeJourney?.selectedOption?.id ??
-          activeJourney?.options[0]?.id
-        }
-      />
-      <Breadcrumbs items={breadcrumbs} />
-      <ControlBar scope="planet" />
-      <Search.Root
-        limitPerCategory={3}
-        initialCorpus={initialCorpus}
-        locationPathname={locationPathname}
-        locationSearch={locationSearch}
-      >
-        <Search.Panel scope="planet" />
-        <Search.Results
-          searchViewPath="/search"
-          renderItem={(result) => (
-            <SearchResultItem key={result.id} result={result} />
-          )}
+    <SpatialShell
+      testId="planet-view-root"
+      canvas={
+        <CanvasLayer
+          scope="planet"
+          targetId={targetId}
+          centerId={cameraState.center}
+          centerCoordinates={
+            cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
+              ? [cameraState.x, cameraState.y, cameraState.z]
+              : undefined
+          }
+          cameraAzimuthDeg={cameraState.az}
+          cameraElevationDeg={cameraState.el}
+          cameraDistance={cameraState.dist}
+          journeyLegs={activeJourney?.chordLegs}
+          activeJourneyMethod={
+            activeJourney?.selectedOption?.id ??
+            activeJourney?.options[0]?.id
+          }
         />
-      </Search.Root>
-      <LayerCard card={activeLayerCard} />
-      {activeJourney ? (
-        <DirectionsPanel journey={activeJourney} />
-      ) : (
-        <DetailsPanel details={focusedDetails} />
-      )}
-      <PreviewPanel preview={focusedPreview} />
-      <Minimap orientation={minimapOrientation} />
-      <BodiesPanel elements={planetaryBodies} schematic={orbitalSchematic} />
-    </main>
+      }
+      breadcrumbs={<Breadcrumbs items={breadcrumbs} />}
+      controls={<ControlBar scope="planet" />}
+      search={
+        <Search.Root
+          limitPerCategory={3}
+          initialCorpus={initialCorpus}
+          locationPathname={locationPathname}
+          locationSearch={locationSearch}
+        >
+          <Search.Panel scope="planet" />
+          <Search.Results
+            searchViewPath="/search"
+            renderItem={(result) => (
+              <SearchResultItem key={result.id} result={result} />
+            )}
+          />
+        </Search.Root>
+      }
+      layerCard={<LayerCard card={activeLayerCard} />}
+      primaryFloat={
+        activeJourney ? (
+          <DirectionsPanel journey={activeJourney} />
+        ) : (
+          <DetailsPanel details={focusedDetails} />
+        )
+      }
+      preview={<PreviewPanel preview={focusedPreview} />}
+      minimap={<Minimap orientation={minimapOrientation} />}
+      bodies={<BodiesPanel elements={planetaryBodies} schematic={orbitalSchematic} />}
+    />
   );
 };

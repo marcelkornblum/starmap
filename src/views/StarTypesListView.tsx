@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
-import { Badge } from '../components/interface';
+import { Cluster, Datum, Heading, SpectralBadge } from '../components/interface';
 import { STAR_TYPE_GUIDE_ENTRIES } from '../services/guideService';
 import styles from './GuideViews.module.css';
 
@@ -14,7 +14,7 @@ export const StarTypesListView: React.FC = () => {
         ]}
       />
       <GuideSectionNav currentSection="star-types" />
-      <h1>Star Types</h1>
+      <Heading as="h1">Star Types</Heading>
       <ul data-testid="star-types-guide-list" className={styles.cardList}>
         {STAR_TYPE_GUIDE_ENTRIES.map((entry) => (
           <li
@@ -35,13 +35,11 @@ export const StarTypesListView: React.FC = () => {
                 tempK={entry.canonicalTempK}
                 chromaticityHex={entry.chromaticityHex}
               />
-              <div>
-                <Badge category="star">{entry.spectralClass}</Badge>{' '}
+              <Cluster gap="tight" align="center">
+                <SpectralBadge spectralType={entry.spectralClass} interactive={false} />
                 <strong>{entry.title}</strong>
-              </div>
-              <div>
-                <span>{entry.effectiveTempRange}</span>
-              </div>
+              </Cluster>
+              <Datum label="Effective Temp" value={entry.effectiveTempRange} />
               <p>{entry.summary}</p>
             </a>
           </li>

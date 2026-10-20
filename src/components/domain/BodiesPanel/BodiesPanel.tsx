@@ -5,7 +5,17 @@ import {
   type BodiesPanelSummary,
   type OrbitalSchematicSummary,
 } from '../../../services/detailsService';
-import { Badge, Quantity, Unit } from '../../interface/information';
+import {
+  Badge,
+  CelestialBadge,
+  Cluster,
+  DataTable,
+  HazardBadge,
+  Heading,
+  Quantity,
+  SpectralBadge,
+  Unit,
+} from '../../interface';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
 import styles from './BodiesPanel.module.css';
 
@@ -50,9 +60,9 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
         data-aperture-radius-pc={apertureRadiusPc}
         className={styles.root}
       >
-        <h2 id="bodies-panel-heading" className={styles.heading}>
+        <Heading as="h2" id="bodies-panel-heading" className={styles.heading}>
           Galactic Systems
-        </h2>
+        </Heading>
 
         {focusedSystemId && focusedSystemName ? (
           <p
@@ -63,106 +73,133 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
           </p>
         ) : null}
 
-        <ul
-          data-testid="bodies-galaxy-systems-list"
-          className={styles.systemsList}
-        >
-          {systems.map((sys) => {
-            const isItemFocused = sys.tier === 'focused';
-            const isItemSelected =
-              sys.tier === 'selected' || selectedSet.has(sys.id);
-            const isItemHovered =
-              (hoveredEntityId ?? elements.hoveredEntityId) === sys.id;
+        <DataTable data-testid="bodies-galaxy-systems-list">
+          <DataTable.Head>
+            <DataTable.Row>
+              <DataTable.HeaderCell>System</DataTable.HeaderCell>
+              <DataTable.HeaderCell>Reticle</DataTable.HeaderCell>
+              <DataTable.HeaderCell>Class</DataTable.HeaderCell>
+              <DataTable.HeaderCell align="end">Planets</DataTable.HeaderCell>
+              <DataTable.HeaderCell>Status</DataTable.HeaderCell>
+              <DataTable.HeaderCell align="end">Distance</DataTable.HeaderCell>
+            </DataTable.Row>
+          </DataTable.Head>
+          <DataTable.Body>
+            {systems.map((sys) => {
+              const isItemFocused = sys.tier === 'focused';
+              const isItemSelected =
+                sys.tier === 'selected' || selectedSet.has(sys.id);
+              const isItemHovered =
+                (hoveredEntityId ?? elements.hoveredEntityId) === sys.id;
 
-            return (
-              <li
-                key={sys.id}
-                data-testid="bodies-galaxy-system-item"
-                data-system-id={sys.id}
-                data-tier={sys.tier}
-                data-focused={isItemFocused ? 'true' : undefined}
-                data-selected={isItemSelected ? 'true' : undefined}
-                data-hovered={isItemHovered ? 'true' : undefined}
-                onMouseEnter={() => onHoverEntity?.(sys.id)}
-                onMouseLeave={() => onHoverEntity?.(null)}
-                onFocus={() => onHoverEntity?.(sys.id)}
-                onBlur={() => onHoverEntity?.(null)}
-                className={styles.systemItem}
-              >
-                <a href={sys.href} data-testid="bodies-galaxy-system-link">
-                  {sys.name}
-                </a>{' '}
-                <span data-testid="bodies-galaxy-system-reticle">
-                  [{sys.reticleType}]
-                </span>{' '}
-                {sys.spectralType && sys.starTypeGuideHref ? (
-                  <Badge category="star">
-                    <a
-                      href={sys.starTypeGuideHref}
-                      data-testid="bodies-galaxy-system-spectral-link"
-                    >
-                      {sys.spectralType}
+              return (
+                <DataTable.Row
+                  key={sys.id}
+                  data-testid="bodies-galaxy-system-item"
+                  data-system-id={sys.id}
+                  data-tier={sys.tier}
+                  data-focused={isItemFocused ? 'true' : undefined}
+                  data-selected={isItemSelected ? 'true' : undefined}
+                  data-hovered={isItemHovered ? 'true' : undefined}
+                  selected={isItemFocused || isItemSelected}
+                  interactive
+                  onMouseEnter={() => onHoverEntity?.(sys.id)}
+                  onMouseLeave={() => onHoverEntity?.(null)}
+                  onFocus={() => onHoverEntity?.(sys.id)}
+                  onBlur={() => onHoverEntity?.(null)}
+                >
+                  <DataTable.Cell>
+                    <a href={sys.href} data-testid="bodies-galaxy-system-link">
+                      {sys.name}
                     </a>
-                  </Badge>
-                ) : null}{' '}
-                <span data-testid="bodies-galaxy-system-planets">
-                  {sys.planetCount === 1
-                    ? '1 planet'
-                    : `${sys.planetCount} planets`}
-                </span>{' '}
-                {sys.hasHabitableCandidate && sys.habitableZoneGuideHref ? (
-                  <Badge status="nominal">
-                    <a
-                      href={sys.habitableZoneGuideHref}
-                      data-testid="bodies-galaxy-system-hz-link"
-                    >
-                      Habitable Zone
-                    </a>
-                  </Badge>
-                ) : null}{' '}
-                {sys.hazardCount > 0 ? (
-                  <Badge
-                    status={sys.hasCriticalHazard ? 'critical' : 'caution'}
-                    data-testid="bodies-galaxy-system-hazard"
-                  >
-                    {sys.hazardSummaryLabel}
-                  </Badge>
-                ) : null}{' '}
-                {sys.distanceFromFocusPc !== undefined ? (
-                  sys.tier === 'focused' && sys.distanceFromFocusPc === 0 ? (
-                    <Badge
-                      status="info"
-                      data-testid="bodies-focused-origin-badge"
-                    >
-                      Focused (0 pc)
-                    </Badge>
-                  ) : (
-                    <span data-testid="bodies-system-distance">
-                      <Quantity
-                        value={sys.distanceFromFocusPc}
-                        unit={
-                          <Unit>
-                            {sys.distanceGuideHref ? (
-                              <a
-                                href={sys.distanceGuideHref}
-                                data-testid="bodies-distance-unit-link"
-                              >
-                                pc
-                              </a>
-                            ) : (
-                              'pc'
-                            )}
-                          </Unit>
-                        }
-                      />{' '}
-                      ({sys.distanceFromFocusLy} ly)
-                    </span>
-                  )
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+                  </DataTable.Cell>
+                  <DataTable.Cell>
+                    <CelestialBadge type={sys.reticleType} data-testid="bodies-galaxy-system-reticle" />
+                  </DataTable.Cell>
+                  <DataTable.Cell>
+                    {sys.spectralType && sys.starTypeGuideHref ? (
+                      <SpectralBadge
+                        spectralType={sys.spectralType}
+                        href={sys.starTypeGuideHref}
+                        data-testid="bodies-galaxy-system-spectral-link"
+                      />
+                    ) : (
+                      '—'
+                    )}
+                  </DataTable.Cell>
+                  <DataTable.Cell numeric>
+                    <Quantity
+                      data-testid="bodies-galaxy-system-planets"
+                      value={sys.planetCount}
+                      unit={sys.planetCount === 1 ? 'planet' : 'planets'}
+                    />
+                  </DataTable.Cell>
+                  <DataTable.Cell>
+                    <Cluster gap="tight" align="center">
+                      {sys.hasHabitableCandidate && sys.habitableZoneGuideHref ? (
+                        <CelestialBadge
+                          type="habitable-zone"
+                          href={sys.habitableZoneGuideHref}
+                          data-testid="bodies-galaxy-system-hz-link"
+                        />
+                      ) : null}
+                      {sys.hazardCount > 0 ? (
+                        <HazardBadge
+                          label={sys.hazardSummaryLabel}
+                          severity={sys.hasCriticalHazard ? 'critical' : 'caution'}
+                          data-testid="bodies-galaxy-system-hazard"
+                        />
+                      ) : null}
+                    </Cluster>
+                  </DataTable.Cell>
+                  <DataTable.Cell numeric>
+                    {sys.distanceFromFocusPc !== undefined ? (
+                      sys.tier === 'focused' && sys.distanceFromFocusPc === 0 ? (
+                        <Cluster
+                          gap="tight"
+                          align="center"
+                          justify="end"
+                          data-testid="bodies-focused-origin-badge"
+                        >
+                          <Badge status="info">Focused</Badge>
+                          <Quantity value={0} unit="pc" />
+                        </Cluster>
+                      ) : (
+                        <Cluster
+                          gap="tight"
+                          align="center"
+                          justify="end"
+                          data-testid="bodies-system-distance"
+                        >
+                          <Quantity
+                            value={sys.distanceFromFocusPc}
+                            unit={
+                              <Unit>
+                                {sys.distanceGuideHref ? (
+                                  <a
+                                    href={sys.distanceGuideHref}
+                                    data-testid="bodies-distance-unit-link"
+                                  >
+                                    pc
+                                  </a>
+                                ) : (
+                                  'pc'
+                                )}
+                              </Unit>
+                            }
+                          />
+                          <Quantity value={sys.distanceFromFocusLy} unit="ly" />
+                        </Cluster>
+                      )
+                    ) : (
+                      '—'
+                    )}
+                  </DataTable.Cell>
+                </DataTable.Row>
+              );
+            })}
+          </DataTable.Body>
+        </DataTable>
       </section>
     );
   }
@@ -189,9 +226,9 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
       data-planet-id={scope === 'planet' ? elements.planetId : undefined}
       className={styles.root}
     >
-      <h2 id="bodies-panel-heading" className={styles.heading}>
+      <Heading as="h2" id="bodies-panel-heading" className={styles.heading}>
         {scope === 'system' ? 'System Bodies' : 'Planetary Bodies'}
-      </h2>
+      </Heading>
 
       <section
         aria-labelledby="bodies-schematic-heading"
@@ -201,9 +238,9 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
         data-planet-id={scope === 'planet' ? elements.planetId : undefined}
         className={styles.section}
       >
-        <h3 id="bodies-schematic-heading" className={styles.sectionHeading}>
+        <Heading as="h3" id="bodies-schematic-heading" className={styles.sectionHeading}>
           Orbital Schematic
-        </h3>
+        </Heading>
         {resolvedSchematic && resolvedSchematic.items.length > 0 ? (
           <OrbitalSchematicList items={resolvedSchematic.items} />
         ) : (
@@ -217,29 +254,43 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
           data-testid="bodies-minor-bodies-section"
           className={styles.section}
         >
-          <h3 id="bodies-minor-bodies-heading" className={styles.sectionHeading}>
+          <Heading as="h3" id="bodies-minor-bodies-heading" className={styles.sectionHeading}>
             Minor Bodies &amp; Spacecraft
-          </h3>
-          <ul
-            data-testid="bodies-minor-bodies-list"
-            className={styles.minorBodiesList}
-          >
-            {minorBodiesAndSpacecraft.map((body) => (
-              <li
-                key={body.id}
-                data-testid="bodies-minor-body-item"
-                data-body-id={body.id}
-                data-focused={focusedEntityId === body.id ? 'true' : undefined}
-                data-selected={selectedSet.has(body.id) ? 'true' : undefined}
-                className={styles.minorBodyItem}
-              >
-                <a href={body.href} data-testid="bodies-minor-body-link">
-                  {body.name}
-                </a>{' '}
-                <Badge status="neutral">{body.categoryLabel}</Badge>
-              </li>
-            ))}
-          </ul>
+          </Heading>
+          <DataTable data-testid="bodies-minor-bodies-list">
+            <DataTable.Head>
+              <DataTable.Row>
+                <DataTable.HeaderCell>Body</DataTable.HeaderCell>
+                <DataTable.HeaderCell>Classification</DataTable.HeaderCell>
+              </DataTable.Row>
+            </DataTable.Head>
+            <DataTable.Body>
+              {minorBodiesAndSpacecraft.map((body) => (
+                <DataTable.Row
+                  key={body.id}
+                  data-testid="bodies-minor-body-item"
+                  data-body-id={body.id}
+                  data-focused={focusedEntityId === body.id ? 'true' : undefined}
+                  data-selected={selectedSet.has(body.id) ? 'true' : undefined}
+                >
+                  <DataTable.Cell>
+                    <a href={body.href} data-testid="bodies-minor-body-link">
+                      {body.name}
+                    </a>
+                  </DataTable.Cell>
+                  <DataTable.Cell>
+                    <CelestialBadge
+                      type={
+                        body.categoryKey === 'spacecraft'
+                          ? 'construct'
+                          : (body.categoryKey ?? 'asteroid')
+                      }
+                    />
+                  </DataTable.Cell>
+                </DataTable.Row>
+              ))}
+            </DataTable.Body>
+          </DataTable>
         </section>
       ) : null}
     </section>

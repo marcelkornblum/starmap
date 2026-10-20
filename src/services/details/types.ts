@@ -146,13 +146,29 @@ export interface FocusedPlanetTelemetry {
   readonly hazards: readonly EntityHazardItem[];
 }
 
+export type MinorBodyClassification =
+  | 'dwarf-planet'
+  | 'moon'
+  | 'asteroid'
+  | 'comet'
+  | 'construct';
+
 export interface FocusedMinorBodyTelemetry {
+  readonly classification: MinorBodyClassification;
   readonly categoryLabel: string;
   readonly parentBodyName?: string;
 }
 
+export type StructureSymbolType =
+  | 'stellar-cluster'
+  | 'nebula'
+  | 'ism'
+  | 'supernova-remnant'
+  | 'neutron-star';
+
 export interface FocusedStructureTelemetry {
   readonly structureType: string;
+  readonly symbolType: StructureSymbolType;
   readonly radiusPc?: number;
   readonly dimensionsPc?: readonly [number, number, number];
 }
@@ -266,10 +282,18 @@ export type FocusedEntityDetails =
   | FocusedMinorBodyEntityDetails
   | FocusedStructureEntityDetails;
 
+export type SystemElementCategoryKey =
+  | 'dwarf-planet'
+  | 'moon'
+  | 'asteroid'
+  | 'comet'
+  | 'spacecraft';
+
 export interface SystemElementBodyItem {
   readonly id: string;
   readonly name: string;
   readonly href: string;
+  readonly categoryKey?: SystemElementCategoryKey;
   readonly categoryLabel: string;
 }
 

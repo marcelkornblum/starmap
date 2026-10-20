@@ -45,8 +45,10 @@ You are an expert code reviewer acting as a Critical Friend. Your goal is to ide
      - **Camera State Restoration:** When components dynamically mutate camera properties (`fov`, `zoom`), record initial values in refs and restore them cleanly in `useEffect` cleanup when features toggle off or unmount.
      - **Guarded Projection Updates:** Avoid calling `camera.updateProjectionMatrix()` unconditionally every frame; invoke only when camera projection parameters have mutated.
 
-   - **Type Strictness:**
+   - **Type Strictness & Semantic UI / Test Rigor:**
      - Zero `any` casts. Explicitly type R3F event arguments using `ThreeEvent<MouseEvent>`. Use `in` operator type guards to narrow objects instead of unsafe casts.
+     - **Semantic UI Primitives & Regulated Badges Audit:** Reject any raw `<button>`, `<input>`, `<select>`, `<dl>`, or `<ul>` telemetry/entity lists in domain components or views where `<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`, `<Datum>`, `<DataTable>`, `<Quantity>`, `<Unit>`, `<Badge>`, `<CelestialSymbol>`, `<CelestialBadge>`, `<SpectralBadge>`, `<HazardBadge>`, `<PlanetCensus>`, `<ConfidencePip>`, `<Heading>`, or `<Kbd>` belong. Reject ad-hoc `<Badge>{string}</Badge>` assemblies for celestial classifications/reticles/planet types/spectral classes/hazards (require `<CelestialBadge>`, `<SpectralBadge>`, `<HazardBadge>`), regex string-splitting of quantities in views, ASCII bracket workarounds (`[reticle]`), middle-dot telemetry strings (`' · a = '`), and numeric counts (`0 hazards`, `0 confirmed planets`) wrapped in `<Badge>`.
+     - **Test Anti-Pattern Audit:** Reject brittle `renderToString` + `.toContain(...)` substring assertions on formatted punctuation or raw HTML tags; require semantic assertions (`data-*` attributes, ARIA roles/states, and pure service data checks).
 
 3. **Refactor**: Immediately apply necessary code and test edits using IDE tooling (`replace_file_content`, `write_to_file`) to eliminate technical debt and comply with standards. Do not prompt or wait for permission before making these improvements.
 4. **Validate & Iterate (via `qa-verifier` on `Model: "flash"` or Single-Command Parallel Runs)**: Run the local verification suite without chaining commands (`&&`, `||`, `;`, `|` are forbidden so subagents never stall on permission prompts):

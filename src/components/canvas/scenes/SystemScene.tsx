@@ -3,8 +3,23 @@ import { SpatialViewport } from '../viewport/SpatialViewport';
 import { SYSTEM_FRAME } from '../instrument/referenceFrame';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
 import { CANDIDATE_SYSTEMS, SOL_PLANETS, type SolPlanetConfig } from '../../../data';
+import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
-import type { StarDossierData } from '../../poc/domain';
+
+export interface StarDossierData {
+  id: string;
+  name: string;
+  properName?: string;
+  spectralType?: string;
+  luminosityLsun?: number;
+  massMsun?: number;
+  radiusRsun?: number;
+  effectiveTempK?: number;
+  distPc?: number;
+  con?: string | null;
+  planets?: ExoplanetRecord[];
+  overviewText?: string;
+}
 
 export interface SystemSceneProps {
   systemId?: string;

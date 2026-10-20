@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import { Search } from './index';
+import { Stack } from '../interface/layouts/Stack/Stack';
+
+import storyStyles from '../domain/domainStories.module.css';
 
 const sampleSearchCorpus: readonly CompactSearchEntry[] = [
   {
@@ -63,47 +66,79 @@ const sampleSearchCorpus: readonly CompactSearchEntry[] = [
   },
 ];
 
-const meta: Meta = {
-  title: 'Domain/Search',
+interface SearchStoryArgs {
+  scope: 'galaxy' | 'system' | 'planet';
+  initialQuery: string;
+}
+
+const meta: Meta<SearchStoryArgs> = {
+  title: 'DOMAIN/Search',
+  parameters: {
+    layout: 'centered',
+  },
+  argTypes: {
+    scope: {
+      control: 'radio',
+      options: ['galaxy', 'system', 'planet'],
+      description: 'Search scoping context',
+    },
+    initialQuery: {
+      control: 'text',
+      description: 'Initial search query string',
+    },
+  },
 };
 
 export default meta;
+type Story = StoryObj<SearchStoryArgs>;
 
-export const GalaxySearchPanel: StoryObj = {
-  render: () => (
-    <Search.Root
-      syncUrl={false}
-      initialCorpus={sampleSearchCorpus}
-      initialQuery=""
-    >
-      <Search.Panel scope="galaxy" />
-      <Search.Results />
-    </Search.Root>
-  ),
-};
+export const SearchStory: Story = {
+  name: 'Search',
+  args: {
+    scope: 'galaxy',
+    initialQuery: '',
+  },
+  render: (args) => (
+    <div className={storyStyles.storyWrapper}>
+      <header className={storyStyles.header}>
+        <h1 className={storyStyles.title}>Search</h1>
+        <p className={storyStyles.description}>
+          Universal and scoped search interface with real-time fuzzy matching, category badges, and quick jump navigation.
+        </p>
+      </header>
 
-export const SystemSearchPanel: StoryObj = {
-  render: () => (
-    <Search.Root
-      syncUrl={false}
-      initialCorpus={sampleSearchCorpus}
-      initialQuery="earth"
-    >
-      <Search.Panel scope="system" />
-      <Search.Results />
-    </Search.Root>
-  ),
-};
+      <Stack gap="loose">
+        <section className={storyStyles.section}>
+          <h2 className={storyStyles.sectionTitle}>
+            Interactive Preview ({args.scope})
+          </h2>
+          <div className={storyStyles.panelContainer}>
+            <Search.Root
+              key={`${args.scope}-${args.initialQuery}`}
+              syncUrl={false}
+              initialCorpus={sampleSearchCorpus}
+              initialQuery={args.initialQuery}
+            >
+              <Search.Panel scope={args.scope} />
+              <Search.Results />
+            </Search.Root>
+          </div>
+        </section>
 
-export const PlanetSearchPanel: StoryObj = {
-  render: () => (
-    <Search.Root
-      syncUrl={false}
-      initialCorpus={sampleSearchCorpus}
-      initialQuery="moon"
-    >
-      <Search.Panel scope="planet" />
-      <Search.Results />
-    </Search.Root>
+        <section className={storyStyles.section}>
+          <h2 className={storyStyles.sectionTitle}>System Scope with Active Query</h2>
+          <div className={storyStyles.panelContainer}>
+            <Search.Root
+              syncUrl={false}
+              initialCorpus={sampleSearchCorpus}
+              initialQuery="earth"
+            >
+              <Search.Panel scope="system" />
+              <Search.Results />
+            </Search.Root>
+          </div>
+        </section>
+      </Stack>
+    </div>
   ),
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
+import { Button, Heading, Input, Kbd, Slider, Toggle } from '../../interface';
 import styles from './ControlBar.module.css';
 
 export interface ControlBarProps {
@@ -34,31 +35,33 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
       data-testid="control-bar"
       data-scope={scope}
     >
-      <h2 id="control-bar-heading">Controls</h2>
+      <Heading as="h2" id="control-bar-heading">Controls</Heading>
 
       <div
         className={styles.timeController}
         data-testid="control-bar-time-controller"
       >
-        <button
-          type="button"
+        <Button
+          size="sm"
+          variant={isPlaying ? 'primary' : 'default'}
           data-testid="control-bar-play-pause"
           aria-pressed={isPlaying}
           onClick={() => setIsPlaying((p) => !p)}
         >
           {isPlaying ? 'Pause' : 'Play'}
-        </button>
-        <input
-          type="range"
+        </Button>
+        <Slider
           min={0}
           max={100}
           value={timeSpeed}
-          onChange={(e) => setTimeSpeed(Number(e.target.value))}
+          onChange={setTimeSpeed}
           aria-label="Simulation speed scrubber"
           data-testid="control-bar-time-scrubber"
         />
-        <input
+        <Input
           type="datetime-local"
+          sizeVariant="sm"
+          tabular
           value={dateTime}
           onChange={(e) => setDateTime(e.target.value)}
           aria-label="Simulation date and time"
@@ -67,46 +70,42 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
       </div>
 
       <div className={styles.modeGroup} data-testid="control-bar-mode-group">
-        <button
-          type="button"
+        <Button
+          size="sm"
+          variant={projection === '3d' ? 'primary' : 'subtle'}
           data-testid="control-bar-projection-3d"
           aria-pressed={projection === '3d'}
           onClick={() => setProjection('3d')}
         >
           3D
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          size="sm"
+          variant={projection === 'top-down' ? 'primary' : 'subtle'}
           data-testid="control-bar-projection-top-down"
           aria-pressed={projection === 'top-down'}
           onClick={() => setProjection('top-down')}
         >
           Top-Down
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Toggle
+          checked={showOrbits}
+          onChange={() => toggleOrbits()}
+          label="Orbits"
           data-testid="control-bar-toggle-orbits"
-          aria-pressed={showOrbits}
-          onClick={toggleOrbits}
-        >
-          Orbits
-        </button>
-        <button
-          type="button"
+        />
+        <Toggle
+          checked={showGrid}
+          onChange={() => toggleGrid()}
+          label="Grid"
           data-testid="control-bar-toggle-grid"
-          aria-pressed={showGrid}
-          onClick={toggleGrid}
-        >
-          Grid
-        </button>
-        <button
-          type="button"
+        />
+        <Toggle
+          checked={showLabels}
+          onChange={() => toggleLabels()}
+          label="Labels"
           data-testid="control-bar-toggle-labels"
-          aria-pressed={showLabels}
-          onClick={toggleLabels}
-        >
-          Labels
-        </button>
+        />
       </div>
 
       <ul
@@ -119,7 +118,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
             className={styles.shortcutItem}
             data-testid="control-bar-shortcut-item"
           >
-            <kbd className={styles.kbd}>{shortcut.key}</kbd>
+            <Kbd>{shortcut.key}</Kbd>
             <span>{shortcut.label}</span>
           </li>
         ))}

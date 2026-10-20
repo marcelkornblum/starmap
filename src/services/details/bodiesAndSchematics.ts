@@ -71,16 +71,17 @@ export const buildSystemBodiesSummary = (
         id: entry.i,
         name,
         href,
+        categoryKey: entry.k === 3 ? 'moon' : 'dwarf-planet',
         categoryLabel: entry.k === 3 ? 'Moon' : 'Dwarf Planet',
       });
     } else if (entry.k === 6) {
+      const isSpacecraft = isArtificialSpacecraftEntry(entry);
       minorBodiesAndSpacecraft.push({
         id: entry.i,
         name,
         href,
-        categoryLabel: isArtificialSpacecraftEntry(entry)
-          ? 'Spacecraft'
-          : 'Minor Body',
+        categoryKey: isSpacecraft ? 'spacecraft' : 'asteroid',
+        categoryLabel: isSpacecraft ? 'Spacecraft' : 'Minor Body',
       });
     }
   }
@@ -253,13 +254,16 @@ export const buildPlanetaryBodiesSummary = (
         id: entry.i,
         name,
         href,
+        categoryKey: entry.k === 3 ? 'moon' : 'dwarf-planet',
         categoryLabel: entry.k === 3 ? 'Moon' : 'Dwarf Planet',
       });
     } else {
+      const isSpacecraft = isArtificialSpacecraftEntry(entry);
       minorBodiesAndSpacecraft.push({
         id: entry.i,
         name,
         href,
+        categoryKey: isSpacecraft ? 'spacecraft' : 'asteroid',
         categoryLabel: resolveMinorBodyCategoryLabel(entry),
       });
     }
@@ -336,6 +340,7 @@ export const buildSystemOrbitalSchematic = (
               systemName || systemId,
               resolveResultDisplayTitle(e) || e.i,
             ),
+            categoryKey: e.k === 3 ? 'moon' : 'dwarf-planet',
             categoryLabel: e.k === 3 ? 'Moon' : 'Dwarf Planet',
           }));
 

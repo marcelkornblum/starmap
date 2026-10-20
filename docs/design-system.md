@@ -141,9 +141,9 @@ Starmap enforces a 4-tier component taxonomy. Developers must assemble views str
 
 ```mermaid
 flowchart TD
-    Tier1["Tier 1: Primitives\nLayout (Every Layout) • Data (Datum, Metric, Badge) • Controls (Button, Input)"]
+    Tier1["Tier 1: Primitives\nLayout (Every Layout) • Data (Datum, Badge, Quantity, Unit) • Controls (Button, Input)"]
     --> Tier2["Tier 2: Surfaces & Overlays\nCard • Panel • Dock • Well • Modal • Drawer • Popover • Tooltip • Toast"]
-    --> Tier3["Tier 3: Structural Layout Templates\nDossierLayout • MetricStrip • ToolbarLayout"]
+    --> Tier3["Tier 3: Structural Layout Templates\nDossierLayout • ToolbarLayout"]
     --> Tier4["Tier 4: Domain Features\nStarDossier • OrbitTable • CommandPalette • SystemControls"]
 ```
 
@@ -164,11 +164,12 @@ Atomic, domain-agnostic elements with no knowledge of stars, orbits, or applicat
   - `<Icon>`: Inline $1\text{em} \times 1\text{em}$ container aligning SVGs with adjacent typography.
 - **Data Primitives:**
   - `<Datum>`: Horizontal key-value row for dense parameter listings (e.g. `Mass: 1.04 M☉`).
-  - `<Metric>`: Hero data tile displaying a large stacked value and unit for glanceable summary dashboards.
+  - `<Quantity>`: Formatted numeric quantity value with optional paired `<Unit>`.
+  - `<Unit>`: Scientific unit presentation with optional contextual guide navigation.
   - `<Badge>`: Status, confidence, or category metadata chip.
 - **Control Primitives:** `<Button>`, `<Input>`, `<Toggle>`, `<Slider>`, `<Select>`.
 
-### Tier 2: Surfaces & Overlays (Spatial Planes)
+### Tier 2: Surfaces & Overlays (Spatial planes)
 Containers that implement Tier profiles (fill, border, shadow, elevation, and optics):
 - Surfaces: `<Card>` (`--surface-panel`), `<Panel>` (`--surface-panel`), `<Dock>` (`--surface-dock`), `<Well>` (`--surface-inset`).
 - Overlays: `<Modal>` (`--surface-modal`), `<Drawer>` (`--surface-drawer`), `<Popover>` (`--surface-popover`), `<Tooltip>` (`--surface-popover`), `<Toast>` (`--surface-toast`).
@@ -176,7 +177,6 @@ Containers that implement Tier profiles (fill, border, shadow, elevation, and op
 ### Tier 3: Structural Layout Templates (Reusable Wireframes)
 Domain-agnostic layouts composed of Tier 1 primitives and Tier 2 surfaces. They provide internal layout slots without binding to any specific astronomical model:
 - `<DossierLayout>`: Standard wireframe providing a hero header slot, summary metric cluster, tabular data stack, and action footer.
-- `<MetricStrip>`: Responsive horizontal switcher or grid holding 3–5 `<Metric>` tiles.
 - `<ToolbarLayout>`: Arranges navigation tabs, active filters, and auxiliary action clusters.
 
 ### Tier 4: Domain Features (Application Assemblies)

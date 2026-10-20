@@ -291,7 +291,11 @@ export async function runCapture(options: CaptureOptions): Promise<CapturedScree
 
         const fileName = `${routeSlug}__${viewport.id}.png`;
         const filePath = path.join(options.outDir, fileName);
-        await page.screenshot({ path: filePath, fullPage: false });
+        await page.screenshot({
+          path: filePath,
+          fullPage: false,
+          animations: 'disabled',
+        });
 
         results.push({
           route,

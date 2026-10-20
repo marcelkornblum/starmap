@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Badge, Datum, Heading, Stack } from '../../interface';
 import type {
   MetricComparison,
   MetricGuideEntry,
@@ -21,7 +22,7 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
       data-focused-entity={comparison.targetId}
       className={styles.comparativeSection}
     >
-      <h3>Comparative Telemetry & Reference Baseline</h3>
+      <Heading as="h3">Comparative Telemetry & Reference Baseline</Heading>
       <Guide3DPreview
         kind="metric"
         metricId={entry.id}
@@ -39,25 +40,25 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
           data-testid="metric-comparison-baseline"
           className={styles.comparisonColumn}
         >
-          <h4>
+          <Heading as="h4">
             Baseline: <a href={comparison.baselineHref}>{comparison.baselineName}</a>
-          </h4>
-          <p>
-            <strong>{comparison.baselineValue}</strong>
-          </p>
-          <p>{comparison.baselineFamiliar}</p>
+          </Heading>
+          <Stack gap="none">
+            <Datum label="Scientific Value" value={comparison.baselineValue} />
+            <Datum label="Familiar Scale" value={comparison.baselineFamiliar} />
+          </Stack>
         </div>
         <div
           data-testid="metric-comparison-target"
           className={styles.comparisonColumn}
         >
-          <h4>
+          <Heading as="h4">
             Target: <a href={comparison.targetHref}>{comparison.targetName}</a>
-          </h4>
-          <p>
-            <strong>{comparison.targetValue}</strong>
-          </p>
-          <p>{comparison.targetFamiliar}</p>
+          </Heading>
+          <Stack gap="none">
+            <Datum label="Scientific Value" value={comparison.targetValue} />
+            <Datum label="Familiar Scale" value={comparison.targetFamiliar} />
+          </Stack>
         </div>
       </div>
 
@@ -65,7 +66,7 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
         data-testid="metric-comparison-ratio"
         className={styles.comparisonRatio}
       >
-        {comparison.relativeRatioLabel}
+        <Badge status="info">{comparison.relativeRatioLabel}</Badge>
       </div>
     </section>
   );

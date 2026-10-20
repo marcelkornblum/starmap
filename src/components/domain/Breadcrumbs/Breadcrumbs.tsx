@@ -1,3 +1,4 @@
+import { Button } from '../../interface';
 import styles from './Breadcrumbs.module.css';
 
 export interface BreadcrumbItem {
@@ -62,13 +63,15 @@ export const Breadcrumbs = ({
           );
         })}
       </ol>
-      <a
+      <Button
         href={resolvedCompanionHref}
+        size="sm"
+        variant="subtle"
         data-testid="breadcrumbs-companion-link"
         className={styles.companionLink}
       >
         {resolvedCompanionLabel}
-      </a>
+      </Button>
     </nav>
   );
 };

@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
-import { Badge } from '../components/interface';
+import { CelestialBadge, Cluster, Datum, Heading } from '../components/interface';
 import { PLANET_TYPE_GUIDE_ENTRIES } from '../services/guideService';
 import styles from './GuideViews.module.css';
 
@@ -14,7 +14,7 @@ export const PlanetTypesListView: React.FC = () => {
         ]}
       />
       <GuideSectionNav currentSection="planet-types" />
-      <h1>Planet Types</h1>
+      <Heading as="h1">Planet Types</Heading>
       <ul data-testid="planet-types-guide-list" className={styles.cardList}>
         {PLANET_TYPE_GUIDE_ENTRIES.map((entry) => (
           <li
@@ -34,13 +34,11 @@ export const PlanetTypesListView: React.FC = () => {
                 radiusRearth={entry.canonicalRadiusRearth}
                 textureTheme={entry.textureTheme}
               />
-              <div>
-                <Badge category="planet">{entry.composition}</Badge>{' '}
+              <Cluster gap="tight" align="center">
+                <CelestialBadge type={entry.composition} />
                 <strong>{entry.title}</strong>
-              </div>
-              <div>
-                <span>{entry.massRangeMearth}</span>
-              </div>
+              </Cluster>
+              <Datum label="Mass Range" value={entry.massRangeMearth} />
               <p>{entry.summary}</p>
             </a>
           </li>

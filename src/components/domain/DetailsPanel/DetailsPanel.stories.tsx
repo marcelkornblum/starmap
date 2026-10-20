@@ -1,12 +1,17 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type {
+  FocusedEntityDetails,
   FocusedMinorBodyEntityDetails,
   FocusedPlanetEntityDetails,
   FocusedStarEntityDetails,
   FocusedStructureEntityDetails,
   FocusedSystemEntityDetails,
 } from '../../../services/detailsService';
+import type { DetentLevel } from '../../interface/surfaces/DetentSheet';
 import { DetailsPanel } from './DetailsPanel';
+import { Stack } from '../../interface/layouts/Stack/Stack';
+
+import storyStyles from '../domainStories.module.css';
 
 const systemDetailsFixture: FocusedSystemEntityDetails = {
   id: 'tau-ceti',
@@ -333,6 +338,7 @@ const minorBodyDetailsFixture: FocusedMinorBodyEntityDetails = {
     },
   ],
   minorBodyTelemetry: {
+    classification: 'dwarf-planet',
     categoryLabel: 'Dwarf Planet',
     parentBodyName: 'Sol',
   },
@@ -347,7 +353,7 @@ const structureDetailsFixture: FocusedStructureEntityDetails = {
   hazardCount: 0,
   hazards: [],
   hazardSummaryLabel: '0 hazards',
-  reticleType: 'cluster',
+  reticleType: 'stellar-cluster',
   starCount: 0,
   planetCount: 0,
   planetCompositionBreakdown: [],
@@ -383,45 +389,80 @@ const structureDetailsFixture: FocusedStructureEntityDetails = {
   ],
   structureTelemetry: {
     structureType: 'Diffuse Nebula',
+    symbolType: 'nebula',
     radiusPc: 3.68,
     dimensionsPc: [7.36, 7.36, 4.2],
   },
 };
 
-const meta: Meta<typeof DetailsPanel> = {
-  title: 'Domain/DetailsPanel',
-  component: DetailsPanel,
+const DETAILS_BY_KIND: Record<string, FocusedEntityDetails> = {
+  system: systemDetailsFixture,
+  star: starDetailsFixture,
+  planet: planetDetailsFixture,
+  'minor-body': minorBodyDetailsFixture,
+  structure: structureDetailsFixture,
+};
+
+interface DetailsPanelStoryArgs {
+  entityType: 'system' | 'star' | 'planet' | 'minor-body' | 'structure';
+  detent: DetentLevel;
+}
+
+const meta: Meta<DetailsPanelStoryArgs> = {
+  title: 'DOMAIN/Panels',
+  parameters: {
+    layout: 'centered',
+  },
+  argTypes: {
+    entityType: {
+      control: 'select',
+      options: ['system', 'star', 'planet', 'minor-body', 'structure'],
+      description: 'Entity classification of the focused celestial target',
+    },
+    detent: {
+      control: 'radio',
+      options: ['peek', 'partial', 'full'],
+      description: 'Vertical detent height state of the details sheet',
+    },
+  },
 };
 
 export default meta;
-type Story = StoryObj<typeof DetailsPanel>;
+type Story = StoryObj<DetailsPanelStoryArgs>;
 
-export const SystemFocus: Story = {
+export const DetailsPanelStory: Story = {
+  name: 'DetailsPanel',
   args: {
-    details: systemDetailsFixture,
+    entityType: 'system',
+    detent: 'partial',
   },
-};
+  render: (args) => {
+    const activeDetails =
+      DETAILS_BY_KIND[args.entityType] ?? systemDetailsFixture;
 
-export const StarFocus: Story = {
-  args: {
-    details: starDetailsFixture,
-  },
-};
+    return (
+      <div className={storyStyles.storyWrapper}>
+        <header className={storyStyles.header}>
+          <h1 className={storyStyles.title}>DetailsPanel</h1>
+          <p className={storyStyles.description}>
+            Comprehensive multi-detent inspection sheet presenting telemetry, composition, hazards, and canon layers.
+          </p>
+        </header>
 
-export const PlanetFocus: Story = {
-  args: {
-    details: planetDetailsFixture,
-  },
-};
-
-export const MinorBodyFocus: Story = {
-  args: {
-    details: minorBodyDetailsFixture,
-  },
-};
-
-export const StructureFocus: Story = {
-  args: {
-    details: structureDetailsFixture,
+        <Stack gap="loose">
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>
+              Interactive Preview ({args.entityType} · {args.detent})
+            </h2>
+            <div className={storyStyles.panelContainer}>
+              <DetailsPanel
+                details={activeDetails}
+                activeDetent={args.detent}
+              />
+            </div>
+          </section>
+        </Stack>
+      </div>
+    );
   },
 };

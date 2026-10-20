@@ -9,14 +9,6 @@ import {
   PlanetaryViewScene,
   InteractiveNavigator,
 } from '../src/components/canvas/scenes/SpatialScenes';
-import { FullUIStylingScene } from '../src/components/canvas/scenes/FullUIStylingScene';
-import {
-  GalacticViewScene as PocGalacticViewScene,
-  SystemViewScene as PocSystemViewScene,
-  PlanetaryViewScene as PocPlanetaryViewScene,
-  InteractiveNavigator as PocInteractiveNavigator,
-} from '../src/components/poc/canvas/scenes/SpatialScenes';
-import { FullUIStylingScene as PocFullUIStylingScene } from '../src/components/poc/canvas/scenes/FullUIStylingScene';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
@@ -125,71 +117,6 @@ describe('SpatialScenes Storybook Suite', () => {
       expect(html).toContain('name="celestial-entity-sol"');
       expect(html).not.toContain('Candidate Systems');
       expect(html).not.toContain('Inspect Sol System →');
-    });
-  });
-
-  describe('FullUIStylingScene', () => {
-    it('renders all 8 surface tiers and nested inset simultaneously in SSR', () => {
-      const html = renderToString(createElement(FullUIStylingScene));
-
-      // Root scene container
-      expect(html).toContain('data-testid="full-ui-styling-scene"');
-
-      // Tier 0: Canvas floor
-      expect(html).toContain('data-testid="surface-tier-0-canvas"');
-      expect(html).toContain('data-testid="mock-canvas"');
-
-      // Tier 1: HUD
-      expect(html).toContain('data-testid="surface-tier-1-hud"');
-      expect(html).toContain('✦ STARMAP // [Tier 1: HUD]');
-      expect(html).toContain('SENSORS ONLINE');
-      expect(html).toContain('RA: 18h 36m 56s');
-      expect(html).toContain('DRAWER');
-      expect(html).toContain('POPOVER');
-      expect(html).toContain('MODAL');
-      expect(html).toContain('TOAST');
-
-      // Tier 2: Dock
-      expect(html).toContain('data-testid="surface-tier-2-dock"');
-      expect(html).toContain('data-position="right"');
-
-      // Tier 3: Panel
-      expect(html).toContain('data-testid="surface-tier-3-panel"');
-      expect(html).toContain('[Tier 3: Panel] Galactic Survey Dossier');
-      expect(html).toContain('1,280');
-      expect(html).toContain('8.12');
-
-      // Nested Inset: Well inside Panel with OrbitTable
-      expect(html).toContain('data-testid="surface-tier-nested-inset"');
-      expect(html).toContain('[Nested Inset: Well] Nearby Astrometric Candidates');
-      expect(html).toContain('Mercury');
-      expect(html).toContain('Jupiter');
-
-      // Tier 4: Drawer
-      expect(html).toContain('data-testid="surface-tier-4-drawer"');
-      expect(html).toContain('[Tier 4: Drawer] Spectroscopic Filter Matrix');
-      expect(html).toContain('data-position="right"');
-
-      // Tier 5: Popover
-      expect(html).toContain('data-testid="surface-tier-5-popover"');
-      expect(html).toContain('[Anchor Trigger] Sol Barycentre Target [0, 0, 0]');
-      expect(html).toContain('[Tier 5: Popover Glass] Sol Telemetry Dossier');
-
-      // Tier 6: Modal
-      expect(html).toContain('data-testid="surface-tier-6-modal"');
-      expect(html).toContain('[Tier 6: Modal] Astrodynamics Command Query');
-
-      // Tier 7: Toast
-      expect(html).toContain('data-testid="surface-tier-7-toast"');
-      expect(html).toContain('[Tier 7: Toast] Telemetry Alert: Gravitational Perturbation');
-    });
-
-    it('maintains backwards-compatible re-exports from src/components/poc/canvas/scenes', () => {
-      expect(PocGalacticViewScene).toBe(GalacticViewScene);
-      expect(PocSystemViewScene).toBe(SystemViewScene);
-      expect(PocPlanetaryViewScene).toBe(PlanetaryViewScene);
-      expect(PocInteractiveNavigator).toBe(InteractiveNavigator);
-      expect(PocFullUIStylingScene).toBe(FullUIStylingScene);
     });
   });
 });

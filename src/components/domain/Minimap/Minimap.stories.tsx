@@ -1,14 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { MinimapOrientationSummary } from '../../../services/detailsService';
 import { Minimap } from './Minimap';
+import { Stack } from '../../interface/layouts/Stack/Stack';
 
-const meta: Meta<typeof Minimap> = {
-  title: 'Domain/Minimap',
-  component: Minimap,
-};
-
-export default meta;
-type Story = StoryObj<typeof Minimap>;
+import storyStyles from '../domainStories.module.css';
 
 const galaxyOrientationFixture: MinimapOrientationSummary = {
   scope: 'galaxy',
@@ -148,20 +143,81 @@ const planetOrientationFixture: MinimapOrientationSummary = {
   ],
 };
 
-export const GalaxyOrientation: Story = {
-  args: {
-    orientation: galaxyOrientationFixture,
+interface MinimapStoryArgs {
+  scope: 'galaxy' | 'system' | 'planet';
+}
+
+const meta: Meta<MinimapStoryArgs> = {
+  title: 'DOMAIN/Navigation',
+  parameters: {
+    layout: 'centered',
+  },
+  argTypes: {
+    scope: {
+      control: 'radio',
+      options: ['galaxy', 'system', 'planet'],
+      description: 'Orientation scope for the minimap radar display',
+    },
   },
 };
 
-export const SystemOrientation: Story = {
-  args: {
-    orientation: systemOrientationFixture,
-  },
-};
+export default meta;
+type Story = StoryObj<MinimapStoryArgs>;
 
-export const PlanetOrientation: Story = {
+export const MinimapStory: Story = {
+  name: 'Minimap',
   args: {
-    orientation: planetOrientationFixture,
+    scope: 'galaxy',
+  },
+  render: (args) => {
+    const fixture =
+      args.scope === 'system'
+        ? systemOrientationFixture
+        : args.scope === 'planet'
+          ? planetOrientationFixture
+          : galaxyOrientationFixture;
+
+    return (
+      <div className={storyStyles.storyWrapper}>
+        <header className={storyStyles.header}>
+          <h1 className={storyStyles.title}>Minimap</h1>
+          <p className={storyStyles.description}>
+            Tactical orientation radar showing camera vector, celestial anchors, and spatial position.
+          </p>
+        </header>
+
+        <Stack gap="loose">
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>
+              Interactive Preview ({args.scope})
+            </h2>
+            <div className={storyStyles.panelContainer}>
+              <Minimap orientation={fixture} />
+            </div>
+          </section>
+
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>Galaxy Orientation</h2>
+            <div className={storyStyles.panelContainer}>
+              <Minimap orientation={galaxyOrientationFixture} />
+            </div>
+          </section>
+
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>System Orientation (Sol)</h2>
+            <div className={storyStyles.panelContainer}>
+              <Minimap orientation={systemOrientationFixture} />
+            </div>
+          </section>
+
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>Planet Orientation (Earth-Moon)</h2>
+            <div className={storyStyles.panelContainer}>
+              <Minimap orientation={planetOrientationFixture} />
+            </div>
+          </section>
+        </Stack>
+      </div>
+    );
   },
 };
