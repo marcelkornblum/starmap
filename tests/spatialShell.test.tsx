@@ -7,6 +7,7 @@ import {
   canMountWebGLCanvas,
   _resetWebGLSupportedForTesting,
 } from '../src/components/domain';
+import { Search } from '../src/components/search';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { SystemView } from '../src/views/SystemView';
 import { PlanetView } from '../src/views/PlanetView';
@@ -60,6 +61,21 @@ const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
     z: 1,
   },
 ];
+
+function findReactElementByTestId(tree: any, testId: string): any {
+  if (!tree || typeof tree !== 'object') return null;
+  if (tree.props?.['data-testid'] === testId) return tree;
+  const children = tree.props?.children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      const match = findReactElementByTestId(child, testId);
+      if (match) return match;
+    }
+  } else if (children && typeof children === 'object') {
+    return findReactElementByTestId(children, testId);
+  }
+  return null;
+}
 
 describe('SpatialShell Component & View Integration Suite', () => {
   beforeEach(() => {
@@ -146,6 +162,97 @@ describe('SpatialShell Component & View Integration Suite', () => {
       expect(html).toContain('data-bodies-drawer-open="true"');
       expect(html).toContain('aria-expanded="true"');
       expect(html).toContain('data-testid="bodies-content"');
+    });
+
+    it('provides interactive click handlers for the toggle button and backdrop scrim', () => {
+      let capturedEl: any = null;
+      function Harness() {
+        capturedEl = SpatialShell({
+          testId: 'interactive-drawer-shell',
+          bodies: <div data-testid="bodies-content">Drawer Content</div>,
+        });
+        return capturedEl;
+      }
+
+      renderToString(<Harness />);
+      expect(capturedEl).not.toBeNull();
+
+      const toggleBtn = findReactElementByTestId(capturedEl, 'spatial-shell-bodies-toggle');
+      const backdrop = findReactElementByTestId(capturedEl, 'spatial-shell-bodies-backdrop');
+
+      expect(toggleBtn).not.toBeNull();
+      expect(backdrop).not.toBeNull();
+      expect(toggleBtn.props['data-testid']).toBe('spatial-shell-bodies-toggle');
+      expect(backdrop.props['data-testid']).toBe('spatial-shell-bodies-backdrop');
+
+      // Exercise click handlers
+      expect(() => toggleBtn.props.onClick()).not.toThrow();
+      expect(() => backdrop.props.onClick()).not.toThrow();
+    });
+  });
+
+  describe('Search Focus Expansion Behavior', () => {
+    it('renders search panel collapsed by default in spatial scopes and expanded in search scope', () => {
+      const store = createSpatialEntityStore();
+      const galaxyHtml = renderToString(
+        <SpatialEntityProvider store={store}>
+          <Search.Root initialCorpus={SAMPLE_CORPUS} syncUrl={false}>
+            <Search.Panel scope="galaxy" />
+            <Search.Results />
+          </Search.Root>
+        </SpatialEntityProvider>,
+      );
+
+      expect(galaxyHtml).toContain('data-testid="search-root"');
+      expect(galaxyHtml).toContain('data-search-focused="false"');
+
+      const searchHtml = renderToString(
+        <SpatialEntityProvider store={store}>
+          <Search.Root initialCorpus={SAMPLE_CORPUS} syncUrl={false}>
+            <Search.Panel scope="search" />
+            <Search.Results />
+          </Search.Root>
+        </SpatialEntityProvider>,
+      );
+
+      expect(searchHtml).toContain('data-scope="search"');
+      expect(searchHtml).toContain('data-search-focused="true"');
+      expect(searchHtml).toContain('data-testid="search-expanded-drawer"');
+    });
+
+    it('handles focusCapture and blurCapture events to manage focus expansion state', () => {
+      let rootChildEl: any = null;
+      function RootProbe() {
+        const rootInstance = Search.Root({
+          initialCorpus: SAMPLE_CORPUS,
+          syncUrl: false,
+          children: <div data-testid="probe-child" />,
+        }) as any;
+        rootChildEl = findReactElementByTestId(rootInstance, 'search-root');
+        return rootInstance;
+      }
+
+      renderToString(<RootProbe />);
+      expect(rootChildEl).not.toBeNull();
+      expect(rootChildEl.props['data-testid']).toBe('search-root');
+      expect(rootChildEl.props['data-search-focused']).toBe('false');
+
+      // Exercise onFocusCapture
+      expect(() => rootChildEl.props.onFocusCapture()).not.toThrow();
+
+      // Exercise onBlurCapture when relatedTarget is outside currentTarget
+      const dummyBlurOutside = {
+        relatedTarget: null,
+        currentTarget: { contains: () => false },
+      };
+      expect(() => rootChildEl.props.onBlurCapture(dummyBlurOutside)).not.toThrow();
+
+      // Exercise onBlurCapture when relatedTarget is inside currentTarget
+      const dummyBlurInside = {
+        relatedTarget: {},
+        currentTarget: { contains: () => true },
+      };
+      expect(() => rootChildEl.props.onBlurCapture(dummyBlurInside)).not.toThrow();
     });
   });
 

@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type FocusEvent,
   type FormEvent,
   type ReactNode,
 } from 'react';
@@ -43,6 +44,7 @@ import {
   type SearchContextValue,
   type SearchExecutionStatus,
 } from './SearchContext';
+import styles from './Search.module.css';
 
 export interface SearchRootProps {
   readonly children?: ReactNode;
@@ -632,12 +634,29 @@ export const SearchRoot = ({
     [query, submitSearch, syncUrl],
   );
 
+  const [isFocused, setIsFocused] = useState<boolean>(false);
+
+  const handleFocusCapture = useCallback((): void => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlurCapture = useCallback(
+    (event: FocusEvent<HTMLDivElement>): void => {
+      const nextTarget = event.relatedTarget as Node | null;
+      if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+        setIsFocused(false);
+      }
+    },
+    [],
+  );
+
   const contextValue: SearchContextValue = {
     query,
     filter,
     status,
     errorMessage,
     results,
+    isFocused,
     setQuery,
     setFilter,
     submitSearch,
@@ -646,7 +665,15 @@ export const SearchRoot = ({
 
   return (
     <SearchContext.Provider value={contextValue}>
-      {children}
+      <div
+        className={styles.searchRoot}
+        data-testid="search-root"
+        data-search-focused={isFocused ? 'true' : 'false'}
+        onFocusCapture={handleFocusCapture}
+        onBlurCapture={handleBlurCapture}
+      >
+        {children}
+      </div>
     </SearchContext.Provider>
   );
 };
@@ -671,24 +698,31 @@ export const SearchInput = ({
   };
 
   return (
-    <>
-      <label htmlFor={id}>{label}</label>
+    <div className={styles.inputRow}>
+      <label htmlFor={id} className={styles.srOnly}>
+        {label}
+      </label>
       <Input
         id={id}
         name="query"
         type="search"
+        sizeVariant="sm"
+        placeholder="Search stars, planets, layers..."
         value={query}
         onChange={handleQueryChange}
+        className={styles.searchInput}
       />
       <Button
         type="button"
         size="sm"
+        variant="subtle"
         data-testid="search-clear-button"
         onClick={handleClearQuery}
+        className={styles.expandedControl}
       >
         Clear search
       </Button>
-    </>
+    </div>
   );
 };
 
@@ -704,8 +738,10 @@ export const SearchCategoryFilterSelect = ({
   const { filter, setFilter } = useSearchContext();
 
   return (
-    <>
-      <label htmlFor={id}>{label}</label>
+    <div className={styles.filterField}>
+      <label htmlFor={id} className={styles.srOnly}>
+        {label}
+      </label>
       <Select
         id={id}
         name="searchCategory"
@@ -724,7 +760,7 @@ export const SearchCategoryFilterSelect = ({
           }
         }}
       />
-    </>
+    </div>
   );
 };
 
@@ -739,6 +775,7 @@ export const SearchPanel = ({
   children,
   scope,
 }: SearchPanelProps) => {
+  const { isFocused } = useSearchContext();
   const router = useRouter({ warn: false });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
@@ -764,26 +801,46 @@ export const SearchPanel = ({
     }
   };
 
+  const isExpanded = scope === 'search' || Boolean(isFocused);
+
   return (
     <section
       aria-labelledby="search-panel-heading"
       data-testid="search-panel"
       data-scope={scope}
+      data-search-focused={isExpanded ? 'true' : 'false'}
+      className={styles.searchPanel}
     >
-      <Heading as="h2" id="search-panel-heading">{heading}</Heading>
-      <form role="search" onSubmit={handleSubmit}>
+      <Heading
+        as="h2"
+        id="search-panel-heading"
+        className={scope === 'search' ? undefined : styles.srOnly}
+      >
+        {heading}
+      </Heading>
+      <form
+        role="search"
+        className={styles.searchForm}
+        onSubmit={handleSubmit}
+      >
         {children ?? (
           <>
             <SearchInput />
-            <SearchCategoryFilterSelect />
-            <Button
-              type="button"
-              size="sm"
-              data-testid="search-explore-button"
-              onClick={handleExplore}
+            <div
+              className={styles.expandedDrawer}
+              data-testid="search-expanded-drawer"
             >
-              Explore
-            </Button>
+              <SearchCategoryFilterSelect />
+              <Button
+                type="button"
+                size="sm"
+                variant="default"
+                data-testid="search-explore-button"
+                onClick={handleExplore}
+              >
+                Explore
+              </Button>
+            </div>
           </>
         )}
       </form>
@@ -814,8 +871,11 @@ export const SearchResults = ({
       aria-labelledby="search-results-heading"
       data-testid="search-results-panel"
       data-status={status}
+      className={styles.resultsPanel}
     >
-      <Heading as="h2" id="search-results-heading">{heading}</Heading>
+      <Heading as="h2" id="search-results-heading" size="eyebrow">
+        {heading}
+      </Heading>
       {searchViewPath ? (
         <p>
           <a
@@ -842,7 +902,9 @@ export const SearchResults = ({
             data-category={category.key}
             data-testid={`search-results-group-${category.key}`}
           >
-            <Heading as="h3">{category.heading}</Heading>
+            <Heading as="h3" size="eyebrow">
+              {category.heading}
+            </Heading>
             {searchViewPath ? (
               <p>
                 <a

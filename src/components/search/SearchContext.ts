@@ -14,6 +14,7 @@ export interface SearchContextValue {
   readonly status: SearchExecutionStatus;
   readonly errorMessage: string | null;
   readonly results: GroupedSearchResults;
+  readonly isFocused?: boolean;
   readonly setQuery: (nextQuery: string) => void;
   readonly setFilter: (nextFilter: SearchCategoryFilter) => void;
   readonly submitSearch: (

@@ -54,9 +54,19 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
         </div>
         <div className={styles.leftColumn}>
           <header className={styles.topBar} data-spatial-region="top-bar">
-            <div className={styles.topBarContent}>
+            <div
+              className={styles.breadcrumbsRegion}
+              data-spatial-region="breadcrumbs"
+            >
               {breadcrumbs}
+            </div>
+            <div className={styles.searchRegion} data-spatial-region="search">
               {search}
+            </div>
+            <div
+              className={styles.layerCardRegion}
+              data-spatial-region="layer-card"
+            >
               {layerCard}
             </div>
           </header>
@@ -67,14 +77,11 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
             {primaryFloat}
             {preview}
           </div>
-          <div className={styles.controlsRegion} data-spatial-region="controls">
-            {controls}
-          </div>
         </div>
         <div className={styles.topBarActions}>
           <Button
             size="sm"
-            variant="default"
+            variant={isBodiesDrawerOpen ? 'primary' : 'default'}
             data-testid="spatial-shell-bodies-toggle"
             aria-expanded={isBodiesDrawerOpen}
             onClick={() => setIsBodiesDrawerOpen((prev) => !prev)}
@@ -85,7 +92,17 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
         <div className={styles.minimapRegion} data-spatial-region="minimap">
           {minimap}
         </div>
+        <div className={styles.controlsRegion} data-spatial-region="controls">
+          {controls}
+        </div>
       </div>
+      <div
+        className={styles.bodiesBackdrop}
+        data-testid="spatial-shell-bodies-backdrop"
+        data-bodies-drawer-open={isBodiesDrawerOpen ? 'true' : 'false'}
+        onClick={() => setIsBodiesDrawerOpen(false)}
+        aria-hidden="true"
+      />
       <aside
         className={styles.bodiesRegion}
         data-spatial-region="bodies"

@@ -35,7 +35,9 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
       data-testid="control-bar"
       data-scope={scope}
     >
-      <Heading as="h2" id="control-bar-heading">Controls</Heading>
+      <Heading as="h2" id="control-bar-heading" className={styles.srOnly}>
+        Controls
+      </Heading>
 
       <div
         className={styles.timeController}

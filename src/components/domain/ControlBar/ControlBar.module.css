@@ -1,47 +1,70 @@
-.controlBar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+@layer blocks {
+  .controlBar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-fib-3);
+    inline-size: 100%;
+  }
+
+  .srOnly {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .timeController {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-fib-2);
+  }
+
+  .modeGroup {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-fib-2);
+  }
+
+  .shortcutsList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-fib-3);
+    font-family: var(--font-interface);
+    font-size: var(--type-scale-neg-1);
+    color: var(--content-muted);
+  }
+
+  .shortcutItem {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-fib-1);
+  }
 }
 
-.timeController {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
+@layer exceptions {
+  @media (max-width: 767px) {
+    .controlBar {
+      gap: var(--space-fib-2);
+    }
 
-.modeGroup {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.shortcutsList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-family: var(--font-interface);
-  font-size: var(--text-xs);
-  color: var(--content-secondary);
-}
-
-.shortcutItem {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.kbd {
-  font-family: var(--font-mono, monospace);
-  font-size: var(--text-xs);
-  padding: 0.1em 0.3em;
-  border-radius: var(--radius-xs, 2px);
-  background-color: var(--surface-raised);
-  border: var(--border-width-1) solid var(--border-subtle);
-  color: var(--content-prominent);
+    .shortcutsList {
+      display: none;
+    }
+  }
 }
 
