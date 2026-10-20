@@ -3,10 +3,13 @@ import type { SpatialEntityDefinition } from '../components/canvas/entity/types'
 import { getCachedDetailRecord, type DecodedDetailRecord } from '../data/detailsRepository';
 import type { PlanetCompositionClass } from '../data/guideCatalog';
 import type {
+  CircumstellarDiskKind,
+  CircumstellarDiskRecord,
   DatasetLayerKind,
   DatasetLayerManifest,
   DatasetLayerTargetType,
   ExoplanetRecord,
+  ObservationalConfidence,
   SystemManifest,
   SystemSummaryNode,
 } from '../types/astro';
@@ -21,6 +24,8 @@ import {
   isPlanetHabitableCandidate,
   PLANET_HAZARD_BITS,
   SYSTEM_HAZARD_BITS,
+  PARSEC_TO_LY,
+  computeEuclideanDistance3D,
 } from '../utils/astroMath';
 import {
   decodeTagsMask,
@@ -32,7 +37,16 @@ import {
   resolveSystemLayerEntries,
 } from '../utils/datasetLayerCodec';
 import {
+  computeApertureRadius,
+  isInsideAperture,
+} from '../components/canvas/math/aperture';
+import { deriveEntityTier } from '../components/canvas/math/tiers';
+import { GALACTIC_FRAME } from '../components/canvas/instrument/referenceFrame';
+import {
   buildCanonLayerGalaxyHref,
+  buildMetricGuideHref,
+  buildStarTypeGuideHref,
+  buildTagGalaxyHref,
   extractUrlPlanetSlug,
   extractUrlSystemSlug,
   findFocusedEntryInCorpus,
@@ -152,8 +166,37 @@ export type FocusedEntityKind =
   | 'system'
   | 'star'
   | 'planet'
+  | 'belt'
   | 'minor-body'
   | 'structure';
+
+export function formatDiskKindLabel(kind: CircumstellarDiskKind): string {
+  switch (kind) {
+    case 'asteroid-belt':
+      return 'Asteroid Belt';
+    case 'kuiper-belt':
+      return 'Kuiper Belt';
+    case 'debris-disk':
+      return 'Debris Disk';
+    default:
+      return 'Circumstellar Disk';
+  }
+}
+
+export interface FocusedDiskDetail {
+  readonly id: string;
+  readonly name: string;
+  readonly kind: CircumstellarDiskKind;
+  readonly kindLabel: string;
+  readonly href: string;
+  readonly innerRadiusAu: number;
+  readonly outerRadiusAu: number;
+  readonly semiMajorAxisAu: number;
+  readonly tempK?: number;
+  readonly composition: string;
+  readonly confidence?: ObservationalConfidence;
+  readonly guideHref: string;
+}
 
 export interface PlanetCompositionCount {
   readonly composition: PlanetCompositionClass;
@@ -264,6 +307,17 @@ export interface FocusedStructureTelemetry {
   readonly dimensionsPc?: readonly [number, number, number];
 }
 
+export interface FocusedDiskTelemetry {
+  readonly classification: CircumstellarDiskKind;
+  readonly classificationLabel: string;
+  readonly innerRadiusAu: number;
+  readonly outerRadiusAu: number;
+  readonly semiMajorAxisAu: number;
+  readonly tempK?: number;
+  readonly composition: string;
+  readonly confidence?: ObservationalConfidence;
+}
+
 export interface FocusedEntityDetailsBase {
   readonly id: string;
   readonly systemId: string;
@@ -293,6 +347,7 @@ export interface FocusedEntityDetailsBase {
   // Detent 3: Full
   readonly stars: readonly FocusedStarDetail[];
   readonly planets: readonly FocusedPlanetDetail[];
+  readonly disks?: readonly FocusedDiskDetail[];
   readonly orbitingBodies?: readonly SystemElementBodyItem[];
   readonly canonAnnotations: readonly FocusedCanonAnnotation[];
 }
@@ -301,6 +356,7 @@ export interface FocusedSystemEntityDetails extends FocusedEntityDetailsBase {
   readonly focusedKind: 'system';
   readonly starTelemetry?: undefined;
   readonly planetTelemetry?: undefined;
+  readonly diskTelemetry?: undefined;
   readonly minorBodyTelemetry?: undefined;
   readonly structureTelemetry?: undefined;
 }
@@ -309,6 +365,7 @@ export interface FocusedStarEntityDetails extends FocusedEntityDetailsBase {
   readonly focusedKind: 'star';
   readonly starTelemetry: FocusedStarTelemetry;
   readonly planetTelemetry?: undefined;
+  readonly diskTelemetry?: undefined;
   readonly minorBodyTelemetry?: undefined;
   readonly structureTelemetry?: undefined;
 }
@@ -318,6 +375,17 @@ export interface FocusedPlanetEntityDetails extends FocusedEntityDetailsBase {
   readonly planetTelemetry: FocusedPlanetTelemetry;
   readonly orbitingBodies: readonly SystemElementBodyItem[];
   readonly starTelemetry?: undefined;
+  readonly diskTelemetry?: undefined;
+  readonly minorBodyTelemetry?: undefined;
+  readonly structureTelemetry?: undefined;
+}
+
+export interface FocusedBeltEntityDetails extends FocusedEntityDetailsBase {
+  readonly focusedKind: 'belt';
+  readonly diskTelemetry: FocusedDiskTelemetry;
+  readonly orbitingBodies: readonly SystemElementBodyItem[];
+  readonly starTelemetry?: undefined;
+  readonly planetTelemetry?: undefined;
   readonly minorBodyTelemetry?: undefined;
   readonly structureTelemetry?: undefined;
 }
@@ -327,6 +395,7 @@ export interface FocusedMinorBodyEntityDetails extends FocusedEntityDetailsBase 
   readonly minorBodyTelemetry: FocusedMinorBodyTelemetry;
   readonly starTelemetry?: undefined;
   readonly planetTelemetry?: undefined;
+  readonly diskTelemetry?: undefined;
   readonly structureTelemetry?: undefined;
 }
 
@@ -335,6 +404,7 @@ export interface FocusedStructureEntityDetails extends FocusedEntityDetailsBase 
   readonly structureTelemetry: FocusedStructureTelemetry;
   readonly starTelemetry?: undefined;
   readonly planetTelemetry?: undefined;
+  readonly diskTelemetry?: undefined;
   readonly minorBodyTelemetry?: undefined;
 }
 
@@ -342,6 +412,7 @@ export type FocusedEntityDetails =
   | FocusedSystemEntityDetails
   | FocusedStarEntityDetails
   | FocusedPlanetEntityDetails
+  | FocusedBeltEntityDetails
   | FocusedMinorBodyEntityDetails
   | FocusedStructureEntityDetails;
 
@@ -361,6 +432,7 @@ export interface SystemBodiesSummary {
   readonly selectedEntityIds?: readonly string[];
   readonly stars: readonly FocusedStarDetail[];
   readonly planets: readonly FocusedPlanetDetail[];
+  readonly disks?: readonly (FocusedDiskDetail | CircumstellarDiskRecord)[];
   readonly moonsAndDwarfPlanets: readonly SystemElementBodyItem[];
   readonly minorBodiesAndSpacecraft: readonly SystemElementBodyItem[];
   readonly canonAnnotations: readonly FocusedCanonAnnotation[];
@@ -382,7 +454,43 @@ export interface PlanetaryBodiesSummary {
   readonly canonAnnotations: readonly FocusedCanonAnnotation[];
 }
 
-export type BodiesPanelSummary = SystemBodiesSummary | PlanetaryBodiesSummary;
+export interface GalaxyBodySystemItem {
+  readonly id: string;
+  readonly name: string;
+  readonly href: string;
+  readonly tier: 'focused' | 'selected' | 'active';
+  readonly reticleType: CelestialClassification;
+  readonly spectralType?: string;
+  readonly starTypeGuideHref?: string;
+  readonly planetCount: number;
+  readonly hasHabitableCandidate: boolean;
+  readonly habitableZoneGuideHref?: string;
+  readonly hazardCount: number;
+  readonly hazardSummaryLabel: string;
+  readonly hasCriticalHazard: boolean;
+  readonly distanceFromFocusPc?: number;
+  readonly distanceFromFocusLy?: number;
+  readonly distanceGuideHref?: string;
+}
+
+export interface GalaxyBodiesSummary {
+  readonly scope: 'galaxy';
+  readonly centerId: string;
+  readonly centerName: string;
+  readonly centerCoordinatesPc: readonly [number, number, number];
+  readonly apertureRadiusPc: number;
+  readonly apertureRadiusLy: number;
+  readonly focusedSystemId?: string;
+  readonly focusedSystemName?: string;
+  readonly selectedEntityIds?: readonly string[];
+  readonly hoveredEntityId?: string | null;
+  readonly systems: readonly GalaxyBodySystemItem[];
+}
+
+export type BodiesPanelSummary =
+  | GalaxyBodiesSummary
+  | SystemBodiesSummary
+  | PlanetaryBodiesSummary;
 
 export interface BuildFocusedEntityDetailsInput {
   readonly focusedEntity: SpatialEntityDefinition | null | undefined;
@@ -426,6 +534,25 @@ export const isExoplanetHabitableCandidate = (
     'equilibriumTempK' | 'esi' | 'isHabitableCandidate'
   >,
 ): boolean => isPlanetHabitableCandidate(planet);
+
+/**
+ * Pure predicate determining whether an orbiting body or search entry resides within
+ * a circumstellar disk or belt (either via explicit 'belt'/'kuiper' region flag or radial range).
+ */
+export const isDwarfPlanetInDisk = (
+  entry: CompactSearchEntry | undefined,
+  disk: CircumstellarDiskRecord | FocusedDiskDetail,
+  semiMajorAxisAu?: number,
+): boolean => {
+  if (entry?.e === 'belt' && disk.kind === 'asteroid-belt') return true;
+  if (entry?.e === 'kuiper' && disk.kind === 'kuiper-belt') return true;
+
+  const a = semiMajorAxisAu ?? entry?.A;
+  if (a !== undefined && Number.isFinite(a)) {
+    return a >= disk.innerRadiusAu && a <= disk.outerRadiusAu;
+  }
+  return false;
+};
 
 /**
  * Pure builder producing the structured planet composition breakdown for the Peek detent.
@@ -616,6 +743,20 @@ export const buildIntrinsicSystemSummarySegments = (input: {
         ? `${input.name} is a spacecraft operating in the ${input.systemName} system.`
         : `${input.name} is a ${catLabel} orbiting ${parentName}${orbitSuffix}`;
     return [{ kind: 'text', text }];
+  }
+
+  if (input.focusedKind === 'belt') {
+    const count = input.orbitingBodyCount ?? 0;
+    const residentSuffix =
+      count > 0
+        ? ` hosting ${count} catalogued resident ${count === 1 ? 'body' : 'bodies'}.`
+        : '.';
+    return [
+      {
+        kind: 'text',
+        text: `${input.name} is a circumstellar disk orbiting ${input.systemName}${residentSuffix}`,
+      },
+    ];
   }
 
   const allowManifestOverview =
@@ -990,6 +1131,7 @@ const mapManifestToStarsAndPlanets = (
 ): {
   readonly stars: readonly FocusedStarDetail[];
   readonly planets: readonly FocusedPlanetDetail[];
+  readonly disks: readonly FocusedDiskDetail[];
 } => {
   const stars: FocusedStarDetail[] = manifest.stars.map((s) => ({
     id: s.id,
@@ -1073,7 +1215,23 @@ const mapManifestToStarsAndPlanets = (
     };
   });
 
-  return { stars, planets };
+  const disks: FocusedDiskDetail[] = (manifest.disks ?? []).map((d) => ({
+    id: d.id,
+    name: d.name,
+    kind: d.kind,
+    kindLabel: formatDiskKindLabel(d.kind),
+    href: buildSystemElementFocusHref(systemNameOrId, d.name || d.id),
+    innerRadiusAu: d.innerRadiusAu,
+    outerRadiusAu: d.outerRadiusAu,
+    semiMajorAxisAu:
+      d.semiMajorAxisAu ?? (d.innerRadiusAu + d.outerRadiusAu) / 2,
+    ...(d.tempK !== undefined ? { tempK: d.tempK } : {}),
+    composition: d.composition,
+    ...(d.confidence ? { confidence: d.confidence } : {}),
+    guideHref: buildMetricGuideHref('semi-major-axis'),
+  }));
+
+  return { stars, planets, disks };
 };
 
 const resolveMinorBodyCategoryLabel = (entry?: CompactSearchEntry): string => {
@@ -1218,6 +1376,7 @@ export const buildFocusedEntityDetails = (
 
   let stars: readonly FocusedStarDetail[] = [];
   let planets: readonly FocusedPlanetDetail[] = [];
+  let disks: readonly FocusedDiskDetail[] = [];
 
   if (sysManifest) {
     const mapped = mapManifestToStarsAndPlanets(
@@ -1226,6 +1385,7 @@ export const buildFocusedEntityDetails = (
     );
     stars = mapped.stars;
     planets = mapped.planets;
+    disks = mapped.disks;
   } else {
     const fallbackSpectral =
       focusedEntity?.spectralType ??
@@ -1300,6 +1460,19 @@ export const buildFocusedEntityDetails = (
       })
     : undefined;
 
+  const matchedDiskDetail = focusedEntity
+    ? disks.find((d) => {
+        const dId = toUrlSlug(d.id);
+        const dName = toUrlSlug(d.name);
+        return (
+          dId === focusIdSlug ||
+          dName === focusIdSlug ||
+          (focusNameSlug.length > 0 &&
+            (dId === focusNameSlug || dName === focusNameSlug))
+        );
+      })
+    : undefined;
+
   const focusedKind: FocusedEntityKind = !focusedEntity
     ? 'system'
     : structureRecord ||
@@ -1307,7 +1480,9 @@ export const buildFocusedEntityDetails = (
       focusedEntity.classification === 'cluster' ||
       focusedEntity.classification === 'stellar-cluster'
       ? 'structure'
-      : matchedPlanetDetail ||
+      : matchedDiskDetail
+        ? 'belt'
+        : matchedPlanetDetail ||
           matchedCorpusEntry?.k === 2 ||
           solarBodyRecord?.classification === 'Planet'
         ? 'planet'
@@ -1322,6 +1497,7 @@ export const buildFocusedEntityDetails = (
             : 'system';
 
   const resolvedName =
+    matchedDiskDetail?.name ??
     matchedPlanetDetail?.name ??
     (focusedKind === 'star' && matchedStarDetail && matchedStarDetail.name !== systemName
       ? matchedStarDetail.name
@@ -1355,15 +1531,48 @@ export const buildFocusedEntityDetails = (
     ].filter((s) => s.length > 0),
   );
 
+  const resolveDiskResidentBodies = (
+    disk: FocusedDiskDetail,
+    systemNameOrId: string,
+    corpusEntries: readonly CompactSearchEntry[],
+    urlPlanet?: string | null,
+  ): readonly SystemElementBodyItem[] => {
+    const items: SystemElementBodyItem[] = [];
+    for (const entry of corpusEntries) {
+      if (entry.s !== systemId) continue;
+      if (entry.o) continue;
+      if (entry.k !== 4 && entry.k !== 6) continue;
+      if (isDwarfPlanetInDisk(entry, disk)) {
+        const name = resolveResultDisplayTitle(entry);
+        items.push({
+          id: entry.i,
+          name,
+          href: urlPlanet
+            ? buildPlanetElementFocusHref(urlPlanet, name || entry.i)
+            : buildSystemElementFocusHref(systemNameOrId, name || entry.i),
+          categoryLabel: resolveMinorBodyCategoryLabel(entry),
+        });
+      }
+    }
+    return items;
+  };
+
   const orbitingBodies: readonly SystemElementBodyItem[] =
-    focusedKind === 'planet' || focusedKind === 'minor-body'
-      ? resolveOrbitingBodies(
-          planetTargetSlugs,
+    focusedKind === 'belt' && matchedDiskDetail
+      ? resolveDiskResidentBodies(
+          matchedDiskDetail,
           systemName || systemId,
           corpus,
           urlPlanetSlug,
         )
-      : [];
+      : focusedKind === 'planet' || focusedKind === 'minor-body'
+        ? resolveOrbitingBodies(
+            planetTargetSlugs,
+            systemName || systemId,
+            corpus,
+            urlPlanetSlug,
+          )
+        : [];
 
   const minorBodyCategoryLabel =
     focusedKind === 'minor-body'
@@ -1380,12 +1589,14 @@ export const buildFocusedEntityDetails = (
       : undefined;
 
   const reticleType: CelestialClassification =
-    focusedKind === 'planet'
-      ? planetComposition
-      : ((focusedEntity?.classification as CelestialClassification | undefined) ??
-        (matchedCorpusEntry
-          ? resolveReticleType(matchedCorpusEntry)
-          : 'stellar-system'));
+    focusedKind === 'belt'
+      ? 'terrestrial'
+      : focusedKind === 'planet'
+        ? planetComposition
+        : ((focusedEntity?.classification as CelestialClassification | undefined) ??
+          (matchedCorpusEntry
+            ? resolveReticleType(matchedCorpusEntry)
+            : 'stellar-system'));
 
   const starCount =
     focusedKind === 'structure'
@@ -1445,7 +1656,8 @@ export const buildFocusedEntityDetails = (
   const isChildEntity =
     (focusedEntity ? focusedEntity.id !== systemId : false) ||
     focusedKind === 'planet' ||
-    focusedKind === 'minor-body';
+    focusedKind === 'minor-body' ||
+    focusedKind === 'belt';
 
   const summaryInput = {
     name: resolvedName,
@@ -1654,7 +1866,7 @@ export const buildFocusedEntityDetails = (
   const hazards =
     focusedKind === 'planet'
       ? [...systemHazards, ...planetHazards]
-      : focusedKind === 'system' || focusedKind === 'star' || focusedKind === 'minor-body'
+      : focusedKind === 'system' || focusedKind === 'star' || focusedKind === 'minor-body' || focusedKind === 'belt'
         ? systemHazards
         : [];
 
@@ -1687,6 +1899,7 @@ export const buildFocusedEntityDetails = (
     centerHref,
     stars,
     planets,
+    disks,
     ...(orbitingBodies.length > 0 ? { orbitingBodies } : {}),
     canonAnnotations,
   };
@@ -1760,6 +1973,25 @@ export const buildFocusedEntityDetails = (
     };
   }
 
+  if (focusedKind === 'belt') {
+    const diskSource = matchedDiskDetail ?? disks[0];
+    return {
+      ...baseDetails,
+      focusedKind: 'belt',
+      orbitingBodies,
+      diskTelemetry: {
+        classification: diskSource?.kind ?? 'debris-disk',
+        classificationLabel: diskSource?.kindLabel ?? 'Circumstellar Disk',
+        innerRadiusAu: diskSource?.innerRadiusAu ?? 0,
+        outerRadiusAu: diskSource?.outerRadiusAu ?? 0,
+        semiMajorAxisAu: diskSource?.semiMajorAxisAu ?? 0,
+        ...(diskSource?.tempK !== undefined ? { tempK: diskSource.tempK } : {}),
+        composition: diskSource?.composition ?? 'Silicates & dust',
+        ...(diskSource?.confidence ? { confidence: diskSource.confidence } : {}),
+      },
+    };
+  }
+
   if (focusedKind === 'minor-body') {
     return {
       ...baseDetails,
@@ -1809,7 +2041,7 @@ export const buildSystemBodiesSummary = (
     return null;
   }
 
-  const { systemId, systemName, stars, planets } = details;
+  const { systemId, systemName, stars, planets, disks } = details;
   const focusedEntityId =
     'focusedEntityId' in input ? input.focusedEntityId : details.id;
   const systemHref = buildSystemDetailsHref(systemName || systemId);
@@ -1859,6 +2091,7 @@ export const buildSystemBodiesSummary = (
     ...(selectedEntityIds ? { selectedEntityIds } : {}),
     stars,
     planets,
+    disks,
     moonsAndDwarfPlanets,
     minorBodiesAndSpacecraft,
     canonAnnotations: systemCanonAnnotations,
@@ -2107,6 +2340,474 @@ export const buildPlanetaryBodiesSummary = (
   };
 };
 
+const GALAXY_NAV_PRESERVED_PARAMS = new Set([
+  'q',
+  'searchCategory',
+  'select',
+  'canon',
+  'center',
+  'x',
+  'y',
+  'z',
+  'az',
+  'el',
+  'dist',
+  'zoom',
+  'route',
+  'journeyOption',
+]);
+
+/**
+ * Pure helper building system navigation URLs on GalaxyView preserving active
+ * cartographic and journey state parameters while dropping `focus` (DEC-034).
+ */
+export function buildGalaxySystemNavigationHref(
+  systemId: string,
+  currentSearch = '',
+): string {
+  const slug = toUrlSlug(systemId) || systemId.trim();
+  const baseHref = `/galaxy/${slug}`;
+  if (!currentSearch) {
+    return baseHref;
+  }
+  const cleanSearch = currentSearch.startsWith('?')
+    ? currentSearch.slice(1)
+    : currentSearch;
+  if (!cleanSearch) {
+    return baseHref;
+  }
+  const inParams = new URLSearchParams(cleanSearch);
+  const outParams = new URLSearchParams();
+
+  for (const [key, val] of inParams.entries()) {
+    if (GALAXY_NAV_PRESERVED_PARAMS.has(key)) {
+      outParams.append(key, val);
+    }
+  }
+
+  const qs = outParams.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
+  return qs.length > 0 ? `${baseHref}?${qs}` : baseHref;
+}
+
+export interface ResolveGalacticInstrumentApertureInput {
+  readonly cameraState?: SceneCameraUrlState;
+  readonly corpus?: readonly CompactSearchEntry[];
+  readonly focusedEntity?: SpatialEntityDefinition | null;
+  readonly centerEntity?: SpatialEntityDefinition | null;
+  readonly urlSystemSlug?: string | null;
+}
+
+export interface GalacticInstrumentApertureResult {
+  readonly centerId: string;
+  readonly centerName: string;
+  readonly centerCoordinatesPc: readonly [number, number, number];
+  readonly rawAperturePc: number;
+  readonly apertureRadiusPc: number;
+  readonly apertureRadiusLy: number;
+  readonly apertureIds: Set<string>;
+  readonly systemsById: Map<
+    string,
+    {
+      readonly id: string;
+      readonly name: string;
+      readonly coordinatesPc: readonly [number, number, number];
+      readonly entry: CompactSearchEntry;
+    }
+  >;
+}
+
+/**
+ * Pure resolver evaluating 3D cartographic instrument aperture sphere intersection
+ * and reference center for Galactic inspection (DEC-034).
+ */
+export function resolveGalacticInstrumentAperture(
+  input: ResolveGalacticInstrumentApertureInput,
+): GalacticInstrumentApertureResult {
+  const { cameraState, corpus = [], focusedEntity, centerEntity, urlSystemSlug } = input;
+
+  let centerId = 'sol';
+  let centerName = 'Sol';
+  let centerCoordinatesPc: readonly [number, number, number] = [0, 0, 0];
+
+  if (
+    cameraState?.x !== undefined &&
+    cameraState?.y !== undefined &&
+    cameraState?.z !== undefined
+  ) {
+    centerCoordinatesPc = [cameraState.x, cameraState.y, cameraState.z];
+    centerId = cameraState.center ? toUrlSlug(cameraState.center) : 'free';
+    centerName = cameraState.center ?? 'Free Origin';
+  } else if (cameraState?.center) {
+    if (centerEntity) {
+      centerId = toUrlSlug(centerEntity.id) || centerEntity.id;
+      centerName = centerEntity.name;
+      centerCoordinatesPc = toCoordinatesTuple(centerEntity.position);
+    } else {
+      const matched = findFocusedEntryInCorpus(cameraState.center, corpus);
+      if (matched) {
+        centerId = toUrlSlug(matched.s ?? matched.i);
+        centerName = resolveResultDisplayTitle(matched);
+        centerCoordinatesPc = matched.p
+          ? [matched.p[0], matched.p[1], matched.p[2]]
+          : [0, 0, 0];
+      } else {
+        centerId = toUrlSlug(cameraState.center) || 'sol';
+        centerName = formatSlugFallbackTitle(cameraState.center);
+        centerCoordinatesPc = [0, 0, 0];
+      }
+    }
+  } else if (urlSystemSlug || focusedEntity) {
+    const targetKey = urlSystemSlug ?? focusedEntity?.id ?? 'sol';
+    const matched = findFocusedEntryInCorpus(targetKey, corpus);
+    if (matched) {
+      centerId = toUrlSlug(matched.s ?? matched.i);
+      centerName = resolveResultDisplayTitle(matched);
+      centerCoordinatesPc = matched.p
+        ? [matched.p[0], matched.p[1], matched.p[2]]
+        : [0, 0, 0];
+    } else if (focusedEntity) {
+      centerId = toUrlSlug(focusedEntity.id) || focusedEntity.id;
+      centerName = focusedEntity.name;
+      centerCoordinatesPc = toCoordinatesTuple(focusedEntity.position);
+    } else {
+      centerId = toUrlSlug(urlSystemSlug ?? 'sol') || 'sol';
+      centerName = formatSlugFallbackTitle(centerId);
+      centerCoordinatesPc = [0, 0, 0];
+    }
+  }
+
+  const refDist =
+    GALACTIC_FRAME.radius * GALACTIC_FRAME.referenceDistanceMultiplier;
+  const baseDist =
+    cameraState?.dist !== undefined &&
+    Number.isFinite(cameraState.dist) &&
+    cameraState.dist > 0
+      ? cameraState.dist
+      : refDist;
+  const zoom =
+    cameraState?.zoom !== undefined &&
+    Number.isFinite(cameraState.zoom) &&
+    cameraState.zoom > 0
+      ? cameraState.zoom
+      : 1;
+  const effectiveDist = baseDist / zoom;
+  const rawAperturePc = computeApertureRadius(
+    effectiveDist,
+    GALACTIC_FRAME.radius,
+    refDist,
+    GALACTIC_FRAME.screenConstant,
+    3.5,
+  );
+  const apertureRadiusPc = Math.round(rawAperturePc * 100) / 100;
+  const apertureRadiusLy =
+    Math.round(rawAperturePc * PARSEC_TO_LY * 100) / 100;
+
+  const apertureIds = new Set<string>();
+  const systemsById = new Map<
+    string,
+    {
+      readonly id: string;
+      readonly name: string;
+      readonly coordinatesPc: readonly [number, number, number];
+      readonly entry: CompactSearchEntry;
+    }
+  >();
+
+  for (const entry of corpus) {
+    if (entry.c !== 'stars' && resolveEntryCategory(entry) !== 'stars') {
+      continue;
+    }
+    const sysSlug = toUrlSlug(entry.s ?? entry.i ?? entry.n);
+    if (!sysSlug || systemsById.has(sysSlug)) {
+      continue;
+    }
+    const pos: [number, number, number] = entry.p
+      ? [entry.p[0], entry.p[1], entry.p[2]]
+      : [0, 0, 0];
+    systemsById.set(sysSlug, {
+      id: entry.s ?? entry.i,
+      name: resolveResultDisplayTitle(entry),
+      coordinatesPc: pos,
+      entry,
+    });
+    if (isInsideAperture(pos, centerCoordinatesPc, rawAperturePc)) {
+      apertureIds.add(sysSlug);
+      apertureIds.add(entry.i);
+      if (entry.s) {
+        apertureIds.add(entry.s);
+      }
+    }
+  }
+
+  return {
+    centerId,
+    centerName,
+    centerCoordinatesPc,
+    rawAperturePc,
+    apertureRadiusPc,
+    apertureRadiusLy,
+    apertureIds,
+    systemsById,
+  };
+}
+
+export interface ExtractGalaxyBodiesInput {
+  readonly corpus?: readonly CompactSearchEntry[];
+  readonly focusedEntity?: SpatialEntityDefinition | null;
+  readonly selectedEntities?: readonly SpatialEntityDefinition[];
+  readonly hoveredEntityId?: string | null;
+  readonly cameraState?: SceneCameraUrlState;
+  readonly centerEntity?: SpatialEntityDefinition | null;
+  readonly urlSystemSlug?: string | null;
+  readonly hasExplicitFocus?: boolean;
+  readonly currentSearch?: string;
+}
+
+/**
+ * Pure builder assembling a `GalaxyBodiesSummary` containing only non-passive star systems
+ * (focused, selected, or active within instrument aperture radius) ordered relative
+ * to the focused primary system or instrument center (DEC-034).
+ */
+export function extractGalaxyBodies(
+  input: ExtractGalaxyBodiesInput,
+): GalaxyBodiesSummary {
+  const {
+    corpus = [],
+    focusedEntity,
+    selectedEntities = [],
+    hoveredEntityId,
+    cameraState,
+    centerEntity,
+    urlSystemSlug,
+    currentSearch = '',
+  } = input;
+
+  const instrumentAperture = resolveGalacticInstrumentAperture({
+    cameraState,
+    corpus,
+    focusedEntity,
+    centerEntity,
+    urlSystemSlug,
+  });
+
+  let focusedSystemId: string | undefined;
+  let focusedSystemName: string | undefined;
+  let focusedSystemCoords: readonly [number, number, number] | undefined;
+  let focusedSysSlug: string | undefined;
+
+  if (focusedEntity) {
+    const matched = findFocusedEntryInCorpus(focusedEntity.id, corpus);
+    if (matched?.s) {
+      const parentSys = findFocusedEntryInCorpus(matched.s, corpus);
+      focusedSystemId = matched.s;
+      focusedSystemName = parentSys
+        ? resolveResultDisplayTitle(parentSys)
+        : formatSlugFallbackTitle(matched.s);
+      focusedSystemCoords = parentSys?.p
+        ? [parentSys.p[0], parentSys.p[1], parentSys.p[2]]
+        : toCoordinatesTuple(focusedEntity.position);
+      focusedSysSlug = toUrlSlug(matched.s);
+    } else {
+      focusedSystemId = focusedEntity.id;
+      focusedSystemName = focusedEntity.name;
+      focusedSystemCoords = matched?.p
+        ? [matched.p[0], matched.p[1], matched.p[2]]
+        : toCoordinatesTuple(focusedEntity.position);
+      focusedSysSlug = toUrlSlug(focusedEntity.id);
+    }
+  } else if (urlSystemSlug) {
+    const matched = findFocusedEntryInCorpus(urlSystemSlug, corpus);
+    focusedSystemId = matched?.i ?? urlSystemSlug;
+    focusedSystemName = matched
+      ? resolveResultDisplayTitle(matched)
+      : formatSlugFallbackTitle(urlSystemSlug);
+    focusedSystemCoords = matched?.p
+      ? [matched.p[0], matched.p[1], matched.p[2]]
+      : [0, 0, 0];
+    focusedSysSlug = toUrlSlug(urlSystemSlug);
+  }
+
+  const selectedSet = new Set<string>();
+  for (const sel of selectedEntities) {
+    const matched = findFocusedEntryInCorpus(sel.id, corpus);
+    const sysId = matched?.s ?? sel.id;
+    selectedSet.add(sysId);
+    selectedSet.add(toUrlSlug(sysId));
+    selectedSet.add(sel.id);
+    selectedSet.add(toUrlSlug(sel.id));
+  }
+
+  const candidateMap = new Map(instrumentAperture.systemsById);
+
+  if (focusedSysSlug && !candidateMap.has(focusedSysSlug)) {
+    const matched = focusedSystemId
+      ? findFocusedEntryInCorpus(focusedSystemId, corpus)
+      : undefined;
+    candidateMap.set(focusedSysSlug, {
+      id: focusedSystemId ?? focusedSysSlug,
+      name: focusedSystemName ?? formatSlugFallbackTitle(focusedSysSlug),
+      coordinatesPc: focusedSystemCoords ?? [0, 0, 0],
+      entry: matched ?? {
+        i: focusedSystemId ?? focusedSysSlug,
+        n: focusedSystemName ?? formatSlugFallbackTitle(focusedSysSlug),
+        p: focusedSystemCoords
+          ? [focusedSystemCoords[0], focusedSystemCoords[1], focusedSystemCoords[2]]
+          : [0, 0, 0],
+        c: 'stars',
+      },
+    });
+  }
+
+  for (const sel of selectedEntities) {
+    const matched = findFocusedEntryInCorpus(sel.id, corpus);
+    const sysId = matched?.s ?? sel.id;
+    const sysSlug = toUrlSlug(sysId);
+    if (!candidateMap.has(sysSlug)) {
+      const sysEntry = findFocusedEntryInCorpus(sysId, corpus);
+      const pos: readonly [number, number, number] = sysEntry?.p
+        ? [sysEntry.p[0], sysEntry.p[1], sysEntry.p[2]]
+        : toCoordinatesTuple(sel.position);
+      candidateMap.set(sysSlug, {
+        id: sysId,
+        name: sysEntry ? resolveResultDisplayTitle(sysEntry) : sel.name,
+        coordinatesPc: pos,
+        entry: sysEntry ?? {
+          i: sysId,
+          n: sel.name,
+          p: [pos[0], pos[1], pos[2]],
+          c: 'stars',
+        },
+      });
+    }
+  }
+
+  const systems: GalaxyBodySystemItem[] = [];
+
+  for (const [sysSlug, sysData] of candidateMap.entries()) {
+    const rawTier = deriveEntityTier(sysSlug, {
+      focusedId: focusedSysSlug ?? null,
+      selectedIds: selectedSet,
+      apertureIds: instrumentAperture.apertureIds,
+    });
+
+    const tier =
+      rawTier === 'passive' &&
+      (sysData.id === focusedSystemId || selectedSet.has(sysData.id))
+        ? deriveEntityTier(sysData.id, {
+            focusedId: focusedSystemId ?? null,
+            selectedIds: selectedSet,
+            apertureIds: instrumentAperture.apertureIds,
+          })
+        : rawTier;
+
+    if (tier === 'passive') {
+      continue;
+    }
+
+    const entry = sysData.entry;
+    const reticleType = resolveReticleType(entry);
+    const spectralType =
+      entry.m?.[1] && entry.m[1] !== 'Unknown' ? entry.m[1] : undefined;
+    const starTypeGuideHref = spectralType
+      ? buildStarTypeGuideHref(spectralType)
+      : undefined;
+    const planetCount =
+      entry.m?.[2] ??
+      (entry.b
+        ? (entry.b[0] ?? 0) +
+          (entry.b[1] ?? 0) +
+          (entry.b[2] ?? 0) +
+          (entry.b[3] ?? 0)
+        : 0);
+    const hasHabitableCandidate = Boolean(
+      entry.m?.[3] === 1 ||
+        entry.z === 1 ||
+        (entry.g !== undefined && (entry.g & 16) !== 0),
+    );
+    const habitableZoneGuideHref = hasHabitableCandidate
+      ? buildTagGalaxyHref('HabitableCandidate')
+      : undefined;
+
+    const rawHazardMask =
+      entry.H ??
+      computeSystemHazardMask({
+        spect: spectralType,
+        tags: decodeTagsMask(entry.g),
+      });
+    const hazards = decodeSystemHazards(rawHazardMask);
+    const hazardCount = hazards.length;
+    const hazardSummaryLabel = formatHazardSummaryLabel(hazardCount);
+    const hasCriticalHazard = hazards.some((h) => h.severity === 'critical');
+
+    let distanceFromFocusPc: number | undefined;
+    let distanceFromFocusLy: number | undefined;
+    let distanceGuideHref: string | undefined;
+
+    if (focusedSystemId && focusedSystemCoords) {
+      const rawDist = computeEuclideanDistance3D(
+        focusedSystemCoords,
+        sysData.coordinatesPc,
+      ).distance;
+      const distPc = Math.round(rawDist * 100) / 100;
+      const distLy = Math.round(distPc * PARSEC_TO_LY * 10) / 10;
+      distanceFromFocusPc = distPc;
+      distanceFromFocusLy = distLy;
+      distanceGuideHref = buildMetricGuideHref('distance', sysData.id);
+    }
+
+    systems.push({
+      id: sysData.id,
+      name: sysData.name,
+      href: buildGalaxySystemNavigationHref(sysData.id, currentSearch),
+      tier,
+      reticleType,
+      ...(spectralType ? { spectralType } : {}),
+      ...(starTypeGuideHref ? { starTypeGuideHref } : {}),
+      planetCount,
+      hasHabitableCandidate,
+      ...(habitableZoneGuideHref ? { habitableZoneGuideHref } : {}),
+      hazardCount,
+      hazardSummaryLabel,
+      hasCriticalHazard,
+      ...(distanceFromFocusPc !== undefined ? { distanceFromFocusPc } : {}),
+      ...(distanceFromFocusLy !== undefined ? { distanceFromFocusLy } : {}),
+      ...(distanceGuideHref ? { distanceGuideHref } : {}),
+    });
+  }
+
+  const referenceOrigin =
+    focusedSystemCoords ?? instrumentAperture.centerCoordinatesPc;
+
+  systems.sort((a, b) => {
+    const coordsA =
+      candidateMap.get(toUrlSlug(a.id))?.coordinatesPc ?? [0, 0, 0];
+    const coordsB =
+      candidateMap.get(toUrlSlug(b.id))?.coordinatesPc ?? [0, 0, 0];
+    const distA = computeEuclideanDistance3D(referenceOrigin, coordsA).distance;
+    const distB = computeEuclideanDistance3D(referenceOrigin, coordsB).distance;
+    if (Math.abs(distA - distB) > 1e-5) {
+      return distA - distB;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  return {
+    scope: 'galaxy',
+    centerId: instrumentAperture.centerId,
+    centerName: instrumentAperture.centerName,
+    centerCoordinatesPc: instrumentAperture.centerCoordinatesPc,
+    apertureRadiusPc: instrumentAperture.apertureRadiusPc,
+    apertureRadiusLy: instrumentAperture.apertureRadiusLy,
+    ...(focusedSystemId ? { focusedSystemId } : {}),
+    ...(focusedSystemName ? { focusedSystemName } : {}),
+    ...(selectedEntities.length > 0
+      ? { selectedEntityIds: selectedEntities.map((e) => e.id) }
+      : {}),
+    hoveredEntityId: hoveredEntityId ?? null,
+    systems,
+  };
+}
+
 export interface BreadcrumbRouteLink {
   readonly label: string;
   readonly href?: string;
@@ -2164,6 +2865,7 @@ export type OrbitalSchematicRegion =
 export type OrbitalSchematicEntityKind =
   | 'star'
   | 'planet'
+  | 'belt'
   | 'dwarf-planet'
   | 'moon'
   | 'minor-body'
@@ -2181,6 +2883,8 @@ export interface OrbitalSchematicItem {
   readonly isFocused: boolean;
   readonly isSelected: boolean;
   readonly children?: readonly OrbitalSchematicItem[];
+  readonly radialSpanAu?: readonly [number, number];
+  readonly composition?: string;
 }
 
 export interface OrbitalSchematicSummary {
@@ -2198,13 +2902,25 @@ export interface OrbitalSchematicSummary {
  * Starts with primary stars (orbitRank 0), followed by all system-level orbiting bodies
  * sorted strictly by radial orbital rank (closest to primary first).
  */
+export type SystemOrbitalSchematicInput =
+  | (Partial<SystemBodiesSummary> &
+      Pick<SystemBodiesSummary, 'systemId' | 'systemName' | 'stars' | 'planets'> & {
+        readonly corpus?: readonly CompactSearchEntry[];
+      })
+  | (SystemBodiesSummary & {
+      readonly corpus?: readonly CompactSearchEntry[];
+    });
+
 export const buildSystemOrbitalSchematic = (
-  systemBodies: SystemBodiesSummary | null,
-  corpus: readonly CompactSearchEntry[] = [],
+  systemBodies: SystemOrbitalSchematicInput | null,
+  corpusInput: readonly CompactSearchEntry[] = [],
 ): OrbitalSchematicSummary | null => {
   if (!systemBodies) {
     return null;
   }
+
+  const corpus: readonly CompactSearchEntry[] =
+    corpusInput.length > 0 ? corpusInput : (systemBodies.corpus ?? []);
 
   const {
     systemId,
@@ -2213,8 +2929,25 @@ export const buildSystemOrbitalSchematic = (
     selectedEntityIds,
     stars,
     planets,
-    moonsAndDwarfPlanets,
+    disks = [],
+    moonsAndDwarfPlanets: inputMoonsAndDwarfPlanets,
   } = systemBodies;
+
+  const rawMoonsAndDwarfPlanets = inputMoonsAndDwarfPlanets ?? [];
+  const moonsAndDwarfPlanets =
+    rawMoonsAndDwarfPlanets.length > 0
+      ? rawMoonsAndDwarfPlanets
+      : corpus
+          .filter((e) => e.s === systemId && (e.k === 3 || e.k === 4))
+          .map((e) => ({
+            id: e.i,
+            name: resolveResultDisplayTitle(e),
+            href: buildSystemElementFocusHref(
+              systemName || systemId,
+              resolveResultDisplayTitle(e) || e.i,
+            ),
+            categoryLabel: e.k === 3 ? 'Moon' : 'Dwarf Planet',
+          }));
 
   const selectedSet = new Set(selectedEntityIds ?? []);
   const items: OrbitalSchematicItem[] = [];
@@ -2248,6 +2981,9 @@ export const buildSystemOrbitalSchematic = (
     readonly isHabitableCandidate: boolean;
     readonly entry?: CompactSearchEntry;
     readonly originalIndex: number;
+    readonly radialSpanAu?: readonly [number, number];
+    readonly composition?: string;
+    readonly children?: readonly OrbitalSchematicItem[];
   }
 
   const candidates: CandidateItem[] = [];
@@ -2269,11 +3005,87 @@ export const buildSystemOrbitalSchematic = (
     });
   }
 
+  for (const disk of disks) {
+    const matchingResidents = moonsAndDwarfPlanets.filter((body) => {
+      const entry =
+        corpus.find((e) => e.i === body.id) ||
+        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(body.id));
+      if (entry?.o) return false;
+      return isDwarfPlanetInDisk(entry, disk);
+    });
+
+    matchingResidents.sort((a, b) => {
+      const entryA =
+        corpus.find((e) => e.i === a.id) ||
+        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(a.id));
+      const entryB =
+        corpus.find((e) => e.i === b.id) ||
+        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(b.id));
+      const aVal = entryA?.A ?? entryA?.r ?? Number.POSITIVE_INFINITY;
+      const bVal = entryB?.A ?? entryB?.r ?? Number.POSITIVE_INFINITY;
+      return aVal - bVal;
+    });
+
+    const residentChildren: OrbitalSchematicItem[] = matchingResidents.map((body, rIdx) => {
+      const childEntry =
+        corpus.find((e) => e.i === body.id) ||
+        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(body.id));
+      let region: OrbitalSchematicRegion | undefined;
+      if (childEntry?.e === 'belt' || disk.kind === 'asteroid-belt') {
+        region = 'asteroid-belt';
+      } else if (childEntry?.e === 'kuiper' || disk.kind === 'kuiper-belt') {
+        region = 'kuiper-belt';
+      }
+      return {
+        id: body.id,
+        name: body.name,
+        href: body.href,
+        kind: 'dwarf-planet' as const,
+        orbitRank: childEntry?.r ?? rIdx + 1,
+        summaryLabel: body.categoryLabel,
+        region,
+        inHabitableZone: Boolean(childEntry?.z === 1),
+        isFocused: focusedEntityId === body.id,
+        isSelected: selectedSet.has(body.id),
+      };
+    });
+
+    const diskKindLabel =
+      'kindLabel' in disk && disk.kindLabel
+        ? disk.kindLabel
+        : formatDiskKindLabel(disk.kind);
+    const diskHref =
+      ('href' in disk && disk.href ? disk.href : undefined) ??
+      buildSystemElementFocusHref(
+        systemName || systemId,
+        disk.name || disk.id,
+      );
+
+    candidates.push({
+      id: disk.id,
+      name: disk.name,
+      href: diskHref,
+      kind: 'belt',
+      summaryLabel: diskKindLabel,
+      semiMajorAxisAu:
+        disk.semiMajorAxisAu ?? (disk.innerRadiusAu + disk.outerRadiusAu) / 2,
+      radialSpanAu: [disk.innerRadiusAu, disk.outerRadiusAu],
+      composition: disk.composition,
+      isHabitableCandidate: false,
+      originalIndex: candidates.length,
+      children: residentChildren,
+    });
+  }
+
   for (const body of moonsAndDwarfPlanets) {
     const entry =
       corpus.find((e) => e.i === body.id) ||
       corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(body.id));
     if (entry?.o) {
+      continue;
+    }
+    const isInAnyDisk = disks.some((d) => isDwarfPlanetInDisk(entry, d));
+    if (isInAnyDisk) {
       continue;
     }
     const isDwarf = entry?.k === 4 || body.categoryLabel === 'Dwarf Planet';
@@ -2283,38 +3095,40 @@ export const buildSystemOrbitalSchematic = (
       href: body.href,
       kind: isDwarf ? 'dwarf-planet' : 'moon',
       summaryLabel: body.categoryLabel,
+      semiMajorAxisAu: entry?.A,
       isHabitableCandidate: Boolean(entry?.z === 1),
       entry,
       originalIndex: candidates.length,
     });
   }
 
-
   candidates.sort((a, b) => {
-    const rankA = a.entry?.r;
-    const rankB = b.entry?.r;
-    if (rankA !== undefined && rankB !== undefined) {
-      if (rankA !== rankB) return rankA - rankB;
-    }
     if (a.semiMajorAxisAu !== undefined && b.semiMajorAxisAu !== undefined) {
       if (a.semiMajorAxisAu !== b.semiMajorAxisAu) {
         return a.semiMajorAxisAu - b.semiMajorAxisAu;
       }
     }
-    if (rankA !== undefined && b.semiMajorAxisAu === undefined) return -1;
-    if (rankB !== undefined && a.semiMajorAxisAu === undefined) return 1;
+    const rankA = a.entry?.r;
+    const rankB = b.entry?.r;
+    if (rankA !== undefined && rankB !== undefined) {
+      if (rankA !== rankB) return rankA - rankB;
+    }
+    if (a.semiMajorAxisAu !== undefined && b.semiMajorAxisAu === undefined) return -1;
+    if (b.semiMajorAxisAu !== undefined && a.semiMajorAxisAu === undefined) return 1;
     return a.originalIndex - b.originalIndex;
   });
 
   candidates.forEach((c, index) => {
     const inHabitableZone = c.isHabitableCandidate || c.entry?.z === 1;
     let region: OrbitalSchematicRegion | undefined;
-    if (c.entry?.e === 'belt') {
-      region = 'asteroid-belt';
-    } else if (c.entry?.e === 'kuiper') {
-      region = 'kuiper-belt';
-    } else if (inHabitableZone) {
-      region = 'habitable-zone';
+    if (c.kind !== 'belt') {
+      if (c.entry?.e === 'belt') {
+        region = 'asteroid-belt';
+      } else if (c.entry?.e === 'kuiper') {
+        region = 'kuiper-belt';
+      } else if (inHabitableZone) {
+        region = 'habitable-zone';
+      }
     }
 
     const matchingMoons = moonsAndDwarfPlanets.filter((moon) => {
@@ -2373,6 +3187,13 @@ export const buildSystemOrbitalSchematic = (
       };
     });
 
+    const effectiveChildren =
+      c.children && c.children.length > 0
+        ? c.children
+        : children.length > 0
+          ? children
+          : undefined;
+
     items.push({
       id: c.id,
       name: c.name,
@@ -2384,7 +3205,9 @@ export const buildSystemOrbitalSchematic = (
       ...(region ? { region } : {}),
       isFocused: focusedEntityId === c.id,
       isSelected: selectedSet.has(c.id),
-      ...(children.length > 0 ? { children } : {}),
+      ...(c.radialSpanAu ? { radialSpanAu: c.radialSpanAu } : {}),
+      ...(c.composition ? { composition: c.composition } : {}),
+      ...(effectiveChildren ? { children: effectiveChildren } : {}),
     });
   });
 

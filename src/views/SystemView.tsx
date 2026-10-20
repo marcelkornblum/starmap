@@ -48,6 +48,7 @@ import {
   hasExplicitFocusParam,
   resolveFocusedEntityFromCorpus,
   resolveSelectedSystemsFromUrlSelect,
+  toUrlSlug,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 
@@ -91,11 +92,44 @@ const useResolvedSystemDetails = (
     getCachedCorpusForFilter('stars') ??
     [];
 
-  const focusedEntity =
+  const explicitFocusedEntity =
     storeApi.getState().getEntitiesByState('focused')[0] ??
     (urlFocusSlug
       ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
       : null);
+
+  const cachedSystemRecord = urlSystemSlug
+    ? getCachedDetailRecord(urlSystemSlug)
+    : undefined;
+
+  const matchingDisk =
+    !explicitFocusedEntity &&
+    urlFocusSlug &&
+    cachedSystemRecord?.kind === 'system'
+      ? cachedSystemRecord.record.disks?.find((d) => {
+          const dSlug = toUrlSlug(d.id);
+          const nameSlug = toUrlSlug(d.name);
+          return dSlug === urlFocusSlug || nameSlug === urlFocusSlug;
+        })
+      : undefined;
+
+  const syntheticDiskEntity: SpatialEntityDefinition | null = matchingDisk
+    ? {
+        id: matchingDisk.id,
+        name: matchingDisk.name,
+        classification: 'terrestrial',
+        position:
+          cachedSystemRecord?.kind === 'system'
+            ? [
+                cachedSystemRecord.record.x,
+                cachedSystemRecord.record.y,
+                cachedSystemRecord.record.z,
+              ]
+            : [0, 0, 0],
+      }
+    : null;
+
+  const focusedEntity = explicitFocusedEntity ?? syntheticDiskEntity;
   const matchedEntry = focusedEntity
     ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
     : undefined;
@@ -106,7 +140,7 @@ const useResolvedSystemDetails = (
     matchedEntry?.s ??
     urlSystemEntry?.s ??
     urlSystemEntry?.i ??
-    focusedEntity?.id ??
+    (syntheticDiskEntity ? urlSystemSlug : focusedEntity?.id) ??
     urlSystemSlug ??
     '';
 
@@ -125,7 +159,7 @@ const useResolvedSystemDetails = (
       loadSearchCorpusForFilter('all').catch(() => undefined),
       fetchSummaryNode(targetSystemId).catch(() => undefined),
       fetchDetailRecord(targetSystemId).catch(() => undefined),
-      focusedEntity && focusedEntity.id !== targetSystemId
+      focusedEntity && focusedEntity.id !== targetSystemId && !syntheticDiskEntity
         ? fetchDetailRecord(focusedEntity.id).catch(() => undefined)
         : Promise.resolve(undefined),
     ]).then(() => {

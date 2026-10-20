@@ -879,14 +879,159 @@ export const FULL_GALACTIC_STRUCTURES = [
     designations: ['Dumbbell Nebula', 'M27', 'M 027', 'Messier 27', 'NGC 6853'],
     description: 'The first planetary nebula discovered in history, notable for its bright hourglass morphology in Vulpecula.',
   },
+  // Complex of Local Interstellar Clouds (CLIC <= 15 pc), Local Bubble & Nearby Molecular Clouds
   {
     id: 'local-interstellar-cloud',
-    name: 'Local Interstellar Cloud (LIC / Local Bubble)',
+    name: 'Local Interstellar Cloud (LIC / Local Fluff)',
     type: 'InterstellarMedium',
     x: 0.1, y: -0.2, z: 0.3, dist: 0.4,
-    radiusPc: 9.2,
-    designations: ['Local Interstellar Cloud', 'LIC', 'Local Bubble', 'Local Fluff', "Gould's Belt"],
-    description: 'Warm diffuse gas cloud through which Sol is currently passing within the low-density Local Bubble.',
+    radiusPc: 4.6,
+    designations: ['Local Interstellar Cloud', 'LIC', 'Local Fluff'],
+    description: 'Partially ionised warm interstellar cloud (~7,000 K) in the Complex of Local Interstellar Clouds (CLIC) through which Sol is currently passing.',
+  },
+  {
+    id: 'g-cloud',
+    name: 'G-Cloud (Galactic Center Cloud)',
+    type: 'InterstellarMedium',
+    x: -0.7, y: -0.6, z: -1.5, dist: 1.8,
+    radiusPc: 3.5,
+    designations: ['G-Cloud', 'Galactic Cloud', 'CLIC G-Cloud'],
+    description: 'Neighboring warm interstellar cloud (~5,500 K) immediately adjacent to the LIC toward the Galactic Centre, enveloping the Alpha Centauri system.',
+  },
+  {
+    id: 'blue-cloud',
+    name: 'Blue Cloud (Sirius Dog Star Cloud)',
+    type: 'InterstellarMedium',
+    x: -0.4, y: 2.0, z: -0.6, dist: 2.2,
+    radiusPc: 2.0,
+    designations: ['Blue Cloud', 'Sirius Cloud', 'CLIC Blue Cloud'],
+    description: 'Compact warm diffuse cloud in the Complex of Local Interstellar Clouds situated along the line of sight to Sirius and Epsilon Canis Majoris.',
+  },
+  {
+    id: 'aquilae-cloud',
+    name: 'Aquilae Cloud',
+    type: 'InterstellarMedium',
+    x: 1.6, y: -3.1, z: 0.5, dist: 3.5,
+    radiusPc: 3.2,
+    designations: ['Aquilae Cloud', 'Aql Cloud', 'CLIC Aquilae'],
+    description: 'Warm local interstellar cloud in the CLIC extending toward the Aquila and Altair sector.',
+  },
+  {
+    id: 'mic-cloud',
+    name: 'Microscopium Cloud (Mic Cloud)',
+    type: 'InterstellarMedium',
+    x: 2.6, y: -2.6, z: -2.1, dist: 4.2,
+    radiusPc: 3.8,
+    designations: ['Microscopium Cloud', 'Mic Cloud', 'CLIC Mic'],
+    description: 'Filamentary warm cloud (~9,900 K) heated by shock interaction at the interface between the Local Interstellar Cloud and the G-Cloud.',
+  },
+  {
+    id: 'leo-cloud',
+    name: 'Leo Cold Cloud (Local Leo Ribbon)',
+    type: 'InterstellarMedium',
+    x: -6.7, y: 2.8, z: 1.9, dist: 7.5,
+    radiusPc: 2.8,
+    designations: ['Leo Cloud', 'Local Leo Cold Cloud', 'LLCC', 'CLIC Leo'],
+    description: 'Unusually cold (~20 K), dense neutral hydrogen ribbon embedded within the hot Local Bubble cavity at ~7.5 parsecs.',
+  },
+  {
+    id: 'dor-cloud',
+    name: 'Dorado Cloud (Dor Cloud)',
+    type: 'InterstellarMedium',
+    x: 0.5, y: 3.9, z: -6.9, dist: 8.0,
+    radiusPc: 3.5,
+    designations: ['Dorado Cloud', 'Dor Cloud', 'CLIC Dor'],
+    description: 'Southern warm interstellar cloud in the Complex of Local Interstellar Clouds toward Dorado.',
+  },
+  {
+    id: 'eri-cloud',
+    name: 'Eridanus Cloud (Eri Cloud)',
+    type: 'InterstellarMedium',
+    x: 5.3, y: 6.9, z: -2.3, dist: 9.0,
+    radiusPc: 4.0,
+    designations: ['Eridanus Cloud', 'Eri Cloud', 'CLIC Eri'],
+    description: 'Warm local interstellar gas cloud in the Eridanus sector of the CLIC.',
+  },
+  {
+    id: 'vela-cloud',
+    name: 'Vela Cloud (CLIC Vela)',
+    type: 'InterstellarMedium',
+    x: -5.2, y: 5.2, z: -7.4, dist: 10.5,
+    radiusPc: 4.5,
+    designations: ['Vela Cloud', 'CLIC Vela'],
+    description: 'Fast-moving warm interstellar cloud in the southern Complex of Local Interstellar Clouds.',
+  },
+  {
+    id: 'local-bubble',
+    name: 'Local Bubble (Local Hot Bubble / LHB)',
+    type: 'InterstellarMedium',
+    x: -5.0, y: -12.0, z: 7.5, dist: 15.0,
+    radiusPc: 95.0,
+    designations: ['Local Bubble', 'Local Hot Bubble', 'LHB', "Gould's Belt Cavity"],
+    description: 'Low-density (~0.001 cm⁻³) interstellar cavity spanning ~200 pc across the Orion Spur, excavated by multiple Pleiades/Sco-Cen supernova explosions over the past 14 million years.',
+  },
+  {
+    id: 'corona-australis-cloud',
+    name: 'Corona Australis Molecular Cloud',
+    type: 'InterstellarMedium',
+    x: 26.9, y: -100.2, z: -78.2, dist: 130.0,
+    radiusPc: 8.5,
+    designations: ['Corona Australis Molecular Cloud', 'CrA Cloud', 'Coronet Cluster Cloud'],
+    description: 'Compact, high-density molecular cloud complex hosting the young Coronet protostellar cluster at ~130 pc.',
+  },
+  {
+    id: 'rho-ophiuchi-cloud',
+    name: 'Rho Ophiuchi Cloud Complex',
+    type: 'InterstellarMedium',
+    x: -48.5, y: -115.6, z: -57.2, dist: 138.0,
+    radiusPc: 14.0,
+    designations: ['Rho Ophiuchi Cloud Complex', 'Rho Ophiuchi', 'Lynds 1688', 'Ophiuchus Molecular Cloud'],
+    description: 'Dense dark nebula and active stellar nursery at the Upper Scorpius boundary of the Local Bubble, ~138 pc from Sol.',
+  },
+  {
+    id: 'taurus-molecular-cloud',
+    name: 'Taurus Molecular Cloud (TMC-1)',
+    type: 'InterstellarMedium',
+    x: 48.2, y: 116.3, z: 61.4, dist: 140.0,
+    radiusPc: 16.0,
+    designations: ['Taurus Molecular Cloud', 'TMC', 'TMC-1', 'Lynds 1527'],
+    description: 'The nearest large molecular cloud complex and low-mass star-forming nursery on the rim of the Local Bubble.',
+  },
+  {
+    id: 'pipe-nebula',
+    name: 'Pipe Nebula (Barnard 59 / 65–67 / 78)',
+    type: 'InterstellarMedium',
+    x: -22.0, y: -127.8, z: -64.7, dist: 145.0,
+    radiusPc: 14.0,
+    designations: ['Pipe Nebula', 'Barnard 78', 'Barnard 59', 'LDN 1773'],
+    description: 'Vast pipe-shaped dark molecular cloud complex in southern Ophiuchus silhouetted against the Galactic Bulge.',
+  },
+  {
+    id: 'lupus-molecular-cloud',
+    name: 'Lupus Molecular Cloud Complex',
+    type: 'InterstellarMedium',
+    x: -68.0, y: -101.5, z: -95.4, dist: 155.0,
+    radiusPc: 18.0,
+    designations: ['Lupus Molecular Cloud', 'Lupus Cloud Complex', 'Lupus I-IV'],
+    description: 'Chain of star-forming dark molecular clouds (Lupus I–IV) bordering the Scorpius-Centaurus OB association.',
+  },
+  {
+    id: 'coalsack-nebula',
+    name: 'Coalsack Nebula (Caldwell 99)',
+    type: 'InterstellarMedium',
+    x: -81.4, y: -17.2, z: -159.6, dist: 180.0,
+    radiusPc: 15.0,
+    designations: ['Coalsack Nebula', 'Southern Coalsack', 'Caldwell 99', 'TGU H1867'],
+    description: 'The most prominent naked-eye dark absorption nebula in the southern Milky Way, silhouetted against Crux.',
+  },
+  {
+    id: 'chamaeleon-cloud-complex',
+    name: 'Chamaeleon Cloud Complex',
+    type: 'InterstellarMedium',
+    x: -41.1, y: 9.8, z: -183.2, dist: 188.0,
+    radiusPc: 16.5,
+    designations: ['Chamaeleon Cloud Complex', 'Chamaeleon I', 'Chamaeleon Dark Clouds'],
+    description: 'High-latitude southern molecular cloud complex rich in T Tauri protostars and reflection nebulae.',
   },
   {
     id: 'sagittarius-a-star',
@@ -1348,6 +1493,261 @@ export const FULL_SOLAR_SYSTEM_BODIES = [
   },
 ];
 
+/**
+ * Authoritative scientific catalog of known circumstellar debris disks, asteroid belts,
+ * and Kuiper belts resolved by ALMA, Herschel, JWST, and Spitzer (DEC-035).
+ */
+export const CIRCUMSTELLAR_DISKS_CATALOG: Record<
+  string,
+  Array<{
+    id: string;
+    name: string;
+    kind: 'asteroid-belt' | 'kuiper-belt' | 'debris-disk';
+    innerRadiusAu: number;
+    outerRadiusAu: number;
+    semiMajorAxisAu: number;
+    tempK?: number;
+    composition: string;
+    confidence?: 'confirmed' | 'candidate';
+  }>
+> = {
+  'Sol': [
+    {
+      id: 'main-asteroid-belt',
+      name: 'Main Asteroid Belt',
+      kind: 'asteroid-belt',
+      innerRadiusAu: 2.1,
+      outerRadiusAu: 3.3,
+      semiMajorAxisAu: 2.7,
+      tempK: 165,
+      composition: 'Silicate, carbonaceous & metallic planetesimals (C/S/M-type)',
+    },
+    {
+      id: 'kuiper-belt',
+      name: 'Kuiper Belt',
+      kind: 'kuiper-belt',
+      innerRadiusAu: 30.0,
+      outerRadiusAu: 50.0,
+      semiMajorAxisAu: 40.0,
+      tempK: 44,
+      composition: 'Volatiles, water ice, methane & trans-Neptunian planetesimals',
+    },
+  ],
+  'Epsilon Eridani': [
+    {
+      id: 'epsilon-eridani-inner-belt',
+      name: 'Epsilon Eridani Inner Asteroid Belt',
+      kind: 'asteroid-belt',
+      innerRadiusAu: 2.5,
+      outerRadiusAu: 3.5,
+      semiMajorAxisAu: 3.0,
+      tempK: 150,
+      composition: 'Warm silicate & rocky planetesimal dust',
+    },
+    {
+      id: 'epsilon-eridani-intermediate-belt',
+      name: 'Epsilon Eridani Intermediate Belt',
+      kind: 'asteroid-belt',
+      innerRadiusAu: 18.0,
+      outerRadiusAu: 22.0,
+      semiMajorAxisAu: 20.0,
+      tempK: 65,
+      composition: 'Ice-line rocky & carbonaceous planetesimals',
+    },
+    {
+      id: 'epsilon-eridani-outer-belt',
+      name: 'Epsilon Eridani Outer Kuiper Belt',
+      kind: 'kuiper-belt',
+      innerRadiusAu: 35.0,
+      outerRadiusAu: 100.0,
+      semiMajorAxisAu: 64.0,
+      tempK: 35,
+      composition: 'Cold cometary water ice & volatile debris disk (ALMA)',
+    },
+  ],
+  'Tau Ceti': [
+    {
+      id: 'tau-ceti-debris-disk',
+      name: 'Tau Ceti Outer Debris Disk',
+      kind: 'debris-disk',
+      innerRadiusAu: 6.0,
+      outerRadiusAu: 55.0,
+      semiMajorAxisAu: 30.0,
+      tempK: 60,
+      composition: 'Massive cold cometary & icy planetesimal belt (~10× Sol Kuiper Belt, ALMA)',
+    },
+  ],
+  '82 G. Eridani': [
+    {
+      id: '82-g-eridani-inner-belt',
+      name: '82 G. Eridani Warm Dust Belt',
+      kind: 'asteroid-belt',
+      innerRadiusAu: 0.1,
+      outerRadiusAu: 0.5,
+      semiMajorAxisAu: 0.3,
+      tempK: 420,
+      composition: 'Hot exozodiacal silicate dust',
+    },
+    {
+      id: '82-g-eridani-outer-belt',
+      name: '82 G. Eridani Outer Planetesimal Belt',
+      kind: 'debris-disk',
+      innerRadiusAu: 15.0,
+      outerRadiusAu: 30.0,
+      semiMajorAxisAu: 22.0,
+      tempK: 55,
+      composition: 'Cold icy & rocky debris disk (Herschel DUNES)',
+    },
+  ],
+  'Fomalhaut': [
+    {
+      id: 'fomalhaut-inner-belt',
+      name: 'Fomalhaut Inner Warm Belt',
+      kind: 'asteroid-belt',
+      innerRadiusAu: 1.0,
+      outerRadiusAu: 3.0,
+      semiMajorAxisAu: 2.0,
+      tempK: 350,
+      composition: 'Warm inner silicate dust ring',
+    },
+    {
+      id: 'fomalhaut-intermediate-belt',
+      name: 'Fomalhaut Intermediate Asteroid Belt',
+      kind: 'asteroid-belt',
+      innerRadiusAu: 8.0,
+      outerRadiusAu: 12.0,
+      semiMajorAxisAu: 10.0,
+      tempK: 170,
+      composition: 'Collisionally active planetesimal belt (JWST MIRI)',
+    },
+    {
+      id: 'fomalhaut-outer-belt',
+      name: 'Fomalhaut Great Dust Belt',
+      kind: 'kuiper-belt',
+      innerRadiusAu: 133.0,
+      outerRadiusAu: 158.0,
+      semiMajorAxisAu: 145.0,
+      tempK: 48,
+      composition: 'Eccentric cold icy planetesimal ring (ALMA / JWST)',
+    },
+  ],
+  'Vega': [
+    {
+      id: 'vega-inner-belt',
+      name: 'Vega Inner Asteroid Belt',
+      kind: 'asteroid-belt',
+      innerRadiusAu: 10.0,
+      outerRadiusAu: 18.0,
+      semiMajorAxisAu: 14.0,
+      tempK: 170,
+      composition: 'Warm silicate planetesimal belt',
+    },
+    {
+      id: 'vega-outer-disk',
+      name: 'Vega Outer Debris Disk',
+      kind: 'debris-disk',
+      innerRadiusAu: 85.0,
+      outerRadiusAu: 170.0,
+      semiMajorAxisAu: 120.0,
+      tempK: 50,
+      composition: 'Smooth broad icy debris disk (JWST / ALMA)',
+    },
+  ],
+  'Beta Pictoris': [
+    {
+      id: 'beta-pictoris-inner-belt',
+      name: 'Beta Pictoris Warped Inner Belt',
+      kind: 'asteroid-belt',
+      innerRadiusAu: 5.0,
+      outerRadiusAu: 30.0,
+      semiMajorAxisAu: 16.0,
+      tempK: 130,
+      composition: 'Silicate, carbon-rich & CO gas planetesimal belt',
+    },
+    {
+      id: 'beta-pictoris-outer-disk',
+      name: 'Beta Pictoris Outer Debris Disk',
+      kind: 'debris-disk',
+      innerRadiusAu: 30.0,
+      outerRadiusAu: 400.0,
+      semiMajorAxisAu: 150.0,
+      tempK: 55,
+      composition: 'Extended edge-on icy & rocky debris disk',
+    },
+  ],
+  'HR 8799': [
+    {
+      id: 'hr-8799-inner-belt',
+      name: 'HR 8799 Inner Asteroid Belt',
+      kind: 'asteroid-belt',
+      innerRadiusAu: 6.0,
+      outerRadiusAu: 15.0,
+      semiMajorAxisAu: 10.0,
+      tempK: 150,
+      composition: 'Warm rocky planetesimals interior to HR 8799 e',
+    },
+    {
+      id: 'hr-8799-outer-belt',
+      name: 'HR 8799 Outer Kuiper Belt',
+      kind: 'kuiper-belt',
+      innerRadiusAu: 90.0,
+      outerRadiusAu: 300.0,
+      semiMajorAxisAu: 165.0,
+      tempK: 35,
+      composition: 'Cold volatile planetesimal disk exterior to HR 8799 b (ALMA)',
+    },
+  ],
+  'Proxima Centauri': [
+    {
+      id: 'proxima-centauri-cold-belt',
+      name: 'Proxima Centauri Outer Dust Belt',
+      kind: 'kuiper-belt',
+      innerRadiusAu: 1.5,
+      outerRadiusAu: 4.0,
+      semiMajorAxisAu: 2.7,
+      tempK: 30,
+      composition: 'Cold outer dust & ice belt (ALMA)',
+      confidence: 'candidate',
+    },
+  ],
+  'Sirius': [
+    {
+      id: 'sirius-debris-disk',
+      name: 'Sirius Circumstellar Dust Ring',
+      kind: 'debris-disk',
+      innerRadiusAu: 15.0,
+      outerRadiusAu: 40.0,
+      semiMajorAxisAu: 25.0,
+      tempK: 95,
+      composition: 'Tenuous circumstellar silicate dust ring',
+    },
+  ],
+  'Procyon': [
+    {
+      id: 'procyon-debris-disk',
+      name: 'Procyon Outer Dust Belt',
+      kind: 'debris-disk',
+      innerRadiusAu: 20.0,
+      outerRadiusAu: 60.0,
+      semiMajorAxisAu: 38.0,
+      tempK: 65,
+      composition: 'Cold outer planetesimal dust ring',
+    },
+  ],
+  'Pollux': [
+    {
+      id: 'pollux-debris-disk',
+      name: 'Pollux Planetesimal Belt',
+      kind: 'debris-disk',
+      innerRadiusAu: 12.0,
+      outerRadiusAu: 35.0,
+      semiMajorAxisAu: 22.0,
+      tempK: 85,
+      composition: 'Subgiant outer planetesimal belt',
+    },
+  ],
+};
+
 async function downloadFile(url: string, destPath: string): Promise<number> {
   const response = await fetch(url, {
     headers: {
@@ -1494,13 +1894,12 @@ export async function fetchAllDataSources(force = false): Promise<FetchSummary[]
     { file: 'aavso_variables.json', data: AAVSO_VARIABLE_CATALOG },
     { file: 'galactic-structures.json', data: FULL_GALACTIC_STRUCTURES },
     { file: 'solar-system-bodies.json', data: FULL_SOLAR_SYSTEM_BODIES },
+    { file: 'circumstellar_disks.json', data: CIRCUMSTELLAR_DISKS_CATALOG },
   ];
 
   for (const s of supplements) {
     const dest = path.join(rawDir, s.file);
-    if (!fs.existsSync(dest) || force) {
-      fs.writeFileSync(dest, JSON.stringify(s.data, null, 2), 'utf-8');
-    }
+    fs.writeFileSync(dest, JSON.stringify(s.data, null, 2), 'utf-8');
   }
 
   return summaries;

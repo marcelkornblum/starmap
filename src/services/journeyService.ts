@@ -172,7 +172,7 @@ export function buildDirectionsTriggerHref(input: {
   readonly viewScope: 'galaxy' | 'system' | 'planet';
   readonly focusedId: string;
   readonly systemId?: string;
-  readonly focusedKind?: 'system' | 'star' | 'planet' | 'minor-body' | 'structure';
+  readonly focusedKind?: 'system' | 'star' | 'planet' | 'belt' | 'minor-body' | 'structure';
   readonly currentPathname?: string;
   readonly currentSearch?: string;
   readonly hasExplicitFocus?: boolean;

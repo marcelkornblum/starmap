@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type {
+  GalaxyBodiesSummary,
   PlanetaryBodiesSummary,
   SystemBodiesSummary,
 } from '../../../services/detailsService';
@@ -230,3 +231,77 @@ export const PlanetScope: Story = {
     elements: earthPlanetaryBodiesFixture,
   },
 };
+
+const solGalaxyBodiesFixture: GalaxyBodiesSummary = {
+  scope: 'galaxy',
+  centerId: 'sol',
+  centerName: 'Sol',
+  centerCoordinatesPc: [0, 0, 0],
+  apertureRadiusPc: 10,
+  apertureRadiusLy: 32.62,
+  focusedSystemId: 'sol',
+  focusedSystemName: 'Sol',
+  systems: [
+    {
+      id: 'sol',
+      name: 'Sol',
+      href: '/galaxy/sol',
+      tier: 'focused',
+      reticleType: 'stellar-system',
+      spectralType: 'G2V',
+      starTypeGuideHref: '/guide/star-types/G2V',
+      planetCount: 8,
+      hasHabitableCandidate: true,
+      habitableZoneGuideHref: '/galaxy?select=tag:habitable-candidate',
+      hazardCount: 0,
+      hazardSummaryLabel: '0 hazards',
+      hasCriticalHazard: false,
+      distanceFromFocusPc: 0,
+      distanceFromFocusLy: 0,
+      distanceGuideHref: '/guide/metrics/distance?focus=sol',
+    },
+    {
+      id: 'alpha-centauri',
+      name: 'Alpha Centauri',
+      href: '/galaxy/alpha-centauri',
+      tier: 'active',
+      reticleType: 'stellar-system',
+      spectralType: 'G2V',
+      starTypeGuideHref: '/guide/star-types/G2V',
+      planetCount: 1,
+      hasHabitableCandidate: true,
+      habitableZoneGuideHref: '/galaxy?select=tag:habitable-candidate',
+      hazardCount: 1,
+      hazardSummaryLabel: '1 hazard',
+      hasCriticalHazard: false,
+      distanceFromFocusPc: 1.44,
+      distanceFromFocusLy: 4.7,
+      distanceGuideHref: '/guide/metrics/distance?focus=alpha-centauri',
+    },
+    {
+      id: 'tau-ceti',
+      name: 'Tau Ceti',
+      href: '/galaxy/tau-ceti',
+      tier: 'selected',
+      reticleType: 'stellar-system',
+      spectralType: 'G8V',
+      starTypeGuideHref: '/guide/star-types/G8V',
+      planetCount: 4,
+      hasHabitableCandidate: true,
+      habitableZoneGuideHref: '/galaxy?select=tag:habitable-candidate',
+      hazardCount: 0,
+      hazardSummaryLabel: '0 hazards',
+      hasCriticalHazard: false,
+      distanceFromFocusPc: 3.71,
+      distanceFromFocusLy: 12.1,
+      distanceGuideHref: '/guide/metrics/distance?focus=tau-ceti',
+    },
+  ],
+};
+
+export const GalaxySystems: Story = {
+  args: {
+    elements: solGalaxyBodiesFixture,
+  },
+};
+

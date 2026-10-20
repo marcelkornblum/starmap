@@ -221,6 +221,28 @@ export interface SystemManifest {
   overviewText?: string;
   /** Precalculated stellar environmental hazard bitmask (FLARE_STAR: 1, IONISING_RADIATION: 2, VARIABLE_FLUX: 4) */
   hazardMask?: number;
+  /** Circumstellar belts and debris disks belonging to the system */
+  disks?: CircumstellarDiskRecord[];
+}
+
+/**
+ * Kind of circumstellar disk or belt (DEC-035).
+ */
+export type CircumstellarDiskKind = 'asteroid-belt' | 'kuiper-belt' | 'debris-disk';
+
+/**
+ * Circumstellar disk or belt record in a detailed system manifest (DEC-035).
+ */
+export interface CircumstellarDiskRecord {
+  id: string;
+  name: string;
+  kind: CircumstellarDiskKind;
+  innerRadiusAu: number;
+  outerRadiusAu: number;
+  semiMajorAxisAu: number;
+  tempK?: number;
+  composition: string;
+  confidence?: ObservationalConfidence;
 }
 
 /**
