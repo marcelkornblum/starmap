@@ -169,7 +169,7 @@ export const mapManifestToStarsAndPlanets = (
 
 const resolveOrbitingBodies = (
   planetTargetSlugs: ReadonlySet<string>,
-  systemNameOrId: string,
+  _systemNameOrId: string,
   corpus: readonly CompactSearchEntry[],
   urlPlanetSlug?: string | null,
 ): readonly SystemElementBodyItem[] => {
@@ -186,12 +186,11 @@ const resolveOrbitingBodies = (
       continue;
     }
     const name = resolveResultDisplayTitle(entry);
+    const parentPlanetSlug = urlPlanetSlug || parentSlug;
     items.push({
       id: entry.i,
       name,
-      href: urlPlanetSlug
-        ? buildPlanetElementFocusHref(urlPlanetSlug, name || entry.i)
-        : buildSystemElementFocusHref(systemNameOrId, name || entry.i),
+      href: buildPlanetElementFocusHref(parentPlanetSlug, name || entry.i),
       categoryLabel: resolveMinorBodyCategoryLabel(entry),
     });
   }

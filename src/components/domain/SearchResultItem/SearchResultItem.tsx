@@ -74,6 +74,7 @@ const renderVariationContent = (
     case 'minor-bodies':
       return <span data-testid="result-variation-minor-bodies" />;
 
+    case 'layers':
     case 'fiction':
       return canonTitle ? (
         <span data-testid="result-variation-fiction">

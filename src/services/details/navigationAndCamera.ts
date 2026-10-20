@@ -3,8 +3,8 @@ import {
   extractUrlSystemSlug,
   formatSlugFallbackTitle,
   hasExplicitFocusParam,
-  toUrlSlug,
 } from '../searchService';
+import { toCanonicalLayerSlug, toUrlSlug } from '../../utils/datasetLayerCodec';
 import type {
   BreadcrumbRouteLink,
   FocusedEntityDetails,
@@ -12,7 +12,146 @@ import type {
   SceneCameraUrlState,
 } from './types';
 
-export { extractUrlPlanetSlug, extractUrlSystemSlug, hasExplicitFocusParam };
+export { extractUrlPlanetSlug, extractUrlSystemSlug, hasExplicitFocusParam, toUrlSlug };
+
+export type OrbitTargetView = 'galaxy' | 'system' | 'planet';
+
+export interface EntityOrbitTargetInput {
+  readonly id: string;
+  readonly name?: string;
+  readonly entityKind?: string;
+  readonly systemId?: string;
+  readonly systemName?: string;
+  readonly parentBodyId?: string;
+  readonly canonLayerId?: string;
+  readonly tagSlug?: string;
+  readonly isSolarSystem?: boolean;
+}
+
+export interface EntityOrbitTargetResult {
+  readonly targetView: OrbitTargetView;
+  readonly href: string;
+}
+
+/**
+ * Pure centralised Orbit-Context View Targeting helper (DEC-038).
+ * Ensures all entity links navigate to the view where the target's orbit is directly visible:
+ * - layer: /galaxy?select=layer:<layerSlug>&layer=<layerSlug>
+ * - moon (or parentBodyId is present and !== systemId and !== 'sol'):
+ *     /planet/<parentPlanetSlug>?focus=<moonSlug>[&select=layer:<layerSlug>&layer=<layerSlug>:<itemSlug>]
+ * - system / structure:
+ *     /galaxy/<systemSlug>[&select=layer:<layerSlug>&layer=<layerSlug>:<itemSlug>]
+ * - star / planet / dwarf-planet / belt / minor-body / fictional-body:
+ *     /system/<systemSlug>?focus=<itemSlug>[&select=layer:<layerSlug>&layer=<layerSlug>:<itemSlug>]
+ */
+export function buildEntityOrbitTargetHref(
+  input: EntityOrbitTargetInput,
+): EntityOrbitTargetResult {
+  const {
+    id,
+    name,
+    entityKind,
+    systemId,
+    systemName,
+    parentBodyId,
+    canonLayerId,
+    tagSlug,
+    isSolarSystem,
+  } = input;
+
+  // 1. Parent Layer Overview
+  const isParentLayer =
+    entityKind === 'layer' ||
+    (canonLayerId !== undefined &&
+      (id === canonLayerId || toCanonicalLayerSlug(id) === toCanonicalLayerSlug(canonLayerId)));
+
+  if (isParentLayer) {
+    const layerSlug = toCanonicalLayerSlug(canonLayerId || id);
+    return {
+      targetView: 'galaxy',
+      href: `/galaxy?select=layer:${layerSlug}&layer=${layerSlug}`,
+    };
+  }
+
+  const layerSlug = canonLayerId ? toCanonicalLayerSlug(canonLayerId) : undefined;
+  const tag = tagSlug ? toUrlSlug(tagSlug.replace(/^tag:/i, '')) : undefined;
+
+  const cleanId = id.includes(':') ? id.split(':').slice(1).join(':') : id;
+  const targetSlug = toUrlSlug(name || cleanId || id);
+
+  // 2. Planetary Moon Check
+  const isMoon =
+    entityKind === 'moon' ||
+    (Boolean(parentBodyId) &&
+      parentBodyId !== systemId &&
+      parentBodyId !== 'sol');
+
+  if (isMoon) {
+    const parentPlanetSlug = toUrlSlug(parentBodyId ?? 'sol');
+    const moonSlug = targetSlug;
+    const params = new URLSearchParams({ focus: moonSlug });
+    if (layerSlug) {
+      params.set('select', `layer:${layerSlug}`);
+      params.set('layer', `${layerSlug}:${moonSlug}`);
+    } else if (tag) {
+      params.set('select', `tag:${tag}`);
+    }
+    const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
+    return {
+      targetView: 'planet',
+      href: `/planet/${encodeURIComponent(parentPlanetSlug)}?${qs}`,
+    };
+  }
+
+  // 3. System or Structure Check
+  const isSystemOrStructure =
+    entityKind === 'system' ||
+    entityKind === 'star-system' ||
+    entityKind === 'structure' ||
+    entityKind === 'galactic-structure' ||
+    id === systemId ||
+    id.endsWith(`:${systemId}`) ||
+    (!systemId && !parentBodyId && entityKind !== 'planet' && entityKind !== 'star');
+
+  if (isSystemOrStructure) {
+    const sysSlug = toUrlSlug(systemName ?? systemId ?? name ?? id);
+    const itemSlug = toUrlSlug(systemName || cleanId || name || id);
+    const params = new URLSearchParams();
+    if (layerSlug) {
+      params.set('select', `layer:${layerSlug}`);
+      params.set('layer', `${layerSlug}:${itemSlug}`);
+    } else if (tag) {
+      params.set('select', `tag:${tag}`);
+    }
+    const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
+    return {
+      targetView: 'galaxy',
+      href: qs.length > 0 ? `/galaxy/${encodeURIComponent(sysSlug)}?${qs}` : `/galaxy/${encodeURIComponent(sysSlug)}`,
+    };
+  }
+
+  // 4. Circumstellar & System-Level Bodies (star, planet, dwarf-planet, belt, minor-body, fictional-body)
+  const isChildOfSystem = Boolean(systemId) && id !== systemId && !id.endsWith(`:${systemId}`);
+  const sysSlug = toUrlSlug(
+    systemName ??
+      (isChildOfSystem ? systemId : undefined) ??
+      systemId ??
+      (isSolarSystem ? 'sol' : 'sol'),
+  );
+  const itemSlug = targetSlug;
+  const params = new URLSearchParams({ focus: itemSlug });
+  if (layerSlug) {
+    params.set('select', `layer:${layerSlug}`);
+    params.set('layer', `${layerSlug}:${itemSlug}`);
+  } else if (tag) {
+    params.set('select', `tag:${tag}`);
+  }
+  const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
+  return {
+    targetView: 'system',
+    href: `/system/${encodeURIComponent(sysSlug)}?${qs}`,
+  };
+}
 
 /**
  * Pure unit function building the URL to the System View for a given star system

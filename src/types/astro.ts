@@ -485,6 +485,10 @@ export interface DatasetLayerEntry {
   targetType: DatasetLayerTargetType;
   /** Real host star system ID in the Starmap catalog */
   systemId: string;
+  /** Optional sequence order for stepped waypoints and curated tours (DEC-036b) */
+  order?: number;
+  /** Optional parent celestial body ID for moons and orbiting structures (DEC-038) */
+  parentBodyId?: string;
   inUniverseName?: string;
   text: string;
   workTitle?: string;

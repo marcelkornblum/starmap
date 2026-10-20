@@ -1,9 +1,9 @@
 {
   "id": "journey-ui-scaffolding_03_journey-3-explorer-flow_20261016",
   "type": "feature",
-  "status": "new",
+  "status": "in_progress",
   "created_at": "2026-10-16T23:45:00Z",
-  "updated_at": "2026-10-16T23:45:00Z",
+  "updated_at": "2026-10-20T11:23:30Z",
   "initiative": "journey-ui-scaffolding",
   "phase": 1,
   "depends_on": [

@@ -2988,6 +2988,7 @@ export async function buildGaiaDataPipeline(
         fs.writeFileSync(path.join(resolvedSearch, 'structures.json'), JSON.stringify(indices.structures), 'utf-8');
         fs.writeFileSync(path.join(resolvedSearch, 'minor-bodies.json'), JSON.stringify(indices.minorBodies), 'utf-8');
         fs.writeFileSync(path.join(resolvedSearch, 'fiction.json'), JSON.stringify(indices.fiction), 'utf-8');
+        fs.writeFileSync(path.join(resolvedSearch, 'layers.json'), JSON.stringify(indices.fiction), 'utf-8');
       }
 
       resolve({

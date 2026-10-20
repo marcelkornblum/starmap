@@ -55,6 +55,8 @@ export interface CompactLayerSourceMeta {
 export interface CompactLayerEntry {
   k?: number;
   s?: string;
+  o?: number;
+  p?: string;
   u?: string;
   x: string;
   w?: string;
@@ -115,6 +117,12 @@ export function encodeLayerManifest(manifest: DatasetLayerManifest): CompactLaye
     if (entry.systemId && entry.systemId !== targetId) {
       compactEntry.s = entry.systemId;
     }
+    if (typeof entry.order === 'number' && Number.isFinite(entry.order)) {
+      compactEntry.o = entry.order;
+    }
+    if (entry.parentBodyId) {
+      compactEntry.p = entry.parentBodyId;
+    }
     if (entry.inUniverseName) compactEntry.u = entry.inUniverseName;
     if (entry.workTitle) compactEntry.w = entry.workTitle;
     if (entry.aliases && entry.aliases.length > 0) compactEntry.a = entry.aliases;
@@ -156,6 +164,12 @@ export function decodeLayerManifest(compact: CompactLayerManifest): DatasetLayer
       text: ce.x,
       confidence: ce.c ? (CODE_TO_CONFIDENCE[ce.c] ?? 'confirmed') : 'confirmed',
     };
+    if (typeof ce.o === 'number' && Number.isFinite(ce.o)) {
+      entry.order = ce.o;
+    }
+    if (ce.p) {
+      entry.parentBodyId = ce.p;
+    }
     if (ce.u) entry.inUniverseName = ce.u;
     if (ce.w) entry.workTitle = ce.w;
     if (ce.a && ce.a.length > 0) entry.aliases = ce.a;
@@ -177,6 +191,85 @@ export function decodeLayerManifest(compact: CompactLayerManifest): DatasetLayer
   if (source) manifest.source = source;
 
   return manifest;
+}
+
+export function toUrlSlug(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Strips leading 'canon-', 'overlay-', or 'layer-' prefix from a layer ID or candidate string.
+ */
+export function toCanonicalLayerSlug(layerId: string): string {
+  const slug = toUrlSlug(layerId);
+  return slug.replace(/^(canon|overlay|layer)-/, '');
+}
+
+/**
+ * Deterministically sorts a layer's entries:
+ * 1. Entries with finite typeof entry.order === 'number' ascending by entry.order
+ *    (tie-breaking by original declaration index, then targetId.localeCompare).
+ * 2. Followed by entries without order in their original declaration order in layer.entries.
+ */
+export function getOrderedLayerEntries(layer: DatasetLayerManifest): DatasetLayerEntry[] {
+  const entriesWithIndex = Object.values(layer.entries).map((entry, index) => ({
+    entry,
+    index,
+  }));
+
+  const ordered: { entry: DatasetLayerEntry; index: number }[] = [];
+  const unOrdered: { entry: DatasetLayerEntry; index: number }[] = [];
+
+  for (const item of entriesWithIndex) {
+    if (typeof item.entry.order === 'number' && Number.isFinite(item.entry.order)) {
+      ordered.push(item);
+    } else {
+      unOrdered.push(item);
+    }
+  }
+
+  ordered.sort((a, b) => {
+    if ((a.entry.order as number) !== (b.entry.order as number)) {
+      return (a.entry.order as number) - (b.entry.order as number);
+    }
+    if (a.index !== b.index) {
+      return a.index - b.index;
+    }
+    return a.entry.targetId.localeCompare(b.entry.targetId);
+  });
+
+  return [...ordered.map((o) => o.entry), ...unOrdered.map((u) => u.entry)];
+}
+
+/**
+ * Pure lookup finding a dataset layer manifest by its layerId or short slug
+ * (strips leading 'canon-', 'overlay-', or 'layer-' prefix to match cleanly).
+ */
+export function findCanonLayerById(
+  candidateId: string,
+  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+): DatasetLayerManifest | undefined {
+  const trimmed = candidateId.trim().replace(/^(canon|layer|overlay):/i, '');
+  if (!trimmed) {
+    return undefined;
+  }
+  const targetLower = trimmed.toLowerCase();
+  const targetSlug = toUrlSlug(trimmed);
+  const targetCanonSlug = toCanonicalLayerSlug(trimmed);
+
+  return activeLayers.find((layer) => {
+    const layerSlug = toUrlSlug(layer.layerId);
+    const layerCanonSlug = toCanonicalLayerSlug(layer.layerId);
+    return (
+      layer.layerId.toLowerCase() === targetLower ||
+      layerSlug === targetSlug ||
+      (targetCanonSlug.length > 0 && layerCanonSlug === targetCanonSlug)
+    );
+  });
 }
 
 export interface ResolvedLayerAnnotation {
@@ -250,8 +343,28 @@ export function buildSearchEntriesFromLayers(
   const searchEntries: CompactSearchEntry[] = [];
 
   for (const layer of layers) {
-    for (const [targetId, entry] of Object.entries(layer.entries)) {
-      const displayName = entry.inUniverseName || `${layer.title} (${targetId})`;
+    // 1. Emit parent layer CompactSearchEntry (k: 7, no 's' field)
+    const parentCleanKeys = buildCleanKeys([
+      layer.title,
+      layer.description,
+      layer.kind,
+      ...(layer.source?.creator ? [layer.source.creator] : []),
+      ...(layer.source?.summary ? [layer.source.summary] : []),
+    ]);
+
+    const parentSearchEntry: CompactSearchEntry = {
+      i: layer.layerId,
+      k: 7,
+      n: layer.title,
+      w: layer.layerId,
+      c: layer.kind === 'scientific-overlay' ? 'Scientific Layer' : 'Fictional Canon',
+      a: parentCleanKeys,
+    };
+    searchEntries.push(parentSearchEntry);
+
+    // 2. Emit child entries in deterministic order
+    for (const entry of getOrderedLayerEntries(layer)) {
+      const displayName = entry.inUniverseName || `${layer.title} (${entry.targetId})`;
       const cleanKeys = buildCleanKeys([
         displayName,
         layer.title,
@@ -260,10 +373,10 @@ export function buildSearchEntriesFromLayers(
         ...(entry.tags ?? []),
       ]);
 
-      const coords = coordsById.get(targetId) ?? coordsById.get(entry.systemId);
-      const searchId = targetId.startsWith(`${layer.layerId}:`)
-        ? targetId
-        : `${layer.layerId}:${targetId}`;
+      const coords = coordsById.get(entry.targetId) ?? coordsById.get(entry.systemId);
+      const searchId = entry.targetId.startsWith(`${layer.layerId}:`)
+        ? entry.targetId
+        : `${layer.layerId}:${entry.targetId}`;
       const searchEntry: CompactSearchEntry = {
         i: searchId,
         k: 7,
@@ -274,17 +387,21 @@ export function buildSearchEntriesFromLayers(
         a: cleanKeys,
       };
 
+      if (entry.parentBodyId) {
+        searchEntry.o = entry.parentBodyId;
+      }
+
       if (coords && (coords[0] !== 0 || coords[1] !== 0 || coords[2] !== 0)) {
         searchEntry.p = coords;
       }
       if (
         entry.systemId === 'sol' ||
-        targetId === 'sol' ||
-        targetId === 'earth' ||
-        targetId === 'mars' ||
-        targetId === 'europa' ||
-        targetId === 'ganymede' ||
-        targetId === 'titan'
+        entry.targetId === 'sol' ||
+        entry.targetId === 'earth' ||
+        entry.targetId === 'mars' ||
+        entry.targetId === 'europa' ||
+        entry.targetId === 'ganymede' ||
+        entry.targetId === 'titan'
       ) {
         searchEntry.h = 1;
       }
@@ -772,6 +889,7 @@ export const SEED_FICTIONAL_CANON_LAYERS: DatasetLayerManifest[] = [
         targetId: 'ganymede',
         targetType: 'moon',
         systemId: 'sol',
+        parentBodyId: 'jupiter',
         inUniverseName: 'Ganymede Station (Breadbasket of the Outer Planets)',
         text: 'Orbital-mirror agricultural dome complex on Jupiter’s largest moon supplying food and obstetric care across the Jovian system.',
         workTitle: 'The Expanse (Caliban’s War)',
@@ -783,6 +901,7 @@ export const SEED_FICTIONAL_CANON_LAYERS: DatasetLayerManifest[] = [
         targetId: 'io',
         targetType: 'moon',
         systemId: 'sol',
+        parentBodyId: 'jupiter',
         inUniverseName: 'Io (Protogen / Mao-Kwikowski Hybrid Lab)',
         text: 'Volcanic Jovian moon hosting the clandestine Protomolecule hybrid research facility in Caliban’s War.',
         workTitle: 'The Expanse (Caliban’s War)',
@@ -794,6 +913,7 @@ export const SEED_FICTIONAL_CANON_LAYERS: DatasetLayerManifest[] = [
         targetId: 'titan',
         targetType: 'moon',
         systemId: 'sol',
+        parentBodyId: 'saturn',
         inUniverseName: 'Titan (Outer Planets Resort & Shipyards)',
         text: 'Major Saturnian domed colony and high-gravity naval resort in the outer Solar System.',
         workTitle: 'The Expanse',
@@ -805,6 +925,7 @@ export const SEED_FICTIONAL_CANON_LAYERS: DatasetLayerManifest[] = [
         targetId: 'phoebe',
         targetType: 'moon',
         systemId: 'sol',
+        parentBodyId: 'saturn',
         inUniverseName: 'Phoebe Station (Protomolecule Discovery Site)',
         text: 'Retrograde irregular moon of Saturn captured from interstellar space, where Protogen discovered the extrasolar Protomolecule.',
         workTitle: 'The Expanse',
@@ -980,6 +1101,7 @@ export const SEED_FICTIONAL_CANON_LAYERS: DatasetLayerManifest[] = [
         targetId: 'europa',
         targetType: 'moon',
         systemId: 'sol',
+        parentBodyId: 'jupiter',
         inUniverseName: 'Europa (TMA-2 Monolith Sanctuary)',
         text: 'Jovian ocean moon transformed into a nascent sun-warmed biosphere in Arthur C. Clarke’s 2010: Odyssey Two ("All these worlds are yours except Europa. Attempt no landing there.").',
         workTitle: '2010: Odyssey Two',
@@ -991,6 +1113,7 @@ export const SEED_FICTIONAL_CANON_LAYERS: DatasetLayerManifest[] = [
         targetId: 'iapetus',
         targetType: 'moon',
         systemId: 'sol',
+        parentBodyId: 'saturn',
         inUniverseName: 'Iapetus (Star Gate Monolith — Novel)',
         text: 'Two-tone Saturnian moon whose bright equatorial oval houses the TMA-2 Star Gate monolith in Arthur C. Clarke’s 1968 novel 2001: A Space Odyssey.',
         workTitle: '2001: A Space Odyssey',
@@ -1179,6 +1302,238 @@ export const SEED_FICTIONAL_CANON_LAYERS: DatasetLayerManifest[] = [
         workTitle: 'Big Ear SETI Survey (1977)',
         aliases: ['Wow! Signal', 'Wow Signal', '6EQUJ5', 'Chi Sagittarii'],
         tags: ['Wow! Signal', 'SETI'],
+        confidence: 'confirmed',
+      },
+    },
+  },
+  {
+    layerId: 'overlay-recent-discoveries',
+    title: 'Newly Discovered Worlds',
+    kind: 'scientific-overlay',
+    description: 'Recently confirmed exoplanets and benchmark nearby discoveries.',
+    version: 1,
+    source: {
+      summary: 'Curated selection of breakthrough exoplanets discovered or characterized in recent observational campaigns.',
+      creator: 'NASA Exoplanet Archive / ESO',
+      publicationYear: '2020–present',
+      medium: 'Astronomical Survey & Archival Data',
+      canonicalReference: 'NASA Exoplanet Archive & Nature/Science releases',
+      url: 'https://exoplanetarchive.ipac.caltech.edu/',
+    },
+    entries: {
+      'lhs-1140-b': {
+        order: 1,
+        targetId: 'lhs-1140-b',
+        targetType: 'planet',
+        systemId: 'lhs-1140',
+        inUniverseName: 'LHS 1140 b',
+        text: 'Temperate habitable-zone Super-Earth or potential water world 48 light-years away in Cetus, confirmed by JWST to possess a nitrogen-dominated atmosphere.',
+        workTitle: 'NASA Exoplanet Archive / JWST Cycle 2',
+        aliases: ['LHS 1140 b', 'LHS 1140'],
+        tags: ['Habitable Zone', 'Super-Earth', 'JWST Target'],
+        confidence: 'confirmed',
+      },
+      'barnard-b': {
+        order: 2,
+        targetId: 'barnard-b',
+        targetType: 'planet',
+        systemId: 'gaia-4472832130942575872',
+        inUniverseName: "Barnard's Star b",
+        text: "Sub-Earth mass exoplanet discovered in 2024 orbiting Barnard's Star with a 3.15-day period, detected using ESO ESPRESSO on the Very Large Telescope.",
+        workTitle: 'ESO VLT / ESPRESSO (2024)',
+        aliases: ["Barnard's Star b", 'Barnard b', 'GJ 699 b'],
+        tags: ['Sub-Earth', "Barnard's Star", 'Nearby World'],
+        confidence: 'confirmed',
+      },
+      'eps-ind-ab': {
+        order: 3,
+        targetId: 'eps-ind-ab',
+        targetType: 'planet',
+        systemId: 'gaia-6412595290592307840',
+        inUniverseName: 'Epsilon Indi A b',
+        text: 'Cold super-Jupiter directly imaged by JWST MIRI at 12 light-years, the coldest and oldest exoplanet ever imaged around a Sun-like star.',
+        workTitle: 'JWST MIRI Direct Imaging (2024)',
+        aliases: ['Epsilon Indi A b', 'Eps Ind b', 'HD 209100 b'],
+        tags: ['Gas Giant', 'Direct Imaging', 'JWST Target'],
+        confidence: 'confirmed',
+      },
+      'proxima-centauri-d': {
+        order: 4,
+        targetId: 'proxima-centauri-d',
+        targetType: 'planet',
+        systemId: 'gaia-5853498713190525696',
+        inUniverseName: 'Proxima Centauri d',
+        text: 'Sub-Earth candidate orbiting Proxima Centauri every 5.1 days at just 4.25 light-years, one of the lightest known extrasolar planets.',
+        workTitle: 'ESPRESSO / ESO (2022)',
+        aliases: ['Proxima Centauri d', 'Proxima d', 'Alpha Centauri C d'],
+        tags: ['Sub-Earth', 'Proxima Centauri', 'Nearby World'],
+        confidence: 'confirmed',
+      },
+      'teegarden-s-star-d': {
+        order: 5,
+        targetId: 'teegarden-s-star-d',
+        targetType: 'planet',
+        systemId: 'teegarden-star',
+        inUniverseName: "Teegarden's Star d",
+        text: 'Earth-mass exoplanet orbiting within the habitable zone of an ultra-cool red dwarf 12.5 light-years from Earth, confirmed in 2024.',
+        workTitle: 'CARMENES Survey / Teegarden (2024)',
+        aliases: ["Teegarden's Star d", 'Teegarden d'],
+        tags: ['Habitable Zone', 'Terrestrial', 'Nearby World'],
+        confidence: 'confirmed',
+      },
+    },
+  },
+  {
+    layerId: 'overlay-jwst-targets',
+    title: 'Recent JWST Targets',
+    kind: 'scientific-overlay',
+    description: 'High-priority exoplanets and benchmark atmospheres observed by the James Webb Space Telescope.',
+    version: 1,
+    source: {
+      summary: 'Flagship exoplanetary science targets observed and characterized by JWST NIRSpec, NIRISS, and MIRI instruments.',
+      creator: 'NASA / ESA / CSA / STScI',
+      publicationYear: '2022–present',
+      medium: 'Space Telescope Observations',
+      canonicalReference: 'STScI JWST Science Releases & Astrophysical Journal Letters',
+      url: 'https://webbtelescope.org/',
+    },
+    entries: {
+      'lhs-1140-b': {
+        order: 1,
+        targetId: 'lhs-1140-b',
+        targetType: 'planet',
+        systemId: 'lhs-1140',
+        inUniverseName: 'LHS 1140 b (JWST Transmission Spectroscopy)',
+        text: 'Benchmark temperate world observed with JWST NIRISS and NIRSpec, revealing signatures consistent with a nitrogen atmosphere and secondary ocean.',
+        workTitle: 'JWST General Observer Program 2334',
+        aliases: ['LHS 1140 b', 'LHS 1140'],
+        tags: ['JWST Target', 'Atmosphere', 'Habitable Zone'],
+        confidence: 'confirmed',
+      },
+      'trappist-1-e': {
+        order: 2,
+        targetId: 'trappist-1-e',
+        targetType: 'planet',
+        systemId: 'trappist-1',
+        inUniverseName: 'TRAPPIST-1 e (JWST Habitable World Benchmark)',
+        text: 'Prime Earth-sized habitable-zone target in the TRAPPIST-1 system subjected to exhaustive atmospheric reconnaissance by JWST NIRSpec and MIRI.',
+        workTitle: 'JWST Guaranteed Time Observations (GTO)',
+        aliases: ['TRAPPIST-1 e', 'TRAPPIST-1e'],
+        tags: ['JWST Target', 'Habitable Zone', 'Terrestrial'],
+        confidence: 'confirmed',
+      },
+      '55-cancri-e': {
+        order: 3,
+        targetId: '55-cancri-e',
+        targetType: 'planet',
+        systemId: 'gaia-704967037090946688',
+        inUniverseName: '55 Cancri e (JWST Secondary Atmosphere)',
+        text: 'Ultra-hot super-Earth Janssen observed by JWST NIRCam and MIRI, detecting evidence of a volatile-rich secondary carbon-monoxide/carbon-dioxide atmosphere outgassed from a magma ocean.',
+        workTitle: 'JWST Cycle 1 GTO / Nature (2024)',
+        aliases: ['55 Cancri e', 'Janssen', 'Rho-1 Cancri e'],
+        tags: ['JWST Target', 'Super-Earth', 'Lava World'],
+        confidence: 'confirmed',
+      },
+      'eps-ind-ab': {
+        order: 4,
+        targetId: 'eps-ind-ab',
+        targetType: 'planet',
+        systemId: 'gaia-6412595290592307840',
+        inUniverseName: 'Epsilon Indi A b (JWST Coronagraphic Imaging)',
+        text: 'Spectacular directly imaged cold Jovian world revealed by JWST MIRI coronagraphy at 10.65 and 15.5 microns.',
+        workTitle: 'JWST MIRI GTO 1193',
+        aliases: ['Epsilon Indi A b', 'Eps Ind b'],
+        tags: ['JWST Target', 'Direct Imaging', 'Gas Giant'],
+        confidence: 'confirmed',
+      },
+      'hr-8799-e': {
+        order: 5,
+        targetId: 'hr-8799-e',
+        targetType: 'planet',
+        systemId: 'gaia-2832463659640297472',
+        inUniverseName: 'HR 8799 e (JWST Coronagraphic Survey)',
+        text: 'Innermost giant planet of the famed HR 8799 four-planet architecture, analyzed with JWST NIRCam and MIRI to determine atmospheric molecular chemistry.',
+        workTitle: 'JWST Cycle 1 Coronagraphic Survey',
+        aliases: ['HR 8799 e', 'HR 8799'],
+        tags: ['JWST Target', 'Direct Imaging', 'Gas Giant'],
+        confidence: 'confirmed',
+      },
+    },
+  },
+  {
+    layerId: 'overlay-extreme-worlds',
+    title: 'Extreme & Superlative Worlds',
+    kind: 'scientific-overlay',
+    description: 'Record-holding, physically superlative, and extreme planetary environments in the known universe.',
+    version: 1,
+    source: {
+      summary: 'Catalog of astronomical record-holders: hottest, nearest, densest, youngest, and most biologically promising worlds.',
+      creator: 'NASA Exoplanet Exploration / Planetary Society',
+      publicationYear: '2024',
+      medium: 'Astronomical Compendium',
+      canonicalReference: 'NASA Exoplanet Archive Superlatives & Open Exoplanet Catalogue',
+      url: 'https://exoplanets.nasa.gov/',
+    },
+    entries: {
+      '55-cancri-e': {
+        order: 1,
+        targetId: '55-cancri-e',
+        targetType: 'planet',
+        systemId: 'gaia-704967037090946688',
+        inUniverseName: '55 Cancri e (Hottest Super-Earth)',
+        text: 'Tidally locked carbon and diamond-rich lava world where dayside surface temperatures exceed 2,500 K under a molten silicate rain.',
+        workTitle: 'Extreme Exoplanets Compendium',
+        aliases: ['55 Cancri e', 'Janssen', 'Diamond Planet'],
+        tags: ['Extreme', 'Lava World', 'Super-Earth'],
+        confidence: 'confirmed',
+      },
+      'proxima-centauri-b': {
+        order: 2,
+        targetId: 'proxima-centauri-b',
+        targetType: 'planet',
+        systemId: 'gaia-5853498713190525696',
+        inUniverseName: 'Proxima Centauri b (Nearest Habitable Zone Planet)',
+        text: 'Closest known extrasolar planet in a habitable zone, orbiting Sol’s nearest stellar neighbor at 4.25 light-years under extreme stellar flare irradiation.',
+        workTitle: 'Pale Red Dot / ESO (2016)',
+        aliases: ['Proxima Centauri b', 'Proxima b', 'Alpha Centauri C b'],
+        tags: ['Extreme', 'Nearest Exoplanet', 'Habitable Zone'],
+        confidence: 'confirmed',
+      },
+      'trappist-1-b': {
+        order: 3,
+        targetId: 'trappist-1-b',
+        targetType: 'planet',
+        systemId: 'trappist-1',
+        inUniverseName: 'TRAPPIST-1 b (Innermost Ultracool World)',
+        text: 'Innermost rocky world of the ultra-compact TRAPPIST-1 resonant chain, receiving four times more stellar flux than Earth and confirmed by JWST MIRI to lack a thick CO2 atmosphere.',
+        workTitle: 'TRAPPIST-1 Consortium',
+        aliases: ['TRAPPIST-1 b', 'TRAPPIST-1b'],
+        tags: ['Extreme', 'Terrestrial', 'Resonant Chain'],
+        confidence: 'confirmed',
+      },
+      'beta-pictoris-b': {
+        order: 4,
+        targetId: 'beta-pictoris-b',
+        targetType: 'planet',
+        systemId: 'gaia-4792774797545800832',
+        inUniverseName: 'Beta Pictoris b (Fastest Spinning Super-Jupiter)',
+        text: 'Young, massive super-Jupiter embedded in a massive debris disk, completing an entire rotation in just 8.1 hours (equatorial speed ~100,000 km/h).',
+        workTitle: 'ESO VLT / CRIRES',
+        aliases: ['Beta Pictoris b', 'Beta Pic b'],
+        tags: ['Extreme', 'Gas Giant', 'Fast Rotator'],
+        confidence: 'confirmed',
+      },
+      europa: {
+        order: 5,
+        targetId: 'europa',
+        targetType: 'moon',
+        systemId: 'sol',
+        parentBodyId: 'jupiter',
+        inUniverseName: 'Europa (Subsurface Ocean Sanctuary)',
+        text: 'Smooth ice-covered Jovian moon containing twice the liquid water of all Earth’s oceans combined beneath a 15–25 km ice shell, target of Europa Clipper.',
+        workTitle: 'Galileo & Europa Clipper / NASA',
+        aliases: ['Europa', 'Jupiter II'],
+        tags: ['Extreme', 'Subsurface Ocean', 'Ocean World'],
         confidence: 'confirmed',
       },
     },

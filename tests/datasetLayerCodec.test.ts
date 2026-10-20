@@ -6,6 +6,9 @@ import {
   resolveSystemLayerEntries,
   buildSearchEntriesFromLayers,
   buildLayerIndexManifest,
+  getOrderedLayerEntries,
+  findCanonLayerById,
+  toCanonicalLayerSlug,
   SEED_FICTIONAL_CANON_LAYERS,
 } from '../src/utils/datasetLayerCodec';
 import type { DatasetLayerManifest } from '../src/types/astro';
@@ -149,7 +152,17 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     ]);
 
     const entries = buildSearchEntriesFromLayers([sampleCanonLayer], coordsMap);
-    expect(entries).toHaveLength(3);
+    // 1 parent layer manifest entry + 3 child item entries = 4 entries
+    expect(entries).toHaveLength(4);
+
+    const parentEntry = entries.find((e) => e.i === 'canon-project-hail-mary');
+    expect(parentEntry).toBeDefined();
+    expect(parentEntry?.k).toBe(7);
+    expect(parentEntry?.n).toBe('Project Hail Mary');
+    expect(parentEntry?.s).toBeUndefined();
+    expect(parentEntry?.w).toBe('canon-project-hail-mary');
+    expect(parentEntry?.c).toBe('Fictional Canon');
+    expect(parentEntry?.a).toContain('projecthailmary');
 
     const adrianEntry = entries.find((e) => e.i === 'canon-project-hail-mary:tau-ceti-e');
     expect(adrianEntry).toBeDefined();
@@ -166,6 +179,166 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     );
     expect(eridBodyEntry?.s).toBe('gaia-3195919528989223040');
     expect(eridBodyEntry?.p).toEqual([1.854, 4.539, -0.992]);
+  });
+
+  it('sorts layer entries deterministically using getOrderedLayerEntries (DEC-036b)', () => {
+    const testLayer: DatasetLayerManifest = {
+      layerId: 'custom-ordered-layer',
+      title: 'Ordered Test Layer',
+      kind: 'scientific-overlay',
+      description: 'Testing order sequence',
+      version: 1,
+      entries: {
+        'item-c': {
+          targetId: 'item-c',
+          targetType: 'planet',
+          systemId: 'sys-1',
+          text: 'Unordered item C',
+        },
+        'item-a': {
+          targetId: 'item-a',
+          targetType: 'planet',
+          systemId: 'sys-1',
+          order: 2,
+          text: 'Ordered item A (2)',
+        },
+        'item-b': {
+          targetId: 'item-b',
+          targetType: 'planet',
+          systemId: 'sys-1',
+          order: 1,
+          text: 'Ordered item B (1)',
+        },
+        'item-d': {
+          targetId: 'item-d',
+          targetType: 'planet',
+          systemId: 'sys-1',
+          text: 'Unordered item D',
+        },
+      },
+    };
+
+    const ordered = getOrderedLayerEntries(testLayer);
+    expect(ordered.map((e) => e.targetId)).toEqual([
+      'item-b', // order 1
+      'item-a', // order 2
+      'item-c', // unordered declaration 1
+      'item-d', // unordered declaration 2
+    ]);
+  });
+
+  it('encodes and decodes order (o) and parentBodyId (p) in compact format losslessly (DEC-036 / DEC-038)', () => {
+    const orderedMoonLayer: DatasetLayerManifest = {
+      layerId: 'overlay-test-moons',
+      title: 'Moons Test',
+      kind: 'scientific-overlay',
+      description: 'Moons test description',
+      version: 1,
+      entries: {
+        europa: {
+          targetId: 'europa',
+          targetType: 'moon',
+          systemId: 'sol',
+          parentBodyId: 'jupiter',
+          order: 1,
+          inUniverseName: 'Europa',
+          text: 'Jovian moon with subsurface ocean',
+          confidence: 'confirmed',
+        },
+      },
+    };
+
+    const compact = encodeLayerManifest(orderedMoonLayer);
+    expect(compact.e.europa.o).toBe(1);
+    expect(compact.e.europa.p).toBe('jupiter');
+
+    const decoded = decodeLayerManifest(compact);
+    expect(decoded.entries.europa.order).toBe(1);
+    expect(decoded.entries.europa.parentBodyId).toBe('jupiter');
+    expect(decoded).toEqual(orderedMoonLayer);
+  });
+
+  it('includes the 3 seeded scientific layers with order 1..5 in SEED_FICTIONAL_CANON_LAYERS (DEC-036c)', () => {
+    const recent = SEED_FICTIONAL_CANON_LAYERS.find(
+      (l) => l.layerId === 'overlay-recent-discoveries',
+    );
+    expect(recent).toBeDefined();
+    expect(recent?.kind).toBe('scientific-overlay');
+    expect(recent?.title).toBe('Newly Discovered Worlds');
+    const recentOrdered = getOrderedLayerEntries(recent!);
+    expect(recentOrdered).toHaveLength(5);
+    expect(recentOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
+    expect(recentOrdered.map((e) => e.targetId)).toEqual([
+      'lhs-1140-b',
+      'barnard-b',
+      'eps-ind-ab',
+      'proxima-centauri-d',
+      'teegarden-s-star-d',
+    ]);
+
+    const jwst = SEED_FICTIONAL_CANON_LAYERS.find(
+      (l) => l.layerId === 'overlay-jwst-targets',
+    );
+    expect(jwst).toBeDefined();
+    expect(jwst?.kind).toBe('scientific-overlay');
+    expect(jwst?.title).toBe('Recent JWST Targets');
+    const jwstOrdered = getOrderedLayerEntries(jwst!);
+    expect(jwstOrdered).toHaveLength(5);
+    expect(jwstOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
+    expect(jwstOrdered.map((e) => e.targetId)).toEqual([
+      'lhs-1140-b',
+      'trappist-1-e',
+      '55-cancri-e',
+      'eps-ind-ab',
+      'hr-8799-e',
+    ]);
+
+    const extreme = SEED_FICTIONAL_CANON_LAYERS.find(
+      (l) => l.layerId === 'overlay-extreme-worlds',
+    );
+    expect(extreme).toBeDefined();
+    expect(extreme?.kind).toBe('scientific-overlay');
+    expect(extreme?.title).toBe('Extreme & Superlative Worlds');
+    const extremeOrdered = getOrderedLayerEntries(extreme!);
+    expect(extremeOrdered).toHaveLength(5);
+    expect(extremeOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
+    expect(extremeOrdered.map((e) => e.targetId)).toEqual([
+      '55-cancri-e',
+      'proxima-centauri-b',
+      'trappist-1-b',
+      'beta-pictoris-b',
+      'europa',
+    ]);
+    expect(extreme?.entries.europa.parentBodyId).toBe('jupiter');
+  });
+
+  it('tags parentBodyId on moon entries in existing fictional canon layers', () => {
+    const expanse = SEED_FICTIONAL_CANON_LAYERS.find(
+      (l) => l.layerId === 'canon-the-expanse',
+    );
+    expect(expanse?.entries.ganymede?.parentBodyId).toBe('jupiter');
+    expect(expanse?.entries.phoebe?.parentBodyId).toBe('saturn');
+
+    const scifi = SEED_FICTIONAL_CANON_LAYERS.find(
+      (l) => l.layerId === 'canon-classic-scifi',
+    );
+    expect(scifi?.entries.europa?.parentBodyId).toBe('jupiter');
+    expect(scifi?.entries.iapetus?.parentBodyId).toBe('saturn');
+  });
+
+  it('normalises layer slugs via toCanonicalLayerSlug and findCanonLayerById across canon-, overlay-, and layer- prefixes', () => {
+    expect(toCanonicalLayerSlug('canon-project-hail-mary')).toBe('project-hail-mary');
+    expect(toCanonicalLayerSlug('overlay-recent-discoveries')).toBe('recent-discoveries');
+    expect(toCanonicalLayerSlug('overlay-interstellar-missions')).toBe('interstellar-missions');
+    expect(toCanonicalLayerSlug('layer-custom-notes')).toBe('custom-notes');
+    expect(toCanonicalLayerSlug('project-hail-mary')).toBe('project-hail-mary');
+
+    expect(findCanonLayerById('recent-discoveries')?.layerId).toBe('overlay-recent-discoveries');
+    expect(findCanonLayerById('overlay-recent-discoveries')?.layerId).toBe('overlay-recent-discoveries');
+    expect(findCanonLayerById('project-hail-mary')?.layerId).toBe('canon-project-hail-mary');
+    expect(findCanonLayerById('canon-project-hail-mary')?.layerId).toBe('canon-project-hail-mary');
+    expect(findCanonLayerById('interstellar-missions')?.layerId).toBe('overlay-interstellar-missions');
+    expect(findCanonLayerById('non-existent-layer')).toBeUndefined();
   });
 
   it('provides valid seed fictional canon layers with bibliographic source metadata that round-trip losslessly', () => {

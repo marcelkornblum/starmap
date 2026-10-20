@@ -557,4 +557,89 @@ This document records all architectural, data-model, interaction, and UI scaffol
     - Allow `?focus=<diskId>` on `SystemView` to resolve the focused belt/disk directly from `systemDetail.record.disks` even though disks are stored only in `SystemManifest` detail shards.
     - Render `Circumstellar Belts & Disks` (`data-testid="details-disks-section"`) in `Partial` detent when `focusedKind === 'system'`, and render full belt/disk telemetry across `Peek`, `Partial` (including `Resident Bodies`), and `Full` (`data-testid="details-disk-telemetry-section"`) when `focusedKind === 'belt'`.
 
+### DEC-036: Unified "Layer" Taxonomy (`layers` Search Category, Parent Layer + Item Indexing, Optional `order` & Seeded Scientific Layers)
+- **Date:** 2026-10-20
+- **Status:** Ratified
+- **Context:** Journey 3 (The Casual Explorer Flow) requires curated discovery collections (*"Newly Discovered Worlds"*, *"Recent JWST Targets"*, *"Extreme & Superlative Worlds"*), glanceable narrative hooks with tags, and sequential waypoint stepping. Rather than maintaining a duplicate tour subsystem alongside `DatasetLayerManifest` (`src/utils/datasetLayerCodec.ts`), both scientific highlights and fictional universes can be unified under the **Layer** primitive.
+- **Options Considered:**
+  1. **Search Category & Layer Indexing (`DEC-036a`):**
+     - *Option A (Chosen):* Replace `'fiction'` with a unified `'layers'` category (`"Curated Layers & Canons"`, accepting legacy `'fiction'` searchCategory alias) that indexes both **parent Layer manifests** (opening the Layer Overview card) and **individual Layer entries** (opening that item's card at its Orbit-Context target view).
+     - *Option B:* Keep `'fiction'` and add a 6th `'layers'` category.
+     - *Option C:* Keep `'fiction'` key and relabel it.
+  2. **Optional Item Ordering (`DEC-036b`):**
+     - *Option A (Chosen):* Add `order?: number` (`o?: number` in `CompactLayerEntry`) to `DatasetLayerEntry`. Sort items with explicit `order` ascending first, then preserve the authored declaration order in `entries` (with alphabetical `targetId` tie-breaker).
+     - *Option B:* Sort un-ordered items by heliocentric distance from Sol.
+     - *Option C:* Sort un-ordered items alphabetically by display name.
+  3. **Seeded Scientific Layers (`DEC-036c`):**
+     - *Option A:* Seed two combined scientific layers.
+     - *Option B (Chosen):* Seed three distinct scientific layers (`overlay-recent-discoveries`, `overlay-jwst-targets`, and `overlay-extreme-worlds`) alongside `overlay-interstellar-missions` and the 10 `fictional-canon` layers in `SEED_FICTIONAL_CANON_LAYERS`.
+     - *Option C:* Defer scientific layers to later.
+- **Decision (Ratified):**
+  - Unify scientific tours and fictional canons around **Layer** (`DatasetLayerManifest` / `DatasetLayerEntry`).
+  - Add `order?: number` (`o?: number` in `CompactLayerEntry`) with deterministic sorting (`order` ascending first, then declaration order, then `targetId` tie-breaker).
+  - Seed `overlay-recent-discoveries` (*"Newly Discovered Worlds"*), `overlay-jwst-targets` (*"Recent JWST Targets"*), and `overlay-extreme-worlds` (*"Extreme & Superlative Worlds"*) anchored to real `< 100 pc` systems and planets.
+  - Replace the `'fiction'` search category with `'layers'` (`"Curated Layers & Canons"`, preserving `'fiction'` as a legacy alias and emitting `public/data/search/layers.json` alongside `fiction.json` compatibility) indexing both parent Layer manifests and individual Layer entries.
+
+### DEC-037: Compound `?layer=` URL Parameter (`?layer=<layerSlug>` Overview vs. `?layer=<layerSlug>:<itemSlug>` Item) & `?select=layer:<layerSlug>` Selection Token
+- **Date:** 2026-10-20
+- **Status:** Ratified
+- **Context:** When a layer or layer item is active, the URL must unambiguously distinguish between viewing the **Layer Overview Card** and viewing a **specific item's card** across any route (`/galaxy/$systemSlug`, `/system/$systemSlug`, `/planet/$planetSlug`).
+- **Options Considered:**
+  - *Option A (Chosen):* Compound `?layer=<layerSlug>` (Overview Card) and `?layer=<layerSlug>:<itemSlug>` (Item Card), paired with `?select=layer:<layerSlug>` (with legacy `canon:<slug>` alias support) and unencoded `:` in `stringifyStarmapSearch`.
+  - *Option B:* Separate `?layer=<layerSlug>` and `?layerItem=<itemSlug>` query parameters.
+- **Decision (Ratified):**
+  - Extend `StarmapSearchParams` with `layer?: string`.
+  - `?layer=<layerSlug>` renders the **Layer Overview Card** (`data-card-mode="overview"`).
+  - `?layer=<layerSlug>:<itemSlug>` renders that **specific item's card** (`data-card-mode="item"`).
+  - Support `layer:<slug>` as the canonical selection token in `?select=` (highlighting all host star systems of that layer on the 3D starfield), while preserving backwards compatibility for `canon:<slug>` and `?canon=<slug>`.
+
+### DEC-038: Centralised Orbit-Context View Targeting (`buildEntityOrbitTargetHref`) Across Search, `<LayerCard />`, `<DetailsPanel />` & `<BodiesPanel />`
+- **Date:** 2026-10-20
+- **Status:** Ratified
+- **Context:** Every entity in Starmap orbits or belongs to a specific reference frame. Previously, `searchService.ts` linked extrasolar planets to `/galaxy/$systemSlug?focus=$planetSlug` and Solar System moons to `/system/sol?focus=$moonSlug`, whereas planetary schematic lists linked moons to `/planet/$planetSlug?focus=$moonSlug`.
+- **Options Considered:**
+  - *Option A (Chosen):* Centralise **Orbit-Context Mapping** (`buildEntityOrbitTargetHref`) and use it everywhere (`searchService.ts`, `<LayerCard />`, `<DetailsPanel />`, `<BodiesPanel />`, `<OrbitalSchematicPanel />`):
+    - `system` / `structure` $\rightarrow$ `/galaxy/$systemSlug`
+    - `star` / `planet` / `dwarf-planet` / `belt` / `minor-body` / `fictional-body` $\rightarrow$ `/system/$systemSlug?focus=<targetSlug>`
+    - `moon` (bodies with a planetary `parentBodyId`) $\rightarrow$ `/planet/$parentPlanetSlug?focus=<moonSlug>`
+    - Parent Layer manifest $\rightarrow$ `/galaxy?select=layer:<layerSlug>&layer=<layerSlug>`
+  - *Option B:* Deepest-Entity Mapping (`/planet/$planetSlug` directly for all planets).
+  - *Option C:* Galactic-First Mapping (`/galaxy/$systemSlug?focus=<targetSlug>` for extrasolar bodies).
+- **Decision (Ratified):**
+  - Implement a single centralised `buildEntityOrbitTargetHref` helper in `src/services/details/navigationAndCamera.ts` (and consume it in `searchService.ts`, `layerService.ts`, `focusedEntityDetails.ts`, and `bodiesAndSchematics.ts`) so all entity links resolve deterministically to the view where the target's orbit is visible (`/galaxy/$systemSlug`, `/system/$systemSlug?focus=<targetSlug>`, or `/planet/$parentPlanetSlug?focus=<moonSlug>`).
+
+### DEC-039: `<Search.Panel>` `Explore` Button, Non-Blocking `<LayerCard />` (`Overview` + `Item` Modes), & `<DetailsPanel />` Layer Item Deep-Links
+- **Date:** 2026-10-20
+- **Status:** Ratified
+- **Context:** Casual Explorers need a frictionless zero-query on-ramp (`Explore` button in `<Search.Panel>`), a modeless non-blocking card (`<LayerCard />`) to view a layer's overall summary and step through items (`Previous` / `Next` / `Close`) without a backdrop scrim, and direct links from `<DetailsPanel />` layer annotations into `<LayerCard />`.
+- **Options Considered:**
+  1. **`Explore` Button Target (`DEC-039a`):**
+     - *Option A (Chosen):* Clicking `Explore` (`data-testid="search-explore-button"`) picks a random layer (excluding the currently open layer if any) and navigates to `/galaxy?select=layer:<slug>&layer=<slug>`, illuminating all of the layer's host systems across the 3D galaxy map and opening the Layer Overview Card.
+     - *Option B:* Stay on the current view and set `?select=layer:<slug>&layer=<slug>` in-place.
+  2. **`<LayerCard />` Boundary Stepping (`DEC-039b`):**
+     - *Option A (Chosen):* In Item Mode (`1..N`), clicking `Previous` on Item 1 returns to the Layer Overview Card (`?select=layer:<slug>&layer=<slug>`); clicking `Next` on Item $N$ wraps around to Item 1.
+     - *Option B:* Circular wrap-around in both directions.
+     - *Option C:* Disable `Previous` on Item 1 and `Next` on Item $N$.
+  3. **`<DetailsPanel />` Layer Annotations (`DEC-039c`):**
+     - *Option A:* Separate links for Layer Overview and Item Card.
+     - *Option B (Chosen):* Clicking a layer annotation in `<DetailsPanel />` (`data-testid="details-canon-section"`) opens that specific item directly in `<LayerCard />` at its Orbit-Context target view (`?select=layer:<layerSlug>&layer=<layerSlug>:<itemSlug>`).
+     - *Option C:* Static text readouts.
+- **Decision (Ratified):**
+  - Add `<button type="button" data-testid="search-explore-button">Explore</button>` inside `<Search.Panel>` to navigate to `/galaxy?select=layer:<randomSlug>&layer=<randomSlug>` (excluding any currently active layer slug).
+  - Create `<LayerCard />` (`src/components/domain/LayerCard/LayerCard.tsx`, `data-testid="layer-card"`, no scrim) rendered on `GalaxyView`, `SystemView`, and `PlanetView` when `?layer=` is active, supporting `overview` mode (`Start` CTA to Item 1, `Close`) and `item` mode (Layer overview back-link, `1 of N` step counter, item title, narrative hook, clickable thematic tag badges, `Previous`, `Next`, `Close`).
+  - Make layer annotations in `<DetailsPanel />` clickable links (`data-testid="details-canon-item-link"`) that open `?select=layer:<layerSlug>&layer=<layerSlug>:<itemSlug>`.
+
+### DEC-040: Astronomical News & Latest Discoveries Skill (`astro-news-curator`) + Automated Discovery Sync Script & PR Workflow
+- **Date:** 2026-10-20
+- **Status:** Ratified
+- **Context:** To keep curated scientific layers (`overlay-recent-discoveries`, `overlay-jwst-targets`, `overlay-extreme-worlds`) and the `< 100 pc` planetary catalog current with breaking astronomical news and NASA Exoplanet Archive releases, we need both an interactive agent skill and an automated CI check/sync pipeline.
+- **Options Considered:**
+  - *Option A (Chosen):* Create a dedicated `.agents/skills/astro-news-curator/SKILL.md` skill (and update `.agents/skills/canon-layer-author/SKILL.md` for unified layers) AND add `scripts/sync-discoveries.ts` (`npm run sync:discoveries`) + scheduled `.github/workflows/discoveries-sync.yml` PR workflow.
+  - *Option B:* Extend `canon-layer-author` only + CI workflow.
+  - *Option C:* Skill and local script only, without GitHub Actions workflow.
+- **Decision (Ratified):**
+  - Author `.agents/skills/astro-news-curator/SKILL.md` (and update `.agents/skills/canon-layer-author/SKILL.md`) for researching astronomical news, verifying/adding `< 100 pc` host stars and planets in `scripts/fetch-sources.ts`, and adding ordered entries to scientific layers in `src/utils/datasetLayerCodec.ts`.
+  - Implement `scripts/sync-discoveries.ts` (`npm run sync:discoveries`) and `.github/workflows/discoveries-sync.yml` (`cron` + `workflow_dispatch`) to query the NASA Exoplanet Archive TAP API (`sy_dist <= 100` recent publications) and audit catalog/layer coverage, opening a Pull Request when updates are found.
+
+
 

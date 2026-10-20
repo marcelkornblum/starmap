@@ -14,8 +14,8 @@ This living document accumulates **which screens/views and URL paths exist** and
 | Journey | Core User Goal | Status |
 | :--- | :--- | :--- |
 | **Journey 1: Target Acquisition & Travel Planning** | Locate target star, inspect intrinsic system summary, benchmark 2-point travel times, enter system, inspect planet | `[x] Complete (Track 01)` |
-| **Journey 2: Candidate Hunting & Territory Mapping** | Set spatial anchor, filter by radius & habitability intent, sync 2D candidate list ↔ 3D starfield, plot multi-leg route, export URL | `[~] In Progress (Track 02)` |
-| **Journey 3: Serendipitous Discovery** | Trigger curated on-ramp prompt, view narrative hook & tags, step through tour waypoints (`Prev`/`Next`), expand or enter system | `[ ] Pending (Track 03)` |
+| **Journey 2: Candidate Hunting & Territory Mapping** | Set spatial anchor, filter by radius & habitability intent, sync 2D candidate list ↔ 3D starfield, plot multi-leg route, export URL | `[x] Complete (Track 02)` |
+| **Journey 3: Serendipitous Discovery** | Trigger curated on-ramp prompt, view narrative hook & tags, step through tour waypoints (`Prev`/`Next`), expand or enter system | `[~] In Progress (Track 03)` |
 | **Journey 4: Classification Deep-Dive** | Trigger classification deep-link `(i)`, inspect parameter ranges & Relative Parameter Comparator against familiar anchors, browse Category Index, return to origin | `[ ] Pending (Track 04)` |
 | **Journey 5: Intra-System Logistics & Orbital Timing** | Select departure/arrival bodies in system, scrub orbital clock forward/backward, compare Hohmann vs Torchship transfers, flag solar conjunction blackout | `[ ] Pending (Track 05)` |
 
@@ -54,7 +54,8 @@ This living document accumulates **which screens/views and URL paths exist** and
     - `planets`: `Planets, Exoplanets & Moons`
     - `structures`: `Galactic Structures & Deep Sky`
     - `minor-bodies`: `Solar System Minor Bodies`
-    - `fiction`: `Fictional Canons & Works`
+    - `layers`: `Curated Layers & Canons` (accepts legacy `fiction` alias)
+  - Explore button (`<button type="button" data-testid="search-explore-button">Explore</button>` — picks a random curated layer, excluding the currently open layer if any, and navigates to `/galaxy?select=layer:<layerSlug>&layer=<layerSlug>` to illuminate its host systems and open the `<LayerCard />` overview).
 - **Search Results Panel (`<Search.Results searchViewPath="/search" />`, `data-testid="search-results-panel"`):**
   - **Conditional Visibility:** Hidden completely when the search query is empty (`query.trim().length === 0`).
   - Heading: `Search Results`
@@ -64,20 +65,22 @@ This living document accumulates **which screens/views and URL paths exist** and
     - `Planets, Exoplanets & Moons` (`planets`)
     - `Galactic Structures & Deep Sky` (`structures`)
     - `Solar System Minor Bodies` (`minor-bodies`)
-    - `Fictional Canons & Works` (`fiction`)
+    - `Curated Layers & Canons` (`layers`)
   - **Domain Search Result Item Component (`<SearchResultItem result={result} />`, [`src/components/domain/SearchResultItem/SearchResultItem.tsx`](file:///home/marcel/projects/starmap/src/components/domain/SearchResultItem/SearchResultItem.tsx)):**
     - Domain component that accepts a `SearchResultItem` record and unpacks its fields to render an unstyled semantic stub (`<li data-testid="search-result-item">`) with CUBE `data-*` state attributes (`data-category`, `data-entity-kind`, `data-reticle`, `data-target-view`, `data-entity-id`, `data-system-id`) and category-specific variations (visual styling deferred to Stage 2):
       - **Base elements (all variations):**
-        - Anchor link (`<a href={href}>{name}</a>` — captures strictly state and intent in the URL; secondary telemetry is collected from data):
-          - System-level or top-level galactic targets link to `/galaxy/<systemname>` (e.g. `/galaxy/tau-ceti`)
-          - Child items inside a system on Galaxy View (exoplanets, fictional worlds) link to `/galaxy/<systemname>?focus=<itemname>` (e.g. `/galaxy/tau-ceti?focus=tau-ceti-e`, `/galaxy/tau-ceti?focus=adrian`)
-          - Solar System child bodies (`isSolarSystem && systemId === 'sol'`) link to `/system/sol?focus=<itemname>` (e.g. `/system/sol?focus=earth`)
+        - Anchor link (`<a href={href}>{name}</a>` — uses centralised Orbit-Context View Targeting `buildEntityOrbitTargetHref` per `DEC-038`):
+          - Systems & Galactic Structures link to `/galaxy/<systemSlug>`
+          - Stars, Planets, Dwarf Planets, Belts, Minor Bodies & Fictional Bodies link to `/system/<systemSlug>?focus=<itemSlug>`
+          - Moons (with planetary `parentBodyId`) link to `/planet/<parentPlanetSlug>?focus=<moonSlug>`
+          - Parent Layer Manifests link to `/galaxy?select=layer:<layerSlug>&layer=<layerSlug>`
+          - Individual Layer Entries link to their target's Orbit-Context view with `?select=layer:<layerSlug>&layer=<layerSlug>:<itemSlug>`
         - Reticle classification badge (`<span data-testid="result-reticle-type">[{reticleType}]</span>`)
       - **Variation `stars` (`data-testid="result-variation-stars"`):** Unpacks `spectralType` `<Badge category="star">` linking to `/guide/star-types/$starType` (`data-testid="result-spectral-badge"`) and `planetCount` summary (`data-testid="result-planet-summary"`).
       - **Variation `planets` (`data-testid="result-variation-planets"`):** Unpacks planet sub-kind attribute (`data-planet-kind="planet" | "moon" | "dwarf-planet"`).
       - **Variation `structures` (`data-testid="result-variation-structures"`):** Deep-sky structure variation hook.
       - **Variation `minor-bodies` (`data-testid="result-variation-minor-bodies"`):** Solar System minor-body variation hook.
-      - **Variation `fiction` (`data-testid="result-variation-fiction"`):** Unpacks canon work/franchise title (`canonTitle`).
+      - **Variation `layers` (`data-testid="result-variation-layers"`):** Unpacks parent layer/canon title (`canonTitle`) or layer kind badge.
       - **Omitted fields:** Heliocentric parsec (`pc`) distance numbers are omitted from result rows.
 - **Minimap Panel (`<Minimap orientation={minimapOrientation} />`, [`src/components/domain/Minimap/Minimap.tsx`](file:///home/marcel/projects/starmap/src/components/domain/Minimap/Minimap.tsx)):**
   - Always rendered on `GalaxyView` (`data-testid="minimap-panel"`, `data-scope="galaxy"`, `data-anchor-id`).
@@ -170,4 +173,23 @@ This living document accumulates **which screens/views and URL paths exist** and
   - **Stage 2 — Option Details (`selectedOption`, `data-testid="directions-option-telemetry-list"`):** Clicking an option sets `?journeyOption=<optionId>` and opens full telemetry stats (`Ship Proper Time`, `Coordinate Time`, `Peak Velocity`, `Lorentz Factor γ`, `Turnaround Point`, `Δv`, `Synodic Period`, `1-Way / Round-Trip Comms`, and per-step breakdowns) inside the same pane with a `Back to options` link (`data-testid="directions-back-to-options"`).
 - **3D `<JourneyChord />` ([`src/components/canvas/entity/JourneyChord.tsx`](file:///home/marcel/projects/starmap/src/components/canvas/entity/JourneyChord.tsx)):**
   - Mounted inside `<CanvasLayer />` when `journeyLegs` is non-empty, rendering multi-leg 3D chords, $\Delta z$ elevation projection segments, waypoint markers, and `<SafeHtml>` midpoint callouts.
+
+### 2.7 Unified Layer Exploration, `<LayerCard />` & Orbit-Context View Targeting (`?layer=` & `?select=layer:` — `DEC-036`–`DEC-040`)
+- **Centralised Orbit-Context View Targeting (`buildEntityOrbitTargetHref` in [`src/services/details/navigationAndCamera.ts`](file:///home/marcel/projects/starmap/src/services/details/navigationAndCamera.ts)):**
+  - Used consistently across Search, `<LayerCard />`, `<DetailsPanel />`, and `<BodiesPanel />`:
+    - `system` / `structure` $\rightarrow$ `/galaxy/$systemSlug`
+    - `star` / `planet` / `dwarf-planet` / `belt` / `minor-body` / `fictional-body` $\rightarrow$ `/system/$systemSlug?focus=<targetSlug>`
+    - `moon` (bodies with planetary `parentBodyId`) $\rightarrow$ `/planet/$parentPlanetSlug?focus=<moonSlug>`
+    - Parent Layer manifest $\rightarrow$ `/galaxy?select=layer:<layerSlug>&layer=<layerSlug>`
+- **`Explore` Button in `<Search.Panel />` (`data-testid="search-explore-button"`):**
+  - Picks a random curated layer (excluding the currently active `?layer=` if any) and navigates to `/galaxy?select=layer:<layerSlug>&layer=<layerSlug>`, illuminating all host star systems in that layer on the 3D starfield and opening `<LayerCard />` in Overview mode.
+- **Non-Blocking `<LayerCard />` ([`src/components/domain/LayerCard/LayerCard.tsx`](file:///home/marcel/projects/starmap/src/components/domain/LayerCard/LayerCard.tsx)):**
+  - Rendered without a backdrop scrim on `GalaxyView`, `SystemView`, and `PlanetView` whenever `?layer=` is present in the URL (`data-testid="layer-card"`, `data-layer-id`, `data-card-mode="overview" | "item"`):
+  - **Overview Mode (`?layer=<layerSlug>`, `data-card-mode="overview"`):**
+    - Displays Layer `kind` badge (`data-testid="layer-card-kind"`), `title` (`data-testid="layer-card-title"`), overall `description` (`data-testid="layer-card-description"`), item count (`data-testid="layer-card-count"`), optional authoritative `source` link (`data-testid="layer-card-source"`), **Start CTA** (`data-testid="layer-card-start"`, linking to Item 1 at its Orbit-Context target view with `?select=layer:<layerSlug>&layer=<layerSlug>:<firstItemSlug>`), and **Close** (`data-testid="layer-card-close"`).
+  - **Item Mode (`?layer=<layerSlug>:<itemSlug>`, `data-card-mode="item"`):**
+    - Displays Layer Overview back-link (`data-testid="layer-card-overview-link"`), step counter (`data-testid="layer-card-step"` e.g. `1 of N`), item `title` (`data-testid="layer-card-title"`), narrative `text` hook (`data-testid="layer-card-text"`), clickable thematic `tags` badges (`data-testid="layer-card-tags"`), optional `confidence` badge (`data-testid="layer-card-confidence"`), **Previous** (`data-testid="layer-card-prev"`, returning to `?layer=<layerSlug>` on Item 1), **Next** (`data-testid="layer-card-next"`, wrapping to Item 1 on Item $N$), and **Close** (`data-testid="layer-card-close"`, clearing `?layer=` while keeping the user on the current view and focused entity).
+- **`<DetailsPanel />` Layer Annotation Deep-Links (`data-testid="details-canon-item-link"`):**
+  - Clicking a layer annotation in `<DetailsPanel />` (`data-testid="details-canon-section"`) opens that specific item directly in `<LayerCard />` at its Orbit-Context target view (`?select=layer:<layerSlug>&layer=<layerSlug>:<itemSlug>`).
+
 

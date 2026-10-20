@@ -59,10 +59,13 @@ export const buildSystemBodiesSummary = (
       continue;
     }
     const name = resolveResultDisplayTitle(entry);
-    const href = buildSystemElementFocusHref(
-      systemName || systemId,
-      name || entry.i,
-    );
+    const isMoon = entry.k === 3 || (Boolean(entry.o) && entry.o !== systemId && entry.o !== 'sol');
+    const href = isMoon && entry.o
+      ? buildPlanetElementFocusHref(entry.o, name || entry.i)
+      : buildSystemElementFocusHref(
+          systemName || systemId,
+          name || entry.i,
+        );
     if (entry.k === 3 || entry.k === 4) {
       moonsAndDwarfPlanets.push({
         id: entry.i,
