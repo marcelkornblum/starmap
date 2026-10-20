@@ -1,8 +1,9 @@
 # Specification: Telemetry Container & Panels
 
 > [!IMPORTANT]
-> **Stage 2 Flexible Placeholder (`journey-ui-scaffolding`):**
-> This track is held in Stage 2 of the [Journey-Driven View Data Models & UI Scaffolding Initiative](../../initiatives/journey-ui-scaffolding/index.md). Its exact presentation scope, detents, and sequencing will be revisited and ratified against the [View Requirements Inventory](../../initiatives/journey-ui-scaffolding/view-requirements.md) and [Decision Log](../../initiatives/journey-ui-scaffolding/decision-log.md) once Stage 1 (Tracks 01–05) is complete.
+> **Stage 2 Flexible Placeholder (`journey-ui-scaffolding`) & Cross-Track Coupling (`FS-012`, `FS-013`):**
+> - This track is held in Stage 2 of the [Journey-Driven View Data Models & UI Scaffolding Initiative](../../initiatives/journey-ui-scaffolding/index.md). Its exact presentation scope, detents, and sequencing will be revisited and ratified against the [View Requirements Inventory](../../initiatives/journey-ui-scaffolding/view-requirements.md) and [Decision Log](../../initiatives/journey-ui-scaffolding/decision-log.md) once Stage 1 (Tracks 01–05) is complete.
+> - **Cross-Track Coupling (`FS-003`, `FS-012`, `FS-013`):** Coupled with **[Track: Interaction Controls](../interaction-controls_20261010/spec.md)**, **[Track: Minimap & Scene Transitions](../minimap-scene-transitions_20261010/spec.md)**, **[Track: 3D Engine Implementation](../3d-engine-implementation_20260929/spec.md)**, **[Track: Console UI Shell](../console-ui-shell_20261004/spec.md)**, and **[Track: Search & Discovery UI Surfaces](../search-discovery_20261004/spec.md)** via **[`FS-012` in `conductor/backlog.md`](../../backlog.md)** (conditional `Centre` CTA visibility when camera `center` diverges from `focused`, and HUD panel retraction during scale/camera transitions).
 
 ## Overview
 Delivers the Adaptive Telemetry Container, the foundational domain elements (`Heading` and `Dock`), the three-tier **System Information Panel** (Peek, Partial, Full), and the **Secondary Objects Pane**.

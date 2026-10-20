@@ -16,8 +16,8 @@
 ## Tracks & Initiatives
 
 - [Tracks Registry](./tracks.md)
+- [Product Backlog](./backlog.md)
 - [Active Initiative: Journey-Driven View Data Models & UI Scaffolding](./initiatives/journey-ui-scaffolding/index.md)
 - [Decision Log](./initiatives/journey-ui-scaffolding/decision-log.md)
 - [View Requirements Inventory](./initiatives/journey-ui-scaffolding/view-requirements.md)
 - [Tracks Directory](./tracks/)
-- [Backlog](./backlog.md)

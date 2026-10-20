@@ -179,13 +179,13 @@ Search indices are emitted in two composite tiers and five category shards:
   - `public/data/search/planets.json` — Confirmed exoplanets, Solar System planets, dwarf planets, and moons.
   - `public/data/search/structures.json` — Galactic clusters, nebulae, supernova remnants, and pulsars.
   - `public/data/search/minor-bodies.json` — Solar System asteroids, NEOs, centaurs, KBOs, and comets.
-  - `public/data/search/fiction.json` — Works of fiction, canons, and in-universe system/world entries from Dataset Layers (`FS-001`).
+  - `public/data/search/layers.json` — Works of fiction, canons, overlays, and in-universe system/world entries from Dataset Layers (`FS-001` / `FS-002`).
 
 ### Search Index Entry Schema
 | Key | Full Name | Type | Description |
 | :---: | :--- | :--- | :--- |
 | `i` | `id` | `string` | Canonical entity ID (`'gaia-2452378776434477184'`, `'tau-ceti-e'`, `'mars'`). Used directly with `getShardKey(i)` to fetch `summaries/<0..z>.json` or `details/<0..z>.json` in $O(1)$. |
-| `k` | `entityType` | `number` | Kind code: `1 = system` (default, omitted), `2 = planet`, `3 = moon`, `4 = dwarf-planet`, `5 = structure`, `6 = minor-body`, `7 = fiction`. |
+| `k` | `entityType` | `number` | Kind code: `1 = system` (default, omitted), `2 = planet`, `3 = moon`, `4 = dwarf-planet`, `5 = structure`, `6 = minor-body`, `7 = layers`. |
 | `n` | `name` | `string` | Primary human-readable display name (`'Tau Ceti'`, `'Tau Ceti e'`, `'Mars'`). |
 | `s` | `parentSystemId` | `string` | Real host star system ID (omitted when `k === 1`; always populated on planets, moons, minor bodies, and fiction entries so Galactic View can highlight the host system). |
 | `p` | `position` | `[x, y, z]` | 3D Cartesian coordinates in parsecs (omitted when `[0, 0, 0]`). Sector ID is derived via `formatSectorId(p[0], p[1], p[2])`. |

@@ -1241,7 +1241,7 @@ export function buildSearchIndexEnvelope(
 
 /**
  * Builds the Dual-Tier Composite Search Indices (`core.json`, `full.json`) and
- * the 5 Category-Sharded Search Indices (`stars.json`, `planets.json`, `structures.json`, `minor-bodies.json`, `fiction.json`).
+ * the 5 Category-Sharded Search Indices (`stars.json`, `planets.json`, `structures.json`, `minor-bodies.json`, `layers.json`).
  */
 export function buildSearchIndices(input: {
   systems: SystemSummaryNode[];
@@ -1249,7 +1249,7 @@ export function buildSearchIndices(input: {
   structures: GalacticStructureRecord[];
   solarBodies: SolarSystemBodyRecord[];
   starAliasesById?: Map<string, string[]>;
-  fictionEntries?: CompactSearchEntry[];
+  layerEntries?: CompactSearchEntry[];
 }): {
   core: SearchIndexEnvelope;
   full: SearchIndexEnvelope;
@@ -1257,7 +1257,7 @@ export function buildSearchIndices(input: {
   planets: SearchIndexEnvelope;
   structures: SearchIndexEnvelope;
   minorBodies: SearchIndexEnvelope;
-  fiction: SearchIndexEnvelope;
+  layers: SearchIndexEnvelope;
 } {
   const nowIso = new Date().toISOString();
   const coreEntries: CompactSearchEntry[] = [];
@@ -1266,7 +1266,7 @@ export function buildSearchIndices(input: {
   const planetsEntries: CompactSearchEntry[] = [];
   const structuresEntries: CompactSearchEntry[] = [];
   const minorBodiesEntries: CompactSearchEntry[] = [];
-  const fictionEntries: CompactSearchEntry[] = input.fictionEntries ? [...input.fictionEntries] : [];
+  const layerEntries: CompactSearchEntry[] = input.layerEntries ? [...input.layerEntries] : [];
 
   // 1. Index Star Systems
   for (const sys of input.systems) {
@@ -1624,10 +1624,10 @@ export function buildSearchIndices(input: {
     }
   }
 
-  // 5. Include Fiction Entries in core & full
-  for (const fic of fictionEntries) {
-    coreEntries.push(fic);
-    fullEntries.push(fic);
+  // 5. Include Layer Entries in core & full
+  for (const layerEntry of layerEntries) {
+    coreEntries.push(layerEntry);
+    fullEntries.push(layerEntry);
   }
 
   return {
@@ -1637,6 +1637,6 @@ export function buildSearchIndices(input: {
     planets: buildSearchIndexEnvelope('search-planets', 'Planets, Exoplanets & Moons Search Index', planetsEntries, nowIso),
     structures: buildSearchIndexEnvelope('search-structures', 'Galactic Structures & Deep Sky Search Index', structuresEntries, nowIso),
     minorBodies: buildSearchIndexEnvelope('search-minor-bodies', 'Solar System Minor Bodies Search Index', minorBodiesEntries, nowIso),
-    fiction: buildSearchIndexEnvelope('search-fiction', 'Fictional Canons & Works Search Index', fictionEntries, nowIso),
+    layers: buildSearchIndexEnvelope('search-layers', 'Curated Layers & Canons Search Index', layerEntries, nowIso),
   };
 }

@@ -20,9 +20,10 @@ import {
   resolveSystemLayerEntries,
 } from '../../utils/datasetLayerCodec';
 import {
-  buildCanonLayerGalaxyHref,
+  buildLayerGalaxyHref,
   isArtificialSpacecraftEntry,
 } from '../searchService';
+import { resolveLayerItemTargetHref } from '../layerCardService';
 import type {
   CanonAnnotationOrderOptions,
   EntityHazardItem,
@@ -569,6 +570,7 @@ export const resolveFocusedCanonAnnotations = (
   systemId: string,
   activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
   orderOptions?: CanonAnnotationOrderOptions,
+  corpus?: readonly CompactSearchEntry[],
 ): readonly FocusedCanonAnnotation[] => {
   const layersArray = [...activeLayers];
   const rawTargetKey = targetId.includes(':')
@@ -588,10 +590,16 @@ export const resolveFocusedCanonAnnotations = (
       continue;
     }
     seen.add(dedupeKey);
+    const layerManifest = layersArray.find((l) => l.layerId === item.layerId);
+    const itemHref = layerManifest
+      ? resolveLayerItemTargetHref(layerManifest, item.entry, corpus).href
+      : buildLayerGalaxyHref(item.layerId);
+
     annotations.push({
       layerId: item.layerId,
       layerTitle: item.layerTitle,
-      layerHref: buildCanonLayerGalaxyHref(item.layerId),
+      layerHref: buildLayerGalaxyHref(item.layerId),
+      href: itemHref,
       kind: item.kind,
       targetId: item.entry.targetId,
       targetType: item.entry.targetType,
@@ -660,6 +668,7 @@ export const resolveCorpusEntryComposition = (
 export const resolveDirectTargetCanonAnnotations = (
   targetIds: readonly string[],
   activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  corpus?: readonly CompactSearchEntry[],
 ): readonly FocusedCanonAnnotation[] => {
   const layersArray = [...activeLayers];
   const seen = new Set<string>();
@@ -675,10 +684,16 @@ export const resolveDirectTargetCanonAnnotations = (
         continue;
       }
       seen.add(dedupeKey);
+      const layerManifest = layersArray.find((l) => l.layerId === item.layerId);
+      const itemHref = layerManifest
+        ? resolveLayerItemTargetHref(layerManifest, item.entry, corpus).href
+        : buildLayerGalaxyHref(item.layerId);
+
       annotations.push({
         layerId: item.layerId,
         layerTitle: item.layerTitle,
-        layerHref: buildCanonLayerGalaxyHref(item.layerId),
+        layerHref: buildLayerGalaxyHref(item.layerId),
+        href: itemHref,
         kind: item.kind,
         targetId: item.entry.targetId,
         targetType: item.entry.targetType,

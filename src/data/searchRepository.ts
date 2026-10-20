@@ -8,7 +8,7 @@ export type SearchShardName =
   | 'planets'
   | 'structures'
   | 'minor-bodies'
-  | 'fiction';
+  | 'layers';
 
 const SHARD_URLS: Record<SearchShardName, string> = {
   core: '/data/search/core.json',
@@ -17,7 +17,7 @@ const SHARD_URLS: Record<SearchShardName, string> = {
   planets: '/data/search/planets.json',
   structures: '/data/search/structures.json',
   'minor-bodies': '/data/search/minor-bodies.json',
-  fiction: '/data/search/fiction.json',
+  layers: '/data/search/layers.json',
 };
 
 const shardCache = new Map<SearchShardName, Promise<readonly CompactSearchEntry[]>>();

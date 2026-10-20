@@ -12,7 +12,7 @@ import {
   type SystemSummarySegment,
 } from '../../../services/detailsService';
 import {
-  buildCanonLayerGalaxyHref,
+  buildLayerGalaxyHref,
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
@@ -148,14 +148,33 @@ const renderCanonLayers = (
           >
             <details data-testid="details-canon-accordion">
               <summary data-testid="details-canon-summary">
-                {annotation.inUniverseName ? (
-                  <>
-                    <strong data-testid="details-canon-item-title">
-                      {annotation.inUniverseName}
-                    </strong>
-                    {' — '}
-                  </>
-                ) : null}
+                {annotation.href ? (
+                  <a
+                    href={annotation.href}
+                    data-testid="details-canon-item-link"
+                  >
+                    {annotation.inUniverseName ? (
+                      <>
+                        {`${annotation.layerTitle} — `}
+                        <strong data-testid="details-canon-item-title">
+                          {annotation.inUniverseName}
+                        </strong>
+                      </>
+                    ) : (
+                      annotation.layerTitle
+                    )}
+                  </a>
+                ) : (
+                  annotation.inUniverseName ? (
+                    <>
+                      <strong data-testid="details-canon-item-title">
+                        {annotation.inUniverseName}
+                      </strong>
+                      {' — '}
+                    </>
+                  ) : null
+                )}
+                {' '}
                 <Badge
                   status={
                     annotation.kind === 'scientific-overlay'
@@ -166,7 +185,7 @@ const renderCanonLayers = (
                   <a
                     href={
                       annotation.layerHref ||
-                      buildCanonLayerGalaxyHref(annotation.layerId)
+                      buildLayerGalaxyHref(annotation.layerId)
                     }
                     data-testid="details-canon-link"
                   >

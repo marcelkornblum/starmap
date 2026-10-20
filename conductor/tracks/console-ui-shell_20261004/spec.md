@@ -1,8 +1,9 @@
 # Specification: Console UI Shell
 
 > [!IMPORTANT]
-> **Stage 2 Flexible Placeholder (`journey-ui-scaffolding`):**
-> This track is held in Stage 2 of the [Journey-Driven View Data Models & UI Scaffolding Initiative](../../initiatives/journey-ui-scaffolding/index.md). Its exact presentation scope, slot structure, and sequencing will be revisited and ratified against the [View Requirements Inventory](../../initiatives/journey-ui-scaffolding/view-requirements.md) and [Decision Log](../../initiatives/journey-ui-scaffolding/decision-log.md) once Stage 1 (Tracks 01–05) is complete.
+> **Stage 2 Flexible Placeholder (`journey-ui-scaffolding`) & Cross-Track Coupling (`FS-012`):**
+> - This track is held in Stage 2 of the [Journey-Driven View Data Models & UI Scaffolding Initiative](../../initiatives/journey-ui-scaffolding/index.md). Its exact presentation scope, slot structure, and sequencing will be revisited and ratified against the [View Requirements Inventory](../../initiatives/journey-ui-scaffolding/view-requirements.md) and [Decision Log](../../initiatives/journey-ui-scaffolding/decision-log.md) once Stage 1 (Tracks 01–05) is complete.
+> - **Cross-Track Coupling (`FS-003`, `FS-012`, `FS-013`):** Coupled with **[Track: Interaction Controls](../interaction-controls_20261010/spec.md)**, **[Track: Minimap & Scene Transitions](../minimap-scene-transitions_20261010/spec.md)**, **[Track: 3D Engine Implementation](../3d-engine-implementation_20260929/spec.md)**, **[Track: Telemetry Container & Dossiers](../telemetry-container_20261004/spec.md)**, and **[Track: Search & Discovery UI Surfaces](../search-discovery_20261004/spec.md)** via **[`FS-012` in `conductor/backlog.md`](../../backlog.md)** (HUD panel retraction/snap-back during active 3D camera flight and 3D camera viewport compensation).
 
 ## Overview
 Builds the production "Adaptive Hybrid Console" shell around the 3D canvas and domain panels, orchestrating screen real estate between the 2D workstation chrome and the 3D WebGL renderer.

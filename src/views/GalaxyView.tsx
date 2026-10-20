@@ -10,6 +10,7 @@ import {
   ControlBar,
   DetailsPanel,
   DirectionsPanel,
+  LayerCard,
   Minimap,
   PreviewPanel,
   SearchResultItem,
@@ -20,6 +21,7 @@ import {
   extractUrlRouteStops,
 } from '../services/journeyService';
 import { Search } from '../components/search';
+import { resolveActiveLayerCard } from '../services/layerCardService';
 import {
   fetchDetailRecord,
   fetchSummaryNode,
@@ -304,6 +306,15 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       })
     : null;
 
+  const searchParams = new URLSearchParams(search);
+  const layerParam = searchParams.get('layer');
+  const activeLayerCard = resolveActiveLayerCard({
+    layerParam,
+    currentPathname: pathname,
+    currentSearch: search,
+    corpus: activeCorpus,
+  });
+
   return (
     <main data-testid="galaxy-view-root">
       <CanvasLayer
@@ -342,6 +353,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           )}
         />
       </Search.Root>
+      <LayerCard card={activeLayerCard} />
       <FocusedDetailsRegion
         initialCorpus={initialCorpus}
         locationPathname={locationPathname}

@@ -73,12 +73,14 @@ import {
   PLANET_TYPES_GUIDE_PATH,
   SEARCH_CATEGORIES,
   STAR_TYPES_GUIDE_PATH,
-  buildCanonLayerGalaxyHref,
+  buildLayerGalaxyHref,
   buildCollectionGalaxyHref,
   buildMetricGuideHref,
   buildPlanetTypeGalaxyHref,
   buildPlanetTypeGuideHref,
   buildResultTargetLink,
+  buildEntityOrbitTargetHref,
+  extractUrlSelectSlugs,
   buildSearchViewHref,
   buildStarTypeGalaxyHref,
   buildStarTypeGuideHref,
@@ -87,7 +89,7 @@ import {
   compareSearchResultItems,
   doesSystemEntryMatchTag,
   executeCatalogSearch,
-  extractUrlCanonLayerId,
+  extractUrlLayerId,
   extractUrlFocusSlug,
   extractUrlPlanetSlug,
   extractUrlSystemSlug,
@@ -109,7 +111,7 @@ import {
   resolveResultDisplayTitle,
   resolveResultSystemTitle,
   resolveReticleType,
-  resolveSelectedSystemsFromCanonLayer,
+  resolveSelectedSystemsFromLayer,
   resolveSelectedSystemsFromCollection,
   resolveSelectedSystemsFromPlanetType,
   resolveSelectedSystemsFromSearchResults,
@@ -312,8 +314,11 @@ describe('searchService (Pure Service Layer)', () => {
       'planets',
       'structures',
       'minor-bodies',
-      'fiction',
+      'layers',
     ]);
+    const layersMeta = SEARCH_CATEGORIES.find((c) => c.key === 'layers');
+    expect(layersMeta?.label).toBe('Curated Layers & Canons');
+    expect(layersMeta?.shard).toBe('layers.json');
   });
 
   it('maps CompactSearchEntry kind codes to the 5 search categories and entity kinds', () => {
@@ -335,8 +340,18 @@ describe('searchService (Pure Service Layer)', () => {
     expect(resolveEntryCategory(SAMPLE_CORPUS[8])).toBe('minor-bodies');
     expect(resolveEntityKind(SAMPLE_CORPUS[8])).toBe('minor-body');
 
-    expect(resolveEntryCategory(SAMPLE_CORPUS[9])).toBe('fiction');
+    expect(resolveEntryCategory(SAMPLE_CORPUS[9])).toBe('layers');
     expect(resolveEntityKind(SAMPLE_CORPUS[9])).toBe('fictional-entry');
+
+    // Parent layer manifest entry (k=7, without host systemId) maps to entityKind 'layer'
+    const parentLayerEntry: CompactSearchEntry = {
+      i: 'canon-project-hail-mary',
+      k: 7,
+      n: 'Project Hail Mary',
+      w: 'canon-project-hail-mary',
+    };
+    expect(resolveEntryCategory(parentLayerEntry)).toBe('layers');
+    expect(resolveEntityKind(parentLayerEntry)).toBe('layer');
   });
 
   it('normalises and expands astronomical Bayer/Flamsteed shorthand in queries', () => {
@@ -370,7 +385,7 @@ describe('searchService (Pure Service Layer)', () => {
 
     expect(results.totalMatches).toBeGreaterThanOrEqual(2);
     expect(results.groups.stars.items.map((i) => i.name)).toContain('Keid');
-    expect(results.groups.fiction.items.map((i) => i.name)).toContain('Vulcan (NiVar)');
+    expect(results.groups.layers.items.map((i) => i.name)).toContain('Vulcan (NiVar)');
   });
 
   it('matches fictional canon entries by work/franchise title', () => {
@@ -379,8 +394,8 @@ describe('searchService (Pure Service Layer)', () => {
       filter: 'all',
     });
 
-    expect(results.groups.fiction.totalMatches).toBe(2);
-    expect(results.groups.fiction.items.map((i) => i.name)).toEqual(
+    expect(results.groups.layers.totalMatches).toBe(2);
+    expect(results.groups.layers.items.map((i) => i.name)).toEqual(
       expect.arrayContaining(['Tau Ceti (Astrophage Destination)', 'Adrian']),
     );
   });
@@ -392,7 +407,7 @@ describe('searchService (Pure Service Layer)', () => {
     });
 
     expect(results.groups.stars.items).toHaveLength(0);
-    expect(results.groups.fiction.items).toHaveLength(0);
+    expect(results.groups.layers.items).toHaveLength(0);
     expect(results.groups.planets.items.map((i) => i.name)).toEqual(
       expect.arrayContaining(['tau Ceti e', 'tau Ceti g', 'tau Ceti h', 'tau Ceti f']),
     );
@@ -468,8 +483,8 @@ describe('searchRepository (Data Repository Layer)', () => {
       ok: true,
       status: 200,
       json: async () => ({
-        i: 'search-fiction',
-        n: 'Fiction',
+        i: 'search-layers',
+        n: 'Layers',
         c: 2,
         t: '2026-10-17T00:00:00Z',
         d: [SAMPLE_CORPUS[9], SAMPLE_CORPUS[10]],
@@ -477,10 +492,10 @@ describe('searchRepository (Data Repository Layer)', () => {
     });
 
     const entries = await loadSearchCorpusForFilter(
-      'fiction',
+      'layers',
       mockFetch as unknown as typeof fetch,
     );
-    expect(mockFetch).toHaveBeenCalledWith('/data/search/fiction.json');
+    expect(mockFetch).toHaveBeenCalledWith('/data/search/layers.json');
     expect(entries).toHaveLength(2);
   });
 
@@ -518,8 +533,8 @@ describe('searchRepository (Data Repository Layer)', () => {
     });
 
     await expect(
-      fetchSearchShard('fiction', failingFetch as unknown as typeof fetch),
-    ).rejects.toThrow(/Failed to load search shard "fiction"/);
+      fetchSearchShard('layers', failingFetch as unknown as typeof fetch),
+    ).rejects.toThrow(/Failed to load search shard "layers"/);
 
     const invalidSchemaFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -528,7 +543,7 @@ describe('searchRepository (Data Repository Layer)', () => {
     });
 
     await expect(
-      fetchSearchShard('fiction', invalidSchemaFetch as unknown as typeof fetch),
+      fetchSearchShard('layers', invalidSchemaFetch as unknown as typeof fetch),
     ).rejects.toThrow(/Invalid search index envelope/);
   });
 });
@@ -568,12 +583,14 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     );
     expect(html).toContain('<span data-testid="result-planet-summary">4 planets</span>');
     expect(html).toContain('data-testid="result-variation-planets"');
-    expect(html).toContain('data-testid="result-variation-fiction"');
+    expect(html).toContain('data-testid="result-variation-layers"');
     expect(html).not.toContain(' pc');
-    // System links to /galaxy/<systemname>, child items link to /galaxy/<systemname>?focus=<itemname>
+    // System links to /galaxy/<systemname>, child items link to /system/<systemname>?focus=<itemname> (DEC-038)
     expect(html).toContain('href="/galaxy/tau-ceti"');
-    expect(html).toContain('href="/galaxy/tau-ceti?focus=tau-ceti-e"');
-    expect(html).toContain('href="/galaxy/tau-ceti?focus=adrian&amp;select=canon:project-hail-mary"');
+    expect(html).toContain('href="/system/tau-ceti?focus=tau-ceti-e"');
+    expect(html).toContain(
+      'href="/system/tau-ceti?focus=adrian&amp;select=layer:project-hail-mary&amp;layer=project-hail-mary:adrian"',
+    );
   });
 
   it('routes Solar System child bodies to /system/sol?focus=<itemname>', () => {
@@ -618,10 +635,10 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(html).toContain('href="/search?q=Sol"');
     expect(html).toContain('href="/search?q=Sol&amp;searchCategory=stars"');
     expect(html).toContain('href="/search?q=Sol&amp;searchCategory=planets"');
-    // Empty categories for query "Sol" (structures, minor-bodies, fiction) are omitted completely
+    // Empty categories for query "Sol" (structures, minor-bodies, layers) are omitted completely
     expect(html).not.toContain('data-testid="search-results-group-structures"');
     expect(html).not.toContain('data-testid="search-results-group-minor-bodies"');
-    expect(html).not.toContain('data-testid="search-results-group-fiction"');
+    expect(html).not.toContain('data-testid="search-results-group-layers"');
     expect(html).not.toContain('No matching results.');
   });
 
@@ -699,7 +716,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       resolveReticleType({ i: 'phm:tau-ceti', k: 7, n: 'Tau Ceti', s: 'tau-ceti' }),
     ).toBe('stellar-system');
 
-    // 5. buildResultTargetLink & buildSearchViewHref & URL state helpers
+    // 5. buildResultTargetLink & buildSearchViewHref & URL state helpers (DEC-038 Orbit-Context)
     expect(
       buildResultTargetLink({
         id: 'tau-ceti-e',
@@ -707,8 +724,8 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
         systemId: 'gaia-123',
       }),
     ).toEqual({
-      targetView: 'galaxy',
-      href: '/galaxy/gaia-123?focus=tau-ceti-e',
+      targetView: 'system',
+      href: '/system/gaia-123?focus=tau-ceti-e',
     });
     expect(buildSearchViewHref('   ', 'all')).toBe('/search');
     expect(parseSearchUrlParams('?q=Voyager&searchCategory=minor-bodies')).toEqual({
@@ -783,7 +800,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
 
     const starNoMeta = toSearchResultItem({ i: 's-bare', n: 'Bare Star', m: [-1, 'Unknown', 0] }, 900);
     const starOnePlanet = toSearchResultItem({ i: 's-one', n: 'One Planet Star', m: [4, 'K1V', 1] }, 900);
-    const fictionNoCanon = toSearchResultItem({ i: 'f-bare', k: 7, n: 'Mystery World' }, 900);
+    const layerNoCanon = toSearchResultItem({ i: 'f-bare', k: 7, n: 'Mystery World' }, 900);
 
     expect(renderToString(createElement(SearchResultItem, { result: starNoMeta }))).not.toContain(
       'data-testid="result-variation-stars"',
@@ -791,8 +808,8 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(renderToString(createElement(SearchResultItem, { result: starOnePlanet }))).toContain(
       '1 planet',
     );
-    expect(renderToString(createElement(SearchResultItem, { result: fictionNoCanon }))).toContain(
-      '<span data-testid="result-variation-fiction"></span>',
+    expect(renderToString(createElement(SearchResultItem, { result: layerNoCanon }))).toContain(
+      '<span data-testid="result-variation-layers"></span>',
     );
 
     // 9. getCachedCorpusForFilter & shard cache eviction on failure
@@ -870,10 +887,10 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       },
     ]);
 
-    // Non-system fictional planet ("Vulcan") with filter='fiction' resolves parent system ("Keid")
+    // Non-system fictional planet ("Vulcan") with filter='layers' resolves parent system ("Keid")
     const vulcanResults = executeCatalogSearch(SAMPLE_CORPUS, {
       query: 'Vulcan',
-      filter: 'fiction',
+      filter: 'layers',
     });
     const vulcanSelected = resolveSelectedSystemsFromSearchResults(vulcanResults);
     expect(vulcanSelected).toEqual([
@@ -1451,11 +1468,11 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(detailViewHtml).toContain('href="/guide/star-types"');
   });
 
-  it('links each canon title in DetailsPanel to /galaxy?select=canon:<canonSlug> and selects all annotated systems when GalaxyView loads', () => {
-    expect(buildCanonLayerGalaxyHref('canon-project-hail-mary')).toBe(
-      '/galaxy?select=canon:project-hail-mary',
+  it('links each canon title in DetailsPanel to /galaxy?select=layer:<layerSlug>&layer=<layerSlug> and selects all annotated systems when GalaxyView loads', () => {
+    expect(buildLayerGalaxyHref('canon-project-hail-mary')).toBe(
+      '/galaxy?select=layer:project-hail-mary&layer=project-hail-mary',
     );
-    expect(buildCanonLayerGalaxyHref('   ')).toBe('/galaxy');
+    expect(buildLayerGalaxyHref('   ')).toBe('/galaxy');
     expect(findCanonLayerById('canon-project-hail-mary')?.title).toBe(
       'Project Hail Mary',
     );
@@ -1465,16 +1482,16 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(findCanonLayerById('')).toBeUndefined();
     expect(findCanonLayerById('non-existent-layer')).toBeUndefined();
 
-    expect(extractUrlCanonLayerId('?select=canon:project-hail-mary')).toBe(
+    expect(extractUrlLayerId('?select=layer:project-hail-mary')).toBe(
       'canon-project-hail-mary',
     );
-    expect(extractUrlCanonLayerId('?canon=canon-halo')).toBe('canon-halo');
-    expect(extractUrlCanonLayerId('?focus=tau-ceti-e')).toBeNull();
-    expect(extractUrlCanonLayerId('')).toBeNull();
+    expect(extractUrlLayerId('?layer=canon-halo')).toBe('canon-halo');
+    expect(extractUrlLayerId('?focus=tau-ceti-e')).toBeNull();
+    expect(extractUrlLayerId('')).toBeNull();
 
     // extractUrlFocusSlug only reads ?focus= or route path segments, never ?select=
     expect(
-      extractUrlFocusSlug('/galaxy', '?select=canon:project-hail-mary'),
+      extractUrlFocusSlug('/galaxy', '?select=layer:project-hail-mary'),
     ).toBeNull();
 
     // DetailsPanel renders clickable canon links
@@ -1496,22 +1513,22 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       detailsHtml.indexOf('data-testid="details-canon-item-title"'),
     ).toBeLessThan(detailsHtml.indexOf('data-testid="details-canon-link"'));
     expect(detailsHtml).toContain(
-      'href="/galaxy?select=canon:project-hail-mary"',
+      'href="/galaxy?select=layer:project-hail-mary&amp;layer=project-hail-mary"',
     );
-    expect(detailsHtml).toContain('href="/galaxy?select=canon:halo"');
+    expect(detailsHtml).toContain('href="/galaxy?select=layer:halo&amp;layer=halo"');
 
-    // resolveSelectedSystemsFromCanonLayer resolves all annotated systems
-    const phmSystems = resolveSelectedSystemsFromCanonLayer(
+    // resolveSelectedSystemsFromLayer resolves all annotated systems
+    const phmSystems = resolveSelectedSystemsFromLayer(
       'canon-project-hail-mary',
       SAMPLE_CORPUS,
     );
     expect(phmSystems.map((s) => s.name)).toEqual(['Tau Ceti', 'Keid']);
     expect(
-      resolveSelectedSystemsFromCanonLayer('non-existent-canon', SAMPLE_CORPUS),
+      resolveSelectedSystemsFromLayer('non-existent-canon', SAMPLE_CORPUS),
     ).toEqual([]);
 
     // Fallback when corpus is empty and when Sol is included (e.g. canon-star-trek)
-    const stSystemsEmptyCorpus = resolveSelectedSystemsFromCanonLayer(
+    const stSystemsEmptyCorpus = resolveSelectedSystemsFromLayer(
       'canon-star-trek',
       [],
     );
@@ -1519,7 +1536,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       true,
     );
 
-    // MainView loading /galaxy?select=canon:project-hail-mary selects all systems in that canon and focuses nothing
+    // MainView loading /galaxy?select=layer:project-hail-mary selects all systems in that canon and focuses nothing
     const store = createSpatialEntityStore();
     const html = renderToString(
       createElement(
@@ -1528,7 +1545,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
         createElement(GalaxyView, {
           initialCorpus: SAMPLE_CORPUS,
           locationPathname: '/galaxy',
-          locationSearch: '?select=canon:project-hail-mary',
+          locationSearch: '?select=layer:project-hail-mary',
         }),
       ),
     );
@@ -1628,7 +1645,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
 
     expect(extractUrlTagFocus('?select=tag:exoplanet-host')).toBe('exoplanet-host');
     expect(extractUrlTagFocus('?select=tag:seti')).toBe('seti');
-    expect(extractUrlTagFocus('?select=canon:project-hail-mary')).toBeNull();
+    expect(extractUrlTagFocus('?select=layer:project-hail-mary')).toBeNull();
     expect(extractUrlTagFocus('?focus=tau-ceti-e')).toBeNull();
     expect(extractUrlTagFocus('')).toBeNull();
 
@@ -1857,7 +1874,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(earthFocusHtml).toContain(
       'data-testid="details-orbiting-body-link"',
     );
-    expect(earthFocusHtml).toContain('href="/system/sol?focus=moon"');
+    expect(earthFocusHtml).toContain('href="/planet/earth?focus=moon"');
     expect(earthFocusHtml).toContain('1 catalogued body in orbit.');
     expect(earthFocusHtml).toContain(
       '<a href="/planet/earth" data-testid="details-button-system-details">Details</a>',
@@ -3986,8 +4003,8 @@ describe('Nested Moons, Scoped Star Focus & Contextual Details Drill-Down CTA (D
   });
 });
 
-describe('Option C ?select= URL Grammar & Canon Target Links', () => {
-  it('produces select=canon:<shortSlug> for fictional canon search result items while keeping non-canon links unchanged', () => {
+describe('Option C ?select= URL Grammar & Layer Target Links', () => {
+  it('produces select=layer:<shortSlug>&layer=<shortSlug> for layer search result items while keeping non-layer links unchanged', () => {
     // 1. Fictional system-level canon entry
     const fictionSystemEntry: CompactSearchEntry = {
       i: 'canon-project-hail-mary:gaia-2452378776434477184',
@@ -4002,15 +4019,15 @@ describe('Option C ?select= URL Grammar & Canon Target Links', () => {
       name: fictionSystemEntry.n,
       systemId: fictionSystemEntry.s,
       systemName: 'Tau Ceti',
-      canonLayerId: fictionSystemEntry.w,
+      layerId: fictionSystemEntry.w,
     });
     expect(fictionSystemTarget).toEqual({
       targetView: 'galaxy',
-      href: '/galaxy/tau-ceti?select=canon:project-hail-mary',
+      href: '/galaxy/tau-ceti?select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti',
     });
 
     const fictionSystemItem = toSearchResultItem(fictionSystemEntry, 850, 'Tau Ceti');
-    expect(fictionSystemItem.href).toBe('/galaxy/tau-ceti?select=canon:project-hail-mary');
+    expect(fictionSystemItem.href).toBe('/galaxy/tau-ceti?select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti');
 
     // 2. Fictional child body canon entry
     const fictionChildEntry: CompactSearchEntry = {
@@ -4026,15 +4043,15 @@ describe('Option C ?select= URL Grammar & Canon Target Links', () => {
       name: fictionChildEntry.n,
       systemId: fictionChildEntry.s,
       systemName: '40 Eridani',
-      canonLayerId: fictionChildEntry.w,
+      layerId: fictionChildEntry.w,
     });
     expect(fictionChildTarget).toEqual({
-      targetView: 'galaxy',
-      href: '/galaxy/40-eridani?focus=erid&select=canon:project-hail-mary',
+      targetView: 'system',
+      href: '/system/40-eridani?focus=erid&select=layer:project-hail-mary&layer=project-hail-mary:erid',
     });
 
     const fictionChildItem = toSearchResultItem(fictionChildEntry, 850, '40 Eridani');
-    expect(fictionChildItem.href).toBe('/galaxy/40-eridani?focus=erid&select=canon:project-hail-mary');
+    expect(fictionChildItem.href).toBe('/system/40-eridani?focus=erid&select=layer:project-hail-mary&layer=project-hail-mary:erid');
 
     // 3. Non-canon star entry
     const starEntry: CompactSearchEntry = {
@@ -4065,7 +4082,7 @@ describe('Option C ?select= URL Grammar & Canon Target Links', () => {
       href: '/system/sol?focus=earth',
     });
 
-    // 5. Non-canon exoplanet entry
+    // 5. Non-canon exoplanet entry (routes to /system/tau-ceti?focus=tau-ceti-e per DEC-038)
     const exoTarget = buildResultTargetLink({
       id: 'tau-ceti-e',
       name: 'Tau Ceti e',
@@ -4073,18 +4090,33 @@ describe('Option C ?select= URL Grammar & Canon Target Links', () => {
       systemName: 'Tau Ceti',
     });
     expect(exoTarget).toEqual({
+      targetView: 'system',
+      href: '/system/tau-ceti?focus=tau-ceti-e',
+    });
+
+    // 6. Parent layer manifest entry (routes to /galaxy?select=layer:<slug>&layer=<slug>)
+    const parentLayerTarget = buildResultTargetLink({
+      id: 'canon-project-hail-mary',
+      name: 'Project Hail Mary',
+      layerId: 'canon-project-hail-mary',
+      entityKind: 'layer',
+    });
+    expect(parentLayerTarget).toEqual({
       targetView: 'galaxy',
-      href: '/galaxy/tau-ceti?focus=tau-ceti-e',
+      href: '/galaxy?select=layer:project-hail-mary&layer=project-hail-mary',
     });
   });
 
-  it('parses Option C tokens: tag:<slug>, canon:<slug>, star-type:<slug>, planet-type:<slug>, collection:<slug>, and entity slugs', () => {
+  it('parses Option C tokens: tag:<slug>, layer:<slug>, star-type:<slug>, planet-type:<slug>, collection:<slug>, and entity slugs', () => {
     // 1. Individual tokens
     expect(parseUrlSelectTokens('?select=tag:habitable-candidate')).toEqual([
       { kind: 'tag', tag: 'habitable-candidate' },
     ]);
-    expect(parseUrlSelectTokens('?select=canon:project-hail-mary')).toEqual([
-      { kind: 'canon', layerId: 'canon-project-hail-mary' },
+    expect(parseUrlSelectTokens('?select=layer:project-hail-mary')).toEqual([
+      { kind: 'layer', layerId: 'canon-project-hail-mary' },
+    ]);
+    expect(parseUrlSelectTokens('?select=layer:recent-discoveries')).toEqual([
+      { kind: 'layer', layerId: 'overlay-recent-discoveries' },
     ]);
     expect(parseUrlSelectTokens('?select=star-type:g')).toEqual([
       { kind: 'star-type', starType: 'g' },
@@ -4112,10 +4144,10 @@ describe('Option C ?select= URL Grammar & Canon Target Links', () => {
     ]);
 
     // 2. Comma-separated combination
-    const multi = parseUrlSelectTokens('?select=star-type:g,canon:project-hail-mary,sol');
+    const multi = parseUrlSelectTokens('?select=star-type:g,layer:project-hail-mary,sol');
     expect(multi).toEqual([
       { kind: 'star-type', starType: 'g' },
-      { kind: 'canon', layerId: 'canon-project-hail-mary' },
+      { kind: 'layer', layerId: 'canon-project-hail-mary' },
       { kind: 'entity', slug: 'sol' },
     ]);
   });
@@ -4270,14 +4302,16 @@ describe('Option C ?select= URL Grammar & Canon Target Links', () => {
     expect(solChildResult.targetView).toBe('system');
     expect(solChildResult.href).toBe('/system/sol?focus=earth&select=tag:habitable-candidate');
 
-    // 3. canonLayerId takes precedence over tagSlug when both are present
+    // 3. layerId takes precedence over tagSlug when both are present
     const canonPrecedenceResult = buildResultTargetLink({
       id: 'tau-ceti',
       name: 'Tau Ceti',
-      canonLayerId: 'canon-project-hail-mary',
+      layerId: 'canon-project-hail-mary',
       tagSlug: 'habitable-candidate',
     });
-    expect(canonPrecedenceResult.href).toBe('/galaxy/tau-ceti?select=canon:project-hail-mary');
+    expect(canonPrecedenceResult.href).toBe(
+      '/galaxy/tau-ceti?select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti',
+    );
 
     // 4. toSearchResultItem passes tagSlug through to href
     const entry: CompactSearchEntry = {
@@ -4391,6 +4425,133 @@ describe('Option C ?select= URL Grammar & Canon Target Links', () => {
       query: 'Sirius',
     });
     expect(siriusDirectResults.groups.stars.items[0].href).toBe('/galaxy/sirius');
+  });
+
+  describe('Centralised Orbit-Context View Targeting (DEC-038)', () => {
+    it('routes layer manifests to galaxy overview card URL', () => {
+      const res = buildEntityOrbitTargetHref({
+        id: 'overlay-recent-discoveries',
+        name: 'Newly Discovered Worlds',
+        entityKind: 'layer',
+      });
+      expect(res).toEqual({
+        targetView: 'galaxy',
+        href: '/galaxy?select=layer:recent-discoveries&layer=recent-discoveries',
+      });
+    });
+
+    it('routes systems and galactic structures to galaxy view', () => {
+      const sysRes = buildEntityOrbitTargetHref({
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        entityKind: 'star-system',
+      });
+      expect(sysRes).toEqual({
+        targetView: 'galaxy',
+        href: '/galaxy/tau-ceti',
+      });
+
+      const structRes = buildEntityOrbitTargetHref({
+        id: 'm13-hercules',
+        name: 'Great Hercules Cluster',
+        entityKind: 'galactic-structure',
+      });
+      expect(structRes).toEqual({
+        targetView: 'galaxy',
+        href: '/galaxy/great-hercules-cluster',
+      });
+    });
+
+    it('routes stars, planets, dwarf-planets, belts, and minor bodies to system view with ?focus=<itemSlug>', () => {
+      const planetRes = buildEntityOrbitTargetHref({
+        id: 'lhs-1140-b',
+        name: 'LHS 1140 b',
+        entityKind: 'planet',
+        systemId: 'lhs-1140',
+        systemName: 'LHS 1140',
+      });
+      expect(planetRes).toEqual({
+        targetView: 'system',
+        href: '/system/lhs-1140?focus=lhs-1140-b',
+      });
+
+      const beltRes = buildEntityOrbitTargetHref({
+        id: 'main-asteroid-belt',
+        name: 'Main Asteroid Belt',
+        entityKind: 'belt',
+        systemId: 'sol',
+        systemName: 'Sol',
+        isSolarSystem: true,
+      });
+      expect(beltRes).toEqual({
+        targetView: 'system',
+        href: '/system/sol?focus=main-asteroid-belt',
+      });
+    });
+
+    it('routes planetary moons to planetary view with /planet/<parentPlanetSlug>?focus=<moonSlug>', () => {
+      const moonRes = buildEntityOrbitTargetHref({
+        id: 'europa',
+        name: 'Europa',
+        entityKind: 'moon',
+        systemId: 'sol',
+        parentBodyId: 'jupiter',
+      });
+      expect(moonRes).toEqual({
+        targetView: 'planet',
+        href: '/planet/jupiter?focus=europa',
+      });
+
+      const phoebeRes = buildEntityOrbitTargetHref({
+        id: 'phoebe',
+        name: 'Phoebe',
+        entityKind: 'minor-body',
+        systemId: 'sol',
+        parentBodyId: 'saturn',
+      });
+      expect(phoebeRes).toEqual({
+        targetView: 'planet',
+        href: '/planet/saturn?focus=phoebe',
+      });
+    });
+
+    it('attaches compound &layer=<layerSlug>:<itemSlug> when layerId is present', () => {
+      const itemRes = buildEntityOrbitTargetHref({
+        id: 'trappist-1-e',
+        name: 'TRAPPIST-1 e',
+        entityKind: 'planet',
+        systemId: 'trappist-1',
+        systemName: 'TRAPPIST-1',
+        layerId: 'overlay-jwst-targets',
+      });
+      expect(itemRes).toEqual({
+        targetView: 'system',
+        href: '/system/trappist-1?focus=trappist-1-e&select=layer:jwst-targets&layer=jwst-targets:trappist-1-e',
+      });
+
+      const moonInLayer = buildEntityOrbitTargetHref({
+        id: 'europa',
+        name: 'Europa',
+        entityKind: 'moon',
+        systemId: 'sol',
+        parentBodyId: 'jupiter',
+        layerId: 'overlay-extreme-worlds',
+      });
+      expect(moonInLayer).toEqual({
+        targetView: 'planet',
+        href: '/planet/jupiter?focus=europa&select=layer:extreme-worlds&layer=extreme-worlds:europa',
+      });
+    });
+
+    it('extracts structured select slugs via extractUrlSelectSlugs helper', () => {
+      const parsed = extractUrlSelectSlugs(
+        '?select=tag:habitable-candidate,layer:recent-discoveries,star-type:g,sol',
+      );
+      expect(parsed.tags).toEqual(['habitable-candidate']);
+      expect(parsed.layerSlugs).toEqual(['overlay-recent-discoveries']);
+      expect(parsed.starTypes).toEqual(['g']);
+      expect(parsed.entitySlugs).toEqual(['sol']);
+    });
   });
 });
 

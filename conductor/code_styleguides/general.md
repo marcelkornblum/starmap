@@ -8,7 +8,7 @@ trigger: always_on
 - **Outcome-Oriented**: Name variables, attributes, and functions based on their **outcome** or **intent**, not their internal representation.
 - **Verb-Noun Pattern**: Prefer the `verbNoun` pattern for functions/methods (e.g., `getUserProfile`, `saveConfiguration`, `calculateCartesianCoordinates`).
 - **Clarity over Brevity**: A descriptive name is always better than a cryptic one. Avoid abbreviations unless they are industry standard (e.g., `id`, `url`, `ra`, `dec`).
-- **Clean Refactoring**: When refactoring internal APIs, do not include import shims for backwards-compatibility; update the import paths everywhere in the codebase.
+- **Clean Refactoring (Zero Backwards-Compatible Shims or Aliases)**: Never introduce or retain backwards-compatible shims, legacy URL query parameter aliases, deprecated category keys, duplicate data shards, or type/import aliases. When refactoring or renaming any concept, perform a 100% clean cutover across build scripts, runtime code, data shards, and tests.
 
 ## Pattern Reuse & Consistency
 - **Idiomatic Usage**: Always use the most idiomatic patterns for TypeScript and React 19 (e.g., modern hooks, strict null checks, discriminated unions).

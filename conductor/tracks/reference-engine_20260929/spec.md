@@ -1,7 +1,7 @@
 # Specification: Reference Engine & MDX
 
 ## Overview
-This track builds the Encyclopedia/Reference section of Starmap. It implements an MDX parsing pipeline to support rich, editorial content (50-100 guide pages) and builds the specialized UI components to display inline 3D elements (like interactive stars popping out of cards) using the global canvas `<View>` architecture.
+This track builds the Encyclopedia/Reference section of Starmap. It implements an MDX parsing pipeline to support rich, editorial content (50-100 guide pages) and builds the specialized UI components to display inline 3D elements (like interactive stars popping out of cards) using the global canvas `<View>` architecture, including the 3D Guide interior cross-section cutaways and comparative 3D meshes specified in **[`FS-011` in `conductor/backlog.md`](../../backlog.md)**.
 
 ## Functional Requirements
 1. **MDX Integration:** Configure Vite (e.g., via `@mdx-js/rollup`) and TanStack Router to natively parse and render `.mdx` files as routeable pages.

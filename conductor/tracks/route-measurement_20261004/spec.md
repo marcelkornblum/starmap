@@ -19,7 +19,7 @@ Delivers point-to-point measurement and interstellar route planning.
    - Waypoint-based trajectory chain with travel vectors and transit times.
 
 ## Out of Scope
-- Route history & bookmarks, warp/transit alerts, comms-lag conversation simulator (backlog).
+- Route history & bookmarks (`FS-002` / `FS-015` in [`conductor/backlog.md`](../../backlog.md)) and arbitrary-origin multi-leg route networks, epoch orbital timing & solar conjunction blackouts (`FS-014` / `FS-017` in [`conductor/backlog.md`](../../backlog.md)).
 
 ## Acceptance Criteria
 - [ ] Route initiated from an entity card with pre-set origin.

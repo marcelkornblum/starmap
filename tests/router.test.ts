@@ -89,8 +89,8 @@ describe('TanStack Router Architecture', () => {
       q: 'Tau Ceti',
       searchCategory: 'stars',
       focus: 'tau-ceti-e',
-      select: 'tag:habitable-candidate,canon:project-hail-mary,sol',
-      canon: 'canon-project-hail-mary',
+      select: 'tag:habitable-candidate,layer:project-hail-mary,sol',
+      layer: 'project-hail-mary',
       x: '12.5',
       y: 42,
       z: 'not-a-number',
@@ -106,9 +106,9 @@ describe('TanStack Router Architecture', () => {
     expect(validated.searchCategory).toBe('stars');
     expect(validated.focus).toBe('tau-ceti-e');
     expect(validated.select).toBe(
-      'tag:habitable-candidate,canon:project-hail-mary,sol',
+      'tag:habitable-candidate,layer:project-hail-mary,sol',
     );
-    expect(validated.canon).toBe('canon-project-hail-mary');
+    expect(validated.layer).toBe('project-hail-mary');
     expect(validated.x).toBe(12.5);
     expect(validated.y).toBe(42);
     expect(Number.isNaN(validated.z)).toBe(true);
@@ -121,16 +121,16 @@ describe('TanStack Router Architecture', () => {
 
     expect(
       stringifyStarmapSearch({
-        select: 'tag:habitable-candidate,canon:project-hail-mary,sol',
+        select: 'tag:habitable-candidate,layer:project-hail-mary,sol',
         focus: 'tau-ceti',
       }),
-    ).toBe('?select=tag:habitable-candidate,canon:project-hail-mary,sol&focus=tau-ceti');
+    ).toBe('?select=tag:habitable-candidate,layer:project-hail-mary,sol&focus=tau-ceti');
 
     // Empty search params (falsy branch)
     const emptyValidated = validate({});
     expect(emptyValidated.q).toBeUndefined();
     expect(emptyValidated.select).toBeUndefined();
-    expect(emptyValidated.canon).toBeUndefined();
+    expect(emptyValidated.layer).toBeUndefined();
     expect(emptyValidated.x).toBeUndefined();
     expect(emptyValidated.y).toBeUndefined();
     expect(emptyValidated.z).toBeUndefined();

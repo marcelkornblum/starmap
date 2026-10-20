@@ -69,4 +69,8 @@ export {
   DirectionsPanel,
   type DirectionsPanelProps,
 } from './DirectionsPanel';
+export {
+  LayerCard,
+  type LayerCardProps,
+} from './LayerCard/LayerCard';
 
