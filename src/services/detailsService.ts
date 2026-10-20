@@ -2681,6 +2681,9 @@ export function extractGalaxyBodies(
     }
   }
 
+  const referenceOrigin =
+    focusedSystemCoords ?? instrumentAperture.centerCoordinatesPc;
+  const sortDistanceById = new Map<string, number>();
   const systems: GalaxyBodySystemItem[] = [];
 
   for (const [sysSlug, sysData] of candidateMap.entries()) {
@@ -2739,16 +2742,18 @@ export function extractGalaxyBodies(
     const hazardSummaryLabel = formatHazardSummaryLabel(hazardCount);
     const hasCriticalHazard = hazards.some((h) => h.severity === 'critical');
 
+    const rawSortDist = computeEuclideanDistance3D(
+      referenceOrigin,
+      sysData.coordinatesPc,
+    ).distance;
+    sortDistanceById.set(sysData.id, rawSortDist);
+
     let distanceFromFocusPc: number | undefined;
     let distanceFromFocusLy: number | undefined;
     let distanceGuideHref: string | undefined;
 
     if (focusedSystemId && focusedSystemCoords) {
-      const rawDist = computeEuclideanDistance3D(
-        focusedSystemCoords,
-        sysData.coordinatesPc,
-      ).distance;
-      const distPc = Math.round(rawDist * 100) / 100;
+      const distPc = Math.round(rawSortDist * 100) / 100;
       const distLy = Math.round(distPc * PARSEC_TO_LY * 10) / 10;
       distanceFromFocusPc = distPc;
       distanceFromFocusLy = distLy;
@@ -2775,16 +2780,9 @@ export function extractGalaxyBodies(
     });
   }
 
-  const referenceOrigin =
-    focusedSystemCoords ?? instrumentAperture.centerCoordinatesPc;
-
   systems.sort((a, b) => {
-    const coordsA =
-      candidateMap.get(toUrlSlug(a.id))?.coordinatesPc ?? [0, 0, 0];
-    const coordsB =
-      candidateMap.get(toUrlSlug(b.id))?.coordinatesPc ?? [0, 0, 0];
-    const distA = computeEuclideanDistance3D(referenceOrigin, coordsA).distance;
-    const distB = computeEuclideanDistance3D(referenceOrigin, coordsB).distance;
+    const distA = sortDistanceById.get(a.id) ?? 0;
+    const distB = sortDistanceById.get(b.id) ?? 0;
     if (Math.abs(distA - distB) > 1e-5) {
       return distA - distB;
     }
@@ -2987,11 +2985,22 @@ export const buildSystemOrbitalSchematic = (
   }
 
   const candidates: CandidateItem[] = [];
+  const corpusById = new Map<string, CompactSearchEntry>();
+  const corpusBySlug = new Map<string, CompactSearchEntry>();
+  for (const entry of corpus) {
+    if (!corpusById.has(entry.i)) {
+      corpusById.set(entry.i, entry);
+    }
+    const slug = toUrlSlug(entry.i);
+    if (slug && !corpusBySlug.has(slug)) {
+      corpusBySlug.set(slug, entry);
+    }
+  }
+  const getCorpusEntry = (id: string): CompactSearchEntry | undefined =>
+    corpusById.get(id) ?? corpusBySlug.get(toUrlSlug(id));
 
   for (const planet of planets) {
-    const entry =
-      corpus.find((e) => e.i === planet.id) ||
-      corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(planet.id));
+    const entry = getCorpusEntry(planet.id);
     candidates.push({
       id: planet.id,
       name: planet.name,
@@ -3007,29 +3016,21 @@ export const buildSystemOrbitalSchematic = (
 
   for (const disk of disks) {
     const matchingResidents = moonsAndDwarfPlanets.filter((body) => {
-      const entry =
-        corpus.find((e) => e.i === body.id) ||
-        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(body.id));
+      const entry = getCorpusEntry(body.id);
       if (entry?.o) return false;
       return isDwarfPlanetInDisk(entry, disk);
     });
 
     matchingResidents.sort((a, b) => {
-      const entryA =
-        corpus.find((e) => e.i === a.id) ||
-        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(a.id));
-      const entryB =
-        corpus.find((e) => e.i === b.id) ||
-        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(b.id));
+      const entryA = getCorpusEntry(a.id);
+      const entryB = getCorpusEntry(b.id);
       const aVal = entryA?.A ?? entryA?.r ?? Number.POSITIVE_INFINITY;
       const bVal = entryB?.A ?? entryB?.r ?? Number.POSITIVE_INFINITY;
       return aVal - bVal;
     });
 
     const residentChildren: OrbitalSchematicItem[] = matchingResidents.map((body, rIdx) => {
-      const childEntry =
-        corpus.find((e) => e.i === body.id) ||
-        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(body.id));
+      const childEntry = getCorpusEntry(body.id);
       let region: OrbitalSchematicRegion | undefined;
       if (childEntry?.e === 'belt' || disk.kind === 'asteroid-belt') {
         region = 'asteroid-belt';
@@ -3078,9 +3079,7 @@ export const buildSystemOrbitalSchematic = (
   }
 
   for (const body of moonsAndDwarfPlanets) {
-    const entry =
-      corpus.find((e) => e.i === body.id) ||
-      corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(body.id));
+    const entry = getCorpusEntry(body.id);
     if (entry?.o) {
       continue;
     }
@@ -3132,9 +3131,7 @@ export const buildSystemOrbitalSchematic = (
     }
 
     const matchingMoons = moonsAndDwarfPlanets.filter((moon) => {
-      const entry =
-        corpus.find((e) => e.i === moon.id) ||
-        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(moon.id));
+      const entry = getCorpusEntry(moon.id);
       if (!entry?.o) {
         return false;
       }
@@ -3146,12 +3143,8 @@ export const buildSystemOrbitalSchematic = (
     });
 
     matchingMoons.sort((a, b) => {
-      const entryA =
-        corpus.find((e) => e.i === a.id) ||
-        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(a.id));
-      const entryB =
-        corpus.find((e) => e.i === b.id) ||
-        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(b.id));
+      const entryA = getCorpusEntry(a.id);
+      const entryB = getCorpusEntry(b.id);
       const rankA = entryA?.r ?? Number.POSITIVE_INFINITY;
       const rankB = entryB?.r ?? Number.POSITIVE_INFINITY;
       if (rankA !== rankB) {
@@ -3161,9 +3154,7 @@ export const buildSystemOrbitalSchematic = (
     });
 
     const children: OrbitalSchematicItem[] = matchingMoons.map((moon, mIdx) => {
-      const childEntry =
-        corpus.find((e) => e.i === moon.id) ||
-        corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(moon.id));
+      const childEntry = getCorpusEntry(moon.id);
       const childInHz = Boolean(childEntry?.z === 1);
       let childRegion: OrbitalSchematicRegion | undefined;
       if (childEntry?.e === 'belt') {

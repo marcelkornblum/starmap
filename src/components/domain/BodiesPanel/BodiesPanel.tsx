@@ -85,6 +85,8 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
                 data-hovered={isItemHovered ? 'true' : undefined}
                 onMouseEnter={() => onHoverEntity?.(sys.id)}
                 onMouseLeave={() => onHoverEntity?.(null)}
+                onFocus={() => onHoverEntity?.(sys.id)}
+                onBlur={() => onHoverEntity?.(null)}
                 className={styles.systemItem}
               >
                 <a href={sys.href} data-testid="bodies-galaxy-system-link">
