@@ -309,7 +309,8 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
 
       expect(html).toContain('data-testid="directions-panel"');
       expect(html).toContain('data-detent="partial"');
-      expect(html).toContain('<h2 id="directions-panel-heading">Directions</h2>');
+      expect(html).toContain('id="directions-panel-heading"');
+      expect(html).toContain('Directions</h2>');
       expect(html).toContain('data-testid="directions-detent-peek"');
       expect(html).toContain('data-testid="directions-detent-partial"');
       expect(html).toContain('Route Overview');

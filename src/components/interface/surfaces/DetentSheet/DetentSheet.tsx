@@ -52,7 +52,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
       {...(systemId !== undefined ? { 'data-system-id': systemId } : {})}
       {...(focusedKind !== undefined ? { 'data-focused-kind': focusedKind } : {})}
     >
-      <h2 id={resolvedHeadingId}>
+      <h2 id={resolvedHeadingId} className={styles.srOnly}>
         {heading}
       </h2>
 
@@ -62,7 +62,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
         data-detent-section="peek"
         className={styles.detentSection}
       >
-        <h3 id={`${testIdPrefix}-peek-heading`}>
+        <h3 id={`${testIdPrefix}-peek-heading`} className={styles.srOnly}>
           Peek
         </h3>
         {peek}
@@ -75,7 +75,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
           data-detent-section="partial"
           className={styles.detentSection}
         >
-          <h3 id={`${testIdPrefix}-partial-heading`}>
+          <h3 id={`${testIdPrefix}-partial-heading`} className={styles.srOnly}>
             Partial
           </h3>
           {partial}
@@ -89,7 +89,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
           data-detent-section="full"
           className={styles.detentSection}
         >
-          <h3 id={`${testIdPrefix}-full-heading`}>
+          <h3 id={`${testIdPrefix}-full-heading`} className={styles.srOnly}>
             Full
           </h3>
           {full}

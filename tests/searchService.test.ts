@@ -1039,10 +1039,14 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     ]);
     expect(focusChildHtml).not.toContain('data-testid="systems-panel"');
     expect(focusChildHtml).toContain('data-testid="details-panel"');
-    expect(focusChildHtml).toContain('<h2 id="details-panel-heading">Details</h2>');
-    expect(focusChildHtml).toContain('<h3 id="details-peek-heading">Peek</h3>');
-    expect(focusChildHtml).toContain('<h3 id="details-partial-heading">Partial</h3>');
-    expect(focusChildHtml).toContain('<h3 id="details-full-heading">Full</h3>');
+    expect(focusChildHtml).toContain('id="details-panel-heading"');
+    expect(focusChildHtml).toContain('Details</h2>');
+    expect(focusChildHtml).toContain('id="details-peek-heading"');
+    expect(focusChildHtml).toContain('Peek</h3>');
+    expect(focusChildHtml).toContain('id="details-partial-heading"');
+    expect(focusChildHtml).toContain('Partial</h3>');
+    expect(focusChildHtml).toContain('id="details-full-heading"');
+    expect(focusChildHtml).toContain('Full</h3>');
     expect(focusChildHtml).toContain('data-testid="details-button-system-details"');
     expect(focusChildHtml).toContain('href="/planet/tau-ceti-e"');
     expect(focusChildHtml).toContain('data-testid="details-button-directions"');

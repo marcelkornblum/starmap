@@ -60,7 +60,7 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
         data-aperture-radius-pc={apertureRadiusPc}
         className={styles.root}
       >
-        <Heading as="h2" id="bodies-panel-heading" className={styles.heading}>
+        <Heading as="h2" id="bodies-panel-heading" className={styles.srOnly}>
           Galactic Systems
         </Heading>
 
@@ -226,7 +226,7 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
       data-planet-id={scope === 'planet' ? elements.planetId : undefined}
       className={styles.root}
     >
-      <Heading as="h2" id="bodies-panel-heading" className={styles.heading}>
+      <Heading as="h2" id="bodies-panel-heading" className={styles.srOnly}>
         {scope === 'system' ? 'System Bodies' : 'Planetary Bodies'}
       </Heading>
 
@@ -238,7 +238,7 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
         data-planet-id={scope === 'planet' ? elements.planetId : undefined}
         className={styles.section}
       >
-        <Heading as="h3" id="bodies-schematic-heading" className={styles.sectionHeading}>
+        <Heading as="h3" id="bodies-schematic-heading" className={styles.srOnly}>
           Orbital Schematic
         </Heading>
         {resolvedSchematic && resolvedSchematic.items.length > 0 ? (

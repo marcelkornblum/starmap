@@ -814,7 +814,7 @@ export const SearchPanel = ({
       <Heading
         as="h2"
         id="search-panel-heading"
-        className={scope === 'search' ? undefined : styles.srOnly}
+        className={styles.srOnly}
       >
         {heading}
       </Heading>
@@ -873,7 +873,12 @@ export const SearchResults = ({
       data-status={status}
       className={styles.resultsPanel}
     >
-      <Heading as="h2" id="search-results-heading" size="eyebrow">
+      <Heading
+        as="h2"
+        id="search-results-heading"
+        size="eyebrow"
+        className={styles.srOnly}
+      >
         {heading}
       </Heading>
       {searchViewPath ? (

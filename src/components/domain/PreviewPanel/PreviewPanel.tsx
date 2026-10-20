@@ -36,7 +36,9 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
       data-focused-kind={preview.focusedKind}
       data-preview-mode={preview.previewMode}
     >
-      <Heading as="h2" id="preview-panel-heading">Focus Preview</Heading>
+      <Heading as="h2" id="preview-panel-heading" className={styles.srOnly}>
+        Focus Preview
+      </Heading>
       <div
         className={styles.canvasSlot}
         data-testid="preview-canvas-slot"

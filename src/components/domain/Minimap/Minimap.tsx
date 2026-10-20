@@ -53,7 +53,9 @@ export const Minimap: React.FC<MinimapProps> = ({ orientation }) => {
       data-anchor-id={anchorId}
       data-system-id={systemId}
     >
-      <Heading as="h2" id="minimap-panel-heading">Minimap</Heading>
+      <Heading as="h2" id="minimap-panel-heading" className={styles.srOnly}>
+        Minimap
+      </Heading>
       <div
         className={styles.viewportSlot}
         data-testid="minimap-viewport-slot"
