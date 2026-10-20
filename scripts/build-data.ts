@@ -2970,7 +2970,7 @@ export async function buildGaiaDataPipeline(
         for (const st of allStructures) {
           coordsById.set(st.id, [st.x, st.y, st.z]);
         }
-        const fictionEntries = buildSearchEntriesFromLayers(SEED_FICTIONAL_CANON_LAYERS, coordsById);
+        const layerEntries = buildSearchEntriesFromLayers(SEED_FICTIONAL_CANON_LAYERS, coordsById);
 
         const indices = buildSearchIndices({
           systems: cataloguedSummaries,
@@ -2978,7 +2978,7 @@ export async function buildGaiaDataPipeline(
           structures: allStructures,
           solarBodies: allSolarBodies,
           starAliasesById,
-          fictionEntries,
+          layerEntries,
         });
 
         fs.writeFileSync(path.join(resolvedSearch, 'core.json'), JSON.stringify(indices.core), 'utf-8');
@@ -2987,8 +2987,7 @@ export async function buildGaiaDataPipeline(
         fs.writeFileSync(path.join(resolvedSearch, 'planets.json'), JSON.stringify(indices.planets), 'utf-8');
         fs.writeFileSync(path.join(resolvedSearch, 'structures.json'), JSON.stringify(indices.structures), 'utf-8');
         fs.writeFileSync(path.join(resolvedSearch, 'minor-bodies.json'), JSON.stringify(indices.minorBodies), 'utf-8');
-        fs.writeFileSync(path.join(resolvedSearch, 'fiction.json'), JSON.stringify(indices.fiction), 'utf-8');
-        fs.writeFileSync(path.join(resolvedSearch, 'layers.json'), JSON.stringify(indices.fiction), 'utf-8');
+        fs.writeFileSync(path.join(resolvedSearch, 'layers.json'), JSON.stringify(indices.layers), 'utf-8');
       }
 
       resolve({

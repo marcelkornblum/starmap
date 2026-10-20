@@ -333,8 +333,8 @@ export function resolveSystemLayerEntries(
 }
 
 /**
- * Converts DatasetLayerManifest entries into `CompactSearchEntry` records (`k = 7` fiction)
- * for inclusion in `public/data/search/fiction.json`, `core.json`, and `full.json`.
+ * Converts DatasetLayerManifest entries into `CompactSearchEntry` records (`k = 7` layers)
+ * for inclusion in `public/data/search/layers.json`, `core.json`, and `full.json`.
  */
 export function buildSearchEntriesFromLayers(
   layers: DatasetLayerManifest[],

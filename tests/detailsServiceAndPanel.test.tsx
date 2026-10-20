@@ -520,13 +520,13 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
 
   describe('buildGalaxySystemNavigationHref', () => {
     it('drops focus parameter while preserving active search parameters and literal : and ,', () => {
-      const search = '?focus=sol&q=alpha&searchCategory=stars&select=canon:project-hail-mary,tag:habitable-candidate&center=tau-ceti&x=1&y=2&z=3&az=45&el=30&dist=35&zoom=1.5&route=sol,tau-ceti&journeyOption=torchship-1g';
+      const search = '?focus=sol&q=alpha&searchCategory=stars&select=layer:project-hail-mary,tag:habitable-candidate&center=tau-ceti&x=1&y=2&z=3&az=45&el=30&dist=35&zoom=1.5&route=sol,tau-ceti&journeyOption=torchship-1g';
       const href = buildGalaxySystemNavigationHref('alpha-centauri', search);
       expect(href).toContain('/galaxy/alpha-centauri?');
       expect(href).not.toContain('focus=');
       expect(href).toContain('q=alpha');
       expect(href).toContain('searchCategory=stars');
-      expect(href).toContain('select=canon:project-hail-mary,tag:habitable-candidate');
+      expect(href).toContain('select=layer:project-hail-mary,tag:habitable-candidate');
       expect(href).toContain('center=tau-ceti');
       expect(href).toContain('x=1');
       expect(href).toContain('y=2');
@@ -692,11 +692,11 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
     it('preserves query parameters like select, center, dist on system navigation href', () => {
       const summary = extractGalaxyBodies({
         corpus: SAMPLE_GALAXY_CORPUS,
-        currentSearch: '?select=canon:halo&center=sol&dist=20',
+        currentSearch: '?select=layer:halo&center=sol&dist=20',
       });
 
       const alpha = summary.systems.find((s) => s.id === 'alpha-centauri');
-      expect(alpha?.href).toBe('/galaxy/alpha-centauri?select=canon:halo&center=sol&dist=20');
+      expect(alpha?.href).toBe('/galaxy/alpha-centauri?select=layer:halo&center=sol&dist=20');
     });
   });
 

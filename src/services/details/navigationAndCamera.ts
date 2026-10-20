@@ -23,7 +23,7 @@ export interface EntityOrbitTargetInput {
   readonly systemId?: string;
   readonly systemName?: string;
   readonly parentBodyId?: string;
-  readonly canonLayerId?: string;
+  readonly layerId?: string;
   readonly tagSlug?: string;
   readonly isSolarSystem?: boolean;
 }
@@ -54,7 +54,7 @@ export function buildEntityOrbitTargetHref(
     systemId,
     systemName,
     parentBodyId,
-    canonLayerId,
+    layerId,
     tagSlug,
     isSolarSystem,
   } = input;
@@ -62,18 +62,18 @@ export function buildEntityOrbitTargetHref(
   // 1. Parent Layer Overview
   const isParentLayer =
     entityKind === 'layer' ||
-    (canonLayerId !== undefined &&
-      (id === canonLayerId || toCanonicalLayerSlug(id) === toCanonicalLayerSlug(canonLayerId)));
+    (layerId !== undefined &&
+      (id === layerId || toCanonicalLayerSlug(id) === toCanonicalLayerSlug(layerId)));
 
   if (isParentLayer) {
-    const layerSlug = toCanonicalLayerSlug(canonLayerId || id);
+    const layerSlug = toCanonicalLayerSlug(layerId || id);
     return {
       targetView: 'galaxy',
       href: `/galaxy?select=layer:${layerSlug}&layer=${layerSlug}`,
     };
   }
 
-  const layerSlug = canonLayerId ? toCanonicalLayerSlug(canonLayerId) : undefined;
+  const layerSlug = layerId ? toCanonicalLayerSlug(layerId) : undefined;
   const tag = tagSlug ? toUrlSlug(tagSlug.replace(/^tag:/i, '')) : undefined;
 
   const cleanId = id.includes(':') ? id.split(':').slice(1).join(':') : id;
@@ -273,7 +273,7 @@ const GALAXY_NAV_PRESERVED_PARAMS = new Set([
   'q',
   'searchCategory',
   'select',
-  'canon',
+  'layer',
   'center',
   'x',
   'y',

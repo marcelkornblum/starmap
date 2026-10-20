@@ -563,7 +563,7 @@ This document records all architectural, data-model, interaction, and UI scaffol
 - **Context:** Journey 3 (The Casual Explorer Flow) requires curated discovery collections (*"Newly Discovered Worlds"*, *"Recent JWST Targets"*, *"Extreme & Superlative Worlds"*), glanceable narrative hooks with tags, and sequential waypoint stepping. Rather than maintaining a duplicate tour subsystem alongside `DatasetLayerManifest` (`src/utils/datasetLayerCodec.ts`), both scientific highlights and fictional universes can be unified under the **Layer** primitive.
 - **Options Considered:**
   1. **Search Category & Layer Indexing (`DEC-036a`):**
-     - *Option A (Chosen):* Replace `'fiction'` with a unified `'layers'` category (`"Curated Layers & Canons"`, accepting legacy `'fiction'` searchCategory alias) that indexes both **parent Layer manifests** (opening the Layer Overview card) and **individual Layer entries** (opening that item's card at its Orbit-Context target view).
+     - *Option A (Chosen):* Replace `'fiction'` with a unified `'layers'` category (`"Curated Layers & Canons"`) that indexes both **parent Layer manifests** (opening the Layer Overview card) and **individual Layer entries** (opening that item's card at its Orbit-Context target view), with zero backwards-compatible `'fiction'` aliases or duplicate shards.
      - *Option B:* Keep `'fiction'` and add a 6th `'layers'` category.
      - *Option C:* Keep `'fiction'` key and relabel it.
   2. **Optional Item Ordering (`DEC-036b`):**
@@ -578,20 +578,20 @@ This document records all architectural, data-model, interaction, and UI scaffol
   - Unify scientific tours and fictional canons around **Layer** (`DatasetLayerManifest` / `DatasetLayerEntry`).
   - Add `order?: number` (`o?: number` in `CompactLayerEntry`) with deterministic sorting (`order` ascending first, then declaration order, then `targetId` tie-breaker).
   - Seed `overlay-recent-discoveries` (*"Newly Discovered Worlds"*), `overlay-jwst-targets` (*"Recent JWST Targets"*), and `overlay-extreme-worlds` (*"Extreme & Superlative Worlds"*) anchored to real `< 100 pc` systems and planets.
-  - Replace the `'fiction'` search category with `'layers'` (`"Curated Layers & Canons"`, preserving `'fiction'` as a legacy alias and emitting `public/data/search/layers.json` alongside `fiction.json` compatibility) indexing both parent Layer manifests and individual Layer entries.
+  - Replace the `'fiction'` search category cleanly with `'layers'` (`"Curated Layers & Canons"`, emitting `public/data/search/layers.json` and removing `public/data/search/fiction.json`) indexing both parent Layer manifests and individual Layer entries.
 
 ### DEC-037: Compound `?layer=` URL Parameter (`?layer=<layerSlug>` Overview vs. `?layer=<layerSlug>:<itemSlug>` Item) & `?select=layer:<layerSlug>` Selection Token
 - **Date:** 2026-10-20
 - **Status:** Ratified
 - **Context:** When a layer or layer item is active, the URL must unambiguously distinguish between viewing the **Layer Overview Card** and viewing a **specific item's card** across any route (`/galaxy/$systemSlug`, `/system/$systemSlug`, `/planet/$planetSlug`).
 - **Options Considered:**
-  - *Option A (Chosen):* Compound `?layer=<layerSlug>` (Overview Card) and `?layer=<layerSlug>:<itemSlug>` (Item Card), paired with `?select=layer:<layerSlug>` (with legacy `canon:<slug>` alias support) and unencoded `:` in `stringifyStarmapSearch`.
+  - *Option A (Chosen):* Compound `?layer=<layerSlug>` (Overview Card) and `?layer=<layerSlug>:<itemSlug>` (Item Card), paired with `?select=layer:<layerSlug>` and unencoded `:` in `stringifyStarmapSearch` (with zero legacy `canon:` or `?canon=` shims).
   - *Option B:* Separate `?layer=<layerSlug>` and `?layerItem=<itemSlug>` query parameters.
 - **Decision (Ratified):**
-  - Extend `StarmapSearchParams` with `layer?: string`.
+  - Extend `StarmapSearchParams` with `layer?: string` (and remove legacy `canon?: string`).
   - `?layer=<layerSlug>` renders the **Layer Overview Card** (`data-card-mode="overview"`).
   - `?layer=<layerSlug>:<itemSlug>` renders that **specific item's card** (`data-card-mode="item"`).
-  - Support `layer:<slug>` as the canonical selection token in `?select=` (highlighting all host star systems of that layer on the 3D starfield), while preserving backwards compatibility for `canon:<slug>` and `?canon=<slug>`.
+  - Use `layer:<slug>` exclusively as the layer selection token in `?select=` (highlighting all host star systems of that layer on the 3D starfield).
 
 ### DEC-038: Centralised Orbit-Context View Targeting (`buildEntityOrbitTargetHref`) Across Search, `<LayerCard />`, `<DetailsPanel />` & `<BodiesPanel />`
 - **Date:** 2026-10-20

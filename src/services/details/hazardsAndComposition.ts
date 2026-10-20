@@ -20,7 +20,7 @@ import {
   resolveSystemLayerEntries,
 } from '../../utils/datasetLayerCodec';
 import {
-  buildCanonLayerGalaxyHref,
+  buildLayerGalaxyHref,
   isArtificialSpacecraftEntry,
 } from '../searchService';
 import { resolveLayerItemTargetHref } from '../layerCardService';
@@ -593,12 +593,12 @@ export const resolveFocusedCanonAnnotations = (
     const layerManifest = layersArray.find((l) => l.layerId === item.layerId);
     const itemHref = layerManifest
       ? resolveLayerItemTargetHref(layerManifest, item.entry, corpus).href
-      : buildCanonLayerGalaxyHref(item.layerId);
+      : buildLayerGalaxyHref(item.layerId);
 
     annotations.push({
       layerId: item.layerId,
       layerTitle: item.layerTitle,
-      layerHref: buildCanonLayerGalaxyHref(item.layerId),
+      layerHref: buildLayerGalaxyHref(item.layerId),
       href: itemHref,
       kind: item.kind,
       targetId: item.entry.targetId,
@@ -687,12 +687,12 @@ export const resolveDirectTargetCanonAnnotations = (
       const layerManifest = layersArray.find((l) => l.layerId === item.layerId);
       const itemHref = layerManifest
         ? resolveLayerItemTargetHref(layerManifest, item.entry, corpus).href
-        : buildCanonLayerGalaxyHref(item.layerId);
+        : buildLayerGalaxyHref(item.layerId);
 
       annotations.push({
         layerId: item.layerId,
         layerTitle: item.layerTitle,
-        layerHref: buildCanonLayerGalaxyHref(item.layerId),
+        layerHref: buildLayerGalaxyHref(item.layerId),
         href: itemHref,
         kind: item.kind,
         targetId: item.entry.targetId,

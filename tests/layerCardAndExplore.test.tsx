@@ -78,7 +78,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
       expect(parseLayerQueryParam('overlay-recent-discoveries')).toEqual({
         layerSlug: 'recent-discoveries',
       });
-      expect(parseLayerQueryParam('canon:project-hail-mary')).toEqual({
+      expect(parseLayerQueryParam('layer:project-hail-mary')).toEqual({
         layerSlug: 'project-hail-mary',
       });
     });
@@ -92,7 +92,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
         layerSlug: 'jwst-targets',
         itemSlug: 'trappist-1-e',
       });
-      expect(parseLayerQueryParam('canon:project-hail-mary:tau-ceti')).toEqual({
+      expect(parseLayerQueryParam('layer:project-hail-mary:tau-ceti')).toEqual({
         layerSlug: 'project-hail-mary',
         itemSlug: 'tau-ceti',
       });

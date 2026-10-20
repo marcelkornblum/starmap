@@ -75,13 +75,12 @@ const renderVariationContent = (
       return <span data-testid="result-variation-minor-bodies" />;
 
     case 'layers':
-    case 'fiction':
       return canonTitle ? (
-        <span data-testid="result-variation-fiction">
+        <span data-testid="result-variation-layers">
           {` (${canonTitle})`}
         </span>
       ) : (
-        <span data-testid="result-variation-fiction" />
+        <span data-testid="result-variation-layers" />
       );
   }
 };
@@ -89,7 +88,7 @@ const renderVariationContent = (
 /**
  * Domain Component (`<SearchResultItem>`): accepts a `SearchResultItem` domain record,
  * unpacks its identity, navigation link (`href`), reticle classification (`reticleType`),
- * and category-specific metadata (`stars`, `planets`, `structures`, `minor-bodies`, `fiction`),
+ * and category-specific metadata (`stars`, `planets`, `structures`, `minor-bodies`, `layers`),
  * and renders an unstyled semantic stub (Stage 1).
  */
 export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) => {

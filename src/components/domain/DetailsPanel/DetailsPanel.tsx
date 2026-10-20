@@ -12,7 +12,7 @@ import {
   type SystemSummarySegment,
 } from '../../../services/detailsService';
 import {
-  buildCanonLayerGalaxyHref,
+  buildLayerGalaxyHref,
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
@@ -185,7 +185,7 @@ const renderCanonLayers = (
                   <a
                     href={
                       annotation.layerHref ||
-                      buildCanonLayerGalaxyHref(annotation.layerId)
+                      buildLayerGalaxyHref(annotation.layerId)
                     }
                     data-testid="details-canon-link"
                   >

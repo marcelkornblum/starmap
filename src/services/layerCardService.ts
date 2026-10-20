@@ -89,7 +89,7 @@ export interface ResolveActiveLayerCardInput {
  * - 'recent-discoveries' -> { layerSlug: 'recent-discoveries' }
  * - 'overlay-recent-discoveries' -> { layerSlug: 'recent-discoveries' }
  * - 'recent-discoveries:lhs-1140-b' -> { layerSlug: 'recent-discoveries', itemSlug: 'lhs-1140-b' }
- * - 'canon:project-hail-mary:tau-ceti' -> { layerSlug: 'project-hail-mary', itemSlug: 'tau-ceti' }
+ * - 'layer:project-hail-mary:tau-ceti' -> { layerSlug: 'project-hail-mary', itemSlug: 'tau-ceti' }
  */
 export function parseLayerQueryParam(
   rawLayerParam?: string | null,
@@ -102,8 +102,8 @@ export function parseLayerQueryParam(
     return null;
   }
 
-  // Strip leading 'canon:' or 'layer:' or 'overlay:'
-  const withoutPrefix = trimmed.replace(/^(?:canon|layer|overlay):/i, '');
+  // Strip leading 'layer:' or 'overlay:'
+  const withoutPrefix = trimmed.replace(/^(?:layer|overlay):/i, '');
   const colonIndex = withoutPrefix.indexOf(':');
 
   if (colonIndex === -1) {
@@ -182,7 +182,7 @@ export function resolveLayerItemTargetHref(
     systemId: entry.systemId,
     systemName,
     parentBodyId: entry.parentBodyId,
-    canonLayerId: layer.layerId,
+    layerId: layer.layerId,
     isSolarSystem: entry.systemId === 'sol' || entry.targetId === 'sol',
   });
 
@@ -206,7 +206,6 @@ export function buildLayerCloseHref(
   const parsed = parseLayerQueryParam(layerParam);
 
   params.delete('layer');
-  params.delete('canon');
 
   if (parsed?.layerSlug) {
     const select = params.get('select');
@@ -215,7 +214,7 @@ export function buildLayerCloseHref(
         .split(',')
         .map((t) => t.trim())
         .filter((token) => {
-          const match = /^(?:canon|layer):(.+)$/i.exec(token);
+          const match = /^layer:(.+)$/i.exec(token);
           if (match?.[1]) {
             return toCanonicalLayerSlug(match[1]) !== parsed.layerSlug;
           }

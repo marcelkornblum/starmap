@@ -54,7 +54,7 @@ This living document accumulates **which screens/views and URL paths exist** and
     - `planets`: `Planets, Exoplanets & Moons`
     - `structures`: `Galactic Structures & Deep Sky`
     - `minor-bodies`: `Solar System Minor Bodies`
-    - `layers`: `Curated Layers & Canons` (accepts legacy `fiction` alias)
+    - `layers`: `Curated Layers & Canons`
   - Explore button (`<button type="button" data-testid="search-explore-button">Explore</button>` — picks a random curated layer, excluding the currently open layer if any, and navigates to `/galaxy?select=layer:<layerSlug>&layer=<layerSlug>` to illuminate its host systems and open the `<LayerCard />` overview).
 - **Search Results Panel (`<Search.Results searchViewPath="/search" />`, `data-testid="search-results-panel"`):**
   - **Conditional Visibility:** Hidden completely when the search query is empty (`query.trim().length === 0`).

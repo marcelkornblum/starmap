@@ -384,6 +384,17 @@ describe('Step 2: 36-Bucket Shard Key & Compact 1-Letter Codecs (DEC-004 & DEC-0
     const erosBucket = getShardKey('pha-00433');
     expect(detailsByBucket.get(erosBucket)?.d['pha-00433']).toBeDefined();
 
+    const layerEntries = [
+      {
+        i: 'phm-erid',
+        n: '40 Eridani',
+        k: 7 as const,
+        t: 'layer-entry',
+        w: 'project-hail-mary',
+        c: 'Project Hail Mary',
+      },
+    ];
+
     const indices = buildSearchIndices({
       systems,
       manifests,
@@ -392,11 +403,15 @@ describe('Step 2: 36-Bucket Shard Key & Compact 1-Letter Codecs (DEC-004 & DEC-0
       starAliasesById: new Map([
         ['gaia-2452378776434477184', ['Tau Ceti', 'Tau Cet', 'HD 10700', 'HIP 8102', 'Gl 71', 'GJ 71']],
       ]),
+      layerEntries,
     });
 
     expect(indices.core.d.some((e) => e.i === 'gaia-2452378776434477184')).toBe(true);
     expect(indices.core.d.some((e) => e.i === 'tau-ceti-e')).toBe(true);
     expect(indices.core.d.some((e) => e.i === 'earth' && e.h === 1)).toBe(true);
+    expect(indices.core.d.some((e) => e.i === 'phm-erid')).toBe(true);
+    expect(indices.full.d.some((e) => e.i === 'phm-erid')).toBe(true);
+    expect(indices.layers.d.some((e) => e.i === 'phm-erid')).toBe(true);
     // Minor body Eros is in full and minorBodies shard, not core
     expect(indices.core.d.some((e) => e.i === 'pha-00433')).toBe(false);
     expect(indices.full.d.some((e) => e.i === 'pha-00433')).toBe(true);

@@ -8,7 +8,6 @@ export type SearchShardName =
   | 'planets'
   | 'structures'
   | 'minor-bodies'
-  | 'fiction'
   | 'layers';
 
 const SHARD_URLS: Record<SearchShardName, string> = {
@@ -18,7 +17,6 @@ const SHARD_URLS: Record<SearchShardName, string> = {
   planets: '/data/search/planets.json',
   structures: '/data/search/structures.json',
   'minor-bodies': '/data/search/minor-bodies.json',
-  fiction: '/data/search/fiction.json',
   layers: '/data/search/layers.json',
 };
 
@@ -116,8 +114,7 @@ export const getCachedCorpusForFilter = (
   }
 
   if (filter !== 'all') {
-    const shardName: SearchShardName = filter === 'fiction' ? 'fiction' : (filter as SearchShardName);
-    const shard = resolvedShardCache.get(shardName);
+    const shard = resolvedShardCache.get(filter);
     if (shard) {
       resolvedFilterCache.set(filter, shard);
     }
@@ -154,8 +151,7 @@ export const loadSearchCorpusForFilter = async (
   }
 
   if (filter !== 'all') {
-    const shardName: SearchShardName = filter === 'fiction' ? 'fiction' : (filter as SearchShardName);
-    const shard = await fetchSearchShard(shardName, fetcher);
+    const shard = await fetchSearchShard(filter, fetcher);
     if (fetcher === fetch) {
       resolvedFilterCache.set(filter, shard);
     }

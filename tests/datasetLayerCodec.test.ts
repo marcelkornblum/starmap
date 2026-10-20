@@ -145,7 +145,7 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     expect(empty).toEqual([]);
   });
 
-  it('generates CompactSearchEntry records (k=7 fiction) linked to host systemId (s) so Galactic View highlights the parent star system', () => {
+  it('generates CompactSearchEntry records (k=7 layers) linked to host systemId (s) so Galactic View highlights the parent star system', () => {
     const coordsMap = new Map<string, [number, number, number]>([
       ['gaia-2452378776434477184', [3.156, 1.54, -1.003]],
       ['gaia-3195919528989223040', [1.854, 4.539, -0.992]],

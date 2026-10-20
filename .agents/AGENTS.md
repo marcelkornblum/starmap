@@ -23,6 +23,7 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
 ## Data Layer & Zero-Hardcoding Guardrails
 - **Zero Hardcoded Entity Attributes:** Never hardcode entity names, classifications, compositions, habitability flags, spacecraft lists, or orbital parent relationships inside runtime UI or service layers (`src/`).
 - **Precalculate in the Build-Time Data Pipeline:** Everything displayed in panels (`composition`, `isHabitableCandidate`, `planetCompositionCounts`, `tags` bitmasks, non-default reticle classifications, and `parentBodyId` orbital hierarchy) must be precalculated in the build-time data pipeline (`scripts/build-data.ts` and `src/utils/compactDataCodec.ts`) and read directly from the decoded data structures at runtime.
+- **Zero Backwards-Compatible Shims or Aliases:** Never leave backwards-compatible shims, legacy query parameter aliases, deprecated category keys, duplicate data shard outputs, or fallback `data-testid` / type aliases in the codebase. When a concept, route parameter, category, or API is renamed or unified, perform a clean, complete cutover across all build scripts, runtime code, data shards, and tests.
 
 ---
 

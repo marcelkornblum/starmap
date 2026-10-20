@@ -87,7 +87,7 @@ const systemDetailsFixture: FocusedSystemEntityDetails = {
     {
       layerId: 'hard-scifi',
       layerTitle: 'Hard Sci-Fi Canon',
-      layerHref: '/galaxy?canon=hard-scifi',
+      layerHref: '/galaxy?select=layer:hard-scifi&layer=hard-scifi',
       href: '/galaxy/tau-ceti?select=layer:hard-scifi&layer=hard-scifi:tau-ceti',
       kind: 'fictional-canon',
       targetId: 'tau-ceti',
@@ -158,7 +158,7 @@ const starDetailsFixture: FocusedStarEntityDetails = {
     {
       layerId: 'hard-scifi',
       layerTitle: 'Hard Sci-Fi Canon',
-      layerHref: '/galaxy?canon=hard-scifi',
+      layerHref: '/galaxy?select=layer:hard-scifi&layer=hard-scifi',
       href: '/galaxy/alpha-centauri?select=layer:hard-scifi&layer=hard-scifi:alpha-centauri',
       kind: 'fictional-canon',
       targetId: 'alpha-centauri-a',
@@ -261,7 +261,7 @@ const planetDetailsFixture: FocusedPlanetEntityDetails = {
     {
       layerId: 'hard-scifi',
       layerTitle: 'Hard Sci-Fi Canon',
-      layerHref: '/galaxy?canon=hard-scifi',
+      layerHref: '/galaxy?select=layer:hard-scifi&layer=hard-scifi',
       href: '/system/sol?focus=earth&select=layer:hard-scifi&layer=hard-scifi:earth',
       kind: 'fictional-canon',
       targetId: 'earth',
@@ -321,7 +321,7 @@ const minorBodyDetailsFixture: FocusedMinorBodyEntityDetails = {
     {
       layerId: 'hard-scifi',
       layerTitle: 'Hard Sci-Fi Canon',
-      layerHref: '/galaxy?canon=hard-scifi',
+      layerHref: '/galaxy?select=layer:hard-scifi&layer=hard-scifi',
       href: '/system/sol?focus=ceres&select=layer:hard-scifi&layer=hard-scifi:ceres',
       kind: 'fictional-canon',
       targetId: 'ceres',
@@ -370,7 +370,7 @@ const structureDetailsFixture: FocusedStructureEntityDetails = {
     {
       layerId: 'scientific-overlays',
       layerTitle: 'Astrophysical Overlays',
-      layerHref: '/galaxy?canon=scientific-overlays',
+      layerHref: '/galaxy?select=layer:scientific-overlays&layer=scientific-overlays',
       href: '/galaxy/orion-nebula?select=layer:scientific-overlays&layer=scientific-overlays:orion-nebula',
       kind: 'scientific-overlay',
       targetId: 'orion-nebula',

@@ -30,7 +30,6 @@ export interface StarmapSearchParams {
   searchCategory?: string;
   focus?: string;
   select?: string;
-  canon?: string;
   layer?: string;
   route?: string;
   journeyOption?: string;
@@ -47,7 +46,7 @@ export interface StarmapSearchParams {
 
 /**
  * RFC 3986 §3.4 search string serializer preserving literal `:` and `,` characters
- * for clean `?select=tag:habitable-candidate,canon:project-hail-mary,sol` URLs.
+ * for clean `?select=tag:habitable-candidate,layer:project-hail-mary,sol` URLs.
  */
 export function stringifyStarmapSearch(search: Record<string, unknown>): string {
   return defaultStringifySearch(search)
@@ -77,7 +76,6 @@ export const rootRoute = createRootRoute({
         typeof search.select === 'string' && search.select.length > 0
           ? search.select
           : undefined,
-      canon: typeof search.canon === 'string' && search.canon.length > 0 ? search.canon : undefined,
       layer:
         typeof search.layer === 'string' && search.layer.trim()
           ? search.layer.trim()
