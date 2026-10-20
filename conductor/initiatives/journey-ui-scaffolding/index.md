@@ -22,7 +22,7 @@ The initiative is structured into two distinct stages:
 ## Initiative Artifacts
 - [Decision Log](./decision-log.md) — Central register of options, trade-offs, provisional choices, and ratified decisions. Promoted to `docs/decision-log.md` upon initiative completion.
 - [View Requirements Inventory](./view-requirements.md) — Cross-journey matrix of required on-screen data fields, user triggers, and requirement notes per view. Promoted to `docs/view-requirements.md` upon initiative completion.
-- [Features Scratchpad](./feature-scratchpad.md) — Temporary scratchpad for logging feature ideas and future enhancements for later consideration.
+- [Product Backlog](../../backlog.md) — Authoritative backlog of candidate features and deferred journey capabilities.
 
 ---
 

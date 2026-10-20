@@ -3,6 +3,11 @@
 ## Overview
 This track builds the actual WebGL scenes and rendering pipelines for Starmap. It acts strictly as the execution phase for the aesthetic and interaction rules defined in the `visual-design-exploration` track, utilizing the pre-calculated data from the `data-pipeline` track, and mounting into the global canvas built in the `core-routing-state` track. 
 
+> [!IMPORTANT]
+> **Cross-Track Coupling & Consolidated Camera/Transition Backlog Reference (`FS-003`, `FS-012`, `FS-013`):**
+> - This track is part of the 6-track camera/transition/HUD coupling group: **[Track: Interaction Controls](../interaction-controls_20261010/spec.md)**, **[Track: Minimap & Scene Transitions](../minimap-scene-transitions_20261010/spec.md)**, **[Track: Console UI Shell](../console-ui-shell_20261004/spec.md)**, **[Track: Telemetry Container & Dossiers](../telemetry-container_20261004/spec.md)**, and **[Track: Search & Discovery UI Surfaces](../search-discovery_20261004/spec.md)**.
+> - All six tracks must implement and honour the consolidated camera/transition requirements in **[`FS-012` (Choreographed 3D Camera Transitions, Search Framing & Independent Center/Focus State — absorbing `FS-003` and `FS-013`)](../../backlog.md)** (specifically multi-scale camera glides, 3D-synchronised search framing `FS-003`, and independent camera `center` vs entity `focused` state `FS-013`).
+
 ## Functional Requirements
 1. **High-Performance Rendering:** Implement `InstancedMesh` (or custom `Points` materials) to render massive datasets (e.g., 100k+ stars in the Galaxy view) in a single draw call to maintain a strict 60fps.
 2. **Camera & Navigation:** Extend the `CameraRig` delivered by `3d-component-architecture` with:
