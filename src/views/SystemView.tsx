@@ -65,6 +65,7 @@ const useResolvedSystemDetails = (
   readonly focusedDetails: FocusedEntityDetails | null;
   readonly systemContextDetails: FocusedEntityDetails | null;
   readonly focusedEntity: SpatialEntityDefinition | null;
+  readonly focusedEntityId?: string;
   readonly activeCorpus: readonly CompactSearchEntry[];
   readonly urlSystemSlug: string | null;
   readonly hasExplicitFocus: boolean;
@@ -113,23 +114,7 @@ const useResolvedSystemDetails = (
         })
       : undefined;
 
-  const syntheticDiskEntity: SpatialEntityDefinition | null = matchingDisk
-    ? {
-        id: matchingDisk.id,
-        name: matchingDisk.name,
-        classification: 'terrestrial',
-        position:
-          cachedSystemRecord?.kind === 'system'
-            ? [
-                cachedSystemRecord.record.x,
-                cachedSystemRecord.record.y,
-                cachedSystemRecord.record.z,
-              ]
-            : [0, 0, 0],
-      }
-    : null;
-
-  const focusedEntity = explicitFocusedEntity ?? syntheticDiskEntity;
+  const focusedEntity = explicitFocusedEntity;
   const matchedEntry = focusedEntity
     ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
     : undefined;
@@ -140,7 +125,7 @@ const useResolvedSystemDetails = (
     matchedEntry?.s ??
     urlSystemEntry?.s ??
     urlSystemEntry?.i ??
-    (syntheticDiskEntity ? urlSystemSlug : focusedEntity?.id) ??
+    focusedEntity?.id ??
     urlSystemSlug ??
     '';
 
@@ -159,7 +144,7 @@ const useResolvedSystemDetails = (
       loadSearchCorpusForFilter('all').catch(() => undefined),
       fetchSummaryNode(targetSystemId).catch(() => undefined),
       fetchDetailRecord(targetSystemId).catch(() => undefined),
-      focusedEntity && focusedEntity.id !== targetSystemId && !syntheticDiskEntity
+      focusedEntity && focusedEntity.id !== targetSystemId
         ? fetchDetailRecord(focusedEntity.id).catch(() => undefined)
         : Promise.resolve(undefined),
     ]).then(() => {
@@ -182,18 +167,20 @@ const useResolvedSystemDetails = (
       ? getCachedDetailRecord(focusedEntity.id)
       : undefined,
     urlSystemSlug,
+    urlFocusSlug,
     hasExplicitFocus,
     viewScope: 'system',
     currentPathname: pathname,
     currentSearch: search,
   });
 
-  const focusedDetails = focusedEntity ? systemContextDetails : null;
+  const focusedDetails = (focusedEntity || matchingDisk) ? systemContextDetails : null;
 
   return {
     focusedDetails,
     systemContextDetails,
     focusedEntity,
+    focusedEntityId: focusedEntity?.id ?? matchingDisk?.id,
     activeCorpus,
     urlSystemSlug,
     hasExplicitFocus,
@@ -210,6 +197,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     focusedDetails,
     systemContextDetails,
     focusedEntity,
+    focusedEntityId,
     activeCorpus,
     urlSystemSlug,
   } = useResolvedSystemDetails(props, true);
@@ -241,7 +229,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     details: systemContextDetails,
     corpus: activeCorpus,
     selectedEntityIds,
-    focusedEntityId: focusedEntity?.id,
+    focusedEntityId,
   });
 
   const orbitalSchematic = buildSystemOrbitalSchematic(

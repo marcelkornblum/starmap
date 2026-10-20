@@ -1221,7 +1221,7 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
     });
 
     describe('Integration: SystemView mounts belt inspector from URL focus slug', () => {
-      it('resolves synthetic SpatialEntityDefinition when URL has belt focus parameter', async () => {
+      it('resolves belt inspector from URL focus slug directly', async () => {
         clearDetailsRepositoryCache();
         const compactSol = encodeSystemManifest({
           id: 'sol',
@@ -1286,6 +1286,93 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
         expect(html).toContain('data-testid="details-disk-telemetry-section"');
         expect(html).toContain('Circumstellar Disk Telemetry');
         expect(html).toContain('Carbonaceous, silicate, and metallic planetesimals');
+      });
+    });
+
+    describe('Track 02 Architectural Fixes: Submodule Decomposition, Live Aperture Frame & Clean URL Focus', () => {
+      it('resolves belt details directly through urlFocusSlug without synthetic entity workaround', () => {
+        const details = buildFocusedEntityDetails({
+          focusedEntity: null,
+          urlSystemSlug: 'sol',
+          urlFocusSlug: 'asteroid-belt',
+          systemDetail: {
+            kind: 'system',
+            record: {
+              id: 'sol',
+              name: 'Sol',
+              x: 0,
+              y: 0,
+              z: 0,
+              dist: 0,
+              sectorId: 'sector_+000_+000_+000',
+              stars: [
+                {
+                  id: 'sol',
+                  name: 'Sol',
+                  componentDesignation: 'A',
+                  spectralType: 'G2V',
+                  mag: -26.74,
+                  absmag: 4.83,
+                },
+              ],
+              planets: [],
+              disks: SAMPLE_DISKS,
+            },
+          },
+        });
+
+        expect(details).not.toBeNull();
+        expect(details!.focusedKind).toBe('belt');
+        const belt = details as FocusedBeltEntityDetails;
+        expect(belt.id).toBe('sol-asteroid-belt');
+        expect(belt.name).toBe('Asteroid Belt');
+        expect(belt.diskTelemetry.classification).toBe('asteroid-belt');
+        expect(belt.centerHref).toBe('/system/sol?center=sol-asteroid-belt&focus=sol-asteroid-belt');
+      });
+
+      it('extractGalaxyBodies reuses precomputed aperture directly', () => {
+        const liveAperture = resolveGalacticInstrumentAperture({
+          cameraState: { dist: 100, zoom: 2 },
+          corpus: SAMPLE_CORPUS,
+        });
+
+        const summary = extractGalaxyBodies({
+          corpus: SAMPLE_CORPUS,
+          aperture: liveAperture,
+        });
+
+        expect(summary.apertureRadiusPc).toBe(liveAperture.apertureRadiusPc);
+        expect(summary.centerCoordinatesPc).toEqual(liveAperture.centerCoordinatesPc);
+      });
+
+      it('manages live aperture frame in SpatialEntityStore with shallow equality', () => {
+        const store = createSpatialEntityStore();
+        expect(store.getState().apertureRadius).toBeNull();
+        expect(store.getState().apertureCenter).toBeNull();
+
+        store.getState().setApertureFrame([10, 20, 30], 45.5);
+        expect(store.getState().apertureRadius).toBe(45.5);
+        expect(store.getState().apertureCenter).toEqual([10, 20, 30]);
+
+        // Verify shallow equality does not trigger state reference change
+        const prevState = store.getState();
+        store.getState().setApertureFrame([10, 20, 30], 45.5);
+        expect(store.getState()).toBe(prevState);
+
+        // Verify updating radius changes state
+        store.getState().setApertureFrame([10, 20, 30], 50.0);
+        expect(store.getState().apertureRadius).toBe(50.0);
+      });
+
+      it('resolveGalacticInstrumentAperture respects live aperture center and radius overrides', () => {
+        const aperture = resolveGalacticInstrumentAperture({
+          corpus: SAMPLE_CORPUS,
+          liveApertureCenterPc: [5, 15, 25],
+          liveApertureRadiusPc: 42.18,
+        });
+
+        expect(aperture.centerCoordinatesPc).toEqual([5, 15, 25]);
+        expect(aperture.apertureRadiusPc).toBe(42.18);
       });
     });
   });

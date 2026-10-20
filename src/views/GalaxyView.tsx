@@ -180,6 +180,9 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
       : null;
   }, [cameraState.center, storeApi, activeCorpus]);
 
+  const liveApertureRadius = useSpatialEntityStore((state) => state.apertureRadius);
+  const liveApertureCenter = useSpatialEntityStore((state) => state.apertureCenter);
+
   const instrumentAperture = useMemo(
     () =>
       resolveGalacticInstrumentAperture({
@@ -188,8 +191,18 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
         focusedEntity,
         centerEntity,
         urlSystemSlug,
+        liveApertureCenterPc: liveApertureCenter,
+        liveApertureRadiusPc: liveApertureRadius,
       }),
-    [cameraState, activeCorpus, focusedEntity, centerEntity, urlSystemSlug],
+    [
+      cameraState,
+      activeCorpus,
+      focusedEntity,
+      centerEntity,
+      urlSystemSlug,
+      liveApertureCenter,
+      liveApertureRadius,
+    ],
   );
 
   useEffect(() => {
@@ -202,23 +215,23 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
         corpus: activeCorpus,
         focusedEntity,
         selectedEntities,
-        hoveredEntityId: hoveredId,
         cameraState,
         centerEntity,
         urlSystemSlug,
         hasExplicitFocus,
         currentSearch: search,
+        aperture: instrumentAperture,
       }),
     [
       activeCorpus,
       focusedEntity,
       selectedEntities,
-      hoveredId,
       cameraState,
       centerEntity,
       urlSystemSlug,
       hasExplicitFocus,
       search,
+      instrumentAperture,
     ],
   );
 
