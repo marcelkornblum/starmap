@@ -1237,7 +1237,33 @@ export const findFocusedEntryInCorpus = (
     }
   }
 
-  return nonStarMatch;
+  if (nonStarMatch) {
+    return nonStarMatch;
+  }
+
+  // Second pass: match parenthetical display-title segments (e.g. 'Ran (Epsilon Eridani)' -> 'epsilon-eridani',
+  // 'e Eridani (82 G. Eridani)' -> '82-g-eridani')
+  let segmentNonStarMatch: CompactSearchEntry | undefined;
+  for (const entry of corpus) {
+    const displayTitle = resolveResultDisplayTitle(entry);
+    if (!displayTitle.includes('(')) {
+      continue;
+    }
+    const segments = displayTitle
+      .split(/[()]/)
+      .map((s) => toUrlSlug(s))
+      .filter((s) => s.length > 0);
+    if (segments.includes(targetSlug)) {
+      if (resolveEntryCategory(entry) === 'stars') {
+        return entry;
+      }
+      if (!segmentNonStarMatch) {
+        segmentNonStarMatch = entry;
+      }
+    }
+  }
+
+  return segmentNonStarMatch;
 };
 
 /**

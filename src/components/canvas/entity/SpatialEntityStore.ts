@@ -18,6 +18,8 @@ export interface SpatialEntityState {
   focusedId: string | null;
   focusedIds: Set<string>;
   apertureIds: Set<string>;
+  apertureRadius: number | null;
+  apertureCenter: readonly [number, number, number] | null;
 
   registerEntity: (entity: SpatialEntityDefinition) => void;
   unregisterEntity: (id: string) => void;
@@ -29,6 +31,7 @@ export interface SpatialEntityState {
   setFocusedIds: (ids: Iterable<string>) => void;
   setEntityInAperture: (id: string, inAperture: boolean) => void;
   setApertureIds: (ids: Set<string>) => void;
+  setApertureFrame: (center: readonly [number, number, number] | null, radius: number | null) => void;
   getEntityState: (id: string) => CelestialInteractionState;
   getEntitiesInAperture: (center: THREE.Vector3, radius: number) => SpatialEntityDefinition[];
   getEntitiesByState: (state: CelestialInteractionState) => SpatialEntityDefinition[];
@@ -41,6 +44,8 @@ export const createSpatialEntityStore = (initial?: {
   focusedIds?: Iterable<string>;
   hoveredId?: string | null;
   apertureIds?: Set<string>;
+  apertureRadius?: number | null;
+  apertureCenter?: readonly [number, number, number] | null;
 }) => {
   const initialSelectedSet = new Set<string>(
     initial?.selectedIds ?? (initial?.selectedId ? [initial.selectedId] : []),
@@ -66,6 +71,8 @@ export const createSpatialEntityStore = (initial?: {
     focusedId: initialFocusedId,
     focusedIds: initialFocusedSet,
     apertureIds: initial?.apertureIds ?? new Set<string>(),
+    apertureRadius: initial?.apertureRadius ?? null,
+    apertureCenter: initial?.apertureCenter ?? null,
 
     registerEntity: (entity) => {
       set((state) => {
@@ -196,6 +203,21 @@ export const createSpatialEntityStore = (initial?: {
     },
 
     setApertureIds: (apertureIds) => set({ apertureIds }),
+
+    setApertureFrame: (center, radius) =>
+      set((state) => {
+        const centerMatch =
+          (!state.apertureCenter && !center) ||
+          (state.apertureCenter !== null &&
+            center !== null &&
+            state.apertureCenter[0] === center[0] &&
+            state.apertureCenter[1] === center[1] &&
+            state.apertureCenter[2] === center[2]);
+        if (state.apertureRadius === radius && centerMatch) {
+          return state;
+        }
+        return { apertureCenter: center, apertureRadius: radius };
+      }),
 
     getEntityState: (id) => deriveEntityTier(id, get()),
 

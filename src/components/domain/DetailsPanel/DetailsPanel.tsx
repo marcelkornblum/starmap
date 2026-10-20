@@ -3,6 +3,7 @@ import {
   buildSystemElementFocusHref,
   type EntityHazardItem,
   type FocusedCanonAnnotation,
+  type FocusedDiskDetail,
   type FocusedEntityDetails,
   type FocusedPlanetDetail,
   type FocusedStarDetail,
@@ -205,18 +206,19 @@ const renderOrbitingBodies = (
   orbitingBodies?: readonly SystemElementBodyItem[],
 ): ReactNode => {
   if (
-    (focusedKind !== 'planet' && focusedKind !== 'minor-body') ||
+    (focusedKind !== 'planet' && focusedKind !== 'minor-body' && focusedKind !== 'belt') ||
     !orbitingBodies ||
     orbitingBodies.length === 0
   ) {
     return null;
   }
+  const heading = focusedKind === 'belt' ? 'Resident Bodies' : 'Orbiting Bodies';
   return (
     <section
       aria-labelledby="details-orbiting-bodies-heading"
       data-testid="details-orbiting-bodies-section"
     >
-      <h4 id="details-orbiting-bodies-heading">Orbiting Bodies</h4>
+      <h4 id="details-orbiting-bodies-heading">{heading}</h4>
       <ul data-testid="details-orbiting-bodies-list">
         {orbitingBodies.map((body) => (
           <li
@@ -497,6 +499,89 @@ const renderPlanets = (
   );
 };
 
+const renderDisks = (
+  disks: readonly FocusedDiskDetail[] | undefined,
+  systemNameOrId: string,
+): ReactNode => {
+  if (!disks || disks.length === 0) {
+    return null;
+  }
+  return (
+    <section
+      aria-labelledby="details-disks-heading"
+      data-testid="details-disks-section"
+    >
+      <h4 id="details-disks-heading">Circumstellar Belts & Disks</h4>
+      <ul data-testid="details-disks-list">
+        {disks.map((disk) => (
+          <li
+            key={disk.id}
+            data-testid="details-disk-item"
+            data-disk-id={disk.id}
+            data-kind={disk.kind}
+          >
+            <a
+              href={
+                disk.href ??
+                buildSystemElementFocusHref(
+                  systemNameOrId,
+                  disk.name || disk.id,
+                )
+              }
+              data-testid="details-disk-name-link"
+            >
+              {disk.name}
+            </a>{' '}
+            <Badge
+              status={
+                disk.kind === 'asteroid-belt'
+                  ? 'caution'
+                  : disk.kind === 'kuiper-belt'
+                    ? 'info'
+                    : 'neutral'
+              }
+            >
+              {disk.kindLabel}
+            </Badge>
+            {' · '}
+            <Quantity
+              value={`${disk.innerRadiusAu}–${disk.outerRadiusAu}`}
+              unit={
+                <Unit>
+                  <a
+                    href={disk.guideHref}
+                    data-testid="details-disk-unit-link"
+                  >
+                    AU
+                  </a>
+                </Unit>
+              }
+            />
+            {disk.tempK !== undefined ? (
+              <>
+                {' · '}
+                <Quantity
+                  value={disk.tempK}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('equilibrium-temperature', disk.id)}
+                        data-testid="details-disk-temp-link"
+                      >
+                        K
+                      </a>
+                    </Unit>
+                  }
+                />
+              </>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
 /**
  * Domain Component (`<DetailsPanel>`): accepts a single `FocusedEntityDetails | null`
  * domain property (`details`), returns `null` when nothing is focused, and decomposes
@@ -526,6 +611,7 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
     systemDetailsHref,
     starTelemetry,
     planetTelemetry,
+    diskTelemetry,
     minorBodyTelemetry,
     structureTelemetry,
     stars,
@@ -741,6 +827,55 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
             <Badge status="info">{structureTelemetry.structureType}</Badge>
           </p>
         ) : null}
+        {diskTelemetry ? (
+          <p data-testid="details-focused-entity-peek">
+            <Badge
+              status={
+                diskTelemetry.classification === 'asteroid-belt'
+                  ? 'caution'
+                  : diskTelemetry.classification === 'kuiper-belt'
+                    ? 'info'
+                    : 'neutral'
+              }
+            >
+              {diskTelemetry.classificationLabel}
+            </Badge>
+            {' · '}
+            <Quantity
+              value={`${diskTelemetry.innerRadiusAu}–${diskTelemetry.outerRadiusAu}`}
+              unit={
+                <Unit>
+                  <a
+                    href={buildMetricGuideHref('semi-major-axis', id)}
+                    data-testid="details-metric-unit-link"
+                  >
+                    AU
+                  </a>
+                </Unit>
+              }
+            />
+            {diskTelemetry.tempK !== undefined ? (
+              <>
+                {' · '}
+                <Quantity
+                  value={diskTelemetry.tempK}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('equilibrium-temperature', id)}
+                        data-testid="details-metric-unit-link"
+                      >
+                        K
+                      </a>
+                    </Unit>
+                  }
+                />
+              </>
+            ) : null}
+            {' · '}
+            {hazardSummaryBadge}
+          </p>
+        ) : null}
         {isSystemFocus ? (
           <p data-testid="details-planet-composition">
             {renderPlanetComposition(
@@ -789,6 +924,7 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
       {renderOrbitingBodies(focusedKind, orbitingBodies)}
       {isSystemFocus ? renderStars(stars, systemName || systemId) : null}
       {isSystemFocus ? renderPlanets(planets, systemName || systemId) : null}
+      {isSystemFocus ? renderDisks(details.disks, systemName || systemId) : null}
     </>
   );
 
@@ -1147,6 +1283,91 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
                   </dd>
                 </>
               ) : null}
+            </dl>
+          </section>
+        ) : null}
+        {diskTelemetry ? (
+          <section
+            aria-labelledby="details-disk-telemetry-heading"
+            data-testid="details-disk-telemetry-section"
+          >
+            <h4 id="details-disk-telemetry-heading">
+              Circumstellar Disk Telemetry
+            </h4>
+            <dl data-testid="details-disk-telemetry-list">
+              <dt>Classification</dt>
+              <dd data-testid="details-disk-telemetry-classification">
+                <Badge
+                  status={
+                    diskTelemetry.classification === 'asteroid-belt'
+                      ? 'caution'
+                      : diskTelemetry.classification === 'kuiper-belt'
+                        ? 'info'
+                        : 'neutral'
+                  }
+                >
+                  {diskTelemetry.classificationLabel}
+                </Badge>
+              </dd>
+              <dt>Radial Span</dt>
+              <dd data-testid="details-disk-telemetry-span">
+                <Quantity
+                  value={`${diskTelemetry.innerRadiusAu}–${diskTelemetry.outerRadiusAu}`}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('semi-major-axis', id)}
+                        data-testid="details-metric-unit-link"
+                      >
+                        AU
+                      </a>
+                    </Unit>
+                  }
+                />
+              </dd>
+              <dt>Midpoint Radius</dt>
+              <dd data-testid="details-disk-telemetry-midpoint">
+                <Quantity
+                  value={diskTelemetry.semiMajorAxisAu}
+                  unit={
+                    <Unit>
+                      <a
+                        href={buildMetricGuideHref('semi-major-axis', id)}
+                        data-testid="details-metric-unit-link"
+                      >
+                        AU
+                      </a>
+                    </Unit>
+                  }
+                />
+              </dd>
+              {diskTelemetry.tempK !== undefined ? (
+                <>
+                  <dt>Estimated Temp</dt>
+                  <dd data-testid="details-disk-telemetry-temp">
+                    <Quantity
+                      value={diskTelemetry.tempK}
+                      unit={
+                        <Unit>
+                          <a
+                            href={buildMetricGuideHref(
+                              'equilibrium-temperature',
+                              id,
+                            )}
+                            data-testid="details-metric-unit-link"
+                          >
+                            K
+                          </a>
+                        </Unit>
+                      }
+                    />
+                  </dd>
+                </>
+              ) : null}
+              <dt>Composition</dt>
+              <dd data-testid="details-disk-telemetry-composition">
+                {diskTelemetry.composition}
+              </dd>
             </dl>
           </section>
         ) : null}

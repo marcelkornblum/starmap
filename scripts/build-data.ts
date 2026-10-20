@@ -13,6 +13,7 @@ import type {
   GalacticStructureRecord,
   SolarSystemBodyRecord,
   KinematicVector,
+  CircumstellarDiskRecord,
 } from '../src/types/astro';
 import {
   equatorialToCartesian,
@@ -52,6 +53,7 @@ import {
   AAVSO_VARIABLE_CATALOG,
   FULL_GALACTIC_STRUCTURES,
   FULL_SOLAR_SYSTEM_BODIES,
+  CIRCUMSTELLAR_DISKS_CATALOG,
 } from './fetch-sources';
 
 const DEG2RAD = Math.PI / 180;
@@ -868,6 +870,85 @@ export function matchExoplanetsForStar(
   return Array.from(mergedByLetter.values());
 }
 
+const DISK_HOST_ALIASES: Record<string, string[]> = {
+  'Sol': ['sol', 'sun', 'solar system'],
+  'Epsilon Eridani': ['epsilon eridani', 'eps eri', 'ran', 'hd 22049', 'hd22049', 'hip 16537', 'hip16537', 'gl 144', 'gliese 144', 'gl144'],
+  'Tau Ceti': ['tau ceti', 'tau cet', 'hd 10700', 'hd10700', 'hip 8102', 'hip8102', 'gl 71', 'gliese 71', 'gl71'],
+  '82 G. Eridani': ['82 g. eridani', '82 g eridani', '82 eridani', 'hd 20794', 'hd20794', 'hip 15510', 'hip15510', 'gl 139', 'gliese 139', 'gl139', 'e eridani', 'e eri'],
+  'Fomalhaut': ['fomalhaut', 'alpha piscis austrini', 'alp psa', 'hd 216956', 'hd216956', 'hip 113368', 'hip113368', 'gl 881', 'gliese 881', 'gl881'],
+  'Vega': ['vega', 'alpha lyrae', 'alp lyr', 'hd 172167', 'hd172167', 'hip 91262', 'hip91262', 'gl 721', 'gliese 721', 'gl721'],
+  'Beta Pictoris': ['beta pictoris', 'bet pic', 'hd 39060', 'hd39060', 'hip 27321', 'hip27321', 'gl 219', 'gliese 219', 'gl219'],
+  'HR 8799': ['hr 8799', 'hr8799', 'hd 218396', 'hd218396', 'hip 114189', 'hip114189'],
+  'Proxima Centauri': ['proxima centauri', 'proxima', 'alpha centauri c', 'hip 70890', 'hip70890', 'gl 551', 'gliese 551', 'gl551', 'v645 centauri'],
+  'Sirius': ['sirius', 'sirius a', 'alpha canis majoris', 'alp cma', 'hd 48915', 'hd48915', 'hip 32349', 'hip32349', 'gl 244', 'gliese 244', 'gl244'],
+  'Procyon': ['procyon', 'procyon a', 'alpha canis minoris', 'alp cmi', 'hd 61421', 'hd61421', 'hip 37279', 'hip37279', 'gl 280', 'gliese 280', 'gl280'],
+  'Pollux': ['pollux', 'beta geminorum', 'bet gem', 'hd 62509', 'hd62509', 'hip 37826', 'hip37826', 'gl 286', 'gliese 286', 'gl286'],
+};
+
+let diskLookupMapCache: Map<string, CircumstellarDiskRecord[]> | null = null;
+
+function getDiskLookupMap(): Map<string, CircumstellarDiskRecord[]> {
+  if (diskLookupMapCache) return diskLookupMapCache;
+  diskLookupMapCache = new Map();
+  for (const [starName, disks] of Object.entries(CIRCUMSTELLAR_DISKS_CATALOG)) {
+    const rawKeys: string[] = [starName, ...(DISK_HOST_ALIASES[starName] ?? [])];
+    for (const raw of rawKeys) {
+      const lower = raw.toLowerCase();
+      const stripped = lower.replace(/[^a-z0-9]/g, '');
+      diskLookupMapCache.set(lower, disks as CircumstellarDiskRecord[]);
+      diskLookupMapCache.set(stripped, disks as CircumstellarDiskRecord[]);
+    }
+  }
+  return diskLookupMapCache;
+}
+
+/**
+ * Cross-matches a star against the authoritative circumstellar disks and belts catalog.
+ */
+export function matchCircumstellarDisksForStar(
+  star: StarmapNode & { aliases?: string[] },
+): CircumstellarDiskRecord[] {
+  const map = getDiskLookupMap();
+  const candidateKeys = new Set<string>(collectStarLookupKeys(star));
+
+  if (star.aliases) {
+    for (const alias of star.aliases) {
+      candidateKeys.add(alias.toLowerCase());
+      candidateKeys.add(alias.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    }
+  }
+  if (star.properName) {
+    candidateKeys.add(star.properName.toLowerCase());
+    candidateKeys.add(star.properName.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  }
+  if (star.name) {
+    candidateKeys.add(star.name.toLowerCase());
+    candidateKeys.add(star.name.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  }
+  if (star.hd) {
+    candidateKeys.add(`hd ${star.hd}`.toLowerCase());
+    candidateKeys.add(`hd${star.hd}`.toLowerCase());
+  }
+  if (star.hip) {
+    candidateKeys.add(`hip ${star.hip}`.toLowerCase());
+    candidateKeys.add(`hip${star.hip}`.toLowerCase());
+  }
+  if (star.gl) {
+    for (const variant of expandGlieseVariants(star.gl)) {
+      candidateKeys.add(variant.toLowerCase());
+      candidateKeys.add(variant.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    }
+  }
+
+  for (const key of candidateKeys) {
+    const matched = map.get(key);
+    if (matched && matched.length > 0) {
+      return matched;
+    }
+  }
+  return [];
+}
+
 /**
  * Evaluates whether an exoplanetary system contains a plausible habitable zone candidate.
  */
@@ -1050,6 +1131,7 @@ export function buildSolSystemManifest(
       'HabitableCandidate',
       'HabitableHost',
     ],
+    disks: CIRCUMSTELLAR_DISKS_CATALOG['Sol'],
   };
 }
 
@@ -1648,6 +1730,7 @@ export async function buildCsvDataPipeline(
         }
 
         const matchedPlanets = matchExoplanetsForStar(node, exoplanetHostMap);
+        const matchedDisks = matchCircumstellarDisksForStar(node);
         if (matchedPlanets.length > 0) {
           exoplanetSystemCount++;
           totalExoplanetsAttached += matchedPlanets.length;
@@ -1676,7 +1759,7 @@ export async function buildCsvDataPipeline(
             bucket.push(summary);
           }
 
-          if (options?.systemsDir && (matchedPlanets.length > 0 || node.name === 'Sol')) {
+          if (options?.systemsDir && (matchedPlanets.length > 0 || matchedDisks.length > 0 || node.name === 'Sol')) {
             const sectorId = summary.sectorId;
             let manifestBucket = sectorManifestsMap.get(sectorId);
             if (!manifestBucket) {
@@ -1719,6 +1802,7 @@ export async function buildCsvDataPipeline(
                   },
                 ],
                 planets: enriched,
+                ...(matchedDisks.length > 0 ? { disks: matchedDisks } : {}),
                 planetCompositionCounts: summary.planetCompositionCounts,
                 hasHabitableCandidate: summary.hasHabitableCandidate,
                 tags: summary.tags,
@@ -2252,6 +2336,7 @@ export async function buildGaiaDataPipeline(
       const matchedPlanets = enrichPlanetsWithPrecalculatedFields(
         matchExoplanetsForStar(lookupInput, exoplanetHostMap),
       );
+      const matchedDisks = matchCircumstellarDisksForStar(lookupInput);
       if (matchedPlanets.length > 0) {
         totalExoplanets += matchedPlanets.length;
       }
@@ -2331,10 +2416,10 @@ export async function buildGaiaDataPipeline(
       }
       bucket.push(summary);
 
-      // Add to detailed system manifest if exoplanets or bright
+      // Add to detailed system manifest if exoplanets, disks, or bright
       if (
         (options?.systemsDir || options?.detailsDir || options?.searchDir) &&
-        (matchedPlanets.length > 0 || mag <= 4.0)
+        (matchedPlanets.length > 0 || matchedDisks.length > 0 || mag <= 4.0)
       ) {
         let manifestBucket = sectorManifestsMap.get(sectorId);
         if (!manifestBucket) {
@@ -2368,6 +2453,7 @@ export async function buildGaiaDataPipeline(
             },
           ],
           planets: matchedPlanets,
+          ...(matchedDisks.length > 0 ? { disks: matchedDisks } : {}),
           planetCompositionCounts,
           hasHabitableCandidate,
           ...(tags.length > 0 ? { tags } : {}),
@@ -2532,6 +2618,7 @@ export async function buildGaiaDataPipeline(
         const matchedPlanets = enrichPlanetsWithPrecalculatedFields(
           matchExoplanetsForStar(reconsLookup, exoplanetHostMap),
         );
+        const matchedDisks = matchCircumstellarDisksForStar(reconsLookup);
         if (matchedPlanets.length > 0) {
           totalExoplanets += matchedPlanets.length;
         }
@@ -2612,6 +2699,7 @@ export async function buildGaiaDataPipeline(
               },
             ],
             planets: matchedPlanets,
+            ...(matchedDisks.length > 0 ? { disks: matchedDisks } : {}),
             planetCompositionCounts,
             hasHabitableCandidate,
             ...(rTags.length > 0 ? { tags: rTags } : {}),

@@ -4,6 +4,7 @@ import {
   useSpatialEntityStoreApi,
 } from '../components/canvas/entity/SpatialEntityContext';
 import {
+  BodiesPanel,
   Breadcrumbs,
   CanvasLayer,
   ControlBar,
@@ -25,17 +26,23 @@ import {
   getCachedDetailRecord,
   getCachedSummaryNode,
 } from '../data/detailsRepository';
-import { getCachedCorpusForFilter } from '../data/searchRepository';
+import {
+  getCachedCorpusForFilter,
+  loadSearchCorpusForFilter,
+} from '../data/searchRepository';
 import {
   buildFocusedEntityDetails,
   buildFocusedPreviewSummary,
   buildGalaxyMinimapOrientation,
+  extractGalaxyBodies,
   extractUrlSceneCameraState,
+  resolveGalacticInstrumentAperture,
 } from '../services/detailsService';
 import {
   extractUrlSystemSlug,
   findFocusedEntryInCorpus,
   hasExplicitFocusParam,
+  resolveFocusedEntityFromCorpus,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 
@@ -67,6 +74,7 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
   useSpatialEntityStore((state) => state.entities);
   useSpatialEntityStore((state) => state.focusedId);
   useSpatialEntityStore((state) => state.selectedId);
+  const hoveredId = useSpatialEntityStore((state) => state.hoveredId);
 
   const [, setShardTick] = useState<number>(0);
 
@@ -83,7 +91,8 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
   const focusedEntity =
     storeApi.getState().getEntitiesByState('focused')[0] ?? null;
   const selectedEntities = storeApi.getState().getEntitiesByState('selected');
-  const activeCorpus = initialCorpus ?? getCachedCorpusForFilter('all') ?? [];
+  const cachedAllCorpus = getCachedCorpusForFilter('all');
+  const activeCorpus = initialCorpus ?? cachedAllCorpus ?? [];
   const matchedEntry = focusedEntity
     ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
     : undefined;
@@ -96,6 +105,23 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
     urlSystemEntry?.i ??
     focusedEntity?.id ??
     '';
+
+  useEffect(() => {
+    if (initialCorpus || cachedAllCorpus || typeof window === 'undefined') {
+      return;
+    }
+    let cancelled = false;
+    void loadSearchCorpusForFilter('all')
+      .then(() => {
+        if (!cancelled) {
+          setShardTick((n) => n + 1);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCorpus, cachedAllCorpus]);
 
   useEffect(() => {
     if (!focusedEntity || initialCorpus || typeof window === 'undefined') {
@@ -141,9 +167,73 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
   );
 
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
-  const centerEntity = cameraState.center
-    ? (storeApi.getState().entities[cameraState.center] ?? null)
-    : null;
+  const centerEntity = useMemo(() => {
+    if (!cameraState.center) {
+      return null;
+    }
+    const inStore = storeApi.getState().entities[cameraState.center];
+    if (inStore) {
+      return inStore;
+    }
+    return activeCorpus.length > 0
+      ? resolveFocusedEntityFromCorpus(cameraState.center, activeCorpus)
+      : null;
+  }, [cameraState.center, storeApi, activeCorpus]);
+
+  const liveApertureRadius = useSpatialEntityStore((state) => state.apertureRadius);
+  const liveApertureCenter = useSpatialEntityStore((state) => state.apertureCenter);
+
+  const instrumentAperture = useMemo(
+    () =>
+      resolveGalacticInstrumentAperture({
+        cameraState,
+        corpus: activeCorpus,
+        focusedEntity,
+        centerEntity,
+        urlSystemSlug,
+        liveApertureCenterPc: liveApertureCenter,
+        liveApertureRadiusPc: liveApertureRadius,
+      }),
+    [
+      cameraState,
+      activeCorpus,
+      focusedEntity,
+      centerEntity,
+      urlSystemSlug,
+      liveApertureCenter,
+      liveApertureRadius,
+    ],
+  );
+
+  useEffect(() => {
+    storeApi.getState().setApertureIds(instrumentAperture.apertureIds);
+  }, [storeApi, instrumentAperture.apertureIds]);
+
+  const galaxyBodies = useMemo(
+    () =>
+      extractGalaxyBodies({
+        corpus: activeCorpus,
+        focusedEntity,
+        selectedEntities,
+        cameraState,
+        centerEntity,
+        urlSystemSlug,
+        hasExplicitFocus,
+        currentSearch: search,
+        aperture: instrumentAperture,
+      }),
+    [
+      activeCorpus,
+      focusedEntity,
+      selectedEntities,
+      cameraState,
+      centerEntity,
+      urlSystemSlug,
+      hasExplicitFocus,
+      search,
+      instrumentAperture,
+    ],
+  );
 
   const minimapOrientation = useMemo(
     () =>
@@ -179,6 +269,11 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
       )}
       <PreviewPanel preview={focusedPreview} />
       <Minimap orientation={minimapOrientation} />
+      <BodiesPanel
+        elements={galaxyBodies}
+        hoveredEntityId={hoveredId}
+        onHoverEntity={(id) => storeApi.getState().setHovered(id)}
+      />
     </>
   );
 };

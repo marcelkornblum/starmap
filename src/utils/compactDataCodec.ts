@@ -9,6 +9,8 @@ import type {
   GalacticStructureRecord,
   SolarSystemBodyRecord,
   SectorPartitionManifest,
+  CircumstellarDiskKind,
+  CircumstellarDiskRecord,
 } from '../types/astro';
 import {
   classifyPlanetPhysical,
@@ -469,6 +471,66 @@ export interface CompactExoplanet {
   f?: number;
 }
 
+export const DISK_KIND_TO_CODE: Record<CircumstellarDiskKind, 1 | 2 | 3> = {
+  'asteroid-belt': 1,
+  'kuiper-belt': 2,
+  'debris-disk': 3,
+};
+
+export const CODE_TO_DISK_KIND: Record<number, CircumstellarDiskKind> = {
+  1: 'asteroid-belt',
+  2: 'kuiper-belt',
+  3: 'debris-disk',
+};
+
+export interface CompactCircumstellarDisk {
+  i: string;
+  n: string;
+  k: 1 | 2 | 3;
+  a: [innerRadiusAu: number, outerRadiusAu: number, semiMajorAxisAu: number];
+  T?: number;
+  c: string;
+  C?: 2 | 3 | 4;
+}
+
+export function encodeCircumstellarDisk(disk: CircumstellarDiskRecord): CompactCircumstellarDisk {
+  const compact: CompactCircumstellarDisk = {
+    i: disk.id,
+    n: disk.name,
+    k: DISK_KIND_TO_CODE[disk.kind] ?? 3,
+    a: [disk.innerRadiusAu, disk.outerRadiusAu, disk.semiMajorAxisAu],
+    c: disk.composition,
+  };
+  if (disk.tempK !== undefined) {
+    compact.T = disk.tempK;
+  }
+  if (disk.confidence && disk.confidence !== 'confirmed') {
+    const code = CONFIDENCE_TO_CODE[disk.confidence];
+    if (code !== 1) {
+      compact.C = code as 2 | 3 | 4;
+    }
+  }
+  return compact;
+}
+
+export function decodeCircumstellarDisk(compact: CompactCircumstellarDisk): CircumstellarDiskRecord {
+  const [innerRadiusAu, outerRadiusAu, semiMajorAxisAu] = compact.a;
+  const result: CircumstellarDiskRecord = {
+    id: compact.i,
+    name: compact.n,
+    kind: CODE_TO_DISK_KIND[compact.k] ?? 'debris-disk',
+    innerRadiusAu,
+    outerRadiusAu,
+    semiMajorAxisAu,
+    composition: compact.c,
+    confidence: compact.C ? (CODE_TO_CONFIDENCE[compact.C] ?? 'confirmed') : 'confirmed',
+  };
+  if (compact.T !== undefined) {
+    result.tempK = compact.T;
+  }
+  return result;
+}
+
 export interface CompactSystemManifest {
   t?: 'sys';
   i?: string;
@@ -479,6 +541,7 @@ export interface CompactSystemManifest {
   q?: string;
   S: CompactStellarComponent[];
   E: CompactExoplanet[];
+  D?: CompactCircumstellarDisk[];
   b?: [number, number, number, number] | [number, number, number];
   h?: 1;
   g?: number;
@@ -687,6 +750,9 @@ export function encodeSystemManifest(
   if (sys.hazardMask && sys.hazardMask > 0) {
     compact.H = sys.hazardMask;
   }
+  if (sys.disks && sys.disks.length > 0) {
+    compact.D = sys.disks.map(encodeCircumstellarDisk);
+  }
 
   return compact;
 }
@@ -720,6 +786,7 @@ export function decodeSystemManifest(
   const hasHabitableCandidate =
     compact.h === 1 || planets.some((p) => Boolean(p.isHabitableCandidate));
   const tags = decodeTagsMask(compact.g);
+  const disks = compact.D ? compact.D.map(decodeCircumstellarDisk) : undefined;
 
   const result: SystemManifest = {
     id,
@@ -732,6 +799,7 @@ export function decodeSystemManifest(
     sectorId,
     stars,
     planets,
+    ...(disks && disks.length > 0 ? { disks } : {}),
     ...(planetCompositionCounts ? { planetCompositionCounts } : {}),
     hasHabitableCandidate,
     ...(tags ? { tags } : {}),

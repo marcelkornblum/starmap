@@ -4,11 +4,12 @@ import type {
   OrbitalSchematicSummary,
 } from '../../../services/detailsService';
 import {
+  buildMetricGuideHref,
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
   buildTagGalaxyHref,
 } from '../../../services/searchService';
-import { Badge } from '../../interface/information';
+import { Badge, Quantity, Unit } from '../../interface/information';
 import { shouldDisplaySpectralBadge } from '../SearchResultItem/SearchResultItem';
 
 export interface OrbitalSchematicItemProps {
@@ -50,10 +51,42 @@ export function OrbitalSchematicItem({
             {item.summaryLabel}
           </a>
         </Badge>
+      ) : item.kind === 'belt' ? (
+        <Badge
+          data-testid="orbital-schematic-belt-badge"
+          status={
+            item.summaryLabel === 'Asteroid Belt'
+              ? 'caution'
+              : item.summaryLabel === 'Kuiper Belt'
+                ? 'info'
+                : 'neutral'
+          }
+        >
+          {item.summaryLabel}
+        </Badge>
       ) : (
         <Badge status="neutral">{item.summaryLabel}</Badge>
       )}
-      {item.region === 'habitable-zone' ? (
+      {item.radialSpanAu ? (
+        <>
+          {' '}
+          <Quantity
+            data-testid="orbital-schematic-belt-span"
+            value={`${item.radialSpanAu[0]}–${item.radialSpanAu[1]}`}
+            unit={
+              <Unit>
+                <a
+                  href={buildMetricGuideHref('semi-major-axis')}
+                  data-testid="orbital-schematic-belt-unit-link"
+                >
+                  AU
+                </a>
+              </Unit>
+            }
+          />
+        </>
+      ) : null}
+      {item.kind !== 'belt' && item.region === 'habitable-zone' ? (
         <>
           {' '}
           <Badge status="nominal">
@@ -65,12 +98,12 @@ export function OrbitalSchematicItem({
             </a>
           </Badge>
         </>
-      ) : item.region === 'asteroid-belt' ? (
+      ) : item.kind !== 'belt' && item.region === 'asteroid-belt' ? (
         <>
           {' '}
           <Badge status="caution">Asteroid belt</Badge>
         </>
-      ) : item.region === 'kuiper-belt' ? (
+      ) : item.kind !== 'belt' && item.region === 'kuiper-belt' ? (
         <>
           {' '}
           <Badge status="info">Kuiper belt</Badge>

@@ -90,3 +90,24 @@ Items logged here are held for later consideration and graduation into formal tr
   1. **Initial Load:** Cold-loading a focused view (e.g. `/galaxy/tau-ceti`, `/system/tau-ceti`, `/planet/tau-ceti-e` with no explicit `?center=` or `?x=&y=&z=` override) initially centres the 3D camera on that view's primary target.
   2. **Independent Movement & Focus Changes:** Panning the 3D camera moves the center point independently of `focused`, and applying focus (`?focus=<id>`) to inspect an item does not automatically re-centre the camera onto that item.
   3. **Conditional `Centre` CTA Visibility:** Once the live 3D R3F canvas reports its active camera target/center point, the `Centre` CTA button (`data-testid="details-button-center"`) in `<DetailsPanel />` should **only** be rendered/visible when the 3D canvas's current center point does not match the currently focused entity.
+
+### FS-014: Multi-Point Arbitrary-Origin Route Networks, Comms Latency Matrix & Speculative Propulsion Tiers (Deferred from Journey 2 Step 3)
+- **Concept:** Deferred from Journey 2 Step 3 until ground-level UI surfaces are in place.
+- **Behaviour:**
+  - Unlock arbitrary system origins (`stops[0]` not restricted to `sol`) and interactive multi-stop waypoint building/reordering (`?route=epsilon-eridani,tau-ceti,82-g-eridani`).
+  - Render a pairwise and cumulative Comms Latency Matrix across $N$-node networks.
+  - Add speculative propulsion tiers (`0.02c` generation ship, `0.5g` torchship, custom warp/jump multipliers).
+
+### FS-015: User Data Layer Saving, Cluster Labelling & Workspace Management (Deferred from Journey 2 Step 5)
+- **Concept:** Deferred from Journey 2 Step 5 and logged to the project Backlog alongside `FS-002`.
+- **Behaviour:**
+  - Full user data layer saving, cluster/network naming (e.g. *"Outer Colony Reach"*), bookmarking, local persistence, and import/export management.
+
+### FS-016: Volumetric Interstellar Clouds & Galactic Structures on the Galaxy Map
+- **Concept:** Surface the Complex of Local Interstellar Clouds (CLIC — *LIC*, *G-Cloud*, *Blue Cloud*, *Aquilae*, *Mic*, *Leo*, *Dor*, *Eri*, *Vela*), the *Local Bubble*, nearby molecular/dark cloud complexes (*Rho Ophiuchi*, *Taurus*, *Coalsack*, *Lupus*, *Chamaeleon*, *Corona Australis*, *Pipe*), and galactic clusters on `GalaxyView` both visually in 3D and in `<BodiesPanel scope="galaxy" />`.
+- **Behaviour:**
+  - **Volumetric 3D Sphere–Sphere Instrument Intersection:** Evaluate $\text{distance}(\text{instrumentCentre}, \text{cloudCentre}) \le R_{\text{aperture}} + R_{\text{cloud}}$ so volumetric structures with physical radius `radiusPc` become `'active'` whenever they overlap the Cartographic Instrument sphere.
+  - **3D Canvas Representation (`GalaxyScene`):** Render volumetric cloud boundaries/envelopes and structure markers in `GALACTIC_FRAME` alongside star systems.
+  - **`<BodiesPanel scope="galaxy" />` Integration:** Include non-passive interstellar clouds and galactic structures in the Galactic bodies panel alongside star systems.
+
+

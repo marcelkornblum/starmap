@@ -82,9 +82,11 @@ export const ApertureEvaluator: React.FC = () => {
       }
     }
 
-    if (changed) {
+    if (changed || state.apertureRadius === null) {
       // r3f-audit-disable-next-line no-alloc-in-use-frame
       state.setApertureIds(new Set(scratch));
+      // r3f-audit-disable-next-line no-alloc-in-use-frame
+      state.setApertureFrame([focusPoint.x, focusPoint.y, focusPoint.z], apertureRadius);
     }
   }, FRAME_PRIORITY.entityAperture);
 
