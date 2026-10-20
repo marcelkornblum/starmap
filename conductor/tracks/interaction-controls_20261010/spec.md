@@ -3,6 +3,14 @@
 ## Overview
 Establishes the interactive navigation modes, professional 3D camera control paradigms, layer visibility controls, temporal playback and timeline scrubber, and domain interaction dock (`ViewControlsDock`). Sits upstream of domain panels so that interaction paradigms and control states are established before data surfaces consume them.
 
+> [!IMPORTANT]
+> **Cross-Track Coupling & Consolidated Camera/Transition Backlog Reference (`FS-003`, `FS-012`, `FS-013`):**
+> - This track is directly coupled with **[Track: Minimap & Scene Transitions](../minimap-scene-transitions_20261010/spec.md)** (`minimap-scene-transitions_20261010`).
+> - Both tracks must implement and honour the consolidated camera/transition requirements in **[`FS-012` (Choreographed 3D Camera Transitions, Search Framing & Independent Center/Focus State — absorbing `FS-003` and `FS-013`)](../../initiatives/journey-ui-scaffolding/feature-scratchpad.md)**:
+>   1. **Camera `center` vs. Entity `focused` Independence (`FS-013`):** Panning/moving the 3D camera updates `center` independently of `focused`; focusing an item (`?focus=`) does not force-re-centre the camera; and the `Centre` CTA button (`data-testid="details-button-center"`) is conditionally shown only when the active 3D camera centre differs from the focused entity.
+>   2. **Search Results Scale & Multi-Result Framing (`FS-003`):** Multi-result sets (`count > 1`) stay at or transition to the galactic scale and frame all matching systems; single-result sets only auto-enter system scale for Solar System (*Sol*) bodies.
+>   3. **Choreographed 3D Fly/Zoom & Panel Retraction (`FS-012`):** Coordinated with [Track: Minimap & Scene Transitions](../minimap-scene-transitions_20261010/spec.md) so intra-view re-centring and cross-scale transitions smoothly glide the camera while HUD panels retract and snap back once settled.
+
 ## Scope
 
 1. **Professional 3D Control Methods (References & Exploration):**

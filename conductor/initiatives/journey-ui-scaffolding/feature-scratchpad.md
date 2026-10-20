@@ -1,113 +1,76 @@
 # Features Scratchpad (`journey-ui-scaffolding`)
 
-This temporary scratchpad captures feature ideas, edge cases, dataset enhancements, and future capabilities surfaced while working through the user journeys in the `journey-ui-scaffolding` initiative.
-
-Items logged here are held for later consideration and graduation into formal tracks, view requirements, or backlog items when ready.
+This scratchpad records rationalised feature specifications, deferred journey capabilities, and cross-track technical requirements surfaced during the `journey-ui-scaffolding` initiative. All active items are mirrored in the `## Backlog` section of [`conductor/tracks.md`](../../tracks.md).
 
 ---
 
-## Logged Ideas
+## Active Consolidated Features (Mirrored in `conductor/tracks.md` Backlog)
 
-### FS-001: Fictional Universe Canon Layers / Tags
-- **Concept:** A tag-driven "fictional universe" overlay system (e.g., *Star Trek*, *Dune*, *Project Hail Mary*, *Bobiverse*, *Revelation Space*) that highlights all real star systems and celestial bodies referenced in a given canon.
+### FS-002 / FS-015: User-Authored Layers, Saved Workspaces, Route Bookmarks & Filter Presets
+- **Concept:** Unified user persistence and custom layer authoring built on the `DatasetLayerManifest` (`kind: 'custom-user'`) architecture.
 - **Behaviour:**
-  - Related lore snippets and text annotations on each system/body are tagged by fictional canon.
-  - Users can view an entire fictional canon as a single unified layer across systems, or toggle individual canons on and off while browsing.
-
-### FS-002: Custom User Universe / Personal Notes Layer
-- **Concept:** Allow the user to create their own custom "fictional universe" tag/layer using the same mechanism as built-in canons.
-- **Behaviour:**
-  - Users can tag systems and attach their own custom notes or lore snippets across multiple star systems, viewing and toggling their personal layer just like a curated fictional canon.
-
-### FS-003: Search Results Scale, Multi-Result Highlighting & Solar System Exception
-- **Concept:** Deterministic camera scale and selection framing driven by the search result set.
-- **Behaviour:**
-  - **Multiple results (`count > 1`):** Always stay at (or transition to) the **galactic scale**, automatically framing/zooming the camera so every matching result fits on screen simultaneously, with all matching results highlighted/selected.
-  - **Single result (`count === 1`):** Only transition into the **system scale** directly from search results if there is a single match and it is known with certainty to be a body within our own Solar System (*Sol*). Otherwise remain at the galactic scale framing the matched system.
+  - Create, name (e.g. *"Outer Colony Reach"*), save, and import/export custom user layers, personal lore annotations, and tagged star clusters across systems.
+  - Persist and bookmark multi-leg route trajectories (`?route=`) and reusable search/intent filter presets.
 
 ### FS-004: Local Night-Sky View to 3D Third-Person Projection
 - **Concept:** Bridge Earth-bound stargazing (2D sky dome) with true 3D galactic depth.
 - **Behaviour:**
-  - User enters their Earth location (lat/long or place) and optional time (defaults to "now") to see what is in their local sky, with rotation to match their viewing orientation.
-  - User can highlight/select some or all of the visible stars in that sky view.
-  - User can then pull the camera out to a standard third-person 3D galactic angle to inspect the true 3D spatial distribution and depth of those highlighted night-sky stars.
-
-### FS-005: Category-Filtered Search (Stars, Planets, Structures, Minor Bodies, Fiction)
-- **Concept:** Allow users to scope or filter search queries by entity category, backed by the category-sharded search indices (`public/data/search/*.json`).
-- **Behaviour:**
-  - Users can filter or scope search to specific categories: **Star Systems / Stars** (`stars.json`), **Planets & Moons** (`planets.json`), **Galactic Structures & Deep Sky** (`structures.json`), **Minor Bodies** (`minor-bodies.json`), or **Works of Fiction / Canons** (`fiction.json`).
+  - User enters their Earth location (lat/long or place) and optional time (defaults to "now") to view their local night sky rotated to their viewing orientation.
+  - User can highlight/select visible stars in that sky view and pull the camera out to a third-person 3D galactic projection to inspect the true 3D spatial distribution and depth of those highlighted night-sky stars.
 
 ### FS-006: Adaptive Multi-Tier Search Strategy Across Core & Full Datasets
-- **Concept:** Define a deliberate client-side loading and fallback strategy for searching across the compact Core search index (`core.json`) versus the complete Full search index (`full.json` / category shards).
-- **Candidate Approaches to Evaluate:**
-  1. **Zero-Result Escalation:** Search the lightweight Core index first; if a query returns zero matches, automatically fetch and search the Full dataset (`full.json`).
-  2. **Progressive Background Upgrade:** Load and search the Core index immediately for instant responsiveness, then automatically pre-warm/stream the Full index in the background once the Core index is ready so subsequent or deeper queries always search the complete dataset.
-  3. **Device / Network Performance Tiering:** Adaptively choose between eager background loading of the Full index versus on-demand/zero-result escalation based on client device capabilities (`navigator.deviceMemory`, `hardwareConcurrency`, and Network Information `effectiveType` / `saveData`).
+- **Concept:** Deliberate client-side loading and fallback strategy for searching across the compact Core search index (`core.json`) versus the complete Full search index (`full.json` / category shards).
+- **Candidate Approaches:**
+  1. **Zero-Result Escalation:** Search `core.json` first; if a query returns zero matches, automatically fetch and search `full.json`.
+  2. **Progressive Background Upgrade:** Load and search `core.json` immediately for instant responsiveness, then pre-warm `full.json` in the background.
+  3. **Device / Network Performance Tiering:** Adaptively choose between eager background loading versus zero-result escalation based on client device/network capabilities (`navigator.deviceMemory`, `hardwareConcurrency`, `effectiveType`, `saveData`).
 
-### FS-007: SEO, Structured Metadata & Search Engine Discoverability
-- **Concept:** Ensure Starmap's celestial systems, planets, fictional universe canons, and deep-sky objects are richly indexed and discoverable via search engines and social/link previews.
-- **Considerations to Evaluate:**
-  - Dynamic per-route `<title>`, `<meta name="description">`, canonical URLs, and Open Graph / Twitter Card metadata for system, body, search, and canon layer URLs.
-  - Crawlability & indexing strategy for an SPA/3D web app (e.g., static pre-rendering / SSG for high-value landmark systems and fictional canons, `sitemap.xml` generation from the Core/Canon indices, and Schema.org / JSON-LD structured data).
-
-### FS-008: Custom Shortlink & Curated Landing URLs (`/go/<slug>`)
-- **Concept:** Support friendly, memorable entry-point URLs (e.g., `/go/xxx` such as `/go/hail-mary`, `/go/dune`, `/go/voyager`, `/go/trappist`) to make shared links and curated landing experiences cleaner and more inviting.
+### FS-007 / FS-008: SEO, Structured Metadata & Curated Shortlink Landing URLs (`/go/<slug>`)
+- **Concept:** Ensure Starmap's systems, planets, and curated layers are discoverable via search engines/social previews and accessible via memorable shortlinks.
 - **Behaviour:**
-  - Resolves a short slug into a customised application setup and entry point (e.g., activating a specific fictional canon layer, pre-selecting a target system or multi-leg route, framing the camera at an ideal vantage point, or opening a tailored welcome/onboarding briefing).
+  - Dynamic per-route `<title>`, `<meta name="description">`, canonical URLs, Open Graph / Twitter Card metadata, `sitemap.xml`, and Schema.org / JSON-LD structured data.
+  - Friendly entry-point URLs (`/go/hail-mary`, `/go/dune`, `/go/trappist`, `/go/voyager`) resolving to pre-configured camera framing, active layers (`?select=layer:<slug>&layer=<slug>`), or routes.
 
 ### FS-009: GitHub Feature Requests & Bug Reports Integration
-- **Concept:** Give users a simple, frictionless path to submit feature requests, missing star/canon suggestions, and bug reports on GitHub.
+- **Concept:** Frictionless path for users to submit feature requests, missing star/layer suggestions, and bug reports on GitHub.
 - **Behaviour:**
-  - Structured `.github/ISSUE_TEMPLATE/` forms (Bug Report, Feature Request, Canon/Data Addition) paired with an in-app feedback link/action that pre-populates the GitHub New Issue URL with relevant context (e.g., current route URL, active view, or selected celestial entity).
+  - Structured `.github/ISSUE_TEMPLATE/` forms (Bug Report, Feature Request, Layer/Catalog Addition) paired with an in-app feedback action that pre-populates the GitHub New Issue URL with current route/view/entity context.
 
-### FS-010: Dedicated `<CanonLayersPanel />` (Journey 3: Serendipitous & Canon Discovery)
-- **Concept:** Since `Canon Layers` are narrative/universe metadata rather than physical orbital data, they were removed from `<BodiesPanel />` (`DEC-018`) while remaining on `<DetailsPanel />`.
+### FS-011: 3D Guide Interior Cross-Section Cutaways & Comparative 3D Meshes (Stage 3 R3F Integration)
+- **Concept:** Upgrade the 3D preview mount slots (`data-testid="guide-3d-preview"` and `data-testid="metric-comparative-3d"`) across `/guide/*` views with live WebGL/R3F shaders and meshes.
 - **Behaviour:**
-  - Introduce a dedicated `<CanonLayersPanel />` in Journey 3 (`conductor/tracks/journey-ui-scaffolding_03_...`) for browsing, toggling, and stepping through fictional universe canons and narrative annotations across `GalaxyView`, `SystemView`, and `PlanetView`.
+  - **Oversized Edge-Truncated 3D Spheres with Internal Cross-Section Cutaways:** Render star and planet 3D spheres offset against the preview frame boundary to expose a 3D interior cutaway (Stellar Core → Radiative Zone → Convective Envelope → Photosphere; Planetary Core → Mantle → Ice/Gas Envelope → Crust/Cloud Tops).
+  - **Live 3-Slice Yerkes Combinator & Comparative Metric Meshes:** Drive the 3D star sphere's scale, blackbody shader, and cutaway layers from `StarTypeDetailView`'s 3-slice combinator (`O`–`D`, `0`–`9`, `I`–`VII`), and render 3D comparative reference spheres (Earth/Sol vs `?focus=<entityId>`) on `MetricDetailView`.
 
-### FS-011: 3D Guide Renderings, Edge-Truncated Cross-Section Cutaways, 3-Slice Yerkes Combinator & Comparative Metric Visualiser (Stage 3 R3F Integration)
-- **Concept:** Every Guide list item and detail view (`/guide/star-types`, `/guide/star-types/$starType`, `/guide/planet-types`, `/guide/planet-types/$planetType`, `/guide/metrics`, `/guide/metrics/$metricId`) exposes a 3D rendering viewport slot (`data-testid="guide-3d-preview"`).
+### FS-012 (Absorbing FS-003 & FS-013): Choreographed 3D Camera Transitions, Search Framing & Independent Center/Focus State
+- **Cross-Track Coupling:** Shared across **[Track: Interaction Controls](../../tracks/interaction-controls_20261010/spec.md)** and **[Track: Minimap & Scene Transitions](../../tracks/minimap-scene-transitions_20261010/spec.md)**.
 - **Behaviour:**
-  - **Oversized Edge-Truncated 3D Spheres with Internal Cross-Section Cutaways (`data-testid="guide-3d-cross-section"`):**
-    - Star and planet 3D spheres are rendered at a larger comparative scale and offset above/against the edge of their preview container so the sphere is truncated by the frame boundary and exposes a 3D cutaway cross-section of the interior structure (e.g., Stellar Core → Radiative Zone → Convective Envelope → Photosphere; Planetary Iron-Nickel Core → Silicate/Metallic-Hydrogen Mantle → Ice/Gas Envelope → Crust/Cloud Tops).
-  - **3-Slice Yerkes Spectral Combinator (`data-testid="star-type-combinator"` on `/guide/star-types/$starType`):**
-    - Interactive 3-slice selector ("flip-book" in 3 slices: **Slice 1: Spectral Class `O`–`D`**, **Slice 2: Temperature Subdivision `0`–`9`**, **Slice 3: Luminosity Class `I`–`VII`**) that dynamically updates the 3D star sphere's scale, blackbody colour, cutaway layers, and computed telemetry ($T_{\text{eff}}$, $R_\odot$, $L_\odot$, Habitable Zone $\text{AU}$).
-  - **3D Comparative Metric Visualiser (`data-testid="metric-comparative-3d"`), Familiar Units (`light-years`, `light-minutes`, `°C`, `Earth years`), & Focused-Entity Context (`?focus=<entityId>`):**
-    - Metric list and detail pages convert technical astronomical units into familiar units (`pc` → `light-years (ly)` & `trillion km`, `AU` → `light-minutes` & `million km`, `d` → `Earth years`, `K` → `°C / °F`) and render a 3D comparative visualisation (`data-testid="metric-comparative-3d"`) comparing **Earth / Sol** against whichever entity was focused when navigating to the metric page (`?focus=<entityId>`).
+  1. **Animated 3D Fly / Zoom Camera Choreography (`FS-012`):**
+     - **Intra-View Config Changes:** Smoothly glide the 3D camera (origin, azimuth/elevation, dolly distance) when changing `focused`, `center`, or `select` within `GalaxyView`, `SystemView`, or `PlanetView`.
+     - **Cross-Scale View Transitions (`Galaxy` $\leftrightarrow$ `System` $\leftrightarrow$ `Planet`):** Continuous optical zoom/fly-in across scale boundaries (including `<LayerCard />` waypoint stepping), dissolving parsec drop stalks and galactic grids as AU orbital rings and the circumstellar Habitable Zone materialise.
+     - **HUD Panel Retraction & Snap-Back:** Smoothly retract/hide HUD panels during active camera flight and snap them back hydrated with destination state once the camera settles (respecting `prefers-reduced-motion`).
+  2. **Search Results Scale & Multi-Result Framing (`FS-003`):**
+     - Multiple results (`count > 1`) stay at or transition to the galactic scale and auto-frame all matching systems; single results (`count === 1`) only auto-enter system scale for Solar System (*Sol*) bodies.
+  3. **Camera `center` vs. Entity `focused` Independence & Conditional `Centre` CTA (`FS-013`):**
+     - Cold-loading a focused view initially centres the camera on that target; subsequent camera panning mutates `center` independently of `focused`, applying `?focus=` does not force-re-centre the camera, and the `Centre` CTA (`data-testid="details-button-center"`) in `<DetailsPanel />` is only visible when the live 3D camera centre differs from the focused entity.
 
-### FS-012: Choreographed View & Intra-View State Transitions (3D Camera Fly/Zoom & Interface Panel Hide/Snap-Back)
-- **Concept:** Smooth, choreographed transitions both **between distinct views** (e.g., `/galaxy/$systemId` $\leftrightarrow$ `/system/$systemId` $\leftrightarrow$ `/planet/$planetId`, or 3D Map $\leftrightarrow$ Guide) and **between configurations of the same view** (e.g., changing `focused` entity `/galaxy/sol` $\rightarrow$ `/galaxy/tau-ceti`, changing `?center=`, or updating `?select=` collections).
+### FS-014 / FS-017: Multi-Leg Route Networks, Epoch Orbital Timing & Solar Conjunction Blackouts
+- **Concept:** Advanced interstellar and intra-system route planning deferred from Journey 2 Step 3 (`FS-014`) and Journey 5 Steps 3 & 5 (`FS-017`).
 - **Behaviour:**
-  1. **Animated 3D Fly / Zoom Camera Choreography:**
-     - **Intra-View Config Changes:** When switching focus, centering (`?center=`), or framing a new `?select=` candidate set within the same view (`GalaxyView`, `SystemView`, `PlanetView`), the 3D camera glides smoothly along an eased trajectory (interpolating target origin, azimuth/elevation, and dolly distance) while range rings and reticles dynamically rescale.
-     - **Cross-Scale View Transitions (`Galaxy` $\leftrightarrow$ `System` $\leftrightarrow$ `Planet`):** Entering a system (`/galaxy/tau-ceti` $\rightarrow$ `/system/tau-ceti`) or inspecting a planet (`/system/tau-ceti?focus=tau-ceti-e` $\rightarrow$ `/planet/tau-ceti-e`) performs a continuous zoom/fly-in into the target coordinate frame (dissolving parsec drop stalks and galactic grids as AU orbital rings and the circumstellar Habitable Zone materialise, and vice versa when ascending).
-  2. **Interface Panels Hiding & Snapping Back:**
-     - During active 3D camera flight/zoom or view/configuration transitions, HUD interface panels (`<DetailsPanel />`, `<PreviewPanel />`, `<Search.Panel />`, `<Minimap />`) smoothly retract/hide (or collapse to non-obstructing states) so the 3D spatial transition is unobstructed, then snap/slide back into place hydrated with the destination state once the camera settles.
-     - Respects `prefers-reduced-motion` by falling back to instant or cross-faded state transitions when reduced motion is requested.
-
-### FS-013: Camera `center` vs. Entity `focused` Independence & Conditional `Centre` CTA Visibility (Stage 3 R3F Integration)
-- **Concept:** Camera `center` (the 3D focal origin of the viewport) and `focused` (the active inspection target in `<DetailsPanel />` / `<PreviewPanel />`) are independent states:
-  1. **Initial Load:** Cold-loading a focused view (e.g. `/galaxy/tau-ceti`, `/system/tau-ceti`, `/planet/tau-ceti-e` with no explicit `?center=` or `?x=&y=&z=` override) initially centres the 3D camera on that view's primary target.
-  2. **Independent Movement & Focus Changes:** Panning the 3D camera moves the center point independently of `focused`, and applying focus (`?focus=<id>`) to inspect an item does not automatically re-centre the camera onto that item.
-  3. **Conditional `Centre` CTA Visibility:** Once the live 3D R3F canvas reports its active camera target/center point, the `Centre` CTA button (`data-testid="details-button-center"`) in `<DetailsPanel />` should **only** be rendered/visible when the 3D canvas's current center point does not match the currently focused entity.
-
-### FS-014: Multi-Point Arbitrary-Origin Route Networks, Comms Latency Matrix & Speculative Propulsion Tiers (Deferred from Journey 2 Step 3)
-- **Concept:** Deferred from Journey 2 Step 3 until ground-level UI surfaces are in place.
-- **Behaviour:**
-  - Unlock arbitrary system origins (`stops[0]` not restricted to `sol`) and interactive multi-stop waypoint building/reordering (`?route=epsilon-eridani,tau-ceti,82-g-eridani`).
-  - Render a pairwise and cumulative Comms Latency Matrix across $N$-node networks.
-  - Add speculative propulsion tiers (`0.02c` generation ship, `0.5g` torchship, custom warp/jump multipliers).
-
-### FS-015: User Data Layer Saving, Cluster Labelling & Workspace Management (Deferred from Journey 2 Step 5)
-- **Concept:** Deferred from Journey 2 Step 5 and logged to the project Backlog alongside `FS-002`.
-- **Behaviour:**
-  - Full user data layer saving, cluster/network naming (e.g. *"Outer Colony Reach"*), bookmarking, local persistence, and import/export management.
+  - **Arbitrary-Origin Multi-Stop Route Networks (`FS-014`):** Unlock arbitrary system/body origins (`stops[0]` not restricted to `sol`/`earth`), interactive multi-leg waypoint building/reordering (`?route=epsilon-eridani,tau-ceti,82-g-eridani`), pairwise/cumulative Comms Latency Matrix, and speculative propulsion tiers (`0.02c` generation ship, `0.5g` torchship, custom warp/jump multipliers).
+  - **Epoch-Driven Instantaneous Orbital Separation (`FS-017`):** Wire the `<ControlBar />` Time Controller (`epochTime`, `timeMultiplier`, `isPlaying`) into `journeyService.ts` and Keplerian mean anomaly propagation so intra-system `AU` separation, light-minute comms latency, and brachistochrone transit times dynamically update between conjunction and opposition.
+  - **Solar Conjunction Comms Blackout Warning (`FS-017`):** Evaluate geometric ray–sphere intersection between the departure–arrival line-of-sight chord and the central star's coronal exclusion zone, flagging solar conjunction blackout warnings in `<DirectionsPanel />` and on the 3D `<JourneyChord />`.
 
 ### FS-016: Volumetric Interstellar Clouds & Galactic Structures on the Galaxy Map
-- **Concept:** Surface the Complex of Local Interstellar Clouds (CLIC — *LIC*, *G-Cloud*, *Blue Cloud*, *Aquilae*, *Mic*, *Leo*, *Dor*, *Eri*, *Vela*), the *Local Bubble*, nearby molecular/dark cloud complexes (*Rho Ophiuchi*, *Taurus*, *Coalsack*, *Lupus*, *Chamaeleon*, *Corona Australis*, *Pipe*), and galactic clusters on `GalaxyView` both visually in 3D and in `<BodiesPanel scope="galaxy" />`.
+- **Concept:** Render and intersect volumetric 3D interstellar media (ISM) and galactic structures on `GalaxyView` (`GalaxyScene`) and in `<BodiesPanel scope="galaxy" />`.
 - **Behaviour:**
   - **Volumetric 3D Sphere–Sphere Instrument Intersection:** Evaluate $\text{distance}(\text{instrumentCentre}, \text{cloudCentre}) \le R_{\text{aperture}} + R_{\text{cloud}}$ so volumetric structures with physical radius `radiusPc` become `'active'` whenever they overlap the Cartographic Instrument sphere.
-  - **3D Canvas Representation (`GalaxyScene`):** Render volumetric cloud boundaries/envelopes and structure markers in `GALACTIC_FRAME` alongside star systems.
-  - **`<BodiesPanel scope="galaxy" />` Integration:** Include non-passive interstellar clouds and galactic structures in the Galactic bodies panel alongside star systems.
+  - **3D Cartographic Rendering (`GalaxyScene`):** Render CLIC clouds (*LIC*, *G-Cloud*, *Blue Cloud*, *Aquilae*, *Mic*, *Leo*, *Dor*, *Eri*, *Vela*), the *Local Bubble*, nearby molecular/dark cloud complexes (*Rho Ophiuchi*, *Taurus*, *Coalsack*, *Lupus*, *Chamaeleon*, *Pipe*), and open clusters via micro-dot point-density stippling and planar survey cross-hatching on datum planes.
+  - **`<BodiesPanel scope="galaxy" />` Integration:** Surface non-passive interstellar clouds and galactic structures alongside star systems.
 
+---
 
+## Completed & Retired Scratchpad Items
+- ~~**`FS-001`: Fictional Universe Canon Layers / Tags**~~ — Completed in Tracks 01–03 (`DEC-017`, `DEC-036`–`DEC-039`).
+- ~~**`FS-005`: Category-Filtered Search**~~ — Completed in Tracks 01 & 03 (`DEC-003`, `DEC-036`).
+- ~~**`FS-010`: Dedicated `<CanonLayersPanel />` (Journey 3)**~~ — Completed in Track 03 via `<LayerCard />` and `Explore` (`DEC-036`–`DEC-039`).

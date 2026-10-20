@@ -20,4 +20,3 @@
 - [Decision Log](./initiatives/journey-ui-scaffolding/decision-log.md)
 - [View Requirements Inventory](./initiatives/journey-ui-scaffolding/view-requirements.md)
 - [Tracks Directory](./tracks/)
-- [Backlog](./backlog.md)
