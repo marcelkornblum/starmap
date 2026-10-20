@@ -30,8 +30,9 @@ import {
   type SearchResultItem,
 } from '../../services/searchService';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
+import { useRouter } from '@tanstack/react-router';
 import { extractUrlRouteStops } from '../../services/journeyService';
-import { pickRandomLayerOverviewHref } from '../../services/layerCardService';
+import { parseLayerQueryParam, pickRandomLayerOverviewHref } from '../../services/layerCardService';
 import { useSpatialEntityStoreApi } from '../canvas/entity/SpatialEntityContext';
 import type { SpatialEntityStore } from '../canvas/entity/SpatialEntityStore';
 import { SearchResultItem as SearchResultItemRow } from '../domain';
@@ -738,6 +739,8 @@ export const SearchPanel = ({
   children,
   scope,
 }: SearchPanelProps) => {
+  const router = useRouter({ warn: false });
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
   };
@@ -748,8 +751,17 @@ export const SearchPanel = ({
     }
     const currentLayer = new URLSearchParams(window.location.search).get('layer');
     const nextHref = pickRandomLayerOverviewHref(currentLayer);
-    window.history.pushState({}, '', nextHref);
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    const parsedNext = parseLayerQueryParam(new URLSearchParams(nextHref.split('?')[1] ?? '').get('layer'));
+    if (router?.state && parsedNext?.layerSlug) {
+      void router.navigate({
+        to: '/galaxy',
+        search: (prev) => ({
+          ...prev,
+          select: `layer:${parsedNext.layerSlug}`,
+          layer: parsedNext.layerSlug,
+        }),
+      });
+    }
   };
 
   return (

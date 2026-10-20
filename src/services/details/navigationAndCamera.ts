@@ -56,7 +56,6 @@ export function buildEntityOrbitTargetHref(
     parentBodyId,
     layerId,
     tagSlug,
-    isSolarSystem,
   } = input;
 
   // 1. Parent Layer Overview
@@ -131,13 +130,7 @@ export function buildEntityOrbitTargetHref(
   }
 
   // 4. Circumstellar & System-Level Bodies (star, planet, dwarf-planet, belt, minor-body, fictional-body)
-  const isChildOfSystem = Boolean(systemId) && id !== systemId && !id.endsWith(`:${systemId}`);
-  const sysSlug = toUrlSlug(
-    systemName ??
-      (isChildOfSystem ? systemId : undefined) ??
-      systemId ??
-      (isSolarSystem ? 'sol' : 'sol'),
-  );
+  const sysSlug = toUrlSlug(systemName ?? systemId ?? 'sol');
   const itemSlug = targetSlug;
   const params = new URLSearchParams({ focus: itemSlug });
   if (layerSlug) {
