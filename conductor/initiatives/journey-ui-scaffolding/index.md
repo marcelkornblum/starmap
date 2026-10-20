@@ -28,14 +28,14 @@ The initiative is structured into two distinct stages:
 
 ## Track Breakdown
 
-### Stage 1: Journey Feature Discovery & Progressive View Scaffolding (Active)
+### Stage 1: Journey Feature Discovery & Progressive View Scaffolding (Complete)
 1. **Track 01:** [Journey 1 — Target Acquisition, System Summary, 2-Point Route & Scale Transitions (Data Model & Scaffolding Views)](../../tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md)
 2. **Track 02:** [Journey 2 — Spatial Anchor, Intent Filters, Candidate Sync & Multi-Leg Network (Data Model & Scaffolding Views)](../../tracks/journey-ui-scaffolding_02_journey-2-author-flow_20261016/index.md)
 3. **Track 03:** [Journey 3 — Curated On-Ramps, Narrative Waypoints & Step-Through (Data Model & Scaffolding Views)](../../tracks/journey-ui-scaffolding_03_journey-3-explorer-flow_20261016/index.md)
 4. **Track 04:** [Journey 4 — Classification Deep-Links, Encyclopedia Articles, Parameter Comparator & Category Index (Data Model & Scaffolding Views)](../../tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md)
 5. **Track 05:** [Journey 5 — Intra-System Transfer Logistics, Temporal Scrubbing & Conjunction Geometry (Data Model & Scaffolding Views)](../../tracks/journey-ui-scaffolding_05_journey-5-transit-planner-flow_20261016/index.md)
 
-### Stage 2: UI Chrome, Telemetry & View Wiring (Flexible Placeholders — Post-Stage 1)
+### Stage 2: UI Chrome, Telemetry & View Wiring (Active)
 - [Console UI Shell (Flexible Stage 2 Placeholder)](../../tracks/console-ui-shell_20261004/index.md)
 - [Telemetry Container & Dossiers (Flexible Stage 2 Placeholder)](../../tracks/telemetry-container_20261004/index.md)
 - [Search & Discovery UI Surfaces (Flexible Stage 2 Placeholder)](../../tracks/search-discovery_20261004/index.md)

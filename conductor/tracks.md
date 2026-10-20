@@ -3,14 +3,14 @@
 ## Initiative: Journey-Driven View Data Models & UI Scaffolding (`journey-ui-scaffolding`)
 *Overview: [conductor/initiatives/journey-ui-scaffolding/index.md](./initiatives/journey-ui-scaffolding/index.md) | [Decision Log](./initiatives/journey-ui-scaffolding/decision-log.md) | [View Requirements](./initiatives/journey-ui-scaffolding/view-requirements.md) | [Product Backlog](./backlog.md)*
 
-### Stage 1: Journey Feature Discovery & View Data Models (Zero Presentation Assumptions)
+### Stage 1: Journey Feature Discovery & View Data Models (Zero Presentation Assumptions — Complete)
 - [x] **Track 01: Journey 1 — Target Acquisition, System Summary, 2-Point Route & Scale Transitions (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md](./tracks/journey-ui-scaffolding_01_journey-1-reader-flow_20261016/index.md)*
 - [x] **Track 02: Journey 2 — Spatial Anchor, Intent Filters, Candidate Sync & Multi-Leg Network (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_02_journey-2-author-flow_20261016/index.md](./tracks/journey-ui-scaffolding_02_journey-2-author-flow_20261016/index.md)*
 - [x] **Track 03: Journey 3 — Curated On-Ramps, Narrative Waypoints & Step-Through (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_03_journey-3-explorer-flow_20261016/index.md](./tracks/journey-ui-scaffolding_03_journey-3-explorer-flow_20261016/index.md)*
-- [ ] **Track 04: Journey 4 — Classification Deep-Links, Encyclopedia Articles, Parameter Comparator & Category Index (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md](./tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md)*
-- [ ] **Track 05: Journey 5 — Intra-System Transfer Logistics, Temporal Scrubbing & Conjunction Geometry (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_05_journey-5-transit-planner-flow_20261016/index.md](./tracks/journey-ui-scaffolding_05_journey-5-transit-planner-flow_20261016/index.md)*
+- [x] **Track 04: Journey 4 — Classification Deep-Links, Encyclopedia Articles, Parameter Comparator & Category Index (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md](./tracks/journey-ui-scaffolding_04_journey-4-encyclopedia-flow_20261016/index.md)*
+- [x] **Track 05: Journey 5 — Intra-System Transfer Logistics, Temporal Scrubbing & Conjunction Geometry (Data Model & Logic)** *Link: [conductor/tracks/journey-ui-scaffolding_05_journey-5-transit-planner-flow_20261016/index.md](./tracks/journey-ui-scaffolding_05_journey-5-transit-planner-flow_20261016/index.md)*
 
-### Stage 2: UI Chrome, Telemetry & View Wiring (Flexible Placeholders — Sequenced Post-Stage 1)
+### Stage 2: UI Chrome, Telemetry & View Wiring (Active)
 - [ ] **Track: Console UI Shell** *Link: [conductor/tracks/console-ui-shell_20261004/index.md](./tracks/console-ui-shell_20261004/index.md)* *(Coupled with `FS-012` HUD retraction & viewport compensation)*
 - [ ] **Track: Telemetry Container & Dossiers** *Link: [conductor/tracks/telemetry-container_20261004/index.md](./tracks/telemetry-container_20261004/index.md)* *(Coupled with `FS-012` / `FS-013` conditional `Centre` CTA & scale transitions)*
 - [ ] **Track: Search & Discovery UI Surfaces** *Link: [conductor/tracks/search-discovery_20261004/index.md](./tracks/search-discovery_20261004/index.md)* *(Coupled with `FS-012` / `FS-003` 3D search framing)*
