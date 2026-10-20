@@ -58,11 +58,18 @@
   }
 
   .systemItem {
+    --system-item-bg: transparent;
+    --system-item-border-width: 0px;
+    --system-item-border-color: transparent;
+
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: var(--space-fib-2);
     padding: var(--space-fib-2) var(--space-fib-3);
+    background-color: var(--system-item-bg);
+    border-inline-start: var(--system-item-border-width) solid
+      var(--system-item-border-color);
     border-radius: var(--radius-sm);
     transition: background-color var(--duration-fast) var(--ease-standard);
   }
@@ -70,16 +77,18 @@
 
 @layer exceptions {
   .systemItem[data-focused='true'] {
-    background-color: var(--surface-active);
-    border-inline-start: var(--border-width-2) solid var(--intent-info);
+    --system-item-bg: var(--surface-active);
+    --system-item-border-width: var(--border-width-2);
+    --system-item-border-color: var(--intent-info);
   }
 
   .systemItem[data-selected='true'] {
-    background-color: var(--surface-selected);
-    border-inline-start: var(--border-width-2) solid var(--intent-accent);
+    --system-item-bg: var(--surface-selected);
+    --system-item-border-width: var(--border-width-2);
+    --system-item-border-color: var(--intent-accent);
   }
 
   .systemItem[data-hovered='true'] {
-    background-color: var(--surface-hover);
+    --system-item-bg: var(--surface-hover);
   }
 }
