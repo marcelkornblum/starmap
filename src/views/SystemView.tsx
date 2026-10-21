@@ -101,9 +101,7 @@ const useResolvedSystemDetails = (
     : null;
   const explicitFocusedEntity = urlFocusSlug
     ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
-    : (hasExplicitFocus
-        ? (storeApi.getState().getEntitiesByState('focused')[0] ?? null)
-        : (storeApi.getState().getEntitiesByState('focused')[0] ?? null));
+    : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
 
   const cachedSystemRecord = urlSystemSlug
     ? getCachedDetailRecord(urlSystemSlug)
