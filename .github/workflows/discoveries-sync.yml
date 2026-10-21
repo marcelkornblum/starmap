@@ -24,7 +24,7 @@ jobs:
       - name: Run discovery sync audit
         run: npm run sync:discoveries
       - name: Create Pull Request if changes detected
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "feat(data): sync recent exoplanet discoveries from NASA Archive"
           title: "feat(data): sync recent exoplanet discoveries (< 100 pc)"
