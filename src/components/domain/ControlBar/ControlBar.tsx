@@ -45,7 +45,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
       >
         <Button
           size="sm"
-          variant={isPlaying ? 'primary' : 'default'}
+          variant={isPlaying ? 'primary' : 'subtle'}
           data-testid="control-bar-play-pause"
           aria-pressed={isPlaying}
           onClick={() => setIsPlaying((p) => !p)}
