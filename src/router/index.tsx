@@ -54,6 +54,23 @@ export async function simulateAsyncFetch<T>(data: T, delayMs = 60): Promise<T> {
   return data;
 }
 
+/**
+ * Pure function normalizing a raw location pathname against the application's basepath.
+ * Strips subpath base prefix (e.g. '/starmap/galaxy' -> '/galaxy', '/starmap/' -> '/').
+ */
+export function resolveSpaLocation(
+  rawPathname: string,
+  rawSearch: string,
+  basepath = import.meta.env?.BASE_URL ?? '/',
+): { readonly pathname: string; readonly search: string } {
+  const base = basepath.replace(/\/+$/, '');
+  const pathname =
+    base && base !== '/' && rawPathname.startsWith(base)
+      ? (rawPathname.slice(base.length) || '/')
+      : rawPathname;
+  return { pathname, search: rawSearch };
+}
+
 export function useSpaLocation(
   locationPathname?: string,
   locationSearch?: string,
@@ -77,14 +94,14 @@ export function useSpaLocation(
     };
   }, [locationPathname, locationSearch]);
 
-  const pathname =
+  const rawPathname =
     locationPathname ??
     (typeof window !== 'undefined' ? window.location.pathname : fallbackPathname);
-  const search =
+  const rawSearch =
     locationSearch ??
     (typeof window !== 'undefined' ? window.location.search : '');
 
-  return { pathname, search };
+  return resolveSpaLocation(rawPathname, rawSearch);
 }
 
 export const RootLayout: React.FC = () => {
@@ -147,7 +164,13 @@ export const RootLayout: React.FC = () => {
         return;
       }
 
-      router.history.push(nextPathAndSearch);
+      const base = (import.meta.env?.BASE_URL ?? '/').replace(/\/+$/, '');
+      const relativeHref =
+        base && base !== '/' && rawHref.startsWith(base)
+          ? (rawHref.slice(base.length) || '/')
+          : rawHref;
+
+      router.navigate({ href: relativeHref });
       window.dispatchEvent(new PopStateEvent('popstate'));
     };
 
@@ -301,6 +324,7 @@ export const routeTree = rootRoute.addChildren([
 
 export const router = createRouter({
   routeTree,
+  basepath: import.meta.env?.BASE_URL ?? '/',
   defaultPreload: 'intent',
   stringifySearch: stringifyStarmapSearch,
 });

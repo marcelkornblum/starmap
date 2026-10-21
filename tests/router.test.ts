@@ -18,6 +18,7 @@ import {
   planetTypeDetailRoute,
   metricsListRoute,
   metricDetailRoute,
+  resolveSpaLocation,
 } from '../src/router';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { MetricDetailView } from '../src/views/MetricDetailView';
@@ -302,5 +303,24 @@ describe('useStarmapNav Navigation Enforcer', () => {
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({ to: '/guide/star-types', replace: false })
     );
+  });
+
+  it('configures router basepath and normalises location pathname in resolveSpaLocation', () => {
+    expect(router.basepath).toBeDefined();
+
+    // Direct root base
+    const direct = resolveSpaLocation('/galaxy/sol', '?zoom=2', '/');
+    expect(direct).toEqual({ pathname: '/galaxy/sol', search: '?zoom=2' });
+
+    // Subpath base under /starmap
+    const subpath = resolveSpaLocation('/starmap/galaxy/sol', '?zoom=2', '/starmap/');
+    expect(subpath).toEqual({ pathname: '/galaxy/sol', search: '?zoom=2' });
+
+    // Root index under /starmap
+    const rootSubpath = resolveSpaLocation('/starmap/', '', '/starmap/');
+    expect(rootSubpath).toEqual({ pathname: '/', search: '' });
+
+    const bareSubpath = resolveSpaLocation('/starmap', '', '/starmap/');
+    expect(bareSubpath).toEqual({ pathname: '/', search: '' });
   });
 });

@@ -1,5 +1,6 @@
 import type { SearchCategoryFilter } from '../services/searchService';
 import type { CompactSearchEntry, SearchIndexEnvelope } from '../utils/compactDataCodec';
+import { resolveDataUrl } from '../utils/url';
 
 export type SearchShardName =
   | 'core'
@@ -10,14 +11,15 @@ export type SearchShardName =
   | 'minor-bodies'
   | 'layers';
 
+
 const SHARD_URLS: Record<SearchShardName, string> = {
-  core: '/data/search/core.json',
-  full: '/data/search/full.json',
-  stars: '/data/search/stars.json',
-  planets: '/data/search/planets.json',
-  structures: '/data/search/structures.json',
-  'minor-bodies': '/data/search/minor-bodies.json',
-  layers: '/data/search/layers.json',
+  core: resolveDataUrl('/data/search/core.json'),
+  full: resolveDataUrl('/data/search/full.json'),
+  stars: resolveDataUrl('/data/search/stars.json'),
+  planets: resolveDataUrl('/data/search/planets.json'),
+  structures: resolveDataUrl('/data/search/structures.json'),
+  'minor-bodies': resolveDataUrl('/data/search/minor-bodies.json'),
+  layers: resolveDataUrl('/data/search/layers.json'),
 };
 
 const shardCache = new Map<SearchShardName, Promise<readonly CompactSearchEntry[]>>();

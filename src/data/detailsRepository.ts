@@ -15,11 +15,13 @@ import {
   type CompactSummaryNode,
   type ShardedBucketEnvelope,
 } from '../utils/compactDataCodec';
+import { resolveDataUrl } from '../utils/url';
 
 export type DecodedDetailRecord =
   | { readonly kind: 'system'; readonly record: SystemManifest }
   | { readonly kind: 'structure'; readonly record: GalacticStructureRecord }
   | { readonly kind: 'solar-body'; readonly record: SolarSystemBodyRecord };
+
 
 const SUMMARY_BUCKET_CACHE = new Map<
   string,
@@ -130,7 +132,9 @@ export const fetchSummaryNode = async (
   let pending = SUMMARY_BUCKET_CACHE.get(bucketKey);
   if (!pending) {
     pending = (async () => {
-      const response = await fetchImpl(`/data/summaries/${bucketKey}.json`);
+      const response = await fetchImpl(
+        resolveDataUrl(`/data/summaries/${bucketKey}.json`),
+      );
       if (!response.ok) {
         throw new Error(
           `Failed to load summary shard "${bucketKey}": ${response.status} ${response.statusText}`,
@@ -172,7 +176,9 @@ export const fetchDetailRecord = async (
   let pending = DETAIL_BUCKET_CACHE.get(bucketKey);
   if (!pending) {
     pending = (async () => {
-      const response = await fetchImpl(`/data/details/${bucketKey}.json`);
+      const response = await fetchImpl(
+        resolveDataUrl(`/data/details/${bucketKey}.json`),
+      );
       if (!response.ok) {
         throw new Error(
           `Failed to load detail shard "${bucketKey}": ${response.status} ${response.statusText}`,
