@@ -77,9 +77,14 @@ export function useSpaLocation(
     };
   }, [locationPathname, locationSearch]);
 
-  const pathname =
+  const rawPathname =
     locationPathname ??
     (typeof window !== 'undefined' ? window.location.pathname : fallbackPathname);
+  const base = (import.meta.env?.BASE_URL ?? '/').replace(/\/+$/, '');
+  const pathname =
+    base && base !== '/' && rawPathname.startsWith(base)
+      ? (rawPathname.slice(base.length) || '/')
+      : rawPathname;
   const search =
     locationSearch ??
     (typeof window !== 'undefined' ? window.location.search : '');
@@ -147,7 +152,13 @@ export const RootLayout: React.FC = () => {
         return;
       }
 
-      router.history.push(nextPathAndSearch);
+      const base = (import.meta.env?.BASE_URL ?? '/').replace(/\/+$/, '');
+      const relativeHref =
+        base && base !== '/' && rawHref.startsWith(base)
+          ? (rawHref.slice(base.length) || '/')
+          : rawHref;
+
+      router.navigate({ href: relativeHref });
       window.dispatchEvent(new PopStateEvent('popstate'));
     };
 
@@ -301,6 +312,7 @@ export const routeTree = rootRoute.addChildren([
 
 export const router = createRouter({
   routeTree,
+  basepath: import.meta.env?.BASE_URL ?? '/',
   defaultPreload: 'intent',
   stringifySearch: stringifyStarmapSearch,
 });
