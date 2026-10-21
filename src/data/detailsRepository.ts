@@ -15,16 +15,13 @@ import {
   type CompactSummaryNode,
   type ShardedBucketEnvelope,
 } from '../utils/compactDataCodec';
+import { resolveDataUrl } from '../utils/url';
 
 export type DecodedDetailRecord =
   | { readonly kind: 'system'; readonly record: SystemManifest }
   | { readonly kind: 'structure'; readonly record: GalacticStructureRecord }
   | { readonly kind: 'solar-body'; readonly record: SolarSystemBodyRecord };
 
-const resolveDataUrl = (path: string): string => {
-  const base = import.meta.env?.BASE_URL ?? '/';
-  return `${base}${path.replace(/^\//, '')}`;
-};
 
 const SUMMARY_BUCKET_CACHE = new Map<
   string,

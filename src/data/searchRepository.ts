@@ -1,5 +1,6 @@
 import type { SearchCategoryFilter } from '../services/searchService';
 import type { CompactSearchEntry, SearchIndexEnvelope } from '../utils/compactDataCodec';
+import { resolveDataUrl } from '../utils/url';
 
 export type SearchShardName =
   | 'core'
@@ -10,10 +11,6 @@ export type SearchShardName =
   | 'minor-bodies'
   | 'layers';
 
-const resolveDataUrl = (path: string): string => {
-  const base = import.meta.env?.BASE_URL ?? '/';
-  return `${base}${path.replace(/^\//, '')}`;
-};
 
 const SHARD_URLS: Record<SearchShardName, string> = {
   core: resolveDataUrl('/data/search/core.json'),

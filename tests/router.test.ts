@@ -18,7 +18,7 @@ import {
   planetTypeDetailRoute,
   metricsListRoute,
   metricDetailRoute,
-  useSpaLocation,
+  resolveSpaLocation,
 } from '../src/router';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { MetricDetailView } from '../src/views/MetricDetailView';
@@ -305,19 +305,22 @@ describe('useStarmapNav Navigation Enforcer', () => {
     );
   });
 
-  it('configures router basepath and normalises location pathname in useSpaLocation', () => {
+  it('configures router basepath and normalises location pathname in resolveSpaLocation', () => {
     expect(router.basepath).toBeDefined();
 
-    const ProbeComponent: React.FC<{ path?: string; search?: string }> = ({ path, search }) => {
-      const loc = useSpaLocation(path, search);
-      return createElement('div', { 'data-pathname': loc.pathname, 'data-search': loc.search });
-    };
+    // Direct root base
+    const direct = resolveSpaLocation('/galaxy/sol', '?zoom=2', '/');
+    expect(direct).toEqual({ pathname: '/galaxy/sol', search: '?zoom=2' });
 
-    const directHtml = renderToString(createElement(ProbeComponent, { path: '/galaxy/sol', search: '?zoom=2' }));
-    expect(directHtml).toContain('data-pathname="/galaxy/sol"');
-    expect(directHtml).toContain('data-search="?zoom=2"');
+    // Subpath base under /starmap
+    const subpath = resolveSpaLocation('/starmap/galaxy/sol', '?zoom=2', '/starmap/');
+    expect(subpath).toEqual({ pathname: '/galaxy/sol', search: '?zoom=2' });
 
-    const fallbackHtml = renderToString(createElement(ProbeComponent));
-    expect(fallbackHtml).toContain('data-pathname="/galaxy"');
+    // Root index under /starmap
+    const rootSubpath = resolveSpaLocation('/starmap/', '', '/starmap/');
+    expect(rootSubpath).toEqual({ pathname: '/', search: '' });
+
+    const bareSubpath = resolveSpaLocation('/starmap', '', '/starmap/');
+    expect(bareSubpath).toEqual({ pathname: '/', search: '' });
   });
 });
