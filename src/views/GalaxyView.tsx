@@ -50,6 +50,7 @@ import {
   resolveSelectedSystemsFromUrlSelect,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { useSpaLocation } from '../router';
 
 export interface GalaxyViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -72,12 +73,11 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
 
   const [, setShardTick] = useState<number>(0);
 
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '/galaxy');
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '/galaxy',
+  );
 
   const urlSystemSlug = extractUrlSystemSlug(pathname);
   const urlFocusSlug = extractUrlFocusSlug(pathname, search);

@@ -54,6 +54,7 @@ import {
   toUrlSlug,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { useSpaLocation } from '../router';
 
 export interface SystemViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -79,12 +80,11 @@ const useResolvedSystemDetails = (
 
   const [, setShardTick] = useState<number>(0);
 
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '/system/sol');
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '/system/sol',
+  );
 
   const urlSystemSlug = extractUrlSystemSlug(pathname);
   const urlFocusSlug = extractUrlFocusSlug(pathname, search);
@@ -96,11 +96,14 @@ const useResolvedSystemDetails = (
     getCachedCorpusForFilter('stars') ??
     [];
 
-  const explicitFocusedEntity =
-    storeApi.getState().getEntitiesByState('focused')[0] ??
-    (urlFocusSlug
-      ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
-      : null);
+  const urlFocusEntity = urlFocusSlug
+    ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
+    : null;
+  const explicitFocusedEntity = urlFocusSlug
+    ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
+    : (hasExplicitFocus
+        ? (storeApi.getState().getEntitiesByState('focused')[0] ?? null)
+        : (storeApi.getState().getEntitiesByState('focused')[0] ?? null));
 
   const cachedSystemRecord = urlSystemSlug
     ? getCachedDetailRecord(urlSystemSlug)
@@ -205,13 +208,12 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     urlSystemSlug,
   } = useResolvedSystemDetails(props, true);
 
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '/system/sol');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '/system/sol',
+  );
   const targetId = extractUrlSystemSlug(pathname) ?? 'sol';
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
   const cameraState = extractUrlSceneCameraState(search);
 
   const breadcrumbs = buildSystemViewBreadcrumbs(

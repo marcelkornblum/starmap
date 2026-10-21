@@ -16,6 +16,7 @@ import {
   HAZARDS_GUIDE_PATH,
   resolveHazardGuideEntry,
 } from '../services/guideService';
+import { useSpaLocation } from '../router';
 import styles from './GuideViews.module.css';
 
 export interface HazardDetailViewProps {
@@ -32,9 +33,7 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
   hazardId: propHazardId,
   locationPathname,
 }) => {
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '');
+  const { pathname } = useSpaLocation(locationPathname, undefined, '');
   const resolvedHazardId =
     propHazardId ?? extractHazardFromPathname(pathname);
 

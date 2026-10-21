@@ -18,6 +18,7 @@ import {
   resolveMetricComparison,
   resolveMetricGuideEntry,
 } from '../services/guideService';
+import { useSpaLocation } from '../router';
 import styles from './GuideViews.module.css';
 
 export interface MetricDetailViewProps {
@@ -43,12 +44,11 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
   locationSearch,
   focusedEntityId,
 }) => {
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '');
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '',
+  );
 
   const resolvedMetricId =
     propMetricId ?? extractMetricIdFromPathname(pathname);

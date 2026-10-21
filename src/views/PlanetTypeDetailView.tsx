@@ -17,6 +17,7 @@ import {
   PLANET_TYPES_GUIDE_PATH,
   resolvePlanetTypeGuideEntry,
 } from '../services/guideService';
+import { useSpaLocation } from '../router';
 import styles from './GuideViews.module.css';
 
 export interface PlanetTypeDetailViewProps {
@@ -33,9 +34,7 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
   planetType: propPlanetType,
   locationPathname,
 }) => {
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '');
+  const { pathname } = useSpaLocation(locationPathname, undefined, '');
   const resolvedPlanetType =
     propPlanetType ?? extractPlanetTypeFromPathname(pathname);
 

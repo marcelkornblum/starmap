@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import {
   createRouter,
   createRoute,
@@ -53,9 +54,115 @@ export async function simulateAsyncFetch<T>(data: T, delayMs = 60): Promise<T> {
   return data;
 }
 
-// Root route definition with global search params validation and unopinionated Outlet
+export function useSpaLocation(
+  locationPathname?: string,
+  locationSearch?: string,
+  fallbackPathname = '/galaxy',
+): { readonly pathname: string; readonly search: string } {
+  const [, setLocationTick] = useState<number>(0);
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      (locationPathname !== undefined && locationSearch !== undefined)
+    ) {
+      return;
+    }
+    const handleLocationChange = (): void => {
+      setLocationTick((n) => n + 1);
+    };
+    window.addEventListener('popstate', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, [locationPathname, locationSearch]);
+
+  const pathname =
+    locationPathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : fallbackPathname);
+  const search =
+    locationSearch ??
+    (typeof window !== 'undefined' ? window.location.search : '');
+
+  return { pathname, search };
+}
+
+export const RootLayout: React.FC = () => {
+  useSpaLocation();
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    const handleDocumentClick = (event: MouseEvent): void => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const target = event.target as Element | null;
+      const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!anchor) {
+        return;
+      }
+      if (anchor.target && anchor.target !== '_self') {
+        return;
+      }
+      if (anchor.hasAttribute('download')) {
+        return;
+      }
+
+      const rawHref = anchor.getAttribute('href');
+      if (
+        !rawHref ||
+        rawHref.startsWith('#') ||
+        rawHref.startsWith('mailto:') ||
+        rawHref.startsWith('tel:')
+      ) {
+        return;
+      }
+
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(anchor.href, window.location.origin);
+      } catch {
+        return;
+      }
+
+      if (parsedUrl.origin !== window.location.origin) {
+        return;
+      }
+
+      event.preventDefault();
+      const nextPathAndSearch = `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+      const currentPathAndSearch = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (nextPathAndSearch === currentPathAndSearch) {
+        return;
+      }
+
+      router.history.push(nextPathAndSearch);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, []);
+
+  return <Outlet />;
+};
+
+// Root route definition with global search params validation and SPA link delegation
 export const rootRoute = createRootRoute({
-  component: Outlet,
+  component: RootLayout,
   validateSearch: (search: Record<string, unknown>): StarmapSearchParams => {
     return {
       ...search,

@@ -16,6 +16,7 @@ import {
   STAR_TYPES_GUIDE_PATH,
   resolveStarTypeGuideEntry,
 } from '../services/guideService';
+import { useSpaLocation } from '../router';
 import styles from './GuideViews.module.css';
 
 export interface StarTypeDetailViewProps {
@@ -32,9 +33,7 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
   starType: propStarType,
   locationPathname,
 }) => {
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '');
+  const { pathname } = useSpaLocation(locationPathname, undefined, '');
   const resolvedStarType = propStarType ?? extractStarTypeFromPathname(pathname);
 
   const resolvedDetail = useMemo(

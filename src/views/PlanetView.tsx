@@ -56,6 +56,7 @@ import {
   resolveSelectedSystemsFromUrlSelect,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { useSpaLocation } from '../router';
 
 export interface PlanetViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -84,12 +85,11 @@ const useResolvedPlanetDetails = (
 
   const [, setShardTick] = useState<number>(0);
 
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '/planet/earth');
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '/planet/earth',
+  );
 
   const urlPlanetSlug = extractUrlPlanetSlug(pathname);
   const urlFocusSlug = extractUrlFocusSlug(pathname, search);
@@ -101,11 +101,12 @@ const useResolvedPlanetDetails = (
     getCachedCorpusForFilter('stars') ??
     [];
 
-  const focusedEntity =
-    storeApi.getState().getEntitiesByState('focused')[0] ??
-    (urlFocusSlug
-      ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
-      : null);
+  const urlFocusEntity = urlFocusSlug
+    ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
+    : null;
+  const focusedEntity = urlFocusSlug
+    ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
+    : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
   const matchedEntry = focusedEntity
     ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
     : undefined;
@@ -243,13 +244,12 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     urlPlanetSlug,
   } = useResolvedPlanetDetails(props, true);
 
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '/planet/earth');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '/planet/earth',
+  );
   const targetId = extractUrlPlanetSlug(pathname) ?? 'earth';
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
   const cameraState = extractUrlSceneCameraState(search);
 
   const breadcrumbs = buildPlanetViewBreadcrumbs(
