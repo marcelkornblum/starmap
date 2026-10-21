@@ -16,14 +16,16 @@
     margin: 0;
   }
 
-  .unitLink {
+  .unitLink,
+  .unit a {
     color: inherit;
     text-decoration: underline;
     text-decoration-style: dotted;
     text-underline-offset: 2px;
   }
 
-  .unitLink:hover {
+  .unitLink:hover,
+  .unit a:hover {
     text-decoration-style: solid;
   }
 }

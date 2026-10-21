@@ -8,6 +8,10 @@ export interface StarmapNavigator {
   toSystem: (systemId: string, params?: ViewParameters) => Promise<void>;
   toPlanet: (planetId: string, params?: ViewParameters) => Promise<void>;
   toReference: (params?: ViewParameters) => Promise<void>;
+  goToGalaxy: (params?: ViewParameters) => Promise<void>;
+  goToSystem: (systemId: string, params?: ViewParameters) => Promise<void>;
+  goToPlanet: (planetId: string, params?: ViewParameters) => Promise<void>;
+  goToReference: (params?: ViewParameters) => Promise<void>;
   updateParams: (params: Partial<StarmapSearchParams>) => Promise<void>;
   currentPath: string;
 }
@@ -24,7 +28,7 @@ export function useStarmapNav(): StarmapNavigator {
 
   const toGalaxy = async (params?: ViewParameters): Promise<void> => {
     await navigate({
-      to: '/poc/galaxy',
+      to: '/galaxy',
       search: (prev: StarmapSearchParams) => ({ ...prev, ...params }),
       replace: false, // Major view transition: PUSH
     });
@@ -32,7 +36,7 @@ export function useStarmapNav(): StarmapNavigator {
 
   const toSystem = async (systemId: string, params?: ViewParameters): Promise<void> => {
     await navigate({
-      to: '/poc/system/$systemId',
+      to: '/system/$systemId',
       params: { systemId },
       search: (prev: StarmapSearchParams) => ({ ...prev, ...params }),
       replace: false, // Major view transition: PUSH
@@ -41,7 +45,7 @@ export function useStarmapNav(): StarmapNavigator {
 
   const toPlanet = async (planetId: string, params?: ViewParameters): Promise<void> => {
     await navigate({
-      to: '/poc/planet/$planetId',
+      to: '/planet/$planetId',
       params: { planetId },
       search: (prev: StarmapSearchParams) => ({ ...prev, ...params }),
       replace: false, // Major view transition: PUSH
@@ -50,7 +54,7 @@ export function useStarmapNav(): StarmapNavigator {
 
   const toReference = async (params?: ViewParameters): Promise<void> => {
     await navigate({
-      to: '/poc/reference',
+      to: '/guide/star-types',
       search: (prev: StarmapSearchParams) => ({ ...prev, ...params }),
       replace: false, // Major view transition: PUSH
     });
@@ -72,7 +76,13 @@ export function useStarmapNav(): StarmapNavigator {
     toSystem,
     toPlanet,
     toReference,
+    goToGalaxy: toGalaxy,
+    goToSystem: toSystem,
+    goToPlanet: toPlanet,
+    goToReference: toReference,
     updateParams,
     currentPath: router.state.location.pathname,
   };
 }
+
+export const useNavigationActions = useStarmapNav;

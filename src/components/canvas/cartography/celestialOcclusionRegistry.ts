@@ -243,6 +243,17 @@ export class CelestialOcclusionManager {
   private scratchCamSpaceVec = new THREE.Vector3();
   public lastEvaluationTime = 0;
 
+  private lastCamMatrixElements = new Float32Array(16);
+  private lastProjMatrixElements = new Float32Array(16);
+  private lastSizeWidth = -1;
+  private lastSizeHeight = -1;
+  private footprintsMutated = true;
+  private cameraOrFootprintsChangedThisFrame = true;
+
+  public didCameraOrFootprintsChange(): boolean {
+    return this.cameraOrFootprintsChangedThisFrame;
+  }
+
   /**
    * Returns true if a centralized batch pass (e.g. OcclusionPass) is actively evaluating projections.
    */
@@ -255,6 +266,37 @@ export class CelestialOcclusionManager {
    */
   public evaluate(camera: THREE.Camera, size: { width: number; height: number }): void {
     this.lastEvaluationTime = performance.now();
+
+    const camEls = camera.matrixWorldInverse.elements;
+    const projEls = camera.projectionMatrix.elements;
+    let camMoved =
+      size.width !== this.lastSizeWidth ||
+      size.height !== this.lastSizeHeight;
+
+    if (!camMoved) {
+      for (let i = 0; i < 16; i++) {
+        if (
+          Math.abs(camEls[i] - this.lastCamMatrixElements[i]) > 1e-6 ||
+          Math.abs(projEls[i] - this.lastProjMatrixElements[i]) > 1e-6
+        ) {
+          camMoved = true;
+          break;
+        }
+      }
+    }
+
+    if (!camMoved && !this.footprintsMutated && !this.gridDirty) {
+      this.cameraOrFootprintsChangedThisFrame = false;
+      return;
+    }
+
+    this.cameraOrFootprintsChangedThisFrame = true;
+    this.footprintsMutated = false;
+    this.lastSizeWidth = size.width;
+    this.lastSizeHeight = size.height;
+    this.lastCamMatrixElements.set(camEls);
+    this.lastProjMatrixElements.set(projEls);
+
     const zNear = ('near' in camera && typeof camera.near === 'number') ? camera.near : 0.1;
     for (const fp of this.footprints.values()) {
       if (!fp.worldPos) continue;
@@ -395,6 +437,7 @@ export class CelestialOcclusionManager {
 
     this.footprints.set(footprint.id, footprint);
     this.gridDirty = true;
+    this.footprintsMutated = true;
 
     if (significanceChanged) {
       this.updateSignificantFootprints();
@@ -411,6 +454,7 @@ export class CelestialOcclusionManager {
     const existing = this.footprints.get(id);
     this.footprints.delete(id);
     this.gridDirty = true;
+    this.footprintsMutated = true;
     if (existing) {
       if (existing.state === 'selected' || existing.state === 'focused') {
         this.updateSignificantFootprints();
@@ -429,6 +473,10 @@ export class CelestialOcclusionManager {
     this.significantFootprints = [];
     this.grid.clear();
     this.gridDirty = false;
+    this.footprintsMutated = true;
+    this.cameraOrFootprintsChangedThisFrame = true;
+    this.lastSizeWidth = -1;
+    this.lastSizeHeight = -1;
     this.updateStalkedSnapshot();
   }
 

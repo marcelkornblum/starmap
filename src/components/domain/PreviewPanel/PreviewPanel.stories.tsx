@@ -1,14 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { FocusedPreviewSummary } from '../../../services/detailsService';
 import { PreviewPanel } from './PreviewPanel';
+import { Stack } from '../../interface/layouts/Stack/Stack';
 
-const meta: Meta<typeof PreviewPanel> = {
-  title: 'Domain/PreviewPanel',
-  component: PreviewPanel,
-};
-
-export default meta;
-type Story = StoryObj<typeof PreviewPanel>;
+import storyStyles from '../domainStories.module.css';
 
 const systemPreviewFixture: FocusedPreviewSummary = {
   targetId: 'sol',
@@ -129,32 +124,84 @@ const structurePreviewFixture: FocusedPreviewSummary = {
   orbitElements: [],
 };
 
-export const SystemPreview: Story = {
-  args: {
-    preview: systemPreviewFixture,
+const FIXTURES_BY_KIND: Record<string, FocusedPreviewSummary> = {
+  system: systemPreviewFixture,
+  star: starPreviewFixture,
+  planet: planetPreviewFixture,
+  'minor-body': minorBodyPreviewFixture,
+  structure: structurePreviewFixture,
+};
+
+interface PreviewPanelStoryArgs {
+  focusedKind: 'system' | 'star' | 'planet' | 'minor-body' | 'structure';
+}
+
+const meta: Meta<PreviewPanelStoryArgs> = {
+  title: 'DOMAIN/Panels',
+  parameters: {
+    layout: 'centered',
+  },
+  argTypes: {
+    focusedKind: {
+      control: 'select',
+      options: ['system', 'star', 'planet', 'minor-body', 'structure'],
+      description: 'Entity classification of the focused celestial object',
+    },
   },
 };
 
-export const StarPreview: Story = {
-  args: {
-    preview: starPreviewFixture,
-  },
-};
+export default meta;
+type Story = StoryObj<PreviewPanelStoryArgs>;
 
-export const PlanetPreview: Story = {
+export const PreviewPanelStory: Story = {
+  name: 'PreviewPanel',
   args: {
-    preview: planetPreviewFixture,
+    focusedKind: 'system',
   },
-};
+  render: (args) => {
+    const fixture = FIXTURES_BY_KIND[args.focusedKind] ?? systemPreviewFixture;
 
-export const MinorBodyPreview: Story = {
-  args: {
-    preview: minorBodyPreviewFixture,
-  },
-};
+    return (
+      <div className={storyStyles.storyWrapper}>
+        <header className={storyStyles.header}>
+          <h1 className={storyStyles.title}>PreviewPanel</h1>
+          <p className={storyStyles.description}>
+            Interactive orbital schematic preview displaying concentric bodies, orbital rings, and habitable zone bounds.
+          </p>
+        </header>
 
-export const StructurePreview: Story = {
-  args: {
-    preview: structurePreviewFixture,
+        <Stack gap="loose">
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>
+              Interactive Preview ({args.focusedKind})
+            </h2>
+            <div className={storyStyles.panelContainer}>
+              <PreviewPanel preview={fixture} />
+            </div>
+          </section>
+
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>System Scope (Inner Planets)</h2>
+            <div className={storyStyles.panelContainer}>
+              <PreviewPanel preview={systemPreviewFixture} />
+            </div>
+          </section>
+
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>Planetary Sub-System (Earth-Moon)</h2>
+            <div className={storyStyles.panelContainer}>
+              <PreviewPanel preview={planetPreviewFixture} />
+            </div>
+          </section>
+
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>Minor Body Orbit (Ceres)</h2>
+            <div className={storyStyles.panelContainer}>
+              <PreviewPanel preview={minorBodyPreviewFixture} />
+            </div>
+          </section>
+        </Stack>
+      </div>
+    );
   },
 };

@@ -3,7 +3,6 @@ import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
 import { PlanetBody, getClassificationPalette } from '../src/components/canvas/entity/PlanetBody';
-import { PlanetBody as PocPlanetBody } from '../src/components/poc/canvas/scenes/PlanetBody';
 
 let capturedFrameCallback: ((state: any, delta: number) => void) | null = null;
 
@@ -134,9 +133,5 @@ describe('PlanetBody Component (Phase 4)', () => {
       }),
     );
     expect(htmlWithoutAtmosphere).not.toContain('name="planet-atmosphere"');
-  });
-
-  it('provides backwards-compatible re-export from POC canvas scenes', () => {
-    expect(PocPlanetBody).toBe(PlanetBody);
   });
 });

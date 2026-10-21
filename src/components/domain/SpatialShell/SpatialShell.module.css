@@ -1,0 +1,301 @@
+@layer blocks {
+  .spatialShell {
+    display: flex;
+    flex-direction: row;
+    inline-size: 100vw;
+    block-size: 100dvh;
+    overflow: hidden;
+    position: relative;
+    background-color: var(--surface-canvas-bg);
+    color: var(--content-default);
+  }
+
+  .stage {
+    flex: 1 1 auto;
+    position: relative;
+    inline-size: 100%;
+    block-size: 100%;
+    min-inline-size: 0;
+    overflow: hidden;
+  }
+
+  .canvasRegion {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    z-index: var(--layer-canvas);
+    pointer-events: auto;
+  }
+
+  .leftColumn {
+    position: absolute;
+    top: var(--space-fib-3);
+    bottom: calc(var(--space-fib-6) + var(--space-fib-4));
+    left: var(--space-fib-3);
+    width: min(400px, calc(100% - 280px));
+    z-index: var(--layer-panel);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+    pointer-events: none;
+  }
+
+  .topBar {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-fib-2);
+    pointer-events: none;
+  }
+
+  .breadcrumbsRegion {
+    pointer-events: auto;
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    background-color: var(--palette-surface-chassis-dark);
+    background: var(--surface-hud-bg);
+    border: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
+    box-shadow: var(--surface-hud-shadow);
+    padding: var(--space-fib-1) var(--space-fib-2);
+    border-radius: var(--radius-control);
+    box-sizing: border-box;
+  }
+
+  .breadcrumbsRegion:empty {
+    display: none;
+  }
+
+  .searchRegion {
+    pointer-events: auto;
+    inline-size: 100%;
+    background-color: var(--palette-surface-chassis-dark);
+    background: var(--surface-dock-bg);
+    border: var(--surface-dock-border-width) var(--surface-dock-border-style) var(--surface-dock-border-color);
+    box-shadow: var(--surface-dock-shadow);
+    padding: var(--space-fib-1) var(--space-fib-2);
+    border-radius: var(--radius-container);
+    box-sizing: border-box;
+  }
+
+  .searchRegion:empty {
+    display: none;
+  }
+
+  .layerCardRegion {
+    pointer-events: auto;
+    inline-size: 100%;
+  }
+
+  .layerCardRegion:empty {
+    display: none;
+  }
+
+  .topBarActions {
+    position: absolute;
+    top: var(--space-fib-3);
+    right: var(--space-fib-3);
+    z-index: var(--layer-modal);
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+  }
+
+  .floatingLeft {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-3);
+    overflow-y: auto;
+    pointer-events: none;
+  }
+
+  .floatingLeft > * {
+    pointer-events: auto;
+  }
+
+  .floatingLeft:empty {
+    display: none;
+  }
+
+  .controlsRegion {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    inline-size: 100%;
+    box-sizing: border-box;
+    z-index: var(--layer-hud);
+    pointer-events: auto;
+    background-color: var(--palette-surface-chassis-dark);
+    background: var(--surface-hud-bg);
+    border-block-start: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
+    box-shadow: var(--surface-hud-shadow);
+    padding: var(--space-fib-2) var(--space-fib-4);
+  }
+
+  .controlsRegion:empty {
+    display: none;
+  }
+
+  .minimapRegion {
+    position: absolute;
+    bottom: calc(var(--space-fib-6) + var(--space-fib-4));
+    right: var(--space-fib-4);
+    width: 260px;
+    max-height: 220px;
+    overflow: auto;
+    z-index: var(--layer-hud);
+    background-color: var(--palette-surface-chassis-dark);
+    background: var(--surface-hud-bg);
+    border: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
+    box-shadow: var(--surface-hud-shadow);
+    padding: var(--space-inset-panel-tight);
+    border-radius: var(--radius-container);
+    pointer-events: auto;
+  }
+
+  .minimapRegion:empty {
+    display: none;
+  }
+
+  .bodiesBackdrop {
+    display: none;
+  }
+
+  .bodiesRegion {
+    flex: 0 0 clamp(360px, 30vw, 480px);
+    width: clamp(360px, 30vw, 480px);
+    height: 100dvh;
+    overflow-y: auto;
+    background-color: var(--palette-surface-chassis-dark);
+    background: var(--surface-dock-bg);
+    border-inline-start: var(--surface-dock-border-width) var(--surface-dock-border-style) var(--surface-dock-border-color);
+    box-shadow: var(--surface-dock-shadow);
+    padding: var(--space-inset-panel);
+    box-sizing: border-box;
+    z-index: var(--layer-dock);
+  }
+}
+
+@layer exceptions {
+  /* Above Tablet (>= 1024px) */
+  @media (min-width: 1024px) {
+    .topBarActions {
+      display: none;
+    }
+  }
+
+  /* Tablet Portrait and Mobile (<= 1023px) */
+  @media (max-width: 1023px) {
+    .bodiesBackdrop[data-bodies-drawer-open="true"] {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background-color: var(--surface-scrim-bg);
+      z-index: var(--layer-panel);
+      pointer-events: auto;
+    }
+
+    .bodiesRegion {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(380px, 88vw);
+      height: 100dvh;
+      padding: var(--space-inset-panel);
+      padding-block-start: calc(var(--space-fib-6) + var(--space-fib-4));
+      background-color: var(--palette-surface-slab-dark);
+      background: var(--surface-drawer-bg);
+      border-inline-start: var(--surface-drawer-border-width) var(--surface-drawer-border-style) var(--surface-drawer-border-color);
+      box-shadow: var(--surface-drawer-shadow);
+      z-index: var(--layer-drawer);
+      transition: transform var(--motion-duration-feedback) var(--motion-ease-default);
+    }
+
+    .bodiesRegion[data-bodies-drawer-open="false"] {
+      transform: translateX(100%);
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .bodiesRegion[data-bodies-drawer-open="true"] {
+      transform: translateX(0);
+      visibility: visible;
+      pointer-events: auto;
+    }
+  }
+
+  /* Mobile (<= 767px) */
+  @media (max-width: 767px) {
+    .leftColumn {
+      top: var(--space-fib-2);
+      left: var(--space-fib-2);
+      right: var(--space-fib-2);
+      bottom: auto;
+      width: auto;
+      z-index: var(--layer-panel);
+    }
+
+    .topBar {
+      inline-size: 100%;
+      gap: var(--space-fib-1);
+    }
+
+    .breadcrumbsRegion {
+      padding: 2px var(--space-fib-2);
+      max-inline-size: calc(100% - 88px);
+    }
+
+    .searchRegion {
+      inline-size: 100%;
+    }
+
+    .topBarActions {
+      top: var(--space-fib-2);
+      right: var(--space-fib-2);
+    }
+
+    .controlsRegion {
+      padding: var(--space-fib-1) var(--space-fib-2);
+    }
+
+    .floatingLeft {
+      position: fixed;
+      top: auto;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      z-index: var(--layer-panel);
+      max-height: 36dvh;
+      overflow-y: auto;
+      padding: var(--space-fib-2);
+      background-color: var(--palette-surface-slab-dark);
+      background: var(--surface-panel-bg);
+      border-block-start: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
+      box-shadow: var(--surface-panel-shadow);
+      box-sizing: border-box;
+      pointer-events: auto;
+    }
+
+    .floatingLeft:has([data-detent="peek"]) {
+      max-height: 36dvh;
+    }
+
+    .floatingLeft:has([data-detent="partial"]) {
+      max-height: 58dvh;
+    }
+
+    .floatingLeft:has([data-detent="full"]) {
+      max-height: 85dvh;
+    }
+
+    .minimapRegion {
+      display: none;
+    }
+  }
+}

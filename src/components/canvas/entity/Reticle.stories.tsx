@@ -119,8 +119,8 @@ const TAXONOMY_ENTRIES: TaxonomyDef[] = [
   {
     id: 'tax-cluster',
     name: 'Stellar Cluster',
-    classification: 'cluster',
-    spectralType: 'cluster',
+    classification: 'stellar-cluster',
+    spectralType: 'stellar-cluster',
     multiplicity: 1,
     row: 1,
     col: 1,

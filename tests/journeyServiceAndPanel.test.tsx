@@ -23,7 +23,12 @@ import {
   buildJourneyPlan,
 } from '../src/services/journeyService';
 import { DetentSheet } from '../src/components/interface/surfaces/DetentSheet';
-import { DirectionsPanel } from '../src/components/domain/DirectionsPanel';
+import {
+  DirectionsPanel,
+  renderStructuredQuantity,
+} from '../src/components/domain/DirectionsPanel/DirectionsPanel';
+import { buildSystemBodiesSummary } from '../src/services/details/bodiesAndSchematics';
+import { buildFocusedEntityDetails } from '../src/services/details/focusedEntityDetails';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { SystemView } from '../src/views/SystemView';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
@@ -248,9 +253,10 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
 
       expect(plan.title).toBe('Sol → Tau Ceti');
       expect(plan.domain).toBe('interstellar');
-      expect(plan.totalDistanceLabel).toContain('ly');
-      expect(plan.totalCommsOneWayLabel).toContain('yr');
-      expect(plan.totalCommsRoundTripLabel).toContain('yr');
+      expect(plan.totalDistance?.unit).toBe('ly');
+      expect(plan.totalDistance?.value).toBe('11.8');
+      expect(plan.totalCommsOneWay?.unit).toBe('yr');
+      expect(plan.totalCommsRoundTrip?.unit).toBe('yr');
       expect(plan.options.length).toBeGreaterThanOrEqual(3);
       expect(plan.options.map((o) => o.id)).toContain('torchship-1g');
       expect(plan.options.map((o) => o.id)).toContain('antimatter-0.1c');
@@ -267,8 +273,9 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
 
       expect(plan.title).toBe('Earth → Mars');
       expect(plan.domain).toBe('intra-system');
-      expect(plan.totalDistanceLabel).toContain('AU');
-      expect(plan.totalCommsOneWayLabel).toContain('min');
+      expect(plan.totalDistance?.unit).toBe('AU');
+      expect(plan.totalDistance?.value).toBe('1.82');
+      expect(plan.totalCommsOneWay?.unit).toBe('min');
       expect(plan.options.map((o) => o.id)).toContain('torchship-1g');
       expect(plan.options.map((o) => o.id)).toContain('hohmann-transfer');
     });
@@ -302,7 +309,8 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
 
       expect(html).toContain('data-testid="directions-panel"');
       expect(html).toContain('data-detent="partial"');
-      expect(html).toContain('<h2 id="directions-panel-heading">Directions</h2>');
+      expect(html).toContain('id="directions-panel-heading"');
+      expect(html).toContain('Directions</h2>');
       expect(html).toContain('data-testid="directions-detent-peek"');
       expect(html).toContain('data-testid="directions-detent-partial"');
       expect(html).toContain('Route Overview');
@@ -321,13 +329,21 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
       expect(html).toContain('data-testid="directions-route-title"');
       expect(html).toContain('Sol → Tau Ceti');
       expect(html).toContain('data-testid="directions-total-distance"');
-      expect(html).toContain('data-testid="directions-comms-peek"');
+      expect(html).toContain('Total Distance');
+      expect(html).toContain('data-testid="directions-comms-peek">');
+      expect(html).toContain('One-Way Light Time');
+      expect(html).toContain('Round-Trip Comms Lag');
       expect(html).toContain('data-testid="directions-close-button"');
       expect(html).toContain('data-testid="directions-options-list"');
       expect(html).toContain('data-testid="directions-option-item"');
       expect(html).toContain('data-testid="directions-option-select"');
       expect(html).toContain('data-testid="directions-geometry-list"');
+      expect(html).toContain('data-data-table="true"');
+      expect(html).toContain('>Leg<');
+      expect(html).toContain('>Distance<');
+      expect(html).toContain('>Geometry<');
       expect(html).toContain('data-testid="directions-geometry-leg"');
+      expect(html).toContain('data-numeric="true"');
     });
 
     it('renders DirectionsPanel in Option Details mode when an option is selected', () => {
@@ -340,6 +356,9 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
       const html = renderToString(createElement(DirectionsPanel, { journey: plan }));
 
       expect(html).toContain('data-testid="directions-selected-option-title"');
+      expect(html).toContain('Option');
+      expect(html).toContain('Transit Time');
+      expect(html).toContain('data-testid="directions-selected-option-time"');
       expect(html).toContain('data-testid="directions-back-to-options"');
       expect(html).toContain('Back to options');
       expect(html).toContain('data-testid="directions-selected-option-summary"');
@@ -349,6 +368,28 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
       expect(html).toContain('data-testid="directions-option-coord-time"');
       expect(html).toContain('data-testid="directions-option-peak-velocity"');
       expect(html).toContain('data-testid="directions-option-gamma"');
+      // Tier 1 interface primitives
+      expect(html).toContain('data-testid="directions-stat-ship-time"');
+      expect(html).toContain('data-testid="directions-stat-coord-time"');
+      expect(html).toContain('data-testid="directions-stat-peak-velocity"');
+      expect(html).toContain('data-testid="directions-stat-lorentz-gamma"');
+      expect(html).toContain('data-datum="true"');
+      expect(html).toContain('data-quantity="true"');
+      expect(html).toContain('data-unit="true"');
+    });
+
+    it('renders structured quantities with Quantity and Unit components', () => {
+      const rendered = renderToString(
+        createElement(
+          'div',
+          null,
+          renderStructuredQuantity({ value: '18.6', unit: 'yr' }, 'test-qty'),
+        ),
+      );
+      expect(rendered).toContain('data-testid="test-qty"');
+      expect(rendered).toContain('data-quantity="true"');
+      expect(rendered).toContain('18.6');
+      expect(rendered).toContain('yr');
     });
 
     it('renders DirectionsPanel in Coming Soon gated mode for unsupported route', () => {
@@ -434,6 +475,96 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
 
       expect(html).toContain('data-testid="details-panel"');
       expect(html).not.toContain('data-testid="directions-panel"');
+    });
+  });
+
+  describe('Part 6: Strict Classifications and Structured Telemetry in Details Services', () => {
+    it('populates categoryKey on SystemElementBodyItem for moons, dwarf planets, spacecraft, and asteroids', () => {
+      const moonCorpus: CompactSearchEntry[] = [
+        ...SAMPLE_BENCHMARK_CORPUS,
+        { i: 'luna', n: 'Moon', k: 3, s: 'sol', o: 'earth', p: [0, 0, 0] },
+        { i: 'ceres', n: 'Ceres', k: 4, s: 'sol', p: [0, 0, 0] },
+        { i: 'voyager-1', n: 'Voyager 1', k: 6, s: 'sol', p: [0, 0, 0], u: 'construct' },
+      ];
+
+      const moonSummary = buildSystemBodiesSummary({
+        details: {
+          id: 'sol',
+          systemId: 'sol',
+          systemName: 'Sol',
+          stars: [],
+          planets: [],
+        } as any,
+        corpus: moonCorpus,
+      });
+
+      expect(moonSummary).not.toBeNull();
+      const luna = moonSummary?.moonsAndDwarfPlanets.find((m) => m.id === 'luna');
+      expect(luna?.categoryKey).toBe('moon');
+      expect(luna?.categoryLabel).toBe('Moon');
+
+      const ceres = moonSummary?.moonsAndDwarfPlanets.find((m) => m.id === 'ceres');
+      expect(ceres?.categoryKey).toBe('dwarf-planet');
+      expect(ceres?.categoryLabel).toBe('Dwarf Planet');
+
+      const voyager = moonSummary?.minorBodiesAndSpacecraft.find((m) => m.id === 'voyager-1');
+      expect(voyager?.categoryKey).toBe('spacecraft');
+      expect(voyager?.categoryLabel).toBe('Spacecraft');
+    });
+
+    it('populates minorBodyTelemetry.classification on focused minor bodies', () => {
+      const ceresCorpus: readonly CompactSearchEntry[] = [
+        ...SAMPLE_BENCHMARK_CORPUS,
+        { i: 'ceres', n: 'Ceres', k: 4, s: 'sol', p: [0, 0, 0] },
+      ];
+
+      const details = buildFocusedEntityDetails({
+        focusedEntity: {
+          id: 'ceres',
+          name: 'Ceres',
+          classification: 'asteroid',
+          position: [0, 0, 0],
+        } as any,
+        corpus: ceresCorpus,
+      });
+
+      expect(details?.focusedKind).toBe('minor-body');
+      if (details?.focusedKind === 'minor-body') {
+        expect(details.minorBodyTelemetry.classification).toBe('dwarf-planet');
+        expect(details.minorBodyTelemetry.categoryLabel).toBe('Dwarf Planet');
+      }
+    });
+
+    it('populates structureTelemetry.symbolType on focused deep-sky galactic structures', () => {
+      const details = buildFocusedEntityDetails({
+        focusedEntity: {
+          id: 'pleiades',
+          name: 'Pleiades',
+          classification: 'cluster',
+          position: [0, 0, 0],
+        } as any,
+        entityDetail: {
+          kind: 'structure',
+          record: {
+            id: 'pleiades',
+            name: 'Pleiades',
+            type: 'OpenCluster',
+            x: 0,
+            y: 0,
+            z: 0,
+            dist: 136,
+            radiusPc: 2.4,
+            designations: ['M45'],
+            description: 'Open cluster in Taurus.',
+          },
+        } as any,
+      });
+
+      expect(details?.focusedKind).toBe('structure');
+      if (details?.focusedKind === 'structure') {
+        expect(details.structureTelemetry.structureType).toBe('OpenCluster');
+        expect(details.structureTelemetry.symbolType).toBe('stellar-cluster');
+      }
     });
   });
 });

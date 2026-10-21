@@ -1,55 +1,49 @@
-.minimapPanel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
+@layer blocks {
+  .minimapPanel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+  }
 
-.viewportSlot {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
+  .srOnly {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
 
-.referenceFrame {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
+  .viewportSlot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-1);
+  }
 
-.telemetry {
-  margin: 0;
-  font-family: var(--font-interface);
-  font-size: var(--text-xs);
-  color: var(--content-secondary);
-}
+  .referenceFrame {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-fib-1);
+  }
 
-.markersList {
-  margin: 0;
-  padding-left: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  font-family: var(--font-interface);
-  font-size: var(--text-xs);
-}
+  .telemetry {
+    margin: 0;
+    font-family: var(--font-interface);
+    font-size: var(--type-scale-neg-1);
+    color: var(--content-muted);
+  }
 
-.markerItem {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
+  .markerLink {
+    color: var(--content-default);
+    text-decoration: none;
+  }
 
-.markerLink {
-  color: var(--content-primary);
-  text-decoration: none;
-}
-
-.markerLink:hover {
-  text-decoration: underline;
-}
-
-.markerRole {
-  color: var(--content-muted);
+  .markerLink:hover {
+    color: var(--content-prominent);
+    text-decoration: underline;
+  }
 }

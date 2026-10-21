@@ -3,11 +3,6 @@ import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
 import { GalaxyScene, SystemScene, PlanetScene } from '../src/components/canvas/scenes';
-import {
-  GalaxyScene as PocGalaxyScene,
-  SystemScene as PocSystemScene,
-  PlanetScene as PocPlanetScene,
-} from '../src/components/poc/canvas/scenes';
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
@@ -63,11 +58,5 @@ describe('Canonical Production Scenes (Phase 4)', () => {
     // Natural satellite (Luna)
     expect(html).toContain('name="celestial-entity-moon"');
     expect(html).toContain('name="orbital-ring-moon"');
-  });
-
-  it('maintains backwards-compatible re-exports from src/components/poc/canvas/scenes', () => {
-    expect(PocGalaxyScene).toBe(GalaxyScene);
-    expect(PocSystemScene).toBe(SystemScene);
-    expect(PocPlanetScene).toBe(PlanetScene);
   });
 });

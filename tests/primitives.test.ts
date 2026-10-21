@@ -16,7 +16,6 @@ import {
   Icon,
 } from '../src/components/interface/layout';
 import { Datum, Badge, ConfidencePip, Unit, Quantity } from '../src/components/interface/data';
-import { Metric } from '../src/components/poc/primitives/data';
 import {
   Button,
   Input,
@@ -216,23 +215,6 @@ describe('Tier 1: Data Primitives', () => {
     expect(html).toContain('e');
     expect(html).toContain('data-status="nominal"');
     expect(html).toContain('data-size="sm"');
-  });
-
-  it('renders Metric tile with trend and hero value', () => {
-    const html = renderToString(
-      createElement(Metric, {
-        label: 'Semi-Major Axis',
-        value: '1.000',
-        unit: 'AU',
-        trend: '+0.001 AU drift',
-        status: 'info',
-      })
-    );
-    expect(html).toContain('Semi-Major Axis');
-    expect(html).toContain('1.000');
-    expect(html).toContain('AU');
-    expect(html).toContain('+0.001 AU drift');
-    expect(html).toContain('data-status="info"');
   });
 
   it('renders Badge chip with status, category, and confidence metadata', () => {

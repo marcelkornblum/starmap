@@ -5,11 +5,18 @@ import {
   GuideSectionNav,
   StarTypeCombinator,
 } from '../components/domain';
-import { Badge } from '../components/interface';
+import {
+  Badge,
+  Button,
+  Datum,
+  Heading,
+  Stack,
+} from '../components/interface';
 import {
   STAR_TYPES_GUIDE_PATH,
   resolveStarTypeGuideEntry,
 } from '../services/guideService';
+import { useSpaLocation } from '../router';
 import styles from './GuideViews.module.css';
 
 export interface StarTypeDetailViewProps {
@@ -26,9 +33,7 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
   starType: propStarType,
   locationPathname,
 }) => {
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '');
+  const { pathname } = useSpaLocation(locationPathname, undefined, '');
   const resolvedStarType = propStarType ?? extractStarTypeFromPathname(pathname);
 
   const resolvedDetail = useMemo(
@@ -79,11 +84,16 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
         ]}
       />
       <GuideSectionNav currentSection="star-types" />
-      <h1>{resolvedStarType ? `Star Type: ${resolvedStarType}` : 'Star Type'}</h1>
+      <Heading as="h1">{resolvedStarType ? `Star Type: ${resolvedStarType}` : 'Star Type'}</Heading>
       <p>
-        <a href={STAR_TYPES_GUIDE_PATH} data-testid="star-types-list-link">
+        <Button
+          href={STAR_TYPES_GUIDE_PATH}
+          variant="subtle"
+          size="sm"
+          data-testid="star-types-list-link"
+        >
           All Star Types
-        </a>
+        </Button>
       </p>
 
       {resolvedDetail ? (
@@ -104,46 +114,35 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
 
             {resolvedDetail.decodedSubtype && (
               <section data-testid="star-type-decoded-subtype">
-                <h3>Decoded Yerkes Classification</h3>
-                <dl className={styles.telemetryDl}>
-                  <dt>Spectral Letter</dt>
-                  <dd>{resolvedDetail.decodedSubtype.spectralLetter}</dd>
+                <Heading as="h3">Decoded Yerkes Classification</Heading>
+                <Stack gap="none">
+                  <Datum label="Spectral Letter" value={resolvedDetail.decodedSubtype.spectralLetter} />
                   {resolvedDetail.decodedSubtype.subdivision && (
-                    <>
-                      <dt>Subdivision</dt>
-                      <dd>{resolvedDetail.decodedSubtype.subdivision}</dd>
-                    </>
+                    <Datum label="Subdivision" value={resolvedDetail.decodedSubtype.subdivision} />
                   )}
                   {resolvedDetail.decodedSubtype.luminosityClass && (
-                    <>
-                      <dt>Luminosity Class</dt>
-                      <dd>
-                        {resolvedDetail.decodedSubtype.luminosityClass}
-                        {resolvedDetail.decodedSubtype.luminosityLabel
-                          ? ` (${resolvedDetail.decodedSubtype.luminosityLabel})`
-                          : ''}
-                      </dd>
-                    </>
+                    <Datum
+                      label="Luminosity Class"
+                      value={
+                        resolvedDetail.decodedSubtype.luminosityLabel
+                          ? `${resolvedDetail.decodedSubtype.luminosityClass} (${resolvedDetail.decodedSubtype.luminosityLabel})`
+                          : resolvedDetail.decodedSubtype.luminosityClass
+                      }
+                    />
                   )}
-                </dl>
+                </Stack>
               </section>
             )}
 
-            <h3>Reference Telemetry Range</h3>
-            <dl data-testid="guide-detail-telemetry" className={styles.telemetryDl}>
-              <dt>Effective Temperature</dt>
-              <dd>{resolvedDetail.entry.effectiveTempRange}</dd>
-              <dt>Mass Range</dt>
-              <dd>{resolvedDetail.entry.massRangeMsun}</dd>
-              <dt>Radius Range</dt>
-              <dd>{resolvedDetail.entry.radiusRangeRsun}</dd>
-              <dt>Luminosity Range</dt>
-              <dd>{resolvedDetail.entry.luminosityRangeLsun}</dd>
-              <dt>Habitable Zone</dt>
-              <dd>{resolvedDetail.entry.habitableZoneAu}</dd>
-              <dt>Chromaticity</dt>
-              <dd>{resolvedDetail.entry.chromaticity}</dd>
-            </dl>
+            <Heading as="h3">Reference Telemetry Range</Heading>
+            <Stack gap="none" data-testid="guide-detail-telemetry">
+              <Datum label="Effective Temperature" value={resolvedDetail.entry.effectiveTempRange} />
+              <Datum label="Mass Range" value={resolvedDetail.entry.massRangeMsun} />
+              <Datum label="Radius Range" value={resolvedDetail.entry.radiusRangeRsun} />
+              <Datum label="Luminosity Range" value={resolvedDetail.entry.luminosityRangeLsun} />
+              <Datum label="Habitable Zone" value={resolvedDetail.entry.habitableZoneAu} />
+              <Datum label="Chromaticity" value={resolvedDetail.entry.chromaticity} />
+            </Stack>
           </section>
 
           <GuideExamplesList examples={resolvedDetail.entry.examples} />

@@ -20,8 +20,14 @@ Components are categorised into a strict four-tier hierarchy (`docs/design-syste
 
 ### Architectural Invariants
 - **Zero Outer Margins:** Components must never declare external `margin`, positioning offsets, or self-layout. Layout and flow are strictly owned by parent composition primitives.
+- **Semantic Interface Primitives Over Raw Strings & HTML:** Domain assemblies and views (`src/components/domain/`, `src/components/search/`, `src/views/`) must never render raw HTML controls (`<button>`, `<input>`, `<select>`), raw `<dl>`/`<ul>` telemetry lists, or ASCII punctuation workarounds (`[reticle]`, `' · a = '`, `(0 pc)`):
+  - **Telemetry Key/Value Pairs:** Always use `<Datum>` inside `<Stack gap="none">`.
+  - **Multi-Column Entity, Orbit & Step Lists:** Always use `<DataTable>`.
+  - **Magnitudes, Counts & Units:** Always use `<Quantity>` and `<Unit>` (including counts such as `0 hazards` or `4 planets`), fed by structured numeric/unit objects (`StructuredQuantity`) from services—never regex-split display strings in view components.
+  - **Regulated Classification Badges & Symbology:** Views must never manually assemble `<Badge>` with ad-hoc strings for celestial classifications, spectral classes, habitable zones, or hazards. Always use the regulated type-driven badge components (`<CelestialSymbol>`, `<CelestialBadge type={...} />`, `<SpectralBadge spectralType={...} />`, `<HazardBadge ... />`, and `<PlanetCensus ... />`) so every TypeScript classification union deterministically renders the canonical 1px SVG symbol, `<Tooltip>`, semantic colour token, and `/guide` link. Never wrap numeric counts (`0 hazards`, `0 confirmed planets`, `1 of 5`) or plain telemetry prose (`Free rotation`, `Outside optimistic zone`, hex codes) in `<Badge>`, and never include ASCII brackets `[...]` inside `<Badge>`.
+  - **Controls:** Always use `<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`, and `<Kbd>`.
 - **Presenter/Container Decoupling:** Presentation components (Tiers 1–3) must remain pure, deterministic, and decoupled from global stores or side-effects. Stateful orchestration and telemetry subscriptions belong exclusively in Tier 4 assemblies or dedicated container hooks.
-- **Testable Component Signatures:** Root presentation components must be cleanly inspectable and instantiable in non-DOM test environments without throwing unhandled hook or context errors.
+- **Semantic Component Testing:** Test components via `@testing-library/react` (`getByTestId`, `getByRole`) asserting on `data-*` attributes, ARIA roles/states, and normalised element text rather than brittle `renderToString` HTML substring matching.
 - **Production / Fixture Segregation:** Test fixtures, visual preview scaffolding, and Storybook decorators (such as `StoryCanvas`) must never reside within production component directories (`src/components/...`). They belong strictly in `.storybook/helpers/` or dedicated test utilities (`src/test-utils/`) to keep component packages pure and shippable.
 
 ---

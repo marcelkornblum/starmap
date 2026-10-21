@@ -14,9 +14,13 @@ export {
 export {
   SearchResultItem,
   formatPlanetCountSummary,
-  shouldDisplaySpectralBadge,
   type SearchResultItemProps,
 } from './SearchResultItem/SearchResultItem';
+export {
+  PlanetCensus,
+  type PlanetCensusProps,
+  type PlanetCensusBreakdownItem,
+} from './PlanetCensus';
 export {
   OrbitalSchematicItem,
   OrbitalSchematicList,
@@ -39,8 +43,14 @@ export {
 } from './ControlBar';
 export {
   CanvasLayer,
+  canMountWebGLCanvas,
+  _resetWebGLSupportedForTesting,
   type CanvasLayerProps,
 } from './CanvasLayer';
+export {
+  SpatialShell,
+  type SpatialShellProps,
+} from './SpatialShell';
 export {
   GuideSectionNav,
   type GuideSectionNavProps,

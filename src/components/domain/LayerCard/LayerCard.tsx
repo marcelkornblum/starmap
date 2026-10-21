@@ -1,7 +1,13 @@
 import React from 'react';
 import type { ActiveLayerCardModel } from '../../../services/layerCardService';
-import { Badge } from '../../interface/information';
-import { Cluster } from '../../interface/layouts/Cluster/Cluster';
+import {
+  Badge,
+  Button,
+  Cluster,
+  ConfidencePip,
+  Heading,
+  Quantity,
+} from '../../interface';
 import styles from './LayerCard.module.css';
 
 export interface LayerCardProps {
@@ -38,29 +44,34 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
             >
               {card.kindLabel}
             </Badge>
-            <a
+            <Button
               href={card.closeHref}
               data-testid="layer-card-close"
               aria-label="Close layer card"
+              size="sm"
+              variant="subtle"
               className={styles.closeButton}
             >
               ×
-            </a>
+            </Button>
           </Cluster>
         </header>
 
-        <h3 data-testid="layer-card-title" className={styles.title}>
+        <Heading as="h3" data-testid="layer-card-title" className={styles.title}>
           {card.title}
-        </h3>
+        </Heading>
 
         <p data-testid="layer-card-description" className={styles.description}>
           {card.description}
         </p>
 
         <Cluster justify="between" align="center">
-          <span data-testid="layer-card-count" className={styles.count}>
-            {card.itemCount} {card.itemCount === 1 ? 'entry' : 'entries'}
-          </span>
+          <Quantity
+            data-testid="layer-card-count"
+            className={styles.count}
+            value={card.itemCount}
+            unit={card.itemCount === 1 ? 'entry' : 'entries'}
+          />
           {card.source?.url ? (
             <a
               href={card.source.url}
@@ -75,15 +86,17 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
         </Cluster>
 
         <footer className={styles.footer}>
-          <a
+          <Button
             href={card.startHref}
             data-testid="layer-card-start"
+            size="sm"
+            variant="primary"
             className={styles.actionButton}
           >
             {card.firstItemTitle
               ? `Explore: ${card.firstItemTitle} →`
               : 'Explore Layer →'}
-          </a>
+          </Button>
         </footer>
       </aside>
     );
@@ -109,32 +122,50 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
               {card.layerTitle}
             </a>
             <span className={styles.divider}>/</span>
-            <span data-testid="layer-card-step" className={styles.step}>
-              {card.stepIndex} of {card.totalItems}
-            </span>
+            <Quantity
+              data-testid="layer-card-step"
+              className={styles.step}
+              value={card.stepIndex}
+              unit={`of ${card.totalItems}`}
+            />
           </Cluster>
-          <a
+          <Button
             href={card.closeHref}
             data-testid="layer-card-close"
             aria-label="Close layer card"
+            size="sm"
+            variant="subtle"
             className={styles.closeButton}
           >
             ×
-          </a>
+          </Button>
         </Cluster>
       </header>
 
-      <h3 data-testid="layer-card-title" className={styles.title}>
+      <Heading as="h3" data-testid="layer-card-title" className={styles.title}>
         {card.itemTitle}
-      </h3>
+      </Heading>
 
       <p data-testid="layer-card-text" className={styles.text}>
         {card.text}
       </p>
 
       {card.confidence ? (
-        <div data-testid="layer-card-confidence" className={styles.confidenceRow}>
-          <Badge status="neutral">{card.confidence}</Badge>
+        <div className={styles.confidenceRow}>
+          <Cluster gap="dense" align="center" data-testid="layer-card-confidence">
+            <ConfidencePip confidence={card.confidence} size="sm" />
+            <Badge
+              confidence={
+                card.confidence === 'confirmed'
+                  ? 'confirmed'
+                  : card.confidence === 'candidate'
+                    ? 'candidate'
+                    : 'projected'
+              }
+            >
+              {card.confidence}
+            </Badge>
+          </Cluster>
         </div>
       ) : null}
 
@@ -158,20 +189,24 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
 
       <footer className={styles.footer}>
         <Cluster justify="between" align="center">
-          <a
+          <Button
             href={card.prevHref}
             data-testid="layer-card-prev"
+            size="sm"
+            variant="subtle"
             className={styles.navButton}
           >
             ← {card.prevLabel}
-          </a>
-          <a
+          </Button>
+          <Button
             href={card.nextHref}
             data-testid="layer-card-next"
+            size="sm"
+            variant="subtle"
             className={styles.navButton}
           >
             {card.nextLabel} →
-          </a>
+          </Button>
         </Cluster>
       </footer>
     </aside>

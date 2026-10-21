@@ -46,6 +46,11 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
   const bearingCoreMatRef = useRef<THREE.LineBasicMaterial>(null);
   const bearingOrbitalRef = useRef<THREE.LineSegments>(null);
   const bearingOrbitalMatRef = useRef<THREE.LineBasicMaterial>(null);
+  const lastOrbitalDashRef = useRef<{
+    extent: number;
+    centerDist: number;
+    scale: number;
+  }>({ extent: -1, centerDist: -1, scale: -1 });
 
   // Unit axis spokes: -X, -Y, +Z, -Z
   const spokeGeoms = useMemo(() => {
@@ -175,18 +180,27 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
 
       if (orbitalProximityFade > 1e-4) {
         const invScale = screenScale;
-
-        const vCount = populateCurvedDashedLineBuffer(
-          orbitalBuffer,
-          extent,
-          effectiveCenterDistance,
-          1,
-          0.18 * invScale,
-          0.12 * invScale,
-        );
-        const posAttr = orbitalGeom.getAttribute('position') as THREE.BufferAttribute;
-        posAttr.needsUpdate = true;
-        orbitalGeom.setDrawRange(0, vCount);
+        const prevDash = lastOrbitalDashRef.current;
+        if (
+          Math.abs(prevDash.extent - extent) > 1e-4 ||
+          Math.abs(prevDash.centerDist - effectiveCenterDistance) > 1e-4 ||
+          Math.abs(prevDash.scale - invScale) > 1e-4
+        ) {
+          prevDash.extent = extent;
+          prevDash.centerDist = effectiveCenterDistance;
+          prevDash.scale = invScale;
+          const vCount = populateCurvedDashedLineBuffer(
+            orbitalBuffer,
+            extent,
+            effectiveCenterDistance,
+            1,
+            0.18 * invScale,
+            0.12 * invScale,
+          );
+          const posAttr = orbitalGeom.getAttribute('position') as THREE.BufferAttribute;
+          posAttr.needsUpdate = true;
+          orbitalGeom.setDrawRange(0, vCount);
+        }
       }
     }
   });

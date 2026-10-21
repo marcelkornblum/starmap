@@ -90,6 +90,9 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   const scratchV4 = useRef<THREE.Vector4>(new THREE.Vector4());
   const scratchTargetCoords = useRef<[number, number]>([0, 0]);
   const lastTransform = useRef<string>('');
+  const lastX = useRef<number>(Number.NaN);
+  const lastY = useRef<number>(Number.NaN);
+  const lastCenter = useRef<boolean | null>(null);
   const lastZIndex = useRef<number | null>(null);
   const lastVisible = useRef<boolean | null>(null);
 
@@ -195,6 +198,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
 
     if (!isVisible) return;
 
+    const ndc = scratchNdc.current;
     let x = 0;
     let y = 0;
 
@@ -215,16 +219,20 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
         y = scratchTargetCoords.current[1];
       }
     } else {
-      const ndc = scratchNdc.current.copy(scratchPos.current).project(camera);
+      ndc.copy(scratchPos.current).project(camera);
       x = ((ndc.x + 1) * size.width) / 2;
       y = ((-ndc.y + 1) * size.height) / 2;
     }
 
-    const transform = center
-      ? `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0) translate3d(-50%, -50%, 0)`
-      : `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
-
-    if (lastTransform.current !== transform) {
+    const qX = Math.round(x);
+    const qY = Math.round(y);
+    if (lastX.current !== qX || lastY.current !== qY || lastCenter.current !== center) {
+      lastX.current = qX;
+      lastY.current = qY;
+      lastCenter.current = center;
+      const transform = center
+        ? `translate3d(${qX}px, ${qY}px, 0) translate3d(-50%, -50%, 0)`
+        : `translate3d(${qX}px, ${qY}px, 0)`;
       lastTransform.current = transform;
       activeContainer.style.transform = transform;
     }

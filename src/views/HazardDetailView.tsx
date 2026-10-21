@@ -5,11 +5,18 @@ import {
   GuideExamplesList,
   GuideSectionNav,
 } from '../components/domain';
-import { Badge } from '../components/interface';
+import {
+  Badge,
+  Button,
+  Datum,
+  Heading,
+  Stack,
+} from '../components/interface';
 import {
   HAZARDS_GUIDE_PATH,
   resolveHazardGuideEntry,
 } from '../services/guideService';
+import { useSpaLocation } from '../router';
 import styles from './GuideViews.module.css';
 
 export interface HazardDetailViewProps {
@@ -26,9 +33,7 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
   hazardId: propHazardId,
   locationPathname,
 }) => {
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '');
+  const { pathname } = useSpaLocation(locationPathname, undefined, '');
   const resolvedHazardId =
     propHazardId ?? extractHazardFromPathname(pathname);
 
@@ -51,11 +56,11 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
         ]}
       />
       <GuideSectionNav currentSection="hazards" />
-      <h1>{entry ? `Environmental Hazard: ${entry.title}` : 'Environmental Hazard'}</h1>
+      <Heading as="h1">{entry ? `Environmental Hazard: ${entry.title}` : 'Environmental Hazard'}</Heading>
       <p>
-        <a href={HAZARDS_GUIDE_PATH} data-testid="hazards-list-link">
+        <Button href={HAZARDS_GUIDE_PATH} variant="subtle" size="sm" data-testid="hazards-list-link">
           All Environmental Hazards
-        </a>
+        </Button>
       </p>
 
       {entry ? (
@@ -78,25 +83,20 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
 
             <p data-testid="guide-detail-summary">{entry.summary}</p>
 
-            <h3>Hazard Parameters & Operational Impact</h3>
-            <dl data-testid="guide-detail-telemetry" className={styles.telemetryDl}>
-              <dt>Scope</dt>
-              <dd>{entry.domainLabel}</dd>
-              <dt>Severity Tier</dt>
-              <dd>
-                {entry.severity === 'critical'
+            <Heading as="h3">Hazard Parameters & Operational Impact</Heading>
+            <Stack gap="none" data-testid="guide-detail-telemetry">
+              <Datum label="Scope" value={entry.domainLabel} />
+              <Datum
+                label="Severity Tier"
+                value={entry.severity === 'critical'
                   ? 'Critical Hazard'
                   : 'Operational Warning'}
-              </dd>
-              <dt>Trigger Threshold</dt>
-              <dd>{entry.thresholdCriteria}</dd>
-              <dt>Physical Mechanism</dt>
-              <dd>{entry.physicalMechanism}</dd>
-              <dt>Operational Impact</dt>
-              <dd>{entry.operationalImpact}</dd>
-              <dt>Mitigation</dt>
-              <dd>{entry.mitigationNotes}</dd>
-            </dl>
+              />
+              <Datum label="Trigger Threshold" value={entry.thresholdCriteria} />
+              <Datum label="Physical Mechanism" value={entry.physicalMechanism} />
+              <Datum label="Operational Impact" value={entry.operationalImpact} />
+              <Datum label="Mitigation" value={entry.mitigationNotes} />
+            </Stack>
           </section>
 
           <GuideExamplesList examples={entry.examples} />

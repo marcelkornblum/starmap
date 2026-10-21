@@ -255,20 +255,23 @@ async function ensureDevServer(baseUrl: string, port: number): Promise<ChildProc
 export async function runCapture(options: CaptureOptions): Promise<CapturedScreenshot[]> {
   fs.mkdirSync(options.outDir, { recursive: true });
   let spawnedServer: ChildProcess | null = null;
-  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
   const results: CapturedScreenshot[] = [];
 
-  try {
-    spawnedServer = await ensureDevServer(options.baseUrl, options.port);
-    browser = await chromium.launch({
+  const launchBrowser = () =>
+    chromium.launch({
       headless: true,
       args: [
         '--use-gl=angle',
         '--use-angle=swiftshader',
         '--enable-webgl',
         '--ignore-gpu-blocklist',
+        '--disable-dev-shm-usage',
+        '--no-sandbox',
       ],
     });
+
+  try {
+    spawnedServer = await ensureDevServer(options.baseUrl, options.port);
 
     for (const route of options.routes) {
       const routeSlug = slugifyRoute(route);
@@ -277,37 +280,44 @@ export async function runCapture(options: CaptureOptions): Promise<CapturedScree
         : `${options.baseUrl}${route.startsWith('/') ? route : `/${route}`}`;
       const lanUrl = formatLanUrl(options.lanHost, options.port, route);
 
-      for (const viewport of STANDARD_VIEWPORTS) {
-        const context = await browser.newContext({
-          viewport: { width: viewport.width, height: viewport.height },
-          deviceScaleFactor: viewport.deviceScaleFactor ?? 1,
-        });
-        const page = await context.newPage();
+      const browser = await launchBrowser();
+      try {
+        for (const viewport of STANDARD_VIEWPORTS) {
+          const context = await browser.newContext({
+            viewport: { width: viewport.width, height: viewport.height },
+            deviceScaleFactor: viewport.deviceScaleFactor ?? 1,
+          });
+          const page = await context.newPage();
 
-        await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 30_000 });
-        if (options.waitMs > 0) {
-          await page.waitForTimeout(options.waitMs);
+          await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 30_000 });
+          if (options.waitMs > 0) {
+            await page.waitForTimeout(options.waitMs);
+          }
+
+          const fileName = `${routeSlug}__${viewport.id}.png`;
+          const filePath = path.join(options.outDir, fileName);
+          await page.screenshot({
+            path: filePath,
+            fullPage: false,
+            animations: 'disabled',
+            timeout: 20_000,
+          });
+
+          results.push({
+            route,
+            routeSlug,
+            lanUrl,
+            viewport,
+            filePath,
+          });
+
+          await context.close();
         }
-
-        const fileName = `${routeSlug}__${viewport.id}.png`;
-        const filePath = path.join(options.outDir, fileName);
-        await page.screenshot({ path: filePath, fullPage: false });
-
-        results.push({
-          route,
-          routeSlug,
-          lanUrl,
-          viewport,
-          filePath,
-        });
-
-        await context.close();
+      } finally {
+        await browser.close();
       }
     }
   } finally {
-    if (browser) {
-      await browser.close();
-    }
     if (spawnedServer) {
       spawnedServer.kill('SIGTERM');
     }

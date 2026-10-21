@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
-import type { JourneyPlan } from '../../../services/journeyService';
+import React, { useState, type ReactNode } from 'react';
+import type { JourneyPlan, StructuredQuantity } from '../../../services/journeyService';
 import { DetentSheet, type DetentLevel } from '../../interface/surfaces/DetentSheet';
-import { Badge } from '../../interface/information';
+import {
+  Badge,
+  Button,
+  Cluster,
+  DataTable,
+  Datum,
+  Heading,
+  Quantity,
+  Stack,
+  Unit,
+} from '../../interface';
 import styles from './DirectionsPanel.module.css';
 
 export interface DirectionsPanelProps {
@@ -9,6 +19,58 @@ export interface DirectionsPanelProps {
   readonly activeDetent?: DetentLevel;
   readonly className?: string;
   readonly onOptionSelect?: (optionId: string | null) => void;
+}
+
+export function renderStructuredQuantity(
+  q: StructuredQuantity | undefined | null,
+  testId?: string,
+): ReactNode {
+  if (!q) return null;
+  const unitText =
+    q.secondaryValue !== undefined && q.secondaryUnit
+      ? `${q.unit ? `${q.unit} ` : ''}(${q.secondaryValue} ${q.secondaryUnit})`.trim()
+      : q.unit;
+
+  return (
+    <Quantity
+      data-testid={testId}
+      value={q.value}
+      unit={unitText ? <Unit>{unitText}</Unit> : undefined}
+    />
+  );
+}
+
+function renderDirectionsDatum(
+  label: string,
+  quantityOrStr: StructuredQuantity | string | undefined | null,
+  statTestId: string,
+  legacyTestId?: string,
+): ReactNode {
+  if (!quantityOrStr) return null;
+  if (typeof quantityOrStr === 'string') {
+    return (
+      <Datum
+        label={label}
+        value={quantityOrStr}
+        valueTestId={statTestId}
+        data-testid={legacyTestId}
+      />
+    );
+  }
+  const unitText =
+    quantityOrStr.secondaryValue !== undefined && quantityOrStr.secondaryUnit
+      ? `${quantityOrStr.unit ? `${quantityOrStr.unit} ` : ''}(${quantityOrStr.secondaryValue} ${quantityOrStr.secondaryUnit})`.trim()
+      : quantityOrStr.unit;
+
+  return (
+    <Datum
+      label={label}
+      value={quantityOrStr.value}
+      unit={unitText ? <Unit>{unitText}</Unit> : undefined}
+      valueTestId={statTestId}
+      data-testid={legacyTestId}
+    />
+  );
 }
 
 /**
@@ -59,9 +121,9 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
           {journey.title}
         </strong>
         {isComingSoon ? (
-          <span data-testid="directions-coming-soon" className={styles.comingSoonBadge}>
+          <Badge status="caution" data-testid="directions-coming-soon">
             Coming soon
-          </span>
+          </Badge>
         ) : isDetailMode && selectedOption ? (
           <Badge status="info">{selectedOption.methodBadge}</Badge>
         ) : null}
@@ -70,34 +132,48 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
       {isComingSoon ? (
         <p className={styles.comingSoonText}>{journey.statusReason}</p>
       ) : isDetailMode && selectedOption ? (
-        <div>
-          <span
-            data-testid="directions-selected-option-title"
-            className={styles.optionSelectLink}
-          >
-            {selectedOption.title}
-          </span>
-          {' · '}
-          <span data-testid="directions-selected-option-time">
-            {selectedOption.topSummaryTime}
-          </span>
-        </div>
+        <Stack gap="none">
+          <Datum
+            label="Option"
+            valueTestId="directions-selected-option-title"
+            value={selectedOption.title}
+          />
+          <Datum
+            label="Transit Time"
+            value={renderStructuredQuantity(
+              selectedOption.topSummaryTime,
+              'directions-selected-option-time',
+            )}
+          />
+        </Stack>
       ) : (
-        <div>
-          <span data-testid="directions-total-distance">
-            {journey.totalDistanceLabel}
-          </span>
-          {' · '}
-          <span data-testid="directions-comms-peek">
-            {`One-way light time: ${journey.totalCommsOneWayLabel} · Round-trip comms lag: ${journey.totalCommsRoundTripLabel}`}
-          </span>
-        </div>
+        <Stack gap="none">
+          <Datum
+            label="Total Distance"
+            value={renderStructuredQuantity(
+              journey.totalDistance,
+              'directions-total-distance',
+            )}
+          />
+          <div data-testid="directions-comms-peek">
+            <Datum
+              label="One-Way Light Time"
+              value={renderStructuredQuantity(journey.totalCommsOneWay)}
+            />
+            <Datum
+              label="Round-Trip Comms Lag"
+              value={renderStructuredQuantity(journey.totalCommsRoundTrip)}
+            />
+          </div>
+        </Stack>
       )}
 
-      <div data-testid="directions-actions" className={styles.actions}>
+      <Cluster gap="dense" data-testid="directions-actions" className={styles.actions}>
         {isDetailMode ? (
-          <a
+          <Button
             href={journey.clearOptionHref}
+            size="sm"
+            variant="subtle"
             data-testid="directions-back-to-options"
             className={styles.actionButton}
             onClick={(e) => {
@@ -109,16 +185,18 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
             }}
           >
             Back to options
-          </a>
+          </Button>
         ) : null}
-        <a
+        <Button
           href={journey.closeHref}
+          size="sm"
+          variant="default"
           data-testid="directions-close-button"
           className={styles.closeLink}
         >
           Close
-        </a>
-      </div>
+        </Button>
+      </Cluster>
     </div>
   );
 
@@ -127,7 +205,9 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
   // --------------------------------------------------------------------------
   const partialContent = isComingSoon ? (
     <div data-testid="directions-coming-soon" className={styles.comingSoonSection}>
-      <h4>Directions coming soon</h4>
+      <Heading as="h4" size="eyebrow">
+        Directions coming soon
+      </Heading>
       <p className={styles.comingSoonText}>{journey.statusReason}</p>
     </div>
   ) : isDetailMode && selectedOption ? (
@@ -144,62 +224,68 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
         aria-labelledby="directions-profile-heading"
         className={styles.telemetrySection}
       >
-        <h4 id="directions-profile-heading" className={styles.telemetryHeading}>
+        <Heading
+          as="h4"
+          size="eyebrow"
+          id="directions-profile-heading"
+          className={styles.telemetryHeading}
+        >
           Flight Profile
-        </h4>
-        <dl
+        </Heading>
+        <Stack
+          gap="none"
           data-testid="directions-option-telemetry-list"
           className={styles.telemetryList}
         >
-          <dt>Ship Time (Proper)</dt>
-          <dd data-testid="directions-option-ship-time">
-            {selectedOption.stats.shipTimeLabel}
-          </dd>
-          <dt>Coordinate Time</dt>
-          <dd data-testid="directions-option-coord-time">
-            {selectedOption.stats.coordinateTimeLabel}
-          </dd>
-          <dt>Peak Velocity</dt>
-          <dd data-testid="directions-option-peak-velocity">
-            {selectedOption.stats.peakVelocityLabel}
-          </dd>
-          {selectedOption.stats.lorentzFactorLabel ? (
-            <>
-              <dt>Time Dilation (γ)</dt>
-              <dd data-testid="directions-option-gamma">
-                {selectedOption.stats.lorentzFactorLabel}
-              </dd>
-            </>
-          ) : null}
-          {selectedOption.stats.turnaroundPointLabel ? (
-            <>
-              <dt>Turnaround Point</dt>
-              <dd data-testid="directions-option-turnaround">
-                {selectedOption.stats.turnaroundPointLabel}
-              </dd>
-            </>
-          ) : null}
-          {selectedOption.stats.deltaVLabel ? (
-            <>
-              <dt>Delta-V</dt>
-              <dd data-testid="directions-option-deltav">
-                {selectedOption.stats.deltaVLabel}
-              </dd>
-            </>
-          ) : null}
-          {selectedOption.stats.synodicPeriodLabel ? (
-            <>
-              <dt>Synodic Period</dt>
-              <dd data-testid="directions-option-synodic">
-                {selectedOption.stats.synodicPeriodLabel}
-              </dd>
-            </>
-          ) : null}
-          <dt>Propulsion</dt>
-          <dd data-testid="directions-option-propulsion">
-            {selectedOption.stats.propulsionProfile}
-          </dd>
-        </dl>
+          {renderDirectionsDatum(
+            'Ship Time (Proper)',
+            selectedOption.stats.shipTime,
+            'directions-stat-ship-time',
+            'directions-option-ship-time',
+          )}
+          {renderDirectionsDatum(
+            'Coordinate Time',
+            selectedOption.stats.coordinateTime,
+            'directions-stat-coord-time',
+            'directions-option-coord-time',
+          )}
+          {renderDirectionsDatum(
+            'Peak Velocity',
+            selectedOption.stats.peakVelocity,
+            'directions-stat-peak-velocity',
+            'directions-option-peak-velocity',
+          )}
+          {renderDirectionsDatum(
+            'Time Dilation (γ)',
+            selectedOption.stats.lorentzFactor,
+            'directions-stat-lorentz-gamma',
+            'directions-option-gamma',
+          )}
+          {renderDirectionsDatum(
+            'Turnaround Point',
+            selectedOption.stats.turnaroundPoint,
+            'directions-stat-turnaround',
+            'directions-option-turnaround',
+          )}
+          {renderDirectionsDatum(
+            'Delta-V',
+            selectedOption.stats.deltaV,
+            'directions-stat-delta-v',
+            'directions-option-deltav',
+          )}
+          {renderDirectionsDatum(
+            'Synodic Period',
+            selectedOption.stats.synodicPeriod,
+            'directions-stat-synodic-period',
+            'directions-option-synodic',
+          )}
+          {renderDirectionsDatum(
+            'Propulsion',
+            selectedOption.stats.propulsionProfile,
+            'directions-stat-propulsion',
+            'directions-option-propulsion',
+          )}
+        </Stack>
       </section>
     </div>
   ) : (
@@ -214,8 +300,10 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
           >
             <div className={styles.optionHeader}>
               <Badge status="info">{option.methodBadge}</Badge>
-              <a
+              <Button
                 href={option.selectHref}
+                size="sm"
+                variant="subtle"
                 data-testid="directions-option-select"
                 className={styles.optionSelectLink}
                 onClick={(e) => {
@@ -227,12 +315,12 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
                 }}
               >
                 {option.title}
-              </a>
+              </Button>
               <span
                 data-testid="directions-option-time"
                 className={styles.optionTime}
               >
-                {option.topSummaryTime}
+                {renderStructuredQuantity(option.topSummaryTime)}
               </span>
             </div>
             <p
@@ -249,24 +337,35 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
         aria-labelledby="directions-geometry-heading"
         className={styles.telemetrySection}
       >
-        <h4 id="directions-geometry-heading" className={styles.telemetryHeading}>
+        <Heading
+          as="h4"
+          size="eyebrow"
+          id="directions-geometry-heading"
+          className={styles.telemetryHeading}
+        >
           Route Geometry
-        </h4>
-        <ol
+        </Heading>
+        <DataTable
           data-testid="directions-geometry-list"
           className={styles.geometryList}
         >
-          {journey.steps.map((step) => (
-            <li
-              key={step.id}
-              data-testid="directions-geometry-leg"
-              className={styles.geometryItem}
-            >
-              <span>{`${step.from.name} → ${step.to.name}`}</span>
-              <span>{`${step.primaryDistanceLabel} (${step.secondaryGeometryLabel})`}</span>
-            </li>
-          ))}
-        </ol>
+          <DataTable.Head>
+            <DataTable.HeaderCell>Leg</DataTable.HeaderCell>
+            <DataTable.HeaderCell align="end">Distance</DataTable.HeaderCell>
+            <DataTable.HeaderCell>Geometry</DataTable.HeaderCell>
+          </DataTable.Head>
+          <DataTable.Body>
+            {journey.steps.map((step) => (
+              <DataTable.Row key={step.id} data-testid="directions-geometry-leg">
+                <DataTable.Cell>{`${step.from.name} → ${step.to.name}`}</DataTable.Cell>
+                <DataTable.Cell numeric>
+                  {renderStructuredQuantity(step.primaryDistance)}
+                </DataTable.Cell>
+                <DataTable.Cell>{step.secondaryGeometryLabel}</DataTable.Cell>
+              </DataTable.Row>
+            ))}
+          </DataTable.Body>
+        </DataTable>
       </section>
     </div>
   );
@@ -283,9 +382,14 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
       aria-labelledby="directions-flight-steps-heading"
       className={styles.telemetrySection}
     >
-      <h4 id="directions-flight-steps-heading" className={styles.telemetryHeading}>
+      <Heading
+        as="h4"
+        size="eyebrow"
+        id="directions-flight-steps-heading"
+        className={styles.telemetryHeading}
+      >
         Transit Steps & Timings
-      </h4>
+      </Heading>
       <ol data-testid="directions-steps-list" className={styles.stepsList}>
         {selectedOption.stepMetrics.map((stepMetric) => (
           <li
@@ -293,22 +397,35 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
             data-testid="directions-step-item"
             className={styles.stepItem}
           >
-            <h5 className={styles.stepHeading}>
+            <Heading as="h5" size="eyebrow" className={styles.stepHeading}>
               {`${stepMetric.fromName} → ${stepMetric.toName}`}
-            </h5>
-            <dl
+            </Heading>
+            <Stack
+              gap="none"
               data-testid="directions-step-metrics-list"
               className={styles.stepMetricsList}
             >
-              <dt>Distance</dt>
-              <dd>{stepMetric.distanceLabel}</dd>
-              <dt>Ship Time</dt>
-              <dd>{stepMetric.shipTimeLabel}</dd>
-              <dt>Coordinate Time</dt>
-              <dd>{stepMetric.coordinateTimeLabel}</dd>
-              <dt>One-Way Comms</dt>
-              <dd>{stepMetric.oneWayCommsLabel}</dd>
-            </dl>
+              {renderDirectionsDatum(
+                'Distance',
+                stepMetric.distance,
+                'directions-stat-distance',
+              )}
+              {renderDirectionsDatum(
+                'Ship Time',
+                stepMetric.shipTime,
+                'directions-stat-ship-time',
+              )}
+              {renderDirectionsDatum(
+                'Coordinate Time',
+                stepMetric.coordinateTime,
+                'directions-stat-coord-time',
+              )}
+              {renderDirectionsDatum(
+                'One-Way Comms',
+                stepMetric.oneWayComms,
+                'directions-stat-comms-one-way',
+              )}
+            </Stack>
           </li>
         ))}
       </ol>
@@ -318,9 +435,14 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
       aria-labelledby="directions-all-steps-heading"
       className={styles.telemetrySection}
     >
-      <h4 id="directions-all-steps-heading" className={styles.telemetryHeading}>
+      <Heading
+        as="h4"
+        size="eyebrow"
+        id="directions-all-steps-heading"
+        className={styles.telemetryHeading}
+      >
         Step Details
-      </h4>
+      </Heading>
       <ol data-testid="directions-steps-list" className={styles.stepsList}>
         {journey.steps.map((step) => (
           <li
@@ -328,22 +450,35 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
             data-testid="directions-step-item"
             className={styles.stepItem}
           >
-            <h5 className={styles.stepHeading}>
+            <Heading as="h5" size="eyebrow" className={styles.stepHeading}>
               {`${step.from.name} → ${step.to.name}`}
-            </h5>
-            <dl
+            </Heading>
+            <Stack
+              gap="none"
               data-testid="directions-step-metrics-list"
               className={styles.stepMetricsList}
             >
-              <dt>Distance</dt>
-              <dd>{step.primaryDistanceLabel}</dd>
-              <dt>Geometry</dt>
-              <dd>{step.secondaryGeometryLabel}</dd>
-              <dt>One-Way Comms</dt>
-              <dd>{step.oneWayLightTimeLabel}</dd>
-              <dt>Round-Trip Comms</dt>
-              <dd>{step.roundTripLightTimeLabel}</dd>
-            </dl>
+              {renderDirectionsDatum(
+                'Distance',
+                step.primaryDistance,
+                'directions-stat-distance',
+              )}
+              {renderDirectionsDatum(
+                'Geometry',
+                step.secondaryGeometryLabel,
+                'directions-stat-geometry',
+              )}
+              {renderDirectionsDatum(
+                'One-Way Comms',
+                step.oneWayLightTime,
+                'directions-stat-comms-one-way',
+              )}
+              {renderDirectionsDatum(
+                'Round-Trip Comms',
+                step.roundTripLightTime,
+                'directions-stat-comms-round-trip',
+              )}
+            </Stack>
           </li>
         ))}
       </ol>

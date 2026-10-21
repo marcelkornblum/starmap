@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type FocusEvent,
   type FormEvent,
   type ReactNode,
 } from 'react';
@@ -33,6 +34,7 @@ import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import { useRouter } from '@tanstack/react-router';
 import { extractUrlRouteStops } from '../../services/journeyService';
 import { parseLayerQueryParam, pickRandomLayerOverviewHref } from '../../services/layerCardService';
+import { Button, Heading, Input, Select } from '../interface';
 import { useSpatialEntityStoreApi } from '../canvas/entity/SpatialEntityContext';
 import type { SpatialEntityStore } from '../canvas/entity/SpatialEntityStore';
 import { SearchResultItem as SearchResultItemRow } from '../domain';
@@ -42,6 +44,7 @@ import {
   type SearchContextValue,
   type SearchExecutionStatus,
 } from './SearchContext';
+import styles from './Search.module.css';
 
 export interface SearchRootProps {
   readonly children?: ReactNode;
@@ -631,12 +634,29 @@ export const SearchRoot = ({
     [query, submitSearch, syncUrl],
   );
 
+  const [isFocused, setIsFocused] = useState<boolean>(false);
+
+  const handleFocusCapture = useCallback((): void => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlurCapture = useCallback(
+    (event: FocusEvent<HTMLDivElement>): void => {
+      const nextTarget = event.relatedTarget as Node | null;
+      if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+        setIsFocused(false);
+      }
+    },
+    [],
+  );
+
   const contextValue: SearchContextValue = {
     query,
     filter,
     status,
     errorMessage,
     results,
+    isFocused,
     setQuery,
     setFilter,
     submitSearch,
@@ -645,7 +665,15 @@ export const SearchRoot = ({
 
   return (
     <SearchContext.Provider value={contextValue}>
-      {children}
+      <div
+        className={styles.searchRoot}
+        data-testid="search-root"
+        data-search-focused={isFocused ? 'true' : 'false'}
+        onFocusCapture={handleFocusCapture}
+        onBlurCapture={handleBlurCapture}
+      >
+        {children}
+      </div>
     </SearchContext.Provider>
   );
 };
@@ -670,23 +698,31 @@ export const SearchInput = ({
   };
 
   return (
-    <>
-      <label htmlFor={id}>{label}</label>
-      <input
+    <div className={styles.inputRow}>
+      <label htmlFor={id} className={styles.srOnly}>
+        {label}
+      </label>
+      <Input
         id={id}
         name="query"
         type="search"
+        sizeVariant="sm"
+        placeholder="Search stars, planets, layers..."
         value={query}
         onChange={handleQueryChange}
+        className={styles.searchInput}
       />
-      <button
+      <Button
         type="button"
+        size="sm"
+        variant="subtle"
         data-testid="search-clear-button"
         onClick={handleClearQuery}
+        className={styles.expandedControl}
       >
         Clear search
-      </button>
-    </>
+      </Button>
+    </div>
   );
 };
 
@@ -701,30 +737,30 @@ export const SearchCategoryFilterSelect = ({
 }: SearchCategoryFilterProps) => {
   const { filter, setFilter } = useSearchContext();
 
-  const handleFilterChange = (event: ChangeEvent<HTMLSelectElement>): void => {
-    const nextValue = event.target.value;
-    if (isSearchCategoryFilter(nextValue)) {
-      setFilter(nextValue);
-    }
-  };
-
   return (
-    <>
-      <label htmlFor={id}>{label}</label>
-      <select
+    <div className={styles.filterField}>
+      <label htmlFor={id} className={styles.srOnly}>
+        {label}
+      </label>
+      <Select
         id={id}
         name="searchCategory"
+        sizeVariant="sm"
         value={filter}
-        onChange={handleFilterChange}
-      >
-        <option value="all">All Categories</option>
-        {SEARCH_CATEGORIES.map((category) => (
-          <option key={category.key} value={category.key}>
-            {category.heading}
-          </option>
-        ))}
-      </select>
-    </>
+        options={[
+          { value: 'all', label: 'All Categories' },
+          ...SEARCH_CATEGORIES.map((category) => ({
+            value: category.key,
+            label: category.heading,
+          })),
+        ]}
+        onChange={(nextValue) => {
+          if (isSearchCategoryFilter(nextValue)) {
+            setFilter(nextValue);
+          }
+        }}
+      />
+    </div>
   );
 };
 
@@ -739,6 +775,7 @@ export const SearchPanel = ({
   children,
   scope,
 }: SearchPanelProps) => {
+  const { isFocused } = useSearchContext();
   const router = useRouter({ warn: false });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
@@ -764,25 +801,46 @@ export const SearchPanel = ({
     }
   };
 
+  const isExpanded = scope === 'search' || Boolean(isFocused);
+
   return (
     <section
       aria-labelledby="search-panel-heading"
       data-testid="search-panel"
       data-scope={scope}
+      data-search-focused={isExpanded ? 'true' : 'false'}
+      className={styles.searchPanel}
     >
-      <h2 id="search-panel-heading">{heading}</h2>
-      <form role="search" onSubmit={handleSubmit}>
+      <Heading
+        as="h2"
+        id="search-panel-heading"
+        className={styles.srOnly}
+      >
+        {heading}
+      </Heading>
+      <form
+        role="search"
+        className={styles.searchForm}
+        onSubmit={handleSubmit}
+      >
         {children ?? (
           <>
             <SearchInput />
-            <SearchCategoryFilterSelect />
-            <button
-              type="button"
-              data-testid="search-explore-button"
-              onClick={handleExplore}
+            <div
+              className={styles.expandedDrawer}
+              data-testid="search-expanded-drawer"
             >
-              Explore
-            </button>
+              <SearchCategoryFilterSelect />
+              <Button
+                type="button"
+                size="sm"
+                variant="default"
+                data-testid="search-explore-button"
+                onClick={handleExplore}
+              >
+                Explore
+              </Button>
+            </div>
           </>
         )}
       </form>
@@ -813,8 +871,16 @@ export const SearchResults = ({
       aria-labelledby="search-results-heading"
       data-testid="search-results-panel"
       data-status={status}
+      className={styles.resultsPanel}
     >
-      <h2 id="search-results-heading">{heading}</h2>
+      <Heading
+        as="h2"
+        id="search-results-heading"
+        size="eyebrow"
+        className={styles.srOnly}
+      >
+        {heading}
+      </Heading>
       {searchViewPath ? (
         <p>
           <a
@@ -841,7 +907,9 @@ export const SearchResults = ({
             data-category={category.key}
             data-testid={`search-results-group-${category.key}`}
           >
-            <h3>{category.heading}</h3>
+            <Heading as="h3" size="eyebrow">
+              {category.heading}
+            </Heading>
             {searchViewPath ? (
               <p>
                 <a

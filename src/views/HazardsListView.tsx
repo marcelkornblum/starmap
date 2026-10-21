@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
-import { Badge } from '../components/interface';
+import { Badge, Cluster, Datum, Heading } from '../components/interface';
 import { HAZARD_GUIDE_ENTRIES } from '../services/guideService';
 import styles from './GuideViews.module.css';
 
@@ -14,7 +14,7 @@ export const HazardsListView: React.FC = () => {
         ]}
       />
       <GuideSectionNav currentSection="hazards" />
-      <h1>Environmental Hazards</h1>
+      <Heading as="h1">Environmental Hazards</Heading>
       <ul data-testid="hazards-guide-list" className={styles.cardList}>
         {HAZARD_GUIDE_ENTRIES.map((entry) => (
           <li
@@ -36,15 +36,13 @@ export const HazardsListView: React.FC = () => {
                 domain={entry.domain}
                 severity={entry.severity}
               />
-              <div>
+              <Cluster gap="tight" align="center">
                 <Badge status={entry.severity === 'critical' ? 'critical' : 'caution'}>
                   {entry.title}
-                </Badge>{' '}
+                </Badge>
                 <Badge status="neutral">{entry.domainLabel}</Badge>
-              </div>
-              <div>
-                <span>{entry.thresholdCriteria}</span>
-              </div>
+              </Cluster>
+              <Datum label="Trigger Threshold" value={entry.thresholdCriteria} />
               <p>{entry.summary}</p>
             </a>
           </li>

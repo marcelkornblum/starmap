@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import { Quantity } from '../Quantity/Quantity';
+import { ConfidencePip, type ConfidenceLevel } from '../ConfidencePip/ConfidencePip';
 import styles from './Datum.module.css';
 
 export interface DatumProps extends HTMLAttributes<HTMLDivElement> {
@@ -8,6 +9,8 @@ export interface DatumProps extends HTMLAttributes<HTMLDivElement> {
   unit?: ReactNode;
   status?: 'nominal' | 'caution' | 'critical' | 'info';
   size?: 'sm' | 'md';
+  valueTestId?: string;
+  confidence?: ConfidenceLevel;
 }
 
 export const Datum = ({
@@ -16,6 +19,8 @@ export const Datum = ({
   unit,
   status,
   size = 'md',
+  valueTestId,
+  confidence,
   className,
   ...rest
 }: DatumProps) => {
@@ -23,15 +28,32 @@ export const Datum = ({
     ? `${styles.datum} ${className}`
     : styles.datum;
 
+  const valueElement = (
+    <Quantity
+      value={value}
+      unit={unit}
+      className={styles.valueWrapper}
+      data-testid={valueTestId}
+    />
+  );
+
   return (
     <div
       className={combinedClassName}
+      data-datum="true"
       data-status={status}
       data-size={size}
       {...rest}
     >
       <span className={styles.label}>{label}</span>
-      <Quantity value={value} unit={unit} className={styles.valueWrapper} />
+      {confidence ? (
+        <span className={styles.valueGroup}>
+          {valueElement}
+          <ConfidencePip confidence={confidence} size="sm" />
+        </span>
+      ) : (
+        valueElement
+      )}
     </div>
   );
 };

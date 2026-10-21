@@ -1,19 +1,31 @@
-.previewPanel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
+@layer blocks {
+  .previewPanel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+    padding: var(--space-inset-panel-tight);
+    background-color: var(--palette-surface-slab-dark);
+    background: var(--surface-panel-bg);
+    border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
+    border-radius: var(--radius-container);
+    box-shadow: var(--surface-panel-shadow);
+  }
 
-.canvasSlot {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
+  .srOnly {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
 
-.orbitsList {
-  margin: 0;
-  padding-left: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  .canvasSlot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-1);
+  }
 }

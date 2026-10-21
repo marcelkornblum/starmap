@@ -14,6 +14,7 @@ import {
   Minimap,
   PreviewPanel,
   SearchResultItem,
+  SpatialShell,
 } from '../components/domain';
 import {
   buildJourneyPlan,
@@ -41,12 +42,15 @@ import {
   resolveGalacticInstrumentAperture,
 } from '../services/detailsService';
 import {
+  extractUrlFocusSlug,
   extractUrlSystemSlug,
   findFocusedEntryInCorpus,
   hasExplicitFocusParam,
   resolveFocusedEntityFromCorpus,
+  resolveSelectedSystemsFromUrlSelect,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { useSpaLocation } from '../router';
 
 export interface GalaxyViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -54,20 +58,7 @@ export interface GalaxyViewProps {
   readonly locationSearch?: string;
 }
 
-const GalaxyBreadcrumbsRegion: React.FC<{
-  readonly locationPathname?: string;
-  readonly locationSearch?: string;
-}> = () => {
-  return <Breadcrumbs items={[{ label: 'Galaxy' }]} />;
-};
-
-interface FocusedDetailsRegionProps {
-  readonly initialCorpus?: readonly CompactSearchEntry[];
-  readonly locationPathname?: string;
-  readonly locationSearch?: string;
-}
-
-const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
+export const GalaxyView: React.FC<GalaxyViewProps> = ({
   initialCorpus,
   locationPathname,
   locationSearch,
@@ -77,24 +68,35 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
   useSpatialEntityStore((state) => state.focusedId);
   useSpatialEntityStore((state) => state.selectedId);
   const hoveredId = useSpatialEntityStore((state) => state.hoveredId);
+  const liveApertureRadius = useSpatialEntityStore((state) => state.apertureRadius);
+  const liveApertureCenter = useSpatialEntityStore((state) => state.apertureCenter);
 
   const [, setShardTick] = useState<number>(0);
 
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '/galaxy');
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '/galaxy',
+  );
 
   const urlSystemSlug = extractUrlSystemSlug(pathname);
+  const urlFocusSlug = extractUrlFocusSlug(pathname, search);
   const hasExplicitFocus = hasExplicitFocusParam(search);
 
-  const focusedEntity =
-    storeApi.getState().getEntitiesByState('focused')[0] ?? null;
-  const selectedEntities = storeApi.getState().getEntitiesByState('selected');
   const cachedAllCorpus = getCachedCorpusForFilter('all');
   const activeCorpus = initialCorpus ?? cachedAllCorpus ?? [];
+
+  const urlFocusEntity = urlFocusSlug
+    ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
+    : null;
+  const focusedEntity = urlFocusSlug
+    ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
+    : (hasExplicitFocus ? (storeApi.getState().getEntitiesByState('focused')[0] ?? null) : null);
+  const storeSelected = storeApi.getState().getEntitiesByState('selected');
+  const selectedEntities =
+    storeSelected.length > 0
+      ? storeSelected
+      : resolveSelectedSystemsFromUrlSelect(search, activeCorpus);
   const matchedEntry = focusedEntity
     ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
     : undefined;
@@ -182,9 +184,6 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
       : null;
   }, [cameraState.center, storeApi, activeCorpus]);
 
-  const liveApertureRadius = useSpatialEntityStore((state) => state.apertureRadius);
-  const liveApertureCenter = useSpatialEntityStore((state) => state.apertureCenter);
-
   const instrumentAperture = useMemo(
     () =>
       resolveGalacticInstrumentAperture({
@@ -262,50 +261,6 @@ const FocusedDetailsRegion: React.FC<FocusedDetailsRegionProps> = ({
       })
     : null;
 
-  return (
-    <>
-      {activeJourney ? (
-        <DirectionsPanel journey={activeJourney} />
-      ) : (
-        <DetailsPanel details={focusedDetails} />
-      )}
-      <PreviewPanel preview={focusedPreview} />
-      <Minimap orientation={minimapOrientation} />
-      <BodiesPanel
-        elements={galaxyBodies}
-        hoveredEntityId={hoveredId}
-        onHoverEntity={(id) => storeApi.getState().setHovered(id)}
-      />
-    </>
-  );
-};
-
-export const GalaxyView: React.FC<GalaxyViewProps> = ({
-  initialCorpus,
-  locationPathname,
-  locationSearch,
-}) => {
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '/galaxy');
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
-  const cameraState = extractUrlSceneCameraState(search);
-  const activeCorpus = initialCorpus ?? getCachedCorpusForFilter('all') ?? [];
-  const routeStops = extractUrlRouteStops(search);
-  const routeOptionId = extractUrlJourneyOptionId(search);
-  const activeJourney = routeStops
-    ? buildJourneyPlan({
-        stops: routeStops,
-        selectedOptionId: routeOptionId,
-        corpus: activeCorpus,
-        viewScope: 'galaxy',
-        currentPathname: pathname,
-        currentSearch: search,
-      })
-    : null;
-
   const searchParams = new URLSearchParams(search);
   const layerParam = searchParams.get('layer');
   const activeLayerCard = resolveActiveLayerCard({
@@ -316,49 +271,62 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   });
 
   return (
-    <main data-testid="galaxy-view-root">
-      <CanvasLayer
-        scope="galaxy"
-        centerId={cameraState.center}
-        centerCoordinates={
-          cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
-            ? [cameraState.x, cameraState.y, cameraState.z]
-            : undefined
-        }
-        cameraAzimuthDeg={cameraState.az}
-        cameraElevationDeg={cameraState.el}
-        cameraDistance={cameraState.dist}
-        journeyLegs={activeJourney?.chordLegs}
-        activeJourneyMethod={
-          activeJourney?.selectedOption?.id ??
-          activeJourney?.options[0]?.id
-        }
-      />
-      <GalaxyBreadcrumbsRegion
-        locationPathname={locationPathname}
-        locationSearch={locationSearch}
-      />
-      <ControlBar scope="galaxy" />
-      <Search.Root
-        limitPerCategory={3}
-        initialCorpus={initialCorpus}
-        locationPathname={locationPathname}
-        locationSearch={locationSearch}
-      >
-        <Search.Panel scope="galaxy" />
-        <Search.Results
-          searchViewPath="/search"
-          renderItem={(result) => (
-            <SearchResultItem key={result.id} result={result} />
-          )}
+    <SpatialShell
+      testId="galaxy-view-root"
+      canvas={
+        <CanvasLayer
+          scope="galaxy"
+          centerId={cameraState.center}
+          centerCoordinates={
+            cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
+              ? [cameraState.x, cameraState.y, cameraState.z]
+              : undefined
+          }
+          cameraAzimuthDeg={cameraState.az}
+          cameraElevationDeg={cameraState.el}
+          cameraDistance={cameraState.dist}
+          journeyLegs={activeJourney?.chordLegs}
+          activeJourneyMethod={
+            activeJourney?.selectedOption?.id ??
+            activeJourney?.options[0]?.id
+          }
         />
-      </Search.Root>
-      <LayerCard card={activeLayerCard} />
-      <FocusedDetailsRegion
-        initialCorpus={initialCorpus}
-        locationPathname={locationPathname}
-        locationSearch={locationSearch}
-      />
-    </main>
+      }
+      breadcrumbs={<Breadcrumbs items={[{ label: 'Galaxy' }]} />}
+      controls={<ControlBar scope="galaxy" />}
+      search={
+        <Search.Root
+          limitPerCategory={3}
+          initialCorpus={initialCorpus}
+          locationPathname={locationPathname}
+          locationSearch={locationSearch}
+        >
+          <Search.Panel scope="galaxy" />
+          <Search.Results
+            searchViewPath="/search"
+            renderItem={(result) => (
+              <SearchResultItem key={result.id} result={result} />
+            )}
+          />
+        </Search.Root>
+      }
+      layerCard={<LayerCard card={activeLayerCard} />}
+      primaryFloat={
+        activeJourney ? (
+          <DirectionsPanel journey={activeJourney} />
+        ) : (
+          <DetailsPanel details={focusedDetails} />
+        )
+      }
+      preview={<PreviewPanel preview={focusedPreview} />}
+      minimap={<Minimap orientation={minimapOrientation} />}
+      bodies={
+        <BodiesPanel
+          elements={galaxyBodies}
+          hoveredEntityId={hoveredId}
+          onHoverEntity={(id) => storeApi.getState().setHovered(id)}
+        />
+      }
+    />
   );
 };

@@ -415,7 +415,7 @@ describe('DEC-032: Environmental Hazards & Planetary Telemetry', () => {
       expect(html).toContain('href="/guide/hazards/tidal-locking"');
     });
 
-    it('renders Surface Gravity, Tidal Status, and ESI in Full detent', () => {
+    it('renders Surface Gravity, Tidal Status, and ESI in Full detent with Tier 1 primitives', () => {
       const html = renderToString(createElement(DetailsPanel, { details: mockFixture }));
       expect(html).toContain('data-testid="details-detent-full"');
       expect(html).toContain('data-testid="details-planet-telemetry-gravity"');
@@ -425,6 +425,11 @@ describe('DEC-032: Environmental Hazards & Planetary Telemetry', () => {
       expect(html).toContain('Tidally locked (synchronous)');
       expect(html).toContain('data-testid="details-planet-telemetry-esi"');
       expect(html).toContain('0.87');
+      expect(html).toContain('data-datum="true"');
+      expect(html).toContain('data-testid="details-planet-telemetry-habitability"');
+      expect(html).toContain('data-testid="details-planet-telemetry-tidal-status"');
+      expect(html).toContain('data-testid="details-cta-group"');
+      expect(html).toContain('data-testid="details-reticle-type"');
     });
 
     it('renders nominal environmental profile when entity has 0 hazards', () => {
@@ -463,9 +468,71 @@ describe('DEC-032: Environmental Hazards & Planetary Telemetry', () => {
       const html = renderToString(createElement(DetailsPanel, { details: nominalFixture }));
       expect(html).toContain('data-testid="details-hazards-nominal"');
       expect(html).toContain('Nominal environment');
-      expect(html).toContain('0 hazards');
+      expect(html).toContain('>0</span>');
+      expect(html).toContain('hazards</a>');
       expect(html).toContain('data-testid="details-hazards-guide-link"');
       expect(html).toContain('href="/guide/hazards"');
+    });
+
+    it('renders PlanetCensus in DetailsPanel with per-composition CelestialSymbols and omits leading count when breakdown is present', () => {
+      const nominalFixture: FocusedSystemEntityDetails = {
+        id: 'sol',
+        systemId: 'sol',
+        name: 'Sol',
+        systemName: 'Sol',
+        focusedKind: 'system',
+        hazardCount: 0,
+        hazards: [],
+        hazardSummaryLabel: '0 hazards',
+        spectralType: 'G2V',
+        reticleType: 'stellar-system',
+        starCount: 1,
+        planetCount: 8,
+        planetCompositionBreakdown: [
+          { composition: 'terrestrial', count: 4 },
+          { composition: 'gas-giant', count: 2 },
+          { composition: 'ice-giant', count: 2 },
+        ],
+        planetCompositionSummary: '4 terrestrial · 2 gas-giant · 2 ice-giant',
+        hasHabitableCandidate: true,
+        systemSummary: 'The Solar System',
+        systemSummarySegments: [{ kind: 'text', text: 'The Solar System' }],
+        coordinatesPc: [0, 0, 0],
+        sectorId: 'sector_+000_+000_+000',
+        sectorName: 'sector_+000_+000_+000',
+        tags: ['HomeSystem'],
+        directionsHref: '/galaxy/sol?anchor=sol',
+        stars: [],
+        planets: [],
+        canonAnnotations: [],
+      };
+
+      const html = renderToString(createElement(DetailsPanel, { details: nominalFixture }));
+      expect(html).toContain('data-testid="details-planet-composition"');
+      expect(html).toContain('data-planet-census="true"');
+
+      // Breakdown present -> MUST NOT render leading total "8 planets"
+      expect(html).not.toContain('>8</span>');
+      expect(html).not.toContain('planets</span>');
+
+      // Composition breakdown items with counts
+      expect(html).toContain('data-planet-census-item="terrestrial"');
+      expect(html).toContain('>4</span>');
+      expect(html).toContain('data-planet-census-item="gas-giant"');
+      expect(html).toContain('>2</span>');
+      expect(html).toContain('data-planet-census-item="ice-giant"');
+
+      // CelestialSymbol links (not badges or buttons)
+      expect(html).toContain('data-testid="details-summary-planet-type-link"');
+      expect(html).toContain('data-celestial-symbol="terrestrial"');
+      expect(html).toContain('data-category="planet"');
+      expect(html).toContain('href="/guide/planet-types/terrestrial"');
+
+      // Habitable zone symbol link
+      expect(html).toContain('data-testid="details-habitable-zone-link"');
+      expect(html).toContain('data-celestial-symbol="habitable-zone"');
+      expect(html).toContain('data-status="nominal"');
+      expect(html).toContain('href="/galaxy?select=tag:habitable-candidate"');
     });
   });
 });
@@ -775,8 +842,10 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
       expect(html).toContain('data-testid="bodies-galaxy-system-spectral-link"');
       expect(html).toContain('href="/guide/star-types/G2V"');
       expect(html).toContain('data-testid="bodies-galaxy-system-planets"');
-      expect(html).toContain('8 planets');
-      expect(html).toContain('1 planet');
+      expect(html).toContain('>8</span>');
+      expect(html).toContain('planets</span>');
+      expect(html).toContain('>1</span>');
+      expect(html).toContain('planet</span>');
       expect(html).toContain('data-testid="bodies-galaxy-system-hz-link"');
       expect(html).toContain('href="/galaxy?select=tag:habitable-candidate"');
       expect(html).toContain('data-testid="bodies-galaxy-system-hazard"');
@@ -784,14 +853,17 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
 
       // Focused origin badge
       expect(html).toContain('data-testid="bodies-focused-origin-badge"');
-      expect(html).toContain('Focused (0 pc)');
+      expect(html).toContain('Focused');
+      expect(html).toContain('>0</span>');
+      expect(html).toContain('pc</span>');
 
       // Other system distance
       expect(html).toContain('data-testid="bodies-system-distance"');
       expect(html).toContain('1.44');
       expect(html).toContain('data-testid="bodies-distance-unit-link"');
       expect(html).toContain('href="/guide/metrics/distance?focus=alpha-centauri"');
-      expect(html.replace(/<!-- -->/g, '')).toContain('4.7 ly');
+      expect(html).toContain('>4.7</span>');
+      expect(html).toContain('ly</span>');
     });
 
     it('omits distance caption and distances when unfocused', () => {
@@ -1173,6 +1245,7 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
               id: 'ceres',
               name: 'Ceres',
               href: '/system/sol?focus=ceres',
+              categoryKey: 'dwarf-planet',
               categoryLabel: 'Dwarf Planet',
             },
           ],
@@ -1203,7 +1276,7 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
         expect(html).toContain('data-testid="details-orbiting-body-item"');
         expect(html).toContain('data-body-id="ceres"');
         expect(html).toContain('Ceres');
-        expect(html).toContain('Dwarf Planet');
+        expect(html).toContain('data-celestial-badge="dwarf-planet"');
 
         // Full detent: Disk Telemetry
         expect(html).toContain('data-testid="details-disk-telemetry-section"');

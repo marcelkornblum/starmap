@@ -91,6 +91,14 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
   }, [name, spectralType, isAnnotated]);
 
   useFrame(({ camera }) => {
+    if (
+      occlusionManager.isBatchEvaluating() &&
+      !occlusionManager.didCameraOrFootprintsChange() &&
+      lastOccludedRef.current !== null
+    ) {
+      return;
+    }
+
     if (billboardRef.current) {
       billboardRef.current.quaternion.copy(camera.quaternion);
 

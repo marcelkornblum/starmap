@@ -9,8 +9,7 @@ import {
   buildStarTypeGuideHref,
   buildTagGalaxyHref,
 } from '../../../services/searchService';
-import { Badge, Quantity, Unit } from '../../interface/information';
-import { shouldDisplaySpectralBadge } from '../SearchResultItem/SearchResultItem';
+import { Badge, Quantity, Unit, shouldDisplaySpectralBadge } from '../../interface/information';
 
 export interface OrbitalSchematicItemProps {
   readonly item: OrbitalSchematicItemType;

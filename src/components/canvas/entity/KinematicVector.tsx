@@ -110,12 +110,19 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
     };
   }, [lineMat]);
 
+  useEffect(() => {
+    lineMat.setColor(kinematicColor);
+    lineMat.setOpacity(kinematicAlpha);
+    if (terminusMatRef.current) {
+      terminusMatRef.current.color.copy(kinematicColor);
+      terminusMatRef.current.opacity = kinematicAlpha;
+    }
+  }, [lineMat, kinematicColor, kinematicAlpha]);
+
   useFrame(({ camera, size }) => {
     if (!isEnabled || !hasVelocity || !p0 || !p1 || !dir) return;
 
     lineMat.updateResolution(camera, size.width, size.height);
-    lineMat.setColor(kinematicColor);
-    lineMat.setOpacity(kinematicAlpha);
 
     const camDist = Math.max(camera.position.distanceTo(p0), 1e-4);
     const frameState = frameCtx?.frameRef?.current;
@@ -125,10 +132,6 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
 
     if (terminusRef.current) {
       terminusRef.current.scale.set(invScale, invScale, invScale);
-    }
-    if (terminusMatRef.current) {
-      terminusMatRef.current.color.copy(kinematicColor);
-      terminusMatRef.current.opacity = kinematicAlpha;
     }
   });
 

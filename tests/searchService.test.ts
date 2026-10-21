@@ -17,8 +17,8 @@ import {
   PreviewPanel,
   SearchResultItem,
   formatPlanetCountSummary,
-  shouldDisplaySpectralBadge,
 } from '../src/components/domain';
+import { shouldDisplaySpectralBadge } from '../src/components/interface';
 import { Search } from '../src/components/search';
 import {
   clearDetailsRepositoryCache,
@@ -302,7 +302,7 @@ const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
     h: 1,
     r: 10,
     e: 'kuiper',
-    u: 'artificial',
+    u: 'construct',
     a: 'voyager1 voyager',
   },
 ];
@@ -575,13 +575,15 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(html).toContain('tau Ceti e');
     expect(html).toContain('Tau Ceti (Astrophage Destination)');
     expect(html).toContain('Adrian');
-    expect(html).toContain('[stellar-system]');
-    expect(html).toContain('[terrestrial]');
+    expect(html).toContain('stellar-system');
+    expect(html).toContain('terrestrial');
     expect(html).toContain('data-testid="result-variation-stars"');
-    expect(html).toContain(
-      '<a href="/guide/star-types/G8V" data-testid="result-spectral-badge">G8V</a>',
-    );
-    expect(html).toContain('<span data-testid="result-planet-summary">4 planets</span>');
+    expect(html).toContain('data-testid="result-spectral-badge"');
+    expect(html).toContain('data-spectral-badge="G8V"');
+    expect(html).toContain('href="/guide/star-types/G8V"');
+    expect(html).toContain('data-testid="result-planet-summary"');
+    expect(html).toContain('>4</span>');
+    expect(html).toContain('planets</span>');
     expect(html).toContain('data-testid="result-variation-planets"');
     expect(html).toContain('data-testid="result-variation-layers"');
     expect(html).not.toContain(' pc');
@@ -608,7 +610,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     );
 
     expect(html).toContain('href="/system/sol?focus=earth"');
-    expect(html).toContain('[terrestrial]');
+    expect(html).toContain('terrestrial');
   });
 
   it('truncates results per category when limitPerCategory is set, renders filtered /search links under populated headings, and omits empty category sections', () => {
@@ -683,7 +685,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
         i: 'voyager-1',
         k: 6,
         n: 'Voyager 1',
-        u: 'artificial',
+        u: 'construct',
       }),
     ).toBe(true);
     expect(
@@ -710,7 +712,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(resolveReticleType({ i: 'jupiter', k: 2, n: 'Jupiter', u: 'gas-giant' })).toBe('gas-giant');
     expect(resolveReticleType({ i: 'neptune', k: 2, n: 'Neptune', u: 'ice-giant' })).toBe('ice-giant');
     expect(resolveReticleType({ i: 'snr-crab', k: 5, n: 'Crab Remnant' })).toBe('hazard');
-    expect(resolveReticleType({ i: 'voyager-1', k: 6, n: 'Voyager 1', u: 'artificial' })).toBe('artificial');
+    expect(resolveReticleType({ i: 'voyager-1', k: 6, n: 'Voyager 1', u: 'construct' })).toBe('construct');
     expect(resolveReticleType({ i: '433-eros', k: 6, n: '433 Eros' })).toBe('terrestrial');
     expect(
       resolveReticleType({ i: 'phm:tau-ceti', k: 7, n: 'Tau Ceti', s: 'tau-ceti' }),
@@ -806,7 +808,13 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       'data-testid="result-variation-stars"',
     );
     expect(renderToString(createElement(SearchResultItem, { result: starOnePlanet }))).toContain(
-      '1 planet',
+      'data-testid="result-planet-summary"',
+    );
+    expect(renderToString(createElement(SearchResultItem, { result: starOnePlanet }))).toContain(
+      '>1</span>',
+    );
+    expect(renderToString(createElement(SearchResultItem, { result: starOnePlanet }))).toContain(
+      'planet</span>',
     );
     expect(renderToString(createElement(SearchResultItem, { result: layerNoCanon }))).toContain(
       '<span data-testid="result-variation-layers"></span>',
@@ -1031,10 +1039,14 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     ]);
     expect(focusChildHtml).not.toContain('data-testid="systems-panel"');
     expect(focusChildHtml).toContain('data-testid="details-panel"');
-    expect(focusChildHtml).toContain('<h2 id="details-panel-heading">Details</h2>');
-    expect(focusChildHtml).toContain('<h3 id="details-peek-heading">Peek</h3>');
-    expect(focusChildHtml).toContain('<h3 id="details-partial-heading">Partial</h3>');
-    expect(focusChildHtml).toContain('<h3 id="details-full-heading">Full</h3>');
+    expect(focusChildHtml).toContain('id="details-panel-heading"');
+    expect(focusChildHtml).toContain('Details</h2>');
+    expect(focusChildHtml).toContain('id="details-peek-heading"');
+    expect(focusChildHtml).toContain('Peek</h3>');
+    expect(focusChildHtml).toContain('id="details-partial-heading"');
+    expect(focusChildHtml).toContain('Partial</h3>');
+    expect(focusChildHtml).toContain('id="details-full-heading"');
+    expect(focusChildHtml).toContain('Full</h3>');
     expect(focusChildHtml).toContain('data-testid="details-button-system-details"');
     expect(focusChildHtml).toContain('href="/planet/tau-ceti-e"');
     expect(focusChildHtml).toContain('data-testid="details-button-directions"');
@@ -1060,14 +1072,15 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     ]);
     expect(focusSystemHtml).not.toContain('data-testid="systems-panel"');
     expect(focusSystemHtml).toContain('data-testid="details-panel"');
-    expect(focusSystemHtml).toContain(
-      '<a href="/guide/star-types/G8V" data-testid="details-spectral-badge">G8V</a>',
-    );
-    expect(focusSystemHtml).toContain('<span data-testid="details-reticle-type">[stellar-system]</span>');
-    expect(focusSystemHtml).toContain('4 planets');
-    expect(focusSystemHtml).toContain(
-      '<a href="/system/tau-ceti" data-testid="details-button-system-details">Details</a>',
-    );
+    expect(focusSystemHtml).toContain('data-testid="details-spectral-badge"');
+    expect(focusSystemHtml).toContain('data-spectral-badge="G8V"');
+    expect(focusSystemHtml).toContain('href="/guide/star-types/G8V"');
+    expect(focusSystemHtml).toContain('data-testid="details-reticle-type"');
+    expect(focusSystemHtml).toContain('stellar-system');
+    expect(focusSystemHtml).toContain('>4</span>');
+    expect(focusSystemHtml).toContain('planets</span>');
+    expect(focusSystemHtml).toContain('data-testid="details-button-system-details"');
+    expect(focusSystemHtml).toContain('href="/system/tau-ceti"');
     expect(focusSystemHtml).toContain('Directions');
     expect(focusSystemHtml).toContain('Tau Ceti (Astrophage Destination)');
     expect(focusSystemHtml).toContain('data-testid="details-canon-accordion"');
@@ -1351,10 +1364,8 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(fullDetails?.planets.map((p) => p.id)).toEqual(['tau-ceti-g', 'tau-ceti-e']);
 
     const fullHtml = renderToString(createElement(DetailsPanel, { details: fullDetails }));
-    expect(fullHtml).toContain('a = ');
     expect(fullHtml).toContain('0.538');
     expect(fullHtml).toContain('href="/guide/metrics/semi-major-axis?focus=');
-    expect(fullHtml).toContain('P = ');
     expect(fullHtml).toContain('162.87');
     expect(fullHtml).toContain('href="/guide/metrics/orbital-period?focus=');
     expect(fullHtml).toContain('3.93');
@@ -1877,8 +1888,9 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(earthFocusHtml).toContain('href="/planet/earth?focus=moon"');
     expect(earthFocusHtml).toContain('1 catalogued body in orbit.');
     expect(earthFocusHtml).toContain(
-      '<a href="/planet/earth" data-testid="details-button-system-details">Details</a>',
+      'data-testid="details-button-system-details"',
     );
+    expect(earthFocusHtml).toContain('href="/planet/earth"');
 
     // PlanetView at /planet/earth renders Breadcrumbs (Galaxy -> Sol -> Earth), BodiesPanel, and OrbitalSchematicPanel
     expect(extractUrlPlanetSlug('/planet/earth')).toBe('earth');
@@ -2210,7 +2222,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
         id: 'hyades',
         name: 'Hyades',
         position: [15, -40, -18],
-        classification: 'cluster',
+        classification: 'stellar-cluster',
       },
       corpus: SAMPLE_CORPUS,
       entityDetail: {
@@ -2723,10 +2735,10 @@ describe('Focus Preview Domain and Component Boundary (DEC-016)', () => {
     expect(html).toContain('Earth');
     expect(html).toContain('planetary-system');
     expect(html).toContain('data-testid="preview-primary-orbit-telemetry"');
-    expect(html).toContain('a = ');
+    expect(html).toContain('Semi-Major Axis (a)');
     expect(html).toContain('AU');
-    expect(html).toContain('e = 0.0167');
-    expect(html).toContain('i = ');
+    expect(html).toContain('0.0167');
+    expect(html).toContain('Inclination (i)');
     expect(html).toContain('°');
     expect(html).toContain('href="/guide/metrics/semi-major-axis?focus=');
     expect(html).toContain('href="/guide/metrics/orbital-inclination?focus=');
@@ -3012,18 +3024,20 @@ describe('Minimap Global Spatial Orientation Panel (DEC-017)', () => {
     expect(html).toContain('data-testid="minimap-viewport-slot"');
     expect(html).toContain('data-testid="minimap-anchor-name"');
     expect(html).toContain('Earth');
-    expect(html).toContain('(Sol)');
+    expect(html).toContain('Sol');
     expect(html).toContain('data-testid="minimap-telemetry"');
-    expect(html).toContain('a = ');
+    expect(html).toContain('Semi-Major Axis (a)');
     expect(html).toContain('AU');
-    expect(html).toContain('2 orbiting bodies');
+    expect(html).toContain('data-testid="minimap-orbiting-count"');
+    expect(html).toContain('>2</span>');
+    expect(html).toContain('orbiting bodies</span>');
     expect(html).toContain('data-testid="minimap-markers-list"');
     expect(html).toContain('data-marker-id="earth"');
     expect(html).toContain('data-marker-role="anchor"');
-    expect(html).toContain('[anchor]');
+    expect(html).toContain('anchor');
     expect(html).toContain('data-marker-id="moon"');
     expect(html).toContain('data-marker-role="focused"');
-    expect(html).toContain('[focused]');
+    expect(html).toContain('focused');
   });
 
   it('renders <Minimap /> unconditionally across GalaxyView, SystemView, and PlanetView even without ?focus=', () => {
@@ -3482,7 +3496,9 @@ describe('3D View Reference Point, Camera URL State & Detent Swap (DEC-021, DEC-
     // - CTAs (details-actions, details-button-center) are at the top
     // - Canon annotations (details-canon-section) follow immediately
     // - Orbiting bodies / Stars / Planets follow below
-    const actionsIdx = html.indexOf('data-testid="details-actions"');
+    const actionsIdx = html.indexOf('data-testid="details-cta-group"') !== -1
+      ? html.indexOf('data-testid="details-cta-group"')
+      : html.indexOf('data-testid="details-actions"');
     const canonIdx = html.indexOf('data-testid="details-canon-section"');
     const centerBtnIdx = html.indexOf('data-testid="details-button-center"');
     expect(actionsIdx).toBeGreaterThan(partialIdx);
@@ -3853,7 +3869,7 @@ describe('Nested Moons, Scoped Star Focus & Contextual Details Drill-Down CTA (D
 
     // Shows star header, reticle type, spectral badge
     expect(html).toContain('Alpha Centauri A');
-    expect(html).toContain('[star]');
+    expect(html).toContain('star');
     expect(html).toContain('data-testid="details-spectral-badge"');
 
     // Does NOT show system star count in peek header
@@ -3866,9 +3882,12 @@ describe('Nested Moons, Scoped Star Focus & Contextual Details Drill-Down CTA (D
     expect(html).not.toContain('data-testid="details-stars-section"');
     expect(html).not.toContain('data-testid="details-planets-section"');
 
-    // Shows details-system-summary and details-actions
+    // Shows details-system-summary and details-cta-group / details-actions
     expect(html).toContain('data-testid="details-system-summary"');
-    expect(html).toContain('data-testid="details-actions"');
+    expect(
+      html.includes('data-testid="details-cta-group"') ||
+        html.includes('data-testid="details-actions"'),
+    ).toBe(true);
   });
 
   it('DEC-026: computes contextual systemDetailsHref and conditionally renders Details CTA in DetailsPanel', () => {
@@ -3995,7 +4014,7 @@ describe('Nested Moons, Scoped Star Focus & Contextual Details Drill-Down CTA (D
         id: 'ngc-1976',
         name: 'Orion Nebula',
         position: [0, 0, 0],
-        classification: 'cluster',
+        classification: 'stellar-cluster',
       },
       corpus: SAMPLE_CORPUS,
     });

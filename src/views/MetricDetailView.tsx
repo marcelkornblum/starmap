@@ -5,12 +5,20 @@ import {
   GuideSectionNav,
   MetricComparativePanel,
 } from '../components/domain';
-import { Badge, Unit } from '../components/interface';
+import {
+  Badge,
+  Button,
+  Datum,
+  Heading,
+  Stack,
+  Unit,
+} from '../components/interface';
 import {
   METRICS_GUIDE_PATH,
   resolveMetricComparison,
   resolveMetricGuideEntry,
 } from '../services/guideService';
+import { useSpaLocation } from '../router';
 import styles from './GuideViews.module.css';
 
 export interface MetricDetailViewProps {
@@ -36,12 +44,11 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
   locationSearch,
   focusedEntityId,
 }) => {
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '');
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '',
+  );
 
   const resolvedMetricId =
     propMetricId ?? extractMetricIdFromPathname(pathname);
@@ -72,18 +79,20 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
         ]}
       />
       <GuideSectionNav currentSection="metrics" />
-      <h1>
+      <Heading as="h1">
         {resolvedMetricId
           ? `Telemetry Metric: ${resolvedMetricId}`
           : 'Telemetry Metric'}
-      </h1>
+      </Heading>
       <p>
-        <a
+        <Button
           href={METRICS_GUIDE_PATH}
+          variant="subtle"
+          size="sm"
           data-testid="metrics-list-link"
         >
           All Telemetry Metrics
-        </a>
+        </Button>
       </p>
 
       {entry ? (
@@ -108,17 +117,13 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
 
             <p data-testid="guide-detail-summary">{entry.summary}</p>
 
-            <h3>Standard Formulation & Baseline</h3>
-            <dl data-testid="guide-detail-telemetry" className={styles.telemetryDl}>
-              <dt>Unit Symbol</dt>
-              <dd>{entry.unitSymbol}</dd>
-              <dt>Category</dt>
-              <dd>{entry.category}</dd>
-              <dt>Physical Definition</dt>
-              <dd>{entry.physicalDefinition}</dd>
-              <dt>Reference Baseline</dt>
-              <dd>{entry.referenceBaseline}</dd>
-            </dl>
+            <Heading as="h3">Standard Formulation & Baseline</Heading>
+            <Stack gap="none" data-testid="guide-detail-telemetry">
+              <Datum label="Unit Symbol" value={entry.unitSymbol} />
+              <Datum label="Category" value={entry.category} />
+              <Datum label="Physical Definition" value={entry.physicalDefinition} />
+              <Datum label="Reference Baseline" value={entry.referenceBaseline} />
+            </Stack>
           </section>
 
           <GuideExamplesList examples={entry.examples} />

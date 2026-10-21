@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import styles from './Unit.module.css';
 
 export interface UnitProps extends HTMLAttributes<HTMLSpanElement> {
@@ -11,12 +11,16 @@ export interface UnitProps extends HTMLAttributes<HTMLSpanElement> {
    * Optional URL linking the unit to its metric guide definition.
    */
   href?: string;
+  target?: string;
+  rel?: string;
 }
 
 export const Unit = ({
   children,
   inParens = false,
   href,
+  target,
+  rel,
   className,
   ...rest
 }: UnitProps) => {
@@ -34,17 +38,24 @@ export const Unit = ({
       : <>({children})</>
     : children;
 
-  const inner = href ? (
-    <a href={href} className={styles.unitLink}>
-      {content}
-    </a>
-  ) : (
-    content
-  );
+  if (href !== undefined) {
+    return (
+      <a
+        href={href}
+        target={target}
+        rel={rel}
+        className={`${combinedClassName} ${styles.unitLink}`}
+        data-unit="true"
+        {...(rest as unknown as AnchorHTMLAttributes<HTMLAnchorElement>)}
+      >
+        {content}
+      </a>
+    );
+  }
 
   return (
     <span className={combinedClassName} data-unit="true" {...rest}>
-      {inner}
+      {content}
     </span>
   );
 };

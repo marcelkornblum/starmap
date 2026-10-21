@@ -34,6 +34,7 @@ export const Toggle = ({
       data-disabled={disabled ? 'true' : undefined}
       role="switch"
       aria-checked={checked}
+      aria-pressed={checked}
       disabled={disabled}
       onClick={handleClick}
       {...rest}

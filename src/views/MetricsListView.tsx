@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
-import { Badge, Unit } from '../components/interface';
+import { Badge, Cluster, Datum, Heading, Unit } from '../components/interface';
 import { METRIC_GUIDE_ENTRIES } from '../services/guideService';
 import styles from './GuideViews.module.css';
 
@@ -14,7 +14,7 @@ export const MetricsListView: React.FC = () => {
         ]}
       />
       <GuideSectionNav currentSection="metrics" />
-      <h1>Telemetry Metrics</h1>
+      <Heading as="h1">Telemetry Metrics</Heading>
       <ul data-testid="metrics-guide-list" className={styles.cardList}>
         {METRIC_GUIDE_ENTRIES.map((entry) => (
           <li
@@ -35,17 +35,16 @@ export const MetricsListView: React.FC = () => {
                 baselineName={entry.comparisonBaselineLabel}
                 baselineValue={entry.comparisonBaselineValue}
               />
-              <div>
-                <strong>{entry.title}</strong>{' '}
-                <Unit inParens>{entry.unitSymbol}</Unit>{' '}
+              <Cluster gap="tight" align="center">
+                <strong>{entry.title}</strong>
+                <Unit inParens>{entry.unitSymbol}</Unit>
                 <Badge status="neutral">{entry.category}</Badge>
-              </div>
-              <p
+              </Cluster>
+              <Datum
                 data-testid="metric-familiar-conversion"
-                className={styles.familiarConversion}
-              >
-                {entry.familiarConversion}
-              </p>
+                label="Familiar Scale"
+                value={entry.familiarConversion}
+              />
               <p>{entry.summary}</p>
             </a>
           </li>

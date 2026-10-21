@@ -1,0 +1,105 @@
+@layer blocks {
+  .searchRoot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+    inline-size: 100%;
+    position: relative;
+  }
+
+  .searchPanel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+    inline-size: 100%;
+  }
+
+  .srOnly {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .searchForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+    inline-size: 100%;
+  }
+
+  .inputRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+    inline-size: 100%;
+  }
+
+  .searchInput {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    inline-size: 100%;
+  }
+
+  .expandedControl {
+    display: none;
+    flex: 0 0 auto;
+  }
+
+  .expandedDrawer {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-fib-2);
+    flex-wrap: wrap;
+    padding-block-start: var(--space-fib-1);
+    border-block-start: var(--rule-hairline);
+  }
+
+  .filterField {
+    display: flex;
+    align-items: center;
+    gap: var(--space-fib-2);
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+
+  .resultsPanel {
+    display: none;
+    flex-direction: column;
+    gap: var(--space-fib-2);
+    max-block-size: min(50dvh, 420px);
+    overflow-y: auto;
+    padding-block-start: var(--space-fib-2);
+    border-block-start: var(--rule-hairline);
+  }
+}
+
+@layer exceptions {
+  .searchRoot[data-search-focused="true"] .expandedControl,
+  .searchRoot:focus-within .expandedControl,
+  .searchPanel[data-search-focused="true"] .expandedControl,
+  .searchPanel:focus-within .expandedControl,
+  .searchPanel[data-scope="search"] .expandedControl {
+    display: inline-flex;
+  }
+
+  .searchRoot[data-search-focused="true"] .expandedDrawer,
+  .searchRoot:focus-within .expandedDrawer,
+  .searchPanel[data-search-focused="true"] .expandedDrawer,
+  .searchPanel:focus-within .expandedDrawer,
+  .searchPanel[data-scope="search"] .expandedDrawer {
+    display: flex;
+  }
+
+  .searchRoot[data-search-focused="true"] .resultsPanel,
+  .searchRoot:focus-within .resultsPanel,
+  .searchRoot:has(.searchPanel[data-scope="search"]) .resultsPanel {
+    display: flex;
+  }
+}

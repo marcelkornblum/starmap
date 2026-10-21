@@ -15,6 +15,7 @@ import {
   Minimap,
   PreviewPanel,
   SearchResultItem,
+  SpatialShell,
 } from '../components/domain';
 import {
   buildJourneyPlan,
@@ -53,6 +54,7 @@ import {
   toUrlSlug,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { useSpaLocation } from '../router';
 
 export interface SystemViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -78,12 +80,11 @@ const useResolvedSystemDetails = (
 
   const [, setShardTick] = useState<number>(0);
 
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '/system/sol');
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '/system/sol',
+  );
 
   const urlSystemSlug = extractUrlSystemSlug(pathname);
   const urlFocusSlug = extractUrlFocusSlug(pathname, search);
@@ -95,11 +96,12 @@ const useResolvedSystemDetails = (
     getCachedCorpusForFilter('stars') ??
     [];
 
-  const explicitFocusedEntity =
-    storeApi.getState().getEntitiesByState('focused')[0] ??
-    (urlFocusSlug
-      ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
-      : null);
+  const urlFocusEntity = urlFocusSlug
+    ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
+    : null;
+  const explicitFocusedEntity = urlFocusSlug
+    ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
+    : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
 
   const cachedSystemRecord = urlSystemSlug
     ? getCachedDetailRecord(urlSystemSlug)
@@ -204,13 +206,12 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     urlSystemSlug,
   } = useResolvedSystemDetails(props, true);
 
-  const pathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '/system/sol');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '/system/sol',
+  );
   const targetId = extractUrlSystemSlug(pathname) ?? 'sol';
-  const search =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
   const cameraState = extractUrlSceneCameraState(search);
 
   const breadcrumbs = buildSystemViewBreadcrumbs(
@@ -278,50 +279,57 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
   });
 
   return (
-    <main data-testid="system-view-root">
-      <CanvasLayer
-        scope="system"
-        targetId={targetId}
-        centerId={cameraState.center}
-        centerCoordinates={
-          cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
-            ? [cameraState.x, cameraState.y, cameraState.z]
-            : undefined
-        }
-        cameraAzimuthDeg={cameraState.az}
-        cameraElevationDeg={cameraState.el}
-        cameraDistance={cameraState.dist}
-        journeyLegs={activeJourney?.chordLegs}
-        activeJourneyMethod={
-          activeJourney?.selectedOption?.id ??
-          activeJourney?.options[0]?.id
-        }
-      />
-      <Breadcrumbs items={breadcrumbs} />
-      <ControlBar scope="system" />
-      <Search.Root
-        limitPerCategory={3}
-        initialCorpus={initialCorpus}
-        locationPathname={locationPathname}
-        locationSearch={locationSearch}
-      >
-        <Search.Panel scope="system" />
-        <Search.Results
-          searchViewPath="/search"
-          renderItem={(result) => (
-            <SearchResultItem key={result.id} result={result} />
-          )}
+    <SpatialShell
+      testId="system-view-root"
+      canvas={
+        <CanvasLayer
+          scope="system"
+          targetId={targetId}
+          centerId={cameraState.center}
+          centerCoordinates={
+            cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
+              ? [cameraState.x, cameraState.y, cameraState.z]
+              : undefined
+          }
+          cameraAzimuthDeg={cameraState.az}
+          cameraElevationDeg={cameraState.el}
+          cameraDistance={cameraState.dist}
+          journeyLegs={activeJourney?.chordLegs}
+          activeJourneyMethod={
+            activeJourney?.selectedOption?.id ??
+            activeJourney?.options[0]?.id
+          }
         />
-      </Search.Root>
-      <LayerCard card={activeLayerCard} />
-      {activeJourney ? (
-        <DirectionsPanel journey={activeJourney} />
-      ) : (
-        <DetailsPanel details={focusedDetails} />
-      )}
-      <PreviewPanel preview={focusedPreview} />
-      <Minimap orientation={minimapOrientation} />
-      <BodiesPanel elements={systemBodies} schematic={orbitalSchematic} />
-    </main>
+      }
+      breadcrumbs={<Breadcrumbs items={breadcrumbs} />}
+      controls={<ControlBar scope="system" />}
+      search={
+        <Search.Root
+          limitPerCategory={3}
+          initialCorpus={initialCorpus}
+          locationPathname={locationPathname}
+          locationSearch={locationSearch}
+        >
+          <Search.Panel scope="system" />
+          <Search.Results
+            searchViewPath="/search"
+            renderItem={(result) => (
+              <SearchResultItem key={result.id} result={result} />
+            )}
+          />
+        </Search.Root>
+      }
+      layerCard={<LayerCard card={activeLayerCard} />}
+      primaryFloat={
+        activeJourney ? (
+          <DirectionsPanel journey={activeJourney} />
+        ) : (
+          <DetailsPanel details={focusedDetails} />
+        )
+      }
+      preview={<PreviewPanel preview={focusedPreview} />}
+      minimap={<Minimap orientation={minimapOrientation} />}
+      bodies={<BodiesPanel elements={systemBodies} schematic={orbitalSchematic} />}
+    />
   );
 };

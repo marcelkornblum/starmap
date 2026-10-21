@@ -66,8 +66,8 @@ export interface StarTypeGuideEntry {
 }
 
 export interface PlanetTypeGuideEntry {
-  readonly id: string; // 'terrestrial' | 'ice-giant' | 'gas-giant'
-  readonly composition: string;
+  readonly id: PlanetCompositionClass;
+  readonly composition: PlanetCompositionClass;
   readonly title: string;
   readonly summary: string;
   readonly massRangeMearth: string;
@@ -368,7 +368,7 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
 export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
   {
     id: 'terrestrial',
-    composition: 'Terrestrial',
+    composition: 'terrestrial',
     title: 'Terrestrial Worlds',
     summary:
       'Rocky and metal-rich planets (≤ 2 M⊕, ≤ 1.25 R⊕) with solid silicate crusts, differentiated mantles, and metallic iron-nickel cores.',
@@ -396,7 +396,7 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
   },
   {
     id: 'super-earth',
-    composition: 'Super-Earth',
+    composition: 'super-earth',
     title: 'Super-Earths',
     summary:
       'Massive rocky worlds (2–10 M⊕, 1.25–2.0 R⊕) bridging terrestrial planets and volatile-rich ice giants, featuring high surface gravities and potentially deep silicate mantles.',
@@ -424,7 +424,7 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
   },
   {
     id: 'ice-giant',
-    composition: 'Ice Giant',
+    composition: 'ice-giant',
     title: 'Ice Giants & Sub-Neptunes',
     summary:
       'Intermediate-mass worlds (10–50 M⊕) dominated by supercritical volatile mantles (water, methane, ammonia) beneath hydrogen-helium envelopes.',
@@ -461,7 +461,7 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
   },
   {
     id: 'gas-giant',
-    composition: 'Gas Giant',
+    composition: 'gas-giant',
     title: 'Gas Giants',
     summary:
       'Massive Jovian worlds (> 50 M⊕) composed predominantly of hydrogen and helium, featuring no distinct solid surface and deep metallic hydrogen mantles.',

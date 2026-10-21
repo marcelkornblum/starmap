@@ -13,18 +13,6 @@ import {
   Tooltip,
   Toast,
 } from '../src/components/interface/surfaces';
-import * as pocSurfaces from '../src/components/poc/surfaces';
-import * as pocOverlays from '../src/components/poc/overlays';
-import { Card as PocCard } from '../src/components/poc/surfaces/Card/Card';
-import { Panel as PocPanel } from '../src/components/poc/surfaces/Panel/Panel';
-import { Dock as PocDock } from '../src/components/poc/surfaces/Dock/Dock';
-import { Well as PocWell } from '../src/components/poc/surfaces/Well/Well';
-import { Hud as PocHud } from '../src/components/poc/surfaces/Hud/Hud';
-import { Modal as PocModal } from '../src/components/poc/overlays/Modal/Modal';
-import { Drawer as PocDrawer } from '../src/components/poc/overlays/Drawer/Drawer';
-import { Popover as PocPopover } from '../src/components/poc/overlays/Popover/Popover';
-import { Tooltip as PocTooltip } from '../src/components/poc/overlays/Tooltip/Tooltip';
-import { Toast as PocToast } from '../src/components/poc/overlays/Toast/Toast';
 
 describe('Tier 2: Surfaces', () => {
   it('renders Card with status exception and padding', () => {
@@ -250,34 +238,4 @@ describe('Tier 2: Overlays', () => {
   });
 });
 
-
-describe('Tier 2: Surfaces & Overlays Backwards-Compatible Re-exports', () => {
-  it('preserves barrel re-exports from poc/surfaces and poc/overlays', () => {
-    expect(pocSurfaces.Card).toBe(Card);
-    expect(pocSurfaces.Panel).toBe(Panel);
-    expect(pocSurfaces.Dock).toBe(Dock);
-    expect(pocSurfaces.Well).toBe(Well);
-    expect(pocSurfaces.Hud).toBe(Hud);
-
-    expect(pocOverlays.Modal).toBe(Modal);
-    expect(pocOverlays.Drawer).toBe(Drawer);
-    expect(pocOverlays.Popover).toBe(Popover);
-    expect(pocOverlays.Tooltip).toBe(Tooltip);
-    expect(pocOverlays.Toast).toBe(Toast);
-  });
-
-  it('preserves individual component re-exports from poc subdirectories', () => {
-    expect(PocCard).toBe(Card);
-    expect(PocPanel).toBe(Panel);
-    expect(PocDock).toBe(Dock);
-    expect(PocWell).toBe(Well);
-    expect(PocHud).toBe(Hud);
-
-    expect(PocModal).toBe(Modal);
-    expect(PocDrawer).toBe(Drawer);
-    expect(PocPopover).toBe(Popover);
-    expect(PocTooltip).toBe(Tooltip);
-    expect(PocToast).toBe(Toast);
-  });
-});
 

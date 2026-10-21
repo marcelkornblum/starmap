@@ -155,6 +155,11 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
   const diskOrbitalRef = useRef<THREE.LineSegments>(null);
   const diskOrbitalMatRef = useRef<THREE.LineBasicMaterial>(null);
   const explicitFootprintsRef = useRef<THREE.Group>(null);
+  const lastOrbitalDashRef = useRef<{
+    radius: number;
+    centerDist: number;
+    scale: number;
+  }>({ radius: -1, centerDist: -1, scale: -1 });
 
   // Unit disc geometries
   const boundaryGeom = useMemo(() => createCircleGeometry(1.0, 128), []);
@@ -336,17 +341,27 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       const showOrbital = hasOrbital && showDiskBearings && orbitalProximityFade > 1e-3;
       diskOrbitalRef.current.visible = showOrbital;
       if (showOrbital) {
-        const vCount = populateCurvedDashedLineBuffer(
-          diskOrbitalBuffer,
-          apertureRadius,
-          effectiveCenterDistance,
-          1,
-          0.18 * invScale,
-          0.12 * invScale,
-        );
-        const posAttr = diskOrbitalGeom.getAttribute('position') as THREE.BufferAttribute;
-        posAttr.needsUpdate = true;
-        diskOrbitalGeom.setDrawRange(0, vCount);
+        const prevDash = lastOrbitalDashRef.current;
+        if (
+          Math.abs(prevDash.radius - apertureRadius) > 1e-4 ||
+          Math.abs(prevDash.centerDist - effectiveCenterDistance) > 1e-4 ||
+          Math.abs(prevDash.scale - invScale) > 1e-4
+        ) {
+          prevDash.radius = apertureRadius;
+          prevDash.centerDist = effectiveCenterDistance;
+          prevDash.scale = invScale;
+          const vCount = populateCurvedDashedLineBuffer(
+            diskOrbitalBuffer,
+            apertureRadius,
+            effectiveCenterDistance,
+            1,
+            0.18 * invScale,
+            0.12 * invScale,
+          );
+          const posAttr = diskOrbitalGeom.getAttribute('position') as THREE.BufferAttribute;
+          posAttr.needsUpdate = true;
+          diskOrbitalGeom.setDrawRange(0, vCount);
+        }
       }
     }
     if (diskOrbitalMatRef.current) {

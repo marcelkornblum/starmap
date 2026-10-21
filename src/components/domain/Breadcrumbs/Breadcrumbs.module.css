@@ -1,47 +1,69 @@
-@layer domain {
+@layer blocks {
   .breadcrumbsNav {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-fib-4);
-    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: var(--space-fib-2);
+    flex-wrap: nowrap;
+    font-family: var(--font-interface);
+    font-size: var(--type-scale-neg-1);
+    line-height: var(--leading-tight);
   }
 
   .breadcrumbsList {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: var(--space-fib-2);
+    gap: var(--space-fib-1);
     list-style: none;
     padding: 0;
     margin: 0;
+    min-inline-size: 0;
   }
 
   .breadcrumbItem {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-fib-2);
+    gap: var(--space-fib-1);
+    white-space: nowrap;
+    color: var(--content-default);
+  }
+
+  .breadcrumbItem a {
+    color: var(--content-muted);
+    text-decoration: none;
+  }
+
+  .breadcrumbItem a:hover {
+    color: var(--content-prominent);
+  }
+
+  .breadcrumbItem [aria-current="page"] {
+    color: var(--content-prominent);
+    font-weight: var(--weight-semibold);
   }
 
   .breadcrumbItem + .breadcrumbItem::before {
     content: '/';
-    color: var(--content-muted);
+    color: var(--content-faint);
   }
 
   .companionLink {
-    font-family: var(--font-interface);
-    font-size: var(--text-ui-button-size);
-    font-weight: 600;
-    color: var(--content-accent);
-    text-decoration: none;
-    padding: var(--space-inset-button-sm-y) var(--space-inset-button-sm-x);
-    border: var(--border-width-1) solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    background-color: var(--surface-overlay);
-    transition: background-color 150ms ease, color 150ms ease;
+    flex: 0 0 auto;
   }
+}
 
-  .companionLink:hover {
-    background-color: var(--surface-raised);
-    color: var(--content-prominent);
+@layer exceptions {
+  @media (max-width: 767px) {
+    .breadcrumbsNav {
+      font-size: var(--type-scale-neg-2);
+      gap: var(--space-fib-1);
+    }
+
+    .companionLink {
+      font-size: var(--type-scale-neg-2);
+      padding-block: 2px;
+      padding-inline: var(--space-fib-2);
+      min-block-size: 22px;
+    }
   }
 }

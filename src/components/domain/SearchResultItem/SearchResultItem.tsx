@@ -3,18 +3,19 @@ import {
   buildStarTypeGuideHref,
   type SearchResultItem as SearchResultItemModel,
 } from '../../../services/searchService';
-import { Badge } from '../../interface/information';
+import {
+  Badge,
+  CelestialBadge,
+  Cluster,
+  Quantity,
+  SpectralBadge,
+  shouldDisplaySpectralBadge,
+} from '../../interface';
 
 export interface SearchResultItemProps {
   readonly result: SearchResultItemModel;
   readonly onSelect?: (result: SearchResultItemModel) => void;
 }
-
-/**
- * Pure predicate determining whether a stellar spectral type badge should be displayed.
- */
-export const shouldDisplaySpectralBadge = (spectralType?: string): boolean =>
-  Boolean(spectralType && spectralType.trim().length > 0 && spectralType !== 'Unknown');
 
 /**
  * Pure formatter producing the pluralized planet count summary for a stellar system result.
@@ -34,29 +35,27 @@ const renderVariationContent = (
   switch (category) {
     case 'stars': {
       const hasSpect = shouldDisplaySpectralBadge(spectralType);
-      const planetSummary = formatPlanetCountSummary(planetCount);
-      if (!hasSpect && !planetSummary) {
+      const hasPlanets = planetCount !== undefined && planetCount > 0;
+      if (!hasSpect && !hasPlanets) {
         return null;
       }
       return (
-        <span data-testid="result-variation-stars">
-          {' ('}
+        <Cluster gap="tight" align="center" data-testid="result-variation-stars">
           {hasSpect && spectralType ? (
-            <Badge category="star">
-              <a
-                href={buildStarTypeGuideHref(spectralType)}
-                data-testid="result-spectral-badge"
-              >
-                {spectralType}
-              </a>
-            </Badge>
+            <SpectralBadge
+              spectralType={spectralType}
+              href={spectralType ? buildStarTypeGuideHref(spectralType) : undefined}
+              data-testid="result-spectral-badge"
+            />
           ) : null}
-          {hasSpect && planetSummary ? ' · ' : null}
-          {planetSummary ? (
-            <span data-testid="result-planet-summary">{planetSummary}</span>
+          {hasPlanets ? (
+            <Quantity
+              data-testid="result-planet-summary"
+              value={planetCount}
+              unit={planetCount === 1 ? 'planet' : 'planets'}
+            />
           ) : null}
-          {')'}
-        </span>
+        </Cluster>
       );
     }
 
@@ -75,12 +74,10 @@ const renderVariationContent = (
       return <span data-testid="result-variation-minor-bodies" />;
 
     case 'layers':
-      return canonTitle ? (
+      return (
         <span data-testid="result-variation-layers">
-          {` (${canonTitle})`}
+          {canonTitle ? <Badge status="info">{canonTitle}</Badge> : null}
         </span>
-      ) : (
-        <span data-testid="result-variation-layers" />
       );
   }
 };
@@ -120,11 +117,13 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
       data-reticle={reticleType}
       data-target-view={targetView}
     >
-      <a href={href} onClick={handleClick}>
-        {name}
-      </a>{' '}
-      <span data-testid="result-reticle-type">{`[${reticleType}]`}</span>
-      {renderVariationContent(result)}
+      <Cluster gap="tight" align="center">
+        <a href={href} onClick={handleClick}>
+          {name}
+        </a>
+        <CelestialBadge type={reticleType} data-testid="result-reticle-type" />
+        {renderVariationContent(result)}
+      </Cluster>
     </li>
   );
 };

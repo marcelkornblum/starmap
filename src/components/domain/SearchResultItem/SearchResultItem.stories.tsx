@@ -1,21 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { SearchResultItem as SearchResultItemModel } from '../../../services/searchService';
 import { SearchResultItem } from './SearchResultItem';
+import { Stack } from '../../interface/layouts/Stack/Stack';
 
-const meta: Meta<typeof SearchResultItem> = {
-  title: 'Domain/SearchResultItem',
-  component: SearchResultItem,
-  decorators: [
-    (Story) => (
-      <ul>
-        <Story />
-      </ul>
-    ),
-  ],
-};
-
-export default meta;
-type Story = StoryObj<typeof SearchResultItem>;
+import storyStyles from '../domainStories.module.css';
 
 const systemResultFixture: SearchResultItemModel = {
   id: 'sol',
@@ -86,39 +74,82 @@ const structureResultFixture: SearchResultItemModel = {
   name: 'Orion Nebula (M42)',
   category: 'structures',
   entityKind: 'galactic-structure',
-  reticleType: 'cluster',
+  reticleType: 'stellar-cluster',
   targetView: 'galaxy',
   href: '/galaxy?focus=orion-nebula',
   distancePc: 412,
   score: 0.8,
 };
 
-export const SystemResult: Story = {
-  args: {
-    result: systemResultFixture,
+const FIXTURES_BY_ENTITY: Record<string, SearchResultItemModel> = {
+  system: systemResultFixture,
+  star: starResultFixture,
+  planet: planetResultFixture,
+  'minor-body': minorBodyResultFixture,
+  structure: structureResultFixture,
+};
+
+interface SearchResultItemStoryArgs {
+  entityType: 'system' | 'star' | 'planet' | 'minor-body' | 'structure';
+}
+
+const meta: Meta<SearchResultItemStoryArgs> = {
+  title: 'DOMAIN/Search',
+  parameters: {
+    layout: 'centered',
+  },
+  argTypes: {
+    entityType: {
+      control: 'select',
+      options: ['system', 'star', 'planet', 'minor-body', 'structure'],
+      description: 'Entity classification of the search result',
+    },
   },
 };
 
-export const StarResult: Story = {
-  args: {
-    result: starResultFixture,
-  },
-};
+export default meta;
+type Story = StoryObj<SearchResultItemStoryArgs>;
 
-export const PlanetResult: Story = {
+export const SearchResultItemStory: Story = {
+  name: 'SearchResultItem',
   args: {
-    result: planetResultFixture,
+    entityType: 'system',
   },
-};
+  render: (args) => {
+    const activeResult =
+      FIXTURES_BY_ENTITY[args.entityType] ?? systemResultFixture;
 
-export const MinorBodyResult: Story = {
-  args: {
-    result: minorBodyResultFixture,
-  },
-};
+    return (
+      <div className={storyStyles.storyWrapper}>
+        <header className={storyStyles.header}>
+          <h1 className={storyStyles.title}>SearchResultItem</h1>
+          <p className={storyStyles.description}>
+            Individual search hit row displaying reticle iconography, spectral badges, distances, and category cues.
+          </p>
+        </header>
 
-export const StructureResult: Story = {
-  args: {
-    result: structureResultFixture,
+        <Stack gap="loose">
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>
+              Interactive Preview ({args.entityType})
+            </h2>
+            <ul className={storyStyles.listContainer}>
+              <SearchResultItem result={activeResult} />
+            </ul>
+          </section>
+
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>All Result Kinds</h2>
+            <ul className={storyStyles.listContainer}>
+              <SearchResultItem result={systemResultFixture} />
+              <SearchResultItem result={starResultFixture} />
+              <SearchResultItem result={planetResultFixture} />
+              <SearchResultItem result={minorBodyResultFixture} />
+              <SearchResultItem result={structureResultFixture} />
+            </ul>
+          </section>
+        </Stack>
+      </div>
+    );
   },
 };

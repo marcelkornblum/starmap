@@ -1589,7 +1589,7 @@ export function buildSearchIndices(input: {
         }
       }
       if (body.tags?.includes('Spacecraft')) {
-        entry.u = 'artificial';
+        entry.u = 'construct';
       }
       minorBodiesEntries.push(entry);
       fullEntries.push(entry);

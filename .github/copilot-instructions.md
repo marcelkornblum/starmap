@@ -26,9 +26,14 @@ Your objective is to provide a constructive, focused, and high-signal code revie
    - Zustand: Use atomic selectors to prevent unnecessary component re-renders. Avoid storing derived or transient animation data in global stores.
    - TanStack Router: Ensure type-safe search params and route navigation contracts are maintained.
 
-5. **Styling & Schematic UX**:
+5. **Styling, Semantic UI Primitives & Schematic UX**:
    - CSS Modules with central design token custom properties. Reject arbitrary inline styles or hardcoded magic values.
+   - Semantic Interface Primitives & Regulated Badges Only: Domain components and views (`src/components/domain/`, `src/components/search/`, `src/views/`) must compose Tier 1 Interface Primitives (`<Datum>`, `<DataTable>`, `<Quantity>`, `<Unit>`, `<Badge>`, `<CelestialSymbol>`, `<CelestialBadge>`, `<SpectralBadge>`, `<HazardBadge>`, `<PlanetCensus>`, `<ConfidencePip>`, `<Heading>`, `<Kbd>`, `<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`, `<Stack>`, `<Cluster>`) rather than raw `<button>`/`<input>`/`<select>`/`<dl>`/`<ul>` tags, ASCII punctuation workarounds (`[reticle]`, `' · a = '`, `(0 pc)`), or ad-hoc `<Badge>{string}</Badge>` assemblies for celestial classifications. Services must return strict TypeScript classification unions and structured `{ value, unit }` objects rather than pre-formatted display strings parsed by regex in views. Reject numeric counts (`0 hazards`, `0 confirmed planets`, `1 of 5`) or plain telemetry prose wrapped in `<Badge>`.
    - Progressive disclosure: Prioritize schematic clarity and readable navigation over raw visual clutter.
+
+6. **Testing Standards & Anti-Patterns**:
+   - Pure Service Tests: Test domain logic, astronomical math, URL resolvers, and data transformations directly against the pure TypeScript data structures returned by service functions.
+   - No Brittle `renderToString` Substring Assertions: Reject `renderToString(...)` with `expect(html).toContain(...)` assertions on formatted punctuation (`[...]`, `' · '`, parentheses) or raw HTML tag substrings. Component tests should query via `@testing-library/react` (`getByTestId`, `getByRole`) and assert on semantic `data-*` attributes (`data-datum="true"`, `data-data-table="true"`, `data-quantity="true"`, `data-status`, `data-reticle`), WAI-ARIA roles/states (`role="switch"`, `aria-checked`, `role="table"`), `href` targets, and normalised element text content.
 
 ---
 

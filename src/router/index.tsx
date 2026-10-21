@@ -1,13 +1,11 @@
+import React, { useEffect, useState } from 'react';
 import {
   createRouter,
   createRoute,
   createRootRoute,
   defaultStringifySearch,
-  Navigate,
   Outlet,
 } from '@tanstack/react-router';
-import { RootLayout } from '../components/poc/layout/RootLayout';
-import { RouteSkeleton } from '../components/poc/common/RouteSkeleton';
 import { GalaxyView } from '../views/GalaxyView';
 import { HazardDetailView } from '../views/HazardDetailView';
 import { HazardsListView } from '../views/HazardsListView';
@@ -20,10 +18,6 @@ import { SearchView } from '../views/SearchView';
 import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
-import { GalaxyView as PocGalaxyView } from '../views/poc/GalaxyView';
-import { SystemView as PocSystemView } from '../views/poc/SystemView';
-import { PlanetView as PocPlanetView } from '../views/poc/PlanetView';
-import { ReferenceView } from '../views/poc/ReferenceView';
 
 export interface StarmapSearchParams {
   q?: string;
@@ -60,9 +54,115 @@ export async function simulateAsyncFetch<T>(data: T, delayMs = 60): Promise<T> {
   return data;
 }
 
-// Root route definition with global search params validation and unopinionated Outlet
+export function useSpaLocation(
+  locationPathname?: string,
+  locationSearch?: string,
+  fallbackPathname = '/galaxy',
+): { readonly pathname: string; readonly search: string } {
+  const [, setLocationTick] = useState<number>(0);
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      (locationPathname !== undefined && locationSearch !== undefined)
+    ) {
+      return;
+    }
+    const handleLocationChange = (): void => {
+      setLocationTick((n) => n + 1);
+    };
+    window.addEventListener('popstate', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, [locationPathname, locationSearch]);
+
+  const pathname =
+    locationPathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : fallbackPathname);
+  const search =
+    locationSearch ??
+    (typeof window !== 'undefined' ? window.location.search : '');
+
+  return { pathname, search };
+}
+
+export const RootLayout: React.FC = () => {
+  useSpaLocation();
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    const handleDocumentClick = (event: MouseEvent): void => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const target = event.target as Element | null;
+      const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!anchor) {
+        return;
+      }
+      if (anchor.target && anchor.target !== '_self') {
+        return;
+      }
+      if (anchor.hasAttribute('download')) {
+        return;
+      }
+
+      const rawHref = anchor.getAttribute('href');
+      if (
+        !rawHref ||
+        rawHref.startsWith('#') ||
+        rawHref.startsWith('mailto:') ||
+        rawHref.startsWith('tel:')
+      ) {
+        return;
+      }
+
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(anchor.href, window.location.origin);
+      } catch {
+        return;
+      }
+
+      if (parsedUrl.origin !== window.location.origin) {
+        return;
+      }
+
+      event.preventDefault();
+      const nextPathAndSearch = `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+      const currentPathAndSearch = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (nextPathAndSearch === currentPathAndSearch) {
+        return;
+      }
+
+      router.history.push(nextPathAndSearch);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, []);
+
+  return <Outlet />;
+};
+
+// Root route definition with global search params validation and SPA link delegation
 export const rootRoute = createRootRoute({
-  component: Outlet,
+  component: RootLayout,
   validateSearch: (search: Record<string, unknown>): StarmapSearchParams => {
     return {
       ...search,
@@ -182,64 +282,6 @@ export const hazardDetailRoute = createRoute({
   component: HazardDetailView,
 });
 
-// Quarantined POC layout and routes under /poc/* for reference
-export const pocRoute = createRoute({
-  getParentRoute: () => pocRouteParent,
-  path: '/poc',
-  component: RootLayout,
-});
-export const pocRouteParent = rootRoute;
-
-export const pocIndexRoute = createRoute({
-  getParentRoute: () => pocRoute,
-  path: '/',
-  component: () => <Navigate to="/poc/galaxy" />,
-});
-
-export const galaxyRoute = createRoute({
-  getParentRoute: () => pocRoute,
-  path: '/galaxy',
-  component: PocGalaxyView,
-  pendingComponent: () => <RouteSkeleton label="Scanning Galactic Field..." />,
-  pendingMs: 0,
-  loader: async () => {
-    return simulateAsyncFetch({ target: 'Milky Way', nodeCount: 119614 });
-  },
-});
-
-export const systemRoute = createRoute({
-  getParentRoute: () => pocRoute,
-  path: '/system/$systemId',
-  component: PocSystemView,
-  pendingComponent: () => <RouteSkeleton label="Resolving Star System Telemetry..." />,
-  pendingMs: 0,
-  loader: async ({ params }) => {
-    return simulateAsyncFetch({ systemId: params.systemId, spectralType: 'G2V' });
-  },
-});
-
-export const planetRoute = createRoute({
-  getParentRoute: () => pocRoute,
-  path: '/planet/$planetId',
-  component: PocPlanetView,
-  pendingComponent: () => <RouteSkeleton label="Acquiring Planetary Orbit Data..." />,
-  pendingMs: 0,
-  loader: async ({ params }) => {
-    return simulateAsyncFetch({ planetId: params.planetId, classification: 'Terrestrial' });
-  },
-});
-
-export const referenceRoute = createRoute({
-  getParentRoute: () => pocRoute,
-  path: '/reference',
-  component: ReferenceView,
-  pendingComponent: () => <RouteSkeleton label="Accessing Celestial Catalog..." />,
-  pendingMs: 0,
-  loader: async () => {
-    return simulateAsyncFetch({ catalog: 'ICRS/J2000 Encyclopedia' });
-  },
-});
-
 export const routeTree = rootRoute.addChildren([
   indexRoute,
   mainSearchRoute,
@@ -255,13 +297,6 @@ export const routeTree = rootRoute.addChildren([
   metricDetailRoute,
   hazardsListRoute,
   hazardDetailRoute,
-  pocRoute.addChildren([
-    pocIndexRoute,
-    galaxyRoute,
-    systemRoute,
-    planetRoute,
-    referenceRoute,
-  ]),
 ]);
 
 export const router = createRouter({
