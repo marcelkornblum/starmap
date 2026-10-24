@@ -53,7 +53,6 @@ describe('DEC-040: sync-discoveries pipeline helpers', () => {
           systemId: 'lhs-1140',
           inUniverseName: 'LHS 1140 b',
           text: 'Already curated',
-          tags: ['Recent Discovery'],
         },
       },
     };

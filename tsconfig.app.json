@@ -22,5 +22,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "tests", ".storybook"]
+  "include": ["src", "tests", "content", ".storybook"]
 }

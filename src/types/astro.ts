@@ -489,11 +489,26 @@ export interface DatasetLayerEntry {
   order?: number;
   /** Optional parent celestial body ID for moons and orbiting structures (DEC-038) */
   parentBodyId?: string;
+  /**
+   * Optional distinctive in-universe name. Omit whenever identical to the real-sky
+   * star/body name; the UI and search resolve the real name from `targetId` / `systemId`.
+   * Zero brackets.
+   */
   inUniverseName?: string;
+  /**
+   * Precalculated real-sky display name resolved at build time from catalogue data
+   * when `inUniverseName` is omitted (DL-02).
+   */
+  resolvedName?: string;
+  /** Optional short role/context label (e.g. `Astrophage Destination`). Zero brackets. */
+  subtitle?: string;
   text: string;
   workTitle?: string;
-  aliases?: string[];
-  tags?: string[];
+  /**
+   * Space-delimited delta-only search tokens. Must never repeat words already present in
+   * `inUniverseName`, `subtitle`, or the parent `title`, nor the real-sky host name.
+   */
+  aliases?: string;
   confidence?: ObservationalConfidence;
 }
 
@@ -503,10 +518,18 @@ export interface DatasetLayerEntry {
  */
 export interface DatasetLayerManifest {
   layerId: string;
+  /** Shortest unambiguous canonical name (zero brackets, no "Universe"/"Canon" suffix) */
   title: string;
+  /** Strictly optional secondary title; omit by default */
+  subtitle?: string;
   kind: DatasetLayerKind;
   description: string;
   version: number;
+  /**
+   * Space-delimited non-redundant search tokens, including researched book-author
+   * surnames (DL-01 / DL-06).
+   */
+  aliases?: string;
   source?: DatasetLayerSourceMeta;
   entries: Record<string, DatasetLayerEntry>;
 }

@@ -16,7 +16,13 @@ import { SystemView } from '../src/views/SystemView';
 import { PlanetView } from '../src/views/PlanetView';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
-import { SEED_FICTIONAL_CANON_LAYERS } from '../src/utils/datasetLayerCodec';
+import { LAYER_MANIFESTS } from '../content/layers';
+import {
+  LAYER_INDEX_ENTRIES,
+  annotationRecordsFor,
+  resetLayerRuntime,
+  seedLayerRuntime,
+} from './layerFixtures';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
 import type { DatasetLayerManifest, DatasetLayerEntry } from '../src/types/astro';
 import { buildFocusedEntityDetails } from '../src/services/detailsService';
@@ -101,14 +107,14 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
 
   describe('pickRandomLayerOverviewHref', () => {
     it('picks a random layer overview href excluding the currently active layer', () => {
-      const href = pickRandomLayerOverviewHref('recent-discoveries', () => 0);
+      const href = pickRandomLayerOverviewHref('recent-discoveries', () => 0, LAYER_INDEX_ENTRIES);
       expect(href).toMatch(/^\/galaxy\?select=layer:[a-z0-9-]+&layer=[a-z0-9-]+$/);
       expect(href).not.toContain('recent-discoveries');
     });
 
     it('is deterministic when custom randomFn is supplied', () => {
-      const href1 = pickRandomLayerOverviewHref(null, () => 0.5);
-      const href2 = pickRandomLayerOverviewHref(null, () => 0.5);
+      const href1 = pickRandomLayerOverviewHref(null, () => 0.5, LAYER_INDEX_ENTRIES);
+      const href2 = pickRandomLayerOverviewHref(null, () => 0.5, LAYER_INDEX_ENTRIES);
       expect(href1).toBe(href2);
     });
   });
@@ -198,6 +204,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
         layerParam: null,
         currentPathname: '/galaxy',
         currentSearch: '',
+        layers: LAYER_MANIFESTS,
       });
       expect(card).toBeNull();
 
@@ -205,6 +212,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
         layerParam: 'unknown-layer-1234',
         currentPathname: '/galaxy',
         currentSearch: '',
+        layers: LAYER_MANIFESTS,
       });
       expect(unknownCard).toBeNull();
     });
@@ -215,6 +223,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
         currentPathname: '/galaxy',
         currentSearch: '?select=layer:recent-discoveries&layer=recent-discoveries',
         corpus: SAMPLE_CORPUS,
+        layers: LAYER_MANIFESTS,
       });
 
       expect(card).not.toBeNull();
@@ -231,7 +240,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
     });
 
     it('returns Item card model with step index, prev/next links, and tag links when itemSlug is present', () => {
-      const layer = SEED_FICTIONAL_CANON_LAYERS.find(
+      const layer = LAYER_MANIFESTS.find(
         (l) => l.layerId === 'overlay-recent-discoveries',
       )!;
       const cardItem1 = resolveActiveLayerCard({
@@ -240,6 +249,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
         currentSearch:
           '?focus=lhs-1140-b&select=layer:recent-discoveries&layer=recent-discoveries:lhs-1140-b',
         corpus: SAMPLE_CORPUS,
+        layers: LAYER_MANIFESTS,
       });
 
       expect(cardItem1).not.toBeNull();
@@ -254,12 +264,10 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
       );
       expect(cardItem1.prevLabel).toBe('Overview');
       expect(cardItem1.nextHref).toContain('layer=recent-discoveries:');
-      expect(cardItem1.tags.length).toBeGreaterThan(0);
-      expect(cardItem1.tags[0].href).toMatch(/^\/galaxy\?select=tag:[a-z0-9-]+$/);
     });
 
     it('wraps nextHref back to item 1 on final item (Item N)', () => {
-      const layer = SEED_FICTIONAL_CANON_LAYERS.find(
+      const layer = LAYER_MANIFESTS.find(
         (l) => l.layerId === 'overlay-recent-discoveries',
       )!;
       const entries = Object.values(layer.entries);
@@ -270,6 +278,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
         currentPathname: '/system/some-star',
         currentSearch: `?layer=recent-discoveries:${lastEntry.targetId}`,
         corpus: SAMPLE_CORPUS,
+        layers: LAYER_MANIFESTS,
       });
 
       expect(cardLast).not.toBeNull();
@@ -289,6 +298,7 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
       currentPathname: '/galaxy',
       currentSearch: '?layer=recent-discoveries',
       corpus: SAMPLE_CORPUS,
+      layers: LAYER_MANIFESTS,
     });
     expect(card).not.toBeNull();
 
@@ -307,12 +317,13 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
     expect(html).not.toContain('data-testid="layer-card-scrim"');
   });
 
-  it('renders Item mode correctly with step count, text, tags, navigation buttons, and close button', () => {
+  it('renders Item mode correctly with step count, text, navigation buttons, and close button', () => {
     const card = resolveActiveLayerCard({
       layerParam: 'recent-discoveries:lhs-1140-b',
       currentPathname: '/system/lhs-1140',
       currentSearch: '?layer=recent-discoveries:lhs-1140-b',
       corpus: SAMPLE_CORPUS,
+      layers: LAYER_MANIFESTS,
     });
     expect(card).not.toBeNull();
 
@@ -324,8 +335,6 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
     expect(html).toContain('data-testid="layer-card-step"');
     expect(html).toContain('data-testid="layer-card-title"');
     expect(html).toContain('data-testid="layer-card-text"');
-    expect(html).toContain('data-testid="layer-card-tags"');
-    expect(html).toContain('data-testid="layer-card-tag-link"');
     expect(html).toContain('data-testid="layer-card-prev"');
     expect(html).toContain('data-testid="layer-card-next"');
     expect(html).toContain('data-testid="layer-card-close"');
@@ -358,6 +367,9 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
         classification: 'stellar-system',
       },
       corpus: SAMPLE_CORPUS,
+      canonRecords: annotationRecordsFor([
+        'gaia-2452378776434477184',
+      ]),
     });
     expect(focusedDetails).not.toBeNull();
 
@@ -369,7 +381,10 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
     expect(html).toContain('href="/galaxy/tau-ceti?select=layer:project-hail-mary&amp;layer=project-hail-mary:tau-ceti"');
   });
 
-  it('renders <LayerCard /> on GalaxyView, SystemView, and PlanetView when ?layer= is present', () => {
+  it('renders <LayerCard /> on GalaxyView, SystemView, and PlanetView when ?layer= is present', async () => {
+    await seedLayerRuntime({
+      manifestIds: ['overlay-recent-discoveries', 'overlay-extreme-worlds'],
+    });
     const store1 = createSpatialEntityStore();
     const galaxyHtml = renderToString(
       createElement(
@@ -411,5 +426,6 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
       ),
     );
     expect(planetHtml).toContain('data-testid="layer-card"');
+    resetLayerRuntime();
   });
 });

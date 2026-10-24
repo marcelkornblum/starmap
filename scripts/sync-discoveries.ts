@@ -3,10 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { DatasetLayerEntry } from '../src/types/astro';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
-import {
-  SEED_FICTIONAL_CANON_LAYERS,
-  toUrlSlug,
-} from '../src/utils/datasetLayerCodec';
+import { splitAliases, toUrlSlug } from '../src/utils/datasetLayerCodec';
+import { LAYER_MANIFESTS } from '../content/layers';
 import { findFocusedEntryInCorpus } from '../src/services/searchService';
 
 export interface RecentDiscoveryItem {
@@ -87,7 +85,7 @@ export function auditRecentDiscoveriesAgainstCatalog(
       const nameSlug = entry.inUniverseName
         ? toUrlSlug(entry.inUniverseName)
         : '';
-      const aliasSlugs = entry.aliases ? entry.aliases.map(toUrlSlug) : [];
+      const aliasSlugs = splitAliases(entry.aliases).map(toUrlSlug);
       return (
         targetSlug === plSlug ||
         nameSlug === plSlug ||
@@ -169,7 +167,7 @@ export async function runDiscoverySyncCli(): Promise<void> {
   const isOffline = args.includes('--offline');
   const isDryRun = args.includes('--dry-run');
 
-  const recentLayer = SEED_FICTIONAL_CANON_LAYERS.find(
+  const recentLayer = LAYER_MANIFESTS.find(
     (l) => l.layerId === 'overlay-recent-discoveries',
   );
 

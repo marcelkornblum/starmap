@@ -203,10 +203,12 @@ Search indices are emitted in two composite tiers and five category shards:
 | Key | Full Name | Type | Description |
 | :---: | :--- | :--- | :--- |
 | `i` | `layerId` | `string` | Unique layer slug (`'canon-star-trek'`, `'custom-user-default'`). |
-| `n` | `title` | `string` | Human-readable layer title. |
+| `n` | `title` | `string` | Shortest unambiguous canonical layer title. Zero brackets. |
+| `t` | `subtitle` | `string` | Optional secondary title (`'Remembrance of Earth\'s Past'`). |
 | `k` | `kind` | `number` | `1 = fictional-canon`, `2 = custom-user`, `3 = scientific-overlay`. |
 | `d` | `description` | `string` | Layer description. |
 | `v` | `version` | `number` | Schema version (`1`). |
+| `a` | `aliases` | `string` | Space-delimited non-redundant search tokens, including researched book-author surnames. |
 | `b` | `source` | `CompactLayerSourceMeta` | Optional bibliographic metadata block (`s` = summary, `a` = creator/author, `y` = publicationYear, `m` = medium, `r` = canonicalReference, `u` = authoritative URL). |
 | `e` | `entries` | `Record<targetId, CompactLayerEntry>` | Keyed dictionary of flattened node annotations. |
 
@@ -215,10 +217,31 @@ Search indices are emitted in two composite tiers and five category shards:
 | :---: | :--- | :--- | :--- |
 | `k` | `targetType` | `number` | `1 = system` (omitted), `2 = planet`, `3 = moon`, `4 = structure`, `5 = minor-body`, `6 = fictional-body`. |
 | `s` | `systemId` | `string` | Real host star system ID (omitted when `systemId === targetId`; required when `k !== 1` so Galactic View highlights the host star system). |
-| `u` | `inUniverseName` | `string` | In-universe or custom label (`'Vulcan (NiVar)'`, `'Adrian'`, `'Reach (Epsilon Eridani II)'`). |
+| `u` | `inUniverseName` | `string` | Optional distinctive in-universe name (`'Vulcan'`, `'Adrian'`, `'Arrakis'`). Omitted when identical to real-sky name. |
+| `r` | `resolvedName` | `string` | Precalculated real-sky display name resolved at build time from catalogue data when `inUniverseName` is omitted. |
+| `t` | `subtitle` | `string` | Optional short role/context label (`'Astrophage Destination'`, `'Borg Cube Battle'`). |
 | `x` | `text` | `string` | Flattened lore or user note text for this entity. |
 | `w` | `workTitle` | `string` | Optional specific installment/book title. |
-| `a` | `aliases` | `string[]` | Additional search terms contributed by this entry. |
-| `g` | `tags` | `string[]` | Short thematic tags (`['Reach', 'UNSC']`). |
+| `a` | `aliases` | `string` | Space-delimited delta-only search tokens. |
 | `c` | `confidence` | `2 \| 3 \| 4` | Mapping confidence tier (`1 = confirmed` omitted; `2 = candidate`, `3 = theoretical`, `4 = unverified`). |
+
+### 8.3 By-Entity Annotation Shards (`overlays/layers/by-entity/<0..z>.json` — `DL-05` S3)
+36-bucket O(1) reverse lookup shards partitioned by `getShardKey(targetId)` and `getShardKey(systemId)`.
+Envelope: `{ i: bucket, c: count, d: Record<entityId, CompactEntityAnnotation[]> }`.
+Each `CompactEntityAnnotation` record contains:
+- `i`: Layer ID (`layerId`)
+- `n`: Layer title (`layerTitle`)
+- `k`: Layer kind code (`1 = fictional-canon`, `2 = custom-user`, `3 = scientific-overlay`)
+- `t`: Target entity ID (`targetId`)
+- `y`: Target type code (`1 = system`, `2 = planet`, `3 = moon`, `4 = structure`, `5 = minor-body`, `6 = fictional-body`)
+- `s`: Host system ID (`systemId`, omitted when identical to `t`)
+- `p`: Optional parent body ID (`parentBodyId`)
+- `u`: Optional in-universe name (`inUniverseName`)
+- `d`: Optional resolved real-sky display name (`resolvedName`)
+- `b`: Optional subtitle (`subtitle`)
+- `w`: Optional work title (`workTitle`)
+- `x`: Annotation text
+- `o`: Optional sequence order (`order`)
+- `a`: Optional source creator (`creator`)
+- `r`: Optional publication year (`publicationYear`)
 

@@ -24,13 +24,15 @@ import {
   type PlanetTypeGuideEntry,
   type StarTypeGuideEntry,
 } from '../data/guideCatalog';
-import type { DatasetLayerManifest } from '../types/astro';
+import type {
+  DatasetLayerIndexEntry,
+  DatasetLayerManifest,
+} from '../types/astro';
 import {
   SYSTEM_TAG_BITS,
   type CompactSearchEntry,
 } from '../utils/compactDataCodec';
 import {
-  SEED_FICTIONAL_CANON_LAYERS,
   findCanonLayerById,
   toCanonicalLayerSlug,
   toUrlSlug,
@@ -40,7 +42,12 @@ import {
   type EntityOrbitTargetInput,
   type OrbitTargetView,
 } from './details/navigationAndCamera';
-import { expandGouldOrConstellationSuffix, normalizeCleanKey } from '../utils/nomenclature';
+import {
+  expandGouldOrConstellationSuffix,
+  formatSlugFallbackTitle,
+  normalizeCleanKey,
+} from '../utils/nomenclature';
+export { formatSlugFallbackTitle };
 
 export {
   buildMetricGuideHref,
@@ -898,27 +905,14 @@ export const buildTagGalaxyHref = (tag: string): string => {
 
 /**
  * Pure unit function checking whether a candidate string matches a known catalog system tag
- * or a canon layer annotation tag (supporting both PascalCase and kebab-case slugs).
+ * (pipeline bitmask tags; supports both PascalCase and kebab-case slugs).
  */
-export const isCatalogOrCanonTag = (
-  candidateTag: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
-): boolean => {
+export const isCatalogTag = (candidateTag: string): boolean => {
   const key = normaliseTagKey(candidateTag);
   if (!key) {
     return false;
   }
-  if (key in TAG_BIT_BY_LOWER) {
-    return true;
-  }
-  for (const layer of activeLayers) {
-    for (const entry of Object.values(layer.entries)) {
-      if (entry.tags?.some((tag) => normaliseTagKey(tag) === key)) {
-        return true;
-      }
-    }
-  }
-  return false;
+  return key in TAG_BIT_BY_LOWER;
 };
 
 /**
@@ -972,7 +966,7 @@ export type UrlSelectToken =
  */
 export const parseUrlSelectTokens = (
   searchString: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  layerIndex: readonly DatasetLayerIndexEntry[],
 ): readonly UrlSelectToken[] => {
   const params = new URLSearchParams(searchString);
   const rawValues = [
@@ -990,7 +984,7 @@ export const parseUrlSelectTokens = (
       const tagMatch = /^tag:(.+)$/i.exec(token);
       if (tagMatch?.[1]) {
         const candidateTag = tagMatch[1].trim();
-        if (isCatalogOrCanonTag(candidateTag, activeLayers)) {
+        if (isCatalogTag(candidateTag)) {
           tokens.push({ kind: 'tag', tag: candidateTag });
         }
         continue;
@@ -999,7 +993,7 @@ export const parseUrlSelectTokens = (
       const layerMatch = /^layer:(.+)$/i.exec(token);
       if (layerMatch?.[1]) {
         const rawSlug = layerMatch[1].trim().split(':')[0];
-        const matchedLayer = findCanonLayerById(rawSlug, activeLayers);
+        const matchedLayer = findCanonLayerById(rawSlug, layerIndex);
         if (matchedLayer) {
           tokens.push({ kind: 'layer', layerId: matchedLayer.layerId });
         }
@@ -1046,11 +1040,8 @@ export const parseUrlSelectTokens = (
 /**
  * Pure parser extracting the first active catalog or canon tag from `?select=tag:<tag>`.
  */
-export const extractUrlTagFocus = (
-  searchString: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
-): string | null => {
-  const tagToken = parseUrlSelectTokens(searchString, activeLayers).find(
+export const extractUrlTagFocus = (searchString: string): string | null => {
+  const tagToken = parseUrlSelectTokens(searchString, []).find(
     (t): t is Extract<UrlSelectToken, { readonly kind: 'tag' }> => t.kind === 'tag',
   );
   return tagToken ? tagToken.tag : null;
@@ -1061,9 +1052,9 @@ export const extractUrlTagFocus = (
  */
 export const extractUrlLayerId = (
   searchString: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  layerIndex: readonly DatasetLayerIndexEntry[],
 ): string | null => {
-  const layerToken = parseUrlSelectTokens(searchString, activeLayers).find(
+  const layerToken = parseUrlSelectTokens(searchString, layerIndex).find(
     (t): t is Extract<UrlSelectToken, { readonly kind: 'layer' }> => t.kind === 'layer',
   );
   return layerToken ? layerToken.layerId : null;
@@ -1074,7 +1065,7 @@ export const extractUrlLayerId = (
  */
 export const extractUrlSelectSlugs = (
   searchString: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  layerIndex: readonly DatasetLayerIndexEntry[],
 ): {
   readonly tags: readonly string[];
   readonly layerSlugs: readonly string[];
@@ -1083,7 +1074,7 @@ export const extractUrlSelectSlugs = (
   readonly collections: readonly string[];
   readonly entitySlugs: readonly string[];
 } => {
-  const tokens = parseUrlSelectTokens(searchString, activeLayers);
+  const tokens = parseUrlSelectTokens(searchString, layerIndex);
   const tags: string[] = [];
   const layerSlugs: string[] = [];
   const starTypes: string[] = [];
@@ -1182,17 +1173,6 @@ export const hasExplicitFocusParam = (searchString: string): boolean => {
   }
   return toUrlSlug(focusParam).length > 0;
 };
-
-/**
- * Pure formatter turning a URL slug (e.g. `'tau-ceti'`) into a human-readable fallback title (`'Tau Ceti'`).
- */
-export const formatSlugFallbackTitle = (slug: string): string =>
-  slug
-    .trim()
-    .split(/[-_\s]+/)
-    .filter((part) => part.length > 0)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 
 /**
  * Pure lookup finding the matching `CompactSearchEntry` in a corpus for a focused URL slug or ID.
@@ -1353,14 +1333,12 @@ const registerLayerEntrySystem = (
 
 /**
  * Pure unit function resolving all deduplicated host star systems that match a
- * catalog system tag (`ExoplanetHost`, `SolarNeighborhood10pc`, `NakedEye`, etc.)
- * or a canon layer annotation tag, returning `SpatialEntityDefinition` records
- * to be marked `selected` in `SpatialEntityStore`.
+ * catalog system tag (`ExoplanetHost`, `SolarNeighborhood10pc`, `NakedEye`, etc.),
+ * returning `SpatialEntityDefinition` records to be marked `selected` in `SpatialEntityStore`.
  */
 export const resolveSelectedSystemsFromTag = (
   tag: string,
   corpus: readonly CompactSearchEntry[],
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
 ): readonly SpatialEntityDefinition[] => {
   const tagKey = normaliseTagKey(tag);
   if (!tagKey) {
@@ -1380,15 +1358,6 @@ export const resolveSelectedSystemsFromTag = (
     }
   }
 
-  for (const layer of activeLayers) {
-    for (const entry of Object.values(layer.entries)) {
-      if (!entry.tags?.some((t) => normaliseTagKey(t) === tagKey)) {
-        continue;
-      }
-      registerLayerEntrySystem(systemsById, entry, corpus);
-    }
-  }
-
   return Array.from(systemsById.values());
 };
 
@@ -1400,7 +1369,7 @@ export const resolveSelectedSystemsFromTag = (
 export const resolveSelectedSystemsFromLayer = (
   layerId: string,
   corpus: readonly CompactSearchEntry[],
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  activeLayers: readonly DatasetLayerManifest[],
 ): readonly SpatialEntityDefinition[] => {
   const layer = findCanonLayerById(layerId, activeLayers);
   if (!layer) {
@@ -1609,10 +1578,11 @@ export const resolveSelectedSystemsFromCollection = (
 export const resolveSelectedSystemsFromUrlSelect = (
   searchString: string,
   corpus: readonly CompactSearchEntry[],
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  layerIndex: readonly DatasetLayerIndexEntry[],
+  loadedLayers: readonly DatasetLayerManifest[],
   collections: readonly CuratedCollection[] = SEED_CURATED_COLLECTIONS,
 ): readonly SpatialEntityDefinition[] => {
-  const tokens = parseUrlSelectTokens(searchString, activeLayers);
+  const tokens = parseUrlSelectTokens(searchString, layerIndex);
   if (tokens.length === 0) {
     return [];
   }
@@ -1621,18 +1591,14 @@ export const resolveSelectedSystemsFromUrlSelect = (
 
   for (const token of tokens) {
     if (token.kind === 'tag') {
-      for (const sys of resolveSelectedSystemsFromTag(
-        token.tag,
-        corpus,
-        activeLayers,
-      )) {
+      for (const sys of resolveSelectedSystemsFromTag(token.tag, corpus)) {
         entitiesById.set(sys.id, sys);
       }
     } else if (token.kind === 'layer') {
       for (const sys of resolveSelectedSystemsFromLayer(
         token.layerId,
         corpus,
-        activeLayers,
+        loadedLayers,
       )) {
         entitiesById.set(sys.id, sys);
       }

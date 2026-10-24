@@ -6,12 +6,12 @@ import type {
   CircumstellarDiskKind,
   CircumstellarDiskRecord,
   DatasetLayerKind,
-  DatasetLayerManifest,
   DatasetLayerTargetType,
   ObservationalConfidence,
   SystemSummaryNode,
 } from '../../types/astro';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
+import type { DecodedEntityAnnotation } from '../../utils/datasetLayerCodec';
 
 export type { PlanetCompositionClass };
 
@@ -104,11 +104,12 @@ export interface FocusedCanonAnnotation {
   readonly targetId: string;
   readonly targetType: DatasetLayerTargetType;
   readonly inUniverseName?: string;
+  readonly resolvedName?: string;
+  readonly subtitle?: string;
   readonly workTitle?: string;
   readonly text: string;
   readonly creator?: string;
   readonly publicationYear?: string;
-  readonly tags: readonly string[];
 }
 
 export interface CanonAnnotationOrderOptions {
@@ -372,7 +373,7 @@ export interface BuildFocusedEntityDetailsInput {
   readonly summaryNode?: SystemSummaryNode;
   readonly systemDetail?: DecodedDetailRecord;
   readonly entityDetail?: DecodedDetailRecord;
-  readonly activeLayers?: readonly DatasetLayerManifest[];
+  readonly canonRecords?: readonly DecodedEntityAnnotation[];
   readonly canonOrderOptions?: CanonAnnotationOrderOptions;
   readonly urlSystemSlug?: string | null;
   readonly urlPlanetSlug?: string | null;
@@ -386,6 +387,7 @@ export interface BuildFocusedEntityDetailsInput {
 export interface BuildSystemBodiesSummaryInput {
   readonly details: FocusedEntityDetails | null;
   readonly corpus?: readonly CompactSearchEntry[];
+  readonly canonRecords?: readonly DecodedEntityAnnotation[];
   readonly selectedEntityIds?: readonly string[];
   readonly focusedEntityId?: string;
 }
@@ -395,7 +397,7 @@ export interface BuildPlanetaryBodiesSummaryInput {
   readonly urlPlanetSlug?: string | null;
   readonly planetEntityDetail?: DecodedDetailRecord;
   readonly corpus?: readonly CompactSearchEntry[];
-  readonly activeLayers?: readonly DatasetLayerManifest[];
+  readonly canonRecords?: readonly DecodedEntityAnnotation[];
   readonly selectedEntityIds?: readonly string[];
   readonly focusedEntityId?: string;
 }

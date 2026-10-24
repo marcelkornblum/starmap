@@ -113,23 +113,28 @@ const renderCanonLayers = (
                     href={annotation.href}
                     data-testid="details-canon-item-link"
                   >
-                    {annotation.inUniverseName ? (
+                    {annotation.inUniverseName || annotation.resolvedName ? (
                       <>
                         {`${annotation.layerTitle} — `}
                         <strong data-testid="details-canon-item-title">
-                          {annotation.inUniverseName}
+                          {annotation.inUniverseName || annotation.resolvedName}
                         </strong>
+                        {annotation.subtitle ? ` (${annotation.subtitle})` : null}
                       </>
                     ) : (
-                      annotation.layerTitle
+                      <>
+                        {annotation.layerTitle}
+                        {annotation.subtitle ? ` (${annotation.subtitle})` : null}
+                      </>
                     )}
                   </a>
                 ) : (
-                  annotation.inUniverseName ? (
+                  annotation.inUniverseName || annotation.resolvedName ? (
                     <>
                       <strong data-testid="details-canon-item-title">
-                        {annotation.inUniverseName}
+                        {annotation.inUniverseName || annotation.resolvedName}
                       </strong>
+                      {annotation.subtitle ? ` (${annotation.subtitle})` : null}
                       {' — '}
                     </>
                   ) : null
@@ -151,23 +156,6 @@ const renderCanonLayers = (
                 </Badge>
               </summary>
               <p data-testid="details-canon-text">{annotation.text}</p>
-              {annotation.tags.length > 0 ? (
-                <p data-testid="details-canon-tags">
-                  {'Tags: '}
-                  {annotation.tags.map((tag, index) => (
-                    <Fragment key={tag}>
-                      {index > 0 ? ' ' : null}
-                      <Badge
-                        status="neutral"
-                        href={buildTagGalaxyHref(tag)}
-                        data-testid="details-canon-tag-link"
-                      >
-                        {tag}
-                      </Badge>
-                    </Fragment>
-                  ))}
-                </p>
-              ) : null}
             </details>
           </li>
         ))}

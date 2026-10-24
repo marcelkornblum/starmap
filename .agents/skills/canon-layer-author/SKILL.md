@@ -34,17 +34,21 @@ For complete TypeScript interfaces, compact 1-letter JSON wire keys, and worked 
 
 ### Step 1: Ingest & Extract Source Material
 1. Read the user-supplied material (files, text, or URLs via `read_url_content` / `search_web`).
-2. Extract **Main Canon Layer Metadata (`DatasetLayerSourceMeta` / `b`)**:
+2. Extract **Main Canon Layer Metadata (`DatasetLayerManifest` / `DatasetLayerSourceMeta` / `b`)**:
    - `layerId`: `canon-<kebab-slug>` (e.g., `canon-dune`, `canon-the-expanse`, `canon-revelation-space`).
-   - `title`: Human-readable canon title.
+   - `title` (`n`): **Shortest unambiguous canonical name** (`"Hail Mary"`, `"Three-Body"`, `"Dune"`, `"Star Trek"`). Zero brackets, no `"Universe"` / `"Canon"` suffix.
+   - `subtitle` (`t`): **Strictly optional — omit by default.** Only when the short title genuinely benefits from a secondary title (e.g. `title: "Three-Body"`, `subtitle: "Remembrance of Earth's Past"`). Never put authors, dates, or brackets in it.
+   - `aliases` (`a`): **Single space-delimited string** of non-redundant search tokens for the layer (`"project astrophage grace rocky weir"`). Include the **surname(s) of the author(s) of the original primary book / novella / short story / manga only** (lowercase, alphanumeric, true family name: `Liu Cixin` → `liu`, `Ursula K. Le Guin` → `leguin`, pen names by pen-name surname). **Directors, showrunners, studios, game developers, tie-in/novelisation authors and creator-written spin-off novels get no token.** Never repeat words already in `title` / `subtitle`, and never paste prose.
    - `description`: 1-sentence deck description for the Layer Toggle UI.
    - `source.summary` (`b.s`): 1–2 sentence synthesis of the work and how real-sky astronomy is used in its setting.
-   - `source.creator` (`b.a`): Author(s), creator(s), or studio.
+   - `source.creator` (`b.a`): Author(s), creator(s), or studio (display-only; **not** parsed for search).
    - `source.publicationYear` (`b.y`): Original publication/release year or span.
    - `source.medium` (`b.m`): `"Novel"`, `"Novel Trilogy"`, `"TV & Film Franchise"`, `"Video Game & Novel Franchise"`, etc.
    - `source.canonicalReference` (`b.r`): Specific book, star chart, or encyclopedia establishing the astrometric mapping.
    - `source.url` (`b.u`): Authoritative reference URL (resolved per Rule 4 above).
-3. Extract **Candidate Celestial Entities**:
+3. **Inclusion rule:** anchor a work to a body, star or structure **only where actual narrative events take place**. Sprawling or simulation-scale works that merely contain real locations, and purely symbolic/mythological uses of planet names, are excluded. Group works that share a setting, universe or author-cycle into one layer where this gives a better layer card (individual works are carried by entry `workTitle`).
+4. **Verify first:** every anchor and attribution must be verified against a cited source before it is authored. Use `confidence` (`candidate` / `theoretical`) only where a source genuinely cannot be found or the mapping is interpretive — never as a shortcut for unfinished research.
+5. Extract **Candidate Celestial Entities**:
    - For each star system, planet, moon, or station mentioned in the source material, record its **in-universe name**, **claimed real-sky star/planet designation** (Proper name, Bayer/Flamsteed, Gliese/GJ, HD, HIP), and **role in the work**.
 
 ### Step 2: Cross-Match Against Starmap's Catalog (via `codebase-researcher` on `Model: "flash"`)
@@ -71,18 +75,19 @@ Delegate catalog cross-matching against Starmap's built search indices (`public/
 For each matched entity, draft a flattened `DatasetLayerEntry`:
 - `order` (`o`): Positive integer indicating the sequence of this node during guided layer exploration in `<LayerCard />`.
 - `parentBodyId` (`p`): Parent planetary body ID for moons and sub-satellites (e.g. `'jupiter'`, `'earth'`) enabling direct Orbit-Context navigation to `/planet/<parentPlanetSlug>?focus=<itemSlug>`.
-- `inUniverseName` (`u`): Concise in-universe title with real-sky context where helpful, e.g. `"Reach (Epsilon Eridani II)"` or `"Adrian"`.
+- `inUniverseName` (`u`): **Strictly optional. Omit whenever the in-universe name equals the real-sky star/body name** (e.g. omit for *Tau Ceti* in *Hail Mary*, *Wolf 359* in *Star Trek* — the build resolves the real name from `targetId` / `systemId`). Populate only when the work gives the body a **different** name (`"Erid"`, `"Adrian"`, `"Trisolaris"`, `"Vulcan"`, `"Arrakis"`), and always prefer that distinctive name over the real-sky designation. Zero brackets; no parenthetical real-sky suffixes.
+- `subtitle` (`t`): Strictly optional short role/context label (e.g. `"Astrophage Destination"`, `"Borg Cube Battle"`). Omit when self-explanatory. Zero brackets.
 - `text` (`x`): 1–2 sentences (max ~220 characters) explaining the entity's significance in the work, written in Starmap's objective encyclopedic tone.
 - `workTitle` (`w`): Specific book/installment title if the layer spans multiple works.
-- `aliases` (`a`): High-value search terms (in-universe names, faction names, ship names, species names) indexed into unified search (`public/data/search/layers.json`) under the `layers` category.
-- `tags` (`g`): 1–3 short thematic tags. Clicking any tag navigates to `/galaxy?select=tag:<tagSlug>`.
+- `aliases` (`a`): **Single space-delimited string of delta-only search tokens** (`"rocky blipa"`). Must never repeat words already in `inUniverseName`, `subtitle`, or the parent `title`, nor the real-sky host star/planet name (the Relational System Pass already links child entries to matched systems), nor stopwords.
+- **No entry `tags`:** canon entry tags were removed (DL-10). `?select=tag:` resolves catalogue system tags only.
 
 ### Step 3b: Unified Search & Guided LayerCard Navigation
 - **Unified Layer Search (`category: layers`):** Both parent layer overview nodes and individual layer items are indexed into `public/data/search/layers.json`, allowing direct search discovery.
 - **Deep-Linking via `?layer=`:** Selecting a layer item produces a clean RFC 3986 URL `?select=layer:<layerSlug>&layer=<layerSlug>:<itemSlug>`, opening the HUD `<LayerCard />` with step-by-step Previous/Next guided tour controls.
 
 ### Step 4: Interactive Review Checkpoint (Mandatory Halt)
-Before writing to `src/utils/datasetLayerCodec.ts` or running `npm run build:data`:
+Before writing to `content/layers/<layerId>.ts` or running `npm run build:data`:
 1. Write a **Canon Layer Proposal Artifact** (`UserFacing: true`) containing:
    - **Main Tag Bibliographic Block (`source` / `b`):** All fields, explicitly highlighting the **Authoritative URL (`source.url`)** choice (e.g., Wikipedia vs. primary canon wiki/reference) for user ratification.
    - **Matched Entries Table:** Columns for `In-Universe Name`, `Target Type`, `Target ID`, `Host System ID & Real Name`, `Distance (pc)`, `Confidence`, `Aliases`, and `Entry Text`.
@@ -91,9 +96,10 @@ Before writing to `src/utils/datasetLayerCodec.ts` or running `npm run build:dat
 
 ### Step 5: Emit, Build & Verify (via `tdd-worker` & `qa-verifier` on `Model: "flash"`)
 Once ratified by the user, delegate emission, data build, and verification to `tdd-worker` / `qa-verifier` (`Model: "flash"`) using separate single-command `run_command` calls (zero `&&` chaining):
-1. Add or update the `DatasetLayerManifest` in `SEED_FICTIONAL_CANON_LAYERS` inside [`src/utils/datasetLayerCodec.ts`](file:///home/marcel/projects/starmap/src/utils/datasetLayerCodec.ts).
-2. Run `npm run build:data` to regenerate:
+1. Add or update the layer as its own module `content/layers/<layerId>.ts` (`export default` a typed `DatasetLayerManifest`) and register it in the barrel `content/layers/index.ts` (`LAYER_MANIFESTS`). Authored layer content lives only under `content/` (versioned, read by `scripts/build-data.ts`); nothing authored belongs in `src/`.
+2. Run `npm run build:data` to regenerate (the build is offline and deterministic; it resolves real-sky names from the on-disk catalogue):
    - `public/data/overlays/layers/index.json`
    - `public/data/overlays/layers/<layerId>.json`
-   - `public/data/search/fiction.json`, `public/data/search/core.json`, and `public/data/search/full.json`
+   - `public/data/overlays/layers/by-entity/<0..z>.json`
+   - `public/data/search/layers.json`, `public/data/search/core.json`, and `public/data/search/full.json`
 3. Run `npx vitest run tests/datasetLayerCodec.test.ts` and `npm run typecheck` as separate single commands to verify lossless round-trip encoding and search index generation.

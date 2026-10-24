@@ -9,6 +9,14 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  useLayerIndex,
+  useLoadedLayerManifests,
+} from '../../hooks/useLayerData';
+import type {
+  DatasetLayerIndexEntry,
+  DatasetLayerManifest,
+} from '../../types/astro';
+import {
   fetchSearchShard,
   getCachedCorpusForFilter,
   loadSearchCorpusForFilter,
@@ -100,8 +108,10 @@ const syncSearchUrlParams = (
 const syncSelectedSystemsToStore = (
   store: SpatialEntityStore,
   results: GroupedSearchResults,
-  activeSearch = '',
-  corpus: readonly CompactSearchEntry[] = [],
+  activeSearch: string,
+  corpus: readonly CompactSearchEntry[],
+  layerIndex: readonly DatasetLayerIndexEntry[],
+  loadedLayers: readonly DatasetLayerManifest[],
 ): void => {
   const windowSearch =
     typeof window !== 'undefined' ? window.location.search : '';
@@ -112,7 +122,12 @@ const syncSelectedSystemsToStore = (
 
   const urlSelected =
     results.query.trim().length === 0
-      ? resolveSelectedSystemsFromUrlSelect(searchToUse, corpus)
+      ? resolveSelectedSystemsFromUrlSelect(
+          searchToUse,
+          corpus,
+          layerIndex,
+          loadedLayers,
+        )
       : [];
   const selectedSystems =
     urlSelected.length > 0
@@ -217,6 +232,12 @@ export const SearchRoot = ({
   const activeSearch =
     locationSearch ?? (syncUrl ? windowLocation.search : '');
 
+  const layerIndex = useLayerIndex();
+  const loadedLayers = useLoadedLayerManifests(activeSearch);
+  const layerDataRef = useRef({ layerIndex, loadedLayers });
+  useEffect(() => {
+    layerDataRef.current = { layerIndex, loadedLayers };
+  });
   const [query, setQueryState] = useState<string>(() =>
     resolveInitialQuery(syncUrl, activeSearch, initialQuery),
   );
@@ -252,7 +273,14 @@ export const SearchRoot = ({
       initialSystemEntries ??
       initialAvailableCorpus ??
       [];
-    syncSelectedSystemsToStore(store, computed, activeSearch, focusCorpus);
+    syncSelectedSystemsToStore(
+      store,
+      computed,
+      activeSearch,
+      focusCorpus,
+      layerIndex,
+      loadedLayers,
+    );
 
     if (
       syncUrl ||
@@ -297,10 +325,20 @@ export const SearchRoot = ({
         nextResults,
         effectiveSearch,
         effectiveCorpus,
+        layerDataRef.current.layerIndex,
+        layerDataRef.current.loadedLayers,
       );
     },
     [activeSearch, initialCorpus, store],
   );
+
+  // Re-apply URL layer selection once the referenced layer manifests have loaded
+  const loadedLayerKey = loadedLayers.map((layer) => layer.layerId).join(',');
+  useEffect(() => {
+    if (loadedLayerKey.length > 0) {
+      updateResultsAndSelection(results);
+    }
+  }, [loadedLayerKey, results, updateResultsAndSelection]);
 
   const submitSearch = useCallback(
     async (
@@ -556,6 +594,8 @@ export const SearchRoot = ({
               }),
               activeSearch,
               focusCorpus,
+              layerDataRef.current.layerIndex,
+              layerDataRef.current.loadedLayers,
             );
           }
 
@@ -776,6 +816,7 @@ export const SearchPanel = ({
   scope,
 }: SearchPanelProps) => {
   const { isFocused } = useSearchContext();
+  const layerIndex = useLayerIndex();
   const router = useRouter({ warn: false });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
@@ -787,7 +828,11 @@ export const SearchPanel = ({
       return;
     }
     const currentLayer = new URLSearchParams(window.location.search).get('layer');
-    const nextHref = pickRandomLayerOverviewHref(currentLayer);
+    const nextHref = pickRandomLayerOverviewHref(
+      currentLayer,
+      Math.random,
+      layerIndex,
+    );
     const parsedNext = parseLayerQueryParam(new URLSearchParams(nextHref.split('?')[1] ?? '').get('layer'));
     if (router?.state && parsedNext?.layerSlug) {
       void router.navigate({

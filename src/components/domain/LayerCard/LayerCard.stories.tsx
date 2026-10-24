@@ -47,11 +47,6 @@ const itemFixture: ActiveLayerItemCardModel = {
   text:
     'Destination G-type star system of the Hail Mary interstellar mission to harvest Taumoeba and counter Petrova line stellar dimming.',
   confidence: 'confirmed',
-  tags: [
-    { label: 'Project Hail Mary', href: '/galaxy?tag=project-hail-mary' },
-    { label: 'Andy Weir', href: '/galaxy?tag=andy-weir' },
-    { label: 'Adrian', href: '/planet/tau-ceti-e' },
-  ],
   prevHref: '/galaxy?select=layer:hard-scifi&layer=hard-scifi:alpha-centauri',
   prevLabel: 'Alpha Centauri',
   nextHref: '/galaxy?select=layer:hard-scifi&layer=hard-scifi:40-eridani',

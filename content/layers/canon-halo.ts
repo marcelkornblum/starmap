@@ -1,0 +1,82 @@
+import type { DatasetLayerManifest } from '../../src/types/astro';
+
+const layer: DatasetLayerManifest = {
+  layerId: 'canon-halo',
+  title: 'Halo Universe',
+  kind: 'fictional-canon',
+  description: 'UNSC colonial star systems in the Halo universe.',
+  version: 1,
+  source: {
+    summary:
+      'Military science-fiction universe in which the United Nations Space Command (UNSC) colonises real nearby stars within the local 50-parsec solar neighbourhood, anchored by the fortress world Reach in the Epsilon Eridani system.',
+    creator: 'Bungie / 343 Industries / Eric Nylund',
+    publicationYear: '2001–present',
+    medium: 'Video Game & Novel Franchise',
+    canonicalReference: 'Halo Encyclopedia (Dark Horse Books, 2022) & Halo: The Fall of Reach (2001)',
+    url: 'https://en.wikipedia.org/wiki/Halo_(franchise)',
+  },
+  entries: {
+    'gaia-5164707970261890560': {
+      targetId: 'gaia-5164707970261890560',
+      targetType: 'system',
+      systemId: 'gaia-5164707970261890560',
+      inUniverseName: 'Epsilon Eridani System (FLEETCOM Sector One)',
+      text: 'Primary naval hub of the UNSC Inner Colonies and site of the Fall of Reach in 2552.',
+      workTitle: 'Halo: The Fall of Reach',
+      aliases: 'FLEETCOM Sector One Halo',
+      confidence: 'confirmed',
+    },
+    'canon-halo:reach': {
+      targetId: 'canon-halo:reach',
+      targetType: 'fictional-body',
+      systemId: 'gaia-5164707970261890560',
+      inUniverseName: 'Reach (Epsilon Eridani II)',
+      text: 'Fortress world and second planet of Epsilon Eridani; headquarters of UNSC FLEETCOM and the SPARTAN-II program before its glassing by the Covenant.',
+      workTitle: 'Halo: The Fall of Reach',
+      aliases: 'Reach Epsilon Eridani II UNSC Fleet Command FLEETCOM',
+      confidence: 'confirmed',
+    },
+    'gaia-6412595290592307840': {
+      targetId: 'gaia-6412595290592307840',
+      targetType: 'system',
+      systemId: 'gaia-6412595290592307840',
+      inUniverseName: 'Harvest (Epsilon Indi IV)',
+      text: 'Agricultural UNSC Outer Colony orbiting Epsilon Indi; site of humanity’s first contact with the Covenant in 2525.',
+      workTitle: 'Halo: Contact Harvest',
+      aliases: 'Harvest Epsilon Indi IV Contact Harvest',
+      confidence: 'confirmed',
+    },
+    'gaia-6226694571859532800': {
+      targetId: 'gaia-6226694571859532800',
+      targetType: 'system',
+      systemId: 'gaia-6226694571859532800',
+      inUniverseName: 'Madrigal (23 Librae)',
+      text: 'Resource-rich UNSC Outer Colony and Insurrectionist stronghold in the 23 Librae system.',
+      workTitle: 'Halo: The Cole Protocol',
+      aliases: 'Madrigal 23 Librae The Rubble',
+      confidence: 'confirmed',
+    },
+    'hip-37279': {
+      targetId: 'hip-37279',
+      targetType: 'system',
+      systemId: 'hip-37279',
+      inUniverseName: 'Arcadia (Procyon III)',
+      text: 'Lush UNSC tourism and resort colony in the Procyon system besieged during Halo Wars (2531).',
+      workTitle: 'Halo Wars',
+      aliases: 'Arcadia Procyon III Halo Wars',
+      confidence: 'confirmed',
+    },
+    'gaia-2452378776434477184': {
+      targetId: 'gaia-2452378776434477184',
+      targetType: 'system',
+      systemId: 'gaia-2452378776434477184',
+      inUniverseName: 'Tau Ceti System',
+      text: 'Strategic inner-colony frontier sector in the Halo UNSC astrometric network.',
+      workTitle: 'Halo',
+      aliases: 'Tau Ceti Halo',
+      confidence: 'confirmed',
+    },
+  },
+};
+
+export default layer;

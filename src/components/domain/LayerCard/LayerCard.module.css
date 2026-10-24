@@ -47,6 +47,13 @@
     color: var(--content-prominent);
   }
 
+  .subtitle {
+    margin: 0;
+    font-family: var(--font-interface);
+    font-size: var(--type-scale-0);
+    color: var(--content-muted);
+  }
+
   .description,
   .text {
     margin: 0;
@@ -62,16 +69,14 @@
   }
 
   .sourceLink,
-  .overviewLink,
-  .tagLink {
+  .overviewLink {
     color: var(--content-primary);
     text-decoration: none;
     font-size: var(--type-scale-0);
   }
 
   .sourceLink:hover,
-  .overviewLink:hover,
-  .tagLink:hover {
+  .overviewLink:hover {
     text-decoration: underline;
   }
 
@@ -86,8 +91,7 @@
     color: var(--content-muted);
   }
 
-  .confidenceRow,
-  .tagsRow {
+  .confidenceRow {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-fib-1);

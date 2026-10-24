@@ -436,6 +436,18 @@ export function expandGlieseVariants(rawDesignation?: string | null): string[] {
   return Array.from(new Set([trimmed, `Gl ${suffix}`, `GJ ${suffix}`, `Gliese ${suffix}`]));
 }
 
+/**
+ * Pure formatter turning a URL slug (e.g. `'tau-ceti'`) into a human-readable fallback title (`'Tau Ceti'`).
+ */
+export function formatSlugFallbackTitle(slug: string): string {
+  return slug
+    .trim()
+    .split(/[-_\s]+/)
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 export interface StarTitleResolutionInput {
   readonly properName?: string | null;
   readonly hygProperName?: string | null;

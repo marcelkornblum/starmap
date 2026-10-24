@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
@@ -99,7 +99,7 @@ import {
   formatSlugFallbackTitle,
   hasExplicitFocusParam,
   isArtificialSpacecraftEntry,
-  isCatalogOrCanonTag,
+  isCatalogTag,
   isChildOfHostSystem,
   isSearchCategoryFilter,
   normaliseSearchQuery,
@@ -128,6 +128,13 @@ import {
   type CompactSearchEntry,
 } from '../src/utils/compactDataCodec';
 import { GalaxyView } from '../src/views/GalaxyView';
+import { LAYER_MANIFESTS } from '../content/layers';
+import {
+  LAYER_INDEX_ENTRIES,
+  annotationRecordsFor,
+  resetLayerRuntime,
+  seedAllLayerData,
+} from './layerFixtures';
 import {
   MetricDetailView,
   extractMetricIdFromPathname,
@@ -549,6 +556,9 @@ describe('searchRepository (Data Repository Layer)', () => {
 });
 
 describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Search.Results>, <SearchResultItem>)', () => {
+  beforeAll(seedAllLayerData);
+  afterAll(resetLayerRuntime);
+
   it('renders populated search results with domain SearchResultItem, clean galaxy URLs, reticle types, spectral/planet summaries, and zero pc numbers', () => {
     const html = renderToString(
       createElement(
@@ -1213,6 +1223,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     const annotations = resolveFocusedCanonAnnotations(
       'canon-project-hail-mary:tau-ceti-e',
       'gaia-2452378776434477184',
+      annotationRecordsFor(['tau-ceti-e', 'gaia-2452378776434477184']),
     );
     // Factual 'scientific-overlay' layer appears first
     expect(annotations[0]?.kind).toBe('scientific-overlay');
@@ -1484,21 +1495,21 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       '/galaxy?select=layer:project-hail-mary&layer=project-hail-mary',
     );
     expect(buildLayerGalaxyHref('   ')).toBe('/galaxy');
-    expect(findCanonLayerById('canon-project-hail-mary')?.title).toBe(
+    expect(findCanonLayerById('canon-project-hail-mary', LAYER_MANIFESTS)?.title).toBe(
       'Project Hail Mary',
     );
-    expect(findCanonLayerById('project-hail-mary')?.title).toBe(
+    expect(findCanonLayerById('project-hail-mary', LAYER_MANIFESTS)?.title).toBe(
       'Project Hail Mary',
     );
-    expect(findCanonLayerById('')).toBeUndefined();
-    expect(findCanonLayerById('non-existent-layer')).toBeUndefined();
+    expect(findCanonLayerById('', LAYER_MANIFESTS)).toBeUndefined();
+    expect(findCanonLayerById('non-existent-layer', LAYER_MANIFESTS)).toBeUndefined();
 
-    expect(extractUrlLayerId('?select=layer:project-hail-mary')).toBe(
+    expect(extractUrlLayerId('?select=layer:project-hail-mary', LAYER_INDEX_ENTRIES)).toBe(
       'canon-project-hail-mary',
     );
-    expect(extractUrlLayerId('?layer=canon-halo')).toBe('canon-halo');
-    expect(extractUrlLayerId('?focus=tau-ceti-e')).toBeNull();
-    expect(extractUrlLayerId('')).toBeNull();
+    expect(extractUrlLayerId('?layer=canon-halo', LAYER_INDEX_ENTRIES)).toBe('canon-halo');
+    expect(extractUrlLayerId('?focus=tau-ceti-e', LAYER_INDEX_ENTRIES)).toBeNull();
+    expect(extractUrlLayerId('', LAYER_INDEX_ENTRIES)).toBeNull();
 
     // extractUrlFocusSlug only reads ?focus= or route path segments, never ?select=
     expect(
@@ -1514,6 +1525,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
         classification: 'stellar-system',
       },
       corpus: SAMPLE_CORPUS,
+      canonRecords: annotationRecordsFor(['gaia-2452378776434477184']),
     });
     const detailsHtml = renderToString(
       createElement(DetailsPanel, { details: focusedDetails }),
@@ -1532,16 +1544,18 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     const phmSystems = resolveSelectedSystemsFromLayer(
       'canon-project-hail-mary',
       SAMPLE_CORPUS,
+      LAYER_MANIFESTS,
     );
     expect(phmSystems.map((s) => s.name)).toEqual(['Tau Ceti', 'Keid']);
     expect(
-      resolveSelectedSystemsFromLayer('non-existent-canon', SAMPLE_CORPUS),
+      resolveSelectedSystemsFromLayer('non-existent-canon', SAMPLE_CORPUS, LAYER_MANIFESTS),
     ).toEqual([]);
 
     // Fallback when corpus is empty and when Sol is included (e.g. canon-star-trek)
     const stSystemsEmptyCorpus = resolveSelectedSystemsFromLayer(
       'canon-star-trek',
       [],
+      LAYER_MANIFESTS,
     );
     expect(stSystemsEmptyCorpus.some((s) => s.id === 'sol' && s.name === 'Sol')).toBe(
       true,
@@ -1638,7 +1652,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(detailViewHtml).toContain('href="/guide/planet-types"');
   });
 
-  it('links Astrometry and Canon tags in DetailsPanel to /galaxy?select=tag:<tagSlug> and supports multi-entity ?select= lists alongside ?focus=', () => {
+  it('links Astrometry tags in DetailsPanel to /galaxy?select=tag:<tagSlug> and supports multi-entity ?select= lists alongside ?focus=', () => {
     expect(buildTagGalaxyHref('ExoplanetHost')).toBe(
       '/galaxy?select=tag:exoplanet-host',
     );
@@ -1646,16 +1660,16 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       '/galaxy?select=tag:habitable-candidate',
     );
     expect(buildTagGalaxyHref('   ')).toBe('/galaxy');
-    expect(isCatalogOrCanonTag('ExoplanetHost')).toBe(true);
-    expect(isCatalogOrCanonTag('exoplanet-host')).toBe(true);
-    expect(isCatalogOrCanonTag('SolarNeighborhood10pc')).toBe(true);
-    expect(isCatalogOrCanonTag('solar-neighborhood-10pc')).toBe(true);
-    expect(isCatalogOrCanonTag('seti')).toBe(true);
-    expect(isCatalogOrCanonTag('')).toBe(false);
-    expect(isCatalogOrCanonTag('tau-ceti-e')).toBe(false);
+    expect(isCatalogTag('ExoplanetHost')).toBe(true);
+    expect(isCatalogTag('exoplanet-host')).toBe(true);
+    expect(isCatalogTag('SolarNeighborhood10pc')).toBe(true);
+    expect(isCatalogTag('solar-neighborhood-10pc')).toBe(true);
+    expect(isCatalogTag('seti')).toBe(false);
+    expect(isCatalogTag('')).toBe(false);
+    expect(isCatalogTag('tau-ceti-e')).toBe(false);
 
     expect(extractUrlTagFocus('?select=tag:exoplanet-host')).toBe('exoplanet-host');
-    expect(extractUrlTagFocus('?select=tag:seti')).toBe('seti');
+    expect(extractUrlTagFocus('?select=tag:seti')).toBeNull();
     expect(extractUrlTagFocus('?select=layer:project-hail-mary')).toBeNull();
     expect(extractUrlTagFocus('?focus=tau-ceti-e')).toBeNull();
     expect(extractUrlTagFocus('')).toBeNull();
@@ -1700,9 +1714,9 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(detailsHtml).toContain('href="/galaxy?select=tag:naked-eye"');
     expect(detailsHtml).toContain('href="/galaxy?select=tag:exoplanet-host"');
     expect(detailsHtml).toContain('href="/galaxy?select=tag:habitable-candidate"');
-    expect(detailsHtml).toContain('data-testid="details-canon-tag-link"');
+    expect(detailsHtml).not.toContain('data-testid="details-canon-tag-link"');
 
-    // resolveSelectedSystemsFromTag resolves both catalog system tags and canon annotation tags
+    // resolveSelectedSystemsFromTag resolves catalog system tags only
     expect(resolveSelectedSystemsFromTag('', SAMPLE_CORPUS)).toEqual([]);
     const exoplanetHosts = resolveSelectedSystemsFromTag(
       'exoplanet-host',
@@ -1717,8 +1731,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     );
     expect(habitableHosts.map((s) => s.name)).toEqual(['Sol', 'Tau Ceti']);
 
-    const setiSystems = resolveSelectedSystemsFromTag('seti', SAMPLE_CORPUS);
-    expect(setiSystems.some((s) => s.name === 'Tau Ceti')).toBe(true);
+    expect(resolveSelectedSystemsFromTag('seti', SAMPLE_CORPUS)).toEqual([]);
 
     // MainView loading /galaxy?select=tag:habitable-candidate selects all matching systems and focuses nothing
     const store = createSpatialEntityStore();
@@ -3202,6 +3215,9 @@ describe('Breadth-First Enhancements (DEC-018, DEC-019, DEC-020)', () => {
 });
 
 describe('3D View Reference Point, Camera URL State & Detent Swap (DEC-021, DEC-022)', () => {
+  beforeAll(seedAllLayerData);
+  afterAll(resetLayerRuntime);
+
   it('DEC-021: extractUrlSceneCameraState extracts center and relative spherical / cartesian camera parameters', () => {
     // Empty search string
     expect(extractUrlSceneCameraState('')).toEqual({});
@@ -3425,6 +3441,7 @@ describe('3D View Reference Point, Camera URL State & Detent Swap (DEC-021, DEC-
         classification: 'terrestrial',
       },
       corpus: SAMPLE_CORPUS,
+      canonRecords: annotationRecordsFor(['earth', 'sol']),
       urlSystemSlug: 'sol',
       entityDetail: {
         kind: 'system',
@@ -4128,42 +4145,45 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
 
   it('parses Option C tokens: tag:<slug>, layer:<slug>, star-type:<slug>, planet-type:<slug>, collection:<slug>, and entity slugs', () => {
     // 1. Individual tokens
-    expect(parseUrlSelectTokens('?select=tag:habitable-candidate')).toEqual([
+    expect(parseUrlSelectTokens('?select=tag:habitable-candidate', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'tag', tag: 'habitable-candidate' },
     ]);
-    expect(parseUrlSelectTokens('?select=layer:project-hail-mary')).toEqual([
+    expect(parseUrlSelectTokens('?select=layer:project-hail-mary', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'layer', layerId: 'canon-project-hail-mary' },
     ]);
-    expect(parseUrlSelectTokens('?select=layer:recent-discoveries')).toEqual([
+    expect(parseUrlSelectTokens('?select=layer:recent-discoveries', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'layer', layerId: 'overlay-recent-discoveries' },
     ]);
-    expect(parseUrlSelectTokens('?select=star-type:g')).toEqual([
+    expect(parseUrlSelectTokens('?select=star-type:g', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'star-type', starType: 'g' },
     ]);
-    expect(parseUrlSelectTokens('?select=star-type:g2v')).toEqual([
+    expect(parseUrlSelectTokens('?select=star-type:g2v', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'star-type', starType: 'g2v' },
     ]);
-    expect(parseUrlSelectTokens('?select=star-type:white-dwarf')).toEqual([
+    expect(parseUrlSelectTokens('?select=star-type:white-dwarf', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'star-type', starType: 'white-dwarf' },
     ]);
-    expect(parseUrlSelectTokens('?select=planet-type:super-earth')).toEqual([
+    expect(parseUrlSelectTokens('?select=planet-type:super-earth', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'planet-type', planetType: 'super-earth' },
     ]);
-    expect(parseUrlSelectTokens('?select=planet-type:gas-giant')).toEqual([
+    expect(parseUrlSelectTokens('?select=planet-type:gas-giant', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'planet-type', planetType: 'gas-giant' },
     ]);
-    expect(parseUrlSelectTokens('?select=collection:extreme-worlds')).toEqual([
+    expect(parseUrlSelectTokens('?select=collection:extreme-worlds', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'collection', collectionId: 'extreme-worlds' },
     ]);
-    expect(parseUrlSelectTokens('?select=collection:newly-discovered')).toEqual([
+    expect(parseUrlSelectTokens('?select=collection:newly-discovered', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'collection', collectionId: 'newly-discovered' },
     ]);
-    expect(parseUrlSelectTokens('?select=sol')).toEqual([
+    expect(parseUrlSelectTokens('?select=sol', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'entity', slug: 'sol' },
     ]);
 
     // 2. Comma-separated combination
-    const multi = parseUrlSelectTokens('?select=star-type:g,layer:project-hail-mary,sol');
+    const multi = parseUrlSelectTokens(
+      '?select=star-type:g,layer:project-hail-mary,sol',
+      LAYER_INDEX_ENTRIES,
+    );
     expect(multi).toEqual([
       { kind: 'star-type', starType: 'g' },
       { kind: 'layer', layerId: 'canon-project-hail-mary' },
@@ -4281,6 +4301,8 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
     const combined = resolveSelectedSystemsFromUrlSelect(
       '?select=star-type:g2v,collection:extreme-worlds',
       testCorpus,
+      LAYER_INDEX_ENTRIES,
+      LAYER_MANIFESTS,
     );
     expect(combined.some((s) => s.id === 'sol')).toBe(true);
   });
@@ -4565,6 +4587,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
     it('extracts structured select slugs via extractUrlSelectSlugs helper', () => {
       const parsed = extractUrlSelectSlugs(
         '?select=tag:habitable-candidate,layer:recent-discoveries,star-type:g,sol',
+        LAYER_INDEX_ENTRIES,
       );
       expect(parsed.tags).toEqual(['habitable-candidate']);
       expect(parsed.layerSlugs).toEqual(['overlay-recent-discoveries']);
