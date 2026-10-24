@@ -30,10 +30,17 @@
     transition: color var(--duration-fast) var(--ease-standard);
   }
 
-  .titleLink:hover,
+  .titleLink:hover {
+    color: var(--content-interactive);
+    text-decoration: underline;
+  }
+
   .titleLink:focus-visible {
     color: var(--content-interactive);
     text-decoration: underline;
+    outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
+    outline-offset: var(--state-focus-ring-offset);
+    border-radius: var(--radius-sm);
   }
 
   .title {

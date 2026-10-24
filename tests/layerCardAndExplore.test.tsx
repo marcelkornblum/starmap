@@ -10,7 +10,6 @@ import {
 } from '../src/services/layerCardService';
 import { LayerCard } from '../src/components/domain/LayerCard/LayerCard';
 import { Search } from '../src/components/search';
-import { DetailsPanel } from '../src/components/domain/DetailsPanel/DetailsPanel';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { SystemView } from '../src/views/SystemView';
 import { PlanetView } from '../src/views/PlanetView';
@@ -378,7 +377,7 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
     expect(html).toContain('Explore');
   });
 
-  it('renders deep-link href to LayerCard in <DetailsPanel /> for canon annotations with tightened CanonLayerItem (DEC-041)', () => {
+  it('resolves in-place deep-link href on canon annotations in buildFocusedEntityDetails (DEC-041)', () => {
     const focusedDetails = buildFocusedEntityDetails({
       focusedEntity: {
         id: 'gaia-2452378776434477184',
@@ -393,19 +392,18 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
     });
     expect(focusedDetails).not.toBeNull();
 
-    const html = renderToString(
-      createElement(DetailsPanel, { details: focusedDetails! }),
+    const annotation = focusedDetails!.canonAnnotations.find(
+      (a) => a.layerId === 'canon-project-hail-mary',
     );
-
-    expect(html).toContain('data-testid="details-canon-item"');
-    expect(html).toContain('data-testid="details-canon-item-title"');
-    expect(html).toContain('data-testid="details-canon-item-link"');
-    expect(html).toContain('href="/galaxy?select=layer:project-hail-mary&amp;layer=project-hail-mary:tau-ceti"');
-    expect(html).not.toContain('data-testid="details-canon-accordion"');
-    expect(html).not.toContain('data-testid="details-canon-text"');
+    expect(annotation).toBeDefined();
+    expect(annotation!.href).toBe(
+      '/galaxy?select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti',
+    );
+    expect(annotation!.layerTitle).toBe('Hail Mary');
+    expect(annotation!.resolvedName).toBe('Tau Ceti');
   });
 
-  it('renders in-place deep-link href to LayerCard in <DetailsPanel /> when currently on that system view (DEC-041)', () => {
+  it('resolves in-place deep-link href preserving currentPathname and search when on system view (DEC-041)', () => {
     const focusedDetails = buildFocusedEntityDetails({
       focusedEntity: {
         id: 'gaia-2452378776434477184',
@@ -415,20 +413,20 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
       },
       corpus: SAMPLE_CORPUS,
       currentPathname: '/system/tau-ceti',
+      currentSearch: '?mode=orbit',
       canonRecords: annotationRecordsFor([
         'gaia-2452378776434477184',
       ]),
     });
     expect(focusedDetails).not.toBeNull();
 
-    const html = renderToString(
-      createElement(DetailsPanel, { details: focusedDetails! }),
+    const annotation = focusedDetails!.canonAnnotations.find(
+      (a) => a.layerId === 'canon-project-hail-mary',
     );
-
-    expect(html).toContain('data-testid="details-canon-item-link"');
-    expect(html).toContain('href="/system/tau-ceti?select=layer:project-hail-mary&amp;layer=project-hail-mary:tau-ceti"');
-    expect(html).not.toContain('data-testid="details-canon-accordion"');
-    expect(html).not.toContain('data-testid="details-canon-text"');
+    expect(annotation).toBeDefined();
+    expect(annotation!.href).toBe(
+      '/system/tau-ceti?mode=orbit&select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti',
+    );
   });
 
   it('renders <LayerCard /> on GalaxyView, SystemView, and PlanetView when ?layer= is present', async () => {

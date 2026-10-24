@@ -34,7 +34,7 @@ export const CanonLayerItem = ({
 
   return (
     <Component
-      className={`${styles.item} ${className ?? ''}`.trim()}
+      className={className ? `${styles.item} ${className}` : styles.item}
       data-testid="details-canon-item"
       data-layer-id={annotation.layerId}
       data-layer-kind={annotation.kind}

@@ -49,8 +49,8 @@ const meta: Meta<typeof CanonLayerItem> = {
   },
   decorators: [
     (Story) => (
-      <div className={storyStyles.panelContainer} style={{ width: 360 }}>
-        <ul style={{ margin: 0, padding: 0 }}>
+      <div className={storyStyles.panelContainer}>
+        <ul className={storyStyles.listContainer}>
           <Story />
         </ul>
       </div>
