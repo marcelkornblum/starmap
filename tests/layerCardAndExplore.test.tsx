@@ -231,7 +231,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
 
       expect(card.mode).toBe('overview');
       expect(card.layerSlug).toBe('recent-discoveries');
-      expect(card.title).toBe('Newly Discovered Worlds');
+      expect(card.title).toBe('Recent Discoveries');
       expect(card.kind).toBe('scientific-overlay');
       expect(card.kindLabel).toBe('Scientific Layer');
       expect(card.itemCount).toBeGreaterThan(0);

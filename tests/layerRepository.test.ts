@@ -9,7 +9,7 @@ import {
   getCachedLayerManifest,
 } from '../src/data/layerRepository';
 import { getShardKey } from '../src/utils/compactDataCodec';
-import { createLayerFetch } from './layerFixtures';
+import { createLayerFetch, RESOLVED_LAYER_MANIFESTS } from './layerFixtures';
 
 const makeFetch = () => vi.fn(createLayerFetch());
 
@@ -50,7 +50,7 @@ describe('layerRepository', () => {
 
   it('fetches, decodes and caches a single layer manifest', async () => {
     const fetchImpl = makeFetch();
-    const target = LAYER_MANIFESTS.find((l) => l.layerId === 'canon-halo')!;
+    const target = RESOLVED_LAYER_MANIFESTS.find((l) => l.layerId === 'canon-halo')!;
 
     const manifest = await fetchLayerManifest('canon-halo', fetchImpl);
     await fetchLayerManifest('canon-halo', fetchImpl);
@@ -73,7 +73,7 @@ describe('layerRepository', () => {
     );
 
     expect(records.some((r) => r.layerId === 'canon-project-hail-mary' && r.targetId === 'tau-ceti-e')).toBe(true);
-    expect(records.some((r) => r.layerId === 'overlay-interstellar-missions')).toBe(true);
+    expect(records.some((r) => r.layerId === 'overlay-seti-landmarks')).toBe(true);
     const keys = records.map((r) => `${r.layerId}:${r.targetId}`);
     expect(new Set(keys).size).toBe(keys.length);
 

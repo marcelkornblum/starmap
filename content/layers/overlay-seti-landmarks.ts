@@ -1,0 +1,83 @@
+import type { DatasetLayerManifest } from '../../src/types/astro';
+
+const layer: DatasetLayerManifest = {
+  layerId: 'overlay-seti-landmarks',
+  title: 'SETI & Radio Signals',
+  aliases: 'seti radio wow arecibo drake greenbank listen broadcast',
+  kind: 'scientific-overlay',
+  description: 'Landmark SETI search targets, interstellar radio broadcasts, and candidate signal coordinates.',
+  version: 1,
+  source: {
+    summary:
+      'Historical and contemporary search for extraterrestrial intelligence (SETI) targets and intentional interstellar radio transmissions.',
+    creator: 'SETI Institute / Frank Drake / Breakthrough Listen',
+    publicationYear: '1960–present',
+    medium: 'Radio Astronomy Archive',
+    canonicalReference: 'Drake (1960) Project Ozma & Arecibo Message (1974)',
+    url: 'https://www.seti.org/',
+  },
+  entries: {
+    'gaia-2452378776434477184': {
+      targetId: 'gaia-2452378776434477184',
+      targetType: 'system',
+      systemId: 'gaia-2452378776434477184',
+      subtitle: 'Project Ozma Target',
+      text: 'Target of Frank Drake’s pioneering 1960 Project Ozma SETI search scanning near the 1.420 GHz neutral hydrogen line.',
+      workTitle: 'Project Ozma (1960)',
+      aliases: 'projectozma frankdrake greenbank',
+      confidence: 'confirmed',
+    },
+    'gaia-5164707970261890560': {
+      targetId: 'gaia-5164707970261890560',
+      targetType: 'system',
+      systemId: 'gaia-5164707970261890560',
+      subtitle: 'Project Ozma Target',
+      text: 'Nearby solar analogue scanned alongside Tau Ceti in the 1960 Project Ozma experiment conducted at Green Bank Observatory.',
+      workTitle: 'Project Ozma (1960)',
+      aliases: 'projectozma frankdrake greenbank',
+      confidence: 'confirmed',
+    },
+    'm13-hercules': {
+      targetId: 'm13-hercules',
+      targetType: 'structure',
+      systemId: 'm13-hercules',
+      subtitle: 'Arecibo Message Target',
+      text: '1,679-bit pictorial radio broadcast transmitted by Frank Drake and Carl Sagan from Arecibo Observatory in 1974 toward Messier 13.',
+      workTitle: 'Arecibo Message (1974)',
+      aliases: 'arecibomessage drake sagan pictorial',
+      confidence: 'confirmed',
+    },
+    'hip-95477': {
+      targetId: 'hip-95477',
+      targetType: 'system',
+      systemId: 'hip-95477',
+      subtitle: 'Wow! Signal Sky Region',
+      text: 'Narrowband 1420 MHz radio signal recorded by Jerry Ehman at Ohio State Big Ear radio telescope on 15 August 1977 near the Chi Sagittarii group.',
+      workTitle: 'Big Ear SETI Survey (1977)',
+      aliases: 'wowsignal 6equj5 bigear ehman',
+      confidence: 'confirmed',
+    },
+    'gaia-5853498713190525696': {
+      targetId: 'gaia-5853498713190525696',
+      targetType: 'system',
+      systemId: 'gaia-5853498713190525696',
+      subtitle: 'Breakthrough Listen Target',
+      text: 'Nearest stellar system and subject of intensive Breakthrough Listen monitoring, including the BLC1 candidate narrowband radio detection.',
+      workTitle: 'Breakthrough Listen',
+      aliases: 'breakthroughlisten blc1 parkes',
+      confidence: 'confirmed',
+    },
+    'gaia-704967037090946688': {
+      targetId: 'gaia-704967037090946688',
+      targetType: 'system',
+      systemId: 'gaia-704967037090946688',
+      subtitle: 'Cosmic Call Target',
+      text: 'Target of the 2003 Cosmic Call 2 interstellar radio transmission broadcast from the Evpatoria RT-70 planetary radar.',
+      workTitle: 'Cosmic Call 2 (2003)',
+      aliases: 'cosmiccall evpatoria rt70',
+      confidence: 'confirmed',
+    },
+  },
+};
+
+export default layer;

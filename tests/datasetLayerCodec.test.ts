@@ -315,7 +315,7 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     );
     expect(recent).toBeDefined();
     expect(recent?.kind).toBe('scientific-overlay');
-    expect(recent?.title).toBe('Newly Discovered Worlds');
+    expect(recent?.title).toBe('Recent Discoveries');
     const recentOrdered = getOrderedLayerEntries(recent!);
     expect(recentOrdered).toHaveLength(5);
     expect(recentOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
@@ -332,11 +332,12 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     );
     expect(jwst).toBeDefined();
     expect(jwst?.kind).toBe('scientific-overlay');
-    expect(jwst?.title).toBe('Recent JWST Targets');
+    expect(jwst?.title).toBe('JWST Targets');
     const jwstOrdered = getOrderedLayerEntries(jwst!);
-    expect(jwstOrdered).toHaveLength(5);
-    expect(jwstOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
+    expect(jwstOrdered).toHaveLength(6);
+    expect(jwstOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5, 6]);
     expect(jwstOrdered.map((e) => e.targetId)).toEqual([
+      'jwst',
       'lhs-1140-b',
       'trappist-1-e',
       '55-cancri-e',
@@ -349,7 +350,7 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     );
     expect(extreme).toBeDefined();
     expect(extreme?.kind).toBe('scientific-overlay');
-    expect(extreme?.title).toBe('Extreme & Superlative Worlds');
+    expect(extreme?.title).toBe('Extreme Worlds');
     const extremeOrdered = getOrderedLayerEntries(extreme!);
     expect(extremeOrdered).toHaveLength(5);
     expect(extremeOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
@@ -371,7 +372,7 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     expect(expanse?.entries.phoebe?.parentBodyId).toBe('saturn');
 
     const scifi = LAYER_MANIFESTS.find(
-      (l) => l.layerId === 'canon-classic-scifi',
+      (l) => l.layerId === 'canon-space-odyssey',
     );
     expect(scifi?.entries.europa?.parentBodyId).toBe('jupiter');
     expect(scifi?.entries.iapetus?.parentBodyId).toBe('saturn');
@@ -380,7 +381,7 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
   it('normalises layer slugs via toCanonicalLayerSlug and findCanonLayerById across canon-, overlay-, and layer- prefixes', () => {
     expect(toCanonicalLayerSlug('canon-project-hail-mary')).toBe('project-hail-mary');
     expect(toCanonicalLayerSlug('overlay-recent-discoveries')).toBe('recent-discoveries');
-    expect(toCanonicalLayerSlug('overlay-interstellar-missions')).toBe('interstellar-missions');
+    expect(toCanonicalLayerSlug('overlay-interstellar-probes')).toBe('interstellar-probes');
     expect(toCanonicalLayerSlug('layer-custom-notes')).toBe('custom-notes');
     expect(toCanonicalLayerSlug('project-hail-mary')).toBe('project-hail-mary');
 
@@ -388,7 +389,7 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     expect(findCanonLayerById('overlay-recent-discoveries', LAYER_MANIFESTS)?.layerId).toBe('overlay-recent-discoveries');
     expect(findCanonLayerById('project-hail-mary', LAYER_MANIFESTS)?.layerId).toBe('canon-project-hail-mary');
     expect(findCanonLayerById('canon-project-hail-mary', LAYER_MANIFESTS)?.layerId).toBe('canon-project-hail-mary');
-    expect(findCanonLayerById('interstellar-missions', LAYER_MANIFESTS)?.layerId).toBe('overlay-interstellar-missions');
+    expect(findCanonLayerById('interstellar-probes', LAYER_MANIFESTS)?.layerId).toBe('overlay-interstellar-probes');
     expect(findCanonLayerById('non-existent-layer', LAYER_MANIFESTS)).toBeUndefined();
   });
 

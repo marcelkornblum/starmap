@@ -1092,7 +1092,8 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(focusSystemHtml).toContain('data-testid="details-button-system-details"');
     expect(focusSystemHtml).toContain('href="/system/tau-ceti"');
     expect(focusSystemHtml).toContain('Directions');
-    expect(focusSystemHtml).toContain('Tau Ceti (Astrophage Destination)');
+    expect(focusSystemHtml).toContain('Tau Ceti');
+    expect(focusSystemHtml).toContain('Astrophage Destination');
     expect(focusSystemHtml).toContain('data-testid="details-canon-accordion"');
 
     // Verify DEC-022 detents: Peek contains systemSummary, Partial contains Canon, and Full contains Astrometry
@@ -1227,10 +1228,11 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     );
     // Factual 'scientific-overlay' layer appears first
     expect(annotations[0]?.kind).toBe('scientific-overlay');
-    expect(annotations[0]?.layerTitle).toBe('Interstellar Missions & SETI Landmarks');
+    expect(annotations[0]?.layerTitle).toBe('SETI & Radio Signals');
     // Within 'fictional-canon', the direct planet annotation ('Adrian') appears before system-level annotations
-    expect(annotations[1]?.inUniverseName).toBe('Adrian');
-    expect(annotations.some((a) => a.inUniverseName === 'Tau Ceti (Astrophage Destination)')).toBe(
+    const fictional = annotations.filter((a) => a.kind === 'fictional-canon');
+    expect(fictional[0]?.inUniverseName).toBe('Adrian');
+    expect(annotations.some((a) => a.subtitle === 'Astrophage Destination')).toBe(
       true,
     );
 

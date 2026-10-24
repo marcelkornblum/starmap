@@ -8,6 +8,7 @@ import { useLayerStore } from '../src/stores/useLayerStore';
 import type { DatasetLayerIndexEntry } from '../src/types/astro';
 import { getShardKey } from '../src/utils/compactDataCodec';
 import {
+  applyResolvedNamesToLayers,
   buildEntityAnnotationBuckets,
   buildLayerIndexManifest,
   decodeEntityAnnotation,
@@ -16,12 +17,59 @@ import {
 } from '../src/utils/datasetLayerCodec';
 
 /**
+ * Well-known real-sky names used to populate `resolvedName` in test layer fixtures,
+ * mirroring the build pipeline's `applyResolvedNamesToLayers`.
+ */
+const KNOWN_REAL_NAMES = new Map<string, string>([
+  ['gaia-2452378776434477184', 'Tau Ceti'],
+  ['gaia-5164707970261890560', 'Epsilon Eridani'],
+  ['gaia-5853498713190525696', 'Alpha Centauri'],
+  ['gaia-4472832130942575872', "Barnard's Star"],
+  ['gaia-6412595290592307840', 'Epsilon Indi'],
+  ['gaia-6427464123776727168', 'Delta Pavonis'],
+  ['gaia-4847957293278177024', '82 G. Eridani'],
+  ['gaia-3195919528989223040', '40 Eridani'],
+  ['gaia-1129149723913123456', 'Gliese 445'],
+  ['gaia-1926461164913660160', 'Ross 248'],
+  ['hip-21421', 'Aldebaran'],
+  ['hip-32349', 'Sirius'],
+  ['hip-37279', 'Procyon'],
+  ['hip-91262', 'Vega'],
+  ['hip-97649', 'Altair'],
+  ['hip-27989', 'Betelgeuse'],
+  ['hip-95477', 'Chi-1 Sagittarii'],
+  ['gaia-704967037090946688', '55 Cancri'],
+  ['m13-hercules', 'Messier 13'],
+  ['sol', 'Sol'],
+  ['earth', 'Earth'],
+  ['moon', 'The Moon'],
+  ['mars', 'Mars'],
+  ['venus', 'Venus'],
+  ['jupiter', 'Jupiter'],
+  ['saturn', 'Saturn'],
+  ['europa', 'Europa'],
+  ['titan', 'Titan'],
+  ['iapetus', 'Iapetus'],
+  ['voyager-1', 'Voyager 1'],
+  ['voyager-2', 'Voyager 2'],
+  ['pioneer-10', 'Pioneer 10'],
+  ['pioneer-11', 'Pioneer 11'],
+  ['new-horizons', 'New Horizons'],
+  ['jwst', 'James Webb Space Telescope'],
+]);
+
+export const RESOLVED_LAYER_MANIFESTS = applyResolvedNamesToLayers(
+  LAYER_MANIFESTS,
+  KNOWN_REAL_NAMES,
+);
+
+/**
  * Layer index entries derived from the authored layers via the production builder.
  */
 export const LAYER_INDEX_ENTRIES: readonly DatasetLayerIndexEntry[] =
   buildLayerIndexManifest(LAYER_MANIFESTS).d;
 
-const ANNOTATION_BUCKETS = buildEntityAnnotationBuckets(LAYER_MANIFESTS);
+const ANNOTATION_BUCKETS = buildEntityAnnotationBuckets(RESOLVED_LAYER_MANIFESTS);
 
 /**
  * Decoded by-entity annotation records for the given entity IDs, mirroring the
@@ -67,7 +115,7 @@ export function createLayerFetch(): typeof fetch {
       const entities = ANNOTATION_BUCKETS[bucket] ?? {};
       return jsonResponse({ i: bucket, c: Object.keys(entities).length, d: entities });
     }
-    for (const layer of LAYER_MANIFESTS) {
+    for (const layer of RESOLVED_LAYER_MANIFESTS) {
       if (url.endsWith(`/data/overlays/layers/${layer.layerId}.json`)) {
         return jsonResponse(encodeLayerManifest(layer));
       }
