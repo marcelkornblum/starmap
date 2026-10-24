@@ -47,10 +47,10 @@ const GalacticCameraController: React.FC<{
 }> = ({ target }) => {
   const three = useThree();
   const camera = three.camera;
-  const controls = (three as any).controls as {
-    target: THREE.Vector3;
-    update?: () => void;
-  } | undefined;
+  const controls =
+    'controls' in three && three.controls
+      ? (three.controls as unknown as { target: THREE.Vector3; update?: () => void })
+      : undefined;
   const prevTargetRef = useRef<[number, number, number]>(target);
 
   useEffect(() => {

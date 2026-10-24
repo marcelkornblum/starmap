@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   CelestialSymbol,
+  CelestialTitle,
   Cluster,
   DataTable,
   Datum,
@@ -118,12 +119,15 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
   const peekContent = (
     <div className={styles.peekMetadata}>
       <div className={styles.headerRow}>
-        <strong data-testid="directions-route-title" className={styles.routeTitle}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
-            <CelestialSymbol type="stellar-system" size="sm" showTooltip={false} />
-            {journey.title}
-          </span>
-        </strong>
+        <CelestialTitle
+          type="stellar-system"
+          title={journey.title}
+          as="strong"
+          size="sm"
+          showTooltip={false}
+          titleTestId="directions-route-title"
+          className={styles.routeTitle}
+        />
         {isComingSoon ? (
           <Badge status="caution" data-testid="directions-coming-soon">
             Coming soon
@@ -362,7 +366,7 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
             {journey.steps.map((step) => (
               <DataTable.Row key={step.id} data-testid="directions-geometry-leg">
                 <DataTable.Cell>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+                  <span className={styles.legEndpoints}>
                     <CelestialSymbol type="stellar-system" size="sm" showTooltip={false} />
                     {step.from.name}
                     {' → '}
@@ -463,7 +467,7 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
             className={styles.stepItem}
           >
             <Heading as="h5" size="eyebrow" className={styles.stepHeading}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+              <span className={styles.legEndpoints}>
                 <CelestialSymbol type="stellar-system" size="sm" showTooltip={false} />
                 {step.from.name}
                 {' → '}

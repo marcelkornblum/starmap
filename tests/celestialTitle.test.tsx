@@ -1,6 +1,6 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { createElement } from 'react';
-import { renderToString } from 'react-dom/server';
+import { render, screen, within } from '@testing-library/react';
 import {
   CelestialTitle,
 } from '../src/components/interface/information/CelestialSymbol';
@@ -20,98 +20,105 @@ import type {
 } from '../src/services/detailsService';
 import type { ActiveLayerCardModel } from '../src/services/layerCardService';
 
+/** Helper to assert that firstNode precedes secondNode in document order. */
+const expectPrecedes = (firstNode: Node, secondNode: Node) => {
+  const position = firstNode.compareDocumentPosition(secondNode);
+  expect((position & Node.DOCUMENT_POSITION_FOLLOWING) !== 0).toBe(true);
+};
+
 describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
   describe('<CelestialTitle /> Primitives', () => {
     it('renders inline-flex wrapper with data-celestial-title and reticle badge on left', () => {
-      const html = renderToString(
-        createElement(CelestialTitle, {
-          type: 'star',
-          title: 'Sol',
-          'data-testid': 'celestial-title-sol',
-        }),
+      render(
+        <CelestialTitle
+          type="star"
+          title="Sol"
+          data-testid="celestial-title-sol"
+        />,
       );
 
-      expect(html).toContain('data-testid="celestial-title-sol"');
-      expect(html).toContain('data-celestial-title="star"');
-      expect(html).toContain('data-celestial-badge="star"');
-      expect(html).toContain('Sol');
+      const root = screen.getByTestId('celestial-title-sol');
+      expect(root.getAttribute('data-celestial-title')).toBe('star');
 
-      const badgeIdx = html.indexOf('data-celestial-badge="star"');
-      const titleIdx = html.indexOf('Sol');
-      expect(badgeIdx).toBeGreaterThan(-1);
-      expect(titleIdx).toBeGreaterThan(-1);
-      expect(badgeIdx).toBeLessThan(titleIdx);
+      const badge = root.querySelector('[data-celestial-badge="star"]');
+      expect(badge).not.toBeNull();
+      expect(root.textContent).toContain('Sol');
+
+      expectPrecedes(badge!, root.lastChild!);
     });
 
     it('renders link when href is supplied, forwarding titleTestId and link attributes', () => {
-      const html = renderToString(
-        createElement(CelestialTitle, {
-          type: 'terrestrial',
-          title: 'Earth',
-          href: '/planet/earth',
-          titleTestId: 'earth-title-link',
-        }),
+      render(
+        <CelestialTitle
+          type="terrestrial"
+          title="Earth"
+          href="/planet/earth"
+          titleTestId="earth-title-link"
+        />,
       );
 
-      expect(html).toContain('href="/planet/earth"');
-      expect(html).toContain('data-testid="earth-title-link"');
-      expect(html).toContain('Earth');
+      const link = screen.getByTestId('earth-title-link');
+      expect(link.getAttribute('href')).toBe('/planet/earth');
+      expect(link.textContent).toBe('Earth');
 
-      const badgeIdx = html.indexOf('data-celestial-badge="terrestrial"');
-      const linkIdx = html.indexOf('data-testid="earth-title-link"');
-      expect(badgeIdx).toBeLessThan(linkIdx);
+      const badge = link.parentElement?.querySelector('[data-celestial-badge="terrestrial"]');
+      expect(badge).not.toBeNull();
+      expectPrecedes(badge!, link);
     });
 
     it('renders specified semantic heading or tag via "as" prop', () => {
-      const html = renderToString(
-        createElement(CelestialTitle, {
-          type: 'stellar-system',
-          title: 'Alpha Centauri',
-          as: 'h2',
-          titleTestId: 'alpha-title-heading',
-        }),
+      render(
+        <CelestialTitle
+          type="stellar-system"
+          title="Alpha Centauri"
+          as="h2"
+          titleTestId="alpha-title-heading"
+        />,
       );
 
-      expect(html).toMatch(/<h2[^>]*data-testid="alpha-title-heading"[^>]*>Alpha Centauri<\/h2>/);
+      const heading = screen.getByRole('heading', { level: 2 });
+      expect(heading.getAttribute('data-testid')).toBe('alpha-title-heading');
+      expect(heading.textContent).toBe('Alpha Centauri');
     });
 
     it('forwards symbolHref and symbolTestId to reticle badge', () => {
-      const html = renderToString(
-        createElement(CelestialTitle, {
-          type: 'gas-giant',
-          title: 'Jupiter',
-          symbolHref: '/guide/planet-types/gas-giant',
-          symbolTestId: 'jupiter-symbol',
-          titleTestId: 'jupiter-title',
-        }),
+      render(
+        <CelestialTitle
+          type="gas-giant"
+          title="Jupiter"
+          symbolHref="/guide/planet-types/gas-giant"
+          symbolTestId="jupiter-symbol"
+          titleTestId="jupiter-title"
+        />,
       );
 
-      expect(html).toContain('data-testid="jupiter-symbol"');
-      expect(html).toContain('href="/guide/planet-types/gas-giant"');
-      expect(html).toContain('data-testid="jupiter-title"');
-      expect(html.indexOf('data-testid="jupiter-symbol"')).toBeLessThan(
-        html.indexOf('data-testid="jupiter-title"'),
-      );
+      const symbol = screen.getByTestId('jupiter-symbol');
+      const symbolLink = symbol.closest('a') ?? symbol;
+      expect(symbolLink.getAttribute('href')).toBe('/guide/planet-types/gas-giant');
+
+      const title = screen.getByTestId('jupiter-title');
+      expectPrecedes(symbol, title);
     });
 
     it('respects showTooltip={false} by suppressing Tooltip wrapper', () => {
-      const withTooltipHtml = renderToString(
-        createElement(CelestialTitle, {
-          type: 'star',
-          title: 'Vega',
-          showTooltip: true,
-        }),
+      const { unmount } = render(
+        <CelestialTitle
+          type="star"
+          title="Vega"
+          showTooltip={true}
+        />,
       );
-      const withoutTooltipHtml = renderToString(
-        createElement(CelestialTitle, {
-          type: 'star',
-          title: 'Vega',
-          showTooltip: false,
-        }),
-      );
+      expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+      unmount();
 
-      expect(withTooltipHtml).toContain('role="tooltip"');
-      expect(withoutTooltipHtml).not.toContain('role="tooltip"');
+      render(
+        <CelestialTitle
+          type="star"
+          title="Vega"
+          showTooltip={false}
+        />,
+      );
+      expect(document.querySelector('[role="tooltip"]')).toBeNull();
     });
   });
 
@@ -185,69 +192,48 @@ describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
     };
 
     it('renders reticle on the left of peek header name', () => {
-      const html = renderToString(
-        createElement(DetailsPanel, { details: mockSystemFixture }),
-      );
+      render(<DetailsPanel details={mockSystemFixture} />);
 
-      const reticleIdx = html.indexOf('data-testid="details-reticle-type"');
-      const nameIdx = html.indexOf('data-testid="details-peek-name"');
-      expect(reticleIdx).toBeGreaterThan(-1);
-      expect(nameIdx).toBeGreaterThan(-1);
-      expect(reticleIdx).toBeLessThan(nameIdx);
+      const reticle = screen.getByTestId('details-reticle-type');
+      const name = screen.getByTestId('details-peek-name');
+      expectPrecedes(reticle, name);
     });
 
     it('renders reticle on the left of star link in Stars table', () => {
-      const html = renderToString(
-        createElement(DetailsPanel, { details: mockSystemFixture }),
-      );
+      render(<DetailsPanel details={mockSystemFixture} />);
 
-      expect(html).toContain('data-testid="details-star-name-link"');
-      const starLinkIdx = html.indexOf('data-testid="details-star-name-link"');
-      const starReticleIdx = html.lastIndexOf('data-celestial-badge="star"', starLinkIdx);
-      expect(starReticleIdx).toBeGreaterThan(-1);
-      expect(starReticleIdx).toBeLessThan(starLinkIdx);
+      const starLink = screen.getByTestId('details-star-name-link');
+      const starRow = starLink.closest('tr')!;
+      const starReticle = starRow.querySelector('[data-celestial-badge="star"]');
+      expect(starReticle).not.toBeNull();
+      expectPrecedes(starReticle!, starLink);
     });
 
     it('renders reticle on left of planet link in first cell, with no separate Type column header', () => {
-      const html = renderToString(
-        createElement(DetailsPanel, { details: mockSystemFixture }),
-      );
+      render(<DetailsPanel details={mockSystemFixture} />);
 
-      expect(html).toContain('data-testid="details-planet-type-link"');
-      expect(html).toContain('data-testid="details-planet-name-link"');
-      expect(html).toContain('data-testid="details-planet-habitable-link"');
+      const planetReticle = screen.getByTestId('details-planet-type-link');
+      const planetLink = screen.getByTestId('details-planet-name-link');
+      expectPrecedes(planetReticle, planetLink);
 
-      const planetReticleIdx = html.indexOf('data-testid="details-planet-type-link"');
-      const planetNameIdx = html.indexOf('data-testid="details-planet-name-link"');
-      expect(planetReticleIdx).toBeLessThan(planetNameIdx);
-
-      // Verify that the table header contains "Planet" but NOT a separate "Type" header cell
-      const planetsTableStart = html.indexOf('data-testid="details-planets-list"');
-      const planetsTableHead = html.substring(
-        planetsTableStart,
-        html.indexOf('</thead>', planetsTableStart),
-      );
-      expect(planetsTableHead).toContain('>Planet<');
-      expect(planetsTableHead).not.toContain('>Type<');
+      const planetsTable = screen.getByTestId('details-planets-list');
+      const thead = planetsTable.querySelector('thead')!;
+      expect(thead.textContent).toContain('Planet');
+      expect(thead.textContent).not.toContain('Type');
     });
 
     it('renders reticle on left of disk link in first cell, with no separate Classification column header', () => {
-      const html = renderToString(
-        createElement(DetailsPanel, { details: mockSystemFixture }),
-      );
+      render(<DetailsPanel details={mockSystemFixture} />);
 
-      expect(html).toContain('data-testid="details-disk-name-link"');
-      const diskLinkIdx = html.indexOf('data-testid="details-disk-name-link"');
-      const diskReticleIdx = html.lastIndexOf('data-celestial-badge="asteroid-belt"', diskLinkIdx);
-      expect(diskReticleIdx).toBeGreaterThan(-1);
-      expect(diskReticleIdx).toBeLessThan(diskLinkIdx);
+      const diskLink = screen.getByTestId('details-disk-name-link');
+      const diskRow = diskLink.closest('tr')!;
+      const diskReticle = diskRow.querySelector('[data-celestial-badge="asteroid-belt"]');
+      expect(diskReticle).not.toBeNull();
+      expectPrecedes(diskReticle!, diskLink);
 
-      const disksTableStart = html.indexOf('data-testid="details-disks-list"');
-      const disksTableHead = html.substring(
-        disksTableStart,
-        html.indexOf('</thead>', disksTableStart),
-      );
-      expect(disksTableHead).not.toContain('>Classification<');
+      const disksTable = screen.getByTestId('details-disks-list');
+      const thead = disksTable.querySelector('thead')!;
+      expect(thead.textContent).not.toContain('Classification');
     });
 
     it('renders reticle on left of orbiting body link, with no separate Category column header', () => {
@@ -293,22 +279,17 @@ describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
         tags: [],
       };
 
-      const html = renderToString(
-        createElement(DetailsPanel, { details: mockPlanetWithMoons }),
-      );
+      render(<DetailsPanel details={mockPlanetWithMoons} />);
 
-      expect(html).toContain('data-testid="details-orbiting-body-link"');
-      const bodyLinkIdx = html.indexOf('data-testid="details-orbiting-body-link"');
-      const bodyReticleIdx = html.lastIndexOf('data-celestial-badge="moon"', bodyLinkIdx);
-      expect(bodyReticleIdx).toBeGreaterThan(-1);
-      expect(bodyReticleIdx).toBeLessThan(bodyLinkIdx);
+      const bodyLink = screen.getByTestId('details-orbiting-body-link');
+      const bodyRow = bodyLink.closest('tr')!;
+      const bodyReticle = bodyRow.querySelector('[data-celestial-badge="moon"]');
+      expect(bodyReticle).not.toBeNull();
+      expectPrecedes(bodyReticle!, bodyLink);
 
-      const orbitingTableStart = html.indexOf('data-testid="details-orbiting-bodies-list"');
-      const orbitingTableHead = html.substring(
-        orbitingTableStart,
-        html.indexOf('</thead>', orbitingTableStart),
-      );
-      expect(orbitingTableHead).not.toContain('>Category<');
+      const orbitingTable = screen.getByTestId('details-orbiting-bodies-list');
+      const thead = orbitingTable.querySelector('thead')!;
+      expect(thead.textContent).not.toContain('Category');
     });
   });
 
@@ -364,111 +345,96 @@ describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
     };
 
     it('renders bodies-galaxy-system-reticle on left of bodies-galaxy-system-link in first cell', () => {
-      const html = renderToString(
-        createElement(BodiesPanel, { elements: mockGalaxySummary }),
-      );
+      render(<BodiesPanel elements={mockGalaxySummary} />);
 
-      expect(html).toContain('data-testid="bodies-galaxy-system-reticle"');
-      expect(html).toContain('data-testid="bodies-galaxy-system-link"');
+      const reticle = screen.getByTestId('bodies-galaxy-system-reticle');
+      const link = screen.getByTestId('bodies-galaxy-system-link');
+      expectPrecedes(reticle, link);
 
-      const reticleIdx = html.indexOf('data-testid="bodies-galaxy-system-reticle"');
-      const linkIdx = html.indexOf('data-testid="bodies-galaxy-system-link"');
-      expect(reticleIdx).toBeLessThan(linkIdx);
-
-      // Verify header does not contain "Reticle"
-      const tableHead = html.substring(
-        html.indexOf('data-testid="bodies-galaxy-systems-list"'),
-        html.indexOf('</thead'),
-      );
-      expect(tableHead).not.toContain('>Reticle<');
+      const table = screen.getByTestId('bodies-galaxy-systems-list');
+      const thead = table.querySelector('thead')!;
+      expect(thead.textContent).not.toContain('Reticle');
     });
 
     it('renders minor body reticle on left of bodies-minor-body-link in first cell', () => {
-      const html = renderToString(
-        createElement(BodiesPanel, { elements: mockSystemBodiesSummary }),
-      );
+      render(<BodiesPanel elements={mockSystemBodiesSummary} />);
 
-      expect(html).toContain('data-testid="bodies-minor-body-link"');
-      const bodyLinkIdx = html.indexOf('data-testid="bodies-minor-body-link"');
-      const bodyBadgeIdx = html.lastIndexOf('data-celestial-badge="construct"', bodyLinkIdx);
-      expect(bodyBadgeIdx).toBeGreaterThan(-1);
-      expect(bodyBadgeIdx).toBeLessThan(bodyLinkIdx);
+      const bodyLink = screen.getByTestId('bodies-minor-body-link');
+      const bodyRow = bodyLink.closest('tr')!;
+      const bodyBadge = bodyRow.querySelector('[data-celestial-badge="construct"]');
+      expect(bodyBadge).not.toBeNull();
+      expectPrecedes(bodyBadge!, bodyLink);
 
-      const tableHead = html.substring(
-        html.indexOf('data-testid="bodies-minor-bodies-list"'),
-        html.indexOf('</thead'),
-      );
-      expect(tableHead).not.toContain('>Classification<');
+      const table = screen.getByTestId('bodies-minor-bodies-list');
+      const thead = table.querySelector('thead')!;
+      expect(thead.textContent).not.toContain('Classification');
     });
   });
 
   describe('Breadcrumbs Reticle Placement', () => {
     it('infers stellar-system for system and terrestrial for planet under Galaxy context', () => {
-      const html = renderToString(
-        createElement(Breadcrumbs, {
-          items: [
+      render(
+        <Breadcrumbs
+          items={[
             { label: 'Galaxy', href: '/galaxy' },
             { label: 'Sol', href: '/system/sol' },
             { label: 'Earth' },
-          ],
-        }),
+          ]}
+        />,
       );
 
-      expect(html).toContain('data-testid="view-breadcrumbs"');
+      const breadcrumbs = screen.getByTestId('view-breadcrumbs');
+      const solLink = within(breadcrumbs).getByRole('link', { name: /Sol/i });
+      const earthCurrent = within(breadcrumbs).getByText('Earth');
 
-      const solLinkIdx = html.indexOf('>Sol<');
-      const earthCurrentIdx = html.indexOf('>Earth<');
+      const solReticle = solLink.querySelector('[data-celestial-badge="stellar-system"], [data-celestial-symbol="stellar-system"]');
+      expect(solReticle).not.toBeNull();
+      const solText = within(solLink).getByText('Sol');
+      expectPrecedes(solReticle!, solText);
 
-      const solReticleIdx = html.lastIndexOf('data-celestial-symbol="stellar-system"', solLinkIdx);
-      const earthReticleIdx = html.lastIndexOf('data-celestial-symbol="terrestrial"', earthCurrentIdx);
-
-      expect(solReticleIdx).toBeGreaterThan(-1);
-      expect(solReticleIdx).toBeLessThan(solLinkIdx);
-
-      expect(earthReticleIdx).toBeGreaterThan(solLinkIdx);
-      expect(earthReticleIdx).toBeLessThan(earthCurrentIdx);
+      const earthReticle = earthCurrent.closest('[data-celestial-title]')?.querySelector('[data-celestial-badge="terrestrial"], [data-celestial-symbol="terrestrial"]');
+      expect(earthReticle).not.toBeNull();
+      expectPrecedes(earthReticle!, earthCurrent);
     });
 
     it('respects explicit reticleType on breadcrumb item', () => {
-      const html = renderToString(
-        createElement(Breadcrumbs, {
-          items: [
+      render(
+        <Breadcrumbs
+          items={[
             { label: 'Galaxy', href: '/galaxy' },
             { label: 'Ceres', reticleType: 'dwarf-planet' },
-          ],
-        }),
+          ]}
+        />,
       );
 
-      const ceresIdx = html.indexOf('>Ceres<');
-      const dwarfPlanetReticleIdx = html.lastIndexOf('data-celestial-symbol="dwarf-planet"', ceresIdx);
-      expect(dwarfPlanetReticleIdx).toBeGreaterThan(-1);
-      expect(dwarfPlanetReticleIdx).toBeLessThan(ceresIdx);
+      const ceresCurrent = screen.getByText('Ceres');
+      const dwarfPlanetReticle = ceresCurrent.closest('[data-celestial-title]')?.querySelector('[data-celestial-badge="dwarf-planet"], [data-celestial-symbol="dwarf-planet"]');
+      expect(dwarfPlanetReticle).not.toBeNull();
+      expectPrecedes(dwarfPlanetReticle!, ceresCurrent);
     });
   });
 
   describe('GuideExamplesList Reticle Placement', () => {
     it('renders terrestrial reticle for planet links and star reticle for star links', () => {
-      const html = renderToString(
-        createElement(GuideExamplesList, {
-          examples: [
+      render(
+        <GuideExamplesList
+          examples={[
             { name: 'Earth', href: '/planet/earth', note: 'Standard terrestrial' },
             { name: 'Sol', href: '/system/sol', note: 'G2V main sequence' },
-          ],
-        }),
+          ]}
+        />,
       );
 
-      expect(html).toContain('data-testid="guide-examples-list"');
-      const earthIdx = html.indexOf('>Earth<');
-      const solIdx = html.indexOf('>Sol<');
+      const earthLink = screen.getByRole('link', { name: /Earth/i });
+      const solLink = screen.getByRole('link', { name: /Sol/i });
 
-      const earthReticleIdx = html.lastIndexOf('data-celestial-symbol="terrestrial"', earthIdx);
-      const solReticleIdx = html.lastIndexOf('data-celestial-symbol="star"', solIdx);
+      const earthReticle = earthLink.closest('[data-celestial-title]')?.querySelector('[data-celestial-badge="terrestrial"], [data-celestial-symbol="terrestrial"]');
+      expect(earthReticle).not.toBeNull();
+      expectPrecedes(earthReticle!, earthLink);
 
-      expect(earthReticleIdx).toBeGreaterThan(-1);
-      expect(earthReticleIdx).toBeLessThan(earthIdx);
-
-      expect(solReticleIdx).toBeGreaterThan(earthIdx);
-      expect(solReticleIdx).toBeLessThan(solIdx);
+      const solReticle = solLink.closest('[data-celestial-title]')?.querySelector('[data-celestial-badge="star"], [data-celestial-symbol="star"]');
+      expect(solReticle).not.toBeNull();
+      expectPrecedes(solReticle!, solLink);
     });
   });
 
@@ -483,12 +449,12 @@ describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
         previewMode: 'system-orbits',
         orbitElements: [],
       };
-      const html = renderToString(createElement(PreviewPanel, { preview: previewMock }));
+      render(<PreviewPanel preview={previewMock} />);
 
-      const reticleIdx = html.indexOf('data-celestial-symbol="stellar-system"');
-      const nameIdx = html.indexOf('data-testid="preview-target-name"');
-      expect(reticleIdx).toBeGreaterThan(-1);
-      expect(reticleIdx).toBeLessThan(nameIdx);
+      const targetName = screen.getByTestId('preview-target-name');
+      const reticle = targetName.parentElement?.querySelector('[data-celestial-symbol="stellar-system"]');
+      expect(reticle).not.toBeNull();
+      expectPrecedes(reticle!, targetName);
     });
 
     it('renders stellar-system reticle on left of layer-card-title in LayerCard item mode', () => {
@@ -511,26 +477,25 @@ describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
         overviewHref: '/system/lhs-1140?layer=recent-discoveries',
         closeHref: '/system/lhs-1140',
       };
-      const html = renderToString(createElement(LayerCard, { card: layerMock }));
+      render(<LayerCard card={layerMock} />);
 
-      const titleIdx = html.indexOf('data-testid="layer-card-title"');
-      const reticleIdx = html.indexOf('data-celestial-symbol="stellar-system"', titleIdx);
-      const textIdx = html.indexOf('LHS 1140 b', titleIdx);
-      expect(reticleIdx).toBeGreaterThan(-1);
-      expect(reticleIdx).toBeLessThan(textIdx);
+      const titleHeading = screen.getByTestId('layer-card-title');
+      const reticle = titleHeading.querySelector('[data-celestial-badge="stellar-system"], [data-celestial-symbol="stellar-system"]');
+      expect(reticle).not.toBeNull();
+      const titleText = within(titleHeading).getByText('LHS 1140 b');
+      expectPrecedes(reticle!, titleText);
     });
 
     it('renders stellar-system reticle on left of directions-route-title in DirectionsPanel', () => {
       const journeyMock = buildJourneyPlan({
         stops: ['sol', 'tau-ceti'],
       });
-      const html = renderToString(createElement(DirectionsPanel, { journey: journeyMock }));
+      render(<DirectionsPanel journey={journeyMock} />);
 
-      const titleIdx = html.indexOf('data-testid="directions-route-title"');
-      const reticleIdx = html.indexOf('data-celestial-symbol="stellar-system"', titleIdx);
-      const nameIdx = html.indexOf('Sol → Tau Ceti', titleIdx);
-      expect(reticleIdx).toBeGreaterThan(-1);
-      expect(reticleIdx).toBeLessThan(nameIdx);
+      const title = screen.getByTestId('directions-route-title');
+      const reticle = title.closest('[data-celestial-title]')?.querySelector('[data-celestial-badge="stellar-system"], [data-celestial-symbol="stellar-system"]');
+      expect(reticle).not.toBeNull();
+      expectPrecedes(reticle!, title);
     });
   });
 });

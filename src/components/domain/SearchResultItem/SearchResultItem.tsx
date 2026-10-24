@@ -13,13 +13,6 @@ import {
 } from '../../interface';
 import { useSearchContext } from '../../search/SearchContext';
 
-declare module '../../search/SearchContext' {
-  interface SearchContextValue {
-    readonly dismissSearch?: (item?: SearchResultItemModel) => void;
-    readonly setIsFocused?: (focused: boolean) => void;
-  }
-}
-
 export interface SearchResultItemProps {
   readonly result: SearchResultItemModel;
   readonly onSelect?: (result: SearchResultItemModel) => void;

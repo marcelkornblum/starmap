@@ -41,8 +41,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
         Controls
       </Heading>
 
-      <button
-        type="button"
+      <Button
         className={styles.mobileToggle}
         data-testid="control-bar-mobile-toggle"
         aria-expanded={isMobileExpanded}
@@ -86,7 +85,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
             <line x1="17" y1="16" x2="23" y2="16" />
           </svg>
         )}
-      </button>
+      </Button>
 
       <div
         className={styles.timeController}

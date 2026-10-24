@@ -1,4 +1,4 @@
-import { Button, CelestialSymbol, type CelestialSymbolType } from '../../interface';
+import { Button, CelestialTitle, type CelestialSymbolType } from '../../interface';
 import styles from './Breadcrumbs.module.css';
 
 export interface BreadcrumbItem {
@@ -52,10 +52,12 @@ export const Breadcrumbs = ({
               : undefined);
 
           const itemContent = resolvedReticle ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
-              <CelestialSymbol type={resolvedReticle} size="sm" showTooltip={false} />
-              {item.label}
-            </span>
+            <CelestialTitle
+              type={resolvedReticle}
+              title={item.label}
+              size="sm"
+              showTooltip={false}
+            />
           ) : (
             item.label
           );

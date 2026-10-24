@@ -241,9 +241,9 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
 
   const rootClasses = [styles.detentSheet, className].filter(Boolean).join(' ');
 
-  const inlineStyle: React.CSSProperties = {
+  const inlineStyle: React.CSSProperties & { [key: `--${string}`]: string } = {
     ...style,
-    ['--sheet-mobile-height' as any]: `${sheetHeightPx}px`,
+    '--sheet-mobile-height': `${sheetHeightPx}px`,
   };
 
   return (
