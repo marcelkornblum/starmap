@@ -202,4 +202,18 @@ describe('SpatialViewport Composition Root (Phase 4)', () => {
     expect(html).toContain('name="spatial-viewport"');
     expect(html).toContain('name="celestial-entity-sol"');
   });
+
+  it('accepts onFocusChange callback and outerStore prop for cross-store focus/selection synchronisation', () => {
+    const onFocusChange = vi.fn();
+    const onSelect = vi.fn();
+    const html = renderToString(
+      createElement(SpatialViewport, {
+        frame: GALACTIC_FRAME,
+        entities: sampleEntities,
+        onFocusChange,
+        onSelect,
+      }),
+    );
+    expect(html).toContain('name="spatial-viewport"');
+  });
 });

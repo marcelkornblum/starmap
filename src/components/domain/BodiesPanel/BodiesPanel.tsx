@@ -8,6 +8,7 @@ import {
 import {
   Badge,
   CelestialBadge,
+  CelestialTitle,
   Cluster,
   DataTable,
   HazardBadge,
@@ -77,7 +78,6 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
           <DataTable.Head>
             <DataTable.Row>
               <DataTable.HeaderCell>System</DataTable.HeaderCell>
-              <DataTable.HeaderCell>Reticle</DataTable.HeaderCell>
               <DataTable.HeaderCell>Class</DataTable.HeaderCell>
               <DataTable.HeaderCell align="end">Planets</DataTable.HeaderCell>
               <DataTable.HeaderCell>Status</DataTable.HeaderCell>
@@ -109,12 +109,13 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
                   onBlur={() => onHoverEntity?.(null)}
                 >
                   <DataTable.Cell>
-                    <a href={sys.href} data-testid="bodies-galaxy-system-link">
-                      {sys.name}
-                    </a>
-                  </DataTable.Cell>
-                  <DataTable.Cell>
-                    <CelestialBadge type={sys.reticleType} data-testid="bodies-galaxy-system-reticle" />
+                    <CelestialTitle
+                      type={sys.reticleType}
+                      title={sys.name}
+                      href={sys.href}
+                      titleTestId="bodies-galaxy-system-link"
+                      symbolTestId="bodies-galaxy-system-reticle"
+                    />
                   </DataTable.Cell>
                   <DataTable.Cell>
                     {sys.spectralType && sys.starTypeGuideHref ? (
@@ -261,7 +262,6 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
             <DataTable.Head>
               <DataTable.Row>
                 <DataTable.HeaderCell>Body</DataTable.HeaderCell>
-                <DataTable.HeaderCell>Classification</DataTable.HeaderCell>
               </DataTable.Row>
             </DataTable.Head>
             <DataTable.Body>
@@ -274,17 +274,15 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
                   data-selected={selectedSet.has(body.id) ? 'true' : undefined}
                 >
                   <DataTable.Cell>
-                    <a href={body.href} data-testid="bodies-minor-body-link">
-                      {body.name}
-                    </a>
-                  </DataTable.Cell>
-                  <DataTable.Cell>
-                    <CelestialBadge
+                    <CelestialTitle
                       type={
                         body.categoryKey === 'spacecraft'
                           ? 'construct'
                           : (body.categoryKey ?? 'asteroid')
                       }
+                      title={body.name}
+                      href={body.href}
+                      titleTestId="bodies-minor-body-link"
                     />
                   </DataTable.Cell>
                 </DataTable.Row>

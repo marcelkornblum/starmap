@@ -1,18 +1,23 @@
-import type { ReactNode } from 'react';
-import { Badge, type BadgeProps } from '../Badge/Badge';
-import { Tooltip } from '../../surfaces/Tooltip/Tooltip';
+import type { HTMLAttributes, ReactNode } from 'react';
+import type { BadgeCategory, BadgeStatus } from '../Badge/Badge';
 import {
   CelestialSymbol,
   CELESTIAL_SYMBOL_META,
   type CelestialSymbolType,
 } from './CelestialSymbol';
 
-export interface CelestialBadgeProps extends Omit<BadgeProps, 'category'> {
+export interface CelestialBadgeProps extends HTMLAttributes<HTMLElement> {
   readonly type: CelestialSymbolType;
+  readonly href?: string;
+  readonly target?: string;
+  readonly rel?: string;
   readonly interactive?: boolean;
   readonly showLabel?: boolean;
   readonly tooltipText?: ReactNode;
   readonly size?: 'sm' | 'md' | 'lg';
+  readonly status?: BadgeStatus;
+  readonly category?: BadgeCategory;
+  readonly children?: ReactNode;
   readonly 'data-testid'?: string;
 }
 
@@ -24,6 +29,7 @@ export const CelestialBadge = ({
   tooltipText,
   size = 'sm',
   status,
+  category,
   children,
   ...rest
 }: CelestialBadgeProps) => {
@@ -33,31 +39,26 @@ export const CelestialBadge = ({
   };
 
   const resolvedHref = href ?? (interactive ? meta.defaultGuideHref : undefined);
-  const resolvedCategory = status ? undefined : meta.badgeCategory;
-  const resolvedStatus = status ?? (meta.badgeCategory ? undefined : (meta.badgeStatus ?? 'neutral'));
+  const resolvedCategory = category ?? (status ? undefined : meta.badgeCategory);
+  const resolvedStatus = status ?? (resolvedCategory ? undefined : (meta.badgeStatus ?? 'neutral'));
 
-  const badgeElement = (
-    <Badge
+  return (
+    <CelestialSymbol
+      type={meta.type}
+      size={size}
       href={resolvedHref}
+      showLabel={showLabel}
+      showTooltip={true}
+      tooltipText={tooltipText ?? meta.label}
       category={resolvedCategory}
       status={resolvedStatus}
       data-celestial-badge={meta.type}
+      data-category={resolvedCategory}
+      data-status={resolvedStatus}
       aria-label={meta.label}
       {...rest}
     >
-      <CelestialSymbol
-        type={meta.type}
-        size={size}
-        showTooltip={false}
-        showLabel={showLabel}
-      />
       {children}
-    </Badge>
-  );
-
-  return (
-    <Tooltip text={tooltipText ?? meta.label}>
-      {badgeElement}
-    </Tooltip>
+    </CelestialSymbol>
   );
 };

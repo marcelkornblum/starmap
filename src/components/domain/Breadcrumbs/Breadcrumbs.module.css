@@ -47,6 +47,31 @@
     color: var(--content-faint);
   }
 
+  .modeMenu {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--surface-dock-bg, rgba(0, 0, 0, 0.4));
+    border: 1px solid var(--surface-dock-border-color, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-control);
+    padding: 2px;
+    flex: 0 0 auto;
+  }
+
+  .modeButton {
+    flex: 0 0 auto;
+    font-size: var(--type-scale-neg-1);
+    padding-block: 2px;
+    padding-inline: var(--space-fib-2);
+    min-block-size: 24px;
+    line-height: 1;
+    border-radius: calc(var(--radius-control) - 2px);
+  }
+
+  .modeButton[data-active="true"] {
+    font-weight: var(--weight-semibold);
+  }
+
   .companionLink {
     flex: 0 0 auto;
   }
@@ -57,6 +82,18 @@
     .breadcrumbsNav {
       font-size: var(--type-scale-neg-2);
       gap: var(--space-fib-1);
+    }
+
+    .modeMenu {
+      padding: 1px;
+      gap: 1px;
+    }
+
+    .modeButton {
+      font-size: var(--type-scale-neg-2);
+      padding-block: 2px;
+      padding-inline: var(--space-fib-1);
+      min-block-size: 20px;
     }
 
     .companionLink {

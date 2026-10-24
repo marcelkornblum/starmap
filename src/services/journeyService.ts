@@ -211,25 +211,33 @@ export function buildDirectionsTriggerHref(input: {
       : DEFAULT_INTRA_SYSTEM_ORIGIN_ID);
 
   const basePath =
-    currentPathname && currentPathname.length > 0
-      ? currentPathname
-      : viewScope === 'galaxy'
-        ? `/galaxy/${encodeURIComponent(systemId || targetId)}`
-        : viewScope === 'system'
-          ? `/system/${encodeURIComponent(systemId || targetId)}`
-          : `/planet/${encodeURIComponent(targetId)}`;
+    viewScope === 'galaxy' && (!currentPathname || currentPathname.startsWith('/galaxy'))
+      ? '/galaxy'
+      : currentPathname && currentPathname.length > 0
+        ? currentPathname
+        : viewScope === 'galaxy'
+          ? '/galaxy'
+          : viewScope === 'system'
+            ? `/system/${encodeURIComponent(systemId || targetId)}`
+            : `/planet/${encodeURIComponent(targetId)}`;
 
   const searchParams = new URLSearchParams(
     currentSearch.startsWith('?') ? currentSearch.slice(1) : currentSearch,
   );
 
-  if (
-    hasExplicitFocus &&
-    targetId &&
-    toUrlSlug(systemId ?? '') !== targetId &&
-    !searchParams.has('focus')
-  ) {
-    searchParams.set('focus', targetId);
+  if (viewScope === 'galaxy') {
+    if (!searchParams.has('focus') && (systemId || targetId)) {
+      searchParams.set('focus', toUrlSlug(focusedId || systemId || ''));
+    }
+  } else {
+    if (
+      hasExplicitFocus &&
+      targetId &&
+      toUrlSlug(systemId ?? '') !== targetId &&
+      !searchParams.has('focus')
+    ) {
+      searchParams.set('focus', targetId);
+    }
   }
 
   searchParams.set('route', `${originId},${targetId}`);

@@ -8,6 +8,7 @@ import {
 import {
   Badge,
   Button,
+  CelestialSymbol,
   Datum,
   Heading,
   Stack,
@@ -106,7 +107,20 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
           />
 
           <section className={styles.cardItem}>
-            <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+              <CelestialSymbol
+                type={
+                  resolvedDetail.entry.spectralClass === 'D'
+                    ? 'white-dwarf'
+                    : resolvedDetail.entry.spectralClass === 'L' ||
+                        resolvedDetail.entry.spectralClass === 'T' ||
+                        resolvedDetail.entry.spectralClass === 'Y'
+                      ? 'brown-dwarf'
+                      : 'star'
+                }
+                size="sm"
+                showTooltip={false}
+              />
               <Badge category="star">{resolvedDetail.entry.spectralClass}</Badge>{' '}
               <strong>{resolvedDetail.entry.title}</strong>
             </div>

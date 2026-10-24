@@ -64,11 +64,25 @@ export function resolveSpaLocation(
   basepath = import.meta.env?.BASE_URL ?? '/',
 ): { readonly pathname: string; readonly search: string } {
   const base = basepath.replace(/\/+$/, '');
-  const pathname =
+  let normalizedPathname =
     base && base !== '/' && rawPathname.startsWith(base)
       ? (rawPathname.slice(base.length) || '/')
       : rawPathname;
-  return { pathname, search: rawSearch };
+
+  let normalizedSearch = rawSearch;
+  const match = /^\/galaxy\/([^/?#]+)$/.exec(normalizedPathname);
+  if (match?.[1]) {
+    const legacySystemSlug = decodeURIComponent(match[1]);
+    normalizedPathname = '/galaxy';
+    const cleanSearch = rawSearch.startsWith('?') ? rawSearch.slice(1) : rawSearch;
+    const params = new URLSearchParams(cleanSearch);
+    if (!params.has('focus')) {
+      const focusParam = `focus=${encodeURIComponent(legacySystemSlug)}`;
+      normalizedSearch = cleanSearch ? `?${focusParam}&${cleanSearch}` : `?${focusParam}`;
+    }
+  }
+
+  return { pathname: normalizedPathname, search: normalizedSearch };
 }
 
 export function useSpaLocation(
@@ -88,9 +102,17 @@ export function useSpaLocation(
     const handleLocationChange = (): void => {
       setLocationTick((n) => n + 1);
     };
+
+    const unsubRouter = router?.subscribe?.('onResolved', handleLocationChange);
+    const unsubHistory = router?.history?.subscribe?.(handleLocationChange);
     window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('starmap:locationchange', handleLocationChange);
+
     return () => {
+      unsubRouter?.();
+      unsubHistory?.();
       window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('starmap:locationchange', handleLocationChange);
     };
   }, [locationPathname, locationSearch]);
 
@@ -105,7 +127,23 @@ export function useSpaLocation(
 }
 
 export const RootLayout: React.FC = () => {
-  useSpaLocation();
+  const spaLocation = useSpaLocation();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const match = /\/galaxy\/([^/?#]+)$/.exec(window.location.pathname);
+    if (match?.[1]) {
+      const base = window.location.pathname.slice(0, match.index);
+      const { pathname, search } = resolveSpaLocation(
+        window.location.pathname.slice(match.index),
+        window.location.search,
+      );
+      const newUrl = `${base}${pathname}${search}${window.location.hash}`;
+      window.history.replaceState(window.history.state, '', newUrl);
+    }
+  }, [spaLocation]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -170,8 +208,12 @@ export const RootLayout: React.FC = () => {
           ? (rawHref.slice(base.length) || '/')
           : rawHref;
 
-      router.navigate({ href: relativeHref });
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      void router
+        .navigate({ href: relativeHref })
+        .then(() => {
+          window.dispatchEvent(new Event('starmap:locationchange'));
+        })
+        .catch(() => {});
     };
 
     document.addEventListener('click', handleDocumentClick);

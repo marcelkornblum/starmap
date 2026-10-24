@@ -9,11 +9,40 @@ import {
   buildStarTypeGuideHref,
   buildTagGalaxyHref,
 } from '../../../services/searchService';
-import { Badge, Quantity, Unit, shouldDisplaySpectralBadge } from '../../interface/information';
+import {
+  Badge,
+  CelestialTitle,
+  type CelestialSymbolType,
+  Quantity,
+  Unit,
+  shouldDisplaySpectralBadge,
+} from '../../interface/information';
 
 export interface OrbitalSchematicItemProps {
   readonly item: OrbitalSchematicItemType;
 }
+
+const resolveSchematicReticle = (kind: string): CelestialSymbolType => {
+  switch (kind) {
+    case 'star':
+      return 'star';
+    case 'belt':
+      return 'belt';
+    case 'debris-disk':
+      return 'debris-disk';
+    case 'moon':
+      return 'moon';
+    case 'spacecraft':
+      return 'construct';
+    case 'dwarf-planet':
+      return 'dwarf-planet';
+    case 'minor-body':
+      return 'asteroid';
+    case 'planet':
+    default:
+      return 'terrestrial';
+  }
+};
 
 export function OrbitalSchematicItem({
   item,
@@ -29,9 +58,12 @@ export function OrbitalSchematicItem({
       data-focused={item.isFocused ? 'true' : undefined}
       data-selected={item.isSelected ? 'true' : undefined}
     >
-      <a href={item.href} data-testid="orbital-schematic-item-link">
-        {item.name}
-      </a>{' '}
+      <CelestialTitle
+        type={resolveSchematicReticle(item.kind)}
+        title={item.name}
+        href={item.href}
+        titleTestId="orbital-schematic-item-link"
+      />{' '}
       {item.kind === 'star' && shouldDisplaySpectralBadge(item.summaryLabel) ? (
         <Badge category="star">
           <a

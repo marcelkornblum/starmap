@@ -17,6 +17,8 @@ export interface CanvasLayerProps {
   readonly cameraDistance?: number;
   readonly journeyLegs?: readonly JourneyChordLeg[];
   readonly activeJourneyMethod?: string;
+  readonly onInspect?: (id: string) => void;
+  readonly onSelect?: (id: string | null) => void;
 }
 
 let webglSupported: boolean | null = null;
@@ -58,6 +60,8 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo(({
   cameraDistance,
   journeyLegs,
   activeJourneyMethod,
+  onInspect,
+  onSelect,
 }) => {
   const mountCanvas = canMountWebGLCanvas();
 
@@ -84,6 +88,10 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo(({
         <GalacticViewScene
           variant="fullscreen"
           initialSelectedId={centerId ?? null}
+          centerCoordinates={centerCoordinates}
+          centerId={centerId}
+          onInspectSystem={onInspect}
+          onSelectSystem={onSelect}
         />
       )}
       {mountCanvas && scope === 'system' && (

@@ -68,6 +68,18 @@ describe('SpatialScenes Storybook Suite', () => {
       expect(html).toContain('data-testid="mock-canvas"');
       expect(html).toContain('name="cartographic-grid"');
     });
+
+    it('accepts centerCoordinates array and object for camera positioning', () => {
+      const htmlArray = renderToString(
+        createElement(GalacticViewScene, { centerCoordinates: [-1.4, -3.2, 0.4] }),
+      );
+      expect(htmlArray).toContain('data-testid="mock-canvas"');
+
+      const htmlObj = renderToString(
+        createElement(GalacticViewScene, { centerCoordinates: { x: -1.4, y: -3.2, z: 0.4 } }),
+      );
+      expect(htmlObj).toContain('data-testid="mock-canvas"');
+    });
   });
 
   describe('SystemViewScene', () => {

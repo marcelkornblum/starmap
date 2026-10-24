@@ -44,7 +44,7 @@ const systemDetailsFixture: FocusedSystemEntityDetails = {
   sectorName: 'sector_-000_+002_-003',
   tags: ['SolarNeighborhood10pc', 'ExoplanetHost', 'HabitableCandidate'],
   systemDetailsHref: '/system/tau-ceti',
-  directionsHref: '/galaxy/tau-ceti?anchor=sol',
+  directionsHref: '/galaxy?focus=tau-ceti&anchor=sol',
   centerHref: '/galaxy?center=tau-ceti&focus=tau-ceti',
   stars: [
     {
@@ -93,7 +93,7 @@ const systemDetailsFixture: FocusedSystemEntityDetails = {
       layerId: 'hard-scifi',
       layerTitle: 'Hard Sci-Fi Canon',
       layerHref: '/galaxy?select=layer:hard-scifi&layer=hard-scifi',
-      href: '/galaxy/tau-ceti?select=layer:hard-scifi&layer=hard-scifi:tau-ceti',
+      href: '/galaxy?focus=tau-ceti&select=layer:hard-scifi&layer=hard-scifi:tau-ceti',
       kind: 'fictional-canon',
       targetId: 'tau-ceti',
       targetType: 'system',
@@ -129,7 +129,7 @@ const starDetailsFixture: FocusedStarEntityDetails = {
   sectorId: 'sector_-000_+001_-000',
   sectorName: 'sector_-000_+001_-000',
   tags: ['HomeNeighborhood', 'NakedEye', 'SolarNeighborhood10pc'],
-  directionsHref: '/galaxy/alpha-centauri?anchor=sol',
+  directionsHref: '/galaxy?focus=alpha-centauri&anchor=sol',
   centerHref: '/galaxy?center=alpha-centauri-a&focus=alpha-centauri-a',
   stars: [
     {
@@ -163,7 +163,7 @@ const starDetailsFixture: FocusedStarEntityDetails = {
       layerId: 'hard-scifi',
       layerTitle: 'Hard Sci-Fi Canon',
       layerHref: '/galaxy?select=layer:hard-scifi&layer=hard-scifi',
-      href: '/galaxy/alpha-centauri?select=layer:hard-scifi&layer=hard-scifi:alpha-centauri',
+      href: '/galaxy?focus=alpha-centauri&select=layer:hard-scifi&layer=hard-scifi:alpha-centauri',
       kind: 'fictional-canon',
       targetId: 'alpha-centauri-a',
       targetType: 'system',
@@ -215,7 +215,7 @@ const planetDetailsFixture: FocusedPlanetEntityDetails = {
   sectorName: 'sector_+000_+000_+000',
   tags: ['HomeSystem', 'SolarNeighborhood10pc', 'HabitableCandidate'],
   systemDetailsHref: '/planet/earth',
-  directionsHref: '/galaxy/sol?anchor=sol',
+  directionsHref: '/galaxy?focus=sol&anchor=sol',
   centerHref: '/system/sol?center=earth&focus=earth',
   stars: [
     {
@@ -315,7 +315,7 @@ const minorBodyDetailsFixture: FocusedMinorBodyEntityDetails = {
   sectorId: 'sector_+000_+000_+000',
   sectorName: 'sector_+000_+000_+000',
   tags: ['AsteroidBelt', 'SolarSystem'],
-  directionsHref: '/galaxy/sol?anchor=sol',
+  directionsHref: '/galaxy?focus=sol&anchor=sol',
   centerHref: '/system/sol?center=ceres&focus=ceres',
   stars: [],
   planets: [],
@@ -364,7 +364,7 @@ const structureDetailsFixture: FocusedStructureEntityDetails = {
   sectorId: 'sector_-006_-015_-004',
   sectorName: 'sector_-006_-015_-004',
   tags: ['MessierObject', 'StarFormingRegion'],
-  directionsHref: '/galaxy/orion-nebula?anchor=sol',
+  directionsHref: '/galaxy?focus=orion-nebula&anchor=sol',
   centerHref: '/galaxy?center=orion-nebula&focus=orion-nebula',
   stars: [],
   planets: [],
@@ -373,7 +373,7 @@ const structureDetailsFixture: FocusedStructureEntityDetails = {
       layerId: 'scientific-overlays',
       layerTitle: 'Astrophysical Overlays',
       layerHref: '/galaxy?select=layer:scientific-overlays&layer=scientific-overlays',
-      href: '/galaxy/orion-nebula?select=layer:scientific-overlays&layer=scientific-overlays:orion-nebula',
+      href: '/galaxy?focus=orion-nebula&select=layer:scientific-overlays&layer=scientific-overlays:orion-nebula',
       kind: 'scientific-overlay',
       targetId: 'orion-nebula',
       targetType: 'structure',

@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
-import { Cluster, Datum, Heading, SpectralBadge } from '../components/interface';
+import { CelestialSymbol, Cluster, Datum, Heading, SpectralBadge } from '../components/interface';
 import { STAR_TYPE_GUIDE_ENTRIES } from '../services/guideService';
 import styles from './GuideViews.module.css';
 
@@ -36,6 +36,19 @@ export const StarTypesListView: React.FC = () => {
                 chromaticityHex={entry.chromaticityHex}
               />
               <Cluster gap="tight" align="center">
+                <CelestialSymbol
+                  type={
+                    entry.spectralClass === 'D'
+                      ? 'white-dwarf'
+                      : entry.spectralClass === 'L' ||
+                          entry.spectralClass === 'T' ||
+                          entry.spectralClass === 'Y'
+                        ? 'brown-dwarf'
+                        : 'star'
+                  }
+                  size="sm"
+                  showTooltip={false}
+                />
                 <SpectralBadge spectralType={entry.spectralClass} interactive={false} />
                 <strong>{entry.title}</strong>
               </Cluster>

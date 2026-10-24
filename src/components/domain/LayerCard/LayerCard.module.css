@@ -77,7 +77,8 @@
 
   .sourceLink:hover,
   .overviewLink:hover {
-    text-decoration: underline;
+    text-decoration: none;
+    color: var(--content-prominent);
   }
 
   .divider {

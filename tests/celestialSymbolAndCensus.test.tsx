@@ -216,6 +216,20 @@ describe('CelestialSymbol & Badge Primitives', () => {
       expect(html).toContain('href="/custom/hz"');
       expect(html).toContain('data-status="nominal"');
     });
+
+    it('renders CelestialSymbol directly without wrapping in an outlined Badge box', () => {
+      const html = renderToString(
+        createElement(CelestialBadge, {
+          type: 'star',
+          'data-testid': 'unboxed-badge',
+        }),
+      );
+      expect(html).toContain('data-testid="unboxed-badge"');
+      expect(html).toContain('data-celestial-badge="star"');
+      expect(html).toContain('data-celestial-symbol="star"');
+      // Must not render badge classes or badge wrapper container
+      expect(html).not.toContain('_badge_');
+    });
   });
 
   describe('SpectralBadge (<SpectralBadge> & shouldDisplaySpectralBadge)', () => {

@@ -34,26 +34,28 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "latest",
+    "@storybook/addon-a11y": "^10.6.1",
+    "@storybook/addon-docs": "^10.6.1",
+    "@storybook/addon-mcp": "^10.6.2",
+    "@storybook/addon-vitest": "^10.6.1",
+    "@storybook/react-vite": "^10.6.2",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.5",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/browser-playwright": "5.0.5",
     "@vitest/coverage-v8": "^5.0.2",
     "csv-parser": "^3.2.1",
+    "jsdom": "^30.1.3",
     "oxlint": "^1.87.0",
+    "playwright": "latest",
+    "storybook": "^10.6.2",
     "tsx": "^4.23.15",
     "typescript": "~7.0.2",
     "vite": "^8.3.4",
-    "vitest": "^5.0.2",
-    "storybook": "^10.6.2",
-    "@storybook/react-vite": "^10.6.2",
-    "@chromatic-com/storybook": "latest",
-    "@storybook/addon-vitest": "^10.6.1",
-    "@storybook/addon-a11y": "^10.6.1",
-    "@storybook/addon-docs": "^10.6.1",
-    "@storybook/addon-mcp": "^10.6.2",
-    "@vitest/browser-playwright": "5.0.5",
-    "playwright": "latest"
+    "vitest": "^5.0.2"
   }
 }

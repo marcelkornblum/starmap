@@ -172,7 +172,7 @@ export const buildGalaxyMinimapOrientation = (
     name: 'Sol',
     kind: 'star',
     role: 'origin',
-    href: '/galaxy/sol',
+    href: '/galaxy?focus=sol',
     coordinatesPc: [0, 0, 0],
     distanceFromOriginPc: 0,
   };
@@ -185,7 +185,7 @@ export const buildGalaxyMinimapOrientation = (
       name: focusedEntity.name,
       kind: resolveEntityMarkerKind(focusedEntity),
       role: 'focused',
-      href: `/galaxy/${focusedDetails?.systemId ?? focusedEntity.id}?focus=${focusedEntity.id}`,
+      href: `/galaxy?focus=${focusedEntity.id}`,
       coordinatesPc: coords,
       distanceFromOriginPc: Number(
         Math.hypot(coords[0], coords[1], coords[2]).toFixed(2),
@@ -200,7 +200,7 @@ export const buildGalaxyMinimapOrientation = (
           name: anchorName,
           kind: resolveEntityMarkerKind(centerEntity),
           role: 'anchor',
-          href: `/galaxy/${anchorId}`,
+          href: `/galaxy?focus=${anchorId}`,
           coordinatesPc,
           distanceFromOriginPc,
         }
@@ -213,7 +213,7 @@ export const buildGalaxyMinimapOrientation = (
       name: e.name,
       kind: resolveEntityMarkerKind(e),
       role: 'selected',
-      href: `/galaxy/${e.id}?focus=${e.id}`,
+      href: `/galaxy?focus=${e.id}`,
       coordinatesPc: coords,
       distanceFromOriginPc: Number(
         Math.hypot(coords[0], coords[1], coords[2]).toFixed(2),

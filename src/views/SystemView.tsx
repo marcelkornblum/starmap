@@ -337,8 +337,8 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
         <Search.Root
           limitPerCategory={3}
           initialCorpus={initialCorpus}
-          locationPathname={locationPathname}
-          locationSearch={locationSearch}
+          locationPathname={pathname}
+          locationSearch={search}
         >
           <Search.Panel scope="system" />
           <Search.Results

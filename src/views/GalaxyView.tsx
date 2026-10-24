@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as THREE from 'three';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
@@ -48,7 +49,9 @@ import {
   hasExplicitFocusParam,
   resolveFocusedEntityFromCorpus,
   resolveSelectedSystemsFromUrlSelect,
+  toUrlSlug,
 } from '../services/searchService';
+import { CANDIDATE_SYSTEMS } from '../data';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 import { toAnnotationLookupKey } from '../utils/datasetLayerCodec';
 import {
@@ -56,7 +59,7 @@ import {
   useLayerIndex,
   useLoadedLayerManifests,
 } from '../hooks/useLayerData';
-import { useSpaLocation } from '../router';
+import { router, useSpaLocation } from '../router';
 
 export interface GalaxyViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -89,6 +92,27 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const urlFocusSlug = extractUrlFocusSlug(pathname, search);
   const hasExplicitFocus = hasExplicitFocusParam(search);
 
+  if (
+    (locationPathname !== undefined || locationSearch !== undefined) &&
+    !urlFocusSlug &&
+    !hasExplicitFocus
+  ) {
+    if (storeApi.getState().focusedId) {
+      storeApi.getState().setFocused(null);
+    }
+  }
+
+  const prevUrlRef = useRef<string>(`${pathname}${search}`);
+  useEffect(() => {
+    const nextUrl = `${pathname}${search}`;
+    if (prevUrlRef.current !== nextUrl) {
+      prevUrlRef.current = nextUrl;
+      if (!urlFocusSlug && !hasExplicitFocus) {
+        storeApi.getState().setFocused(null);
+      }
+    }
+  }, [pathname, search, urlFocusSlug, hasExplicitFocus, storeApi]);
+
   const cachedAllCorpus = getCachedCorpusForFilter('all');
   const activeCorpus = initialCorpus ?? cachedAllCorpus ?? [];
 
@@ -97,7 +121,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     : null;
   const focusedEntity = urlFocusSlug
     ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
-    : (hasExplicitFocus ? (storeApi.getState().getEntitiesByState('focused')[0] ?? null) : null);
+    : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
 
@@ -291,6 +315,48 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     layers: loadedLayers,
   });
 
+  const resolvedCenterCoordinates = useMemo<readonly [number, number, number] | undefined>(() => {
+    if (
+      cameraState.x !== undefined &&
+      cameraState.y !== undefined &&
+      cameraState.z !== undefined
+    ) {
+      return [cameraState.x, cameraState.y, cameraState.z];
+    }
+    if (centerEntity?.position) {
+      const p = centerEntity.position;
+      return p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
+    }
+    if (cameraState.center) {
+      const match = CANDIDATE_SYSTEMS.find(
+        (s) =>
+          s.id === cameraState.center ||
+          toUrlSlug(s.id) === cameraState.center ||
+          toUrlSlug(s.name) === cameraState.center,
+      );
+      if (match?.position) {
+        const p = match.position;
+        return p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
+      }
+    }
+    return undefined;
+  }, [cameraState.center, cameraState.x, cameraState.y, cameraState.z, centerEntity]);
+
+  const handleSelectSystem = useCallback((id: string | null) => {
+    if (id) {
+      void router
+        .navigate({
+          to: '/galaxy',
+          search: (prev) => ({
+            ...prev,
+            focus: id,
+          }),
+          replace: true,
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   return (
     <SpatialShell
       testId="galaxy-view-root"
@@ -298,11 +364,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         <CanvasLayer
           scope="galaxy"
           centerId={cameraState.center}
-          centerCoordinates={
-            cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
-              ? [cameraState.x, cameraState.y, cameraState.z]
-              : undefined
-          }
+          centerCoordinates={resolvedCenterCoordinates}
           cameraAzimuthDeg={cameraState.az}
           cameraElevationDeg={cameraState.el}
           cameraDistance={cameraState.dist}
@@ -311,6 +373,8 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
             activeJourney?.selectedOption?.id ??
             activeJourney?.options[0]?.id
           }
+          onInspect={handleSelectSystem}
+          onSelect={handleSelectSystem}
         />
       }
       breadcrumbs={<Breadcrumbs items={[{ label: 'Galaxy' }]} />}
@@ -319,8 +383,8 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         <Search.Root
           limitPerCategory={3}
           initialCorpus={initialCorpus}
-          locationPathname={locationPathname}
-          locationSearch={locationSearch}
+          locationPathname={pathname}
+          locationSearch={search}
         >
           <Search.Panel scope="galaxy" />
           <Search.Results

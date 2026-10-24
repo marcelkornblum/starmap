@@ -3,6 +3,7 @@ import type { ActiveLayerCardModel } from '../../../services/layerCardService';
 import {
   Badge,
   Button,
+  CelestialTitle,
   Cluster,
   ConfidencePip,
   Heading,
@@ -148,7 +149,12 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
       </header>
 
       <Heading as="h3" data-testid="layer-card-title" className={styles.title}>
-        {card.itemTitle}
+        <CelestialTitle
+          type="stellar-system"
+          title={card.itemTitle}
+          size="sm"
+          showTooltip={false}
+        />
       </Heading>
       {card.subtitle ? (
         <p data-testid="layer-card-subtitle" className={styles.subtitle}>

@@ -22,6 +22,11 @@
     font-size: var(--type-scale-0);
   }
 
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
   canvas {
     position: relative;
     z-index: 1;

@@ -147,14 +147,25 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
 
   const frameCtx = useSpatialFrameSafe();
 
-  // Seed initial aperture containment synchronously for SSR & first render pass
-  if (frameCtx?.frameRef?.current) {
+  // Seed initial aperture containment synchronously for SSR
+  if (typeof window === 'undefined' && frameCtx?.frameRef?.current) {
     const { focusPoint, apertureRadius } = frameCtx.frameRef.current;
     const inAperture = resolvedPos.distanceTo(focusPoint) <= apertureRadius;
     if (inAperture && !storeApi.getState().apertureIds.has(id)) {
       storeApi.getState().setEntityInAperture(id, true);
     }
   }
+
+  // Manage client-side aperture containment inside useEffect to avoid render-phase state mutations
+  useEffect(() => {
+    if (frameCtx?.frameRef?.current) {
+      const { focusPoint, apertureRadius } = frameCtx.frameRef.current;
+      const inAperture = resolvedPos.distanceTo(focusPoint) <= apertureRadius;
+      if (inAperture && !storeApi.getState().apertureIds.has(id)) {
+        storeApi.getState().setEntityInAperture(id, true);
+      }
+    }
+  }, [frameCtx, resolvedPos, id, storeApi]);
 
   // Derived visual tier from authoritative FSM store (§2.1 / §2.2)
   const storeTier = useEntityTier(id);

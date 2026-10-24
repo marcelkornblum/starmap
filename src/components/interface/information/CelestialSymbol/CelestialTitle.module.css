@@ -1,0 +1,29 @@
+@layer blocks {
+  .celestialTitle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs, 0.375rem);
+    vertical-align: middle;
+  }
+
+  .title {
+    display: inline;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    margin: 0;
+  }
+
+  .titleLink {
+    display: inline;
+    color: inherit;
+    text-decoration: none;
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  .titleLink:hover {
+    text-decoration: underline;
+  }
+}

@@ -115,7 +115,7 @@ export function buildEntityOrbitTargetHref(
   if (isSystemOrStructure) {
     const sysSlug = toUrlSlug(systemName ?? systemId ?? name ?? id);
     const itemSlug = toUrlSlug(systemName || cleanId || name || id);
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({ focus: sysSlug });
     if (layerSlug) {
       params.set('select', `layer:${layerSlug}`);
       params.set('layer', `${layerSlug}:${itemSlug}`);
@@ -125,7 +125,7 @@ export function buildEntityOrbitTargetHref(
     const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
     return {
       targetView: 'galaxy',
-      href: qs.length > 0 ? `/galaxy/${encodeURIComponent(sysSlug)}?${qs}` : `/galaxy/${encodeURIComponent(sysSlug)}`,
+      href: `/galaxy?${qs}`,
     };
   }
 
@@ -288,27 +288,25 @@ export function buildGalaxySystemNavigationHref(
   currentSearch = '',
 ): string {
   const slug = toUrlSlug(systemId) || systemId.trim();
-  const baseHref = `/galaxy/${slug}`;
-  if (!currentSearch) {
-    return baseHref;
-  }
-  const cleanSearch = currentSearch.startsWith('?')
-    ? currentSearch.slice(1)
-    : currentSearch;
-  if (!cleanSearch) {
-    return baseHref;
-  }
-  const inParams = new URLSearchParams(cleanSearch);
   const outParams = new URLSearchParams();
+  outParams.set('focus', slug);
 
-  for (const [key, val] of inParams.entries()) {
-    if (GALAXY_NAV_PRESERVED_PARAMS.has(key)) {
-      outParams.append(key, val);
+  if (currentSearch) {
+    const cleanSearch = currentSearch.startsWith('?')
+      ? currentSearch.slice(1)
+      : currentSearch;
+    if (cleanSearch) {
+      const inParams = new URLSearchParams(cleanSearch);
+      for (const [key, val] of inParams.entries()) {
+        if (GALAXY_NAV_PRESERVED_PARAMS.has(key)) {
+          outParams.append(key, val);
+        }
+      }
     }
   }
 
   const qs = outParams.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
-  return qs.length > 0 ? `${baseHref}?${qs}` : baseHref;
+  return `/galaxy?${qs}`;
 }
 
 /**
