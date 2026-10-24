@@ -38,6 +38,6 @@
 - [x] Task: Phase Verification & Checkpoint (Run `npm run lint`, `npm run typecheck`, `npm run test:coverage`).
 
 ## Phase 4: Legacy Collection Retirement, Tag Taxonomy Unification & Final Verification
-- [ ] Task: Retire duplicate `SEED_CURATED_COLLECTIONS` in `src/data/guideCatalog.ts` and wire all consumers to the unified `DatasetLayerManifest` registry.
-- [ ] Task: Audit and unify `SYSTEM_TAG_BITS` and planet/minor-body tag taxonomy across `scripts/build-data.ts`, `src/utils/compactDataCodec.ts`, `src/services/searchService.ts`, and UI panels.
-- [ ] Task: Run full data build (`npm run build:data`), quality suite (`npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:r3f`), and capture 5-viewport Playwright screenshots (`npm run capture:views`).
+- [x] Task: Retire duplicate `SEED_CURATED_COLLECTIONS` in `src/data/guideCatalog.ts` and wire all consumers to the unified `DatasetLayerManifest` registry.
+- [x] Task: Audit and unify `SYSTEM_TAG_BITS` and planet/minor-body tag taxonomy across `scripts/build-data.ts`, `src/utils/compactDataCodec.ts`, `src/services/searchService.ts`, and UI panels.
+- [x] Task: Run full data build (`npm run build:data`), quality suite (`npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:r3f`), and capture 5-viewport Playwright screenshots (`npm run capture:views`).
