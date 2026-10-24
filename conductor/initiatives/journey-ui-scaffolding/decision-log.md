@@ -641,5 +641,24 @@ This document records all architectural, data-model, interaction, and UI scaffol
   - Author `.agents/skills/astro-news-curator/SKILL.md` (and update `.agents/skills/canon-layer-author/SKILL.md`) for researching astronomical news, verifying/adding `< 100 pc` host stars and planets in `scripts/fetch-sources.ts`, and adding ordered entries to scientific layers in `src/utils/datasetLayerCodec.ts`.
   - Implement `scripts/sync-discoveries.ts` (`npm run sync:discoveries`) and `.github/workflows/discoveries-sync.yml` (`cron` + `workflow_dispatch`) to query the NASA Exoplanet Archive TAP API (`sy_dist <= 100` recent publications) and audit catalog/layer coverage, opening a Pull Request when updates are found.
 
+### DEC-041: Tightened DetailsPanel Layer Items (<CanonLayerItem />) with In-Place LayerCard Activation
+- **Date:** 2026-10-24
+- **Status:** Ratified
+- **Context:** Layer annotations in `<DetailsPanel />` previously rendered inside an HTML `<details>` accordion with duplicated layer titles (`Project Hail Mary — Erid (40 Eridani A) [Project Hail Mary]`), parenthesised subtitles, and inline text paragraphs duplicating the dedicated `<LayerCard />`.
+- **Options Considered:**
+  1. **Item Presentation:**
+     - *Option A (Chosen):* Eliminate accordion and duplicate layer name; render a dedicated `<CanonLayerItem />` with canon name and layer badge on the primary line, and a smaller muted subtitle underneath when present (zero brackets). Full text displayed via `<LayerCard />`.
+     - *Option B:* Keep accordion but clean up title string formatting.
+  2. **Navigation Target Scope:**
+     - *Option A (Chosen):* When on a deeper view (such as `/system/<slug>`), clicking a layer item activates the `<LayerCard />` in-place on the current view (`/system/<slug>?select=layer:<slug>&layer=<slug>:<itemSlug>`) rather than navigating out to `/galaxy`.
+     - *Option B:* Strict DEC-038 orbit-context target routing (always navigating system-level items to `/galaxy`).
+- **Decision (Ratified):**
+  - Create dedicated domain component `<CanonLayerItem />` (`src/components/domain/CanonLayerItem/`) with scoped CSS module (`CanonLayerItem.module.css`).
+  - Render canon name and layer badge on the first row; render subtitle smaller underneath without brackets.
+  - Remove accordion `<details>` and inline `<p data-testid="details-canon-text">`.
+  - Enforce DEC-038 boundary: DEC-038 orbit-context target routing applies strictly to links for celestial bodies (stars, planets, moons, barycenters). Supplementary info links (layer items, guides, research cards) must open in-place over the top of whatever view the user is looking at without triggering route transitions or camera jumps.
+  - Layer item links (`data-testid="details-canon-item-link"`) preserve the active `currentPathname` and search parameters, simply appending/updating `?layer=<layerSlug>:<itemSlug>` to open `<LayerCard />` directly over the current scene.
+  - Fallback hierarchy for `<CanonLayerItem />` title is `inUniverseName` -> `resolvedName` -> `targetId` (never falling back to `layerTitle`).
+
 
 

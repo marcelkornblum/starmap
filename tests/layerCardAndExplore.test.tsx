@@ -129,7 +129,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
       entries: {},
     };
 
-    it('resolves system/structure targets to GalaxyView with layer and item query params', () => {
+    it('resolves system/structure targets to GalaxyView with layer and item query params when not on that system view', () => {
       const entry: DatasetLayerEntry = {
         targetId: 'gaia-2452378776434477184',
         targetType: 'system',
@@ -141,6 +141,26 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
       expect(res.targetView).toBe('galaxy');
       expect(res.href).toBe(
         '/galaxy?focus=tau-ceti&select=layer:recent-discoveries&layer=recent-discoveries:tau-ceti',
+      );
+    });
+
+    it('resolves system targets in-place to SystemView when currentPathname matches the target system slug (DEC-041)', () => {
+      const entry: DatasetLayerEntry = {
+        targetId: 'gaia-2452378776434477184',
+        targetType: 'system',
+        systemId: 'gaia-2452378776434477184',
+        inUniverseName: 'Tau Ceti',
+        text: 'Host star system',
+      };
+      const res = resolveLayerItemTargetHref(
+        mockLayer,
+        entry,
+        SAMPLE_CORPUS,
+        '/system/tau-ceti',
+      );
+      expect(res.targetView).toBe('system');
+      expect(res.href).toBe(
+        '/system/tau-ceti?select=layer:recent-discoveries&layer=recent-discoveries:tau-ceti',
       );
     });
 
@@ -358,7 +378,7 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
     expect(html).toContain('Explore');
   });
 
-  it('renders deep-link href to LayerCard in <DetailsPanel /> for canon annotations', () => {
+  it('renders deep-link href to LayerCard in <DetailsPanel /> for canon annotations with tightened CanonLayerItem (DEC-041)', () => {
     const focusedDetails = buildFocusedEntityDetails({
       focusedEntity: {
         id: 'gaia-2452378776434477184',
@@ -377,8 +397,38 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
       createElement(DetailsPanel, { details: focusedDetails! }),
     );
 
+    expect(html).toContain('data-testid="details-canon-item"');
+    expect(html).toContain('data-testid="details-canon-item-title"');
     expect(html).toContain('data-testid="details-canon-item-link"');
-    expect(html).toContain('href="/galaxy?focus=tau-ceti&amp;select=layer:project-hail-mary&amp;layer=project-hail-mary:tau-ceti"');
+    expect(html).toContain('href="/galaxy?select=layer:project-hail-mary&amp;layer=project-hail-mary:tau-ceti"');
+    expect(html).not.toContain('data-testid="details-canon-accordion"');
+    expect(html).not.toContain('data-testid="details-canon-text"');
+  });
+
+  it('renders in-place deep-link href to LayerCard in <DetailsPanel /> when currently on that system view (DEC-041)', () => {
+    const focusedDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        position: [-3.1, -0.4, -2.0],
+        classification: 'stellar-system',
+      },
+      corpus: SAMPLE_CORPUS,
+      currentPathname: '/system/tau-ceti',
+      canonRecords: annotationRecordsFor([
+        'gaia-2452378776434477184',
+      ]),
+    });
+    expect(focusedDetails).not.toBeNull();
+
+    const html = renderToString(
+      createElement(DetailsPanel, { details: focusedDetails! }),
+    );
+
+    expect(html).toContain('data-testid="details-canon-item-link"');
+    expect(html).toContain('href="/system/tau-ceti?select=layer:project-hail-mary&amp;layer=project-hail-mary:tau-ceti"');
+    expect(html).not.toContain('data-testid="details-canon-accordion"');
+    expect(html).not.toContain('data-testid="details-canon-text"');
   });
 
   it('renders <LayerCard /> on GalaxyView, SystemView, and PlanetView when ?layer= is present', async () => {

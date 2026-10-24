@@ -1065,7 +1065,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(focusChildHtml).toContain('data-testid="details-button-system-details"');
     expect(focusChildHtml).toContain('href="/planet/tau-ceti-e"');
     expect(focusChildHtml).toContain('data-testid="details-button-directions"');
-    expect(focusChildHtml).toContain('Project Hail Mary');
+    expect(focusChildHtml).toContain('Hail Mary');
     expect(focusChildHtml).toContain('Adrian');
 
     // 3. Clicking through to '/galaxy/tau-ceti' focuses 'Tau Ceti' and shows Details panel with Peek, Partial, and Full detents
@@ -1099,7 +1099,8 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(focusSystemHtml).toContain('Directions');
     expect(focusSystemHtml).toContain('Tau Ceti');
     expect(focusSystemHtml).toContain('Astrophage Destination');
-    expect(focusSystemHtml).toContain('data-testid="details-canon-accordion"');
+    expect(focusSystemHtml).toContain('data-testid="details-canon-item"');
+    expect(focusSystemHtml).toContain('data-testid="details-canon-item-title"');
 
     // Verify DEC-022 detents: Peek contains systemSummary, Partial contains Canon, and Full contains Astrometry
     const peekSplit = focusSystemHtml.split('data-testid="details-detent-partial"')[0] ?? '';
@@ -1233,7 +1234,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     );
     // Factual 'scientific-overlay' layer appears first
     expect(annotations[0]?.kind).toBe('scientific-overlay');
-    expect(annotations[0]?.layerTitle).toBe('SETI & Radio Signals');
+    expect(annotations[0]?.layerTitle).toBe('SETI');
     // Within 'fictional-canon', the direct planet annotation ('Adrian') appears before system-level annotations
     const fictional = annotations.filter((a) => a.kind === 'fictional-canon');
     expect(fictional[0]?.inUniverseName).toBe('Adrian');
@@ -1503,10 +1504,10 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     );
     expect(buildLayerGalaxyHref('   ')).toBe('/galaxy');
     expect(findCanonLayerById('canon-project-hail-mary', LAYER_MANIFESTS)?.title).toBe(
-      'Project Hail Mary',
+      'Hail Mary',
     );
     expect(findCanonLayerById('project-hail-mary', LAYER_MANIFESTS)?.title).toBe(
-      'Project Hail Mary',
+      'Hail Mary',
     );
     expect(findCanonLayerById('', LAYER_MANIFESTS)).toBeUndefined();
     expect(findCanonLayerById('non-existent-layer', LAYER_MANIFESTS)).toBeUndefined();

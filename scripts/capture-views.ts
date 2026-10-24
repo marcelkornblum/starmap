@@ -257,8 +257,35 @@ export async function runCapture(options: CaptureOptions): Promise<CapturedScree
   let spawnedServer: ChildProcess | null = null;
   const results: CapturedScreenshot[] = [];
 
-  const launchBrowser = () =>
-    chromium.launch({
+  const resolveExecutablePath = (): string | undefined => {
+    if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+      return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+    }
+    const home = os.homedir();
+    const pwDir = path.join(home, '.cache/ms-playwright');
+    if (!fs.existsSync(pwDir)) return undefined;
+
+    const entries = fs.readdirSync(pwDir).filter((e) => e.startsWith('chromium_headless_shell-') || e.startsWith('chromium-'));
+    entries.sort().reverse();
+    for (const entry of entries) {
+      const candidates = [
+        path.join(pwDir, entry, 'chrome-headless-shell-linux64/chrome-headless-shell'),
+        path.join(pwDir, entry, 'chrome-linux64/chrome'),
+        path.join(pwDir, entry, 'chrome-linux/chrome'),
+      ];
+      for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
+      }
+    }
+    return undefined;
+  };
+
+  const launchBrowser = () => {
+    const executablePath = resolveExecutablePath();
+    return chromium.launch({
+      executablePath,
       headless: true,
       args: [
         '--use-gl=angle',
@@ -269,6 +296,7 @@ export async function runCapture(options: CaptureOptions): Promise<CapturedScree
         '--no-sandbox',
       ],
     });
+  };
 
   try {
     spawnedServer = await ensureDevServer(options.baseUrl, options.port);

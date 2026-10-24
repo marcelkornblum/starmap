@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-posthuman-solar',
-  title: 'Post-Human Solar',
+  title: 'Post-Human',
   subtitle: 'Quantum Thief & Accelerando',
   aliases: 'flambeur oubliette zoku matrioshka dyson stross rajaniemi vinge singularity',
   kind: 'fictional-canon',

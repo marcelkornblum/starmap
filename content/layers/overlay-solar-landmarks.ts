@@ -2,7 +2,8 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'overlay-solar-landmarks',
-  title: 'Solar System Landmarks',
+  title: 'Solar Landmarks',
+  subtitle: 'Landing Sites & Missions',
   aliases: 'exploration rovers landers solarsystem apollo sample return',
   kind: 'scientific-overlay',
   description: 'Historic interplanetary landing sites, sample return bodies, and planetary exploration landmarks.',

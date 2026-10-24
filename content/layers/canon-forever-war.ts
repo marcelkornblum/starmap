@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-forever-war',
-  title: 'The Forever War',
+  title: 'Forever War',
   aliases: 'collapsar tauran mandella haldeman',
   kind: 'fictional-canon',
   description: 'Training stations and relativistic jump points in Joe Haldeman’s The Forever War.',

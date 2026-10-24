@@ -2,8 +2,8 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-stephenson-mcdevitt',
-  title: 'Seveneves & Engines of God',
-  subtitle: 'Stephenson & McDevitt Archeology',
+  title: 'Seveneves',
+  subtitle: 'Engines of God & McDevitt',
   aliases: 'cleft cloudark agent priscilla hutchins monumental monument academy omega',
   kind: 'fictional-canon',
   description: 'Monumental lunar survival engineering and interstellar xenological archaeology by Neal Stephenson and Jack McDevitt.',

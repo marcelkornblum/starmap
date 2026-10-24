@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-greg-egan',
-  title: 'Greg Egan Worlds',
+  title: 'Greg Egan',
   subtitle: 'Diaspora & Schild’s Ladder',
   aliases: 'posthuman polis novovacuum carterzimmerman transhuman software',
   kind: 'fictional-canon',

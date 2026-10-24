@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-golden-age-sol',
-  title: 'Golden Age Solar',
+  title: 'Golden Age',
   subtitle: 'Bester & Vonnegut Classics',
   aliases: 'jaunte dagonite nomad foyle tralfamadore harmonium salo rumfoord',
   kind: 'fictional-canon',

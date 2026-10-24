@@ -2,8 +2,8 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-hard-sf-benchmarks',
-  title: 'Hard SF Benchmarks',
-  subtitle: 'Classic Astrophysical Worlds',
+  title: 'Hard SF',
+  subtitle: 'Astrophysical Benchmarks',
   aliases: 'tauzero mesklin rocheworld coyote blindsight gateway sparrow anderson clement forward steele watts pohl russell',
   kind: 'fictional-canon',
   description: 'Celebrated benchmark worlds in hard science fiction renowned for rigorous scientific worldbuilding and extreme physics.',

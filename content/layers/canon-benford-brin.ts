@@ -2,8 +2,8 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-benford-brin',
-  title: 'Galactic Center & Uplift',
-  subtitle: 'Benford, Brin & Miller',
+  title: 'Galactic Center',
+  subtitle: 'Uplift & Benford',
   aliases: 'mech chimera sunghost uplift chromosphere stellamaris leibowitz',
   kind: 'fictional-canon',
   description: 'Deep-space mechanical civilizations, solar chromosphere explorations, and cosmic diaspora by Gregory Benford, David Brin, and Walter M. Miller Jr.',

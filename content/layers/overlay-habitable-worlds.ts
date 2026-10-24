@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'overlay-habitable-worlds',
-  title: 'Habitable Worlds Survey',
+  title: 'Habitable Worlds',
   subtitle: 'NASA HWO Tier-A Analogues',
   aliases: 'hwo habitable analogue biosignature exoplanet coronagraph directimaging',
   kind: 'scientific-overlay',

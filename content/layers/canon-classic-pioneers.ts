@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-classic-pioneers',
-  title: 'Classic Space Pioneers',
+  title: 'Space Pioneers',
   subtitle: 'Bradbury, Wells & Verne',
   aliases: 'columbiad selenite tripod martian chronicler canal cavorite barbiere',
   kind: 'fictional-canon',

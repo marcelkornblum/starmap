@@ -11,7 +11,6 @@ import {
   type SystemSummarySegment,
 } from '../../../services/detailsService';
 import {
-  buildLayerGalaxyHref,
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
@@ -40,6 +39,7 @@ import {
   Unit,
 } from '../../interface';
 import { PlanetCensus } from '../PlanetCensus';
+import { CanonLayerItem } from '../CanonLayerItem';
 
 export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
@@ -98,69 +98,14 @@ const renderCanonLayers = (
       <Heading as="h4" size="eyebrow" id="details-canon-heading">
         Canon Layers
       </Heading>
-      <ul data-testid="details-canon-list">
+      <Stack as="ul" gap="none" data-testid="details-canon-list">
         {canonAnnotations.map((annotation) => (
-          <li
+          <CanonLayerItem
             key={`${annotation.layerId}:${annotation.targetId}`}
-            data-testid="details-canon-item"
-            data-layer-id={annotation.layerId}
-            data-layer-kind={annotation.kind}
-            data-target-id={annotation.targetId}
-          >
-            <details data-testid="details-canon-accordion">
-              <summary data-testid="details-canon-summary">
-                {annotation.href ? (
-                  <a
-                    href={annotation.href}
-                    data-testid="details-canon-item-link"
-                  >
-                    {annotation.inUniverseName || annotation.resolvedName ? (
-                      <>
-                        {`${annotation.layerTitle} — `}
-                        <strong data-testid="details-canon-item-title">
-                          {annotation.inUniverseName || annotation.resolvedName}
-                        </strong>
-                        {annotation.subtitle ? ` (${annotation.subtitle})` : null}
-                      </>
-                    ) : (
-                      <>
-                        {annotation.layerTitle}
-                        {annotation.subtitle ? ` (${annotation.subtitle})` : null}
-                      </>
-                    )}
-                  </a>
-                ) : (
-                  annotation.inUniverseName || annotation.resolvedName ? (
-                    <>
-                      <strong data-testid="details-canon-item-title">
-                        {annotation.inUniverseName || annotation.resolvedName}
-                      </strong>
-                      {annotation.subtitle ? ` (${annotation.subtitle})` : null}
-                      {' — '}
-                    </>
-                  ) : null
-                )}
-                {' '}
-                <Badge
-                  status={
-                    annotation.kind === 'scientific-overlay'
-                      ? 'info'
-                      : 'neutral'
-                  }
-                  href={
-                    annotation.layerHref ||
-                    buildLayerGalaxyHref(annotation.layerId)
-                  }
-                  data-testid="details-canon-link"
-                >
-                  {annotation.layerTitle}
-                </Badge>
-              </summary>
-              <p data-testid="details-canon-text">{annotation.text}</p>
-            </details>
-          </li>
+            annotation={annotation}
+          />
         ))}
-      </ul>
+      </Stack>
     </section>
   );
 };
