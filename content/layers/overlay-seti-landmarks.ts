@@ -2,7 +2,8 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'overlay-seti-landmarks',
-  title: 'SETI & Radio Signals',
+  title: 'SETI',
+  subtitle: 'Radio Signals & Landmarks',
   aliases: 'seti radio wow arecibo drake greenbank listen broadcast',
   kind: 'scientific-overlay',
   description: 'Landmark SETI search targets, interstellar radio broadcasts, and candidate signal coordinates.',

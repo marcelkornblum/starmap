@@ -2,8 +2,8 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-hamilton',
-  title: 'Night’s Dawn & Commonwealth',
-  subtitle: 'Peter F. Hamilton Universes',
+  title: 'Commonwealth',
+  subtitle: 'Night’s Dawn & Hamilton',
   aliases: 'confederation adamist edenist biting bit wormhole void',
   kind: 'fictional-canon',
   description: 'Expansive space-opera realms of Peter F. Hamilton, featuring the Confederation and the Intersolar Commonwealth.',

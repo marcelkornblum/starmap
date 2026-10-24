@@ -179,6 +179,7 @@ export function resolveLayerItemTargetHref(
   layer: LayerItemTargetLayer,
   entry: LayerItemTargetFields,
   corpus?: readonly CompactSearchEntry[],
+  currentPathname?: string,
 ): LayerItemTargetResult {
   const cleanId = entry.targetId.includes(':')
     ? entry.targetId.split(':').slice(1).join(':')
@@ -204,6 +205,7 @@ export function resolveLayerItemTargetHref(
     parentBodyId: entry.parentBodyId,
     layerId: layer.layerId,
     isSolarSystem: entry.systemId === 'sol' || entry.targetId === 'sol',
+    currentPathname,
   });
 
   return {
@@ -295,7 +297,12 @@ export function resolveActiveLayerCard(
         formatSlugFallbackTitle(firstEntry.targetId)
       : undefined;
     const startHref = firstEntry
-      ? resolveLayerItemTargetHref(layer, firstEntry, input.corpus).href
+      ? resolveLayerItemTargetHref(
+          layer,
+          firstEntry,
+          input.corpus,
+          input.currentPathname,
+        ).href
       : input.currentPathname;
 
     return {
@@ -346,7 +353,12 @@ export function resolveActiveLayerCard(
         formatSlugFallbackTitle(firstEntry.targetId)
       : undefined;
     const startHref = firstEntry
-      ? resolveLayerItemTargetHref(layer, firstEntry, input.corpus).href
+      ? resolveLayerItemTargetHref(
+          layer,
+          firstEntry,
+          input.corpus,
+          input.currentPathname,
+        ).href
       : input.currentPathname;
 
     return {
@@ -377,6 +389,7 @@ export function resolveActiveLayerCard(
           layer,
           orderedEntries[entryIndex - 1],
           input.corpus,
+          input.currentPathname,
         ).href;
   const prevLabel = entryIndex === 0 ? 'Overview' : 'Previous';
 
@@ -388,6 +401,7 @@ export function resolveActiveLayerCard(
     layer,
     nextEntry,
     input.corpus,
+    input.currentPathname,
   ).href;
   const nextLabel = 'Next';
 

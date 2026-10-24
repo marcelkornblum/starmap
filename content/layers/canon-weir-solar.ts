@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-weir-solar',
-  title: 'Weir Solar Outposts',
+  title: 'Weir Solar',
   subtitle: 'The Martian & Artemis',
   aliases: 'watney ares acidalia artemis weir',
   kind: 'fictional-canon',

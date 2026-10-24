@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-heinlein',
-  title: 'Heinlein Worlds',
+  title: 'Heinlein',
   subtitle: 'Future History & Classics',
   aliases: 'loonies lunas lunan commonwealth terrestrial transport',
   kind: 'fictional-canon',

@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-wandering-earth',
-  title: 'The Wandering Earth',
+  title: 'Wandering Earth',
   aliases: 'planetaryengine slingshot fusion liu',
   kind: 'fictional-canon',
   description: 'Interplanetary waypoints in Liu Cixin’s Earth migration saga.',

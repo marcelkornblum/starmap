@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-project-hail-mary',
-  title: 'Project Hail Mary',
+  title: 'Hail Mary',
   aliases: 'project astrophage grace rocky weir',
   kind: 'fictional-canon',
   description: 'Stellar systems and worlds featured in Andy Weir’s Project Hail Mary.',

@@ -10,7 +10,6 @@ import {
 } from '../src/services/layerCardService';
 import { LayerCard } from '../src/components/domain/LayerCard/LayerCard';
 import { Search } from '../src/components/search';
-import { DetailsPanel } from '../src/components/domain/DetailsPanel/DetailsPanel';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { SystemView } from '../src/views/SystemView';
 import { PlanetView } from '../src/views/PlanetView';
@@ -129,7 +128,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
       entries: {},
     };
 
-    it('resolves system/structure targets to GalaxyView with layer and item query params', () => {
+    it('resolves system/structure targets to GalaxyView with layer and item query params when not on that system view', () => {
       const entry: DatasetLayerEntry = {
         targetId: 'gaia-2452378776434477184',
         targetType: 'system',
@@ -141,6 +140,26 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
       expect(res.targetView).toBe('galaxy');
       expect(res.href).toBe(
         '/galaxy?focus=tau-ceti&select=layer:recent-discoveries&layer=recent-discoveries:tau-ceti',
+      );
+    });
+
+    it('resolves system targets in-place to SystemView when currentPathname matches the target system slug (DEC-041)', () => {
+      const entry: DatasetLayerEntry = {
+        targetId: 'gaia-2452378776434477184',
+        targetType: 'system',
+        systemId: 'gaia-2452378776434477184',
+        inUniverseName: 'Tau Ceti',
+        text: 'Host star system',
+      };
+      const res = resolveLayerItemTargetHref(
+        mockLayer,
+        entry,
+        SAMPLE_CORPUS,
+        '/system/tau-ceti',
+      );
+      expect(res.targetView).toBe('system');
+      expect(res.href).toBe(
+        '/system/tau-ceti?select=layer:recent-discoveries&layer=recent-discoveries:tau-ceti',
       );
     });
 
@@ -358,7 +377,7 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
     expect(html).toContain('Explore');
   });
 
-  it('renders deep-link href to LayerCard in <DetailsPanel /> for canon annotations', () => {
+  it('resolves in-place deep-link href on canon annotations in buildFocusedEntityDetails (DEC-041)', () => {
     const focusedDetails = buildFocusedEntityDetails({
       focusedEntity: {
         id: 'gaia-2452378776434477184',
@@ -373,12 +392,41 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
     });
     expect(focusedDetails).not.toBeNull();
 
-    const html = renderToString(
-      createElement(DetailsPanel, { details: focusedDetails! }),
+    const annotation = focusedDetails!.canonAnnotations.find(
+      (a) => a.layerId === 'canon-project-hail-mary',
     );
+    expect(annotation).toBeDefined();
+    expect(annotation!.href).toBe(
+      '/galaxy?select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti',
+    );
+    expect(annotation!.layerTitle).toBe('Hail Mary');
+    expect(annotation!.resolvedName).toBe('Tau Ceti');
+  });
 
-    expect(html).toContain('data-testid="details-canon-item-link"');
-    expect(html).toContain('href="/galaxy?focus=tau-ceti&amp;select=layer:project-hail-mary&amp;layer=project-hail-mary:tau-ceti"');
+  it('resolves in-place deep-link href preserving currentPathname and search when on system view (DEC-041)', () => {
+    const focusedDetails = buildFocusedEntityDetails({
+      focusedEntity: {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        position: [-3.1, -0.4, -2.0],
+        classification: 'stellar-system',
+      },
+      corpus: SAMPLE_CORPUS,
+      currentPathname: '/system/tau-ceti?stale=true#hash',
+      currentSearch: '?mode=orbit',
+      canonRecords: annotationRecordsFor([
+        'gaia-2452378776434477184',
+      ]),
+    });
+    expect(focusedDetails).not.toBeNull();
+
+    const annotation = focusedDetails!.canonAnnotations.find(
+      (a) => a.layerId === 'canon-project-hail-mary',
+    );
+    expect(annotation).toBeDefined();
+    expect(annotation!.href).toBe(
+      '/system/tau-ceti?mode=orbit&select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti',
+    );
   });
 
   it('renders <LayerCard /> on GalaxyView, SystemView, and PlanetView when ?layer= is present', async () => {

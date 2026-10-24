@@ -26,6 +26,7 @@ export interface EntityOrbitTargetInput {
   readonly layerId?: string;
   readonly tagSlug?: string;
   readonly isSolarSystem?: boolean;
+  readonly currentPathname?: string;
 }
 
 export interface EntityOrbitTargetResult {
@@ -56,6 +57,7 @@ export function buildEntityOrbitTargetHref(
     parentBodyId,
     layerId,
     tagSlug,
+    currentPathname,
   } = input;
 
   // 1. Parent Layer Overview
@@ -115,6 +117,41 @@ export function buildEntityOrbitTargetHref(
   if (isSystemOrStructure) {
     const sysSlug = toUrlSlug(systemName ?? systemId ?? name ?? id);
     const itemSlug = toUrlSlug(systemName || cleanId || name || id);
+
+    const currentSystemMatch =
+      currentPathname && /^\/system\/([^/?#]+)/i.exec(currentPathname.trim());
+    const rawSysParam = currentSystemMatch?.[1];
+    const decodedSys = (() => {
+      if (!rawSysParam) return null;
+      try {
+        return decodeURIComponent(rawSysParam);
+      } catch {
+        return rawSysParam;
+      }
+    })();
+    const currentSysSlug = decodedSys ? toUrlSlug(decodedSys) : null;
+    const matchesCurrentSystem =
+      currentSysSlug !== null &&
+      (currentSysSlug === sysSlug ||
+        currentSysSlug === toUrlSlug(systemId ?? '') ||
+        currentSysSlug === toUrlSlug(id));
+
+    if (matchesCurrentSystem) {
+      const activeSystemSlug = currentSysSlug ?? sysSlug;
+      const params = new URLSearchParams();
+      if (layerSlug) {
+        params.set('select', `layer:${layerSlug}`);
+        params.set('layer', `${layerSlug}:${itemSlug}`);
+      } else if (tag) {
+        params.set('select', `tag:${tag}`);
+      }
+      const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
+      return {
+        targetView: 'system',
+        href: `/system/${encodeURIComponent(activeSystemSlug)}${qs.length > 0 ? `?${qs}` : ''}`,
+      };
+    }
+
     const params = new URLSearchParams({ focus: sysSlug });
     if (layerSlug) {
       params.set('select', `layer:${layerSlug}`);

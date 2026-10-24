@@ -83,4 +83,8 @@ export {
   LayerCard,
   type LayerCardProps,
 } from './LayerCard/LayerCard';
+export {
+  CanonLayerItem,
+  type CanonLayerItemProps,
+} from './CanonLayerItem';
 

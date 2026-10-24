@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-pkd-worlds',
-  title: 'Philip K. Dick Worlds',
+  title: 'Philip K. Dick',
   subtitle: 'Palmer Eldritch & Off-World Colonies',
   aliases: 'eldritch cand chewz replicant ubik recall hovel moratorium dick',
   kind: 'fictional-canon',

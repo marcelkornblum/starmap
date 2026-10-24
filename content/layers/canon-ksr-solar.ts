@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-ksr-solar',
-  title: 'Robinson Solar Cycle',
+  title: 'Robinson Solar',
   subtitle: 'Mars, 2312 & Icehenge',
   aliases: 'terraforming underhill terminator robinson',
   kind: 'fictional-canon',

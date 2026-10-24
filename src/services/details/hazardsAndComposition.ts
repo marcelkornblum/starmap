@@ -15,13 +15,14 @@ import {
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import {
   toAnnotationLookupKey,
+  toCanonicalLayerSlug,
+  toUrlSlug,
   type DecodedEntityAnnotation,
 } from '../../utils/datasetLayerCodec';
 import {
   buildLayerGalaxyHref,
   isArtificialSpacecraftEntry,
 } from '../searchService';
-import { resolveLayerItemTargetHref } from '../layerCardService';
 import type {
   CanonAnnotationOrderOptions,
   EntityHazardItem,
@@ -558,28 +559,64 @@ export const sortCanonAnnotations = (
     .map((entry) => entry.annotation);
 };
 
+export function buildInPlaceLayerItemHref(
+  layerId: string,
+  targetId: string,
+  name?: string,
+  currentPathname?: string,
+  currentSearch?: string,
+): string {
+  const cleanId = targetId.includes(':')
+    ? targetId.split(':').slice(1).join(':')
+    : targetId;
+  const itemSlug = toUrlSlug(name || cleanId);
+  const layerSlug = toCanonicalLayerSlug(layerId) || toUrlSlug(layerId);
+
+  const searchSource =
+    currentSearch ??
+    (currentPathname?.includes('?')
+      ? currentPathname.split('?')[1]?.split('#')[0]
+      : '');
+  const searchParams = new URLSearchParams(searchSource);
+  searchParams.set('select', `layer:${layerSlug}`);
+  searchParams.set('layer', `${layerSlug}:${itemSlug}`);
+  const qs = searchParams.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
+  const basePath = (currentPathname || '/galaxy').split('?')[0].split('#')[0];
+  return `${basePath}?${qs}`;
+}
+
 const toFocusedCanonAnnotation = (
   record: DecodedEntityAnnotation,
-  corpus?: readonly CompactSearchEntry[],
-): FocusedCanonAnnotation => ({
-  layerId: record.layerId,
-  layerTitle: record.layerTitle,
-  layerHref: buildLayerGalaxyHref(record.layerId),
-  href: resolveLayerItemTargetHref({ layerId: record.layerId }, record, corpus)
-    .href,
-  kind: record.kind,
-  targetId: record.targetId,
-  targetType: record.targetType,
-  ...(record.inUniverseName ? { inUniverseName: record.inUniverseName } : {}),
-  ...(record.resolvedName ? { resolvedName: record.resolvedName } : {}),
-  ...(record.subtitle ? { subtitle: record.subtitle } : {}),
-  ...(record.workTitle ? { workTitle: record.workTitle } : {}),
-  text: record.text,
-  ...(record.creator ? { creator: record.creator } : {}),
-  ...(record.publicationYear
-    ? { publicationYear: record.publicationYear }
-    : {}),
-});
+  _corpus?: readonly CompactSearchEntry[],
+  currentPathname?: string,
+  currentSearch?: string,
+): FocusedCanonAnnotation => {
+  const displayName = record.inUniverseName || record.resolvedName;
+  return {
+    layerId: record.layerId,
+    layerTitle: record.layerTitle,
+    layerHref: buildLayerGalaxyHref(record.layerId),
+    href: buildInPlaceLayerItemHref(
+      record.layerId,
+      record.targetId,
+      displayName,
+      currentPathname,
+      currentSearch,
+    ),
+    kind: record.kind,
+    targetId: record.targetId,
+    targetType: record.targetType,
+    ...(record.inUniverseName ? { inUniverseName: record.inUniverseName } : {}),
+    ...(record.resolvedName ? { resolvedName: record.resolvedName } : {}),
+    ...(record.subtitle ? { subtitle: record.subtitle } : {}),
+    ...(record.workTitle ? { workTitle: record.workTitle } : {}),
+    text: record.text,
+    ...(record.creator ? { creator: record.creator } : {}),
+    ...(record.publicationYear
+      ? { publicationYear: record.publicationYear }
+      : {}),
+  };
+};
 
 /**
  * Pure resolver gathering all canon layer annotations (`FS-001` / `FS-002`) relevant to a focused
@@ -593,6 +630,8 @@ export const resolveFocusedCanonAnnotations = (
   records: readonly DecodedEntityAnnotation[],
   orderOptions?: CanonAnnotationOrderOptions,
   corpus?: readonly CompactSearchEntry[],
+  currentPathname?: string,
+  currentSearch?: string,
 ): readonly FocusedCanonAnnotation[] => {
   const rawTargetKey = toAnnotationLookupKey(targetId);
 
@@ -610,7 +649,9 @@ export const resolveFocusedCanonAnnotations = (
       continue;
     }
     seen.add(dedupeKey);
-    annotations.push(toFocusedCanonAnnotation(record, corpus));
+    annotations.push(
+      toFocusedCanonAnnotation(record, corpus, currentPathname, currentSearch),
+    );
   }
 
   return sortCanonAnnotations(annotations, orderOptions);

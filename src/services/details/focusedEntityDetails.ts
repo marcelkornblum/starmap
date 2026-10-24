@@ -650,6 +650,8 @@ export const buildFocusedEntityDetails = (
     canonRecords,
     canonOrderOptions,
     corpus,
+    currentPathname,
+    currentSearch,
   );
 
   const precalculatedMask =

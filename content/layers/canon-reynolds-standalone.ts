@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-reynolds-standalone',
-  title: 'Poseidon’s Children & Pushing Ice',
+  title: 'Pushing Ice & Poseidon',
   subtitle: 'Alastair Reynolds Standalones',
   aliases: 'akinya rockhopper janus mandala spica crucible elephant',
   kind: 'fictional-canon',

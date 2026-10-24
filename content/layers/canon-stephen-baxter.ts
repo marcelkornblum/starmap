@@ -2,7 +2,7 @@ import type { DatasetLayerManifest } from '../../src/types/astro';
 
 const layer: DatasetLayerManifest = {
   layerId: 'canon-stephen-baxter',
-  title: 'Stephen Baxter Universes',
+  title: 'Stephen Baxter',
   subtitle: 'Xeelee Sequence & Proxima',
   aliases: 'xeelee photino baryonic manifold perdurua bolder wormhole',
   kind: 'fictional-canon',
