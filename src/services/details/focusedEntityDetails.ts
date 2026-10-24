@@ -237,7 +237,7 @@ export const buildFocusedEntityDetails = (
     summaryNode,
     systemDetail,
     entityDetail,
-    activeLayers,
+    canonRecords = [],
     canonOrderOptions,
     urlSystemSlug,
     urlPlanetSlug,
@@ -647,7 +647,7 @@ export const buildFocusedEntityDetails = (
   const canonAnnotations = resolveFocusedCanonAnnotations(
     resolvedTargetId,
     systemId,
-    activeLayers,
+    canonRecords,
     canonOrderOptions,
     corpus,
   );
@@ -692,8 +692,7 @@ export const buildFocusedEntityDetails = (
   const baseTags = precalculatedTags ? [...precalculatedTags] : fallbackTags;
   if (
     hasHabitableCandidate &&
-    !baseTags.includes('HabitableCandidate') &&
-    !baseTags.includes('HabitableHost')
+    !baseTags.includes('HabitableCandidate')
   ) {
     baseTags.push('HabitableCandidate');
   }

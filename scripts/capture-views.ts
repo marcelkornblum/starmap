@@ -300,7 +300,7 @@ export async function runCapture(options: CaptureOptions): Promise<CapturedScree
             path: filePath,
             fullPage: false,
             animations: 'disabled',
-            timeout: 20_000,
+            timeout: 60_000,
           });
 
           results.push({

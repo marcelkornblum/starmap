@@ -50,12 +50,12 @@ If a discovery's host star is not yet present in Starmap:
 2. Add the host star definition to `scripts/fetch-sources.ts` under the appropriate gazetteer / survey table.
 3. Add the confirmed exoplanet parameters to the composite exoplanet table in `scripts/fetch-sources.ts`.
 
-### Step 3: Curate Scientific Layer Entries in `src/utils/datasetLayerCodec.ts`
-1. Locate the appropriate scientific overlay layer in `SEED_FICTIONAL_CANON_LAYERS`:
+### Step 3: Curate Scientific Layer Entries in `content/layers/`
+1. Locate the appropriate scientific overlay layer module under `content/layers/` (registered in the barrel `content/layers/index.ts`):
    - `overlay-recent-discoveries`: Newly discovered or confirmed worlds (< 100 pc).
    - `overlay-jwst-targets`: Benchmark atmospheric reconnaissance targets (transmission/emission spectroscopy, direct imaging).
    - `overlay-extreme-worlds`: Astrobiological or physical extremes (hottest, fastest spinning, ocean worlds, nearest habitable candidates).
-2. Add the entry to the layer's `entries` map:
+2. Add the entry to the layer's `entries` map. Layer `title` stays concise and bracket-free with an optional `subtitle`; entry `inUniverseName` is **omitted** when it equals the real-sky body name (the build resolves it from `targetId` / `systemId`); the optional entry `subtitle` is a short bracket-free label; `aliases` is a single space-delimited string of delta-only tokens (never repeating the name, subtitle, parent title or host name). There are no entry `tags`.
    ```ts
    'proxima-centauri-d': {
      order: 4,

@@ -12,11 +12,8 @@ import {
   PLANET_TYPE_GUIDE_ENTRIES,
   PLANET_TYPES_GUIDE_PATH,
   resolveMetricSlugFromLabel,
-  SEED_CURATED_COLLECTIONS,
   STAR_TYPE_GUIDE_ENTRIES,
   STAR_TYPES_GUIDE_PATH,
-  type CuratedCollection,
-  type CuratedCollectionWaypoint,
   type GuideCatalogEntry,
   type GuideExampleTarget,
   type MetricGuideEntry,
@@ -24,13 +21,15 @@ import {
   type PlanetTypeGuideEntry,
   type StarTypeGuideEntry,
 } from '../data/guideCatalog';
-import type { DatasetLayerManifest } from '../types/astro';
+import type {
+  DatasetLayerIndexEntry,
+  DatasetLayerManifest,
+} from '../types/astro';
 import {
   SYSTEM_TAG_BITS,
   type CompactSearchEntry,
 } from '../utils/compactDataCodec';
 import {
-  SEED_FICTIONAL_CANON_LAYERS,
   findCanonLayerById,
   toCanonicalLayerSlug,
   toUrlSlug,
@@ -40,7 +39,12 @@ import {
   type EntityOrbitTargetInput,
   type OrbitTargetView,
 } from './details/navigationAndCamera';
-import { expandGouldOrConstellationSuffix, normalizeCleanKey } from '../utils/nomenclature';
+import {
+  expandGouldOrConstellationSuffix,
+  formatSlugFallbackTitle,
+  normalizeCleanKey,
+} from '../utils/nomenclature';
+export { formatSlugFallbackTitle };
 
 export {
   buildMetricGuideHref,
@@ -54,11 +58,8 @@ export {
   PLANET_TYPE_GUIDE_ENTRIES,
   PLANET_TYPES_GUIDE_PATH,
   resolveMetricSlugFromLabel,
-  SEED_CURATED_COLLECTIONS,
   STAR_TYPE_GUIDE_ENTRIES,
   STAR_TYPES_GUIDE_PATH,
-  type CuratedCollection,
-  type CuratedCollectionWaypoint,
   type GuideCatalogEntry,
   type GuideExampleTarget,
   type MetricGuideEntry,
@@ -852,7 +853,6 @@ export const KNOWN_SYSTEM_TAGS = [
   'HabitableCandidate',
   'VariableStar',
   'RECONSGroundTruth',
-  'HabitableHost',
 ] as const;
 
 const TAG_BIT_BY_LOWER: Readonly<Record<string, number>> = {
@@ -861,7 +861,6 @@ const TAG_BIT_BY_LOWER: Readonly<Record<string, number>> = {
   nakedeye: SYSTEM_TAG_BITS.NakedEye,
   exoplanethost: SYSTEM_TAG_BITS.ExoplanetHost,
   habitablecandidate: SYSTEM_TAG_BITS.HabitableCandidate,
-  habitablehost: SYSTEM_TAG_BITS.HabitableCandidate,
   variablestar: SYSTEM_TAG_BITS.VariableStar,
   reconsgroundtruth: SYSTEM_TAG_BITS.RECONSGroundTruth,
 };
@@ -898,27 +897,14 @@ export const buildTagGalaxyHref = (tag: string): string => {
 
 /**
  * Pure unit function checking whether a candidate string matches a known catalog system tag
- * or a canon layer annotation tag (supporting both PascalCase and kebab-case slugs).
+ * (pipeline bitmask tags; supports both PascalCase and kebab-case slugs).
  */
-export const isCatalogOrCanonTag = (
-  candidateTag: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
-): boolean => {
+export const isCatalogTag = (candidateTag: string): boolean => {
   const key = normaliseTagKey(candidateTag);
   if (!key) {
     return false;
   }
-  if (key in TAG_BIT_BY_LOWER) {
-    return true;
-  }
-  for (const layer of activeLayers) {
-    for (const entry of Object.values(layer.entries)) {
-      if (entry.tags?.some((tag) => normaliseTagKey(tag) === key)) {
-        return true;
-      }
-    }
-  }
-  return false;
+  return key in TAG_BIT_BY_LOWER;
 };
 
 /**
@@ -948,31 +934,21 @@ export const buildPlanetTypeGalaxyHref = (planetType: string): string => {
   return slug ? `/galaxy?select=planet-type:${slug}` : '/galaxy';
 };
 
-/**
- * Pure unit function building the URL to the Galaxy View with a collection shortcut in `?select=`
- * (`/galaxy?select=collection:<collectionSlug>`, e.g. `/galaxy?select=collection:extreme-worlds`).
- */
-export const buildCollectionGalaxyHref = (collectionId: string): string => {
-  const slug = toUrlSlug(collectionId.trim().replace(/^collection:/i, ''));
-  return slug ? `/galaxy?select=collection:${slug}` : '/galaxy';
-};
-
 export type UrlSelectToken =
   | { readonly kind: 'tag'; readonly tag: string }
   | { readonly kind: 'layer'; readonly layerId: string }
   | { readonly kind: 'star-type'; readonly starType: string }
   | { readonly kind: 'planet-type'; readonly planetType: string }
-  | { readonly kind: 'collection'; readonly collectionId: string }
   | { readonly kind: 'entity'; readonly slug: string };
 
 /**
  * Pure parser extracting structured selection tokens (`tag:<slug>`, `layer:<slug>`,
- * `star-type:<slug>`, `planet-type:<slug>`, `collection:<slug>`, or `<entityId>`)
+ * `star-type:<slug>`, `planet-type:<slug>`, or `<entityId>`)
  * from a URL search string's `?select=` parameter (plus legacy `?layer=` support).
  */
 export const parseUrlSelectTokens = (
   searchString: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  layerIndex: readonly DatasetLayerIndexEntry[],
 ): readonly UrlSelectToken[] => {
   const params = new URLSearchParams(searchString);
   const rawValues = [
@@ -990,7 +966,7 @@ export const parseUrlSelectTokens = (
       const tagMatch = /^tag:(.+)$/i.exec(token);
       if (tagMatch?.[1]) {
         const candidateTag = tagMatch[1].trim();
-        if (isCatalogOrCanonTag(candidateTag, activeLayers)) {
+        if (isCatalogTag(candidateTag)) {
           tokens.push({ kind: 'tag', tag: candidateTag });
         }
         continue;
@@ -999,7 +975,7 @@ export const parseUrlSelectTokens = (
       const layerMatch = /^layer:(.+)$/i.exec(token);
       if (layerMatch?.[1]) {
         const rawSlug = layerMatch[1].trim().split(':')[0];
-        const matchedLayer = findCanonLayerById(rawSlug, activeLayers);
+        const matchedLayer = findCanonLayerById(rawSlug, layerIndex);
         if (matchedLayer) {
           tokens.push({ kind: 'layer', layerId: matchedLayer.layerId });
         }
@@ -1026,9 +1002,10 @@ export const parseUrlSelectTokens = (
 
       const collectionMatch = /^collection:(.+)$/i.exec(token);
       if (collectionMatch?.[1]) {
-        const candidateCollection = toUrlSlug(collectionMatch[1]);
-        if (candidateCollection.length > 0) {
-          tokens.push({ kind: 'collection', collectionId: candidateCollection });
+        const rawSlug = collectionMatch[1].trim();
+        const matchedLayer = findCanonLayerById(rawSlug, layerIndex);
+        if (matchedLayer) {
+          tokens.push({ kind: 'layer', layerId: matchedLayer.layerId });
         }
         continue;
       }
@@ -1046,11 +1023,8 @@ export const parseUrlSelectTokens = (
 /**
  * Pure parser extracting the first active catalog or canon tag from `?select=tag:<tag>`.
  */
-export const extractUrlTagFocus = (
-  searchString: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
-): string | null => {
-  const tagToken = parseUrlSelectTokens(searchString, activeLayers).find(
+export const extractUrlTagFocus = (searchString: string): string | null => {
+  const tagToken = parseUrlSelectTokens(searchString, []).find(
     (t): t is Extract<UrlSelectToken, { readonly kind: 'tag' }> => t.kind === 'tag',
   );
   return tagToken ? tagToken.tag : null;
@@ -1061,9 +1035,9 @@ export const extractUrlTagFocus = (
  */
 export const extractUrlLayerId = (
   searchString: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  layerIndex: readonly DatasetLayerIndexEntry[],
 ): string | null => {
-  const layerToken = parseUrlSelectTokens(searchString, activeLayers).find(
+  const layerToken = parseUrlSelectTokens(searchString, layerIndex).find(
     (t): t is Extract<UrlSelectToken, { readonly kind: 'layer' }> => t.kind === 'layer',
   );
   return layerToken ? layerToken.layerId : null;
@@ -1074,21 +1048,19 @@ export const extractUrlLayerId = (
  */
 export const extractUrlSelectSlugs = (
   searchString: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  layerIndex: readonly DatasetLayerIndexEntry[],
 ): {
   readonly tags: readonly string[];
   readonly layerSlugs: readonly string[];
   readonly starTypes: readonly string[];
   readonly planetTypes: readonly string[];
-  readonly collections: readonly string[];
   readonly entitySlugs: readonly string[];
 } => {
-  const tokens = parseUrlSelectTokens(searchString, activeLayers);
+  const tokens = parseUrlSelectTokens(searchString, layerIndex);
   const tags: string[] = [];
   const layerSlugs: string[] = [];
   const starTypes: string[] = [];
   const planetTypes: string[] = [];
-  const collections: string[] = [];
   const entitySlugs: string[] = [];
 
   for (const t of tokens) {
@@ -1096,7 +1068,6 @@ export const extractUrlSelectSlugs = (
     else if (t.kind === 'layer') layerSlugs.push(t.layerId);
     else if (t.kind === 'star-type') starTypes.push(t.starType);
     else if (t.kind === 'planet-type') planetTypes.push(t.planetType);
-    else if (t.kind === 'collection') collections.push(t.collectionId);
     else if (t.kind === 'entity') entitySlugs.push(t.slug);
   }
 
@@ -1105,7 +1076,6 @@ export const extractUrlSelectSlugs = (
     layerSlugs,
     starTypes,
     planetTypes,
-    collections,
     entitySlugs,
   };
 };
@@ -1182,17 +1152,6 @@ export const hasExplicitFocusParam = (searchString: string): boolean => {
   }
   return toUrlSlug(focusParam).length > 0;
 };
-
-/**
- * Pure formatter turning a URL slug (e.g. `'tau-ceti'`) into a human-readable fallback title (`'Tau Ceti'`).
- */
-export const formatSlugFallbackTitle = (slug: string): string =>
-  slug
-    .trim()
-    .split(/[-_\s]+/)
-    .filter((part) => part.length > 0)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 
 /**
  * Pure lookup finding the matching `CompactSearchEntry` in a corpus for a focused URL slug or ID.
@@ -1306,7 +1265,7 @@ export const doesSystemEntryMatchTag = (
   if (tagKey === 'exoplanethost') {
     return (entry.m?.[2] ?? 0) > 0;
   }
-  if (tagKey === 'habitablecandidate' || tagKey === 'habitablehost') {
+  if (tagKey === 'habitablecandidate') {
     return entry.m?.[3] === 1;
   }
   if (tagKey === 'variablestar') {
@@ -1353,14 +1312,12 @@ const registerLayerEntrySystem = (
 
 /**
  * Pure unit function resolving all deduplicated host star systems that match a
- * catalog system tag (`ExoplanetHost`, `SolarNeighborhood10pc`, `NakedEye`, etc.)
- * or a canon layer annotation tag, returning `SpatialEntityDefinition` records
- * to be marked `selected` in `SpatialEntityStore`.
+ * catalog system tag (`ExoplanetHost`, `SolarNeighborhood10pc`, `NakedEye`, etc.),
+ * returning `SpatialEntityDefinition` records to be marked `selected` in `SpatialEntityStore`.
  */
 export const resolveSelectedSystemsFromTag = (
   tag: string,
   corpus: readonly CompactSearchEntry[],
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
 ): readonly SpatialEntityDefinition[] => {
   const tagKey = normaliseTagKey(tag);
   if (!tagKey) {
@@ -1380,15 +1337,6 @@ export const resolveSelectedSystemsFromTag = (
     }
   }
 
-  for (const layer of activeLayers) {
-    for (const entry of Object.values(layer.entries)) {
-      if (!entry.tags?.some((t) => normaliseTagKey(t) === tagKey)) {
-        continue;
-      }
-      registerLayerEntrySystem(systemsById, entry, corpus);
-    }
-  }
-
   return Array.from(systemsById.values());
 };
 
@@ -1400,7 +1348,7 @@ export const resolveSelectedSystemsFromTag = (
 export const resolveSelectedSystemsFromLayer = (
   layerId: string,
   corpus: readonly CompactSearchEntry[],
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  activeLayers: readonly DatasetLayerManifest[],
 ): readonly SpatialEntityDefinition[] => {
   const layer = findCanonLayerById(layerId, activeLayers);
   if (!layer) {
@@ -1550,69 +1498,17 @@ export const resolveSelectedSystemsFromPlanetType = (
 };
 
 /**
- * Pure unit function resolving all deduplicated systems belonging to a curated collection
- * (e.g. 'extreme-worlds', 'newly-discovered') from `?select=collection:<collectionId>`.
- */
-export const resolveSelectedSystemsFromCollection = (
-  collectionId: string,
-  corpus: readonly CompactSearchEntry[],
-  collections: readonly CuratedCollection[] = SEED_CURATED_COLLECTIONS,
-): readonly SpatialEntityDefinition[] => {
-  const targetSlug = toUrlSlug(collectionId.trim().replace(/^collection:/i, ''));
-  if (!targetSlug) {
-    return [];
-  }
-
-  const collection = collections.find(
-    (c) => toUrlSlug(c.id) === targetSlug || c.id === collectionId,
-  );
-  if (!collection) {
-    return [];
-  }
-
-  const systemsById = new Map<string, SpatialEntityDefinition>();
-  const systemIds = new Set<string>(collection.systemIds);
-  if (collection.waypoints) {
-    for (const wp of collection.waypoints) {
-      systemIds.add(wp.systemId ?? wp.targetId);
-    }
-  }
-
-  for (const sysId of systemIds) {
-    const matched = findFocusedEntryInCorpus(sysId, corpus);
-    if (matched) {
-      systemsById.set(matched.i, {
-        id: matched.i,
-        name: resolveResultDisplayTitle(matched),
-        position: matched.p ? [matched.p[0], matched.p[1], matched.p[2]] : [0, 0, 0],
-        classification: resolveReticleType(matched),
-        ...(matched.m?.[1] ? { spectralType: matched.m[1] } : {}),
-      });
-    } else {
-      systemsById.set(sysId, {
-        id: sysId,
-        name: formatSlugFallbackTitle(sysId),
-        position: [0, 0, 0],
-        classification: 'stellar-system',
-      });
-    }
-  }
-
-  return Array.from(systemsById.values());
-};
-
-/**
  * Pure unit function resolving all deduplicated entities selected via `?select=`
  * (supporting comma-separated `tag:<slug>`, `layer:<slug>`, `star-type:<slug>`,
- * `planet-type:<slug>`, `collection:<slug>`, and explicit `<entityId>` tokens).
+ * `planet-type:<slug>`, and explicit `<entityId>` tokens).
  */
 export const resolveSelectedSystemsFromUrlSelect = (
   searchString: string,
   corpus: readonly CompactSearchEntry[],
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
-  collections: readonly CuratedCollection[] = SEED_CURATED_COLLECTIONS,
+  layerIndex: readonly DatasetLayerIndexEntry[],
+  loadedLayers: readonly DatasetLayerManifest[],
 ): readonly SpatialEntityDefinition[] => {
-  const tokens = parseUrlSelectTokens(searchString, activeLayers);
+  const tokens = parseUrlSelectTokens(searchString, layerIndex);
   if (tokens.length === 0) {
     return [];
   }
@@ -1621,18 +1517,14 @@ export const resolveSelectedSystemsFromUrlSelect = (
 
   for (const token of tokens) {
     if (token.kind === 'tag') {
-      for (const sys of resolveSelectedSystemsFromTag(
-        token.tag,
-        corpus,
-        activeLayers,
-      )) {
+      for (const sys of resolveSelectedSystemsFromTag(token.tag, corpus)) {
         entitiesById.set(sys.id, sys);
       }
     } else if (token.kind === 'layer') {
       for (const sys of resolveSelectedSystemsFromLayer(
         token.layerId,
         corpus,
-        activeLayers,
+        loadedLayers,
       )) {
         entitiesById.set(sys.id, sys);
       }
@@ -1647,14 +1539,6 @@ export const resolveSelectedSystemsFromUrlSelect = (
       for (const sys of resolveSelectedSystemsFromPlanetType(
         token.planetType,
         corpus,
-      )) {
-        entitiesById.set(sys.id, sys);
-      }
-    } else if (token.kind === 'collection') {
-      for (const sys of resolveSelectedSystemsFromCollection(
-        token.collectionId,
-        corpus,
-        collections,
       )) {
         entitiesById.set(sys.id, sys);
       }

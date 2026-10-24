@@ -35,20 +35,25 @@ export interface DatasetLayerEntry {
   targetType: DatasetLayerTargetType;
   /** Real host star system ID in the Starmap catalog */
   systemId: string;
+  order?: number;
+  parentBodyId?: string;
   inUniverseName?: string;
+  resolvedName?: string;
+  subtitle?: string;
   text: string;
   workTitle?: string;
-  aliases?: string[];
-  tags?: string[];
+  aliases?: string;
   confidence?: ObservationalConfidence;
 }
 
 export interface DatasetLayerManifest {
   layerId: string;
   title: string;
+  subtitle?: string;
   kind: DatasetLayerKind;
   description: string;
   version: number;
+  aliases?: string;
   source?: DatasetLayerSourceMeta;
   entries: Record<string, DatasetLayerEntry>;
 }
@@ -62,12 +67,14 @@ export interface DatasetLayerManifest {
 | :--- | :---: | :--- | :--- | :--- |
 | **Root** | `i` | `string` | `layerId` | Required |
 | **Root** | `n` | `string` | `title` | Required |
+| **Root** | `t` | `string` | `subtitle` | Optional secondary title |
 | **Root** | `k` | `1 \| 2 \| 3` | `kind` | `1` = `fictional-canon`, `2` = `custom-user`, `3` = `scientific-overlay` |
 | **Root** | `d` | `string` | `description` | Required |
 | **Root** | `v` | `number` | `version` | Required (`1`) |
+| **Root** | `a` | `string` | `aliases` | Optional space-delimited search tokens (incl. book-author surnames) |
 | **Root** | `b` | `object` | `source` | Optional bibliographic block |
 | **`b.*`** | `s` | `string` | `source.summary` | Required if `b` present |
-| **`b.*`** | `a` | `string` | `source.creator` | Required if `b` present |
+| **`b.*`** | `a` | `string` | `source.creator` | Required if `b` present (display only) |
 | **`b.*`** | `y` | `string` | `source.publicationYear` | Omitted if undefined |
 | **`b.*`** | `m` | `string` | `source.medium` | Omitted if undefined |
 | **`b.*`** | `r` | `string` | `source.canonicalReference` | Omitted if undefined |
@@ -75,11 +82,12 @@ export interface DatasetLayerManifest {
 | **Root** | `e` | `Record<targetId, CompactLayerEntry>` | `entries` | O(1) dictionary keyed by `targetId` |
 | **`e[id].*`** | `k` | `2..6` | `targetType` | **Omitted when `1` (`'system'`)**; `2`=`planet`, `3`=`moon`, `4`=`structure`, `5`=`minor-body`, `6`=`fictional-body` |
 | **`e[id].*`** | `s` | `string` | `systemId` | **Omitted when `systemId === targetId`** |
-| **`e[id].*`** | `u` | `string` | `inUniverseName` | Omitted if undefined |
+| **`e[id].*`** | `u` | `string` | `inUniverseName` | Omitted when identical to real-sky star/body name |
+| **`e[id].*`** | `r` | `string` | `resolvedName` | Precalculated real-sky display name resolved at build time |
+| **`e[id].*`** | `t` | `string` | `subtitle` | Optional short role/context label |
 | **`e[id].*`** | `x` | `string` | `text` | Required flattened note text |
 | **`e[id].*`** | `w` | `string` | `workTitle` | Omitted if undefined |
-| **`e[id].*`** | `a` | `string[]` | `aliases` | Omitted if empty |
-| **`e[id].*`** | `g` | `string[]` | `tags` | Omitted if empty |
+| **`e[id].*`** | `a` | `string` | `aliases` | Optional space-delimited delta-only search tokens |
 | **`e[id].*`** | `c` | `2 \| 3 \| 4` | `confidence` | **Omitted when `1` (`'confirmed'`)**; `2`=`candidate`, `3`=`theoretical`, `4`=`unverified` |
 
 ---

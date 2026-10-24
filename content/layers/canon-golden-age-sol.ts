@@ -1,0 +1,78 @@
+import type { DatasetLayerManifest } from '../../src/types/astro';
+
+const layer: DatasetLayerManifest = {
+  layerId: 'canon-golden-age-sol',
+  title: 'Golden Age Solar',
+  subtitle: 'Bester & Vonnegut Classics',
+  aliases: 'jaunte dagonite nomad foyle tralfamadore harmonium salo rumfoord',
+  kind: 'fictional-canon',
+  description: 'Mid-century speculative masterpieces reshaping the Solar System by Alfred Bester and Kurt Vonnegut.',
+  version: 1,
+  source: {
+    summary:
+      'Pioneering satire, cyberpunk precursors, and existential odysseys across the planets, from Alfred Bester’s teleportation-driven Solar System in The Stars My Destination to Kurt Vonnegut’s philosophical journey to Titan in The Sirens of Titan.',
+    creator: 'Alfred Bester, Kurt Vonnegut',
+    publicationYear: '1953–1959',
+    medium: 'Novel Series',
+    canonicalReference: 'The Stars My Destination (1956) & The Sirens of Titan (1959)',
+    url: 'https://en.wikipedia.org/wiki/The_Stars_My_Destination',
+  },
+  entries: {
+    titan: {
+      targetId: 'titan',
+      targetType: 'moon',
+      systemId: 'sol',
+      parentBodyId: 'saturn',
+      inUniverseName: 'Rumfoord Estate',
+      subtitle: 'Tralfamadorian Message Station',
+      text: 'Serene estate beside the liquid methane seas where Winston Niles Rumfoord materializes and the robotic messenger Salo waits with the message from Tralfamadore.',
+      workTitle: 'The Sirens of Titan',
+      aliases: 'rumfoord salo tralfamadore constant harmonium',
+      confidence: 'confirmed',
+    },
+    mercury: {
+      targetId: 'mercury',
+      targetType: 'planet',
+      systemId: 'sol',
+      subtitle: 'Caves of Mercury',
+      text: 'Deep subterranean caverns where the glowing, paper-thin Harmonium creatures live on melodic vibrations and solar energy.',
+      workTitle: 'The Sirens of Titan',
+      aliases: 'harmonium caves vibration unk',
+      confidence: 'confirmed',
+    },
+    mars: {
+      targetId: 'mars',
+      targetType: 'planet',
+      systemId: 'sol',
+      subtitle: 'Martian Invasion Army',
+      text: 'Brainwashed human army assembled under Winston Niles Rumfoord in The Sirens of Titan, and oligarchic jaunte-landing domains in The Stars My Destination.',
+      workTitle: 'The Sirens of Titan',
+      aliases: 'invasion army mindcontrol jaunte dagonite',
+      confidence: 'confirmed',
+    },
+    callisto: {
+      targetId: 'callisto',
+      targetType: 'moon',
+      systemId: 'sol',
+      parentBodyId: 'jupiter',
+      subtitle: 'Outer Satellites Jaunte Enclave',
+      text: 'Outer Jovian colony and commercial enclave connected by personal teleportation (jaunting) across the warring planetary factions.',
+      workTitle: 'The Stars My Destination',
+      aliases: 'jaunte foyle callisto outeralliance',
+      confidence: 'confirmed',
+    },
+    ceres: {
+      targetId: 'ceres',
+      targetType: 'minor-body',
+      systemId: 'sol',
+      inUniverseName: 'Nomad Wreckage',
+      subtitle: 'Gouffre Martel Asteroid Belt',
+      text: 'Derelict merchant vessel Nomad drifting in the Asteroid Belt where Gulliver Foyle is marooned, igniting his obsessive quest for vengeance.',
+      workTitle: 'The Stars My Destination',
+      aliases: 'nomad vorga foyle pyrE asteroidbelt',
+      confidence: 'confirmed',
+    },
+  },
+};
+
+export default layer;

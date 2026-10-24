@@ -30,22 +30,6 @@ export interface GuideCatalogEntry {
   readonly summary: string;
 }
 
-export interface CuratedCollectionWaypoint {
-  readonly targetId: string;
-  readonly systemId?: string;
-  readonly title?: string;
-  readonly summary?: string;
-  readonly tags?: readonly string[];
-}
-
-export interface CuratedCollection {
-  readonly id: string;
-  readonly title: string;
-  readonly summary: string;
-  readonly systemIds: readonly string[];
-  readonly waypoints?: readonly CuratedCollectionWaypoint[];
-}
-
 export interface StarTypeGuideEntry {
   readonly id: string; // 'o' | 'b' | 'a' | 'f' | 'g' | 'k' | 'm' | 'l' | 'd'
   readonly spectralClass: string; // 'O' | 'B' | 'A' | 'F' | 'G' | 'K' | 'M' | 'L/T/Y' | 'D'
@@ -488,51 +472,6 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
         name: 'Saturn',
         href: '/system/sol?focus=saturn&select=planet-type:gas-giant',
         note: 'Extensive ring system with diverse major icy satellites including Titan and Enceladus.',
-      },
-    ],
-  },
-];
-
-export const SEED_CURATED_COLLECTIONS: readonly CuratedCollection[] = [
-  {
-    id: 'extreme-worlds',
-    title: 'Extreme Worlds',
-    summary:
-      'Planetary environments pushing the physical limits of temperature, density, and orbital dynamics.',
-    systemIds: ['gaia-2452378776434477184', 'sol'],
-    waypoints: [
-      {
-        targetId: 'tau-ceti-e',
-        systemId: 'gaia-2452378776434477184',
-        title: 'Tau Ceti e',
-        summary:
-          'A massive super-Earth at the inner edge of the habitable zone experiencing intense stellar irradiation.',
-        tags: ['Super-Earth', 'Extreme Radiation'],
-      },
-      {
-        targetId: 'earth',
-        systemId: 'sol',
-        title: 'Earth',
-        summary:
-          'The benchmark habitable world with an active surface hydrosphere and plate tectonics.',
-        tags: ['Terrestrial', 'Habitable Zone'],
-      },
-    ],
-  },
-  {
-    id: 'newly-discovered',
-    title: 'Newly Discovered Exoplanets',
-    summary:
-      'Recent candidate worlds identified through high-precision radial velocity and transit surveys.',
-    systemIds: ['gaia-2452378776434477184'],
-    waypoints: [
-      {
-        targetId: 'tau-ceti-g',
-        systemId: 'gaia-2452378776434477184',
-        title: 'Tau Ceti g',
-        summary:
-          'Recently identified sub-Neptune companion orbiting deep within the Tau Ceti system.',
-        tags: ['Sub-Neptune', 'Radial Velocity'],
       },
     ],
   },

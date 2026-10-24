@@ -60,6 +60,11 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
         <Heading as="h3" data-testid="layer-card-title" className={styles.title}>
           {card.title}
         </Heading>
+        {card.subtitle ? (
+          <p data-testid="layer-card-subtitle" className={styles.subtitle}>
+            {card.subtitle}
+          </p>
+        ) : null}
 
         <p data-testid="layer-card-description" className={styles.description}>
           {card.description}
@@ -145,6 +150,11 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
       <Heading as="h3" data-testid="layer-card-title" className={styles.title}>
         {card.itemTitle}
       </Heading>
+      {card.subtitle ? (
+        <p data-testid="layer-card-subtitle" className={styles.subtitle}>
+          {card.subtitle}
+        </p>
+      ) : null}
 
       <p data-testid="layer-card-text" className={styles.text}>
         {card.text}
@@ -165,24 +175,6 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
             >
               {card.confidence}
             </Badge>
-          </Cluster>
-        </div>
-      ) : null}
-
-      {card.tags.length > 0 ? (
-        <div data-testid="layer-card-tags" className={styles.tagsRow}>
-          <Cluster gap="tight">
-            {card.tags.map((tag) => (
-              <Badge key={tag.label} status="neutral">
-                <a
-                  href={tag.href}
-                  data-testid="layer-card-tag-link"
-                  className={styles.tagLink}
-                >
-                  {tag.label}
-                </a>
-              </Badge>
-            ))}
           </Cluster>
         </div>
       ) : null}

@@ -54,8 +54,15 @@ import {
   hasExplicitFocusParam,
   resolveFocusedEntityFromCorpus,
   resolveSelectedSystemsFromUrlSelect,
+  toUrlSlug,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { toAnnotationLookupKey } from '../utils/datasetLayerCodec';
+import {
+  useEntityAnnotations,
+  useLayerIndex,
+  useLoadedLayerManifests,
+} from '../hooks/useLayerData';
 import { useSpaLocation } from '../router';
 
 export interface PlanetViewProps {
@@ -121,6 +128,26 @@ const useResolvedPlanetDetails = (
       ? urlPlanetEntry.i
       : 'sol');
 
+  const layerIndex = useLayerIndex();
+  const loadedLayers = useLoadedLayerManifests(search);
+
+  const planetSlugs = new Set(
+    [toUrlSlug(targetPlanetId), urlPlanetSlug ? toUrlSlug(urlPlanetSlug) : '']
+      .filter((slug) => slug.length > 0),
+  );
+  const orbitingBodyIds = activeCorpus
+    .filter((entry) => entry.o && planetSlugs.has(toUrlSlug(entry.o)))
+    .map((entry) => entry.i);
+  const canonRecords = useEntityAnnotations(
+    [
+      targetPlanetId,
+      urlPlanetSlug ?? '',
+      focusedEntity?.id ?? targetSystemId,
+      targetSystemId,
+      ...orbitingBodyIds,
+    ].map(toAnnotationLookupKey),
+  );
+
   useEffect(() => {
     if (
       !shouldFetchShards ||
@@ -172,6 +199,7 @@ const useResolvedPlanetDetails = (
     urlSystemSlug: targetSystemId,
     urlPlanetSlug,
     hasExplicitFocus,
+    canonRecords,
     viewScope: 'planet',
     currentPathname: pathname,
     currentSearch: search,
@@ -185,7 +213,12 @@ const useResolvedPlanetDetails = (
   const selectedEntities =
     storeSelected.length > 0
       ? storeSelected
-      : resolveSelectedSystemsFromUrlSelect(search, activeCorpus);
+      : resolveSelectedSystemsFromUrlSelect(
+          search,
+          activeCorpus,
+          layerIndex,
+          loadedLayers,
+        );
   const selectedEntityIds = selectedEntities.map((e) => e.id);
 
   const planetaryBodies = buildPlanetaryBodiesSummary({
@@ -195,6 +228,7 @@ const useResolvedPlanetDetails = (
       ? getCachedDetailRecord(targetPlanetId)
       : undefined,
     corpus: activeCorpus,
+    canonRecords,
     selectedEntityIds,
     focusedEntityId: focusedEntity?.id,
   });
@@ -273,11 +307,13 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
 
   const searchParams = new URLSearchParams(search);
   const layerParam = searchParams.get('layer');
+  const loadedLayers = useLoadedLayerManifests(search);
   const activeLayerCard = resolveActiveLayerCard({
     layerParam,
     currentPathname: pathname,
     currentSearch: search,
     corpus: activeCorpus,
+    layers: loadedLayers,
   });
 
   return (

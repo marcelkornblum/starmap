@@ -1,5 +1,6 @@
 import type {
   DatasetLayerEntry,
+  DatasetLayerIndexEntry,
   DatasetLayerKind,
   DatasetLayerManifest,
   DatasetLayerSourceMeta,
@@ -7,9 +8,9 @@ import type {
 } from '../types/astro';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 import {
-  SEED_FICTIONAL_CANON_LAYERS,
   findCanonLayerById,
   getOrderedLayerEntries,
+  splitAliases,
   toCanonicalLayerSlug,
   toUrlSlug,
 } from '../utils/datasetLayerCodec';
@@ -28,6 +29,7 @@ export interface ActiveLayerOverviewCardModel {
   readonly layerId: string;
   readonly layerSlug: string;
   readonly title: string;
+  readonly subtitle?: string;
   readonly kind: DatasetLayerKind;
   readonly kindLabel: string;
   readonly description: string;
@@ -38,16 +40,12 @@ export interface ActiveLayerOverviewCardModel {
   readonly closeHref: string;
 }
 
-export interface LayerCardTagLink {
-  readonly label: string;
-  readonly href: string;
-}
-
 export interface ActiveLayerItemCardModel {
   readonly mode: 'item';
   readonly layerId: string;
   readonly layerSlug: string;
   readonly layerTitle: string;
+  readonly subtitle?: string;
   readonly kind: DatasetLayerKind;
   readonly kindLabel: string;
   readonly overviewHref: string;
@@ -56,7 +54,6 @@ export interface ActiveLayerItemCardModel {
   readonly itemSlug: string;
   readonly itemTitle: string;
   readonly text: string;
-  readonly tags: readonly LayerCardTagLink[];
   readonly confidence?: ObservationalConfidence;
   readonly prevHref: string;
   readonly prevLabel: string;
@@ -80,7 +77,7 @@ export interface ResolveActiveLayerCardInput {
   readonly currentPathname: string;
   readonly currentSearch: string;
   readonly corpus?: readonly CompactSearchEntry[];
-  readonly layers?: readonly DatasetLayerManifest[];
+  readonly layers: readonly DatasetLayerManifest[];
 }
 
 /**
@@ -128,9 +125,9 @@ export function parseLayerQueryParam(
  * Returns `/galaxy?select=layer:${layerSlug}&layer=${layerSlug}`.
  */
 export function pickRandomLayerOverviewHref(
-  currentLayerParam?: string | null,
-  randomFn: () => number = Math.random,
-  layers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  currentLayerParam: string | null | undefined,
+  randomFn: () => number,
+  layers: readonly DatasetLayerIndexEntry[],
 ): string {
   if (layers.length === 0) {
     return '/galaxy';
@@ -155,11 +152,32 @@ export function pickRandomLayerOverviewHref(
 }
 
 /**
+ * Minimal layer identity needed to build an item target href.
+ */
+export interface LayerItemTargetLayer {
+  readonly layerId: string;
+}
+
+/**
+ * Entry-like fields needed to build an item target href. Satisfied by both
+ * `DatasetLayerEntry` (manifests) and `DecodedEntityAnnotation` (by-entity shards).
+ */
+export interface LayerItemTargetFields {
+  readonly targetId: string;
+  readonly targetType: DatasetLayerEntry['targetType'];
+  readonly systemId: string;
+  readonly inUniverseName?: string;
+  readonly resolvedName?: string;
+  readonly subtitle?: string;
+  readonly parentBodyId?: string;
+}
+
+/**
  * Pure helper resolving the orbit-context navigation target href and view for a layer entry.
  */
 export function resolveLayerItemTargetHref(
-  layer: DatasetLayerManifest,
-  entry: DatasetLayerEntry,
+  layer: LayerItemTargetLayer,
+  entry: LayerItemTargetFields,
   corpus?: readonly CompactSearchEntry[],
 ): LayerItemTargetResult {
   const cleanId = entry.targetId.includes(':')
@@ -175,9 +193,11 @@ export function resolveLayerItemTargetHref(
     }
   }
 
+  const itemName = entry.inUniverseName || entry.resolvedName || cleanId;
+
   const result = buildEntityOrbitTargetHref({
     id: entry.targetId,
-    name: entry.inUniverseName || cleanId,
+    name: itemName,
     entityKind: entry.targetType,
     systemId: entry.systemId,
     systemName,
@@ -245,7 +265,7 @@ export function resolveActiveLayerCard(
     return null;
   }
 
-  const activeLayers = input.layers ?? SEED_FICTIONAL_CANON_LAYERS;
+  const activeLayers = input.layers;
   const layer = findCanonLayerById(parsed.layerSlug, activeLayers);
   if (!layer) {
     return null;
@@ -270,7 +290,9 @@ export function resolveActiveLayerCard(
   if (!parsed.itemSlug) {
     const firstEntry = orderedEntries[0];
     const firstItemTitle = firstEntry
-      ? firstEntry.inUniverseName || formatSlugFallbackTitle(firstEntry.targetId)
+      ? firstEntry.inUniverseName ||
+        firstEntry.resolvedName ||
+        formatSlugFallbackTitle(firstEntry.targetId)
       : undefined;
     const startHref = firstEntry
       ? resolveLayerItemTargetHref(layer, firstEntry, input.corpus).href
@@ -281,6 +303,7 @@ export function resolveActiveLayerCard(
       layerId: layer.layerId,
       layerSlug,
       title: layer.title,
+      ...(layer.subtitle ? { subtitle: layer.subtitle } : {}),
       kind: layer.kind,
       kindLabel,
       description: layer.description,
@@ -303,7 +326,7 @@ export function resolveActiveLayerCard(
     );
     const systemSlug = entry.systemId ? toUrlSlug(entry.systemId) : '';
     const nameSlug = entry.inUniverseName ? toUrlSlug(entry.inUniverseName) : '';
-    const aliasSlugs = entry.aliases ? entry.aliases.map(toUrlSlug) : [];
+    const aliasSlugs = splitAliases(entry.aliases).map(toUrlSlug);
 
     return (
       rawTargetSlug === targetItemSlug ||
@@ -318,7 +341,9 @@ export function resolveActiveLayerCard(
   if (entryIndex === -1) {
     const firstEntry = orderedEntries[0];
     const firstItemTitle = firstEntry
-      ? firstEntry.inUniverseName || formatSlugFallbackTitle(firstEntry.targetId)
+      ? firstEntry.inUniverseName ||
+        firstEntry.resolvedName ||
+        formatSlugFallbackTitle(firstEntry.targetId)
       : undefined;
     const startHref = firstEntry
       ? resolveLayerItemTargetHref(layer, firstEntry, input.corpus).href
@@ -329,6 +354,7 @@ export function resolveActiveLayerCard(
       layerId: layer.layerId,
       layerSlug,
       title: layer.title,
+      ...(layer.subtitle ? { subtitle: layer.subtitle } : {}),
       kind: layer.kind,
       kindLabel,
       description: layer.description,
@@ -367,20 +393,15 @@ export function resolveActiveLayerCard(
 
   const itemTitle =
     activeEntry.inUniverseName ||
+    activeEntry.resolvedName ||
     formatSlugFallbackTitle(activeEntry.targetId);
-
-  const tags: readonly LayerCardTagLink[] = (activeEntry.tags ?? []).map(
-    (tag) => ({
-      label: tag,
-      href: `/galaxy?select=tag:${toUrlSlug(tag)}`,
-    }),
-  );
 
   return {
     mode: 'item',
     layerId: layer.layerId,
     layerSlug,
     layerTitle: layer.title,
+    ...(activeEntry.subtitle ? { subtitle: activeEntry.subtitle } : {}),
     kind: layer.kind,
     kindLabel,
     overviewHref,
@@ -389,7 +410,6 @@ export function resolveActiveLayerCard(
     itemSlug: parsed.itemSlug,
     itemTitle,
     text: activeEntry.text,
-    tags,
     ...(activeEntry.confidence ? { confidence: activeEntry.confidence } : {}),
     prevHref,
     prevLabel,

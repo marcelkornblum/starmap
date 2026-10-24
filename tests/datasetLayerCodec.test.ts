@@ -9,14 +9,22 @@ import {
   getOrderedLayerEntries,
   findCanonLayerById,
   toCanonicalLayerSlug,
-  SEED_FICTIONAL_CANON_LAYERS,
+  buildEntityAnnotationBuckets,
+  decodeEntityAnnotation,
+  buildCompactLayerSearchKeys,
+  applyResolvedNamesToLayer,
+  applyResolvedNamesToLayers,
+  collectUnresolvedLayerTargets,
 } from '../src/utils/datasetLayerCodec';
+import { getShardKey } from '../src/utils/compactDataCodec';
+import { LAYER_MANIFESTS } from '../content/layers';
 import type { DatasetLayerManifest } from '../src/types/astro';
 
 describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-007)', () => {
   const sampleCanonLayer: DatasetLayerManifest = {
     layerId: 'canon-project-hail-mary',
     title: 'Project Hail Mary',
+    aliases: 'astrophage grace rocky weir',
     kind: 'fictional-canon',
     description: 'Locations and world notes from Andy Weir’s Project Hail Mary.',
     version: 1,
@@ -36,8 +44,7 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
         inUniverseName: 'Tau Ceti (Astrophage Destination)',
         text: 'Primary destination of the Hail Mary expedition after Tau Ceti resists Astrophage dimming.',
         workTitle: 'Project Hail Mary',
-        aliases: ['Project Hail Mary', 'Astrophage', 'Hail Mary'],
-        tags: ['Astrophage', 'Hail Mary'],
+        aliases: 'Project Hail Mary Astrophage Hail Mary',
         confidence: 'confirmed',
       },
       'tau-ceti-e': {
@@ -47,8 +54,7 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
         inUniverseName: 'Adrian',
         text: 'Super-Earth exoplanet with a dense CO2/methane atmosphere where Grace and Rocky harvest Taumoeba.',
         workTitle: 'Project Hail Mary',
-        aliases: ['Adrian', 'Threeworld'],
-        tags: ['Taumoeba', 'Adrian'],
+        aliases: 'Adrian Threeworld',
         confidence: 'confirmed',
       },
       'canon-project-hail-mary:erid-homeworld': {
@@ -58,8 +64,7 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
         inUniverseName: 'Erid (40 Eridani A I)',
         text: 'Super-Earth with a 29-atm ammonia atmosphere orbiting 40 Eridani A; homeworld of Rocky.',
         workTitle: 'Project Hail Mary',
-        aliases: ['Erid', 'Rocky Homeworld'],
-        tags: ['Erid', 'Rocky'],
+        aliases: 'Erid Rocky Homeworld',
         confidence: 'candidate',
       },
     },
@@ -78,8 +83,7 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
         systemId: 'gaia-2452378776434477184',
         inUniverseName: 'Outpost Ceti',
         text: 'Refuelling station established in 2194.',
-        aliases: ['Outpost Ceti'],
-        tags: ['Logistics'],
+        aliases: 'Outpost Ceti',
         confidence: 'unverified',
       },
     },
@@ -116,6 +120,48 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
 
     const decoded = decodeLayerManifest(compact);
     expect(decoded).toEqual(sampleCanonLayer);
+  });
+
+  it('encodes and decodes optional subtitle (t) and space-delimited aliases (a) at parent and entry level, omitting absent fields', () => {
+    const layer: DatasetLayerManifest = {
+      layerId: 'canon-three-body',
+      title: 'Three-Body',
+      subtitle: "Remembrance of Earth's Past",
+      kind: 'fictional-canon',
+      description: 'Three-Body locations.',
+      version: 1,
+      aliases: 'liu trisolaris',
+      entries: {
+        'alpha-centauri': {
+          targetId: 'alpha-centauri',
+          targetType: 'system',
+          systemId: 'alpha-centauri',
+          subtitle: 'Trisolaran Home System',
+          text: 'Home of the Trisolarans.',
+          aliases: 'trisolaris',
+          confidence: 'confirmed',
+        },
+        'tau-ceti-e': {
+          targetId: 'tau-ceti-e',
+          targetType: 'planet',
+          systemId: 'tau-ceti',
+          text: 'No distinct in-universe name, subtitle or aliases.',
+          confidence: 'confirmed',
+        },
+      },
+    };
+
+    const compact = encodeLayerManifest(layer);
+    expect(compact.t).toBe("Remembrance of Earth's Past");
+    expect(compact.a).toBe('liu trisolaris');
+    expect(compact.e['alpha-centauri'].t).toBe('Trisolaran Home System');
+    expect(compact.e['alpha-centauri'].a).toBe('trisolaris');
+    expect(compact.e['alpha-centauri'].u).toBeUndefined();
+    expect(compact.e['tau-ceti-e'].t).toBeUndefined();
+    expect(compact.e['tau-ceti-e'].a).toBeUndefined();
+    expect(compact.e['tau-ceti-e'].u).toBeUndefined();
+
+    expect(decodeLayerManifest(compact)).toEqual(layer);
   });
 
   it('resolves entity layers in O(1) and rolls up all system-level entries via resolveSystemLayerEntries', () => {
@@ -162,7 +208,10 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     expect(parentEntry?.s).toBeUndefined();
     expect(parentEntry?.w).toBe('canon-project-hail-mary');
     expect(parentEntry?.c).toBe('Fictional Canon');
-    expect(parentEntry?.a).toContain('projecthailmary');
+    // Parent clean keys contain aliases but exclude title/category substrings and prose
+    expect(parentEntry?.a).toContain('astrophage');
+    expect(parentEntry?.a).toContain('weir');
+    expect(parentEntry?.a).not.toContain('projecthailmary');
 
     const adrianEntry = entries.find((e) => e.i === 'canon-project-hail-mary:tau-ceti-e');
     expect(adrianEntry).toBeDefined();
@@ -171,8 +220,10 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     expect(adrianEntry?.s).toBe('gaia-2452378776434477184');
     expect(adrianEntry?.w).toBe('canon-project-hail-mary');
     expect(adrianEntry?.p).toEqual([3.156, 1.54, -1.003]);
-    expect(adrianEntry?.a).toContain('adrian');
-    expect(adrianEntry?.a).toContain('projecthailmary');
+    // Child clean keys contain delta search terms but exclude name and canon title
+    expect(adrianEntry?.a).toContain('threeworld');
+    expect(adrianEntry?.a).not.toContain('adrian');
+    expect(adrianEntry?.a).not.toContain('projecthailmary');
 
     const eridBodyEntry = entries.find(
       (e) => e.i === 'canon-project-hail-mary:erid-homeworld',
@@ -258,13 +309,13 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     expect(decoded).toEqual(orderedMoonLayer);
   });
 
-  it('includes the 3 seeded scientific layers with order 1..5 in SEED_FICTIONAL_CANON_LAYERS (DEC-036c)', () => {
-    const recent = SEED_FICTIONAL_CANON_LAYERS.find(
+  it('includes the 3 seeded scientific layers with order 1..5 in LAYER_MANIFESTS (DEC-036c)', () => {
+    const recent = LAYER_MANIFESTS.find(
       (l) => l.layerId === 'overlay-recent-discoveries',
     );
     expect(recent).toBeDefined();
     expect(recent?.kind).toBe('scientific-overlay');
-    expect(recent?.title).toBe('Newly Discovered Worlds');
+    expect(recent?.title).toBe('Recent Discoveries');
     const recentOrdered = getOrderedLayerEntries(recent!);
     expect(recentOrdered).toHaveLength(5);
     expect(recentOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
@@ -276,16 +327,17 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
       'teegarden-s-star-d',
     ]);
 
-    const jwst = SEED_FICTIONAL_CANON_LAYERS.find(
+    const jwst = LAYER_MANIFESTS.find(
       (l) => l.layerId === 'overlay-jwst-targets',
     );
     expect(jwst).toBeDefined();
     expect(jwst?.kind).toBe('scientific-overlay');
-    expect(jwst?.title).toBe('Recent JWST Targets');
+    expect(jwst?.title).toBe('JWST Targets');
     const jwstOrdered = getOrderedLayerEntries(jwst!);
-    expect(jwstOrdered).toHaveLength(5);
-    expect(jwstOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
+    expect(jwstOrdered).toHaveLength(6);
+    expect(jwstOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5, 6]);
     expect(jwstOrdered.map((e) => e.targetId)).toEqual([
+      'jwst',
       'lhs-1140-b',
       'trappist-1-e',
       '55-cancri-e',
@@ -293,12 +345,12 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
       'hr-8799-e',
     ]);
 
-    const extreme = SEED_FICTIONAL_CANON_LAYERS.find(
+    const extreme = LAYER_MANIFESTS.find(
       (l) => l.layerId === 'overlay-extreme-worlds',
     );
     expect(extreme).toBeDefined();
     expect(extreme?.kind).toBe('scientific-overlay');
-    expect(extreme?.title).toBe('Extreme & Superlative Worlds');
+    expect(extreme?.title).toBe('Extreme Worlds');
     const extremeOrdered = getOrderedLayerEntries(extreme!);
     expect(extremeOrdered).toHaveLength(5);
     expect(extremeOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
@@ -313,14 +365,14 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
   });
 
   it('tags parentBodyId on moon entries in existing fictional canon layers', () => {
-    const expanse = SEED_FICTIONAL_CANON_LAYERS.find(
+    const expanse = LAYER_MANIFESTS.find(
       (l) => l.layerId === 'canon-the-expanse',
     );
     expect(expanse?.entries.ganymede?.parentBodyId).toBe('jupiter');
     expect(expanse?.entries.phoebe?.parentBodyId).toBe('saturn');
 
-    const scifi = SEED_FICTIONAL_CANON_LAYERS.find(
-      (l) => l.layerId === 'canon-classic-scifi',
+    const scifi = LAYER_MANIFESTS.find(
+      (l) => l.layerId === 'canon-space-odyssey',
     );
     expect(scifi?.entries.europa?.parentBodyId).toBe('jupiter');
     expect(scifi?.entries.iapetus?.parentBodyId).toBe('saturn');
@@ -329,24 +381,24 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
   it('normalises layer slugs via toCanonicalLayerSlug and findCanonLayerById across canon-, overlay-, and layer- prefixes', () => {
     expect(toCanonicalLayerSlug('canon-project-hail-mary')).toBe('project-hail-mary');
     expect(toCanonicalLayerSlug('overlay-recent-discoveries')).toBe('recent-discoveries');
-    expect(toCanonicalLayerSlug('overlay-interstellar-missions')).toBe('interstellar-missions');
+    expect(toCanonicalLayerSlug('overlay-interstellar-probes')).toBe('interstellar-probes');
     expect(toCanonicalLayerSlug('layer-custom-notes')).toBe('custom-notes');
     expect(toCanonicalLayerSlug('project-hail-mary')).toBe('project-hail-mary');
 
-    expect(findCanonLayerById('recent-discoveries')?.layerId).toBe('overlay-recent-discoveries');
-    expect(findCanonLayerById('overlay-recent-discoveries')?.layerId).toBe('overlay-recent-discoveries');
-    expect(findCanonLayerById('project-hail-mary')?.layerId).toBe('canon-project-hail-mary');
-    expect(findCanonLayerById('canon-project-hail-mary')?.layerId).toBe('canon-project-hail-mary');
-    expect(findCanonLayerById('interstellar-missions')?.layerId).toBe('overlay-interstellar-missions');
-    expect(findCanonLayerById('non-existent-layer')).toBeUndefined();
+    expect(findCanonLayerById('recent-discoveries', LAYER_MANIFESTS)?.layerId).toBe('overlay-recent-discoveries');
+    expect(findCanonLayerById('overlay-recent-discoveries', LAYER_MANIFESTS)?.layerId).toBe('overlay-recent-discoveries');
+    expect(findCanonLayerById('project-hail-mary', LAYER_MANIFESTS)?.layerId).toBe('canon-project-hail-mary');
+    expect(findCanonLayerById('canon-project-hail-mary', LAYER_MANIFESTS)?.layerId).toBe('canon-project-hail-mary');
+    expect(findCanonLayerById('interstellar-probes', LAYER_MANIFESTS)?.layerId).toBe('overlay-interstellar-probes');
+    expect(findCanonLayerById('non-existent-layer', LAYER_MANIFESTS)).toBeUndefined();
   });
 
-  it('provides valid seed fictional canon layers with bibliographic source metadata that round-trip losslessly', () => {
-    expect(SEED_FICTIONAL_CANON_LAYERS.length).toBeGreaterThanOrEqual(4);
-    const indexManifest = buildLayerIndexManifest(SEED_FICTIONAL_CANON_LAYERS);
-    expect(indexManifest.c).toBe(SEED_FICTIONAL_CANON_LAYERS.length);
+  it('provides valid authored layers with bibliographic source metadata that round-trip losslessly', () => {
+    expect(LAYER_MANIFESTS.length).toBeGreaterThanOrEqual(4);
+    const indexManifest = buildLayerIndexManifest(LAYER_MANIFESTS);
+    expect(indexManifest.c).toBe(LAYER_MANIFESTS.length);
 
-    for (const seed of SEED_FICTIONAL_CANON_LAYERS) {
+    for (const seed of LAYER_MANIFESTS) {
       expect(seed.source?.creator).toBeTruthy();
       expect(seed.source?.summary).toBeTruthy();
       expect(seed.source?.url).toMatch(/^https?:\/\//);
@@ -354,6 +406,312 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
       const roundTripped = decodeLayerManifest(compact);
       expect(roundTripped).toEqual(seed);
     }
+  });
+
+  describe('by-entity annotation buckets', () => {
+    const annotationLayer: DatasetLayerManifest = {
+      layerId: 'canon-sample',
+      title: 'Sample Canon',
+      kind: 'fictional-canon',
+      description: 'Sample',
+      version: 1,
+      source: { summary: 'Summary', creator: 'Jane Author', publicationYear: '1999' },
+      entries: {
+        'host-star': {
+          targetId: 'host-star',
+          targetType: 'system',
+          systemId: 'host-star',
+          text: 'The host.',
+        },
+        'host-star-b': {
+          targetId: 'host-star-b',
+          targetType: 'planet',
+          systemId: 'host-star',
+          parentBodyId: 'host-star',
+          inUniverseName: 'Bee',
+          subtitle: 'Second world',
+          workTitle: 'Sample Book',
+          order: 2,
+          text: 'The planet.',
+        },
+      },
+    };
+    const overlayLayer: DatasetLayerManifest = {
+      layerId: 'overlay-sample',
+      title: 'Sample Overlay',
+      kind: 'scientific-overlay',
+      description: 'Overlay',
+      version: 1,
+      entries: {
+        'host-star-b': {
+          targetId: 'host-star-b',
+          targetType: 'planet',
+          systemId: 'host-star',
+          text: 'Overlay note.',
+        },
+      },
+    };
+
+    it('buckets records under targetId and systemId using getShardKey, without duplicating when they match', () => {
+      const buckets = buildEntityAnnotationBuckets([annotationLayer, overlayLayer]);
+      const lookup = (id: string) => buckets[getShardKey(id)]?.[id];
+
+      expect(lookup('host-star')?.map((r) => `${r.i}:${r.t}`)).toEqual([
+        'canon-sample:host-star',
+        'canon-sample:host-star-b',
+        'overlay-sample:host-star-b',
+      ]);
+      expect(lookup('host-star-b')?.map((r) => `${r.i}:${r.t}`)).toEqual([
+        'canon-sample:host-star-b',
+        'overlay-sample:host-star-b',
+      ]);
+    });
+
+    it('encodes compact records with defaults omitted and decodes them losslessly', () => {
+      const buckets = buildEntityAnnotationBuckets([annotationLayer, overlayLayer]);
+      const [hostRecord] = buckets[getShardKey('host-star')]['host-star'];
+      expect(hostRecord).toEqual({
+        i: 'canon-sample',
+        n: 'Sample Canon',
+        t: 'host-star',
+        x: 'The host.',
+        a: 'Jane Author',
+        r: '1999',
+      });
+
+      const planetRecord = buckets[getShardKey('host-star-b')]['host-star-b'][0];
+      expect(decodeEntityAnnotation(planetRecord)).toEqual({
+        layerId: 'canon-sample',
+        layerTitle: 'Sample Canon',
+        kind: 'fictional-canon',
+        targetId: 'host-star-b',
+        targetType: 'planet',
+        systemId: 'host-star',
+        parentBodyId: 'host-star',
+        inUniverseName: 'Bee',
+        subtitle: 'Second world',
+        workTitle: 'Sample Book',
+        text: 'The planet.',
+        order: 2,
+        creator: 'Jane Author',
+        publicationYear: '1999',
+      });
+
+      const overlayRecord = buckets[getShardKey('host-star-b')]['host-star-b'][1];
+      expect(decodeEntityAnnotation(overlayRecord).kind).toBe('scientific-overlay');
+    });
+
+    it('covers every entry of every authored layer under both its target and system keys', () => {
+      const buckets = buildEntityAnnotationBuckets(LAYER_MANIFESTS);
+      for (const layer of LAYER_MANIFESTS) {
+        for (const entry of Object.values(layer.entries)) {
+          for (const key of new Set([entry.targetId, entry.systemId])) {
+            const records = buckets[getShardKey(key)]?.[key] ?? [];
+            expect(
+              records.some((r) => r.i === layer.layerId && r.t === entry.targetId),
+            ).toBe(true);
+          }
+        }
+      }
+    });
+
+    it('round-trips resolvedName (r/d) across manifests and by-entity annotations', () => {
+      const manifestWithResolved: DatasetLayerManifest = {
+        layerId: 'canon-resolved-test',
+        title: 'Resolved Test',
+        kind: 'fictional-canon',
+        description: 'Testing resolvedName serialization',
+        version: 1,
+        entries: {
+          'gaia-2452378776434477184': {
+            targetId: 'gaia-2452378776434477184',
+            targetType: 'system',
+            systemId: 'gaia-2452378776434477184',
+            resolvedName: 'Tau Ceti',
+            text: 'Immune to Astrophage.',
+          },
+        },
+      };
+
+      const compact = encodeLayerManifest(manifestWithResolved);
+      expect(compact.e['gaia-2452378776434477184']?.r).toBe('Tau Ceti');
+
+      const decoded = decodeLayerManifest(compact);
+      expect(decoded.entries['gaia-2452378776434477184']?.resolvedName).toBe('Tau Ceti');
+
+      const buckets = buildEntityAnnotationBuckets([manifestWithResolved]);
+      const [shardRecord] = buckets[getShardKey('gaia-2452378776434477184')]['gaia-2452378776434477184'];
+      expect(shardRecord.d).toBe('Tau Ceti');
+
+      const decodedAnnotation = decodeEntityAnnotation(shardRecord);
+      expect(decodedAnnotation.resolvedName).toBe('Tau Ceti');
+    });
+  });
+
+  describe('Search Index Optimization & Precalculated Real Names (DL-01, DL-02, DL-03)', () => {
+    it('buildCompactLayerSearchKeys strips English stopwords and tokens that duplicate name or canon title', () => {
+      const terms = [
+        'The quick brown fox',
+        'in of on at to for and or a an from by with is are we',
+        'Rocky Blip-A',
+        'Petrova Astrophage',
+      ];
+      const excludeKeys = ['Tau Ceti', 'Hail Mary'];
+
+      const result = buildCompactLayerSearchKeys(terms, excludeKeys);
+      const keys = result.split(' ');
+
+      // Stopwords must not appear
+      for (const sw of ['the', 'in', 'of', 'on', 'at', 'to', 'for', 'and', 'or', 'a', 'an', 'from', 'by', 'with', 'is', 'are', 'we']) {
+        expect(keys).not.toContain(sw);
+      }
+
+      // Valid tokens retained
+      expect(keys).toContain('quick');
+      expect(keys).toContain('brown');
+      expect(keys).toContain('fox');
+      expect(keys).toContain('rocky');
+      expect(keys).toContain('blipa');
+      expect(keys).toContain('petrova');
+      expect(keys).toContain('astrophage');
+    });
+
+    it('buildCompactLayerSearchKeys drops tokens that are substrings of exclude keys', () => {
+      const terms = ['Project Hail Mary', 'Tau Ceti Destination'];
+      const excludeKeys = ['Tau Ceti', 'Hail Mary'];
+
+      const result = buildCompactLayerSearchKeys(terms, excludeKeys);
+      const keys = result.split(' ');
+
+      // 'hail' and 'mary' are in 'hailmary', 'tau' and 'ceti' are in 'tauceti'
+      expect(keys).not.toContain('hail');
+      expect(keys).not.toContain('mary');
+      expect(keys).not.toContain('tau');
+      expect(keys).not.toContain('ceti');
+
+      // 'project' and 'destination' are retained
+      expect(keys).toContain('project');
+      expect(keys).toContain('destination');
+    });
+
+    it('applyResolvedNamesToLayer populates resolvedName when inUniverseName is omitted', () => {
+      const realNames = new Map<string, string>([
+        ['gaia-2452378776434477184', 'Tau Ceti'],
+        ['mars', 'Mars'],
+      ]);
+
+      const layerWithoutInUniverse: DatasetLayerManifest = {
+        layerId: 'canon-test',
+        title: 'Test Layer',
+        kind: 'fictional-canon',
+        description: 'Test',
+        version: 1,
+        entries: {
+          'gaia-2452378776434477184': {
+            targetId: 'gaia-2452378776434477184',
+            targetType: 'system',
+            systemId: 'gaia-2452378776434477184',
+            // inUniverseName omitted
+            text: 'Immune.',
+          },
+          'mars': {
+            targetId: 'mars',
+            targetType: 'planet',
+            systemId: 'sol',
+            inUniverseName: 'Ares Prime', // Distinctive inUniverseName present
+            text: 'Martian base.',
+          },
+        },
+      };
+
+      const resolved = applyResolvedNamesToLayer(layerWithoutInUniverse, realNames);
+      expect(resolved.entries['gaia-2452378776434477184']?.resolvedName).toBe('Tau Ceti');
+      expect(resolved.entries['mars']?.resolvedName).toBeUndefined(); // preserved
+      expect(resolved.entries['mars']?.inUniverseName).toBe('Ares Prime');
+
+      const batchResolved = applyResolvedNamesToLayers([layerWithoutInUniverse], realNames);
+      expect(batchResolved[0].entries['gaia-2452378776434477184']?.resolvedName).toBe('Tau Ceti');
+    });
+
+    it('collectUnresolvedLayerTargets flags layer entries lacking inUniverseName and real-sky match', () => {
+      const realNames = new Map<string, string>([
+        ['known-star', 'Known Star'],
+      ]);
+
+      const testLayer: DatasetLayerManifest = {
+        layerId: 'canon-check',
+        title: 'Check',
+        kind: 'fictional-canon',
+        description: 'Check',
+        version: 1,
+        entries: {
+          'known-star': {
+            targetId: 'known-star',
+            targetType: 'system',
+            systemId: 'known-star',
+            text: 'Known.',
+          },
+          'mystery-target': {
+            targetId: 'mystery-target',
+            targetType: 'planet',
+            systemId: 'unknown-sys',
+            text: 'Mystery.',
+          },
+        },
+      };
+
+      const unresolved = collectUnresolvedLayerTargets([testLayer], realNames);
+      expect(unresolved).toHaveLength(1);
+      expect(unresolved[0]).toEqual({
+        layerId: 'canon-check',
+        targetId: 'mystery-target',
+        systemId: 'unknown-sys',
+      });
+    });
+
+    it('buildSearchEntriesFromLayers sets h=1 solely for systemId=sol or targetId=sol (DL-03)', () => {
+      const realNames = new Map<string, string>([
+        ['sol', 'Sol'],
+        ['mars', 'Mars'],
+        ['alpha-centauri', 'Alpha Centauri'],
+      ]);
+
+      const solAndCentauriLayer: DatasetLayerManifest = {
+        layerId: 'canon-sol-centauri',
+        title: 'Sol and Centauri',
+        kind: 'fictional-canon',
+        description: 'Test h flag derivation',
+        version: 1,
+        entries: {
+          'mars': {
+            targetId: 'mars',
+            targetType: 'planet',
+            systemId: 'sol',
+            text: 'Mars in Sol',
+          },
+          'alpha-centauri': {
+            targetId: 'alpha-centauri',
+            targetType: 'system',
+            systemId: 'alpha-centauri',
+            text: 'Alpha Centauri',
+          },
+        },
+      };
+
+      const entries = buildSearchEntriesFromLayers(
+        [solAndCentauriLayer],
+        new Map(),
+        realNames,
+      );
+
+      const marsEntry = entries.find((e) => e.i === 'canon-sol-centauri:mars');
+      expect(marsEntry?.h).toBe(1);
+      expect(marsEntry?.n).toBe('Mars');
+
+      const alphaEntry = entries.find((e) => e.i === 'canon-sol-centauri:alpha-centauri');
+      expect(alphaEntry?.h).toBeUndefined();
+      expect(alphaEntry?.n).toBe('Alpha Centauri');
+    });
   });
 });
 

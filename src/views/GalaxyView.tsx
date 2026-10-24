@@ -50,6 +50,12 @@ import {
   resolveSelectedSystemsFromUrlSelect,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { toAnnotationLookupKey } from '../utils/datasetLayerCodec';
+import {
+  useEntityAnnotations,
+  useLayerIndex,
+  useLoadedLayerManifests,
+} from '../hooks/useLayerData';
 import { useSpaLocation } from '../router';
 
 export interface GalaxyViewProps {
@@ -92,11 +98,19 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const focusedEntity = urlFocusSlug
     ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
     : (hasExplicitFocus ? (storeApi.getState().getEntitiesByState('focused')[0] ?? null) : null);
+  const layerIndex = useLayerIndex();
+  const loadedLayers = useLoadedLayerManifests(search);
+
   const storeSelected = storeApi.getState().getEntitiesByState('selected');
   const selectedEntities =
     storeSelected.length > 0
       ? storeSelected
-      : resolveSelectedSystemsFromUrlSelect(search, activeCorpus);
+      : resolveSelectedSystemsFromUrlSelect(
+          search,
+          activeCorpus,
+          layerIndex,
+          loadedLayers,
+        );
   const matchedEntry = focusedEntity
     ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
     : undefined;
@@ -109,6 +123,11 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     urlSystemEntry?.i ??
     focusedEntity?.id ??
     '';
+
+  const canonRecords = useEntityAnnotations([
+    toAnnotationLookupKey(focusedEntity?.id ?? targetSystemId),
+    targetSystemId,
+  ]);
 
   useEffect(() => {
     if (initialCorpus || cachedAllCorpus || typeof window === 'undefined') {
@@ -160,6 +179,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       : undefined,
     urlSystemSlug,
     hasExplicitFocus,
+    canonRecords,
     viewScope: 'galaxy',
     currentPathname: pathname,
     currentSearch: search,
@@ -268,6 +288,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     currentPathname: pathname,
     currentSearch: search,
     corpus: activeCorpus,
+    layers: loadedLayers,
   });
 
   return (

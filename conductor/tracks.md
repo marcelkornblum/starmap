@@ -19,7 +19,7 @@
 ---
 
 ## Standalone & Downstream Tracks
-- [ ] **Track: Dataset Layers, Search Indexing & Tag Taxonomy Expansion** *Link: [conductor/tracks/dataset-layers-expansion_20261021/index.md](./tracks/dataset-layers-expansion_20261021/index.md)*
+- [x] **Track: Dataset Layers, Search Indexing & Tag Taxonomy Expansion** *Link: [conductor/tracks/dataset-layers-expansion_20261021/index.md](./tracks/dataset-layers-expansion_20261021/index.md)*
 - [ ] **Track: Interaction Controls** *Link: [conductor/tracks/interaction-controls_20261010/index.md](./tracks/interaction-controls_20261010/index.md)* *(Coupled with [Minimap & Scene Transitions](./tracks/minimap-scene-transitions_20261010/index.md), [3D Engine Implementation](./tracks/3d-engine-implementation_20260929/index.md), and Backlog item `FS-012`)*
 - [ ] **Track: Minimap & Scene Transitions** *Link: [conductor/tracks/minimap-scene-transitions_20261010/index.md](./tracks/minimap-scene-transitions_20261010/index.md)* *(Coupled with [Interaction Controls](./tracks/interaction-controls_20261010/index.md), [3D Engine Implementation](./tracks/3d-engine-implementation_20260929/index.md), [Console UI Shell](./tracks/console-ui-shell_20261004/index.md), and Backlog item `FS-012`)*
 - [ ] **Track: 3D Engine Implementation** *Link: [conductor/tracks/3d-engine-implementation_20260929/index.md](./tracks/3d-engine-implementation_20260929/index.md)* *(Coupled with [Interaction Controls](./tracks/interaction-controls_20261010/index.md), [Minimap & Scene Transitions](./tracks/minimap-scene-transitions_20261010/index.md), [Search & Discovery](./tracks/search-discovery_20261004/index.md), and Backlog items `FS-012` & `FS-016`)*

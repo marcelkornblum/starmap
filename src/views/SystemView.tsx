@@ -54,6 +54,15 @@ import {
   toUrlSlug,
 } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import {
+  toAnnotationLookupKey,
+  type DecodedEntityAnnotation,
+} from '../utils/datasetLayerCodec';
+import {
+  useEntityAnnotations,
+  useLayerIndex,
+  useLoadedLayerManifests,
+} from '../hooks/useLayerData';
 import { useSpaLocation } from '../router';
 
 export interface SystemViewProps {
@@ -71,6 +80,7 @@ const useResolvedSystemDetails = (
   readonly focusedEntity: SpatialEntityDefinition | null;
   readonly focusedEntityId?: string;
   readonly activeCorpus: readonly CompactSearchEntry[];
+  readonly canonRecords: readonly DecodedEntityAnnotation[];
   readonly urlSystemSlug: string | null;
   readonly hasExplicitFocus: boolean;
 } => {
@@ -133,6 +143,13 @@ const useResolvedSystemDetails = (
     urlSystemSlug ??
     '';
 
+  const canonRecords = useEntityAnnotations([
+    toAnnotationLookupKey(
+      matchingDisk?.id ?? focusedEntity?.id ?? targetSystemId,
+    ),
+    targetSystemId,
+  ]);
+
   useEffect(() => {
     if (
       !shouldFetchShards ||
@@ -173,6 +190,7 @@ const useResolvedSystemDetails = (
     urlSystemSlug,
     urlFocusSlug,
     hasExplicitFocus,
+    canonRecords,
     viewScope: 'system',
     currentPathname: pathname,
     currentSearch: search,
@@ -186,6 +204,7 @@ const useResolvedSystemDetails = (
     focusedEntity,
     focusedEntityId: focusedEntity?.id ?? matchingDisk?.id,
     activeCorpus,
+    canonRecords,
     urlSystemSlug,
     hasExplicitFocus,
   };
@@ -203,6 +222,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     focusedEntity,
     focusedEntityId,
     activeCorpus,
+    canonRecords,
     urlSystemSlug,
   } = useResolvedSystemDetails(props, true);
 
@@ -219,18 +239,27 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     urlSystemSlug,
   );
 
+  const layerIndex = useLayerIndex();
+  const loadedLayers = useLoadedLayerManifests(search);
+
   const storeSelected = storeApi
     .getState()
     .getEntitiesByState('selected');
   const selectedEntities =
     storeSelected.length > 0
       ? storeSelected
-      : resolveSelectedSystemsFromUrlSelect(search, activeCorpus);
+      : resolveSelectedSystemsFromUrlSelect(
+          search,
+          activeCorpus,
+          layerIndex,
+          loadedLayers,
+        );
   const selectedEntityIds = selectedEntities.map((e) => e.id);
 
   const systemBodies = buildSystemBodiesSummary({
     details: systemContextDetails,
     corpus: activeCorpus,
+    canonRecords,
     selectedEntityIds,
     focusedEntityId,
   });
@@ -276,6 +305,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     currentPathname: pathname,
     currentSearch: search,
     corpus: activeCorpus,
+    layers: loadedLayers,
   });
 
   return (

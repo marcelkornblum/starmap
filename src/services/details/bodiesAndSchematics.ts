@@ -1,4 +1,5 @@
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
+import type { DecodedEntityAnnotation } from '../../utils/datasetLayerCodec';
 import {
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
@@ -41,7 +42,7 @@ import type {
 export const buildSystemBodiesSummary = (
   input: BuildSystemBodiesSummaryInput,
 ): SystemBodiesSummary | null => {
-  const { details, corpus = [], selectedEntityIds } = input;
+  const { details, corpus = [], canonRecords = [], selectedEntityIds } = input;
   if (!details) {
     return null;
   }
@@ -89,6 +90,7 @@ export const buildSystemBodiesSummary = (
   const systemCanonAnnotations = resolveFocusedCanonAnnotations(
     systemId,
     systemId,
+    canonRecords,
   );
 
   return {
@@ -119,7 +121,7 @@ export const buildPlanetaryBodiesSummary = (
     urlPlanetSlug,
     planetEntityDetail,
     corpus = [],
-    activeLayers,
+    canonRecords = [],
     selectedEntityIds,
   } = input;
   if (!details && !urlPlanetSlug) {
@@ -275,9 +277,13 @@ export const buildPlanetaryBodiesSummary = (
     ...moons.map((m) => m.id),
     ...minorBodiesAndSpacecraft.map((b) => b.id),
   ];
+  const canonRecordsByTargetId: Record<string, DecodedEntityAnnotation[]> = {};
+  for (const record of canonRecords) {
+    (canonRecordsByTargetId[record.targetId] ??= []).push(record);
+  }
   const directCanon = resolveDirectTargetCanonAnnotations(
     targetIdsForCanon,
-    activeLayers,
+    canonRecordsByTargetId,
   );
 
   const focusedEntityId =

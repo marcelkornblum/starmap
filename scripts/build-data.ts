@@ -44,8 +44,11 @@ import {
   encodeLayerManifest,
   buildLayerIndexManifest,
   buildSearchEntriesFromLayers,
-  SEED_FICTIONAL_CANON_LAYERS,
+  buildEntityAnnotationBuckets,
+  applyResolvedNamesToLayers,
+  collectUnresolvedLayerTargets,
 } from '../src/utils/datasetLayerCodec';
+import { LAYER_MANIFESTS } from '../content/layers';
 import {
   OFFICIAL_IAU_STAR_NAMES,
   RECONS_10PC_SUPPLEMENT,
@@ -1129,7 +1132,6 @@ export function buildSolSystemManifest(
       'NakedEye',
       'ExoplanetHost',
       'HabitableCandidate',
-      'HabitableHost',
     ],
     disks: CIRCUMSTELLAR_DISKS_CATALOG['Sol'],
   };
@@ -2839,28 +2841,12 @@ export async function buildGaiaDataPipeline(
           }),
           'utf-8',
         );
-
-        // Dataset Layering Registry & Seed Fictional Canon Layers (FS-001 & FS-002 — DEC-007)
-        const layersDir = path.join(resolvedOverlays, 'layers');
-        if (!fs.existsSync(layersDir)) fs.mkdirSync(layersDir, { recursive: true });
-        fs.writeFileSync(
-          path.join(layersDir, 'index.json'),
-          JSON.stringify(buildLayerIndexManifest(SEED_FICTIONAL_CANON_LAYERS)),
-          'utf-8',
-        );
-        for (const layer of SEED_FICTIONAL_CANON_LAYERS) {
-          fs.writeFileSync(
-            path.join(layersDir, `${layer.layerId}.json`),
-            JSON.stringify(encodeLayerManifest(layer)),
-            'utf-8',
-          );
-        }
       }
 
       // 5. Ingest and write Layer 4 Solar System natural bodies & orbits
       let solarBodiesCount = 0;
       let allSolarBodies: SolarSystemBodyRecord[] = [];
-      if (options?.solDir || options?.detailsDir || options?.searchDir) {
+      if (options?.solDir || options?.detailsDir || options?.searchDir || options?.overlaysDir) {
         const { primaryBodies, phaAsteroids, distantAsteroids, comets } = loadAllSolarSystemBodies();
         allSolarBodies = [...primaryBodies, ...phaAsteroids, ...distantAsteroids, ...comets];
         solarBodiesCount = allSolarBodies.length;
@@ -2953,6 +2939,64 @@ export async function buildGaiaDataPipeline(
         }
       }
 
+      // 6.5 Write Dataset Layer Shards & By-Entity Annotations (FS-001 & FS-002, DL-02, DL-05 S3)
+      const realNames = new Map<string, string>();
+      for (const sys of cataloguedSummaries) {
+        realNames.set(sys.id, sys.name);
+      }
+      for (const man of allSystemManifests) {
+        for (const pl of man.planets) {
+          realNames.set(pl.id, pl.name);
+        }
+      }
+      for (const st of allStructures) {
+        realNames.set(st.id, st.name);
+      }
+      for (const body of allSolarBodies) {
+        realNames.set(body.id, body.name);
+      }
+
+      const layersWithResolvedNames = applyResolvedNamesToLayers(LAYER_MANIFESTS, realNames);
+      const unresolvedTargets = collectUnresolvedLayerTargets(LAYER_MANIFESTS, realNames);
+      if (unresolvedTargets.length > 0) {
+        console.warn(
+          `[layers] Warning: ${unresolvedTargets.length} layer entries have neither inUniverseName nor a resolved real-sky name:`,
+          unresolvedTargets,
+        );
+      }
+
+      if (options?.overlaysDir) {
+        const resolvedOverlays = path.resolve(options.overlaysDir);
+        const layersDir = path.join(resolvedOverlays, 'layers');
+        if (!fs.existsSync(layersDir)) fs.mkdirSync(layersDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(layersDir, 'index.json'),
+          JSON.stringify(buildLayerIndexManifest(layersWithResolvedNames)),
+          'utf-8',
+        );
+        for (const layer of layersWithResolvedNames) {
+          fs.writeFileSync(
+            path.join(layersDir, `${layer.layerId}.json`),
+            JSON.stringify(encodeLayerManifest(layer)),
+            'utf-8',
+          );
+        }
+
+        // By-entity annotation shards (DL-05 S3): 36-bucket entity ID -> annotation records
+        const byEntityDir = path.join(layersDir, 'by-entity');
+        if (!fs.existsSync(byEntityDir)) fs.mkdirSync(byEntityDir, { recursive: true });
+        const annotationBuckets = buildEntityAnnotationBuckets(layersWithResolvedNames);
+        for (let bucketIndex = 0; bucketIndex < 36; bucketIndex++) {
+          const bucket = bucketIndex.toString(36);
+          const entities = annotationBuckets[bucket] ?? {};
+          fs.writeFileSync(
+            path.join(byEntityDir, `${bucket}.json`),
+            JSON.stringify({ i: bucket, c: Object.keys(entities).length, d: entities }),
+            'utf-8',
+          );
+        }
+      }
+
       // 7. Write Dual-Tier & Category-Sharded Search Indices (DEC-004, DEC-006 & DEC-007)
       if (options?.searchDir) {
         const resolvedSearch = path.resolve(options.searchDir);
@@ -2970,7 +3014,11 @@ export async function buildGaiaDataPipeline(
         for (const st of allStructures) {
           coordsById.set(st.id, [st.x, st.y, st.z]);
         }
-        const layerEntries = buildSearchEntriesFromLayers(SEED_FICTIONAL_CANON_LAYERS, coordsById);
+        const layerEntries = buildSearchEntriesFromLayers(
+          layersWithResolvedNames,
+          coordsById,
+          realNames,
+        );
 
         const indices = buildSearchIndices({
           systems: cataloguedSummaries,

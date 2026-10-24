@@ -100,7 +100,6 @@ const systemDetailsFixture: FocusedSystemEntityDetails = {
       inUniverseName: 'Tau Ceti',
       workTitle: 'Project Hail Mary (Andy Weir)',
       text: 'Destination star system of the Hail Mary mission to synthesize Taumoeba.',
-      tags: ['Project Hail Mary', 'Adrian'],
     },
   ],
 };
@@ -171,7 +170,6 @@ const starDetailsFixture: FocusedStarEntityDetails = {
       inUniverseName: 'Rigil Kentaurus',
       workTitle: 'The Three-Body Problem (Liu Cixin)',
       text: 'Primary G2V component of the chaotic trisolar system.',
-      tags: ['Trisolaris', 'Three-Body'],
     },
   ],
   starTelemetry: {
@@ -274,7 +272,6 @@ const planetDetailsFixture: FocusedPlanetEntityDetails = {
       inUniverseName: 'Earth',
       workTitle: 'The Expanse (James S.A. Corey)',
       text: 'Home world of humanity and the United Nations governing body.',
-      tags: ['The Expanse'],
     },
   ],
   planetTelemetry: {
@@ -334,7 +331,6 @@ const minorBodyDetailsFixture: FocusedMinorBodyEntityDetails = {
       inUniverseName: 'Ceres Station',
       workTitle: 'The Expanse (James S.A. Corey)',
       text: 'Spun-up dwarf planet serving as the primary trade hub of the Asteroid Belt.',
-      tags: ['The Expanse', 'Belt'],
     },
   ],
   minorBodyTelemetry: {
@@ -384,7 +380,6 @@ const structureDetailsFixture: FocusedStructureEntityDetails = {
       inUniverseName: 'M42 / NGC 1976',
       workTitle: 'Messier Catalog',
       text: 'Closest massive star-formation region to Earth containing the Trapezium cluster.',
-      tags: ['StarFormation', 'HII'],
     },
   ],
   structureTelemetry: {

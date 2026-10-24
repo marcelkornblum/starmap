@@ -3,7 +3,6 @@ import type {
   CircumstellarDiskKind,
   CircumstellarDiskRecord,
   DatasetLayerKind,
-  DatasetLayerManifest,
   ExoplanetRecord,
 } from '../../types/astro';
 import {
@@ -15,9 +14,8 @@ import {
 } from '../../utils/astroMath';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import {
-  SEED_FICTIONAL_CANON_LAYERS,
-  resolveEntityLayers,
-  resolveSystemLayerEntries,
+  toAnnotationLookupKey,
+  type DecodedEntityAnnotation,
 } from '../../utils/datasetLayerCodec';
 import {
   buildLayerGalaxyHref,
@@ -560,60 +558,59 @@ export const sortCanonAnnotations = (
     .map((entry) => entry.annotation);
 };
 
+const toFocusedCanonAnnotation = (
+  record: DecodedEntityAnnotation,
+  corpus?: readonly CompactSearchEntry[],
+): FocusedCanonAnnotation => ({
+  layerId: record.layerId,
+  layerTitle: record.layerTitle,
+  layerHref: buildLayerGalaxyHref(record.layerId),
+  href: resolveLayerItemTargetHref({ layerId: record.layerId }, record, corpus)
+    .href,
+  kind: record.kind,
+  targetId: record.targetId,
+  targetType: record.targetType,
+  ...(record.inUniverseName ? { inUniverseName: record.inUniverseName } : {}),
+  ...(record.resolvedName ? { resolvedName: record.resolvedName } : {}),
+  ...(record.subtitle ? { subtitle: record.subtitle } : {}),
+  ...(record.workTitle ? { workTitle: record.workTitle } : {}),
+  text: record.text,
+  ...(record.creator ? { creator: record.creator } : {}),
+  ...(record.publicationYear
+    ? { publicationYear: record.publicationYear }
+    : {}),
+});
+
 /**
  * Pure resolver gathering all canon layer annotations (`FS-001` / `FS-002`) relevant to a focused
- * entity and its host star system, ordered with factual (`scientific-overlay`) layers before
- * fictional (`fictional-canon`) layers and supporting user-curated layer ordering.
+ * entity and its host star system from decoded by-entity annotation records, ordered with factual
+ * (`scientific-overlay`) layers before fictional (`fictional-canon`) layers and supporting
+ * user-curated layer ordering. Direct entity matches precede system-wide matches within a kind.
  */
 export const resolveFocusedCanonAnnotations = (
   targetId: string,
   systemId: string,
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  records: readonly DecodedEntityAnnotation[],
   orderOptions?: CanonAnnotationOrderOptions,
   corpus?: readonly CompactSearchEntry[],
 ): readonly FocusedCanonAnnotation[] => {
-  const layersArray = [...activeLayers];
-  const rawTargetKey = targetId.includes(':')
-    ? (targetId.split(':')[1] ?? targetId)
-    : targetId;
+  const rawTargetKey = toAnnotationLookupKey(targetId);
 
-  const directMatches = resolveEntityLayers(rawTargetKey, layersArray);
-  const systemMatches = resolveSystemLayerEntries(systemId, layersArray);
+  const directMatches = records.filter((r) => r.targetId === rawTargetKey);
+  const systemMatches = records.filter(
+    (r) => r.systemId === systemId || r.targetId === systemId,
+  );
 
-  const combined = [...directMatches, ...systemMatches];
   const seen = new Set<string>();
   const annotations: FocusedCanonAnnotation[] = [];
 
-  for (const item of combined) {
-    const dedupeKey = `${item.layerId}:${item.entry.targetId}`;
+  for (const record of [...directMatches, ...systemMatches]) {
+    const dedupeKey = `${record.layerId}:${record.targetId}`;
     if (seen.has(dedupeKey)) {
       continue;
     }
     seen.add(dedupeKey);
-    const layerManifest = layersArray.find((l) => l.layerId === item.layerId);
-    const itemHref = layerManifest
-      ? resolveLayerItemTargetHref(layerManifest, item.entry, corpus).href
-      : buildLayerGalaxyHref(item.layerId);
-
-    annotations.push({
-      layerId: item.layerId,
-      layerTitle: item.layerTitle,
-      layerHref: buildLayerGalaxyHref(item.layerId),
-      href: itemHref,
-      kind: item.kind,
-      targetId: item.entry.targetId,
-      targetType: item.entry.targetType,
-      ...(item.entry.inUniverseName
-        ? { inUniverseName: item.entry.inUniverseName }
-        : {}),
-      ...(item.entry.workTitle ? { workTitle: item.entry.workTitle } : {}),
-      text: item.entry.text,
-      ...(item.source?.creator ? { creator: item.source.creator } : {}),
-      ...(item.source?.publicationYear
-        ? { publicationYear: item.source.publicationYear }
-        : {}),
-      tags: item.entry.tags ?? [],
-    });
+    annotations.push(toFocusedCanonAnnotation(record, corpus));
   }
 
   return sortCanonAnnotations(annotations, orderOptions);
@@ -667,47 +664,24 @@ export const resolveCorpusEntryComposition = (
 
 export const resolveDirectTargetCanonAnnotations = (
   targetIds: readonly string[],
-  activeLayers: readonly DatasetLayerManifest[] = SEED_FICTIONAL_CANON_LAYERS,
+  recordsById: Readonly<Record<string, readonly DecodedEntityAnnotation[]>>,
   corpus?: readonly CompactSearchEntry[],
 ): readonly FocusedCanonAnnotation[] => {
-  const layersArray = [...activeLayers];
   const seen = new Set<string>();
   const annotations: FocusedCanonAnnotation[] = [];
 
   for (const targetId of targetIds) {
-    const rawTargetKey = targetId.includes(':')
-      ? (targetId.split(':')[1] ?? targetId)
-      : targetId;
-    for (const item of resolveEntityLayers(rawTargetKey, layersArray)) {
-      const dedupeKey = `${item.layerId}:${item.entry.targetId}`;
+    const rawTargetKey = toAnnotationLookupKey(targetId);
+    for (const record of recordsById[rawTargetKey] ?? []) {
+      if (record.targetId !== rawTargetKey) {
+        continue;
+      }
+      const dedupeKey = `${record.layerId}:${record.targetId}`;
       if (seen.has(dedupeKey)) {
         continue;
       }
       seen.add(dedupeKey);
-      const layerManifest = layersArray.find((l) => l.layerId === item.layerId);
-      const itemHref = layerManifest
-        ? resolveLayerItemTargetHref(layerManifest, item.entry, corpus).href
-        : buildLayerGalaxyHref(item.layerId);
-
-      annotations.push({
-        layerId: item.layerId,
-        layerTitle: item.layerTitle,
-        layerHref: buildLayerGalaxyHref(item.layerId),
-        href: itemHref,
-        kind: item.kind,
-        targetId: item.entry.targetId,
-        targetType: item.entry.targetType,
-        ...(item.entry.inUniverseName
-          ? { inUniverseName: item.entry.inUniverseName }
-          : {}),
-        ...(item.entry.workTitle ? { workTitle: item.entry.workTitle } : {}),
-        text: item.entry.text,
-        ...(item.source?.creator ? { creator: item.source.creator } : {}),
-        ...(item.source?.publicationYear
-          ? { publicationYear: item.source.publicationYear }
-          : {}),
-        tags: item.entry.tags ?? [],
-      });
+      annotations.push(toFocusedCanonAnnotation(record, corpus));
     }
   }
 
