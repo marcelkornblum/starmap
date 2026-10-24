@@ -1,0 +1,76 @@
+import type { DatasetLayerManifest } from '../../src/types/astro';
+
+const layer: DatasetLayerManifest = {
+  layerId: 'canon-benford-brin',
+  title: 'Galactic Center & Uplift',
+  subtitle: 'Benford, Brin & Miller',
+  aliases: 'mech chimera sunghost uplift chromosphere stellamaris leibowitz',
+  kind: 'fictional-canon',
+  description: 'Deep-space mechanical civilizations, solar chromosphere explorations, and cosmic diaspora by Gregory Benford, David Brin, and Walter M. Miller Jr.',
+  version: 1,
+  source: {
+    summary:
+      'Spanning Gregory Benford’s Galactic Center saga depicting humanity’s struggle against mechanical intelligences at Sagittarius A* and Ross 128, David Brin’s expedition into Sol’s chromosphere in Sundiver, and the starship Stella Maris fleeing atomic war for Alpha Centauri in A Canticle for Leibowitz.',
+    creator: 'Gregory Benford, David Brin, Walter M. Miller Jr.',
+    publicationYear: '1960–1995',
+    medium: 'Novel Series',
+    canonicalReference: 'In the Ocean of Night (1977), Sundiver (1980), and A Canticle for Leibowitz (1960)',
+    url: 'https://en.wikipedia.org/wiki/Galactic_Center_Saga',
+  },
+  entries: {
+    'sagittarius-a-star': {
+      targetId: 'sagittarius-a-star',
+      targetType: 'structure',
+      systemId: 'sagittarius-a-star',
+      inUniverseName: 'Galactic Core',
+      subtitle: 'Mech Civilization Hub',
+      text: 'Supermassive core of the Milky Way where ancient self-replicating machine intelligences dominate stellar systems and hunt organic biological civilizations.',
+      workTitle: 'Great Sky River',
+      aliases: 'mech mantle capellin killeen core machine',
+      confidence: 'confirmed',
+    },
+    'gaia-3796072592206250624': {
+      targetId: 'gaia-3796072592206250624',
+      targetType: 'system',
+      systemId: 'gaia-3796072592206250624',
+      subtitle: 'Snark Encounter System',
+      text: 'Red dwarf Ross 128 system where human interstellar explorers encounter the remnants of an extraterrestrial technological biosphere and aggressive machine probes.',
+      workTitle: 'Across the Sea of Suns',
+      aliases: 'snark ocean of night nigel walmsley machine probe',
+      confidence: 'confirmed',
+    },
+    mercury: {
+      targetId: 'mercury',
+      targetType: 'planet',
+      systemId: 'sol',
+      inUniverseName: 'Bradshaw Base',
+      subtitle: 'Sundiver Project Base',
+      text: 'Heavily shielded subterranean polar station on Mercury coordinating human and alien expeditions diving deep into the solar chromosphere.',
+      workTitle: 'Sundiver',
+      aliases: 'bradshaw jacob demwa uplift sunghost',
+      confidence: 'confirmed',
+    },
+    sol: {
+      targetId: 'sol',
+      targetType: 'system',
+      systemId: 'sol',
+      subtitle: 'Sun-Ghost Habitat',
+      text: 'Lower chromosphere of the Sun explored by refrigerator-ships discovering anomalous indigenous plasma-based lifeforms dubbed Sun-Ghosts.',
+      workTitle: 'Sundiver',
+      aliases: 'chromosphere sunghost plasma dive solar',
+      confidence: 'confirmed',
+    },
+    'hip-71683': {
+      targetId: 'hip-71683',
+      targetType: 'system',
+      systemId: 'hip-71683',
+      subtitle: 'Stella Maris Destination',
+      text: 'Alpha Centauri destination of the starship Stella Maris, launched by the Order of Saint Leibowitz carrying the memorabilia of human knowledge as Earth undergoes nuclear immolation.',
+      workTitle: 'A Canticle for Leibowitz',
+      aliases: 'stellamaris leibowitz lucifer canticle diaspora',
+      confidence: 'confirmed',
+    },
+  },
+};
+
+export default layer;

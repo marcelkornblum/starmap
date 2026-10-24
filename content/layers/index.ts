@@ -32,6 +32,24 @@ import canonOldMansWar from './canon-old-mans-war';
 import canonEndersGame from './canon-enders-game';
 import canonInterstellar from './canon-interstellar';
 import canonForAllMankind from './canon-for-all-mankind';
+import canonHeinlein from './canon-heinlein';
+import canonHamilton from './canon-hamilton';
+import canonGregEgan from './canon-greg-egan';
+import canonStephenBaxter from './canon-stephen-baxter';
+import canonReynoldsStandalone from './canon-reynolds-standalone';
+import canonHardSfBenchmarks from './canon-hard-sf-benchmarks';
+import canonFrontlines from './canon-frontlines';
+import canonNivenPournelle from './canon-niven-pournelle';
+import canonPosthumanSolar from './canon-posthuman-solar';
+import canonGoldenAgeSol from './canon-golden-age-sol';
+import canonPkdWorlds from './canon-pkd-worlds';
+import canonClassicPioneers from './canon-classic-pioneers';
+import canonBenfordBrin from './canon-benford-brin';
+import canonStephensonMcdevitt from './canon-stephenson-mcdevitt';
+import canonSciFiCinema from './canon-sci-fi-cinema';
+import canonSpaceTelevision from './canon-space-television';
+import canonSpaceAnime from './canon-space-anime';
+import canonGamingLandmarks from './canon-gaming-landmarks';
 import overlayInterstellarProbes from './overlay-interstellar-probes';
 import overlaySetiLandmarks from './overlay-seti-landmarks';
 import overlaySolarLandmarks from './overlay-solar-landmarks';
@@ -74,6 +92,24 @@ export const LAYER_MANIFESTS: readonly DatasetLayerManifest[] = [
   canonEndersGame,
   canonInterstellar,
   canonForAllMankind,
+  canonHeinlein,
+  canonHamilton,
+  canonGregEgan,
+  canonStephenBaxter,
+  canonReynoldsStandalone,
+  canonHardSfBenchmarks,
+  canonFrontlines,
+  canonNivenPournelle,
+  canonPosthumanSolar,
+  canonGoldenAgeSol,
+  canonPkdWorlds,
+  canonClassicPioneers,
+  canonBenfordBrin,
+  canonStephensonMcdevitt,
+  canonSciFiCinema,
+  canonSpaceTelevision,
+  canonSpaceAnime,
+  canonGamingLandmarks,
   overlayInterstellarProbes,
   overlaySetiLandmarks,
   overlaySolarLandmarks,

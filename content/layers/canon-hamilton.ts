@@ -1,0 +1,77 @@
+import type { DatasetLayerManifest } from '../../src/types/astro';
+
+const layer: DatasetLayerManifest = {
+  layerId: 'canon-hamilton',
+  title: 'Night’s Dawn & Commonwealth',
+  subtitle: 'Peter F. Hamilton Universes',
+  aliases: 'confederation adamist edenist biting bit wormhole void',
+  kind: 'fictional-canon',
+  description: 'Expansive space-opera realms of Peter F. Hamilton, featuring the Confederation and the Intersolar Commonwealth.',
+  version: 1,
+  source: {
+    summary:
+      'Sprawling space-opera settings spanning Lalande 21185 and Ross 154 in the Night’s Dawn Trilogy, alongside the wormhole-linked worlds of the Commonwealth Saga.',
+    creator: 'Peter F. Hamilton',
+    publicationYear: '1996–2005',
+    medium: 'Novel Series',
+    canonicalReference: 'The Reality Dysfunction (1996) & Pandora’s Star (2004)',
+    url: 'https://en.wikipedia.org/wiki/Peter_F._Hamilton_bibliography',
+  },
+  entries: {
+    'gaia-762815470562110464': {
+      targetId: 'gaia-762815470562110464',
+      targetType: 'system',
+      systemId: 'gaia-762815470562110464',
+      inUniverseName: 'Felicity',
+      subtitle: 'Edenist Biosphere',
+      text: 'Edenist colony world orbiting Lalande 21185, renowned for living biotechnological bitek habitats and neural affinity communication.',
+      workTitle: 'The Reality Dysfunction',
+      aliases: 'edenist bitek affinity habitat',
+      confidence: 'confirmed',
+    },
+    'gaia-4075141768785646848': {
+      targetId: 'gaia-4075141768785646848',
+      targetType: 'system',
+      systemId: 'gaia-4075141768785646848',
+      inUniverseName: 'New California',
+      subtitle: 'Confederation Colony',
+      text: 'Human Confederation agrarian and industrial settlement in the red dwarf Ross 154 system during the Night’s Dawn crisis.',
+      workTitle: 'The Reality Dysfunction',
+      aliases: 'confederation agrarian alchemist',
+      confidence: 'confirmed',
+    },
+    mars: {
+      targetId: 'mars',
+      targetType: 'planet',
+      systemId: 'sol',
+      subtitle: 'First Wormhole Landing',
+      text: 'Site of Nigel Sheldon and Ozzie Isaacs’ historic 2015 wormhole touchdown on the red planet, initiating the Intersolar Commonwealth.',
+      workTitle: 'Pandora’s Star',
+      aliases: 'sheldon ozzie isaacs intersolar wormhole',
+      confidence: 'confirmed',
+    },
+    'hip-71683': {
+      targetId: 'hip-71683',
+      targetType: 'system',
+      systemId: 'hip-71683',
+      subtitle: 'Far Away & Centauri Nexus',
+      text: 'Early expansion world in the Alpha Centauri system, crucial in the Commonwealth railway network and Starflyer investigation.',
+      workTitle: 'Pandora’s Star',
+      aliases: 'faraway starflyer mellanie bose',
+      confidence: 'confirmed',
+    },
+    jupiter: {
+      targetId: 'jupiter',
+      targetType: 'planet',
+      systemId: 'sol',
+      inUniverseName: 'Tranquillity',
+      subtitle: 'Bitek Orbital Habitat',
+      text: 'Living Edenist biotechnology orbital habitat orbiting Jupiter, serving as an autonomous haven and central nexus of the Edenist culture.',
+      workTitle: 'The Reality Dysfunction',
+      aliases: 'edenist ianthe sybil bitek habitat',
+      confidence: 'confirmed',
+    },
+  },
+};
+
+export default layer;

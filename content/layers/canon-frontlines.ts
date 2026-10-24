@@ -1,0 +1,76 @@
+import type { DatasetLayerManifest } from '../../src/types/astro';
+
+const layer: DatasetLayerManifest = {
+  layerId: 'canon-frontlines',
+  title: 'Frontlines',
+  subtitle: 'Marko Kloos Universe',
+  aliases: 'lankies grayson nac sra terms of enlistment',
+  kind: 'fictional-canon',
+  description: 'Military science fiction frontline worlds and alien battlegrounds in Marko Kloos’s Frontlines series.',
+  version: 1,
+  source: {
+    summary:
+      'Interstellar war zones fought between humanity (NAC and SRA) and the titanic extraterrestrial Lankies across nearby real-sky star systems including Fomalhaut, Capella, Sirius, and Luhman 16.',
+    creator: 'Marko Kloos',
+    publicationYear: '2013–2022',
+    medium: 'Novel Series',
+    canonicalReference: 'Terms of Enlistment (2013) & Lines of Departure (2014)',
+    url: 'https://en.wikipedia.org/wiki/Marko_Kloos',
+  },
+  entries: {
+    'hip-113368': {
+      targetId: 'hip-113368',
+      targetType: 'system',
+      systemId: 'hip-113368',
+      inUniverseName: 'New Svalbard',
+      subtitle: 'Colonial War Zone',
+      text: 'Major human agricultural colony world orbiting Fomalhaut, devastatingly assaulted and terraformed by invading Lankies.',
+      workTitle: 'Lines of Departure',
+      aliases: 'newsvalbard svalbard lankies terraforming fomalhaut',
+      confidence: 'confirmed',
+    },
+    'luhman-16': {
+      targetId: 'luhman-16',
+      targetType: 'system',
+      systemId: 'luhman-16',
+      subtitle: 'Lanky Forward Nest',
+      text: 'Brown dwarf binary system occupied by a massive Lanky seeding fleet, threatening the immediate Solar neighborhood.',
+      workTitle: 'Angles of Attack',
+      aliases: 'lanky brown dwarf invasion staging',
+      confidence: 'confirmed',
+    },
+    'hip-32349': {
+      targetId: 'hip-32349',
+      targetType: 'system',
+      systemId: 'hip-32349',
+      inUniverseName: 'Sirius Ad',
+      subtitle: 'Frontier Outpost',
+      text: 'Human frontier colony world orbiting Sirius, a critical strategic bulwark against extraterrestrial incursions.',
+      workTitle: 'Terms of Enlistment',
+      aliases: 'siriusad outpost fleet bulwark',
+      confidence: 'confirmed',
+    },
+    'hip-24608': {
+      targetId: 'hip-24608',
+      targetType: 'system',
+      systemId: 'hip-24608',
+      subtitle: 'Capella Defense Hub',
+      text: 'Heavily fortified human military and industrial system at Capella providing fleet support during the Lanky campaign.',
+      workTitle: 'Orders of Retribution',
+      aliases: 'capella fleet staging fortification',
+      confidence: 'confirmed',
+    },
+    mars: {
+      targetId: 'mars',
+      targetType: 'planet',
+      systemId: 'sol',
+      subtitle: 'NAC Fleet Headquarters',
+      text: 'Primary naval garrison and orbital construction shipyards of the North American Commonwealth Armed Forces.',
+      workTitle: 'Terms of Enlistment',
+      aliases: 'nac shipyard naval garrison ares',
+      confidence: 'confirmed',
+    },
+  },
+};
+
+export default layer;
