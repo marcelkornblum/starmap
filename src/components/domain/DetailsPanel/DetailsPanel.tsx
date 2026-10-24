@@ -1524,8 +1524,7 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
                       {index > 0 ? ' ' : null}
                       <Badge
                         status={
-                          tag === 'HabitableCandidate' ||
-                          tag === 'HabitableHost'
+                          tag === 'HabitableCandidate'
                             ? 'nominal'
                             : 'neutral'
                         }

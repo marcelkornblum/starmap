@@ -152,7 +152,6 @@ export const SYSTEM_TAG_BITS: Record<string, number> = {
   HabitableCandidate: 16,
   VariableStar: 32,
   RECONSGroundTruth: 64,
-  HabitableHost: 128,
 };
 
 const BIT_TO_SYSTEM_TAG: [number, string][] = Object.entries(SYSTEM_TAG_BITS).map(([tag, bit]) => [

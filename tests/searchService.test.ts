@@ -74,7 +74,6 @@ import {
   SEARCH_CATEGORIES,
   STAR_TYPES_GUIDE_PATH,
   buildLayerGalaxyHref,
-  buildCollectionGalaxyHref,
   buildMetricGuideHref,
   buildPlanetTypeGalaxyHref,
   buildPlanetTypeGuideHref,
@@ -112,7 +111,6 @@ import {
   resolveResultSystemTitle,
   resolveReticleType,
   resolveSelectedSystemsFromLayer,
-  resolveSelectedSystemsFromCollection,
   resolveSelectedSystemsFromPlanetType,
   resolveSelectedSystemsFromSearchResults,
   resolveSelectedSystemsFromStarType,
@@ -120,7 +118,6 @@ import {
   resolveSelectedSystemsFromUrlSelect,
   scoreSearchEntry,
   toSearchResultItem,
-  SEED_CURATED_COLLECTIONS,
   QUERY_CLEAN_KEY_TO_TAG_SLUG,
 } from '../src/services/searchService';
 import {
@@ -4172,10 +4169,10 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
       { kind: 'planet-type', planetType: 'gas-giant' },
     ]);
     expect(parseUrlSelectTokens('?select=collection:extreme-worlds', LAYER_INDEX_ENTRIES)).toEqual([
-      { kind: 'collection', collectionId: 'extreme-worlds' },
+      { kind: 'layer', layerId: 'overlay-extreme-worlds' },
     ]);
-    expect(parseUrlSelectTokens('?select=collection:newly-discovered', LAYER_INDEX_ENTRIES)).toEqual([
-      { kind: 'collection', collectionId: 'newly-discovered' },
+    expect(parseUrlSelectTokens('?select=collection:recent-discoveries', LAYER_INDEX_ENTRIES)).toEqual([
+      { kind: 'layer', layerId: 'overlay-recent-discoveries' },
     ]);
     expect(parseUrlSelectTokens('?select=sol', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'entity', slug: 'sol' },
@@ -4287,16 +4284,12 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
     const fallbackGasGiant = resolveSelectedSystemsFromPlanetType('gas-giant', starOnlyCorpus);
     expect(fallbackGasGiant.map((s) => s.name)).toEqual(['Sol']);
 
-    // Curated collection resolution:
-    expect(SEED_CURATED_COLLECTIONS.length).toBeGreaterThanOrEqual(2);
-    expect(SEED_CURATED_COLLECTIONS.some((c) => c.id === 'extreme-worlds')).toBe(true);
-    expect(SEED_CURATED_COLLECTIONS.some((c) => c.id === 'newly-discovered')).toBe(true);
-
-    const extremeWorlds = resolveSelectedSystemsFromCollection('extreme-worlds', testCorpus);
+    // Curated layers resolution via unified layer manifests:
+    const extremeWorlds = resolveSelectedSystemsFromLayer('overlay-extreme-worlds', testCorpus, LAYER_MANIFESTS);
     expect(extremeWorlds.length).toBeGreaterThan(0);
-    expect(extremeWorlds.some((s) => s.id === 'tau-ceti' || s.id === 'sol' || s.name === 'Tau Ceti' || s.name === 'Sol')).toBe(true);
+    expect(extremeWorlds.some((s) => s.id === 'sol' || s.name === 'Sol')).toBe(true);
 
-    const newlyDiscovered = resolveSelectedSystemsFromCollection('newly-discovered', testCorpus);
+    const newlyDiscovered = resolveSelectedSystemsFromLayer('overlay-recent-discoveries', testCorpus, LAYER_MANIFESTS);
     expect(newlyDiscovered.length).toBeGreaterThan(0);
 
     // resolveSelectedSystemsFromUrlSelect with combined grammar
@@ -4317,10 +4310,6 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
     expect(buildPlanetTypeGalaxyHref('super-earth')).toBe('/galaxy?select=planet-type:super-earth');
     expect(buildPlanetTypeGalaxyHref('Super-Earth')).toBe('/galaxy?select=planet-type:super-earth');
     expect(buildPlanetTypeGalaxyHref('')).toBe('/galaxy');
-
-    expect(buildCollectionGalaxyHref('extreme-worlds')).toBe('/galaxy?select=collection:extreme-worlds');
-    expect(buildCollectionGalaxyHref('Newly Discovered')).toBe('/galaxy?select=collection:newly-discovered');
-    expect(buildCollectionGalaxyHref('')).toBe('/galaxy');
   });
 
   it('buildResultTargetLink & toSearchResultItem support tagSlug parameter with select=tag:<slug> URL', () => {

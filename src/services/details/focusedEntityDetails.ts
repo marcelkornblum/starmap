@@ -692,8 +692,7 @@ export const buildFocusedEntityDetails = (
   const baseTags = precalculatedTags ? [...precalculatedTags] : fallbackTags;
   if (
     hasHabitableCandidate &&
-    !baseTags.includes('HabitableCandidate') &&
-    !baseTags.includes('HabitableHost')
+    !baseTags.includes('HabitableCandidate')
   ) {
     baseTags.push('HabitableCandidate');
   }

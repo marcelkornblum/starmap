@@ -1132,7 +1132,6 @@ export function buildSolSystemManifest(
       'NakedEye',
       'ExoplanetHost',
       'HabitableCandidate',
-      'HabitableHost',
     ],
     disks: CIRCUMSTELLAR_DISKS_CATALOG['Sol'],
   };

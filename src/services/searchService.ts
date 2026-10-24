@@ -12,11 +12,8 @@ import {
   PLANET_TYPE_GUIDE_ENTRIES,
   PLANET_TYPES_GUIDE_PATH,
   resolveMetricSlugFromLabel,
-  SEED_CURATED_COLLECTIONS,
   STAR_TYPE_GUIDE_ENTRIES,
   STAR_TYPES_GUIDE_PATH,
-  type CuratedCollection,
-  type CuratedCollectionWaypoint,
   type GuideCatalogEntry,
   type GuideExampleTarget,
   type MetricGuideEntry,
@@ -61,11 +58,8 @@ export {
   PLANET_TYPE_GUIDE_ENTRIES,
   PLANET_TYPES_GUIDE_PATH,
   resolveMetricSlugFromLabel,
-  SEED_CURATED_COLLECTIONS,
   STAR_TYPE_GUIDE_ENTRIES,
   STAR_TYPES_GUIDE_PATH,
-  type CuratedCollection,
-  type CuratedCollectionWaypoint,
   type GuideCatalogEntry,
   type GuideExampleTarget,
   type MetricGuideEntry,
@@ -859,7 +853,6 @@ export const KNOWN_SYSTEM_TAGS = [
   'HabitableCandidate',
   'VariableStar',
   'RECONSGroundTruth',
-  'HabitableHost',
 ] as const;
 
 const TAG_BIT_BY_LOWER: Readonly<Record<string, number>> = {
@@ -868,7 +861,6 @@ const TAG_BIT_BY_LOWER: Readonly<Record<string, number>> = {
   nakedeye: SYSTEM_TAG_BITS.NakedEye,
   exoplanethost: SYSTEM_TAG_BITS.ExoplanetHost,
   habitablecandidate: SYSTEM_TAG_BITS.HabitableCandidate,
-  habitablehost: SYSTEM_TAG_BITS.HabitableCandidate,
   variablestar: SYSTEM_TAG_BITS.VariableStar,
   reconsgroundtruth: SYSTEM_TAG_BITS.RECONSGroundTruth,
 };
@@ -942,26 +934,16 @@ export const buildPlanetTypeGalaxyHref = (planetType: string): string => {
   return slug ? `/galaxy?select=planet-type:${slug}` : '/galaxy';
 };
 
-/**
- * Pure unit function building the URL to the Galaxy View with a collection shortcut in `?select=`
- * (`/galaxy?select=collection:<collectionSlug>`, e.g. `/galaxy?select=collection:extreme-worlds`).
- */
-export const buildCollectionGalaxyHref = (collectionId: string): string => {
-  const slug = toUrlSlug(collectionId.trim().replace(/^collection:/i, ''));
-  return slug ? `/galaxy?select=collection:${slug}` : '/galaxy';
-};
-
 export type UrlSelectToken =
   | { readonly kind: 'tag'; readonly tag: string }
   | { readonly kind: 'layer'; readonly layerId: string }
   | { readonly kind: 'star-type'; readonly starType: string }
   | { readonly kind: 'planet-type'; readonly planetType: string }
-  | { readonly kind: 'collection'; readonly collectionId: string }
   | { readonly kind: 'entity'; readonly slug: string };
 
 /**
  * Pure parser extracting structured selection tokens (`tag:<slug>`, `layer:<slug>`,
- * `star-type:<slug>`, `planet-type:<slug>`, `collection:<slug>`, or `<entityId>`)
+ * `star-type:<slug>`, `planet-type:<slug>`, or `<entityId>`)
  * from a URL search string's `?select=` parameter (plus legacy `?layer=` support).
  */
 export const parseUrlSelectTokens = (
@@ -1020,9 +1002,10 @@ export const parseUrlSelectTokens = (
 
       const collectionMatch = /^collection:(.+)$/i.exec(token);
       if (collectionMatch?.[1]) {
-        const candidateCollection = toUrlSlug(collectionMatch[1]);
-        if (candidateCollection.length > 0) {
-          tokens.push({ kind: 'collection', collectionId: candidateCollection });
+        const rawSlug = collectionMatch[1].trim();
+        const matchedLayer = findCanonLayerById(rawSlug, layerIndex);
+        if (matchedLayer) {
+          tokens.push({ kind: 'layer', layerId: matchedLayer.layerId });
         }
         continue;
       }
@@ -1071,7 +1054,6 @@ export const extractUrlSelectSlugs = (
   readonly layerSlugs: readonly string[];
   readonly starTypes: readonly string[];
   readonly planetTypes: readonly string[];
-  readonly collections: readonly string[];
   readonly entitySlugs: readonly string[];
 } => {
   const tokens = parseUrlSelectTokens(searchString, layerIndex);
@@ -1079,7 +1061,6 @@ export const extractUrlSelectSlugs = (
   const layerSlugs: string[] = [];
   const starTypes: string[] = [];
   const planetTypes: string[] = [];
-  const collections: string[] = [];
   const entitySlugs: string[] = [];
 
   for (const t of tokens) {
@@ -1087,7 +1068,6 @@ export const extractUrlSelectSlugs = (
     else if (t.kind === 'layer') layerSlugs.push(t.layerId);
     else if (t.kind === 'star-type') starTypes.push(t.starType);
     else if (t.kind === 'planet-type') planetTypes.push(t.planetType);
-    else if (t.kind === 'collection') collections.push(t.collectionId);
     else if (t.kind === 'entity') entitySlugs.push(t.slug);
   }
 
@@ -1096,7 +1076,6 @@ export const extractUrlSelectSlugs = (
     layerSlugs,
     starTypes,
     planetTypes,
-    collections,
     entitySlugs,
   };
 };
@@ -1286,7 +1265,7 @@ export const doesSystemEntryMatchTag = (
   if (tagKey === 'exoplanethost') {
     return (entry.m?.[2] ?? 0) > 0;
   }
-  if (tagKey === 'habitablecandidate' || tagKey === 'habitablehost') {
+  if (tagKey === 'habitablecandidate') {
     return entry.m?.[3] === 1;
   }
   if (tagKey === 'variablestar') {
@@ -1519,68 +1498,15 @@ export const resolveSelectedSystemsFromPlanetType = (
 };
 
 /**
- * Pure unit function resolving all deduplicated systems belonging to a curated collection
- * (e.g. 'extreme-worlds', 'newly-discovered') from `?select=collection:<collectionId>`.
- */
-export const resolveSelectedSystemsFromCollection = (
-  collectionId: string,
-  corpus: readonly CompactSearchEntry[],
-  collections: readonly CuratedCollection[] = SEED_CURATED_COLLECTIONS,
-): readonly SpatialEntityDefinition[] => {
-  const targetSlug = toUrlSlug(collectionId.trim().replace(/^collection:/i, ''));
-  if (!targetSlug) {
-    return [];
-  }
-
-  const collection = collections.find(
-    (c) => toUrlSlug(c.id) === targetSlug || c.id === collectionId,
-  );
-  if (!collection) {
-    return [];
-  }
-
-  const systemsById = new Map<string, SpatialEntityDefinition>();
-  const systemIds = new Set<string>(collection.systemIds);
-  if (collection.waypoints) {
-    for (const wp of collection.waypoints) {
-      systemIds.add(wp.systemId ?? wp.targetId);
-    }
-  }
-
-  for (const sysId of systemIds) {
-    const matched = findFocusedEntryInCorpus(sysId, corpus);
-    if (matched) {
-      systemsById.set(matched.i, {
-        id: matched.i,
-        name: resolveResultDisplayTitle(matched),
-        position: matched.p ? [matched.p[0], matched.p[1], matched.p[2]] : [0, 0, 0],
-        classification: resolveReticleType(matched),
-        ...(matched.m?.[1] ? { spectralType: matched.m[1] } : {}),
-      });
-    } else {
-      systemsById.set(sysId, {
-        id: sysId,
-        name: formatSlugFallbackTitle(sysId),
-        position: [0, 0, 0],
-        classification: 'stellar-system',
-      });
-    }
-  }
-
-  return Array.from(systemsById.values());
-};
-
-/**
  * Pure unit function resolving all deduplicated entities selected via `?select=`
  * (supporting comma-separated `tag:<slug>`, `layer:<slug>`, `star-type:<slug>`,
- * `planet-type:<slug>`, `collection:<slug>`, and explicit `<entityId>` tokens).
+ * `planet-type:<slug>`, and explicit `<entityId>` tokens).
  */
 export const resolveSelectedSystemsFromUrlSelect = (
   searchString: string,
   corpus: readonly CompactSearchEntry[],
   layerIndex: readonly DatasetLayerIndexEntry[],
   loadedLayers: readonly DatasetLayerManifest[],
-  collections: readonly CuratedCollection[] = SEED_CURATED_COLLECTIONS,
 ): readonly SpatialEntityDefinition[] => {
   const tokens = parseUrlSelectTokens(searchString, layerIndex);
   if (tokens.length === 0) {
@@ -1613,14 +1539,6 @@ export const resolveSelectedSystemsFromUrlSelect = (
       for (const sys of resolveSelectedSystemsFromPlanetType(
         token.planetType,
         corpus,
-      )) {
-        entitiesById.set(sys.id, sys);
-      }
-    } else if (token.kind === 'collection') {
-      for (const sys of resolveSelectedSystemsFromCollection(
-        token.collectionId,
-        corpus,
-        collections,
       )) {
         entitiesById.set(sys.id, sys);
       }
