@@ -576,7 +576,7 @@ export function buildInPlaceLayerItemHref(
   searchParams.set('select', `layer:${layerSlug}`);
   searchParams.set('layer', `${layerSlug}:${itemSlug}`);
   const qs = searchParams.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
-  const basePath = currentPathname || '/galaxy';
+  const basePath = (currentPathname || '/galaxy').split('?')[0].split('#')[0];
   return `${basePath}?${qs}`;
 }
 

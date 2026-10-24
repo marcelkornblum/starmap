@@ -7,7 +7,6 @@ import styles from './CanonLayerItem.module.css';
 export interface CanonLayerItemProps {
   readonly annotation: FocusedCanonAnnotation;
   readonly as?: 'li' | 'div';
-  readonly className?: string;
 }
 
 /**
@@ -21,7 +20,6 @@ export interface CanonLayerItemProps {
 export const CanonLayerItem = ({
   annotation,
   as = 'li',
-  className,
 }: CanonLayerItemProps): ReactNode => {
   const Component = as;
   const title =
@@ -43,7 +41,7 @@ export const CanonLayerItem = ({
 
   return (
     <Component
-      className={className ? `${styles.item} ${className}` : styles.item}
+      className={styles.item}
       data-testid="details-canon-item"
       data-layer-id={annotation.layerId}
       data-layer-kind={annotation.kind}

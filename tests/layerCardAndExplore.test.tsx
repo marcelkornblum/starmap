@@ -412,7 +412,7 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
         classification: 'stellar-system',
       },
       corpus: SAMPLE_CORPUS,
-      currentPathname: '/system/tau-ceti',
+      currentPathname: '/system/tau-ceti?stale=true#hash',
       currentSearch: '?mode=orbit',
       canonRecords: annotationRecordsFor([
         'gaia-2452378776434477184',
