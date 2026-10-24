@@ -120,9 +120,16 @@ export function buildEntityOrbitTargetHref(
 
     const currentSystemMatch =
       currentPathname && /^\/system\/([^/?#]+)/i.exec(currentPathname.trim());
-    const currentSysSlug = currentSystemMatch?.[1]
-      ? toUrlSlug(decodeURIComponent(currentSystemMatch[1]))
-      : null;
+    const rawSysParam = currentSystemMatch?.[1];
+    const decodedSys = (() => {
+      if (!rawSysParam) return null;
+      try {
+        return decodeURIComponent(rawSysParam);
+      } catch {
+        return rawSysParam;
+      }
+    })();
+    const currentSysSlug = decodedSys ? toUrlSlug(decodedSys) : null;
     const matchesCurrentSystem =
       currentSysSlug !== null &&
       (currentSysSlug === sysSlug ||

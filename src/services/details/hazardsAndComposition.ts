@@ -572,7 +572,12 @@ export function buildInPlaceLayerItemHref(
   const itemSlug = toUrlSlug(name || cleanId);
   const layerSlug = toCanonicalLayerSlug(layerId) || toUrlSlug(layerId);
 
-  const searchParams = new URLSearchParams(currentSearch ?? '');
+  const searchSource =
+    currentSearch ??
+    (currentPathname?.includes('?')
+      ? currentPathname.split('?')[1]?.split('#')[0]
+      : '');
+  const searchParams = new URLSearchParams(searchSource);
   searchParams.set('select', `layer:${layerSlug}`);
   searchParams.set('layer', `${layerSlug}:${itemSlug}`);
   const qs = searchParams.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
