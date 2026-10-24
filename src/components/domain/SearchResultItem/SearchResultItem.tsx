@@ -11,6 +11,14 @@ import {
   SpectralBadge,
   shouldDisplaySpectralBadge,
 } from '../../interface';
+import { useSearchContext } from '../../search/SearchContext';
+
+declare module '../../search/SearchContext' {
+  interface SearchContextValue {
+    readonly dismissSearch?: (item?: SearchResultItemModel) => void;
+    readonly setIsFocused?: (focused: boolean) => void;
+  }
+}
 
 export interface SearchResultItemProps {
   readonly result: SearchResultItemModel;
@@ -100,12 +108,19 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
     systemId,
   } = result;
 
-  const handleClick = onSelect
-    ? (event: MouseEvent<HTMLAnchorElement>): void => {
-        event.preventDefault();
-        onSelect(result);
-      }
-    : undefined;
+  const searchCtx = useSearchContext();
+
+  const handleClick = (_event: MouseEvent<HTMLAnchorElement>): void => {
+    if (searchCtx.dismissSearch) {
+      searchCtx.dismissSearch(result);
+    } else {
+      searchCtx.setQuery('');
+      searchCtx.setIsFocused?.(false);
+    }
+    if (onSelect) {
+      onSelect(result);
+    }
+  };
 
   return (
     <li
@@ -118,10 +133,10 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
       data-target-view={targetView}
     >
       <Cluster gap="tight" align="center">
+        <CelestialBadge type={reticleType} data-testid="result-reticle-type" />
         <a href={href} onClick={handleClick}>
           {name}
         </a>
-        <CelestialBadge type={reticleType} data-testid="result-reticle-type" />
         {renderVariationContent(result)}
       </Cluster>
     </li>

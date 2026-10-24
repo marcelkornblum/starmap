@@ -260,7 +260,38 @@
     }
 
     .controlsRegion {
-      padding: var(--space-fib-1) var(--space-fib-2);
+      position: fixed;
+      left: auto;
+      right: var(--space-fib-2);
+      bottom: var(--space-fib-2);
+      inline-size: auto;
+      max-inline-size: fit-content;
+      padding: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      pointer-events: none;
+      z-index: var(--layer-hud);
+    }
+
+    .controlsRegion > * {
+      pointer-events: auto;
+    }
+
+    .controlsRegion:has([data-mobile-expanded="true"]) {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      inline-size: 100%;
+      max-inline-size: 100%;
+      padding: var(--space-fib-2);
+      background-color: var(--palette-surface-chassis-dark);
+      background: var(--surface-hud-bg);
+      border-block-start: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
+      box-shadow: var(--surface-hud-shadow);
+      pointer-events: auto;
+      z-index: calc(var(--layer-panel) + 2);
     }
 
     .floatingLeft {
@@ -270,28 +301,14 @@
       right: 0;
       bottom: 0;
       width: 100%;
+      max-height: 100dvh;
+      overflow: visible;
+      padding: 0;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      pointer-events: none;
       z-index: var(--layer-panel);
-      max-height: 36dvh;
-      overflow-y: auto;
-      padding: var(--space-fib-2);
-      background-color: var(--palette-surface-slab-dark);
-      background: var(--surface-panel-bg);
-      border-block-start: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
-      box-shadow: var(--surface-panel-shadow);
-      box-sizing: border-box;
-      pointer-events: auto;
-    }
-
-    .floatingLeft:has([data-detent="peek"]) {
-      max-height: 36dvh;
-    }
-
-    .floatingLeft:has([data-detent="partial"]) {
-      max-height: 58dvh;
-    }
-
-    .floatingLeft:has([data-detent="full"]) {
-      max-height: 85dvh;
     }
 
     .minimapRegion {

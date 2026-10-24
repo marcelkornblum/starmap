@@ -144,6 +144,14 @@
     font-family: var(--font-interface);
   }
 
+  .proseBlock a,
+  .leadProse a,
+  .bodyProse a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
   .footnote {
     margin: 0;
     font-size: var(--text-content-footnote-size);

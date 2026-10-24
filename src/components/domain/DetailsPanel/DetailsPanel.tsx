@@ -26,6 +26,7 @@ import {
   Badge,
   Button,
   CelestialBadge,
+  CelestialTitle,
   Cluster,
   ConfidencePip,
   type ConfidenceLevel,
@@ -188,7 +189,6 @@ const renderOrbitingBodies = (
         <DataTable.Head>
           <DataTable.Row>
             <DataTable.HeaderCell>Body</DataTable.HeaderCell>
-            <DataTable.HeaderCell>Category</DataTable.HeaderCell>
           </DataTable.Row>
         </DataTable.Head>
         <DataTable.Body>
@@ -199,20 +199,15 @@ const renderOrbitingBodies = (
               data-body-id={body.id}
             >
               <DataTable.Cell>
-                <a
-                  href={body.href}
-                  data-testid="details-orbiting-body-link"
-                >
-                  {body.name}
-                </a>
-              </DataTable.Cell>
-              <DataTable.Cell>
-                <CelestialBadge
+                <CelestialTitle
                   type={
                     body.categoryKey === 'spacecraft'
                       ? 'construct'
                       : (body.categoryKey ?? 'asteroid')
                   }
+                  title={body.name}
+                  href={body.href}
+                  titleTestId="details-orbiting-body-link"
                 />
               </DataTable.Cell>
             </DataTable.Row>
@@ -318,7 +313,9 @@ const renderStars = (
               data-star-id={star.id}
             >
               <DataTable.Cell>
-                <a
+                <CelestialTitle
+                  type="star"
+                  title={star.name}
                   href={
                     star.href ??
                     buildSystemElementFocusHref(
@@ -326,10 +323,8 @@ const renderStars = (
                       star.name || star.id,
                     )
                   }
-                  data-testid="details-star-name-link"
-                >
-                  {star.name}
-                </a>
+                  titleTestId="details-star-name-link"
+                />
               </DataTable.Cell>
               <DataTable.Cell>
                 <SpectralBadge
@@ -396,7 +391,6 @@ const renderPlanets = (
         <DataTable.Head>
           <DataTable.Row>
             <DataTable.HeaderCell>Planet</DataTable.HeaderCell>
-            <DataTable.HeaderCell>Type</DataTable.HeaderCell>
             <DataTable.HeaderCell align="end">a</DataTable.HeaderCell>
             <DataTable.HeaderCell align="end">P</DataTable.HeaderCell>
             <DataTable.HeaderCell align="end">Mass</DataTable.HeaderCell>
@@ -412,25 +406,20 @@ const renderPlanets = (
               data-composition={planet.composition}
             >
               <DataTable.Cell>
-                <a
-                  href={
-                    planet.href ??
-                    buildSystemElementFocusHref(
-                      systemNameOrId,
-                      planet.name || planet.id,
-                    )
-                  }
-                  data-testid="details-planet-name-link"
-                >
-                  {planet.name}
-                </a>
-              </DataTable.Cell>
-              <DataTable.Cell>
                 <Cluster gap="tight" align="center">
-                  <CelestialBadge
+                  <CelestialTitle
                     type={planet.composition}
-                    href={buildPlanetTypeGuideHref(planet.composition)}
-                    data-testid="details-planet-type-link"
+                    title={planet.name}
+                    href={
+                      planet.href ??
+                      buildSystemElementFocusHref(
+                        systemNameOrId,
+                        planet.name || planet.id,
+                      )
+                    }
+                    titleTestId="details-planet-name-link"
+                    symbolHref={buildPlanetTypeGuideHref(planet.composition)}
+                    symbolTestId="details-planet-type-link"
                   />
                   {planet.isHabitableCandidate ? (
                     <CelestialBadge
@@ -547,7 +536,6 @@ const renderDisks = (
         <DataTable.Head>
           <DataTable.Row>
             <DataTable.HeaderCell>Belt / Disk</DataTable.HeaderCell>
-            <DataTable.HeaderCell>Classification</DataTable.HeaderCell>
             <DataTable.HeaderCell align="end">Span</DataTable.HeaderCell>
             <DataTable.HeaderCell align="end">Temp</DataTable.HeaderCell>
           </DataTable.Row>
@@ -561,22 +549,19 @@ const renderDisks = (
               data-kind={disk.kind}
             >
               <DataTable.Cell>
-                <a
-                  href={
-                    disk.href ??
-                    buildSystemElementFocusHref(
-                      systemNameOrId,
-                      disk.name || disk.id,
-                    )
-                  }
-                  data-testid="details-disk-name-link"
-                >
-                  {disk.name}
-                </a>
-              </DataTable.Cell>
-              <DataTable.Cell>
                 <Cluster gap="tight" align="center">
-                  <CelestialBadge type={disk.kind} />
+                  <CelestialTitle
+                    type={disk.kind}
+                    title={disk.name}
+                    href={
+                      disk.href ??
+                      buildSystemElementFocusHref(
+                        systemNameOrId,
+                        disk.name || disk.id,
+                      )
+                    }
+                    titleTestId="details-disk-name-link"
+                  />
                   {disk.confidence ? (
                     <ConfidencePip confidence={disk.confidence as ConfidenceLevel} size="sm" />
                   ) : null}
@@ -706,13 +691,18 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
   const peekContent = (
     <>
       <Cluster gap="tight" align="center" data-testid="details-peek-header">
-        <strong data-testid="details-peek-name">{name}</strong>
+        <CelestialTitle
+          type={reticleType}
+          title={name}
+          as="strong"
+          titleTestId="details-peek-name"
+          symbolTestId="details-reticle-type"
+        />
         {name !== systemName ? (
           <Badge status="neutral" data-testid="details-peek-system-name">
             {systemName}
           </Badge>
         ) : null}
-        <CelestialBadge type={reticleType} data-testid="details-reticle-type" />
         {(isSystemFocus || focusedKind === 'star') && spectralType ? (
           <SpectralBadge
             spectralType={spectralType}

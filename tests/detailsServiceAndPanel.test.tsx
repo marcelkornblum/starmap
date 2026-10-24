@@ -309,6 +309,41 @@ describe('DEC-032: Environmental Hazards & Planetary Telemetry', () => {
       expect(details?.hazardCount).toBe(1);
       expect(details?.hazards[0].code).toBe('flare-star');
     });
+
+    it('resolves focusedKind to system on GalaxyView (!urlSystemSlug) and to star when focusedEntity.id !== systemId or in SystemView', () => {
+      // /galaxy?focus=sol (!urlSystemSlug) resolves to 'system'
+      const galaxySol = buildFocusedEntityDetails({
+        focusedEntity: { id: 'sol', name: 'Sol', spectralType: 'G2V', position: [0, 0, 0] },
+        hasExplicitFocus: true,
+        urlSystemSlug: null,
+      });
+      expect(galaxySol?.focusedKind).toBe('system');
+
+      // /galaxy?focus=tau-ceti (!urlSystemSlug) resolves to 'system'
+      const galaxyTauCeti = buildFocusedEntityDetails({
+        focusedEntity: { id: 'tau-ceti', name: 'Tau Ceti', spectralType: 'G8V', position: [-0.94, 2.37, -2.93] },
+        hasExplicitFocus: true,
+        urlSystemSlug: null,
+      });
+      expect(galaxyTauCeti?.focusedKind).toBe('system');
+
+      // /system/sol?focus=sol (urlSystemSlug present) resolves to 'star'
+      const systemSol = buildFocusedEntityDetails({
+        focusedEntity: { id: 'sol', name: 'Sol', spectralType: 'G2V', position: [0, 0, 0] },
+        hasExplicitFocus: true,
+        urlSystemSlug: 'sol',
+      });
+      expect(systemSol?.focusedKind).toBe('star');
+
+      // /galaxy?focus=alpha-centauri-a (id !== systemId) resolves to 'star'
+      const galaxyStarChild = buildFocusedEntityDetails({
+        focusedEntity: { id: 'alpha-centauri-a', name: 'Alpha Centauri A', spectralType: 'G2V', position: [0, 0, 0] },
+        corpus: [{ i: 'alpha-centauri-a', n: 'Alpha Centauri A', s: 'alpha-centauri', k: 1, m: [0.0, 'G2V', 0] }],
+        hasExplicitFocus: true,
+        urlSystemSlug: null,
+      });
+      expect(galaxyStarChild?.focusedKind).toBe('star');
+    });
   });
 
   describe('<DetailsPanel /> DOM rendering for DEC-032', () => {
@@ -586,11 +621,11 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
   ];
 
   describe('buildGalaxySystemNavigationHref', () => {
-    it('drops focus parameter while preserving active search parameters and literal : and ,', () => {
+    it('sets focus parameter while preserving active search parameters and literal : and ,', () => {
       const search = '?focus=sol&q=alpha&searchCategory=stars&select=layer:project-hail-mary,tag:habitable-candidate&center=tau-ceti&x=1&y=2&z=3&az=45&el=30&dist=35&zoom=1.5&route=sol,tau-ceti&journeyOption=torchship-1g';
       const href = buildGalaxySystemNavigationHref('alpha-centauri', search);
-      expect(href).toContain('/galaxy/alpha-centauri?');
-      expect(href).not.toContain('focus=');
+      expect(href).toContain('/galaxy?');
+      expect(href).toContain('focus=alpha-centauri');
       expect(href).toContain('q=alpha');
       expect(href).toContain('searchCategory=stars');
       expect(href).toContain('select=layer:project-hail-mary,tag:habitable-candidate');
@@ -605,9 +640,9 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
     });
 
     it('returns clean galaxy href when no search params are present', () => {
-      expect(buildGalaxySystemNavigationHref('tau-ceti')).toBe('/galaxy/tau-ceti');
-      expect(buildGalaxySystemNavigationHref('tau-ceti', '')).toBe('/galaxy/tau-ceti');
-      expect(buildGalaxySystemNavigationHref('tau-ceti', '?focus=sol')).toBe('/galaxy/tau-ceti');
+      expect(buildGalaxySystemNavigationHref('tau-ceti')).toBe('/galaxy?focus=tau-ceti');
+      expect(buildGalaxySystemNavigationHref('tau-ceti', '')).toBe('/galaxy?focus=tau-ceti');
+      expect(buildGalaxySystemNavigationHref('tau-ceti', '?focus=sol')).toBe('/galaxy?focus=tau-ceti');
     });
   });
 
@@ -763,7 +798,7 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
       });
 
       const alpha = summary.systems.find((s) => s.id === 'alpha-centauri');
-      expect(alpha?.href).toBe('/galaxy/alpha-centauri?select=layer:halo&center=sol&dist=20');
+      expect(alpha?.href).toBe('/galaxy?focus=alpha-centauri&select=layer:halo&center=sol&dist=20');
     });
   });
 
@@ -781,7 +816,7 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
         {
           id: 'sol',
           name: 'Sol',
-          href: '/galaxy/sol',
+          href: '/galaxy?focus=sol',
           tier: 'focused',
           reticleType: 'stellar-system',
           spectralType: 'G2V',
@@ -799,7 +834,7 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
         {
           id: 'alpha-centauri',
           name: 'Alpha Centauri',
-          href: '/galaxy/alpha-centauri',
+          href: '/galaxy?focus=alpha-centauri',
           tier: 'active',
           reticleType: 'stellar-system',
           spectralType: 'G2V',
@@ -1174,7 +1209,7 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
           coordinatesPc: [0, 0, 0],
           sectorId: 'sector_+000_+000_+000',
           tags: ['HomeSystem'],
-          directionsHref: '/galaxy/sol?anchor=sol',
+          directionsHref: '/galaxy?focus=sol&anchor=sol',
           stars: [],
           planets: [],
           disks: [
@@ -1237,7 +1272,7 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
           coordinatesPc: [0, 0, 0],
           sectorId: 'sector_+000_+000_+000',
           tags: [],
-          directionsHref: '/galaxy/sol?anchor=sol',
+          directionsHref: '/galaxy?focus=sol&anchor=sol',
           stars: [],
           planets: [],
           orbitingBodies: [

@@ -204,7 +204,7 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
           focusedId: 'tau-ceti',
           viewScope: 'galaxy',
         }),
-      ).toBe('/galaxy/tau-ceti?route=sol,tau-ceti');
+      ).toBe('/galaxy?focus=tau-ceti&route=sol,tau-ceti');
 
       // Galaxy scope when focused on Sol keeps Sol as origin (gated as coming-soon when opened)
       expect(
@@ -212,7 +212,7 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
           focusedId: 'sol',
           viewScope: 'galaxy',
         }),
-      ).toBe('/galaxy/sol?route=sol,sol');
+      ).toBe('/galaxy?focus=sol&route=sol,sol');
 
       // Preserves currentPathname and currentSearch without loading a new top-level view
       expect(

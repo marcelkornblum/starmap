@@ -4,6 +4,8 @@ import { renderToString } from 'react-dom/server';
 import {
   SpatialShell,
   CanvasLayer,
+  Breadcrumbs,
+  ControlBar,
   canMountWebGLCanvas,
   _resetWebGLSupportedForTesting,
 } from '../src/components/domain';
@@ -367,6 +369,73 @@ describe('SpatialShell Component & View Integration Suite', () => {
       expect(html).toContain('data-testid="view-breadcrumbs"');
       expect(html).toContain('data-testid="control-bar"');
       expect(html).toContain('data-testid="bodies-panel"');
+    });
+  });
+
+  describe('<Breadcrumbs> Persistent Galaxy / Guide Mode Navigation', () => {
+    it('renders Galaxy as active and Guide as companion on map/galaxy views', () => {
+      const html = renderToString(
+        <Breadcrumbs items={[{ label: 'Galaxy' }, { label: 'Sol' }]} />,
+      );
+
+      expect(html).toContain('data-testid="breadcrumbs-mode-menu"');
+      expect(html).toContain('aria-label="Primary mode"');
+
+      // Galaxy is active
+      expect(html).toContain('href="/galaxy"');
+      expect(html).toContain('aria-current="page"');
+      expect(html).toContain('data-active="true"');
+      expect(html).toContain('data-variant="primary"');
+
+      // Guide is inactive companion
+      expect(html).toContain('href="/guide/star-types"');
+      expect(html).toContain('data-testid="breadcrumbs-companion-link"');
+      expect(html).toContain('data-variant="subtle"');
+    });
+
+    it('renders Guide as active and Galaxy as companion on guide views', () => {
+      const html = renderToString(
+        <Breadcrumbs
+          items={[
+            { label: 'Guide', href: '/guide/star-types' },
+            { label: 'Star Types' },
+          ]}
+        />,
+      );
+
+      expect(html).toContain('data-testid="breadcrumbs-mode-menu"');
+
+      // Guide is active
+      expect(html).toContain('href="/guide/star-types"');
+      expect(html).toContain('aria-current="page"');
+      expect(html).toContain('data-active="true"');
+      expect(html).toContain('data-variant="primary"');
+
+      // Galaxy is inactive companion
+      expect(html).toContain('href="/galaxy"');
+      expect(html).toContain('data-testid="breadcrumbs-companion-link"');
+      expect(html).toContain('data-variant="subtle"');
+    });
+
+    it('returns null for empty items', () => {
+      const html = renderToString(<Breadcrumbs items={[]} />);
+      expect(html).toBe('');
+    });
+  });
+
+  describe('<ControlBar> Mobile Minimization', () => {
+    it('renders compact icon toggle button and data-mobile-expanded state attribute', () => {
+      const html = renderToString(<ControlBar scope="galaxy" />);
+
+      expect(html).toContain('data-testid="control-bar"');
+      expect(html).toContain('data-mobile-expanded="false"');
+      expect(html).toContain('data-testid="control-bar-mobile-toggle"');
+      expect(html).toContain('aria-expanded="false"');
+      expect(html).toContain('aria-label="Expand controls"');
+
+      // Full controls are present in DOM for hydration / CSS visibility toggling
+      expect(html).toContain('data-testid="control-bar-time-controller"');
+      expect(html).toContain('data-testid="control-bar-mode-group"');
     });
   });
 });

@@ -4,6 +4,7 @@ import { DetentSheet, type DetentLevel } from '../../interface/surfaces/DetentSh
 import {
   Badge,
   Button,
+  CelestialSymbol,
   Cluster,
   DataTable,
   Datum,
@@ -118,7 +119,10 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
     <div className={styles.peekMetadata}>
       <div className={styles.headerRow}>
         <strong data-testid="directions-route-title" className={styles.routeTitle}>
-          {journey.title}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+            <CelestialSymbol type="stellar-system" size="sm" showTooltip={false} />
+            {journey.title}
+          </span>
         </strong>
         {isComingSoon ? (
           <Badge status="caution" data-testid="directions-coming-soon">
@@ -357,7 +361,15 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
           <DataTable.Body>
             {journey.steps.map((step) => (
               <DataTable.Row key={step.id} data-testid="directions-geometry-leg">
-                <DataTable.Cell>{`${step.from.name} → ${step.to.name}`}</DataTable.Cell>
+                <DataTable.Cell>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+                    <CelestialSymbol type="stellar-system" size="sm" showTooltip={false} />
+                    {step.from.name}
+                    {' → '}
+                    <CelestialSymbol type="stellar-system" size="sm" showTooltip={false} />
+                    {step.to.name}
+                  </span>
+                </DataTable.Cell>
                 <DataTable.Cell numeric>
                   {renderStructuredQuantity(step.primaryDistance)}
                 </DataTable.Cell>
@@ -451,7 +463,13 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
             className={styles.stepItem}
           >
             <Heading as="h5" size="eyebrow" className={styles.stepHeading}>
-              {`${step.from.name} → ${step.to.name}`}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+                <CelestialSymbol type="stellar-system" size="sm" showTooltip={false} />
+                {step.from.name}
+                {' → '}
+                <CelestialSymbol type="stellar-system" size="sm" showTooltip={false} />
+                {step.to.name}
+              </span>
             </Heading>
             <Stack
               gap="none"

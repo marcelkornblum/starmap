@@ -431,7 +431,7 @@ export const buildFocusedEntityDetails = (
               matchedCorpusEntry.k === 6)
           ? 'minor-body'
           : (matchedStarDetail || solarBodyRecord?.classification === 'Star') &&
-              (hasExplicitFocus || focusedEntity.id !== systemId)
+              ((hasExplicitFocus && Boolean(urlSystemSlug)) || focusedEntity.id !== systemId)
             ? 'star'
             : 'system';
 

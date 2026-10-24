@@ -1,7 +1,8 @@
 import type React from 'react';
-import { useState, useMemo, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
 
 import {
   getStandardInitialCamera,
@@ -31,19 +32,77 @@ export {
 export interface GalacticViewSceneProps {
   initialSelectedId?: string | null;
   onInspectSystem?: (systemId: string) => void;
+  onSelectSystem?: (systemId: string | null) => void;
+  centerCoordinates?:
+    | readonly [number, number, number]
+    | [number, number, number]
+    | { x: number; y: number; z: number };
+  centerId?: string;
   className?: string;
   variant?: 'card' | 'fullscreen';
 }
 
+const GalacticCameraController: React.FC<{
+  target: [number, number, number];
+}> = ({ target }) => {
+  const three = useThree();
+  const camera = three.camera;
+  const controls = (three as any).controls as {
+    target: THREE.Vector3;
+    update?: () => void;
+  } | undefined;
+  const prevTargetRef = useRef<[number, number, number]>(target);
+
+  useEffect(() => {
+    const prev = prevTargetRef.current;
+    if (
+      prev[0] === target[0] &&
+      prev[1] === target[1] &&
+      prev[2] === target[2]
+    ) {
+      return;
+    }
+    prevTargetRef.current = target;
+
+    const newTarget = new THREE.Vector3(target[0], target[1], target[2]);
+    const prevTarget = controls?.target
+      ? controls.target.clone()
+      : new THREE.Vector3(prev[0], prev[1], prev[2]);
+    const delta = newTarget.clone().sub(prevTarget);
+
+    camera.position.add(delta);
+    camera.lookAt(newTarget);
+
+    if (controls) {
+      controls.target.copy(newTarget);
+      controls.update?.();
+    }
+  }, [target, camera, controls]);
+
+  return null;
+};
+
 export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
   initialSelectedId = null,
   onInspectSystem,
+  onSelectSystem,
+  centerCoordinates,
+  centerId,
   className,
   variant = 'card',
 }) => {
+  const targetCoords = useMemo<[number, number, number]>(() => {
+    if (!centerCoordinates) return [0, 0, 0];
+    if (Array.isArray(centerCoordinates)) {
+      return [centerCoordinates[0], centerCoordinates[1], centerCoordinates[2]];
+    }
+    const c = centerCoordinates as { x: number; y: number; z: number };
+    return [c.x, c.y, c.z];
+  }, [centerCoordinates]);
+
   const standardCam = useMemo(
-    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.galactic, [0, 0, 0]),
-    [],
+    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.galactic, targetCoords),
+    [targetCoords],
   );
 
   const containerClass = className
@@ -75,9 +134,12 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             maxDistance={85}
           />
 
+          <GalacticCameraController target={targetCoords} />
+
           <GalaxyScene
-            initialSelectedId={initialSelectedId}
+            initialSelectedId={initialSelectedId ?? centerId}
             onInspectSystem={onInspectSystem}
+            onSelectSystem={onSelectSystem}
           />
         </Canvas>
         <SafeHtmlPortalOutlet />

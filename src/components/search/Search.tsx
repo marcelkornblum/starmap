@@ -54,6 +54,13 @@ import {
 } from './SearchContext';
 import styles from './Search.module.css';
 
+declare module './SearchContext' {
+  interface SearchContextValue {
+    readonly dismissSearch?: (item?: SearchResultItem) => void;
+    readonly setIsFocused?: (focused: boolean) => void;
+  }
+}
+
 export interface SearchRootProps {
   readonly children?: ReactNode;
   readonly initialQuery?: string;
@@ -676,6 +683,21 @@ export const SearchRoot = ({
 
   const [isFocused, setIsFocused] = useState<boolean>(false);
 
+  const dismissSearch = useCallback(
+    (item?: SearchResultItem): void => {
+      setQueryState('');
+      setIsFocused(false);
+      if (syncUrl) {
+        syncSearchUrlParams('', filter);
+      }
+      void submitSearch('', filter);
+      if (item && onSelectResult) {
+        onSelectResult(item);
+      }
+    },
+    [filter, onSelectResult, submitSearch, syncUrl],
+  );
+
   const handleFocusCapture = useCallback((): void => {
     setIsFocused(true);
   }, []);
@@ -697,6 +719,8 @@ export const SearchRoot = ({
     errorMessage,
     results,
     isFocused,
+    setIsFocused,
+    dismissSearch,
     setQuery,
     setFilter,
     submitSearch,
@@ -904,12 +928,20 @@ export const SearchResults = ({
   searchViewPath,
   renderItem,
 }: SearchResultsProps) => {
-  const { query, filter, status, errorMessage, results, onSelectResult } =
+  const { query, filter, status, errorMessage, results, onSelectResult, dismissSearch } =
     useSearchContext();
 
   if (query.trim().length === 0) {
     return null;
   }
+
+  const handleResultsClick = (event: React.MouseEvent<HTMLElement>): void => {
+    const target = event.target as Element | null;
+    const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (anchor) {
+      dismissSearch?.();
+    }
+  };
 
   return (
     <section
@@ -917,6 +949,7 @@ export const SearchResults = ({
       data-testid="search-results-panel"
       data-status={status}
       className={styles.resultsPanel}
+      onClick={handleResultsClick}
     >
       <Heading
         as="h2"

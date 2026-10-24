@@ -53,8 +53,8 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
 
     it('contains specific required benchmark examples for key stellar classes', () => {
       const gEntry = STAR_TYPE_GUIDE_ENTRIES.find((e) => e.id === 'g');
-      expect(gEntry?.examples.some((ex) => ex.name === 'Sol' && ex.href === '/galaxy/sol?select=star-type:g')).toBe(true);
-      expect(gEntry?.examples.some((ex) => ex.name === 'Tau Ceti' && ex.href === '/galaxy/tau-ceti?select=star-type:g')).toBe(true);
+      expect(gEntry?.examples.some((ex) => ex.name === 'Sol' && ex.href === '/galaxy?focus=sol&select=star-type:g')).toBe(true);
+      expect(gEntry?.examples.some((ex) => ex.name === 'Tau Ceti' && ex.href === '/galaxy?focus=tau-ceti&select=star-type:g')).toBe(true);
       expect(gEntry?.examples.some((ex) => ex.name.includes('Alpha Centauri A'))).toBe(true);
 
       const kEntry = STAR_TYPE_GUIDE_ENTRIES.find((e) => e.id === 'k');
@@ -449,13 +449,12 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
       expect(html).toContain('href="/guide/planet-types"');
       expect(html).toContain('href="/guide/metrics"');
 
-      // Breadcrumbs: starts at Guide, no Galaxy, and has persistent "Map" companion link (DEC-029)
+      // Breadcrumbs: starts at Guide, has persistent Galaxy companion link and Guide active item
       expect(html).toContain('data-testid="view-breadcrumbs"');
       expect(html).toContain('>Guide<');
-      expect(html).not.toContain('>Galaxy<');
       expect(html).toContain('data-testid="breadcrumbs-companion-link"');
       expect(html).toContain('href="/galaxy"');
-      expect(html).toContain('>Map<');
+      expect(html).toContain('>Galaxy<');
 
       // Header and List
       expect(html).toMatch(/<h1[^>]*>Star Types<\/h1>/);
@@ -486,7 +485,6 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
       expect(html).toContain('data-testid="star-type-detail-view-root"');
       expect(html).toContain('data-star-type="G8.5V"');
       expect(html).toContain('data-testid="guide-section-nav"');
-      expect(html).not.toContain('>Galaxy<');
       expect(html).toMatch(/<h1[^>]*>Star Type: G8\.5V<\/h1>/);
       expect(html).toContain('data-testid="star-types-list-link"');
 
@@ -535,7 +533,6 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
 
       expect(html).toContain('data-testid="planet-types-list-view-root"');
       expect(html).toContain('data-testid="guide-section-nav"');
-      expect(html).not.toContain('>Galaxy<');
       expect(html).toMatch(/<h1[^>]*>Planet Types<\/h1>/);
       expect(html).toContain('data-testid="planet-types-guide-list"');
       expect(html).toContain('data-testid="planet-types-guide-item"');
@@ -557,7 +554,6 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
       expect(html).toContain('data-testid="planet-type-detail-view-root"');
       expect(html).toContain('data-planet-type="terrestrial"');
       expect(html).toContain('data-testid="guide-section-nav"');
-      expect(html).not.toContain('>Galaxy<');
       expect(html).toMatch(/<h1[^>]*>Planet Type: terrestrial<\/h1>/);
       expect(html).toContain('data-testid="planet-types-list-link"');
       expect(html).toContain('data-testid="guide-detail-summary"');
@@ -575,7 +571,6 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
 
       expect(html).toContain('data-testid="metrics-list-view-root"');
       expect(html).toContain('data-testid="guide-section-nav"');
-      expect(html).not.toContain('>Galaxy<');
       expect(html).toMatch(/<h1[^>]*>Telemetry Metrics<\/h1>/);
       expect(html).toContain('data-testid="metrics-guide-list"');
       expect(html).toContain('data-testid="metrics-guide-item"');
@@ -598,7 +593,6 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
       expect(html).toContain('data-testid="metric-detail-view-root"');
       expect(html).toContain('data-metric-id="semi-major-axis"');
       expect(html).toContain('data-testid="guide-section-nav"');
-      expect(html).not.toContain('>Galaxy<');
       expect(html).toMatch(/<h1[^>]*>Telemetry Metric: semi-major-axis<\/h1>/);
       expect(html).toContain('data-testid="metrics-list-link"');
       expect(html).toContain('data-testid="guide-detail-summary"');
@@ -649,7 +643,6 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
 
       expect(html).toContain('data-testid="hazards-list-view-root"');
       expect(html).toContain('data-testid="guide-section-nav"');
-      expect(html).not.toContain('>Galaxy<');
       expect(html).toMatch(/<h1[^>]*>Environmental Hazards<\/h1>/);
       expect(html).toContain('data-testid="hazards-guide-list"');
       expect(html).toContain('data-testid="hazards-guide-item"');
@@ -672,7 +665,6 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
       expect(html).toContain('data-testid="hazard-detail-view-root"');
       expect(html).toContain('data-hazard-id="flare-star"');
       expect(html).toContain('data-testid="guide-section-nav"');
-      expect(html).not.toContain('>Galaxy<');
       expect(html).toMatch(/<h1[^>]*>Environmental Hazard: Stellar flare activity<\/h1>/);
       expect(html).toContain('data-testid="hazards-list-link"');
       expect(html).toContain('data-testid="guide-detail-summary"');

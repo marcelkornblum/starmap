@@ -3,6 +3,7 @@ import type { FocusedPreviewSummary } from '../../../services/detailsService';
 import { buildMetricGuideHref } from '../../../services/searchService';
 import {
   Badge,
+  CelestialSymbol,
   Cluster,
   DataTable,
   Datum,
@@ -46,6 +47,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
         data-target-id={preview.targetId}
       >
         <Cluster gap="tight" align="center" data-testid="preview-target-title">
+          <CelestialSymbol type="stellar-system" size="sm" showTooltip={false} />
           <strong data-testid="preview-target-name">{preview.targetName}</strong>
           <Badge status="info">{preview.previewMode}</Badge>
         </Cluster>
@@ -105,7 +107,10 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
                   data-in-habitable-zone={orb.inHabitableZone ? 'true' : undefined}
                 >
                   <DataTable.Cell>
-                    <strong>{orb.name}</strong>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+                      <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
+                      <strong>{orb.name}</strong>
+                    </span>
                   </DataTable.Cell>
                   <DataTable.Cell numeric>
                     {orb.semiMajorAxisAu !== undefined ? (

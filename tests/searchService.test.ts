@@ -594,8 +594,8 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(html).toContain('data-testid="result-variation-planets"');
     expect(html).toContain('data-testid="result-variation-layers"');
     expect(html).not.toContain(' pc');
-    // System links to /galaxy/<systemname>, child items link to /system/<systemname>?focus=<itemname> (DEC-038)
-    expect(html).toContain('href="/galaxy/tau-ceti"');
+    // System links to /galaxy?focus=<systemname>, child items link to /system/<systemname>?focus=<itemname> (DEC-038)
+    expect(html).toContain('href="/galaxy?focus=tau-ceti"');
     expect(html).toContain('href="/system/tau-ceti?focus=tau-ceti-e"');
     expect(html).toContain(
       'href="/system/tau-ceti?focus=adrian&amp;select=layer:project-hail-mary&amp;layer=project-hail-mary:adrian"',
@@ -826,6 +826,14 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(renderToString(createElement(SearchResultItem, { result: layerNoCanon }))).toContain(
       '<span data-testid="result-variation-layers"></span>',
     );
+
+    // Reticle is positioned to the left of the item title link
+    const htmlStarOnePlanet = renderToString(createElement(SearchResultItem, { result: starOnePlanet }));
+    const reticleIdx = htmlStarOnePlanet.indexOf('data-testid="result-reticle-type"');
+    const titleIdx = htmlStarOnePlanet.indexOf('>One Planet Star</a>');
+    expect(reticleIdx).toBeGreaterThan(-1);
+    expect(titleIdx).toBeGreaterThan(-1);
+    expect(reticleIdx).toBeLessThan(titleIdx);
 
     // 9. getCachedCorpusForFilter & shard cache eviction on failure
     clearSearchRepositoryCache();
@@ -4058,11 +4066,11 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
     });
     expect(fictionSystemTarget).toEqual({
       targetView: 'galaxy',
-      href: '/galaxy/tau-ceti?select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti',
+      href: '/galaxy?focus=tau-ceti&select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti',
     });
 
     const fictionSystemItem = toSearchResultItem(fictionSystemEntry, 850, 'Tau Ceti');
-    expect(fictionSystemItem.href).toBe('/galaxy/tau-ceti?select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti');
+    expect(fictionSystemItem.href).toBe('/galaxy?focus=tau-ceti&select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti');
 
     // 2. Fictional child body canon entry
     const fictionChildEntry: CompactSearchEntry = {
@@ -4102,7 +4110,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
     });
     expect(starTarget).toEqual({
       targetView: 'galaxy',
-      href: '/galaxy/sol',
+      href: '/galaxy?focus=sol',
     });
 
     // 4. Non-canon solar system planet entry (routes to /system/sol?focus=earth)
@@ -4320,7 +4328,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
       tagSlug: 'habitable-candidate',
     });
     expect(systemResult.targetView).toBe('galaxy');
-    expect(systemResult.href).toBe('/galaxy/tau-ceti?select=tag:habitable-candidate');
+    expect(systemResult.href).toBe('/galaxy?focus=tau-ceti&select=tag:habitable-candidate');
 
     // 2. Solar system child body with tagSlug
     const solChildResult = buildResultTargetLink({
@@ -4342,7 +4350,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
       tagSlug: 'habitable-candidate',
     });
     expect(canonPrecedenceResult.href).toBe(
-      '/galaxy/tau-ceti?select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti',
+      '/galaxy?focus=tau-ceti&select=layer:project-hail-mary&layer=project-hail-mary:tau-ceti',
     );
 
     // 4. toSearchResultItem passes tagSlug through to href
@@ -4354,7 +4362,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
       g: SYSTEM_TAG_BITS.HabitableCandidate,
     };
     const item = toSearchResultItem(entry, 650, undefined, 'habitable-candidate');
-    expect(item.href).toBe('/galaxy/tau-ceti?select=tag:habitable-candidate');
+    expect(item.href).toBe('/galaxy?focus=tau-ceti&select=tag:habitable-candidate');
   });
 
   it('surfaces matching star systems via entry.g bitmask on tag queries with select=tag:<slug> href', () => {
@@ -4423,13 +4431,13 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
     const harborItem = habitableResults.groups.stars.items.find((it) => it.id === 'habitable-harbor');
     expect(harborItem).toBeDefined();
     expect(harborItem?.score).toBeGreaterThan(650);
-    expect(harborItem?.href).toBe('/galaxy/habitable-harbor?select=tag:habitable-candidate');
+    expect(harborItem?.href).toBe('/galaxy?focus=habitable-harbor&select=tag:habitable-candidate');
 
     // Tau Ceti has directScore === 0, so it gets scored at 650 with tagSlug attached
     const tauCetiItem = habitableResults.groups.stars.items.find((it) => it.id === 'tau-ceti');
     expect(tauCetiItem).toBeDefined();
     expect(tauCetiItem?.score).toBe(650);
-    expect(tauCetiItem?.href).toBe('/galaxy/tau-ceti?select=tag:habitable-candidate');
+    expect(tauCetiItem?.href).toBe('/galaxy?focus=tau-ceti&select=tag:habitable-candidate');
 
     // Sirius should NOT be in the habitable candidate stars group
     expect(habitableResults.groups.stars.items.some((it) => it.id === 'sirius')).toBe(false);
@@ -4440,7 +4448,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
     });
     const tauCetiCandidateItem = habitableCandidateResults.groups.stars.items.find((it) => it.id === 'tau-ceti');
     expect(tauCetiCandidateItem?.score).toBe(650);
-    expect(tauCetiCandidateItem?.href).toBe('/galaxy/tau-ceti?select=tag:habitable-candidate');
+    expect(tauCetiCandidateItem?.href).toBe('/galaxy?focus=tau-ceti&select=tag:habitable-candidate');
 
     // 2. Searching "naked eye" surfaces Sirius via entry.g bitmask at score 650
     const nakedEyeResults = executeCatalogSearch(corpusWithTags, {
@@ -4450,13 +4458,13 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
     const siriusItem = nakedEyeResults.groups.stars.items[0];
     expect(siriusItem.id).toBe('sirius');
     expect(siriusItem.score).toBe(650);
-    expect(siriusItem.href).toBe('/galaxy/sirius?select=tag:naked-eye');
+    expect(siriusItem.href).toBe('/galaxy?focus=sirius&select=tag:naked-eye');
 
     // 3. Normal query not in QUERY_CLEAN_KEY_TO_TAG_SLUG produces clean URLs without select=tag:...
     const siriusDirectResults = executeCatalogSearch(corpusWithTags, {
       query: 'Sirius',
     });
-    expect(siriusDirectResults.groups.stars.items[0].href).toBe('/galaxy/sirius');
+    expect(siriusDirectResults.groups.stars.items[0].href).toBe('/galaxy?focus=sirius');
   });
 
   describe('Centralised Orbit-Context View Targeting (DEC-038)', () => {
@@ -4480,7 +4488,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
       });
       expect(sysRes).toEqual({
         targetView: 'galaxy',
-        href: '/galaxy/tau-ceti',
+        href: '/galaxy?focus=tau-ceti',
       });
 
       const structRes = buildEntityOrbitTargetHref({
@@ -4490,7 +4498,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
       });
       expect(structRes).toEqual({
         targetView: 'galaxy',
-        href: '/galaxy/great-hercules-cluster',
+        href: '/galaxy?focus=great-hercules-cluster',
       });
     });
 

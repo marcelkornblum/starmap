@@ -228,7 +228,7 @@ const solGalaxyBodiesFixture: GalaxyBodiesSummary = {
     {
       id: 'sol',
       name: 'Sol',
-      href: '/galaxy/sol',
+      href: '/galaxy?focus=sol',
       tier: 'focused',
       reticleType: 'stellar-system',
       spectralType: 'G2V',
@@ -246,7 +246,7 @@ const solGalaxyBodiesFixture: GalaxyBodiesSummary = {
     {
       id: 'alpha-centauri',
       name: 'Alpha Centauri',
-      href: '/galaxy/alpha-centauri',
+      href: '/galaxy?focus=alpha-centauri',
       tier: 'active',
       reticleType: 'stellar-system',
       spectralType: 'G2V',
@@ -264,7 +264,7 @@ const solGalaxyBodiesFixture: GalaxyBodiesSummary = {
     {
       id: 'tau-ceti',
       name: 'Tau Ceti',
-      href: '/galaxy/tau-ceti',
+      href: '/galaxy?focus=tau-ceti',
       tier: 'selected',
       reticleType: 'stellar-system',
       spectralType: 'G8V',

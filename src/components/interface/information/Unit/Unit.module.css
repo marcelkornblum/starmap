@@ -19,13 +19,12 @@
   .unitLink,
   .unit a {
     color: inherit;
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    text-underline-offset: 2px;
+    text-decoration: none;
   }
 
   .unitLink:hover,
   .unit a:hover {
-    text-decoration-style: solid;
+    text-decoration: none;
+    color: var(--content-prominent);
   }
 }

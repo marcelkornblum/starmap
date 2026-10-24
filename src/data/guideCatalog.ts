@@ -102,12 +102,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: '10 Lacertae',
-        href: '/galaxy/10-lacertae?select=star-type:o',
+        href: '/galaxy?focus=10-lacertae&select=star-type:o',
         note: 'Standard O9V main-sequence reference star.',
       },
       {
         name: 'Alnitak',
-        href: '/galaxy/alnitak?select=star-type:o',
+        href: '/galaxy?focus=alnitak&select=star-type:o',
         note: 'O9.7Ib supergiant in Orion’s Belt.',
       },
     ],
@@ -132,12 +132,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Rigel',
-        href: '/galaxy/rigel?select=star-type:b',
+        href: '/galaxy?focus=rigel&select=star-type:b',
         note: 'B8Ia blue supergiant in Orion.',
       },
       {
         name: 'Regulus',
-        href: '/galaxy/regulus?select=star-type:b',
+        href: '/galaxy?focus=regulus&select=star-type:b',
         note: 'Rapidly rotating B7V star in Leo.',
       },
     ],
@@ -162,12 +162,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Sirius A',
-        href: '/galaxy/sirius?select=star-type:a',
+        href: '/galaxy?focus=sirius&select=star-type:a',
         note: 'A1V primary of the Sirius binary system at 2.6 pc.',
       },
       {
         name: 'Vega',
-        href: '/galaxy/vega?select=star-type:a',
+        href: '/galaxy?focus=vega&select=star-type:a',
         note: 'A0V standard photometric calibration baseline.',
       },
     ],
@@ -192,12 +192,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Procyon A',
-        href: '/galaxy/procyon?select=star-type:f',
+        href: '/galaxy?focus=procyon&select=star-type:f',
         note: 'F5IV-V subgiant in Canis Minor at 3.5 pc.',
       },
       {
         name: 'Gamma Virginis',
-        href: '/galaxy/gamma-virginis?select=star-type:f',
+        href: '/galaxy?focus=gamma-virginis&select=star-type:f',
         note: 'Binary F0V stellar pair.',
       },
     ],
@@ -222,17 +222,17 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Sol',
-        href: '/galaxy/sol?select=star-type:g',
+        href: '/galaxy?focus=sol&select=star-type:g',
         note: 'The Solar System primary, classification G2V.',
       },
       {
         name: 'Tau Ceti',
-        href: '/galaxy/tau-ceti?select=star-type:g',
+        href: '/galaxy?focus=tau-ceti&select=star-type:g',
         note: 'Nearby single G8.5V dwarf with an extensive debris disk and planetary system.',
       },
       {
         name: 'Alpha Centauri A',
-        href: '/galaxy/alpha-centauri?focus=alpha-centauri-a&select=star-type:g',
+        href: '/galaxy?focus=alpha-centauri-a&select=star-type:g',
         note: 'Primary component of the Alpha Centauri triple system, G2V.',
       },
     ],
@@ -257,12 +257,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Alpha Centauri B',
-        href: '/galaxy/alpha-centauri?focus=alpha-centauri-b&select=star-type:k',
+        href: '/galaxy?focus=alpha-centauri-b&select=star-type:k',
         note: 'Secondary component of Alpha Centauri, K1V dwarf.',
       },
       {
         name: 'Epsilon Eridani',
-        href: '/galaxy/epsilon-eridani?select=star-type:k',
+        href: '/galaxy?focus=epsilon-eridani&select=star-type:k',
         note: 'Young K2V dwarf with confirmed debris ring and exoplanets.',
       },
     ],
@@ -287,12 +287,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Proxima Centauri',
-        href: '/galaxy/alpha-centauri?focus=proxima-centauri&select=star-type:m',
+        href: '/galaxy?focus=proxima-centauri&select=star-type:m',
         note: 'Nearest star to the Sun (M5.5Ve flare dwarf) hosting terrestrial worlds.',
       },
       {
         name: "Barnard's Star",
-        href: '/galaxy/barnards-star?select=star-type:m',
+        href: '/galaxy?focus=barnards-star&select=star-type:m',
         note: 'High proper motion M4V dwarf in Ophiuchus.',
       },
     ],
@@ -317,7 +317,7 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Luhman 16',
-        href: '/galaxy/luhman-16?select=star-type:l',
+        href: '/galaxy?focus=luhman-16&select=star-type:l',
         note: 'Nearest known brown dwarf binary system (L7.5 / T0.5) at 2.0 pc.',
       },
     ],
@@ -342,7 +342,7 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Sirius B',
-        href: '/galaxy/sirius?select=star-type:d',
+        href: '/galaxy?focus=sirius&select=star-type:d',
         note: 'Nearest known white dwarf (DA2) orbiting Sirius A.',
       },
     ],
@@ -373,7 +373,7 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
       },
       {
         name: 'Proxima Centauri b',
-        href: '/galaxy/alpha-centauri?focus=proxima-centauri-b&select=planet-type:terrestrial',
+        href: '/galaxy?focus=proxima-centauri-b&select=planet-type:terrestrial',
         note: 'Terrestrial exoplanet orbiting within the conservative habitable zone of Proxima Centauri.',
       },
     ],
@@ -396,12 +396,12 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
     examples: [
       {
         name: 'Tau Ceti e',
-        href: '/galaxy/tau-ceti?focus=tau-ceti-e&select=planet-type:super-earth',
+        href: '/galaxy?focus=tau-ceti-e&select=planet-type:super-earth',
         note: 'Potentially rocky super-Earth orbiting near the inner edge of Tau Ceti’s habitable zone.',
       },
       {
         name: 'Tau Ceti f',
-        href: '/galaxy/tau-ceti?focus=tau-ceti-f&select=planet-type:super-earth',
+        href: '/galaxy?focus=tau-ceti-f&select=planet-type:super-earth',
         note: 'Outer super-Earth candidate in the Tau Ceti system.',
       },
     ],
@@ -438,7 +438,7 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
       },
       {
         name: 'Tau Ceti g',
-        href: '/galaxy/tau-ceti?focus=tau-ceti-g&select=planet-type:ice-giant',
+        href: '/galaxy?focus=tau-ceti-g&select=planet-type:ice-giant',
         note: 'Candidate sub-Neptune / ice-giant companion in the Tau Ceti system.',
       },
     ],

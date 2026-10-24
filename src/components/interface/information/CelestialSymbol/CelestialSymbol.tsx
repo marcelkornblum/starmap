@@ -203,7 +203,10 @@ export interface CelestialSymbolProps extends HTMLAttributes<HTMLElement> {
   readonly target?: string;
   readonly rel?: string;
   readonly colored?: boolean;
+  readonly category?: BadgeCategory;
+  readonly status?: BadgeStatus;
   readonly 'data-testid'?: string;
+  readonly children?: ReactNode;
 }
 
 const renderGlyphContent = (type: CelestialSymbolType): ReactNode => {
@@ -329,7 +332,10 @@ export const CelestialSymbol = ({
   target,
   rel,
   colored = true,
+  category,
+  status,
   className,
+  children,
   ...rest
 }: CelestialSymbolProps) => {
   const meta = CELESTIAL_SYMBOL_META[type] ?? {
@@ -341,8 +347,19 @@ export const CelestialSymbol = ({
     ? `${styles.symbol} ${className}`
     : styles.symbol;
 
-  const dataCategory = colored ? meta.badgeCategory : undefined;
-  const dataStatus = colored && !meta.badgeCategory ? (meta.badgeStatus ?? 'neutral') : undefined;
+  const dataCategory =
+    category !== undefined
+      ? category
+      : colored
+        ? meta.badgeCategory
+        : undefined;
+
+  const dataStatus =
+    status !== undefined
+      ? status
+      : colored && !meta.badgeCategory
+        ? (meta.badgeStatus ?? 'neutral')
+        : undefined;
 
   const svgNode = (
     <svg
@@ -376,6 +393,7 @@ export const CelestialSymbol = ({
     >
       {svgNode}
       {showLabel ? <span className={styles.label}>{meta.label}</span> : null}
+      {children}
     </a>
   ) : (
     <span
@@ -389,6 +407,7 @@ export const CelestialSymbol = ({
     >
       {svgNode}
       {showLabel ? <span className={styles.label}>{meta.label}</span> : null}
+      {children}
     </span>
   );
 

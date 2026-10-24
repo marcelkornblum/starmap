@@ -308,13 +308,21 @@ describe('useStarmapNav Navigation Enforcer', () => {
   it('configures router basepath and normalises location pathname in resolveSpaLocation', () => {
     expect(router.basepath).toBeDefined();
 
-    // Direct root base
+    // Direct root base (normalizes legacy /galaxy/$systemId to /galaxy?focus=...)
     const direct = resolveSpaLocation('/galaxy/sol', '?zoom=2', '/');
-    expect(direct).toEqual({ pathname: '/galaxy/sol', search: '?zoom=2' });
+    expect(direct).toEqual({ pathname: '/galaxy', search: '?focus=sol&zoom=2' });
 
-    // Subpath base under /starmap
+    // Subpath base under /starmap (normalizes legacy /galaxy/$systemId to /galaxy?focus=...)
     const subpath = resolveSpaLocation('/starmap/galaxy/sol', '?zoom=2', '/starmap/');
-    expect(subpath).toEqual({ pathname: '/galaxy/sol', search: '?zoom=2' });
+    expect(subpath).toEqual({ pathname: '/galaxy', search: '?focus=sol&zoom=2' });
+
+    // Legacy /galaxy/$systemId with empty search
+    const legacyEmpty = resolveSpaLocation('/galaxy/tau-ceti', '', '/');
+    expect(legacyEmpty).toEqual({ pathname: '/galaxy', search: '?focus=tau-ceti' });
+
+    // Legacy /galaxy/$systemId with existing focus
+    const legacyExplicitFocus = resolveSpaLocation('/galaxy/tau-ceti', '?focus=tau-ceti-e', '/');
+    expect(legacyExplicitFocus).toEqual({ pathname: '/galaxy', search: '?focus=tau-ceti-e' });
 
     // Root index under /starmap
     const rootSubpath = resolveSpaLocation('/starmap/', '', '/starmap/');

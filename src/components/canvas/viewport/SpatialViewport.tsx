@@ -19,6 +19,7 @@ import {
   CelestialEntity,
   OcclusionPass,
   type SpatialEntityDefinition,
+  type SpatialEntityStore,
   createSpatialEntityStore,
   activateEntity,
   focusEntity,
@@ -40,6 +41,10 @@ export interface SpatialViewportProps {
   onInspect?: (id: string) => void;
   /** Callback on entity selection change */
   onSelect?: (id: string | null) => void;
+  /** Callback on entity focus change */
+  onFocusChange?: (id: string | null) => void;
+  /** Outer spatial entity store to sync focus and selection states towards */
+  outerStore?: SpatialEntityStore;
   /** Optional custom children (e.g. PlanetBody, custom routes, bespoke layers) */
   children?: React.ReactNode;
   /** Reference camera distance at which the instrument aperture equals the frame radius (screen-constant footprint calibration) */
@@ -78,6 +83,8 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   mode = 'explore',
   onInspect,
   onSelect,
+  onFocusChange,
+  outerStore,
   children,
   showInstrument = true,
   showPlanarFootprint = false,
@@ -111,17 +118,43 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     }
   }, [globalSelectedId, syncWithUIStore, storeApi]);
 
-  // Synchronise local store selection changes outward to UI store and callbacks
+  // Synchronise local store selection & focus changes outward to UI store, outer spatial store, and callbacks
   useEffect(() => {
     return storeApi.subscribe((state, prevState) => {
       if (state.selectedId !== prevState.selectedId) {
         if (syncWithUIStore && useUIStore.getState().selectedNodeId !== state.selectedId) {
           useUIStore.getState().setSelectedNodeId(state.selectedId);
         }
+        if (outerStore && outerStore !== storeApi) {
+          if (state.selectedId) {
+            const entity = state.entities[state.selectedId];
+            if (entity && !outerStore.getState().entities[entity.id]) {
+              outerStore.getState().registerEntity(entity);
+            }
+          }
+          if (outerStore.getState().selectedId !== state.selectedId) {
+            outerStore.getState().setSelected(state.selectedId);
+          }
+        }
         onSelect?.(state.selectedId);
       }
+
+      if (state.focusedId !== prevState.focusedId) {
+        if (outerStore && outerStore !== storeApi) {
+          if (state.focusedId) {
+            const entity = state.entities[state.focusedId];
+            if (entity && !outerStore.getState().entities[entity.id]) {
+              outerStore.getState().registerEntity(entity);
+            }
+          }
+          if (outerStore.getState().focusedId !== state.focusedId) {
+            outerStore.getState().setFocused(state.focusedId);
+          }
+        }
+        onFocusChange?.(state.focusedId);
+      }
     });
-  }, [storeApi, syncWithUIStore, onSelect]);
+  }, [storeApi, outerStore, syncWithUIStore, onSelect, onFocusChange]);
 
   // Single click: select, or advance cyclic selection when re-clicking the selected entity
   const handleEntityClick = useCallback(
@@ -204,6 +237,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
  * entity composites, and bespoke planetary bodies.
  */
 export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
+  const outerStore = useSpatialEntityStoreApi();
   const { frame = GALACTIC_FRAME, cameraDistance, initialSelectedId } = props;
 
   // Single source of the screen-constant reference distance for both instrument and entities.
@@ -256,7 +290,7 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
       lockToFocusPoint={true}
     >
       <SpatialEntityProvider store={scopedStore}>
-        <SpatialViewportContent {...props} />
+        <SpatialViewportContent {...props} outerStore={props.outerStore ?? outerStore} />
       </SpatialEntityProvider>
     </SpatialFrameProvider>
   );

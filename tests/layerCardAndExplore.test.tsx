@@ -140,7 +140,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
       const res = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS);
       expect(res.targetView).toBe('galaxy');
       expect(res.href).toBe(
-        '/galaxy/tau-ceti?select=layer:recent-discoveries&layer=recent-discoveries:tau-ceti',
+        '/galaxy?focus=tau-ceti&select=layer:recent-discoveries&layer=recent-discoveries:tau-ceti',
       );
     });
 
@@ -378,7 +378,7 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
     );
 
     expect(html).toContain('data-testid="details-canon-item-link"');
-    expect(html).toContain('href="/galaxy/tau-ceti?select=layer:project-hail-mary&amp;layer=project-hail-mary:tau-ceti"');
+    expect(html).toContain('href="/galaxy?focus=tau-ceti&amp;select=layer:project-hail-mary&amp;layer=project-hail-mary:tau-ceti"');
   });
 
   it('renders <LayerCard /> on GalaxyView, SystemView, and PlanetView when ?layer= is present', async () => {

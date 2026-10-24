@@ -13,6 +13,37 @@
     max-inline-size: 480px;
     inline-size: 100%;
     box-sizing: border-box;
+    container-type: inline-size;
+    container-name: detent-sheet;
+  }
+
+  .dragHandleBar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-block: var(--space-fib-1);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .dragHandleBar:active {
+    cursor: grabbing;
+  }
+
+  .dragHandlePill {
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-full, 9999px);
+    background-color: var(--palette-surface-contrast-low, rgba(255, 255, 255, 0.3));
+    transition: background-color var(--motion-duration-feedback, 150ms) var(--motion-ease-default, ease);
+  }
+
+  .dragHandleBar:hover .dragHandlePill,
+  .dragHandleBar:active .dragHandlePill {
+    background-color: var(--palette-surface-contrast-high, rgba(255, 255, 255, 0.6));
   }
 
   .srOnly {
@@ -31,5 +62,32 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-fib-2);
+  }
+}
+
+@layer exceptions {
+  @media (min-width: 768px) {
+    .dragHandleBar {
+      display: none;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .detentSheet {
+      block-size: var(--sheet-mobile-height, 36dvh);
+      min-block-size: 3.5rem;
+      max-block-size: 100dvh;
+      max-inline-size: 100%;
+      border-end-start-radius: 0;
+      border-end-end-radius: 0;
+      overflow-y: hidden;
+      touch-action: none;
+    }
+
+    .detentSheet[data-is-full-screen="true"] {
+      overflow-y: auto;
+      touch-action: pan-y;
+      border-radius: 0;
+    }
   }
 }

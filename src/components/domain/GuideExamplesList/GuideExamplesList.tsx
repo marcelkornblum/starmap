@@ -1,5 +1,5 @@
 import type React from 'react';
-import { DataTable, Heading } from '../../interface';
+import { CelestialSymbol, DataTable, Heading } from '../../interface';
 import type { GuideExampleTarget } from '../../../services/guideService';
 import styles from './GuideExamplesList.module.css';
 
@@ -24,9 +24,16 @@ export const GuideExamplesList: React.FC<GuideExamplesListProps> = ({
           {examples.map((ex) => (
             <DataTable.Row key={ex.name} data-testid="guide-example-item">
               <DataTable.Cell>
-                <a href={ex.href} data-testid="guide-example-link">
-                  {ex.name}
-                </a>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+                  <CelestialSymbol
+                    type={ex.href.includes('planet') ? 'terrestrial' : 'star'}
+                    size="sm"
+                    showTooltip={false}
+                  />
+                  <a href={ex.href} data-testid="guide-example-link">
+                    {ex.name}
+                  </a>
+                </span>
               </DataTable.Cell>
               <DataTable.Cell>{ex.note}</DataTable.Cell>
             </DataTable.Row>
