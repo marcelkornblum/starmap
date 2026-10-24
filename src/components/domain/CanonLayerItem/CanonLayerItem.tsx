@@ -32,6 +32,15 @@ export const CanonLayerItem = ({
   const badgeHref =
     annotation.layerHref || buildLayerGalaxyHref(annotation.layerId);
 
+  const titleNode = (
+    <strong
+      className={styles.title}
+      data-testid="details-canon-item-title"
+    >
+      {title}
+    </strong>
+  );
+
   return (
     <Component
       className={className ? `${styles.item} ${className}` : styles.item}
@@ -47,20 +56,10 @@ export const CanonLayerItem = ({
             className={styles.titleLink}
             data-testid="details-canon-item-link"
           >
-            <strong
-              className={styles.title}
-              data-testid="details-canon-item-title"
-            >
-              {title}
-            </strong>
+            {titleNode}
           </a>
         ) : (
-          <strong
-            className={styles.title}
-            data-testid="details-canon-item-title"
-          >
-            {title}
-          </strong>
+          titleNode
         )}
         {annotation.subtitle ? (
           <span
