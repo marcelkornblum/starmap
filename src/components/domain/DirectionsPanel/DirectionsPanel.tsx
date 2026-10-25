@@ -129,7 +129,7 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
           className={styles.routeTitle}
         />
         {isComingSoon ? (
-          <Badge status="caution" role="alert" data-testid="directions-coming-soon">
+          <Badge status="caution" data-testid="directions-coming-soon">
             Coming soon
           </Badge>
         ) : isDetailMode && selectedOption ? (

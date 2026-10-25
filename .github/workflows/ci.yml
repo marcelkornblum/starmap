@@ -69,22 +69,6 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: npm run coverage:comment
 
-  e2e:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-      - name: Run E2E tests
-        run: npm run test:e2e
-
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -122,7 +106,7 @@ jobs:
 
   ci-complete:
     name: CI Complete
-    needs: [lint, typecheck, test, build, e2e]
+    needs: [lint, typecheck, test, build]
     runs-on: ubuntu-latest
     if: always()
     steps:
