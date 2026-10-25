@@ -54,8 +54,8 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
     // Add up to 25 nearest non-duplicate streamed stars to keep CelestialEntity count bounded
     let added = 0;
     for (let i = 0; i < streamedSummaries.length && added < 25; i++) {
-      const s = streamedSummaries[i]!;
-      if (!existingIds.has(s.id)) {
+      const s = streamedSummaries[i];
+      if (s && !existingIds.has(s.id)) {
         existingIds.add(s.id);
         baseEntities.push({
           id: s.id,

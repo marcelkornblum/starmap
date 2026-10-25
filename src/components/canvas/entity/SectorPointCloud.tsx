@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
@@ -23,25 +23,31 @@ export interface SectorPointCloudProps {
  * Streams 16-byte binary sector partitions with asynchronous GPU uploading,
  * LRU RAM caching, and zero-allocation frame updates.
  */
-export const SectorPointCloud: React.FC<SectorPointCloudProps> = ({
+export function SectorPointCloud({
   manager,
   pointSize = 2.0,
   pointOpacity = 0.85,
   onHydratedSummariesChange,
-}) => {
+}: SectorPointCloudProps) {
   const reticleBracketColor = useThreeTokenStore((s) => s.tokens.reticleBracketColor);
   const frameCtx = useSpatialFrameSafe();
   const groupRef = useRef<THREE.Group>(null);
 
   const material = useMemo(() => {
     return new THREE.PointsMaterial({
-      size: pointSize,
+      size: 2.0,
       sizeAttenuation: false,
       transparent: true,
-      opacity: pointOpacity,
+      opacity: 0.85,
       depthWrite: false,
     });
-  }, [pointSize, pointOpacity]);
+  }, []);
+
+  useEffect(() => {
+    material.size = pointSize;
+    material.opacity = pointOpacity;
+    material.needsUpdate = true;
+  }, [material, pointSize, pointOpacity]);
 
   useEffect(() => {
     material.color.copy(reticleBracketColor);
@@ -101,7 +107,11 @@ export const SectorPointCloud: React.FC<SectorPointCloudProps> = ({
 
     const handleSectorsChanged = async () => {
       const queryInputs = resolvedManager.getActiveSectorQueryInputs();
-      const pos = scratchPosRef.current;
+      const pos: [number, number, number] = [
+        scratchPosRef.current[0],
+        scratchPosRef.current[1],
+        scratchPosRef.current[2],
+      ];
       const apertureRadius = frameCtx?.frameRef?.current?.apertureRadius ?? 15.0;
       const state = await hydrationBridge.updateInstrumentPerimeter(
         queryInputs,
@@ -156,4 +166,4 @@ export const SectorPointCloud: React.FC<SectorPointCloudProps> = ({
   });
 
   return <group ref={groupRef} name="galactic-sector-point-cloud" />;
-};
+}
