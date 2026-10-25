@@ -45,7 +45,7 @@ function getOrBuildBucketHashIndex(
   if (!index) {
     index = new Map<number, string>();
     for (const id of Object.keys(data)) {
-      index.set(fnv1a32(id), id);
+      index.set(fnv1a32(id) >>> 0, id);
     }
     RESOLVED_SUMMARY_HASH_INDEX.set(bucketKey, index);
   }

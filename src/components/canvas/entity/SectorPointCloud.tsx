@@ -125,7 +125,13 @@ export function SectorPointCloud({
       void handleSectorsChanged();
     });
 
-    void resolvedManager.updateCameraPosition([0, 0, 0]);
+    if (Number.isNaN(lastXRef.current)) {
+      void resolvedManager.updateCameraPosition([
+        scratchPosRef.current[0],
+        scratchPosRef.current[1],
+        scratchPosRef.current[2],
+      ]);
+    }
 
     return () => {
       unsubscribe();
