@@ -68,6 +68,7 @@ export default defineConfig(({ mode }) => {
             globals: true,
             environment: 'node',
             setupFiles: ['./tests/setup.ts'],
+            exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
             server: {
               deps: {
                 inline: ['three'],

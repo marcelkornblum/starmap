@@ -40,3 +40,5 @@ scratch/*.cjs
 scratch/*.js
 scratch/*.png
 artifacts/
+/test-results/
+/playwright-report/
