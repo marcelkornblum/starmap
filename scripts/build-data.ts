@@ -40,6 +40,7 @@ import {
   buildSearchIndices,
   encodeSectorPartition,
 } from '../src/utils/compactDataCodec';
+import { encodeBinarySector } from '../src/utils/binarySectorCodec';
 import {
   encodeLayerManifest,
   buildLayerIndexManifest,
@@ -1951,6 +1952,10 @@ export async function buildCsvDataPipeline(
             JSON.stringify(partitionManifest),
             'utf-8',
           );
+          fs.writeFileSync(
+            path.join(resolvedPartitions, `${sectorId}.bin`),
+            encodeBinarySector(partitionManifest),
+          );
         }
       }
 
@@ -2791,6 +2796,7 @@ export async function buildGaiaDataPipeline(
 
           const payload = options.compactFormat ? encodeSectorPartition(manifest) : manifest;
           fs.writeFileSync(path.join(resolvedPartitions, `${sectorId}.json`), JSON.stringify(payload), 'utf-8');
+          fs.writeFileSync(path.join(resolvedPartitions, `${sectorId}.bin`), encodeBinarySector(manifest));
         }
       }
 

@@ -15,6 +15,7 @@ import {
   type CompactSummaryNode,
   type ShardedBucketEnvelope,
 } from '../utils/compactDataCodec';
+import { fnv1a32, getShardKeyFromHash } from '../utils/binarySectorCodec';
 import { resolveDataUrl } from '../utils/url';
 
 export type DecodedDetailRecord =
@@ -31,6 +32,25 @@ const RESOLVED_SUMMARY_BUCKET_CACHE = new Map<
   string,
   Record<string, CompactSummaryNode>
 >();
+const RESOLVED_SUMMARY_HASH_INDEX = new Map<string, Map<number, string>>();
+
+/**
+ * Builds or retrieves a reverse mapping from 32-bit FNV-1a hash to canonical string ID for a summary bucket.
+ */
+function getOrBuildBucketHashIndex(
+  bucketKey: string,
+  data: Record<string, CompactSummaryNode>,
+): Map<number, string> {
+  let index = RESOLVED_SUMMARY_HASH_INDEX.get(bucketKey);
+  if (!index) {
+    index = new Map<number, string>();
+    for (const id of Object.keys(data)) {
+      index.set(fnv1a32(id), id);
+    }
+    RESOLVED_SUMMARY_HASH_INDEX.set(bucketKey, index);
+  }
+  return index;
+}
 
 const DETAIL_BUCKET_CACHE = new Map<
   string,
@@ -84,6 +104,28 @@ export const getCachedSummaryNode = (
 };
 
 /**
+ * Synchronously retrieves a decoded `SystemSummaryNode` by 32-bit FNV-1a ID hash if its bucket is cached in memory.
+ */
+export const getCachedSummaryNodeByHash = (
+  idHash: number,
+): SystemSummaryNode | undefined => {
+  if (!Number.isFinite(idHash)) {
+    return undefined;
+  }
+  const unsignedHash = idHash >>> 0;
+  const bucketKey = getShardKeyFromHash(unsignedHash);
+  const bucket = RESOLVED_SUMMARY_BUCKET_CACHE.get(bucketKey);
+  if (!bucket) {
+    return undefined;
+  }
+  const index = getOrBuildBucketHashIndex(bucketKey, bucket);
+  const canonicalId = index.get(unsignedHash);
+  return canonicalId && bucket[canonicalId]
+    ? decodeSummaryNode(bucket[canonicalId], canonicalId)
+    : undefined;
+};
+
+/**
  * Synchronously retrieves a decoded detail record by ID if its 36-bucket shard
  * is already cached in memory.
  */
@@ -113,6 +155,36 @@ export const getCachedExoplanetFromSystem = (
   return sysDetail.record.planets.find((p) => p.id === planetId);
 };
 
+const loadSummaryBucket = (
+  bucketKey: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Record<string, CompactSummaryNode>> => {
+  let pending = SUMMARY_BUCKET_CACHE.get(bucketKey);
+  if (!pending) {
+    pending = (async () => {
+      const response = await fetchImpl(
+        resolveDataUrl(`/data/summaries/${bucketKey}.json`),
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load summary shard "${bucketKey}": ${response.status} ${response.statusText}`,
+        );
+      }
+      const envelope =
+        (await response.json()) as ShardedBucketEnvelope<CompactSummaryNode>;
+      const data = envelope.d ?? {};
+      RESOLVED_SUMMARY_BUCKET_CACHE.set(bucketKey, data);
+      getOrBuildBucketHashIndex(bucketKey, data);
+      return data;
+    })().catch((err: unknown) => {
+      SUMMARY_BUCKET_CACHE.delete(bucketKey);
+      throw err;
+    });
+    SUMMARY_BUCKET_CACHE.set(bucketKey, pending);
+  }
+  return pending;
+};
+
 /**
  * Fetches and caches the summary shard bucket (`public/data/summaries/<0..z>.json`) for a given entity ID.
  */
@@ -129,32 +201,30 @@ export const fetchSummaryNode = async (
   }
 
   const bucketKey = getShardKey(id);
-  let pending = SUMMARY_BUCKET_CACHE.get(bucketKey);
-  if (!pending) {
-    pending = (async () => {
-      const response = await fetchImpl(
-        resolveDataUrl(`/data/summaries/${bucketKey}.json`),
-      );
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load summary shard "${bucketKey}": ${response.status} ${response.statusText}`,
-        );
-      }
-      const envelope =
-        (await response.json()) as ShardedBucketEnvelope<CompactSummaryNode>;
-      const data = envelope.d ?? {};
-      RESOLVED_SUMMARY_BUCKET_CACHE.set(bucketKey, data);
-      return data;
-    })().catch((err: unknown) => {
-      SUMMARY_BUCKET_CACHE.delete(bucketKey);
-      throw err;
-    });
-    SUMMARY_BUCKET_CACHE.set(bucketKey, pending);
-  }
-
-  const dict = await pending;
+  const dict = await loadSummaryBucket(bucketKey, fetchImpl);
   const compact = dict[id];
   return compact ? decodeSummaryNode(compact, id) : undefined;
+};
+
+/**
+ * Fetches and caches the summary shard bucket for a given 32-bit FNV-1a ID hash.
+ */
+export const fetchSummaryNodeByHash = async (
+  idHash: number,
+  fetchImpl: typeof fetch = fetch,
+): Promise<SystemSummaryNode | undefined> => {
+  if (!Number.isFinite(idHash)) {
+    return undefined;
+  }
+  const cached = getCachedSummaryNodeByHash(idHash);
+  if (cached) {
+    return cached;
+  }
+
+  const unsignedHash = idHash >>> 0;
+  const bucketKey = getShardKeyFromHash(unsignedHash);
+  await loadSummaryBucket(bucketKey, fetchImpl);
+  return getCachedSummaryNodeByHash(unsignedHash);
 };
 
 /**
@@ -207,6 +277,7 @@ export const fetchDetailRecord = async (
 export const clearDetailsRepositoryCache = (): void => {
   SUMMARY_BUCKET_CACHE.clear();
   RESOLVED_SUMMARY_BUCKET_CACHE.clear();
+  RESOLVED_SUMMARY_HASH_INDEX.clear();
   DETAIL_BUCKET_CACHE.clear();
   RESOLVED_DETAIL_BUCKET_CACHE.clear();
 };

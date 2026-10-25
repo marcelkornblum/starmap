@@ -8,6 +8,10 @@ import {
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
 } from '../cartography';
+import {
+  computeMaxSafeCameraDistancePc,
+  getDeviceTierBudget,
+} from '../../../services/deviceTierService';
 import { SceneTokenBridge } from '../ThemeTokenBridge';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
@@ -105,6 +109,11 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
     [targetCoords],
   );
 
+  const maxSafeDistance = useMemo(
+    () => computeMaxSafeCameraDistancePc(getDeviceTierBudget()),
+    [],
+  );
+
   const containerClass = className
     ? `${styles.viewportContainer} ${className}`
     : styles.viewportContainer;
@@ -131,7 +140,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             enableDamping
             dampingFactor={CONTROLS_DAMPING_FACTOR}
             minDistance={2.5}
-            maxDistance={85}
+            maxDistance={maxSafeDistance}
           />
 
           <GalacticCameraController target={targetCoords} />

@@ -1,0 +1,13 @@
+{
+  "id": "spatial-data-runtime_20261025",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-10-25T15:55:20Z",
+  "updated_at": "2026-10-25T21:56:50Z",
+  "initiative": null,
+  "phase": 5,
+  "depends_on": [
+    "data-pipeline_20260929",
+    "astro-math-core_20260929"
+  ]
+}
