@@ -25,6 +25,7 @@ import {
   expandGlieseVariants,
   resolveStarDisplayName,
 } from './nomenclature';
+import { fnv1a32, getShardKeyFromHash } from './binarySectorCodec';
 
 export const CONFIDENCE_TO_CODE: Record<ObservationalConfidence, 1 | 2 | 3 | 4> = {
   confirmed: 1,
@@ -67,12 +68,7 @@ export const THEORETICAL_SOLAR_FLAGS = {
  * such as "gaia-", "hip-", "hd-", "ngc-", or "pha-".
  */
 export function getShardKey(id: string): string {
-  let hash = 2166136261;
-  for (let i = 0; i < id.length; i++) {
-    hash ^= id.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return ((hash >>> 0) % 36).toString(36);
+  return getShardKeyFromHash(fnv1a32(id));
 }
 
 export type OrbitTuple = [

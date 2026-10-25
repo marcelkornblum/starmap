@@ -12,6 +12,7 @@ import {
 } from '../scripts/build-data';
 import { DATA_SOURCES_REGISTRY, getDataSource, getDataSourcesByLayer } from '../scripts/sources.config';
 import type { StarmapNode, SectorPartitionManifest, ExoplanetRecord } from '../src/types/astro';
+import { decodeBinarySector, BINARY_SECTOR_MAGIC } from '../src/utils/binarySectorCodec';
 
 describe('Data Pipeline - parseHygRow', () => {
   it('correctly maps Sol at origin', () => {
@@ -244,12 +245,23 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
     expect(brightCat.header.catalogId).toBe('reference-bright-stars');
     expect(brightCat.systems).toHaveLength(2);
 
-    // Verify sector partitions
+    // Verify sector partitions (both .json and .bin)
     const originSectorPath = path.join(tempPartitionsDir, 'sector_+000_+000_+000.json');
     expect(fs.existsSync(originSectorPath)).toBe(true);
     const originSector: SectorPartitionManifest = JSON.parse(fs.readFileSync(originSectorPath, 'utf-8'));
     expect(originSector.sectorId).toBe('sector_+000_+000_+000');
     expect(originSector.count).toBeGreaterThanOrEqual(2);
+
+    const originSectorBinPath = path.join(tempPartitionsDir, 'sector_+000_+000_+000.bin');
+    expect(fs.existsSync(originSectorBinPath)).toBe(true);
+    const binBuffer = fs.readFileSync(originSectorBinPath);
+    const decoded = decodeBinarySector(
+      binBuffer.buffer.slice(binBuffer.byteOffset, binBuffer.byteOffset + binBuffer.byteLength) as ArrayBuffer,
+    );
+    expect(decoded.header.magic).toBe(BINARY_SECTOR_MAGIC);
+    expect(decoded.header.count).toBe(originSector.count);
+    expect(decoded.positions.length).toBe(originSector.count * 3);
+    expect(decoded.ids.length).toBe(originSector.count);
   });
 });
 
