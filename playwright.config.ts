@@ -12,7 +12,14 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:5173',
     trace: 'on-first-retry',
     launchOptions: {
-      args: ['--disable-dev-shm-usage', '--disable-gpu'],
+      args: [
+        '--use-gl=angle',
+        '--use-angle=swiftshader',
+        '--enable-webgl',
+        '--ignore-gpu-blocklist',
+        '--disable-dev-shm-usage',
+        '--no-sandbox',
+      ],
     },
   },
   projects: [
@@ -27,7 +34,10 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://127.0.0.1:5173',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      BASE_PATH: '/',
+    },
   },
 });
