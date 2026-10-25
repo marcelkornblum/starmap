@@ -126,6 +126,9 @@ export function SectorPointCloud({
     });
 
     if (Number.isNaN(lastXRef.current)) {
+      lastXRef.current = scratchPosRef.current[0];
+      lastYRef.current = scratchPosRef.current[1];
+      lastZRef.current = scratchPosRef.current[2];
       void resolvedManager.updateCameraPosition([
         scratchPosRef.current[0],
         scratchPosRef.current[1],
