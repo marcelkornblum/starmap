@@ -79,7 +79,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   center = true,
   wrapperClass,
   className,
-  pointerEvents = 'auto',
+  pointerEvents = 'none',
   zIndexRange,
   onOcclude,
   'data-testid': dataTestId,

@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   fetchEntityAnnotations,
   fetchLayerManifest,
@@ -36,7 +36,7 @@ export const useLoadedLayerManifests = (
   search: string,
 ): readonly DatasetLayerManifest[] => {
   const layerIndex = useLayerIndex();
-  const [, setLoadTick] = useState<number>(0);
+  const [loadTick, setLoadTick] = useState<number>(0);
 
   const layerIds = [
     ...new Set(extractUrlSelectSlugs(search, layerIndex).layerSlugs),
@@ -47,9 +47,13 @@ export const useLoadedLayerManifests = (
     if (!layerKey || typeof window === 'undefined') {
       return;
     }
+    const ids = layerKey.split(',');
+    if (ids.every((id) => getCachedLayerManifest(id) !== undefined)) {
+      return;
+    }
     let cancelled = false;
     void Promise.all(
-      layerKey.split(',').map((id) => fetchLayerManifest(id).catch(() => undefined)),
+      ids.map((id) => fetchLayerManifest(id).catch(() => undefined)),
     ).then(() => {
       if (!cancelled) {
         setLoadTick((n) => n + 1);
@@ -60,10 +64,15 @@ export const useLoadedLayerManifests = (
     };
   }, [layerKey]);
 
-  return layerIds.flatMap((id) => {
-    const manifest = getCachedLayerManifest(id);
-    return manifest ? [manifest] : [];
-  });
+  return useMemo(() => {
+    if (!layerKey) {
+      return [];
+    }
+    return layerKey.split(',').flatMap((id) => {
+      const manifest = getCachedLayerManifest(id);
+      return manifest ? [manifest] : [];
+    });
+  }, [layerKey, loadTick]);
 };
 
 /**
@@ -74,7 +83,7 @@ export const useLoadedLayerManifests = (
 export const useEntityAnnotations = (
   entityIds: readonly string[],
 ): readonly DecodedEntityAnnotation[] => {
-  const [, setLoadTick] = useState<number>(0);
+  const [loadTick, setLoadTick] = useState<number>(0);
   const entityKey = [...new Set(entityIds.filter((id) => id.length > 0))].join(
     '\n',
   );
@@ -96,5 +105,8 @@ export const useEntityAnnotations = (
     };
   }, [entityKey]);
 
-  return getCachedEntityAnnotations(entityIds);
+  return useMemo(
+    () => getCachedEntityAnnotations(entityKey ? entityKey.split('\n') : []),
+    [entityKey, loadTick],
+  );
 };

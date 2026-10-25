@@ -136,11 +136,14 @@ export function pickRandomLayerOverviewHref(
   const parsedCurrent = parseLayerQueryParam(currentLayerParam);
   const activeSlug = parsedCurrent?.layerSlug;
 
-  const candidates = activeSlug
-    ? layers.filter((l) => toCanonicalLayerSlug(l.layerId) !== activeSlug)
-    : layers;
+  const multiEntryLayers = layers.filter((l) => (l.entryCount ?? 1) > 1);
+  const basePool = multiEntryLayers.length > 0 ? multiEntryLayers : layers;
 
-  const pool = candidates.length > 0 ? candidates : layers;
+  const candidates = activeSlug
+    ? basePool.filter((l) => toCanonicalLayerSlug(l.layerId) !== activeSlug)
+    : basePool;
+
+  const pool = candidates.length > 0 ? candidates : basePool;
   const pickedIndex = Math.min(
     Math.floor(randomFn() * pool.length),
     pool.length - 1,
@@ -333,19 +336,35 @@ export function resolveActiveLayerCard(
     );
     const systemSlug = entry.systemId ? toUrlSlug(entry.systemId) : '';
     const nameSlug = entry.inUniverseName ? toUrlSlug(entry.inUniverseName) : '';
+    const resolvedSlug = entry.resolvedName ? toUrlSlug(entry.resolvedName) : '';
     const aliasSlugs = splitAliases(entry.aliases).map(toUrlSlug);
+
+    let systemDisplaySlug = '';
+    if (entry.systemId && input.corpus) {
+      const sysEntry = findFocusedEntryInCorpus(entry.systemId, input.corpus);
+      if (sysEntry) {
+        systemDisplaySlug = toUrlSlug(resolveResultDisplayTitle(sysEntry));
+      }
+    }
 
     return (
       rawTargetSlug === targetItemSlug ||
       cleanTargetSlug === targetItemSlug ||
-      systemSlug === targetItemSlug ||
-      nameSlug === targetItemSlug ||
-      aliasSlugs.includes(targetItemSlug)
+      (systemSlug.length > 0 && systemSlug === targetItemSlug) ||
+      (nameSlug.length > 0 && nameSlug === targetItemSlug) ||
+      (resolvedSlug.length > 0 && resolvedSlug === targetItemSlug) ||
+      (systemDisplaySlug.length > 0 && systemDisplaySlug === targetItemSlug) ||
+      aliasSlugs.includes(targetItemSlug) ||
+      (cleanTargetSlug.length > 0 && targetItemSlug.startsWith(cleanTargetSlug)) ||
+      (systemSlug.length > 0 && targetItemSlug.startsWith(systemSlug))
     );
   });
 
+  const effectiveEntryIndex =
+    entryIndex === -1 && orderedEntries.length === 1 ? 0 : entryIndex;
+
   // If itemSlug does not match any entry in this layer, fallback to overview
-  if (entryIndex === -1) {
+  if (effectiveEntryIndex === -1) {
     const firstEntry = orderedEntries[0];
     const firstItemTitle = firstEntry
       ? firstEntry.inUniverseName ||
@@ -378,25 +397,25 @@ export function resolveActiveLayerCard(
     };
   }
 
-  const activeEntry = orderedEntries[entryIndex];
+  const activeEntry = orderedEntries[effectiveEntryIndex];
   const totalItems = orderedEntries.length;
-  const stepIndex = entryIndex + 1;
+  const stepIndex = effectiveEntryIndex + 1;
 
   const prevHref =
-    entryIndex === 0
+    effectiveEntryIndex === 0
       ? overviewHref
       : resolveLayerItemTargetHref(
           layer,
-          orderedEntries[entryIndex - 1],
+          orderedEntries[effectiveEntryIndex - 1],
           input.corpus,
           input.currentPathname,
         ).href;
-  const prevLabel = entryIndex === 0 ? 'Overview' : 'Previous';
+  const prevLabel = effectiveEntryIndex === 0 ? 'Overview' : 'Previous';
 
   const nextEntry =
-    entryIndex === totalItems - 1
+    effectiveEntryIndex === totalItems - 1
       ? orderedEntries[0]
-      : orderedEntries[entryIndex + 1];
+      : orderedEntries[effectiveEntryIndex + 1];
   const nextHref = resolveLayerItemTargetHref(
     layer,
     nextEntry,

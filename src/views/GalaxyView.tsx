@@ -116,9 +116,13 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const cachedAllCorpus = getCachedCorpusForFilter('all');
   const activeCorpus = initialCorpus ?? cachedAllCorpus ?? [];
 
-  const urlFocusEntity = urlFocusSlug
-    ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
-    : null;
+  const urlFocusEntity = useMemo(
+    () =>
+      urlFocusSlug
+        ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
+        : null,
+    [urlFocusSlug, activeCorpus],
+  );
   const focusedEntity = urlFocusSlug
     ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
     : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
@@ -126,15 +130,18 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const loadedLayers = useLoadedLayerManifests(search);
 
   const storeSelected = storeApi.getState().getEntitiesByState('selected');
-  const selectedEntities =
-    storeSelected.length > 0
-      ? storeSelected
-      : resolveSelectedSystemsFromUrlSelect(
-          search,
-          activeCorpus,
-          layerIndex,
-          loadedLayers,
-        );
+  const selectedEntities = useMemo(
+    () =>
+      storeSelected.length > 0
+        ? storeSelected
+        : resolveSelectedSystemsFromUrlSelect(
+            search,
+            activeCorpus,
+            layerIndex,
+            loadedLayers,
+          ),
+    [activeCorpus, layerIndex, loadedLayers, search, storeSelected],
+  );
   const matchedEntry = focusedEntity
     ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
     : undefined;
@@ -170,8 +177,21 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     };
   }, [initialCorpus, cachedAllCorpus]);
 
+  const focusedEntityId = focusedEntity?.id ?? '';
+
   useEffect(() => {
-    if (!focusedEntity || initialCorpus || typeof window === 'undefined') {
+    if (!focusedEntityId || initialCorpus || typeof window === 'undefined') {
+      return;
+    }
+
+    const hasSummary = Boolean(getCachedSummaryNode(targetSystemId));
+    const hasSystemDetail = Boolean(getCachedDetailRecord(targetSystemId));
+    const hasEntityDetail =
+      !focusedEntityId ||
+      focusedEntityId === targetSystemId ||
+      Boolean(getCachedDetailRecord(focusedEntityId));
+
+    if (hasSummary && hasSystemDetail && hasEntityDetail) {
       return;
     }
 
@@ -179,8 +199,8 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     void Promise.all([
       fetchSummaryNode(targetSystemId).catch(() => undefined),
       fetchDetailRecord(targetSystemId).catch(() => undefined),
-      focusedEntity.id !== targetSystemId
-        ? fetchDetailRecord(focusedEntity.id).catch(() => undefined)
+      focusedEntityId !== targetSystemId
+        ? fetchDetailRecord(focusedEntityId).catch(() => undefined)
         : Promise.resolve(undefined),
     ]).then(() => {
       if (!cancelled) {
@@ -191,7 +211,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [focusedEntity, initialCorpus, targetSystemId]);
+  }, [focusedEntityId, initialCorpus, targetSystemId]);
 
   const focusedDetails = buildFocusedEntityDetails({
     focusedEntity,
@@ -350,6 +370,17 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           search: (prev) => ({
             ...prev,
             focus: id,
+          }),
+          replace: true,
+        })
+        .catch(() => {});
+    } else {
+      void router
+        .navigate({
+          to: '/galaxy',
+          search: (prev) => ({
+            ...prev,
+            focus: undefined,
           }),
           replace: true,
         })

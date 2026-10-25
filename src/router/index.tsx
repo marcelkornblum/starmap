@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   createRouter,
   createRoute,
@@ -123,7 +123,10 @@ export function useSpaLocation(
     locationSearch ??
     (typeof window !== 'undefined' ? window.location.search : '');
 
-  return resolveSpaLocation(rawPathname, rawSearch);
+  return useMemo(
+    () => resolveSpaLocation(rawPathname, rawSearch),
+    [rawPathname, rawSearch],
+  );
 }
 
 export const RootLayout: React.FC = () => {
@@ -143,7 +146,7 @@ export const RootLayout: React.FC = () => {
       const newUrl = `${base}${pathname}${search}${window.location.hash}`;
       window.history.replaceState(window.history.state, '', newUrl);
     }
-  }, [spaLocation]);
+  }, [spaLocation.pathname, spaLocation.search]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -213,7 +216,9 @@ export const RootLayout: React.FC = () => {
         .then(() => {
           window.dispatchEvent(new Event('starmap:locationchange'));
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error('router.navigate failed:', err);
+        });
     };
 
     document.addEventListener('click', handleDocumentClick);

@@ -312,6 +312,7 @@ export const SearchRoot = ({
 
   const requestSeqRef = useRef<number>(0);
   const prevUrlKeyRef = useRef<string>(`${activePathname}${activeSearch}`);
+  const prevLoadedLayerKeyRef = useRef<string>('');
 
   const updateResultsAndSelection = useCallback(
     (
@@ -342,8 +343,14 @@ export const SearchRoot = ({
   // Re-apply URL layer selection once the referenced layer manifests have loaded
   const loadedLayerKey = loadedLayers.map((layer) => layer.layerId).join(',');
   useEffect(() => {
-    if (loadedLayerKey.length > 0) {
+    if (
+      loadedLayerKey.length > 0 &&
+      prevLoadedLayerKeyRef.current !== loadedLayerKey
+    ) {
+      prevLoadedLayerKeyRef.current = loadedLayerKey;
       updateResultsAndSelection(results);
+    } else if (loadedLayerKey.length === 0) {
+      prevLoadedLayerKeyRef.current = '';
     }
   }, [loadedLayerKey, results, updateResultsAndSelection]);
 
@@ -839,7 +846,7 @@ export const SearchPanel = ({
   children,
   scope,
 }: SearchPanelProps) => {
-  const { isFocused } = useSearchContext();
+  const { isFocused, setIsFocused } = useSearchContext();
   const layerIndex = useLayerIndex();
   const router = useRouter({ warn: false });
 
@@ -850,6 +857,12 @@ export const SearchPanel = ({
   const handleExplore = (): void => {
     if (typeof window === 'undefined') {
       return;
+    }
+    if (setIsFocused) {
+      setIsFocused(false);
+    }
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
     }
     const currentLayer = new URLSearchParams(window.location.search).get('layer');
     const nextHref = pickRandomLayerOverviewHref(
