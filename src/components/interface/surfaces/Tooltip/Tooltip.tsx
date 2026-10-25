@@ -12,7 +12,7 @@ import {
 } from 'react';
 import styles from './Tooltip.module.css';
 
-export interface TooltipProps extends HTMLAttributes<HTMLDivElement> {
+export interface TooltipProps extends HTMLAttributes<HTMLSpanElement> {
   /** The content displayed inside the tooltip bubble */
   text: ReactNode;
   /** Primary target position relative to the trigger. Default: 'top' */
@@ -49,8 +49,8 @@ export const Tooltip = ({
   const generatedId = useId();
   const tooltipId = customId || generatedId;
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLSpanElement>(null);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
 
   const isControlled = controlledIsOpen !== undefined;
   const hasExplicitState = isControlled || defaultOpen !== undefined;
@@ -224,7 +224,7 @@ export const Tooltip = ({
     : children;
 
   const tooltipElement = isVisible ? (
-    <div
+    <span
       ref={tooltipRef}
       id={tooltipId}
       className={combinedClassName}
@@ -235,12 +235,12 @@ export const Tooltip = ({
       {...rest}
     >
       <span className={styles.tooltipContent}>{text}</span>
-    </div>
+    </span>
   ) : null;
 
   if (children) {
     return (
-      <div
+      <span
         ref={wrapperRef}
         className={combinedWrapperClassName}
         onMouseEnter={handleMouseEnter}
@@ -248,7 +248,7 @@ export const Tooltip = ({
       >
         {triggerElement}
         {tooltipElement}
-      </div>
+      </span>
     );
   }
 

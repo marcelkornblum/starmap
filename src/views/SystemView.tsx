@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
@@ -106,9 +106,13 @@ const useResolvedSystemDetails = (
     getCachedCorpusForFilter('stars') ??
     [];
 
-  const urlFocusEntity = urlFocusSlug
-    ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
-    : null;
+  const urlFocusEntity = useMemo(
+    () =>
+      urlFocusSlug
+        ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
+        : null,
+    [urlFocusSlug, activeCorpus],
+  );
   const explicitFocusedEntity = urlFocusSlug
     ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
     : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
@@ -150,6 +154,8 @@ const useResolvedSystemDetails = (
     targetSystemId,
   ]);
 
+  const focusedEntityId = focusedEntity?.id ?? '';
+
   useEffect(() => {
     if (
       !shouldFetchShards ||
@@ -160,13 +166,25 @@ const useResolvedSystemDetails = (
       return;
     }
 
+    const hasCorpus = Boolean(getCachedCorpusForFilter('all'));
+    const hasSummary = Boolean(getCachedSummaryNode(targetSystemId));
+    const hasSystemDetail = Boolean(getCachedDetailRecord(targetSystemId));
+    const hasEntityDetail =
+      !focusedEntityId ||
+      focusedEntityId === targetSystemId ||
+      Boolean(getCachedDetailRecord(focusedEntityId));
+
+    if (hasCorpus && hasSummary && hasSystemDetail && hasEntityDetail) {
+      return;
+    }
+
     let cancelled = false;
     void Promise.all([
       loadSearchCorpusForFilter('all').catch(() => undefined),
       fetchSummaryNode(targetSystemId).catch(() => undefined),
       fetchDetailRecord(targetSystemId).catch(() => undefined),
-      focusedEntity && focusedEntity.id !== targetSystemId
-        ? fetchDetailRecord(focusedEntity.id).catch(() => undefined)
+      focusedEntityId && focusedEntityId !== targetSystemId
+        ? fetchDetailRecord(focusedEntityId).catch(() => undefined)
         : Promise.resolve(undefined),
     ]).then(() => {
       if (!cancelled) {
@@ -177,7 +195,7 @@ const useResolvedSystemDetails = (
     return () => {
       cancelled = true;
     };
-  }, [focusedEntity, initialCorpus, shouldFetchShards, targetSystemId]);
+  }, [focusedEntityId, initialCorpus, shouldFetchShards, targetSystemId]);
 
   const systemContextDetails = buildFocusedEntityDetails({
     focusedEntity,

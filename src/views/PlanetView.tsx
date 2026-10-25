@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
@@ -108,9 +108,13 @@ const useResolvedPlanetDetails = (
     getCachedCorpusForFilter('stars') ??
     [];
 
-  const urlFocusEntity = urlFocusSlug
-    ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
-    : null;
+  const urlFocusEntity = useMemo(
+    () =>
+      urlFocusSlug
+        ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
+        : null,
+    [urlFocusSlug, activeCorpus],
+  );
   const focusedEntity = urlFocusSlug
     ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
     : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
@@ -148,12 +152,37 @@ const useResolvedPlanetDetails = (
     ].map(toAnnotationLookupKey),
   );
 
+  const focusedEntityId = focusedEntity?.id ?? '';
+
   useEffect(() => {
     if (
       !shouldFetchShards ||
       !targetSystemId ||
       initialCorpus ||
       typeof window === 'undefined'
+    ) {
+      return;
+    }
+
+    const hasCorpus = Boolean(getCachedCorpusForFilter('all'));
+    const hasSummary = Boolean(getCachedSummaryNode(targetSystemId));
+    const hasSystemDetail = Boolean(getCachedDetailRecord(targetSystemId));
+    const hasPlanetDetail =
+      !targetPlanetId ||
+      targetPlanetId === targetSystemId ||
+      Boolean(getCachedDetailRecord(targetPlanetId));
+    const hasEntityDetail =
+      !focusedEntityId ||
+      focusedEntityId === targetSystemId ||
+      focusedEntityId === targetPlanetId ||
+      Boolean(getCachedDetailRecord(focusedEntityId));
+
+    if (
+      hasCorpus &&
+      hasSummary &&
+      hasSystemDetail &&
+      hasPlanetDetail &&
+      hasEntityDetail
     ) {
       return;
     }
@@ -166,10 +195,10 @@ const useResolvedPlanetDetails = (
       targetPlanetId && targetPlanetId !== targetSystemId
         ? fetchDetailRecord(targetPlanetId).catch(() => undefined)
         : Promise.resolve(undefined),
-      focusedEntity &&
-      focusedEntity.id !== targetSystemId &&
-      focusedEntity.id !== targetPlanetId
-        ? fetchDetailRecord(focusedEntity.id).catch(() => undefined)
+      focusedEntityId &&
+      focusedEntityId !== targetSystemId &&
+      focusedEntityId !== targetPlanetId
+        ? fetchDetailRecord(focusedEntityId).catch(() => undefined)
         : Promise.resolve(undefined),
     ]).then(() => {
       if (!cancelled) {
@@ -181,7 +210,7 @@ const useResolvedPlanetDetails = (
       cancelled = true;
     };
   }, [
-    focusedEntity,
+    focusedEntityId,
     initialCorpus,
     shouldFetchShards,
     targetPlanetId,

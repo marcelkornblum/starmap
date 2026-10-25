@@ -37,6 +37,21 @@ export interface SpatialEntityState {
   getEntitiesByState: (state: CelestialInteractionState) => SpatialEntityDefinition[];
 }
 
+const isSameSpatialPosition = (
+  a: SpatialEntityDefinition['position'],
+  b: SpatialEntityDefinition['position'],
+): boolean => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const ax = a instanceof THREE.Vector3 ? a.x : Array.isArray(a) ? a[0] : undefined;
+  const ay = a instanceof THREE.Vector3 ? a.y : Array.isArray(a) ? a[1] : undefined;
+  const az = a instanceof THREE.Vector3 ? a.z : Array.isArray(a) ? a[2] : undefined;
+  const bx = b instanceof THREE.Vector3 ? b.x : Array.isArray(b) ? b[0] : undefined;
+  const by = b instanceof THREE.Vector3 ? b.y : Array.isArray(b) ? b[1] : undefined;
+  const bz = b instanceof THREE.Vector3 ? b.z : Array.isArray(b) ? b[2] : undefined;
+  return ax === bx && ay === by && az === bz;
+};
+
 export const createSpatialEntityStore = (initial?: {
   selectedId?: string | null;
   selectedIds?: Iterable<string>;
@@ -82,7 +97,7 @@ export const createSpatialEntityStore = (initial?: {
           existing.name === entity.name &&
           existing.classification === entity.classification &&
           existing.spectralType === entity.spectralType &&
-          existing.position === entity.position
+          isSameSpatialPosition(existing.position, entity.position)
         ) {
           return state;
         }
@@ -202,7 +217,16 @@ export const createSpatialEntityStore = (initial?: {
       });
     },
 
-    setApertureIds: (apertureIds) => set({ apertureIds }),
+    setApertureIds: (apertureIds) =>
+      set((state) => {
+        if (
+          state.apertureIds.size === apertureIds.size &&
+          Array.from(apertureIds).every((id) => state.apertureIds.has(id))
+        ) {
+          return state;
+        }
+        return { apertureIds };
+      }),
 
     setApertureFrame: (center, radius) =>
       set((state) => {

@@ -55,7 +55,7 @@ test.describe('Journey 5: The Transit Planner Flow (Intra-System Logistics & Orb
     await expect(directionsPane.getByText('One-Way Comms')).toBeVisible();
 
     // 6. Verifies route-gating shortcut (FS-014) on unsupported non-Sol multi-system route
-    await page.goto('/galaxy?focus=vega&route=tau-ceti,vega');
+    await page.goto('/system/sol?route=earth,vega');
 
     // Verifies role="alert" message showing "Coming soon"
     const alertMessage = page.getByRole('alert');

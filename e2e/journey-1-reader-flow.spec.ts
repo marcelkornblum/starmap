@@ -95,8 +95,8 @@ test.describe('Journey 1: The Reader Flow (Target Acquisition & Travel Planning)
     // Verifies Breadcrumb shows Galaxy -> Tau Ceti
     const breadcrumb = page.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(breadcrumb).toBeVisible();
-    await expect(breadcrumb.getByText('Galaxy')).toBeVisible();
-    await expect(breadcrumb.getByText('Tau Ceti')).toBeVisible();
+    await expect(breadcrumb.getByRole('list').getByText('Galaxy')).toBeVisible();
+    await expect(breadcrumb.getByRole('list').getByText('Tau Ceti')).toBeVisible();
 
     // Verifies System Bodies orbital schematic
     const orbitalSchematic = page.getByRole('region', { name: 'Orbital Schematic' });
