@@ -28,12 +28,9 @@ test.describe('Details Pane Implementation Contracts', () => {
       detailsPane.getByText('Nominal environment').first(),
     ).toBeVisible();
 
-    // Tables
-    await expect(detailsPane.getByRole('heading', { name: 'Stars' })).toBeVisible();
-    await expect(detailsPane.getByRole('heading', { name: 'Planets' })).toBeVisible();
-    await expect(
-      detailsPane.getByRole('heading', { name: 'Circumstellar Belts & Disks' }),
-    ).toBeVisible();
+    // Orbital Schematic (replacing separate Stars, Planets, and Belts tables)
+    await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
+    await expect(detailsPane.getByTestId('orbital-schematic-list').first()).toBeVisible();
 
     // Telemetry sections
     await expect(detailsPane.getByRole('heading', { name: 'Astrometry' })).toBeVisible();
@@ -60,11 +57,11 @@ test.describe('Details Pane Implementation Contracts', () => {
         .first(),
     ).toBeVisible();
 
-    // Orbiting Bodies table showing The Moon (Luna)
-    await expect(detailsPane.getByRole('heading', { name: 'Orbiting Bodies' })).toBeVisible();
+    // Orbital Schematic showing The Moon (Luna)
+    await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
     await expect(
       detailsPane
-        .getByRole('region', { name: 'Orbiting Bodies' })
+        .getByTestId('orbital-schematic-list')
         .getByRole('link', { name: 'The Moon (Luna)' })
         .first(),
     ).toBeVisible();
@@ -93,8 +90,8 @@ test.describe('Details Pane Implementation Contracts', () => {
     ).toBeVisible();
     await expect(detailsPane.getByText(/hazard|flare|stellar/i).first()).toBeVisible();
 
-    // Planets table with Proxima Centauri b
-    await expect(detailsPane.getByRole('heading', { name: 'Planets' })).toBeVisible();
+    // Orbital Schematic with Proxima Centauri b
+    await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
     await expect(detailsPane.getByText(/Proxima/i).first()).toBeVisible();
   });
 });
