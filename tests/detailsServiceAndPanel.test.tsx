@@ -1482,6 +1482,105 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
         expect(aperture.centerCoordinatesPc).toEqual([5, 15, 25]);
         expect(aperture.apertureRadiusPc).toBe(42.18);
       });
+
+      it('renders <OrbitalSchematicList /> in <DetailsPanel /> when schematic is passed for system focus, replacing separate entity tables', () => {
+        const schematic = buildSystemOrbitalSchematic(
+          {
+            systemId: 'sol',
+            systemName: 'Sol',
+            stars: [
+              {
+                id: 'sol-star',
+                name: 'Sol',
+                componentDesignation: 'A',
+                spectralType: 'G2V',
+                mag: -26.74,
+                absmag: 4.83,
+              },
+            ],
+            planets: [
+              {
+                id: 'earth',
+                name: 'Earth',
+                composition: 'terrestrial',
+                isHabitableCandidate: true,
+                semiMajorAxisAu: 1.0,
+                periodDays: 365.25,
+              },
+            ],
+            disks: [
+              {
+                id: 'asteroid-belt',
+                name: 'Main Asteroid Belt',
+                kind: 'asteroid-belt',
+                innerRadiusAu: 2.1,
+                outerRadiusAu: 3.3,
+              },
+            ],
+          },
+          [],
+        );
+
+        const htmlWithSchematic = renderToString(
+          createElement(DetailsPanel, {
+            details: {
+              id: 'sol',
+              systemId: 'sol',
+              name: 'Sol',
+              systemName: 'Sol',
+              focusedKind: 'system',
+              hazardCount: 0,
+              hazards: [],
+              spectralType: 'G2V',
+              reticleType: 'stellar-system',
+              starCount: 1,
+              planetCount: 1,
+              planetCompositionBreakdown: [],
+              hasHabitableCandidate: true,
+              systemSummarySegments: [],
+              coordinatesPc: [0, 0, 0],
+              sectorId: 'sol-sector',
+              tags: [],
+              canonAnnotations: [],
+              stars: [
+                {
+                  id: 'sol-star',
+                  name: 'Sol',
+                  componentDesignation: 'A',
+                  spectralType: 'G2V',
+                  mag: -26.74,
+                  absmag: 4.83,
+                },
+              ],
+              planets: [
+                {
+                  id: 'earth',
+                  name: 'Earth',
+                  composition: 'terrestrial',
+                  isHabitableCandidate: true,
+                },
+              ],
+              disks: [
+                {
+                  id: 'asteroid-belt',
+                  name: 'Main Asteroid Belt',
+                  kind: 'asteroid-belt',
+                  innerRadiusAu: 2.1,
+                  outerRadiusAu: 3.3,
+                },
+              ],
+            } as any,
+            schematic,
+          }),
+        );
+
+        expect(htmlWithSchematic).toContain('data-testid="orbital-schematic-panel"');
+        expect(htmlWithSchematic).toContain('data-testid="orbital-schematic-list"');
+        expect(htmlWithSchematic).toContain('data-testid="orbital-schematic-item"');
+        expect(htmlWithSchematic).not.toContain('data-testid="details-stars-section"');
+        expect(htmlWithSchematic).not.toContain('data-testid="details-planets-section"');
+        expect(htmlWithSchematic).not.toContain('data-testid="details-disks-section"');
+      });
     });
   });
 });

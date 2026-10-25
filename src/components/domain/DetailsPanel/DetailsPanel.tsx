@@ -7,6 +7,7 @@ import {
   type FocusedEntityDetails,
   type FocusedPlanetDetail,
   type FocusedStarDetail,
+  type OrbitalSchematicSummary,
   type SystemElementBodyItem,
   type SystemSummarySegment,
 } from '../../../services/detailsService';
@@ -40,10 +41,12 @@ import {
 } from '../../interface';
 import { PlanetCensus } from '../PlanetCensus';
 import { CanonLayerItem } from '../CanonLayerItem';
+import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
 
 export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
   readonly activeDetent?: DetentLevel;
+  readonly schematic?: OrbitalSchematicSummary | null;
 }
 
 const renderSystemSummarySegments = (
@@ -559,7 +562,11 @@ const renderDisks = (
  * domain property (`details`), returns `null` when nothing is focused, and decomposes
  * the focused entity's data into the 3 detent areas (`Peek`, `Partial`, `Full`).
  */
-export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
+export const DetailsPanel = ({
+  details,
+  activeDetent,
+  schematic,
+}: DetailsPanelProps) => {
   if (!details) {
     return null;
   }
@@ -589,7 +596,7 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
     stars,
     planets,
     orbitingBodies,
-    canonAnnotations,
+    canonAnnotations = [],
   } = details;
 
   const isSystemFocus = focusedKind === 'system';
@@ -919,10 +926,44 @@ export const DetailsPanel = ({ details, activeDetent }: DetailsPanelProps) => {
       </Cluster>
       {renderHazards(details.hazards)}
       {renderCanonLayers(canonAnnotations)}
-      {renderOrbitingBodies(focusedKind, orbitingBodies)}
-      {isSystemFocus ? renderStars(stars, systemName || systemId) : null}
-      {isSystemFocus ? renderPlanets(planets, systemName || systemId) : null}
-      {isSystemFocus ? renderDisks(details.disks, systemName || systemId) : null}
+      {focusedKind === 'planet' && schematic && schematic.scope === 'planet' && schematic.items.length > 0 ? (
+        <section
+          aria-labelledby="details-schematic-heading"
+          data-testid="orbital-schematic-panel"
+          data-scope={schematic.scope}
+          data-system-id={schematic.systemId}
+          data-planet-id={schematic.planetId}
+        >
+          <Heading as="h4" size="eyebrow" id="details-schematic-heading">
+            Orbital Schematic
+          </Heading>
+          <OrbitalSchematicList items={schematic.items} />
+        </section>
+      ) : (
+        renderOrbitingBodies(focusedKind, orbitingBodies)
+      )}
+      {isSystemFocus ? (
+        schematic && schematic.scope === 'system' && schematic.items.length > 0 ? (
+          <section
+            aria-labelledby="details-schematic-heading"
+            data-testid="orbital-schematic-panel"
+            data-scope={schematic.scope}
+            data-system-id={schematic.systemId}
+            data-planet-id={undefined}
+          >
+            <Heading as="h4" size="eyebrow" id="details-schematic-heading">
+              Orbital Schematic
+            </Heading>
+            <OrbitalSchematicList items={schematic.items} />
+          </section>
+        ) : (
+          <>
+            {renderStars(stars, systemName || systemId)}
+            {renderPlanets(planets, systemName || systemId)}
+            {renderDisks(details.disks, systemName || systemId)}
+          </>
+        )
+      ) : null}
     </>
   );
 

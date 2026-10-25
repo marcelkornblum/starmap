@@ -38,6 +38,7 @@ import {
   buildFocusedEntityDetails,
   buildFocusedPreviewSummary,
   buildGalaxyMinimapOrientation,
+  buildSystemOrbitalSchematic,
   extractGalaxyBodies,
   extractUrlSceneCameraState,
   resolveGalacticInstrumentAperture,
@@ -325,6 +326,14 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       })
     : null;
 
+  const orbitalSchematic = useMemo(
+    () =>
+      focusedDetails && focusedDetails.focusedKind === 'system'
+        ? buildSystemOrbitalSchematic(focusedDetails, activeCorpus)
+        : null,
+    [focusedDetails, activeCorpus],
+  );
+
   const searchParams = new URLSearchParams(search);
   const layerParam = searchParams.get('layer');
   const activeLayerCard = resolveActiveLayerCard({
@@ -431,7 +440,10 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         activeJourney ? (
           <DirectionsPanel journey={activeJourney} />
         ) : (
-          <DetailsPanel details={focusedDetails} />
+          <DetailsPanel
+            details={focusedDetails}
+            schematic={orbitalSchematic}
+          />
         )
       }
       preview={<PreviewPanel preview={focusedPreview} />}

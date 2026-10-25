@@ -372,7 +372,12 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
         activeJourney ? (
           <DirectionsPanel journey={activeJourney} />
         ) : (
-          <DetailsPanel details={focusedDetails} />
+          <DetailsPanel
+            details={focusedDetails}
+            schematic={
+              focusedDetails?.focusedKind === 'system' ? orbitalSchematic : null
+            }
+          />
         )
       }
       preview={<PreviewPanel preview={focusedPreview} />}

@@ -391,7 +391,10 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
         activeJourney ? (
           <DirectionsPanel journey={activeJourney} />
         ) : (
-          <DetailsPanel details={focusedDetails} />
+          <DetailsPanel
+            details={focusedDetails}
+            schematic={orbitalSchematic}
+          />
         )
       }
       preview={<PreviewPanel preview={focusedPreview} />}
