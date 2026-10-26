@@ -63,9 +63,13 @@ function isOrbitControlsLike(value: unknown): value is OrbitControlsLike {
   );
 }
 
-export const GalacticCameraController: React.FC<{
-  target: [number, number, number];
-}> = ({ target }) => {
+export interface GalacticCameraControllerProps {
+  readonly target: [number, number, number];
+}
+
+export const GalacticCameraController: React.FC<GalacticCameraControllerProps> = ({
+  target,
+}) => {
   const three = useThree();
   const camera = three.camera;
   const controls =
