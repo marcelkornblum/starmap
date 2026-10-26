@@ -140,7 +140,7 @@ export function SectorPointCloud({
   }, [material, pointSize, pointOpacity]);
 
   useEffect(() => {
-    (material.uniforms.uColor.value as THREE.Color).copy(reticleBracketColor);
+    (material.uniforms.uColor.value as THREE.Color).set(reticleBracketColor);
   }, [material, reticleBracketColor]);
 
   const targetRef = useRef<{ group: THREE.Group | null; material: THREE.Material | null }>({

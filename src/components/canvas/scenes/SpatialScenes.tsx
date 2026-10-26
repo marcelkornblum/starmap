@@ -71,15 +71,11 @@ export const GalacticCameraController: React.FC<{
       prev[2] === target[2];
     const isTickSame = recenterTick === prevTick;
 
-    const newTarget = new THREE.Vector3(target[0], target[1], target[2]);
-
-    if (
-      isTargetSame &&
-      isTickSame &&
-      (!controls?.target || controls.target.distanceToSquared(newTarget) < 1e-6)
-    ) {
+    if (isTargetSame && isTickSame) {
       return;
     }
+
+    const newTarget = new THREE.Vector3(target[0], target[1], target[2]);
 
     if (
       isTargetSame &&
