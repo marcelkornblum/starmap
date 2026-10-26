@@ -125,7 +125,7 @@ export function SectorPointCloud({
   const groupRef = useRef<THREE.Group>(null);
 
   const material = useMemo(() => {
-    return createStarfieldPointsMaterial(pointSize, pointOpacity);
+    return createStarfieldPointsMaterial();
   }, []);
 
   useEffect(() => {
@@ -140,7 +140,10 @@ export function SectorPointCloud({
   }, [material, pointSize, pointOpacity]);
 
   useEffect(() => {
-    (material.uniforms.uColor.value as THREE.Color).set(reticleBracketColor);
+    const colorUniform = material.uniforms.uColor.value;
+    if (colorUniform instanceof THREE.Color) {
+      colorUniform.set(reticleBracketColor);
+    }
   }, [material, reticleBracketColor]);
 
   const targetRef = useRef<{ group: THREE.Group | null; material: THREE.Material | null }>({
@@ -248,7 +251,9 @@ export function SectorPointCloud({
         hydratingRef.current = false;
       });
   };
-  triggerHydrationRef.current = triggerHydration;
+  useEffect(() => {
+    triggerHydrationRef.current = triggerHydration;
+  });
 
   useEffect(() => {
     if (!resolvedManager) return;
@@ -288,13 +293,19 @@ export function SectorPointCloud({
     const apertureRadius = frameCtx?.frameRef?.current?.apertureRadius ?? 15.0;
 
     const uniforms = material.uniforms;
-    (uniforms.uFocusCenter.value as THREE.Vector3).set(fx, fy, fz);
+    const focusVec = uniforms.uFocusCenter.value;
+    if (focusVec instanceof THREE.Vector3) {
+      focusVec.set(fx, fy, fz);
+    }
     uniforms.uApertureRadius.value = apertureRadius;
-    (uniforms.uCameraPos.value as THREE.Vector3).set(
-      camera.position.x,
-      camera.position.y,
-      camera.position.z,
-    );
+    const camVec = uniforms.uCameraPos.value;
+    if (camVec instanceof THREE.Vector3) {
+      camVec.set(
+        camera.position.x,
+        camera.position.y,
+        camera.position.z,
+      );
+    }
     uniforms.uHorizonRadius.value = 36.0;
 
     const lx = lastXRef.current;

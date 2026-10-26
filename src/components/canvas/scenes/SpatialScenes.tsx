@@ -49,14 +49,28 @@ export interface GalacticViewSceneProps {
   variant?: 'card' | 'fullscreen';
 }
 
+interface OrbitControlsLike {
+  target: THREE.Vector3;
+  update?: () => void;
+}
+
+function isOrbitControlsLike(value: unknown): value is OrbitControlsLike {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'target' in value &&
+    value.target instanceof THREE.Vector3
+  );
+}
+
 export const GalacticCameraController: React.FC<{
   target: [number, number, number];
 }> = ({ target }) => {
   const three = useThree();
   const camera = three.camera;
   const controls =
-    'controls' in three && three.controls
-      ? (three.controls as unknown as { target: THREE.Vector3; update?: () => void })
+    'controls' in three && isOrbitControlsLike(three.controls)
+      ? three.controls
       : undefined;
   const recenterTick = useCameraStore((s) => s.recenterTick);
   const prevTargetRef = useRef<[number, number, number]>(target);
@@ -118,11 +132,10 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
 }) => {
   const targetCoords = useMemo<[number, number, number]>(() => {
     if (!centerCoordinates) return [0, 0, 0];
-    if (Array.isArray(centerCoordinates)) {
-      return [centerCoordinates[0], centerCoordinates[1], centerCoordinates[2]];
+    if ('x' in centerCoordinates) {
+      return [centerCoordinates.x, centerCoordinates.y, centerCoordinates.z];
     }
-    const c = centerCoordinates as { x: number; y: number; z: number };
-    return [c.x, c.y, c.z];
+    return [centerCoordinates[0], centerCoordinates[1], centerCoordinates[2]];
   }, [centerCoordinates]);
 
   const standardCam = useMemo(
@@ -203,11 +216,10 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
 }) => {
   const targetCoords = useMemo<[number, number, number]>(() => {
     if (!centerCoordinates) return [0, 0, 0];
-    if (Array.isArray(centerCoordinates)) {
-      return [centerCoordinates[0], centerCoordinates[1], centerCoordinates[2]];
+    if ('x' in centerCoordinates) {
+      return [centerCoordinates.x, centerCoordinates.y, centerCoordinates.z];
     }
-    const c = centerCoordinates as { x: number; y: number; z: number };
-    return [c.x, c.y, c.z];
+    return [centerCoordinates[0], centerCoordinates[1], centerCoordinates[2]];
   }, [centerCoordinates]);
 
   const standardCam = useMemo(
