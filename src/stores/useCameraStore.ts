@@ -22,8 +22,6 @@ export interface CameraState {
   pendingAxisRequest: CardinalDirection | null;
   /** Pending programmatic preset request */
   pendingPresetRequest: CameraPreset | null;
-  /** Incremental tick counter triggering camera recentering onto target even when target coordinates are unchanged */
-  recenterTick: number;
 }
 
 export type CameraPreset = 'top-down' | 'reset' | 'orbital-lock' | 'radial';
@@ -46,8 +44,6 @@ export interface CameraActions {
   resetView: () => void;
   setOrbitalLockView: () => void;
   setRadialView: () => void;
-  triggerRecenter: () => void;
-  reset: () => void;
   resetCameraState: () => void;
 }
 
@@ -63,7 +59,6 @@ export const INITIAL_CAMERA_STATE: CameraState = {
   zoom: 1.0,
   pendingAxisRequest: null,
   pendingPresetRequest: null,
-  recenterTick: 0,
 };
 
 export const useCameraStore = create<CameraStore>()((set) => ({
@@ -105,7 +100,5 @@ export const useCameraStore = create<CameraStore>()((set) => ({
   resetView: () => set({ pendingPresetRequest: 'reset' }),
   setOrbitalLockView: () => set({ pendingPresetRequest: 'orbital-lock' }),
   setRadialView: () => set({ pendingPresetRequest: 'radial' }),
-  triggerRecenter: () => set((state) => ({ recenterTick: state.recenterTick + 1 })),
-  reset: () => set({ ...INITIAL_CAMERA_STATE }),
   resetCameraState: () => set({ ...INITIAL_CAMERA_STATE }),
 }));

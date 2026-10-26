@@ -14,7 +14,10 @@ import {
   toCanonicalLayerSlug,
   toUrlSlug,
 } from '../utils/datasetLayerCodec';
-import type { OrbitTargetView } from './details/navigationAndCamera';
+import {
+  buildEntityOrbitTargetHref,
+  type OrbitTargetView,
+} from './details/navigationAndCamera';
 import {
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
@@ -181,7 +184,6 @@ export function resolveLayerItemTargetHref(
   corpus?: readonly CompactSearchEntry[],
   currentPathname?: string,
 ): LayerItemTargetResult {
-  const layerSlug = toCanonicalLayerSlug(layer.layerId);
   const cleanId = entry.targetId.includes(':')
     ? entry.targetId.split(':').slice(1).join(':')
     : entry.targetId;
@@ -195,42 +197,24 @@ export function resolveLayerItemTargetHref(
     }
   }
 
-  const sysSlug = toUrlSlug(systemName || entry.systemId || cleanId);
+  const itemName = entry.inUniverseName || entry.resolvedName || cleanId;
 
-  let targetView: OrbitTargetView = 'galaxy';
-  let targetPathname = '/galaxy';
-  const params = new URLSearchParams();
-
-  if (currentPathname?.startsWith('/system/')) {
-    targetView = 'system';
-    targetPathname = `/system/${encodeURIComponent(sysSlug)}`;
-    params.set('center', itemSlug);
-    params.set('focus', itemSlug);
-    params.set('select', `layer:${layerSlug}`);
-    params.set('layer', `${layerSlug}:${itemSlug}`);
-  } else if (currentPathname?.startsWith('/planet/')) {
-    targetView = 'planet';
-    targetPathname = currentPathname.split('?')[0].split('#')[0];
-    params.set('center', itemSlug);
-    params.set('focus', itemSlug);
-    params.set('select', `layer:${layerSlug}`);
-    params.set('layer', `${layerSlug}:${itemSlug}`);
-  } else {
-    targetView = 'galaxy';
-    targetPathname = '/galaxy';
-    params.set('center', sysSlug);
-    params.set('focus', itemSlug);
-    params.set('select', `layer:${layerSlug}`);
-    params.set('layer', `${layerSlug}:${itemSlug}`);
-  }
-
-  const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
-  const href = `${targetPathname}?${qs}`;
+  const result = buildEntityOrbitTargetHref({
+    id: entry.targetId,
+    name: itemName,
+    entityKind: entry.targetType,
+    systemId: entry.systemId,
+    systemName,
+    parentBodyId: entry.parentBodyId,
+    layerId: layer.layerId,
+    isSolarSystem: entry.systemId === 'sol' || entry.targetId === 'sol',
+    currentPathname,
+  });
 
   return {
     itemSlug,
-    targetView,
-    href,
+    targetView: result.targetView,
+    href: result.href,
   };
 }
 

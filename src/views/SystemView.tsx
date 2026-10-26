@@ -374,12 +374,13 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
         ) : (
           <DetailsPanel
             details={focusedDetails}
-            schematic={orbitalSchematic}
-            preview={focusedPreview}
+            schematic={
+              focusedDetails?.focusedKind === 'system' ? orbitalSchematic : null
+            }
           />
         )
       }
-      preview={activeJourney ? <PreviewPanel preview={focusedPreview} /> : null}
+      preview={<PreviewPanel preview={focusedPreview} />}
       minimap={<Minimap orientation={minimapOrientation} />}
       bodies={<BodiesPanel elements={systemBodies} schematic={orbitalSchematic} />}
     />

@@ -18,7 +18,6 @@ import { SearchView } from '../views/SearchView';
 import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
-import { useCameraStore } from '../stores/useCameraStore';
 
 export interface StarmapSearchParams {
   q?: string;
@@ -202,9 +201,6 @@ export const RootLayout: React.FC = () => {
       event.preventDefault();
       const nextPathAndSearch = `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
       const currentPathAndSearch = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      if (parsedUrl.searchParams.has('center')) {
-        useCameraStore.getState().triggerRecenter();
-      }
       if (nextPathAndSearch === currentPathAndSearch) {
         return;
       }

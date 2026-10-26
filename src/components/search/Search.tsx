@@ -1,5 +1,4 @@
 import {
-  startTransition,
   useCallback,
   useEffect,
   useRef,
@@ -17,14 +16,6 @@ import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,
 } from '../../types/astro';
-import {
-  fetchDetailRecord,
-  fetchSummaryNode,
-} from '../../data/detailsRepository';
-import {
-  fetchEntityAnnotations,
-  fetchLayerManifest,
-} from '../../data/layerRepository';
 import {
   fetchSearchShard,
   getCachedCorpusForFilter,
@@ -219,112 +210,6 @@ const syncUrlFocusToStore = (
   }
 };
 
-export const isJsdomEnv =
-  typeof window !== 'undefined' &&
-  /jsdom/i.test(window.navigator?.userAgent ?? '');
-
-/**
- * Lazily prefetches summary nodes, detail records, layer manifests, and entity annotations
- * for top search results once at least 3 characters have been entered.
- */
-export const prefetchSearchResultsDetails = (
-  results: GroupedSearchResults,
-): void => {
-  if (!results || !results.query || results.query.trim().length < 3) {
-    return;
-  }
-
-  const groups = results.groups;
-  if (!groups) {
-    return;
-  }
-
-  const seenSummaryNodes = new Set<string>();
-  const seenDetailRecords = new Set<string>();
-  const seenEntityAnnotations = new Set<string>();
-  const seenLayerManifests = new Set<string>();
-
-  for (const [groupKey, group] of Object.entries(groups)) {
-    if (!group || !Array.isArray(group.items)) {
-      continue;
-    }
-
-    const isLayerGroup = groupKey === 'layers';
-
-    for (const item of group.items) {
-      if (!item) {
-        continue;
-      }
-
-      const isLayer = isLayerGroup || item.category === 'layers';
-
-      if (isLayer) {
-        const itemWithLayerId = item as unknown as { layerId?: string };
-        const rawLayerId =
-          itemWithLayerId.layerId ??
-          item.canonLayerId ??
-          (item.id.includes(':') ? item.id.split(':')[0] : item.id);
-
-        if (rawLayerId && !seenLayerManifests.has(rawLayerId)) {
-          seenLayerManifests.add(rawLayerId);
-          void fetchLayerManifest(rawLayerId).catch(() => undefined);
-        }
-
-        const targetSystemId =
-          item.systemId ??
-          (item.id.includes(':') ? item.id.split(':')[1] : undefined);
-
-        if (targetSystemId) {
-          if (!seenSummaryNodes.has(targetSystemId)) {
-            seenSummaryNodes.add(targetSystemId);
-            void fetchSummaryNode(targetSystemId).catch(() => undefined);
-          }
-          if (!seenDetailRecords.has(targetSystemId)) {
-            seenDetailRecords.add(targetSystemId);
-            void fetchDetailRecord(targetSystemId).catch(() => undefined);
-          }
-        }
-
-        if (item.id.includes(':')) {
-          const targetEntityId = item.id.split(':')[1];
-          if (targetEntityId && !seenDetailRecords.has(targetEntityId)) {
-            seenDetailRecords.add(targetEntityId);
-            void fetchDetailRecord(targetEntityId).catch(() => undefined);
-          }
-        }
-      } else {
-        const entityId = item.id;
-        const systemId = item.systemId ?? item.id;
-
-        if (systemId && !seenSummaryNodes.has(systemId)) {
-          seenSummaryNodes.add(systemId);
-          void fetchSummaryNode(systemId).catch(() => undefined);
-        }
-
-        if (systemId && !seenDetailRecords.has(systemId)) {
-          seenDetailRecords.add(systemId);
-          void fetchDetailRecord(systemId).catch(() => undefined);
-        }
-
-        if (entityId && entityId !== systemId && !seenDetailRecords.has(entityId)) {
-          seenDetailRecords.add(entityId);
-          void fetchDetailRecord(entityId).catch(() => undefined);
-        }
-
-        const annotationIds = [
-          entityId,
-          ...(item.systemId ? [item.systemId] : []),
-        ].filter(Boolean);
-        const annotationKey = annotationIds.join(',');
-        if (annotationIds.length > 0 && !seenEntityAnnotations.has(annotationKey)) {
-          seenEntityAnnotations.add(annotationKey);
-          void fetchEntityAnnotations(annotationIds).catch(() => undefined);
-        }
-      }
-    }
-  }
-};
-
 export const SearchRoot = ({
   children,
   initialQuery = '',
@@ -428,21 +313,6 @@ export const SearchRoot = ({
   const requestSeqRef = useRef<number>(0);
   const prevUrlKeyRef = useRef<string>(`${activePathname}${activeSearch}`);
   const prevLoadedLayerKeyRef = useRef<string>('');
-  const deferredSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const isJsdomEnv =
-    typeof window !== 'undefined' &&
-    /jsdom/i.test(window.navigator?.userAgent ?? '');
-
-  // Clean up deferred search timer on unmount
-  useEffect(() => {
-    return () => {
-      if (deferredSearchTimerRef.current !== null) {
-        clearTimeout(deferredSearchTimerRef.current);
-        deferredSearchTimerRef.current = null;
-      }
-    };
-  }, []);
 
   const updateResultsAndSelection = useCallback(
     (
@@ -450,38 +320,24 @@ export const SearchRoot = ({
       overrideSearch?: string,
       overrideCorpus?: readonly CompactSearchEntry[],
     ): void => {
-      const applyUpdates = (): void => {
-        setResults(nextResults);
-        const effectiveSearch = overrideSearch ?? activeSearch;
-        const effectiveCorpus =
-          overrideCorpus ??
-          initialCorpus ??
-          getCachedCorpusForFilter('all') ??
-          getCachedCorpusForFilter(nextResults.filter) ??
-          [];
-        syncSelectedSystemsToStore(
-          store,
-          nextResults,
-          effectiveSearch,
-          effectiveCorpus,
-          layerDataRef.current.layerIndex,
-          layerDataRef.current.loadedLayers,
-        );
-      };
-
-      if (!isJsdomEnv) {
-        startTransition(() => {
-          applyUpdates();
-        });
-      } else {
-        applyUpdates();
-      }
-
-      if (nextResults.query.trim().length >= 3) {
-        prefetchSearchResultsDetails(nextResults);
-      }
+      setResults(nextResults);
+      const effectiveSearch = overrideSearch ?? activeSearch;
+      const effectiveCorpus =
+        overrideCorpus ??
+        initialCorpus ??
+        getCachedCorpusForFilter('all') ??
+        getCachedCorpusForFilter(nextResults.filter) ??
+        [];
+      syncSelectedSystemsToStore(
+        store,
+        nextResults,
+        effectiveSearch,
+        effectiveCorpus,
+        layerDataRef.current.layerIndex,
+        layerDataRef.current.loadedLayers,
+      );
     },
-    [activeSearch, initialCorpus, isJsdomEnv, store],
+    [activeSearch, initialCorpus, store],
   );
 
   // Re-apply URL layer selection once the referenced layer manifests have loaded
@@ -788,10 +644,6 @@ export const SearchRoot = ({
   // Clear non-persistent selection and focus states when unmounting the view
   useEffect(() => {
     return () => {
-      if (deferredSearchTimerRef.current !== null) {
-        clearTimeout(deferredSearchTimerRef.current);
-        deferredSearchTimerRef.current = null;
-      }
       const state = store.getState();
       state.setSelectedIds([]);
       state.setFocused(null);
@@ -801,57 +653,24 @@ export const SearchRoot = ({
   const setQuery = useCallback(
     (nextQuery: string): void => {
       setQueryState(nextQuery);
-
-      if (deferredSearchTimerRef.current !== null) {
-        clearTimeout(deferredSearchTimerRef.current);
-        deferredSearchTimerRef.current = null;
-      }
-
-      const executeSync = nextQuery.trim().length === 0 || isJsdomEnv;
-
-      if (executeSync) {
-        if (syncUrl) {
-          syncSearchUrlParams(nextQuery, filter);
-          if (typeof window !== 'undefined') {
-            const nextSearch = window.location.search;
-            prevUrlKeyRef.current = `${window.location.pathname}${nextSearch}`;
-            setWindowLocation({
-              pathname: window.location.pathname,
-              search: nextSearch,
-            });
-          }
+      if (syncUrl) {
+        syncSearchUrlParams(nextQuery, filter);
+        if (typeof window !== 'undefined') {
+          const nextSearch = window.location.search;
+          prevUrlKeyRef.current = `${window.location.pathname}${nextSearch}`;
+          setWindowLocation({
+            pathname: window.location.pathname,
+            search: nextSearch,
+          });
         }
-        void submitSearch(nextQuery, filter);
-        return;
       }
-
-      deferredSearchTimerRef.current = setTimeout(() => {
-        deferredSearchTimerRef.current = null;
-        if (syncUrl) {
-          syncSearchUrlParams(nextQuery, filter);
-          if (typeof window !== 'undefined') {
-            const nextSearch = window.location.search;
-            prevUrlKeyRef.current = `${window.location.pathname}${nextSearch}`;
-            setWindowLocation({
-              pathname: window.location.pathname,
-              search: nextSearch,
-            });
-          }
-        }
-        startTransition(() => {
-          void submitSearch(nextQuery, filter);
-        });
-      }, 16);
+      void submitSearch(nextQuery, filter);
     },
-    [filter, isJsdomEnv, submitSearch, syncUrl],
+    [filter, submitSearch, syncUrl],
   );
 
   const setFilter = useCallback(
     (nextFilter: SearchCategoryFilter): void => {
-      if (deferredSearchTimerRef.current !== null) {
-        clearTimeout(deferredSearchTimerRef.current);
-        deferredSearchTimerRef.current = null;
-      }
       setFilterState(nextFilter);
       if (syncUrl) {
         syncSearchUrlParams(query, nextFilter);
@@ -873,10 +692,6 @@ export const SearchRoot = ({
 
   const dismissSearch = useCallback(
     (item?: SearchResultItem): void => {
-      if (deferredSearchTimerRef.current !== null) {
-        clearTimeout(deferredSearchTimerRef.current);
-        deferredSearchTimerRef.current = null;
-      }
       setQueryState('');
       setIsFocused(false);
       if (syncUrl) {

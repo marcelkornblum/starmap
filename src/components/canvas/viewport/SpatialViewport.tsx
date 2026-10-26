@@ -118,18 +118,6 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     }
   }, [globalSelectedId, syncWithUIStore, storeApi]);
 
-  // Synchronise outer store selectedIds inward to local spatial entity store
-  useEffect(() => {
-    if (!outerStore || outerStore === storeApi) return;
-    storeApi.getState().setSelectedIds(outerStore.getState().selectedIds);
-
-    return outerStore.subscribe((state, prevState) => {
-      if (state.selectedIds !== prevState.selectedIds) {
-        storeApi.getState().setSelectedIds(state.selectedIds);
-      }
-    });
-  }, [outerStore, storeApi]);
-
   // Synchronise local store selection & focus changes outward to UI store, outer spatial store, and callbacks
   useEffect(() => {
     return storeApi.subscribe((state, prevState) => {
@@ -250,7 +238,6 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
  */
 export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
   const outerStore = useSpatialEntityStoreApi();
-  const effectiveOuterStore = props.outerStore ?? outerStore;
   const { frame = GALACTIC_FRAME, cameraDistance, initialSelectedId } = props;
 
   // Single source of the screen-constant reference distance for both instrument and entities.
@@ -290,13 +277,8 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
       }
     }
 
-    const initialSelectedIds = effectiveOuterStore
-      ? Array.from(effectiveOuterStore.getState().selectedIds)
-      : undefined;
-
     return createSpatialEntityStore({
       selectedId: initialSelectedId ?? null,
-      selectedIds: initialSelectedIds,
       apertureIds: initialAperture,
     });
   });
@@ -308,7 +290,7 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
       lockToFocusPoint={true}
     >
       <SpatialEntityProvider store={scopedStore}>
-        <SpatialViewportContent {...props} outerStore={effectiveOuterStore} />
+        <SpatialViewportContent {...props} outerStore={props.outerStore ?? outerStore} />
       </SpatialEntityProvider>
     </SpatialFrameProvider>
   );

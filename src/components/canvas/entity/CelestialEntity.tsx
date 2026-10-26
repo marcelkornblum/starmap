@@ -170,7 +170,6 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   // Derived visual tier from authoritative FSM store (§2.1 / §2.2)
   const storeTier = useEntityTier(id);
   const activeState = stateOverride ?? storeTier;
-  const suppressActiveLabels = useSpatialEntityStore((s) => s.apertureIds.size > 10);
 
   const velX = velocity ? (velocity instanceof THREE.Vector3 ? velocity.x : velocity[0]) : null;
   const velY = velocity ? (velocity instanceof THREE.Vector3 ? velocity.y : velocity[1]) : null;
@@ -427,9 +426,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
       </group>
 
       {/* Layer 3: Typographic Label */}
-      {(activeState === 'selected' ||
-        activeState === 'focused' ||
-        (activeState === 'active' && !suppressActiveLabels)) && (
+      {activeState !== 'passive' && (
         <EntityLabel
           id={id}
           name={name}
