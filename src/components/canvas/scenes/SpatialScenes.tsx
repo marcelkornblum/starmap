@@ -78,8 +78,12 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       ? three.controls
       : undefined;
   const recenterTick = useCameraStore((s) => s.recenterTick);
-  const prevTargetRef = useRef<[number, number, number]>(target);
-  const prevRecenterTickRef = useRef<number>(recenterTick);
+  const prevTargetRef = useRef<[number, number, number]>([
+    Number.NaN,
+    Number.NaN,
+    Number.NaN,
+  ]);
+  const prevRecenterTickRef = useRef<number>(-1);
   const scratchNewTargetRef = useLazyRef(() => new THREE.Vector3());
   const scratchPrevTargetRef = useLazyRef(() => new THREE.Vector3());
   const scratchDeltaRef = useLazyRef(() => new THREE.Vector3());
@@ -101,7 +105,11 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
 
     const prevTarget = controls?.target
       ? scratchPrevTargetRef.current.copy(controls.target)
-      : scratchPrevTargetRef.current.set(prev[0], prev[1], prev[2]);
+      : scratchPrevTargetRef.current.set(
+          Number.isFinite(prev[0]) ? prev[0] : 0,
+          Number.isFinite(prev[1]) ? prev[1] : 0,
+          Number.isFinite(prev[2]) ? prev[2] : 0,
+        );
     const delta = scratchDeltaRef.current.copy(newTarget).sub(prevTarget);
 
     camera.position.add(delta);
