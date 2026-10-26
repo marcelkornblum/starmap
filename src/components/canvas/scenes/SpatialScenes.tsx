@@ -99,9 +99,6 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
 
     const newTarget = scratchNewTargetRef.current.set(target[0], target[1], target[2]);
 
-    prevTargetRef.current = target;
-    prevRecenterTickRef.current = recenterTick;
-
     const prevTarget = controls?.target
       ? scratchPrevTargetRef.current.copy(controls.target)
       : scratchPrevTargetRef.current.set(prev[0], prev[1], prev[2]);
@@ -114,6 +111,9 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       controls.target.copy(newTarget);
       controls.update?.();
     }
+
+    prevTargetRef.current = target;
+    prevRecenterTickRef.current = recenterTick;
   }, [
     target,
     recenterTick,

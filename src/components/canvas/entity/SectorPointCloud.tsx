@@ -81,20 +81,36 @@ export const STARFIELD_FRAGMENT_SHADER = /* glsl */ `
   }
 `;
 
+export interface StarfieldPointsUniforms {
+  [uniform: string]: THREE.IUniform;
+  uColor: THREE.IUniform<THREE.Color>;
+  uPointSize: THREE.IUniform<number>;
+  uBaseOpacity: THREE.IUniform<number>;
+  uFocusCenter: THREE.IUniform<THREE.Vector3>;
+  uApertureRadius: THREE.IUniform<number>;
+  uCameraPos: THREE.IUniform<THREE.Vector3>;
+  uHorizonRadius: THREE.IUniform<number>;
+}
+
+export class StarfieldPointsMaterial extends THREE.ShaderMaterial {
+  declare uniforms: StarfieldPointsUniforms;
+}
+
 export function createStarfieldPointsMaterial(
   pointSize: number = 2.0,
   pointOpacity: number = 0.85,
-): THREE.ShaderMaterial {
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      uColor: { value: new THREE.Color(0xffffff) },
-      uPointSize: { value: pointSize },
-      uBaseOpacity: { value: pointOpacity },
-      uFocusCenter: { value: new THREE.Vector3(0, 0, 0) },
-      uApertureRadius: { value: 15.0 },
-      uCameraPos: { value: new THREE.Vector3(0, -35, 20) },
-      uHorizonRadius: { value: 36.0 },
-    },
+): StarfieldPointsMaterial {
+  const uniforms: StarfieldPointsUniforms = {
+    uColor: { value: new THREE.Color(0xffffff) },
+    uPointSize: { value: pointSize },
+    uBaseOpacity: { value: pointOpacity },
+    uFocusCenter: { value: new THREE.Vector3(0, 0, 0) },
+    uApertureRadius: { value: 15.0 },
+    uCameraPos: { value: new THREE.Vector3(0, -35, 20) },
+    uHorizonRadius: { value: 36.0 },
+  };
+  return new StarfieldPointsMaterial({
+    uniforms,
     vertexShader: STARFIELD_VERTEX_SHADER,
     fragmentShader: STARFIELD_FRAGMENT_SHADER,
     transparent: true,
@@ -140,15 +156,8 @@ export function SectorPointCloud({
   }, [material, pointSize, pointOpacity]);
 
   useEffect(() => {
-    const colorUniform = material.uniforms.uColor.value;
-    if (colorUniform instanceof THREE.Color) {
-      colorUniform.set(reticleBracketColor);
-    }
+    material.uniforms.uColor.value.set(reticleBracketColor);
   }, [material, reticleBracketColor]);
-
-  const focusCenterUniformRef = useLazyRef(() => new THREE.Vector3(0, 0, 0));
-  const cameraPosUniformRef = useLazyRef(() => new THREE.Vector3(0, -35, 20));
-  const apertureUniformRef = useLazyRef(() => ({ value: 15.0 }));
 
   const targetRef = useRef<{ group: THREE.Group | null; material: THREE.Material | null }>({
     group: null,
@@ -158,10 +167,7 @@ export function SectorPointCloud({
   useEffect(() => {
     targetRef.current.group = groupRef.current;
     targetRef.current.material = material;
-    material.uniforms.uFocusCenter.value = focusCenterUniformRef.current;
-    material.uniforms.uCameraPos.value = cameraPosUniformRef.current;
-    material.uniforms.uApertureRadius = apertureUniformRef.current;
-  }, [material, focusCenterUniformRef, cameraPosUniformRef, apertureUniformRef]);
+  }, [material]);
 
   const internalManager = useMemo(() => {
     if (manager) return null;
@@ -289,9 +295,9 @@ export function SectorPointCloud({
     const fz = focusPoint ? focusPoint.z : (Number.isNaN(lastZRef.current) ? 0 : lastZRef.current);
     const apertureRadius = frameCtx?.frameRef?.current?.apertureRadius ?? 15.0;
 
-    focusCenterUniformRef.current.set(fx, fy, fz);
-    apertureUniformRef.current.value = apertureRadius;
-    cameraPosUniformRef.current.set(
+    material.uniforms.uFocusCenter.value.set(fx, fy, fz);
+    material.uniforms.uApertureRadius.value = apertureRadius;
+    material.uniforms.uCameraPos.value.set(
       camera.position.x,
       camera.position.y,
       camera.position.z,
