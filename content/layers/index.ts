@@ -57,6 +57,7 @@ import overlayJwstTargets from './overlay-jwst-targets';
 import overlayHabitableWorlds from './overlay-habitable-worlds';
 import overlayRecentDiscoveries from './overlay-recent-discoveries';
 import overlayExtremeWorlds from './overlay-extreme-worlds';
+import { CONSTELLATION_LAYER_MANIFESTS } from './overlay-constellations';
 
 export const LAYER_MANIFESTS: readonly DatasetLayerManifest[] = [
   canonProjectHailMary,
@@ -117,4 +118,5 @@ export const LAYER_MANIFESTS: readonly DatasetLayerManifest[] = [
   overlayHabitableWorlds,
   overlayRecentDiscoveries,
   overlayExtremeWorlds,
+  ...CONSTELLATION_LAYER_MANIFESTS,
 ];

@@ -25,6 +25,11 @@ import {
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
 import type { DatasetLayerManifest, DatasetLayerEntry } from '../src/types/astro';
 import { buildFocusedEntityDetails } from '../src/services/detailsService';
+import {
+  resolveSelectedSystemsFromUrlSelect,
+  resolveSelectedSystemsFromLayer,
+} from '../src/services/searchService';
+import { useCameraStore } from '../src/stores/useCameraStore';
 
 const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
   {
@@ -139,7 +144,7 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
       const res = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS);
       expect(res.targetView).toBe('galaxy');
       expect(res.href).toBe(
-        '/galaxy?focus=tau-ceti&select=layer:recent-discoveries&layer=recent-discoveries:tau-ceti',
+        '/galaxy?center=tau-ceti&focus=gaia-2452378776434477184&select=layer:recent-discoveries&layer=recent-discoveries:gaia-2452378776434477184',
       );
     });
 
@@ -159,11 +164,11 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
       );
       expect(res.targetView).toBe('system');
       expect(res.href).toBe(
-        '/system/tau-ceti?select=layer:recent-discoveries&layer=recent-discoveries:tau-ceti',
+        '/system/tau-ceti?center=gaia-2452378776434477184&focus=gaia-2452378776434477184&select=layer:recent-discoveries&layer=recent-discoveries:gaia-2452378776434477184',
       );
     });
 
-    it('resolves moon targets to PlanetView with focus and parent planet route', () => {
+    it('resolves moon targets staying on current view scale (galaxy by default, planet when on planet view)', () => {
       const entry: DatasetLayerEntry = {
         targetId: 'europa',
         targetType: 'moon',
@@ -172,14 +177,25 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
         inUniverseName: 'Europa',
         text: 'Subsurface ocean world',
       };
-      const res = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS);
-      expect(res.targetView).toBe('planet');
-      expect(res.href).toBe(
-        '/planet/jupiter?focus=europa&select=layer:recent-discoveries&layer=recent-discoveries:europa',
+      const resGalaxy = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS);
+      expect(resGalaxy.targetView).toBe('galaxy');
+      expect(resGalaxy.href).toBe(
+        '/galaxy?center=sol&focus=europa&select=layer:recent-discoveries&layer=recent-discoveries:europa',
+      );
+
+      const resPlanet = resolveLayerItemTargetHref(
+        mockLayer,
+        entry,
+        SAMPLE_CORPUS,
+        '/planet/jupiter',
+      );
+      expect(resPlanet.targetView).toBe('planet');
+      expect(resPlanet.href).toBe(
+        '/planet/jupiter?center=europa&focus=europa&select=layer:recent-discoveries&layer=recent-discoveries:europa',
       );
     });
 
-    it('resolves planet/minor-body targets to SystemView with focus parameter', () => {
+    it('resolves planet/minor-body targets staying on current view scale (galaxy by default, system when on system view)', () => {
       const entry: DatasetLayerEntry = {
         targetId: 'lhs-1140-b',
         targetType: 'planet',
@@ -187,10 +203,21 @@ describe('DEC-039: Layer Card Service & Navigation', () => {
         inUniverseName: 'LHS 1140 b',
         text: 'Temperate rocky super-Earth',
       };
-      const res = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS);
-      expect(res.targetView).toBe('system');
-      expect(res.href).toBe(
-        '/system/lhs-1140?focus=lhs-1140-b&select=layer:recent-discoveries&layer=recent-discoveries:lhs-1140-b',
+      const resGalaxy = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS);
+      expect(resGalaxy.targetView).toBe('galaxy');
+      expect(resGalaxy.href).toBe(
+        '/galaxy?center=lhs-1140&focus=lhs-1140-b&select=layer:recent-discoveries&layer=recent-discoveries:lhs-1140-b',
+      );
+
+      const resSystem = resolveLayerItemTargetHref(
+        mockLayer,
+        entry,
+        SAMPLE_CORPUS,
+        '/system/lhs-1140',
+      );
+      expect(resSystem.targetView).toBe('system');
+      expect(resSystem.href).toBe(
+        '/system/lhs-1140?center=lhs-1140-b&focus=lhs-1140-b&select=layer:recent-discoveries&layer=recent-discoveries:lhs-1140-b',
       );
     });
   });
@@ -477,3 +504,100 @@ describe('DEC-039: <LayerCard /> Component & Exploration UI', () => {
     resetLayerRuntime();
   });
 });
+
+describe('Layer Selection and Camera Recentering (DEC-041 / DEC-042)', () => {
+  it('selects all member systems in a layer when ?layer= is present without ?select=', () => {
+    const selected = resolveSelectedSystemsFromUrlSelect(
+      '?layer=recent-discoveries:lhs-1140-b',
+      SAMPLE_CORPUS,
+      LAYER_INDEX_ENTRIES,
+      LAYER_MANIFESTS,
+    );
+    expect(selected.length).toBeGreaterThan(0);
+    expect(selected.some((s) => s.id === 'lhs-1140')).toBe(true);
+  });
+
+  it('increments recenterTick and resets properly in useCameraStore', () => {
+    useCameraStore.getState().resetCameraState();
+    expect(useCameraStore.getState().recenterTick).toBe(0);
+
+    useCameraStore.getState().triggerRecenter();
+    expect(useCameraStore.getState().recenterTick).toBe(1);
+
+    useCameraStore.getState().triggerRecenter();
+    expect(useCameraStore.getState().recenterTick).toBe(2);
+
+    useCameraStore.getState().reset();
+    expect(useCameraStore.getState().recenterTick).toBe(0);
+  });
+});
+
+describe('Scientific Overlay Constellation Layers Resolution', () => {
+  it('resolves constellation layers (Orion, Ursa Major, Centaurus) via resolveSelectedSystemsFromLayer and resolveActiveLayerCard', () => {
+    // 1. resolveSelectedSystemsFromLayer
+    const orionSystems = resolveSelectedSystemsFromLayer(
+      'overlay-constellation-orion',
+      SAMPLE_CORPUS,
+      LAYER_MANIFESTS,
+    );
+    expect(orionSystems.length).toBeGreaterThanOrEqual(9);
+    expect(orionSystems.some((s) => s.id === 'hip-27989')).toBe(true);
+
+    const umaSystems = resolveSelectedSystemsFromLayer(
+      'overlay-constellation-ursa-major',
+      SAMPLE_CORPUS,
+      LAYER_MANIFESTS,
+    );
+    expect(umaSystems.length).toBeGreaterThanOrEqual(10);
+    expect(umaSystems.some((s) => s.id === 'hip-54061')).toBe(true);
+
+    const cenSystems = resolveSelectedSystemsFromLayer(
+      'overlay-constellation-centaurus',
+      SAMPLE_CORPUS,
+      LAYER_MANIFESTS,
+    );
+    expect(cenSystems.length).toBeGreaterThanOrEqual(5);
+    expect(cenSystems.some((s) => s.id === 'hip-71683')).toBe(true);
+
+    // 2. resolveActiveLayerCard
+    const orionCard = resolveActiveLayerCard({
+      layerParam: 'overlay-constellation-orion',
+      currentPathname: '/galaxy',
+      currentSearch: '?layer=overlay-constellation-orion',
+      layers: LAYER_MANIFESTS,
+    });
+    expect(orionCard).not.toBeNull();
+    expect(orionCard?.mode).toBe('overview');
+    if (orionCard?.mode === 'overview') {
+      expect(orionCard.layerId).toBe('overlay-constellation-orion');
+      expect(orionCard.title).toBe('Orion (The Hunter)');
+    }
+
+    const umaCard = resolveActiveLayerCard({
+      layerParam: 'overlay-constellation-ursa-major',
+      currentPathname: '/galaxy',
+      currentSearch: '?layer=overlay-constellation-ursa-major',
+      layers: LAYER_MANIFESTS,
+    });
+    expect(umaCard).not.toBeNull();
+    expect(umaCard?.mode).toBe('overview');
+    if (umaCard?.mode === 'overview') {
+      expect(umaCard.layerId).toBe('overlay-constellation-ursa-major');
+      expect(umaCard.title).toContain('Ursa Major');
+    }
+
+    const cenCard = resolveActiveLayerCard({
+      layerParam: 'overlay-constellation-centaurus',
+      currentPathname: '/galaxy',
+      currentSearch: '?layer=overlay-constellation-centaurus',
+      layers: LAYER_MANIFESTS,
+    });
+    expect(cenCard).not.toBeNull();
+    expect(cenCard?.mode).toBe('overview');
+    if (cenCard?.mode === 'overview') {
+      expect(cenCard.layerId).toBe('overlay-constellation-centaurus');
+      expect(cenCard.title).toContain('Centaurus');
+    }
+  });
+});
+

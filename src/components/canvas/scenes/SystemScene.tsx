@@ -1,10 +1,14 @@
 import React, { useMemo } from 'react';
+import * as THREE from 'three';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import { SYSTEM_FRAME } from '../instrument/referenceFrame';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
 import { CANDIDATE_SYSTEMS, SOL_PLANETS, type SolPlanetConfig } from '../../../data';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
+import { toUrlSlug } from '../../../utils/datasetLayerCodec';
+import { calculateKeplerianPosition } from '../math/kepler';
+import { GalacticCameraController } from './SpatialScenes';
 
 export interface StarDossierData {
   id: string;
@@ -24,6 +28,8 @@ export interface StarDossierData {
 export interface SystemSceneProps {
   systemId?: string;
   system?: StarDossierData;
+  centerId?: string;
+  centerCoordinates?: readonly [number, number, number] | [number, number, number];
   onInspectPlanet?: (planetId: string) => void;
   onSelectEntity?: (entityId: string | null) => void;
   debugHitarea?: boolean;
@@ -36,6 +42,8 @@ export interface SystemSceneProps {
 export const SystemScene: React.FC<SystemSceneProps> = ({
   systemId = 'sol',
   system: explicitSystem,
+  centerId,
+  centerCoordinates,
   onInspectPlanet,
   onSelectEntity,
   debugHitarea = false,
@@ -62,7 +70,14 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
       planetEntities = SOL_PLANETS.map((p: SolPlanetConfig) => ({
         id: p.id,
         name: p.name,
-        position: [p.a, 0, 0],
+        position: calculateKeplerianPosition(
+          p.a,
+          p.e,
+          p.inc,
+          p.node,
+          p.peri,
+          p.meanAnomaly,
+        ),
         classification: p.classification,
         orbit: {
           semiMajorAxis: p.a,
@@ -78,19 +93,24 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
       // Generic exoplanet mapping from system planet census
       planetEntities = sysData.planetsList.map((p, index) => {
         const a = 0.4 + index * 0.6;
+        const e = 0.05 + index * 0.02;
+        const inc = index * 1.5;
+        const node = index * 25;
+        const peri = index * 40;
+        const meanAnomaly = (index * 60) % 360;
         return {
           id: p.id,
           name: p.name,
-          position: [a, 0, 0],
+          position: calculateKeplerianPosition(a, e, inc, node, peri, meanAnomaly),
           classification: p.classification,
           orbit: {
             semiMajorAxis: a,
-            eccentricity: 0.05 + index * 0.02,
-            inclination: index * 1.5,
-            ascendingNode: index * 25,
-            argumentOfPeriapsis: index * 40,
+            eccentricity: e,
+            inclination: inc,
+            ascendingNode: node,
+            argumentOfPeriapsis: peri,
             period: Math.round(Math.pow(a, 1.5) * 365.25),
-            meanAnomaly: (index * 60) % 360,
+            meanAnomaly,
           },
         };
       });
@@ -99,14 +119,40 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
     return [starEntity, ...planetEntities];
   }, [systemId, explicitSystem]);
 
+  const targetCoords = useMemo<[number, number, number]>(() => {
+    if (centerCoordinates) {
+      return [centerCoordinates[0], centerCoordinates[1], centerCoordinates[2]];
+    }
+    if (centerId) {
+      const match = entities.find((e) => {
+        return (
+          e.id === centerId ||
+          toUrlSlug(e.id) === toUrlSlug(centerId) ||
+          toUrlSlug(e.name) === toUrlSlug(centerId)
+        );
+      });
+      if (match) {
+        const p = match.position;
+        const x = p instanceof THREE.Vector3 ? p.x : p ? p[0] : 0;
+        const y = p instanceof THREE.Vector3 ? p.y : p ? p[1] : 0;
+        const z = p instanceof THREE.Vector3 ? p.z : p ? p[2] : 0;
+        return [x, y, z];
+      }
+    }
+    return [0, 0, 0];
+  }, [centerCoordinates, centerId, entities]);
+
   return (
     <SpatialViewport
       frame={SYSTEM_FRAME}
       entities={entities}
       cameraDistance={STANDARD_CAMERA_DISTANCES.system}
+      cameraTarget={targetCoords}
       onInspect={onInspectPlanet}
       onSelect={onSelectEntity}
       debugHitarea={debugHitarea}
-    />
+    >
+      <GalacticCameraController target={targetCoords} />
+    </SpatialViewport>
   );
 };

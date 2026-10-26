@@ -15,6 +15,8 @@ import {
 import { SceneTokenBridge } from '../ThemeTokenBridge';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
+import { useCameraStore } from '../../../stores/useCameraStore';
+import type { SpatialEntityDefinition } from '../entity';
 import { GalaxyScene } from './GalaxyScene';
 import { SystemScene } from './SystemScene';
 import { PlanetScene } from './PlanetScene';
@@ -42,11 +44,12 @@ export interface GalacticViewSceneProps {
     | [number, number, number]
     | { x: number; y: number; z: number };
   centerId?: string;
+  additionalEntities?: readonly SpatialEntityDefinition[];
   className?: string;
   variant?: 'card' | 'fullscreen';
 }
 
-const GalacticCameraController: React.FC<{
+export const GalacticCameraController: React.FC<{
   target: [number, number, number];
 }> = ({ target }) => {
   const three = useThree();
@@ -55,20 +58,41 @@ const GalacticCameraController: React.FC<{
     'controls' in three && three.controls
       ? (three.controls as unknown as { target: THREE.Vector3; update?: () => void })
       : undefined;
+  const recenterTick = useCameraStore((s) => s.recenterTick);
   const prevTargetRef = useRef<[number, number, number]>(target);
+  const prevRecenterTickRef = useRef<number>(recenterTick);
 
   useEffect(() => {
     const prev = prevTargetRef.current;
-    if (
+    const prevTick = prevRecenterTickRef.current;
+    const isTargetSame =
       prev[0] === target[0] &&
       prev[1] === target[1] &&
-      prev[2] === target[2]
+      prev[2] === target[2];
+    const isTickSame = recenterTick === prevTick;
+
+    const newTarget = new THREE.Vector3(target[0], target[1], target[2]);
+
+    if (
+      isTargetSame &&
+      isTickSame &&
+      (!controls?.target || controls.target.distanceToSquared(newTarget) < 1e-6)
     ) {
       return;
     }
-    prevTargetRef.current = target;
 
-    const newTarget = new THREE.Vector3(target[0], target[1], target[2]);
+    if (
+      isTargetSame &&
+      controls?.target &&
+      controls.target.distanceToSquared(newTarget) < 1e-6
+    ) {
+      prevRecenterTickRef.current = recenterTick;
+      return;
+    }
+
+    prevTargetRef.current = target;
+    prevRecenterTickRef.current = recenterTick;
+
     const prevTarget = controls?.target
       ? controls.target.clone()
       : new THREE.Vector3(prev[0], prev[1], prev[2]);
@@ -81,7 +105,7 @@ const GalacticCameraController: React.FC<{
       controls.target.copy(newTarget);
       controls.update?.();
     }
-  }, [target, camera, controls]);
+  }, [target, recenterTick, camera, controls]);
 
   return null;
 };
@@ -92,6 +116,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
   onSelectSystem,
   centerCoordinates,
   centerId,
+  additionalEntities,
   className,
   variant = 'card',
 }) => {
@@ -149,6 +174,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             initialSelectedId={initialSelectedId ?? centerId}
             onInspectSystem={onInspectSystem}
             onSelectSystem={onSelectSystem}
+            additionalEntities={additionalEntities}
           />
         </Canvas>
         <SafeHtmlPortalOutlet />
@@ -159,6 +185,11 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
 
 export interface SystemViewSceneProps {
   systemId?: string;
+  centerId?: string;
+  centerCoordinates?:
+    | readonly [number, number, number]
+    | [number, number, number]
+    | { x: number; y: number; z: number };
   onInspectPlanet?: (planetId: string) => void;
   onNavigateGalaxy?: () => void;
   className?: string;
@@ -167,14 +198,25 @@ export interface SystemViewSceneProps {
 
 export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
   systemId = 'sol',
+  centerId,
+  centerCoordinates,
   onInspectPlanet,
   onNavigateGalaxy: _onNavigateGalaxy,
   className,
   variant = 'card',
 }) => {
+  const targetCoords = useMemo<[number, number, number]>(() => {
+    if (!centerCoordinates) return [0, 0, 0];
+    if (Array.isArray(centerCoordinates)) {
+      return [centerCoordinates[0], centerCoordinates[1], centerCoordinates[2]];
+    }
+    const c = centerCoordinates as { x: number; y: number; z: number };
+    return [c.x, c.y, c.z];
+  }, [centerCoordinates]);
+
   const standardCam = useMemo(
-    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.system, [0, 0, 0]),
-    [],
+    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.system, targetCoords),
+    [targetCoords],
   );
 
   const containerClass = className
@@ -208,6 +250,8 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
 
           <SystemScene
             systemId={systemId}
+            centerId={centerId}
+            centerCoordinates={centerCoordinates ? targetCoords : undefined}
             onInspectPlanet={onInspectPlanet}
           />
         </Canvas>

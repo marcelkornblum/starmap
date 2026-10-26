@@ -6,6 +6,7 @@ import {
   type FocusedDiskDetail,
   type FocusedEntityDetails,
   type FocusedPlanetDetail,
+  type FocusedPreviewSummary,
   type FocusedStarDetail,
   type OrbitalSchematicSummary,
   type SystemElementBodyItem,
@@ -42,11 +43,13 @@ import {
 import { PlanetCensus } from '../PlanetCensus';
 import { CanonLayerItem } from '../CanonLayerItem';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
+import { PreviewPanel } from '../PreviewPanel';
 
 export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
   readonly activeDetent?: DetentLevel;
   readonly schematic?: OrbitalSchematicSummary | null;
+  readonly preview?: FocusedPreviewSummary | null;
 }
 
 const renderSystemSummarySegments = (
@@ -566,6 +569,7 @@ export const DetailsPanel = ({
   details,
   activeDetent,
   schematic,
+  preview,
 }: DetailsPanelProps) => {
   if (!details) {
     return null;
@@ -1520,6 +1524,20 @@ export const DetailsPanel = ({
           ) : null}
         </Stack>
       </section>
+      {!isSystemFocus && schematic && schematic.scope === 'system' && schematic.items.length > 0 ? (
+        <section
+          aria-labelledby="details-schematic-heading"
+          data-testid="orbital-schematic-panel"
+          data-scope={schematic.scope}
+          data-system-id={schematic.systemId}
+        >
+          <Heading as="h4" size="eyebrow" id="details-schematic-heading">
+            Orbital Schematic
+          </Heading>
+          <OrbitalSchematicList items={schematic.items} />
+        </section>
+      ) : null}
+      {preview ? <PreviewPanel preview={preview} /> : null}
     </>
   );
 
