@@ -284,9 +284,9 @@ export function SectorPointCloud({
     if (!resolvedManager) return;
 
     const focusPoint = frameCtx?.frameRef?.current?.focusPoint;
-    const fx = focusPoint ? focusPoint.x : scratchPosRef.current[0];
-    const fy = focusPoint ? focusPoint.y : scratchPosRef.current[1];
-    const fz = focusPoint ? focusPoint.z : scratchPosRef.current[2];
+    const fx = focusPoint ? focusPoint.x : (Number.isNaN(lastXRef.current) ? 0 : lastXRef.current);
+    const fy = focusPoint ? focusPoint.y : (Number.isNaN(lastYRef.current) ? 0 : lastYRef.current);
+    const fz = focusPoint ? focusPoint.z : (Number.isNaN(lastZRef.current) ? 0 : lastZRef.current);
     const apertureRadius = frameCtx?.frameRef?.current?.apertureRadius ?? 15.0;
 
     focusCenterUniformRef.current.set(fx, fy, fz);
