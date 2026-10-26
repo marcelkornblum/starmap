@@ -286,10 +286,10 @@ export function SectorPointCloud({
   useFrame(({ camera }) => {
     if (!resolvedManager) return;
 
-    const focusPoint = frameCtx?.frameRef?.current?.focusPoint ?? camera.position;
-    const fx = focusPoint.x;
-    const fy = focusPoint.y;
-    const fz = focusPoint.z;
+    const focusPoint = frameCtx?.frameRef?.current?.focusPoint;
+    const fx = focusPoint ? focusPoint.x : scratchPosRef.current[0];
+    const fy = focusPoint ? focusPoint.y : scratchPosRef.current[1];
+    const fz = focusPoint ? focusPoint.z : scratchPosRef.current[2];
     const apertureRadius = frameCtx?.frameRef?.current?.apertureRadius ?? 15.0;
 
     const uniforms = material.uniforms;
