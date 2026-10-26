@@ -129,6 +129,12 @@ export function SectorPointCloud({
   }, []);
 
   useEffect(() => {
+    return () => {
+      material.dispose();
+    };
+  }, [material]);
+
+  useEffect(() => {
     material.uniforms.uPointSize.value = pointSize;
     material.uniforms.uBaseOpacity.value = pointOpacity;
   }, [material, pointSize, pointOpacity]);
@@ -136,12 +142,6 @@ export function SectorPointCloud({
   useEffect(() => {
     (material.uniforms.uColor.value as THREE.Color).copy(reticleBracketColor);
   }, [material, reticleBracketColor]);
-
-  useEffect(() => {
-    return () => {
-      material.dispose();
-    };
-  }, [material]);
 
   const targetRef = useRef<{ group: THREE.Group | null; material: THREE.Material | null }>({
     group: null,
