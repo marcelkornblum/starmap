@@ -230,11 +230,15 @@ export function SectorPointCloud({
       lastHydratedRadiusRef.current = apertureRadius;
 
       const queryInputs = resolvedManager.getActiveSectorQueryInputs();
-      const hPos: [number, number, number] = [fx, fy, fz];
+      // querySectorsWithinInstrumentSphere reads coordinates synchronously on entry,
+      // and hydratingRef.current guarantees exclusive single-flight execution.
+      scratchPosRef.current[0] = fx;
+      scratchPosRef.current[1] = fy;
+      scratchPosRef.current[2] = fz;
       const lookaheadRadius = apertureRadius * 1.15;
 
       void hydrationBridge
-        .updateInstrumentPerimeter(queryInputs, hPos, lookaheadRadius)
+        .updateInstrumentPerimeter(queryInputs, scratchPosRef.current, lookaheadRadius)
         .then((state) => {
           hydratingRef.current = false;
           onSummariesRef.current?.(state.activeSummaries);
@@ -252,7 +256,7 @@ export function SectorPointCloud({
           hydratingRef.current = false;
         });
     },
-    [resolvedManager, hydrationBridge],
+    [resolvedManager, hydrationBridge, scratchPosRef],
   );
   useEffect(() => {
     triggerHydrationRef.current = triggerHydration;
@@ -274,11 +278,7 @@ export function SectorPointCloud({
       lastXRef.current = scratchPosRef.current[0];
       lastYRef.current = scratchPosRef.current[1];
       lastZRef.current = scratchPosRef.current[2];
-      void resolvedManager.updateCameraPosition([
-        scratchPosRef.current[0],
-        scratchPosRef.current[1],
-        scratchPosRef.current[2],
-      ]);
+      void resolvedManager.updateCameraPosition(scratchPosRef.current);
     }
 
     return () => {
@@ -317,12 +317,10 @@ export function SectorPointCloud({
       lastYRef.current = fy;
       lastZRef.current = fz;
 
-      const pos = scratchPosRef.current;
-      pos[0] = fx;
-      pos[1] = fy;
-      pos[2] = fz;
-
-      void resolvedManager.updateCameraPosition(pos);
+      scratchPosRef.current[0] = fx;
+      scratchPosRef.current[1] = fy;
+      scratchPosRef.current[2] = fz;
+      void resolvedManager.updateCameraPosition(scratchPosRef.current);
     }
 
     const hx = lastHydratedXRef.current;
