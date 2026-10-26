@@ -146,6 +146,10 @@ export function SectorPointCloud({
     }
   }, [material, reticleBracketColor]);
 
+  const focusCenterUniformRef = useLazyRef(() => new THREE.Vector3(0, 0, 0));
+  const cameraPosUniformRef = useLazyRef(() => new THREE.Vector3(0, -35, 20));
+  const apertureUniformRef = useLazyRef(() => ({ value: 15.0 }));
+
   const targetRef = useRef<{ group: THREE.Group | null; material: THREE.Material | null }>({
     group: null,
     material: null,
@@ -154,7 +158,10 @@ export function SectorPointCloud({
   useEffect(() => {
     targetRef.current.group = groupRef.current;
     targetRef.current.material = material;
-  }, [material]);
+    material.uniforms.uFocusCenter.value = focusCenterUniformRef.current;
+    material.uniforms.uCameraPos.value = cameraPosUniformRef.current;
+    material.uniforms.uApertureRadius = apertureUniformRef.current;
+  }, [material, focusCenterUniformRef, cameraPosUniformRef, apertureUniformRef]);
 
   const internalManager = useMemo(() => {
     if (manager) return null;
@@ -282,21 +289,13 @@ export function SectorPointCloud({
     const fz = focusPoint ? focusPoint.z : scratchPosRef.current[2];
     const apertureRadius = frameCtx?.frameRef?.current?.apertureRadius ?? 15.0;
 
-    const uniforms = material.uniforms;
-    const focusVec = uniforms.uFocusCenter.value;
-    if (focusVec instanceof THREE.Vector3) {
-      focusVec.set(fx, fy, fz);
-    }
-    uniforms.uApertureRadius.value = apertureRadius;
-    const camVec = uniforms.uCameraPos.value;
-    if (camVec instanceof THREE.Vector3) {
-      camVec.set(
-        camera.position.x,
-        camera.position.y,
-        camera.position.z,
-      );
-    }
-    uniforms.uHorizonRadius.value = 36.0;
+    focusCenterUniformRef.current.set(fx, fy, fz);
+    apertureUniformRef.current.value = apertureRadius;
+    cameraPosUniformRef.current.set(
+      camera.position.x,
+      camera.position.y,
+      camera.position.z,
+    );
 
     const lx = lastXRef.current;
     const ly = lastYRef.current;

@@ -16,6 +16,7 @@ import { SceneTokenBridge } from '../ThemeTokenBridge';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import type { SpatialEntityDefinition } from '../entity';
 import { GalaxyScene } from './GalaxyScene';
 import { SystemScene } from './SystemScene';
@@ -79,6 +80,9 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   const recenterTick = useCameraStore((s) => s.recenterTick);
   const prevTargetRef = useRef<[number, number, number]>(target);
   const prevRecenterTickRef = useRef<number>(recenterTick);
+  const scratchNewTargetRef = useLazyRef(() => new THREE.Vector3());
+  const scratchPrevTargetRef = useLazyRef(() => new THREE.Vector3());
+  const scratchDeltaRef = useLazyRef(() => new THREE.Vector3());
 
   useEffect(() => {
     const prev = prevTargetRef.current;
@@ -93,15 +97,15 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       return;
     }
 
-    const newTarget = new THREE.Vector3(target[0], target[1], target[2]);
+    const newTarget = scratchNewTargetRef.current.set(target[0], target[1], target[2]);
 
     prevTargetRef.current = target;
     prevRecenterTickRef.current = recenterTick;
 
     const prevTarget = controls?.target
-      ? controls.target.clone()
-      : new THREE.Vector3(prev[0], prev[1], prev[2]);
-    const delta = newTarget.clone().sub(prevTarget);
+      ? scratchPrevTargetRef.current.copy(controls.target)
+      : scratchPrevTargetRef.current.set(prev[0], prev[1], prev[2]);
+    const delta = scratchDeltaRef.current.copy(newTarget).sub(prevTarget);
 
     camera.position.add(delta);
     camera.lookAt(newTarget);
@@ -110,7 +114,15 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       controls.target.copy(newTarget);
       controls.update?.();
     }
-  }, [target, recenterTick, camera, controls]);
+  }, [
+    target,
+    recenterTick,
+    camera,
+    controls,
+    scratchNewTargetRef,
+    scratchPrevTargetRef,
+    scratchDeltaRef,
+  ]);
 
   return null;
 };
