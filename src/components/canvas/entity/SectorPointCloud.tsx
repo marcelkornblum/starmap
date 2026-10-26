@@ -200,7 +200,6 @@ export function SectorPointCloud({
   const lastHydratedRadiusRef = useRef(Number.NaN);
   const hydratingRef = useRef(false);
   const pendingHydrationRef = useRef(false);
-  const scratchHydrationPosRef = useLazyRef<[number, number, number]>(() => [0, 0, 0]);
 
   const triggerHydrationRef = useRef<((fx: number, fy: number, fz: number, apertureRadius: number) => void) | null>(null);
 
@@ -218,10 +217,7 @@ export function SectorPointCloud({
       lastHydratedRadiusRef.current = apertureRadius;
 
       const queryInputs = resolvedManager.getActiveSectorQueryInputs();
-      const hPos = scratchHydrationPosRef.current;
-      hPos[0] = fx;
-      hPos[1] = fy;
-      hPos[2] = fz;
+      const hPos: [number, number, number] = [fx, fy, fz];
       const lookaheadRadius = apertureRadius * 1.15;
 
       void hydrationBridge
@@ -243,7 +239,7 @@ export function SectorPointCloud({
           hydratingRef.current = false;
         });
     },
-    [resolvedManager, hydrationBridge, scratchHydrationPosRef],
+    [resolvedManager, hydrationBridge],
   );
   useEffect(() => {
     triggerHydrationRef.current = triggerHydration;
@@ -311,7 +307,7 @@ export function SectorPointCloud({
     const dz = fz - lz;
     const distSq = dx * dx + dy * dy + dz * dz;
 
-    if (Number.isNaN(distSq) || distSq > 4.0) {
+    if (!Number.isFinite(distSq) || distSq > 4.0) {
       lastXRef.current = fx;
       lastYRef.current = fy;
       lastZRef.current = fz;
@@ -335,7 +331,7 @@ export function SectorPointCloud({
     const hDistSq = hdx * hdx + hdy * hdy + hdz * hdz;
     const rDiff = Math.abs(apertureRadius - hr);
 
-    if (Number.isNaN(hDistSq) || hDistSq > 0.25 || Number.isNaN(rDiff) || rDiff > 0.25) {
+    if (!Number.isFinite(hDistSq) || hDistSq > 0.25 || !Number.isFinite(rDiff) || rDiff > 0.25) {
       triggerHydration(fx, fy, fz, apertureRadius);
     }
 
