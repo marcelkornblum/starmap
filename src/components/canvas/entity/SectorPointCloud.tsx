@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
@@ -204,56 +204,50 @@ export function SectorPointCloud({
 
   const triggerHydrationRef = useRef<((fx: number, fy: number, fz: number, apertureRadius: number) => void) | null>(null);
 
-  const triggerHydration = (fx: number, fy: number, fz: number, apertureRadius: number) => {
-    if (!resolvedManager) return;
-    if (hydratingRef.current) {
-      pendingHydrationRef.current = true;
-      return;
-    }
-    hydratingRef.current = true;
-    lastHydratedXRef.current = fx;
-    lastHydratedYRef.current = fy;
-    lastHydratedZRef.current = fz;
-    lastHydratedRadiusRef.current = apertureRadius;
+  const triggerHydration = useCallback(
+    (fx: number, fy: number, fz: number, apertureRadius: number) => {
+      if (!resolvedManager) return;
+      if (hydratingRef.current) {
+        pendingHydrationRef.current = true;
+        return;
+      }
+      hydratingRef.current = true;
+      lastHydratedXRef.current = fx;
+      lastHydratedYRef.current = fy;
+      lastHydratedZRef.current = fz;
+      lastHydratedRadiusRef.current = apertureRadius;
 
-    const queryInputs = resolvedManager.getActiveSectorQueryInputs();
-    const hPos = scratchHydrationPosRef.current;
-    hPos[0] = fx;
-    hPos[1] = fy;
-    hPos[2] = fz;
-    const lookaheadRadius = apertureRadius * 1.15;
+      const queryInputs = resolvedManager.getActiveSectorQueryInputs();
+      const hPos = scratchHydrationPosRef.current;
+      hPos[0] = fx;
+      hPos[1] = fy;
+      hPos[2] = fz;
+      const lookaheadRadius = apertureRadius * 1.15;
 
-    void hydrationBridge
-      .updateInstrumentPerimeter(queryInputs, hPos, lookaheadRadius)
-      .then((state) => {
-        hydratingRef.current = false;
-        onSummariesRef.current?.(state.activeSummaries);
-        if (pendingHydrationRef.current) {
-          pendingHydrationRef.current = false;
-          const currentFocus = frameCtxRef.current?.frameRef?.current?.focusPoint;
-          const currentFx = currentFocus ? currentFocus.x : lastHydratedXRef.current;
-          const currentFy = currentFocus ? currentFocus.y : lastHydratedYRef.current;
-          const currentFz = currentFocus ? currentFocus.z : lastHydratedZRef.current;
-          const currentRadius = frameCtxRef.current?.frameRef?.current?.apertureRadius ?? 15.0;
-          if (currentFocus) {
-            triggerHydration(currentFx, currentFy, currentFz, currentRadius);
-          } else {
-            triggerHydration(
-              lastHydratedXRef.current,
-              lastHydratedYRef.current,
-              lastHydratedZRef.current,
-              currentRadius,
-            );
+      void hydrationBridge
+        .updateInstrumentPerimeter(queryInputs, hPos, lookaheadRadius)
+        .then((state) => {
+          hydratingRef.current = false;
+          onSummariesRef.current?.(state.activeSummaries);
+          if (pendingHydrationRef.current) {
+            pendingHydrationRef.current = false;
+            const currentFocus = frameCtxRef.current?.frameRef?.current?.focusPoint;
+            const currentFx = currentFocus ? currentFocus.x : lastHydratedXRef.current;
+            const currentFy = currentFocus ? currentFocus.y : lastHydratedYRef.current;
+            const currentFz = currentFocus ? currentFocus.z : lastHydratedZRef.current;
+            const currentRadius = frameCtxRef.current?.frameRef?.current?.apertureRadius ?? 15.0;
+            triggerHydrationRef.current?.(currentFx, currentFy, currentFz, currentRadius);
           }
-        }
-      })
-      .catch(() => {
-        hydratingRef.current = false;
-      });
-  };
+        })
+        .catch(() => {
+          hydratingRef.current = false;
+        });
+    },
+    [resolvedManager, hydrationBridge, scratchHydrationPosRef],
+  );
   useEffect(() => {
     triggerHydrationRef.current = triggerHydration;
-  });
+  }, [triggerHydration]);
 
   useEffect(() => {
     if (!resolvedManager) return;
