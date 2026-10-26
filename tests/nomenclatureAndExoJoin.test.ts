@@ -11,6 +11,7 @@ import {
   buildCleanKeys,
   collectStarLookupKeys,
   normalizeCleanKey,
+  IAU_CONSTELLATION_NOMINATIVE_MAP,
   UNICODE_GREEK_TO_LATIN_MAP,
   SUPERSCRIPT_DIGIT_MAP,
   transliterateGreekAndSuperscripts,
@@ -258,6 +259,52 @@ describe('Step 1: Nomenclature Expansion & Substring-Deduplicated Clean Keys', (
     expect(lookupKeys).toContain('gj144');
     expect(lookupKeys).toContain('gliese144');
     expect(lookupKeys).toContain('sadira');
+    // Nominative constellation key from con: 'Eri'
+    expect(lookupKeys).toContain('eridanus');
+
+    // Star with Bayer and genitive in alias
+    const betelgeuseKeys = collectStarLookupKeys({
+      properName: 'Betelgeuse',
+      name: 'Alpha Orionis',
+      con: 'Ori',
+      aliases: ['Alpha Orionis', 'Betelgeuse'],
+    });
+    expect(betelgeuseKeys).toContain('orion');
+
+    // Star with two-word genitive in alias
+    const dubheKeys = collectStarLookupKeys({
+      properName: 'Dubhe',
+      aliases: ['Alpha Ursae Majoris', 'Dubhe'],
+    });
+    expect(dubheKeys).toContain('ursamajor');
+  });
+
+  it('provides IAU_CONSTELLATION_NOMINATIVE_MAP for 88 IAU constellations', () => {
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.ori).toBe('Orion');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.uma).toBe('Ursa Major');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.cas).toBe('Cassiopeia');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.cen).toBe('Centaurus');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.cru).toBe('Crux');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.cma).toBe('Canis Major');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.cyg).toBe('Cygnus');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.lyr).toBe('Lyra');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.aql).toBe('Aquila');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.sco).toBe('Scorpius');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.tau).toBe('Taurus');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.gem).toBe('Gemini');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.leo).toBe('Leo');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.vir).toBe('Virgo');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.sgr).toBe('Sagittarius');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.boo).toBe('Bootes');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.aur).toBe('Auriga');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.eri).toBe('Eridanus');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.car).toBe('Carina');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.peg).toBe('Pegasus');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.and).toBe('Andromeda');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.psa).toBe('Piscis Austrinus');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.cmi).toBe('Canis Minor');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.cet).toBe('Cetus');
+    expect(IAU_CONSTELLATION_NOMINATIVE_MAP.oph).toBe('Ophiuchus');
   });
 
   it('evaluates search index tier eligibility predicates in compactDataCodec', () => {

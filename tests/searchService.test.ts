@@ -19,7 +19,9 @@ import {
   formatPlanetCountSummary,
 } from '../src/components/domain';
 import { shouldDisplaySpectralBadge } from '../src/components/interface';
-import { Search } from '../src/components/search';
+import { Search, prefetchSearchResultsDetails } from '../src/components/search';
+import * as detailsRepo from '../src/data/detailsRepository';
+import * as layerRepo from '../src/data/layerRepository';
 import {
   clearDetailsRepositoryCache,
   decodeDetailRecord,
@@ -118,6 +120,7 @@ import {
   resolveSelectedSystemsFromUrlSelect,
   scoreSearchEntry,
   toSearchResultItem,
+  type GroupedSearchResults,
   QUERY_CLEAN_KEY_TO_TAG_SLUG,
 } from '../src/services/searchService';
 import {
@@ -671,6 +674,131 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(html).not.toContain('id="starmap-search-filter"');
     expect(html).toContain('Tau Ceti');
     expect(html).not.toContain('tau Ceti e');
+  });
+
+  it('does NOT trigger prefetch for < 3 character queries, and lazily prefetches detail/summary/layer shards for 3+ characters', async () => {
+    const summarySpy = vi.spyOn(detailsRepo, 'fetchSummaryNode').mockImplementation(() => Promise.resolve(undefined));
+    const detailSpy = vi.spyOn(detailsRepo, 'fetchDetailRecord').mockImplementation(() => Promise.resolve(undefined));
+    const manifestSpy = vi.spyOn(layerRepo, 'fetchLayerManifest').mockImplementation(() => Promise.resolve({} as any));
+    const annotationsSpy = vi.spyOn(layerRepo, 'fetchEntityAnnotations').mockImplementation(() => Promise.resolve([]));
+
+    try {
+      const shortQueryResults: GroupedSearchResults = {
+        query: 'so',
+        filter: 'all',
+        totalMatches: 1,
+        groups: {
+          stars: {
+            category: 'stars',
+            heading: 'Stars',
+            totalMatches: 1,
+            items: [
+              {
+                id: 'sol',
+                name: 'Sol',
+                category: 'stars',
+                entityKind: 'star-system',
+                reticleType: 'stellar-system',
+                targetView: 'galaxy',
+                href: '/galaxy?focus=sol',
+                score: 100,
+              },
+            ],
+          },
+          planets: { category: 'planets', heading: 'Planets', totalMatches: 0, items: [] },
+          structures: { category: 'structures', heading: 'Structures', totalMatches: 0, items: [] },
+          'minor-bodies': { category: 'minor-bodies', heading: 'Minor Bodies', totalMatches: 0, items: [] },
+          layers: { category: 'layers', heading: 'Layers', totalMatches: 0, items: [] },
+        },
+      };
+
+      prefetchSearchResultsDetails(shortQueryResults);
+
+      expect(summarySpy).not.toHaveBeenCalled();
+      expect(detailSpy).not.toHaveBeenCalled();
+      expect(manifestSpy).not.toHaveBeenCalled();
+      expect(annotationsSpy).not.toHaveBeenCalled();
+
+      const threeCharResults: GroupedSearchResults = {
+        query: 'sol',
+        filter: 'all',
+        totalMatches: 3,
+        groups: {
+          stars: {
+            category: 'stars',
+            heading: 'Stars',
+            totalMatches: 1,
+            items: [
+              {
+                id: 'sol',
+                name: 'Sol',
+                category: 'stars',
+                entityKind: 'star-system',
+                reticleType: 'stellar-system',
+                targetView: 'galaxy',
+                href: '/galaxy?focus=sol',
+                score: 100,
+              },
+            ],
+          },
+          planets: {
+            category: 'planets',
+            heading: 'Planets',
+            totalMatches: 1,
+            items: [
+              {
+                id: 'earth',
+                name: 'Earth',
+                systemId: 'sol',
+                category: 'planets',
+                entityKind: 'planet',
+                reticleType: 'terrestrial',
+                targetView: 'system',
+                href: '/system/sol?focus=earth',
+                score: 90,
+              },
+            ],
+          },
+          structures: { category: 'structures', heading: 'Structures', totalMatches: 0, items: [] },
+          'minor-bodies': { category: 'minor-bodies', heading: 'Minor Bodies', totalMatches: 0, items: [] },
+          layers: {
+            category: 'layers',
+            heading: 'Layers',
+            totalMatches: 1,
+            items: [
+              {
+                id: 'overlay-recent-discoveries:proxima-centauri-b',
+                name: 'Proxima Centauri b',
+                category: 'layers',
+                entityKind: 'layer',
+                reticleType: 'terrestrial',
+                targetView: 'system',
+                href: '/system/proxima-centauri?focus=proxima-centauri-b',
+                systemId: 'proxima-centauri',
+                score: 80,
+              },
+            ],
+          },
+        },
+      };
+
+      prefetchSearchResultsDetails(threeCharResults);
+
+      expect(summarySpy).toHaveBeenCalledWith('sol');
+      expect(detailSpy).toHaveBeenCalledWith('sol');
+      expect(detailSpy).toHaveBeenCalledWith('earth');
+      expect(annotationsSpy).toHaveBeenCalledWith(expect.arrayContaining(['sol']));
+      expect(annotationsSpy).toHaveBeenCalledWith(expect.arrayContaining(['earth', 'sol']));
+      expect(manifestSpy).toHaveBeenCalledWith('overlay-recent-discoveries');
+      expect(summarySpy).toHaveBeenCalledWith('proxima-centauri');
+      expect(detailSpy).toHaveBeenCalledWith('proxima-centauri');
+      expect(detailSpy).toHaveBeenCalledWith('proxima-centauri-b');
+    } finally {
+      summarySpy.mockRestore();
+      detailSpy.mockRestore();
+      manifestSpy.mockRestore();
+      annotationsSpy.mockRestore();
+    }
   });
 
   it('evaluates dedicated searchService hooks, reticle taxonomy, URL state helpers, and SearchResultItem formatters', async () => {
@@ -2824,6 +2952,7 @@ describe('Focus Preview Domain and Component Boundary (DEC-016)', () => {
     );
     expect(systemFocusedHtml).toContain('data-testid="preview-panel"');
     expect(systemFocusedHtml).toContain('data-preview-mode="planetary-system"');
+    expect(systemFocusedHtml.match(/data-testid="preview-panel"/g)).toHaveLength(1);
 
     const planetFocusedHtml = renderToString(
       createElement(
@@ -2837,6 +2966,114 @@ describe('Focus Preview Domain and Component Boundary (DEC-016)', () => {
       ),
     );
     expect(planetFocusedHtml).toContain('data-testid="preview-panel"');
+    expect(planetFocusedHtml.match(/data-testid="preview-panel"/g)).toHaveLength(1);
+  });
+
+  it('renders PreviewPanel and system OrbitalSchematic inside the draggable DetailsPanel full detent', () => {
+    const dummyDetails = buildFocusedEntityDetails({
+      focusedEntity: { id: 'earth', name: 'Earth', position: [0, 0, 0], classification: 'terrestrial' },
+      corpus: SAMPLE_CORPUS,
+      summaryNode: undefined,
+      systemDetail: undefined,
+      entityDetail: undefined,
+      urlSystemSlug: 'sol',
+      urlFocusSlug: 'earth',
+      hasExplicitFocus: true,
+      canonRecords: [],
+      viewScope: 'system',
+      currentPathname: '/system/sol',
+      currentSearch: '?focus=earth',
+    });
+    const dummyPreview = buildFocusedPreviewSummary(dummyDetails);
+    const dummySchematic: OrbitalSchematicSummary = {
+      scope: 'system',
+      systemId: 'sol',
+      systemName: 'Sol',
+      habitableZoneAu: [0.95, 1.37],
+      items: [
+        {
+          id: 'earth',
+          name: 'Earth',
+          href: '/system/sol?focus=earth',
+          kind: 'planet',
+          orbitRank: 1,
+          summaryLabel: 'Earth',
+          inHabitableZone: true,
+          isFocused: true,
+          isSelected: false,
+        },
+      ],
+    };
+
+    const html = renderToString(
+      createElement(DetailsPanel, {
+        details: dummyDetails,
+        schematic: dummySchematic,
+        preview: dummyPreview,
+      }),
+    );
+
+    expect(html).toContain('data-testid="details-detent-full"');
+    expect(html).toContain('data-testid="preview-panel"');
+    expect(html).toContain('data-testid="orbital-schematic-panel"');
+
+    const fullIdx = html.indexOf('data-testid="details-detent-full"');
+    const previewIdx = html.indexOf('data-testid="preview-panel"');
+    const schematicIdx = html.indexOf('data-testid="orbital-schematic-panel"');
+
+    // Both are inside full detent
+    expect(previewIdx).toBeGreaterThan(fullIdx);
+    expect(schematicIdx).toBeGreaterThan(fullIdx);
+  });
+
+  it('GalaxyView resolves center coordinates for corpus systems and host systems of planets', () => {
+    const store = createSpatialEntityStore();
+    const corpusWithDistantSystem: readonly CompactSearchEntry[] = [
+      ...SAMPLE_CORPUS,
+      {
+        i: 'trappist-1',
+        n: 'TRAPPIST-1',
+        k: 1,
+        p: [12.1, -4.5, 3.2],
+        m: [18.8, 'M8V', 7, 1],
+      },
+      {
+        i: 'trappist-1-e',
+        n: 'TRAPPIST-1 e',
+        k: 2,
+        s: 'trappist-1',
+        p: [0, 0, 0],
+      },
+    ];
+
+    const html = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store },
+        createElement(GalaxyView, {
+          initialCorpus: corpusWithDistantSystem,
+          locationPathname: '/galaxy',
+          locationSearch: '?center=trappist-1',
+        }),
+      ),
+    );
+
+    // CanvasLayer should receive resolved center coordinates [12.1, -4.5, 3.2]
+    expect(html).toContain('data-center-coords="12.1,-4.5,3.2"');
+
+    // Resolves coordinates for planet focus target via host system
+    const planetCenterHtml = renderToString(
+      createElement(
+        SpatialEntityProvider,
+        { store },
+        createElement(GalaxyView, {
+          initialCorpus: corpusWithDistantSystem,
+          locationPathname: '/galaxy',
+          locationSearch: '?center=trappist-1-e',
+        }),
+      ),
+    );
+    expect(planetCenterHtml).toContain('data-center-coords="12.1,-4.5,3.2"');
   });
 });
 

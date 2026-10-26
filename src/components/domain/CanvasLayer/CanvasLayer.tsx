@@ -1,5 +1,6 @@
 import React from 'react';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
+import type { SpatialEntityDefinition } from '../../canvas/entity/types';
 import {
   GalacticViewScene,
   SystemViewScene,
@@ -12,6 +13,7 @@ export interface CanvasLayerProps {
   readonly targetId?: string;
   readonly centerId?: string;
   readonly centerCoordinates?: readonly [number, number, number];
+  readonly selectedEntities?: readonly SpatialEntityDefinition[];
   readonly cameraAzimuthDeg?: number;
   readonly cameraElevationDeg?: number;
   readonly cameraDistance?: number;
@@ -55,6 +57,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo(({
   targetId,
   centerId,
   centerCoordinates,
+  selectedEntities,
   cameraAzimuthDeg,
   cameraElevationDeg,
   cameraDistance,
@@ -90,6 +93,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo(({
           initialSelectedId={centerId ?? null}
           centerCoordinates={centerCoordinates}
           centerId={centerId}
+          additionalEntities={selectedEntities}
           onInspectSystem={onInspect}
           onSelectSystem={onSelect}
         />
@@ -98,6 +102,8 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo(({
         <SystemViewScene
           variant="fullscreen"
           systemId={targetId ?? 'sol'}
+          centerId={centerId}
+          centerCoordinates={centerCoordinates}
         />
       )}
       {mountCanvas && scope === 'planet' && (

@@ -44,6 +44,7 @@ import {
   formatSlugFallbackTitle,
   normalizeCleanKey,
 } from '../utils/nomenclature';
+import { parseLayerQueryParam } from './layerCardService';
 export { formatSlugFallbackTitle };
 
 export {
@@ -1509,7 +1510,14 @@ export const resolveSelectedSystemsFromUrlSelect = (
   loadedLayers: readonly DatasetLayerManifest[],
 ): readonly SpatialEntityDefinition[] => {
   const tokens = parseUrlSelectTokens(searchString, layerIndex);
-  if (tokens.length === 0) {
+
+  const cleanSearch = searchString.startsWith('?')
+    ? searchString.slice(1)
+    : searchString;
+  const layerParam = new URLSearchParams(cleanSearch).get('layer');
+  const parsedLayer = parseLayerQueryParam(layerParam);
+
+  if (tokens.length === 0 && !parsedLayer) {
     return [];
   }
 
@@ -1547,6 +1555,20 @@ export const resolveSelectedSystemsFromUrlSelect = (
       if (entity) {
         entitiesById.set(entity.id, entity);
       }
+    }
+  }
+
+  if (parsedLayer) {
+    const matched =
+      findCanonLayerById(parsedLayer.layerSlug, loadedLayers) ??
+      findCanonLayerById(parsedLayer.layerSlug, layerIndex);
+    const layerId = matched?.layerId ?? parsedLayer.layerSlug;
+    for (const sys of resolveSelectedSystemsFromLayer(
+      layerId,
+      corpus,
+      loadedLayers,
+    )) {
+      entitiesById.set(sys.id, sys);
     }
   }
 

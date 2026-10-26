@@ -120,6 +120,104 @@ export const IAU_CONSTELLATION_GENITIVE_MAP: Record<string, string> = {
   vul: 'Vulpeculae',
 };
 
+export const IAU_CONSTELLATION_NOMINATIVE_MAP: Record<string, string> = {
+  and: 'Andromeda',
+  ant: 'Antlia',
+  aps: 'Apus',
+  aqr: 'Aquarius',
+  aql: 'Aquila',
+  ara: 'Ara',
+  ari: 'Aries',
+  aur: 'Auriga',
+  boo: 'Bootes',
+  cae: 'Caelum',
+  cam: 'Camelopardalis',
+  cnc: 'Cancer',
+  cvn: 'Canes Venatici',
+  cma: 'Canis Major',
+  cmi: 'Canis Minor',
+  cap: 'Capricornus',
+  car: 'Carina',
+  cas: 'Cassiopeia',
+  cen: 'Centaurus',
+  cep: 'Cepheus',
+  cet: 'Cetus',
+  cha: 'Chamaeleon',
+  cir: 'Circinus',
+  col: 'Columba',
+  com: 'Coma Berenices',
+  cra: 'Corona Australis',
+  crb: 'Corona Borealis',
+  crv: 'Corvus',
+  crt: 'Crater',
+  cru: 'Crux',
+  cyg: 'Cygnus',
+  del: 'Delphinus',
+  dor: 'Dorado',
+  dra: 'Draco',
+  equ: 'Equuleus',
+  eri: 'Eridanus',
+  for: 'Fornax',
+  gem: 'Gemini',
+  gru: 'Grus',
+  her: 'Hercules',
+  hor: 'Horologium',
+  hya: 'Hydra',
+  hyi: 'Hydrus',
+  ind: 'Indus',
+  lac: 'Lacerta',
+  leo: 'Leo',
+  lmi: 'Leo Minor',
+  lep: 'Lepus',
+  lib: 'Libra',
+  lup: 'Lupus',
+  lyn: 'Lynx',
+  lyr: 'Lyra',
+  men: 'Mensa',
+  mic: 'Microscopium',
+  mon: 'Monoceros',
+  mus: 'Musca',
+  nor: 'Norma',
+  oct: 'Octans',
+  oph: 'Ophiuchus',
+  ori: 'Orion',
+  pav: 'Pavo',
+  peg: 'Pegasus',
+  per: 'Perseus',
+  phe: 'Phoenix',
+  pic: 'Pictor',
+  psc: 'Pisces',
+  psa: 'Piscis Austrinus',
+  pup: 'Puppis',
+  pyx: 'Pyxis',
+  ret: 'Reticulum',
+  sge: 'Sagitta',
+  sgr: 'Sagittarius',
+  sco: 'Scorpius',
+  scl: 'Sculptor',
+  sct: 'Scutum',
+  ser: 'Serpens',
+  sex: 'Sextans',
+  tau: 'Taurus',
+  tel: 'Telescopium',
+  tri: 'Triangulum',
+  tra: 'Triangulum Australe',
+  tuc: 'Tucana',
+  uma: 'Ursa Major',
+  umi: 'Ursa Minor',
+  vel: 'Vela',
+  vir: 'Virgo',
+  vol: 'Volans',
+  vul: 'Vulpecula',
+};
+
+const GENITIVE_TO_NOMINATIVE_MAP: Record<string, string> = Object.fromEntries(
+  Object.entries(IAU_CONSTELLATION_GENITIVE_MAP).map(([code, genitive]) => [
+    genitive.toLowerCase(),
+    IAU_CONSTELLATION_NOMINATIVE_MAP[code] ?? genitive,
+  ]),
+);
+
 export const UNICODE_GREEK_TO_LATIN_MAP: Record<string, string> = {
   α: 'alpha',
   β: 'beta',
@@ -646,6 +744,56 @@ export function collectStarLookupKeys(star: StarLookupInput): string[] {
       rawCandidates.push(expandGouldOrConstellationSuffix(alias));
       rawCandidates.push(...expandGlieseVariants(alias));
     }
+  }
+
+  // Include nominative constellation name when star has constellation code, genitive, or alias
+  const nominativesToAdd = new Set<string>();
+
+  if (star.con) {
+    const conKey = star.con.trim().toLowerCase();
+    const nom = IAU_CONSTELLATION_NOMINATIVE_MAP[conKey];
+    if (nom) nominativesToAdd.add(nom);
+  }
+
+  for (const cand of rawCandidates) {
+    if (!cand) continue;
+    const lower = cand.toLowerCase();
+
+    // Check two-word genitives (e.g. "canis majoris", "ursae majoris", "piscis austrini")
+    for (const [genitive, nominative] of Object.entries(GENITIVE_TO_NOMINATIVE_MAP)) {
+      if (genitive.includes(' ') && lower.includes(genitive)) {
+        nominativesToAdd.add(nominative);
+      }
+    }
+
+    // Check individual tokens for single-word genitives or 3-letter IAU codes
+    const tokens = lower.split(/[^a-z0-9]+/);
+    for (const token of tokens) {
+      if (!token) continue;
+      const genitiveMatch = GENITIVE_TO_NOMINATIVE_MAP[token];
+      if (genitiveMatch) {
+        nominativesToAdd.add(genitiveMatch);
+        continue;
+      }
+      const codeMatch = IAU_CONSTELLATION_NOMINATIVE_MAP[token];
+      if (codeMatch) {
+        if (token === 'and' || token === 'for') {
+          // Disambiguate from English conjunction/preposition: require astronomical Bayer/Flamsteed context
+          const hasAstroContext = tokens.some(
+            (t) => t !== token && (isGreekBayerPrefix(t) || /^\d+$/.test(t)),
+          );
+          if (hasAstroContext) {
+            nominativesToAdd.add(codeMatch);
+          }
+        } else {
+          nominativesToAdd.add(codeMatch);
+        }
+      }
+    }
+  }
+
+  for (const nom of nominativesToAdd) {
+    rawCandidates.push(nom);
   }
 
   const keys: string[] = [];

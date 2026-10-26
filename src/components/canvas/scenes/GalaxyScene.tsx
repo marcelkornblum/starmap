@@ -8,6 +8,7 @@ import type { SystemSummaryNode } from '../../../types/astro';
 
 export interface GalaxySceneProps {
   systems?: CandidateSystem[];
+  additionalEntities?: readonly SpatialEntityDefinition[];
   initialSelectedId?: string | null;
   onInspectSystem?: (systemId: string) => void;
   onSelectSystem?: (systemId: string | null) => void;
@@ -20,6 +21,7 @@ export interface GalaxySceneProps {
  */
 export const GalaxyScene: React.FC<GalaxySceneProps> = ({
   systems = CANDIDATE_SYSTEMS,
+  additionalEntities,
   initialSelectedId,
   onInspectSystem,
   onSelectSystem,
@@ -51,9 +53,18 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
       };
     });
 
-    // Add up to 25 nearest non-duplicate streamed stars to keep CelestialEntity count bounded
+    if (additionalEntities) {
+      for (const ent of additionalEntities) {
+        if (!existingIds.has(ent.id)) {
+          existingIds.add(ent.id);
+          baseEntities.push(ent);
+        }
+      }
+    }
+
+    // Add up to 120 nearest non-duplicate streamed stars to keep CelestialEntity count bounded
     let added = 0;
-    for (let i = 0; i < streamedSummaries.length && added < 25; i++) {
+    for (let i = 0; i < streamedSummaries.length && added < 120; i++) {
       const s = streamedSummaries[i];
       if (s && !existingIds.has(s.id)) {
         existingIds.add(s.id);
@@ -70,7 +81,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
     }
 
     return baseEntities;
-  }, [systems, streamedSummaries]);
+  }, [systems, additionalEntities, streamedSummaries]);
 
   return (
     <SpatialViewport

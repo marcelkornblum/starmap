@@ -143,6 +143,17 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           ),
     [activeCorpus, layerIndex, loadedLayers, search, storeSelected],
   );
+
+  useEffect(() => {
+    const nextIds = selectedEntities.map((e) => e.id);
+    const current = storeApi.getState().selectedIds;
+    if (
+      current.size !== nextIds.length ||
+      !nextIds.every((id) => current.has(id))
+    ) {
+      storeApi.getState().setSelectedIds(nextIds);
+    }
+  }, [selectedEntities, storeApi]);
   const matchedEntry = focusedEntity
     ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
     : undefined;
@@ -352,24 +363,114 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     ) {
       return [cameraState.x, cameraState.y, cameraState.z];
     }
+
     if (centerEntity?.position) {
       const p = centerEntity.position;
-      return p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
-    }
-    if (cameraState.center) {
-      const match = CANDIDATE_SYSTEMS.find(
-        (s) =>
-          s.id === cameraState.center ||
-          toUrlSlug(s.id) === cameraState.center ||
-          toUrlSlug(s.name) === cameraState.center,
-      );
-      if (match?.position) {
-        const p = match.position;
-        return p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
+      const coords: [number, number, number] =
+        p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
+      if (cameraState.center === 'sol' || coords[0] !== 0 || coords[1] !== 0 || coords[2] !== 0) {
+        return coords;
       }
     }
+
+    if (cameraState.center) {
+      const centerSlug = cameraState.center;
+
+      const candidateMatch = CANDIDATE_SYSTEMS.find(
+        (s) =>
+          s.id === centerSlug ||
+          toUrlSlug(s.id) === centerSlug ||
+          toUrlSlug(s.name) === centerSlug,
+      );
+      if (candidateMatch?.position) {
+        const p = candidateMatch.position;
+        const coords: [number, number, number] =
+          p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
+        if (centerSlug === 'sol' || coords[0] !== 0 || coords[1] !== 0 || coords[2] !== 0) {
+          return coords;
+        }
+      }
+
+      const selectedMatch = selectedEntities.find(
+        (s) =>
+          s.id === centerSlug ||
+          toUrlSlug(s.id) === centerSlug ||
+          toUrlSlug(s.name) === centerSlug,
+      );
+      if (selectedMatch?.position) {
+        const p = selectedMatch.position;
+        const coords: [number, number, number] =
+          p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
+        if (centerSlug === 'sol' || coords[0] !== 0 || coords[1] !== 0 || coords[2] !== 0) {
+          return coords;
+        }
+      }
+
+      const directCorpusMatch = activeCorpus.find(
+        (e) =>
+          e.i === centerSlug ||
+          toUrlSlug(e.i) === centerSlug ||
+          toUrlSlug(e.n) === centerSlug,
+      );
+      if (directCorpusMatch) {
+        if (
+          directCorpusMatch.p &&
+          (centerSlug === 'sol' ||
+            directCorpusMatch.p[0] !== 0 ||
+            directCorpusMatch.p[1] !== 0 ||
+            directCorpusMatch.p[2] !== 0)
+        ) {
+          return [directCorpusMatch.p[0], directCorpusMatch.p[1], directCorpusMatch.p[2]];
+        }
+        if (directCorpusMatch.s) {
+          const host = activeCorpus.find(
+            (e) => e.i === directCorpusMatch.s || toUrlSlug(e.i) === directCorpusMatch.s,
+          );
+          if (
+            host?.p &&
+            (centerSlug === 'sol' || host.p[0] !== 0 || host.p[1] !== 0 || host.p[2] !== 0)
+          ) {
+            return [host.p[0], host.p[1], host.p[2]];
+          }
+        }
+      }
+
+      const hostCorpusMatch = activeCorpus.find(
+        (e) =>
+          (e.i === centerSlug || toUrlSlug(e.i) === centerSlug) &&
+          e.p &&
+          (centerSlug === 'sol' || e.p[0] !== 0 || e.p[1] !== 0 || e.p[2] !== 0),
+      );
+      if (hostCorpusMatch?.p) {
+        return [hostCorpusMatch.p[0], hostCorpusMatch.p[1], hostCorpusMatch.p[2]];
+      }
+
+      const childCorpusMatch = activeCorpus.find(
+        (e) => e.s && (e.s === centerSlug || toUrlSlug(e.s) === centerSlug),
+      );
+      if (childCorpusMatch?.s) {
+        const host = activeCorpus.find(
+          (e) => e.i === childCorpusMatch.s || toUrlSlug(e.i) === childCorpusMatch.s,
+        );
+        if (
+          host?.p &&
+          (centerSlug === 'sol' || host.p[0] !== 0 || host.p[1] !== 0 || host.p[2] !== 0)
+        ) {
+          return [host.p[0], host.p[1], host.p[2]];
+        }
+      }
+    }
+
     return undefined;
-  }, [cameraState.center, cameraState.x, cameraState.y, cameraState.z, centerEntity]);
+  }, [
+    activeCorpus,
+    cameraState.center,
+    cameraState.x,
+    cameraState.y,
+    cameraState.z,
+    centerEntity,
+    selectedEntities,
+  ]);
 
   const handleSelectSystem = useCallback((id: string | null) => {
     if (id) {
@@ -403,6 +504,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       canvas={
         <CanvasLayer
           scope="galaxy"
+          selectedEntities={selectedEntities}
           centerId={cameraState.center}
           centerCoordinates={resolvedCenterCoordinates}
           cameraAzimuthDeg={cameraState.az}
@@ -443,10 +545,11 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           <DetailsPanel
             details={focusedDetails}
             schematic={orbitalSchematic}
+            preview={focusedPreview}
           />
         )
       }
-      preview={<PreviewPanel preview={focusedPreview} />}
+      preview={activeJourney ? <PreviewPanel preview={focusedPreview} /> : null}
       minimap={<Minimap orientation={minimapOrientation} />}
       bodies={
         <BodiesPanel
