@@ -31,8 +31,7 @@ export const canMountWebGLCanvas = (): boolean => {
   }
   if (
     typeof window === 'undefined' ||
-    typeof document === 'undefined' ||
-    /jsdom/i.test(window.navigator?.userAgent ?? '')
+    typeof document === 'undefined'
   ) {
     webglSupported = false;
     return false;

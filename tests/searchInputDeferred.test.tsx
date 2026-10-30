@@ -37,24 +37,16 @@ const TEST_CORPUS: readonly CompactSearchEntry[] = [
 ];
 
 describe('SearchInput Immediate Update & Deferred Search Execution', () => {
-  let originalUserAgent: PropertyDescriptor | undefined;
-
   beforeEach(() => {
-    originalUserAgent = Object.getOwnPropertyDescriptor(
-      window.navigator,
-      'userAgent',
-    );
+    vi.restoreAllMocks();
   });
 
   afterEach(() => {
-    if (originalUserAgent) {
-      Object.defineProperty(window.navigator, 'userAgent', originalUserAgent);
-    }
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
-  it('updates input value immediately on onChange in synchronous JSDOM environment', () => {
+  it('updates input value immediately on onChange in synchronous mode', () => {
     const store = createSpatialEntityStore();
     render(
       createElement(
@@ -65,6 +57,7 @@ describe('SearchInput Immediate Update & Deferred Search Execution', () => {
           {
             initialCorpus: TEST_CORPUS,
             syncUrl: false,
+            syncMode: true,
           },
           createElement(Search.Panel, null, createElement(Search.Input)),
           createElement(Search.Results),
@@ -80,15 +73,7 @@ describe('SearchInput Immediate Update & Deferred Search Execution', () => {
     expect(screen.getByText('Tau Ceti')).toBeDefined();
   });
 
-  it('updates input UI immediately and defers catalog search until 3 characters and the debounce elapse in browser mode', () => {
-    // Simulate real browser environment (non-JSDOM user agent)
-    Object.defineProperty(window.navigator, 'userAgent', {
-      value:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      configurable: true,
-      writable: true,
-    });
-
+  it('updates input UI immediately and defers catalog search until 3 characters and the debounce elapse in standard mode', () => {
     vi.useFakeTimers();
 
     const summarySpy = vi

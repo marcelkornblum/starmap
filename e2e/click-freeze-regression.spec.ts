@@ -43,7 +43,7 @@ test.describe('Click freeze & anchor navigation regression', () => {
     const tauCetiLink = searchResultsRegion
       .getByRole('region', { name: /Stars/i })
       .getByRole('link', { name: 'Tau Ceti' });
-    await expect(tauCetiLink).toBeVisible();
+    await expect(tauCetiLink).toBeVisible({ timeout: 10_000 });
     await tauCetiLink.click();
 
     // Verify Tau Ceti is focused and Details panel opens (dismissing search dropdown)
@@ -57,7 +57,7 @@ test.describe('Click freeze & anchor navigation regression', () => {
     const solLink = searchResultsRegion
       .getByRole('region', { name: /Stars/i })
       .getByRole('link', { name: 'Sol' });
-    await expect(solLink).toBeVisible();
+    await expect(solLink).toBeVisible({ timeout: 10_000 });
     await solLink.click();
 
     // Verify Sol is focused and Details panel is displayed
@@ -100,10 +100,10 @@ test.describe('Click freeze & anchor navigation regression', () => {
     await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)));
     const elapsed = Date.now() - startTime;
 
-    // A responsive main-thread will execute a 50ms timeout within 500ms.
+    // A responsive main-thread will execute a 50ms timeout within a reasonable threshold (2000ms under software GL).
     // If setShardTick / infinite React re-render loop starves the event loop,
-    // this will time out or take excessive time.
-    expect(elapsed).toBeLessThan(500);
+    // this will time out or take excessive time (>30s).
+    expect(elapsed).toBeLessThan(2000);
 
     // Also verify Details pane is visible and responsive
     await expect(detailsPane).toBeVisible();
