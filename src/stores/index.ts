@@ -3,4 +3,5 @@ export * from './useUIStore';
 export * from './useThreeTokenStore';
 export * from './useCameraStore';
 export * from './useLayerStore';
+export * from './useActiveStarsStore';
 
