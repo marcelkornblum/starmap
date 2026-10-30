@@ -39,7 +39,7 @@ export const STARFIELD_VERTEX_SHADER = /* glsl */ `
     float outerT = clamp((distFromOrigin - uApertureRadius) / outerSpan, 0.0, 1.0);
     float radialFalloff = distFromOrigin <= uApertureRadius
       ? mix(1.0, 0.72, innerT)
-      : 0.72 * (1.0 - outerT) * (1.0 - outerT);
+      : mix(0.72, 0.2, outerT);
 
     vLuminance = mix(0.35, 1.0, radialFalloff);
 
@@ -54,7 +54,7 @@ export const STARFIELD_VERTEX_SHADER = /* glsl */ `
     float inCorridor = 1.0 - smoothstep(uApertureRadius * 0.8, corridorRadius, perpDist);
     float inFront = 1.0 - smoothstep(max(camDist - uApertureRadius * 1.1, 0.0), camDist, alongRay);
     float fgMask = step(uApertureRadius, distFromOrigin) * step(0.0, alongRay) * inCorridor * inFront;
-    float fgFactor = mix(1.0, 0.08, fgMask);
+    float fgFactor = mix(1.0, 0.2, fgMask);
 
     vAlpha = uBaseOpacity * radialFalloff * fgFactor;
     gl_PointSize = uPointSize;
@@ -81,6 +81,20 @@ export const STARFIELD_FRAGMENT_SHADER = /* glsl */ `
   }
 `;
 
+/** Default instrument aperture radius (pc) the starfield material is created with. */
+export const STARFIELD_DEFAULT_APERTURE_RADIUS = 15.0;
+
+/** Horizon radius expressed as a multiple of the live aperture radius, so the cull sphere scales with zoom. */
+export const STARFIELD_HORIZON_APERTURE_RATIO = 2.4;
+
+/**
+ * Horizon radius (pc) beyond which stars are culled. Tied to the live aperture radius so the
+ * fall-off window stays constant relative to the instrument and camera rather than world coordinates.
+ */
+export function computeStarfieldHorizonRadius(apertureRadius: number): number {
+  return apertureRadius * STARFIELD_HORIZON_APERTURE_RATIO;
+}
+
 export interface StarfieldPointsUniforms {
   [uniform: string]: THREE.IUniform;
   uColor: THREE.IUniform<THREE.Color>;
@@ -105,9 +119,9 @@ export function createStarfieldPointsMaterial(
     uPointSize: { value: pointSize },
     uBaseOpacity: { value: pointOpacity },
     uFocusCenter: { value: new THREE.Vector3(0, 0, 0) },
-    uApertureRadius: { value: 15.0 },
+    uApertureRadius: { value: STARFIELD_DEFAULT_APERTURE_RADIUS },
     uCameraPos: { value: new THREE.Vector3(0, -35, 20) },
-    uHorizonRadius: { value: 36.0 },
+    uHorizonRadius: { value: computeStarfieldHorizonRadius(STARFIELD_DEFAULT_APERTURE_RADIUS) },
   };
   return new StarfieldPointsMaterial({
     uniforms,
@@ -297,6 +311,7 @@ export function SectorPointCloud({
 
     material.uniforms.uFocusCenter.value.set(fx, fy, fz);
     material.uniforms.uApertureRadius.value = apertureRadius;
+    material.uniforms.uHorizonRadius.value = computeStarfieldHorizonRadius(apertureRadius);
     material.uniforms.uCameraPos.value.set(
       camera.position.x,
       camera.position.y,

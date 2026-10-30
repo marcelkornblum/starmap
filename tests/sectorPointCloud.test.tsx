@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import {
+  computeStarfieldHorizonRadius,
   createStarfieldPointsMaterial,
+  STARFIELD_HORIZON_APERTURE_RATIO,
   STARFIELD_VERTEX_SHADER,
   STARFIELD_FRAGMENT_SHADER,
 } from '../src/components/canvas/entity/SectorPointCloud';
@@ -72,7 +74,15 @@ describe('SectorPointCloud - Starfield Shader & Continuous Boundary Hydration', 
       expect(STARFIELD_VERTEX_SHADER).toContain('float outerSpan = max(uHorizonRadius - uApertureRadius, 1.0)');
       expect(STARFIELD_VERTEX_SHADER).toContain('float outerT = clamp((distFromOrigin - uApertureRadius) / outerSpan, 0.0, 1.0)');
       expect(STARFIELD_VERTEX_SHADER).toContain('float radialFalloff = distFromOrigin <= uApertureRadius');
+      expect(STARFIELD_VERTEX_SHADER).toContain(': mix(0.72, 0.2, outerT)');
       expect(STARFIELD_VERTEX_SHADER).toContain('vLuminance = mix(0.35, 1.0, radialFalloff)');
+    });
+
+    it('scales the horizon cull radius with the live aperture radius instead of world units', () => {
+      expect(computeStarfieldHorizonRadius(15)).toBeCloseTo(36);
+      expect(computeStarfieldHorizonRadius(30)).toBeCloseTo(72);
+      expect(computeStarfieldHorizonRadius(7.5)).toBeCloseTo(18);
+      expect(computeStarfieldHorizonRadius(30) / 30).toBeCloseTo(STARFIELD_HORIZON_APERTURE_RATIO);
     });
 
     it('embeds foreground attenuation corridor into vertex shader', () => {
@@ -82,7 +92,7 @@ describe('SectorPointCloud - Starfield Shader & Continuous Boundary Hydration', 
       expect(STARFIELD_VERTEX_SHADER).toContain('float inCorridor = 1.0 - smoothstep(uApertureRadius * 0.8, corridorRadius, perpDist)');
       expect(STARFIELD_VERTEX_SHADER).toContain('float inFront = 1.0 - smoothstep(max(camDist - uApertureRadius * 1.1, 0.0), camDist, alongRay)');
       expect(STARFIELD_VERTEX_SHADER).toContain('float fgMask = step(uApertureRadius, distFromOrigin) * step(0.0, alongRay) * inCorridor * inFront');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float fgFactor = mix(1.0, 0.08, fgMask)');
+      expect(STARFIELD_VERTEX_SHADER).toContain('float fgFactor = mix(1.0, 0.2, fgMask)');
       expect(STARFIELD_VERTEX_SHADER).toContain('vAlpha = uBaseOpacity * radialFalloff * fgFactor');
     });
 
