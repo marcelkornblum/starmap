@@ -358,9 +358,11 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
           className={styles.geometryList}
         >
           <DataTable.Head>
-            <DataTable.HeaderCell>Leg</DataTable.HeaderCell>
-            <DataTable.HeaderCell align="end">Distance</DataTable.HeaderCell>
-            <DataTable.HeaderCell>Geometry</DataTable.HeaderCell>
+            <DataTable.Row>
+              <DataTable.HeaderCell>Leg</DataTable.HeaderCell>
+              <DataTable.HeaderCell align="end">Distance</DataTable.HeaderCell>
+              <DataTable.HeaderCell>Geometry</DataTable.HeaderCell>
+            </DataTable.Row>
           </DataTable.Head>
           <DataTable.Body>
             {journey.steps.map((step) => (

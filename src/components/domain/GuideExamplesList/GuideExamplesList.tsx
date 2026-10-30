@@ -17,8 +17,10 @@ export const GuideExamplesList: React.FC<GuideExamplesListProps> = ({
       <Heading as="h3">{title}</Heading>
       <DataTable data-testid="guide-examples-list" className={styles.examplesList}>
         <DataTable.Head>
-          <DataTable.HeaderCell>Benchmark</DataTable.HeaderCell>
-          <DataTable.HeaderCell>Context</DataTable.HeaderCell>
+          <DataTable.Row>
+            <DataTable.HeaderCell>Benchmark</DataTable.HeaderCell>
+            <DataTable.HeaderCell>Context</DataTable.HeaderCell>
+          </DataTable.Row>
         </DataTable.Head>
         <DataTable.Body>
           {examples.map((ex) => (

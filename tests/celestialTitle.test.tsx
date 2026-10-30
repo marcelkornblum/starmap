@@ -415,6 +415,21 @@ describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
   });
 
   describe('GuideExamplesList Reticle Placement', () => {
+    it('places header cells inside a table row within the table head', () => {
+      render(
+        <GuideExamplesList
+          examples={[{ name: 'Sol', href: '/system/sol', note: 'G2V main sequence' }]}
+        />,
+      );
+
+      const headerCells = screen.getAllByRole('columnheader');
+      expect(headerCells.length).toBeGreaterThan(0);
+      for (const cell of headerCells) {
+        expect(cell.parentElement?.tagName).toBe('TR');
+        expect(cell.parentElement?.parentElement?.tagName).toBe('THEAD');
+      }
+    });
+
     it('renders terrestrial reticle for planet links and star reticle for star links', () => {
       render(
         <GuideExamplesList
