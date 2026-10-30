@@ -4,6 +4,7 @@ import {
   isInsideAperture,
 } from '../../components/canvas/math/aperture';
 import { deriveEntityTier } from '../../components/canvas/math/tiers';
+import type { SystemSummaryNode } from '../../types/astro';
 import {
   PARSEC_TO_LY,
   computeEuclideanDistance3D,
@@ -37,6 +38,44 @@ import type {
   GalaxyBodySystemItem,
   ResolveGalacticInstrumentApertureInput,
 } from './types';
+
+/**
+ * Pure merge of the stars hydrated from streamed sector partitions (every star inside the live
+ * instrument aperture) into the search corpus, so aperture membership and the objects panel cover
+ * all active stars rather than only the catalogued search entries. Corpus entries win on id clashes.
+ */
+export function mergeActiveStarsIntoCorpus(
+  corpus: readonly CompactSearchEntry[],
+  activeStars: readonly SystemSummaryNode[],
+): readonly CompactSearchEntry[] {
+  if (activeStars.length === 0) {
+    return corpus;
+  }
+
+  const knownIds = new Set<string>();
+  for (const entry of corpus) {
+    knownIds.add(entry.i);
+  }
+
+  const merged: CompactSearchEntry[] = [...corpus];
+  for (const star of activeStars) {
+    if (knownIds.has(star.id)) {
+      continue;
+    }
+    knownIds.add(star.id);
+    merged.push({
+      i: star.id,
+      n: star.properName ?? star.name,
+      p: [star.x, star.y, star.z],
+      m: star.hasHabitableCandidate
+        ? [star.mag, star.spect ?? 'Unknown', star.planetCount, 1]
+        : [star.mag, star.spect ?? 'Unknown', star.planetCount],
+      ...(star.hazardMask ? { H: star.hazardMask } : {}),
+      c: 'stars',
+    });
+  }
+  return merged;
+}
 
 /**
  * Pure resolver evaluating 3D cartographic instrument aperture sphere intersection

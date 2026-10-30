@@ -70,6 +70,22 @@ declare module './SearchContext' {
   }
 }
 
+/**
+ * Single entry point for catalogue searches in this component. Queries shorter than the minimum
+ * length are treated as empty, so no code path (typing, URL echo, initial load, filter change)
+ * can run a broad, expensive match and push thousands of hits into the 3D selection.
+ */
+const searchCatalog = (
+  entries: readonly CompactSearchEntry[],
+  options: Parameters<typeof executeCatalogSearch>[1],
+): GroupedSearchResults =>
+  executeCatalogSearch(
+    entries,
+    options.query.trim().length >= SEARCH_MIN_QUERY_LENGTH
+      ? options
+      : { ...options, query: '' },
+  );
+
 export interface SearchRootProps {
   readonly children?: ReactNode;
   readonly initialQuery?: string;
@@ -384,13 +400,13 @@ export const SearchRoot = ({
   const [results, setResults] = useState<GroupedSearchResults>(() => {
     const computed =
       initialAvailableCorpus && query.trim().length > 0
-        ? executeCatalogSearch(initialAvailableCorpus, {
+        ? searchCatalog(initialAvailableCorpus, {
             query,
             filter,
             limitPerCategory,
             systemEntries: initialSystemEntries,
           })
-        : executeCatalogSearch([], {
+        : searchCatalog([], {
             query,
             filter,
             limitPerCategory,
@@ -435,6 +451,8 @@ export const SearchRoot = ({
   const prevUrlKeyRef = useRef<string>(`${activePathname}${activeSearch}`);
   const prevLoadedLayerKeyRef = useRef<string>('');
   const deferredSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Query most recently written to the URL by typing; its echo must not overwrite the live input.
+  const lastWrittenUrlQueryRef = useRef<string | null>(null);
 
   const isJsdomEnv =
     typeof window !== 'undefined' &&
@@ -509,13 +527,16 @@ export const SearchRoot = ({
       overrideQuery?: string,
       overrideFilter?: SearchCategoryFilter,
     ): Promise<void> => {
-      const activeQuery = overrideQuery ?? query;
+      const requestedQuery = overrideQuery ?? query;
+      // Every search path (typing, URL echo, filter change) honours the minimum query length.
+      const activeQuery =
+        requestedQuery.trim().length >= SEARCH_MIN_QUERY_LENGTH ? requestedQuery : '';
       const activeFilter = overrideFilter ?? filter;
       const currentSeq = ++requestSeqRef.current;
 
       if (!activeQuery.trim()) {
         updateResultsAndSelection(
-          executeCatalogSearch([], {
+          searchCatalog([], {
             query: '',
             filter: activeFilter,
             limitPerCategory,
@@ -531,7 +552,7 @@ export const SearchRoot = ({
       const cachedAllCorpus = getCachedCorpusForFilter('all');
 
       if (syncCorpus) {
-        const computed = executeCatalogSearch(syncCorpus, {
+        const computed = searchCatalog(syncCorpus, {
           query: activeQuery,
           filter: activeFilter,
           limitPerCategory,
@@ -553,7 +574,7 @@ export const SearchRoot = ({
               return;
             }
             const expandedCorpus = mergeSearchShards([syncCorpus, fullStars]);
-            const expandedComputed = executeCatalogSearch(expandedCorpus, {
+            const expandedComputed = searchCatalog(expandedCorpus, {
               query: activeQuery,
               filter: activeFilter,
               limitPerCategory,
@@ -581,7 +602,7 @@ export const SearchRoot = ({
           return;
         }
         const systemEntries = coreShard ?? getCachedCorpusForFilter('all');
-        let computed = executeCatalogSearch(corpus, {
+        let computed = searchCatalog(corpus, {
           query: activeQuery,
           filter: activeFilter,
           limitPerCategory,
@@ -598,7 +619,7 @@ export const SearchRoot = ({
             return;
           }
           const expandedCorpus = mergeSearchShards([corpus, fullStars]);
-          computed = executeCatalogSearch(expandedCorpus, {
+          computed = searchCatalog(expandedCorpus, {
             query: activeQuery,
             filter: activeFilter,
             limitPerCategory,
@@ -647,6 +668,14 @@ export const SearchRoot = ({
       prevUrlKeyRef.current = currentUrlKey;
       const nextQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
       const nextFilter = resolveInitialFilter(syncUrl, activeSearch, initialFilter);
+      if (
+        lastWrittenUrlQueryRef.current !== null &&
+        nextQuery === lastWrittenUrlQueryRef.current
+      ) {
+        // Echo of our own typing: the input already holds the newest text and search already ran.
+        return;
+      }
+      lastWrittenUrlQueryRef.current = null;
       setQueryState(nextQuery);
       setFilterState(nextFilter);
       void submitSearch(nextQuery, nextFilter);
@@ -705,7 +734,7 @@ export const SearchRoot = ({
         const systemEntries = coreShard ?? getCachedCorpusForFilter('all');
 
         if (startQuery.trim().length > 0) {
-          const computed = executeCatalogSearch(corpus, {
+          const computed = searchCatalog(corpus, {
             query: startQuery,
             filter: startFilter,
             limitPerCategory,
@@ -751,7 +780,7 @@ export const SearchRoot = ({
           if (startQuery.trim().length === 0) {
             syncSelectedSystemsToStore(
               store,
-              executeCatalogSearch([], {
+              searchCatalog([], {
                 query: '',
                 filter: startFilter,
                 limitPerCategory,
@@ -822,6 +851,7 @@ export const SearchRoot = ({
       if (executeSync) {
         if (syncUrl) {
           syncSearchUrlParams(nextQuery, filter);
+          lastWrittenUrlQueryRef.current = nextQuery;
           if (typeof window !== 'undefined') {
             const nextSearch = window.location.search;
             prevUrlKeyRef.current = `${window.location.pathname}${nextSearch}`;
@@ -839,6 +869,7 @@ export const SearchRoot = ({
         deferredSearchTimerRef.current = null;
         if (syncUrl) {
           syncSearchUrlParams(nextQuery, filter);
+          lastWrittenUrlQueryRef.current = nextQuery;
           if (typeof window !== 'undefined') {
             const nextSearch = window.location.search;
             prevUrlKeyRef.current = `${window.location.pathname}${nextSearch}`;

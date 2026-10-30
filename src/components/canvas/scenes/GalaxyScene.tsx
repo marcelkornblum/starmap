@@ -1,10 +1,17 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import { GALACTIC_FRAME } from '../instrument/referenceFrame';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
 import { CANDIDATE_SYSTEMS, type CandidateSystem } from '../../../data';
 import { SectorPointCloud, type SpatialEntityDefinition } from '../entity';
+import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import type { SystemSummaryNode } from '../../../types/astro';
+
+/**
+ * Upper bound on streamed stars rendered as individual reticle entities (nearest to the focus first).
+ * Every star inside the aperture is still active in the objects panel regardless of this bound.
+ */
+export const GALAXY_SCENE_MAX_STREAMED_ENTITIES = 400;
 
 export interface GalaxySceneProps {
   systems?: CandidateSystem[];
@@ -30,12 +37,19 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
   const [streamedSummaries, setStreamedSummaries] = useState<readonly SystemSummaryNode[]>([]);
 
   const handleHydratedSummariesChange = useCallback((summaries: readonly SystemSummaryNode[]) => {
+    useActiveStarsStore.getState().setSummaries(summaries);
     setStreamedSummaries((prev) => {
       if (prev.length === summaries.length && prev.every((s, idx) => s.id === summaries[idx]?.id)) {
         return prev;
       }
       return summaries;
     });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      useActiveStarsStore.getState().clear();
+    };
   }, []);
 
   const entities = useMemo<SpatialEntityDefinition[]>(() => {
@@ -62,9 +76,9 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
       }
     }
 
-    // Add up to 120 nearest non-duplicate streamed stars to keep CelestialEntity count bounded
+    // Add the nearest non-duplicate streamed stars as reticle entities, bounded for render cost
     let added = 0;
-    for (let i = 0; i < streamedSummaries.length && added < 120; i++) {
+    for (let i = 0; i < streamedSummaries.length && added < GALAXY_SCENE_MAX_STREAMED_ENTITIES; i++) {
       const s = streamedSummaries[i];
       if (s && !existingIds.has(s.id)) {
         existingIds.add(s.id);

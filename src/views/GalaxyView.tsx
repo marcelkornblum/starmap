@@ -41,6 +41,7 @@ import {
   buildSystemOrbitalSchematic,
   extractGalaxyBodies,
   extractUrlSceneCameraState,
+  mergeActiveStarsIntoCorpus,
   resolveGalacticInstrumentAperture,
 } from '../services/detailsService';
 import {
@@ -61,6 +62,7 @@ import {
   useLoadedLayerManifests,
 } from '../hooks/useLayerData';
 import { router, useSpaLocation } from '../router';
+import { useActiveStarsStore } from '../stores/useActiveStarsStore';
 
 export interface GalaxyViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -116,6 +118,13 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
 
   const cachedAllCorpus = getCachedCorpusForFilter('all');
   const activeCorpus = initialCorpus ?? cachedAllCorpus ?? [];
+
+  // Every star inside the live aperture (streamed from sector partitions), not just search entries
+  const activeStars = useActiveStarsStore((state) => state.summaries);
+  const apertureCorpus = useMemo(
+    () => mergeActiveStarsIntoCorpus(activeCorpus, activeStars),
+    [activeCorpus, activeStars],
+  );
 
   const urlFocusEntity = useMemo(
     () =>
@@ -264,7 +273,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     () =>
       resolveGalacticInstrumentAperture({
         cameraState,
-        corpus: activeCorpus,
+        corpus: apertureCorpus,
         focusedEntity,
         centerEntity,
         urlSystemSlug,
@@ -273,7 +282,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       }),
     [
       cameraState,
-      activeCorpus,
+      apertureCorpus,
       focusedEntity,
       centerEntity,
       urlSystemSlug,
@@ -289,7 +298,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const galaxyBodies = useMemo(
     () =>
       extractGalaxyBodies({
-        corpus: activeCorpus,
+        corpus: apertureCorpus,
         focusedEntity,
         selectedEntities,
         cameraState,
@@ -300,7 +309,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         aperture: instrumentAperture,
       }),
     [
-      activeCorpus,
+      apertureCorpus,
       focusedEntity,
       selectedEntities,
       cameraState,

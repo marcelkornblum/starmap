@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { type ThreeEvent } from '@react-three/fiber';
 import {
@@ -118,14 +118,25 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     }
   }, [globalSelectedId, syncWithUIStore, storeApi]);
 
-  // Synchronise outer store selectedIds inward to local spatial entity store
+  // Synchronise outer store selectedIds inward to local spatial entity store.
+  // This is programmatic (e.g. search results), so it must not be reported back out as a user
+  // selection; otherwise onSelect rewrites the URL focus, which re-runs search and re-selects.
+  const applyingOuterSelectionRef = useRef(false);
   useEffect(() => {
     if (!outerStore || outerStore === storeApi) return;
-    storeApi.getState().setSelectedIds(outerStore.getState().selectedIds);
+    const applyOuterSelection = (ids: ReadonlySet<string>): void => {
+      applyingOuterSelectionRef.current = true;
+      try {
+        storeApi.getState().setSelectedIds(ids);
+      } finally {
+        applyingOuterSelectionRef.current = false;
+      }
+    };
+    applyOuterSelection(outerStore.getState().selectedIds);
 
     return outerStore.subscribe((state, prevState) => {
       if (state.selectedIds !== prevState.selectedIds) {
-        storeApi.getState().setSelectedIds(state.selectedIds);
+        applyOuterSelection(state.selectedIds);
       }
     });
   }, [outerStore, storeApi]);
@@ -133,7 +144,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   // Synchronise local store selection & focus changes outward to UI store, outer spatial store, and callbacks
   useEffect(() => {
     return storeApi.subscribe((state, prevState) => {
-      if (state.selectedId !== prevState.selectedId) {
+      if (state.selectedId !== prevState.selectedId && !applyingOuterSelectionRef.current) {
         if (syncWithUIStore && useUIStore.getState().selectedNodeId !== state.selectedId) {
           useUIStore.getState().setSelectedNodeId(state.selectedId);
         }
