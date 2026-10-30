@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createElement } from 'react';
 import { Search } from '../src/components/search';
+import { SEARCH_DEBOUNCE_MS } from '../src/components/search/Search';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
@@ -79,7 +80,7 @@ describe('SearchInput Immediate Update & Deferred Search Execution', () => {
     expect(screen.getByText('Tau Ceti')).toBeDefined();
   });
 
-  it('updates input UI immediately and defers catalog search macrotask by 16ms in browser mode', () => {
+  it('updates input UI immediately and defers catalog search until 3 characters and the debounce elapse in browser mode', () => {
     // Simulate real browser environment (non-JSDOM user agent)
     Object.defineProperty(window.navigator, 'userAgent', {
       value:
@@ -132,24 +133,25 @@ describe('SearchInput Immediate Update & Deferred Search Execution', () => {
     // 2. Before deferred timer fires (0ms), results should not have updated yet
     expect(screen.queryByText('Tau Ceti')).toBeNull();
 
-    // 3. Advance timer by 16ms to fire deferred search macrotask
+    // 3. Advance past the debounce: a 2-character query is below the minimum, so nothing is searched
     act(() => {
-      vi.advanceTimersByTime(16);
+      vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
     });
-
-    // Now results are rendered
-    expect(screen.getByText('Tau Ceti')).toBeDefined();
-    // But since query length is 2 (< 3), prefetch should NOT be called
+    expect(screen.queryByText('Tau Ceti')).toBeNull();
     expect(summarySpy).not.toHaveBeenCalled();
 
     // 4. Type 3rd character: "Tau" (length >= 3)
     fireEvent.change(input, { target: { value: 'Tau' } });
     expect(input.value).toBe('Tau');
 
+    // Still deferred: results must not appear before the debounce elapses
+    expect(screen.queryByText('Tau Ceti')).toBeNull();
+
     act(() => {
-      vi.advanceTimersByTime(16);
+      vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
     });
 
+    expect(screen.getByText('Tau Ceti')).toBeDefined();
     // Prefetch must now be lazily triggered for Tau Ceti
     expect(summarySpy).toHaveBeenCalledWith('tau-ceti');
     expect(detailSpy).toHaveBeenCalledWith('tau-ceti');

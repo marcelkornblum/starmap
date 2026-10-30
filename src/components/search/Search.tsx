@@ -223,6 +223,12 @@ export const isJsdomEnv =
   typeof window !== 'undefined' &&
   /jsdom/i.test(window.navigator?.userAgent ?? '');
 
+/** Minimum trimmed query length before the catalogue is searched and results are suggested. */
+export const SEARCH_MIN_QUERY_LENGTH = 3;
+
+/** Idle time after the last keystroke before a search runs, so typing is never blocked by matching. */
+export const SEARCH_DEBOUNCE_MS = 150;
+
 /**
  * Lazily prefetches summary nodes, detail records, layer manifests, and entity annotations
  * for top search results once at least 3 characters have been entered.
@@ -807,7 +813,11 @@ export const SearchRoot = ({
         deferredSearchTimerRef.current = null;
       }
 
-      const executeSync = nextQuery.trim().length === 0 || isJsdomEnv;
+      // Below the minimum length the query is too broad to match usefully (thousands of hits, all
+      // pushed into the 3D selection store), so treat it as empty and keep keystrokes responsive.
+      const searchQuery =
+        nextQuery.trim().length >= SEARCH_MIN_QUERY_LENGTH ? nextQuery : '';
+      const executeSync = searchQuery.length === 0 || isJsdomEnv;
 
       if (executeSync) {
         if (syncUrl) {
@@ -821,7 +831,7 @@ export const SearchRoot = ({
             });
           }
         }
-        void submitSearch(nextQuery, filter);
+        void submitSearch(searchQuery, filter);
         return;
       }
 
@@ -839,9 +849,9 @@ export const SearchRoot = ({
           }
         }
         startTransition(() => {
-          void submitSearch(nextQuery, filter);
+          void submitSearch(searchQuery, filter);
         });
-      }, 16);
+      }, SEARCH_DEBOUNCE_MS);
     },
     [filter, isJsdomEnv, submitSearch, syncUrl],
   );
