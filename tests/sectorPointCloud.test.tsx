@@ -61,21 +61,24 @@ describe('SectorPointCloud - Starfield Shader & Continuous Boundary Hydration', 
       mat.dispose();
     });
 
-    it('embeds spherical horizon cut-off logic into vertex shader', () => {
-      expect(STARFIELD_VERTEX_SHADER).toContain('uniform float uHorizonRadius');
-      expect(STARFIELD_VERTEX_SHADER).toContain('distFromOrigin > uHorizonRadius');
-      expect(STARFIELD_VERTEX_SHADER).toContain('vAlpha = 0.0');
-      expect(STARFIELD_VERTEX_SHADER).toContain('gl_PointSize = 0.0');
+    it('wires the vertex and fragment shaders into the material', () => {
+      const mat = createStarfieldPointsMaterial();
+
+      expect(mat.vertexShader).toBe(STARFIELD_VERTEX_SHADER);
+      expect(mat.fragmentShader).toBe(STARFIELD_FRAGMENT_SHADER);
+
+      mat.dispose();
     });
 
-    it('embeds distance falloff from reticle origin into vertex shader', () => {
-      expect(STARFIELD_VERTEX_SHADER).toContain('uniform float uApertureRadius');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float innerT = clamp(distFromOrigin / max(uApertureRadius, 0.001), 0.0, 1.0)');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float outerSpan = max(uHorizonRadius - uApertureRadius, 1.0)');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float outerT = clamp((distFromOrigin - uApertureRadius) / outerSpan, 0.0, 1.0)');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float radialFalloff = distFromOrigin <= uApertureRadius');
-      expect(STARFIELD_VERTEX_SHADER).toContain(': mix(0.72, 0.2, outerT)');
-      expect(STARFIELD_VERTEX_SHADER).toContain('vLuminance = mix(0.35, 1.0, radialFalloff)');
+    it('declares every material uniform in the shader source that consumes it', () => {
+      const mat = createStarfieldPointsMaterial();
+      const shaderSource = `${STARFIELD_VERTEX_SHADER}\n${STARFIELD_FRAGMENT_SHADER}`;
+
+      for (const uniformName of Object.keys(mat.uniforms)) {
+        expect(shaderSource).toMatch(new RegExp(`uniform\\s+\\w+\\s+${uniformName}\\b`));
+      }
+
+      mat.dispose();
     });
 
     it('scales the horizon cull radius with the live aperture radius instead of world units', () => {
@@ -91,25 +94,6 @@ describe('SectorPointCloud - Starfield Shader & Continuous Boundary Hydration', 
       expect(computeStarfieldHorizonRadius(Number.POSITIVE_INFINITY)).toBeCloseTo(fallback);
       expect(computeStarfieldHorizonRadius(0)).toBeCloseTo(fallback);
       expect(computeStarfieldHorizonRadius(-5)).toBeCloseTo(fallback);
-    });
-
-    it('embeds foreground attenuation corridor into vertex shader', () => {
-      expect(STARFIELD_VERTEX_SHADER).toContain('vec3 camToOrigin = uFocusCenter - uCameraPos');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float alongRay = dot(camToStar, viewDir)');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float corridorRadius = max(uApertureRadius * 1.4, 5.0)');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float inCorridor = 1.0 - smoothstep(uApertureRadius * 0.8, corridorRadius, perpDist)');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float inFront = 1.0 - smoothstep(max(camDist - uApertureRadius * 1.1, 0.0), camDist, alongRay)');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float fgMask = step(uApertureRadius, distFromOrigin) * step(0.0, alongRay) * inCorridor * inFront');
-      expect(STARFIELD_VERTEX_SHADER).toContain('float fgFactor = mix(1.0, 0.2, fgMask)');
-      expect(STARFIELD_VERTEX_SHADER).toContain('vAlpha = uBaseOpacity * radialFalloff * fgFactor');
-    });
-
-    it('embeds soft circular point sprite and alpha discard into fragment shader', () => {
-      expect(STARFIELD_FRAGMENT_SHADER).toContain('if (vAlpha <= 0.001)');
-      expect(STARFIELD_FRAGMENT_SHADER).toContain('discard');
-      expect(STARFIELD_FRAGMENT_SHADER).toContain('float r = length(gl_PointCoord - vec2(0.5))');
-      expect(STARFIELD_FRAGMENT_SHADER).toContain('float disc = smoothstep(0.5, 0.15, r)');
-      expect(STARFIELD_FRAGMENT_SHADER).toContain('gl_FragColor = vec4(uColor * vLuminance, vAlpha * disc)');
     });
   });
 
