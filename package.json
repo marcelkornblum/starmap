@@ -38,7 +38,7 @@
     "@chromatic-com/storybook": "latest",
     "@storybook/addon-a11y": "^10.6.3",
     "@storybook/addon-docs": "^10.6.4",
-    "@storybook/addon-mcp": "^10.6.2",
+    "@storybook/addon-mcp": "^10.6.4",
     "@storybook/addon-vitest": "^10.6.4",
     "@storybook/react-vite": "^10.6.2",
     "@testing-library/react": "^16.3.3",
