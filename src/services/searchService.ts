@@ -786,8 +786,18 @@ export const executeCatalogSearch = (
   let totalMatches = 0;
 
   for (const meta of SEARCH_CATEGORIES) {
-    const list = matchedByCategory[meta.key];
-    list.sort(compareSearchResultItems);
+    const sortedList = matchedByCategory[meta.key];
+    sortedList.sort(compareSearchResultItems);
+    // The same entity can be matched directly and again via the relational system pass (or appear
+    // twice in a merged corpus); keep only the best-ranked item per id so result keys stay unique.
+    const seenItemIds = new Set<string>();
+    const list = sortedList.filter((item) => {
+      if (seenItemIds.has(item.id)) {
+        return false;
+      }
+      seenItemIds.add(item.id);
+      return true;
+    });
     totalMatches += list.length;
     groups[meta.key] = {
       category: meta.key,

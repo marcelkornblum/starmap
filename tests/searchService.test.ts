@@ -420,6 +420,22 @@ describe('searchService (Pure Service Layer)', () => {
     );
   });
 
+  it('returns unique item ids within each category even when the corpus repeats an entry', () => {
+    const duplicatedCorpus: CompactSearchEntry[] = [...SAMPLE_CORPUS, ...SAMPLE_CORPUS];
+    const results = executeCatalogSearch(duplicatedCorpus, {
+      query: 'Tau Ceti',
+      filter: 'all',
+    });
+
+    for (const cat of SEARCH_CATEGORIES) {
+      const ids = results.groups[cat.key].items.map((i) => i.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+
+    const baseline = executeCatalogSearch(SAMPLE_CORPUS, { query: 'Tau Ceti', filter: 'all' });
+    expect(results.totalMatches).toBe(baseline.totalMatches);
+  });
+
   it('returns empty groups when the query is blank', () => {
     const results = executeCatalogSearch(SAMPLE_CORPUS, {
       query: '   ',
