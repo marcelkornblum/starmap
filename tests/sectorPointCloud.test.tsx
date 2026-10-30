@@ -85,6 +85,14 @@ describe('SectorPointCloud - Starfield Shader & Continuous Boundary Hydration', 
       expect(computeStarfieldHorizonRadius(30) / 30).toBeCloseTo(STARFIELD_HORIZON_APERTURE_RATIO);
     });
 
+    it('falls back to the default aperture for non-finite, zero, or negative radii', () => {
+      const fallback = computeStarfieldHorizonRadius(15);
+      expect(computeStarfieldHorizonRadius(Number.NaN)).toBeCloseTo(fallback);
+      expect(computeStarfieldHorizonRadius(Number.POSITIVE_INFINITY)).toBeCloseTo(fallback);
+      expect(computeStarfieldHorizonRadius(0)).toBeCloseTo(fallback);
+      expect(computeStarfieldHorizonRadius(-5)).toBeCloseTo(fallback);
+    });
+
     it('embeds foreground attenuation corridor into vertex shader', () => {
       expect(STARFIELD_VERTEX_SHADER).toContain('vec3 camToOrigin = uFocusCenter - uCameraPos');
       expect(STARFIELD_VERTEX_SHADER).toContain('float alongRay = dot(camToStar, viewDir)');

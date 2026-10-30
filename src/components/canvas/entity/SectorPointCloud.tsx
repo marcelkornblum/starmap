@@ -92,7 +92,11 @@ export const STARFIELD_HORIZON_APERTURE_RATIO = 2.4;
  * fall-off window stays constant relative to the instrument and camera rather than world coordinates.
  */
 export function computeStarfieldHorizonRadius(apertureRadius: number): number {
-  return apertureRadius * STARFIELD_HORIZON_APERTURE_RATIO;
+  const safeAperture =
+    Number.isFinite(apertureRadius) && apertureRadius > 0
+      ? apertureRadius
+      : STARFIELD_DEFAULT_APERTURE_RADIUS;
+  return safeAperture * STARFIELD_HORIZON_APERTURE_RATIO;
 }
 
 export interface StarfieldPointsUniforms {
