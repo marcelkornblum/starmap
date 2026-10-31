@@ -8,16 +8,29 @@ import { useLayerStore } from './stores';
 const rootElement = document.getElementById('root');
 if (rootElement) {
   const root = createRoot(rootElement);
-  // Bootstrap the layer index before the router resolves `?layer=` / `?select=layer:` URLs.
-  void useLayerStore
-    .getState()
-    .loadIndex()
-    .then(() => {
-      root.render(
-        <StrictMode>
-          <App />
-        </StrictMode>,
-      );
-    });
+  let rendered = false;
+
+  const renderApp = (): void => {
+    if (rendered) return;
+    rendered = true;
+    root.render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+  };
+
+  // Bootstrap layer index before router resolution, capped at a 1500ms timeout
+  // to guarantee first paint is never blocked indefinitely on slow/stalled networks.
+  const timeoutPromise = new Promise<void>((resolve) => {
+    setTimeout(resolve, 1500);
+  });
+
+  void Promise.race([
+    useLayerStore.getState().loadIndex(),
+    timeoutPromise,
+  ]).finally(() => {
+    renderApp();
+  });
 }
 

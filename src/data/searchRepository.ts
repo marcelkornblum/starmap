@@ -53,7 +53,7 @@ export const fetchSearchShard = async (
   fetcher: typeof fetch = fetch,
 ): Promise<readonly CompactSearchEntry[]> => {
   const cached = shardCache.get(shard);
-  if (cached && fetcher === fetch) {
+  if (cached) {
     return cached;
   }
 
@@ -66,18 +66,14 @@ export const fetchSearchShard = async (
     if (!isSearchIndexEnvelope(payload)) {
       throw new Error(`Invalid search index envelope in shard "${shard}"`);
     }
-    if (fetcher === fetch) {
-      resolvedShardCache.set(shard, payload.d);
-    }
+    resolvedShardCache.set(shard, payload.d);
     return payload.d;
   })();
 
-  if (fetcher === fetch) {
-    shardCache.set(shard, loadPromise);
-    loadPromise.catch(() => {
-      shardCache.delete(shard);
-    });
-  }
+  shardCache.set(shard, loadPromise);
+  loadPromise.catch(() => {
+    shardCache.delete(shard);
+  });
 
   return loadPromise;
 };
