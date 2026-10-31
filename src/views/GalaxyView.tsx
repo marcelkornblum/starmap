@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { useShallow } from 'zustand/react/shallow';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
@@ -82,26 +83,27 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const storeApi = useSpatialEntityStoreApi();
   const focusedId = useSpatialEntityStore((state) => state.focusedId);
   const selectedIds = useSpatialEntityStore((state) => state.selectedIds);
-  const rawApertureRadius = useSpatialEntityStore((state) => state.apertureRadius);
-  const rawApertureCenter = useSpatialEntityStore((state) => state.apertureCenter);
-
   // Quantize aperture radius to 0.5 pc to throttle re-renders during micro-zooming
-  const liveApertureRadius = useMemo(() => {
-    if (rawApertureRadius === null || rawApertureRadius === undefined) {
+  const liveApertureRadius = useSpatialEntityStore((state) => {
+    const raw = state.apertureRadius;
+    if (raw === null || raw === undefined) {
       return null;
     }
-    return Math.round(rawApertureRadius * 2) / 2;
-  }, [rawApertureRadius]);
+    return Math.round(raw * 2) / 2;
+  });
 
-  // Quantize aperture center coordinates to 0.1 pc
-  const liveApertureCenter = useMemo<readonly [number, number, number] | null>(() => {
-    if (!rawApertureCenter) return null;
-    return [
-      Math.round(rawApertureCenter[0] * 10) / 10,
-      Math.round(rawApertureCenter[1] * 10) / 10,
-      Math.round(rawApertureCenter[2] * 10) / 10,
-    ];
-  }, [rawApertureCenter]);
+  // Quantize aperture center coordinates to 0.1 pc with shallow equality to retain referential stability
+  const liveApertureCenter = useSpatialEntityStore(
+    useShallow((state) => {
+      const raw = state.apertureCenter;
+      if (!raw) return null;
+      return [
+        Math.round(raw[0] * 10) / 10,
+        Math.round(raw[1] * 10) / 10,
+        Math.round(raw[2] * 10) / 10,
+      ] as const;
+    }),
+  );
 
   const [, setShardTick] = useState<number>(0);
 
