@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useSpatialEntityStore } from '../../canvas/entity/SpatialEntityContext';
 import {
   buildPlanetaryOrbitalSchematic,
   buildSystemOrbitalSchematic,
@@ -33,6 +34,8 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
   hoveredEntityId,
   onHoverEntity,
 }) => {
+  const storeHoveredId = useSpatialEntityStore((state) => state.hoveredId);
+  const activeHoveredId = hoveredEntityId !== undefined ? hoveredEntityId : storeHoveredId;
   const selectedEntityIds = elements?.selectedEntityIds;
   const selectedSet = useMemo(
     () => new Set(selectedEntityIds ?? []),
@@ -90,7 +93,7 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
               const isItemSelected =
                 sys.tier === 'selected' || selectedSet.has(sys.id);
               const isItemHovered =
-                (hoveredEntityId ?? elements.hoveredEntityId) === sys.id;
+                (activeHoveredId ?? elements.hoveredEntityId) === sys.id;
 
               return (
                 <DataTable.Row

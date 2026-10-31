@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { useShallow } from 'zustand/react/shallow';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
 } from '../components/canvas/entity/SpatialEntityContext';
+import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
 import {
   BodiesPanel,
   Breadcrumbs,
@@ -70,18 +72,50 @@ export interface GalaxyViewProps {
   readonly locationSearch?: string;
 }
 
+const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
+const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
+
 export const GalaxyView: React.FC<GalaxyViewProps> = ({
   initialCorpus,
   locationPathname,
   locationSearch,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
-  useSpatialEntityStore((state) => state.entities);
-  useSpatialEntityStore((state) => state.focusedId);
-  useSpatialEntityStore((state) => state.selectedId);
-  const hoveredId = useSpatialEntityStore((state) => state.hoveredId);
-  const liveApertureRadius = useSpatialEntityStore((state) => state.apertureRadius);
-  const liveApertureCenter = useSpatialEntityStore((state) => state.apertureCenter);
+  const storeFocusedEntity = useSpatialEntityStore((state) => {
+    if (state.focusedId && state.entities[state.focusedId]) {
+      return state.entities[state.focusedId];
+    }
+    return state.getEntitiesByState('focused')[0] ?? null;
+  });
+  const storeSelected = useSpatialEntityStore(
+    useShallow((state) => {
+      if (!state.selectedIds || state.selectedIds.size === 0) {
+        return EMPTY_SELECTED_ENTITIES;
+      }
+      return state.getEntitiesByState('selected');
+    }),
+  );
+  // Quantize aperture radius to 0.5 pc to throttle re-renders during micro-zooming
+  const liveApertureRadius = useSpatialEntityStore((state) => {
+    const raw = state.apertureRadius;
+    if (raw === null || raw === undefined) {
+      return null;
+    }
+    return Math.round(raw * 2) / 2;
+  });
+
+  // Quantize aperture center coordinates to 0.1 pc with shallow equality to retain referential stability
+  const liveApertureCenter = useSpatialEntityStore(
+    useShallow((state) => {
+      const raw = state.apertureCenter;
+      if (!raw) return null;
+      return [
+        Math.round(raw[0] * 10) / 10,
+        Math.round(raw[1] * 10) / 10,
+        Math.round(raw[2] * 10) / 10,
+      ] as const;
+    }),
+  );
 
   const [, setShardTick] = useState<number>(0);
 
@@ -117,7 +151,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   }, [pathname, search, urlFocusSlug, hasExplicitFocus, storeApi]);
 
   const cachedAllCorpus = getCachedCorpusForFilter('all');
-  const activeCorpus = initialCorpus ?? cachedAllCorpus ?? [];
+  const activeCorpus = initialCorpus ?? cachedAllCorpus ?? EMPTY_CORPUS;
 
   // Every star inside the live aperture (streamed from sector partitions), not just search entries
   const activeStars = useActiveStarsStore((state) => state.summaries);
@@ -134,12 +168,14 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     [urlFocusSlug, activeCorpus],
   );
   const focusedEntity = urlFocusSlug
-    ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
-    : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
+    ? (urlFocusEntity ?? storeFocusedEntity)
+    : hasExplicitFocus
+      ? storeFocusedEntity
+      : (typeof window !== 'undefined' ? storeFocusedEntity : null);
+
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
 
-  const storeSelected = storeApi.getState().getEntitiesByState('selected');
   const selectedEntities = useMemo(
     () =>
       storeSelected.length > 0
@@ -563,7 +599,6 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       bodies={
         <BodiesPanel
           elements={galaxyBodies}
-          hoveredEntityId={hoveredId}
           onHoverEntity={(id) => storeApi.getState().setHovered(id)}
         />
       }

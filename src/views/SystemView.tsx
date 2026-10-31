@@ -71,6 +71,8 @@ export interface SystemViewProps {
   readonly locationSearch?: string;
 }
 
+const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
+
 const useResolvedSystemDetails = (
   { initialCorpus, locationPathname, locationSearch }: SystemViewProps,
   shouldFetchShards = false,
@@ -104,7 +106,7 @@ const useResolvedSystemDetails = (
     initialCorpus ??
     getCachedCorpusForFilter('all') ??
     getCachedCorpusForFilter('stars') ??
-    [];
+    EMPTY_CORPUS;
 
   const urlFocusEntity = useMemo(
     () =>
