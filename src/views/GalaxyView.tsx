@@ -81,8 +81,20 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   locationSearch,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
-  const focusedId = useSpatialEntityStore((state) => state.focusedId);
-  const selectedIds = useSpatialEntityStore((state) => state.selectedIds);
+  const storeFocusedEntity = useSpatialEntityStore((state) => {
+    if (state.focusedId && state.entities[state.focusedId]) {
+      return state.entities[state.focusedId];
+    }
+    return state.getEntitiesByState('focused')[0] ?? null;
+  });
+  const storeSelected = useSpatialEntityStore(
+    useShallow((state) => {
+      if (!state.selectedIds || state.selectedIds.size === 0) {
+        return EMPTY_SELECTED_ENTITIES;
+      }
+      return state.getEntitiesByState('selected');
+    }),
+  );
   // Quantize aperture radius to 0.5 pc to throttle re-renders during micro-zooming
   const liveApertureRadius = useSpatialEntityStore((state) => {
     const raw = state.apertureRadius;
@@ -155,25 +167,14 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         : null,
     [urlFocusSlug, activeCorpus],
   );
-  const focusedEntity = useMemo(() => {
-    if (urlFocusSlug && urlFocusEntity) {
-      return urlFocusEntity;
-    }
-    if (focusedId && storeApi.getState().entities[focusedId]) {
-      return storeApi.getState().entities[focusedId];
-    }
-    return storeApi.getState().getEntitiesByState('focused')[0] ?? null;
-  }, [urlFocusSlug, urlFocusEntity, focusedId, storeApi]);
+  const focusedEntity = urlFocusSlug
+    ? (urlFocusEntity ?? storeFocusedEntity)
+    : hasExplicitFocus
+      ? storeFocusedEntity
+      : (typeof window !== 'undefined' ? storeFocusedEntity : null);
 
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
-
-  const storeSelected = useMemo(() => {
-    if (!selectedIds || selectedIds.size === 0) {
-      return EMPTY_SELECTED_ENTITIES;
-    }
-    return storeApi.getState().getEntitiesByState('selected');
-  }, [storeApi, selectedIds]);
 
   const selectedEntities = useMemo(
     () =>
