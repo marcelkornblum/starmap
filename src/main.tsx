@@ -26,10 +26,14 @@ if (rootElement) {
     setTimeout(resolve, 1500);
   });
 
-  void Promise.race([
-    useLayerStore.getState().loadIndex(),
-    timeoutPromise,
-  ]).finally(() => {
+  const loadPromise = useLayerStore
+    .getState()
+    .loadIndex()
+    .catch((err) => {
+      console.warn('Failed to pre-load layer index:', err);
+    });
+
+  void Promise.race([loadPromise, timeoutPromise]).finally(() => {
     renderApp();
   });
 }

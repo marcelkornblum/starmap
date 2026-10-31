@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { resolveAppHref, resolveDataUrl } from '../src/utils/url';
 
 describe('url utilities', () => {
@@ -25,16 +25,15 @@ describe('url utilities', () => {
     expect(resolveAppHref('system/sol?focus=earth')).toBe('/system/sol?focus=earth');
 
     // Subpath base prefix in production (e.g. GitHub Pages)
-    const originalBase = import.meta.env.BASE_URL;
     try {
-      import.meta.env.BASE_URL = '/starmap/';
+      vi.stubEnv('BASE_URL', '/starmap/');
       expect(resolveAppHref('/galaxy')).toBe('/starmap/galaxy');
       expect(resolveAppHref('galaxy')).toBe('/starmap/galaxy');
       expect(resolveAppHref('/starmap/galaxy')).toBe('/starmap/galaxy');
       expect(resolveAppHref('/starmap?focus=sol')).toBe('/starmap?focus=sol');
       expect(resolveAppHref('/starmap')).toBe('/starmap');
     } finally {
-      import.meta.env.BASE_URL = originalBase;
+      vi.unstubAllEnvs();
     }
   });
 });

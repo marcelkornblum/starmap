@@ -1206,12 +1206,18 @@ export const getOrBuildCorpusIndex = (
     if (idLower && !idMap.has(idLower)) idMap.set(idLower, entry);
     if (idSlug && !idMap.has(idSlug)) idMap.set(idSlug, entry);
   }
-  // Stars overwrite non-stars in ID index
+  // Stars overwrite non-stars in ID index, preserving primary star precedence
   for (const entry of stars) {
     const idLower = entry.i.toLowerCase();
     const idSlug = toUrlSlug(entry.i);
-    if (idLower) idMap.set(idLower, entry);
-    if (idSlug) idMap.set(idSlug, entry);
+    const existingLower = idLower ? idMap.get(idLower) : undefined;
+    const existingSlug = idSlug ? idMap.get(idSlug) : undefined;
+    if (idLower && (!existingLower || resolveEntryCategory(existingLower) !== 'stars')) {
+      idMap.set(idLower, entry);
+    }
+    if (idSlug && (!existingSlug || resolveEntryCategory(existingSlug) !== 'stars')) {
+      idMap.set(idSlug, entry);
+    }
   }
 
   // 2. Populate Name index (display title slugs and lowercase titles).
@@ -1223,13 +1229,19 @@ export const getOrBuildCorpusIndex = (
     if (nameSlug && !nameMap.has(nameSlug)) nameMap.set(nameSlug, entry);
     if (nameLower && !nameMap.has(nameLower)) nameMap.set(nameLower, entry);
   }
-  // Stars overwrite non-stars in Name index
+  // Stars overwrite non-stars in Name index, preserving primary star precedence
   for (const entry of stars) {
     const displayTitle = resolveResultDisplayTitle(entry);
     const nameSlug = toUrlSlug(displayTitle);
     const nameLower = displayTitle.trim().toLowerCase();
-    if (nameSlug) nameMap.set(nameSlug, entry);
-    if (nameLower) nameMap.set(nameLower, entry);
+    const existingSlug = nameSlug ? nameMap.get(nameSlug) : undefined;
+    const existingLower = nameLower ? nameMap.get(nameLower) : undefined;
+    if (nameSlug && (!existingSlug || resolveEntryCategory(existingSlug) !== 'stars')) {
+      nameMap.set(nameSlug, entry);
+    }
+    if (nameLower && (!existingLower || resolveEntryCategory(existingLower) !== 'stars')) {
+      nameMap.set(nameLower, entry);
+    }
   }
 
   // 3. Populate parenthetical segment fallbacks.
