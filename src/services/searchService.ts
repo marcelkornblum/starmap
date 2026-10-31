@@ -1214,18 +1214,22 @@ export const getOrBuildCorpusIndex = (
     if (idSlug) idMap.set(idSlug, entry);
   }
 
-  // 2. Populate Name index (display title slugs).
+  // 2. Populate Name index (display title slugs and lowercase titles).
   // Earlier non-stars in corpus take precedence over later non-stars.
   for (const entry of nonStars) {
     const displayTitle = resolveResultDisplayTitle(entry);
     const nameSlug = toUrlSlug(displayTitle);
+    const nameLower = displayTitle.trim().toLowerCase();
     if (nameSlug && !nameMap.has(nameSlug)) nameMap.set(nameSlug, entry);
+    if (nameLower && !nameMap.has(nameLower)) nameMap.set(nameLower, entry);
   }
   // Stars overwrite non-stars in Name index
   for (const entry of stars) {
     const displayTitle = resolveResultDisplayTitle(entry);
     const nameSlug = toUrlSlug(displayTitle);
+    const nameLower = displayTitle.trim().toLowerCase();
     if (nameSlug) nameMap.set(nameSlug, entry);
+    if (nameLower) nameMap.set(nameLower, entry);
   }
 
   // 3. Populate parenthetical segment fallbacks.

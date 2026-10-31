@@ -72,6 +72,7 @@ export interface GalaxyViewProps {
 }
 
 const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
+const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
 
 export const GalaxyView: React.FC<GalaxyViewProps> = ({
   initialCorpus,
@@ -165,18 +166,11 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
 
-  const prevStoreSelectedRef = useRef<readonly SpatialEntityDefinition[]>([]);
   const storeSelected = useMemo(() => {
-    const fresh = storeApi.getState().getEntitiesByState('selected');
-    const prev = prevStoreSelectedRef.current;
-    if (
-      fresh.length === prev.length &&
-      fresh.every((e, idx) => e.id === prev[idx]?.id)
-    ) {
-      return prev;
+    if (!selectedIds || selectedIds.size === 0) {
+      return EMPTY_SELECTED_ENTITIES;
     }
-    prevStoreSelectedRef.current = fresh;
-    return fresh;
+    return storeApi.getState().getEntitiesByState('selected');
   }, [storeApi, selectedIds]);
 
   const selectedEntities = useMemo(
