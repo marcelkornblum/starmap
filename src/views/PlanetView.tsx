@@ -71,6 +71,8 @@ export interface PlanetViewProps {
   readonly locationSearch?: string;
 }
 
+const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
+
 const useResolvedPlanetDetails = (
   { initialCorpus, locationPathname, locationSearch }: PlanetViewProps,
   shouldFetchShards = false,
@@ -106,7 +108,7 @@ const useResolvedPlanetDetails = (
     initialCorpus ??
     getCachedCorpusForFilter('all') ??
     getCachedCorpusForFilter('stars') ??
-    [];
+    EMPTY_CORPUS;
 
   const urlFocusEntity = useMemo(
     () =>

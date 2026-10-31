@@ -1164,9 +1164,108 @@ export const hasExplicitFocusParam = (searchString: string): boolean => {
   return toUrlSlug(focusParam).length > 0;
 };
 
+interface CorpusSearchIndex {
+  readonly idMap: Map<string, CompactSearchEntry>;
+  readonly nameMap: Map<string, CompactSearchEntry>;
+  readonly segmentMap: Map<string, CompactSearchEntry>;
+}
+
+const corpusIndexCache = new WeakMap<
+  readonly CompactSearchEntry[],
+  CorpusSearchIndex
+>();
+
+export const getOrBuildCorpusIndex = (
+  corpus: readonly CompactSearchEntry[],
+): CorpusSearchIndex => {
+  const cached = corpusIndexCache.get(corpus);
+  if (cached) {
+    return cached;
+  }
+
+  const idMap = new Map<string, CompactSearchEntry>();
+  const nameMap = new Map<string, CompactSearchEntry>();
+  const segmentMap = new Map<string, CompactSearchEntry>();
+
+  const stars: CompactSearchEntry[] = [];
+  const nonStars: CompactSearchEntry[] = [];
+
+  for (const entry of corpus) {
+    if (resolveEntryCategory(entry) === 'stars') {
+      stars.push(entry);
+    } else {
+      nonStars.push(entry);
+    }
+  }
+
+  // 1. Populate ID index.
+  // Earlier non-stars in corpus take precedence over later non-stars.
+  for (const entry of nonStars) {
+    const idLower = entry.i.toLowerCase();
+    const idSlug = toUrlSlug(entry.i);
+    if (idLower && !idMap.has(idLower)) idMap.set(idLower, entry);
+    if (idSlug && !idMap.has(idSlug)) idMap.set(idSlug, entry);
+  }
+  // Stars overwrite non-stars in ID index
+  for (const entry of stars) {
+    const idLower = entry.i.toLowerCase();
+    const idSlug = toUrlSlug(entry.i);
+    if (idLower) idMap.set(idLower, entry);
+    if (idSlug) idMap.set(idSlug, entry);
+  }
+
+  // 2. Populate Name index (display title slugs).
+  // Earlier non-stars in corpus take precedence over later non-stars.
+  for (const entry of nonStars) {
+    const displayTitle = resolveResultDisplayTitle(entry);
+    const nameSlug = toUrlSlug(displayTitle);
+    if (nameSlug && !nameMap.has(nameSlug)) nameMap.set(nameSlug, entry);
+  }
+  // Stars overwrite non-stars in Name index
+  for (const entry of stars) {
+    const displayTitle = resolveResultDisplayTitle(entry);
+    const nameSlug = toUrlSlug(displayTitle);
+    if (nameSlug) nameMap.set(nameSlug, entry);
+  }
+
+  // 3. Populate parenthetical segment fallbacks.
+  for (const entry of nonStars) {
+    const displayTitle = resolveResultDisplayTitle(entry);
+    if (!displayTitle.includes('(')) continue;
+    const segments = displayTitle
+      .split(/[()]/)
+      .map((s) => toUrlSlug(s))
+      .filter((s) => s.length > 0);
+    for (const seg of segments) {
+      if (!segmentMap.has(seg)) {
+        segmentMap.set(seg, entry);
+      }
+    }
+  }
+  for (const entry of stars) {
+    const displayTitle = resolveResultDisplayTitle(entry);
+    if (!displayTitle.includes('(')) continue;
+    const segments = displayTitle
+      .split(/[()]/)
+      .map((s) => toUrlSlug(s))
+      .filter((s) => s.length > 0);
+    for (const seg of segments) {
+      const existing = segmentMap.get(seg);
+      if (!existing || resolveEntryCategory(existing) !== 'stars') {
+        segmentMap.set(seg, entry);
+      }
+    }
+  }
+
+  const index: CorpusSearchIndex = { idMap, nameMap, segmentMap };
+  corpusIndexCache.set(corpus, index);
+  return index;
+};
+
 /**
  * Pure lookup finding the matching `CompactSearchEntry` in a corpus for a focused URL slug or ID.
  * Prefers direct star-system entries when multiple entries share the same slug.
+ * Uses a WeakMap-cached O(1) corpus index to eliminate O(N) linear scans on render and focus updates.
  */
 export const findFocusedEntryInCorpus = (
   focusSlug: string,
@@ -1174,58 +1273,29 @@ export const findFocusedEntryInCorpus = (
 ): CompactSearchEntry | undefined => {
   const targetSlug = toUrlSlug(focusSlug);
   const targetLower = focusSlug.trim().toLowerCase();
-  if (!targetSlug) {
+  if (!targetSlug && !targetLower) {
+    return undefined;
+  }
+  if (corpus.length === 0) {
     return undefined;
   }
 
-  let nonStarMatch: CompactSearchEntry | undefined;
+  const { idMap, nameMap, segmentMap } = getOrBuildCorpusIndex(corpus);
 
-  for (const entry of corpus) {
-    const idLower = entry.i.toLowerCase();
-    const nameSlug = toUrlSlug(resolveResultDisplayTitle(entry));
-    const idSlug = toUrlSlug(entry.i);
-
-    if (
-      idLower === targetLower ||
-      nameSlug === targetSlug ||
-      idSlug === targetSlug
-    ) {
-      if (resolveEntryCategory(entry) === 'stars') {
-        return entry;
-      }
-      if (!nonStarMatch) {
-        nonStarMatch = entry;
-      }
-    }
+  // Exact ID takes absolute precedence
+  const idMatch = (targetSlug ? idMap.get(targetSlug) : undefined) ?? idMap.get(targetLower);
+  if (idMatch) {
+    return idMatch;
   }
 
-  if (nonStarMatch) {
-    return nonStarMatch;
+  // Name match takes second precedence
+  const nameMatch = (targetSlug ? nameMap.get(targetSlug) : undefined) ?? nameMap.get(targetLower);
+  if (nameMatch) {
+    return nameMatch;
   }
 
-  // Second pass: match parenthetical display-title segments (e.g. 'Ran (Epsilon Eridani)' -> 'epsilon-eridani',
-  // 'e Eridani (82 G. Eridani)' -> '82-g-eridani')
-  let segmentNonStarMatch: CompactSearchEntry | undefined;
-  for (const entry of corpus) {
-    const displayTitle = resolveResultDisplayTitle(entry);
-    if (!displayTitle.includes('(')) {
-      continue;
-    }
-    const segments = displayTitle
-      .split(/[()]/)
-      .map((s) => toUrlSlug(s))
-      .filter((s) => s.length > 0);
-    if (segments.includes(targetSlug)) {
-      if (resolveEntryCategory(entry) === 'stars') {
-        return entry;
-      }
-      if (!segmentNonStarMatch) {
-        segmentNonStarMatch = entry;
-      }
-    }
-  }
-
-  return segmentNonStarMatch;
+  // Parenthetical segment match takes third precedence
+  return targetSlug ? segmentMap.get(targetSlug) : undefined;
 };
 
 /**
