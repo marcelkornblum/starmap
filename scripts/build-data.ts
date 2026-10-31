@@ -3090,7 +3090,7 @@ export async function buildStarDataPipeline(
 const isDirectExecution = process.argv[1]?.endsWith('build-data.ts');
 if (isDirectExecution) {
   const gcnsGz = process.env.GCNS_GZ || 'data/raw/gaia_dr3_gcns.dat.gz';
-  const outputJson = process.env.OUTPUT_JSON || 'public/data/stars.json';
+  const outputJson = process.env.OUTPUT_JSON || 'data/stars.json';
   const catalogsDir = process.env.CATALOGS_DIR || 'public/data/catalogs';
   const partitionsDir = process.env.PARTITIONS_DIR || 'public/data/partitions';
   const systemsDir = process.env.SYSTEMS_DIR || 'public/data/systems';

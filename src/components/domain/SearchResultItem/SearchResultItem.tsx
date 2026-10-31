@@ -12,6 +12,7 @@ import {
   shouldDisplaySpectralBadge,
 } from '../../interface';
 import { useSearchContext } from '../../search/SearchContext';
+import { resolveAppHref } from '../../../utils/url';
 
 export interface SearchResultItemProps {
   readonly result: SearchResultItemModel;
@@ -127,7 +128,7 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
     >
       <Cluster gap="tight" align="center">
         <CelestialBadge type={reticleType} data-testid="result-reticle-type" />
-        <a href={href} onClick={handleClick}>
+        <a href={resolveAppHref(href)} onClick={handleClick}>
           {name}
         </a>
         {renderVariationContent(result)}

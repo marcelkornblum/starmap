@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
+import { resolveAppHref } from '../../../../utils/url';
 import styles from './Unit.module.css';
 
 export interface UnitProps extends HTMLAttributes<HTMLSpanElement> {
@@ -41,7 +42,7 @@ export const Unit = ({
   if (href !== undefined) {
     return (
       <a
-        href={href}
+        href={resolveAppHref(href)}
         target={target}
         rel={rel}
         className={`${combinedClassName} ${styles.unitLink}`}

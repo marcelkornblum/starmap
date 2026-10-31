@@ -1,6 +1,7 @@
 import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import type { BadgeCategory, BadgeStatus } from '../Badge/Badge';
 import { Tooltip } from '../../surfaces/Tooltip/Tooltip';
+import { resolveAppHref } from '../../../../utils/url';
 import styles from './CelestialSymbol.module.css';
 
 export type CelestialSymbolType =
@@ -380,7 +381,7 @@ export const CelestialSymbol = ({
 
   const symbolContent = href ? (
     <a
-      href={href}
+      href={resolveAppHref(href)}
       target={target}
       rel={rel}
       className={`${combinedClassName} ${styles.symbolLink}`}

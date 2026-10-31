@@ -22,6 +22,7 @@ import {
   buildHazardGuideHref,
   HAZARDS_GUIDE_PATH,
 } from '../../../services/guideService';
+import { resolveAppHref } from '../../../utils/url';
 import { DetentSheet, type DetentLevel } from '../../interface/surfaces/DetentSheet';
 import {
   Badge,
@@ -189,7 +190,7 @@ const renderHazards = (
               value={0}
               unit={
                 <Unit>
-                  <a href={HAZARDS_GUIDE_PATH} data-testid="details-hazards-guide-link">
+                  <a href={resolveAppHref(HAZARDS_GUIDE_PATH)} data-testid="details-hazards-guide-link">
                     hazards
                   </a>
                 </Unit>
@@ -845,7 +846,7 @@ export const DetailsPanel = ({
             unit={
               <Unit>
                 <a
-                  href={buildMetricGuideHref('semi-major-axis', id)}
+                  href={resolveAppHref(buildMetricGuideHref('semi-major-axis', id))}
                   data-testid="details-metric-unit-link"
                 >
                   AU
@@ -860,7 +861,7 @@ export const DetailsPanel = ({
               unit={
                 <Unit>
                   <a
-                    href={buildMetricGuideHref('equilibrium-temperature', id)}
+                    href={resolveAppHref(buildMetricGuideHref('equilibrium-temperature', id))}
                     data-testid="details-metric-unit-link"
                   >
                     K

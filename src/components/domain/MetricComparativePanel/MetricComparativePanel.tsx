@@ -1,5 +1,6 @@
 import type React from 'react';
 import { Badge, CelestialSymbol, Datum, Heading, Stack } from '../../interface';
+import { resolveAppHref } from '../../../utils/url';
 import type {
   MetricComparison,
   MetricGuideEntry,
@@ -44,7 +45,7 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
             Baseline:{' '}
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
               <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
-              <a href={comparison.baselineHref}>{comparison.baselineName}</a>
+              <a href={resolveAppHref(comparison.baselineHref)}>{comparison.baselineName}</a>
             </span>
           </Heading>
           <Stack gap="none">
@@ -60,7 +61,7 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
             Target:{' '}
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
               <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
-              <a href={comparison.targetHref}>{comparison.targetName}</a>
+              <a href={resolveAppHref(comparison.targetHref)}>{comparison.targetName}</a>
             </span>
           </Heading>
           <Stack gap="none">

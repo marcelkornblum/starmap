@@ -1,4 +1,5 @@
 import { Button, CelestialTitle, type CelestialSymbolType } from '../../interface';
+import { resolveAppHref } from '../../../utils/url';
 import styles from './Breadcrumbs.module.css';
 
 export interface BreadcrumbItem {
@@ -69,7 +70,7 @@ export const Breadcrumbs = ({
               className={styles.breadcrumbItem}
             >
               {item.href && !isLast ? (
-                <a href={item.href} data-testid="breadcrumb-link">
+                <a href={resolveAppHref(item.href)} data-testid="breadcrumb-link">
                   {itemContent}
                 </a>
               ) : (
