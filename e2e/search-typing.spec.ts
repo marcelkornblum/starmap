@@ -1,11 +1,7 @@
 import { test, expect } from 'playwright/test';
 
-// The shared Playwright config appends "jsdom" to the user agent, which makes Search take its
-// synchronous test-only path. Use a real browser user agent so the debounced production path runs.
-test.use({
-  userAgent:
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-});
+// Playwright uses the standard browser user agent without JSDOM spoofing, ensuring
+// the debounced production search path executes identically to real user browsers.
 
 test.describe('Search typing responsiveness', () => {
   test('clicking the search box and typing keeps the text visible and the app responsive', async ({

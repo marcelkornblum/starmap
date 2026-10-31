@@ -27,7 +27,6 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        userAgent: `${devices['Desktop Chrome'].userAgent} jsdom`,
       },
     },
   ],

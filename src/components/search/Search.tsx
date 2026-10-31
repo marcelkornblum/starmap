@@ -49,6 +49,7 @@ import {
 } from '../../services/searchService';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import { useRouter } from '@tanstack/react-router';
+import { router as appRouter, type StarmapSearchParams } from '../../router';
 import { extractUrlRouteStops } from '../../services/journeyService';
 import { parseLayerQueryParam, pickRandomLayerOverviewHref } from '../../services/layerCardService';
 import { Button, Heading, Input, Select } from '../interface';
@@ -93,6 +94,8 @@ export interface SearchRootProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
   readonly limitPerCategory?: number;
   readonly syncUrl?: boolean;
+  readonly syncMode?: boolean;
+  readonly debounceMs?: number;
   readonly locationPathname?: string;
   readonly locationSearch?: string;
   readonly onSelectResult?: (item: SearchResultItem) => void;
@@ -134,7 +137,31 @@ const syncSearchUrlParams = (
     nextQuery,
     nextFilter,
   );
-  window.history.replaceState(window.history.state, '', nextHref);
+  if (appRouter?.navigate && appRouter?.state) {
+    const qTrimmed = nextQuery.trim();
+    void appRouter.navigate({
+      to: '.',
+      search: (prev: StarmapSearchParams = {}) => {
+        const next: StarmapSearchParams = { ...prev };
+        if (qTrimmed.length > 0) {
+          next.q = qTrimmed;
+        } else {
+          delete next.q;
+        }
+        if (nextFilter !== 'all') {
+          next.searchCategory = nextFilter;
+        } else {
+          delete next.searchCategory;
+        }
+        return next;
+      },
+      replace: true,
+      resetScroll: false,
+    });
+  } else {
+    window.history.replaceState(window.history.state, '', nextHref);
+    window.dispatchEvent(new Event('starmap:locationchange'));
+  }
 };
 
 const syncSelectedSystemsToStore = (
@@ -234,10 +261,6 @@ const syncUrlFocusToStore = (
     state.setFocusedIds(focusedIds);
   }
 };
-
-export const isJsdomEnv =
-  typeof window !== 'undefined' &&
-  /jsdom/i.test(window.navigator?.userAgent ?? '');
 
 /** Minimum trimmed query length before the catalogue is searched and results are suggested. */
 export const SEARCH_MIN_QUERY_LENGTH = 3;
@@ -354,6 +377,8 @@ export const SearchRoot = ({
   initialCorpus,
   limitPerCategory,
   syncUrl = true,
+  syncMode = false,
+  debounceMs = SEARCH_DEBOUNCE_MS,
   locationPathname,
   locationSearch,
   onSelectResult,
@@ -454,9 +479,8 @@ export const SearchRoot = ({
   // Query most recently written to the URL by typing; its echo must not overwrite the live input.
   const lastWrittenUrlQueryRef = useRef<string | null>(null);
 
-  const isJsdomEnv =
-    typeof window !== 'undefined' &&
-    /jsdom/i.test(window.navigator?.userAgent ?? '');
+  const effectiveDebounceMs = debounceMs ?? SEARCH_DEBOUNCE_MS;
+  const isSync = Boolean(syncMode) || effectiveDebounceMs === 0;
 
   // Clean up deferred search timer on unmount
   useEffect(() => {
@@ -474,15 +498,19 @@ export const SearchRoot = ({
       overrideSearch?: string,
       overrideCorpus?: readonly CompactSearchEntry[],
     ): void => {
-      const applyUpdates = (): void => {
-        setResults(nextResults);
-        const effectiveSearch = overrideSearch ?? activeSearch;
-        const effectiveCorpus =
-          overrideCorpus ??
-          initialCorpus ??
-          getCachedCorpusForFilter('all') ??
-          getCachedCorpusForFilter(nextResults.filter) ??
-          [];
+      // 1. Immediately update DOM search results and status
+      setResults(nextResults);
+
+      // 2. Synchronise 3D spatial store selection in startTransition so heavy 3D mutations don't block DOM
+      const effectiveSearch = overrideSearch ?? activeSearch;
+      const effectiveCorpus =
+        overrideCorpus ??
+        initialCorpus ??
+        getCachedCorpusForFilter('all') ??
+        getCachedCorpusForFilter(nextResults.filter) ??
+        [];
+
+      startTransition(() => {
         syncSelectedSystemsToStore(
           store,
           nextResults,
@@ -491,21 +519,13 @@ export const SearchRoot = ({
           layerDataRef.current.layerIndex,
           layerDataRef.current.loadedLayers,
         );
-      };
-
-      if (!isJsdomEnv) {
-        startTransition(() => {
-          applyUpdates();
-        });
-      } else {
-        applyUpdates();
-      }
+      });
 
       if (nextResults.query.trim().length >= 3) {
         prefetchSearchResultsDetails(nextResults);
       }
     },
-    [activeSearch, initialCorpus, isJsdomEnv, store],
+    [activeSearch, initialCorpus, store],
   );
 
   // Re-apply URL layer selection once the referenced layer manifests have loaded
@@ -682,47 +702,20 @@ export const SearchRoot = ({
     }
   }, [activePathname, activeSearch, initialFilter, initialQuery, submitSearch, syncUrl]);
 
-  // Pre-warm the base search corpus in the background and resolve initial URL query and URL focus once loaded
+  const prewarmedCorpusRef = useRef<readonly CompactSearchEntry[] | null>(null);
+  const initialPrewarmFiredRef = useRef<boolean>(false);
+
+  // Pre-warm the base search corpus in the background on mount
   useEffect(() => {
-    const focusSlug =
-      syncUrl ||
-      locationPathname !== undefined ||
-      locationSearch !== undefined
-        ? extractUrlFocusSlug(activePathname, activeSearch)
-        : null;
-
-    if (initialCorpus) {
-      if (
-        syncUrl ||
-        locationPathname !== undefined ||
-        locationSearch !== undefined
-      ) {
-        syncUrlFocusToStore(
-          store,
-          focusSlug,
-          initialCorpus,
-          fallbackFocusIdRef,
-          activeSearch,
-        );
-      }
+    if (initialCorpus || typeof window === 'undefined' || initialPrewarmFiredRef.current) {
       return;
     }
-
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const startQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
-    const startFilter = resolveInitialFilter(
-      syncUrl,
-      activeSearch,
-      initialFilter,
-    );
+    initialPrewarmFiredRef.current = true;
 
     let cancelled = false;
     void Promise.all([
-      loadSearchCorpusForFilter(startFilter),
-      startFilter === 'all'
+      loadSearchCorpusForFilter(initialFilter),
+      initialFilter === 'all'
         ? Promise.resolve(undefined)
         : fetchSearchShard('core').catch(() => undefined),
     ])
@@ -732,69 +725,56 @@ export const SearchRoot = ({
         }
 
         const systemEntries = coreShard ?? getCachedCorpusForFilter('all');
+        let focusCorpus = systemEntries
+          ? mergeSearchShards([corpus, systemEntries])
+          : corpus;
 
-        if (startQuery.trim().length > 0) {
+        const initialFocusSlug = extractUrlFocusSlug(activePathname, activeSearch);
+        if (initialFocusSlug && !findFocusedEntryInCorpus(initialFocusSlug, focusCorpus)) {
+          const planetsShard = await fetchSearchShard('planets').catch(() => undefined);
+          if (cancelled) return;
+          if (planetsShard) {
+            focusCorpus = mergeSearchShards([focusCorpus, planetsShard]);
+          }
+        }
+        if (initialFocusSlug && !findFocusedEntryInCorpus(initialFocusSlug, focusCorpus)) {
+          const starsShard = await fetchSearchShard('stars').catch(() => undefined);
+          if (cancelled) return;
+          if (starsShard) {
+            focusCorpus = mergeSearchShards([focusCorpus, starsShard]);
+          }
+        }
+        prewarmedCorpusRef.current = focusCorpus;
+
+        const startQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
+        if (startQuery.trim().length >= SEARCH_MIN_QUERY_LENGTH) {
           const computed = searchCatalog(corpus, {
             query: startQuery,
-            filter: startFilter,
+            filter: initialFilter,
             limitPerCategory,
             systemEntries,
           });
           updateResultsAndSelection(computed);
           setStatus('ready');
+        } else {
+          syncSelectedSystemsToStore(
+            store,
+            searchCatalog([], {
+              query: '',
+              filter: initialFilter,
+              limitPerCategory,
+            }),
+            activeSearch,
+            focusCorpus,
+            layerDataRef.current.layerIndex,
+            layerDataRef.current.loadedLayers,
+          );
         }
 
-        if (
-          syncUrl ||
-          locationPathname !== undefined ||
-          locationSearch !== undefined
-        ) {
-          let focusCorpus = systemEntries
-            ? mergeSearchShards([corpus, systemEntries])
-            : corpus;
-
-          if (focusSlug && !findFocusedEntryInCorpus(focusSlug, focusCorpus)) {
-            const planetsShard = await fetchSearchShard('planets').catch(
-              () => undefined,
-            );
-            if (cancelled) {
-              return;
-            }
-            if (planetsShard) {
-              focusCorpus = mergeSearchShards([focusCorpus, planetsShard]);
-            }
-          }
-
-          if (focusSlug && !findFocusedEntryInCorpus(focusSlug, focusCorpus)) {
-            const starsShard = await fetchSearchShard('stars').catch(
-              () => undefined,
-            );
-            if (cancelled) {
-              return;
-            }
-            if (starsShard) {
-              focusCorpus = mergeSearchShards([focusCorpus, starsShard]);
-            }
-          }
-
-          if (startQuery.trim().length === 0) {
-            syncSelectedSystemsToStore(
-              store,
-              searchCatalog([], {
-                query: '',
-                filter: startFilter,
-                limitPerCategory,
-              }),
-              activeSearch,
-              focusCorpus,
-              layerDataRef.current.layerIndex,
-              layerDataRef.current.loadedLayers,
-            );
-          }
-
+        if (initialFocusSlug) {
           syncUrlFocusToStore(
             store,
-            focusSlug,
+            initialFocusSlug,
             focusCorpus,
             fallbackFocusIdRef,
             activeSearch,
@@ -809,15 +789,55 @@ export const SearchRoot = ({
   }, [
     activePathname,
     activeSearch,
+    fallbackFocusIdRef,
     initialCorpus,
     initialFilter,
     initialQuery,
     limitPerCategory,
+    store,
+    syncUrl,
+    updateResultsAndSelection,
+  ]);
+
+  // Synchronise URL focus changes to store
+  const prevFocusSlugRef = useRef<string | null>(null);
+  useEffect(() => {
+    const focusSlug =
+      syncUrl ||
+      locationPathname !== undefined ||
+      locationSearch !== undefined
+        ? extractUrlFocusSlug(activePathname, activeSearch)
+        : null;
+
+    if (prevFocusSlugRef.current === focusSlug) {
+      return;
+    }
+    prevFocusSlugRef.current = focusSlug;
+
+    const availableCorpus =
+      initialCorpus ??
+      prewarmedCorpusRef.current ??
+      getCachedCorpusForFilter('all') ??
+      getCachedCorpusForFilter(filter) ??
+      [];
+
+    syncUrlFocusToStore(
+      store,
+      focusSlug,
+      availableCorpus,
+      fallbackFocusIdRef,
+      activeSearch,
+    );
+  }, [
+    activePathname,
+    activeSearch,
+    fallbackFocusIdRef,
+    filter,
+    initialCorpus,
     locationPathname,
     locationSearch,
     store,
     syncUrl,
-    updateResultsAndSelection,
   ]);
 
   // Clear non-persistent selection and focus states when unmounting the view
@@ -846,7 +866,7 @@ export const SearchRoot = ({
       // pushed into the 3D selection store), so treat it as empty and keep keystrokes responsive.
       const searchQuery =
         nextQuery.trim().length >= SEARCH_MIN_QUERY_LENGTH ? nextQuery : '';
-      const executeSync = searchQuery.length === 0 || isJsdomEnv;
+      const executeSync = searchQuery.length === 0 || isSync;
 
       if (executeSync) {
         if (syncUrl) {
@@ -879,12 +899,10 @@ export const SearchRoot = ({
             });
           }
         }
-        startTransition(() => {
-          void submitSearch(searchQuery, filter);
-        });
-      }, SEARCH_DEBOUNCE_MS);
+        void submitSearch(searchQuery, filter);
+      }, effectiveDebounceMs);
     },
-    [filter, isJsdomEnv, submitSearch, syncUrl],
+    [effectiveDebounceMs, filter, isSync, submitSearch, syncUrl],
   );
 
   const setFilter = useCallback(
