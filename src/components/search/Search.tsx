@@ -139,7 +139,8 @@ const syncSearchUrlParams = (
   );
   if (appRouter?.navigate && appRouter?.state) {
     const qTrimmed = nextQuery.trim();
-    void (appRouter.navigate as (opts: unknown) => Promise<void>)({
+    void appRouter.navigate({
+      to: '.',
       search: (prev: StarmapSearchParams = {}) => {
         const next: StarmapSearchParams = { ...prev };
         if (qTrimmed.length > 0) {
