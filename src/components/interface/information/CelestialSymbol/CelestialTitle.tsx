@@ -6,6 +6,7 @@ import {
 } from 'react';
 import { CelestialBadge } from './CelestialBadge';
 import type { CelestialSymbolType } from './CelestialSymbol';
+import { resolveAppHref } from '../../../../utils/url';
 import styles from './CelestialTitle.module.css';
 
 export interface CelestialTitleProps {
@@ -59,7 +60,7 @@ export const CelestialTitle: FC<CelestialTitleProps> = ({
   if (href) {
     const link = (
       <a
-        href={href}
+        href={resolveAppHref(href)}
         className={styles.titleLink}
         data-testid={titleTestId}
         onClick={onClick}

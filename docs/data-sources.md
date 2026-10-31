@@ -64,7 +64,7 @@ It details the scientific authority, data format, scope, pipeline role, target a
 - **Scope:** 331,312 verified stars within 100 parsecs of Sol.
 - **Fields Provided:** `source_id`, `ra`, `dec`, `parallax`, `parallax_error`, `pmra`, `pmdec`, `phot_g_mean_mag`, `phot_bp_mean_mag`, `phot_rp_mean_mag`, `radial_velocity`.
 - **Purpose in Starmap:** The core astronomical backbone. Provides complete volume-limited positions and 3D kinematics for all stars within 100 parsecs, replacing magnitude-limited subsets with a complete census.
-- **Target Artifact:** `public/data/partitions/sector_*.json` and `public/data/stars.json`.
+- **Target Artifact:** `public/data/partitions/` and `data/stars.json`.
 
 #### 2. HYG Star Database (v3)
 - **Scientific Authority:** Astronexus (D. Nash) / Hipparcos / Yale Bright Star / Gliese.

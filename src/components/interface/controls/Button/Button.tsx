@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
+import { resolveAppHref } from '../../../../utils/url';
 import styles from './Button.module.css';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -28,7 +29,7 @@ export const Button = ({
   if (href !== undefined) {
     return (
       <a
-        href={href}
+        href={resolveAppHref(href)}
         target={target}
         rel={rel}
         className={combinedClassName}

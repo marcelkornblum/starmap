@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
+import { resolveAppHref } from '../../../../utils/url';
 import styles from './Badge.module.css';
 
 export type BadgeStatus = 'nominal' | 'caution' | 'critical' | 'info' | 'neutral';
@@ -33,7 +34,7 @@ export const Badge = ({
   if (href !== undefined) {
     return (
       <a
-        href={href}
+        href={resolveAppHref(href)}
         target={target}
         rel={rel}
         className={combinedClassName}
