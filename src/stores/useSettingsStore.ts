@@ -12,6 +12,7 @@ export interface SettingsState {
   showGrid: boolean;
   showOrbits: boolean;
   projection: ProjectionMode;
+  enableOrthographicProjection: boolean;
   volume: number;
 }
 
@@ -25,6 +26,8 @@ export interface SettingsActions {
   toggleOrbits: () => void;
   setShowOrbits: (show: boolean) => void;
   setProjection: (projection: ProjectionMode) => void;
+  toggleOrthographicProjection: () => void;
+  setEnableOrthographicProjection: (enabled: boolean) => void;
   setVolume: (volume: number) => void;
   resetSettings: () => void;
 }
@@ -38,6 +41,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
   showGrid: true,
   showOrbits: true,
   projection: '3d',
+  enableOrthographicProjection: false,
   volume: 0.8,
 };
 
@@ -87,6 +91,10 @@ export const useSettingsStore = create<SettingsStore>()(
       toggleOrbits: () => set((state) => ({ showOrbits: !state.showOrbits })),
       setShowOrbits: (showOrbits: boolean) => set({ showOrbits }),
       setProjection: (projection: ProjectionMode) => set({ projection }),
+      toggleOrthographicProjection: () =>
+        set((state) => ({ enableOrthographicProjection: !state.enableOrthographicProjection })),
+      setEnableOrthographicProjection: (enableOrthographicProjection: boolean) =>
+        set({ enableOrthographicProjection }),
       setVolume: (volume: number) => set({ volume: Math.max(0, Math.min(1, volume)) }),
       resetSettings: () => set({ ...DEFAULT_SETTINGS }),
     }),

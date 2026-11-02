@@ -712,10 +712,16 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
       expect(summary.systems.every((s) => s.tier === 'focused' || s.tier === 'selected' || s.tier === 'active')).toBe(true);
     });
 
-    it('promotes systems in selectedEntities to selected tier and includes them even if outside aperture', () => {
+    it('promotes systems in selectedEntities to selected tier when inside aperture and excludes off-aperture selections', () => {
       const summary = extractGalaxyBodies({
         corpus: SAMPLE_GALAXY_CORPUS,
         selectedEntities: [
+          {
+            id: 'alpha-centauri',
+            name: 'Alpha Centauri',
+            position: [-0.47, 1.32, -0.33],
+            classification: 'stellar-system',
+          },
           {
             id: 'distant-star',
             name: 'Distant Star',
@@ -725,9 +731,12 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
         ],
       });
 
+      const alpha = summary.systems.find((s) => s.id === 'alpha-centauri');
+      expect(alpha).toBeDefined();
+      expect(alpha?.tier).toBe('selected');
+
       const distant = summary.systems.find((s) => s.id === 'distant-star');
-      expect(distant).toBeDefined();
-      expect(distant?.tier).toBe('selected');
+      expect(distant).toBeUndefined();
     });
 
     it('sorts systems ascending by distance from focused system and populates focus-relative distances', () => {

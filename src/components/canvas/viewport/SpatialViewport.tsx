@@ -141,9 +141,72 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     });
   }, [outerStore, storeApi]);
 
+  // Synchronise outer store hoveredId inward to local spatial entity store
+  const applyingOuterHoverRef = useRef(false);
+  const applyingLocalHoverRef = useRef(false);
+
+  useEffect(() => {
+    if (!outerStore || outerStore === storeApi) return;
+    const applyOuterHover = (hoveredId: string | null): void => {
+      if (applyingLocalHoverRef.current) return;
+      applyingOuterHoverRef.current = true;
+      try {
+        if (storeApi.getState().hoveredId !== hoveredId) {
+          storeApi.getState().setHovered(hoveredId);
+        }
+      } finally {
+        applyingOuterHoverRef.current = false;
+      }
+    };
+    applyOuterHover(outerStore.getState().hoveredId);
+
+    return outerStore.subscribe((state, prevState) => {
+      if (state.hoveredId !== prevState.hoveredId) {
+        applyOuterHover(state.hoveredId);
+      }
+    });
+  }, [outerStore, storeApi]);
+
+  // Initial outerStore aperture synchronization
+  useEffect(() => {
+    if (!outerStore || outerStore === storeApi) return;
+    const initialLocal = storeApi.getState();
+    if (initialLocal.apertureCenter || initialLocal.apertureRadius !== null) {
+      outerStore.getState().setApertureFrame(initialLocal.apertureCenter, initialLocal.apertureRadius);
+    }
+    if (initialLocal.apertureIds.size > 0) {
+      outerStore.getState().setApertureIds(initialLocal.apertureIds);
+    }
+  }, [outerStore, storeApi]);
+
   // Synchronise local store selection & focus changes outward to UI store, outer spatial store, and callbacks
   useEffect(() => {
     return storeApi.subscribe((state, prevState) => {
+      if (state.hoveredId !== prevState.hoveredId && !applyingOuterHoverRef.current) {
+        if (outerStore && outerStore !== storeApi) {
+          applyingLocalHoverRef.current = true;
+          try {
+            if (outerStore.getState().hoveredId !== state.hoveredId) {
+              outerStore.getState().setHovered(state.hoveredId);
+            }
+          } finally {
+            applyingLocalHoverRef.current = false;
+          }
+        }
+      }
+
+      if (outerStore && outerStore !== storeApi) {
+        if (
+          state.apertureCenter !== prevState.apertureCenter ||
+          state.apertureRadius !== prevState.apertureRadius
+        ) {
+          outerStore.getState().setApertureFrame(state.apertureCenter, state.apertureRadius);
+        }
+        if (state.apertureIds !== prevState.apertureIds) {
+          outerStore.getState().setApertureIds(state.apertureIds);
+        }
+      }
+
       if (state.selectedId !== prevState.selectedId && !applyingOuterSelectionRef.current) {
         if (syncWithUIStore && useUIStore.getState().selectedNodeId !== state.selectedId) {
           useUIStore.getState().setSelectedNodeId(state.selectedId);

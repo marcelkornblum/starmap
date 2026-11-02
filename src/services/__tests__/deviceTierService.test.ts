@@ -6,8 +6,11 @@ import {
   getDeviceTierBudget,
   estimateRequiredSectorsForDistance,
   computeMaxSafeCameraDistancePc,
+  computeCeilingMaxCameraDistancePc,
   clampCameraDistanceToMemoryBudget,
   canAllocateSector,
+  ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER,
+  MEAN_CATALOG_STARS_PER_CUBIC_PC,
   type DevicePerformanceTier,
   type DeviceTierBudget,
 } from '../deviceTierService';
@@ -23,6 +26,7 @@ describe('deviceTierService', () => {
       expect(DEVICE_TIER_BUDGETS.tier1).toEqual({
         tier: 'tier1',
         maxActivePoints: 75_000,
+        maxActiveEntities: 300,
         maxBufferBytes: 1_572_864,
         maxActiveSectors: 12,
         lruCacheMaxSectors: 16,
@@ -34,6 +38,7 @@ describe('deviceTierService', () => {
       expect(DEVICE_TIER_BUDGETS.tier2).toEqual({
         tier: 'tier2',
         maxActivePoints: 200_000,
+        maxActiveEntities: 500,
         maxBufferBytes: 5_242_880,
         maxActiveSectors: 27,
         lruCacheMaxSectors: 40,
@@ -45,6 +50,7 @@ describe('deviceTierService', () => {
       expect(DEVICE_TIER_BUDGETS.tier3).toEqual({
         tier: 'tier3',
         maxActivePoints: 350_000,
+        maxActiveEntities: 800,
         maxBufferBytes: 15_728_640,
         maxActiveSectors: 64,
         lruCacheMaxSectors: 80,
@@ -62,6 +68,7 @@ describe('deviceTierService', () => {
         const current = budgets[i]!;
         const next = budgets[i + 1]!;
         expect(next.maxActivePoints).toBeGreaterThan(current.maxActivePoints);
+        expect(next.maxActiveEntities).toBeGreaterThan(current.maxActiveEntities);
         expect(next.maxBufferBytes).toBeGreaterThan(current.maxBufferBytes);
         expect(next.maxActiveSectors).toBeGreaterThan(current.maxActiveSectors);
         expect(next.lruCacheMaxSectors).toBeGreaterThan(current.lruCacheMaxSectors);
@@ -388,6 +395,53 @@ describe('deviceTierService', () => {
       expect(canAllocateSector(budget, 0, -1, 1000)).toBe(false);
       expect(canAllocateSector(budget, 0, 0, -500)).toBe(false);
       expect(canAllocateSector(budget, 0, 0, NaN)).toBe(false);
+    });
+  });
+
+  describe('computeCeilingMaxCameraDistancePc & Active Item Ceiling', () => {
+    it('exports expected constants', () => {
+      expect(ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER).toBe(1.5);
+      expect(MEAN_CATALOG_STARS_PER_CUBIC_PC).toBeCloseTo(751.5 / (25 * 25 * 25), 6);
+    });
+
+    it('estimates ceiling distance from catalog density when live aperture radius is omitted', () => {
+      const budgetTier1 = DEVICE_TIER_BUDGETS.tier1;
+      // Derived capped dist is ~59.78 pc, capped by tier1 maxSafe (50 pc)
+      expect(computeCeilingMaxCameraDistancePc(budgetTier1)).toBe(50);
+
+      const budgetTier2 = DEVICE_TIER_BUDGETS.tier2;
+      // Derived capped dist is ~70.88 pc (< tier2 maxSafe of 100 pc)
+      const distTier2 = computeCeilingMaxCameraDistancePc(budgetTier2);
+      expect(distTier2).toBeGreaterThan(65);
+      expect(distTier2).toBeLessThan(75);
+    });
+
+    it('uses live ceilingApertureRadiusPc with 1.5x zoom out multiplier', () => {
+      const budgetTier2 = DEVICE_TIER_BUDGETS.tier2; // maxSafe = 100 pc
+      // ceilingApertureRadiusPc = 15 -> ceilingCamDist = 15 * (34.9 / 10) = 52.35 -> * 1.5 = 78.525 pc
+      const dist = computeCeilingMaxCameraDistancePc(budgetTier2, {
+        ceilingApertureRadiusPc: 15,
+      });
+      expect(dist).toBeCloseTo(78.525, 2);
+    });
+
+    it('caps live ceiling distance at budget.maxCameraDistancePc (maxSafe)', () => {
+      const budgetTier1 = DEVICE_TIER_BUDGETS.tier1; // maxSafe = 50 pc
+      // ceilingApertureRadiusPc = 20 -> ceilingCamDist = 20 * 3.49 = 69.8 -> * 1.5 = 104.7 pc -> clamped to 50
+      const dist = computeCeilingMaxCameraDistancePc(budgetTier1, {
+        ceilingApertureRadiusPc: 20,
+      });
+      expect(dist).toBe(50);
+    });
+
+    it('clamps to minDistancePc for negative or zero live ceiling aperture', () => {
+      const budgetTier2 = DEVICE_TIER_BUDGETS.tier2;
+      const dist = computeCeilingMaxCameraDistancePc(budgetTier2, {
+        ceilingApertureRadiusPc: -5,
+        minDistancePc: 2,
+      });
+      // Should fall back to density estimate, which is > 2
+      expect(dist).toBeGreaterThan(2);
     });
   });
 

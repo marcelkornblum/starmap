@@ -21,7 +21,21 @@ describe('useSettingsStore (Persistent)', () => {
     expect(state.showGrid).toBe(true);
     expect(state.showOrbits).toBe(true);
     expect(state.projection).toBe('3d');
+    expect(state.enableOrthographicProjection).toBe(false);
     expect(state.volume).toBe(0.8);
+  });
+
+  it('toggles and sets enableOrthographicProjection', () => {
+    expect(useSettingsStore.getState().enableOrthographicProjection).toBe(false);
+
+    useSettingsStore.getState().toggleOrthographicProjection();
+    expect(useSettingsStore.getState().enableOrthographicProjection).toBe(true);
+
+    useSettingsStore.getState().setEnableOrthographicProjection(false);
+    expect(useSettingsStore.getState().enableOrthographicProjection).toBe(false);
+
+    useSettingsStore.getState().setEnableOrthographicProjection(true);
+    expect(useSettingsStore.getState().enableOrthographicProjection).toBe(true);
   });
 
   it('updates theme and projection', () => {

@@ -9,7 +9,7 @@ import {
   STANDARD_CAMERA_DISTANCES,
 } from '../cartography';
 import {
-  computeMaxSafeCameraDistancePc,
+  computeCeilingMaxCameraDistancePc,
   getDeviceTierBudget,
 } from '../../../services/deviceTierService';
 import { SceneTokenBridge } from '../ThemeTokenBridge';
@@ -158,9 +158,12 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
     [targetCoords],
   );
 
+  const [ceilingApertureRadiusPc, setCeilingApertureRadiusPc] = useState<number | null>(null);
+  const budget = useMemo(() => getDeviceTierBudget(), []);
+
   const maxSafeDistance = useMemo(
-    () => computeMaxSafeCameraDistancePc(getDeviceTierBudget()),
-    [],
+    () => computeCeilingMaxCameraDistancePc(budget, { ceilingApertureRadiusPc }),
+    [budget, ceilingApertureRadiusPc],
   );
 
   const containerClass = className
@@ -199,6 +202,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             onInspectSystem={onInspectSystem}
             onSelectSystem={onSelectSystem}
             additionalEntities={additionalEntities}
+            onCeilingApertureRadiusChange={setCeilingApertureRadiusPc}
           />
         </Canvas>
         <SafeHtmlPortalOutlet />

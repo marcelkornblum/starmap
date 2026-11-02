@@ -21,6 +21,7 @@ import {
   type CardinalAlignment,
   type AllPlaneQuadrantWeights,
 } from '../math/cardinal';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 
 export interface SpatialFrameState {
   frame: ReferenceFrame;
@@ -201,8 +202,17 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     // 4. Cardinal alignment & Plane Quadrant weights
     const startThresh = frame.camera.thresholdStart ?? 0.94;
     const endThresh = frame.camera.thresholdEnd ?? 0.985;
-    s.cardinalAlignment = computeCardinalAlignment(camDir, startThresh, endThresh);
-    s.planeWeights = computeAllPlaneQuadrantWeights(camDir, startThresh, endThresh);
+    const enableOrthographicProjection = useSettingsStore.getState().enableOrthographicProjection;
+    const allowPolarDial =
+      enableOrthographicProjection && frame.coordinateFins.polarDialExpansion !== false;
+
+    if (!allowPolarDial) {
+      s.cardinalAlignment = DEFAULT_CARDINAL_ALIGNMENT;
+      s.planeWeights = computeAllPlaneQuadrantWeights(camDir, 2.0, 3.0);
+    } else {
+      s.cardinalAlignment = computeCardinalAlignment(camDir, startThresh, endThresh);
+      s.planeWeights = computeAllPlaneQuadrantWeights(camDir, startThresh, endThresh);
+    }
 
     // 5. Orthonormal Basis & Orientation
     // Resolve any specified frame base orientation (e.g. planetary axial tilt or invariable plane):

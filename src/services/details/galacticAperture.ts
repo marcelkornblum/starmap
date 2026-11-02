@@ -31,6 +31,7 @@ import {
   toCoordinatesTuple,
 } from './hazardsAndComposition';
 import { buildGalaxySystemNavigationHref } from './navigationAndCamera';
+import { getDeviceTierBudget } from '../deviceTierService';
 import type {
   ExtractGalaxyBodiesInput,
   GalacticInstrumentApertureResult,
@@ -205,6 +206,15 @@ export function resolveGalacticInstrumentAperture(
     }
   >();
 
+  const effectiveMaxActive =
+    input.maxActiveEntities ?? getDeviceTierBudget().maxActiveEntities;
+
+  const inApertureCandidates: Array<{
+    sysSlug: string;
+    entry: CompactSearchEntry;
+    distance: number;
+  }> = [];
+
   for (const entry of corpus) {
     if (entry.c !== 'stars' && resolveEntryCategory(entry) !== 'stars') {
       continue;
@@ -223,13 +233,37 @@ export function resolveGalacticInstrumentAperture(
       entry,
     });
     if (isInsideAperture(pos, centerCoordinatesPc, rawAperturePc)) {
-      apertureIds.add(sysSlug);
-      apertureIds.add(entry.i);
-      if (entry.s) {
-        apertureIds.add(entry.s);
-      }
+      const distance = computeEuclideanDistance3D(centerCoordinatesPc, pos).distance;
+      inApertureCandidates.push({
+        sysSlug,
+        entry,
+        distance,
+      });
     }
   }
+
+  inApertureCandidates.sort((a, b) => {
+    if (Math.abs(a.distance - b.distance) > 1e-5) {
+      return a.distance - b.distance;
+    }
+    return a.sysSlug.localeCompare(b.sysSlug);
+  });
+
+  const cappedCount = Math.min(effectiveMaxActive, inApertureCandidates.length);
+  for (let i = 0; i < cappedCount; i++) {
+    const candidate = inApertureCandidates[i];
+    if (!candidate) continue;
+    apertureIds.add(candidate.sysSlug);
+    apertureIds.add(candidate.entry.i);
+    if (candidate.entry.s) {
+      apertureIds.add(candidate.entry.s);
+    }
+  }
+
+  const ceilingApertureRadiusPc =
+    inApertureCandidates.length >= effectiveMaxActive && effectiveMaxActive > 0
+      ? inApertureCandidates[effectiveMaxActive - 1]?.distance ?? null
+      : null;
 
   return {
     centerId,
@@ -239,6 +273,7 @@ export function resolveGalacticInstrumentAperture(
     apertureRadiusPc,
     apertureRadiusLy,
     apertureIds,
+    ceilingApertureRadiusPc,
     systemsById,
   };
 }
@@ -271,6 +306,7 @@ export function extractGalaxyBodies(
       focusedEntity,
       centerEntity,
       urlSystemSlug,
+      maxActiveEntities: input.maxActiveEntities,
     });
 
   let focusedSystemId: string | undefined;
@@ -320,47 +356,22 @@ export function extractGalaxyBodies(
     selectedSet.add(toUrlSlug(sel.id));
   }
 
-  const candidateMap = new Map(instrumentAperture.systemsById);
+  const candidateMap = new Map<
+    string,
+    {
+      readonly id: string;
+      readonly name: string;
+      readonly coordinatesPc: readonly [number, number, number];
+      readonly entry: CompactSearchEntry;
+    }
+  >();
 
-  if (focusedSysSlug && !candidateMap.has(focusedSysSlug)) {
-    const matched = focusedSystemId
-      ? findFocusedEntryInCorpus(focusedSystemId, corpus)
-      : undefined;
-    candidateMap.set(focusedSysSlug, {
-      id: focusedSystemId ?? focusedSysSlug,
-      name: focusedSystemName ?? formatSlugFallbackTitle(focusedSysSlug),
-      coordinatesPc: focusedSystemCoords ?? [0, 0, 0],
-      entry: matched ?? {
-        i: focusedSystemId ?? focusedSysSlug,
-        n: focusedSystemName ?? formatSlugFallbackTitle(focusedSysSlug),
-        p: focusedSystemCoords
-          ? [focusedSystemCoords[0], focusedSystemCoords[1], focusedSystemCoords[2]]
-          : [0, 0, 0],
-        c: 'stars',
-      },
-    });
-  }
-
-  for (const sel of selectedEntities) {
-    const matched = findFocusedEntryInCorpus(sel.id, corpus);
-    const sysId = matched?.s ?? sel.id;
-    const sysSlug = toUrlSlug(sysId);
-    if (!candidateMap.has(sysSlug)) {
-      const sysEntry = findFocusedEntryInCorpus(sysId, corpus);
-      const pos: readonly [number, number, number] = sysEntry?.p
-        ? [sysEntry.p[0], sysEntry.p[1], sysEntry.p[2]]
-        : toCoordinatesTuple(sel.position);
-      candidateMap.set(sysSlug, {
-        id: sysId,
-        name: sysEntry ? resolveResultDisplayTitle(sysEntry) : sel.name,
-        coordinatesPc: pos,
-        entry: sysEntry ?? {
-          i: sysId,
-          n: sel.name,
-          p: [pos[0], pos[1], pos[2]],
-          c: 'stars',
-        },
-      });
+  for (const [sysSlug, sysData] of instrumentAperture.systemsById.entries()) {
+    if (
+      instrumentAperture.apertureIds.has(sysSlug) ||
+      instrumentAperture.apertureIds.has(sysData.id)
+    ) {
+      candidateMap.set(sysSlug, sysData);
     }
   }
 

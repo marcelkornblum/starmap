@@ -19,6 +19,7 @@ import {
   synchronizePerspectiveWithOrtho,
 } from '../math/cameraMath';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 
 const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
@@ -79,32 +80,54 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   }, [camera]);
   const orthoCamRef = useLazyRef(() => new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 2000));
 
+  const controlsMax = controls?.maxDistance;
+  const frameMax = frame.camera.maxDistance;
+  const hasStricterMax =
+    typeof controlsMax === 'number' &&
+    Number.isFinite(controlsMax) &&
+    controlsMax > 0 &&
+    typeof frameMax === 'number' &&
+    controlsMax < frameMax;
+
+  const resolvedMaxDistance =
+    hasStricterMax && typeof controlsMax === 'number' && typeof frameMax === 'number'
+      ? Math.min(controlsMax, frameMax)
+      : frameMax;
+
+  const resolvedMinDistance = hasStricterMax
+    ? Math.max(controls?.minDistance ?? 0, frame.camera.minDistance ?? 0)
+    : frame.camera.minDistance;
+
   // Controls distance constraints synchronisation (immediate for SSR & runtime)
-  syncControlsDistance(controls, frame.camera.minDistance, frame.camera.maxDistance);
+  syncControlsDistance(controls, resolvedMinDistance, resolvedMaxDistance);
 
   useEffect(() => {
     if (!controls) return;
     const prevMin = controls.minDistance;
     const prevMax = controls.maxDistance;
 
-    syncControlsDistance(controls, frame.camera.minDistance, frame.camera.maxDistance);
+    syncControlsDistance(controls, resolvedMinDistance, resolvedMaxDistance);
 
     return () => {
       syncControlsDistance(controls, prevMin, prevMax);
     };
-  }, [controls, frame.camera.minDistance, frame.camera.maxDistance]);
+  }, [controls, resolvedMinDistance, resolvedMaxDistance]);
 
   const persistentTargetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
   const justUnlockedRef = useRef<boolean>(false);
 
-  // Hook into camera store
+  // Hook into camera store & settings store
   const isLocked = useCameraStore((s) => s.isLocked);
   const pendingAxisRequest = useCameraStore((s) => s.pendingAxisRequest);
   const pendingPresetRequest = useCameraStore((s) => s.pendingPresetRequest);
+  const enableOrthographicProjection = useSettingsStore(
+    (s) => s.enableOrthographicProjection,
+  );
 
   // Lock to true orthographic camera
   const lockToOrthographic = useCallback(
     (cardinal?: CardinalDirection) => {
+      if (!useSettingsStore.getState().enableOrthographicProjection) return;
       const state = get();
       const currentCamera = state.camera;
       const perspCam = perspCamRef.current ?? (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
@@ -159,6 +182,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   // Glide to a designated cardinal axis
   const glideToCardinal = useCallback(
     (cardinal: CardinalDirection) => {
+      if (!useSettingsStore.getState().enableOrthographicProjection) return;
       const state = get();
       const currentCamera = state.camera;
       const perspCam = perspCamRef.current ?? (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
@@ -180,7 +204,9 @@ export const CameraRig: React.FC<CameraRigProps> = ({
         cardinal,
         snapDuration,
         () => {
-          lockToOrthographic(cardinal);
+          if (useSettingsStore.getState().enableOrthographicProjection) {
+            lockToOrthographic(cardinal);
+          }
         },
         performance.now(),
         currentControls,
@@ -201,6 +227,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   useEffect(() => {
     if (!pendingAxisRequest) return;
     useCameraStore.getState().clearAxisRequest();
+    if (!useSettingsStore.getState().enableOrthographicProjection) return;
     glideToCardinal(pendingAxisRequest);
   }, [pendingAxisRequest, glideToCardinal]);
 
@@ -215,7 +242,9 @@ export const CameraRig: React.FC<CameraRigProps> = ({
 
     switch (preset) {
       case 'top-down':
-        glideToCardinal('top');
+        if (useSettingsStore.getState().enableOrthographicProjection) {
+          glideToCardinal('top');
+        }
         break;
 
       case 'reset': {
@@ -238,7 +267,9 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       }
 
       case 'orbital-lock':
-        glideToCardinal('front');
+        if (useSettingsStore.getState().enableOrthographicProjection) {
+          glideToCardinal('front');
+        }
         break;
 
       case 'radial': {
@@ -272,12 +303,25 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     orthoCamRef,
   ]);
 
+  // If orthographic projection is disabled while locked, immediately unlock
+  useEffect(() => {
+    if (!enableOrthographicProjection) {
+      if (useCameraStore.getState().isLocked || get().camera === orthoCamRef.current) {
+        unlockFromOrthographic();
+      }
+    }
+  }, [enableOrthographicProjection, get, unlockFromOrthographic, orthoCamRef]);
+
   // Handle lock state changes from external store toggle
   useEffect(() => {
     const currentCamera = get().camera;
     if (isLocked) {
-      if (currentCamera !== orthoCamRef.current) {
-        lockToOrthographic();
+      if (useSettingsStore.getState().enableOrthographicProjection) {
+        if (currentCamera !== orthoCamRef.current) {
+          lockToOrthographic();
+        }
+      } else {
+        useCameraStore.getState().setLocked(false);
       }
     } else {
       if (currentCamera === orthoCamRef.current) {
@@ -312,7 +356,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     };
 
     const handleEnd = () => {
-      if (!snapOnRelease) return;
+      if (!snapOnRelease || !useSettingsStore.getState().enableOrthographicProjection) return;
       if (useCameraStore.getState().isLocked) return;
 
       const currentCamera = get().camera;
@@ -362,7 +406,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     }
 
     // Strict runtime guard: if locked, tilt is completely disabled and left click & single touch are screen-space pan
-    if (isLocked && activeControls) {
+    if (isLocked && enableOrthographicProjection && activeControls) {
       if (activeControls.enableRotate) {
         activeControls.enableRotate = false;
       }

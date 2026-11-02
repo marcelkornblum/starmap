@@ -538,6 +538,7 @@ export interface ResolveGalacticInstrumentApertureInput {
   readonly urlSystemSlug?: string | null;
   readonly liveApertureCenterPc?: readonly [number, number, number] | null;
   readonly liveApertureRadiusPc?: number | null;
+  readonly maxActiveEntities?: number;
 }
 
 export interface GalacticInstrumentApertureResult {
@@ -548,6 +549,7 @@ export interface GalacticInstrumentApertureResult {
   readonly apertureRadiusPc: number;
   readonly apertureRadiusLy: number;
   readonly apertureIds: Set<string>;
+  readonly ceilingApertureRadiusPc?: number | null;
   readonly systemsById: Map<
     string,
     {
@@ -570,4 +572,5 @@ export interface ExtractGalaxyBodiesInput {
   readonly hasExplicitFocus?: boolean;
   readonly currentSearch?: string;
   readonly aperture?: GalacticInstrumentApertureResult;
+  readonly maxActiveEntities?: number;
 }

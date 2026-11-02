@@ -140,7 +140,10 @@ export interface SectorPointCloudProps {
   readonly manager?: SectorStreamingManager;
   readonly pointSize?: number;
   readonly pointOpacity?: number;
-  readonly onHydratedSummariesChange?: (summaries: readonly SystemSummaryNode[]) => void;
+  readonly onHydratedSummariesChange?: (
+    summaries: readonly SystemSummaryNode[],
+    focusPointPc?: readonly [number, number, number],
+  ) => void;
 }
 
 /**
@@ -253,13 +256,12 @@ export function SectorPointCloud({
       scratchPosRef.current[0] = fx;
       scratchPosRef.current[1] = fy;
       scratchPosRef.current[2] = fz;
-      const lookaheadRadius = apertureRadius * 1.15;
 
       void hydrationBridge
-        .updateInstrumentPerimeter(queryInputs, scratchPosRef.current, lookaheadRadius)
+        .updateInstrumentPerimeter(queryInputs, scratchPosRef.current, apertureRadius)
         .then((state) => {
           hydratingRef.current = false;
-          onSummariesRef.current?.(state.activeSummaries);
+          onSummariesRef.current?.(state.activeSummaries, [fx, fy, fz]);
           if (pendingHydrationRef.current) {
             pendingHydrationRef.current = false;
             const currentFocus = frameCtxRef.current?.frameRef?.current?.focusPoint;
