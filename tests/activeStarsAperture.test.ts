@@ -90,4 +90,80 @@ describe('streamed active stars drive aperture membership and the objects list',
     expect(countActive(5)).toBeLessThan(countActive(15));
     expect(countActive(15)).toBeLessThan(countActive(30));
   });
+
+  it('caps apertureIds at maxActiveEntities and computes ceilingApertureRadiusPc', () => {
+    const starA = makeStar('gaia-1', 2);
+    const starB = makeStar('gaia-2', 4);
+    const starC = makeStar('gaia-3', 6);
+    // Sol is at 0 pc, gaia-1 at 2 pc, gaia-2 at 4 pc, gaia-3 at 6 pc (4 total inside 10 pc)
+    const corpus = mergeActiveStarsIntoCorpus(CORPUS, [starA, starB, starC]);
+
+    // Cap at 2 active entities: Sol (0 pc) and gaia-1 (2 pc)
+    const capped = resolveGalacticInstrumentAperture({
+      corpus,
+      liveApertureCenterPc: [0, 0, 0],
+      liveApertureRadiusPc: 10,
+      maxActiveEntities: 2,
+    });
+
+    expect(capped.apertureIds.has('sol')).toBe(true);
+    expect(capped.apertureIds.has('gaia-1')).toBe(true);
+    expect(capped.apertureIds.has('gaia-2')).toBe(false);
+    expect(capped.apertureIds.has('gaia-3')).toBe(false);
+    expect(capped.ceilingApertureRadiusPc).toBe(2);
+
+    // If maxActiveEntities exceeds count, ceilingApertureRadiusPc is null
+    const uncapped = resolveGalacticInstrumentAperture({
+      corpus,
+      liveApertureCenterPc: [0, 0, 0],
+      liveApertureRadiusPc: 10,
+      maxActiveEntities: 10,
+    });
+    expect(uncapped.ceilingApertureRadiusPc).toBeNull();
+  });
+
+  it('strictly excludes off-aperture systems in extractGalaxyBodies even if focused or selected', () => {
+    const inside = makeStar('gaia-inside', 3);
+    const outside = makeStar('gaia-outside', 50);
+    const corpus = mergeActiveStarsIntoCorpus(CORPUS, [inside, outside]);
+
+    const aperture = resolveGalacticInstrumentAperture({
+      corpus,
+      liveApertureCenterPc: [0, 0, 0],
+      liveApertureRadiusPc: 10,
+    });
+
+    const bodies = extractGalaxyBodies({
+      corpus,
+      aperture,
+      focusedEntity: {
+        id: 'gaia-outside',
+        name: 'GAIA-OUTSIDE',
+        position: [50, 0, 0],
+        classification: 'star',
+      },
+      selectedEntities: [
+        {
+          id: 'gaia-inside',
+          name: 'GAIA-INSIDE',
+          position: [3, 0, 0],
+          classification: 'star',
+        },
+        {
+          id: 'gaia-outside',
+          name: 'GAIA-OUTSIDE',
+          position: [50, 0, 0],
+          classification: 'star',
+        },
+      ],
+    });
+
+    const ids = bodies.systems.map((s) => s.id);
+    expect(ids).toContain('sol');
+    expect(ids).toContain('gaia-inside');
+    expect(ids).not.toContain('gaia-outside');
+
+    const insideItem = bodies.systems.find((s) => s.id === 'gaia-inside');
+    expect(insideItem?.tier).toBe('selected');
+  });
 });

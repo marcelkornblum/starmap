@@ -18,6 +18,7 @@ export interface DeviceCapabilitiesInput {
 export interface DeviceTierBudget {
   readonly tier: DevicePerformanceTier;
   readonly maxActivePoints: number;
+  readonly maxActiveEntities: number;
   readonly maxBufferBytes: number;
   readonly maxActiveSectors: number;
   readonly lruCacheMaxSectors: number;
@@ -37,10 +38,22 @@ export interface ClampCameraDistanceOptions extends CameraDistanceBudgetOptions 
   readonly currentDistancePc?: number;
 }
 
+export interface CeilingCameraDistanceOptions {
+  readonly ceilingApertureRadiusPc?: number | null;
+  readonly referenceApertureRadiusPc?: number;
+  readonly referenceCameraDistancePc?: number;
+  readonly zoomOutMultiplier?: number;
+  readonly minDistancePc?: number;
+}
+
+export const ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER = 1.5;
+export const MEAN_CATALOG_STARS_PER_CUBIC_PC = 751.5 / (25 * 25 * 25);
+
 export const DEVICE_TIER_BUDGETS: Readonly<Record<DevicePerformanceTier, DeviceTierBudget>> = {
   tier1: {
     tier: 'tier1',
     maxActivePoints: 75_000,
+    maxActiveEntities: 300,
     maxBufferBytes: 1_572_864, // 1.5 MB
     maxActiveSectors: 12,
     lruCacheMaxSectors: 16,
@@ -51,6 +64,7 @@ export const DEVICE_TIER_BUDGETS: Readonly<Record<DevicePerformanceTier, DeviceT
   tier2: {
     tier: 'tier2',
     maxActivePoints: 200_000,
+    maxActiveEntities: 500,
     maxBufferBytes: 5_242_880, // 5.0 MB
     maxActiveSectors: 27,
     lruCacheMaxSectors: 40,
@@ -61,6 +75,7 @@ export const DEVICE_TIER_BUDGETS: Readonly<Record<DevicePerformanceTier, DeviceT
   tier3: {
     tier: 'tier3',
     maxActivePoints: 350_000,
+    maxActiveEntities: 800,
     maxBufferBytes: 15_728_640, // 15.0 MB
     maxActiveSectors: 64,
     lruCacheMaxSectors: 80,
@@ -201,6 +216,40 @@ export function computeMaxSafeCameraDistancePc(
 
   const rawDist = sectorSizePc * Math.cbrt((3 * maxSectors) / (4 * Math.PI)) * 2.2;
   return Math.min(budget.maxCameraDistancePc, Math.max(minDistancePc, rawDist));
+}
+
+/**
+ * Computes the active entity ceiling camera distance, capped at 1.5x zoom out multiplier
+ * and bounded by the tier's max safe camera distance.
+ */
+export function computeCeilingMaxCameraDistancePc(
+  budget: DeviceTierBudget,
+  options?: CeilingCameraDistanceOptions,
+): number {
+  const refApertureRadius = options?.referenceApertureRadiusPc ?? 10;
+  const refCameraDist = options?.referenceCameraDistancePc ?? 34.9;
+  const zoomMultiplier = options?.zoomOutMultiplier ?? ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER;
+  const minDistancePc = options?.minDistancePc ?? 1;
+
+  const maxSafe = computeMaxSafeCameraDistancePc(budget, { minDistancePc: options?.minDistancePc });
+
+  let effectiveCeilingRadiusPc: number;
+  if (
+    options?.ceilingApertureRadiusPc !== undefined &&
+    options.ceilingApertureRadiusPc !== null &&
+    Number.isFinite(options.ceilingApertureRadiusPc) &&
+    options.ceilingApertureRadiusPc > 0
+  ) {
+    effectiveCeilingRadiusPc = options.ceilingApertureRadiusPc;
+  } else {
+    effectiveCeilingRadiusPc = Math.cbrt(
+      (3 * budget.maxActiveEntities) / (4 * Math.PI * MEAN_CATALOG_STARS_PER_CUBIC_PC),
+    );
+  }
+
+  const ceilingCameraDist = effectiveCeilingRadiusPc * (refCameraDist / refApertureRadius);
+  const cappedDist = ceilingCameraDist * zoomMultiplier;
+  return Math.min(maxSafe, Math.max(minDistancePc, cappedDist));
 }
 
 /**

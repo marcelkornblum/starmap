@@ -6,6 +6,7 @@ import {
   releaseOrthographicLock,
   handleDiscreteSnapOnEnd,
 } from '../src/components/canvas/instrument/cameraRigControls';
+import { computeAllPlaneQuadrantWeights } from '../src/components/canvas/math/cardinal';
 import { useCameraStore } from '../src/stores/useCameraStore';
 
 describe('Camera Rig & Controls: CameraRig.tsx', () => {
@@ -381,6 +382,24 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       const dir = new THREE.Vector3().copy(camera.position).sub(target).normalize();
       expect(dir.y).toBeCloseTo(-1, 4);
       expect(dir.z).toBeCloseTo(0, 4);
+    });
+  });
+
+  describe('enableOrthographicProjection & Cardinal Polar Dial Gating', () => {
+    it('disables 360-degree polar dial expansion and planar fade when thresholds are out of range (2.0, 3.0)', () => {
+      // Near top cardinal axis (|z| ~ 0.99)
+      const camDir = new THREE.Vector3(0.1, 0.1, 0.9899).normalize();
+      const standardWeights = computeAllPlaneQuadrantWeights(camDir);
+      expect(standardWeights.maxAlpha).toBeGreaterThan(0.9);
+      expect(standardWeights.fadeXZ).toBeLessThan(0.1);
+      expect(standardWeights.fadeYZ).toBeLessThan(0.1);
+
+      // With allowPolarDial = false passing (2.0, 3.0)
+      const gatedWeights = computeAllPlaneQuadrantWeights(camDir, 2.0, 3.0);
+      expect(gatedWeights.maxAlpha).toBe(0);
+      expect(gatedWeights.fadeXY).toBe(1);
+      expect(gatedWeights.fadeXZ).toBe(1);
+      expect(gatedWeights.fadeYZ).toBe(1);
     });
   });
 });
