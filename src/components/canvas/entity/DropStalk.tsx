@@ -10,7 +10,7 @@ import {
   DEFAULT_RETICLE_SIZE,
   type CelestialClassification,
 } from '../cartography/reticleGeometry';
-import { calculateScreenInvariantScale } from '../engineConfig';
+import { resolveEntityScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 
 export interface DropStalkProps {
@@ -80,7 +80,11 @@ export const DropStalk: React.FC<DropStalkProps> = ({
     typeof window === 'undefined' ? (isStalkTier ? 1.0 : 0.0) : 0.0,
   );
   const lineMeshRef = useRef<THREE.LineSegments>(null);
-  const footprintRef = useRef<THREE.Group>(null);
+  const footprintRef = useLazyRef(() => {
+    const g = new THREE.Group();
+    g.position.set(x, y, targetZ);
+    return g;
+  });
   const footprintMatRef = useRef<THREE.LineBasicMaterial>(null);
   const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
 
@@ -192,13 +196,16 @@ export const DropStalk: React.FC<DropStalkProps> = ({
 
     // Footprint visibility & invariant screen-space scaling (stamps as stalk reaches datum)
     if (footprintRef.current) {
+      footprintRef.current.position.set(x, y, targetZ);
       footprintRef.current.visible = (p > 0.85) && (fadePlanar > 1e-4) && Math.abs(deltaZ) > 1e-4;
       if (footprintRef.current.visible) {
         footprintRef.current.getWorldPosition(scratchWorldPos.current);
         const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-        const invScale = frameState
-          ? frameState.screenScale
-          : calculateScreenInvariantScale(camDist, camera);
+        const invScale = resolveEntityScreenInvariantScale(
+          camDist,
+          camera,
+          frameState,
+        );
         footprintRef.current.scale.set(invScale, invScale, 1);
       }
     }

@@ -15,7 +15,7 @@ import {
   DEFAULT_RETICLE_SIZE,
   formatDesignationTag,
 } from '../cartography/reticleGeometry';
-import { calculateScreenInvariantScale } from '../engineConfig';
+import { resolveEntityScreenInvariantScale } from '../engineConfig';
 
 export interface EntityLabelProps {
   id: string;
@@ -46,7 +46,6 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
   offset,
   footprintRef: _footprintRef,
 }) => {
-  const billboardRef = useRef<THREE.Group>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const leaderLineRef = useRef<SVGLineElement>(null);
   const labelDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
@@ -63,6 +62,12 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
     if (position instanceof THREE.Vector3) return [position.x, position.y, position.z] as [number, number, number];
     return position;
   }, [position]);
+
+  const billboardRef = useLazyRef(() => {
+    const g = new THREE.Group();
+    g.position.set(...resolvedPos);
+    return g;
+  });
 
   const isAnnotated = state === 'selected' || state === 'focused';
 
@@ -100,13 +105,16 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
     }
 
     if (billboardRef.current) {
+      billboardRef.current.position.set(...resolvedPos);
       billboardRef.current.quaternion.copy(camera.quaternion);
 
       billboardRef.current.getWorldPosition(scratchWorldPos.current);
       const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-      const invScale = frameCtx?.frameRef?.current
-        ? frameCtx.frameRef.current.screenScale
-        : calculateScreenInvariantScale(camDist, camera);
+      const invScale = resolveEntityScreenInvariantScale(
+        camDist,
+        camera,
+        frameCtx?.frameRef?.current,
+      );
       billboardRef.current.scale.set(invScale, invScale, invScale);
     }
 

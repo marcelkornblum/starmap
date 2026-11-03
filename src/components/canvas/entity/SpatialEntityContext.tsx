@@ -16,6 +16,8 @@ import {
   CelestialOcclusionManager,
   celestialOcclusionManager as defaultOcclusionManager,
 } from '../cartography/celestialOcclusionRegistry';
+import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
+import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 
 const SpatialEntityStoreContext = createContext<SpatialEntityStore | null>(null);
 export const OcclusionContext = createContext<CelestialOcclusionManager | null>(null);
@@ -38,7 +40,7 @@ export const ApertureEvaluator: React.FC = () => {
   const store = useSpatialEntityStoreApi();
   const scratchApertureRef = useLazyRef(() => new Set<string>());
 
-  useFrame(() => {
+  useFrame((r3fState) => {
     if (!frameCtx?.frameRef?.current) return;
     const { focusPoint, apertureRadius } = frameCtx.frameRef.current;
     const rSq = apertureRadius * apertureRadius;
@@ -48,26 +50,35 @@ export const ApertureEvaluator: React.FC = () => {
     const scratch = scratchApertureRef.current;
     scratch.clear();
 
-    for (const [id, entity] of Object.entries(state.entities)) {
-      const pos = entity.position;
-      let x = 0;
-      let y = 0;
-      let z = 0;
-      if (pos instanceof THREE.Vector3) {
-        x = pos.x;
-        y = pos.y;
-        z = pos.z;
-      } else if (Array.isArray(pos)) {
-        x = pos[0];
-        y = pos[1];
-        z = pos[2];
+    const activeCutoff = getApertureActiveCutoffForViewportWidth(r3fState?.size?.width);
+    const streamedInApertureCount = useActiveStarsStore.getState().summaries.length;
+
+    if (streamedInApertureCount <= activeCutoff) {
+      for (const [id, entity] of Object.entries(state.entities)) {
+        const pos = entity.position;
+        let x = 0;
+        let y = 0;
+        let z = 0;
+        if (pos instanceof THREE.Vector3) {
+          x = pos.x;
+          y = pos.y;
+          z = pos.z;
+        } else if (Array.isArray(pos)) {
+          x = pos[0];
+          y = pos[1];
+          z = pos[2];
+        }
+        const dx = x - focusPoint.x;
+        const dy = y - focusPoint.y;
+        const dz = z - focusPoint.z;
+        const dSq = dx * dx + dy * dy + dz * dz;
+        if (dSq <= rSq) {
+          scratch.add(id);
+        }
       }
-      const dx = x - focusPoint.x;
-      const dy = y - focusPoint.y;
-      const dz = z - focusPoint.z;
-      const dSq = dx * dx + dy * dy + dz * dz;
-      if (dSq <= rSq) {
-        scratch.add(id);
+
+      if (scratch.size > activeCutoff) {
+        scratch.clear();
       }
     }
 

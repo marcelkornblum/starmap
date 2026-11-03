@@ -335,3 +335,9 @@ export function useSpatialFrameSafe(): SpatialFrameContextValue | null {
   return useContext(SpatialFrameContext);
 }
 
+export {
+  resolveEntityScreenInvariantScale,
+  type EntityScaleFrameState,
+} from '../engineConfig';
+
+

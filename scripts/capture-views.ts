@@ -123,7 +123,7 @@ export function parseCaptureArgs(
   let lanHost = defaultLanHost;
   let baseUrl = '';
   let customRoutes: string[] = [];
-  let outDir = path.resolve(process.cwd(), 'artifacts/screenshots');
+  let outDir = '/tmp/starmap-screenshots';
   let waitMs = 1200;
 
   for (const arg of argv) {

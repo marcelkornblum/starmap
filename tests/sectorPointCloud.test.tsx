@@ -4,6 +4,8 @@ import {
   computeStarfieldHorizonRadius,
   createStarfieldPointsMaterial,
   STARFIELD_HORIZON_APERTURE_RATIO,
+  STARFIELD_ACTIVE_POINT_SIZE,
+  STARFIELD_PASSIVE_POINT_SIZE,
   STARFIELD_VERTEX_SHADER,
   STARFIELD_FRAGMENT_SHADER,
 } from '../src/components/canvas/entity/SectorPointCloud';
@@ -26,10 +28,15 @@ describe('SectorPointCloud - Starfield Shader & Continuous Boundary Hydration', 
       expect((uniforms.uColor.value as THREE.Color).getHexString()).toBe('ffffff');
 
       expect(uniforms.uPointSize).toBeDefined();
-      expect(uniforms.uPointSize.value).toBe(2.0);
+      expect(uniforms.uPointSize.value).toBe(STARFIELD_PASSIVE_POINT_SIZE);
+      expect(STARFIELD_PASSIVE_POINT_SIZE).toBe(3.2);
+
+      expect(uniforms.uActivePointSize).toBeDefined();
+      expect(uniforms.uActivePointSize.value).toBe(STARFIELD_ACTIVE_POINT_SIZE);
+      expect(STARFIELD_ACTIVE_POINT_SIZE).toBe(5.0);
 
       expect(uniforms.uBaseOpacity).toBeDefined();
-      expect(uniforms.uBaseOpacity.value).toBe(0.85);
+      expect(uniforms.uBaseOpacity.value).toBe(0.9);
 
       expect(uniforms.uFocusCenter).toBeDefined();
       expect(uniforms.uFocusCenter.value).toBeInstanceOf(THREE.Vector3);
@@ -52,13 +59,24 @@ describe('SectorPointCloud - Starfield Shader & Continuous Boundary Hydration', 
       mat.dispose();
     });
 
-    it('respects custom pointSize and pointOpacity arguments', () => {
-      const mat = createStarfieldPointsMaterial(4.5, 0.45);
+    it('respects custom pointSize, pointOpacity, and activePointSize arguments', () => {
+      const mat = createStarfieldPointsMaterial(4.5, 0.45, 7.5);
 
       expect(mat.uniforms.uPointSize.value).toBe(4.5);
       expect(mat.uniforms.uBaseOpacity.value).toBe(0.45);
+      expect(mat.uniforms.uActivePointSize.value).toBe(7.5);
 
       mat.dispose();
+    });
+
+    it('renders stars inside the aperture with full active size and opacity in vertex shader', () => {
+      expect(STARFIELD_VERTEX_SHADER).toContain('uniform float uActivePointSize;');
+      expect(STARFIELD_VERTEX_SHADER).toContain('bool isInsideAperture = distFromOrigin <= uApertureRadius;');
+      expect(STARFIELD_VERTEX_SHADER).toContain('float radialFalloff = isInsideAperture ? 1.0 : mix(0.88, 0.45, outerT);');
+      expect(STARFIELD_VERTEX_SHADER).toContain('vLuminance = isInsideAperture ? 1.0 : mix(0.75, 1.0, radialFalloff);');
+      expect(STARFIELD_VERTEX_SHADER).toContain('float fgFactor = mix(1.0, 0.55, fgMask);');
+      expect(STARFIELD_VERTEX_SHADER).toContain('vAlpha = isInsideAperture ? 1.0 : (uBaseOpacity * radialFalloff * fgFactor);');
+      expect(STARFIELD_VERTEX_SHADER).toContain('gl_PointSize = isInsideAperture ? uActivePointSize : uPointSize;');
     });
 
     it('wires the vertex and fragment shaders into the material', () => {

@@ -21,7 +21,7 @@
     "data:build": "tsx scripts/build-data.ts",
     "data:pipeline": "npm run data:fetch && npm run data:build",
     "storybook": "storybook dev -p 6006 --host 0.0.0.0 --exact-port --no-open",
-    "build-storybook": "storybook build",
+    "build-storybook": "storybook build -o /tmp/starmap-storybook-static",
     "capture:views": "tsx scripts/capture-views.ts",
     "sync:discoveries": "tsx scripts/sync-discoveries.ts"
   },

@@ -8,7 +8,7 @@ import { useOcclusionManager } from './SpatialEntityContext';
 import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
 import {
-  calculateScreenInvariantScale,
+  resolveEntityScreenInvariantScale,
   reticleSizeToScreenPx,
 } from '../engineConfig';
 import type { NodeAlphaRef } from './types';
@@ -56,15 +56,20 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   const reticleBracketColor = useThreeTokenStore((s) => s.tokens.reticleBracketColor);
   const stateFocus = useThreeTokenStore((s) => s.tokens.stateFocus);
 
-  const markerRef = useRef<THREE.Mesh>(null);
+  const [posX, posY, posZ] = position instanceof THREE.Vector3 ? [position.x, position.y, position.z] : position;
+
+  const markerRef = useLazyRef(() => new THREE.Mesh());
   const markerMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
-  const hitareaRef = useRef<THREE.Mesh>(null);
-  const billboardRef = useRef<THREE.Group>(null);
-  const groupRef = useRef<THREE.Group>(null);
+  const hitareaRef = useLazyRef(() => new THREE.Mesh());
+  const billboardRef = useLazyRef(() => new THREE.Group());
+  const groupRef = useLazyRef(() => {
+    const g = new THREE.Group();
+    g.position.set(posX, posY, posZ);
+    return g;
+  });
   const worldPosRef = useLazyRef(() => new THREE.Vector3());
   const occlusionManager = useOcclusionManager();
   const frameCtx = useSpatialFrameSafe();
-  const [posX, posY, posZ] = position instanceof THREE.Vector3 ? [position.x, position.y, position.z] : position;
 
   useEffect(() => {
     return () => {
@@ -80,6 +85,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
     }
 
     // 1. Retrieve the actual world position of this node (supports arbitrary parent transforms)
+    groupRef.current.position.set(posX, posY, posZ);
     groupRef.current.getWorldPosition(worldPosRef.current);
     const camDist = Math.max(camera.position.distanceTo(worldPosRef.current), 1e-4);
     let worldScale = (pixelSize / Math.max(size.height, 1)) * 2;
@@ -97,9 +103,11 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
     if (billboardRef.current && hitareaRef.current) {
       billboardRef.current.quaternion.copy(camera.quaternion);
 
-      const invScale = frameCtx?.frameRef?.current
-        ? frameCtx.frameRef.current.screenScale
-        : calculateScreenInvariantScale(camDist, camera);
+      const invScale = resolveEntityScreenInvariantScale(
+        camDist,
+        camera,
+        frameCtx?.frameRef?.current,
+      );
       const rSize = reticleSize ?? DEFAULT_RETICLE_SIZE;
       const effectiveHitRadius = (hitRadius ?? rSize) * invScale;
       hitareaRef.current.scale.set(effectiveHitRadius, effectiveHitRadius, 1);
