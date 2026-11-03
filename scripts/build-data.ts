@@ -14,6 +14,7 @@ import type {
   SolarSystemBodyRecord,
   KinematicVector,
   CircumstellarDiskRecord,
+  StellarComponent,
 } from '../src/types/astro';
 import {
   equatorialToCartesian,
@@ -239,6 +240,9 @@ export interface HygCrossMatch {
   bayer?: string;
   flam?: number;
   con?: string;
+  comp?: number;
+  compPrimary?: number;
+  base?: string;
   spect?: string;
   ci?: number;
   lum?: number;
@@ -285,6 +289,9 @@ export function loadHygCrossMatch(csvPath: string): {
   const bayerIdx = header.indexOf('bayer');
   const flamIdx = header.indexOf('flam');
   const conIdx = header.indexOf('con');
+  const compIdx = header.indexOf('comp');
+  const compPrimaryIdx = header.indexOf('comp_primary');
+  const baseIdx = header.indexOf('base');
   const spectIdx = header.indexOf('spect');
   const ciIdx = header.indexOf('ci');
   const lumIdx = header.indexOf('lum');
@@ -324,6 +331,9 @@ export function loadHygCrossMatch(csvPath: string): {
     const bayer = bayerIdx >= 0 ? parts[bayerIdx]?.trim() || undefined : undefined;
     const flam = flamIdx >= 0 && parts[flamIdx] ? parseInt(parts[flamIdx], 10) : undefined;
     const con = conIdx >= 0 ? parts[conIdx]?.trim() || undefined : undefined;
+    const comp = compIdx >= 0 && parts[compIdx] ? parseInt(parts[compIdx], 10) : undefined;
+    const compPrimary = compPrimaryIdx >= 0 && parts[compPrimaryIdx] ? parseInt(parts[compPrimaryIdx], 10) : undefined;
+    const base = baseIdx >= 0 ? parts[baseIdx]?.trim() || undefined : undefined;
     const spect = spectIdx >= 0 ? parts[spectIdx]?.trim() || undefined : undefined;
     const ci = ciIdx >= 0 && parts[ciIdx] ? parseFloat(parts[ciIdx]) : undefined;
     const lum = lumIdx >= 0 && parts[lumIdx] ? parseFloat(parts[lumIdx]) : undefined;
@@ -355,6 +365,9 @@ export function loadHygCrossMatch(csvPath: string): {
       bayer,
       flam,
       con,
+      comp: isNaN(comp as number) ? undefined : comp,
+      compPrimary: isNaN(compPrimary as number) ? undefined : compPrimary,
+      base,
       spect,
       ci,
       lum,
@@ -1677,6 +1690,771 @@ export interface CatalogPayload {
   systems: SystemSummaryNode[];
 }
 
+const SPECIAL_SYSTEM_NAME_MAP: Record<string, string> = {
+  'rigil kentaurus': 'Alpha Centauri',
+  'toliman': 'Alpha Centauri',
+  'proxima centauri': 'Alpha Centauri',
+  'proxima': 'Alpha Centauri',
+  'alpha centauri': 'Alpha Centauri',
+  'alpha cen': 'Alpha Centauri',
+  'sirius': 'Sirius',
+  'gl 244': 'Sirius',
+  'luyten 726-8': 'Luyten 726-8',
+  'uv ceti': 'Luyten 726-8',
+  'bl ceti': 'Luyten 726-8',
+  'gl 65': 'Luyten 726-8',
+  'nn 3192': 'LTT 1445',
+  'nn 3193': 'LTT 1445',
+  'gl 53': 'Mu Cassiopeiae',
+};
+
+/**
+ * Strips component designations (' A', ' B', ' C', ' AB', ' BC', parentheticals)
+ * and normalizes well-known historical/IAU multiple star system names to their base system name.
+ */
+export function getStrippedSystemBaseName(rawName: string): string {
+  const trimmed = rawName.trim();
+  const lower = trimmed.toLowerCase();
+
+  for (const [key, val] of Object.entries(SPECIAL_SYSTEM_NAME_MAP)) {
+    if (
+      lower === key ||
+      lower.startsWith(key + ' ') ||
+      lower.startsWith(key + '-') ||
+      lower.includes(`(${key}`) ||
+      lower.includes(`${key})`)
+    ) {
+      return val;
+    }
+  }
+
+  if (lower.includes('alpha centauri')) return 'Alpha Centauri';
+  if (
+    lower.includes('luyten 726-8') ||
+    lower.includes('uv ceti') ||
+    lower.includes('bl ceti') ||
+    /\b(?:gl|gj|gliese)\s*65(?:[a-e]|\b)/i.test(lower)
+  ) {
+    return 'Luyten 726-8';
+  }
+  if (lower.includes('sirius') || /\b(?:gl|gj|gliese)\s*244(?:[a-e]|\b)/i.test(lower)) {
+    return 'Sirius';
+  }
+
+  let clean = trimmed.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  if (!clean && trimmed.startsWith('(') && trimmed.endsWith(')')) {
+    clean = trimmed.slice(1, -1).trim();
+  }
+
+  clean = clean.replace(/(?:(?<=\d)|\s+)(?:[A-E]{1,2})$/i, '').trim();
+
+  const cleanLower = clean.toLowerCase();
+  for (const [key, val] of Object.entries(SPECIAL_SYSTEM_NAME_MAP)) {
+    if (
+      cleanLower === key ||
+      cleanLower.startsWith(key + ' ') ||
+      cleanLower.startsWith(key + '-') ||
+      cleanLower.includes(`(${key}`) ||
+      cleanLower.includes(`${key})`)
+    ) {
+      return val;
+    }
+  }
+
+  return clean || trimmed;
+}
+
+export interface ConsolidateMultiStarSystemsParams {
+  cataloguedSummaries?: SystemSummaryNode[];
+  sectorMap?: Map<string, SystemSummaryNode[]>;
+  sectorManifestsMap?: Map<string, SystemManifest[]>;
+  allSystemManifests?: SystemManifest[];
+  local10pcSystems?: SystemSummaryNode[];
+  referenceBrightSystems?: SystemSummaryNode[];
+  exoplanetHostSummaries?: SystemSummaryNode[];
+  starAliasesById?: Map<string, string[]>;
+}
+
+/**
+ * Groups bound binary and multiple star components into a single unified system node:
+ * a. Spatial proximity: within 0.06 pc (~12,000 AU), OR within 0.18 pc if sharing stripped base name.
+ * b. Keeps brightest component (mag ascending) as primary, sums starCount, normalizes name to stripped base name,
+ *    combines spectral types from up to 3 components, merges planets/census/tags/manifests/aliases,
+ *    and removes absorbed secondary components from all output collections.
+ */
+const CONSTELLATION_NAMES_RAW = [
+  'andromeda', 'andromedae', 'and',
+  'antlia', 'antliae', 'ant',
+  'apus', 'apodis', 'aps',
+  'aquarius', 'aquarii', 'aqr',
+  'aquila', 'aquilae', 'aql',
+  'ara', 'arae',
+  'aries', 'arietis', 'ari',
+  'auriga', 'aurigae', 'aur',
+  'bootes', 'bootis', 'boo',
+  'caelum', 'caeli', 'cae',
+  'camelopardalis', 'cam',
+  'cancer', 'cancri', 'cnc',
+  'canes venatici', 'canum venaticorum', 'cvn',
+  'canis major', 'canis majoris', 'cma',
+  'canis minor', 'canis minoris', 'cmi',
+  'capricornus', 'capricorni', 'cap',
+  'carina', 'carinae', 'car',
+  'cassiopeia', 'cassiopeiae', 'cas',
+  'centaurus', 'centauri', 'cen',
+  'cepheus', 'cephei', 'cep',
+  'cetus', 'ceti', 'cet',
+  'chamaeleon', 'chamaeleontis', 'cha',
+  'circinus', 'circini', 'cir',
+  'columba', 'columbae', 'col',
+  'comaberenices', 'comae berenices', 'com',
+  'corona australis', 'coronae australis', 'cra',
+  'corona borealis', 'coronae borealis', 'crb',
+  'corvus', 'corvi', 'crv',
+  'crater', 'crateris', 'crt',
+  'crux', 'crucis', 'cru',
+  'cygnus', 'cygni', 'cyg',
+  'delphinus', 'delphini', 'del',
+  'dorado', 'doradus', 'dor',
+  'draco', 'draconis', 'dra',
+  'equuleus', 'equulei', 'equ',
+  'eridanus', 'eridani', 'eri',
+  'fornax', 'fornacis', 'for',
+  'gemini', 'geminorum', 'gem',
+  'grus', 'gruis', 'gru',
+  'hercules', 'herculis', 'her',
+  'horologium', 'horologii', 'hor',
+  'hydra', 'hydrae', 'hya',
+  'hydrus', 'hydri', 'hyi',
+  'indus', 'indi', 'ind',
+  'lacerta', 'lacertae', 'lac',
+  'leo', 'leonis',
+  'leo minor', 'leonis minoris', 'lmi',
+  'lepus', 'leporis', 'lep',
+  'libra', 'librae', 'lib',
+  'lupus', 'lupi', 'lup',
+  'lynx', 'lyncis', 'lyn',
+  'lyra', 'lyrae', 'lyr',
+  'mensa', 'mensae', 'men',
+  'microscopium', 'microscopii', 'mic',
+  'monoceros', 'monocerotis', 'mon',
+  'musca', 'muscae', 'mus',
+  'norma', 'normae', 'nor',
+  'octans', 'octantis', 'oct',
+  'ophiuchus', 'ophiuchi', 'oph',
+  'orion', 'orionis', 'ori',
+  'pavo', 'pavonis', 'pav',
+  'pegasus', 'pegasi', 'peg',
+  'perseus', 'persei', 'per',
+  'phoenix', 'phoenicis', 'phe',
+  'pictor', 'pictoris', 'pic',
+  'pisces', 'piscium', 'psc',
+  'piscis austrinus', 'piscis austrini', 'psa',
+  'puppis', 'pup',
+  'pyxis', 'pyxidis', 'pyx',
+  'reticulum', 'reticuli', 'ret',
+  'sagitta', 'sagittae', 'sge',
+  'sagittarius', 'sagittarii', 'sgr',
+  'scorpius', 'scorpii', 'sco',
+  'sculptor', 'sculptoris', 'scl',
+  'scutum', 'scuti', 'sct',
+  'serpens', 'serpentis', 'ser',
+  'sextans', 'sextantis', 'sex',
+  'taurus', 'tauri', 'tau',
+  'telescopium', 'telescopii', 'tel',
+  'triangulum', 'trianguli', 'tri',
+  'triangulum australe', 'trianguli australis', 'tra',
+  'tucana', 'tucanae', 'tuc',
+  'ursa major', 'ursae majoris', 'uma',
+  'ursa minor', 'ursae minoris', 'umi',
+  'vela', 'velorum', 'vel',
+  'virgo', 'virginis', 'vir',
+  'volans', 'volantis', 'vol',
+  'vulpecula', 'vulpeculae', 'vul',
+];
+
+const CONSTELLATION_NAMES_SET = new Set<string>();
+for (const raw of CONSTELLATION_NAMES_RAW) {
+  const lower = raw.toLowerCase().trim();
+  CONSTELLATION_NAMES_SET.add(lower);
+  CONSTELLATION_NAMES_SET.add(lower.replace(/\s+/g, ''));
+  CONSTELLATION_NAMES_SET.add(lower.replace(/[^a-z0-9]/g, ''));
+}
+
+function isConstellationName(str: string): boolean {
+  const clean = str.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return CONSTELLATION_NAMES_SET.has(clean) || CONSTELLATION_NAMES_SET.has(str.toLowerCase().trim());
+}
+
+function addKeyVariants(set: Set<string>, raw: string | undefined): void {
+  if (!raw) return;
+  const stripped = getStrippedSystemBaseName(raw).toLowerCase().trim();
+  if (stripped.length >= 2 && !isConstellationName(stripped)) {
+    set.add(stripped);
+    set.add(stripped.replace(/\s+/g, ''));
+    set.add(stripped.replace(/[^a-z0-9]/g, ''));
+  }
+  const rawLower = raw.toLowerCase().trim();
+  if (rawLower.length >= 2 && !isConstellationName(rawLower)) {
+    set.add(rawLower);
+    set.add(rawLower.replace(/\s+/g, ''));
+    set.add(rawLower.replace(/[^a-z0-9]/g, ''));
+  }
+}
+
+function isDuplicateCatalogRecord(c: SystemSummaryNode, other: SystemSummaryNode): boolean {
+  const isOneGaiaOneHyg =
+    (c.id.startsWith('gaia-') && (other.id.startsWith('hyg-') || other.id.startsWith('hip-'))) ||
+    ((c.id.startsWith('hyg-') || c.id.startsWith('hip-')) && other.id.startsWith('gaia-'));
+  if (!isOneGaiaOneHyg) return false;
+
+  const componentRegex = /(?:(?<=\d)|\s+)[A-E]{1,2}(?:\s*\(.*\))?$/i;
+  const cLower = c.name.toLowerCase().trim();
+  const otherLower = other.name.toLowerCase().trim();
+  const hasCompC = componentRegex.test(c.name) || Boolean(SPECIAL_SYSTEM_NAME_MAP[cLower]);
+  const hasCompOther = componentRegex.test(other.name) || Boolean(SPECIAL_SYSTEM_NAME_MAP[otherLower]);
+
+  if (!hasCompC && !hasCompOther) {
+    return true;
+  }
+  return false;
+}
+
+export function consolidateMultiStarSystems(params: ConsolidateMultiStarSystemsParams): {
+  consolidatedCount: number;
+  totalSystemsReduced: number;
+  absorbedIdToPrimary: Map<string, { id: string; name: string }>;
+} {
+  const summaryMap = new Map<string, SystemSummaryNode>();
+  if (params.cataloguedSummaries) {
+    for (const s of params.cataloguedSummaries) {
+      summaryMap.set(s.id, s);
+    }
+  }
+  if (params.sectorMap) {
+    for (const list of params.sectorMap.values()) {
+      for (const s of list) {
+        if (!summaryMap.has(s.id)) summaryMap.set(s.id, s);
+      }
+    }
+  }
+  if (params.local10pcSystems) {
+    for (const s of params.local10pcSystems) {
+      if (!summaryMap.has(s.id)) summaryMap.set(s.id, s);
+    }
+  }
+  if (params.referenceBrightSystems) {
+    for (const s of params.referenceBrightSystems) {
+      if (!summaryMap.has(s.id)) summaryMap.set(s.id, s);
+    }
+  }
+  if (params.exoplanetHostSummaries) {
+    for (const s of params.exoplanetHostSummaries) {
+      if (!summaryMap.has(s.id)) summaryMap.set(s.id, s);
+    }
+  }
+
+  const summaries = Array.from(summaryMap.values());
+  const n = summaries.length;
+  if (n <= 1) {
+    return { consolidatedCount: 0, totalSystemsReduced: 0, absorbedIdToPrimary: new Map() };
+  }
+
+  const isSol = (s: SystemSummaryNode): boolean =>
+    s.id === 'sol' ||
+    s.id === 'hyg-0' ||
+    s.name === 'Sol' ||
+    (s.x === 0 && s.y === 0 && s.z === 0);
+
+  const parent = Array.from({ length: n }, (_, i) => i);
+  const find = (i: number): number => {
+    let root = i;
+    while (root !== parent[root]) {
+      root = parent[root]!;
+    }
+    let curr = i;
+    while (curr !== root) {
+      const next = parent[curr]!;
+      parent[curr] = root;
+      curr = next;
+    }
+    return root;
+  };
+  const union = (i: number, j: number) => {
+    const rootI = find(i);
+    const rootJ = find(j);
+    if (rootI !== rootJ) {
+      parent[rootI] = rootJ;
+    }
+  };
+
+  interface StarData {
+    dist: number;
+    ux: number;
+    uy: number;
+    uz: number;
+    decDeg: number;
+    raDeg: number;
+  }
+
+  const starData: (StarData | null)[] = [];
+  const keyToStarIndices = new Map<string, number[]>();
+
+  for (let i = 0; i < n; i++) {
+    const s = summaries[i]!;
+    if (isSol(s)) {
+      starData.push(null);
+      continue;
+    }
+    const dist = s.dist > 0 ? s.dist : Math.hypot(s.x, s.y, s.z);
+    const invDist = dist > 0 ? 1 / dist : 0;
+    const ux = s.x * invDist;
+    const uy = s.y * invDist;
+    const uz = s.z * invDist;
+    const decDeg = Math.asin(Math.max(-1, Math.min(1, uz))) * (180 / Math.PI);
+    const raDeg = (Math.atan2(uy, ux) * (180 / Math.PI) + 360) % 360;
+
+    const keys = new Set<string>();
+    addKeyVariants(keys, s.name);
+    if (s.properName) addKeyVariants(keys, s.properName);
+    const aliases = params.starAliasesById?.get(s.id);
+    if (aliases) {
+      for (const a of aliases) {
+        addKeyVariants(keys, a);
+      }
+    }
+
+    for (const k of keys) {
+      let bucket = keyToStarIndices.get(k);
+      if (!bucket) {
+        bucket = [];
+        keyToStarIndices.set(k, bucket);
+      }
+      bucket.push(i);
+    }
+
+    starData.push({ dist, ux, uy, uz, decDeg, raDeg });
+  }
+
+  // 1. Condition 1: 3D Euclidean distance d <= 0.08 pc (dSq <= 0.0064) using spatial grid
+  const DIST_SQ_PROXIMITY = 0.08 * 0.08;
+  const CELL_SIZE_3D = 0.08;
+  const grid3D = new Map<string, number[]>();
+  for (let i = 0; i < n; i++) {
+    const s = summaries[i]!;
+    if (isSol(s)) continue;
+    const cx = Math.floor(s.x / CELL_SIZE_3D);
+    const cy = Math.floor(s.y / CELL_SIZE_3D);
+    const cz = Math.floor(s.z / CELL_SIZE_3D);
+    const cellKey = `${cx}_${cy}_${cz}`;
+    let cell = grid3D.get(cellKey);
+    if (!cell) {
+      cell = [];
+      grid3D.set(cellKey, cell);
+    }
+    cell.push(i);
+  }
+
+  for (let i = 0; i < n; i++) {
+    const s1 = summaries[i]!;
+    if (isSol(s1)) continue;
+
+    const cx = Math.floor(s1.x / CELL_SIZE_3D);
+    const cy = Math.floor(s1.y / CELL_SIZE_3D);
+    const cz = Math.floor(s1.z / CELL_SIZE_3D);
+
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          const neighborKey = `${cx + dx}_${cy + dy}_${cz + dz}`;
+          const neighborIndices = grid3D.get(neighborKey);
+          if (!neighborIndices) continue;
+
+          for (const j of neighborIndices) {
+            if (j <= i) continue;
+            const s2 = summaries[j]!;
+            if (isSol(s2)) continue;
+
+            const diffX = s1.x - s2.x;
+            const diffY = s1.y - s2.y;
+            const diffZ = s1.z - s2.z;
+            const distSq = diffX * diffX + diffY * diffY + diffZ * diffZ;
+
+            if (distSq <= DIST_SQ_PROXIMITY) {
+              union(i, j);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Condition 2: They share any stripped base name key AND d <= 0.85 pc (dSq <= 0.7225)
+  const DIST_SQ_NAME_MATCH = 0.85 * 0.85;
+  for (const bucket of keyToStarIndices.values()) {
+    if (bucket.length < 2) continue;
+    for (let a = 0; a < bucket.length; a++) {
+      const i = bucket[a]!;
+      const s1 = summaries[i]!;
+      for (let b = a + 1; b < bucket.length; b++) {
+        const j = bucket[b]!;
+        const s2 = summaries[j]!;
+        const diffX = s1.x - s2.x;
+        const diffY = s1.y - s2.y;
+        const diffZ = s1.z - s2.z;
+        const distSq = diffX * diffX + diffY * diffY + diffZ * diffZ;
+        if (distSq <= DIST_SQ_NAME_MATCH) {
+          union(i, j);
+        }
+      }
+    }
+  }
+
+  // 3. Condition 3: Sky angular separation from Sol is tiny:
+  // cosθ >= 0.999995 (Δθ <= 0.18 deg) AND transverse separation <= 0.025 pc AND |d1 - d2| / min(d1, d2) <= 0.12
+  const ANGULAR_BIN_DEG = 0.5;
+  const angularGrid = new Map<string, number[]>();
+  for (let i = 0; i < n; i++) {
+    const data = starData[i];
+    if (!data) continue;
+    const decBin = Math.min(359, Math.max(0, Math.floor((data.decDeg + 90) / ANGULAR_BIN_DEG)));
+    const cosDec = Math.max(0.05, Math.cos(data.decDeg * (Math.PI / 180)));
+    const numRaBins = Math.max(1, Math.round(360 * cosDec / ANGULAR_BIN_DEG));
+    const raBin = Math.min(numRaBins - 1, Math.max(0, Math.floor((data.raDeg / 360) * numRaBins)));
+    const cellKey = `${decBin}_${raBin}`;
+    let cell = angularGrid.get(cellKey);
+    if (!cell) {
+      cell = [];
+      angularGrid.set(cellKey, cell);
+    }
+    cell.push(i);
+  }
+
+  for (let i = 0; i < n; i++) {
+    const d1 = starData[i];
+    if (!d1) continue;
+
+    const decBin = Math.min(359, Math.max(0, Math.floor((d1.decDeg + 90) / ANGULAR_BIN_DEG)));
+
+    for (let dDec = -1; dDec <= 1; dDec++) {
+      const candDecBin = decBin + dDec;
+      if (candDecBin < 0 || candDecBin >= 360) continue;
+      const candDecDeg = candDecBin * ANGULAR_BIN_DEG - 90 + ANGULAR_BIN_DEG * 0.5;
+      const cosCandDec = Math.max(0.05, Math.cos(candDecDeg * (Math.PI / 180)));
+      const candNumRaBins = Math.max(1, Math.round(360 * cosCandDec / ANGULAR_BIN_DEG));
+      const centerRaBin = Math.min(candNumRaBins - 1, Math.max(0, Math.floor((d1.raDeg / 360) * candNumRaBins)));
+
+      for (let dRa = -1; dRa <= 1; dRa++) {
+        const candRaBin = (centerRaBin + dRa + candNumRaBins) % candNumRaBins;
+        const candKey = `${candDecBin}_${candRaBin}`;
+        const candidates = angularGrid.get(candKey);
+        if (!candidates) continue;
+
+        for (const j of candidates) {
+          if (j <= i) continue;
+          const d2 = starData[j];
+          if (!d2) continue;
+
+          const cosTheta = d1.ux * d2.ux + d1.uy * d2.uy + d1.uz * d2.uz;
+          if (cosTheta < 0.999995) continue;
+
+          const minDist = Math.min(d1.dist, d2.dist);
+          if (minDist <= 0) continue;
+
+          const diffDist = Math.abs(d1.dist - d2.dist);
+          if (diffDist / minDist > 0.12) continue;
+
+          const sinThetaSq = Math.max(0, 1 - cosTheta * cosTheta);
+          const transverseSep = Math.sqrt(sinThetaSq) * minDist;
+          if (transverseSep <= 0.025) {
+            union(i, j);
+          }
+        }
+      }
+    }
+  }
+
+  const groups = new Map<number, number[]>();
+  for (let i = 0; i < n; i++) {
+    if (isSol(summaries[i]!)) continue;
+    const root = find(i);
+    let list = groups.get(root);
+    if (!list) {
+      list = [];
+      groups.set(root, list);
+    }
+    list.push(i);
+  }
+
+  let consolidatedCount = 0;
+  let totalSystemsReduced = 0;
+  const allAbsorbedIds = new Set<string>();
+  const absorbedIdToPrimary = new Map<string, { id: string; name: string }>();
+
+  for (const groupIndices of groups.values()) {
+    if (groupIndices.length < 2) continue;
+
+    consolidatedCount++;
+    totalSystemsReduced += groupIndices.length - 1;
+
+    const components = groupIndices.map((idx) => summaries[idx]!);
+    components.sort((a, b) => (a.mag ?? 99) - (b.mag ?? 99));
+
+    const primary = components[0]!;
+    const secondaries = components.slice(1);
+
+    const canonicalName = getStrippedSystemBaseName(primary.name);
+    for (const sec of secondaries) {
+      allAbsorbedIds.add(sec.id);
+      absorbedIdToPrimary.set(sec.id, { id: primary.id, name: canonicalName });
+    }
+
+    let effectiveStarCount = components[0]!.starCount || 1;
+    for (let k = 1; k < components.length; k++) {
+      const comp = components[k]!;
+      const isDuplicate = components.slice(0, k).some((prev) => isDuplicateCatalogRecord(comp, prev));
+      if (!isDuplicate) {
+        effectiveStarCount += comp.starCount || 1;
+      }
+    }
+    primary.starCount = Math.max(1, effectiveStarCount);
+    primary.name = canonicalName;
+    const properComp = components.find((c) => Boolean(c.properName && c.properName.trim().length > 0));
+    if (properComp?.properName && (!primary.properName || primary.properName.trim().length === 0)) {
+      primary.properName = getStrippedSystemBaseName(properComp.properName);
+    } else if (primary.properName) {
+      primary.properName = getStrippedSystemBaseName(primary.properName);
+    }
+
+    const spects = components
+      .map((c) => c.spect?.trim())
+      .filter((s): s is string => Boolean(s && s !== 'Unknown'))
+      .slice(0, 3);
+    if (spects.length > 0) {
+      primary.spect = spects.join(' + ');
+    }
+
+    primary.planetCount = components.reduce((sum, c) => sum + (c.planetCount || 0), 0);
+    primary.hasHabitableCandidate = components.some((c) => Boolean(c.hasHabitableCandidate));
+
+    const mergedCensus = new Set<'terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant'>();
+    for (const c of components) {
+      if (Array.isArray(c.planetCensus)) {
+        for (const cat of c.planetCensus) {
+          mergedCensus.add(cat);
+        }
+      }
+    }
+    if (mergedCensus.size > 0) {
+      primary.planetCensus = Array.from(mergedCensus);
+    }
+
+    let mergedCompCounts: [number, number, number, number] | undefined;
+    for (const c of components) {
+      if (c.planetCompositionCounts) {
+        if (!mergedCompCounts) mergedCompCounts = [0, 0, 0, 0];
+        mergedCompCounts[0] += c.planetCompositionCounts[0] || 0;
+        mergedCompCounts[1] += c.planetCompositionCounts[1] || 0;
+        mergedCompCounts[2] += c.planetCompositionCounts[2] || 0;
+        mergedCompCounts[3] += c.planetCompositionCounts[3] || 0;
+      }
+    }
+    if (mergedCompCounts) primary.planetCompositionCounts = mergedCompCounts;
+
+    const mergedTags = new Set<string>();
+    for (const c of components) {
+      if (c.tags) {
+        for (const t of c.tags) mergedTags.add(t);
+      }
+    }
+    if (mergedTags.size > 0) primary.tags = Array.from(mergedTags);
+
+    if (primary.planetCount > 0 && params.exoplanetHostSummaries) {
+      if (!params.exoplanetHostSummaries.some((s) => s.id === primary.id)) {
+        params.exoplanetHostSummaries.push(primary);
+      }
+    }
+
+    if (params.starAliasesById) {
+      const aliasSet = new Set<string>();
+      const existingAliases = params.starAliasesById.get(primary.id);
+      if (existingAliases) {
+        for (const a of existingAliases) aliasSet.add(a.toLowerCase());
+      }
+      aliasSet.add(primary.id.toLowerCase());
+      aliasSet.add(primary.name.toLowerCase());
+      if (primary.properName) aliasSet.add(primary.properName.toLowerCase());
+
+      for (const sec of secondaries) {
+        aliasSet.add(sec.id.toLowerCase());
+        aliasSet.add(sec.name.toLowerCase());
+        if (sec.properName) aliasSet.add(sec.properName.toLowerCase());
+        const secAliases = params.starAliasesById.get(sec.id);
+        if (secAliases) {
+          for (const a of secAliases) aliasSet.add(a.toLowerCase());
+          params.starAliasesById.delete(sec.id);
+        }
+      }
+      params.starAliasesById.set(primary.id, Array.from(aliasSet));
+    }
+
+    if (params.allSystemManifests || params.sectorManifestsMap) {
+      const allPlanets: ExoplanetRecord[] = [];
+      const allDisks: CircumstellarDiskRecord[] = [];
+      const seenPlanetIds = new Set<string>();
+      const seenDiskIds = new Set<string>();
+
+      for (const c of components) {
+        const m = params.allSystemManifests?.find((man) => man.id === c.id);
+        if (m) {
+          if (m.planets) {
+            for (const p of m.planets) {
+              if (!seenPlanetIds.has(p.id)) {
+                seenPlanetIds.add(p.id);
+                allPlanets.push(p);
+              }
+            }
+          }
+          if (m.disks) {
+            for (const d of m.disks) {
+              if (!seenDiskIds.has(d.id)) {
+                seenDiskIds.add(d.id);
+                allDisks.push(d);
+              }
+            }
+          }
+        }
+      }
+
+      const distinctComponents = components.filter((comp, idx) => {
+        if (idx === 0) return true;
+        return !components.slice(0, idx).some((prev) => isDuplicateCatalogRecord(comp, prev));
+      });
+
+      const stellarComponents: StellarComponent[] = distinctComponents.map((comp, idx) => {
+        const desig = String.fromCharCode(65 + idx);
+        const existingComp = params.allSystemManifests
+          ?.find((m) => m.id === comp.id)
+          ?.stars.find(
+            (st) =>
+              st.componentDesignation === 'A' || st.id === comp.id || st.name === comp.name,
+          );
+
+        return {
+          id: `${primary.id}-${desig}`,
+          name: comp.name,
+          componentDesignation: desig,
+          spectralType: comp.spect || 'Unknown',
+          mag: comp.mag,
+          absmag: comp.absmag,
+          ...(existingComp?.luminosityLsun !== undefined
+            ? { luminosityLsun: existingComp.luminosityLsun }
+            : {}),
+          ...(existingComp?.massMsun !== undefined ? { massMsun: existingComp.massMsun } : {}),
+          ...(existingComp?.radiusRsun !== undefined
+            ? { radiusRsun: existingComp.radiusRsun }
+            : {}),
+          ...(existingComp?.effectiveTempK !== undefined
+            ? { effectiveTempK: existingComp.effectiveTempK }
+            : {}),
+        };
+      });
+
+      let primaryManifest = params.allSystemManifests?.find((m) => m.id === primary.id);
+      if (primaryManifest) {
+        primaryManifest.name = primary.name;
+        if (primary.properName) primaryManifest.properName = primary.properName;
+        primaryManifest.stars = stellarComponents;
+        primaryManifest.planets = allPlanets;
+        if (allDisks.length > 0) primaryManifest.disks = allDisks;
+        if (primary.planetCompositionCounts) {
+          primaryManifest.planetCompositionCounts = primary.planetCompositionCounts;
+        }
+        if (primary.hasHabitableCandidate !== undefined) {
+          primaryManifest.hasHabitableCandidate = primary.hasHabitableCandidate;
+        }
+        if (primary.tags) primaryManifest.tags = primary.tags;
+      } else if (params.allSystemManifests) {
+        primaryManifest = {
+          id: primary.id,
+          name: primary.name,
+          properName: primary.properName,
+          x: primary.x,
+          y: primary.y,
+          z: primary.z,
+          dist: primary.dist,
+          sectorId: primary.sectorId,
+          stars: stellarComponents,
+          planets: allPlanets,
+          ...(allDisks.length > 0 ? { disks: allDisks } : {}),
+          ...(primary.planetCompositionCounts
+            ? { planetCompositionCounts: primary.planetCompositionCounts }
+            : {}),
+          ...(primary.hasHabitableCandidate !== undefined
+            ? { hasHabitableCandidate: primary.hasHabitableCandidate }
+            : {}),
+          ...(primary.tags ? { tags: primary.tags } : {}),
+        };
+        params.allSystemManifests.push(primaryManifest);
+        if (params.sectorManifestsMap) {
+          let bucket = params.sectorManifestsMap.get(primary.sectorId);
+          if (!bucket) {
+            bucket = [];
+            params.sectorManifestsMap.set(primary.sectorId, bucket);
+          }
+          if (!bucket.includes(primaryManifest)) {
+            bucket.push(primaryManifest);
+          }
+        }
+      }
+    }
+  }
+
+  if (allAbsorbedIds.size > 0) {
+    if (params.cataloguedSummaries) {
+      const filtered = params.cataloguedSummaries.filter((s) => !allAbsorbedIds.has(s.id));
+      params.cataloguedSummaries.length = 0;
+      params.cataloguedSummaries.push(...filtered);
+    }
+    if (params.local10pcSystems) {
+      const filtered = params.local10pcSystems.filter((s) => !allAbsorbedIds.has(s.id));
+      params.local10pcSystems.length = 0;
+      params.local10pcSystems.push(...filtered);
+    }
+    if (params.referenceBrightSystems) {
+      const filtered = params.referenceBrightSystems.filter((s) => !allAbsorbedIds.has(s.id));
+      params.referenceBrightSystems.length = 0;
+      params.referenceBrightSystems.push(...filtered);
+    }
+    if (params.exoplanetHostSummaries) {
+      const filtered = params.exoplanetHostSummaries.filter((s) => !allAbsorbedIds.has(s.id));
+      params.exoplanetHostSummaries.length = 0;
+      params.exoplanetHostSummaries.push(...filtered);
+    }
+    if (params.sectorMap) {
+      for (const [_, list] of params.sectorMap.entries()) {
+        const filtered = list.filter((s) => !allAbsorbedIds.has(s.id));
+        list.length = 0;
+        list.push(...filtered);
+      }
+    }
+    if (params.allSystemManifests) {
+      const filtered = params.allSystemManifests.filter((m) => !allAbsorbedIds.has(m.id));
+      params.allSystemManifests.length = 0;
+      params.allSystemManifests.push(...filtered);
+    }
+    if (params.sectorManifestsMap) {
+      for (const [_, list] of params.sectorManifestsMap.entries()) {
+        const filtered = list.filter((m) => !allAbsorbedIds.has(m.id));
+        list.length = 0;
+        list.push(...filtered);
+      }
+    }
+  }
+
+  return { consolidatedCount, totalSystemsReduced, absorbedIdToPrimary };
+}
+
 /**
  * Streams raw HYG CSV dataset, harmonizes into StarmapNode records with 3D velocities,
  * merges RECONS ground truth, cross-matches exoplanets, emits formal catalogs,
@@ -1874,6 +2652,14 @@ export async function buildCsvDataPipeline(
             bucket.push(rSummary);
           }
         }
+
+        consolidateMultiStarSystems({
+          sectorMap,
+          sectorManifestsMap,
+          local10pcSystems,
+          referenceBrightSystems,
+          exoplanetHostSummaries,
+        });
 
         writeStream.write(']');
         writeStream.end();
@@ -2507,6 +3293,8 @@ export async function buildGaiaDataPipeline(
       totalStars++;
     }
 
+    let multiStarConsolidationResult: ReturnType<typeof consolidateMultiStarSystems> | null = null;
+
     const rl = readline.createInterface({
       input: fs.createReadStream(resolvedGcns).pipe(zlib.createGunzip()),
       crlfDelay: Infinity,
@@ -2735,6 +3523,22 @@ export async function buildGaiaDataPipeline(
         totalStars++;
       }
 
+      // Consolidate bound binary and multiple star systems into unified system nodes
+      multiStarConsolidationResult = consolidateMultiStarSystems({
+        cataloguedSummaries,
+        sectorMap,
+        sectorManifestsMap,
+        allSystemManifests,
+        local10pcSystems,
+        referenceBrightSystems,
+        exoplanetHostSummaries,
+        starAliasesById,
+      });
+      const { consolidatedCount, totalSystemsReduced } = multiStarConsolidationResult;
+      console.log(
+        `Consolidated ${consolidatedCount} binary/multiple systems (reduced ${totalSystemsReduced} component nodes).`,
+      );
+
       writeStream.write(']');
       writeStream.end();
     });
@@ -2960,6 +3764,11 @@ export async function buildGaiaDataPipeline(
       }
       for (const body of allSolarBodies) {
         realNames.set(body.id, body.name);
+      }
+      if (multiStarConsolidationResult) {
+        for (const [absorbedId, prim] of multiStarConsolidationResult.absorbedIdToPrimary.entries()) {
+          realNames.set(absorbedId, prim.name);
+        }
       }
 
       const layersWithResolvedNames = applyResolvedNamesToLayers(LAYER_MANIFESTS, realNames);

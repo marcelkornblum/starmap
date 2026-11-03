@@ -9,6 +9,10 @@ import {
   PlanetaryViewScene,
   InteractiveNavigator,
 } from '../src/components/canvas/scenes/SpatialScenes';
+import {
+  GalaxyScene,
+  GALAXY_SCENE_MAX_STREAMED_ENTITIES,
+} from '../src/components/canvas/scenes/GalaxyScene';
 import { useThreeTokenStore } from '../src/stores/useThreeTokenStore';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
@@ -79,6 +83,13 @@ describe('SpatialScenes Storybook Suite', () => {
         createElement(GalacticViewScene, { centerCoordinates: { x: -1.4, y: -3.2, z: 0.4 } }),
       );
       expect(htmlObj).toContain('data-testid="mock-canvas"');
+    });
+
+    it('exports 1.5x expanded GALAXY_SCENE_MAX_STREAMED_ENTITIES = 1200', () => {
+      expect(GALAXY_SCENE_MAX_STREAMED_ENTITIES).toBe(1200);
+      const html = renderToString(createElement(GalaxyScene));
+      expect(html).toContain('name="galactic-sector-point-cloud"');
+      expect(html).toContain('name="celestial-entity-sol"');
     });
   });
 

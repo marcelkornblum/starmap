@@ -25,8 +25,11 @@ import {
 import {
   SpatialEntityProvider,
   useOcclusionManager,
+  ApertureEvaluator,
 } from '../src/components/canvas/entity/SpatialEntityContext';
+import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import { CelestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
+import { useActiveStarsStore } from '../src/stores/useActiveStarsStore';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();
@@ -69,6 +72,7 @@ function createProbe(sink: FrameRef[]): React.FC {
 describe('Spatial frame ownership (one provider per viewport)', () => {
   beforeEach(() => {
     vi.mocked(useFrame).mockClear();
+    useActiveStarsStore.getState().clear();
   });
 
   it('throws when a frame consumer is rendered outside a SpatialFrameProvider', () => {
@@ -274,6 +278,113 @@ describe('Spatial frame ownership (one provider per viewport)', () => {
       expect(html).toContain('story-overlay');
       expect(html).toContain('canvasContainer');
       expect(html).toContain('<canvas');
+    });
+  });
+
+  describe('ApertureEvaluator active threshold cutoff', () => {
+    it('activates all stars when <= active cutoff, and zero stars when > active cutoff', () => {
+      const store = createSpatialEntityStore();
+      // Register 97 entities inside 10 pc radius
+      for (let i = 0; i < 97; i++) {
+        store.getState().registerEntity({
+          id: `star-${i}`,
+          name: `Star ${i}`,
+          position: [i * 0.1, 0, 0],
+          classification: 'star',
+        });
+      }
+
+      renderToString(
+        createElement(
+          SpatialFrameProvider,
+          { frame: GALACTIC_FRAME },
+          createElement(
+            SpatialEntityProvider,
+            { store },
+            createElement(ApertureEvaluator),
+          ),
+        ),
+      );
+
+      // Find the ApertureEvaluator useFrame callback (registered at FRAME_PRIORITY.entityAperture)
+      const apertureCall = vi
+        .mocked(useFrame)
+        .mock.calls.find((call) => call[1] === FRAME_PRIORITY.entityAperture);
+      expect(apertureCall).toBeDefined();
+
+      const [evaluatorCallback] = apertureCall as unknown as [FrameCallback, number];
+
+      // Case 1: Desktop width (1440px -> cutoff 96). 97 entities in aperture exceeds cutoff!
+      evaluatorCallback({ size: { width: 1440, height: 900 } }, 0.016);
+      expect(store.getState().apertureIds.size).toBe(0);
+
+      // Case 2: Reduce registered entities to 96 (<= cutoff 96 on desktop)
+      store.getState().unregisterEntity('star-96');
+      evaluatorCallback({ size: { width: 1440, height: 900 } }, 0.016);
+      expect(store.getState().apertureIds.size).toBe(96);
+
+      // Case 3: Mobile width (390px -> cutoff 40). 96 entities in aperture exceeds mobile cutoff!
+      evaluatorCallback({ size: { width: 390, height: 844 } }, 0.016);
+      expect(store.getState().apertureIds.size).toBe(0);
+    });
+
+    it('clears apertureIds when useActiveStarsStore has more summaries than activeCutoff even if SpatialEntityStore has fewer', () => {
+      const store = createSpatialEntityStore();
+      // Register only 5 entities inside spatial store (well below desktop cutoff of 96)
+      for (let i = 0; i < 5; i++) {
+        store.getState().registerEntity({
+          id: `star-${i}`,
+          name: `Star ${i}`,
+          position: [i * 0.1, 0, 0],
+          classification: 'star',
+        });
+      }
+
+      renderToString(
+        createElement(
+          SpatialFrameProvider,
+          { frame: GALACTIC_FRAME },
+          createElement(
+            SpatialEntityProvider,
+            { store },
+            createElement(ApertureEvaluator),
+          ),
+        ),
+      );
+
+      const apertureCall = vi
+        .mocked(useFrame)
+        .mock.calls.find((call) => call[1] === FRAME_PRIORITY.entityAperture);
+      expect(apertureCall).toBeDefined();
+
+      const [evaluatorCallback] = apertureCall as unknown as [FrameCallback, number];
+
+      // Populate useActiveStarsStore with 97 summaries (> desktop cutoff 96)
+      const fakeSummaries = Array.from({ length: 97 }, (_, i) => ({
+        id: `streamed-${i}`,
+        name: `Streamed ${i}`,
+        x: 0,
+        y: 0,
+        z: 0,
+        dist: 0,
+        mag: 5,
+        absmag: 4,
+        spect: 'G2V',
+        starCount: 1,
+        planetCount: 0,
+        hasHabitableCandidate: false,
+        sectorId: 'sector_+000_+000_+000',
+      }));
+      useActiveStarsStore.getState().setSummaries(fakeSummaries);
+
+      // Desktop width (1440px -> cutoff 96). Streamed summaries count (97) > cutoff (96), so apertureIds must be cleared!
+      evaluatorCallback({ size: { width: 1440, height: 900 } }, 0.016);
+      expect(store.getState().apertureIds.size).toBe(0);
+
+      // When streamed summaries are reduced within cutoff (e.g. 50 <= 96)
+      useActiveStarsStore.getState().setSummaries(fakeSummaries.slice(0, 50));
+      evaluatorCallback({ size: { width: 1440, height: 900 } }, 0.016);
+      expect(store.getState().apertureIds.size).toBe(5);
     });
   });
 });

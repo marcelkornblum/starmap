@@ -539,6 +539,7 @@ export interface ResolveGalacticInstrumentApertureInput {
   readonly liveApertureCenterPc?: readonly [number, number, number] | null;
   readonly liveApertureRadiusPc?: number | null;
   readonly maxActiveEntities?: number;
+  readonly viewportWidthPx?: number;
 }
 
 export interface GalacticInstrumentApertureResult {

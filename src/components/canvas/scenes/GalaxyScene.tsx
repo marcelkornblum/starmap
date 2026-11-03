@@ -4,15 +4,19 @@ import { GALACTIC_FRAME } from '../instrument/referenceFrame';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
 import { CANDIDATE_SYSTEMS, type CandidateSystem } from '../../../data';
 import { SectorPointCloud, type SpatialEntityDefinition } from '../entity';
+import type { CelestialClassification, PlanetCensusEntry } from '../cartography/reticleGeometry';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
-import { getDeviceTierBudget } from '../../../services/deviceTierService';
+import {
+  getApertureActiveCutoffForViewportWidth,
+  getDeviceTierBudget,
+} from '../../../services/deviceTierService';
 import type { SystemSummaryNode } from '../../../types/astro';
 
 /**
  * Upper bound on streamed stars rendered as individual reticle entities (nearest to the focus first).
  * Every star inside the aperture is still active in the objects panel regardless of this bound.
  */
-export const GALAXY_SCENE_MAX_STREAMED_ENTITIES = 800;
+export const GALAXY_SCENE_MAX_STREAMED_ENTITIES = 1200;
 
 export interface GalaxySceneProps {
   systems?: CandidateSystem[];
@@ -139,25 +143,64 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
       }
     }
 
-    // Add the nearest non-duplicate streamed stars as reticle entities, capped at budget.maxActiveEntities
-    let activeCount = 0;
-    for (let i = 0; i < streamedSummaries.length && activeCount < maxActive; i++) {
-      const s = streamedSummaries[i];
-      if (!s) continue;
-      if (existingIds.has(s.id)) {
+    // Add the nearest non-duplicate streamed stars as reticle entities only if within activeCutoff
+    const activeCutoff = getApertureActiveCutoffForViewportWidth();
+    if (streamedSummaries.length <= activeCutoff) {
+      let activeCount = 0;
+      for (let i = 0; i < streamedSummaries.length && activeCount < maxActive; i++) {
+        const s = streamedSummaries[i];
+        if (!s) continue;
+
+        const sNameLower = s.name.toLowerCase();
+        const existingEntity = baseEntities.find((ent) => {
+          if (ent.id === s.id) return true;
+          if (ent.name.toLowerCase() === sNameLower) return true;
+          if (Array.isArray(ent.position)) {
+            const dx = ent.position[0] - s.x;
+            const dy = ent.position[1] - s.y;
+            const dz = ent.position[2] - s.z;
+            return dx * dx + dy * dy + dz * dz <= 0.04;
+          }
+          return false;
+        });
+
+        const classification: CelestialClassification = (() => {
+          if (!s.spect) return 'star';
+          if (/^D/i.test(s.spect)) return 'white-dwarf';
+          if (/^[LTY]/i.test(s.spect)) return 'brown-dwarf';
+          if (/^PSR/i.test(s.spect)) return 'neutron-star';
+          return 'star';
+        })();
+        const planets: PlanetCensusEntry[] | undefined = s.planetCensus?.map((cat, idx) => ({
+          id: `${s.id}-planet-${idx}`,
+          name: `Planet ${idx + 1}`,
+          classification: cat,
+        }));
+
+        if (existingEntity) {
+          const sMultiplicity = s.starCount ?? 1;
+          if (sMultiplicity > (existingEntity.multiplicity ?? 1)) {
+            existingEntity.multiplicity = sMultiplicity;
+          }
+          if (!existingEntity.planets && planets && planets.length > 0) {
+            existingEntity.planets = planets;
+          }
+          activeCount++;
+          continue;
+        }
+
+        existingIds.add(s.id);
+        baseEntities.push({
+          id: s.id,
+          name: s.name,
+          position: [s.x, s.y, s.z],
+          classification,
+          spectralType: s.spect,
+          multiplicity: s.starCount,
+          ...(planets && planets.length > 0 ? { planets } : {}),
+        });
         activeCount++;
-        continue;
       }
-      existingIds.add(s.id);
-      baseEntities.push({
-        id: s.id,
-        name: s.name,
-        position: [s.x, s.y, s.z],
-        classification: 'star',
-        spectralType: s.spect,
-        multiplicity: s.starCount,
-      });
-      activeCount++;
     }
 
     return baseEntities;

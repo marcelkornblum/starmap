@@ -130,8 +130,7 @@ const JourneyChordLegView: React.FC<JourneyChordLegViewProps> = ({
   return (
     <group
       data-testid="journey-chord-leg"
-      data-leg-id={leg.id}
-      data-step-index={leg.stepIndex}
+      userData={{ legId: leg.id, stepIndex: leg.stepIndex }}
     >
       <primitive object={line2Mesh} />
       {projGeom && (
@@ -206,8 +205,7 @@ const JourneyChordWaypointMarker: React.FC<JourneyChordWaypointMarkerProps> = ({
       material={mat}
       position={waypoint.position as unknown as [number, number, number]}
       data-testid="journey-chord-waypoint"
-      data-waypoint-id={waypoint.id}
-      data-waypoint-role={waypoint.role}
+      userData={{ waypointId: waypoint.id, waypointRole: waypoint.role }}
     />
   );
 };
@@ -252,9 +250,11 @@ export const JourneyChord: React.FC<JourneyChordProps> = ({
   return (
     <group
       data-testid="journey-chord-root"
-      data-active-method={activeMethodId}
-      data-leg-count={renderData.legs.length}
-      data-waypoint-count={renderData.waypoints.length}
+      userData={{
+        activeMethod: activeMethodId,
+        legCount: renderData.legs.length,
+        waypointCount: renderData.waypoints.length,
+      }}
     >
       {renderData.legs.map((leg) => (
         <JourneyChordLegView

@@ -340,7 +340,11 @@ export async function postOrUpdateComment(
 }
 
 export async function run(): Promise<number> {
-  const summaryPath = process.env.COVERAGE_SUMMARY_PATH || 'coverage/coverage-summary.json';
+  const summaryPath =
+    process.env.COVERAGE_SUMMARY_PATH ||
+    (fs.existsSync('/tmp/starmap-coverage/coverage-summary.json')
+      ? '/tmp/starmap-coverage/coverage-summary.json'
+      : 'coverage/coverage-summary.json');
   const repo = process.env.GITHUB_REPOSITORY || 'marcelkornblum/starmap';
   const prNumber = process.env.PR_NUMBER || '';
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';

@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React, { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
+import {
+  resolveEntityScreenInvariantScale,
+  FRAME_PRIORITY,
+} from '../src/components/canvas/engineConfig';
 import {
   createSpatialEntityStore,
   type SpatialEntityDefinition,
@@ -193,7 +198,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
   });
 
   describe('Reticle primitive (Layer 2: Tactical Geometric Reticle)', () => {
-    it('renders basic geometric diamond frame for stellar systems without annotations in active state', () => {
+    it('renders basic geometric diamond frame for single star without multiplicity annotations in active state', () => {
       const html = renderToString(
         createElement(Reticle, {
           id: 'star-reticle',
@@ -204,8 +209,22 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       );
       expect(html).toContain('name="reticle-star-reticle"');
       expect(html).toContain('name="reticle-geometry"');
-      // No annotations in active state
+      // No annotations for single star
       expect(html).not.toContain('name="multiplicity-pips"');
+    });
+
+    it('renders multiplicity annotations for binary/multiple systems in active state', () => {
+      const html = renderToString(
+        createElement(Reticle, {
+          id: 'binary-active',
+          classification: 'star',
+          state: 'active',
+          size: 0.45,
+          multiplicity: 2,
+        }),
+      );
+      expect(html).toContain('name="reticle-binary-active"');
+      expect(html).toContain('name="multiplicity-pips"');
     });
 
     it('renders full Four-Facet composite reticle with multiplicity and census in selected/focused states', () => {
@@ -583,6 +602,301 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
         }),
       );
       expect(htmlDebug).toContain('name="celestial-hitarea"');
+    });
+  });
+
+  describe('Distance-independent screen-invariant entity scaling', () => {
+    beforeEach(() => {
+      vi.mocked(useFrame).mockClear();
+    });
+
+    describe('resolveEntityScreenInvariantScale helper', () => {
+      it('scales linearly with distance under PerspectiveCamera with frameState', () => {
+        const frameState = {
+          referenceFootprint: 16.47,
+          fovFactor: 1.0,
+          screenScale: 10 / 16.47,
+        };
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        const nearScale = resolveEntityScreenInvariantScale(10, camera, frameState);
+        const farScale = resolveEntityScreenInvariantScale(30, camera, frameState);
+
+        expect(nearScale).toBeCloseTo(10 / 16.47, 4);
+        expect(farScale).toBeCloseTo(30 / 16.47, 4);
+        expect(farScale / nearScale).toBeCloseTo(3.0, 4);
+      });
+
+      it('returns constant frameState.screenScale under OrthographicCamera with frameState', () => {
+        const frameState = {
+          referenceFootprint: 16.47,
+          fovFactor: 1.0,
+          screenScale: 2.5,
+        };
+        const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 1000);
+        const nearScale = resolveEntityScreenInvariantScale(10, camera, frameState);
+        const farScale = resolveEntityScreenInvariantScale(30, camera, frameState);
+
+        expect(nearScale).toBe(2.5);
+        expect(farScale).toBe(2.5);
+        expect(farScale / nearScale).toBe(1.0);
+      });
+
+      it('falls back to calculateScreenInvariantScale when frameState is null or undefined', () => {
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        const nearScale = resolveEntityScreenInvariantScale(10, camera, null);
+        const farScale = resolveEntityScreenInvariantScale(30, camera, undefined);
+
+        expect(nearScale).toBeCloseTo(10 / 16.47, 4);
+        expect(farScale).toBeCloseTo(30 / 16.47, 4);
+        expect(farScale / nearScale).toBeCloseTo(3.0, 4);
+      });
+    });
+
+    describe('Component useFrame screen-invariant scaling inside SpatialFrameProvider', () => {
+      it('Reticle instances at different distances receive scale proportional to their own camDist', () => {
+        renderToString(
+          createElement(
+            SpatialFrameProvider,
+            { frame: GALACTIC_FRAME, focusPoint: [0, 0, 0] },
+            createElement(Reticle, { id: 'reticle-near', position: [0, 0, 0] }),
+            createElement(Reticle, { id: 'reticle-far', position: [0, 0, -20] }),
+          ),
+        );
+
+        // Call 0 is SpatialFrameProvider (priority spatialFrame = -0.5)
+        const calls = vi.mocked(useFrame).mock.calls;
+        const providerCall = calls.find((c) => c[1] === FRAME_PRIORITY.spatialFrame);
+        expect(providerCall).toBeDefined();
+
+        const entityCalls = calls.filter((c) => c[1] !== FRAME_PRIORITY.spatialFrame);
+        expect(entityCalls.length).toBe(2);
+
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        camera.position.set(0, 0, 10);
+
+        // 1. Settle frame state with camera at z=10, focus at (0, 0, 0) -> focus camDist = 10
+        providerCall![0]({ camera, controls: { target: new THREE.Vector3(0, 0, 0) } } as any, 0.016);
+
+        // 2. Track scale.set calls during useFrame
+        const scaleSetCalls: number[] = [];
+        const origSet = THREE.Vector3.prototype.set;
+        const spySet = vi.spyOn(THREE.Vector3.prototype, 'set').mockImplementation(function (
+          this: THREE.Vector3,
+          x: number,
+          y: number,
+          z?: number,
+        ) {
+          if (x === y && y === z && x > 0.1) {
+            scaleSetCalls.push(x);
+          }
+          return origSet.call(this, x, y, z ?? 0);
+        });
+
+        try {
+          entityCalls[0][0]({ camera, size: { width: 1920, height: 1080 } } as any, 0.016);
+          entityCalls[1][0]({ camera, size: { width: 1920, height: 1080 } } as any, 0.016);
+
+          expect(scaleSetCalls.length).toBeGreaterThanOrEqual(2);
+          const nearScale = scaleSetCalls[scaleSetCalls.length - 2];
+          const farScale = scaleSetCalls[scaleSetCalls.length - 1];
+
+          expect(nearScale).toBeCloseTo(10 / 16.47, 3);
+          expect(farScale).toBeCloseTo(30 / 16.47, 3);
+          expect(farScale / nearScale).toBeCloseTo(3.0, 3);
+        } finally {
+          spySet.mockRestore();
+        }
+      });
+
+      it('BodyMarker instances at different distances receive hitarea scale proportional to their own camDist', () => {
+        renderToString(
+          createElement(
+            SpatialFrameProvider,
+            { frame: GALACTIC_FRAME, focusPoint: [0, 0, 0] },
+            createElement(BodyMarker, { id: 'marker-near', position: [0, 0, 0] }),
+            createElement(BodyMarker, { id: 'marker-far', position: [0, 0, -20] }),
+          ),
+        );
+
+        const calls = vi.mocked(useFrame).mock.calls;
+        const providerCall = calls.find((c) => c[1] === FRAME_PRIORITY.spatialFrame);
+        const entityCalls = calls.filter((c) => c[1] !== FRAME_PRIORITY.spatialFrame);
+
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        camera.position.set(0, 0, 10);
+
+        providerCall![0]({ camera, controls: { target: new THREE.Vector3(0, 0, 0) } } as any, 0.016);
+
+        const hitareaScales: number[] = [];
+        const origSet = THREE.Vector3.prototype.set;
+        const spySet = vi.spyOn(THREE.Vector3.prototype, 'set').mockImplementation(function (
+          this: THREE.Vector3,
+          x: number,
+          y: number,
+          z?: number,
+        ) {
+          if (x === y && z === 1 && x > 0.01) {
+            hitareaScales.push(x);
+          }
+          return origSet.call(this, x, y, z ?? 0);
+        });
+
+        try {
+          entityCalls[0][0]({ camera, size: { width: 1920, height: 1080 } } as any, 0.016);
+          entityCalls[1][0]({ camera, size: { width: 1920, height: 1080 } } as any, 0.016);
+
+          expect(hitareaScales.length).toBeGreaterThanOrEqual(2);
+          const nearScale = hitareaScales[hitareaScales.length - 2];
+          const farScale = hitareaScales[hitareaScales.length - 1];
+
+          expect(farScale / nearScale).toBeCloseTo(3.0, 3);
+        } finally {
+          spySet.mockRestore();
+        }
+      });
+
+      it('EntityLabel instances at different distances receive scale proportional to their own camDist', () => {
+        renderToString(
+          createElement(
+            SpatialFrameProvider,
+            { frame: GALACTIC_FRAME, focusPoint: [0, 0, 0] },
+            createElement(EntityLabel, { id: 'label-near', name: 'Near', position: [0, 0, 0] }),
+            createElement(EntityLabel, { id: 'label-far', name: 'Far', position: [0, 0, -20] }),
+          ),
+        );
+
+        const calls = vi.mocked(useFrame).mock.calls;
+        const providerCall = calls.find((c) => c[1] === FRAME_PRIORITY.spatialFrame);
+        const entityCalls = calls.filter((c) => c[1] !== FRAME_PRIORITY.spatialFrame);
+
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        camera.position.set(0, 0, 10);
+
+        providerCall![0]({ camera, controls: { target: new THREE.Vector3(0, 0, 0) } } as any, 0.016);
+
+        const labelScales: number[] = [];
+        const origSet = THREE.Vector3.prototype.set;
+        const spySet = vi.spyOn(THREE.Vector3.prototype, 'set').mockImplementation(function (
+          this: THREE.Vector3,
+          x: number,
+          y: number,
+          z?: number,
+        ) {
+          if (x === y && y === z && x > 0.1) {
+            labelScales.push(x);
+          }
+          return origSet.call(this, x, y, z ?? 0);
+        });
+
+        try {
+          entityCalls[0][0]({ camera, size: { width: 1920, height: 1080 } } as any, 0.016);
+          entityCalls[1][0]({ camera, size: { width: 1920, height: 1080 } } as any, 0.016);
+
+          expect(labelScales.length).toBeGreaterThanOrEqual(2);
+          const nearScale = labelScales[labelScales.length - 2];
+          const farScale = labelScales[labelScales.length - 1];
+
+          expect(nearScale).toBeCloseTo(10 / 16.47, 3);
+          expect(farScale).toBeCloseTo(30 / 16.47, 3);
+          expect(farScale / nearScale).toBeCloseTo(3.0, 3);
+        } finally {
+          spySet.mockRestore();
+        }
+      });
+
+      it('DropStalk datum footprints at different distances receive scale proportional to their own camDist', () => {
+        renderToString(
+          createElement(
+            SpatialFrameProvider,
+            { frame: GALACTIC_FRAME, focusPoint: [0, 0, 0] },
+            createElement(DropStalk, { id: 'stalk-near', position: [1, 0, 5], datumZ: 0, state: 'selected' }),
+            createElement(DropStalk, { id: 'stalk-far', position: [1, 0, -15], datumZ: -20, state: 'selected' }),
+          ),
+        );
+
+        const calls = vi.mocked(useFrame).mock.calls;
+        const providerCall = calls.find((c) => c[1] === FRAME_PRIORITY.spatialFrame);
+        const entityCalls = calls.filter((c) => c[1] !== FRAME_PRIORITY.spatialFrame);
+
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        camera.position.set(1, 0, 10);
+
+        providerCall![0]({ camera, controls: { target: new THREE.Vector3(0, 0, 0) } } as any, 0.016);
+
+        const stalkScales: number[] = [];
+        const origSet = THREE.Vector3.prototype.set;
+        const spySet = vi.spyOn(THREE.Vector3.prototype, 'set').mockImplementation(function (
+          this: THREE.Vector3,
+          x: number,
+          y: number,
+          z?: number,
+        ) {
+          if (x === y && z === 1 && x > 0.01) {
+            stalkScales.push(x);
+          }
+          return origSet.call(this, x, y, z ?? 0);
+        });
+
+        try {
+          entityCalls[0][0]({ camera, size: { width: 1920, height: 1080 } } as any, 0.016);
+          entityCalls[1][0]({ camera, size: { width: 1920, height: 1080 } } as any, 0.016);
+
+          expect(stalkScales.length).toBeGreaterThanOrEqual(2);
+          const nearScale = stalkScales[stalkScales.length - 2];
+          const farScale = stalkScales[stalkScales.length - 1];
+
+          expect(farScale / nearScale).toBeCloseTo(3.0, 3);
+        } finally {
+          spySet.mockRestore();
+        }
+      });
+
+      it('Reticle instances receive distance-independent scale under OrthographicCamera', () => {
+        renderToString(
+          createElement(
+            SpatialFrameProvider,
+            { frame: GALACTIC_FRAME, focusPoint: [0, 0, 0] },
+            createElement(Reticle, { id: 'reticle-near', position: [0, 0, 0] }),
+            createElement(Reticle, { id: 'reticle-far', position: [0, 0, -20] }),
+          ),
+        );
+
+        const calls = vi.mocked(useFrame).mock.calls;
+        const providerCall = calls.find((c) => c[1] === FRAME_PRIORITY.spatialFrame);
+        const entityCalls = calls.filter((c) => c[1] !== FRAME_PRIORITY.spatialFrame);
+
+        const orthoCamera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 1000);
+        orthoCamera.position.set(0, 0, 10);
+
+        providerCall![0]({ camera: orthoCamera, controls: { target: new THREE.Vector3(0, 0, 0) } } as any, 0.016);
+
+        const scaleSetCalls: number[] = [];
+        const origSet = THREE.Vector3.prototype.set;
+        const spySet = vi.spyOn(THREE.Vector3.prototype, 'set').mockImplementation(function (
+          this: THREE.Vector3,
+          x: number,
+          y: number,
+          z?: number,
+        ) {
+          if (x === y && y === z && x > 0.1) {
+            scaleSetCalls.push(x);
+          }
+          return origSet.call(this, x, y, z ?? 0);
+        });
+
+        try {
+          entityCalls[0][0]({ camera: orthoCamera, size: { width: 1920, height: 1080 } } as any, 0.016);
+          entityCalls[1][0]({ camera: orthoCamera, size: { width: 1920, height: 1080 } } as any, 0.016);
+
+          expect(scaleSetCalls.length).toBeGreaterThanOrEqual(2);
+          const nearScale = scaleSetCalls[scaleSetCalls.length - 2];
+          const farScale = scaleSetCalls[scaleSetCalls.length - 1];
+
+          expect(farScale / nearScale).toBeCloseTo(1.0, 3);
+        } finally {
+          spySet.mockRestore();
+        }
+      });
     });
   });
 });

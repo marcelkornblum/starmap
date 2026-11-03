@@ -31,7 +31,7 @@ import {
   toCoordinatesTuple,
 } from './hazardsAndComposition';
 import { buildGalaxySystemNavigationHref } from './navigationAndCamera';
-import { getDeviceTierBudget } from '../deviceTierService';
+import { getApertureActiveCutoffForViewportWidth } from '../deviceTierService';
 import type {
   ExtractGalaxyBodiesInput,
   GalacticInstrumentApertureResult,
@@ -207,7 +207,7 @@ export function resolveGalacticInstrumentAperture(
   >();
 
   const effectiveMaxActive =
-    input.maxActiveEntities ?? getDeviceTierBudget().maxActiveEntities;
+    input.maxActiveEntities ?? getApertureActiveCutoffForViewportWidth(input.viewportWidthPx);
 
   const inApertureCandidates: Array<{
     sysSlug: string;
@@ -249,14 +249,15 @@ export function resolveGalacticInstrumentAperture(
     return a.sysSlug.localeCompare(b.sysSlug);
   });
 
-  const cappedCount = Math.min(effectiveMaxActive, inApertureCandidates.length);
-  for (let i = 0; i < cappedCount; i++) {
-    const candidate = inApertureCandidates[i];
-    if (!candidate) continue;
-    apertureIds.add(candidate.sysSlug);
-    apertureIds.add(candidate.entry.i);
-    if (candidate.entry.s) {
-      apertureIds.add(candidate.entry.s);
+  if (inApertureCandidates.length <= effectiveMaxActive) {
+    for (let i = 0; i < inApertureCandidates.length; i++) {
+      const candidate = inApertureCandidates[i];
+      if (!candidate) continue;
+      apertureIds.add(candidate.sysSlug);
+      apertureIds.add(candidate.entry.i);
+      if (candidate.entry.s) {
+        apertureIds.add(candidate.entry.s);
+      }
     }
   }
 

@@ -89,3 +89,37 @@ export function reticleSizeToScreenPx(
 ): number {
   return (reticleSize / referenceScale) * screenHeight;
 }
+
+export interface EntityScaleFrameState {
+  screenScale: number;
+  referenceFootprint: number;
+  fovFactor: number;
+}
+
+/**
+ * Resolves the screen-invariant scaling factor for an entity at distance `camDist`.
+ * When a `frameState` (`SpatialFrameState`) is present:
+ * - Orthographic camera: returns `frameState.screenScale` (distance-independent).
+ * - Perspective camera: returns `(Math.max(camDist, 1e-4) / frameState.referenceFootprint) * frameState.fovFactor`.
+ * When `frameState` is not present, falls back to `calculateScreenInvariantScale(camDist, camera)`.
+ */
+export function resolveEntityScreenInvariantScale(
+  camDist: number,
+  camera: unknown,
+  frameState?: EntityScaleFrameState | null,
+): number {
+  if (frameState) {
+    const isOrtho = Boolean(
+      camera &&
+        typeof camera === 'object' &&
+        'isOrthographicCamera' in camera &&
+        (camera as { isOrthographicCamera?: boolean }).isOrthographicCamera,
+    );
+    if (isOrtho) {
+      return frameState.screenScale;
+    }
+    return (Math.max(camDist, 1e-4) / frameState.referenceFootprint) * frameState.fovFactor;
+  }
+  return calculateScreenInvariantScale(camDist, camera);
+}
+

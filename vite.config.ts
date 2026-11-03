@@ -50,6 +50,7 @@ export default defineConfig(({ mode }) => {
       passWithNoTests: true,
       coverage: {
         provider: 'v8',
+        reportsDirectory: '/tmp/starmap-coverage',
         reporter: ['text', 'json', 'html', 'json-summary', 'cobertura'],
         include: ['src/**/*.{ts,tsx}'],
         exclude: ['src/**/*.stories.@(js|jsx|mjs|ts|tsx)', 'src/main.tsx', 'src/components/prototypes/**'],

@@ -13,6 +13,7 @@ import type { SystemSummaryNode } from '../../../types/astro';
 
 export const STARFIELD_VERTEX_SHADER = /* glsl */ `
   uniform float uPointSize;
+  uniform float uActivePointSize;
   uniform float uBaseOpacity;
   uniform vec3 uFocusCenter;
   uniform float uApertureRadius;
@@ -34,14 +35,12 @@ export const STARFIELD_VERTEX_SHADER = /* glsl */ `
       return;
     }
 
-    float innerT = clamp(distFromOrigin / max(uApertureRadius, 0.001), 0.0, 1.0);
+    bool isInsideAperture = distFromOrigin <= uApertureRadius;
     float outerSpan = max(uHorizonRadius - uApertureRadius, 1.0);
     float outerT = clamp((distFromOrigin - uApertureRadius) / outerSpan, 0.0, 1.0);
-    float radialFalloff = distFromOrigin <= uApertureRadius
-      ? mix(1.0, 0.72, innerT)
-      : mix(0.72, 0.2, outerT);
+    float radialFalloff = isInsideAperture ? 1.0 : mix(0.88, 0.45, outerT);
 
-    vLuminance = mix(0.35, 1.0, radialFalloff);
+    vLuminance = isInsideAperture ? 1.0 : mix(0.75, 1.0, radialFalloff);
 
     vec3 camToOrigin = uFocusCenter - uCameraPos;
     float camDist = length(camToOrigin);
@@ -54,10 +53,10 @@ export const STARFIELD_VERTEX_SHADER = /* glsl */ `
     float inCorridor = 1.0 - smoothstep(uApertureRadius * 0.8, corridorRadius, perpDist);
     float inFront = 1.0 - smoothstep(max(camDist - uApertureRadius * 1.1, 0.0), camDist, alongRay);
     float fgMask = step(uApertureRadius, distFromOrigin) * step(0.0, alongRay) * inCorridor * inFront;
-    float fgFactor = mix(1.0, 0.2, fgMask);
+    float fgFactor = mix(1.0, 0.55, fgMask);
 
-    vAlpha = uBaseOpacity * radialFalloff * fgFactor;
-    gl_PointSize = uPointSize;
+    vAlpha = isInsideAperture ? 1.0 : (uBaseOpacity * radialFalloff * fgFactor);
+    gl_PointSize = isInsideAperture ? uActivePointSize : uPointSize;
     gl_Position = projectionMatrix * viewMatrix * vec4(worldPos, 1.0);
   }
 `;
@@ -87,6 +86,12 @@ export const STARFIELD_DEFAULT_APERTURE_RADIUS = 15.0;
 /** Horizon radius expressed as a multiple of the live aperture radius, so the cull sphere scales with zoom. */
 export const STARFIELD_HORIZON_APERTURE_RATIO = 2.4;
 
+/** Full point size (px) for stars inside the active instrument aperture. */
+export const STARFIELD_ACTIVE_POINT_SIZE = 5.0;
+
+/** Passive point size (px) for stars outside the active instrument aperture. */
+export const STARFIELD_PASSIVE_POINT_SIZE = 3.2;
+
 /**
  * Horizon radius (pc) beyond which stars are culled. Tied to the live aperture radius so the
  * fall-off window stays constant relative to the instrument and camera rather than world coordinates.
@@ -103,6 +108,7 @@ export interface StarfieldPointsUniforms {
   [uniform: string]: THREE.IUniform;
   uColor: THREE.IUniform<THREE.Color>;
   uPointSize: THREE.IUniform<number>;
+  uActivePointSize: THREE.IUniform<number>;
   uBaseOpacity: THREE.IUniform<number>;
   uFocusCenter: THREE.IUniform<THREE.Vector3>;
   uApertureRadius: THREE.IUniform<number>;
@@ -115,12 +121,14 @@ export class StarfieldPointsMaterial extends THREE.ShaderMaterial {
 }
 
 export function createStarfieldPointsMaterial(
-  pointSize: number = 2.0,
-  pointOpacity: number = 0.85,
+  pointSize: number = STARFIELD_PASSIVE_POINT_SIZE,
+  pointOpacity: number = 0.9,
+  activePointSize: number = STARFIELD_ACTIVE_POINT_SIZE,
 ): StarfieldPointsMaterial {
   const uniforms: StarfieldPointsUniforms = {
     uColor: { value: new THREE.Color(0xffffff) },
     uPointSize: { value: pointSize },
+    uActivePointSize: { value: activePointSize },
     uBaseOpacity: { value: pointOpacity },
     uFocusCenter: { value: new THREE.Vector3(0, 0, 0) },
     uApertureRadius: { value: STARFIELD_DEFAULT_APERTURE_RADIUS },
@@ -140,6 +148,7 @@ export interface SectorPointCloudProps {
   readonly manager?: SectorStreamingManager;
   readonly pointSize?: number;
   readonly pointOpacity?: number;
+  readonly activePointSize?: number;
   readonly onHydratedSummariesChange?: (
     summaries: readonly SystemSummaryNode[],
     focusPointPc?: readonly [number, number, number],
@@ -153,8 +162,9 @@ export interface SectorPointCloudProps {
  */
 export function SectorPointCloud({
   manager,
-  pointSize = 2.0,
-  pointOpacity = 0.85,
+  pointSize = STARFIELD_PASSIVE_POINT_SIZE,
+  pointOpacity = 0.9,
+  activePointSize = STARFIELD_ACTIVE_POINT_SIZE,
   onHydratedSummariesChange,
 }: SectorPointCloudProps) {
   const reticleBracketColor = useThreeTokenStore((s) => s.tokens.reticleBracketColor);
@@ -174,7 +184,8 @@ export function SectorPointCloud({
   useEffect(() => {
     material.uniforms.uPointSize.value = pointSize;
     material.uniforms.uBaseOpacity.value = pointOpacity;
-  }, [material, pointSize, pointOpacity]);
+    material.uniforms.uActivePointSize.value = activePointSize;
+  }, [material, pointSize, pointOpacity, activePointSize]);
 
   useEffect(() => {
     material.uniforms.uColor.value.set(reticleBracketColor);

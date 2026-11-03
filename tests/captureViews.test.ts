@@ -47,6 +47,7 @@ describe('capture-views utilities', () => {
     expect(defaults.lanHost).toBe('192.168.1.124');
     expect(defaults.baseUrl).toBe('http://127.0.0.1:5173');
     expect(defaults.routes).toEqual(DEFAULT_CAPTURE_ROUTES);
+    expect(defaults.outDir).toBe('/tmp/starmap-screenshots');
     expect(defaults.waitMs).toBe(1200);
 
     const custom = parseCaptureArgs(

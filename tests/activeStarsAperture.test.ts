@@ -91,26 +91,37 @@ describe('streamed active stars drive aperture membership and the objects list',
     expect(countActive(15)).toBeLessThan(countActive(30));
   });
 
-  it('caps apertureIds at maxActiveEntities and computes ceilingApertureRadiusPc', () => {
+  it('enforces all-or-nothing active cutoff at maxActiveEntities and computes ceilingApertureRadiusPc', () => {
     const starA = makeStar('gaia-1', 2);
     const starB = makeStar('gaia-2', 4);
     const starC = makeStar('gaia-3', 6);
     // Sol is at 0 pc, gaia-1 at 2 pc, gaia-2 at 4 pc, gaia-3 at 6 pc (4 total inside 10 pc)
     const corpus = mergeActiveStarsIntoCorpus(CORPUS, [starA, starB, starC]);
 
-    // Cap at 2 active entities: Sol (0 pc) and gaia-1 (2 pc)
-    const capped = resolveGalacticInstrumentAperture({
+    // When candidates (4) exceed maxActiveEntities (2): zero stars become active, but ceiling radius is populated
+    const overCutoff = resolveGalacticInstrumentAperture({
       corpus,
       liveApertureCenterPc: [0, 0, 0],
       liveApertureRadiusPc: 10,
       maxActiveEntities: 2,
     });
 
-    expect(capped.apertureIds.has('sol')).toBe(true);
-    expect(capped.apertureIds.has('gaia-1')).toBe(true);
-    expect(capped.apertureIds.has('gaia-2')).toBe(false);
-    expect(capped.apertureIds.has('gaia-3')).toBe(false);
-    expect(capped.ceilingApertureRadiusPc).toBe(2);
+    expect(overCutoff.apertureIds.size).toBe(0);
+    expect(overCutoff.ceilingApertureRadiusPc).toBe(2);
+
+    // When candidates (4) are within maxActiveEntities (4): all candidates become active
+    const exactCutoff = resolveGalacticInstrumentAperture({
+      corpus,
+      liveApertureCenterPc: [0, 0, 0],
+      liveApertureRadiusPc: 10,
+      maxActiveEntities: 4,
+    });
+
+    expect(exactCutoff.apertureIds.has('sol')).toBe(true);
+    expect(exactCutoff.apertureIds.has('gaia-1')).toBe(true);
+    expect(exactCutoff.apertureIds.has('gaia-2')).toBe(true);
+    expect(exactCutoff.apertureIds.has('gaia-3')).toBe(true);
+    expect(exactCutoff.ceilingApertureRadiusPc).toBe(6);
 
     // If maxActiveEntities exceeds count, ceilingApertureRadiusPc is null
     const uncapped = resolveGalacticInstrumentAperture({
@@ -119,7 +130,62 @@ describe('streamed active stars drive aperture membership and the objects list',
       liveApertureRadiusPc: 10,
       maxActiveEntities: 10,
     });
+    expect(uncapped.apertureIds.size).toBeGreaterThan(0);
     expect(uncapped.ceilingApertureRadiusPc).toBeNull();
+  });
+
+  describe('viewport-aware active cutoff (96 desktop / 60 tablet / 40 mobile)', () => {
+    it('activates all stars when within desktop cutoff (96) and zero when exceeding 96', () => {
+      // 96 stars at x=1..96, plus Sol at x=0 => 97 stars
+      const stars96 = Array.from({ length: 96 }, (_, i) => makeStar(`gaia-${i + 1}`, (i + 1) * 0.1));
+      const corpus96 = mergeActiveStarsIntoCorpus(CORPUS, stars96); // 97 stars total
+
+      // Within cutoff: exactly 96 candidates inside radius
+      const maxDistanceFor96 = 95 * 0.1 + 0.001; // covers Sol + gaia-1..gaia-95 = 96 stars
+      const withinDesktop = resolveGalacticInstrumentAperture({
+        corpus: corpus96,
+        liveApertureCenterPc: [0, 0, 0],
+        liveApertureRadiusPc: maxDistanceFor96,
+        viewportWidthPx: 1440,
+      });
+      expect(withinDesktop.apertureIds.size).toBeGreaterThan(0);
+
+      // Exceeds cutoff: all 97 candidates inside 10 pc
+      const exceedsDesktop = resolveGalacticInstrumentAperture({
+        corpus: corpus96,
+        liveApertureCenterPc: [0, 0, 0],
+        liveApertureRadiusPc: 10,
+        viewportWidthPx: 1440,
+      });
+      expect(exceedsDesktop.apertureIds.size).toBe(0);
+      expect(exceedsDesktop.ceilingApertureRadiusPc).not.toBeNull();
+    });
+
+    it('activates all stars when within mobile cutoff (40) and zero when exceeding 40', () => {
+      // 40 stars at x=1..40, plus Sol at x=0 => 41 stars
+      const stars40 = Array.from({ length: 40 }, (_, i) => makeStar(`gaia-m-${i + 1}`, (i + 1) * 0.1));
+      const corpus40 = mergeActiveStarsIntoCorpus(CORPUS, stars40); // 41 stars total
+
+      // Within cutoff: 40 candidates
+      const maxDistanceFor40 = 39 * 0.1 + 0.001; // covers Sol + gaia-m-1..gaia-m-39 = 40 stars
+      const withinMobile = resolveGalacticInstrumentAperture({
+        corpus: corpus40,
+        liveApertureCenterPc: [0, 0, 0],
+        liveApertureRadiusPc: maxDistanceFor40,
+        viewportWidthPx: 390,
+      });
+      expect(withinMobile.apertureIds.size).toBeGreaterThan(0);
+
+      // Exceeds cutoff: 41 candidates
+      const exceedsMobile = resolveGalacticInstrumentAperture({
+        corpus: corpus40,
+        liveApertureCenterPc: [0, 0, 0],
+        liveApertureRadiusPc: 10,
+        viewportWidthPx: 390,
+      });
+      expect(exceedsMobile.apertureIds.size).toBe(0);
+      expect(exceedsMobile.ceilingApertureRadiusPc).not.toBeNull();
+    });
   });
 
   it('strictly excludes off-aperture systems in extractGalaxyBodies even if focused or selected', () => {

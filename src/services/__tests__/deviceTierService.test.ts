@@ -11,6 +11,10 @@ import {
   canAllocateSector,
   ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER,
   MEAN_CATALOG_STARS_PER_CUBIC_PC,
+  APERTURE_ACTIVE_CUTOFF_MOBILE,
+  APERTURE_ACTIVE_CUTOFF_TABLET,
+  APERTURE_ACTIVE_CUTOFF_DESKTOP,
+  getApertureActiveCutoffForViewportWidth,
   type DevicePerformanceTier,
   type DeviceTierBudget,
 } from '../deviceTierService';
@@ -26,36 +30,36 @@ describe('deviceTierService', () => {
       expect(DEVICE_TIER_BUDGETS.tier1).toEqual({
         tier: 'tier1',
         maxActivePoints: 75_000,
-        maxActiveEntities: 300,
+        maxActiveEntities: 450,
         maxBufferBytes: 1_572_864,
         maxActiveSectors: 12,
         lruCacheMaxSectors: 16,
         prefetchRingRadius: 1,
-        maxCameraDistancePc: 50,
+        maxCameraDistancePc: 75,
         maxGpuUploadsPerFrame: 1,
       });
 
       expect(DEVICE_TIER_BUDGETS.tier2).toEqual({
         tier: 'tier2',
         maxActivePoints: 200_000,
-        maxActiveEntities: 500,
+        maxActiveEntities: 750,
         maxBufferBytes: 5_242_880,
         maxActiveSectors: 27,
         lruCacheMaxSectors: 40,
         prefetchRingRadius: 2,
-        maxCameraDistancePc: 100,
+        maxCameraDistancePc: 150,
         maxGpuUploadsPerFrame: 2,
       });
 
       expect(DEVICE_TIER_BUDGETS.tier3).toEqual({
         tier: 'tier3',
         maxActivePoints: 350_000,
-        maxActiveEntities: 800,
+        maxActiveEntities: 1200,
         maxBufferBytes: 15_728_640,
         maxActiveSectors: 64,
         lruCacheMaxSectors: 80,
         prefetchRingRadius: 2,
-        maxCameraDistancePc: 250,
+        maxCameraDistancePc: 375,
         maxGpuUploadsPerFrame: 2,
       });
     });
@@ -296,8 +300,8 @@ describe('deviceTierService', () => {
     it('clamps to budget.maxCameraDistancePc for standard tier budgets', () => {
       const distTier1 = computeMaxSafeCameraDistancePc(DEVICE_TIER_BUDGETS.tier1);
       const distTier2 = computeMaxSafeCameraDistancePc(DEVICE_TIER_BUDGETS.tier2);
-      expect(distTier1).toBe(50);
-      expect(distTier2).toBe(100);
+      expect(distTier1).toBe(75);
+      expect(distTier2).toBe(150);
     });
 
     it('scales down if buffer memory is constrained below maxActiveSectors', () => {
@@ -307,7 +311,7 @@ describe('deviceTierService', () => {
         maxBufferBytes: 12_024,
       };
       const dist = computeMaxSafeCameraDistancePc(constrainedBudget);
-      expect(dist).toBeLessThan(50);
+      expect(dist).toBeLessThan(75);
       expect(dist).toBeGreaterThanOrEqual(1);
     });
 
@@ -316,9 +320,9 @@ describe('deviceTierService', () => {
         ...DEVICE_TIER_BUDGETS.tier1,
         maxBufferBytes: 100,
       };
-      // For maxSectors = 1, rawDist is ~34.1 pc. Setting minDistancePc to 40 tests floor clamping.
-      const dist = computeMaxSafeCameraDistancePc(extremeBudget, { minDistancePc: 40 });
-      expect(dist).toBe(40);
+      // For maxSectors = 1, rawDist is ~51.2 pc. Setting minDistancePc to 60 tests floor clamping.
+      const dist = computeMaxSafeCameraDistancePc(extremeBudget, { minDistancePc: 60 });
+      expect(dist).toBe(60);
     });
   });
 
@@ -331,15 +335,15 @@ describe('deviceTierService', () => {
     });
 
     it('clamps normal values within [minDistancePc, maxSafe]', () => {
-      const budget = DEVICE_TIER_BUDGETS.tier2; // max 100 pc
+      const budget = DEVICE_TIER_BUDGETS.tier2; // max 150 pc
       expect(clampCameraDistanceToMemoryBudget(50, budget)).toBe(50);
       expect(clampCameraDistanceToMemoryBudget(0.5, budget)).toBe(1);
-      expect(clampCameraDistanceToMemoryBudget(200, budget)).toBe(100);
+      expect(clampCameraDistanceToMemoryBudget(200, budget)).toBe(150);
     });
 
     describe('Memory saturation lockout', () => {
       it('caps zoom-out at currentDistancePc when currentAllocatedBytes >= maxBufferBytes', () => {
-        const budget = DEVICE_TIER_BUDGETS.tier2; // maxBufferBytes = 5_242_880, maxDist = 100
+        const budget = DEVICE_TIER_BUDGETS.tier2; // maxBufferBytes = 5_242_880, maxDist = 150
         const options = {
           currentAllocatedBytes: 5_242_880,
           currentDistancePc: 45,
@@ -400,38 +404,38 @@ describe('deviceTierService', () => {
 
   describe('computeCeilingMaxCameraDistancePc & Active Item Ceiling', () => {
     it('exports expected constants', () => {
-      expect(ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER).toBe(1.5);
+      expect(ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER).toBe(2.25);
       expect(MEAN_CATALOG_STARS_PER_CUBIC_PC).toBeCloseTo(751.5 / (25 * 25 * 25), 6);
     });
 
     it('estimates ceiling distance from catalog density when live aperture radius is omitted', () => {
       const budgetTier1 = DEVICE_TIER_BUDGETS.tier1;
-      // Derived capped dist is ~59.78 pc, capped by tier1 maxSafe (50 pc)
-      expect(computeCeilingMaxCameraDistancePc(budgetTier1)).toBe(50);
+      // Derived dist capped by tier1 maxSafe (75 pc)
+      expect(computeCeilingMaxCameraDistancePc(budgetTier1)).toBe(75);
 
       const budgetTier2 = DEVICE_TIER_BUDGETS.tier2;
-      // Derived capped dist is ~70.88 pc (< tier2 maxSafe of 100 pc)
+      // Derived capped dist is ~121.7 pc (< tier2 maxSafe of 150 pc)
       const distTier2 = computeCeilingMaxCameraDistancePc(budgetTier2);
-      expect(distTier2).toBeGreaterThan(65);
-      expect(distTier2).toBeLessThan(75);
+      expect(distTier2).toBeGreaterThan(115);
+      expect(distTier2).toBeLessThan(130);
     });
 
-    it('uses live ceilingApertureRadiusPc with 1.5x zoom out multiplier', () => {
-      const budgetTier2 = DEVICE_TIER_BUDGETS.tier2; // maxSafe = 100 pc
-      // ceilingApertureRadiusPc = 15 -> ceilingCamDist = 15 * (34.9 / 10) = 52.35 -> * 1.5 = 78.525 pc
+    it('uses live ceilingApertureRadiusPc with 2.25x zoom out multiplier', () => {
+      const budgetTier2 = DEVICE_TIER_BUDGETS.tier2; // maxSafe = 150 pc
+      // ceilingApertureRadiusPc = 15 -> ceilingCamDist = 15 * (34.9 / 10) = 52.35 -> * 2.25 = 117.7875 pc
       const dist = computeCeilingMaxCameraDistancePc(budgetTier2, {
         ceilingApertureRadiusPc: 15,
       });
-      expect(dist).toBeCloseTo(78.525, 2);
+      expect(dist).toBeCloseTo(117.7875, 2);
     });
 
     it('caps live ceiling distance at budget.maxCameraDistancePc (maxSafe)', () => {
-      const budgetTier1 = DEVICE_TIER_BUDGETS.tier1; // maxSafe = 50 pc
-      // ceilingApertureRadiusPc = 20 -> ceilingCamDist = 20 * 3.49 = 69.8 -> * 1.5 = 104.7 pc -> clamped to 50
+      const budgetTier1 = DEVICE_TIER_BUDGETS.tier1; // maxSafe = 75 pc
+      // ceilingApertureRadiusPc = 20 -> ceilingCamDist = 20 * 3.49 = 69.8 -> * 2.25 = 157.05 -> clamped to 75
       const dist = computeCeilingMaxCameraDistancePc(budgetTier1, {
         ceilingApertureRadiusPc: 20,
       });
-      expect(dist).toBe(50);
+      expect(dist).toBe(75);
     });
 
     it('clamps to minDistancePc for negative or zero live ceiling aperture', () => {
@@ -454,7 +458,7 @@ describe('deviceTierService', () => {
           sectorSizePc: NaN,
           minDistancePc: -5,
         }),
-      ).toBe(50);
+      ).toBe(75);
       expect(
         clampCameraDistanceToMemoryBudget(25, budget, {
           avgBytesPerSector: NaN,
@@ -462,6 +466,48 @@ describe('deviceTierService', () => {
           minDistancePc: NaN,
         }),
       ).toBe(25);
+    });
+  });
+
+  describe('getApertureActiveCutoffForViewportWidth', () => {
+    it('exports expected cutoff constants', () => {
+      expect(APERTURE_ACTIVE_CUTOFF_MOBILE).toBe(40);
+      expect(APERTURE_ACTIVE_CUTOFF_TABLET).toBe(60);
+      expect(APERTURE_ACTIVE_CUTOFF_DESKTOP).toBe(96);
+    });
+
+    it('returns mobile cutoff (40) for width <= 767px', () => {
+      expect(getApertureActiveCutoffForViewportWidth(390)).toBe(40);
+      expect(getApertureActiveCutoffForViewportWidth(767)).toBe(40);
+    });
+
+    it('returns tablet cutoff (60) for 768px <= width < 1024px', () => {
+      expect(getApertureActiveCutoffForViewportWidth(768)).toBe(60);
+      expect(getApertureActiveCutoffForViewportWidth(1023)).toBe(60);
+    });
+
+    it('returns desktop cutoff (96) for width >= 1024px', () => {
+      expect(getApertureActiveCutoffForViewportWidth(1024)).toBe(96);
+      expect(getApertureActiveCutoffForViewportWidth(1440)).toBe(96);
+      expect(getApertureActiveCutoffForViewportWidth(2560)).toBe(96);
+    });
+
+    it('falls back to window.innerWidth when width argument is omitted or non-positive', () => {
+      vi.stubGlobal('innerWidth', 390);
+      expect(getApertureActiveCutoffForViewportWidth()).toBe(40);
+      expect(getApertureActiveCutoffForViewportWidth(0)).toBe(40);
+      expect(getApertureActiveCutoffForViewportWidth(-10)).toBe(40);
+
+      vi.stubGlobal('innerWidth', 800);
+      expect(getApertureActiveCutoffForViewportWidth()).toBe(60);
+
+      vi.stubGlobal('innerWidth', 1440);
+      expect(getApertureActiveCutoffForViewportWidth()).toBe(96);
+    });
+
+    it('defaults to desktop (1440px -> 96) if window.innerWidth is unavailable', () => {
+      vi.stubGlobal('innerWidth', undefined);
+      expect(getApertureActiveCutoffForViewportWidth()).toBe(96);
     });
   });
 });

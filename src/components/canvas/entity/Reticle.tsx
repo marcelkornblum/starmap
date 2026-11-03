@@ -12,7 +12,7 @@ import {
 } from '../cartography/reticleGeometry';
 import { useOcclusionManager } from './SpatialEntityContext';
 import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
-import { calculateScreenInvariantScale } from '../engineConfig';
+import { resolveEntityScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState, NodeAlphaRef } from './types';
 
 export interface ReticleProps {
@@ -55,13 +55,12 @@ export const Reticle: React.FC<ReticleProps> = ({
   const reticleSelectedAlpha = useThreeTokenStore((s) => s.tokens.reticleSelectedAlpha);
   const reticleFocusedAlpha = useThreeTokenStore((s) => s.tokens.reticleFocusedAlpha);
 
-  const groupRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.LineBasicMaterial>(null);
   const occlusionManager = useOcclusionManager();
   const frameCtx = useSpatialFrameSafe();
 
-  // Attention Gating: Annotations only activate in selected or focused states
-  const isAnnotated = state === 'selected' || state === 'focused';
+  // Attention Gating: Annotations activate in active, selected, or focused states
+  const isAnnotated = state === 'active' || state === 'selected' || state === 'focused';
 
   const resolvedPlanets = useMemo<PlanetCensusEntry[] | undefined>(() => {
     if (!planets || planets.length === 0) return undefined;
@@ -116,18 +115,29 @@ export const Reticle: React.FC<ReticleProps> = ({
     return new THREE.Vector3(position[0], position[1], position[2]);
   }, [position]);
 
+  const groupRef = useLazyRef(() => {
+    const g = new THREE.Group();
+    if (resolvedPos) g.position.copy(resolvedPos);
+    return g;
+  });
+
   const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
 
   // Keep reticle billboarded to face camera directly with invariant screen-space scaling
   useFrame(({ camera }) => {
     if (groupRef.current) {
+      if (resolvedPos) {
+        groupRef.current.position.copy(resolvedPos);
+      }
       groupRef.current.quaternion.copy(camera.quaternion);
 
       groupRef.current.getWorldPosition(scratchWorldPos.current);
       const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-      const invScale = frameCtx?.frameRef?.current
-        ? frameCtx.frameRef.current.screenScale
-        : calculateScreenInvariantScale(camDist, camera);
+      const invScale = resolveEntityScreenInvariantScale(
+        camDist,
+        camera,
+        frameCtx?.frameRef?.current,
+      );
       groupRef.current.scale.set(invScale, invScale, invScale);
 
       // Priority Occlusion Masking for Geometric Reticles (Spec 2.2):
@@ -157,11 +167,11 @@ export const Reticle: React.FC<ReticleProps> = ({
 
       {/* Auxiliary Facet Indicators for Testing & Structural Introspection */}
       {isAnnotated && multiplicity > 1 && (
-        <group name="multiplicity-pips" data-multiplicity={multiplicity} />
+        <group name="multiplicity-pips" userData={{ multiplicity }} />
       )}
 
       {isAnnotated && planets && planets.length > 0 && (
-        <group name="planetary-census-pips" data-planets-count={planets.length} />
+        <group name="planetary-census-pips" userData={{ planetsCount: planets.length }} />
       )}
     </group>
   );
