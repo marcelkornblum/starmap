@@ -15,6 +15,7 @@ import { SystemView } from '../src/views/SystemView';
 import { PlanetView } from '../src/views/PlanetView';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
+import { useUIStore } from '../src/stores/useUIStore';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
@@ -82,6 +83,7 @@ function findReactElementByTestId(tree: any, testId: string): any {
 describe('SpatialShell Component & View Integration Suite', () => {
   beforeEach(() => {
     _resetWebGLSupportedForTesting();
+    useUIStore.getState().resetUIState();
   });
 
   describe('<SpatialShell /> Region Landmarks', () => {
@@ -190,6 +192,64 @@ describe('SpatialShell Component & View Integration Suite', () => {
       // Exercise click handlers
       expect(() => toggleBtn.props.onClick()).not.toThrow();
       expect(() => backdrop.props.onClick()).not.toThrow();
+    });
+
+    it('reads activeDrawer === "bodies" from useUIStore when initialBodiesDrawerOpen is not provided', () => {
+      useUIStore.getState().setActiveDrawer('bodies');
+
+      const html = renderToString(
+        <SpatialShell
+          testId="store-backed-drawer"
+          bodies={<div data-testid="bodies-content">Drawer Content</div>}
+        />,
+      );
+
+      expect(html).toContain('data-bodies-drawer-open="true"');
+      expect(html).toContain('aria-expanded="true"');
+    });
+
+    it('syncs toggle click and backdrop close with useUIStore.setActiveDrawer', () => {
+      let capturedEl: any = null;
+      function Harness() {
+        capturedEl = SpatialShell({
+          testId: 'store-sync-shell',
+          bodies: <div data-testid="bodies-content">Drawer Content</div>,
+        });
+        return capturedEl;
+      }
+
+      renderToString(<Harness />);
+      const toggleBtn = findReactElementByTestId(capturedEl, 'spatial-shell-bodies-toggle');
+      toggleBtn.props.onClick();
+      expect(useUIStore.getState().activeDrawer).toBe('bodies');
+
+      const backdrop = findReactElementByTestId(capturedEl, 'spatial-shell-bodies-backdrop');
+      backdrop.props.onClick();
+      expect(useUIStore.getState().activeDrawer).toBeNull();
+    });
+
+    it('supports controlled isBodiesDrawerOpen prop taking priority over store state', () => {
+      useUIStore.getState().setActiveDrawer('bodies');
+
+      const htmlControlledFalse = renderToString(
+        <SpatialShell
+          testId="controlled-false"
+          isBodiesDrawerOpen={false}
+          bodies={<div data-testid="bodies-content">Drawer Content</div>}
+        />,
+      );
+      expect(htmlControlledFalse).toContain('data-bodies-drawer-open="false"');
+
+      useUIStore.getState().setActiveDrawer(null);
+
+      const htmlControlledTrue = renderToString(
+        <SpatialShell
+          testId="controlled-true"
+          isBodiesDrawerOpen={true}
+          bodies={<div data-testid="bodies-content">Drawer Content</div>}
+        />,
+      );
+      expect(htmlControlledTrue).toContain('data-bodies-drawer-open="true"');
     });
   });
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '../../interface';
+import { useUIStore } from '../../../stores/useUIStore';
 import styles from './SpatialShell.module.css';
 
 export interface SpatialShellProps {
@@ -15,6 +16,8 @@ export interface SpatialShellProps {
   readonly minimap?: React.ReactNode;
   readonly bodies?: React.ReactNode;
   readonly initialBodiesDrawerOpen?: boolean;
+  readonly isBodiesDrawerOpen?: boolean;
+  readonly onBodiesDrawerOpenChange?: (isOpen: boolean) => void;
   readonly children?: React.ReactNode;
 }
 
@@ -30,12 +33,42 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   controls,
   minimap,
   bodies,
-  initialBodiesDrawerOpen = false,
+  initialBodiesDrawerOpen,
+  isBodiesDrawerOpen: controlledBodiesOpen,
+  onBodiesDrawerOpenChange,
   children,
 }) => {
-  const [isBodiesDrawerOpen, setIsBodiesDrawerOpen] = useState(
-    initialBodiesDrawerOpen,
-  );
+  const storeDrawer = useUIStore((s) => s.activeDrawer);
+  const activeDrawer = typeof window === 'undefined' ? useUIStore.getState().activeDrawer : storeDrawer;
+  const isStoreBodiesOpen = activeDrawer === 'bodies';
+  const setActiveDrawer = useUIStore((s) => s.setActiveDrawer);
+
+  const [localBodiesOpen, setLocalBodiesOpen] = useState<boolean>(() => {
+    if (controlledBodiesOpen !== undefined) return controlledBodiesOpen;
+    if (initialBodiesDrawerOpen !== undefined) return initialBodiesDrawerOpen;
+    return isStoreBodiesOpen;
+  });
+
+  const isBodiesDrawerOpen =
+    controlledBodiesOpen !== undefined
+      ? controlledBodiesOpen
+      : initialBodiesDrawerOpen !== undefined
+        ? localBodiesOpen
+        : isStoreBodiesOpen;
+
+  const setDrawerState = (next: boolean) => {
+    setLocalBodiesOpen(next);
+    setActiveDrawer(next ? 'bodies' : null);
+    onBodiesDrawerOpenChange?.(next);
+  };
+
+  const handleToggle = () => {
+    setDrawerState(!isBodiesDrawerOpen);
+  };
+
+  const handleClose = () => {
+    setDrawerState(false);
+  };
 
   const combinedClassName = className
     ? `${styles.spatialShell} ${className}`
@@ -84,7 +117,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
             variant={isBodiesDrawerOpen ? 'primary' : 'default'}
             data-testid="spatial-shell-bodies-toggle"
             aria-expanded={isBodiesDrawerOpen}
-            onClick={() => setIsBodiesDrawerOpen((prev) => !prev)}
+            onClick={handleToggle}
           >
             {isBodiesDrawerOpen ? 'Close Bodies' : 'Bodies'}
           </Button>
@@ -100,7 +133,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
         className={styles.bodiesBackdrop}
         data-testid="spatial-shell-bodies-backdrop"
         data-bodies-drawer-open={isBodiesDrawerOpen ? 'true' : 'false'}
-        onClick={() => setIsBodiesDrawerOpen(false)}
+        onClick={handleClose}
         aria-hidden="true"
       />
       <aside

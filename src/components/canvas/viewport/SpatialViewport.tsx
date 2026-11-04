@@ -16,6 +16,7 @@ import {
   SpatialEntityProvider,
   ApertureEvaluator,
   useSpatialEntityStoreApi,
+  useOptionalSpatialEntityStoreApi,
   CelestialEntity,
   OcclusionPass,
   type SpatialEntityDefinition,
@@ -253,6 +254,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   // Double click: centre the instrument, focus the entity, and inspect (the single inspect gesture)
   const handleEntityDoubleClick = useCallback(
     (id: string, e: ThreeEvent<MouseEvent>) => {
+      useUIStore.getState().setCenteredEntityId(id);
       const entity = storeApi.getState().entities[id];
       if (entity?.position && enableFocusTransition) {
         transitionTo(entity.position, { duration: focusTransitionDuration });
@@ -323,8 +325,8 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
  * entity composites, and bespoke planetary bodies.
  */
 export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
-  const outerStore = useSpatialEntityStoreApi();
-  const effectiveOuterStore = props.outerStore ?? outerStore;
+  const contextStore = useOptionalSpatialEntityStoreApi();
+  const effectiveOuterStore = props.outerStore ?? contextStore ?? undefined;
   const { frame = GALACTIC_FRAME, cameraDistance, initialSelectedId } = props;
 
   // Single source of the screen-constant reference distance for both instrument and entities.
@@ -340,6 +342,15 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
   );
 
   const [scopedStore] = React.useState(() => {
+    // When an outer SpatialEntityContext store is already present and props.outerStore is not explicitly overriding it,
+    // unify directly with the outer store to avoid redundant duplicate instances and echo loops.
+    if (contextStore && !props.outerStore) {
+      if (initialSelectedId && !contextStore.getState().selectedId) {
+        contextStore.getState().setSelected(initialSelectedId);
+      }
+      return contextStore;
+    }
+
     const focusPoint = props.cameraTarget
       ? (props.cameraTarget instanceof THREE.Vector3
           ? props.cameraTarget

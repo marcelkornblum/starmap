@@ -179,6 +179,10 @@ export function useSpatialEntityStoreApi(): SpatialEntityStore {
   return store ?? defaultStore;
 }
 
+export function useOptionalSpatialEntityStoreApi(): SpatialEntityStore | null {
+  return useContext(SpatialEntityStoreContext);
+}
+
 /**
  * Subscribes to the authoritative derived visual tier for an entity.
  * Component only re-renders when this specific entity's tier changes.

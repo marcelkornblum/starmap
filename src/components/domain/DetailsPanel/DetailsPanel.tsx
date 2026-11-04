@@ -5,6 +5,7 @@ import type {
 } from '../../../services/detailsService';
 import { DetentSheet, type DetentLevel } from '../../interface/surfaces/DetentSheet';
 import { Heading } from '../../interface';
+import { useUIStore } from '../../../stores/useUIStore';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
 import { PreviewPanel } from '../PreviewPanel';
 import { DetailsActionBar } from './DetailsActionBar';
@@ -25,6 +26,9 @@ export interface DetailsPanelProps {
   readonly activeDetent?: DetentLevel;
   readonly schematic?: OrbitalSchematicSummary | null;
   readonly preview?: FocusedPreviewSummary | null;
+  readonly isOpen?: boolean;
+  readonly onClose?: () => void;
+  readonly onDetentChange?: (detent: DetentLevel) => void;
 }
 
 /**
@@ -34,13 +38,26 @@ export interface DetailsPanelProps {
  */
 export const DetailsPanel = ({
   details,
-  activeDetent,
+  activeDetent: propActiveDetent,
   schematic,
   preview,
+  isOpen,
+  onClose: _onClose,
+  onDetentChange: _onDetentChange,
 }: DetailsPanelProps) => {
-  if (!details) {
+  const subscribedDetent = useUIStore((s) => s.detailsDetent);
+  const storeDetent =
+    typeof window === 'undefined'
+      ? useUIStore.getState().detailsDetent
+      : subscribedDetent;
+
+  const effectiveIsOpen = isOpen !== undefined ? isOpen : storeDetent !== 'collapsed';
+  if (!effectiveIsOpen || !details) {
     return null;
   }
+
+  const effectiveDetent: DetentLevel =
+    propActiveDetent ?? (storeDetent === 'collapsed' ? 'peek' : storeDetent);
 
   const {
     id,
@@ -127,7 +144,7 @@ export const DetailsPanel = ({
       testIdPrefix="details"
       heading="Details"
       headingId="details-panel-heading"
-      activeDetent={activeDetent}
+      activeDetent={effectiveDetent}
       data-entity-id={id}
       data-system-id={systemId}
       data-focused-kind={focusedKind}

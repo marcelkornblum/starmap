@@ -129,26 +129,19 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const urlFocusSlug = extractUrlFocusSlug(pathname, search);
   const hasExplicitFocus = hasExplicitFocusParam(search);
 
-  if (
-    (locationPathname !== undefined || locationSearch !== undefined) &&
-    !urlFocusSlug &&
-    !hasExplicitFocus
-  ) {
-    if (storeApi.getState().focusedId) {
-      storeApi.getState().setFocused(null);
-    }
-  }
-
-  const prevUrlRef = useRef<string>(`${pathname}${search}`);
+  const prevUrlRef = useRef<string | null>(null);
   useEffect(() => {
     const nextUrl = `${pathname}${search}`;
-    if (prevUrlRef.current !== nextUrl) {
-      prevUrlRef.current = nextUrl;
-      if (!urlFocusSlug && !hasExplicitFocus) {
+    const urlChanged = prevUrlRef.current !== null && prevUrlRef.current !== nextUrl;
+    const isExplicitLocation = locationPathname !== undefined || locationSearch !== undefined;
+    prevUrlRef.current = nextUrl;
+
+    if ((isExplicitLocation || urlChanged) && !urlFocusSlug && !hasExplicitFocus) {
+      if (storeApi.getState().focusedId) {
         storeApi.getState().setFocused(null);
       }
     }
-  }, [pathname, search, urlFocusSlug, hasExplicitFocus, storeApi]);
+  }, [locationPathname, locationSearch, pathname, search, urlFocusSlug, hasExplicitFocus, storeApi]);
 
   const cachedAllCorpus = getCachedCorpusForFilter('all');
   const activeCorpus = initialCorpus ?? cachedAllCorpus ?? EMPTY_CORPUS;
