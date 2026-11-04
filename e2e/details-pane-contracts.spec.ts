@@ -73,16 +73,16 @@ test.describe('Details Pane Implementation Contracts', () => {
     await expect(detailsPane.getByText('Equilibrium Temp').first()).toBeVisible();
   });
 
-  test('verifies hazardous star system contract for Proxima Centauri', async ({ page }) => {
-    await page.goto('/galaxy?focus=proxima-centauri');
+  test('verifies hazardous star system contract for 40 Eridani', async ({ page }) => {
+    await page.goto('/galaxy?focus=40-eridani');
 
     const detailsPane = page.getByRole('complementary', { name: 'Details' });
     await expect(detailsPane).toBeVisible();
 
     // Identity and spectral class in Peek region
     const peekRegion = detailsPane.getByRole('region', { name: 'Peek' });
-    await expect(peekRegion.getByTestId('details-peek-name')).toHaveText('Proxima Centauri');
-    await expect(peekRegion.getByRole('link', { name: /M/i }).first()).toBeVisible();
+    await expect(peekRegion.getByTestId('details-peek-name')).toHaveText('40 Eridani');
+    await expect(peekRegion.getByRole('link', { name: /K/i }).first()).toBeVisible();
 
     // Environmental Hazards table with Stellar flare activity
     await expect(
@@ -90,8 +90,8 @@ test.describe('Details Pane Implementation Contracts', () => {
     ).toBeVisible();
     await expect(detailsPane.getByText(/hazard|flare|stellar/i).first()).toBeVisible();
 
-    // Orbital Schematic with Proxima Centauri b
+    // Orbital Schematic with HD 26965 b
     await expect(detailsPane.getByRole('heading', { name: 'Orbital Schematic' })).toBeVisible();
-    await expect(detailsPane.getByText(/Proxima/i).first()).toBeVisible();
+    await expect(detailsPane.getByText(/HD 26965/i).first()).toBeVisible();
   });
 });

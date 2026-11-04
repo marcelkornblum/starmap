@@ -104,7 +104,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
       return;
     }
 
-    if (billboardRef.current) {
+    if (billboardRef.current && billboardRef.current.position) {
       billboardRef.current.position.set(...resolvedPos);
       billboardRef.current.quaternion.copy(camera.quaternion);
 
@@ -131,9 +131,9 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
       const anchorY = fp.screenY - 0.75 * fp.reticleRadius;
       const box = scratchBoxRef.current;
       box.left = anchorX;
-      box.top = anchorY - h / 2;
+      box.top = anchorY;
       box.right = anchorX + w;
-      box.bottom = anchorY + h / 2;
+      box.bottom = anchorY + h;
       fp.labelBox = box;
       activeBox = box;
     }
@@ -178,44 +178,43 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
 
   return (
     <group
+      ref={billboardRef}
       name={`entity-label-${id}`}
       data-testid={`entity-label-${id}`}
       data-name={name}
       data-spectral={formatDesignationTag(spectralType)}
       position={resolvedPos}
     >
-      <group ref={billboardRef}>
-        {/* Top-Right Facet: Typographic Label (System Designation) & Facet Badge */}
-        <SafeHtml position={[anchorX, anchorY, 0]} data-testid={`entity-label-${id}`}>
-          <div
-            ref={labelRef}
-            className={styles.labelCluster}
-            data-state={state}
-            data-occluded="false"
-            data-testid={`entity-label-inner-${id}`}
-            style={offset ? { transform: `translate3d(${offset[0]}px, ${offset[1]}px, 0)` } : undefined}
-          >
-            <div className={styles.nodeLabel} data-state={state}>
-              <svg className={styles.leaderLine} aria-hidden="true">
-                <line ref={leaderLineRef} visibility="hidden" />
-              </svg>
-              <span className={styles.name}>{name}</span>
-            </div>
-
-            {/* Facet info: stacked cleanly below the designation without collision */}
-            {isAnnotated && spectralType && (
-              <div
-                className={styles.spectralFacet}
-                data-state={state}
-                data-spectral={formatDesignationTag(spectralType)}
-                data-testid="celestial-spectrum-facet"
-              >
-                <span>{formatDesignationTag(spectralType)}</span>
-              </div>
-            )}
+      {/* Top-Right Facet: Typographic Label (System Designation) & Facet Badge */}
+      <SafeHtml position={[anchorX, anchorY, 0]} center={false} data-testid={`entity-label-${id}`}>
+        <div
+          ref={labelRef}
+          className={styles.labelCluster}
+          data-state={state}
+          data-occluded="false"
+          data-testid={`entity-label-inner-${id}`}
+          style={offset ? { transform: `translate3d(${offset[0]}px, ${offset[1]}px, 0)` } : undefined}
+        >
+          <div className={styles.nodeLabel} data-state={state}>
+            <svg className={styles.leaderLine} aria-hidden="true">
+              <line ref={leaderLineRef} visibility="hidden" />
+            </svg>
+            <span className={styles.name}>{name}</span>
           </div>
-        </SafeHtml>
-      </group>
+
+          {/* Facet info: stacked cleanly below the designation without collision */}
+          {isAnnotated && spectralType && (
+            <div
+              className={styles.spectralFacet}
+              data-state={state}
+              data-spectral={formatDesignationTag(spectralType)}
+              data-testid="celestial-spectrum-facet"
+            >
+              <span>{formatDesignationTag(spectralType)}</span>
+            </div>
+          )}
+        </div>
+      </SafeHtml>
     </group>
   );
 };
