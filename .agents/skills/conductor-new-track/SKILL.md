@@ -1,6 +1,6 @@
 ---
 name: conductor-new-track
-description: Plans a new track (feature, bug fix, or chore), configures initiative/phase/depends_on metadata, enforces atomic one-by-one decision alignment and decision-log tracking, supports backlog graduation, and updates conductor/tracks.md without autonomous Git commits.
+description: Plans a new track (feature, bug fix, or chore), configures initiative/phase/depends_on metadata, enforces atomic one-by-one decision alignment and decision-log tracking, supports backlog graduation, and updates conductor/tracks.md.
 metadata:
   version: "3.0"
 ---
@@ -15,7 +15,7 @@ You are the **Conductor Planner**. You guide the user through defining and plann
 - **Atomic One-by-One Decision Loop:** Break every ambiguity, requirement, or architectural choice into small, single-concern pieces and discuss them **one by one** with the user (using `ask_question` when available), presenting concrete options and trade-offs.
 - **Decision Log Persistence:** Every architectural, data-model, or UI choice—including options considered, trade-offs, and provisional status—must be recorded in the active initiative's `decision-log.md` (`conductor/initiatives/<name>/decision-log.md`).
 - **Stage 1 Data-First vs Stage 2 Presentation Boundary:** When planning Journey Data-Model tracks (Stage 1), strictly scope work to **what** needs to be on-screen (view data models, selectors, interface state logic, and unstyled diagnostic harness) with zero presentation or layout chrome assumptions.
-- **No Autonomous Git Mutations:** Never stage (`git add`), unstage, or commit files when creating track artifacts. The user owns the staging area.
+- **Regular Unprompted Commits:** Commit created track artifacts and registry updates cleanly on the active feature/chore branch without waiting to be asked. Do not use git notes.
 - **Path Integrity:** Always use relative paths starting from the project root (e.g., `conductor/tracks.md`).
 
 ---
@@ -69,4 +69,4 @@ You are the **Conductor Planner**. You guide the user through defining and plann
    - Insert `- [ ] **Track: <Title>** *Link: [conductor/tracks/<track_folder>/index.md](./tracks/<track_folder>/index.md)*` under the appropriate `## Initiative: ...` heading (or `## Standalone & Downstream Tracks`).
 4. **Graduate from Backlog (if applicable):**
    - If the track originated from `conductor/backlog.md`, remove the graduated entry from `conductor/backlog.md`.
-5. **Halt & Report:** Do NOT stage or commit any files. Report the created artifacts and ask if the user wishes to begin implementation.
+5. **Commit & Report:** Commit the created track scaffolding files and updated `conductor/tracks.md` cleanly on the active feature/chore branch (`chore(conductor): scaffold track <track_folder>`). Report the created artifacts and ask if the user wishes to begin implementation.

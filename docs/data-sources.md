@@ -13,7 +13,8 @@ It details the scientific authority, data format, scope, pipeline role, target a
 3. **Serving & LOD Strategy:**
    - **Atlas View (Macro):** Collapsed `SystemSummaryNode` representations sharded into 25-parsec cubic spatial sectors (`public/data/partitions/sector_*.json`).
    - **System View (Micro):** On-demand detailed `SystemManifest` bundles containing individual stellar components, full Keplerian orbits, physical metrics, and habitability evaluations (`public/data/systems/sector_*.json`).
-   - **Overlays & Catalogs:** Dedicated topic indices for exoplanets, galactic structures, naked-eye bright reference stars, and solar system ephemerides.
+   - **Entity Details & Summaries ($O(1)$ Dictionary Shards):** 36-bucket dictionary shards (`public/data/details/<0..z>.json` and `public/data/summaries/<0..z>.json`) partitioned by initial alphanumeric character (`0`..`9`, `a`..`z`) providing instantaneous $O(1)$ entity lookup for focused/inspected bodies without requiring full sector partition loads (`DEC-006`).
+   - **Overlays & Catalogs:** Dedicated topic indices for exoplanets, circumstellar debris disks, galactic structures, naked-eye bright reference stars, and solar system ephemerides.
 4. **Offline Build Pipeline:** All raw data acquisition and harmonization occurs offline via Node.js streams (`scripts/fetch-sources.ts` and `scripts/build-data.ts`). Runtime client loads zero raw catalogs.
 
 ---
@@ -22,7 +23,7 @@ It details the scientific authority, data format, scope, pipeline role, target a
 
 | # | Layer | Source Name | Scientific Authority | Scope / Volume | Purpose in Starmap | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **01** | Layer 1 | **Gaia Catalogue of Nearby Stars (GCNS / Gaia DR3)** | ESA / Gaia DPAC / CDS | 331,312 stars ($\le 100\text{ pc}$) | Foundational 100-pc stellar spine; 5-parameter astrometry, 3D space velocities, $G/BP/RP$ photometry. | **Pending Ingestion** |
+| **01** | Layer 1 | **Gaia Catalogue of Nearby Stars (GCNS / Gaia DR3)** | ESA / Gaia DPAC / CDS | 331,312 stars ($\le 100\text{ pc}$) | Foundational 100-pc stellar spine; 5-parameter astrometry, 3D space velocities, $G/BP/RP$ photometry. | **Integrated** |
 | **02** | Layer 1 | **HYG Database (v3)** | Astronexus / Hipparcos / Yale / Gliese | 119,614 stars (all sky) | Historical cross-identifications (HIP, HD, HR, Gliese), Bayer/Flamsteed designations, spectral types. | **Integrated** |
 | **03** | Layer 1 | **IAU WGSN Star Names Gazetteer** | International Astronomical Union (IAU) | 451 named stars | Official common stellar names (Sirius, Betelgeuse, Proxima Centauri) replacing raw catalog IDs. | **Integrated** (Seed) |
 | **04** | Layer 1 | **RECONS 10-Parsec Census** | Research Consortium On Nearby Stars | $\sim 350$ systems ($\le 10\text{ pc}$) | Ground-truth census for ultra-cool red dwarfs, white dwarfs, and brown dwarfs within 10 pc. | **Partial** (3 seed) |
@@ -33,6 +34,7 @@ It details the scientific authority, data format, scope, pipeline role, target a
 | **09** | Layer 2 | **The Extrasolar Planets Encyclopaedia** | Paris Observatory (Exoplanet.eu) | 5,800+ planets | Independent European verification catalog for candidate and newly confirmed planetary systems. | **Pending Ingestion** |
 | **10** | Layer 2 | **PHL Habitable Worlds Catalog (HWC)** | Planetary Habitability Lab (Arecibo) | Confirmed HZ candidates | Earth Similarity Index (ESI), stellar insolation flux ($S/S_0$), and habitable zone candidate flags. | **Pending Ingestion** |
 | **11** | Layer 2 | **IAU NameExoWorlds Gazetteer** | International Astronomical Union (IAU) | 100+ systems | Officially approved cultural/proper names for host stars and exoplanets (e.g. 51 Pegasi b $\rightarrow$ *Dimidium*). | **Integrated** (Seed) |
+| **11b** | Layer 2 | **Resolved Circumstellar Disks & Belts (`CIRCUMSTELLAR_DISKS_CATALOG`)** | ALMA / Herschel / JWST / Spitzer | Resolved disks $\le 100\text{ pc}$ | Debris disks, asteroid belts, and Kuiper belts (e.g. Sol Asteroid/Kuiper Belts, Vega, Fomalhaut, $\epsilon$ Eridani, AU Mic). | **Integrated** |
 | **12** | Layer 3 | **Cantat-Gaudin Open Clusters Catalog** | T. Cantat-Gaudin et al. / CDS VizieR | 2,017 open clusters | 3D Cartesian coordinates, proper motions, parallax distances, cluster member counts, and ages. | **Pending Ingestion** |
 | **13** | Layer 3 | **Harris Globular Cluster Catalog (2010)** | W. E. Harris (McMaster Univ.) | 157 globular clusters | Milky Way globular cluster coordinates, core-collapse status, metallicity $[\text{Fe/H}]$, structural concentration. | **Pending Ingestion** |
 | **14** | Layer 3 | **Green's Catalogue of Galactic SNRs** | D. A. Green (Cavendish Lab, Cambridge) | 294 remnants | Supernova remnants (SNRs) with coordinates, angular diameters, radio flux densities, and remnant morphology. | **Pending Ingestion** |
@@ -63,8 +65,9 @@ It details the scientific authority, data format, scope, pipeline role, target a
 - **Upstream Resource:** CDS VizieR Catalog `J/A+A/649/A6` (`table1c.dat.gz`, 72 MB compressed).
 - **Scope:** 331,312 verified stars within 100 parsecs of Sol.
 - **Fields Provided:** `source_id`, `ra`, `dec`, `parallax`, `parallax_error`, `pmra`, `pmdec`, `phot_g_mean_mag`, `phot_bp_mean_mag`, `phot_rp_mean_mag`, `radial_velocity`.
-- **Purpose in Starmap:** The core astronomical backbone. Provides complete volume-limited positions and 3D kinematics for all stars within 100 parsecs, replacing magnitude-limited subsets with a complete census.
-- **Target Artifact:** `public/data/partitions/` and `data/stars.json`.
+- **Purpose in Starmap:** The core astronomical backbone. Provides complete volume-limited positions and 3D kinematics for all stars within 100 parsecs, replacing magnitude-limited subsets with a complete census. Stream-parsed offline and cross-matched with HYG v3 to preserve historical Bayer/Flamsteed and IAU proper names.
+- **Target Artifact:** `public/data/partitions/sector_*.json`, `public/data/details/<0..z>.json`, and `public/data/summaries/<0..z>.json`.
+- **Status:** **Integrated** via `scripts/build-data.ts`.
 
 #### 2. HYG Star Database (v3)
 - **Scientific Authority:** Astronexus (D. Nash) / Hipparcos / Yale Bright Star / Gliese.
@@ -149,6 +152,15 @@ It details the scientific authority, data format, scope, pipeline role, target a
 - **Fields Provided:** `star_proper_name`, `planet_proper_name`, `country_origin`, `citation`.
 - **Purpose in Starmap:** Attaching recognized proper names (e.g. *51 Pegasi b $\rightarrow$ Dimidium*, *HD 209458 b $\rightarrow$ Osiris*, *55 Cancri e $\rightarrow$ Janssen*).
 - **Target Artifact:** System manifest nomenclature and search indices.
+
+#### 11b. Resolved Circumstellar Disks & Belts (`CIRCUMSTELLAR_DISKS_CATALOG`)
+- **Scientific Authority:** ALMA / Herschel / JWST / Spitzer resolved debris disk surveys (`DEC-035`).
+- **Upstream Resource:** Hand-curated authoritative compilation from millimeter interferometry and thermal infrared space telescope publications (`scripts/fetch-sources.ts`).
+- **Scope:** Major resolved circumstellar debris disks, asteroid belts, and Kuiper belts within 100 parsecs (e.g. Sol Main Asteroid Belt and Kuiper Belt, Vega, Fomalhaut, $\epsilon$ Eridani, AU Microscopii).
+- **Fields Provided:** `id`, `name`, `kind` (`asteroid-belt` | `kuiper-belt` | `debris-disk`), `innerRadiusAu`, `outerRadiusAu`, `semiMajorAxisAu`, `tempK`, `composition`, `confidence`.
+- **Purpose in Starmap:** Enriches system orbital architecture manifests (`disks` array in `SystemManifest`) with resolved debris rings, asteroid belts, and planetesimal belts for 2D schematics and 3D intra-system rendering.
+- **Target Artifact:** Embedded in `SystemManifest` (`public/data/systems/`) and 36-bucket detail dictionary shards (`public/data/details/<0..z>.json`).
+- **Status:** **Integrated** via `scripts/build-data.ts`.
 
 ---
 
@@ -298,10 +310,11 @@ It details the scientific authority, data format, scope, pipeline role, target a
 
 To move from the current partial status to 100% comprehensive data ingestion:
 
-1. **Step 1 — Ingest Gaia DR3 GCNS (Layer 1 Backbone):**
-   - Download `table1c.dat.gz` from CDS VizieR (`https://cdsarc.cds.unistra.fr/ftp/J/A+A/649/A6/table1c.dat.gz`).
-   - Stream-parse all 331,312 stars within 100 pc.
-   - Cross-match with HYG v3 to preserve historical Bayer/Flamsteed names and IAU proper names.
+1. **Step 1 — Ingest Gaia DR3 GCNS (Layer 1 Backbone) — COMPLETE:**
+   - Downloaded `table1c.dat.gz` from CDS VizieR (`https://cdsarc.cds.unistra.fr/ftp/J/A+A/649/A6/table1c.dat.gz`).
+   - Stream-parsed all 331,312 stars within 100 pc.
+   - Cross-matched with HYG v3 to preserve historical Bayer/Flamsteed names and IAU proper names.
+   - Sharded into spatial sectors (`public/data/partitions/sector_*.json`) and 36-bucket $O(1)$ dictionary shards (`public/data/details/<0..z>.json`, `public/data/summaries/<0..z>.json`).
 2. **Step 2 — Deep Sky VizieR Machine Ingestion (Layer 3):**
    - Ingest Cantat-Gaudin (2,017 open clusters), Harris (157 globulars), Green's (294 SNRs), and ATNF (3,300+ pulsars) directly from machine-readable tables.
 3. **Step 3 — Solar System Orbits & Minor Planet Center (Layer 4):**
