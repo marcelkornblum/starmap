@@ -6,9 +6,11 @@ import {
   type SectorQueryInput,
 } from '../instrumentHydrationService';
 import {
+  getCachedSummaryNode,
   getCachedSummaryNodeByHash,
   fetchSummaryNodeByHash,
   clearDetailsRepositoryCache,
+  resetDetailsRepositoryCache,
 } from '../../data/detailsRepository';
 import { fnv1a32, encodeBinarySector, decodeBinarySector } from '../../utils/binarySectorCodec';
 import type { SectorPartitionManifest, SystemSummaryNode } from '../../types/astro';
@@ -129,19 +131,25 @@ describe('instrumentHydrationService', () => {
       expect(node?.id).toBe('tau-ceti');
       expect(node?.name).toBe('Tau Ceti');
 
-      // Now synchronous lookup works immediately from cached bucket
+      // Now synchronous lookup works immediately from cached bucket and returns memoized decoded reference
       const syncNode = getCachedSummaryNodeByHash(tauCetiHash);
-      expect(syncNode).toEqual(node);
+      expect(syncNode).toBe(node);
+      expect(getCachedSummaryNode('tau-ceti')).toBe(node);
 
       // Fetch sol by hash
       const solNode = await fetchSummaryNodeByHash(solHash, mockFetch as unknown as typeof fetch);
       expect(solNode).toBeDefined();
       expect(solNode?.id).toBe('sol');
-      expect(getCachedSummaryNodeByHash(solHash)).toEqual(solNode);
+      expect(getCachedSummaryNodeByHash(solHash)).toBe(solNode);
+      expect(getCachedSummaryNode('sol')).toBe(solNode);
 
       // Invalid or non-finite hashes return undefined
       expect(getCachedSummaryNodeByHash(NaN)).toBeUndefined();
       expect(await fetchSummaryNodeByHash(NaN)).toBeUndefined();
+
+      // resetDetailsRepositoryCache clears resolved caches
+      resetDetailsRepositoryCache();
+      expect(getCachedSummaryNode('tau-ceti')).toBeUndefined();
     });
   });
 

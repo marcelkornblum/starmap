@@ -4,14 +4,13 @@
     flex-direction: column;
     gap: var(--space-fib-3);
     padding: var(--space-inset-card);
-    background-color: var(--palette-surface-slab-dark);
     background: var(--surface-panel-bg);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
     border-radius: var(--radius-container);
     backdrop-filter: blur(var(--surface-panel-backdrop-blur));
     -webkit-backdrop-filter: blur(var(--surface-panel-backdrop-blur));
-    color: var(--content-primary);
+    color: var(--content-prominent);
   }
 
   .header {
@@ -35,8 +34,8 @@
     text-decoration: none;
     cursor: pointer;
     transition:
-      color var(--duration-fast) var(--ease-standard),
-      border-color var(--duration-fast) var(--ease-standard);
+      color var(--duration-fast) var(--motion-ease-out),
+      border-color var(--duration-fast) var(--motion-ease-out);
   }
 
   .closeButton:hover {
@@ -63,7 +62,7 @@
     margin: 0;
     font-family: var(--font-interface);
     font-size: var(--type-scale-0);
-    color: var(--content-secondary);
+    color: var(--content-muted);
   }
 
   .count {
@@ -74,7 +73,7 @@
 
   .sourceLink,
   .overviewLink {
-    color: var(--content-primary);
+    color: var(--content-prominent);
     text-decoration: none;
     font-size: var(--type-scale-0);
   }
@@ -116,6 +115,6 @@
 
 @layer exceptions {
   .root[data-layer-kind='scientific-overlay'] {
-    border-color: var(--intent-info);
+    border-color: var(--status-info-border);
   }
 }

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useId, type DialogHTMLAttributes, type ReactNode } from 'react';
 import { Stack } from '../../layouts/Stack/Stack';
+import { Button } from '../../controls/Button/Button';
 import styles from './Drawer.module.css';
 
 export interface DrawerProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'title'> {
@@ -73,14 +74,15 @@ export const Drawer = ({
         <Stack gap="default">
           <div className={styles.headerRow}>
             {title && <h2 id={titleId} className={styles.title}>{title}</h2>}
-            <button
-              type="button"
+            <Button
+              variant="subtle"
+              size="sm"
               className={styles.closeButton}
               onClick={onClose}
               aria-label="Close drawer"
             >
               ✕
-            </button>
+            </Button>
           </div>
           <div>{children}</div>
         </Stack>

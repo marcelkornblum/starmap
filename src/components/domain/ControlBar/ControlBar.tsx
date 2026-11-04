@@ -22,6 +22,9 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
 
   const projection = useSettingsStore((s) => s.projection);
   const setProjection = useSettingsStore((s) => s.setProjection);
+  const setEnableOrthographicProjection = useSettingsStore(
+    (s) => s.setEnableOrthographicProjection,
+  );
   const showOrbits = useSettingsStore((s) => s.showOrbits);
   const toggleOrbits = useSettingsStore((s) => s.toggleOrbits);
   const showGrid = useSettingsStore((s) => s.showGrid);
@@ -125,7 +128,10 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
           variant={projection === '3d' ? 'primary' : 'subtle'}
           data-testid="control-bar-projection-3d"
           aria-pressed={projection === '3d'}
-          onClick={() => setProjection('3d')}
+          onClick={() => {
+            setProjection('3d');
+            setEnableOrthographicProjection(false);
+          }}
         >
           3D
         </Button>
@@ -134,7 +140,10 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
           variant={projection === 'top-down' ? 'primary' : 'subtle'}
           data-testid="control-bar-projection-top-down"
           aria-pressed={projection === 'top-down'}
-          onClick={() => setProjection('top-down')}
+          onClick={() => {
+            setProjection('top-down');
+            setEnableOrthographicProjection(true);
+          }}
         >
           Top-Down
         </Button>

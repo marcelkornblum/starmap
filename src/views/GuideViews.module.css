@@ -1,18 +1,18 @@
-@layer views {
+@layer blocks {
   .guideRoot {
-    --star-chromaticity-o: #9bb0ff;
-    --star-chromaticity-b: #aabfff;
-    --star-chromaticity-a: #cad7ff;
-    --star-chromaticity-f: #f8f7ff;
-    --star-chromaticity-g: #fff4ea;
-    --star-chromaticity-k: #ffd2a1;
-    --star-chromaticity-m: #ffcc6f;
-    --star-chromaticity-l: #ff6b3d;
-    --star-chromaticity-d: #e6f0ff;
+    --star-chromaticity-o: var(--spectral-o);
+    --star-chromaticity-b: var(--spectral-b);
+    --star-chromaticity-a: var(--spectral-a);
+    --star-chromaticity-f: var(--spectral-f);
+    --star-chromaticity-g: var(--spectral-g);
+    --star-chromaticity-k: var(--spectral-k);
+    --star-chromaticity-m: var(--spectral-m);
+    --star-chromaticity-l: var(--spectral-l);
+    --star-chromaticity-d: var(--spectral-d);
 
-    --planet-theme-terrestrial: #4da6ff;
-    --planet-theme-ice-giant: #5ce6e6;
-    --planet-theme-gas-giant: #e6a85c;
+    --planet-theme-terrestrial: var(--spectral-terrestrial);
+    --planet-theme-ice-giant: var(--spectral-ice-giant);
+    --planet-theme-gas-giant: var(--spectral-gas-giant);
 
     --sphere-highlight-high: rgba(255, 255, 255, 0.92);
     --sphere-highlight-mid: rgba(255, 255, 255, 0.45);
@@ -23,7 +23,7 @@
     --sphere-shadow-deep: rgba(0, 0, 0, 0.55);
     --sphere-shadow-inset: rgba(0, 0, 0, 0.75);
     --sphere-shadow-base: rgba(0, 0, 0, 0.82);
-    --sphere-planet-dark: #05070b;
+    --sphere-planet-dark: var(--surface-base);
     --sphere-planet-glow: rgba(120, 180, 255, 0.25);
 
     display: flex;
@@ -214,7 +214,7 @@
     background:
       radial-gradient(circle at 32% 28%, var(--sphere-highlight-high) 0%, var(--sphere-highlight-low) 28%, transparent 55%),
       radial-gradient(circle at 65% 68%, var(--sphere-shadow-soft) 0%, transparent 48%),
-      radial-gradient(circle at 40% 38%, #ffffff 0%, currentColor 54%, var(--sphere-shadow-base) 100%);
+      radial-gradient(circle at 40% 38%, var(--content-prominent) 0%, currentColor 54%, var(--sphere-shadow-base) 100%);
     box-shadow:
       inset -8px -8px 18px var(--sphere-shadow-deep),
       0 0 28px currentColor;
@@ -374,8 +374,8 @@
   }
 
   .sliceButton[aria-pressed='true'] {
-    border-color: var(--palette-accent-focus);
-    background-color: var(--palette-accent-focus-subtle);
+    border-color: var(--state-focus);
+    background-color: var(--state-selected-bg);
     color: var(--content-prominent);
   }
 
@@ -451,7 +451,7 @@
   .comparisonRatio {
     padding: var(--space-fib-2) var(--space-fib-3);
     border-radius: var(--radius-sm);
-    background-color: var(--palette-accent-focus-subtle);
+    background-color: var(--state-selected-bg);
     color: var(--content-accent);
     font-family: var(--font-data);
     font-weight: 600;

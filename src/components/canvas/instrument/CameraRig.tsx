@@ -123,11 +123,18 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   const enableOrthographicProjection = useSettingsStore(
     (s) => s.enableOrthographicProjection,
   );
+  const projection = useSettingsStore((s) => s.projection);
+  const isOrthoProjectionActive = projection === 'top-down' || enableOrthographicProjection;
+
+  const isOrthoAllowed = useCallback(() => {
+    const s = useSettingsStore.getState();
+    return s.enableOrthographicProjection || s.projection === 'top-down';
+  }, []);
 
   // Lock to true orthographic camera
   const lockToOrthographic = useCallback(
     (cardinal?: CardinalDirection) => {
-      if (!useSettingsStore.getState().enableOrthographicProjection) return;
+      if (!isOrthoAllowed()) return;
       const state = get();
       const currentCamera = state.camera;
       const perspCam = perspCamRef.current ?? (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
@@ -151,7 +158,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
 
       state.invalidate?.();
     },
-    [get, orthoCamRef],
+    [get, isOrthoAllowed, orthoCamRef],
   );
 
   // Restore to standard 3D perspective camera
@@ -182,7 +189,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   // Glide to a designated cardinal axis
   const glideToCardinal = useCallback(
     (cardinal: CardinalDirection) => {
-      if (!useSettingsStore.getState().enableOrthographicProjection) return;
+      if (!isOrthoAllowed()) return;
       const state = get();
       const currentCamera = state.camera;
       const perspCam = perspCamRef.current ?? (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
@@ -204,7 +211,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
         cardinal,
         snapDuration,
         () => {
-          if (useSettingsStore.getState().enableOrthographicProjection) {
+          if (isOrthoAllowed()) {
             lockToOrthographic(cardinal);
           }
         },
@@ -218,6 +225,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       snapDuration,
       configuredBaseFov,
       controllerRef,
+      isOrthoAllowed,
       lockToOrthographic,
       orthoCamRef,
     ],
@@ -227,9 +235,9 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   useEffect(() => {
     if (!pendingAxisRequest) return;
     useCameraStore.getState().clearAxisRequest();
-    if (!useSettingsStore.getState().enableOrthographicProjection) return;
+    if (!isOrthoAllowed()) return;
     glideToCardinal(pendingAxisRequest);
-  }, [pendingAxisRequest, glideToCardinal]);
+  }, [pendingAxisRequest, isOrthoAllowed, glideToCardinal]);
 
   // Handle programmatic preset requests
   useEffect(() => {
@@ -242,7 +250,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
 
     switch (preset) {
       case 'top-down':
-        if (useSettingsStore.getState().enableOrthographicProjection) {
+        if (isOrthoAllowed()) {
           glideToCardinal('top');
         }
         break;
@@ -267,7 +275,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       }
 
       case 'orbital-lock':
-        if (useSettingsStore.getState().enableOrthographicProjection) {
+        if (isOrthoAllowed()) {
           glideToCardinal('front');
         }
         break;
@@ -294,6 +302,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   }, [
     pendingPresetRequest,
     get,
+    isOrthoAllowed,
     glideToCardinal,
     unlockFromOrthographic,
     frame.camera.defaultPosition,
@@ -305,18 +314,18 @@ export const CameraRig: React.FC<CameraRigProps> = ({
 
   // If orthographic projection is disabled while locked, immediately unlock
   useEffect(() => {
-    if (!enableOrthographicProjection) {
+    if (!isOrthoProjectionActive) {
       if (useCameraStore.getState().isLocked || get().camera === orthoCamRef.current) {
         unlockFromOrthographic();
       }
     }
-  }, [enableOrthographicProjection, get, unlockFromOrthographic, orthoCamRef]);
+  }, [isOrthoProjectionActive, get, unlockFromOrthographic, orthoCamRef]);
 
   // Handle lock state changes from external store toggle
   useEffect(() => {
     const currentCamera = get().camera;
     if (isLocked) {
-      if (useSettingsStore.getState().enableOrthographicProjection) {
+      if (isOrthoAllowed()) {
         if (currentCamera !== orthoCamRef.current) {
           lockToOrthographic();
         }
@@ -328,7 +337,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
         unlockFromOrthographic();
       }
     }
-  }, [isLocked, get, lockToOrthographic, unlockFromOrthographic, orthoCamRef]);
+  }, [isLocked, isOrthoAllowed, get, lockToOrthographic, unlockFromOrthographic, orthoCamRef]);
 
   // Window resize synchronization for orthographic frustum
   useEffect(() => {
@@ -356,7 +365,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     };
 
     const handleEnd = () => {
-      if (!snapOnRelease || !useSettingsStore.getState().enableOrthographicProjection) return;
+      if (!snapOnRelease || !isOrthoAllowed()) return;
       if (useCameraStore.getState().isLocked) return;
 
       const currentCamera = get().camera;

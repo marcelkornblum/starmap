@@ -830,6 +830,20 @@
     --category-orbit-bg:           var(--palette-violet-alpha-15);
     --category-habitability:       var(--palette-solarized-green);
     --category-habitability-bg:    var(--palette-green-alpha-15);
+
+    /* Spectral & Chromaticity Semantics */
+    --spectral-o:                  #9bb0ff;
+    --spectral-b:                  #aabfff;
+    --spectral-a:                  #cad7ff;
+    --spectral-f:                  #f8f7ff;
+    --spectral-g:                  #fff4ea;
+    --spectral-k:                  #ffd2a1;
+    --spectral-m:                  #ffcc6f;
+    --spectral-l:                  #ff6b3d;
+    --spectral-d:                  #e6f0ff;
+    --spectral-terrestrial:        #4da6ff;
+    --spectral-ice-giant:          #5ce6e6;
+    --spectral-gas-giant:          #e6a85c;
   }
 
   /* ------------------------------------------------------------------------ */
@@ -1337,6 +1351,20 @@
     --category-orbit-bg:           var(--palette-violet-alpha-15);
     --category-habitability:       var(--palette-solarized-green);
     --category-habitability-bg:    var(--palette-green-alpha-15);
+
+    /* Spectral & Chromaticity Semantics */
+    --spectral-o:                  #9bb0ff;
+    --spectral-b:                  #aabfff;
+    --spectral-a:                  #cad7ff;
+    --spectral-f:                  #f8f7ff;
+    --spectral-g:                  #fff4ea;
+    --spectral-k:                  #ffd2a1;
+    --spectral-m:                  #ffcc6f;
+    --spectral-l:                  #ff6b3d;
+    --spectral-d:                  #e6f0ff;
+    --spectral-terrestrial:        #4da6ff;
+    --spectral-ice-giant:          #5ce6e6;
+    --spectral-gas-giant:          #e6a85c;
   }
 
   /* ------------------------------------------------------------------------ */

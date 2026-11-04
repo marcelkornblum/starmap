@@ -28,6 +28,26 @@ export interface SpatialEntityProviderProps {
   children?: React.ReactNode;
 }
 
+const APERTURE_EPSILON = 1e-4;
+
+function commitApertureState(
+  state: SpatialEntityState,
+  idsChanged: boolean,
+  scratch: Set<string>,
+  frameChanged: boolean,
+  fx: number,
+  fy: number,
+  fz: number,
+  radius: number,
+): void {
+  if (idsChanged) {
+    state.setApertureIds(new Set(scratch));
+  }
+  if (frameChanged) {
+    state.setApertureFrame([fx, fy, fz], radius);
+  }
+}
+
 /**
  * ApertureEvaluator (§2.1 / §2.2):
  * Runs at FRAME_PRIORITY.entityAperture, right after SpatialFrameProvider computes
@@ -46,7 +66,7 @@ export const ApertureEvaluator: React.FC = () => {
     const rSq = apertureRadius * apertureRadius;
     const state = store.getState();
     const currentAperture = state.apertureIds;
-    let changed = false;
+    let idsChanged = false;
     const scratch = scratchApertureRef.current;
     scratch.clear();
 
@@ -54,7 +74,10 @@ export const ApertureEvaluator: React.FC = () => {
     const streamedInApertureCount = useActiveStarsStore.getState().summaries.length;
 
     if (streamedInApertureCount <= activeCutoff) {
-      for (const [id, entity] of Object.entries(state.entities)) {
+      const entities = state.entities;
+      for (const id in entities) {
+        if (!Object.prototype.hasOwnProperty.call(entities, id)) continue;
+        const entity = entities[id];
         const pos = entity.position;
         let x = 0;
         let y = 0;
@@ -83,21 +106,37 @@ export const ApertureEvaluator: React.FC = () => {
     }
 
     if (scratch.size !== currentAperture.size) {
-      changed = true;
+      idsChanged = true;
     } else {
       for (const id of scratch) {
         if (!currentAperture.has(id)) {
-          changed = true;
+          idsChanged = true;
           break;
         }
       }
     }
 
-    if (changed || state.apertureRadius === null) {
-      // r3f-audit-disable-next-line no-alloc-in-use-frame
-      state.setApertureIds(new Set(scratch));
-      // r3f-audit-disable-next-line no-alloc-in-use-frame
-      state.setApertureFrame([focusPoint.x, focusPoint.y, focusPoint.z], apertureRadius);
+    const prevCenter = state.apertureCenter;
+    const prevRadius = state.apertureRadius;
+    const frameChanged =
+      prevCenter === null ||
+      prevRadius === null ||
+      Math.abs(prevCenter[0] - focusPoint.x) > APERTURE_EPSILON ||
+      Math.abs(prevCenter[1] - focusPoint.y) > APERTURE_EPSILON ||
+      Math.abs(prevCenter[2] - focusPoint.z) > APERTURE_EPSILON ||
+      Math.abs(prevRadius - apertureRadius) > APERTURE_EPSILON;
+
+    if (idsChanged || frameChanged) {
+      commitApertureState(
+        state,
+        idsChanged,
+        scratch,
+        frameChanged,
+        focusPoint.x,
+        focusPoint.y,
+        focusPoint.z,
+        apertureRadius,
+      );
     }
   }, FRAME_PRIORITY.entityAperture);
 
