@@ -17,6 +17,7 @@ import {
   Unit,
   shouldDisplaySpectralBadge,
 } from '../../interface/information';
+import styles from './OrbitalSchematicPanel.module.css';
 
 export interface OrbitalSchematicItemProps {
   readonly item: OrbitalSchematicItemType;
@@ -49,6 +50,7 @@ export function OrbitalSchematicItem({
 }: OrbitalSchematicItemProps): React.ReactElement {
   return (
     <li
+      className={styles.item}
       data-testid="orbital-schematic-item"
       data-entity-id={item.id}
       data-kind={item.kind}
@@ -155,7 +157,7 @@ export function OrbitalSchematicList({
   items,
 }: OrbitalSchematicListProps): React.ReactElement {
   return (
-    <ol data-testid="orbital-schematic-list">
+    <ol className={styles.list} data-testid="orbital-schematic-list">
       {items.map((item) => (
         <OrbitalSchematicItem key={item.id} item={item} />
       ))}
@@ -177,6 +179,7 @@ export const OrbitalSchematicPanel: React.FC<OrbitalSchematicPanelProps> = ({
   return (
     <section
       aria-labelledby="orbital-schematic-panel-heading"
+      className={styles.orbitalSchematicPanel}
       data-testid="orbital-schematic-panel"
       data-scope={elements.scope}
       data-system-id={elements.systemId}

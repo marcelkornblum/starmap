@@ -20,6 +20,7 @@ import {
 import { DetailsIdentityHeader } from './DetailsIdentityHeader';
 import { DetailsQuickTelemetry } from './DetailsQuickTelemetry';
 import { DetailsTelemetrySections } from './DetailsTelemetrySections';
+import styles from './DetailsPanel.module.css';
 
 export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
@@ -128,6 +129,7 @@ export const DetailsPanel = ({
           data-testid="orbital-schematic-panel"
           data-scope={schematic.scope}
           data-system-id={schematic.systemId}
+          className={styles.schematicSection}
         >
           <Heading as="h4" size="eyebrow" id="details-schematic-heading">
             Orbital Schematic
@@ -141,6 +143,7 @@ export const DetailsPanel = ({
 
   return (
     <DetentSheet
+      className={styles.detailsPanel}
       testIdPrefix="details"
       heading="Details"
       headingId="details-panel-heading"

@@ -13,6 +13,7 @@ import {
 } from '../../interface';
 import { useSearchContext } from '../../search/SearchContext';
 import { resolveAppHref } from '../../../utils/url';
+import styles from './SearchResultItem.module.css';
 
 export interface SearchResultItemProps {
   readonly result: SearchResultItemModel;
@@ -118,6 +119,7 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
 
   return (
     <li
+      className={styles.searchResultItem}
       data-testid="search-result-item"
       data-entity-id={id}
       data-system-id={systemId}
