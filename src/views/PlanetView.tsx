@@ -389,16 +389,19 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
         </Search.Root>
       }
       layerCard={<LayerCard card={activeLayerCard} />}
-      primaryFloat={
-        activeJourney ? (
-          <DirectionsPanel journey={activeJourney} />
-        ) : (
+      detailsPanel={
+        focusedDetails ? (
           <DetailsPanel
             details={focusedDetails}
             schematic={orbitalSchematic}
             preview={focusedPreview}
           />
-        )
+        ) : undefined
+      }
+      directionsPanel={
+        activeJourney && routeStops && routeStops.length >= 2 ? (
+          <DirectionsPanel journey={activeJourney} />
+        ) : undefined
       }
       preview={activeJourney ? <PreviewPanel preview={focusedPreview} /> : null}
       minimap={<Minimap orientation={minimapOrientation} />}

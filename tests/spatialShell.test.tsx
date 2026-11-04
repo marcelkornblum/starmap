@@ -9,6 +9,7 @@ import {
   canMountWebGLCanvas,
   _resetWebGLSupportedForTesting,
 } from '../src/components/domain';
+import { resolvePrimaryPanels } from '../src/components/domain/SpatialShell/SpatialShell';
 import { Search } from '../src/components/search';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { SystemView } from '../src/views/SystemView';
@@ -496,6 +497,183 @@ describe('SpatialShell Component & View Integration Suite', () => {
       // Full controls are present in DOM for hydration / CSS visibility toggling
       expect(html).toContain('data-testid="control-bar-time-controller"');
       expect(html).toContain('data-testid="control-bar-mode-group"');
+    });
+  });
+
+  describe('Decision 3: Independent detailsPanel & directionsPanel Slots and Responsive Layout Controller', () => {
+    it('resolvePrimaryPanels returns primaryFloat when explicitly passed alone', () => {
+      const res = resolvePrimaryPanels({
+        primaryFloat: <div data-testid="legacy-primary">Legacy Float</div>,
+      });
+      const html = renderToString(<>{res}</>);
+      expect(html).toContain('data-testid="legacy-primary"');
+    });
+
+    it('resolvePrimaryPanels returns detailsPanel when only detailsPanel is provided', () => {
+      const res = resolvePrimaryPanels({
+        detailsPanel: <div data-testid="details-panel">Details</div>,
+      });
+      const html = renderToString(<>{res}</>);
+      expect(html).toContain('data-testid="details-panel"');
+    });
+
+    it('resolvePrimaryPanels returns directionsPanel when only directionsPanel is provided', () => {
+      const res = resolvePrimaryPanels({
+        directionsPanel: <div data-testid="directions-panel">Directions</div>,
+      });
+      const html = renderToString(<>{res}</>);
+      expect(html).toContain('data-testid="directions-panel"');
+    });
+
+    it('resolvePrimaryPanels respects primaryPanelPriority in single-panel mode', () => {
+      const details = <div data-testid="details-panel">Details</div>;
+      const directions = <div data-testid="directions-panel">Directions</div>;
+
+      const directionsPriority = resolvePrimaryPanels({
+        detailsPanel: details,
+        directionsPanel: directions,
+        primaryPanelPriority: 'directions',
+        dualPanelPolicy: 'single',
+      });
+      expect(renderToString(<>{directionsPriority}</>)).toContain('data-testid="directions-panel"');
+      expect(renderToString(<>{directionsPriority}</>)).not.toContain('data-testid="details-panel"');
+
+      const detailsPriority = resolvePrimaryPanels({
+        detailsPanel: details,
+        directionsPanel: directions,
+        primaryPanelPriority: 'details',
+        dualPanelPolicy: 'single',
+      });
+      expect(renderToString(<>{detailsPriority}</>)).toContain('data-testid="details-panel"');
+      expect(renderToString(<>{detailsPriority}</>)).not.toContain('data-testid="directions-panel"');
+    });
+
+    it('resolvePrimaryPanels renders both panels in priority order when dualPanelPolicy is simultaneous', () => {
+      const details = <div data-testid="details-panel">Details</div>;
+      const directions = <div data-testid="directions-panel">Directions</div>;
+
+      const simultaneousDirectionsFirst = resolvePrimaryPanels({
+        detailsPanel: details,
+        directionsPanel: directions,
+        primaryPanelPriority: 'directions',
+        dualPanelPolicy: 'simultaneous',
+      });
+      const htmlDirFirst = renderToString(<>{simultaneousDirectionsFirst}</>);
+      expect(htmlDirFirst).toContain('data-testid="directions-panel"');
+      expect(htmlDirFirst).toContain('data-testid="details-panel"');
+      expect(htmlDirFirst.indexOf('data-testid="directions-panel"')).toBeLessThan(
+        htmlDirFirst.indexOf('data-testid="details-panel"'),
+      );
+
+      const simultaneousDetailsFirst = resolvePrimaryPanels({
+        detailsPanel: details,
+        directionsPanel: directions,
+        primaryPanelPriority: 'details',
+        dualPanelPolicy: 'simultaneous',
+      });
+      const htmlDetFirst = renderToString(<>{simultaneousDetailsFirst}</>);
+      expect(htmlDetFirst).toContain('data-testid="directions-panel"');
+      expect(htmlDetFirst).toContain('data-testid="details-panel"');
+      expect(htmlDetFirst.indexOf('data-testid="details-panel"')).toBeLessThan(
+        htmlDetFirst.indexOf('data-testid="directions-panel"'),
+      );
+    });
+
+    it('resolvePrimaryPanels behaves responsively under dualPanelPolicy auto based on isWideViewport', () => {
+      const details = <div data-testid="details-panel">Details</div>;
+      const directions = <div data-testid="directions-panel">Directions</div>;
+
+      // Narrow (< 1920px) -> single panel matching priority
+      const narrow = resolvePrimaryPanels({
+        detailsPanel: details,
+        directionsPanel: directions,
+        primaryPanelPriority: 'directions',
+        dualPanelPolicy: 'auto',
+        isWideViewport: false,
+      });
+      const narrowHtml = renderToString(<>{narrow}</>);
+      expect(narrowHtml).toContain('data-testid="directions-panel"');
+      expect(narrowHtml).not.toContain('data-testid="details-panel"');
+
+      // Ultrawide (>= 1920px) -> simultaneous dual panels
+      const wide = resolvePrimaryPanels({
+        detailsPanel: details,
+        directionsPanel: directions,
+        primaryPanelPriority: 'directions',
+        dualPanelPolicy: 'auto',
+        isWideViewport: true,
+      });
+      const wideHtml = renderToString(<>{wide}</>);
+      expect(wideHtml).toContain('data-testid="directions-panel"');
+      expect(wideHtml).toContain('data-testid="details-panel"');
+    });
+
+    it('resolvePrimaryPanels handles closed panel states correctly', () => {
+      const details = <div data-testid="details-panel">Details</div>;
+      const directions = <div data-testid="directions-panel">Directions</div>;
+
+      // Details closed -> renders directions even if priority is details
+      const detailsClosed = resolvePrimaryPanels({
+        detailsPanel: details,
+        directionsPanel: directions,
+        isDetailsOpen: false,
+        isDirectionsOpen: true,
+        primaryPanelPriority: 'details',
+      });
+      expect(renderToString(<>{detailsClosed}</>)).toBe('<div data-testid="directions-panel">Directions</div>');
+
+      // Directions closed -> renders details even if priority is directions
+      const directionsClosed = resolvePrimaryPanels({
+        detailsPanel: details,
+        directionsPanel: directions,
+        isDetailsOpen: true,
+        isDirectionsOpen: false,
+        primaryPanelPriority: 'directions',
+      });
+      expect(renderToString(<>{directionsClosed}</>)).toBe('<div data-testid="details-panel">Details</div>');
+
+      // Both closed -> returns null or primaryFloat fallback
+      const bothClosed = resolvePrimaryPanels({
+        detailsPanel: details,
+        directionsPanel: directions,
+        isDetailsOpen: false,
+        isDirectionsOpen: false,
+      });
+      expect(bothClosed).toBeNull();
+    });
+
+    it('SpatialShell integrates with useUIStore panel state and dual-panel policy', () => {
+      useUIStore.getState().setPrimaryPanelPriority('directions');
+      useUIStore.getState().setDualPanelPolicy('single');
+
+      const htmlDirections = renderToString(
+        <SpatialShell
+          detailsPanel={<div data-testid="store-details">Details</div>}
+          directionsPanel={<div data-testid="store-directions">Directions</div>}
+        />,
+      );
+      expect(htmlDirections).toContain('data-testid="store-directions"');
+      expect(htmlDirections).not.toContain('data-testid="store-details"');
+
+      useUIStore.getState().setPrimaryPanelPriority('details');
+      const htmlDetails = renderToString(
+        <SpatialShell
+          detailsPanel={<div data-testid="store-details">Details</div>}
+          directionsPanel={<div data-testid="store-directions">Directions</div>}
+        />,
+      );
+      expect(htmlDetails).toContain('data-testid="store-details"');
+      expect(htmlDetails).not.toContain('data-testid="store-directions"');
+
+      useUIStore.getState().setDualPanelPolicy('simultaneous');
+      const htmlSimultaneous = renderToString(
+        <SpatialShell
+          detailsPanel={<div data-testid="store-details">Details</div>}
+          directionsPanel={<div data-testid="store-directions">Directions</div>}
+        />,
+      );
+      expect(htmlSimultaneous).toContain('data-testid="store-details"');
+      expect(htmlSimultaneous).toContain('data-testid="store-directions"');
     });
   });
 });

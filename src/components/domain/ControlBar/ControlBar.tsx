@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
+import { useKeyboardShortcuts } from '../../../hooks/useKeyboardShortcuts';
 import { Button, Heading, Input, Kbd, Slider, Toggle } from '../../interface';
 import styles from './ControlBar.module.css';
 
@@ -31,6 +32,10 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
   const toggleGrid = useSettingsStore((s) => s.toggleGrid);
   const showLabels = useSettingsStore((s) => s.showLabels);
   const toggleLabels = useSettingsStore((s) => s.toggleLabels);
+
+  useKeyboardShortcuts({
+    onTogglePlay: () => setIsPlaying((p) => !p),
+  });
 
   return (
     <section
