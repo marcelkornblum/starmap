@@ -8,6 +8,7 @@ import {
 import {
   Badge,
   Button,
+  Cluster,
   Datum,
   Heading,
   Stack,
@@ -102,11 +103,11 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
           )}
 
           <section className={styles.cardItem}>
-            <div>
+            <Cluster gap="tight" align="center">
               <strong>{entry.title}</strong>{' '}
               <Unit inParens>{entry.unitSymbol}</Unit>{' '}
               <Badge status="neutral">{entry.category}</Badge>
-            </div>
+            </Cluster>
 
             <p
               data-testid="metric-familiar-conversion"

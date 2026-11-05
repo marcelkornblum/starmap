@@ -6,12 +6,12 @@ import {
   StarTypeCombinator,
 } from '../components/domain';
 import {
-  Badge,
   Button,
   CelestialSymbol,
   Cluster,
   Datum,
   Heading,
+  SpectralBadge,
   Stack,
 } from '../components/interface';
 import {
@@ -122,7 +122,7 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
                 size="sm"
                 showTooltip={false}
               />
-              <Badge category="star">{resolvedDetail.entry.spectralClass}</Badge>{' '}
+              <SpectralBadge spectralType={resolvedDetail.entry.spectralClass} interactive={false} />{' '}
               <strong>{resolvedDetail.entry.title}</strong>
             </Cluster>
             <p data-testid="guide-detail-summary">{resolvedDetail.entry.summary}</p>

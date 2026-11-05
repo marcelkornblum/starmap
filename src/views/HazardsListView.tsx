@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
-import { Badge, Cluster, Datum, Heading } from '../components/interface';
+import { Badge, Cluster, Datum, HazardBadge, Heading } from '../components/interface';
 import { HAZARD_GUIDE_ENTRIES } from '../services/guideService';
 import styles from './GuideViews.module.css';
 
@@ -37,9 +37,11 @@ export const HazardsListView: React.FC = () => {
                 severity={entry.severity}
               />
               <Cluster gap="tight" align="center">
-                <Badge status={entry.severity === 'critical' ? 'critical' : 'caution'}>
-                  {entry.title}
-                </Badge>
+                <HazardBadge
+                  code={entry.id}
+                  label={entry.title}
+                  severity={entry.severity}
+                />
                 <Badge status="neutral">{entry.domainLabel}</Badge>
               </Cluster>
               <Datum label="Trigger Threshold" value={entry.thresholdCriteria} />

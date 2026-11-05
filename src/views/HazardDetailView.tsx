@@ -8,7 +8,9 @@ import {
 import {
   Badge,
   Button,
+  Cluster,
   Datum,
+  HazardBadge,
   Heading,
   Stack,
 } from '../components/interface';
@@ -74,12 +76,14 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
               isDetail
             />
 
-            <div>
-              <Badge status={entry.severity === 'critical' ? 'critical' : 'caution'}>
-                {entry.title}
-              </Badge>{' '}
+            <Cluster gap="tight" align="center">
+              <HazardBadge
+                code={entry.id}
+                label={entry.title}
+                severity={entry.severity}
+              />
               <Badge status="neutral">{entry.domainLabel}</Badge>
-            </div>
+            </Cluster>
 
             <p data-testid="guide-detail-summary">{entry.summary}</p>
 
