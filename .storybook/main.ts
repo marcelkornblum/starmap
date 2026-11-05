@@ -16,6 +16,9 @@ const config: StorybookConfig = {
     "@storybook/addon-mcp"
   ],
   "framework": "@storybook/react-vite",
+  "core": {
+    "allowedHosts": true,
+  },
   async viteFinal(config) {
     config.server = config.server || {};
     config.server.allowedHosts = true;

@@ -2,6 +2,7 @@ import type { FocusedDiskTelemetry } from '../../../services/detailsService';
 import { buildMetricGuideHref } from '../../../services/searchService';
 import {
   Badge,
+  type BadgeConfidence,
   CelestialBadge,
   type ConfidenceLevel,
   Datum,
@@ -49,7 +50,7 @@ export const DetailsDiskTelemetrySection = ({
             valueTestId="details-disk-telemetry-confidence"
             confidence={diskTelemetry.confidence as ConfidenceLevel}
             value={
-              <Badge confidence={diskTelemetry.confidence as ConfidenceLevel}>
+              <Badge confidence={diskTelemetry.confidence as BadgeConfidence}>
                 {diskTelemetry.confidence}
               </Badge>
             }
