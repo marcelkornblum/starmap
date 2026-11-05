@@ -354,6 +354,47 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     get().invalidate?.();
   }, [sizeWidth, sizeHeight, isLocked, get, orthoCamRef]);
 
+  // Camera pose synchronization helper: updates useCameraStore with current position, target, and zoom
+  const syncPoseToStore = useCallback(() => {
+    const currentCam = get().camera ?? camera;
+    if (!currentCam) return;
+    const targetVec = controls?.target ?? persistentTargetRef.current ?? FALLBACK_TARGET;
+    const store = useCameraStore.getState();
+    const currentPos: [number, number, number] = [
+      currentCam.position.x,
+      currentCam.position.y,
+      currentCam.position.z,
+    ];
+    const currentTarget: [number, number, number] = [
+      targetVec.x,
+      targetVec.y,
+      targetVec.z,
+    ];
+    const currentZoom =
+      (currentCam as THREE.OrthographicCamera | THREE.PerspectiveCamera).zoom ?? 1;
+
+    const posDiff = Math.hypot(
+      currentPos[0] - store.position[0],
+      currentPos[1] - store.position[1],
+      currentPos[2] - store.position[2],
+    );
+    const targetDiff = Math.hypot(
+      currentTarget[0] - store.target[0],
+      currentTarget[1] - store.target[1],
+      currentTarget[2] - store.target[2],
+    );
+    const zoomDiff = Math.abs(currentZoom - (store.zoom ?? 1));
+
+    if (posDiff > 1e-3 || targetDiff > 1e-3 || zoomDiff > 1e-3) {
+      store.setCameraTransform(currentPos, currentTarget, currentZoom);
+    }
+  }, [camera, controls, get]);
+
+  // Initial mount pose sync
+  useEffect(() => {
+    syncPoseToStore();
+  }, [syncPoseToStore]);
+
   // OrbitControls interaction listener: discrete snap-on-release and cancel-on-drag
   useEffect(() => {
     if (!controls || typeof controls.addEventListener !== 'function') return;
@@ -364,7 +405,12 @@ export const CameraRig: React.FC<CameraRigProps> = ({
       }
     };
 
+    const handleChange = () => {
+      syncPoseToStore();
+    };
+
     const handleEnd = () => {
+      syncPoseToStore();
       if (!snapOnRelease || !isOrthoAllowed()) return;
       if (useCameraStore.getState().isLocked) return;
 
@@ -377,10 +423,15 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     };
 
     controls.addEventListener('start', handleStart);
+    controls.addEventListener('change', handleChange);
     controls.addEventListener('end', handleEnd);
+
+    // Initial sync with active controls
+    syncPoseToStore();
 
     return () => {
       controls.removeEventListener?.('start', handleStart);
+      controls.removeEventListener?.('change', handleChange);
       controls.removeEventListener?.('end', handleEnd);
     };
   }, [
@@ -390,6 +441,9 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     snapThresholdRad,
     glideToCardinal,
     controllerRef,
+    isOrthoAllowed,
+    perspCamRef,
+    syncPoseToStore,
   ]);
 
   // Frame update loop
@@ -411,6 +465,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
 
     const updated = controllerRef.current.update(state.camera, activeControls);
     if (updated) {
+      syncPoseToStore();
       state.invalidate();
     }
 

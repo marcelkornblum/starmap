@@ -17,7 +17,7 @@ const config: StorybookConfig = {
   ],
   "framework": "@storybook/react-vite",
   "core": {
-    "allowedHosts": true,
+    "allowedHosts": ["192.168.1.124", "localhost", "127.0.0.1"],
   },
   async viteFinal(config) {
     config.server = config.server || {};

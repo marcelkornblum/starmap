@@ -10,7 +10,8 @@
   }
 
   html,
-  body {
+  body,
+  #root {
     margin: 0;
     padding: 0;
     min-height: 100%;
@@ -20,6 +21,16 @@
     color: var(--content-default);
     font-family: var(--font-interface);
     font-size: var(--type-scale-0);
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  input,
+  textarea {
+    user-select: text;
+    -webkit-user-select: text;
   }
 
   a {
@@ -35,6 +46,8 @@
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
   }
 }
 

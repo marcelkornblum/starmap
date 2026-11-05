@@ -47,6 +47,7 @@ export interface SpatialEntityDefinition {
   planets?: PlanetCensusEntry[];
   velocity?: [number, number, number] | THREE.Vector3;
   orbit?: SpatialOrbitDefinition;
+  parentBodyId?: string;
   /** Radius of physical 3D sphere when rendered via PlanetBody (enables seamless node cross-fade) */
   bodyRadius?: number;
   bodyMinPixelSize?: number;

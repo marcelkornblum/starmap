@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
 import {
@@ -7,6 +7,7 @@ import {
   PlanetaryViewScene,
 } from '../../canvas/scenes/SpatialScenes';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
+import { useCameraStore } from '../../../stores/useCameraStore';
 import styles from './CanvasLayer.module.css';
 
 export interface CanvasLayerProps {
@@ -58,6 +59,9 @@ export const _resetWebGLSupportedForTesting = (): void => {
   webglSupported = null;
 };
 
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
 export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   const {
     scope,
@@ -81,11 +85,11 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
 
   const isSlot = isRootCanvasMounted && !isRootHost;
 
-  useEffect(() => {
-    if (isSlot) {
+  useIsomorphicLayoutEffect(() => {
+    if (!isRootHost) {
       setStageProps(props);
     }
-  }, [isSlot, props, setStageProps]);
+  }, [isRootHost, props, setStageProps]);
 
   const defaultTestId = isSlot ? 'canvas-layer-slot' : 'canvas-layer';
   const resolvedTestId = testId ?? defaultTestId;
@@ -93,7 +97,8 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   if (isSlot) {
     return (
       <div
-        className={`${styles.canvasLayer} ${styles.canvasSlot}`}
+        className={styles.canvasLayer}
+        data-slot={isSlot ? 'true' : undefined}
         data-testid={resolvedTestId}
         data-scope={scope}
         data-target-id={targetId}
@@ -140,6 +145,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
           initialSelectedId={centerId ?? null}
           centerCoordinates={centerCoordinates}
           centerId={centerId}
+          cameraDistance={cameraDistance}
           additionalEntities={selectedEntities}
           onInspectSystem={onInspect}
           onSelectSystem={onSelect}
@@ -151,6 +157,8 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
           systemId={targetId ?? 'sol'}
           centerId={centerId}
           centerCoordinates={centerCoordinates}
+          onInspectPlanet={onInspect}
+          onSelectEntity={onSelect}
         />
       )}
       {mountCanvas && scope === 'planet' && (
@@ -169,7 +177,12 @@ export const RootCanvasHost: React.FC = () => {
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
 
-  useEffect(() => {
+  const cameraMode = useCameraStore((s) => s.mode);
+  const cameraPosition = useCameraStore((s) => s.position);
+  const cameraTarget = useCameraStore((s) => s.target);
+  const cameraFocalDistance = useCameraStore((s) => s.focalDistance);
+
+  useIsomorphicLayoutEffect(() => {
     setRootCanvasMounted(true);
     return () => {
       setRootCanvasMounted(false);
@@ -180,6 +193,10 @@ export const RootCanvasHost: React.FC = () => {
     <div
       className={styles.rootCanvasHost}
       data-testid="root-canvas-host"
+      data-camera-mode={cameraMode}
+      data-camera-pos={cameraPosition.map((v) => v.toFixed(2)).join(',')}
+      data-camera-target={cameraTarget.map((v) => v.toFixed(2)).join(',')}
+      data-camera-dist={cameraFocalDistance.toFixed(2)}
       aria-hidden="true"
     >
       <CanvasLayer

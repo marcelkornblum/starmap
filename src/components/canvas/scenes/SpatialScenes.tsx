@@ -45,6 +45,7 @@ export interface GalacticViewSceneProps {
     | [number, number, number]
     | { x: number; y: number; z: number };
   centerId?: string;
+  cameraDistance?: number;
   additionalEntities?: readonly SpatialEntityDefinition[];
   className?: string;
   variant?: 'card' | 'fullscreen';
@@ -66,10 +67,12 @@ function isOrbitControlsLike(value: unknown): value is OrbitControlsLike {
 
 export interface GalacticCameraControllerProps {
   readonly target: [number, number, number];
+  readonly distance?: number;
 }
 
 export const GalacticCameraController: React.FC<GalacticCameraControllerProps> = ({
   target,
+  distance,
 }) => {
   const three = useThree();
   const camera = three.camera;
@@ -83,21 +86,25 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     Number.NaN,
     Number.NaN,
   ]);
+  const prevDistanceRef = useRef<number>(Number.NaN);
   const prevRecenterTickRef = useRef<number>(-1);
   const scratchNewTargetRef = useLazyRef(() => new THREE.Vector3());
   const scratchPrevTargetRef = useLazyRef(() => new THREE.Vector3());
   const scratchDeltaRef = useLazyRef(() => new THREE.Vector3());
+  const scratchOffsetRef = useLazyRef(() => new THREE.Vector3());
 
   useEffect(() => {
     const prev = prevTargetRef.current;
+    const prevDist = prevDistanceRef.current;
     const prevTick = prevRecenterTickRef.current;
     const isTargetSame =
       prev[0] === target[0] &&
       prev[1] === target[1] &&
       prev[2] === target[2];
+    const isDistSame = distance === prevDist || (distance === undefined && Number.isNaN(prevDist));
     const isTickSame = recenterTick === prevTick;
 
-    if (isTargetSame && isTickSame) {
+    if (isTargetSame && isDistSame && isTickSame) {
       return;
     }
 
@@ -117,19 +124,34 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
 
     if (controls) {
       controls.target.copy(newTarget);
+    }
+
+    // When distance is provided and finite > 0, scale camera-to-target offset to distance
+    if (typeof distance === 'number' && Number.isFinite(distance) && distance > 0) {
+      const offset = scratchOffsetRef.current.copy(camera.position).sub(newTarget);
+      if (offset.lengthSq() > 1e-6) {
+        offset.setLength(distance);
+        camera.position.copy(newTarget).add(offset);
+      }
+    }
+
+    if (controls) {
       controls.update?.();
     }
 
     prevTargetRef.current = target;
+    prevDistanceRef.current = distance ?? Number.NaN;
     prevRecenterTickRef.current = recenterTick;
   }, [
     target,
+    distance,
     recenterTick,
     camera,
     controls,
     scratchNewTargetRef,
     scratchPrevTargetRef,
     scratchDeltaRef,
+    scratchOffsetRef,
   ]);
 
   return null;
@@ -141,6 +163,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
   onSelectSystem,
   centerCoordinates,
   centerId,
+  cameraDistance,
   additionalEntities,
   className,
   variant = 'card',
@@ -153,9 +176,14 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
     return [centerCoordinates[0], centerCoordinates[1], centerCoordinates[2]];
   }, [centerCoordinates]);
 
+  const resolvedCameraDistance =
+    typeof cameraDistance === 'number' && Number.isFinite(cameraDistance) && cameraDistance > 0
+      ? cameraDistance
+      : STANDARD_CAMERA_DISTANCES.galactic;
+
   const standardCam = useMemo(
-    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.galactic, targetCoords),
-    [targetCoords],
+    () => getStandardInitialCamera(resolvedCameraDistance, targetCoords),
+    [resolvedCameraDistance, targetCoords],
   );
 
   const [ceilingApertureRadiusPc, setCeilingApertureRadiusPc] = useState<number | null>(null);
@@ -195,7 +223,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             maxDistance={maxSafeDistance}
           />
 
-          <GalacticCameraController target={targetCoords} />
+          <GalacticCameraController target={targetCoords} distance={cameraDistance} />
 
           <GalaxyScene
             initialSelectedId={initialSelectedId ?? centerId}
@@ -219,6 +247,7 @@ export interface SystemViewSceneProps {
     | [number, number, number]
     | { x: number; y: number; z: number };
   onInspectPlanet?: (planetId: string) => void;
+  onSelectEntity?: (entityId: string | null) => void;
   onNavigateGalaxy?: () => void;
   className?: string;
   variant?: 'card' | 'fullscreen';
@@ -229,6 +258,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
   centerId,
   centerCoordinates,
   onInspectPlanet,
+  onSelectEntity,
   onNavigateGalaxy: _onNavigateGalaxy,
   className,
   variant = 'card',
@@ -280,6 +310,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
             centerId={centerId}
             centerCoordinates={centerCoordinates ? targetCoords : undefined}
             onInspectPlanet={onInspectPlanet}
+            onSelectEntity={onSelectEntity}
           />
         </Canvas>
         <SafeHtmlPortalOutlet />

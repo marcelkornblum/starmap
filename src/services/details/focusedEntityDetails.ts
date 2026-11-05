@@ -253,7 +253,8 @@ export const buildFocusedEntityDetails = (
   }
 
   const matchedCorpusEntry = focusedEntity
-    ? findFocusedEntryInCorpus(focusedEntity.id, corpus)
+    ? (findFocusedEntryInCorpus(focusedEntity.id, corpus) ??
+       findFocusedEntryInCorpus(focusedEntity.name, corpus))
     : undefined;
   const urlMatchedSystemEntry = urlSystemSlug
     ? findFocusedEntryInCorpus(urlSystemSlug, corpus)
@@ -280,12 +281,22 @@ export const buildFocusedEntityDetails = (
         ? systemDetail.record
         : undefined;
 
+  const matchedStarSystemId =
+    matchedCorpusEntry && !matchedCorpusEntry.s ? matchedCorpusEntry.i : undefined;
+  const matchedStarSystemName =
+    matchedCorpusEntry && !matchedCorpusEntry.s
+      ? (matchedCorpusEntry.n ?? matchedCorpusEntry.i)
+      : undefined;
+
   const systemId =
+    solarBodyRecord?.parentBodyId ??
+    sysManifest?.id ??
+    summaryNode?.id ??
     matchedCorpusEntry?.s ??
-    (summaryNode ? summaryNode.id : undefined) ??
-    (sysManifest ? sysManifest.id : undefined) ??
+    matchedStarSystemId ??
     urlMatchedSystemEntry?.s ??
     urlMatchedSystemEntry?.i ??
+    focusedEntity?.parentBodyId ??
     (focusedEntity ? focusedEntity.id : (urlSystemSlug ?? ''));
 
   const matchedSystemEntry =
@@ -299,6 +310,7 @@ export const buildFocusedEntityDetails = (
   const systemName =
     sysManifest?.name ??
     summaryNode?.name ??
+    matchedStarSystemName ??
     (matchedSystemEntry
       ? resolveResultDisplayTitle(matchedSystemEntry)
       : systemId && (!focusedEntity || systemId !== focusedEntity.id)
@@ -431,7 +443,10 @@ export const buildFocusedEntityDetails = (
               matchedCorpusEntry.k === 6)
           ? 'minor-body'
           : (matchedStarDetail || solarBodyRecord?.classification === 'Star') &&
-              ((hasExplicitFocus && Boolean(urlSystemSlug)) || focusedEntity.id !== systemId)
+              ((hasExplicitFocus && Boolean(urlSystemSlug)) ||
+                (focusedEntity.id !== systemId &&
+                  toUrlSlug(focusedEntity.id) !== toUrlSlug(systemName) &&
+                  toUrlSlug(focusedEntity.name) !== toUrlSlug(systemName)))
             ? 'star'
             : 'system';
 
@@ -715,7 +730,7 @@ export const buildFocusedEntityDetails = (
   );
 
   let systemDetailsHref: string | undefined;
-  if (focusedKind === 'system' && viewScope === 'galaxy') {
+  if ((focusedKind === 'system' || focusedKind === 'star') && viewScope === 'galaxy') {
     systemDetailsHref = buildSystemDetailsHref(systemName || systemId);
   } else if (
     focusedKind === 'planet' &&

@@ -95,7 +95,7 @@ describe('CanvasLayer Domain Component', () => {
   });
 
   describe('Root Canvas Host and Slot Delegation (Decision 2 Option B)', () => {
-    it('renders as a metadata slot and syncs props to useCanvasStageStore when isRootCanvasMounted is true', () => {
+    it('renders as a metadata slot with data-slot="true" and syncs props to useCanvasStageStore when isRootCanvasMounted is true', () => {
       act(() => {
         useCanvasStageStore.getState().setRootCanvasMounted(true);
       });
@@ -112,6 +112,7 @@ describe('CanvasLayer Domain Component', () => {
       // In slot mode, renders canvas-layer-slot by default
       const slot = screen.getByTestId('canvas-layer-slot');
       expect(slot).toBeDefined();
+      expect(slot.getAttribute('data-slot')).toBe('true');
       expect(slot.getAttribute('data-scope')).toBe('system');
       expect(slot.getAttribute('data-target-id')).toBe('tau-ceti');
       expect(slot.getAttribute('data-center-id')).toBe('tau-ceti');
@@ -124,6 +125,41 @@ describe('CanvasLayer Domain Component', () => {
       expect(storedProps?.targetId).toBe('tau-ceti');
       expect(storedProps?.centerId).toBe('tau-ceti');
       expect(storedProps?.cameraDistance).toBe(40);
+    });
+
+    it('renders with data-slot="true" and immediately syncs onInspect / onSelect callbacks into useCanvasStageStore when RootCanvasHost is mounted', () => {
+      const handleInspect = vi.fn();
+      const handleSelect = vi.fn();
+
+      render(
+        <div>
+          <RootCanvasHost />
+          <CanvasLayer
+            scope="galaxy"
+            centerId="sol"
+            onInspect={handleInspect}
+            onSelect={handleSelect}
+          />
+        </div>,
+      );
+
+      const slot = screen.getByTestId('canvas-layer-slot');
+      expect(slot).toBeDefined();
+      expect(slot.getAttribute('data-slot')).toBe('true');
+
+      const stageProps = useCanvasStageStore.getState().stageProps;
+      expect(stageProps).not.toBeNull();
+      expect(stageProps?.onInspect).toBe(handleInspect);
+      expect(stageProps?.onSelect).toBe(handleSelect);
+
+      // Verify callbacks route correctly
+      stageProps?.onInspect?.('alpha-centauri');
+      expect(handleInspect).toHaveBeenCalledTimes(1);
+      expect(handleInspect).toHaveBeenCalledWith('alpha-centauri');
+
+      stageProps?.onSelect?.('sol');
+      expect(handleSelect).toHaveBeenCalledTimes(1);
+      expect(handleSelect).toHaveBeenCalledWith('sol');
     });
 
     it('allows custom testId override on slot', () => {
@@ -142,7 +178,7 @@ describe('CanvasLayer Domain Component', () => {
       expect(screen.queryByTestId('canvas-layer-slot')).toBeNull();
     });
 
-    it('<RootCanvasHost /> mounts root persistent canvas and syncs isRootCanvasMounted lifecycle', () => {
+    it('<RootCanvasHost /> mounts root persistent canvas and syncs isRootCanvasMounted lifecycle and camera telemetry', () => {
       expect(useCanvasStageStore.getState().isRootCanvasMounted).toBe(false);
 
       const { unmount } = render(<RootCanvasHost />);
@@ -150,6 +186,12 @@ describe('CanvasLayer Domain Component', () => {
       expect(useCanvasStageStore.getState().isRootCanvasMounted).toBe(true);
       const host = screen.getByTestId('root-canvas-host');
       expect(host).toBeDefined();
+
+      // Camera telemetry attributes
+      expect(host.getAttribute('data-camera-mode')).toBe('perspective');
+      expect(host.getAttribute('data-camera-pos')).toBe('0.00,0.00,10.00');
+      expect(host.getAttribute('data-camera-target')).toBe('0.00,0.00,0.00');
+      expect(host.getAttribute('data-camera-dist')).toBe('10.00');
 
       // Root host child canvas has isRootHost=true, so it renders canvas-layer (not slot)
       const hostChild = screen.getByTestId('canvas-layer');

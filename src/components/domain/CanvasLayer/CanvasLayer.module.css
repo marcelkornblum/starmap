@@ -8,11 +8,10 @@
     z-index: var(--layer-canvas);
     pointer-events: auto;
     overflow: hidden;
-  }
-
-  .canvasSlot {
-    background-color: transparent;
-    pointer-events: none;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .rootCanvasHost {
@@ -24,6 +23,17 @@
     pointer-events: auto;
     overflow: hidden;
     background-color: var(--surface-canvas-bg);
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+@layer exceptions {
+  .canvasLayer[data-slot='true'] {
+    background-color: transparent;
+    pointer-events: none;
   }
 }
 

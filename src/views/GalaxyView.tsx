@@ -156,52 +156,87 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const urlFocusEntity = useMemo(
     () =>
       urlFocusSlug
-        ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
+        ? resolveFocusedEntityFromCorpus(urlFocusSlug, apertureCorpus)
         : null,
-    [urlFocusSlug, activeCorpus],
+    [urlFocusSlug, apertureCorpus],
   );
-  const focusedEntity = urlFocusSlug
-    ? (urlFocusEntity ?? storeFocusedEntity)
-    : hasExplicitFocus
-      ? storeFocusedEntity
-      : (typeof window !== 'undefined' ? storeFocusedEntity : null);
+  const focusedEntity = useMemo(() => {
+    if (!urlFocusSlug) {
+      return hasExplicitFocus
+        ? storeFocusedEntity
+        : (typeof window !== 'undefined' ? storeFocusedEntity : null);
+    }
+    const storeMatches =
+      storeFocusedEntity &&
+      (toUrlSlug(storeFocusedEntity.id) === urlFocusSlug ||
+        toUrlSlug(storeFocusedEntity.name) === urlFocusSlug);
+
+    if (storeMatches) {
+      const realEntry = findFocusedEntryInCorpus(urlFocusSlug, apertureCorpus);
+      if (realEntry) {
+        return {
+          ...storeFocusedEntity,
+          name: storeFocusedEntity.name || realEntry.n || realEntry.i,
+          classification:
+            storeFocusedEntity.classification ?? (realEntry.k === 2 ? 'terrestrial' : 'star'),
+          spectralType: storeFocusedEntity.spectralType ?? realEntry.m?.[1],
+        };
+      }
+      return storeFocusedEntity;
+    }
+
+    return urlFocusEntity ?? storeFocusedEntity;
+  }, [urlFocusSlug, hasExplicitFocus, storeFocusedEntity, apertureCorpus, urlFocusEntity]);
 
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
 
-  const selectedEntities = useMemo(
+  const urlSelectedEntities = useMemo(
     () =>
-      storeSelected.length > 0
-        ? storeSelected
-        : resolveSelectedSystemsFromUrlSelect(
-            search,
-            activeCorpus,
-            layerIndex,
-            loadedLayers,
-          ),
-    [activeCorpus, layerIndex, loadedLayers, search, storeSelected],
+      resolveSelectedSystemsFromUrlSelect(
+        search,
+        activeCorpus,
+        layerIndex,
+        loadedLayers,
+      ),
+    [activeCorpus, layerIndex, loadedLayers, search],
+  );
+
+  const selectedEntities = useMemo(
+    () => (storeSelected.length > 0 ? storeSelected : urlSelectedEntities),
+    [storeSelected, urlSelectedEntities],
+  );
+
+  const hasExplicitSelection = Boolean(
+    search.includes('select=') || search.includes('layer='),
   );
 
   useEffect(() => {
-    const nextIds = selectedEntities.map((e) => e.id);
-    const current = storeApi.getState().selectedIds;
-    if (
-      current.size !== nextIds.length ||
-      !nextIds.every((id) => current.has(id))
-    ) {
-      storeApi.getState().setSelectedIds(nextIds);
+    if (urlSelectedEntities.length > 0 || hasExplicitSelection) {
+      const nextIds = urlSelectedEntities.map((e) => e.id);
+      const current = storeApi.getState().selectedIds;
+      if (
+        current.size !== nextIds.length ||
+        !nextIds.every((id) => current.has(id))
+      ) {
+        storeApi.getState().setSelectedIds(nextIds);
+      }
     }
-  }, [selectedEntities, storeApi]);
+  }, [urlSelectedEntities, hasExplicitSelection, storeApi]);
+
   const matchedEntry = focusedEntity
-    ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
+    ? (findFocusedEntryInCorpus(focusedEntity.id, apertureCorpus) ??
+       findFocusedEntryInCorpus(focusedEntity.name, apertureCorpus))
     : undefined;
   const urlSystemEntry = urlSystemSlug
-    ? findFocusedEntryInCorpus(urlSystemSlug, activeCorpus)
+    ? findFocusedEntryInCorpus(urlSystemSlug, apertureCorpus)
     : undefined;
   const targetSystemId =
     matchedEntry?.s ??
+    matchedEntry?.i ??
     urlSystemEntry?.s ??
     urlSystemEntry?.i ??
+    focusedEntity?.parentBodyId ??
     focusedEntity?.id ??
     '';
 
@@ -265,7 +300,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
 
   const focusedDetails = buildFocusedEntityDetails({
     focusedEntity,
-    corpus: activeCorpus,
+    corpus: apertureCorpus,
     summaryNode: getCachedSummaryNode(targetSystemId),
     systemDetail: getCachedDetailRecord(targetSystemId),
     entityDetail: focusedEntity
@@ -378,9 +413,9 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const orbitalSchematic = useMemo(
     () =>
       focusedDetails && focusedDetails.focusedKind === 'system'
-        ? buildSystemOrbitalSchematic(focusedDetails, activeCorpus)
+        ? buildSystemOrbitalSchematic(focusedDetails, apertureCorpus)
         : null,
-    [focusedDetails, activeCorpus],
+    [focusedDetails, apertureCorpus],
   );
 
   const searchParams = new URLSearchParams(search);

@@ -8,6 +8,11 @@
     position: relative;
     background-color: transparent;
     color: var(--content-default);
+    pointer-events: none;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .stage {
@@ -17,6 +22,11 @@
     block-size: 100%;
     min-inline-size: 0;
     overflow: hidden;
+    pointer-events: none;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .canvasRegion {
@@ -25,7 +35,7 @@
     inline-size: 100%;
     block-size: 100%;
     z-index: var(--layer-canvas);
-    pointer-events: auto;
+    pointer-events: none;
   }
 
   .leftColumn {
@@ -172,6 +182,7 @@
     padding: var(--space-inset-panel);
     box-sizing: border-box;
     z-index: var(--layer-dock);
+    pointer-events: auto;
   }
 }
 
