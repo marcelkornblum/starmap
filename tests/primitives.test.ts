@@ -14,15 +14,15 @@ import {
   Box,
   Imposter,
   Icon,
-} from '../src/components/interface/layout';
-import { Datum, Badge, ConfidencePip, Unit, Quantity } from '../src/components/interface/data';
+} from '../src/components/interface/layouts';
+import { Datum, Badge, ConfidencePip, Unit, Quantity } from '../src/components/interface/information';
 import {
   Button,
   Input,
   Toggle,
   Slider,
   Select,
-} from '../src/components/interface/control';
+} from '../src/components/interface/controls';
 
 describe('Tier 1: Layout Primitives (Every Layout)', () => {
   it('renders Stack with default and custom props', () => {
@@ -441,23 +441,21 @@ describe('Tier 1: Control Primitives', () => {
     const controls = await import('../src/components/interface/controls');
     const layouts = await import('../src/components/interface/layouts');
     const information = await import('../src/components/interface/information');
-    const oldControl = await import('../src/components/interface/control');
-    const oldLayout = await import('../src/components/interface/layout');
-    const oldData = await import('../src/components/interface/data');
+    const barrel = await import('../src/components/interface');
 
     expect(controls.Button).toBeDefined();
-    expect(controls.Button).toBe(oldControl.Button);
+    expect(controls.Button).toBe(barrel.Button);
     expect(layouts.Stack).toBeDefined();
-    expect(layouts.Stack).toBe(oldLayout.Stack);
+    expect(layouts.Stack).toBe(barrel.Stack);
     expect(information.Datum).toBeDefined();
-    expect(information.Datum).toBe(oldData.Datum);
+    expect(information.Datum).toBe(barrel.Datum);
     expect(information.Badge).toBeDefined();
-    expect(information.Badge).toBe(oldData.Badge);
+    expect(information.Badge).toBe(barrel.Badge);
     expect(information.ConfidencePip).toBeDefined();
-    expect(information.ConfidencePip).toBe(oldData.ConfidencePip);
+    expect(information.ConfidencePip).toBe(barrel.ConfidencePip);
     expect(information.Quantity).toBeDefined();
-    expect(information.Quantity).toBe(oldData.Quantity);
+    expect(information.Quantity).toBe(barrel.Quantity);
     expect(information.Unit).toBeDefined();
-    expect(information.Unit).toBe(oldData.Unit);
+    expect(information.Unit).toBe(barrel.Unit);
   });
 });
