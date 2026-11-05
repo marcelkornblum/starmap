@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createElement } from 'react';
-import { renderToString } from 'react-dom/server';
+import { createElement, type ReactElement } from 'react';
+import { render, cleanup } from '@testing-library/react';
 import {
   router,
   routeTree,
@@ -31,6 +32,13 @@ import { StarTypesListView } from '../src/views/StarTypesListView';
 import { SystemView } from '../src/views/SystemView';
 import { SEARCH_CATEGORIES } from '../src/services/searchService';
 import { useStarmapNav, useNavigationActions } from '../src/router/navigation';
+
+const renderHtml = (el: ReactElement): string => {
+  const { container } = render(el);
+  const html = container.innerHTML;
+  cleanup();
+  return html;
+};
 
 vi.mock('@tanstack/react-router', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@tanstack/react-router');
@@ -168,7 +176,7 @@ describe('TanStack Router Architecture', () => {
     expect(planetTypeDetailRoute.options.component).toBe(PlanetTypeDetailView);
     expect(metricsListRoute.options.component).toBe(MetricsListView);
     expect(metricDetailRoute.options.component).toBe(MetricDetailView);
-    const html = renderToString(createElement(GalaxyView));
+    const html = renderHtml(createElement(GalaxyView));
 
     expect(html).toContain('data-testid="galaxy-view-root"');
     expect(html).toContain('data-testid="search-panel"');
@@ -185,17 +193,17 @@ describe('TanStack Router Architecture', () => {
       expect(html).toContain(`<option value="${category.key}">${category.heading.replace(/&/g, '&amp;')}</option>`);
     }
 
-    const searchViewHtml = renderToString(createElement(SearchView));
+    const searchViewHtml = renderHtml(createElement(SearchView));
     expect(searchViewHtml).toContain('data-testid="search-view-root"');
     expect(searchViewHtml).toContain('data-testid="search-panel"');
     expect(searchViewHtml).not.toContain('data-testid="search-results-panel"');
 
-    const systemViewHtml = renderToString(createElement(SystemView));
+    const systemViewHtml = renderHtml(createElement(SystemView));
     expect(systemViewHtml).toContain('data-testid="system-view-root"');
     expect(systemViewHtml).toContain('data-testid="search-panel"');
     expect(systemViewHtml).not.toContain('data-testid="search-results-panel"');
 
-    const planetViewHtml = renderToString(createElement(PlanetView));
+    const planetViewHtml = renderHtml(createElement(PlanetView));
     expect(planetViewHtml).toContain('data-testid="planet-view-root"');
     expect(planetViewHtml).toContain('data-testid="search-panel"');
     expect(planetViewHtml).not.toContain('data-testid="search-results-panel"');
