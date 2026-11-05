@@ -12,20 +12,40 @@ const mockGalaxyOrientation: MinimapOrientationSummary = {
   systemName: 'Sol',
   coordinatesPc: [0, 0, 0],
   distanceFromOriginPc: 0,
+  focusedMarker: {
+    id: 'sol',
+    name: 'Sol',
+    kind: 'star',
+    role: 'focused',
+    href: '/galaxy?focus=sol',
+    coordinatesPc: [0, 0, 0],
+  },
+  selectedMarkers: [
+    {
+      id: 'alpha-centauri',
+      name: 'Alpha Centauri',
+      kind: 'system',
+      role: 'selected',
+      href: '/galaxy?focus=alpha-centauri',
+      coordinatesPc: [-0.47, 1.32, -0.33],
+    },
+  ],
   markers: [
     {
       id: 'sol',
       name: 'Sol',
-      role: 'focus',
+      kind: 'star',
+      role: 'focused',
       href: '/galaxy?focus=sol',
-      position: [0, 0, 0],
+      coordinatesPc: [0, 0, 0],
     },
     {
       id: 'alpha-centauri',
       name: 'Alpha Centauri',
-      role: 'target',
+      kind: 'system',
+      role: 'selected',
       href: '/galaxy?focus=alpha-centauri',
-      position: [-0.47, 1.32, -0.33],
+      coordinatesPc: [-0.47, 1.32, -0.33],
     },
   ],
 };
@@ -38,6 +58,8 @@ const mockPlanetOrientation: MinimapOrientationSummary = {
   systemName: 'Sol',
   parentSemiMajorAxisAu: 1.0,
   orbitingBodyCount: 1,
+  focusedMarker: null,
+  selectedMarkers: [],
   markers: [],
 };
 

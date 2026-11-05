@@ -3,13 +3,14 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { LayerCard } from './LayerCard';
 import type {
-  ActiveLayerCardOverviewModel,
-  ActiveLayerCardItemModel,
+  ActiveLayerOverviewCardModel,
+  ActiveLayerItemCardModel,
 } from '../../../services/layerCardService';
 
-const mockOverviewCard: ActiveLayerCardOverviewModel = {
+const mockOverviewCard: ActiveLayerOverviewCardModel = {
   mode: 'overview',
   layerId: 'hard-scifi',
+  layerSlug: 'hard-scifi',
   title: 'Hard Sci-Fi Canon',
   subtitle: 'Hard science fiction celestial references',
   kind: 'fictional-canon',
@@ -17,7 +18,8 @@ const mockOverviewCard: ActiveLayerCardOverviewModel = {
   description: 'A curated overlay of worlds and systems from hard science fiction works.',
   itemCount: 12,
   source: {
-    label: 'Project Source',
+    creator: 'Andy Weir',
+    summary: 'Project Source',
     url: 'https://example.com/source',
   },
   closeHref: '/galaxy',
@@ -25,14 +27,14 @@ const mockOverviewCard: ActiveLayerCardOverviewModel = {
   firstItemTitle: 'Tau Ceti',
 };
 
-const mockItemCard: ActiveLayerCardItemModel = {
+const mockItemCard: ActiveLayerItemCardModel = {
   mode: 'item',
   layerId: 'hard-scifi',
+  layerSlug: 'hard-scifi',
   layerTitle: 'Hard Sci-Fi Canon',
   kind: 'fictional-canon',
   kindLabel: 'Fictional Canon',
-  targetId: 'tau-ceti',
-  targetType: 'system',
+  itemSlug: 'tau-ceti',
   itemTitle: 'Tau Ceti',
   subtitle: 'Project Hail Mary (Andy Weir)',
   text: 'Destination star system of the Hail Mary mission to synthesize Taumoeba.',

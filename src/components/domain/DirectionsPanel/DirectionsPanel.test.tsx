@@ -63,7 +63,8 @@ describe('<DirectionsPanel />', () => {
     const selectButtons = screen.getAllByTestId('directions-option-select');
     fireEvent.click(selectButtons[0]);
 
-    expect(onOptionSelect).toHaveBeenCalledWith(journey.options[0].id);
+    expect(journey).not.toBeNull();
+    expect(onOptionSelect).toHaveBeenCalledWith(journey!.options[0].id);
   });
 
   it('renders detail mode when an option is selected, and allows returning to options', () => {

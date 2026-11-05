@@ -21,6 +21,8 @@ const mockSchematicSummary: OrbitalSchematicSummary = {
       orbitRank: 0,
       summaryLabel: 'G2V',
       inHabitableZone: false,
+      isFocused: false,
+      isSelected: false,
     },
     {
       id: 'earth',
@@ -32,6 +34,7 @@ const mockSchematicSummary: OrbitalSchematicSummary = {
       inHabitableZone: true,
       region: 'habitable-zone',
       isFocused: true,
+      isSelected: false,
       children: [
         {
           id: 'moon',
@@ -40,6 +43,9 @@ const mockSchematicSummary: OrbitalSchematicSummary = {
           kind: 'moon',
           orbitRank: 1,
           summaryLabel: 'Moon',
+          inHabitableZone: false,
+          isFocused: false,
+          isSelected: false,
         },
       ],
     },
@@ -78,6 +84,9 @@ describe('<OrbitalSchematicPanel />', () => {
           kind: 'belt',
           orbitRank: 4,
           summaryLabel: 'Asteroid Belt',
+          inHabitableZone: false,
+          isFocused: false,
+          isSelected: false,
           radialSpanAu: [2.1, 3.3],
         }}
       />

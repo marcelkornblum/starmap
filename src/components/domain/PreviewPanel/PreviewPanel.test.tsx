@@ -7,8 +7,10 @@ import type { FocusedPreviewSummary } from '../../../services/detailsService';
 const mockPreview: FocusedPreviewSummary = {
   targetId: 'sol',
   targetName: 'Sol System',
+  systemId: 'sol',
+  systemName: 'Sol System',
   focusedKind: 'system',
-  previewMode: 'schematic',
+  previewMode: 'system-orbits',
   primarySemiMajorAxisAu: 1.0,
   primaryEccentricity: 0.0167,
   primaryInclinationDeg: 7.155,
@@ -47,10 +49,10 @@ describe('<PreviewPanel />', () => {
 
     const panel = screen.getByTestId('preview-panel');
     expect(panel.getAttribute('data-target-id')).toBe('sol');
-    expect(panel.getAttribute('data-preview-mode')).toBe('schematic');
+    expect(panel.getAttribute('data-preview-mode')).toBe('system-orbits');
 
     expect(screen.getByTestId('preview-target-name').textContent).toBe('Sol System');
-    expect(screen.getByText('schematic')).toBeDefined();
+    expect(screen.getByText('system-orbits')).toBeDefined();
 
     expect(screen.getByTestId('preview-primary-orbit-telemetry')).toBeDefined();
     expect(screen.getByTestId('preview-primary-eccentricity').textContent).toContain('0.0167');

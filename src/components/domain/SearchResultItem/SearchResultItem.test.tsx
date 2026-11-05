@@ -3,7 +3,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SearchResultItem, formatPlanetCountSummary } from './SearchResultItem';
 import { SearchContext } from '../../search/SearchContext';
-import type { SearchResultItem as SearchResultItemModel } from '../../../services/searchService';
+import {
+  executeCatalogSearch,
+  type SearchResultItem as SearchResultItemModel,
+} from '../../../services/searchService';
 
 describe('<SearchResultItem />', () => {
   describe('formatPlanetCountSummary', () => {
@@ -37,7 +40,7 @@ describe('<SearchResultItem />', () => {
     id: 'layer-star-trek',
     name: 'Star Trek Federation Space',
     category: 'layers',
-    entityKind: 'fictional-canon',
+    entityKind: 'layer',
     reticleType: 'stellar-cluster',
     targetView: 'galaxy',
     href: '/galaxy?select=layer:star-trek',
@@ -73,9 +76,13 @@ describe('<SearchResultItem />', () => {
       <SearchContext.Provider
         value={{
           query: 'sol',
+          filter: 'all',
+          status: 'ready',
+          errorMessage: null,
+          results: executeCatalogSearch([], { query: 'sol', filter: 'all' }),
           setQuery: vi.fn(),
-          results: [],
-          selectedResult: null,
+          setFilter: vi.fn(),
+          submitSearch: vi.fn(),
           isFocused: true,
           setIsFocused: vi.fn(),
           dismissSearch,
