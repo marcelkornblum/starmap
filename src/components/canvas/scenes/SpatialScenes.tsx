@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -54,6 +54,8 @@ export interface GalacticViewSceneProps {
 interface OrbitControlsLike {
   target: THREE.Vector3;
   update?: () => void;
+  addEventListener?: (type: string, listener: (event: unknown) => void) => void;
+  removeEventListener?: (type: string, listener: (event: unknown) => void) => void;
 }
 
 function isOrbitControlsLike(value: unknown): value is OrbitControlsLike {
@@ -88,35 +90,175 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   ]);
   const prevDistanceRef = useRef<number>(Number.NaN);
   const prevRecenterTickRef = useRef<number>(-1);
+  const prevControlsRef = useRef<OrbitControlsLike | undefined>(undefined);
+  const hasRestoredRef = useRef(false);
+
   const scratchNewTargetRef = useLazyRef(() => new THREE.Vector3());
   const scratchPrevTargetRef = useLazyRef(() => new THREE.Vector3());
   const scratchDeltaRef = useLazyRef(() => new THREE.Vector3());
   const scratchOffsetRef = useLazyRef(() => new THREE.Vector3());
+
+  const targetX = target[0];
+  const targetY = target[1];
+  const targetZ = target[2];
+
+  const saveCurrentGalaxyPose = useCallback(() => {
+    const tgt: [number, number, number] = controls?.target
+      ? [controls.target.x, controls.target.y, controls.target.z]
+      : [targetX, targetY, targetZ];
+    const pos: [number, number, number] = [
+      camera.position.x,
+      camera.position.y,
+      camera.position.z,
+    ];
+    const up: [number, number, number] = [
+      camera.up.x,
+      camera.up.y,
+      camera.up.z,
+    ];
+    const focalDistance = controls?.target
+      ? camera.position.distanceTo(controls.target)
+      : camera.position.length();
+
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: pos,
+      target: tgt,
+      up,
+      zoom: camera.zoom,
+      focalDistance,
+      centerKey: `${tgt[0]},${tgt[1]},${tgt[2]}`,
+    });
+  }, [camera, controls, targetX, targetY, targetZ]);
+
+  useEffect(() => {
+    if (controls?.addEventListener && controls?.removeEventListener) {
+      const handleChange = () => {
+        saveCurrentGalaxyPose();
+      };
+      controls.addEventListener('change', handleChange);
+      controls.addEventListener('end', handleChange);
+      return () => {
+        controls.removeEventListener?.('change', handleChange);
+        controls.removeEventListener?.('end', handleChange);
+        saveCurrentGalaxyPose();
+      };
+    }
+  }, [controls, saveCurrentGalaxyPose]);
 
   useEffect(() => {
     const prev = prevTargetRef.current;
     const prevDist = prevDistanceRef.current;
     const prevTick = prevRecenterTickRef.current;
     const isTargetSame =
-      prev[0] === target[0] &&
-      prev[1] === target[1] &&
-      prev[2] === target[2];
+      prev[0] === targetX &&
+      prev[1] === targetY &&
+      prev[2] === targetZ;
     const isDistSame = distance === prevDist || (distance === undefined && Number.isNaN(prevDist));
     const isTickSame = recenterTick === prevTick;
+    const isControlsSame = controls === prevControlsRef.current;
 
-    if (isTargetSame && isDistSame && isTickSame) {
+    if (isTargetSame && isDistSame && isTickSame && isControlsSame) {
       return;
     }
 
-    const newTarget = scratchNewTargetRef.current.set(target[0], target[1], target[2]);
+    const saved = useCameraStore.getState().savedGalaxyCamera;
+    if (!hasRestoredRef.current && saved && distance === undefined) {
+      const isMatch = Math.hypot(
+        saved.target[0] - targetX,
+        saved.target[1] - targetY,
+        saved.target[2] - targetZ,
+      ) < 0.05;
 
-    const prevTarget = controls?.target
-      ? scratchPrevTargetRef.current.copy(controls.target)
-      : scratchPrevTargetRef.current.set(
-          Number.isFinite(prev[0]) ? prev[0] : 0,
-          Number.isFinite(prev[1]) ? prev[1] : 0,
-          Number.isFinite(prev[2]) ? prev[2] : 0,
-        );
+      const isTransientZero =
+        targetX === 0 &&
+        targetY === 0 &&
+        targetZ === 0 &&
+        (saved.target[0] !== 0 || saved.target[1] !== 0 || saved.target[2] !== 0);
+
+      if (isMatch || isTransientZero) {
+        camera.position.set(saved.position[0], saved.position[1], saved.position[2]);
+        camera.up.set(saved.up[0], saved.up[1], saved.up[2]);
+        camera.zoom = saved.zoom;
+        camera.updateProjectionMatrix();
+
+        if (controls) {
+          controls.target.set(saved.target[0], saved.target[1], saved.target[2]);
+          controls.update?.();
+          hasRestoredRef.current = true;
+        } else {
+          camera.lookAt(saved.target[0], saved.target[1], saved.target[2]);
+        }
+
+        useCameraStore.getState().setCameraPose({
+          position: saved.position,
+          target: saved.target,
+          up: saved.up,
+          zoom: saved.zoom,
+          focalDistance: saved.focalDistance,
+        });
+
+        if (controls) {
+          saveCurrentGalaxyPose();
+        }
+
+        prevTargetRef.current = [targetX, targetY, targetZ];
+        prevDistanceRef.current = distance ?? Number.NaN;
+        prevRecenterTickRef.current = recenterTick;
+        prevControlsRef.current = controls;
+        return;
+      }
+    }
+
+    const isInitialMount = Number.isNaN(prev[0]);
+    if (isInitialMount && saved && distance === undefined) {
+      // Relative offset preservation for new target
+      const relOffsetX = saved.position[0] - saved.target[0];
+      const relOffsetY = saved.position[1] - saved.target[1];
+      const relOffsetZ = saved.position[2] - saved.target[2];
+
+      camera.position.set(
+        targetX + relOffsetX,
+        targetY + relOffsetY,
+        targetZ + relOffsetZ,
+      );
+      camera.up.set(saved.up[0], saved.up[1], saved.up[2]);
+      camera.zoom = saved.zoom;
+      camera.updateProjectionMatrix();
+
+      if (controls) {
+        controls.target.set(targetX, targetY, targetZ);
+        controls.update?.();
+        hasRestoredRef.current = true;
+      } else {
+        camera.lookAt(targetX, targetY, targetZ);
+      }
+
+      useCameraStore.getState().setCameraPose({
+        position: [camera.position.x, camera.position.y, camera.position.z],
+        target: [targetX, targetY, targetZ],
+        up: saved.up,
+        zoom: saved.zoom,
+        focalDistance: Math.hypot(relOffsetX, relOffsetY, relOffsetZ),
+      });
+
+      if (controls) {
+        saveCurrentGalaxyPose();
+      }
+
+      prevTargetRef.current = [targetX, targetY, targetZ];
+      prevDistanceRef.current = distance ?? Number.NaN;
+      prevRecenterTickRef.current = recenterTick;
+      prevControlsRef.current = controls;
+      return;
+    }
+
+    const newTarget = scratchNewTargetRef.current.set(targetX, targetY, targetZ);
+
+    const prevTarget = Number.isFinite(prev[0])
+      ? scratchPrevTargetRef.current.set(prev[0], prev[1], prev[2])
+      : controls?.target
+        ? scratchPrevTargetRef.current.copy(controls.target)
+        : scratchPrevTargetRef.current.set(0, 0, 0);
     const delta = scratchDeltaRef.current.copy(newTarget).sub(prevTarget);
 
     camera.position.add(delta);
@@ -139,15 +281,46 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       controls.update?.();
     }
 
-    prevTargetRef.current = target;
+    const finalTarget: [number, number, number] = controls?.target
+      ? [controls.target.x, controls.target.y, controls.target.z]
+      : [targetX, targetY, targetZ];
+    const finalPos: [number, number, number] = [
+      camera.position.x,
+      camera.position.y,
+      camera.position.z,
+    ];
+    const finalUp: [number, number, number] = [
+      camera.up.x,
+      camera.up.y,
+      camera.up.z,
+    ];
+    const finalDist = Math.hypot(
+      finalPos[0] - finalTarget[0],
+      finalPos[1] - finalTarget[1],
+      finalPos[2] - finalTarget[2],
+    );
+    useCameraStore.getState().setCameraPose({
+      position: finalPos,
+      target: finalTarget,
+      up: finalUp,
+      zoom: camera.zoom,
+      focalDistance: finalDist,
+    });
+    saveCurrentGalaxyPose();
+
+    prevTargetRef.current = [targetX, targetY, targetZ];
     prevDistanceRef.current = distance ?? Number.NaN;
     prevRecenterTickRef.current = recenterTick;
+    prevControlsRef.current = controls;
   }, [
-    target,
+    targetX,
+    targetY,
+    targetZ,
     distance,
     recenterTick,
     camera,
     controls,
+    saveCurrentGalaxyPose,
     scratchNewTargetRef,
     scratchPrevTargetRef,
     scratchDeltaRef,
@@ -181,10 +354,28 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
       ? cameraDistance
       : STANDARD_CAMERA_DISTANCES.galactic;
 
-  const standardCam = useMemo(
-    () => getStandardInitialCamera(resolvedCameraDistance, targetCoords),
-    [resolvedCameraDistance, targetCoords],
-  );
+  const standardCam = useMemo(() => {
+    const saved = useCameraStore.getState().savedGalaxyCamera;
+    const isTargetZero = targetCoords[0] === 0 && targetCoords[1] === 0 && targetCoords[2] === 0;
+    const isSavedMatch =
+      saved &&
+      (isTargetZero ||
+        Math.hypot(
+          saved.target[0] - targetCoords[0],
+          saved.target[1] - targetCoords[1],
+          saved.target[2] - targetCoords[2],
+        ) < 0.05);
+
+    if (saved && isSavedMatch && !cameraDistance) {
+      return {
+        position: saved.position,
+        target: saved.target,
+        up: saved.up,
+        fov: 45,
+      };
+    }
+    return getStandardInitialCamera(resolvedCameraDistance, targetCoords);
+  }, [resolvedCameraDistance, targetCoords, cameraDistance]);
 
   const [ceilingApertureRadiusPc, setCeilingApertureRadiusPc] = useState<number | null>(null);
   const budget = useMemo(() => getDeviceTierBudget(), []);
@@ -216,7 +407,6 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
 
           <OrbitControls
             makeDefault
-            target={standardCam.target}
             enableDamping
             dampingFactor={CONTROLS_DAMPING_FACTOR}
             minDistance={2.5}

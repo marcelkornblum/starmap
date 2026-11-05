@@ -56,4 +56,12 @@ describe('<Breadcrumbs />', () => {
     const companionLink = screen.getByTestId('breadcrumbs-companion-link');
     expect(companionLink.getAttribute('href')).toContain('/galaxy?focus=sol');
   });
+
+  it('falls back to default /galaxy companion href in guide context when companionHref is omitted', () => {
+    const items = [{ label: 'Guide', href: '/guide/star-types' }, { label: 'Star Types' }];
+    render(<Breadcrumbs items={items} />);
+
+    const companionLink = screen.getByTestId('breadcrumbs-companion-link');
+    expect(companionLink.getAttribute('href')).toBe('/galaxy');
+  });
 });

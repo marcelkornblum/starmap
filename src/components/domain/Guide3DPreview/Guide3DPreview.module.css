@@ -195,15 +195,15 @@
     box-shadow: inset -10px -10px 20px var(--sphere-shadow-inset), 0 0 14px var(--sphere-planet-glow);
   }
 
-  .previewSlot[data-chromaticity-hex="#9bb0ff"] .sphereVisual { color: var(--star-chromaticity-o); }
-  .previewSlot[data-chromaticity-hex="#aabfff"] .sphereVisual { color: var(--star-chromaticity-b); }
-  .previewSlot[data-chromaticity-hex="#cad7ff"] .sphereVisual { color: var(--star-chromaticity-a); }
-  .previewSlot[data-chromaticity-hex="#f8f7ff"] .sphereVisual { color: var(--star-chromaticity-f); }
-  .previewSlot[data-chromaticity-hex="#fff4ea"] .sphereVisual { color: var(--star-chromaticity-g); }
-  .previewSlot[data-chromaticity-hex="#ffd2a1"] .sphereVisual { color: var(--star-chromaticity-k); }
-  .previewSlot[data-chromaticity-hex="#ffcc6f"] .sphereVisual { color: var(--star-chromaticity-m); }
-  .previewSlot[data-chromaticity-hex="#ff6b3d"] .sphereVisual { color: var(--star-chromaticity-l); }
-  .previewSlot[data-chromaticity-hex="#e6f0ff"] .sphereVisual { color: var(--star-chromaticity-d); }
+  .previewSlot[data-spectral-letter="O"] .sphereVisual { color: var(--star-chromaticity-o); }
+  .previewSlot[data-spectral-letter="B"] .sphereVisual { color: var(--star-chromaticity-b); }
+  .previewSlot[data-spectral-letter="A"] .sphereVisual { color: var(--star-chromaticity-a); }
+  .previewSlot[data-spectral-letter="F"] .sphereVisual { color: var(--star-chromaticity-f); }
+  .previewSlot[data-spectral-letter="G"] .sphereVisual { color: var(--star-chromaticity-g); }
+  .previewSlot[data-spectral-letter="K"] .sphereVisual { color: var(--star-chromaticity-k); }
+  .previewSlot[data-spectral-letter="M"] .sphereVisual { color: var(--star-chromaticity-m); }
+  .previewSlot[data-spectral-letter="L"] .sphereVisual { color: var(--star-chromaticity-l); }
+  .previewSlot[data-spectral-letter="D"] .sphereVisual { color: var(--star-chromaticity-d); }
 
   .metricEntityStage .sphereVisual[data-baseline="Sol"] {
     color: var(--star-chromaticity-g);

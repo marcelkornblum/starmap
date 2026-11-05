@@ -78,7 +78,6 @@ export interface DetentSheetProps {
   readonly partial?: ReactNode;
   readonly full?: ReactNode;
   readonly className?: string;
-  readonly style?: React.CSSProperties;
   readonly children?: ReactNode;
   readonly 'data-entity-id'?: string;
   readonly 'data-system-id'?: string;
@@ -99,7 +98,6 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
   partial,
   full,
   className,
-  style,
   children,
   'data-entity-id': entityId,
   'data-system-id': systemId,
@@ -243,7 +241,6 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
       data-is-full-screen={isFullScreenState ? 'true' : 'false'}
       data-min-height-px={MIN_SHEET_HEIGHT_PX}
       className={rootClasses}
-      style={style}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

@@ -335,4 +335,131 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     // Assert details-peek-name displays Tau Ceti (proving SystemScene rendered Tau Ceti at [0, 0, 0] and not Sol)
     await expect(page.getByTestId('details-peek-name')).toHaveText(/Tau Ceti/i, { timeout: 10_000 });
   });
+
+  test('searching for a star and clicking the result focuses the star and opens DetailsPanel', async ({
+    page,
+  }) => {
+    await page.goto('/galaxy');
+
+    const rootHost = page.locator('[data-testid="root-canvas-host"]');
+    await expect(rootHost).toBeVisible({ timeout: 15_000 });
+    const canvas = rootHost.locator('canvas');
+    await expect(canvas).toBeVisible({ timeout: 15_000 });
+
+    // Initial camera target should be at Sol (0, 0, 0)
+    await expect(rootHost).toHaveAttribute('data-camera-target', /0\.00,\s*0\.00,\s*0\.00/);
+
+    // Locate the search input
+    const searchInput = page.getByRole('searchbox', { name: /search query/i });
+    await expect(searchInput).toBeVisible({ timeout: 10_000 });
+    await searchInput.fill('Tau Ceti');
+
+    // Wait for search result to appear and click it
+    const tauCetiResultLink = page
+      .getByTestId('search-results-group-stars')
+      .getByRole('link', { name: 'Tau Ceti', exact: true })
+      .first();
+    await expect(tauCetiResultLink).toBeVisible({ timeout: 10_000 });
+    await tauCetiResultLink.click();
+
+    // Verify URL updates to include focus=tau-ceti
+    await expect(page).toHaveURL(/focus=tau-ceti/);
+
+    // Verify DetailsPanel is visible and details-peek-name has text 'Tau Ceti'
+    const peekName = page.getByTestId('details-peek-name');
+    await expect(peekName).toBeVisible({ timeout: 10_000 });
+    await expect(peekName).toHaveText(/Tau Ceti/i);
+
+    // Verify data-camera-target updates to Tau Ceti's coordinates (3.16, 1.54, -1.00)
+    await expect(rootHost).toHaveAttribute('data-camera-target', /3\.1[56],\s*1\.5[40],\s*-1\.00?/);
+  });
+
+  test('navigating from galaxy to system view and back via breadcrumbs or browser back preserves galaxy camera zoom and position', async ({
+    page,
+  }) => {
+    await page.goto('/galaxy?focus=tau-ceti');
+
+    const rootHost = page.locator('[data-testid="root-canvas-host"]');
+    await expect(rootHost).toBeVisible({ timeout: 15_000 });
+    const canvas = rootHost.locator('canvas');
+    await expect(canvas).toBeVisible({ timeout: 15_000 });
+
+    // Wait for camera telemetry attributes to be populated
+    await expect(rootHost).toHaveAttribute('data-camera-pos', /.+/);
+    await expect(rootHost).toHaveAttribute('data-camera-target', /3\.1[56]/);
+
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    const cx = box!.x + box!.width / 2;
+    const cy = box!.y + box!.height / 2;
+
+    // Orbit-drag to modify position
+    await page.mouse.move(cx, cy);
+    await page.mouse.down({ button: 'left' });
+    await page.mouse.move(cx + 80, cy + 40, { steps: 8 });
+    await page.mouse.up({ button: 'left' });
+
+    // Wheel-zoom to modify focal distance
+    await page.mouse.move(cx, cy);
+    await page.mouse.wheel(0, -300);
+
+    // Wait until OrbitControls damping settles before recording modified telemetry
+    let prevSample = '';
+    for (let i = 0; i < 10; i++) {
+      await page.waitForTimeout(150);
+      const currentSample = `${await rootHost.getAttribute('data-camera-pos')}|${await rootHost.getAttribute('data-camera-dist')}`;
+      if (currentSample === prevSample && currentSample.length > 5) {
+        break;
+      }
+      prevSample = currentSample;
+    }
+
+    // Record modified galaxy camera telemetry
+    const modifiedPos = await rootHost.getAttribute('data-camera-pos');
+    const modifiedTarget = await rootHost.getAttribute('data-camera-target');
+    const modifiedDist = await rootHost.getAttribute('data-camera-dist');
+    expect(modifiedPos).toBeTruthy();
+    expect(modifiedTarget).toBeTruthy();
+    expect(modifiedDist).toBeTruthy();
+
+    // Expand DetailsPanel if needed and click Details button to navigate to /system/tau-ceti
+    const systemLink = page.getByTestId('details-button-system-details');
+    if (!(await systemLink.isVisible())) {
+      const peekHeader = page.getByTestId('details-panel-heading');
+      if (await peekHeader.isVisible()) {
+        await peekHeader.click();
+      }
+    }
+    await expect(systemLink).toBeVisible({ timeout: 10_000 });
+    await systemLink.click();
+    await expect(page).toHaveURL(/\/system\/tau-ceti/);
+
+    // Return to Galaxy via Breadcrumbs link
+    const galaxyBreadcrumbLink = page
+      .getByTestId('breadcrumb-link')
+      .filter({ hasText: 'Galaxy' });
+    await expect(galaxyBreadcrumbLink).toBeVisible({ timeout: 10_000 });
+    await galaxyBreadcrumbLink.click();
+
+    // Verify URL retains focus=tau-ceti
+    await expect(page).toHaveURL(/\/galaxy.*focus=tau-ceti/);
+
+    // Verify galaxy camera values match the pre-navigation modified telemetry
+    await expect(rootHost).toHaveAttribute('data-camera-pos', modifiedPos!);
+    await expect(rootHost).toHaveAttribute('data-camera-target', modifiedTarget!);
+    await expect(rootHost).toHaveAttribute('data-camera-dist', modifiedDist!);
+
+    // Now navigate to /system/tau-ceti again and verify browser back (page.goBack()) restoration
+    await expect(systemLink).toBeVisible({ timeout: 10_000 });
+    await systemLink.click();
+    await expect(page).toHaveURL(/\/system\/tau-ceti/);
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/galaxy.*focus=tau-ceti/);
+
+    // Verify telemetry restored identically after browser back
+    await expect(rootHost).toHaveAttribute('data-camera-pos', modifiedPos!);
+    await expect(rootHost).toHaveAttribute('data-camera-target', modifiedTarget!);
+    await expect(rootHost).toHaveAttribute('data-camera-dist', modifiedDist!);
+  });
 });

@@ -31,6 +31,10 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Audit R3F
+        run: npm run audit:r3f
+      - name: Audit UI Design System
+        run: npm run audit:ui
 
   typecheck:
     name: Type Check

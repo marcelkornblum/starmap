@@ -65,6 +65,8 @@ import {
 } from '../hooks/useLayerData';
 import { router, useSpaLocation } from '../router';
 import { useActiveStarsStore } from '../stores/useActiveStarsStore';
+import { useCameraStore } from '../stores/useCameraStore';
+import { useUIStore } from '../stores/useUIStore';
 
 export interface GalaxyViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -174,6 +176,13 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     if (storeMatches) {
       const realEntry = findFocusedEntryInCorpus(urlFocusSlug, apertureCorpus);
       if (realEntry) {
+        if (
+          storeFocusedEntity.name &&
+          storeFocusedEntity.classification &&
+          (storeFocusedEntity.spectralType || storeFocusedEntity.spectralType === realEntry.m?.[1])
+        ) {
+          return storeFocusedEntity;
+        }
         return {
           ...storeFocusedEntity,
           name: storeFocusedEntity.name || realEntry.n || realEntry.i,
@@ -187,6 +196,27 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
 
     return urlFocusEntity ?? storeFocusedEntity;
   }, [urlFocusSlug, hasExplicitFocus, storeFocusedEntity, apertureCorpus, urlFocusEntity]);
+
+  useEffect(() => {
+    if (!urlFocusSlug || !focusedEntity) return;
+    const store = storeApi.getState();
+    if (!store.entities[focusedEntity.id]) {
+      store.registerEntity(focusedEntity);
+    }
+    if (store.focusedId !== focusedEntity.id) {
+      store.setFocused(focusedEntity.id);
+    }
+    if (useUIStore.getState().detailsDetent === 'collapsed') {
+      useUIStore.getState().setDetailsDetent('peek');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlFocusSlug, focusedEntity?.id, storeApi]);
+
+  useEffect(() => {
+    if (pathname === '/galaxy') {
+      useCameraStore.getState().setLastGalaxySearch(search);
+    }
+  }, [pathname, search]);
 
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
@@ -206,6 +236,14 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     () => (storeSelected.length > 0 ? storeSelected : urlSelectedEntities),
     [storeSelected, urlSelectedEntities],
   );
+
+  const canvasEntities = useMemo(() => {
+    if (!focusedEntity) return selectedEntities;
+    if (selectedEntities.some((e) => e.id === focusedEntity.id)) {
+      return selectedEntities;
+    }
+    return [focusedEntity, ...selectedEntities];
+  }, [focusedEntity, selectedEntities]);
 
   const hasExplicitSelection = Boolean(
     search.includes('select=') || search.includes('layer='),
@@ -437,17 +475,28 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       return [cameraState.x, cameraState.y, cameraState.z];
     }
 
-    if (centerEntity?.position) {
-      const p = centerEntity.position;
+    const effectiveCenterSlug = cameraState.center ?? urlFocusSlug ?? undefined;
+
+    if (effectiveCenterSlug === urlFocusSlug && focusedEntity?.position) {
+      const p = focusedEntity.position;
       const coords: [number, number, number] =
         p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
-      if (cameraState.center === 'sol' || coords[0] !== 0 || coords[1] !== 0 || coords[2] !== 0) {
+      if (effectiveCenterSlug === 'sol' || coords[0] !== 0 || coords[1] !== 0 || coords[2] !== 0) {
         return coords;
       }
     }
 
-    if (cameraState.center) {
-      const centerSlug = cameraState.center;
+    if (centerEntity?.position) {
+      const p = centerEntity.position;
+      const coords: [number, number, number] =
+        p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
+      if (effectiveCenterSlug === 'sol' || coords[0] !== 0 || coords[1] !== 0 || coords[2] !== 0) {
+        return coords;
+      }
+    }
+
+    if (effectiveCenterSlug) {
+      const centerSlug = effectiveCenterSlug;
 
       const candidateMatch = CANDIDATE_SYSTEMS.find(
         (s) =>
@@ -542,7 +591,9 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     cameraState.y,
     cameraState.z,
     centerEntity,
+    focusedEntity,
     selectedEntities,
+    urlFocusSlug,
   ]);
 
   const handleSelectSystem = useCallback((id: string | null) => {
@@ -577,7 +628,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       canvas={
         <CanvasLayer
           scope="galaxy"
-          selectedEntities={selectedEntities}
+          selectedEntities={canvasEntities}
           centerId={cameraState.center}
           centerCoordinates={resolvedCenterCoordinates}
           cameraAzimuthDeg={cameraState.az}

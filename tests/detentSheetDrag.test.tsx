@@ -324,19 +324,17 @@ describe('DetentSheet Mobile Drag & Calculation Suite', () => {
       expect(html).toContain('data-is-full-screen="false"');
     });
 
-    it('preserves custom className and style', () => {
+    it('preserves custom className', () => {
       const html = renderToString(
         <DetentSheet
           testIdPrefix="details"
           heading="Styled Sheet"
           className="custom-sheet-class"
-          style={{ zIndex: 99 }}
           peek={<div>Peek</div>}
         />,
       );
 
       expect(html).toContain('custom-sheet-class');
-      expect(html).toContain('z-index:99');
     });
   });
 

@@ -29,10 +29,12 @@ export const Breadcrumbs = ({
   }
 
   const isGuideContext = items[0]?.label.trim().toLowerCase() === 'guide';
-  const resolvedGalaxyHref =
-    isGuideContext && companionHref ? companionHref : '/galaxy';
-  const resolvedGuideHref =
-    !isGuideContext && companionHref ? companionHref : '/guide/star-types';
+  const resolvedGalaxyHref = isGuideContext
+    ? (companionHref ?? '/galaxy')
+    : (items[0]?.href ?? '/galaxy');
+  const resolvedGuideHref = !isGuideContext
+    ? (companionHref ?? '/guide/star-types')
+    : (items[0]?.href ?? '/guide/star-types');
 
   return (
     <nav

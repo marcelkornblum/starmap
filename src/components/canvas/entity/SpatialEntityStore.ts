@@ -38,8 +38,8 @@ export interface SpatialEntityState {
 }
 
 const isSameSpatialPosition = (
-  a: SpatialEntityDefinition['position'],
-  b: SpatialEntityDefinition['position'],
+  a: SpatialEntityDefinition['position'] | undefined,
+  b: SpatialEntityDefinition['position'] | undefined,
 ): boolean => {
   if (a === b) return true;
   if (!a || !b) return false;
@@ -130,6 +130,20 @@ export const createSpatialEntityStore = (initial?: {
       set((state) => {
         const existing = state.entities[id];
         if (!existing) return state;
+        if (
+          (updates.name === undefined || updates.name === existing.name) &&
+          (updates.classification === undefined || updates.classification === existing.classification) &&
+          (updates.spectralType === undefined || updates.spectralType === existing.spectralType) &&
+          (updates.multiplicity === undefined || updates.multiplicity === existing.multiplicity) &&
+          (updates.planets === undefined || updates.planets === existing.planets) &&
+          (updates.parentBodyId === undefined || updates.parentBodyId === existing.parentBodyId) &&
+          (updates.position === undefined || isSameSpatialPosition(existing.position, updates.position)) &&
+          (updates.velocity === undefined || isSameSpatialPosition(existing.velocity, updates.velocity)) &&
+          (updates.orbit === undefined || updates.orbit === existing.orbit) &&
+          (updates.bodyRadius === undefined || updates.bodyRadius === existing.bodyRadius)
+        ) {
+          return state;
+        }
         return {
           entities: {
             ...state.entities,

@@ -10,6 +10,7 @@
     "lint": "oxlint",
     "typecheck": "tsc -b",
     "audit:r3f": "tsx scripts/audit-r3f.ts",
+    "audit:ui": "tsx scripts/audit-ui.ts",
     "preview": "vite preview --host 0.0.0.0 --port 4173 --strictPort",
     "test": "vitest run",
     "test:watch": "vitest",
