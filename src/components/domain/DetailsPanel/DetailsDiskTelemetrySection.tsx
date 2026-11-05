@@ -49,7 +49,7 @@ export const DetailsDiskTelemetrySection = ({
             valueTestId="details-disk-telemetry-confidence"
             confidence={diskTelemetry.confidence as ConfidenceLevel}
             value={
-              <Badge confidence={diskTelemetry.confidence as any}>
+              <Badge confidence={diskTelemetry.confidence as ConfidenceLevel}>
                 {diskTelemetry.confidence}
               </Badge>
             }
@@ -58,7 +58,13 @@ export const DetailsDiskTelemetrySection = ({
         <Datum
           label="Radial Span"
           valueTestId="details-disk-telemetry-span"
-          value={`${diskTelemetry.innerRadiusAu}–${diskTelemetry.outerRadiusAu}`}
+          value={
+            <>
+              <span>{diskTelemetry.innerRadiusAu}</span>
+              <span>–</span>
+              <span>{diskTelemetry.outerRadiusAu}</span>
+            </>
+          }
           unit={
             <Unit>
               <a
