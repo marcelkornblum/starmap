@@ -9,4 +9,21 @@
     pointer-events: auto;
     overflow: hidden;
   }
+
+  .canvasSlot {
+    background-color: transparent;
+    pointer-events: none;
+  }
+
+  .rootCanvasHost {
+    position: fixed;
+    inset: 0;
+    inline-size: 100vw;
+    block-size: 100vh;
+    z-index: var(--layer-canvas);
+    pointer-events: auto;
+    overflow: hidden;
+    background-color: var(--surface-canvas-bg);
+  }
 }
+

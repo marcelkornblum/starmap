@@ -6,7 +6,7 @@
     block-size: 100dvh;
     overflow: hidden;
     position: relative;
-    background-color: var(--surface-canvas-bg);
+    background-color: transparent;
     color: var(--content-default);
   }
 

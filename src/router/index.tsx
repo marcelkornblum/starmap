@@ -18,6 +18,7 @@ import { SearchView } from '../views/SearchView';
 import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
+import { RootCanvasHost } from '../components/domain/CanvasLayer';
 import { useCameraStore } from '../stores/useCameraStore';
 
 export interface StarmapSearchParams {
@@ -202,7 +203,12 @@ export const RootLayout: React.FC = () => {
     };
   }, []);
 
-  return <Outlet />;
+  return (
+    <>
+      <RootCanvasHost />
+      <Outlet />
+    </>
+  );
 };
 
 // Root route definition with global search params validation and SPA link delegation
