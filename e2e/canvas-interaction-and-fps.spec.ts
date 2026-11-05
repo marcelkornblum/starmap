@@ -403,26 +403,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await page.mouse.move(cx, cy);
     await page.mouse.wheel(0, -300);
 
-    // Wait until OrbitControls damping settles before recording modified telemetry
-    let prevSample = '';
-    for (let i = 0; i < 10; i++) {
-      await page.waitForTimeout(150);
-      const currentSample = `${await rootHost.getAttribute('data-camera-pos')}|${await rootHost.getAttribute('data-camera-dist')}`;
-      if (currentSample === prevSample && currentSample.length > 5) {
-        break;
-      }
-      prevSample = currentSample;
-    }
-
-    // Record modified galaxy camera telemetry
-    const modifiedPos = await rootHost.getAttribute('data-camera-pos');
-    const modifiedTarget = await rootHost.getAttribute('data-camera-target');
-    const modifiedDist = await rootHost.getAttribute('data-camera-dist');
-    expect(modifiedPos).toBeTruthy();
-    expect(modifiedTarget).toBeTruthy();
-    expect(modifiedDist).toBeTruthy();
-
-    // Expand DetailsPanel if needed and click Details button to navigate to /system/tau-ceti
+    // Expand DetailsPanel if needed and wait for systemLink to become visible
     const systemLink = page.getByTestId('details-button-system-details');
     if (!(await systemLink.isVisible())) {
       const peekHeader = page.getByTestId('details-panel-heading');
@@ -431,6 +412,32 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
       }
     }
     await expect(systemLink).toBeVisible({ timeout: 10_000 });
+
+    // Wait until OrbitControls damping settles completely (3 consecutive matching 150ms samples)
+    let consecutiveMatches = 0;
+    let prevSample = '';
+    for (let i = 0; i < 20; i++) {
+      await page.waitForTimeout(150);
+      const currentSample = `${await rootHost.getAttribute('data-camera-pos')}|${await rootHost.getAttribute('data-camera-dist')}`;
+      if (currentSample === prevSample && currentSample.length > 5) {
+        consecutiveMatches++;
+        if (consecutiveMatches >= 3) {
+          break;
+        }
+      } else {
+        consecutiveMatches = 0;
+      }
+      prevSample = currentSample;
+    }
+
+    // Record modified galaxy camera telemetry right before navigating
+    const modifiedPos = await rootHost.getAttribute('data-camera-pos');
+    const modifiedTarget = await rootHost.getAttribute('data-camera-target');
+    const modifiedDist = await rootHost.getAttribute('data-camera-dist');
+    expect(modifiedPos).toBeTruthy();
+    expect(modifiedTarget).toBeTruthy();
+    expect(modifiedDist).toBeTruthy();
+
     await systemLink.click();
     await expect(page).toHaveURL(/\/system\/tau-ceti/);
 
@@ -461,5 +468,186 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await expect(rootHost).toHaveAttribute('data-camera-pos', modifiedPos!);
     await expect(rootHost).toHaveAttribute('data-camera-target', modifiedTarget!);
     await expect(rootHost).toHaveAttribute('data-camera-dist', modifiedDist!);
+  });
+
+  test('visual stability invariants: no initial-load label flash on default /galaxy and no label flicker on click in /galaxy?dist=10', async ({
+    page,
+  }) => {
+    // 1. No initial-load label/reticle flash on /galaxy:
+    // Install initScript to track any entity labels mounted and removed during the first 1,500ms
+    await page.addInitScript(() => {
+      const mounted = new Set<string>();
+      const flashed = new Set<string>();
+      (window as unknown as { __initialLabelHistory: { mounted: Set<string>; flashed: Set<string> } }).__initialLabelHistory = {
+        mounted,
+        flashed,
+      };
+
+      const observer = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          for (const node of Array.from(m.addedNodes)) {
+            if (node instanceof HTMLElement) {
+              const testId = node.getAttribute('data-testid');
+              if (testId && testId.startsWith('entity-label-')) {
+                mounted.add(testId);
+              }
+              const childLabels = node.querySelectorAll('[data-testid^="entity-label-"]');
+              childLabels.forEach((el) => {
+                const id = el.getAttribute('data-testid');
+                if (id) mounted.add(id);
+              });
+            }
+          }
+          for (const node of Array.from(m.removedNodes)) {
+            if (node instanceof HTMLElement) {
+              const testId = node.getAttribute('data-testid');
+              if (testId && testId.startsWith('entity-label-')) {
+                if (mounted.has(testId)) flashed.add(testId);
+              }
+              const childLabels = node.querySelectorAll('[data-testid^="entity-label-"]');
+              childLabels.forEach((el) => {
+                const id = el.getAttribute('data-testid');
+                if (id && mounted.has(id)) flashed.add(id);
+              });
+            }
+          }
+        }
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+    });
+
+    await page.goto('/galaxy');
+    const rootHost = page.locator('[data-testid="root-canvas-host"]');
+    await expect(rootHost).toBeVisible({ timeout: 15_000 });
+    const canvas = rootHost.locator('canvas');
+    await expect(canvas).toBeVisible({ timeout: 15_000 });
+
+    await page.waitForTimeout(1500);
+
+    const flashStats = await page.evaluate(() => {
+      const hist = (window as unknown as {
+        __initialLabelHistory?: { mounted: Set<string>; flashed: Set<string> };
+      }).__initialLabelHistory;
+      return {
+        mountedCount: hist ? hist.mounted.size : 0,
+        flashedCount: hist ? hist.flashed.size : 0,
+        flashedIds: hist ? Array.from(hist.flashed) : [],
+      };
+    });
+    expect(flashStats.flashedCount).toBe(0);
+
+    // 2. No label flicker (data-occluded="true" or unmount) when clicking a system on /galaxy?dist=10:
+    await page.goto('/galaxy?dist=10');
+    const hostDist10 = page.locator('[data-testid="root-canvas-host"]');
+    await expect(hostDist10).toBeVisible({ timeout: 15_000 });
+    const canvasDist10 = hostDist10.locator('canvas');
+    await expect(canvasDist10).toBeVisible({ timeout: 15_000 });
+
+    // Wait for 2 animation frames + 300ms for sector hydration to settle
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setTimeout(resolve, 300);
+            });
+          });
+        }),
+    );
+
+    // Install MutationObserver on document.body to record occluded="true" and label removal
+    await page.evaluate(() => {
+      const state = {
+        occludedTrueCount: 0,
+        labelRemovedCount: 0,
+        mounted: false,
+      };
+      (window as unknown as { __solFlickerStats: typeof state }).__solFlickerStats = state;
+
+      const checkMounted = () => {
+        if (
+          document.querySelector('[data-testid="entity-label-sol"]') ||
+          document.querySelector('[data-testid="entity-label-inner-sol"]')
+        ) {
+          state.mounted = true;
+        }
+      };
+      checkMounted();
+
+      const observer = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          if (m.type === 'attributes' && m.attributeName === 'data-occluded') {
+            const target = m.target as HTMLElement;
+            if (
+              target.getAttribute('data-testid') === 'entity-label-inner-sol' &&
+              target.getAttribute('data-occluded') === 'true'
+            ) {
+              state.occludedTrueCount++;
+            }
+          } else if (m.type === 'childList') {
+            for (const node of Array.from(m.removedNodes)) {
+              if (node instanceof HTMLElement) {
+                const testId = node.getAttribute('data-testid');
+                if (
+                  testId === 'entity-label-sol' ||
+                  testId === 'entity-label-inner-sol' ||
+                  node.querySelector('[data-testid="entity-label-inner-sol"]') ||
+                  node.querySelector('[data-testid="entity-label-sol"]')
+                ) {
+                  if (state.mounted) {
+                    state.labelRemovedCount++;
+                  }
+                }
+              }
+            }
+            checkMounted();
+          }
+        }
+      });
+
+      observer.observe(document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['data-occluded', 'data-state'],
+      });
+      (window as unknown as { __solObserver: MutationObserver }).__solObserver = observer;
+    });
+
+    // Hover and click Sol at canvas center (cx, cy)
+    const box10 = await canvasDist10.boundingBox();
+    expect(box10).not.toBeNull();
+    const cx10 = box10!.x + box10!.width / 2;
+    const cy10 = box10!.y + box10!.height / 2;
+
+    await page.mouse.move(cx10, cy10);
+    await page.mouse.click(cx10, cy10);
+
+    // Wait 400ms for state and URL transitions to settle
+    await page.waitForTimeout(400);
+
+    const solInner = page.locator('[data-testid="entity-label-inner-sol"]');
+    await expect(solInner).toBeVisible({ timeout: 10_000 });
+    await expect(solInner).toHaveAttribute('data-state', 'focused');
+    await expect(solInner).toHaveAttribute('data-occluded', 'false');
+
+    const flickerStats = await page.evaluate(() => {
+      const obs = (window as unknown as { __solObserver?: MutationObserver }).__solObserver;
+      obs?.disconnect();
+      return (
+        (window as unknown as {
+          __solFlickerStats?: {
+            occludedTrueCount: number;
+            labelRemovedCount: number;
+          };
+        }).__solFlickerStats ?? {
+          occludedTrueCount: 0,
+          labelRemovedCount: 0,
+        }
+      );
+    });
+
+    expect(flickerStats.occludedTrueCount).toBe(0);
+    expect(flickerStats.labelRemovedCount).toBe(0);
   });
 });

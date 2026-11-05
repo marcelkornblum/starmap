@@ -194,8 +194,68 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       return storeFocusedEntity;
     }
 
-    return urlFocusEntity ?? storeFocusedEntity;
-  }, [urlFocusSlug, hasExplicitFocus, storeFocusedEntity, apertureCorpus, urlFocusEntity]);
+    const resolved = urlFocusEntity ?? storeFocusedEntity;
+    if (!resolved) return null;
+
+    // Check if CANDIDATE_SYSTEMS or storeApi entities already has a matching canonical system
+    const storeEntities = storeApi.getState().entities;
+    let canonicalId: string | undefined;
+
+    const isResolvedStar =
+      !resolved.parentBodyId &&
+      (resolved.classification === 'star' || !resolved.classification);
+
+    const findMatch = (
+      targetId: string,
+      targetName: string,
+      targetPos?: [number, number, number] | THREE.Vector3,
+    ) => {
+      if (
+        targetId === urlFocusSlug ||
+        toUrlSlug(targetId) === urlFocusSlug ||
+        toUrlSlug(targetName) === urlFocusSlug
+      ) {
+        return true;
+      }
+      if (isResolvedStar && targetPos && resolved.position) {
+        const rp = resolved.position;
+        const rx = rp instanceof THREE.Vector3 ? rp.x : rp[0];
+        const ry = rp instanceof THREE.Vector3 ? rp.y : rp[1];
+        const rz = rp instanceof THREE.Vector3 ? rp.z : rp[2];
+        const tx = targetPos instanceof THREE.Vector3 ? targetPos.x : targetPos[0];
+        const ty = targetPos instanceof THREE.Vector3 ? targetPos.y : targetPos[1];
+        const tz = targetPos instanceof THREE.Vector3 ? targetPos.z : targetPos[2];
+        return (rx - tx) ** 2 + (ry - ty) ** 2 + (rz - tz) ** 2 <= 0.04;
+      }
+      return false;
+    };
+
+    for (const sys of CANDIDATE_SYSTEMS) {
+      if (findMatch(sys.id, sys.name, sys.position)) {
+        canonicalId = sys.id;
+        break;
+      }
+    }
+
+    if (!canonicalId) {
+      for (const id in storeEntities) {
+        const ent = storeEntities[id];
+        if (ent && findMatch(ent.id, ent.name, ent.position)) {
+          canonicalId = ent.id;
+          break;
+        }
+      }
+    }
+
+    if (canonicalId && resolved.id !== canonicalId) {
+      return {
+        ...resolved,
+        id: canonicalId,
+      };
+    }
+
+    return resolved;
+  }, [urlFocusSlug, hasExplicitFocus, storeFocusedEntity, apertureCorpus, urlFocusEntity, storeApi]);
 
   useEffect(() => {
     if (!urlFocusSlug || !focusedEntity) return;
@@ -394,8 +454,10 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   );
 
   useEffect(() => {
-    storeApi.getState().setApertureIds(instrumentAperture.apertureIds);
-  }, [storeApi, instrumentAperture.apertureIds]);
+    if (liveApertureRadius === null) {
+      storeApi.getState().setApertureIds(instrumentAperture.apertureIds);
+    }
+  }, [storeApi, instrumentAperture.apertureIds, liveApertureRadius]);
 
   const galaxyBodies = useMemo(
     () =>

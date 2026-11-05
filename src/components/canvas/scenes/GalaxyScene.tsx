@@ -42,6 +42,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
   onCeilingApertureRadiusChange,
 }) => {
   const [streamedSummaries, setStreamedSummaries] = useState<readonly SystemSummaryNode[]>([]);
+  const [hasHydrated, setHasHydrated] = useState(() => useActiveStarsStore.getState().isHydrated);
   const [focusPointPc, setFocusPointPc] = useState<readonly [number, number, number]>([0, 0, 0]);
   const budget = useMemo(() => getDeviceTierBudget(), []);
 
@@ -50,6 +51,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
       summaries: readonly SystemSummaryNode[],
       nextFocusPointPc?: readonly [number, number, number],
     ) => {
+      setHasHydrated(true);
       useActiveStarsStore.getState().setSummaries(summaries);
       if (nextFocusPointPc) {
         setFocusPointPc((prev) =>
@@ -128,7 +130,22 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
 
     if (additionalEntities) {
       for (const ent of additionalEntities) {
-        if (!existingIds.has(ent.id)) {
+        const entNameLower = ent.name.toLowerCase();
+        const existingEntity = baseEntities.find((b) => {
+          if (b.id === ent.id) return true;
+          if (b.name.toLowerCase() === entNameLower) return true;
+          const pB = b.position;
+          const pEnt = ent.position;
+          const bx = Array.isArray(pB) ? pB[0] : pB.x;
+          const by = Array.isArray(pB) ? pB[1] : pB.y;
+          const bz = Array.isArray(pB) ? pB[2] : pB.z;
+          const ex = Array.isArray(pEnt) ? pEnt[0] : pEnt.x;
+          const ey = Array.isArray(pEnt) ? pEnt[1] : pEnt.y;
+          const ez = Array.isArray(pEnt) ? pEnt[2] : pEnt.z;
+          return (bx - ex) ** 2 + (by - ey) ** 2 + (bz - ez) ** 2 <= 0.04;
+        });
+
+        if (!existingEntity && !existingIds.has(ent.id)) {
           if (hasReachedCeiling && Array.isArray(ent.position)) {
             const dx = ent.position[0] - focusPointPc[0];
             const dy = ent.position[1] - focusPointPc[1];
@@ -145,7 +162,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
 
     // Add the nearest non-duplicate streamed stars as reticle entities only if within activeCutoff
     const activeCutoff = getApertureActiveCutoffForViewportWidth();
-    if (streamedSummaries.length <= activeCutoff) {
+    if (hasHydrated && streamedSummaries.length > 0 && streamedSummaries.length <= activeCutoff) {
       let activeCount = 0;
       for (let i = 0; i < streamedSummaries.length && activeCount < maxActive; i++) {
         const s = streamedSummaries[i];
@@ -204,7 +221,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
     }
 
     return baseEntities;
-  }, [systems, additionalEntities, streamedSummaries, focusPointPc, budget.maxActiveEntities]);
+  }, [systems, additionalEntities, streamedSummaries, hasHydrated, focusPointPc, budget.maxActiveEntities]);
 
   return (
     <SpatialViewport

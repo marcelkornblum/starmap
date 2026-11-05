@@ -30,6 +30,8 @@ import {
 } from '../entity';
 import type { JourneyChordLeg } from '../cartography';
 import { useUIStore } from '../../../stores/useUIStore';
+import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
+import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
 
 export interface SpatialViewportProps {
   /** The reference frame driving spatial instrument metrics and scale. Defaults to GALACTIC_FRAME */
@@ -142,6 +144,35 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     });
   }, [outerStore, storeApi]);
 
+  // Synchronise outer store focusedId inward to local spatial entity store
+  const applyingOuterFocusRef = useRef(false);
+  useEffect(() => {
+    if (!outerStore || outerStore === storeApi) return;
+    const applyOuterFocus = (focusedId: string | null): void => {
+      applyingOuterFocusRef.current = true;
+      try {
+        if (focusedId) {
+          const entity = outerStore.getState().entities[focusedId];
+          if (entity && !storeApi.getState().entities[entity.id]) {
+            storeApi.getState().registerEntity(entity);
+          }
+        }
+        if (storeApi.getState().focusedId !== focusedId) {
+          storeApi.getState().setFocused(focusedId);
+        }
+      } finally {
+        applyingOuterFocusRef.current = false;
+      }
+    };
+    applyOuterFocus(outerStore.getState().focusedId);
+
+    return outerStore.subscribe((state, prevState) => {
+      if (state.focusedId !== prevState.focusedId) {
+        applyOuterFocus(state.focusedId);
+      }
+    });
+  }, [outerStore, storeApi]);
+
   // Synchronise outer store hoveredId inward to local spatial entity store
   const applyingOuterHoverRef = useRef(false);
   const applyingLocalHoverRef = useRef(false);
@@ -226,7 +257,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
         onSelect?.(state.selectedId);
       }
 
-      if (state.focusedId !== prevState.focusedId) {
+      if (state.focusedId !== prevState.focusedId && !applyingOuterFocusRef.current) {
         if (outerStore && outerStore !== storeApi) {
           if (state.focusedId) {
             const entity = state.entities[state.focusedId];
@@ -361,7 +392,8 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
     const rSq = apertureRadius * apertureRadius;
     const initialAperture = new Set<string>();
 
-    if (props.entities) {
+    const { summaries, isHydrated } = useActiveStarsStore.getState();
+    if (props.entities && isHydrated && summaries.length <= getApertureActiveCutoffForViewportWidth()) {
       for (const e of props.entities) {
         const p = e.position;
         const x = p instanceof THREE.Vector3 ? p.x : p[0];

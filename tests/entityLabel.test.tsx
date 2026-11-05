@@ -131,4 +131,36 @@ describe('EntityLabel Primitive (Layer 3: Typographic Label)', () => {
     expect(box.bottom).toBeGreaterThan(box.top);
     expect(box.right).toBeGreaterThan(box.left);
   });
+
+  it('applies Target Immunity to focused and selected entity labels, setting data-occluded="false"', async () => {
+    const store = createSpatialEntityStore();
+    const { useFrame } = vi.mocked(await import('@react-three/fiber'));
+
+    const { getByTestId } = render(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <SpatialEntityProvider store={store}>
+          <EntityLabel
+            id="star-immune"
+            name="Tau Ceti"
+            spectralType="G8.5V"
+            state="focused"
+            position={[0, 0, 0]}
+          />
+        </SpatialEntityProvider>
+      </SpatialFrameProvider>,
+    );
+
+    const innerLabel = getByTestId('entity-label-inner-star-immune');
+    expect(innerLabel.getAttribute('data-occluded')).toBe('false');
+
+    const calls = vi.mocked(useFrame).mock.calls;
+    const labelFrameCall = calls.find((c) => c[1] === undefined || c[1] === FRAME_PRIORITY.entityAperture || c[1] === 0);
+    expect(labelFrameCall).toBeDefined();
+
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.set(0, 0, 10);
+    labelFrameCall![0]({ camera, size: { width: 1440, height: 900 } } as any, 0.016);
+
+    expect(innerLabel.getAttribute('data-occluded')).toBe('false');
+  });
 });

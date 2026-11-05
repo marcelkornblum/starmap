@@ -51,6 +51,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
   const labelDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
   const scratchBoxRef = useLazyRef<Box2D>(() => ({ left: 0, top: 0, right: 0, bottom: 0 }));
   const lastOccludedRef = useRef<boolean | null>(null);
+  const lastStateRef = useRef<CelestialInteractionState | null>(null);
   const lastXRef = useRef<number | null>(null);
   const lastYRef = useRef<number | null>(null);
   const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
@@ -99,10 +100,12 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
     if (
       occlusionManager.isBatchEvaluating() &&
       !occlusionManager.didCameraOrFootprintsChange() &&
-      lastOccludedRef.current !== null
+      lastOccludedRef.current !== null &&
+      lastStateRef.current === state
     ) {
       return;
     }
+    lastStateRef.current = state;
 
     if (billboardRef.current && billboardRef.current.position) {
       billboardRef.current.position.set(...resolvedPos);
@@ -123,23 +126,29 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
     // Retrieve screen footprint from occlusion manager to construct accurate activeBox
     const fp = occlusionManager.getFootprint(id);
     let activeBox: Box2D | undefined;
-    if (fp && fp.screenX !== undefined && fp.screenY !== undefined) {
-      const estimatedW = name.length * 8 + 12;
-      const w = labelDimensionsRef.current.width > 0 ? labelDimensionsRef.current.width : estimatedW;
-      const h = labelDimensionsRef.current.height > 0 ? labelDimensionsRef.current.height : (isAnnotated && spectralType ? 38 : 18);
-      const anchorX = fp.screenX + 1.15 * fp.reticleRadius;
-      const anchorY = fp.screenY - 0.75 * fp.reticleRadius;
-      const box = scratchBoxRef.current;
-      box.left = anchorX;
-      box.top = anchorY;
-      box.right = anchorX + w;
-      box.bottom = anchorY + h;
-      fp.labelBox = box;
-      activeBox = box;
+    if (fp) {
+      fp.state = state;
+      fp.hasReticle = state !== 'passive';
+      occlusionManager.register(fp);
+      if (fp.screenX !== undefined && fp.screenY !== undefined) {
+        const estimatedW = name.length * 8 + 12;
+        const w = labelDimensionsRef.current.width > 0 ? labelDimensionsRef.current.width : estimatedW;
+        const h = labelDimensionsRef.current.height > 0 ? labelDimensionsRef.current.height : (isAnnotated && spectralType ? 38 : 18);
+        const anchorX = fp.screenX + 1.15 * fp.reticleRadius;
+        const anchorY = fp.screenY - 0.75 * fp.reticleRadius;
+        const box = scratchBoxRef.current;
+        box.left = anchorX;
+        box.top = anchorY;
+        box.right = anchorX + w;
+        box.bottom = anchorY + h;
+        fp.labelBox = box;
+        activeBox = box;
+      }
     }
 
     const evalState = occlusionManager.evaluateNodeOcclusion(id, activeBox);
-    const isVisible = evalState.labelEval.visible && !isOccluded;
+    const isTargetImmune = state === 'selected' || state === 'focused';
+    const isVisible = (isTargetImmune || evalState.labelEval.visible) && !isOccluded;
 
     if (lastOccludedRef.current !== !isVisible) {
       lastOccludedRef.current = !isVisible;
@@ -191,7 +200,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
           ref={labelRef}
           className={styles.labelCluster}
           data-state={state}
-          data-occluded="false"
+          data-occluded={state === 'selected' || state === 'focused' ? 'false' : lastOccludedRef.current === true ? 'true' : 'false'}
           data-testid={`entity-label-inner-${id}`}
           style={offset ? { transform: `translate3d(${offset[0]}px, ${offset[1]}px, 0)` } : undefined}
         >

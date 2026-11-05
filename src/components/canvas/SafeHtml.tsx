@@ -133,6 +133,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     div.style.top = '0';
     div.style.left = '0';
     div.style.transformOrigin = '0 0';
+    div.style.display = 'none';
     containerRef.current = div;
 
     const target = (gl.domElement?.parentNode as HTMLElement | null) ?? document.body;
@@ -184,19 +185,19 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
       }
     }
 
-    if (lastVisible.current !== isVisible) {
-      lastVisible.current = isVisible;
-      activeContainer.style.display = isVisible ? '' : 'none';
-      const hidden = !isVisible;
-      if (onOccludeRef.current) {
-        nextHiddenRef.current = hidden;
-        if (rafIdRef.current === null && typeof requestAnimationFrame !== 'undefined') {
-          rafIdRef.current = requestAnimationFrame(flushOccludeRaf);
+    if (!isVisible) {
+      if (lastVisible.current !== false) {
+        lastVisible.current = false;
+        activeContainer.style.display = 'none';
+        if (onOccludeRef.current) {
+          nextHiddenRef.current = true;
+          if (rafIdRef.current === null && typeof requestAnimationFrame !== 'undefined') {
+            rafIdRef.current = requestAnimationFrame(flushOccludeRaf);
+          }
         }
       }
+      return;
     }
-
-    if (!isVisible) return;
 
     const ndc = scratchNdc.current;
     let x = 0;
@@ -235,6 +236,17 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
         : `translate3d(${qX}px, ${qY}px, 0)`;
       lastTransform.current = transform;
       activeContainer.style.transform = transform;
+    }
+
+    if (lastVisible.current !== true) {
+      lastVisible.current = true;
+      activeContainer.style.display = '';
+      if (onOccludeRef.current) {
+        nextHiddenRef.current = false;
+        if (rafIdRef.current === null && typeof requestAnimationFrame !== 'undefined') {
+          rafIdRef.current = requestAnimationFrame(flushOccludeRaf);
+        }
+      }
     }
 
     if (

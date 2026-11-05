@@ -15,6 +15,8 @@ import { KinematicVector } from './KinematicVector';
 import { OrbitPath } from './OrbitPath';
 import { EntityLabel } from './EntityLabel';
 import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
+import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
 import {
   type CelestialFootprint,
 } from '../cartography/celestialOcclusionRegistry';
@@ -159,6 +161,10 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   // Manage client-side aperture containment inside useEffect to avoid render-phase state mutations
   useEffect(() => {
     if (frameCtx?.frameRef?.current) {
+      const { summaries, isHydrated } = useActiveStarsStore.getState();
+      if (!isHydrated || summaries.length > getApertureActiveCutoffForViewportWidth()) {
+        return;
+      }
       const { focusPoint, apertureRadius } = frameCtx.frameRef.current;
       const inAperture = resolvedPos.distanceTo(focusPoint) <= apertureRadius;
       if (inAperture && !storeApi.getState().apertureIds.has(id)) {
@@ -281,6 +287,18 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     updatedAt: 0,
   });
 
+  footprintRef.current.name = name;
+  footprintRef.current.state = activeState;
+  footprintRef.current.hasReticle = activeState !== 'passive';
+  footprintRef.current.reticleSize = DEFAULT_RETICLE_SIZE;
+  footprintRef.current.multiplicity = multiplicity;
+  footprintRef.current.planets = planets;
+  if (footprintRef.current.worldPos) {
+    footprintRef.current.worldPos[0] = resolvedPos.x;
+    footprintRef.current.worldPos[1] = resolvedPos.y;
+    footprintRef.current.worldPos[2] = resolvedPos.z;
+  }
+
   // Keep footprint state fresh
   useEffect(() => {
     footprintRef.current.name = name;
@@ -294,7 +312,8 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
       footprintRef.current.worldPos[1] = resolvedPos.y;
       footprintRef.current.worldPos[2] = resolvedPos.z;
     }
-  }, [name, activeState, multiplicity, planets, resolvedPos]);
+    occlusionManager.register(footprintRef.current);
+  }, [name, activeState, multiplicity, planets, resolvedPos, occlusionManager]);
 
   useEffect(() => {
     occlusionManager.register(footprintRef.current);
