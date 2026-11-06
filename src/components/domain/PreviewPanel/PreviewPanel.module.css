@@ -4,7 +4,6 @@
     flex-direction: column;
     gap: var(--space-fib-2);
     padding: var(--space-inset-panel-tight);
-    background-color: var(--palette-surface-slab-dark);
     background: var(--surface-panel-bg);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     border-radius: var(--radius-container);

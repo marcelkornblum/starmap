@@ -69,37 +69,12 @@ All tasks follow a strict lifecycle:
     -   Add dated note explaining the change
     -   Resume implementation
 
-8.  **Commit Code Changes:**
+8.  **Update Plan & Commit Changes:**
 
-    -   Stage all code changes related to the task.
-    -   Propose a clear, concise commit message e.g, `feat(ui): Create basic
-        HTML structure for calculator`.
-    -   Perform the commit.
-
-9.  **Attach Task Summary with Git Notes:**
-
-    -   **Step 9.1: Get Commit Hash:** Obtain the hash of the *just-completed
-        commit* (`git log -1 --format="%H"`).
-    -   **Step 9.2: Draft Note Content:** Create a detailed summary for the
-        completed task. This should include the task name, a summary of changes,
-        a list of all created/modified files, and the core "why" for the change.
-    -   **Step 9.3: Attach Note:** Use the `git notes` command to attach the
-        summary to the commit. `bash # The note content from the previous step
-        is passed via the -m flag. git notes add -m "<note content>"
-        <commit_hash>`
-
-10. **Get and Record Task Commit SHA:**
-
-    -   **Step 10.1: Update Plan:** Read `plan.md`, find the line for the
-        completed task, update its status from `[~]` to `[x]`, and append the
-        first 7 characters of the *just-completed commit's* commit hash.
-    -   **Step 10.2: Write Plan:** Write the updated content back to `plan.md`.
-
-11. **Commit Plan Update:**
-
-    -   **Action:** Stage the modified `plan.md` file.
-    -   **Action:** Commit this change with a descriptive message (e.g.,
-        `conductor(plan): Mark task 'Create user model' as complete`).
+    -   Update `plan.md` to mark the completed task as `[x]`.
+    -   Stage all code and plan changes related to the task.
+    -   Commit cleanly and unprompted on the active feature branch with a descriptive message (e.g. `feat(ui): Create basic HTML structure for calculator`).
+    -   Do not use `git notes` or separate commit ceremonies.
 
 ### Task Correction & Plan Amendment Workflows
 
@@ -196,36 +171,13 @@ that also concludes a phase in `plan.md`.
     -   **PAUSE** and await the user's response. Do not proceed without an
         explicit yes or confirmation.
 
-6.  **Identify Target Commit for Report:**
+6.  **Record Phase Completion & Commit:**
 
-    -   Do NOT create a new empty commit for checkpointing.
-    -   Identify the hash of the last functional commit made during this phase. This will be the target for the verification report.
+    -   Update `plan.md` to mark all completed phase tasks as `[x]`.
+    -   Stage and commit phase changes cleanly and unprompted on the active feature branch with a descriptive message following the format `feat(<scope>): Complete <PHASE NAME>`.
+    -   Do not use `git notes` or separate commit ceremonies.
 
-7.  **Attach Auditable Verification Report using Git Notes:**
-
-    -   **Step 7.1: Draft Note Content:** Create a detailed verification report
-        including the automated test command, the manual verification steps, and
-        the user's confirmation.
-    -   **Step 7.2: Attach Note:** Use the `git notes` command to attach the full report to the target commit identified in step 6.
-
-8.  **Get and Record Phase Checkpoint SHA:**
-
-    -   **Step 8.1: Get Commit Hash:** Obtain the hash of the *just-created
-        checkpoint commit* (`git log -1 --format="%H"`).
-    -   **Step 8.2: Update Plan:** Read `plan.md`, find the heading for the
-        completed phase, and append the first 7 characters of the commit hash in
-        the format `[checkpoint: <sha>]`.
-    -   **Step 8.3: Write Plan:** Write the updated content back to `plan.md`.
-
-9.  **Commit Plan Update:**
-
-    -   **Action:** Stage the modified `plan.md` file.
-    -   **Action:** Commit this change with a descriptive message following the
-        format `conductor(plan): Mark phase '<PHASE NAME>' as complete`.
-
-10. **Announce Completion:** Inform the user that the phase is complete and the
-    checkpoint has been created, with the detailed verification report attached
-    as a git note.
+7.  **Announce Completion:** Inform the user that the phase is complete and ready for review.
 
 ### Quality Gates
 

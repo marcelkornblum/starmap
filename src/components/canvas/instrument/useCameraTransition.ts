@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
+import { useUIStore } from '../../../stores/useUIStore';
 import { FRAME_PRIORITY } from '../engineConfig';
 
 import {
@@ -214,6 +215,7 @@ export function useCameraTransition(): CameraTransitionApi {
 
   const cancelTransition = useCallback(() => {
     controllerRef.current.cancel();
+    useUIStore.getState().setCameraTransitioning(false);
   }, [controllerRef]);
 
   const transitionTo = useCallback(
@@ -221,11 +223,25 @@ export function useCameraTransition(): CameraTransitionApi {
       target: THREE.Vector3 | [number, number, number],
       options?: CameraTransitionOptions,
     ) => {
+      useUIStore.getState().setCameraTransitioning(true);
+
+      const wrappedOptions: CameraTransitionOptions = {
+        ...options,
+        onComplete: () => {
+          useUIStore.getState().setCameraTransitioning(false);
+          options?.onComplete?.();
+        },
+        onCancel: () => {
+          useUIStore.getState().setCameraTransitioning(false);
+          options?.onCancel?.();
+        },
+      };
+
       controllerRef.current.start(
         camera,
         target,
         controls?.target,
-        options,
+        wrappedOptions,
       );
       invalidate();
     },
@@ -245,6 +261,15 @@ export function useCameraTransition(): CameraTransitionApi {
       controls.removeEventListener?.('start', handleUserInteract);
     };
   }, [controls, cancelTransition]);
+
+  // Cleanly reset store transition state on unmount
+  useEffect(() => {
+    return () => {
+      if (controllerRef.current.isTransitioning()) {
+        useUIStore.getState().setCameraTransitioning(false);
+      }
+    };
+  }, [controllerRef]);
 
   // Frame animation loop: runs before OrbitControls and the spatial frame (see FRAME_PRIORITY)
   useFrame(() => {

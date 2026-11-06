@@ -18,6 +18,8 @@ import { SearchView } from '../views/SearchView';
 import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
+import { RootCanvasHost } from '../components/domain/CanvasLayer';
+import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
 import { useCameraStore } from '../stores/useCameraStore';
 
 export interface StarmapSearchParams {
@@ -65,25 +67,12 @@ export function resolveSpaLocation(
   basepath = import.meta.env?.BASE_URL ?? '/',
 ): { readonly pathname: string; readonly search: string } {
   const base = basepath.replace(/\/+$/, '');
-  let normalizedPathname =
+  const normalizedPathname =
     base && base !== '/' && rawPathname.startsWith(base)
       ? (rawPathname.slice(base.length) || '/')
       : rawPathname;
 
-  let normalizedSearch = rawSearch;
-  const match = /^\/galaxy\/([^/?#]+)$/.exec(normalizedPathname);
-  if (match?.[1]) {
-    const legacySystemSlug = decodeURIComponent(match[1]);
-    normalizedPathname = '/galaxy';
-    const cleanSearch = rawSearch.startsWith('?') ? rawSearch.slice(1) : rawSearch;
-    const params = new URLSearchParams(cleanSearch);
-    if (!params.has('focus')) {
-      const focusParam = `focus=${encodeURIComponent(legacySystemSlug)}`;
-      normalizedSearch = cleanSearch ? `?${focusParam}&${cleanSearch}` : `?${focusParam}`;
-    }
-  }
-
-  return { pathname: normalizedPathname, search: normalizedSearch };
+  return { pathname: normalizedPathname, search: rawSearch };
 }
 
 export function useSpaLocation(
@@ -131,23 +120,7 @@ export function useSpaLocation(
 }
 
 export const RootLayout: React.FC = () => {
-  const spaLocation = useSpaLocation();
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    const match = /\/galaxy\/([^/?#]+)$/.exec(window.location.pathname);
-    if (match?.[1]) {
-      const base = window.location.pathname.slice(0, match.index);
-      const { pathname, search } = resolveSpaLocation(
-        window.location.pathname.slice(match.index),
-        window.location.search,
-      );
-      const newUrl = `${base}${pathname}${search}${window.location.hash}`;
-      window.history.replaceState(window.history.state, '', newUrl);
-    }
-  }, [spaLocation.pathname, spaLocation.search]);
+  useSpaLocation();
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -231,7 +204,13 @@ export const RootLayout: React.FC = () => {
     };
   }, []);
 
-  return <Outlet />;
+  return (
+    <>
+      <ThemeTokenBridge />
+      <RootCanvasHost />
+      <Outlet />
+    </>
+  );
 };
 
 // Root route definition with global search params validation and SPA link delegation
@@ -287,12 +266,6 @@ export const mainSearchRoute = createRoute({
 export const mainGalaxyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/galaxy',
-  component: GalaxyView,
-});
-
-export const mainGalaxySystemRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/galaxy/$systemId',
   component: GalaxyView,
 });
 
@@ -360,7 +333,6 @@ export const routeTree = rootRoute.addChildren([
   indexRoute,
   mainSearchRoute,
   mainGalaxyRoute,
-  mainGalaxySystemRoute,
   mainSystemRoute,
   mainPlanetRoute,
   starTypesListRoute,

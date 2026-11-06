@@ -425,26 +425,11 @@ export class CelestialOcclusionManager {
    * Register or update a celestial node's screen-space footprint.
    */
   public register(footprint: CelestialFootprint): void {
-    const existing = this.footprints.get(footprint.id);
-    const stalkChanged =
-      !existing ||
-      existing.hasStalk !== footprint.hasStalk ||
-      existing.state !== footprint.state;
-    const significanceChanged =
-      !existing ||
-      existing.state !== footprint.state ||
-      existing.visible !== footprint.visible;
-
     this.footprints.set(footprint.id, footprint);
     this.gridDirty = true;
     this.footprintsMutated = true;
-
-    if (significanceChanged) {
-      this.updateSignificantFootprints();
-    }
-    if (stalkChanged) {
-      this.updateStalkedSnapshot();
-    }
+    this.updateSignificantFootprints();
+    this.updateStalkedSnapshot();
   }
 
   /**

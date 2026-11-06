@@ -3,6 +3,7 @@ import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
 } from '../components/canvas/entity/SpatialEntityContext';
+import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
 import {
   BodiesPanel,
   Breadcrumbs,
@@ -64,6 +65,8 @@ import {
   useLoadedLayerManifests,
 } from '../hooks/useLayerData';
 import { useSpaLocation } from '../router';
+import { useCameraStore } from '../stores/useCameraStore';
+import { useUIStore } from '../stores/useUIStore';
 
 export interface PlanetViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -85,6 +88,7 @@ const useResolvedPlanetDetails = (
   readonly activeCorpus: readonly CompactSearchEntry[];
   readonly urlPlanetSlug: string | null;
   readonly hasExplicitFocus: boolean;
+  readonly focusedEntity: SpatialEntityDefinition | null;
 } => {
   const storeApi = useSpatialEntityStoreApi();
   useSpatialEntityStore((state) => state.entities);
@@ -294,6 +298,7 @@ const useResolvedPlanetDetails = (
     activeCorpus,
     urlPlanetSlug,
     hasExplicitFocus,
+    focusedEntity,
   };
 };
 
@@ -307,21 +312,48 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     orbitalSchematic,
     activeCorpus,
     urlPlanetSlug,
+    focusedEntity,
   } = useResolvedPlanetDetails(props, true);
 
+  const storeApi = useSpatialEntityStoreApi();
   const { pathname, search } = useSpaLocation(
     locationPathname,
     locationSearch,
     '/planet/earth',
   );
   const targetId = extractUrlPlanetSlug(pathname) ?? 'earth';
+  const urlFocusSlug = extractUrlFocusSlug(pathname, search);
   const cameraState = extractUrlSceneCameraState(search);
+
+  useEffect(() => {
+    if (!urlFocusSlug || !focusedEntity) return;
+    const store = storeApi.getState();
+    if (!store.entities[focusedEntity.id]) {
+      store.registerEntity(focusedEntity);
+    }
+    if (store.focusedId !== focusedEntity.id) {
+      store.setFocused(focusedEntity.id);
+    }
+    if (useUIStore.getState().detailsDetent === 'collapsed') {
+      useUIStore.getState().setDetailsDetent('peek');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlFocusSlug, focusedEntity?.id, storeApi]);
 
   const breadcrumbs = buildPlanetViewBreadcrumbs(
     focusedDetails,
     planetaryBodies,
     urlPlanetSlug,
   );
+
+  const lastGalaxySearch = useCameraStore((s) => s.lastGalaxySearch);
+  const resolvedBreadcrumbs = useMemo(() => {
+    if (!lastGalaxySearch) return breadcrumbs;
+    const query = lastGalaxySearch.startsWith('?') ? lastGalaxySearch : `?${lastGalaxySearch}`;
+    return breadcrumbs.map((item) =>
+      item.label === 'Galaxy' ? { ...item, href: `/galaxy${query}` } : item,
+    );
+  }, [breadcrumbs, lastGalaxySearch]);
 
   const routeStops = extractUrlRouteStops(search);
   const routeOptionId = extractUrlJourneyOptionId(search);
@@ -370,7 +402,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
           }
         />
       }
-      breadcrumbs={<Breadcrumbs items={breadcrumbs} />}
+      breadcrumbs={<Breadcrumbs items={resolvedBreadcrumbs} />}
       controls={<ControlBar scope="planet" />}
       search={
         <Search.Root
@@ -389,16 +421,19 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
         </Search.Root>
       }
       layerCard={<LayerCard card={activeLayerCard} />}
-      primaryFloat={
-        activeJourney ? (
-          <DirectionsPanel journey={activeJourney} />
-        ) : (
+      detailsPanel={
+        focusedDetails ? (
           <DetailsPanel
             details={focusedDetails}
             schematic={orbitalSchematic}
             preview={focusedPreview}
           />
-        )
+        ) : undefined
+      }
+      directionsPanel={
+        activeJourney && routeStops && routeStops.length >= 2 ? (
+          <DirectionsPanel journey={activeJourney} />
+        ) : undefined
       }
       preview={activeJourney ? <PreviewPanel preview={focusedPreview} /> : null}
       minimap={<Minimap orientation={minimapOrientation} />}

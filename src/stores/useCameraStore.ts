@@ -3,6 +3,15 @@ import type { CardinalDirection } from '../components/canvas/math/cameraMath';
 
 export type CameraProjectionMode = 'perspective' | 'orthographic';
 
+export interface SavedGalaxyCameraPose {
+  position: [number, number, number];
+  target: [number, number, number];
+  up: [number, number, number];
+  zoom: number;
+  focalDistance: number;
+  centerKey: string;
+}
+
 export interface CameraState {
   /** Current projection mode: 3D perspective or orthogonal flat cartography */
   mode: CameraProjectionMode;
@@ -24,6 +33,12 @@ export interface CameraState {
   pendingPresetRequest: CameraPreset | null;
   /** Incremental tick counter triggering camera recentering onto target even when target coordinates are unchanged */
   recenterTick: number;
+  /** Saved galaxy camera pose for state restoration when navigating back from system/planet views */
+  savedGalaxyCamera: SavedGalaxyCameraPose | null;
+  /** Last galaxy URL search parameters to preserve query on back/breadcrumbs navigation */
+  lastGalaxySearch: string;
+  /** Pending focus slug to center the camera upon (e.g. from search result selection) */
+  pendingCenterSlug: string | null;
 }
 
 export type CameraPreset = 'top-down' | 'reset' | 'orbital-lock' | 'radial';
@@ -38,6 +53,16 @@ export interface CameraActions {
     target: [number, number, number],
     zoom?: number,
   ) => void;
+  setCameraPose: (pose: {
+    position: [number, number, number];
+    target: [number, number, number];
+    up?: [number, number, number];
+    zoom?: number;
+    focalDistance?: number;
+  }) => void;
+  setSavedGalaxyCamera: (pose: SavedGalaxyCameraPose | null) => void;
+  setLastGalaxySearch: (search: string) => void;
+  setPendingCenterSlug: (slug: string | null) => void;
   requestAxisView: (direction: CardinalDirection) => void;
   clearAxisRequest: () => void;
   applyPreset: (preset: CameraPreset) => void;
@@ -64,6 +89,9 @@ export const INITIAL_CAMERA_STATE: CameraState = {
   pendingAxisRequest: null,
   pendingPresetRequest: null,
   recenterTick: 0,
+  savedGalaxyCamera: null,
+  lastGalaxySearch: '',
+  pendingCenterSlug: null,
 };
 
 export const useCameraStore = create<CameraStore>()((set) => ({
@@ -97,6 +125,29 @@ export const useCameraStore = create<CameraStore>()((set) => ({
       ),
       ...(zoom !== undefined ? { zoom } : {}),
     }),
+  setCameraPose: (pose: {
+    position: [number, number, number];
+    target: [number, number, number];
+    up?: [number, number, number];
+    zoom?: number;
+    focalDistance?: number;
+  }) =>
+    set({
+      position: pose.position,
+      target: pose.target,
+      focalDistance:
+        pose.focalDistance ??
+        Math.hypot(
+          pose.position[0] - pose.target[0],
+          pose.position[1] - pose.target[1],
+          pose.position[2] - pose.target[2],
+        ),
+      ...(pose.zoom !== undefined ? { zoom: pose.zoom } : {}),
+    }),
+  setSavedGalaxyCamera: (savedGalaxyCamera: SavedGalaxyCameraPose | null) =>
+    set({ savedGalaxyCamera }),
+  setLastGalaxySearch: (lastGalaxySearch: string) => set({ lastGalaxySearch }),
+  setPendingCenterSlug: (pendingCenterSlug: string | null) => set({ pendingCenterSlug }),
   requestAxisView: (direction: CardinalDirection) => set({ pendingAxisRequest: direction }),
   clearAxisRequest: () => set({ pendingAxisRequest: null }),
   applyPreset: (preset: CameraPreset) => set({ pendingPresetRequest: preset }),

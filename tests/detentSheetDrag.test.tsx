@@ -260,7 +260,6 @@ describe('DetentSheet Mobile Drag & Calculation Suite', () => {
       expect(html).toContain('data-detent="peek"');
       expect(html).toContain('data-is-full-screen="false"');
       expect(html).toContain('data-min-height-px="56"');
-      expect(html).toContain('--sheet-mobile-height:');
 
       // Drag handle bar
       expect(html).toContain('data-testid="details-drag-handle"');
@@ -325,20 +324,17 @@ describe('DetentSheet Mobile Drag & Calculation Suite', () => {
       expect(html).toContain('data-is-full-screen="false"');
     });
 
-    it('preserves custom className and style', () => {
+    it('preserves custom className', () => {
       const html = renderToString(
         <DetentSheet
           testIdPrefix="details"
           heading="Styled Sheet"
           className="custom-sheet-class"
-          style={{ zIndex: 99 }}
           peek={<div>Peek</div>}
         />,
       );
 
       expect(html).toContain('custom-sheet-class');
-      expect(html).toContain('z-index:99');
-      expect(html).toContain('--sheet-mobile-height');
     });
   });
 

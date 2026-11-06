@@ -107,10 +107,10 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
                   data-in-habitable-zone={orb.inHabitableZone ? 'true' : undefined}
                 >
                   <DataTable.Cell>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+                    <Cluster as="span" gap="tight" align="center">
                       <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
                       <strong>{orb.name}</strong>
-                    </span>
+                    </Cluster>
                   </DataTable.Cell>
                   <DataTable.Cell numeric>
                     {orb.semiMajorAxisAu !== undefined ? (

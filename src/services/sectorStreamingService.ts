@@ -633,6 +633,20 @@ export class SectorStreamingManager {
     return this.cache.get(sectorId);
   }
 
+  /**
+   * Returns true only once every sector in the active set has been loaded into cache
+   * or confirmed missing, preventing partial 1-sector hydrations during initial stream.
+   */
+  isActiveRingReady(): boolean {
+    if (this.activeSet.size === 0) return false;
+    for (const sectorId of this.activeSet) {
+      if (!this.cache.has(sectorId) && !this.missingSectors.has(sectorId)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   getTelemetry(): SectorStreamingTelemetry {
     return {
       tier: this.budget.tier,

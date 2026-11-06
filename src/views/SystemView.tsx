@@ -64,6 +64,8 @@ import {
   useLoadedLayerManifests,
 } from '../hooks/useLayerData';
 import { useSpaLocation } from '../router';
+import { useCameraStore } from '../stores/useCameraStore';
+import { useUIStore } from '../stores/useUIStore';
 
 export interface SystemViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -115,9 +117,23 @@ const useResolvedSystemDetails = (
         : null,
     [urlFocusSlug, activeCorpus],
   );
+
+  const rawStoreFocused = storeApi.getState().getEntitiesByState('focused')[0] ?? null;
+
+  const isStoreFocusedInCurrentSystem =
+    rawStoreFocused && urlSystemSlug
+      ? toUrlSlug(rawStoreFocused.id) === urlSystemSlug ||
+        toUrlSlug(rawStoreFocused.name) === urlSystemSlug ||
+        toUrlSlug(rawStoreFocused.parentBodyId ?? '') === urlSystemSlug ||
+        rawStoreFocused.parentBodyId === urlSystemSlug ||
+        rawStoreFocused.id === urlSystemSlug
+      : false;
+
+  const storeFocusedEntity = isStoreFocusedInCurrentSystem ? rawStoreFocused : null;
+
   const explicitFocusedEntity = urlFocusSlug
-    ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
-    : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
+    ? (urlFocusEntity ?? storeFocusedEntity)
+    : storeFocusedEntity;
 
   const cachedSystemRecord = urlSystemSlug
     ? getCachedDetailRecord(urlSystemSlug)
@@ -136,18 +152,33 @@ const useResolvedSystemDetails = (
 
   const focusedEntity = explicitFocusedEntity;
   const matchedEntry = focusedEntity
-    ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
+    ? (findFocusedEntryInCorpus(focusedEntity.id, activeCorpus) ??
+       findFocusedEntryInCorpus(focusedEntity.name, activeCorpus))
     : undefined;
   const urlSystemEntry = urlSystemSlug
     ? findFocusedEntryInCorpus(urlSystemSlug, activeCorpus)
     : undefined;
   const targetSystemId =
     matchedEntry?.s ??
+    matchedEntry?.i ??
     urlSystemEntry?.s ??
     urlSystemEntry?.i ??
-    focusedEntity?.id ??
     urlSystemSlug ??
     '';
+
+  useEffect(() => {
+    if (!urlFocusSlug) {
+      const currentFocusedId = storeApi.getState().focusedId;
+      if (
+        currentFocusedId &&
+        toUrlSlug(currentFocusedId) !== urlSystemSlug &&
+        currentFocusedId !== urlSystemSlug &&
+        currentFocusedId !== targetSystemId
+      ) {
+        storeApi.getState().setFocused(null);
+      }
+    }
+  }, [urlSystemSlug, urlFocusSlug, targetSystemId, storeApi]);
 
   const canonRecords = useEntityAnnotations([
     toAnnotationLookupKey(
@@ -252,12 +283,37 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     '/system/sol',
   );
   const targetId = extractUrlSystemSlug(pathname) ?? 'sol';
+  const urlFocusSlug = extractUrlFocusSlug(pathname, search);
   const cameraState = extractUrlSceneCameraState(search);
+
+  useEffect(() => {
+    if (!urlFocusSlug || !focusedEntity) return;
+    const store = storeApi.getState();
+    if (!store.entities[focusedEntity.id]) {
+      store.registerEntity(focusedEntity);
+    }
+    if (store.focusedId !== focusedEntity.id) {
+      store.setFocused(focusedEntity.id);
+    }
+    if (useUIStore.getState().detailsDetent === 'collapsed') {
+      useUIStore.getState().setDetailsDetent('peek');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlFocusSlug, focusedEntity?.id, storeApi]);
 
   const breadcrumbs = buildSystemViewBreadcrumbs(
     systemContextDetails,
     urlSystemSlug,
   );
+
+  const lastGalaxySearch = useCameraStore((s) => s.lastGalaxySearch);
+  const resolvedBreadcrumbs = useMemo(() => {
+    if (!lastGalaxySearch) return breadcrumbs;
+    const query = lastGalaxySearch.startsWith('?') ? lastGalaxySearch : `?${lastGalaxySearch}`;
+    return breadcrumbs.map((item) =>
+      item.label === 'Galaxy' ? { ...item, href: `/galaxy${query}` } : item,
+    );
+  }, [breadcrumbs, lastGalaxySearch]);
 
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
@@ -351,7 +407,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
           }
         />
       }
-      breadcrumbs={<Breadcrumbs items={breadcrumbs} />}
+      breadcrumbs={<Breadcrumbs items={resolvedBreadcrumbs} />}
       controls={<ControlBar scope="system" />}
       search={
         <Search.Root
@@ -370,16 +426,19 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
         </Search.Root>
       }
       layerCard={<LayerCard card={activeLayerCard} />}
-      primaryFloat={
-        activeJourney ? (
-          <DirectionsPanel journey={activeJourney} />
-        ) : (
+      detailsPanel={
+        focusedDetails ? (
           <DetailsPanel
             details={focusedDetails}
             schematic={orbitalSchematic}
             preview={focusedPreview}
           />
-        )
+        ) : undefined
+      }
+      directionsPanel={
+        activeJourney && routeStops && routeStops.length >= 2 ? (
+          <DirectionsPanel journey={activeJourney} />
+        ) : undefined
       }
       preview={activeJourney ? <PreviewPanel preview={focusedPreview} /> : null}
       minimap={<Minimap orientation={minimapOrientation} />}

@@ -21,7 +21,9 @@
     line-height: var(--leading-metric);
     color: var(--node-label-color);
     background-color: var(--node-label-bg);
-    border: var(--node-label-border-width) var(--node-label-border-style) var(--node-label-border-color);
+    border-width: var(--node-label-border-width, 1px);
+    border-style: var(--node-label-border-style, solid);
+    border-color: var(--node-label-border-color, var(--status-nominal));
     border-radius: var(--node-label-radius);
     white-space: nowrap;
     pointer-events: none;
@@ -59,7 +61,9 @@
     line-height: var(--leading-metric);
     color: var(--node-facet-color);
     background-color: var(--node-facet-bg);
-    border: var(--node-facet-border-width) var(--node-facet-border-style) var(--node-facet-border-color);
+    border-width: var(--node-facet-border-width, 1px);
+    border-style: var(--node-facet-border-style, solid);
+    border-color: var(--node-facet-border-color, var(--status-nominal));
     border-radius: var(--node-facet-radius);
     white-space: nowrap;
     pointer-events: none;

@@ -1,14 +1,27 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import { SYSTEM_FRAME } from '../instrument/referenceFrame';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
-import { CANDIDATE_SYSTEMS, SOL_PLANETS, type SolPlanetConfig } from '../../../data';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
 import { toUrlSlug } from '../../../utils/datasetLayerCodec';
 import { calculateKeplerianPosition } from '../math/kepler';
 import { GalacticCameraController } from './SpatialScenes';
+import {
+  findFocusedEntryInCorpus,
+  formatSlugFallbackTitle,
+} from '../../../services/searchService';
+import {
+  getCachedDetailRecord,
+  getCachedSummaryNode,
+  fetchDetailRecord,
+  fetchSummaryNode,
+} from '../../../data/detailsRepository';
+import {
+  getCachedCorpusForFilter,
+  loadSearchCorpusForFilter,
+} from '../../../data/searchRepository';
 
 export interface StarDossierData {
   id: string;
@@ -48,76 +61,183 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
   onSelectEntity,
   debugHitarea = false,
 }) => {
-  const entities = useMemo<SpatialEntityDefinition[]>(() => {
-    const sysData = CANDIDATE_SYSTEMS.find((s) => s.id === systemId) ?? CANDIDATE_SYSTEMS[0];
+  const [tick, setTick] = useState(0);
 
+  const activeCorpus = useMemo(
+    () =>
+      getCachedCorpusForFilter('all') ??
+      getCachedCorpusForFilter('stars') ??
+      [],
+    [tick],
+  );
+
+  const matchedEntry = useMemo(
+    () => (activeCorpus.length > 0 ? findFocusedEntryInCorpus(systemId, activeCorpus) : undefined),
+    [systemId, activeCorpus],
+  );
+
+  const resolvedId = explicitSystem?.id ?? matchedEntry?.s ?? matchedEntry?.i ?? systemId;
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      let currentTargetId = resolvedId;
+      if (activeCorpus.length === 0) {
+        const loaded = await loadSearchCorpusForFilter('all').catch(() => undefined);
+        if (cancelled) return;
+        if (loaded) {
+          const found = findFocusedEntryInCorpus(systemId, loaded);
+          if (found) {
+            currentTargetId = found.s ?? found.i;
+          }
+        }
+      }
+      await Promise.all([
+        fetchSummaryNode(currentTargetId).catch(() => undefined),
+        fetchDetailRecord(currentTargetId).catch(() => undefined),
+      ]);
+      if (!cancelled) {
+        setTick((t) => t + 1);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedId, systemId, activeCorpus.length]);
+
+  const summaryNode =
+    getCachedSummaryNode(resolvedId) ??
+    (resolvedId !== systemId ? getCachedSummaryNode(systemId) : undefined);
+  const detailRecord =
+    getCachedDetailRecord(resolvedId) ??
+    (resolvedId !== systemId ? getCachedDetailRecord(systemId) : undefined);
+  const sysManifest = detailRecord?.kind === 'system' ? detailRecord.record : undefined;
+
+  const entities = useMemo<SpatialEntityDefinition[]>(() => {
     // 1. Central Star Node
+    const starName =
+      explicitSystem?.name ??
+      sysManifest?.name ??
+      summaryNode?.name ??
+      matchedEntry?.n ??
+      formatSlugFallbackTitle(systemId);
+
+    const starSpectral =
+      explicitSystem?.spectralType ??
+      sysManifest?.stars?.[0]?.spectralType ??
+      summaryNode?.spect ??
+      matchedEntry?.m?.[1];
+
     const starEntity: SpatialEntityDefinition = {
-      id: explicitSystem?.id ?? sysData.id,
-      name: explicitSystem?.name ?? sysData.name,
+      id: explicitSystem?.id ?? resolvedId ?? systemId,
+      name: starName,
       position: [0, 0, 0],
       classification: 'star',
-      spectralType: explicitSystem?.spectralType ?? sysData.spectralType,
-      multiplicity: sysData.multiplicity ?? 1,
-      planets: sysData.planetsList,
+      spectralType: starSpectral,
+      multiplicity:
+        sysManifest?.stars?.length ??
+        summaryNode?.starCount ??
+        1,
+      planets: sysManifest?.planets?.map((p) => ({
+        id: p.id,
+        name: p.name,
+        classification: p.composition ?? 'terrestrial',
+      })),
     };
 
     // 2. Planetary Bodies with Keplerian Orbits
     let planetEntities: SpatialEntityDefinition[] = [];
 
-    if (systemId === 'sol' || !sysData.planetsList?.length) {
-      // Use full solar system configuration
-      planetEntities = SOL_PLANETS.map((p: SolPlanetConfig) => ({
-        id: p.id,
-        name: p.name,
-        position: calculateKeplerianPosition(
-          p.a,
-          p.e,
-          p.inc,
-          p.node,
-          p.peri,
-          p.meanAnomaly,
-        ),
-        classification: p.classification,
-        orbit: {
-          semiMajorAxis: p.a,
-          eccentricity: p.e,
-          inclination: p.inc,
-          ascendingNode: p.node,
-          argumentOfPeriapsis: p.peri,
-          period: p.period,
-          meanAnomaly: p.meanAnomaly,
-        },
-      }));
-    } else {
-      // Generic exoplanet mapping from system planet census
-      planetEntities = sysData.planetsList.map((p, index) => {
-        const a = 0.4 + index * 0.6;
-        const e = 0.05 + index * 0.02;
-        const inc = index * 1.5;
-        const node = index * 25;
-        const peri = index * 40;
-        const meanAnomaly = (index * 60) % 360;
+    if (explicitSystem?.planets?.length) {
+      planetEntities = explicitSystem.planets.map((p, index) => {
+        const a = p.orbit?.semiMajorAxis ?? (0.4 + index * 0.6);
+        const e = p.orbit?.eccentricity ?? 0.05;
+        const inc = p.orbit?.inclination ?? (index * 1.5);
+        const node = p.orbit?.ascendingNode ?? (index * 25);
+        const peri = p.orbit?.argumentOfPeriapsis ?? (index * 40);
+        const meanAnomaly = p.orbit?.meanAnomaly ?? ((index * 60) % 360);
         return {
           id: p.id,
           name: p.name,
           position: calculateKeplerianPosition(a, e, inc, node, peri, meanAnomaly),
-          classification: p.classification,
+          classification: p.composition ?? 'terrestrial',
           orbit: {
             semiMajorAxis: a,
             eccentricity: e,
             inclination: inc,
             ascendingNode: node,
             argumentOfPeriapsis: peri,
-            period: Math.round(Math.pow(a, 1.5) * 365.25),
+            period: p.orbit?.periodDays ?? Math.round(Math.pow(a, 1.5) * 365.25),
             meanAnomaly,
           },
         };
       });
+    } else if (sysManifest?.planets?.length) {
+      planetEntities = sysManifest.planets.map((p, index) => {
+        const a = p.orbit?.semiMajorAxis ?? (0.4 + index * 0.6);
+        const e = p.orbit?.eccentricity ?? 0.05;
+        const inc = p.orbit?.inclination ?? (index * 1.5);
+        const node = p.orbit?.ascendingNode ?? (index * 25);
+        const peri = p.orbit?.argumentOfPeriapsis ?? (index * 40);
+        const meanAnomaly = p.orbit?.meanAnomaly ?? ((index * 60) % 360);
+        return {
+          id: p.id,
+          name: p.name,
+          position: calculateKeplerianPosition(a, e, inc, node, peri, meanAnomaly),
+          classification: p.composition ?? 'terrestrial',
+          orbit: {
+            semiMajorAxis: a,
+            eccentricity: e,
+            inclination: inc,
+            ascendingNode: node,
+            argumentOfPeriapsis: peri,
+            period: p.orbit?.periodDays ?? Math.round(Math.pow(a, 1.5) * 365.25),
+            meanAnomaly,
+          },
+        };
+      });
+    } else {
+      const corpusPlanets = activeCorpus.filter(
+        (entry) => entry.k === 2 && (entry.s === resolvedId || entry.s === systemId),
+      );
+      if (corpusPlanets.length > 0) {
+        planetEntities = corpusPlanets.map((p, index) => {
+          const a = 0.4 + index * 0.6;
+          const e = 0.05 + index * 0.02;
+          const inc = index * 1.5;
+          const node = index * 25;
+          const peri = index * 40;
+          const meanAnomaly = (index * 60) % 360;
+          return {
+            id: p.i,
+            name: p.n ?? p.i,
+            position: calculateKeplerianPosition(a, e, inc, node, peri, meanAnomaly),
+            classification: 'terrestrial',
+            orbit: {
+              semiMajorAxis: a,
+              eccentricity: e,
+              inclination: inc,
+              ascendingNode: node,
+              argumentOfPeriapsis: peri,
+              period: Math.round(Math.pow(a, 1.5) * 365.25),
+              meanAnomaly,
+            },
+          };
+        });
+      }
     }
 
     return [starEntity, ...planetEntities];
-  }, [systemId, explicitSystem]);
+  }, [
+    systemId,
+    explicitSystem,
+    sysManifest,
+    summaryNode,
+    matchedEntry,
+    resolvedId,
+    activeCorpus,
+  ]);
 
   const targetCoords = useMemo<[number, number, number]>(() => {
     if (centerCoordinates) {

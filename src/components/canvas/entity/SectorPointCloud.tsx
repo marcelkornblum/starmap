@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import {
@@ -251,6 +252,12 @@ export function SectorPointCloud({
   const triggerHydration = useCallback(
     (fx: number, fy: number, fz: number, apertureRadius: number) => {
       if (!resolvedManager) return;
+      if (
+        typeof (resolvedManager as unknown as { isActiveRingReady?: () => boolean }).isActiveRingReady === 'function' &&
+        !(resolvedManager as unknown as { isActiveRingReady: () => boolean }).isActiveRingReady()
+      ) {
+        return;
+      }
       if (hydratingRef.current) {
         pendingHydrationRef.current = true;
         return;
@@ -309,6 +316,7 @@ export function SectorPointCloud({
       lastXRef.current = scratchPosRef.current[0];
       lastYRef.current = scratchPosRef.current[1];
       lastZRef.current = scratchPosRef.current[2];
+      useActiveStarsStore.getState().setHydrating();
       void resolvedManager.updateCameraPosition(scratchPosRef.current);
     }
 

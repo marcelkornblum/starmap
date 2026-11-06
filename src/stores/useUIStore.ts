@@ -2,6 +2,13 @@ import { create } from 'zustand';
 
 export type ActivePanel = 'details' | 'search' | 'settings' | 'filters' | null;
 
+export type ActivePrimaryPanel = 'details' | 'directions' | null;
+export type DetailsDetent = 'collapsed' | 'peek' | 'partial' | 'full';
+export type DirectionsDetent = 'collapsed' | 'peek' | 'partial' | 'full';
+export type PrimaryPanelPriority = 'details' | 'directions';
+export type DualPanelPolicy = 'auto' | 'single' | 'simultaneous';
+export type ActiveDrawer = 'bodies' | 'search' | 'settings' | 'filters' | null;
+
 export interface EphemeralUIState {
   // Global ephemeral states
   isAudioPlaying: boolean;
@@ -12,6 +19,18 @@ export interface EphemeralUIState {
 
   // View-level ephemeral states
   isCameraTransitioning: boolean;
+
+  // Panel lifecycle & UI shell states
+  activePrimaryPanel: ActivePrimaryPanel;
+  detailsDetent: DetailsDetent;
+  isDetailsOpen: boolean;
+  isDirectionsOpen: boolean;
+  directionsDetent: DirectionsDetent;
+  primaryPanelPriority: PrimaryPanelPriority;
+  dualPanelPolicy: DualPanelPolicy;
+  activeDrawer: ActiveDrawer;
+  isLayerCardOpen: boolean;
+  centeredEntityId: string | null;
 }
 
 export interface EphemeralUIActions {
@@ -22,6 +41,18 @@ export interface EphemeralUIActions {
   setSelectedNodeId: (id: string | null) => void;
   setSearchQuery: (query: string) => void;
   setCameraTransitioning: (transitioning: boolean) => void;
+  setActivePrimaryPanel: (panel: ActivePrimaryPanel) => void;
+  setDetailsDetent: (detent: DetailsDetent) => void;
+  setDetailsOpen: (isOpen: boolean) => void;
+  setDirectionsOpen: (isOpen: boolean) => void;
+  setDirectionsDetent: (detent: DirectionsDetent) => void;
+  setPrimaryPanelPriority: (priority: PrimaryPanelPriority) => void;
+  setDualPanelPolicy: (policy: DualPanelPolicy) => void;
+  setActiveDrawer: (drawer: ActiveDrawer) => void;
+  toggleDrawer: (drawer: Exclude<ActiveDrawer, null>) => void;
+  setLayerCardOpen: (isOpen: boolean) => void;
+  setCenteredEntityId: (id: string | null) => void;
+  resetUIState: () => void;
   resetUI: () => void;
 }
 
@@ -34,6 +65,16 @@ export const INITIAL_UI_STATE: EphemeralUIState = {
   selectedNodeId: null,
   searchQuery: '',
   isCameraTransitioning: false,
+  activePrimaryPanel: 'details',
+  detailsDetent: 'peek',
+  isDetailsOpen: true,
+  isDirectionsOpen: true,
+  directionsDetent: 'peek',
+  primaryPanelPriority: 'directions',
+  dualPanelPolicy: 'auto',
+  activeDrawer: null,
+  isLayerCardOpen: true,
+  centeredEntityId: null,
 };
 
 export const useUIStore = create<UIStore>()((set) => ({
@@ -45,5 +86,19 @@ export const useUIStore = create<UIStore>()((set) => ({
   setSelectedNodeId: (selectedNodeId: string | null) => set({ selectedNodeId }),
   setSearchQuery: (searchQuery: string) => set({ searchQuery }),
   setCameraTransitioning: (isCameraTransitioning: boolean) => set({ isCameraTransitioning }),
+  setActivePrimaryPanel: (activePrimaryPanel: ActivePrimaryPanel) => set({ activePrimaryPanel }),
+  setDetailsDetent: (detailsDetent: DetailsDetent) => set({ detailsDetent }),
+  setDetailsOpen: (isDetailsOpen: boolean) => set({ isDetailsOpen }),
+  setDirectionsOpen: (isDirectionsOpen: boolean) => set({ isDirectionsOpen }),
+  setDirectionsDetent: (directionsDetent: DirectionsDetent) => set({ directionsDetent }),
+  setPrimaryPanelPriority: (primaryPanelPriority: PrimaryPanelPriority) => set({ primaryPanelPriority }),
+  setDualPanelPolicy: (dualPanelPolicy: DualPanelPolicy) => set({ dualPanelPolicy }),
+  setActiveDrawer: (activeDrawer: ActiveDrawer) => set({ activeDrawer }),
+  toggleDrawer: (drawer: Exclude<ActiveDrawer, null>) =>
+    set((state) => ({ activeDrawer: state.activeDrawer === drawer ? null : drawer })),
+  setLayerCardOpen: (isLayerCardOpen: boolean) => set({ isLayerCardOpen }),
+  setCenteredEntityId: (centeredEntityId: string | null) => set({ centeredEntityId }),
+  resetUIState: () => set({ ...INITIAL_UI_STATE }),
   resetUI: () => set({ ...INITIAL_UI_STATE }),
 }));
+

@@ -244,7 +244,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   useEffect(() => {
     lineMat.setColor(resolvedColor);
     lineMat.setOpacity(resolvedAlpha);
-    if (directionMatRef.current) {
+    if (directionMatRef.current?.color) {
       if (resolvedColor instanceof THREE.Color) {
         directionMatRef.current.color.copy(resolvedColor);
       } else {

@@ -55,10 +55,10 @@ export default defineConfig(({ mode }) => {
         include: ['src/**/*.{ts,tsx}'],
         exclude: ['src/**/*.stories.@(js|jsx|mjs|ts|tsx)', 'src/main.tsx', 'src/components/prototypes/**'],
         thresholds: {
-          lines: 64,
-          statements: 65,
-          branches: 58,
-          functions: 70,
+          lines: 78,
+          statements: 78,
+          branches: 70,
+          functions: 78,
         },
       },
       projects: [

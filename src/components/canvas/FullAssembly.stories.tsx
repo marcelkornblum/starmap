@@ -6,7 +6,6 @@ import {
   SystemViewScene,
   PlanetaryViewScene,
 } from './scenes/SpatialScenes';
-import { CANDIDATE_SYSTEMS, SOL_PLANETS } from '../../data';
 import styles from './FullAssembly.module.css';
 
 const meta: Meta = {
@@ -18,15 +17,22 @@ const meta: Meta = {
 
 export default meta;
 
-const SYSTEM_OPTIONS = CANDIDATE_SYSTEMS.slice(0, 5).map((s) => ({
-  id: s.id,
-  name: s.name,
-}));
+const SYSTEM_OPTIONS = [
+  { id: 'sol', name: 'Sol' },
+  { id: 'alpha-centauri', name: 'Alpha Centauri' },
+  { id: 'sirius', name: 'Sirius' },
+  { id: 'tau-ceti', name: 'Tau Ceti' },
+  { id: 'vega', name: 'Vega' },
+];
 
-const PLANET_OPTIONS = SOL_PLANETS.map((p) => ({
-  id: p.id,
-  name: p.name,
-}));
+const PLANET_OPTIONS = [
+  { id: 'mercury', name: 'Mercury' },
+  { id: 'venus', name: 'Venus' },
+  { id: 'earth', name: 'Earth' },
+  { id: 'mars', name: 'Mars' },
+  { id: 'jupiter', name: 'Jupiter' },
+  { id: 'saturn', name: 'Saturn' },
+];
 
 const FullCanvasAssemblyDemo: React.FC = () => {
   const [scale, setScale] = useState<'galaxy' | 'system' | 'planet'>('galaxy');
@@ -48,9 +54,9 @@ const FullCanvasAssemblyDemo: React.FC = () => {
   }, [scale]);
 
   const activeSystemName =
-    CANDIDATE_SYSTEMS.find((s) => s.id === systemId)?.name ?? systemId;
+    SYSTEM_OPTIONS.find((s) => s.id === systemId)?.name ?? systemId;
   const activePlanetName =
-    SOL_PLANETS.find((p) => p.id === planetId)?.name ??
+    PLANET_OPTIONS.find((p) => p.id === planetId)?.name ??
     planetId.charAt(0).toUpperCase() + planetId.slice(1);
 
   return (

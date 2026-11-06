@@ -20,7 +20,13 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
 - **Tokens First:** Zero hardcoded colors, spacings, or font sizes; all styling consumes semantic tokens (`var(--token-name)`).
 - **CUBE Exceptions via HTML `data-*`:** Variants and states mutate local token interfaces via `data-*` attributes (`data-status="critical"`). Dynamic `className` concatenation is forbidden.
 - **Semantic Interface Primitives & Regulated Badges Only (Zero Raw Strings / Controls / Lists):** Domain components and views must compose Tier 1 Interface Primitives (`<Datum>`, `<DataTable>`, `<Quantity>`, `<Unit>`, `<Badge>`, `<CelestialSymbol>`, `<CelestialBadge>`, `<SpectralBadge>`, `<HazardBadge>`, `<PlanetCensus>`, `<ConfidencePip>`, `<Heading>`, `<Kbd>`, `<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`, `<Stack>`, `<Cluster>`) rather than raw `<button>`/`<input>`/`<select>`/`<dl>`/`<ul>` tags, middle-dot/bracket string concatenations (`' · a = '`, `[reticle]`), or view-assembled string badges. Services must return strict TypeScript classification unions and structured `{ value, unit }` quantities rather than pre-formatted display strings parsed by regex in views. Never wrap numeric counts (`0 hazards`, `0 confirmed planets`, `1 of 5`) or plain telemetry prose in `<Badge>`.
-- **No Brittle `renderToString` Substring Tests:** Test pure service functions against returned TypeScript data objects, and test React components using `@testing-library/react` (`getByTestId`, `getByRole`, `data-*` attributes, ARIA states, and normalised text content) rather than `renderToString` + `.toContain(...)` substring matching.
+- **Mandatory Component File Quad:** Every component in `src/components/interface/**` and `src/components/domain/**` MUST have:
+  1. `<Component>.tsx` (implementation; keep domain components focused and under ~300 lines by decomposing complex panels into sub-components)
+  2. `<Component>.module.css` (scoped CSS Module inside `@layer blocks` / `@layer exceptions` with a `--<component>-*` local token interface)
+  3. `<Component>.stories.tsx` (Storybook stories)
+  4. `<Component>.test.tsx` (colocated unit test run by `npm run test` / `npm run test:coverage`)
+- **Strict `@testing-library/react` DOM Testing:** All `.test.tsx` component and view tests MUST run in `jsdom` using `@testing-library/react` (`render`, `screen`, `within`, `fireEvent` / `userEvent`) to test accessible roles, `data-*` attributes, keyboard/pointer interactions, and callbacks. Importing `renderToString` from `react-dom/server` in tests is strictly forbidden.
+- **1:1 Focused Test Files (Zero Monolith Test Suites):** Every service, hook, component, and view must have its own focused `.test.ts(x)` file; dumping unrelated component or view assertions into catch-all files like `tests/searchService.test.ts` is forbidden.
 
 ## Data Layer & Zero-Hardcoding Guardrails
 - **Zero Hardcoded Entity Attributes:** Never hardcode entity names, classifications, compositions, habitability flags, spacecraft lists, or orbital parent relationships inside runtime UI or service layers (`src/`).
@@ -51,7 +57,7 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
 
 ## Conductor Review Mode & Track Execution
 - **Review Mode Check**: Before starting any track, always ask the user which review mode they prefer:
-  - **Phase-by-Phase Review:** Complete only the active phase and HALT immediately. Present a concise phase summary, clickable LAN links, and embedded 5-viewport screenshots, then await explicit permission before proceeding to the next phase. Do not make autonomous git mutations during phase execution (the user controls the staging area).
+  - **Phase-by-Phase Review:** Complete only the active phase and HALT immediately. Present a concise phase summary, clickable LAN links, and embedded 5-viewport screenshots, then await explicit permission before proceeding to the next phase. Commit cleanly and unprompted on the active feature branch at logical task and phase checkpoints.
   - **Whole-Track Review in PR:** Execute all phases continuously through completion (pausing for any unratified atomic decisions), running automated quality checks and the `code-review` skill at each phase boundary. Commit clean checkpoints on the feature branch, and present the completed track for review directly in the Pull Request.
 - **Pre-Flight Dependency Verification**: Never start implementing a track without first inspecting its `metadata.json` `"depends_on"` list and confirming all listed upstream tracks are marked `[x]` in `conductor/tracks.md` (including `## Archived Tracks` / `conductor/archive/tracks/`).
 - **Initiative-Scoped Archival**: Never archive a track belonging to an active initiative (`"initiative"` is set) upon individual track completion. Mark it `[x]` in `conductor/tracks/` so active phase tables and dependency links remain intact. Archive initiative tracks only at initiative closure (when all tracks in the initiative are complete and target architecture/decision docs are promoted to `docs/`). Standalone tracks (`initiative: null`) may be archived upon completion.
@@ -87,13 +93,14 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
 1. **Never Commit to Main:** You MUST NEVER commit directly to the `main` branch.
 2. **Never Force Push:** You MUST NEVER force push (`git push --force`, `git push -f`, or `--force-with-lease`) to any branch under any circumstances. Always resolve divergences and integration conflicts via standard Git merges and normal pushes.
 3. **Always Use Feature Branches:** Before making any code changes or running tracks, you MUST checkout a new branch (e.g., `feat/<track-name>` or `chore/<task>`).
-4. **PRs Only:** All code must be integrated into `main` strictly via Pull Requests. Do not merge locally.
-5. **Mandatory Pre-PR Checks & Code Review:** Every time you finish any work, before opening a PR:
+4. **Regular Unprompted Commits:** Commit completed tasks and phase checkpoints automatically on the active feature/chore branch without waiting to be asked. Do not use git notes.
+5. **PRs Only:** All code must be integrated into `main` strictly via Pull Requests. Do not merge locally.
+6. **Mandatory Pre-PR Checks & Code Review:** Every time you finish any work, before opening a PR:
    - Run the local quality suite: linting (`npm run lint`), type checking (`npm run typecheck`), and tests with coverage (`npm run test:coverage`). All must pass cleanly with zero errors.
    - Run a `/code-review` (or invoke the `code-review` skill) to identify and eliminate technical debt, code smells, or guideline violations before submitting.
-6. **Always Open a Pull Request:** The final step of any completed request or task is NOT just committing changes—you MUST push the feature/chore branch to origin and open a Pull Request against `main` (via `gh pr create`).
-7. **Verify CI Completion:** After opening the PR, monitor and ensure that all automated CI checks (`Lint`, `Type Check`, `Test`, `Build`, and `CI Complete`) complete successfully.
-8. **Automated AI Review Loop:**
+7. **Always Open a Pull Request:** The final step of any completed request or task is NOT just committing changes—you MUST push the feature/chore branch to origin and open a Pull Request against `main` (via `gh pr create`).
+8. **Verify CI Completion:** After opening the PR, monitor and ensure that all automated CI checks (`Lint`, `Type Check`, `Test`, `Build`, and `CI Complete`) complete successfully.
+9. **Automated AI Review Loop:**
    - Once the PR is opened (as a non-draft), wait for the automated Gemini code review.
    - Check back, inspect all comments, and address any defects or suggestions it raises.
    - **Mark Addressed Comments as Resolved:** The Gemini reviewer bot does not resolve review threads automatically. As soon as you push a fix addressing a review comment, explicitly mark its review thread as resolved on GitHub (via `gh api graphql` `resolveReviewThread` mutation).

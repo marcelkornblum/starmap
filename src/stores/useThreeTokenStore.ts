@@ -396,7 +396,7 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     // Datum Footprints (Decoupled, Monochrome Baseline)
     footprintColor: makeLinearColor(theme === 'light' ? '#586e75' : '#93a1a1'),
     footprintAlpha: 0.35,
-    footprintSelectedColor: makeLinearColor(focusHex),
+    footprintSelectedColor: makeLinearColor(stalkToneHex),
     footprintSelectedAlpha: 0.85,
     footprintFocusedColor: makeLinearColor(focusHex),
     footprintFocusedAlpha: 0.85,
@@ -440,8 +440,8 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     dotGap: 4,
 
     stateFocus: makeLinearColor(focusHex),
-    stateSelected: makeLinearColor(focusHex),
-    stateSelectedBorder: makeLinearColor(focusHex),
+    stateSelected: makeLinearColor(stalkToneHex),
+    stateSelectedBorder: makeLinearColor(stalkToneHex),
     stateHoverOverlayAlpha: 0.04,
 
     categoryStar: makeLinearColor('#cb4b16'),

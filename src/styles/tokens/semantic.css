@@ -432,6 +432,7 @@
     --ui-control-active:   var(--palette-control-active-dark);
 
     --border-color-subtle:      var(--palette-specular-white-8);
+    --border-color-prominent:   var(--content-prominent);
     --border-color-interactive: var(--state-focus);
     --border-subtle:            var(--palette-specular-white-8);
     --stroke-hairline:          var(--border-width-1);
@@ -830,6 +831,20 @@
     --category-orbit-bg:           var(--palette-violet-alpha-15);
     --category-habitability:       var(--palette-solarized-green);
     --category-habitability-bg:    var(--palette-green-alpha-15);
+
+    /* Spectral & Chromaticity Semantics */
+    --spectral-o:                  #9bb0ff;
+    --spectral-b:                  #aabfff;
+    --spectral-a:                  #cad7ff;
+    --spectral-f:                  #f8f7ff;
+    --spectral-g:                  #fff4ea;
+    --spectral-k:                  #ffd2a1;
+    --spectral-m:                  #ffcc6f;
+    --spectral-l:                  #ff6b3d;
+    --spectral-d:                  #e6f0ff;
+    --spectral-terrestrial:        #4da6ff;
+    --spectral-ice-giant:          #5ce6e6;
+    --spectral-gas-giant:          #e6a85c;
   }
 
   /* ------------------------------------------------------------------------ */
@@ -943,6 +958,7 @@
     --ui-control-active:   var(--palette-control-active-light);
 
     --border-color-subtle:      var(--palette-specular-black-12);
+    --border-color-prominent:   var(--content-prominent);
     --border-color-interactive: var(--state-focus);
     --border-subtle:            var(--palette-specular-black-12);
     --stroke-hairline:          var(--border-width-1);
@@ -1337,6 +1353,20 @@
     --category-orbit-bg:           var(--palette-violet-alpha-15);
     --category-habitability:       var(--palette-solarized-green);
     --category-habitability-bg:    var(--palette-green-alpha-15);
+
+    /* Spectral & Chromaticity Semantics */
+    --spectral-o:                  #9bb0ff;
+    --spectral-b:                  #aabfff;
+    --spectral-a:                  #cad7ff;
+    --spectral-f:                  #f8f7ff;
+    --spectral-g:                  #fff4ea;
+    --spectral-k:                  #ffd2a1;
+    --spectral-m:                  #ffcc6f;
+    --spectral-l:                  #ff6b3d;
+    --spectral-d:                  #e6f0ff;
+    --spectral-terrestrial:        #4da6ff;
+    --spectral-ice-giant:          #5ce6e6;
+    --spectral-gas-giant:          #e6a85c;
   }
 
   /* ------------------------------------------------------------------------ */

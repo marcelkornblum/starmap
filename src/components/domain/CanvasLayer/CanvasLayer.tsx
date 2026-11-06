@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
 import {
@@ -6,6 +6,8 @@ import {
   SystemViewScene,
   PlanetaryViewScene,
 } from '../../canvas/scenes/SpatialScenes';
+import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
+import { useCameraStore } from '../../../stores/useCameraStore';
 import styles from './CanvasLayer.module.css';
 
 export interface CanvasLayerProps {
@@ -19,6 +21,12 @@ export interface CanvasLayerProps {
   readonly cameraDistance?: number;
   readonly journeyLegs?: readonly JourneyChordLeg[];
   readonly activeJourneyMethod?: string;
+  readonly activeSystemName?: string;
+  readonly focusedTargetName?: string;
+  readonly routeWaypoints?: readonly string[];
+  readonly cameraState?: Record<string, unknown>;
+  readonly testId?: string;
+  readonly isRootHost?: boolean;
   readonly onInspect?: (id: string) => void;
   readonly onSelect?: (id: string | null) => void;
 }
@@ -51,26 +59,71 @@ export const _resetWebGLSupportedForTesting = (): void => {
   webglSupported = null;
 };
 
-export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo(({
-  scope,
-  targetId,
-  centerId,
-  centerCoordinates,
-  selectedEntities,
-  cameraAzimuthDeg,
-  cameraElevationDeg,
-  cameraDistance,
-  journeyLegs,
-  activeJourneyMethod,
-  onInspect,
-  onSelect,
-}) => {
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
+  const {
+    scope,
+    targetId,
+    centerId,
+    centerCoordinates,
+    selectedEntities,
+    cameraAzimuthDeg,
+    cameraElevationDeg,
+    cameraDistance,
+    journeyLegs,
+    activeJourneyMethod,
+    testId,
+    isRootHost = false,
+    onInspect,
+    onSelect,
+  } = props;
+
+  const isRootCanvasMounted = useCanvasStageStore((s) => s.isRootCanvasMounted);
+  const setStageProps = useCanvasStageStore((s) => s.setStageProps);
+
+  const isSlot = isRootCanvasMounted && !isRootHost;
+
+  useIsomorphicLayoutEffect(() => {
+    if (!isRootHost) {
+      setStageProps(props);
+    }
+  }, [isRootHost, props, setStageProps]);
+
+  const defaultTestId = isSlot ? 'canvas-layer-slot' : 'canvas-layer';
+  const resolvedTestId = testId ?? defaultTestId;
+
+  if (isSlot) {
+    return (
+      <div
+        className={styles.canvasLayer}
+        data-slot={isSlot ? 'true' : undefined}
+        data-testid={resolvedTestId}
+        data-scope={scope}
+        data-target-id={targetId}
+        data-center-id={centerId}
+        data-center-coords={
+          centerCoordinates ? centerCoordinates.join(',') : undefined
+        }
+        data-camera-az={cameraAzimuthDeg}
+        data-camera-el={cameraElevationDeg}
+        data-camera-dist={cameraDistance}
+        data-journey-legs-count={
+          journeyLegs && journeyLegs.length > 0 ? journeyLegs.length : undefined
+        }
+        data-journey-method={activeJourneyMethod}
+        aria-label={`${scope} 3D canvas layer`}
+      />
+    );
+  }
+
   const mountCanvas = canMountWebGLCanvas();
 
   return (
     <div
       className={styles.canvasLayer}
-      data-testid="canvas-layer"
+      data-testid={resolvedTestId}
       data-scope={scope}
       data-target-id={targetId}
       data-center-id={centerId}
@@ -92,6 +145,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo(({
           initialSelectedId={centerId ?? null}
           centerCoordinates={centerCoordinates}
           centerId={centerId}
+          cameraDistance={cameraDistance}
           additionalEntities={selectedEntities}
           onInspectSystem={onInspect}
           onSelectSystem={onSelect}
@@ -103,6 +157,8 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo(({
           systemId={targetId ?? 'sol'}
           centerId={centerId}
           centerCoordinates={centerCoordinates}
+          onInspectPlanet={onInspect}
+          onSelectEntity={onSelect}
         />
       )}
       {mountCanvas && scope === 'planet' && (
@@ -116,3 +172,52 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo(({
 });
 
 CanvasLayer.displayName = 'CanvasLayer';
+
+export const RootCanvasHost: React.FC = () => {
+  const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
+  const stageProps = useCanvasStageStore((s) => s.stageProps);
+
+  const cameraMode = useCameraStore((s) => s.mode);
+  const cameraPosition = useCameraStore((s) => s.position);
+  const cameraTarget = useCameraStore((s) => s.target);
+  const cameraFocalDistance = useCameraStore((s) => s.focalDistance);
+
+  useIsomorphicLayoutEffect(() => {
+    setRootCanvasMounted(true);
+    return () => {
+      setRootCanvasMounted(false);
+    };
+  }, [setRootCanvasMounted]);
+
+  return (
+    <div
+      className={styles.rootCanvasHost}
+      data-testid="root-canvas-host"
+      data-camera-mode={cameraMode}
+      data-camera-pos={cameraPosition.map((v) => v.toFixed(2)).join(',')}
+      data-camera-target={cameraTarget.map((v) => v.toFixed(2)).join(',')}
+      data-camera-dist={cameraFocalDistance.toFixed(2)}
+      aria-hidden="true"
+    >
+      <CanvasLayer
+        isRootHost
+        scope={stageProps?.scope ?? 'galaxy'}
+        targetId={stageProps?.targetId}
+        centerId={stageProps?.centerId}
+        centerCoordinates={stageProps?.centerCoordinates}
+        selectedEntities={stageProps?.selectedEntities}
+        cameraAzimuthDeg={stageProps?.cameraAzimuthDeg}
+        cameraElevationDeg={stageProps?.cameraElevationDeg}
+        cameraDistance={stageProps?.cameraDistance}
+        journeyLegs={stageProps?.journeyLegs}
+        activeJourneyMethod={stageProps?.activeJourneyMethod}
+        activeSystemName={stageProps?.activeSystemName}
+        focusedTargetName={stageProps?.focusedTargetName}
+        routeWaypoints={stageProps?.routeWaypoints}
+        cameraState={stageProps?.cameraState}
+        onInspect={stageProps?.onInspect}
+        onSelect={stageProps?.onSelect}
+      />
+    </div>
+  );
+};

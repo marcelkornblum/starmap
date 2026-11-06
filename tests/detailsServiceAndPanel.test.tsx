@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import {
@@ -25,6 +25,7 @@ import { BodiesPanel } from '../src/components/domain/BodiesPanel/BodiesPanel';
 import { OrbitalSchematicPanel } from '../src/components/domain/OrbitalSchematicPanel/OrbitalSchematicPanel';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { SystemView } from '../src/views/SystemView';
+import { useUIStore } from '../src/stores/useUIStore';
 import {
   fetchDetailRecord,
   clearDetailsRepositoryCache,
@@ -1600,6 +1601,90 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
         expect(htmlWithSchematic).not.toContain('data-testid="details-planets-section"');
         expect(htmlWithSchematic).not.toContain('data-testid="details-disks-section"');
       });
+    });
+  });
+
+  describe('DetailsPanel Store & Controlled Props Lifecycle Contract', () => {
+    const mockDetails = buildFocusedEntityDetails({
+      focusedEntity: null,
+      systemDetail: {
+        kind: 'system',
+        record: {
+          id: 'sol',
+          name: 'Sol',
+          position: [0, 0, 0],
+          coordinates: [0, 0, 0],
+          stars: [
+            {
+              id: 'sol-A',
+              name: 'Sol',
+              spectralType: 'G2V',
+              massSol: 1,
+              radiusSol: 1,
+              tempK: 5778,
+              isPrimary: true,
+            },
+          ],
+          planets: [],
+        } as any,
+      },
+      urlSystemSlug: 'sol',
+    })!;
+
+    beforeEach(() => {
+      useUIStore.getState().resetUIState();
+    });
+
+    it('returns null when isOpen is explicitly false', () => {
+      const html = renderToString(
+        createElement(DetailsPanel, {
+          details: mockDetails,
+          isOpen: false,
+        }),
+      );
+      expect(html).toBe('');
+    });
+
+    it('returns null when store detent is collapsed and isOpen is undefined', () => {
+      useUIStore.getState().setDetailsDetent('collapsed');
+      const html = renderToString(
+        createElement(DetailsPanel, {
+          details: mockDetails,
+        }),
+      );
+      expect(html).toBe('');
+    });
+
+    it('respects store detailsDetent when activeDetent prop is omitted', () => {
+      useUIStore.getState().setDetailsDetent('full');
+      const html = renderToString(
+        createElement(DetailsPanel, {
+          details: mockDetails,
+        }),
+      );
+      expect(html).toContain('data-detent="full"');
+    });
+
+    it('allows activeDetent prop to explicitly override store detailsDetent', () => {
+      useUIStore.getState().setDetailsDetent('full');
+      const html = renderToString(
+        createElement(DetailsPanel, {
+          details: mockDetails,
+          activeDetent: 'partial',
+        }),
+      );
+      expect(html).toContain('data-detent="partial"');
+    });
+
+    it('allows isOpen={true} to override collapsed store detent', () => {
+      useUIStore.getState().setDetailsDetent('collapsed');
+      const html = renderToString(
+        createElement(DetailsPanel, {
+          details: mockDetails,
+          isOpen: true,
+        }),
+      );
+      expect(html).toContain('data-detent="peek"');
     });
   });
 });

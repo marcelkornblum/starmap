@@ -6,8 +6,13 @@
     block-size: 100dvh;
     overflow: hidden;
     position: relative;
-    background-color: var(--surface-canvas-bg);
+    background-color: transparent;
     color: var(--content-default);
+    pointer-events: none;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .stage {
@@ -17,6 +22,11 @@
     block-size: 100%;
     min-inline-size: 0;
     overflow: hidden;
+    pointer-events: none;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .canvasRegion {
@@ -25,7 +35,7 @@
     inline-size: 100%;
     block-size: 100%;
     z-index: var(--layer-canvas);
-    pointer-events: auto;
+    pointer-events: none;
   }
 
   .leftColumn {
@@ -54,7 +64,6 @@
     pointer-events: auto;
     inline-size: fit-content;
     max-inline-size: 100%;
-    background-color: var(--palette-surface-chassis-dark);
     background: var(--surface-hud-bg);
     border: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
     box-shadow: var(--surface-hud-shadow);
@@ -70,7 +79,6 @@
   .searchRegion {
     pointer-events: auto;
     inline-size: 100%;
-    background-color: var(--palette-surface-chassis-dark);
     background: var(--surface-dock-bg);
     border: var(--surface-dock-border-width) var(--surface-dock-border-style) var(--surface-dock-border-color);
     box-shadow: var(--surface-dock-shadow);
@@ -129,7 +137,6 @@
     box-sizing: border-box;
     z-index: var(--layer-hud);
     pointer-events: auto;
-    background-color: var(--palette-surface-chassis-dark);
     background: var(--surface-hud-bg);
     border-block-start: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
     box-shadow: var(--surface-hud-shadow);
@@ -148,7 +155,6 @@
     max-height: 220px;
     overflow: auto;
     z-index: var(--layer-hud);
-    background-color: var(--palette-surface-chassis-dark);
     background: var(--surface-hud-bg);
     border: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
     box-shadow: var(--surface-hud-shadow);
@@ -170,13 +176,13 @@
     width: clamp(360px, 30vw, 480px);
     height: 100dvh;
     overflow-y: auto;
-    background-color: var(--palette-surface-chassis-dark);
     background: var(--surface-dock-bg);
     border-inline-start: var(--surface-dock-border-width) var(--surface-dock-border-style) var(--surface-dock-border-color);
     box-shadow: var(--surface-dock-shadow);
     padding: var(--space-inset-panel);
     box-sizing: border-box;
     z-index: var(--layer-dock);
+    pointer-events: auto;
   }
 }
 
@@ -208,7 +214,6 @@
       height: 100dvh;
       padding: var(--space-inset-panel);
       padding-block-start: calc(var(--space-fib-6) + var(--space-fib-4));
-      background-color: var(--palette-surface-slab-dark);
       background: var(--surface-drawer-bg);
       border-inline-start: var(--surface-drawer-border-width) var(--surface-drawer-border-style) var(--surface-drawer-border-color);
       box-shadow: var(--surface-drawer-shadow);
@@ -286,7 +291,6 @@
       inline-size: 100%;
       max-inline-size: 100%;
       padding: var(--space-fib-2);
-      background-color: var(--palette-surface-chassis-dark);
       background: var(--surface-hud-bg);
       border-block-start: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
       box-shadow: var(--surface-hud-shadow);

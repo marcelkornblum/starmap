@@ -6,11 +6,12 @@ import {
   StarTypeCombinator,
 } from '../components/domain';
 import {
-  Badge,
   Button,
   CelestialSymbol,
+  Cluster,
   Datum,
   Heading,
+  SpectralBadge,
   Stack,
 } from '../components/interface';
 import {
@@ -107,7 +108,7 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
           />
 
           <section className={styles.cardItem}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+            <Cluster gap="tight" align="center">
               <CelestialSymbol
                 type={
                   resolvedDetail.entry.spectralClass === 'D'
@@ -121,9 +122,9 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
                 size="sm"
                 showTooltip={false}
               />
-              <Badge category="star">{resolvedDetail.entry.spectralClass}</Badge>{' '}
+              <SpectralBadge spectralType={resolvedDetail.entry.spectralClass} interactive={false} />{' '}
               <strong>{resolvedDetail.entry.title}</strong>
-            </div>
+            </Cluster>
             <p data-testid="guide-detail-summary">{resolvedDetail.entry.summary}</p>
 
             {resolvedDetail.decodedSubtype && (

@@ -159,6 +159,11 @@ describe('useUIStore (Ephemeral)', () => {
     expect(state.selectedNodeId).toBeNull();
     expect(state.searchQuery).toBe('');
     expect(state.isCameraTransitioning).toBe(false);
+    expect(state.activePrimaryPanel).toBe('details');
+    expect(state.detailsDetent).toBe('peek');
+    expect(state.activeDrawer).toBeNull();
+    expect(state.isLayerCardOpen).toBe(true);
+    expect(state.centeredEntityId).toBeNull();
   });
 
   it('handles audio toggle and explicit setter', () => {
@@ -193,10 +198,67 @@ describe('useUIStore (Ephemeral)', () => {
     expect(useUIStore.getState().isCameraTransitioning).toBe(true);
   });
 
+  it('manages primary panel and details detent lifecycle', () => {
+    useUIStore.getState().setActivePrimaryPanel('directions');
+    expect(useUIStore.getState().activePrimaryPanel).toBe('directions');
+
+    useUIStore.getState().setActivePrimaryPanel(null);
+    expect(useUIStore.getState().activePrimaryPanel).toBeNull();
+
+    useUIStore.getState().setActivePrimaryPanel('details');
+    expect(useUIStore.getState().activePrimaryPanel).toBe('details');
+
+    useUIStore.getState().setDetailsDetent('full');
+    expect(useUIStore.getState().detailsDetent).toBe('full');
+
+    useUIStore.getState().setDetailsDetent('collapsed');
+    expect(useUIStore.getState().detailsDetent).toBe('collapsed');
+  });
+
+  it('manages active drawer state and toggles drawers', () => {
+    useUIStore.getState().setActiveDrawer('bodies');
+    expect(useUIStore.getState().activeDrawer).toBe('bodies');
+
+    // Toggle same drawer closes it
+    useUIStore.getState().toggleDrawer('bodies');
+    expect(useUIStore.getState().activeDrawer).toBeNull();
+
+    // Toggle drawer opens it when closed
+    useUIStore.getState().toggleDrawer('search');
+    expect(useUIStore.getState().activeDrawer).toBe('search');
+
+    // Toggle different drawer switches directly
+    useUIStore.getState().toggleDrawer('filters');
+    expect(useUIStore.getState().activeDrawer).toBe('filters');
+
+    useUIStore.getState().setActiveDrawer(null);
+    expect(useUIStore.getState().activeDrawer).toBeNull();
+  });
+
+  it('manages layer card visibility and centered entity ID', () => {
+    useUIStore.getState().setLayerCardOpen(false);
+    expect(useUIStore.getState().isLayerCardOpen).toBe(false);
+
+    useUIStore.getState().setLayerCardOpen(true);
+    expect(useUIStore.getState().isLayerCardOpen).toBe(true);
+
+    useUIStore.getState().setCenteredEntityId('star-sol');
+    expect(useUIStore.getState().centeredEntityId).toBe('star-sol');
+
+    useUIStore.getState().setCenteredEntityId(null);
+    expect(useUIStore.getState().centeredEntityId).toBeNull();
+  });
+
   it('resets to initial UI state and does not touch localStorage', () => {
     localStorage.clear();
     useUIStore.getState().setActivePanel('settings');
-    useUIStore.getState().resetUI();
+    useUIStore.getState().setActivePrimaryPanel('directions');
+    useUIStore.getState().setDetailsDetent('full');
+    useUIStore.getState().setActiveDrawer('bodies');
+    useUIStore.getState().setLayerCardOpen(false);
+    useUIStore.getState().setCenteredEntityId('star-proxima');
+
+    useUIStore.getState().resetUIState();
 
     expect(useUIStore.getState()).toMatchObject(INITIAL_UI_STATE);
     expect(localStorage.getItem('starmap-ui')).toBeNull();

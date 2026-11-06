@@ -8,6 +8,7 @@ import {
   useCameraTransition,
 } from '../src/components/canvas/instrument/useCameraTransition';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
+import { useUIStore } from '../src/stores/useUIStore';
 
 let mockCamera: THREE.PerspectiveCamera;
 let mockControls: {
@@ -272,6 +273,28 @@ describe('CameraTransitionController & useCameraTransition', () => {
       expect(typeof api.cancelTransition).toBe('function');
       expect(typeof api.isTransitioning).toBe('function');
       expect(api.isTransitioning()).toBe(false);
+    });
+
+    it('synchronises transition lifecycle with useUIStore isCameraTransitioning', () => {
+      useUIStore.getState().resetUIState();
+      expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+
+      let capturedApi = null as ReturnType<typeof useCameraTransition> | null;
+      const TestHarness: React.FC = () => {
+        capturedApi = useCameraTransition();
+        return createElement('div', { 'data-testid': 'harness' });
+      };
+
+      renderToString(createElement(TestHarness));
+      const api = capturedApi!;
+
+      // Initiating a transition sets isCameraTransitioning to true
+      api.transitionTo(new THREE.Vector3(10, 0, 0));
+      expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+      // Cancelling transition sets isCameraTransitioning to false
+      api.cancelTransition();
+      expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     });
   });
 

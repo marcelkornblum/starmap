@@ -4,7 +4,6 @@
     flex-direction: column;
     gap: var(--space-fib-3);
     padding: var(--space-inset-panel);
-    background-color: var(--palette-surface-slab-dark);
     background: var(--surface-panel-bg);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     border-radius: var(--radius-container);
@@ -37,13 +36,13 @@
     width: 36px;
     height: 4px;
     border-radius: var(--radius-full, 9999px);
-    background-color: var(--palette-surface-contrast-low, rgba(255, 255, 255, 0.3));
+    background-color: var(--border-subtle);
     transition: background-color var(--motion-duration-feedback, 150ms) var(--motion-ease-default, ease);
   }
 
   .dragHandleBar:hover .dragHandlePill,
   .dragHandleBar:active .dragHandlePill {
-    background-color: var(--palette-surface-contrast-high, rgba(255, 255, 255, 0.6));
+    background-color: var(--border-prominent);
   }
 
   .srOnly {

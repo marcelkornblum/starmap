@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Badge, CelestialSymbol, Datum, Heading, Stack } from '../../interface';
+import { Badge, CelestialSymbol, Cluster, Datum, Heading, Stack } from '../../interface';
 import { resolveAppHref } from '../../../utils/url';
 import type {
   MetricComparison,
@@ -43,10 +43,10 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
         >
           <Heading as="h4">
             Baseline:{' '}
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+            <Cluster as="span" gap="tight" align="center">
               <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
               <a href={resolveAppHref(comparison.baselineHref)}>{comparison.baselineName}</a>
-            </span>
+            </Cluster>
           </Heading>
           <Stack gap="none">
             <Datum label="Scientific Value" value={comparison.baselineValue} />
@@ -59,10 +59,10 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
         >
           <Heading as="h4">
             Target:{' '}
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2xs, 0.375rem)' }}>
+            <Cluster as="span" gap="tight" align="center">
               <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
               <a href={resolveAppHref(comparison.targetHref)}>{comparison.targetName}</a>
-            </span>
+            </Cluster>
           </Heading>
           <Stack gap="none">
             <Datum label="Scientific Value" value={comparison.targetValue} />

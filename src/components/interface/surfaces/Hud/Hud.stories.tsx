@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Hud } from './Hud';
 import { Stack } from '../../layouts/Stack/Stack';
 import { Cluster } from '../../layouts/Cluster/Cluster';
-import { Badge } from '../../data/Badge/Badge';
+import { Badge } from '../../information/Badge/Badge';
 import { Button } from '../../controls/Button/Button';
 import storyStyles from '../surfaceStories.module.css';
 

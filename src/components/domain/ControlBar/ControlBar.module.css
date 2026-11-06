@@ -22,8 +22,8 @@
     box-shadow: var(--surface-hud-shadow);
     cursor: pointer;
     padding: 0;
-    transition: background var(--duration-micro) var(--ease-standard),
-                color var(--duration-micro) var(--ease-standard);
+    transition: background var(--motion-duration-feedback) var(--motion-ease-out),
+                color var(--motion-duration-feedback) var(--motion-ease-out);
   }
 
   .mobileToggle:hover {
@@ -32,7 +32,7 @@
   }
 
   .mobileToggle:focus-visible {
-    outline: 2px solid var(--interactive-focus-ring);
+    outline: 2px solid var(--state-focus);
     outline-offset: 2px;
   }
 

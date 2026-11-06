@@ -98,8 +98,8 @@ export interface FocusedPlanetDetail {
 export interface FocusedCanonAnnotation {
   readonly layerId: string;
   readonly layerTitle: string;
-  readonly layerHref: string;
-  readonly href: string;
+  readonly layerHref?: string;
+  readonly href?: string;
   readonly kind: DatasetLayerKind;
   readonly targetId: string;
   readonly targetType: DatasetLayerTargetType;

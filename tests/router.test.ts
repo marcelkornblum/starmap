@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createElement } from 'react';
-import { renderToString } from 'react-dom/server';
+import { createElement, type ReactElement } from 'react';
+import { render, cleanup } from '@testing-library/react';
 import {
   router,
   routeTree,
@@ -9,7 +10,6 @@ import {
   indexRoute,
   mainSearchRoute,
   mainGalaxyRoute,
-  mainGalaxySystemRoute,
   mainSystemRoute,
   mainPlanetRoute,
   starTypesListRoute,
@@ -33,6 +33,13 @@ import { SystemView } from '../src/views/SystemView';
 import { SEARCH_CATEGORIES } from '../src/services/searchService';
 import { useStarmapNav, useNavigationActions } from '../src/router/navigation';
 
+const renderHtml = (el: ReactElement): string => {
+  const { container } = render(el);
+  const html = container.innerHTML;
+  cleanup();
+  return html;
+};
+
 vi.mock('@tanstack/react-router', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@tanstack/react-router');
   return {
@@ -51,7 +58,7 @@ describe('TanStack Router Architecture', () => {
     expect(flatRoutes['/']).toBeDefined();
     expect(flatRoutes['/search']).toBeDefined();
     expect(flatRoutes['/galaxy']).toBeDefined();
-    expect(flatRoutes['/galaxy/$systemId']).toBeDefined();
+    expect((flatRoutes as Record<string, unknown>)['/galaxy/$systemId']).toBeUndefined();
     expect(flatRoutes['/system/$systemId']).toBeDefined();
     expect(flatRoutes['/planet/$planetId']).toBeDefined();
     expect(flatRoutes['/guide/star-types']).toBeDefined();
@@ -73,7 +80,7 @@ describe('TanStack Router Architecture', () => {
   it('contains expected route tree structure', () => {
     expect(routeTree).toBeDefined();
     expect(routeTree.children).toBeDefined();
-    expect(routeTree.children?.length).toBe(14);
+    expect(routeTree.children?.length).toBe(13);
   });
 
   it('validates search parameters correctly on rootRoute across all branches and keeps : and , unencoded in stringifyStarmapSearch', () => {
@@ -157,10 +164,9 @@ describe('TanStack Router Architecture', () => {
     expect(numericValidated.dist).toBe(0);
   });
 
-  it('maps /, /galaxy, and /galaxy/$systemId to GalaxyView, /search to SearchView, /system/$systemId to SystemView, and /planet/$planetId to PlanetView', () => {
+  it('maps /, and /galaxy to GalaxyView, /search to SearchView, /system/$systemId to SystemView, and /planet/$planetId to PlanetView', () => {
     expect(indexRoute.options.component).toBe(GalaxyView);
     expect(mainGalaxyRoute.options.component).toBe(GalaxyView);
-    expect(mainGalaxySystemRoute.options.component).toBe(GalaxyView);
     expect(mainSearchRoute.options.component).toBe(SearchView);
     expect(mainSystemRoute.options.component).toBe(SystemView);
     expect(mainPlanetRoute.options.component).toBe(PlanetView);
@@ -170,7 +176,7 @@ describe('TanStack Router Architecture', () => {
     expect(planetTypeDetailRoute.options.component).toBe(PlanetTypeDetailView);
     expect(metricsListRoute.options.component).toBe(MetricsListView);
     expect(metricDetailRoute.options.component).toBe(MetricDetailView);
-    const html = renderToString(createElement(GalaxyView));
+    const html = renderHtml(createElement(GalaxyView));
 
     expect(html).toContain('data-testid="galaxy-view-root"');
     expect(html).toContain('data-testid="search-panel"');
@@ -187,17 +193,17 @@ describe('TanStack Router Architecture', () => {
       expect(html).toContain(`<option value="${category.key}">${category.heading.replace(/&/g, '&amp;')}</option>`);
     }
 
-    const searchViewHtml = renderToString(createElement(SearchView));
+    const searchViewHtml = renderHtml(createElement(SearchView));
     expect(searchViewHtml).toContain('data-testid="search-view-root"');
     expect(searchViewHtml).toContain('data-testid="search-panel"');
     expect(searchViewHtml).not.toContain('data-testid="search-results-panel"');
 
-    const systemViewHtml = renderToString(createElement(SystemView));
+    const systemViewHtml = renderHtml(createElement(SystemView));
     expect(systemViewHtml).toContain('data-testid="system-view-root"');
     expect(systemViewHtml).toContain('data-testid="search-panel"');
     expect(systemViewHtml).not.toContain('data-testid="search-results-panel"');
 
-    const planetViewHtml = renderToString(createElement(PlanetView));
+    const planetViewHtml = renderHtml(createElement(PlanetView));
     expect(planetViewHtml).toContain('data-testid="planet-view-root"');
     expect(planetViewHtml).toContain('data-testid="search-panel"');
     expect(planetViewHtml).not.toContain('data-testid="search-results-panel"');
@@ -308,21 +314,13 @@ describe('useStarmapNav Navigation Enforcer', () => {
   it('configures router basepath and normalises location pathname in resolveSpaLocation', () => {
     expect(router.basepath).toBeDefined();
 
-    // Direct root base (normalizes legacy /galaxy/$systemId to /galaxy?focus=...)
-    const direct = resolveSpaLocation('/galaxy/sol', '?zoom=2', '/');
-    expect(direct).toEqual({ pathname: '/galaxy', search: '?focus=sol&zoom=2' });
+    // Direct root base
+    const direct = resolveSpaLocation('/galaxy', '?zoom=2', '/');
+    expect(direct).toEqual({ pathname: '/galaxy', search: '?zoom=2' });
 
-    // Subpath base under /starmap (normalizes legacy /galaxy/$systemId to /galaxy?focus=...)
-    const subpath = resolveSpaLocation('/starmap/galaxy/sol', '?zoom=2', '/starmap/');
-    expect(subpath).toEqual({ pathname: '/galaxy', search: '?focus=sol&zoom=2' });
-
-    // Legacy /galaxy/$systemId with empty search
-    const legacyEmpty = resolveSpaLocation('/galaxy/tau-ceti', '', '/');
-    expect(legacyEmpty).toEqual({ pathname: '/galaxy', search: '?focus=tau-ceti' });
-
-    // Legacy /galaxy/$systemId with existing focus
-    const legacyExplicitFocus = resolveSpaLocation('/galaxy/tau-ceti', '?focus=tau-ceti-e', '/');
-    expect(legacyExplicitFocus).toEqual({ pathname: '/galaxy', search: '?focus=tau-ceti-e' });
+    // Subpath base under /starmap
+    const subpath = resolveSpaLocation('/starmap/galaxy', '?zoom=2', '/starmap/');
+    expect(subpath).toEqual({ pathname: '/galaxy', search: '?zoom=2' });
 
     // Root index under /starmap
     const rootSubpath = resolveSpaLocation('/starmap/', '', '/starmap/');

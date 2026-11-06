@@ -1,6 +1,9 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { createElement } from 'react';
-import { renderToString } from 'react-dom/server';
+import { createElement, type ReactElement } from 'react';
+import { render } from '@testing-library/react';
+
+const renderToHtml = (element: ReactElement): string => render(element).container.innerHTML;
 import {
   STAR_TYPE_GUIDE_ENTRIES,
   PLANET_TYPE_GUIDE_ENTRIES,
@@ -441,7 +444,7 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
 describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
   describe('StarTypesListView', () => {
     it('renders root, breadcrumbs without Galaxy, section nav, 3D previews, and full-card links', () => {
-      const html = renderToString(createElement(StarTypesListView));
+      const html = renderToHtml(createElement(StarTypesListView));
 
       expect(html).toContain('data-testid="star-types-list-view-root"');
       expect(html).toContain('data-testid="guide-section-nav"');
@@ -480,7 +483,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
 
   describe('StarTypeDetailView', () => {
     it('renders detail view with Yerkes combinator, decoded subtype, telemetry, and 3D preview for G8.5V', () => {
-      const html = renderToString(createElement(StarTypeDetailView, { starType: 'G8.5V' }));
+      const html = renderToHtml(createElement(StarTypeDetailView, { starType: 'G8.5V' }));
 
       expect(html).toContain('data-testid="star-type-detail-view-root"');
       expect(html).toContain('data-star-type="G8.5V"');
@@ -521,7 +524,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
     });
 
     it('renders fallback gracefully when starType is not found', () => {
-      const html = renderToString(createElement(StarTypeDetailView, { starType: 'UNKNOWN_CLASS' }));
+      const html = renderToHtml(createElement(StarTypeDetailView, { starType: 'UNKNOWN_CLASS' }));
       expect(html).toContain('data-testid="star-type-detail-view-root"');
       expect(html).toContain('data-testid="star-types-list-link"');
     });
@@ -529,7 +532,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
 
   describe('PlanetTypesListView', () => {
     it('renders planet types list with breadcrumbs, full card links, and 3D previews', () => {
-      const html = renderToString(createElement(PlanetTypesListView));
+      const html = renderToHtml(createElement(PlanetTypesListView));
 
       expect(html).toContain('data-testid="planet-types-list-view-root"');
       expect(html).toContain('data-testid="guide-section-nav"');
@@ -549,7 +552,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
 
   describe('PlanetTypeDetailView', () => {
     it('renders planet detail view with telemetry, examples, and 3D preview for terrestrial', () => {
-      const html = renderToString(createElement(PlanetTypeDetailView, { planetType: 'terrestrial' }));
+      const html = renderToHtml(createElement(PlanetTypeDetailView, { planetType: 'terrestrial' }));
 
       expect(html).toContain('data-testid="planet-type-detail-view-root"');
       expect(html).toContain('data-planet-type="terrestrial"');
@@ -567,7 +570,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
 
   describe('MetricsListView', () => {
     it('renders metrics list with full card links, familiar conversions, and comparative previews', () => {
-      const html = renderToString(createElement(MetricsListView));
+      const html = renderToHtml(createElement(MetricsListView));
 
       expect(html).toContain('data-testid="metrics-list-view-root"');
       expect(html).toContain('data-testid="guide-section-nav"');
@@ -588,7 +591,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
 
   describe('MetricDetailView', () => {
     it('renders metric detail view with physical definition, baseline and examples', () => {
-      const html = renderToString(createElement(MetricDetailView, { metricId: 'semi-major-axis' }));
+      const html = renderToHtml(createElement(MetricDetailView, { metricId: 'semi-major-axis' }));
 
       expect(html).toContain('data-testid="metric-detail-view-root"');
       expect(html).toContain('data-metric-id="semi-major-axis"');
@@ -603,7 +606,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
     });
 
     it('renders context-aware comparative 3D section for galactic-coordinates with ?focus=tau-ceti', () => {
-      const html = renderToString(createElement(MetricDetailView, {
+      const html = renderToHtml(createElement(MetricDetailView, {
         metricId: 'galactic-coordinates',
         locationSearch: '?focus=tau-ceti',
       }));
@@ -620,7 +623,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
     });
 
     it('renders context-aware comparative 3D section for semi-major-axis with ?focus=tau-ceti-e', () => {
-      const html = renderToString(createElement(MetricDetailView, {
+      const html = renderToHtml(createElement(MetricDetailView, {
         metricId: 'semi-major-axis',
         locationSearch: '?focus=tau-ceti-e',
       }));
@@ -639,7 +642,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
 
   describe('HazardsListView', () => {
     it('renders root, breadcrumbs without Galaxy, section nav, 3D previews, and full-card links for all 8 hazards', () => {
-      const html = renderToString(createElement(HazardsListView));
+      const html = renderToHtml(createElement(HazardsListView));
 
       expect(html).toContain('data-testid="hazards-list-view-root"');
       expect(html).toContain('data-testid="guide-section-nav"');
@@ -660,7 +663,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
 
   describe('HazardDetailView', () => {
     it('renders hazard detail view with telemetry dl, summary, examples, and 3D preview for flare-star', () => {
-      const html = renderToString(createElement(HazardDetailView, { hazardId: 'flare-star' }));
+      const html = renderToHtml(createElement(HazardDetailView, { hazardId: 'flare-star' }));
 
       expect(html).toContain('data-testid="hazard-detail-view-root"');
       expect(html).toContain('data-hazard-id="flare-star"');
@@ -676,7 +679,7 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
     });
 
     it('renders fallback gracefully when hazardId is not found', () => {
-      const html = renderToString(createElement(HazardDetailView, { hazardId: 'unknown-hazard' }));
+      const html = renderToHtml(createElement(HazardDetailView, { hazardId: 'unknown-hazard' }));
 
       expect(html).toContain('data-testid="hazard-detail-view-root"');
       expect(html).toContain('data-testid="hazard-detail-fallback"');

@@ -62,6 +62,11 @@ export const Reticle: React.FC<ReticleProps> = ({
   // Attention Gating: Annotations activate in active, selected, or focused states
   const isAnnotated = state === 'active' || state === 'selected' || state === 'focused';
 
+  const planetsKey = useMemo(() => {
+    if (!planets || planets.length === 0) return '';
+    return planets.map((p) => `${p.id}:${p.name}:${classifyPlanet(p)}`).join('|');
+  }, [planets]);
+
   const resolvedPlanets = useMemo<PlanetCensusEntry[] | undefined>(() => {
     if (!planets || planets.length === 0) return undefined;
     return planets.map((p) => ({
@@ -69,7 +74,8 @@ export const Reticle: React.FC<ReticleProps> = ({
       name: p.name,
       classification: classifyPlanet(p),
     }));
-  }, [planets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planetsKey]);
 
   const reticleGeom = useMemo(() => {
     return createReticleGeometry(classification, size, {
@@ -104,7 +110,7 @@ export const Reticle: React.FC<ReticleProps> = ({
   }, [explicitOpacity, state, reticleFocusedAlpha, reticleSelectedAlpha, reticleActiveAlpha]);
 
   useEffect(() => {
-    if (materialRef.current) {
+    if (materialRef.current?.color) {
       materialRef.current.color.copy(resolvedColor);
     }
   }, [resolvedColor]);

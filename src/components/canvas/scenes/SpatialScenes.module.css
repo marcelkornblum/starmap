@@ -9,6 +9,10 @@
     background-color: var(--surface-canvas-bg);
     font-family: var(--font-interface);
     color: var(--content-prominent);
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .canvasWrapper {
@@ -16,6 +20,10 @@
     block-size: 100%;
     position: relative;
     z-index: var(--layer-canvas);
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
   }
 }
 

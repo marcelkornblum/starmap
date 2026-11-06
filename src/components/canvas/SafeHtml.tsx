@@ -133,6 +133,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     div.style.top = '0';
     div.style.left = '0';
     div.style.transformOrigin = '0 0';
+    div.style.display = 'none';
     containerRef.current = div;
 
     const target = (gl.domElement?.parentNode as HTMLElement | null) ?? document.body;
@@ -171,6 +172,18 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     const activeContainer = containerRef.current;
     if (!activeContainer || !groupRef.current) return;
 
+    let customCoords: [number, number] | void = undefined;
+    if (calculatePosition) {
+      scratchTargetCoords.current[0] = 0;
+      scratchTargetCoords.current[1] = 0;
+      customCoords = calculatePosition(
+        groupRef.current,
+        camera,
+        size,
+        scratchTargetCoords.current,
+      );
+    }
+
     groupRef.current.getWorldPosition(scratchPos.current);
     const pos = scratchPos.current;
 
@@ -184,36 +197,28 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
       }
     }
 
-    if (lastVisible.current !== isVisible) {
-      lastVisible.current = isVisible;
-      activeContainer.style.display = isVisible ? '' : 'none';
-      const hidden = !isVisible;
-      if (onOccludeRef.current) {
-        nextHiddenRef.current = hidden;
-        if (rafIdRef.current === null && typeof requestAnimationFrame !== 'undefined') {
-          rafIdRef.current = requestAnimationFrame(flushOccludeRaf);
+    if (!isVisible) {
+      if (lastVisible.current !== false) {
+        lastVisible.current = false;
+        activeContainer.style.display = 'none';
+        if (onOccludeRef.current) {
+          nextHiddenRef.current = true;
+          if (rafIdRef.current === null && typeof requestAnimationFrame !== 'undefined') {
+            rafIdRef.current = requestAnimationFrame(flushOccludeRaf);
+          }
         }
       }
+      return;
     }
-
-    if (!isVisible) return;
 
     const ndc = scratchNdc.current;
     let x = 0;
     let y = 0;
 
     if (calculatePosition) {
-      scratchTargetCoords.current[0] = 0;
-      scratchTargetCoords.current[1] = 0;
-      const coords = calculatePosition(
-        groupRef.current,
-        camera,
-        size,
-        scratchTargetCoords.current,
-      );
-      if (coords) {
-        x = coords[0];
-        y = coords[1];
+      if (customCoords) {
+        x = customCoords[0];
+        y = customCoords[1];
       } else {
         x = scratchTargetCoords.current[0];
         y = scratchTargetCoords.current[1];
@@ -235,6 +240,17 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
         : `translate3d(${qX}px, ${qY}px, 0)`;
       lastTransform.current = transform;
       activeContainer.style.transform = transform;
+    }
+
+    if (lastVisible.current !== true) {
+      lastVisible.current = true;
+      activeContainer.style.display = '';
+      if (onOccludeRef.current) {
+        nextHiddenRef.current = false;
+        if (rafIdRef.current === null && typeof requestAnimationFrame !== 'undefined') {
+          rafIdRef.current = requestAnimationFrame(flushOccludeRaf);
+        }
+      }
     }
 
     if (

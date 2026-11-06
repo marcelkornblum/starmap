@@ -167,7 +167,7 @@ export function buildEntityOrbitTargetHref(
   }
 
   // 4. Circumstellar & System-Level Bodies (star, planet, dwarf-planet, belt, minor-body, fictional-body)
-  const sysSlug = toUrlSlug(systemName ?? systemId ?? 'sol');
+  const sysSlug = toUrlSlug(systemName ?? systemId ?? name ?? id ?? 'sol');
   const itemSlug = targetSlug;
   const params = new URLSearchParams({ focus: itemSlug });
   if (layerSlug) {

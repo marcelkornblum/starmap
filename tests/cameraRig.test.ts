@@ -402,5 +402,16 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       expect(gatedWeights.fadeYZ).toBe(1);
     });
   });
+
+  describe('Camera Transform Store Synchronisation', () => {
+    it('synchronizes camera transform, focal distance, and zoom to useCameraStore', () => {
+      useCameraStore.getState().setCameraTransform([10, 20, 30], [0, 0, 0], 2.0);
+      const state = useCameraStore.getState();
+      expect(state.position).toEqual([10, 20, 30]);
+      expect(state.target).toEqual([0, 0, 0]);
+      expect(state.zoom).toBe(2.0);
+      expect(state.focalDistance).toBeCloseTo(Math.hypot(10, 20, 30), 4);
+    });
+  });
 });
 

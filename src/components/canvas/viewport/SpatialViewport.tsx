@@ -16,6 +16,8 @@ import {
   SpatialEntityProvider,
   ApertureEvaluator,
   useSpatialEntityStoreApi,
+  useOptionalSpatialEntityStoreApi,
+  useOcclusionManager,
   CelestialEntity,
   OcclusionPass,
   type SpatialEntityDefinition,
@@ -24,11 +26,13 @@ import {
   activateEntity,
   focusEntity,
   clearInteraction,
-  occlusionCyclicTargetResolver,
   JourneyChord,
 } from '../entity';
 import type { JourneyChordLeg } from '../cartography';
 import { useUIStore } from '../../../stores/useUIStore';
+import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
+import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
+import { toUrlSlug } from '../../../utils/datasetLayerCodec';
 
 export interface SpatialViewportProps {
   /** The reference frame driving spatial instrument metrics and scale. Defaults to GALACTIC_FRAME */
@@ -99,6 +103,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   activeJourneyMethod,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
+  const occlusionManager = useOcclusionManager();
   const globalSelectedId = useUIStore((s) => s.selectedNodeId);
   const { transitionTo } = useCameraTransition();
 
@@ -137,6 +142,50 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     return outerStore.subscribe((state, prevState) => {
       if (state.selectedIds !== prevState.selectedIds) {
         applyOuterSelection(state.selectedIds);
+      }
+    });
+  }, [outerStore, storeApi]);
+
+  // Synchronise outer store focusedId inward to local spatial entity store
+  const applyingOuterFocusRef = useRef(false);
+  useEffect(() => {
+    if (!outerStore || outerStore === storeApi) return;
+    const applyOuterFocus = (focusedId: string | null): void => {
+      applyingOuterFocusRef.current = true;
+      try {
+        let resolvedLocalId = focusedId;
+        if (focusedId) {
+          const outerEntity = outerStore.getState().entities[focusedId];
+          const localEntities = storeApi.getState().entities;
+          const targetSlug = toUrlSlug(focusedId);
+          const outerNameSlug = outerEntity?.name ? toUrlSlug(outerEntity.name) : null;
+
+          const localMatch = Object.values(localEntities).find(
+            (e) =>
+              e.id === focusedId ||
+              toUrlSlug(e.id) === targetSlug ||
+              toUrlSlug(e.name) === targetSlug ||
+              (outerNameSlug && toUrlSlug(e.name) === outerNameSlug),
+          );
+
+          if (localMatch) {
+            resolvedLocalId = localMatch.id;
+          } else if (outerEntity && !localEntities[outerEntity.id]) {
+            storeApi.getState().registerEntity(outerEntity);
+          }
+        }
+        if (storeApi.getState().focusedId !== resolvedLocalId) {
+          storeApi.getState().setFocused(resolvedLocalId);
+        }
+      } finally {
+        applyingOuterFocusRef.current = false;
+      }
+    };
+    applyOuterFocus(outerStore.getState().focusedId);
+
+    return outerStore.subscribe((state, prevState) => {
+      if (state.focusedId !== prevState.focusedId) {
+        applyOuterFocus(state.focusedId);
       }
     });
   }, [outerStore, storeApi]);
@@ -214,7 +263,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
         if (outerStore && outerStore !== storeApi) {
           if (state.selectedId) {
             const entity = state.entities[state.selectedId];
-            if (entity && !outerStore.getState().entities[entity.id]) {
+            if (entity) {
               outerStore.getState().registerEntity(entity);
             }
           }
@@ -225,11 +274,11 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
         onSelect?.(state.selectedId);
       }
 
-      if (state.focusedId !== prevState.focusedId) {
+      if (state.focusedId !== prevState.focusedId && !applyingOuterFocusRef.current) {
         if (outerStore && outerStore !== storeApi) {
           if (state.focusedId) {
             const entity = state.entities[state.focusedId];
-            if (entity && !outerStore.getState().entities[entity.id]) {
+            if (entity) {
               outerStore.getState().registerEntity(entity);
             }
           }
@@ -245,14 +294,17 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   // Single click: select, or advance cyclic selection when re-clicking the selected entity
   const handleEntityClick = useCallback(
     (id: string) => {
-      activateEntity(storeApi, id, occlusionCyclicTargetResolver);
+      activateEntity(storeApi, id, (targetId) =>
+        occlusionManager.getCyclicSelectionTarget(targetId),
+      );
     },
-    [storeApi],
+    [storeApi, occlusionManager],
   );
 
   // Double click: centre the instrument, focus the entity, and inspect (the single inspect gesture)
   const handleEntityDoubleClick = useCallback(
     (id: string, e: ThreeEvent<MouseEvent>) => {
+      useUIStore.getState().setCenteredEntityId(id);
       const entity = storeApi.getState().entities[id];
       if (entity?.position && enableFocusTransition) {
         transitionTo(entity.position, { duration: focusTransitionDuration });
@@ -323,8 +375,9 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
  * entity composites, and bespoke planetary bodies.
  */
 export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
-  const outerStore = useSpatialEntityStoreApi();
-  const effectiveOuterStore = props.outerStore ?? outerStore;
+  const contextStore = useOptionalSpatialEntityStoreApi();
+  const fallbackStore = useSpatialEntityStoreApi();
+  const effectiveOuterStore = props.outerStore ?? contextStore ?? fallbackStore;
   const { frame = GALACTIC_FRAME, cameraDistance, initialSelectedId } = props;
 
   // Single source of the screen-constant reference distance for both instrument and entities.
@@ -340,6 +393,15 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
   );
 
   const [scopedStore] = React.useState(() => {
+    // When an outer SpatialEntityContext store is already present and props.outerStore is not explicitly overriding it,
+    // unify directly with the outer store to avoid redundant duplicate instances and echo loops.
+    if (contextStore && !props.outerStore) {
+      if (initialSelectedId && !contextStore.getState().selectedId) {
+        contextStore.getState().setSelected(initialSelectedId);
+      }
+      return contextStore;
+    }
+
     const focusPoint = props.cameraTarget
       ? (props.cameraTarget instanceof THREE.Vector3
           ? props.cameraTarget
@@ -349,7 +411,8 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
     const rSq = apertureRadius * apertureRadius;
     const initialAperture = new Set<string>();
 
-    if (props.entities) {
+    const { summaries, isHydrated } = useActiveStarsStore.getState();
+    if (props.entities && isHydrated && summaries.length <= getApertureActiveCutoffForViewportWidth()) {
       for (const e of props.entities) {
         const p = e.position;
         const x = p instanceof THREE.Vector3 ? p.x : p[0];

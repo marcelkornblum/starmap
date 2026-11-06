@@ -330,6 +330,38 @@ describe('sectorStreamingService', () => {
       manager.dispose();
     });
 
+    it('returns false until all active sectors are fetched or marked missing (isActiveRingReady)', async () => {
+      let resolveSlowFetch: (buf: ArrayBuffer | null) => void = () => {};
+      const slowFetchPromise = new Promise<ArrayBuffer | null>((resolve) => {
+        resolveSlowFetch = resolve;
+      });
+
+      const fetcher = vi.fn(async (sectorId: string) => {
+        if (sectorId === '0_0_0') {
+          return slowFetchPromise;
+        }
+        return createMockSectorBuffer(sectorId);
+      });
+
+      const manager = new SectorStreamingManager({
+        budget: DEVICE_TIER_BUDGETS.tier1,
+        fetcher,
+        gpuResourceFactory: createTrackingGpuFactory(),
+      });
+
+      expect(manager.isActiveRingReady()).toBe(false);
+
+      const updatePromise = manager.updateCameraPosition([0, 0, 0]);
+      // Active set populated, but 0_0_0 is still in-flight
+      expect(manager.isActiveRingReady()).toBe(false);
+
+      resolveSlowFetch(createMockSectorBuffer('0_0_0'));
+      await updatePromise;
+
+      expect(manager.isActiveRingReady()).toBe(true);
+      manager.dispose();
+    });
+
     it('disposes all GPU resources and cancels active processing on manager.dispose()', async () => {
       const fetcher = createMockFetcher();
       const manager = new SectorStreamingManager({

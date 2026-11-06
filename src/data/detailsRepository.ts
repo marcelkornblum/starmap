@@ -33,6 +33,8 @@ const RESOLVED_SUMMARY_BUCKET_CACHE = new Map<
   Record<string, CompactSummaryNode>
 >();
 const RESOLVED_SUMMARY_HASH_INDEX = new Map<string, Map<number, string>>();
+const RESOLVED_SUMMARY_NODE_CACHE = new Map<string, SystemSummaryNode>();
+const RESOLVED_DETAIL_RECORD_CACHE = new Map<string, DecodedDetailRecord>();
 
 /**
  * Builds or retrieves a reverse mapping from 32-bit FNV-1a hash to canonical string ID for a summary bucket.
@@ -97,10 +99,19 @@ export const getCachedSummaryNode = (
   if (!id) {
     return undefined;
   }
+  const cachedDecoded = RESOLVED_SUMMARY_NODE_CACHE.get(id);
+  if (cachedDecoded) {
+    return cachedDecoded;
+  }
   const bucketKey = getShardKey(id);
   const bucket = RESOLVED_SUMMARY_BUCKET_CACHE.get(bucketKey);
   const compact = bucket?.[id];
-  return compact ? decodeSummaryNode(compact, id) : undefined;
+  if (!compact) {
+    return undefined;
+  }
+  const decoded = decodeSummaryNode(compact, id);
+  RESOLVED_SUMMARY_NODE_CACHE.set(id, decoded);
+  return decoded;
 };
 
 /**
@@ -120,9 +131,7 @@ export const getCachedSummaryNodeByHash = (
   }
   const index = getOrBuildBucketHashIndex(bucketKey, bucket);
   const canonicalId = index.get(unsignedHash);
-  return canonicalId && bucket[canonicalId]
-    ? decodeSummaryNode(bucket[canonicalId], canonicalId)
-    : undefined;
+  return canonicalId ? getCachedSummaryNode(canonicalId) : undefined;
 };
 
 /**
@@ -135,10 +144,19 @@ export const getCachedDetailRecord = (
   if (!id) {
     return undefined;
   }
+  const cachedDecoded = RESOLVED_DETAIL_RECORD_CACHE.get(id);
+  if (cachedDecoded) {
+    return cachedDecoded;
+  }
   const bucketKey = getShardKey(id);
   const bucket = RESOLVED_DETAIL_BUCKET_CACHE.get(bucketKey);
   const compact = bucket?.[id];
-  return compact ? decodeDetailRecord(compact, id) : undefined;
+  if (!compact) {
+    return undefined;
+  }
+  const decoded = decodeDetailRecord(compact, id);
+  RESOLVED_DETAIL_RECORD_CACHE.set(id, decoded);
+  return decoded;
 };
 
 /**
@@ -201,9 +219,8 @@ export const fetchSummaryNode = async (
   }
 
   const bucketKey = getShardKey(id);
-  const dict = await loadSummaryBucket(bucketKey, fetchImpl);
-  const compact = dict[id];
-  return compact ? decodeSummaryNode(compact, id) : undefined;
+  await loadSummaryBucket(bucketKey, fetchImpl);
+  return getCachedSummaryNode(id);
 };
 
 /**
@@ -266,9 +283,8 @@ export const fetchDetailRecord = async (
     DETAIL_BUCKET_CACHE.set(bucketKey, pending);
   }
 
-  const dict = await pending;
-  const compact = dict[id];
-  return compact ? decodeDetailRecord(compact, id) : undefined;
+  await pending;
+  return getCachedDetailRecord(id);
 };
 
 /**
@@ -278,6 +294,10 @@ export const clearDetailsRepositoryCache = (): void => {
   SUMMARY_BUCKET_CACHE.clear();
   RESOLVED_SUMMARY_BUCKET_CACHE.clear();
   RESOLVED_SUMMARY_HASH_INDEX.clear();
+  RESOLVED_SUMMARY_NODE_CACHE.clear();
   DETAIL_BUCKET_CACHE.clear();
   RESOLVED_DETAIL_BUCKET_CACHE.clear();
+  RESOLVED_DETAIL_RECORD_CACHE.clear();
 };
+
+export const resetDetailsRepositoryCache = clearDetailsRepositoryCache;

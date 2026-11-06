@@ -78,7 +78,6 @@ export interface DetentSheetProps {
   readonly partial?: ReactNode;
   readonly full?: ReactNode;
   readonly className?: string;
-  readonly style?: React.CSSProperties;
   readonly children?: ReactNode;
   readonly 'data-entity-id'?: string;
   readonly 'data-system-id'?: string;
@@ -99,7 +98,6 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
   partial,
   full,
   className,
-  style,
   children,
   'data-entity-id': entityId,
   'data-system-id': systemId,
@@ -110,37 +108,25 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
 
   const getViewportHeight = () => (typeof window !== 'undefined' ? window.innerHeight : 800);
 
-  const [sheetHeightPx, setSheetHeightPx] = useState<number>(() => {
-    const vh = getViewportHeight();
-    if (activeDetent === 'full') return vh;
-    if (activeDetent === 'partial') return Math.round(vh * 0.6);
-    return Math.round(vh * DEFAULT_MOBILE_SHEET_RATIO);
-  });
-  const [hasDragged, setHasDragged] = useState(false);
+  const [detentState, setDetentState] = useState<DetentLevel>(activeDetent);
+  const [isFullScreenState, setIsFullScreenState] = useState<boolean>(activeDetent === 'full');
 
   const prevActiveDetentRef = useRef(activeDetent);
   useEffect(() => {
     if (prevActiveDetentRef.current !== activeDetent) {
       prevActiveDetentRef.current = activeDetent;
-      setHasDragged(false);
+      setDetentState(activeDetent);
+      setIsFullScreenState(activeDetent === 'full');
       const vh = getViewportHeight();
+      let h = Math.round(vh * DEFAULT_MOBILE_SHEET_RATIO);
       if (activeDetent === 'full') {
-        setSheetHeightPx(vh);
+        h = vh;
       } else if (activeDetent === 'partial') {
-        setSheetHeightPx(Math.round(vh * 0.6));
-      } else {
-        setSheetHeightPx(Math.round(vh * DEFAULT_MOBILE_SHEET_RATIO));
+        h = Math.round(vh * 0.6);
       }
+      sheetRef.current?.style.setProperty('--sheet-mobile-height', `${h}px`);
     }
   }, [activeDetent]);
-
-  const viewportHeight = getViewportHeight();
-  const effectiveDetent = hasDragged
-    ? resolveDetentFromHeight(sheetHeightPx, viewportHeight)
-    : activeDetent;
-  const isFullScreen = hasDragged
-    ? sheetHeightPx >= viewportHeight - 4
-    : activeDetent === 'full';
 
   const dragStartRef = useRef<{
     startY: number;
@@ -152,11 +138,11 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
   const startDrag = (clientY: number) => {
     const currentHeight = sheetRef.current
       ? sheetRef.current.getBoundingClientRect().height
-      : sheetHeightPx;
+      : Math.round(getViewportHeight() * DEFAULT_MOBILE_SHEET_RATIO);
     dragStartRef.current = {
       startY: clientY,
       startHeight: currentHeight,
-      isFullScreen,
+      isFullScreen: isFullScreenState,
       isDragging: true,
     };
   };
@@ -179,8 +165,13 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
       e.preventDefault();
     }
 
-    setSheetHeightPx(step.nextHeightPx);
-    setHasDragged(true);
+    sheetRef.current?.style.setProperty('--sheet-mobile-height', `${step.nextHeightPx}px`);
+    if (step.effectiveDetent !== detentState) {
+      setDetentState(step.effectiveDetent);
+    }
+    if (step.isFullScreen !== isFullScreenState) {
+      setIsFullScreenState(step.isFullScreen);
+    }
   };
 
   const endDrag = () => {
@@ -241,21 +232,15 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
 
   const rootClasses = [styles.detentSheet, className].filter(Boolean).join(' ');
 
-  const inlineStyle: React.CSSProperties & { [key: `--${string}`]: string } = {
-    ...style,
-    '--sheet-mobile-height': `${sheetHeightPx}px`,
-  };
-
   return (
     <aside
       ref={sheetRef}
       aria-labelledby={resolvedHeadingId}
       data-testid={`${testIdPrefix}-panel`}
-      data-detent={effectiveDetent}
-      data-is-full-screen={isFullScreen ? 'true' : 'false'}
+      data-detent={detentState}
+      data-is-full-screen={isFullScreenState ? 'true' : 'false'}
       data-min-height-px={MIN_SHEET_HEIGHT_PX}
       className={rootClasses}
-      style={inlineStyle}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
