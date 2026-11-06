@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import { GALACTIC_FRAME } from '../instrument/referenceFrame';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
-import { CANDIDATE_SYSTEMS, type CandidateSystem } from '../../../data';
 import { SectorPointCloud, type SpatialEntityDefinition } from '../entity';
 import type { CelestialClassification, PlanetCensusEntry } from '../cartography/reticleGeometry';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
@@ -19,7 +18,6 @@ import type { SystemSummaryNode } from '../../../types/astro';
 export const GALAXY_SCENE_MAX_STREAMED_ENTITIES = 1200;
 
 export interface GalaxySceneProps {
-  systems?: CandidateSystem[];
   additionalEntities?: readonly SpatialEntityDefinition[];
   initialSelectedId?: string | null;
   onInspectSystem?: (systemId: string) => void;
@@ -30,10 +28,9 @@ export interface GalaxySceneProps {
 
 /**
  * GalaxyScene: Canonical production scene for Milky Way top-level galactic cartography.
- * Renders candidate systems, streamed 3D sector point cloud, and nearest stellar nodes mapped into GALACTIC_FRAME.
+ * Renders streamed 3D sector point cloud and nearest stellar nodes mapped into GALACTIC_FRAME.
  */
 export const GalaxyScene: React.FC<GalaxySceneProps> = ({
-  systems = CANDIDATE_SYSTEMS,
   additionalEntities,
   initialSelectedId,
   onInspectSystem,
@@ -107,45 +104,9 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
     const existingIds = new Set<string>();
     const baseEntities: SpatialEntityDefinition[] = [];
 
-    for (const sys of systems) {
-      if (hasReachedCeiling) {
-        const dx = sys.position[0] - focusPointPc[0];
-        const dy = sys.position[1] - focusPointPc[1];
-        const dz = sys.position[2] - focusPointPc[2];
-        if (dx * dx + dy * dy + dz * dz > ceilingRadiusSq) {
-          continue;
-        }
-      }
-      existingIds.add(sys.id);
-      baseEntities.push({
-        id: sys.id,
-        name: sys.name,
-        position: sys.position,
-        classification: sys.classification,
-        spectralType: sys.spectralType,
-        multiplicity: sys.multiplicity,
-        planets: sys.planetsList,
-      });
-    }
-
     if (additionalEntities) {
       for (const ent of additionalEntities) {
-        const entNameLower = ent.name.toLowerCase();
-        const existingEntity = baseEntities.find((b) => {
-          if (b.id === ent.id) return true;
-          if (b.name.toLowerCase() === entNameLower) return true;
-          const pB = b.position;
-          const pEnt = ent.position;
-          const bx = Array.isArray(pB) ? pB[0] : pB.x;
-          const by = Array.isArray(pB) ? pB[1] : pB.y;
-          const bz = Array.isArray(pB) ? pB[2] : pB.z;
-          const ex = Array.isArray(pEnt) ? pEnt[0] : pEnt.x;
-          const ey = Array.isArray(pEnt) ? pEnt[1] : pEnt.y;
-          const ez = Array.isArray(pEnt) ? pEnt[2] : pEnt.z;
-          return (bx - ex) ** 2 + (by - ey) ** 2 + (bz - ez) ** 2 <= 0.04;
-        });
-
-        if (!existingEntity && !existingIds.has(ent.id)) {
+        if (!existingIds.has(ent.id)) {
           if (hasReachedCeiling && Array.isArray(ent.position)) {
             const dx = ent.position[0] - focusPointPc[0];
             const dy = ent.position[1] - focusPointPc[1];
@@ -168,18 +129,10 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
         const s = streamedSummaries[i];
         if (!s) continue;
 
-        const sNameLower = s.name.toLowerCase();
-        const existingEntity = baseEntities.find((ent) => {
-          if (ent.id === s.id) return true;
-          if (ent.name.toLowerCase() === sNameLower) return true;
-          if (Array.isArray(ent.position)) {
-            const dx = ent.position[0] - s.x;
-            const dy = ent.position[1] - s.y;
-            const dz = ent.position[2] - s.z;
-            return dx * dx + dy * dy + dz * dz <= 0.04;
-          }
-          return false;
-        });
+        if (existingIds.has(s.id)) {
+          activeCount++;
+          continue;
+        }
 
         const classification: CelestialClassification = (() => {
           if (!s.spect) return 'star';
@@ -193,18 +146,6 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
           name: `Planet ${idx + 1}`,
           classification: cat,
         }));
-
-        if (existingEntity) {
-          const sMultiplicity = s.starCount ?? 1;
-          if (sMultiplicity > (existingEntity.multiplicity ?? 1)) {
-            existingEntity.multiplicity = sMultiplicity;
-          }
-          if (!existingEntity.planets && planets && planets.length > 0) {
-            existingEntity.planets = planets;
-          }
-          activeCount++;
-          continue;
-        }
 
         existingIds.add(s.id);
         baseEntities.push({
@@ -221,7 +162,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
     }
 
     return baseEntities;
-  }, [systems, additionalEntities, streamedSummaries, hasHydrated, focusPointPc, budget.maxActiveEntities]);
+  }, [additionalEntities, streamedSummaries, hasHydrated, focusPointPc, budget.maxActiveEntities]);
 
   return (
     <SpatialViewport

@@ -29,7 +29,8 @@ import {
   type GuideCatalogEntry,
   type PlanetCompositionClass,
 } from '../data/guideCatalog';
-import { getFocusedEntityDetails } from './detailsService';
+import { getCachedDetailRecord } from '../data/detailsRepository';
+import { toUrlSlug } from './searchService';
 
 export {
   STAR_TYPES_GUIDE_PATH,
@@ -423,9 +424,17 @@ export const resolveMetricComparison = (
     targetId = isOrbitalOrPlanetary ? 'tau-ceti-e' : 'tau-ceti';
   }
 
-  const details = getFocusedEntityDetails(targetId);
+  const cached = getCachedDetailRecord(targetId);
+  const manifest = cached?.kind === 'system' ? cached.record : null;
+  const targetStar =
+    manifest?.stars.find((s) => s.id === targetId || toUrlSlug(s.name) === targetId) ??
+    manifest?.stars[0];
+  const targetPlanet =
+    manifest?.planets.find((p) => p.id === targetId || toUrlSlug(p.name) === targetId) ??
+    manifest?.planets[0];
+
   const targetName =
-    details?.name ??
+    (isOrbitalOrPlanetary ? targetPlanet?.name : (targetStar?.name ?? manifest?.name)) ??
     (targetId === 'tau-ceti-e'
       ? 'Tau Ceti e'
       : targetId === 'tau-ceti'
@@ -433,10 +442,9 @@ export const resolveMetricComparison = (
         : targetId);
 
   const targetHref =
-    details?.systemDetailsHref ??
     (isOrbitalOrPlanetary
-      ? `/system/tau-ceti?focus=${encodeURIComponent(targetId)}`
-      : `/system/${encodeURIComponent(targetId)}`);
+      ? `/system/${manifest?.id ?? 'tau-ceti'}?focus=${encodeURIComponent(targetId)}`
+      : `/system/${encodeURIComponent(manifest?.id ?? targetId)}`);
 
   const baselineName = metric.comparisonBaselineLabel;
   const baselineHref = baselineName === 'Sol' ? '/system/sol' : '/planet/earth';
@@ -451,7 +459,7 @@ export const resolveMetricComparison = (
     case 'galactic-coordinates': {
       baselineValue = '0.00 pc';
       baselineFamiliar = '0.00 light-years (ly)';
-      const coords = details?.coordinatesPc ?? [3.154, 1.539, -1.002];
+      const coords = manifest ? [manifest.x, manifest.y, manifest.z] : [3.154, 1.539, -1.002];
       const distPc = Math.hypot(coords[0], coords[1], coords[2]);
       const ly = distPc * 3.2616;
       targetValue = `${distPc.toFixed(2)} pc`;
@@ -462,9 +470,8 @@ export const resolveMetricComparison = (
     case 'stellar-magnitude': {
       baselineValue = '-26.74 V / +4.83 M_V';
       baselineFamiliar = 'Brightest celestial body from Earth';
-      const star = details?.starTelemetry ?? details?.stars?.[0];
-      const mag = star?.mag ?? 3.5;
-      const absmag = star?.absmag ?? 5.68;
+      const mag = targetStar?.mag ?? 3.5;
+      const absmag = targetStar?.absmag ?? 5.68;
       targetValue = `${mag.toFixed(2)} V / ${absmag.toFixed(2)} M_V`;
       targetFamiliar = mag <= 6.5 ? 'Naked-eye visible (V ≤ 6.5)' : 'Telescopic observation required';
       const deltaMag = mag - (-26.74);
@@ -474,7 +481,7 @@ export const resolveMetricComparison = (
     case 'stellar-mass': {
       baselineValue = '1.00 M☉';
       baselineFamiliar = '332,950 M⊕ (1.989 × 10³⁰ kg)';
-      const mass = details?.starTelemetry?.massMsun ?? details?.stars?.[0]?.massMsun ?? 0.783;
+      const mass = targetStar?.massMsun ?? 0.783;
       targetValue = `${mass.toFixed(2)} M☉`;
       const earthMasses = Math.round(mass * 332950);
       targetFamiliar = `≈ ${earthMasses.toLocaleString()} Earth masses (M⊕)`;
@@ -484,7 +491,7 @@ export const resolveMetricComparison = (
     case 'stellar-radius': {
       baselineValue = '1.00 R☉';
       baselineFamiliar = '109.2 R⊕ (695,700 km)';
-      const radius = details?.starTelemetry?.radiusRsun ?? details?.stars?.[0]?.radiusRsun ?? 0.793;
+      const radius = targetStar?.radiusRsun ?? 0.793;
       targetValue = `${radius.toFixed(2)} R☉`;
       const km = Math.round(radius * 695700);
       targetFamiliar = `≈ ${km.toLocaleString()} km (${(radius * 109.2).toFixed(1)} R⊕)`;
@@ -494,7 +501,7 @@ export const resolveMetricComparison = (
     case 'stellar-luminosity': {
       baselineValue = '1.00 L☉';
       baselineFamiliar = '3.828 × 10²⁶ W (1.0× Solar bolometric output)';
-      const lum = details?.starTelemetry?.luminosityLsun ?? details?.stars?.[0]?.luminosityLsun ?? 0.52;
+      const lum = targetStar?.luminosityLsun ?? 0.52;
       targetValue = `${lum.toFixed(2)} L☉`;
       const w = (lum * 3.828).toFixed(3);
       targetFamiliar = `≈ ${w} × 10²⁶ W`;
@@ -504,7 +511,7 @@ export const resolveMetricComparison = (
     case 'effective-temperature': {
       baselineValue = '5,778 K';
       baselineFamiliar = '5,505 °C (9,940 °F)';
-      const tempK = details?.starTelemetry?.effectiveTempK ?? details?.stars?.[0]?.effectiveTempK ?? 5344;
+      const tempK = targetStar?.effectiveTempK ?? 5344;
       const celsius = Math.round(tempK - 273.15);
       targetValue = `${tempK.toLocaleString()} K`;
       targetFamiliar = `≈ ${celsius.toLocaleString()} °C`;
@@ -514,7 +521,7 @@ export const resolveMetricComparison = (
     case 'semi-major-axis': {
       baselineValue = '1.000 AU';
       baselineFamiliar = '8.32 light-minutes (149.6M km)';
-      const sma = details?.planetTelemetry?.semiMajorAxisAu ?? details?.planets?.[0]?.semiMajorAxisAu ?? 0.538;
+      const sma = targetPlanet?.orbit?.semiMajorAxis ?? 0.538;
       const lightMinutes = (sma * 8.3167).toFixed(2);
       const millionKm = (sma * 149.598).toFixed(1);
       targetValue = `${sma.toFixed(3)} AU`;
@@ -525,7 +532,7 @@ export const resolveMetricComparison = (
     case 'orbital-period': {
       baselineValue = '365.25 d';
       baselineFamiliar = '1.00 Earth year (12 months)';
-      const period = details?.planetTelemetry?.periodDays ?? details?.planets?.[0]?.periodDays ?? 162.87;
+      const period = targetPlanet?.orbit?.periodDays ?? 162.87;
       const years = (period / 365.25).toFixed(2);
       targetValue = `${period.toFixed(2)} d`;
       targetFamiliar = `${years} Earth years (${(period / 30.4375).toFixed(1)} months)`;
@@ -535,7 +542,7 @@ export const resolveMetricComparison = (
     case 'orbital-inclination': {
       baselineValue = '0.00°';
       baselineFamiliar = 'Coplanar ecliptic reference';
-      const inc = details?.planetTelemetry?.inclinationDeg ?? details?.planets?.[0]?.inclinationDeg ?? 0.0;
+      const inc = targetPlanet?.orbit?.inclination ?? 0.0;
       targetValue = `${inc.toFixed(2)}°`;
       targetFamiliar = inc === 0 ? 'Coplanar with system plane' : `${inc.toFixed(1)}° orbital tilt relative to plane`;
       relativeRatioLabel = `${inc.toFixed(2)}° relative tilt`;
@@ -544,7 +551,7 @@ export const resolveMetricComparison = (
     case 'planetary-mass': {
       baselineValue = '1.00 M⊕';
       baselineFamiliar = '5.972 × 10²⁴ kg (1.0× Earth mass)';
-      const mass = details?.planetTelemetry?.massMearth ?? details?.planets?.[0]?.massMearth ?? 3.93;
+      const mass = targetPlanet?.massMearth ?? 3.93;
       targetValue = `${mass.toFixed(2)} M⊕`;
       targetFamiliar = `≈ ${(mass * 5.972).toFixed(2)} × 10²⁴ kg`;
       relativeRatioLabel = `${mass.toFixed(2)}× Earth mass`;
@@ -553,7 +560,7 @@ export const resolveMetricComparison = (
     case 'planetary-radius': {
       baselineValue = '1.00 R⊕';
       baselineFamiliar = '6,371 km radius (12,742 km dia)';
-      const radius = details?.planetTelemetry?.radiusRearth ?? details?.planets?.[0]?.radiusRearth ?? 1.81;
+      const radius = targetPlanet?.radiusRearth ?? 1.81;
       targetValue = `${radius.toFixed(2)} R⊕`;
       const km = Math.round(radius * 6371);
       targetFamiliar = `≈ ${km.toLocaleString()} km mean radius`;
@@ -563,7 +570,7 @@ export const resolveMetricComparison = (
     case 'equilibrium-temperature': {
       baselineValue = '255 K';
       baselineFamiliar = '−18 °C (−0.4 °F)';
-      const tEq = details?.planetTelemetry?.equilibriumTempK ?? details?.planets?.[0]?.equilibriumTempK ?? 282;
+      const tEq = targetPlanet?.equilibriumTempK ?? 282;
       const celsius = Math.round(tEq - 273.15);
       targetValue = `${tEq} K`;
       targetFamiliar = `≈ ${celsius} °C`;
@@ -574,14 +581,13 @@ export const resolveMetricComparison = (
       baselineValue = '1.00 g';
       baselineFamiliar = '1.00 g (9.81 m/s²)';
       const g =
-        details?.planetTelemetry?.surfaceGravityG ??
-        (details?.planets?.[0]?.massMearth && details?.planets?.[0]?.radiusRearth
+        targetPlanet?.massMearth && targetPlanet?.radiusRearth
           ? Math.round(
-              (details.planets[0].massMearth /
-                (details.planets[0].radiusRearth * details.planets[0].radiusRearth)) *
+              (targetPlanet.massMearth /
+                (targetPlanet.radiusRearth * targetPlanet.radiusRearth)) *
                 100,
             ) / 100
-          : 1.2);
+          : 1.2;
       targetValue = `${g.toFixed(2)} g`;
       targetFamiliar = `≈ ${(g * 9.81).toFixed(2)} m/s²`;
       relativeRatioLabel = `${g.toFixed(2)}× Earth gravity`;

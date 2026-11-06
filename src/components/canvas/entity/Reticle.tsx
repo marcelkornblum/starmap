@@ -104,7 +104,7 @@ export const Reticle: React.FC<ReticleProps> = ({
   }, [explicitOpacity, state, reticleFocusedAlpha, reticleSelectedAlpha, reticleActiveAlpha]);
 
   useEffect(() => {
-    if (materialRef.current) {
+    if (materialRef.current?.color) {
       materialRef.current.color.copy(resolvedColor);
     }
   }, [resolvedColor]);

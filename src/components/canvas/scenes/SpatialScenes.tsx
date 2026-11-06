@@ -19,22 +19,10 @@ import { useCameraStore } from '../../../stores/useCameraStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import type { SpatialEntityDefinition } from '../entity';
 import { GalaxyScene } from './GalaxyScene';
-import { SystemScene } from './SystemScene';
+import { SystemScene, type StarDossierData } from './SystemScene';
 import { PlanetScene } from './PlanetScene';
 
 import styles from './SpatialScenes.module.css';
-
-// -----------------------------------------------------------------------------
-// Astronomical Data Fixtures & Helper Utilities (re-exported from src/data)
-// -----------------------------------------------------------------------------
-
-export {
-  type CandidateSystem,
-  CANDIDATE_SYSTEMS,
-  type SolPlanetConfig,
-  SOL_PLANETS,
-  LUNAR_ORBIT,
-} from '../../../data';
 
 export interface GalacticViewSceneProps {
   initialSelectedId?: string | null;
@@ -437,6 +425,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
 
 export interface SystemViewSceneProps {
   systemId?: string;
+  system?: StarDossierData;
   centerId?: string;
   centerCoordinates?:
     | readonly [number, number, number]
@@ -451,6 +440,7 @@ export interface SystemViewSceneProps {
 
 export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
   systemId = 'sol',
+  system,
   centerId,
   centerCoordinates,
   onInspectPlanet,
@@ -503,6 +493,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
 
           <SystemScene
             systemId={systemId}
+            system={system}
             centerId={centerId}
             centerCoordinates={centerCoordinates ? targetCoords : undefined}
             onInspectPlanet={onInspectPlanet}
@@ -584,6 +575,7 @@ export interface InteractiveNavigatorProps {
   initialScale?: 'galaxy' | 'system' | 'planet';
   initialSystemId?: string;
   initialPlanetId?: string;
+  additionalEntities?: readonly SpatialEntityDefinition[];
 }
 
 export const InteractiveNavigator: React.FC<InteractiveNavigatorProps> = ({
@@ -591,6 +583,7 @@ export const InteractiveNavigator: React.FC<InteractiveNavigatorProps> = ({
   initialScale = 'galaxy',
   initialSystemId = 'sol',
   initialPlanetId = 'earth',
+  additionalEntities,
 }) => {
   const [scale, setScale] = useState<'galaxy' | 'system' | 'planet'>(initialScale);
   const [selectedSystemId, setSelectedSystemId] = useState<string>(initialSystemId);
@@ -635,6 +628,7 @@ export const InteractiveNavigator: React.FC<InteractiveNavigatorProps> = ({
   return (
     <GalacticViewScene
       variant={variant}
+      additionalEntities={additionalEntities}
       onInspectSystem={(systemId) => {
         setSelectedSystemId(systemId);
         setScale('system');

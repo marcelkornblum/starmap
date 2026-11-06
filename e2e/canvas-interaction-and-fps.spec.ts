@@ -689,10 +689,9 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const [pX, pY, pZ] = posAfterPan!.split(',').map(Number);
 
     const nonSolCandidates: Array<{ id: string; name: string; pos: [number, number, number] }> = [
-      { id: 'sirius', name: 'Sirius', pos: [-0.494, 2.477, -0.759] },
-      { id: 'luhman-16', name: 'Luhman 16', pos: [-1.137, 0.362, -1.602] },
-      { id: 'tau-ceti', name: 'Tau Ceti', pos: [3.156, 1.54, -1.003] },
-      { id: 'alpha-centauri', name: 'Alpha Centauri', pos: [-0.495, -0.414, -1.157] },
+      { id: 'hip-32349', name: 'Sirius', pos: [-0.494, 2.477, -0.759] },
+      { id: 'gaia-2452378776434477184', name: 'Tau Ceti', pos: [3.154, 1.539, -1.002] },
+      { id: 'hip-71683', name: 'Rigil Kentaurus', pos: [-0.495, -0.414, -1.157] },
     ];
 
     const projectStar = (starPos: [number, number, number]) => {

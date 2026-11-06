@@ -3,11 +3,6 @@ import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import * as THREE from 'three';
 import {
-  CANDIDATE_SYSTEMS,
-  SOL_PLANETS,
-  LUNAR_ORBIT,
-} from '../src/data';
-import {
   computeCardinalAlignment as mathCardinal,
   computeTransitionWeights as mathTrans,
 } from '../src/components/canvas/math/cardinal';
@@ -42,37 +37,6 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
 });
 
 describe('Phase 4b Task 9: Dead Code & Data Separation Remediation', () => {
-  describe('Astronomical Fixtures in src/data', () => {
-    it('exports CANDIDATE_SYSTEMS with Sol, Alpha Centauri, and valid celestial bodies', () => {
-      expect(CANDIDATE_SYSTEMS.length).toBeGreaterThanOrEqual(8);
-      const sol = CANDIDATE_SYSTEMS.find((s) => s.id === 'sol');
-      expect(sol).toBeDefined();
-      expect(sol?.position).toEqual([0, 0, 0]);
-      expect(sol?.planetsCount).toBe(8);
-      expect(sol?.classification).toBe('star');
-
-      const alphaCen = CANDIDATE_SYSTEMS.find((s) => s.id === 'alpha-centauri');
-      expect(alphaCen).toBeDefined();
-      expect(alphaCen?.multiplicity).toBe(3);
-    });
-
-    it('exports SOL_PLANETS with terrestrial and gas-giant planets in orbital order', () => {
-      expect(SOL_PLANETS.length).toBe(6);
-      const [mercury, , earth, , jupiter] = SOL_PLANETS;
-      expect(mercury.id).toBe('mercury');
-      expect(mercury.a).toBeCloseTo(0.3871, 3);
-      expect(earth.id).toBe('earth');
-      expect(earth.a).toBeCloseTo(1.0, 3);
-      expect(jupiter.id).toBe('jupiter');
-      expect(jupiter.a).toBeCloseTo(5.2044, 3);
-    });
-
-    it('exports LUNAR_ORBIT with Earth-radii semi-major axis', () => {
-      expect(LUNAR_ORBIT.a).toBeCloseTo(60.336, 3);
-      expect(LUNAR_ORBIT.e).toBeCloseTo(0.0549, 4);
-    });
-  });
-
   describe('Deduplicated Spatial Mathematics Parity', () => {
     it('re-exports computeCardinalAlignment with identical output to math/cardinal', () => {
       const v = new THREE.Vector3(0.96, 0.1, 0.05).normalize();

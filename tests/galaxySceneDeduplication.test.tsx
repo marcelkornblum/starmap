@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, act } from '@testing-library/react';
 import type { SpatialEntityDefinition } from '../src/components/canvas/entity';
-import type { CandidateSystem } from '../src/data';
 import type { SystemSummaryNode } from '../src/types/astro';
 
 let capturedEntities: SpatialEntityDefinition[] = [];
@@ -29,22 +28,19 @@ vi.mock('../src/components/canvas/entity/SectorPointCloud', () => ({
 
 import { GalaxyScene } from '../src/components/canvas/scenes/GalaxyScene';
 
-describe('GalaxyScene - Streamed Stars Deduplication & Multiplicity Upgrade', () => {
+describe('GalaxyScene - Streamed Stars Deduplication & Classification Derivation', () => {
   beforeEach(() => {
     capturedEntities = [];
     triggerHydration = undefined;
   });
 
-  const baseCandidate: CandidateSystem = {
+  const baseEntity: SpatialEntityDefinition = {
     id: 'alpha-centauri',
     name: 'Alpha Centauri',
     classification: 'star',
     spectralType: 'G2V',
     position: [-0.495, -0.414, -1.157],
-    distPc: 1.33,
     multiplicity: 1,
-    planetsCount: 0,
-    description: 'Triple star system',
   };
 
   const makeStreamedSummary = (
@@ -72,46 +68,28 @@ describe('GalaxyScene - Streamed Stars Deduplication & Multiplicity Upgrade', ()
     ...overrides,
   });
 
-  it('deduplicates streamed stars matching baseEntities by normalized name and upgrades multiplicity', () => {
-    render(<GalaxyScene systems={[baseCandidate]} />);
+  it('deduplicates streamed stars matching additionalEntities by canonical ID', () => {
+    render(<GalaxyScene additionalEntities={[baseEntity]} />);
     expect(capturedEntities).toHaveLength(1);
     expect(capturedEntities[0]?.id).toBe('alpha-centauri');
     expect(capturedEntities[0]?.multiplicity).toBe(1);
 
-    // Stream a star with normalized name "alpha centauri" and starCount: 3
+    // Stream a star with matching ID "alpha-centauri"
     act(() => {
       triggerHydration?.([
-        makeStreamedSummary('hip-71683', 'Alpha Centauri', -0.495, -0.414, -1.157, 3),
+        makeStreamedSummary('alpha-centauri', 'Alpha Centauri', -0.495, -0.414, -1.157, 3),
       ]);
     });
 
     expect(capturedEntities).toHaveLength(1);
     expect(capturedEntities[0]?.id).toBe('alpha-centauri');
-    expect(capturedEntities[0]?.multiplicity).toBe(3);
   });
 
-  it('deduplicates streamed stars matching baseEntities by 3D spatial proximity (<= 0.2 pc) and upgrades multiplicity', () => {
-    render(<GalaxyScene systems={[baseCandidate]} />);
+  it('pushes streamed stars as new reticle entities when their canonical ID does not match additionalEntities', () => {
+    render(<GalaxyScene additionalEntities={[baseEntity]} />);
     expect(capturedEntities).toHaveLength(1);
 
-    // Stream a star with different name and id but within 0.05 pc Euclidean distance:
-    // dx = 0.02, dy = 0.01, dz = 0.02 -> dx^2 + dy^2 + dz^2 = 0.0009 <= 0.04
-    act(() => {
-      triggerHydration?.([
-        makeStreamedSummary('hip-71683', 'Rigil Kentaurus', -0.475, -0.404, -1.137, 3),
-      ]);
-    });
-
-    expect(capturedEntities).toHaveLength(1);
-    expect(capturedEntities[0]?.id).toBe('alpha-centauri');
-    expect(capturedEntities[0]?.multiplicity).toBe(3);
-  });
-
-  it('pushes streamed stars as new reticle entities when they do not match baseEntities', () => {
-    render(<GalaxyScene systems={[baseCandidate]} />);
-    expect(capturedEntities).toHaveLength(1);
-
-    // Stream a star located far away (e.g. 5 pc away)
+    // Stream a star with a distinct canonical ID
     act(() => {
       triggerHydration?.([
         makeStreamedSummary('hip-8102', 'Tau Ceti', 3.156, 1.54, -1.003, 1),
@@ -123,7 +101,7 @@ describe('GalaxyScene - Streamed Stars Deduplication & Multiplicity Upgrade', ()
   });
 
   it('derives classification from spectral type and maps planetCensus into planets list', () => {
-    render(<GalaxyScene systems={[]} />);
+    render(<GalaxyScene additionalEntities={[]} />);
 
     act(() => {
       triggerHydration?.([

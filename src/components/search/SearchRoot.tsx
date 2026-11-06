@@ -548,7 +548,6 @@ export const SearchRoot = ({
     if (prevFocusSlugRef.current === focusSlug) {
       return;
     }
-    prevFocusSlugRef.current = focusSlug;
 
     const availableCorpus =
       initialCorpus ??
@@ -556,6 +555,12 @@ export const SearchRoot = ({
       getCachedCorpusForFilter('all') ??
       getCachedCorpusForFilter(filter) ??
       [];
+
+    if (focusSlug && availableCorpus.length === 0) {
+      return;
+    }
+
+    prevFocusSlugRef.current = focusSlug;
 
     syncUrlFocusToStore(
       store,

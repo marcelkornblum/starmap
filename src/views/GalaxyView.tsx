@@ -55,7 +55,6 @@ import {
   resolveSelectedSystemsFromUrlSelect,
   toUrlSlug,
 } from '../services/searchService';
-import { CANDIDATE_SYSTEMS } from '../data';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 import { toAnnotationLookupKey } from '../utils/datasetLayerCodec';
 import {
@@ -170,97 +169,46 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         ? storeFocusedEntity
         : (typeof window !== 'undefined' ? storeFocusedEntity : null);
     }
-    const storeMatches =
+    if (
       storeFocusedEntity &&
-      (toUrlSlug(storeFocusedEntity.id) === urlFocusSlug ||
-        toUrlSlug(storeFocusedEntity.name) === urlFocusSlug);
-
-    if (storeMatches) {
+      (storeFocusedEntity.id === urlFocusSlug ||
+        toUrlSlug(storeFocusedEntity.id) === urlFocusSlug ||
+        toUrlSlug(storeFocusedEntity.name) === urlFocusSlug)
+    ) {
       const realEntry = findFocusedEntryInCorpus(urlFocusSlug, apertureCorpus);
-      if (realEntry) {
-        if (
-          storeFocusedEntity.name &&
-          storeFocusedEntity.classification &&
-          (storeFocusedEntity.spectralType || storeFocusedEntity.spectralType === realEntry.m?.[1])
-        ) {
-          return storeFocusedEntity;
-        }
+      if (realEntry && realEntry.i === storeFocusedEntity.id) {
         return {
           ...storeFocusedEntity,
           name: storeFocusedEntity.name || realEntry.n || realEntry.i,
-          classification:
-            storeFocusedEntity.classification ?? (realEntry.k === 2 ? 'terrestrial' : 'star'),
           spectralType: storeFocusedEntity.spectralType ?? realEntry.m?.[1],
         };
       }
-      return storeFocusedEntity;
-    }
-
-    const resolved = urlFocusEntity ?? storeFocusedEntity;
-    if (!resolved) return null;
-
-    // Check if CANDIDATE_SYSTEMS or storeApi entities already has a matching canonical system
-    const storeEntities = storeApi.getState().entities;
-    let canonicalId: string | undefined;
-
-    const isResolvedStar =
-      !resolved.parentBodyId &&
-      (resolved.classification === 'star' || !resolved.classification);
-
-    const findMatch = (
-      targetId: string,
-      targetName: string,
-      targetPos?: [number, number, number] | THREE.Vector3,
-    ) => {
-      if (
-        targetId === urlFocusSlug ||
-        toUrlSlug(targetId) === urlFocusSlug ||
-        toUrlSlug(targetName) === urlFocusSlug
-      ) {
-        return true;
-      }
-      if (isResolvedStar && targetPos && resolved.position) {
-        const rp = resolved.position;
-        const rx = rp instanceof THREE.Vector3 ? rp.x : rp[0];
-        const ry = rp instanceof THREE.Vector3 ? rp.y : rp[1];
-        const rz = rp instanceof THREE.Vector3 ? rp.z : rp[2];
-        const tx = targetPos instanceof THREE.Vector3 ? targetPos.x : targetPos[0];
-        const ty = targetPos instanceof THREE.Vector3 ? targetPos.y : targetPos[1];
-        const tz = targetPos instanceof THREE.Vector3 ? targetPos.z : targetPos[2];
-        return (rx - tx) ** 2 + (ry - ty) ** 2 + (rz - tz) ** 2 <= 0.04;
-      }
-      return false;
-    };
-
-    for (const sys of CANDIDATE_SYSTEMS) {
-      if (findMatch(sys.id, sys.name, sys.position)) {
-        canonicalId = sys.id;
-        break;
+      if (!realEntry) {
+        return storeFocusedEntity;
       }
     }
-
-    if (!canonicalId) {
-      for (const id in storeEntities) {
-        const ent = storeEntities[id];
-        if (ent && findMatch(ent.id, ent.name, ent.position)) {
-          canonicalId = ent.id;
-          break;
-        }
-      }
-    }
-
-    if (canonicalId && resolved.id !== canonicalId) {
-      return {
-        ...resolved,
-        id: canonicalId,
-      };
-    }
-
-    return resolved;
-  }, [urlFocusSlug, hasExplicitFocus, storeFocusedEntity, apertureCorpus, urlFocusEntity, storeApi]);
+    return urlFocusEntity ?? storeFocusedEntity;
+  }, [urlFocusSlug, hasExplicitFocus, storeFocusedEntity, apertureCorpus, urlFocusEntity]);
 
   useEffect(() => {
     if (!urlFocusSlug || !focusedEntity) return;
+
+    if (useUIStore.getState().detailsDetent === 'collapsed') {
+      useUIStore.getState().setDetailsDetent('peek');
+    }
+
+    const isUnhydratedFallback =
+      apertureCorpus.length === 0 &&
+      focusedEntity.id !== 'sol' &&
+      Array.isArray(focusedEntity.position) &&
+      focusedEntity.position[0] === 0 &&
+      focusedEntity.position[1] === 0 &&
+      focusedEntity.position[2] === 0;
+
+    if (isUnhydratedFallback) {
+      return;
+    }
+
     const store = storeApi.getState();
     if (!store.entities[focusedEntity.id]) {
       store.registerEntity(focusedEntity);
@@ -268,11 +216,8 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     if (store.focusedId !== focusedEntity.id) {
       store.setFocused(focusedEntity.id);
     }
-    if (useUIStore.getState().detailsDetent === 'collapsed') {
-      useUIStore.getState().setDetailsDetent('peek');
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlFocusSlug, focusedEntity?.id, storeApi]);
+  }, [urlFocusSlug, focusedEntity?.id, apertureCorpus.length, storeApi]);
 
   useEffect(() => {
     if (pathname === '/galaxy') {
@@ -428,10 +373,10 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     if (inStore) {
       return inStore;
     }
-    return activeCorpus.length > 0
-      ? resolveFocusedEntityFromCorpus(cameraState.center, activeCorpus)
+    return apertureCorpus.length > 0
+      ? resolveFocusedEntityFromCorpus(cameraState.center, apertureCorpus)
       : null;
-  }, [cameraState.center, storeApi, activeCorpus]);
+  }, [cameraState.center, storeApi, apertureCorpus]);
 
   const instrumentAperture = useMemo(
     () =>
@@ -575,21 +520,6 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     if (effectiveCenterSlug) {
       const centerSlug = effectiveCenterSlug;
 
-      const candidateMatch = CANDIDATE_SYSTEMS.find(
-        (s) =>
-          s.id === centerSlug ||
-          toUrlSlug(s.id) === centerSlug ||
-          toUrlSlug(s.name) === centerSlug,
-      );
-      if (candidateMatch?.position) {
-        const p = candidateMatch.position;
-        const coords: [number, number, number] =
-          p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
-        if (centerSlug === 'sol' || coords[0] !== 0 || coords[1] !== 0 || coords[2] !== 0) {
-          return coords;
-        }
-      }
-
       const selectedMatch = selectedEntities.find(
         (s) =>
           s.id === centerSlug ||
@@ -605,7 +535,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         }
       }
 
-      const directCorpusMatch = activeCorpus.find(
+      const directCorpusMatch = apertureCorpus.find(
         (e) =>
           e.i === centerSlug ||
           toUrlSlug(e.i) === centerSlug ||
@@ -622,7 +552,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           return [directCorpusMatch.p[0], directCorpusMatch.p[1], directCorpusMatch.p[2]];
         }
         if (directCorpusMatch.s) {
-          const host = activeCorpus.find(
+          const host = apertureCorpus.find(
             (e) => e.i === directCorpusMatch.s || toUrlSlug(e.i) === directCorpusMatch.s,
           );
           if (
@@ -634,7 +564,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         }
       }
 
-      const hostCorpusMatch = activeCorpus.find(
+      const hostCorpusMatch = apertureCorpus.find(
         (e) =>
           (e.i === centerSlug || toUrlSlug(e.i) === centerSlug) &&
           e.p &&
@@ -644,11 +574,11 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         return [hostCorpusMatch.p[0], hostCorpusMatch.p[1], hostCorpusMatch.p[2]];
       }
 
-      const childCorpusMatch = activeCorpus.find(
+      const childCorpusMatch = apertureCorpus.find(
         (e) => e.s && (e.s === centerSlug || toUrlSlug(e.s) === centerSlug),
       );
       if (childCorpusMatch?.s) {
-        const host = activeCorpus.find(
+        const host = apertureCorpus.find(
           (e) => e.i === childCorpusMatch.s || toUrlSlug(e.i) === childCorpusMatch.s,
         );
         if (
@@ -662,7 +592,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
 
     return undefined;
   }, [
-    activeCorpus,
+    apertureCorpus,
     cameraState.center,
     cameraState.x,
     cameraState.y,
