@@ -695,6 +695,14 @@ export const SearchRoot = ({
       }
       setQueryState('');
       setIsFocused(false);
+      if (
+        typeof document !== 'undefined' &&
+        searchRootRef.current &&
+        document.activeElement instanceof HTMLElement &&
+        searchRootRef.current.contains(document.activeElement)
+      ) {
+        document.activeElement.blur();
+      }
       if (syncUrl) {
         syncSearchUrlParams('', filter);
       }
@@ -722,14 +730,14 @@ export const SearchRoot = ({
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    const handlePointerDown = (event: PointerEvent): void => {
+    const handleClick = (event: MouseEvent): void => {
       if (searchRootRef.current && !searchRootRef.current.contains(event.target as Node)) {
         setIsFocused(false);
       }
     };
-    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('click', handleClick);
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('click', handleClick);
     };
   }, []);
 

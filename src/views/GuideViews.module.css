@@ -33,6 +33,8 @@
     color: var(--content-default);
     font-family: var(--font-interface);
     max-width: 1200px;
+    position: relative;
+    z-index: var(--layer-overlay-base, 1);
   }
 
   .sectionNav {
