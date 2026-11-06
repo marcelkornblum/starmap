@@ -101,22 +101,60 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
         (boundaryStar.z - focusPointPc[2]) ** 2
       : Number.POSITIVE_INFINITY;
 
+    const summaryById = new Map<string, SystemSummaryNode>();
+    for (const s of streamedSummaries) {
+      summaryById.set(s.id, s);
+    }
+
+    const resolveSummaryClassification = (spect?: string): CelestialClassification => {
+      if (!spect) return 'star';
+      if (/^D/i.test(spect)) return 'white-dwarf';
+      if (/^[LTY]/i.test(spect)) return 'brown-dwarf';
+      if (/^PSR/i.test(spect)) return 'neutron-star';
+      return 'star';
+    };
+
+    const resolveSummaryPlanets = (s: SystemSummaryNode): PlanetCensusEntry[] | undefined =>
+      s.planetCensus?.map((cat, idx) => ({
+        id: `${s.id}-planet-${idx}`,
+        name: `Planet ${idx + 1}`,
+        classification: cat,
+      }));
+
     const existingIds = new Set<string>();
     const baseEntities: SpatialEntityDefinition[] = [];
 
     if (additionalEntities) {
       for (const ent of additionalEntities) {
         if (!existingIds.has(ent.id)) {
-          if (hasReachedCeiling && Array.isArray(ent.position)) {
-            const dx = ent.position[0] - focusPointPc[0];
-            const dy = ent.position[1] - focusPointPc[1];
-            const dz = ent.position[2] - focusPointPc[2];
+          const matchedSummary = summaryById.get(ent.id);
+          const effectivePos = matchedSummary
+            ? ([matchedSummary.x, matchedSummary.y, matchedSummary.z] as [number, number, number])
+            : ent.position;
+
+          if (hasReachedCeiling && Array.isArray(effectivePos)) {
+            const dx = effectivePos[0] - focusPointPc[0];
+            const dy = effectivePos[1] - focusPointPc[1];
+            const dz = effectivePos[2] - focusPointPc[2];
             if (dx * dx + dy * dy + dz * dz > ceilingRadiusSq) {
               continue;
             }
           }
           existingIds.add(ent.id);
-          baseEntities.push(ent);
+          if (matchedSummary) {
+            const planets = resolveSummaryPlanets(matchedSummary) ?? ent.planets;
+            baseEntities.push({
+              ...ent,
+              name: ent.name || matchedSummary.name,
+              position: effectivePos,
+              classification: resolveSummaryClassification(matchedSummary.spect || ent.spectralType),
+              spectralType: matchedSummary.spect || ent.spectralType,
+              multiplicity: matchedSummary.starCount ?? ent.multiplicity,
+              ...(planets && planets.length > 0 ? { planets } : {}),
+            });
+          } else {
+            baseEntities.push(ent);
+          }
         }
       }
     }
@@ -134,18 +172,8 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
           continue;
         }
 
-        const classification: CelestialClassification = (() => {
-          if (!s.spect) return 'star';
-          if (/^D/i.test(s.spect)) return 'white-dwarf';
-          if (/^[LTY]/i.test(s.spect)) return 'brown-dwarf';
-          if (/^PSR/i.test(s.spect)) return 'neutron-star';
-          return 'star';
-        })();
-        const planets: PlanetCensusEntry[] | undefined = s.planetCensus?.map((cat, idx) => ({
-          id: `${s.id}-planet-${idx}`,
-          name: `Planet ${idx + 1}`,
-          classification: cat,
-        }));
+        const classification = resolveSummaryClassification(s.spect);
+        const planets = resolveSummaryPlanets(s);
 
         existingIds.add(s.id);
         baseEntities.push({

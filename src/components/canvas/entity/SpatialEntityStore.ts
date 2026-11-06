@@ -97,19 +97,23 @@ export const createSpatialEntityStore = (initial?: {
           existing.name === entity.name &&
           existing.classification === entity.classification &&
           existing.spectralType === entity.spectralType &&
+          existing.multiplicity === entity.multiplicity &&
+          existing.planets === entity.planets &&
           isSameSpatialPosition(existing.position, entity.position)
         ) {
           return state;
         }
 
         let entityToRegister = entity;
-        if (existing && entity.id !== 'sol') {
+        if (existing) {
           const ep = existing.position;
-          const existingNonZero = Array.isArray(ep)
-            ? ep[0] !== 0 || ep[1] !== 0 || ep[2] !== 0
-            : ep instanceof THREE.Vector3
-              ? ep.x !== 0 || ep.y !== 0 || ep.z !== 0
-              : false;
+          const existingNonZero =
+            entity.id !== 'sol' &&
+            (Array.isArray(ep)
+              ? ep[0] !== 0 || ep[1] !== 0 || ep[2] !== 0
+              : ep instanceof THREE.Vector3
+                ? ep.x !== 0 || ep.y !== 0 || ep.z !== 0
+                : false);
 
           const np = entity.position;
           const newZero = Array.isArray(np)
@@ -118,14 +122,24 @@ export const createSpatialEntityStore = (initial?: {
               ? np.x === 0 && np.y === 0 && np.z === 0
               : true;
 
-          if (existingNonZero && newZero) {
+          const preserveRichStarAttrs =
+            existing.multiplicity !== undefined ||
+            existing.planets !== undefined ||
+            (entity.classification === 'stellar-system' &&
+              existing.classification !== undefined &&
+              existing.classification !== 'stellar-system');
+
+          if ((existingNonZero && newZero) || preserveRichStarAttrs) {
             entityToRegister = {
               ...entity,
-              position: existing.position,
-              classification: existing.classification,
-              spectralType: existing.spectralType,
-              multiplicity: existing.multiplicity,
-              planets: existing.planets,
+              position: existingNonZero && newZero ? existing.position : entity.position,
+              classification:
+                entity.classification === 'stellar-system' && existing.classification
+                  ? existing.classification
+                  : entity.classification,
+              spectralType: entity.spectralType ?? existing.spectralType,
+              multiplicity: entity.multiplicity ?? existing.multiplicity,
+              planets: entity.planets ?? existing.planets,
             };
           }
         }

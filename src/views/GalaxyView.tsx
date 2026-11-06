@@ -130,7 +130,21 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const urlFocusSlug = extractUrlFocusSlug(pathname, search);
   const hasExplicitFocus = hasExplicitFocusParam(search);
   const pendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
-  const canvasFocusedSlugRef = useRef<string | null>(null);
+  const canvasFocusedSlugsRef = useRef<Set<string>>(new Set());
+  const pendingCanvasFocusRef = useRef<{ active: boolean; slug: string | null }>({
+    active: false,
+    slug: null,
+  });
+
+  if (pendingCenterSlug) {
+    canvasFocusedSlugsRef.current.delete(pendingCenterSlug);
+  }
+  if (
+    pendingCanvasFocusRef.current.active &&
+    urlFocusSlug === pendingCanvasFocusRef.current.slug
+  ) {
+    pendingCanvasFocusRef.current.active = false;
+  }
 
   const prevUrlRef = useRef<string | null>(null);
   useEffect(() => {
@@ -138,6 +152,13 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     const urlChanged = prevUrlRef.current !== null && prevUrlRef.current !== nextUrl;
     const isExplicitLocation = locationPathname !== undefined || locationSearch !== undefined;
     prevUrlRef.current = nextUrl;
+
+    if (
+      pendingCanvasFocusRef.current.active &&
+      pendingCanvasFocusRef.current.slug !== null
+    ) {
+      return;
+    }
 
     if ((isExplicitLocation || urlChanged) && !urlFocusSlug && !hasExplicitFocus) {
       if (storeApi.getState().focusedId) {
@@ -164,6 +185,12 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     [urlFocusSlug, apertureCorpus],
   );
   const focusedEntity = useMemo(() => {
+    if (
+      pendingCanvasFocusRef.current.active &&
+      urlFocusSlug !== pendingCanvasFocusRef.current.slug
+    ) {
+      return pendingCanvasFocusRef.current.slug ? storeFocusedEntity : null;
+    }
     if (!urlFocusSlug) {
       return hasExplicitFocus
         ? storeFocusedEntity
@@ -177,10 +204,18 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     ) {
       const realEntry = findFocusedEntryInCorpus(urlFocusSlug, apertureCorpus);
       if (realEntry && realEntry.i === storeFocusedEntity.id) {
+        const nextName = storeFocusedEntity.name || realEntry.n || realEntry.i;
+        const nextSpectral = storeFocusedEntity.spectralType ?? realEntry.m?.[1];
+        if (
+          nextName === storeFocusedEntity.name &&
+          nextSpectral === storeFocusedEntity.spectralType
+        ) {
+          return storeFocusedEntity;
+        }
         return {
           ...storeFocusedEntity,
-          name: storeFocusedEntity.name || realEntry.n || realEntry.i,
-          spectralType: storeFocusedEntity.spectralType ?? realEntry.m?.[1],
+          name: nextName,
+          spectralType: nextSpectral,
         };
       }
       if (!realEntry) {
@@ -191,6 +226,12 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   }, [urlFocusSlug, hasExplicitFocus, storeFocusedEntity, apertureCorpus, urlFocusEntity]);
 
   useEffect(() => {
+    if (
+      pendingCanvasFocusRef.current.active &&
+      urlFocusSlug !== pendingCanvasFocusRef.current.slug
+    ) {
+      return;
+    }
     if (!urlFocusSlug || !focusedEntity) return;
 
     if (useUIStore.getState().detailsDetent === 'collapsed') {
@@ -486,7 +527,9 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
 
     const isCanvasClickFocus =
       Boolean(urlFocusSlug) &&
-      urlFocusSlug === canvasFocusedSlugRef.current &&
+      (canvasFocusedSlugsRef.current.has(urlFocusSlug!) ||
+        (pendingCanvasFocusRef.current.active &&
+          urlFocusSlug === pendingCanvasFocusRef.current.slug)) &&
       pendingCenterSlug !== urlFocusSlug;
 
     const effectiveCenterSlug =
@@ -605,7 +648,14 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   ]);
 
   const handleSelectSystem = useCallback((id: string | null) => {
-    canvasFocusedSlugRef.current = id ? toUrlSlug(id) : null;
+    const slug = id ? toUrlSlug(id) : null;
+    if (slug) {
+      canvasFocusedSlugsRef.current.add(slug);
+    }
+    if (id) {
+      canvasFocusedSlugsRef.current.add(id);
+    }
+    pendingCanvasFocusRef.current = { active: true, slug };
     useCameraStore.getState().setPendingCenterSlug(null);
     if (id) {
       void router

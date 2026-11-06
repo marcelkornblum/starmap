@@ -473,6 +473,15 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
   test('visual stability invariants: no initial-load label flash on default /galaxy and no label flicker on click in /galaxy?dist=10', async ({
     page,
   }) => {
+    page.on('console', (msg) => {
+      if (
+        msg.text().includes('[SpatialEntityStore]') ||
+        msg.text().includes('[Reticle]') ||
+        msg.text().includes('[CelestialEntity]')
+      ) {
+        console.log('BROWSER:', msg.text());
+      }
+    });
     // 1. No initial-load label/reticle flash on /galaxy:
     // Install initScript to track any entity labels mounted and removed during the first 1,500ms
     await page.addInitScript(() => {
@@ -759,23 +768,130 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
 
     await page.waitForTimeout(400);
 
-    // Verify camera target did NOT jump to the clicked star's coordinates
-    const targetAfterClick = await hostDist10.getAttribute('data-camera-target');
-    expect(targetAfterClick).toBeTruthy();
-    const [clickX, clickY, clickZ] = targetAfterClick!.split(',').map(Number);
-    expect(Math.hypot(clickX - tX, clickY - tY, clickZ - tZ)).toBeLessThan(0.05);
+    // Verify camera target did NOT jump to the first clicked star's coordinates
+    const targetAfterFirstClick = await hostDist10.getAttribute('data-camera-target');
+    expect(targetAfterFirstClick).toBeTruthy();
+    const [click1X, click1Y, click1Z] = targetAfterFirstClick!.split(',').map(Number);
+    expect(Math.hypot(click1X - tX, click1Y - tY, click1Z - tZ)).toBeLessThan(0.05);
     expect(
       Math.hypot(
-        clickX - selectedStar!.pos[0],
-        clickY - selectedStar!.pos[1],
-        clickZ - selectedStar!.pos[2],
+        click1X - selectedStar!.pos[0],
+        click1Y - selectedStar!.pos[1],
+        click1Z - selectedStar!.pos[2],
       ),
     ).toBeGreaterThan(1.0);
 
-    // Verify clicked star's label is visible and not occluded 400ms after the click
-    const clickedLabel = page.locator(`[data-testid="entity-label-inner-${selectedStar!.id}"]`);
-    await expect(clickedLabel).toBeVisible({ timeout: 10_000 });
-    await expect(clickedLabel).toHaveAttribute('data-occluded', 'false');
-    await expect(clickedLabel).toHaveAttribute('data-state', 'focused');
+    // Verify first clicked star's label is visible and focused 400ms after the click
+    const firstClickedLabel = page.locator(`[data-testid="entity-label-inner-${selectedStar!.id}"]`);
+    await expect(firstClickedLabel).toBeVisible({ timeout: 10_000 });
+    await expect(firstClickedLabel).toHaveAttribute('data-occluded', 'false');
+    await expect(firstClickedLabel).toHaveAttribute('data-state', 'focused');
+
+    // 4. Sequential tap (click without prior hover) on a second active star must not flicker focus or jump camera
+    let secondStar: { id: string; name: string; pos: [number, number, number]; x: number; y: number } | null = null;
+    for (const cand of nonSolCandidates) {
+      if (cand.id === selectedStar!.id) continue;
+      const pt = projectStar(cand.pos);
+      const isHit = await page.evaluate(
+        ({ x, y }) => document.elementFromPoint(x, y)?.tagName.toLowerCase() === 'canvas',
+        { x: pt.x, y: pt.y },
+      );
+      if (isHit) {
+        secondStar = { ...cand, x: pt.x, y: pt.y };
+        break;
+      }
+    }
+
+    if (secondStar) {
+      await page.evaluate((starId) => {
+        const state = {
+          seenFocused: false,
+          unfocusedAfterFocusedCount: 0,
+          occludedAfterFocusedCount: 0,
+          removedAfterFocusedCount: 0,
+        };
+        (window as unknown as { __secondStarFlickerStats: typeof state }).__secondStarFlickerStats = state;
+
+        const innerTestId = `entity-label-inner-${starId}`;
+        const outerTestId = `entity-label-${starId}`;
+
+        const observer = new MutationObserver((mutations) => {
+          const el = document.querySelector(`[data-testid="${innerTestId}"]`);
+          if (el?.getAttribute('data-state') === 'focused') {
+            state.seenFocused = true;
+          }
+          for (const m of mutations) {
+            if (
+              m.type === 'attributes' &&
+              m.target instanceof HTMLElement &&
+              m.target.getAttribute('data-testid') === innerTestId
+            ) {
+              const curState = m.target.getAttribute('data-state');
+              if (curState === 'focused') {
+                state.seenFocused = true;
+              } else if (state.seenFocused && curState !== 'focused') {
+                state.unfocusedAfterFocusedCount++;
+              }
+              if (state.seenFocused && m.target.getAttribute('data-occluded') === 'true') {
+                state.occludedAfterFocusedCount++;
+              }
+            }
+            if (m.type === 'childList' && state.seenFocused) {
+              for (const node of Array.from(m.removedNodes)) {
+                if (node instanceof HTMLElement) {
+                  const tid = node.getAttribute('data-testid');
+                  if (
+                    tid === outerTestId ||
+                    tid === innerTestId ||
+                    node.querySelector(`[data-testid="${innerTestId}"]`)
+                  ) {
+                    state.removedAfterFocusedCount++;
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        observer.observe(document.body, {
+          subtree: true,
+          childList: true,
+          attributes: true,
+          attributeFilter: ['data-occluded', 'data-state'],
+        });
+        (window as unknown as { __secondStarObserver: MutationObserver }).__secondStarObserver = observer;
+      }, secondStar.id);
+
+      await page.mouse.click(secondStar.x, secondStar.y);
+      await page.waitForTimeout(400);
+
+      const secondClickedLabel = page.locator(`[data-testid="entity-label-inner-${secondStar.id}"]`);
+      await expect(secondClickedLabel).toBeVisible({ timeout: 10_000 });
+      await expect(secondClickedLabel).toHaveAttribute('data-occluded', 'false');
+      await expect(secondClickedLabel).toHaveAttribute('data-state', 'focused');
+
+      const secondFlickerStats = await page.evaluate(() => {
+        const obs = (window as unknown as { __secondStarObserver?: MutationObserver }).__secondStarObserver;
+        obs?.disconnect();
+        return (window as unknown as {
+          __secondStarFlickerStats?: {
+            seenFocused: boolean;
+            unfocusedAfterFocusedCount: number;
+            occludedAfterFocusedCount: number;
+            removedAfterFocusedCount: number;
+          };
+        }).__secondStarFlickerStats;
+      });
+
+      expect(secondFlickerStats?.seenFocused).toBe(true);
+      expect(secondFlickerStats?.unfocusedAfterFocusedCount).toBe(0);
+      expect(secondFlickerStats?.occludedAfterFocusedCount).toBe(0);
+      expect(secondFlickerStats?.removedAfterFocusedCount).toBe(0);
+
+      const targetAfterSecondClick = await hostDist10.getAttribute('data-camera-target');
+      expect(targetAfterSecondClick).toBeTruthy();
+      const [click2X, click2Y, click2Z] = targetAfterSecondClick!.split(',').map(Number);
+      expect(Math.hypot(click2X - tX, click2Y - tY, click2Z - tZ)).toBeLessThan(0.05);
+    }
   });
 });

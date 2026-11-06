@@ -262,7 +262,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
         if (outerStore && outerStore !== storeApi) {
           if (state.selectedId) {
             const entity = state.entities[state.selectedId];
-            if (entity && !outerStore.getState().entities[entity.id]) {
+            if (entity) {
               outerStore.getState().registerEntity(entity);
             }
           }
@@ -277,7 +277,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
         if (outerStore && outerStore !== storeApi) {
           if (state.focusedId) {
             const entity = state.entities[state.focusedId];
-            if (entity && !outerStore.getState().entities[entity.id]) {
+            if (entity) {
               outerStore.getState().registerEntity(entity);
             }
           }
