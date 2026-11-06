@@ -1,0 +1,13 @@
+{
+  "id": "architecture-remediation_09_test-restructure_20261106",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-11-06T22:55:00Z",
+  "updated_at": "2026-11-06T22:55:00Z",
+  "initiative": "architecture-remediation",
+  "phase": 9,
+  "depends_on": [
+    "architecture-remediation_07_persistent-canvas_20261106",
+    "architecture-remediation_08_ui-decomposition_20261106"
+  ]
+}

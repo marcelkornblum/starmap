@@ -1,5 +1,23 @@
 # Tracks Registry
 
+## Initiative: Architecture Remediation (`architecture-remediation`)
+*Overview: [conductor/initiatives/architecture-remediation/index.md](./initiatives/architecture-remediation/index.md) | [Findings Ledger](./initiatives/architecture-remediation/findings-ledger.md) | [Decision Log](./initiatives/architecture-remediation/decision-log.md) | [Verification Protocol](./initiatives/architecture-remediation/verification-protocol.md)*
+
+> **Feature freeze (DEC-R003):** Stage 2 and standalone feature tracks below are frozen until T08 merges. T04 may run in a parallel worktree.
+
+- [ ] **Track T01: Guardrails & Safety Net** *Link: [conductor/tracks/architecture-remediation_01_guardrails-safety-net_20261106/index.md](./tracks/architecture-remediation_01_guardrails-safety-net_20261106/index.md)*
+- [ ] **Track T02: User-Visible Correctness** *Link: [conductor/tracks/architecture-remediation_02_user-visible-correctness_20261106/index.md](./tracks/architecture-remediation_02_user-visible-correctness_20261106/index.md)* *(depends on T01)*
+- [ ] **Track T03: Layering Cut** *Link: [conductor/tracks/architecture-remediation_03_layering-cut_20261106/index.md](./tracks/architecture-remediation_03_layering-cut_20261106/index.md)* *(depends on T01)*
+- [ ] **Track T04: Pipeline Reliability & Precalculation** *Link: [conductor/tracks/architecture-remediation_04_pipeline-reliability_20261106/index.md](./tracks/architecture-remediation_04_pipeline-reliability_20261106/index.md)* *(depends on T01; parallel worktree lane)*
+- [ ] **Track T05: Runtime Data Purity** *Link: [conductor/tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md](./tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md)* *(depends on T03, T04)*
+- [ ] **Track T06: Navigation Single Source of Truth** *Link: [conductor/tracks/architecture-remediation_06_navigation-ssot_20261106/index.md](./tracks/architecture-remediation_06_navigation-ssot_20261106/index.md)* *(depends on T03)*
+- [ ] **Track T07: One Persistent Canvas & R3F Hot Paths** *Link: [conductor/tracks/architecture-remediation_07_persistent-canvas_20261106/index.md](./tracks/architecture-remediation_07_persistent-canvas_20261106/index.md)* *(depends on T06)*
+- [ ] **Track T08: View & UI Decomposition** *Link: [conductor/tracks/architecture-remediation_08_ui-decomposition_20261106/index.md](./tracks/architecture-remediation_08_ui-decomposition_20261106/index.md)* *(depends on T05, T06)*
+- [ ] **Track T09: Test Restructure** *Link: [conductor/tracks/architecture-remediation_09_test-restructure_20261106/index.md](./tracks/architecture-remediation_09_test-restructure_20261106/index.md)* *(depends on T07, T08)*
+- [ ] **Track T10: Closing Audit** *Link: [conductor/tracks/architecture-remediation_10_closing-audit_20261106/index.md](./tracks/architecture-remediation_10_closing-audit_20261106/index.md)* *(depends on T09)*
+
+---
+
 ## Initiative: Journey-Driven View Data Models & UI Scaffolding (`journey-ui-scaffolding`)
 *Overview: [conductor/initiatives/journey-ui-scaffolding/index.md](./initiatives/journey-ui-scaffolding/index.md) | [Decision Log](./initiatives/journey-ui-scaffolding/decision-log.md) | [View Requirements](./initiatives/journey-ui-scaffolding/view-requirements.md) | [Product Backlog](./backlog.md)*
 
