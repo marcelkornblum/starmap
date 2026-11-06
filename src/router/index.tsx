@@ -19,6 +19,7 @@ import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
 import { RootCanvasHost } from '../components/domain/CanvasLayer';
+import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
 import { useCameraStore } from '../stores/useCameraStore';
 
 export interface StarmapSearchParams {
@@ -205,6 +206,7 @@ export const RootLayout: React.FC = () => {
 
   return (
     <>
+      <ThemeTokenBridge />
       <RootCanvasHost />
       <Outlet />
     </>

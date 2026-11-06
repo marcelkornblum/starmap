@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
@@ -55,6 +55,8 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
   const lastXRef = useRef<number | null>(null);
   const lastYRef = useRef<number | null>(null);
   const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
+  const scratchAnchorWorldPos = useLazyRef(() => new THREE.Vector3());
+  const scratchAnchorNdc = useLazyRef(() => new THREE.Vector3());
   const occlusionManager = useOcclusionManager();
   const frameCtx = useSpatialFrameSafe();
 
@@ -72,7 +74,53 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
 
   const isAnnotated = state === 'selected' || state === 'focused';
 
+  const syncBillboardTransform = useCallback(
+    (camera: THREE.Camera) => {
+      const g = billboardRef.current;
+      if (g && g.position) {
+        g.position.set(...resolvedPos);
+        g.quaternion.copy(camera.quaternion);
+
+        g.getWorldPosition(scratchWorldPos.current);
+        const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
+        const invScale = resolveEntityScreenInvariantScale(
+          camDist,
+          camera,
+          frameCtx?.frameRef?.current,
+        );
+        g.scale.set(invScale, invScale, invScale);
+        if (typeof g.updateMatrixWorld === 'function') {
+          g.updateMatrixWorld(true);
+        }
+      }
+    },
+    [billboardRef, resolvedPos, scratchWorldPos, frameCtx],
+  );
+
+  const handleCalculatePosition = useCallback(
+    (
+      el: THREE.Object3D,
+      camera: THREE.Camera,
+      size: { width: number; height: number },
+      target?: [number, number],
+    ): [number, number] | void => {
+      syncBillboardTransform(camera);
+      el.getWorldPosition(scratchAnchorWorldPos.current);
+      scratchAnchorNdc.current.copy(scratchAnchorWorldPos.current).project(camera);
+      const x = ((scratchAnchorNdc.current.x + 1) * size.width) / 2;
+      const y = ((-scratchAnchorNdc.current.y + 1) * size.height) / 2;
+      if (target) {
+        target[0] = x;
+        target[1] = y;
+        return;
+      }
+      return [x, y];
+    },
+    [syncBillboardTransform, scratchAnchorWorldPos, scratchAnchorNdc],
+  );
+
   useEffect(() => {
+    labelDimensionsRef.current = { width: 0, height: 0 };
     const el = labelRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
 
@@ -107,29 +155,25 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
     }
     lastStateRef.current = state;
 
-    if (billboardRef.current && billboardRef.current.position) {
-      billboardRef.current.position.set(...resolvedPos);
-      billboardRef.current.quaternion.copy(camera.quaternion);
-
-      billboardRef.current.getWorldPosition(scratchWorldPos.current);
-      const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-      const invScale = resolveEntityScreenInvariantScale(
-        camDist,
-        camera,
-        frameCtx?.frameRef?.current,
-      );
-      billboardRef.current.scale.set(invScale, invScale, invScale);
-    }
+    syncBillboardTransform(camera);
 
     if (!labelRef.current) return;
+
+    if (labelDimensionsRef.current.width === 0 && labelRef.current.offsetWidth > 0) {
+      labelDimensionsRef.current.width = labelRef.current.offsetWidth;
+      labelDimensionsRef.current.height = labelRef.current.offsetHeight;
+    }
 
     // Retrieve screen footprint from occlusion manager to construct accurate activeBox
     const fp = occlusionManager.getFootprint(id);
     let activeBox: Box2D | undefined;
     if (fp) {
+      const prevFpState = fp.state;
       fp.state = state;
       fp.hasReticle = state !== 'passive';
-      occlusionManager.register(fp);
+      if (prevFpState !== state) {
+        occlusionManager.register(fp);
+      }
       if (fp.screenX !== undefined && fp.screenY !== undefined) {
         const estimatedW = name.length * 8 + 12;
         const w = labelDimensionsRef.current.width > 0 ? labelDimensionsRef.current.width : estimatedW;
@@ -195,7 +239,12 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
       position={resolvedPos}
     >
       {/* Top-Right Facet: Typographic Label (System Designation) & Facet Badge */}
-      <SafeHtml position={[anchorX, anchorY, 0]} center={false} data-testid={`entity-label-${id}`}>
+      <SafeHtml
+        position={[anchorX, anchorY, 0]}
+        calculatePosition={handleCalculatePosition}
+        center={false}
+        data-testid={`entity-label-${id}`}
+      >
         <div
           ref={labelRef}
           className={styles.labelCluster}

@@ -150,11 +150,13 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
             } : undefined}
             onPointerOver={onPointerOver ? (e) => {
               e.stopPropagation();
+              if (e.pointerType === 'touch') return;
               document.body.style.cursor = 'pointer';
               onPointerOver(id, e);
             } : undefined}
             onPointerOut={onPointerOut ? (e) => {
               e.stopPropagation();
+              if (e.pointerType === 'touch') return;
               document.body.style.cursor = 'auto';
               onPointerOut(id, e);
             } : undefined}

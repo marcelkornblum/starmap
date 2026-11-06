@@ -61,8 +61,13 @@ export const syncUrlFocusToStore = (
   const firstRouteStop = routeStops && routeStops.length > 0 ? routeStops[0] : null;
 
   if (!focusSlug && !firstRouteStop) {
-    if (fallbackFocusIdRef?.current) {
+    if (
+      fallbackFocusIdRef?.current &&
+      !state.apertureIds.has(fallbackFocusIdRef.current)
+    ) {
       state.unregisterEntity(fallbackFocusIdRef.current);
+    }
+    if (fallbackFocusIdRef) {
       fallbackFocusIdRef.current = null;
     }
     state.setFocused(null);
@@ -70,6 +75,7 @@ export const syncUrlFocusToStore = (
   }
 
   let primaryEntity = null;
+  let hasValidPosition = false;
   if (focusSlug) {
     const targetSlug = toUrlSlug(focusSlug);
     const existingMatch = Object.values(state.entities).find(
@@ -78,20 +84,22 @@ export const syncUrlFocusToStore = (
         toUrlSlug(e.id) === targetSlug ||
         toUrlSlug(e.name) === targetSlug,
     );
-    const hasValidPosition =
+    hasValidPosition = Boolean(
       existingMatch &&
-      (existingMatch.id === 'sol' ||
-        (Array.isArray(existingMatch.position)
-          ? existingMatch.position[0] !== 0 ||
-            existingMatch.position[1] !== 0 ||
-            existingMatch.position[2] !== 0
-          : existingMatch.position.x !== 0 ||
-            existingMatch.position.y !== 0 ||
-            existingMatch.position.z !== 0));
+        (existingMatch.id === 'sol' ||
+          (Array.isArray(existingMatch.position)
+            ? existingMatch.position[0] !== 0 ||
+              existingMatch.position[1] !== 0 ||
+              existingMatch.position[2] !== 0
+            : existingMatch.position.x !== 0 ||
+              existingMatch.position.y !== 0 ||
+              existingMatch.position.z !== 0)),
+    );
 
-    primaryEntity = hasValidPosition
-      ? existingMatch
-      : resolveFocusedEntityFromCorpus(focusSlug, corpus);
+    primaryEntity =
+      hasValidPosition && existingMatch
+        ? existingMatch
+        : resolveFocusedEntityFromCorpus(focusSlug, corpus);
   }
   const routeOriginEntity = firstRouteStop
     ? resolveFocusedEntityFromCorpus(firstRouteStop, corpus)
@@ -105,13 +113,15 @@ export const syncUrlFocusToStore = (
   if (
     fallbackFocusIdRef?.current &&
     fallbackFocusIdRef.current !== primaryEntity?.id &&
-    fallbackFocusIdRef.current !== routeOriginEntity?.id
+    fallbackFocusIdRef.current !== routeOriginEntity?.id &&
+    !state.apertureIds.has(fallbackFocusIdRef.current)
   ) {
     state.unregisterEntity(fallbackFocusIdRef.current);
   }
   if (fallbackFocusIdRef && focusSlug && primaryEntity) {
     const matchedInCorpus = findFocusedEntryInCorpus(focusSlug, corpus);
-    fallbackFocusIdRef.current = matchedInCorpus ? null : primaryEntity.id;
+    fallbackFocusIdRef.current =
+      matchedInCorpus || hasValidPosition ? null : primaryEntity.id;
   }
 
   const focusedIds: string[] = [];

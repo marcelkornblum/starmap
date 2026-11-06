@@ -17,6 +17,35 @@ import type { SystemSummaryNode } from '../../../types/astro';
  */
 export const GALAXY_SCENE_MAX_STREAMED_ENTITIES = 1200;
 
+const resolveSummaryClassification = (spect?: string): CelestialClassification => {
+  if (!spect) return 'star';
+  if (/^D/i.test(spect)) return 'white-dwarf';
+  if (/^[LTY]/i.test(spect)) return 'brown-dwarf';
+  if (/^PSR/i.test(spect)) return 'neutron-star';
+  return 'star';
+};
+
+const resolveSummaryPlanets = (s: SystemSummaryNode): PlanetCensusEntry[] | undefined =>
+  s.planetCensus?.map((cat, idx) => ({
+    id: `${s.id}-planet-${idx}`,
+    name: `Planet ${idx + 1}`,
+    classification: cat,
+  }));
+
+const summaryToEntityDefinition = (s: SystemSummaryNode): SpatialEntityDefinition => {
+  const classification = resolveSummaryClassification(s.spect);
+  const planets = resolveSummaryPlanets(s);
+  return {
+    id: s.id,
+    name: s.name,
+    position: [s.x, s.y, s.z],
+    classification,
+    spectralType: s.spect,
+    multiplicity: s.starCount,
+    ...(planets && planets.length > 0 ? { planets } : {}),
+  };
+};
+
 export interface GalaxySceneProps {
   additionalEntities?: readonly SpatialEntityDefinition[];
   initialSelectedId?: string | null;
@@ -91,7 +120,41 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
     }
   }, [streamedSummaries, focusPointPc, budget.maxActiveEntities, onCeilingApertureRadiusChange]);
 
+  const { streamedEntities, streamedEntityById, summaryById } = useMemo(() => {
+    const maxActive = Math.min(budget.maxActiveEntities, GALAXY_SCENE_MAX_STREAMED_ENTITIES);
+    const activeCutoff = getApertureActiveCutoffForViewportWidth();
+    const sMap = new Map<string, SystemSummaryNode>();
+    for (const s of streamedSummaries) {
+      sMap.set(s.id, s);
+    }
+
+    const list: SpatialEntityDefinition[] = [];
+    const eMap = new Map<string, SpatialEntityDefinition>();
+
+    if (hasHydrated && streamedSummaries.length > 0 && streamedSummaries.length <= activeCutoff) {
+      const limit = Math.min(streamedSummaries.length, maxActive);
+      for (let i = 0; i < limit; i++) {
+        const s = streamedSummaries[i];
+        if (!s || eMap.has(s.id)) continue;
+        const def = summaryToEntityDefinition(s);
+        list.push(def);
+        eMap.set(s.id, def);
+      }
+    }
+
+    return { streamedEntities: list, streamedEntityById: eMap, summaryById: sMap };
+  }, [streamedSummaries, hasHydrated, budget.maxActiveEntities]);
+
   const entities = useMemo<SpatialEntityDefinition[]>(() => {
+    if (
+      streamedEntities.length > 0 &&
+      (!additionalEntities ||
+        additionalEntities.length === 0 ||
+        additionalEntities.every((ent) => streamedEntityById.has(ent.id)))
+    ) {
+      return streamedEntities;
+    }
+
     const maxActive = Math.min(budget.maxActiveEntities, GALAXY_SCENE_MAX_STREAMED_ENTITIES);
     const hasReachedCeiling = streamedSummaries.length >= maxActive && maxActive > 0;
     const boundaryStar = hasReachedCeiling ? streamedSummaries[maxActive - 1] : undefined;
@@ -101,32 +164,19 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
         (boundaryStar.z - focusPointPc[2]) ** 2
       : Number.POSITIVE_INFINITY;
 
-    const summaryById = new Map<string, SystemSummaryNode>();
-    for (const s of streamedSummaries) {
-      summaryById.set(s.id, s);
-    }
-
-    const resolveSummaryClassification = (spect?: string): CelestialClassification => {
-      if (!spect) return 'star';
-      if (/^D/i.test(spect)) return 'white-dwarf';
-      if (/^[LTY]/i.test(spect)) return 'brown-dwarf';
-      if (/^PSR/i.test(spect)) return 'neutron-star';
-      return 'star';
-    };
-
-    const resolveSummaryPlanets = (s: SystemSummaryNode): PlanetCensusEntry[] | undefined =>
-      s.planetCensus?.map((cat, idx) => ({
-        id: `${s.id}-planet-${idx}`,
-        name: `Planet ${idx + 1}`,
-        classification: cat,
-      }));
-
     const existingIds = new Set<string>();
     const baseEntities: SpatialEntityDefinition[] = [];
 
     if (additionalEntities) {
       for (const ent of additionalEntities) {
         if (!existingIds.has(ent.id)) {
+          const streamedDef = streamedEntityById.get(ent.id);
+          if (streamedDef) {
+            existingIds.add(ent.id);
+            baseEntities.push(streamedDef);
+            continue;
+          }
+
           const matchedSummary = summaryById.get(ent.id);
           const effectivePos = matchedSummary
             ? ([matchedSummary.x, matchedSummary.y, matchedSummary.z] as [number, number, number])
@@ -159,38 +209,23 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
       }
     }
 
-    // Add the nearest non-duplicate streamed stars as reticle entities only if within activeCutoff
-    const activeCutoff = getApertureActiveCutoffForViewportWidth();
-    if (hasHydrated && streamedSummaries.length > 0 && streamedSummaries.length <= activeCutoff) {
-      let activeCount = 0;
-      for (let i = 0; i < streamedSummaries.length && activeCount < maxActive; i++) {
-        const s = streamedSummaries[i];
-        if (!s) continue;
-
-        if (existingIds.has(s.id)) {
-          activeCount++;
-          continue;
-        }
-
-        const classification = resolveSummaryClassification(s.spect);
-        const planets = resolveSummaryPlanets(s);
-
-        existingIds.add(s.id);
-        baseEntities.push({
-          id: s.id,
-          name: s.name,
-          position: [s.x, s.y, s.z],
-          classification,
-          spectralType: s.spect,
-          multiplicity: s.starCount,
-          ...(planets && planets.length > 0 ? { planets } : {}),
-        });
-        activeCount++;
+    for (const def of streamedEntities) {
+      if (!existingIds.has(def.id)) {
+        existingIds.add(def.id);
+        baseEntities.push(def);
       }
     }
 
     return baseEntities;
-  }, [additionalEntities, streamedSummaries, hasHydrated, focusPointPc, budget.maxActiveEntities]);
+  }, [
+    additionalEntities,
+    streamedEntities,
+    streamedEntityById,
+    summaryById,
+    streamedSummaries,
+    focusPointPc,
+    budget.maxActiveEntities,
+  ]);
 
   return (
     <SpatialViewport

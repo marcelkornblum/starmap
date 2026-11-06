@@ -20,8 +20,8 @@ export function activateEntity(
   id: string,
   resolveCyclicTarget: CyclicTargetResolver = identity,
 ): void {
-  const { focusedId, selectedId, setFocused, setSelected } = store.getState();
-  if (focusedId === id || selectedId === id) {
+  const { focusedId, setFocused, setSelected } = store.getState();
+  if (focusedId === id) {
     const next = resolveCyclicTarget(id);
     if (next === id || next === null) {
       setFocused(null);

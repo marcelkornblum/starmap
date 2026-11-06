@@ -17,6 +17,7 @@ import {
   ApertureEvaluator,
   useSpatialEntityStoreApi,
   useOptionalSpatialEntityStoreApi,
+  useOcclusionManager,
   CelestialEntity,
   OcclusionPass,
   type SpatialEntityDefinition,
@@ -25,7 +26,6 @@ import {
   activateEntity,
   focusEntity,
   clearInteraction,
-  occlusionCyclicTargetResolver,
   JourneyChord,
 } from '../entity';
 import type { JourneyChordLeg } from '../cartography';
@@ -103,6 +103,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   activeJourneyMethod,
 }) => {
   const storeApi = useSpatialEntityStoreApi();
+  const occlusionManager = useOcclusionManager();
   const globalSelectedId = useUIStore((s) => s.selectedNodeId);
   const { transitionTo } = useCameraTransition();
 
@@ -293,9 +294,11 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   // Single click: select, or advance cyclic selection when re-clicking the selected entity
   const handleEntityClick = useCallback(
     (id: string) => {
-      activateEntity(storeApi, id, occlusionCyclicTargetResolver);
+      activateEntity(storeApi, id, (targetId) =>
+        occlusionManager.getCyclicSelectionTarget(targetId),
+      );
     },
-    [storeApi],
+    [storeApi, occlusionManager],
   );
 
   // Double click: centre the instrument, focus the entity, and inspect (the single inspect gesture)

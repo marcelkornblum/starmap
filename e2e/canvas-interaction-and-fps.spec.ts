@@ -470,18 +470,9 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await expect(rootHost).toHaveAttribute('data-camera-dist', modifiedDist!);
   });
 
-  test('visual stability invariants: no initial-load label flash on default /galaxy and no label flicker on click in /galaxy?dist=10', async ({
+  test('visual stability invariants: no initial-load label flash on default /galaxy and no label flicker or reflow on click/tap in /galaxy?dist=10', async ({
     page,
   }) => {
-    page.on('console', (msg) => {
-      if (
-        msg.text().includes('[SpatialEntityStore]') ||
-        msg.text().includes('[Reticle]') ||
-        msg.text().includes('[CelestialEntity]')
-      ) {
-        console.log('BROWSER:', msg.text());
-      }
-    });
     // 1. No initial-load label/reticle flash on /galaxy:
     // Install initScript to track any entity labels mounted and removed during the first 1,500ms
     await page.addInitScript(() => {
@@ -545,7 +536,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     });
     expect(flashStats.flashedCount).toBe(0);
 
-    // 2. No label flicker (data-occluded="true" or unmount) when clicking a system on /galaxy?dist=10:
+    // 2. No label flicker, position jump, or box dimension reflow when hovering/clicking/tapping on /galaxy?dist=10:
     await page.goto('/galaxy?dist=10');
     const hostDist10 = page.locator('[data-testid="root-canvas-host"]');
     await expect(hostDist10).toBeVisible({ timeout: 15_000 });
@@ -564,24 +555,44 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
         }),
     );
 
-    // Install MutationObserver on document.body to record occluded="true" and label removal
+    const box10 = await canvasDist10.boundingBox();
+    expect(box10).not.toBeNull();
+    const cx10 = box10!.x + box10!.width / 2;
+    const cy10 = box10!.y + box10!.height / 2;
+
+    // Install MutationObserver + rAF sampler on document.body to record occluded="true", label removal, Frame 1 vs Frame 2 position, and selected vs focused dimensions
     await page.evaluate(() => {
       const state = {
         occludedTrueCount: 0,
         labelRemovedCount: 0,
         mounted: false,
+        frameRects: [] as Array<{ state: string; left: number; top: number; width: number; height: number }>,
       };
       (window as unknown as { __solFlickerStats: typeof state }).__solFlickerStats = state;
 
-      const checkMounted = () => {
-        if (
-          document.querySelector('[data-testid="entity-label-sol"]') ||
-          document.querySelector('[data-testid="entity-label-inner-sol"]')
-        ) {
+      let rafActive = true;
+      const sampleLoop = () => {
+        if (!rafActive) return;
+        const inner = document.querySelector('[data-testid="entity-label-inner-sol"]') as HTMLElement | null;
+        if (inner) {
           state.mounted = true;
+          const r = inner.getBoundingClientRect();
+          if (r.width > 0 && state.frameRects.length < 15) {
+            state.frameRects.push({
+              state: inner.getAttribute('data-state') ?? '',
+              left: Math.round(r.left),
+              top: Math.round(r.top),
+              width: Math.round(r.width),
+              height: Math.round(r.height),
+            });
+          }
         }
+        requestAnimationFrame(sampleLoop);
       };
-      checkMounted();
+      requestAnimationFrame(sampleLoop);
+      (window as unknown as { __stopSolRaf?: () => void }).__stopSolRaf = () => {
+        rafActive = false;
+      };
 
       const observer = new MutationObserver((mutations) => {
         for (const m of mutations) {
@@ -609,7 +620,6 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
                 }
               }
             }
-            checkMounted();
           }
         }
       });
@@ -623,13 +633,9 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
       (window as unknown as { __solObserver: MutationObserver }).__solObserver = observer;
     });
 
-    // Hover and click Sol at canvas center (cx, cy)
-    const box10 = await canvasDist10.boundingBox();
-    expect(box10).not.toBeNull();
-    const cx10 = box10!.x + box10!.width / 2;
-    const cy10 = box10!.y + box10!.height / 2;
-
+    // Hover Sol first (so we sample 'selected' frames) and then click Sol ('focused')
     await page.mouse.move(cx10, cy10);
+    await page.waitForTimeout(80);
     await page.mouse.click(cx10, cy10);
 
     // Wait 400ms for state and URL transitions to settle
@@ -643,21 +649,32 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const flickerStats = await page.evaluate(() => {
       const obs = (window as unknown as { __solObserver?: MutationObserver }).__solObserver;
       obs?.disconnect();
+      (window as unknown as { __stopSolRaf?: () => void }).__stopSolRaf?.();
       return (
         (window as unknown as {
           __solFlickerStats?: {
             occludedTrueCount: number;
             labelRemovedCount: number;
+            frameRects: Array<{ state: string; left: number; top: number; width: number; height: number }>;
           };
         }).__solFlickerStats ?? {
           occludedTrueCount: 0,
           labelRemovedCount: 0,
+          frameRects: [],
         }
       );
     });
 
     expect(flickerStats.occludedTrueCount).toBe(0);
     expect(flickerStats.labelRemovedCount).toBe(0);
+    expect(flickerStats.frameRects.length).toBeGreaterThanOrEqual(2);
+    const firstRect = flickerStats.frameRects[0]!;
+    for (const rect of flickerStats.frameRects) {
+      expect(rect.width).toBe(firstRect.width);
+      expect(rect.height).toBe(firstRect.height);
+      expect(Math.abs(rect.left - firstRect.left)).toBeLessThanOrEqual(1);
+      expect(Math.abs(rect.top - firstRect.top)).toBeLessThanOrEqual(1);
+    }
 
     // 3. Canvas click on non-Sol star does not jump camera target, and label remains visible
     // Get fresh bounding box of canvas now that Details panel may be open and layout has adapted
@@ -893,5 +910,83 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
       const [click2X, click2Y, click2Z] = targetAfterSecondClick!.split(',').map(Number);
       expect(Math.hypot(click2X - tX, click2Y - tY, click2Z - tZ)).toBeLessThan(0.05);
     }
+
+    // 5. Touch tap sequence does NOT trigger intermediate 'selected' hover state or unmount flicker before 'focused':
+    await page.goto('/galaxy?dist=10');
+    await expect(hostDist10).toBeVisible({ timeout: 15_000 });
+    await expect(canvasDist10).toBeVisible({ timeout: 15_000 });
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setTimeout(resolve, 300);
+            });
+          });
+        }),
+    );
+
+    const tapBox = await canvasDist10.boundingBox();
+    expect(tapBox).not.toBeNull();
+    const tapCx = tapBox!.x + tapBox!.width / 2;
+    const tapCy = tapBox!.y + tapBox!.height / 2;
+
+    await page.evaluate(
+      async ({ x, y }) => {
+        const states: string[] = [];
+        let removedCount = 0;
+        const obs = new MutationObserver((mutations) => {
+          const el = document.querySelector('[data-testid="entity-label-inner-sol"]');
+          const s = el?.getAttribute('data-state');
+          if (s && states[states.length - 1] !== s) {
+            states.push(s);
+          }
+          for (const m of mutations) {
+            for (const node of Array.from(m.removedNodes)) {
+              if (
+                node instanceof HTMLElement &&
+                (node.getAttribute('data-testid') === 'entity-label-sol' ||
+                  node.getAttribute('data-testid') === 'entity-label-inner-sol' ||
+                  node.querySelector('[data-testid="entity-label-inner-sol"]'))
+              ) {
+                removedCount++;
+              }
+            }
+          }
+        });
+        obs.observe(document.body, {
+          subtree: true,
+          childList: true,
+          attributes: true,
+          attributeFilter: ['data-state'],
+        });
+
+        const targetEl = document.elementFromPoint(x, y) as HTMLElement | null;
+        if (targetEl) {
+          targetEl.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, clientX: x, clientY: y, pointerType: 'touch' }));
+          targetEl.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x, clientY: y, pointerType: 'touch' }));
+          targetEl.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: x, clientY: y, pointerType: 'touch' }));
+          await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+          targetEl.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: x, clientY: y, pointerType: 'touch' }));
+          targetEl.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, clientX: x, clientY: y, pointerType: 'touch' }));
+          targetEl.dispatchEvent(new PointerEvent('pointerleave', { bubbles: false, clientX: x, clientY: y, pointerType: 'touch' }));
+          await new Promise<void>((r) => requestAnimationFrame(() => r()));
+          targetEl.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
+        }
+        await new Promise<void>((r) => setTimeout(r, 200));
+        obs.disconnect();
+        (window as unknown as { __touchTapStats: { states: string[]; removedCount: number } }).__touchTapStats = {
+          states,
+          removedCount,
+        };
+      },
+      { x: tapCx, y: tapCy },
+    );
+
+    const touchTapStats = await page.evaluate(
+      () => (window as unknown as { __touchTapStats: { states: string[]; removedCount: number } }).__touchTapStats,
+    );
+    expect(touchTapStats.states).toEqual(['focused']);
+    expect(touchTapStats.removedCount).toBe(0);
   });
 });

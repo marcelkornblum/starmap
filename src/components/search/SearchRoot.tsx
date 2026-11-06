@@ -24,6 +24,8 @@ import {
   type SearchCategoryFilter,
   type SearchResultItem,
 } from '../../services/searchService';
+import { mergeActiveStarsIntoCorpus } from '../../services/detailsService';
+import { useActiveStarsStore } from '../../stores/useActiveStarsStore';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import { useSpatialEntityStoreApi } from '../canvas/entity/SpatialEntityContext';
 import {
@@ -492,7 +494,13 @@ export const SearchRoot = ({
           });
           updateResultsAndSelection(computed);
           setStatus('ready');
-        } else {
+        } else if (
+          activeSearch.includes('select=') ||
+          activeSearch.includes('layer=') ||
+          (typeof window !== 'undefined' &&
+            (window.location.search.includes('select=') ||
+              window.location.search.includes('layer=')))
+        ) {
           syncSelectedSystemsToStore(
             store,
             searchCatalog([], {
@@ -508,10 +516,14 @@ export const SearchRoot = ({
         }
 
         if (initialFocusSlug) {
+          const combinedFocusCorpus = mergeActiveStarsIntoCorpus(
+            focusCorpus,
+            useActiveStarsStore.getState().summaries,
+          );
           syncUrlFocusToStore(
             store,
             initialFocusSlug,
-            focusCorpus,
+            combinedFocusCorpus,
             fallbackFocusIdRef,
             activeSearch,
           );
@@ -549,12 +561,16 @@ export const SearchRoot = ({
       return;
     }
 
-    const availableCorpus =
+    const baseCorpus =
       initialCorpus ??
       prewarmedCorpusRef.current ??
       getCachedCorpusForFilter('all') ??
       getCachedCorpusForFilter(filter) ??
       [];
+    const availableCorpus = mergeActiveStarsIntoCorpus(
+      baseCorpus,
+      useActiveStarsStore.getState().summaries,
+    );
 
     if (focusSlug && availableCorpus.length === 0) {
       return;

@@ -172,6 +172,18 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     const activeContainer = containerRef.current;
     if (!activeContainer || !groupRef.current) return;
 
+    let customCoords: [number, number] | void = undefined;
+    if (calculatePosition) {
+      scratchTargetCoords.current[0] = 0;
+      scratchTargetCoords.current[1] = 0;
+      customCoords = calculatePosition(
+        groupRef.current,
+        camera,
+        size,
+        scratchTargetCoords.current,
+      );
+    }
+
     groupRef.current.getWorldPosition(scratchPos.current);
     const pos = scratchPos.current;
 
@@ -204,17 +216,9 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     let y = 0;
 
     if (calculatePosition) {
-      scratchTargetCoords.current[0] = 0;
-      scratchTargetCoords.current[1] = 0;
-      const coords = calculatePosition(
-        groupRef.current,
-        camera,
-        size,
-        scratchTargetCoords.current,
-      );
-      if (coords) {
-        x = coords[0];
-        y = coords[1];
+      if (customCoords) {
+        x = customCoords[0];
+        y = customCoords[1];
       } else {
         x = scratchTargetCoords.current[0];
         y = scratchTargetCoords.current[1];

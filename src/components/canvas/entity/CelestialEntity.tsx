@@ -424,7 +424,9 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
           }}
           onPointerOut={(targetId, e) => {
             if (activeState === 'passive') return;
-            storeApi.getState().setHovered(null);
+            if (storeApi.getState().hoveredId === targetId) {
+              storeApi.getState().setHovered(null);
+            }
             onPointerOut?.(targetId, e);
           }}
         />
