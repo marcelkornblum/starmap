@@ -101,10 +101,39 @@ export const createSpatialEntityStore = (initial?: {
         ) {
           return state;
         }
+
+        let entityToRegister = entity;
+        if (existing && entity.id !== 'sol') {
+          const ep = existing.position;
+          const existingNonZero = Array.isArray(ep)
+            ? ep[0] !== 0 || ep[1] !== 0 || ep[2] !== 0
+            : ep instanceof THREE.Vector3
+              ? ep.x !== 0 || ep.y !== 0 || ep.z !== 0
+              : false;
+
+          const np = entity.position;
+          const newZero = Array.isArray(np)
+            ? np[0] === 0 && np[1] === 0 && np[2] === 0
+            : np instanceof THREE.Vector3
+              ? np.x === 0 && np.y === 0 && np.z === 0
+              : true;
+
+          if (existingNonZero && newZero) {
+            entityToRegister = {
+              ...entity,
+              position: existing.position,
+              classification: existing.classification,
+              spectralType: existing.spectralType,
+              multiplicity: existing.multiplicity,
+              planets: existing.planets,
+            };
+          }
+        }
+
         return {
           entities: {
             ...state.entities,
-            [entity.id]: entity,
+            [entity.id]: entityToRegister,
           },
         };
       });

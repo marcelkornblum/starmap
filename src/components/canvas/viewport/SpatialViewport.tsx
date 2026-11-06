@@ -32,6 +32,7 @@ import type { JourneyChordLeg } from '../cartography';
 import { useUIStore } from '../../../stores/useUIStore';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
+import { toUrlSlug } from '../../../utils/datasetLayerCodec';
 
 export interface SpatialViewportProps {
   /** The reference frame driving spatial instrument metrics and scale. Defaults to GALACTIC_FRAME */
@@ -151,14 +152,29 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     const applyOuterFocus = (focusedId: string | null): void => {
       applyingOuterFocusRef.current = true;
       try {
+        let resolvedLocalId = focusedId;
         if (focusedId) {
-          const entity = outerStore.getState().entities[focusedId];
-          if (entity && !storeApi.getState().entities[entity.id]) {
-            storeApi.getState().registerEntity(entity);
+          const outerEntity = outerStore.getState().entities[focusedId];
+          const localEntities = storeApi.getState().entities;
+          const targetSlug = toUrlSlug(focusedId);
+          const outerNameSlug = outerEntity?.name ? toUrlSlug(outerEntity.name) : null;
+
+          const localMatch = Object.values(localEntities).find(
+            (e) =>
+              e.id === focusedId ||
+              toUrlSlug(e.id) === targetSlug ||
+              toUrlSlug(e.name) === targetSlug ||
+              (outerNameSlug && toUrlSlug(e.name) === outerNameSlug),
+          );
+
+          if (localMatch) {
+            resolvedLocalId = localMatch.id;
+          } else if (outerEntity && !localEntities[outerEntity.id]) {
+            storeApi.getState().registerEntity(outerEntity);
           }
         }
-        if (storeApi.getState().focusedId !== focusedId) {
-          storeApi.getState().setFocused(focusedId);
+        if (storeApi.getState().focusedId !== resolvedLocalId) {
+          storeApi.getState().setFocused(resolvedLocalId);
         }
       } finally {
         applyingOuterFocusRef.current = false;

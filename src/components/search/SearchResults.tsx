@@ -41,6 +41,7 @@ export const SearchResults = ({
       data-testid="search-results-panel"
       data-status={status}
       className={styles.resultsPanel}
+      onMouseDown={(e) => e.preventDefault()}
       onClick={handleResultsClick}
     >
       <Heading

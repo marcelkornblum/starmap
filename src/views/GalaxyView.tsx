@@ -130,6 +130,8 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const urlSystemSlug = extractUrlSystemSlug(pathname);
   const urlFocusSlug = extractUrlFocusSlug(pathname, search);
   const hasExplicitFocus = hasExplicitFocusParam(search);
+  const pendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
+  const canvasFocusedSlugRef = useRef<string | null>(null);
 
   const prevUrlRef = useRef<string | null>(null);
   useEffect(() => {
@@ -537,9 +539,22 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       return [cameraState.x, cameraState.y, cameraState.z];
     }
 
-    const effectiveCenterSlug = cameraState.center ?? urlFocusSlug ?? undefined;
+    const isCanvasClickFocus =
+      Boolean(urlFocusSlug) &&
+      urlFocusSlug === canvasFocusedSlugRef.current &&
+      pendingCenterSlug !== urlFocusSlug;
 
-    if (effectiveCenterSlug === urlFocusSlug && focusedEntity?.position) {
+    const effectiveCenterSlug =
+      cameraState.center ??
+      pendingCenterSlug ??
+      (!isCanvasClickFocus ? urlFocusSlug : undefined) ??
+      undefined;
+
+    if (
+      effectiveCenterSlug &&
+      (effectiveCenterSlug === urlFocusSlug || effectiveCenterSlug === pendingCenterSlug) &&
+      focusedEntity?.position
+    ) {
       const p = focusedEntity.position;
       const coords: [number, number, number] =
         p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
@@ -654,11 +669,14 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     cameraState.z,
     centerEntity,
     focusedEntity,
+    pendingCenterSlug,
     selectedEntities,
     urlFocusSlug,
   ]);
 
   const handleSelectSystem = useCallback((id: string | null) => {
+    canvasFocusedSlugRef.current = id ? toUrlSlug(id) : null;
+    useCameraStore.getState().setPendingCenterSlug(null);
     if (id) {
       void router
         .navigate({

@@ -62,6 +62,11 @@ export interface SearchRootProps {
   readonly onSelectResult?: (item: SearchResultItem) => void;
 }
 
+const getSearchRelevantUrlKey = (pathname: string, search: string): string => {
+  const params = new URLSearchParams(search);
+  return `${pathname}?q=${params.get('q') ?? ''}&cat=${params.get('searchCategory') ?? ''}&select=${params.getAll('select').join(',')}&layer=${params.getAll('layer').join(',')}`;
+};
+
 export const SearchRoot = ({
   children,
   initialQuery = '',
@@ -203,7 +208,8 @@ export const SearchRoot = ({
   }, []);
 
   const requestSeqRef = useRef<number>(0);
-  const prevUrlKeyRef = useRef<string>(`${activePathname}${activeSearch}`);
+  const searchRootRef = useRef<HTMLDivElement>(null);
+  const prevUrlKeyRef = useRef<string>(getSearchRelevantUrlKey(activePathname, activeSearch));
   const prevLoadedLayerKeyRef = useRef<string>('');
   const deferredSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Query most recently written to the URL by typing; its echo must not overwrite the live input.
@@ -413,7 +419,7 @@ export const SearchRoot = ({
 
   // React to URL transitions across views and clear non-URL state on unmount
   useEffect(() => {
-    const currentUrlKey = `${activePathname}${activeSearch}`;
+    const currentUrlKey = getSearchRelevantUrlKey(activePathname, activeSearch);
     if (prevUrlKeyRef.current !== currentUrlKey) {
       prevUrlKeyRef.current = currentUrlKey;
       const nextQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
@@ -604,7 +610,7 @@ export const SearchRoot = ({
           lastWrittenUrlQueryRef.current = nextQuery;
           if (typeof window !== 'undefined') {
             const nextSearch = window.location.search;
-            prevUrlKeyRef.current = `${window.location.pathname}${nextSearch}`;
+            prevUrlKeyRef.current = getSearchRelevantUrlKey(window.location.pathname, nextSearch);
             setWindowLocation({
               pathname: window.location.pathname,
               search: nextSearch,
@@ -622,7 +628,7 @@ export const SearchRoot = ({
           lastWrittenUrlQueryRef.current = nextQuery;
           if (typeof window !== 'undefined') {
             const nextSearch = window.location.search;
-            prevUrlKeyRef.current = `${window.location.pathname}${nextSearch}`;
+            prevUrlKeyRef.current = getSearchRelevantUrlKey(window.location.pathname, nextSearch);
             setWindowLocation({
               pathname: window.location.pathname,
               search: nextSearch,
@@ -646,7 +652,7 @@ export const SearchRoot = ({
         syncSearchUrlParams(query, nextFilter);
         if (typeof window !== 'undefined') {
           const nextSearch = window.location.search;
-          prevUrlKeyRef.current = `${window.location.pathname}${nextSearch}`;
+          prevUrlKeyRef.current = getSearchRelevantUrlKey(window.location.pathname, nextSearch);
           setWindowLocation({
             pathname: window.location.pathname,
             search: nextSearch,
@@ -686,12 +692,25 @@ export const SearchRoot = ({
   const handleBlurCapture = useCallback(
     (event: FocusEvent<HTMLDivElement>): void => {
       const nextTarget = event.relatedTarget as Node | null;
-      if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+      if (nextTarget !== null && !event.currentTarget.contains(nextTarget)) {
         setIsFocused(false);
       }
     },
     [],
   );
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const handlePointerDown = (event: PointerEvent): void => {
+      if (searchRootRef.current && !searchRootRef.current.contains(event.target as Node)) {
+        setIsFocused(false);
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, []);
 
   const contextValue: SearchContextValue = {
     query,
@@ -711,6 +730,7 @@ export const SearchRoot = ({
   return (
     <SearchContext.Provider value={contextValue}>
       <div
+        ref={searchRootRef}
         className={styles.searchRoot}
         data-testid="search-root"
         data-search-focused={isFocused ? 'true' : 'false'}

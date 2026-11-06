@@ -649,5 +649,134 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
 
     expect(flickerStats.occludedTrueCount).toBe(0);
     expect(flickerStats.labelRemovedCount).toBe(0);
+
+    // 3. Canvas click on non-Sol star does not jump camera target, and label remains visible
+    // Get fresh bounding box of canvas now that Details panel may be open and layout has adapted
+    const activeCanvasBox = await canvasDist10.boundingBox();
+    expect(activeCanvasBox).not.toBeNull();
+    const curCx = activeCanvasBox!.x + activeCanvasBox!.width / 2;
+    const curCy = activeCanvasBox!.y + activeCanvasBox!.height / 2;
+
+    // Perform a small pan drag to move camera target away from [0, 0, 0]
+    await page.mouse.move(curCx, curCy);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move(curCx + 40, curCy + 30, { steps: 5 });
+    await page.mouse.up({ button: 'right' });
+
+    // Wait until OrbitControls damping settles completely
+    let consecutiveMatches = 0;
+    let prevSample = '';
+    for (let i = 0; i < 30; i++) {
+      await page.waitForTimeout(100);
+      const currentSample = `${await hostDist10.getAttribute('data-camera-pos')}|${await hostDist10.getAttribute('data-camera-target')}`;
+      if (currentSample === prevSample && currentSample.length > 5) {
+        consecutiveMatches++;
+        if (consecutiveMatches >= 5) {
+          break;
+        }
+      } else {
+        consecutiveMatches = 0;
+      }
+      prevSample = currentSample;
+    }
+
+    const targetAfterPan = await hostDist10.getAttribute('data-camera-target');
+    const posAfterPan = await hostDist10.getAttribute('data-camera-pos');
+    expect(targetAfterPan).toBeTruthy();
+    expect(posAfterPan).toBeTruthy();
+
+    const [tX, tY, tZ] = targetAfterPan!.split(',').map(Number);
+    const [pX, pY, pZ] = posAfterPan!.split(',').map(Number);
+
+    const nonSolCandidates: Array<{ id: string; name: string; pos: [number, number, number] }> = [
+      { id: 'sirius', name: 'Sirius', pos: [-0.494, 2.477, -0.759] },
+      { id: 'luhman-16', name: 'Luhman 16', pos: [-1.137, 0.362, -1.602] },
+      { id: 'tau-ceti', name: 'Tau Ceti', pos: [3.156, 1.54, -1.003] },
+      { id: 'alpha-centauri', name: 'Alpha Centauri', pos: [-0.495, -0.414, -1.157] },
+    ];
+
+    const projectStar = (starPos: [number, number, number]) => {
+      // zAxis = normalize(cameraPos - cameraTarget)
+      let zx = pX - tX;
+      let zy = pY - tY;
+      let zz = pZ - tZ;
+      const zLen = Math.hypot(zx, zy, zz) || 1;
+      zx /= zLen;
+      zy /= zLen;
+      zz /= zLen;
+
+      // up is [0, 0, 1]
+      let xx = -zy;
+      let xy = zx;
+      let xz = 0;
+      const xLen = Math.hypot(xx, xy, xz) || 1;
+      xx /= xLen;
+      xy /= xLen;
+      xz /= xLen;
+
+      // yAxis = cross(zAxis, xAxis)
+      const yx = zy * xz - zz * xy;
+      const yy = zz * xx - zx * xz;
+      const yz = zx * xy - zy * xx;
+
+      // delta = starPos - cameraPos
+      const dx = starPos[0] - pX;
+      const dy = starPos[1] - pY;
+      const dz = starPos[2] - pZ;
+
+      const xCam = dx * xx + dy * xy + dz * xz;
+      const yCam = dx * yx + dy * yy + dz * yz;
+      const zCam = -(dx * zx + dy * zy + dz * zz);
+
+      const aspect = activeCanvasBox!.width / activeCanvasBox!.height;
+      const tanFov = Math.tan(((45 / 2) * Math.PI) / 180);
+      const ndcX = xCam / (zCam * tanFov * aspect);
+      const ndcY = yCam / (zCam * tanFov);
+
+      return {
+        x: activeCanvasBox!.x + (ndcX * 0.5 + 0.5) * activeCanvasBox!.width,
+        y: activeCanvasBox!.y + (-ndcY * 0.5 + 0.5) * activeCanvasBox!.height,
+      };
+    };
+
+    // Find the first candidate whose projected screen point directly hits the canvas without overlay obstruction
+    let selectedStar: { id: string; name: string; pos: [number, number, number]; x: number; y: number } | null = null;
+    for (const cand of nonSolCandidates) {
+      const pt = projectStar(cand.pos);
+      const isCanvasHit = await page.evaluate(
+        ({ x, y }) => document.elementFromPoint(x, y)?.tagName.toLowerCase() === 'canvas',
+        { x: pt.x, y: pt.y },
+      );
+      if (isCanvasHit) {
+        selectedStar = { ...cand, x: pt.x, y: pt.y };
+        break;
+      }
+    }
+
+    expect(selectedStar).not.toBeNull();
+
+    await page.mouse.move(selectedStar!.x, selectedStar!.y);
+    await page.mouse.click(selectedStar!.x, selectedStar!.y);
+
+    await page.waitForTimeout(400);
+
+    // Verify camera target did NOT jump to the clicked star's coordinates
+    const targetAfterClick = await hostDist10.getAttribute('data-camera-target');
+    expect(targetAfterClick).toBeTruthy();
+    const [clickX, clickY, clickZ] = targetAfterClick!.split(',').map(Number);
+    expect(Math.hypot(clickX - tX, clickY - tY, clickZ - tZ)).toBeLessThan(0.05);
+    expect(
+      Math.hypot(
+        clickX - selectedStar!.pos[0],
+        clickY - selectedStar!.pos[1],
+        clickZ - selectedStar!.pos[2],
+      ),
+    ).toBeGreaterThan(1.0);
+
+    // Verify clicked star's label is visible and not occluded 400ms after the click
+    const clickedLabel = page.locator(`[data-testid="entity-label-inner-${selectedStar!.id}"]`);
+    await expect(clickedLabel).toBeVisible({ timeout: 10_000 });
+    await expect(clickedLabel).toHaveAttribute('data-occluded', 'false');
+    await expect(clickedLabel).toHaveAttribute('data-state', 'focused');
   });
 });

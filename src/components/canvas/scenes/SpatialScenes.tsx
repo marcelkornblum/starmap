@@ -190,9 +190,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
         if (controls) {
           controls.target.set(saved.target[0], saved.target[1], saved.target[2]);
           controls.update?.();
-          if (isMatch) {
-            hasRestoredRef.current = true;
-          }
+          hasRestoredRef.current = true;
         } else {
           camera.lookAt(saved.target[0], saved.target[1], saved.target[2]);
         }
@@ -209,7 +207,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
           saveCurrentGalaxyPose();
         }
 
-        prevTargetRef.current = [saved.target[0], saved.target[1], saved.target[2]];
+        prevTargetRef.current = [targetX, targetY, targetZ];
         prevDistanceRef.current = distance ?? Number.NaN;
         prevRecenterTickRef.current = recenterTick;
         prevControlsRef.current = controls;

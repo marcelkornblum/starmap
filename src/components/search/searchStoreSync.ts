@@ -7,6 +7,7 @@ import {
   resolveFocusedEntityFromCorpus,
   resolveSelectedSystemsFromSearchResults,
   resolveSelectedSystemsFromUrlSelect,
+  toUrlSlug,
   type GroupedSearchResults,
 } from '../../services/searchService';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
@@ -68,9 +69,30 @@ export const syncUrlFocusToStore = (
     return;
   }
 
-  const primaryEntity = focusSlug
-    ? resolveFocusedEntityFromCorpus(focusSlug, corpus)
-    : null;
+  let primaryEntity = null;
+  if (focusSlug) {
+    const targetSlug = toUrlSlug(focusSlug);
+    const existingMatch = Object.values(state.entities).find(
+      (e) =>
+        e.id === focusSlug ||
+        toUrlSlug(e.id) === targetSlug ||
+        toUrlSlug(e.name) === targetSlug,
+    );
+    const hasValidPosition =
+      existingMatch &&
+      (existingMatch.id === 'sol' ||
+        (Array.isArray(existingMatch.position)
+          ? existingMatch.position[0] !== 0 ||
+            existingMatch.position[1] !== 0 ||
+            existingMatch.position[2] !== 0
+          : existingMatch.position.x !== 0 ||
+            existingMatch.position.y !== 0 ||
+            existingMatch.position.z !== 0));
+
+    primaryEntity = hasValidPosition
+      ? existingMatch
+      : resolveFocusedEntityFromCorpus(focusSlug, corpus);
+  }
   const routeOriginEntity = firstRouteStop
     ? resolveFocusedEntityFromCorpus(firstRouteStop, corpus)
     : null;

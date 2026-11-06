@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode } from 'react';
+import { useRef, type MouseEvent, type ReactNode } from 'react';
 import {
   buildStarTypeGuideHref,
   type SearchResultItem as SearchResultItemModel,
@@ -12,6 +12,7 @@ import {
   shouldDisplaySpectralBadge,
 } from '../../interface';
 import { useSearchContext } from '../../search/SearchContext';
+import { useCameraStore } from '../../../stores/useCameraStore';
 import { resolveAppHref } from '../../../utils/url';
 import styles from './SearchResultItem.module.css';
 
@@ -103,9 +104,17 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
     systemId,
   } = result;
 
+  const anchorRef = useRef<HTMLAnchorElement>(null);
   const searchCtx = useSearchContext();
 
   const handleClick = (_event: MouseEvent<HTMLAnchorElement>): void => {
+    if (targetView === 'galaxy') {
+      const focusParam = new URLSearchParams(href.split('?')[1] ?? '').get('focus');
+      if (focusParam) {
+        useCameraStore.getState().setPendingCenterSlug(focusParam);
+        useCameraStore.getState().triggerRecenter();
+      }
+    }
     if (searchCtx.dismissSearch) {
       searchCtx.dismissSearch(result);
     } else {
@@ -114,6 +123,12 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
     }
     if (onSelect) {
       onSelect(result);
+    }
+  };
+
+  const handleRowClick = (e: MouseEvent<HTMLLIElement>): void => {
+    if (!(e.target as Element | null)?.closest('a[href]')) {
+      anchorRef.current?.click();
     }
   };
 
@@ -127,10 +142,11 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
       data-entity-kind={entityKind}
       data-reticle={reticleType}
       data-target-view={targetView}
+      onClick={handleRowClick}
     >
       <Cluster gap="tight" align="center">
         <CelestialBadge type={reticleType} data-testid="result-reticle-type" />
-        <a href={resolveAppHref(href)} onClick={handleClick}>
+        <a ref={anchorRef} href={resolveAppHref(href)} onClick={handleClick}>
           {name}
         </a>
         {renderVariationContent(result)}

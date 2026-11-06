@@ -37,6 +37,8 @@ export interface CameraState {
   savedGalaxyCamera: SavedGalaxyCameraPose | null;
   /** Last galaxy URL search parameters to preserve query on back/breadcrumbs navigation */
   lastGalaxySearch: string;
+  /** Pending focus slug to center the camera upon (e.g. from search result selection) */
+  pendingCenterSlug: string | null;
 }
 
 export type CameraPreset = 'top-down' | 'reset' | 'orbital-lock' | 'radial';
@@ -60,6 +62,7 @@ export interface CameraActions {
   }) => void;
   setSavedGalaxyCamera: (pose: SavedGalaxyCameraPose | null) => void;
   setLastGalaxySearch: (search: string) => void;
+  setPendingCenterSlug: (slug: string | null) => void;
   requestAxisView: (direction: CardinalDirection) => void;
   clearAxisRequest: () => void;
   applyPreset: (preset: CameraPreset) => void;
@@ -88,6 +91,7 @@ export const INITIAL_CAMERA_STATE: CameraState = {
   recenterTick: 0,
   savedGalaxyCamera: null,
   lastGalaxySearch: '',
+  pendingCenterSlug: null,
 };
 
 export const useCameraStore = create<CameraStore>()((set) => ({
@@ -143,6 +147,7 @@ export const useCameraStore = create<CameraStore>()((set) => ({
   setSavedGalaxyCamera: (savedGalaxyCamera: SavedGalaxyCameraPose | null) =>
     set({ savedGalaxyCamera }),
   setLastGalaxySearch: (lastGalaxySearch: string) => set({ lastGalaxySearch }),
+  setPendingCenterSlug: (pendingCenterSlug: string | null) => set({ pendingCenterSlug }),
   requestAxisView: (direction: CardinalDirection) => set({ pendingAxisRequest: direction }),
   clearAxisRequest: () => set({ pendingAxisRequest: null }),
   applyPreset: (preset: CameraPreset) => set({ pendingPresetRequest: preset }),
