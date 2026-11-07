@@ -114,10 +114,10 @@ describe('TanStack Router Architecture', () => {
     expect(validated.layer).toBe('project-hail-mary');
     expect(validated.x).toBe(12.5);
     expect(validated.y).toBe(42);
-    expect(Number.isNaN(validated.z)).toBe(true);
+    expect(validated.z).toBeUndefined();
     expect(validated.zoom).toBe(3);
     expect(validated.center).toBe('sol');
-    expect(validated.customFilter).toBe('habitable');
+    expect('customFilter' in validated).toBe(false);
     expect(validated.az).toBe(45.5);
     expect(validated.el).toBe(-15);
     expect(validated.dist).toBe(120.8);

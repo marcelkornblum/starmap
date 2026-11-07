@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Badge, CelestialSymbol, Cluster, Datum, Heading, Stack } from '../../interface';
+import { CelestialSymbol, Cluster, Datum, Heading, Stack } from '../../interface';
 import { resolveAppHref } from '../../../utils/url';
 import type {
   MetricComparison,
@@ -17,6 +17,13 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
   entry,
   comparison,
 }) => {
+  const targets =
+    comparison.targets && comparison.targets.length > 0
+      ? comparison.targets
+      : [comparison];
+  const symbolType =
+    entry.category === 'Stellar Telemetry' ? 'star' : 'terrestrial';
+
   return (
     <section
       data-testid="metric-comparative-3d"
@@ -44,7 +51,7 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
           <Heading as="h4">
             Baseline:{' '}
             <Cluster as="span" gap="tight" align="center">
-              <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
+              <CelestialSymbol type={symbolType} size="sm" showTooltip={false} />
               <a href={resolveAppHref(comparison.baselineHref)}>{comparison.baselineName}</a>
             </Cluster>
           </Heading>
@@ -53,30 +60,51 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
             <Datum label="Familiar Scale" value={comparison.baselineFamiliar} />
           </Stack>
         </div>
-        <div
-          data-testid="metric-comparison-target"
-          className={styles.comparisonColumn}
-        >
-          <Heading as="h4">
-            Target:{' '}
-            <Cluster as="span" gap="tight" align="center">
-              <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
-              <a href={resolveAppHref(comparison.targetHref)}>{comparison.targetName}</a>
-            </Cluster>
-          </Heading>
-          <Stack gap="none">
-            <Datum label="Scientific Value" value={comparison.targetValue} />
-            <Datum label="Familiar Scale" value={comparison.targetFamiliar} />
-          </Stack>
-        </div>
+
+        {targets.map((target, idx) => (
+          <div
+            key={target.targetId || idx}
+            data-testid={
+              idx === 0
+                ? 'metric-comparison-target'
+                : `metric-comparison-target-${idx}`
+            }
+            className={styles.comparisonColumn}
+          >
+            <Heading as="h4">
+              Target:{' '}
+              <Cluster as="span" gap="tight" align="center">
+                <CelestialSymbol
+                  type={symbolType}
+                  size="sm"
+                  showTooltip={false}
+                />
+                <a href={resolveAppHref(target.targetHref)}>
+                  {target.targetName}
+                </a>
+              </Cluster>
+            </Heading>
+            <Stack gap="none">
+              <Datum label="Scientific Value" value={target.targetValue} />
+              <Datum label="Familiar Scale" value={target.targetFamiliar} />
+            </Stack>
+            {targets.length > 1 && (
+              <div className={styles.comparisonRatio}>
+                {target.relativeRatioLabel}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
-      <div
-        data-testid="metric-comparison-ratio"
-        className={styles.comparisonRatio}
-      >
-        <Badge status="info">{comparison.relativeRatioLabel}</Badge>
-      </div>
+      {targets.length <= 1 && (
+        <div
+          data-testid="metric-comparison-ratio"
+          className={styles.comparisonRatio}
+        >
+          {comparison.relativeRatioLabel}
+        </div>
+      )}
     </section>
   );
 };

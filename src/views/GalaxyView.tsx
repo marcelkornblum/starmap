@@ -526,11 +526,10 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     }
 
     const isCanvasClickFocus =
-      Boolean(urlFocusSlug) &&
-      (canvasFocusedSlugsRef.current.has(urlFocusSlug!) ||
-        (pendingCanvasFocusRef.current.active &&
-          urlFocusSlug === pendingCanvasFocusRef.current.slug)) &&
-      pendingCenterSlug !== urlFocusSlug;
+      pendingCanvasFocusRef.current.active ||
+      (Boolean(urlFocusSlug) &&
+        canvasFocusedSlugsRef.current.has(urlFocusSlug!) &&
+        pendingCenterSlug !== urlFocusSlug);
 
     const effectiveCenterSlug =
       cameraState.center ??
@@ -541,7 +540,10 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     if (
       effectiveCenterSlug &&
       (effectiveCenterSlug === urlFocusSlug || effectiveCenterSlug === pendingCenterSlug) &&
-      focusedEntity?.position
+      focusedEntity?.position &&
+      (focusedEntity.id === effectiveCenterSlug ||
+        toUrlSlug(focusedEntity.id) === effectiveCenterSlug ||
+        toUrlSlug(focusedEntity.name) === effectiveCenterSlug)
     ) {
       const p = focusedEntity.position;
       const coords: [number, number, number] =

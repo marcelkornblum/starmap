@@ -11,7 +11,7 @@ Host all scopes inside a single persistent R3F Canvas so that the WebGL context 
 
 ## Owned Findings
 
-AUD-100 · AUD-101 · AUD-102 · AUD-103 · AUD-104 · AUD-105 · AUD-106 · AUD-107 · AUD-108 · AUD-109 · AUD-110 · AUD-111 · AUD-112 · AUD-113 (see [findings ledger](../../initiatives/architecture-remediation/findings-ledger.md#t07--one-persistent-canvas--r3f-hot-paths)).
+AUD-100 · AUD-101 · AUD-102 · AUD-103 · AUD-104 · AUD-105 · AUD-106 · AUD-107 · AUD-108 · AUD-109 · AUD-110 · AUD-111 · AUD-112 · AUD-113 · AUD-114 · AUD-115 · AUD-116 (see [findings ledger](../../initiatives/architecture-remediation/findings-ledger.md#t07--one-persistent-canvas--r3f-hot-paths)).
 
 ## Scope
 
@@ -30,13 +30,16 @@ AUD-100 · AUD-101 · AUD-102 · AUD-103 · AUD-104 · AUD-105 · AUD-106 · AUD
 - AUD-111 — Mutable `THREE.Color` instances held in Zustand
 - AUD-112 — Dash/dot metrics defined three times with conflicting values
 - AUD-113 — `EntityLabel` inline `transform` style
+- AUD-114 — `computeHitAreaOffsetFor` and `getCyclicSelectionTarget` filter by `other.hasReticle` so passive stars without reticles do not displace hit areas
+- AUD-115 — `BodyMarker` calls `billboardRef.current.updateMatrixWorld(true)` in `useFrame` after updating billboard quaternion and hit-area scale/offset
+- AUD-116 — `BodyMarker` replaces bare R3F `onClick` (2 px drag filter) with `onPointerDown`/`onPointerUp` distance thresholding (6–8 px)
 
 ### Out of scope
 - Visual redesign.
 
 ## Acceptance Criteria
 
-- [ ] Every owned finding (AUD-100 … AUD-113) marked `verified` by the end-of-track audit.
+- [ ] Every owned finding (AUD-100 … AUD-116) marked `verified` by the end-of-track audit.
 - [ ] Owned guard baselines at zero: `G-canvas`, `G-r3f`.
 - [ ] No guard baseline increased.
 - [ ] Full e2e suite including URL contract specs green.

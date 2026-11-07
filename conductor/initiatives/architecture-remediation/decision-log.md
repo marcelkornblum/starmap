@@ -344,6 +344,48 @@ Records programme-level and per-track decisions for the architecture remediation
 
 ---
 
+### DEC-R017: Track T02 Review Mode — Whole-Track Review in PR
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Re-confirming review mode at the start of Track T02 per `DEC-R006`.
+- **Decision:** Execute all T02 phases continuously, run the 3-auditor pass and orchestrator spot-verification, and review the completed track in the Pull Request.
+
+---
+
+### DEC-R018: Uncatalogued Metric Presentation & Cold-Load Fetch in `MetricComparativePanel` (AUD-020)
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** `MetricDetailView` did not load detail shards on cold load, and `resolveMetricComparison` fabricated Tau Ceti (`0.783 M☉`, `5344 K`, etc.) or Tau Ceti e (`0.538 AU`, `3.93 M⊕`, etc.) fallback numbers whenever a focused entity was uncached or lacked a catalogued metric value.
+- **Options Considered:**
+  1. *Keep the target comparison card visible with concise placeholders (`"—"`) and a short status badge (`"Not catalogued"` / `"Loading…"` during shard fetch).* Trade-off: preserves layout stability and clearly communicates missing catalogue values without prose bloat.
+  2. *Hide the target comparison column entirely when the metric is uncatalogued.* Trade-off: hides which target was requested and shifts layout on load.
+- **Decision:** Option 1, keeping display strings short and concise (`"—"` for missing `Scientific Value` / `Familiar Scale`, and concise badge labels).
+
+---
+
+### DEC-R019: Inferred Planetary Orbits & Confidence Marking in `SystemScene` and `DetailsPanel` (AUD-024)
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** `SystemScene` fabricated Keplerian orbital elements (`0.4 + index * 0.6` AU, `index * 1.5°` inclination) without marking them as inferred, and its `activeCorpus` pre-manifest fallback ignored precalculated `p.A` (semi-major axis) and `p.u` (composition) on `CompactSearchEntry`, hardcoding `'terrestrial'` for all planets.
+- **Options Considered:**
+  1. *Use catalogued `semiMajorAxis` (including `p.A` and `p.u` from `activeCorpus`), infer missing `semiMajorAxis` from `periodDays` via Kepler's Third Law ($a = ((P/365.25)^2 \cdot M_\star)^{1/3}$, or orbital order if period is also unknown), and explicitly mark inferred orbits as theoretical (`lineStyle: 'dotted'` on `<OrbitPath />` in 3D and `<ConfidencePip level="theoretical" />` in `<DetailsPlanetTelemetrySection />`).*
+  2. *Omit any planet lacking catalogued `semiMajorAxis` or `periodDays` from the 3D scene.*
+  3. *Strictly require explicit `semiMajorAxis` in the manifest with no Kepler derivation.*
+- **Decision:** Option 1. Inferred orbital data is permitted provided it is explicitly marked as inferred/theoretical in both the 3D scene (`lineStyle: 'dotted'`) and telemetry (`<ConfidencePip level="theoretical" />`), and precalculated `p.A`/`p.u` from `activeCorpus` are respected before the detail shard loads.
+
+---
+
+### DEC-R020: Stacked Target Cards for Multi-Star / Multi-Planet System Expansion in `MetricComparativePanel` (AUD-092)
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** When `?focus=<systemId>` (or comma-separated `?focus=id1,id2`) resolves to multiple stars on a stellar metric or multiple planets on a planetary metric, `resolveMetricComparison` previously truncated to `stars[0]` / `planets[0]`.
+- **Options Considered:**
+  1. *Stacked Target Cards — render the Sol/Earth `Baseline` card once, and render a `Target` comparison card (with `Scientific Value`, `Familiar Scale`, and relative ratio `<Badge>`) for each constituent star or planet.*
+  2. *Comparative `<DataTable>` — replace the card grid with a table when multiple targets are present.*
+- **Decision:** Option 1 (Stacked Target Cards).
+
+---
+
 ## Process Log
 
 - **2026-11-06 · T01 reconnaissance:** the Flash `codebase-researcher` report contained about five factual errors (e2e spec count, untypechecked-scripts list, non-existent file paths, CI action versions). Countermeasure: Flash research prompts must include the raw command output supporting each claim. Counted towards the DEC-R007 review.

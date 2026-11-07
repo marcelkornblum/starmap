@@ -3,7 +3,17 @@ import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
 } from '../../../services/searchService';
-import { Badge, CelestialBadge, Datum, Heading, Stack, Unit } from '../../interface';
+import {
+  Badge,
+  CelestialBadge,
+  Cluster,
+  ConfidencePip,
+  Datum,
+  Heading,
+  Quantity,
+  Stack,
+  Unit,
+} from '../../interface';
 
 export interface DetailsPlanetTelemetrySectionProps {
   readonly planetTelemetry?: FocusedPlanetTelemetry | null;
@@ -58,7 +68,19 @@ export const DetailsPlanetTelemetrySection = ({
           <Datum
             label="Semi-Major Axis (a)"
             valueTestId="details-planet-telemetry-axis"
-            value={planetTelemetry.semiMajorAxisAu}
+            value={
+              planetTelemetry.isTheoreticalOrbit ? (
+                <Cluster as="span" gap="tight" align="center">
+                  <Quantity value={planetTelemetry.semiMajorAxisAu} />
+                  <ConfidencePip
+                    confidence="theoretical"
+                    data-level="theoretical"
+                  />
+                </Cluster>
+              ) : (
+                planetTelemetry.semiMajorAxisAu
+              )
+            }
             unit={
               <Unit>
                 <a

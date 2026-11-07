@@ -38,7 +38,23 @@ export interface StarmapSearchParams {
   az?: number;
   el?: number;
   dist?: number;
-  [key: string]: unknown;
+}
+
+/**
+ * Parses and returns a finite number from a number or string representation,
+ * or undefined if non-numeric, non-finite, empty, or wrong type.
+ */
+function parseFiniteNumber(val: unknown): number | undefined {
+  if (typeof val === 'number') {
+    return Number.isFinite(val) ? val : undefined;
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (trimmed.length === 0) return undefined;
+    const n = Number(trimmed);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  return undefined;
 }
 
 /**
@@ -217,36 +233,56 @@ export const RootLayout: React.FC = () => {
 export const rootRoute = createRootRoute({
   component: RootLayout,
   validateSearch: (search: Record<string, unknown>): StarmapSearchParams => {
-    return {
-      ...search,
-      q: typeof search.q === 'string' && search.q.length > 0 ? search.q : undefined,
-      searchCategory:
-        typeof search.searchCategory === 'string' && search.searchCategory.length > 0
-          ? search.searchCategory
-          : undefined,
-      focus: typeof search.focus === 'string' && search.focus.length > 0 ? search.focus : undefined,
-      select:
-        typeof search.select === 'string' && search.select.length > 0
-          ? search.select
-          : undefined,
-      layer:
-        typeof search.layer === 'string' && search.layer.trim()
-          ? search.layer.trim()
-          : undefined,
-      route: typeof search.route === 'string' && search.route.length > 0 ? search.route : undefined,
-      journeyOption:
-        typeof search.journeyOption === 'string' && search.journeyOption.length > 0
-          ? search.journeyOption
-          : undefined,
-      x: typeof search.x === 'number' ? search.x : (search.x !== undefined && search.x !== '' ? Number(search.x) : undefined),
-      y: typeof search.y === 'number' ? search.y : (search.y !== undefined && search.y !== '' ? Number(search.y) : undefined),
-      z: typeof search.z === 'number' ? search.z : (search.z !== undefined && search.z !== '' ? Number(search.z) : undefined),
-      zoom: typeof search.zoom === 'number' ? search.zoom : (search.zoom !== undefined && search.zoom !== '' ? Number(search.zoom) : undefined),
-      center: typeof search.center === 'string' ? search.center : undefined,
-      az: typeof search.az === 'number' ? search.az : (search.az !== undefined && search.az !== '' ? Number(search.az) : undefined),
-      el: typeof search.el === 'number' ? search.el : (search.el !== undefined && search.el !== '' ? Number(search.el) : undefined),
-      dist: typeof search.dist === 'number' ? search.dist : (search.dist !== undefined && search.dist !== '' ? Number(search.dist) : undefined),
-    };
+    const result: StarmapSearchParams = {};
+
+    if (typeof search.q === 'string' && search.q.length > 0) {
+      result.q = search.q;
+    }
+    if (typeof search.searchCategory === 'string' && search.searchCategory.length > 0) {
+      result.searchCategory = search.searchCategory;
+    }
+    if (typeof search.focus === 'string' && search.focus.length > 0) {
+      result.focus = search.focus;
+    }
+    if (typeof search.select === 'string' && search.select.length > 0) {
+      result.select = search.select;
+    }
+    if (typeof search.layer === 'string' && search.layer.trim().length > 0) {
+      result.layer = search.layer.trim();
+    }
+    if (typeof search.route === 'string' && search.route.length > 0) {
+      result.route = search.route;
+    }
+    if (typeof search.journeyOption === 'string' && search.journeyOption.length > 0) {
+      result.journeyOption = search.journeyOption;
+    }
+
+    const x = parseFiniteNumber(search.x);
+    if (x !== undefined) result.x = x;
+
+    const y = parseFiniteNumber(search.y);
+    if (y !== undefined) result.y = y;
+
+    const z = parseFiniteNumber(search.z);
+    if (z !== undefined) result.z = z;
+
+    const zoom = parseFiniteNumber(search.zoom);
+    if (zoom !== undefined) result.zoom = zoom;
+
+    if (typeof search.center === 'string' && search.center.trim().length > 0) {
+      result.center = search.center.trim();
+    }
+
+    const az = parseFiniteNumber(search.az);
+    if (az !== undefined) result.az = az;
+
+    const el = parseFiniteNumber(search.el);
+    if (el !== undefined) result.el = el;
+
+    const dist = parseFiniteNumber(search.dist);
+    if (dist !== undefined) result.dist = dist;
+
+    return result;
   },
 });
 

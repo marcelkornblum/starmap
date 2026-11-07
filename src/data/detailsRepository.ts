@@ -288,6 +288,16 @@ export const fetchDetailRecord = async (
 };
 
 /**
+ * Seeds a decoded detail record into the in-memory cache (used in unit tests).
+ */
+export const seedDetailRecord = (
+  id: string,
+  record: DecodedDetailRecord,
+): void => {
+  RESOLVED_DETAIL_RECORD_CACHE.set(id, record);
+};
+
+/**
  * Clears all in-memory summary and detail bucket caches (used in tests).
  */
 export const clearDetailsRepositoryCache = (): void => {

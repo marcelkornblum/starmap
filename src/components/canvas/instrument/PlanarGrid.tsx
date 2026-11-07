@@ -102,6 +102,67 @@ function updateExplicitFootprintChild(child: THREE.Object3D): void {
   }
 }
 
+export interface PlanarFootprintComponentProps {
+  footprint?: PlanarFootprintItem;
+  id?: string | number;
+  position?: [number, number, number] | { x: number; y: number; z?: number };
+  classification?: CelestialClassification;
+  size?: number;
+  color?: string | THREE.Color;
+  opacity?: number;
+  multiplicity?: number;
+  planets?: PlanetCensusEntry[];
+  defaultSize?: number;
+  defaultColor?: string | THREE.Color;
+  defaultAlpha?: number;
+}
+
+export const PlanarFootprintItem: React.FC<PlanarFootprintComponentProps> = ({
+  footprint,
+  defaultSize = DEFAULT_RETICLE_SIZE,
+  defaultColor,
+  defaultAlpha = 1.0,
+  ...rest
+}) => {
+  const fp = footprint ?? rest;
+  const fpClassification = fp.classification ?? 'star';
+  const fpSize = fp.size ?? defaultSize;
+  const fpX = Array.isArray(fp.position) ? (fp.position[0] ?? 0) : (fp.position?.x ?? 0);
+  const fpY = Array.isArray(fp.position) ? (fp.position[1] ?? 0) : (fp.position?.y ?? 0);
+  const fpColor = fp.color ?? defaultColor;
+  const fpOpacity = fp.opacity ?? defaultAlpha;
+
+  const geom = useMemo(() => {
+    return createReticleGeometry(fpClassification, fpSize, {
+      multiplicity: fp.multiplicity,
+      planets: fp.planets,
+    });
+  }, [fpClassification, fpSize, fp.multiplicity, fp.planets]);
+
+  useEffect(() => {
+    return () => {
+      geom.dispose();
+    };
+  }, [geom]);
+
+  return (
+    <group
+      position={[fpX, fpY, 0]}
+      name={`planar-footprint-${fp.id}`}
+    >
+      <lineSegments frustumCulled={false}>
+        <primitive object={geom} attach="geometry" />
+        <lineBasicMaterial
+          color={fpColor}
+          opacity={fpOpacity}
+          transparent
+          depthWrite={false}
+        />
+      </lineSegments>
+    </group>
+  );
+};
+
 export const PlanarGrid: React.FC<PlanarGridProps> = ({
   enabled,
   showFill,
@@ -505,35 +566,15 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       {/* Explicit External Planar Footprints */}
       {footprints && footprints.length > 0 && (
         <group ref={explicitFootprintsRef} name="explicit-planar-footprints">
-          {footprints.map((fp) => {
-            const fpClassification = fp.classification ?? 'star';
-            const fpSize = fp.size ?? footprintSize;
-            const fpX = Array.isArray(fp.position) ? fp.position[0] : fp.position.x;
-            const fpY = Array.isArray(fp.position) ? fp.position[1] : fp.position.y;
-            return (
-              <group
-                key={`explicit-footprint-${fp.id}`}
-                position={[fpX, fpY, 0]}
-                name={`planar-footprint-${fp.id}`}
-              >
-                <lineSegments frustumCulled={false}>
-                  <primitive
-                    object={createReticleGeometry(fpClassification, fpSize, {
-                      multiplicity: fp.multiplicity,
-                      planets: fp.planets,
-                    })}
-                    attach="geometry"
-                  />
-                  <lineBasicMaterial
-                    color={fp.color ?? footprintColor}
-                    opacity={fp.opacity ?? footprintAlpha}
-                    transparent
-                    depthWrite={false}
-                  />
-                </lineSegments>
-              </group>
-            );
-          })}
+          {footprints.map((fp) => (
+            <PlanarFootprintItem
+              key={`explicit-footprint-${fp.id}`}
+              footprint={fp}
+              defaultSize={footprintSize}
+              defaultColor={footprintColor}
+              defaultAlpha={footprintAlpha}
+            />
+          ))}
         </group>
       )}
     </group>

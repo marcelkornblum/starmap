@@ -582,15 +582,13 @@ export function compareBaseline(
   // Update mode: ratchets downward only, prunes 0 counts
   const updatedEntries: Record<string, GuardBaselineEntry> = {};
 
-  // Check that no new entries or count increases exist
-  for (const [key, count] of actualCounts) {
-    const baseEntry = baseline.entries[key];
-    if (!baseEntry) {
-      unbaselinedErrors.push({
-        key,
-        message: `Cannot add new entry in update mode without --init-baseline: "${key}".`,
-      });
-    } else if (count > baseEntry.count) {
+  // Preserve existing key ordering from baseline.entries for clean git diffs
+  for (const [key, baseEntry] of Object.entries(baseline.entries)) {
+    const count = actualCounts.get(key);
+    if (count === undefined || count === 0) {
+      continue; // pruned when count drops to 0
+    }
+    if (count > baseEntry.count) {
       unbaselinedErrors.push({
         key,
         message: `Cannot increase baseline count in update mode: "${key}" increased from ${baseEntry.count} to ${count}.`,
@@ -600,6 +598,16 @@ export function compareBaseline(
         count, // ratcheted down to actualCount
         audId: baseEntry.audId,
       };
+    }
+  }
+
+  // Check that no new entries exist
+  for (const [key] of actualCounts) {
+    if (!baseline.entries[key]) {
+      unbaselinedErrors.push({
+        key,
+        message: `Cannot add new entry in update mode without --init-baseline: "${key}".`,
+      });
     }
   }
 
@@ -772,8 +780,12 @@ export function runAllGuards(projectRoot = process.cwd()): GuardViolation[] {
 
   // 5. G-lint-warnings (from oxlint)
   let oxlintOutput: string | null = null;
+  const oxlintBin = path.resolve(
+    projectRoot,
+    process.platform === 'win32' ? 'node_modules/.bin/oxlint.cmd' : 'node_modules/.bin/oxlint',
+  );
   try {
-    oxlintOutput = execFileSync('npx', ['--no', 'oxlint', '--format', 'json'], {
+    oxlintOutput = execFileSync(oxlintBin, ['--format', 'json'], {
       cwd: projectRoot,
       encoding: 'utf8',
       shell: process.platform === 'win32',

@@ -79,6 +79,7 @@ export interface FocusedPlanetDetail {
   readonly letter?: string;
   readonly composition: PlanetCompositionClass;
   readonly semiMajorAxisAu?: number;
+  readonly isTheoreticalOrbit?: boolean;
   readonly periodDays?: number;
   readonly eccentricity?: number;
   readonly inclinationDeg?: number;
@@ -132,6 +133,7 @@ export interface FocusedPlanetTelemetry {
   readonly composition: PlanetCompositionClass;
   readonly isHabitableCandidate: boolean;
   readonly semiMajorAxisAu?: number;
+  readonly isTheoreticalOrbit?: boolean;
   readonly periodDays?: number;
   readonly eccentricity?: number;
   readonly inclinationDeg?: number;

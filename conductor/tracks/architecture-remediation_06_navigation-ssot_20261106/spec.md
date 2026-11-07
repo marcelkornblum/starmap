@@ -11,7 +11,7 @@ Establish TanStack Router search and path parameters as the canonical single sou
 
 ## Owned Findings
 
-AUD-080 · AUD-081 · AUD-082 · AUD-083 · AUD-084 · AUD-085 · AUD-086 · AUD-087 · AUD-088 · AUD-089 · AUD-090 (see [findings ledger](../../initiatives/architecture-remediation/findings-ledger.md#t06--navigation-single-source-of-truth)).
+AUD-080 · AUD-081 · AUD-082 · AUD-083 · AUD-084 · AUD-085 · AUD-086 · AUD-087 · AUD-088 · AUD-089 · AUD-090 · AUD-091 · AUD-093 (see [findings ledger](../../initiatives/architecture-remediation/findings-ledger.md#t06--navigation-single-source-of-truth)).
 
 ## Scope
 
@@ -27,6 +27,8 @@ AUD-080 · AUD-081 · AUD-082 · AUD-083 · AUD-084 · AUD-085 · AUD-086 · AUD
 - AUD-088 — `useStarmapNav` dead; route strings hardcoded across views/components
 - AUD-089 — `simulateAsyncFetch` artificial delay in production router; swallowed `navigate` errors
 - AUD-090 — Unbounded module-level repository caches; no `AbortSignal` support
+- AUD-091 — URL grammar cutover (`DEC-R014a`–`DEC-R014l`)
+- AUD-093 — Decouple canvas single-click `focusedId` / `onFocusChange` from `selectedId` / `selectedIds` so clicking a reticled star focuses immediately without clobbering `select`
 
 ### Out of scope
 - Canvas mounting (owned by T07).
@@ -34,7 +36,7 @@ AUD-080 · AUD-081 · AUD-082 · AUD-083 · AUD-084 · AUD-085 · AUD-086 · AUD
 
 ## Acceptance Criteria
 
-- [ ] Every owned finding (AUD-080 … AUD-090) marked `verified` by the end-of-track audit.
+- [ ] Every owned finding (AUD-080 … AUD-091, AUD-093) marked `verified` by the end-of-track audit.
 - [ ] Owned guard baselines: none new (ledger checks).
 - [ ] No guard baseline increased.
 - [ ] Full e2e suite including URL contract specs green.
