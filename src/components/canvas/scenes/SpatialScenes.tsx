@@ -58,11 +58,13 @@ function isOrbitControlsLike(value: unknown): value is OrbitControlsLike {
 export interface GalacticCameraControllerProps {
   readonly target: [number, number, number];
   readonly distance?: number;
+  readonly hasExplicitCenter?: boolean;
 }
 
 export const GalacticCameraController: React.FC<GalacticCameraControllerProps> = ({
   target,
   distance,
+  hasExplicitCenter = true,
 }) => {
   const three = useThree();
   const camera = three.camera;
@@ -155,6 +157,17 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       return;
     }
 
+    const isInitialMount = Number.isNaN(prev[0]);
+    if (
+      !isInitialMount &&
+      !hasExplicitCenter &&
+      isDistSame &&
+      isTickSame &&
+      isControlsSame
+    ) {
+      return;
+    }
+
     const saved = useCameraStore.getState().savedGalaxyCamera;
     if (!hasRestoredRef.current && saved && distance === undefined) {
       const isMatch = Math.hypot(
@@ -203,7 +216,6 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       }
     }
 
-    const isInitialMount = Number.isNaN(prev[0]);
     if (isInitialMount && saved && distance === undefined) {
       // Relative offset preservation for new target
       const relOffsetX = saved.position[0] - saved.target[0];
@@ -248,10 +260,10 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
 
     const newTarget = scratchNewTargetRef.current.set(targetX, targetY, targetZ);
 
-    const prevTarget = Number.isFinite(prev[0])
-      ? scratchPrevTargetRef.current.set(prev[0], prev[1], prev[2])
-      : controls?.target
-        ? scratchPrevTargetRef.current.copy(controls.target)
+    const prevTarget = controls?.target
+      ? scratchPrevTargetRef.current.copy(controls.target)
+      : Number.isFinite(prev[0])
+        ? scratchPrevTargetRef.current.set(prev[0], prev[1], prev[2])
         : scratchPrevTargetRef.current.set(0, 0, 0);
     const delta = scratchDeltaRef.current.copy(newTarget).sub(prevTarget);
 
@@ -273,6 +285,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
 
     if (controls) {
       controls.update?.();
+      hasRestoredRef.current = true;
     }
 
     const finalTarget: [number, number, number] = controls?.target
@@ -311,6 +324,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     targetY,
     targetZ,
     distance,
+    hasExplicitCenter,
     recenterTick,
     camera,
     controls,
@@ -347,6 +361,8 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
     typeof cameraDistance === 'number' && Number.isFinite(cameraDistance) && cameraDistance > 0
       ? cameraDistance
       : STANDARD_CAMERA_DISTANCES.galactic;
+
+  const hasExplicitCenter = Boolean(centerCoordinates);
 
   const standardCam = useMemo(() => {
     const saved = useCameraStore.getState().savedGalaxyCamera;
@@ -407,7 +423,11 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             maxDistance={maxSafeDistance}
           />
 
-          <GalacticCameraController target={targetCoords} distance={cameraDistance} />
+          <GalacticCameraController
+            target={targetCoords}
+            distance={cameraDistance}
+            hasExplicitCenter={hasExplicitCenter}
+          />
 
           <GalaxyScene
             initialSelectedId={initialSelectedId ?? centerId}

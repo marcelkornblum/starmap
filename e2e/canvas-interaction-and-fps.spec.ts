@@ -372,6 +372,70 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
 
     // Verify data-camera-target updates to Tau Ceti's coordinates (3.16, 1.54, -1.00)
     await expect(rootHost).toHaveAttribute('data-camera-target', /3\.1[56],\s*1\.5[40],\s*-1\.00?/);
+
+    // At dist=10 (where nearby star reticles are active), search for Sirius, click the search result,
+    // and then click Sol [0, 0, 0] on the 3D canvas (which projects to the open centre-right of the stage)
+    await page.goto('/galaxy?dist=10');
+    await expect(searchInput).toBeVisible({ timeout: 10_000 });
+    await searchInput.fill('Sirius');
+    const siriusResultLink = page
+      .getByTestId('search-results-group-stars')
+      .getByRole('link', { name: 'Sirius', exact: true })
+      .first();
+    await expect(siriusResultLink).toBeVisible({ timeout: 10_000 });
+    await siriusResultLink.click();
+
+    await expect(peekName).toHaveText(/Sirius/i, { timeout: 10_000 });
+    await expect(rootHost).toHaveAttribute('data-camera-target', /-0\.49,\s*2\.48,\s*-0\.76/);
+
+    await page.waitForTimeout(400);
+    const canvasBox = await canvas.boundingBox();
+    expect(canvasBox).not.toBeNull();
+    const targetAttr = await rootHost.getAttribute('data-camera-target');
+    const posAttr = await rootHost.getAttribute('data-camera-pos');
+    const [tX, tY, tZ] = targetAttr!.split(',').map(Number);
+    const [pX, pY, pZ] = posAttr!.split(',').map(Number);
+
+    const projectPoint = (pt: [number, number, number]) => {
+      let zx = pX - tX;
+      let zy = pY - tY;
+      let zz = pZ - tZ;
+      const zLen = Math.hypot(zx, zy, zz) || 1;
+      zx /= zLen;
+      zy /= zLen;
+      zz /= zLen;
+      let xx = -zy;
+      let xy = zx;
+      const xLen = Math.hypot(xx, xy) || 1;
+      xx /= xLen;
+      xy /= xLen;
+      const yx = -zz * xy;
+      const yy = zz * xx;
+      const yz = zx * xy - zy * xx;
+      const dx = pt[0] - pX;
+      const dy = pt[1] - pY;
+      const dz = pt[2] - pZ;
+      const xCam = dx * xx + dy * xy;
+      const yCam = dx * yx + dy * yy + dz * yz;
+      const zCam = -(dx * zx + dy * zy + dz * zz);
+      const aspect = canvasBox!.width / canvasBox!.height;
+      const tanFov = Math.tan(((45 / 2) * Math.PI) / 180);
+      const ndcX = xCam / (zCam * tanFov * aspect);
+      const ndcY = yCam / (zCam * tanFov);
+      return {
+        x: canvasBox!.x + (ndcX * 0.5 + 0.5) * canvasBox!.width,
+        y: canvasBox!.y + (-ndcY * 0.5 + 0.5) * canvasBox!.height,
+      };
+    };
+
+    const solPt = projectPoint([0, 0, 0]);
+    await page.mouse.move(solPt.x, solPt.y);
+    await page.mouse.click(solPt.x, solPt.y);
+    await page.waitForTimeout(300);
+
+    // Clicking Sol on the canvas after searching Sirius focuses Sol without jumping/recentering camera
+    await expect(peekName).toHaveText(/^Sol$/i, { timeout: 10_000 });
+    await expect(rootHost).toHaveAttribute('data-camera-target', /-0\.49,\s*2\.48,\s*-0\.76/);
   });
 
   test('navigating from galaxy to system view and back via breadcrumbs or browser back preserves galaxy camera zoom and position', async ({
