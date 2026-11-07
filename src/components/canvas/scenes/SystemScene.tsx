@@ -6,7 +6,7 @@ import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
 import { toUrlSlug } from '../../../utils/datasetLayerCodec';
-import { GalacticCameraController } from './SpatialScenes';
+import { GalacticCameraController } from './GalacticCameraController';
 import {
   resolveSystemPlanetEntity,
   resolveCorpusPlanetEntity,

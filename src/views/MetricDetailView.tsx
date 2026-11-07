@@ -21,7 +21,7 @@ import {
   resolveMetricComparison,
   resolveMetricGuideEntries,
 } from '../services/guideService';
-import { useSpaLocation } from '../router';
+import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
 
 export { extractFocusIdFromSearch };

@@ -6,7 +6,11 @@ import {
   SystemViewScene,
   PlanetaryViewScene,
 } from '../../canvas/scenes/SpatialScenes';
-import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
+import {
+  useCanvasStageStore,
+  setStageCallbacks,
+  getStageCallbacks,
+} from '../../../stores/useCanvasStageStore';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import styles from './CanvasLayer.module.css';
 
@@ -74,6 +78,10 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
     cameraDistance,
     journeyLegs,
     activeJourneyMethod,
+    activeSystemName,
+    focusedTargetName,
+    routeWaypoints,
+    cameraState,
     testId,
     isRootHost = false,
     onInspect,
@@ -99,9 +107,44 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
 
   useIsomorphicLayoutEffect(() => {
     if (!isRootHost) {
-      setStageProps(props);
+      setStageCallbacks({ onInspect, onSelect });
+      setStageProps({
+        scope,
+        targetId,
+        centerId,
+        centerCoordinates,
+        selectedEntities,
+        cameraAzimuthDeg,
+        cameraElevationDeg,
+        cameraDistance,
+        journeyLegs,
+        activeJourneyMethod,
+        activeSystemName,
+        focusedTargetName,
+        routeWaypoints,
+        cameraState,
+      });
     }
-  }, [isRootHost, props, setStageProps]);
+  }, [
+    isRootHost,
+    scope,
+    targetId,
+    centerId,
+    centerCoordinates,
+    selectedEntities,
+    cameraAzimuthDeg,
+    cameraElevationDeg,
+    cameraDistance,
+    journeyLegs,
+    activeJourneyMethod,
+    activeSystemName,
+    focusedTargetName,
+    routeWaypoints,
+    cameraState,
+    onInspect,
+    onSelect,
+    setStageProps,
+  ]);
 
   const defaultTestId = isSlot ? 'canvas-layer-slot' : 'canvas-layer';
   const resolvedTestId = testId ?? defaultTestId;
@@ -189,6 +232,7 @@ export const RootCanvasHost: React.FC = () => {
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
   const activeSlotCount = useCanvasStageStore((s) => s.activeSlotCount);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
+  const { onInspect, onSelect } = getStageCallbacks();
 
   const cameraMode = useCameraStore((s) => s.mode);
   const cameraPosition = useCameraStore((s) => s.position);
@@ -219,18 +263,20 @@ export const RootCanvasHost: React.FC = () => {
         targetId={stageProps?.targetId}
         centerId={stageProps?.centerId}
         centerCoordinates={stageProps?.centerCoordinates}
-        selectedEntities={stageProps?.selectedEntities}
+        selectedEntities={
+          stageProps?.selectedEntities as readonly SpatialEntityDefinition[] | undefined
+        }
         cameraAzimuthDeg={stageProps?.cameraAzimuthDeg}
         cameraElevationDeg={stageProps?.cameraElevationDeg}
         cameraDistance={stageProps?.cameraDistance}
-        journeyLegs={stageProps?.journeyLegs}
+        journeyLegs={stageProps?.journeyLegs as readonly JourneyChordLeg[] | undefined}
         activeJourneyMethod={stageProps?.activeJourneyMethod}
         activeSystemName={stageProps?.activeSystemName}
         focusedTargetName={stageProps?.focusedTargetName}
         routeWaypoints={stageProps?.routeWaypoints}
         cameraState={stageProps?.cameraState}
-        onInspect={stageProps?.onInspect}
-        onSelect={stageProps?.onSelect}
+        onInspect={onInspect}
+        onSelect={onSelect}
       />
     </div>
   );

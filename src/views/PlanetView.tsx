@@ -64,7 +64,7 @@ import {
   useLayerIndex,
   useLoadedLayerManifests,
 } from '../hooks/useLayerData';
-import { useSpaLocation } from '../router';
+import { useSpaLocation } from '../hooks/useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
 

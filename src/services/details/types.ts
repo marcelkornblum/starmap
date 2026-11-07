@@ -1,5 +1,7 @@
-import type { CelestialClassification } from '../../components/canvas/cartography/reticleGeometry';
-import type { SpatialEntityDefinition } from '../../components/canvas/entity/types';
+import type {
+  CelestialClassification,
+  SpatialEntityDefinition,
+} from '../../types/spatial';
 import type { DecodedDetailRecord } from '../../data/detailsRepository';
 import type { PlanetCompositionClass } from '../../data/guideCatalog';
 import type {

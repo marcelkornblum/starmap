@@ -1,14 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as THREE from 'three';
 import {
   computeSectorRings,
-  createDefaultSectorGeometry,
-  createSceneSectorPointsFactory,
   SectorStreamingManager,
   type DisposableGpuResource,
 } from '../sectorStreamingService';
 import { DEVICE_TIER_BUDGETS } from '../deviceTierService';
-import { encodeBinarySector, decodeBinarySector } from '../../utils/binarySectorCodec';
+import { encodeBinarySector } from '../../utils/binarySectorCodec';
 import type { SectorPartitionManifest } from '../../types/astro';
 
 function createMockSectorBuffer(sectorId: string, origin: [number, number, number] = [0, 0, 0], starCount = 10): ArrayBuffer {
@@ -102,33 +99,6 @@ describe('sectorStreamingService', () => {
       expect(plan.activeSectorIds.length + plan.prefetchSectorIds.length).toBeLessThanOrEqual(
         tier2Budget.lruCacheMaxSectors,
       );
-    });
-  });
-
-  describe('createDefaultSectorGeometry', () => {
-    it('creates THREE.BufferGeometry with position, starId, and precomputed boundingSphere', () => {
-      const buffer = createMockSectorBuffer('sector_+000_+000_+000', [0, 0, 0], 5);
-      const decoded = decodeBinarySector(buffer);
-
-      const geometry = createDefaultSectorGeometry(decoded);
-      expect(geometry).toBeInstanceOf(THREE.BufferGeometry);
-
-      const posAttr = geometry.getAttribute('position');
-      expect(posAttr).toBeDefined();
-      expect(posAttr.itemSize).toBe(3);
-      expect(posAttr.count).toBe(5);
-
-      const idAttr = geometry.getAttribute('starId');
-      expect(idAttr).toBeDefined();
-      expect(idAttr.itemSize).toBe(1);
-      expect(idAttr.count).toBe(5);
-
-      expect(geometry.boundingSphere).toBeDefined();
-      expect(geometry.boundingSphere?.center).toEqual(new THREE.Vector3(12.5, 12.5, 12.5));
-      // Radius of cube side 25 is 12.5 * sqrt(3) ~= 21.6506
-      expect(geometry.boundingSphere?.radius).toBeCloseTo(12.5 * Math.sqrt(3), 4);
-
-      geometry.dispose();
     });
   });
 
@@ -419,27 +389,6 @@ describe('sectorStreamingService', () => {
       expect(customFactoryCalls).not.toContain('sector_+000_+000_+000');
 
       manager.dispose();
-    });
-  });
-
-  describe('createSceneSectorPointsFactory', () => {
-    it('creates THREE.Points attached to group and detaches on dispose', () => {
-      const group = new THREE.Group();
-      const material = new THREE.PointsMaterial({ size: 2 });
-      const factory = createSceneSectorPointsFactory(() => ({ group, material }));
-
-      const buffer = createMockSectorBuffer('sector_+000_+000_+000', [0, 0, 0], 5);
-      const decoded = decodeBinarySector(buffer);
-
-      const resource = factory(decoded, 'sector_+000_+000_+000');
-      expect(group.children.length).toBe(1);
-      const points = group.children[0] as THREE.Points;
-      expect(points.name).toBe('sector-points-sector_+000_+000_+000');
-      expect(points.frustumCulled).toBe(true);
-
-      resource.dispose();
-      expect(group.children.length).toBe(0);
-      material.dispose();
     });
   });
 

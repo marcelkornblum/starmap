@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Card } from '../../interface/surfaces/Card/Card';
-import { Panel } from '../../interface/surfaces/Panel/Panel';
-import { Well } from '../../interface/surfaces/Well/Well';
-import { Button } from '../../interface/controls/Button/Button';
-import { Input } from '../../interface/controls/Input/Input';
-import { Toggle } from '../../interface/controls/Toggle/Toggle';
-import { Slider } from '../../interface/controls/Slider/Slider';
-import { Badge } from '../../interface/information/Badge/Badge';
-import { Unit } from '../../interface/information/Unit/Unit';
-import { ConfidencePip } from '../../interface/information/ConfidencePip/ConfidencePip';
-import { Toast } from '../../interface/surfaces/Toast/Toast';
+import { Card } from '../../components/interface/surfaces/Card/Card';
+import { Panel } from '../../components/interface/surfaces/Panel/Panel';
+import { Well } from '../../components/interface/surfaces/Well/Well';
+import { Button } from '../../components/interface/controls/Button/Button';
+import { Input } from '../../components/interface/controls/Input/Input';
+import { Toggle } from '../../components/interface/controls/Toggle/Toggle';
+import { Slider } from '../../components/interface/controls/Slider/Slider';
+import { Badge } from '../../components/interface/information/Badge/Badge';
+import { Unit } from '../../components/interface/information/Unit/Unit';
+import { ConfidencePip } from '../../components/interface/information/ConfidencePip/ConfidencePip';
+import { Toast } from '../../components/interface/surfaces/Toast/Toast';
 import styles from './PaletteShowcase.module.css';
 
 const STEPS = ['10', '20', '30', '40', '50', '60', '70', '80', '90', '100'] as const;

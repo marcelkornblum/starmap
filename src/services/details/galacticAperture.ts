@@ -1,9 +1,9 @@
-import { GALACTIC_FRAME } from '../../components/canvas/instrument/referenceFrame';
+import { GALACTIC_FRAME } from '../../types/spatial';
 import {
   computeApertureRadius,
+  deriveEntityTier,
   isInsideAperture,
-} from '../../components/canvas/math/aperture';
-import { deriveEntityTier } from '../../components/canvas/math/tiers';
+} from '../../utils/spatialMath';
 import type { SystemSummaryNode } from '../../types/astro';
 import {
   PARSEC_TO_LY,

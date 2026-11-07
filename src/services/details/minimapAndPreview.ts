@@ -1,4 +1,4 @@
-import type { SpatialEntityDefinition } from '../../components/canvas/entity/types';
+import type { SpatialEntityDefinition } from '../../types/spatial';
 import type { DecodedDetailRecord } from '../../data/detailsRepository';
 import { toUrlSlug } from '../searchService';
 import { toCoordinatesTuple } from './hazardsAndComposition';

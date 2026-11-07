@@ -1,4 +1,4 @@
-import type { CelestialClassification } from '../../components/canvas/cartography/reticleGeometry';
+import type { CelestialClassification } from '../../types/spatial';
 import type { SystemManifest } from '../../types/astro';
 import {
   computePlanetSurfaceGravityG,

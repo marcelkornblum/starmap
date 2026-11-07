@@ -14,7 +14,19 @@ import {
   computeIntraSystemBrachistochroneTransit,
   computeHohmannTransferOrbit,
 } from '../utils/astroMath';
-import type { JourneyChordLeg } from '../components/canvas/cartography/journeyChordGeometry';
+import type {
+  JourneyChordLeg,
+  JourneyChordRenderData,
+  JourneyChordWaypoint,
+} from '../types/spatial';
+import { buildJourneyChordRenderData } from '../utils/spatialMath';
+
+export type {
+  JourneyChordLeg,
+  JourneyChordRenderData,
+  JourneyChordWaypoint,
+};
+export { buildJourneyChordRenderData };
 import {
   getCachedDetailRecord,
   getCachedSummaryNode,

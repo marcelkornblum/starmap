@@ -1,9 +1,9 @@
 import {
   extractUrlPlanetSlug,
   extractUrlSystemSlug,
-  formatSlugFallbackTitle,
   hasExplicitFocusParam,
-} from '../searchService';
+} from '../../utils/url';
+import { formatSlugFallbackTitle } from '../../utils/nomenclature';
 import { toCanonicalLayerSlug, toUrlSlug } from '../../utils/datasetLayerCodec';
 import type {
   BreadcrumbRouteLink,

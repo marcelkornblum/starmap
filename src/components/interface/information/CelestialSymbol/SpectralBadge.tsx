@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Badge, type BadgeProps } from '../Badge/Badge';
-import { buildStarTypeGuideHref } from '../../../../data/guideCatalog';
+import { buildStarTypeGuideHref } from '../../../../utils/url';
 
 /**
  * Pure predicate determining whether a stellar spectral type badge should be displayed.

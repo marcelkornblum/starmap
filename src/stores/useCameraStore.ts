@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CardinalDirection } from '../components/canvas/math/cameraMath';
+import type { CardinalDirection } from '../types/spatial';
 
 export type CameraProjectionMode = 'perspective' | 'orthographic';
 

@@ -7,7 +7,7 @@
 
 - [x] **Track T01: Guardrails & Safety Net** *Link: [conductor/tracks/architecture-remediation_01_guardrails-safety-net_20261106/index.md](./tracks/architecture-remediation_01_guardrails-safety-net_20261106/index.md)*
 - [x] **Track T02: User-Visible Correctness** *Link: [conductor/tracks/architecture-remediation_02_user-visible-correctness_20261106/index.md](./tracks/architecture-remediation_02_user-visible-correctness_20261106/index.md)* *(depends on T01)*
-- [~] **Track T03: Layering Cut** *Link: [conductor/tracks/architecture-remediation_03_layering-cut_20261106/index.md](./tracks/architecture-remediation_03_layering-cut_20261106/index.md)* *(depends on T01)*
+- [x] **Track T03: Layering Cut** *Link: [conductor/tracks/architecture-remediation_03_layering-cut_20261106/index.md](./tracks/architecture-remediation_03_layering-cut_20261106/index.md)* *(depends on T01)*
 - [ ] **Track T04: Pipeline Reliability & Precalculation** *Link: [conductor/tracks/architecture-remediation_04_pipeline-reliability_20261106/index.md](./tracks/architecture-remediation_04_pipeline-reliability_20261106/index.md)* *(depends on T01; parallel worktree lane)*
 - [ ] **Track T05: Runtime Data Purity** *Link: [conductor/tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md](./tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md)* *(depends on T03, T04)*
 - [ ] **Track T06: Navigation Single Source of Truth** *Link: [conductor/tracks/architecture-remediation_06_navigation-ssot_20261106/index.md](./tracks/architecture-remediation_06_navigation-ssot_20261106/index.md)* *(depends on T03)*

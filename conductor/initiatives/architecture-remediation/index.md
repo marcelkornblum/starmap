@@ -43,7 +43,7 @@ flowchart TD
 |---|---|---|---|
 | T01 | Guardrails & safety net | [`architecture-remediation_01_guardrails-safety-net_20261106`](../../tracks/architecture-remediation_01_guardrails-safety-net_20261106/index.md) | [x] |
 | T02 | User-visible correctness | [`architecture-remediation_02_user-visible-correctness_20261106`](../../tracks/architecture-remediation_02_user-visible-correctness_20261106/index.md) | [x] |
-| T03 | Layering cut | [`architecture-remediation_03_layering-cut_20261106`](../../tracks/architecture-remediation_03_layering-cut_20261106/index.md) | [~] |
+| T03 | Layering cut | [`architecture-remediation_03_layering-cut_20261106`](../../tracks/architecture-remediation_03_layering-cut_20261106/index.md) | [x] |
 | T04 | Pipeline reliability & precalculation | [`architecture-remediation_04_pipeline-reliability_20261106`](../../tracks/architecture-remediation_04_pipeline-reliability_20261106/index.md) | [ ] |
 | T05 | Runtime data purity | [`architecture-remediation_05_runtime-data-purity_20261106`](../../tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md) | [ ] |
 | T06 | Navigation single source of truth | [`architecture-remediation_06_navigation-ssot_20261106`](../../tracks/architecture-remediation_06_navigation-ssot_20261106/index.md) | [ ] |

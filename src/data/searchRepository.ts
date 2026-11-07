@@ -1,4 +1,4 @@
-import type { SearchCategoryFilter } from '../services/searchService';
+import type { SearchCategoryFilter } from '../types/search';
 import type { CompactSearchEntry, SearchIndexEnvelope } from '../utils/compactDataCodec';
 import { resolveDataUrl } from '../utils/url';
 

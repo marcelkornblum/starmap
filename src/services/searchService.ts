@@ -1,5 +1,7 @@
-import type { CelestialClassification } from '../components/canvas/cartography/reticleGeometry';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/types';
+import type {
+  CelestialClassification,
+  SpatialEntityDefinition,
+} from '../types/spatial';
 import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
@@ -44,8 +46,33 @@ import {
   formatSlugFallbackTitle,
   normalizeCleanKey,
 } from '../utils/nomenclature';
-import { parseLayerQueryParam } from './layerCardService';
-export { formatSlugFallbackTitle };
+import {
+  extractUrlFocusSlug,
+  extractUrlPlanetSlug,
+  extractUrlSystemSlug,
+  hasExplicitFocusParam,
+  parseLayerQueryParam,
+} from '../utils/url';
+import { computeEuclideanDistance3D } from '../utils/astroMath';
+import {
+  SEARCH_CATEGORIES,
+  type SearchCategoryFilter,
+  type SearchCategoryKey,
+  type SearchCategoryMeta,
+} from '../types/search';
+
+export {
+  extractUrlFocusSlug,
+  extractUrlPlanetSlug,
+  extractUrlSystemSlug,
+  formatSlugFallbackTitle,
+  hasExplicitFocusParam,
+  parseLayerQueryParam,
+  SEARCH_CATEGORIES,
+  type SearchCategoryFilter,
+  type SearchCategoryKey,
+  type SearchCategoryMeta,
+};
 
 export {
   buildMetricGuideHref,
@@ -74,30 +101,6 @@ export {
   type EntityOrbitTargetInput,
   type OrbitTargetView,
 };
-
-export type SearchCategoryKey =
-  | 'stars'
-  | 'planets'
-  | 'structures'
-  | 'minor-bodies'
-  | 'layers';
-
-export type SearchCategoryFilter = 'all' | SearchCategoryKey;
-
-export interface SearchCategoryMeta {
-  readonly key: SearchCategoryKey;
-  readonly heading: string;
-  readonly label: string;
-  readonly shard: string;
-}
-
-export const SEARCH_CATEGORIES: readonly SearchCategoryMeta[] = [
-  { key: 'stars', heading: 'Stars & Stellar Systems', label: 'Stars & Stellar Systems', shard: 'stars.json' },
-  { key: 'planets', heading: 'Planets, Exoplanets & Moons', label: 'Planets, Exoplanets & Moons', shard: 'planets.json' },
-  { key: 'structures', heading: 'Galactic Structures & Deep Sky', label: 'Galactic Structures & Deep Sky', shard: 'structures.json' },
-  { key: 'minor-bodies', heading: 'Solar System Minor Bodies', label: 'Solar System Minor Bodies', shard: 'minor-bodies.json' },
-  { key: 'layers', heading: 'Curated Layers & Canons', label: 'Curated Layers & Canons', shard: 'layers.json' },
-];
 
 const VALID_CATEGORY_KEYS = new Set<string>(SEARCH_CATEGORIES.map((c) => c.key));
 
@@ -578,7 +581,7 @@ export const toSearchResultItem = (
   if (entry.p) {
     const [x, y, z] = entry.p;
     position = [x, y, z];
-    distancePc = Math.round(Math.sqrt(x * x + y * y + z * z) * 100) / 100;
+    distancePc = Math.round(computeEuclideanDistance3D([x, y, z], [0, 0, 0]).distance * 100) / 100;
   } else if (entry.h === 1) {
     position = [0, 0, 0];
     distancePc = 0;
@@ -1091,79 +1094,6 @@ export const extractUrlSelectSlugs = (
   };
 };
 
-/**
- * Pure parser extracting the single focused target slug from a URL `pathname` and `searchString`.
- * Priority:
- * 1. Explicit `?focus=<slug>` query parameter (e.g. `/galaxy/tau-ceti?focus=tau-ceti-e` or `/galaxy?select=layer:project-hail-mary&focus=tau-ceti`).
- * 2. Route path segment `/galaxy/$systemId` or `/system/$systemId` (e.g. `/galaxy/tau-ceti`).
- * 3. `null` when no entity focus parameter or system route segment is present in the URL.
- */
-export const extractUrlFocusSlug = (
-  pathname: string,
-  searchString: string,
-): string | null => {
-  const params = new URLSearchParams(searchString);
-  const focusParam = params.get('focus');
-  if (focusParam) {
-    const slug = toUrlSlug(focusParam);
-    if (slug.length > 0) {
-      return slug;
-    }
-  }
-
-  const routeMatch = /^\/galaxy\/([^/?#]+)/i.exec(
-    pathname.trim(),
-  );
-  if (routeMatch?.[1]) {
-    const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
-    if (slug.length > 0) {
-      return slug;
-    }
-  }
-
-  return null;
-};
-
-/**
- * Pure parser extracting the host system slug from a `/galaxy/$systemId` or `/system/$systemId` route path.
- */
-export const extractUrlSystemSlug = (pathname: string): string | null => {
-  const routeMatch = /^\/(?:galaxy|system)\/([^/?#]+)/i.exec(pathname.trim());
-  if (routeMatch?.[1]) {
-    const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
-    if (slug.length > 0) {
-      return slug;
-    }
-  }
-  return null;
-};
-
-/**
- * Pure parser extracting the host planet slug from a `/planet/$planetId` route path.
- */
-export const extractUrlPlanetSlug = (pathname: string): string | null => {
-  const routeMatch = /^\/planet\/([^/?#]+)/i.exec(pathname.trim());
-  if (routeMatch?.[1]) {
-    const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
-    if (slug.length > 0) {
-      return slug;
-    }
-  }
-  return null;
-};
-
-/**
- * Pure predicate checking whether a URL search string contains an explicit single-entity `?focus=<slug>` parameter.
- */
-export const hasExplicitFocusParam = (searchString: string): boolean => {
-  const params = new URLSearchParams(searchString);
-  const focusParam = params.get('focus');
-  if (!focusParam) {
-    return false;
-  }
-  return toUrlSlug(focusParam).length > 0;
-};
-
 interface CorpusSearchIndex {
   readonly idMap: Map<string, CompactSearchEntry>;
   readonly nameMap: Map<string, CompactSearchEntry>;
@@ -1339,7 +1269,7 @@ export const doesSystemEntryMatchTag = (
       return false;
     }
     const [x, y, z] = entry.p;
-    return Math.sqrt(x * x + y * y + z * z) <= 10;
+    return computeEuclideanDistance3D([x, y, z], [0, 0, 0]).distance <= 10;
   }
   if (tagKey === 'nakedeye') {
     return (
@@ -1698,10 +1628,10 @@ export const resolveFocusedEntityFromCorpus = (
 };
 
 export {
-  type SceneCameraUrlState,
-  extractUrlSceneCameraState,
   buildCenterEntityHref,
-} from './detailsService';
+  extractUrlSceneCameraState,
+} from './details/navigationAndCamera';
+export type { SceneCameraUrlState } from './details/types';
 
 
 

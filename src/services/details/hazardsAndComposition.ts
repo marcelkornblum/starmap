@@ -1,4 +1,4 @@
-import type { SpatialEntityDefinition } from '../../components/canvas/entity/types';
+import type { SpatialEntityDefinition } from '../../types/spatial';
 import type {
   CircumstellarDiskKind,
   CircumstellarDiskRecord,
