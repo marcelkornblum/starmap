@@ -186,6 +186,7 @@ describe('CanvasLayer Domain Component', () => {
       expect(useCanvasStageStore.getState().isRootCanvasMounted).toBe(true);
       const host = screen.getByTestId('root-canvas-host');
       expect(host).toBeDefined();
+      expect(host.getAttribute('data-stage-inactive')).toBe('true');
 
       // Camera telemetry attributes
       expect(host.getAttribute('data-camera-mode')).toBe('perspective');
@@ -217,6 +218,7 @@ describe('CanvasLayer Domain Component', () => {
       const slot = screen.getByTestId('canvas-layer-slot');
 
       expect(host).toBeDefined();
+      expect(host.getAttribute('data-stage-inactive')).toBeNull();
       expect(slot.getAttribute('data-scope')).toBe('galaxy');
 
       // Now view transitions to system scope

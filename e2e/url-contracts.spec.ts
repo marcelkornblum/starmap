@@ -285,6 +285,17 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         await expect(page.getByText('G2V', { exact: true }).first()).toBeVisible();
         await expect(page.getByText('K1V', { exact: true }).first()).toBeVisible();
 
+        // Guide views deactivate root canvas host and scroll vertically via wheel gesture
+        await expect(page.getByTestId('root-canvas-host')).toHaveAttribute(
+          'data-stage-inactive',
+          'true',
+        );
+        await page.mouse.move(400, 300);
+        await page.mouse.wheel(0, 400);
+        await expect
+          .poll(() => page.evaluate(() => window.scrollY))
+          .toBeGreaterThan(0);
+
         // Plus-delimited compound star types (e.g. G2V+K1V)
         await page.goto('/guide/star-types/G2V%2BK1V');
         await expect(page.getByTestId('star-type-detail-view-root')).toBeVisible();

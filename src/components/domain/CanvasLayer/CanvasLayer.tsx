@@ -81,9 +81,21 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   } = props;
 
   const isRootCanvasMounted = useCanvasStageStore((s) => s.isRootCanvasMounted);
+  const mountSlot = useCanvasStageStore((s) => s.mountSlot);
+  const unmountSlot = useCanvasStageStore((s) => s.unmountSlot);
   const setStageProps = useCanvasStageStore((s) => s.setStageProps);
 
   const isSlot = isRootCanvasMounted && !isRootHost;
+
+  useIsomorphicLayoutEffect(() => {
+    if (!isRootHost) {
+      mountSlot();
+      return () => {
+        unmountSlot();
+      };
+    }
+    return undefined;
+  }, [isRootHost, mountSlot, unmountSlot]);
 
   useIsomorphicLayoutEffect(() => {
     if (!isRootHost) {
@@ -175,6 +187,7 @@ CanvasLayer.displayName = 'CanvasLayer';
 
 export const RootCanvasHost: React.FC = () => {
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
+  const activeSlotCount = useCanvasStageStore((s) => s.activeSlotCount);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
 
   const cameraMode = useCameraStore((s) => s.mode);
@@ -193,6 +206,7 @@ export const RootCanvasHost: React.FC = () => {
     <div
       className={styles.rootCanvasHost}
       data-testid="root-canvas-host"
+      data-stage-inactive={activeSlotCount === 0 ? 'true' : undefined}
       data-camera-mode={cameraMode}
       data-camera-pos={cameraPosition.map((v) => v.toFixed(2)).join(',')}
       data-camera-target={cameraTarget.map((v) => v.toFixed(2)).join(',')}

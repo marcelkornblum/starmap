@@ -9,14 +9,17 @@
     box-sizing: border-box;
   }
 
+  html {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
   html,
   body,
   #root {
     margin: 0;
     padding: 0;
     min-height: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
     background-color: var(--surface-canvas-bg);
     color: var(--content-default);
     font-family: var(--font-interface);
