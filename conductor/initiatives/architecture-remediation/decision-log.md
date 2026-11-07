@@ -386,6 +386,36 @@ Records programme-level and per-track decisions for the architecture remediation
 
 ---
 
+### DEC-R021: Track T03 Review Mode — Whole-Track Review in PR
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Re-confirming review mode at the start of Track T03 per `DEC-R006`.
+- **Decision:** Whole-Track Review in PR. Execute all phases continuously (pausing for Phase 1 atomic decisions), run the three-auditor verification gate, and review the completed track in the Pull Request.
+
+---
+
+### DEC-R022: Domain-Grouped Module Locations for Shared Types, Spatial Maths, and Router Hooks (`AUD-030`–`AUD-035`, `AUD-037`)
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** `src/services/**`, `src/data/**`, `src/utils/**`, and `src/stores/**` imported types and pure maths from `src/components/canvas/**` (`AUD-030`) and `src/components/domain/**` (`AUD-034`); `src/data/searchRepository.ts` imported `SearchCategoryFilter` from `src/services/searchService.ts` (`AUD-031`); and views + `searchUrlSync.ts` imported `router`, `useSpaLocation`, and `StarmapSearchParams` from `src/router/index.tsx` (`AUD-032`).
+- **Options Considered:**
+  1. *Domain-grouped modules (`src/types/spatial.ts`, `src/types/search.ts`, `src/utils/spatialMath.ts`, `src/hooks/useSpaLocation.ts`).* Trade-off: clear modular boundaries under the 300-line file ceiling while satisfying `DEC-R012` layer ranks (`types` 0 $\leftarrow$ `utils` 1 $\leftarrow$ `data` 2 $\leftarrow$ `services` 3 $\leftarrow$ `stores` 4 $\leftarrow$ `hooks` 5 $\leftarrow$ `components` 6–8 $\leftarrow$ `views` 9 $\leftarrow$ `router` 10).
+  2. *Single barrel files (`src/types/astro.ts` and `src/utils/astroMath.ts`).* Trade-off: fewer files, but bloats existing large files (`astroMath.ts` is already >300 lines).
+- **Decision:** Option 1 (Domain-grouped modules).
+
+---
+
+### DEC-R023: Prototype Showcase Location (`AUD-036`)
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** `PaletteShowcaseScene` in `src/components/canvas/scenes/PaletteShowcaseScene.tsx` was exported from the production `src/components/canvas/scenes/index.ts` barrel and duplicated `src/components/prototypes/PaletteShowcase/PaletteShowcase.tsx`, which lived inside `src/components/prototypes/` without a component quad.
+- **Options Considered:**
+  1. *Move `PaletteShowcase` to `src/prototypes/PaletteShowcase/` for Storybook and delete the duplicate `PaletteShowcaseScene` from `src/components/canvas/scenes/`.* Trade-off: preserves the interactive colour-theme playground in Storybook while removing prototype code from `src/components/**` and production barrels.
+  2. *Delete both `PaletteShowcaseScene` and `PaletteShowcase`.* Trade-off: removes the colour-theme playground from Storybook.
+- **Decision:** Option 1. Delete `src/components/canvas/scenes/PaletteShowcaseScene.*` and its export from `src/components/canvas/scenes/index.ts`, move `src/components/prototypes/PaletteShowcase/*` to `src/prototypes/PaletteShowcase/*`, and update `.storybook/main.ts` to include `../src/prototypes`.
+
+---
+
 ## Process Log
 
 - **2026-11-06 · T01 reconnaissance:** the Flash `codebase-researcher` report contained about five factual errors (e2e spec count, untypechecked-scripts list, non-existent file paths, CI action versions). Countermeasure: Flash research prompts must include the raw command output supporting each claim. Counted towards the DEC-R007 review.

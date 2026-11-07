@@ -1,9 +1,9 @@
 {
   "id": "architecture-remediation_03_layering-cut_20261106",
   "type": "refactor",
-  "status": "new",
+  "status": "in_progress",
   "created_at": "2026-11-06T22:55:00Z",
-  "updated_at": "2026-11-06T22:55:00Z",
+  "updated_at": "2026-11-07T22:02:00Z",
   "initiative": "architecture-remediation",
   "phase": 3,
   "depends_on": [
