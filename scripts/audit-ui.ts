@@ -377,7 +377,7 @@ export function auditDynamicClassNamesContent(filePath: string, content: string)
   const lines = content.split('\n');
   diagnostics.push(...checkInvalidSuppressions(filePath, lines));
 
-  if (!content.includes('className=')) {
+  if (!/className\s*=/.test(content)) {
     return diagnostics;
   }
 
@@ -444,7 +444,7 @@ export function auditInlineStylesContent(filePath: string, content: string): Aud
   const lines = content.split('\n');
   diagnostics.push(...checkInvalidSuppressions(filePath, lines));
 
-  if (!content.includes('style=')) {
+  if (!/style\s*=/.test(content)) {
     return diagnostics;
   }
 
