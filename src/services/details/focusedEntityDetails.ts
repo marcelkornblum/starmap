@@ -121,24 +121,24 @@ export const mapManifestToStarsAndPlanets = (
       Number.isFinite(cataloguedA) &&
       cataloguedA > 0;
     const periodDays = p.orbit?.periodDays;
-    const hasPeriodDays =
-      typeof periodDays === 'number' &&
-      Number.isFinite(periodDays) &&
-      periodDays > 0;
 
     let semiMajorAxisAu: number | undefined;
     let isTheoreticalOrbit = false;
 
     if (hasCataloguedA) {
       semiMajorAxisAu = cataloguedA;
-    } else if (hasPeriodDays) {
+    } else if (
+      typeof periodDays === 'number' &&
+      Number.isFinite(periodDays) &&
+      periodDays > 0
+    ) {
       const starMass =
         typeof manifest.stars[0]?.massMsun === 'number' &&
         Number.isFinite(manifest.stars[0].massMsun) &&
         manifest.stars[0].massMsun > 0
           ? manifest.stars[0].massMsun
           : 1.0;
-      const periodYears = periodDays! / 365.25;
+      const periodYears = periodDays / 365.25;
       semiMajorAxisAu =
         Math.round(Math.cbrt(periodYears * periodYears * starMass) * 10000) /
         10000;
@@ -816,8 +816,6 @@ export const buildFocusedEntityDetails = (
     typeof rawA === 'number' && Number.isFinite(rawA) && rawA > 0;
   const periodDays =
     matchedPlanetDetail?.periodDays ?? fallbackPeriodDays;
-  const hasPeriodDays =
-    typeof periodDays === 'number' && Number.isFinite(periodDays) && periodDays > 0;
 
   let semiMajorAxisAu: number | undefined;
   let isTheoreticalOrbit = false;
@@ -828,14 +826,18 @@ export const buildFocusedEntityDetails = (
   } else if (hasCataloguedA) {
     semiMajorAxisAu = rawA;
     isTheoreticalOrbit = false;
-  } else if (hasPeriodDays) {
+  } else if (
+    typeof periodDays === 'number' &&
+    Number.isFinite(periodDays) &&
+    periodDays > 0
+  ) {
     const starMass =
       typeof sysManifest?.stars?.[0]?.massMsun === 'number' &&
       Number.isFinite(sysManifest.stars[0].massMsun) &&
       sysManifest.stars[0].massMsun > 0
         ? sysManifest.stars[0].massMsun
         : 1.0;
-    const periodYears = periodDays! / 365.25;
+    const periodYears = periodDays / 365.25;
     semiMajorAxisAu =
       Math.round(Math.cbrt(periodYears * periodYears * starMass) * 10000) /
       10000;

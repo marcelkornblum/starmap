@@ -393,8 +393,13 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     expect(canvasBox).not.toBeNull();
     const targetAttr = await rootHost.getAttribute('data-camera-target');
     const posAttr = await rootHost.getAttribute('data-camera-pos');
-    const [tX, tY, tZ] = targetAttr!.split(',').map(Number);
-    const [pX, pY, pZ] = posAttr!.split(',').map(Number);
+    expect(targetAttr).not.toBeNull();
+    expect(posAttr).not.toBeNull();
+    if (!canvasBox || !targetAttr || !posAttr) {
+      throw new Error('Missing canvas bounding box or camera telemetry');
+    }
+    const [tX, tY, tZ] = targetAttr.split(',').map(Number);
+    const [pX, pY, pZ] = posAttr.split(',').map(Number);
 
     const projectPoint = (pt: [number, number, number]) => {
       let zx = pX - tX;
@@ -418,13 +423,13 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
       const xCam = dx * xx + dy * xy;
       const yCam = dx * yx + dy * yy + dz * yz;
       const zCam = -(dx * zx + dy * zy + dz * zz);
-      const aspect = canvasBox!.width / canvasBox!.height;
+      const aspect = canvasBox.width / canvasBox.height;
       const tanFov = Math.tan(((45 / 2) * Math.PI) / 180);
       const ndcX = xCam / (zCam * tanFov * aspect);
       const ndcY = yCam / (zCam * tanFov);
       return {
-        x: canvasBox!.x + (ndcX * 0.5 + 0.5) * canvasBox!.width,
-        y: canvasBox!.y + (-ndcY * 0.5 + 0.5) * canvasBox!.height,
+        x: canvasBox.x + (ndcX * 0.5 + 0.5) * canvasBox.width,
+        y: canvasBox.y + (-ndcY * 0.5 + 0.5) * canvasBox.height,
       };
     };
 
