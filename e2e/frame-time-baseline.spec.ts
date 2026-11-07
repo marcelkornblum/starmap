@@ -42,62 +42,95 @@ async function measurePointerDragMetrics(
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
 
-  // Start requestAnimationFrame timestamp recording in the browser context
-  await page.evaluate(() => {
-    (window as unknown as { __rafTimestamps: number[]; __rafRunning: boolean }).__rafTimestamps = [];
-    (window as unknown as { __rafTimestamps: number[]; __rafRunning: boolean }).__rafRunning = true;
-    function recordFrame(now: number) {
-      const state = window as unknown as { __rafTimestamps: number[]; __rafRunning: boolean };
-      if (!state.__rafRunning) return;
-      state.__rafTimestamps.push(now);
-      requestAnimationFrame(recordFrame);
-    }
-    requestAnimationFrame(recordFrame);
-  });
+  // Drive 30-frame pointer drag and rAF timestamp collection entirely inside the browser context (zero CDP IPC roundtrip latency)
+  const stats = await page.evaluate(
+    ({ centerX, centerY }) =>
+      new Promise<{
+        fps: number;
+        meanFrameTimeMs: number;
+        p95FrameTimeMs: number;
+        frameCount: number;
+        totalDuration: number;
+      }>((resolve) => {
+        const canvasEl = document.querySelector('[data-testid="root-canvas-host"] canvas');
+        const timestamps: number[] = [];
+        const radius = 80;
+        const totalSteps = 30;
+        let step = 0;
 
-  // Perform 30-frame pointer drag synchronized to browser requestAnimationFrame ticks
-  await page.mouse.move(cx, cy);
-  await page.mouse.down({ button: 'left' });
-  const radius = 80;
-  const steps = 30;
-  for (let i = 0; i < steps; i++) {
-    const angle = (i / steps) * Math.PI * 2;
-    await page.mouse.move(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
-    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
-  }
-  await page.mouse.up({ button: 'left' });
+        if (canvasEl) {
+          canvasEl.dispatchEvent(
+            new PointerEvent('pointerdown', {
+              clientX: centerX,
+              clientY: centerY,
+              button: 0,
+              buttons: 1,
+              bubbles: true,
+            }),
+          );
+        }
 
-  // Stop recording and compute metrics
-  const stats = await page.evaluate(() => {
-    const state = window as unknown as { __rafTimestamps: number[]; __rafRunning: boolean };
-    state.__rafRunning = false;
-    const timestamps = state.__rafTimestamps;
-    if (timestamps.length < 2) {
-      return { fps: 0, meanFrameTimeMs: 0, p95FrameTimeMs: 0, frameCount: timestamps.length, totalDuration: 0 };
-    }
-    const deltas: number[] = [];
-    for (let i = 1; i < timestamps.length; i++) {
-      deltas.push(timestamps[i] - timestamps[i - 1]);
-    }
-    const totalDuration = timestamps[timestamps.length - 1] - timestamps[0];
-    const fps = (deltas.length / totalDuration) * 1000;
-    const meanFrameTimeMs = totalDuration / deltas.length;
+        function onFrame(now: number) {
+          timestamps.push(now);
+          if (step < totalSteps) {
+            const angle = (step / totalSteps) * Math.PI * 2;
+            if (canvasEl) {
+              canvasEl.dispatchEvent(
+                new PointerEvent('pointermove', {
+                  clientX: centerX + Math.cos(angle) * radius,
+                  clientY: centerY + Math.sin(angle) * radius,
+                  button: 0,
+                  buttons: 1,
+                  bubbles: true,
+                }),
+              );
+            }
+            step++;
+            requestAnimationFrame(onFrame);
+            return;
+          }
 
-    const sortedDeltas = [...deltas].sort((a, b) => a - b);
-    const p95Index = Math.min(
-      sortedDeltas.length - 1,
-      Math.floor(sortedDeltas.length * 0.95),
-    );
-    const p95FrameTimeMs = sortedDeltas[p95Index];
+          if (canvasEl) {
+            canvasEl.dispatchEvent(
+              new PointerEvent('pointerup', {
+                clientX: centerX,
+                clientY: centerY,
+                button: 0,
+                buttons: 0,
+                bubbles: true,
+              }),
+            );
+          }
 
-    return {
-      fps: Number(fps.toFixed(2)),
-      meanFrameTimeMs: Number(meanFrameTimeMs.toFixed(2)),
-      p95FrameTimeMs: Number(p95FrameTimeMs.toFixed(2)),
-      frameCount: deltas.length,
-      totalDuration: Number(totalDuration.toFixed(2)),
-    };
-  });
+          if (timestamps.length < 2) {
+            resolve({ fps: 0, meanFrameTimeMs: 0, p95FrameTimeMs: 0, frameCount: timestamps.length, totalDuration: 0 });
+            return;
+          }
+
+          const deltas: number[] = [];
+          for (let i = 1; i < timestamps.length; i++) {
+            deltas.push(timestamps[i] - timestamps[i - 1]);
+          }
+          const totalDuration = timestamps[timestamps.length - 1] - timestamps[0];
+          const fps = (deltas.length / totalDuration) * 1000;
+          const meanFrameTimeMs = totalDuration / deltas.length;
+          const sortedDeltas = [...deltas].sort((a, b) => a - b);
+          const p95Index = Math.min(sortedDeltas.length - 1, Math.floor(sortedDeltas.length * 0.95));
+          const p95FrameTimeMs = sortedDeltas[p95Index];
+
+          resolve({
+            fps: Number(fps.toFixed(2)),
+            meanFrameTimeMs: Number(meanFrameTimeMs.toFixed(2)),
+            p95FrameTimeMs: Number(p95FrameTimeMs.toFixed(2)),
+            frameCount: deltas.length,
+            totalDuration: Number(totalDuration.toFixed(2)),
+          });
+        }
+
+        requestAnimationFrame(onFrame);
+      }),
+    { centerX: cx, centerY: cy },
+  );
 
   console.log(
     `[Frame-Time Telemetry] ${route} Measured: ${stats.fps.toFixed(1)} FPS | Mean: ${stats.meanFrameTimeMs.toFixed(2)}ms | p95: ${stats.p95FrameTimeMs.toFixed(2)}ms (${stats.frameCount} frames over ${stats.totalDuration.toFixed(0)}ms)`,

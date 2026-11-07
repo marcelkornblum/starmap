@@ -773,9 +773,10 @@ export function runAllGuards(projectRoot = process.cwd()): GuardViolation[] {
   // 5. G-lint-warnings (from oxlint)
   let oxlintOutput: string | null = null;
   try {
-    oxlintOutput = execFileSync('npx', ['--no-install', 'oxlint', '--format', 'json'], {
+    oxlintOutput = execFileSync('npx', ['--no', 'oxlint', '--format', 'json'], {
       cwd: projectRoot,
       encoding: 'utf8',
+      shell: process.platform === 'win32',
       stdio: ['ignore', 'pipe', 'ignore'],
     });
   } catch (err: unknown) {

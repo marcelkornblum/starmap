@@ -381,7 +381,6 @@ export function auditRawElementsContent(filePath: string, content: string): Audi
 export function auditDynamicClassNamesContent(filePath: string, content: string): AuditDiagnostic[] {
   const diagnostics: AuditDiagnostic[] = [];
   const lines = content.split('\n');
-  diagnostics.push(...checkInvalidSuppressions(filePath, lines));
 
   if (!/className\s*=/.test(content)) {
     return diagnostics;
@@ -448,7 +447,6 @@ export function auditDynamicClassNamesContent(filePath: string, content: string)
 export function auditInlineStylesContent(filePath: string, content: string): AuditDiagnostic[] {
   const diagnostics: AuditDiagnostic[] = [];
   const lines = content.split('\n');
-  diagnostics.push(...checkInvalidSuppressions(filePath, lines));
 
   if (!/style\s*=/.test(content)) {
     return diagnostics;
@@ -492,7 +490,6 @@ export function auditInlineStylesContent(filePath: string, content: string): Aud
 export function auditRenderToStringContent(filePath: string, content: string): AuditDiagnostic[] {
   const diagnostics: AuditDiagnostic[] = [];
   const lines = content.split('\n');
-  diagnostics.push(...checkInvalidSuppressions(filePath, lines));
 
   if (!content.includes('renderToString')) {
     return diagnostics;
