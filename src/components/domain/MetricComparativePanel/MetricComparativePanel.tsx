@@ -21,6 +21,8 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
     comparison.targets && comparison.targets.length > 0
       ? comparison.targets
       : [comparison];
+  const symbolType =
+    entry.category === 'Stellar Telemetry' ? 'star' : 'terrestrial';
 
   return (
     <section
@@ -49,7 +51,7 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
           <Heading as="h4">
             Baseline:{' '}
             <Cluster as="span" gap="tight" align="center">
-              <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
+              <CelestialSymbol type={symbolType} size="sm" showTooltip={false} />
               <a href={resolveAppHref(comparison.baselineHref)}>{comparison.baselineName}</a>
             </Cluster>
           </Heading>
@@ -73,7 +75,7 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
               Target:{' '}
               <Cluster as="span" gap="tight" align="center">
                 <CelestialSymbol
-                  type="terrestrial"
+                  type={symbolType}
                   size="sm"
                   showTooltip={false}
                 />

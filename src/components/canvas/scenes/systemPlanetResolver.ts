@@ -32,7 +32,8 @@ export function resolveSystemPlanetEntity(
   const node = finiteOr(planet.orbit?.ascendingNode, 0);
   const peri = finiteOr(planet.orbit?.argumentOfPeriapsis, 0);
   const meanAnomaly = finiteOr(planet.orbit?.meanAnomaly, (index * 60) % 360);
-  const period = cataloguedP ?? Math.round(Math.pow(a, 1.5) * 365.25);
+  const period =
+    cataloguedP ?? Math.round((Math.pow(a, 1.5) / Math.sqrt(starMass)) * 365.25);
 
   return {
     id: planet.id,
