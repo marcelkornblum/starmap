@@ -3,6 +3,7 @@ import {
   useCanvasStageStore,
   setStageCallbacks,
   getStageCallbacks,
+  subscribeStageCallbacks,
   type CanvasStageData,
 } from './useCanvasStageStore';
 
@@ -99,5 +100,21 @@ describe('useCanvasStageStore', () => {
     useCanvasStageStore.getState().resetCanvasStageStore();
     expect(useCanvasStageStore.getState().isRootCanvasMounted).toBe(false);
     expect(getStageCallbacks()).toEqual({});
+  });
+
+  it('notifies subscribers when stage callbacks change and skips redundant notifications', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeStageCallbacks(listener);
+    const onInspect = vi.fn();
+
+    setStageCallbacks({ onInspect });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    setStageCallbacks({ onInspect });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    setStageCallbacks({});
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });

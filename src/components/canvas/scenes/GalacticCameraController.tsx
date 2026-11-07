@@ -84,7 +84,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       position: pos,
       target: tgt,
       up,
-      zoom: camera.zoom,
+      zoom: 'zoom' in camera && typeof camera.zoom === 'number' ? camera.zoom : 1,
       focalDistance,
       centerKey: `${tgt[0]},${tgt[1]},${tgt[2]}`,
     });

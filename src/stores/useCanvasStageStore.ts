@@ -29,14 +29,36 @@ export interface CanvasStageCallbacks {
   readonly onSelect?: (id: string | null) => void;
 }
 
-let stageCallbacks: CanvasStageCallbacks = {};
+const EMPTY_STAGE_CALLBACKS: CanvasStageCallbacks = {};
+let stageCallbacks: CanvasStageCallbacks = EMPTY_STAGE_CALLBACKS;
+const stageCallbackListeners = new Set<() => void>();
+
+function notifyStageCallbackListeners(): void {
+  for (const listener of stageCallbackListeners) {
+    listener();
+  }
+}
 
 export function setStageCallbacks(callbacks: CanvasStageCallbacks): void {
+  if (
+    stageCallbacks.onInspect === callbacks.onInspect &&
+    stageCallbacks.onSelect === callbacks.onSelect
+  ) {
+    return;
+  }
   stageCallbacks = callbacks;
+  notifyStageCallbackListeners();
 }
 
 export function getStageCallbacks(): CanvasStageCallbacks {
   return stageCallbacks;
+}
+
+export function subscribeStageCallbacks(listener: () => void): () => void {
+  stageCallbackListeners.add(listener);
+  return () => {
+    stageCallbackListeners.delete(listener);
+  };
 }
 
 export interface CanvasStageState {
@@ -107,11 +129,11 @@ export const useCanvasStageStore = create<CanvasStageStore>()((set) => ({
   setStageProps: (props: CanvasStageData) =>
     set({ stageProps: sanitizeStageProps(props) }),
   clearStageProps: () => {
-    stageCallbacks = {};
+    setStageCallbacks(EMPTY_STAGE_CALLBACKS);
     set({ stageProps: null });
   },
   resetCanvasStageStore: () => {
-    stageCallbacks = {};
+    setStageCallbacks(EMPTY_STAGE_CALLBACKS);
     set({ ...INITIAL_CANVAS_STAGE_STATE });
   },
 }));

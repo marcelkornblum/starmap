@@ -43,6 +43,21 @@ export function computeApertureRadius(
   return baseRadius * (clampedCamDist / effectiveRefDist);
 }
 
+const ORIGIN_VEC3: Vec3Tuple = [0, 0, 0];
+
+/**
+ * Computes scalar 3D Euclidean distance between two positions without heap allocations.
+ */
+export function computeDistance3D(
+  pos: Vec3Tuple,
+  origin: Vec3Tuple = ORIGIN_VEC3,
+): number {
+  const dx = pos[0] - origin[0];
+  const dy = pos[1] - origin[1];
+  const dz = pos[2] - origin[2];
+  return Math.hypot(dx, dy, dz);
+}
+
 /**
  * Returns true if a position is within the aperture radius of origin.
  */

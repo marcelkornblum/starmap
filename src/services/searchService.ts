@@ -53,8 +53,7 @@ import {
   hasExplicitFocusParam,
   parseLayerQueryParam,
 } from '../utils/url';
-import { computeEuclideanDistance3D } from '../utils/astroMath';
-import { isInsideAperture } from '../utils/spatialMath';
+import { computeDistance3D, isInsideAperture } from '../utils/spatialMath';
 import {
   SEARCH_CATEGORIES,
   type SearchCategoryFilter,
@@ -584,7 +583,7 @@ export const toSearchResultItem = (
   if (entry.p) {
     const [x, y, z] = entry.p;
     position = [x, y, z];
-    distancePc = Math.round(computeEuclideanDistance3D(entry.p, ORIGIN_3D).distance * 100) / 100;
+    distancePc = Math.round(computeDistance3D(entry.p, ORIGIN_3D) * 100) / 100;
   } else if (entry.h === 1) {
     position = ORIGIN_3D;
     distancePc = 0;

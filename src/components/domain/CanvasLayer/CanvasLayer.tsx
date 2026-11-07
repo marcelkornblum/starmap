@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
 import {
@@ -10,6 +10,7 @@ import {
   useCanvasStageStore,
   setStageCallbacks,
   getStageCallbacks,
+  subscribeStageCallbacks,
 } from '../../../stores/useCanvasStageStore';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import styles from './CanvasLayer.module.css';
@@ -232,7 +233,11 @@ export const RootCanvasHost: React.FC = () => {
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
   const activeSlotCount = useCanvasStageStore((s) => s.activeSlotCount);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
-  const { onInspect, onSelect } = getStageCallbacks();
+  const { onInspect, onSelect } = useSyncExternalStore(
+    subscribeStageCallbacks,
+    getStageCallbacks,
+    getStageCallbacks,
+  );
 
   const cameraMode = useCameraStore((s) => s.mode);
   const cameraPosition = useCameraStore((s) => s.position);

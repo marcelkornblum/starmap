@@ -3,6 +3,7 @@ import {
   QUADRANTS,
   buildJourneyChordRenderData,
   computeApertureRadius,
+  computeDistance3D,
   computePerimeterFade,
   deriveEntityTier,
   isFootprintVisible,
@@ -199,6 +200,13 @@ describe('spatialMath', () => {
         { qx: -1, qy: -1 },
         { qx: 1, qy: -1 },
       ]);
+    });
+  });
+
+  describe('computeDistance3D', () => {
+    it('computes 3D Euclidean distance from origin or custom anchor', () => {
+      expect(computeDistance3D([3, 4, 12])).toBe(13);
+      expect(computeDistance3D([4, 6, 15], [1, 2, 3])).toBe(13);
     });
   });
 });
