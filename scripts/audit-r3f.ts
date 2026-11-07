@@ -650,7 +650,7 @@ export function runR3FAudit(): number {
   // Group violations by ruleId::relPath
   const violationCounts = new Map<string, number>();
   for (const diag of diagnostics) {
-    const rel = path.relative(process.cwd(), path.resolve(diag.filePath));
+    const rel = path.relative(process.cwd(), path.resolve(diag.filePath)).replace(/\\/g, '/');
     const key = `${diag.ruleId}::${rel}`;
     violationCounts.set(key, (violationCounts.get(key) || 0) + 1);
   }
@@ -670,7 +670,7 @@ export function runR3FAudit(): number {
     for (const [file, diags] of byFile) {
       console.log(`\n📄 ${file}:`);
       for (const diag of diags) {
-        const rel = path.relative(process.cwd(), path.resolve(diag.filePath));
+        const rel = path.relative(process.cwd(), path.resolve(diag.filePath)).replace(/\\/g, '/');
         const key = `${diag.ruleId}::${rel}`;
         const baselineEntry = baseline?.entries[key];
         const isBaselined = baselineEntry !== undefined;

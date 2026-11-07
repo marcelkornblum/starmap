@@ -120,7 +120,7 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         // Navigating with coordinate centre sets camera target in reference frame
         await page.goto('/galaxy?center=10.5,20.0,-5.2');
         await expect(page.getByTestId('galaxy-view-root')).toBeVisible();
-        await expect(page).toHaveURL(/center=10\.5%2C20(?:\.0)?%2C-5\.2|center=10\.5,20(?:\.0)?,--5\.2/);
+        await expect(page).toHaveURL(/center=10\.5%2C20(?:\.0)?%2C-5\.2|center=10\.5,20(?:\.0)?,-5\.2/);
 
         // Navigating with entity id sets centre
         await page.goto('/galaxy?center=sol');
