@@ -1,0 +1,12 @@
+{
+  "id": "architecture-remediation_10_closing-audit_20261106",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-11-06T22:55:00Z",
+  "updated_at": "2026-11-06T22:55:00Z",
+  "initiative": "architecture-remediation",
+  "phase": 10,
+  "depends_on": [
+    "architecture-remediation_09_test-restructure_20261106"
+  ]
+}

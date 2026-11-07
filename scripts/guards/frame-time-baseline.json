@@ -1,0 +1,17 @@
+{
+  "/galaxy": {
+    "fps": 20.8,
+    "meanFrameTimeMs": 48.14,
+    "p95FrameTimeMs": 120.0
+  },
+  "/system/sol": {
+    "fps": 7.5,
+    "meanFrameTimeMs": 133.11,
+    "p95FrameTimeMs": 270.0
+  },
+  "/planet/earth": {
+    "fps": 16.5,
+    "meanFrameTimeMs": 60.45,
+    "p95FrameTimeMs": 170.0
+  }
+}

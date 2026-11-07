@@ -58,6 +58,60 @@ export interface ThresholdConfig {
   functions?: number;
 }
 
+export const DEFAULT_THRESHOLDS: Required<ThresholdConfig> = {
+  lines: 78,
+  statements: 78,
+  branches: 70,
+  functions: 78,
+};
+
+export function parseVitestThresholds(configContent: string): ThresholdConfig {
+  const match = configContent.match(/thresholds:\s*\{([^}]+)\}/);
+  if (!match) return {};
+  const block = match[1];
+  const parseVal = (name: string): number | undefined => {
+    const m = block.match(new RegExp(`${name}:\\s*(\\d+)`));
+    return m ? Number.parseInt(m[1], 10) : undefined;
+  };
+  return {
+    lines: parseVal('lines'),
+    statements: parseVal('statements'),
+    branches: parseVal('branches'),
+    functions: parseVal('functions'),
+  };
+}
+
+export function getVitestCoverageThresholds(viteConfigPath?: string): Required<ThresholdConfig> {
+  let targetPath = viteConfigPath;
+  if (!targetPath) {
+    const cwdConfig = path.resolve(process.cwd(), 'vite.config.ts');
+    if (fs.existsSync(cwdConfig)) {
+      targetPath = cwdConfig;
+    } else {
+      const scriptRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'vite.config.ts');
+      if (fs.existsSync(scriptRoot)) {
+        targetPath = scriptRoot;
+      }
+    }
+  }
+
+  if (targetPath && fs.existsSync(targetPath)) {
+    try {
+      const content = fs.readFileSync(targetPath, 'utf8');
+      const parsed = parseVitestThresholds(content);
+      return {
+        lines: parsed.lines ?? DEFAULT_THRESHOLDS.lines,
+        statements: parsed.statements ?? DEFAULT_THRESHOLDS.statements,
+        branches: parsed.branches ?? DEFAULT_THRESHOLDS.branches,
+        functions: parsed.functions ?? DEFAULT_THRESHOLDS.functions,
+      };
+    } catch {
+      // Fallback to default thresholds
+    }
+  }
+  return { ...DEFAULT_THRESHOLDS };
+}
+
 export function getStatusIndicator(pct: number, threshold = 80): string {
   if (pct >= threshold) return '🟢';
   if (pct >= 50) return '🟡';
@@ -188,8 +242,14 @@ export function generateCoverageMarkdown(
   total: FileCoverageRecord,
   moduleSummaries: ModuleSummary[],
   filesList: FileSummary[],
-  ratchetThresholds: ThresholdConfig = { lines: 64, branches: 58, functions: 70, statements: 65 }
+  ratchetThresholds?: ThresholdConfig
 ): string {
+  const baseThresholds = getVitestCoverageThresholds();
+  const linesRatchet = ratchetThresholds?.lines ?? baseThresholds.lines;
+  const stmtsRatchet = ratchetThresholds?.statements ?? baseThresholds.statements;
+  const branchesRatchet = ratchetThresholds?.branches ?? baseThresholds.branches;
+  const funcsRatchet = ratchetThresholds?.functions ?? baseThresholds.functions;
+
   const linesTotal = total.lines?.total ?? 0;
   const linesCov = total.lines?.covered ?? 0;
   const linesPct = total.lines?.pct ?? 0;
@@ -211,11 +271,6 @@ export function generateCoverageMarkdown(
   const overallPct = combTot > 0 ? Math.round((combCov / combTot) * 100) : Math.round(linesPct);
   const badgeColour = getBadgeColour(overallPct);
   const badgeUrl = `https://img.shields.io/badge/Coverage-${overallPct}%25-${badgeColour}.svg`;
-
-  const linesRatchet = ratchetThresholds.lines ?? 64;
-  const stmtsRatchet = ratchetThresholds.statements ?? 65;
-  const branchesRatchet = ratchetThresholds.branches ?? 58;
-  const funcsRatchet = ratchetThresholds.functions ?? 70;
 
   const linesStatus = linesPct >= linesRatchet ? '🟢 Pass' : '🔴 Below Ratchet';
   const stmtsStatus = stmtsPct >= stmtsRatchet ? '🟢 Pass' : '🔴 Below Ratchet';
@@ -264,6 +319,27 @@ export function generateCoverageMarkdown(
   return lines.join('\n');
 }
 
+export function isCoverageSummaryData(val: unknown): val is CoverageSummaryData {
+  if (!val || typeof val !== 'object') return false;
+  const obj = val as Record<string, unknown>;
+  if (!obj.total || typeof obj.total !== 'object') return false;
+  const total = obj.total as Record<string, unknown>;
+  const metrics = ['lines', 'statements', 'functions', 'branches'] as const;
+  for (const m of metrics) {
+    if (!total[m] || typeof total[m] !== 'object') return false;
+    const metric = total[m] as Record<string, unknown>;
+    if (typeof metric.pct !== 'number') return false;
+  }
+  return true;
+}
+
+export function isGitHubCommentList(val: unknown): val is Array<{ id: number; body?: string }> {
+  if (!Array.isArray(val)) return false;
+  return val.every(
+    (item) => item && typeof item === 'object' && typeof (item as { id?: unknown }).id === 'number'
+  );
+}
+
 export async function findExistingCoverageComment(
   repo: string,
   prNumber: string,
@@ -283,8 +359,8 @@ export async function findExistingCoverageComment(
     return null;
   }
 
-  const comments = (await response.json()) as Array<{ id: number; body?: string }>;
-  if (!Array.isArray(comments)) return null;
+  const comments: unknown = await response.json();
+  if (!isGitHubCommentList(comments)) return null;
 
   const markers = [COMMENT_MARKER, ...LEGACY_MARKERS];
   for (const c of comments) {
@@ -356,7 +432,12 @@ export async function run(): Promise<number> {
   }
 
   const raw = fs.readFileSync(summaryPath, 'utf8');
-  const data = JSON.parse(raw) as CoverageSummaryData;
+  const parsed: unknown = JSON.parse(raw);
+  if (!isCoverageSummaryData(parsed)) {
+    console.error(`Error: coverage summary at '${summaryPath}' is not valid CoverageSummaryData.`);
+    return 1;
+  }
+  const data = parsed;
   const repoRoot = process.cwd();
 
   const { total, moduleSummaries, filesList } = parseCoverageData(data, repoRoot);

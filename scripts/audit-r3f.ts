@@ -20,18 +20,34 @@ const INVALID_R3F_TAGS = new Set(['threeline']);
 /**
  * Checks whether a comment on the preceding line or current line suppresses the diagnostic.
  */
+function checkSuppression(text: string, ruleId: string): { suppressed: boolean; invalid: boolean } | null {
+  const match = text.match(/\/\/\s*r3f-audit-disable(?:-next-line)?(?:\s+([\w-]+))?(.*)/);
+  if (!match) return null;
+  const specifiedRule = match[1];
+  const rest = match[2]?.trim() || '';
+
+  if (specifiedRule && specifiedRule !== ruleId) {
+    return null;
+  }
+
+  const reasonMatch = rest.match(/^--\s+(\S+.*)/);
+  if (!reasonMatch) {
+    return { suppressed: false, invalid: true };
+  }
+  return { suppressed: true, invalid: false };
+}
+
 function isLineSuppressed(lines: string[], targetLine: number, ruleId: string): boolean {
   const prevLine = targetLine > 1 ? lines[targetLine - 2] : '';
   const currentLine = lines[targetLine - 1] || '';
 
-  const checkComment = (text: string) => {
-    const match = text.match(/\/\/\s*r3f-audit-disable(?:-next-line)?(?:\s+([\w-]+))?/);
-    if (!match) return false;
-    const specifiedRule = match[1];
-    return !specifiedRule || specifiedRule === ruleId;
-  };
+  const resPrev = checkSuppression(prevLine, ruleId);
+  if (resPrev && resPrev.suppressed) return true;
 
-  return checkComment(prevLine) || checkComment(currentLine);
+  const resCurr = checkSuppression(currentLine, ruleId);
+  if (resCurr && resCurr.suppressed) return true;
+
+  return false;
 }
 
 /**
@@ -67,6 +83,27 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
 
   const lines = sourceText.split('\n');
 
+  // Check for unreasoned r3f-audit-disable comments
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = line.match(/\/\/\s*r3f-audit-disable(?:-next-line)?(?:\s+([\w-]+))?(.*)/);
+    if (match) {
+      const rest = match[2]?.trim() || '';
+      if (!rest.match(/^--\s+(\S+.*)/)) {
+        diagnostics.push({
+          filePath,
+          line: i + 1,
+          column: (line.indexOf('//') >= 0 ? line.indexOf('//') : 0) + 1,
+          ruleId: 'invalid-suppression',
+          severity: 'error',
+          message: `Suppression comment "${line.trim()}" without a required reason (-- <reason>) is forbidden.`,
+          snippet: line.trim().slice(0, 80),
+          remediation: 'Provide a clear technical justification after "-- <reason>".',
+        });
+      }
+    }
+  }
+
   function addDiagnostic(
     loc: { line: number; column: number } | undefined,
     ruleId: string,
@@ -96,11 +133,302 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     loc?: { start: { line: number; column: number }; end?: { line: number; column: number } };
     callee?: ASTNode;
     arguments?: ASTNode[];
-    body?: ASTNode;
-    name?: ASTNode & { name?: string };
-    property?: ASTNode & { name?: string };
+    params?: ASTNode[];
+    body?: ASTNode | ASTNode[];
+    name?: string | (ASTNode & { name?: string; type?: string; loc?: { start: { line: number; column: number } } });
+    property?: { name?: string; type?: string };
+    elements?: ASTNode[];
     [key: string]: unknown;
   }
+
+  function getConstructorName(callee: ASTNode | undefined): string {
+    if (!callee) return '';
+    if (callee.type === 'Identifier' && typeof callee.name === 'string') {
+      return callee.name;
+    }
+    if (callee.type === 'MemberExpression' && callee.property && typeof callee.property.name === 'string') {
+      return callee.property.name;
+    }
+    return '';
+  }
+
+  function hasNewMaterial(factoryNode: ASTNode | undefined): boolean {
+    if (!factoryNode) return false;
+    let found = false;
+    const check = (n: unknown) => {
+      if (!n || typeof n !== 'object' || found) return;
+      const obj = n as ASTNode;
+      if (obj.type === 'NewExpression' && getConstructorName(obj.callee).endsWith('Material')) {
+        found = true;
+        return;
+      }
+      for (const k of Object.keys(obj)) {
+        if (k === 'loc' || k === 'range' || k === 'comments') continue;
+        const child = obj[k];
+        if (Array.isArray(child)) {
+          for (const item of child) check(item);
+        } else if (child && typeof child === 'object') {
+          check(child);
+        }
+      }
+    };
+    check(factoryNode);
+    return found;
+  }
+
+  let insideUseMemoDepth = 0;
+  let insideJsxExprDepth = 0;
+
+  function traverseAst(node: unknown) {
+    if (!node || typeof node !== 'object') return;
+    const obj = node as ASTNode;
+
+    const isUseMemoCall =
+      obj.type === 'CallExpression' &&
+      (obj.callee?.type === 'Identifier'
+        ? obj.callee.name === 'useMemo'
+        : obj.callee?.type === 'MemberExpression' && obj.callee.property?.type === 'Identifier'
+        ? obj.callee.property.name === 'useMemo'
+        : false);
+
+    const isJsxExpr = obj.type === 'JSXExpressionContainer';
+
+    // 1. Check no-material-memo-color-deps
+    if (isUseMemoCall) {
+      const factory = obj.arguments?.[0];
+      const deps = obj.arguments?.[1];
+      if (
+        factory &&
+        hasNewMaterial(factory) &&
+        deps &&
+        deps.type === 'ArrayExpression' &&
+        Array.isArray(deps.elements)
+      ) {
+        for (const el of deps.elements) {
+          if (!el) continue;
+          let depName = '';
+          if (el.type === 'Identifier' && typeof el.name === 'string') {
+            depName = el.name;
+          } else if (
+            el.type === 'MemberExpression' &&
+            el.property &&
+            typeof el.property.name === 'string'
+          ) {
+            depName = el.property.name;
+          }
+          if (depName && /color|colour|opacity|emissive/i.test(depName)) {
+            addDiagnostic(
+              el.loc?.start || obj.loc?.start,
+              'no-material-memo-color-deps',
+              'error',
+              `Material recreation dependency \`${depName}\` detected in useMemo dependency array. Recreating materials on color/opacity change forces WebGL shader recompilations.`,
+              'Mutate material color/opacity in-place via refs or uniforms in useEffect/useFrame rather than recreating the material instance.'
+            );
+          }
+        }
+      }
+    }
+
+    // 2. Check no-inline-jsx-geometry
+    if (obj.type === 'NewExpression' && insideJsxExprDepth > 0 && insideUseMemoDepth === 0) {
+      const ctorName = getConstructorName(obj.callee);
+      if (ctorName.endsWith('Geometry')) {
+        addDiagnostic(
+          obj.loc?.start,
+          'no-inline-jsx-geometry',
+          'error',
+          `Inline geometry instantiation \`new ${ctorName}()\` inside JSX prop. Geometries created in JSX are recreated on every render and leak GPU memory unless disposed.`,
+          'Instantiate geometry in useMemo or module scope, and dispose on unmount.'
+        );
+      }
+    }
+
+    // 3. Detect useFrame calls and inspect their hot-path callback bodies
+    if (obj.type === 'CallExpression') {
+      const callee = obj.callee;
+      const callName: string =
+        callee?.type === 'Identifier' && typeof callee.name === 'string'
+          ? callee.name
+          : callee?.type === 'MemberExpression' && typeof callee.property?.name === 'string'
+          ? callee.property.name
+          : '';
+
+      if (callName === 'useFrame') {
+        const callbackArg = obj.arguments?.[0];
+        if (
+          callbackArg &&
+          (callbackArg.type === 'ArrowFunctionExpression' ||
+            callbackArg.type === 'FunctionExpression') &&
+          callbackArg.body
+        ) {
+          auditUseFrameCallback(callbackArg.body as ASTNode);
+        }
+      }
+
+      // 4. Detect atomic-store-selectors: Zustand store subscriptions
+      if (
+        callName !== 'useSyncExternalStore' &&
+        (/^use[A-Z]\w*Store$/.test(callName) ||
+          callName === 'useThemeStore' ||
+          callName === 'useStarmapStore')
+      ) {
+        if (!obj.arguments || obj.arguments.length === 0) {
+          addDiagnostic(
+            obj.loc?.start,
+            'atomic-store-selectors',
+            'error',
+            `Whole-store subscription detected (\`${callName}()\`). Subscribing to the entire store forces full component re-renders on any state change.`,
+            `Subscribe to discrete atomic state selectors instead (e.g. \`${callName}(s => s.foo)\`).`
+          );
+        } else {
+          let selectorArg: ASTNode | undefined = obj.arguments[0];
+          let isShallow = false;
+          if (
+            selectorArg &&
+            selectorArg.type === 'CallExpression' &&
+            selectorArg.callee?.type === 'Identifier' &&
+            selectorArg.callee.name === 'useShallow'
+          ) {
+            selectorArg = selectorArg.arguments?.[0];
+            isShallow = true;
+          }
+
+          if (
+            selectorArg &&
+            (selectorArg.type === 'ArrowFunctionExpression' ||
+              selectorArg.type === 'FunctionExpression')
+          ) {
+            const body = selectorArg.body;
+            const param = selectorArg.params?.[0];
+            const paramName = param && param.type === 'Identifier' ? param.name : undefined;
+
+            if (body && !Array.isArray(body)) {
+              // Identity selector: (state) => state or s => s
+              if (paramName) {
+                if (body.type === 'Identifier' && body.name === paramName) {
+                  addDiagnostic(
+                    body.loc?.start || obj.loc?.start,
+                    'atomic-store-selectors',
+                    'error',
+                    `Identity store selector detected (\`${callName}(${paramName} => ${paramName})\`). Subscribing to the entire store object forces full component re-renders on any state change.`,
+                    `Subscribe to discrete atomic state selectors instead (e.g. \`${callName}(s => s.foo)\`).`
+                  );
+                } else if (body.type === 'BlockStatement' && Array.isArray(body.body)) {
+                  const returnStmt = body.body.find(
+                    (s: ASTNode) => s.type === 'ReturnStatement'
+                  ) as ASTNode | undefined;
+                  const retArg = returnStmt?.argument as ASTNode | undefined;
+                  if (retArg && retArg.type === 'Identifier' && retArg.name === paramName) {
+                    addDiagnostic(
+                      retArg.loc?.start || obj.loc?.start,
+                      'atomic-store-selectors',
+                      'error',
+                      `Identity store selector detected (\`${callName}(${paramName} => ${paramName})\`). Subscribing to the entire store object forces full component re-renders on any state change.`,
+                      `Subscribe to discrete atomic state selectors instead (e.g. \`${callName}(s => s.foo)\`).`
+                    );
+                  }
+                }
+              }
+
+              // Object-literal returning selector: s => ({ a: s.a })
+              let returnedObj: ASTNode | undefined;
+              if (body.type === 'ObjectExpression') {
+                returnedObj = body;
+              } else if (body.type === 'BlockStatement' && Array.isArray(body.body)) {
+                const returnStmt = body.body.find(
+                  (s: ASTNode) => s.type === 'ReturnStatement'
+                ) as ASTNode | undefined;
+                const retArg = returnStmt?.argument as ASTNode | undefined;
+                if (retArg && retArg.type === 'ObjectExpression') {
+                  returnedObj = retArg;
+                }
+              }
+              if (returnedObj && !isShallow) {
+                addDiagnostic(
+                  returnedObj.loc?.start || obj.loc?.start,
+                  'atomic-store-selectors',
+                  'error',
+                  'Object-literal returning store selector detected. Returning a new object reference on every selector invocation causes infinite render loops or unnecessary re-renders.',
+                  'Subscribe to discrete atomic selectors individually, or use shallow comparison.'
+                );
+              }
+
+              // Broad state.tokens subscription (expression body or block return, dot or bracket notation)
+              let returnedMember: ASTNode | undefined;
+              if (body.type === 'MemberExpression') {
+                returnedMember = body;
+              } else if (body.type === 'BlockStatement' && Array.isArray(body.body)) {
+                const returnStmt = body.body.find(
+                  (s: ASTNode) => s.type === 'ReturnStatement'
+                ) as ASTNode | undefined;
+                const retArg = returnStmt?.argument as ASTNode | undefined;
+                if (retArg && retArg.type === 'MemberExpression') {
+                  returnedMember = retArg;
+                }
+              }
+              const prop = returnedMember?.property;
+              const isTokensProp =
+                prop &&
+                (('name' in prop && prop.name === 'tokens') ||
+                  ('value' in prop && prop.value === 'tokens'));
+              if (returnedMember && isTokensProp) {
+                addDiagnostic(
+                  returnedMember.loc?.start || obj.loc?.start,
+                  'atomic-store-selectors',
+                  'error',
+                  'Whole-object store subscription detected (`state.tokens`). Subscribing to broad state objects forces full component re-renders whenever any design token changes.',
+                  'Subscribe to discrete atomic tokens instead (e.g. `state => state.tokens.datumPlaneColor`).'
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 5. Detect invalid JSX intrinsic tags (e.g. <threeLine>)
+    if (obj.type === 'JSXOpeningElement' || obj.type === 'JSXSelfClosingElement') {
+      const tagObj = typeof obj.name === 'object' ? obj.name : undefined;
+      const tagNameStr = typeof obj.name === 'string' ? obj.name : tagObj?.name;
+      if (tagObj && typeof tagNameStr === 'string') {
+        const lower = tagNameStr.toLowerCase();
+        if (INVALID_R3F_TAGS.has(lower)) {
+          addDiagnostic(
+            tagObj.loc?.start || obj.loc?.start,
+            'valid-r3f-intrinsics',
+            'error',
+            `Invalid React Three Fiber intrinsic element <${tagNameStr}> detected. R3F intrinsic tags map directly to lowercase Three.js classes.`,
+            'Replace with `<line>` (maps to `THREE.Line`) or `<lineSegments>`.'
+          );
+        }
+      }
+    }
+
+    if (isJsxExpr) insideJsxExprDepth++;
+
+    for (const key of Object.keys(obj)) {
+      if (key === 'loc' || key === 'range' || key === 'comments') continue;
+      const child = obj[key];
+      if (isUseMemoCall && key === 'arguments' && Array.isArray(child) && child.length > 0) {
+        insideUseMemoDepth++;
+        traverseAst(child[0]);
+        insideUseMemoDepth--;
+        for (let idx = 1; idx < child.length; idx++) {
+          traverseAst(child[idx]);
+        }
+      } else if (Array.isArray(child)) {
+        for (const item of child) {
+          traverseAst(item);
+        }
+      } else if (child && typeof child === 'object') {
+        traverseAst(child);
+      }
+    }
+
+    if (isJsxExpr) insideJsxExprDepth--;
+  }
+
+  traverseAst(ast);
 
   function simpleTraverse(node: unknown, visitor: (n: ASTNode) => void) {
     if (!node || typeof node !== 'object') return;
@@ -110,92 +438,14 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       if (key === 'loc' || key === 'range' || key === 'comments') continue;
       const child = obj[key];
       if (Array.isArray(child)) {
-        for (const item of child) {
-          simpleTraverse(item, visitor);
+        for (let i = 0, len = child.length; i < len; i++) {
+          simpleTraverse(child[i], visitor);
         }
       } else if (child && typeof child === 'object') {
         simpleTraverse(child, visitor);
       }
     }
   }
-
-  simpleTraverse(ast, (node: ASTNode) => {
-    // 1. Detect useFrame calls and inspect their hot-path callback bodies
-    if (node.type === 'CallExpression') {
-      const callee = node.callee;
-      if (!callee) return;
-      const callName =
-        callee.type === 'Identifier'
-          ? callee.name
-          : callee.type === 'MemberExpression' && callee.property?.type === 'Identifier'
-          ? callee.property.name
-          : '';
-
-      if (callName === 'useFrame') {
-        const callbackArg = node.arguments?.[0];
-        if (
-          callbackArg &&
-          (callbackArg.type === 'ArrowFunctionExpression' ||
-            callbackArg.type === 'FunctionExpression') &&
-          callbackArg.body
-        ) {
-          auditUseFrameCallback(callbackArg.body);
-        }
-      }
-
-      // 2. Detect whole-object store subscriptions: useThemeStore(state => state.tokens)
-      if (
-        callName === 'useThemeStore' ||
-        callName === 'useStarmapStore' ||
-        callName.endsWith('Store')
-      ) {
-        let selectorArg = node.arguments?.[0];
-        if (
-          selectorArg &&
-          selectorArg.type === 'CallExpression' &&
-          selectorArg.callee?.type === 'Identifier' &&
-          selectorArg.callee.name === 'useShallow'
-        ) {
-          selectorArg = selectorArg.arguments?.[0];
-        }
-
-        if (
-          selectorArg &&
-          (selectorArg.type === 'ArrowFunctionExpression' ||
-            selectorArg.type === 'FunctionExpression')
-        ) {
-          const body = selectorArg.body;
-          if (body && body.type === 'MemberExpression' && body.property?.type === 'Identifier') {
-            if (body.property.name === 'tokens') {
-              addDiagnostic(
-                body.loc?.start,
-                'atomic-store-selectors',
-                'error',
-                'Whole-object store subscription detected (`state.tokens`). Subscribing to broad state objects forces full component re-renders whenever any design token changes.',
-                'Subscribe to discrete atomic tokens instead (e.g. `state => state.tokens.datumPlaneColor`).'
-              );
-            }
-          }
-        }
-      }
-    }
-
-    // 3. Detect invalid JSX intrinsic tags (e.g. <threeLine>)
-    if (node.type === 'JSXOpeningElement' || node.type === 'JSXSelfClosingElement') {
-      if (node.name?.type === 'JSXIdentifier') {
-        const tagName = node.name.name?.toLowerCase() ?? '';
-        if (INVALID_R3F_TAGS.has(tagName)) {
-          addDiagnostic(
-            node.name.loc?.start,
-            'valid-r3f-intrinsics',
-            'error',
-            `Invalid React Three Fiber intrinsic element <${node.name.name}> detected. R3F intrinsic tags map directly to lowercase Three.js classes.`,
-            'Replace with `<line>` (maps to `THREE.Line`) or `<lineSegments>`.'
-          );
-        }
-      }
-    }
-  });
 
   function auditUseFrameCallback(frameBody: ASTNode) {
     simpleTraverse(frameBody, (node: ASTNode) => {
@@ -250,10 +500,24 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
         );
       }
 
+      // Rule: No synchronous layout reads (property access)
+      if (node.type === 'MemberExpression' && typeof node.property?.name === 'string') {
+        const propName: string = node.property.name;
+        if (['offsetWidth', 'offsetHeight', 'clientWidth', 'clientHeight', 'scrollWidth', 'scrollHeight'].includes(propName)) {
+          addDiagnostic(
+            node.loc?.start,
+            'no-layout-in-use-frame',
+            'error',
+            `DOM layout measurement \`.${propName}\` inside \`useFrame\` forces synchronous reflow / layout thrashing.`,
+            'Cache screen coordinates or project using 3D raycasting/unproject without querying DOM layout.'
+          );
+        }
+      }
+
       // Rule: No iterators or clone calls
       if (node.type === 'CallExpression') {
-        if (node.callee?.type === 'MemberExpression' && node.callee.property?.type === 'Identifier') {
-          const methodName = node.callee.property.name;
+        if (node.callee?.type === 'MemberExpression' && typeof node.callee.property?.name === 'string') {
+          const methodName: string = node.callee.property.name;
           if (['map', 'forEach', 'filter', 'some', 'every', 'reduce'].includes(methodName)) {
             addDiagnostic(
               node.loc?.start,
@@ -270,7 +534,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
               'Calling `.clone()` inside `useFrame` allocates a new instance on every frame.',
               'Copy into a pre-allocated scratch instance using `.copy()`, or read components directly.'
             );
-          } else if (['getBoundingClientRect', 'offsetWidth', 'offsetHeight'].includes(methodName)) {
+          } else if (['getBoundingClientRect', 'offsetWidth', 'offsetHeight', 'getComputedStyle'].includes(methodName)) {
             addDiagnostic(
               node.loc?.start,
               'no-layout-in-use-frame',
@@ -279,9 +543,17 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
               'Cache screen coordinates or project using 3D raycasting/unproject without querying DOM layout.'
             );
           }
-        } else if (node.callee?.type === 'Identifier') {
-          const funcName = node.callee.name;
-          if (funcName && /^set[A-Z]/.test(funcName)) {
+        } else if (node.callee?.type === 'Identifier' && typeof node.callee.name === 'string') {
+          const funcName: string = node.callee.name;
+          if (funcName === 'getComputedStyle') {
+            addDiagnostic(
+              node.loc?.start,
+              'no-layout-in-use-frame',
+              'error',
+              `DOM layout measurement \`${funcName}()\` inside \`useFrame\` forces synchronous reflow / layout thrashing.`,
+              'Cache screen coordinates or project using 3D raycasting/unproject without querying DOM layout.'
+            );
+          } else if (/^set[A-Z]/.test(funcName)) {
             addDiagnostic(
               node.loc?.start,
               'no-setstate-in-use-frame',
@@ -321,55 +593,139 @@ function collectSourceFiles(dir: string): string[] {
   return results;
 }
 
+export const auditFile = auditSourceFile;
+
+/**
+ * Pure function: Audits target directories and returns structured diagnostics without exiting.
+ */
+export function runR3fAudit(targetDirs: string[] = R3F_FILES_GLOB): AuditDiagnostic[] {
+  const diagnostics: AuditDiagnostic[] = [];
+  const filesToScan: string[] = [];
+  for (const targetDir of targetDirs) {
+    if (fs.existsSync(targetDir) && fs.statSync(targetDir).isFile()) {
+      filesToScan.push(targetDir);
+    } else {
+      filesToScan.push(...collectSourceFiles(targetDir));
+    }
+  }
+
+  for (const file of filesToScan) {
+    const content = fs.readFileSync(file, 'utf8');
+    const hasThree = content.includes('useFrame') || content.includes('@react-three') || content.includes('three');
+    const hasStore = content.includes('Store(') || /use[A-Z]\w*Store/.test(content);
+    if (!hasThree && !hasStore) {
+      continue;
+    }
+    diagnostics.push(...auditSourceFile(file, content));
+  }
+  return diagnostics;
+}
+
+export interface BaselineData {
+  version: number;
+  entries: Record<string, { count: number; audId: string }>;
+}
+
+export function isBaselineData(val: unknown): val is BaselineData {
+  if (!val || typeof val !== 'object') return false;
+  const obj = val as Record<string, unknown>;
+  if (typeof obj.version !== 'number') return false;
+  if (!obj.entries || typeof obj.entries !== 'object' || Array.isArray(obj.entries)) return false;
+  const entries = obj.entries as Record<string, unknown>;
+  for (const [k, v] of Object.entries(entries)) {
+    if (typeof k !== 'string') return false;
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+    const entry = v as Record<string, unknown>;
+    if (typeof entry.count !== 'number' || typeof entry.audId !== 'string') return false;
+  }
+  return true;
+}
+
+function loadBaseline(baselinePath: string): BaselineData | null {
+  if (!fs.existsSync(baselinePath)) return null;
+  try {
+    const parsed: unknown = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
+    return isBaselineData(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Main CLI entry point.
  */
 export function runR3FAudit(): number {
   console.log('\n--- Running WebGL & React Three Fiber (R3F) Performance Audit ---');
 
-  const filesToScan: string[] = [];
-  for (const targetDir of R3F_FILES_GLOB) {
-    filesToScan.push(...collectSourceFiles(targetDir));
+  const diagnostics = runR3fAudit();
+  const baselinePath = path.resolve('scripts/guards/baseline.json');
+  const baseline = loadBaseline(baselinePath);
+
+  // Group violations by ruleId::relPath
+  const violationCounts = new Map<string, number>();
+  for (const diag of diagnostics) {
+    const rel = path.relative(process.cwd(), path.resolve(diag.filePath)).replace(/\\/g, '/');
+    const key = `${diag.ruleId}::${rel}`;
+    violationCounts.set(key, (violationCounts.get(key) || 0) + 1);
   }
 
   let totalErrors = 0;
   let totalWarnings = 0;
-  let scannedFiles = 0;
+  let unbaselinedErrors = 0;
 
-  for (const file of filesToScan) {
-    const content = fs.readFileSync(file, 'utf8');
-    // Fast path: only scan files that reference Three.js, R3F, or useFrame
-    if (!content.includes('useFrame') && !content.includes('@react-three') && !content.includes('three')) {
-      continue;
+  if (diagnostics.length > 0) {
+    const byFile = new Map<string, AuditDiagnostic[]>();
+    for (const diag of diagnostics) {
+      const list = byFile.get(diag.filePath) || [];
+      list.push(diag);
+      byFile.set(diag.filePath, list);
     }
 
-    scannedFiles++;
-    const diagnostics = auditSourceFile(file, content);
-    if (diagnostics.length > 0) {
+    for (const [file, diags] of byFile) {
       console.log(`\n📄 ${file}:`);
-      for (const diag of diagnostics) {
-        const icon = diag.severity === 'error' ? '❌' : '⚠️';
-        console.log(`  ${icon} Line ${diag.line}:${diag.column} [${diag.ruleId}]`);
+      for (const diag of diags) {
+        const rel = path.relative(process.cwd(), path.resolve(diag.filePath)).replace(/\\/g, '/');
+        const key = `${diag.ruleId}::${rel}`;
+        const baselineEntry = baseline?.entries[key];
+        const isBaselined = baselineEntry !== undefined;
+
+        const icon = isBaselined ? '⏳' : (diag.severity === 'error' ? '❌' : '⚠️');
+        console.log(`  ${icon} Line ${diag.line}:${diag.column} [${diag.ruleId}]${isBaselined ? ` (Baselined: ${baselineEntry.audId})` : ''}`);
         console.log(`     Issue: ${diag.message}`);
         console.log(`     Code:  ${diag.snippet}`);
         console.log(`     Fix:   ${diag.remediation}`);
-        if (diag.severity === 'error') totalErrors++;
-        else totalWarnings++;
+
+        if (diag.severity === 'error') {
+          totalErrors++;
+          if (!isBaselined) unbaselinedErrors++;
+        } else {
+          totalWarnings++;
+        }
+      }
+    }
+  }
+
+  // Check if any baselined violation increased count
+  if (baseline) {
+    for (const [key, count] of violationCounts) {
+      const baseEntry = baseline.entries[key];
+      if (baseEntry && count > baseEntry.count) {
+        console.log(`\n❌ Violation count regression: ${key} increased from ${baseEntry.count} to ${count}`);
+        unbaselinedErrors++;
       }
     }
   }
 
   console.log('\n--- Audit Summary ---');
-  console.log(`Files Scanned: ${scannedFiles}`);
-  console.log(`Errors:        ${totalErrors}`);
-  console.log(`Warnings:      ${totalWarnings}`);
+  console.log(`Total Violations:      ${diagnostics.length}`);
+  console.log(`Unbaselined Errors:    ${unbaselinedErrors}`);
 
-  if (totalErrors > 0) {
-    console.log('\n❌ WebGL / R3F audit found infractions. Resolve them or add `// r3f-audit-disable-next-line <rule-id>` if an exception is justified.\n');
+  if (unbaselinedErrors > 0) {
+    console.log('\n❌ WebGL / R3F audit found unbaselined infractions. Resolve them or add `// r3f-audit-disable-next-line <rule-id>` if an exception is justified.\n');
     return 1;
   }
 
-  console.log('\n✨ All WebGL & React Three Fiber invariants passed cleanly.\n');
+  console.log('\n✨ All WebGL & React Three Fiber invariants passed cleanly (within baseline).\n');
   return 0;
 }
 

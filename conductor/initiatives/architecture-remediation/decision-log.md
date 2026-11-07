@@ -1,0 +1,349 @@
+# Decision Log (`architecture-remediation`)
+
+Records programme-level and per-track decisions for the architecture remediation initiative.
+
+## Operating Rules for Agents
+
+1. **No unilateral decisions.** Agents never silently choose an option.
+2. **One decision at a time.** Decompose questions into single-concern decisions and discuss them one by one.
+3. **Preserve options and trade-offs** so provisional choices can be revisited.
+4. **Statuses:** `Open` · `Provisional` · `Ratified` · `Superseded`.
+
+---
+
+## Decision Register
+
+### DEC-R001: Separate Initiative for Architecture Remediation
+- **Date:** 2026-11-06
+- **Status:** `Ratified`
+- **Context:** The 2026-11-06 audit found ~100 issues across state/routing, canvas, services, pipeline, UI and tests, several of them previously claimed as fixed by PR #84.
+- **Options Considered:**
+  1. *Fold into `journey-ui-scaffolding`.* Trade-off: mixes remediation with feature work; the decision log and ledger get diluted.
+  2. *New `architecture-remediation` initiative with its own decision log and findings ledger.* Trade-off: an extra registry section, but clean ownership and closure criteria.
+- **Decision:** Option 2.
+
+---
+
+### DEC-R002: Ten Dependency-Ordered Tracks (T01–T10)
+- **Date:** 2026-11-06
+- **Status:** `Ratified`
+- **Decision:** Adopt T01 Guardrails & safety net → T02 User-visible correctness → T03 Layering cut → T04 Pipeline reliability & precalculation → T05 Runtime data purity → T06 Navigation single source of truth → T07 One persistent Canvas & R3F hot paths → T08 View & UI decomposition → T09 Test restructure → T10 Closing audit, with dependencies as drawn in [index.md](./index.md). The findings ledger, ratcheting guards and three-auditor end-of-track audit were accepted with the proposal.
+
+---
+
+### DEC-R003: Feature Freeze; Serial Tracks by Default with One Parallel Worktree Lane
+- **Date:** 2026-11-06
+- **Status:** `Ratified` (user delegated the choice: "freeze is ok but also we could use worktrees, you tell me")
+- **Context:** The seven active Stage 2 / standalone feature tracks touch the same files that T05–T08 rewrite. The user asked whether git worktrees would remove the need for a freeze.
+- **Options Considered:**
+  1. *Freeze all overlapping feature tracks until T08 merges.* Trade-off: pauses feature delivery; the cost is low because those tracks are currently dormant.
+  2. *Run feature tracks in parallel worktrees.* Trade-off: worktrees isolate working copies, not **semantic** conflicts. Feature work would land on code mid-rewrite, causing repeated rebases and likely reintroducing the debt being removed.
+  3. *Freeze feature tracks; run remediation serially, with one parallel worktree lane for build-time-only work.* Trade-off: some parallelism where file sets are genuinely disjoint, at the cost of rebasing and re-auditing before merge.
+- **Decision:** Option 3.
+  - Stage 2 and standalone feature tracks stay frozen until T08 merges.
+  - Remediation tracks run serially by default.
+  - **T04** (build-time pipeline, `scripts/**` and codec encode side) may run in a separate git worktree alongside T02/T03. Before merging it must be rebased onto `main`, and its end-of-track audit re-run.
+  - **Operational constraint:** `npm run dev` / `capture:views` bind `127.0.0.1:5173` with `strictPort`, so only one worktree at a time can run e2e or visual capture.
+
+---
+
+### DEC-R004: Regression Verification — No Pixel Diffs; e2e Suite + Manual Smoke Checklist
+- **Date:** 2026-11-06
+- **Status:** `Ratified`
+- **Options Considered:**
+  1. *CI-gated pixel diffs.* Trade-off: canvas rendering is noisy; high maintenance; still misses interaction regressions.
+  2. *Report-only pixel diffs.* Trade-off: noise without enforcement.
+  3. *No pixel diffs; the e2e suite (existing specs + new URL contract specs) is a mandatory verification gate, plus a manual smoke checklist run by the user over LAN and 5-viewport captures for visual review.*
+- **Decision:** Option 3. The regression auditor runs the full e2e suite and the 5-viewport capture. The user runs the [manual smoke checklist](./verification-protocol.md#manual-smoke-checklist) before each PR is approved.
+
+---
+
+### DEC-R005: One PR per Track
+- **Date:** 2026-11-06
+- **Status:** `Ratified`
+- **Decision:** Each track ships as exactly one PR. Tracks exceeding ~40 production files are split into follow-on tracks instead of PR-per-phase.
+
+---
+
+### DEC-R006: Review Mode — Whole-Track Review in PR
+- **Date:** 2026-11-06
+- **Status:** `Provisional` (user: "probably whole track"; re-confirmed at the start of each track per workflow)
+- **Decision:** Execute all phases continuously, pausing only for unratified decisions. The end-of-track audit runs before the PR; review happens in the PR.
+
+---
+
+### DEC-R007: Orchestrator Spot-Verification Rate
+- **Date:** 2026-11-06
+- **Status:** `Provisional` (trial on T01; revisit at T01 close)
+- **Context:** Flash auditors produced four false claims in the 2026-11-06 audit.
+- **Options Considered:**
+  1. *Orchestrator re-verifies every verdict.* Trade-off: slow.
+  2. *Every Critical/High verdict plus a 1-in-3 sample of the rest.* Trade-off: residual risk on unsampled Medium/Low verdicts, mitigated by mechanical acceptance checks.
+- **Decision:** Option 2 for T01, then revisit using T01's false-verdict rate.
+
+---
+
+### DEC-R008: Findings Ledger Is the Only Definition of "Fixed"
+- **Date:** 2026-11-06
+- **Status:** `Ratified` (accepted with the programme proposal)
+- **Decision:** Every finding has a stable `AUD-NNN` ID, an owning track and an acceptance check (mechanical wherever possible). Status flows `open → in-progress → claimed → verified | reopened`. Implementers may only set `claimed`. Only the end-of-track audit, after orchestrator spot-verification, may set `verified`.
+
+---
+
+### DEC-R009: Guard Implementation Vehicle (T01)
+- **Date:** 2026-11-06
+- **Status:** `Ratified`
+- **Context (verified by orchestrator):** `oxlint` 1.90 supports `import/no-cycle`, `no-restricted-imports` (patterns, groups, per-file `overrides`), `max-lines`, `--format json` and `--max-warnings`, but has no baseline mechanism. `audit-ui.ts` and `audit-r3f.ts` parse with `@babel/parser`; `audit-r3f.ts` has no tests.
+- **Options Considered:**
+  1. *oxlint for structural rules + extended audit scripts for domain rules + one `audit:guards` baseline runner.* Trade-off: two rule engines but one baseline; no new dependencies; editor feedback for lint rules.
+  2. *Everything in custom Babel-AST scripts.* Trade-off: one mechanism, but hand-rolled module resolution is error-prone; no editor feedback.
+  3. *Add dependency-cruiser.* Trade-off: best graph tooling and built-in known-violations baseline, but a new dependency, extra config and slower CI.
+- **Decision:** Option 1.
+  - Layer boundaries (`no-restricted-imports` via `overrides`), cycles (`import/no-cycle`) and file size (`max-lines`) live in `.oxlintrc.json`.
+  - Literal, shim, `<Canvas>`-count, R3F and UI rules live in the audit scripts.
+  - A new `audit:guards` runner collects JSON from both and compares per-file, per-rule counts against a committed baseline.
+
+---
+
+### DEC-R010: Guard Baseline Format and Location (T01)
+- **Date:** 2026-11-06
+- **Status:** `Ratified`
+- **Options Considered:**
+  1. *Single `scripts/guards/baseline.json`, count per rule + file, each entry tagged with its owning `AUD-NNN`; `--update` may only lower counts.* Trade-off: robust to line shifts; a violation could be swapped for another within the same file and count.
+  2. *Per-violation fingerprints (rule + file + snippet hash).* Trade-off: precise, but brittle under refactors.
+  3. *Inline suppression comments at each violation.* Trade-off: visible at the site, but hundreds of edits under `src/`, breaking T01's no-production-change rule.
+- **Decision:** Option 1. CI never passes an allow-increase flag; raising a baseline requires an explicit, reviewed edit to `baseline.json`.
+
+---
+
+### DEC-R011: `G-literals` Detection Method (T01)
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Must catch (a) entity IDs/names written as strings in runtime code (`'tau-ceti'`, `'earth'`, `'sol'`, `'Luna'`) and (b) invented numeric fallbacks (`?? 0.783`, `?? 1.524`). Scope: runtime `src/` excluding tests, stories, `content/` canon layers and `scripts/`.
+- **Options Considered:**
+  1. *Catalogue-driven:* flag any string literal exactly matching a real entity ID or name from committed `public/data` shards. Trade-off: covers new entities automatically; occasional false positives handled by reasoned exemption comments.
+  2. *Hand-maintained denylist.* Trade-off: no false positives, but misses anything unlisted and decays.
+  3. *Denylist gates CI, catalogue check warns.* Trade-off: warnings get ignored.
+- **Decision:** Option 1.
+  - The numeric-fallback rule (`?? <number>` / `|| <number>`, excluding 0, in `src/services/**` and `src/components/canvas/scenes/**`) applies in addition.
+  - Exemptions use `// guard-disable-next-line G-literals -- <reason>`; a missing reason is itself a violation.
+
+---
+
+### DEC-R012: Layer Boundary Map for `G-imports` (T01)
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Decision (Option 1 of 3):** Each layer may import only from the layers listed. Type-only imports count. No import cycles anywhere (type-only included).
+
+| Layer | May import from |
+|---|---|
+| `src/types` | — |
+| `src/utils` | `types` |
+| `src/data` | `types`, `utils` |
+| `src/services` | `types`, `utils`, `data` |
+| `src/stores` | `types`, `utils`, `data`, `services` |
+| `src/hooks` | the above + `stores` |
+| `src/components/interface` | `types`, `utils`, `hooks` |
+| `src/components/canvas` | `interface`, `hooks`, `stores`, `services`, `data`, `types`, `utils` |
+| `src/components/domain`, `src/components/search` | all of the above incl. `canvas` |
+| `src/views` | all component layers + router helpers |
+| `src/router` | everything |
+| `src/components/prototypes` | must not be imported by production code |
+
+- **Options rejected:** (2) same map with type-only imports exempt — hides most of AUD-030; (3) coarse core/ui/app zones — misses interface → data and data → services violations.
+
+---
+
+### DEC-R013: Lint Warning Strategy (T01)
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** 106 warnings: ~60 `only-export-components` (owner T08), ~31 `react(refs)`/`react(immutability)` (T07), ~14 `react(globals)` in tests (T09), ~12 mixed (whichever track touches the file).
+- **Options Considered:**
+  1. *Per-rule, per-file ratchet in `audit:guards`; owning tracks zero their rules; switch CI to `--deny-warnings` at zero.* Trade-off: precise ownership; nothing new can enter.
+  2. *Fix all in T01.* Trade-off: breaks T01's no-production-change rule; duplicated by T07/T08.
+  3. *Global `--max-warnings=106`.* Trade-off: allows new warnings to offset fixed ones; no ownership.
+- **Decision:** Option 1. `--deny-warnings` becomes permanent once the baseline count reaches zero (expected by T09 close).
+
+---
+
+### DEC-R014: URL Contract Suite Pins the Intended URL Grammar, Settled First (T01)
+- **Date:** 2026-11-07
+- **Status:** `Ratified` (all sub-decisions `DEC-R014a`–`DEC-R014l` complete)
+- **Context:** The user questioned parts of the existing grammar: the positioning params from DEC-021; `layer`, `select` and `focus` must work on galaxy, system and planet views; `?layer=` is legitimate (DEC-037), correcting the AUD-070 shim claim. Recorded as AUD-091.
+- **Options Considered:**
+  1. *Pin today's behaviour, labelled by source decision; questioned shapes marked under review.* Trade-off: nothing changes by accident; T06 later revises tests deliberately.
+  2. *Pin only currently endorsed shapes.* Trade-off: positioning unprotected until T06.
+  3. *Settle the intended URL grammar now, then pin that.* Trade-off: tests describe the target from day one; pulls a product decision into T01; intended-but-unbuilt behaviour cannot pass yet.
+- **Decision:** Option 3.
+  - The URL grammar is settled one decision at a time (DEC-R014a…) inside T01 Phase 1 and recorded below.
+  - Implementation of any grammar changes stays with T06 (AUD-091).
+  - How T01 handles contract tests for intended-but-unbuilt behaviour is a separate decision taken after the grammar is settled.
+
+---
+
+### DEC-R014a (G1): Positioning in the URL — Single `center` Param, Entity Id or Coordinates
+- **Date:** 2026-11-07
+- **Status:** `Ratified` (supersedes the positioning part of DEC-021)
+- **Context:** Sharing is the purpose of the URL. Camera orientation and distance (`az`, `el`, `dist`, `zoom`) depend on the viewport, so a framing that works on a 2560×1440 screen is wrong on a 390×844 phone. Today the app never writes `x/y/z/az/el/dist/zoom`; `az`/`el` have no effect anywhere; `dist` works on galaxy only; `zoom` is unused; and `center` plus `x/y/z` can conflict, with `x/y/z` silently winning.
+- **Options Considered:**
+  1. *Single `center` = entity id or `x,y,z` (in the current view's frame). Centre writes the id; panning away writes coordinates on settle, using replace (not push). Omit `az/el/dist/zoom`.*
+  2. *Same, but the app only ever writes the id; coordinates appear only in hand-made links.* Trade-off: coordinate form effectively dead again.
+  3. *Separate `center` and `x,y,z` params with documented precedence.* Trade-off: two ways to say one thing; conflicting combinations possible.
+  4. *(Earlier round)* Make DEC-021 fully real with camera orientation/distance; centre + semantic `radius`; no positioning at all.
+- **Decision:** Option 1.
+  - `?center=<entityId>` or `?center=<x>,<y>,<z>`: one concept, two encodings. Coordinates are in the current view's reference frame (pc on galaxy, AU on system, planetary frame on planet).
+  - Centre actions write the entity id. Panning the camera target away from a centred entity writes coordinates when the camera settles, via `history.replace` (never push).
+  - `x`, `y`, `z`, `az`, `el`, `dist` and `zoom` are removed from the grammar. Camera orientation and distance are never in the URL; adding them later as a best-effort "share this view" feature would be non-breaking, whereas removing params from shared links later would break them.
+
+---
+
+### DEC-R014b (G2a): `select` Has Consistent Meaning on Galaxy, System and Planet
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Today `select` produces 3D selected-reticle highlighting on galaxy only; on system and planet it only marks rows in the bodies/schematic panels. `focus` and `layer` already behave consistently across the three views.
+- **Options Considered:** (1) consistent 3D + panel marking everywhere; (2) keep as today; (3) panels only everywhere.
+- **Decision:** Option 1. On every spatial view, selected entities that are in scope show the 3D selected reticle state and are marked in the panels. Wiring into the system/planet scenes is implemented in T06/T07.
+
+---
+
+### DEC-R014c (G2b): `select` and `layer` Persist Across Spatial Views
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Options Considered:** (1) persist across galaxy/system/planet, each view applying only in-scope tokens and preserving the rest; (2) clear on cross-view navigation; (3) persist `layer`, clear `select`.
+- **Decision:** Option 1. All navigation between spatial views carries `select` and `layer` unchanged. Out-of-scope tokens are ignored by the current view but kept in the URL. `focus` is not carried; it is replaced by the navigation target (DEC-015).
+
+---
+
+### DEC-R014d (G2c): View Scope Definition and Out-of-Scope `focus`
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Scope definition:** A view's scope is the set of entities whose DEC-038 orbit-context link targets that view, plus the view's own path subject.
+  - Galaxy: star systems and galactic structures.
+  - `/system/<id>`: that system's stars, planets, dwarf planets, belts and minor bodies, plus the system itself.
+  - `/planet/<id>`: that planet's moons, plus the planet itself.
+- **Options Considered:**
+  1. *Redirect (replace) to the entity's orbit-context view.* Trade-off: preserves the focus intent, but lets a modifier override the location the URL names; silently "fixes" broken internal links, hiding bugs.
+  2. *Path wins: render the view as specified and remove the out-of-scope `focus` (replace).* Trade-off: focus intent from a malformed link is lost, but behaviour is predictable and consistent with treating invalid modifiers as droppable.
+  3. *Open the details panel anyway.* Trade-off: the panel describes something the scene cannot show.
+- **Decision:** Option 2 (proposed by the user; the orchestrator's initial recommendation of option 1 over-weighted `focus` relative to the path).
+  - The path is primary.
+  - An out-of-scope `focus` is removed from the URL via `history.replace`, and a dev-only console warning is emitted so broken internal links stay detectable.
+  - Pinned by a URL contract test.
+
+---
+
+### DEC-R014e (G2d): Out-of-Scope Entity in `center`
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Options Considered:** (1) same rule as `focus`; (2) keep in URL and silently use default framing; (3) project the entity's position into the current view's frame.
+- **Decision:** Option 1. An out-of-scope entity id in `center` is removed via `history.replace` with a dev-only warning, and the view uses its default framing. Coordinate-form `center` is always valid in the current view's frame.
+
+---
+
+### DEC-R014f (G3): `layer` and `select=layer:` Are Independent
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** `parseUrlSelectTokens` converts every `?layer=` value into an implicit `select=layer:` token (`searchService.ts#L965-L968`), and `resolveSelectedSystemsFromUrlSelect` repeats it. Every producer emits both params anyway.
+- **Options Considered:** (1) independent; (2) `layer` implies highlight, links emit only `layer=`; (3) drop the `layer:` select token.
+- **Decision:** Option 1.
+  - `?layer=` controls only the layer card; 3D highlighting comes only from `select`.
+  - The implicit conversion is removed; producers keep emitting both.
+  - Closing the card removes `layer` only.
+
+---
+
+### DEC-R014g (G4): Valid `?select=` Token Kinds
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Historically `?select=` accepted arbitrary prefix tokens (`tag:`, `star-type:`, `planet-type:`, `collection:`, `canon:`) alongside entity IDs. Curated sets belong in Layers, whilst Guide examples should link directly to entity views.
+- **Decision:**
+  - Keep only `<entityId>`, `layer:<slug>`, `route` (DEC-R014i), and `search` (DEC-R014j) in `?select=`.
+  - Drop `tag:`, `star-type:`, `planet-type:`, `collection:`, and `canon:`.
+  - Guide benchmark examples link directly to the benchmark entity's Orbit-Context view without `&select=star-type:...` or `planet-type:...`.
+  - Curated sets use Layers.
+  - Invalid tokens are stripped via `history.replace` with a dev-only console warning.
+
+---
+
+### DEC-R014h (G5a): Multimodal Compound `?route=` Syntax
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Transit planning currently couples stops with an external `?journeyOption=` parameter, which does not scale to multi-leg or multimodal journeys.
+- **Decision:**
+  - Fold the selected transit mode into `?route=` as an optional `:mode` suffix on each departure stop (`?route=<stopA>[:<mode>],<stopB>[:<mode2>],...`).
+  - Stage 1 Options List: `?route=sol,tau-ceti` (no mode selected yet).
+  - Stage 2 Option Detail: `?route=sol:torchship-1g,tau-ceti`.
+  - Future multimodal: `?route=earth:hohmann-transfer,sol:torchship-1g,tau-ceti`.
+  - Drop the separate `?journeyOption=` URL parameter.
+
+---
+
+### DEC-R014i (G5b): `?route=`, `?select=route`, and `?focus=` Orthogonality
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Route selection smuggled stop IDs into `focusedIds[1]` (AUD-014) and lacked clean separation between transit panel display, 3D highlight, and entity inspection.
+- **Decision:**
+  - `?route=` controls `<DirectionsPanel />` and `<JourneyChord />` and persists across spatial views just like `?layer=`.
+  - `?select=route` marks all stops of the active `?route=` as `selected` (`selectedIds`) in the 3D scene and `<BodiesPanel />` (clicking Directions emits `?select=route&route=...`).
+  - `?focus=` independently controls `<DetailsPanel />` and the single `focusedId` (`string | null`), deleting the `focusedIds[1]` smuggling hack (`AUD-014`).
+
+---
+
+### DEC-R014j (G6): `?q=`, `?searchCategory=`, and `?select=search` on Spatial Views
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Competing effects in `SearchRoot` and `GalaxyView` produced divergent selection states and broken search-result highlighting when transitioning between views.
+- **Decision:**
+  - `?q=` and `?searchCategory=` remain valid across `/search` and all three spatial views (`Galaxy`, `System`, `Planet`).
+  - Typing a search query sets `?q=<query>&select=search` (replacing any previous `select=`).
+  - Clearing search removes `select=search`.
+  - `?select=` is the single universal driver of `selectedIds` across all spatial views (eliminating competing `SearchRoot` vs `GalaxyView` effects).
+
+---
+
+### DEC-R014k (G7): Multi-Value Guide Slugs & `?focus=` Across All Guide Detail Views
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Multi-star spectral badges (`G2V+K1V`, `K3V + M`) link to broken Guide pages; Guide detail routes only resolve a single slug; `resolveMetricComparison` silently truncates multi-star/multi-planet systems to `stars[0]` / `planets[0]`; non-metric Guide detail views ignore `?focus=`.
+- **Decision:**
+  - All four Guide detail routes (`/guide/star-types/$starType`, `/guide/planet-types/$planetType`, `/guide/metrics/$metricId`, `/guide/hazards/$hazardId`) accept comma-separated (and `+`-delimited for spectral strings like `G2V+K1V`) values in the path and render all matching entries on the page.
+  - Navigating from an inspected entity to any Guide detail view passes `?focus=<id1>[,<id2>]` (supporting multi-entity/system expansion in `<MetricComparativePanel />` and powering the `Map` return link).
+  - Logged as `AUD-092` (owned by T02).
+
+---
+
+### DEC-R014l (G8): T01 URL Contract Spec Strategy for T02/T06 Target Grammar
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Track T01 establishes the behavioural URL contract suite in `e2e/url-contracts.spec.ts`. Some parts of the ratified grammar (AUD-091 / AUD-092) are not yet implemented in production code and will be built in T02 and T06.
+- **Decision:**
+  - In T01's `e2e/url-contracts.spec.ts`, write active passing tests for grammar behaviours that already match today.
+  - Commit target `AUD-091` / `AUD-092` grammar specs as `test.fixme('AUD-091: ...')` / `test.fixme('AUD-092: ...')` blocks that T02 and T06 must un-skip and pass to close those ledger items.
+
+---
+
+### DEC-R015: Storybook & Guardrails in CI (AUD-007)
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** Storybook build and architecture guard scripts were not running in CI, allowing quad gaps, token leaks, and Storybook build regressions to slip through unnoticed.
+- **Decision:**
+  - Add `npm run audit:guards` to the `lint` job in `.github/workflows/ci.yml`.
+  - Add `npm run build-storybook` to the `build` job in `.github/workflows/ci.yml`.
+  - Expose `STORYBOOK_TEST=1` as an explicit local `npm run test:storybook` script in `package.json`.
+
+---
+
+### DEC-R016: E2E Frame-Time Baseline & Hard-Fail Threshold (AUD-009)
+- **Date:** 2026-11-07
+- **Status:** `Ratified`
+- **Context:** WebGL frame-time performance across view transitions and complex scenes lacked automated regression protection.
+- **Decision:**
+  - Commit reference frame-time baselines across `/galaxy`, `/system/sol`, and `/planet/earth` in `scripts/guards/frame-time-baseline.json`.
+  - Write each run's measurements to `/tmp/starmap-test-results/frame-times.json`.
+  - Hard-fail CI whenever `p95FrameTime` exceeds `scripts/guards/frame-time-baseline.json` by more than 25%.
+
+---
+
+## Process Log
+
+- **2026-11-06 · T01 reconnaissance:** the Flash `codebase-researcher` report contained about five factual errors (e2e spec count, untypechecked-scripts list, non-existent file paths, CI action versions). Countermeasure: Flash research prompts must include the raw command output supporting each claim. Counted towards the DEC-R007 review.

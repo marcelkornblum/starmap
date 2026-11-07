@@ -35,6 +35,8 @@ jobs:
         run: npm run audit:r3f
       - name: Audit UI Design System
         run: npm run audit:ui
+      - name: Audit Architecture Guards
+        run: npm run audit:guards
 
   typecheck:
     name: Type Check
@@ -104,6 +106,8 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+      - name: Build Storybook
+        run: npm run build-storybook
       - name: Upload artifact
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: actions/upload-pages-artifact@v5
