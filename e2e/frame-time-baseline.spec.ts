@@ -55,16 +55,12 @@ async function measurePointerDragMetrics(
     requestAnimationFrame(recordFrame);
   });
 
-  // Perform continuous 30-step pointer drag across ~900ms
+  // Perform continuous pointer drag using native Playwright steps
   await page.mouse.move(cx, cy);
   await page.mouse.down({ button: 'left' });
   const radius = 80;
-  const steps = 30;
-  for (let i = 0; i < steps; i++) {
-    const angle = (i / steps) * Math.PI * 2;
-    await page.mouse.move(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
-    await page.waitForTimeout(30);
-  }
+  await page.mouse.move(cx + radius, cy + radius, { steps: 15 });
+  await page.mouse.move(cx - radius, cy - radius, { steps: 15 });
   await page.mouse.up({ button: 'left' });
 
   // Stop recording and compute metrics

@@ -206,8 +206,8 @@ function isSubComponentHelper(fileName: string, primaryName: string): boolean {
   // Contains helper or utils -> helper
   if (/(?:helpers?|utils?)/i.test(baseName)) return true;
   // Belongs to primary parent component as a section or helper
-  const stem = primaryName.replace(/(?:Panel|View|Layout|Root|Sheet)$/, '');
-  if (baseName.startsWith(stem) && /(?:Section|Sections|Helper|Helpers)$/.test(baseName)) {
+  const stem = primaryName.replace(/^(.+)(?:Panel|View|Layout|Root|Sheet)$/, '$1');
+  if (stem && baseName.startsWith(stem) && /(?:Section|Sections|Helper|Helpers)$/.test(baseName)) {
     return true;
   }
   return false;

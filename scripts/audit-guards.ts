@@ -645,20 +645,32 @@ export function detectImportCycles(srcFiles: string[], projectRoot: string): Gua
     const content = fs.readFileSync(file, 'utf8');
     const imports: string[] = [];
 
-    const importMatches = content.matchAll(/(?:import|export)(?!\s+type\b)\s+.*?from\s+['"]([^'"]+)['"]/gs);
-    for (const m of importMatches) {
-      const imp = m[1];
-      if (imp.startsWith('.')) {
-        const resolved = path.resolve(path.dirname(file), imp);
-        // Try extensions .ts, .tsx, /index.ts, /index.tsx
-        for (const ext of ['', '.ts', '.tsx', '/index.ts', '/index.tsx']) {
-          const cand = resolved + ext;
-          if (fs.existsSync(cand) && fs.statSync(cand).isFile()) {
-            imports.push(cand);
-            break;
+    try {
+      const ast = parse(content, {
+        sourceType: 'module',
+        plugins: ['typescript', 'jsx'],
+      });
+      traverseAst(ast, (node: ASTNode) => {
+        if (
+          node.type === 'ImportDeclaration' ||
+          node.type === 'ExportNamedDeclaration' ||
+          node.type === 'ExportAllDeclaration'
+        ) {
+          if (node.importKind === 'type' || node.exportKind === 'type') return;
+          const imp = node.source?.value;
+          if (!imp || typeof imp !== 'string' || !imp.startsWith('.')) return;
+          const resolved = path.resolve(path.dirname(file), imp);
+          for (const ext of ['', '.ts', '.tsx', '/index.ts', '/index.tsx']) {
+            const cand = resolved + ext;
+            if (fs.existsSync(cand) && fs.statSync(cand).isFile()) {
+              imports.push(cand);
+              break;
+            }
           }
         }
-      }
+      });
+    } catch {
+      // Ignore unparseable files
     }
     graph.set(file, imports);
   }
