@@ -217,7 +217,7 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
       onSelect={onSelectEntity}
       debugHitarea={debugHitarea}
     >
-      <GalacticCameraController target={targetCoords} />
+      <GalacticCameraController target={targetCoords} persistGalaxyPose={false} />
     </SpatialViewport>
   );
 };

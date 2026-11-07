@@ -59,12 +59,14 @@ export interface GalacticCameraControllerProps {
   readonly target: [number, number, number];
   readonly distance?: number;
   readonly hasExplicitCenter?: boolean;
+  readonly persistGalaxyPose?: boolean;
 }
 
 export const GalacticCameraController: React.FC<GalacticCameraControllerProps> = ({
   target,
   distance,
   hasExplicitCenter = true,
+  persistGalaxyPose = true,
 }) => {
   const three = useThree();
   const camera = three.camera;
@@ -93,6 +95,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   const targetZ = target[2];
 
   const saveCurrentGalaxyPose = useCallback(() => {
+    if (!persistGalaxyPose) return;
     const tgt: [number, number, number] = controls?.target
       ? [controls.target.x, controls.target.y, controls.target.z]
       : [targetX, targetY, targetZ];
@@ -118,9 +121,10 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       focalDistance,
       centerKey: `${tgt[0]},${tgt[1]},${tgt[2]}`,
     });
-  }, [camera, controls, targetX, targetY, targetZ]);
+    }, [camera, controls, persistGalaxyPose, targetX, targetY, targetZ]);
 
   useEffect(() => {
+    if (!persistGalaxyPose) return;
     if (controls?.addEventListener && controls?.removeEventListener) {
       const handleChange = () => {
         saveCurrentGalaxyPose();
@@ -133,7 +137,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
         saveCurrentGalaxyPose();
       };
     }
-  }, [controls, saveCurrentGalaxyPose]);
+  }, [controls, persistGalaxyPose, saveCurrentGalaxyPose]);
 
   useEffect(() => {
     const prev = prevTargetRef.current;
@@ -152,7 +156,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       isDistSame &&
       isTickSame &&
       isControlsSame &&
-      (hasRestoredRef.current || !useCameraStore.getState().savedGalaxyCamera)
+      (!persistGalaxyPose || hasRestoredRef.current || !useCameraStore.getState().savedGalaxyCamera)
     ) {
       return;
     }
@@ -168,7 +172,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       return;
     }
 
-    const saved = useCameraStore.getState().savedGalaxyCamera;
+    const saved = persistGalaxyPose ? useCameraStore.getState().savedGalaxyCamera : null;
     if (!hasRestoredRef.current && saved && distance === undefined) {
       const isMatch = Math.hypot(
         saved.target[0] - targetX,
@@ -325,6 +329,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     targetZ,
     distance,
     hasExplicitCenter,
+    persistGalaxyPose,
     recenterTick,
     camera,
     controls,
