@@ -6,8 +6,11 @@ import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
 import { toUrlSlug } from '../../../utils/datasetLayerCodec';
-import { calculateKeplerianPosition } from '../math/kepler';
 import { GalacticCameraController } from './SpatialScenes';
+import {
+  resolveSystemPlanetEntity,
+  resolveCorpusPlanetEntity,
+} from './systemPlanetResolver';
 import {
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
@@ -147,84 +150,26 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
     };
 
     // 2. Planetary Bodies with Keplerian Orbits
+    const primaryStarMassMsun =
+      explicitSystem?.massMsun ?? sysManifest?.stars?.[0]?.massMsun;
     let planetEntities: SpatialEntityDefinition[] = [];
 
     if (explicitSystem?.planets?.length) {
-      planetEntities = explicitSystem.planets.map((p, index) => {
-        const a = p.orbit?.semiMajorAxis ?? (0.4 + index * 0.6);
-        const e = p.orbit?.eccentricity ?? 0.05;
-        const inc = p.orbit?.inclination ?? (index * 1.5);
-        const node = p.orbit?.ascendingNode ?? (index * 25);
-        const peri = p.orbit?.argumentOfPeriapsis ?? (index * 40);
-        const meanAnomaly = p.orbit?.meanAnomaly ?? ((index * 60) % 360);
-        return {
-          id: p.id,
-          name: p.name,
-          position: calculateKeplerianPosition(a, e, inc, node, peri, meanAnomaly),
-          classification: p.composition ?? 'terrestrial',
-          orbit: {
-            semiMajorAxis: a,
-            eccentricity: e,
-            inclination: inc,
-            ascendingNode: node,
-            argumentOfPeriapsis: peri,
-            period: p.orbit?.periodDays ?? Math.round(Math.pow(a, 1.5) * 365.25),
-            meanAnomaly,
-          },
-        };
-      });
+      planetEntities = explicitSystem.planets.map((p, index) =>
+        resolveSystemPlanetEntity(p, index, primaryStarMassMsun),
+      );
     } else if (sysManifest?.planets?.length) {
-      planetEntities = sysManifest.planets.map((p, index) => {
-        const a = p.orbit?.semiMajorAxis ?? (0.4 + index * 0.6);
-        const e = p.orbit?.eccentricity ?? 0.05;
-        const inc = p.orbit?.inclination ?? (index * 1.5);
-        const node = p.orbit?.ascendingNode ?? (index * 25);
-        const peri = p.orbit?.argumentOfPeriapsis ?? (index * 40);
-        const meanAnomaly = p.orbit?.meanAnomaly ?? ((index * 60) % 360);
-        return {
-          id: p.id,
-          name: p.name,
-          position: calculateKeplerianPosition(a, e, inc, node, peri, meanAnomaly),
-          classification: p.composition ?? 'terrestrial',
-          orbit: {
-            semiMajorAxis: a,
-            eccentricity: e,
-            inclination: inc,
-            ascendingNode: node,
-            argumentOfPeriapsis: peri,
-            period: p.orbit?.periodDays ?? Math.round(Math.pow(a, 1.5) * 365.25),
-            meanAnomaly,
-          },
-        };
-      });
+      planetEntities = sysManifest.planets.map((p, index) =>
+        resolveSystemPlanetEntity(p, index, primaryStarMassMsun),
+      );
     } else {
       const corpusPlanets = activeCorpus.filter(
         (entry) => entry.k === 2 && (entry.s === resolvedId || entry.s === systemId),
       );
       if (corpusPlanets.length > 0) {
-        planetEntities = corpusPlanets.map((p, index) => {
-          const a = 0.4 + index * 0.6;
-          const e = 0.05 + index * 0.02;
-          const inc = index * 1.5;
-          const node = index * 25;
-          const peri = index * 40;
-          const meanAnomaly = (index * 60) % 360;
-          return {
-            id: p.i,
-            name: p.n ?? p.i,
-            position: calculateKeplerianPosition(a, e, inc, node, peri, meanAnomaly),
-            classification: 'terrestrial',
-            orbit: {
-              semiMajorAxis: a,
-              eccentricity: e,
-              inclination: inc,
-              ascendingNode: node,
-              argumentOfPeriapsis: peri,
-              period: Math.round(Math.pow(a, 1.5) * 365.25),
-              meanAnomaly,
-            },
-          };
-        });
+        planetEntities = corpusPlanets.map((p, index) =>
+          resolveCorpusPlanetEntity(p, index),
+        );
       }
     }
 

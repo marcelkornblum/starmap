@@ -215,7 +215,7 @@ export function encodeSummaryNode(
   if (!isDefaultGaiaName && node.name) {
     compact.n = node.name;
   }
-  if (node.properName && node.properName !== node.name) {
+  if (node.properName) {
     compact.P = node.properName;
   }
   if (
@@ -307,8 +307,6 @@ export function decodeSummaryNode(
 
   if (compact.P) {
     result.properName = compact.P;
-  } else if (compact.n && !id.startsWith('gaia-')) {
-    result.properName = compact.n;
   }
 
   if (compact.c !== undefined) {

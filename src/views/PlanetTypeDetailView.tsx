@@ -15,7 +15,8 @@ import {
 } from '../components/interface';
 import {
   PLANET_TYPES_GUIDE_PATH,
-  resolvePlanetTypeGuideEntry,
+  extractFocusIdFromSearch,
+  resolvePlanetTypeGuideEntries,
 } from '../services/guideService';
 import { useSpaLocation } from '../router';
 import styles from './GuideViews.module.css';
@@ -23,6 +24,7 @@ import styles from './GuideViews.module.css';
 export interface PlanetTypeDetailViewProps {
   readonly planetType?: string;
   readonly locationPathname?: string;
+  readonly locationSearch?: string;
 }
 
 export const extractPlanetTypeFromPathname = (pathname: string): string => {
@@ -33,13 +35,19 @@ export const extractPlanetTypeFromPathname = (pathname: string): string => {
 export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
   planetType: propPlanetType,
   locationPathname,
+  locationSearch,
 }) => {
-  const { pathname } = useSpaLocation(locationPathname, undefined, '');
+  const { pathname, search } = useSpaLocation(
+    locationPathname,
+    locationSearch,
+    '',
+  );
   const resolvedPlanetType =
     propPlanetType ?? extractPlanetTypeFromPathname(pathname);
+  const focusedEntityId = extractFocusIdFromSearch(search);
 
-  const entry = useMemo(
-    () => resolvePlanetTypeGuideEntry(resolvedPlanetType),
+  const entries = useMemo(
+    () => resolvePlanetTypeGuideEntries(resolvedPlanetType),
     [resolvedPlanetType],
   );
 
@@ -62,6 +70,19 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
           ? `Planet Type: ${resolvedPlanetType}`
           : 'Planet Type'}
       </Heading>
+
+      {focusedEntityId && (
+        <div data-testid="guide-focus-context">
+          <Button
+            href={`/system/${encodeURIComponent(focusedEntityId)}?focus=${encodeURIComponent(focusedEntityId)}`}
+            variant="subtle"
+            size="sm"
+          >
+            Return to {focusedEntityId}
+          </Button>
+        </div>
+      )}
+
       <p>
         <Button
           href={PLANET_TYPES_GUIDE_PATH}
@@ -73,34 +94,36 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
         </Button>
       </p>
 
-      {entry ? (
+      {entries.length > 0 ? (
         <>
-          <section className={styles.cardItem}>
-            <Guide3DPreview
-              kind="planet"
-              composition={entry.composition}
-              radiusRearth={entry.canonicalRadiusRearth}
-              textureTheme={entry.textureTheme}
-              isDetail
-            />
+          {entries.map((entry) => (
+            <section key={entry.id} className={styles.cardItem}>
+              <Guide3DPreview
+                kind="planet"
+                composition={entry.composition}
+                radiusRearth={entry.canonicalRadiusRearth}
+                textureTheme={entry.textureTheme}
+                isDetail
+              />
 
-            <Cluster gap="tight" align="center">
-              <CelestialBadge type={entry.composition} />
-              <strong>{entry.title}</strong>
-            </Cluster>
+              <Cluster gap="tight" align="center">
+                <CelestialBadge type={entry.composition} />
+                <strong>{entry.title}</strong>
+              </Cluster>
 
-            <p data-testid="guide-detail-summary">{entry.summary}</p>
+              <p data-testid="guide-detail-summary">{entry.summary}</p>
 
-            <Heading as="h3">Geophysical & Atmospheric Telemetry</Heading>
-            <Stack gap="none" data-testid="guide-detail-telemetry">
-              <Datum label="Mass Range" value={entry.massRangeMearth} />
-              <Datum label="Radius Range" value={entry.radiusRangeRearth} />
-              <Datum label="Bulk Composition" value={entry.bulkComposition} />
-              <Datum label="Habitability" value={entry.habitabilityNotes} />
-            </Stack>
-          </section>
+              <Heading as="h3">Geophysical & Atmospheric Telemetry</Heading>
+              <Stack gap="none" data-testid="guide-detail-telemetry">
+                <Datum label="Mass Range" value={entry.massRangeMearth} />
+                <Datum label="Radius Range" value={entry.radiusRangeRearth} />
+                <Datum label="Bulk Composition" value={entry.bulkComposition} />
+                <Datum label="Habitability" value={entry.habitabilityNotes} />
+              </Stack>
 
-          <GuideExamplesList examples={entry.examples} />
+              <GuideExamplesList examples={entry.examples} />
+            </section>
+          ))}
         </>
       ) : (
         <p>No guide record found for planet classification &quot;{resolvedPlanetType}&quot;.</p>

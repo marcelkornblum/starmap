@@ -97,21 +97,61 @@ export const mapManifestToStarsAndPlanets = (
       : {}),
   }));
 
-  const sortedPlanets = [...manifest.planets].sort(
-    (a, b) =>
-      (a.orbit?.semiMajorAxis ?? Number.POSITIVE_INFINITY) -
-      (b.orbit?.semiMajorAxis ?? Number.POSITIVE_INFINITY),
-  );
+  const sortedPlanets = [...manifest.planets].sort((a, b) => {
+    const aA =
+      typeof a.orbit?.semiMajorAxis === 'number' &&
+      Number.isFinite(a.orbit.semiMajorAxis) &&
+      a.orbit.semiMajorAxis > 0
+        ? a.orbit.semiMajorAxis
+        : Number.POSITIVE_INFINITY;
+    const bA =
+      typeof b.orbit?.semiMajorAxis === 'number' &&
+      Number.isFinite(b.orbit.semiMajorAxis) &&
+      b.orbit.semiMajorAxis > 0
+        ? b.orbit.semiMajorAxis
+        : Number.POSITIVE_INFINITY;
+    return aA - bA;
+  });
 
   const planets: FocusedPlanetDetail[] = sortedPlanets.map((p) => {
     const composition = classifyExoplanetComposition(p);
+    const cataloguedA = p.orbit?.semiMajorAxis;
+    const hasCataloguedA =
+      typeof cataloguedA === 'number' &&
+      Number.isFinite(cataloguedA) &&
+      cataloguedA > 0;
+    const periodDays = p.orbit?.periodDays;
+    const hasPeriodDays =
+      typeof periodDays === 'number' &&
+      Number.isFinite(periodDays) &&
+      periodDays > 0;
+
+    let semiMajorAxisAu: number | undefined;
+    let isTheoreticalOrbit = false;
+
+    if (hasCataloguedA) {
+      semiMajorAxisAu = cataloguedA;
+    } else if (hasPeriodDays) {
+      const starMass =
+        typeof manifest.stars[0]?.massMsun === 'number' &&
+        Number.isFinite(manifest.stars[0].massMsun) &&
+        manifest.stars[0].massMsun > 0
+          ? manifest.stars[0].massMsun
+          : 1.0;
+      const periodYears = periodDays! / 365.25;
+      semiMajorAxisAu =
+        Math.round(Math.cbrt(periodYears * periodYears * starMass) * 10000) /
+        10000;
+      isTheoreticalOrbit = true;
+    }
+
     const surfaceGravityG =
       p.surfaceGravityG ?? computePlanetSurfaceGravityG(p);
     const isTidallyLocked =
       p.orbit !== undefined
         ? isPlanetTidallyLocked({
             periodDays: p.orbit.periodDays,
-            semiMajorAxisAu: p.orbit.semiMajorAxis,
+            semiMajorAxisAu,
           })
         : false;
     const effectiveHazardMask =
@@ -120,7 +160,7 @@ export const mapManifestToStarsAndPlanets = (
         equilibriumTempK: p.equilibriumTempK,
         surfaceGravityG,
         periodDays: p.orbit?.periodDays,
-        semiMajorAxisAu: p.orbit?.semiMajorAxis,
+        semiMajorAxisAu,
         eccentricity: p.orbit?.eccentricity,
       });
     const hazards = decodePlanetHazards(effectiveHazardMask);
@@ -131,9 +171,8 @@ export const mapManifestToStarsAndPlanets = (
       href: buildSystemElementFocusHref(systemNameOrId, p.name || p.id),
       ...(p.letter ? { letter: p.letter } : {}),
       composition,
-      ...(p.orbit?.semiMajorAxis !== undefined
-        ? { semiMajorAxisAu: p.orbit.semiMajorAxis }
-        : {}),
+      ...(semiMajorAxisAu !== undefined ? { semiMajorAxisAu } : {}),
+      ...(isTheoreticalOrbit ? { isTheoreticalOrbit: true } : {}),
       ...(p.orbit?.periodDays !== undefined
         ? { periodDays: p.orbit.periodDays }
         : {}),
@@ -772,10 +811,37 @@ export const buildFocusedEntityDetails = (
   const fallbackEccentricity = solarBodyRecord?.orbit?.eccentricity;
   const fallbackInclination = solarBodyRecord?.orbit?.inclination;
 
-  const semiMajorAxisAu =
-    matchedPlanetDetail?.semiMajorAxisAu ?? fallbackSemiMajorAxis;
+  const rawA = matchedPlanetDetail?.semiMajorAxisAu ?? fallbackSemiMajorAxis;
+  const hasCataloguedA =
+    typeof rawA === 'number' && Number.isFinite(rawA) && rawA > 0;
   const periodDays =
     matchedPlanetDetail?.periodDays ?? fallbackPeriodDays;
+  const hasPeriodDays =
+    typeof periodDays === 'number' && Number.isFinite(periodDays) && periodDays > 0;
+
+  let semiMajorAxisAu: number | undefined;
+  let isTheoreticalOrbit = false;
+
+  if (matchedPlanetDetail?.isTheoreticalOrbit) {
+    semiMajorAxisAu = matchedPlanetDetail.semiMajorAxisAu;
+    isTheoreticalOrbit = true;
+  } else if (hasCataloguedA) {
+    semiMajorAxisAu = rawA;
+    isTheoreticalOrbit = false;
+  } else if (hasPeriodDays) {
+    const starMass =
+      typeof sysManifest?.stars?.[0]?.massMsun === 'number' &&
+      Number.isFinite(sysManifest.stars[0].massMsun) &&
+      sysManifest.stars[0].massMsun > 0
+        ? sysManifest.stars[0].massMsun
+        : 1.0;
+    const periodYears = periodDays! / 365.25;
+    semiMajorAxisAu =
+      Math.round(Math.cbrt(periodYears * periodYears * starMass) * 10000) /
+      10000;
+    isTheoreticalOrbit = true;
+  }
+
   const eccentricity =
     matchedPlanetDetail?.eccentricity ?? fallbackEccentricity;
   const inclinationDeg =
@@ -912,6 +978,7 @@ export const buildFocusedEntityDetails = (
         composition: planetComposition,
         isHabitableCandidate: planetIsHabitable,
         ...(semiMajorAxisAu !== undefined ? { semiMajorAxisAu } : {}),
+        ...(isTheoreticalOrbit ? { isTheoreticalOrbit: true } : {}),
         ...(periodDays !== undefined ? { periodDays } : {}),
         ...(eccentricity !== undefined ? { eccentricity } : {}),
         ...(inclinationDeg !== undefined ? { inclinationDeg } : {}),

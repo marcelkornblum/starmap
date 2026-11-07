@@ -1177,3 +1177,5 @@ export const resolveHazardGuideEntry = (
   const trimmed = rawSlug.trim().toLowerCase();
   return HAZARD_GUIDE_ENTRIES.find((h) => h.id === trimmed);
 };
+
+

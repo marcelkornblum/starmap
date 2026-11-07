@@ -1,9 +1,63 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { createElement, type ReactElement } from 'react';
 import { render } from '@testing-library/react';
+import { seedDetailRecord } from '../src/data/detailsRepository';
+import type { SystemManifest } from '../src/types/astro';
 
 const renderToHtml = (element: ReactElement): string => render(element).container.innerHTML;
+
+const TAU_CETI_FIXTURE: SystemManifest = {
+  id: 'gaia-2452378776434477184',
+  name: 'Tau Ceti',
+  x: 3.156,
+  y: 1.54,
+  z: -1.003,
+  dist: 3.65,
+  sectorId: 'sector_+000_+000_-025',
+  stars: [
+    {
+      id: '2452378776434477184-A',
+      name: 'Tau Ceti',
+      componentDesignation: 'A',
+      spectralType: 'G8V',
+      mag: 3.5,
+      absmag: 5.68,
+      massMsun: 0.783,
+      radiusRsun: 0.793,
+      luminosityLsun: 0.52,
+      effectiveTempK: 5344,
+    },
+  ],
+  planets: [
+    {
+      id: 'tau-ceti-e',
+      name: 'Tau Ceti e',
+      letter: 'e',
+      massMearth: 3.93,
+      radiusRearth: 1.81,
+      equilibriumTempK: 282,
+      surfaceGravityG: 1.2,
+      composition: 'super-earth',
+      isHabitableCandidate: true,
+      orbit: {
+        semiMajorAxis: 0.538,
+        periodDays: 162.87,
+        eccentricity: 0.18,
+        inclination: 0,
+        ascendingNode: 0,
+        argumentOfPeriapsis: 22.3,
+        meanAnomaly: 0,
+      },
+    },
+  ],
+};
+
+beforeEach(() => {
+  seedDetailRecord('tau-ceti', { kind: 'system', record: TAU_CETI_FIXTURE });
+  seedDetailRecord('tau-ceti-e', { kind: 'system', record: TAU_CETI_FIXTURE });
+  seedDetailRecord('gaia-2452378776434477184', { kind: 'system', record: TAU_CETI_FIXTURE });
+});
 import {
   STAR_TYPE_GUIDE_ENTRIES,
   PLANET_TYPE_GUIDE_ENTRIES,

@@ -20,6 +20,17 @@ const semiMajorAxisComparison = resolveMetricComparison(
   'tau-ceti-e',
 )!;
 
+const stellarMassEntry = resolveMetricGuideEntry('stellar-mass')!;
+const multiTargetComparison = resolveMetricComparison(
+  'stellar-mass',
+  'alpha-centauri-a,alpha-centauri-b',
+)!;
+
+const uncataloguedComparison = resolveMetricComparison(
+  'stellar-mass',
+  'proxima-centauri',
+)!;
+
 interface MetricComparativePanelStoryArgs {
   metric: 'galactic-coordinates' | 'semi-major-axis';
 }
@@ -97,6 +108,30 @@ export const MetricComparativePanelStory: Story = {
               <MetricComparativePanel
                 entry={semiMajorAxisEntry}
                 comparison={semiMajorAxisComparison}
+              />
+            </div>
+          </section>
+
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>
+              Multi-Star Expansion (Alpha Centauri A & B)
+            </h2>
+            <div className={storyStyles.panelContainer}>
+              <MetricComparativePanel
+                entry={stellarMassEntry}
+                comparison={multiTargetComparison}
+              />
+            </div>
+          </section>
+
+          <section className={storyStyles.section}>
+            <h2 className={storyStyles.sectionTitle}>
+              Uncatalogued Target Telemetry (Proxima Centauri uncached)
+            </h2>
+            <div className={storyStyles.panelContainer}>
+              <MetricComparativePanel
+                entry={stellarMassEntry}
+                comparison={uncataloguedComparison}
               />
             </div>
           </section>

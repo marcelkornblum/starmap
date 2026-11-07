@@ -134,7 +134,7 @@
       "audId": "AUD-020"
     },
     "G-literals::src/components/canvas/scenes/SystemScene.tsx": {
-      "count": 4,
+      "count": 2,
       "audId": "AUD-072"
     },
     "G-size::src/components/canvas/viewport/SpatialViewport.tsx": {
@@ -270,7 +270,7 @@
       "audId": "AUD-120"
     },
     "G-literals::src/services/guideService.ts": {
-      "count": 22,
+      "count": 13,
       "audId": "AUD-060"
     },
     "G-size::src/services/journeyService.ts": {
@@ -474,10 +474,6 @@
       "audId": "AUD-122"
     },
     "missing-component-quad::src/components/domain/DetailsPanel/DetailsCanonAndHazards.tsx": {
-      "count": 1,
-      "audId": "AUD-122"
-    },
-    "missing-component-quad::src/components/domain/DetailsPanel/DetailsIdentityHeader.tsx": {
       "count": 1,
       "audId": "AUD-122"
     },

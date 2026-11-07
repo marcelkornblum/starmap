@@ -17,6 +17,11 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
   entry,
   comparison,
 }) => {
+  const targets =
+    comparison.targets && comparison.targets.length > 0
+      ? comparison.targets
+      : [comparison];
+
   return (
     <section
       data-testid="metric-comparative-3d"
@@ -53,29 +58,54 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
             <Datum label="Familiar Scale" value={comparison.baselineFamiliar} />
           </Stack>
         </div>
-        <div
-          data-testid="metric-comparison-target"
-          className={styles.comparisonColumn}
-        >
-          <Heading as="h4">
-            Target:{' '}
-            <Cluster as="span" gap="tight" align="center">
-              <CelestialSymbol type="terrestrial" size="sm" showTooltip={false} />
-              <a href={resolveAppHref(comparison.targetHref)}>{comparison.targetName}</a>
-            </Cluster>
-          </Heading>
-          <Stack gap="none">
-            <Datum label="Scientific Value" value={comparison.targetValue} />
-            <Datum label="Familiar Scale" value={comparison.targetFamiliar} />
-          </Stack>
-        </div>
+
+        {targets.map((target, idx) => (
+          <div
+            key={target.targetId || idx}
+            data-testid={
+              idx === 0
+                ? 'metric-comparison-target'
+                : `metric-comparison-target-${idx}`
+            }
+            className={styles.comparisonColumn}
+          >
+            <Heading as="h4">
+              Target:{' '}
+              <Cluster as="span" gap="tight" align="center">
+                <CelestialSymbol
+                  type="terrestrial"
+                  size="sm"
+                  showTooltip={false}
+                />
+                <a href={resolveAppHref(target.targetHref)}>
+                  {target.targetName}
+                </a>
+              </Cluster>
+            </Heading>
+            <Stack gap="none">
+              <Datum label="Scientific Value" value={target.targetValue} />
+              <Datum label="Familiar Scale" value={target.targetFamiliar} />
+            </Stack>
+            {targets.length > 1 && (
+              <div>
+                <Badge
+                  status={target.isCatalogued === false ? 'neutral' : 'info'}
+                >
+                  {target.relativeRatioLabel}
+                </Badge>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       <div
         data-testid="metric-comparison-ratio"
         className={styles.comparisonRatio}
       >
-        <Badge status="info">{comparison.relativeRatioLabel}</Badge>
+        <Badge status={comparison.isCatalogued === false ? 'neutral' : 'info'}>
+          {comparison.relativeRatioLabel}
+        </Badge>
       </div>
     </section>
   );

@@ -275,7 +275,7 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
       },
     );
 
-    test.fixme(
+    test(
       'AUD-092 (DEC-R014k): multi-value Guide routes (/guide/star-types/G2V,K1V and /guide/star-types/G2V%2BK1V) render all matched classifications and preserve ?focus= across all 4 Guide views',
       async ({ page }) => {
         // Comma-separated star types render all matched entries
@@ -304,6 +304,20 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         await page.goto('/guide/metrics/planetary-mass?focus=jupiter');
         await expect(page.getByTestId('metric-detail-view-root')).toBeVisible();
         await expect(page).toHaveURL(/[?&]focus=jupiter/);
+      },
+    );
+
+    test(
+      'AUD-020 (DEC-R018): cold load of /guide/metrics/stellar-mass?focus=proxima-centauri never shows fabricated Tau Ceti 0.783 telemetry',
+      async ({ page }) => {
+        await page.goto('/guide/metrics/stellar-mass?focus=proxima-centauri');
+        await expect(page.getByTestId('metric-detail-view-root')).toBeVisible();
+        await expect(page.getByTestId('metric-comparative-3d')).toBeVisible();
+        const target = page.getByTestId('metric-comparison-target');
+        await expect(target).toBeVisible();
+        const text = await target.textContent();
+        expect(text).not.toContain('0.78');
+        expect(text).not.toContain('0.783');
       },
     );
   });
