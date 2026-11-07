@@ -97,12 +97,14 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
         ))}
       </div>
 
-      <div
-        data-testid="metric-comparison-ratio"
-        className={styles.comparisonRatio}
-      >
-        {comparison.relativeRatioLabel}
-      </div>
+      {targets.length <= 1 && (
+        <div
+          data-testid="metric-comparison-ratio"
+          className={styles.comparisonRatio}
+        >
+          {comparison.relativeRatioLabel}
+        </div>
+      )}
     </section>
   );
 };

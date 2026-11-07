@@ -127,8 +127,8 @@ export const PlanarFootprintItem: React.FC<PlanarFootprintComponentProps> = ({
   const fp = footprint ?? rest;
   const fpClassification = fp.classification ?? 'star';
   const fpSize = fp.size ?? defaultSize;
-  const fpX = Array.isArray(fp.position) ? fp.position[0] : (fp.position?.x ?? 0);
-  const fpY = Array.isArray(fp.position) ? fp.position[1] : (fp.position?.y ?? 0);
+  const fpX = Array.isArray(fp.position) ? (fp.position[0] ?? 0) : (fp.position?.x ?? 0);
+  const fpY = Array.isArray(fp.position) ? (fp.position[1] ?? 0) : (fp.position?.y ?? 0);
   const fpColor = fp.color ?? defaultColor;
   const fpOpacity = fp.opacity ?? defaultAlpha;
 
