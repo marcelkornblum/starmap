@@ -2,15 +2,15 @@
 
 ## Phase 1: Atomic Decision Alignment
 Record each decision in [decision-log.md](../../initiatives/architecture-remediation/decision-log.md) before implementation.
-- [ ] Task: DEC-R009 — Guard implementation vehicle (extend audit scripts + new `audit:arch` script vs oxlint rules vs new dependency such as dependency-cruiser)
-- [ ] Task: DEC-R010 — Baseline format and location
-- [ ] Task: DEC-R011 — `G-literals` definition (which literals count; scope directories)
-- [ ] Task: DEC-R012 — Layer boundary map for `G-imports` (allowed import directions)
-- [ ] Task: DEC-R013 — Lint warning strategy (ratchet count vs fix-now; per-rule ownership by later tracks)
-- [ ] Task: DEC-R014 — URL contract inventory (which URL shapes and assertions)
-- [ ] Task: DEC-R015 — Data pipeline and Storybook tests in CI (AUD-007)
-- [ ] Task: DEC-R016 — Frame-time baseline storage and tolerance
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: DEC-R009 — Guard implementation vehicle (extend audit scripts + new `audit:arch` script vs oxlint rules vs new dependency such as dependency-cruiser)
+- [x] Task: DEC-R010 — Baseline format and location
+- [x] Task: DEC-R011 — `G-literals` definition (which literals count; scope directories)
+- [x] Task: DEC-R012 — Layer boundary map for `G-imports` (allowed import directions)
+- [x] Task: DEC-R013 — Lint warning strategy (ratchet count vs fix-now; per-rule ownership by later tracks)
+- [x] Task: DEC-R014 — URL contract inventory (which URL shapes and assertions)
+- [x] Task: DEC-R015 — Data pipeline and Storybook tests in CI (AUD-007)
+- [x] Task: DEC-R016 — Frame-time baseline storage and tolerance
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Audit-Script Blind Spots (AUD-001 – AUD-003)
 - [ ] Task: Red — fixture tests for per-file quads, token literals, widened inline-style and `renderToString` scopes (`audit:ui`)
