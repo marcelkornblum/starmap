@@ -10,6 +10,7 @@ import {
   ConfidencePip,
   Datum,
   Heading,
+  Quantity,
   Stack,
   Unit,
 } from '../../interface';
@@ -70,7 +71,7 @@ export const DetailsPlanetTelemetrySection = ({
             value={
               planetTelemetry.isTheoreticalOrbit ? (
                 <Cluster as="span" gap="tight" align="center">
-                  <span>{planetTelemetry.semiMajorAxisAu}</span>
+                  <Quantity value={planetTelemetry.semiMajorAxisAu} />
                   <ConfidencePip
                     confidence="theoretical"
                     data-level="theoretical"

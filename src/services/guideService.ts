@@ -654,7 +654,7 @@ function evaluateMetricForTarget(
           mag <= 6.5
             ? 'Naked-eye visible (V ≤ 6.5)'
             : 'Telescopic observation required';
-        const deltaMag = mag - -26.74;
+        const deltaMag = mag - (-26.74);
         relativeRatioLabel = `Δ${deltaMag.toFixed(1)} mag relative to Sol`;
         isCatalogued = true;
       }
