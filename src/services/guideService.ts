@@ -181,7 +181,7 @@ export const resolveStarTypeGuideEntry = (
   if (!rawTrimmed) return null;
 
   const trimmed = rawTrimmed.includes('+')
-    ? rawTrimmed.split('+')[0]!.trim()
+    ? (rawTrimmed.split('+')[0] ?? '').trim()
     : rawTrimmed;
   if (!trimmed) return null;
 
@@ -827,9 +827,10 @@ export const resolveMetricComparison = (
   const isOrbitalOrPlanetary = metric.category === 'Orbital & Planetary Telemetry';
   const isStellar = metric.category === 'Stellar Telemetry';
 
-  const tokens = isFromFocusedContext
-    ? focusedEntityId!.split(',').map((t) => t.trim()).filter(Boolean)
-    : [isOrbitalOrPlanetary ? 'tau-ceti-e' : 'tau-ceti'];
+  const tokens =
+    focusedEntityId && focusedEntityId.trim()
+      ? focusedEntityId.split(',').map((t) => t.trim()).filter(Boolean)
+      : [isOrbitalOrPlanetary ? 'tau-ceti-e' : 'tau-ceti'];
 
   const targetComparisons: MetricTargetComparison[] = [];
 
