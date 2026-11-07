@@ -134,6 +134,16 @@ describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', 
       expect(diags).toEqual([]);
     });
 
+    it('permits raw elements inside Tier 1 Interface Primitives (src/components/interface/)', () => {
+      const code = `
+        export const Button = () => (
+          <button type="button">Click</button>
+        );
+      `;
+      const diags = auditRawElementsContent('src/components/interface/Button/Button.tsx', code);
+      expect(diags).toEqual([]);
+    });
+
     it('flags inline style attributes in views, search, and canvas files', () => {
       const code = `
         export const SearchComponent = () => (

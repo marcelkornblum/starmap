@@ -188,6 +188,26 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
       }
     });
 
+    it('ignores type-only imports in cycle detection', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cycle-type-test-'));
+      try {
+        const fileA = path.join(tempDir, 'a.ts');
+        const fileB = path.join(tempDir, 'b.ts');
+        fs.writeFileSync(
+          fileA,
+          `import type { TypeB } from './b';\nexport interface TypeA { b: TypeB; }\n`
+        );
+        fs.writeFileSync(
+          fileB,
+          `import type { TypeA } from './a';\nexport interface TypeB { a: TypeA; }\n`
+        );
+        const violations = detectImportCycles([fileA, fileB], tempDir);
+        expect(violations).toEqual([]);
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
     it('permits valid downward imports', () => {
       const code = `
         import type { CelestialEntity } from '../types/astro';

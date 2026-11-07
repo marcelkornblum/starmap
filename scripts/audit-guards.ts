@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { parse } from '@babel/parser';
 import { runUiAudit } from './audit-ui';
 import { runR3fAudit } from './audit-r3f';
@@ -645,7 +645,7 @@ export function detectImportCycles(srcFiles: string[], projectRoot: string): Gua
     const content = fs.readFileSync(file, 'utf8');
     const imports: string[] = [];
 
-    const importMatches = content.matchAll(/(?:import|export)\s+.*?from\s+['"]([^'"]+)['"]/gs);
+    const importMatches = content.matchAll(/(?:import|export)(?!\s+type\b)\s+.*?from\s+['"]([^'"]+)['"]/gs);
     for (const m of importMatches) {
       const imp = m[1];
       if (imp.startsWith('.')) {
@@ -759,11 +759,9 @@ export function runAllGuards(projectRoot = process.cwd()): GuardViolation[] {
   }
 
   // 5. G-lint-warnings (from oxlint)
-  const localOxlint = path.resolve(projectRoot, 'node_modules/.bin/oxlint');
-  const oxlintBin = fs.existsSync(localOxlint) ? localOxlint : 'npx oxlint';
   let oxlintOutput: string | null = null;
   try {
-    oxlintOutput = execSync(`${oxlintBin} --format json`, {
+    oxlintOutput = execFileSync('npx', ['--no-install', 'oxlint', '--format', 'json'], {
       cwd: projectRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],

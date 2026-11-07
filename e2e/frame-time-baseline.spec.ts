@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { test, expect, type Page } from 'playwright/test';
 
@@ -35,9 +36,11 @@ async function measurePointerDragMetrics(
   await page.waitForTimeout(500);
 
   const box = await canvas.boundingBox();
-  expect(box).not.toBeNull();
-  const cx = box!.x + box!.width / 2;
-  const cy = box!.y + box!.height / 2;
+  if (!box) {
+    throw new Error('Canvas bounding box could not be retrieved');
+  }
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
 
   // Start requestAnimationFrame timestamp recording in the browser context
   await page.evaluate(() => {
@@ -116,8 +119,8 @@ test.describe('Spatial View Frame-Time Baseline Guard (AUD-009, DEC-R016)', () =
       measuredResults[route] = metrics;
     }
 
-    // Write measured metrics to /tmp/starmap-test-results/frame-times.json
-    const outDir = '/tmp/starmap-test-results';
+    // Write measured metrics to starmap-test-results/frame-times.json
+    const outDir = path.join(os.tmpdir(), 'starmap-test-results');
     fs.mkdirSync(outDir, { recursive: true });
     const outPath = path.join(outDir, 'frame-times.json');
     fs.writeFileSync(outPath, JSON.stringify(measuredResults, null, 2), 'utf-8');

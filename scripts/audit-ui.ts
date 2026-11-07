@@ -321,6 +321,9 @@ export const checkComponentQuads = auditComponentQuads;
  * Audits a source string for raw HTML interactive elements (<button>, <input>, <select>).
  */
 export function auditRawElementsContent(filePath: string, content: string): AuditDiagnostic[] {
+  const normPath = filePath.replace(/\\/g, '/');
+  if (normPath.includes('src/components/interface/')) return [];
+
   const diagnostics: AuditDiagnostic[] = [];
   const lines = content.split('\n');
   diagnostics.push(...checkInvalidSuppressions(filePath, lines));
