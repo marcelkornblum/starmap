@@ -123,6 +123,7 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         // Navigating with entity id sets centre
         await page.goto('/galaxy?center=sol');
         await expect(page).toHaveURL(/center=sol/);
+        const historyLengthBefore = await page.evaluate(() => window.history.length);
 
         // Panning camera away replaces entity id with settled coordinates
         const canvas = page.locator('[data-testid="root-canvas-host"] canvas');
@@ -139,8 +140,8 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         // On camera settle, URL replaces ?center=sol with numeric coordinates ?center=<x>,<y>,<z>
         await expect(page).toHaveURL(/center=-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?/);
         // Verify history length did not increase (replace, not push)
-        const canGoBackToSolCenter = await page.evaluate(() => window.history.length);
-        expect(canGoBackToSolCenter).toBeGreaterThan(0);
+        const historyLengthAfter = await page.evaluate(() => window.history.length);
+        expect(historyLengthAfter).toBe(historyLengthBefore);
       },
     );
 

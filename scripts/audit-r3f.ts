@@ -353,15 +353,27 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
                 );
               }
 
-              // Broad state.tokens subscription
-              if (
-                body.type === 'MemberExpression' &&
-                body.property &&
-                'name' in body.property &&
-                body.property.name === 'tokens'
-              ) {
+              // Broad state.tokens subscription (expression body or block return, dot or bracket notation)
+              let returnedMember: ASTNode | undefined;
+              if (body.type === 'MemberExpression') {
+                returnedMember = body;
+              } else if (body.type === 'BlockStatement' && Array.isArray(body.body)) {
+                const returnStmt = body.body.find(
+                  (s: ASTNode) => s.type === 'ReturnStatement'
+                ) as ASTNode | undefined;
+                const retArg = returnStmt?.argument as ASTNode | undefined;
+                if (retArg && retArg.type === 'MemberExpression') {
+                  returnedMember = retArg;
+                }
+              }
+              const prop = returnedMember?.property;
+              const isTokensProp =
+                prop &&
+                (('name' in prop && prop.name === 'tokens') ||
+                  ('value' in prop && prop.value === 'tokens'));
+              if (returnedMember && isTokensProp) {
                 addDiagnostic(
-                  body.loc?.start,
+                  returnedMember.loc?.start || obj.loc?.start,
                   'atomic-store-selectors',
                   'error',
                   'Whole-object store subscription detected (`state.tokens`). Subscribing to broad state objects forces full component re-renders whenever any design token changes.',
