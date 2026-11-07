@@ -78,11 +78,12 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
       const categoryFilter = page.locator('#starmap-search-filter');
       await expect(categoryFilter).toHaveValue('planets', { timeout: 15_000 });
 
-      // Trigger deterministic input fill so debounced search executes in development StrictMode
+      // Trigger deterministic keystroke mutation so debounced search executes in development StrictMode
       const resultsPanel = page.getByTestId('search-results-panel');
       await expect(resultsPanel).toBeVisible({ timeout: 15_000 });
       await searchInput.focus();
-      await searchInput.fill('tau');
+      await page.keyboard.press('Backspace');
+      await page.keyboard.type('u');
 
       const planetsGroup = page.getByTestId('search-results-group-planets');
       await expect(planetsGroup).toBeVisible({ timeout: 15_000 });
