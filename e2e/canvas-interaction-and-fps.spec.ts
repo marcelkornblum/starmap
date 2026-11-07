@@ -387,8 +387,8 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
 
     await expect(peekName).toHaveText(/Sirius/i, { timeout: 10_000 });
     await expect(rootHost).toHaveAttribute('data-camera-target', /-0\.49,\s*2\.48,\s*-0\.76/);
+    await expect(rootHost).toHaveAttribute('data-camera-pos', /.+/);
 
-    await page.waitForTimeout(400);
     const canvasBox = await canvas.boundingBox();
     expect(canvasBox).not.toBeNull();
     const targetAttr = await rootHost.getAttribute('data-camera-target');
@@ -436,7 +436,6 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const solPt = projectPoint([0, 0, 0]);
     await page.mouse.move(solPt.x, solPt.y);
     await page.mouse.click(solPt.x, solPt.y);
-    await page.waitForTimeout(300);
 
     // Clicking Sol on the canvas after searching Sirius focuses Sol without jumping/recentering camera
     await expect(peekName).toHaveText(/^Sol$/i, { timeout: 10_000 });

@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Badge, CelestialSymbol, Cluster, Datum, Heading, Stack } from '../../interface';
+import { CelestialSymbol, Cluster, Datum, Heading, Stack } from '../../interface';
 import { resolveAppHref } from '../../../utils/url';
 import type {
   MetricComparison,
@@ -89,12 +89,8 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
               <Datum label="Familiar Scale" value={target.targetFamiliar} />
             </Stack>
             {targets.length > 1 && (
-              <div>
-                <Badge
-                  status={target.isCatalogued === false ? 'neutral' : 'info'}
-                >
-                  {target.relativeRatioLabel}
-                </Badge>
+              <div className={styles.comparisonRatio}>
+                {target.relativeRatioLabel}
               </div>
             )}
           </div>
@@ -105,9 +101,7 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
         data-testid="metric-comparison-ratio"
         className={styles.comparisonRatio}
       >
-        <Badge status={comparison.isCatalogued === false ? 'neutral' : 'info'}>
-          {comparison.relativeRatioLabel}
-        </Badge>
+        {comparison.relativeRatioLabel}
       </div>
     </section>
   );
