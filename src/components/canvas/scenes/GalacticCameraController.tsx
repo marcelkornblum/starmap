@@ -22,12 +22,16 @@ function isOrbitControlsLike(value: unknown): value is OrbitControlsLike {
 }
 
 function applyCameraSavedZoom(cam: THREE.Camera, zoom: number): void {
-  const cameraWithZoom = cam as THREE.Camera & {
-    zoom?: number;
-    updateProjectionMatrix?: () => void;
-  };
-  cameraWithZoom.zoom = zoom;
-  cameraWithZoom.updateProjectionMatrix?.();
+  if ('zoom' in cam && typeof cam.zoom === 'number') {
+    cam.zoom = zoom;
+  }
+  if ('updateProjectionMatrix' in cam && typeof cam.updateProjectionMatrix === 'function') {
+    cam.updateProjectionMatrix();
+  }
+}
+
+function getCameraZoom(cam: THREE.Camera): number {
+  return 'zoom' in cam && typeof cam.zoom === 'number' ? cam.zoom : 1;
 }
 
 export interface GalacticCameraControllerProps {
@@ -84,7 +88,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       position: pos,
       target: tgt,
       up,
-      zoom: 'zoom' in camera && typeof camera.zoom === 'number' ? camera.zoom : 1,
+      zoom: getCameraZoom(camera),
       focalDistance,
       centerKey: `${tgt[0]},${tgt[1]},${tgt[2]}`,
     });
@@ -158,7 +162,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
           position: saved.position,
           target: saved.target,
           up: saved.up,
-          zoom: camera.zoom,
+          zoom: getCameraZoom(camera),
           focalDistance: saved.focalDistance,
         });
 
@@ -195,7 +199,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
         position: [camera.position.x, camera.position.y, camera.position.z],
         target: [targetX, targetY, targetZ],
         up: saved.up,
-        zoom: camera.zoom,
+        zoom: getCameraZoom(camera),
         focalDistance: Math.hypot(relOffsetX, relOffsetY, relOffsetZ),
       });
 
@@ -252,7 +256,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       position: finalPos,
       target: finalTarget,
       up: finalUp,
-      zoom: camera.zoom,
+      zoom: getCameraZoom(camera),
       focalDistance: finalDist,
     });
     saveCurrentGalaxyPose();
