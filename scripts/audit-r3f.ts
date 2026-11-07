@@ -438,8 +438,8 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       if (key === 'loc' || key === 'range' || key === 'comments') continue;
       const child = obj[key];
       if (Array.isArray(child)) {
-        for (const item of child) {
-          simpleTraverse(item, visitor);
+        for (let i = 0, len = child.length; i < len; i++) {
+          simpleTraverse(child[i], visitor);
         }
       } else if (child && typeof child === 'object') {
         simpleTraverse(child, visitor);

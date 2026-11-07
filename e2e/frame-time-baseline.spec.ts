@@ -123,7 +123,7 @@ test.describe('Spatial View Frame-Time Baseline Guard (AUD-009, DEC-R016)', () =
     const outDir = path.join(os.tmpdir(), 'starmap-test-results');
     fs.mkdirSync(outDir, { recursive: true });
     const outPath = path.join(outDir, 'frame-times.json');
-    fs.writeFileSync(outPath, JSON.stringify(measuredResults, null, 2), 'utf-8');
+    fs.writeFileSync(outPath, `${JSON.stringify(measuredResults, null, 2)}\n`, 'utf-8');
     console.log(`[Frame-Time Telemetry] Saved measured metrics to ${outPath}`);
 
     // Load baseline from scripts/guards/frame-time-baseline.json
