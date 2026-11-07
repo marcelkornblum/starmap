@@ -1,0 +1,1129 @@
+{
+  "version": 1,
+  "entries": {
+    "G-size::src/components/canvas/cartography/cartographyMath.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-size::src/components/canvas/cartography/celestialOcclusionRegistry.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-size::src/components/canvas/cartography/reticleGeometry.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-size::src/components/canvas/entity/CelestialEntity.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-size::src/components/canvas/entity/OrbitPath.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/entity/Reticle.tsx": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/canvas/entity/SectorPointCloud.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/entity/SectorPointCloud.tsx": {
+      "count": 3,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/canvas/entity/SpatialEntityStore.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/entity/SpatialEntityStore.ts": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-literals::src/components/canvas/instrument/BearingVectors.tsx": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/canvas/instrument/CameraRig.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/instrument/CameraRig.tsx": {
+      "count": 7,
+      "audId": "AUD-020"
+    },
+    "G-literals::src/components/canvas/instrument/CartographicInstrument.tsx": {
+      "count": 2,
+      "audId": "AUD-020"
+    },
+    "G-literals::src/components/canvas/instrument/CartographicLighting.tsx": {
+      "count": 2,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/canvas/instrument/CoordinateFins.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-size::src/components/canvas/instrument/PlanarGrid.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/instrument/PlanarGrid.tsx": {
+      "count": 4,
+      "audId": "AUD-020"
+    },
+    "G-literals::src/components/canvas/instrument/ScreenEdgeCue.tsx": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/canvas/instrument/SpatialFrameProvider.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/instrument/SpatialFrameProvider.tsx": {
+      "count": 3,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/canvas/instrument/cameraRigControls.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/instrument/cameraRigControls.ts": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/canvas/instrument/referenceFrame.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/instrument/useCameraTransition.ts": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/canvas/materials/CartoLineMaterial.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/materials/CartoLineMaterial.ts": {
+      "count": 3,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/canvas/math/cameraMath.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/math/cameraMath.ts": {
+      "count": 3,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/canvas/scenes/PaletteShowcaseScene.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/scenes/PlanetScene.tsx": {
+      "count": 3,
+      "audId": "AUD-063"
+    },
+    "G-size::src/components/canvas/scenes/SpatialScenes.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/canvas/scenes/SpatialScenes.tsx": {
+      "count": 6,
+      "audId": "AUD-020"
+    },
+    "G-literals::src/components/canvas/scenes/SystemScene.tsx": {
+      "count": 4,
+      "audId": "AUD-072"
+    },
+    "G-size::src/components/canvas/viewport/SpatialViewport.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/domain/CanvasLayer/CanvasLayer.tsx": {
+      "count": 2,
+      "audId": "AUD-072"
+    },
+    "G-size::src/components/domain/DirectionsPanel/DirectionsPanel.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/domain/Guide3DPreview/Guide3DPreview.tsx": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-size::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-imports::src/components/interface/information/CelestialSymbol/SpectralBadge.tsx": {
+      "count": 1,
+      "audId": "AUD-035"
+    },
+    "G-size::src/components/interface/surfaces/DetentSheet/DetentSheet.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-size::src/components/prototypes/PaletteShowcase/PaletteShowcase.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-size::src/components/search/SearchRoot.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/components/search/searchStoreSync.ts": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-imports::src/components/search/searchUrlSync.ts": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-literals::src/data/detailsRepository.ts": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-literals::src/data/guideCatalog.ts": {
+      "count": 68,
+      "audId": "AUD-045"
+    },
+    "G-imports::src/data/planetPalettes.ts": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-imports::src/data/searchRepository.ts": {
+      "count": 1,
+      "audId": "AUD-031"
+    },
+    "G-size::src/services/details/bodiesAndSchematics.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/services/details/bodiesAndSchematics.ts": {
+      "count": 4,
+      "audId": "AUD-062"
+    },
+    "G-size::src/services/details/focusedEntityDetails.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/services/details/focusedEntityDetails.ts": {
+      "count": 1,
+      "audId": "AUD-062"
+    },
+    "G-imports::src/services/details/focusedEntityDetails.ts": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-size::src/services/details/galacticAperture.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/services/details/galacticAperture.ts": {
+      "count": 6,
+      "audId": "AUD-062"
+    },
+    "G-imports::src/services/details/galacticAperture.ts": {
+      "count": 3,
+      "audId": "AUD-030"
+    },
+    "G-size::src/services/details/hazardsAndComposition.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-imports::src/services/details/hazardsAndComposition.ts": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-size::src/services/details/minimapAndPreview.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/services/details/minimapAndPreview.ts": {
+      "count": 8,
+      "audId": "AUD-062"
+    },
+    "G-imports::src/services/details/minimapAndPreview.ts": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-literals::src/services/details/navigationAndCamera.ts": {
+      "count": 5,
+      "audId": "AUD-062"
+    },
+    "G-size::src/services/details/types.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-imports::src/services/details/types.ts": {
+      "count": 2,
+      "audId": "AUD-030"
+    },
+    "G-literals::src/services/deviceTierService.ts": {
+      "count": 3,
+      "audId": "AUD-020"
+    },
+    "G-size::src/services/guideService.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/services/guideService.ts": {
+      "count": 22,
+      "audId": "AUD-060"
+    },
+    "G-size::src/services/journeyService.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/services/journeyService.ts": {
+      "count": 9,
+      "audId": "AUD-061"
+    },
+    "G-imports::src/services/journeyService.ts": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-literals::src/services/layerCardService.ts": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-size::src/services/searchService.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-imports::src/services/searchService.ts": {
+      "count": 2,
+      "audId": "AUD-030"
+    },
+    "G-size::src/services/sectorStreamingService.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/services/sectorStreamingService.ts": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-imports::src/stores/useCameraStore.ts": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-imports::src/stores/useCanvasStageStore.ts": {
+      "count": 1,
+      "audId": "AUD-034"
+    },
+    "G-size::src/utils/astroMath.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/utils/astroMath.ts": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-size::src/utils/compactDataCodec.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/utils/compactDataCodec.ts": {
+      "count": 19,
+      "audId": "AUD-020"
+    },
+    "G-imports::src/utils/compactDataCodec.ts": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-size::src/utils/datasetLayerCodec.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/utils/datasetLayerCodec.ts": {
+      "count": 2,
+      "audId": "AUD-020"
+    },
+    "G-size::src/utils/nomenclature.ts": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-size::src/views/GalaxyView.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/views/GalaxyView.tsx": {
+      "count": 8,
+      "audId": "AUD-020"
+    },
+    "G-imports::src/views/GalaxyView.tsx": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-imports::src/views/HazardDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-imports::src/views/MetricDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-imports::src/views/PlanetTypeDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-size::src/views/PlanetView.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/views/PlanetView.tsx": {
+      "count": 2,
+      "audId": "AUD-020"
+    },
+    "G-imports::src/views/PlanetView.tsx": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-imports::src/views/StarTypeDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-size::src/views/SystemView.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "G-literals::src/views/SystemView.tsx": {
+      "count": 1,
+      "audId": "AUD-020"
+    },
+    "G-imports::src/views/SystemView.tsx": {
+      "count": 1,
+      "audId": "AUD-030"
+    },
+    "G-imports-cycle::src/views/GalaxyView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "G-imports-cycle::src/views/HazardDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "G-imports-cycle::src/views/MetricDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "G-imports-cycle::src/views/PlanetTypeDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "G-imports-cycle::src/views/PlanetView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "G-imports-cycle::src/views/StarTypeDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "G-imports-cycle::src/views/SystemView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "G-imports-cycle::src/stores/useCanvasStageStore.ts": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "G-imports-cycle::src/components/canvas/scenes/SpatialScenes.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "missing-component-quad::src/components/interface/information/CelestialSymbol/CelestialBadge.tsx": {
+      "count": 1,
+      "audId": "AUD-122"
+    },
+    "file-size-exceeded::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "missing-component-quad::src/components/interface/information/CelestialSymbol/CelestialTitle.tsx": {
+      "count": 1,
+      "audId": "AUD-122"
+    },
+    "missing-component-quad::src/components/interface/information/CelestialSymbol/HazardBadge.tsx": {
+      "count": 1,
+      "audId": "AUD-122"
+    },
+    "missing-component-quad::src/components/interface/information/CelestialSymbol/SpectralBadge.tsx": {
+      "count": 1,
+      "audId": "AUD-122"
+    },
+    "file-size-exceeded::src/components/interface/surfaces/DetentSheet/DetentSheet.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "missing-component-quad::src/components/domain/DetailsPanel/DetailsActionBar.tsx": {
+      "count": 1,
+      "audId": "AUD-122"
+    },
+    "missing-component-quad::src/components/domain/DetailsPanel/DetailsCanonAndHazards.tsx": {
+      "count": 1,
+      "audId": "AUD-122"
+    },
+    "missing-component-quad::src/components/domain/DetailsPanel/DetailsIdentityHeader.tsx": {
+      "count": 1,
+      "audId": "AUD-122"
+    },
+    "missing-component-quad::src/components/domain/DetailsPanel/DetailsQuickTelemetry.tsx": {
+      "count": 1,
+      "audId": "AUD-122"
+    },
+    "file-size-exceeded::src/components/domain/DirectionsPanel/DirectionsPanel.tsx": {
+      "count": 1,
+      "audId": "AUD-120"
+    },
+    "forbidden-inline-style::src/components/canvas/entity/EntityLabel.tsx": {
+      "count": 1,
+      "audId": "AUD-113"
+    },
+    "forbidden-inline-style::src/components/canvas/viewport/GlobalCanvas.tsx": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "forbidden-dynamic-classname::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
+      "count": 1,
+      "audId": "AUD-125"
+    },
+    "forbidden-dynamic-classname::src/components/interface/information/Unit/Unit.tsx": {
+      "count": 1,
+      "audId": "AUD-125"
+    },
+    "forbidden-dynamic-classname::src/components/canvas/scenes/PaletteShowcaseScene.tsx": {
+      "count": 1,
+      "audId": "AUD-125"
+    },
+    "forbidden-dynamic-classname::src/components/canvas/viewport/GlobalCanvas.tsx": {
+      "count": 1,
+      "audId": "AUD-125"
+    },
+    "forbidden-raw-element::src/components/interface/controls/Button/Button.tsx": {
+      "count": 1,
+      "audId": "AUD-123"
+    },
+    "forbidden-raw-element::src/components/interface/controls/Input/Input.tsx": {
+      "count": 1,
+      "audId": "AUD-123"
+    },
+    "forbidden-raw-element::src/components/interface/controls/Select/Select.tsx": {
+      "count": 1,
+      "audId": "AUD-123"
+    },
+    "forbidden-raw-element::src/components/interface/controls/Slider/Slider.tsx": {
+      "count": 1,
+      "audId": "AUD-123"
+    },
+    "forbidden-raw-element::src/components/interface/controls/Toggle/Toggle.tsx": {
+      "count": 1,
+      "audId": "AUD-123"
+    },
+    "forbidden-raw-element::src/components/interface/information/ConfidencePip/ConfidencePip.tsx": {
+      "count": 1,
+      "audId": "AUD-123"
+    },
+    "forbidden-raw-element::src/components/interface/surfaces/Toast/Toast.tsx": {
+      "count": 1,
+      "audId": "AUD-123"
+    },
+    "forbidden-rendertostring::src/data/__tests__/auditUi.test.ts": {
+      "count": 2,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/cameraTransition.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/canvasAndLoaders.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/celestialSymbolAndCensus.test.tsx": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/confidencePip.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/deadCodeRemediation.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/detailsServiceAndPanel.test.tsx": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/detentSheetDrag.test.tsx": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/entityDecomposition.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/instrumentDecomposition.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/interfacePrimitives.test.tsx": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/journeyServiceAndPanel.test.tsx": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/layerCardAndExplore.test.tsx": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/planetBody.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/primitives.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/spatialFrameOwnership.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/spatialShell.test.tsx": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/spatialViewport.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/surfacesAndTemplates.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/threeTokenBridge.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/useLayerData.test.tsx": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "forbidden-rendertostring::tests/useLazyRef.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "hardcoded-css-token::src/components/interface/controls/Input/Input.module.css": {
+      "count": 3,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/controls/Select/Select.module.css": {
+      "count": 3,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/controls/Slider/Slider.module.css": {
+      "count": 6,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/controls/Toggle/Toggle.module.css": {
+      "count": 4,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/CelestialSymbol/CelestialSymbol.module.css": {
+      "count": 6,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/CelestialSymbol/CelestialTitle.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/ConfidencePip/ConfidencePip.module.css": {
+      "count": 5,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/ConfidencePip/ConfidencePip.stories.module.css": {
+      "count": 9,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/DataTable/DataTable.module.css": {
+      "count": 2,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/Datum/Datum.stories.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/Heading/Heading.module.css": {
+      "count": 2,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/Quantity/Quantity.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/Quantity/Quantity.stories.module.css": {
+      "count": 2,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/Typography/Typography.module.css": {
+      "count": 2,
+      "audId": "AUD-121"
+    },
+    "forbidden-outer-margin::src/components/interface/information/Typography/Typography.module.css": {
+      "count": 2,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/information/informationStories.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "forbidden-outer-margin::src/components/interface/layouts/Center/Center.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "forbidden-outer-margin::src/components/interface/layouts/Cover/Cover.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/layouts/Grid/Grid.module.css": {
+      "count": 6,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/layouts/Reel/Reel.module.css": {
+      "count": 4,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/layouts/Sidebar/Sidebar.module.css": {
+      "count": 4,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/layouts/Switcher/Switcher.module.css": {
+      "count": 5,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/surfaces/DetentSheet/DetentSheet.module.css": {
+      "count": 7,
+      "audId": "AUD-121"
+    },
+    "forbidden-outer-margin::src/components/interface/surfaces/DetentSheet/DetentSheet.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/surfaces/Drawer/Drawer.module.css": {
+      "count": 5,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/surfaces/Elevations.module.css": {
+      "count": 15,
+      "audId": "AUD-121"
+    },
+    "forbidden-outer-margin::src/components/interface/surfaces/Modal/Modal.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/surfaces/Modal/Modal.module.css": {
+      "count": 2,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/surfaces/Panel/Panel.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/surfaces/Popover/Popover.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/surfaces/Toast/Toast.module.css": {
+      "count": 2,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/surfaces/Tooltip/Tooltip.module.css": {
+      "count": 5,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/interface/surfaces/surfaceStories.module.css": {
+      "count": 2,
+      "audId": "AUD-121"
+    },
+    "forbidden-outer-margin::src/components/domain/BodiesPanel/BodiesPanel.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/domain/Breadcrumbs/Breadcrumbs.module.css": {
+      "count": 10,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/domain/CanonLayerItem/CanonLayerItem.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/domain/ControlBar/ControlBar.module.css": {
+      "count": 5,
+      "audId": "AUD-121"
+    },
+    "forbidden-outer-margin::src/components/domain/ControlBar/ControlBar.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/domain/Guide3DPreview/Guide3DPreview.module.css": {
+      "count": 39,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/domain/MetricComparativePanel/MetricComparativePanel.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "forbidden-outer-margin::src/components/domain/Minimap/Minimap.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "forbidden-outer-margin::src/components/domain/PreviewPanel/PreviewPanel.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/domain/SpatialShell/SpatialShell.module.css": {
+      "count": 14,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/domain/StarTypeCombinator/StarTypeCombinator.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/domain/domainStories.module.css": {
+      "count": 3,
+      "audId": "AUD-121"
+    },
+    "forbidden-outer-margin::src/components/search/Search.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/search/Search.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/canvas/FullAssembly.module.css": {
+      "count": 2,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/canvas/cartography/StorybookCanvasWrapper.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/canvas/entity/EntityLabel.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/canvas/entity/JourneyChord.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/canvas/scenes/PaletteShowcaseScene.module.css": {
+      "count": 129,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/components/canvas/scenes/SpatialScenes.module.css": {
+      "count": 1,
+      "audId": "AUD-121"
+    },
+    "hardcoded-css-token::src/views/GuideViews.module.css": {
+      "count": 43,
+      "audId": "AUD-121"
+    },
+    "no-layout-in-use-frame::src/components/canvas/entity/EntityLabel.tsx": {
+      "count": 3,
+      "audId": "AUD-104"
+    },
+    "react(only-export-components)::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "import(no-cycle)::src/services/searchService.ts": {
+      "count": 3,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/services/detailsService.ts": {
+      "count": 6,
+      "audId": "AUD-032"
+    },
+    "react(only-export-components)::src/components/interface/information/CelestialSymbol/SpectralBadge.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "react(only-export-components)::src/components/interface/information/ConfidencePip/ConfidencePip.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "import(no-cycle)::src/services/details/minimapAndPreview.ts": {
+      "count": 2,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/services/details/navigationAndCamera.ts": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/services/layerCardService.ts": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/services/details/bodiesAndSchematics.ts": {
+      "count": 3,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/services/details/focusedEntityDetails.ts": {
+      "count": 4,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/services/details/galacticAperture.ts": {
+      "count": 3,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/services/details/hazardsAndComposition.ts": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/services/journeyService.ts": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "react(only-export-components)::src/components/interface/surfaces/DetentSheet/DetentSheet.tsx": {
+      "count": 2,
+      "audId": "AUD-129"
+    },
+    "react(only-export-components)::src/components/interface/information/DataTable/DataTable.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "react(immutability)::.storybook/helpers/StoryCanvas.tsx": {
+      "count": 2,
+      "audId": "AUD-105"
+    },
+    "react(refs)::.storybook/helpers/StoryCanvas.tsx": {
+      "count": 1,
+      "audId": "AUD-105"
+    },
+    "react(only-export-components)::src/components/domain/SearchResultItem/SearchResultItem.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "react(immutability)::src/components/canvas/instrument/ScreenEdgeCue.tsx": {
+      "count": 2,
+      "audId": "AUD-105"
+    },
+    "react(immutability)::src/components/canvas/instrument/PlanarGrid.tsx": {
+      "count": 3,
+      "audId": "AUD-105"
+    },
+    "react-hooks(exhaustive-deps)::src/components/canvas/instrument/useCameraTransition.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "react(only-export-components)::src/components/canvas/instrument/SpatialFrameProvider.tsx": {
+      "count": 3,
+      "audId": "AUD-129"
+    },
+    "react-hooks(exhaustive-deps)::src/components/canvas/useThemeTokenSync.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "react(only-export-components)::src/components/domain/DirectionsPanel/DirectionsPanel.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "react(only-export-components)::src/components/domain/DetailsPanel/detailsPanelHelpers.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "react(immutability)::src/components/canvas/entity/SectorPointCloud.tsx": {
+      "count": 3,
+      "audId": "AUD-105"
+    },
+    "react(only-export-components)::src/components/canvas/entity/SectorPointCloud.tsx": {
+      "count": 3,
+      "audId": "AUD-129"
+    },
+    "react(refs)::src/components/canvas/entity/SectorPointCloud.tsx": {
+      "count": 1,
+      "audId": "AUD-105"
+    },
+    "react(only-export-components)::src/components/canvas/entity/SpatialEntityContext.tsx": {
+      "count": 6,
+      "audId": "AUD-129"
+    },
+    "react(preserve-manual-memoization)::src/components/canvas/entity/EntityLabel.tsx": {
+      "count": 3,
+      "audId": "AUD-010"
+    },
+    "react(refs)::src/components/canvas/entity/EntityLabel.tsx": {
+      "count": 1,
+      "audId": "AUD-105"
+    },
+    "react(refs)::src/components/canvas/entity/DropStalk.tsx": {
+      "count": 1,
+      "audId": "AUD-105"
+    },
+    "react(only-export-components)::src/components/canvas/entity/PlanetBody.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "react(refs)::src/components/canvas/entity/CelestialEntity.tsx": {
+      "count": 10,
+      "audId": "AUD-105"
+    },
+    "react(set-state-in-effect)::src/components/canvas/entity/CelestialEntity.tsx": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "react(only-export-components)::src/components/domain/CanvasLayer/CanvasLayer.tsx": {
+      "count": 2,
+      "audId": "AUD-129"
+    },
+    "import(no-cycle)::src/components/canvas/scenes/SystemScene.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "react-hooks(exhaustive-deps)::src/components/canvas/scenes/SystemScene.tsx": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "import(no-cycle)::src/components/canvas/scenes/SpatialScenes.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "react(immutability)::src/components/canvas/scenes/SpatialScenes.tsx": {
+      "count": 2,
+      "audId": "AUD-105"
+    },
+    "react(only-export-components)::src/components/domain/SpatialShell/SpatialShell.tsx": {
+      "count": 2,
+      "audId": "AUD-129"
+    },
+    "import(no-cycle)::src/components/search/index.ts": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/components/search/Search.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "react(only-export-components)::src/components/search/Search.tsx": {
+      "count": 3,
+      "audId": "AUD-129"
+    },
+    "import(no-cycle)::src/components/search/searchUrlSync.ts": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/router/index.tsx": {
+      "count": 8,
+      "audId": "AUD-032"
+    },
+    "react(only-export-components)::src/router/index.tsx": {
+      "count": 20,
+      "audId": "AUD-129"
+    },
+    "import(no-cycle)::src/views/HazardDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/components/search/SearchRoot.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/views/StarTypeDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "react(only-export-components)::src/views/StarTypeDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "import(no-cycle)::src/views/SearchView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/views/PlanetTypeDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "react(only-export-components)::src/views/PlanetTypeDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "import(no-cycle)::src/views/GalaxyView.tsx": {
+      "count": 2,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/views/SystemView.tsx": {
+      "count": 2,
+      "audId": "AUD-032"
+    },
+    "import(no-cycle)::src/views/MetricDetailView.tsx": {
+      "count": 1,
+      "audId": "AUD-032"
+    },
+    "react(only-export-components)::src/views/MetricDetailView.tsx": {
+      "count": 2,
+      "audId": "AUD-129"
+    },
+    "react-hooks(exhaustive-deps)::src/hooks/useLayerData.ts": {
+      "count": 2,
+      "audId": "AUD-010"
+    },
+    "import(no-cycle)::src/views/PlanetView.tsx": {
+      "count": 2,
+      "audId": "AUD-032"
+    },
+    "react(globals)::tests/spatialFrameOwnership.test.ts": {
+      "count": 2,
+      "audId": "AUD-145"
+    },
+    "eslint(no-unused-vars)::scripts/audit-guards.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "eslint(no-useless-escape)::scripts/audit-ui.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "eslint(no-unused-vars)::src/data/__tests__/auditUi.test.ts": {
+      "count": 1,
+      "audId": "AUD-010"
+    },
+    "typescript(no-non-null-asserted-optional-chain)::tests/journey3ExplorerFlow.test.tsx": {
+      "count": 3,
+      "audId": "AUD-010"
+    },
+    "react(globals)::tests/canvasAndLoaders.test.ts": {
+      "count": 2,
+      "audId": "AUD-145"
+    },
+    "react(globals)::tests/cameraTransition.test.ts": {
+      "count": 2,
+      "audId": "AUD-145"
+    },
+    "react(globals)::tests/detentSheetDrag.test.tsx": {
+      "count": 1,
+      "audId": "AUD-145"
+    },
+    "react(globals)::tests/useLayerData.test.tsx": {
+      "count": 2,
+      "audId": "AUD-145"
+    },
+    "react(globals)::tests/spatialShell.test.tsx": {
+      "count": 3,
+      "audId": "AUD-145"
+    },
+    "react(only-export-components)::src/views/GuideSectionNav.tsx": {
+      "count": 1,
+      "audId": "AUD-129"
+    },
+    "react(refs)::tests/useLazyRef.test.ts": {
+      "count": 2,
+      "audId": "AUD-105"
+    }
+  }
+}

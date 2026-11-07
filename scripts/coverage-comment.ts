@@ -58,6 +58,60 @@ export interface ThresholdConfig {
   functions?: number;
 }
 
+export const DEFAULT_THRESHOLDS: Required<ThresholdConfig> = {
+  lines: 78,
+  statements: 78,
+  branches: 70,
+  functions: 78,
+};
+
+export function parseVitestThresholds(configContent: string): ThresholdConfig {
+  const match = configContent.match(/thresholds:\s*\{([^}]+)\}/);
+  if (!match) return {};
+  const block = match[1];
+  const parseVal = (name: string): number | undefined => {
+    const m = block.match(new RegExp(`${name}:\\s*(\\d+)`));
+    return m ? Number.parseInt(m[1], 10) : undefined;
+  };
+  return {
+    lines: parseVal('lines'),
+    statements: parseVal('statements'),
+    branches: parseVal('branches'),
+    functions: parseVal('functions'),
+  };
+}
+
+export function getVitestCoverageThresholds(viteConfigPath?: string): Required<ThresholdConfig> {
+  let targetPath = viteConfigPath;
+  if (!targetPath) {
+    const cwdConfig = path.resolve(process.cwd(), 'vite.config.ts');
+    if (fs.existsSync(cwdConfig)) {
+      targetPath = cwdConfig;
+    } else {
+      const scriptRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'vite.config.ts');
+      if (fs.existsSync(scriptRoot)) {
+        targetPath = scriptRoot;
+      }
+    }
+  }
+
+  if (targetPath && fs.existsSync(targetPath)) {
+    try {
+      const content = fs.readFileSync(targetPath, 'utf8');
+      const parsed = parseVitestThresholds(content);
+      return {
+        lines: parsed.lines ?? DEFAULT_THRESHOLDS.lines,
+        statements: parsed.statements ?? DEFAULT_THRESHOLDS.statements,
+        branches: parsed.branches ?? DEFAULT_THRESHOLDS.branches,
+        functions: parsed.functions ?? DEFAULT_THRESHOLDS.functions,
+      };
+    } catch {
+      // Fallback to default thresholds
+    }
+  }
+  return { ...DEFAULT_THRESHOLDS };
+}
+
 export function getStatusIndicator(pct: number, threshold = 80): string {
   if (pct >= threshold) return '🟢';
   if (pct >= 50) return '🟡';
@@ -188,8 +242,14 @@ export function generateCoverageMarkdown(
   total: FileCoverageRecord,
   moduleSummaries: ModuleSummary[],
   filesList: FileSummary[],
-  ratchetThresholds: ThresholdConfig = { lines: 64, branches: 58, functions: 70, statements: 65 }
+  ratchetThresholds?: ThresholdConfig
 ): string {
+  const baseThresholds = getVitestCoverageThresholds();
+  const linesRatchet = ratchetThresholds?.lines ?? baseThresholds.lines;
+  const stmtsRatchet = ratchetThresholds?.statements ?? baseThresholds.statements;
+  const branchesRatchet = ratchetThresholds?.branches ?? baseThresholds.branches;
+  const funcsRatchet = ratchetThresholds?.functions ?? baseThresholds.functions;
+
   const linesTotal = total.lines?.total ?? 0;
   const linesCov = total.lines?.covered ?? 0;
   const linesPct = total.lines?.pct ?? 0;
@@ -211,11 +271,6 @@ export function generateCoverageMarkdown(
   const overallPct = combTot > 0 ? Math.round((combCov / combTot) * 100) : Math.round(linesPct);
   const badgeColour = getBadgeColour(overallPct);
   const badgeUrl = `https://img.shields.io/badge/Coverage-${overallPct}%25-${badgeColour}.svg`;
-
-  const linesRatchet = ratchetThresholds.lines ?? 64;
-  const stmtsRatchet = ratchetThresholds.statements ?? 65;
-  const branchesRatchet = ratchetThresholds.branches ?? 58;
-  const funcsRatchet = ratchetThresholds.functions ?? 70;
 
   const linesStatus = linesPct >= linesRatchet ? '🟢 Pass' : '🔴 Below Ratchet';
   const stmtsStatus = stmtsPct >= stmtsRatchet ? '🟢 Pass' : '🔴 Below Ratchet';

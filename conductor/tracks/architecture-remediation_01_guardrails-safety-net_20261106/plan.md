@@ -13,35 +13,35 @@ Record each decision in [decision-log.md](../../initiatives/architecture-remedia
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Audit-Script Blind Spots (AUD-001 – AUD-003)
-- [ ] Task: Red — fixture tests for per-file quads, token literals, widened inline-style and `renderToString` scopes (`audit:ui`)
-- [ ] Task: Green — extend `scripts/audit-ui.ts`
-- [ ] Task: Red — fixture tests for whole-store selects, inline JSX geometry, `useFrame` layout reads, colour deps in material `useMemo` (`audit:r3f`)
-- [ ] Task: Green — extend `scripts/audit-r3f.ts`
-- [ ] Task: Wire existing violations into baselines so `main` stays green
-- [ ] Task: Quality Check — `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:ui`, `npm run audit:r3f`
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Red — fixture tests for per-file quads, token literals, widened inline-style and `renderToString` scopes (`audit:ui`)
+- [x] Task: Green — extend `scripts/audit-ui.ts`
+- [x] Task: Red — fixture tests for whole-store selects, inline JSX geometry, `useFrame` layout reads, colour deps in material `useMemo` (`audit:r3f`)
+- [x] Task: Green — extend `scripts/audit-r3f.ts`
+- [x] Task: Wire existing violations into baselines so `main` stays green
+- [x] Task: Quality Check — `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:ui`, `npm run audit:r3f`
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: Ratcheting Architecture Guards
-- [ ] Task: Red — fixture tests for `G-imports`, `G-literals`, `G-shims`, `G-canvas`, `G-size`, `G-lint`
-- [ ] Task: Green — implement guards and baseline comparison
-- [ ] Task: Generate and commit baselines from current code
-- [ ] Task: Wire guards into CI (AUD-004)
-- [ ] Task: Quality Check
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Red — fixture tests for `G-imports`, `G-literals`, `G-shims`, `G-canvas`, `G-size`, `G-lint`
+- [x] Task: Green — implement guards and baseline comparison
+- [x] Task: Generate and commit baselines from current code
+- [x] Task: Wire guards into CI (AUD-004)
+- [x] Task: Quality Check
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 4: Toolchain Hygiene (AUD-005 – AUD-008)
-- [ ] Task: Pin `"latest"` dependencies (AUD-005)
-- [ ] Task: Single coverage threshold source; coverage step fails on regression (AUD-006)
-- [ ] Task: CI jobs per DEC-R015 (AUD-007)
-- [ ] Task: Explicit `strict: true`; `scripts/**` in a typechecked project; fix resulting type errors in scripts only (AUD-008)
-- [ ] Task: Quality Check
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Pin `"latest"` dependencies (AUD-005)
+- [x] Task: Single coverage threshold source; coverage step fails on regression (AUD-006)
+- [x] Task: CI jobs per DEC-R015 (AUD-007)
+- [x] Task: Explicit `strict: true`; `scripts/**` in a typechecked project; fix resulting type errors in scripts only (AUD-008)
+- [x] Task: Quality Check
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 5: Behavioural Safety Net (AUD-009)
-- [ ] Task: Implement URL contract e2e specs per DEC-R014
-- [ ] Task: Record frame-time baseline per DEC-R016
-- [ ] Task: Confirm full e2e suite green on the track branch
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: Implement URL contract e2e specs per DEC-R014
+- [x] Task: Record frame-time baseline per DEC-R016
+- [x] Task: Confirm full e2e suite green on the track branch
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 6: End-of-Track Audit & PR
 - [ ] Task: `qa-verifier` full suite (lint, typecheck, coverage, audits, guards, e2e)

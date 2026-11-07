@@ -13,15 +13,15 @@ Source: 2026-11-06 audit of `main` @ `4c45916`. Every finding below has been ver
 
 | ID | Finding | Evidence | Acceptance check | Status |
 |---|---|---|---|---|
-| AUD-001 | `audit-ui` quad check only inspects `<Folder>/<Folder>.tsx`; sibling components are invisible | `scripts/audit-ui.ts#L92-L98` | Test fixture with a sibling component missing a quad fails `audit:ui` | open |
-| AUD-002 | `audit-ui` token check matches hex only; inline-style dirs exclude `canvas/`, `prototypes/`; `renderToString` dirs exclude `tests/` | `scripts/audit-ui.ts#L18-L20` | Fixtures with px/rem/rgba/ms literals and `renderToString` in `tests/` fail `audit:ui` | open |
-| AUD-003 | `audit-r3f` whole-store check only flags `.tokens`; layout-read rule only matches method-call names, so property reads such as `ref.current.offsetWidth` pass; no checks for inline geometry in JSX or colour/opacity in material `useMemo` deps; `audit-r3f` has no tests | `scripts/audit-r3f.ts#L17`, `#L273`; no `tests/*` import | Fixtures for each pattern fail `audit:r3f`; colocated test file exists | open |
-| AUD-004 | 106 lint warnings; CI does not fail on warnings | `.github/workflows/ci.yml#L33` | `G-lint` baseline in CI; count can only fall | open |
-| AUD-005 | `"latest"` specifiers for `playwright`, `@chromatic-com/storybook` | `package.json#L39`, `#L56` | No `"latest"` in `package.json` | open |
-| AUD-006 | Coverage comment ratchet (64/58/70/65) misaligned with vitest thresholds (78/70/78/78) and never fails | `scripts/coverage-comment.ts#L191` | Single threshold source; step fails on regression | open |
-| AUD-007 | Storybook test project and data pipeline never exercised in CI | `vite.config.ts#L80` | CI job(s) per T01 decision | open |
-| AUD-008 | `strict` relies on TS 7 default; `scripts/audit-r3f.ts` (and any script not imported by a test) never typechecked | `tsconfig.node.json#L22` | `strict: true` explicit; `scripts/**` in a typechecked project | open |
-| AUD-009 | No URL-contract safety net: deep links, refresh and back/forward behaviour unprotected | — | e2e URL contract specs cover every route/param shape in use and pass on `main` | open |
+| AUD-001 | `audit-ui` quad check only inspects `<Folder>/<Folder>.tsx`; sibling components are invisible | `scripts/audit-ui.ts#L92-L98` | Test fixture with a sibling component missing a quad fails `audit:ui` | in_progress |
+| AUD-002 | `audit-ui` token check matches hex only; inline-style dirs exclude `canvas/`, `prototypes/`; `renderToString` dirs exclude `tests/` | `scripts/audit-ui.ts#L18-L20` | Fixtures with px/rem/rgba/ms literals and `renderToString` in `tests/` fail `audit:ui` | in_progress |
+| AUD-003 | `audit-r3f` whole-store check only flags `.tokens`; layout-read rule only matches method-call names, so property reads such as `ref.current.offsetWidth` pass; no checks for inline geometry in JSX or colour/opacity in material `useMemo` deps; `audit-r3f` has no tests | `scripts/audit-r3f.ts#L17`, `#L273`; no `tests/*` import | Fixtures for each pattern fail `audit:r3f`; colocated test file exists | in_progress |
+| AUD-004 | 106 lint warnings; CI does not fail on warnings | `.github/workflows/ci.yml#L33` | `G-lint` baseline in CI; count can only fall | in_progress |
+| AUD-005 | `"latest"` specifiers for `playwright`, `@chromatic-com/storybook` | `package.json#L39`, `#L56` | No `"latest"` in `package.json` | in_progress |
+| AUD-006 | Coverage comment ratchet (64/58/70/65) misaligned with vitest thresholds (78/70/78/78) and never fails | `scripts/coverage-comment.ts#L191` | Single threshold source; step fails on regression | in_progress |
+| AUD-007 | Storybook test project and data pipeline never exercised in CI | `vite.config.ts#L80` | CI job(s) per T01 decision | in_progress |
+| AUD-008 | `strict` relies on TS 7 default; `scripts/audit-r3f.ts` (and any script not imported by a test) never typechecked | `tsconfig.node.json#L22` | `strict: true` explicit; `scripts/**` in a typechecked project | in_progress |
+| AUD-009 | No URL-contract safety net: deep links, refresh and back/forward behaviour unprotected | — | e2e URL contract specs cover every route/param shape in use and pass on `main` | in_progress |
 
 ## T02 · User-Visible Correctness
 

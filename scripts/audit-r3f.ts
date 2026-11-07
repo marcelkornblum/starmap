@@ -97,8 +97,8 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     callee?: ASTNode;
     arguments?: ASTNode[];
     body?: ASTNode;
-    name?: ASTNode & { name?: string };
-    property?: ASTNode & { name?: string };
+    name?: string | (ASTNode & { name?: string; type?: string; loc?: { start: { line: number; column: number } } });
+    property?: { name?: string; type?: string };
     [key: string]: unknown;
   }
 
@@ -124,10 +124,10 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     if (node.type === 'CallExpression') {
       const callee = node.callee;
       if (!callee) return;
-      const callName =
-        callee.type === 'Identifier'
+      const callName: string =
+        callee.type === 'Identifier' && typeof callee.name === 'string'
           ? callee.name
-          : callee.type === 'MemberExpression' && callee.property?.type === 'Identifier'
+          : callee.type === 'MemberExpression' && typeof callee.property?.name === 'string'
           ? callee.property.name
           : '';
 
@@ -147,7 +147,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       if (
         callName === 'useThemeStore' ||
         callName === 'useStarmapStore' ||
-        callName.endsWith('Store')
+        (callName && callName.endsWith('Store'))
       ) {
         let selectorArg = node.arguments?.[0];
         if (
@@ -182,14 +182,16 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
 
     // 3. Detect invalid JSX intrinsic tags (e.g. <threeLine>)
     if (node.type === 'JSXOpeningElement' || node.type === 'JSXSelfClosingElement') {
-      if (node.name?.type === 'JSXIdentifier') {
-        const tagName = node.name.name?.toLowerCase() ?? '';
-        if (INVALID_R3F_TAGS.has(tagName)) {
+      const tagObj = typeof node.name === 'object' ? node.name : undefined;
+      const tagNameStr = typeof node.name === 'string' ? node.name : tagObj?.name;
+      if (tagObj && typeof tagNameStr === 'string') {
+        const lower = tagNameStr.toLowerCase();
+        if (INVALID_R3F_TAGS.has(lower)) {
           addDiagnostic(
-            node.name.loc?.start,
+            tagObj.loc?.start || node.loc?.start,
             'valid-r3f-intrinsics',
             'error',
-            `Invalid React Three Fiber intrinsic element <${node.name.name}> detected. R3F intrinsic tags map directly to lowercase Three.js classes.`,
+            `Invalid React Three Fiber intrinsic element <${tagNameStr}> detected. R3F intrinsic tags map directly to lowercase Three.js classes.`,
             'Replace with `<line>` (maps to `THREE.Line`) or `<lineSegments>`.'
           );
         }
@@ -250,10 +252,24 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
         );
       }
 
+      // Rule: No synchronous layout reads (property access)
+      if (node.type === 'MemberExpression' && typeof node.property?.name === 'string') {
+        const propName: string = node.property.name;
+        if (['offsetWidth', 'offsetHeight', 'clientWidth', 'clientHeight', 'scrollWidth', 'scrollHeight'].includes(propName)) {
+          addDiagnostic(
+            node.loc?.start,
+            'no-layout-in-use-frame',
+            'error',
+            `DOM layout measurement \`.${propName}\` inside \`useFrame\` forces synchronous reflow / layout thrashing.`,
+            'Cache screen coordinates or project using 3D raycasting/unproject without querying DOM layout.'
+          );
+        }
+      }
+
       // Rule: No iterators or clone calls
       if (node.type === 'CallExpression') {
-        if (node.callee?.type === 'MemberExpression' && node.callee.property?.type === 'Identifier') {
-          const methodName = node.callee.property.name;
+        if (node.callee?.type === 'MemberExpression' && typeof node.callee.property?.name === 'string') {
+          const methodName: string = node.callee.property.name;
           if (['map', 'forEach', 'filter', 'some', 'every', 'reduce'].includes(methodName)) {
             addDiagnostic(
               node.loc?.start,
@@ -270,7 +286,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
               'Calling `.clone()` inside `useFrame` allocates a new instance on every frame.',
               'Copy into a pre-allocated scratch instance using `.copy()`, or read components directly.'
             );
-          } else if (['getBoundingClientRect', 'offsetWidth', 'offsetHeight'].includes(methodName)) {
+          } else if (['getBoundingClientRect', 'offsetWidth', 'offsetHeight', 'getComputedStyle'].includes(methodName)) {
             addDiagnostic(
               node.loc?.start,
               'no-layout-in-use-frame',
@@ -279,9 +295,17 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
               'Cache screen coordinates or project using 3D raycasting/unproject without querying DOM layout.'
             );
           }
-        } else if (node.callee?.type === 'Identifier') {
-          const funcName = node.callee.name;
-          if (funcName && /^set[A-Z]/.test(funcName)) {
+        } else if (node.callee?.type === 'Identifier' && typeof node.callee.name === 'string') {
+          const funcName: string = node.callee.name;
+          if (funcName === 'getComputedStyle') {
+            addDiagnostic(
+              node.loc?.start,
+              'no-layout-in-use-frame',
+              'error',
+              `DOM layout measurement \`${funcName}()\` inside \`useFrame\` forces synchronous reflow / layout thrashing.`,
+              'Cache screen coordinates or project using 3D raycasting/unproject without querying DOM layout.'
+            );
+          } else if (/^set[A-Z]/.test(funcName)) {
             addDiagnostic(
               node.loc?.start,
               'no-setstate-in-use-frame',
@@ -321,55 +345,121 @@ function collectSourceFiles(dir: string): string[] {
   return results;
 }
 
+export const auditFile = auditSourceFile;
+
+/**
+ * Pure function: Audits target directories and returns structured diagnostics without exiting.
+ */
+export function runR3fAudit(targetDirs: string[] = R3F_FILES_GLOB): AuditDiagnostic[] {
+  const diagnostics: AuditDiagnostic[] = [];
+  const filesToScan: string[] = [];
+  for (const targetDir of targetDirs) {
+    if (fs.existsSync(targetDir) && fs.statSync(targetDir).isFile()) {
+      filesToScan.push(targetDir);
+    } else {
+      filesToScan.push(...collectSourceFiles(targetDir));
+    }
+  }
+
+  for (const file of filesToScan) {
+    const content = fs.readFileSync(file, 'utf8');
+    if (!content.includes('useFrame') && !content.includes('@react-three') && !content.includes('three')) {
+      continue;
+    }
+    diagnostics.push(...auditSourceFile(file, content));
+  }
+  return diagnostics;
+}
+
+interface BaselineData {
+  version: number;
+  entries: Record<string, { count: number; audId: string }>;
+}
+
+function loadBaseline(baselinePath: string): BaselineData | null {
+  if (!fs.existsSync(baselinePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(baselinePath, 'utf8')) as BaselineData;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Main CLI entry point.
  */
 export function runR3FAudit(): number {
   console.log('\n--- Running WebGL & React Three Fiber (R3F) Performance Audit ---');
 
-  const filesToScan: string[] = [];
-  for (const targetDir of R3F_FILES_GLOB) {
-    filesToScan.push(...collectSourceFiles(targetDir));
+  const diagnostics = runR3fAudit();
+  const baselinePath = path.resolve('scripts/guards/baseline.json');
+  const baseline = loadBaseline(baselinePath);
+
+  // Group violations by ruleId::relPath
+  const violationCounts = new Map<string, number>();
+  for (const diag of diagnostics) {
+    const rel = path.relative(process.cwd(), path.resolve(diag.filePath));
+    const key = `${diag.ruleId}::${rel}`;
+    violationCounts.set(key, (violationCounts.get(key) || 0) + 1);
   }
 
   let totalErrors = 0;
   let totalWarnings = 0;
-  let scannedFiles = 0;
+  let unbaselinedErrors = 0;
 
-  for (const file of filesToScan) {
-    const content = fs.readFileSync(file, 'utf8');
-    // Fast path: only scan files that reference Three.js, R3F, or useFrame
-    if (!content.includes('useFrame') && !content.includes('@react-three') && !content.includes('three')) {
-      continue;
+  if (diagnostics.length > 0) {
+    const byFile = new Map<string, AuditDiagnostic[]>();
+    for (const diag of diagnostics) {
+      const list = byFile.get(diag.filePath) || [];
+      list.push(diag);
+      byFile.set(diag.filePath, list);
     }
 
-    scannedFiles++;
-    const diagnostics = auditSourceFile(file, content);
-    if (diagnostics.length > 0) {
+    for (const [file, diags] of byFile) {
       console.log(`\n📄 ${file}:`);
-      for (const diag of diagnostics) {
-        const icon = diag.severity === 'error' ? '❌' : '⚠️';
-        console.log(`  ${icon} Line ${diag.line}:${diag.column} [${diag.ruleId}]`);
+      for (const diag of diags) {
+        const rel = path.relative(process.cwd(), path.resolve(diag.filePath));
+        const key = `${diag.ruleId}::${rel}`;
+        const baselineEntry = baseline?.entries[key];
+        const isBaselined = baselineEntry !== undefined;
+
+        const icon = isBaselined ? '⏳' : (diag.severity === 'error' ? '❌' : '⚠️');
+        console.log(`  ${icon} Line ${diag.line}:${diag.column} [${diag.ruleId}]${isBaselined ? ` (Baselined: ${baselineEntry.audId})` : ''}`);
         console.log(`     Issue: ${diag.message}`);
         console.log(`     Code:  ${diag.snippet}`);
         console.log(`     Fix:   ${diag.remediation}`);
-        if (diag.severity === 'error') totalErrors++;
-        else totalWarnings++;
+
+        if (diag.severity === 'error') {
+          totalErrors++;
+          if (!isBaselined) unbaselinedErrors++;
+        } else {
+          totalWarnings++;
+        }
+      }
+    }
+  }
+
+  // Check if any baselined violation increased count
+  if (baseline) {
+    for (const [key, count] of violationCounts) {
+      const baseEntry = baseline.entries[key];
+      if (baseEntry && count > baseEntry.count) {
+        console.log(`\n❌ Violation count regression: ${key} increased from ${baseEntry.count} to ${count}`);
+        unbaselinedErrors++;
       }
     }
   }
 
   console.log('\n--- Audit Summary ---');
-  console.log(`Files Scanned: ${scannedFiles}`);
-  console.log(`Errors:        ${totalErrors}`);
-  console.log(`Warnings:      ${totalWarnings}`);
+  console.log(`Total Violations:      ${diagnostics.length}`);
+  console.log(`Unbaselined Errors:    ${unbaselinedErrors}`);
 
-  if (totalErrors > 0) {
-    console.log('\n❌ WebGL / R3F audit found infractions. Resolve them or add `// r3f-audit-disable-next-line <rule-id>` if an exception is justified.\n');
+  if (unbaselinedErrors > 0) {
+    console.log('\n❌ WebGL / R3F audit found unbaselined infractions. Resolve them or add `// r3f-audit-disable-next-line <rule-id>` if an exception is justified.\n');
     return 1;
   }
 
-  console.log('\n✨ All WebGL & React Three Fiber invariants passed cleanly.\n');
+  console.log('\n✨ All WebGL & React Three Fiber invariants passed cleanly (within baseline).\n');
   return 0;
 }
 
