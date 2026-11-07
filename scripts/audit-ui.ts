@@ -250,12 +250,13 @@ export function auditComponentQuads(targetDirs: string[] = COMPONENT_QUAD_DIRS):
 
       if (tsxFiles.length === 0) continue;
 
-      // Identify primary component (if matches folderName.tsx, or first file)
-      const primaryName = tsxFiles.find((f) => path.basename(f, '.tsx') === folderName)
+      // Identify primary component (if matches folderName.tsx, or first file deterministically)
+      const sortedTsxFiles = [...tsxFiles].sort();
+      const primaryName = sortedTsxFiles.find((f) => path.basename(f, '.tsx') === folderName)
         ? folderName
-        : path.basename(tsxFiles[0], '.tsx');
+        : path.basename(sortedTsxFiles[0], '.tsx');
 
-      for (const tsxFile of tsxFiles) {
+      for (const tsxFile of sortedTsxFiles) {
         const componentName = path.basename(tsxFile, '.tsx');
 
         // Check if sub-component helper file that belongs to parent quad in this folder

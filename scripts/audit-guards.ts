@@ -780,7 +780,13 @@ export function runAllGuards(projectRoot = process.cwd()): GuardViolation[] {
       const parsed: unknown = JSON.parse(oxlintOutput);
       if (parsed && typeof parsed === 'object' && 'diagnostics' in parsed && Array.isArray((parsed as { diagnostics: unknown[] }).diagnostics)) {
         for (const diag of (parsed as { diagnostics: Array<{ severity?: string; code?: string; filename?: string; message?: string; labels?: Array<{ span?: { line?: number; column?: number } }> }> }).diagnostics) {
-          if (diag && diag.severity === 'warning') {
+          if (
+            diag &&
+            (diag.severity === 'warning' ||
+              diag.severity === 'error' ||
+              diag.severity === 'deny' ||
+              diag.severity === 'warn')
+          ) {
             const ruleCode = diag.code || 'oxlint-warning';
             allViolations.push({
               ruleId: ruleCode,

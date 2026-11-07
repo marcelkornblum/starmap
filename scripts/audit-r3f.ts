@@ -282,6 +282,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
           );
         } else {
           let selectorArg: ASTNode | undefined = obj.arguments[0];
+          let isShallow = false;
           if (
             selectorArg &&
             selectorArg.type === 'CallExpression' &&
@@ -289,6 +290,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
             selectorArg.callee.name === 'useShallow'
           ) {
             selectorArg = selectorArg.arguments?.[0];
+            isShallow = true;
           }
 
           if (
@@ -341,7 +343,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
                   returnedObj = retArg;
                 }
               }
-              if (returnedObj) {
+              if (returnedObj && !isShallow) {
                 addDiagnostic(
                   returnedObj.loc?.start || obj.loc?.start,
                   'atomic-store-selectors',
