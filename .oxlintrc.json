@@ -4,6 +4,169 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }],
-    "import/no-cycle": "warn"
-  }
+    "import/no-cycle": "warn",
+    "max-lines": ["warn", { "max": 300, "skipBlankLines": true, "skipComments": true }]
+  },
+  "overrides": [
+    {
+      "files": ["src/types/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["**/utils/**", "**/data/**", "**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "message": "DEC-R012: Layer 'types' cannot import from other layers."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/utils/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["**/data/**", "**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "message": "DEC-R012: Layer 'utils' may only import from 'types'."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/data/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "message": "DEC-R012: Layer 'data' may only import from 'types' and 'utils'."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/services/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "message": "DEC-R012: Layer 'services' may only import from 'types', 'utils', and 'data'."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/stores/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "message": "DEC-R012: Layer 'stores' cannot import from 'hooks', 'components', 'views', or 'router'."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/hooks/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "message": "DEC-R012: Layer 'hooks' cannot import from 'components', 'views', or 'router'."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/components/interface/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["**/data/**", "**/services/**", "**/stores/**", "**/canvas/**", "**/domain/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "message": "DEC-R012: Layer 'components/interface' may only import from 'types', 'utils', and 'hooks'."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/components/canvas/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["**/domain/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "message": "DEC-R012: Layer 'components/canvas' cannot import from 'domain', 'views', or 'router'."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/components/domain/**", "src/components/search/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["**/views/**", "**/router/**", "**/prototypes/**"],
+                "message": "DEC-R012: Domain and search components cannot import from 'views' or 'router'."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/views/**", "src/router/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["**/prototypes/**"],
+                "message": "DEC-R012: Production code must not import from 'prototypes'."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

@@ -319,6 +319,27 @@ export function generateCoverageMarkdown(
   return lines.join('\n');
 }
 
+export function isCoverageSummaryData(val: unknown): val is CoverageSummaryData {
+  if (!val || typeof val !== 'object') return false;
+  const obj = val as Record<string, unknown>;
+  if (!obj.total || typeof obj.total !== 'object') return false;
+  const total = obj.total as Record<string, unknown>;
+  const metrics = ['lines', 'statements', 'functions', 'branches'] as const;
+  for (const m of metrics) {
+    if (!total[m] || typeof total[m] !== 'object') return false;
+    const metric = total[m] as Record<string, unknown>;
+    if (typeof metric.pct !== 'number') return false;
+  }
+  return true;
+}
+
+export function isGitHubCommentList(val: unknown): val is Array<{ id: number; body?: string }> {
+  if (!Array.isArray(val)) return false;
+  return val.every(
+    (item) => item && typeof item === 'object' && typeof (item as { id?: unknown }).id === 'number'
+  );
+}
+
 export async function findExistingCoverageComment(
   repo: string,
   prNumber: string,
@@ -338,8 +359,8 @@ export async function findExistingCoverageComment(
     return null;
   }
 
-  const comments = (await response.json()) as Array<{ id: number; body?: string }>;
-  if (!Array.isArray(comments)) return null;
+  const comments: unknown = await response.json();
+  if (!isGitHubCommentList(comments)) return null;
 
   const markers = [COMMENT_MARKER, ...LEGACY_MARKERS];
   for (const c of comments) {
@@ -411,7 +432,12 @@ export async function run(): Promise<number> {
   }
 
   const raw = fs.readFileSync(summaryPath, 'utf8');
-  const data = JSON.parse(raw) as CoverageSummaryData;
+  const parsed: unknown = JSON.parse(raw);
+  if (!isCoverageSummaryData(parsed)) {
+    console.error(`Error: coverage summary at '${summaryPath}' is not valid CoverageSummaryData.`);
+    return 1;
+  }
+  const data = parsed;
   const repoRoot = process.cwd();
 
   const { total, moduleSummaries, filesList } = parseCoverageData(data, repoRoot);

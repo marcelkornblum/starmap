@@ -110,19 +110,19 @@ interface ASTNode {
   [key: string]: unknown;
 }
 
-function traverseAst(node: unknown, visitor: (n: ASTNode) => void) {
+function traverseAst(node: unknown, visitor: (n: ASTNode, parent?: ASTNode) => void, parent?: ASTNode) {
   if (!node || typeof node !== 'object') return;
   const obj = node as ASTNode;
-  visitor(obj);
+  visitor(obj, parent);
   for (const key of Object.keys(obj)) {
     if (key === 'loc' || key === 'range' || key === 'comments') continue;
     const child = obj[key];
     if (Array.isArray(child)) {
       for (const item of child) {
-        traverseAst(item, visitor);
+        traverseAst(item, visitor, obj);
       }
     } else if (child && typeof child === 'object') {
-      traverseAst(child, visitor);
+      traverseAst(child, visitor, obj);
     }
   }
 }
@@ -189,12 +189,35 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
     filePath.includes('src/components/canvas/') ||
     filePath.includes('src/views/');
 
-  traverseAst(ast, (node: ASTNode) => {
-    // 1. Literal Entity IDs and Display Names
-    if (node.type === 'StringLiteral' && typeof node.value === 'string') {
-      const val = node.value.trim();
-      const valLower = val.toLowerCase();
+  traverseAst(ast, (node: ASTNode, parent?: ASTNode) => {
+    // Skip string literals that are the source of an import or export
+    if (
+      parent &&
+      (parent.type === 'ImportDeclaration' ||
+        parent.type === 'ExportNamedDeclaration' ||
+        parent.type === 'ExportAllDeclaration' ||
+        parent.type === 'ImportExpression') &&
+      parent.source === node
+    ) {
+      return;
+    }
 
+    // 1. Literal Entity IDs and Display Names (StringLiteral and 0-expression TemplateLiteral)
+    let val: string | null = null;
+    if (node.type === 'StringLiteral' && typeof node.value === 'string') {
+      val = node.value.trim();
+    } else if (
+      node.type === 'TemplateLiteral' &&
+      (!node.expressions || node.expressions.length === 0) &&
+      Array.isArray(node.quasis) &&
+      node.quasis.length === 1
+    ) {
+      const q = node.quasis[0] as { value?: { cooked?: string; raw?: string } };
+      val = (q.value?.cooked ?? q.value?.raw ?? '').trim();
+    }
+
+    if (val !== null) {
+      const valLower = val.toLowerCase();
       const matchesEntity = catalog.entityIds.has(valLower) || catalog.entityNames.has(val);
       if (matchesEntity) {
         const loc = node.loc?.start;
@@ -330,6 +353,17 @@ export function auditImportsContent(filePath: string, content: string, projectRo
       if (!loc) return;
 
       const supp = checkSuppression(lines, loc.line, 'G-imports');
+      if (supp.invalidComment) {
+        violations.push({
+          filePath,
+          line: loc.line,
+          column: loc.column + 1,
+          ruleId: 'G-imports',
+          message: `Suppression comment "${supp.invalidComment}" without a required reason (-- <reason>) is forbidden.`,
+          snippet: (lines[loc.line - 1] || '').trim(),
+        });
+        return;
+      }
       if (supp.suppressed) return;
 
       // 1. Prototypes isolation rule
@@ -428,15 +462,29 @@ function inferAudId(key: string): string {
   if (key.startsWith('forbidden-inline-style::')) {
     return key.includes('EntityLabel') ? 'AUD-113' : 'AUD-121';
   }
-  if (key.startsWith('file-size-exceeded::') || key.startsWith('G-size::')) return 'AUD-120';
+  if (key.startsWith('file-size-exceeded::') || key.startsWith('G-size::') || key.startsWith('eslint(max-lines)::')) {
+    return 'AUD-120';
+  }
   if (key.startsWith('no-layout-in-use-frame::')) return 'AUD-104';
   if (key.startsWith('no-alloc-in-use-frame::')) return 'AUD-106';
   if (key.startsWith('no-setstate-in-use-frame::')) return 'AUD-108';
-  if (key.startsWith('atomic-store-selectors::')) return 'AUD-003';
+  if (key.startsWith('atomic-store-selectors::')) {
+    return key.includes('SceneBridge') ? 'AUD-101' : 'AUD-003';
+  }
+  if (key.startsWith('no-material-memo-color-deps::')) return 'AUD-103';
+  if (key.startsWith('no-inline-jsx-geometry::')) return 'AUD-102';
   if (key.startsWith('import(no-cycle)::') || key.startsWith('G-imports-cycle::')) return 'AUD-032';
   if (key.includes('only-export-components')) return 'AUD-129';
   if (key.includes('react(refs)') || key.includes('react(immutability)')) return 'AUD-105';
   if (key.includes('react(globals)')) return 'AUD-145';
+
+  if (key.startsWith('eslint(no-restricted-imports)::')) {
+    if (key.includes('searchRepository')) return 'AUD-031';
+    if (key.includes('useCanvasStageStore')) return 'AUD-034';
+    if (key.includes('SpectralBadge')) return 'AUD-035';
+    if (key.includes('PaletteShowcase') || key.includes('prototypes')) return 'AUD-036';
+    return 'AUD-030';
+  }
 
   if (key.startsWith('G-literals::')) {
     if (key.includes('guideCatalog')) return 'AUD-045';
@@ -457,7 +505,7 @@ function inferAudId(key: string): string {
     return 'AUD-030';
   }
 
-  return 'AUD-010';
+  return 'AUD-004';
 }
 
 /**
@@ -588,7 +636,7 @@ function collectAllSourceFiles(dir: string, exts: string[]): string[] {
 /**
  * Detects import cycles using DFS over the source dependency graph.
  */
-function detectImportCycles(srcFiles: string[], projectRoot: string): GuardViolation[] {
+export function detectImportCycles(srcFiles: string[], projectRoot: string): GuardViolation[] {
   const violations: GuardViolation[] = [];
   const graph = new Map<string, string[]>();
 
@@ -597,7 +645,7 @@ function detectImportCycles(srcFiles: string[], projectRoot: string): GuardViola
     const content = fs.readFileSync(file, 'utf8');
     const imports: string[] = [];
 
-    const importMatches = content.matchAll(/(?:import|export)\s+.*?from\s+['"]([^'"]+)['"]/g);
+    const importMatches = content.matchAll(/(?:import|export)\s+.*?from\s+['"]([^'"]+)['"]/gs);
     for (const m of importMatches) {
       const imp = m[1];
       if (imp.startsWith('.')) {
@@ -711,32 +759,62 @@ export function runAllGuards(projectRoot = process.cwd()): GuardViolation[] {
   }
 
   // 5. G-lint-warnings (from oxlint)
+  const localOxlint = path.resolve(projectRoot, 'node_modules/.bin/oxlint');
+  const oxlintBin = fs.existsSync(localOxlint) ? localOxlint : 'npx oxlint';
+  let oxlintOutput: string | null = null;
   try {
-    const oxlintOutput = execSync('npx oxlint --format json', {
+    oxlintOutput = execSync(`${oxlintBin} --format json`, {
       cwd: projectRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     });
-    const parsed = JSON.parse(oxlintOutput);
-    if (Array.isArray(parsed.diagnostics)) {
-      for (const diag of parsed.diagnostics) {
-        if (diag.severity === 'warning') {
-          const ruleCode = diag.code || 'oxlint-warning';
-          allViolations.push({
-            ruleId: ruleCode,
-            filePath: diag.filename,
-            line: diag.labels?.[0]?.span?.line || 1,
-            column: diag.labels?.[0]?.span?.column || 1,
-            message: diag.message,
-          });
-        }
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'stdout' in err) {
+      const stdout = (err as { stdout?: string | Buffer }).stdout;
+      if (stdout) {
+        oxlintOutput = typeof stdout === 'string' ? stdout : stdout.toString('utf8');
       }
     }
-  } catch {
-    // Ignore oxlint failure in runner if tool unavailable
+  }
+
+  if (oxlintOutput) {
+    try {
+      const parsed: unknown = JSON.parse(oxlintOutput);
+      if (parsed && typeof parsed === 'object' && 'diagnostics' in parsed && Array.isArray((parsed as { diagnostics: unknown[] }).diagnostics)) {
+        for (const diag of (parsed as { diagnostics: Array<{ severity?: string; code?: string; filename?: string; message?: string; labels?: Array<{ span?: { line?: number; column?: number } }> }> }).diagnostics) {
+          if (diag && diag.severity === 'warning') {
+            const ruleCode = diag.code || 'oxlint-warning';
+            allViolations.push({
+              ruleId: ruleCode,
+              filePath: diag.filename || 'unknown',
+              line: diag.labels?.[0]?.span?.line || 1,
+              column: diag.labels?.[0]?.span?.column || 1,
+              message: diag.message || '',
+            });
+          }
+        }
+      }
+    } catch {
+      // Ignore oxlint failure in runner if tool unavailable or stdout not json
+    }
   }
 
   return allViolations;
+}
+
+export function isGuardBaseline(val: unknown): val is GuardBaseline {
+  if (!val || typeof val !== 'object') return false;
+  const obj = val as Record<string, unknown>;
+  if (typeof obj.version !== 'number') return false;
+  if (!obj.entries || typeof obj.entries !== 'object' || Array.isArray(obj.entries)) return false;
+  const entries = obj.entries as Record<string, unknown>;
+  for (const [k, v] of Object.entries(entries)) {
+    if (typeof k !== 'string') return false;
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+    const entry = v as Record<string, unknown>;
+    if (typeof entry.count !== 'number' || typeof entry.audId !== 'string') return false;
+  }
+  return true;
 }
 
 /**
@@ -755,7 +833,12 @@ export function main(): void {
   let baseline: GuardBaseline = { version: 1, entries: {} };
   if (fs.existsSync(baselinePath)) {
     try {
-      baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
+      const parsed: unknown = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
+      if (isGuardBaseline(parsed)) {
+        baseline = parsed;
+      } else {
+        console.error(`Invalid baseline.json schema.`);
+      }
     } catch (e) {
       console.error(`Failed to read baseline.json:`, e);
     }

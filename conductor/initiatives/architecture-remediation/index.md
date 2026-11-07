@@ -39,18 +39,18 @@ flowchart TD
     T09 --> T10["T10 · Closing audit"]
 ```
 
-| # | Track | Folder |
-|---|---|---|
-| T01 | Guardrails & safety net | [`architecture-remediation_01_guardrails-safety-net_20261106`](../../tracks/architecture-remediation_01_guardrails-safety-net_20261106/index.md) |
-| T02 | User-visible correctness | [`architecture-remediation_02_user-visible-correctness_20261106`](../../tracks/architecture-remediation_02_user-visible-correctness_20261106/index.md) |
-| T03 | Layering cut | [`architecture-remediation_03_layering-cut_20261106`](../../tracks/architecture-remediation_03_layering-cut_20261106/index.md) |
-| T04 | Pipeline reliability & precalculation | [`architecture-remediation_04_pipeline-reliability_20261106`](../../tracks/architecture-remediation_04_pipeline-reliability_20261106/index.md) |
-| T05 | Runtime data purity | [`architecture-remediation_05_runtime-data-purity_20261106`](../../tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md) |
-| T06 | Navigation single source of truth | [`architecture-remediation_06_navigation-ssot_20261106`](../../tracks/architecture-remediation_06_navigation-ssot_20261106/index.md) |
-| T07 | One persistent Canvas & R3F hot paths | [`architecture-remediation_07_persistent-canvas_20261106`](../../tracks/architecture-remediation_07_persistent-canvas_20261106/index.md) |
-| T08 | View & UI decomposition | [`architecture-remediation_08_ui-decomposition_20261106`](../../tracks/architecture-remediation_08_ui-decomposition_20261106/index.md) |
-| T09 | Test restructure | [`architecture-remediation_09_test-restructure_20261106`](../../tracks/architecture-remediation_09_test-restructure_20261106/index.md) |
-| T10 | Closing audit | [`architecture-remediation_10_closing-audit_20261106`](../../tracks/architecture-remediation_10_closing-audit_20261106/index.md) |
+| # | Track | Folder | Status |
+|---|---|---|---|
+| T01 | Guardrails & safety net | [`architecture-remediation_01_guardrails-safety-net_20261106`](../../tracks/architecture-remediation_01_guardrails-safety-net_20261106/index.md) | [x] |
+| T02 | User-visible correctness | [`architecture-remediation_02_user-visible-correctness_20261106`](../../tracks/architecture-remediation_02_user-visible-correctness_20261106/index.md) | [ ] |
+| T03 | Layering cut | [`architecture-remediation_03_layering-cut_20261106`](../../tracks/architecture-remediation_03_layering-cut_20261106/index.md) | [ ] |
+| T04 | Pipeline reliability & precalculation | [`architecture-remediation_04_pipeline-reliability_20261106`](../../tracks/architecture-remediation_04_pipeline-reliability_20261106/index.md) | [ ] |
+| T05 | Runtime data purity | [`architecture-remediation_05_runtime-data-purity_20261106`](../../tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md) | [ ] |
+| T06 | Navigation single source of truth | [`architecture-remediation_06_navigation-ssot_20261106`](../../tracks/architecture-remediation_06_navigation-ssot_20261106/index.md) | [ ] |
+| T07 | One persistent Canvas & R3F hot paths | [`architecture-remediation_07_persistent-canvas_20261106`](../../tracks/architecture-remediation_07_persistent-canvas_20261106/index.md) | [ ] |
+| T08 | View & UI decomposition | [`architecture-remediation_08_ui-decomposition_20261106`](../../tracks/architecture-remediation_08_ui-decomposition_20261106/index.md) | [ ] |
+| T09 | Test restructure | [`architecture-remediation_09_test-restructure_20261106`](../../tracks/architecture-remediation_09_test-restructure_20261106/index.md) | [ ] |
+| T10 | Closing audit | [`architecture-remediation_10_closing-audit_20261106`](../../tracks/architecture-remediation_10_closing-audit_20261106/index.md) | [ ] |
 
 ## Closure Criteria
 

@@ -267,6 +267,32 @@ describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', 
     });
   });
 
+  describe('Suppression Reason Validation (invalid-suppression)', () => {
+    it('flags unreasoned ui-audit-disable or guard-disable comments without -- <reason>', () => {
+      const code = `
+        export const MyComp = () => {
+          // ui-audit-disable-next-line forbidden-raw-element
+          return <button>Click</button>;
+        };
+      `;
+      const diags = auditRawElementsContent('src/views/MyComp.tsx', code);
+      const invalidSupp = diags.filter((d) => d.ruleId === 'invalid-suppression');
+      expect(invalidSupp.length).toBe(1);
+      expect(invalidSupp[0].message).toContain('without a required reason');
+    });
+
+    it('permits ui-audit-disable with proper -- <reason>', () => {
+      const code = `
+        export const MyComp = () => {
+          // ui-audit-disable-next-line forbidden-raw-element -- Essential accessible button demo
+          return <button>Click</button>;
+        };
+      `;
+      const diags = auditRawElementsContent('src/views/MyComp.tsx', code);
+      expect(diags).toEqual([]);
+    });
+  });
+
   describe('Pure Function runUiAudit', () => {
     it('returns structured diagnostics array without process.exit', () => {
       const diags = runUiAudit(tempDir);

@@ -46,12 +46,12 @@ describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
       expect(layoutDiags.length).toBe(3);
     });
 
-    it('respects r3f-audit-disable-next-line suppression comment', () => {
+    it('respects r3f-audit-disable-next-line suppression comment with required reason', () => {
       const code = `
         import { useFrame } from '@react-three/fiber';
         export const Suppressed = ({ labelRef }: any) => {
           useFrame(() => {
-            // r3f-audit-disable-next-line no-layout-in-use-frame
+            // r3f-audit-disable-next-line no-layout-in-use-frame -- Measurement is throttled and cached
             const w = labelRef.current.offsetWidth;
           });
           return null;
@@ -134,6 +134,165 @@ describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
       `;
       const diags = auditSourceFile('src/components/canvas/Clean.tsx', code);
       expect(diags).toEqual([]);
+    });
+  });
+
+  describe('AUD-003: Atomic Store Selectors & Zustand Subscriptions', () => {
+    it('flags 0-argument whole-store subscription hooks: useAppStore()', () => {
+      const code = `
+        import { useAppStore } from '../stores/useAppStore';
+        export const WholeStoreComponent = () => {
+          const store = useAppStore();
+          return null;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/Whole.tsx', code);
+      const storeDiags = diags.filter((d) => d.ruleId === 'atomic-store-selectors');
+      expect(storeDiags.length).toBe(1);
+      expect(storeDiags[0].message).toContain('Whole-store subscription');
+    });
+
+    it('flags identity store selectors: useAppStore((state) => state) and useAppStore(s => s)', () => {
+      const code = `
+        import { useAppStore } from '../stores/useAppStore';
+        export const IdentityComponent = () => {
+          const s1 = useAppStore((state) => state);
+          const s2 = useAppStore((s) => s);
+          return null;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/Identity.tsx', code);
+      const storeDiags = diags.filter((d) => d.ruleId === 'atomic-store-selectors');
+      expect(storeDiags.length).toBe(2);
+      expect(storeDiags[0].message).toContain('Identity store selector');
+    });
+
+    it('flags object-literal-returning store selectors: useAppStore(s => ({ a: s.a }))', () => {
+      const code = `
+        import { useAppStore } from '../stores/useAppStore';
+        export const ObjectSelectorComponent = () => {
+          const { a } = useAppStore((s) => ({ a: s.a }));
+          return null;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/Obj.tsx', code);
+      const storeDiags = diags.filter((d) => d.ruleId === 'atomic-store-selectors');
+      expect(storeDiags.length).toBe(1);
+      expect(storeDiags[0].message).toContain('Object-literal returning store selector');
+    });
+
+    it('flags broad state.tokens subscription on useThemeStore', () => {
+      const code = `
+        import { useThemeStore } from '../stores/useThemeStore';
+        export const ThemeComponent = () => {
+          const tokens = useThemeStore((state) => state.tokens);
+          return null;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/Theme.tsx', code);
+      const storeDiags = diags.filter((d) => d.ruleId === 'atomic-store-selectors');
+      expect(storeDiags.length).toBe(1);
+      expect(storeDiags[0].message).toContain('state.tokens');
+    });
+
+    it('permits discrete atomic store selectors', () => {
+      const code = `
+        import { useAppStore } from '../stores/useAppStore';
+        import { useThemeStore } from '../stores/useThemeStore';
+        export const CleanStoreComponent = () => {
+          const zoom = useAppStore((s) => s.zoom);
+          const bg = useThemeStore((s) => s.tokens.canvasBg);
+          return null;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/CleanStore.tsx', code);
+      expect(diags.filter((d) => d.ruleId === 'atomic-store-selectors')).toEqual([]);
+    });
+  });
+
+  describe('AUD-003: Inline JSX Geometry Detection', () => {
+    it('flags new THREE.SphereGeometry and new BufferGeometry inside JSX props', () => {
+      const code = `
+        import * as THREE from 'three';
+        import { BufferGeometry } from 'three';
+        export const MeshComponent = () => (
+          <group>
+            <mesh geometry={new THREE.SphereGeometry(1, 16, 16)} />
+            <primitive object={new BufferGeometry()} />
+          </group>
+        );
+      `;
+      const diags = auditSourceFile('src/components/canvas/InlineGeo.tsx', code);
+      const geoDiags = diags.filter((d) => d.ruleId === 'no-inline-jsx-geometry');
+      expect(geoDiags.length).toBe(2);
+      expect(geoDiags.some((d) => d.snippet.includes('SphereGeometry'))).toBe(true);
+      expect(geoDiags.some((d) => d.snippet.includes('BufferGeometry'))).toBe(true);
+    });
+
+    it('permits geometry created in useMemo or module scope', () => {
+      const code = `
+        import { useMemo } from 'react';
+        import * as THREE from 'three';
+        const staticGeo = new THREE.BoxGeometry(1, 1, 1);
+        export const CleanMeshComponent = () => {
+          const memoGeo = useMemo(() => new THREE.SphereGeometry(1, 16, 16), []);
+          return (
+            <mesh geometry={memoGeo} />
+          );
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/CleanGeo.tsx', code);
+      expect(diags.filter((d) => d.ruleId === 'no-inline-jsx-geometry')).toEqual([]);
+    });
+  });
+
+  describe('AUD-003: Material Recreation Dependency Checks (no-material-memo-color-deps)', () => {
+    it('flags useMemo recreating materials on color or opacity dependency changes', () => {
+      const code = `
+        import { useMemo } from 'react';
+        import * as THREE from 'three';
+        export const MaterialComponent = ({ color, opacity, emissiveColor }: any) => {
+          const mat1 = useMemo(() => new THREE.MeshStandardMaterial({ color }), [color]);
+          const mat2 = useMemo(() => new THREE.MeshBasicMaterial({ opacity }), [opacity]);
+          const mat3 = useMemo(() => new THREE.ShaderMaterial({}), [emissiveColor]);
+          return null;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/MatRecreate.tsx', code);
+      const matDiags = diags.filter((d) => d.ruleId === 'no-material-memo-color-deps');
+      expect(matDiags.length).toBe(3);
+    });
+
+    it('permits useMemo with static or non-color dependencies', () => {
+      const code = `
+        import { useMemo } from 'react';
+        import * as THREE from 'three';
+        export const CleanMaterialComponent = ({ wireframe }: { wireframe: boolean }) => {
+          const mat = useMemo(() => new THREE.MeshBasicMaterial({ wireframe }), [wireframe]);
+          return null;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/CleanMat.tsx', code);
+      expect(diags.filter((d) => d.ruleId === 'no-material-memo-color-deps')).toEqual([]);
+    });
+  });
+
+  describe('AUD-003: Suppression Reason Validation (invalid-suppression)', () => {
+    it('flags unreasoned r3f-audit-disable comments without -- <reason>', () => {
+      const code = `
+        import { useFrame } from '@react-three/fiber';
+        export const BadSuppression = ({ labelRef }: any) => {
+          useFrame(() => {
+            // r3f-audit-disable-next-line no-layout-in-use-frame
+            const w = labelRef.current.offsetWidth;
+          });
+          return null;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/BadSupp.tsx', code);
+      const invalidSupp = diags.filter((d) => d.ruleId === 'invalid-suppression');
+      expect(invalidSupp.length).toBe(1);
+      expect(invalidSupp[0].message).toContain('without a required reason');
     });
   });
 

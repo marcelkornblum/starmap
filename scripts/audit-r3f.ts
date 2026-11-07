@@ -20,18 +20,34 @@ const INVALID_R3F_TAGS = new Set(['threeline']);
 /**
  * Checks whether a comment on the preceding line or current line suppresses the diagnostic.
  */
+function checkSuppression(text: string, ruleId: string): { suppressed: boolean; invalid: boolean } | null {
+  const match = text.match(/\/\/\s*r3f-audit-disable(?:-next-line)?(?:\s+([\w-]+))?(.*)/);
+  if (!match) return null;
+  const specifiedRule = match[1];
+  const rest = match[2]?.trim() || '';
+
+  if (specifiedRule && specifiedRule !== ruleId) {
+    return null;
+  }
+
+  const reasonMatch = rest.match(/^--\s+(\S+.*)/);
+  if (!reasonMatch) {
+    return { suppressed: false, invalid: true };
+  }
+  return { suppressed: true, invalid: false };
+}
+
 function isLineSuppressed(lines: string[], targetLine: number, ruleId: string): boolean {
   const prevLine = targetLine > 1 ? lines[targetLine - 2] : '';
   const currentLine = lines[targetLine - 1] || '';
 
-  const checkComment = (text: string) => {
-    const match = text.match(/\/\/\s*r3f-audit-disable(?:-next-line)?(?:\s+([\w-]+))?/);
-    if (!match) return false;
-    const specifiedRule = match[1];
-    return !specifiedRule || specifiedRule === ruleId;
-  };
+  const resPrev = checkSuppression(prevLine, ruleId);
+  if (resPrev && resPrev.suppressed) return true;
 
-  return checkComment(prevLine) || checkComment(currentLine);
+  const resCurr = checkSuppression(currentLine, ruleId);
+  if (resCurr && resCurr.suppressed) return true;
+
+  return false;
 }
 
 /**
@@ -67,6 +83,27 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
 
   const lines = sourceText.split('\n');
 
+  // Check for unreasoned r3f-audit-disable comments
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = line.match(/\/\/\s*r3f-audit-disable(?:-next-line)?(?:\s+([\w-]+))?(.*)/);
+    if (match) {
+      const rest = match[2]?.trim() || '';
+      if (!rest.match(/^--\s+(\S+.*)/)) {
+        diagnostics.push({
+          filePath,
+          line: i + 1,
+          column: (line.indexOf('//') >= 0 ? line.indexOf('//') : 0) + 1,
+          ruleId: 'invalid-suppression',
+          severity: 'error',
+          message: `Suppression comment "${line.trim()}" without a required reason (-- <reason>) is forbidden.`,
+          snippet: line.trim().slice(0, 80),
+          remediation: 'Provide a clear technical justification after "-- <reason>".',
+        });
+      }
+    }
+  }
+
   function addDiagnostic(
     loc: { line: number; column: number } | undefined,
     ruleId: string,
@@ -96,11 +133,288 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
     loc?: { start: { line: number; column: number }; end?: { line: number; column: number } };
     callee?: ASTNode;
     arguments?: ASTNode[];
-    body?: ASTNode;
+    params?: ASTNode[];
+    body?: ASTNode | ASTNode[];
     name?: string | (ASTNode & { name?: string; type?: string; loc?: { start: { line: number; column: number } } });
     property?: { name?: string; type?: string };
+    elements?: ASTNode[];
     [key: string]: unknown;
   }
+
+  function getConstructorName(callee: ASTNode | undefined): string {
+    if (!callee) return '';
+    if (callee.type === 'Identifier' && typeof callee.name === 'string') {
+      return callee.name;
+    }
+    if (callee.type === 'MemberExpression' && callee.property && typeof callee.property.name === 'string') {
+      return callee.property.name;
+    }
+    return '';
+  }
+
+  function hasNewMaterial(factoryNode: ASTNode | undefined): boolean {
+    if (!factoryNode) return false;
+    let found = false;
+    const check = (n: unknown) => {
+      if (!n || typeof n !== 'object' || found) return;
+      const obj = n as ASTNode;
+      if (obj.type === 'NewExpression' && getConstructorName(obj.callee).endsWith('Material')) {
+        found = true;
+        return;
+      }
+      for (const k of Object.keys(obj)) {
+        if (k === 'loc' || k === 'range' || k === 'comments') continue;
+        const child = obj[k];
+        if (Array.isArray(child)) {
+          for (const item of child) check(item);
+        } else if (child && typeof child === 'object') {
+          check(child);
+        }
+      }
+    };
+    check(factoryNode);
+    return found;
+  }
+
+  let insideUseMemoDepth = 0;
+  let insideJsxExprDepth = 0;
+
+  function traverseAst(node: unknown) {
+    if (!node || typeof node !== 'object') return;
+    const obj = node as ASTNode;
+
+    const isUseMemoCall =
+      obj.type === 'CallExpression' &&
+      (obj.callee?.type === 'Identifier'
+        ? obj.callee.name === 'useMemo'
+        : obj.callee?.type === 'MemberExpression' && obj.callee.property?.type === 'Identifier'
+        ? obj.callee.property.name === 'useMemo'
+        : false);
+
+    const isJsxExpr = obj.type === 'JSXExpressionContainer';
+
+    // 1. Check no-material-memo-color-deps
+    if (isUseMemoCall) {
+      const factory = obj.arguments?.[0];
+      const deps = obj.arguments?.[1];
+      if (
+        factory &&
+        hasNewMaterial(factory) &&
+        deps &&
+        deps.type === 'ArrayExpression' &&
+        Array.isArray(deps.elements)
+      ) {
+        for (const el of deps.elements) {
+          if (!el) continue;
+          let depName = '';
+          if (el.type === 'Identifier' && typeof el.name === 'string') {
+            depName = el.name;
+          } else if (
+            el.type === 'MemberExpression' &&
+            el.property &&
+            typeof el.property.name === 'string'
+          ) {
+            depName = el.property.name;
+          }
+          if (depName && /color|colour|opacity|emissive/i.test(depName)) {
+            addDiagnostic(
+              el.loc?.start || obj.loc?.start,
+              'no-material-memo-color-deps',
+              'error',
+              `Material recreation dependency \`${depName}\` detected in useMemo dependency array. Recreating materials on color/opacity change forces WebGL shader recompilations.`,
+              'Mutate material color/opacity in-place via refs or uniforms in useEffect/useFrame rather than recreating the material instance.'
+            );
+          }
+        }
+      }
+    }
+
+    // 2. Check no-inline-jsx-geometry
+    if (obj.type === 'NewExpression' && insideJsxExprDepth > 0 && insideUseMemoDepth === 0) {
+      const ctorName = getConstructorName(obj.callee);
+      if (ctorName.endsWith('Geometry')) {
+        addDiagnostic(
+          obj.loc?.start,
+          'no-inline-jsx-geometry',
+          'error',
+          `Inline geometry instantiation \`new ${ctorName}()\` inside JSX prop. Geometries created in JSX are recreated on every render and leak GPU memory unless disposed.`,
+          'Instantiate geometry in useMemo or module scope, and dispose on unmount.'
+        );
+      }
+    }
+
+    // 3. Detect useFrame calls and inspect their hot-path callback bodies
+    if (obj.type === 'CallExpression') {
+      const callee = obj.callee;
+      const callName: string =
+        callee?.type === 'Identifier' && typeof callee.name === 'string'
+          ? callee.name
+          : callee?.type === 'MemberExpression' && typeof callee.property?.name === 'string'
+          ? callee.property.name
+          : '';
+
+      if (callName === 'useFrame') {
+        const callbackArg = obj.arguments?.[0];
+        if (
+          callbackArg &&
+          (callbackArg.type === 'ArrowFunctionExpression' ||
+            callbackArg.type === 'FunctionExpression') &&
+          callbackArg.body
+        ) {
+          auditUseFrameCallback(callbackArg.body as ASTNode);
+        }
+      }
+
+      // 4. Detect atomic-store-selectors: Zustand store subscriptions
+      if (
+        callName !== 'useSyncExternalStore' &&
+        (/^use[A-Z]\w*Store$/.test(callName) ||
+          callName === 'useThemeStore' ||
+          callName === 'useStarmapStore')
+      ) {
+        if (!obj.arguments || obj.arguments.length === 0) {
+          addDiagnostic(
+            obj.loc?.start,
+            'atomic-store-selectors',
+            'error',
+            `Whole-store subscription detected (\`${callName}()\`). Subscribing to the entire store forces full component re-renders on any state change.`,
+            `Subscribe to discrete atomic state selectors instead (e.g. \`${callName}(s => s.foo)\`).`
+          );
+        } else {
+          let selectorArg: ASTNode | undefined = obj.arguments[0];
+          if (
+            selectorArg &&
+            selectorArg.type === 'CallExpression' &&
+            selectorArg.callee?.type === 'Identifier' &&
+            selectorArg.callee.name === 'useShallow'
+          ) {
+            selectorArg = selectorArg.arguments?.[0];
+          }
+
+          if (
+            selectorArg &&
+            (selectorArg.type === 'ArrowFunctionExpression' ||
+              selectorArg.type === 'FunctionExpression')
+          ) {
+            const body = selectorArg.body;
+            const param = selectorArg.params?.[0];
+            const paramName = param && param.type === 'Identifier' ? param.name : undefined;
+
+            if (body && !Array.isArray(body)) {
+              // Identity selector: (state) => state or s => s
+              if (paramName) {
+                if (body.type === 'Identifier' && body.name === paramName) {
+                  addDiagnostic(
+                    body.loc?.start || obj.loc?.start,
+                    'atomic-store-selectors',
+                    'error',
+                    `Identity store selector detected (\`${callName}(${paramName} => ${paramName})\`). Subscribing to the entire store object forces full component re-renders on any state change.`,
+                    `Subscribe to discrete atomic state selectors instead (e.g. \`${callName}(s => s.foo)\`).`
+                  );
+                } else if (body.type === 'BlockStatement' && Array.isArray(body.body)) {
+                  const returnStmt = body.body.find(
+                    (s: ASTNode) => s.type === 'ReturnStatement'
+                  ) as ASTNode | undefined;
+                  const retArg = returnStmt?.argument as ASTNode | undefined;
+                  if (retArg && retArg.type === 'Identifier' && retArg.name === paramName) {
+                    addDiagnostic(
+                      retArg.loc?.start || obj.loc?.start,
+                      'atomic-store-selectors',
+                      'error',
+                      `Identity store selector detected (\`${callName}(${paramName} => ${paramName})\`). Subscribing to the entire store object forces full component re-renders on any state change.`,
+                      `Subscribe to discrete atomic state selectors instead (e.g. \`${callName}(s => s.foo)\`).`
+                    );
+                  }
+                }
+              }
+
+              // Object-literal returning selector: s => ({ a: s.a })
+              let returnedObj: ASTNode | undefined;
+              if (body.type === 'ObjectExpression') {
+                returnedObj = body;
+              } else if (body.type === 'BlockStatement' && Array.isArray(body.body)) {
+                const returnStmt = body.body.find(
+                  (s: ASTNode) => s.type === 'ReturnStatement'
+                ) as ASTNode | undefined;
+                const retArg = returnStmt?.argument as ASTNode | undefined;
+                if (retArg && retArg.type === 'ObjectExpression') {
+                  returnedObj = retArg;
+                }
+              }
+              if (returnedObj) {
+                addDiagnostic(
+                  returnedObj.loc?.start || obj.loc?.start,
+                  'atomic-store-selectors',
+                  'error',
+                  'Object-literal returning store selector detected. Returning a new object reference on every selector invocation causes infinite render loops or unnecessary re-renders.',
+                  'Subscribe to discrete atomic selectors individually, or use shallow comparison.'
+                );
+              }
+
+              // Broad state.tokens subscription
+              if (
+                body.type === 'MemberExpression' &&
+                body.property &&
+                'name' in body.property &&
+                body.property.name === 'tokens'
+              ) {
+                addDiagnostic(
+                  body.loc?.start,
+                  'atomic-store-selectors',
+                  'error',
+                  'Whole-object store subscription detected (`state.tokens`). Subscribing to broad state objects forces full component re-renders whenever any design token changes.',
+                  'Subscribe to discrete atomic tokens instead (e.g. `state => state.tokens.datumPlaneColor`).'
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 5. Detect invalid JSX intrinsic tags (e.g. <threeLine>)
+    if (obj.type === 'JSXOpeningElement' || obj.type === 'JSXSelfClosingElement') {
+      const tagObj = typeof obj.name === 'object' ? obj.name : undefined;
+      const tagNameStr = typeof obj.name === 'string' ? obj.name : tagObj?.name;
+      if (tagObj && typeof tagNameStr === 'string') {
+        const lower = tagNameStr.toLowerCase();
+        if (INVALID_R3F_TAGS.has(lower)) {
+          addDiagnostic(
+            tagObj.loc?.start || obj.loc?.start,
+            'valid-r3f-intrinsics',
+            'error',
+            `Invalid React Three Fiber intrinsic element <${tagNameStr}> detected. R3F intrinsic tags map directly to lowercase Three.js classes.`,
+            'Replace with `<line>` (maps to `THREE.Line`) or `<lineSegments>`.'
+          );
+        }
+      }
+    }
+
+    if (isJsxExpr) insideJsxExprDepth++;
+
+    for (const key of Object.keys(obj)) {
+      if (key === 'loc' || key === 'range' || key === 'comments') continue;
+      const child = obj[key];
+      if (isUseMemoCall && key === 'arguments' && Array.isArray(child) && child.length > 0) {
+        insideUseMemoDepth++;
+        traverseAst(child[0]);
+        insideUseMemoDepth--;
+        for (let idx = 1; idx < child.length; idx++) {
+          traverseAst(child[idx]);
+        }
+      } else if (Array.isArray(child)) {
+        for (const item of child) {
+          traverseAst(item);
+        }
+      } else if (child && typeof child === 'object') {
+        traverseAst(child);
+      }
+    }
+
+    if (isJsxExpr) insideJsxExprDepth--;
+  }
+
+  traverseAst(ast);
 
   function simpleTraverse(node: unknown, visitor: (n: ASTNode) => void) {
     if (!node || typeof node !== 'object') return;
@@ -118,86 +432,6 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       }
     }
   }
-
-  simpleTraverse(ast, (node: ASTNode) => {
-    // 1. Detect useFrame calls and inspect their hot-path callback bodies
-    if (node.type === 'CallExpression') {
-      const callee = node.callee;
-      if (!callee) return;
-      const callName: string =
-        callee.type === 'Identifier' && typeof callee.name === 'string'
-          ? callee.name
-          : callee.type === 'MemberExpression' && typeof callee.property?.name === 'string'
-          ? callee.property.name
-          : '';
-
-      if (callName === 'useFrame') {
-        const callbackArg = node.arguments?.[0];
-        if (
-          callbackArg &&
-          (callbackArg.type === 'ArrowFunctionExpression' ||
-            callbackArg.type === 'FunctionExpression') &&
-          callbackArg.body
-        ) {
-          auditUseFrameCallback(callbackArg.body);
-        }
-      }
-
-      // 2. Detect whole-object store subscriptions: useThemeStore(state => state.tokens)
-      if (
-        callName === 'useThemeStore' ||
-        callName === 'useStarmapStore' ||
-        (callName && callName.endsWith('Store'))
-      ) {
-        let selectorArg = node.arguments?.[0];
-        if (
-          selectorArg &&
-          selectorArg.type === 'CallExpression' &&
-          selectorArg.callee?.type === 'Identifier' &&
-          selectorArg.callee.name === 'useShallow'
-        ) {
-          selectorArg = selectorArg.arguments?.[0];
-        }
-
-        if (
-          selectorArg &&
-          (selectorArg.type === 'ArrowFunctionExpression' ||
-            selectorArg.type === 'FunctionExpression')
-        ) {
-          const body = selectorArg.body;
-          if (body && body.type === 'MemberExpression' && body.property?.type === 'Identifier') {
-            if (body.property.name === 'tokens') {
-              addDiagnostic(
-                body.loc?.start,
-                'atomic-store-selectors',
-                'error',
-                'Whole-object store subscription detected (`state.tokens`). Subscribing to broad state objects forces full component re-renders whenever any design token changes.',
-                'Subscribe to discrete atomic tokens instead (e.g. `state => state.tokens.datumPlaneColor`).'
-              );
-            }
-          }
-        }
-      }
-    }
-
-    // 3. Detect invalid JSX intrinsic tags (e.g. <threeLine>)
-    if (node.type === 'JSXOpeningElement' || node.type === 'JSXSelfClosingElement') {
-      const tagObj = typeof node.name === 'object' ? node.name : undefined;
-      const tagNameStr = typeof node.name === 'string' ? node.name : tagObj?.name;
-      if (tagObj && typeof tagNameStr === 'string') {
-        const lower = tagNameStr.toLowerCase();
-        if (INVALID_R3F_TAGS.has(lower)) {
-          addDiagnostic(
-            tagObj.loc?.start || node.loc?.start,
-            'valid-r3f-intrinsics',
-            'error',
-            `Invalid React Three Fiber intrinsic element <${tagNameStr}> detected. R3F intrinsic tags map directly to lowercase Three.js classes.`,
-            'Replace with `<line>` (maps to `THREE.Line`) or `<lineSegments>`.'
-          );
-        }
-      }
-    }
-  });
 
   function auditUseFrameCallback(frameBody: ASTNode) {
     simpleTraverse(frameBody, (node: ASTNode) => {
@@ -363,7 +597,9 @@ export function runR3fAudit(targetDirs: string[] = R3F_FILES_GLOB): AuditDiagnos
 
   for (const file of filesToScan) {
     const content = fs.readFileSync(file, 'utf8');
-    if (!content.includes('useFrame') && !content.includes('@react-three') && !content.includes('three')) {
+    const hasThree = content.includes('useFrame') || content.includes('@react-three') || content.includes('three');
+    const hasStore = content.includes('Store(') || /use[A-Z]\w*Store/.test(content);
+    if (!hasThree && !hasStore) {
       continue;
     }
     diagnostics.push(...auditSourceFile(file, content));
@@ -371,15 +607,31 @@ export function runR3fAudit(targetDirs: string[] = R3F_FILES_GLOB): AuditDiagnos
   return diagnostics;
 }
 
-interface BaselineData {
+export interface BaselineData {
   version: number;
   entries: Record<string, { count: number; audId: string }>;
+}
+
+export function isBaselineData(val: unknown): val is BaselineData {
+  if (!val || typeof val !== 'object') return false;
+  const obj = val as Record<string, unknown>;
+  if (typeof obj.version !== 'number') return false;
+  if (!obj.entries || typeof obj.entries !== 'object' || Array.isArray(obj.entries)) return false;
+  const entries = obj.entries as Record<string, unknown>;
+  for (const [k, v] of Object.entries(entries)) {
+    if (typeof k !== 'string') return false;
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+    const entry = v as Record<string, unknown>;
+    if (typeof entry.count !== 'number' || typeof entry.audId !== 'string') return false;
+  }
+  return true;
 }
 
 function loadBaseline(baselinePath: string): BaselineData | null {
   if (!fs.existsSync(baselinePath)) return null;
   try {
-    return JSON.parse(fs.readFileSync(baselinePath, 'utf8')) as BaselineData;
+    const parsed: unknown = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
+    return isBaselineData(parsed) ? parsed : null;
   } catch {
     return null;
   }

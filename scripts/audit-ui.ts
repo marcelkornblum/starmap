@@ -31,18 +31,51 @@ export const CSS_MODULE_DIRS = [
   'src/views',
 ];
 
-interface BaselineData {
+export interface BaselineData {
   version: number;
   entries: Record<string, { count: number; audId: string }>;
+}
+
+export function isBaselineData(val: unknown): val is BaselineData {
+  if (!val || typeof val !== 'object') return false;
+  const obj = val as Record<string, unknown>;
+  if (typeof obj.version !== 'number') return false;
+  if (!obj.entries || typeof obj.entries !== 'object' || Array.isArray(obj.entries)) return false;
+  const entries = obj.entries as Record<string, unknown>;
+  for (const [k, v] of Object.entries(entries)) {
+    if (typeof k !== 'string') return false;
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+    const entry = v as Record<string, unknown>;
+    if (typeof entry.count !== 'number' || typeof entry.audId !== 'string') return false;
+  }
+  return true;
 }
 
 function loadBaseline(baselinePath: string): BaselineData | null {
   if (!fs.existsSync(baselinePath)) return null;
   try {
-    return JSON.parse(fs.readFileSync(baselinePath, 'utf8')) as BaselineData;
+    const parsed: unknown = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
+    return isBaselineData(parsed) ? parsed : null;
   } catch {
     return null;
   }
+}
+
+function checkComment(text: string, ruleId: string): { suppressed: boolean; invalid: boolean } | null {
+  const match = text.match(/(?:\/\/|\/\*)\s*(?:ui-audit-disable|guard-disable)(?:-next-line)?(?:\s+([\w-]+))?(.*)/);
+  if (!match) return null;
+  const specifiedRule = match[1];
+  const rest = match[2]?.trim().replace(/\*\/$/, '').trim() || '';
+
+  if (specifiedRule && specifiedRule !== ruleId) {
+    return null;
+  }
+
+  const reasonMatch = rest.match(/^--\s+(\S+.*)/);
+  if (!reasonMatch) {
+    return { suppressed: false, invalid: true };
+  }
+  return { suppressed: true, invalid: false };
 }
 
 /**
@@ -52,14 +85,41 @@ export function isLineSuppressed(lines: string[], targetLine: number, ruleId: st
   const prevLine = targetLine > 1 ? lines[targetLine - 2] : '';
   const currentLine = lines[targetLine - 1] || '';
 
-  const checkComment = (text: string) => {
-    const match = text.match(/(?:\/\/|\/\*)\s*(?:ui-audit-disable|guard-disable)(?:-next-line)?(?:\s+([\w-]+))?/);
-    if (!match) return false;
-    const specifiedRule = match[1];
-    return !specifiedRule || specifiedRule === ruleId;
-  };
+  const resPrev = checkComment(prevLine, ruleId);
+  if (resPrev && resPrev.suppressed) return true;
 
-  return checkComment(prevLine) || checkComment(currentLine);
+  const resCurr = checkComment(currentLine, ruleId);
+  if (resCurr && resCurr.suppressed) return true;
+
+  return false;
+}
+
+export function checkInvalidSuppressions(filePath: string, lines: string[]): AuditDiagnostic[] {
+  const norm = filePath.replace(/\\/g, '/');
+  if (norm.includes('.test.') || norm.includes('__tests__') || norm.includes('/tests/')) {
+    return [];
+  }
+  const diagnostics: AuditDiagnostic[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = line.match(/(?:\/\/|\/\*)\s*(?:ui-audit-disable|guard-disable)(?:-next-line)?(?:\s+([\w-]+))?(.*)/);
+    if (match) {
+      const rest = match[2]?.trim().replace(/\*\/$/, '').trim() || '';
+      if (!rest.match(/^--\s+(\S+.*)/)) {
+        diagnostics.push({
+          filePath,
+          line: i + 1,
+          column: (line.search(/(?:\/\/|\/\*)/) >= 0 ? line.search(/(?:\/\/|\/\*)/) : 0) + 1,
+          ruleId: 'invalid-suppression',
+          severity: 'error',
+          message: `Suppression comment "${line.trim()}" without a required reason (-- <reason>) is forbidden.`,
+          snippet: line.trim().slice(0, 80),
+          remediation: 'Provide a clear technical justification after "-- <reason>".',
+        });
+      }
+    }
+  }
+  return diagnostics;
 }
 
 /**
@@ -262,6 +322,9 @@ export const checkComponentQuads = auditComponentQuads;
  */
 export function auditRawElementsContent(filePath: string, content: string): AuditDiagnostic[] {
   const diagnostics: AuditDiagnostic[] = [];
+  const lines = content.split('\n');
+  diagnostics.push(...checkInvalidSuppressions(filePath, lines));
+
   if (!content.includes('<button') && !content.includes('<input') && !content.includes('<select')) {
     return diagnostics;
   }
@@ -275,8 +338,6 @@ export function auditRawElementsContent(filePath: string, content: string): Audi
   } catch {
     return diagnostics;
   }
-
-  const lines = content.split('\n');
 
   traverseAst(ast, (node: ASTNode) => {
     if (node.type === 'JSXOpeningElement' || node.type === 'JSXSelfClosingElement') {
@@ -309,6 +370,9 @@ export function auditRawElementsContent(filePath: string, content: string): Audi
  */
 export function auditDynamicClassNamesContent(filePath: string, content: string): AuditDiagnostic[] {
   const diagnostics: AuditDiagnostic[] = [];
+  const lines = content.split('\n');
+  diagnostics.push(...checkInvalidSuppressions(filePath, lines));
+
   if (!content.includes('className=')) {
     return diagnostics;
   }
@@ -322,8 +386,6 @@ export function auditDynamicClassNamesContent(filePath: string, content: string)
   } catch {
     return diagnostics;
   }
-
-  const lines = content.split('\n');
 
   traverseAst(ast, (node: ASTNode) => {
     if (node.type === 'JSXAttribute' && node.name?.name === 'className') {
@@ -375,6 +437,9 @@ export function auditDynamicClassNamesContent(filePath: string, content: string)
  */
 export function auditInlineStylesContent(filePath: string, content: string): AuditDiagnostic[] {
   const diagnostics: AuditDiagnostic[] = [];
+  const lines = content.split('\n');
+  diagnostics.push(...checkInvalidSuppressions(filePath, lines));
+
   if (!content.includes('style=')) {
     return diagnostics;
   }
@@ -388,8 +453,6 @@ export function auditInlineStylesContent(filePath: string, content: string): Aud
   } catch {
     return diagnostics;
   }
-
-  const lines = content.split('\n');
 
   traverseAst(ast, (node: ASTNode) => {
     if (node.type === 'JSXAttribute' && node.name?.name === 'style') {
@@ -418,11 +481,12 @@ export function auditInlineStylesContent(filePath: string, content: string): Aud
  */
 export function auditRenderToStringContent(filePath: string, content: string): AuditDiagnostic[] {
   const diagnostics: AuditDiagnostic[] = [];
+  const lines = content.split('\n');
+  diagnostics.push(...checkInvalidSuppressions(filePath, lines));
+
   if (!content.includes('renderToString')) {
     return diagnostics;
   }
-
-  const lines = content.split('\n');
   lines.forEach((line, index) => {
     const lineNum = index + 1;
     if (
@@ -461,12 +525,13 @@ const MARGIN_DECL_REGEX = /^\s*(?:margin|margin-top|margin-right|margin-bottom|m
  */
 export function auditCssModuleContent(filePath: string, content: string): AuditDiagnostic[] {
   const diagnostics: AuditDiagnostic[] = [];
+  const lines = content.split('\n');
+  diagnostics.push(...checkInvalidSuppressions(filePath, lines));
+
   const trimmed = content.trim();
   if (!trimmed) {
     return diagnostics;
   }
-
-  const lines = content.split('\n');
 
   // Check for @layer blocks or @layer exceptions
   const hasLayer = /@layer\s+(?:blocks|exceptions)\b/.test(content);
@@ -693,7 +758,7 @@ export function runUiAudit(targetDir?: string): AuditDiagnostic[] {
   const renderDirs = targetDir ? [targetDir] : RENDER_TO_STRING_DIRS;
   const cssDirs = targetDir ? [targetDir] : CSS_MODULE_DIRS;
 
-  return [
+  const raw = [
     ...auditComponentQuads(quadDirs),
     ...auditInlineStyles(astDirs),
     ...auditDynamicClassNames(astDirs),
@@ -701,6 +766,14 @@ export function runUiAudit(targetDir?: string): AuditDiagnostic[] {
     ...auditRenderToString(renderDirs),
     ...auditCssModules(cssDirs),
   ];
+
+  const seen = new Set<string>();
+  return raw.filter((d) => {
+    const key = `${d.ruleId}::${d.filePath}::${d.line}::${d.column}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /**

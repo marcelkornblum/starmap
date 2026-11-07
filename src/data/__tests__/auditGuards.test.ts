@@ -1,9 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 import { describe, it, expect } from 'vitest';
 import {
   auditLiteralsContent,
   auditImportsContent,
   auditFileSize,
   compareBaseline,
+  detectImportCycles,
   type GuardViolation,
   type GuardBaseline,
 } from '../../../scripts/audit-guards';
@@ -69,6 +73,32 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
       expect(diags.some((d) => d.snippet?.includes('|| 5778'))).toBe(true);
     });
 
+    it('detects static TemplateLiteral matching entity IDs or names with 0 expressions', () => {
+      const code = `
+        export const getBenchmark = () => {
+          const id = \`tau-ceti\`;
+          const name = \`Tau Ceti\`;
+          return { id, name };
+        };
+      `;
+      const diags = auditLiteralsContent('src/services/targetService.ts', code, mockCatalog);
+      expect(diags.length).toBe(2);
+      expect(diags.every((d) => d.ruleId === 'G-literals')).toBe(true);
+      expect(diags.some((d) => d.message.includes('tau-ceti'))).toBe(true);
+      expect(diags.some((d) => d.message.includes('Tau Ceti'))).toBe(true);
+    });
+
+    it('does NOT trigger G-literals for import or export source specifiers matching entity names', () => {
+      const code = `
+        import { sol } from './sol';
+        import { EarthData } from '../data/earth';
+        export { mars } from './mars';
+        export * from './jupiter';
+      `;
+      const diags = auditLiteralsContent('src/services/systemService.ts', code, mockCatalog);
+      expect(diags).toEqual([]);
+    });
+
     it('permits ?? 0 or || 0 fallback defaults', () => {
       const code = `
         export const calculateOffset = (offset?: number) => {
@@ -123,6 +153,39 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
       expect(diags.length).toBe(1);
       expect(diags[0].ruleId).toBe('G-imports');
       expect(diags[0].message).toContain('Prototypes is isolated');
+    });
+
+    it('flags unreasoned guard-disable comment in auditImportsContent', () => {
+      const code = `
+        // guard-disable-next-line G-imports
+        import { CameraRig } from '../components/canvas/CameraRig';
+        export const util = () => CameraRig;
+      `;
+      const diags = auditImportsContent('src/utils/math.ts', code);
+      expect(diags.length).toBe(1);
+      expect(diags[0].message).toContain('without a required reason');
+    });
+
+    it('detects multi-line import cycles across files', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cycle-test-'));
+      try {
+        const fileA = path.join(tempDir, 'a.ts');
+        const fileB = path.join(tempDir, 'b.ts');
+        fs.writeFileSync(
+          fileA,
+          `import {\n  funcB,\n  otherVal,\n} from './b';\nexport const funcA = () => funcB();\n`
+        );
+        fs.writeFileSync(
+          fileB,
+          `import {\n  funcA,\n} from './a';\nexport const funcB = () => funcA();\n`
+        );
+        const violations = detectImportCycles([fileA, fileB], tempDir);
+        expect(violations.length).toBeGreaterThan(0);
+        expect(violations[0].ruleId).toBe('G-imports-cycle');
+        expect(violations[0].message).toContain('a.ts -> b.ts -> a.ts');
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
     });
 
     it('permits valid downward imports', () => {

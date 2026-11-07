@@ -2,6 +2,19 @@
 
 All notable changes to the Starmap project are documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Architecture Remediation Track T01 (`Guardrails & Safety Net`):**
+  - Unified `npm run audit:guards` runner combining `oxlint` with AST-level literal (`G-literals`), layer-boundary and import-cycle (`G-imports`), legacy shim (`G-shims`), canvas count (`G-canvas`), file-line ceiling (`G-size`), UI design system (`G-ui`), and R3F memory/render checks (`G-r3f`).
+  - Downward-only baseline ratchet (`scripts/guards/baseline.json`) preventing regression or addition of architectural debt.
+  - Expanded `audit:ui` and `audit:r3f` linters backed by 67 colocated unit tests covering component file quads, design-token literals, atomic Zustand selectors, inline JSX geometries, and material memo dependencies.
+  - Pinned all `"latest"` dependencies in `package.json` to exact semver versions (`@chromatic-com/storybook`, `@playwright/test`).
+  - Unified Vitest configuration and coverage-comment thresholds to a single source of truth in `scripts/coverage-comment.ts`.
+  - Explicit TypeScript `strict: true` enforcement and added `scripts/**/*.ts` to the typechecked project scope (`tsconfig.node.json`).
+  - Playwright URL-contract test suite (`e2e/url-contracts.spec.ts`) validating deep links, navigation state, back/forward history, and query parameter contracts.
+  - 3D frame-time baseline regression gate (`e2e/frame-time-baseline.spec.ts`) establishing p95 and max frame duration thresholds across target viewports.
+
 ## [Data Pipeline] - 2026-09-30
 
 ### Added
