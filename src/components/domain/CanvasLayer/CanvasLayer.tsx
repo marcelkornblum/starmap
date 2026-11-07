@@ -263,13 +263,11 @@ export const RootCanvasHost: React.FC = () => {
         targetId={stageProps?.targetId}
         centerId={stageProps?.centerId}
         centerCoordinates={stageProps?.centerCoordinates}
-        selectedEntities={
-          stageProps?.selectedEntities as readonly SpatialEntityDefinition[] | undefined
-        }
+        selectedEntities={stageProps?.selectedEntities}
         cameraAzimuthDeg={stageProps?.cameraAzimuthDeg}
         cameraElevationDeg={stageProps?.cameraElevationDeg}
         cameraDistance={stageProps?.cameraDistance}
-        journeyLegs={stageProps?.journeyLegs as readonly JourneyChordLeg[] | undefined}
+        journeyLegs={stageProps?.journeyLegs}
         activeJourneyMethod={stageProps?.activeJourneyMethod}
         activeSystemName={stageProps?.activeSystemName}
         focusedTargetName={stageProps?.focusedTargetName}

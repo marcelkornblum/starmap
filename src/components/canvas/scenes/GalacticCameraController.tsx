@@ -101,7 +101,6 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       return () => {
         controls.removeEventListener?.('change', handleChange);
         controls.removeEventListener?.('end', handleChange);
-        saveCurrentGalaxyPose();
       };
     }
   }, [controls, persistGalaxyPose, saveCurrentGalaxyPose]);

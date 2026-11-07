@@ -1,8 +1,12 @@
 import { create } from 'zustand';
+import type {
+  JourneyChordLeg,
+  SpatialEntityDefinition,
+} from '../types/spatial';
 
 export interface CanvasStageData<
-  TEntity = unknown,
-  TLeg = unknown,
+  TEntity = SpatialEntityDefinition,
+  TLeg = JourneyChordLeg,
 > {
   readonly scope: 'galaxy' | 'system' | 'planet';
   readonly targetId?: string;

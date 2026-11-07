@@ -54,6 +54,7 @@ import {
   parseLayerQueryParam,
 } from '../utils/url';
 import { computeEuclideanDistance3D } from '../utils/astroMath';
+import { isInsideAperture } from '../utils/spatialMath';
 import {
   SEARCH_CATEGORIES,
   type SearchCategoryFilter,
@@ -562,6 +563,8 @@ export const scoreSearchEntry = (
   return 0;
 };
 
+const ORIGIN_3D: readonly [number, number, number] = [0, 0, 0];
+
 /**
  * Pure conversion from a CompactSearchEntry + match score into a domain SearchResultItem.
  */
@@ -581,9 +584,9 @@ export const toSearchResultItem = (
   if (entry.p) {
     const [x, y, z] = entry.p;
     position = [x, y, z];
-    distancePc = Math.round(computeEuclideanDistance3D([x, y, z], [0, 0, 0]).distance * 100) / 100;
+    distancePc = Math.round(computeEuclideanDistance3D(entry.p, ORIGIN_3D).distance * 100) / 100;
   } else if (entry.h === 1) {
-    position = [0, 0, 0];
+    position = ORIGIN_3D;
     distancePc = 0;
   }
 
@@ -1268,8 +1271,7 @@ export const doesSystemEntryMatchTag = (
     if (!entry.p) {
       return false;
     }
-    const [x, y, z] = entry.p;
-    return computeEuclideanDistance3D([x, y, z], [0, 0, 0]).distance <= 10;
+    return isInsideAperture(entry.p, ORIGIN_3D, 10);
   }
   if (tagKey === 'nakedeye') {
     return (
