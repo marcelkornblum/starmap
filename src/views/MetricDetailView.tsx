@@ -88,6 +88,11 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
           { label: 'Telemetry Metrics', href: METRICS_GUIDE_PATH },
           { label: resolvedMetricId || 'Telemetry Metric' },
         ]}
+        companionHref={
+          resolvedFocusId
+            ? `/galaxy?focus=${encodeURIComponent(resolvedFocusId)}`
+            : undefined
+        }
       />
       <GuideSectionNav currentSection="metrics" />
       <Heading as="h1">

@@ -7,9 +7,39 @@ import {
   resolveMetricGuideEntry,
   type MetricComparison,
 } from '../../../services/guideService';
+import { seedDetailRecord } from '../../../data/detailsRepository';
 
 describe('<MetricComparativePanel />', () => {
   it('renders comparative telemetry with baseline and target columns for a single catalogued target', () => {
+    seedDetailRecord('tau-ceti-e', {
+      kind: 'system',
+      record: {
+        id: 'gaia-2452378776434477184',
+        name: 'Tau Ceti',
+        x: 3.156,
+        y: 1.54,
+        z: -1.003,
+        dist: 3.65,
+        sectorId: 'sector_+000_+000_-025',
+        stars: [],
+        planets: [
+          {
+            id: 'tau-ceti-e',
+            name: 'Tau Ceti e',
+            letter: 'e',
+            orbit: {
+              semiMajorAxis: 0.538,
+              periodDays: 162.87,
+              eccentricity: 0.18,
+              inclination: 0,
+              ascendingNode: 0,
+              argumentOfPeriapsis: 22.3,
+              meanAnomaly: 0,
+            },
+          },
+        ],
+      },
+    });
     const entry = resolveMetricGuideEntry('semi-major-axis')!;
     const comparison = resolveMetricComparison('semi-major-axis', 'tau-ceti-e')!;
 

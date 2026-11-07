@@ -66,6 +66,11 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
           { label: 'Environmental Hazards', href: HAZARDS_GUIDE_PATH },
           { label: primaryEntry?.title || resolvedHazardId || 'Hazard' },
         ]}
+        companionHref={
+          focusedEntityId
+            ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
+            : undefined
+        }
       />
       <GuideSectionNav currentSection="hazards" />
       <Heading as="h1">

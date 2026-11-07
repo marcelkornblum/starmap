@@ -94,6 +94,11 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
           { label: 'Star Types', href: STAR_TYPES_GUIDE_PATH },
           { label: resolvedStarType || 'Star Type' },
         ]}
+        companionHref={
+          focusedEntityId
+            ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
+            : undefined
+        }
       />
       <GuideSectionNav currentSection="star-types" />
       <Heading as="h1">{resolvedStarType ? `Star Type: ${resolvedStarType}` : 'Star Type'}</Heading>

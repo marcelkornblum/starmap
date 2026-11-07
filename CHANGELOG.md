@@ -4,6 +4,15 @@ All notable changes to the Starmap project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Architecture Remediation Track T02 (`User-Visible Correctness`):**
+  - **Metric Comparison Telemetry (`AUD-020`, `DEC-R018`):** Purged fabricated Tau Ceti / Tau Ceti e fallback numbers from `resolveMetricComparison`; uncatalogued targets now render concise `'—'` placeholders (`isCatalogued: false`), and `MetricDetailView` asynchronously hydrates search and detail shards on cold load.
+  - **PlanarGrid WebGL Geometry Lifecycle (`AUD-021`):** Extracted memoised `<PlanarFootprintItem />` in `PlanarGrid.tsx` using `useMemo` and `useEffect` cleanup (`geom.dispose()`), eliminating per-render `BufferGeometry` leaks.
+  - **Router Search Validation (`AUD-022`):** Removed unvalidated `...search` spread and `[key: string]: unknown` index signature in `src/router/index.tsx`; added `parseFiniteNumber` rejecting `NaN`/`Infinity` and non-numeric strings.
+  - **Summary Node Codec Round-Trip (`AUD-023`):** Made `encodeSummaryNode` / `decodeSummaryNode` lossless for `properName` across both Gaia and non-Gaia IDs.
+  - **SystemScene Inferred Orbits & Confidence Marking (`AUD-024`, `DEC-R019`):** Extracted `resolveSystemPlanetEntity` and `resolveCorpusPlanetEntity` respecting `entry.A` and `entry.u`, deriving missing `semiMajorAxis` from `periodDays` via Kepler's Third Law ($a = ((P/365.25)^2 \cdot M_\star)^{1/3}$), and marking inferred orbits with `lineStyle: 'dotted'` in 3D and `<ConfidencePip confidence="theoretical" />` in `DetailsPlanetTelemetrySection`.
+  - **Multi-Value Guide Routes & System Expansion (`AUD-092`, `DEC-R014k`, `DEC-R020`):** Added plural Guide resolvers supporting comma- and `+`-delimited slugs across all 4 Guide detail views (`StarTypeDetailView`, `PlanetTypeDetailView`, `HazardDetailView`, `MetricDetailView`), preserved `?focus=` context and return links, and expanded multi-star/multi-planet systems into stacked target comparison cards in `<MetricComparativePanel />`.
+
 ### Added
 - **Architecture Remediation Track T01 (`Guardrails & Safety Net`):**
   - Unified `npm run audit:guards` runner combining `oxlint` with AST-level literal (`G-literals`), layer-boundary and import-cycle (`G-imports`), legacy shim (`G-shims`), canvas count (`G-canvas`), file-line ceiling (`G-size`), UI design system (`G-ui`), and R3F memory/render checks (`G-r3f`).

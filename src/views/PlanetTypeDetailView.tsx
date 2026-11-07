@@ -63,6 +63,11 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
           { label: 'Planet Types', href: PLANET_TYPES_GUIDE_PATH },
           { label: resolvedPlanetType || 'Planet Type' },
         ]}
+        companionHref={
+          focusedEntityId
+            ? `/galaxy?focus=${encodeURIComponent(focusedEntityId)}`
+            : undefined
+        }
       />
       <GuideSectionNav currentSection="planet-types" />
       <Heading as="h1">

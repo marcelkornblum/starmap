@@ -281,12 +281,14 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         // Comma-separated star types render all matched entries
         await page.goto('/guide/star-types/G2V,K1V');
         await expect(page.getByTestId('star-type-detail-view-root')).toBeVisible();
-        await expect(page.getByText('G2V')).toBeVisible();
-        await expect(page.getByText('K1V')).toBeVisible();
+        await expect(page.getByTestId('guide-detail-summary')).toHaveCount(2);
+        await expect(page.getByText('G2V', { exact: true }).first()).toBeVisible();
+        await expect(page.getByText('K1V', { exact: true }).first()).toBeVisible();
 
         // Plus-delimited compound star types (e.g. G2V+K1V)
         await page.goto('/guide/star-types/G2V%2BK1V');
         await expect(page.getByTestId('star-type-detail-view-root')).toBeVisible();
+        await expect(page.getByTestId('guide-detail-summary')).toHaveCount(2);
 
         // Guide views preserve ?focus= across all 4 Guide detail routes
         await page.goto('/guide/star-types/g?focus=sol');
