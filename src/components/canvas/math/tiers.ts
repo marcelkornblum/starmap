@@ -1,67 +1,11 @@
-export type InteractionTier = 'passive' | 'active' | 'selected' | 'focused';
+export type {
+  InteractionState,
+  InteractionTier,
+} from '../../../types/spatial';
 
-export interface InteractionState {
-  hoveredId?: string | null;
-  selectedId?: string | null;
-  selectedIds?: Set<string> | ReadonlyArray<string>;
-  focusedId?: string | null;
-  focusedIds?: Set<string> | ReadonlyArray<string>;
-  apertureIds: Set<string> | ReadonlyArray<string>;
-}
-
-/**
- * Pure interaction state machine deriving tier for any given entity.
- * Priority:
- * 1. 'focused'   - if entity is focusedId or in focusedIds
- * 2. 'selected'  - if entity is selectedId, in selectedIds, OR hoveredId (hover maps to selected tier per §2.4)
- * 3. 'active'    - if entity is within aperture radius
- * 4. 'passive'   - default background starfield
- */
-export function deriveEntityTier(id: string, state: InteractionState): InteractionTier {
-  const isInFocusedSet = state.focusedIds
-    ? state.focusedIds instanceof Set
-      ? state.focusedIds.has(id)
-      : state.focusedIds.includes(id)
-    : false;
-  if (id === state.focusedId || isInFocusedSet) {
-    return 'focused';
-  }
-  const isInSelectedSet = state.selectedIds
-    ? state.selectedIds instanceof Set
-      ? state.selectedIds.has(id)
-      : state.selectedIds.includes(id)
-    : false;
-  if (id === state.selectedId || id === state.hoveredId || isInSelectedSet) {
-    return 'selected';
-  }
-  const isInAperture = state.apertureIds instanceof Set
-    ? state.apertureIds.has(id)
-    : state.apertureIds.includes(id);
-
-  if (isInAperture) {
-    return 'active';
-  }
-  return 'passive';
-}
-
-/**
- * Stalks render strictly for 'selected' and 'focused' tiers (§2.4).
- */
-export function isStalkVisible(tier: InteractionTier): boolean {
-  return tier === 'selected' || tier === 'focused';
-}
-
-/**
- * Datum footprints exist if and only if the stalk exists (§2.4).
- */
-export function isFootprintVisible(tier: InteractionTier): boolean {
-  return isStalkVisible(tier);
-}
-
-/**
- * A selected or focused entity forces its orbit to render regardless of whether
- * the orbit layer is toggled off (§4.4).
- */
-export function isOrbitForceRendered(tier: InteractionTier): boolean {
-  return tier === 'selected' || tier === 'focused';
-}
+export {
+  deriveEntityTier,
+  isFootprintVisible,
+  isOrbitForceRendered,
+  isStalkVisible,
+} from '../../../utils/spatialMath';

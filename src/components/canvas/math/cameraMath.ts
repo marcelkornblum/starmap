@@ -179,7 +179,9 @@ export function getClosestCardinalAxis(
   return result;
 }
 
-export type CardinalDirection = 'top' | 'bottom' | 'front' | 'back' | 'right' | 'left';
+import type { CardinalDirection } from '../../../types/spatial';
+
+export type { CardinalDirection };
 
 /**
  * Static registry of cardinal orientations, canonical normals, and singular-free up vectors.

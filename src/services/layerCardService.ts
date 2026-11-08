@@ -14,6 +14,8 @@ import {
   toCanonicalLayerSlug,
   toUrlSlug,
 } from '../utils/datasetLayerCodec';
+import { parseLayerQueryParam } from '../utils/url';
+export { parseLayerQueryParam };
 import type { OrbitTargetView } from './details/navigationAndCamera';
 import {
   findFocusedEntryInCorpus,
@@ -75,46 +77,6 @@ export interface ResolveActiveLayerCardInput {
   readonly currentSearch: string;
   readonly corpus?: readonly CompactSearchEntry[];
   readonly layers: readonly DatasetLayerManifest[];
-}
-
-/**
- * Pure parser extracting `{ layerSlug, itemSlug? }` from a URL `?layer=` query parameter.
- * Examples:
- * - 'recent-discoveries' -> { layerSlug: 'recent-discoveries' }
- * - 'overlay-recent-discoveries' -> { layerSlug: 'recent-discoveries' }
- * - 'recent-discoveries:lhs-1140-b' -> { layerSlug: 'recent-discoveries', itemSlug: 'lhs-1140-b' }
- * - 'layer:project-hail-mary:tau-ceti' -> { layerSlug: 'project-hail-mary', itemSlug: 'tau-ceti' }
- */
-export function parseLayerQueryParam(
-  rawLayerParam?: string | null,
-): { layerSlug: string; itemSlug?: string } | null {
-  if (!rawLayerParam || typeof rawLayerParam !== 'string') {
-    return null;
-  }
-  const trimmed = rawLayerParam.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  // Strip leading 'layer:' or 'overlay:'
-  const withoutPrefix = trimmed.replace(/^(?:layer|overlay):/i, '');
-  const colonIndex = withoutPrefix.indexOf(':');
-
-  if (colonIndex === -1) {
-    const layerSlug = toCanonicalLayerSlug(withoutPrefix);
-    return layerSlug ? { layerSlug } : null;
-  }
-
-  const layerPart = withoutPrefix.slice(0, colonIndex);
-  const itemPart = withoutPrefix.slice(colonIndex + 1);
-
-  const layerSlug = toCanonicalLayerSlug(layerPart);
-  if (!layerSlug) {
-    return null;
-  }
-
-  const itemSlug = toUrlSlug(itemPart);
-  return itemSlug ? { layerSlug, itemSlug } : { layerSlug };
 }
 
 /**

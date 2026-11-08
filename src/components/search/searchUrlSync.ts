@@ -3,7 +3,7 @@ import {
   parseSearchUrlParams,
   type SearchCategoryFilter,
 } from '../../services/searchService';
-import { router as appRouter, type StarmapSearchParams } from '../../router';
+import { appRouter, type StarmapSearchParams } from '../../hooks/useSpaLocation';
 
 export const resolveInitialQuery = (
   syncUrl: boolean,

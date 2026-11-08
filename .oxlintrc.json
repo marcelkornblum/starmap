@@ -167,6 +167,13 @@
           }
         ]
       }
+    },
+    {
+      "files": ["src/prototypes/**"],
+      "rules": {
+        "max-lines": "off",
+        "react/only-export-components": "off"
+      }
     }
   ]
 }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { QUADRANTS as BASE_QUADRANTS } from '../../../utils/spatialMath';
 
 export const QUADRANT_STEPS = 32;
 export const DEGREE_TICKS = [15, 30, 45, 60, 75]; // Perimeter degree markings
@@ -10,12 +11,11 @@ export interface QuadrantDefinition {
   endAngle: number;
 }
 
-export const QUADRANTS: readonly QuadrantDefinition[] = [
-  { qx: 1, qy: 1, startAngle: 0, endAngle: Math.PI / 2 },
-  { qx: -1, qy: 1, startAngle: Math.PI / 2, endAngle: Math.PI },
-  { qx: -1, qy: -1, startAngle: Math.PI, endAngle: (3 * Math.PI) / 2 },
-  { qx: 1, qy: -1, startAngle: (3 * Math.PI) / 2, endAngle: 2 * Math.PI },
-] as const;
+export const QUADRANTS: readonly QuadrantDefinition[] = BASE_QUADRANTS.map((quad, i) => ({
+  ...quad,
+  startAngle: (i * Math.PI) / 2,
+  endAngle: ((i + 1) * Math.PI) / 2,
+}));
 
 /**
  * Creates BufferGeometry for a 90-degree quadrant arc on a given plane.

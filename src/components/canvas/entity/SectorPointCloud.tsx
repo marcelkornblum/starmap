@@ -5,10 +5,8 @@ import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { useLazyRef } from '../../../hooks/useLazyRef';
-import {
-  SectorStreamingManager,
-  createSceneSectorPointsFactory,
-} from '../../../services/sectorStreamingService';
+import { SectorStreamingManager } from '../../../services/sectorStreamingService';
+import { createSceneSectorPointsFactory } from './sectorPointCloudGeometry';
 import { InstrumentHydrationBridge } from '../../../services/instrumentHydrationService';
 import type { SystemSummaryNode } from '../../../types/astro';
 

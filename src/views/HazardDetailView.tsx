@@ -19,7 +19,7 @@ import {
   extractFocusIdFromSearch,
   resolveHazardGuideEntries,
 } from '../services/guideService';
-import { useSpaLocation } from '../router';
+import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
 
 export interface HazardDetailViewProps {

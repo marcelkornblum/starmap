@@ -38,14 +38,14 @@ Source: 2026-11-06 audit of `main` @ `4c45916`. Every finding below has been ver
 
 | ID | Finding | Evidence | Acceptance check | Status |
 |---|---|---|---|---|
-| AUD-030 | Services, data and utils import from `components/canvas/**` (types, `GALACTIC_FRAME`, aperture maths, chord geometry) | `searchService.ts#L1-L2`, `details/types.ts#L1-L2`, `details/galacticAperture.ts#L1-L6`, `journeyService.ts#L17`, `data/planetPalettes.ts#L1` | `G-imports` at zero for `src/{services,data,utils,stores}` → `src/components/**` | open |
-| AUD-031 | `searchRepository` (data) imports from `searchService` | `src/data/searchRepository.ts#L1` | `G-imports` data → services at zero | open |
-| AUD-032 | Import cycles: `searchService ↔ details/navigationAndCamera`, `searchService ↔ layerCardService` | `searchService.ts#L38-L47`, `layerCardService.ts#L19-L22`, `navigationAndCamera.ts#L1-L6` | `G-imports` cycle check at zero | open |
-| AUD-033 | `sectorStreamingService` creates `THREE.BufferGeometry`/`THREE.Points` and mutates the scene graph | `src/services/sectorStreamingService.ts#L206-L236` | No `three` import under `src/services/**` | open |
-| AUD-034 | `useCanvasStageStore` imports component props (including callbacks) from `CanvasLayer` | `src/stores/useCanvasStageStore.ts#L2-L6` | `G-imports` stores → components at zero; store holds serialisable data only | open |
-| AUD-035 | Tier-1 `SpectralBadge` imports `data/guideCatalog` | `src/components/interface/information/CelestialSymbol/SpectralBadge.tsx#L3` | `G-imports` interface → data/services at zero | open |
-| AUD-036 | `PaletteShowcaseScene` (DOM, 48 KB) exported from production `canvas/scenes` barrel; near-clone of `prototypes/PaletteShowcase`; prototypes live under `src/components` | `src/components/canvas/scenes/index.ts#L5` | No prototype/showcase code in production barrels or `src/components` | open |
-| AUD-037 | `math/astronomy.ts` pure re-export shim; `QUADRANTS` duplicated; inline Euclidean distance re-implemented | `canvas/math/astronomy.ts`, `cartographyMath.ts#L13-L18`, `math/cardinal.ts#L26-L31`, `searchService.ts#L581`, `#L1342` | Shim deleted; single definitions | open |
+| AUD-030 | Services, data and utils import from `components/canvas/**` (types, `GALACTIC_FRAME`, aperture maths, chord geometry) | `searchService.ts#L1-L2`, `details/types.ts#L1-L2`, `details/galacticAperture.ts#L1-L6`, `journeyService.ts#L17`, `data/planetPalettes.ts#L1` | `G-imports` at zero for `src/{services,data,utils,stores}` → `src/components/**` | verified |
+| AUD-031 | `searchRepository` (data) imports from `searchService` | `src/data/searchRepository.ts#L1` | `G-imports` data → services at zero | verified |
+| AUD-032 | Import cycles: `searchService ↔ details/navigationAndCamera`, `searchService ↔ layerCardService` | `searchService.ts#L38-L47`, `layerCardService.ts#L19-L22`, `navigationAndCamera.ts#L1-L6` | `G-imports` cycle check at zero | verified |
+| AUD-033 | `sectorStreamingService` creates `THREE.BufferGeometry`/`THREE.Points` and mutates the scene graph | `src/services/sectorStreamingService.ts#L206-L236` | No `three` import under `src/services/**` | verified |
+| AUD-034 | `useCanvasStageStore` imports component props (including callbacks) from `CanvasLayer` | `src/stores/useCanvasStageStore.ts#L2-L6` | `G-imports` stores → components at zero; store holds serialisable data only | verified |
+| AUD-035 | Tier-1 `SpectralBadge` imports `data/guideCatalog` | `src/components/interface/information/CelestialSymbol/SpectralBadge.tsx#L3` | `G-imports` interface → data/services at zero | verified |
+| AUD-036 | `PaletteShowcaseScene` (DOM, 48 KB) exported from production `canvas/scenes` barrel; near-clone of `prototypes/PaletteShowcase`; prototypes live under `src/components` | `src/components/canvas/scenes/index.ts#L5` | No prototype/showcase code in production barrels or `src/components` | verified |
+| AUD-037 | `math/astronomy.ts` pure re-export shim; `QUADRANTS` duplicated; inline Euclidean distance re-implemented | `canvas/math/astronomy.ts`, `cartographyMath.ts#L13-L18`, `math/cardinal.ts#L26-L31`, `searchService.ts#L581`, `#L1342` | Shim deleted; single definitions | verified |
 
 ## T04 · Pipeline Reliability & Precalculation
 

@@ -1,26 +1,16 @@
 import * as THREE from 'three';
 
-export type CelestialClassification =
-  | 'star'
-  | 'stellar-system'
-  | 'brown-dwarf'
-  | 'white-dwarf'
-  | 'neutron-star'
-  | 'hazard'
-  | 'black-hole'
-  | 'barycentre'
-  | 'stellar-cluster'
-  | 'construct'
-  | 'terrestrial'
-  | 'super-earth'
-  | 'gas-giant'
-  | 'ice-giant';
+import type {
+  CelestialClassification,
+  PlanetCensusEntry,
+  ReticleAnnotationOptions,
+} from '../../../types/spatial';
 
-export interface PlanetCensusEntry {
-  id: string;
-  name: string;
-  classification: 'terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant';
-}
+export type {
+  CelestialClassification,
+  PlanetCensusEntry,
+  ReticleAnnotationOptions,
+};
 
 /**
  * Formats a designation or spectral classification tag for compact reticle facet display.
@@ -36,7 +26,7 @@ import {
   classifyPlanetPhysical,
   type PlanetPhysicalProperties,
   type PlanetCensusClassification,
-} from '../math/astronomy';
+} from '../../../utils/astroMath';
 
 export {
   classifyPlanetPhysical,
@@ -52,12 +42,6 @@ export {
  */
 export function classifyPlanet(planet: PlanetPhysicalProperties): PlanetCensusClassification {
   return classifyPlanetPhysical(planet);
-}
-
-export interface ReticleAnnotationOptions {
-  multiplicity?: number;
-  planets?: PlanetCensusEntry[];
-  isAnnotated?: boolean;
 }
 
 /** Authoritative default reticle size in world units (~half of legacy 0.45) */

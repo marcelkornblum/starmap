@@ -23,12 +23,9 @@ export interface AllPlaneQuadrantWeights {
   maxAlpha: number;
 }
 
-export const QUADRANTS = [
-  { qx: 1, qy: 1 },
-  { qx: -1, qy: 1 },
-  { qx: -1, qy: -1 },
-  { qx: 1, qy: -1 },
-] as const;
+import { QUADRANTS } from '../../../utils/spatialMath';
+
+export { QUADRANTS };
 
 /**
  * Calculates angular cardinal alignment factors for a given camera direction vector.

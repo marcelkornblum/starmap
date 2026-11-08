@@ -62,7 +62,11 @@ import {
   useLayerIndex,
   useLoadedLayerManifests,
 } from '../hooks/useLayerData';
-import { router, useSpaLocation } from '../router';
+import {
+  appRouter,
+  useSpaLocation,
+  type StarmapSearchParams,
+} from '../hooks/useSpaLocation';
 import { useActiveStarsStore } from '../stores/useActiveStarsStore';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -660,27 +664,27 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     pendingCanvasFocusRef.current = { active: true, slug };
     useCameraStore.getState().setPendingCenterSlug(null);
     if (id) {
-      void router
-        .navigate({
+      void appRouter
+        .navigate?.({
           to: '/galaxy',
-          search: (prev) => ({
+          search: (prev: StarmapSearchParams = {}) => ({
             ...prev,
             focus: id,
           }),
           replace: true,
         })
-        .catch(() => {});
+        ?.catch(() => {});
     } else {
-      void router
-        .navigate({
+      void appRouter
+        .navigate?.({
           to: '/galaxy',
-          search: (prev) => ({
+          search: (prev: StarmapSearchParams = {}) => ({
             ...prev,
             focus: undefined,
           }),
           replace: true,
         })
-        .catch(() => {});
+        ?.catch(() => {});
     }
   }, []);
 

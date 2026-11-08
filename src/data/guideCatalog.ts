@@ -4,9 +4,27 @@
  * Zero hardcoded magic inside views.
  */
 
-export const STAR_TYPES_GUIDE_PATH = '/guide/star-types' as const;
-export const PLANET_TYPES_GUIDE_PATH = '/guide/planet-types' as const;
-export const METRICS_GUIDE_PATH = '/guide/metrics' as const;
+import {
+  STAR_TYPES_GUIDE_PATH,
+  PLANET_TYPES_GUIDE_PATH,
+  METRICS_GUIDE_PATH,
+  HAZARDS_GUIDE_PATH,
+  buildStarTypeGuideHref,
+  buildPlanetTypeGuideHref,
+  buildMetricGuideHref,
+  buildHazardGuideHref,
+} from '../utils/url';
+
+export {
+  STAR_TYPES_GUIDE_PATH,
+  PLANET_TYPES_GUIDE_PATH,
+  METRICS_GUIDE_PATH,
+  HAZARDS_GUIDE_PATH,
+  buildStarTypeGuideHref,
+  buildPlanetTypeGuideHref,
+  buildMetricGuideHref,
+  buildHazardGuideHref,
+};
 
 export const PLANET_COMPOSITION_TYPES = [
   'terrestrial',
@@ -935,60 +953,6 @@ export const resolveMetricSlugFromLabel = (label: string): string | null => {
   return null;
 };
 
-/**
- * Pure unit function building the URL to the stellar classification detail guide view
- * (`/guide/star-types/<starType>`, e.g. `/guide/star-types/G8V`).
- */
-export const buildStarTypeGuideHref = (spectralType: string): string => {
-  const trimmed = spectralType.trim();
-  if (!trimmed || trimmed === 'Unknown') {
-    return STAR_TYPES_GUIDE_PATH;
-  }
-  return `${STAR_TYPES_GUIDE_PATH}/${encodeURIComponent(trimmed)}`;
-};
-
-/**
- * Pure unit function building the URL to the Planet Type Guide view for a given
- * planetary composition class (`/guide/planet-types/<planetType>`, e.g. `/guide/planet-types/terrestrial`).
- * Falls back to the Planet Types list view (`/guide/planet-types`) when the class is empty or `'Unknown'`.
- */
-export const buildPlanetTypeGuideHref = (planetType?: string): string => {
-  if (!planetType) {
-    return PLANET_TYPES_GUIDE_PATH;
-  }
-  const trimmed = planetType.trim();
-  if (!trimmed || trimmed === 'Unknown') {
-    return PLANET_TYPES_GUIDE_PATH;
-  }
-  return `${PLANET_TYPES_GUIDE_PATH}/${encodeURIComponent(trimmed)}`;
-};
-
-/**
- * Pure unit function building the URL to the Telemetry Metrics Guide view for a given
- * physical/orbital metric (`/guide/metrics/<metricId>`, e.g. `/guide/metrics/semi-major-axis`).
- * Falls back to the Metrics list view (`/guide/metrics`) when the metricId is empty or `'Unknown'`.
- */
-export const buildMetricGuideHref = (
-  metricId?: string,
-  focusId?: string,
-): string => {
-  if (!metricId) {
-    return METRICS_GUIDE_PATH;
-  }
-  const trimmed = metricId.trim();
-  if (!trimmed || trimmed === 'Unknown') {
-    return METRICS_GUIDE_PATH;
-  }
-  const baseHref = `${METRICS_GUIDE_PATH}/${encodeURIComponent(trimmed)}`;
-  const trimmedFocus = focusId?.trim();
-  if (trimmedFocus) {
-    return `${baseHref}?focus=${encodeURIComponent(trimmedFocus)}`;
-  }
-  return baseHref;
-};
-
-export const HAZARDS_GUIDE_PATH = '/guide/hazards' as const;
-
 export interface HazardGuideEntry {
   readonly id:
     | 'flare-star'
@@ -1150,22 +1114,6 @@ export const HAZARD_GUIDE_ENTRIES: readonly HazardGuideEntry[] = [
     ],
   },
 ];
-
-/**
- * Pure unit function building the URL to the Environmental Hazards Guide view
- * (`/guide/hazards/<hazardId>`, e.g. `/guide/hazards/high-gravity`).
- * Falls back to `/guide/hazards` when empty or unrecognized.
- */
-export const buildHazardGuideHref = (hazardCode?: string): string => {
-  if (!hazardCode) {
-    return HAZARDS_GUIDE_PATH;
-  }
-  const trimmed = hazardCode.trim().toLowerCase();
-  if (!trimmed || trimmed === 'unknown') {
-    return HAZARDS_GUIDE_PATH;
-  }
-  return `${HAZARDS_GUIDE_PATH}/${encodeURIComponent(trimmed)}`;
-};
 
 /**
  * Pure unit function resolving a HazardGuideEntry from a raw slug.

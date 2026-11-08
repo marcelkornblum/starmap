@@ -7,7 +7,10 @@ import {
   canMountWebGLCanvas,
   _resetWebGLSupportedForTesting,
 } from './CanvasLayer';
-import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
+import {
+  useCanvasStageStore,
+  getStageCallbacks,
+} from '../../../stores/useCanvasStageStore';
 
 describe('CanvasLayer Domain Component', () => {
   beforeEach(() => {
@@ -149,15 +152,19 @@ describe('CanvasLayer Domain Component', () => {
 
       const stageProps = useCanvasStageStore.getState().stageProps;
       expect(stageProps).not.toBeNull();
-      expect(stageProps?.onInspect).toBe(handleInspect);
-      expect(stageProps?.onSelect).toBe(handleSelect);
+      expect('onInspect' in (stageProps ?? {})).toBe(false);
+      expect('onSelect' in (stageProps ?? {})).toBe(false);
+
+      const callbacks = getStageCallbacks();
+      expect(callbacks.onInspect).toBe(handleInspect);
+      expect(callbacks.onSelect).toBe(handleSelect);
 
       // Verify callbacks route correctly
-      stageProps?.onInspect?.('alpha-centauri');
+      callbacks.onInspect?.('alpha-centauri');
       expect(handleInspect).toHaveBeenCalledTimes(1);
       expect(handleInspect).toHaveBeenCalledWith('alpha-centauri');
 
-      stageProps?.onSelect?.('sol');
+      callbacks.onSelect?.('sol');
       expect(handleSelect).toHaveBeenCalledTimes(1);
       expect(handleSelect).toHaveBeenCalledWith('sol');
     });

@@ -29,7 +29,7 @@ import {
   type InteractionState,
   type InteractionTier,
 } from '../src/components/canvas/math/tiers';
-import { classifyPlanetPhysical } from '../src/components/canvas/math/astronomy';
+import { classifyPlanetPhysical } from '../src/utils/astroMath';
 
 describe('Spatial Math: rings.ts', () => {
   it('computes logarithmic 1-2-5 progression rings for a given aperture radius', () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   createRouter,
   createRoute,
@@ -21,24 +21,18 @@ import { SystemView } from '../views/SystemView';
 import { RootCanvasHost } from '../components/domain/CanvasLayer';
 import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
 import { useCameraStore } from '../stores/useCameraStore';
+import {
+  useSpaLocation,
+  resolveSpaLocation,
+  type StarmapSearchParams,
+  registerAppRouter,
+} from '../hooks/useSpaLocation';
 
-export interface StarmapSearchParams {
-  q?: string;
-  searchCategory?: string;
-  focus?: string;
-  select?: string;
-  layer?: string;
-  route?: string;
-  journeyOption?: string;
-  x?: number;
-  y?: number;
-  z?: number;
-  zoom?: number;
-  center?: string;
-  az?: number;
-  el?: number;
-  dist?: number;
-}
+export {
+  useSpaLocation,
+  resolveSpaLocation,
+  type StarmapSearchParams,
+};
 
 /**
  * Parses and returns a finite number from a number or string representation,
@@ -71,68 +65,6 @@ export function stringifyStarmapSearch(search: Record<string, unknown>): string 
 export async function simulateAsyncFetch<T>(data: T, delayMs = 60): Promise<T> {
   await new Promise((resolve) => setTimeout(resolve, delayMs));
   return data;
-}
-
-/**
- * Pure function normalizing a raw location pathname against the application's basepath.
- * Strips subpath base prefix (e.g. '/starmap/galaxy' -> '/galaxy', '/starmap/' -> '/').
- */
-export function resolveSpaLocation(
-  rawPathname: string,
-  rawSearch: string,
-  basepath = import.meta.env?.BASE_URL ?? '/',
-): { readonly pathname: string; readonly search: string } {
-  const base = basepath.replace(/\/+$/, '');
-  const normalizedPathname =
-    base && base !== '/' && rawPathname.startsWith(base)
-      ? (rawPathname.slice(base.length) || '/')
-      : rawPathname;
-
-  return { pathname: normalizedPathname, search: rawSearch };
-}
-
-export function useSpaLocation(
-  locationPathname?: string,
-  locationSearch?: string,
-  fallbackPathname = '/galaxy',
-): { readonly pathname: string; readonly search: string } {
-  const [, setLocationTick] = useState<number>(0);
-
-  useEffect(() => {
-    if (
-      typeof window === 'undefined' ||
-      (locationPathname !== undefined && locationSearch !== undefined)
-    ) {
-      return;
-    }
-    const handleLocationChange = (): void => {
-      setLocationTick((n) => n + 1);
-    };
-
-    const unsubRouter = router?.subscribe?.('onResolved', handleLocationChange);
-    const unsubHistory = router?.history?.subscribe?.(handleLocationChange);
-    window.addEventListener('popstate', handleLocationChange);
-    window.addEventListener('starmap:locationchange', handleLocationChange);
-
-    return () => {
-      unsubRouter?.();
-      unsubHistory?.();
-      window.removeEventListener('popstate', handleLocationChange);
-      window.removeEventListener('starmap:locationchange', handleLocationChange);
-    };
-  }, [locationPathname, locationSearch]);
-
-  const rawPathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : fallbackPathname);
-  const rawSearch =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
-
-  return useMemo(
-    () => resolveSpaLocation(rawPathname, rawSearch),
-    [rawPathname, rawSearch],
-  );
 }
 
 export const RootLayout: React.FC = () => {
@@ -387,6 +319,8 @@ export const router = createRouter({
   defaultPreload: 'intent',
   stringifySearch: stringifyStarmapSearch,
 });
+
+registerAppRouter(router);
 
 declare module '@tanstack/react-router' {
   interface Register {

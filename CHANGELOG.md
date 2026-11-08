@@ -4,6 +4,14 @@ All notable changes to the Starmap project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **Architecture Remediation Track T03 (`Layering Cut`):**
+  - **One-Directional Layer Hierarchy (`AUD-030`, `AUD-031`, `AUD-035`, `DEC-R012`, `DEC-R022`):** Extracted shared spatial types and frame constants (`src/types/spatial.ts`), search category types (`src/types/search.ts`), pure spatial maths (`src/utils/spatialMath.ts`), and pure Guide URL builders (`src/utils/url.ts`), eliminating all upward imports from `utils`, `data`, `services`, `stores`, `components/interface`, `components/search`, and `views` into `components/canvas`, `components/domain`, `data`, `services`, and `router`.
+  - **Zero Import Cycles (`AUD-032`, `DEC-R022`):** Extracted `parseLayerQueryParam`, `extractUrlFocusSlug`, `extractUrlSystemSlug`, `extractUrlPlanetSlug`, and `hasExplicitFocusParam` into `src/utils/url.ts`; created `src/hooks/useSpaLocation.ts` (`useSpaLocation`, `registerAppRouter`, `appRouter` proxy); and extracted `src/components/canvas/scenes/GalacticCameraController.tsx`, reducing `G-imports-cycle` and `import(no-cycle)` to zero across the entire repository.
+  - **Three.js Decoupling from Services (`AUD-033`):** Moved `createDefaultSectorGeometry` and `createSceneSectorPointsFactory` from `src/services/sectorStreamingService.ts` into `src/components/canvas/entity/sectorPointCloudGeometry.ts`, removing `three` from `src/services/**`.
+  - **Serialisable Stage Store (`AUD-034`):** Removed `CanvasLayerProps` import and callback functions from `useCanvasStageStore` state (`CanvasStageData`), isolating `onInspect`/`onSelect` in module-level callback accessors (`setStageCallbacks` / `getStageCallbacks`).
+  - **Prototype Showcase Isolation & Math Deduplication (`AUD-036`, `AUD-037`, `DEC-R023`):** Deleted duplicate `PaletteShowcaseScene` from `src/components/canvas/scenes/`, relocated `PaletteShowcase` from `src/components/prototypes/` to `src/prototypes/PaletteShowcase/`, deleted the `src/components/canvas/math/astronomy.ts` shim, unified `QUADRANTS` in `src/utils/spatialMath.ts`, and replaced inline Euclidean distance formulas in `searchService.ts` with `computeEuclideanDistance3D`.
+
 ### Fixed
 - **Architecture Remediation Track T02 (`User-Visible Correctness`):**
   - **Metric Comparison Telemetry (`AUD-020`, `DEC-R018`):** Purged fabricated Tau Ceti / Tau Ceti e fallback numbers from `resolveMetricComparison`; uncatalogued targets now render concise `'—'` placeholders (`isCatalogued: false`), and `MetricDetailView` asynchronously hydrates search and detail shards on cold load.
