@@ -144,15 +144,13 @@ export function precalculateSolarSystemBodyFlags(
 ): SolarSystemBodyRecord {
   const targetStarId =
     body.targetStarId ??
-    (body.id === 'sol' && body.classification === 'Star' ? 'sol-A' : body.id);
+    (body.classification === 'Star' ? `${body.id}-A` : body.id);
 
   const sma = body.orbit?.semiMajorAxis;
 
-  const parentId = body.parentBodyId ?? (body as { parentId?: string }).parentId;
   const isHabitableCandidate =
     body.isHabitableCandidate ??
-    (parentId === 'sol' &&
-      body.classification === 'Planet' &&
+    (body.classification === 'Planet' &&
       sma !== undefined &&
       sma >= 0.75 &&
       sma <= 1.77);

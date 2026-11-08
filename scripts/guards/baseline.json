@@ -262,7 +262,7 @@
       "audId": "AUD-120"
     },
     "G-literals::src/utils/compactDataCodec.ts": {
-      "count": 19,
+      "count": 15,
       "audId": "AUD-020"
     },
     "G-size::src/utils/datasetLayerCodec.ts": {
@@ -1009,15 +1009,7 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "eslint(max-lines)::scripts/fetch-sources.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "eslint(max-lines)::tests/cartographyComponents.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::scripts/build-data.ts": {
       "count": 1,
       "audId": "AUD-120"
     },
@@ -1152,10 +1144,6 @@
     "react(globals)::tests/canvasAndLoaders.test.ts": {
       "count": 2,
       "audId": "AUD-145"
-    },
-    "eslint(max-lines)::tests/dataPipeline.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
     },
     "eslint(max-lines)::tests/guideViews.test.tsx": {
       "count": 1,
