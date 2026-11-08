@@ -103,10 +103,12 @@ describe('fetch-sources', () => {
 
   describe('fetchAllDataSources', () => {
     it('verifies declarative seeds and records cached summaries without downloading', async () => {
-      const mockFetch: typeof fetch = vi.fn();
+      const mockFetch: typeof fetch = vi.fn().mockRejectedValue(new Error('Network disabled in unit test'));
       const summaries = await fetchAllDataSources(false, {
         fetchImpl: mockFetch,
-        timeoutMs: 1000,
+        timeoutMs: 100,
+        maxRetries: 0,
+        retryDelayMs: 0,
       });
 
       const seedSummaries = summaries.filter((s) =>
@@ -120,12 +122,15 @@ describe('fetch-sources', () => {
     });
 
     it('refreshes build epoch when refreshEpoch option is true', async () => {
-      const mockFetch: typeof fetch = vi.fn();
+      const mockFetch: typeof fetch = vi.fn().mockRejectedValue(new Error('Network disabled in unit test'));
 
       await fetchAllDataSources(false, {
         fetchImpl: mockFetch,
         refreshEpoch: true,
         epochFilePath: tempEpochPath,
+        timeoutMs: 100,
+        maxRetries: 0,
+        retryDelayMs: 0,
       });
 
       expect(fs.existsSync(tempEpochPath)).toBe(true);
