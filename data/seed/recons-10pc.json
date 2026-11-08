@@ -1,0 +1,294 @@
+[
+  {
+    "id": "luhman-16",
+    "name": "Luhman 16 (WISE 1049-5319)",
+    "properName": "Luhman 16",
+    "ra": 10.824,
+    "dec": -53.319,
+    "dist": 1.998,
+    "mag": 14.2,
+    "absmag": 15.2,
+    "spect": "L7.5 / T0.5",
+    "starCount": 2,
+    "components": [
+      "Luhman 16A",
+      "Luhman 16B"
+    ],
+    "aliases": [
+      "Luhman 16",
+      "WISE 1049-5319",
+      "WISE J104915.57-531906.1"
+    ],
+    "description": "Binary brown dwarf system in Vela; closest known brown dwarfs to the Sun."
+  },
+  {
+    "id": "wise-0855",
+    "name": "WISE 0855-0714",
+    "properName": "WISE 0855-0714",
+    "ra": 8.922,
+    "dec": -7.24,
+    "dist": 2.28,
+    "mag": 25,
+    "absmag": 25.7,
+    "spect": "Y2",
+    "starCount": 1,
+    "aliases": [
+      "WISE 0855-0714",
+      "WISE 0855",
+      "WISE J085510.83-071442.5"
+    ],
+    "description": "Sub-brown dwarf / rogue planetary mass object with water ice cloud atmospheric signatures."
+  },
+  {
+    "id": "teegarden-star",
+    "name": "Teegarden's Star",
+    "properName": "Teegarden's Star",
+    "ra": 2.885,
+    "dec": 16.865,
+    "dist": 3.83,
+    "mag": 15.08,
+    "absmag": 14.65,
+    "spect": "M7.0V",
+    "starCount": 1,
+    "aliases": [
+      "Teegarden's Star",
+      "Teegarden",
+      "SO J025300.5+165258",
+      "GJ 1053"
+    ],
+    "description": "Ultra-cool red dwarf in Aries hosting multiple Earth-mass habitable zone exoplanets."
+  },
+  {
+    "id": "dx-cancri",
+    "name": "DX Cancri (GJ 1111)",
+    "properName": "DX Cancri",
+    "ra": 8.497,
+    "dec": 26.776,
+    "dist": 3.58,
+    "mag": 14.81,
+    "absmag": 17.04,
+    "spect": "M6.5V",
+    "starCount": 1,
+    "aliases": [
+      "DX Cancri",
+      "GJ 1111",
+      "Gliese 1111",
+      "G 51-15"
+    ],
+    "description": "Nearby red dwarf flare star in the constellation Cancer within 12 light-years of Sol."
+  },
+  {
+    "id": "gliese-667-c",
+    "name": "Gliese 667 C (GJ 667 C)",
+    "properName": "Gliese 667 C",
+    "ra": 17.316,
+    "dec": -34.996,
+    "dist": 7.24,
+    "mag": 10.22,
+    "absmag": 10.92,
+    "spect": "M1.5V",
+    "starCount": 1,
+    "aliases": [
+      "Gliese 667 C",
+      "GJ 667 C",
+      "Gl 667 C",
+      "HR 6426 C"
+    ],
+    "description": "Tertiary red dwarf component of the Gliese 667 triple star system in Scorpius, hosting super-Earth exoplanet Gliese 667 C c."
+  },
+  {
+    "id": "trappist-1",
+    "name": "TRAPPIST-1",
+    "properName": "TRAPPIST-1",
+    "ra": 23.108,
+    "dec": -5.041,
+    "dist": 12.47,
+    "mag": 18.8,
+    "absmag": 18.4,
+    "spect": "M8V",
+    "starCount": 1,
+    "aliases": [
+      "TRAPPIST-1",
+      "2MASS J23062928-0502285"
+    ],
+    "description": "Ultra-cool red dwarf in Aquarius hosting seven temperate terrestrial exoplanets."
+  },
+  {
+    "id": "lhs-475",
+    "name": "LHS 475 (TOI-910)",
+    "properName": "LHS 475",
+    "ra": 19.349,
+    "dec": -82.56,
+    "dist": 12.48,
+    "mag": 12.7,
+    "absmag": 12.22,
+    "spect": "M3.5V",
+    "starCount": 1,
+    "aliases": [
+      "LHS 475",
+      "TOI-910",
+      "GJ 9662"
+    ],
+    "description": "Red dwarf in Octans where JWST confirmed its first transiting rocky exoplanet LHS 475 b."
+  },
+  {
+    "id": "lhs-1140",
+    "name": "LHS 1140 (GJ 3053)",
+    "properName": "LHS 1140",
+    "ra": 0.788,
+    "dec": -15.271,
+    "dist": 14.99,
+    "mag": 14.18,
+    "absmag": 13.3,
+    "spect": "M4.5V",
+    "starCount": 1,
+    "aliases": [
+      "LHS 1140",
+      "GJ 3053",
+      "Gliese 3053"
+    ],
+    "description": "Nearby red dwarf in Cetus hosting temperate ocean/eyeball super-Earth candidate LHS 1140 b."
+  },
+  {
+    "id": "toi-700",
+    "name": "TOI-700",
+    "properName": "TOI-700",
+    "ra": 6.473,
+    "dec": -65.579,
+    "dist": 31.13,
+    "mag": 13.15,
+    "absmag": 10.68,
+    "spect": "M2V",
+    "starCount": 1,
+    "aliases": [
+      "TOI-700",
+      "2MASS J06282325-6534456"
+    ],
+    "description": "Quiet M-dwarf in Dorado hosting TESS habitable-zone Earth-sized planets TOI-700 d and TOI-700 e."
+  },
+  {
+    "id": "k2-18",
+    "name": "K2-18 (EPIC 201912552)",
+    "properName": "K2-18",
+    "ra": 11.504,
+    "dec": 7.588,
+    "dist": 38.07,
+    "mag": 13.5,
+    "absmag": 10.6,
+    "spect": "M2.8V",
+    "starCount": 1,
+    "aliases": [
+      "K2-18",
+      "EPIC 201912552"
+    ],
+    "description": "Red dwarf in Leo hosting sub-Neptune Hycean candidate K2-18 b characterized by JWST."
+  },
+  {
+    "id": "kepler-186",
+    "name": "Kepler-186",
+    "properName": "Kepler-186",
+    "ra": 19.91,
+    "dec": 43.955,
+    "dist": 178.5,
+    "mag": 14.62,
+    "absmag": 8.36,
+    "spect": "M1V",
+    "starCount": 1,
+    "aliases": [
+      "Kepler-186",
+      "KOI-571",
+      "KIC 8120608"
+    ],
+    "description": "M-dwarf in Cygnus hosting Kepler-186 f, the first validated Earth-sized planet in the habitable zone."
+  },
+  {
+    "id": "wasp-39",
+    "name": "WASP-39 (Malmok)",
+    "properName": "WASP-39",
+    "ra": 14.489,
+    "dec": -3.444,
+    "dist": 214,
+    "mag": 12.11,
+    "absmag": 5.45,
+    "spect": "G8V",
+    "starCount": 1,
+    "aliases": [
+      "WASP-39",
+      "Malmok"
+    ],
+    "description": "G-type star in Virgo hosting hot Saturn WASP-39 b (Bocaprins), where JWST made the first exoplanet CO2 and SO2 detections."
+  },
+  {
+    "id": "wasp-96",
+    "name": "WASP-96",
+    "properName": "WASP-96",
+    "ra": 0.069,
+    "dec": -47.36,
+    "dist": 352,
+    "mag": 12.2,
+    "absmag": 4.46,
+    "spect": "G8V",
+    "starCount": 1,
+    "aliases": [
+      "WASP-96",
+      "Yansolan Host"
+    ],
+    "description": "G-type star in Phoenix whose hot gas giant WASP-96 b was featured in the JWST Early Release Observations."
+  },
+  {
+    "id": "tabbys-star",
+    "name": "Tabby's Star (KIC 8462852 / Boyajian's Star)",
+    "properName": "Tabby's Star",
+    "ra": 20.104,
+    "dec": 44.457,
+    "dist": 451,
+    "mag": 11.7,
+    "absmag": 3.43,
+    "spect": "F3V",
+    "starCount": 1,
+    "aliases": [
+      "Tabby's Star",
+      "Boyajian's Star",
+      "KIC 8462852",
+      "WTF Star"
+    ],
+    "description": "F-type main-sequence star in Cygnus exhibiting irregular aperiodic dimming up to 22% from circumstellar dust."
+  },
+  {
+    "id": "kepler-452",
+    "name": "Kepler-452",
+    "properName": "Kepler-452",
+    "ra": 19.733,
+    "dec": 44.278,
+    "dist": 552,
+    "mag": 13.42,
+    "absmag": 4.71,
+    "spect": "G2V",
+    "starCount": 1,
+    "aliases": [
+      "Kepler-452",
+      "KOI-7016",
+      "KIC 8311864"
+    ],
+    "description": "Solar-type G2V star in Cygnus hosting habitable-zone super-Earth candidate Kepler-452 b."
+  },
+  {
+    "id": "psr-b1257-12",
+    "name": "PSR B1257+12 (Lich)",
+    "properName": "PSR B1257+12",
+    "ra": 13.001,
+    "dec": 12.682,
+    "dist": 710,
+    "mag": 24.3,
+    "absmag": 15,
+    "spect": "PSR",
+    "starCount": 1,
+    "aliases": [
+      "PSR B1257+12",
+      "PSR 1257+12",
+      "PSR J1300+1240",
+      "Lich"
+    ],
+    "description": "Millisecond pulsar in Virgo hosting the first confirmed extrasolar planets discovered in 1992 (Draugr, Poltergeist, Phobetor)."
+  }
+]

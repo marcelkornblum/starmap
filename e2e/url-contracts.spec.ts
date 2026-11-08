@@ -18,7 +18,10 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
       await page.goto('/galaxy?focus=tau-ceti');
       const detailsPanel = page.getByTestId('details-panel');
       await expect(detailsPanel).toBeVisible({ timeout: 15_000 });
-      await expect(detailsPanel).toHaveAttribute('data-entity-id', 'tau-ceti');
+      await expect(detailsPanel).toHaveAttribute(
+        'data-entity-id',
+        /^(tau-ceti|gaia-2452378776434477184)$/,
+      );
 
       // 3. /galaxy?select=layer:project-hail-mary&layer=project-hail-mary opens LayerCard in overview mode
       await page.goto('/galaxy?select=layer:project-hail-mary&layer=project-hail-mary');

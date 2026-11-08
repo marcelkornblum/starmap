@@ -1343,7 +1343,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
         n: 'Sol',
         k: 1,
         m: [-26.74, 'G2V', 8, 1],
-        b: [4, 2, 2], // [terrestrial, subNeptune, gasGiant]
+        b: [4, 0, 2, 2], // [terrestrial, subNeptune, iceGiant, gasGiant]
         p: [0, 0, 0],
         h: 1,
       },
@@ -1352,7 +1352,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
         n: 'Tau Ceti',
         k: 1,
         m: [3.5, 'G8V', 4, 1],
-        b: [2, 1, 0],
+        b: [2, 1, 0, 0],
         p: [-3.1, -0.4, -2.0],
       },
       {

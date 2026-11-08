@@ -6,6 +6,7 @@ import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
 import { splitAliases, toUrlSlug } from '../src/utils/datasetLayerCodec';
 import { LAYER_MANIFESTS } from '../content/layers';
 import { findFocusedEntryInCorpus } from '../src/services/searchService';
+import { parseCsvRecordsSync } from './pipeline/csvParser';
 
 export interface RecentDiscoveryItem {
   readonly pl_name: string;
@@ -41,24 +42,8 @@ export interface TapQueryOptions {
 export function buildTapRecentDiscoveriesQuery(options?: TapQueryOptions): string {
   const maxDist = options?.maxDistancePc ?? 100;
   const minYear = options?.minDiscoveryYear ?? 2024;
-  const fields = [
-    'pl_name',
-    'hostname',
-    'sy_snum',
-    'sy_pnum',
-    'discoverymethod',
-    'disc_year',
-    'pl_orbper',
-    'pl_orbsmax',
-    'pl_bmasse',
-    'pl_rade',
-    'pl_eqt',
-    'pl_insol',
-    'sy_dist',
-  ].join(',');
-
-  const query = `select+${fields}+from+pscomppars+where+sy_dist<=${maxDist}+and+disc_year>=${minYear}&format=csv`;
-  return `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=${query}`;
+  const fields = 'pl_name,hostname,sy_snum,sy_pnum,discoverymethod,disc_year,pl_orbper,pl_orbsmax,pl_bmasse,pl_rade,pl_eqt,pl_insol,sy_dist';
+  return `https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+${fields}+from+pscomppars+where+sy_dist<=${maxDist}+and+disc_year>=${minYear}&format=csv`;
 }
 
 /**
@@ -82,15 +67,9 @@ export function auditRecentDiscoveriesAgainstCatalog(
     // Check if already curated in overlay-recent-discoveries
     const isCurated = layerEntriesList.some((entry) => {
       const targetSlug = toUrlSlug(entry.targetId);
-      const nameSlug = entry.inUniverseName
-        ? toUrlSlug(entry.inUniverseName)
-        : '';
+      const nameSlug = entry.inUniverseName ? toUrlSlug(entry.inUniverseName) : '';
       const aliasSlugs = splitAliases(entry.aliases).map(toUrlSlug);
-      return (
-        targetSlug === plSlug ||
-        nameSlug === plSlug ||
-        aliasSlugs.includes(plSlug)
-      );
+      return targetSlug === plSlug || nameSlug === plSlug || aliasSlugs.includes(plSlug);
     });
 
     if (isCurated) {
@@ -98,13 +77,9 @@ export function auditRecentDiscoveriesAgainstCatalog(
       continue;
     }
 
-    // Cross-match host star against catalog corpus
     const hostEntry = findFocusedEntryInCorpus(discovery.hostname, corpus);
     if (hostEntry) {
-      candidatesToCurate.push({
-        ...discovery,
-        systemId: hostEntry.i,
-      });
+      candidatesToCurate.push({ ...discovery, systemId: hostEntry.i });
     } else {
       missingHostStars.push(discovery);
     }
@@ -137,9 +112,7 @@ export function formatDiscoverySyncReport(audit: DiscoveryAuditResult): string {
     lines.push('| Planet | Host | System ID | Distance (pc) | Year | Method |');
     lines.push('| :--- | :--- | :--- | :--- | :--- | :--- |');
     for (const c of audit.candidatesToCurate) {
-      lines.push(
-        `| ${c.pl_name} | ${c.hostname} | \`${c.systemId}\` | ${c.sy_dist ?? 'N/A'} | ${c.disc_year ?? 'N/A'} | ${c.discoverymethod ?? 'N/A'} |`,
-      );
+      lines.push(`| ${c.pl_name} | ${c.hostname} | \`${c.systemId}\` | ${c.sy_dist ?? 'N/A'} | ${c.disc_year ?? 'N/A'} | ${c.discoverymethod ?? 'N/A'} |`);
     }
     lines.push('');
   }
@@ -149,9 +122,7 @@ export function formatDiscoverySyncReport(audit: DiscoveryAuditResult): string {
     lines.push('| Planet | Host | Distance (pc) | Year |');
     lines.push('| :--- | :--- | :--- | :--- |');
     for (const m of audit.missingHostStars) {
-      lines.push(
-        `| ${m.pl_name} | ${m.hostname} | ${m.sy_dist ?? 'N/A'} | ${m.disc_year ?? 'N/A'} |`,
-      );
+      lines.push(`| ${m.pl_name} | ${m.hostname} | ${m.sy_dist ?? 'N/A'} | ${m.disc_year ?? 'N/A'} |`);
     }
     lines.push('');
   }
@@ -160,12 +131,58 @@ export function formatDiscoverySyncReport(audit: DiscoveryAuditResult): string {
 }
 
 /**
- * CLI Runner supporting --offline and --dry-run flags.
+ * Parses raw NASA Exoplanet Archive TAP query CSV output into structured discovery items.
+ * Uses robust RFC-4180 parsing so fields with embedded commas (e.g. multi-method discovery)
+ * are never corrupted.
  */
-export async function runDiscoverySyncCli(): Promise<void> {
-  const args = process.argv.slice(2);
-  const isOffline = args.includes('--offline');
-  const isDryRun = args.includes('--dry-run');
+export function parseTapDiscoveriesCsv(
+  csvText: string,
+  filterRecentLocal = false,
+): RecentDiscoveryItem[] {
+  const records = parseCsvRecordsSync(csvText);
+  const discoveries: RecentDiscoveryItem[] = [];
+
+  for (const record of records) {
+    const pl_name = record.pl_name?.trim() ?? '';
+    const hostname = record.hostname?.trim() ?? '';
+    const sy_dist = record.sy_dist ? Number.parseFloat(record.sy_dist) : undefined;
+    const disc_year = record.disc_year ? Number.parseInt(record.disc_year, 10) : undefined;
+    const discoverymethod = record.discoverymethod?.trim() || undefined;
+
+    if (!pl_name || !hostname) continue;
+
+    if (filterRecentLocal) {
+      if ((sy_dist !== undefined && sy_dist > 100) || (disc_year !== undefined && disc_year < 2024)) {
+        continue;
+      }
+    }
+
+    discoveries.push({ pl_name, hostname, sy_dist, disc_year, discoverymethod });
+  }
+
+  return discoveries;
+}
+
+export interface DiscoverySyncOptions {
+  readonly isOffline?: boolean;
+  readonly isDryRun?: boolean;
+  readonly timeoutMs?: number;
+  readonly maxRetries?: number;
+  readonly retryDelayMs?: number;
+  readonly fetchImpl?: typeof fetch;
+}
+
+/**
+ * Runs discovery synchronization against local cache or online NASA TAP API.
+ */
+export async function runDiscoverySync(
+  options?: DiscoverySyncOptions,
+): Promise<{ audit: DiscoveryAuditResult; report: string }> {
+  const isOffline = options?.isOffline ?? false;
+  const timeoutMs = options?.timeoutMs ?? 30_000;
+  const maxRetries = options?.maxRetries ?? 3;
+  const retryDelayMs = options?.retryDelayMs ?? 500;
+  const fetchFn = options?.fetchImpl ?? fetch;
 
   const recentLayer = LAYER_MANIFESTS.find(
     (l) => l.layerId === 'overlay-recent-discoveries',
@@ -191,71 +208,43 @@ export async function runDiscoverySyncCli(): Promise<void> {
     );
     if (fs.existsSync(rawCsvPath)) {
       const content = fs.readFileSync(rawCsvPath, 'utf8');
-      const lines = content.split('\n');
-      const headers = lines[0]?.split(',').map((h) => h.trim()) ?? [];
-      const plIdx = headers.indexOf('pl_name');
-      const hostIdx = headers.indexOf('hostname');
-      const distIdx = headers.indexOf('sy_dist');
-      const yearIdx = headers.indexOf('disc_year');
-      const methodIdx = headers.indexOf('discoverymethod');
+      discoveries = parseTapDiscoveriesCsv(content, true);
+    }
+  } else {
+    const queryUrl = buildTapRecentDiscoveriesQuery();
+    let lastError: Error | null = null;
+    let success = false;
 
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i]?.trim();
-        if (!line) continue;
-        const cols = line.split(',');
-        const pl_name = cols[plIdx]?.trim() ?? '';
-        const hostname = cols[hostIdx]?.trim() ?? '';
-        const sy_dist = parseFloat(cols[distIdx] ?? '0');
-        const disc_year = parseInt(cols[yearIdx] ?? '0', 10);
-        const discoverymethod = cols[methodIdx]?.trim();
-        if (pl_name && hostname && sy_dist <= 100 && disc_year >= 2024) {
-          discoveries.push({
-            pl_name,
-            hostname,
-            sy_dist,
-            disc_year,
-            discoverymethod,
-          });
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetchFn(queryUrl, {
+          signal: AbortSignal.timeout(timeoutMs),
+          headers: {
+            'User-Agent': 'StarmapDataPipeline/2.0 (https://github.com/marcel/starmap)',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `HTTP fetch failed [${response.status} ${response.statusText}] for ${queryUrl}`,
+          );
+        }
+
+        const text = await response.text();
+        discoveries = parseTapDiscoveriesCsv(text, false);
+        success = true;
+        break;
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        if (attempt < maxRetries) {
+          const delay = retryDelayMs * (2 ** attempt);
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
-  } else {
-    try {
-      const queryUrl = buildTapRecentDiscoveriesQuery();
-      const response = await fetch(queryUrl);
-      if (response.ok) {
-        const text = await response.text();
-        const lines = text.split('\n');
-        const headers = lines[0]?.split(',').map((h) => h.trim()) ?? [];
-        const plIdx = headers.indexOf('pl_name');
-        const hostIdx = headers.indexOf('hostname');
-        const distIdx = headers.indexOf('sy_dist');
-        const yearIdx = headers.indexOf('disc_year');
-        const methodIdx = headers.indexOf('discoverymethod');
 
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i]?.trim();
-          if (!line) continue;
-          const cols = line.split(',');
-          const pl_name = cols[plIdx]?.trim() ?? '';
-          const hostname = cols[hostIdx]?.trim() ?? '';
-          const sy_dist = parseFloat(cols[distIdx] ?? '0');
-          const disc_year = parseInt(cols[yearIdx] ?? '0', 10);
-          const discoverymethod = cols[methodIdx]?.trim();
-          if (pl_name && hostname) {
-            discoveries.push({
-              pl_name,
-              hostname,
-              sy_dist,
-              disc_year,
-              discoverymethod,
-            });
-          }
-        }
-      }
-    } catch {
-      // In offline/CI sandboxes without internet, gracefully retain zero discoveries
-      discoveries = [];
+    if (!success) {
+      throw lastError ?? new Error(`Discovery fetch failed for ${queryUrl}`);
     }
   }
 
@@ -266,12 +255,29 @@ export async function runDiscoverySyncCli(): Promise<void> {
   );
 
   const report = formatDiscoverySyncReport(audit);
-  process.stdout.write(`${report}\n`);
+  return { audit, report };
+}
 
-  if (!isDryRun && audit.candidatesToCurate.length > 0) {
-    process.stdout.write(
-      `Detected ${audit.candidatesToCurate.length} candidate discoveries ready for curation.\n`,
-    );
+/**
+ * CLI Runner supporting --offline and --dry-run flags.
+ */
+export async function runDiscoverySyncCli(): Promise<void> {
+  const args = process.argv.slice(2);
+  const isOffline = args.includes('--offline');
+  const isDryRun = args.includes('--dry-run');
+
+  try {
+    const { audit, report } = await runDiscoverySync({ isOffline, isDryRun });
+    process.stdout.write(`${report}\n`);
+
+    if (!isDryRun && audit.candidatesToCurate.length > 0) {
+      process.stdout.write(
+        `Detected ${audit.candidatesToCurate.length} candidate discoveries ready for curation.\n`,
+      );
+    }
+  } catch (err: unknown) {
+    console.error('Discovery sync failed:', err);
+    process.exit(1);
   }
 }
 

@@ -76,7 +76,7 @@ export const DATA_SOURCES_REGISTRY: DataSourceRegistry = {
         'data/stars.json',
         'public/data/catalogs/solar-neighborhood-10pc.json',
         'public/data/catalogs/reference-bright-stars.json',
-        'public/data/partitions/sector_*.json',
+        'public/data/partitions/sector_*.bin',
       ],
     },
     {

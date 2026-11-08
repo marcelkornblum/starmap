@@ -24,41 +24,41 @@ All runtime JSON files in `public/data/` use a minified, zero-whitespace schema 
 
 ## 2. File Envelope Header
 
-Used at the root of `catalogs/*.json`, `partitions/sector_*.json`, `overlays/*.json`, `sol/*.json`, and `search-index.json`:
+Used at the root of `catalogs/*.json`, `summaries/<0..z>.json`, `details/<0..z>.json`, `overlays/*.json`, `sol/*.json`, and `search/*.json`:
 
 | Key | Full Name | Type | Description |
 | :---: | :--- | :--- | :--- |
-| `i` | `id` | `string` | Dataset, catalog, overlay, or sector ID (`'sector_+000_+000_-025'`, `'solar-neighborhood-10pc'`). |
-| `n` | `name` / `title` | `string` | Human-readable title (omitted on sector partitions). |
+| `v` | `version` | `number` | Schema version (`1` = `COMPACT_SCHEMA_VERSION`). |
+| `i` | `id` | `string` | Dataset, catalog, overlay, bucket, or search index ID (`'0'`, `'core'`, `'solar-neighborhood-10pc'`). |
+| `n` | `name` / `title` | `string` | Human-readable title (omitted on bucket shards). |
 | `e` | `epoch` | `string` | Reference epoch (omitted when `'J2000'`). |
 | `c` | `count` | `number` | Total number of records in `d`. |
-| `t` | `timestamp` | `string` | ISO-8601 generation timestamp. |
-| `b` | `bounds` | `[minX, minY, minZ, maxX, maxY, maxZ]` | 6-number sector bounding box in parsecs (on `partitions/sector_*.json`). |
-| `d` | `data` | `Record<id, CompactRecord> \| Array<...>` | Keyed dictionary (`Record<id, CompactRecord>`) on `partitions/sector_*.json`, `systems/sector_*.json`, `summaries/<0..z>.json`, and `details/<0..z>.json` (omitting redundant `"i"` inside each value and enabling $O(1)$ lookup `d[id]`); array on ordered catalogs/search indices. |
+| `t` | `timestamp` | `string` | Deterministic ISO-8601 build timestamp from `SOURCE_DATE_EPOCH` or `data/seed/build-epoch.json`. |
+| `d` | `data` | `Record<id, CompactRecord> \| Array<...>` | Keyed dictionary (`Record<id, CompactRecord>`) on `systems/sector_*.json`, `summaries/<0..z>.json`, and `details/<0..z>.json` (omitting redundant `"i"` inside each value and enabling $O(1)$ lookup `d[id]`); array on ordered catalogs/search indices. |
 
 ---
 
-## 2.1 Sharding Architecture: Spatial Sector Shards + 36-Bucket ID Shards (`DEC-006`)
+## 2.1 Sharding Architecture: Binary Spatial Sectors + 36-Bucket ID Shards (`DEC-006`, `DEC-R027`, `DEC-R029`)
 
 To support both **3D spatial viewport streaming** and **instant $O(1)$ lookup by `id`** (from search results, parent links, or URL deep-links) without downloading multi-megabyte files:
 
-1. **Spatial Sector Shards (`public/data/partitions/sector_*.json` & `public/data/systems/sector_*.json`):**
-   - Partitioned by $25 \times 25 \times 25\text{ pc}$ cube (`sector_+000_+000_-025.json`) for 3D exploration streaming.
-   - `d` is a **keyed JSON dictionary** (`Record<id, CompactRecord>`), where the object key is the canonical `id`.
+1. **Spatial Sector Binary Shards (`public/data/partitions/sector_*.bin` & `public/data/systems/sector_*.json`):**
+   - Partitioned by $25 \times 25 \times 25\text{ pc}$ cube (`sector_+000_+000_-025.bin`) for zero-copy 3D GPU streaming.
+   - Each `.bin` file begins with a 28-byte header (`magic = 0x534D4150`, `version = 1`, `count`, `originX`, `originY`, `originZ`, `sectorSize`), followed by 16-byte aligned star records (`Float32 x, y, z` + `Uint32 fnv1a32(id)`) and a length-prefixed UTF-8 string table.
 2. **Uniform 36-Bucket ID Shards (`public/data/summaries/<0..z>.json` & `public/data/details/<0..z>.json`):**
    - Partitioned into 36 uniform buckets (`0.json`–`9.json`, `a.json`–`z.json`) via a deterministic 32-bit FNV-1a hash modulo 36 (`getShardKey(id)`).
    - `public/data/summaries/<0..z>.json` stores `Record<id, CompactSummaryNode>` across all catalogued systems and entities (~8 KB gzipped per shard).
-   - `public/data/details/<0..z>.json` stores `Record<id, CompactDetailRecord>` across all detailed star systems (stars + exoplanets + orbits), galactic structures, and Solar System primary/minor bodies (~9 KB gzipped per shard).
+   - `public/data/details/<0..z>.json` stores `Record<id, CompactDetailRecord>` across all detailed star systems (stars + exoplanets + natural satellites + orbits), galactic structures, and Solar System primary/minor bodies (~9 KB gzipped per shard).
 
 ---
 
 ## 3. Star & System Summary Record (`SystemSummaryNode` / `StarmapNode`)
 
-Used in `partitions/sector_*.json`, `summaries/<0..z>.json`, `catalogs/*.json`, `overlays/exoplanetary-systems.json`, and `stars.json`:
+Used in `summaries/<0..z>.json`, `catalogs/*.json`, `overlays/exoplanetary-systems.json`, and `stars.json`:
 
 | Key | Full Name | Type | Omitted When | Description |
 | :---: | :--- | :--- | :--- | :--- |
-| `i` | `id` | `string \| number` | Keyed dictionary (`d[id]`) | Canonical system/star ID (`'sol'`, `'gaia-2452378776434477184'`). Omitted inside keyed dictionaries (`partitions/`, `summaries/`) where the object key is `id`. |
+| `i` | `id` | `string \| number` | Keyed dictionary (`d[id]`) | Canonical system/star ID (`'sol'`, `'gaia-2452378776434477184'`). Omitted inside keyed dictionaries (`summaries/`) where the object key is `id`. |
 | `n` | `name` | `string` | Unnamed Gaia field star | Primary display name (`'Tau Ceti'`, `'Ran'`). If omitted, display name is derived from `id` (`Gaia DR3 <id>`). |
 | `P` | `properName` | `string` | `undefined` or `=== n` | Official IAU proper name when distinct from `n` (e.g. `'Sun'` on `'Sol'`). |
 | `p` | `position` | `[x, y, z]` | *(Required)* | 3D Cartesian coordinates in parsecs. |

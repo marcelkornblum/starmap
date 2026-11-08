@@ -1016,7 +1016,7 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
           i: 'sol',
           n: 'Sol',
           m: [-26.74, 'G2V', 8, 1],
-          b: [4, 2, 2],
+          b: [4, 0, 2, 2],
           g: 1 | 2 | 4 | 16,
           h: 1,
         },

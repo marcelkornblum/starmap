@@ -1,0 +1,192 @@
+{
+  "51 Pegasi b": {
+    "starName": "Helvetios",
+    "planetName": "Dimidium",
+    "culturalOrigin": "Switzerland / Latin"
+  },
+  "HD 209458 b": {
+    "starName": "Solaris",
+    "planetName": "Osiris",
+    "culturalOrigin": "Egyptian Mythology"
+  },
+  "55 Cancri e": {
+    "starName": "Copernicus",
+    "planetName": "Janssen",
+    "culturalOrigin": "Netherlands"
+  },
+  "55 Cancri b": {
+    "starName": "Copernicus",
+    "planetName": "Galileo",
+    "culturalOrigin": "Italy"
+  },
+  "55 Cancri c": {
+    "starName": "Copernicus",
+    "planetName": "Brahe",
+    "culturalOrigin": "Denmark"
+  },
+  "55 Cancri d": {
+    "starName": "Copernicus",
+    "planetName": "Lipperhey",
+    "culturalOrigin": "Netherlands"
+  },
+  "55 Cancri f": {
+    "starName": "Copernicus",
+    "planetName": "Harriot",
+    "culturalOrigin": "United Kingdom"
+  },
+  "PSR B1257+12 b": {
+    "starName": "Lich",
+    "planetName": "Draugr",
+    "culturalOrigin": "Norse Mythology"
+  },
+  "PSR B1257+12 c": {
+    "starName": "Lich",
+    "planetName": "Poltergeist",
+    "culturalOrigin": "Folklore"
+  },
+  "PSR B1257+12 d": {
+    "starName": "Lich",
+    "planetName": "Phobetor",
+    "culturalOrigin": "Greek Mythology"
+  },
+  "PSR 1257+12 A": {
+    "starName": "Lich",
+    "planetName": "Draugr",
+    "culturalOrigin": "Norse Mythology"
+  },
+  "PSR 1257+12 B": {
+    "starName": "Lich",
+    "planetName": "Poltergeist",
+    "culturalOrigin": "Folklore"
+  },
+  "PSR 1257+12 C": {
+    "starName": "Lich",
+    "planetName": "Phobetor",
+    "culturalOrigin": "Greek Mythology"
+  },
+  "mu Arae b": {
+    "starName": "Cervantes",
+    "planetName": "Quijote",
+    "culturalOrigin": "Spain / Literature"
+  },
+  "mu Arae c": {
+    "starName": "Cervantes",
+    "planetName": "Dulcinea",
+    "culturalOrigin": "Spain / Literature"
+  },
+  "mu Arae d": {
+    "starName": "Cervantes",
+    "planetName": "Rocinante",
+    "culturalOrigin": "Spain / Literature"
+  },
+  "mu Arae e": {
+    "starName": "Cervantes",
+    "planetName": "Sancho",
+    "culturalOrigin": "Spain / Literature"
+  },
+  "Mu Arae b": {
+    "starName": "Cervantes",
+    "planetName": "Quijote",
+    "culturalOrigin": "Spain / Literature"
+  },
+  "Mu Arae c": {
+    "starName": "Cervantes",
+    "planetName": "Dulcinea",
+    "culturalOrigin": "Spain / Literature"
+  },
+  "Mu Arae d": {
+    "starName": "Cervantes",
+    "planetName": "Rocinante",
+    "culturalOrigin": "Spain / Literature"
+  },
+  "Mu Arae e": {
+    "starName": "Cervantes",
+    "planetName": "Sancho",
+    "culturalOrigin": "Spain / Literature"
+  },
+  "upsilon Andromedae b": {
+    "starName": "Titawin",
+    "planetName": "Saffar",
+    "culturalOrigin": "Morocco / Arab Astronomy"
+  },
+  "upsilon Andromedae c": {
+    "starName": "Titawin",
+    "planetName": "Samh",
+    "culturalOrigin": "Morocco / Arab Astronomy"
+  },
+  "upsilon Andromedae d": {
+    "starName": "Titawin",
+    "planetName": "Majriti",
+    "culturalOrigin": "Morocco / Arab Astronomy"
+  },
+  "Upsilon Andromedae b": {
+    "starName": "Titawin",
+    "planetName": "Saffar",
+    "culturalOrigin": "Morocco / Arab Astronomy"
+  },
+  "Upsilon Andromedae c": {
+    "starName": "Titawin",
+    "planetName": "Samh",
+    "culturalOrigin": "Morocco / Arab Astronomy"
+  },
+  "Upsilon Andromedae d": {
+    "starName": "Titawin",
+    "planetName": "Majriti",
+    "culturalOrigin": "Morocco / Arab Astronomy"
+  },
+  "HD 149026 b": {
+    "starName": "Ogma",
+    "planetName": "Smertrios",
+    "culturalOrigin": "Celtic Mythology"
+  },
+  "epsilon Eridani b": {
+    "starName": "Ran",
+    "planetName": "AEgir",
+    "culturalOrigin": "Norse Mythology"
+  },
+  "Epsilon Eridani b": {
+    "starName": "Ran",
+    "planetName": "AEgir",
+    "culturalOrigin": "Norse Mythology"
+  },
+  "Fomalhaut b": {
+    "starName": "Fomalhaut",
+    "planetName": "Dagon",
+    "culturalOrigin": "Levantine / Semitic"
+  },
+  "GJ 1214 b": {
+    "starName": "Orkaria",
+    "planetName": "Enaiposha",
+    "culturalOrigin": "Kenya / Maasai"
+  },
+  "Gliese 1214 b": {
+    "starName": "Orkaria",
+    "planetName": "Enaiposha",
+    "culturalOrigin": "Kenya / Maasai"
+  },
+  "GJ 436 b": {
+    "starName": "Noquisi",
+    "planetName": "Awohali",
+    "culturalOrigin": "Cherokee"
+  },
+  "WASP-39 b": {
+    "starName": "Malmok",
+    "planetName": "Bocaprins",
+    "culturalOrigin": "Aruba"
+  },
+  "WASP-96 b": {
+    "starName": "Nikawiy",
+    "planetName": "Yansolan",
+    "culturalOrigin": "Indigenous Americas"
+  },
+  "HD 102195 b": {
+    "starName": "Flegetonte",
+    "planetName": "Lete",
+    "culturalOrigin": "Italy / Greek Mythology"
+  },
+  "WASP-17 b": {
+    "starName": "Ditsö̀",
+    "planetName": "Ditsö̀rã́",
+    "culturalOrigin": "Costa Rica / Bribri"
+  }
+}

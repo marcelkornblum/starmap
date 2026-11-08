@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   buildTapRecentDiscoveriesQuery,
   auditRecentDiscoveriesAgainstCatalog,
   formatDiscoverySyncReport,
+  parseTapDiscoveriesCsv,
+  runDiscoverySync,
   type RecentDiscoveryItem,
 } from '../scripts/sync-discoveries';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
@@ -123,5 +125,62 @@ describe('DEC-040: sync-discoveries pipeline helpers', () => {
     expect(report).toContain('**Host Missing in Catalog:** 1');
     expect(report).toContain('Tau Ceti g');
     expect(report).toContain('Unknown Star 1234');
+  });
+
+  describe('AUD-049: parseTapDiscoveriesCsv', () => {
+    it('properly parses quoted fields with commas such as combined discovery methods', () => {
+      const csv = [
+        'pl_name,hostname,sy_dist,disc_year,discoverymethod',
+        'TOI-1234 b,TOI-1234,35.4,2024,"Radial Velocity, Transit"',
+        'Distant World c,Far Star,150.0,2025,Transit',
+        'Historical World d,Old Star,25.0,2010,Imaging',
+      ].join('\n');
+
+      const all = parseTapDiscoveriesCsv(csv, false);
+      expect(all).toHaveLength(3);
+      expect(all[0].discoverymethod).toBe('Radial Velocity, Transit');
+
+      const filtered = parseTapDiscoveriesCsv(csv, true);
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].pl_name).toBe('TOI-1234 b');
+    });
+  });
+
+  describe('AUD-041: runDiscoverySync', () => {
+    it('throws explicit error when online fetch fails after retries', async () => {
+      const mockFetch: typeof fetch = vi.fn(async () => {
+        return new Response('Gateway Timeout', { status: 504, statusText: 'Gateway Timeout' });
+      });
+
+      await expect(
+        runDiscoverySync({
+          isOffline: false,
+          fetchImpl: mockFetch,
+          maxRetries: 1,
+          retryDelayMs: 10,
+          timeoutMs: 100,
+        }),
+      ).rejects.toThrow(/HTTP fetch failed \[504 Gateway Timeout\]/);
+    });
+
+    it('successfully parses and audits discoveries when online fetch succeeds', async () => {
+      const mockCsv = [
+        'pl_name,hostname,sy_dist,disc_year,discoverymethod',
+        'Tau Ceti g,Tau Ceti,3.65,2025,"Radial Velocity"',
+      ].join('\n');
+
+      const mockFetch: typeof fetch = vi.fn(async () => {
+        return new Response(mockCsv, { status: 200 });
+      });
+
+      const { audit, report } = await runDiscoverySync({
+        isOffline: false,
+        fetchImpl: mockFetch,
+        timeoutMs: 1000,
+      });
+
+      expect(audit.totalDiscoveries).toBe(1);
+      expect(report).toContain('Recent Exoplanet Discoveries');
+    });
   });
 });

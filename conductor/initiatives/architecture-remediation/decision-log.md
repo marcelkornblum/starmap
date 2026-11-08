@@ -416,6 +416,73 @@ Records programme-level and per-track decisions for the architecture remediation
 
 ---
 
+### DEC-R024: Track T04 Review Mode — Whole-Track Review in PR
+- **Date:** 2026-11-08
+- **Status:** `Ratified`
+- **Context:** Re-confirming review mode at the start of Track T04 per `DEC-R006`.
+- **Decision:** Whole-Track Review in PR. Execute all phases continuously (pausing for Phase 1 atomic decisions), run the three-auditor verification gate, and review the completed track in the Pull Request with clickable LAN smoke-test links.
+
+---
+
+### DEC-R025: Curated Seed Data Format & Location (`AUD-042`, `AUD-043`)
+- **Date:** 2026-11-08
+- **Status:** `Ratified`
+- **Context:** `scripts/fetch-sources.ts` embedded 1,736 lines of static curated catalogues (`OFFICIAL_IAU_STAR_NAMES`, `RECONS_10PC_SUPPLEMENT`, `IAU_NAME_EXOWORLDS`, `AAVSO_VARIABLE_CATALOG`, `FULL_GALACTIC_STRUCTURES`, `FULL_SOLAR_SYSTEM_BODIES`, `CIRCUMSTELLAR_DISKS_CATALOG`) as TypeScript literals and dumped them to `data/raw/*.json`, while `scripts/build-data.ts` hardcoded `DISK_HOST_ALIASES`, `SPECIAL_SYSTEM_NAME_MAP`, and `CONSTELLATION_NAMES_RAW`.
+- **Options Considered:**
+  1. *Versioned JSON files in `data/seed/*.json` with a typed loader in `scripts/pipeline/`.*
+  2. *Versioned JSON files in `content/seed/*.json`.*
+  3. *Typed TypeScript modules in `data/seed/*.ts`.*
+- **Decision:** Option 1 (`data/seed/*.json` with a typed loader in `scripts/pipeline/`).
+
+---
+
+### DEC-R026: Handling of Galactic Structures Without Measured Distances (`AUD-044`)
+- **Date:** 2026-11-08
+- **Status:** `Ratified`
+- **Context:** `scripts/build-data.ts` mis-parsed the column offset for Cantat-Gaudin open clusters (`r50` instead of `plx`/`dmode`), ignored the `Dist` column in `atnf_pulsars.dat`, ignored the `Pax` column in `open_ngc.csv`, and fabricated representative distances (`300`, `500`, `800`, `1200`, `1500`, `2500` pc) for unmeasured rows in `greens_snr.dat`, `barnard_dark_clouds.dat`, and `open_ngc.csv`.
+- **Options Considered:**
+  1. *Parse real measured distances where present (`Cantat-Gaudin` `plx`/`dmode`, `Harris` `distKpc`, `ATNF` `Dist`, `OpenNGC` `Pax`, and `data/seed/galactic-structures.json`) and exclude bulk 2D-only rows lacking a known distance from 3D spatial output.*
+  2. *Retain unmeasured 2D-only rows as positionless records (`dist`/`x`/`y`/`z` undefined) in search and details.*
+  3. *Same as Option 1, plus expand `data/seed/galactic-structures.json` with literature distances for the full Messier set.*
+- **Decision:** Option 1 for Track T04, plus add a new backlog item (`FS-018`) in `conductor/backlog.md` and `conductor/tracks.md` to support direction-only (`RA`/`Dec`) and distance-uncertain deep-sky objects with an appropriate 3D radial-ray/sky-dome representation in a future feature track.
+
+---
+
+### DEC-R027: Canonical Sector Shard Format & Duplicate Output Pruning (`AUD-047`)
+- **Date:** 2026-11-08
+- **Status:** `Ratified`
+- **Context:** `scripts/build-data.ts` emitted both `.json` and `.bin` sector partitions (while runtime `sectorStreamingService.ts` exclusively loads `.bin`), wrote a 50 MB `public/data/stars.json`, and retained 426 lines of dead `buildCsvDataPipeline` code plus a legacy spaced-key `"backward compatibility"` branch.
+- **Options Considered:**
+  1. *Standardise on `.bin` (`sector_<x>_<y>_<z>.bin`) as the sole sector partition format, and delete `.json` sector outputs, `public/data/stars.json`, `buildCsvDataPipeline`, and the legacy spaced-key branch.*
+  2. *Same as Option 1, with an opt-in `--debug-json-sectors` CLI flag.*
+  3. *Standardise on `.json` sector partitions and drop `.bin`.*
+- **Decision:** Option 1, except **retain `public/data/stars.json` intentionally as a useful standalone reference dataset for external users**, while deleting `.json` sector outputs, `buildCsvDataPipeline`, and the legacy spaced-key branch.
+
+---
+
+### DEC-R028: Build Timestamp Source & One-Command Source/Epoch Refresh (`AUD-040`)
+- **Date:** 2026-11-08
+- **Status:** `Ratified`
+- **Context:** `scripts/build-data.ts` and `src/utils/compactDataCodec.ts` called `new Date().toISOString()` on every build run, making consecutive `npm run data:build` runs non-deterministic.
+- **Options Considered:**
+  1. *`SOURCE_DATE_EPOCH` environment variable falling back to a persisted deterministic catalogue epoch (`data/seed/build-epoch.json`), paired with a `just data-refresh` recipe (and `npm run data:refresh`) that refreshes source data, updates `data/seed/build-epoch.json`, and rebuilds all shards in one command.*
+  2. *`SOURCE_DATE_EPOCH` falling back to last git commit timestamp.*
+  3. *Remove `generatedAt` / `t` timestamps from shard envelopes.*
+- **Decision:** Option 1 (`SOURCE_DATE_EPOCH` + `data/seed/build-epoch.json`, with `just data-refresh` / `npm run data:refresh` to refresh sources, update the build epoch, and rebuild).
+
+---
+
+### DEC-R029: Precalculated Field Schema & Versioned Wire Formats (`AUD-048`, `AUD-051`)
+- **Date:** 2026-11-08
+- **Status:** `Ratified`
+- **Context:** Runtime code needed precalculated compact-object/stellar classifications (`AUD-064`), natural satellites (`AUD-063`), and unified reticle/composition classifications (`AUD-065`, `AUD-069`), while wire formats lacked version headers (`AUD-048`) and leaked positional tuples to consumers.
+- **Options Considered:**
+  1. *Adopt version `v: 1` in binary sector headers (28 bytes) and JSON shard envelopes, expose a named search-entry decoder (`decodeCompactSearchEntry`), precalculate `SystemSummaryNode.classification`, embed parent-linked `PlanetRecord.satellites` from `data/seed/solar-system-bodies.json`, and precalculate mandatory `reticleType` and `composition` across all records.*
+  2. *Same as Option 1, but emit natural satellites into a separate `satellites.json` overlay shard.*
+- **Decision:** Option 1.
+
+---
+
 ## Process Log
 
 - **2026-11-06 · T01 reconnaissance:** the Flash `codebase-researcher` report contained about five factual errors (e2e spec count, untypechecked-scripts list, non-existent file paths, CI action versions). Countermeasure: Flash research prompts must include the raw command output supporting each claim. Counted towards the DEC-R007 review.

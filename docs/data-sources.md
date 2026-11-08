@@ -11,7 +11,7 @@ It details the scientific authority, data format, scope, pipeline role, target a
 1. **Spatial Volume Boundary:** Strictly bounded to the **100-parsec solar neighborhood** ($\sim 326.156\text{ light-years}$ radius around Sol).
 2. **Priority Hierarchy:** **Completeness > Accuracy > Performance**.
 3. **Serving & LOD Strategy:**
-   - **Atlas View (Macro):** Collapsed `SystemSummaryNode` representations sharded into 25-parsec cubic spatial sectors (`public/data/partitions/sector_*.json`).
+   - **Atlas View (Macro):** Collapsed `SystemSummaryNode` representations sharded into 25-parsec cubic spatial sectors (`public/data/partitions/sector_*.bin`).
    - **System View (Micro):** On-demand detailed `SystemManifest` bundles containing individual stellar components, full Keplerian orbits, physical metrics, and habitability evaluations (`public/data/systems/sector_*.json`).
    - **Entity Details & Summaries ($O(1)$ Dictionary Shards):** 36-bucket dictionary shards (`public/data/details/<0..z>.json` and `public/data/summaries/<0..z>.json`) partitioned by initial alphanumeric character (`0`..`9`, `a`..`z`) providing instantaneous $O(1)$ entity lookup for focused/inspected bodies without requiring full sector partition loads (`DEC-006`).
    - **Overlays & Catalogs:** Dedicated topic indices for exoplanets, circumstellar debris disks, galactic structures, naked-eye bright reference stars, and solar system ephemerides.
@@ -66,7 +66,7 @@ It details the scientific authority, data format, scope, pipeline role, target a
 - **Scope:** 331,312 verified stars within 100 parsecs of Sol.
 - **Fields Provided:** `source_id`, `ra`, `dec`, `parallax`, `parallax_error`, `pmra`, `pmdec`, `phot_g_mean_mag`, `phot_bp_mean_mag`, `phot_rp_mean_mag`, `radial_velocity`.
 - **Purpose in Starmap:** The core astronomical backbone. Provides complete volume-limited positions and 3D kinematics for all stars within 100 parsecs, replacing magnitude-limited subsets with a complete census. Stream-parsed offline and cross-matched with HYG v3 to preserve historical Bayer/Flamsteed and IAU proper names.
-- **Target Artifact:** `public/data/partitions/sector_*.json`, `public/data/details/<0..z>.json`, and `public/data/summaries/<0..z>.json`.
+- **Target Artifact:** `public/data/partitions/sector_*.bin`, `public/data/details/<0..z>.json`, and `public/data/summaries/<0..z>.json`.
 - **Status:** **Integrated** via `scripts/build-data.ts`.
 
 #### 2. HYG Star Database (v3)
@@ -314,7 +314,7 @@ To move from the current partial status to 100% comprehensive data ingestion:
    - Downloaded `table1c.dat.gz` from CDS VizieR (`https://cdsarc.cds.unistra.fr/ftp/J/A+A/649/A6/table1c.dat.gz`).
    - Stream-parsed all 331,312 stars within 100 pc.
    - Cross-matched with HYG v3 to preserve historical Bayer/Flamsteed names and IAU proper names.
-   - Sharded into spatial sectors (`public/data/partitions/sector_*.json`) and 36-bucket $O(1)$ dictionary shards (`public/data/details/<0..z>.json`, `public/data/summaries/<0..z>.json`).
+   - Sharded into binary spatial sectors (`public/data/partitions/sector_*.bin`) and 36-bucket $O(1)$ dictionary shards (`public/data/details/<0..z>.json`, `public/data/summaries/<0..z>.json`).
 2. **Step 2 — Deep Sky VizieR Machine Ingestion (Layer 3):**
    - Ingest Cantat-Gaudin (2,017 open clusters), Harris (157 globulars), Green's (294 SNRs), and ATNF (3,300+ pulsars) directly from machine-readable tables.
 3. **Step 3 — Solar System Orbits & Minor Planet Center (Layer 4):**

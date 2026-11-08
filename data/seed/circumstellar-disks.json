@@ -1,0 +1,237 @@
+{
+  "Sol": [
+    {
+      "id": "main-asteroid-belt",
+      "name": "Main Asteroid Belt",
+      "kind": "asteroid-belt",
+      "innerRadiusAu": 2.1,
+      "outerRadiusAu": 3.3,
+      "semiMajorAxisAu": 2.7,
+      "tempK": 165,
+      "composition": "Silicate, carbonaceous & metallic planetesimals (C/S/M-type)"
+    },
+    {
+      "id": "kuiper-belt",
+      "name": "Kuiper Belt",
+      "kind": "kuiper-belt",
+      "innerRadiusAu": 30,
+      "outerRadiusAu": 50,
+      "semiMajorAxisAu": 40,
+      "tempK": 44,
+      "composition": "Volatiles, water ice, methane & trans-Neptunian planetesimals"
+    }
+  ],
+  "Epsilon Eridani": [
+    {
+      "id": "epsilon-eridani-inner-belt",
+      "name": "Epsilon Eridani Inner Asteroid Belt",
+      "kind": "asteroid-belt",
+      "innerRadiusAu": 2.5,
+      "outerRadiusAu": 3.5,
+      "semiMajorAxisAu": 3,
+      "tempK": 150,
+      "composition": "Warm silicate & rocky planetesimal dust"
+    },
+    {
+      "id": "epsilon-eridani-intermediate-belt",
+      "name": "Epsilon Eridani Intermediate Belt",
+      "kind": "asteroid-belt",
+      "innerRadiusAu": 18,
+      "outerRadiusAu": 22,
+      "semiMajorAxisAu": 20,
+      "tempK": 65,
+      "composition": "Ice-line rocky & carbonaceous planetesimals"
+    },
+    {
+      "id": "epsilon-eridani-outer-belt",
+      "name": "Epsilon Eridani Outer Kuiper Belt",
+      "kind": "kuiper-belt",
+      "innerRadiusAu": 35,
+      "outerRadiusAu": 100,
+      "semiMajorAxisAu": 64,
+      "tempK": 35,
+      "composition": "Cold cometary water ice & volatile debris disk (ALMA)"
+    }
+  ],
+  "Tau Ceti": [
+    {
+      "id": "tau-ceti-debris-disk",
+      "name": "Tau Ceti Outer Debris Disk",
+      "kind": "debris-disk",
+      "innerRadiusAu": 6,
+      "outerRadiusAu": 55,
+      "semiMajorAxisAu": 30,
+      "tempK": 60,
+      "composition": "Massive cold cometary & icy planetesimal belt (~10× Sol Kuiper Belt, ALMA)"
+    }
+  ],
+  "82 G. Eridani": [
+    {
+      "id": "82-g-eridani-inner-belt",
+      "name": "82 G. Eridani Warm Dust Belt",
+      "kind": "asteroid-belt",
+      "innerRadiusAu": 0.1,
+      "outerRadiusAu": 0.5,
+      "semiMajorAxisAu": 0.3,
+      "tempK": 420,
+      "composition": "Hot exozodiacal silicate dust"
+    },
+    {
+      "id": "82-g-eridani-outer-belt",
+      "name": "82 G. Eridani Outer Planetesimal Belt",
+      "kind": "debris-disk",
+      "innerRadiusAu": 15,
+      "outerRadiusAu": 30,
+      "semiMajorAxisAu": 22,
+      "tempK": 55,
+      "composition": "Cold icy & rocky debris disk (Herschel DUNES)"
+    }
+  ],
+  "Fomalhaut": [
+    {
+      "id": "fomalhaut-inner-belt",
+      "name": "Fomalhaut Inner Warm Belt",
+      "kind": "asteroid-belt",
+      "innerRadiusAu": 1,
+      "outerRadiusAu": 3,
+      "semiMajorAxisAu": 2,
+      "tempK": 350,
+      "composition": "Warm inner silicate dust ring"
+    },
+    {
+      "id": "fomalhaut-intermediate-belt",
+      "name": "Fomalhaut Intermediate Asteroid Belt",
+      "kind": "asteroid-belt",
+      "innerRadiusAu": 8,
+      "outerRadiusAu": 12,
+      "semiMajorAxisAu": 10,
+      "tempK": 170,
+      "composition": "Collisionally active planetesimal belt (JWST MIRI)"
+    },
+    {
+      "id": "fomalhaut-outer-belt",
+      "name": "Fomalhaut Great Dust Belt",
+      "kind": "kuiper-belt",
+      "innerRadiusAu": 133,
+      "outerRadiusAu": 158,
+      "semiMajorAxisAu": 145,
+      "tempK": 48,
+      "composition": "Eccentric cold icy planetesimal ring (ALMA / JWST)"
+    }
+  ],
+  "Vega": [
+    {
+      "id": "vega-inner-belt",
+      "name": "Vega Inner Asteroid Belt",
+      "kind": "asteroid-belt",
+      "innerRadiusAu": 10,
+      "outerRadiusAu": 18,
+      "semiMajorAxisAu": 14,
+      "tempK": 170,
+      "composition": "Warm silicate planetesimal belt"
+    },
+    {
+      "id": "vega-outer-disk",
+      "name": "Vega Outer Debris Disk",
+      "kind": "debris-disk",
+      "innerRadiusAu": 85,
+      "outerRadiusAu": 170,
+      "semiMajorAxisAu": 120,
+      "tempK": 50,
+      "composition": "Smooth broad icy debris disk (JWST / ALMA)"
+    }
+  ],
+  "Beta Pictoris": [
+    {
+      "id": "beta-pictoris-inner-belt",
+      "name": "Beta Pictoris Warped Inner Belt",
+      "kind": "asteroid-belt",
+      "innerRadiusAu": 5,
+      "outerRadiusAu": 30,
+      "semiMajorAxisAu": 16,
+      "tempK": 130,
+      "composition": "Silicate, carbon-rich & CO gas planetesimal belt"
+    },
+    {
+      "id": "beta-pictoris-outer-disk",
+      "name": "Beta Pictoris Outer Debris Disk",
+      "kind": "debris-disk",
+      "innerRadiusAu": 30,
+      "outerRadiusAu": 400,
+      "semiMajorAxisAu": 150,
+      "tempK": 55,
+      "composition": "Extended edge-on icy & rocky debris disk"
+    }
+  ],
+  "HR 8799": [
+    {
+      "id": "hr-8799-inner-belt",
+      "name": "HR 8799 Inner Asteroid Belt",
+      "kind": "asteroid-belt",
+      "innerRadiusAu": 6,
+      "outerRadiusAu": 15,
+      "semiMajorAxisAu": 10,
+      "tempK": 150,
+      "composition": "Warm rocky planetesimals interior to HR 8799 e"
+    },
+    {
+      "id": "hr-8799-outer-belt",
+      "name": "HR 8799 Outer Kuiper Belt",
+      "kind": "kuiper-belt",
+      "innerRadiusAu": 90,
+      "outerRadiusAu": 300,
+      "semiMajorAxisAu": 165,
+      "tempK": 35,
+      "composition": "Cold volatile planetesimal disk exterior to HR 8799 b (ALMA)"
+    }
+  ],
+  "Proxima Centauri": [
+    {
+      "id": "proxima-centauri-cold-belt",
+      "name": "Proxima Centauri Outer Dust Belt",
+      "kind": "kuiper-belt",
+      "innerRadiusAu": 1.5,
+      "outerRadiusAu": 4,
+      "semiMajorAxisAu": 2.7,
+      "tempK": 30,
+      "composition": "Cold outer dust & ice belt (ALMA)",
+      "confidence": "candidate"
+    }
+  ],
+  "Sirius": [
+    {
+      "id": "sirius-debris-disk",
+      "name": "Sirius Circumstellar Dust Ring",
+      "kind": "debris-disk",
+      "innerRadiusAu": 15,
+      "outerRadiusAu": 40,
+      "semiMajorAxisAu": 25,
+      "tempK": 95,
+      "composition": "Tenuous circumstellar silicate dust ring"
+    }
+  ],
+  "Procyon": [
+    {
+      "id": "procyon-debris-disk",
+      "name": "Procyon Outer Dust Belt",
+      "kind": "debris-disk",
+      "innerRadiusAu": 20,
+      "outerRadiusAu": 60,
+      "semiMajorAxisAu": 38,
+      "tempK": 65,
+      "composition": "Cold outer planetesimal dust ring"
+    }
+  ],
+  "Pollux": [
+    {
+      "id": "pollux-debris-disk",
+      "name": "Pollux Planetesimal Belt",
+      "kind": "debris-disk",
+      "innerRadiusAu": 12,
+      "outerRadiusAu": 35,
+      "semiMajorAxisAu": 22,
+      "tempK": 85,
+      "composition": "Subgiant outer planetesimal belt"
+    }
+  ]
+}

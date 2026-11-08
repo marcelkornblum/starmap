@@ -56,7 +56,7 @@ test.describe('Click freeze & anchor navigation regression', () => {
     await expect(searchResultsRegion).toBeVisible();
     const solLink = searchResultsRegion
       .getByRole('region', { name: /Stars/i })
-      .getByRole('link', { name: 'Sol' });
+      .getByRole('link', { name: 'Sol', exact: true });
     await expect(solLink).toBeVisible({ timeout: 10_000 });
     await solLink.click();
 
@@ -91,7 +91,7 @@ test.describe('Click freeze & anchor navigation regression', () => {
     await expect(searchResultsRegion).toBeVisible();
     const solLinkAgain = searchResultsRegion
       .getByRole('region', { name: /Stars/i })
-      .getByRole('link', { name: 'Sol' });
+      .getByRole('link', { name: 'Sol', exact: true });
     await expect(solLinkAgain).toBeVisible();
     await solLinkAgain.click();
 
