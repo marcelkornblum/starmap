@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { GalacticStructureRecord, SolarSystemBodyRecord } from '../../src/types/astro';
 
 const SEED_DIR = path.resolve(process.cwd(), 'data/seed');
 
@@ -47,7 +48,7 @@ export interface AavsoVariableEntry {
 export interface GalacticStructureEntry {
   id: string;
   name: string;
-  type: string;
+  type: GalacticStructureRecord['type'];
   x: number;
   y: number;
   z: number;
@@ -62,13 +63,13 @@ export interface GalacticStructureEntry {
 export interface SolarSystemBodyEntry {
   id: string;
   name: string;
-  classification: string;
+  classification: SolarSystemBodyRecord['classification'];
   parentBodyId?: string;
   meanRadiusKm: number;
-  massKg: number;
-  gm: number;
-  albedo: number;
-  rotationalPeriodHours: number;
+  massKg?: number;
+  gm?: number;
+  albedo?: number;
+  rotationalPeriodHours?: number;
   orbit?: {
     semiMajorAxis: number;
     eccentricity: number;
@@ -77,7 +78,7 @@ export interface SolarSystemBodyEntry {
     argumentOfPeriapsis: number;
     meanAnomaly: number;
     periodDays: number;
-    epoch: string;
+    epoch?: string;
   };
   tags?: string[];
 }

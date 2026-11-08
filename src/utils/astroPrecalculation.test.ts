@@ -51,9 +51,13 @@ describe('astroPrecalculation', () => {
       expect(resolveStellarClassificationFromSpectrum('pulsar')).toBe('neutron-star');
     });
 
-    it('classifies white dwarfs', () => {
+    it('classifies white dwarfs and excludes Mount Wilson lowercase d-prefix dwarfs', () => {
       expect(resolveStellarClassificationFromSpectrum('DA2')).toBe('white-dwarf');
       expect(resolveStellarClassificationFromSpectrum('DB')).toBe('white-dwarf');
+      expect(resolveStellarClassificationFromSpectrum('DC8')).toBe('white-dwarf');
+      expect(resolveStellarClassificationFromSpectrum('dM6  e')).toBe('star');
+      expect(resolveStellarClassificationFromSpectrum('dM3.5')).toBe('star');
+      expect(resolveStellarClassificationFromSpectrum('dK5')).toBe('star');
     });
 
     it('classifies brown dwarfs', () => {

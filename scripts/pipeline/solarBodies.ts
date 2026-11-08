@@ -13,7 +13,7 @@ export function loadAllSolarSystemBodies(): {
   // 1. Primary & Curated Solar System bodies (Horizons seed + FULL_SOLAR_SYSTEM_BODIES)
   const primaryBodies: SolarSystemBodyRecord[] = FULL_SOLAR_SYSTEM_BODIES.map((b) =>
     precalculateSolarSystemBodyFlags({
-      ...(b as unknown as SolarSystemBodyRecord),
+      ...b,
       confidence: 'confirmed' as const,
     }),
   );

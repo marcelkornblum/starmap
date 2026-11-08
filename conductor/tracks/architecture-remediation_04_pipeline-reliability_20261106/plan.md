@@ -22,9 +22,9 @@ Record each decision in [decision-log.md](../../initiatives/architecture-remedia
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: End-of-Track Audit & PR
-- [ ] Task: `qa-verifier` full suite (lint, typecheck, coverage, audits, guards, e2e)
-- [ ] Task: Verification, regression and new-debt auditors (fresh contexts) per [verification protocol](../../initiatives/architecture-remediation/verification-protocol.md)
-- [ ] Task: Orchestrator spot-verification (DEC-R007); write `audit-report.md`; update ledger statuses
-- [ ] Task: User manual smoke checklist over LAN
-- [ ] Task: Append track summary to `CHANGELOG.md`; open PR; CI; Gemini review loop
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task: `qa-verifier` full suite (lint, typecheck, coverage, audits, guards, e2e)
+- [x] Task: Verification, regression and new-debt auditors (fresh contexts) per [verification protocol](../../initiatives/architecture-remediation/verification-protocol.md)
+- [x] Task: Orchestrator spot-verification (DEC-R007); write `audit-report.md`; update ledger statuses
+- [x] Task: User manual smoke checklist over LAN
+- [x] Task: Append track summary to `CHANGELOG.md`; open PR; CI; Gemini review loop
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)

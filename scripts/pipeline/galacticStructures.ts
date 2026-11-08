@@ -13,9 +13,8 @@ import { FULL_GALACTIC_STRUCTURES } from './seedCatalogs';
 export function loadAllGalacticStructures(): GalacticStructureRecord[] {
   const structures: GalacticStructureRecord[] = FULL_GALACTIC_STRUCTURES.map((seed) => ({
     ...seed,
-    type: seed.type as GalacticStructureRecord['type'],
     confidence: 'confirmed' as const,
-    description: seed.description || resolveDefaultStructureDescription(seed.type as GalacticStructureRecord['type']),
+    description: seed.description || resolveDefaultStructureDescription(seed.type),
     reticleType: resolveStructureReticleType(seed.type),
   }));
 

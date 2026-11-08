@@ -34,6 +34,7 @@ import {
   isCoreSearchStructure,
   isSearchableStarSystem,
   precalculateSolarSystemBodyFlags,
+  resolveDefaultStructureDescription,
   resolveStellarClassificationFromSpectrum,
 } from './astroPrecalculation';
 
@@ -1017,7 +1018,8 @@ export function encodeGalacticStructure(
   if (extraDesig.length > 0) {
     compact.g = extraDesig;
   }
-  if (struct.description) {
+  const defaultDesc = resolveDefaultStructureDescription(struct.type);
+  if (struct.description && struct.description !== defaultDesc) {
     compact.d = struct.description;
   }
   if (struct.confidence && struct.confidence !== 'confirmed') {
@@ -1043,7 +1045,7 @@ export function decodeGalacticStructure(
   const [x, y, z] = compact.p;
   const dist = Math.round(Math.sqrt(x * x + y * y + z * z) * 100) / 100;
   const type = CODE_TO_STRUCTURE_TYPE[compact.k] ?? 'DeepSkyLandmark';
-  const description = compact.d ?? '';
+  const description = compact.d ?? resolveDefaultStructureDescription(type);
 
   const result: GalacticStructureRecord = {
     id,

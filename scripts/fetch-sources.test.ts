@@ -10,10 +10,14 @@ import {
 
 describe('fetch-sources', () => {
   const tempDestFile = path.resolve('/tmp', `starmap-test-fetch-${Date.now()}.txt`);
+  const tempEpochPath = path.resolve('/tmp', `starmap-test-epoch-${Date.now()}.json`);
 
   afterEach(() => {
     if (fs.existsSync(tempDestFile)) {
       fs.unlinkSync(tempDestFile);
+    }
+    if (fs.existsSync(tempEpochPath)) {
+      fs.unlinkSync(tempEpochPath);
     }
     vi.restoreAllMocks();
   });
@@ -117,15 +121,16 @@ describe('fetch-sources', () => {
 
     it('refreshes build epoch when refreshEpoch option is true', async () => {
       const mockFetch: typeof fetch = vi.fn();
-      const seedCatalogs = await import('./pipeline/seedCatalogs');
-      const spy = vi.spyOn(seedCatalogs, 'writeBuildEpochIso');
 
       await fetchAllDataSources(false, {
         fetchImpl: mockFetch,
         refreshEpoch: true,
+        epochFilePath: tempEpochPath,
       });
 
-      expect(spy).toHaveBeenCalled();
+      expect(fs.existsSync(tempEpochPath)).toBe(true);
+      const parsed = JSON.parse(fs.readFileSync(tempEpochPath, 'utf8')) as { generatedAt: string };
+      expect(parsed.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
   });
 });

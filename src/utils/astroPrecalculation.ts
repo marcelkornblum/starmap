@@ -51,7 +51,8 @@ export function resolveStellarClassificationFromSpectrum(
   if (/^PSR/i.test(clean) || /neutron|pulsar/i.test(clean)) {
     return 'neutron-star';
   }
-  if (/^D/i.test(clean)) {
+  const isMountWilsonDwarfPrefix = /^d[OBAFGKMLTY]/i.test(clean) && clean.startsWith('d');
+  if (!isMountWilsonDwarfPrefix && /^D/i.test(clean)) {
     return 'white-dwarf';
   }
   if (/^[LTY]/i.test(clean)) {

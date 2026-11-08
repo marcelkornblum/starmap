@@ -84,10 +84,16 @@ export async function buildGaiaDataPipeline(
 
       const iauName = hygMatch?.hip && iauProperStars.has(hygMatch.hip) ? iauProperStars.get(hygMatch.hip) : undefined;
       const official = findOfficialStarName(hygMatch);
-      const properName = resolveStarProperName({ hygProperName: hygMatch?.proper, iauProperName: iauName, officialProperName: official?.properName });
+      const properName = resolveStarProperName({
+        properName: official?.properName,
+        hygProperName: hygMatch?.proper,
+        iauProperName: iauName,
+      });
       const extraAliases: string[] = [];
       if (official?.properName) extraAliases.push(official.properName);
       if (official?.aliases) extraAliases.push(...official.aliases);
+      if (iauName) extraAliases.push(iauName);
+      if (hygMatch?.proper) extraAliases.push(hygMatch.proper);
 
       const name = resolveStarDisplayName({
         properName, bayer: hygMatch?.bayer, con: hygMatch?.con, flam: hygMatch?.flam,

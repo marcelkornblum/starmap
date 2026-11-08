@@ -31,6 +31,7 @@ export interface FetchSummary {
 
 export interface FetchAllOptions extends DownloadFileOptions {
   refreshEpoch?: boolean;
+  epochFilePath?: string;
 }
 
 function resolveSeedPathForSource(sourceId: string): string {
@@ -122,7 +123,7 @@ export async function fetchAllDataSources(
   options?: FetchAllOptions,
 ): Promise<FetchSummary[]> {
   if (options?.refreshEpoch) {
-    writeBuildEpochIso();
+    writeBuildEpochIso(undefined, options.epochFilePath);
   }
 
   const summaries: FetchSummary[] = [];
