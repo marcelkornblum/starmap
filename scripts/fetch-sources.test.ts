@@ -112,9 +112,10 @@ describe('fetch-sources', () => {
       });
 
       const seedSummaries = summaries.filter((s) =>
-        s.sourceId.includes('galactic') || s.sourceId.includes('solar-system'),
+        s.sourceId === 'galactic-structures-curated' ||
+        s.sourceId === 'solar-system-horizons-primary',
       );
-      expect(seedSummaries.length).toBeGreaterThan(0);
+      expect(seedSummaries).toHaveLength(2);
       for (const s of seedSummaries) {
         expect(['cached', 'initialized']).toContain(s.status);
         expect(s.bytes).toBeGreaterThan(0);
