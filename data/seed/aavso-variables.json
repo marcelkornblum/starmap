@@ -1,0 +1,48 @@
+{
+  "Sirius": {
+    "varType": "V*",
+    "periodDays": 18262.5
+  },
+  "Betelgeuse": {
+    "varType": "SRC (Semiregular Supergiant)",
+    "periodDays": 420,
+    "minMag": 1.6,
+    "maxMag": 0
+  },
+  "Algol": {
+    "varType": "EA (Algol-type Eclipsing)",
+    "periodDays": 2.867,
+    "minMag": 3.4,
+    "maxMag": 2.1
+  },
+  "Delta Cephei": {
+    "varType": "DCEP (Classical Cepheid Prototype)",
+    "periodDays": 5.366,
+    "minMag": 4.4,
+    "maxMag": 3.5
+  },
+  "Mira": {
+    "varType": "M (Mira Pulsating Variable)",
+    "periodDays": 332,
+    "minMag": 10.1,
+    "maxMag": 2
+  },
+  "RR Lyrae": {
+    "varType": "RRAB (RR Lyrae Prototype)",
+    "periodDays": 0.567,
+    "minMag": 8.1,
+    "maxMag": 7.1
+  },
+  "Proxima Centauri": {
+    "varType": "UV (Flare Star / UV Ceti type)",
+    "periodDays": 82.5,
+    "minMag": 11.1,
+    "maxMag": 10.7
+  },
+  "Polaris": {
+    "varType": "DCEPS (Cepheid)",
+    "periodDays": 3.97,
+    "minMag": 2.02,
+    "maxMag": 1.98
+  }
+}

@@ -11,6 +11,8 @@ import type {
   SectorPartitionManifest,
   CircumstellarDiskKind,
   CircumstellarDiskRecord,
+  CelestialSymbolType,
+  SatelliteRecord,
 } from '../types/astro';
 import {
   classifyPlanetPhysical,
@@ -26,6 +28,23 @@ import {
   resolveStarDisplayName,
 } from './nomenclature';
 import { fnv1a32, getShardKeyFromHash } from './binarySectorCodec';
+import {
+  isCoreSearchMinorBody,
+  isCoreSearchStarSystem,
+  isCoreSearchStructure,
+  isSearchableStarSystem,
+  precalculateSolarSystemBodyFlags,
+  resolveStellarClassificationFromSpectrum,
+} from './astroPrecalculation';
+
+export {
+  isCoreSearchMinorBody,
+  isCoreSearchStarSystem,
+  isCoreSearchStructure,
+  isSearchableStarSystem,
+};
+
+export const COMPACT_SCHEMA_VERSION = 1;
 
 export const CONFIDENCE_TO_CODE: Record<ObservationalConfidence, 1 | 2 | 3 | 4> = {
   confirmed: 1,
@@ -184,9 +203,11 @@ export interface CompactSummaryNode {
   s?: string;
   c?: number;
   u?: number;
-  k?: number;
+  k?: 'star' | 'white-dwarf' | 'brown-dwarf' | 'neutron-star' | 'black-hole' | number;
+  cl?: 'star' | 'white-dwarf' | 'brown-dwarf' | 'neutron-star' | 'black-hole';
+  rt?: CelestialSymbolType;
   e?: number;
-  b?: [number, number, number, number] | [number, number, number];
+  b?: [number, number, number, number];
   h?: 1;
   g?: number;
   q?: string;
@@ -233,8 +254,18 @@ export function encodeSummaryNode(
   if (node.starCount > 1) {
     compact.u = node.starCount;
   }
-  if (node.planetCount > 0) {
+  if (node.classification && node.classification !== 'star') {
+    if (node.planetCount > 0) {
+      compact.k = node.planetCount;
+      compact.cl = node.classification;
+    } else {
+      compact.k = node.classification;
+    }
+  } else if (node.planetCount > 0) {
     compact.k = node.planetCount;
+  }
+  if (node.reticleType) {
+    compact.rt = node.reticleType;
   }
   const censusMask = encodePlanetCensusMask(node.planetCensus);
   if (censusMask !== undefined) {
@@ -285,8 +316,18 @@ export function decodeSummaryNode(
   const dist = Math.round(Math.sqrt(x * x + y * y + z * z) * 1000) / 1000;
 
   const name = compact.n || resolveStarDisplayName({ fallbackId: id });
-
   const sectorId = compact.q ?? fallbackSectorId ?? formatSectorId(x, y, z);
+
+  let planetCount = 0;
+  let classification: 'star' | 'white-dwarf' | 'brown-dwarf' | 'neutron-star' | 'black-hole' | undefined;
+  if (typeof compact.k === 'number') {
+    planetCount = compact.k;
+  } else if (typeof compact.k === 'string') {
+    classification = compact.k;
+  }
+  if (compact.cl) {
+    classification = compact.cl;
+  }
 
   const result: SystemSummaryNode = {
     id,
@@ -299,7 +340,7 @@ export function decodeSummaryNode(
     absmag: compact.M,
     spect: compact.s ?? 'Unknown',
     starCount: compact.u ?? 1,
-    planetCount: compact.k ?? 0,
+    planetCount,
     hasHabitableCandidate: compact.h === 1,
     sectorId,
     confidence: compact.C ? (CODE_TO_CONFIDENCE[compact.C] ?? 'confirmed') : 'confirmed',
@@ -308,7 +349,12 @@ export function decodeSummaryNode(
   if (compact.P) {
     result.properName = compact.P;
   }
-
+  if (classification) {
+    result.classification = classification;
+  }
+  if (compact.rt) {
+    result.reticleType = compact.rt;
+  }
   if (compact.c !== undefined) {
     result.ci = compact.c;
   }
@@ -325,11 +371,7 @@ export function decodeSummaryNode(
   }
 
   if (compact.b) {
-    if (compact.b.length === 4) {
-      result.planetCompositionCounts = [compact.b[0], compact.b[1], compact.b[2], compact.b[3]];
-    } else {
-      result.planetCompositionCounts = [compact.b[0], compact.b[1], compact.b[2]];
-    }
+    result.planetCompositionCounts = [compact.b[0], compact.b[1], compact.b[2], compact.b[3]];
   }
 
   const tags = decodeTagsMask(compact.g);
@@ -349,6 +391,7 @@ export function decodeSummaryNode(
 }
 
 export interface CompactSectorPartition {
+  v?: number;
   i: string;
   b: [number, number, number, number, number, number];
   c: number;
@@ -361,6 +404,7 @@ export function encodeSectorPartition(manifest: SectorPartitionManifest): Compac
     dict[sys.id] = encodeSummaryNode(sys, { omitId: true, omitSectorId: true });
   }
   return {
+    v: COMPACT_SCHEMA_VERSION,
     i: manifest.sectorId,
     b: [
       manifest.bounds.min.x,
@@ -382,6 +426,11 @@ export function decodeSectorPartition(
     return raw;
   }
   const compact = raw as CompactSectorPartition;
+  if (compact.v !== undefined && compact.v !== COMPACT_SCHEMA_VERSION) {
+    throw new Error(
+      `Unsupported schema version: expected ${COMPACT_SCHEMA_VERSION}, got ${compact.v}`,
+    );
+  }
   const systems: SystemSummaryNode[] = [];
   for (const [id, node] of Object.entries(compact.d)) {
     systems.push(decodeSummaryNode(node, id, compact.i));
@@ -441,6 +490,70 @@ export interface CompactStellarComponent {
   u?: number;
   r?: number;
   T?: number;
+  rt?: CelestialSymbolType;
+}
+
+export type CompactStarRecord = CompactStellarComponent;
+
+export interface CompactSatelliteRecord {
+  i: string;
+  n: string;
+  p: string;
+  r?: number;
+  re?: number;
+  me?: number;
+  c?: 'terrestrial' | 'super-earth' | 'sub-neptune' | 'gas-giant';
+  rt?: CelestialSymbolType;
+  o: OrbitTuple;
+  d?: string;
+}
+
+export function encodeSatellite(sat: SatelliteRecord): CompactSatelliteRecord {
+  const compact: CompactSatelliteRecord = {
+    i: sat.id,
+    n: sat.name,
+    p: sat.parentId,
+    o: encodeOrbitTuple(sat.orbit) ?? [
+      sat.orbit.semiMajorAxis,
+      sat.orbit.eccentricity,
+      sat.orbit.inclination,
+      sat.orbit.ascendingNode,
+      sat.orbit.argumentOfPeriapsis,
+      sat.orbit.meanAnomaly,
+      sat.orbit.periodDays,
+    ],
+  };
+  if (sat.radiusKm !== undefined) compact.r = sat.radiusKm;
+  if (sat.radiusEarth !== undefined) compact.re = sat.radiusEarth;
+  if (sat.massEarth !== undefined) compact.me = sat.massEarth;
+  if (sat.composition !== undefined) compact.c = sat.composition;
+  if (sat.reticleType !== undefined) compact.rt = sat.reticleType;
+  if (sat.description !== undefined) compact.d = sat.description;
+  return compact;
+}
+
+export function decodeSatellite(compact: CompactSatelliteRecord): SatelliteRecord {
+  const orbit = decodeOrbitTuple(compact.o) ?? {
+    semiMajorAxis: compact.o[0],
+    eccentricity: compact.o[1],
+    inclination: compact.o[2],
+    ascendingNode: compact.o[3],
+    argumentOfPeriapsis: compact.o[4],
+    meanAnomaly: compact.o[5],
+    periodDays: compact.o[6],
+  };
+  return {
+    id: compact.i,
+    name: compact.n,
+    parentId: compact.p,
+    radiusKm: compact.r,
+    radiusEarth: compact.re,
+    massEarth: compact.me,
+    composition: compact.c,
+    reticleType: compact.rt,
+    orbit,
+    description: compact.d,
+  };
 }
 
 export interface CompactExoplanet {
@@ -462,7 +575,11 @@ export interface CompactExoplanet {
   o?: OrbitTuple;
   C?: 2 | 3 | 4;
   f?: number;
+  rt?: CelestialSymbolType;
+  sat?: CompactSatelliteRecord[];
 }
+
+export type CompactPlanetRecord = CompactExoplanet;
 
 export const DISK_KIND_TO_CODE: Record<CircumstellarDiskKind, 1 | 2 | 3> = {
   'asteroid-belt': 1,
@@ -484,7 +601,10 @@ export interface CompactCircumstellarDisk {
   T?: number;
   c: string;
   C?: 2 | 3 | 4;
+  rt?: CelestialSymbolType;
 }
+
+export type CompactDiskRecord = CompactCircumstellarDisk;
 
 export function encodeCircumstellarDisk(disk: CircumstellarDiskRecord): CompactCircumstellarDisk {
   const compact: CompactCircumstellarDisk = {
@@ -502,6 +622,9 @@ export function encodeCircumstellarDisk(disk: CircumstellarDiskRecord): CompactC
     if (code !== 1) {
       compact.C = code as 2 | 3 | 4;
     }
+  }
+  if (disk.reticleType) {
+    compact.rt = disk.reticleType;
   }
   return compact;
 }
@@ -521,6 +644,9 @@ export function decodeCircumstellarDisk(compact: CompactCircumstellarDisk): Circ
   if (compact.T !== undefined) {
     result.tempK = compact.T;
   }
+  if (compact.rt) {
+    result.reticleType = compact.rt;
+  }
   return result;
 }
 
@@ -535,7 +661,7 @@ export interface CompactSystemManifest {
   S: CompactStellarComponent[];
   E: CompactExoplanet[];
   D?: CompactCircumstellarDisk[];
-  b?: [number, number, number, number] | [number, number, number];
+  b?: [number, number, number, number];
   h?: 1;
   g?: number;
   o?: string;
@@ -605,6 +731,12 @@ export function encodeExoplanet(planet: ExoplanetRecord): CompactExoplanet {
   if (planet.theoreticalFlags && planet.theoreticalFlags > 0) {
     compact.f = planet.theoreticalFlags;
   }
+  if (planet.reticleType) {
+    compact.rt = planet.reticleType;
+  }
+  if (planet.satellites && planet.satellites.length > 0) {
+    compact.sat = planet.satellites.map(encodeSatellite);
+  }
   return compact;
 }
 
@@ -669,6 +801,12 @@ export function decodeExoplanet(compact: CompactExoplanet): ExoplanetRecord {
   if (compact.f && compact.f > 0) {
     result.theoreticalFlags = compact.f;
   }
+  if (compact.rt) {
+    result.reticleType = compact.rt;
+  }
+  if (compact.sat && compact.sat.length > 0) {
+    result.satellites = compact.sat.map(decodeSatellite);
+  }
   return result;
 }
 
@@ -694,6 +832,7 @@ export function encodeSystemManifest(
       if (s.massMsun !== undefined) comp.u = s.massMsun;
       if (s.radiusRsun !== undefined) comp.r = s.radiusRsun;
       if (s.effectiveTempK !== undefined) comp.T = s.effectiveTempK;
+      if (s.reticleType !== undefined) comp.rt = s.reticleType;
       return comp;
     }),
     E: sys.planets.map(encodeExoplanet),
@@ -771,6 +910,7 @@ export function decodeSystemManifest(
     massMsun: s.u,
     radiusRsun: s.r,
     effectiveTempK: s.T,
+    reticleType: s.rt,
   }));
 
   const planets: ExoplanetRecord[] = compact.E.map(decodeExoplanet);
@@ -835,15 +975,6 @@ const CODE_TO_STRUCTURE_TYPE: Record<number, GalacticStructureRecord['type']> = 
   10: 'DeepSkyLandmark',
 };
 
-const DEFAULT_STRUCTURE_DESCRIPTIONS: Record<number, string> = {
-  1: 'Galactic open star cluster cataloged in Cantat-Gaudin Gaia survey.',
-  2: 'Milky Way halo globular cluster from Harris (2010) catalog.',
-  3: "Galactic supernova remnant from Green's SNR Catalogue.",
-  4: 'Rotation-powered pulsar from ATNF Pulsar Database.',
-  9: 'Dark absorption cloud cataloged by E. E. Barnard.',
-  10: 'Deep sky landmark cataloged in OpenNGC.',
-};
-
 export interface CompactGalacticStructure {
   t?: 'str';
   i?: string;
@@ -857,7 +988,10 @@ export interface CompactGalacticStructure {
   d?: string;
   C?: 2 | 3 | 4;
   f?: number;
+  rt?: CelestialSymbolType;
 }
+
+export type CompactStructureRecord = CompactGalacticStructure;
 
 export function encodeGalacticStructure(
   struct: GalacticStructureRecord,
@@ -883,8 +1017,7 @@ export function encodeGalacticStructure(
   if (extraDesig.length > 0) {
     compact.g = extraDesig;
   }
-  const defaultDesc = DEFAULT_STRUCTURE_DESCRIPTIONS[k];
-  if (struct.description && struct.description !== defaultDesc) {
+  if (struct.description) {
     compact.d = struct.description;
   }
   if (struct.confidence && struct.confidence !== 'confirmed') {
@@ -894,8 +1027,13 @@ export function encodeGalacticStructure(
   if (struct.theoreticalFlags && struct.theoreticalFlags > 0) {
     compact.f = struct.theoreticalFlags;
   }
+  if (struct.reticleType) {
+    compact.rt = struct.reticleType;
+  }
   return compact;
 }
+
+export const encodeStructure = encodeGalacticStructure;
 
 export function decodeGalacticStructure(
   compact: CompactGalacticStructure,
@@ -905,8 +1043,7 @@ export function decodeGalacticStructure(
   const [x, y, z] = compact.p;
   const dist = Math.round(Math.sqrt(x * x + y * y + z * z) * 100) / 100;
   const type = CODE_TO_STRUCTURE_TYPE[compact.k] ?? 'DeepSkyLandmark';
-  const description =
-    compact.d ?? DEFAULT_STRUCTURE_DESCRIPTIONS[compact.k] ?? 'Galactic deep-sky structure.';
+  const description = compact.d ?? '';
 
   const result: GalacticStructureRecord = {
     id,
@@ -922,12 +1059,15 @@ export function decodeGalacticStructure(
     designations: compact.g ?? [compact.n],
     description,
     confidence: compact.C ? (CODE_TO_CONFIDENCE[compact.C] ?? 'confirmed') : 'confirmed',
+    reticleType: compact.rt,
   };
   if (compact.f && compact.f > 0) {
     result.theoreticalFlags = compact.f;
   }
   return result;
 }
+
+export const decodeStructure = decodeGalacticStructure;
 
 const SOLAR_CLASS_TO_CODE: Record<SolarSystemBodyRecord['classification'], number> = {
   Star: 1,
@@ -966,12 +1106,25 @@ export interface CompactSolarSystemBody {
   tags?: string[];
   C?: 2 | 3 | 4;
   f?: number;
+  rt?: CelestialSymbolType;
+  z?: 1;
+  e?: 'belt' | 'kuiper';
+  s?: string;
+  u?: 'terrestrial' | 'super-earth' | 'sub-neptune' | 'gas-giant';
+  core?: 1;
 }
 
+export type CompactMinorBodyRecord = CompactSolarSystemBody;
+
 export function encodeSolarSystemBody(
-  body: SolarSystemBodyRecord,
+  rawBody: SolarSystemBodyRecord,
   options?: { omitId?: boolean },
 ): CompactSolarSystemBody {
+  const body =
+    rawBody.reticleType !== undefined && rawBody.targetStarId !== undefined
+      ? rawBody
+      : precalculateSolarSystemBodyFlags(rawBody);
+
   const compact: CompactSolarSystemBody = {
     n: body.name,
     k: SOLAR_CLASS_TO_CODE[body.classification] ?? 6,
@@ -995,6 +1148,13 @@ export function encodeSolarSystemBody(
   if (body.theoreticalFlags && body.theoreticalFlags > 0) {
     compact.f = body.theoreticalFlags;
   }
+  if (body.reticleType) compact.rt = body.reticleType;
+  if (body.isHabitableCandidate) compact.z = 1;
+  if (body.beltZone) compact.e = body.beltZone;
+  if (body.targetStarId) compact.s = body.targetStarId;
+  if (body.composition) compact.u = body.composition;
+  if (body.isCoreSearch) compact.core = 1;
+
   return compact;
 }
 
@@ -1021,8 +1181,17 @@ export function decodeSolarSystemBody(
   if (compact.f && compact.f > 0) {
     result.theoreticalFlags = compact.f;
   }
+  if (compact.rt) result.reticleType = compact.rt;
+  if (compact.z === 1) result.isHabitableCandidate = true;
+  if (compact.e) result.beltZone = compact.e;
+  if (compact.s) result.targetStarId = compact.s;
+  if (compact.u) result.composition = compact.u;
+  if (compact.core === 1) result.isCoreSearch = true;
   return result;
 }
+
+export const encodeMinorBody = encodeSolarSystemBody;
+export const decodeMinorBody = decodeSolarSystemBody;
 
 export type CompactDetailRecord =
   | (CompactSystemManifest & { t: 'sys' })
@@ -1030,9 +1199,46 @@ export type CompactDetailRecord =
   | (CompactSolarSystemBody & { t: 'sol' });
 
 export interface ShardedBucketEnvelope<T> {
+  v?: number;
   i: string;
   c: number;
   d: Record<string, T>;
+}
+
+export function decodeSummaryBucket(
+  envelope: ShardedBucketEnvelope<CompactSummaryNode>,
+): Record<string, SystemSummaryNode> {
+  if (envelope.v !== undefined && envelope.v !== COMPACT_SCHEMA_VERSION) {
+    throw new Error(
+      `Unsupported schema version: expected ${COMPACT_SCHEMA_VERSION}, got ${envelope.v}`,
+    );
+  }
+  const result: Record<string, SystemSummaryNode> = {};
+  for (const [id, node] of Object.entries(envelope.d)) {
+    result[id] = decodeSummaryNode(node, id);
+  }
+  return result;
+}
+
+export function decodeDetailBucket(
+  envelope: ShardedBucketEnvelope<CompactDetailRecord>,
+): Record<string, SystemManifest | GalacticStructureRecord | SolarSystemBodyRecord> {
+  if (envelope.v !== undefined && envelope.v !== COMPACT_SCHEMA_VERSION) {
+    throw new Error(
+      `Unsupported schema version: expected ${COMPACT_SCHEMA_VERSION}, got ${envelope.v}`,
+    );
+  }
+  const result: Record<string, SystemManifest | GalacticStructureRecord | SolarSystemBodyRecord> = {};
+  for (const [id, record] of Object.entries(envelope.d)) {
+    if (record.t === 'sys') {
+      result[id] = decodeSystemManifest(record, id);
+    } else if (record.t === 'str') {
+      result[id] = decodeGalacticStructure(record, id);
+    } else if (record.t === 'sol') {
+      result[id] = decodeSolarSystemBody(record, id);
+    }
+  }
+  return result;
 }
 
 const ALL_36_BUCKETS = Array.from({ length: 36 }, (_, idx) => idx.toString(36));
@@ -1054,8 +1260,8 @@ export function buildShardedSummariesAndDetails(input: {
   const detailsByBucket = new Map<string, ShardedBucketEnvelope<CompactDetailRecord>>();
 
   for (const b of ALL_36_BUCKETS) {
-    summariesByBucket.set(b, { i: b, c: 0, d: {} });
-    detailsByBucket.set(b, { i: b, c: 0, d: {} });
+    summariesByBucket.set(b, { v: COMPACT_SCHEMA_VERSION, i: b, c: 0, d: {} });
+    detailsByBucket.set(b, { v: COMPACT_SCHEMA_VERSION, i: b, c: 0, d: {} });
   }
 
   for (const sys of input.systems) {
@@ -1088,9 +1294,12 @@ export function buildShardedSummariesAndDetails(input: {
     env.c++;
   }
 
-  for (const body of input.solarBodies) {
-    const targetId =
-      body.id === 'sol' && body.classification === 'Star' ? 'sol-A' : body.id;
+  for (const rawBody of input.solarBodies) {
+    const body =
+      rawBody.reticleType !== undefined && rawBody.targetStarId !== undefined
+        ? rawBody
+        : precalculateSolarSystemBodyFlags(rawBody);
+    const targetId = body.targetStarId ?? body.id;
     const bucketKey = getShardKey(targetId);
     const env = detailsByBucket.get(bucketKey);
     if (!env) continue;
@@ -1120,9 +1329,9 @@ export interface CompactSearchEntry {
   m?: SearchSummaryTuple;
   /** Precalculated system tags bitmask (`SYSTEM_TAG_BITS`) */
   g?: number;
-  /** Precalculated planet composition counts `[terrestrial, superEarth, iceGiant, gasGiant]` or legacy 3-tuple */
-  b?: [number, number, number, number] | [number, number, number];
-  /** Precalculated reticle / composition classification when non-default */
+  /** Precalculated planet composition counts `[terrestrial, superEarth, iceGiant, gasGiant]` */
+  b?: [number, number, number, number];
+  /** Precalculated reticle / composition classification */
   u?: CelestialClassification | 'super-earth' | 'sub-neptune';
   /** Precalculated environmental hazard bitmask (`SYSTEM_HAZARD_BITS` or `PLANET_HAZARD_BITS`) */
   H?: number;
@@ -1145,6 +1354,7 @@ export interface CompactSearchEntry {
 }
 
 export interface SearchIndexEnvelope {
+  v?: number;
   i: string;
   n: string;
   c: number;
@@ -1152,66 +1362,48 @@ export interface SearchIndexEnvelope {
   d: CompactSearchEntry[];
 }
 
-/**
- * Determines whether a star system summary node is eligible for indexing in the search catalog.
- * Excludes unnamed faint Gaia field stars outside the 10 pc solar neighbourhood without planets.
- */
-export function isSearchableStarSystem(sys: SystemSummaryNode): boolean {
-  const rawGaiaSuffix = sys.id.startsWith('gaia-') ? sys.id.slice(5) : undefined;
-  const isUnnamedGaia =
-    rawGaiaSuffix !== undefined && sys.name === `Gaia DR3 ${rawGaiaSuffix}`;
-  if (isUnnamedGaia && sys.planetCount === 0 && sys.dist > 10 && sys.mag > 6.5) {
-    return false;
-  }
-  return true;
+export interface DecodedSearchEntry {
+  id: string;
+  kind?: number;
+  name: string;
+  position?: [number, number, number];
+  magnitude?: number;
+  spectralType?: string;
+  planetCount?: number;
+  hasHabitableCandidate?: boolean;
+  designations?: string[];
+  parentSystemName?: string;
+  systemId?: string;
+  parentBodyId?: string;
+  tagsBitmask?: number;
+  isHomeSystem?: boolean;
+  isHabitableZonePlanet?: boolean;
+  subCategory?: string;
+  reticleType?: CelestialSymbolType;
+  semiMajorAxisAu?: number;
 }
 
-/**
- * Determines whether a searchable star system qualifies for the instant Core search tier (`core.json`).
- */
-export function isCoreSearchStarSystem(sys: SystemSummaryNode): boolean {
-  return (
-    sys.dist <= 10 ||
-    sys.mag <= 6.5 ||
-    sys.planetCount > 0 ||
-    Boolean(sys.properName) ||
-    (!sys.name.startsWith('HIP ') &&
-      !sys.name.startsWith('HD ') &&
-      !sys.name.startsWith('Gaia '))
-  );
-}
-
-/**
- * Determines whether a Solar System minor body qualifies for the instant Core search tier (`core.json`).
- * Includes curated landmark asteroids, comets, interstellar visitors, and spacecraft while keeping bulk
- * MPC/SBDB catalog rows (`pha-*`, `distant-*`, `comet-*`) in the Full/Minor-Bodies shards.
- */
-export function isCoreSearchMinorBody(body: SolarSystemBodyRecord): boolean {
-  return (
-    !body.id.startsWith('pha-') &&
-    !body.id.startsWith('distant-') &&
-    !body.id.startsWith('comet-')
-  );
-}
-
-/**
- * Determines whether a galactic structure qualifies for the instant Core search tier (`core.json`).
- */
-export function isCoreSearchStructure(struct: GalacticStructureRecord): boolean {
-  const isCuratedStructure =
-    !struct.id.startsWith('cluster-') &&
-    !struct.id.startsWith('globular-') &&
-    !struct.id.startsWith('snr-') &&
-    !struct.id.startsWith('pulsar-') &&
-    !struct.id.startsWith('barnard-') &&
-    !struct.id.startsWith('ngc-');
-
-  return (
-    isCuratedStructure ||
-    struct.type === 'DeepSkyLandmark' ||
-    struct.designations.some((d) => d.startsWith('M ') || /^M\d+$/i.test(d)) ||
-    struct.dist <= 200
-  );
+export function decodeCompactSearchEntry(entry: CompactSearchEntry): DecodedSearchEntry {
+  return {
+    id: entry.i,
+    kind: entry.k,
+    name: entry.n,
+    position: entry.p,
+    magnitude: entry.m?.[0],
+    spectralType: entry.m?.[1],
+    planetCount: entry.m?.[2],
+    hasHabitableCandidate: entry.m?.[3] === 1,
+    designations: entry.a ? entry.a.split(' ') : undefined,
+    parentSystemName: entry.w,
+    systemId: entry.s,
+    parentBodyId: entry.o,
+    tagsBitmask: entry.g,
+    isHomeSystem: entry.h === 1 ? true : undefined,
+    isHabitableZonePlanet: entry.z === 1 ? true : undefined,
+    subCategory: entry.c,
+    reticleType: entry.u,
+    semiMajorAxisAu: entry.A,
+  };
 }
 
 /**
@@ -1224,6 +1416,7 @@ export function buildSearchIndexEnvelope(
   timestamp: string,
 ): SearchIndexEnvelope {
   return {
+    v: COMPACT_SCHEMA_VERSION,
     i: id,
     n: name,
     c: entries.length,
@@ -1236,14 +1429,17 @@ export function buildSearchIndexEnvelope(
  * Builds the Dual-Tier Composite Search Indices (`core.json`, `full.json`) and
  * the 5 Category-Sharded Search Indices (`stars.json`, `planets.json`, `structures.json`, `minor-bodies.json`, `layers.json`).
  */
-export function buildSearchIndices(input: {
-  systems: SystemSummaryNode[];
-  manifests: SystemManifest[];
-  structures: GalacticStructureRecord[];
-  solarBodies: SolarSystemBodyRecord[];
-  starAliasesById?: Map<string, string[]>;
-  layerEntries?: CompactSearchEntry[];
-}): {
+export function buildSearchIndices(
+  input: {
+    systems: SystemSummaryNode[];
+    manifests: SystemManifest[];
+    structures: GalacticStructureRecord[];
+    solarBodies: SolarSystemBodyRecord[];
+    starAliasesById?: Map<string, string[]>;
+    layerEntries?: CompactSearchEntry[];
+  },
+  generatedAt = '2026-01-01T00:00:00.000Z',
+): {
   core: SearchIndexEnvelope;
   full: SearchIndexEnvelope;
   stars: SearchIndexEnvelope;
@@ -1252,7 +1448,7 @@ export function buildSearchIndices(input: {
   minorBodies: SearchIndexEnvelope;
   layers: SearchIndexEnvelope;
 } {
-  const nowIso = new Date().toISOString();
+  const nowIso = generatedAt;
   const coreEntries: CompactSearchEntry[] = [];
   const fullEntries: CompactSearchEntry[] = [];
   const starsEntries: CompactSearchEntry[] = [];
@@ -1304,18 +1500,10 @@ export function buildSearchIndices(input: {
     if (sys.hazardMask && sys.hazardMask > 0) {
       entry.H = sys.hazardMask;
     }
-    const spectUpper = (sys.spect ?? '').trim().toUpperCase();
-    if (spectUpper.startsWith('D')) {
-      entry.u = 'white-dwarf';
-    } else if (
-      spectUpper.startsWith('L') ||
-      spectUpper.startsWith('T') ||
-      spectUpper.startsWith('Y')
-    ) {
-      entry.u = 'brown-dwarf';
-    } else if (spectUpper.startsWith('PSR')) {
-      entry.u = 'neutron-star';
-    }
+    entry.u =
+      sys.classification && sys.classification !== 'star'
+        ? sys.classification
+        : resolveStellarClassificationFromSpectrum(sys.spect);
     if (cleanKeys) {
       entry.a = cleanKeys;
     }
@@ -1384,8 +1572,14 @@ export function buildSearchIndices(input: {
       if (planet.orbit?.periodDays !== undefined) {
         planetEntry.P = Math.round(planet.orbit.periodDays * 1000) / 1000;
       }
-      if (comp !== 'terrestrial') {
-        planetEntry.u = comp;
+      if (comp === 'super-earth') {
+        planetEntry.u = 'super-earth';
+      } else if (comp === 'ice-giant') {
+        planetEntry.u = 'ice-giant';
+      } else if (comp === 'gas-giant') {
+        planetEntry.u = 'gas-giant';
+      } else {
+        planetEntry.u = 'terrestrial';
       }
       if (isHz) {
         planetEntry.z = 1;
@@ -1415,8 +1609,13 @@ export function buildSearchIndices(input: {
   const orbitRankMap = new Map<string, number>();
   const solarBodiesByParent = new Map<string, SolarSystemBodyRecord[]>();
 
-  for (const body of input.solarBodies) {
-    if (body.classification === 'Star') continue;
+  for (const rawBody of input.solarBodies) {
+    if (rawBody.classification === 'Star') continue;
+    const body =
+      rawBody.reticleType !== undefined && rawBody.targetStarId !== undefined
+        ? rawBody
+        : precalculateSolarSystemBodyFlags(rawBody);
+
     if (body.orbit?.semiMajorAxis !== undefined && body.orbit.semiMajorAxis > 0) {
       const parentKey =
         body.parentBodyId && body.parentBodyId !== 'sol'
@@ -1442,12 +1641,13 @@ export function buildSearchIndices(input: {
     });
   }
 
-  for (const body of input.solarBodies) {
-    if (body.classification === 'Star') continue;
-    const parentKey =
-      body.parentBodyId && body.parentBodyId !== 'sol'
-        ? body.parentBodyId
-        : 'sol';
+  for (const rawBody of input.solarBodies) {
+    if (rawBody.classification === 'Star') continue;
+    const body =
+      rawBody.reticleType !== undefined && rawBody.targetStarId !== undefined
+        ? rawBody
+        : precalculateSolarSystemBodyFlags(rawBody);
+
     const cleanKeys = buildCleanKeys([body.name, body.id, ...(body.tags ?? [])]);
 
     if (
@@ -1477,29 +1677,13 @@ export function buildSearchIndices(input: {
       if (body.orbit?.periodDays !== undefined) {
         entry.P = Math.round(body.orbit.periodDays * 1000) / 1000;
       }
-      if (parentKey === 'sol') {
-        if (
-          body.orbit?.semiMajorAxis !== undefined &&
-          body.orbit.semiMajorAxis >= 0.75 &&
-          body.orbit.semiMajorAxis <= 1.77
-        ) {
-          entry.z = 1;
-        }
-        if (
-          body.classification === 'DwarfPlanet' &&
-          body.orbit?.semiMajorAxis !== undefined &&
-          body.orbit.semiMajorAxis >= 2.0 &&
-          body.orbit.semiMajorAxis <= 3.5
-        ) {
-          entry.e = 'belt';
-        } else if (
-          body.classification === 'DwarfPlanet' &&
-          body.orbit?.semiMajorAxis !== undefined &&
-          body.orbit.semiMajorAxis >= 30
-        ) {
-          entry.e = 'kuiper';
-        }
+      if (body.isHabitableCandidate) {
+        entry.z = 1;
       }
+      if (body.beltZone) {
+        entry.e = body.beltZone;
+      }
+
       if (body.classification === 'Planet') {
         const mEarth =
           body.massKg !== undefined ? body.massKg / 5.97237e24 : undefined;
@@ -1509,19 +1693,14 @@ export function buildSearchIndices(input: {
           radiusRearth: rEarth,
           classification: body.tags?.join(' '),
         });
-        if (comp !== 'terrestrial') {
-          entry.u = comp;
-        }
-        if (
-          isPlanetHabitableCandidate(
-            {
-              semiMajorAxis: body.orbit?.semiMajorAxis,
-              tags: body.tags,
-            },
-            1.0,
-          )
-        ) {
-          entry.z = 1;
+        if (comp === 'super-earth') {
+          entry.u = 'super-earth';
+        } else if (comp === 'ice-giant') {
+          entry.u = 'ice-giant';
+        } else if (comp === 'gas-giant') {
+          entry.u = 'gas-giant';
+        } else {
+          entry.u = 'terrestrial';
         }
         const surfaceGravityG =
           mEarth !== undefined && rEarth > 0
@@ -1536,6 +1715,8 @@ export function buildSearchIndices(input: {
         if (hazardMask > 0) {
           entry.H = hazardMask;
         }
+      } else {
+        entry.u = 'terrestrial';
       }
       planetsEntries.push(entry);
       coreEntries.push(entry);
@@ -1561,32 +1742,21 @@ export function buildSearchIndices(input: {
       if (body.orbit?.periodDays !== undefined) {
         entry.P = Math.round(body.orbit.periodDays * 1000) / 1000;
       }
-      if (parentKey === 'sol') {
-        if (
-          body.orbit?.semiMajorAxis !== undefined &&
-          body.orbit.semiMajorAxis >= 0.75 &&
-          body.orbit.semiMajorAxis <= 1.77
-        ) {
-          entry.z = 1;
-        }
-        if (
-          body.classification === 'AsteroidMainBelt' ||
-          (body.classification === 'Comet' &&
-            body.orbit?.semiMajorAxis !== undefined &&
-            body.orbit.semiMajorAxis >= 2.0 &&
-            body.orbit.semiMajorAxis <= 3.5)
-        ) {
-          entry.e = 'belt';
-        } else if (body.classification === 'AsteroidDistant') {
-          entry.e = 'kuiper';
-        }
+      if (body.isHabitableCandidate) {
+        entry.z = 1;
+      }
+      if (body.beltZone) {
+        entry.e = body.beltZone;
       }
       if (body.tags?.includes('Spacecraft')) {
         entry.u = 'construct';
+      } else {
+        entry.u = 'terrestrial';
       }
+
       minorBodiesEntries.push(entry);
       fullEntries.push(entry);
-      if (isCoreSearchMinorBody(body)) {
+      if (body.isCoreSearch ?? isCoreSearchMinorBody(body)) {
         coreEntries.push(entry);
       }
     }
@@ -1608,6 +1778,8 @@ export function buildSearchIndices(input: {
     };
     if (struct.type === 'Pulsar' || struct.type === 'SupernovaRemnant') {
       entry.u = 'hazard';
+    } else {
+      entry.u = 'stellar-cluster';
     }
 
     structuresEntries.push(entry);

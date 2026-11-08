@@ -17,3 +17,9 @@ test-e2e:
 
 audit-r3f:
     npm run audit:r3f
+
+data-build:
+    npm run data:build
+
+data-refresh:
+    npm run data:refresh

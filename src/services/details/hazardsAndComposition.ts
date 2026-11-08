@@ -188,15 +188,13 @@ export const isDwarfPlanetInDisk = (
 /**
  * Pure builder producing the structured planet composition breakdown for the Peek detent.
  * Reads precalculated composition counts `[terrestrial, superEarth, iceGiant, gasGiant]`
- * or legacy `[terrestrial, iceGiant, gasGiant]` when available.
+ * when available.
  */
 export const buildPlanetCompositionBreakdown = (
   planets: readonly FocusedPlanetDetail[],
   fallbackCount: number,
   fallbackCensus?: readonly PlanetCompositionClass[],
-  precalculatedCounts?:
-    | readonly [number, number, number, number]
-    | readonly [number, number, number],
+  precalculatedCounts?: readonly [number, number, number, number],
 ): readonly PlanetCompositionCount[] => {
   const totalCount = Math.max(planets.length, fallbackCount);
   if (totalCount <= 0) {
@@ -205,37 +203,25 @@ export const buildPlanetCompositionBreakdown = (
 
   const hasPrecalculated =
     precalculatedCounts !== undefined &&
-    ((precalculatedCounts[0] ?? 0) > 0 ||
-      (precalculatedCounts[1] ?? 0) > 0 ||
-      (precalculatedCounts[2] ?? 0) > 0 ||
-      (precalculatedCounts[3] !== undefined && precalculatedCounts[3] > 0));
+    (precalculatedCounts[0] > 0 ||
+      precalculatedCounts[1] > 0 ||
+      precalculatedCounts[2] > 0 ||
+      precalculatedCounts[3] > 0);
 
   if (hasPrecalculated && precalculatedCounts) {
     const items: PlanetCompositionCount[] = [];
-    if (precalculatedCounts.length === 4) {
-      if (precalculatedCounts[0] > 0) {
-        items.push({ composition: 'terrestrial', count: precalculatedCounts[0] });
-      }
-      if (precalculatedCounts[1] > 0) {
-        items.push({ composition: 'super-earth', count: precalculatedCounts[1] });
-      }
-      if (precalculatedCounts[2] > 0) {
-        items.push({ composition: 'ice-giant', count: precalculatedCounts[2] });
-      }
-      if (precalculatedCounts[3] > 0) {
-        items.push({ composition: 'gas-giant', count: precalculatedCounts[3] });
-      }
-    } else {
-      // Legacy 3-tuple [terrestrial, iceGiant, gasGiant]
-      if (precalculatedCounts[0] > 0) {
-        items.push({ composition: 'terrestrial', count: precalculatedCounts[0] });
-      }
-      if (precalculatedCounts[1] > 0) {
-        items.push({ composition: 'ice-giant', count: precalculatedCounts[1] });
-      }
-      if (precalculatedCounts[2] > 0) {
-        items.push({ composition: 'gas-giant', count: precalculatedCounts[2] });
-      }
+    const [terrestrial, superEarth, iceGiant, gasGiant] = precalculatedCounts;
+    if (terrestrial > 0) {
+      items.push({ composition: 'terrestrial', count: terrestrial });
+    }
+    if (superEarth > 0) {
+      items.push({ composition: 'super-earth', count: superEarth });
+    }
+    if (iceGiant > 0) {
+      items.push({ composition: 'ice-giant', count: iceGiant });
+    }
+    if (gasGiant > 0) {
+      items.push({ composition: 'gas-giant', count: gasGiant });
     }
     return items;
   }
@@ -274,9 +260,7 @@ export const buildPlanetCompositionSummary = (
   fallbackCount: number,
   hasHabitableCandidate: boolean,
   fallbackCensus?: readonly PlanetCompositionClass[],
-  precalculatedCounts?:
-    | readonly [number, number, number, number]
-    | readonly [number, number, number],
+  precalculatedCounts?: readonly [number, number, number, number],
 ): string => {
   const totalCount = Math.max(planets.length, fallbackCount);
   if (totalCount <= 0) {

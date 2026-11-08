@@ -1,0 +1,33 @@
+{
+  "diskHostAliases": {
+    "Sol": ["sol", "sun", "solar system"],
+    "Epsilon Eridani": ["epsilon eridani", "eps eri", "ran", "hd 22049", "hd22049", "hip 16537", "hip16537", "gl 144", "gliese 144", "gl144"],
+    "Tau Ceti": ["tau ceti", "tau cet", "hd 10700", "hd10700", "hip 8102", "hip8102", "gl 71", "gliese 71", "gl71"],
+    "82 G. Eridani": ["82 g. eridani", "82 g eridani", "82 eridani", "hd 20794", "hd20794", "hip 15510", "hip15510", "gl 139", "gliese 139", "gl139", "e eridani", "e eri"],
+    "Fomalhaut": ["fomalhaut", "alpha piscis austrini", "alp psa", "hd 216956", "hd216956", "hip 113368", "hip113368", "gl 881", "gliese 881", "gl881"],
+    "Vega": ["vega", "alpha lyrae", "alp lyr", "hd 172167", "hd172167", "hip 91262", "hip91262", "gl 721", "gliese 721", "gl721"],
+    "Beta Pictoris": ["beta pictoris", "bet pic", "hd 39060", "hd39060", "hip 27321", "hip27321", "gl 219", "gliese 219", "gl219"],
+    "HR 8799": ["hr 8799", "hr8799", "hd 218396", "hd218396", "hip 114189", "hip114189"],
+    "Proxima Centauri": ["proxima centauri", "proxima", "alpha centauri c", "hip 70890", "hip70890", "gl 551", "gliese 551", "gl551", "v645 centauri"],
+    "Sirius": ["sirius", "sirius a", "alpha canis majoris", "alp cma", "hd 48915", "hd48915", "hip 32349", "hip32349", "gl 244", "gliese 244", "gl244"],
+    "Procyon": ["procyon", "procyon a", "alpha canis minoris", "alp cmi", "hd 61421", "hd61421", "hip 37279", "hip37279", "gl 280", "gliese 280", "gl280"],
+    "Pollux": ["pollux", "beta geminorum", "bet gem", "hd 62509", "hd62509", "hip 37826", "hip37826", "gl 286", "gliese 286", "gl286"]
+  },
+  "specialSystemNameMap": {
+    "rigil kentaurus": "Alpha Centauri",
+    "toliman": "Alpha Centauri",
+    "proxima centauri": "Alpha Centauri",
+    "proxima": "Alpha Centauri",
+    "alpha centauri": "Alpha Centauri",
+    "alpha cen": "Alpha Centauri",
+    "sirius": "Sirius",
+    "gl 244": "Sirius",
+    "luyten 726-8": "Luyten 726-8",
+    "uv ceti": "Luyten 726-8",
+    "bl ceti": "Luyten 726-8",
+    "gl 65": "Luyten 726-8",
+    "nn 3192": "LTT 1445",
+    "nn 3193": "LTT 1445",
+    "gl 53": "Mu Cassiopeiae"
+  }
+}

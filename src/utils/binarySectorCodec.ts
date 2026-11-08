@@ -4,7 +4,9 @@ import type { SectorPartitionManifest } from '../types/astro';
  * Binary sector format constants for Frontier-defined spatial sector partitions.
  */
 export const BINARY_SECTOR_MAGIC = 0x52415453; // 'STAR' in little-endian ASCII
-export const BINARY_SECTOR_HEADER_BYTES = 24;
+export const BINARY_SECTOR_VERSION = 1;
+export const HEADER_BYTE_LENGTH = 28;
+export const BINARY_SECTOR_HEADER_BYTES = 28;
 export const BINARY_SECTOR_RECORD_BYTES = 16;
 export const BINARY_SECTOR_STRIDE_ELEMENTS = 4;
 
@@ -30,10 +32,11 @@ export function getShardKeyFromHash(idHash: number): string {
 }
 
 /**
- * Binary sector header layout (24 bytes).
+ * Binary sector header layout (28 bytes).
  */
 export interface BinarySectorHeader {
   readonly magic: number;
+  readonly version: number;
   readonly count: number;
   readonly origin: readonly [number, number, number];
   readonly sectorSize: number;
@@ -83,13 +86,14 @@ export function encodeBinarySector(manifest: SectorPartitionManifest): Uint8Arra
   const rawSize = maxX - minX;
   const sectorSize = Number.isFinite(rawSize) && rawSize > 0 ? rawSize : 25.0;
 
-  // Header (24 bytes)
+  // Header (28 bytes)
   view.setUint32(0, BINARY_SECTOR_MAGIC, true);
-  view.setUint32(4, count, true);
-  view.setFloat32(8, minX, true);
-  view.setFloat32(12, minY, true);
-  view.setFloat32(16, minZ, true);
-  view.setFloat32(20, sectorSize, true);
+  view.setUint32(4, BINARY_SECTOR_VERSION, true);
+  view.setUint32(8, count, true);
+  view.setFloat32(12, minX, true);
+  view.setFloat32(16, minY, true);
+  view.setFloat32(20, minZ, true);
+  view.setFloat32(24, sectorSize, true);
 
   // Star records (16 bytes each)
   let offset = BINARY_SECTOR_HEADER_BYTES;
@@ -106,7 +110,7 @@ export function encodeBinarySector(manifest: SectorPartitionManifest): Uint8Arra
 }
 
 /**
- * Decodes the 24-byte header of a binary sector file.
+ * Decodes the 28-byte header of a binary sector file.
  */
 export function decodeBinarySectorHeader(buffer: ArrayBuffer): BinarySectorHeader {
   if (buffer.byteLength < BINARY_SECTOR_HEADER_BYTES) {
@@ -123,14 +127,22 @@ export function decodeBinarySectorHeader(buffer: ArrayBuffer): BinarySectorHeade
     );
   }
 
-  const count = view.getUint32(4, true);
-  const originX = view.getFloat32(8, true);
-  const originY = view.getFloat32(12, true);
-  const originZ = view.getFloat32(16, true);
-  const sectorSize = view.getFloat32(20, true);
+  const version = view.getUint32(4, true);
+  if (version !== BINARY_SECTOR_VERSION) {
+    throw new Error(
+      `Unsupported binary sector version: expected ${BINARY_SECTOR_VERSION}, got ${version}`,
+    );
+  }
+
+  const count = view.getUint32(8, true);
+  const originX = view.getFloat32(12, true);
+  const originY = view.getFloat32(16, true);
+  const originZ = view.getFloat32(20, true);
+  const sectorSize = view.getFloat32(24, true);
 
   return {
     magic,
+    version,
     count,
     origin: [originX, originY, originZ],
     sectorSize,

@@ -1,3 +1,16 @@
+import type { CelestialClassification } from './spatial';
+
+export type { CelestialClassification };
+
+export type CelestialSymbolType =
+  | 'star' | 'stellar-system' | 'multiple-system' | 'brown-dwarf' | 'white-dwarf'
+  | 'neutron-star' | 'pulsar' | 'hazard' | 'black-hole' | 'barycentre'
+  | 'stellar-cluster' | 'construct' | 'spacecraft' | 'terrestrial'
+  | 'super-earth' | 'sub-neptune' | 'gas-giant' | 'ice-giant' | 'dwarf-planet'
+  | 'moon' | 'asteroid' | 'comet' | 'belt' | 'asteroid-belt' | 'kuiper-belt'
+  | 'kuiper-belt-object' | 'oort-cloud' | 'debris-disk' | 'nebula' | 'ism'
+  | 'supernova-remnant' | 'habitable-zone';
+
 /**
  * Core representation of an astronomical node (star, stellar remnant, or celestial object)
  * designed for consumption by 2D atlas views and 3D WebGL visualizations.
@@ -9,19 +22,12 @@ export interface StarmapNode {
   name: string;
   /** Proper common name (e.g., 'Sirius', 'Sol', 'Vega'), if known */
   properName?: string;
-  /** Hipparcos catalog number */
   hip?: number | null;
-  /** Henry Draper catalog number */
   hd?: number | null;
-  /** Harvard Revised / Bright Star catalog number */
   hr?: number | null;
-  /** Gliese catalog identifier */
   gl?: string | null;
-  /** Bayer designation (e.g., 'Alp', 'Bet') */
   bayer?: string | null;
-  /** Flamsteed number */
   flam?: number | null;
-  /** Standard 3-letter IAU constellation abbreviation (e.g., 'Ori', 'CMa') */
   con?: string | null;
   /** Right Ascension in decimal hours [0, 24) */
   ra: number;
@@ -33,17 +39,11 @@ export interface StarmapNode {
   mag: number;
   /** Absolute visual magnitude (intrinsic brightness at 10 parsecs) */
   absmag: number;
-  /** Morgan-Keenan spectral classification (e.g., 'G2V', 'A1V', 'M5.5Ve') */
   spect?: string;
-  /** Color index (B-V photometric index) */
   ci?: number | null;
-  /** Cartesian X coordinate in parsecs (Equatorial frame, epoch J2000) */
   x: number;
-  /** Cartesian Y coordinate in parsecs (Equatorial frame, epoch J2000) */
   y: number;
-  /** Cartesian Z coordinate in parsecs (Equatorial frame, epoch J2000) */
   z: number;
-  /** Luminosity relative to the Sun (L☉) */
   lum?: number;
   /** 3D space velocity vector relative to Sol in km/s (Equatorial J2000 frame) */
   velocity?: KinematicVector;
@@ -53,19 +53,12 @@ export interface StarmapNode {
  * 3D velocity vector and relative motion parameters in Equatorial J2000 frame.
  */
 export interface KinematicVector {
-  /** Cartesian velocity X in km/s */
   vx: number;
-  /** Cartesian velocity Y in km/s */
   vy: number;
-  /** Cartesian velocity Z in km/s */
   vz: number;
-  /** Total scalar speed relative to Sol in km/s */
   speed: number;
-  /** Proper motion in Right Ascension (mas/yr) */
   pmra?: number;
-  /** Proper motion in Declination (mas/yr) */
   pmdec?: number;
-  /** Line-of-sight radial velocity in km/s (negative = approaching, positive = receding) */
   radialVelocity?: number;
 }
 
@@ -110,9 +103,7 @@ export interface SystemSummaryNode {
   /** Categorized planetary census breakdown for tactical reticle facets */
   planetCensus?: ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[];
   /** Precalculated counts of planets by composition class [terrestrial, superEarth, iceGiant, gasGiant] */
-  planetCompositionCounts?:
-    | [terrestrial: number, superEarth: number, iceGiant: number, gasGiant: number]
-    | [terrestrial: number, iceGiant: number, gasGiant: number];
+  planetCompositionCounts?: [terrestrial: number, superEarth: number, iceGiant: number, gasGiant: number];
   /** Flag indicating whether any planet resides in the habitable zone */
   hasHabitableCandidate: boolean;
   /** Spatial sector identifier, e.g. 'sector_+025_-050_+000' */
@@ -125,11 +116,12 @@ export interface SystemSummaryNode {
   theoreticalFlags?: number;
   /** Precalculated stellar environmental hazard bitmask (FLARE_STAR: 1, IONISING_RADIATION: 2, VARIABLE_FLUX: 4) */
   hazardMask?: number;
+  /** Precalculated stellar/compact object classification */
+  classification?: 'star' | 'white-dwarf' | 'brown-dwarf' | 'neutron-star' | 'black-hole';
+  reticleType?: CelestialSymbolType;
 }
 
-/**
- * Orbital elements defining a Keplerian orbit in 3D space.
- */
+/** Orbital elements defining a Keplerian orbit in 3D space. */
 export interface KeplerianOrbit {
   /** Semi-major axis in Astronomical Units (AU) */
   semiMajorAxis: number;
@@ -150,6 +142,22 @@ export interface KeplerianOrbit {
 }
 
 /**
+ * Natural satellite (moon) record belonging to a host planet or dwarf planet (AUD-051).
+ */
+export interface SatelliteRecord {
+  id: string;
+  name: string;
+  parentId: string;
+  radiusKm?: number;
+  radiusEarth?: number;
+  massEarth?: number;
+  composition?: 'terrestrial' | 'super-earth' | 'sub-neptune' | 'gas-giant';
+  reticleType?: CelestialSymbolType;
+  orbit: KeplerianOrbit;
+  description?: string;
+}
+
+/**
  * Extrasolar planet record in a detailed system manifest.
  */
 export interface ExoplanetRecord {
@@ -164,20 +172,18 @@ export interface ExoplanetRecord {
   radiusRearth?: number;
   equilibriumTempK?: number;
   esi?: number;
-  /** Surface gravity in Earth standard gravity units (g = 9.81 m/s^2) */
   surfaceGravityG?: number;
-  /** Precalculated planetary environmental hazard bitmask */
   hazardMask?: number;
-  /** Precalculated planetary composition classification ('terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant') */
   composition?: 'terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant';
-  /** Precalculated flag indicating whether the planet falls within the optimistic habitable zone */
   isHabitableCandidate?: boolean;
   orbit?: KeplerianOrbit;
-  /** Observational confidence tier ('confirmed' = NASA consensus, 'candidate' = OEC/Eu candidate/retracted) */
+  satellites?: SatelliteRecord[];
+  reticleType?: CelestialSymbolType;
   confidence?: ObservationalConfidence;
-  /** Bitmask indicating which fields are mathematically modelled ('theoretical': 1=equilibriumTempK, 2=massMearth, 4=radiusRearth, 8=esi) */
   theoreticalFlags?: number;
 }
+
+export type PlanetRecord = ExoplanetRecord;
 
 /**
  * Individual stellar component in a single or multi-star system.
@@ -193,7 +199,10 @@ export interface StellarComponent {
   massMsun?: number;
   radiusRsun?: number;
   effectiveTempK?: number;
+  reticleType?: CelestialSymbolType;
 }
+
+export type StarRecord = StellarComponent;
 
 /**
  * Detailed manifest for a single stellar system (drill-down view).
@@ -210,20 +219,15 @@ export interface SystemManifest {
   sectorId: string;
   stars: StellarComponent[];
   planets: ExoplanetRecord[];
-  /** Precalculated counts of planets by composition class [terrestrial, superEarth, iceGiant, gasGiant] */
-  planetCompositionCounts?:
-    | [terrestrial: number, superEarth: number, iceGiant: number, gasGiant: number]
-    | [terrestrial: number, iceGiant: number, gasGiant: number];
-  /** Precalculated flag indicating whether any planet resides in the habitable zone */
+  planetCompositionCounts?: [terrestrial: number, superEarth: number, iceGiant: number, gasGiant: number];
   hasHabitableCandidate?: boolean;
-  /** Precalculated categorization tags for the system */
   tags?: string[];
   overviewText?: string;
-  /** Precalculated stellar environmental hazard bitmask (FLARE_STAR: 1, IONISING_RADIATION: 2, VARIABLE_FLUX: 4) */
   hazardMask?: number;
-  /** Circumstellar belts and debris disks belonging to the system */
   disks?: CircumstellarDiskRecord[];
 }
+
+export type StarSystemManifest = SystemManifest;
 
 /**
  * Kind of circumstellar disk or belt (DEC-035).
@@ -243,6 +247,7 @@ export interface CircumstellarDiskRecord {
   tempK?: number;
   composition: string;
   confidence?: ObservationalConfidence;
+  reticleType?: CelestialSymbolType;
 }
 
 /**
@@ -351,21 +356,17 @@ export interface GalacticStructureRecord {
   designations: string[];
   /** Scientific description and context */
   description: string;
-  /** Observational confidence tier ('confirmed' default, 'theoretical' when representative distance fallback used) */
   confidence?: ObservationalConfidence;
-  /** Bitmask indicating which fields are mathematically modelled ('theoretical': 1=dist) */
   theoreticalFlags?: number;
+  reticleType?: CelestialSymbolType;
 }
 
 /**
  * Natural solar system body record with full Keplerian orbital elements (Layer 4).
  */
 export interface SolarSystemBodyRecord {
-  /** Unique identifier (e.g., 'sol', 'earth', 'jupiter', 'europa', '433-eros') */
   id: string;
-  /** Primary display name */
   name: string;
-  /** Body classification */
   classification:
     | 'Star'
     | 'Planet'
@@ -375,26 +376,22 @@ export interface SolarSystemBodyRecord {
     | 'AsteroidMainBelt'
     | 'AsteroidDistant'
     | 'Comet';
-  /** Parent body identifier for moons or secondary companions (e.g. 'sol', 'earth', 'jupiter') */
   parentBodyId?: string;
-  /** Mean physical radius in kilometers */
   meanRadiusKm: number;
-  /** Mass in kilograms */
   massKg?: number;
-  /** Standard gravitational parameter GM in km^3/s^2 */
   gm?: number;
-  /** Geometric albedo */
   albedo?: number;
-  /** Sidereal rotation period in hours */
   rotationalPeriodHours?: number;
-  /** Full Keplerian orbital elements */
   orbit?: KeplerianOrbit;
-  /** Categorization tags */
   tags?: string[];
-  /** Observational confidence tier ('confirmed' default, 'candidate' when MPC U >= 3) */
   confidence?: ObservationalConfidence;
-  /** Bitmask indicating which fields are mathematically modelled ('theoretical': 1=meanRadiusKm) */
   theoreticalFlags?: number;
+  targetStarId?: string;
+  isHabitableCandidate?: boolean;
+  beltZone?: 'belt' | 'kuiper';
+  isCoreSearch?: boolean;
+  reticleType?: CelestialSymbolType;
+  composition?: 'terrestrial' | 'super-earth' | 'sub-neptune' | 'gas-giant';
 }
 
 /**

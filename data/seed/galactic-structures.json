@@ -1,0 +1,801 @@
+[
+  {
+    "id": "hyades",
+    "name": "Hyades Cluster",
+    "type": "OpenCluster",
+    "x": 43.1,
+    "y": 17.5,
+    "z": 12.8,
+    "dist": 47.5,
+    "radiusPc": 5.7,
+    "ageMyr": 625,
+    "memberCount": 724,
+    "designations": [
+      "Hyades",
+      "Melotte 25",
+      "Collinder 50",
+      "Caldwell 41",
+      "C 0424+157"
+    ],
+    "description": "The nearest open star cluster to the Solar System, sharing a common trajectory through space."
+  },
+  {
+    "id": "coma-star-cluster",
+    "name": "Coma Star Cluster",
+    "type": "OpenCluster",
+    "x": -8.2,
+    "y": 3.4,
+    "z": 85.5,
+    "dist": 86,
+    "radiusPc": 4.8,
+    "ageMyr": 450,
+    "memberCount": 270,
+    "designations": [
+      "Coma Berenices Cluster",
+      "Melotte 111",
+      "Collinder 256"
+    ],
+    "description": "A loose, prominent open cluster located high above the galactic plane in Coma Berenices."
+  },
+  {
+    "id": "ursa-major-moving-group",
+    "name": "Ursa Major Moving Group",
+    "type": "MovingGroup",
+    "x": -3.8,
+    "y": 19.2,
+    "z": 15.6,
+    "dist": 25.1,
+    "radiusPc": 8.5,
+    "ageMyr": 414,
+    "memberCount": 140,
+    "designations": [
+      "Collinder 285",
+      "UMa Stream"
+    ],
+    "description": "A co-moving stellar kinematic group containing the core stars of the Big Dipper."
+  },
+  {
+    "id": "pleiades",
+    "name": "Pleiades (Seven Sisters / M45)",
+    "type": "OpenCluster",
+    "x": 122.8,
+    "y": 49.6,
+    "z": -34.2,
+    "dist": 135.5,
+    "radiusPc": 2.6,
+    "ageMyr": 115,
+    "memberCount": 1000,
+    "designations": [
+      "Pleiades",
+      "Seven Sisters",
+      "M45",
+      "M 045",
+      "Messier 45",
+      "Melotte 22",
+      "Collinder 42"
+    ],
+    "description": "Luminous young open cluster just beyond the 100-pc boundary, prominent in night-sky lore."
+  },
+  {
+    "id": "praesepe",
+    "name": "Praesepe (Beehive Cluster / M44)",
+    "type": "OpenCluster",
+    "x": 137.4,
+    "y": 104.2,
+    "z": 75.3,
+    "dist": 187,
+    "radiusPc": 3.5,
+    "ageMyr": 600,
+    "memberCount": 1000,
+    "designations": [
+      "Praesepe",
+      "Beehive Cluster",
+      "M44",
+      "M 044",
+      "Messier 44",
+      "NGC 2632",
+      "Melotte 88"
+    ],
+    "description": "One of the nearest open clusters, sharing similar age and proper motion to the Hyades."
+  },
+  {
+    "id": "ic-2602",
+    "name": "IC 2602 (Southern Pleiades)",
+    "type": "OpenCluster",
+    "x": -125.1,
+    "y": -74.3,
+    "z": -18.2,
+    "dist": 147,
+    "radiusPc": 2.1,
+    "ageMyr": 30,
+    "memberCount": 120,
+    "designations": [
+      "IC 2602",
+      "Southern Pleiades",
+      "Theta Carinae Cluster",
+      "Caldwell 102"
+    ],
+    "description": "Bright young open cluster surrounding Theta Carinae in the southern sky."
+  },
+  {
+    "id": "ic-2391",
+    "name": "IC 2391 (Omicron Velorum Cluster)",
+    "type": "OpenCluster",
+    "x": -118.2,
+    "y": -108.5,
+    "z": -22.1,
+    "dist": 152,
+    "radiusPc": 2.4,
+    "ageMyr": 50,
+    "memberCount": 60,
+    "designations": [
+      "IC 2391",
+      "Omicron Velorum Cluster",
+      "Caldwell 85",
+      "Melotte 91"
+    ],
+    "description": "Compact open cluster in Vela visible to the naked eye."
+  },
+  {
+    "id": "alpha-persei-cluster",
+    "name": "Alpha Persei Cluster (Melotte 20)",
+    "type": "OpenCluster",
+    "x": 152.4,
+    "y": 64.8,
+    "z": -25.6,
+    "dist": 172,
+    "radiusPc": 4.2,
+    "ageMyr": 70,
+    "memberCount": 300,
+    "designations": [
+      "Alpha Persei Cluster",
+      "Melotte 20",
+      "Collinder 39"
+    ],
+    "description": "Young OB stellar association surrounding Mirfak in Perseus."
+  },
+  {
+    "id": "m4-globular",
+    "name": "Messier 4 (M4 / NGC 6121)",
+    "type": "GlobularCluster",
+    "x": 1500,
+    "y": -800,
+    "z": 600,
+    "dist": 1900,
+    "radiusPc": 11.5,
+    "ageMyr": 12200,
+    "memberCount": 100000,
+    "designations": [
+      "Messier 4",
+      "M4",
+      "M 004",
+      "NGC 6121"
+    ],
+    "description": "The closest globular cluster to the Solar System, situated in Scorpius near Antares."
+  },
+  {
+    "id": "ngc-6397",
+    "name": "NGC 6397 (Caldwell 86)",
+    "type": "GlobularCluster",
+    "x": 1800,
+    "y": -1200,
+    "z": -450,
+    "dist": 2300,
+    "radiusPc": 9.8,
+    "ageMyr": 12800,
+    "memberCount": 400000,
+    "designations": [
+      "NGC 6397",
+      "Caldwell 86"
+    ],
+    "description": "One of the oldest known globular clusters in the Milky Way with a core-collapsed structure."
+  },
+  {
+    "id": "47-tucanae",
+    "name": "47 Tucanae (NGC 104)",
+    "type": "GlobularCluster",
+    "x": 1900,
+    "y": -2600,
+    "z": -3100,
+    "dist": 4450,
+    "radiusPc": 18.5,
+    "ageMyr": 13000,
+    "memberCount": 2000000,
+    "designations": [
+      "47 Tucanae",
+      "47 Tuc",
+      "NGC 104",
+      "Caldwell 106"
+    ],
+    "description": "The second brightest and most massive globular cluster in the Milky Way, located in Tucana."
+  },
+  {
+    "id": "omega-centauri",
+    "name": "Omega Centauri (NGC 5139)",
+    "type": "GlobularCluster",
+    "x": 4200,
+    "y": -2500,
+    "z": 1100,
+    "dist": 5200,
+    "radiusPc": 26,
+    "ageMyr": 11500,
+    "memberCount": 10000000,
+    "designations": [
+      "Omega Centauri",
+      "NGC 5139",
+      "Caldwell 80"
+    ],
+    "description": "The largest and most massive globular cluster in the Milky Way; remnant nucleus of a dwarf galaxy."
+  },
+  {
+    "id": "m13-hercules",
+    "name": "Messier 13 (Great Hercules Cluster / M13)",
+    "type": "GlobularCluster",
+    "x": 3200,
+    "y": 5500,
+    "z": 4200,
+    "dist": 7100,
+    "radiusPc": 22,
+    "ageMyr": 11650,
+    "memberCount": 300000,
+    "designations": [
+      "Messier 13",
+      "M13",
+      "M 013",
+      "Great Hercules Cluster",
+      "Hercules Globular Cluster",
+      "NGC 6205"
+    ],
+    "description": "The premier northern sky globular cluster in the constellation Hercules; target of the 1974 Arecibo Message."
+  },
+  {
+    "id": "orion-nebula",
+    "name": "Orion Nebula (M42 / NGC 1976)",
+    "type": "EmissionNebula",
+    "x": -360,
+    "y": -180,
+    "z": -100,
+    "dist": 412,
+    "radiusPc": 3.7,
+    "ageMyr": 2,
+    "designations": [
+      "Orion Nebula",
+      "M42",
+      "M 042",
+      "Messier 42",
+      "NGC 1976"
+    ],
+    "description": "The closest massive star-forming H II region to Earth, visible to the naked eye in Orion’s Sword."
+  },
+  {
+    "id": "ring-nebula",
+    "name": "Ring Nebula (M57 / NGC 6720)",
+    "type": "PlanetaryNebula",
+    "x": 340,
+    "y": 580,
+    "z": 390,
+    "dist": 787,
+    "radiusPc": 0.4,
+    "ageMyr": 0.004,
+    "designations": [
+      "Ring Nebula",
+      "M57",
+      "M 057",
+      "Messier 57",
+      "NGC 6720"
+    ],
+    "description": "Iconic bipolar planetary nebula in Lyra ionized by a central white dwarf."
+  },
+  {
+    "id": "lagoon-nebula",
+    "name": "Lagoon Nebula (M8 / NGC 6523)",
+    "type": "EmissionNebula",
+    "x": 1220,
+    "y": -150,
+    "z": -480,
+    "dist": 1320,
+    "radiusPc": 17,
+    "ageMyr": 2,
+    "designations": [
+      "Lagoon Nebula",
+      "M8",
+      "M 008",
+      "Messier 8",
+      "NGC 6523"
+    ],
+    "description": "Giant interstellar H II emission nebula and star-forming region in Sagittarius."
+  },
+  {
+    "id": "eagle-nebula",
+    "name": "Eagle Nebula (M16 / Pillars of Creation / NGC 6611)",
+    "type": "EmissionNebula",
+    "x": 1580,
+    "y": 420,
+    "z": -490,
+    "dist": 1740,
+    "radiusPc": 11,
+    "ageMyr": 1.8,
+    "designations": [
+      "Eagle Nebula",
+      "M16",
+      "M 016",
+      "Messier 16",
+      "Pillars of Creation",
+      "NGC 6611"
+    ],
+    "description": "Active star-forming H II region in Serpens home to the iconic Pillars of Creation."
+  },
+  {
+    "id": "carina-nebula",
+    "name": "Carina Nebula (NGC 3372 / Eta Carinae Nebula)",
+    "type": "EmissionNebula",
+    "x": -780,
+    "y": -2150,
+    "z": -1020,
+    "dist": 2500,
+    "radiusPc": 45,
+    "ageMyr": 3,
+    "designations": [
+      "Carina Nebula",
+      "NGC 3372",
+      "Eta Carinae Nebula",
+      "Cosmic Cliffs",
+      "Caldwell 92"
+    ],
+    "description": "One of the largest diffuse emission nebulae in our sky, containing Eta Carinae and the Cosmic Cliffs."
+  },
+  {
+    "id": "vela-snr",
+    "name": "Vela Supernova Remnant",
+    "type": "SupernovaRemnant",
+    "x": -210,
+    "y": -180,
+    "z": -50,
+    "dist": 287,
+    "radiusPc": 18,
+    "ageMyr": 0.011,
+    "designations": [
+      "Vela Supernova Remnant",
+      "Vela SNR",
+      "Gum 16",
+      "SNR G263.9-03.3"
+    ],
+    "description": "A massive expanding filamentary remnant of a stellar explosion occurring ~11,000 years ago."
+  },
+  {
+    "id": "cygnus-loop",
+    "name": "Cygnus Loop (Veil Nebula)",
+    "type": "SupernovaRemnant",
+    "x": 480,
+    "y": 520,
+    "z": -180,
+    "dist": 735,
+    "radiusPc": 16,
+    "ageMyr": 0.02,
+    "designations": [
+      "Cygnus Loop",
+      "Veil Nebula",
+      "NGC 6960",
+      "NGC 6992",
+      "Caldwell 33",
+      "Caldwell 34"
+    ],
+    "description": "Spectacular optical emission nebula marking a core-collapse supernova remnant in Cygnus."
+  },
+  {
+    "id": "crab-nebula",
+    "name": "Crab Nebula (M1 / NGC 1952)",
+    "type": "SupernovaRemnant",
+    "x": -1950,
+    "y": 450,
+    "z": -210,
+    "dist": 2000,
+    "radiusPc": 1.7,
+    "ageMyr": 0.001,
+    "designations": [
+      "Crab Nebula",
+      "M1",
+      "M 001",
+      "Messier 1",
+      "NGC 1952",
+      "Taurus A",
+      "SNR G184.6-05.8"
+    ],
+    "description": "Pulsar wind plerion remnant created by the historical supernova of 1054 recorded by Chinese astronomers."
+  },
+  {
+    "id": "helix-nebula",
+    "name": "Helix Nebula (NGC 7293)",
+    "type": "PlanetaryNebula",
+    "x": 65,
+    "y": 120,
+    "z": -170,
+    "dist": 200,
+    "radiusPc": 0.8,
+    "ageMyr": 0.01,
+    "designations": [
+      "Helix Nebula",
+      "NGC 7293",
+      "Caldwell 63",
+      "Eye of God"
+    ],
+    "description": "The closest planetary nebula to Earth, showing a dying low-mass star shedding its outer gas shell."
+  },
+  {
+    "id": "dumbbell-nebula",
+    "name": "Dumbbell Nebula (M27 / NGC 6853)",
+    "type": "PlanetaryNebula",
+    "x": 280,
+    "y": 290,
+    "z": 70,
+    "dist": 410,
+    "radiusPc": 1.1,
+    "ageMyr": 0.015,
+    "designations": [
+      "Dumbbell Nebula",
+      "M27",
+      "M 027",
+      "Messier 27",
+      "NGC 6853"
+    ],
+    "description": "The first planetary nebula discovered in history, notable for its bright hourglass morphology in Vulpecula."
+  },
+  {
+    "id": "local-interstellar-cloud",
+    "name": "Local Interstellar Cloud (LIC / Local Fluff)",
+    "type": "InterstellarMedium",
+    "x": 0.1,
+    "y": -0.2,
+    "z": 0.3,
+    "dist": 0.4,
+    "radiusPc": 4.6,
+    "designations": [
+      "Local Interstellar Cloud",
+      "LIC",
+      "Local Fluff"
+    ],
+    "description": "Partially ionised warm interstellar cloud (~7,000 K) in the Complex of Local Interstellar Clouds (CLIC) through which Sol is currently passing."
+  },
+  {
+    "id": "g-cloud",
+    "name": "G-Cloud (Galactic Center Cloud)",
+    "type": "InterstellarMedium",
+    "x": -0.7,
+    "y": -0.6,
+    "z": -1.5,
+    "dist": 1.8,
+    "radiusPc": 3.5,
+    "designations": [
+      "G-Cloud",
+      "Galactic Cloud",
+      "CLIC G-Cloud"
+    ],
+    "description": "Neighboring warm interstellar cloud (~5,500 K) immediately adjacent to the LIC toward the Galactic Centre, enveloping the Alpha Centauri system."
+  },
+  {
+    "id": "blue-cloud",
+    "name": "Blue Cloud (Sirius Dog Star Cloud)",
+    "type": "InterstellarMedium",
+    "x": -0.4,
+    "y": 2,
+    "z": -0.6,
+    "dist": 2.2,
+    "radiusPc": 2,
+    "designations": [
+      "Blue Cloud",
+      "Sirius Cloud",
+      "CLIC Blue Cloud"
+    ],
+    "description": "Compact warm diffuse cloud in the Complex of Local Interstellar Clouds situated along the line of sight to Sirius and Epsilon Canis Majoris."
+  },
+  {
+    "id": "aquilae-cloud",
+    "name": "Aquilae Cloud",
+    "type": "InterstellarMedium",
+    "x": 1.6,
+    "y": -3.1,
+    "z": 0.5,
+    "dist": 3.5,
+    "radiusPc": 3.2,
+    "designations": [
+      "Aquilae Cloud",
+      "Aql Cloud",
+      "CLIC Aquilae"
+    ],
+    "description": "Warm local interstellar cloud in the CLIC extending toward the Aquila and Altair sector."
+  },
+  {
+    "id": "mic-cloud",
+    "name": "Microscopium Cloud (Mic Cloud)",
+    "type": "InterstellarMedium",
+    "x": 2.6,
+    "y": -2.6,
+    "z": -2.1,
+    "dist": 4.2,
+    "radiusPc": 3.8,
+    "designations": [
+      "Microscopium Cloud",
+      "Mic Cloud",
+      "CLIC Mic"
+    ],
+    "description": "Filamentary warm cloud (~9,900 K) heated by shock interaction at the interface between the Local Interstellar Cloud and the G-Cloud."
+  },
+  {
+    "id": "leo-cloud",
+    "name": "Leo Cold Cloud (Local Leo Ribbon)",
+    "type": "InterstellarMedium",
+    "x": -6.7,
+    "y": 2.8,
+    "z": 1.9,
+    "dist": 7.5,
+    "radiusPc": 2.8,
+    "designations": [
+      "Leo Cloud",
+      "Local Leo Cold Cloud",
+      "LLCC",
+      "CLIC Leo"
+    ],
+    "description": "Unusually cold (~20 K), dense neutral hydrogen ribbon embedded within the hot Local Bubble cavity at ~7.5 parsecs."
+  },
+  {
+    "id": "dor-cloud",
+    "name": "Dorado Cloud (Dor Cloud)",
+    "type": "InterstellarMedium",
+    "x": 0.5,
+    "y": 3.9,
+    "z": -6.9,
+    "dist": 8,
+    "radiusPc": 3.5,
+    "designations": [
+      "Dorado Cloud",
+      "Dor Cloud",
+      "CLIC Dor"
+    ],
+    "description": "Southern warm interstellar cloud in the Complex of Local Interstellar Clouds toward Dorado."
+  },
+  {
+    "id": "eri-cloud",
+    "name": "Eridanus Cloud (Eri Cloud)",
+    "type": "InterstellarMedium",
+    "x": 5.3,
+    "y": 6.9,
+    "z": -2.3,
+    "dist": 9,
+    "radiusPc": 4,
+    "designations": [
+      "Eridanus Cloud",
+      "Eri Cloud",
+      "CLIC Eri"
+    ],
+    "description": "Warm local interstellar gas cloud in the Eridanus sector of the CLIC."
+  },
+  {
+    "id": "vela-cloud",
+    "name": "Vela Cloud (CLIC Vela)",
+    "type": "InterstellarMedium",
+    "x": -5.2,
+    "y": 5.2,
+    "z": -7.4,
+    "dist": 10.5,
+    "radiusPc": 4.5,
+    "designations": [
+      "Vela Cloud",
+      "CLIC Vela"
+    ],
+    "description": "Fast-moving warm interstellar cloud in the southern Complex of Local Interstellar Clouds."
+  },
+  {
+    "id": "local-bubble",
+    "name": "Local Bubble (Local Hot Bubble / LHB)",
+    "type": "InterstellarMedium",
+    "x": -5,
+    "y": -12,
+    "z": 7.5,
+    "dist": 15,
+    "radiusPc": 95,
+    "designations": [
+      "Local Bubble",
+      "Local Hot Bubble",
+      "LHB",
+      "Gould's Belt Cavity"
+    ],
+    "description": "Low-density (~0.001 cm⁻³) interstellar cavity spanning ~200 pc across the Orion Spur, excavated by multiple Pleiades/Sco-Cen supernova explosions over the past 14 million years."
+  },
+  {
+    "id": "corona-australis-cloud",
+    "name": "Corona Australis Molecular Cloud",
+    "type": "InterstellarMedium",
+    "x": 26.9,
+    "y": -100.2,
+    "z": -78.2,
+    "dist": 130,
+    "radiusPc": 8.5,
+    "designations": [
+      "Corona Australis Molecular Cloud",
+      "CrA Cloud",
+      "Coronet Cluster Cloud"
+    ],
+    "description": "Compact, high-density molecular cloud complex hosting the young Coronet protostellar cluster at ~130 pc."
+  },
+  {
+    "id": "rho-ophiuchi-cloud",
+    "name": "Rho Ophiuchi Cloud Complex",
+    "type": "InterstellarMedium",
+    "x": -48.5,
+    "y": -115.6,
+    "z": -57.2,
+    "dist": 138,
+    "radiusPc": 14,
+    "designations": [
+      "Rho Ophiuchi Cloud Complex",
+      "Rho Ophiuchi",
+      "Lynds 1688",
+      "Ophiuchus Molecular Cloud"
+    ],
+    "description": "Dense dark nebula and active stellar nursery at the Upper Scorpius boundary of the Local Bubble, ~138 pc from Sol."
+  },
+  {
+    "id": "taurus-molecular-cloud",
+    "name": "Taurus Molecular Cloud (TMC-1)",
+    "type": "InterstellarMedium",
+    "x": 48.2,
+    "y": 116.3,
+    "z": 61.4,
+    "dist": 140,
+    "radiusPc": 16,
+    "designations": [
+      "Taurus Molecular Cloud",
+      "TMC",
+      "TMC-1",
+      "Lynds 1527"
+    ],
+    "description": "The nearest large molecular cloud complex and low-mass star-forming nursery on the rim of the Local Bubble."
+  },
+  {
+    "id": "pipe-nebula",
+    "name": "Pipe Nebula (Barnard 59 / 65–67 / 78)",
+    "type": "InterstellarMedium",
+    "x": -22,
+    "y": -127.8,
+    "z": -64.7,
+    "dist": 145,
+    "radiusPc": 14,
+    "designations": [
+      "Pipe Nebula",
+      "Barnard 78",
+      "Barnard 59",
+      "LDN 1773"
+    ],
+    "description": "Vast pipe-shaped dark molecular cloud complex in southern Ophiuchus silhouetted against the Galactic Bulge."
+  },
+  {
+    "id": "lupus-molecular-cloud",
+    "name": "Lupus Molecular Cloud Complex",
+    "type": "InterstellarMedium",
+    "x": -68,
+    "y": -101.5,
+    "z": -95.4,
+    "dist": 155,
+    "radiusPc": 18,
+    "designations": [
+      "Lupus Molecular Cloud",
+      "Lupus Cloud Complex",
+      "Lupus I-IV"
+    ],
+    "description": "Chain of star-forming dark molecular clouds (Lupus I–IV) bordering the Scorpius-Centaurus OB association."
+  },
+  {
+    "id": "coalsack-nebula",
+    "name": "Coalsack Nebula (Caldwell 99)",
+    "type": "InterstellarMedium",
+    "x": -81.4,
+    "y": -17.2,
+    "z": -159.6,
+    "dist": 180,
+    "radiusPc": 15,
+    "designations": [
+      "Coalsack Nebula",
+      "Southern Coalsack",
+      "Caldwell 99",
+      "TGU H1867"
+    ],
+    "description": "The most prominent naked-eye dark absorption nebula in the southern Milky Way, silhouetted against Crux."
+  },
+  {
+    "id": "chamaeleon-cloud-complex",
+    "name": "Chamaeleon Cloud Complex",
+    "type": "InterstellarMedium",
+    "x": -41.1,
+    "y": 9.8,
+    "z": -183.2,
+    "dist": 188,
+    "radiusPc": 16.5,
+    "designations": [
+      "Chamaeleon Cloud Complex",
+      "Chamaeleon I",
+      "Chamaeleon Dark Clouds"
+    ],
+    "description": "High-latitude southern molecular cloud complex rich in T Tauri protostars and reflection nebulae."
+  },
+  {
+    "id": "sagittarius-a-star",
+    "name": "Sagittarius A* (Galactic Center)",
+    "type": "DeepSkyLandmark",
+    "x": 8178,
+    "y": 0,
+    "z": 0,
+    "dist": 8178,
+    "radiusPc": 0.01,
+    "designations": [
+      "Sagittarius A*",
+      "Sgr A*",
+      "Sagittarius A",
+      "Galactic Center",
+      "Milky Way Supermassive Black Hole"
+    ],
+    "description": "Supermassive black hole (4.15 million solar masses) at the dynamical center of the Milky Way galaxy."
+  },
+  {
+    "id": "geminga",
+    "name": "Geminga (PSR J0633+1746)",
+    "type": "Pulsar",
+    "x": -128.5,
+    "y": 182.4,
+    "z": 63.1,
+    "dist": 250,
+    "ageMyr": 0.34,
+    "designations": [
+      "Geminga",
+      "PSR J0633+1746",
+      "2CG 195+04"
+    ],
+    "description": "Radio-quiet gamma-ray pulsar and neutron star created by an ancient local supernova."
+  },
+  {
+    "id": "psr-j0108-1431",
+    "name": "PSR J0108-1431",
+    "type": "Pulsar",
+    "x": 48.2,
+    "y": -92.5,
+    "z": -68.3,
+    "dist": 130,
+    "ageMyr": 166,
+    "designations": [
+      "PSR J0108-1431",
+      "PSR B0106-14"
+    ],
+    "description": "One of the oldest and closest known isolated radio pulsars to Earth."
+  },
+  {
+    "id": "vela-pulsar",
+    "name": "Vela Pulsar (PSR B0833-45)",
+    "type": "Pulsar",
+    "x": -212,
+    "y": -184,
+    "z": -52,
+    "dist": 290,
+    "ageMyr": 0.011,
+    "designations": [
+      "Vela Pulsar",
+      "PSR B0833-45",
+      "PSR J0835-4510"
+    ],
+    "description": "Rapidly rotating neutron star (period: 89 ms) powering the central filaments of the Vela SNR."
+  },
+  {
+    "id": "crab-pulsar",
+    "name": "Crab Pulsar (PSR B0531+21)",
+    "type": "Pulsar",
+    "x": -1950,
+    "y": 450,
+    "z": -210,
+    "dist": 2000,
+    "ageMyr": 0.001,
+    "designations": [
+      "Crab Pulsar",
+      "PSR B0531+21",
+      "PSR J0534+2200"
+    ],
+    "description": "Young central neutron star (period: 33 ms) formed in the 1054 CE supernova at the heart of the Crab Nebula."
+  }
+]
