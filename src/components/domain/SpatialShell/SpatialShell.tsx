@@ -159,8 +159,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
     if (controlledBodiesOpen === undefined && initialBodiesDrawerOpen !== undefined && !isLocallyOverridden) {
       setActiveDrawer(initialBodiesDrawerOpen ? 'bodies' : null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [controlledBodiesOpen, initialBodiesDrawerOpen, isLocallyOverridden, setActiveDrawer]);
 
   const isBodiesDrawerOpen =
     controlledBodiesOpen !== undefined

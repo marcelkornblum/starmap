@@ -172,30 +172,10 @@ const loadDetailBucket = (
 ): Promise<Record<string, CompactDetailRecord>> => {
   let pending = DETAIL_BUCKET_CACHE.get(bucketKey);
   if (!pending) {
-    pending = (async () => {
-      const url = resolveDataUrl(`/data/details/${bucketKey}.json`);
-      const response = signal
-        ? await fetchImpl(url, { signal })
-        : await fetchImpl(url);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load detail shard "${bucketKey}": ${response.status} ${response.statusText}`,
-        );
-      }
-      const envelope =
-        (await response.json()) as ShardedBucketEnvelope<CompactDetailRecord>;
-      const data = envelope.d ?? {};
-      RESOLVED_DETAIL_BUCKET_CACHE.set(bucketKey, data);
-      notifyDetailsListeners();
-      return data;
-    })().catch((err: unknown) => {
-      DETAIL_BUCKET_CACHE.delete(bucketKey);
-      throw err;
-    });
-
+    let onAbort: (() => void) | undefined;
     if (signal) {
-      const onAbort = () => {
-        signal.removeEventListener('abort', onAbort);
+      onAbort = () => {
+        signal.removeEventListener('abort', onAbort!);
         if (DETAIL_BUCKET_CACHE.get(bucketKey) === pending) {
           DETAIL_BUCKET_CACHE.delete(bucketKey);
         }
@@ -203,15 +183,37 @@ const loadDetailBucket = (
       signal.addEventListener('abort', onAbort);
     }
 
+    pending = (async () => {
+      try {
+        const url = resolveDataUrl(`/data/details/${bucketKey}.json`);
+        const response = signal
+          ? await fetchImpl(url, { signal })
+          : await fetchImpl(url);
+        if (!response.ok) {
+          throw new Error(
+            `Failed to load detail shard "${bucketKey}": ${response.status} ${response.statusText}`,
+          );
+        }
+        const envelope =
+          (await response.json()) as ShardedBucketEnvelope<CompactDetailRecord>;
+        const data = envelope.d ?? {};
+        RESOLVED_DETAIL_BUCKET_CACHE.set(bucketKey, data);
+        notifyDetailsListeners();
+        return data;
+      } finally {
+        if (signal && onAbort) {
+          signal.removeEventListener('abort', onAbort);
+        }
+      }
+    })().catch((err: unknown) => {
+      DETAIL_BUCKET_CACHE.delete(bucketKey);
+      throw err;
+    });
+
     DETAIL_BUCKET_CACHE.set(bucketKey, pending);
   }
 
-  return pending.catch((err: unknown) => {
-    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
-      return loadDetailBucket(bucketKey, fetchImpl, signal);
-    }
-    throw err;
-  });
+  return pending;
 };
 
 /**

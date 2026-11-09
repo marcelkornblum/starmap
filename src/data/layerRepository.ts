@@ -92,38 +92,40 @@ export const fetchLayerIndex = (
   signal?: AbortSignal,
 ): Promise<readonly DatasetLayerIndexEntry[]> => {
   if (!layerIndexPromise) {
-    layerIndexPromise = (async () => {
-      const url = resolveDataUrl('/data/overlays/layers/index.json');
-      const response = signal
-        ? await fetchImpl(url, { signal })
-        : await fetchImpl(url);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load layer index: ${response.status} ${response.statusText}`,
-        );
-      }
-      const envelope = (await response.json()) as LayerIndexEnvelope;
-      return envelope.d ?? [];
-    })().catch((err: unknown) => {
-      layerIndexPromise = undefined;
-      throw err;
-    });
-
+    let onAbort: (() => void) | undefined;
     if (signal) {
-      const onAbort = () => {
-        signal.removeEventListener('abort', onAbort);
+      onAbort = () => {
+        signal.removeEventListener('abort', onAbort!);
         layerIndexPromise = undefined;
       };
       signal.addEventListener('abort', onAbort);
     }
+
+    layerIndexPromise = (async () => {
+      try {
+        const url = resolveDataUrl('/data/overlays/layers/index.json');
+        const response = signal
+          ? await fetchImpl(url, { signal })
+          : await fetchImpl(url);
+        if (!response.ok) {
+          throw new Error(
+            `Failed to load layer index: ${response.status} ${response.statusText}`,
+          );
+        }
+        const envelope = (await response.json()) as LayerIndexEnvelope;
+        return envelope.d ?? [];
+      } finally {
+        if (signal && onAbort) {
+          signal.removeEventListener('abort', onAbort);
+        }
+      }
+    })().catch((err: unknown) => {
+      layerIndexPromise = undefined;
+      throw err;
+    });
   }
 
-  return layerIndexPromise.catch((err: unknown) => {
-    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
-      return fetchLayerIndex(fetchImpl, signal);
-    }
-    throw err;
-  });
+  return layerIndexPromise;
 };
 
 /**
@@ -136,30 +138,10 @@ export const fetchLayerManifest = (
 ): Promise<DatasetLayerManifest> => {
   let pending = MANIFEST_CACHE.get(layerId);
   if (!pending) {
-    pending = (async () => {
-      const url = resolveDataUrl(`/data/overlays/layers/${layerId}.json`);
-      const response = signal
-        ? await fetchImpl(url, { signal })
-        : await fetchImpl(url);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load layer manifest "${layerId}": ${response.status} ${response.statusText}`,
-        );
-      }
-      return decodeLayerManifest((await response.json()) as CompactLayerManifest);
-    })()
-      .then((manifest) => {
-        RESOLVED_MANIFEST_CACHE.set(layerId, manifest);
-        return manifest;
-      })
-      .catch((err: unknown) => {
-        MANIFEST_CACHE.delete(layerId);
-        throw err;
-      });
-
+    let onAbort: (() => void) | undefined;
     if (signal) {
-      const onAbort = () => {
-        signal.removeEventListener('abort', onAbort);
+      onAbort = () => {
+        signal.removeEventListener('abort', onAbort!);
         if (MANIFEST_CACHE.get(layerId) === pending) {
           MANIFEST_CACHE.delete(layerId);
         }
@@ -167,15 +149,34 @@ export const fetchLayerManifest = (
       signal.addEventListener('abort', onAbort);
     }
 
+    pending = (async () => {
+      try {
+        const url = resolveDataUrl(`/data/overlays/layers/${layerId}.json`);
+        const response = signal
+          ? await fetchImpl(url, { signal })
+          : await fetchImpl(url);
+        if (!response.ok) {
+          throw new Error(
+            `Failed to load layer manifest "${layerId}": ${response.status} ${response.statusText}`,
+          );
+        }
+        const manifest = decodeLayerManifest((await response.json()) as CompactLayerManifest);
+        RESOLVED_MANIFEST_CACHE.set(layerId, manifest);
+        return manifest;
+      } finally {
+        if (signal && onAbort) {
+          signal.removeEventListener('abort', onAbort);
+        }
+      }
+    })().catch((err: unknown) => {
+      MANIFEST_CACHE.delete(layerId);
+      throw err;
+    });
+
     MANIFEST_CACHE.set(layerId, pending);
   }
 
-  return pending.catch((err: unknown) => {
-    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
-      return fetchLayerManifest(layerId, fetchImpl, signal);
-    }
-    throw err;
-  });
+  return pending;
 };
 
 const fetchEntityBucket = (
@@ -185,31 +186,10 @@ const fetchEntityBucket = (
 ): Promise<Record<string, CompactEntityAnnotation[]>> => {
   let pending = ENTITY_BUCKET_CACHE.get(bucketKey);
   if (!pending) {
-    pending = (async () => {
-      const url = resolveDataUrl(`/data/overlays/layers/by-entity/${bucketKey}.json`);
-      const response = signal
-        ? await fetchImpl(url, { signal })
-        : await fetchImpl(url);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load by-entity layer shard "${bucketKey}": ${response.status} ${response.statusText}`,
-        );
-      }
-      const envelope = (await response.json()) as ShardedBucketEnvelope<
-        CompactEntityAnnotation[]
-      >;
-      return envelope.d ?? {};
-    })().then((data) => {
-      RESOLVED_ENTITY_BUCKET_CACHE.set(bucketKey, data);
-      return data;
-    }).catch((err: unknown) => {
-      ENTITY_BUCKET_CACHE.delete(bucketKey);
-      throw err;
-    });
-
+    let onAbort: (() => void) | undefined;
     if (signal) {
-      const onAbort = () => {
-        signal.removeEventListener('abort', onAbort);
+      onAbort = () => {
+        signal.removeEventListener('abort', onAbort!);
         if (ENTITY_BUCKET_CACHE.get(bucketKey) === pending) {
           ENTITY_BUCKET_CACHE.delete(bucketKey);
         }
@@ -217,15 +197,37 @@ const fetchEntityBucket = (
       signal.addEventListener('abort', onAbort);
     }
 
+    pending = (async () => {
+      try {
+        const url = resolveDataUrl(`/data/overlays/layers/by-entity/${bucketKey}.json`);
+        const response = signal
+          ? await fetchImpl(url, { signal })
+          : await fetchImpl(url);
+        if (!response.ok) {
+          throw new Error(
+            `Failed to load by-entity layer shard "${bucketKey}": ${response.status} ${response.statusText}`,
+          );
+        }
+        const envelope = (await response.json()) as ShardedBucketEnvelope<
+          CompactEntityAnnotation[]
+        >;
+        const data = envelope.d ?? {};
+        RESOLVED_ENTITY_BUCKET_CACHE.set(bucketKey, data);
+        return data;
+      } finally {
+        if (signal && onAbort) {
+          signal.removeEventListener('abort', onAbort);
+        }
+      }
+    })().catch((err: unknown) => {
+      ENTITY_BUCKET_CACHE.delete(bucketKey);
+      throw err;
+    });
+
     ENTITY_BUCKET_CACHE.set(bucketKey, pending);
   }
 
-  return pending.catch((err: unknown) => {
-    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
-      return fetchEntityBucket(bucketKey, fetchImpl, signal);
-    }
-    throw err;
-  });
+  return pending;
 };
 
 /**
