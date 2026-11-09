@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../../interface';
 import { useUIStore } from '../../../stores/useUIStore';
 import styles from './SpatialShell.module.css';
@@ -152,7 +152,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   const isWideViewport = useIsWideViewport();
 
   const [isLocallyOverridden, setIsLocallyOverridden] = useState(false);
-  const initialStoreDrawerRef = useRef(activeDrawer);
+  const [initialStoreDrawer] = useState(activeDrawer);
 
   // Synchronise store on mount if an initial uncontrolled drawer state was provided
   useEffect(() => {
@@ -164,7 +164,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   const isBodiesDrawerOpen =
     controlledBodiesOpen !== undefined
       ? controlledBodiesOpen
-      : initialBodiesDrawerOpen !== undefined && !isLocallyOverridden && activeDrawer === initialStoreDrawerRef.current
+      : initialBodiesDrawerOpen !== undefined && !isLocallyOverridden && activeDrawer === initialStoreDrawer
         ? initialBodiesDrawerOpen
         : isStoreBodiesOpen;
 
