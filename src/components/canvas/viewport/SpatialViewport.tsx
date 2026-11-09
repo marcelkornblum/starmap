@@ -210,7 +210,25 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
           state.apertureCenter !== prevState.apertureCenter ||
           state.apertureRadius !== prevState.apertureRadius
         ) {
-          outerStore.getState().setApertureFrame(state.apertureCenter, state.apertureRadius);
+          const currentOuter = outerStore.getState();
+          const curCenter = currentOuter.apertureCenter;
+          const nextCenter = state.apertureCenter;
+          const centerChanged =
+            (curCenter === null) !== (nextCenter === null) ||
+            (curCenter !== null &&
+              nextCenter !== null &&
+              (Math.abs(curCenter[0] - nextCenter[0]) > 0.05 ||
+                Math.abs(curCenter[1] - nextCenter[1]) > 0.05 ||
+                Math.abs(curCenter[2] - nextCenter[2]) > 0.05));
+          const radiusChanged =
+            (currentOuter.apertureRadius === null) !== (state.apertureRadius === null) ||
+            (currentOuter.apertureRadius !== null &&
+              state.apertureRadius !== null &&
+              Math.abs(currentOuter.apertureRadius - state.apertureRadius) > 0.05);
+
+          if (centerChanged || radiusChanged) {
+            outerStore.getState().setApertureFrame(state.apertureCenter, state.apertureRadius);
+          }
         }
         if (state.apertureIds !== prevState.apertureIds) {
           outerStore.getState().setApertureIds(state.apertureIds);
@@ -362,12 +380,6 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
   );
 
   const [scopedStore] = React.useState(() => {
-    // When an outer SpatialEntityContext store is already present and props.outerStore is not explicitly overriding it,
-    // unify directly with the outer store to avoid redundant duplicate instances and echo loops.
-    if (contextStore && !props.outerStore) {
-      return contextStore;
-    }
-
     const focusPoint = props.cameraTarget
       ? (props.cameraTarget instanceof THREE.Vector3
           ? props.cameraTarget

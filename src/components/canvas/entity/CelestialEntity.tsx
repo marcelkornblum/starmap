@@ -62,7 +62,7 @@ export interface CelestialEntityProps extends Partial<SpatialEntityDefinition> {
  * - Layer 3: EntityLabel (Typographic Designation & Proximity Occlusion)
  * - Supporting Features: DropStalk (§2.4), KinematicVector (§5), OrbitPath (§4.4).
  */
-export const CelestialEntity: React.FC<CelestialEntityProps> = ({
+export const CelestialEntity: React.FC<CelestialEntityProps> = React.memo(({
   id,
   name,
   position,
@@ -492,4 +492,6 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
       {children}
     </group>
   );
-};
+});
+
+CelestialEntity.displayName = 'CelestialEntity';

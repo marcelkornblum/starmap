@@ -93,6 +93,19 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   }, [groupRef]);
 
   const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
+  const lastBillboardSyncRef = useRef({
+    qx: Number.NaN,
+    qy: Number.NaN,
+    qz: Number.NaN,
+    qw: Number.NaN,
+    scale: Number.NaN,
+    hx: Number.NaN,
+    hy: Number.NaN,
+  });
+
+  useEffect(() => {
+    lastBillboardSyncRef.current.qx = Number.NaN;
+  }, [interactive]);
 
   const getPointerCoord = (e: ThreeEvent<PointerEvent>): { x: number; y: number } => {
     const native = e.nativeEvent as (PointerEvent | MouseEvent | undefined);
@@ -168,9 +181,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
     markerRef.current.scale.set(worldScale, worldScale, worldScale);
 
     // 2. Align invisible hitarea to face camera directly with invariant screen footprint matching reticle
-    if (billboardRef.current && hitareaRef.current) {
-      billboardRef.current.quaternion.copy(camera.quaternion);
-
+    if (interactive && billboardRef.current && hitareaRef.current) {
       const invScale = resolveEntityScreenInvariantScale(
         camDist,
         camera,
@@ -178,18 +189,45 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
       );
       const rSize = reticleSize ?? DEFAULT_RETICLE_SIZE;
       const effectiveHitRadius = (hitRadius ?? rSize) * invScale;
-      hitareaRef.current.scale.set(effectiveHitRadius, effectiveHitRadius, 1);
 
       // Interactive Hit-Testing Fan-Out (Spec 2.2):
       // When systems overlap in screen space, underlying invisible hit areas fan out radially around cluster centroid
       const hitOffset = occlusionManager.evaluateHitAreaOffset(id);
       const reticleRadiusPx = reticleSizeToScreenPx(rSize, size.height);
       const pxToLocal = reticleRadiusPx > 0 ? (rSize * invScale) / reticleRadiusPx : 0;
-      if (hitareaRef.current) {
-        hitareaRef.current.position.set(hitOffset.x * pxToLocal, -hitOffset.y * pxToLocal, 0);
-      }
+      const localHitX = hitOffset.x * pxToLocal;
+      const localHitY = -hitOffset.y * pxToLocal;
 
-      billboardRef.current?.updateMatrixWorld(true);
+      const cq = camera.quaternion;
+      const last = lastBillboardSyncRef.current;
+      const quatChanged =
+        Number.isNaN(last.qw) ||
+        Math.abs(last.qx - cq.x) > 1e-6 ||
+        Math.abs(last.qy - cq.y) > 1e-6 ||
+        Math.abs(last.qz - cq.z) > 1e-6 ||
+        Math.abs(last.qw - cq.w) > 1e-6;
+      const scaleChanged =
+        Number.isNaN(last.scale) ||
+        Math.abs(last.scale - effectiveHitRadius) > 1e-6;
+      const hitChanged =
+        Number.isNaN(last.hx) ||
+        Math.abs(last.hx - localHitX) > 1e-6 ||
+        Math.abs(last.hy - localHitY) > 1e-6;
+
+      if (quatChanged || scaleChanged || hitChanged) {
+        billboardRef.current.quaternion.copy(cq);
+        hitareaRef.current.scale.set(effectiveHitRadius, effectiveHitRadius, 1);
+        hitareaRef.current.position.set(localHitX, localHitY, 0);
+        billboardRef.current.updateMatrixWorld(true);
+
+        last.qx = cq.x;
+        last.qy = cq.y;
+        last.qz = cq.z;
+        last.qw = cq.w;
+        last.scale = effectiveHitRadius;
+        last.hx = localHitX;
+        last.hy = localHitY;
+      }
     }
   });
 

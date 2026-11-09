@@ -26,12 +26,16 @@ vi.mock('@react-three/drei', async (importOriginal) => {
   };
 });
 
+const mockCanvasRender = vi.fn();
+
 vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {
     ...actual,
-    Canvas: ({ children, className }: { children?: React.ReactNode; className?: string }) =>
-      createElement('div', { 'data-testid': 'mock-canvas', className }, children),
+    Canvas: ({ children, className }: { children?: React.ReactNode; className?: string }) => {
+      mockCanvasRender();
+      return createElement('div', { 'data-testid': 'mock-canvas', className }, children);
+    },
     useFrame: vi.fn(),
     useThree: () => ({
       camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
@@ -203,5 +207,44 @@ describe('RootCanvasHost Domain Component', () => {
 
     const canvasPlanet = screen.getByTestId('mock-canvas');
     expect(canvasPlanet).toBe(canvasGalaxy);
+  });
+
+  it('updates data-camera-* DOM attributes imperatively without re-rendering CanvasLayer or child tree', () => {
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+      if (contextId === 'webgl2' || contextId === 'webgl') {
+        return {} as WebGLRenderingContext;
+      }
+      return null;
+    });
+    _resetWebGLSupportedForTesting();
+
+    render(<RootCanvasHost />);
+    const host = screen.getByTestId('root-canvas-host');
+
+    expect(host.getAttribute('data-camera-pos')).toBe('0.00,0.00,0.00');
+    expect(host.getAttribute('data-camera-target')).toBe('0.00,0.00,0.00');
+    expect(host.getAttribute('data-camera-dist')).toBe('0.00');
+
+    mockCanvasRender.mockClear();
+    const useMemoSpy = vi.spyOn(React, 'useMemo');
+
+    act(() => {
+      useCameraStore.getState().setCameraPose({
+        position: [12.5, 23.4, 34.5],
+        target: [1.1, 2.2, 3.3],
+        up: [0, 1, 0],
+        zoom: 1,
+        focalDistance: 45.67,
+      });
+    });
+
+    expect(host.getAttribute('data-camera-pos')).toBe('12.50,23.40,34.50');
+    expect(host.getAttribute('data-camera-target')).toBe('1.10,2.20,3.30');
+    expect(host.getAttribute('data-camera-dist')).toBe('45.67');
+
+    // Neither RootCanvasHost nor child tree re-rendered
+    expect(useMemoSpy).not.toHaveBeenCalled();
+    expect(mockCanvasRender).not.toHaveBeenCalled();
+    useMemoSpy.mockRestore();
   });
 });

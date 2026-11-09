@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import { GALACTIC_FRAME } from '../instrument/referenceFrame';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
@@ -52,7 +52,7 @@ export interface GalaxySceneProps {
  * GalaxyScene: Canonical production scene for Milky Way top-level galactic cartography.
  * Renders streamed 3D sector point cloud and nearest stellar nodes mapped into GALACTIC_FRAME.
  */
-export const GalaxyScene: React.FC<GalaxySceneProps> = ({
+export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
   additionalEntities,
   initialSelectedId,
   onInspectSystem,
@@ -65,6 +65,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
   const [hasHydrated, setHasHydrated] = useState(() => useActiveStarsStore.getState().isHydrated);
   const [focusPointPc, setFocusPointPc] = useState<readonly [number, number, number]>([0, 0, 0]);
   const budget = useMemo(() => getDeviceTierBudget(), []);
+  const lastCeilingRadiusRef = useRef<number | null>(null);
 
   const handleHydratedSummariesChange = useCallback(
     (
@@ -99,18 +100,20 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
   }, []);
 
   useEffect(() => {
+    let nextRadius: number | null = null;
     if (streamedSummaries.length >= budget.maxActiveEntities) {
       const boundaryStar = streamedSummaries[budget.maxActiveEntities - 1];
       if (boundaryStar) {
         const dx = boundaryStar.x - focusPointPc[0];
         const dy = boundaryStar.y - focusPointPc[1];
         const dz = boundaryStar.z - focusPointPc[2];
-        onCeilingApertureRadiusChange?.(Math.hypot(dx, dy, dz));
-      } else {
-        onCeilingApertureRadiusChange?.(null);
+        nextRadius = Math.round(Math.hypot(dx, dy, dz));
       }
-    } else {
-      onCeilingApertureRadiusChange?.(null);
+    }
+
+    if (lastCeilingRadiusRef.current !== nextRadius) {
+      lastCeilingRadiusRef.current = nextRadius;
+      onCeilingApertureRadiusChange?.(nextRadius);
     }
   }, [streamedSummaries, focusPointPc, budget.maxActiveEntities, onCeilingApertureRadiusChange]);
 
@@ -235,4 +238,6 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
       <SectorPointCloud onHydratedSummariesChange={handleHydratedSummariesChange} />
     </SpatialViewport>
   );
-};
+});
+
+GalaxyScene.displayName = 'GalaxyScene';

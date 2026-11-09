@@ -79,14 +79,16 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     const distDiff = Math.abs(focalDistance - store.focalDistance);
 
     if (force || posDiff > 0.05 || targetDiff > 0.05 || distDiff > 0.05) {
-      store.setSavedGalaxyCamera({
-        position: pos,
-        target: tgt,
-        up,
-        zoom: getCameraZoom(camera),
-        focalDistance,
-        centerKey: `${tgt[0]},${tgt[1]},${tgt[2]}`,
-      });
+      if (force) {
+        store.setSavedGalaxyCamera({
+          position: pos,
+          target: tgt,
+          up,
+          zoom: getCameraZoom(camera),
+          focalDistance,
+          centerKey: `${tgt[0]},${tgt[1]},${tgt[2]}`,
+        });
+      }
       store.setCameraPose({
         position: pos,
         target: tgt,
@@ -183,7 +185,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
           focalDistance: saved.focalDistance,
         });
 
-        if (controls && isMatch) saveCurrentGalaxyPose();
+        if (controls && isMatch) saveCurrentGalaxyPose(true);
         prevTargetRef.current = isTransientZero
           ? [saved.target[0], saved.target[1], saved.target[2]]
           : [targetX, targetY, targetZ];
@@ -225,7 +227,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
         focalDistance: initialDist,
       });
 
-      if (controls) saveCurrentGalaxyPose();
+      if (controls) saveCurrentGalaxyPose(true);
       prevTargetRef.current = [targetX, targetY, targetZ];
       prevDistanceRef.current = distance ?? Number.NaN;
       prevRecenterTickRef.current = recenterTick;
@@ -274,7 +276,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       zoom: getCameraZoom(camera),
       focalDistance: finalDist,
     });
-    saveCurrentGalaxyPose();
+    saveCurrentGalaxyPose(true);
 
     prevTargetRef.current = [targetX, targetY, targetZ];
     prevDistanceRef.current = distance ?? Number.NaN;

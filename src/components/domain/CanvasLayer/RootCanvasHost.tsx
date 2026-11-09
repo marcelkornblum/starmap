@@ -1,4 +1,4 @@
-import React, { useSyncExternalStore, useLayoutEffect, useEffect, useMemo } from 'react';
+import React, { useSyncExternalStore, useLayoutEffect, useEffect, useMemo, useRef } from 'react';
 import {
   useCanvasStageStore,
   getStageCallbacks,
@@ -12,6 +12,7 @@ const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export const RootCanvasHost: React.FC = () => {
+  const hostRef = useRef<HTMLDivElement>(null);
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
   const activeSlotCount = useCanvasStageStore((s) => s.activeSlotCount);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
@@ -21,10 +22,7 @@ export const RootCanvasHost: React.FC = () => {
     getStageCallbacks,
   );
 
-  const cameraMode = useCameraStore((s) => s.mode);
-  const cameraPosition = useCameraStore((s) => s.position);
-  const cameraTarget = useCameraStore((s) => s.target);
-  const cameraFocalDistance = useCameraStore((s) => s.focalDistance);
+  const initialCam = useCameraStore.getState();
 
   useIsomorphicLayoutEffect(() => {
     setRootCanvasMounted(true);
@@ -32,6 +30,25 @@ export const RootCanvasHost: React.FC = () => {
       setRootCanvasMounted(false);
     };
   }, [setRootCanvasMounted]);
+
+  useIsomorphicLayoutEffect(() => {
+    return useCameraStore.subscribe((state, prevState) => {
+      const el = hostRef.current;
+      if (!el) return;
+      if (state.mode !== prevState?.mode) {
+        el.setAttribute('data-camera-mode', state.mode);
+      }
+      if (state.position !== prevState?.position) {
+        el.setAttribute('data-camera-pos', state.position.map((v) => v.toFixed(2)).join(','));
+      }
+      if (state.target !== prevState?.target) {
+        el.setAttribute('data-camera-target', state.target.map((v) => v.toFixed(2)).join(','));
+      }
+      if (state.focalDistance !== prevState?.focalDistance) {
+        el.setAttribute('data-camera-dist', state.focalDistance.toFixed(2));
+      }
+    });
+  }, []);
 
   const canvasLayerContent = useMemo(
     () => (
@@ -79,13 +96,14 @@ export const RootCanvasHost: React.FC = () => {
 
   return (
     <div
+      ref={hostRef}
       className={styles.rootCanvasHost}
       data-testid="root-canvas-host"
       data-stage-inactive={activeSlotCount === 0 ? 'true' : undefined}
-      data-camera-mode={cameraMode}
-      data-camera-pos={cameraPosition.map((v) => v.toFixed(2)).join(',')}
-      data-camera-target={cameraTarget.map((v) => v.toFixed(2)).join(',')}
-      data-camera-dist={cameraFocalDistance.toFixed(2)}
+      data-camera-mode={initialCam.mode}
+      data-camera-pos={initialCam.position.map((v) => v.toFixed(2)).join(',')}
+      data-camera-target={initialCam.target.map((v) => v.toFixed(2)).join(',')}
+      data-camera-dist={initialCam.focalDistance.toFixed(2)}
       aria-hidden="true"
     >
       {canvasLayerContent}

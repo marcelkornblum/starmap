@@ -266,7 +266,9 @@ export class CelestialOcclusionManager {
    * Batch evaluate dynamic screen projections for all registered footprints.
    */
   public evaluate(camera: THREE.Camera, size: { width: number; height: number }): void {
-    this.lastEvaluationTime = performance.now();
+    if (this.lastEvaluationTime === 0) {
+      this.lastEvaluationTime = performance.now();
+    }
 
     const camEls = camera.matrixWorldInverse.elements;
     const projEls = camera.projectionMatrix.elements;
@@ -291,6 +293,7 @@ export class CelestialOcclusionManager {
       return;
     }
 
+    this.lastEvaluationTime = performance.now();
     this.cameraOrFootprintsChangedThisFrame = true;
     this.footprintsMutated = false;
     this.lastSizeWidth = size.width;
@@ -337,8 +340,6 @@ export class CelestialOcclusionManager {
         fp.labelBox.right = anchorX + estimatedW;
         fp.labelBox.bottom = anchorY + estimatedH / 2;
       }
-
-      fp.updatedAt = performance.now();
     }
     this.gridDirty = true;
     this.ensureGrid();
@@ -430,11 +431,21 @@ export class CelestialOcclusionManager {
    * Register or update a celestial node's screen-space footprint.
    */
   public register(footprint: CelestialFootprint): void {
+    const prev = this.footprints.get(footprint.id);
     this.footprints.set(footprint.id, footprint);
     this.gridDirty = true;
     this.footprintsMutated = true;
-    this.updateSignificantFootprints();
-    this.updateStalkedSnapshot();
+    if (
+      prev?.state === 'selected' ||
+      prev?.state === 'focused' ||
+      footprint.state === 'selected' ||
+      footprint.state === 'focused'
+    ) {
+      this.updateSignificantFootprints();
+    }
+    if (Boolean(prev?.hasStalk) || Boolean(footprint.hasStalk)) {
+      this.updateStalkedSnapshot();
+    }
   }
 
   /**

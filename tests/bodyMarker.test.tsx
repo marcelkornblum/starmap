@@ -64,6 +64,87 @@ describe('BodyMarker Interaction & Matrix Updates (AUD-115, AUD-116)', () => {
     spy.mockRestore();
   });
 
+  it('skips updateMatrixWorld and evaluateHitAreaOffset when interactive={false}, and deduplicates updates on stationary frames when interactive={true}', async () => {
+    const updateMatrixSpy = vi.spyOn(THREE.Group.prototype, 'updateMatrixWorld');
+    const { CelestialOcclusionManager } = await import(
+      '../src/components/canvas/cartography/celestialOcclusionRegistry'
+    );
+    const occlusionManager = new CelestialOcclusionManager();
+    const evalHitAreaSpy = vi.spyOn(occlusionManager, 'evaluateHitAreaOffset');
+
+    // 1. Render passive marker (interactive={false})
+    const { unmount } = render(
+      createElement(
+        SpatialEntityProvider,
+        { occlusionManager },
+        createElement(
+          SpatialFrameProvider,
+          { frame: GALACTIC_FRAME },
+          createElement(BodyMarker, {
+            id: 'passive-star',
+            position: [1, 2, 3],
+            interactive: false,
+          }),
+        ),
+      ),
+    );
+
+    const passiveFrameCb = frameCallbackQueue[frameCallbackQueue.length - 1];
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.set(0, 0, 10);
+    camera.quaternion.set(0, 0, 0, 1);
+
+    updateMatrixSpy.mockClear();
+    evalHitAreaSpy.mockClear();
+
+    passiveFrameCb({ camera, size: { width: 1920, height: 1080 } }, 0.016);
+    expect(updateMatrixSpy).not.toHaveBeenCalled();
+    expect(evalHitAreaSpy).not.toHaveBeenCalled();
+    unmount();
+
+    // 2. Render interactive marker (interactive={true})
+    frameCallbackQueue.length = 0;
+    render(
+      createElement(
+        SpatialEntityProvider,
+        { occlusionManager },
+        createElement(
+          SpatialFrameProvider,
+          { frame: GALACTIC_FRAME },
+          createElement(BodyMarker, {
+            id: 'interactive-star',
+            position: [1, 2, 3],
+            interactive: true,
+          }),
+        ),
+      ),
+    );
+
+    const interactiveFrameCb = frameCallbackQueue[frameCallbackQueue.length - 1];
+    updateMatrixSpy.mockClear();
+    evalHitAreaSpy.mockClear();
+
+    // Frame 1: Initial frame should sync billboard transform and update matrix
+    interactiveFrameCb({ camera, size: { width: 1920, height: 1080 } }, 0.016);
+    expect(updateMatrixSpy).toHaveBeenCalledTimes(1);
+    expect(evalHitAreaSpy).toHaveBeenCalledWith('interactive-star');
+
+    // Frame 2: Identical camera on stationary frame should skip redundant updateMatrixWorld
+    updateMatrixSpy.mockClear();
+    evalHitAreaSpy.mockClear();
+    interactiveFrameCb({ camera, size: { width: 1920, height: 1080 } }, 0.016);
+    expect(updateMatrixSpy).not.toHaveBeenCalled();
+
+    // Frame 3: Changed camera quaternion should trigger updateMatrixWorld
+    camera.quaternion.set(0.1, 0, 0, 0.995);
+    updateMatrixSpy.mockClear();
+    interactiveFrameCb({ camera, size: { width: 1920, height: 1080 } }, 0.016);
+    expect(updateMatrixSpy).toHaveBeenCalledWith(true);
+
+    updateMatrixSpy.mockRestore();
+    evalHitAreaSpy.mockRestore();
+  });
+
   it('triggers onClick when pointer jitter is <= 8px (AUD-116)', () => {
     const handleClick = vi.fn();
 

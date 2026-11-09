@@ -27,7 +27,7 @@ export interface SpatialEntityProviderProps {
   children?: React.ReactNode;
 }
 
-const APERTURE_EPSILON = 1e-4;
+const APERTURE_EPSILON = 0.05;
 
 function commitApertureState(
   state: SpatialEntityState,

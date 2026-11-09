@@ -35,7 +35,7 @@ export interface EntityLabelProps {
  * Positions label at top-right facet and spectral tag at bottom-right facet of reticle.
  * Maintains screen-invariant position and size matching Layer 2 Reticle.
  */
-export const EntityLabel: React.FC<EntityLabelProps> = ({
+export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
   id,
   name,
   position,
@@ -57,6 +57,10 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
   const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
   const scratchAnchorWorldPos = useLazyRef(() => new THREE.Vector3());
   const scratchAnchorNdc = useLazyRef(() => new THREE.Vector3());
+  const lastTransformRef = useRef({
+    qx: Number.NaN, qy: Number.NaN, qz: Number.NaN, qw: Number.NaN,
+    scale: Number.NaN, px: Number.NaN, py: Number.NaN, pz: Number.NaN,
+  });
   const occlusionManager = useOcclusionManager();
   const frameCtx = useSpatialFrameSafe();
 
@@ -72,26 +76,48 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
     return g;
   });
 
+  const setBillboardRef = useCallback((node: THREE.Group | null) => {
+    if (node && 'isGroup' in node) {
+      billboardRef.current = node;
+    }
+  }, [billboardRef]);
+
   const isAnnotated = state === 'selected' || state === 'focused';
 
   const syncBillboardTransform = useCallback(
     (camera: THREE.Camera) => {
       const g = billboardRef.current;
-      if (g && g.position) {
-        g.position.set(...resolvedPos);
-        g.quaternion.copy(camera.quaternion);
+      if (!g || !g.position) return;
 
-        g.getWorldPosition(scratchWorldPos.current);
-        const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-        const invScale = resolveEntityScreenInvariantScale(
-          camDist,
-          camera,
-          frameCtx?.frameRef?.current,
-        );
+      const [rx, ry, rz] = resolvedPos;
+      g.getWorldPosition(scratchWorldPos.current);
+      const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
+      const invScale = resolveEntityScreenInvariantScale(
+        camDist,
+        camera,
+        frameCtx?.frameRef?.current,
+      );
+
+      const cq = camera.quaternion;
+      const last = lastTransformRef.current;
+      const posChanged =
+        Number.isNaN(last.px) || Math.abs(last.px - rx) > 1e-6 || Math.abs(last.py - ry) > 1e-6 || Math.abs(last.pz - rz) > 1e-6;
+      const quatChanged =
+        Number.isNaN(last.qw) ||
+        Math.abs(last.qx - cq.x) > 1e-6 || Math.abs(last.qy - cq.y) > 1e-6 ||
+        Math.abs(last.qz - cq.z) > 1e-6 || Math.abs(last.qw - cq.w) > 1e-6;
+      const scaleChanged = Number.isNaN(last.scale) || Math.abs(last.scale - invScale) > 1e-6;
+
+      if (posChanged || quatChanged || scaleChanged) {
+        g.position.set(rx, ry, rz);
+        g.quaternion.copy(cq);
         g.scale.set(invScale, invScale, invScale);
         if (typeof g.updateMatrixWorld === 'function') {
           g.updateMatrixWorld(true);
         }
+        last.px = rx; last.py = ry; last.pz = rz;
+        last.qx = cq.x; last.qy = cq.y; last.qz = cq.z; last.qw = cq.w;
+        last.scale = invScale;
       }
     },
     [billboardRef, resolvedPos, scratchWorldPos, frameCtx],
@@ -99,10 +125,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
 
   const handleCalculatePosition = useCallback(
     (
-      el: THREE.Object3D,
-      camera: THREE.Camera,
-      size: { width: number; height: number },
-      target?: [number, number],
+      el: THREE.Object3D, camera: THREE.Camera, size: { width: number; height: number }, target?: [number, number],
     ): [number, number] | void => {
       syncBillboardTransform(camera);
       el.getWorldPosition(scratchAnchorWorldPos.current);
@@ -226,7 +249,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
 
   return (
     <group
-      ref={billboardRef}
+      ref={setBillboardRef}
       name={`entity-label-${id} [${name}] [${formatDesignationTag(spectralType)}]`}
       userData={{
         testId: `entity-label-${id}`,
@@ -271,4 +294,6 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
       </SafeHtml>
     </group>
   );
-};
+});
+
+EntityLabel.displayName = 'EntityLabel';

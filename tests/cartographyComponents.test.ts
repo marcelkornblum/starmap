@@ -1049,6 +1049,58 @@ describe('Cartography Mathematics & Occlusion Registry', () => {
       expect(diamondsIntersect(100, 100, 20, 115, 105, 20)).toBe(true); // dx=15, dy=5 -> 20 <= 40
       expect(diamondsIntersect(100, 100, 20, 150, 150, 20)).toBe(false); // dx=50, dy=50 -> 100 > 40
     });
+
+    it('preserves lastEvaluationTime on stationary evaluate calls for O(1) hitarea cache hits', () => {
+      const manager = new CelestialOcclusionManager();
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+      camera.position.set(0, 0, 10);
+      camera.updateMatrixWorld();
+
+      manager.register({
+        id: 'star-cache-test',
+        state: 'active',
+        screenX: 0,
+        screenY: 0,
+        worldPos: [0, 0, 0],
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 0,
+      });
+
+      manager.evaluate(camera, { width: 1920, height: 1080 });
+      const fp = manager.getFootprint('star-cache-test')!;
+      const firstEvalTime = fp.hitAreaEvaluatedAt;
+      expect(firstEvalTime).toBeGreaterThan(0);
+
+      // Call evaluate again on stationary frame
+      manager.evaluate(camera, { width: 1920, height: 1080 });
+      // Call evaluateHitAreaOffset - should match firstEvalTime without recomputing
+      manager.evaluateHitAreaOffset('star-cache-test');
+      expect(fp.hitAreaEvaluatedAt).toBe(firstEvalTime);
+    });
+
+    it('avoids rebuilding stalked snapshots or significant footprints when registering passive nodes', () => {
+      const manager = new CelestialOcclusionManager();
+      const initialSnapshot = manager.getStalkedFootprintsSnapshot();
+
+      manager.register({
+        id: 'passive-star-1',
+        state: 'passive',
+        screenX: 0,
+        screenY: 0,
+        worldPos: [0, 0, 0],
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: false,
+        hasStalk: false,
+        visible: true,
+        updatedAt: 0,
+      });
+
+      expect(manager.getStalkedFootprintsSnapshot()).toBe(initialSnapshot);
+    });
   });
 
   describe('ScreenEdgeBearingIndicators & Bearing Math', () => {
