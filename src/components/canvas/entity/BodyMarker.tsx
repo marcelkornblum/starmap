@@ -16,6 +16,7 @@ import type { NodeAlphaRef } from './types';
 export interface BodyMarkerProps {
   id: string;
   position: [number, number, number] | THREE.Vector3;
+  worldPosition?: THREE.Vector3 | readonly [number, number, number];
   pixelSize?: number;
   hitRadius?: number;
   reticleSize?: number;
@@ -41,6 +42,7 @@ const SHARED_HITAREA_GEOMETRY = new THREE.CircleGeometry(1.0, 32);
 export const BodyMarker: React.FC<BodyMarkerProps> = ({
   id,
   position,
+  worldPosition,
   pixelSize = 5,
   hitRadius,
   reticleSize,
@@ -108,20 +110,11 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   }, [interactive]);
 
   const getPointerCoord = (e: ThreeEvent<PointerEvent>): { x: number; y: number } => {
-    const native = e.nativeEvent as (PointerEvent | MouseEvent | undefined);
-    const x =
-      typeof e.clientX === 'number'
-        ? e.clientX
-        : typeof native?.clientX === 'number'
-          ? native.clientX
-          : 0;
-    const y =
-      typeof e.clientY === 'number'
-        ? e.clientY
-        : typeof native?.clientY === 'number'
-          ? native.clientY
-          : 0;
-    return { x, y };
+    const n = e.nativeEvent as (PointerEvent | MouseEvent | undefined);
+    return {
+      x: typeof e.clientX === 'number' ? e.clientX : (typeof n?.clientX === 'number' ? n.clientX : 0),
+      y: typeof e.clientY === 'number' ? e.clientY : (typeof n?.clientY === 'number' ? n.clientY : 0),
+    };
   };
 
   const triggerClick = useCallback(
@@ -167,7 +160,15 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
 
     // 1. Retrieve the actual world position of this node (supports arbitrary parent transforms)
     groupRef.current.position.set(posX, posY, posZ);
-    groupRef.current.getWorldPosition(worldPosRef.current);
+    if (worldPosition) {
+      if (worldPosition instanceof THREE.Vector3) {
+        worldPosRef.current.copy(worldPosition);
+      } else {
+        worldPosRef.current.set(worldPosition[0], worldPosition[1], worldPosition[2]);
+      }
+    } else {
+      groupRef.current.getWorldPosition(worldPosRef.current);
+    }
     const camDist = Math.max(camera.position.distanceTo(worldPosRef.current), 1e-4);
     let worldScale = (pixelSize / Math.max(size.height, 1)) * 2;
 
@@ -258,14 +259,14 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
             } : undefined}
             onPointerOver={onPointerOver ? (e) => {
               e.stopPropagation();
-              if (e.pointerType === 'touch') return;
-              document.body.style.cursor = 'pointer';
+              if (e.pointerType === 'touch' || e.buttons > 0) return;
+              if (document.body.style.cursor !== 'pointer') document.body.style.cursor = 'pointer';
               onPointerOver(id, e);
             } : undefined}
             onPointerOut={onPointerOut ? (e) => {
               e.stopPropagation();
-              if (e.pointerType === 'touch') return;
-              document.body.style.cursor = 'auto';
+              if (e.pointerType === 'touch' || e.buttons > 0) return;
+              if (document.body.style.cursor !== 'auto') document.body.style.cursor = 'auto';
               onPointerOut(id, e);
             } : undefined}
           >

@@ -224,6 +224,11 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
     budget.maxActiveEntities,
   ]);
 
+  const sectorPointCloudElement = useMemo(
+    () => <SectorPointCloud onHydratedSummariesChange={handleHydratedSummariesChange} />,
+    [handleHydratedSummariesChange],
+  );
+
   return (
     <SpatialViewport
       frame={GALACTIC_FRAME}
@@ -235,7 +240,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
       onFocusChange={onFocusChange}
       debugHitarea={debugHitarea}
     >
-      <SectorPointCloud onHydratedSummariesChange={handleHydratedSummariesChange} />
+      {sectorPointCloudElement}
     </SpatialViewport>
   );
 });

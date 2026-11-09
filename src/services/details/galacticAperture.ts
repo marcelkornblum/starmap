@@ -43,6 +43,62 @@ import type {
   ResolveGalacticInstrumentApertureInput,
 } from './types';
 
+const corpusKnownIdsCache = new WeakMap<readonly CompactSearchEntry[], ReadonlySet<string>>();
+const mergedCorpusCache = new WeakMap<
+  readonly CompactSearchEntry[],
+  { activeStars: readonly SystemSummaryNode[]; result: readonly CompactSearchEntry[] }
+>();
+
+interface StarSystemEntry {
+  readonly id: string;
+  readonly name: string;
+  readonly coordinatesPc: readonly [number, number, number];
+  readonly entry: CompactSearchEntry;
+}
+
+const corpusStarSystemsCache = new WeakMap<
+  readonly CompactSearchEntry[],
+  {
+    systemsById: Map<string, StarSystemEntry>;
+    stars: ReadonlyArray<{ sysSlug: string; entry: CompactSearchEntry; pos: [number, number, number] }>;
+  }
+>();
+
+function getOrBuildCorpusStarSystems(corpus: readonly CompactSearchEntry[]): {
+  systemsById: Map<string, StarSystemEntry>;
+  stars: ReadonlyArray<{ sysSlug: string; entry: CompactSearchEntry; pos: [number, number, number] }>;
+} {
+  let cached = corpusStarSystemsCache.get(corpus);
+  if (!cached) {
+    const systemsById = new Map<string, StarSystemEntry>();
+    const stars: Array<{ sysSlug: string; entry: CompactSearchEntry; pos: [number, number, number] }> = [];
+
+    for (const entry of corpus) {
+      if (entry.c !== 'stars' && resolveEntryCategory(entry) !== 'stars') {
+        continue;
+      }
+      const sysSlug = toUrlSlug(entry.s ?? entry.i ?? entry.n);
+      if (!sysSlug || systemsById.has(sysSlug)) {
+        continue;
+      }
+      const pos: [number, number, number] = entry.p
+        ? [entry.p[0], entry.p[1], entry.p[2]]
+        : [0, 0, 0];
+      systemsById.set(sysSlug, {
+        id: entry.s ?? entry.i,
+        name: resolveResultDisplayTitle(entry),
+        coordinatesPc: pos,
+        entry,
+      });
+      stars.push({ sysSlug, entry, pos });
+    }
+
+    cached = { systemsById, stars };
+    corpusStarSystemsCache.set(corpus, cached);
+  }
+  return cached;
+}
+
 /**
  * Pure merge of the stars hydrated from streamed sector partitions (every star inside the live
  * instrument aperture) into the search corpus, so aperture membership and the objects panel cover
@@ -56,18 +112,29 @@ export function mergeActiveStarsIntoCorpus(
     return corpus;
   }
 
-  const knownIds = new Set<string>();
-  for (const entry of corpus) {
-    knownIds.add(entry.i);
+  const cachedMerged = mergedCorpusCache.get(corpus);
+  if (cachedMerged && cachedMerged.activeStars === activeStars) {
+    return cachedMerged.result;
   }
 
-  const merged: CompactSearchEntry[] = [...corpus];
+  let knownIds = corpusKnownIdsCache.get(corpus);
+  if (!knownIds) {
+    const ids = new Set<string>();
+    for (const entry of corpus) {
+      ids.add(entry.i);
+    }
+    corpusKnownIdsCache.set(corpus, ids);
+    knownIds = ids;
+  }
+
+  const seenIds = new Set<string>(knownIds);
+  const extraEntries: CompactSearchEntry[] = [];
   for (const star of activeStars) {
-    if (knownIds.has(star.id)) {
+    if (seenIds.has(star.id)) {
       continue;
     }
-    knownIds.add(star.id);
-    merged.push({
+    seenIds.add(star.id);
+    extraEntries.push({
       i: star.id,
       n: star.properName ?? star.name,
       p: [star.x, star.y, star.z],
@@ -78,7 +145,15 @@ export function mergeActiveStarsIntoCorpus(
       c: 'stars',
     });
   }
-  return merged;
+
+  if (extraEntries.length === 0) {
+    mergedCorpusCache.set(corpus, { activeStars, result: corpus });
+    return corpus;
+  }
+
+  const result: readonly CompactSearchEntry[] = [...corpus, ...extraEntries];
+  mergedCorpusCache.set(corpus, { activeStars, result });
+  return result;
 }
 
 /**
@@ -199,15 +274,7 @@ export function resolveGalacticInstrumentAperture(
     Math.round(rawAperturePc * PARSEC_TO_LY * 100) / 100;
 
   const apertureIds = new Set<string>();
-  const systemsById = new Map<
-    string,
-    {
-      readonly id: string;
-      readonly name: string;
-      readonly coordinatesPc: readonly [number, number, number];
-      readonly entry: CompactSearchEntry;
-    }
-  >();
+  const { systemsById, stars } = getOrBuildCorpusStarSystems(corpus);
 
   const effectiveMaxActive =
     input.maxActiveEntities ?? getApertureActiveCutoffForViewportWidth(input.viewportWidthPx);
@@ -218,28 +285,20 @@ export function resolveGalacticInstrumentAperture(
     distance: number;
   }> = [];
 
-  for (const entry of corpus) {
-    if (entry.c !== 'stars' && resolveEntryCategory(entry) !== 'stars') {
-      continue;
-    }
-    const sysSlug = toUrlSlug(entry.s ?? entry.i ?? entry.n);
-    if (!sysSlug || systemsById.has(sysSlug)) {
-      continue;
-    }
-    const pos: [number, number, number] = entry.p
-      ? [entry.p[0], entry.p[1], entry.p[2]]
-      : [0, 0, 0];
-    systemsById.set(sysSlug, {
-      id: entry.s ?? entry.i,
-      name: resolveResultDisplayTitle(entry),
-      coordinatesPc: pos,
-      entry,
-    });
-    if (isInsideAperture(pos, centerCoordinatesPc, rawAperturePc)) {
+  const [cx, cy, cz] = centerCoordinatesPc;
+  for (let i = 0; i < stars.length; i++) {
+    const star = stars[i]!;
+    const pos = star.pos;
+    if (
+      Math.abs(pos[0] - cx) <= rawAperturePc &&
+      Math.abs(pos[1] - cy) <= rawAperturePc &&
+      Math.abs(pos[2] - cz) <= rawAperturePc &&
+      isInsideAperture(pos, centerCoordinatesPc, rawAperturePc)
+    ) {
       const distance = computeEuclideanDistance3D(centerCoordinatesPc, pos).distance;
       inApertureCandidates.push({
-        sysSlug,
-        entry,
+        sysSlug: star.sysSlug,
+        entry: star.entry,
         distance,
       });
     }
@@ -249,7 +308,7 @@ export function resolveGalacticInstrumentAperture(
     if (Math.abs(a.distance - b.distance) > 1e-5) {
       return a.distance - b.distance;
     }
-    return a.sysSlug.localeCompare(b.sysSlug);
+    return a.sysSlug < b.sysSlug ? -1 : a.sysSlug > b.sysSlug ? 1 : 0;
   });
 
   if (inApertureCandidates.length <= effectiveMaxActive) {
@@ -370,11 +429,10 @@ export function extractGalaxyBodies(
     }
   >();
 
-  for (const [sysSlug, sysData] of instrumentAperture.systemsById.entries()) {
-    if (
-      instrumentAperture.apertureIds.has(sysSlug) ||
-      instrumentAperture.apertureIds.has(sysData.id)
-    ) {
+  for (const id of instrumentAperture.apertureIds) {
+    const sysSlug = instrumentAperture.systemsById.has(id) ? id : toUrlSlug(id);
+    const sysData = instrumentAperture.systemsById.get(sysSlug);
+    if (sysData) {
       candidateMap.set(sysSlug, sysData);
     }
   }
@@ -487,7 +545,7 @@ export function extractGalaxyBodies(
     if (Math.abs(distA - distB) > 1e-5) {
       return distA - distB;
     }
-    return a.name.localeCompare(b.name);
+    return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
   });
 
   return {

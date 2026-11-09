@@ -21,6 +21,7 @@ export interface EntityLabelProps {
   id: string;
   name: string;
   position?: [number, number, number] | THREE.Vector3;
+  worldPosition?: THREE.Vector3 | readonly [number, number, number];
   spectralType?: string;
   state?: CelestialInteractionState;
   reticleSize?: number;
@@ -39,6 +40,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
   id,
   name,
   position,
+  worldPosition,
   spectralType,
   state = 'passive',
   reticleSize = DEFAULT_RETICLE_SIZE,
@@ -90,7 +92,15 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
       if (!g || !g.position) return;
 
       const [rx, ry, rz] = resolvedPos;
-      g.getWorldPosition(scratchWorldPos.current);
+      if (worldPosition) {
+        if (worldPosition instanceof THREE.Vector3) {
+          scratchWorldPos.current.copy(worldPosition);
+        } else {
+          scratchWorldPos.current.set(worldPosition[0], worldPosition[1], worldPosition[2]);
+        }
+      } else {
+        g.getWorldPosition(scratchWorldPos.current);
+      }
       const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
       const invScale = resolveEntityScreenInvariantScale(
         camDist,
@@ -120,7 +130,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
         last.scale = invScale;
       }
     },
-    [billboardRef, resolvedPos, scratchWorldPos, frameCtx],
+    [billboardRef, resolvedPos, worldPosition, scratchWorldPos, frameCtx],
   );
 
   const handleCalculatePosition = useCallback(
@@ -149,17 +159,11 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        if (entry.borderBoxSize?.length > 0) {
-          labelDimensionsRef.current = {
-            width: entry.borderBoxSize[0].inlineSize,
-            height: entry.borderBoxSize[0].blockSize,
-          };
-        } else {
-          labelDimensionsRef.current = {
-            width: entry.contentRect.width,
-            height: entry.contentRect.height,
-          };
-        }
+        const hasBorder = entry.borderBoxSize?.length > 0;
+        labelDimensionsRef.current = {
+          width: hasBorder ? entry.borderBoxSize[0].inlineSize : entry.contentRect.width,
+          height: hasBorder ? entry.borderBoxSize[0].blockSize : entry.contentRect.height,
+        };
       }
     });
 
@@ -226,10 +230,11 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
         labelRef.current.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
         labelRef.current.setAttribute('data-displaced', 'true');
         if (leaderLineRef.current) {
+          const lh = labelDimensionsRef.current.height ? labelDimensionsRef.current.height / 2 : 9;
           leaderLineRef.current.setAttribute('x1', String(-dx));
           leaderLineRef.current.setAttribute('y1', String(-dy));
           leaderLineRef.current.setAttribute('x2', '0');
-          leaderLineRef.current.setAttribute('y2', String(labelDimensionsRef.current.height ? labelDimensionsRef.current.height / 2 : 9));
+          leaderLineRef.current.setAttribute('y2', String(lh));
           leaderLineRef.current.setAttribute('visibility', 'visible');
         }
       }
@@ -238,24 +243,19 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
       lastYRef.current = null;
       labelRef.current.style.transform = '';
       labelRef.current.setAttribute('data-displaced', 'false');
-      if (leaderLineRef.current) {
-        leaderLineRef.current.setAttribute('visibility', 'hidden');
-      }
+      leaderLineRef.current?.setAttribute('visibility', 'hidden');
     }
   });
 
   const anchorX = reticleSize * 1.15;
   const anchorY = reticleSize * 0.75;
+  const isSelectedOrFocused = state === 'selected' || state === 'focused';
 
   return (
     <group
       ref={setBillboardRef}
       name={`entity-label-${id} [${name}] [${formatDesignationTag(spectralType)}]`}
-      userData={{
-        testId: `entity-label-${id}`,
-        name,
-        spectral: formatDesignationTag(spectralType),
-      }}
+      userData={{ testId: `entity-label-${id}`, name, spectral: formatDesignationTag(spectralType) }}
       position={resolvedPos}
     >
       {/* Top-Right Facet: Typographic Label (System Designation) & Facet Badge */}
@@ -269,7 +269,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
           ref={labelRef}
           className={styles.labelCluster}
           data-state={state}
-          data-occluded={state === 'selected' || state === 'focused' ? 'false' : lastOccludedRef.current === true ? 'true' : 'false'}
+          data-occluded={isSelectedOrFocused ? 'false' : lastOccludedRef.current === true ? 'true' : 'false'}
           data-testid={`entity-label-inner-${id}`}
         >
           <div className={styles.nodeLabel} data-state={state}>

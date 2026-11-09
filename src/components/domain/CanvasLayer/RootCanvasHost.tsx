@@ -32,7 +32,19 @@ export const RootCanvasHost: React.FC = () => {
   }, [setRootCanvasMounted]);
 
   useIsomorphicLayoutEffect(() => {
-    return useCameraStore.subscribe((state, prevState) => {
+    let lastSyncTime = 0;
+    let trailingTimer: ReturnType<typeof setTimeout> | null = null;
+    let pendingState: ReturnType<typeof useCameraStore.getState> | null = null;
+    let isInitialMount = true;
+
+    Promise.resolve().then(() => {
+      isInitialMount = false;
+    });
+
+    const applyTelemetry = (
+      state: ReturnType<typeof useCameraStore.getState>,
+      prevState?: ReturnType<typeof useCameraStore.getState> | null,
+    ) => {
       const el = hostRef.current;
       if (!el) return;
       if (state.mode !== prevState?.mode) {
@@ -47,7 +59,45 @@ export const RootCanvasHost: React.FC = () => {
       if (state.focalDistance !== prevState?.focalDistance) {
         el.setAttribute('data-camera-dist', state.focalDistance.toFixed(2));
       }
+    };
+
+    const unsubscribe = useCameraStore.subscribe((state, prevState) => {
+      if (isInitialMount) {
+        applyTelemetry(state, prevState);
+        return;
+      }
+
+      const now = performance.now();
+      if (lastSyncTime === 0 || now - lastSyncTime >= 80) {
+        if (trailingTimer !== null) {
+          clearTimeout(trailingTimer);
+          trailingTimer = null;
+        }
+        lastSyncTime = now;
+        pendingState = null;
+        applyTelemetry(state, prevState);
+      } else {
+        pendingState = state;
+        if (trailingTimer === null) {
+          const delay = Math.max(0, 80 - (now - lastSyncTime));
+          trailingTimer = setTimeout(() => {
+            trailingTimer = null;
+            if (pendingState) {
+              lastSyncTime = performance.now();
+              applyTelemetry(pendingState, null);
+              pendingState = null;
+            }
+          }, delay);
+        }
+      }
     });
+
+    return () => {
+      unsubscribe();
+      if (trailingTimer !== null) {
+        clearTimeout(trailingTimer);
+      }
+    };
   }, []);
 
   const canvasLayerContent = useMemo(

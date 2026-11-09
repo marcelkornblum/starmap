@@ -341,12 +341,25 @@ export function buildEntityAnnotationBuckets(
   return buckets;
 }
 
+const SLUG_CACHE = new Map<string, string>();
+const SLUG_CACHE_MAX = 65536;
+
 export function toUrlSlug(value: string): string {
-  return value
+  if (!value) return '';
+  const cached = SLUG_CACHE.get(value);
+  if (cached !== undefined) return cached;
+
+  const slug = value
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+
+  if (SLUG_CACHE.size >= SLUG_CACHE_MAX) {
+    SLUG_CACHE.clear();
+  }
+  SLUG_CACHE.set(value, slug);
+  return slug;
 }
 
 /**

@@ -152,7 +152,7 @@ export function boxIntersectsFootprint(box: Box2D, footprint: CelestialFootprint
 class ScreenSpatialGrid {
   private cellSize: number;
   private cells = new Map<number, CelestialFootprint[]>();
-  private arrayPool: CelestialFootprint[][] = [];
+  private activeCells: CelestialFootprint[][] = [];
 
   constructor(cellSize = 100) {
     this.cellSize = cellSize;
@@ -163,23 +163,30 @@ class ScreenSpatialGrid {
   }
 
   public clear(): void {
-    for (const arr of this.cells.values()) {
-      arr.length = 0;
-      this.arrayPool.push(arr);
+    if (this.cells.size > 4096) {
+      this.cells.clear();
+      this.activeCells.length = 0;
+      return;
     }
-    this.cells.clear();
+    for (let i = 0; i < this.activeCells.length; i++) {
+      this.activeCells[i].length = 0;
+    }
+    this.activeCells.length = 0;
   }
 
   public insert(fp: CelestialFootprint): void {
     const cx = Math.floor(fp.screenX / this.cellSize);
     const cy = Math.floor(fp.screenY / this.cellSize);
     const key = this.hash(cx, cy);
-    let arr = this.cells.get(key);
-    if (!arr) {
-      arr = this.arrayPool.pop() ?? [];
-      this.cells.set(key, arr);
+    let cell = this.cells.get(key);
+    if (!cell) {
+      cell = [];
+      this.cells.set(key, cell);
     }
-    arr.push(fp);
+    if (cell.length === 0) {
+      this.activeCells.push(cell);
+    }
+    cell.push(fp);
   }
 
   public forEachNearby(
@@ -197,7 +204,7 @@ class ScreenSpatialGrid {
       for (let cy = minCy; cy <= maxCy; cy++) {
         const key = this.hash(cx, cy);
         const arr = this.cells.get(key);
-        if (arr) {
+        if (arr && arr.length > 0) {
           for (let i = 0; i < arr.length; i++) {
             if (cb(arr[i]) === false) return;
           }
@@ -232,6 +239,7 @@ export class CelestialOcclusionManager {
 
   // Scratch memory for zero-allocation candidate displacement checks
   private scratchCandidateBox: Box2D = { left: 0, top: 0, right: 0, bottom: 0 };
+  private scratchCluster: CelestialFootprint[] = [];
   private scratchLabelResult: LabelOcclusionResult = {
     visible: true,
     behindCanvas: true,
@@ -344,7 +352,6 @@ export class CelestialOcclusionManager {
     this.gridDirty = true;
     this.ensureGrid();
     this.updateSignificantFootprints();
-    this.updateHitAreaOffsets();
   }
 
   private ensureGrid(): void {
@@ -657,7 +664,7 @@ export class CelestialOcclusionManager {
             if (otherDist < targetDist) {
               collidesWithHigherPriorityLabel = true;
               return false;
-            } else if (otherDist === targetDist && other.id.localeCompare(target.id) < 0) {
+            } else if (otherDist === targetDist && (other.id < target.id ? -1 : other.id > target.id ? 1 : 0) < 0) {
               collidesWithHigherPriorityLabel = true;
               return false;
             }
@@ -688,25 +695,6 @@ export class CelestialOcclusionManager {
   }
 
   /**
-   * Pre-calculate and cache hit area fan-out offsets for all visible footprints during the evaluate pass.
-   */
-  private updateHitAreaOffsets(): void {
-    const evalTime = this.lastEvaluationTime > 0 ? this.lastEvaluationTime : performance.now();
-    for (const fp of this.footprints.values()) {
-      if (!fp.visible || !fp.hasReticle) {
-        fp.hitAreaOffsetX = 0;
-        fp.hitAreaOffsetY = 0;
-        fp.hitAreaEvaluatedAt = evalTime;
-        continue;
-      }
-      if (fp.hitAreaEvaluatedAt === evalTime) {
-        continue;
-      }
-      this.computeHitAreaOffsetFor(fp, evalTime);
-    }
-  }
-
-  /**
    * Computes hit area fan-out offsets for a target footprint and its overlapping cluster.
    */
   private computeHitAreaOffsetFor(
@@ -721,7 +709,8 @@ export class CelestialOcclusionManager {
     }
 
     this.ensureGrid();
-    const cluster: CelestialFootprint[] = [];
+    const cluster = this.scratchCluster;
+    cluster.length = 0;
     const searchRadius = target.reticleRadius * 2.5;
 
     this.grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
@@ -758,7 +747,7 @@ export class CelestialOcclusionManager {
       const angleB = Math.atan2(b.screenY - centroidY, b.screenX - centroidX);
       const diff = angleA - angleB;
       if (Math.abs(diff) > 1e-4) return diff;
-      return a.id.localeCompare(b.id);
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
     });
 
     // 3. Determine base angle pointing outward from collision space and assign to all cluster members
@@ -786,7 +775,6 @@ export class CelestialOcclusionManager {
     const offset = outOffset ?? this.scratchHitOffset;
     offset.x = 0;
     offset.y = 0;
-
     const target = this.footprints.get(nodeId);
     if (!target || !target.visible) return offset;
 
@@ -809,7 +797,8 @@ export class CelestialOcclusionManager {
     if (!target || !target.visible || !target.hasReticle) return clickedId;
 
     this.ensureGrid();
-    const cluster: CelestialFootprint[] = [];
+    const cluster = this.scratchCluster;
+    cluster.length = 0;
     const searchRadius = target.reticleRadius * 2.0;
 
     this.grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
@@ -827,7 +816,7 @@ export class CelestialOcclusionManager {
       return clickedId;
     }
 
-    cluster.sort((a, b) => a.id.localeCompare(b.id));
+    cluster.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     const currentIndex = cluster.findIndex((fp) => fp.id === clickedId);
     if (currentIndex === -1) return clickedId;
     const nextIndex = (currentIndex + 1) % cluster.length;
@@ -845,7 +834,11 @@ export class CelestialOcclusionManager {
    * Returns footprint for a given node id if registered.
    */
   public getFootprint(id: string): CelestialFootprint | undefined {
-    return this.footprints.get(id);
+    const fp = this.footprints.get(id);
+    if (fp && fp.hitAreaEvaluatedAt === undefined && this.lastEvaluationTime > 0) {
+      this.evaluateHitAreaOffset(id);
+    }
+    return fp;
   }
 
   /**

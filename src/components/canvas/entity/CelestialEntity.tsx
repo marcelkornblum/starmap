@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { type ThreeEvent, useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
@@ -55,6 +55,92 @@ export interface CelestialEntityProps extends Partial<SpatialEntityDefinition> {
   children?: React.ReactNode;
 }
 
+const ZERO_POS: [number, number, number] = [0, 0, 0];
+
+function arePositionsEqual(
+  a?: [number, number, number] | THREE.Vector3,
+  b?: [number, number, number] | THREE.Vector3,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const ax = a instanceof THREE.Vector3 ? a.x : a[0];
+  const ay = a instanceof THREE.Vector3 ? a.y : a[1];
+  const az = a instanceof THREE.Vector3 ? a.z : a[2];
+  const bx = b instanceof THREE.Vector3 ? b.x : b[0];
+  const by = b instanceof THREE.Vector3 ? b.y : b[1];
+  const bz = b instanceof THREE.Vector3 ? b.z : b[2];
+  return ax === bx && ay === by && az === bz;
+}
+
+function areOrbitsEqual(a?: SpatialEntityDefinition['orbit'], b?: SpatialEntityDefinition['orbit']): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.primaryEntityId === b.primaryEntityId &&
+    a.semiMajorAxis === b.semiMajorAxis &&
+    a.eccentricity === b.eccentricity &&
+    a.inclination === b.inclination &&
+    a.ascendingNode === b.ascendingNode &&
+    a.argumentOfPeriapsis === b.argumentOfPeriapsis &&
+    a.meanAnomaly === b.meanAnomaly &&
+    a.color === b.color &&
+    a.lineStyle === b.lineStyle &&
+    a.showPeriapsisTick === b.showPeriapsisTick &&
+    a.showDirectionArrow === b.showDirectionArrow &&
+    arePositionsEqual(a.primaryPosition, b.primaryPosition)
+  );
+}
+
+function areCelestialEntityPropsEqual(
+  prev: CelestialEntityProps,
+  next: CelestialEntityProps,
+): boolean {
+  if (
+    prev.id !== next.id ||
+    prev.name !== next.name ||
+    prev.classification !== next.classification ||
+    prev.spectralType !== next.spectralType ||
+    prev.multiplicity !== next.multiplicity ||
+    prev.stateOverride !== next.stateOverride ||
+    prev.debugHitarea !== next.debugHitarea ||
+    prev.onClick !== next.onClick ||
+    prev.onDoubleClick !== next.onDoubleClick ||
+    prev.onPointerOver !== next.onPointerOver ||
+    prev.onPointerOut !== next.onPointerOut ||
+    prev.bodyRadius !== next.bodyRadius ||
+    prev.bodyMinPixelSize !== next.bodyMinPixelSize ||
+    prev.bodyFadeRange !== next.bodyFadeRange ||
+    prev.children !== next.children
+  ) {
+    return false;
+  }
+
+  if (
+    !arePositionsEqual(prev.position, next.position) ||
+    !arePositionsEqual(prev.velocity, next.velocity) ||
+    !areOrbitsEqual(prev.orbit, next.orbit)
+  ) {
+    return false;
+  }
+
+  const prevLen = prev.planets?.length ?? 0;
+  const nextLen = next.planets?.length ?? 0;
+  if (prevLen !== nextLen) {
+    return false;
+  }
+  if (prev.planets && next.planets) {
+    for (let i = 0; i < prevLen; i++) {
+      const p = prev.planets[i];
+      const n = next.planets[i];
+      if (p.id !== n.id || p.name !== n.name || p.classification !== n.classification) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 /**
  * CelestialEntity: Unified architectural composite composing:
  * - Layer 1: BodyMarker (Physical System Node, Invariant Screen Size)
@@ -62,7 +148,7 @@ export interface CelestialEntityProps extends Partial<SpatialEntityDefinition> {
  * - Layer 3: EntityLabel (Typographic Designation & Proximity Occlusion)
  * - Supporting Features: DropStalk (§2.4), KinematicVector (§5), OrbitPath (§4.4).
  */
-export const CelestialEntity: React.FC<CelestialEntityProps> = React.memo(({
+const CelestialEntityComponent: React.FC<CelestialEntityProps> = ({
   id,
   name,
   position,
@@ -372,6 +458,61 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = React.memo(({
     }
   }, [isStalkTier]);
 
+  const onClickRef = useRef(onClick);
+  onClickRef.current = onClick;
+  const onDoubleClickRef = useRef(onDoubleClick);
+  onDoubleClickRef.current = onDoubleClick;
+  const onPointerOverRef = useRef(onPointerOver);
+  onPointerOverRef.current = onPointerOver;
+  const onPointerOutRef = useRef(onPointerOut);
+  onPointerOutRef.current = onPointerOut;
+  const activeStateRef = useRef(activeState);
+  activeStateRef.current = activeState;
+
+  const handleMarkerClick = useCallback(
+    (targetId: string, e: ThreeEvent<MouseEvent>) => {
+      if (activeStateRef.current === 'passive') return;
+      if (onClickRef.current) {
+        onClickRef.current(targetId, e);
+      } else {
+        activateEntity(storeApi, targetId, (tId) => occlusionManager.getCyclicSelectionTarget(tId));
+      }
+    },
+    [storeApi, occlusionManager],
+  );
+
+  const handleMarkerDoubleClick = useCallback(
+    (targetId: string, e: ThreeEvent<MouseEvent>) => {
+      if (activeStateRef.current === 'passive') return;
+      if (onDoubleClickRef.current) {
+        onDoubleClickRef.current(targetId, e);
+      } else {
+        focusEntity(storeApi, targetId);
+      }
+    },
+    [storeApi],
+  );
+
+  const handleMarkerPointerOver = useCallback(
+    (targetId: string, e: ThreeEvent<PointerEvent>) => {
+      if (activeStateRef.current === 'passive') return;
+      storeApi.getState().setHovered(targetId);
+      onPointerOverRef.current?.(targetId, e);
+    },
+    [storeApi],
+  );
+
+  const handleMarkerPointerOut = useCallback(
+    (targetId: string, e: ThreeEvent<PointerEvent>) => {
+      if (activeStateRef.current === 'passive') return;
+      if (storeApi.getState().hoveredId === targetId) {
+        storeApi.getState().setHovered(null);
+      }
+      onPointerOutRef.current?.(targetId, e);
+    },
+    [storeApi],
+  );
+
   return (
     <group
       position={resolvedPos}
@@ -383,46 +524,24 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = React.memo(({
         {/* Layer 1: Physical System Node (Monochrome, Invariant Screen Size) */}
         <BodyMarker
           id={id}
-          position={[0, 0, 0]}
+          position={ZERO_POS}
+          worldPosition={resolvedPos}
           reticleSize={DEFAULT_RETICLE_SIZE}
           debugHitarea={debugHitarea}
           interactive={activeState !== 'passive'}
           nodeAlphaRef={hasBodyCrossfade ? nodeAlphaRef : undefined}
-          onClick={(targetId, e) => {
-            if (activeState === 'passive') return;
-            if (onClick) {
-              onClick(targetId, e);
-            } else {
-              activateEntity(storeApi, targetId, (tId) => occlusionManager.getCyclicSelectionTarget(tId));
-            }
-          }}
-          onDoubleClick={(targetId, e) => {
-            if (activeState === 'passive') return;
-            if (onDoubleClick) {
-              onDoubleClick(targetId, e);
-            } else {
-              focusEntity(storeApi, targetId);
-            }
-          }}
-          onPointerOver={(targetId, e) => {
-            if (activeState === 'passive') return;
-            storeApi.getState().setHovered(targetId);
-            onPointerOver?.(targetId, e);
-          }}
-          onPointerOut={(targetId, e) => {
-            if (activeState === 'passive') return;
-            if (storeApi.getState().hoveredId === targetId) {
-              storeApi.getState().setHovered(null);
-            }
-            onPointerOut?.(targetId, e);
-          }}
+          onClick={handleMarkerClick}
+          onDoubleClick={handleMarkerDoubleClick}
+          onPointerOver={handleMarkerPointerOver}
+          onPointerOut={handleMarkerPointerOut}
         />
 
         {/* Layer 2: Tactical Geometric Reticle (Universal Taxonomy Frames) */}
         {activeState !== 'passive' && (
           <Reticle
             id={id}
-            position={[0, 0, 0]}
+            position={ZERO_POS}
+            worldPosition={resolvedPos}
             classification={classification}
             state={activeState}
             size={DEFAULT_RETICLE_SIZE}
@@ -441,7 +560,8 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = React.memo(({
         <EntityLabel
           id={id}
           name={name}
-          position={[0, 0, 0]}
+          position={ZERO_POS}
+          worldPosition={resolvedPos}
           spectralType={spectralType}
           state={activeState}
           reticleSize={DEFAULT_RETICLE_SIZE}
@@ -453,7 +573,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = React.memo(({
       {stalkMounted && (
         <DropStalk
           id={id}
-          position={[0, 0, 0]}
+          position={ZERO_POS}
           entityZ={resolvedPos.z}
           state={activeState}
           classification={classification}
@@ -492,6 +612,8 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = React.memo(({
       {children}
     </group>
   );
-});
+};
+
+export const CelestialEntity = React.memo(CelestialEntityComponent, areCelestialEntityPropsEqual);
 
 CelestialEntity.displayName = 'CelestialEntity';
