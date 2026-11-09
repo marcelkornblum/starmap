@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useContext } from 'react';
 import * as THREE from 'three';
 import { useStore } from 'zustand';
 import { useFrame } from '@react-three/fiber';
