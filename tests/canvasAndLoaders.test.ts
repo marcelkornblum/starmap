@@ -8,7 +8,6 @@ import {
 } from '../src/components/canvas/viewport/SceneBridge';
 import { useScene } from '../src/components/canvas/viewport/SceneBridgeContext';
 import { GlobalCanvas } from '../src/components/canvas/viewport/GlobalCanvas';
-import { simulateAsyncFetch } from '../src/router';
 import { SafeHtml } from '../src/components/canvas/SafeHtml';
 
 describe('Global Canvas SceneBridge', () => {
@@ -98,14 +97,6 @@ describe('Global Canvas SceneBridge', () => {
       expect(vnodeCustom.props.style?.zIndex).toBe(10);
       expect(vnodeCustom.props.style?.opacity).toBe(0.9);
     }
-  });
-});
-
-describe('Route Loaders & Render-Then-Fetch Pattern', () => {
-  it('simulates async fetch with data preservation', async () => {
-    const payload = { target: 'Sirius', dist: 2.64 };
-    const result = await simulateAsyncFetch(payload, 10);
-    expect(result).toEqual(payload);
   });
 });
 

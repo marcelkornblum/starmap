@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   createRouter,
   createRoute,
@@ -20,7 +20,6 @@ import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
 import { RootCanvasHost } from '../components/domain/CanvasLayer';
 import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
-import { useCameraStore } from '../stores/useCameraStore';
 import {
   useSpaLocation,
   resolveSpaLocation,
@@ -35,23 +34,6 @@ export {
 };
 
 /**
- * Parses and returns a finite number from a number or string representation,
- * or undefined if non-numeric, non-finite, empty, or wrong type.
- */
-function parseFiniteNumber(val: unknown): number | undefined {
-  if (typeof val === 'number') {
-    return Number.isFinite(val) ? val : undefined;
-  }
-  if (typeof val === 'string') {
-    const trimmed = val.trim();
-    if (trimmed.length === 0) return undefined;
-    const n = Number(trimmed);
-    return Number.isFinite(n) ? n : undefined;
-  }
-  return undefined;
-}
-
-/**
  * RFC 3986 §3.4 search string serializer preserving literal `:` and `,` characters
  * for clean `?select=tag:habitable-candidate,layer:project-hail-mary,sol` URLs.
  */
@@ -61,96 +43,8 @@ export function stringifyStarmapSearch(search: Record<string, unknown>): string 
     .replace(/%2C/gi, ',');
 }
 
-// Simulated network latency helper for render-then-fetch pattern
-export async function simulateAsyncFetch<T>(data: T, delayMs = 60): Promise<T> {
-  await new Promise((resolve) => setTimeout(resolve, delayMs));
-  return data;
-}
-
 export const RootLayout: React.FC = () => {
   useSpaLocation();
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return;
-    }
-
-    const handleDocumentClick = (event: MouseEvent): void => {
-      if (
-        event.defaultPrevented ||
-        event.button !== 0 ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.shiftKey ||
-        event.altKey
-      ) {
-        return;
-      }
-
-      const target = event.target as Element | null;
-      const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
-      if (!anchor) {
-        return;
-      }
-      if (anchor.target && anchor.target !== '_self') {
-        return;
-      }
-      if (anchor.hasAttribute('download')) {
-        return;
-      }
-
-      const rawHref = anchor.getAttribute('href');
-      if (
-        !rawHref ||
-        rawHref.startsWith('#') ||
-        rawHref.startsWith('mailto:') ||
-        rawHref.startsWith('tel:')
-      ) {
-        return;
-      }
-
-      let parsedUrl: URL;
-      try {
-        parsedUrl = new URL(anchor.href, window.location.origin);
-      } catch {
-        return;
-      }
-
-      if (parsedUrl.origin !== window.location.origin) {
-        return;
-      }
-
-      event.preventDefault();
-      const nextPathAndSearch = `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
-      const currentPathAndSearch = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      if (parsedUrl.searchParams.has('center')) {
-        useCameraStore.getState().triggerRecenter();
-      }
-      if (nextPathAndSearch === currentPathAndSearch) {
-        return;
-      }
-
-      const base = (import.meta.env?.BASE_URL ?? '/').replace(/\/+$/, '');
-      const relativeHref =
-        base && base !== '/' && rawHref.startsWith(base)
-          ? (rawHref.slice(base.length) || '/')
-          : rawHref;
-
-      void router
-        .navigate({ href: relativeHref })
-        .then(() => {
-          window.dispatchEvent(new Event('starmap:locationchange'));
-        })
-        .catch((err) => {
-          console.error('router.navigate failed:', err);
-        });
-    };
-
-    document.addEventListener('click', handleDocumentClick);
-    return () => {
-      document.removeEventListener('click', handleDocumentClick);
-    };
-  }, []);
 
   return (
     <>
@@ -161,7 +55,7 @@ export const RootLayout: React.FC = () => {
   );
 };
 
-// Root route definition with global search params validation and SPA link delegation
+// Root route definition with global search params validation
 export const rootRoute = createRootRoute({
   component: RootLayout,
   validateSearch: (search: Record<string, unknown>): StarmapSearchParams => {
@@ -188,31 +82,9 @@ export const rootRoute = createRootRoute({
     if (typeof search.journeyOption === 'string' && search.journeyOption.length > 0) {
       result.journeyOption = search.journeyOption;
     }
-
-    const x = parseFiniteNumber(search.x);
-    if (x !== undefined) result.x = x;
-
-    const y = parseFiniteNumber(search.y);
-    if (y !== undefined) result.y = y;
-
-    const z = parseFiniteNumber(search.z);
-    if (z !== undefined) result.z = z;
-
-    const zoom = parseFiniteNumber(search.zoom);
-    if (zoom !== undefined) result.zoom = zoom;
-
     if (typeof search.center === 'string' && search.center.trim().length > 0) {
       result.center = search.center.trim();
     }
-
-    const az = parseFiniteNumber(search.az);
-    if (az !== undefined) result.az = az;
-
-    const el = parseFiniteNumber(search.el);
-    if (el !== undefined) result.el = el;
-
-    const dist = parseFiniteNumber(search.dist);
-    if (dist !== undefined) result.dist = dist;
 
     return result;
   },

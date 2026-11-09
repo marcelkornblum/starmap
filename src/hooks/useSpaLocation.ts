@@ -8,14 +8,7 @@ export interface StarmapSearchParams {
   layer?: string;
   route?: string;
   journeyOption?: string;
-  x?: number;
-  y?: number;
-  z?: number;
-  zoom?: number;
   center?: string;
-  az?: number;
-  el?: number;
-  dist?: number;
 }
 
 export interface SpaRouterNavigateOptions {
@@ -108,13 +101,11 @@ export function useSpaLocation(
     const unsubRouter = appRouter.subscribe?.('onResolved', handleLocationChange);
     const unsubHistory = appRouter.history?.subscribe?.(handleLocationChange);
     window.addEventListener('popstate', handleLocationChange);
-    window.addEventListener('starmap:locationchange', handleLocationChange);
 
     return () => {
       unsubRouter?.();
       unsubHistory?.();
       window.removeEventListener('popstate', handleLocationChange);
-      window.removeEventListener('starmap:locationchange', handleLocationChange);
     };
   }, [locationPathname, locationSearch]);
 
