@@ -1,6 +1,5 @@
 // Setup global test environment polyfills
 import { vi } from 'vitest';
-import '../src/components/canvas/viewport/patchR3F';
 
 vi.mock('@tanstack/react-router', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('@tanstack/react-router');

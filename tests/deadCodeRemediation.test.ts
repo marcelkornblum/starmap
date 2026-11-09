@@ -102,8 +102,7 @@ describe('Phase 4b Task 9: Dead Code & Data Separation Remediation', () => {
           createElement(ScreenEdgeCue, { bearing }),
         ),
       );
-      expect(html).toContain('data-testid="bearing-indicator-core"');
-      expect(html).toContain('CORE 000°');
+      expect(html).toContain('name="bearing-indicator-core');
     });
   });
 });

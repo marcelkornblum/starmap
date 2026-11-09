@@ -290,7 +290,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   return (
     <group
       name="spatial-viewport"
-      data-mode={mode}
+      userData={{ mode }}
       onPointerMissed={() => {
         clearInteraction(storeApi);
         onSelect?.(null);

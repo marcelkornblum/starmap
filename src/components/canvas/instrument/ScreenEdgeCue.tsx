@@ -216,10 +216,8 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
   return (
     <group ref={groupRef} name={`screen-edge-cue-${bearing.id}`}>
       <group
-        name={`bearing-indicator-${bearing.id}`}
-        data-testid={`bearing-indicator-${bearing.id}`}
-        data-bearing={bearing.id}
-        data-label={label}
+        name={`bearing-indicator-${bearing.id} [${label}]`}
+        userData={{ testId: `bearing-indicator-${bearing.id}`, bearing: bearing.id, label }}
       />
       <SafeHtml
         wrapperClass={styles.htmlOverlayContainer}

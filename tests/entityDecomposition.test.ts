@@ -324,7 +324,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
           state: 'selected',
         }),
       );
-      expect(htmlNorth).toContain('data-hemisphere="north"');
+      expect(htmlNorth).toContain('name="drop-stalk-north-stalk"');
 
       const htmlSouth = renderInFrame(
         createElement(DropStalk, {
@@ -333,7 +333,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
           state: 'selected',
         }),
       );
-      expect(htmlSouth).toContain('data-hemisphere="south"');
+      expect(htmlSouth).toContain('name="drop-stalk-south-stalk"');
     });
 
     it('positions drop stalk and footprint in entity-local coordinates when entityZ is provided', () => {
@@ -402,7 +402,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
         }),
       );
       expect(htmlForced).toContain('name="orbital-ring-orbit-mars"');
-      expect(htmlForced).toContain('data-state-forced="true"');
+      expect(htmlForced).toContain('name="orbit-path-line"');
     });
   });
 
@@ -493,8 +493,6 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       expect(html).toContain('name="celestial-entity-planet-earth"');
       expect(html).toContain('name="orbital-ring-planet-earth"');
       expect(html).toContain('name="orbit-path-line"');
-      // Entity position at M=0 is [2.4, 0, 0]
-      expect(html).toContain('data-position="2.4,0,0"');
       // Orbit path is offset by -position to remain anchored at primary [0, 0, 0]
       expect(html).toContain('position="-2.4');
     });

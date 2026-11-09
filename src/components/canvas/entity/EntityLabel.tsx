@@ -232,10 +232,12 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
   return (
     <group
       ref={billboardRef}
-      name={`entity-label-${id}`}
-      data-testid={`entity-label-${id}`}
-      data-name={name}
-      data-spectral={formatDesignationTag(spectralType)}
+      name={`entity-label-${id} [${name}] [${formatDesignationTag(spectralType)}]`}
+      userData={{
+        testId: `entity-label-${id}`,
+        name,
+        spectral: formatDesignationTag(spectralType),
+      }}
       position={resolvedPos}
     >
       {/* Top-Right Facet: Typographic Label (System Designation) & Facet Badge */}

@@ -223,7 +223,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
   if (!isStalkTier && progressRef.current <= 0.001) return null;
 
   return (
-    <group name={`drop-stalk-${id}`} data-hemisphere={hemisphere}>
+    <group name={`drop-stalk-${id}`} userData={{ hemisphere }}>
       {/* Vertical Stalk Line */}
       <lineSegments ref={lineMeshRef} name="stalk-line" material={lineMaterial} frustumCulled={false}>
         <primitive object={lineGeom} attach="geometry" />

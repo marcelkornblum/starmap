@@ -288,7 +288,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       ref={groupRef}
       position={position}
       name={`orbital-ring-${id}`}
-      data-state-forced={String(!layerVisible && isStateElevated)}
+      userData={{ stateForced: !layerVisible && isStateElevated }}
     >
       {/* 3D Keplerian Ellipse Line (Screen-Space Invariant Dashed 2px Line) */}
       <group name="orbit-path-line">

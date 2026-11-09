@@ -262,7 +262,7 @@
       "audId": "AUD-120"
     },
     "G-literals::src/views/GalaxyView.tsx": {
-      "count": 8,
+      "count": 7,
       "audId": "AUD-020"
     },
     "G-size::src/views/PlanetView.tsx": {
@@ -325,19 +325,11 @@
       "count": 1,
       "audId": "AUD-113"
     },
-    "forbidden-inline-style::src/components/canvas/viewport/GlobalCanvas.tsx": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
     "forbidden-dynamic-classname::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
       "count": 1,
       "audId": "AUD-125"
     },
     "forbidden-dynamic-classname::src/components/interface/information/Unit/Unit.tsx": {
-      "count": 1,
-      "audId": "AUD-125"
-    },
-    "forbidden-dynamic-classname::src/components/canvas/viewport/GlobalCanvas.tsx": {
       "count": 1,
       "audId": "AUD-125"
     },
@@ -657,10 +649,6 @@
       "count": 1,
       "audId": "AUD-103"
     },
-    "atomic-store-selectors::src/components/canvas/viewport/SceneBridgeContext.ts": {
-      "count": 1,
-      "audId": "AUD-101"
-    },
     "eslint(max-lines)::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
       "count": 1,
       "audId": "AUD-120"
@@ -861,10 +849,6 @@
       "count": 6,
       "audId": "AUD-129"
     },
-    "react-hooks(exhaustive-deps)::src/components/canvas/scenes/SystemScene.tsx": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
     "eslint(max-lines)::src/components/canvas/materials/CartoLineMaterial.ts": {
       "count": 1,
       "audId": "AUD-120"
@@ -942,19 +926,11 @@
       "audId": "AUD-120"
     },
     "react(only-export-components)::src/router/index.tsx": {
-      "count": 20,
-      "audId": "AUD-129"
-    },
-    "react(only-export-components)::src/views/StarTypeDetailView.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
-    },
-    "react(only-export-components)::src/views/PlanetTypeDetailView.tsx": {
-      "count": 1,
+      "count": 19,
       "audId": "AUD-129"
     },
     "react(only-export-components)::src/views/MetricDetailView.tsx": {
-      "count": 2,
+      "count": 1,
       "audId": "AUD-129"
     },
     "eslint(max-lines)::src/views/SystemView.tsx": {
@@ -1112,10 +1088,6 @@
     "eslint(max-lines)::tests/cameraMath.test.ts": {
       "count": 1,
       "audId": "AUD-120"
-    },
-    "react(globals)::tests/canvasAndLoaders.test.ts": {
-      "count": 2,
-      "audId": "AUD-145"
     },
     "eslint(max-lines)::tests/guideViews.test.tsx": {
       "count": 1,

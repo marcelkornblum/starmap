@@ -388,7 +388,7 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
   return (
     <group
       position={resolvedPos}
-      data-position={`${resolvedPos.x},${resolvedPos.y},${resolvedPos.z}`}
+      userData={{ position: `${resolvedPos.x},${resolvedPos.y},${resolvedPos.z}` }}
       name={`celestial-entity-${id}`}
     >
       {/* Node Representation Group (Cross-fades inversely when bodyRadius is provided) */}

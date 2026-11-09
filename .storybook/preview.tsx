@@ -1,5 +1,4 @@
 import type { Preview } from '@storybook/react-vite';
-import '../src/components/canvas/viewport/patchR3F';
 import '../src/index.css';
 
 const preview: Preview = {
