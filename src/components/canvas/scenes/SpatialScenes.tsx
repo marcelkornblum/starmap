@@ -30,6 +30,8 @@ import {
 
 export { GalacticCameraController, type GalacticCameraControllerProps };
 
+const ORIGIN_COORDS: readonly [number, number, number] = [0, 0, 0];
+
 export interface GalacticSceneContentProps {
   initialSelectedId?: string | null;
   onInspectSystem?: (systemId: string) => void;
@@ -55,7 +57,7 @@ export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = ({
   additionalEntities,
 }) => {
   const targetCoords = useMemo<[number, number, number]>(() => {
-    if (!centerCoordinates) return [0, 0, 0];
+    if (!centerCoordinates) return ORIGIN_COORDS as [number, number, number];
     if ('x' in centerCoordinates) {
       return [centerCoordinates.x, centerCoordinates.y, centerCoordinates.z];
     }
@@ -120,7 +122,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
   variant = 'card',
 }) => {
   const targetCoords = useMemo<[number, number, number]>(() => {
-    if (!centerCoordinates) return [0, 0, 0];
+    if (!centerCoordinates) return ORIGIN_COORDS as [number, number, number];
     if ('x' in centerCoordinates) {
       return [centerCoordinates.x, centerCoordinates.y, centerCoordinates.z];
     }
@@ -211,7 +213,7 @@ export const SystemSceneContent: React.FC<SystemSceneContentProps> = ({
   onSelectEntity,
 }) => {
   const targetCoords = useMemo<[number, number, number]>(() => {
-    if (!centerCoordinates) return [0, 0, 0];
+    if (!centerCoordinates) return ORIGIN_COORDS as [number, number, number];
     if ('x' in centerCoordinates) {
       return [centerCoordinates.x, centerCoordinates.y, centerCoordinates.z];
     }
@@ -255,7 +257,7 @@ export interface SystemViewSceneProps extends SystemSceneContentProps {
 }
 
 export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
-  systemId = 'sol',
+  systemId,
   system,
   centerId,
   centerCoordinates,
@@ -266,7 +268,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
   variant = 'card',
 }) => {
   const targetCoords = useMemo<[number, number, number]>(() => {
-    if (!centerCoordinates) return [0, 0, 0];
+    if (!centerCoordinates) return ORIGIN_COORDS as [number, number, number];
     if ('x' in centerCoordinates) {
       return [centerCoordinates.x, centerCoordinates.y, centerCoordinates.z];
     }
@@ -324,7 +326,7 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
   const planetDisplayName = isEarth ? 'Earth' : planetId.charAt(0).toUpperCase() + planetId.slice(1);
 
   const standardCam = useMemo(
-    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, [0, 0, 0]),
+    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, ORIGIN_COORDS as [number, number, number]),
     [],
   );
 
@@ -359,7 +361,7 @@ export interface PlanetaryViewSceneProps extends PlanetarySceneContentProps {
 }
 
 export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
-  planetId = 'earth',
+  planetId,
   planet,
   onNavigateSystem: _onNavigateSystem,
   onNavigateGalaxy: _onNavigateGalaxy,
@@ -367,7 +369,7 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
   variant = 'card',
 }) => {
   const standardCam = useMemo(
-    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, [0, 0, 0]),
+    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, ORIGIN_COORDS as [number, number, number]),
     [],
   );
 

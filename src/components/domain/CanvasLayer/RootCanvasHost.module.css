@@ -1,0 +1,16 @@
+@layer blocks {
+  .rootCanvasHost {
+    position: fixed;
+    inset: 0;
+    inline-size: 100vw;
+    block-size: 100vh;
+    z-index: var(--layer-canvas);
+    pointer-events: auto;
+    overflow: hidden;
+    background-color: var(--surface-canvas-bg);
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}

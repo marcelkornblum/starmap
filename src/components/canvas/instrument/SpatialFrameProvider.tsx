@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
@@ -115,6 +115,26 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     [frame],
   );
 
+  const enableOrthographicProjectionRef = useRef(
+    useSettingsStore.getState().enableOrthographicProjection,
+  );
+
+  const enableOrthoSubRef = useRef<(() => void) | null>(null);
+  if (!enableOrthoSubRef.current) {
+    enableOrthoSubRef.current = useSettingsStore.subscribe((state) => {
+      enableOrthographicProjectionRef.current = state.enableOrthographicProjection;
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      if (enableOrthoSubRef.current) {
+        enableOrthoSubRef.current();
+        enableOrthoSubRef.current = null;
+      }
+    };
+  }, []);
+
   useFrame((state) => {
     const s = stateRef.current;
     s.frame = frame;
@@ -202,7 +222,7 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     // 4. Cardinal alignment & Plane Quadrant weights
     const startThresh = frame.camera.thresholdStart ?? 0.94;
     const endThresh = frame.camera.thresholdEnd ?? 0.985;
-    const enableOrthographicProjection = useSettingsStore.getState().enableOrthographicProjection;
+    const enableOrthographicProjection = enableOrthographicProjectionRef.current;
     const allowPolarDial =
       enableOrthographicProjection && frame.coordinateFins.polarDialExpansion !== false;
 

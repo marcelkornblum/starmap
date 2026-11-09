@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useStore } from 'zustand';
 import { useFrame } from '@react-three/fiber';
@@ -60,6 +60,30 @@ export const ApertureEvaluator: React.FC = () => {
   const store = useSpatialEntityStoreApi();
   const scratchApertureRef = useLazyRef(() => new Set<string>());
 
+  const activeStarsRef = useRef({
+    summariesLength: useActiveStarsStore.getState().summaries.length,
+    isHydrated: useActiveStarsStore.getState().isHydrated,
+  });
+
+  const activeStarsSubRef = useRef<(() => void) | null>(null);
+  if (!activeStarsSubRef.current) {
+    activeStarsSubRef.current = useActiveStarsStore.subscribe((starsState) => {
+      activeStarsRef.current = {
+        summariesLength: starsState.summaries.length,
+        isHydrated: starsState.isHydrated,
+      };
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      if (activeStarsSubRef.current) {
+        activeStarsSubRef.current();
+        activeStarsSubRef.current = null;
+      }
+    };
+  }, []);
+
   useFrame((r3fState) => {
     if (!frameCtx?.frameRef?.current) return;
     const { focusPoint, apertureRadius } = frameCtx.frameRef.current;
@@ -71,8 +95,8 @@ export const ApertureEvaluator: React.FC = () => {
     scratch.clear();
 
     const activeCutoff = getApertureActiveCutoffForViewportWidth(r3fState?.size?.width);
-    const { summaries, isHydrated } = useActiveStarsStore.getState();
-    const streamedInApertureCount = summaries.length;
+    const { summariesLength, isHydrated } = activeStarsRef.current;
+    const streamedInApertureCount = summariesLength;
 
     if (isHydrated && streamedInApertureCount <= activeCutoff) {
       const entities = state.entities;

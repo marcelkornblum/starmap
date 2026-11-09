@@ -159,11 +159,6 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
 
     if (!labelRef.current) return;
 
-    if (labelDimensionsRef.current.width === 0 && labelRef.current.offsetWidth > 0) {
-      labelDimensionsRef.current.width = labelRef.current.offsetWidth;
-      labelDimensionsRef.current.height = labelRef.current.offsetHeight;
-    }
-
     // Retrieve screen footprint from occlusion manager to construct accurate activeBox
     const fp = occlusionManager.getFootprint(id);
     let activeBox: Box2D | undefined;
@@ -242,7 +237,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
     >
       {/* Top-Right Facet: Typographic Label (System Designation) & Facet Badge */}
       <SafeHtml
-        position={[anchorX, anchorY, 0]}
+        position={[anchorX + (offset ? offset[0] : 0), anchorY + (offset ? offset[1] : 0), 0]}
         calculatePosition={handleCalculatePosition}
         center={false}
         data-testid={`entity-label-${id}`}
@@ -253,7 +248,6 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
           data-state={state}
           data-occluded={state === 'selected' || state === 'focused' ? 'false' : lastOccludedRef.current === true ? 'true' : 'false'}
           data-testid={`entity-label-inner-${id}`}
-          style={offset ? { transform: `translate3d(${offset[0]}px, ${offset[1]}px, 0)` } : undefined}
         >
           <div className={styles.nodeLabel} data-state={state}>
             <svg className={styles.leaderLine} aria-hidden="true">
