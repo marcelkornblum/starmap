@@ -276,7 +276,7 @@ describe('CameraTransitionController & useCameraTransition', () => {
     });
 
     it('synchronises transition lifecycle with useUIStore isCameraTransitioning', () => {
-      useUIStore.getState().resetUIState();
+      useUIStore.getState().resetUI();
       expect(useUIStore.getState().isCameraTransitioning).toBe(false);
 
       let capturedApi = null as ReturnType<typeof useCameraTransition> | null;

@@ -55,7 +55,11 @@ import {
   useLayerIndex,
   useLoadedLayerManifests,
 } from '../hooks/useLayerData';
-import { useSpaLocation } from '../hooks/useSpaLocation';
+import {
+  appRouter,
+  useSpaLocation,
+  type StarmapSearchParams,
+} from '../hooks/useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
 
@@ -95,53 +99,107 @@ const useResolvedPlanetDetails = (
   );
 
   const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
-  const routeSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined;
+  const routeSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
-  const rawPlanetId =
-    routeParams?.planetId ??
-    propPlanetId ??
-    (pathname.startsWith('/planet/') ? pathname.replace(/^\/planet\//, '').split(/[?#]/)[0] : undefined);
-  const urlPlanetSlug = toUrlSlug(rawPlanetId ?? '') || null;
+  const rawPlanetId = routeParams?.planetId ?? propPlanetId;
+  const fallbackPlanetSlug = pathname.startsWith('/planet/') ? toUrlSlug(pathname.slice('/planet/'.length).split('/')[0]) : null;
+  const urlPlanetSlug = toUrlSlug(rawPlanetId ?? '') || fallbackPlanetSlug || null;
 
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
-  const focusParam = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
-  const selectParam = (routeSearch?.select as string | undefined) ?? searchParams.get('select') ?? undefined;
+  const focusParam = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
+  const selectParam = routeSearch?.select ?? searchParams.get('select') ?? undefined;
+  const centerParam = routeSearch?.center ?? searchParams.get('center') ?? undefined;
   const urlFocusSlug = focusParam ? toUrlSlug(focusParam) || null : null;
   const hasExplicitFocus = Boolean(focusParam && urlFocusSlug && urlFocusSlug.length > 0);
 
   const { corpus } = useSearchCorpus('all', initialCorpus);
   const activeCorpus = corpus ?? EMPTY_CORPUS;
 
-  const urlFocusEntity = useMemo(
-    () =>
-      urlFocusSlug
-        ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
-        : null,
-    [urlFocusSlug, activeCorpus],
-  );
-  const focusedEntity = urlFocusSlug
-    ? (urlFocusEntity ?? storeApi.getState().getEntitiesByState('focused')[0] ?? null)
-    : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
-  const matchedEntry = focusedEntity
-    ? findFocusedEntryInCorpus(focusedEntity.id, activeCorpus)
-    : undefined;
   const urlPlanetEntry = urlPlanetSlug
     ? findFocusedEntryInCorpus(urlPlanetSlug, activeCorpus)
     : undefined;
   const targetPlanetId = urlPlanetEntry?.i ?? urlPlanetSlug ?? '';
   const targetSystemId =
-    matchedEntry?.s ??
     urlPlanetEntry?.s ??
     (urlPlanetEntry && urlPlanetEntry.k === 1
       ? urlPlanetEntry.i
       : 'sol');
 
-  const focusedEntityId = focusedEntity?.id ?? '';
+  const planetSlugs = useMemo(
+    () =>
+      new Set(
+        [toUrlSlug(targetPlanetId), urlPlanetSlug ? toUrlSlug(urlPlanetSlug) : '']
+          .filter((slug) => slug.length > 0),
+      ),
+    [targetPlanetId, urlPlanetSlug],
+  );
 
   const { systemSummary, systemDetail, focusedDetail } = useSystemData(
     targetSystemId,
-    focusedEntityId,
+    urlFocusSlug ?? '',
   );
+
+  const orbitingBodyIds = useMemo(
+    () =>
+      activeCorpus
+        .filter((entry) => entry.o && planetSlugs.has(toUrlSlug(entry.o)))
+        .map((entry) => entry.i),
+    [activeCorpus, planetSlugs],
+  );
+
+  const isFocusInPlanetScope = useMemo(() => {
+    if (!urlFocusSlug) return false;
+    const isPlanetItself =
+      urlFocusSlug === urlPlanetSlug ||
+      urlFocusSlug === toUrlSlug(targetPlanetId);
+    if (isPlanetItself) return true;
+    if (systemDetail?.kind === 'system') {
+      const rec = systemDetail.record;
+      const planet = rec.planets.find(
+        (p) =>
+          p.id === targetPlanetId ||
+          toUrlSlug(p.id) === urlPlanetSlug ||
+          toUrlSlug(p.name) === urlPlanetSlug,
+      );
+      if (planet?.satellites) {
+        if (
+          planet.satellites.some(
+            (sat) =>
+              sat.id === urlFocusSlug ||
+              toUrlSlug(sat.id) === urlFocusSlug ||
+              toUrlSlug(sat.name) === urlFocusSlug,
+          )
+        ) {
+          return true;
+        }
+      }
+      if (orbitingBodyIds.length > 0) {
+        return orbitingBodyIds.some(
+          (id) => id === urlFocusSlug || toUrlSlug(id) === urlFocusSlug,
+        );
+      }
+      return false;
+    }
+    if (activeCorpus.length > 0) {
+      return orbitingBodyIds.some(
+        (id) => id === urlFocusSlug || toUrlSlug(id) === urlFocusSlug,
+      );
+    }
+    return true;
+  }, [urlFocusSlug, urlPlanetSlug, targetPlanetId, systemDetail, orbitingBodyIds, activeCorpus.length]);
+
+  const urlFocusEntity = useMemo(
+    () =>
+      urlFocusSlug && isFocusInPlanetScope
+        ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
+        : null,
+    [urlFocusSlug, isFocusInPlanetScope, activeCorpus],
+  );
+  const focusedEntity = urlFocusSlug
+    ? (urlFocusEntity ?? (isFocusInPlanetScope ? storeApi.getState().getEntitiesByState('focused')[0] ?? null : null))
+    : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
+
+  const focusedEntityId = focusedEntity?.id ?? '';
 
   const isPlanetDistinctFromSystem = Boolean(
     targetPlanetId && targetPlanetId !== targetSystemId,
@@ -164,13 +222,6 @@ const useResolvedPlanetDetails = (
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
 
-  const planetSlugs = new Set(
-    [toUrlSlug(targetPlanetId), urlPlanetSlug ? toUrlSlug(urlPlanetSlug) : '']
-      .filter((slug) => slug.length > 0),
-  );
-  const orbitingBodyIds = activeCorpus
-    .filter((entry) => entry.o && planetSlugs.has(toUrlSlug(entry.o)))
-    .map((entry) => entry.i);
   const canonRecords = useEntityAnnotations(
     [
       targetPlanetId,
@@ -181,6 +232,8 @@ const useResolvedPlanetDetails = (
     ].map(toAnnotationLookupKey),
   );
 
+  const effectiveUrlFocusSlug = isFocusInPlanetScope ? urlFocusSlug : null;
+
   const systemContextDetails = buildFocusedEntityDetails({
     focusedEntity,
     corpus: activeCorpus,
@@ -189,14 +242,15 @@ const useResolvedPlanetDetails = (
     entityDetail: focusedDetail,
     urlSystemSlug: targetSystemId,
     urlPlanetSlug,
-    hasExplicitFocus,
+    urlFocusSlug: effectiveUrlFocusSlug,
+    hasExplicitFocus: Boolean(hasExplicitFocus && isFocusInPlanetScope),
     canonRecords,
     viewScope: 'planet',
     currentPathname: pathname,
     currentSearch: search,
   });
 
-  const focusedDetails = focusedEntity ? systemContextDetails : null;
+  const focusedDetails = (focusedEntity && isFocusInPlanetScope) ? systemContextDetails : null;
 
   const storeSelected = storeApi
     .getState()
@@ -211,7 +265,75 @@ const useResolvedPlanetDetails = (
           layerIndex,
           loadedLayers,
         );
-  const selectedEntityIds = selectedEntities.map((e) => e.id);
+  const urlExplicitSelectSlugs = useMemo(() => {
+    return (selectParam ?? searchParams.get('select') ?? '')
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0 && !s.includes(':'));
+  }, [selectParam, searchParams]);
+
+  const selectedEntityIds = useMemo(() => {
+    const ids = new Set(selectedEntities.map((e) => e.id));
+    for (const slug of urlExplicitSelectSlugs) {
+      ids.add(slug);
+    }
+    return Array.from(ids);
+  }, [selectedEntities, urlExplicitSelectSlugs]);
+
+  useEffect(() => {
+    if (!urlPlanetSlug) return;
+    if (activeCorpus.length === 0 && !systemDetail) return;
+
+    if (urlFocusSlug && !isFocusInPlanetScope) {
+      if (import.meta.env?.DEV) {
+        console.warn(`[router] Out-of-scope focus '${urlFocusSlug}' stripped on /planet/${urlPlanetSlug}`);
+      }
+      if (typeof window !== 'undefined') {
+        const nextUrl = new URL(window.location.href);
+        if (nextUrl.searchParams.has('focus')) {
+          nextUrl.searchParams.delete('focus');
+          const nextHref = nextUrl.pathname + (nextUrl.search ? nextUrl.search : '');
+          if (appRouter.history?.replace) {
+            appRouter.history.replace(nextHref);
+          } else if (window.history?.replaceState) {
+            window.history.replaceState(null, '', nextHref);
+          }
+        }
+      }
+    }
+
+    if (centerParam && !centerParam.includes(',')) {
+      const centerSlug = toUrlSlug(centerParam);
+      const isCenterInPlanetScope =
+        centerSlug === urlPlanetSlug ||
+        centerSlug === toUrlSlug(targetPlanetId) ||
+        orbitingBodyIds.some((id) => id === centerSlug || toUrlSlug(id) === centerSlug);
+
+      if (!isCenterInPlanetScope) {
+        if (typeof window !== 'undefined') {
+          const nextUrl = new URL(window.location.href);
+          if (nextUrl.searchParams.has('center')) {
+            nextUrl.searchParams.delete('center');
+            const nextHref = nextUrl.pathname + (nextUrl.search ? nextUrl.search : '');
+            if (appRouter.history?.replace) {
+              appRouter.history.replace(nextHref);
+            } else if (window.history?.replaceState) {
+              window.history.replaceState(null, '', nextHref);
+            }
+          }
+        }
+      }
+    }
+  }, [
+    urlPlanetSlug,
+    activeCorpus.length,
+    urlFocusSlug,
+    isFocusInPlanetScope,
+    centerParam,
+    targetPlanetId,
+    orbitingBodyIds,
+    systemDetail,
+  ]);
 
   const planetaryBodies = buildPlanetaryBodiesSummary({
     details: systemContextDetails,
@@ -278,19 +400,16 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
   );
 
   const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
-  const routeSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined;
+  const routeSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
-  const focus = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
-  const layer = (routeSearch?.layer as string | undefined) ?? searchParams.get('layer') ?? undefined;
-  const route = (routeSearch?.route as string | undefined) ?? searchParams.get('route') ?? undefined;
-  const journeyOption = (routeSearch?.journeyOption as string | undefined) ?? searchParams.get('journeyOption') ?? undefined;
-  const center = (routeSearch?.center as string | undefined) ?? searchParams.get('center') ?? undefined;
+  const focus = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
+  const layer = routeSearch?.layer ?? searchParams.get('layer') ?? undefined;
+  const route = routeSearch?.route ?? searchParams.get('route') ?? undefined;
+  const journeyOption = routeSearch?.journeyOption ?? searchParams.get('journeyOption') ?? undefined;
+  const center = routeSearch?.center ?? searchParams.get('center') ?? undefined;
 
-  const rawPlanetId =
-    routeParams?.planetId ??
-    propPlanetId ??
-    (pathname.startsWith('/planet/') ? pathname.replace(/^\/planet\//, '').split(/[?#]/)[0] : undefined);
+  const rawPlanetId = routeParams?.planetId ?? propPlanetId;
   const targetId = toUrlSlug(rawPlanetId ?? '') || 'earth';
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = extractUrlSceneCameraState(search);
@@ -308,8 +427,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     if (useUIStore.getState().detailsDetent === 'collapsed') {
       useUIStore.getState().setDetailsDetent('peek');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlFocusSlug, focusedEntity?.id, storeApi]);
+  }, [urlFocusSlug, focusedEntity, storeApi]);
 
   const breadcrumbs = buildPlanetViewBreadcrumbs(
     focusedDetails,

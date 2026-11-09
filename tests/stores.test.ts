@@ -242,7 +242,7 @@ describe('useUIStore (Ephemeral)', () => {
     useUIStore.getState().setActiveDrawer('bodies');
     useUIStore.getState().setLayerCardOpen(false);
 
-    useUIStore.getState().resetUIState();
+    useUIStore.getState().resetUI();
 
     expect(useUIStore.getState()).toMatchObject(INITIAL_UI_STATE);
     expect(localStorage.getItem('starmap-ui')).toBeNull();

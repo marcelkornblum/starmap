@@ -11,8 +11,8 @@ import { useUIStore } from '../stores/useUIStore';
 describe('useKeyboardShortcuts', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
-    useCameraStore.getState().resetCameraState();
-    useUIStore.getState().resetUIState();
+    useCameraStore.getState().reset();
+    useUIStore.getState().resetUI();
   });
 
   afterEach(() => {

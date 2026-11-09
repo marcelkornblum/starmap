@@ -38,8 +38,12 @@ export const syncSearchUrlParams = (
         const next: StarmapSearchParams = { ...prev };
         if (qTrimmed.length > 0) {
           next.q = qTrimmed;
+          next.select = 'search';
         } else {
           delete next.q;
+          if (next.select === 'search') {
+            delete next.select;
+          }
         }
         if (nextFilter !== 'all') {
           next.searchCategory = nextFilter;

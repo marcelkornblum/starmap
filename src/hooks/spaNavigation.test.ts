@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleSpaNavigation } from './spaNavigation';
-import { registerAppRouter } from '../hooks/useSpaLocation';
+import { registerAppRouter } from './useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
 
 describe('handleSpaNavigation', () => {

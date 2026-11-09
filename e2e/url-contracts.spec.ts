@@ -115,7 +115,7 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
   });
 
   test.describe('Target URL Grammar Contracts for T02 / T06 (DEC-R014l)', () => {
-    test.fixme(
+    test(
       'AUD-091 (DEC-R014a): ?center=<x>,<y>,<z> sets coordinate centre and panning away from ?center=<entityId> writes coordinates on settle',
       async ({ page }) => {
         // Navigating with coordinate centre sets camera target in reference frame
@@ -135,9 +135,9 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
           const cx = box.x + box.width / 2;
           const cy = box.y + box.height / 2;
           await page.mouse.move(cx, cy);
-          await page.mouse.down({ button: 'left' });
+          await page.mouse.down({ button: 'right' });
           await page.mouse.move(cx + 100, cy + 50, { steps: 10 });
-          await page.mouse.up({ button: 'left' });
+          await page.mouse.up({ button: 'right' });
         }
 
         // On camera settle, URL replaces ?center=sol with numeric coordinates ?center=<x>,<y>,<z>
@@ -148,7 +148,7 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
       },
     );
 
-    test.fixme(
+    test(
       'AUD-091 (DEC-R014b/c): ?select= persists across Galaxy, System, and Planet navigation and marks in-scope entities selected',
       async ({ page }) => {
         // Cold-load Galaxy with multi-scope selections and layer
@@ -177,31 +177,31 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
       },
     );
 
-    test.fixme(
+    test(
       'AUD-091 (DEC-R014d/e): out-of-scope ?focus= and ?center=<entityId> are stripped via history.replace on /system/sol?focus=tau-ceti and /planet/earth?focus=mars',
       async ({ page }) => {
         // Navigating to /system/sol?focus=tau-ceti has out-of-scope focus (Tau Ceti is another star system)
         await page.goto('/system/sol?focus=tau-ceti');
-        await expect(page.getByTestId('system-view-root')).toBeVisible();
+        await expect(page.getByTestId('system-view-root')).toBeVisible({ timeout: 15_000 });
 
         // Path is primary: out-of-scope focus stripped via history.replace
-        await expect(page).not.toHaveURL(/[?&]focus=tau-ceti/);
-        await expect(page.getByTestId('details-panel')).not.toBeVisible();
+        await expect(page).not.toHaveURL(/[?&]focus=tau-ceti/, { timeout: 15_000 });
+        await expect(page.getByTestId('details-panel')).not.toBeVisible({ timeout: 15_000 });
 
         // Navigating to /planet/earth?focus=mars has out-of-scope focus (Mars is another planet)
         await page.goto('/planet/earth?focus=mars');
-        await expect(page.getByTestId('planet-view-root')).toBeVisible();
-        await expect(page).not.toHaveURL(/[?&]focus=mars/);
-        await expect(page.getByTestId('details-panel')).not.toBeVisible();
+        await expect(page.getByTestId('planet-view-root')).toBeVisible({ timeout: 15_000 });
+        await expect(page).not.toHaveURL(/[?&]focus=mars/, { timeout: 15_000 });
+        await expect(page.getByTestId('details-panel')).not.toBeVisible({ timeout: 15_000 });
 
         // Out-of-scope entity in ?center= is also stripped via history.replace
         await page.goto('/system/sol?center=tau-ceti');
-        await expect(page.getByTestId('system-view-root')).toBeVisible();
-        await expect(page).not.toHaveURL(/[?&]center=tau-ceti/);
+        await expect(page.getByTestId('system-view-root')).toBeVisible({ timeout: 15_000 });
+        await expect(page).not.toHaveURL(/[?&]center=tau-ceti/, { timeout: 15_000 });
       },
     );
 
-    test.fixme(
+    test(
       'AUD-091 (DEC-R014f): ?layer=<slug> without ?select=layer:<slug> opens LayerCard without implicitly selecting layer entities',
       async ({ page }) => {
         // ?layer= controls only the layer card; 3D selection comes only from select
@@ -219,7 +219,7 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
       },
     );
 
-    test.fixme(
+    test(
       'AUD-091 (DEC-R014g): ?select= strips deprecated tag:, star-type:, planet-type:, collection:, and canon: tokens and Guide benchmarks omit select=',
       async ({ page }) => {
         // Deprecated select tokens are stripped via history.replace
@@ -240,7 +240,7 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
       },
     );
 
-    test.fixme(
+    test(
       'AUD-091 (DEC-R014h/i): ?route=sol:torchship-1g,tau-ceti opens Stage 2 Option Detail without ?journeyOption= and ?select=route marks route stops selected',
       async ({ page }) => {
         // Compound route with departure mode opens Stage 2 Option Detail directly
@@ -257,7 +257,7 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
       },
     );
 
-    test.fixme(
+    test(
       'AUD-091 (DEC-R014j): typing a search query on a spatial view sets ?q=<query>&select=search',
       async ({ page }) => {
         await page.goto('/galaxy');

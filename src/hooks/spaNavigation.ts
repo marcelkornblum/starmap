@@ -1,7 +1,7 @@
 import type React from 'react';
-import { appRouter } from '../hooks/useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
-import { resolveAppHref } from './url';
+import { resolveAppHref } from '../utils/url';
+import { appRouter } from './useSpaLocation';
 
 /**
  * Handles client-side SPA navigation for anchor clicks, preventing full page HTTP reloads

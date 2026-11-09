@@ -18,6 +18,7 @@ import {
   loadSearchCorpusForFilter,
   mergeSearchShards,
 } from '../../data/searchRepository';
+import type { StarmapSearchParams } from '../../hooks/useSpaLocation';
 import { useSearch } from '@tanstack/react-router';
 import {
   findFocusedEntryInCorpus,
@@ -87,7 +88,7 @@ export const SearchRoot = ({
   const store = useSpatialEntityStoreApi();
   const fallbackFocusIdRef = useRef<string | null>(null);
 
-  const routerSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined;
+  const routerSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
   const derivedSearch = useMemo(() => {
     if (locationSearch !== undefined) return locationSearch;
@@ -151,14 +152,15 @@ export const SearchRoot = ({
 
   const resolveCurrentFocusSlug = useCallback(
     (searchStr: string): string | null => {
+      const isExplicit = locationPathname !== undefined || locationSearch !== undefined;
       const focusVal =
-        (routerSearch?.focus as string | undefined) ??
+        (isExplicit ? null : (routerSearch?.focus as string | undefined)) ??
         new URLSearchParams(searchStr).get('focus');
       if (!focusVal) return null;
       const slug = toUrlSlug(focusVal);
       return slug.length > 0 ? slug : null;
     },
-    [routerSearch?.focus],
+    [routerSearch?.focus, locationPathname, locationSearch],
   );
 
   // Synchronise store on client mount to keep useState initializer 100% pure
@@ -191,8 +193,20 @@ export const SearchRoot = ({
         activeSearch,
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [
+    activeSearch,
+    initialAvailableCorpus,
+    initialCorpus,
+    initialSystemEntries,
+    layerIndex,
+    loadedLayers,
+    locationPathname,
+    locationSearch,
+    resolveCurrentFocusSlug,
+    results,
+    store,
+    syncUrl,
+  ]);
 
   const requestSeqRef = useRef<number>(0);
   const searchRootRef = useRef<HTMLDivElement>(null);

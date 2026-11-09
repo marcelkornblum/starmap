@@ -467,8 +467,8 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
           { store },
           createElement(GalaxyView, {
             initialCorpus: SAMPLE_BENCHMARK_CORPUS,
-            locationPathname: '/galaxy/sol',
-            locationSearch: '',
+            locationPathname: '/galaxy',
+            locationSearch: '?focus=sol',
           }),
         ),
       );

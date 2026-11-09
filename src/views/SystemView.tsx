@@ -54,7 +54,11 @@ import {
   useLayerIndex,
   useLoadedLayerManifests,
 } from '../hooks/useLayerData';
-import { useSpaLocation } from '../hooks/useSpaLocation';
+import {
+  appRouter,
+  useSpaLocation,
+  type StarmapSearchParams,
+} from '../hooks/useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
 
@@ -80,6 +84,9 @@ const useResolvedSystemDetails = (
   readonly urlSystemSlug: string | null;
   readonly hasExplicitFocus: boolean;
   readonly focusedDetail: DecodedDetailRecord | undefined;
+  readonly systemDetail: DecodedDetailRecord | undefined;
+  readonly isFocusInThisSystem: boolean;
+  readonly targetSystemId: string;
 } => {
   const storeApi = useSpatialEntityStoreApi();
   useSpatialEntityStore((state) => state.entities);
@@ -92,28 +99,76 @@ const useResolvedSystemDetails = (
   );
 
   const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
-  const routeSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined;
+  const routeSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
-  const rawSystemId =
-    routeParams?.systemId ??
-    propSystemId ??
-    (pathname.startsWith('/system/') ? pathname.replace(/^\/system\//, '').split(/[?#]/)[0] : undefined);
-  const urlSystemSlug = toUrlSlug(rawSystemId ?? '') || null;
+  const rawSystemId = routeParams?.systemId ?? propSystemId;
+  const fallbackSlug = pathname.startsWith('/system/') ? toUrlSlug(pathname.slice('/system/'.length).split('/')[0]) : null;
+  const urlSystemSlug = toUrlSlug(rawSystemId ?? '') || fallbackSlug || null;
 
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
-  const focusParam = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
+  const focusParam = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
   const urlFocusSlug = focusParam ? toUrlSlug(focusParam) || null : null;
   const hasExplicitFocus = Boolean(focusParam && urlFocusSlug && urlFocusSlug.length > 0);
 
   const { corpus } = useSearchCorpus('all', initialCorpus);
   const activeCorpus = corpus ?? EMPTY_CORPUS;
 
+  const urlSystemEntry = urlSystemSlug
+    ? findFocusedEntryInCorpus(urlSystemSlug, activeCorpus)
+    : undefined;
+  const targetSystemId =
+    urlSystemEntry?.s ??
+    urlSystemEntry?.i ??
+    urlSystemSlug ??
+    '';
+
+  const { systemSummary, systemDetail, focusedDetail } = useSystemData(
+    targetSystemId,
+    urlFocusSlug ?? '',
+  );
+
+  const isFocusInThisSystem = useMemo(() => {
+    if (!urlFocusSlug) return false;
+    if (urlFocusSlug === urlSystemSlug || urlFocusSlug === toUrlSlug(targetSystemId)) {
+      return true;
+    }
+    if (systemDetail?.kind === 'system') {
+      const rec = systemDetail.record;
+      if (
+        toUrlSlug(rec.id) === urlFocusSlug ||
+        toUrlSlug(rec.name) === urlFocusSlug ||
+        rec.stars.some((s) => s.id === urlFocusSlug || toUrlSlug(s.id) === urlFocusSlug || toUrlSlug(s.name) === urlFocusSlug) ||
+        rec.planets.some((p) => p.id === urlFocusSlug || toUrlSlug(p.id) === urlFocusSlug || toUrlSlug(p.name) === urlFocusSlug) ||
+        rec.planets.some((p) => p.satellites?.some((sat) => sat.id === urlFocusSlug || toUrlSlug(sat.id) === urlFocusSlug || toUrlSlug(sat.name) === urlFocusSlug)) ||
+        rec.disks?.some((d) => d.id === urlFocusSlug || toUrlSlug(d.id) === urlFocusSlug || toUrlSlug(d.name) === urlFocusSlug)
+      ) {
+        return true;
+      }
+      return false;
+    }
+    if (activeCorpus.length > 0) {
+      const entry = findFocusedEntryInCorpus(urlFocusSlug, activeCorpus);
+      if (entry) {
+        if (
+          entry.i === targetSystemId ||
+          toUrlSlug(entry.i) === urlSystemSlug ||
+          entry.s === targetSystemId ||
+          (entry.s && toUrlSlug(entry.s) === urlSystemSlug)
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return true;
+  }, [urlFocusSlug, urlSystemSlug, targetSystemId, activeCorpus, systemDetail]);
+
   const urlFocusEntity = useMemo(
     () =>
-      urlFocusSlug
+      urlFocusSlug && isFocusInThisSystem
         ? resolveFocusedEntityFromCorpus(urlFocusSlug, activeCorpus)
         : null,
-    [urlFocusSlug, activeCorpus],
+    [urlFocusSlug, isFocusInThisSystem, activeCorpus],
   );
 
   const rawStoreFocused = storeApi.getState().getEntitiesByState('focused')[0] ?? null;
@@ -134,27 +189,6 @@ const useResolvedSystemDetails = (
     : storeFocusedEntity;
 
   const focusedEntity = explicitFocusedEntity;
-  const matchedEntry = focusedEntity
-    ? (findFocusedEntryInCorpus(focusedEntity.id, activeCorpus) ??
-       findFocusedEntryInCorpus(focusedEntity.name, activeCorpus))
-    : undefined;
-  const urlSystemEntry = urlSystemSlug
-    ? findFocusedEntryInCorpus(urlSystemSlug, activeCorpus)
-    : undefined;
-  const targetSystemId =
-    matchedEntry?.s ??
-    matchedEntry?.i ??
-    urlSystemEntry?.s ??
-    urlSystemEntry?.i ??
-    urlSystemSlug ??
-    '';
-
-  const focusedEntityId = focusedEntity?.id ?? '';
-
-  const { systemSummary, systemDetail, focusedDetail } = useSystemData(
-    targetSystemId,
-    focusedEntityId,
-  );
 
   const matchingDisk =
     !explicitFocusedEntity &&
@@ -188,6 +222,8 @@ const useResolvedSystemDetails = (
     targetSystemId,
   ]);
 
+  const effectiveUrlFocusSlug = isFocusInThisSystem ? urlFocusSlug : null;
+
   const systemContextDetails = buildFocusedEntityDetails({
     focusedEntity,
     corpus: activeCorpus,
@@ -195,15 +231,15 @@ const useResolvedSystemDetails = (
     systemDetail,
     entityDetail: focusedDetail,
     urlSystemSlug,
-    urlFocusSlug,
-    hasExplicitFocus,
+    urlFocusSlug: effectiveUrlFocusSlug,
+    hasExplicitFocus: Boolean(hasExplicitFocus && isFocusInThisSystem),
     canonRecords,
     viewScope: 'system',
     currentPathname: pathname,
     currentSearch: search,
   });
 
-  const focusedDetails = (focusedEntity || matchingDisk) ? systemContextDetails : null;
+  const focusedDetails = (focusedEntity && isFocusInThisSystem) || matchingDisk ? systemContextDetails : null;
 
   return {
     focusedDetails,
@@ -215,6 +251,9 @@ const useResolvedSystemDetails = (
     urlSystemSlug,
     hasExplicitFocus,
     focusedDetail,
+    systemDetail,
+    isFocusInThisSystem,
+    targetSystemId,
   };
 };
 
@@ -233,6 +272,9 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     canonRecords,
     urlSystemSlug,
     focusedDetail,
+    systemDetail,
+    isFocusInThisSystem,
+    targetSystemId,
   } = useResolvedSystemDetails(props, true);
 
   const { pathname, search } = useSpaLocation(
@@ -242,20 +284,17 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
   );
 
   const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
-  const routeSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined;
+  const routeSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
-  const focus = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
-  const select = (routeSearch?.select as string | undefined) ?? searchParams.get('select') ?? undefined;
-  const layer = (routeSearch?.layer as string | undefined) ?? searchParams.get('layer') ?? undefined;
-  const route = (routeSearch?.route as string | undefined) ?? searchParams.get('route') ?? undefined;
-  const center = (routeSearch?.center as string | undefined) ?? searchParams.get('center') ?? undefined;
-  const journeyOption = (routeSearch?.journeyOption as string | undefined) ?? searchParams.get('journeyOption') ?? undefined;
+  const focus = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
+  const select = routeSearch?.select ?? searchParams.get('select') ?? undefined;
+  const layer = routeSearch?.layer ?? searchParams.get('layer') ?? undefined;
+  const route = routeSearch?.route ?? searchParams.get('route') ?? undefined;
+  const center = routeSearch?.center ?? searchParams.get('center') ?? undefined;
+  const journeyOption = routeSearch?.journeyOption ?? searchParams.get('journeyOption') ?? undefined;
 
-  const rawSystemId =
-    routeParams?.systemId ??
-    propSystemId ??
-    (pathname.startsWith('/system/') ? pathname.replace(/^\/system\//, '').split(/[?#]/)[0] : undefined);
+  const rawSystemId = routeParams?.systemId ?? propSystemId;
   const targetId = toUrlSlug(rawSystemId ?? '') || 'sol';
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = extractUrlSceneCameraState(search);
@@ -273,8 +312,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     if (useUIStore.getState().detailsDetent === 'collapsed') {
       useUIStore.getState().setDetailsDetent('peek');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlFocusSlug, focusedEntity?.id, storeApi]);
+  }, [urlFocusSlug, focusedEntity, storeApi]);
 
   const breadcrumbs = buildSystemViewBreadcrumbs(
     systemContextDetails,
@@ -306,7 +344,90 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
           layerIndex,
           loadedLayers,
         );
-  const selectedEntityIds = selectedEntities.map((e) => e.id);
+
+  const urlExplicitSelectSlugs = useMemo(() => {
+    return (select ?? searchParams.get('select') ?? '')
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0 && !s.includes(':'));
+  }, [select, searchParams]);
+
+  const selectedEntityIds = useMemo(() => {
+    const ids = new Set(selectedEntities.map((e) => e.id));
+    for (const slug of urlExplicitSelectSlugs) {
+      ids.add(slug);
+    }
+    return Array.from(ids);
+  }, [selectedEntities, urlExplicitSelectSlugs]);
+
+  useEffect(() => {
+    if (!urlSystemSlug) return;
+    if (activeCorpus.length === 0 && !systemDetail) return;
+
+    if (urlFocusSlug && !isFocusInThisSystem) {
+      if (import.meta.env?.DEV) {
+        console.warn(`[router] Out-of-scope focus '${urlFocusSlug}' stripped on /system/${urlSystemSlug}`);
+      }
+      if (typeof window !== 'undefined') {
+        const nextUrl = new URL(window.location.href);
+        if (nextUrl.searchParams.has('focus')) {
+          nextUrl.searchParams.delete('focus');
+          const nextHref = nextUrl.pathname + (nextUrl.search ? nextUrl.search : '');
+          if (appRouter.history?.replace) {
+            appRouter.history.replace(nextHref);
+          } else if (window.history?.replaceState) {
+            window.history.replaceState(null, '', nextHref);
+          }
+        }
+      }
+    }
+
+    if (center && !center.includes(',')) {
+      const centerSlug = toUrlSlug(center);
+      const isCenterInThisSystem =
+        centerSlug === urlSystemSlug ||
+        centerSlug === toUrlSlug(targetSystemId) ||
+        (() => {
+          if (systemDetail?.kind === 'system') {
+            const rec = systemDetail.record;
+            return (
+              rec.stars.some((s) => s.id === centerSlug || toUrlSlug(s.id) === centerSlug) ||
+              rec.planets.some((p) => p.id === centerSlug || toUrlSlug(p.id) === centerSlug)
+            );
+          }
+          if (activeCorpus.length > 0) {
+            const entry = findFocusedEntryInCorpus(centerSlug, activeCorpus);
+            if (entry && (entry.s === targetSystemId || (entry.s && toUrlSlug(entry.s) === urlSystemSlug))) return true;
+            return false;
+          }
+          return true;
+        })();
+
+      if (!isCenterInThisSystem) {
+        if (typeof window !== 'undefined') {
+          const nextUrl = new URL(window.location.href);
+          if (nextUrl.searchParams.has('center')) {
+            nextUrl.searchParams.delete('center');
+            const nextHref = nextUrl.pathname + (nextUrl.search ? nextUrl.search : '');
+            if (appRouter.history?.replace) {
+              appRouter.history.replace(nextHref);
+            } else if (window.history?.replaceState) {
+              window.history.replaceState(null, '', nextHref);
+            }
+          }
+        }
+      }
+    }
+  }, [
+    urlSystemSlug,
+    activeCorpus.length,
+    urlFocusSlug,
+    isFocusInThisSystem,
+    center,
+    targetSystemId,
+    systemDetail,
+    activeCorpus,
+  ]);
 
   const systemBodies = buildSystemBodiesSummary({
     details: systemContextDetails,

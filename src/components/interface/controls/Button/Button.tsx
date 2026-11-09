@@ -1,6 +1,6 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
 import { resolveAppHref } from '../../../../utils/url';
-import { handleSpaNavigation } from '../../../../utils/spaNavigation';
+import { handleSpaNavigation } from '../../../../hooks/spaNavigation';
 import styles from './Button.module.css';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

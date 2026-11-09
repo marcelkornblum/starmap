@@ -98,17 +98,19 @@ export const DirectionsPanel: React.FC<DirectionsPanelProps> = ({
     return null;
   }
 
+  const effectiveOptionId = propOptionId ?? journey.selectedOption?.id;
+
   const selectedOptionId =
-    overrideOption && overrideOption.baseId === propOptionId
+    overrideOption && overrideOption.baseId === effectiveOptionId
       ? overrideOption.optionId
-      : propOptionId;
+      : effectiveOptionId;
 
   const selectedOption = selectedOptionId
     ? (journey.options.find((o) => o.id === selectedOptionId) ??
       journey.selectedOption ??
       journey.options[0] ??
       null)
-    : null;
+    : (journey.selectedOption ?? null);
 
   const isComingSoon = journey.status === 'coming-soon';
   const isDetailMode = !isComingSoon && selectedOption !== null;

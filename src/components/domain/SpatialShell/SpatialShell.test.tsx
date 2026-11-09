@@ -6,7 +6,7 @@ import { useUIStore } from '../../../stores/useUIStore';
 
 describe('SpatialShell Domain Component', () => {
   beforeEach(() => {
-    useUIStore.getState().resetUIState();
+    useUIStore.getState().resetUI();
   });
 
   describe('Landmarks and Spatial Regions', () => {

@@ -73,7 +73,6 @@ export interface CameraActions {
   setRadialView: () => void;
   triggerRecenter: () => void;
   reset: () => void;
-  resetCameraState: () => void;
 }
 
 export type CameraStore = CameraState & CameraActions;
@@ -158,5 +157,4 @@ export const useCameraStore = create<CameraStore>()((set) => ({
   setRadialView: () => set({ pendingPresetRequest: 'radial' }),
   triggerRecenter: () => set((state) => ({ recenterTick: state.recenterTick + 1 })),
   reset: () => set({ ...INITIAL_CAMERA_STATE }),
-  resetCameraState: () => set({ ...INITIAL_CAMERA_STATE }),
 }));

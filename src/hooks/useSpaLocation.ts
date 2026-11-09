@@ -27,7 +27,8 @@ export interface SpaRouterNavigateOptions {
 }
 
 export interface SpaRouterLike {
-  readonly navigate?: (options: SpaRouterNavigateOptions) => Promise<unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly navigate?: (options: SpaRouterNavigateOptions | any) => Promise<unknown>;
   readonly state?: unknown;
   readonly subscribe?: (
     event: 'onResolved' | string,
@@ -36,12 +37,13 @@ export interface SpaRouterLike {
   readonly history?: {
     subscribe?: (callback: () => void) => (() => void) | undefined;
     push?: (path: string) => void;
+    replace?: (path: string) => void;
   };
 }
 
 let registeredRouter: SpaRouterLike | null = null;
 
-export function registerAppRouter(routerInstance: SpaRouterLike | unknown): void {
+export function registerAppRouter(routerInstance: unknown): void {
   registeredRouter = (routerInstance ?? null) as SpaRouterLike | null;
 }
 

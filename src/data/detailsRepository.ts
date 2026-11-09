@@ -256,5 +256,3 @@ export const clearDetailsRepositoryCache = (): void => {
   RESOLVED_DETAIL_RECORD_CACHE.clear();
   notifyDetailsListeners();
 };
-
-export const resetDetailsRepositoryCache = clearDetailsRepositoryCache;

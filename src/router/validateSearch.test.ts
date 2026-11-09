@@ -70,7 +70,7 @@ describe('AUD-022: validateSearch query param sanitization', () => {
       q: 'Tau Ceti',
       searchCategory: 'stars',
       focus: 'tau-ceti-e',
-      select: 'tag:habitable',
+      select: 'layer:project-hail-mary,sol',
       layer: '  project-hail-mary  ',
       route: 'sol-to-tau-ceti',
       journeyOption: 'standard',
@@ -79,7 +79,7 @@ describe('AUD-022: validateSearch query param sanitization', () => {
     expect(validated.q).toBe('Tau Ceti');
     expect(validated.searchCategory).toBe('stars');
     expect(validated.focus).toBe('tau-ceti-e');
-    expect(validated.select).toBe('tag:habitable');
+    expect(validated.select).toBe('layer:project-hail-mary,sol');
     expect(validated.layer).toBe('project-hail-mary');
     expect(validated.route).toBe('sol-to-tau-ceti');
     expect(validated.journeyOption).toBe('standard');

@@ -46,7 +46,6 @@ export interface EphemeralUIActions {
   setActiveDrawer: (drawer: ActiveDrawer) => void;
   toggleDrawer: (drawer: Exclude<ActiveDrawer, null>) => void;
   setLayerCardOpen: (isOpen: boolean) => void;
-  resetUIState: () => void;
   resetUI: () => void;
 }
 
@@ -86,7 +85,6 @@ export const useUIStore = create<UIStore>()((set) => ({
   toggleDrawer: (drawer: Exclude<ActiveDrawer, null>) =>
     set((state) => ({ activeDrawer: state.activeDrawer === drawer ? null : drawer })),
   setLayerCardOpen: (isLayerCardOpen: boolean) => set({ isLayerCardOpen }),
-  resetUIState: () => set({ ...INITIAL_UI_STATE }),
   resetUI: () => set({ ...INITIAL_UI_STATE }),
 }));
 

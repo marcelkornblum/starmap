@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createElement, type ReactElement } from 'react';
-import { render } from '@testing-library/react';
+import { cleanup, render } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
@@ -46,7 +46,10 @@ import {
 } from './layerFixtures';
 import { SAMPLE_CORPUS } from './searchFixtures';
 
-const renderToHtml = (element: ReactElement): string => render(element).container.innerHTML;
+const renderToHtml = (element: ReactElement): string => {
+  cleanup();
+  return render(element).container.innerHTML;
+};
 
 describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', () => {
   beforeAll(seedAllLayerData);

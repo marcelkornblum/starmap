@@ -26,7 +26,7 @@ import {
   type StarmapSearchParams,
   registerAppRouter,
 } from '../hooks/useSpaLocation';
-import { handleSpaNavigation } from '../utils/spaNavigation';
+import { handleSpaNavigation } from '../hooks/spaNavigation';
 
 export {
   useSpaLocation,
@@ -83,7 +83,26 @@ export const rootRoute = createRootRoute({
       result.focus = search.focus;
     }
     if (typeof search.select === 'string' && search.select.length > 0) {
-      result.select = search.select;
+      const cleaned = search.select
+        .split(',')
+        .map((s) => s.trim())
+        .filter((token) => {
+          if (!token) return false;
+          if (
+            token.startsWith('tag:') ||
+            token.startsWith('star-type:') ||
+            token.startsWith('planet-type:') ||
+            token.startsWith('collection:') ||
+            token.startsWith('canon:')
+          ) {
+            return false;
+          }
+          return true;
+        })
+        .join(',');
+      if (cleaned.length > 0) {
+        result.select = cleaned;
+      }
     }
     if (typeof search.layer === 'string' && search.layer.trim().length > 0) {
       result.layer = search.layer.trim();

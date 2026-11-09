@@ -62,8 +62,8 @@ const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
 
 describe('Search and Focus Integration - Infinite Render Loop Regression', () => {
   beforeEach(() => {
-    useUIStore.getState().resetUIState();
-    useCameraStore.getState().resetCameraState();
+    useUIStore.getState().resetUI();
+    useCameraStore.getState().reset();
   });
 
   it('renders GalaxyView with ?focus=tau-ceti without throwing Maximum update depth exceeded when already registered', () => {

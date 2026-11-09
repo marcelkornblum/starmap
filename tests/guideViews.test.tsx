@@ -121,8 +121,8 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
 
     it('contains specific required benchmark examples for key stellar classes', () => {
       const gEntry = STAR_TYPE_GUIDE_ENTRIES.find((e) => e.id === 'g');
-      expect(gEntry?.examples.some((ex) => ex.name === 'Sol' && ex.href === '/galaxy?focus=sol&select=star-type:g')).toBe(true);
-      expect(gEntry?.examples.some((ex) => ex.name === 'Tau Ceti' && ex.href === '/galaxy?focus=tau-ceti&select=star-type:g')).toBe(true);
+      expect(gEntry?.examples.some((ex) => ex.name === 'Sol' && ex.href === '/system/sol')).toBe(true);
+      expect(gEntry?.examples.some((ex) => ex.name === 'Tau Ceti' && ex.href === '/galaxy?focus=tau-ceti')).toBe(true);
       expect(gEntry?.examples.some((ex) => ex.name.includes('Alpha Centauri A'))).toBe(true);
 
       const kEntry = STAR_TYPE_GUIDE_ENTRIES.find((e) => e.id === 'k');
@@ -271,7 +271,7 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
 
     it('contains expected planetary benchmark examples', () => {
       const terrestrial = resolvePlanetTypeGuideEntry('terrestrial');
-      expect(terrestrial?.examples.some((ex) => ex.name === 'Earth' && ex.href === '/system/sol?focus=earth&select=planet-type:terrestrial')).toBe(true);
+      expect(terrestrial?.examples.some((ex) => ex.name === 'Earth' && ex.href === '/system/sol?focus=earth')).toBe(true);
       expect(terrestrial?.examples.some((ex) => ex.name.includes('Proxima Centauri b'))).toBe(true);
 
       const superEarth = resolvePlanetTypeGuideEntry('super-earth');

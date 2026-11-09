@@ -1,6 +1,6 @@
 import { Button, CelestialTitle, type CelestialSymbolType } from '../../interface';
 import { resolveAppHref } from '../../../utils/url';
-import { handleSpaNavigation } from '../../../utils/spaNavigation';
+import { handleSpaNavigation } from '../../../hooks/spaNavigation';
 import styles from './Breadcrumbs.module.css';
 
 export interface BreadcrumbItem {

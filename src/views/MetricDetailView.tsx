@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useEffect, useSyncExternalStore } from 'react';
 import {
   Breadcrumbs,
   GuideExamplesList,
@@ -21,6 +21,10 @@ import {
   resolveMetricComparison,
   resolveMetricGuideEntries,
 } from '../services/guideService';
+import {
+  subscribeDetailsRepository,
+  getDetailsRepositoryVersion,
+} from '../data/detailsRepository';
 import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
@@ -52,26 +56,20 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
   const resolvedFocusId =
     focusedEntityId ?? extractFocusIdFromSearch(search);
 
-  const [hydrationTick, setHydrationTick] = useState(0);
+  useSyncExternalStore(
+    subscribeDetailsRepository,
+    getDetailsRepositoryVersion,
+    getDetailsRepositoryVersion,
+  );
 
   useEffect(() => {
-    let active = true;
     void hydrateMetricComparison(resolvedMetricId, resolvedFocusId)
-      .then(() => {
-        if (active) {
-          setHydrationTick((t) => t + 1);
-        }
-      })
       .catch(() => undefined);
-    return () => {
-      active = false;
-    };
   }, [resolvedMetricId, resolvedFocusId]);
 
   const entries = useMemo(() => {
-    void hydrationTick;
     return resolveMetricGuideEntries(resolvedMetricId);
-  }, [resolvedMetricId, hydrationTick]);
+  }, [resolvedMetricId]);
 
   return (
     <main

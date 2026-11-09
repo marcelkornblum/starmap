@@ -14,7 +14,7 @@ import {
 import { useSearchContext } from '../../search/SearchContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { resolveAppHref } from '../../../utils/url';
-import { handleSpaNavigation } from '../../../utils/spaNavigation';
+import { handleSpaNavigation } from '../../../hooks/spaNavigation';
 import styles from './SearchResultItem.module.css';
 
 export interface SearchResultItemProps {

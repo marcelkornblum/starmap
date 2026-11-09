@@ -4,6 +4,7 @@ import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
+import { appRouter, type StarmapSearchParams } from '../../../hooks/useSpaLocation';
 
 export interface OrbitControlsLike {
   target: THREE.Vector3;
@@ -100,11 +101,42 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       const handleChange = () => {
         saveCurrentGalaxyPose();
       };
+      const handleEnd = () => {
+        saveCurrentGalaxyPose();
+        if (controls && appRouter?.navigate && typeof window !== 'undefined') {
+          const tgt = controls.target;
+          const searchParams = new URLSearchParams(window.location.search);
+          const centerParam = searchParams.get('center');
+          if (centerParam) {
+            const currentDistFromTarget = Math.hypot(
+              tgt.x - targetX,
+              tgt.y - targetY,
+              tgt.z - targetZ,
+            );
+            if (currentDistFromTarget > 0.05) {
+              const xStr = tgt.x.toFixed(1);
+              const yStr = tgt.y.toFixed(1);
+              const zStr = tgt.z.toFixed(1);
+              const coordStr = `${xStr},${yStr},${zStr}`;
+              if (centerParam !== coordStr) {
+                void appRouter.navigate({
+                  to: '/galaxy',
+                  search: (prev: StarmapSearchParams = {}) => ({
+                    ...prev,
+                    center: coordStr,
+                  }),
+                  replace: true,
+                });
+              }
+            }
+          }
+        }
+      };
       controls.addEventListener('change', handleChange);
-      controls.addEventListener('end', handleChange);
+      controls.addEventListener('end', handleEnd);
       return () => {
         controls.removeEventListener?.('change', handleChange);
-        controls.removeEventListener?.('end', handleChange);
+        controls.removeEventListener?.('end', handleEnd);
       };
     }
   }, [controls, persistGalaxyPose, saveCurrentGalaxyPose]);

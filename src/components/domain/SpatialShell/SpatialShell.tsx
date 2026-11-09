@@ -153,10 +153,12 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   const isWideViewport = useIsWideViewport();
 
   useEffect(() => {
-    if (initialBodiesDrawerOpen !== undefined && !isDrawerExplicitlySet) {
+    if (controlledBodiesOpen !== undefined) {
+      setActiveDrawer(controlledBodiesOpen ? 'bodies' : null);
+    } else if (initialBodiesDrawerOpen !== undefined && !isDrawerExplicitlySet) {
       setActiveDrawer(initialBodiesDrawerOpen ? 'bodies' : null);
     }
-  }, [initialBodiesDrawerOpen, isDrawerExplicitlySet, setActiveDrawer]);
+  }, [controlledBodiesOpen, initialBodiesDrawerOpen, isDrawerExplicitlySet, setActiveDrawer]);
 
   const isBodiesDrawerOpen =
     controlledBodiesOpen !== undefined

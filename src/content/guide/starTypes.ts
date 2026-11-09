@@ -26,12 +26,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: '10 Lacertae',
-        href: '/galaxy?focus=10-lacertae&select=star-type:o',
+        href: '/galaxy?focus=10-lacertae',
         note: 'Standard O9V main-sequence reference star.',
       },
       {
         name: 'Alnitak',
-        href: '/galaxy?focus=alnitak&select=star-type:o',
+        href: '/galaxy?focus=alnitak',
         note: 'O9.7Ib supergiant in Orion’s Belt.',
       },
     ],
@@ -56,12 +56,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Rigel',
-        href: '/galaxy?focus=rigel&select=star-type:b',
+        href: '/galaxy?focus=rigel',
         note: 'B8Ia blue supergiant in Orion.',
       },
       {
         name: 'Regulus',
-        href: '/galaxy?focus=regulus&select=star-type:b',
+        href: '/galaxy?focus=regulus',
         note: 'Rapidly rotating B7V star in Leo.',
       },
     ],
@@ -86,12 +86,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Sirius A',
-        href: '/galaxy?focus=sirius&select=star-type:a',
+        href: '/galaxy?focus=sirius',
         note: 'A1V primary of the Sirius binary system at 2.6 pc.',
       },
       {
         name: 'Vega',
-        href: '/galaxy?focus=vega&select=star-type:a',
+        href: '/galaxy?focus=vega',
         note: 'A0V standard photometric calibration baseline.',
       },
     ],
@@ -116,12 +116,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Procyon A',
-        href: '/galaxy?focus=procyon&select=star-type:f',
+        href: '/galaxy?focus=procyon',
         note: 'F5IV-V subgiant in Canis Minor at 3.5 pc.',
       },
       {
         name: 'Gamma Virginis',
-        href: '/galaxy?focus=gamma-virginis&select=star-type:f',
+        href: '/galaxy?focus=gamma-virginis',
         note: 'Binary F0V stellar pair.',
       },
     ],
@@ -146,17 +146,17 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Sol', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/galaxy?focus=sol&select=star-type:g',
+        href: '/system/sol',
         note: 'The Solar System primary, classification G2V.',
       },
       {
         name: 'Tau Ceti', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/galaxy?focus=tau-ceti&select=star-type:g',
+        href: '/galaxy?focus=tau-ceti',
         note: 'Nearby single G8.5V dwarf with an extensive debris disk and planetary system.',
       },
       {
         name: 'Alpha Centauri A',
-        href: '/galaxy?focus=alpha-centauri-a&select=star-type:g',
+        href: '/galaxy?focus=alpha-centauri-a',
         note: 'Primary component of the Alpha Centauri triple system, G2V.',
       },
     ],
@@ -181,12 +181,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Alpha Centauri B',
-        href: '/galaxy?focus=alpha-centauri-b&select=star-type:k',
+        href: '/galaxy?focus=alpha-centauri-b',
         note: 'Secondary component of Alpha Centauri, K1V dwarf.',
       },
       {
         name: 'Epsilon Eridani',
-        href: '/galaxy?focus=epsilon-eridani&select=star-type:k',
+        href: '/galaxy?focus=epsilon-eridani',
         note: 'Young K2V dwarf with confirmed debris ring and exoplanets.',
       },
     ],
@@ -211,12 +211,12 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Proxima Centauri',
-        href: '/galaxy?focus=proxima-centauri&select=star-type:m',
+        href: '/galaxy?focus=proxima-centauri',
         note: 'Nearest star to the Sun (M5.5Ve flare dwarf) hosting terrestrial worlds.',
       },
       {
         name: "Barnard's Star",
-        href: '/galaxy?focus=barnards-star&select=star-type:m',
+        href: '/galaxy?focus=barnards-star',
         note: 'High proper motion M4V dwarf in Ophiuchus.',
       },
     ],
@@ -241,7 +241,7 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Luhman 16',
-        href: '/galaxy?focus=luhman-16&select=star-type:l',
+        href: '/galaxy?focus=luhman-16',
         note: 'Nearest known brown dwarf binary system (L7.5 / T0.5) at 2.0 pc.',
       },
     ],
@@ -266,7 +266,7 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     examples: [
       {
         name: 'Sirius B',
-        href: '/galaxy?focus=sirius&select=star-type:d',
+        href: '/galaxy?focus=sirius',
         note: 'Nearest known white dwarf (DA2) orbiting Sirius A.',
       },
     ],

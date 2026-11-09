@@ -86,7 +86,7 @@ function findReactElementByTestId(tree: any, testId: string): any {
 describe('SpatialShell Component & View Integration Suite', () => {
   beforeEach(() => {
     _resetWebGLSupportedForTesting();
-    useUIStore.getState().resetUIState();
+    useUIStore.getState().resetUI();
   });
 
   describe('<SpatialShell /> Region Landmarks', () => {

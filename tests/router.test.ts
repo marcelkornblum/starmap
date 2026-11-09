@@ -31,7 +31,7 @@ import { StarTypeDetailView } from '../src/views/StarTypeDetailView';
 import { StarTypesListView } from '../src/views/StarTypesListView';
 import { SystemView } from '../src/views/SystemView';
 import { SEARCH_CATEGORIES } from '../src/services/searchService';
-import { useStarmapNav, useNavigationActions } from '../src/router/navigation';
+import { useStarmapNav } from '../src/router/navigation';
 
 const renderHtml = (el: ReactElement): string => {
   const { container } = render(el);
@@ -94,7 +94,7 @@ describe('TanStack Router Architecture', () => {
       q: 'Tau Ceti',
       searchCategory: 'stars',
       focus: 'tau-ceti-e',
-      select: 'tag:habitable-candidate,layer:project-hail-mary,sol',
+      select: 'layer:project-hail-mary,sol',
       layer: 'project-hail-mary',
       route: 'sol-to-tau-ceti',
       journeyOption: 'standard',
@@ -113,7 +113,7 @@ describe('TanStack Router Architecture', () => {
     expect(validated.searchCategory).toBe('stars');
     expect(validated.focus).toBe('tau-ceti-e');
     expect(validated.select).toBe(
-      'tag:habitable-candidate,layer:project-hail-mary,sol',
+      'layer:project-hail-mary,sol',
     );
     expect(validated.layer).toBe('project-hail-mary');
     expect(validated.route).toBe('sol-to-tau-ceti');
@@ -291,29 +291,6 @@ describe('useStarmapNav Navigation Enforcer', () => {
   it('exposes currentPath from router state', () => {
     const nav = useStarmapNav();
     expect(nav.currentPath).toBe('/galaxy');
-  });
-
-  it('supports useNavigationActions alias with goTo methods', async () => {
-    const actions = useNavigationActions();
-    await actions.goToGalaxy();
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({ to: '/galaxy', replace: false })
-    );
-
-    await actions.goToSystem('sol');
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({ to: '/system/$systemId', params: { systemId: 'sol' }, replace: false })
-    );
-
-    await actions.goToPlanet('mars');
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({ to: '/planet/$planetId', params: { planetId: 'mars' }, replace: false })
-    );
-
-    await actions.goToReference();
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({ to: '/guide/star-types', replace: false })
-    );
   });
 
   it('configures router basepath and normalises location pathname in resolveSpaLocation', () => {
