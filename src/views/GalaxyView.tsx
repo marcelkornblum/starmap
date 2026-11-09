@@ -130,9 +130,12 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const route = (routeSearch?.route as string | undefined) ?? searchParams.get('route') ?? undefined;
   const center = (routeSearch?.center as string | undefined) ?? searchParams.get('center') ?? undefined;
 
-  const urlSystemSlug = null;
-  const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
-  const hasExplicitFocus = Boolean(focus && urlFocusSlug && urlFocusSlug.length > 0);
+  const pathnameSlug = pathname.startsWith('/galaxy/')
+    ? pathname.replace(/^\/galaxy\//, '').split(/[?#]/)[0]
+    : undefined;
+  const urlSystemSlug = pathnameSlug ? toUrlSlug(pathnameSlug) || null : null;
+  const urlFocusSlug = focus ? toUrlSlug(focus) || null : urlSystemSlug;
+  const hasExplicitFocus = Boolean((focus || urlSystemSlug) && urlFocusSlug && urlFocusSlug.length > 0);
   const pendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
 
   const prevUrlRef = useRef<string | null>(null);

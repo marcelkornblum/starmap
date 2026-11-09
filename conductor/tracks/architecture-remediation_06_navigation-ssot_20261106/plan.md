@@ -11,16 +11,16 @@ Record each decision in [decision-log.md](../../initiatives/architecture-remedia
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Implementation per Ratified Decisions
-- [ ] Task 2.1: Cache Bounds, Eviction & AbortSignal (DEC-R043, AUD-090)
+- [x] Task 2.1: Cache Bounds, Eviction & AbortSignal (DEC-R043, AUD-090)
   - Create `src/config/cacheConfig.ts` with configurable cache limits.
   - Implement bounded LRU caching in `detailsRepository.ts`, `layerRepository.ts`, and `searchRepository.ts`.
   - Pass `signal?: AbortSignal` through all fetch functions and forward to native `fetch()`.
   - Add unit tests for LRU eviction and cancellation in colocated repository test suites.
-- [ ] Task 2.2: Reactive Repository Hooks (DEC-R042, AUD-087)
+- [x] Task 2.2: Reactive Repository Hooks (DEC-R042, AUD-087)
   - Implement `useEntityDetails` and `useSystemData` using `useSyncExternalStore` / cache subscriptions.
   - Refactor `SystemView`, `PlanetView`, `GalaxyView`, and `SystemScene` to consume reactive hooks, eliminating all `setShardTick` counter hacks.
   - Colocated unit tests for reactive hooks in `useEntityDetails.test.ts`, `useSystemData.test.ts`.
-- [ ] Task 2.3: URL Search Schema & Router Cleanup (DEC-R014a–l, DEC-R041, AUD-082, AUD-088, AUD-089, AUD-091)
+- [x] Task 2.3: URL Search Schema & Router Cleanup (DEC-R014a–l, DEC-R041, AUD-082, AUD-088, AUD-089, AUD-091)
   - Update TanStack Router search validator in `src/router/index.tsx` for clean single `?center=` and strict typed search params; eliminate deprecated `x/y/z/zoom/az/el/dist`.
   - Remove global `document` click listener and `starmap:locationchange` custom event (`AUD-082`).
   - Delete `simulateAsyncFetch` latency helper and handle `navigate` errors explicitly (`AUD-089`).
@@ -28,17 +28,17 @@ Record each decision in [decision-log.md](../../initiatives/architecture-remedia
 - [x] Task 2.4: Views TanStack Router Cutover & Regex Removal (AUD-083)
   - Refactor `SystemView`, `PlanetView`, `GalaxyView`, and guide detail views to use `useParams()` and `useSearch()` instead of regex path matching.
   - Delete obsolete regex URL extraction helpers in `src/utils/url.ts`.
-- [ ] Task 2.5: Store Mirror Deletion, Direct Browser Mutation Cleanup & Render Purity (AUD-080, AUD-081, AUD-084, AUD-085, AUD-086)
+- [x] Task 2.5: Store Mirror Deletion, Direct Browser Mutation Cleanup & Render Purity (AUD-080, AUD-081, AUD-084, AUD-085, AUD-086)
   - Delete store mirror fields in `useUIStore` (`selectedNodeId`, `searchQuery`, `centeredEntityId`).
   - Delete all echo-guard ref flags (`applyingOuter*Ref`, `pendingCanvasFocusRef`, `lastWrittenUrlQueryRef`).
   - In `SearchRoot.tsx`, remove raw `window.location` reads, `popstate` listeners, and manual `history.replaceState` calls; bind directly to router search params.
   - Remove render-phase store mutations and `typeof window === 'undefined'` branches in `SearchRoot.tsx`, `SpatialShell.tsx`, and `SpatialViewport.tsx` (`AUD-085`).
   - Consolidate drawer authority in `SpatialShell.tsx` to `useUIStore.activeDrawer` (`AUD-086`).
-- [ ] Task 2.6: Canvas Single-Click Focus Decoupling (DEC-R041, AUD-093)
+- [x] Task 2.6: Canvas Single-Click Focus Decoupling (DEC-R041, AUD-093)
   - In `SpatialViewport.tsx`, `GalaxyScene.tsx`, and `CanvasLayer.tsx`, decouple canvas single-click reticle focus from `selectedId`.
   - Ensure single-click reticle activation updates `focusedId` / URL `?focus=` immediately without requiring `selectedId` change and without clobbering multi-entity `selectedIds`.
-- [ ] Task 2.7: Quality Check — `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:ui`, `npm run audit:r3f`, guard suite
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task 2.7: Quality Check — `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:ui`, `npm run audit:r3f`, guard suite
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: End-of-Track Audit & PR
 - [ ] Task: `qa-verifier` full suite (lint, typecheck, coverage, audits, guards, e2e)

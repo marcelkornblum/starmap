@@ -97,9 +97,8 @@ const useResolvedSystemDetails = (
   const rawSystemId =
     routeParams?.systemId ??
     propSystemId ??
-    (pathname.startsWith('/system/') ? pathname.replace(/^\/system\//, '').split(/[?#]/)[0] : undefined) ??
-    'sol';
-  const urlSystemSlug = toUrlSlug(rawSystemId) || 'sol';
+    (pathname.startsWith('/system/') ? pathname.replace(/^\/system\//, '').split(/[?#]/)[0] : undefined);
+  const urlSystemSlug = toUrlSlug(rawSystemId ?? '') || null;
 
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const focusParam = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
@@ -256,9 +255,8 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
   const rawSystemId =
     routeParams?.systemId ??
     propSystemId ??
-    (pathname.startsWith('/system/') ? pathname.replace(/^\/system\//, '').split(/[?#]/)[0] : undefined) ??
-    'sol';
-  const targetId = toUrlSlug(rawSystemId) || 'sol';
+    (pathname.startsWith('/system/') ? pathname.replace(/^\/system\//, '').split(/[?#]/)[0] : undefined);
+  const targetId = toUrlSlug(rawSystemId ?? '') || 'sol';
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = extractUrlSceneCameraState(search);
   const effectiveCenterId = center ? toUrlSlug(center) : cameraState.center;

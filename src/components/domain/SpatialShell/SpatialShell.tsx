@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../../interface';
 import { useUIStore } from '../../../stores/useUIStore';
 import styles from './SpatialShell.module.css';
@@ -141,7 +141,7 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   onBodiesDrawerOpenChange,
   children,
 }) => {
-  const isDrawerExplicitlySetRef = useRef(false);
+  const [isDrawerExplicitlySet, setIsDrawerExplicitlySet] = useState(false);
   const activeDrawer = useUIStore((s) => s.activeDrawer);
   const isStoreBodiesOpen = activeDrawer === 'bodies';
   const setActiveDrawer = useUIStore((s) => s.setActiveDrawer);
@@ -153,20 +153,20 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   const isWideViewport = useIsWideViewport();
 
   useEffect(() => {
-    if (initialBodiesDrawerOpen !== undefined && !isDrawerExplicitlySetRef.current) {
+    if (initialBodiesDrawerOpen !== undefined && !isDrawerExplicitlySet) {
       setActiveDrawer(initialBodiesDrawerOpen ? 'bodies' : null);
     }
-  }, [initialBodiesDrawerOpen, setActiveDrawer]);
+  }, [initialBodiesDrawerOpen, isDrawerExplicitlySet, setActiveDrawer]);
 
   const isBodiesDrawerOpen =
     controlledBodiesOpen !== undefined
       ? controlledBodiesOpen
-      : initialBodiesDrawerOpen !== undefined && !isDrawerExplicitlySetRef.current
+      : initialBodiesDrawerOpen !== undefined && !isDrawerExplicitlySet
         ? initialBodiesDrawerOpen
         : isStoreBodiesOpen;
 
   const setDrawerState = (next: boolean) => {
-    isDrawerExplicitlySetRef.current = true;
+    setIsDrawerExplicitlySet(true);
     setActiveDrawer(next ? 'bodies' : null);
     onBodiesDrawerOpenChange?.(next);
   };

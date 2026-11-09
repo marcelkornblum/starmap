@@ -100,9 +100,8 @@ const useResolvedPlanetDetails = (
   const rawPlanetId =
     routeParams?.planetId ??
     propPlanetId ??
-    (pathname.startsWith('/planet/') ? pathname.replace(/^\/planet\//, '').split(/[?#]/)[0] : undefined) ??
-    'earth';
-  const urlPlanetSlug = toUrlSlug(rawPlanetId) || 'earth';
+    (pathname.startsWith('/planet/') ? pathname.replace(/^\/planet\//, '').split(/[?#]/)[0] : undefined);
+  const urlPlanetSlug = toUrlSlug(rawPlanetId ?? '') || null;
 
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const focusParam = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
@@ -290,9 +289,8 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
   const rawPlanetId =
     routeParams?.planetId ??
     propPlanetId ??
-    (pathname.startsWith('/planet/') ? pathname.replace(/^\/planet\//, '').split(/[?#]/)[0] : undefined) ??
-    'earth';
-  const targetId = toUrlSlug(rawPlanetId) || 'earth';
+    (pathname.startsWith('/planet/') ? pathname.replace(/^\/planet\//, '').split(/[?#]/)[0] : undefined);
+  const targetId = toUrlSlug(rawPlanetId ?? '') || 'earth';
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = extractUrlSceneCameraState(search);
   const effectiveCenterId = center ? toUrlSlug(center) : cameraState.center;
