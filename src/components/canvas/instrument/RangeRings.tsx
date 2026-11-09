@@ -55,11 +55,19 @@ export const RangeRings: React.FC<RangeRingsProps> = ({
 
   const indices = useMemo(() => Array.from({ length: poolSize }, (_, i) => i), [poolSize]);
 
+  useEffect(() => {
+    for (const mat of ringMaterialsRef.current) {
+      if (mat?.color) {
+        mat.color.set(rangeRingColor);
+      }
+    }
+  }, [rangeRingColor]);
+
   useFrame(() => {
     const { apertureRadius, focusPoint, planeWeights, cardinalAlignment } = frameRef.current;
     const fadeXY = planeWeights?.fadeXY ?? Math.max(0, 1.0 - Math.max(cardinalAlignment.alphaX, cardinalAlignment.alphaY));
 
-    if (groupRef.current && lockToFocusPoint && !position) {
+    if (groupRef.current?.position && lockToFocusPoint && !position) {
       groupRef.current.position.set(focusPoint.x, focusPoint.y, 0);
     }
 
@@ -75,10 +83,9 @@ export const RangeRings: React.FC<RangeRingsProps> = ({
         if (i < numActive && fadeXY > 1e-3) {
           const ring = activeRingsPoolRef.current[i];
           mesh.visible = true;
-          mesh.scale.set(ring.radius, ring.radius, 1);
+          mesh.scale?.set(ring.radius, ring.radius, 1);
           const baseAlpha = ring.isMajor ? ringMajorAlpha : ringMinorAlpha;
           mat.opacity = baseAlpha * ring.fade * fadeXY;
-          mat.color.copy(rangeRingColor);
         } else {
           mesh.visible = false;
         }
@@ -94,9 +101,8 @@ export const RangeRings: React.FC<RangeRingsProps> = ({
           const r = ringsList[i];
           const isMajor = majorRingIndex !== undefined ? i === majorRingIndex : i === ringsList.length - 1;
           mesh.visible = true;
-          mesh.scale.set(r, r, 1);
+          mesh.scale?.set(r, r, 1);
           mat.opacity = (isMajor ? ringMajorAlpha : ringMinorAlpha) * fadeXY;
-          mat.color.copy(rangeRingColor);
         } else {
           mesh.visible = false;
         }

@@ -797,6 +797,14 @@
       "count": 1,
       "audId": "AUD-120"
     },
+    "react(refs)::src/components/canvas/instrument/SpatialFrameProvider.tsx": {
+      "count": 2,
+      "audId": "AUD-105"
+    },
+    "react(refs)::src/components/canvas/entity/SpatialEntityContext.tsx": {
+      "count": 2,
+      "audId": "AUD-105"
+    },
     "react(only-export-components)::src/components/canvas/instrument/SpatialFrameProvider.tsx": {
       "count": 3,
       "audId": "AUD-129"

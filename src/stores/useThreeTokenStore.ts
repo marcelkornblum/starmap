@@ -1,102 +1,103 @@
 import * as THREE from 'three';
 import { create } from 'zustand';
+import { CARTO_LINE_CONSTANTS } from '../styles/tokens/cartography';
 
 export interface ParsedColorResult {
-  color: THREE.Color;
+  colorHex: string;
   alpha: number;
 }
 
 export interface ThreeTokenSnapshot {
   // Surface & Canvas Environment
-  canvasBg: THREE.Color;
+  canvasBg: string;
   canvasOpacity: number;
 
   // Cartographic Graticules & Range Rings
-  gridPrimaryColor: THREE.Color;
+  gridPrimaryColor: string;
   gridPrimaryAlpha: number;
   gridPrimaryWidth: number;
-  gridSecondaryColor: THREE.Color;
+  gridSecondaryColor: string;
   gridSecondaryAlpha: number;
   gridSecondaryWidth: number;
-  rangeRingColor: THREE.Color;
+  rangeRingColor: string;
   rangeRingAlpha: number;
   rangeRingWidth: number;
-  rangeTickColor: THREE.Color;
+  rangeTickColor: string;
   rangeTickAlpha: number;
   rangeTickWidth: number;
 
   // Cartographic Datum Plane (Galactic Equator / Invariant Plane at Z=0)
-  datumPlaneColor: THREE.Color;
+  datumPlaneColor: string;
   datumPlaneAlpha: number;
   datumPlaneWidth: number;
-  datumPlaneMajorColor: THREE.Color;
+  datumPlaneMajorColor: string;
   datumPlaneMajorAlpha: number;
-  datumPlaneMinorColor: THREE.Color;
+  datumPlaneMinorColor: string;
   datumPlaneMinorAlpha: number;
-  datumPlaneFillColor: THREE.Color;
+  datumPlaneFillColor: string;
   datumPlaneFillAlpha: number;
   datumPlaneFillGradientInner: number;
   datumPlaneFillGradientExponent: number;
-  datumFootprintColor: THREE.Color;
+  datumFootprintColor: string;
   datumFootprintAlpha: number;
   datumFootprintWidth: number;
 
   // Tactical Reticles & Bearings
-  reticleBracketColor: THREE.Color;
+  reticleBracketColor: string;
   reticleBracketAlpha: number;
-  boresightColor: THREE.Color;
+  boresightColor: string;
   boresightAlpha: number;
-  axisLineColor: THREE.Color;
+  axisLineColor: string;
   axisLineAlpha: number;
   axisLineWidth: number;
   axisLineStyle: 'solid' | 'dashed' | 'dotted';
-  bearingLineColor: THREE.Color;
+  bearingLineColor: string;
   bearingLineAlpha: number;
   bearingLineWidth: number;
   bearingLineStyle: 'solid' | 'dashed' | 'dotted';
-  bearingOrbitalColor: THREE.Color;
+  bearingOrbitalColor: string;
   bearingOrbitalAlpha: number;
   bearingOrbitalWidth: number;
   bearingOrbitalStyle: 'solid' | 'dashed' | 'dotted';
-  bearingCoreColor: THREE.Color;
+  bearingCoreColor: string;
   bearingCoreAlpha: number;
   bearingCoreWidth: number;
   bearingCoreStyle: 'solid' | 'dashed' | 'dotted';
-  headingIndicatorColor: THREE.Color;
+  headingIndicatorColor: string;
   headingIndicatorAlpha: number;
 
   // Kinematic Chrome
-  kinematicColor: THREE.Color;
+  kinematicColor: string;
   kinematicAlpha: number;
 
   // Drop Stalks (Monochrome, State-Driven)
-  stalkSelectedColor: THREE.Color;
+  stalkSelectedColor: string;
   stalkSelectedAlpha: number;
-  stalkFocusedColor: THREE.Color;
+  stalkFocusedColor: string;
   stalkFocusedAlpha: number;
   stalkWidth: number;
   stalkStyle: 'solid' | 'dashed' | 'dotted';
 
   // Datum Footprints (Decoupled, Monochrome Baseline)
-  footprintColor: THREE.Color;
+  footprintColor: string;
   footprintAlpha: number;
-  footprintSelectedColor: THREE.Color;
+  footprintSelectedColor: string;
   footprintSelectedAlpha: number;
-  footprintFocusedColor: THREE.Color;
+  footprintFocusedColor: string;
   footprintFocusedAlpha: number;
 
   // Orbits (Hairline, State-Driven)
-  orbitColor: THREE.Color;
+  orbitColor: string;
   orbitAlpha: number;
   orbitWidth: number;
   orbitStyle: 'solid' | 'dashed' | 'dotted';
-  orbitSelectedColor: THREE.Color;
+  orbitSelectedColor: string;
   orbitSelectedAlpha: number;
-  orbitFocusedColor: THREE.Color;
+  orbitFocusedColor: string;
   orbitFocusedAlpha: number;
 
   // Routes (Kinematic Vector Chords)
-  routeColor: THREE.Color;
+  routeColor: string;
   routeAlpha: number;
   routeWidth: number;
   routeStyle: 'solid' | 'dashed' | 'dotted';
@@ -124,24 +125,24 @@ export interface ThreeTokenSnapshot {
   dotGap: number;
 
   // Interactive & State Cues
-  stateFocus: THREE.Color;
-  stateSelected: THREE.Color;
-  stateSelectedBorder: THREE.Color;
+  stateFocus: string;
+  stateSelected: string;
+  stateSelectedBorder: string;
   stateHoverOverlayAlpha: number;
 
   // Domain Categories (Analytical Layers)
-  categoryStar: THREE.Color;
-  categoryPlanet: THREE.Color;
-  categoryOrbit: THREE.Color;
-  categoryHabitability: THREE.Color;
+  categoryStar: string;
+  categoryPlanet: string;
+  categoryOrbit: string;
+  categoryHabitability: string;
 
   // Telemetry & Confidence Status
-  statusNominal: THREE.Color;
-  statusCaution: THREE.Color;
-  statusCritical: THREE.Color;
-  confidenceConfirmed: THREE.Color;
-  confidenceCandidate: THREE.Color;
-  confidenceTheoretical: THREE.Color;
+  statusNominal: string;
+  statusCaution: string;
+  statusCritical: string;
+  confidenceConfirmed: string;
+  confidenceCandidate: string;
+  confidenceTheoretical: string;
 
   // Active Theme Identifier
   theme: 'dark' | 'light' | 'amoled';
@@ -172,12 +173,12 @@ function oklchToLinearRgb(L: number, C: number, H: number): [number, number, num
 
 /**
  * Parses any browser-computed or CSS string (hex, rgb, rgba, oklch)
- * into a linear THREE.Color and an alpha scalar.
+ * into an immutable hex color string and an alpha scalar.
  */
 export function parseCssColor(cssColorString: string): ParsedColorResult {
   const trimmed = cssColorString.trim();
   if (!trimmed) {
-    return { color: new THREE.Color(0, 0, 0), alpha: 1 };
+    return { colorHex: '#000000', alpha: 1 };
   }
 
   // 1. Match oklch(L C H [/ A])
@@ -194,7 +195,8 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
     if (rawA !== undefined) {
       alpha = rawA.endsWith('%') ? Number.parseFloat(rawA) / 100 : Number.parseFloat(rawA);
     }
-    return { color: new THREE.Color(r, g, b), alpha };
+    const color = new THREE.Color(r, g, b);
+    return { colorHex: `#${color.getHexString()}`, alpha };
   }
 
   // 2. Match rgb/rgba format: rgba(r, g, b, a) or rgb(r g b / a)
@@ -203,12 +205,10 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
   );
   if (rgbaMatch) {
     const [, r, g, b, rawAlpha] = rgbaMatch;
-    const color = new THREE.Color(
-      Number.parseFloat(r) / 255,
-      Number.parseFloat(g) / 255,
-      Number.parseFloat(b) / 255,
-    );
-    color.convertSRGBToLinear();
+    const hexR = Math.round(Math.max(0, Math.min(255, Number.parseFloat(r)))).toString(16).padStart(2, '0');
+    const hexG = Math.round(Math.max(0, Math.min(255, Number.parseFloat(g)))).toString(16).padStart(2, '0');
+    const hexB = Math.round(Math.max(0, Math.min(255, Number.parseFloat(b)))).toString(16).padStart(2, '0');
+    const colorHex = `#${hexR}${hexG}${hexB}`;
 
     let alpha = 1;
     if (rawAlpha !== undefined) {
@@ -216,17 +216,33 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
         ? Number.parseFloat(rawAlpha.slice(0, -1)) / 100
         : Number.parseFloat(rawAlpha);
     }
-    return { color, alpha };
+    return { colorHex, alpha };
   }
 
   // 3. Fallback: standard THREE.Color parser (hex, named colors)
-  // Note: Three.js ColorManagement automatically converts hex/named string from sRGB to linear.
   try {
-    const color = new THREE.Color(trimmed);
-    return { color, alpha: 1 };
+    const color = new THREE.Color(0, 0, 0);
+    color.set(trimmed);
+    return { colorHex: `#${color.getHexString()}`, alpha: 1 };
   } catch {
-    return { color: new THREE.Color(0, 0, 0), alpha: 1 };
+    return { colorHex: '#000000', alpha: 1 };
   }
+}
+
+const threeColorCache = new Map<string, THREE.Color>();
+
+/**
+ * Returns a cached linear THREE.Color instance for the given hex color string.
+ * Used exclusively at the material / WebGL boundary to avoid per-render allocations.
+ */
+export function getThreeColor(hex: string): THREE.Color {
+  const normalized = hex.toLowerCase();
+  let color = threeColorCache.get(normalized);
+  if (!color) {
+    color = new THREE.Color(normalized);
+    threeColorCache.set(normalized, color);
+  }
+  return color;
 }
 
 /**
@@ -318,8 +334,6 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
   const isLight = theme === 'light';
   const isAmoled = theme === 'amoled';
 
-  const makeLinearColor = (hex: string) => new THREE.Color(hex);
-
   const canvasBgHex = isAmoled ? '#000000' : isLight ? '#fdf6e3' : '#002b36';
   const chromeToneHex = isLight ? '#586e75' : '#829fa6';
   const focusHex = isLight ? '#007840' : '#00d078';
@@ -327,92 +341,92 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
   const redHex = '#dc322f';
 
   return {
-    canvasBg: makeLinearColor(canvasBgHex),
+    canvasBg: canvasBgHex,
     canvasOpacity: 1.0,
 
-    gridPrimaryColor: makeLinearColor(chromeToneHex),
+    gridPrimaryColor: chromeToneHex,
     gridPrimaryAlpha: 0.30,
     gridPrimaryWidth: 2,
-    gridSecondaryColor: makeLinearColor(chromeToneHex),
+    gridSecondaryColor: chromeToneHex,
     gridSecondaryAlpha: 0.16,
     gridSecondaryWidth: 1,
-    rangeRingColor: makeLinearColor(chromeToneHex),
+    rangeRingColor: chromeToneHex,
     rangeRingAlpha: 0.24,
     rangeRingWidth: 1,
-    rangeTickColor: makeLinearColor(chromeToneHex),
+    rangeTickColor: chromeToneHex,
     rangeTickAlpha: 0.40,
     rangeTickWidth: 2,
 
-    datumPlaneColor: makeLinearColor(theme === 'light' ? '#073642' : '#8cb8cc'),
+    datumPlaneColor: theme === 'light' ? '#073642' : '#8cb8cc',
     datumPlaneAlpha: 0.35,
     datumPlaneWidth: 1,
-    datumPlaneMajorColor: makeLinearColor(theme === 'light' ? '#073642' : '#8cb8cc'),
+    datumPlaneMajorColor: theme === 'light' ? '#073642' : '#8cb8cc',
     datumPlaneMajorAlpha: 0.35,
-    datumPlaneMinorColor: makeLinearColor(theme === 'light' ? '#586e75' : '#8cb8cc'),
+    datumPlaneMinorColor: theme === 'light' ? '#586e75' : '#8cb8cc',
     datumPlaneMinorAlpha: 0.18,
-    datumPlaneFillColor: makeLinearColor(theme === 'light' ? '#073642' : '#8cb8cc'),
+    datumPlaneFillColor: theme === 'light' ? '#073642' : '#8cb8cc',
     datumPlaneFillAlpha: theme === 'light' ? 0.08 : 0.16,
     datumPlaneFillGradientInner: 0.25,
     datumPlaneFillGradientExponent: 2.0,
-    datumFootprintColor: makeLinearColor(theme === 'light' ? '#586e75' : '#93a1a1'),
+    datumFootprintColor: theme === 'light' ? '#586e75' : '#93a1a1',
     datumFootprintAlpha: 0.25,
     datumFootprintWidth: 2,
 
-    reticleBracketColor: makeLinearColor(chromeToneHex),
+    reticleBracketColor: chromeToneHex,
     reticleBracketAlpha: 0.40,
-    boresightColor: makeLinearColor(chromeToneHex),
+    boresightColor: chromeToneHex,
     boresightAlpha: 0.30,
-    axisLineColor: makeLinearColor(chromeToneHex),
+    axisLineColor: chromeToneHex,
     axisLineAlpha: 0.16,
     axisLineWidth: 1,
     axisLineStyle: 'solid',
-    bearingLineColor: makeLinearColor(redHex),
+    bearingLineColor: redHex,
     bearingLineAlpha: 0.35,
     bearingLineWidth: 2,
     bearingLineStyle: 'solid',
-    bearingOrbitalColor: makeLinearColor(redHex),
+    bearingOrbitalColor: redHex,
     bearingOrbitalAlpha: 0.35,
     bearingOrbitalWidth: 2,
     bearingOrbitalStyle: 'dashed',
-    bearingCoreColor: makeLinearColor('#b58900'),
+    bearingCoreColor: '#b58900',
     bearingCoreAlpha: 0.35,
     bearingCoreWidth: 2,
     bearingCoreStyle: 'solid',
-    headingIndicatorColor: makeLinearColor(chromeToneHex),
+    headingIndicatorColor: chromeToneHex,
     headingIndicatorAlpha: 0.50,
 
     // Kinematic Chrome
-    kinematicColor: makeLinearColor(redHex),
+    kinematicColor: redHex,
     kinematicAlpha: 0.35,
 
     // Drop Stalks (Monochrome, State-Driven)
-    stalkSelectedColor: makeLinearColor(stalkToneHex),
+    stalkSelectedColor: stalkToneHex,
     stalkSelectedAlpha: 0.70,
-    stalkFocusedColor: makeLinearColor(stalkToneHex),
+    stalkFocusedColor: stalkToneHex,
     stalkFocusedAlpha: 0.85,
     stalkWidth: 1,
     stalkStyle: 'solid',
 
     // Datum Footprints (Decoupled, Monochrome Baseline)
-    footprintColor: makeLinearColor(theme === 'light' ? '#586e75' : '#93a1a1'),
+    footprintColor: theme === 'light' ? '#586e75' : '#93a1a1',
     footprintAlpha: 0.35,
-    footprintSelectedColor: makeLinearColor(stalkToneHex),
+    footprintSelectedColor: stalkToneHex,
     footprintSelectedAlpha: 0.85,
-    footprintFocusedColor: makeLinearColor(focusHex),
+    footprintFocusedColor: focusHex,
     footprintFocusedAlpha: 0.85,
 
     // Orbits (Hairline, State-Driven)
-    orbitColor: makeLinearColor(theme === 'light' ? '#586e75' : '#93a1a1'),
+    orbitColor: theme === 'light' ? '#586e75' : '#93a1a1',
     orbitAlpha: 0.24,
     orbitWidth: 1,
     orbitStyle: 'dashed',
-    orbitSelectedColor: makeLinearColor(redHex),
+    orbitSelectedColor: redHex,
     orbitSelectedAlpha: 0.35,
-    orbitFocusedColor: makeLinearColor(redHex),
+    orbitFocusedColor: redHex,
     orbitFocusedAlpha: 0.35,
 
     // Routes (Kinematic Vector Chords)
-    routeColor: makeLinearColor(redHex),
+    routeColor: redHex,
     routeAlpha: 0.90,
     routeWidth: 3,
     routeStyle: 'solid',
@@ -424,7 +438,7 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     stalkRetractEase: parseCssCubicBezier('cubic-bezier(0.4, 0, 1, 1)'),
     footprintStampDuration: 0.075,
 
-    // Instrument Alphas & Dash Metrics
+    // Instrument Alphas & Dash Metrics (Centralised CARTO_LINE_CONSTANTS)
     ringMajorAlpha: 0.45,
     ringMinorAlpha: 0.20,
     finPerimeterAlpha: 0.25,
@@ -434,27 +448,27 @@ export function createDefaultTokenSnapshot(theme: 'dark' | 'light' | 'amoled' = 
     reticleFocusedAlpha: 1.0,
     instrumentFootprint: 16.47,
     cameraFovBase: 45,
-    dashSize: 6,
-    dashGap: 4,
-    dotSize: 2,
-    dotGap: 4,
+    dashSize: CARTO_LINE_CONSTANTS.dashSize,
+    dashGap: CARTO_LINE_CONSTANTS.gapSize,
+    dotSize: CARTO_LINE_CONSTANTS.dotSize,
+    dotGap: CARTO_LINE_CONSTANTS.dotGap,
 
-    stateFocus: makeLinearColor(focusHex),
-    stateSelected: makeLinearColor(stalkToneHex),
-    stateSelectedBorder: makeLinearColor(stalkToneHex),
+    stateFocus: focusHex,
+    stateSelected: stalkToneHex,
+    stateSelectedBorder: stalkToneHex,
     stateHoverOverlayAlpha: 0.04,
 
-    categoryStar: makeLinearColor('#cb4b16'),
-    categoryPlanet: makeLinearColor('#2aa198'),
-    categoryOrbit: makeLinearColor('#6c71c4'),
-    categoryHabitability: makeLinearColor('#859900'),
+    categoryStar: '#cb4b16',
+    categoryPlanet: '#2aa198',
+    categoryOrbit: '#6c71c4',
+    categoryHabitability: '#859900',
 
-    statusNominal: makeLinearColor('#859900'),
-    statusCaution: makeLinearColor('#b58900'),
-    statusCritical: makeLinearColor(redHex),
-    confidenceConfirmed: makeLinearColor('#859900'),
-    confidenceCandidate: makeLinearColor('#b58900'),
-    confidenceTheoretical: makeLinearColor('#6c71c4'),
+    statusNominal: '#859900',
+    statusCaution: '#b58900',
+    statusCritical: redHex,
+    confidenceConfirmed: '#859900',
+    confidenceCandidate: '#b58900',
+    confidenceTheoretical: '#6c71c4',
 
     theme,
   };
@@ -487,9 +501,9 @@ export function extractThreeTokens(
     return current;
   };
 
-  const readColor = (varName: string, defaultColor: THREE.Color, defaultAlpha: number): ParsedColorResult => {
+  const readColor = (varName: string, defaultColorHex: string, defaultAlpha: number): ParsedColorResult => {
     const raw = resolveVar(computed.getPropertyValue(varName));
-    if (!raw) return { color: defaultColor.clone(), alpha: defaultAlpha };
+    if (!raw) return { colorHex: defaultColorHex, alpha: defaultAlpha };
     const parsed = parseCssColor(raw);
     return parsed;
   };
@@ -641,87 +655,87 @@ export function extractThreeTokens(
   const confTheoretical = readColor('--confidence-theoretical', fallback.confidenceTheoretical, 1.0);
 
   return {
-    canvasBg: canvasParsed.color,
+    canvasBg: canvasParsed.colorHex,
     canvasOpacity: readOpacity('--surface-canvas-opacity', fallback.canvasOpacity),
 
-    gridPrimaryColor: gridPrimary.color,
+    gridPrimaryColor: gridPrimary.colorHex,
     gridPrimaryAlpha: gridPrimary.alpha,
     gridPrimaryWidth,
-    gridSecondaryColor: gridSecondary.color,
+    gridSecondaryColor: gridSecondary.colorHex,
     gridSecondaryAlpha: gridSecondary.alpha,
     gridSecondaryWidth,
-    rangeRingColor: rangeRing.color,
+    rangeRingColor: rangeRing.colorHex,
     rangeRingAlpha: rangeRing.alpha,
     rangeRingWidth,
-    rangeTickColor: rangeTick.color,
+    rangeTickColor: rangeTick.colorHex,
     rangeTickAlpha: rangeTick.alpha,
     rangeTickWidth,
 
-    datumPlaneColor: datumPlane.color,
+    datumPlaneColor: datumPlane.colorHex,
     datumPlaneAlpha,
     datumPlaneWidth,
-    datumPlaneMajorColor: datumPlaneMajor.color,
+    datumPlaneMajorColor: datumPlaneMajor.colorHex,
     datumPlaneMajorAlpha,
-    datumPlaneMinorColor: datumPlaneMinor.color,
+    datumPlaneMinorColor: datumPlaneMinor.colorHex,
     datumPlaneMinorAlpha,
-    datumPlaneFillColor: datumPlaneFill.color,
+    datumPlaneFillColor: datumPlaneFill.colorHex,
     datumPlaneFillAlpha,
     datumPlaneFillGradientInner,
     datumPlaneFillGradientExponent,
-    datumFootprintColor: datumFootprint.color,
+    datumFootprintColor: datumFootprint.colorHex,
     datumFootprintAlpha,
     datumFootprintWidth,
 
-    reticleBracketColor: reticleBracket.color,
+    reticleBracketColor: reticleBracket.colorHex,
     reticleBracketAlpha: reticleBracket.alpha,
-    boresightColor: boresight.color,
+    boresightColor: boresight.colorHex,
     boresightAlpha: boresight.alpha,
-    axisLineColor: axisLine.color,
+    axisLineColor: axisLine.colorHex,
     axisLineAlpha: axisLine.alpha,
     axisLineWidth,
     axisLineStyle,
-    bearingLineColor: bearingLine.color,
+    bearingLineColor: bearingLine.colorHex,
     bearingLineAlpha: bearingLine.alpha,
     bearingLineWidth,
     bearingLineStyle,
-    bearingOrbitalColor: bearingOrbital.color,
+    bearingOrbitalColor: bearingOrbital.colorHex,
     bearingOrbitalAlpha,
     bearingOrbitalWidth,
     bearingOrbitalStyle,
-    bearingCoreColor: bearingCore.color,
+    bearingCoreColor: bearingCore.colorHex,
     bearingCoreAlpha: bearingCore.alpha,
     bearingCoreWidth,
     bearingCoreStyle,
-    headingIndicatorColor: heading.color,
+    headingIndicatorColor: heading.colorHex,
     headingIndicatorAlpha: heading.alpha,
 
-    kinematicColor: kinematic.color,
+    kinematicColor: kinematic.colorHex,
     kinematicAlpha: kinematic.alpha,
 
-    stalkSelectedColor: stalkSelected.color,
+    stalkSelectedColor: stalkSelected.colorHex,
     stalkSelectedAlpha: stalkSelected.alpha,
-    stalkFocusedColor: stalkFocused.color,
+    stalkFocusedColor: stalkFocused.colorHex,
     stalkFocusedAlpha: stalkFocused.alpha,
     stalkWidth,
     stalkStyle,
 
-    footprintColor: footprint.color,
+    footprintColor: footprint.colorHex,
     footprintAlpha: footprint.alpha,
-    footprintSelectedColor: footprintSelected.color,
+    footprintSelectedColor: footprintSelected.colorHex,
     footprintSelectedAlpha: footprintSelected.alpha,
-    footprintFocusedColor: footprintFocused.color,
+    footprintFocusedColor: footprintFocused.colorHex,
     footprintFocusedAlpha: footprintFocused.alpha,
 
-    orbitColor: orbit.color,
+    orbitColor: orbit.colorHex,
     orbitAlpha: orbit.alpha,
     orbitWidth,
     orbitStyle,
-    orbitSelectedColor: orbitSelected.color,
+    orbitSelectedColor: orbitSelected.colorHex,
     orbitSelectedAlpha: orbitSelected.alpha,
-    orbitFocusedColor: orbitFocused.color,
+    orbitFocusedColor: orbitFocused.colorHex,
     orbitFocusedAlpha: orbitFocused.alpha,
 
-    routeColor: route.color,
+    routeColor: route.colorHex,
     routeAlpha: route.alpha,
     routeWidth,
     routeStyle,
@@ -746,22 +760,22 @@ export function extractThreeTokens(
     dotSize,
     dotGap,
 
-    stateFocus: stateFocus.color,
-    stateSelected: stateSelected.color,
-    stateSelectedBorder: stateSelectedBorder.color,
+    stateFocus: stateFocus.colorHex,
+    stateSelected: stateSelected.colorHex,
+    stateSelectedBorder: stateSelectedBorder.colorHex,
     stateHoverOverlayAlpha: readOpacity('--ui-hover-overlay-opacity', fallback.stateHoverOverlayAlpha),
 
-    categoryStar: catStar.color,
-    categoryPlanet: catPlanet.color,
-    categoryOrbit: catOrbit.color,
-    categoryHabitability: catHab.color,
+    categoryStar: catStar.colorHex,
+    categoryPlanet: catPlanet.colorHex,
+    categoryOrbit: catOrbit.colorHex,
+    categoryHabitability: catHab.colorHex,
 
-    statusNominal: statNominal.color,
-    statusCaution: statCaution.color,
-    statusCritical: statCritical.color,
-    confidenceConfirmed: confConfirmed.color,
-    confidenceCandidate: confCandidate.color,
-    confidenceTheoretical: confTheoretical.color,
+    statusNominal: statNominal.colorHex,
+    statusCaution: statCaution.colorHex,
+    statusCritical: statCritical.colorHex,
+    confidenceConfirmed: confConfirmed.colorHex,
+    confidenceCandidate: confCandidate.colorHex,
+    confidenceTheoretical: confTheoretical.colorHex,
 
     theme,
   };

@@ -29,11 +29,11 @@ export interface JourneyChordProps {
 
 interface JourneyChordLegViewProps {
   readonly leg: JourneyChordLegGeometryData;
-  readonly routeColor: THREE.Color;
+  readonly routeColor: string | THREE.Color;
   readonly routeAlpha: number;
   readonly routeWidth: number;
   readonly routeStyle: 'solid' | 'dashed' | 'dotted';
-  readonly stalkSelectedColor: THREE.Color;
+  readonly stalkSelectedColor: string | THREE.Color;
   readonly stalkSelectedAlpha: number;
   readonly showElevationProjection: boolean;
   readonly showLabels: boolean;
@@ -160,7 +160,7 @@ const JourneyChordLegView: React.FC<JourneyChordLegViewProps> = ({
 
 interface JourneyChordWaypointMarkerProps {
   readonly waypoint: JourneyChordWaypoint;
-  readonly color: THREE.Color;
+  readonly color: string | THREE.Color;
   readonly sphereGeom: THREE.SphereGeometry;
 }
 
@@ -178,7 +178,7 @@ const JourneyChordWaypointMarker: React.FC<JourneyChordWaypointMarkerProps> = ({
   }, []);
 
   useEffect(() => {
-    mat.color.copy(color);
+    mat.color.set(color);
   }, [mat, color]);
 
   useEffect(() => {

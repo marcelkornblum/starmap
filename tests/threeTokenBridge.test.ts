@@ -10,7 +10,9 @@ import {
   createDefaultTokenSnapshot,
   extractThreeTokens,
   useThreeTokenStore,
+  getThreeColor,
 } from '../src/stores/useThreeTokenStore';
+import { CARTO_LINE_CONSTANTS } from '../src/components/canvas/materials/CartoLineMaterial';
 import { useSettingsStore } from '../src/stores/useSettingsStore';
 import { ThemeTokenBridge } from '../src/components/canvas/ThemeTokenBridge';
 
@@ -20,52 +22,44 @@ describe('useThreeTokenStore & parseCssColor', () => {
     useSettingsStore.getState().resetSettings();
   });
 
-  it('parses hex colors into linear THREE.Color', () => {
+  it('parses hex colors into colorHex string and alpha (AUD-111)', () => {
     const res = parseCssColor('#002b36');
     expect(res.alpha).toBe(1);
-    expect(res.color).toBeInstanceOf(THREE.Color);
-
-    // Verify linear conversion matches new THREE.Color('#002b36')
-    const expected = new THREE.Color('#002b36');
-    expect(res.color.r).toBeCloseTo(expected.r, 3);
-    expect(res.color.g).toBeCloseTo(expected.g, 3);
-    expect(res.color.b).toBeCloseTo(expected.b, 3);
+    expect(res.colorHex).toBe('#002b36');
   });
 
-  it('parses rgba and rgb color strings with alpha', () => {
+  it('parses rgba and rgb color strings with alpha (AUD-111)', () => {
     const resRgb = parseCssColor('rgb(255, 128, 0)');
     expect(resRgb.alpha).toBe(1);
-    expect(resRgb.color.r).toBeCloseTo(1.0, 3);
+    expect(resRgb.colorHex).toBe('#ff8000');
 
     const resRgba = parseCssColor('rgba(100, 150, 200, 0.4)');
     expect(resRgba.alpha).toBe(0.4);
+    expect(resRgba.colorHex).toBe('#6496c8');
 
     const resRgbaPercent = parseCssColor('rgba(100, 150, 200, 50%)');
     expect(resRgbaPercent.alpha).toBe(0.5);
+    expect(resRgbaPercent.colorHex).toBe('#6496c8');
   });
 
-  it('parses oklch color strings into linear THREE.Color', () => {
+  it('parses oklch color strings into colorHex and alpha (AUD-111)', () => {
     // Solarized base03: oklch(26.73% 0.0486 219.82) -> #002b36
     const resOklch = parseCssColor('oklch(26.73% 0.0486 219.82 / 0.16)');
     expect(resOklch.alpha).toBe(0.16);
-
-    const expected = new THREE.Color('#002b36');
-    expect(resOklch.color.r).toBeCloseTo(expected.r, 2);
-    expect(resOklch.color.g).toBeCloseTo(expected.g, 2);
-    expect(resOklch.color.b).toBeCloseTo(expected.b, 2);
+    expect(resOklch.colorHex).toBe('#002b36');
   });
-
 
   it('falls back gracefully on empty or invalid color strings', () => {
     const emptyRes = parseCssColor('');
     expect(emptyRes.alpha).toBe(1);
-    expect(emptyRes.color.r).toBe(0);
+    expect(emptyRes.colorHex).toBe('#000000');
 
     const invalidRes = parseCssColor('invalid-color-value-1234');
     expect(invalidRes.alpha).toBe(1);
+    expect(invalidRes.colorHex).toBe('#000000');
   });
 
-  it('creates distinct default token snapshots for dark, light, and amoled', () => {
+  it('creates distinct default token snapshots with immutable primitive hex colors and unified dash metrics (AUD-111, AUD-112)', () => {
     const dark = createDefaultTokenSnapshot('dark');
     const light = createDefaultTokenSnapshot('light');
     const amoled = createDefaultTokenSnapshot('amoled');
@@ -74,18 +68,32 @@ describe('useThreeTokenStore & parseCssColor', () => {
     expect(light.theme).toBe('light');
     expect(amoled.theme).toBe('amoled');
 
-    // Canvas background differs
-    expect(amoled.canvasBg.r).toBe(0);
-    expect(amoled.canvasBg.g).toBe(0);
-    expect(amoled.canvasBg.b).toBe(0);
+    // Immutable primitive strings
+    expect(typeof dark.canvasBg).toBe('string');
+    expect(typeof dark.gridPrimaryColor).toBe('string');
+    expect(typeof dark.stateFocus).toBe('string');
 
-    // Light canvas background is light base3
-    expect(light.canvasBg.r).toBeGreaterThan(0.8);
-    // Dark canvas background is dark base03
-    expect(dark.canvasBg.r).toBeLessThan(0.1);
+    // Canvas background differs
+    expect(amoled.canvasBg).toBe('#000000');
+    expect(light.canvasBg).toBe('#fdf6e3');
+    expect(dark.canvasBg).toBe('#002b36');
+
+    // Unified dash metrics referencing CARTO_LINE_CONSTANTS
+    expect(dark.dashSize).toBe(CARTO_LINE_CONSTANTS.dashSize);
+    expect(dark.dashGap).toBe(CARTO_LINE_CONSTANTS.gapSize);
+    expect(dark.dotSize).toBe(CARTO_LINE_CONSTANTS.dotSize);
+    expect(dark.dotGap).toBe(CARTO_LINE_CONSTANTS.dotGap);
 
     // Focus color differs between dark and light
-    expect(dark.stateFocus.getHexString()).not.toEqual(light.stateFocus.getHexString());
+    expect(dark.stateFocus).not.toBe(light.stateFocus);
+  });
+
+  it('converts hex string to THREE.Color via getThreeColor with cached instance reuse', () => {
+    const c1 = getThreeColor('#002b36');
+    const c2 = getThreeColor('#002b36');
+    expect(c1).toBeInstanceOf(THREE.Color);
+    expect(c1).toBe(c2);
+    expect(c1.getHexString()).toBe('002b36');
   });
 
   it('extracts tokens from computed styles with fallback preservation', () => {
@@ -101,6 +109,8 @@ describe('useThreeTokenStore & parseCssColor', () => {
     const snapshot = extractThreeTokens(mockComputed, 'dark');
     expect(snapshot.theme).toBe('dark');
     expect(snapshot.canvasOpacity).toBe(0.9);
+    expect(typeof snapshot.canvasBg).toBe('string');
+    expect(typeof snapshot.gridPrimaryColor).toBe('string');
     expect(snapshot.gridPrimaryAlpha).toBe(0.2);
     expect(snapshot.bearingLineAlpha).toBe(0.35);
     expect(snapshot.axisLineAlpha).toBe(0.16);
@@ -210,8 +220,9 @@ describe('CSS parsers (duration, cubic-bezier, px)', () => {
     } as unknown as CSSStyleDeclaration;
 
     const snapshot = extractThreeTokens(mockComputed, 'dark');
-    expect(snapshot.stateFocus.r).toBeCloseTo(0, 2);
-    expect(snapshot.stateFocus.g).toBeGreaterThan(0.6);
+    const focusColor = getThreeColor(snapshot.stateFocus);
+    expect(focusColor.r).toBeCloseTo(0, 2);
+    expect(focusColor.g).toBeGreaterThan(0.6);
     expect(snapshot.reticleFocusedAlpha).toBe(1.0);
   });
 });

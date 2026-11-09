@@ -208,7 +208,9 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       transparent: true,
       depthWrite: false,
     });
-  }, [resolvedColor, resolvedAlpha, lineStyle, orbitStyle]);
+    // Keep material instance stable; mutate color/opacity in useEffect below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineStyle, orbitStyle]);
 
   const lineMesh = useMemo(() => {
     const mesh = new Line2(orbitGeometry, lineMat);

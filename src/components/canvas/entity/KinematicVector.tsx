@@ -84,7 +84,9 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
       transparent: true,
       depthWrite: false,
     });
-  }, [kinematicColor, kinematicAlpha]);
+    // Keep material instance stable; mutate color/opacity in useEffect below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const lineMesh = useMemo(() => {
     const mesh = new Line2(lineGeom, lineMat);
@@ -113,8 +115,8 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
   useEffect(() => {
     lineMat.setColor(kinematicColor);
     lineMat.setOpacity(kinematicAlpha);
-    if (terminusMatRef.current) {
-      terminusMatRef.current.color.copy(kinematicColor);
+    if (terminusMatRef.current?.color) {
+      terminusMatRef.current.color.set(kinematicColor);
       terminusMatRef.current.opacity = kinematicAlpha;
     }
   }, [lineMat, kinematicColor, kinematicAlpha]);

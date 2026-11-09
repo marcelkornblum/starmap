@@ -111,7 +111,7 @@ export const Reticle: React.FC<ReticleProps> = ({
 
   useEffect(() => {
     if (materialRef.current?.color) {
-      materialRef.current.color.copy(resolvedColor);
+      materialRef.current.color.set(resolvedColor);
     }
   }, [resolvedColor]);
 

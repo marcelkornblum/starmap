@@ -124,11 +124,16 @@ export {
   computeZoomAdaptiveRings,
 } from '../math/rings';
 
+/**
+ * World-space cartographic line metrics in 3D scene units (e.g. for geometry baking).
+ * Note: For perspective-invariant screen-space pixel dimensions, see CARTO_LINE_CONSTANTS
+ * in src/components/canvas/materials/CartoLineMaterial.ts.
+ */
 export const LINE_STYLE_CONSTANTS = {
-  // Dashed pattern matching HTML/CSS border-style: dashed (clean, balanced ~1.5:1 ratio)
+  // Dashed pattern matching HTML/CSS border-style: dashed (clean, balanced ~1.5:1 ratio in world space)
   dashLength: 0.18,
   dashGap: 0.12,
-  // Dotted pattern matching HTML/CSS border-style: dotted (small points with distinct gaps, 1:3 ratio)
+  // Dotted pattern matching HTML/CSS border-style: dotted (small points with distinct gaps, 1:3 ratio in world space)
   dotLength: 0.04,
   dotGap: 0.12,
 } as const;

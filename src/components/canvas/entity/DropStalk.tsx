@@ -132,7 +132,14 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       transparent: true,
       depthWrite: false,
     });
-  }, [stalkColor, stalkOpacity, isDashed]);
+    // Keep material instance stable; mutate color/opacity in useEffect below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDashed]);
+
+  useEffect(() => {
+    lineMaterial.setColor(stalkColor);
+    lineMaterial.setOpacity(stalkOpacity);
+  }, [lineMaterial, stalkColor, stalkOpacity]);
 
   useEffect(() => {
     return () => {
@@ -210,13 +217,11 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       }
     }
 
-    if (footprintMatRef.current) {
-      footprintMatRef.current.color.copy(resolvedFootprintColor);
+    if (footprintMatRef.current?.color) {
+      footprintMatRef.current.color.set(resolvedFootprintColor);
       footprintMatRef.current.opacity = resolvedFootprintAlpha * fadePlanar;
     }
 
-    lineMaterial.setColor(stalkColor);
-    lineMaterial.setOpacity(stalkOpacity);
     lineMaterial.updateResolution(camera, size.height);
   });
 

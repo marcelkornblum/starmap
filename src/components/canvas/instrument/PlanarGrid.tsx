@@ -300,7 +300,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
   }), []);
 
   useEffect(() => {
-    fillUniforms.uColor.value.copy(datumPlaneFillColor);
+    fillUniforms.uColor.value.set(datumPlaneFillColor);
     fillUniforms.uAlpha.value = datumPlaneFillAlpha;
     fillUniforms.uInnerRadius.value = datumPlaneFillGradientInner;
     fillUniforms.uExponent.value = datumPlaneFillGradientExponent;
@@ -311,6 +311,12 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
     datumPlaneFillGradientInner,
     datumPlaneFillGradientExponent,
   ]);
+
+  useEffect(() => {
+    if (primaryFootprintMatRef.current?.color) {
+      primaryFootprintMatRef.current.color.set(stateFocus);
+    }
+  }, [stateFocus]);
 
   // Per-frame scaling and end-on / top-down ortho fade
   useFrame(({ camera }) => {
@@ -437,7 +443,6 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       primaryFootprintRef.current.visible = isFootprintEnabled && fadePlanar > 1e-3;
     }
     if (primaryFootprintMatRef.current) {
-      primaryFootprintMatRef.current.color.copy(stateFocus);
       primaryFootprintMatRef.current.opacity = footprintAlpha * fadePlanar;
     }
 
