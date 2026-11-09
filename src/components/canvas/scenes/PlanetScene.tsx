@@ -6,6 +6,12 @@ import { calculateKeplerianPosition } from '../math/kepler';
 import { PlanetBody } from '../entity/PlanetBody';
 import type { SpatialEntityDefinition } from '../entity';
 import type { CelestialClassification } from '../cartography/reticleGeometry';
+import type { PlanetRecord, SatelliteRecord } from '../../../types/astro';
+import { getCachedDetailRecord } from '../../../data/detailsRepository';
+import {
+  EARTH_REFERENCE_TARGET,
+  SOL_REFERENCE_TARGET,
+} from '../../../config/referenceTargets';
 
 export interface PlanetSceneProps {
   planetId?: string;
@@ -14,6 +20,7 @@ export interface PlanetSceneProps {
   radius?: number;
   minPixelSize?: number;
   fadeRange?: number;
+  planet?: PlanetRecord;
   satellites?: SpatialEntityDefinition[];
   onInspectSatellite?: (satelliteId: string) => void;
   onSelectEntity?: (entityId: string | null) => void;
@@ -21,22 +28,18 @@ export interface PlanetSceneProps {
 }
 
 /**
- * Astronomical ratio: Moon orbital semi-major axis (384,400 km) / Earth radius (6,371 km) ≈ 60.3359.
- */
-export const EARTH_LUNA_ORBITAL_RATIO = 60.34;
-
-/**
  * PlanetScene: Canonical production scene for planetary body inspection.
  * Renders the physical uniform-lit PlanetBody alongside Keplerian natural/artificial satellites in PLANETARY_FRAME.
  * Seamlessly cross-fades the 3D globe into an invariant cartographic node with reticle when zooming out.
  */
 export const PlanetScene: React.FC<PlanetSceneProps> = ({
-  planetId = 'earth',
+  planetId = EARTH_REFERENCE_TARGET.id,
   planetName,
   classification = 'terrestrial',
   radius = 1.0,
   minPixelSize = 24,
   fadeRange = 16,
+  planet,
   satellites: explicitSatellites,
   onInspectSatellite,
   onSelectEntity,
@@ -44,39 +47,62 @@ export const PlanetScene: React.FC<PlanetSceneProps> = ({
 }) => {
   const resolvedName = planetName ?? (planetId.charAt(0).toUpperCase() + planetId.slice(1));
 
-  const satellites = useMemo<SpatialEntityDefinition[]>(() => {
-    if (explicitSatellites) return explicitSatellites;
-    if (planetId.toLowerCase() === 'earth') {
-      const lunaA = EARTH_LUNA_ORBITAL_RATIO * radius;
-      const [lunaX, lunaY, lunaZ] = calculateKeplerianPosition(
-        lunaA,
-        0.0549,
-        5.14,
-        125.08,
-        318.15,
-        135.0,
-      );
-      return [
-        {
-          id: 'moon',
-          name: 'Luna',
-          classification: 'terrestrial',
-          position: [lunaX, lunaY, lunaZ],
-          bodyRadius: 0.272 * radius,
-          orbit: {
-            semiMajorAxis: lunaA,
-            eccentricity: 0.0549,
-            inclination: 5.14,
-            ascendingNode: 125.08,
-            argumentOfPeriapsis: 318.15,
-            period: 27.32,
-            meanAnomaly: 135.0,
-          },
-        },
-      ];
+  const resolvedSatellites = useMemo<readonly SatelliteRecord[]>(() => {
+    if (planet?.satellites && planet.satellites.length > 0) {
+      return planet.satellites;
+    }
+    if (planetId) {
+      const detail = getCachedDetailRecord(planetId);
+      if (detail?.kind === 'system') {
+        const found = detail.record.planets?.find((p) => p.id === planetId);
+        if (found?.satellites) return found.satellites;
+      }
+      const sol = getCachedDetailRecord(SOL_REFERENCE_TARGET.id);
+      if (sol?.kind === 'system') {
+        const found = sol.record.planets?.find(
+          (p) => p.id === planetId || p.name.toLowerCase() === planetId.toLowerCase(),
+        );
+        if (found?.satellites) return found.satellites;
+      }
     }
     return [];
-  }, [explicitSatellites, planetId, radius]);
+  }, [planet, planetId]);
+
+  const satellites = useMemo<SpatialEntityDefinition[]>(() => {
+    if (explicitSatellites) return explicitSatellites;
+    if (resolvedSatellites.length > 0) {
+      return resolvedSatellites.map((sat) => {
+        const satSemiMajorAxis = sat.orbit.semiMajorAxis;
+        const [satX, satY, satZ] = calculateKeplerianPosition(
+          satSemiMajorAxis,
+          sat.orbit.eccentricity,
+          sat.orbit.inclination,
+          sat.orbit.ascendingNode,
+          sat.orbit.argumentOfPeriapsis,
+          sat.orbit.meanAnomaly,
+        );
+        const satClassification: CelestialClassification =
+          sat.composition === 'sub-neptune' ? 'ice-giant' : (sat.composition ?? 'terrestrial');
+        return {
+          id: sat.id,
+          name: sat.name,
+          classification: satClassification,
+          position: [satX, satY, satZ],
+          bodyRadius: (sat.radiusEarth ?? 0.272) * radius,
+          orbit: {
+            semiMajorAxis: satSemiMajorAxis,
+            eccentricity: sat.orbit.eccentricity,
+            inclination: sat.orbit.inclination,
+            ascendingNode: sat.orbit.ascendingNode,
+            argumentOfPeriapsis: sat.orbit.argumentOfPeriapsis,
+            period: sat.orbit.periodDays,
+            meanAnomaly: sat.orbit.meanAnomaly,
+          },
+        };
+      });
+    }
+    return [];
+  }, [explicitSatellites, resolvedSatellites, radius]);
 
   // Central planet representation: seamlessly cross-fades between 3D PlanetBody and invariant node
   const planetEntity = useMemo<SpatialEntityDefinition>(() => ({

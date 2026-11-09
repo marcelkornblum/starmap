@@ -114,7 +114,7 @@
       "audId": "AUD-020"
     },
     "G-literals::src/components/canvas/scenes/PlanetScene.tsx": {
-      "count": 3,
+      "count": 1,
       "audId": "AUD-063"
     },
     "G-size::src/components/canvas/scenes/SpatialScenes.tsx": {
@@ -126,16 +126,12 @@
       "audId": "AUD-020"
     },
     "G-literals::src/components/canvas/scenes/SystemScene.tsx": {
-      "count": 2,
+      "count": 1,
       "audId": "AUD-072"
     },
     "G-size::src/components/canvas/viewport/SpatialViewport.tsx": {
       "count": 1,
       "audId": "AUD-120"
-    },
-    "G-literals::src/components/domain/CanvasLayer/CanvasLayer.tsx": {
-      "count": 2,
-      "audId": "AUD-072"
     },
     "G-size::src/components/domain/DirectionsPanel/DirectionsPanel.tsx": {
       "count": 1,
@@ -165,16 +161,12 @@
       "count": 1,
       "audId": "AUD-020"
     },
-    "G-literals::src/data/guideCatalog.ts": {
-      "count": 68,
-      "audId": "AUD-045"
-    },
     "G-size::src/services/details/bodiesAndSchematics.ts": {
       "count": 1,
       "audId": "AUD-120"
     },
     "G-literals::src/services/details/bodiesAndSchematics.ts": {
-      "count": 4,
+      "count": 2,
       "audId": "AUD-062"
     },
     "G-size::src/services/details/focusedEntityDetails.ts": {
@@ -189,10 +181,6 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "G-literals::src/services/details/galacticAperture.ts": {
-      "count": 6,
-      "audId": "AUD-062"
-    },
     "G-size::src/services/details/hazardsAndComposition.ts": {
       "count": 1,
       "audId": "AUD-120"
@@ -201,12 +189,8 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "G-literals::src/services/details/minimapAndPreview.ts": {
-      "count": 8,
-      "audId": "AUD-062"
-    },
     "G-literals::src/services/details/navigationAndCamera.ts": {
-      "count": 5,
+      "count": 1,
       "audId": "AUD-062"
     },
     "G-size::src/services/details/types.ts": {
@@ -222,16 +206,12 @@
       "audId": "AUD-120"
     },
     "G-literals::src/services/guideService.ts": {
-      "count": 13,
+      "count": 3,
       "audId": "AUD-060"
     },
     "G-size::src/services/journeyService.ts": {
       "count": 1,
       "audId": "AUD-120"
-    },
-    "G-literals::src/services/journeyService.ts": {
-      "count": 9,
-      "audId": "AUD-061"
     },
     "G-literals::src/services/layerCardService.ts": {
       "count": 1,
@@ -745,10 +725,6 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "eslint(max-lines)::src/data/guideCatalog.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "eslint(max-lines)::src/services/searchService.ts": {
       "count": 1,
       "audId": "AUD-120"
@@ -1108,10 +1084,6 @@
     "eslint(max-lines)::tests/searchService.test.ts": {
       "count": 1,
       "audId": "AUD-120"
-    },
-    "react(only-export-components)::src/views/GuideSectionNav.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
     },
     "eslint(max-lines)::tests/spatialShell.test.tsx": {
       "count": 1,

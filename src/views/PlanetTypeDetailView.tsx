@@ -126,7 +126,10 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
                 <Datum label="Habitability" value={entry.habitabilityNotes} />
               </Stack>
 
-              <GuideExamplesList examples={entry.examples} />
+              <GuideExamplesList
+                examples={entry.examples}
+                reticleType={entry.composition ?? 'terrestrial'}
+              />
             </section>
           ))}
         </>

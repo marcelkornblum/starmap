@@ -22,7 +22,7 @@ import {
   type PlanetCompositionClass,
   type PlanetTypeGuideEntry,
   type StarTypeGuideEntry,
-} from '../data/guideCatalog';
+} from '../content/guide';
 import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,
@@ -269,64 +269,29 @@ export const resolveReticleType = (
   entry: CompactSearchEntry,
 ): CelestialClassification => {
   if (entry.u) {
-    if (entry.u === 'super-earth') {
-      return 'super-earth';
-    }
     if (entry.u === 'sub-neptune') {
       return 'ice-giant';
     }
     return entry.u;
   }
 
-  const category = resolveEntryCategory(entry);
-
-  if (category === 'stars') {
-    const spect = (entry.m?.[1] ?? '').trim().toUpperCase();
-    if (spect.startsWith('D')) {
-      return 'white-dwarf';
-    }
-    if (spect.startsWith('L') || spect.startsWith('T') || spect.startsWith('Y')) {
-      return 'brown-dwarf';
-    }
-    if (spect.startsWith('PSR')) {
-      return 'neutron-star';
-    }
-    return 'stellar-system';
+  switch (entry.k) {
+    case 0:
+    case 1:
+      return 'stellar-system';
+    case 2:
+    case 3:
+    case 4:
+      return 'terrestrial';
+    case 5:
+      return 'stellar-cluster';
+    case 6:
+      return isArtificialSpacecraftEntry(entry) ? 'construct' : 'terrestrial';
+    case 7:
+      return 'stellar-system';
+    default:
+      return 'stellar-system';
   }
-
-  if (category === 'planets') {
-    return 'terrestrial';
-  }
-
-  if (category === 'structures') {
-    const idLower = entry.i.toLowerCase();
-    const nameLower = entry.n.toLowerCase();
-    if (
-      idLower.startsWith('psr-') ||
-      idLower.startsWith('snr-') ||
-      nameLower.includes('pulsar') ||
-      nameLower.includes('remnant')
-    ) {
-      return 'hazard';
-    }
-    return 'stellar-cluster';
-  }
-
-  if (category === 'minor-bodies') {
-    if (isArtificialSpacecraftEntry(entry)) {
-      return 'construct';
-    }
-    return 'terrestrial';
-  }
-
-  // category === 'layers'
-  if (entry.k === 7 && (!entry.s || entry.i === entry.w)) {
-    return 'stellar-system';
-  }
-  if (isChildOfHostSystem(entry.i, entry.s)) {
-    return 'terrestrial';
-  }
-  return 'stellar-system';
 };
 
 export interface ResultLinkInput {
@@ -656,20 +621,43 @@ const createEmptyGroupedResults = (
   query: string,
   filter: SearchCategoryFilter,
 ): GroupedSearchResults => {
-  const groups = {} as Record<SearchCategoryKey, CategorySearchResultGroup>;
-  for (const meta of SEARCH_CATEGORIES) {
-    groups[meta.key] = {
-      category: meta.key,
-      heading: meta.heading,
+  const groups: Record<SearchCategoryKey, CategorySearchResultGroup> = {
+    stars: {
+      category: 'stars',
+      heading: 'Stars & Systems',
       totalMatches: 0,
       items: [],
-    };
-  }
+    },
+    planets: {
+      category: 'planets',
+      heading: 'Exoplanets & Worlds',
+      totalMatches: 0,
+      items: [],
+    },
+    structures: {
+      category: 'structures',
+      heading: 'Deep-Sky Structures',
+      totalMatches: 0,
+      items: [],
+    },
+    'minor-bodies': {
+      category: 'minor-bodies',
+      heading: 'Solar Minor Bodies & Spacecraft',
+      totalMatches: 0,
+      items: [],
+    },
+    layers: {
+      category: 'layers',
+      heading: 'Overlays & Layers',
+      totalMatches: 0,
+      items: [],
+    },
+  };
   return {
     query,
     filter,
     totalMatches: 0,
-    groups: groups as GroupedSearchResults['groups'],
+    groups,
   };
 };
 
@@ -1012,16 +1000,6 @@ export const parseUrlSelectTokens = (
         const candidatePlanetType = toUrlSlug(planetTypeMatch[1]);
         if (candidatePlanetType.length > 0) {
           tokens.push({ kind: 'planet-type', planetType: candidatePlanetType });
-        }
-        continue;
-      }
-
-      const collectionMatch = /^collection:(.+)$/i.exec(token);
-      if (collectionMatch?.[1]) {
-        const rawSlug = collectionMatch[1].trim();
-        const matchedLayer = findCanonLayerById(rawSlug, layerIndex);
-        if (matchedLayer) {
-          tokens.push({ kind: 'layer', layerId: matchedLayer.layerId });
         }
         continue;
       }
@@ -1605,12 +1583,9 @@ export const resolveFocusedEntityFromCorpus = (
 
   const matched = findFocusedEntryInCorpus(focusSlug, corpus);
   if (matched) {
-    const rawCoords = matched as { x?: number; y?: number; z?: number };
     const position: [number, number, number] = matched.p
       ? [matched.p[0], matched.p[1], matched.p[2]]
-      : typeof rawCoords.x === 'number' && typeof rawCoords.y === 'number' && typeof rawCoords.z === 'number'
-        ? [rawCoords.x, rawCoords.y, rawCoords.z]
-        : [0, 0, 0];
+      : [0, 0, 0];
     return {
       id: matched.i,
       name: resolveResultDisplayTitle(matched),

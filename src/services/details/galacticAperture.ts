@@ -1,5 +1,9 @@
 import { GALACTIC_FRAME } from '../../types/spatial';
 import {
+  DEFAULT_ORIGIN_TARGETS,
+  SOL_REFERENCE_TARGET,
+} from '../../config/referenceTargets';
+import {
   computeApertureRadius,
   deriveEntityTier,
   isInsideAperture,
@@ -27,7 +31,6 @@ import {
 } from '../searchService';
 import {
   decodeSystemHazards,
-  formatHazardSummaryLabel,
   toCoordinatesTuple,
 } from './hazardsAndComposition';
 import { buildGalaxySystemNavigationHref } from './navigationAndCamera';
@@ -95,9 +98,9 @@ export function resolveGalacticInstrumentAperture(
     liveApertureRadiusPc,
   } = input;
 
-  let centerId = 'sol';
-  let centerName = 'Sol';
-  let centerCoordinatesPc: readonly [number, number, number] = [0, 0, 0];
+  let centerId = DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
+  let centerName = SOL_REFERENCE_TARGET.name;
+  let centerCoordinatesPc: readonly [number, number, number] = DEFAULT_ORIGIN_TARGETS.galacticOriginCoordinates;
 
   if (liveApertureCenterPc) {
     centerCoordinatesPc = liveApertureCenterPc;
@@ -133,13 +136,13 @@ export function resolveGalacticInstrumentAperture(
           ? [matched.p[0], matched.p[1], matched.p[2]]
           : [0, 0, 0];
       } else {
-        centerId = toUrlSlug(cameraState.center) || 'sol';
+        centerId = toUrlSlug(cameraState.center) || DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
         centerName = formatSlugFallbackTitle(cameraState.center);
         centerCoordinatesPc = [0, 0, 0];
       }
     }
   } else if (urlSystemSlug || focusedEntity) {
-    const targetKey = urlSystemSlug ?? focusedEntity?.id ?? 'sol';
+    const targetKey = urlSystemSlug ?? focusedEntity?.id ?? DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
     const matched = findFocusedEntryInCorpus(targetKey, corpus);
     if (matched) {
       centerId = toUrlSlug(matched.s ?? matched.i);
@@ -152,7 +155,7 @@ export function resolveGalacticInstrumentAperture(
       centerName = focusedEntity.name;
       centerCoordinatesPc = toCoordinatesTuple(focusedEntity.position);
     } else {
-      centerId = toUrlSlug(urlSystemSlug ?? 'sol') || 'sol';
+      centerId = toUrlSlug(urlSystemSlug ?? DEFAULT_ORIGIN_TARGETS.interstellarOriginId) || DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
       centerName = formatSlugFallbackTitle(centerId);
       centerCoordinatesPc = [0, 0, 0];
     }
@@ -434,7 +437,10 @@ export function extractGalaxyBodies(
       });
     const hazards = decodeSystemHazards(rawHazardMask);
     const hazardCount = hazards.length;
-    const hazardSummaryLabel = formatHazardSummaryLabel(hazardCount);
+    const hazardSummaryLabel =
+      hazardCount <= 0
+        ? '0 hazards'
+        : `${hazardCount} ${hazardCount === 1 ? 'hazard' : 'hazards'}`;
     const hasCriticalHazard = hazards.some((h) => h.severity === 'critical');
 
     const rawSortDist = computeEuclideanDistance3D(

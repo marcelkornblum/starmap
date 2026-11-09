@@ -483,6 +483,45 @@ Records programme-level and per-track decisions for the architecture remediation
 
 ---
 
-## Process Log
+### DEC-R030: Review Mode for Track T05 (`DEC-R006`)
+- **Date:** 2026-11-08
+- **Status:** `Ratified`
+- **Context:** Re-confirming review mode at the start of Track T05 per `DEC-R006`.
+- **Decision:** Whole-Track Review in PR. Execute all phases continuously (pausing for Phase 1 atomic decisions), run the three-auditor verification gate, and review the completed track in the Pull Request with clickable LAN smoke-test links.
+
+---
+
+### DEC-R031: StructuredQuantity Constrained Types (`AUD-066`)
+- **Date:** 2026-11-08
+- **Status:** `Ratified`
+- **Context:** `StructuredQuantity.value` carried arbitrary free text (`'Instantaneous'`, `'21.40%'`, `'… (dep) · … (arr)'`, `unit: ''`), and `formatStructuredQuantity` plus Δz prose were generated inside `journeyService.ts`.
+- **Options Considered:**
+  1. *Option A: Strict numeric `value: number` with an explicit regime discriminator on the result.*
+  2. *Option B: Permissive enum tokens in `value` (`number | 'infinite' | 'instantaneous'`), while strictly banning arbitrary freeform formatted prose strings (`'21.40%'`, `'… (dep) · … (arr)'`) and decomposing split velocities into structured fields.*
+- **Decision:** Option B. Constrain `StructuredQuantity.value` to `number | 'infinite' | 'instantaneous'`, decompose multi-value metrics (e.g. departure vs. arrival $\Delta v$) into distinct structured properties rather than concatenating prose into `value`, delete service-layer string formatting helpers, and let views format display presentation.
+
+---
+
+### DEC-R032: Modular Editorial Content Package for Guide Catalogue (`AUD-071`)
+- **Date:** 2026-11-08
+- **Status:** `Ratified`
+- **Context:** `src/data/guideCatalog.ts` was a 1,129-line (46 KB) monolithic TypeScript file embedding all Star Type, Planet Type, Hazard Type, and Metric guide definitions.
+- **Options Considered:**
+  1. *Option A: Modular editorial content package decomposed under `src/content/guide/` (`starTypes.ts`, `planetTypes.ts`, `hazardTypes.ts`, `metricTypes.ts`, `index.ts`) under `G-size` (<= 300 lines each), maintaining full compile-time type safety with zero network fetch waterfalls.*
+  2. *Option B: Move to `public/data/guide/*.json` shards fetched asynchronously at runtime.*
+- **Decision:** Option A (`src/content/guide/` modular package decomposed into focused, strongly-typed files satisfying `G-size`).
+
+---
+
+### DEC-R033: Reference Entity Configuration & Pure Data-Driven Parentage (`AUD-060`, `AUD-061`, `AUD-062`, `AUD-072`)
+- **Date:** 2026-11-08
+- **Status:** `Ratified`
+- **Context:** Literal celestial IDs (`'sol'`, `'earth'`, `'tau-ceti'`, `'tau-ceti-e'`) and assumed coordinates/semi-major axes (`1.0 AU`, `1.524 AU`, `[0, 0, 0]`) were hardcoded across `guideService.ts`, `journeyService.ts`, `src/services/details/**`, `CanvasLayer.tsx`, and `SystemScene.tsx`.
+- **Options Considered:**
+  1. *Option A: Explicit Data Boundaries + Centralized Reference Configuration. Drive parentage and hierarchy strictly from precalculated `parentBodyId` and `kind` unions (zero string guards on `'sol'`), require explicit target props in scenes/canvas (rendering clean boundaries when missing), and centralize legitimate astronomical educational baselines (Earth, Sol, Tau Ceti comparison exemplars) in a dedicated configuration module (`src/config/referenceTargets.ts`).*
+  2. *Option B: Pure Catalog Lookup with No Benchmark Fallback (render empty state when `?focus=` is omitted in guide; completely ban benchmark constants).*
+- **Decision:** Option A (`src/config/referenceTargets.ts` for sanctioned educational comparison baselines, with strict data-driven hierarchy and zero magic-string fallbacks across domain services and scenes).
+
+---
 
 - **2026-11-06 · T01 reconnaissance:** the Flash `codebase-researcher` report contained about five factual errors (e2e spec count, untypechecked-scripts list, non-existent file paths, CI action versions). Countermeasure: Flash research prompts must include the raw command output supporting each claim. Counted towards the DEC-R007 review.

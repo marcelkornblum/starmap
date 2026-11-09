@@ -410,7 +410,7 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
       expect(combo.combinedCode).toBe('G2V');
       expect(combo.effectiveTempK).toBeGreaterThanOrEqual(5200);
       expect(combo.effectiveTempK).toBeLessThanOrEqual(6000);
-      expect(combo.chromaticityHex).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(combo.chromaticityHex).toBe('var(--star-chromaticity-g)');
       expect(combo.radiusRsun).toBeCloseTo(1.0, 1);
       expect(combo.luminosityLsun).toBeGreaterThan(0.5);
       expect(combo.luminosityLsun).toBeLessThan(1.5);

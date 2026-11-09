@@ -121,11 +121,6 @@ export function decodePlanetHazards(mask?: number): readonly EntityHazardItem[] 
   return hazards;
 }
 
-export function formatHazardSummaryLabel(count: number): string {
-  if (count <= 0) return '0 hazards';
-  return `${count} ${count === 1 ? 'hazard' : 'hazards'}`;
-}
-
 export function formatDiskKindLabel(kind: CircumstellarDiskKind): string {
   switch (kind) {
     case 'asteroid-belt':
@@ -140,18 +135,14 @@ export function formatDiskKindLabel(kind: CircumstellarDiskKind): string {
 }
 
 /**
- * Pure classifier mapping a planet's precalculated composition or mass ($M_\oplus$) / radius ($R_\oplus$)
- * to its canonical composition class (`terrestrial`, `ice-giant`, or `gas-giant`).
+ * Pure classifier mapping a planet's precalculated composition to its canonical composition class.
  */
 export const classifyExoplanetComposition = (planet: {
   readonly massMearth?: number;
   readonly radiusRearth?: number;
   readonly composition?: PlanetCompositionClass;
 }): PlanetCompositionClass => {
-  if (planet.composition) {
-    return planet.composition;
-  }
-  return classifyPlanetPhysical(planet);
+  return planet.composition ?? classifyPlanetPhysical(planet);
 };
 
 /**
@@ -387,24 +378,7 @@ export const buildIntrinsicSystemSummarySegments = (input: {
         : undefined;
 
   if (customProse) {
-    const hzPhrase = 'habitable zone candidate';
-    const lower = customProse.toLowerCase();
-    const matchIdx = lower.indexOf(hzPhrase);
-    if (matchIdx === -1) {
-      return [{ kind: 'text', text: customProse }];
-    }
-    const before = customProse.slice(0, matchIdx);
-    const matchedLabel = customProse.slice(matchIdx, matchIdx + hzPhrase.length);
-    const after = customProse.slice(matchIdx + hzPhrase.length);
-    const segments: SystemSummarySegment[] = [];
-    if (before.length > 0) {
-      segments.push({ kind: 'text', text: before });
-    }
-    segments.push({ kind: 'habitable-badge', label: matchedLabel });
-    if (after.length > 0) {
-      segments.push({ kind: 'text', text: after });
-    }
-    return segments;
+    return [{ kind: 'text', text: customProse }];
   }
 
   const segments: SystemSummarySegment[] = [];

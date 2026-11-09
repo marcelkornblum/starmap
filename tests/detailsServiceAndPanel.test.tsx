@@ -4,7 +4,6 @@ import { renderToString } from 'react-dom/server';
 import {
   decodeSystemHazards,
   decodePlanetHazards,
-  formatHazardSummaryLabel,
   buildFocusedEntityDetails,
   buildGalaxySystemNavigationHref,
   resolveGalacticInstrumentAperture,
@@ -122,12 +121,6 @@ describe('DEC-032: Environmental Hazards & Planetary Telemetry', () => {
       });
     });
 
-    it('formatHazardSummaryLabel formats singular and plural counts', () => {
-      expect(formatHazardSummaryLabel(0)).toBe('0 hazards');
-      expect(formatHazardSummaryLabel(1)).toBe('1 hazard');
-      expect(formatHazardSummaryLabel(2)).toBe('2 hazards');
-      expect(formatHazardSummaryLabel(5)).toBe('5 hazards');
-    });
 
     it('decodeExoplanet without H or g derives surfaceGravityG and high-gravity hazard (Tau Ceti e)', () => {
       const decoded = decodeExoplanet({

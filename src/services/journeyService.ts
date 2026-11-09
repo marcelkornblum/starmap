@@ -30,13 +30,21 @@ export { buildJourneyChordRenderData };
 import {
   getCachedDetailRecord,
   getCachedSummaryNode,
+  type DecodedDetailRecord,
 } from '../data/detailsRepository';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
-import type { SystemSummaryNode } from '../types/astro';
+import type { SystemSummaryNode, SystemManifest, PlanetRecord } from '../types/astro';
 import { toUrlSlug } from './searchService';
+import {
+  DEFAULT_ORIGIN_TARGETS,
+  EARTH_REFERENCE_TARGET,
+  SOL_REFERENCE_TARGET,
+} from '../config/referenceTargets';
 
-export const DEFAULT_INTERSTELLAR_ORIGIN_ID = 'sol';
-export const DEFAULT_INTRA_SYSTEM_ORIGIN_ID = 'earth';
+export const DEFAULT_INTERSTELLAR_ORIGIN_ID =
+  DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
+export const DEFAULT_INTRA_SYSTEM_ORIGIN_ID =
+  DEFAULT_ORIGIN_TARGETS.intraSystemOriginId;
 
 export type JourneyDomain = 'interstellar' | 'intra-system';
 
@@ -53,17 +61,10 @@ export interface JourneyEndpoint {
 }
 
 export interface StructuredQuantity {
-  readonly value: number | string;
+  readonly value: number | 'infinite' | 'instantaneous';
   readonly unit: string;
   readonly secondaryValue?: number | string;
   readonly secondaryUnit?: string;
-}
-
-export function formatStructuredQuantity(q: StructuredQuantity): string {
-  if (q.secondaryValue !== undefined && q.secondaryUnit) {
-    return `${q.value} ${q.unit} (${q.secondaryValue} ${q.secondaryUnit})`;
-  }
-  return q.unit ? `${q.value} ${q.unit}` : `${q.value}`;
 }
 
 export interface JourneyStep {
@@ -106,6 +107,8 @@ export interface JourneyOptionStats {
   readonly oneWayComms: StructuredQuantity;
   readonly roundTripComms: StructuredQuantity;
   readonly peakVelocity: StructuredQuantity;
+  readonly departureVelocity?: StructuredQuantity;
+  readonly arrivalVelocity?: StructuredQuantity;
   readonly lorentzFactor?: StructuredQuantity;
   readonly turnaroundPoint?: StructuredQuantity;
   readonly deltaV?: StructuredQuantity;
@@ -269,7 +272,7 @@ export interface BuildJourneyPlanInput {
   readonly currentSearch?: string;
   readonly corpusEntries?: readonly CompactSearchEntry[];
   readonly corpus?: readonly CompactSearchEntry[];
-  readonly systemDetail?: { kind: string; record?: unknown } | null;
+  readonly systemDetail?: DecodedDetailRecord | null;
   readonly summaryNode?: SystemSummaryNode | null;
   readonly systemNodes?: readonly SystemSummaryNode[];
 }
@@ -281,7 +284,7 @@ export interface BuildJourneyPlanInput {
 function resolveEndpoint(
   stopId: string,
   corpusEntries?: readonly CompactSearchEntry[],
-  systemDetail?: { kind: string; record?: unknown } | null,
+  systemDetail?: DecodedDetailRecord | null,
   summaryNode?: SystemSummaryNode | null,
 ): JourneyEndpoint {
   const slug = toUrlSlug(stopId);
@@ -289,41 +292,27 @@ function resolveEndpoint(
   const corpusMatch = corpusEntries?.find(
     (e) => toUrlSlug(e.i) === slug || toUrlSlug(e.n) === slug,
   );
-  const rawMatch = corpusMatch as Record<string, unknown> | undefined;
 
   const cachedSummary =
     summaryNode?.id === slug ? summaryNode : getCachedSummaryNode(slug);
   const cachedDetail = getCachedDetailRecord(slug);
 
-  const sysRecord = (
+  const sysRecord: SystemManifest | undefined = (
     systemDetail?.kind === 'system'
       ? systemDetail.record
       : cachedDetail?.kind === 'system'
         ? cachedDetail.record
         : undefined
-  ) as
-    | {
-        id?: string;
-        name?: string;
-        x?: number;
-        y?: number;
-        z?: number;
-        planets?: Array<{
-          id: string;
-          name: string;
-          orbit?: { semiMajorAxis?: number; periodDays?: number };
-        }>;
-      }
-    | undefined;
+  );
 
   const parentSystemId = corpusMatch?.s ? toUrlSlug(corpusMatch.s) : undefined;
   const parentDetail =
     !sysRecord && parentSystemId ? getCachedDetailRecord(parentSystemId) : undefined;
-  const parentSysRecord =
+  const parentSysRecord: SystemManifest | undefined =
     parentDetail?.kind === 'system' ? parentDetail.record : sysRecord;
 
   const planetMatch = parentSysRecord?.planets?.find(
-    (p) => toUrlSlug(p.id) === slug || toUrlSlug(p.name) === slug,
+    (p: PlanetRecord) => toUrlSlug(p.id) === slug || toUrlSlug(p.name) === slug,
   );
 
   const solarBodyRecord =
@@ -335,16 +324,15 @@ function resolveEndpoint(
     corpusMatch?.n ??
     cachedSummary?.name ??
     (slug === DEFAULT_INTERSTELLAR_ORIGIN_ID
-      ? 'Sol'
+      ? SOL_REFERENCE_TARGET.name
       : slug === DEFAULT_INTRA_SYSTEM_ORIGIN_ID
-        ? 'Earth'
+        ? EARTH_REFERENCE_TARGET.name
         : slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
 
   const isPlanet =
     Boolean(planetMatch) ||
     solarBodyRecord?.classification === 'Planet' ||
     corpusMatch?.k === 2 ||
-    rawMatch?.k === 'planet' ||
     slug === DEFAULT_INTRA_SYSTEM_ORIGIN_ID;
 
   const isMinorBody =
@@ -353,13 +341,11 @@ function resolveEndpoint(
       solarBodyRecord.classification !== 'Star') ||
     corpusMatch?.k === 3 ||
     corpusMatch?.k === 4 ||
-    corpusMatch?.k === 6 ||
-    rawMatch?.k === 'minor-body';
+    corpusMatch?.k === 6;
 
   const isStructure =
     cachedDetail?.kind === 'structure' ||
-    corpusMatch?.k === 5 ||
-    rawMatch?.k === 'structure';
+    corpusMatch?.k === 5;
 
   const entityKind: JourneyEndpoint['entityKind'] = isPlanet
     ? 'planet'
@@ -381,34 +367,36 @@ function resolveEndpoint(
   const systemName =
     parentSysRecord?.name ??
     cachedSummary?.name ??
-    (systemId === DEFAULT_INTERSTELLAR_ORIGIN_ID ? 'Sol' : name);
+    (systemId === DEFAULT_INTERSTELLAR_ORIGIN_ID
+      ? SOL_REFERENCE_TARGET.name
+      : name);
 
   const coordinatesPc: readonly [number, number, number] = corpusMatch?.p
     ? corpusMatch.p
-    : typeof rawMatch?.x === 'number' &&
-        typeof rawMatch?.y === 'number' &&
-        typeof rawMatch?.z === 'number'
-      ? [rawMatch.x, rawMatch.y, rawMatch.z]
-      : cachedSummary && Number.isFinite(cachedSummary.x)
-        ? [cachedSummary.x, cachedSummary.y, cachedSummary.z]
-        : sysRecord &&
-            typeof sysRecord.x === 'number' &&
-            typeof sysRecord.y === 'number' &&
-            typeof sysRecord.z === 'number'
-          ? [sysRecord.x, sysRecord.y, sysRecord.z]
-          : [0, 0, 0];
+    : cachedSummary && Number.isFinite(cachedSummary.x)
+      ? [cachedSummary.x, cachedSummary.y, cachedSummary.z]
+      : sysRecord &&
+          typeof sysRecord.x === 'number' &&
+          typeof sysRecord.y === 'number' &&
+          typeof sysRecord.z === 'number'
+        ? [sysRecord.x, sysRecord.y, sysRecord.z]
+        : DEFAULT_ORIGIN_TARGETS.galacticOriginCoordinates;
 
   const semiMajorAxisAu =
     corpusMatch?.A ??
-    (typeof rawMatch?.a === 'number' ? rawMatch.a : undefined) ??
     planetMatch?.orbit?.semiMajorAxis ??
-    solarBodyRecord?.orbit?.semiMajorAxis;
+    solarBodyRecord?.orbit?.semiMajorAxis ??
+    (slug === DEFAULT_INTRA_SYSTEM_ORIGIN_ID
+      ? EARTH_REFERENCE_TARGET.semiMajorAxisAu
+      : undefined);
 
   const periodDays =
     corpusMatch?.P ??
-    (typeof rawMatch?.P === 'number' ? rawMatch.P : undefined) ??
     planetMatch?.orbit?.periodDays ??
-    solarBodyRecord?.orbit?.periodDays;
+    solarBodyRecord?.orbit?.periodDays ??
+    (slug === DEFAULT_INTRA_SYSTEM_ORIGIN_ID
+      ? EARTH_REFERENCE_TARGET.periodDays
+      : undefined);
 
   const position3D: readonly [number, number, number] =
     semiMajorAxisAu !== undefined
@@ -506,6 +494,16 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
     statusReason = 'Surface planetary routing is coming soon.';
   }
 
+  if (domain === 'intra-system' && status === 'ready') {
+    const missingSmaStop = stops.find(
+      (s) => typeof s.semiMajorAxisAu !== 'number' || s.semiMajorAxisAu <= 0,
+    );
+    if (missingSmaStop) {
+      status = 'coming-soon';
+      statusReason = `Orbital telemetry (semi-major axis) is unavailable for ${missingSmaStop.name}.`;
+    }
+  }
+
   if (status === 'coming-soon') {
     return {
       status,
@@ -549,17 +547,17 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       const deltaZLy = dz * PARSEC_TO_LY;
 
       const oneWayLightTime: StructuredQuantity = {
-        value: distanceLy.toFixed(1),
+        value: Number(distanceLy.toFixed(1)),
         unit: 'yr',
       };
       const roundTripLightTime: StructuredQuantity = {
-        value: (distanceLy * 2).toFixed(1),
+        value: Number((distanceLy * 2).toFixed(1)),
         unit: 'yr',
       };
       const primaryDistance: StructuredQuantity = {
-        value: distanceLy.toFixed(1),
+        value: Number(distanceLy.toFixed(1)),
         unit: 'ly',
-        secondaryValue: distancePc.toFixed(2),
+        secondaryValue: Number(distancePc.toFixed(2)),
         secondaryUnit: 'pc',
       };
       const secondaryGeometryLabel = `Δz = ${deltaZPc >= 0 ? '+' : ''}${deltaZPc.toFixed(2)} pc (${deltaZLy >= 0 ? '+' : ''}${deltaZLy.toFixed(1)} ly)`;
@@ -581,28 +579,37 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       });
     } else {
       // Intra-system
-      const r1 = from.semiMajorAxisAu ?? 1.0;
-      const r2 = to.semiMajorAxisAu ?? 1.524;
+      if (
+        typeof from.semiMajorAxisAu !== 'number' ||
+        typeof to.semiMajorAxisAu !== 'number' ||
+        from.semiMajorAxisAu <= 0 ||
+        to.semiMajorAxisAu <= 0
+      ) {
+        throw new Error(
+          `Missing or non-positive orbital semi-major axis telemetry for intra-system leg between ${from.name} and ${to.name}.`,
+        );
+      }
+      const r1 = from.semiMajorAxisAu;
+      const r2 = to.semiMajorAxisAu;
       const dMin = Math.abs(r1 - r2);
       const dMax = r1 + r2;
       const dMean = Math.sqrt(r1 * r1 + r2 * r2);
       totalDistanceAu += dMean;
 
-      const lightMinMin = dMin * AU_TO_LIGHT_MINUTES;
-      const lightMinMax = dMax * AU_TO_LIGHT_MINUTES;
+      const lightMinMean = dMean * AU_TO_LIGHT_MINUTES;
 
       const oneWayLightTime: StructuredQuantity = {
-        value: `${lightMinMin.toFixed(1)}–${lightMinMax.toFixed(1)}`,
+        value: Number(lightMinMean.toFixed(1)),
         unit: 'min',
       };
       const roundTripLightTime: StructuredQuantity = {
-        value: `${(lightMinMin * 2).toFixed(1)}–${(lightMinMax * 2).toFixed(1)}`,
+        value: Number((lightMinMean * 2).toFixed(1)),
         unit: 'min',
       };
       const primaryDistance: StructuredQuantity = {
-        value: dMean.toFixed(2),
+        value: Number(dMean.toFixed(2)),
         unit: 'AU',
-        secondaryValue: ((dMean * AU_TO_KM) / 1e6).toFixed(1),
+        secondaryValue: Number(((dMean * AU_TO_KM) / 1e6).toFixed(1)),
         secondaryUnit: 'M km',
       };
       const secondaryGeometryLabel = `Range: ${dMin.toFixed(2)}–${dMax.toFixed(2)} AU (${((dMin * AU_TO_KM) / 1e6).toFixed(1)}–${((dMax * AU_TO_KM) / 1e6).toFixed(1)}M km)`;
@@ -642,9 +649,9 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
     const originLabel = stops[0].name;
     const destinationLabel = stops[stops.length - 1].name;
     const distancePrimary: StructuredQuantity = {
-      value: totalDistanceLy.toFixed(1),
+      value: Number(totalDistanceLy.toFixed(1)),
       unit: 'ly',
-      secondaryValue: totalDistancePc.toFixed(2),
+      secondaryValue: Number(totalDistancePc.toFixed(2)),
       secondaryUnit: 'pc',
     };
     const elevationOrRangeLabel = steps.length === 1 ? steps[0].secondaryGeometryLabel : `${steps.length} sequential legs`;
@@ -655,7 +662,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       domain,
       title: 'Light-Speed Signal (1.0c)',
       methodBadge: 'Signal (1.0c)',
-      topSummaryTime: { value: totalDistanceLy.toFixed(1), unit: 'yr' },
+      topSummaryTime: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
       shortDescription: 'Electromagnetic laser / RF carrier at universal light speed c.',
       selectHref: makeOptionHref('light-speed'),
       stats: {
@@ -663,12 +670,12 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         destinationLabel,
         distancePrimary,
         elevationOrRangeLabel,
-        shipTime: { value: 'Instantaneous', unit: '(photon frame)' },
-        coordinateTime: { value: totalDistanceLy.toFixed(1), unit: 'yr' },
-        oneWayComms: { value: totalDistanceLy.toFixed(1), unit: 'yr' },
-        roundTripComms: { value: (totalDistanceLy * 2).toFixed(1), unit: 'yr' },
-        peakVelocity: { value: '1.000', unit: 'c', secondaryValue: '299,792', secondaryUnit: 'km/s' },
-        lorentzFactor: { value: 'Infinite', unit: '(singular)' },
+        shipTime: { value: 'instantaneous', unit: '(photon frame)' },
+        coordinateTime: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
+        oneWayComms: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
+        roundTripComms: { value: Number((totalDistanceLy * 2).toFixed(1)), unit: 'yr' },
+        peakVelocity: { value: 1.0, unit: 'c', secondaryValue: 299792, secondaryUnit: 'km/s' },
+        lorentzFactor: { value: 'infinite', unit: '(singular)' },
         propulsionProfile: 'High-gain phased optical laser array / interstellar carrier',
       },
       stepMetrics: steps.map((s) => ({
@@ -677,9 +684,9 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         fromName: s.from.name,
         toName: s.to.name,
         distance: s.primaryDistance,
-        shipTime: { value: '0', unit: 'yr' },
-        coordinateTime: { value: (s.distanceLy ?? 0).toFixed(1), unit: 'yr' },
-        oneWayComms: { value: (s.distanceLy ?? 0).toFixed(1), unit: 'yr' },
+        shipTime: { value: 0, unit: 'yr' },
+        coordinateTime: { value: Number((s.distanceLy ?? 0).toFixed(1)), unit: 'yr' },
+        oneWayComms: { value: Number((s.distanceLy ?? 0).toFixed(1)), unit: 'yr' },
       })),
     });
 
@@ -691,9 +698,9 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       title: '1g Relativistic Torchship',
       methodBadge: '1g Continuous Burn',
       topSummaryTime: {
-        value: rel1g.shipProperTimeYears.toFixed(1),
+        value: Number(rel1g.shipProperTimeYears.toFixed(1)),
         unit: 'yr ship',
-        secondaryValue: rel1g.coordinateTimeYears.toFixed(1),
+        secondaryValue: Number(rel1g.coordinateTimeYears.toFixed(1)),
         secondaryUnit: 'yr coord',
       },
       shortDescription: 'Continuous 1.0g acceleration to midpoint followed by flip-and-burn deceleration.',
@@ -703,18 +710,18 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         destinationLabel,
         distancePrimary,
         elevationOrRangeLabel,
-        shipTime: { value: rel1g.shipProperTimeYears.toFixed(2), unit: 'years' },
-        coordinateTime: { value: rel1g.coordinateTimeYears.toFixed(2), unit: 'years' },
-        oneWayComms: { value: totalDistanceLy.toFixed(1), unit: 'yr' },
-        roundTripComms: { value: (totalDistanceLy * 2).toFixed(1), unit: 'yr' },
+        shipTime: { value: Number(rel1g.shipProperTimeYears.toFixed(2)), unit: 'years' },
+        coordinateTime: { value: Number(rel1g.coordinateTimeYears.toFixed(2)), unit: 'years' },
+        oneWayComms: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
+        roundTripComms: { value: Number((totalDistanceLy * 2).toFixed(1)), unit: 'yr' },
         peakVelocity: {
-          value: `${(rel1g.peakBetaC * 100).toFixed(2)}%`,
-          unit: 'c',
-          secondaryValue: Math.round(rel1g.peakBetaC * 299792).toLocaleString(),
+          value: Number((rel1g.peakBetaC * 100).toFixed(2)),
+          unit: '% c',
+          secondaryValue: Math.round(rel1g.peakBetaC * 299792),
           secondaryUnit: 'km/s',
         },
-        lorentzFactor: { value: rel1g.peakLorentzGamma.toFixed(2), unit: 'γ' },
-        turnaroundPoint: { value: rel1g.turnaroundDistanceLy.toFixed(2), unit: 'ly' },
+        lorentzFactor: { value: Number(rel1g.peakLorentzGamma.toFixed(2)), unit: 'γ' },
+        turnaroundPoint: { value: Number(rel1g.turnaroundDistanceLy.toFixed(2)), unit: 'ly' },
         propulsionProfile: 'Antimatter-catalyzed fusion / magnetic scoop continuous 1g torch',
       },
       stepMetrics: steps.map((s) => {
@@ -725,8 +732,8 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
           fromName: s.from.name,
           toName: s.to.name,
           distance: s.primaryDistance,
-          shipTime: { value: stepTransit.shipProperTimeYears.toFixed(1), unit: 'yr' },
-          coordinateTime: { value: stepTransit.coordinateTimeYears.toFixed(1), unit: 'yr' },
+          shipTime: { value: Number(stepTransit.shipProperTimeYears.toFixed(1)), unit: 'yr' },
+          coordinateTime: { value: Number(stepTransit.coordinateTimeYears.toFixed(1)), unit: 'yr' },
           oneWayComms: s.oneWayLightTime,
         };
       }),
@@ -740,9 +747,9 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       title: '0.5g High-Efficiency Torchship',
       methodBadge: '0.5g Economy Burn',
       topSummaryTime: {
-        value: rel05g.shipProperTimeYears.toFixed(1),
+        value: Number(rel05g.shipProperTimeYears.toFixed(1)),
         unit: 'yr ship',
-        secondaryValue: rel05g.coordinateTimeYears.toFixed(1),
+        secondaryValue: Number(rel05g.coordinateTimeYears.toFixed(1)),
         secondaryUnit: 'yr coord',
       },
       shortDescription: 'Sustained 0.5g continuous burn balancing reaction mass consumption and transit time.',
@@ -752,18 +759,18 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         destinationLabel,
         distancePrimary,
         elevationOrRangeLabel,
-        shipTime: { value: rel05g.shipProperTimeYears.toFixed(2), unit: 'years' },
-        coordinateTime: { value: rel05g.coordinateTimeYears.toFixed(2), unit: 'years' },
-        oneWayComms: { value: totalDistanceLy.toFixed(1), unit: 'yr' },
-        roundTripComms: { value: (totalDistanceLy * 2).toFixed(1), unit: 'yr' },
+        shipTime: { value: Number(rel05g.shipProperTimeYears.toFixed(2)), unit: 'years' },
+        coordinateTime: { value: Number(rel05g.coordinateTimeYears.toFixed(2)), unit: 'years' },
+        oneWayComms: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
+        roundTripComms: { value: Number((totalDistanceLy * 2).toFixed(1)), unit: 'yr' },
         peakVelocity: {
-          value: `${(rel05g.peakBetaC * 100).toFixed(2)}%`,
-          unit: 'c',
-          secondaryValue: Math.round(rel05g.peakBetaC * 299792).toLocaleString(),
+          value: Number((rel05g.peakBetaC * 100).toFixed(2)),
+          unit: '% c',
+          secondaryValue: Math.round(rel05g.peakBetaC * 299792),
           secondaryUnit: 'km/s',
         },
-        lorentzFactor: { value: rel05g.peakLorentzGamma.toFixed(2), unit: 'γ' },
-        turnaroundPoint: { value: rel05g.turnaroundDistanceLy.toFixed(2), unit: 'ly' },
+        lorentzFactor: { value: Number(rel05g.peakLorentzGamma.toFixed(2)), unit: 'γ' },
+        turnaroundPoint: { value: Number(rel05g.turnaroundDistanceLy.toFixed(2)), unit: 'ly' },
         propulsionProfile: 'Dual-mode fusion pulse drive with 0.5g constant acceleration',
       },
       stepMetrics: steps.map((s) => {
@@ -774,8 +781,8 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
           fromName: s.from.name,
           toName: s.to.name,
           distance: s.primaryDistance,
-          shipTime: { value: stepTransit.shipProperTimeYears.toFixed(1), unit: 'yr' },
-          coordinateTime: { value: stepTransit.coordinateTimeYears.toFixed(1), unit: 'yr' },
+          shipTime: { value: Number(stepTransit.shipProperTimeYears.toFixed(1)), unit: 'yr' },
+          coordinateTime: { value: Number(stepTransit.coordinateTimeYears.toFixed(1)), unit: 'yr' },
           oneWayComms: s.oneWayLightTime,
         };
       }),
@@ -788,7 +795,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       domain,
       title: '0.10c Antimatter / Beamed Sail',
       methodBadge: '0.10c Cruise',
-      topSummaryTime: { value: am10.coordinateTimeYears.toFixed(1), unit: 'yr' },
+      topSummaryTime: { value: Number(am10.coordinateTimeYears.toFixed(1)), unit: 'yr' },
       shortDescription: 'Laser-pushed relativistic sail or antimatter rocket cruising at 10% light speed.',
       selectHref: makeOptionHref('antimatter-0.1c'),
       stats: {
@@ -796,12 +803,12 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         destinationLabel,
         distancePrimary,
         elevationOrRangeLabel,
-        shipTime: { value: am10.shipProperTimeYears.toFixed(1), unit: 'years' },
-        coordinateTime: { value: am10.coordinateTimeYears.toFixed(1), unit: 'years' },
-        oneWayComms: { value: totalDistanceLy.toFixed(1), unit: 'yr' },
-        roundTripComms: { value: (totalDistanceLy * 2).toFixed(1), unit: 'yr' },
-        peakVelocity: { value: '0.100', unit: 'c', secondaryValue: '29,979', secondaryUnit: 'km/s' },
-        lorentzFactor: { value: am10.lorentzGamma.toFixed(3), unit: 'γ' },
+        shipTime: { value: Number(am10.shipProperTimeYears.toFixed(1)), unit: 'years' },
+        coordinateTime: { value: Number(am10.coordinateTimeYears.toFixed(1)), unit: 'years' },
+        oneWayComms: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
+        roundTripComms: { value: Number((totalDistanceLy * 2).toFixed(1)), unit: 'yr' },
+        peakVelocity: { value: 0.1, unit: 'c', secondaryValue: 29979, secondaryUnit: 'km/s' },
+        lorentzFactor: { value: Number(am10.lorentzGamma.toFixed(3)), unit: 'γ' },
         propulsionProfile: 'Directed laser sail deployment with magnetodynamic deceleration',
       },
       stepMetrics: steps.map((s) => {
@@ -812,8 +819,8 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
           fromName: s.from.name,
           toName: s.to.name,
           distance: s.primaryDistance,
-          shipTime: { value: stepTransit.shipProperTimeYears.toFixed(1), unit: 'yr' },
-          coordinateTime: { value: stepTransit.coordinateTimeYears.toFixed(1), unit: 'yr' },
+          shipTime: { value: Number(stepTransit.shipProperTimeYears.toFixed(1)), unit: 'yr' },
+          coordinateTime: { value: Number(stepTransit.coordinateTimeYears.toFixed(1)), unit: 'yr' },
           oneWayComms: s.oneWayLightTime,
         };
       }),
@@ -834,12 +841,12 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         destinationLabel,
         distancePrimary,
         elevationOrRangeLabel,
-        shipTime: { value: fus05.shipProperTimeYears.toFixed(1), unit: 'years' },
-        coordinateTime: { value: fus05.coordinateTimeYears.toFixed(1), unit: 'years' },
-        oneWayComms: { value: totalDistanceLy.toFixed(1), unit: 'yr' },
-        roundTripComms: { value: (totalDistanceLy * 2).toFixed(1), unit: 'yr' },
-        peakVelocity: { value: '0.050', unit: 'c', secondaryValue: '14,990', secondaryUnit: 'km/s' },
-        lorentzFactor: { value: fus05.lorentzGamma.toFixed(3), unit: 'γ' },
+        shipTime: { value: Number(fus05.shipProperTimeYears.toFixed(1)), unit: 'years' },
+        coordinateTime: { value: Number(fus05.coordinateTimeYears.toFixed(1)), unit: 'years' },
+        oneWayComms: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
+        roundTripComms: { value: Number((totalDistanceLy * 2).toFixed(1)), unit: 'yr' },
+        peakVelocity: { value: 0.05, unit: 'c', secondaryValue: 14990, secondaryUnit: 'km/s' },
+        lorentzFactor: { value: Number(fus05.lorentzGamma.toFixed(3)), unit: 'γ' },
         propulsionProfile: 'Deuterium-Helium-3 pulsed magnetic fusion rocket',
       },
       stepMetrics: steps.map((s) => {
@@ -850,8 +857,8 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
           fromName: s.from.name,
           toName: s.to.name,
           distance: s.primaryDistance,
-          shipTime: { value: stepTransit.shipProperTimeYears.toFixed(1), unit: 'yr' },
-          coordinateTime: { value: stepTransit.coordinateTimeYears.toFixed(1), unit: 'yr' },
+          shipTime: { value: Number(stepTransit.shipProperTimeYears.toFixed(1)), unit: 'yr' },
+          coordinateTime: { value: Number(stepTransit.coordinateTimeYears.toFixed(1)), unit: 'yr' },
           oneWayComms: s.oneWayLightTime,
         };
       }),
@@ -861,23 +868,22 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
     const originLabel = stops[0].name;
     const destinationLabel = stops[stops.length - 1].name;
     const distancePrimary: StructuredQuantity = {
-      value: totalDistanceAu.toFixed(2),
+      value: Number(totalDistanceAu.toFixed(2)),
       unit: 'AU',
-      secondaryValue: ((totalDistanceAu * AU_TO_KM) / 1e6).toFixed(1),
+      secondaryValue: Number(((totalDistanceAu * AU_TO_KM) / 1e6).toFixed(1)),
       secondaryUnit: 'M km',
     };
     const elevationOrRangeLabel = steps.length === 1 ? steps[0].secondaryGeometryLabel : `${steps.length} planetary transfers`;
 
     // 1. Light-speed
-    const totalLightMinMin = steps.reduce((sum, s) => sum + ((s.distanceAuMin ?? 0) * AU_TO_LIGHT_MINUTES), 0);
-    const totalLightMinMax = steps.reduce((sum, s) => sum + ((s.distanceAuMax ?? 0) * AU_TO_LIGHT_MINUTES), 0);
+    const totalLightMinMean = totalDistanceAu * AU_TO_LIGHT_MINUTES;
 
     options.push({
       id: 'light-speed',
       domain,
       title: 'Light-Speed Signal (1.0c)',
       methodBadge: 'RF/Laser Comms',
-      topSummaryTime: { value: `${totalLightMinMin.toFixed(1)}–${totalLightMinMax.toFixed(1)}`, unit: 'min' },
+      topSummaryTime: { value: Number(totalLightMinMean.toFixed(1)), unit: 'min' },
       shortDescription: 'Planetary optical / microwave telemetry at light speed.',
       selectHref: makeOptionHref('light-speed'),
       stats: {
@@ -885,11 +891,11 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         destinationLabel,
         distancePrimary,
         elevationOrRangeLabel,
-        shipTime: { value: '0', unit: 's' },
-        coordinateTime: { value: `${totalLightMinMin.toFixed(1)}–${totalLightMinMax.toFixed(1)}`, unit: 'min' },
-        oneWayComms: { value: `${totalLightMinMin.toFixed(1)}–${totalLightMinMax.toFixed(1)}`, unit: 'min' },
-        roundTripComms: { value: `${(totalLightMinMin * 2).toFixed(1)}–${(totalLightMinMax * 2).toFixed(1)}`, unit: 'min' },
-        peakVelocity: { value: '1.000', unit: 'c', secondaryValue: '299,792', secondaryUnit: 'km/s' },
+        shipTime: { value: 0, unit: 's' },
+        coordinateTime: { value: Number(totalLightMinMean.toFixed(1)), unit: 'min' },
+        oneWayComms: { value: Number(totalLightMinMean.toFixed(1)), unit: 'min' },
+        roundTripComms: { value: Number((totalLightMinMean * 2).toFixed(1)), unit: 'min' },
+        peakVelocity: { value: 1.0, unit: 'c', secondaryValue: 299792, secondaryUnit: 'km/s' },
         propulsionProfile: 'Interplanetary laser relay array',
       },
       stepMetrics: steps.map((s) => ({
@@ -898,7 +904,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         fromName: s.from.name,
         toName: s.to.name,
         distance: s.primaryDistance,
-        shipTime: { value: '0', unit: 's' },
+        shipTime: { value: 0, unit: 's' },
         coordinateTime: s.oneWayLightTime,
         oneWayComms: s.oneWayLightTime,
       })),
@@ -906,10 +912,6 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
 
     // 2. Torchship 1g
     const b1g = computeIntraSystemBrachistochroneTransit(totalDistanceAu, 1.0);
-    const minD1g = steps.reduce((sum, s) => sum + (s.distanceAuMin ?? 0), 0);
-    const maxD1g = steps.reduce((sum, s) => sum + (s.distanceAuMax ?? 0), 0);
-    const b1gMin = computeIntraSystemBrachistochroneTransit(minD1g, 1.0);
-    const b1gMax = computeIntraSystemBrachistochroneTransit(maxD1g, 1.0);
 
     options.push({
       id: 'torchship-1g',
@@ -917,10 +919,8 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       title: '1g Brachistochrone Torchship',
       methodBadge: '1g Continuous Burn',
       topSummaryTime: {
-        value: b1g.transitDays.toFixed(1),
+        value: Number(b1g.transitDays.toFixed(1)),
         unit: 'days',
-        secondaryValue: `${b1gMin.transitDays.toFixed(1)}–${b1gMax.transitDays.toFixed(1)}`,
-        secondaryUnit: 'd',
       },
       shortDescription: 'High-thrust continuous 1.0g flip-and-burn brachistochrone trajectory.',
       selectHref: makeOptionHref('torchship-1g'),
@@ -930,17 +930,17 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         distancePrimary,
         elevationOrRangeLabel,
         shipTime: {
-          value: b1g.transitDays.toFixed(2),
+          value: Number(b1g.transitDays.toFixed(2)),
           unit: 'days',
-          secondaryValue: b1g.transitHours.toFixed(1),
+          secondaryValue: Number(b1g.transitHours.toFixed(1)),
           secondaryUnit: 'hours',
         },
-        coordinateTime: { value: b1g.transitDays.toFixed(2), unit: 'days' },
-        oneWayComms: { value: `${totalLightMinMin.toFixed(1)}–${totalLightMinMax.toFixed(1)}`, unit: 'min' },
-        roundTripComms: { value: `${(totalLightMinMin * 2).toFixed(1)}–${(totalLightMinMax * 2).toFixed(1)}`, unit: 'min' },
-        peakVelocity: { value: Math.round(b1g.peakVelocityKms).toLocaleString(), unit: 'km/s' },
-        turnaroundPoint: { value: (totalDistanceAu / 2).toFixed(2), unit: 'AU' },
-        deltaV: { value: Math.round(b1g.deltaVKms).toLocaleString(), unit: 'km/s' },
+        coordinateTime: { value: Number(b1g.transitDays.toFixed(2)), unit: 'days' },
+        oneWayComms: { value: Number(totalLightMinMean.toFixed(1)), unit: 'min' },
+        roundTripComms: { value: Number((totalLightMinMean * 2).toFixed(1)), unit: 'min' },
+        peakVelocity: { value: Math.round(b1g.peakVelocityKms), unit: 'km/s' },
+        turnaroundPoint: { value: Number((totalDistanceAu / 2).toFixed(2)), unit: 'AU' },
+        deltaV: { value: Math.round(b1g.deltaVKms), unit: 'km/s' },
         propulsionProfile: 'High-density antimatter torch / magnetic pinch drive',
       },
       stepMetrics: steps.map((s) => {
@@ -951,8 +951,8 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
           fromName: s.from.name,
           toName: s.to.name,
           distance: s.primaryDistance,
-          shipTime: { value: stepTransit.transitDays.toFixed(1), unit: 'd' },
-          coordinateTime: { value: stepTransit.transitDays.toFixed(1), unit: 'd' },
+          shipTime: { value: Number(stepTransit.transitDays.toFixed(1)), unit: 'd' },
+          coordinateTime: { value: Number(stepTransit.transitDays.toFixed(1)), unit: 'd' },
           oneWayComms: s.oneWayLightTime,
         };
       }),
@@ -960,8 +960,6 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
 
     // 3. Torchship 0.1g
     const b01g = computeIntraSystemBrachistochroneTransit(totalDistanceAu, 0.1);
-    const b01gMin = computeIntraSystemBrachistochroneTransit(minD1g, 0.1);
-    const b01gMax = computeIntraSystemBrachistochroneTransit(maxD1g, 0.1);
 
     options.push({
       id: 'torchship-0.1g',
@@ -969,10 +967,8 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       title: '0.1g Continuous Fusion Torch',
       methodBadge: '0.1g Economy Burn',
       topSummaryTime: {
-        value: b01g.transitDays.toFixed(1),
+        value: Number(b01g.transitDays.toFixed(1)),
         unit: 'days',
-        secondaryValue: `${b01gMin.transitDays.toFixed(1)}–${b01gMax.transitDays.toFixed(1)}`,
-        secondaryUnit: 'd',
       },
       shortDescription: 'Continuous 0.1g acceleration for cargo and commercial passenger liners.',
       selectHref: makeOptionHref('torchship-0.1g'),
@@ -981,13 +977,13 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         destinationLabel,
         distancePrimary,
         elevationOrRangeLabel,
-        shipTime: { value: b01g.transitDays.toFixed(2), unit: 'days' },
-        coordinateTime: { value: b01g.transitDays.toFixed(2), unit: 'days' },
-        oneWayComms: { value: `${totalLightMinMin.toFixed(1)}–${totalLightMinMax.toFixed(1)}`, unit: 'min' },
-        roundTripComms: { value: `${(totalLightMinMin * 2).toFixed(1)}–${(totalLightMinMax * 2).toFixed(1)}`, unit: 'min' },
-        peakVelocity: { value: Math.round(b01g.peakVelocityKms).toLocaleString(), unit: 'km/s' },
-        turnaroundPoint: { value: (totalDistanceAu / 2).toFixed(2), unit: 'AU' },
-        deltaV: { value: Math.round(b01g.deltaVKms).toLocaleString(), unit: 'km/s' },
+        shipTime: { value: Number(b01g.transitDays.toFixed(2)), unit: 'days' },
+        coordinateTime: { value: Number(b01g.transitDays.toFixed(2)), unit: 'days' },
+        oneWayComms: { value: Number(totalLightMinMean.toFixed(1)), unit: 'min' },
+        roundTripComms: { value: Number((totalLightMinMean * 2).toFixed(1)), unit: 'min' },
+        peakVelocity: { value: Math.round(b01g.peakVelocityKms), unit: 'km/s' },
+        turnaroundPoint: { value: Number((totalDistanceAu / 2).toFixed(2)), unit: 'AU' },
+        deltaV: { value: Math.round(b01g.deltaVKms), unit: 'km/s' },
         propulsionProfile: 'Magnetoplasmadynamic gas-core nuclear fusion torch',
       },
       stepMetrics: steps.map((s) => {
@@ -998,16 +994,26 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
           fromName: s.from.name,
           toName: s.to.name,
           distance: s.primaryDistance,
-          shipTime: { value: stepTransit.transitDays.toFixed(1), unit: 'd' },
-          coordinateTime: { value: stepTransit.transitDays.toFixed(1), unit: 'd' },
+          shipTime: { value: Number(stepTransit.transitDays.toFixed(1)), unit: 'd' },
+          coordinateTime: { value: Number(stepTransit.transitDays.toFixed(1)), unit: 'd' },
           oneWayComms: s.oneWayLightTime,
         };
       }),
     });
 
     // 4. Hohmann Ballistic Transfer
-    const r1 = stops[0].semiMajorAxisAu ?? 1.0;
-    const r2 = stops[stops.length - 1].semiMajorAxisAu ?? 1.524;
+    const r1 = stops[0].semiMajorAxisAu;
+    const r2 = stops[stops.length - 1].semiMajorAxisAu;
+    if (
+      typeof r1 !== 'number' ||
+      typeof r2 !== 'number' ||
+      r1 <= 0 ||
+      r2 <= 0
+    ) {
+      throw new Error(
+        `Missing or non-positive orbital semi-major axis telemetry for Hohmann transfer between ${stops[0].name} and ${stops[stops.length - 1].name}.`,
+      );
+    }
     const hohmann = computeHohmannTransferOrbit(r1, r2, 1.0);
 
     options.push({
@@ -1018,7 +1024,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       topSummaryTime: {
         value: Math.round(hohmann.transitDays),
         unit: 'days',
-        secondaryValue: hohmann.transitMonths.toFixed(1),
+        secondaryValue: Number(hohmann.transitMonths.toFixed(1)),
         secondaryUnit: 'mo',
       },
       shortDescription: 'Minimum-energy semi-elliptical Keplerian orbit connecting planetary spheres.',
@@ -1031,21 +1037,29 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         shipTime: {
           value: Math.round(hohmann.transitDays),
           unit: 'days',
-          secondaryValue: hohmann.transitMonths.toFixed(1),
+          secondaryValue: Number(hohmann.transitMonths.toFixed(1)),
           secondaryUnit: 'months',
         },
         coordinateTime: { value: Math.round(hohmann.transitDays), unit: 'days' },
-        oneWayComms: { value: `${totalLightMinMin.toFixed(1)}–${totalLightMinMax.toFixed(1)}`, unit: 'min' },
-        roundTripComms: { value: `${(totalLightMinMin * 2).toFixed(1)}–${(totalLightMinMax * 2).toFixed(1)}`, unit: 'min' },
+        oneWayComms: { value: Number(totalLightMinMean.toFixed(1)), unit: 'min' },
+        roundTripComms: { value: Number((totalLightMinMean * 2).toFixed(1)), unit: 'min' },
         peakVelocity: {
-          value: `${hohmann.deltaVDepartureKms.toFixed(2)} km/s (dep) · ${hohmann.deltaVArrivalKms.toFixed(2)} km/s (arr)`,
-          unit: '',
+          value: Number(Math.max(hohmann.deltaVDepartureKms, hohmann.deltaVArrivalKms).toFixed(2)),
+          unit: 'km/s',
         },
-        turnaroundPoint: { value: hohmann.semiMajorAxisTransferAu.toFixed(3), unit: 'AU' },
-        deltaV: { value: hohmann.totalDeltaVKms.toFixed(2), unit: 'km/s' },
+        departureVelocity: {
+          value: Number(hohmann.deltaVDepartureKms.toFixed(2)),
+          unit: 'km/s',
+        },
+        arrivalVelocity: {
+          value: Number(hohmann.deltaVArrivalKms.toFixed(2)),
+          unit: 'km/s',
+        },
+        turnaroundPoint: { value: Number(hohmann.semiMajorAxisTransferAu.toFixed(3)), unit: 'AU' },
+        deltaV: { value: Number(hohmann.totalDeltaVKms.toFixed(2)), unit: 'km/s' },
         synodicPeriod: hohmann.synodicPeriodDays
           ? {
-              value: (hohmann.synodicPeriodDays / 30.4375).toFixed(1),
+              value: Number((hohmann.synodicPeriodDays / 30.4375).toFixed(1)),
               unit: 'months',
               secondaryValue: Math.round(hohmann.synodicPeriodDays),
               secondaryUnit: 'days',
@@ -1066,24 +1080,18 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
     });
   }
 
-  const normalizedOptionId = selectedOptionId
-    ? selectedOptionId === 'rel-1g' || selectedOptionId === 'brach-1g'
-      ? 'torchship-1g'
-      : selectedOptionId === 'fusion-01c'
-        ? 'antimatter-0.1c'
-        : selectedOptionId === 'hohmann'
-          ? 'hohmann-transfer'
-          : selectedOptionId
-    : null;
-
-  const selectedOption = normalizedOptionId
-    ? (options.find((opt) => opt.id === normalizedOptionId) ?? null)
+  const selectedOption = selectedOptionId
+    ? (options.find((opt) => opt.id === selectedOptionId) ?? null)
     : null;
 
   // Build chord legs
   const chordLegs: JourneyChordLeg[] = steps.map((step) => {
     const fromPos = domain === 'interstellar' ? step.from.coordinatesPc : step.from.position3D;
     const toPos = domain === 'interstellar' ? step.to.coordinatesPc : step.to.position3D;
+    const distText =
+      step.primaryDistance.secondaryValue !== undefined && step.primaryDistance.secondaryUnit
+        ? `${step.primaryDistance.value} ${step.primaryDistance.unit} (${step.primaryDistance.secondaryValue} ${step.primaryDistance.secondaryUnit})`
+        : `${step.primaryDistance.value} ${step.primaryDistance.unit}`;
 
     return {
       id: step.id,
@@ -1094,7 +1102,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       toId: step.to.id,
       toName: step.to.name,
       toPosition: toPos,
-      distanceLabel: formatStructuredQuantity(step.primaryDistance),
+      distanceLabel: distText,
       secondaryLabel: selectedOption?.methodBadge,
       methodId: selectedOption?.id,
       lineStyle: selectedOption?.id.includes('fusion') || selectedOption?.id.includes('antimatter') ? 'dashed' : 'solid',
@@ -1114,31 +1122,31 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
   const totalDistance: StructuredQuantity =
     domain === 'interstellar'
       ? {
-          value: totalDistanceLy.toFixed(1),
+          value: Number(totalDistanceLy.toFixed(1)),
           unit: 'ly',
-          secondaryValue: (totalDistanceLy / PARSEC_TO_LY).toFixed(2),
+          secondaryValue: Number((totalDistanceLy / PARSEC_TO_LY).toFixed(2)),
           secondaryUnit: 'pc',
         }
       : {
-          value: totalDistanceAu.toFixed(2),
+          value: Number(totalDistanceAu.toFixed(2)),
           unit: 'AU',
-          secondaryValue: ((totalDistanceAu * AU_TO_KM) / 1e6).toFixed(1),
+          secondaryValue: Number(((totalDistanceAu * AU_TO_KM) / 1e6).toFixed(1)),
           secondaryUnit: 'M km',
         };
 
   const totalCommsOneWay: StructuredQuantity =
     domain === 'interstellar'
-      ? { value: totalDistanceLy.toFixed(1), unit: 'yr' }
+      ? { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' }
       : {
-          value: `${(steps.reduce((sum, s) => sum + (s.distanceAuMin ?? 0) * AU_TO_LIGHT_MINUTES, 0)).toFixed(1)}–${(steps.reduce((sum, s) => sum + (s.distanceAuMax ?? 0) * AU_TO_LIGHT_MINUTES, 0)).toFixed(1)}`,
+          value: Number((totalDistanceAu * AU_TO_LIGHT_MINUTES).toFixed(1)),
           unit: 'min',
         };
 
   const totalCommsRoundTrip: StructuredQuantity =
     domain === 'interstellar'
-      ? { value: (totalDistanceLy * 2).toFixed(1), unit: 'yr' }
+      ? { value: Number((totalDistanceLy * 2).toFixed(1)), unit: 'yr' }
       : {
-          value: `${(steps.reduce((sum, s) => sum + (s.distanceAuMin ?? 0) * AU_TO_LIGHT_MINUTES, 0) * 2).toFixed(1)}–${(steps.reduce((sum, s) => sum + (s.distanceAuMax ?? 0) * AU_TO_LIGHT_MINUTES, 0) * 2).toFixed(1)}`,
+          value: Number((totalDistanceAu * AU_TO_LIGHT_MINUTES * 2).toFixed(1)),
           unit: 'min',
         };
 

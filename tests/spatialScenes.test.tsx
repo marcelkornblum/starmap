@@ -88,6 +88,23 @@ const mockSolSystem: StarDossierData = {
       letter: 'c',
       composition: 'terrestrial',
       orbit: { semiMajorAxis: 1.0, eccentricity: 0.017, inclination: 0, ascendingNode: 0, argumentOfPeriapsis: 0, meanAnomaly: 0, periodDays: 365.25 },
+      satellites: [
+        {
+          id: 'moon',
+          name: 'Luna',
+          parentId: 'earth',
+          composition: 'terrestrial',
+          orbit: {
+            semiMajorAxis: 60.34,
+            eccentricity: 0.0549,
+            inclination: 5.14,
+            ascendingNode: 125.08,
+            argumentOfPeriapsis: 318.15,
+            meanAnomaly: 135.0,
+            periodDays: 27.32,
+          },
+        },
+      ],
     },
     {
       id: 'jupiter',
@@ -201,7 +218,7 @@ describe('SpatialScenes Storybook Suite', () => {
   describe('PlanetaryViewScene', () => {
     it('renders cleanly in DOM with central planet, lunar orbit, and satellite node', () => {
       const { container } = render(
-        <PlanetaryViewScene />,
+        <PlanetaryViewScene planet={mockSolSystem.planets?.[1]} />,
       );
       expect(screen.getByTestId('mock-canvas')).toBeTruthy();
       expect(container.querySelector('[name="cartographic-grid"]')).toBeTruthy();

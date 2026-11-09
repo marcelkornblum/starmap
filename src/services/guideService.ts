@@ -28,7 +28,7 @@ import {
   type HazardGuideEntry,
   type GuideCatalogEntry,
   type PlanetCompositionClass,
-} from '../data/guideCatalog';
+} from '../content/guide';
 import {
   getCachedDetailRecord,
   fetchDetailRecord,
@@ -39,7 +39,17 @@ import {
 } from '../data/searchRepository';
 import { toUrlSlug, findFocusedEntryInCorpus } from './searchService';
 import { formatSlugFallbackTitle } from '../utils/nomenclature';
-import type { SystemManifest, StellarComponent, ExoplanetRecord } from '../types/astro';
+import type {
+  SystemManifest,
+  StellarComponent,
+  ExoplanetRecord,
+  CelestialSymbolType,
+} from '../types/astro';
+import {
+  SOL_REFERENCE_TARGET,
+  EARTH_REFERENCE_TARGET,
+  DEFAULT_GUIDE_BENCHMARKS,
+} from '../config/referenceTargets';
 
 export {
   STAR_TYPES_GUIDE_PATH,
@@ -93,6 +103,9 @@ export interface MetricTargetComparison {
   readonly targetFamiliar: string;
   readonly relativeRatioLabel: string;
   readonly isCatalogued: boolean;
+  readonly numericValue?: number;
+  readonly unit?: string;
+  readonly reticleType?: CelestialSymbolType;
 }
 
 export interface MetricComparison {
@@ -101,11 +114,17 @@ export interface MetricComparison {
   readonly baselineHref: string;
   readonly baselineValue: string;
   readonly baselineFamiliar: string;
+  readonly baselineNumericValue?: number;
+  readonly baselineUnit?: string;
+  readonly baselineReticleType?: CelestialSymbolType;
   readonly targetId: string;
   readonly targetName: string;
   readonly targetHref: string;
   readonly targetValue: string;
   readonly targetFamiliar: string;
+  readonly targetNumericValue?: number;
+  readonly targetUnit?: string;
+  readonly targetReticleType?: CelestialSymbolType;
   readonly relativeRatioLabel: string;
   readonly isFromFocusedContext: boolean;
   readonly isCatalogued?: boolean;
@@ -383,7 +402,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 10.0,
     classEffect:
       'Class O establishes an extreme high-mass ionizing ultraviolet regime (> 30,000 K) with ionized helium lines.',
-    hex: '#9bb0ff',
+    hex: 'var(--star-chromaticity-o)',
   },
   B: {
     temp0: 30000,
@@ -391,7 +410,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 4.5,
     classEffect:
       'Class B establishes a hot luminous blue-white regime (10,000–30,000 K) characterized by neutral helium.',
-    hex: '#aabfff',
+    hex: 'var(--star-chromaticity-b)',
   },
   A: {
     temp0: 10000,
@@ -399,7 +418,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 1.8,
     classEffect:
       'Class A establishes a white photospheric regime (7,500–10,000 K) dominated by prominent hydrogen Balmer lines.',
-    hex: '#cad7ff',
+    hex: 'var(--star-chromaticity-a)',
   },
   F: {
     temp0: 7500,
@@ -407,7 +426,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 1.3,
     classEffect:
       'Class F establishes a yellow-white regime (6,000–7,500 K) with developing ionized metal absorption spectra.',
-    hex: '#f8f7ff',
+    hex: 'var(--star-chromaticity-f)',
   },
   G: {
     temp0: 6000,
@@ -415,7 +434,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 1.0,
     classEffect:
       'Class G establishes a solar-type yellow regime (5,200–6,000 K) with neutral iron and ionized calcium lines.',
-    hex: '#fff4ea',
+    hex: 'var(--star-chromaticity-g)',
   },
   K: {
     temp0: 5200,
@@ -423,7 +442,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 0.8,
     classEffect:
       'Class K establishes an orange dwarf regime (3,700–5,200 K) offering billions of years of stable irradiance.',
-    hex: '#ffd2a1',
+    hex: 'var(--star-chromaticity-k)',
   },
   M: {
     temp0: 3700,
@@ -431,7 +450,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 0.35,
     classEffect:
       'Class M establishes a cool red dwarf regime (< 3,700 K) dominated by titanium oxide molecular bands.',
-    hex: '#ffcc6f',
+    hex: 'var(--star-chromaticity-m)',
   },
   L: {
     temp0: 2400,
@@ -439,7 +458,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 0.1,
     classEffect:
       'Class L/T/Y establishes a substellar brown dwarf regime (< 2,400 K) cooling across infrared wavelengths.',
-    hex: '#ff6b3d',
+    hex: 'var(--star-chromaticity-l)',
   },
   D: {
     temp0: 30000,
@@ -447,7 +466,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 0.012,
     classEffect:
       'Class D establishes an electron-degenerate white dwarf core remnant cooling via radiative leakage.',
-    hex: '#e6f0ff',
+    hex: 'var(--star-chromaticity-d)',
   },
 };
 
@@ -583,7 +602,11 @@ export async function hydrateMetricComparison(
           .split(',')
           .map((t) => t.trim())
           .filter(Boolean)
-      : [hasOrbital ? 'tau-ceti-e' : 'tau-ceti'];
+      : [
+          hasOrbital
+            ? DEFAULT_GUIDE_BENCHMARKS.orbitalBenchmarkId
+            : DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId,
+        ];
 
   const corpus =
     getCachedCorpusForFilter('all') ??
@@ -625,6 +648,8 @@ function evaluateMetricForTarget(
   let targetFamiliar = '—';
   let relativeRatioLabel = '—';
   let isCatalogued = false;
+  let numericValue: number | undefined;
+  let unit: string | undefined;
 
   switch (metricId) {
     case 'galactic-coordinates': {
@@ -640,6 +665,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `${ly.toFixed(2)} light-years (ly)`;
         relativeRatioLabel = `${ly.toFixed(2)} light-years from Sol`;
         isCatalogued = true;
+        numericValue = Number(distPc.toFixed(2));
+        unit = 'pc';
       }
       break;
     }
@@ -657,6 +684,8 @@ function evaluateMetricForTarget(
         const deltaMag = mag - (-26.74);
         relativeRatioLabel = `Δ${deltaMag.toFixed(1)} mag relative to Sol`;
         isCatalogued = true;
+        numericValue = Number(mag.toFixed(2));
+        unit = 'V';
       }
       break;
     }
@@ -668,6 +697,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${earthMasses.toLocaleString()} Earth masses (M⊕)`;
         relativeRatioLabel = `${mass.toFixed(2)}× Solar mass`;
         isCatalogued = true;
+        numericValue = Number(mass.toFixed(2));
+        unit = 'M☉';
       }
       break;
     }
@@ -679,6 +710,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${km.toLocaleString()} km (${(radius * 109.2).toFixed(1)} R⊕)`;
         relativeRatioLabel = `${radius.toFixed(2)}× Solar radius`;
         isCatalogued = true;
+        numericValue = Number(radius.toFixed(2));
+        unit = 'R☉';
       }
       break;
     }
@@ -690,6 +723,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${w} × 10²⁶ W`;
         relativeRatioLabel = `${lum.toFixed(2)}× Solar luminosity`;
         isCatalogued = true;
+        numericValue = Number(lum.toFixed(2));
+        unit = 'L☉';
       }
       break;
     }
@@ -701,6 +736,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${celsius.toLocaleString()} °C`;
         relativeRatioLabel = `${(tempK / 5778).toFixed(2)}× Solar temperature`;
         isCatalogued = true;
+        numericValue = tempK;
+        unit = 'K';
       }
       break;
     }
@@ -713,6 +750,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `${lightMinutes} light-minutes (${millionKm}M km)`;
         relativeRatioLabel = `${sma.toFixed(2)}× Earth orbit`;
         isCatalogued = true;
+        numericValue = Number(sma.toFixed(3));
+        unit = 'AU';
       }
       break;
     }
@@ -724,6 +763,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `${years} Earth years (${(period / 30.4375).toFixed(1)} months)`;
         relativeRatioLabel = `${years}× Earth year`;
         isCatalogued = true;
+        numericValue = Number(period.toFixed(2));
+        unit = 'd';
       }
       break;
     }
@@ -737,6 +778,8 @@ function evaluateMetricForTarget(
             : `${inc.toFixed(1)}° orbital tilt relative to plane`;
         relativeRatioLabel = `${inc.toFixed(2)}° relative tilt`;
         isCatalogued = true;
+        numericValue = Number(inc.toFixed(2));
+        unit = '°';
       }
       break;
     }
@@ -747,6 +790,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${(mass * 5.972).toFixed(2)} × 10²⁴ kg`;
         relativeRatioLabel = `${mass.toFixed(2)}× Earth mass`;
         isCatalogued = true;
+        numericValue = Number(mass.toFixed(2));
+        unit = 'M⊕';
       }
       break;
     }
@@ -758,6 +803,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${km.toLocaleString()} km mean radius`;
         relativeRatioLabel = `${radius.toFixed(2)}× Earth radius`;
         isCatalogued = true;
+        numericValue = Number(radius.toFixed(2));
+        unit = 'R⊕';
       }
       break;
     }
@@ -769,6 +816,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${celsius} °C`;
         relativeRatioLabel = `${celsius >= 0 ? `+${celsius}` : celsius} °C surface equilibrium`;
         isCatalogued = true;
+        numericValue = tEq;
+        unit = 'K';
       }
       break;
     }
@@ -794,10 +843,16 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${(g * 9.81).toFixed(2)} m/s²`;
         relativeRatioLabel = `${g.toFixed(2)}× Earth gravity`;
         isCatalogued = true;
+        numericValue = Number(g.toFixed(2));
+        unit = 'g';
       }
       break;
     }
   }
+
+  const reticleType: CelestialSymbolType = targetPlanet
+    ? (targetPlanet.reticleType ?? 'terrestrial')
+    : (targetStar?.reticleType ?? 'star');
 
   return {
     targetId,
@@ -807,6 +862,9 @@ function evaluateMetricForTarget(
     targetFamiliar,
     relativeRatioLabel,
     isCatalogued,
+    numericValue,
+    unit,
+    reticleType,
   };
 }
 
@@ -830,7 +888,11 @@ export const resolveMetricComparison = (
   const tokens =
     focusedEntityId && focusedEntityId.trim()
       ? focusedEntityId.split(',').map((t) => t.trim()).filter(Boolean)
-      : [isOrbitalOrPlanetary ? 'tau-ceti-e' : 'tau-ceti'];
+      : [
+          isOrbitalOrPlanetary
+            ? DEFAULT_GUIDE_BENCHMARKS.orbitalBenchmarkId
+            : DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId,
+        ];
 
   const targetComparisons: MetricTargetComparison[] = [];
 
@@ -852,8 +914,8 @@ export const resolveMetricComparison = (
       !matchedPlanet &&
       (norm === toUrlSlug(manifest.id) ||
         norm === toUrlSlug(manifest.name) ||
-        norm === 'sol' ||
-        norm === 'tau-ceti' ||
+        norm === SOL_REFERENCE_TARGET.id ||
+        norm === DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId ||
         manifest.stars.length > 0 ||
         manifest.planets.length > 0);
 
@@ -946,9 +1008,11 @@ export const resolveMetricComparison = (
 
   const primaryTarget =
     targetComparisons[0] ?? {
-      targetId: tokens[0] ?? 'tau-ceti',
-      targetName: formatSlugFallbackTitle(tokens[0] ?? 'Tau Ceti'),
-      targetHref: `/system/${encodeURIComponent(tokens[0] ?? 'tau-ceti')}`,
+      targetId: tokens[0] ?? DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId,
+      targetName: formatSlugFallbackTitle(
+        tokens[0] ?? DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkName,
+      ),
+      targetHref: `/system/${encodeURIComponent(tokens[0] ?? DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId)}`,
       targetValue: '—',
       targetFamiliar: '—',
       relativeRatioLabel: '—',
@@ -956,63 +1020,66 @@ export const resolveMetricComparison = (
     };
 
   const baselineName = metric.comparisonBaselineLabel;
-  const baselineHref = baselineName === 'Sol' ? '/system/sol' : '/planet/earth';
+  const baselineHref =
+    baselineName === SOL_REFERENCE_TARGET.name
+      ? SOL_REFERENCE_TARGET.href
+      : EARTH_REFERENCE_TARGET.href;
 
   let baselineValue = '';
   let baselineFamiliar = '';
 
   switch (metric.id) {
     case 'galactic-coordinates':
-      baselineValue = '0.00 pc';
-      baselineFamiliar = '0.00 light-years (ly)';
+      baselineValue = SOL_REFERENCE_TARGET.baselines.galacticCoordinates.value;
+      baselineFamiliar = SOL_REFERENCE_TARGET.baselines.galacticCoordinates.familiar;
       break;
     case 'stellar-magnitude':
-      baselineValue = '-26.74 V / +4.83 M_V';
-      baselineFamiliar = 'Brightest celestial body from Earth';
+      baselineValue = SOL_REFERENCE_TARGET.baselines.stellarMagnitude.value;
+      baselineFamiliar = SOL_REFERENCE_TARGET.baselines.stellarMagnitude.familiar;
       break;
     case 'stellar-mass':
-      baselineValue = '1.00 M☉';
-      baselineFamiliar = '332,950 M⊕ (1.989 × 10³⁰ kg)';
+      baselineValue = SOL_REFERENCE_TARGET.baselines.stellarMass.value;
+      baselineFamiliar = SOL_REFERENCE_TARGET.baselines.stellarMass.familiar;
       break;
     case 'stellar-radius':
-      baselineValue = '1.00 R☉';
-      baselineFamiliar = '109.2 R⊕ (695,700 km)';
+      baselineValue = SOL_REFERENCE_TARGET.baselines.stellarRadius.value;
+      baselineFamiliar = SOL_REFERENCE_TARGET.baselines.stellarRadius.familiar;
       break;
     case 'stellar-luminosity':
-      baselineValue = '1.00 L☉';
-      baselineFamiliar = '3.828 × 10²⁶ W (1.0× Solar bolometric output)';
+      baselineValue = SOL_REFERENCE_TARGET.baselines.stellarLuminosity.value;
+      baselineFamiliar = SOL_REFERENCE_TARGET.baselines.stellarLuminosity.familiar;
       break;
     case 'effective-temperature':
-      baselineValue = '5,778 K';
-      baselineFamiliar = '5,505 °C (9,940 °F)';
+      baselineValue = SOL_REFERENCE_TARGET.baselines.effectiveTemperature.value;
+      baselineFamiliar = SOL_REFERENCE_TARGET.baselines.effectiveTemperature.familiar;
       break;
     case 'semi-major-axis':
-      baselineValue = '1.000 AU';
-      baselineFamiliar = '8.32 light-minutes (149.6M km)';
+      baselineValue = EARTH_REFERENCE_TARGET.baselines.semiMajorAxis.value;
+      baselineFamiliar = EARTH_REFERENCE_TARGET.baselines.semiMajorAxis.familiar;
       break;
     case 'orbital-period':
-      baselineValue = '365.25 d';
-      baselineFamiliar = '1.00 Earth year (12 months)';
+      baselineValue = EARTH_REFERENCE_TARGET.baselines.orbitalPeriod.value;
+      baselineFamiliar = EARTH_REFERENCE_TARGET.baselines.orbitalPeriod.familiar;
       break;
     case 'orbital-inclination':
-      baselineValue = '0.00°';
-      baselineFamiliar = 'Coplanar ecliptic reference';
+      baselineValue = EARTH_REFERENCE_TARGET.baselines.orbitalInclination.value;
+      baselineFamiliar = EARTH_REFERENCE_TARGET.baselines.orbitalInclination.familiar;
       break;
     case 'planetary-mass':
-      baselineValue = '1.00 M⊕';
-      baselineFamiliar = '5.972 × 10²⁴ kg (1.0× Earth mass)';
+      baselineValue = EARTH_REFERENCE_TARGET.baselines.planetaryMass.value;
+      baselineFamiliar = EARTH_REFERENCE_TARGET.baselines.planetaryMass.familiar;
       break;
     case 'planetary-radius':
-      baselineValue = '1.00 R⊕';
-      baselineFamiliar = '6,371 km radius (12,742 km dia)';
+      baselineValue = EARTH_REFERENCE_TARGET.baselines.planetaryRadius.value;
+      baselineFamiliar = EARTH_REFERENCE_TARGET.baselines.planetaryRadius.familiar;
       break;
     case 'equilibrium-temperature':
-      baselineValue = '255 K';
-      baselineFamiliar = '−18 °C (−0.4 °F)';
+      baselineValue = EARTH_REFERENCE_TARGET.baselines.equilibriumTemperature.value;
+      baselineFamiliar = EARTH_REFERENCE_TARGET.baselines.equilibriumTemperature.familiar;
       break;
     case 'surface-gravity':
-      baselineValue = '1.00 g';
-      baselineFamiliar = '1.00 g (9.81 m/s²)';
+      baselineValue = EARTH_REFERENCE_TARGET.baselines.surfaceGravity.value;
+      baselineFamiliar = EARTH_REFERENCE_TARGET.baselines.surfaceGravity.familiar;
       break;
   }
 
@@ -1022,11 +1089,16 @@ export const resolveMetricComparison = (
     baselineHref,
     baselineValue,
     baselineFamiliar,
+    baselineReticleType:
+      baselineName === SOL_REFERENCE_TARGET.name ? 'star' : 'terrestrial',
     targetId: primaryTarget.targetId,
     targetName: primaryTarget.targetName,
     targetHref: primaryTarget.targetHref,
     targetValue: primaryTarget.targetValue,
     targetFamiliar: primaryTarget.targetFamiliar,
+    targetNumericValue: primaryTarget.numericValue,
+    targetUnit: primaryTarget.unit,
+    targetReticleType: primaryTarget.reticleType,
     relativeRatioLabel: primaryTarget.relativeRatioLabel,
     isFromFocusedContext,
     isCatalogued: primaryTarget.isCatalogued,

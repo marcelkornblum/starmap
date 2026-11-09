@@ -71,7 +71,7 @@ describe('<DirectionsPanel />', () => {
     const onOptionSelect = vi.fn();
     const journey = buildJourneyPlan({
       stops: ['sol', 'tau-ceti'],
-      selectedOptionId: 'rel-1g',
+      selectedOptionId: 'torchship-1g',
       corpus: testCorpus,
     });
 

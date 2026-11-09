@@ -3,13 +3,40 @@ import type { CelestialClassification } from './spatial';
 export type { CelestialClassification };
 
 export type CelestialSymbolType =
-  | 'star' | 'stellar-system' | 'multiple-system' | 'brown-dwarf' | 'white-dwarf'
-  | 'neutron-star' | 'pulsar' | 'hazard' | 'black-hole' | 'barycentre'
-  | 'stellar-cluster' | 'construct' | 'spacecraft' | 'terrestrial'
-  | 'super-earth' | 'sub-neptune' | 'gas-giant' | 'ice-giant' | 'dwarf-planet'
-  | 'moon' | 'asteroid' | 'comet' | 'belt' | 'asteroid-belt' | 'kuiper-belt'
-  | 'kuiper-belt-object' | 'oort-cloud' | 'debris-disk' | 'nebula' | 'ism'
-  | 'supernova-remnant' | 'habitable-zone';
+  // Group A: 3D Reticle & Planetary Taxonomy
+  | 'star'
+  | 'stellar-system'
+  | 'multiple-system'
+  | 'brown-dwarf'
+  | 'white-dwarf'
+  | 'neutron-star'
+  | 'pulsar'
+  | 'hazard'
+  | 'black-hole'
+  | 'barycentre'
+  | 'stellar-cluster'
+  | 'construct'
+  | 'spacecraft'
+  | 'terrestrial'
+  | 'super-earth'
+  | 'sub-neptune'
+  | 'gas-giant'
+  | 'ice-giant'
+  // Group B: Sub-Planetary, Disk, Structure, & Environmental Taxonomy
+  | 'dwarf-planet'
+  | 'moon'
+  | 'asteroid'
+  | 'comet'
+  | 'belt'
+  | 'asteroid-belt'
+  | 'kuiper-belt'
+  | 'kuiper-belt-object'
+  | 'oort-cloud'
+  | 'debris-disk'
+  | 'nebula'
+  | 'ism'
+  | 'supernova-remnant'
+  | 'habitable-zone';
 
 /**
  * Core representation of an astronomical node (star, stellar remnant, or celestial object)

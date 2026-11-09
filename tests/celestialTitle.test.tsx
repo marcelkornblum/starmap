@@ -377,8 +377,8 @@ describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
         <Breadcrumbs
           items={[
             { label: 'Galaxy', href: '/galaxy' },
-            { label: 'Sol', href: '/system/sol' },
-            { label: 'Earth' },
+            { label: 'Sol', href: '/system/sol', reticleType: 'stellar-system' },
+            { label: 'Earth', reticleType: 'terrestrial' },
           ]}
         />,
       );
@@ -434,8 +434,8 @@ describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
       render(
         <GuideExamplesList
           examples={[
-            { name: 'Earth', href: '/planet/earth', note: 'Standard terrestrial' },
-            { name: 'Sol', href: '/system/sol', note: 'G2V main sequence' },
+            { name: 'Earth', href: '/planet/earth', note: 'Standard terrestrial', reticleType: 'terrestrial' },
+            { name: 'Sol', href: '/system/sol', note: 'G2V main sequence', reticleType: 'star' },
           ]}
         />,
       );

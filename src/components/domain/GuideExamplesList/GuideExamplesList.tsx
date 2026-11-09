@@ -1,16 +1,23 @@
 import type React from 'react';
-import { CelestialTitle, DataTable, Heading } from '../../interface';
+import {
+  CelestialTitle,
+  DataTable,
+  Heading,
+  type CelestialSymbolType,
+} from '../../interface';
 import type { GuideExampleTarget } from '../../../services/guideService';
 import styles from './GuideExamplesList.module.css';
 
 export interface GuideExamplesListProps {
   readonly examples: readonly GuideExampleTarget[];
   readonly title?: string;
+  readonly reticleType?: CelestialSymbolType;
 }
 
 export const GuideExamplesList: React.FC<GuideExamplesListProps> = ({
   examples,
   title = 'Canonical System Benchmarks',
+  reticleType,
 }) => {
   return (
     <section className={styles.cardItem}>
@@ -27,7 +34,7 @@ export const GuideExamplesList: React.FC<GuideExamplesListProps> = ({
             <DataTable.Row key={ex.name} data-testid="guide-example-item">
               <DataTable.Cell>
                 <CelestialTitle
-                  type={ex.href.includes('planet') ? 'terrestrial' : 'star'}
+                  type={ex.reticleType ?? reticleType ?? 'star'}
                   title={ex.name}
                   href={ex.href}
                   titleTestId="guide-example-link"

@@ -44,4 +44,22 @@ describe('<GuideExamplesList />', () => {
 
     expect(screen.getByText('Featured Exoplanet Laboratories')).toBeDefined();
   });
+
+  it('uses explicit reticleType from example item or props rather than string matching', () => {
+    const examplesWithReticles: readonly GuideExampleTarget[] = [
+      {
+        name: 'Jupiter',
+        href: '/planet/jupiter',
+        note: 'Gas giant exemplar',
+        reticleType: 'gas-giant',
+      },
+    ];
+
+    const { container } = render(
+      <GuideExamplesList examples={examplesWithReticles} />
+    );
+
+    const titleEl = container.querySelector('[data-celestial-title="gas-giant"]');
+    expect(titleEl).not.toBeNull();
+  });
 });

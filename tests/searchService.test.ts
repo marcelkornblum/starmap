@@ -611,13 +611,13 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(resolveResultSystemTitle({ i: 'earth', k: 2, n: 'Earth', s: 'sol' }, sysMap)).toBe('Sol');
     expect(resolveResultSystemTitle({ i: 'sol', n: 'Sol' }, sysMap)).toBeUndefined();
 
-    // 4. resolveReticleType across all branches
-    expect(resolveReticleType({ i: 's1', n: 'WD', m: [11, 'DA2', 0] })).toBe('white-dwarf');
-    expect(resolveReticleType({ i: 's2', n: 'BD', m: [16, 'T8', 0] })).toBe('brown-dwarf');
-    expect(resolveReticleType({ i: 's3', n: 'PSR', m: [20, 'PSR', 0] })).toBe('neutron-star');
+    // 4. resolveReticleType relying on precalculated entry.u / entry.k
+    expect(resolveReticleType({ i: 's1', n: 'WD', u: 'white-dwarf', m: [11, 'DA2', 0] })).toBe('white-dwarf');
+    expect(resolveReticleType({ i: 's2', n: 'BD', u: 'brown-dwarf', m: [16, 'T8', 0] })).toBe('brown-dwarf');
+    expect(resolveReticleType({ i: 's3', n: 'PSR', u: 'neutron-star', m: [20, 'PSR', 0] })).toBe('neutron-star');
     expect(resolveReticleType({ i: 'jupiter', k: 2, n: 'Jupiter', u: 'gas-giant' })).toBe('gas-giant');
     expect(resolveReticleType({ i: 'neptune', k: 2, n: 'Neptune', u: 'ice-giant' })).toBe('ice-giant');
-    expect(resolveReticleType({ i: 'snr-crab', k: 5, n: 'Crab Remnant' })).toBe('hazard');
+    expect(resolveReticleType({ i: 'snr-crab', k: 5, n: 'Crab Remnant', u: 'hazard' })).toBe('hazard');
     expect(resolveReticleType({ i: 'voyager-1', k: 6, n: 'Voyager 1', u: 'construct' })).toBe('construct');
     expect(resolveReticleType({ i: '433-eros', k: 6, n: '433 Eros' })).toBe('terrestrial');
     expect(
@@ -1314,10 +1314,10 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
     expect(parseUrlSelectTokens('?select=planet-type:gas-giant', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'planet-type', planetType: 'gas-giant' },
     ]);
-    expect(parseUrlSelectTokens('?select=collection:extreme-worlds', LAYER_INDEX_ENTRIES)).toEqual([
+    expect(parseUrlSelectTokens('?select=layer:extreme-worlds', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'layer', layerId: 'overlay-extreme-worlds' },
     ]);
-    expect(parseUrlSelectTokens('?select=collection:recent-discoveries', LAYER_INDEX_ENTRIES)).toEqual([
+    expect(parseUrlSelectTokens('?select=layer:recent-discoveries', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'layer', layerId: 'overlay-recent-discoveries' },
     ]);
     expect(parseUrlSelectTokens('?select=sol', LAYER_INDEX_ENTRIES)).toEqual([
@@ -1366,6 +1366,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
         i: 'sirius-b',
         n: 'Sirius B',
         k: 1,
+        u: 'white-dwarf',
         m: [8.44, 'DA2', 0],
         p: [-0.5, 2.5, -0.6],
       },
@@ -1373,6 +1374,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
         i: 'luhman-16',
         n: 'Luhman 16',
         k: 1,
+        u: 'brown-dwarf',
         m: [14.0, 'L7.5', 0],
         p: [-1.0, 1.5, -0.8],
       },
@@ -1440,7 +1442,7 @@ describe('Option C ?select= URL Grammar & Layer Target Links', () => {
 
     // resolveSelectedSystemsFromUrlSelect with combined grammar
     const combined = resolveSelectedSystemsFromUrlSelect(
-      '?select=star-type:g2v,collection:extreme-worlds',
+      '?select=star-type:g2v,layer:extreme-worlds',
       testCorpus,
       LAYER_INDEX_ENTRIES,
       LAYER_MANIFESTS,

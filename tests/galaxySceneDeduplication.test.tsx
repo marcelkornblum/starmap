@@ -100,22 +100,26 @@ describe('GalaxyScene - Streamed Stars Deduplication & Classification Derivation
     expect(capturedEntities.map((e) => e.id)).toEqual(['alpha-centauri', 'hip-8102']);
   });
 
-  it('derives classification from spectral type and maps planetCensus into planets list', () => {
+  it('reads precalculated classification and maps planetCensus into planets list', () => {
     render(<GalaxyScene additionalEntities={[]} />);
 
     act(() => {
       triggerHydration?.([
         makeStreamedSummary('wd-1', 'Sirius B', -0.494, 2.477, -0.759, 1, {
           spect: 'DA2',
+          classification: 'white-dwarf',
         }),
         makeStreamedSummary('bd-1', 'Luhman 16 A', -1.137, 0.362, -1.602, 1, {
           spect: 'L7.5',
+          classification: 'brown-dwarf',
         }),
         makeStreamedSummary('psr-1', 'Vela Pulsar', 10.0, 5.0, 2.0, 1, {
           spect: 'PSR B0833-45',
+          classification: 'neutron-star',
         }),
         makeStreamedSummary('exo-1', 'Trappist-1', 12.0, 2.0, 1.0, 1, {
           spect: 'M8V',
+          classification: 'star',
           planetCensus: ['terrestrial', 'super-earth'],
         }),
       ]);

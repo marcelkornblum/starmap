@@ -3,7 +3,7 @@ import type {
   SpatialEntityDefinition,
 } from '../../types/spatial';
 import type { DecodedDetailRecord } from '../../data/detailsRepository';
-import type { PlanetCompositionClass } from '../../data/guideCatalog';
+import type { PlanetCompositionClass } from '../../content/guide';
 import type {
   CircumstellarDiskKind,
   CircumstellarDiskRecord,
@@ -11,6 +11,7 @@ import type {
   DatasetLayerTargetType,
   ObservationalConfidence,
   SystemSummaryNode,
+  CelestialSymbolType,
 } from '../../types/astro';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import type { DecodedEntityAnnotation } from '../../utils/datasetLayerCodec';
@@ -409,6 +410,7 @@ export interface BuildPlanetaryBodiesSummaryInput {
 export interface BreadcrumbRouteLink {
   readonly label: string;
   readonly href?: string;
+  readonly reticleType?: CelestialSymbolType;
 }
 
 export interface SceneCameraUrlState {
@@ -494,6 +496,7 @@ export interface FocusedPreviewSummary {
   readonly systemName: string;
   readonly focusedKind: FocusedEntityKind;
   readonly previewMode: PreviewMode;
+  readonly reticleType?: CelestialClassification;
   readonly primaryInclinationDeg?: number;
   readonly primaryEccentricity?: number;
   readonly primarySemiMajorAxisAu?: number;

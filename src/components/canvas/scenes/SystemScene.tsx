@@ -56,7 +56,7 @@ export interface SystemSceneProps {
  * Renders the central star(s) and Keplerian orbiting planetary bodies mapped into SYSTEM_FRAME.
  */
 export const SystemScene: React.FC<SystemSceneProps> = ({
-  systemId = 'sol',
+  systemId,
   system: explicitSystem,
   centerId,
   centerCoordinates,
@@ -64,6 +64,7 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
   onSelectEntity,
   debugHitarea = false,
 }) => {
+  const targetId = explicitSystem?.id ?? systemId;
   const [tick, setTick] = useState(0);
 
   const activeCorpus = useMemo(
@@ -75,21 +76,25 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
   );
 
   const matchedEntry = useMemo(
-    () => (activeCorpus.length > 0 ? findFocusedEntryInCorpus(systemId, activeCorpus) : undefined),
-    [systemId, activeCorpus],
+    () =>
+      activeCorpus.length > 0 && targetId
+        ? findFocusedEntryInCorpus(targetId, activeCorpus)
+        : undefined,
+    [targetId, activeCorpus],
   );
 
-  const resolvedId = explicitSystem?.id ?? matchedEntry?.s ?? matchedEntry?.i ?? systemId;
+  const resolvedId = explicitSystem?.id ?? matchedEntry?.s ?? matchedEntry?.i ?? targetId;
 
   useEffect(() => {
+    if (!resolvedId) return undefined;
     let cancelled = false;
     const run = async () => {
       let currentTargetId = resolvedId;
       if (activeCorpus.length === 0) {
         const loaded = await loadSearchCorpusForFilter('all').catch(() => undefined);
         if (cancelled) return;
-        if (loaded) {
-          const found = findFocusedEntryInCorpus(systemId, loaded);
+        if (loaded && targetId) {
+          const found = findFocusedEntryInCorpus(targetId, loaded);
           if (found) {
             currentTargetId = found.s ?? found.i;
           }
@@ -107,24 +112,30 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [resolvedId, systemId, activeCorpus.length]);
+  }, [resolvedId, targetId, activeCorpus.length]);
 
-  const summaryNode =
-    getCachedSummaryNode(resolvedId) ??
-    (resolvedId !== systemId ? getCachedSummaryNode(systemId) : undefined);
-  const detailRecord =
-    getCachedDetailRecord(resolvedId) ??
-    (resolvedId !== systemId ? getCachedDetailRecord(systemId) : undefined);
+  const summaryNode = resolvedId
+    ? getCachedSummaryNode(resolvedId) ??
+      (targetId && resolvedId !== targetId ? getCachedSummaryNode(targetId) : undefined)
+    : undefined;
+  const detailRecord = resolvedId
+    ? getCachedDetailRecord(resolvedId) ??
+      (targetId && resolvedId !== targetId ? getCachedDetailRecord(targetId) : undefined)
+    : undefined;
   const sysManifest = detailRecord?.kind === 'system' ? detailRecord.record : undefined;
 
   const entities = useMemo<SpatialEntityDefinition[]>(() => {
+    if (!resolvedId && !targetId) {
+      return [];
+    }
+
     // 1. Central Star Node
     const starName =
       explicitSystem?.name ??
       sysManifest?.name ??
       summaryNode?.name ??
       matchedEntry?.n ??
-      formatSlugFallbackTitle(systemId);
+      (targetId ? formatSlugFallbackTitle(targetId) : 'System');
 
     const starSpectral =
       explicitSystem?.spectralType ??
@@ -133,7 +144,7 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
       matchedEntry?.m?.[1];
 
     const starEntity: SpatialEntityDefinition = {
-      id: explicitSystem?.id ?? resolvedId ?? systemId,
+      id: explicitSystem?.id ?? resolvedId ?? targetId ?? '',
       name: starName,
       position: [0, 0, 0],
       classification: 'star',
@@ -164,7 +175,9 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
       );
     } else {
       const corpusPlanets = activeCorpus.filter(
-        (entry) => entry.k === 2 && (entry.s === resolvedId || entry.s === systemId),
+        (entry) =>
+          entry.k === 2 &&
+          ((resolvedId && entry.s === resolvedId) || (targetId && entry.s === targetId)),
       );
       if (corpusPlanets.length > 0) {
         planetEntities = corpusPlanets.map((p, index) =>
@@ -175,7 +188,7 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
 
     return [starEntity, ...planetEntities];
   }, [
-    systemId,
+    targetId,
     explicitSystem,
     sysManifest,
     summaryNode,
@@ -206,6 +219,10 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
     }
     return [0, 0, 0];
   }, [centerCoordinates, centerId, entities]);
+
+  if (entities.length === 0) {
+    return null;
+  }
 
   return (
     <SpatialViewport
