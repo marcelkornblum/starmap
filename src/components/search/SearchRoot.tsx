@@ -195,19 +195,8 @@ export const SearchRoot = ({
         activeSearch,
       );
     }
-  }, [
-    activeSearch,
-    initialAvailableCorpus,
-    initialCorpus,
-    initialSystemEntries,
-    layerIndex,
-    loadedLayers,
-    locationPathname,
-    locationSearch,
-    resolveCurrentFocusSlug,
-    store,
-    syncUrl,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const requestSeqRef = useRef<number>(0);
   const searchRootRef = useRef<HTMLDivElement>(null);

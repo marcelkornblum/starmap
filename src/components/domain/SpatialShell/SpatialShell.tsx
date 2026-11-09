@@ -141,9 +141,6 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   onBodiesDrawerOpenChange,
   children,
 }) => {
-  const [internalBodiesOpen, setInternalBodiesOpen] = useState<boolean | undefined>(
-    initialBodiesDrawerOpen,
-  );
   const activeDrawer = useUIStore((s) => s.activeDrawer);
   const isStoreBodiesOpen = activeDrawer === 'bodies';
   const setActiveDrawer = useUIStore((s) => s.setActiveDrawer);
@@ -154,17 +151,24 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   const dualPanelPolicy = useUIStore((s) => s.dualPanelPolicy);
   const isWideViewport = useIsWideViewport();
 
+  // Initialize store on mount if an initial drawer state was provided
+  useEffect(() => {
+    if (controlledBodiesOpen === undefined && initialBodiesDrawerOpen !== undefined) {
+      setActiveDrawer(initialBodiesDrawerOpen ? 'bodies' : null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const isBodiesDrawerOpen =
-    controlledBodiesOpen !== undefined
-      ? controlledBodiesOpen
-      : internalBodiesOpen !== undefined
-        ? internalBodiesOpen
-        : isStoreBodiesOpen;
+    controlledBodiesOpen !== undefined ? controlledBodiesOpen : isStoreBodiesOpen;
 
   const setDrawerState = (next: boolean) => {
-    setInternalBodiesOpen(next);
-    setActiveDrawer(next ? 'bodies' : null);
-    onBodiesDrawerOpenChange?.(next);
+    if (controlledBodiesOpen !== undefined) {
+      onBodiesDrawerOpenChange?.(next);
+    } else {
+      setActiveDrawer(next ? 'bodies' : null);
+      onBodiesDrawerOpenChange?.(next);
+    }
   };
 
   const handleToggle = () => {

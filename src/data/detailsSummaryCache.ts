@@ -134,6 +134,9 @@ export const loadSummaryBucket = (
         }
       };
       signal.addEventListener('abort', onAbort);
+      pending.finally(() => {
+        signal.removeEventListener('abort', onAbort);
+      });
     }
 
     SUMMARY_BUCKET_CACHE.set(bucketKey, pending);
