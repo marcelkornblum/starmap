@@ -21,6 +21,7 @@ import {
   resolveMetricComparison,
   resolveMetricGuideEntries,
 } from '../services/guideService';
+import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
 
@@ -33,25 +34,21 @@ export interface MetricDetailViewProps {
   readonly focusedEntityId?: string;
 }
 
-export const extractMetricIdFromPathname = (pathname: string): string => {
-  const match = /^\/guide\/metrics\/([^/?#]+)/i.exec(pathname.trim());
-  return match?.[1] ? decodeURIComponent(match[1]) : '';
-};
-
 export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
   metricId: propMetricId,
   locationPathname,
   locationSearch,
   focusedEntityId,
 }) => {
-  const { pathname, search } = useSpaLocation(
+  const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
+  const { search } = useSpaLocation(
     locationPathname,
     locationSearch,
     '',
   );
 
   const resolvedMetricId =
-    propMetricId ?? extractMetricIdFromPathname(pathname);
+    routeParams?.metricId ?? propMetricId ?? '';
   const resolvedFocusId =
     focusedEntityId ?? extractFocusIdFromSearch(search);
 

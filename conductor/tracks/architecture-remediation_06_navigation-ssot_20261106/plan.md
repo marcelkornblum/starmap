@@ -25,7 +25,7 @@ Record each decision in [decision-log.md](../../initiatives/architecture-remedia
   - Remove global `document` click listener and `starmap:locationchange` custom event (`AUD-082`).
   - Delete `simulateAsyncFetch` latency helper and handle `navigate` errors explicitly (`AUD-089`).
   - Modernize or clean up `useStarmapNav` (`AUD-088`).
-- [ ] Task 2.4: Views TanStack Router Cutover & Regex Removal (AUD-083)
+- [x] Task 2.4: Views TanStack Router Cutover & Regex Removal (AUD-083)
   - Refactor `SystemView`, `PlanetView`, `GalaxyView`, and guide detail views to use `useParams()` and `useSearch()` instead of regex path matching.
   - Delete obsolete regex URL extraction helpers in `src/utils/url.ts`.
 - [ ] Task 2.5: Store Mirror Deletion, Direct Browser Mutation Cleanup & Render Purity (AUD-080, AUD-081, AUD-084, AUD-085, AUD-086)

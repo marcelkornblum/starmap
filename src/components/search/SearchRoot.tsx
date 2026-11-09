@@ -17,8 +17,8 @@ import {
   loadSearchCorpusForFilter,
   mergeSearchShards,
 } from '../../data/searchRepository';
+import { useSearch } from '@tanstack/react-router';
 import {
-  extractUrlFocusSlug,
   findFocusedEntryInCorpus,
   type GroupedSearchResults,
   type SearchCategoryFilter,
@@ -27,6 +27,7 @@ import {
 import { mergeActiveStarsIntoCorpus } from '../../services/detailsService';
 import { useActiveStarsStore } from '../../stores/useActiveStarsStore';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
+import { toUrlSlug } from '../../utils/datasetLayerCodec';
 import { useSpatialEntityStoreApi } from '../canvas/entity/SpatialEntityContext';
 import {
   SearchContext,
@@ -138,6 +139,20 @@ export const SearchRoot = ({
         }),
   );
 
+  const routerSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined;
+
+  const resolveCurrentFocusSlug = useCallback(
+    (searchStr: string): string | null => {
+      const focusVal =
+        (routerSearch?.focus as string | undefined) ??
+        new URLSearchParams(searchStr).get('focus');
+      if (!focusVal) return null;
+      const slug = toUrlSlug(focusVal);
+      return slug.length > 0 ? slug : null;
+    },
+    [routerSearch?.focus],
+  );
+
   // Synchronise store on SSR / Node render where effects do not execute
   if (typeof window === 'undefined') {
     const focusCorpus =
@@ -159,10 +174,7 @@ export const SearchRoot = ({
       locationPathname !== undefined ||
       locationSearch !== undefined
     ) {
-      const initialFocusSlug = extractUrlFocusSlug(
-        activePathname,
-        activeSearch,
-      );
+      const initialFocusSlug = resolveCurrentFocusSlug(activeSearch);
       syncUrlFocusToStore(
         store,
         initialFocusSlug,
@@ -194,10 +206,7 @@ export const SearchRoot = ({
       locationPathname !== undefined ||
       locationSearch !== undefined
     ) {
-      const initialFocusSlug = extractUrlFocusSlug(
-        activePathname,
-        activeSearch,
-      );
+      const initialFocusSlug = resolveCurrentFocusSlug(activeSearch);
       syncUrlFocusToStore(
         store,
         initialFocusSlug,
@@ -467,7 +476,7 @@ export const SearchRoot = ({
           ? mergeSearchShards([corpus, systemEntries])
           : corpus;
 
-        const initialFocusSlug = extractUrlFocusSlug(activePathname, activeSearch);
+        const initialFocusSlug = resolveCurrentFocusSlug(activeSearch);
         if (initialFocusSlug && !findFocusedEntryInCorpus(initialFocusSlug, focusCorpus)) {
           const planetsShard = await fetchSearchShard('planets').catch(() => undefined);
           if (cancelled) return;
@@ -542,6 +551,7 @@ export const SearchRoot = ({
     initialFilter,
     initialQuery,
     limitPerCategory,
+    resolveCurrentFocusSlug,
     store,
     syncUrl,
     updateResultsAndSelection,
@@ -554,7 +564,7 @@ export const SearchRoot = ({
       syncUrl ||
       locationPathname !== undefined ||
       locationSearch !== undefined
-        ? extractUrlFocusSlug(activePathname, activeSearch)
+        ? resolveCurrentFocusSlug(activeSearch)
         : null;
 
     if (prevFocusSlugRef.current === focusSlug) {
@@ -593,6 +603,7 @@ export const SearchRoot = ({
     initialCorpus,
     locationPathname,
     locationSearch,
+    resolveCurrentFocusSlug,
     store,
     syncUrl,
   ]);

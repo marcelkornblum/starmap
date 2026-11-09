@@ -27,7 +27,6 @@ import {
   buildUpdatedSearchUrl,
   compareSearchResultItems,
   executeCatalogSearch,
-  extractUrlFocusSlug,
   extractUrlSelectSlugs,
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
@@ -858,15 +857,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(resolveSelectedSystemsFromSearchResults(emptyResults)).toEqual([]);
   });
 
-  it('extracts URL focus slugs and resolves focused entities from corpus or fallback', () => {
-    expect(extractUrlFocusSlug('/galaxy/tau-ceti', '')).toBe('tau-ceti');
-    expect(extractUrlFocusSlug('/galaxy/tau-ceti', '?focus=tau-ceti-e')).toBe('tau-ceti-e');
-    expect(extractUrlFocusSlug('/system/sol', '?focus=earth')).toBe('earth');
-    expect(extractUrlFocusSlug('/galaxy/---', '?focus=---')).toBeNull();
-    expect(extractUrlFocusSlug('/', '')).toBeNull();
-    expect(extractUrlFocusSlug('/galaxy', '?q=Tau+Ceti')).toBeNull();
-    expect(extractUrlFocusSlug('/search', '?q=Tau+Ceti')).toBeNull();
-
+  it('resolves focused entities from corpus or fallback', () => {
     expect(formatSlugFallbackTitle('tau-ceti')).toBe('Tau Ceti');
     expect(findFocusedEntryInCorpus('   ', SAMPLE_CORPUS)).toBeUndefined();
     expect(resolveFocusedEntityFromCorpus('   ', SAMPLE_CORPUS)).toBeNull();

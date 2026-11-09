@@ -41,11 +41,9 @@ import {
   type OrbitalSchematicSummary,
   type PlanetaryBodiesSummary,
 } from '../services/detailsService';
+import { useParams, useSearch } from '@tanstack/react-router';
 import {
-  extractUrlFocusSlug,
-  extractUrlPlanetSlug,
   findFocusedEntryInCorpus,
-  hasExplicitFocusParam,
   resolveFocusedEntityFromCorpus,
   resolveSelectedSystemsFromUrlSelect,
   toUrlSlug,
@@ -65,12 +63,13 @@ export interface PlanetViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
   readonly locationPathname?: string;
   readonly locationSearch?: string;
+  readonly planetId?: string;
 }
 
 const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
 
 const useResolvedPlanetDetails = (
-  { initialCorpus, locationPathname, locationSearch }: PlanetViewProps,
+  { initialCorpus, locationPathname, locationSearch, planetId: propPlanetId }: PlanetViewProps,
   _shouldFetchShards = false,
 ): {
   readonly focusedDetails: FocusedEntityDetails | null;
@@ -95,9 +94,21 @@ const useResolvedPlanetDetails = (
     '/planet/earth',
   );
 
-  const urlPlanetSlug = extractUrlPlanetSlug(pathname);
-  const urlFocusSlug = extractUrlFocusSlug(pathname, search);
-  const hasExplicitFocus = hasExplicitFocusParam(search);
+  const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
+  const routeSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined;
+
+  const rawPlanetId =
+    routeParams?.planetId ??
+    propPlanetId ??
+    (pathname.startsWith('/planet/') ? pathname.replace(/^\/planet\//, '').split(/[?#]/)[0] : undefined) ??
+    'earth';
+  const urlPlanetSlug = toUrlSlug(rawPlanetId) || 'earth';
+
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
+  const focusParam = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
+  const selectParam = (routeSearch?.select as string | undefined) ?? searchParams.get('select') ?? undefined;
+  const urlFocusSlug = focusParam ? toUrlSlug(focusParam) || null : null;
+  const hasExplicitFocus = Boolean(focusParam && urlFocusSlug && urlFocusSlug.length > 0);
 
   const { corpus } = useSearchCorpus('all', initialCorpus);
   const activeCorpus = corpus ?? EMPTY_CORPUS;
@@ -191,11 +202,12 @@ const useResolvedPlanetDetails = (
   const storeSelected = storeApi
     .getState()
     .getEntitiesByState('selected');
+  const selectQuery = selectParam ? `?select=${encodeURIComponent(selectParam)}` : search;
   const selectedEntities =
     storeSelected.length > 0
       ? storeSelected
       : resolveSelectedSystemsFromUrlSelect(
-          search,
+          selectQuery,
           activeCorpus,
           layerIndex,
           loadedLayers,
@@ -247,7 +259,7 @@ const useResolvedPlanetDetails = (
 };
 
 export const PlanetView: React.FC<PlanetViewProps> = (props) => {
-  const { initialCorpus, locationPathname, locationSearch } = props;
+  const { initialCorpus, locationPathname, locationSearch, planetId: propPlanetId } = props;
   const {
     focusedDetails,
     focusedPreview,
@@ -265,9 +277,25 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     locationSearch,
     '/planet/earth',
   );
-  const targetId = extractUrlPlanetSlug(pathname) ?? 'earth';
-  const urlFocusSlug = extractUrlFocusSlug(pathname, search);
+
+  const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
+  const routeSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined;
+
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
+  const focus = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
+  const layer = (routeSearch?.layer as string | undefined) ?? searchParams.get('layer') ?? undefined;
+  const route = (routeSearch?.route as string | undefined) ?? searchParams.get('route') ?? undefined;
+  const center = (routeSearch?.center as string | undefined) ?? searchParams.get('center') ?? undefined;
+
+  const rawPlanetId =
+    routeParams?.planetId ??
+    propPlanetId ??
+    (pathname.startsWith('/planet/') ? pathname.replace(/^\/planet\//, '').split(/[?#]/)[0] : undefined) ??
+    'earth';
+  const targetId = toUrlSlug(rawPlanetId) || 'earth';
+  const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = extractUrlSceneCameraState(search);
+  const effectiveCenterId = center ? toUrlSlug(center) : cameraState.center;
 
   useEffect(() => {
     if (!urlFocusSlug || !focusedEntity) return;
@@ -299,8 +327,11 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     );
   }, [breadcrumbs, lastGalaxySearch]);
 
-  const routeStops = extractUrlRouteStops(search);
-  const routeOptionId = extractUrlJourneyOptionId(search);
+  const routeSearchQuery = route
+    ? `?route=${encodeURIComponent(route)}`
+    : search;
+  const routeStops = extractUrlRouteStops(routeSearchQuery, 'planet');
+  const routeOptionId = extractUrlJourneyOptionId(routeSearchQuery);
   const activeJourney = routeStops
     ? buildJourneyPlan({
         stops: routeStops,
@@ -308,13 +339,12 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
         corpus: activeCorpus,
         viewScope: 'planet',
         currentPathname: pathname,
-        currentSearch: search,
+        currentSearch: routeSearchQuery,
       })
     : null;
 
-  const searchParams = new URLSearchParams(search);
-  const layerParam = searchParams.get('layer');
-  const loadedLayers = useLoadedLayerManifests(search);
+  const layerParam = layer ?? searchParams.get('layer');
+  const loadedLayers = useLoadedLayerManifests(layer ? `?layer=${encodeURIComponent(layer)}` : search);
   const activeLayerCard = resolveActiveLayerCard({
     layerParam,
     currentPathname: pathname,
@@ -330,7 +360,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
         <CanvasLayer
           scope="planet"
           targetId={targetId}
-          centerId={cameraState.center}
+          centerId={effectiveCenterId}
           centerCoordinates={
             cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
               ? [cameraState.x, cameraState.y, cameraState.z]

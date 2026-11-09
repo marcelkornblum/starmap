@@ -31,7 +31,6 @@ import {
   buildTagGalaxyHref,
   doesSystemEntryMatchTag,
   executeCatalogSearch,
-  extractUrlFocusSlug,
   extractUrlTagFocus,
   isCatalogTag,
   resolveSelectedSystemsFromTag,
@@ -87,7 +86,7 @@ describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', 
     // When nothing is focused, Details panel does not show at all
     expect(searchHtml).not.toContain('data-testid="details-panel"');
 
-    // 2. Clicking through to '/galaxy/tau-ceti?focus=tau-ceti-e' clears selected (since ?q= is not in URL), focuses 'tau Ceti e', and renders Details panel
+    // 2. Clicking through to '/galaxy?focus=tau-ceti-e' clears selected (since ?q= is not in URL), focuses 'tau Ceti e', and renders Details panel
     store.getState().setSelectedIds([]);
     const focusChildHtml = renderToHtml(
       createElement(
@@ -95,7 +94,7 @@ describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', 
         { store },
         createElement(GalaxyView, {
           initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/galaxy/tau-ceti',
+          locationPathname: '/galaxy',
           locationSearch: '?focus=tau-ceti-e',
         }),
       ),
@@ -121,15 +120,15 @@ describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', 
     expect(focusChildHtml).toContain('Hail Mary');
     expect(focusChildHtml).toContain('Adrian');
 
-    // 3. Clicking through to '/galaxy/tau-ceti' focuses 'Tau Ceti' and shows Details panel with Peek, Partial, and Full detents
+    // 3. Clicking through to '/galaxy?focus=tau-ceti' focuses 'Tau Ceti' and shows Details panel with Peek, Partial, and Full detents
     const focusSystemHtml = renderToHtml(
       createElement(
         SpatialEntityProvider,
         { store },
         createElement(GalaxyView, {
           initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/galaxy/tau-ceti',
-          locationSearch: '',
+          locationPathname: '/galaxy',
+          locationSearch: '?focus=tau-ceti',
         }),
       ),
     );
@@ -207,9 +206,6 @@ describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', 
     expect(extractUrlTagFocus('?select=layer:project-hail-mary')).toBeNull();
     expect(extractUrlTagFocus('?focus=tau-ceti-e')).toBeNull();
     expect(extractUrlTagFocus('')).toBeNull();
-
-    // extractUrlFocusSlug ignores ?select= so no fake entity is focused
-    expect(extractUrlFocusSlug('/galaxy', '?select=tag:exoplanet-host')).toBeNull();
 
     // doesSystemEntryMatchTag evaluates all catalog system tags (both PascalCase and kebab-case)
     const solEntry = SAMPLE_CORPUS[0]!;

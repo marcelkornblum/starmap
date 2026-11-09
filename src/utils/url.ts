@@ -139,61 +139,6 @@ export function parseLayerQueryParam(
 }
 
 /**
- * Pure parser extracting the primary target slug from the URL.
- */
-export const extractUrlFocusSlug = (
-  pathname: string,
-  searchString: string,
-): string | null => {
-  const params = new URLSearchParams(searchString);
-  const focusParam = params.get('focus');
-  if (focusParam) {
-    const slug = toUrlSlug(focusParam);
-    if (slug.length > 0) {
-      return slug;
-    }
-  }
-
-  const routeMatch = /^\/galaxy\/([^/?#]+)/i.exec(pathname.trim());
-  if (routeMatch?.[1]) {
-    const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
-    if (slug.length > 0) {
-      return slug;
-    }
-  }
-
-  return null;
-};
-
-/**
- * Pure parser extracting the host system slug from a `/galaxy/$systemId` or `/system/$systemId` route path.
- */
-export const extractUrlSystemSlug = (pathname: string): string | null => {
-  const routeMatch = /^\/(?:galaxy|system)\/([^/?#]+)/i.exec(pathname.trim());
-  if (routeMatch?.[1]) {
-    const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
-    if (slug.length > 0) {
-      return slug;
-    }
-  }
-  return null;
-};
-
-/**
- * Pure parser extracting the host planet slug from a `/planet/$planetId` route path.
- */
-export const extractUrlPlanetSlug = (pathname: string): string | null => {
-  const routeMatch = /^\/planet\/([^/?#]+)/i.exec(pathname.trim());
-  if (routeMatch?.[1]) {
-    const slug = toUrlSlug(decodeURIComponent(routeMatch[1]));
-    if (slug.length > 0) {
-      return slug;
-    }
-  }
-  return null;
-};
-
-/**
  * Pure predicate checking whether a URL search string contains an explicit single-entity `?focus=<slug>` parameter.
  */
 export const hasExplicitFocusParam = (searchString: string): boolean => {

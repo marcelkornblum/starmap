@@ -47,9 +47,6 @@ import {
   normalizeCleanKey,
 } from '../utils/nomenclature';
 import {
-  extractUrlFocusSlug,
-  extractUrlPlanetSlug,
-  extractUrlSystemSlug,
   hasExplicitFocusParam,
   parseLayerQueryParam,
 } from '../utils/url';
@@ -62,9 +59,6 @@ import {
 } from '../types/search';
 
 export {
-  extractUrlFocusSlug,
-  extractUrlPlanetSlug,
-  extractUrlSystemSlug,
   formatSlugFallbackTitle,
   hasExplicitFocusParam,
   parseLayerQueryParam,

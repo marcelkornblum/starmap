@@ -18,6 +18,7 @@ import {
   extractFocusIdFromSearch,
   resolvePlanetTypeGuideEntries,
 } from '../services/guideService';
+import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
 
@@ -27,23 +28,19 @@ export interface PlanetTypeDetailViewProps {
   readonly locationSearch?: string;
 }
 
-export const extractPlanetTypeFromPathname = (pathname: string): string => {
-  const match = /^\/guide\/planet-types\/([^/?#]+)/i.exec(pathname.trim());
-  return match?.[1] ? decodeURIComponent(match[1]) : '';
-};
-
 export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
   planetType: propPlanetType,
   locationPathname,
   locationSearch,
 }) => {
-  const { pathname, search } = useSpaLocation(
+  const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
+  const { search } = useSpaLocation(
     locationPathname,
     locationSearch,
     '',
   );
   const resolvedPlanetType =
-    propPlanetType ?? extractPlanetTypeFromPathname(pathname);
+    routeParams?.planetType ?? propPlanetType ?? '';
   const focusedEntityId = extractFocusIdFromSearch(search);
 
   const entries = useMemo(

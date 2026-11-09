@@ -47,26 +47,15 @@ import {
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
   executeCatalogSearch,
-  extractUrlPlanetSlug,
-  extractUrlSystemSlug,
   hasExplicitFocusParam,
 } from '../src/services/searchService';
-import {
-  MetricDetailView,
-  extractMetricIdFromPathname,
-} from '../src/views/MetricDetailView';
+import { MetricDetailView } from '../src/views/MetricDetailView';
 import { MetricsListView } from '../src/views/MetricsListView';
-import {
-  PlanetTypeDetailView,
-  extractPlanetTypeFromPathname,
-} from '../src/views/PlanetTypeDetailView';
+import { PlanetTypeDetailView } from '../src/views/PlanetTypeDetailView';
 import { PlanetTypesListView } from '../src/views/PlanetTypesListView';
 import { PlanetView } from '../src/views/PlanetView';
 import { SearchView } from '../src/views/SearchView';
-import {
-  StarTypeDetailView,
-  extractStarTypeFromPathname,
-} from '../src/views/StarTypeDetailView';
+import { StarTypeDetailView } from '../src/views/StarTypeDetailView';
 import { StarTypesListView } from '../src/views/StarTypesListView';
 import { SystemView } from '../src/views/SystemView';
 import {
@@ -367,18 +356,13 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(buildMetricGuideHref('')).toBe('/guide/metrics');
     expect(buildMetricGuideHref('Unknown')).toBe('/guide/metrics');
 
-    expect(extractMetricIdFromPathname('/guide/metrics/semi-major-axis')).toBe(
-      'semi-major-axis',
-    );
-    expect(extractMetricIdFromPathname('/galaxy')).toBe('');
-
     const listViewHtml = renderToHtml(createElement(MetricsListView));
     expect(listViewHtml).toContain('data-testid="metrics-list-view-root"');
     expect(listViewHtml).toContain('Telemetry Metrics');
 
     const detailViewHtml = renderToHtml(
       createElement(MetricDetailView, {
-        locationPathname: '/guide/metrics/semi-major-axis',
+        metricId: 'semi-major-axis',
       }),
     );
     expect(detailViewHtml).toContain('data-testid="metric-detail-view-root"');
@@ -460,13 +444,6 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(buildPlanetTypeGuideHref('')).toBe('/guide/planet-types');
     expect(buildPlanetTypeGuideHref('Unknown')).toBe('/guide/planet-types');
 
-    expect(extractPlanetTypeFromPathname('/guide/planet-types/terrestrial')).toBe(
-      'terrestrial',
-    );
-    expect(extractPlanetTypeFromPathname('/galaxy')).toBe('');
-    expect(extractStarTypeFromPathname('/guide/star-types/G8V')).toBe('G8V');
-    expect(extractStarTypeFromPathname('/galaxy')).toBe('');
-
     const focusedDetails = buildFocusedEntityDetails({
       focusedEntity: {
         id: 'gaia-2452378776434477184',
@@ -507,7 +484,7 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
 
     const detailViewHtml = renderToHtml(
       createElement(PlanetTypeDetailView, {
-        locationPathname: '/guide/planet-types/terrestrial',
+        planetType: 'terrestrial',
       }),
     );
     expect(detailViewHtml).toContain('data-testid="planet-type-detail-view-root"');
@@ -517,9 +494,6 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
   });
 
   it('renders Breadcrumbs at the top of every view, populates entity-specific telemetry in DetailsPanel, and renders BodiesPanel in SystemView and PlanetView', () => {
-    expect(extractUrlSystemSlug('/system/tau-ceti')).toBe('tau-ceti');
-    expect(extractUrlSystemSlug('/galaxy/tau-ceti')).toBe('tau-ceti');
-    expect(extractUrlSystemSlug('/search')).toBeNull();
     expect(hasExplicitFocusParam('?focus=tau-ceti-e')).toBe(true);
     expect(hasExplicitFocusParam('')).toBe(false);
 
@@ -540,7 +514,7 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(
       renderToHtml(
         createElement(StarTypeDetailView, {
-          locationPathname: '/guide/star-types/G8V',
+          starType: 'G8V',
         }),
       ),
     ).toContain('data-testid="view-breadcrumbs"');
@@ -642,8 +616,6 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(earthFocusHtml).toContain('href="/planet/earth"');
 
     // PlanetView at /planet/earth renders Breadcrumbs (Galaxy -> Sol -> Earth), BodiesPanel, and OrbitalSchematicPanel
-    expect(extractUrlPlanetSlug('/planet/earth')).toBe('earth');
-    expect(extractUrlPlanetSlug('/system/sol')).toBeNull();
     expect(buildPlanetDetailsHref('earth')).toBe('/planet/earth');
     expect(buildPlanetDetailsHref('')).toBe('/planet/earth');
     expect(buildPlanetElementFocusHref('jupiter', 'europa')).toBe(

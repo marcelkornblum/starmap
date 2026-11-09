@@ -37,11 +37,9 @@ import {
   extractUrlSceneCameraState,
   type FocusedEntityDetails,
 } from '../services/detailsService';
+import { useParams, useSearch } from '@tanstack/react-router';
 import {
-  extractUrlFocusSlug,
-  extractUrlSystemSlug,
   findFocusedEntryInCorpus,
-  hasExplicitFocusParam,
   resolveFocusedEntityFromCorpus,
   resolveSelectedSystemsFromUrlSelect,
   toUrlSlug,
@@ -64,12 +62,13 @@ export interface SystemViewProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
   readonly locationPathname?: string;
   readonly locationSearch?: string;
+  readonly systemId?: string;
 }
 
 const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
 
 const useResolvedSystemDetails = (
-  { initialCorpus, locationPathname, locationSearch }: SystemViewProps,
+  { initialCorpus, locationPathname, locationSearch, systemId: propSystemId }: SystemViewProps,
   _shouldFetchShards = false,
 ): {
   readonly focusedDetails: FocusedEntityDetails | null;
@@ -92,9 +91,20 @@ const useResolvedSystemDetails = (
     '/system/sol',
   );
 
-  const urlSystemSlug = extractUrlSystemSlug(pathname);
-  const urlFocusSlug = extractUrlFocusSlug(pathname, search);
-  const hasExplicitFocus = hasExplicitFocusParam(search);
+  const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
+  const routeSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined;
+
+  const rawSystemId =
+    routeParams?.systemId ??
+    propSystemId ??
+    (pathname.startsWith('/system/') ? pathname.replace(/^\/system\//, '').split(/[?#]/)[0] : undefined) ??
+    'sol';
+  const urlSystemSlug = toUrlSlug(rawSystemId) || 'sol';
+
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
+  const focusParam = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
+  const urlFocusSlug = focusParam ? toUrlSlug(focusParam) || null : null;
+  const hasExplicitFocus = Boolean(focusParam && urlFocusSlug && urlFocusSlug.length > 0);
 
   const { corpus } = useSearchCorpus('all', initialCorpus);
   const activeCorpus = corpus ?? EMPTY_CORPUS;
@@ -210,7 +220,7 @@ const useResolvedSystemDetails = (
 };
 
 export const SystemView: React.FC<SystemViewProps> = (props) => {
-  const { initialCorpus, locationPathname, locationSearch } = props;
+  const { initialCorpus, locationPathname, locationSearch, systemId: propSystemId } = props;
   const storeApi = useSpatialEntityStoreApi();
   useSpatialEntityStore((state) => state.selectedId);
   useSpatialEntityStore((state) => state.selectedIds);
@@ -231,9 +241,27 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     locationSearch,
     '/system/sol',
   );
-  const targetId = extractUrlSystemSlug(pathname) ?? 'sol';
-  const urlFocusSlug = extractUrlFocusSlug(pathname, search);
+
+  const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
+  const routeSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined;
+
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
+  const focus = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
+  const select = (routeSearch?.select as string | undefined) ?? searchParams.get('select') ?? undefined;
+  const layer = (routeSearch?.layer as string | undefined) ?? searchParams.get('layer') ?? undefined;
+  const route = (routeSearch?.route as string | undefined) ?? searchParams.get('route') ?? undefined;
+  const center = (routeSearch?.center as string | undefined) ?? searchParams.get('center') ?? undefined;
+  const journeyOption = (routeSearch?.journeyOption as string | undefined) ?? searchParams.get('journeyOption') ?? undefined;
+
+  const rawSystemId =
+    routeParams?.systemId ??
+    propSystemId ??
+    (pathname.startsWith('/system/') ? pathname.replace(/^\/system\//, '').split(/[?#]/)[0] : undefined) ??
+    'sol';
+  const targetId = toUrlSlug(rawSystemId) || 'sol';
+  const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = extractUrlSceneCameraState(search);
+  const effectiveCenterId = center ? toUrlSlug(center) : cameraState.center;
 
   useEffect(() => {
     if (!urlFocusSlug || !focusedEntity) return;
@@ -270,11 +298,12 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
   const storeSelected = storeApi
     .getState()
     .getEntitiesByState('selected');
+  const selectQuery = select ? `?select=${encodeURIComponent(select)}` : search;
   const selectedEntities =
     storeSelected.length > 0
       ? storeSelected
       : resolveSelectedSystemsFromUrlSelect(
-          search,
+          selectQuery,
           activeCorpus,
           layerIndex,
           loadedLayers,
@@ -310,8 +339,11 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
       )
     : null;
 
-  const routeStops = extractUrlRouteStops(search);
-  const routeOptionId = extractUrlJourneyOptionId(search);
+  const routeSearchQuery = route
+    ? `?route=${encodeURIComponent(route)}&journeyOption=${encodeURIComponent(journeyOption ?? '')}`
+    : search;
+  const routeStops = extractUrlRouteStops(routeSearchQuery, 'system');
+  const routeOptionId = journeyOption ?? extractUrlJourneyOptionId(routeSearchQuery);
   const activeJourney = routeStops
     ? buildJourneyPlan({
         stops: routeStops,
@@ -319,12 +351,11 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
         corpus: activeCorpus,
         viewScope: 'system',
         currentPathname: pathname,
-        currentSearch: search,
+        currentSearch: routeSearchQuery,
       })
     : null;
 
-  const searchParams = new URLSearchParams(search);
-  const layerParam = searchParams.get('layer');
+  const layerParam = layer ?? searchParams.get('layer');
   const activeLayerCard = resolveActiveLayerCard({
     layerParam,
     currentPathname: pathname,
@@ -340,7 +371,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
         <CanvasLayer
           scope="system"
           targetId={targetId}
-          centerId={cameraState.center}
+          centerId={effectiveCenterId}
           centerCoordinates={
             cameraState.x !== undefined && cameraState.y !== undefined && cameraState.z !== undefined
               ? [cameraState.x, cameraState.y, cameraState.z]

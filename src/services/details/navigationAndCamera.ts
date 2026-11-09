@@ -1,6 +1,4 @@
 import {
-  extractUrlPlanetSlug,
-  extractUrlSystemSlug,
   hasExplicitFocusParam,
 } from '../../utils/url';
 import { formatSlugFallbackTitle } from '../../utils/nomenclature';
@@ -13,7 +11,7 @@ import type {
   SceneCameraUrlState,
 } from './types';
 
-export { extractUrlPlanetSlug, extractUrlSystemSlug, hasExplicitFocusParam, toUrlSlug };
+export { hasExplicitFocusParam, toUrlSlug };
 
 export type OrbitTargetView = 'galaxy' | 'system' | 'planet';
 
