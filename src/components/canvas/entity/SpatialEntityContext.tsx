@@ -84,8 +84,9 @@ export const ApertureEvaluator: React.FC = () => {
     scratch.clear();
 
     const activeCutoff = getApertureActiveCutoffForViewportWidth(r3fState?.size?.width);
-    const { summariesLength, isHydrated } = activeStarsRef.current;
-    const streamedInApertureCount = summariesLength;
+    const starsState = useActiveStarsStore.getState();
+    const isHydrated = starsState.isHydrated;
+    const streamedInApertureCount = starsState.summaries.length;
 
     if (isHydrated && streamedInApertureCount <= activeCutoff) {
       const entities = state.entities;
