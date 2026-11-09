@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '../../interface';
 import { useUIStore } from '../../../stores/useUIStore';
 import styles from './SpatialShell.module.css';
@@ -151,18 +151,26 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   const dualPanelPolicy = useUIStore((s) => s.dualPanelPolicy);
   const isWideViewport = useIsWideViewport();
 
-  // Initialize store on mount if an initial drawer state was provided
+  const [isLocallyOverridden, setIsLocallyOverridden] = useState(false);
+  const initialStoreDrawerRef = useRef(activeDrawer);
+
+  // Synchronise store on mount if an initial uncontrolled drawer state was provided
   useEffect(() => {
-    if (controlledBodiesOpen === undefined && initialBodiesDrawerOpen !== undefined) {
+    if (controlledBodiesOpen === undefined && initialBodiesDrawerOpen !== undefined && !isLocallyOverridden) {
       setActiveDrawer(initialBodiesDrawerOpen ? 'bodies' : null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isBodiesDrawerOpen =
-    controlledBodiesOpen !== undefined ? controlledBodiesOpen : isStoreBodiesOpen;
+    controlledBodiesOpen !== undefined
+      ? controlledBodiesOpen
+      : initialBodiesDrawerOpen !== undefined && !isLocallyOverridden && activeDrawer === initialStoreDrawerRef.current
+        ? initialBodiesDrawerOpen
+        : isStoreBodiesOpen;
 
   const setDrawerState = (next: boolean) => {
+    setIsLocallyOverridden(true);
     if (controlledBodiesOpen !== undefined) {
       onBodiesDrawerOpenChange?.(next);
     } else {
