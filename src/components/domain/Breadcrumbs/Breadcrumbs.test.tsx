@@ -73,7 +73,7 @@ describe('<Breadcrumbs />', () => {
     ];
     const { container } = render(<Breadcrumbs items={items} />);
 
-    expect(container.querySelector('[data-type="stellar-system"]')).toBeDefined();
-    expect(container.querySelector('[data-type="super-earth"]')).toBeDefined();
+    expect(container.querySelector('[data-celestial-title="stellar-system"]')).not.toBeNull();
+    expect(container.querySelector('[data-celestial-title="super-earth"]')).not.toBeNull();
   });
 });

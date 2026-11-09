@@ -59,7 +59,7 @@ describe('<GuideExamplesList />', () => {
       <GuideExamplesList examples={examplesWithReticles} />
     );
 
-    const titleEl = container.querySelector('[data-type="gas-giant"]');
-    expect(titleEl).toBeDefined();
+    const titleEl = container.querySelector('[data-celestial-title="gas-giant"]');
+    expect(titleEl).not.toBeNull();
   });
 });

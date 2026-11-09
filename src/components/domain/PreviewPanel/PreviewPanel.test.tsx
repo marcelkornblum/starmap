@@ -76,6 +76,6 @@ describe('<PreviewPanel />', () => {
       reticleType: 'terrestrial',
     };
     const { container } = render(<PreviewPanel preview={planetPreview} />);
-    expect(container.querySelector('[data-type="terrestrial"]')).toBeDefined();
+    expect(container.querySelector('[data-celestial-symbol="terrestrial"]')).not.toBeNull();
   });
 });
