@@ -284,6 +284,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
   const focus = (routeSearch?.focus as string | undefined) ?? searchParams.get('focus') ?? undefined;
   const layer = (routeSearch?.layer as string | undefined) ?? searchParams.get('layer') ?? undefined;
   const route = (routeSearch?.route as string | undefined) ?? searchParams.get('route') ?? undefined;
+  const journeyOption = (routeSearch?.journeyOption as string | undefined) ?? searchParams.get('journeyOption') ?? undefined;
   const center = (routeSearch?.center as string | undefined) ?? searchParams.get('center') ?? undefined;
 
   const rawPlanetId =
@@ -326,10 +327,10 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
   }, [breadcrumbs, lastGalaxySearch]);
 
   const routeSearchQuery = route
-    ? `?route=${encodeURIComponent(route)}`
+    ? `?route=${encodeURIComponent(route)}${journeyOption ? `&journeyOption=${encodeURIComponent(journeyOption)}` : ''}`
     : search;
   const routeStops = extractUrlRouteStops(routeSearchQuery, 'planet');
-  const routeOptionId = extractUrlJourneyOptionId(routeSearchQuery);
+  const routeOptionId = journeyOption ?? extractUrlJourneyOptionId(routeSearchQuery);
   const activeJourney = routeStops
     ? buildJourneyPlan({
         stops: routeStops,
@@ -337,7 +338,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
         corpus: activeCorpus,
         viewScope: 'planet',
         currentPathname: pathname,
-        currentSearch: routeSearchQuery,
+        currentSearch: search,
       })
     : null;
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { type ThreeEvent } from '@react-three/fiber';
 import {
@@ -112,11 +112,19 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     }
   }, [initialSelectedId, storeApi]);
 
+  const applyingOuterSelectionRef = useRef(false);
+  const applyingOuterFocusRef = useRef(false);
+
   // Synchronise outer store selectedIds inward to local spatial entity store.
   useEffect(() => {
     if (!outerStore || outerStore === storeApi) return;
     const applyOuterSelection = (ids: ReadonlySet<string>): void => {
-      storeApi.getState().setSelectedIds(ids);
+      applyingOuterSelectionRef.current = true;
+      try {
+        storeApi.getState().setSelectedIds(ids);
+      } finally {
+        applyingOuterSelectionRef.current = false;
+      }
     };
     applyOuterSelection(outerStore.getState().selectedIds);
 
@@ -131,29 +139,34 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   useEffect(() => {
     if (!outerStore || outerStore === storeApi) return;
     const applyOuterFocus = (focusedId: string | null): void => {
-      let resolvedLocalId = focusedId;
-      if (focusedId) {
-        const outerEntity = outerStore.getState().entities[focusedId];
-        const localEntities = storeApi.getState().entities;
-        const targetSlug = toUrlSlug(focusedId);
-        const outerNameSlug = outerEntity?.name ? toUrlSlug(outerEntity.name) : null;
+      applyingOuterFocusRef.current = true;
+      try {
+        let resolvedLocalId = focusedId;
+        if (focusedId) {
+          const outerEntity = outerStore.getState().entities[focusedId];
+          const localEntities = storeApi.getState().entities;
+          const targetSlug = toUrlSlug(focusedId);
+          const outerNameSlug = outerEntity?.name ? toUrlSlug(outerEntity.name) : null;
 
-        const localMatch = Object.values(localEntities).find(
-          (e) =>
-            e.id === focusedId ||
-            toUrlSlug(e.id) === targetSlug ||
-            toUrlSlug(e.name) === targetSlug ||
-            (outerNameSlug && toUrlSlug(e.name) === outerNameSlug),
-        );
+          const localMatch = Object.values(localEntities).find(
+            (e) =>
+              e.id === focusedId ||
+              toUrlSlug(e.id) === targetSlug ||
+              toUrlSlug(e.name) === targetSlug ||
+              (outerNameSlug && toUrlSlug(e.name) === outerNameSlug),
+          );
 
-        if (localMatch) {
-          resolvedLocalId = localMatch.id;
-        } else if (outerEntity && !localEntities[outerEntity.id]) {
-          storeApi.getState().registerEntity(outerEntity);
+          if (localMatch) {
+            resolvedLocalId = localMatch.id;
+          } else if (outerEntity && !localEntities[outerEntity.id]) {
+            storeApi.getState().registerEntity(outerEntity);
+          }
         }
-      }
-      if (storeApi.getState().focusedId !== resolvedLocalId) {
-        storeApi.getState().setFocused(resolvedLocalId);
+        if (storeApi.getState().focusedId !== resolvedLocalId) {
+          storeApi.getState().setFocused(resolvedLocalId);
+        }
+      } finally {
+        applyingOuterFocusRef.current = false;
       }
     };
     applyOuterFocus(outerStore.getState().focusedId);
@@ -218,33 +231,37 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       }
 
       if (state.selectedId !== prevState.selectedId) {
-        if (outerStore && outerStore !== storeApi) {
-          if (state.selectedId) {
-            const entity = state.entities[state.selectedId];
-            if (entity) {
-              outerStore.getState().registerEntity(entity);
+        if (!applyingOuterSelectionRef.current) {
+          if (outerStore && outerStore !== storeApi) {
+            if (state.selectedId) {
+              const entity = state.entities[state.selectedId];
+              if (entity) {
+                outerStore.getState().registerEntity(entity);
+              }
+            }
+            if (outerStore.getState().selectedId !== state.selectedId) {
+              outerStore.getState().setSelected(state.selectedId);
             }
           }
-          if (outerStore.getState().selectedId !== state.selectedId) {
-            outerStore.getState().setSelected(state.selectedId);
-          }
+          onSelect?.(state.selectedId);
         }
-        onSelect?.(state.selectedId);
       }
 
       if (state.focusedId !== prevState.focusedId) {
-        if (outerStore && outerStore !== storeApi) {
-          if (state.focusedId) {
-            const entity = state.entities[state.focusedId];
-            if (entity) {
-              outerStore.getState().registerEntity(entity);
+        if (!applyingOuterFocusRef.current) {
+          if (outerStore && outerStore !== storeApi) {
+            if (state.focusedId) {
+              const entity = state.entities[state.focusedId];
+              if (entity) {
+                outerStore.getState().registerEntity(entity);
+              }
+            }
+            if (outerStore.getState().focusedId !== state.focusedId) {
+              outerStore.getState().setFocused(state.focusedId);
             }
           }
-          if (outerStore.getState().focusedId !== state.focusedId) {
-            outerStore.getState().setFocused(state.focusedId);
-          }
+          onFocusChange?.(state.focusedId);
         }
-        onFocusChange?.(state.focusedId);
       }
     });
   }, [storeApi, outerStore, onSelect, onFocusChange]);

@@ -349,7 +349,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
         corpus: activeCorpus,
         viewScope: 'system',
         currentPathname: pathname,
-        currentSearch: routeSearchQuery,
+        currentSearch: search,
       })
     : null;
 

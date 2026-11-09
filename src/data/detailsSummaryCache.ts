@@ -125,9 +125,26 @@ export const loadSummaryBucket = (
       SUMMARY_BUCKET_CACHE.delete(bucketKey);
       throw err;
     });
+
+    if (signal) {
+      const onAbort = () => {
+        signal.removeEventListener('abort', onAbort);
+        if (SUMMARY_BUCKET_CACHE.get(bucketKey) === pending) {
+          SUMMARY_BUCKET_CACHE.delete(bucketKey);
+        }
+      };
+      signal.addEventListener('abort', onAbort);
+    }
+
     SUMMARY_BUCKET_CACHE.set(bucketKey, pending);
   }
-  return pending;
+
+  return pending.catch((err: unknown) => {
+    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
+      return loadSummaryBucket(bucketKey, fetchImpl, signal, onLoaded);
+    }
+    throw err;
+  });
 };
 
 /**

@@ -108,8 +108,22 @@ export const fetchLayerIndex = (
       layerIndexPromise = undefined;
       throw err;
     });
+
+    if (signal) {
+      const onAbort = () => {
+        signal.removeEventListener('abort', onAbort);
+        layerIndexPromise = undefined;
+      };
+      signal.addEventListener('abort', onAbort);
+    }
   }
-  return layerIndexPromise;
+
+  return layerIndexPromise.catch((err: unknown) => {
+    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
+      return fetchLayerIndex(fetchImpl, signal);
+    }
+    throw err;
+  });
 };
 
 /**
@@ -142,9 +156,26 @@ export const fetchLayerManifest = (
         MANIFEST_CACHE.delete(layerId);
         throw err;
       });
+
+    if (signal) {
+      const onAbort = () => {
+        signal.removeEventListener('abort', onAbort);
+        if (MANIFEST_CACHE.get(layerId) === pending) {
+          MANIFEST_CACHE.delete(layerId);
+        }
+      };
+      signal.addEventListener('abort', onAbort);
+    }
+
     MANIFEST_CACHE.set(layerId, pending);
   }
-  return pending;
+
+  return pending.catch((err: unknown) => {
+    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
+      return fetchLayerManifest(layerId, fetchImpl, signal);
+    }
+    throw err;
+  });
 };
 
 const fetchEntityBucket = (
@@ -175,9 +206,26 @@ const fetchEntityBucket = (
       ENTITY_BUCKET_CACHE.delete(bucketKey);
       throw err;
     });
+
+    if (signal) {
+      const onAbort = () => {
+        signal.removeEventListener('abort', onAbort);
+        if (ENTITY_BUCKET_CACHE.get(bucketKey) === pending) {
+          ENTITY_BUCKET_CACHE.delete(bucketKey);
+        }
+      };
+      signal.addEventListener('abort', onAbort);
+    }
+
     ENTITY_BUCKET_CACHE.set(bucketKey, pending);
   }
-  return pending;
+
+  return pending.catch((err: unknown) => {
+    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
+      return fetchEntityBucket(bucketKey, fetchImpl, signal);
+    }
+    throw err;
+  });
 };
 
 /**

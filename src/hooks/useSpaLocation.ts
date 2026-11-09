@@ -13,6 +13,7 @@ export interface StarmapSearchParams {
 
 export interface SpaRouterNavigateOptions {
   to?: string;
+  href?: string;
   search?:
     | ((prev: StarmapSearchParams) => StarmapSearchParams)
     | ((prev: Record<string, unknown>) => Record<string, unknown>)
@@ -34,6 +35,7 @@ export interface SpaRouterLike {
   ) => (() => void) | undefined;
   readonly history?: {
     subscribe?: (callback: () => void) => (() => void) | undefined;
+    push?: (path: string) => void;
   };
 }
 

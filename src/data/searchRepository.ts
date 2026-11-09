@@ -93,28 +93,46 @@ export const fetchSearchShard = async (
     return cached;
   }
 
-  const loadPromise = (async (): Promise<readonly CompactSearchEntry[]> => {
-    const response = signal
-      ? await fetcher(SHARD_URLS[shard], { signal })
-      : await fetcher(SHARD_URLS[shard]);
-    if (!response.ok) {
-      throw new Error(`Failed to load search shard "${shard}" (${response.status})`);
-    }
-    const payload: unknown = await response.json();
-    if (!isSearchIndexEnvelope(payload)) {
-      throw new Error(`Invalid search index envelope in shard "${shard}"`);
-    }
-    resolvedShardCache.set(shard, payload.d);
-    notifySearchListeners();
-    return payload.d;
-  })();
+  let loadPromise = shardCache.get(shard);
+  if (!loadPromise) {
+    loadPromise = (async (): Promise<readonly CompactSearchEntry[]> => {
+      const response = signal
+        ? await fetcher(SHARD_URLS[shard], { signal })
+        : await fetcher(SHARD_URLS[shard]);
+      if (!response.ok) {
+        throw new Error(`Failed to load search shard "${shard}" (${response.status})`);
+      }
+      const payload: unknown = await response.json();
+      if (!isSearchIndexEnvelope(payload)) {
+        throw new Error(`Invalid search index envelope in shard "${shard}"`);
+      }
+      resolvedShardCache.set(shard, payload.d);
+      notifySearchListeners();
+      return payload.d;
+    })().catch((err: unknown) => {
+      shardCache.delete(shard);
+      throw err;
+    });
 
-  shardCache.set(shard, loadPromise);
-  loadPromise.catch(() => {
-    shardCache.delete(shard);
+    if (signal) {
+      const onAbort = () => {
+        signal.removeEventListener('abort', onAbort);
+        if (shardCache.get(shard) === loadPromise) {
+          shardCache.delete(shard);
+        }
+      };
+      signal.addEventListener('abort', onAbort);
+    }
+
+    shardCache.set(shard, loadPromise);
+  }
+
+  return loadPromise.catch((err: unknown) => {
+    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
+      return fetchSearchShard(shard, fetcher, signal);
+    }
+    throw err;
   });
-
-  return loadPromise;
 };
 
 /**

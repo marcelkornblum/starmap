@@ -14,6 +14,7 @@ import {
 import { useSearchContext } from '../../search/SearchContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { resolveAppHref } from '../../../utils/url';
+import { handleSpaNavigation } from '../../../utils/spaNavigation';
 import styles from './SearchResultItem.module.css';
 
 export interface SearchResultItemProps {
@@ -107,7 +108,7 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
   const anchorRef = useRef<HTMLAnchorElement>(null);
   const searchCtx = useSearchContext();
 
-  const handleClick = (_event: MouseEvent<HTMLAnchorElement>): void => {
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>): void => {
     if (targetView === 'galaxy') {
       const focusParam = new URLSearchParams(href.split('?')[1] ?? '').get('focus');
       if (focusParam) {
@@ -124,6 +125,7 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
     if (onSelect) {
       onSelect(result);
     }
+    handleSpaNavigation(event, href);
   };
 
   const handleRowClick = (e: MouseEvent<HTMLLIElement>): void => {

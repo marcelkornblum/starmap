@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   createRouter,
   createRoute,
@@ -26,6 +26,7 @@ import {
   type StarmapSearchParams,
   registerAppRouter,
 } from '../hooks/useSpaLocation';
+import { handleSpaNavigation } from '../utils/spaNavigation';
 
 export {
   useSpaLocation,
@@ -46,12 +47,23 @@ export function stringifyStarmapSearch(search: Record<string, unknown>): string 
 export const RootLayout: React.FC = () => {
   useSpaLocation();
 
+  const handleRootClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as Element | null;
+    const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!anchor) return;
+    if (anchor.target && anchor.target !== '_self') return;
+    if (anchor.hasAttribute('download')) return;
+    const href = anchor.getAttribute('href');
+    if (!href) return;
+    handleSpaNavigation(event, href);
+  }, []);
+
   return (
-    <>
+    <div id="starmap-app-root" onClickCapture={handleRootClick}>
       <ThemeTokenBridge />
       <RootCanvasHost />
       <Outlet />
-    </>
+    </div>
   );
 };
 

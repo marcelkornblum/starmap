@@ -128,6 +128,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const select = (routeSearch?.select as string | undefined) ?? searchParams.get('select') ?? undefined;
   const layer = (routeSearch?.layer as string | undefined) ?? searchParams.get('layer') ?? undefined;
   const route = (routeSearch?.route as string | undefined) ?? searchParams.get('route') ?? undefined;
+  const journeyOption = (routeSearch?.journeyOption as string | undefined) ?? searchParams.get('journeyOption') ?? undefined;
   const center = (routeSearch?.center as string | undefined) ?? searchParams.get('center') ?? undefined;
 
   const pathnameSlug = pathname.startsWith('/galaxy/')
@@ -137,6 +138,21 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : urlSystemSlug;
   const hasExplicitFocus = Boolean((focus || urlSystemSlug) && urlFocusSlug && urlFocusSlug.length > 0);
   const pendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
+  const canvasFocusedSlugsRef = useRef<Set<string>>(new Set());
+  const pendingCanvasFocusRef = useRef<{ active: boolean; slug: string | null }>({
+    active: false,
+    slug: null,
+  });
+
+  if (pendingCenterSlug) {
+    canvasFocusedSlugsRef.current.delete(pendingCenterSlug);
+  }
+  if (
+    pendingCanvasFocusRef.current.active &&
+    urlFocusSlug === pendingCanvasFocusRef.current.slug
+  ) {
+    pendingCanvasFocusRef.current.active = false;
+  }
 
   const prevUrlRef = useRef<string | null>(null);
   useEffect(() => {
@@ -144,6 +160,13 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     const urlChanged = prevUrlRef.current !== null && prevUrlRef.current !== nextUrl;
     const isExplicitLocation = locationPathname !== undefined || locationSearch !== undefined;
     prevUrlRef.current = nextUrl;
+
+    if (
+      pendingCanvasFocusRef.current.active &&
+      pendingCanvasFocusRef.current.slug !== null
+    ) {
+      return;
+    }
 
     if ((isExplicitLocation || urlChanged) && !urlFocusSlug && !hasExplicitFocus) {
       if (storeApi.getState().focusedId) {
@@ -409,10 +432,10 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   );
 
   const routeSearchQuery = route
-    ? `?route=${encodeURIComponent(route)}`
+    ? `?route=${encodeURIComponent(route)}${journeyOption ? `&journeyOption=${encodeURIComponent(journeyOption)}` : ''}`
     : search;
   const routeStops = extractUrlRouteStops(routeSearchQuery, 'galaxy');
-  const routeOptionId = extractUrlJourneyOptionId(routeSearchQuery);
+  const routeOptionId = journeyOption ?? extractUrlJourneyOptionId(routeSearchQuery);
   const activeJourney = routeStops
     ? buildJourneyPlan({
         stops: routeStops,
@@ -420,7 +443,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         corpus: activeCorpus,
         viewScope: 'galaxy',
         currentPathname: pathname,
-        currentSearch: routeSearchQuery,
+        currentSearch: search,
       })
     : null;
 
@@ -450,10 +473,17 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       return [cameraState.x, cameraState.y, cameraState.z];
     }
 
+    const isCanvasClickFocus =
+      pendingCanvasFocusRef.current.active ||
+      (Boolean(urlFocusSlug) &&
+        canvasFocusedSlugsRef.current.has(urlFocusSlug!) &&
+        pendingCenterSlug !== urlFocusSlug);
+
     const effectiveCenterSlug =
       (center ? toUrlSlug(center) : undefined) ??
       cameraState.center ??
       pendingCenterSlug ??
+      (!isCanvasClickFocus ? urlFocusSlug : undefined) ??
       undefined;
 
     if (
@@ -569,35 +599,20 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     urlFocusSlug,
   ]);
 
-  const handleSelectSystem = useCallback((id: string | null) => {
-    useCameraStore.getState().setPendingCenterSlug(null);
-    if (id) {
-      void appRouter
-        .navigate?.({
-          to: '/galaxy',
-          search: (prev: StarmapSearchParams = {}) => ({
-            ...prev,
-            focus: id,
-          }),
-          replace: true,
-        })
-        ?.catch(() => {});
-    } else {
-      void appRouter
-        .navigate?.({
-          to: '/galaxy',
-          search: (prev: StarmapSearchParams = {}) => ({
-            ...prev,
-            focus: undefined,
-          }),
-          replace: true,
-        })
-        ?.catch(() => {});
+  const recordCanvasFocus = useCallback((id: string | null) => {
+    const slug = id ? toUrlSlug(id) : null;
+    if (slug) {
+      canvasFocusedSlugsRef.current.add(slug);
     }
+    if (id) {
+      canvasFocusedSlugsRef.current.add(id);
+    }
+    pendingCanvasFocusRef.current = { active: true, slug };
+    useCameraStore.getState().setPendingCenterSlug(null);
   }, []);
 
-  const handleFocusChange = useCallback((id: string | null) => {
-    useCameraStore.getState().setPendingCenterSlug(null);
+  const handleSelectSystem = useCallback((id: string | null) => {
+    recordCanvasFocus(id);
     if (id) {
       void appRouter
         .navigate?.({
@@ -621,7 +636,34 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         })
         ?.catch(() => {});
     }
-  }, []);
+  }, [recordCanvasFocus]);
+
+  const handleFocusChange = useCallback((id: string | null) => {
+    recordCanvasFocus(id);
+    if (id) {
+      void appRouter
+        .navigate?.({
+          to: '/galaxy',
+          search: (prev: StarmapSearchParams = {}) => ({
+            ...prev,
+            focus: id,
+          }),
+          replace: true,
+        })
+        ?.catch(() => {});
+    } else {
+      void appRouter
+        .navigate?.({
+          to: '/galaxy',
+          search: (prev: StarmapSearchParams = {}) => ({
+            ...prev,
+            focus: undefined,
+          }),
+          replace: true,
+        })
+        ?.catch(() => {});
+    }
+  }, [recordCanvasFocus]);
 
   return (
     <SpatialShell

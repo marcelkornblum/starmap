@@ -192,9 +192,26 @@ const loadDetailBucket = (
       DETAIL_BUCKET_CACHE.delete(bucketKey);
       throw err;
     });
+
+    if (signal) {
+      const onAbort = () => {
+        signal.removeEventListener('abort', onAbort);
+        if (DETAIL_BUCKET_CACHE.get(bucketKey) === pending) {
+          DETAIL_BUCKET_CACHE.delete(bucketKey);
+        }
+      };
+      signal.addEventListener('abort', onAbort);
+    }
+
     DETAIL_BUCKET_CACHE.set(bucketKey, pending);
   }
-  return pending;
+
+  return pending.catch((err: unknown) => {
+    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
+      return loadDetailBucket(bucketKey, fetchImpl, signal);
+    }
+    throw err;
+  });
 };
 
 /**
