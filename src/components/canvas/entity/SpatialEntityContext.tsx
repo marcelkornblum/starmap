@@ -59,20 +59,6 @@ export const ApertureEvaluator: React.FC = () => {
   const store = useSpatialEntityStoreApi();
   const scratchApertureRef = useLazyRef(() => new Set<string>());
 
-  const activeStarsRef = useRef({
-    summariesLength: useActiveStarsStore.getState().summaries.length,
-    isHydrated: useActiveStarsStore.getState().isHydrated,
-  });
-
-  useEffect(() => {
-    return useActiveStarsStore.subscribe((starsState) => {
-      activeStarsRef.current = {
-        summariesLength: starsState.summaries.length,
-        isHydrated: starsState.isHydrated,
-      };
-    });
-  }, []);
-
   useFrame((r3fState) => {
     if (!frameCtx?.frameRef?.current) return;
     const { focusPoint, apertureRadius } = frameCtx.frameRef.current;
