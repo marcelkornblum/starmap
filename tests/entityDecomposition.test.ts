@@ -21,9 +21,19 @@ import { CelestialEntity } from '../src/components/canvas/entity/CelestialEntity
 import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../src/components/canvas/math/kepler';
 import { celestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/canvas/instrument';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
 
-const renderInFrame = (element: React.ReactElement) =>
-  renderToString(createElement(SpatialFrameProvider, { frame: GALACTIC_FRAME }, element));
+const renderInFrame = (...children: React.ReactNode[]) =>
+  renderToString(
+    createElement(
+      SpatialEntityProvider,
+      null,
+      createElement(SpatialFrameProvider, { frame: GALACTIC_FRAME, focusPoint: [0, 0, 0] }, ...children),
+    ),
+  );
+
+const renderWithProviders = (element: React.ReactElement) =>
+  renderToString(createElement(SpatialEntityProvider, null, element));
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();
@@ -174,7 +184,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
 
   describe('BodyMarker primitive (Layer 1: Physical System Node)', () => {
     it('renders central celestial marker in monochrome and invisible hitarea mesh', () => {
-      const html = renderToString(
+      const html = renderWithProviders(
         createElement(BodyMarker, {
           id: 'test-node',
           position: [1, 2, 3],
@@ -186,7 +196,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
     });
 
     it('supports custom size and monochrome styling', () => {
-      const html = renderToString(
+      const html = renderWithProviders(
         createElement(BodyMarker, {
           id: 'mono-node',
           position: [0, 0, 0],
@@ -199,7 +209,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
 
   describe('Reticle primitive (Layer 2: Tactical Geometric Reticle)', () => {
     it('renders basic geometric diamond frame for single star without multiplicity annotations in active state', () => {
-      const html = renderToString(
+      const html = renderWithProviders(
         createElement(Reticle, {
           id: 'star-reticle',
           classification: 'star',
@@ -214,7 +224,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
     });
 
     it('renders multiplicity annotations for binary/multiple systems in active state', () => {
-      const html = renderToString(
+      const html = renderWithProviders(
         createElement(Reticle, {
           id: 'binary-active',
           classification: 'star',
@@ -228,7 +238,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
     });
 
     it('renders full Four-Facet composite reticle with multiplicity and census in selected/focused states', () => {
-      const html = renderToString(
+      const html = renderWithProviders(
         createElement(Reticle, {
           id: 'binary-star',
           classification: 'star',
@@ -261,7 +271,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       ] as const;
 
       classifications.forEach((cls) => {
-        const html = renderToString(
+        const html = renderWithProviders(
           createElement(Reticle, {
             id: `reticle-${cls}`,
             classification: cls,
@@ -408,7 +418,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
 
   describe('EntityLabel primitive (Layer 3: Typographic Label)', () => {
     it('renders label with name and spectral tag cleanly in SSR', () => {
-      const html = renderToString(
+      const html = renderWithProviders(
         createElement(EntityLabel, {
           id: 'label-sol',
           name: 'Sol',
@@ -422,7 +432,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
     });
 
     it('formats multiple star designation in spectral facet with compact centered dot and no spaces', () => {
-      const html = renderToString(
+      const html = renderWithProviders(
         createElement(EntityLabel, {
           id: 'label-sirius',
           name: 'Sirius',
@@ -583,7 +593,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
     });
 
     it('renders BodyMarker with debugHitarea wireframe mesh when enabled', () => {
-      const htmlNormal = renderToString(
+      const htmlNormal = renderWithProviders(
         createElement(BodyMarker, {
           id: 'test-norm',
           position: [0, 0, 0],
@@ -592,7 +602,7 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       );
       expect(htmlNormal).toContain('name="celestial-hitarea"');
 
-      const htmlDebug = renderToString(
+      const htmlDebug = renderWithProviders(
         createElement(BodyMarker, {
           id: 'test-debug',
           position: [0, 0, 0],
@@ -652,13 +662,9 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
 
     describe('Component useFrame screen-invariant scaling inside SpatialFrameProvider', () => {
       it('Reticle instances at different distances receive scale proportional to their own camDist', () => {
-        renderToString(
-          createElement(
-            SpatialFrameProvider,
-            { frame: GALACTIC_FRAME, focusPoint: [0, 0, 0] },
-            createElement(Reticle, { id: 'reticle-near', position: [0, 0, 0] }),
-            createElement(Reticle, { id: 'reticle-far', position: [0, 0, -20] }),
-          ),
+        renderInFrame(
+          createElement(Reticle, { id: 'reticle-near', position: [0, 0, 0] }),
+          createElement(Reticle, { id: 'reticle-far', position: [0, 0, -20] }),
         );
 
         // Call 0 is SpatialFrameProvider (priority spatialFrame = -0.5)
@@ -707,13 +713,9 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       });
 
       it('BodyMarker instances at different distances receive hitarea scale proportional to their own camDist', () => {
-        renderToString(
-          createElement(
-            SpatialFrameProvider,
-            { frame: GALACTIC_FRAME, focusPoint: [0, 0, 0] },
-            createElement(BodyMarker, { id: 'marker-near', position: [0, 0, 0] }),
-            createElement(BodyMarker, { id: 'marker-far', position: [0, 0, -20] }),
-          ),
+        renderInFrame(
+          createElement(BodyMarker, { id: 'marker-near', position: [0, 0, 0] }),
+          createElement(BodyMarker, { id: 'marker-far', position: [0, 0, -20] }),
         );
 
         const calls = vi.mocked(useFrame).mock.calls;
@@ -754,13 +756,9 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       });
 
       it('EntityLabel instances at different distances receive scale proportional to their own camDist', () => {
-        renderToString(
-          createElement(
-            SpatialFrameProvider,
-            { frame: GALACTIC_FRAME, focusPoint: [0, 0, 0] },
-            createElement(EntityLabel, { id: 'label-near', name: 'Near', position: [0, 0, 0] }),
-            createElement(EntityLabel, { id: 'label-far', name: 'Far', position: [0, 0, -20] }),
-          ),
+        renderInFrame(
+          createElement(EntityLabel, { id: 'label-near', name: 'Near', position: [0, 0, 0] }),
+          createElement(EntityLabel, { id: 'label-far', name: 'Far', position: [0, 0, -20] }),
         );
 
         const calls = vi.mocked(useFrame).mock.calls;
@@ -850,13 +848,9 @@ describe('Entity Store & Node Decomposition (Phase 3)', () => {
       });
 
       it('Reticle instances receive distance-independent scale under OrthographicCamera', () => {
-        renderToString(
-          createElement(
-            SpatialFrameProvider,
-            { frame: GALACTIC_FRAME, focusPoint: [0, 0, 0] },
-            createElement(Reticle, { id: 'reticle-near', position: [0, 0, 0] }),
-            createElement(Reticle, { id: 'reticle-far', position: [0, 0, -20] }),
-          ),
+        renderInFrame(
+          createElement(Reticle, { id: 'reticle-near', position: [0, 0, 0] }),
+          createElement(Reticle, { id: 'reticle-far', position: [0, 0, -20] }),
         );
 
         const calls = vi.mocked(useFrame).mock.calls;

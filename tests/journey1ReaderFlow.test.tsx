@@ -65,7 +65,8 @@ import {
 } from './layerFixtures';
 import { SAMPLE_CORPUS } from './searchFixtures';
 
-const renderToHtml = (element: ReactElement): string => render(element).container.innerHTML;
+const renderToHtml = (element: ReactElement): string =>
+  render(createElement(SpatialEntityProvider, null, element)).container.innerHTML;
 
 describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () => {
   beforeAll(seedAllLayerData);

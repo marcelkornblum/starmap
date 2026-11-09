@@ -343,8 +343,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
  */
 export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
   const contextStore = useOptionalSpatialEntityStoreApi();
-  const fallbackStore = useSpatialEntityStoreApi();
-  const effectiveOuterStore = props.outerStore ?? contextStore ?? fallbackStore;
+  const effectiveOuterStore = props.outerStore ?? contextStore ?? undefined;
   const { frame = GALACTIC_FRAME, cameraDistance, initialSelectedId } = props;
 
   // Single source of the screen-constant reference distance for both instrument and entities.

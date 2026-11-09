@@ -14,7 +14,6 @@ import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { FRAME_PRIORITY } from '../engineConfig';
 import {
   CelestialOcclusionManager,
-  celestialOcclusionManager as defaultOcclusionManager,
 } from '../cartography/celestialOcclusionRegistry';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
@@ -187,21 +186,28 @@ export const SpatialEntityProvider: React.FC<SpatialEntityProviderProps> = ({
   );
 };
 
-const defaultStore = createSpatialEntityStore();
-
 export function useOcclusionManager(): CelestialOcclusionManager {
   const manager = useContext(OcclusionContext);
-  return manager ?? defaultOcclusionManager;
+  if (!manager) {
+    throw new Error('useOcclusionManager must be used within an <OcclusionContext.Provider> or <SpatialEntityProvider>');
+  }
+  return manager;
 }
 
 export function useSpatialEntityStore<T>(selector: (state: SpatialEntityState) => T): T {
   const store = useContext(SpatialEntityStoreContext);
-  return useStore(store ?? defaultStore, selector);
+  if (!store) {
+    throw new Error('useSpatialEntityStore must be used within a <SpatialEntityProvider>');
+  }
+  return useStore(store, selector);
 }
 
 export function useSpatialEntityStoreApi(): SpatialEntityStore {
   const store = useContext(SpatialEntityStoreContext);
-  return store ?? defaultStore;
+  if (!store) {
+    throw new Error('useSpatialEntityStore must be used within a <SpatialEntityProvider>');
+  }
+  return store;
 }
 
 export function useOptionalSpatialEntityStoreApi(): SpatialEntityStore | null {

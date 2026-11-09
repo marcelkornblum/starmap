@@ -856,7 +856,13 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
     };
 
     it('renders Galactic Systems heading, does NOT render orbital schematic panel, and renders distance caption', () => {
-      const html = renderToString(createElement(BodiesPanel, { elements: mockGalaxySummary }));
+      const html = renderToString(
+        createElement(
+          SpatialEntityProvider,
+          null,
+          createElement(BodiesPanel, { elements: mockGalaxySummary }),
+        ),
+      );
       expect(html).toContain('data-testid="bodies-panel"');
       expect(html).toContain('data-scope="galaxy"');
       expect(html).toContain('data-center-id="sol"');
@@ -869,7 +875,13 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
     });
 
     it('renders system rows with link, reticle, badges, and focus-relative distances', () => {
-      const html = renderToString(createElement(BodiesPanel, { elements: mockGalaxySummary }));
+      const html = renderToString(
+        createElement(
+          SpatialEntityProvider,
+          null,
+          createElement(BodiesPanel, { elements: mockGalaxySummary }),
+        ),
+      );
       expect(html).toContain('data-testid="bodies-galaxy-systems-list"');
       expect(html).toContain('data-testid="bodies-galaxy-system-item"');
       expect(html).toContain('data-system-id="sol"');
@@ -918,7 +930,13 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
         })),
       };
 
-      const html = renderToString(createElement(BodiesPanel, { elements: unfocusedSummary }));
+      const html = renderToString(
+        createElement(
+          SpatialEntityProvider,
+          null,
+          createElement(BodiesPanel, { elements: unfocusedSummary }),
+        ),
+      );
       expect(html).not.toContain('data-testid="bodies-distance-caption"');
       expect(html).not.toContain('data-testid="bodies-focused-origin-badge"');
       expect(html).not.toContain('data-testid="bodies-system-distance"');

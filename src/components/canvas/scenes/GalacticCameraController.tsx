@@ -134,13 +134,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     const isControlsSame = controls === prevControlsRef.current;
     const isInitialMount = Number.isNaN(prev[0]);
 
-    if (
-      isTargetSame &&
-      isDistSame &&
-      isTickSame &&
-      isControlsSame &&
-      (!persistGalaxyPose || hasRestoredRef.current || !useCameraStore.getState().savedGalaxyCamera)
-    ) {
+    if (isTargetSame && isDistSame && isTickSame && isControlsSame) {
       return;
     }
 
@@ -149,45 +143,6 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     }
 
     const saved = persistGalaxyPose ? useCameraStore.getState().savedGalaxyCamera : null;
-    if (!hasRestoredRef.current && saved && distance === undefined) {
-      const isMatch = Math.hypot(
-        saved.target[0] - targetX,
-        saved.target[1] - targetY,
-        saved.target[2] - targetZ,
-      ) < 0.05;
-      const isTransientZero =
-        targetX === 0 && targetY === 0 && targetZ === 0 &&
-        (saved.target[0] !== 0 || saved.target[1] !== 0 || saved.target[2] !== 0);
-
-      if (isMatch || isTransientZero) {
-        camera.position.set(saved.position[0], saved.position[1], saved.position[2]);
-        camera.up.set(saved.up[0], saved.up[1], saved.up[2]);
-        applyCameraSavedZoom(camera, saved.zoom);
-
-        if (controls) {
-          controls.target.set(saved.target[0], saved.target[1], saved.target[2]);
-          controls.update?.();
-          hasRestoredRef.current = true;
-        } else {
-          camera.lookAt(saved.target[0], saved.target[1], saved.target[2]);
-        }
-
-        useCameraStore.getState().setCameraPose({
-          position: saved.position,
-          target: saved.target,
-          up: saved.up,
-          zoom: getCameraZoom(camera),
-          focalDistance: saved.focalDistance,
-        });
-
-        if (controls && isMatch) saveCurrentGalaxyPose();
-        prevTargetRef.current = [targetX, targetY, targetZ];
-        prevDistanceRef.current = distance ?? Number.NaN;
-        prevRecenterTickRef.current = recenterTick;
-        prevControlsRef.current = controls;
-        return;
-      }
-    }
 
     if (isInitialMount && saved && distance === undefined) {
       const relOffsetX = saved.position[0] - saved.target[0];

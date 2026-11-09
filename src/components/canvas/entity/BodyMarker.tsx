@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
@@ -71,6 +71,49 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   const occlusionManager = useOcclusionManager();
   const frameCtx = useSpatialFrameSafe();
 
+  const setMarkerRef = useCallback((node: THREE.Mesh | null) => {
+    if (node && !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
+      markerRef.current = node;
+    }
+  }, [markerRef]);
+  const setHitareaRef = useCallback((node: THREE.Mesh | null) => {
+    if (node && !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
+      hitareaRef.current = node;
+    }
+  }, [hitareaRef]);
+  const setBillboardRef = useCallback((node: THREE.Group | null) => {
+    if (node && !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
+      billboardRef.current = node;
+    }
+  }, [billboardRef]);
+  const setGroupRef = useCallback((node: THREE.Group | null) => {
+    if (node && !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
+      groupRef.current = node;
+    }
+  }, [groupRef]);
+
+  const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handlePointerUp = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      e.stopPropagation();
+      if (!pointerDownPosRef.current) return;
+      const startX = pointerDownPosRef.current.x;
+      const startY = pointerDownPosRef.current.y;
+      pointerDownPosRef.current = null;
+      const distance = Math.hypot(e.clientX - startX, e.clientY - startY);
+      if (distance <= 8 && onClick) {
+        onClick(id, e as unknown as ThreeEvent<MouseEvent>);
+      }
+    },
+    [id, onClick],
+  );
+
   useEffect(() => {
     return () => {
       document.body.style.cursor = 'auto';
@@ -118,13 +161,15 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
       const reticleRadiusPx = reticleSizeToScreenPx(rSize, size.height);
       const pxToLocal = reticleRadiusPx > 0 ? (rSize * invScale) / reticleRadiusPx : 0;
       hitareaRef.current.position.set(hitOffset.x * pxToLocal, -hitOffset.y * pxToLocal, 0);
+
+      billboardRef.current.updateMatrixWorld(true);
     }
   });
 
   return (
-    <group ref={groupRef} position={[posX, posY, posZ]} name={`body-marker-${id}`}>
+    <group ref={setGroupRef} position={[posX, posY, posZ]} name={`body-marker-${id}`}>
       {/* Physical System Dot (Invariant Screen Size, Monochrome) */}
-      <mesh ref={markerRef} name="celestial-point-dot" geometry={SHARED_DOT_GEOMETRY}>
+      <mesh ref={setMarkerRef} name="celestial-point-dot" geometry={SHARED_DOT_GEOMETRY}>
         <meshBasicMaterial
           ref={markerMaterialRef}
           color={color ?? reticleBracketColor}
@@ -135,15 +180,13 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
 
       {/* Camera-Facing Invisible Hitarea (Billboarded with Screen-Space Fan-Out) */}
       {interactive && (
-        <group ref={billboardRef} name={`hitarea-billboard-${id}`}>
+        <group ref={setBillboardRef} name={`hitarea-billboard-${id}`}>
           <mesh
-            ref={hitareaRef}
+            ref={setHitareaRef}
             name="celestial-hitarea"
             geometry={SHARED_HITAREA_GEOMETRY}
-            onClick={onClick ? (e) => {
-              e.stopPropagation();
-              onClick(id, e);
-            } : undefined}
+            onPointerDown={onClick ? handlePointerDown : undefined}
+            onPointerUp={onClick ? handlePointerUp : undefined}
             onDoubleClick={onDoubleClick ? (e) => {
               e.stopPropagation();
               onDoubleClick(id, e);
