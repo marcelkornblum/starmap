@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useShallow } from 'zustand/react/shallow';
 import {
@@ -136,6 +136,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const urlSystemSlug = urlFocusSlug;
   const hasExplicitFocus = Boolean(focus && urlFocusSlug && urlFocusSlug.length > 0);
   const pendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
+  const canvasFocusedSlugs = useCameraStore((state) => state.canvasFocusedSlugs);
 
   if (
     (locationPathname !== undefined || locationSearch !== undefined) &&
@@ -192,8 +193,9 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       }
     }
     return urlFocusEntity ?? storeFocusedEntity;
-  }, [urlFocusSlug, hasExplicitFocus, storeFocusedEntity, apertureCorpus, urlFocusEntity]);
+  }, [urlFocusSlug, storeFocusedEntity, apertureCorpus, urlFocusEntity]);
 
+  const prevUrlFocusSlugRef = useRef<string | null>(urlFocusSlug);
   useEffect(() => {
     const store = storeApi.getState();
     const currentFocusedId = store.focusedId;
@@ -212,10 +214,13 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       if (useUIStore.getState().detailsDetent === 'collapsed') {
         useUIStore.getState().setDetailsDetent('peek');
       }
-    } else if (hasExplicitFocus === false && currentFocusedId !== null) {
-      store.setFocused(null);
+    } else if (prevUrlFocusSlugRef.current !== null && !urlFocusSlug) {
+      if (currentFocusedId !== null) {
+        store.setFocused(null);
+      }
     }
-  }, [urlFocusSlug, hasExplicitFocus, focusedEntity, storeApi]);
+    prevUrlFocusSlugRef.current = urlFocusSlug;
+  }, [urlFocusSlug, focusedEntity, storeApi]);
 
   useEffect(() => {
     if (pathname === '/galaxy') {
@@ -437,15 +442,25 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       return [cameraState.x, cameraState.y, cameraState.z];
     }
 
+    const isCanvasClickFocus =
+      urlFocusSlug !== null &&
+      (canvasFocusedSlugs.has(urlFocusSlug) ||
+        canvasFocusedSlugs.has(toUrlSlug(urlFocusSlug))) &&
+      pendingCenterSlug !== urlFocusSlug;
+
     const effectiveCenterSlug =
       (center ? toUrlSlug(center) : undefined) ??
       cameraState.center ??
       pendingCenterSlug ??
+      (!isCanvasClickFocus && urlFocusSlug ? toUrlSlug(urlFocusSlug) : undefined) ??
       undefined;
 
     if (
       effectiveCenterSlug &&
-      (effectiveCenterSlug === urlFocusSlug || effectiveCenterSlug === pendingCenterSlug) &&
+      (effectiveCenterSlug === urlFocusSlug ||
+        effectiveCenterSlug === pendingCenterSlug ||
+        effectiveCenterSlug === (center ? toUrlSlug(center) : undefined) ||
+        effectiveCenterSlug === cameraState.center) &&
       focusedEntity?.position &&
       (focusedEntity.id === effectiveCenterSlug ||
         toUrlSlug(focusedEntity.id) === effectiveCenterSlug ||
@@ -554,9 +569,14 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     pendingCenterSlug,
     selectedEntities,
     urlFocusSlug,
+    canvasFocusedSlugs,
   ]);
 
   const handleFocusChange = useCallback((id: string | null) => {
+    if (id) {
+      useCameraStore.getState().recordCanvasFocus(toUrlSlug(id));
+      useCameraStore.getState().recordCanvasFocus(id);
+    }
     useCameraStore.getState().setPendingCenterSlug(null);
     if (id) {
       void appRouter
@@ -567,7 +587,8 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
             focus: id,
           }),
           replace: true,
-        });
+        })
+        ?.catch(() => {});
     } else {
       void appRouter
         .navigate?.({
@@ -578,7 +599,8 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
             return next;
           },
           replace: true,
-        });
+        })
+        ?.catch(() => {});
     }
   }, []);
 

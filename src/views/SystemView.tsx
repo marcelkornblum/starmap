@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
@@ -328,6 +328,38 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     );
   }, [breadcrumbs, lastGalaxySearch]);
 
+  const handleSelectEntity = useCallback(
+    (id: string | null) => {
+      if (id) {
+        void appRouter
+          .navigate?.({
+            to: '/system/$systemId',
+            params: { systemId: targetId },
+            search: (prev: StarmapSearchParams = {}) => ({
+              ...prev,
+              focus: id,
+            }),
+            replace: true,
+          })
+          ?.catch(() => {});
+      } else {
+        void appRouter
+          .navigate?.({
+            to: '/system/$systemId',
+            params: { systemId: targetId },
+            search: (prev: StarmapSearchParams = {}) => {
+              const next = { ...prev };
+              delete next.focus;
+              return next;
+            },
+            replace: true,
+          })
+          ?.catch(() => {});
+      }
+    },
+    [targetId],
+  );
+
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
 
@@ -504,6 +536,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
             activeJourney?.selectedOption?.id ??
             activeJourney?.options[0]?.id
           }
+          onSelect={handleSelectEntity}
         />
       }
       breadcrumbs={<Breadcrumbs items={resolvedBreadcrumbs} />}

@@ -112,6 +112,7 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
     if (targetView === 'galaxy') {
       const focusParam = new URLSearchParams(href.split('?')[1] ?? '').get('focus');
       if (focusParam) {
+        useCameraStore.getState().clearCanvasFocus();
         useCameraStore.getState().setPendingCenterSlug(focusParam);
         useCameraStore.getState().triggerRecenter();
       }

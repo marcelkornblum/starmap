@@ -187,6 +187,7 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
       cameraTarget={targetCoords}
       onInspect={onInspectPlanet}
       onSelect={onSelectEntity}
+      onFocusChange={onSelectEntity}
       debugHitarea={debugHitarea}
     >
       <GalacticCameraController target={targetCoords} persistGalaxyPose={false} />

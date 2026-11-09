@@ -39,6 +39,8 @@ export interface CameraState {
   lastGalaxySearch: string;
   /** Pending focus slug to center the camera upon (e.g. from search result selection) */
   pendingCenterSlug: string | null;
+  /** Set of entity slugs focused directly via canvas interaction (prevents unwanted recentering) */
+  canvasFocusedSlugs: ReadonlySet<string>;
 }
 
 export type CameraPreset = 'top-down' | 'reset' | 'orbital-lock' | 'radial';
@@ -63,6 +65,8 @@ export interface CameraActions {
   setSavedGalaxyCamera: (pose: SavedGalaxyCameraPose | null) => void;
   setLastGalaxySearch: (search: string) => void;
   setPendingCenterSlug: (slug: string | null) => void;
+  recordCanvasFocus: (slug: string) => void;
+  clearCanvasFocus: () => void;
   requestAxisView: (direction: CardinalDirection) => void;
   clearAxisRequest: () => void;
   applyPreset: (preset: CameraPreset) => void;
@@ -91,6 +95,7 @@ export const INITIAL_CAMERA_STATE: CameraState = {
   savedGalaxyCamera: null,
   lastGalaxySearch: '',
   pendingCenterSlug: null,
+  canvasFocusedSlugs: new Set<string>(),
 };
 
 export const useCameraStore = create<CameraStore>()((set) => ({
@@ -147,6 +152,9 @@ export const useCameraStore = create<CameraStore>()((set) => ({
     set({ savedGalaxyCamera }),
   setLastGalaxySearch: (lastGalaxySearch: string) => set({ lastGalaxySearch }),
   setPendingCenterSlug: (pendingCenterSlug: string | null) => set({ pendingCenterSlug }),
+  recordCanvasFocus: (slug: string) =>
+    set((state) => ({ canvasFocusedSlugs: new Set(state.canvasFocusedSlugs).add(slug) })),
+  clearCanvasFocus: () => set({ canvasFocusedSlugs: new Set<string>() }),
   requestAxisView: (direction: CardinalDirection) => set({ pendingAxisRequest: direction }),
   clearAxisRequest: () => set({ pendingAxisRequest: null }),
   applyPreset: (preset: CameraPreset) => set({ pendingPresetRequest: preset }),

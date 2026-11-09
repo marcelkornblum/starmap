@@ -648,7 +648,7 @@ export const SearchRoot = ({
       ) {
         document.activeElement.blur();
       }
-      if (syncUrl) {
+      if (syncUrl && !item) {
         syncSearchUrlParams('', filter);
       }
       void submitSearch('', filter);

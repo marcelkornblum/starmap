@@ -229,7 +229,6 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
             outerStore.getState().setSelected(state.selectedId);
           }
         }
-        onSelect?.(state.selectedId);
       }
 
       if (state.focusedId !== prevState.focusedId) {
@@ -244,10 +243,9 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
             outerStore.getState().setFocused(state.focusedId);
           }
         }
-        onFocusChange?.(state.focusedId);
       }
     });
-  }, [storeApi, outerStore, onSelect, onFocusChange]);
+  }, [storeApi, outerStore]);
 
   // Single click: select, or advance cyclic selection when re-clicking the selected entity
   const handleEntityClick = useCallback(
@@ -255,8 +253,12 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       activateEntity(storeApi, id, (targetId) =>
         occlusionManager.getCyclicSelectionTarget(targetId),
       );
+      const state = storeApi.getState();
+      const entityId = state.focusedId ?? state.selectedId;
+      onSelect?.(entityId);
+      onFocusChange?.(state.focusedId);
     },
-    [storeApi, occlusionManager],
+    [storeApi, occlusionManager, onSelect, onFocusChange],
   );
 
   // Double click: centre the instrument, focus the entity, and inspect (the single inspect gesture)
@@ -270,6 +272,8 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       focusEntity(storeApi, id);
       onInspect?.(id);
       onDoubleClick?.(id, e);
+      onSelect?.(id);
+      onFocusChange?.(id);
     },
     [
       storeApi,
@@ -278,6 +282,8 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       transitionTo,
       onInspect,
       onDoubleClick,
+      onSelect,
+      onFocusChange,
     ],
   );
 
@@ -285,7 +291,11 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     <group
       name="spatial-viewport"
       data-mode={mode}
-      onPointerMissed={() => clearInteraction(storeApi)}
+      onPointerMissed={() => {
+        clearInteraction(storeApi);
+        onSelect?.(null);
+        onFocusChange?.(null);
+      }}
     >
       {/* Dynamic O(n) screen-space occlusion pass */}
       <OcclusionPass enabled={true} />
