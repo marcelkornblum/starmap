@@ -122,6 +122,85 @@ function sanitizeStageProps(props: CanvasStageData | (CanvasStageData & Record<s
   };
 }
 
+export const areStagePropsEqual = (
+  a: CanvasStageData | null,
+  b: CanvasStageData,
+): boolean => {
+  if (a === b) return true;
+  if (!a) return false;
+  if (
+    a.scope !== b.scope ||
+    a.targetId !== b.targetId ||
+    a.centerId !== b.centerId ||
+    a.cameraAzimuthDeg !== b.cameraAzimuthDeg ||
+    a.cameraElevationDeg !== b.cameraElevationDeg ||
+    a.cameraDistance !== b.cameraDistance ||
+    a.activeJourneyMethod !== b.activeJourneyMethod ||
+    a.activeSystemName !== b.activeSystemName ||
+    a.focusedTargetName !== b.focusedTargetName
+  ) {
+    return false;
+  }
+
+  // centerCoordinates equality
+  if (a.centerCoordinates !== b.centerCoordinates) {
+    if (!a.centerCoordinates || !b.centerCoordinates) return false;
+    if (
+      a.centerCoordinates[0] !== b.centerCoordinates[0] ||
+      a.centerCoordinates[1] !== b.centerCoordinates[1] ||
+      a.centerCoordinates[2] !== b.centerCoordinates[2]
+    ) {
+      return false;
+    }
+  }
+
+  // selectedEntities equality (compare IDs and count)
+  if (a.selectedEntities !== b.selectedEntities) {
+    if (!a.selectedEntities || !b.selectedEntities) return false;
+    if (a.selectedEntities.length !== b.selectedEntities.length) return false;
+    for (let i = 0; i < a.selectedEntities.length; i++) {
+      if (a.selectedEntities[i].id !== b.selectedEntities[i].id) return false;
+    }
+  }
+
+  // routeWaypoints equality
+  if (a.routeWaypoints !== b.routeWaypoints) {
+    if (!a.routeWaypoints || !b.routeWaypoints) return false;
+    if (a.routeWaypoints.length !== b.routeWaypoints.length) return false;
+    for (let i = 0; i < a.routeWaypoints.length; i++) {
+      if (a.routeWaypoints[i] !== b.routeWaypoints[i]) return false;
+    }
+  }
+
+  // journeyLegs equality
+  if (a.journeyLegs !== b.journeyLegs) {
+    if (!a.journeyLegs || !b.journeyLegs) return false;
+    if (a.journeyLegs.length !== b.journeyLegs.length) return false;
+    for (let i = 0; i < a.journeyLegs.length; i++) {
+      if (
+        a.journeyLegs[i].id !== b.journeyLegs[i].id ||
+        a.journeyLegs[i].fromId !== b.journeyLegs[i].fromId ||
+        a.journeyLegs[i].toId !== b.journeyLegs[i].toId
+      ) {
+        return false;
+      }
+    }
+  }
+
+  // cameraState equality
+  if (a.cameraState !== b.cameraState) {
+    if (!a.cameraState || !b.cameraState) return false;
+    const aKeys = Object.keys(a.cameraState);
+    const bKeys = Object.keys(b.cameraState);
+    if (aKeys.length !== bKeys.length) return false;
+    for (const key of aKeys) {
+      if (a.cameraState[key] !== b.cameraState[key]) return false;
+    }
+  }
+
+  return true;
+};
+
 export const useCanvasStageStore = create<CanvasStageStore>()((set) => ({
   ...INITIAL_CANVAS_STAGE_STATE,
   setRootCanvasMounted: (isRootCanvasMounted: boolean) => set({ isRootCanvasMounted }),
@@ -129,7 +208,13 @@ export const useCanvasStageStore = create<CanvasStageStore>()((set) => ({
   unmountSlot: () =>
     set((state) => ({ activeSlotCount: Math.max(0, state.activeSlotCount - 1) })),
   setStageProps: (props: CanvasStageData) =>
-    set({ stageProps: sanitizeStageProps(props) }),
+    set((state) => {
+      const sanitized = sanitizeStageProps(props);
+      if (areStagePropsEqual(state.stageProps, sanitized)) {
+        return state;
+      }
+      return { stageProps: sanitized };
+    }),
   clearStageProps: () => {
     setStageCallbacks(EMPTY_STAGE_CALLBACKS);
     set({ stageProps: null });

@@ -1,4 +1,4 @@
-import React, { useSyncExternalStore, useLayoutEffect, useEffect } from 'react';
+import React, { useSyncExternalStore, useLayoutEffect, useEffect, useMemo } from 'react';
 import {
   useCanvasStageStore,
   getStageCallbacks,
@@ -33,17 +33,8 @@ export const RootCanvasHost: React.FC = () => {
     };
   }, [setRootCanvasMounted]);
 
-  return (
-    <div
-      className={styles.rootCanvasHost}
-      data-testid="root-canvas-host"
-      data-stage-inactive={activeSlotCount === 0 ? 'true' : undefined}
-      data-camera-mode={cameraMode}
-      data-camera-pos={cameraPosition.map((v) => v.toFixed(2)).join(',')}
-      data-camera-target={cameraTarget.map((v) => v.toFixed(2)).join(',')}
-      data-camera-dist={cameraFocalDistance.toFixed(2)}
-      aria-hidden="true"
-    >
+  const canvasLayerContent = useMemo(
+    () => (
       <CanvasLayer
         isRootHost
         scope={stageProps?.scope ?? 'galaxy'}
@@ -64,6 +55,40 @@ export const RootCanvasHost: React.FC = () => {
         onSelect={onSelect}
         onFocusChange={onFocusChange}
       />
+    ),
+    [
+      stageProps?.scope,
+      stageProps?.targetId,
+      stageProps?.centerId,
+      stageProps?.centerCoordinates,
+      stageProps?.selectedEntities,
+      stageProps?.cameraAzimuthDeg,
+      stageProps?.cameraElevationDeg,
+      stageProps?.cameraDistance,
+      stageProps?.journeyLegs,
+      stageProps?.activeJourneyMethod,
+      stageProps?.activeSystemName,
+      stageProps?.focusedTargetName,
+      stageProps?.routeWaypoints,
+      stageProps?.cameraState,
+      onInspect,
+      onSelect,
+      onFocusChange,
+    ],
+  );
+
+  return (
+    <div
+      className={styles.rootCanvasHost}
+      data-testid="root-canvas-host"
+      data-stage-inactive={activeSlotCount === 0 ? 'true' : undefined}
+      data-camera-mode={cameraMode}
+      data-camera-pos={cameraPosition.map((v) => v.toFixed(2)).join(',')}
+      data-camera-target={cameraTarget.map((v) => v.toFixed(2)).join(',')}
+      data-camera-dist={cameraFocalDistance.toFixed(2)}
+      aria-hidden="true"
+    >
+      {canvasLayerContent}
     </div>
   );
 };

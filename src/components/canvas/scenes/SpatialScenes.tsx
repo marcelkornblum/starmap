@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useState, useMemo, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 
 import {
@@ -31,6 +31,35 @@ import {
 export { GalacticCameraController, type GalacticCameraControllerProps };
 
 const ORIGIN_COORDS: readonly [number, number, number] = [0, 0, 0];
+
+const SystemCameraController: React.FC<{
+  position: readonly [number, number, number];
+  target: readonly [number, number, number];
+  up: readonly [number, number, number];
+}> = ({ position, target, up }) => {
+  const three = useThree();
+  const camera = three.camera;
+  const controls =
+    'controls' in three &&
+    typeof three.controls === 'object' &&
+    three.controls !== null &&
+    'target' in three.controls
+      ? (three.controls as { target: { set: (x: number, y: number, z: number) => void }; update?: () => void })
+      : undefined;
+
+  useEffect(() => {
+    camera.position.set(position[0], position[1], position[2]);
+    camera.up.set(up[0], up[1], up[2]);
+    if (controls) {
+      controls.target.set(target[0], target[1], target[2]);
+      controls.update?.();
+    } else {
+      camera.lookAt(target[0], target[1], target[2]);
+    }
+  }, [camera, controls, position, target, up]);
+
+  return null;
+};
 
 export interface GalacticSceneContentProps {
   initialSelectedId?: string | null;
@@ -238,6 +267,12 @@ export const SystemSceneContent: React.FC<SystemSceneContentProps> = ({
         maxDistance={45}
       />
 
+      <SystemCameraController
+        position={standardCam.position}
+        target={standardCam.target}
+        up={standardCam.up}
+      />
+
       <SystemScene
         systemId={systemId}
         system={system}
@@ -341,6 +376,12 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
         dampingFactor={CONTROLS_DAMPING_FACTOR}
         minDistance={1.2}
         maxDistance={250}
+      />
+
+      <SystemCameraController
+        position={standardCam.position}
+        target={standardCam.target}
+        up={standardCam.up}
       />
 
       <PlanetScene

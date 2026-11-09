@@ -255,8 +255,11 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       );
       const state = storeApi.getState();
       const entityId = state.focusedId ?? state.selectedId;
-      onSelect?.(entityId);
-      onFocusChange?.(state.focusedId);
+      if (onFocusChange) {
+        onFocusChange(state.focusedId);
+      } else {
+        onSelect?.(entityId);
+      }
     },
     [storeApi, occlusionManager, onSelect, onFocusChange],
   );

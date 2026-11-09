@@ -1,6 +1,10 @@
 import React, { useEffect, useLayoutEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
+import {
+  getStandardInitialCamera,
+  STANDARD_CAMERA_DISTANCES,
+} from '../../canvas/cartography';
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
 import { SceneTokenBridge } from '../../canvas/ThemeTokenBridge';
 import { SafeHtmlPortalOutlet } from '../../canvas/SafeHtml';
@@ -61,6 +65,11 @@ export const canMountWebGLCanvas = (): boolean => {
   }
   return webglSupported;
 };
+
+const initialPersistentCam = getStandardInitialCamera(
+  STANDARD_CAMERA_DISTANCES.galactic,
+  [0, 0, 0],
+);
 
 export const _resetWebGLSupportedForTesting = (): void => {
   webglSupported = null;
@@ -204,6 +213,11 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
           <Canvas
             flat
             dpr={1}
+            camera={{
+              position: initialPersistentCam.position,
+              up: initialPersistentCam.up,
+              fov: initialPersistentCam.fov,
+            }}
             gl={{ antialias: true, alpha: true }}
             className={styles.persistentCanvas}
           >

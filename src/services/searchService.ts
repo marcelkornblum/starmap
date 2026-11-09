@@ -999,7 +999,7 @@ export const parseUrlSelectTokens = (
       }
 
       const entitySlug = toUrlSlug(token);
-      if (entitySlug.length > 0) {
+      if (entitySlug.length > 0 && entitySlug !== 'search') {
         tokens.push({ kind: 'entity', slug: entitySlug });
       }
     }
@@ -1571,7 +1571,7 @@ export const resolveFocusedEntityFromCorpus = (
   corpus: readonly CompactSearchEntry[],
 ): SpatialEntityDefinition | null => {
   const targetSlug = toUrlSlug(focusSlug);
-  if (!targetSlug) {
+  if (!targetSlug || targetSlug === 'search') {
     return null;
   }
 

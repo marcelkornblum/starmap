@@ -94,9 +94,33 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
 
   const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
+  const getPointerCoord = (e: ThreeEvent<PointerEvent>): { x: number; y: number } => {
+    const native = e.nativeEvent as (PointerEvent | MouseEvent | undefined);
+    const x =
+      typeof e.clientX === 'number'
+        ? e.clientX
+        : typeof native?.clientX === 'number'
+          ? native.clientX
+          : 0;
+    const y =
+      typeof e.clientY === 'number'
+        ? e.clientY
+        : typeof native?.clientY === 'number'
+          ? native.clientY
+          : 0;
+    return { x, y };
+  };
+
+  const triggerClick = useCallback(
+    (e: ThreeEvent<MouseEvent | PointerEvent>) => {
+      onClick?.(id, e as unknown as ThreeEvent<MouseEvent>);
+    },
+    [id, onClick],
+  );
+
   const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
-    pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
+    pointerDownPosRef.current = getPointerCoord(e);
   }, []);
 
   const handlePointerUp = useCallback(
@@ -106,12 +130,13 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
       const startX = pointerDownPosRef.current.x;
       const startY = pointerDownPosRef.current.y;
       pointerDownPosRef.current = null;
-      const distance = Math.hypot(e.clientX - startX, e.clientY - startY);
-      if (distance <= 8 && onClick) {
-        onClick(id, e as unknown as ThreeEvent<MouseEvent>);
+      const { x, y } = getPointerCoord(e);
+      const distance = Math.hypot(x - startX, y - startY);
+      if (distance <= 8) {
+        triggerClick(e);
       }
     },
-    [id, onClick],
+    [triggerClick],
   );
 
   useEffect(() => {
