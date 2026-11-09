@@ -12,34 +12,34 @@ Record each decision in [decision-log.md](../../initiatives/architecture-remedia
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Implementation (Ratified Decisions)
-- [ ] Task 2.1: Dead Infrastructure Removal & Prototype Purity (AUD-101, AUD-102)
+- [x] Task 2.1: Dead Infrastructure Removal & Prototype Purity (AUD-101, AUD-102)
   - Delete `GlobalCanvas.tsx`, `SceneBridge.tsx`, `SceneBridgeContext.ts`, and prune `tests/canvasAndLoaders.test.ts`
   - Delete `patchR3F.ts`, remove imports in `main.tsx`, `setup.ts`, `.storybook/preview.tsx`, replace intrinsic `data-*` on 3D elements with `name` / `userData`
-- [ ] Task 2.2: Single Persistent Canvas in `RootCanvasHost` & Scope Scene Switching (AUD-100)
+- [x] Task 2.2: Single Persistent Canvas in `RootCanvasHost` & Scope Scene Switching (AUD-100)
   - Lift `<Canvas>` into `RootCanvasHost` in `CanvasLayer.tsx`
   - Refactor `GalacticViewScene`, `SystemViewScene`, `PlanetaryViewScene` in `SpatialScenes.tsx` to be pure child components without nested `<Canvas>`
   - Ensure WebGL context is created once and survives galaxy <-> system <-> planet transitions
-- [ ] Task 2.3: Occlusion Lifecycle, Passive Star Filtering & Hit Area Fan-Out (AUD-103, AUD-114)
+- [x] Task 2.3: Occlusion Lifecycle, Passive Star Filtering & Hit Area Fan-Out (AUD-103, AUD-114)
   - Register footprints on mount / unregister on unmount in `CelestialEntity.tsx` (never in `useFrame`)
   - Evaluate screen projections in $O(N)$ batch pass (`OcclusionPass.evaluate`)
   - Filter `other.hasReticle` in `computeHitAreaOffsetFor` and `getCyclicSelectionTarget`
-- [ ] Task 2.4: Frame-Loop Purity & Allocation Elimination (AUD-104, AUD-105, AUD-108, AUD-113)
+- [x] Task 2.4: Frame-Loop Purity & Allocation Elimination (AUD-104, AUD-105, AUD-108, AUD-113)
   - Remove layout reads (`offsetWidth`/`offsetHeight`) in `EntityLabel.tsx`
   - Remove render-phase ref mutations in `CelestialEntity.tsx`
   - Remove `getState()` and `setApertureIds(new Set())` from frame callbacks in `SpatialEntityContext.tsx` and `SpatialFrameProvider.tsx`
   - Replace `style={{ transform }}` in `EntityLabel.tsx` with CSS custom properties
-- [ ] Task 2.5: Shader & Material Uniform Stability & Token Alignment (AUD-106, AUD-107, AUD-111, AUD-112)
+- [x] Task 2.5: Shader & Material Uniform Stability & Token Alignment (AUD-106, AUD-107, AUD-111, AUD-112)
   - Allocate `CartoLineMaterial` and `Line2` stably in `OrbitPath.tsx` and `DropStalk.tsx`, updating colors/opacity in-place
   - Remove per-frame `color.copy()` in `RangeRings.tsx` and `CoordinateFins.tsx`, updating on theme changes
   - Store primitive hex strings in `useThreeTokenStore.ts`, building `THREE.Color` at material boundary
   - Unify dash/dot metrics in `cartography.ts`
-- [ ] Task 2.6: Interaction Invariants & Camera Ownership (AUD-109, AUD-110, AUD-115, AUD-116)
+- [x] Task 2.6: Interaction Invariants & Camera Ownership (AUD-109, AUD-110, AUD-115, AUD-116)
   - Eliminate module singletons, making hooks throw outside provider (`AUD-109`)
   - Consolidate camera restoration and constraints into `CameraRig`, removing duplicate overrides in `GalacticCameraController` (`AUD-110`)
   - Call `billboardRef.current.updateMatrixWorld(true)` on transform mutations in `BodyMarker.tsx` (`AUD-115`)
   - Implement 6-8 px drag threshold for `BodyMarker` click activation with `OrbitControls` (`AUD-116`)
-- [ ] Task 2.7: Quality Check — `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:ui`, `npm run audit:r3f`, guard suite
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
+- [x] Task 2.7: Quality Check — `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:ui`, `npm run audit:r3f`, guard suite
+- [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 3: End-of-Track Audit & PR
 - [ ] Task: `qa-verifier` full suite (lint, typecheck, coverage, audits, guards, e2e)
