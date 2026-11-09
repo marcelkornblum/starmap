@@ -45,14 +45,7 @@ export const Breadcrumbs = ({
       <ol data-testid="breadcrumbs-list" className={styles.breadcrumbsList}>
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
-          const isGalaxyContext = items[0]?.label.trim().toLowerCase() === 'galaxy';
-          const resolvedReticle =
-            item.reticleType ??
-            (isGalaxyContext && index >= 1
-              ? index === 1
-                ? 'stellar-system'
-                : 'terrestrial'
-              : undefined);
+          const resolvedReticle = item.reticleType;
 
           const itemContent = resolvedReticle ? (
             <CelestialTitle

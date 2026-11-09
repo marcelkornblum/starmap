@@ -196,7 +196,10 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
                 <Datum label="Chromaticity" value={resolvedDetail.entry.chromaticity} />
               </Stack>
 
-              <GuideExamplesList examples={resolvedDetail.entry.examples} />
+              <GuideExamplesList
+                examples={resolvedDetail.entry.examples}
+                reticleType="star"
+              />
             </section>
           ))}
         </>

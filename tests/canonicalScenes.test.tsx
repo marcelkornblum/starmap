@@ -109,6 +109,29 @@ describe('Canonical Production Scenes (Phase 4)', () => {
         planetId="earth"
         planetName="Earth"
         classification="terrestrial"
+        planet={{
+          id: 'earth',
+          name: 'Earth',
+          letter: '',
+          composition: 'terrestrial',
+          satellites: [
+            {
+              id: 'moon',
+              name: 'Luna',
+              parentId: 'earth',
+              composition: 'terrestrial',
+              orbit: {
+                semiMajorAxis: 60.34,
+                eccentricity: 0.0549,
+                inclination: 5.14,
+                ascendingNode: 125.08,
+                argumentOfPeriapsis: 318.15,
+                meanAnomaly: 135.0,
+                periodDays: 27.32,
+              },
+            },
+          ],
+        }}
       />,
     );
     expect(container.querySelector('[name="spatial-viewport"]')).toBeTruthy();

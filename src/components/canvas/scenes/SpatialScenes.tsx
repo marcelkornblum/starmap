@@ -19,6 +19,7 @@ import type { SpatialEntityDefinition } from '../entity';
 import { GalaxyScene } from './GalaxyScene';
 import { SystemScene, type StarDossierData } from './SystemScene';
 import { PlanetScene } from './PlanetScene';
+import type { PlanetRecord } from '../../../types/astro';
 
 import styles from './SpatialScenes.module.css';
 
@@ -234,6 +235,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
 
 export interface PlanetaryViewSceneProps {
   planetId?: string;
+  planet?: PlanetRecord;
   onNavigateSystem?: () => void;
   onNavigateGalaxy?: () => void;
   className?: string;
@@ -242,6 +244,7 @@ export interface PlanetaryViewSceneProps {
 
 export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
   planetId = 'earth',
+  planet,
   onNavigateSystem: _onNavigateSystem,
   onNavigateGalaxy: _onNavigateGalaxy,
   className,
@@ -288,6 +291,7 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
             planetId={planetId}
             planetName={planetDisplayName}
             classification="terrestrial"
+            planet={planet}
           />
         </Canvas>
         <SafeHtmlPortalOutlet />

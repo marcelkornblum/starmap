@@ -31,7 +31,6 @@ import {
   decodePlanetHazards,
   decodeSystemHazards,
   formatDiskKindLabel,
-  formatHazardSummaryLabel,
   isDwarfPlanetInDisk,
   isExoplanetHabitableCandidate,
   resolveCorpusEntryComposition,
@@ -905,7 +904,10 @@ export const buildFocusedEntityDetails = (
         : [];
 
   const hazardCount = hazards.length;
-  const hazardSummaryLabel = formatHazardSummaryLabel(hazardCount);
+  const hazardSummaryLabel =
+    hazardCount <= 0
+      ? '0 hazards'
+      : `${hazardCount} ${hazardCount === 1 ? 'hazard' : 'hazards'}`;
 
   const baseDetails: FocusedEntityDetailsBase = {
     id: resolvedTargetId,

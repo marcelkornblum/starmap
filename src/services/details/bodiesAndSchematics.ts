@@ -1,5 +1,6 @@
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import type { DecodedEntityAnnotation } from '../../utils/datasetLayerCodec';
+import { DEFAULT_ORIGIN_TARGETS } from '../../config/referenceTargets';
 import {
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
@@ -60,7 +61,7 @@ export const buildSystemBodiesSummary = (
       continue;
     }
     const name = resolveResultDisplayTitle(entry);
-    const isMoon = entry.k === 3 || (Boolean(entry.o) && entry.o !== systemId && entry.o !== 'sol');
+    const isMoon = entry.k === 3 || (Boolean(entry.o) && entry.o !== systemId);
     const href = isMoon && entry.o
       ? buildPlanetElementFocusHref(entry.o, name || entry.i)
       : buildSystemElementFocusHref(
@@ -156,7 +157,7 @@ export const buildPlanetaryBodiesSummary = (
         : formatSlugFallbackTitle(urlPlanetSlug ?? details?.name ?? 'Earth'));
 
   const planetHref = buildPlanetDetailsHref(planetName || planetId);
-  const systemId = details?.systemId ?? planetCorpusEntry?.s ?? 'sol';
+  const systemId = details?.systemId ?? planetCorpusEntry?.s ?? DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
   const systemEntry = findFocusedEntryInCorpus(systemId, corpus);
   const systemName =
     details?.systemName ??

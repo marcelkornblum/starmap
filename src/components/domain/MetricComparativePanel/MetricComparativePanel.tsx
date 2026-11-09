@@ -1,6 +1,7 @@
 import type React from 'react';
 import { CelestialSymbol, Cluster, Datum, Heading, Stack } from '../../interface';
 import { resolveAppHref } from '../../../utils/url';
+import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import type {
   MetricComparison,
   MetricGuideEntry,
@@ -21,7 +22,10 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
     comparison.targets && comparison.targets.length > 0
       ? comparison.targets
       : [comparison];
-  const symbolType =
+  const baselineSymbolType =
+    comparison.baselineReticleType ??
+    (comparison.baselineName === SOL_REFERENCE_TARGET.displayName ? 'star' : 'terrestrial');
+  const fallbackTargetSymbolType =
     entry.category === 'Stellar Telemetry' ? 'star' : 'terrestrial';
 
   return (
@@ -51,7 +55,7 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
           <Heading as="h4">
             Baseline:{' '}
             <Cluster as="span" gap="tight" align="center">
-              <CelestialSymbol type={symbolType} size="sm" showTooltip={false} />
+              <CelestialSymbol type={baselineSymbolType} size="sm" showTooltip={false} />
               <a href={resolveAppHref(comparison.baselineHref)}>{comparison.baselineName}</a>
             </Cluster>
           </Heading>
@@ -75,7 +79,11 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
               Target:{' '}
               <Cluster as="span" gap="tight" align="center">
                 <CelestialSymbol
-                  type={symbolType}
+                  type={
+                    ('reticleType' in target ? target.reticleType : undefined) ??
+                    comparison.targetReticleType ??
+                    fallbackTargetSymbolType
+                  }
                   size="sm"
                   showTooltip={false}
                 />

@@ -69,4 +69,13 @@ describe('<PreviewPanel />', () => {
     expect(screen.getByText('Mercury')).toBeDefined();
     expect(screen.getByText('Earth')).toBeDefined();
   });
+
+  it('renders explicit reticleType from preview', () => {
+    const planetPreview: FocusedPreviewSummary = {
+      ...mockPreview,
+      reticleType: 'terrestrial',
+    };
+    const { container } = render(<PreviewPanel preview={planetPreview} />);
+    expect(container.querySelector('[data-type="terrestrial"]')).toBeDefined();
+  });
 });

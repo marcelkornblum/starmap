@@ -47,7 +47,11 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
         data-target-id={preview.targetId}
       >
         <Cluster gap="tight" align="center" data-testid="preview-target-title">
-          <CelestialSymbol type="stellar-system" size="sm" showTooltip={false} />
+          <CelestialSymbol
+            type={preview.reticleType ?? 'stellar-system'}
+            size="sm"
+            showTooltip={false}
+          />
           <strong data-testid="preview-target-name">{preview.targetName}</strong>
           <Badge status="info">{preview.previewMode}</Badge>
         </Cluster>

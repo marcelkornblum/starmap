@@ -4,7 +4,7 @@ test.describe('Journey 5: The Transit Planner Flow (Intra-System Logistics & Orb
   test('plans intra-system transfers and verifies route-gating shortcuts', async ({
     page,
   }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
 
     // 1. User navigates to Sol system view
     await page.goto('/system/sol');

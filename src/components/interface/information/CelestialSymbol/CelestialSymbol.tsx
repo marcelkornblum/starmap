@@ -4,35 +4,9 @@ import { Tooltip } from '../../surfaces/Tooltip/Tooltip';
 import { resolveAppHref } from '../../../../utils/url';
 import styles from './CelestialSymbol.module.css';
 
-export type CelestialSymbolType =
-  // Group A: 3D Reticle & Planetary Taxonomy
-  | 'star'
-  | 'stellar-system'
-  | 'brown-dwarf'
-  | 'white-dwarf'
-  | 'neutron-star'
-  | 'hazard'
-  | 'black-hole'
-  | 'barycentre'
-  | 'stellar-cluster'
-  | 'construct'
-  | 'terrestrial'
-  | 'super-earth'
-  | 'gas-giant'
-  | 'ice-giant'
-  // Group B: Sub-Planetary, Disk, Structure, & Environmental Taxonomy
-  | 'dwarf-planet'
-  | 'moon'
-  | 'asteroid'
-  | 'comet'
-  | 'belt'
-  | 'asteroid-belt'
-  | 'kuiper-belt'
-  | 'debris-disk'
-  | 'nebula'
-  | 'ism'
-  | 'supernova-remnant'
-  | 'habitable-zone';
+import type { CelestialSymbolType } from '../../../../types/astro';
+
+export type { CelestialSymbolType };
 
 export interface CelestialSymbolMetadata {
   readonly type: CelestialSymbolType;
@@ -56,6 +30,12 @@ export const CELESTIAL_SYMBOL_META: Record<CelestialSymbolType, CelestialSymbolM
     badgeStatus: 'neutral',
     defaultGuideHref: '/guide/star-types',
   },
+  'multiple-system': {
+    type: 'multiple-system',
+    label: 'Multiple System',
+    badgeStatus: 'neutral',
+    defaultGuideHref: '/guide/star-types',
+  },
   'brown-dwarf': {
     type: 'brown-dwarf',
     label: 'Brown Dwarf',
@@ -71,6 +51,12 @@ export const CELESTIAL_SYMBOL_META: Record<CelestialSymbolType, CelestialSymbolM
   'neutron-star': {
     type: 'neutron-star',
     label: 'Neutron Star',
+    badgeStatus: 'critical',
+    defaultGuideHref: '/guide/hazards/ionising-radiation',
+  },
+  'pulsar': {
+    type: 'pulsar',
+    label: 'Pulsar',
     badgeStatus: 'critical',
     defaultGuideHref: '/guide/hazards/ionising-radiation',
   },
@@ -101,6 +87,11 @@ export const CELESTIAL_SYMBOL_META: Record<CelestialSymbolType, CelestialSymbolM
     label: 'Artificial Construct',
     badgeStatus: 'info',
   },
+  'spacecraft': {
+    type: 'spacecraft',
+    label: 'Spacecraft',
+    badgeStatus: 'info',
+  },
   'terrestrial': {
     type: 'terrestrial',
     label: 'Terrestrial',
@@ -112,6 +103,12 @@ export const CELESTIAL_SYMBOL_META: Record<CelestialSymbolType, CelestialSymbolM
     label: 'Super-Earth',
     badgeCategory: 'planet',
     defaultGuideHref: '/guide/planet-types/super-earth',
+  },
+  'sub-neptune': {
+    type: 'sub-neptune',
+    label: 'Sub-Neptune',
+    badgeCategory: 'planet',
+    defaultGuideHref: '/guide/planet-types/ice-giant',
   },
   'gas-giant': {
     type: 'gas-giant',
@@ -165,6 +162,16 @@ export const CELESTIAL_SYMBOL_META: Record<CelestialSymbolType, CelestialSymbolM
     badgeStatus: 'info',
     defaultGuideHref: '/guide/planet-types/ice-giant',
   },
+  'kuiper-belt-object': {
+    type: 'kuiper-belt-object',
+    label: 'Kuiper Belt Object',
+    badgeStatus: 'neutral',
+  },
+  'oort-cloud': {
+    type: 'oort-cloud',
+    label: 'Oort Cloud',
+    badgeStatus: 'info',
+  },
   'debris-disk': {
     type: 'debris-disk',
     label: 'Debris Disk',
@@ -214,6 +221,7 @@ const renderGlyphContent = (type: CelestialSymbolType): ReactNode => {
   switch (type) {
     case 'star':
     case 'stellar-system':
+    case 'multiple-system':
       return <path d="M 0 -9 L 9 0 L 0 9 L -9 0 Z" />;
 
     case 'brown-dwarf':
@@ -226,6 +234,7 @@ const renderGlyphContent = (type: CelestialSymbolType): ReactNode => {
 
     case 'neutron-star':
     case 'hazard':
+    case 'pulsar':
       return (
         <path d="M -3.2 -5.8 L 0 -9 L 3.2 -5.8 M 5.8 -3.2 L 9 0 L 5.8 3.2 M 3.2 5.8 L 0 9 L -3.2 5.8 M -5.8 3.2 L -9 0 L -5.8 -3.2 M 0 -6.5 L 0 -10.8 M 0 6.5 L 0 10.8 M -6.5 0 L -10.8 0 M 6.5 0 L 10.8 0" />
       );
@@ -242,6 +251,7 @@ const renderGlyphContent = (type: CelestialSymbolType): ReactNode => {
       return <path d="M -6.5 2 L 0 -3 L 6.5 2 M -6.5 -2.5 L 0 -7.5 L 6.5 -2.5" />;
 
     case 'construct':
+    case 'spacecraft':
       return (
         <path d="M -7 -3.5 L -7 -7 L -3.5 -7 M 3.5 -7 L 7 -7 L 7 -3.5 M 7 3.5 L 7 7 L 3.5 7 M -3.5 7 L -7 7 L -7 3.5" />
       );
@@ -266,6 +276,7 @@ const renderGlyphContent = (type: CelestialSymbolType): ReactNode => {
       );
 
     case 'ice-giant':
+    case 'sub-neptune':
       return (
         <>
           <circle cx="0" cy="0" r="5.2" />
@@ -290,6 +301,7 @@ const renderGlyphContent = (type: CelestialSymbolType): ReactNode => {
       );
 
     case 'asteroid':
+    case 'kuiper-belt-object':
       return <path d="M 0 -5.5 L 4.5 0 L 0 5.5 L -4.5 0 Z" />;
 
     case 'comet':
@@ -304,6 +316,7 @@ const renderGlyphContent = (type: CelestialSymbolType): ReactNode => {
     case 'asteroid-belt':
     case 'kuiper-belt':
     case 'debris-disk':
+    case 'oort-cloud':
       return <circle cx="0" cy="0" r="7" strokeDasharray="2.5 2.5" />;
 
     case 'nebula':

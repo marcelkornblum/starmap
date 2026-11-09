@@ -208,20 +208,24 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
         />
       )}
       {mountCanvas && scope === 'system' && (
-        <SystemViewScene
-          variant="fullscreen"
-          systemId={targetId ?? 'sol'}
-          centerId={centerId}
-          centerCoordinates={centerCoordinates}
-          onInspectPlanet={onInspect}
-          onSelectEntity={onSelect}
-        />
+        targetId ? (
+          <SystemViewScene
+            variant="fullscreen"
+            systemId={targetId}
+            centerId={centerId}
+            centerCoordinates={centerCoordinates}
+            onInspectPlanet={onInspect}
+            onSelectEntity={onSelect}
+          />
+        ) : null
       )}
       {mountCanvas && scope === 'planet' && (
-        <PlanetaryViewScene
-          variant="fullscreen"
-          planetId={targetId ?? 'earth'}
-        />
+        targetId ? (
+          <PlanetaryViewScene
+            variant="fullscreen"
+            planetId={targetId}
+          />
+        ) : null
       )}
     </div>
   );

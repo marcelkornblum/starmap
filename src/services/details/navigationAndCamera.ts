@@ -5,6 +5,7 @@ import {
 } from '../../utils/url';
 import { formatSlugFallbackTitle } from '../../utils/nomenclature';
 import { toCanonicalLayerSlug, toUrlSlug } from '../../utils/datasetLayerCodec';
+import { DEFAULT_ORIGIN_TARGETS } from '../../config/referenceTargets';
 import type {
   BreadcrumbRouteLink,
   FocusedEntityDetails,
@@ -83,12 +84,10 @@ export function buildEntityOrbitTargetHref(
   // 2. Planetary Moon Check
   const isMoon =
     entityKind === 'moon' ||
-    (Boolean(parentBodyId) &&
-      parentBodyId !== systemId &&
-      parentBodyId !== 'sol');
+    (Boolean(parentBodyId) && parentBodyId !== systemId);
 
   if (isMoon) {
-    const parentPlanetSlug = toUrlSlug(parentBodyId ?? 'sol');
+    const parentPlanetSlug = toUrlSlug(parentBodyId ?? DEFAULT_ORIGIN_TARGETS.intraSystemOriginId);
     const moonSlug = targetSlug;
     const params = new URLSearchParams({ focus: moonSlug });
     if (layerSlug) {
@@ -167,7 +166,7 @@ export function buildEntityOrbitTargetHref(
   }
 
   // 4. Circumstellar & System-Level Bodies (star, planet, dwarf-planet, belt, minor-body, fictional-body)
-  const sysSlug = toUrlSlug(systemName ?? systemId ?? name ?? id ?? 'sol');
+  const sysSlug = toUrlSlug(systemName ?? systemId ?? name ?? id ?? DEFAULT_ORIGIN_TARGETS.interstellarOriginId);
   const itemSlug = targetSlug;
   const params = new URLSearchParams({ focus: itemSlug });
   if (layerSlug) {
@@ -189,7 +188,7 @@ export function buildEntityOrbitTargetHref(
  */
 export const buildSystemDetailsHref = (systemNameOrId: string): string => {
   const slug = toUrlSlug(systemNameOrId);
-  return `/system/${encodeURIComponent(slug || systemNameOrId.trim() || 'sol')}`;
+  return `/system/${encodeURIComponent(slug || systemNameOrId.trim() || DEFAULT_ORIGIN_TARGETS.interstellarOriginId)}`;
 };
 
 /**
@@ -360,7 +359,7 @@ export const buildSystemViewBreadcrumbs = (
 
   return [
     { label: 'Galaxy', href: '/galaxy' },
-    { label: sysName },
+    { label: sysName, reticleType: details?.reticleType ?? 'stellar-system' },
   ];
 };
 
@@ -385,7 +384,10 @@ export const buildPlanetViewBreadcrumbs = (
 
   return [
     { label: 'Galaxy', href: '/galaxy' },
-    { label: sysName, href: sysHref },
-    { label: planetName },
+    { label: sysName, href: sysHref, reticleType: 'stellar-system' },
+    {
+      label: planetName,
+      reticleType: details?.reticleType ?? 'terrestrial',
+    },
   ];
 };

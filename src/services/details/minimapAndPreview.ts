@@ -1,5 +1,9 @@
 import type { SpatialEntityDefinition } from '../../types/spatial';
 import type { DecodedDetailRecord } from '../../data/detailsRepository';
+import {
+  DEFAULT_ORIGIN_TARGETS,
+  SOL_REFERENCE_TARGET,
+} from '../../config/referenceTargets';
 import { toUrlSlug } from '../searchService';
 import { toCoordinatesTuple } from './hazardsAndComposition';
 import type {
@@ -97,6 +101,7 @@ export const buildFocusedPreviewSummary = (
     systemName,
     focusedKind,
     previewMode,
+    reticleType: details.reticleType,
     ...(primaryInclinationDeg !== undefined ? { primaryInclinationDeg } : {}),
     ...(primaryEccentricity !== undefined ? { primaryEccentricity } : {}),
     ...(primarySemiMajorAxisAu !== undefined ? { primarySemiMajorAxisAu } : {}),
@@ -130,10 +135,10 @@ export const buildGalaxyMinimapOrientation = (
   centerEntity?: SpatialEntityDefinition | null,
 ): MinimapOrientationSummary => {
   const scope: MinimapScope = 'galaxy';
-  let anchorId = 'sol';
-  let anchorName = 'Sol';
-  const systemId = focusedDetails?.systemId ?? 'sol';
-  const systemName = focusedDetails?.systemName ?? 'Sol';
+  let anchorId = DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
+  let anchorName = SOL_REFERENCE_TARGET.name;
+  const systemId = focusedDetails?.systemId ?? DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
+  const systemName = focusedDetails?.systemName ?? SOL_REFERENCE_TARGET.name;
   const sectorName = focusedDetails?.sectorName ?? '0,0,0';
 
   let coordinatesPc: readonly [number, number, number] =
@@ -168,12 +173,12 @@ export const buildGalaxyMinimapOrientation = (
   );
 
   const originMarker: MinimapMarkerItem = {
-    id: 'sol',
-    name: 'Sol',
+    id: DEFAULT_ORIGIN_TARGETS.interstellarOriginId,
+    name: SOL_REFERENCE_TARGET.name,
     kind: 'star',
     role: 'origin',
-    href: '/galaxy?focus=sol',
-    coordinatesPc: [0, 0, 0],
+    href: `/galaxy?focus=${DEFAULT_ORIGIN_TARGETS.interstellarOriginId}`,
+    coordinatesPc: DEFAULT_ORIGIN_TARGETS.galacticOriginCoordinates,
     distanceFromOriginPc: 0,
   };
 
@@ -194,7 +199,7 @@ export const buildGalaxyMinimapOrientation = (
   }
 
   const anchorMarker: MinimapMarkerItem | null =
-    anchorId !== 'sol' && anchorId !== focusedMarker?.id
+    anchorId !== originMarker.id && anchorId !== focusedMarker?.id
       ? {
           id: anchorId,
           name: anchorName,
@@ -228,7 +233,7 @@ export const buildGalaxyMinimapOrientation = (
     ...selectedMarkers.filter(
       (m) =>
         m.id !== focusedMarker?.id &&
-        m.id !== 'sol' &&
+        m.id !== originMarker.id &&
         m.id !== anchorMarker?.id,
     ),
   ];

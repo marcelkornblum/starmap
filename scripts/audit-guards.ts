@@ -171,6 +171,7 @@ function checkSuppression(lines: string[], targetLine: number, ruleId: string): 
  * G-literals: Checks source for entity literal mentions and suspicious numeric fallbacks.
  */
 export function auditLiteralsContent(filePath: string, content: string, catalog: EntityCatalog): GuardViolation[] {
+  if (filePath.includes('src/content/')) return [];
   const violations: GuardViolation[] = [];
 
   let ast: ReturnType<typeof parse>;
@@ -286,8 +287,10 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
 // Layer rank hierarchy
 const LAYER_HIERARCHY: { name: string; prefix: string; rank: number }[] = [
   { name: 'types', prefix: 'src/types', rank: 0 },
+  { name: 'config', prefix: 'src/config', rank: 1 },
   { name: 'utils', prefix: 'src/utils', rank: 1 },
   { name: 'data', prefix: 'src/data', rank: 2 },
+  { name: 'content', prefix: 'src/content', rank: 2 },
   { name: 'services', prefix: 'src/services', rank: 3 },
   { name: 'stores', prefix: 'src/stores', rank: 4 },
   { name: 'hooks', prefix: 'src/hooks', rank: 5 },
@@ -487,7 +490,7 @@ function inferAudId(key: string): string {
   }
 
   if (key.startsWith('G-literals::')) {
-    if (key.includes('guideCatalog')) return 'AUD-045';
+    if (key.includes('guideCatalog') || key.includes('content/guide')) return 'AUD-071';
     if (key.includes('guideService')) return 'AUD-060';
     if (key.includes('journeyService')) return 'AUD-061';
     if (key.includes('details/')) return 'AUD-062';

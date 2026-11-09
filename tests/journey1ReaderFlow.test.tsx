@@ -653,8 +653,8 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(buildPlanetaryBodiesSummary({ details: null })).toBeNull();
     expect(buildPlanetViewBreadcrumbs(null, null, 'earth', false)).toEqual([
       { label: 'Galaxy', href: '/galaxy' },
-      { label: 'System', href: '/system/system' },
-      { label: 'Earth' },
+      { label: 'System', href: '/system/system', reticleType: 'stellar-system' },
+      { label: 'Earth', reticleType: 'terrestrial' },
     ]);
 
     const planetStore = createSpatialEntityStore();
@@ -1040,16 +1040,16 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     // buildSystemViewBreadcrumbs covers both system root and sub-element focus (never includes focused entity)
     expect(buildSystemViewBreadcrumbs(starDetails, 'tau-ceti', true)).toEqual([
       { label: 'Galaxy', href: '/galaxy' },
-      { label: 'Tau Ceti' },
+      { label: 'Tau Ceti', reticleType: 'stellar-system' },
     ]);
     expect(buildSystemViewBreadcrumbs(null, 'tau-ceti', false)).toEqual([
       { label: 'Galaxy', href: '/galaxy' },
-      { label: 'Tau Ceti' },
+      { label: 'Tau Ceti', reticleType: 'stellar-system' },
     ]);
     expect(buildPlanetViewBreadcrumbs(null, null, 'earth', false)).toEqual([
       { label: 'Galaxy', href: '/galaxy' },
-      { label: 'System', href: '/system/system' },
-      { label: 'Earth' },
+      { label: 'System', href: '/system/system', reticleType: 'stellar-system' },
+      { label: 'Earth', reticleType: 'terrestrial' },
     ]);
   });
 });

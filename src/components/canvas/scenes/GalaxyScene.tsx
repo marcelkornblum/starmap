@@ -3,7 +3,7 @@ import { SpatialViewport } from '../viewport/SpatialViewport';
 import { GALACTIC_FRAME } from '../instrument/referenceFrame';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
 import { SectorPointCloud, type SpatialEntityDefinition } from '../entity';
-import type { CelestialClassification, PlanetCensusEntry } from '../cartography/reticleGeometry';
+import type { PlanetCensusEntry } from '../cartography/reticleGeometry';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import {
   getApertureActiveCutoffForViewportWidth,
@@ -17,14 +17,6 @@ import type { SystemSummaryNode } from '../../../types/astro';
  */
 export const GALAXY_SCENE_MAX_STREAMED_ENTITIES = 1200;
 
-const resolveSummaryClassification = (spect?: string): CelestialClassification => {
-  if (!spect) return 'star';
-  if (/^D/i.test(spect)) return 'white-dwarf';
-  if (/^[LTY]/i.test(spect)) return 'brown-dwarf';
-  if (/^PSR/i.test(spect)) return 'neutron-star';
-  return 'star';
-};
-
 const resolveSummaryPlanets = (s: SystemSummaryNode): PlanetCensusEntry[] | undefined =>
   s.planetCensus?.map((cat, idx) => ({
     id: `${s.id}-planet-${idx}`,
@@ -33,7 +25,7 @@ const resolveSummaryPlanets = (s: SystemSummaryNode): PlanetCensusEntry[] | unde
   }));
 
 const summaryToEntityDefinition = (s: SystemSummaryNode): SpatialEntityDefinition => {
-  const classification = resolveSummaryClassification(s.spect);
+  const classification = s.classification ?? 'star';
   const planets = resolveSummaryPlanets(s);
   return {
     id: s.id,
@@ -197,7 +189,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
               ...ent,
               name: ent.name || matchedSummary.name,
               position: effectivePos,
-              classification: resolveSummaryClassification(matchedSummary.spect || ent.spectralType),
+              classification: matchedSummary.classification ?? ent.classification ?? 'star',
               spectralType: matchedSummary.spect || ent.spectralType,
               multiplicity: matchedSummary.starCount ?? ent.multiplicity,
               ...(planets && planets.length > 0 ? { planets } : {}),

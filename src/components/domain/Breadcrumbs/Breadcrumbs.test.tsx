@@ -64,4 +64,16 @@ describe('<Breadcrumbs />', () => {
     const companionLink = screen.getByTestId('breadcrumbs-companion-link');
     expect(companionLink.getAttribute('href')).toBe('/galaxy');
   });
+
+  it('renders explicit reticleType and does not infer from index or label', () => {
+    const items = [
+      { label: 'Galaxy', href: '/galaxy' },
+      { label: 'Tau Ceti', href: '/system/tau-ceti', reticleType: 'stellar-system' as const },
+      { label: 'Tau Ceti e', reticleType: 'super-earth' as const },
+    ];
+    const { container } = render(<Breadcrumbs items={items} />);
+
+    expect(container.querySelector('[data-type="stellar-system"]')).toBeDefined();
+    expect(container.querySelector('[data-type="super-earth"]')).toBeDefined();
+  });
 });

@@ -254,7 +254,7 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
       expect(plan.title).toBe('Sol → Tau Ceti');
       expect(plan.domain).toBe('interstellar');
       expect(plan.totalDistance?.unit).toBe('ly');
-      expect(plan.totalDistance?.value).toBe('11.8');
+      expect(plan.totalDistance?.value).toBe(11.8);
       expect(plan.totalCommsOneWay?.unit).toBe('yr');
       expect(plan.totalCommsRoundTrip?.unit).toBe('yr');
       expect(plan.options.length).toBeGreaterThanOrEqual(3);
@@ -274,7 +274,7 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
       expect(plan.title).toBe('Earth → Mars');
       expect(plan.domain).toBe('intra-system');
       expect(plan.totalDistance?.unit).toBe('AU');
-      expect(plan.totalDistance?.value).toBe('1.82');
+      expect(plan.totalDistance?.value).toBe(1.82);
       expect(plan.totalCommsOneWay?.unit).toBe('min');
       expect(plan.options.map((o) => o.id)).toContain('torchship-1g');
       expect(plan.options.map((o) => o.id)).toContain('hohmann-transfer');
@@ -349,7 +349,7 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
     it('renders DirectionsPanel in Option Details mode when an option is selected', () => {
       const plan = buildJourneyPlan({
         stops: ['sol', 'tau-ceti'],
-        selectedOptionId: 'rel-1g',
+        selectedOptionId: 'torchship-1g',
         corpus: SAMPLE_BENCHMARK_CORPUS,
       });
 
