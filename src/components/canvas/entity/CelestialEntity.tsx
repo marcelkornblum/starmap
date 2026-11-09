@@ -287,40 +287,29 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     updatedAt: 0,
   });
 
-  footprintRef.current.name = name;
-  footprintRef.current.state = activeState;
-  footprintRef.current.hasReticle = activeState !== 'passive';
-  footprintRef.current.reticleSize = DEFAULT_RETICLE_SIZE;
-  footprintRef.current.multiplicity = multiplicity;
-  footprintRef.current.planets = planets;
-  if (footprintRef.current.worldPos) {
-    footprintRef.current.worldPos[0] = resolvedPos.x;
-    footprintRef.current.worldPos[1] = resolvedPos.y;
-    footprintRef.current.worldPos[2] = resolvedPos.z;
-  }
-
-  // Keep footprint state fresh
+  // Keep footprint state fresh and registered with occlusion manager
   useEffect(() => {
-    footprintRef.current.name = name;
-    footprintRef.current.state = activeState;
-    footprintRef.current.hasReticle = activeState !== 'passive';
-    footprintRef.current.reticleSize = DEFAULT_RETICLE_SIZE;
-    footprintRef.current.multiplicity = multiplicity;
-    footprintRef.current.planets = planets;
-    if (footprintRef.current.worldPos) {
-      footprintRef.current.worldPos[0] = resolvedPos.x;
-      footprintRef.current.worldPos[1] = resolvedPos.y;
-      footprintRef.current.worldPos[2] = resolvedPos.z;
+    const fp = footprintRef.current;
+    fp.id = id;
+    fp.name = name;
+    fp.state = activeState;
+    fp.hasReticle = activeState !== 'passive';
+    fp.reticleSize = DEFAULT_RETICLE_SIZE;
+    fp.multiplicity = multiplicity;
+    fp.planets = planets;
+    fp.classification = classification;
+    if (fp.worldPos) {
+      fp.worldPos[0] = resolvedPos.x;
+      fp.worldPos[1] = resolvedPos.y;
+      fp.worldPos[2] = resolvedPos.z;
+    } else {
+      fp.worldPos = [resolvedPos.x, resolvedPos.y, resolvedPos.z];
     }
-    occlusionManager.register(footprintRef.current);
-  }, [name, activeState, multiplicity, planets, resolvedPos, occlusionManager]);
-
-  useEffect(() => {
-    occlusionManager.register(footprintRef.current);
+    occlusionManager.register(fp);
     return () => {
       occlusionManager.unregister(id);
     };
-  }, [occlusionManager, id]);
+  }, [id, name, activeState, multiplicity, planets, classification, resolvedPos, occlusionManager]);
 
   const scratchNdcRef = useLazyRef(() => new THREE.Vector3());
   const scratchWorldPosRef = useLazyRef(() => new THREE.Vector3());
@@ -365,8 +354,6 @@ export const CelestialEntity: React.FC<CelestialEntityProps> = ({
     fp.reticleRadius = reticleRadiusPx;
     fp.visible = !isBehindCamera;
     fp.updatedAt = performance.now();
-
-    occlusionManager.register(fp);
   });
 
   // Single-Stalk Rule (§2.4): Drop stalk renders for selected or focused entities with non-zero elevation off datum plane.

@@ -228,6 +228,7 @@ export class CelestialOcclusionManager {
   // Stalked footprints subscription
   private stalkedListeners = new Set<() => void>();
   private stalkedSnapshot: CelestialFootprint[] = [];
+  private scratchStalkedList: CelestialFootprint[] = [];
 
   // Scratch memory for zero-allocation candidate displacement checks
   private scratchCandidateBox: Box2D = { left: 0, top: 0, right: 0, bottom: 0 };
@@ -397,16 +398,20 @@ export class CelestialOcclusionManager {
   }
 
   private updateStalkedSnapshot(): void {
-    const list: CelestialFootprint[] = [];
+    const list = this.scratchStalkedList;
+    list.length = 0;
     for (const fp of this.footprints.values()) {
       if (fp.hasStalk && fp.worldPos) {
-        list.push({ ...fp });
+        list.push(fp);
       }
     }
     if (this.areStalkedListsEqual(this.stalkedSnapshot, list)) {
       return;
     }
-    this.stalkedSnapshot = list;
+    this.stalkedSnapshot = list.map((fp) => ({
+      ...fp,
+      worldPos: fp.worldPos ? [fp.worldPos[0], fp.worldPos[1], fp.worldPos[2]] : undefined,
+    }));
     this.notifyStalked();
   }
 
@@ -677,7 +682,7 @@ export class CelestialOcclusionManager {
   private updateHitAreaOffsets(): void {
     const evalTime = this.lastEvaluationTime > 0 ? this.lastEvaluationTime : performance.now();
     for (const fp of this.footprints.values()) {
-      if (!fp.visible) {
+      if (!fp.visible || !fp.hasReticle) {
         fp.hitAreaOffsetX = 0;
         fp.hitAreaOffsetY = 0;
         fp.hitAreaEvaluatedAt = evalTime;
@@ -697,12 +702,19 @@ export class CelestialOcclusionManager {
     target: CelestialFootprint,
     evalTime = this.lastEvaluationTime > 0 ? this.lastEvaluationTime : performance.now(),
   ): void {
+    if (!target.hasReticle) {
+      target.hitAreaOffsetX = 0;
+      target.hitAreaOffsetY = 0;
+      target.hitAreaEvaluatedAt = evalTime;
+      return;
+    }
+
     this.ensureGrid();
     const cluster: CelestialFootprint[] = [];
     const searchRadius = target.reticleRadius * 2.5;
 
     this.grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
-      if (!other.visible) return;
+      if (!other.visible || !other.hasReticle) return;
       const dx = target.screenX - other.screenX;
       const dy = target.screenY - other.screenY;
       const dist = Math.hypot(dx, dy);
@@ -783,14 +795,14 @@ export class CelestialOcclusionManager {
    */
   public getCyclicSelectionTarget(clickedId: string): string {
     const target = this.footprints.get(clickedId);
-    if (!target || !target.visible) return clickedId;
+    if (!target || !target.visible || !target.hasReticle) return clickedId;
 
     this.ensureGrid();
     const cluster: CelestialFootprint[] = [];
     const searchRadius = target.reticleRadius * 2.0;
 
     this.grid.forEachNearby(target.screenX, target.screenY, searchRadius, (other) => {
-      if (!other.visible) return;
+      if (!other.visible || !other.hasReticle) return;
       const dx = target.screenX - other.screenX;
       const dy = target.screenY - other.screenY;
       const dist = Math.hypot(dx, dy);
