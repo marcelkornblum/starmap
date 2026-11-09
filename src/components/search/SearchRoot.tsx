@@ -2,7 +2,6 @@ import {
   startTransition,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type FocusEvent,
@@ -18,8 +17,7 @@ import {
   loadSearchCorpusForFilter,
   mergeSearchShards,
 } from '../../data/searchRepository';
-import type { StarmapSearchParams } from '../../hooks/useSpaLocation';
-import { useSearch } from '@tanstack/react-router';
+import { useSpaLocation } from '../../hooks/useSpaLocation';
 import {
   findFocusedEntryInCorpus,
   type GroupedSearchResults,
@@ -88,29 +86,9 @@ export const SearchRoot = ({
   const store = useSpatialEntityStoreApi();
   const fallbackFocusIdRef = useRef<string | null>(null);
 
-  const routerSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
-
-  const derivedSearch = useMemo(() => {
-    if (locationSearch !== undefined) return locationSearch;
-    if (!routerSearch || Object.keys(routerSearch).length === 0) return '';
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(routerSearch)) {
-      if (value !== undefined && value !== null) {
-        if (Array.isArray(value)) {
-          for (const item of value) {
-            params.append(key, String(item));
-          }
-        } else {
-          params.set(key, String(value));
-        }
-      }
-    }
-    const qs = params.toString();
-    return qs ? `?${qs}` : '';
-  }, [locationSearch, routerSearch]);
-
-  const activePathname = locationPathname ?? '/';
-  const activeSearch = derivedSearch;
+  const spaLocation = useSpaLocation(locationPathname, locationSearch, '/');
+  const activePathname = spaLocation.pathname;
+  const activeSearch = spaLocation.search;
 
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(activeSearch);
@@ -152,15 +130,12 @@ export const SearchRoot = ({
 
   const resolveCurrentFocusSlug = useCallback(
     (searchStr: string): string | null => {
-      const isExplicit = locationPathname !== undefined || locationSearch !== undefined;
-      const focusVal =
-        (isExplicit ? null : (routerSearch?.focus as string | undefined)) ??
-        new URLSearchParams(searchStr).get('focus');
+      const focusVal = new URLSearchParams(searchStr).get('focus');
       if (!focusVal) return null;
       const slug = toUrlSlug(focusVal);
       return slug.length > 0 ? slug : null;
     },
-    [routerSearch?.focus, locationPathname, locationSearch],
+    [],
   );
 
   const initialResultsRef = useRef(results);

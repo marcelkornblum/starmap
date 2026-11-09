@@ -107,7 +107,6 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
               const coordStr = `${tgt.x.toFixed(1)},${tgt.y.toFixed(1)},${tgt.z.toFixed(1)}`;
               if (centerParam !== coordStr) {
                 void appRouter.navigate({
-                  to: '/galaxy',
                   search: (prev: StarmapSearchParams = {}) => ({ ...prev, center: coordStr }),
                   replace: true,
                 });
