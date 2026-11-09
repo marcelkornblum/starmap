@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
+import * as THREE from 'three';
 import {
   CanvasLayer,
   RootCanvasHost,
@@ -11,16 +13,50 @@ import {
   useCanvasStageStore,
   getStageCallbacks,
 } from '../../../stores/useCanvasStageStore';
+import { useCameraStore } from '../../../stores/useCameraStore';
+
+vi.mock('@react-three/drei', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@react-three/drei')>();
+  return {
+    ...actual,
+    Html: ({ children, 'data-testid': testId }: { children: React.ReactNode; 'data-testid'?: string }) =>
+      createElement('div', { 'data-testid': testId ?? 'drei-html' }, children),
+    OrbitControls: () => createElement('div', { 'data-testid': 'orbit-controls' }),
+    Sphere: ({ children }: { children?: React.ReactNode }) =>
+      createElement('mesh', null, children),
+  };
+});
+
+vi.mock('@react-three/fiber', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@react-three/fiber')>();
+  return {
+    ...actual,
+    Canvas: ({ children, className }: { children?: React.ReactNode; className?: string }) =>
+      createElement('div', { 'data-testid': 'mock-canvas', className }, children),
+    useFrame: vi.fn(),
+    useThree: () => ({
+      camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
+      gl: { setClearColor: vi.fn() },
+      scene: new THREE.Scene(),
+      controls: { target: new THREE.Vector3(), update: vi.fn() },
+    }),
+  };
+});
 
 describe('CanvasLayer Domain Component', () => {
+  let originalGetContext: typeof HTMLCanvasElement.prototype.getContext;
+
   beforeEach(() => {
+    originalGetContext = HTMLCanvasElement.prototype.getContext;
     act(() => {
       useCanvasStageStore.getState().resetCanvasStageStore();
+      useCameraStore.getState().reset();
     });
     _resetWebGLSupportedForTesting();
   });
 
   afterEach(() => {
+    HTMLCanvasElement.prototype.getContext = originalGetContext;
     _resetWebGLSupportedForTesting();
   });
 
@@ -81,7 +117,6 @@ describe('CanvasLayer Domain Component', () => {
       _resetWebGLSupportedForTesting();
 
       // Mock HTMLCanvasElement.prototype.getContext
-      const originalGetContext = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
         if (contextId === 'webgl2' || contextId === 'webgl') {
           return {} as WebGLRenderingContext;
@@ -90,10 +125,49 @@ describe('CanvasLayer Domain Component', () => {
       });
 
       expect(canMountWebGLCanvas()).toBe(true);
+    });
 
-      // Restore
-      HTMLCanvasElement.prototype.getContext = originalGetContext;
+    it('maintains a single persistent <Canvas> element when scope transitions galaxy -> system -> planet in direct mode', () => {
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
       _resetWebGLSupportedForTesting();
+
+      const { rerender } = render(
+        <CanvasLayer
+          scope="galaxy"
+          centerId="sol"
+        />,
+      );
+
+      const canvasGalaxy = screen.getByTestId('mock-canvas');
+      expect(canvasGalaxy).toBeDefined();
+
+      // Transition to system scope
+      rerender(
+        <CanvasLayer
+          scope="system"
+          targetId="sol"
+          centerId="sol"
+        />,
+      );
+
+      const canvasSystem = screen.getByTestId('mock-canvas');
+      expect(canvasSystem).toBe(canvasGalaxy);
+
+      // Transition to planet scope
+      rerender(
+        <CanvasLayer
+          scope="planet"
+          targetId="earth"
+        />,
+      );
+
+      const canvasPlanet = screen.getByTestId('mock-canvas');
+      expect(canvasPlanet).toBe(canvasGalaxy);
     });
   });
 
@@ -247,6 +321,49 @@ describe('CanvasLayer Domain Component', () => {
       // The stage store is updated
       expect(useCanvasStageStore.getState().stageProps?.scope).toBe('system');
       expect(useCanvasStageStore.getState().stageProps?.targetId).toBe('alpha-centauri');
+    });
+
+    it('maintains a single persistent <Canvas> element when RootCanvasHost transitions across scopes via stageProps', () => {
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      act(() => {
+        useCanvasStageStore.getState().setStageProps({
+          scope: 'galaxy',
+          centerId: 'sol',
+        });
+      });
+
+      render(<RootCanvasHost />);
+
+      const canvasGalaxy = screen.getByTestId('mock-canvas');
+      expect(canvasGalaxy).toBeDefined();
+
+      act(() => {
+        useCanvasStageStore.getState().setStageProps({
+          scope: 'system',
+          targetId: 'sol',
+          centerId: 'sol',
+        });
+      });
+
+      const canvasSystem = screen.getByTestId('mock-canvas');
+      expect(canvasSystem).toBe(canvasGalaxy);
+
+      act(() => {
+        useCanvasStageStore.getState().setStageProps({
+          scope: 'planet',
+          targetId: 'earth',
+        });
+      });
+
+      const canvasPlanet = screen.getByTestId('mock-canvas');
+      expect(canvasPlanet).toBe(canvasGalaxy);
     });
   });
 });

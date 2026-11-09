@@ -1,10 +1,13 @@
 import React, { useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
+import { Canvas } from '@react-three/fiber';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
+import { SceneTokenBridge } from '../../canvas/ThemeTokenBridge';
+import { SafeHtmlPortalOutlet } from '../../canvas/SafeHtml';
 import {
-  GalacticViewScene,
-  SystemViewScene,
-  PlanetaryViewScene,
+  GalacticSceneContent,
+  SystemSceneContent,
+  PlanetarySceneContent,
 } from '../../canvas/scenes/SpatialScenes';
 import {
   useCanvasStageStore,
@@ -198,38 +201,48 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
       data-journey-method={activeJourneyMethod}
       aria-label={`${scope} 3D canvas layer`}
     >
-      {mountCanvas && scope === 'galaxy' && (
-        <GalacticViewScene
-          variant="fullscreen"
-          initialSelectedId={centerId ?? null}
-          centerCoordinates={centerCoordinates}
-          centerId={centerId}
-          cameraDistance={cameraDistance}
-          additionalEntities={selectedEntities}
-          onInspectSystem={onInspect}
-          onSelectSystem={onSelect}
-          onFocusChange={onFocusChange}
-        />
-      )}
-      {mountCanvas && scope === 'system' && (
-        targetId ? (
-          <SystemViewScene
-            variant="fullscreen"
-            systemId={targetId}
-            centerId={centerId}
-            centerCoordinates={centerCoordinates}
-            onInspectPlanet={onInspect}
-            onSelectEntity={onSelect}
-          />
-        ) : null
-      )}
-      {mountCanvas && scope === 'planet' && (
-        targetId ? (
-          <PlanetaryViewScene
-            variant="fullscreen"
-            planetId={targetId}
-          />
-        ) : null
+      {mountCanvas && (
+        <div className={styles.canvasWrapper}>
+          <Canvas
+            flat
+            dpr={1}
+            gl={{ antialias: true, alpha: true }}
+            className={styles.persistentCanvas}
+          >
+            <SceneTokenBridge />
+            {scope === 'galaxy' && (
+              <GalacticSceneContent
+                initialSelectedId={centerId ?? null}
+                centerCoordinates={centerCoordinates}
+                centerId={centerId}
+                cameraDistance={cameraDistance}
+                additionalEntities={selectedEntities}
+                onInspectSystem={onInspect}
+                onSelectSystem={onSelect}
+                onFocusChange={onFocusChange}
+              />
+            )}
+            {scope === 'system' && (
+              targetId ? (
+                <SystemSceneContent
+                  systemId={targetId}
+                  centerId={centerId}
+                  centerCoordinates={centerCoordinates}
+                  onInspectPlanet={onInspect}
+                  onSelectEntity={onSelect}
+                />
+              ) : null
+            )}
+            {scope === 'planet' && (
+              targetId ? (
+                <PlanetarySceneContent
+                  planetId={targetId}
+                />
+              ) : null
+            )}
+          </Canvas>
+          <SafeHtmlPortalOutlet />
+        </div>
       )}
     </div>
   );

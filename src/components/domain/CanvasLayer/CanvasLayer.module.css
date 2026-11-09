@@ -14,6 +14,22 @@
     -webkit-user-select: none;
   }
 
+  .canvasWrapper {
+    inline-size: 100%;
+    block-size: 100%;
+    position: relative;
+    z-index: var(--layer-canvas);
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .persistentCanvas {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
   .rootCanvasHost {
     position: fixed;
     inset: 0;
