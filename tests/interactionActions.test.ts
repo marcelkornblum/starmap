@@ -14,39 +14,39 @@ describe('Entity interaction actions', () => {
   });
 
   describe('activateEntity (single click)', () => {
-    it('focuses and selects an unselected entity without consulting cyclic selection', () => {
+    it('focuses an unselected entity without touching selectedIds', () => {
       const cycle = vi.fn(() => 'neighbour');
-      activateEntity(store, 'sirius', cycle);
-      expect(store.getState().selectedId).toBe('sirius');
-      expect(store.getState().focusedId).toBe('sirius');
+      store.getState().setSelectedIds(['sirius', 'proxima']);
+      activateEntity(store, 'sol', cycle);
+      expect(store.getState().focusedId).toBe('sol');
+      expect(Array.from(store.getState().selectedIds)).toEqual(['sirius', 'proxima']);
       expect(cycle).not.toHaveBeenCalled();
     });
 
-    it('does not treat a hovered-but-unselected entity as already selected', () => {
+    it('does not treat a hovered-but-unfocused entity as already focused', () => {
       const cycle = vi.fn(() => 'neighbour');
       store.getState().setHovered('sirius');
       activateEntity(store, 'sirius', cycle);
-      expect(store.getState().selectedId).toBe('sirius');
       expect(store.getState().focusedId).toBe('sirius');
       expect(cycle).not.toHaveBeenCalled();
     });
 
-    it('advances cyclic selection only when re-activating the selected entity', () => {
+    it('advances cyclic focus only when re-activating the focused entity without touching selection', () => {
       const cycle = vi.fn(() => 'neighbour');
-      store.getState().setSelected('sirius');
+      store.getState().setSelectedIds(['sirius', 'proxima']);
       store.getState().setFocused('sirius');
       activateEntity(store, 'sirius', cycle);
       expect(cycle).toHaveBeenCalledWith('sirius');
-      expect(store.getState().selectedId).toBe('neighbour');
       expect(store.getState().focusedId).toBe('neighbour');
+      expect(Array.from(store.getState().selectedIds)).toEqual(['sirius', 'proxima']);
     });
 
-    it('deselects the entity when re-activated with no overlapping neighbours', () => {
-      store.getState().setSelected('sirius');
+    it('clears focus to null when re-activated with no overlapping neighbours without touching selection', () => {
+      store.getState().setSelectedIds(['sirius']);
       store.getState().setFocused('sirius');
       activateEntity(store, 'sirius');
-      expect(store.getState().selectedId).toBeNull();
       expect(store.getState().focusedId).toBeNull();
+      expect(Array.from(store.getState().selectedIds)).toEqual(['sirius']);
     });
   });
 

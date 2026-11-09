@@ -19,6 +19,7 @@ import {
   extractFocusIdFromSearch,
   resolveHazardGuideEntries,
 } from '../services/guideService';
+import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
 
@@ -28,23 +29,19 @@ export interface HazardDetailViewProps {
   readonly locationSearch?: string;
 }
 
-const extractHazardFromPathname = (pathname: string): string => {
-  const match = /^\/guide\/hazards\/([^/?#]+)/i.exec(pathname.trim());
-  return match?.[1] ? decodeURIComponent(match[1]) : '';
-};
-
 export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
   hazardId: propHazardId,
   locationPathname,
   locationSearch,
 }) => {
-  const { pathname, search } = useSpaLocation(
+  const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
+  const { search } = useSpaLocation(
     locationPathname,
     locationSearch,
     '',
   );
   const resolvedHazardId =
-    propHazardId ?? extractHazardFromPathname(pathname);
+    routeParams?.hazardId ?? propHazardId ?? '';
   const focusedEntityId = extractFocusIdFromSearch(search);
 
   const entries = useMemo(

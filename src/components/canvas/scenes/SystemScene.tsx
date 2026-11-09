@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import { SYSTEM_FRAME } from '../instrument/referenceFrame';
@@ -6,6 +6,7 @@ import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
 import { toUrlSlug } from '../../../utils/datasetLayerCodec';
+import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
 import { GalacticCameraController } from './GalacticCameraController';
 import {
   resolveSystemPlanetEntity,
@@ -15,16 +16,8 @@ import {
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
 } from '../../../services/searchService';
-import {
-  getCachedDetailRecord,
-  getCachedSummaryNode,
-  fetchDetailRecord,
-  fetchSummaryNode,
-} from '../../../data/detailsRepository';
-import {
-  getCachedCorpusForFilter,
-  loadSearchCorpusForFilter,
-} from '../../../data/searchRepository';
+import { useSystemData } from '../../../hooks/useSystemData';
+import { useSearchCorpus } from '../../../hooks/useSearchCorpus';
 
 export interface StarDossierData {
   id: string;
@@ -51,6 +44,8 @@ export interface SystemSceneProps {
   debugHitarea?: boolean;
 }
 
+const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
+
 /**
  * SystemScene: Canonical production scene for stellar system cartography.
  * Renders the central star(s) and Keplerian orbiting planetary bodies mapped into SYSTEM_FRAME.
@@ -65,15 +60,9 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
   debugHitarea = false,
 }) => {
   const targetId = explicitSystem?.id ?? systemId;
-  const [tick, setTick] = useState(0);
 
-  const activeCorpus = useMemo(
-    () =>
-      getCachedCorpusForFilter('all') ??
-      getCachedCorpusForFilter('stars') ??
-      [],
-    [tick],
-  );
+  const { corpus } = useSearchCorpus('all');
+  const activeCorpus = corpus ?? EMPTY_CORPUS;
 
   const matchedEntry = useMemo(
     () =>
@@ -85,43 +74,9 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
 
   const resolvedId = explicitSystem?.id ?? matchedEntry?.s ?? matchedEntry?.i ?? targetId;
 
-  useEffect(() => {
-    if (!resolvedId) return undefined;
-    let cancelled = false;
-    const run = async () => {
-      let currentTargetId = resolvedId;
-      if (activeCorpus.length === 0) {
-        const loaded = await loadSearchCorpusForFilter('all').catch(() => undefined);
-        if (cancelled) return;
-        if (loaded && targetId) {
-          const found = findFocusedEntryInCorpus(targetId, loaded);
-          if (found) {
-            currentTargetId = found.s ?? found.i;
-          }
-        }
-      }
-      await Promise.all([
-        fetchSummaryNode(currentTargetId).catch(() => undefined),
-        fetchDetailRecord(currentTargetId).catch(() => undefined),
-      ]);
-      if (!cancelled) {
-        setTick((t) => t + 1);
-      }
-    };
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [resolvedId, targetId, activeCorpus.length]);
-
-  const summaryNode = resolvedId
-    ? getCachedSummaryNode(resolvedId) ??
-      (targetId && resolvedId !== targetId ? getCachedSummaryNode(targetId) : undefined)
-    : undefined;
-  const detailRecord = resolvedId
-    ? getCachedDetailRecord(resolvedId) ??
-      (targetId && resolvedId !== targetId ? getCachedDetailRecord(targetId) : undefined)
-    : undefined;
+  const { systemSummary: summaryNode, systemDetail: detailRecord } = useSystemData(
+    resolvedId ?? targetId,
+  );
   const sysManifest = detailRecord?.kind === 'system' ? detailRecord.record : undefined;
 
   const entities = useMemo<SpatialEntityDefinition[]>(() => {
@@ -232,6 +187,7 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
       cameraTarget={targetCoords}
       onInspect={onInspectPlanet}
       onSelect={onSelectEntity}
+      onFocusChange={onSelectEntity}
       debugHitarea={debugHitarea}
     >
       <GalacticCameraController target={targetCoords} persistGalaxyPose={false} />

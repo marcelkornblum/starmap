@@ -44,6 +44,7 @@ test.describe('Journey 1: The Reader Flow (Target Acquisition & Travel Planning)
     // 5. Clicks Directions link inside Details pane
     const directionsLink = detailsPane.getByRole('link', { name: 'Directions' });
     await expect(directionsLink).toBeVisible();
+    await directionsLink.focus();
     await directionsLink.click();
 
     // 6. Verifies Directions pane replaces Details

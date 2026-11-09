@@ -14,8 +14,6 @@ export interface EphemeralUIState {
   isAudioPlaying: boolean;
   activePanel: ActivePanel;
   hoveredNodeId: string | null;
-  selectedNodeId: string | null;
-  searchQuery: string;
 
   // View-level ephemeral states
   isCameraTransitioning: boolean;
@@ -30,7 +28,6 @@ export interface EphemeralUIState {
   dualPanelPolicy: DualPanelPolicy;
   activeDrawer: ActiveDrawer;
   isLayerCardOpen: boolean;
-  centeredEntityId: string | null;
 }
 
 export interface EphemeralUIActions {
@@ -38,8 +35,6 @@ export interface EphemeralUIActions {
   toggleAudio: () => void;
   setActivePanel: (panel: ActivePanel) => void;
   setHoveredNodeId: (id: string | null) => void;
-  setSelectedNodeId: (id: string | null) => void;
-  setSearchQuery: (query: string) => void;
   setCameraTransitioning: (transitioning: boolean) => void;
   setActivePrimaryPanel: (panel: ActivePrimaryPanel) => void;
   setDetailsDetent: (detent: DetailsDetent) => void;
@@ -51,8 +46,6 @@ export interface EphemeralUIActions {
   setActiveDrawer: (drawer: ActiveDrawer) => void;
   toggleDrawer: (drawer: Exclude<ActiveDrawer, null>) => void;
   setLayerCardOpen: (isOpen: boolean) => void;
-  setCenteredEntityId: (id: string | null) => void;
-  resetUIState: () => void;
   resetUI: () => void;
 }
 
@@ -62,8 +55,6 @@ export const INITIAL_UI_STATE: EphemeralUIState = {
   isAudioPlaying: false,
   activePanel: null,
   hoveredNodeId: null,
-  selectedNodeId: null,
-  searchQuery: '',
   isCameraTransitioning: false,
   activePrimaryPanel: 'details',
   detailsDetent: 'peek',
@@ -74,7 +65,6 @@ export const INITIAL_UI_STATE: EphemeralUIState = {
   dualPanelPolicy: 'auto',
   activeDrawer: null,
   isLayerCardOpen: true,
-  centeredEntityId: null,
 };
 
 export const useUIStore = create<UIStore>()((set) => ({
@@ -83,8 +73,6 @@ export const useUIStore = create<UIStore>()((set) => ({
   toggleAudio: () => set((state) => ({ isAudioPlaying: !state.isAudioPlaying })),
   setActivePanel: (activePanel: ActivePanel) => set({ activePanel }),
   setHoveredNodeId: (hoveredNodeId: string | null) => set({ hoveredNodeId }),
-  setSelectedNodeId: (selectedNodeId: string | null) => set({ selectedNodeId }),
-  setSearchQuery: (searchQuery: string) => set({ searchQuery }),
   setCameraTransitioning: (isCameraTransitioning: boolean) => set({ isCameraTransitioning }),
   setActivePrimaryPanel: (activePrimaryPanel: ActivePrimaryPanel) => set({ activePrimaryPanel }),
   setDetailsDetent: (detailsDetent: DetailsDetent) => set({ detailsDetent }),
@@ -97,8 +85,6 @@ export const useUIStore = create<UIStore>()((set) => ({
   toggleDrawer: (drawer: Exclude<ActiveDrawer, null>) =>
     set((state) => ({ activeDrawer: state.activeDrawer === drawer ? null : drawer })),
   setLayerCardOpen: (isLayerCardOpen: boolean) => set({ isLayerCardOpen }),
-  setCenteredEntityId: (centeredEntityId: string | null) => set({ centeredEntityId }),
-  resetUIState: () => set({ ...INITIAL_UI_STATE }),
   resetUI: () => set({ ...INITIAL_UI_STATE }),
 }));
 

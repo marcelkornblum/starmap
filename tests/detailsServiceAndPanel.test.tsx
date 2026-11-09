@@ -1625,7 +1625,7 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
     })!;
 
     beforeEach(() => {
-      useUIStore.getState().resetUIState();
+      useUIStore.getState().resetUI();
     });
 
     it('returns null when isOpen is explicitly false', () => {

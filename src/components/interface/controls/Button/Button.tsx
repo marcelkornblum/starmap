@@ -1,5 +1,6 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
 import { resolveAppHref } from '../../../../utils/url';
+import { handleSpaNavigation } from '../../../../hooks/spaNavigation';
 import styles from './Button.module.css';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -27,6 +28,12 @@ export const Button = ({
     : styles.button;
 
   if (href !== undefined) {
+    const { onClick, ...anchorRest } = rest;
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>): void => {
+      (onClick as React.MouseEventHandler<HTMLAnchorElement> | undefined)?.(e);
+      handleSpaNavigation(e, href);
+    };
+
     return (
       <a
         href={resolveAppHref(href)}
@@ -35,7 +42,8 @@ export const Button = ({
         className={combinedClassName}
         data-variant={variant}
         data-size={size}
-        {...(rest as unknown as AnchorHTMLAttributes<HTMLAnchorElement>)}
+        {...(anchorRest as AnchorHTMLAttributes<HTMLAnchorElement>)}
+        onClick={handleClick}
       >
         {children}
       </a>

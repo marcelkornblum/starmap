@@ -1,9 +1,19 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createElement, type ReactElement } from 'react';
 import { render } from '@testing-library/react';
 import { seedDetailRecord } from '../src/data/detailsRepository';
 import type { SystemManifest } from '../src/types/astro';
+
+let mockRouteParams: Record<string, string | undefined> = {};
+
+vi.mock('@tanstack/react-router', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@tanstack/react-router');
+  return {
+    ...actual,
+    useParams: () => mockRouteParams,
+  };
+});
 
 const renderToHtml = (element: ReactElement): string => render(element).container.innerHTML;
 
@@ -54,6 +64,7 @@ const TAU_CETI_FIXTURE: SystemManifest = {
 };
 
 beforeEach(() => {
+  mockRouteParams = {};
   seedDetailRecord('tau-ceti', { kind: 'system', record: TAU_CETI_FIXTURE });
   seedDetailRecord('tau-ceti-e', { kind: 'system', record: TAU_CETI_FIXTURE });
   seedDetailRecord('gaia-2452378776434477184', { kind: 'system', record: TAU_CETI_FIXTURE });
@@ -110,8 +121,8 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
 
     it('contains specific required benchmark examples for key stellar classes', () => {
       const gEntry = STAR_TYPE_GUIDE_ENTRIES.find((e) => e.id === 'g');
-      expect(gEntry?.examples.some((ex) => ex.name === 'Sol' && ex.href === '/galaxy?focus=sol&select=star-type:g')).toBe(true);
-      expect(gEntry?.examples.some((ex) => ex.name === 'Tau Ceti' && ex.href === '/galaxy?focus=tau-ceti&select=star-type:g')).toBe(true);
+      expect(gEntry?.examples.some((ex) => ex.name === 'Sol' && ex.href === '/system/sol')).toBe(true);
+      expect(gEntry?.examples.some((ex) => ex.name === 'Tau Ceti' && ex.href === '/galaxy?focus=tau-ceti')).toBe(true);
       expect(gEntry?.examples.some((ex) => ex.name.includes('Alpha Centauri A'))).toBe(true);
 
       const kEntry = STAR_TYPE_GUIDE_ENTRIES.find((e) => e.id === 'k');
@@ -260,7 +271,7 @@ describe('DEC-027: Guide Service & Pure Resolvers', () => {
 
     it('contains expected planetary benchmark examples', () => {
       const terrestrial = resolvePlanetTypeGuideEntry('terrestrial');
-      expect(terrestrial?.examples.some((ex) => ex.name === 'Earth' && ex.href === '/system/sol?focus=earth&select=planet-type:terrestrial')).toBe(true);
+      expect(terrestrial?.examples.some((ex) => ex.name === 'Earth' && ex.href === '/system/sol?focus=earth')).toBe(true);
       expect(terrestrial?.examples.some((ex) => ex.name.includes('Proxima Centauri b'))).toBe(true);
 
       const superEarth = resolvePlanetTypeGuideEntry('super-earth');
@@ -582,6 +593,13 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
       expect(html).toContain('data-testid="star-type-detail-view-root"');
       expect(html).toContain('data-testid="star-types-list-link"');
     });
+
+    it('extracts starType from route params via useParams when propStarType is omitted', () => {
+      mockRouteParams = { starType: 'M' };
+      const html = renderToHtml(createElement(StarTypeDetailView));
+      expect(html).toContain('data-star-type="M"');
+      expect(html).toMatch(/<h1[^>]*>Star Type: M<\/h1>/);
+    });
   });
 
   describe('PlanetTypesListView', () => {
@@ -619,6 +637,13 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
       expect(html).toContain('data-preview-kind="planet"');
       expect(html).toContain('data-testid="guide-examples-list"');
       expect(html).toContain('Earth');
+    });
+
+    it('extracts planetType from route params via useParams when propPlanetType is omitted', () => {
+      mockRouteParams = { planetType: 'gas-giant' };
+      const html = renderToHtml(createElement(PlanetTypeDetailView));
+      expect(html).toContain('data-planet-type="gas-giant"');
+      expect(html).toMatch(/<h1[^>]*>Planet Type: gas-giant<\/h1>/);
     });
   });
 
@@ -692,6 +717,13 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
       expect(html).toContain('data-testid="metric-comparison-ratio"');
       expect(html).toContain('Earth orbit');
     });
+
+    it('extracts metricId from route params via useParams when propMetricId is omitted', () => {
+      mockRouteParams = { metricId: 'equilibrium-temperature' };
+      const html = renderToHtml(createElement(MetricDetailView));
+      expect(html).toContain('data-metric-id="equilibrium-temperature"');
+      expect(html).toMatch(/<h1[^>]*>Telemetry Metric: equilibrium-temperature<\/h1>/);
+    });
   });
 
   describe('HazardsListView', () => {
@@ -738,6 +770,13 @@ describe('DEC-027: Guide Views Structure & DOM Test IDs', () => {
       expect(html).toContain('data-testid="hazard-detail-view-root"');
       expect(html).toContain('data-testid="hazard-detail-fallback"');
       expect(html).toContain('data-testid="hazards-list-link"');
+    });
+
+    it('extracts hazardId from route params via useParams when propHazardId is omitted', () => {
+      mockRouteParams = { hazardId: 'extreme-heat' };
+      const html = renderToHtml(createElement(HazardDetailView));
+      expect(html).toContain('data-hazard-id="extreme-heat"');
+      expect(html).toMatch(/<h1[^>]*>Environmental Hazard: Extreme thermal regime<\/h1>/);
     });
   });
 });

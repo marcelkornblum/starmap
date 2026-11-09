@@ -27,6 +27,7 @@ export interface CanvasStageData<
 export interface CanvasStageCallbacks {
   readonly onInspect?: (id: string) => void;
   readonly onSelect?: (id: string | null) => void;
+  readonly onFocusChange?: (id: string | null) => void;
 }
 
 const EMPTY_STAGE_CALLBACKS: CanvasStageCallbacks = {};
@@ -42,7 +43,8 @@ function notifyStageCallbackListeners(): void {
 export function setStageCallbacks(callbacks: CanvasStageCallbacks): void {
   if (
     stageCallbacks.onInspect === callbacks.onInspect &&
-    stageCallbacks.onSelect === callbacks.onSelect
+    stageCallbacks.onSelect === callbacks.onSelect &&
+    stageCallbacks.onFocusChange === callbacks.onFocusChange
   ) {
     return;
   }

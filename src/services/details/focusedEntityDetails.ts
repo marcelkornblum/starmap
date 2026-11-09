@@ -480,7 +480,7 @@ export const buildFocusedEntityDetails = (
               matchedCorpusEntry.k === 6)
           ? 'minor-body'
           : (matchedStarDetail || solarBodyRecord?.classification === 'Star') &&
-              ((hasExplicitFocus && Boolean(urlSystemSlug)) ||
+              ((hasExplicitFocus && Boolean(urlSystemSlug) && inputViewScope !== 'galaxy') ||
                 (focusedEntity.id !== systemId &&
                   toUrlSlug(focusedEntity.id) !== toUrlSlug(systemName) &&
                   toUrlSlug(focusedEntity.name) !== toUrlSlug(systemName)))

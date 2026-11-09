@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import { type ThreeEvent } from '@react-three/fiber';
 import {
@@ -29,7 +29,6 @@ import {
   JourneyChord,
 } from '../entity';
 import type { JourneyChordLeg } from '../cartography';
-import { useUIStore } from '../../../stores/useUIStore';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
 import { toUrlSlug } from '../../../utils/datasetLayerCodec';
@@ -93,7 +92,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   showInstrument = true,
   showPlanarFootprint = false,
   debugHitarea = false,
-  syncWithUIStore = true,
+  syncWithUIStore: _syncWithUIStore = true,
   initialSelectedId,
   enableFocusTransition = true,
   focusTransitionDuration = 0.8,
@@ -104,7 +103,6 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
 }) => {
   const storeApi = useSpatialEntityStoreApi();
   const occlusionManager = useOcclusionManager();
-  const globalSelectedId = useUIStore((s) => s.selectedNodeId);
   const { transitionTo } = useCameraTransition();
 
   // Initialize selection on mount if initialSelectedId is provided
@@ -114,28 +112,11 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     }
   }, [initialSelectedId, storeApi]);
 
-  // Synchronise external UI store selection inwards to spatial entity store
-  useEffect(() => {
-    if (!syncWithUIStore) return;
-    const current = storeApi.getState().selectedId;
-    if (globalSelectedId !== current) {
-      storeApi.getState().setSelected(globalSelectedId);
-    }
-  }, [globalSelectedId, syncWithUIStore, storeApi]);
-
   // Synchronise outer store selectedIds inward to local spatial entity store.
-  // This is programmatic (e.g. search results), so it must not be reported back out as a user
-  // selection; otherwise onSelect rewrites the URL focus, which re-runs search and re-selects.
-  const applyingOuterSelectionRef = useRef(false);
   useEffect(() => {
     if (!outerStore || outerStore === storeApi) return;
     const applyOuterSelection = (ids: ReadonlySet<string>): void => {
-      applyingOuterSelectionRef.current = true;
-      try {
-        storeApi.getState().setSelectedIds(ids);
-      } finally {
-        applyingOuterSelectionRef.current = false;
-      }
+      storeApi.getState().setSelectedIds(ids);
     };
     applyOuterSelection(outerStore.getState().selectedIds);
 
@@ -147,38 +128,32 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   }, [outerStore, storeApi]);
 
   // Synchronise outer store focusedId inward to local spatial entity store
-  const applyingOuterFocusRef = useRef(false);
   useEffect(() => {
     if (!outerStore || outerStore === storeApi) return;
     const applyOuterFocus = (focusedId: string | null): void => {
-      applyingOuterFocusRef.current = true;
-      try {
-        let resolvedLocalId = focusedId;
-        if (focusedId) {
-          const outerEntity = outerStore.getState().entities[focusedId];
-          const localEntities = storeApi.getState().entities;
-          const targetSlug = toUrlSlug(focusedId);
-          const outerNameSlug = outerEntity?.name ? toUrlSlug(outerEntity.name) : null;
+      let resolvedLocalId = focusedId;
+      if (focusedId) {
+        const outerEntity = outerStore.getState().entities[focusedId];
+        const localEntities = storeApi.getState().entities;
+        const targetSlug = toUrlSlug(focusedId);
+        const outerNameSlug = outerEntity?.name ? toUrlSlug(outerEntity.name) : null;
 
-          const localMatch = Object.values(localEntities).find(
-            (e) =>
-              e.id === focusedId ||
-              toUrlSlug(e.id) === targetSlug ||
-              toUrlSlug(e.name) === targetSlug ||
-              (outerNameSlug && toUrlSlug(e.name) === outerNameSlug),
-          );
+        const localMatch = Object.values(localEntities).find(
+          (e) =>
+            e.id === focusedId ||
+            toUrlSlug(e.id) === targetSlug ||
+            toUrlSlug(e.name) === targetSlug ||
+            (outerNameSlug && toUrlSlug(e.name) === outerNameSlug),
+        );
 
-          if (localMatch) {
-            resolvedLocalId = localMatch.id;
-          } else if (outerEntity && !localEntities[outerEntity.id]) {
-            storeApi.getState().registerEntity(outerEntity);
-          }
+        if (localMatch) {
+          resolvedLocalId = localMatch.id;
+        } else if (outerEntity && !localEntities[outerEntity.id]) {
+          storeApi.getState().registerEntity(outerEntity);
         }
-        if (storeApi.getState().focusedId !== resolvedLocalId) {
-          storeApi.getState().setFocused(resolvedLocalId);
-        }
-      } finally {
-        applyingOuterFocusRef.current = false;
+      }
+      if (storeApi.getState().focusedId !== resolvedLocalId) {
+        storeApi.getState().setFocused(resolvedLocalId);
       }
     };
     applyOuterFocus(outerStore.getState().focusedId);
@@ -191,20 +166,11 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   }, [outerStore, storeApi]);
 
   // Synchronise outer store hoveredId inward to local spatial entity store
-  const applyingOuterHoverRef = useRef(false);
-  const applyingLocalHoverRef = useRef(false);
-
   useEffect(() => {
     if (!outerStore || outerStore === storeApi) return;
     const applyOuterHover = (hoveredId: string | null): void => {
-      if (applyingLocalHoverRef.current) return;
-      applyingOuterHoverRef.current = true;
-      try {
-        if (storeApi.getState().hoveredId !== hoveredId) {
-          storeApi.getState().setHovered(hoveredId);
-        }
-      } finally {
-        applyingOuterHoverRef.current = false;
+      if (storeApi.getState().hoveredId !== hoveredId) {
+        storeApi.getState().setHovered(hoveredId);
       }
     };
     applyOuterHover(outerStore.getState().hoveredId);
@@ -228,18 +194,13 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     }
   }, [outerStore, storeApi]);
 
-  // Synchronise local store selection & focus changes outward to UI store, outer spatial store, and callbacks
+  // Synchronise local store selection & focus changes outward to outer spatial store and callbacks
   useEffect(() => {
     return storeApi.subscribe((state, prevState) => {
-      if (state.hoveredId !== prevState.hoveredId && !applyingOuterHoverRef.current) {
+      if (state.hoveredId !== prevState.hoveredId) {
         if (outerStore && outerStore !== storeApi) {
-          applyingLocalHoverRef.current = true;
-          try {
-            if (outerStore.getState().hoveredId !== state.hoveredId) {
-              outerStore.getState().setHovered(state.hoveredId);
-            }
-          } finally {
-            applyingLocalHoverRef.current = false;
+          if (outerStore.getState().hoveredId !== state.hoveredId) {
+            outerStore.getState().setHovered(state.hoveredId);
           }
         }
       }
@@ -256,10 +217,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
         }
       }
 
-      if (state.selectedId !== prevState.selectedId && !applyingOuterSelectionRef.current) {
-        if (syncWithUIStore && useUIStore.getState().selectedNodeId !== state.selectedId) {
-          useUIStore.getState().setSelectedNodeId(state.selectedId);
-        }
+      if (state.selectedId !== prevState.selectedId) {
         if (outerStore && outerStore !== storeApi) {
           if (state.selectedId) {
             const entity = state.entities[state.selectedId];
@@ -271,10 +229,9 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
             outerStore.getState().setSelected(state.selectedId);
           }
         }
-        onSelect?.(state.selectedId);
       }
 
-      if (state.focusedId !== prevState.focusedId && !applyingOuterFocusRef.current) {
+      if (state.focusedId !== prevState.focusedId) {
         if (outerStore && outerStore !== storeApi) {
           if (state.focusedId) {
             const entity = state.entities[state.focusedId];
@@ -286,10 +243,9 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
             outerStore.getState().setFocused(state.focusedId);
           }
         }
-        onFocusChange?.(state.focusedId);
       }
     });
-  }, [storeApi, outerStore, syncWithUIStore, onSelect, onFocusChange]);
+  }, [storeApi, outerStore]);
 
   // Single click: select, or advance cyclic selection when re-clicking the selected entity
   const handleEntityClick = useCallback(
@@ -297,14 +253,17 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       activateEntity(storeApi, id, (targetId) =>
         occlusionManager.getCyclicSelectionTarget(targetId),
       );
+      const state = storeApi.getState();
+      const entityId = state.focusedId ?? state.selectedId;
+      onSelect?.(entityId);
+      onFocusChange?.(state.focusedId);
     },
-    [storeApi, occlusionManager],
+    [storeApi, occlusionManager, onSelect, onFocusChange],
   );
 
   // Double click: centre the instrument, focus the entity, and inspect (the single inspect gesture)
   const handleEntityDoubleClick = useCallback(
     (id: string, e: ThreeEvent<MouseEvent>) => {
-      useUIStore.getState().setCenteredEntityId(id);
       const entity = storeApi.getState().entities[id];
       if (entity?.position && enableFocusTransition) {
         transitionTo(entity.position, { duration: focusTransitionDuration });
@@ -313,6 +272,8 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       focusEntity(storeApi, id);
       onInspect?.(id);
       onDoubleClick?.(id, e);
+      onSelect?.(id);
+      onFocusChange?.(id);
     },
     [
       storeApi,
@@ -321,6 +282,8 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       transitionTo,
       onInspect,
       onDoubleClick,
+      onSelect,
+      onFocusChange,
     ],
   );
 
@@ -328,7 +291,11 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
     <group
       name="spatial-viewport"
       data-mode={mode}
-      onPointerMissed={() => clearInteraction(storeApi)}
+      onPointerMissed={() => {
+        clearInteraction(storeApi);
+        onSelect?.(null);
+        onFocusChange?.(null);
+      }}
     >
       {/* Dynamic O(n) screen-space occlusion pass */}
       <OcclusionPass enabled={true} />
@@ -396,9 +363,6 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
     // When an outer SpatialEntityContext store is already present and props.outerStore is not explicitly overriding it,
     // unify directly with the outer store to avoid redundant duplicate instances and echo loops.
     if (contextStore && !props.outerStore) {
-      if (initialSelectedId && !contextStore.getState().selectedId) {
-        contextStore.getState().setSelected(initialSelectedId);
-      }
       return contextStore;
     }
 

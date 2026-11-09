@@ -31,7 +31,7 @@ import { StarTypeDetailView } from '../src/views/StarTypeDetailView';
 import { StarTypesListView } from '../src/views/StarTypesListView';
 import { SystemView } from '../src/views/SystemView';
 import { SEARCH_CATEGORIES } from '../src/services/searchService';
-import { useStarmapNav, useNavigationActions } from '../src/router/navigation';
+import { useStarmapNav } from '../src/router/navigation';
 
 const renderHtml = (el: ReactElement): string => {
   const { container } = render(el);
@@ -46,6 +46,8 @@ vi.mock('@tanstack/react-router', async () => {
     ...actual,
     useNavigate: vi.fn(),
     useRouter: vi.fn(),
+    useParams: vi.fn(() => ({})),
+    useSearch: vi.fn(() => ({})),
   };
 });
 
@@ -92,13 +94,15 @@ describe('TanStack Router Architecture', () => {
       q: 'Tau Ceti',
       searchCategory: 'stars',
       focus: 'tau-ceti-e',
-      select: 'tag:habitable-candidate,layer:project-hail-mary,sol',
+      select: 'layer:project-hail-mary,sol',
       layer: 'project-hail-mary',
+      route: 'sol-to-tau-ceti',
+      journeyOption: 'standard',
+      center: 'sol',
       x: '12.5',
       y: 42,
       z: 'not-a-number',
       zoom: '3',
-      center: 'sol',
       customFilter: 'habitable',
       az: '45.5',
       el: -15,
@@ -109,18 +113,22 @@ describe('TanStack Router Architecture', () => {
     expect(validated.searchCategory).toBe('stars');
     expect(validated.focus).toBe('tau-ceti-e');
     expect(validated.select).toBe(
-      'tag:habitable-candidate,layer:project-hail-mary,sol',
+      'layer:project-hail-mary,sol',
     );
     expect(validated.layer).toBe('project-hail-mary');
-    expect(validated.x).toBe(12.5);
-    expect(validated.y).toBe(42);
-    expect(validated.z).toBeUndefined();
-    expect(validated.zoom).toBe(3);
+    expect(validated.route).toBe('sol-to-tau-ceti');
+    expect(validated.journeyOption).toBe('standard');
     expect(validated.center).toBe('sol');
+
+    // Legacy positioning params stripped
+    expect('x' in validated).toBe(false);
+    expect('y' in validated).toBe(false);
+    expect('z' in validated).toBe(false);
+    expect('zoom' in validated).toBe(false);
+    expect('az' in validated).toBe(false);
+    expect('el' in validated).toBe(false);
+    expect('dist' in validated).toBe(false);
     expect('customFilter' in validated).toBe(false);
-    expect(validated.az).toBe(45.5);
-    expect(validated.el).toBe(-15);
-    expect(validated.dist).toBe(120.8);
 
     expect(
       stringifyStarmapSearch({
@@ -134,34 +142,31 @@ describe('TanStack Router Architecture', () => {
     expect(emptyValidated.q).toBeUndefined();
     expect(emptyValidated.select).toBeUndefined();
     expect(emptyValidated.layer).toBeUndefined();
-    expect(emptyValidated.x).toBeUndefined();
-    expect(emptyValidated.y).toBeUndefined();
-    expect(emptyValidated.z).toBeUndefined();
-    expect(emptyValidated.zoom).toBeUndefined();
     expect(emptyValidated.center).toBeUndefined();
-    expect(emptyValidated.az).toBeUndefined();
-    expect(emptyValidated.el).toBeUndefined();
-    expect(emptyValidated.dist).toBeUndefined();
+    expect('x' in emptyValidated).toBe(false);
+    expect('y' in emptyValidated).toBe(false);
+    expect('z' in emptyValidated).toBe(false);
+    expect('zoom' in emptyValidated).toBe(false);
+    expect('az' in emptyValidated).toBe(false);
+    expect('el' in emptyValidated).toBe(false);
+    expect('dist' in emptyValidated).toBe(false);
 
-    // Pure numeric inputs, 0 values, and non-string center
-    const numericValidated = validate({
-      x: 100,
-      y: 200,
-      z: 300,
-      zoom: 5,
-      center: 999, // non-string -> undefined
-      az: 0,
-      el: '0',
-      dist: 0,
+    // center with coordinates string per DEC-R014a
+    const coordsValidated = validate({
+      center: '12.5,42.0,-10.8',
     });
-    expect(numericValidated.x).toBe(100);
-    expect(numericValidated.y).toBe(200);
-    expect(numericValidated.z).toBe(300);
-    expect(numericValidated.zoom).toBe(5);
-    expect(numericValidated.center).toBeUndefined();
-    expect(numericValidated.az).toBe(0);
-    expect(numericValidated.el).toBe(0);
-    expect(numericValidated.dist).toBe(0);
+    expect(coordsValidated.center).toBe('12.5,42.0,-10.8');
+
+    // Non-string center and whitespace-only center
+    const nonStringCenter = validate({
+      center: 999,
+    });
+    expect(nonStringCenter.center).toBeUndefined();
+
+    const emptyCenter = validate({
+      center: '   ',
+    });
+    expect(emptyCenter.center).toBeUndefined();
   });
 
   it('maps /, and /galaxy to GalaxyView, /search to SearchView, /system/$systemId to SystemView, and /planet/$planetId to PlanetView', () => {
@@ -228,37 +233,37 @@ describe('useStarmapNav Navigation Enforcer', () => {
 
   it('enforces push (replace: false) on major view transition to /galaxy', async () => {
     const nav = useStarmapNav();
-    await nav.toGalaxy({ zoom: 2 });
+    await nav.toGalaxy({ center: 'sol' });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
     expect(callArg.to).toBe('/galaxy');
     expect(callArg.replace).toBe(false);
-    expect(callArg.search({ x: 10 })).toEqual({ x: 10, zoom: 2 });
+    expect(callArg.search({ focus: 'sol' })).toEqual({ focus: 'sol', center: 'sol' });
   });
 
   it('enforces push (replace: false) on major view transition to /system/$systemId', async () => {
     const nav = useStarmapNav();
-    await nav.toSystem('sol', { zoom: 5 });
+    await nav.toSystem('sol', { focus: 'earth' });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
     expect(callArg.to).toBe('/system/$systemId');
     expect(callArg.params).toEqual({ systemId: 'sol' });
     expect(callArg.replace).toBe(false);
-    expect(callArg.search({ center: 'sol' })).toEqual({ center: 'sol', zoom: 5 });
+    expect(callArg.search({ center: 'sol' })).toEqual({ center: 'sol', focus: 'earth' });
   });
 
   it('enforces push (replace: false) on major view transition to /planet/$planetId', async () => {
     const nav = useStarmapNav();
-    await nav.toPlanet('earth', { zoom: 8 });
+    await nav.toPlanet('earth', { focus: 'moon' });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
     expect(callArg.to).toBe('/planet/$planetId');
     expect(callArg.params).toEqual({ planetId: 'earth' });
     expect(callArg.replace).toBe(false);
-    expect(callArg.search({ center: 'earth' })).toEqual({ center: 'earth', zoom: 8 });
+    expect(callArg.search({ center: 'earth' })).toEqual({ center: 'earth', focus: 'moon' });
   });
 
   it('enforces push (replace: false) on major view transition to /guide/star-types', async () => {
@@ -274,41 +279,18 @@ describe('useStarmapNav Navigation Enforcer', () => {
 
   it('enforces replace (replace: true) on intra-view parameter updates', async () => {
     const nav = useStarmapNav();
-    await nav.updateParams({ x: 100, y: 200 });
+    await nav.updateParams({ center: '10,20,30', focus: 'sol' });
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const callArg = mockNavigate.mock.calls[0][0];
     expect(callArg.to).toBe('.');
     expect(callArg.replace).toBe(true);
-    expect(callArg.search({ z: 50 })).toEqual({ z: 50, x: 100, y: 200 });
+    expect(callArg.search({ select: 'sol' })).toEqual({ select: 'sol', center: '10,20,30', focus: 'sol' });
   });
 
   it('exposes currentPath from router state', () => {
     const nav = useStarmapNav();
     expect(nav.currentPath).toBe('/galaxy');
-  });
-
-  it('supports useNavigationActions alias with goTo methods', async () => {
-    const actions = useNavigationActions();
-    await actions.goToGalaxy();
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({ to: '/galaxy', replace: false })
-    );
-
-    await actions.goToSystem('sol');
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({ to: '/system/$systemId', params: { systemId: 'sol' }, replace: false })
-    );
-
-    await actions.goToPlanet('mars');
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({ to: '/planet/$planetId', params: { planetId: 'mars' }, replace: false })
-    );
-
-    await actions.goToReference();
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({ to: '/guide/star-types', replace: false })
-    );
   });
 
   it('configures router basepath and normalises location pathname in resolveSpaLocation', () => {

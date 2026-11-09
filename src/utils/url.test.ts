@@ -8,9 +8,6 @@ import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
-  extractUrlFocusSlug,
-  extractUrlPlanetSlug,
-  extractUrlSystemSlug,
   hasExplicitFocusParam,
   parseLayerQueryParam,
   resolveAppHref,
@@ -105,29 +102,6 @@ describe('url utils', () => {
   });
 
   describe('URL focus and slug extraction', () => {
-    it('extractUrlFocusSlug prioritises ?focus= parameter', () => {
-      expect(extractUrlFocusSlug('/galaxy/tau-ceti', '?focus=tau-ceti-e')).toBe('tau-ceti-e');
-    });
-
-    it('extractUrlFocusSlug falls back to galaxy system route segment', () => {
-      expect(extractUrlFocusSlug('/galaxy/tau-ceti', '')).toBe('tau-ceti');
-    });
-
-    it('extractUrlFocusSlug returns null when no focus or route match', () => {
-      expect(extractUrlFocusSlug('/search', '')).toBeNull();
-    });
-
-    it('extractUrlSystemSlug extracts system from galaxy or system route', () => {
-      expect(extractUrlSystemSlug('/galaxy/sol')).toBe('sol');
-      expect(extractUrlSystemSlug('/system/trappist-1')).toBe('trappist-1');
-      expect(extractUrlSystemSlug('/planet/earth')).toBeNull();
-    });
-
-    it('extractUrlPlanetSlug extracts planet from planet route', () => {
-      expect(extractUrlPlanetSlug('/planet/earth')).toBe('earth');
-      expect(extractUrlPlanetSlug('/system/sol')).toBeNull();
-    });
-
     it('hasExplicitFocusParam checks if focus param exists and is non-empty', () => {
       expect(hasExplicitFocusParam('?focus=sol')).toBe(true);
       expect(hasExplicitFocusParam('?focus=')).toBe(false);

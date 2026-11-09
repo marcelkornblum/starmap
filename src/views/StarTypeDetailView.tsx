@@ -19,6 +19,7 @@ import {
   extractFocusIdFromSearch,
   resolveStarTypeGuideEntries,
 } from '../services/guideService';
+import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
 
@@ -28,22 +29,18 @@ export interface StarTypeDetailViewProps {
   readonly locationSearch?: string;
 }
 
-export const extractStarTypeFromPathname = (pathname: string): string => {
-  const match = /^\/guide\/star-types\/([^/?#]+)/i.exec(pathname.trim());
-  return match?.[1] ? decodeURIComponent(match[1]) : '';
-};
-
 export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
   starType: propStarType,
   locationPathname,
   locationSearch,
 }) => {
-  const { pathname, search } = useSpaLocation(
+  const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
+  const { search } = useSpaLocation(
     locationPathname,
     locationSearch,
     '',
   );
-  const resolvedStarType = propStarType ?? extractStarTypeFromPathname(pathname);
+  const resolvedStarType = routeParams?.starType ?? propStarType ?? '';
   const focusedEntityId = extractFocusIdFromSearch(search);
 
   const resolvedDetails = useMemo(

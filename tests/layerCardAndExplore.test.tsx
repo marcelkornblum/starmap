@@ -518,7 +518,7 @@ describe('Layer Selection and Camera Recentering (DEC-041 / DEC-042)', () => {
   });
 
   it('increments recenterTick and resets properly in useCameraStore', () => {
-    useCameraStore.getState().resetCameraState();
+    useCameraStore.getState().reset();
     expect(useCameraStore.getState().recenterTick).toBe(0);
 
     useCameraStore.getState().triggerRecenter();

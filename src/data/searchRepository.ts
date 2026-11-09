@@ -1,6 +1,8 @@
 import type { SearchCategoryFilter } from '../types/search';
 import type { CompactSearchEntry, SearchIndexEnvelope } from '../utils/compactDataCodec';
 import { resolveDataUrl } from '../utils/url';
+import { BoundedLruCache } from '../utils/lruCache';
+import { SEARCH_SHARD_CACHE_LIMIT } from '../config/cacheConfig';
 
 export type SearchShardName =
   | 'core'
@@ -22,9 +24,41 @@ const SHARD_URLS: Record<SearchShardName, string> = {
   layers: resolveDataUrl('/data/search/layers.json'),
 };
 
-const shardCache = new Map<SearchShardName, Promise<readonly CompactSearchEntry[]>>();
-const resolvedShardCache = new Map<SearchShardName, readonly CompactSearchEntry[]>();
-const resolvedFilterCache = new Map<SearchCategoryFilter, readonly CompactSearchEntry[]>();
+const shardCache = new BoundedLruCache<SearchShardName, Promise<readonly CompactSearchEntry[]>>(
+  SEARCH_SHARD_CACHE_LIMIT,
+);
+const resolvedShardCache = new BoundedLruCache<SearchShardName, readonly CompactSearchEntry[]>(
+  SEARCH_SHARD_CACHE_LIMIT,
+);
+const resolvedFilterCache = new BoundedLruCache<SearchCategoryFilter, readonly CompactSearchEntry[]>(
+  SEARCH_SHARD_CACHE_LIMIT,
+);
+
+const searchListeners = new Set<() => void>();
+let searchRepoVersion = 0;
+
+/**
+ * Returns the current version counter of the search repository cache.
+ */
+export const getSearchRepositoryVersion = (): number => searchRepoVersion;
+
+/**
+ * Subscribes to changes in the search repository in-memory cache.
+ * Returns an unsubscribe callback.
+ */
+export const subscribeSearchRepository = (listener: () => void): (() => void) => {
+  searchListeners.add(listener);
+  return () => {
+    searchListeners.delete(listener);
+  };
+};
+
+const notifySearchListeners = (): void => {
+  searchRepoVersion++;
+  for (const listener of searchListeners) {
+    listener();
+  }
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -43,6 +77,7 @@ export const clearSearchRepositoryCache = (): void => {
   shardCache.clear();
   resolvedShardCache.clear();
   resolvedFilterCache.clear();
+  notifySearchListeners();
 };
 
 /**
@@ -51,31 +86,53 @@ export const clearSearchRepositoryCache = (): void => {
 export const fetchSearchShard = async (
   shard: SearchShardName,
   fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<readonly CompactSearchEntry[]> => {
   const cached = shardCache.get(shard);
   if (cached) {
     return cached;
   }
 
-  const loadPromise = (async (): Promise<readonly CompactSearchEntry[]> => {
-    const response = await fetcher(SHARD_URLS[shard]);
-    if (!response.ok) {
-      throw new Error(`Failed to load search shard "${shard}" (${response.status})`);
-    }
-    const payload: unknown = await response.json();
-    if (!isSearchIndexEnvelope(payload)) {
-      throw new Error(`Invalid search index envelope in shard "${shard}"`);
-    }
-    resolvedShardCache.set(shard, payload.d);
-    return payload.d;
-  })();
+  let loadPromise = shardCache.get(shard);
+  if (!loadPromise) {
+    loadPromise = (async (): Promise<readonly CompactSearchEntry[]> => {
+      const response = signal
+        ? await fetcher(SHARD_URLS[shard], { signal })
+        : await fetcher(SHARD_URLS[shard]);
+      if (!response.ok) {
+        throw new Error(`Failed to load search shard "${shard}" (${response.status})`);
+      }
+      const payload: unknown = await response.json();
+      if (!isSearchIndexEnvelope(payload)) {
+        throw new Error(`Invalid search index envelope in shard "${shard}"`);
+      }
+      resolvedShardCache.set(shard, payload.d);
+      notifySearchListeners();
+      return payload.d;
+    })().catch((err: unknown) => {
+      shardCache.delete(shard);
+      throw err;
+    });
 
-  shardCache.set(shard, loadPromise);
-  loadPromise.catch(() => {
-    shardCache.delete(shard);
+    if (signal) {
+      const onAbort = () => {
+        signal.removeEventListener('abort', onAbort);
+        if (shardCache.get(shard) === loadPromise) {
+          shardCache.delete(shard);
+        }
+      };
+      signal.addEventListener('abort', onAbort);
+    }
+
+    shardCache.set(shard, loadPromise);
+  }
+
+  return loadPromise.catch((err: unknown) => {
+    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
+      return fetchSearchShard(shard, fetcher, signal);
+    }
+    throw err;
   });
-
-  return loadPromise;
 };
 
 /**
@@ -140,6 +197,7 @@ export const getCachedCorpusForFilter = (
 export const loadSearchCorpusForFilter = async (
   filter: SearchCategoryFilter,
   fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<readonly CompactSearchEntry[]> => {
   if (fetcher === fetch) {
     const cached = getCachedCorpusForFilter(filter);
@@ -149,22 +207,24 @@ export const loadSearchCorpusForFilter = async (
   }
 
   if (filter !== 'all') {
-    const shard = await fetchSearchShard(filter, fetcher);
+    const shard = await fetchSearchShard(filter, fetcher, signal);
     if (fetcher === fetch) {
       resolvedFilterCache.set(filter, shard);
+      notifySearchListeners();
     }
     return shard;
   }
 
   const [core, structures, minorBodies] = await Promise.all([
-    fetchSearchShard('core', fetcher),
-    fetchSearchShard('structures', fetcher),
-    fetchSearchShard('minor-bodies', fetcher),
+    fetchSearchShard('core', fetcher, signal),
+    fetchSearchShard('structures', fetcher, signal),
+    fetchSearchShard('minor-bodies', fetcher, signal),
   ]);
 
   const merged = mergeSearchShards([core, structures, minorBodies]);
   if (fetcher === fetch) {
     resolvedFilterCache.set('all', merged);
+    notifySearchListeners();
   }
   return merged;
 };

@@ -10,7 +10,6 @@ import {
   getCachedSummaryNodeByHash,
   fetchSummaryNodeByHash,
   clearDetailsRepositoryCache,
-  resetDetailsRepositoryCache,
 } from '../../data/detailsRepository';
 import { fnv1a32, encodeBinarySector, decodeBinarySector } from '../../utils/binarySectorCodec';
 import type { SectorPartitionManifest, SystemSummaryNode } from '../../types/astro';
@@ -147,8 +146,8 @@ describe('instrumentHydrationService', () => {
       expect(getCachedSummaryNodeByHash(NaN)).toBeUndefined();
       expect(await fetchSummaryNodeByHash(NaN)).toBeUndefined();
 
-      // resetDetailsRepositoryCache clears resolved caches
-      resetDetailsRepositoryCache();
+      // clearDetailsRepositoryCache clears resolved caches
+      clearDetailsRepositoryCache();
       expect(getCachedSummaryNode('tau-ceti')).toBeUndefined();
     });
   });

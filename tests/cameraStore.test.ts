@@ -3,7 +3,7 @@ import { useCameraStore, INITIAL_CAMERA_STATE } from '../src/stores/useCameraSto
 
 describe('Camera Store: useCameraStore.ts', () => {
   beforeEach(() => {
-    useCameraStore.getState().resetCameraState();
+    useCameraStore.getState().reset();
   });
 
   it('initializes with default perspective state', () => {
@@ -70,10 +70,10 @@ describe('Camera Store: useCameraStore.ts', () => {
     expect(state.zoom).toBe(2.0);
   });
 
-  it('resets to initial state with resetCameraState', () => {
+  it('resets to initial state with reset', () => {
     useCameraStore.getState().setLocked(true);
     useCameraStore.getState().requestAxisView('front');
-    useCameraStore.getState().resetCameraState();
+    useCameraStore.getState().reset();
 
     expect(useCameraStore.getState()).toEqual(expect.objectContaining(INITIAL_CAMERA_STATE));
   });

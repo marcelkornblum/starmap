@@ -1,5 +1,6 @@
 import { Button, CelestialTitle, type CelestialSymbolType } from '../../interface';
 import { resolveAppHref } from '../../../utils/url';
+import { handleSpaNavigation } from '../../../hooks/spaNavigation';
 import styles from './Breadcrumbs.module.css';
 
 export interface BreadcrumbItem {
@@ -65,7 +66,11 @@ export const Breadcrumbs = ({
               className={styles.breadcrumbItem}
             >
               {item.href && !isLast ? (
-                <a href={resolveAppHref(item.href)} data-testid="breadcrumb-link">
+                <a
+                  href={resolveAppHref(item.href)}
+                  data-testid="breadcrumb-link"
+                  onClick={(e) => handleSpaNavigation(e, item.href)}
+                >
                   {itemContent}
                 </a>
               ) : (

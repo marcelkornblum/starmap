@@ -22,7 +22,7 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
   };
 
   beforeEach(() => {
-    useCameraStore.getState().resetCameraState();
+    useCameraStore.getState().reset();
     camera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
     camera.position.set(20, 20, 20);
     camera.up.set(0, 0, 1);

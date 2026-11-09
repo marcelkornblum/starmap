@@ -34,6 +34,7 @@ export interface GalacticViewSceneProps {
   initialSelectedId?: string | null;
   onInspectSystem?: (systemId: string) => void;
   onSelectSystem?: (systemId: string | null) => void;
+  onFocusChange?: (systemId: string | null) => void;
   centerCoordinates?:
     | readonly [number, number, number]
     | [number, number, number]
@@ -49,6 +50,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
   initialSelectedId = null,
   onInspectSystem,
   onSelectSystem,
+  onFocusChange,
   centerCoordinates,
   centerId,
   cameraDistance,
@@ -140,6 +142,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
             initialSelectedId={initialSelectedId ?? centerId}
             onInspectSystem={onInspectSystem}
             onSelectSystem={onSelectSystem}
+            onFocusChange={onFocusChange}
             additionalEntities={additionalEntities}
             onCeilingApertureRadiusChange={setCeilingApertureRadiusPc}
           />

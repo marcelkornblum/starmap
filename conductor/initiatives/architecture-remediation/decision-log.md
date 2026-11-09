@@ -525,3 +525,50 @@ Records programme-level and per-track decisions for the architecture remediation
 ---
 
 - **2026-11-06 · T01 reconnaissance:** the Flash `codebase-researcher` report contained about five factual errors (e2e spec count, untypechecked-scripts list, non-existent file paths, CI action versions). Countermeasure: Flash research prompts must include the raw command output supporting each claim. Counted towards the DEC-R007 review.
+
+---
+
+### DEC-R040: Review Mode for Track T06 (`DEC-R006`)
+- **Date:** 2026-11-09
+- **Status:** `Ratified`
+- **Context:** Re-confirming review mode at the start of Track T06 per `DEC-R006`.
+- **Decision:** Whole-Track Review in PR. Execute all phases continuously (pausing for Phase 1 atomic decisions), run the three-auditor verification gate, and review the completed track in the Pull Request with clickable LAN smoke-test links.
+
+---
+
+### DEC-R041: Canonical State Model — URL Universe Authority & Ephemeral Workspace Chrome (`AUD-080`, `AUD-081`, `AUD-084`, `AUD-085`, `AUD-086`, `AUD-091`, `AUD-093`)
+- **Date:** 2026-11-09
+- **Status:** `Ratified`
+- **Context:** Selection, query, focus, and camera target were duplicated across URL search params, `useUIStore`, `SpatialEntityStore`, `useCameraStore`, and view local states, with 6+ mutable ref flags (`applyingOuter*Ref`, `pendingCanvasFocusRef`, `lastWrittenUrlQueryRef`) suppressing echo loops.
+- **Decision:**
+  - **URL Single Source of Truth for Universe State:** TanStack Router search and path parameters (`/galaxy`, `/system/:systemId`, `/planet/:planetId`, `?center=`, `?focus=`, `?select=`, `?layer=`, `?route=`, `?q=`, `?category=`) are the sole authoritative source of truth for all shareable navigation state.
+  - **Immediate URL Intent on Navigation:** Navigation updates the URL immediately. The 3D camera rig and DOM panels react to URL changes (animating 3D flight and retracting/fading HUD panels during transit, then restoring them when the camera arrives/settles).
+  - **Ephemeral Workspace Chrome in `useUIStore`:** Panel open/closed states (`isDetailsOpen`, `isDirectionsOpen`, `activeDrawer`) and in-flight HUD retraction (`isHudRetracted`) are owned locally by `useUIStore`.
+  - **Deletions:** Delete all store mirror fields (`useUIStore.selectedNodeId`, `useUIStore.searchQuery`, `useUIStore.centeredEntityId`), delete all echo-guard ref flags, delete the document click listener (`AUD-082`), and delete manual `window.location` / `window.history` mutations (`AUD-084`).
+  - **Single-Click Focus Decoupling (`AUD-093`):** Canvas single-click reticle activation updates `focusedId` and writes `?focus=` immediately without coupling to or clobbering `selectedId` / `selectedIds`.
+
+---
+
+### DEC-R042: Reactive Repository Hooks (`useSyncExternalStore`) for Data Loading (`AUD-087`)
+- **Date:** 2026-11-09
+- **Status:** `Ratified`
+- **Context:** Views (`SystemView`, `PlanetView`, `GalaxyView`) and 3D scenes (`SystemScene`) performed uncoordinated parallel fetches on mount, swallowed errors, and forced component re-renders via `setShardTick(t => t + 1)` counters to read synchronous repository caches.
+- **Decision:**
+  - Introduce reactive repository hooks (`useEntityDetails`, `useSystemData`, `useLayerManifest`) powered by cache subscriptions (`useSyncExternalStore` or store event emitters).
+  - Instantaneous resolution: if data is already cached, it resolves synchronously on the initial render (zero layout flash, non-blocking 3D scene transitions, zero new loading animation requirements).
+  - Automatic `AbortSignal` cancellation: in-flight fetches are passed an `AbortSignal` and aborted when the component unmounts or switches target.
+  - Delete all `setShardTick` counter hacks across views and scenes.
+
+---
+
+### DEC-R043: Bounded LRU Repositories with Configurable Limits & Native AbortSignal Support (`AUD-090`)
+- **Date:** 2026-11-09
+- **Status:** `Ratified`
+- **Context:** Global cache maps in `detailsRepository.ts`, `layerRepository.ts`, and `searchRepository.ts` were unbounded `Map` instances with no eviction, and fetchers accepted no `AbortSignal`.
+- **Decision:**
+  - Standardise repository caches on bounded LRU eviction.
+  - Extract cache limits into a dedicated configuration module (`src/config/cacheConfig.ts`) for easy tuning and test overrides:
+    - `DETAIL_RECORD_CACHE_LIMIT = 100` (~2–4 MB)
+    - `SUMMARY_NODE_CACHE_LIMIT = 500` (~1 MB)
+    - `SEARCH_SHARD_CACHE_LIMIT = 50` (~5 MB)
+  - Accept `signal?: AbortSignal` across all repository fetch functions (`fetchSummaryNode`, `fetchDetailRecord`, `fetchLayerManifest`, `fetchSearchShard`) and forward to `fetch()`.

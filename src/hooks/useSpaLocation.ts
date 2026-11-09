@@ -8,18 +8,12 @@ export interface StarmapSearchParams {
   layer?: string;
   route?: string;
   journeyOption?: string;
-  x?: number;
-  y?: number;
-  z?: number;
-  zoom?: number;
   center?: string;
-  az?: number;
-  el?: number;
-  dist?: number;
 }
 
 export interface SpaRouterNavigateOptions {
   to?: string;
+  href?: string;
   search?:
     | ((prev: StarmapSearchParams) => StarmapSearchParams)
     | ((prev: Record<string, unknown>) => Record<string, unknown>)
@@ -33,7 +27,8 @@ export interface SpaRouterNavigateOptions {
 }
 
 export interface SpaRouterLike {
-  readonly navigate?: (options: SpaRouterNavigateOptions) => Promise<unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly navigate?: (options: SpaRouterNavigateOptions | any) => Promise<unknown>;
   readonly state?: unknown;
   readonly subscribe?: (
     event: 'onResolved' | string,
@@ -41,12 +36,14 @@ export interface SpaRouterLike {
   ) => (() => void) | undefined;
   readonly history?: {
     subscribe?: (callback: () => void) => (() => void) | undefined;
+    push?: (path: string) => void;
+    replace?: (path: string) => void;
   };
 }
 
 let registeredRouter: SpaRouterLike | null = null;
 
-export function registerAppRouter(routerInstance: SpaRouterLike | unknown): void {
+export function registerAppRouter(routerInstance: unknown): void {
   registeredRouter = (routerInstance ?? null) as SpaRouterLike | null;
 }
 
@@ -108,13 +105,11 @@ export function useSpaLocation(
     const unsubRouter = appRouter.subscribe?.('onResolved', handleLocationChange);
     const unsubHistory = appRouter.history?.subscribe?.(handleLocationChange);
     window.addEventListener('popstate', handleLocationChange);
-    window.addEventListener('starmap:locationchange', handleLocationChange);
 
     return () => {
       unsubRouter?.();
       unsubHistory?.();
       window.removeEventListener('popstate', handleLocationChange);
-      window.removeEventListener('starmap:locationchange', handleLocationChange);
     };
   }, [locationPathname, locationSearch]);
 

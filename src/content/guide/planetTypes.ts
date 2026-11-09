@@ -24,12 +24,12 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
     examples: [
       {
         name: 'Earth', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/system/sol?focus=earth&select=planet-type:terrestrial',
+        href: '/system/sol?focus=earth',
         note: 'Standard terrestrial benchmark with active plate tectonics and surface hydrosphere.',
       },
       {
         name: 'Proxima Centauri b',
-        href: '/galaxy?focus=proxima-centauri-b&select=planet-type:terrestrial',
+        href: '/galaxy?focus=proxima-centauri-b',
         note: 'Terrestrial exoplanet orbiting within the conservative habitable zone of Proxima Centauri.',
       },
     ],
@@ -52,12 +52,12 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
     examples: [
       {
         name: 'Tau Ceti e', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/galaxy?focus=tau-ceti-e&select=planet-type:super-earth',
+        href: '/galaxy?focus=tau-ceti-e',
         note: 'Potentially rocky super-Earth orbiting near the inner edge of Tau Ceti’s habitable zone.',
       },
       {
         name: 'Tau Ceti f',
-        href: '/galaxy?focus=tau-ceti-f&select=planet-type:super-earth',
+        href: '/galaxy?focus=tau-ceti-f',
         note: 'Outer super-Earth candidate in the Tau Ceti system.',
       },
     ],
@@ -84,17 +84,17 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
     examples: [
       {
         name: 'Uranus',
-        href: '/system/sol?focus=uranus&select=planet-type:ice-giant',
+        href: '/system/sol?focus=uranus',
         note: 'Seventh planet from Sol, featuring an extreme 97.8° axial tilt.',
       },
       {
         name: 'Neptune',
-        href: '/system/sol?focus=neptune&select=planet-type:ice-giant',
+        href: '/system/sol?focus=neptune',
         note: 'Outer ice giant of the Solar System with dynamic supersonic storm systems.',
       },
       {
         name: 'Tau Ceti g',
-        href: '/galaxy?focus=tau-ceti-g&select=planet-type:ice-giant',
+        href: '/galaxy?focus=tau-ceti-g',
         note: 'Candidate sub-Neptune / ice-giant companion in the Tau Ceti system.',
       },
     ],
@@ -121,12 +121,12 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
     examples: [
       {
         name: 'Jupiter', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/system/sol?focus=jupiter&select=planet-type:gas-giant',
+        href: '/system/sol?focus=jupiter',
         note: 'Largest planet in the Solar System, possessing a vast magnetosphere and 95 known moons.',
       },
       {
         name: 'Saturn', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/system/sol?focus=saturn&select=planet-type:gas-giant',
+        href: '/system/sol?focus=saturn',
         note: 'Extensive ring system with diverse major icy satellites including Titan and Enceladus.',
       },
     ],

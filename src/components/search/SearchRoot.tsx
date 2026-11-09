@@ -17,8 +17,8 @@ import {
   loadSearchCorpusForFilter,
   mergeSearchShards,
 } from '../../data/searchRepository';
+import { useSpaLocation } from '../../hooks/useSpaLocation';
 import {
-  extractUrlFocusSlug,
   findFocusedEntryInCorpus,
   type GroupedSearchResults,
   type SearchCategoryFilter,
@@ -27,6 +27,7 @@ import {
 import { mergeActiveStarsIntoCorpus } from '../../services/detailsService';
 import { useActiveStarsStore } from '../../stores/useActiveStarsStore';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
+import { toUrlSlug } from '../../utils/datasetLayerCodec';
 import { useSpatialEntityStoreApi } from '../canvas/entity/SpatialEntityContext';
 import {
   SearchContext,
@@ -85,20 +86,9 @@ export const SearchRoot = ({
   const store = useSpatialEntityStoreApi();
   const fallbackFocusIdRef = useRef<string | null>(null);
 
-  const [windowLocation, setWindowLocation] = useState<{
-    readonly pathname: string;
-    readonly search: string;
-  }>(() => ({
-    pathname:
-      typeof window !== 'undefined' ? window.location.pathname : '/',
-    search:
-      typeof window !== 'undefined' ? window.location.search : '',
-  }));
-
-  const activePathname =
-    locationPathname ?? (syncUrl ? windowLocation.pathname : '/');
-  const activeSearch =
-    locationSearch ?? (syncUrl ? windowLocation.search : '');
+  const spaLocation = useSpaLocation(locationPathname, locationSearch, '/');
+  const activePathname = spaLocation.pathname;
+  const activeSearch = spaLocation.search;
 
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(activeSearch);
@@ -138,40 +128,17 @@ export const SearchRoot = ({
         }),
   );
 
-  // Synchronise store on SSR / Node render where effects do not execute
-  if (typeof window === 'undefined') {
-    const focusCorpus =
-      initialCorpus ??
-      initialSystemEntries ??
-      initialAvailableCorpus ??
-      [];
-    syncSelectedSystemsToStore(
-      store,
-      results,
-      activeSearch,
-      focusCorpus,
-      layerIndex,
-      loadedLayers,
-    );
+  const resolveCurrentFocusSlug = useCallback(
+    (searchStr: string): string | null => {
+      const focusVal = new URLSearchParams(searchStr).get('focus');
+      if (!focusVal) return null;
+      const slug = toUrlSlug(focusVal);
+      return slug.length > 0 ? slug : null;
+    },
+    [],
+  );
 
-    if (
-      syncUrl ||
-      locationPathname !== undefined ||
-      locationSearch !== undefined
-    ) {
-      const initialFocusSlug = extractUrlFocusSlug(
-        activePathname,
-        activeSearch,
-      );
-      syncUrlFocusToStore(
-        store,
-        initialFocusSlug,
-        focusCorpus,
-        undefined,
-        activeSearch,
-      );
-    }
-  }
+  const initialResultsRef = useRef(results);
 
   // Synchronise store on client mount to keep useState initializer 100% pure
   useEffect(() => {
@@ -182,7 +149,7 @@ export const SearchRoot = ({
       [];
     syncSelectedSystemsToStore(
       store,
-      results,
+      initialResultsRef.current,
       activeSearch,
       focusCorpus,
       layerIndex,
@@ -194,10 +161,7 @@ export const SearchRoot = ({
       locationPathname !== undefined ||
       locationSearch !== undefined
     ) {
-      const initialFocusSlug = extractUrlFocusSlug(
-        activePathname,
-        activeSearch,
-      );
+      const initialFocusSlug = resolveCurrentFocusSlug(activeSearch);
       syncUrlFocusToStore(
         store,
         initialFocusSlug,
@@ -214,8 +178,6 @@ export const SearchRoot = ({
   const prevUrlKeyRef = useRef<string>(getSearchRelevantUrlKey(activePathname, activeSearch));
   const prevLoadedLayerKeyRef = useRef<string>('');
   const deferredSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Query most recently written to the URL by typing; its echo must not overwrite the live input.
-  const lastWrittenUrlQueryRef = useRef<string | null>(null);
 
   const effectiveDebounceMs = debounceMs ?? SEARCH_DEBOUNCE_MS;
   const isSync = Boolean(syncMode) || effectiveDebounceMs === 0;
@@ -402,23 +364,6 @@ export const SearchRoot = ({
     [filter, initialCorpus, limitPerCategory, query, updateResultsAndSelection],
   );
 
-  // Listen to browser popstate navigation when syncUrl is active
-  useEffect(() => {
-    if (!syncUrl || typeof window === 'undefined') {
-      return;
-    }
-    const handlePopState = (): void => {
-      setWindowLocation({
-        pathname: window.location.pathname,
-        search: window.location.search,
-      });
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [syncUrl]);
-
   // React to URL transitions across views and clear non-URL state on unmount
   useEffect(() => {
     const currentUrlKey = getSearchRelevantUrlKey(activePathname, activeSearch);
@@ -426,14 +371,6 @@ export const SearchRoot = ({
       prevUrlKeyRef.current = currentUrlKey;
       const nextQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
       const nextFilter = resolveInitialFilter(syncUrl, activeSearch, initialFilter);
-      if (
-        lastWrittenUrlQueryRef.current !== null &&
-        nextQuery === lastWrittenUrlQueryRef.current
-      ) {
-        // Echo of our own typing: the input already holds the newest text and search already ran.
-        return;
-      }
-      lastWrittenUrlQueryRef.current = null;
       setQueryState(nextQuery);
       setFilterState(nextFilter);
       void submitSearch(nextQuery, nextFilter);
@@ -467,7 +404,7 @@ export const SearchRoot = ({
           ? mergeSearchShards([corpus, systemEntries])
           : corpus;
 
-        const initialFocusSlug = extractUrlFocusSlug(activePathname, activeSearch);
+        const initialFocusSlug = resolveCurrentFocusSlug(activeSearch);
         if (initialFocusSlug && !findFocusedEntryInCorpus(initialFocusSlug, focusCorpus)) {
           const planetsShard = await fetchSearchShard('planets').catch(() => undefined);
           if (cancelled) return;
@@ -496,10 +433,7 @@ export const SearchRoot = ({
           setStatus('ready');
         } else if (
           activeSearch.includes('select=') ||
-          activeSearch.includes('layer=') ||
-          (typeof window !== 'undefined' &&
-            (window.location.search.includes('select=') ||
-              window.location.search.includes('layer=')))
+          activeSearch.includes('layer=')
         ) {
           syncSelectedSystemsToStore(
             store,
@@ -542,6 +476,7 @@ export const SearchRoot = ({
     initialFilter,
     initialQuery,
     limitPerCategory,
+    resolveCurrentFocusSlug,
     store,
     syncUrl,
     updateResultsAndSelection,
@@ -554,7 +489,7 @@ export const SearchRoot = ({
       syncUrl ||
       locationPathname !== undefined ||
       locationSearch !== undefined
-        ? extractUrlFocusSlug(activePathname, activeSearch)
+        ? resolveCurrentFocusSlug(activeSearch)
         : null;
 
     if (prevFocusSlugRef.current === focusSlug) {
@@ -593,6 +528,7 @@ export const SearchRoot = ({
     initialCorpus,
     locationPathname,
     locationSearch,
+    resolveCurrentFocusSlug,
     store,
     syncUrl,
   ]);
@@ -628,15 +564,6 @@ export const SearchRoot = ({
       if (executeSync) {
         if (syncUrl) {
           syncSearchUrlParams(nextQuery, filter);
-          lastWrittenUrlQueryRef.current = nextQuery;
-          if (typeof window !== 'undefined') {
-            const nextSearch = window.location.search;
-            prevUrlKeyRef.current = getSearchRelevantUrlKey(window.location.pathname, nextSearch);
-            setWindowLocation({
-              pathname: window.location.pathname,
-              search: nextSearch,
-            });
-          }
         }
         void submitSearch(searchQuery, filter);
         return;
@@ -646,15 +573,6 @@ export const SearchRoot = ({
         deferredSearchTimerRef.current = null;
         if (syncUrl) {
           syncSearchUrlParams(nextQuery, filter);
-          lastWrittenUrlQueryRef.current = nextQuery;
-          if (typeof window !== 'undefined') {
-            const nextSearch = window.location.search;
-            prevUrlKeyRef.current = getSearchRelevantUrlKey(window.location.pathname, nextSearch);
-            setWindowLocation({
-              pathname: window.location.pathname,
-              search: nextSearch,
-            });
-          }
         }
         void submitSearch(searchQuery, filter);
       }, effectiveDebounceMs);
@@ -671,14 +589,6 @@ export const SearchRoot = ({
       setFilterState(nextFilter);
       if (syncUrl) {
         syncSearchUrlParams(query, nextFilter);
-        if (typeof window !== 'undefined') {
-          const nextSearch = window.location.search;
-          prevUrlKeyRef.current = getSearchRelevantUrlKey(window.location.pathname, nextSearch);
-          setWindowLocation({
-            pathname: window.location.pathname,
-            search: nextSearch,
-          });
-        }
       }
       void submitSearch(query, nextFilter);
     },
@@ -703,7 +613,7 @@ export const SearchRoot = ({
       ) {
         document.activeElement.blur();
       }
-      if (syncUrl) {
+      if (syncUrl && !item) {
         syncSearchUrlParams('', filter);
       }
       void submitSearch('', filter);

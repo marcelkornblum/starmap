@@ -162,7 +162,10 @@ export function extractUrlRouteStops(
 
   const rawStops = routeParam
     .split(',')
-    .map((s) => toUrlSlug(s.trim()))
+    .map((s) => {
+      const entityPart = s.split(':')[0] ?? '';
+      return toUrlSlug(entityPart.trim());
+    })
     .filter((s) => s.length > 0);
 
   if (rawStops.length === 0) {
@@ -183,13 +186,29 @@ export function extractUrlRouteStops(
 
 /**
  * Extracts journeyOption ID from URL search string (?journeyOption=torchship-1g).
+ * Also inspects embedded departure modes on route stops (e.g. ?route=sol:torchship-1g,tau-ceti).
  */
 export function extractUrlJourneyOptionId(searchString: string): string | null {
   if (!searchString) return null;
   const query = searchString.startsWith('?') ? searchString.slice(1) : searchString;
   const params = new URLSearchParams(query);
   const optionId = params.get('journeyOption');
-  return optionId && optionId.trim().length > 0 ? optionId.trim() : null;
+  if (optionId && optionId.trim().length > 0) {
+    return optionId.trim();
+  }
+
+  const routeParam = params.get('route');
+  if (routeParam) {
+    const stops = routeParam.split(',');
+    for (const stop of stops) {
+      const parts = stop.split(':');
+      if (parts.length > 1 && parts[1]?.trim()) {
+        return parts[1].trim();
+      }
+    }
+  }
+
+  return null;
 }
 
 /**

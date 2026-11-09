@@ -141,39 +141,41 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   onBodiesDrawerOpenChange,
   children,
 }) => {
-  const storeDrawer = useUIStore((s) => s.activeDrawer);
-  const activeDrawer = typeof window === 'undefined' ? useUIStore.getState().activeDrawer : storeDrawer;
+  const activeDrawer = useUIStore((s) => s.activeDrawer);
   const isStoreBodiesOpen = activeDrawer === 'bodies';
   const setActiveDrawer = useUIStore((s) => s.setActiveDrawer);
 
-  const storeIsDetailsOpen = useUIStore((s) => s.isDetailsOpen);
-  const storeIsDirectionsOpen = useUIStore((s) => s.isDirectionsOpen);
-  const storePriority = useUIStore((s) => s.primaryPanelPriority);
-  const storeDualPolicy = useUIStore((s) => s.dualPanelPolicy);
-
-  const isDetailsOpen = typeof window === 'undefined' ? useUIStore.getState().isDetailsOpen : storeIsDetailsOpen;
-  const isDirectionsOpen = typeof window === 'undefined' ? useUIStore.getState().isDirectionsOpen : storeIsDirectionsOpen;
-  const primaryPanelPriority = typeof window === 'undefined' ? useUIStore.getState().primaryPanelPriority : storePriority;
-  const dualPanelPolicy = typeof window === 'undefined' ? useUIStore.getState().dualPanelPolicy : storeDualPolicy;
+  const isDetailsOpen = useUIStore((s) => s.isDetailsOpen);
+  const isDirectionsOpen = useUIStore((s) => s.isDirectionsOpen);
+  const primaryPanelPriority = useUIStore((s) => s.primaryPanelPriority);
+  const dualPanelPolicy = useUIStore((s) => s.dualPanelPolicy);
   const isWideViewport = useIsWideViewport();
 
-  const [localBodiesOpen, setLocalBodiesOpen] = useState<boolean>(() => {
-    if (controlledBodiesOpen !== undefined) return controlledBodiesOpen;
-    if (initialBodiesDrawerOpen !== undefined) return initialBodiesDrawerOpen;
-    return isStoreBodiesOpen;
-  });
+  const [isLocallyOverridden, setIsLocallyOverridden] = useState(false);
+  const [initialStoreDrawer] = useState(activeDrawer);
+
+  // Synchronise store on mount if an initial uncontrolled drawer state was provided
+  useEffect(() => {
+    if (controlledBodiesOpen === undefined && initialBodiesDrawerOpen !== undefined && !isLocallyOverridden) {
+      setActiveDrawer(initialBodiesDrawerOpen ? 'bodies' : null);
+    }
+  }, [controlledBodiesOpen, initialBodiesDrawerOpen, isLocallyOverridden, setActiveDrawer]);
 
   const isBodiesDrawerOpen =
     controlledBodiesOpen !== undefined
       ? controlledBodiesOpen
-      : initialBodiesDrawerOpen !== undefined
-        ? localBodiesOpen
+      : initialBodiesDrawerOpen !== undefined && !isLocallyOverridden && activeDrawer === initialStoreDrawer
+        ? initialBodiesDrawerOpen
         : isStoreBodiesOpen;
 
   const setDrawerState = (next: boolean) => {
-    setLocalBodiesOpen(next);
-    setActiveDrawer(next ? 'bodies' : null);
-    onBodiesDrawerOpenChange?.(next);
+    setIsLocallyOverridden(true);
+    if (controlledBodiesOpen !== undefined) {
+      onBodiesDrawerOpenChange?.(next);
+    } else {
+      setActiveDrawer(next ? 'bodies' : null);
+      onBodiesDrawerOpenChange?.(next);
+    }
   };
 
   const handleToggle = () => {

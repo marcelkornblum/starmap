@@ -109,7 +109,6 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): voi
             } catch {
               // noop
             }
-            useUIStore.getState().setSelectedNodeId(null);
             if (document.activeElement instanceof HTMLElement) {
               document.activeElement.blur();
             }

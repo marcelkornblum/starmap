@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useEffect, useSyncExternalStore } from 'react';
 import {
   Breadcrumbs,
   GuideExamplesList,
@@ -21,6 +21,11 @@ import {
   resolveMetricComparison,
   resolveMetricGuideEntries,
 } from '../services/guideService';
+import {
+  subscribeDetailsRepository,
+  getDetailsRepositoryVersion,
+} from '../data/detailsRepository';
+import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
 
@@ -33,48 +38,38 @@ export interface MetricDetailViewProps {
   readonly focusedEntityId?: string;
 }
 
-export const extractMetricIdFromPathname = (pathname: string): string => {
-  const match = /^\/guide\/metrics\/([^/?#]+)/i.exec(pathname.trim());
-  return match?.[1] ? decodeURIComponent(match[1]) : '';
-};
-
 export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
   metricId: propMetricId,
   locationPathname,
   locationSearch,
   focusedEntityId,
 }) => {
-  const { pathname, search } = useSpaLocation(
+  const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
+  const { search } = useSpaLocation(
     locationPathname,
     locationSearch,
     '',
   );
 
   const resolvedMetricId =
-    propMetricId ?? extractMetricIdFromPathname(pathname);
+    routeParams?.metricId ?? propMetricId ?? '';
   const resolvedFocusId =
     focusedEntityId ?? extractFocusIdFromSearch(search);
 
-  const [hydrationTick, setHydrationTick] = useState(0);
+  useSyncExternalStore(
+    subscribeDetailsRepository,
+    getDetailsRepositoryVersion,
+    getDetailsRepositoryVersion,
+  );
 
   useEffect(() => {
-    let active = true;
     void hydrateMetricComparison(resolvedMetricId, resolvedFocusId)
-      .then(() => {
-        if (active) {
-          setHydrationTick((t) => t + 1);
-        }
-      })
       .catch(() => undefined);
-    return () => {
-      active = false;
-    };
   }, [resolvedMetricId, resolvedFocusId]);
 
   const entries = useMemo(() => {
-    void hydrationTick;
     return resolveMetricGuideEntries(resolvedMetricId);
-  }, [resolvedMetricId, hydrationTick]);
+  }, [resolvedMetricId]);
 
   return (
     <main

@@ -8,7 +8,6 @@ import { DetailsPanel } from '../src/components/domain';
 import { buildFocusedEntityDetails } from '../src/services/detailsService';
 import {
   buildLayerGalaxyHref,
-  extractUrlFocusSlug,
   extractUrlLayerId,
   findCanonLayerById,
   resolveSelectedSystemsFromLayer,
@@ -50,11 +49,6 @@ describe('Journey 2: Author Flow - Fictional Canon Layers & Galaxy Annotations',
     expect(extractUrlLayerId('?layer=canon-halo', LAYER_INDEX_ENTRIES)).toBe('canon-halo');
     expect(extractUrlLayerId('?focus=tau-ceti-e', LAYER_INDEX_ENTRIES)).toBeNull();
     expect(extractUrlLayerId('', LAYER_INDEX_ENTRIES)).toBeNull();
-
-    // extractUrlFocusSlug only reads ?focus= or route path segments, never ?select=
-    expect(
-      extractUrlFocusSlug('/galaxy', '?select=layer:project-hail-mary'),
-    ).toBeNull();
 
     // DetailsPanel renders clickable canon links
     const focusedDetails = buildFocusedEntityDetails({
