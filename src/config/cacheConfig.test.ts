@@ -15,7 +15,7 @@ describe('cacheConfig', () => {
     expect(SUMMARY_NODE_CACHE_LIMIT).toBe(500);
     expect(SUMMARY_BUCKET_CACHE_LIMIT).toBe(36);
     expect(DETAIL_BUCKET_CACHE_LIMIT).toBe(36);
-    expect(LAYER_MANIFEST_CACHE_LIMIT).toBe(50);
+    expect(LAYER_MANIFEST_CACHE_LIMIT).toBe(200);
     expect(LAYER_ENTITY_BUCKET_CACHE_LIMIT).toBe(36);
     expect(SEARCH_SHARD_CACHE_LIMIT).toBe(50);
   });

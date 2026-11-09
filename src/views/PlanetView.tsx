@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
@@ -24,16 +24,9 @@ import {
 } from '../services/journeyService';
 import { Search } from '../components/search';
 import { resolveActiveLayerCard } from '../services/layerCardService';
-import {
-  fetchDetailRecord,
-  fetchSummaryNode,
-  getCachedDetailRecord,
-  getCachedSummaryNode,
-} from '../data/detailsRepository';
-import {
-  getCachedCorpusForFilter,
-  loadSearchCorpusForFilter,
-} from '../data/searchRepository';
+import { useEntityDetails } from '../hooks/useEntityDetails';
+import { useSystemData } from '../hooks/useSystemData';
+import { useSearchCorpus } from '../hooks/useSearchCorpus';
 import {
   buildFocusedEntityDetails,
   buildFocusedPreviewSummary,
@@ -78,7 +71,7 @@ const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
 
 const useResolvedPlanetDetails = (
   { initialCorpus, locationPathname, locationSearch }: PlanetViewProps,
-  shouldFetchShards = false,
+  _shouldFetchShards = false,
 ): {
   readonly focusedDetails: FocusedEntityDetails | null;
   readonly focusedPreview: FocusedPreviewSummary | null;
@@ -96,8 +89,6 @@ const useResolvedPlanetDetails = (
   useSpatialEntityStore((state) => state.selectedId);
   useSpatialEntityStore((state) => state.selectedIds);
 
-  const [, setShardTick] = useState<number>(0);
-
   const { pathname, search } = useSpaLocation(
     locationPathname,
     locationSearch,
@@ -108,11 +99,8 @@ const useResolvedPlanetDetails = (
   const urlFocusSlug = extractUrlFocusSlug(pathname, search);
   const hasExplicitFocus = hasExplicitFocusParam(search);
 
-  const activeCorpus =
-    initialCorpus ??
-    getCachedCorpusForFilter('all') ??
-    getCachedCorpusForFilter('stars') ??
-    EMPTY_CORPUS;
+  const { corpus } = useSearchCorpus('all', initialCorpus);
+  const activeCorpus = corpus ?? EMPTY_CORPUS;
 
   const urlFocusEntity = useMemo(
     () =>
@@ -138,6 +126,31 @@ const useResolvedPlanetDetails = (
       ? urlPlanetEntry.i
       : 'sol');
 
+  const focusedEntityId = focusedEntity?.id ?? '';
+
+  const { systemSummary, systemDetail, focusedDetail } = useSystemData(
+    targetSystemId,
+    focusedEntityId,
+  );
+
+  const isPlanetDistinctFromSystem = Boolean(
+    targetPlanetId && targetPlanetId !== targetSystemId,
+  );
+  const isPlanetDistinctFromFocused = Boolean(
+    targetPlanetId && targetPlanetId !== focusedEntityId,
+  );
+  const { detail: distinctPlanetDetail } = useEntityDetails(
+    isPlanetDistinctFromSystem && isPlanetDistinctFromFocused
+      ? targetPlanetId
+      : null,
+  );
+
+  const planetEntityDetail = !isPlanetDistinctFromSystem
+    ? systemDetail
+    : !isPlanetDistinctFromFocused
+      ? focusedDetail
+      : distinctPlanetDetail;
+
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
 
@@ -158,79 +171,12 @@ const useResolvedPlanetDetails = (
     ].map(toAnnotationLookupKey),
   );
 
-  const focusedEntityId = focusedEntity?.id ?? '';
-
-  useEffect(() => {
-    if (
-      !shouldFetchShards ||
-      !targetSystemId ||
-      initialCorpus ||
-      typeof window === 'undefined'
-    ) {
-      return;
-    }
-
-    const hasCorpus = Boolean(getCachedCorpusForFilter('all'));
-    const hasSummary = Boolean(getCachedSummaryNode(targetSystemId));
-    const hasSystemDetail = Boolean(getCachedDetailRecord(targetSystemId));
-    const hasPlanetDetail =
-      !targetPlanetId ||
-      targetPlanetId === targetSystemId ||
-      Boolean(getCachedDetailRecord(targetPlanetId));
-    const hasEntityDetail =
-      !focusedEntityId ||
-      focusedEntityId === targetSystemId ||
-      focusedEntityId === targetPlanetId ||
-      Boolean(getCachedDetailRecord(focusedEntityId));
-
-    if (
-      hasCorpus &&
-      hasSummary &&
-      hasSystemDetail &&
-      hasPlanetDetail &&
-      hasEntityDetail
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    void Promise.all([
-      loadSearchCorpusForFilter('all').catch(() => undefined),
-      fetchSummaryNode(targetSystemId).catch(() => undefined),
-      fetchDetailRecord(targetSystemId).catch(() => undefined),
-      targetPlanetId && targetPlanetId !== targetSystemId
-        ? fetchDetailRecord(targetPlanetId).catch(() => undefined)
-        : Promise.resolve(undefined),
-      focusedEntityId &&
-      focusedEntityId !== targetSystemId &&
-      focusedEntityId !== targetPlanetId
-        ? fetchDetailRecord(focusedEntityId).catch(() => undefined)
-        : Promise.resolve(undefined),
-    ]).then(() => {
-      if (!cancelled) {
-        setShardTick((n) => n + 1);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    focusedEntityId,
-    initialCorpus,
-    shouldFetchShards,
-    targetPlanetId,
-    targetSystemId,
-  ]);
-
   const systemContextDetails = buildFocusedEntityDetails({
     focusedEntity,
     corpus: activeCorpus,
-    summaryNode: getCachedSummaryNode(targetSystemId),
-    systemDetail: getCachedDetailRecord(targetSystemId),
-    entityDetail: focusedEntity
-      ? getCachedDetailRecord(focusedEntity.id)
-      : undefined,
+    summaryNode: systemSummary,
+    systemDetail,
+    entityDetail: focusedDetail,
     urlSystemSlug: targetSystemId,
     urlPlanetSlug,
     hasExplicitFocus,
@@ -259,9 +205,7 @@ const useResolvedPlanetDetails = (
   const planetaryBodies = buildPlanetaryBodiesSummary({
     details: systemContextDetails,
     urlPlanetSlug,
-    planetEntityDetail: targetPlanetId
-      ? getCachedDetailRecord(targetPlanetId)
-      : undefined,
+    planetEntityDetail,
     corpus: activeCorpus,
     canonRecords,
     selectedEntityIds,
@@ -275,7 +219,7 @@ const useResolvedPlanetDetails = (
 
   const focusedPreview = buildFocusedPreviewSummary(
     focusedDetails,
-    focusedEntity ? getCachedDetailRecord(focusedEntity.id) : undefined,
+    focusedDetail,
   );
 
   const cameraState = extractUrlSceneCameraState(search);

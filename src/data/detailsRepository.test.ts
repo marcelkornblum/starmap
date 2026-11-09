@@ -8,6 +8,7 @@ import {
   getCachedSummaryNode,
   seedDetailRecord,
   seedSummaryNode,
+  subscribeDetailsRepository,
   type DecodedDetailRecord,
 } from './detailsRepository';
 import {
@@ -216,6 +217,76 @@ describe('detailsRepository (AUD-090 & DEC-R043)', () => {
       expect(getCachedSummaryNode('node-1')).toBeUndefined();
       expect(getCachedSummaryNode('node-0')).toBeDefined();
       expect(getCachedSummaryNode('node-overflow')).toBeDefined();
+    });
+  });
+
+  describe('Cache subscription (AUD-087 & DEC-R042)', () => {
+    it('notifies subscribers when summary cache updates', async () => {
+      const listener = vi.fn();
+      const unsubscribe = subscribeDetailsRepository(listener);
+
+      const fetchMock = vi.fn(async () => makeSummaryResponse('sys-sub-1') as unknown as Response);
+      await fetchSummaryNode('sys-sub-1', fetchMock as unknown as typeof fetch);
+
+      expect(listener).toHaveBeenCalled();
+
+      listener.mockClear();
+      unsubscribe();
+      await fetchSummaryNode('sys-sub-2', fetchMock as unknown as typeof fetch);
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it('notifies subscribers when detail cache updates', async () => {
+      const listener = vi.fn();
+      const unsubscribe = subscribeDetailsRepository(listener);
+
+      const fetchMock = vi.fn(async () => makeDetailResponse('sys-sub-3') as unknown as Response);
+      await fetchDetailRecord('sys-sub-3', fetchMock as unknown as typeof fetch);
+
+      expect(listener).toHaveBeenCalled();
+
+      unsubscribe();
+    });
+
+    it('notifies subscribers when seeding summary or detail nodes', () => {
+      const listener = vi.fn();
+      const unsubscribe = subscribeDetailsRepository(listener);
+
+      seedSummaryNode('seed-node-1', {
+        id: 'seed-node-1',
+        name: 'Seed Star',
+        x: 0,
+        y: 0,
+        z: 0,
+        dist: 0,
+        mag: 0,
+        absmag: 0,
+        spect: 'G',
+        ci: 0,
+        starCount: 1,
+        planetCount: 0,
+        hasHabitableCandidate: false,
+        sectorId: 'sector_0_0_0',
+      });
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      seedDetailRecord('seed-detail-1', {
+        kind: 'structure',
+        record: {
+          id: 'seed-detail-1',
+          name: 'Nebula',
+          type: 'EmissionNebula',
+          x: 0,
+          y: 0,
+          z: 0,
+          dist: 10,
+          designations: [],
+          description: '',
+        },
+      });
+      expect(listener).toHaveBeenCalledTimes(2);
+
+      unsubscribe();
     });
   });
 });

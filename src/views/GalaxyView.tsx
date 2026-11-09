@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useShallow } from 'zustand/react/shallow';
 import {
@@ -26,16 +26,8 @@ import {
 } from '../services/journeyService';
 import { Search } from '../components/search';
 import { resolveActiveLayerCard } from '../services/layerCardService';
-import {
-  fetchDetailRecord,
-  fetchSummaryNode,
-  getCachedDetailRecord,
-  getCachedSummaryNode,
-} from '../data/detailsRepository';
-import {
-  getCachedCorpusForFilter,
-  loadSearchCorpusForFilter,
-} from '../data/searchRepository';
+import { useSystemData } from '../hooks/useSystemData';
+import { useSearchCorpus } from '../hooks/useSearchCorpus';
 import {
   buildFocusedEntityDetails,
   buildFocusedPreviewSummary,
@@ -122,7 +114,8 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     }),
   );
 
-  const [, setShardTick] = useState<number>(0);
+  const { corpus } = useSearchCorpus('all', initialCorpus);
+  const activeCorpus = corpus ?? EMPTY_CORPUS;
 
   const { pathname, search } = useSpaLocation(
     locationPathname,
@@ -170,9 +163,6 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       }
     }
   }, [locationPathname, locationSearch, pathname, search, urlFocusSlug, hasExplicitFocus, storeApi]);
-
-  const cachedAllCorpus = getCachedCorpusForFilter('all');
-  const activeCorpus = initialCorpus ?? cachedAllCorpus ?? EMPTY_CORPUS;
 
   // Every star inside the live aperture (streamed from sector partitions), not just search entries
   const activeStars = useActiveStarsStore((state) => state.summaries);
@@ -335,67 +325,19 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     targetSystemId,
   ]);
 
-  useEffect(() => {
-    if (initialCorpus || cachedAllCorpus || typeof window === 'undefined') {
-      return;
-    }
-    let cancelled = false;
-    void loadSearchCorpusForFilter('all')
-      .then(() => {
-        if (!cancelled) {
-          setShardTick((n) => n + 1);
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [initialCorpus, cachedAllCorpus]);
-
   const focusedEntityId = focusedEntity?.id ?? '';
 
-  useEffect(() => {
-    if (!focusedEntityId || initialCorpus || typeof window === 'undefined') {
-      return;
-    }
-
-    const hasSummary = Boolean(getCachedSummaryNode(targetSystemId));
-    const hasSystemDetail = Boolean(getCachedDetailRecord(targetSystemId));
-    const hasEntityDetail =
-      !focusedEntityId ||
-      focusedEntityId === targetSystemId ||
-      Boolean(getCachedDetailRecord(focusedEntityId));
-
-    if (hasSummary && hasSystemDetail && hasEntityDetail) {
-      return;
-    }
-
-    let cancelled = false;
-    void Promise.all([
-      fetchSummaryNode(targetSystemId).catch(() => undefined),
-      fetchDetailRecord(targetSystemId).catch(() => undefined),
-      focusedEntityId !== targetSystemId
-        ? fetchDetailRecord(focusedEntityId).catch(() => undefined)
-        : Promise.resolve(undefined),
-    ]).then(() => {
-      if (!cancelled) {
-        setShardTick((n) => n + 1);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [focusedEntityId, initialCorpus, targetSystemId]);
+  const { systemSummary, systemDetail, focusedDetail } = useSystemData(
+    targetSystemId,
+    focusedEntityId,
+  );
 
   const focusedDetails = buildFocusedEntityDetails({
     focusedEntity,
     corpus: apertureCorpus,
-    summaryNode: getCachedSummaryNode(targetSystemId),
-    systemDetail: getCachedDetailRecord(targetSystemId),
-    entityDetail: focusedEntity
-      ? getCachedDetailRecord(focusedEntity.id)
-      : undefined,
+    summaryNode: systemSummary,
+    systemDetail,
+    entityDetail: focusedDetail,
     urlSystemSlug,
     hasExplicitFocus,
     canonRecords,
@@ -406,7 +348,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
 
   const focusedPreview = buildFocusedPreviewSummary(
     focusedDetails,
-    focusedEntity ? getCachedDetailRecord(focusedEntity.id) : undefined,
+    focusedDetail,
   );
 
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);

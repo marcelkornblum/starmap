@@ -51,6 +51,32 @@ const RESOLVED_DETAIL_RECORD_CACHE = new BoundedLruCache<
   DecodedDetailRecord
 >(DETAIL_RECORD_CACHE_LIMIT);
 
+const detailsListeners = new Set<() => void>();
+let detailsRepoVersion = 0;
+
+/**
+ * Returns the current version counter of the details repository cache.
+ */
+export const getDetailsRepositoryVersion = (): number => detailsRepoVersion;
+
+/**
+ * Subscribes to changes in the details repository in-memory cache.
+ * Returns an unsubscribe callback.
+ */
+export const subscribeDetailsRepository = (listener: () => void): (() => void) => {
+  detailsListeners.add(listener);
+  return () => {
+    detailsListeners.delete(listener);
+  };
+};
+
+const notifyDetailsListeners = (): void => {
+  detailsRepoVersion++;
+  for (const listener of detailsListeners) {
+    listener();
+  }
+};
+
 /**
  * Builds or retrieves a reverse mapping from 32-bit FNV-1a hash to canonical string ID for a summary bucket.
  */
@@ -210,6 +236,7 @@ const loadSummaryBucket = (
       const data = envelope.d ?? {};
       RESOLVED_SUMMARY_BUCKET_CACHE.set(bucketKey, data);
       getOrBuildBucketHashIndex(bucketKey, data);
+      notifyDetailsListeners();
       return data;
     })().catch((err: unknown) => {
       SUMMARY_BUCKET_CACHE.delete(bucketKey);
@@ -284,6 +311,7 @@ const loadDetailBucket = (
         (await response.json()) as ShardedBucketEnvelope<CompactDetailRecord>;
       const data = envelope.d ?? {};
       RESOLVED_DETAIL_BUCKET_CACHE.set(bucketKey, data);
+      notifyDetailsListeners();
       return data;
     })().catch((err: unknown) => {
       DETAIL_BUCKET_CACHE.delete(bucketKey);
@@ -323,6 +351,7 @@ export const seedSummaryNode = (
   node: SystemSummaryNode,
 ): void => {
   RESOLVED_SUMMARY_NODE_CACHE.set(id, node);
+  notifyDetailsListeners();
 };
 
 /**
@@ -333,6 +362,7 @@ export const seedDetailRecord = (
   record: DecodedDetailRecord,
 ): void => {
   RESOLVED_DETAIL_RECORD_CACHE.set(id, record);
+  notifyDetailsListeners();
 };
 
 /**
@@ -346,6 +376,7 @@ export const clearDetailsRepositoryCache = (): void => {
   DETAIL_BUCKET_CACHE.clear();
   RESOLVED_DETAIL_BUCKET_CACHE.clear();
   RESOLVED_DETAIL_RECORD_CACHE.clear();
+  notifyDetailsListeners();
 };
 
 export const resetDetailsRepositoryCache = clearDetailsRepositoryCache;

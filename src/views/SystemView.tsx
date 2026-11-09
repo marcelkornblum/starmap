@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
@@ -24,16 +24,9 @@ import {
 } from '../services/journeyService';
 import { Search } from '../components/search';
 import { resolveActiveLayerCard } from '../services/layerCardService';
-import {
-  fetchDetailRecord,
-  fetchSummaryNode,
-  getCachedDetailRecord,
-  getCachedSummaryNode,
-} from '../data/detailsRepository';
-import {
-  getCachedCorpusForFilter,
-  loadSearchCorpusForFilter,
-} from '../data/searchRepository';
+import type { DecodedDetailRecord } from '../data/detailsRepository';
+import { useSystemData } from '../hooks/useSystemData';
+import { useSearchCorpus } from '../hooks/useSearchCorpus';
 import {
   buildFocusedEntityDetails,
   buildFocusedPreviewSummary,
@@ -77,7 +70,7 @@ const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
 
 const useResolvedSystemDetails = (
   { initialCorpus, locationPathname, locationSearch }: SystemViewProps,
-  shouldFetchShards = false,
+  _shouldFetchShards = false,
 ): {
   readonly focusedDetails: FocusedEntityDetails | null;
   readonly systemContextDetails: FocusedEntityDetails | null;
@@ -87,12 +80,11 @@ const useResolvedSystemDetails = (
   readonly canonRecords: readonly DecodedEntityAnnotation[];
   readonly urlSystemSlug: string | null;
   readonly hasExplicitFocus: boolean;
+  readonly focusedDetail: DecodedDetailRecord | undefined;
 } => {
   const storeApi = useSpatialEntityStoreApi();
   useSpatialEntityStore((state) => state.entities);
   useSpatialEntityStore((state) => state.focusedId);
-
-  const [, setShardTick] = useState<number>(0);
 
   const { pathname, search } = useSpaLocation(
     locationPathname,
@@ -104,11 +96,8 @@ const useResolvedSystemDetails = (
   const urlFocusSlug = extractUrlFocusSlug(pathname, search);
   const hasExplicitFocus = hasExplicitFocusParam(search);
 
-  const activeCorpus =
-    initialCorpus ??
-    getCachedCorpusForFilter('all') ??
-    getCachedCorpusForFilter('stars') ??
-    EMPTY_CORPUS;
+  const { corpus } = useSearchCorpus('all', initialCorpus);
+  const activeCorpus = corpus ?? EMPTY_CORPUS;
 
   const urlFocusEntity = useMemo(
     () =>
@@ -135,21 +124,6 @@ const useResolvedSystemDetails = (
     ? (urlFocusEntity ?? storeFocusedEntity)
     : storeFocusedEntity;
 
-  const cachedSystemRecord = urlSystemSlug
-    ? getCachedDetailRecord(urlSystemSlug)
-    : undefined;
-
-  const matchingDisk =
-    !explicitFocusedEntity &&
-    urlFocusSlug &&
-    cachedSystemRecord?.kind === 'system'
-      ? cachedSystemRecord.record.disks?.find((d) => {
-          const dSlug = toUrlSlug(d.id);
-          const nameSlug = toUrlSlug(d.name);
-          return dSlug === urlFocusSlug || nameSlug === urlFocusSlug;
-        })
-      : undefined;
-
   const focusedEntity = explicitFocusedEntity;
   const matchedEntry = focusedEntity
     ? (findFocusedEntryInCorpus(focusedEntity.id, activeCorpus) ??
@@ -165,6 +139,24 @@ const useResolvedSystemDetails = (
     urlSystemEntry?.i ??
     urlSystemSlug ??
     '';
+
+  const focusedEntityId = focusedEntity?.id ?? '';
+
+  const { systemSummary, systemDetail, focusedDetail } = useSystemData(
+    targetSystemId,
+    focusedEntityId,
+  );
+
+  const matchingDisk =
+    !explicitFocusedEntity &&
+    urlFocusSlug &&
+    systemDetail?.kind === 'system'
+      ? systemDetail.record.disks?.find((d) => {
+          const dSlug = toUrlSlug(d.id);
+          const nameSlug = toUrlSlug(d.name);
+          return dSlug === urlFocusSlug || nameSlug === urlFocusSlug;
+        })
+      : undefined;
 
   useEffect(() => {
     if (!urlFocusSlug) {
@@ -187,57 +179,12 @@ const useResolvedSystemDetails = (
     targetSystemId,
   ]);
 
-  const focusedEntityId = focusedEntity?.id ?? '';
-
-  useEffect(() => {
-    if (
-      !shouldFetchShards ||
-      !targetSystemId ||
-      initialCorpus ||
-      typeof window === 'undefined'
-    ) {
-      return;
-    }
-
-    const hasCorpus = Boolean(getCachedCorpusForFilter('all'));
-    const hasSummary = Boolean(getCachedSummaryNode(targetSystemId));
-    const hasSystemDetail = Boolean(getCachedDetailRecord(targetSystemId));
-    const hasEntityDetail =
-      !focusedEntityId ||
-      focusedEntityId === targetSystemId ||
-      Boolean(getCachedDetailRecord(focusedEntityId));
-
-    if (hasCorpus && hasSummary && hasSystemDetail && hasEntityDetail) {
-      return;
-    }
-
-    let cancelled = false;
-    void Promise.all([
-      loadSearchCorpusForFilter('all').catch(() => undefined),
-      fetchSummaryNode(targetSystemId).catch(() => undefined),
-      fetchDetailRecord(targetSystemId).catch(() => undefined),
-      focusedEntityId && focusedEntityId !== targetSystemId
-        ? fetchDetailRecord(focusedEntityId).catch(() => undefined)
-        : Promise.resolve(undefined),
-    ]).then(() => {
-      if (!cancelled) {
-        setShardTick((n) => n + 1);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [focusedEntityId, initialCorpus, shouldFetchShards, targetSystemId]);
-
   const systemContextDetails = buildFocusedEntityDetails({
     focusedEntity,
     corpus: activeCorpus,
-    summaryNode: getCachedSummaryNode(targetSystemId),
-    systemDetail: getCachedDetailRecord(targetSystemId),
-    entityDetail: focusedEntity
-      ? getCachedDetailRecord(focusedEntity.id)
-      : undefined,
+    summaryNode: systemSummary,
+    systemDetail,
+    entityDetail: focusedDetail,
     urlSystemSlug,
     urlFocusSlug,
     hasExplicitFocus,
@@ -258,6 +205,7 @@ const useResolvedSystemDetails = (
     canonRecords,
     urlSystemSlug,
     hasExplicitFocus,
+    focusedDetail,
   };
 };
 
@@ -275,6 +223,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
     activeCorpus,
     canonRecords,
     urlSystemSlug,
+    focusedDetail,
   } = useResolvedSystemDetails(props, true);
 
   const { pathname, search } = useSpaLocation(
@@ -347,7 +296,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
 
   const focusedPreview = buildFocusedPreviewSummary(
     focusedDetails,
-    focusedEntity ? getCachedDetailRecord(focusedEntity.id) : undefined,
+    focusedDetail,
   );
 
   const minimapOrientation = systemBodies

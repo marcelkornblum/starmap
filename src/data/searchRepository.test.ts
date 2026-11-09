@@ -4,6 +4,7 @@ import {
   fetchSearchShard,
   getCachedCorpusForFilter,
   loadSearchCorpusForFilter,
+  subscribeSearchRepository,
 } from './searchRepository';
 
 const makeShardResponse = (shard: string) => ({
@@ -105,6 +106,35 @@ describe('searchRepository (AUD-090 & DEC-R043)', () => {
 
       clearSearchRepositoryCache();
       expect(getCachedCorpusForFilter('stars')).toBeUndefined();
+    });
+  });
+
+  describe('Cache subscription (AUD-087 & DEC-R042)', () => {
+    it('notifies subscribers when search shard cache updates', async () => {
+      const listener = vi.fn();
+      const unsubscribe = subscribeSearchRepository(listener);
+
+      const fetchMock = vi.fn(async () => makeShardResponse('stars') as unknown as Response);
+      await fetchSearchShard('stars', fetchMock as unknown as typeof fetch);
+
+      expect(listener).toHaveBeenCalled();
+
+      listener.mockClear();
+      unsubscribe();
+      await fetchSearchShard('planets', fetchMock as unknown as typeof fetch);
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it('notifies subscribers when filter corpus cache updates', async () => {
+      const listener = vi.fn();
+      const unsubscribe = subscribeSearchRepository(listener);
+
+      const fetchMock = vi.fn(async () => makeShardResponse('default') as unknown as Response);
+      await loadSearchCorpusForFilter('all', fetchMock as unknown as typeof fetch);
+
+      expect(listener).toHaveBeenCalled();
+
+      unsubscribe();
     });
   });
 });

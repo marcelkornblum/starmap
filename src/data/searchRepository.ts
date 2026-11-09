@@ -34,6 +34,32 @@ const resolvedFilterCache = new BoundedLruCache<SearchCategoryFilter, readonly C
   SEARCH_SHARD_CACHE_LIMIT,
 );
 
+const searchListeners = new Set<() => void>();
+let searchRepoVersion = 0;
+
+/**
+ * Returns the current version counter of the search repository cache.
+ */
+export const getSearchRepositoryVersion = (): number => searchRepoVersion;
+
+/**
+ * Subscribes to changes in the search repository in-memory cache.
+ * Returns an unsubscribe callback.
+ */
+export const subscribeSearchRepository = (listener: () => void): (() => void) => {
+  searchListeners.add(listener);
+  return () => {
+    searchListeners.delete(listener);
+  };
+};
+
+const notifySearchListeners = (): void => {
+  searchRepoVersion++;
+  for (const listener of searchListeners) {
+    listener();
+  }
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
@@ -51,6 +77,7 @@ export const clearSearchRepositoryCache = (): void => {
   shardCache.clear();
   resolvedShardCache.clear();
   resolvedFilterCache.clear();
+  notifySearchListeners();
 };
 
 /**
@@ -78,6 +105,7 @@ export const fetchSearchShard = async (
       throw new Error(`Invalid search index envelope in shard "${shard}"`);
     }
     resolvedShardCache.set(shard, payload.d);
+    notifySearchListeners();
     return payload.d;
   })();
 
@@ -164,6 +192,7 @@ export const loadSearchCorpusForFilter = async (
     const shard = await fetchSearchShard(filter, fetcher, signal);
     if (fetcher === fetch) {
       resolvedFilterCache.set(filter, shard);
+      notifySearchListeners();
     }
     return shard;
   }
@@ -177,6 +206,7 @@ export const loadSearchCorpusForFilter = async (
   const merged = mergeSearchShards([core, structures, minorBodies]);
   if (fetcher === fetch) {
     resolvedFilterCache.set('all', merged);
+    notifySearchListeners();
   }
   return merged;
 };
