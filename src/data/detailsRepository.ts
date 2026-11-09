@@ -17,24 +17,39 @@ import {
 } from '../utils/compactDataCodec';
 import { fnv1a32, getShardKeyFromHash } from '../utils/binarySectorCodec';
 import { resolveDataUrl } from '../utils/url';
+import { BoundedLruCache } from '../utils/lruCache';
+import {
+  DETAIL_BUCKET_CACHE_LIMIT,
+  DETAIL_RECORD_CACHE_LIMIT,
+  SUMMARY_BUCKET_CACHE_LIMIT,
+  SUMMARY_NODE_CACHE_LIMIT,
+} from '../config/cacheConfig';
 
 export type DecodedDetailRecord =
   | { readonly kind: 'system'; readonly record: SystemManifest }
   | { readonly kind: 'structure'; readonly record: GalacticStructureRecord }
   | { readonly kind: 'solar-body'; readonly record: SolarSystemBodyRecord };
 
-
-const SUMMARY_BUCKET_CACHE = new Map<
+const SUMMARY_BUCKET_CACHE = new BoundedLruCache<
   string,
   Promise<Record<string, CompactSummaryNode>>
->();
-const RESOLVED_SUMMARY_BUCKET_CACHE = new Map<
+>(SUMMARY_BUCKET_CACHE_LIMIT);
+const RESOLVED_SUMMARY_BUCKET_CACHE = new BoundedLruCache<
   string,
   Record<string, CompactSummaryNode>
->();
-const RESOLVED_SUMMARY_HASH_INDEX = new Map<string, Map<number, string>>();
-const RESOLVED_SUMMARY_NODE_CACHE = new Map<string, SystemSummaryNode>();
-const RESOLVED_DETAIL_RECORD_CACHE = new Map<string, DecodedDetailRecord>();
+>(SUMMARY_BUCKET_CACHE_LIMIT);
+const RESOLVED_SUMMARY_HASH_INDEX = new BoundedLruCache<
+  string,
+  Map<number, string>
+>(SUMMARY_BUCKET_CACHE_LIMIT);
+const RESOLVED_SUMMARY_NODE_CACHE = new BoundedLruCache<
+  string,
+  SystemSummaryNode
+>(SUMMARY_NODE_CACHE_LIMIT);
+const RESOLVED_DETAIL_RECORD_CACHE = new BoundedLruCache<
+  string,
+  DecodedDetailRecord
+>(DETAIL_RECORD_CACHE_LIMIT);
 
 /**
  * Builds or retrieves a reverse mapping from 32-bit FNV-1a hash to canonical string ID for a summary bucket.
@@ -54,14 +69,14 @@ function getOrBuildBucketHashIndex(
   return index;
 }
 
-const DETAIL_BUCKET_CACHE = new Map<
+const DETAIL_BUCKET_CACHE = new BoundedLruCache<
   string,
   Promise<Record<string, CompactDetailRecord>>
->();
-const RESOLVED_DETAIL_BUCKET_CACHE = new Map<
+>(DETAIL_BUCKET_CACHE_LIMIT);
+const RESOLVED_DETAIL_BUCKET_CACHE = new BoundedLruCache<
   string,
   Record<string, CompactDetailRecord>
->();
+>(DETAIL_BUCKET_CACHE_LIMIT);
 
 /**
  * Pure decoder converting a `CompactDetailRecord` from `public/data/details/<0..z>.json`
@@ -176,13 +191,15 @@ export const getCachedExoplanetFromSystem = (
 const loadSummaryBucket = (
   bucketKey: string,
   fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<Record<string, CompactSummaryNode>> => {
   let pending = SUMMARY_BUCKET_CACHE.get(bucketKey);
   if (!pending) {
     pending = (async () => {
-      const response = await fetchImpl(
-        resolveDataUrl(`/data/summaries/${bucketKey}.json`),
-      );
+      const url = resolveDataUrl(`/data/summaries/${bucketKey}.json`);
+      const response = signal
+        ? await fetchImpl(url, { signal })
+        : await fetchImpl(url);
       if (!response.ok) {
         throw new Error(
           `Failed to load summary shard "${bucketKey}": ${response.status} ${response.statusText}`,
@@ -209,6 +226,7 @@ const loadSummaryBucket = (
 export const fetchSummaryNode = async (
   id: string,
   fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<SystemSummaryNode | undefined> => {
   if (!id) {
     return undefined;
@@ -219,7 +237,7 @@ export const fetchSummaryNode = async (
   }
 
   const bucketKey = getShardKey(id);
-  await loadSummaryBucket(bucketKey, fetchImpl);
+  await loadSummaryBucket(bucketKey, fetchImpl, signal);
   return getCachedSummaryNode(id);
 };
 
@@ -229,6 +247,7 @@ export const fetchSummaryNode = async (
 export const fetchSummaryNodeByHash = async (
   idHash: number,
   fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<SystemSummaryNode | undefined> => {
   if (!Number.isFinite(idHash)) {
     return undefined;
@@ -240,32 +259,22 @@ export const fetchSummaryNodeByHash = async (
 
   const unsignedHash = idHash >>> 0;
   const bucketKey = getShardKeyFromHash(unsignedHash);
-  await loadSummaryBucket(bucketKey, fetchImpl);
+  await loadSummaryBucket(bucketKey, fetchImpl, signal);
   return getCachedSummaryNodeByHash(unsignedHash);
 };
 
-/**
- * Fetches and caches the detail shard bucket (`public/data/details/<0..z>.json`) for a given entity ID.
- */
-export const fetchDetailRecord = async (
-  id: string,
+const loadDetailBucket = (
+  bucketKey: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<DecodedDetailRecord | undefined> => {
-  if (!id) {
-    return undefined;
-  }
-  const cached = getCachedDetailRecord(id);
-  if (cached) {
-    return cached;
-  }
-
-  const bucketKey = getShardKey(id);
+  signal?: AbortSignal,
+): Promise<Record<string, CompactDetailRecord>> => {
   let pending = DETAIL_BUCKET_CACHE.get(bucketKey);
   if (!pending) {
     pending = (async () => {
-      const response = await fetchImpl(
-        resolveDataUrl(`/data/details/${bucketKey}.json`),
-      );
+      const url = resolveDataUrl(`/data/details/${bucketKey}.json`);
+      const response = signal
+        ? await fetchImpl(url, { signal })
+        : await fetchImpl(url);
       if (!response.ok) {
         throw new Error(
           `Failed to load detail shard "${bucketKey}": ${response.status} ${response.statusText}`,
@@ -282,9 +291,38 @@ export const fetchDetailRecord = async (
     });
     DETAIL_BUCKET_CACHE.set(bucketKey, pending);
   }
+  return pending;
+};
 
-  await pending;
+/**
+ * Fetches and caches the detail shard bucket (`public/data/details/<0..z>.json`) for a given entity ID.
+ */
+export const fetchDetailRecord = async (
+  id: string,
+  fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<DecodedDetailRecord | undefined> => {
+  if (!id) {
+    return undefined;
+  }
+  const cached = getCachedDetailRecord(id);
+  if (cached) {
+    return cached;
+  }
+
+  const bucketKey = getShardKey(id);
+  await loadDetailBucket(bucketKey, fetchImpl, signal);
   return getCachedDetailRecord(id);
+};
+
+/**
+ * Seeds a decoded summary node into the in-memory cache (used in unit tests).
+ */
+export const seedSummaryNode = (
+  id: string,
+  node: SystemSummaryNode,
+): void => {
+  RESOLVED_SUMMARY_NODE_CACHE.set(id, node);
 };
 
 /**

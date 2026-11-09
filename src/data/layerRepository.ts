@@ -14,6 +14,11 @@ import {
   type DecodedEntityAnnotation,
 } from '../utils/datasetLayerCodec';
 import { resolveDataUrl } from '../utils/url';
+import { BoundedLruCache } from '../utils/lruCache';
+import {
+  LAYER_ENTITY_BUCKET_CACHE_LIMIT,
+  LAYER_MANIFEST_CACHE_LIMIT,
+} from '../config/cacheConfig';
 
 interface LayerIndexEnvelope {
   readonly d: readonly DatasetLayerIndexEntry[];
@@ -21,17 +26,21 @@ interface LayerIndexEnvelope {
 
 let layerIndexPromise: Promise<readonly DatasetLayerIndexEntry[]> | undefined;
 
-const MANIFEST_CACHE = new Map<string, Promise<DatasetLayerManifest>>();
-const RESOLVED_MANIFEST_CACHE = new Map<string, DatasetLayerManifest>();
+const MANIFEST_CACHE = new BoundedLruCache<string, Promise<DatasetLayerManifest>>(
+  LAYER_MANIFEST_CACHE_LIMIT,
+);
+const RESOLVED_MANIFEST_CACHE = new BoundedLruCache<string, DatasetLayerManifest>(
+  LAYER_MANIFEST_CACHE_LIMIT,
+);
 
-const ENTITY_BUCKET_CACHE = new Map<
+const ENTITY_BUCKET_CACHE = new BoundedLruCache<
   string,
   Promise<Record<string, CompactEntityAnnotation[]>>
->();
-const RESOLVED_ENTITY_BUCKET_CACHE = new Map<
+>(LAYER_ENTITY_BUCKET_CACHE_LIMIT);
+const RESOLVED_ENTITY_BUCKET_CACHE = new BoundedLruCache<
   string,
   Record<string, CompactEntityAnnotation[]>
->();
+>(LAYER_ENTITY_BUCKET_CACHE_LIMIT);
 
 /**
  * Synchronously retrieves a decoded layer manifest if it has already been fetched.
@@ -42,7 +51,7 @@ export const getCachedLayerManifest = (
 
 const collectEntityAnnotations = (
   ids: readonly string[],
-  bucketsByKey: ReadonlyMap<string, Record<string, CompactEntityAnnotation[]>>,
+  bucketsByKey: { get(key: string): Record<string, CompactEntityAnnotation[]> | undefined },
 ): readonly DecodedEntityAnnotation[] => {
   const seen = new Set<string>();
   const records: DecodedEntityAnnotation[] = [];
@@ -80,12 +89,14 @@ export const getCachedEntityAnnotations = (
  */
 export const fetchLayerIndex = (
   fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<readonly DatasetLayerIndexEntry[]> => {
   if (!layerIndexPromise) {
     layerIndexPromise = (async () => {
-      const response = await fetchImpl(
-        resolveDataUrl('/data/overlays/layers/index.json'),
-      );
+      const url = resolveDataUrl('/data/overlays/layers/index.json');
+      const response = signal
+        ? await fetchImpl(url, { signal })
+        : await fetchImpl(url);
       if (!response.ok) {
         throw new Error(
           `Failed to load layer index: ${response.status} ${response.statusText}`,
@@ -107,13 +118,15 @@ export const fetchLayerIndex = (
 export const fetchLayerManifest = (
   layerId: string,
   fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<DatasetLayerManifest> => {
   let pending = MANIFEST_CACHE.get(layerId);
   if (!pending) {
     pending = (async () => {
-      const response = await fetchImpl(
-        resolveDataUrl(`/data/overlays/layers/${layerId}.json`),
-      );
+      const url = resolveDataUrl(`/data/overlays/layers/${layerId}.json`);
+      const response = signal
+        ? await fetchImpl(url, { signal })
+        : await fetchImpl(url);
       if (!response.ok) {
         throw new Error(
           `Failed to load layer manifest "${layerId}": ${response.status} ${response.statusText}`,
@@ -137,13 +150,15 @@ export const fetchLayerManifest = (
 const fetchEntityBucket = (
   bucketKey: string,
   fetchImpl: typeof fetch,
+  signal?: AbortSignal,
 ): Promise<Record<string, CompactEntityAnnotation[]>> => {
   let pending = ENTITY_BUCKET_CACHE.get(bucketKey);
   if (!pending) {
     pending = (async () => {
-      const response = await fetchImpl(
-        resolveDataUrl(`/data/overlays/layers/by-entity/${bucketKey}.json`),
-      );
+      const url = resolveDataUrl(`/data/overlays/layers/by-entity/${bucketKey}.json`);
+      const response = signal
+        ? await fetchImpl(url, { signal })
+        : await fetchImpl(url);
       if (!response.ok) {
         throw new Error(
           `Failed to load by-entity layer shard "${bucketKey}": ${response.status} ${response.statusText}`,
@@ -172,12 +187,13 @@ const fetchEntityBucket = (
 export const fetchEntityAnnotations = async (
   entityIds: readonly string[],
   fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<readonly DecodedEntityAnnotation[]> => {
   const ids = normaliseEntityIds(entityIds);
   const bucketKeys = [...new Set(ids.map((id) => getShardKey(id)))];
   const loaded = await Promise.all(
     bucketKeys.map(
-      async (key) => [key, await fetchEntityBucket(key, fetchImpl)] as const,
+      async (key) => [key, await fetchEntityBucket(key, fetchImpl, signal)] as const,
     ),
   );
   return collectEntityAnnotations(ids, new Map(loaded));

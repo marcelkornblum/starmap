@@ -1,6 +1,8 @@
 import type { SearchCategoryFilter } from '../types/search';
 import type { CompactSearchEntry, SearchIndexEnvelope } from '../utils/compactDataCodec';
 import { resolveDataUrl } from '../utils/url';
+import { BoundedLruCache } from '../utils/lruCache';
+import { SEARCH_SHARD_CACHE_LIMIT } from '../config/cacheConfig';
 
 export type SearchShardName =
   | 'core'
@@ -22,9 +24,15 @@ const SHARD_URLS: Record<SearchShardName, string> = {
   layers: resolveDataUrl('/data/search/layers.json'),
 };
 
-const shardCache = new Map<SearchShardName, Promise<readonly CompactSearchEntry[]>>();
-const resolvedShardCache = new Map<SearchShardName, readonly CompactSearchEntry[]>();
-const resolvedFilterCache = new Map<SearchCategoryFilter, readonly CompactSearchEntry[]>();
+const shardCache = new BoundedLruCache<SearchShardName, Promise<readonly CompactSearchEntry[]>>(
+  SEARCH_SHARD_CACHE_LIMIT,
+);
+const resolvedShardCache = new BoundedLruCache<SearchShardName, readonly CompactSearchEntry[]>(
+  SEARCH_SHARD_CACHE_LIMIT,
+);
+const resolvedFilterCache = new BoundedLruCache<SearchCategoryFilter, readonly CompactSearchEntry[]>(
+  SEARCH_SHARD_CACHE_LIMIT,
+);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -51,6 +59,7 @@ export const clearSearchRepositoryCache = (): void => {
 export const fetchSearchShard = async (
   shard: SearchShardName,
   fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<readonly CompactSearchEntry[]> => {
   const cached = shardCache.get(shard);
   if (cached) {
@@ -58,7 +67,9 @@ export const fetchSearchShard = async (
   }
 
   const loadPromise = (async (): Promise<readonly CompactSearchEntry[]> => {
-    const response = await fetcher(SHARD_URLS[shard]);
+    const response = signal
+      ? await fetcher(SHARD_URLS[shard], { signal })
+      : await fetcher(SHARD_URLS[shard]);
     if (!response.ok) {
       throw new Error(`Failed to load search shard "${shard}" (${response.status})`);
     }
@@ -140,6 +151,7 @@ export const getCachedCorpusForFilter = (
 export const loadSearchCorpusForFilter = async (
   filter: SearchCategoryFilter,
   fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<readonly CompactSearchEntry[]> => {
   if (fetcher === fetch) {
     const cached = getCachedCorpusForFilter(filter);
@@ -149,7 +161,7 @@ export const loadSearchCorpusForFilter = async (
   }
 
   if (filter !== 'all') {
-    const shard = await fetchSearchShard(filter, fetcher);
+    const shard = await fetchSearchShard(filter, fetcher, signal);
     if (fetcher === fetch) {
       resolvedFilterCache.set(filter, shard);
     }
@@ -157,9 +169,9 @@ export const loadSearchCorpusForFilter = async (
   }
 
   const [core, structures, minorBodies] = await Promise.all([
-    fetchSearchShard('core', fetcher),
-    fetchSearchShard('structures', fetcher),
-    fetchSearchShard('minor-bodies', fetcher),
+    fetchSearchShard('core', fetcher, signal),
+    fetchSearchShard('structures', fetcher, signal),
+    fetchSearchShard('minor-bodies', fetcher, signal),
   ]);
 
   const merged = mergeSearchShards([core, structures, minorBodies]);
