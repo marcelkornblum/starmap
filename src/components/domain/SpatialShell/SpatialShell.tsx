@@ -141,7 +141,9 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   onBodiesDrawerOpenChange,
   children,
 }) => {
-  const [isDrawerExplicitlySet, setIsDrawerExplicitlySet] = useState(false);
+  const [internalBodiesOpen, setInternalBodiesOpen] = useState<boolean | undefined>(
+    initialBodiesDrawerOpen,
+  );
   const activeDrawer = useUIStore((s) => s.activeDrawer);
   const isStoreBodiesOpen = activeDrawer === 'bodies';
   const setActiveDrawer = useUIStore((s) => s.setActiveDrawer);
@@ -152,23 +154,15 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   const dualPanelPolicy = useUIStore((s) => s.dualPanelPolicy);
   const isWideViewport = useIsWideViewport();
 
-  useEffect(() => {
-    if (controlledBodiesOpen !== undefined) {
-      setActiveDrawer(controlledBodiesOpen ? 'bodies' : null);
-    } else if (initialBodiesDrawerOpen !== undefined && !isDrawerExplicitlySet) {
-      setActiveDrawer(initialBodiesDrawerOpen ? 'bodies' : null);
-    }
-  }, [controlledBodiesOpen, initialBodiesDrawerOpen, isDrawerExplicitlySet, setActiveDrawer]);
-
   const isBodiesDrawerOpen =
     controlledBodiesOpen !== undefined
       ? controlledBodiesOpen
-      : initialBodiesDrawerOpen !== undefined && !isDrawerExplicitlySet
-        ? initialBodiesDrawerOpen
+      : internalBodiesOpen !== undefined
+        ? internalBodiesOpen
         : isStoreBodiesOpen;
 
   const setDrawerState = (next: boolean) => {
-    setIsDrawerExplicitlySet(true);
+    setInternalBodiesOpen(next);
     setActiveDrawer(next ? 'bodies' : null);
     onBodiesDrawerOpenChange?.(next);
   };

@@ -163,6 +163,8 @@ export const SearchRoot = ({
     [routerSearch?.focus, locationPathname, locationSearch],
   );
 
+  const initialResultsRef = useRef(results);
+
   // Synchronise store on client mount to keep useState initializer 100% pure
   useEffect(() => {
     const focusCorpus =
@@ -172,7 +174,7 @@ export const SearchRoot = ({
       [];
     syncSelectedSystemsToStore(
       store,
-      results,
+      initialResultsRef.current,
       activeSearch,
       focusCorpus,
       layerIndex,
@@ -203,7 +205,6 @@ export const SearchRoot = ({
     locationPathname,
     locationSearch,
     resolveCurrentFocusSlug,
-    results,
     store,
     syncUrl,
   ]);

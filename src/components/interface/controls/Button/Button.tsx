@@ -28,8 +28,9 @@ export const Button = ({
     : styles.button;
 
   if (href !== undefined) {
+    const { onClick, ...anchorRest } = rest;
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>): void => {
-      (rest as unknown as AnchorHTMLAttributes<HTMLAnchorElement>).onClick?.(e);
+      (onClick as React.MouseEventHandler<HTMLAnchorElement> | undefined)?.(e);
       handleSpaNavigation(e, href);
     };
 
@@ -41,7 +42,7 @@ export const Button = ({
         className={combinedClassName}
         data-variant={variant}
         data-size={size}
-        {...(rest as unknown as AnchorHTMLAttributes<HTMLAnchorElement>)}
+        {...(anchorRest as AnchorHTMLAttributes<HTMLAnchorElement>)}
         onClick={handleClick}
       >
         {children}

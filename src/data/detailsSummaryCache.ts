@@ -139,12 +139,7 @@ export const loadSummaryBucket = (
     SUMMARY_BUCKET_CACHE.set(bucketKey, pending);
   }
 
-  return pending.catch((err: unknown) => {
-    if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
-      return loadSummaryBucket(bucketKey, fetchImpl, signal, onLoaded);
-    }
-    throw err;
-  });
+  return pending;
 };
 
 /**
