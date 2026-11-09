@@ -104,40 +104,44 @@ export const loadSummaryBucket = (
 ): Promise<Record<string, CompactSummaryNode>> => {
   let pending = SUMMARY_BUCKET_CACHE.get(bucketKey);
   if (!pending) {
-    pending = (async () => {
-      const url = resolveDataUrl(`/data/summaries/${bucketKey}.json`);
-      const response = signal
-        ? await fetchImpl(url, { signal })
-        : await fetchImpl(url);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load summary shard "${bucketKey}": ${response.status} ${response.statusText}`,
-        );
-      }
-      const envelope =
-        (await response.json()) as ShardedBucketEnvelope<CompactSummaryNode>;
-      const data = envelope.d ?? {};
-      RESOLVED_SUMMARY_BUCKET_CACHE.set(bucketKey, data);
-      getOrBuildBucketHashIndex(bucketKey, data);
-      onLoaded?.();
-      return data;
-    })().catch((err: unknown) => {
-      SUMMARY_BUCKET_CACHE.delete(bucketKey);
-      throw err;
-    });
-
+    let onAbort: (() => void) | undefined;
     if (signal) {
-      const onAbort = () => {
-        signal.removeEventListener('abort', onAbort);
+      onAbort = () => {
+        signal.removeEventListener('abort', onAbort!);
         if (SUMMARY_BUCKET_CACHE.get(bucketKey) === pending) {
           SUMMARY_BUCKET_CACHE.delete(bucketKey);
         }
       };
       signal.addEventListener('abort', onAbort);
-      pending.finally(() => {
-        signal.removeEventListener('abort', onAbort);
-      });
     }
+
+    pending = (async () => {
+      try {
+        const url = resolveDataUrl(`/data/summaries/${bucketKey}.json`);
+        const response = signal
+          ? await fetchImpl(url, { signal })
+          : await fetchImpl(url);
+        if (!response.ok) {
+          throw new Error(
+            `Failed to load summary shard "${bucketKey}": ${response.status} ${response.statusText}`,
+          );
+        }
+        const envelope =
+          (await response.json()) as ShardedBucketEnvelope<CompactSummaryNode>;
+        const data = envelope.d ?? {};
+        RESOLVED_SUMMARY_BUCKET_CACHE.set(bucketKey, data);
+        getOrBuildBucketHashIndex(bucketKey, data);
+        onLoaded?.();
+        return data;
+      } finally {
+        if (signal && onAbort) {
+          signal.removeEventListener('abort', onAbort);
+        }
+      }
+    })().catch((err: unknown) => {
+      SUMMARY_BUCKET_CACHE.delete(bucketKey);
+      throw err;
+    });
 
     SUMMARY_BUCKET_CACHE.set(bucketKey, pending);
   }
