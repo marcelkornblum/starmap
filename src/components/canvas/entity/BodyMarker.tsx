@@ -72,22 +72,22 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   const frameCtx = useSpatialFrameSafe();
 
   const setMarkerRef = useCallback((node: THREE.Mesh | null) => {
-    if (node && !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
+    if (!node || !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
       markerRef.current = node;
     }
   }, [markerRef]);
   const setHitareaRef = useCallback((node: THREE.Mesh | null) => {
-    if (node && !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
+    if (!node || !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
       hitareaRef.current = node;
     }
   }, [hitareaRef]);
   const setBillboardRef = useCallback((node: THREE.Group | null) => {
-    if (node && !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
+    if (!node || !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
       billboardRef.current = node;
     }
   }, [billboardRef]);
   const setGroupRef = useCallback((node: THREE.Group | null) => {
-    if (node && !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
+    if (!node || !(typeof HTMLElement !== 'undefined' && node instanceof HTMLElement)) {
       groupRef.current = node;
     }
   }, [groupRef]);
