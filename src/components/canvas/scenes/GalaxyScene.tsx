@@ -43,6 +43,7 @@ export interface GalaxySceneProps {
   initialSelectedId?: string | null;
   onInspectSystem?: (systemId: string) => void;
   onSelectSystem?: (systemId: string | null) => void;
+  onFocusChange?: (systemId: string | null) => void;
   debugHitarea?: boolean;
   onCeilingApertureRadiusChange?: (radiusPc: number | null) => void;
 }
@@ -56,6 +57,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
   initialSelectedId,
   onInspectSystem,
   onSelectSystem,
+  onFocusChange,
   debugHitarea = false,
   onCeilingApertureRadiusChange,
 }) => {
@@ -227,6 +229,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = ({
       initialSelectedId={initialSelectedId}
       onInspect={onInspectSystem}
       onSelect={onSelectSystem}
+      onFocusChange={onFocusChange}
       debugHitarea={debugHitarea}
     >
       <SectorPointCloud onHydratedSummariesChange={handleHydratedSummariesChange} />

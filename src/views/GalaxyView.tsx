@@ -134,21 +134,6 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const hasExplicitFocus = Boolean(focus && urlFocusSlug && urlFocusSlug.length > 0);
   const pendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
-  const canvasFocusedSlugsRef = useRef<Set<string>>(new Set());
-  const pendingCanvasFocusRef = useRef<{ active: boolean; slug: string | null }>({
-    active: false,
-    slug: null,
-  });
-
-  if (pendingCenterSlug) {
-    canvasFocusedSlugsRef.current.delete(pendingCenterSlug);
-  }
-  if (
-    pendingCanvasFocusRef.current.active &&
-    urlFocusSlug === pendingCanvasFocusRef.current.slug
-  ) {
-    pendingCanvasFocusRef.current.active = false;
-  }
 
   const prevUrlRef = useRef<string | null>(null);
   useEffect(() => {
@@ -156,13 +141,6 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     const urlChanged = prevUrlRef.current !== null && prevUrlRef.current !== nextUrl;
     const isExplicitLocation = locationPathname !== undefined || locationSearch !== undefined;
     prevUrlRef.current = nextUrl;
-
-    if (
-      pendingCanvasFocusRef.current.active &&
-      pendingCanvasFocusRef.current.slug !== null
-    ) {
-      return;
-    }
 
     if ((isExplicitLocation || urlChanged) && !urlFocusSlug && !hasExplicitFocus) {
       if (storeApi.getState().focusedId) {
@@ -186,12 +164,6 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     [urlFocusSlug, apertureCorpus],
   );
   const focusedEntity = useMemo(() => {
-    if (
-      pendingCanvasFocusRef.current.active &&
-      urlFocusSlug !== pendingCanvasFocusRef.current.slug
-    ) {
-      return pendingCanvasFocusRef.current.slug ? storeFocusedEntity : null;
-    }
     if (!urlFocusSlug) {
       return hasExplicitFocus
         ? storeFocusedEntity
@@ -227,12 +199,6 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   }, [urlFocusSlug, hasExplicitFocus, storeFocusedEntity, apertureCorpus, urlFocusEntity]);
 
   useEffect(() => {
-    if (
-      pendingCanvasFocusRef.current.active &&
-      urlFocusSlug !== pendingCanvasFocusRef.current.slug
-    ) {
-      return;
-    }
     if (!urlFocusSlug || !focusedEntity) return;
 
     if (useUIStore.getState().detailsDetent === 'collapsed') {
@@ -481,17 +447,10 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       return [cameraState.x, cameraState.y, cameraState.z];
     }
 
-    const isCanvasClickFocus =
-      pendingCanvasFocusRef.current.active ||
-      (Boolean(urlFocusSlug) &&
-        canvasFocusedSlugsRef.current.has(urlFocusSlug!) &&
-        pendingCenterSlug !== urlFocusSlug);
-
     const effectiveCenterSlug =
       (center ? toUrlSlug(center) : undefined) ??
       cameraState.center ??
       pendingCenterSlug ??
-      (!isCanvasClickFocus ? urlFocusSlug : undefined) ??
       undefined;
 
     if (
@@ -608,14 +567,33 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   ]);
 
   const handleSelectSystem = useCallback((id: string | null) => {
-    const slug = id ? toUrlSlug(id) : null;
-    if (slug) {
-      canvasFocusedSlugsRef.current.add(slug);
-    }
+    useCameraStore.getState().setPendingCenterSlug(null);
     if (id) {
-      canvasFocusedSlugsRef.current.add(id);
+      void appRouter
+        .navigate?.({
+          to: '/galaxy',
+          search: (prev: StarmapSearchParams = {}) => ({
+            ...prev,
+            focus: id,
+          }),
+          replace: true,
+        })
+        ?.catch(() => {});
+    } else {
+      void appRouter
+        .navigate?.({
+          to: '/galaxy',
+          search: (prev: StarmapSearchParams = {}) => ({
+            ...prev,
+            focus: undefined,
+          }),
+          replace: true,
+        })
+        ?.catch(() => {});
     }
-    pendingCanvasFocusRef.current = { active: true, slug };
+  }, []);
+
+  const handleFocusChange = useCallback((id: string | null) => {
     useCameraStore.getState().setPendingCenterSlug(null);
     if (id) {
       void appRouter
@@ -661,6 +639,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           }
           onInspect={handleSelectSystem}
           onSelect={handleSelectSystem}
+          onFocusChange={handleFocusChange}
         />
       }
       breadcrumbs={<Breadcrumbs items={[{ label: 'Galaxy' }]} />}

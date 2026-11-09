@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '../../interface';
 import { useUIStore } from '../../../stores/useUIStore';
 import styles from './SpatialShell.module.css';
@@ -141,37 +141,32 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   onBodiesDrawerOpenChange,
   children,
 }) => {
-  const storeDrawer = useUIStore((s) => s.activeDrawer);
-  const activeDrawer = typeof window === 'undefined' ? useUIStore.getState().activeDrawer : storeDrawer;
+  const isDrawerExplicitlySetRef = useRef(false);
+  const activeDrawer = useUIStore((s) => s.activeDrawer);
   const isStoreBodiesOpen = activeDrawer === 'bodies';
   const setActiveDrawer = useUIStore((s) => s.setActiveDrawer);
 
-  const storeIsDetailsOpen = useUIStore((s) => s.isDetailsOpen);
-  const storeIsDirectionsOpen = useUIStore((s) => s.isDirectionsOpen);
-  const storePriority = useUIStore((s) => s.primaryPanelPriority);
-  const storeDualPolicy = useUIStore((s) => s.dualPanelPolicy);
-
-  const isDetailsOpen = typeof window === 'undefined' ? useUIStore.getState().isDetailsOpen : storeIsDetailsOpen;
-  const isDirectionsOpen = typeof window === 'undefined' ? useUIStore.getState().isDirectionsOpen : storeIsDirectionsOpen;
-  const primaryPanelPriority = typeof window === 'undefined' ? useUIStore.getState().primaryPanelPriority : storePriority;
-  const dualPanelPolicy = typeof window === 'undefined' ? useUIStore.getState().dualPanelPolicy : storeDualPolicy;
+  const isDetailsOpen = useUIStore((s) => s.isDetailsOpen);
+  const isDirectionsOpen = useUIStore((s) => s.isDirectionsOpen);
+  const primaryPanelPriority = useUIStore((s) => s.primaryPanelPriority);
+  const dualPanelPolicy = useUIStore((s) => s.dualPanelPolicy);
   const isWideViewport = useIsWideViewport();
 
-  const [localBodiesOpen, setLocalBodiesOpen] = useState<boolean>(() => {
-    if (controlledBodiesOpen !== undefined) return controlledBodiesOpen;
-    if (initialBodiesDrawerOpen !== undefined) return initialBodiesDrawerOpen;
-    return isStoreBodiesOpen;
-  });
+  useEffect(() => {
+    if (initialBodiesDrawerOpen !== undefined && !isDrawerExplicitlySetRef.current) {
+      setActiveDrawer(initialBodiesDrawerOpen ? 'bodies' : null);
+    }
+  }, [initialBodiesDrawerOpen, setActiveDrawer]);
 
   const isBodiesDrawerOpen =
     controlledBodiesOpen !== undefined
       ? controlledBodiesOpen
-      : initialBodiesDrawerOpen !== undefined
-        ? localBodiesOpen
+      : initialBodiesDrawerOpen !== undefined && !isDrawerExplicitlySetRef.current
+        ? initialBodiesDrawerOpen
         : isStoreBodiesOpen;
 
   const setDrawerState = (next: boolean) => {
-    setLocalBodiesOpen(next);
+    isDrawerExplicitlySetRef.current = true;
     setActiveDrawer(next ? 'bodies' : null);
     onBodiesDrawerOpenChange?.(next);
   };

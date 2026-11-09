@@ -34,6 +34,7 @@ export interface CanvasLayerProps {
   readonly isRootHost?: boolean;
   readonly onInspect?: (id: string) => void;
   readonly onSelect?: (id: string | null) => void;
+  readonly onFocusChange?: (id: string | null) => void;
 }
 
 let webglSupported: boolean | null = null;
@@ -87,6 +88,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
     isRootHost = false,
     onInspect,
     onSelect,
+    onFocusChange,
   } = props;
 
   const isRootCanvasMounted = useCanvasStageStore((s) => s.isRootCanvasMounted);
@@ -108,7 +110,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
 
   useIsomorphicLayoutEffect(() => {
     if (!isRootHost) {
-      setStageCallbacks({ onInspect, onSelect });
+      setStageCallbacks({ onInspect, onSelect, onFocusChange });
       setStageProps({
         scope,
         targetId,
@@ -144,6 +146,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
     cameraState,
     onInspect,
     onSelect,
+    onFocusChange,
     setStageProps,
   ]);
 
@@ -205,6 +208,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
           additionalEntities={selectedEntities}
           onInspectSystem={onInspect}
           onSelectSystem={onSelect}
+          onFocusChange={onFocusChange}
         />
       )}
       {mountCanvas && scope === 'system' && (
@@ -237,7 +241,7 @@ export const RootCanvasHost: React.FC = () => {
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
   const activeSlotCount = useCanvasStageStore((s) => s.activeSlotCount);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
-  const { onInspect, onSelect } = useSyncExternalStore(
+  const { onInspect, onSelect, onFocusChange } = useSyncExternalStore(
     subscribeStageCallbacks,
     getStageCallbacks,
     getStageCallbacks,
@@ -284,6 +288,7 @@ export const RootCanvasHost: React.FC = () => {
         cameraState={stageProps?.cameraState}
         onInspect={onInspect}
         onSelect={onSelect}
+        onFocusChange={onFocusChange}
       />
     </div>
   );

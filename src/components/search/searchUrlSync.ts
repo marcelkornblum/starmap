@@ -1,5 +1,4 @@
 import {
-  buildUpdatedSearchUrl,
   parseSearchUrlParams,
   type SearchCategoryFilter,
 } from '../../services/searchService';
@@ -31,16 +30,6 @@ export const syncSearchUrlParams = (
   nextQuery: string,
   nextFilter: SearchCategoryFilter,
 ): void => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  const nextHref = buildUpdatedSearchUrl(
-    window.location.pathname,
-    window.location.search,
-    window.location.hash,
-    nextQuery,
-    nextFilter,
-  );
   if (appRouter?.navigate && appRouter?.state) {
     const qTrimmed = nextQuery.trim();
     void appRouter.navigate({
@@ -62,8 +51,5 @@ export const syncSearchUrlParams = (
       replace: true,
       resetScroll: false,
     });
-  } else {
-    window.history.replaceState(window.history.state, '', nextHref);
-    window.dispatchEvent(new Event('starmap:locationchange'));
   }
 };

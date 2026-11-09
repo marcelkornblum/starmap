@@ -154,7 +154,6 @@ describe('useKeyboardShortcuts', () => {
   });
 
   it('calls onClearFocus or clears focus and selection when Escape is pressed with no open drawer', () => {
-    useUIStore.getState().setSelectedNodeId('sol');
     const onClearFocus = vi.fn();
 
     renderHook(() => useKeyboardShortcuts({ onClearFocus }));

@@ -1,6 +1,8 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React, { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
+import { render } from '@testing-library/react';
 import {
   SpatialShell,
   CanvasLayer,
@@ -198,15 +200,15 @@ describe('SpatialShell Component & View Integration Suite', () => {
     it('reads activeDrawer === "bodies" from useUIStore when initialBodiesDrawerOpen is not provided', () => {
       useUIStore.getState().setActiveDrawer('bodies');
 
-      const html = renderToString(
+      const { container } = render(
         <SpatialShell
           testId="store-backed-drawer"
           bodies={<div data-testid="bodies-content">Drawer Content</div>}
         />,
       );
 
-      expect(html).toContain('data-bodies-drawer-open="true"');
-      expect(html).toContain('aria-expanded="true"');
+      expect(container.innerHTML).toContain('data-bodies-drawer-open="true"');
+      expect(container.innerHTML).toContain('aria-expanded="true"');
     });
 
     it('syncs toggle click and backdrop close with useUIStore.setActiveDrawer', () => {
@@ -646,34 +648,34 @@ describe('SpatialShell Component & View Integration Suite', () => {
       useUIStore.getState().setPrimaryPanelPriority('directions');
       useUIStore.getState().setDualPanelPolicy('single');
 
-      const htmlDirections = renderToString(
+      const { container: containerDirections } = render(
         <SpatialShell
           detailsPanel={<div data-testid="store-details">Details</div>}
           directionsPanel={<div data-testid="store-directions">Directions</div>}
         />,
       );
-      expect(htmlDirections).toContain('data-testid="store-directions"');
-      expect(htmlDirections).not.toContain('data-testid="store-details"');
+      expect(containerDirections.innerHTML).toContain('data-testid="store-directions"');
+      expect(containerDirections.innerHTML).not.toContain('data-testid="store-details"');
 
       useUIStore.getState().setPrimaryPanelPriority('details');
-      const htmlDetails = renderToString(
+      const { container: containerDetails } = render(
         <SpatialShell
           detailsPanel={<div data-testid="store-details">Details</div>}
           directionsPanel={<div data-testid="store-directions">Directions</div>}
         />,
       );
-      expect(htmlDetails).toContain('data-testid="store-details"');
-      expect(htmlDetails).not.toContain('data-testid="store-directions"');
+      expect(containerDetails.innerHTML).toContain('data-testid="store-details"');
+      expect(containerDetails.innerHTML).not.toContain('data-testid="store-directions"');
 
       useUIStore.getState().setDualPanelPolicy('simultaneous');
-      const htmlSimultaneous = renderToString(
+      const { container: containerSimultaneous } = render(
         <SpatialShell
           detailsPanel={<div data-testid="store-details">Details</div>}
           directionsPanel={<div data-testid="store-directions">Directions</div>}
         />,
       );
-      expect(htmlSimultaneous).toContain('data-testid="store-details"');
-      expect(htmlSimultaneous).toContain('data-testid="store-directions"');
+      expect(containerSimultaneous.innerHTML).toContain('data-testid="store-details"');
+      expect(containerSimultaneous.innerHTML).toContain('data-testid="store-directions"');
     });
   });
 });

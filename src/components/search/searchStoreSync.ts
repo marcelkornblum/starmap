@@ -22,17 +22,10 @@ export const syncSelectedSystemsToStore = (
   layerIndex: readonly DatasetLayerIndexEntry[],
   loadedLayers: readonly DatasetLayerManifest[],
 ): void => {
-  const windowSearch =
-    typeof window !== 'undefined' ? window.location.search : '';
-  const searchToUse =
-    windowSearch && !activeSearch.includes('layer=') && windowSearch.includes('layer=')
-      ? `${activeSearch}${activeSearch.includes('?') ? '&' : '?'}${windowSearch.replace(/^\?/, '')}`
-      : activeSearch || windowSearch;
-
   const urlSelected =
     results.query.trim().length === 0
       ? resolveSelectedSystemsFromUrlSelect(
-          searchToUse,
+          activeSearch,
           corpus,
           layerIndex,
           loadedLayers,

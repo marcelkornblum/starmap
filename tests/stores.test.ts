@@ -156,14 +156,11 @@ describe('useUIStore (Ephemeral)', () => {
     expect(state.isAudioPlaying).toBe(false);
     expect(state.activePanel).toBeNull();
     expect(state.hoveredNodeId).toBeNull();
-    expect(state.selectedNodeId).toBeNull();
-    expect(state.searchQuery).toBe('');
     expect(state.isCameraTransitioning).toBe(false);
     expect(state.activePrimaryPanel).toBe('details');
     expect(state.detailsDetent).toBe('peek');
     expect(state.activeDrawer).toBeNull();
     expect(state.isLayerCardOpen).toBe(true);
-    expect(state.centeredEntityId).toBeNull();
   });
 
   it('handles audio toggle and explicit setter', () => {
@@ -182,18 +179,12 @@ describe('useUIStore (Ephemeral)', () => {
     expect(useUIStore.getState().activePanel).toBeNull();
   });
 
-  it('tracks hovered and selected nodes', () => {
+  it('tracks hovered nodes', () => {
     useUIStore.getState().setHoveredNodeId('star-sol');
     expect(useUIStore.getState().hoveredNodeId).toBe('star-sol');
-
-    useUIStore.getState().setSelectedNodeId('planet-earth');
-    expect(useUIStore.getState().selectedNodeId).toBe('planet-earth');
   });
 
-  it('updates search query and camera transition state', () => {
-    useUIStore.getState().setSearchQuery('Sirius');
-    expect(useUIStore.getState().searchQuery).toBe('Sirius');
-
+  it('updates camera transition state', () => {
     useUIStore.getState().setCameraTransitioning(true);
     expect(useUIStore.getState().isCameraTransitioning).toBe(true);
   });
@@ -235,18 +226,12 @@ describe('useUIStore (Ephemeral)', () => {
     expect(useUIStore.getState().activeDrawer).toBeNull();
   });
 
-  it('manages layer card visibility and centered entity ID', () => {
+  it('manages layer card visibility', () => {
     useUIStore.getState().setLayerCardOpen(false);
     expect(useUIStore.getState().isLayerCardOpen).toBe(false);
 
     useUIStore.getState().setLayerCardOpen(true);
     expect(useUIStore.getState().isLayerCardOpen).toBe(true);
-
-    useUIStore.getState().setCenteredEntityId('star-sol');
-    expect(useUIStore.getState().centeredEntityId).toBe('star-sol');
-
-    useUIStore.getState().setCenteredEntityId(null);
-    expect(useUIStore.getState().centeredEntityId).toBeNull();
   });
 
   it('resets to initial UI state and does not touch localStorage', () => {
@@ -256,7 +241,6 @@ describe('useUIStore (Ephemeral)', () => {
     useUIStore.getState().setDetailsDetent('full');
     useUIStore.getState().setActiveDrawer('bodies');
     useUIStore.getState().setLayerCardOpen(false);
-    useUIStore.getState().setCenteredEntityId('star-proxima');
 
     useUIStore.getState().resetUIState();
 
