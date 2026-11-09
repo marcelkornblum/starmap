@@ -136,6 +136,35 @@ describe('guideService (AUD-020 & AUD-092)', () => {
       expect(orbital?.isCatalogued).toBe(true);
     });
 
+    it('populates numericValue and unit on catalogued target comparisons (AUD-C)', () => {
+      seedDetailRecord('tau-ceti', { kind: 'system', record: TAU_CETI_FIXTURE });
+      seedDetailRecord('tau-ceti-e', { kind: 'system', record: TAU_CETI_FIXTURE });
+
+      const stellarMass = resolveMetricComparison('stellar-mass', 'tau-ceti');
+      expect(stellarMass?.targetNumericValue).toBe(0.78);
+      expect(stellarMass?.targetUnit).toBe('M☉');
+      expect(stellarMass?.targets?.[0]?.numericValue).toBe(0.78);
+      expect(stellarMass?.targets?.[0]?.unit).toBe('M☉');
+
+      const semiMajorAxis = resolveMetricComparison('semi-major-axis', 'tau-ceti-e');
+      expect(semiMajorAxis?.targetNumericValue).toBe(0.538);
+      expect(semiMajorAxis?.targetUnit).toBe('AU');
+      expect(semiMajorAxis?.targets?.[0]?.numericValue).toBe(0.538);
+      expect(semiMajorAxis?.targets?.[0]?.unit).toBe('AU');
+
+      const surfaceGravity = resolveMetricComparison('surface-gravity', 'tau-ceti-e');
+      expect(surfaceGravity?.targetNumericValue).toBe(1.2);
+      expect(surfaceGravity?.targetUnit).toBe('g');
+      expect(surfaceGravity?.targets?.[0]?.numericValue).toBe(1.2);
+      expect(surfaceGravity?.targets?.[0]?.unit).toBe('g');
+
+      const effectiveTemp = resolveMetricComparison('effective-temperature', 'tau-ceti');
+      expect(effectiveTemp?.targetNumericValue).toBe(5344);
+      expect(effectiveTemp?.targetUnit).toBe('K');
+      expect(effectiveTemp?.targets?.[0]?.numericValue).toBe(5344);
+      expect(effectiveTemp?.targets?.[0]?.unit).toBe('K');
+    });
+
     it('supports comma-separated targets in focusedEntityId (DEC-R020)', () => {
       const comparison = resolveMetricComparison('stellar-mass', 'alpha-centauri-a,alpha-centauri-b');
       expect(comparison).not.toBeNull();

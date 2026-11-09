@@ -8,6 +8,10 @@ import type { SpatialEntityDefinition } from '../entity';
 import type { CelestialClassification } from '../cartography/reticleGeometry';
 import type { PlanetRecord, SatelliteRecord } from '../../../types/astro';
 import { getCachedDetailRecord } from '../../../data/detailsRepository';
+import {
+  EARTH_REFERENCE_TARGET,
+  SOL_REFERENCE_TARGET,
+} from '../../../config/referenceTargets';
 
 export interface PlanetSceneProps {
   planetId?: string;
@@ -29,7 +33,7 @@ export interface PlanetSceneProps {
  * Seamlessly cross-fades the 3D globe into an invariant cartographic node with reticle when zooming out.
  */
 export const PlanetScene: React.FC<PlanetSceneProps> = ({
-  planetId = 'earth',
+  planetId = EARTH_REFERENCE_TARGET.id,
   planetName,
   classification = 'terrestrial',
   radius = 1.0,
@@ -53,7 +57,7 @@ export const PlanetScene: React.FC<PlanetSceneProps> = ({
         const found = detail.record.planets?.find((p) => p.id === planetId);
         if (found?.satellites) return found.satellites;
       }
-      const sol = getCachedDetailRecord('sol');
+      const sol = getCachedDetailRecord(SOL_REFERENCE_TARGET.id);
       if (sol?.kind === 'system') {
         const found = sol.record.planets?.find(
           (p) => p.id === planetId || p.name.toLowerCase() === planetId.toLowerCase(),
@@ -77,10 +81,12 @@ export const PlanetScene: React.FC<PlanetSceneProps> = ({
           sat.orbit.argumentOfPeriapsis,
           sat.orbit.meanAnomaly,
         );
+        const satClassification: CelestialClassification =
+          sat.composition === 'sub-neptune' ? 'ice-giant' : (sat.composition ?? 'terrestrial');
         return {
           id: sat.id,
           name: sat.name,
-          classification: (sat.composition ?? 'terrestrial') as CelestialClassification,
+          classification: satClassification,
           position: [satX, satY, satZ],
           bodyRadius: (sat.radiusEarth ?? 0.272) * radius,
           orbit: {

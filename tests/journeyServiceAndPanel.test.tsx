@@ -383,7 +383,7 @@ describe('DEC-033: Journey Visual Chord Geometry, Transit Mathematics & Progress
         createElement(
           'div',
           null,
-          renderStructuredQuantity({ value: '18.6', unit: 'yr' }, 'test-qty'),
+          renderStructuredQuantity({ value: 18.6, unit: 'yr' }, 'test-qty'),
         ),
       );
       expect(rendered).toContain('data-testid="test-qty"');

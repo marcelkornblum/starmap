@@ -61,17 +61,10 @@ export interface JourneyEndpoint {
 }
 
 export interface StructuredQuantity {
-  readonly value: number | string;
+  readonly value: number | 'infinite' | 'instantaneous';
   readonly unit: string;
   readonly secondaryValue?: number | string;
   readonly secondaryUnit?: string;
-}
-
-export function formatStructuredQuantity(q: StructuredQuantity): string {
-  if (q.secondaryValue !== undefined && q.secondaryUnit) {
-    return `${q.value} ${q.unit} (${q.secondaryValue} ${q.secondaryUnit})`;
-  }
-  return q.unit ? `${q.value} ${q.unit}` : `${q.value}`;
 }
 
 export interface JourneyStep {
@@ -739,8 +732,8 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
           fromName: s.from.name,
           toName: s.to.name,
           distance: s.primaryDistance,
-          shipTime: { value: stepTransit.shipProperTimeYears.toFixed(1), unit: 'yr' },
-          coordinateTime: { value: stepTransit.coordinateTimeYears.toFixed(1), unit: 'yr' },
+          shipTime: { value: Number(stepTransit.shipProperTimeYears.toFixed(1)), unit: 'yr' },
+          coordinateTime: { value: Number(stepTransit.coordinateTimeYears.toFixed(1)), unit: 'yr' },
           oneWayComms: s.oneWayLightTime,
         };
       }),

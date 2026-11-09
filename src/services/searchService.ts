@@ -22,7 +22,7 @@ import {
   type PlanetCompositionClass,
   type PlanetTypeGuideEntry,
   type StarTypeGuideEntry,
-} from '../data/guideCatalog';
+} from '../content/guide';
 import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,

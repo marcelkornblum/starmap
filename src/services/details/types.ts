@@ -3,7 +3,7 @@ import type {
   SpatialEntityDefinition,
 } from '../../types/spatial';
 import type { DecodedDetailRecord } from '../../data/detailsRepository';
-import type { PlanetCompositionClass } from '../../data/guideCatalog';
+import type { PlanetCompositionClass } from '../../content/guide';
 import type {
   CircumstellarDiskKind,
   CircumstellarDiskRecord,

@@ -28,7 +28,7 @@ import {
   type HazardGuideEntry,
   type GuideCatalogEntry,
   type PlanetCompositionClass,
-} from '../data/guideCatalog';
+} from '../content/guide';
 import {
   getCachedDetailRecord,
   fetchDetailRecord,
@@ -648,8 +648,8 @@ function evaluateMetricForTarget(
   let targetFamiliar = '—';
   let relativeRatioLabel = '—';
   let isCatalogued = false;
-  const numericValue: number | undefined = undefined;
-  const unit: string | undefined = undefined;
+  let numericValue: number | undefined;
+  let unit: string | undefined;
 
   switch (metricId) {
     case 'galactic-coordinates': {
@@ -665,6 +665,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `${ly.toFixed(2)} light-years (ly)`;
         relativeRatioLabel = `${ly.toFixed(2)} light-years from Sol`;
         isCatalogued = true;
+        numericValue = Number(distPc.toFixed(2));
+        unit = 'pc';
       }
       break;
     }
@@ -682,6 +684,8 @@ function evaluateMetricForTarget(
         const deltaMag = mag - (-26.74);
         relativeRatioLabel = `Δ${deltaMag.toFixed(1)} mag relative to Sol`;
         isCatalogued = true;
+        numericValue = Number(mag.toFixed(2));
+        unit = 'V';
       }
       break;
     }
@@ -693,6 +697,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${earthMasses.toLocaleString()} Earth masses (M⊕)`;
         relativeRatioLabel = `${mass.toFixed(2)}× Solar mass`;
         isCatalogued = true;
+        numericValue = Number(mass.toFixed(2));
+        unit = 'M☉';
       }
       break;
     }
@@ -704,6 +710,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${km.toLocaleString()} km (${(radius * 109.2).toFixed(1)} R⊕)`;
         relativeRatioLabel = `${radius.toFixed(2)}× Solar radius`;
         isCatalogued = true;
+        numericValue = Number(radius.toFixed(2));
+        unit = 'R☉';
       }
       break;
     }
@@ -715,6 +723,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${w} × 10²⁶ W`;
         relativeRatioLabel = `${lum.toFixed(2)}× Solar luminosity`;
         isCatalogued = true;
+        numericValue = Number(lum.toFixed(2));
+        unit = 'L☉';
       }
       break;
     }
@@ -726,6 +736,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${celsius.toLocaleString()} °C`;
         relativeRatioLabel = `${(tempK / 5778).toFixed(2)}× Solar temperature`;
         isCatalogued = true;
+        numericValue = tempK;
+        unit = 'K';
       }
       break;
     }
@@ -738,6 +750,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `${lightMinutes} light-minutes (${millionKm}M km)`;
         relativeRatioLabel = `${sma.toFixed(2)}× Earth orbit`;
         isCatalogued = true;
+        numericValue = Number(sma.toFixed(3));
+        unit = 'AU';
       }
       break;
     }
@@ -749,6 +763,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `${years} Earth years (${(period / 30.4375).toFixed(1)} months)`;
         relativeRatioLabel = `${years}× Earth year`;
         isCatalogued = true;
+        numericValue = Number(period.toFixed(2));
+        unit = 'd';
       }
       break;
     }
@@ -762,6 +778,8 @@ function evaluateMetricForTarget(
             : `${inc.toFixed(1)}° orbital tilt relative to plane`;
         relativeRatioLabel = `${inc.toFixed(2)}° relative tilt`;
         isCatalogued = true;
+        numericValue = Number(inc.toFixed(2));
+        unit = '°';
       }
       break;
     }
@@ -772,6 +790,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${(mass * 5.972).toFixed(2)} × 10²⁴ kg`;
         relativeRatioLabel = `${mass.toFixed(2)}× Earth mass`;
         isCatalogued = true;
+        numericValue = Number(mass.toFixed(2));
+        unit = 'M⊕';
       }
       break;
     }
@@ -783,6 +803,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${km.toLocaleString()} km mean radius`;
         relativeRatioLabel = `${radius.toFixed(2)}× Earth radius`;
         isCatalogued = true;
+        numericValue = Number(radius.toFixed(2));
+        unit = 'R⊕';
       }
       break;
     }
@@ -794,6 +816,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${celsius} °C`;
         relativeRatioLabel = `${celsius >= 0 ? `+${celsius}` : celsius} °C surface equilibrium`;
         isCatalogued = true;
+        numericValue = tEq;
+        unit = 'K';
       }
       break;
     }
@@ -819,6 +843,8 @@ function evaluateMetricForTarget(
         targetFamiliar = `≈ ${(g * 9.81).toFixed(2)} m/s²`;
         relativeRatioLabel = `${g.toFixed(2)}× Earth gravity`;
         isCatalogued = true;
+        numericValue = Number(g.toFixed(2));
+        unit = 'g';
       }
       break;
     }
