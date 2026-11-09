@@ -119,20 +119,10 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     useSettingsStore.getState().enableOrthographicProjection,
   );
 
-  const enableOrthoSubRef = useRef<(() => void) | null>(null);
-  if (!enableOrthoSubRef.current) {
-    enableOrthoSubRef.current = useSettingsStore.subscribe((state) => {
+  useEffect(() => {
+    return useSettingsStore.subscribe((state) => {
       enableOrthographicProjectionRef.current = state.enableOrthographicProjection;
     });
-  }
-
-  useEffect(() => {
-    return () => {
-      if (enableOrthoSubRef.current) {
-        enableOrthoSubRef.current();
-        enableOrthoSubRef.current = null;
-      }
-    };
   }, []);
 
   useFrame((state) => {

@@ -185,9 +185,11 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
       const hitOffset = occlusionManager.evaluateHitAreaOffset(id);
       const reticleRadiusPx = reticleSizeToScreenPx(rSize, size.height);
       const pxToLocal = reticleRadiusPx > 0 ? (rSize * invScale) / reticleRadiusPx : 0;
-      hitareaRef.current.position.set(hitOffset.x * pxToLocal, -hitOffset.y * pxToLocal, 0);
+      if (hitareaRef.current) {
+        hitareaRef.current.position.set(hitOffset.x * pxToLocal, -hitOffset.y * pxToLocal, 0);
+      }
 
-      billboardRef.current.updateMatrixWorld(true);
+      billboardRef.current?.updateMatrixWorld(true);
     }
   });
 

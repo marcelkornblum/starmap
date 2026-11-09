@@ -64,23 +64,13 @@ export const ApertureEvaluator: React.FC = () => {
     isHydrated: useActiveStarsStore.getState().isHydrated,
   });
 
-  const activeStarsSubRef = useRef<(() => void) | null>(null);
-  if (!activeStarsSubRef.current) {
-    activeStarsSubRef.current = useActiveStarsStore.subscribe((starsState) => {
+  useEffect(() => {
+    return useActiveStarsStore.subscribe((starsState) => {
       activeStarsRef.current = {
         summariesLength: starsState.summaries.length,
         isHydrated: starsState.isHydrated,
       };
     });
-  }
-
-  useEffect(() => {
-    return () => {
-      if (activeStarsSubRef.current) {
-        activeStarsSubRef.current();
-        activeStarsSubRef.current = null;
-      }
-    };
   }, []);
 
   useFrame((r3fState) => {
