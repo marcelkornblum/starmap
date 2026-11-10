@@ -11,8 +11,8 @@
 - [x] **Track T04: Pipeline Reliability & Precalculation** *Link: [conductor/tracks/architecture-remediation_04_pipeline-reliability_20261106/index.md](./tracks/architecture-remediation_04_pipeline-reliability_20261106/index.md)* *(depends on T01; parallel worktree lane)*
 - [x] **Track T05: Runtime Data Purity** *Link: [conductor/tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md](./tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md)* *(depends on T03, T04)*
 - [x] **Track T06: Navigation Single Source of Truth** *Link: [conductor/tracks/architecture-remediation_06_navigation-ssot_20261106/index.md](./tracks/architecture-remediation_06_navigation-ssot_20261106/index.md)* *(depends on T03)*
-- [ ] **Track T07: One Persistent Canvas & R3F Hot Paths** *Link: [conductor/tracks/architecture-remediation_07_persistent-canvas_20261106/index.md](./tracks/architecture-remediation_07_persistent-canvas_20261106/index.md)* *(depends on T06)*
-- [ ] **Track T08: View & UI Decomposition** *Link: [conductor/tracks/architecture-remediation_08_ui-decomposition_20261106/index.md](./tracks/architecture-remediation_08_ui-decomposition_20261106/index.md)* *(depends on T05, T06)*
+- [x] **Track T07: One Persistent Canvas & R3F Hot Paths** *Link: [conductor/tracks/architecture-remediation_07_persistent-canvas_20261106/index.md](./tracks/architecture-remediation_07_persistent-canvas_20261106/index.md)* *(depends on T06)*
+- [~] **Track T08: View & UI Decomposition** *Link: [conductor/tracks/architecture-remediation_08_ui-decomposition_20261106/index.md](./tracks/architecture-remediation_08_ui-decomposition_20261106/index.md)* *(depends on T05, T06)*
 - [ ] **Track T09: Test Restructure** *Link: [conductor/tracks/architecture-remediation_09_test-restructure_20261106/index.md](./tracks/architecture-remediation_09_test-restructure_20261106/index.md)* *(depends on T07, T08)*
 - [ ] **Track T10: Closing Audit** *Link: [conductor/tracks/architecture-remediation_10_closing-audit_20261106/index.md](./tracks/architecture-remediation_10_closing-audit_20261106/index.md)* *(depends on T09)*
 

@@ -60,11 +60,11 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
 
   const [posX, posY, posZ] = position instanceof THREE.Vector3 ? [position.x, position.y, position.z] : position;
 
-  const markerRef = useLazyRef(() => new THREE.Mesh());
+  const markerRef = useLazyRef<THREE.Mesh | null>(() => new THREE.Mesh());
   const markerMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
-  const hitareaRef = useLazyRef(() => new THREE.Mesh());
-  const billboardRef = useLazyRef(() => new THREE.Group());
-  const groupRef = useLazyRef(() => {
+  const hitareaRef = useLazyRef<THREE.Mesh | null>(() => new THREE.Mesh());
+  const billboardRef = useLazyRef<THREE.Group | null>(() => new THREE.Group());
+  const groupRef = useLazyRef<THREE.Group | null>(() => {
     const g = new THREE.Group();
     g.position.set(posX, posY, posZ);
     return g;
@@ -74,24 +74,16 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   const frameCtx = useSpatialFrameSafe();
 
   const setMarkerRef = useCallback((node: THREE.Mesh | null) => {
-    if (node && 'isMesh' in node) {
-      markerRef.current = node;
-    }
+    if (node === null || 'isMesh' in node) markerRef.current = node;
   }, [markerRef]);
   const setHitareaRef = useCallback((node: THREE.Mesh | null) => {
-    if (node && 'isMesh' in node) {
-      hitareaRef.current = node;
-    }
+    if (node === null || 'isMesh' in node) hitareaRef.current = node;
   }, [hitareaRef]);
   const setBillboardRef = useCallback((node: THREE.Group | null) => {
-    if (node && 'isGroup' in node) {
-      billboardRef.current = node;
-    }
+    if (node === null || 'isGroup' in node) billboardRef.current = node;
   }, [billboardRef]);
   const setGroupRef = useCallback((node: THREE.Group | null) => {
-    if (node && 'isGroup' in node) {
-      groupRef.current = node;
-    }
+    if (node === null || 'isGroup' in node) groupRef.current = node;
   }, [groupRef]);
 
   const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
