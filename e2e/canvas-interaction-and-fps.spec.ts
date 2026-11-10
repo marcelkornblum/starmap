@@ -389,6 +389,18 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await expect(rootHost).toHaveAttribute('data-camera-target', /-0\.49,\s*2\.48,\s*-0\.76/);
     await expect(rootHost).toHaveAttribute('data-camera-pos', /.+/);
 
+    // Wait for frame render and camera settlement
+    await page.evaluate(() => {
+      return new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      });
+    });
+    await page.waitForTimeout(250);
+
     const canvasBox = await canvas.boundingBox();
     expect(canvasBox).not.toBeNull();
     const targetAttr = await rootHost.getAttribute('data-camera-target');

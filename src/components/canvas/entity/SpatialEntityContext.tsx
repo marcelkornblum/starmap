@@ -14,7 +14,6 @@ import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
 import { FRAME_PRIORITY } from '../engineConfig';
 import {
   CelestialOcclusionManager,
-  celestialOcclusionManager as defaultOcclusionManager,
 } from '../cartography/celestialOcclusionRegistry';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
@@ -28,7 +27,7 @@ export interface SpatialEntityProviderProps {
   children?: React.ReactNode;
 }
 
-const APERTURE_EPSILON = 1e-4;
+const APERTURE_EPSILON = 0.05;
 
 function commitApertureState(
   state: SpatialEntityState,
@@ -71,8 +70,9 @@ export const ApertureEvaluator: React.FC = () => {
     scratch.clear();
 
     const activeCutoff = getApertureActiveCutoffForViewportWidth(r3fState?.size?.width);
-    const { summaries, isHydrated } = useActiveStarsStore.getState();
-    const streamedInApertureCount = summaries.length;
+    const starsState = useActiveStarsStore.getState();
+    const isHydrated = starsState.isHydrated;
+    const streamedInApertureCount = starsState.summaries.length;
 
     if (isHydrated && streamedInApertureCount <= activeCutoff) {
       const entities = state.entities;
@@ -163,21 +163,28 @@ export const SpatialEntityProvider: React.FC<SpatialEntityProviderProps> = ({
   );
 };
 
-const defaultStore = createSpatialEntityStore();
-
 export function useOcclusionManager(): CelestialOcclusionManager {
   const manager = useContext(OcclusionContext);
-  return manager ?? defaultOcclusionManager;
+  if (!manager) {
+    throw new Error('useOcclusionManager must be used within an <OcclusionContext.Provider> or <SpatialEntityProvider>');
+  }
+  return manager;
 }
 
 export function useSpatialEntityStore<T>(selector: (state: SpatialEntityState) => T): T {
   const store = useContext(SpatialEntityStoreContext);
-  return useStore(store ?? defaultStore, selector);
+  if (!store) {
+    throw new Error('useSpatialEntityStore must be used within a <SpatialEntityProvider>');
+  }
+  return useStore(store, selector);
 }
 
 export function useSpatialEntityStoreApi(): SpatialEntityStore {
   const store = useContext(SpatialEntityStoreContext);
-  return store ?? defaultStore;
+  if (!store) {
+    throw new Error('useSpatialEntityStore must be used within a <SpatialEntityProvider>');
+  }
+  return store;
 }
 
 export function useOptionalSpatialEntityStoreApi(): SpatialEntityStore | null {

@@ -887,6 +887,153 @@ describe('Cartography Mathematics & Occlusion Registry', () => {
       expect(nextFrom3).toBe('node-1'); // Wraps back to first node
     });
 
+    it('ensures passive background stars do not displace reticled star hit areas (AUD-114)', () => {
+      const manager = new CelestialOcclusionManager();
+
+      // Register reticled star at (300, 300)
+      manager.register({
+        id: 'reticled-star',
+        state: 'active',
+        screenX: 300,
+        screenY: 300,
+        camDist: 10,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Register passive background star right beside it at (302, 301)
+      manager.register({
+        id: 'passive-star',
+        state: 'passive',
+        screenX: 302,
+        screenY: 301,
+        camDist: 50,
+        reticleRadius: 30,
+        starRadius: 2,
+        hasReticle: false,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Hit area offsets must remain 0 for both stars (passive star does not displace reticled star)
+      const reticledOffset = manager.evaluateHitAreaOffset('reticled-star');
+      expect(reticledOffset.x).toBe(0);
+      expect(reticledOffset.y).toBe(0);
+
+      const passiveOffset = manager.evaluateHitAreaOffset('passive-star');
+      expect(passiveOffset.x).toBe(0);
+      expect(passiveOffset.y).toBe(0);
+    });
+
+    it('ensures cyclic selection ignores passive background stars (AUD-114)', () => {
+      const manager = new CelestialOcclusionManager();
+
+      manager.register({
+        id: 'star-a',
+        state: 'active',
+        screenX: 400,
+        screenY: 400,
+        camDist: 10,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      manager.register({
+        id: 'star-b',
+        state: 'active',
+        screenX: 402,
+        screenY: 401,
+        camDist: 12,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Passive star overlapping at same location
+      manager.register({
+        id: 'passive-bg',
+        state: 'passive',
+        screenX: 401,
+        screenY: 400,
+        camDist: 40,
+        reticleRadius: 30,
+        starRadius: 2,
+        hasReticle: false,
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Cyclic selection should cycle only between star-a and star-b
+      expect(manager.getCyclicSelectionTarget('star-a')).toBe('star-b');
+      expect(manager.getCyclicSelectionTarget('star-b')).toBe('star-a');
+
+      // Calling cyclic selection on the passive star itself returns the passive star without cycling
+      expect(manager.getCyclicSelectionTarget('passive-bg')).toBe('passive-bg');
+    });
+
+    it('ensures stalked snapshots avoid redundant rebuilds and notifications on unchanged frames (AUD-103)', async () => {
+      const manager = new CelestialOcclusionManager();
+      const listener = vi.fn();
+      const unsubscribe = manager.subscribeStalked(listener);
+
+      // Register entity with stalk
+      manager.register({
+        id: 'stalked-star',
+        state: 'selected',
+        screenX: 100,
+        screenY: 100,
+        camDist: 10,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        hasStalk: true,
+        worldPos: [10, 20, 30],
+        visible: true,
+        updatedAt: 1000,
+      });
+
+      // Flush macro-task for initial notification
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      const snapshot1 = manager.getStalkedFootprintsSnapshot();
+      expect(snapshot1).toHaveLength(1);
+      expect(snapshot1[0].id).toBe('stalked-star');
+
+      // Re-register with identical stalk properties
+      manager.register({
+        id: 'stalked-star',
+        state: 'selected',
+        screenX: 101, // Screen moved slightly
+        screenY: 101,
+        camDist: 10,
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        hasStalk: true,
+        worldPos: [10, 20, 30], // worldPos unchanged
+        visible: true,
+        updatedAt: 1016,
+      });
+
+      // Wait for any notification that might have been scheduled
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(listener).toHaveBeenCalledTimes(1); // Listener NOT called again
+
+      const snapshot2 = manager.getStalkedFootprintsSnapshot();
+      expect(snapshot2).toBe(snapshot1); // Exact same array reference preserved
+
+      unsubscribe();
+    });
+
     it('verifies 2D geometric intersection primitives', () => {
       // boxesIntersect
       expect(boxesIntersect(
@@ -901,6 +1048,58 @@ describe('Cartography Mathematics & Occlusion Registry', () => {
       // diamondsIntersect
       expect(diamondsIntersect(100, 100, 20, 115, 105, 20)).toBe(true); // dx=15, dy=5 -> 20 <= 40
       expect(diamondsIntersect(100, 100, 20, 150, 150, 20)).toBe(false); // dx=50, dy=50 -> 100 > 40
+    });
+
+    it('preserves lastEvaluationTime on stationary evaluate calls for O(1) hitarea cache hits', () => {
+      const manager = new CelestialOcclusionManager();
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+      camera.position.set(0, 0, 10);
+      camera.updateMatrixWorld();
+
+      manager.register({
+        id: 'star-cache-test',
+        state: 'active',
+        screenX: 0,
+        screenY: 0,
+        worldPos: [0, 0, 0],
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: true,
+        visible: true,
+        updatedAt: 0,
+      });
+
+      manager.evaluate(camera, { width: 1920, height: 1080 });
+      const fp = manager.getFootprint('star-cache-test')!;
+      const firstEvalTime = fp.hitAreaEvaluatedAt;
+      expect(firstEvalTime).toBeGreaterThan(0);
+
+      // Call evaluate again on stationary frame
+      manager.evaluate(camera, { width: 1920, height: 1080 });
+      // Call evaluateHitAreaOffset - should match firstEvalTime without recomputing
+      manager.evaluateHitAreaOffset('star-cache-test');
+      expect(fp.hitAreaEvaluatedAt).toBe(firstEvalTime);
+    });
+
+    it('avoids rebuilding stalked snapshots or significant footprints when registering passive nodes', () => {
+      const manager = new CelestialOcclusionManager();
+      const initialSnapshot = manager.getStalkedFootprintsSnapshot();
+
+      manager.register({
+        id: 'passive-star-1',
+        state: 'passive',
+        screenX: 0,
+        screenY: 0,
+        worldPos: [0, 0, 0],
+        reticleRadius: 30,
+        starRadius: 4,
+        hasReticle: false,
+        hasStalk: false,
+        visible: true,
+        updatedAt: 0,
+      });
+
+      expect(manager.getStalkedFootprintsSnapshot()).toBe(initialSnapshot);
     });
   });
 

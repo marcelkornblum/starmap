@@ -81,7 +81,7 @@ export interface SpatialViewportProps {
 /**
  * Inner viewport content with access to scoped SpatialEntityStore
  */
-const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
+const SpatialViewportContent: React.FC<SpatialViewportProps> = React.memo(({
   entities = [],
   mode = 'explore',
   onInspect,
@@ -131,25 +131,31 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   useEffect(() => {
     if (!outerStore || outerStore === storeApi) return;
     const applyOuterFocus = (focusedId: string | null): void => {
+      const curFocused = storeApi.getState().focusedId;
+      if (curFocused === focusedId) return;
+
       let resolvedLocalId = focusedId;
       if (focusedId) {
-        const outerEntity = outerStore.getState().entities[focusedId];
         const localEntities = storeApi.getState().entities;
-        const targetSlug = toUrlSlug(focusedId);
-        const outerNameSlug = outerEntity?.name ? toUrlSlug(outerEntity.name) : null;
+        if (localEntities[focusedId]) {
+          resolvedLocalId = focusedId;
+        } else {
+          const outerEntity = outerStore.getState().entities[focusedId];
+          const targetSlug = toUrlSlug(focusedId);
+          const outerNameSlug = outerEntity?.name ? toUrlSlug(outerEntity.name) : null;
 
-        const localMatch = Object.values(localEntities).find(
-          (e) =>
-            e.id === focusedId ||
-            toUrlSlug(e.id) === targetSlug ||
-            toUrlSlug(e.name) === targetSlug ||
-            (outerNameSlug && toUrlSlug(e.name) === outerNameSlug),
-        );
+          const localMatch = Object.values(localEntities).find(
+            (e) =>
+              toUrlSlug(e.id) === targetSlug ||
+              toUrlSlug(e.name) === targetSlug ||
+              (outerNameSlug && toUrlSlug(e.name) === outerNameSlug),
+          );
 
-        if (localMatch) {
-          resolvedLocalId = localMatch.id;
-        } else if (outerEntity && !localEntities[outerEntity.id]) {
-          storeApi.getState().registerEntity(outerEntity);
+          if (localMatch) {
+            resolvedLocalId = localMatch.id;
+          } else if (outerEntity && !localEntities[outerEntity.id]) {
+            storeApi.getState().registerEntity(outerEntity);
+          }
         }
       }
       if (storeApi.getState().focusedId !== resolvedLocalId) {
@@ -210,7 +216,25 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
           state.apertureCenter !== prevState.apertureCenter ||
           state.apertureRadius !== prevState.apertureRadius
         ) {
-          outerStore.getState().setApertureFrame(state.apertureCenter, state.apertureRadius);
+          const currentOuter = outerStore.getState();
+          const curCenter = currentOuter.apertureCenter;
+          const nextCenter = state.apertureCenter;
+          const centerChanged =
+            (curCenter === null) !== (nextCenter === null) ||
+            (curCenter !== null &&
+              nextCenter !== null &&
+              (Math.abs(curCenter[0] - nextCenter[0]) > 0.05 ||
+                Math.abs(curCenter[1] - nextCenter[1]) > 0.05 ||
+                Math.abs(curCenter[2] - nextCenter[2]) > 0.05));
+          const radiusChanged =
+            (currentOuter.apertureRadius === null) !== (state.apertureRadius === null) ||
+            (currentOuter.apertureRadius !== null &&
+              state.apertureRadius !== null &&
+              Math.abs(currentOuter.apertureRadius - state.apertureRadius) > 0.05);
+
+          if (centerChanged || radiusChanged) {
+            outerStore.getState().setApertureFrame(state.apertureCenter, state.apertureRadius);
+          }
         }
         if (state.apertureIds !== prevState.apertureIds) {
           outerStore.getState().setApertureIds(state.apertureIds);
@@ -255,8 +279,11 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       );
       const state = storeApi.getState();
       const entityId = state.focusedId ?? state.selectedId;
-      onSelect?.(entityId);
-      onFocusChange?.(state.focusedId);
+      if (onFocusChange) {
+        onFocusChange(state.focusedId);
+      } else {
+        onSelect?.(entityId);
+      }
     },
     [storeApi, occlusionManager, onSelect, onFocusChange],
   );
@@ -290,7 +317,7 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
   return (
     <group
       name="spatial-viewport"
-      data-mode={mode}
+      userData={{ mode }}
       onPointerMissed={() => {
         clearInteraction(storeApi);
         onSelect?.(null);
@@ -332,7 +359,9 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
       {children}
     </group>
   );
-};
+});
+
+SpatialViewportContent.displayName = 'SpatialViewportContent';
 
 /**
  * SpatialViewport: Canonical Composition Root for 3D Cartography Scenes.
@@ -341,10 +370,9 @@ const SpatialViewportContent: React.FC<SpatialViewportProps> = ({
  * harmonises reference frames, and coordinates instrument primitives,
  * entity composites, and bespoke planetary bodies.
  */
-export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
+const SpatialViewportComponent: React.FC<SpatialViewportProps> = (props) => {
   const contextStore = useOptionalSpatialEntityStoreApi();
-  const fallbackStore = useSpatialEntityStoreApi();
-  const effectiveOuterStore = props.outerStore ?? contextStore ?? fallbackStore;
+  const effectiveOuterStore = props.outerStore ?? contextStore ?? undefined;
   const { frame = GALACTIC_FRAME, cameraDistance, initialSelectedId } = props;
 
   // Single source of the screen-constant reference distance for both instrument and entities.
@@ -360,12 +388,6 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
   );
 
   const [scopedStore] = React.useState(() => {
-    // When an outer SpatialEntityContext store is already present and props.outerStore is not explicitly overriding it,
-    // unify directly with the outer store to avoid redundant duplicate instances and echo loops.
-    if (contextStore && !props.outerStore) {
-      return contextStore;
-    }
-
     const focusPoint = props.cameraTarget
       ? (props.cameraTarget instanceof THREE.Vector3
           ? props.cameraTarget
@@ -414,3 +436,6 @@ export const SpatialViewport: React.FC<SpatialViewportProps> = (props) => {
     </SpatialFrameProvider>
   );
 };
+
+export const SpatialViewport: React.FC<SpatialViewportProps> = React.memo(SpatialViewportComponent);
+SpatialViewport.displayName = 'SpatialViewport';

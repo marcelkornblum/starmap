@@ -62,8 +62,10 @@ import {
   resetLayerRuntime,
   seedAllLayerData,
 } from './layerFixtures';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
 
-const renderToHtml = (element: ReactElement): string => render(element).container.innerHTML;
+const renderToHtml = (element: ReactElement): string =>
+  render(createElement(SpatialEntityProvider, null, element)).container.innerHTML;
 
 import { SAMPLE_CORPUS } from './searchFixtures';
 export { SAMPLE_CORPUS };

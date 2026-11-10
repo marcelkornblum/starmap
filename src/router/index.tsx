@@ -20,6 +20,7 @@ import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
 import { RootCanvasHost } from '../components/domain/CanvasLayer';
 import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
+import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityContext';
 import {
   useSpaLocation,
   resolveSpaLocation,
@@ -45,8 +46,6 @@ export function stringifyStarmapSearch(search: Record<string, unknown>): string 
 }
 
 export const RootLayout: React.FC = () => {
-  useSpaLocation();
-
   const handleRootClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target as Element | null;
     const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
@@ -59,11 +58,13 @@ export const RootLayout: React.FC = () => {
   }, []);
 
   return (
-    <div id="starmap-app-root" onClickCapture={handleRootClick}>
-      <ThemeTokenBridge />
-      <RootCanvasHost />
-      <Outlet />
-    </div>
+    <SpatialEntityProvider>
+      <div id="starmap-app-root" onClickCapture={handleRootClick}>
+        <ThemeTokenBridge />
+        <RootCanvasHost />
+        <Outlet />
+      </div>
+    </SpatialEntityProvider>
   );
 };
 

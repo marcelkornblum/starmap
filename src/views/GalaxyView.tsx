@@ -69,6 +69,34 @@ export interface GalaxyViewProps {
 
 const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
 const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
+const GALAXY_BREADCRUMBS = [{ label: 'Galaxy' }];
+
+const corpusSystemFirstChildCache = new WeakMap<
+  readonly CompactSearchEntry[],
+  Map<string, CompactSearchEntry>
+>();
+
+function getCorpusSystemFirstChildMap(
+  corpus: readonly CompactSearchEntry[],
+): Map<string, CompactSearchEntry> {
+  let map = corpusSystemFirstChildCache.get(corpus);
+  if (!map) {
+    map = new Map<string, CompactSearchEntry>();
+    for (const entry of corpus) {
+      if (!entry.s) continue;
+      const rawS = entry.s;
+      const slugS = toUrlSlug(rawS);
+      if (!map.has(slugS)) {
+        map.set(slugS, entry);
+      }
+      if (rawS !== slugS && !map.has(rawS)) {
+        map.set(rawS, entry);
+      }
+    }
+    corpusSystemFirstChildCache.set(corpus, map);
+  }
+  return map;
+}
 
 export const GalaxyView: React.FC<GalaxyViewProps> = ({
   initialCorpus,
@@ -301,23 +329,38 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     focusedEntityId,
   );
 
-  const focusedDetails = buildFocusedEntityDetails({
-    focusedEntity,
-    corpus: apertureCorpus,
-    summaryNode: systemSummary,
-    systemDetail,
-    entityDetail: focusedDetail,
-    urlSystemSlug,
-    hasExplicitFocus,
-    canonRecords,
-    viewScope: 'galaxy',
-    currentPathname: pathname,
-    currentSearch: search,
-  });
+  const focusedDetails = useMemo(
+    () =>
+      buildFocusedEntityDetails({
+        focusedEntity,
+        corpus: apertureCorpus,
+        summaryNode: systemSummary,
+        systemDetail,
+        entityDetail: focusedDetail,
+        urlSystemSlug,
+        hasExplicitFocus,
+        canonRecords,
+        viewScope: 'galaxy',
+        currentPathname: pathname,
+        currentSearch: search,
+      }),
+    [
+      focusedEntity,
+      apertureCorpus,
+      systemSummary,
+      systemDetail,
+      focusedDetail,
+      urlSystemSlug,
+      hasExplicitFocus,
+      canonRecords,
+      pathname,
+      search,
+    ],
+  );
 
-  const focusedPreview = buildFocusedPreviewSummary(
-    focusedDetails,
-    focusedDetail,
+  const focusedPreview = useMemo(
+    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail),
+    [focusedDetails, focusedDetail],
   );
 
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
@@ -425,13 +468,17 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
   );
 
   const layerParam = layer ?? searchParams.get('layer');
-  const activeLayerCard = resolveActiveLayerCard({
-    layerParam,
-    currentPathname: pathname,
-    currentSearch: search,
-    corpus: activeCorpus,
-    layers: loadedLayers,
-  });
+  const activeLayerCard = useMemo(
+    () =>
+      resolveActiveLayerCard({
+        layerParam,
+        currentPathname: pathname,
+        currentSearch: search,
+        corpus: activeCorpus,
+        layers: loadedLayers,
+      }),
+    [layerParam, pathname, search, activeCorpus, loadedLayers],
+  );
 
   const resolvedCenterCoordinates = useMemo<readonly [number, number, number] | undefined>(() => {
     if (
@@ -501,12 +548,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         }
       }
 
-      const directCorpusMatch = apertureCorpus.find(
-        (e) =>
-          e.i === centerSlug ||
-          toUrlSlug(e.i) === centerSlug ||
-          toUrlSlug(e.n) === centerSlug,
-      );
+      const directCorpusMatch = findFocusedEntryInCorpus(centerSlug, apertureCorpus);
       if (directCorpusMatch) {
         if (
           directCorpusMatch.p &&
@@ -518,9 +560,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           return [directCorpusMatch.p[0], directCorpusMatch.p[1], directCorpusMatch.p[2]];
         }
         if (directCorpusMatch.s) {
-          const host = apertureCorpus.find(
-            (e) => e.i === directCorpusMatch.s || toUrlSlug(e.i) === directCorpusMatch.s,
-          );
+          const host = findFocusedEntryInCorpus(directCorpusMatch.s, apertureCorpus);
           if (
             host?.p &&
             (centerSlug === 'sol' || host.p[0] !== 0 || host.p[1] !== 0 || host.p[2] !== 0)
@@ -530,23 +570,9 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
         }
       }
 
-      const hostCorpusMatch = apertureCorpus.find(
-        (e) =>
-          (e.i === centerSlug || toUrlSlug(e.i) === centerSlug) &&
-          e.p &&
-          (centerSlug === 'sol' || e.p[0] !== 0 || e.p[1] !== 0 || e.p[2] !== 0),
-      );
-      if (hostCorpusMatch?.p) {
-        return [hostCorpusMatch.p[0], hostCorpusMatch.p[1], hostCorpusMatch.p[2]];
-      }
-
-      const childCorpusMatch = apertureCorpus.find(
-        (e) => e.s && (e.s === centerSlug || toUrlSlug(e.s) === centerSlug),
-      );
+      const childCorpusMatch = getCorpusSystemFirstChildMap(apertureCorpus).get(centerSlug);
       if (childCorpusMatch?.s) {
-        const host = apertureCorpus.find(
-          (e) => e.i === childCorpusMatch.s || toUrlSlug(e.i) === childCorpusMatch.s,
-        );
+        const host = findFocusedEntryInCorpus(childCorpusMatch.s, apertureCorpus);
         if (
           host?.p &&
           (centerSlug === 'sol' || host.p[0] !== 0 || host.p[1] !== 0 || host.p[2] !== 0)
@@ -572,10 +598,23 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     canvasFocusedSlugs,
   ]);
 
+  const handleHoverEntity = useCallback(
+    (id: string | null) => {
+      storeApi.getState().setHovered(id);
+    },
+    [storeApi],
+  );
+
   const handleFocusChange = useCallback((id: string | null) => {
     if (id) {
-      useCameraStore.getState().recordCanvasFocus(toUrlSlug(id));
-      useCameraStore.getState().recordCanvasFocus(id);
+      const slug = toUrlSlug(id);
+      if (!useCameraStore.getState().canvasFocusedSlugs.has(slug)) {
+        useCameraStore.getState().recordCanvasFocus(slug);
+        useCameraStore.getState().recordCanvasFocus(id);
+      }
+      if (useUIStore.getState().detailsDetent === 'collapsed') {
+        useUIStore.getState().setDetailsDetent('peek');
+      }
     }
     useCameraStore.getState().setPendingCenterSlug(null);
     if (id) {
@@ -628,7 +667,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           onFocusChange={handleFocusChange}
         />
       }
-      breadcrumbs={<Breadcrumbs items={[{ label: 'Galaxy' }]} />}
+      breadcrumbs={<Breadcrumbs items={GALAXY_BREADCRUMBS} />}
       controls={<ControlBar scope="galaxy" />}
       search={
         <Search.Root
@@ -666,7 +705,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
       bodies={
         <BodiesPanel
           elements={galaxyBodies}
-          onHoverEntity={(id) => storeApi.getState().setHovered(id)}
+          onHoverEntity={handleHoverEntity}
         />
       }
     />

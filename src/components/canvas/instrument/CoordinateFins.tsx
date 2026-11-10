@@ -169,7 +169,7 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
 
   // Per-frame updates: positioning, grazing fades, and 360° Polar Dial expansion
   useFrame(() => {
-    if (!isEnabled || !rootGroupRef.current) return;
+    if (!isEnabled || !rootGroupRef.current?.position) return;
 
     const { apertureRadius, focusPoint, planeWeights, orientation } = frameRef.current;
     rootGroupRef.current.position.copy(focusPoint);
@@ -211,7 +211,6 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
           pLine.visible = isVis;
           if (isVis) {
             pMat.opacity = finPerimeterAlpha * grazingFade * qw;
-            pMat.color.copy(gridSecondaryColor);
           }
         }
 
@@ -220,7 +219,6 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
           tLine.visible = isVis;
           if (isVis) {
             tMat.opacity = tickAlpha * grazingFade * qw;
-            tMat.color.copy(rangeTickColor);
           }
         }
 
@@ -231,7 +229,6 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
           bLine.visible = isVis;
           if (isVis) {
             bMat.opacity = finPerimeterAlpha * grazingFade * qw;
-            bMat.color.copy(gridSecondaryColor);
           }
         }
       }
@@ -254,7 +251,6 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
               if (isVis) {
                 const baseAlpha = ring.isMajor ? ringMajorAlpha : ringMinorAlpha;
                 qMat.opacity = baseAlpha * ring.fade * grazingFade * qw;
-                qMat.color.copy(gridSecondaryColor);
               }
             } else {
               qLine.visible = false;
@@ -266,6 +262,35 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
       }
     }
   });
+
+  // Sync material colors on token change without per-frame allocations
+  useEffect(() => {
+    for (const plane of PLANES) {
+      for (let q = 0; q < 4; q++) {
+        const pMat = perimeterMatsRef.current[plane][q];
+        if (pMat?.color) pMat.color.set(gridSecondaryColor);
+
+        const bMat = baselineMatsRef.current[plane][q];
+        if (bMat?.color) bMat.color.set(gridSecondaryColor);
+      }
+
+      for (let rIdx = 0; rIdx < poolSize; rIdx++) {
+        for (let q = 0; q < 4; q++) {
+          const qMat = quadMatsRef.current[plane][rIdx]?.[q];
+          if (qMat?.color) qMat.color.set(gridSecondaryColor);
+        }
+      }
+    }
+  }, [gridSecondaryColor, poolSize]);
+
+  useEffect(() => {
+    for (const plane of PLANES) {
+      for (let q = 0; q < 4; q++) {
+        const tMat = tickMatsRef.current[plane][q];
+        if (tMat?.color) tMat.color.set(rangeTickColor);
+      }
+    }
+  }, [rangeTickColor]);
 
   if (!isEnabled) return null;
 

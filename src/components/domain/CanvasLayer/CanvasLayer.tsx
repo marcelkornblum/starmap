@@ -1,19 +1,24 @@
-import React, { useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
-import type { SpatialEntityDefinition } from '../../canvas/entity/types';
 import {
-  GalacticViewScene,
-  SystemViewScene,
-  PlanetaryViewScene,
+  getStandardInitialCamera,
+  STANDARD_CAMERA_DISTANCES,
+} from '../../canvas/cartography';
+import type { SpatialEntityDefinition } from '../../canvas/entity/types';
+import { SceneTokenBridge } from '../../canvas/ThemeTokenBridge';
+import { SafeHtmlPortalOutlet } from '../../canvas/SafeHtml';
+import {
+  GalacticSceneContent,
+  SystemSceneContent,
+  PlanetarySceneContent,
 } from '../../canvas/scenes/SpatialScenes';
 import {
   useCanvasStageStore,
   setStageCallbacks,
-  getStageCallbacks,
-  subscribeStageCallbacks,
 } from '../../../stores/useCanvasStageStore';
-import { useCameraStore } from '../../../stores/useCameraStore';
 import styles from './CanvasLayer.module.css';
+
 
 export interface CanvasLayerProps {
   readonly scope: 'galaxy' | 'system' | 'planet';
@@ -60,6 +65,11 @@ export const canMountWebGLCanvas = (): boolean => {
   }
   return webglSupported;
 };
+
+const initialPersistentCam = getStandardInitialCamera(
+  STANDARD_CAMERA_DISTANCES.galactic,
+  [0, 0, 0],
+);
 
 export const _resetWebGLSupportedForTesting = (): void => {
   webglSupported = null;
@@ -198,38 +208,53 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
       data-journey-method={activeJourneyMethod}
       aria-label={`${scope} 3D canvas layer`}
     >
-      {mountCanvas && scope === 'galaxy' && (
-        <GalacticViewScene
-          variant="fullscreen"
-          initialSelectedId={centerId ?? null}
-          centerCoordinates={centerCoordinates}
-          centerId={centerId}
-          cameraDistance={cameraDistance}
-          additionalEntities={selectedEntities}
-          onInspectSystem={onInspect}
-          onSelectSystem={onSelect}
-          onFocusChange={onFocusChange}
-        />
-      )}
-      {mountCanvas && scope === 'system' && (
-        targetId ? (
-          <SystemViewScene
-            variant="fullscreen"
-            systemId={targetId}
-            centerId={centerId}
-            centerCoordinates={centerCoordinates}
-            onInspectPlanet={onInspect}
-            onSelectEntity={onSelect}
-          />
-        ) : null
-      )}
-      {mountCanvas && scope === 'planet' && (
-        targetId ? (
-          <PlanetaryViewScene
-            variant="fullscreen"
-            planetId={targetId}
-          />
-        ) : null
+      {mountCanvas && (
+        <div className={styles.canvasWrapper}>
+          <Canvas
+            flat
+            dpr={1}
+            camera={{
+              position: initialPersistentCam.position,
+              up: initialPersistentCam.up,
+              fov: initialPersistentCam.fov,
+            }}
+            gl={{ antialias: true, alpha: true }}
+            className={styles.persistentCanvas}
+          >
+            <SceneTokenBridge />
+            {scope === 'galaxy' && (
+              <GalacticSceneContent
+                initialSelectedId={centerId ?? null}
+                centerCoordinates={centerCoordinates}
+                centerId={centerId}
+                cameraDistance={cameraDistance}
+                additionalEntities={selectedEntities}
+                onInspectSystem={onInspect}
+                onSelectSystem={onSelect}
+                onFocusChange={onFocusChange}
+              />
+            )}
+            {scope === 'system' && (
+              targetId ? (
+                <SystemSceneContent
+                  systemId={targetId}
+                  centerId={centerId}
+                  centerCoordinates={centerCoordinates}
+                  onInspectPlanet={onInspect}
+                  onSelectEntity={onSelect}
+                />
+              ) : null
+            )}
+            {scope === 'planet' && (
+              targetId ? (
+                <PlanetarySceneContent
+                  planetId={targetId}
+                />
+              ) : null
+            )}
+          </Canvas>
+          <SafeHtmlPortalOutlet />
+        </div>
       )}
     </div>
   );
@@ -237,59 +262,3 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
 
 CanvasLayer.displayName = 'CanvasLayer';
 
-export const RootCanvasHost: React.FC = () => {
-  const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
-  const activeSlotCount = useCanvasStageStore((s) => s.activeSlotCount);
-  const stageProps = useCanvasStageStore((s) => s.stageProps);
-  const { onInspect, onSelect, onFocusChange } = useSyncExternalStore(
-    subscribeStageCallbacks,
-    getStageCallbacks,
-    getStageCallbacks,
-  );
-
-  const cameraMode = useCameraStore((s) => s.mode);
-  const cameraPosition = useCameraStore((s) => s.position);
-  const cameraTarget = useCameraStore((s) => s.target);
-  const cameraFocalDistance = useCameraStore((s) => s.focalDistance);
-
-  useIsomorphicLayoutEffect(() => {
-    setRootCanvasMounted(true);
-    return () => {
-      setRootCanvasMounted(false);
-    };
-  }, [setRootCanvasMounted]);
-
-  return (
-    <div
-      className={styles.rootCanvasHost}
-      data-testid="root-canvas-host"
-      data-stage-inactive={activeSlotCount === 0 ? 'true' : undefined}
-      data-camera-mode={cameraMode}
-      data-camera-pos={cameraPosition.map((v) => v.toFixed(2)).join(',')}
-      data-camera-target={cameraTarget.map((v) => v.toFixed(2)).join(',')}
-      data-camera-dist={cameraFocalDistance.toFixed(2)}
-      aria-hidden="true"
-    >
-      <CanvasLayer
-        isRootHost
-        scope={stageProps?.scope ?? 'galaxy'}
-        targetId={stageProps?.targetId}
-        centerId={stageProps?.centerId}
-        centerCoordinates={stageProps?.centerCoordinates}
-        selectedEntities={stageProps?.selectedEntities}
-        cameraAzimuthDeg={stageProps?.cameraAzimuthDeg}
-        cameraElevationDeg={stageProps?.cameraElevationDeg}
-        cameraDistance={stageProps?.cameraDistance}
-        journeyLegs={stageProps?.journeyLegs}
-        activeJourneyMethod={stageProps?.activeJourneyMethod}
-        activeSystemName={stageProps?.activeSystemName}
-        focusedTargetName={stageProps?.focusedTargetName}
-        routeWaypoints={stageProps?.routeWaypoints}
-        cameraState={stageProps?.cameraState}
-        onInspect={onInspect}
-        onSelect={onSelect}
-        onFocusChange={onFocusChange}
-      />
-    </div>
-  );
-};

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React, { createElement } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import * as THREE from 'three';
 
 import {
@@ -9,6 +9,9 @@ import {
   SystemViewScene,
   PlanetaryViewScene,
   InteractiveNavigator,
+  GalacticSceneContent,
+  SystemSceneContent,
+  PlanetarySceneContent,
 } from '../src/components/canvas/scenes/SpatialScenes';
 import {
   GalaxyScene,
@@ -243,6 +246,57 @@ describe('SpatialScenes Storybook Suite', () => {
       expect(container.querySelector('[name="celestial-entity-sol"]')).toBeTruthy();
       expect(container.textContent).not.toContain('Candidate Systems');
       expect(container.textContent).not.toContain('Inspect Sol System →');
+    });
+
+    it('maintains a single persistent <Canvas> element when scale transitions via Escape key', () => {
+      render(
+        <InteractiveNavigator
+          initialScale="planet"
+          initialPlanetId="earth"
+        />,
+      );
+
+      const canvasPlanet = screen.getByTestId('mock-canvas');
+      expect(canvasPlanet).toBeTruthy();
+
+      // Press Escape -> scale transitions to 'system'
+      fireEvent.keyDown(window, { key: 'Escape' });
+
+      const canvasSystem = screen.getByTestId('mock-canvas');
+      expect(canvasSystem).toBe(canvasPlanet);
+
+      // Press Escape -> scale transitions to 'galaxy'
+      fireEvent.keyDown(window, { key: 'Escape' });
+
+      const canvasGalaxy = screen.getByTestId('mock-canvas');
+      expect(canvasGalaxy).toBe(canvasPlanet);
+    });
+  });
+
+  describe('Scene Content Decomposition', () => {
+    it('exports and renders GalacticSceneContent inside a canvas mock', () => {
+      const { container } = render(
+        <GalacticSceneContent additionalEntities={mockAdditionalEntities} />,
+      );
+      expect(container.querySelector('[name="cartographic-grid"]')).toBeTruthy();
+      expect(container.querySelector('[name="celestial-entity-sol"]')).toBeTruthy();
+    });
+
+    it('exports and renders SystemSceneContent inside a canvas mock', () => {
+      const { container } = render(
+        <SystemSceneContent system={mockSolSystem} />,
+      );
+      expect(container.querySelector('[name="cartographic-grid"]')).toBeTruthy();
+      expect(container.querySelector('[name="celestial-entity-sol"]')).toBeTruthy();
+      expect(container.querySelector('[name="celestial-entity-earth"]')).toBeTruthy();
+    });
+
+    it('exports and renders PlanetarySceneContent inside a canvas mock', () => {
+      const { container } = render(
+        <PlanetarySceneContent planet={mockSolSystem.planets?.[1]} />,
+      );
+      expect(container.querySelector('[name="cartographic-grid"]')).toBeTruthy();
+      expect(container.querySelector('[name="celestial-entity-earth"]')).toBeTruthy();
     });
   });
 });

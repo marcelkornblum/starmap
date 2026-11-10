@@ -7,7 +7,6 @@ import { EntityLabel } from '../src/components/canvas/entity/EntityLabel';
 import { SpatialEntityProvider, useOcclusionManager } from '../src/components/canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/canvas/instrument';
-import { FRAME_PRIORITY } from '../src/components/canvas/engineConfig';
 import type { SafeHtmlProps } from '../src/components/canvas/SafeHtml';
 import type { CelestialFootprint } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
 
@@ -112,7 +111,7 @@ describe('EntityLabel Primitive (Layer 3: Typographic Label)', () => {
 
     // Trigger useFrame callback for EntityLabel
     const calls = vi.mocked(useFrame).mock.calls;
-    const labelFrameCall = calls.find((c) => c[1] === undefined || c[1] === FRAME_PRIORITY.entityAperture || c[1] === 0);
+    const labelFrameCall = calls[calls.length - 1];
     expect(labelFrameCall).toBeDefined();
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
@@ -154,7 +153,7 @@ describe('EntityLabel Primitive (Layer 3: Typographic Label)', () => {
     expect(innerLabel.getAttribute('data-occluded')).toBe('false');
 
     const calls = vi.mocked(useFrame).mock.calls;
-    const labelFrameCall = calls.find((c) => c[1] === undefined || c[1] === FRAME_PRIORITY.entityAperture || c[1] === 0);
+    const labelFrameCall = calls[calls.length - 1];
     expect(labelFrameCall).toBeDefined();
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
@@ -162,5 +161,55 @@ describe('EntityLabel Primitive (Layer 3: Typographic Label)', () => {
     labelFrameCall![0]({ camera, size: { width: 1440, height: 900 } } as any, 0.016);
 
     expect(innerLabel.getAttribute('data-occluded')).toBe('false');
+  });
+
+  it('deduplicates billboard transform syncs avoiding redundant updateMatrixWorld calls in the same frame or on stationary frames', async () => {
+    const store = createSpatialEntityStore();
+    const updateMatrixSpy = vi.spyOn(THREE.Group.prototype, 'updateMatrixWorld');
+    const { useFrame } = vi.mocked(await import('@react-three/fiber'));
+
+    render(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <SpatialEntityProvider store={store}>
+          <EntityLabel
+            id="star-dedup"
+            name="Sirius"
+            spectralType="A1V"
+            state="active"
+            position={[10, 20, 30]}
+          />
+        </SpatialEntityProvider>
+      </SpatialFrameProvider>,
+    );
+
+    const calls = vi.mocked(useFrame).mock.calls;
+    const labelFrameCall = calls[calls.length - 1];
+    expect(labelFrameCall).toBeDefined();
+
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.set(0, 0, 10);
+    camera.quaternion.set(0, 0, 0, 1);
+
+    updateMatrixSpy.mockClear();
+
+    // Call 1: Frame 1
+    labelFrameCall![0]({ camera, size: { width: 1440, height: 900 } } as any, 0.016);
+    const initialCallCount = updateMatrixSpy.mock.calls.length;
+    expect(initialCallCount).toBe(1);
+
+    // Also simulate handleCalculatePosition from SafeHtml on same frame
+    const lastSafeHtmlProps = mockSafeHtmlProps[mockSafeHtmlProps.length - 1];
+    const dummyObj = new THREE.Object3D();
+    lastSafeHtmlProps.calculatePosition?.(dummyObj, camera, { width: 1440, height: 900 });
+
+    // Should NOT have called updateMatrixWorld again!
+    expect(updateMatrixSpy.mock.calls.length).toBe(1);
+
+    // Call 2: Stationary next frame should also NOT call updateMatrixWorld
+    updateMatrixSpy.mockClear();
+    labelFrameCall![0]({ camera, size: { width: 1440, height: 900 } } as any, 0.016);
+    expect(updateMatrixSpy).not.toHaveBeenCalled();
+
+    updateMatrixSpy.mockRestore();
   });
 });

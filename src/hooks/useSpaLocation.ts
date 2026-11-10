@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export interface StarmapSearchParams {
   q?: string;
@@ -27,8 +27,7 @@ export interface SpaRouterNavigateOptions {
 }
 
 export interface SpaRouterLike {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly navigate?: (options: SpaRouterNavigateOptions | any) => Promise<unknown>;
+  navigate?(options: SpaRouterNavigateOptions): Promise<unknown>;
   readonly state?: unknown;
   readonly subscribe?: (
     event: 'onResolved' | string,
@@ -90,6 +89,11 @@ export function useSpaLocation(
   fallbackPathname = '/galaxy',
 ): { readonly pathname: string; readonly search: string } {
   const [, setLocationTick] = useState<number>(0);
+  const lastLocationRef = useRef<string>(
+    typeof window !== 'undefined'
+      ? `${window.location.pathname}${window.location.search}`
+      : fallbackPathname,
+  );
 
   useEffect(() => {
     if (
@@ -99,7 +103,11 @@ export function useSpaLocation(
       return;
     }
     const handleLocationChange = (): void => {
-      setLocationTick((n) => n + 1);
+      const current = `${window.location.pathname}${window.location.search}`;
+      if (current !== lastLocationRef.current) {
+        lastLocationRef.current = current;
+        setLocationTick((n) => n + 1);
+      }
     };
 
     const unsubRouter = appRouter.subscribe?.('onResolved', handleLocationChange);

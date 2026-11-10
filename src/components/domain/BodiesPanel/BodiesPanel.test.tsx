@@ -2,6 +2,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BodiesPanel } from './BodiesPanel';
+import { SpatialEntityProvider } from '../../canvas/entity/SpatialEntityContext';
+
+const renderWithProvider = (ui: React.ReactElement) =>
+  render(<SpatialEntityProvider>{ui}</SpatialEntityProvider>);
 import type {
   GalaxyBodiesSummary,
   PlanetaryBodiesSummary,
@@ -138,13 +142,13 @@ const mockPlanetFixture: PlanetaryBodiesSummary = {
 
 describe('<BodiesPanel />', () => {
   it('returns null when elements is null', () => {
-    const { container } = render(<BodiesPanel elements={null} />);
+    const { container } = renderWithProvider(<BodiesPanel elements={null} />);
     expect(container.firstChild).toBeNull();
   });
 
   it('renders galaxy scope with distance caption and handles hover interactions', () => {
     const onHoverEntity = vi.fn();
-    render(
+    renderWithProvider(
       <BodiesPanel
         elements={mockGalaxyFixture}
         onHoverEntity={onHoverEntity}
@@ -173,7 +177,7 @@ describe('<BodiesPanel />', () => {
   });
 
   it('renders system scope with orbital schematic and minor bodies', () => {
-    render(<BodiesPanel elements={mockSystemFixture} />);
+    renderWithProvider(<BodiesPanel elements={mockSystemFixture} />);
 
     const panel = screen.getByTestId('bodies-panel');
     expect(panel.getAttribute('data-scope')).toBe('system');
@@ -184,7 +188,7 @@ describe('<BodiesPanel />', () => {
   });
 
   it('renders planetary scope', () => {
-    render(<BodiesPanel elements={mockPlanetFixture} />);
+    renderWithProvider(<BodiesPanel elements={mockPlanetFixture} />);
 
     const panel = screen.getByTestId('bodies-panel');
     expect(panel.getAttribute('data-scope')).toBe('planet');

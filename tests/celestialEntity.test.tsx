@@ -2,11 +2,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 import { CelestialEntity } from '../src/components/canvas/entity/CelestialEntity';
 import {
   SpatialEntityProvider,
 } from '../src/components/canvas/entity/SpatialEntityContext';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
+import { CelestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
 
 vi.mock('@react-three/fiber', () => ({
   useFrame: vi.fn(),
@@ -153,5 +155,59 @@ describe('CelestialEntity - Active Label Density Suppression Rule', () => {
     const label = queryByTestId('entity-label-target-star');
     expect(label).not.toBeNull();
     expect(label?.getAttribute('data-state')).toBe('selected');
+  });
+});
+
+describe('CelestialEntity - Occlusion Lifecycle & Frame Loop Purity (AUD-103, AUD-105)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('registers footprint on mount and does NOT call register() per frame in useFrame (AUD-103)', () => {
+    const store = createSpatialEntityStore();
+    const occlusionManager = new CelestialOcclusionManager();
+    const registerSpy = vi.spyOn(occlusionManager, 'register');
+
+    let capturedFrameCallback: ((state: { camera: THREE.Camera; size: { width: number; height: number } }) => void) | null = null;
+    vi.mocked(useFrame).mockImplementation((cb: unknown) => {
+      capturedFrameCallback = cb as (state: { camera: THREE.Camera; size: { width: number; height: number } }) => void;
+      return null;
+    });
+
+    const { unmount } = render(
+      <SpatialEntityProvider store={store} occlusionManager={occlusionManager}>
+        <CelestialEntity id="target-star" name="Target Star" position={[0, 0, 0]} />
+      </SpatialEntityProvider>,
+    );
+
+    // Initial registration happened in useEffect
+    expect(registerSpy).toHaveBeenCalledTimes(1);
+    expect(capturedFrameCallback).not.toBeNull();
+
+    // Simulate animation frame
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.set(0, 0, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld();
+
+    capturedFrameCallback!({
+      camera,
+      size: { width: 1920, height: 1080 },
+    });
+
+    // register() must NOT be called per frame!
+    expect(registerSpy).toHaveBeenCalledTimes(1);
+
+    // Second frame
+    capturedFrameCallback!({
+      camera,
+      size: { width: 1920, height: 1080 },
+    });
+    expect(registerSpy).toHaveBeenCalledTimes(1);
+
+    // Unmount should unregister
+    const unregisterSpy = vi.spyOn(occlusionManager, 'unregister');
+    unmount();
+    expect(unregisterSpy).toHaveBeenCalledWith('target-star');
   });
 });

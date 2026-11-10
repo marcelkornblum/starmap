@@ -572,3 +572,61 @@ Records programme-level and per-track decisions for the architecture remediation
     - `SUMMARY_NODE_CACHE_LIMIT = 500` (~1 MB)
     - `SEARCH_SHARD_CACHE_LIMIT = 50` (~5 MB)
   - Accept `signal?: AbortSignal` across all repository fetch functions (`fetchSummaryNode`, `fetchDetailRecord`, `fetchLayerManifest`, `fetchSearchShard`) and forward to `fetch()`.
+
+---
+
+### DEC-R044: Review Mode for Track T07 (`DEC-R006`)
+- **Date:** 2026-11-09
+- **Status:** `Ratified`
+- **Context:** Re-confirming review mode at the start of Track T07 per `DEC-R006`.
+- **Decision:** Whole-Track Review in PR. Execute all phases continuously (pausing for Phase 1 atomic decisions), run the three-auditor verification gate, and review the completed track in the Pull Request with clickable LAN smoke-test links.
+
+---
+
+### DEC-R045: Scene Composition Inside Single Persistent Canvas (`AUD-100`, `AUD-101`)
+- **Date:** 2026-11-09
+- **Status:** `Ratified`
+- **Context:** `SpatialScenes.tsx` mounted separate `<Canvas>` elements in `GalacticViewScene`, `SystemViewScene`, and `PlanetaryViewScene`, causing complete WebGL context destruction, shader recompilations, and visual flash on view transitions (`AUD-100`). An earlier attempt (`GlobalCanvas` and `SceneBridge`) stored unrendered `ReactNode` trees in a Zustand store and was abandoned as dead code (`AUD-101`).
+- **Options Considered:**
+  1. *Option A (Direct Scene Children in RootCanvasHost):* Mount exactly one persistent `<Canvas>` in `RootCanvasHost` (`CanvasLayer.tsx`) anchored in the application root layout. `CanvasLayer` renders `GalaxyScene`, `SystemScene`, or `PlanetScene` as direct R3F children based on active route scope. Clean, standard React lifecycle, zero context loss.
+  2. *Option B (Virtual Portals / Tunnels from Route Views):* Colocate 3D scene elements inside DOM route views and teleport them via a tunnel library or custom React portals into a root canvas. Fragile across reconcilers, risks stale closures and dropped context.
+- **Decision:** Option A. Mount one persistent `<Canvas>` in `RootCanvasHost`, render scenes as direct children based on route scope, and delete orphaned `GlobalCanvas.tsx`, `SceneBridge.tsx`, and `SceneBridgeContext.ts`.
+
+---
+
+### DEC-R046: Elimination of `patchR3F.ts` & Native Three.js 3D Test Inspection (`AUD-102`)
+- **Date:** 2026-11-09
+- **Status:** `Ratified`
+- **Context:** `src/components/canvas/viewport/patchR3F.ts` monkey-patched `THREE.Object3D.prototype.data` with a recursive Proxy to prevent R3F crashes when hyphenated DOM attributes (`data-testid`, `data-planets-count`) were passed to 3D elements. Imported globally in `main.tsx`, `tests/setup.ts`, and `.storybook/preview.tsx`.
+- **Decision:**
+  - Delete `src/components/canvas/viewport/patchR3F.ts` and remove all imports.
+  - Ban prototype monkey-patching across the codebase.
+  - Use Three.js native properties (`name="celestial-hitarea"`, `userData={{ testId: '...' }}`) for 3D scene graph queries in unit tests.
+  - Keep DOM `data-testid` strictly on HTML DOM components (`SafeHtml`, `EntityLabel`, UI panels).
+
+---
+
+### DEC-R047: Occlusion Registration & Spatial Batching Model (`AUD-103`, `AUD-114`)
+- **Date:** 2026-11-09
+- **Status:** `Ratified`
+- **Context:** Every celestial entity called `occlusionManager.register(footprint)` inside `useFrame`, triggering $O(N^2)$ iterations, grid invalidations, and `{ ...fp }` spread allocations every frame (`AUD-103`). In addition, `computeHitAreaOffsetFor` and `getCyclicSelectionTarget` failed to filter `other.hasReticle`, allowing non-reticled passive background stars to displace active reticle hit areas (`AUD-114`).
+- **Decision:**
+  - Standardise on lifecycle-based registration (`register` on mount, `unregister` on unmount via `useEffect`). Strictly ban calling `register()` inside `useFrame`.
+  - Batch evaluate screen-space projections in a single $O(N)$ pass (`OcclusionPass.evaluate`) per frame without object spread allocations.
+  - Filter by `other.hasReticle` in `computeHitAreaOffsetFor` and `getCyclicSelectionTarget` so passive background stars never displace reticles or participate in click cycling.
+
+---
+
+### DEC-R048: R3F Frame-Loop, Shader Performance & Interaction Standards (`AUD-104`–`AUD-113`, `AUD-115`, `AUD-116`)
+- **Date:** 2026-11-09
+- **Status:** `Ratified`
+- **Context:** Hot-path performance and interaction audits revealed DOM layout thrashing (`AUD-104`), render-phase ref mutations (`AUD-105`), material/mesh recreation on hover (`AUD-106`), redundant per-frame colour copies (`AUD-107`), store dispatch in frame loops (`AUD-108`), leaking module singletons (`AUD-109`), racing camera controllers (`AUD-110`), mutable `THREE.Color` in Zustand (`AUD-111`), conflicting dash metrics (`AUD-112`), inline style violations (`AUD-113`), stale raycast matrices (`AUD-115`), and suppressed clicks with `OrbitControls` (`AUD-116`).
+- **Decision:**
+  - **Frame Loop Purity:** Zero DOM layout queries (`offsetWidth`/`offsetHeight`) in `useFrame`; zero store reads/writes (`getState()` / setters) in `useFrame`; zero render-phase ref mutations.
+  - **GPU & Shader Stability:** Allocate materials and `Line2` meshes once; mutate uniforms and opacity in-place on hover/selection rather than rebuilding. Update material colours strictly on theme token changes.
+  - **State & Tokens:** Remove module fallback singletons (throw if hook used outside provider); centralise camera restoration into `CameraRig`; store theme tokens as immutable hex strings in Zustand; unify cartographic line metrics in a single token module; replace `EntityLabel` inline styles with CSS custom properties (`--label-offset-x`, `--label-offset-y`).
+  - **Interaction:** Call `billboardRef.current.updateMatrixWorld(true)` immediately after transform updates in `useFrame`; track pointer-down / pointer-up Euclidean distance with a 6–8 px threshold on `BodyMarker` to prevent click suppression under `OrbitControls` damping.
+
+
+
+

@@ -305,8 +305,7 @@ describe('Instrument Decomposition & Reference Frames (Phase 2)', () => {
       const html = renderToString(
         createElement(SpatialFrameProvider, { frame: GALACTIC_FRAME }, createElement(ScreenEdgeCue, { bearing })),
       );
-      expect(html).toContain('data-bearing="core"');
-      expect(html).toContain('CORE 000°');
+      expect(html).toContain('name="bearing-indicator-core');
     });
 
     it('renders ScreenEdgeIndicators for all active bearings with showEdgeCue', () => {

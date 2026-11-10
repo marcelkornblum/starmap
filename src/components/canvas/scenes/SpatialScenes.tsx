@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useState, useMemo, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 
 import {
@@ -30,7 +30,38 @@ import {
 
 export { GalacticCameraController, type GalacticCameraControllerProps };
 
-export interface GalacticViewSceneProps {
+const ORIGIN_COORDS: readonly [number, number, number] = [0, 0, 0];
+
+const SystemCameraController: React.FC<{
+  position: readonly [number, number, number];
+  target: readonly [number, number, number];
+  up: readonly [number, number, number];
+}> = ({ position, target, up }) => {
+  const three = useThree();
+  const camera = three.camera;
+  const controls =
+    'controls' in three &&
+    typeof three.controls === 'object' &&
+    three.controls !== null &&
+    'target' in three.controls
+      ? (three.controls as { target: { set: (x: number, y: number, z: number) => void }; update?: () => void })
+      : undefined;
+
+  useEffect(() => {
+    camera.position.set(position[0], position[1], position[2]);
+    camera.up.set(up[0], up[1], up[2]);
+    if (controls) {
+      controls.target.set(target[0], target[1], target[2]);
+      controls.update?.();
+    } else {
+      camera.lookAt(target[0], target[1], target[2]);
+    }
+  }, [camera, controls, position, target, up]);
+
+  return null;
+};
+
+export interface GalacticSceneContentProps {
   initialSelectedId?: string | null;
   onInspectSystem?: (systemId: string) => void;
   onSelectSystem?: (systemId: string | null) => void;
@@ -42,6 +73,67 @@ export interface GalacticViewSceneProps {
   centerId?: string;
   cameraDistance?: number;
   additionalEntities?: readonly SpatialEntityDefinition[];
+}
+
+export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = ({
+  initialSelectedId = null,
+  onInspectSystem,
+  onSelectSystem,
+  onFocusChange,
+  centerCoordinates,
+  centerId,
+  cameraDistance,
+  additionalEntities,
+}) => {
+  const targetCoords = useMemo<[number, number, number]>(() => {
+    if (!centerCoordinates) return ORIGIN_COORDS as [number, number, number];
+    if ('x' in centerCoordinates) {
+      return [centerCoordinates.x, centerCoordinates.y, centerCoordinates.z];
+    }
+    return [centerCoordinates[0], centerCoordinates[1], centerCoordinates[2]];
+  }, [centerCoordinates]);
+
+  const hasExplicitCenter = Boolean(centerCoordinates);
+
+  const [ceilingApertureRadiusPc, setCeilingApertureRadiusPc] = useState<number | null>(null);
+  const budget = useMemo(() => getDeviceTierBudget(), []);
+
+  const maxSafeDistance = useMemo(
+    () => computeCeilingMaxCameraDistancePc(budget, { ceilingApertureRadiusPc }),
+    [budget, ceilingApertureRadiusPc],
+  );
+
+  return (
+    <>
+      <ambientLight intensity={0.4} />
+
+      <OrbitControls
+        makeDefault
+        enableDamping
+        dampingFactor={CONTROLS_DAMPING_FACTOR}
+        minDistance={2.5}
+        maxDistance={maxSafeDistance}
+      />
+
+      <GalacticCameraController
+        target={targetCoords}
+        distance={cameraDistance}
+        hasExplicitCenter={hasExplicitCenter}
+      />
+
+      <GalaxyScene
+        initialSelectedId={initialSelectedId ?? centerId}
+        onInspectSystem={onInspectSystem}
+        onSelectSystem={onSelectSystem}
+        onFocusChange={onFocusChange}
+        additionalEntities={additionalEntities}
+        onCeilingApertureRadiusChange={setCeilingApertureRadiusPc}
+      />
+    </>
+  );
+};
+
+export interface GalacticViewSceneProps extends GalacticSceneContentProps {
   className?: string;
   variant?: 'card' | 'fullscreen';
 }
@@ -59,7 +151,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
   variant = 'card',
 }) => {
   const targetCoords = useMemo<[number, number, number]>(() => {
-    if (!centerCoordinates) return [0, 0, 0];
+    if (!centerCoordinates) return ORIGIN_COORDS as [number, number, number];
     if ('x' in centerCoordinates) {
       return [centerCoordinates.x, centerCoordinates.y, centerCoordinates.z];
     }
@@ -70,8 +162,6 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
     typeof cameraDistance === 'number' && Number.isFinite(cameraDistance) && cameraDistance > 0
       ? cameraDistance
       : STANDARD_CAMERA_DISTANCES.galactic;
-
-  const hasExplicitCenter = Boolean(centerCoordinates);
 
   const standardCam = useMemo(() => {
     const saved = useCameraStore.getState().savedGalaxyCamera;
@@ -96,14 +186,6 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
     return getStandardInitialCamera(resolvedCameraDistance, targetCoords);
   }, [resolvedCameraDistance, targetCoords, cameraDistance]);
 
-  const [ceilingApertureRadiusPc, setCeilingApertureRadiusPc] = useState<number | null>(null);
-  const budget = useMemo(() => getDeviceTierBudget(), []);
-
-  const maxSafeDistance = useMemo(
-    () => computeCeilingMaxCameraDistancePc(budget, { ceilingApertureRadiusPc }),
-    [budget, ceilingApertureRadiusPc],
-  );
-
   const containerClass = className
     ? `${styles.viewportContainer} ${className}`
     : styles.viewportContainer;
@@ -122,29 +204,15 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
           gl={{ antialias: true, alpha: true }}
         >
           <SceneTokenBridge />
-          <ambientLight intensity={0.4} />
-
-          <OrbitControls
-            makeDefault
-            enableDamping
-            dampingFactor={CONTROLS_DAMPING_FACTOR}
-            minDistance={2.5}
-            maxDistance={maxSafeDistance}
-          />
-
-          <GalacticCameraController
-            target={targetCoords}
-            distance={cameraDistance}
-            hasExplicitCenter={hasExplicitCenter}
-          />
-
-          <GalaxyScene
-            initialSelectedId={initialSelectedId ?? centerId}
+          <GalacticSceneContent
+            initialSelectedId={initialSelectedId}
             onInspectSystem={onInspectSystem}
             onSelectSystem={onSelectSystem}
             onFocusChange={onFocusChange}
+            centerCoordinates={centerCoordinates}
+            centerId={centerId}
+            cameraDistance={cameraDistance}
             additionalEntities={additionalEntities}
-            onCeilingApertureRadiusChange={setCeilingApertureRadiusPc}
           />
         </Canvas>
         <SafeHtmlPortalOutlet />
@@ -153,7 +221,7 @@ export const GalacticViewScene: React.FC<GalacticViewSceneProps> = ({
   );
 };
 
-export interface SystemViewSceneProps {
+export interface SystemSceneContentProps {
   systemId?: string;
   system?: StarDossierData;
   centerId?: string;
@@ -163,13 +231,68 @@ export interface SystemViewSceneProps {
     | { x: number; y: number; z: number };
   onInspectPlanet?: (planetId: string) => void;
   onSelectEntity?: (entityId: string | null) => void;
+}
+
+export const SystemSceneContent: React.FC<SystemSceneContentProps> = ({
+  systemId = 'sol',
+  system,
+  centerId,
+  centerCoordinates,
+  onInspectPlanet,
+  onSelectEntity,
+}) => {
+  const targetCoords = useMemo<[number, number, number]>(() => {
+    if (!centerCoordinates) return ORIGIN_COORDS as [number, number, number];
+    if ('x' in centerCoordinates) {
+      return [centerCoordinates.x, centerCoordinates.y, centerCoordinates.z];
+    }
+    return [centerCoordinates[0], centerCoordinates[1], centerCoordinates[2]];
+  }, [centerCoordinates]);
+
+  const standardCam = useMemo(
+    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.system, targetCoords),
+    [targetCoords],
+  );
+
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+
+      <OrbitControls
+        makeDefault
+        target={standardCam.target}
+        enableDamping
+        dampingFactor={CONTROLS_DAMPING_FACTOR}
+        minDistance={2.0}
+        maxDistance={45}
+      />
+
+      <SystemCameraController
+        position={standardCam.position}
+        target={standardCam.target}
+        up={standardCam.up}
+      />
+
+      <SystemScene
+        systemId={systemId}
+        system={system}
+        centerId={centerId}
+        centerCoordinates={centerCoordinates ? targetCoords : undefined}
+        onInspectPlanet={onInspectPlanet}
+        onSelectEntity={onSelectEntity}
+      />
+    </>
+  );
+};
+
+export interface SystemViewSceneProps extends SystemSceneContentProps {
   onNavigateGalaxy?: () => void;
   className?: string;
   variant?: 'card' | 'fullscreen';
 }
 
 export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
-  systemId = 'sol',
+  systemId,
   system,
   centerId,
   centerCoordinates,
@@ -180,7 +303,7 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
   variant = 'card',
 }) => {
   const targetCoords = useMemo<[number, number, number]>(() => {
-    if (!centerCoordinates) return [0, 0, 0];
+    if (!centerCoordinates) return ORIGIN_COORDS as [number, number, number];
     if ('x' in centerCoordinates) {
       return [centerCoordinates.x, centerCoordinates.y, centerCoordinates.z];
     }
@@ -210,22 +333,11 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
           gl={{ antialias: true, alpha: true }}
         >
           <SceneTokenBridge />
-          <ambientLight intensity={0.5} />
-
-          <OrbitControls
-            makeDefault
-            target={standardCam.target}
-            enableDamping
-            dampingFactor={CONTROLS_DAMPING_FACTOR}
-            minDistance={2.0}
-            maxDistance={45}
-          />
-
-          <SystemScene
+          <SystemSceneContent
             systemId={systemId}
             system={system}
             centerId={centerId}
-            centerCoordinates={centerCoordinates ? targetCoords : undefined}
+            centerCoordinates={centerCoordinates}
             onInspectPlanet={onInspectPlanet}
             onSelectEntity={onSelectEntity}
           />
@@ -236,9 +348,53 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = ({
   );
 };
 
-export interface PlanetaryViewSceneProps {
+export interface PlanetarySceneContentProps {
   planetId?: string;
   planet?: PlanetRecord;
+}
+
+export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
+  planetId = 'earth',
+  planet,
+}) => {
+  const isEarth = planetId.toLowerCase() === 'earth';
+  const planetDisplayName = isEarth ? 'Earth' : planetId.charAt(0).toUpperCase() + planetId.slice(1);
+
+  const standardCam = useMemo(
+    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, ORIGIN_COORDS as [number, number, number]),
+    [],
+  );
+
+  return (
+    <>
+      <ambientLight intensity={1.0} />
+
+      <OrbitControls
+        makeDefault
+        target={standardCam.target}
+        enableDamping
+        dampingFactor={CONTROLS_DAMPING_FACTOR}
+        minDistance={1.2}
+        maxDistance={250}
+      />
+
+      <SystemCameraController
+        position={standardCam.position}
+        target={standardCam.target}
+        up={standardCam.up}
+      />
+
+      <PlanetScene
+        planetId={planetId}
+        planetName={planetDisplayName}
+        classification="terrestrial"
+        planet={planet}
+      />
+    </>
+  );
+};
+
+export interface PlanetaryViewSceneProps extends PlanetarySceneContentProps {
   onNavigateSystem?: () => void;
   onNavigateGalaxy?: () => void;
   className?: string;
@@ -246,18 +402,15 @@ export interface PlanetaryViewSceneProps {
 }
 
 export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
-  planetId = 'earth',
+  planetId,
   planet,
   onNavigateSystem: _onNavigateSystem,
   onNavigateGalaxy: _onNavigateGalaxy,
   className,
   variant = 'card',
 }) => {
-  const isEarth = planetId.toLowerCase() === 'earth';
-  const planetDisplayName = isEarth ? 'Earth' : planetId.charAt(0).toUpperCase() + planetId.slice(1);
-
   const standardCam = useMemo(
-    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, [0, 0, 0]),
+    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, ORIGIN_COORDS as [number, number, number]),
     [],
   );
 
@@ -279,21 +432,8 @@ export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = ({
           gl={{ antialias: true, alpha: true }}
         >
           <SceneTokenBridge />
-          <ambientLight intensity={1.0} />
-
-          <OrbitControls
-            makeDefault
-            target={standardCam.target}
-            enableDamping
-            dampingFactor={CONTROLS_DAMPING_FACTOR}
-            minDistance={1.2}
-            maxDistance={250}
-          />
-
-          <PlanetScene
+          <PlanetarySceneContent
             planetId={planetId}
-            planetName={planetDisplayName}
-            classification="terrestrial"
             planet={planet}
           />
         </Canvas>
@@ -309,6 +449,7 @@ export interface InteractiveNavigatorProps {
   initialSystemId?: string;
   initialPlanetId?: string;
   additionalEntities?: readonly SpatialEntityDefinition[];
+  className?: string;
 }
 
 export const InteractiveNavigator: React.FC<InteractiveNavigatorProps> = ({
@@ -317,6 +458,7 @@ export const InteractiveNavigator: React.FC<InteractiveNavigatorProps> = ({
   initialSystemId = 'sol',
   initialPlanetId = 'earth',
   additionalEntities,
+  className,
 }) => {
   const [scale, setScale] = useState<'galaxy' | 'system' | 'planet'>(initialScale);
   const [selectedSystemId, setSelectedSystemId] = useState<string>(initialSystemId);
@@ -333,39 +475,45 @@ export const InteractiveNavigator: React.FC<InteractiveNavigatorProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [scale]);
 
-  if (scale === 'planet') {
-    return (
-      <PlanetaryViewScene
-        planetId={selectedPlanetId}
-        variant={variant}
-        onNavigateSystem={() => setScale('system')}
-        onNavigateGalaxy={() => setScale('galaxy')}
-      />
-    );
-  }
-
-  if (scale === 'system') {
-    return (
-      <SystemViewScene
-        systemId={selectedSystemId}
-        variant={variant}
-        onInspectPlanet={(planetId) => {
-          setSelectedPlanetId(planetId);
-          setScale('planet');
-        }}
-        onNavigateGalaxy={() => setScale('galaxy')}
-      />
-    );
-  }
+  const containerClass = className
+    ? `${styles.viewportContainer} ${className}`
+    : styles.viewportContainer;
 
   return (
-    <GalacticViewScene
-      variant={variant}
-      additionalEntities={additionalEntities}
-      onInspectSystem={(systemId) => {
-        setSelectedSystemId(systemId);
-        setScale('system');
-      }}
-    />
+    <div className={containerClass} data-variant={variant}>
+      <div className={styles.canvasWrapper}>
+        <Canvas
+          flat
+          dpr={1}
+          gl={{ antialias: true, alpha: true }}
+        >
+          <SceneTokenBridge />
+          {scale === 'galaxy' && (
+            <GalacticSceneContent
+              additionalEntities={additionalEntities}
+              onInspectSystem={(systemId) => {
+                setSelectedSystemId(systemId);
+                setScale('system');
+              }}
+            />
+          )}
+          {scale === 'system' && (
+            <SystemSceneContent
+              systemId={selectedSystemId}
+              onInspectPlanet={(planetId) => {
+                setSelectedPlanetId(planetId);
+                setScale('planet');
+              }}
+            />
+          )}
+          {scale === 'planet' && (
+            <PlanetarySceneContent
+              planetId={selectedPlanetId}
+            />
+          )}
+        </Canvas>
+        <SafeHtmlPortalOutlet />
+      </div>
+    </div>
   );
 };

@@ -297,7 +297,11 @@ describe('SpatialShell Component & View Integration Suite', () => {
         return rootInstance;
       }
 
-      renderToString(<RootProbe />);
+      renderToString(
+        <SpatialEntityProvider>
+          <RootProbe />
+        </SpatialEntityProvider>,
+      );
       expect(rootChildEl).not.toBeNull();
       expect(rootChildEl.props['data-testid']).toBe('search-root');
       expect(rootChildEl.props['data-search-focused']).toBe('false');

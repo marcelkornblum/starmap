@@ -32,7 +32,8 @@ import {
 } from './layerFixtures';
 import { SAMPLE_CORPUS } from './searchFixtures';
 
-const renderToHtml = (element: ReactElement): string => render(element).container.innerHTML;
+const renderToHtml = (element: ReactElement): string =>
+  render(createElement(SpatialEntityProvider, null, element)).container.innerHTML;
 
 describe('Journey 5: Transit Flow - ControlBar & Cross-View Overlays (DEC-019, DEC-020)', () => {
   it('DEC-019: <ControlBar /> renders time controller, mode group, and shortcuts', () => {

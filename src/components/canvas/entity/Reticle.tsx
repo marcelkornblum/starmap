@@ -18,6 +18,7 @@ import type { CelestialInteractionState, NodeAlphaRef } from './types';
 export interface ReticleProps {
   id: string;
   position?: [number, number, number] | THREE.Vector3;
+  worldPosition?: THREE.Vector3 | readonly [number, number, number];
   classification?: CelestialClassification;
   state?: CelestialInteractionState;
   size?: number;
@@ -38,6 +39,7 @@ export interface ReticleProps {
 export const Reticle: React.FC<ReticleProps> = ({
   id,
   position,
+  worldPosition,
   classification = 'star',
   state = 'active',
   size = DEFAULT_RETICLE_SIZE,
@@ -111,7 +113,7 @@ export const Reticle: React.FC<ReticleProps> = ({
 
   useEffect(() => {
     if (materialRef.current?.color) {
-      materialRef.current.color.copy(resolvedColor);
+      materialRef.current.color.set(resolvedColor);
     }
   }, [resolvedColor]);
 
@@ -137,7 +139,15 @@ export const Reticle: React.FC<ReticleProps> = ({
       }
       groupRef.current.quaternion.copy(camera.quaternion);
 
-      groupRef.current.getWorldPosition(scratchWorldPos.current);
+      if (worldPosition) {
+        if (worldPosition instanceof THREE.Vector3) {
+          scratchWorldPos.current.copy(worldPosition);
+        } else {
+          scratchWorldPos.current.set(worldPosition[0], worldPosition[1], worldPosition[2]);
+        }
+      } else {
+        groupRef.current.getWorldPosition(scratchWorldPos.current);
+      }
       const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
       const invScale = resolveEntityScreenInvariantScale(
         camDist,

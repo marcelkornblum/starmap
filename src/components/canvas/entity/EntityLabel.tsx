@@ -21,6 +21,7 @@ export interface EntityLabelProps {
   id: string;
   name: string;
   position?: [number, number, number] | THREE.Vector3;
+  worldPosition?: THREE.Vector3 | readonly [number, number, number];
   spectralType?: string;
   state?: CelestialInteractionState;
   reticleSize?: number;
@@ -35,10 +36,11 @@ export interface EntityLabelProps {
  * Positions label at top-right facet and spectral tag at bottom-right facet of reticle.
  * Maintains screen-invariant position and size matching Layer 2 Reticle.
  */
-export const EntityLabel: React.FC<EntityLabelProps> = ({
+export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
   id,
   name,
   position,
+  worldPosition,
   spectralType,
   state = 'passive',
   reticleSize = DEFAULT_RETICLE_SIZE,
@@ -57,6 +59,10 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
   const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
   const scratchAnchorWorldPos = useLazyRef(() => new THREE.Vector3());
   const scratchAnchorNdc = useLazyRef(() => new THREE.Vector3());
+  const lastTransformRef = useRef({
+    qx: Number.NaN, qy: Number.NaN, qz: Number.NaN, qw: Number.NaN,
+    scale: Number.NaN, px: Number.NaN, py: Number.NaN, pz: Number.NaN,
+  });
   const occlusionManager = useOcclusionManager();
   const frameCtx = useSpatialFrameSafe();
 
@@ -72,37 +78,64 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
     return g;
   });
 
+  const setBillboardRef = useCallback((node: THREE.Group | null) => {
+    if (node && 'isGroup' in node) {
+      billboardRef.current = node;
+    }
+  }, [billboardRef]);
+
   const isAnnotated = state === 'selected' || state === 'focused';
 
   const syncBillboardTransform = useCallback(
     (camera: THREE.Camera) => {
       const g = billboardRef.current;
-      if (g && g.position) {
-        g.position.set(...resolvedPos);
-        g.quaternion.copy(camera.quaternion);
+      if (!g || !g.position) return;
 
+      const [rx, ry, rz] = resolvedPos;
+      if (worldPosition) {
+        if (worldPosition instanceof THREE.Vector3) {
+          scratchWorldPos.current.copy(worldPosition);
+        } else {
+          scratchWorldPos.current.set(worldPosition[0], worldPosition[1], worldPosition[2]);
+        }
+      } else {
         g.getWorldPosition(scratchWorldPos.current);
-        const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-        const invScale = resolveEntityScreenInvariantScale(
-          camDist,
-          camera,
-          frameCtx?.frameRef?.current,
-        );
+      }
+      const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
+      const invScale = resolveEntityScreenInvariantScale(
+        camDist,
+        camera,
+        frameCtx?.frameRef?.current,
+      );
+
+      const cq = camera.quaternion;
+      const last = lastTransformRef.current;
+      const posChanged =
+        Number.isNaN(last.px) || Math.abs(last.px - rx) > 1e-6 || Math.abs(last.py - ry) > 1e-6 || Math.abs(last.pz - rz) > 1e-6;
+      const quatChanged =
+        Number.isNaN(last.qw) ||
+        Math.abs(last.qx - cq.x) > 1e-6 || Math.abs(last.qy - cq.y) > 1e-6 ||
+        Math.abs(last.qz - cq.z) > 1e-6 || Math.abs(last.qw - cq.w) > 1e-6;
+      const scaleChanged = Number.isNaN(last.scale) || Math.abs(last.scale - invScale) > 1e-6;
+
+      if (posChanged || quatChanged || scaleChanged) {
+        g.position.set(rx, ry, rz);
+        g.quaternion.copy(cq);
         g.scale.set(invScale, invScale, invScale);
         if (typeof g.updateMatrixWorld === 'function') {
           g.updateMatrixWorld(true);
         }
+        last.px = rx; last.py = ry; last.pz = rz;
+        last.qx = cq.x; last.qy = cq.y; last.qz = cq.z; last.qw = cq.w;
+        last.scale = invScale;
       }
     },
-    [billboardRef, resolvedPos, scratchWorldPos, frameCtx],
+    [billboardRef, resolvedPos, worldPosition, scratchWorldPos, frameCtx],
   );
 
   const handleCalculatePosition = useCallback(
     (
-      el: THREE.Object3D,
-      camera: THREE.Camera,
-      size: { width: number; height: number },
-      target?: [number, number],
+      el: THREE.Object3D, camera: THREE.Camera, size: { width: number; height: number }, target?: [number, number],
     ): [number, number] | void => {
       syncBillboardTransform(camera);
       el.getWorldPosition(scratchAnchorWorldPos.current);
@@ -126,17 +159,11 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        if (entry.borderBoxSize?.length > 0) {
-          labelDimensionsRef.current = {
-            width: entry.borderBoxSize[0].inlineSize,
-            height: entry.borderBoxSize[0].blockSize,
-          };
-        } else {
-          labelDimensionsRef.current = {
-            width: entry.contentRect.width,
-            height: entry.contentRect.height,
-          };
-        }
+        const hasBorder = entry.borderBoxSize?.length > 0;
+        labelDimensionsRef.current = {
+          width: hasBorder ? entry.borderBoxSize[0].inlineSize : entry.contentRect.width,
+          height: hasBorder ? entry.borderBoxSize[0].blockSize : entry.contentRect.height,
+        };
       }
     });
 
@@ -158,11 +185,6 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
     syncBillboardTransform(camera);
 
     if (!labelRef.current) return;
-
-    if (labelDimensionsRef.current.width === 0 && labelRef.current.offsetWidth > 0) {
-      labelDimensionsRef.current.width = labelRef.current.offsetWidth;
-      labelDimensionsRef.current.height = labelRef.current.offsetHeight;
-    }
 
     // Retrieve screen footprint from occlusion manager to construct accurate activeBox
     const fp = occlusionManager.getFootprint(id);
@@ -208,10 +230,11 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
         labelRef.current.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
         labelRef.current.setAttribute('data-displaced', 'true');
         if (leaderLineRef.current) {
+          const lh = labelDimensionsRef.current.height ? labelDimensionsRef.current.height / 2 : 9;
           leaderLineRef.current.setAttribute('x1', String(-dx));
           leaderLineRef.current.setAttribute('y1', String(-dy));
           leaderLineRef.current.setAttribute('x2', '0');
-          leaderLineRef.current.setAttribute('y2', String(labelDimensionsRef.current.height ? labelDimensionsRef.current.height / 2 : 9));
+          leaderLineRef.current.setAttribute('y2', String(lh));
           leaderLineRef.current.setAttribute('visibility', 'visible');
         }
       }
@@ -220,27 +243,24 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
       lastYRef.current = null;
       labelRef.current.style.transform = '';
       labelRef.current.setAttribute('data-displaced', 'false');
-      if (leaderLineRef.current) {
-        leaderLineRef.current.setAttribute('visibility', 'hidden');
-      }
+      leaderLineRef.current?.setAttribute('visibility', 'hidden');
     }
   });
 
   const anchorX = reticleSize * 1.15;
   const anchorY = reticleSize * 0.75;
+  const isSelectedOrFocused = state === 'selected' || state === 'focused';
 
   return (
     <group
-      ref={billboardRef}
-      name={`entity-label-${id}`}
-      data-testid={`entity-label-${id}`}
-      data-name={name}
-      data-spectral={formatDesignationTag(spectralType)}
+      ref={setBillboardRef}
+      name={`entity-label-${id} [${name}] [${formatDesignationTag(spectralType)}]`}
+      userData={{ testId: `entity-label-${id}`, name, spectral: formatDesignationTag(spectralType) }}
       position={resolvedPos}
     >
       {/* Top-Right Facet: Typographic Label (System Designation) & Facet Badge */}
       <SafeHtml
-        position={[anchorX, anchorY, 0]}
+        position={[anchorX + (offset ? offset[0] : 0), anchorY + (offset ? offset[1] : 0), 0]}
         calculatePosition={handleCalculatePosition}
         center={false}
         data-testid={`entity-label-${id}`}
@@ -249,9 +269,8 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
           ref={labelRef}
           className={styles.labelCluster}
           data-state={state}
-          data-occluded={state === 'selected' || state === 'focused' ? 'false' : lastOccludedRef.current === true ? 'true' : 'false'}
+          data-occluded={isSelectedOrFocused ? 'false' : lastOccludedRef.current === true ? 'true' : 'false'}
           data-testid={`entity-label-inner-${id}`}
-          style={offset ? { transform: `translate3d(${offset[0]}px, ${offset[1]}px, 0)` } : undefined}
         >
           <div className={styles.nodeLabel} data-state={state}>
             <svg className={styles.leaderLine} aria-hidden="true">
@@ -275,4 +294,6 @@ export const EntityLabel: React.FC<EntityLabelProps> = ({
       </SafeHtml>
     </group>
   );
-};
+});
+
+EntityLabel.displayName = 'EntityLabel';

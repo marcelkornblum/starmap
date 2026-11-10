@@ -55,7 +55,6 @@ describe('SpatialViewport Composition Root (Phase 4)', () => {
     );
 
     expect(html).toContain('name="spatial-viewport"');
-    expect(html).toContain('data-mode="explore"');
     expect(html).toContain('name="cartographic-grid"');
     expect(html).toContain('name="celestial-entity-sol"');
     expect(html).toContain('name="celestial-entity-proxima"');
@@ -70,7 +69,6 @@ describe('SpatialViewport Composition Root (Phase 4)', () => {
       }),
     );
     expect(htmlSystem).toContain('name="spatial-viewport"');
-    expect(htmlSystem).toContain('data-mode="focus"');
     expect(htmlSystem).toContain('name="celestial-entity-sol"');
 
     const htmlPlanetary = renderToString(

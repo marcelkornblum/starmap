@@ -7,16 +7,8 @@ import {
   type OrbitalSchematicSummary,
 } from '../../../services/detailsService';
 import {
-  Badge,
-  CelestialBadge,
-  CelestialTitle,
-  Cluster,
-  DataTable,
-  HazardBadge,
-  Heading,
-  Quantity,
-  SpectralBadge,
-  Unit,
+  Badge, CelestialBadge, CelestialTitle, Cluster, DataTable,
+  HazardBadge, Heading, Quantity, SpectralBadge, Unit,
 } from '../../interface';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
 import styles from './BodiesPanel.module.css';
@@ -28,7 +20,7 @@ export interface BodiesPanelProps {
   readonly onHoverEntity?: (entityId: string | null) => void;
 }
 
-export const BodiesPanel: React.FC<BodiesPanelProps> = ({
+const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
   elements,
   schematic,
   hoveredEntityId,
@@ -297,3 +289,6 @@ export const BodiesPanel: React.FC<BodiesPanelProps> = ({
     </section>
   );
 };
+
+export const BodiesPanel = React.memo(BodiesPanelComponent);
+BodiesPanel.displayName = 'BodiesPanel';

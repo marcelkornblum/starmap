@@ -6,6 +6,7 @@ import {
 } from '../src/components/interface/information/CelestialSymbol';
 import { DetailsPanel } from '../src/components/domain/DetailsPanel/DetailsPanel';
 import { BodiesPanel } from '../src/components/domain/BodiesPanel/BodiesPanel';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
 import { Breadcrumbs } from '../src/components/domain/Breadcrumbs/Breadcrumbs';
 import { GuideExamplesList } from '../src/components/domain/GuideExamplesList/GuideExamplesList';
 import { PreviewPanel } from '../src/components/domain/PreviewPanel/PreviewPanel';
@@ -345,7 +346,11 @@ describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
     };
 
     it('renders bodies-galaxy-system-reticle on left of bodies-galaxy-system-link in first cell', () => {
-      render(<BodiesPanel elements={mockGalaxySummary} />);
+      render(
+        <SpatialEntityProvider>
+          <BodiesPanel elements={mockGalaxySummary} />
+        </SpatialEntityProvider>,
+      );
 
       const reticle = screen.getByTestId('bodies-galaxy-system-reticle');
       const link = screen.getByTestId('bodies-galaxy-system-link');
@@ -357,7 +362,11 @@ describe('CelestialTitle Component & Reticle-on-Left Standard', () => {
     });
 
     it('renders minor body reticle on left of bodies-minor-body-link in first cell', () => {
-      render(<BodiesPanel elements={mockSystemBodiesSummary} />);
+      render(
+        <SpatialEntityProvider>
+          <BodiesPanel elements={mockSystemBodiesSummary} />
+        </SpatialEntityProvider>,
+      );
 
       const bodyLink = screen.getByTestId('bodies-minor-body-link');
       const bodyRow = bodyLink.closest('tr')!;

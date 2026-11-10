@@ -4,22 +4,9 @@ import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
+import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
 
-/**
- * Standard cartographic screen-space line dimensions in CSS screen pixels.
- */
-export const CARTO_LINE_CONSTANTS = {
-  /** Screen-space dash length in pixels */
-  dashSize: 14.0,
-  /** Screen-space gap length in pixels */
-  gapSize: 8.0,
-  /** Screen-space dot length in pixels for stipple dotted lines */
-  dotSize: 2.0,
-  /** Screen-space gap length in pixels for stipple dotted lines */
-  dotGap: 4.0,
-  /** Baseline hairline width */
-  hairlineWidth: 1.0,
-} as const;
+export { CARTO_LINE_CONSTANTS };
 
 export type CartoLineStyle = 'solid' | 'dashed' | 'dotted';
 
@@ -252,6 +239,21 @@ export class CartoHairlineMaterial extends THREE.ShaderMaterial {
     const actualHeight = height ?? widthOrHeight;
     const proj11 = camera.projectionMatrix.elements[5];
     this.uniforms.uResolutionScale.value = proj11 * (actualHeight * 0.5);
+  }
+
+  get color(): THREE.Color {
+    return this.uniforms.uColor.value;
+  }
+
+  override set opacity(value: number) {
+    super.opacity = value;
+    if (this.uniforms?.uOpacity) {
+      this.uniforms.uOpacity.value = value;
+    }
+  }
+
+  override get opacity(): number {
+    return this.uniforms?.uOpacity?.value ?? super.opacity;
   }
 
   setColor(color: THREE.Color | string | number): void {

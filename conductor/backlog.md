@@ -53,6 +53,7 @@ Candidate features and ideas awaiting formal track planning. Items here are eith
 - **Multi-Tier Reticle Priority Hierarchy:** Formalise which reticles yield to which under line-of-sight collisions.
 - **Kinematic Vector Terminus & Epoch Calibration:** Finalise activation rules, astronomical epoch ($\Delta t$) and terminus styling (ghost pip vs tick) for projected dotted velocity vectors.
 - **Significance-Gated Data Filtering (Toponymic Hierarchy):** Dynamic prioritisation of entity visibility based on active survey queries or astronomical significance rather than arbitrary global culling.
+- **3D Multi-Star & Hierarchical System Representation (2 and 2+ Stars) (`FS-020`):** Model and render binary, trinary, and higher-order multiple star systems with physical 3D representation in System View: hierarchical barycentre orbits, mutual orbital periods and separations ($a$, $e$, $i$), circumprimary/circumsecondary vs circumbinary planet orbit paths, and distinct visual stellar meshes for each component star (e.g. Alpha Centauri A, B, and Proxima; Sirius A and B).
 
 ---
 

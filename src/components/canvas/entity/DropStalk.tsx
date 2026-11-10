@@ -132,7 +132,14 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       transparent: true,
       depthWrite: false,
     });
-  }, [stalkColor, stalkOpacity, isDashed]);
+    // Keep material instance stable; mutate color/opacity in useEffect below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDashed]);
+
+  useEffect(() => {
+    lineMaterial.setColor(stalkColor);
+    lineMaterial.setOpacity(stalkOpacity);
+  }, [lineMaterial, stalkColor, stalkOpacity]);
 
   useEffect(() => {
     return () => {
@@ -210,20 +217,18 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       }
     }
 
-    if (footprintMatRef.current) {
-      footprintMatRef.current.color.copy(resolvedFootprintColor);
+    if (footprintMatRef.current?.color) {
+      footprintMatRef.current.color.set(resolvedFootprintColor);
       footprintMatRef.current.opacity = resolvedFootprintAlpha * fadePlanar;
     }
 
-    lineMaterial.setColor(stalkColor);
-    lineMaterial.setOpacity(stalkOpacity);
     lineMaterial.updateResolution(camera, size.height);
   });
 
   if (!isStalkTier && progressRef.current <= 0.001) return null;
 
   return (
-    <group name={`drop-stalk-${id}`} data-hemisphere={hemisphere}>
+    <group name={`drop-stalk-${id}`} userData={{ hemisphere }}>
       {/* Vertical Stalk Line */}
       <lineSegments ref={lineMeshRef} name="stalk-line" material={lineMaterial} frustumCulled={false}>
         <primitive object={lineGeom} attach="geometry" />

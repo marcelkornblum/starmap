@@ -218,17 +218,56 @@ export const mapManifestToStarsAndPlanets = (
   return { stars, planets, disks };
 };
 
+const corpusSystemChildrenCache = new WeakMap<
+  readonly CompactSearchEntry[],
+  ReadonlyMap<string, readonly CompactSearchEntry[]>
+>();
+
+function getCorpusSystemChildrenIndex(
+  corpus: readonly CompactSearchEntry[],
+): ReadonlyMap<string, readonly CompactSearchEntry[]> {
+  let index = corpusSystemChildrenCache.get(corpus);
+  if (!index) {
+    const map = new Map<string, CompactSearchEntry[]>();
+    for (const entry of corpus) {
+      if (!entry.s) continue;
+      const rawS = entry.s;
+      const slugS = toUrlSlug(rawS);
+
+      let list = map.get(slugS);
+      if (!list) {
+        list = [];
+        map.set(slugS, list);
+      }
+      if (rawS !== slugS && !map.has(rawS)) {
+        map.set(rawS, list);
+      }
+      list.push(entry);
+    }
+    corpusSystemChildrenCache.set(corpus, map);
+    index = map;
+  }
+  return index;
+}
+
 const resolveOrbitingBodies = (
   planetTargetSlugs: ReadonlySet<string>,
-  _systemNameOrId: string,
+  systemNameOrId: string,
   corpus: readonly CompactSearchEntry[],
   urlPlanetSlug?: string | null,
 ): readonly SystemElementBodyItem[] => {
   if (planetTargetSlugs.size === 0 || corpus.length === 0) {
     return [];
   }
+  const systemIndex = getCorpusSystemChildrenIndex(corpus);
+  const sysSlug = toUrlSlug(systemNameOrId);
+  const systemEntries =
+    systemIndex.get(sysSlug) ??
+    (systemNameOrId !== sysSlug ? systemIndex.get(systemNameOrId) : undefined);
+
+  const candidates = systemEntries ?? corpus;
   const items: SystemElementBodyItem[] = [];
-  for (const entry of corpus) {
+  for (const entry of candidates) {
     if (!entry.o) {
       continue;
     }
@@ -391,8 +430,14 @@ export const buildFocusedEntityDetails = (
     }
 
     const corpusPlanets: FocusedPlanetDetail[] = [];
-    for (const entry of corpus) {
-      if (entry.k === 2 && entry.s === systemId) {
+    const systemIndex = getCorpusSystemChildrenIndex(corpus);
+    const sysSlug = toUrlSlug(systemId);
+    const candidateEntries =
+      systemIndex.get(sysSlug) ??
+      (systemId !== sysSlug ? systemIndex.get(systemId) : undefined) ??
+      corpus;
+    for (const entry of candidateEntries) {
+      if (entry.k === 2 && (entry.s === systemId || toUrlSlug(entry.s ?? '') === sysSlug)) {
         const planetName = resolveResultDisplayTitle(entry);
         const hazards = entry.H !== undefined ? decodePlanetHazards(entry.H) : undefined;
         corpusPlanets.push({
@@ -530,8 +575,14 @@ export const buildFocusedEntityDetails = (
     urlPlanet?: string | null,
   ): readonly SystemElementBodyItem[] => {
     const items: SystemElementBodyItem[] = [];
-    for (const entry of corpusEntries) {
-      if (entry.s !== systemId) continue;
+    const systemIndex = getCorpusSystemChildrenIndex(corpusEntries);
+    const sysSlug = toUrlSlug(systemId);
+    const candidateEntries =
+      systemIndex.get(sysSlug) ??
+      (systemId !== sysSlug ? systemIndex.get(systemId) : undefined) ??
+      corpusEntries;
+    for (const entry of candidateEntries) {
+      if (entry.s !== systemId && toUrlSlug(entry.s ?? '') !== sysSlug) continue;
       if (entry.o) continue;
       if (entry.k !== 4 && entry.k !== 6) continue;
       if (isDwarfPlanetInDisk(entry, disk)) {
