@@ -18,7 +18,6 @@ export const COMPONENT_QUAD_DIRS = ['src/components/interface', 'src/components/
 export const AST_SCAN_DIRS = [
   'src/components/interface',
   'src/components/domain',
-  'src/components/search',
   'src/components/canvas',
   'src/views',
 ];
@@ -26,7 +25,6 @@ export const RENDER_TO_STRING_DIRS = ['src', 'tests'];
 export const CSS_MODULE_DIRS = [
   'src/components/interface',
   'src/components/domain',
-  'src/components/search',
   'src/components/canvas',
   'src/views',
 ];

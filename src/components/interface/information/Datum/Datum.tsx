@@ -11,6 +11,7 @@ export interface DatumProps extends Omit<HTMLAttributes<HTMLDivElement>, 'classN
   size?: 'sm' | 'md';
   valueTestId?: string;
   confidence?: ConfidenceLevel;
+  'data-testid'?: string;
 }
 
 export const Datum = ({

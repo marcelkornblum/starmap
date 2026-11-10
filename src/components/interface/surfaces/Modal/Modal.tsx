@@ -47,6 +47,8 @@ export const Modal = ({
     <dialog
       ref={dialogRef}
       className={styles.modal}
+      role="dialog"
+      aria-modal={isModal ? 'true' : undefined}
       aria-labelledby={title ? titleId : undefined}
       onClose={onClose}
       onCancel={(e) => {

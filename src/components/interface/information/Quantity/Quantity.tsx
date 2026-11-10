@@ -11,6 +11,7 @@ export interface QuantityProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'cl
   children?: ReactNode;
   /** If true, omits the gap between value and unit (automatically true for angular symbols °, ′, ″) */
   noGap?: boolean;
+  'data-testid'?: string;
 }
 
 export const Quantity = ({

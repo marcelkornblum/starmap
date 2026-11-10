@@ -9,15 +9,6 @@
     padding: var(--orbital-schematic-panel-padding);
   }
 
-  .list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-fib-2);
-    padding: 0;
-    margin: 0;
-    list-style: none;
-  }
-
   .item {
     display: flex;
     align-items: center;

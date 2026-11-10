@@ -53,7 +53,7 @@ export const Minimap: React.FC<MinimapProps> = ({ orientation }) => {
       data-anchor-id={anchorId}
       data-system-id={systemId}
     >
-      <Heading as="h2" id="minimap-panel-heading" className={styles.srOnly}>
+      <Heading as="h2" id="minimap-panel-heading" visuallyHidden>
         Minimap
       </Heading>
       <div
@@ -62,7 +62,7 @@ export const Minimap: React.FC<MinimapProps> = ({ orientation }) => {
         data-scope={scope}
         data-anchor-id={anchorId}
       >
-        <Cluster gap="tight" align="center" className={styles.referenceFrame} data-testid="minimap-reference-frame">
+        <Cluster gap="tight" align="center" data-testid="minimap-reference-frame">
           <strong data-testid="minimap-anchor-name">{anchorName}</strong>
           <Badge status="info">{scope}</Badge>
           {scope === 'planet' && systemName ? (
@@ -71,7 +71,7 @@ export const Minimap: React.FC<MinimapProps> = ({ orientation }) => {
         </Cluster>
 
         {hasTelemetry ? (
-          <Stack gap="none" className={styles.telemetry} data-testid="minimap-telemetry">
+          <Stack gap="none" data-testid="minimap-telemetry">
             {coordinatesPc ? (
               <Datum
                 label="Coordinates"

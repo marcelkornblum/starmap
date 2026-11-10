@@ -17,6 +17,7 @@ import {
   useCanvasStageStore,
   setStageCallbacks,
 } from '../../../stores/useCanvasStageStore';
+import { canMountWebGLCanvas } from './webglSupport';
 import styles from './CanvasLayer.module.css';
 
 
@@ -42,38 +43,10 @@ export interface CanvasLayerProps {
   readonly onFocusChange?: (id: string | null) => void;
 }
 
-let webglSupported: boolean | null = null;
-
-export const canMountWebGLCanvas = (): boolean => {
-  if (webglSupported !== null) {
-    return webglSupported;
-  }
-  if (
-    typeof window === 'undefined' ||
-    typeof document === 'undefined'
-  ) {
-    webglSupported = false;
-    return false;
-  }
-  try {
-    const canvas = document.createElement('canvas');
-    webglSupported = Boolean(
-      canvas.getContext('webgl2') || canvas.getContext('webgl'),
-    );
-  } catch {
-    webglSupported = false;
-  }
-  return webglSupported;
-};
-
 const initialPersistentCam = getStandardInitialCamera(
   STANDARD_CAMERA_DISTANCES.galactic,
   [0, 0, 0],
 );
-
-export const _resetWebGLSupportedForTesting = (): void => {
-  webglSupported = null;
-};
 
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;

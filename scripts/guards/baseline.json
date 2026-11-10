@@ -25,10 +25,6 @@
       "count": 1,
       "audId": "AUD-020"
     },
-    "G-size::src/components/canvas/entity/SectorPointCloud.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "G-literals::src/components/canvas/entity/SectorPointCloud.tsx": {
       "count": 3,
       "audId": "AUD-020"
@@ -76,10 +72,6 @@
     "G-literals::src/components/canvas/instrument/ScreenEdgeCue.tsx": {
       "count": 1,
       "audId": "AUD-020"
-    },
-    "G-size::src/components/canvas/instrument/SpatialFrameProvider.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
     },
     "G-literals::src/components/canvas/instrument/SpatialFrameProvider.tsx": {
       "count": 3,
@@ -133,27 +125,7 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "G-size::src/components/domain/DirectionsPanel/DirectionsPanel.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "G-literals::src/components/domain/Guide3DPreview/Guide3DPreview.tsx": {
-      "count": 1,
-      "audId": "AUD-020"
-    },
-    "G-size::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-size::src/components/interface/surfaces/DetentSheet/DetentSheet.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-size::src/components/search/SearchRoot.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-literals::src/components/search/searchStoreSync.ts": {
       "count": 1,
       "audId": "AUD-020"
     },
@@ -257,82 +229,6 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "G-size::src/views/GalaxyView.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-literals::src/views/GalaxyView.tsx": {
-      "count": 7,
-      "audId": "AUD-020"
-    },
-    "G-size::src/views/PlanetView.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-literals::src/views/PlanetView.tsx": {
-      "count": 2,
-      "audId": "AUD-020"
-    },
-    "G-size::src/views/SystemView.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-literals::src/views/SystemView.tsx": {
-      "count": 1,
-      "audId": "AUD-020"
-    },
-    "missing-component-quad::src/components/interface/information/CelestialSymbol/CelestialBadge.tsx": {
-      "count": 1,
-      "audId": "AUD-122"
-    },
-    "file-size-exceeded::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "missing-component-quad::src/components/interface/information/CelestialSymbol/CelestialTitle.tsx": {
-      "count": 1,
-      "audId": "AUD-122"
-    },
-    "missing-component-quad::src/components/interface/information/CelestialSymbol/HazardBadge.tsx": {
-      "count": 1,
-      "audId": "AUD-122"
-    },
-    "missing-component-quad::src/components/interface/information/CelestialSymbol/SpectralBadge.tsx": {
-      "count": 1,
-      "audId": "AUD-122"
-    },
-    "file-size-exceeded::src/components/interface/surfaces/DetentSheet/DetentSheet.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "missing-component-quad::src/components/domain/DetailsPanel/DetailsActionBar.tsx": {
-      "count": 1,
-      "audId": "AUD-122"
-    },
-    "missing-component-quad::src/components/domain/DetailsPanel/DetailsCanonAndHazards.tsx": {
-      "count": 1,
-      "audId": "AUD-122"
-    },
-    "missing-component-quad::src/components/domain/DetailsPanel/DetailsQuickTelemetry.tsx": {
-      "count": 1,
-      "audId": "AUD-122"
-    },
-    "file-size-exceeded::src/components/domain/DirectionsPanel/DirectionsPanel.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "forbidden-inline-style::src/components/canvas/entity/EntityLabel.tsx": {
-      "count": 1,
-      "audId": "AUD-113"
-    },
-    "forbidden-dynamic-classname::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
-      "count": 1,
-      "audId": "AUD-125"
-    },
-    "forbidden-dynamic-classname::src/components/interface/information/Unit/Unit.tsx": {
-      "count": 1,
-      "audId": "AUD-125"
-    },
     "forbidden-rendertostring::src/data/__tests__/auditUi.test.ts": {
       "count": 2,
       "audId": "AUD-004"
@@ -421,242 +317,6 @@
       "count": 1,
       "audId": "AUD-004"
     },
-    "hardcoded-css-token::src/components/interface/controls/Input/Input.module.css": {
-      "count": 3,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/controls/Select/Select.module.css": {
-      "count": 3,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/controls/Slider/Slider.module.css": {
-      "count": 6,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/controls/Toggle/Toggle.module.css": {
-      "count": 4,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/CelestialSymbol/CelestialSymbol.module.css": {
-      "count": 6,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/CelestialSymbol/CelestialTitle.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/ConfidencePip/ConfidencePip.module.css": {
-      "count": 5,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/ConfidencePip/ConfidencePip.stories.module.css": {
-      "count": 9,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/DataTable/DataTable.module.css": {
-      "count": 2,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/Datum/Datum.stories.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/Heading/Heading.module.css": {
-      "count": 2,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/Quantity/Quantity.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/Quantity/Quantity.stories.module.css": {
-      "count": 2,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/Typography/Typography.module.css": {
-      "count": 2,
-      "audId": "AUD-121"
-    },
-    "forbidden-outer-margin::src/components/interface/information/Typography/Typography.module.css": {
-      "count": 2,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/information/informationStories.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "forbidden-outer-margin::src/components/interface/layouts/Center/Center.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "forbidden-outer-margin::src/components/interface/layouts/Cover/Cover.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/layouts/Grid/Grid.module.css": {
-      "count": 6,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/layouts/Reel/Reel.module.css": {
-      "count": 4,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/layouts/Sidebar/Sidebar.module.css": {
-      "count": 4,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/layouts/Switcher/Switcher.module.css": {
-      "count": 5,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/surfaces/DetentSheet/DetentSheet.module.css": {
-      "count": 7,
-      "audId": "AUD-121"
-    },
-    "forbidden-outer-margin::src/components/interface/surfaces/DetentSheet/DetentSheet.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/surfaces/Drawer/Drawer.module.css": {
-      "count": 5,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/surfaces/Elevations.module.css": {
-      "count": 15,
-      "audId": "AUD-121"
-    },
-    "forbidden-outer-margin::src/components/interface/surfaces/Modal/Modal.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/surfaces/Modal/Modal.module.css": {
-      "count": 2,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/surfaces/Panel/Panel.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/surfaces/Popover/Popover.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/surfaces/Toast/Toast.module.css": {
-      "count": 2,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/surfaces/Tooltip/Tooltip.module.css": {
-      "count": 5,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/interface/surfaces/surfaceStories.module.css": {
-      "count": 2,
-      "audId": "AUD-121"
-    },
-    "forbidden-outer-margin::src/components/domain/BodiesPanel/BodiesPanel.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/domain/Breadcrumbs/Breadcrumbs.module.css": {
-      "count": 10,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/domain/CanonLayerItem/CanonLayerItem.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/domain/ControlBar/ControlBar.module.css": {
-      "count": 5,
-      "audId": "AUD-121"
-    },
-    "forbidden-outer-margin::src/components/domain/ControlBar/ControlBar.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/domain/Guide3DPreview/Guide3DPreview.module.css": {
-      "count": 39,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/domain/MetricComparativePanel/MetricComparativePanel.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "forbidden-outer-margin::src/components/domain/Minimap/Minimap.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "forbidden-outer-margin::src/components/domain/PreviewPanel/PreviewPanel.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/domain/SpatialShell/SpatialShell.module.css": {
-      "count": 14,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/domain/StarTypeCombinator/StarTypeCombinator.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/domain/domainStories.module.css": {
-      "count": 3,
-      "audId": "AUD-121"
-    },
-    "forbidden-outer-margin::src/components/search/Search.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/search/Search.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/canvas/FullAssembly.module.css": {
-      "count": 2,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/canvas/cartography/StorybookCanvasWrapper.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/canvas/entity/EntityLabel.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/canvas/entity/JourneyChord.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/components/canvas/scenes/SpatialScenes.module.css": {
-      "count": 1,
-      "audId": "AUD-121"
-    },
-    "hardcoded-css-token::src/views/GuideViews.module.css": {
-      "count": 43,
-      "audId": "AUD-121"
-    },
-    "no-material-memo-color-deps::src/components/canvas/entity/DropStalk.tsx": {
-      "count": 2,
-      "audId": "AUD-103"
-    },
-    "no-layout-in-use-frame::src/components/canvas/entity/EntityLabel.tsx": {
-      "count": 3,
-      "audId": "AUD-104"
-    },
-    "no-material-memo-color-deps::src/components/canvas/entity/KinematicVector.tsx": {
-      "count": 1,
-      "audId": "AUD-103"
-    },
-    "no-material-memo-color-deps::src/components/canvas/entity/OrbitPath.tsx": {
-      "count": 1,
-      "audId": "AUD-103"
-    },
-    "eslint(max-lines)::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "react(only-export-components)::src/components/interface/information/CelestialSymbol/CelestialSymbol.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
-    },
     "eslint(max-lines)::src/services/details/navigationAndCamera.ts": {
       "count": 1,
       "audId": "AUD-120"
@@ -665,14 +325,6 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "react(only-export-components)::src/components/interface/information/ConfidencePip/ConfidencePip.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
-    },
-    "react(only-export-components)::src/components/interface/information/CelestialSymbol/SpectralBadge.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
-    },
     "eslint(max-lines)::src/utils/datasetLayerCodec.ts": {
       "count": 1,
       "audId": "AUD-120"
@@ -680,10 +332,6 @@
     "eslint(max-lines)::src/types/astro.ts": {
       "count": 1,
       "audId": "AUD-120"
-    },
-    "react(only-export-components)::src/components/interface/information/DataTable/DataTable.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
     },
     "eslint(max-lines)::src/services/details/bodiesAndSchematics.ts": {
       "count": 1,
@@ -737,18 +385,6 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "react(only-export-components)::src/components/interface/surfaces/DetentSheet/DetentSheet.tsx": {
-      "count": 2,
-      "audId": "AUD-129"
-    },
-    "react(only-export-components)::src/components/domain/SearchResultItem/SearchResultItem.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
-    },
-    "eslint(max-lines)::src/components/interface/information/Typography/Typography.stories.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "react(immutability)::.storybook/helpers/StoryCanvas.tsx": {
       "count": 2,
       "audId": "AUD-105"
@@ -797,45 +433,9 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "react(refs)::src/components/canvas/instrument/SpatialFrameProvider.tsx": {
-      "count": 2,
-      "audId": "AUD-105"
-    },
-    "react(refs)::src/components/canvas/entity/SpatialEntityContext.tsx": {
-      "count": 2,
-      "audId": "AUD-105"
-    },
-    "react(only-export-components)::src/components/canvas/instrument/SpatialFrameProvider.tsx": {
-      "count": 3,
-      "audId": "AUD-129"
-    },
     "eslint(max-lines)::src/components/canvas/cartography/celestialOcclusionRegistry.ts": {
       "count": 1,
       "audId": "AUD-120"
-    },
-    "react(only-export-components)::src/components/domain/DetailsPanel/detailsPanelHelpers.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
-    },
-    "eslint(max-lines)::src/components/domain/DirectionsPanel/DirectionsPanel.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "react(only-export-components)::src/components/domain/DirectionsPanel/DirectionsPanel.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
-    },
-    "eslint(max-lines)::src/components/domain/DetailsPanel/DetailsPanel.stories.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "react(only-export-components)::src/components/domain/CanvasLayer/CanvasLayer.tsx": {
-      "count": 2,
-      "audId": "AUD-129"
-    },
-    "react(only-export-components)::src/components/canvas/entity/PlanetBody.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
     },
     "eslint(max-lines)::src/components/canvas/viewport/SpatialViewport.tsx": {
       "count": 1,
@@ -853,15 +453,7 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "react(only-export-components)::src/components/canvas/entity/SpatialEntityContext.tsx": {
-      "count": 6,
-      "audId": "AUD-129"
-    },
     "eslint(max-lines)::src/components/canvas/materials/CartoLineMaterial.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/components/canvas/entity/SectorPointCloud.tsx": {
       "count": 1,
       "audId": "AUD-120"
     },
@@ -873,10 +465,6 @@
       "count": 3,
       "audId": "AUD-105"
     },
-    "react(only-export-components)::src/components/canvas/entity/SectorPointCloud.tsx": {
-      "count": 3,
-      "audId": "AUD-129"
-    },
     "react(refs)::src/components/canvas/entity/EntityLabel.tsx": {
       "count": 1,
       "audId": "AUD-105"
@@ -885,33 +473,21 @@
       "count": 3,
       "audId": "AUD-004"
     },
-    "react(refs)::src/components/canvas/entity/DropStalk.tsx": {
-      "count": 1,
-      "audId": "AUD-105"
-    },
     "eslint(max-lines)::src/components/canvas/entity/CelestialEntity.tsx": {
       "count": 1,
       "audId": "AUD-120"
     },
     "react(refs)::src/components/canvas/entity/CelestialEntity.tsx": {
-      "count": 10,
+      "count": 5,
       "audId": "AUD-105"
     },
     "react(set-state-in-effect)::src/components/canvas/entity/CelestialEntity.tsx": {
       "count": 1,
       "audId": "AUD-004"
     },
-    "eslint(max-lines)::src/components/domain/BodiesPanel/BodiesPanel.stories.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "eslint(max-lines)::src/services/__tests__/instrumentHydrationService.test.ts": {
       "count": 1,
       "audId": "AUD-120"
-    },
-    "react(only-export-components)::src/components/domain/SpatialShell/SpatialShell.tsx": {
-      "count": 2,
-      "audId": "AUD-129"
     },
     "eslint(max-lines)::src/services/__tests__/sectorStreamingService.test.ts": {
       "count": 1,
@@ -926,34 +502,6 @@
       "audId": "AUD-120"
     },
     "eslint(max-lines)::content/layers/overlay-constellations.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/views/GalaxyView.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "react(only-export-components)::src/router/index.tsx": {
-      "count": 19,
-      "audId": "AUD-129"
-    },
-    "react(only-export-components)::src/views/MetricDetailView.tsx": {
-      "count": 1,
-      "audId": "AUD-129"
-    },
-    "eslint(max-lines)::src/views/SystemView.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "react(only-export-components)::src/components/search/Search.tsx": {
-      "count": 3,
-      "audId": "AUD-129"
-    },
-    "eslint(max-lines)::src/views/PlanetView.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/components/search/SearchRoot.tsx": {
       "count": 1,
       "audId": "AUD-120"
     },
@@ -1009,10 +557,6 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "eslint(no-useless-escape)::scripts/audit-ui.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
     "eslint(max-lines)::e2e/canvas-interaction-and-fps.spec.ts": {
       "count": 1,
       "audId": "AUD-120"
@@ -1047,14 +591,6 @@
     },
     "react(globals)::tests/cameraTransition.test.ts": {
       "count": 2,
-      "audId": "AUD-145"
-    },
-    "eslint(max-lines)::tests/detentSheetDrag.test.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "react(globals)::tests/detentSheetDrag.test.tsx": {
-      "count": 1,
       "audId": "AUD-145"
     },
     "eslint(max-lines)::tests/datasetLayerCodec.test.ts": {

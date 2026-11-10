@@ -14,6 +14,7 @@ export interface UnitProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'classN
   href?: string;
   target?: string;
   rel?: string;
+  'data-testid'?: string;
 }
 
 export const Unit = ({

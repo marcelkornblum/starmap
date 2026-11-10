@@ -47,8 +47,4 @@ export function useEntityTier(id: string): CelestialInteractionState {
   return useSpatialEntityStore((s) => deriveEntityTier(id, s));
 }
 
-export {
-  SpatialEntityProvider,
-  type SpatialEntityProviderProps,
-} from './SpatialEntityProvider';
-export { ApertureEvaluator } from './ApertureEvaluator';
+

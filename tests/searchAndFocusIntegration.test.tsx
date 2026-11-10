@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React, { createElement } from 'react';
 import { render, screen } from '@testing-library/react';
 import * as THREE from 'three';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { useUIStore } from '../src/stores/useUIStore';

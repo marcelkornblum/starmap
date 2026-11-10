@@ -11,9 +11,8 @@ import { InstrumentHydrationBridge } from '../../../services/instrumentHydration
 import type { SystemSummaryNode } from '../../../types/astro';
 import {
   STARFIELD_PASSIVE_POINT_SIZE,
-  STARFIELD_DEFAULT_APERTURE_RADIUS,
+  STARFIELD_ACTIVE_POINT_SIZE,
   computeStarfieldHorizonRadius,
-  StarfieldPointsMaterial,
   createStarfieldPointsMaterial,
 } from './sectorPointCloudShaders';
 

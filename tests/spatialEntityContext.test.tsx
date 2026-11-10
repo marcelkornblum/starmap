@@ -6,8 +6,8 @@ import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
   useOcclusionManager,
-  SpatialEntityProvider,
 } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 
 describe('SpatialEntityContext Module Singleton Elimination (AUD-109)', () => {
   it('throws an error if useSpatialEntityStore is used outside <SpatialEntityProvider>', () => {

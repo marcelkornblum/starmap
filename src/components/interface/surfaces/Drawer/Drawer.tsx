@@ -50,6 +50,8 @@ export const Drawer = ({
       ref={dialogRef}
       className={styles.drawer}
       data-position={position}
+      role="dialog"
+      aria-modal={isModal ? 'true' : undefined}
       aria-labelledby={title ? titleId : undefined}
       onClose={onClose}
       onCancel={(e) => {

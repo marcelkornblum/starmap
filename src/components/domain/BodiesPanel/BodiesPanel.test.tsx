@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BodiesPanel } from './BodiesPanel';
-import { SpatialEntityProvider } from '../../canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../../canvas/entity/SpatialEntityProvider';
 
 const renderWithProvider = (ui: React.ReactElement) =>
   render(<SpatialEntityProvider>{ui}</SpatialEntityProvider>);

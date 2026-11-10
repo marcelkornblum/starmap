@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
-import { Badge, Cluster, Datum, Heading, Unit } from '../components/interface';
+import { Badge, Cluster, Datum, Grid, Heading, Unit } from '../components/interface';
 import { METRIC_GUIDE_ENTRIES } from '../services/guideService';
 import styles from './GuideViews.module.css';
 
@@ -15,7 +15,7 @@ export const MetricsListView: React.FC = () => {
       />
       <GuideSectionNav currentSection="metrics" />
       <Heading as="h1">Telemetry Metrics</Heading>
-      <ul data-testid="metrics-guide-list" className={styles.cardList}>
+      <Grid as="ul" minWidth="md" gap="default" data-testid="metrics-guide-list">
         {METRIC_GUIDE_ENTRIES.map((entry) => (
           <li
             key={entry.id}
@@ -49,7 +49,7 @@ export const MetricsListView: React.FC = () => {
             </a>
           </li>
         ))}
-      </ul>
+      </Grid>
     </main>
   );
 };

@@ -11,4 +11,16 @@
     border-radius: var(--search-result-item-border-radius);
     list-style: none;
   }
+
+  .resultLink {
+    display: flex;
+    align-items: center;
+    inline-size: 100%;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .resultName {
+    color: inherit;
+  }
 }

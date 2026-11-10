@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { RootCanvasHost } from '../components/domain/CanvasLayer';
 import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
-import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
 import { handleSpaNavigation } from '../hooks/spaNavigation';
 
 export const RootLayout: React.FC = () => {

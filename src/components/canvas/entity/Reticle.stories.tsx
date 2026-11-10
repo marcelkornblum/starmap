@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
 import { CelestialEntity } from './CelestialEntity';
-import { SpatialEntityProvider, ApertureEvaluator } from './SpatialEntityContext';
+import { SpatialEntityProvider } from './SpatialEntityProvider';
+import { ApertureEvaluator } from './ApertureEvaluator';
 import { OcclusionPass } from './OcclusionPass';
 import { SpatialFrameProvider, SYSTEM_FRAME } from '../instrument';
 import type { CelestialClassification, PlanetCensusEntry } from '../cartography/reticleGeometry';

@@ -1,4 +1,9 @@
-import { Button, CelestialTitle, type CelestialSymbolType } from '../../interface';
+import {
+  Button,
+  CelestialTitle,
+  Cluster,
+  type CelestialSymbolType,
+} from '../../interface';
 import { resolveAppHref } from '../../../utils/url';
 import { handleSpaNavigation } from '../../../hooks/spaNavigation';
 import styles from './Breadcrumbs.module.css';
@@ -43,7 +48,7 @@ export const Breadcrumbs = ({
       data-testid="view-breadcrumbs"
       className={styles.breadcrumbsNav}
     >
-      <ol data-testid="breadcrumbs-list" className={styles.breadcrumbsList}>
+      <Cluster as="ol" gap="tight" align="center" data-testid="breadcrumbs-list">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           const resolvedReticle = item.reticleType;
@@ -84,7 +89,7 @@ export const Breadcrumbs = ({
             </li>
           );
         })}
-      </ol>
+      </Cluster>
       <div
         className={styles.modeMenu}
         role="navigation"
@@ -98,7 +103,6 @@ export const Breadcrumbs = ({
           aria-current={!isGuideContext ? 'page' : undefined}
           data-active={!isGuideContext ? 'true' : undefined}
           data-testid={isGuideContext ? 'breadcrumbs-companion-link' : 'breadcrumbs-mode-galaxy'}
-          className={styles.modeButton}
         >
           Galaxy
         </Button>
@@ -109,7 +113,6 @@ export const Breadcrumbs = ({
           aria-current={isGuideContext ? 'page' : undefined}
           data-active={isGuideContext ? 'true' : undefined}
           data-testid={!isGuideContext ? 'breadcrumbs-companion-link' : 'breadcrumbs-mode-guide'}
-          className={styles.modeButton}
         >
           Guide
         </Button>
@@ -117,4 +120,3 @@ export const Breadcrumbs = ({
     </nav>
   );
 };
-

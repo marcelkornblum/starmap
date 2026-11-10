@@ -9,7 +9,7 @@
     inline-size: 100%;
   }
 
-  .mobileToggle {
+  .controlBar [data-mobile-toggle] {
     display: none;
     align-items: center;
     justify-content: center;
@@ -26,26 +26,16 @@
                 color var(--motion-duration-feedback) var(--motion-ease-out);
   }
 
-  .mobileToggle:hover {
+  .controlBar [data-mobile-toggle]:hover {
     background: var(--surface-dock-bg);
     color: var(--content-prominent);
   }
 
-  .mobileToggle:focus-visible {
+  .controlBar [data-mobile-toggle]:focus-visible {
     outline: var(--state-focus-ring-width) solid var(--state-focus);
     outline-offset: var(--state-focus-ring-offset);
   }
 
-  .srOnly {
-    clip-path: inset(50%);
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    padding: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    border: 0;
-  }
 
   .timeController {
     display: flex;
@@ -61,30 +51,16 @@
     gap: var(--space-fib-2);
   }
 
-  .shortcutsList {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-fib-3);
+  .controlBar [data-testid="control-bar-shortcuts-list"] {
     font-family: var(--font-interface);
     font-size: var(--type-scale-neg-1);
     color: var(--content-muted);
-  }
-
-  .shortcutItem {
-    margin: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-fib-1);
   }
 }
 
 @layer exceptions {
   @media (max-width: 767px) {
-    .mobileToggle {
+    .controlBar [data-mobile-toggle] {
       display: inline-flex;
     }
 
@@ -92,7 +68,7 @@
       gap: var(--space-fib-2);
     }
 
-    .shortcutsList {
+    .controlBar [data-testid="control-bar-shortcuts-list"] {
       display: none;
     }
 
@@ -115,7 +91,7 @@
       gap: var(--space-fib-2);
     }
 
-    .controlBar[data-mobile-expanded="true"] .mobileToggle {
+    .controlBar[data-mobile-expanded="true"] [data-mobile-toggle] {
       align-self: flex-end;
     }
 

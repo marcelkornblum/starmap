@@ -56,7 +56,7 @@ const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
         data-aperture-radius-pc={apertureRadiusPc}
         className={styles.root}
       >
-        <Heading as="h2" id="bodies-panel-heading" className={styles.srOnly}>
+        <Heading as="h2" id="bodies-panel-heading" visuallyHidden>
           Galactic Systems
         </Heading>
 
@@ -222,7 +222,7 @@ const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
       data-planet-id={scope === 'planet' ? elements.planetId : undefined}
       className={styles.root}
     >
-      <Heading as="h2" id="bodies-panel-heading" className={styles.srOnly}>
+      <Heading as="h2" id="bodies-panel-heading" visuallyHidden>
         {scope === 'system' ? 'System Bodies' : 'Planetary Bodies'}
       </Heading>
 
@@ -234,7 +234,7 @@ const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
         data-planet-id={scope === 'planet' ? elements.planetId : undefined}
         className={styles.section}
       >
-        <Heading as="h3" id="bodies-schematic-heading" className={styles.srOnly}>
+        <Heading as="h3" id="bodies-schematic-heading" visuallyHidden>
           Orbital Schematic
         </Heading>
         {resolvedSchematic && resolvedSchematic.items.length > 0 ? (
@@ -250,9 +250,11 @@ const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
           data-testid="bodies-minor-bodies-section"
           className={styles.section}
         >
-          <Heading as="h3" id="bodies-minor-bodies-heading" className={styles.sectionHeading}>
-            Minor Bodies &amp; Spacecraft
-          </Heading>
+          <div className={styles.sectionHeading}>
+            <Heading as="h3" id="bodies-minor-bodies-heading">
+              Minor Bodies &amp; Spacecraft
+            </Heading>
+          </div>
           <DataTable data-testid="bodies-minor-bodies-list">
             <DataTable.Head>
               <DataTable.Row>

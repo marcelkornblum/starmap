@@ -137,7 +137,7 @@
       }
     },
     {
-      "files": ["src/components/domain/**", "src/components/search/**"],
+      "files": ["src/components/domain/**"],
       "rules": {
         "no-restricted-imports": [
           "warn",

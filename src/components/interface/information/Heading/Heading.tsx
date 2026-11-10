@@ -12,6 +12,7 @@ export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, '
   badge?: ReactNode;
   visuallyHidden?: boolean;
   children?: ReactNode;
+  'data-testid'?: string;
 }
 
 function resolveDefaultSize(as: HeadingLevel): HeadingSize {

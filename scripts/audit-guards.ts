@@ -297,7 +297,6 @@ const LAYER_HIERARCHY: { name: string; prefix: string; rank: number }[] = [
   { name: 'components/interface', prefix: 'src/components/interface', rank: 6 },
   { name: 'components/canvas', prefix: 'src/components/canvas', rank: 7 },
   { name: 'components/domain', prefix: 'src/components/domain', rank: 8 },
-  { name: 'components/search', prefix: 'src/components/search', rank: 8 },
   { name: 'views', prefix: 'src/views', rank: 9 },
   { name: 'router', prefix: 'src/router', rank: 10 },
   { name: 'router', prefix: 'src/App.tsx', rank: 10 },
