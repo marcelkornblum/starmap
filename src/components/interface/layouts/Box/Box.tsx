@@ -15,17 +15,13 @@ export const Box = ({
   border = 'none',
   background,
   children,
-  className,
   ...rest
 }: BoxProps) => {
   const Tag = as as 'div';
-  const combinedClassName = className
-    ? `${styles.box} ${className}`
-    : styles.box;
 
   return (
     <Tag
-      className={combinedClassName}
+      className={styles.box}
       data-padding={padding}
       data-border={border}
       data-background={background}

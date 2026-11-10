@@ -89,10 +89,10 @@ describe('<Cluster />', () => {
     expect(container.getAttribute('aria-label')).toBe('Viewport Controls');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Cluster className="custom-cluster" data-testid="cluster-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Cluster data-testid="cluster-container" />);
 
     const container = screen.getByTestId('cluster-container');
-    expect(container.className).toContain('custom-cluster');
+    expect(container.className).toBeTruthy();
   });
 });

@@ -2,7 +2,7 @@ import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import { resolveAppHref } from '../../../../utils/url';
 import styles from './Unit.module.css';
 
-export interface UnitProps extends HTMLAttributes<HTMLSpanElement> {
+export interface UnitProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'className' | 'style'> {
   children?: ReactNode;
   /**
    * If true, renders unit surrounded by parentheses, e.g. (AU).
@@ -22,16 +22,11 @@ export const Unit = ({
   href,
   target,
   rel,
-  className,
   ...rest
 }: UnitProps) => {
   if (children == null || children === '') {
     return null;
   }
-
-  const combinedClassName = className
-    ? `${styles.unit} ${className}`
-    : styles.unit;
 
   const content = inParens
     ? typeof children === 'string' || typeof children === 'number'
@@ -45,8 +40,9 @@ export const Unit = ({
         href={resolveAppHref(href)}
         target={target}
         rel={rel}
-        className={`${combinedClassName} ${styles.unitLink}`}
+        className={styles.unit}
         data-unit="true"
+        data-interactive="true"
         {...(rest as unknown as AnchorHTMLAttributes<HTMLAnchorElement>)}
       >
         {content}
@@ -55,7 +51,7 @@ export const Unit = ({
   }
 
   return (
-    <span className={combinedClassName} data-unit="true" {...rest}>
+    <span className={styles.unit} data-unit="true" {...rest}>
       {content}
     </span>
   );

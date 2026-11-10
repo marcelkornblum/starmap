@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { Unit } from '../Unit/Unit';
 import styles from './Quantity.module.css';
 
-export interface QuantityProps extends HTMLAttributes<HTMLSpanElement> {
+export interface QuantityProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'className' | 'style'> {
   /** The numeric or text magnitude of the datum */
   value?: ReactNode;
   /** The unit of measurement (string, symbol, or Unit component) */
@@ -18,13 +18,8 @@ export const Quantity = ({
   unit,
   children,
   noGap,
-  className,
   ...rest
 }: QuantityProps) => {
-  const combinedClassName = className
-    ? `${styles.quantity} ${className}`
-    : styles.quantity;
-
   const isDegreeSymbol =
     typeof unit === 'string' &&
     (unit.trim() === '°' || unit.trim() === '′' || unit.trim() === '″');
@@ -46,7 +41,7 @@ export const Quantity = ({
 
   return (
     <span
-      className={combinedClassName}
+      className={styles.quantity}
       data-quantity="true"
       data-no-gap={shouldOmitGap ? 'true' : undefined}
       {...rest}

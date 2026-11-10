@@ -50,17 +50,18 @@ describe('<Unit />', () => {
     expect(link.getAttribute('target')).toBe('_blank');
     expect(link.getAttribute('rel')).toBe('noopener noreferrer');
     expect(link.getAttribute('data-unit')).toBe('true');
+    expect(link.getAttribute('data-interactive')).toBe('true');
   });
 
-  it('merges custom className and forwards extra attributes', () => {
+  it('applies static module class and forwards extra attributes', () => {
     render(
-      <Unit className="astronomical-unit" aria-label="Astronomical Units" data-testid="custom-unit">
+      <Unit aria-label="Astronomical Units" data-testid="custom-unit">
         AU
       </Unit>
     );
 
     const unit = screen.getByTestId('custom-unit');
-    expect(unit.className).toContain('astronomical-unit');
+    expect(unit.className).toMatch(/unit/);
     expect(unit.getAttribute('aria-label')).toBe('Astronomical Units');
   });
 });

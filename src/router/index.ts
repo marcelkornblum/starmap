@@ -1,10 +1,8 @@
-import React, { useCallback } from 'react';
 import {
   createRouter,
   createRoute,
   createRootRoute,
   defaultStringifySearch,
-  Outlet,
 } from '@tanstack/react-router';
 import { GalaxyView } from '../views/GalaxyView';
 import { HazardDetailView } from '../views/HazardDetailView';
@@ -18,21 +16,19 @@ import { SearchView } from '../views/SearchView';
 import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
-import { RootCanvasHost } from '../components/domain/CanvasLayer';
-import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
-import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityContext';
 import {
   useSpaLocation,
   resolveSpaLocation,
   type StarmapSearchParams,
   registerAppRouter,
 } from '../hooks/useSpaLocation';
-import { handleSpaNavigation } from '../hooks/spaNavigation';
+import { RootLayout } from './RootLayout';
 
 export {
   useSpaLocation,
   resolveSpaLocation,
   type StarmapSearchParams,
+  RootLayout,
 };
 
 /**
@@ -44,29 +40,6 @@ export function stringifyStarmapSearch(search: Record<string, unknown>): string 
     .replace(/%3A/gi, ':')
     .replace(/%2C/gi, ',');
 }
-
-export const RootLayout: React.FC = () => {
-  const handleRootClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    const target = event.target as Element | null;
-    const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
-    if (!anchor) return;
-    if (anchor.target && anchor.target !== '_self') return;
-    if (anchor.hasAttribute('download')) return;
-    const href = anchor.getAttribute('href');
-    if (!href) return;
-    handleSpaNavigation(event, href);
-  }, []);
-
-  return (
-    <SpatialEntityProvider>
-      <div id="starmap-app-root" onClickCapture={handleRootClick}>
-        <ThemeTokenBridge />
-        <RootCanvasHost />
-        <Outlet />
-      </div>
-    </SpatialEntityProvider>
-  );
-};
 
 // Root route definition with global search params validation
 export const rootRoute = createRootRoute({

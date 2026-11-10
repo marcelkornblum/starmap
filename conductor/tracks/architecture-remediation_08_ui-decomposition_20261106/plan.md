@@ -12,10 +12,10 @@ Record each decision in [decision-log.md](../../initiatives/architecture-remedia
 - [x] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
 ## Phase 2: Implementation (Ratified Decisions)
-- [ ] Task 2.1: Token Architecture & CUBE CSS Remediation (`AUD-121`, `AUD-126`)
+- [x] Task 2.1: Token Architecture & CUBE CSS Remediation (`AUD-121`, `AUD-126`)
   - Move component-specific tokens (`--text-ui-button-*`, `--space-inset-button-*`, `--surface-modal-radius`, etc.) out of global `src/styles/tokens/semantic.css` into local `--<component>-*` CSS Module interfaces (`AUD-126`)
   - Tokenise all 220 `hardcoded-css-token` (`px`/`rem`/`rgba`/`ms`) violations across all 43 CSS Modules and eliminate all 11 `forbidden-outer-margin` declarations (`AUD-121`)
-- [ ] Task 2.2: Tier 1 Primitives, `DetentSheet` Snap Physics & `CelestialSymbol` Quads (`AUD-120`, `AUD-122`, `AUD-125`, `AUD-128`, `AUD-129`, `AUD-130`)
+- [x] Task 2.2: Tier 1 Primitives, `DetentSheet` Snap Physics & `CelestialSymbol` Quads (`AUD-120`, `AUD-122`, `AUD-125`, `AUD-128`, `AUD-129`, `AUD-130`)
   - Remove external `className` passthrough and dynamic concatenation from Tier 1 primitives (`Stack`, `Cluster`, `Grid`, `Center`, `Imposter`, `Unit`, `DetentSheet`, `Button`, etc.) (`DEC-R050`, `AUD-125`)
   - Implement `DetentSheet` 1-row `peek` minimum, asymmetric snap physics (`detentSheetMath.ts` abutting below `partial`, free-rest between `partial` and `full`), and single `@container` hierarchy threshold at `partial` (`DEC-R051`, `AUD-120`, `AUD-128`, `AUD-129`)
   - Decompose `CelestialSymbol.tsx` ($\le 300$ lines), extract `CELESTIAL_SYMBOL_META` / `normalizeConfidence` / `shouldDisplaySpectralBadge`, complete component file quads for `CelestialBadge`, `SpectralBadge`, `HazardBadge`, `CelestialTitle`, and add `index.ts` barrels across `src/components/interface/**` (`AUD-120`, `AUD-122`, `AUD-129`, `AUD-130`)

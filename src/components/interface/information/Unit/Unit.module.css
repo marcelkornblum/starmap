@@ -15,14 +15,17 @@
     white-space: nowrap;
     margin: 0;
   }
+}
 
-  .unitLink,
+@layer exceptions {
+  .unit[data-interactive="true"],
   .unit a {
     color: inherit;
     text-decoration: none;
+    cursor: pointer;
   }
 
-  .unitLink:hover,
+  .unit[data-interactive="true"]:hover,
   .unit a:hover {
     text-decoration: none;
     color: var(--content-prominent);

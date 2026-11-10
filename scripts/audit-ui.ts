@@ -335,7 +335,14 @@ export function auditRawElementsContent(filePath: string, content: string): Audi
   const lines = content.split('\n');
   diagnostics.push(...checkInvalidSuppressions(filePath, lines));
 
-  if (!content.includes('<button') && !content.includes('<input') && !content.includes('<select')) {
+  if (
+    !content.includes('<button') &&
+    !content.includes('<input') &&
+    !content.includes('<select') &&
+    !content.includes('<ul') &&
+    !content.includes('<ol') &&
+    !content.includes('<dl')
+  ) {
     return diagnostics;
   }
 
@@ -353,18 +360,25 @@ export function auditRawElementsContent(filePath: string, content: string): Audi
     if (node.type === 'JSXOpeningElement' || node.type === 'JSXSelfClosingElement') {
       if (node.name?.type === 'JSXIdentifier') {
         const tagName = node.name.name;
-        if (tagName && ['button', 'input', 'select'].includes(tagName)) {
+        if (tagName && ['button', 'input', 'select', 'ul', 'ol', 'dl'].includes(tagName)) {
           const loc = node.loc?.start;
           if (loc && !isLineSuppressed(lines, loc.line, 'forbidden-raw-element')) {
+            const isControl = ['button', 'input', 'select'].includes(tagName);
+            const message = isControl
+              ? `Forbidden raw HTML control <${tagName}>. Domain components and views must compose Tier 1 Interface Primitives (<Button>, <Input>, <Select>).`
+              : `Forbidden raw HTML list element <${tagName}>. Domain components and views must compose Tier 1 Composition or Interface Primitives (<Stack as="${tagName}">, <Cluster as="${tagName}">, <Grid as="${tagName}">, or <Datum>).`;
+            const remediation = isControl
+              ? `Replace <${tagName}> with Tier 1 Interface Primitive <${tagName.charAt(0).toUpperCase() + tagName.slice(1)}>.`
+              : `Replace <${tagName}> with <Stack as="${tagName}">, <Cluster as="${tagName}">, <Grid as="${tagName}">, or <Datum>.`;
             diagnostics.push({
               filePath,
               line: loc.line,
               column: loc.column + 1,
               ruleId: 'forbidden-raw-element',
               severity: 'error',
-              message: `Forbidden raw HTML control <${tagName}>. Domain components and views must compose Tier 1 Interface Primitives (<Button>, <Input>, <Select>).`,
+              message,
               snippet: (lines[loc.line - 1] || '').trim().slice(0, 80),
-              remediation: `Replace <${tagName}> with Tier 1 Interface Primitive <${tagName.charAt(0).toUpperCase() + tagName.slice(1)}>.`,
+              remediation,
             });
           }
         }
@@ -521,8 +535,11 @@ export function auditRenderToStringContent(filePath: string, content: string): A
 // Regex to match hex colors (#fff, #ffffff, #12345678), ignoring url(#...)
 const HEX_COLOR_REGEX = /(?:^|[^a-zA-Z0-9_\-#])#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b(?![0-9a-fA-F])/g;
 
-// Regex to match hardcoded px / rem values (excluding safelisted 1px, 0px, 0)
-const HARDCODED_UNIT_REGEX = /(?:^|[^a-zA-Z0-9_\-])(\d+(?:\.\d+)?)(px|rem)\b/g;
+// Regex to match hardcoded rgb/rgba/hsl/hsla color functions
+const COLOR_FUNCTION_REGEX = /\b(rgba?|hsla?)\s*\([^)]*\)/g;
+
+// Regex to match hardcoded px / rem / ms values (excluding safelisted 1px, 0px, 0rem, 0ms)
+const HARDCODED_UNIT_REGEX = /(?:^|[^a-zA-Z0-9_-])(\d+(?:\.\d+)?)(px|rem|ms)\b/g;
 
 // Regex to match outer margin declarations
 const MARGIN_DECL_REGEX = /^\s*(?:margin|margin-top|margin-right|margin-bottom|margin-left|margin-inline|margin-block)\s*:\s*([^;]+);?/i;
@@ -600,16 +617,47 @@ export function auditCssModuleContent(filePath: string, content: string): AuditD
       }
     }
 
-    // 3. Check for hardcoded px / rem tokens (do NOT mask minmax/clamp)
+    // 2b. Check for hardcoded color functions (rgba, rgb, hsla, hsl)
+    COLOR_FUNCTION_REGEX.lastIndex = 0;
+    let colorMatch: RegExpExecArray | null;
+    while ((colorMatch = COLOR_FUNCTION_REGEX.exec(strippedLine)) !== null) {
+      if (!isLineSuppressed(lines, lineNum, 'hardcoded-css-token')) {
+        diagnostics.push({
+          filePath,
+          line: lineNum,
+          column: colorMatch.index + 1,
+          ruleId: 'hardcoded-css-token',
+          severity: 'error',
+          message: `Hardcoded color function "${colorMatch[0]}" is forbidden. Consume semantic tokens (var(--token-name)).`,
+          snippet: line.trim().slice(0, 80),
+          remediation: 'Replace with semantic design token var(--token-name).',
+        });
+      }
+    }
+
+    // 3. Check for hardcoded px / rem / ms tokens (excluding @media/@container condition headers)
+    let lineToCheckForUnits = strippedLine;
+    let unitOffset = 0;
+    const trimmedLine = strippedLine.trim();
+    if (trimmedLine.startsWith('@media') || trimmedLine.startsWith('@container')) {
+      const braceIndex = strippedLine.indexOf('{');
+      if (braceIndex === -1) {
+        lineToCheckForUnits = '';
+      } else {
+        lineToCheckForUnits = strippedLine.slice(braceIndex + 1);
+        unitOffset = braceIndex + 1;
+      }
+    }
+
     HARDCODED_UNIT_REGEX.lastIndex = 0;
     let unitMatch: RegExpExecArray | null;
-    while ((unitMatch = HARDCODED_UNIT_REGEX.exec(strippedLine)) !== null) {
+    while ((unitMatch = HARDCODED_UNIT_REGEX.exec(lineToCheckForUnits)) !== null) {
       const numStr = unitMatch[1];
       const unit = unitMatch[2];
       const full = `${numStr}${unit}`;
 
-      // Safelist: 1px (borders/hairlines/outlines) or 0px
-      if (full === '1px' || full === '0px' || full === '0rem') {
+      // Safelist: 1px (borders/hairlines/outlines) or 0px / 0rem / 0ms
+      if (full === '1px' || full === '0px' || full === '0rem' || full === '0ms') {
         continue;
       }
 
@@ -617,7 +665,7 @@ export function auditCssModuleContent(filePath: string, content: string): AuditD
         diagnostics.push({
           filePath,
           line: lineNum,
-          column: unitMatch.index + 1,
+          column: unitMatch.index + unitOffset + 1,
           ruleId: 'hardcoded-css-token',
           severity: 'error',
           message: `Hardcoded CSS token "${full}" is forbidden. Consume semantic tokens (var(--token-name)) or use 1px for borders/hairlines.`,

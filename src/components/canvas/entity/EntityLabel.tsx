@@ -6,7 +6,7 @@ import { SafeHtml } from '../SafeHtml';
 import styles from './EntityLabel.module.css';
 import type { CelestialInteractionState } from './types';
 import { useOcclusionManager } from './SpatialEntityContext';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import {
   type CelestialFootprint,
   type Box2D,

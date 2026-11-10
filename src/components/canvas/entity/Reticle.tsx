@@ -11,7 +11,7 @@ import {
   type PlanetCensusEntry,
 } from '../cartography/reticleGeometry';
 import { useOcclusionManager } from './SpatialEntityContext';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { resolveEntityScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState, NodeAlphaRef } from './types';
 

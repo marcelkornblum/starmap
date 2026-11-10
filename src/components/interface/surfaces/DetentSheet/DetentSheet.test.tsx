@@ -1,31 +1,33 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { DetentSheet } from './DetentSheet';
 import {
-  DetentSheet,
   resolveDetentFromHeight,
   computeSheetDragStep,
-} from './DetentSheet';
+  computeSheetReleaseSnap,
+} from './detentSheetMath';
 
 describe('<DetentSheet />', () => {
   describe('pure math helpers', () => {
     it('resolves detent from height ratios correctly', () => {
-      expect(resolveDetentFromHeight(200, 1000)).toBe('peek'); // 0.2 < 0.45
-      expect(resolveDetentFromHeight(500, 1000)).toBe('partial'); // 0.5 >= 0.45 and < 0.8
-      expect(resolveDetentFromHeight(850, 1000)).toBe('full'); // 0.85 >= 0.8
+      // vh = 1000 => midpoint = 253, full band = 920
+      expect(resolveDetentFromHeight(200, 1000)).toBe('peek');
+      expect(resolveDetentFromHeight(500, 1000)).toBe('partial');
+      expect(resolveDetentFromHeight(950, 1000)).toBe('full');
     });
 
     it('computes sheet drag step for upward expansion', () => {
       const step = computeSheetDragStep({
-        startHeightPx: 300,
+        startHeightPx: 100,
         startClientY: 500,
-        currentClientY: 400, // dragged up by 100px
+        currentClientY: 400, // dragged up by 100px => 200px
         viewportHeightPx: 1000,
         isFullScreen: false,
         scrollTop: 0,
       });
 
-      expect(step.nextHeightPx).toBe(400);
+      expect(step.nextHeightPx).toBe(200);
       expect(step.isFullScreen).toBe(false);
       expect(step.shouldPreventScroll).toBe(true);
       expect(step.effectiveDetent).toBe('peek');
@@ -44,6 +46,20 @@ describe('<DetentSheet />', () => {
       expect(step.nextHeightPx).toBe(1000);
       expect(step.isFullScreen).toBe(true);
       expect(step.effectiveDetent).toBe('full');
+    });
+
+    it('computes snap physics correctly on release', () => {
+      const snapPeek = computeSheetReleaseSnap({ heightPx: 200, viewportHeightPx: 1000 });
+      expect(snapPeek.detent).toBe('peek');
+      expect(snapPeek.snappedHeightPx).toBe(56);
+
+      const snapPartial = computeSheetReleaseSnap({ heightPx: 400, viewportHeightPx: 1000 });
+      expect(snapPartial.detent).toBe('partial');
+      expect(snapPartial.snappedHeightPx).toBe(450);
+
+      const snapFull = computeSheetReleaseSnap({ heightPx: 950, viewportHeightPx: 1000 });
+      expect(snapFull.detent).toBe('full');
+      expect(snapFull.snappedHeightPx).toBe(1000);
     });
   });
 

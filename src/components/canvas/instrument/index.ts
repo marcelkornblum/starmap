@@ -1,4 +1,5 @@
 export * from './referenceFrame';
+export * from './spatialFrameContext';
 export * from './SpatialFrameProvider';
 export * from './PlanarGrid';
 export * from './RangeRings';

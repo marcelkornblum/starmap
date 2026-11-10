@@ -3,7 +3,7 @@ import { Quantity } from '../Quantity/Quantity';
 import { ConfidencePip, type ConfidenceLevel } from '../ConfidencePip/ConfidencePip';
 import styles from './Datum.module.css';
 
-export interface DatumProps extends HTMLAttributes<HTMLDivElement> {
+export interface DatumProps extends Omit<HTMLAttributes<HTMLDivElement>, 'className' | 'style'> {
   label: ReactNode;
   value: ReactNode;
   unit?: ReactNode;
@@ -21,25 +21,19 @@ export const Datum = ({
   size = 'md',
   valueTestId,
   confidence,
-  className,
   ...rest
 }: DatumProps) => {
-  const combinedClassName = className
-    ? `${styles.datum} ${className}`
-    : styles.datum;
-
   const valueElement = (
     <Quantity
       value={value}
       unit={unit}
-      className={styles.valueWrapper}
       data-testid={valueTestId}
     />
   );
 
   return (
     <div
-      className={combinedClassName}
+      className={styles.datum}
       data-datum="true"
       data-status={status}
       data-size={size}

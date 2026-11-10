@@ -27,7 +27,7 @@ export const Box: Story = {
         </p>
       </div>
       <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
-        <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <Component {...args}>
           <div style={{ backgroundColor: '#ff5c5c', padding: '1rem', color: 'white' }}>Box Content</div>
         </Component>
       </div>

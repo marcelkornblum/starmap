@@ -12,8 +12,8 @@
     --tooltip-border-style: var(--surface-popover-border-style);
     --tooltip-shadow: var(--surface-popover-shadow);
     --tooltip-padding: var(--space-inset-tooltip);
-    --tooltip-radius: var(--surface-popover-radius);
-    --tooltip-font-size: var(--text-ui-tooltip-size);
+    --tooltip-radius: var(--radius-badge);
+    --tooltip-font-size: var(--type-scale-neg-1);
     --tooltip-offset: var(--space-offset-overlay);
     --tooltip-backdrop-blur: var(--surface-popover-backdrop-blur);
     --tooltip-transition-duration: var(--motion-duration-feedback);
@@ -30,7 +30,10 @@
     font-size: var(--tooltip-font-size);
     font-family: var(--font-interface);
     inline-size: max-content;
-    max-inline-size: min(280px, calc(100vw - 32px));
+    max-inline-size: min(
+      calc(var(--space-fib-10) + var(--space-fib-6) + var(--space-fib-4)),
+      calc(100vw - calc(var(--space-fib-5) + var(--space-fib-3) + var(--space-fib-1)))
+    );
     white-space: normal;
     word-break: normal;
     overflow-wrap: break-word;
@@ -47,7 +50,10 @@
 
   @media (max-width: 480px) {
     .tooltip {
-      max-inline-size: min(220px, calc(100vw - 24px));
+      max-inline-size: min(
+        calc(var(--space-fib-10) - var(--space-fib-4)),
+        calc(100vw - calc(var(--space-fib-5) + var(--space-fib-1)))
+      );
     }
   }
 

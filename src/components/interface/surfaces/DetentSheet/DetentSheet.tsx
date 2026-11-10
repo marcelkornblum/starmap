@@ -1,73 +1,12 @@
 import React, { useState, useRef, useEffect, type ReactNode } from 'react';
 import styles from './DetentSheet.module.css';
-
-export type DetentLevel = 'peek' | 'partial' | 'full';
-
-export const MIN_SHEET_HEIGHT_PX = 56;
-export const DEFAULT_MOBILE_SHEET_RATIO = 0.36;
-
-export interface SheetDragStepInput {
-  readonly startHeightPx: number;
-  readonly startClientY: number;
-  readonly currentClientY: number;
-  readonly viewportHeightPx: number;
-  readonly minHeightPx?: number;
-  readonly isFullScreen: boolean;
-  readonly scrollTop: number;
-}
-
-export interface SheetDragStepResult {
-  readonly nextHeightPx: number;
-  readonly isFullScreen: boolean;
-  readonly shouldPreventScroll: boolean;
-  readonly effectiveDetent: DetentLevel;
-}
-
-export function resolveDetentFromHeight(heightPx: number, viewportHeightPx: number): DetentLevel {
-  const ratio = heightPx / Math.max(1, viewportHeightPx);
-  if (ratio < 0.45) return 'peek';
-  if (ratio < 0.8) return 'partial';
-  return 'full';
-}
-
-export function computeSheetDragStep(input: SheetDragStepInput): SheetDragStepResult {
-  const deltaY = input.currentClientY - input.startClientY;
-  const minH = input.minHeightPx ?? MIN_SHEET_HEIGHT_PX;
-  const maxH = Math.max(minH, input.viewportHeightPx);
-
-  let nextHeightPx: number;
-  let isFullScreen: boolean;
-  let shouldPreventScroll: boolean;
-
-  if (input.isFullScreen) {
-    if (input.scrollTop > 0) {
-      nextHeightPx = maxH;
-      isFullScreen = true;
-      shouldPreventScroll = false;
-    } else if (deltaY > 0) {
-      nextHeightPx = Math.max(minH, Math.min(maxH, maxH - deltaY));
-      isFullScreen = nextHeightPx >= maxH - 4;
-      shouldPreventScroll = true;
-    } else {
-      nextHeightPx = maxH;
-      isFullScreen = true;
-      shouldPreventScroll = false;
-    }
-  } else {
-    shouldPreventScroll = true;
-    nextHeightPx = Math.max(minH, Math.min(maxH, input.startHeightPx - deltaY));
-    isFullScreen = nextHeightPx >= maxH - 4;
-  }
-
-  const effectiveDetent = resolveDetentFromHeight(nextHeightPx, maxH);
-
-  return {
-    nextHeightPx,
-    isFullScreen,
-    shouldPreventScroll,
-    effectiveDetent,
-  };
-}
+import {
+  type DetentLevel,
+  MIN_SHEET_HEIGHT_PX,
+  PARTIAL_SHEET_RATIO,
+  computeSheetDragStep,
+  computeSheetReleaseSnap,
+} from './detentSheetMath';
 
 export interface DetentSheetProps {
   readonly testIdPrefix: string;
@@ -77,7 +16,6 @@ export interface DetentSheetProps {
   readonly peek: ReactNode;
   readonly partial?: ReactNode;
   readonly full?: ReactNode;
-  readonly className?: string;
   readonly children?: ReactNode;
   readonly 'data-entity-id'?: string;
   readonly 'data-system-id'?: string;
@@ -87,7 +25,7 @@ export interface DetentSheetProps {
 /**
  * Shared multi-detent sheet primitive.
  * Supports progressive disclosure across Peek, Partial, and Full detents
- * with accessible landmarks and semantic data-testid attributes.
+ * with accessible landmarks, scoped CSS custom property block-size, and snap physics.
  */
 export const DetentSheet: React.FC<DetentSheetProps> = ({
   testIdPrefix,
@@ -97,7 +35,6 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
   peek,
   partial,
   full,
-  className,
   children,
   'data-entity-id': entityId,
   'data-system-id': systemId,
@@ -118,13 +55,14 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
       setDetentState(activeDetent);
       setIsFullScreenState(activeDetent === 'full');
       const vh = getViewportHeight();
-      let h = Math.round(vh * DEFAULT_MOBILE_SHEET_RATIO);
+      let h = MIN_SHEET_HEIGHT_PX;
       if (activeDetent === 'full') {
         h = vh;
       } else if (activeDetent === 'partial') {
-        h = Math.round(vh * 0.6);
+        h = Math.round(vh * PARTIAL_SHEET_RATIO);
       }
-      sheetRef.current?.style.setProperty('--sheet-mobile-height', `${h}px`);
+      // DEC-R051: Sanctioned scoped custom property for mobile DetentSheet block-size
+      sheetRef.current?.style.setProperty('--detent-sheet-block-size', `${h}px`);
     }
   }, [activeDetent]);
 
@@ -136,9 +74,13 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
   } | null>(null);
 
   const startDrag = (clientY: number) => {
+    const vh = getViewportHeight();
     const currentHeight = sheetRef.current
-      ? sheetRef.current.getBoundingClientRect().height
-      : Math.round(getViewportHeight() * DEFAULT_MOBILE_SHEET_RATIO);
+      ? (parseFloat(sheetRef.current.style.getPropertyValue('--detent-sheet-block-size') || '0') ||
+         sheetRef.current.getBoundingClientRect().height ||
+         Math.round(vh * PARTIAL_SHEET_RATIO))
+      : Math.round(vh * PARTIAL_SHEET_RATIO);
+
     dragStartRef.current = {
       startY: clientY,
       startHeight: currentHeight,
@@ -165,7 +107,8 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
       e.preventDefault();
     }
 
-    sheetRef.current?.style.setProperty('--sheet-mobile-height', `${step.nextHeightPx}px`);
+    // DEC-R051: Sanctioned scoped custom property for mobile DetentSheet block-size
+    sheetRef.current?.style.setProperty('--detent-sheet-block-size', `${step.nextHeightPx}px`);
     if (step.effectiveDetent !== detentState) {
       setDetentState(step.effectiveDetent);
     }
@@ -175,7 +118,26 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
   };
 
   const endDrag = () => {
-    if (dragStartRef.current) {
+    if (dragStartRef.current && dragStartRef.current.isDragging) {
+      const vh = getViewportHeight();
+      const currentHeight = sheetRef.current
+        ? (parseFloat(sheetRef.current.style.getPropertyValue('--detent-sheet-block-size') || '0') ||
+           sheetRef.current.getBoundingClientRect().height ||
+           Math.round(vh * PARTIAL_SHEET_RATIO))
+        : Math.round(vh * PARTIAL_SHEET_RATIO);
+
+      const snap = computeSheetReleaseSnap({
+        heightPx: currentHeight,
+        viewportHeightPx: vh,
+        minHeightPx: MIN_SHEET_HEIGHT_PX,
+        partialRatio: PARTIAL_SHEET_RATIO,
+      });
+
+      // DEC-R051: Sanctioned scoped custom property for mobile DetentSheet block-size
+      sheetRef.current?.style.setProperty('--detent-sheet-block-size', `${snap.snappedHeightPx}px`);
+      setDetentState(snap.detent);
+      setIsFullScreenState(snap.isFullScreen);
+
       dragStartRef.current.isDragging = false;
       dragStartRef.current = null;
     }
@@ -230,8 +192,6 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
     endDrag();
   };
 
-  const rootClasses = [styles.detentSheet, className].filter(Boolean).join(' ');
-
   return (
     <aside
       ref={sheetRef}
@@ -240,7 +200,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
       data-detent={detentState}
       data-is-full-screen={isFullScreenState ? 'true' : 'false'}
       data-min-height-px={MIN_SHEET_HEIGHT_PX}
-      className={rootClasses}
+      className={styles.detentSheet}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

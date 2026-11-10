@@ -1,14 +1,14 @@
 @layer blocks {
   .sliderContainer {
     /* Component Geometry & Layout */
-    --slider-track-height: 2px;
-    --slider-track-border-width: 0px;
+    --slider-track-height: var(--stroke-width-2);
+    --slider-track-border-width: 0;
     --slider-track-border-style: none;
     --slider-track-border-color: transparent;
     --slider-track-radius: var(--radius-1);
 
-    --slider-thumb-width: 3px;
-    --slider-thumb-height: 14px;
+    --slider-thumb-width: var(--stroke-width-3);
+    --slider-thumb-height: calc(var(--space-fib-4) + var(--stroke-width-1));
     --slider-thumb-radius: 1px;
     --slider-gap: var(--space-gap-control);
 
@@ -42,7 +42,7 @@
     -webkit-appearance: none;
     appearance: none;
     inline-size: 100%;
-    block-size: 20px;
+    block-size: var(--type-scale-1);
     background: transparent;
     border: none;
     outline: none;
@@ -111,12 +111,12 @@
 
   .rangeInput:focus-visible::-webkit-slider-thumb {
     outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
-    outline-offset: 2px;
+    outline-offset: var(--stroke-width-2);
   }
 
   .rangeInput:focus-visible::-moz-range-thumb {
     outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
-    outline-offset: 2px;
+    outline-offset: var(--stroke-width-2);
   }
 }
 

@@ -11,7 +11,7 @@
 
   .comparisonGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(var(--size-measure-sm), 1fr));
     gap: var(--space-fib-4);
   }
 

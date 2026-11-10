@@ -119,6 +119,25 @@ describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', 
       expect(diags.every((d) => d.ruleId === 'forbidden-raw-element')).toBe(true);
     });
 
+    it('flags raw list elements: <ul>, <ol>, <dl>', () => {
+      const code = `
+        export const MyListView = () => (
+          <div>
+            <ul><li>Item</li></ul>
+            <ol><li>Ordered</li></ol>
+            <dl><dt>Term</dt><dd>Definition</dd></dl>
+          </div>
+        );
+      `;
+      const diags = auditRawElementsContent('src/views/MyListView.tsx', code);
+      expect(diags).toHaveLength(3);
+      expect(diags.map((d) => d.snippet)).toEqual(
+        expect.arrayContaining([expect.stringContaining('<ul'), expect.stringContaining('<ol'), expect.stringContaining('<dl')])
+      );
+      expect(diags.every((d) => d.ruleId === 'forbidden-raw-element')).toBe(true);
+      expect(diags[0].remediation).toContain('<Stack as="ul">');
+    });
+
     it('permits Tier 1 Interface Primitives: <Button>, <Input>, <Select>', () => {
       const code = `
         import { Button, Input, Select } from '../components/interface';
@@ -274,6 +293,90 @@ describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', 
       const diags = auditCssModuleContent('src/views/Color.module.css', css);
       const hexDiags = diags.filter((d) => d.ruleId === 'hardcoded-hex-color');
       expect(hexDiags).toHaveLength(2);
+    });
+
+    it('exempts @media and @container condition headers while flagging declarations inside', () => {
+      const css = `
+        @layer blocks {
+          @media (max-width: 767px) {
+            .responsive {
+              padding: var(--space-fib-3);
+            }
+          }
+          @container (min-width: 400px) {
+            .card {
+              display: flex;
+            }
+          }
+          @media (max-width: 767px) { .inline { padding: 16px; } }
+        }
+      `;
+      const diags = auditCssModuleContent('src/views/Media.module.css', css);
+      const tokenDiags = diags.filter((d) => d.ruleId === 'hardcoded-css-token');
+      expect(tokenDiags).toHaveLength(1);
+      expect(tokenDiags[0].snippet).toContain('padding: 16px');
+    });
+
+    it('flags hardcoded rgba/rgb/hsl color functions', () => {
+      const css = `
+        @layer blocks {
+          .glass {
+            background: rgba(255, 255, 255, 0.92);
+            border-color: rgb(0, 0, 0);
+            box-shadow: 0 0 var(--space-fib-3) hsla(200, 50%, 50%, 0.5);
+          }
+        }
+      `;
+      const diags = auditCssModuleContent('src/views/Glass.module.css', css);
+      const colorDiags = diags.filter((d) => d.ruleId === 'hardcoded-css-token');
+      expect(colorDiags).toHaveLength(3);
+    });
+
+    it('flags hardcoded ms durations and safelists 0ms', () => {
+      const css = `
+        @layer blocks {
+          .animated {
+            transition: color 150ms ease, opacity 0ms linear;
+            animation-duration: 300ms;
+          }
+        }
+      `;
+      const diags = auditCssModuleContent('src/views/Anim.module.css', css);
+      const tokenDiags = diags.filter((d) => d.ruleId === 'hardcoded-css-token');
+      expect(tokenDiags).toHaveLength(2);
+      expect(tokenDiags.some((d) => d.message.includes('"150ms"'))).toBe(true);
+      expect(tokenDiags.some((d) => d.message.includes('"300ms"'))).toBe(true);
+      expect(tokenDiags.some((d) => d.message.includes('"0ms"'))).toBe(false);
+    });
+
+    it('verifies that all Wave 1A owned CSS modules have zero violations', () => {
+      const ownedFiles = [
+        'src/views/GuideViews.module.css',
+        'src/components/canvas/FullAssembly.module.css',
+        'src/components/canvas/cartography/StorybookCanvasWrapper.module.css',
+        'src/components/canvas/entity/EntityLabel.module.css',
+        'src/components/canvas/entity/JourneyChord.module.css',
+        'src/components/canvas/scenes/SpatialScenes.module.css',
+        'src/components/domain/BodiesPanel/BodiesPanel.module.css',
+        'src/components/domain/Breadcrumbs/Breadcrumbs.module.css',
+        'src/components/domain/CanonLayerItem/CanonLayerItem.module.css',
+        'src/components/domain/ControlBar/ControlBar.module.css',
+        'src/components/domain/Guide3DPreview/Guide3DPreview.module.css',
+        'src/components/domain/MetricComparativePanel/MetricComparativePanel.module.css',
+        'src/components/domain/Minimap/Minimap.module.css',
+        'src/components/domain/PreviewPanel/PreviewPanel.module.css',
+        'src/components/domain/SpatialShell/SpatialShell.module.css',
+        'src/components/domain/StarTypeCombinator/StarTypeCombinator.module.css',
+        'src/components/domain/domainStories.module.css',
+      ];
+
+      for (const file of ownedFiles) {
+        const fullPath = path.resolve(file);
+        expect(fs.existsSync(fullPath), `File ${file} should exist`).toBe(true);
+        const content = fs.readFileSync(fullPath, 'utf8');
+        const diags = auditCssModuleContent(file, content);
+        expect(diags, `Violations found in ${file}: ${JSON.stringify(diags)}`).toEqual([]);
+      }
     });
   });
 

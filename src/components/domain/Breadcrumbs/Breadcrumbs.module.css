@@ -50,22 +50,22 @@
   .modeMenu {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    background: var(--surface-dock-bg, rgba(0, 0, 0, 0.4));
-    border: 1px solid var(--surface-dock-border-color, rgba(255, 255, 255, 0.1));
+    gap: var(--stroke-width-2);
+    background: var(--surface-dock-bg);
+    border: var(--border-width-1) solid var(--surface-dock-border-color);
     border-radius: var(--radius-control);
-    padding: 2px;
+    padding: var(--stroke-width-2);
     flex: 0 0 auto;
   }
 
   .modeButton {
     flex: 0 0 auto;
     font-size: var(--type-scale-neg-1);
-    padding-block: 2px;
+    padding-block: var(--stroke-width-2);
     padding-inline: var(--space-fib-2);
-    min-block-size: 24px;
+    min-block-size: var(--ui-control-height-sm);
     line-height: 1;
-    border-radius: calc(var(--radius-control) - 2px);
+    border-radius: calc(var(--radius-control) - var(--stroke-width-2));
   }
 
   .modeButton[data-active="true"] {
@@ -85,22 +85,22 @@
     }
 
     .modeMenu {
-      padding: 1px;
-      gap: 1px;
+      padding: var(--stroke-width-1);
+      gap: var(--stroke-width-1);
     }
 
     .modeButton {
       font-size: var(--type-scale-neg-2);
-      padding-block: 2px;
+      padding-block: var(--stroke-width-2);
       padding-inline: var(--space-fib-1);
-      min-block-size: 20px;
+      min-block-size: var(--space-fib-5);
     }
 
     .companionLink {
       font-size: var(--type-scale-neg-2);
-      padding-block: 2px;
+      padding-block: var(--stroke-width-2);
       padding-inline: var(--space-fib-2);
-      min-block-size: 22px;
+      min-block-size: var(--space-fib-5);
     }
   }
 }

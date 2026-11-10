@@ -17,7 +17,7 @@
     padding: var(--space-3) var(--space-4);
     border-radius: var(--radius-container);
     border: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(var(--filter-blur-3));
     font-family: var(--font-data);
     pointer-events: auto;
     display: flex;
@@ -74,7 +74,7 @@
     color: var(--content-muted);
     cursor: pointer;
     text-decoration: underline;
-    text-underline-offset: 2px;
+    text-underline-offset: var(--stroke-width-2);
   }
 
   .crumbActive {
@@ -123,7 +123,6 @@
     gap: var(--space-1);
     font-size: var(--text-caption-size);
     color: var(--content-subtle);
-    margin-block-start: var(--space-1);
     padding-block-start: var(--space-1);
     border-block-start: var(--border-width-1) var(--border-style-boundary) var(--border-subtle);
   }

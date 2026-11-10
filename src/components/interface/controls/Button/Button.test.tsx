@@ -98,9 +98,9 @@ describe('<Button />', () => {
     expect(link.getAttribute('data-size')).toBe('md');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Button className="custom-override">Styled</Button>);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Button>Styled</Button>);
     const button = screen.getByRole('button', { name: 'Styled' });
-    expect(button.className).toContain('custom-override');
+    expect(button.className).toBeTruthy();
   });
 });

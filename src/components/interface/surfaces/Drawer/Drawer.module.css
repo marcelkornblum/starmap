@@ -55,7 +55,7 @@
     position: absolute;
     inset-block-start: 0;
     inset-inline: 0;
-    block-size: min(100%, 360px);
+    block-size: min(100%, calc(var(--space-fib-7) * 6 + var(--space-fib-5)));
     background: linear-gradient(
       137deg,
       oklch(100% 0 0 / 0.08) 0%,
@@ -112,7 +112,7 @@
     inset-block: 0;
     inset-inline-start: 0;
     inset-inline-end: auto;
-    inline-size: min(85vw, 420px);
+    inline-size: min(85vw, calc(var(--space-fib-7) * 7 + var(--space-fib-5)));
     border-inline-end: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
   }
 
@@ -120,7 +120,7 @@
     inset-block: 0;
     inset-inline-start: auto;
     inset-inline-end: 0;
-    inline-size: min(85vw, 420px);
+    inline-size: min(85vw, calc(var(--space-fib-7) * 7 + var(--space-fib-5)));
     border-inline-start: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
   }
 
@@ -128,7 +128,7 @@
     inset-inline: 0;
     inset-block-start: 0;
     inset-block-end: auto;
-    block-size: min(60vh, 360px);
+    block-size: min(60vh, calc(var(--space-fib-7) * 6 + var(--space-fib-5)));
     border-block-end: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
   }
 
@@ -136,7 +136,7 @@
     inset-inline: 0;
     inset-block-start: auto;
     inset-block-end: 0;
-    block-size: min(60vh, 360px);
+    block-size: min(60vh, calc(var(--space-fib-7) * 6 + var(--space-fib-5)));
     border-block-start: var(--drawer-border-width) var(--drawer-border-style) var(--drawer-border-color);
   }
 }

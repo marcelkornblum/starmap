@@ -101,10 +101,10 @@ describe('<Sidebar />', () => {
     expect(container.getAttribute('aria-label')).toBe('Target Telemetry Sidebar');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Sidebar className="custom-sidebar" data-testid="sidebar-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Sidebar data-testid="sidebar-container" />);
 
     const container = screen.getByTestId('sidebar-container');
-    expect(container.className).toContain('custom-sidebar');
+    expect(container.className).toBeTruthy();
   });
 });

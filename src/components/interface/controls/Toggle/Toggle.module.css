@@ -1,14 +1,14 @@
 @layer blocks {
   .toggleContainer {
     /* Component Geometry & Layout */
-    --toggle-width: 32px;
-    --toggle-height: 16px;
+    --toggle-width: calc(var(--space-fib-6) - var(--stroke-width-2));
+    --toggle-height: calc(var(--space-fib-3) * 2);
     --toggle-radius: var(--radius-badge);
     --toggle-track-border-width: var(--border-width-1);
 
-    --toggle-thumb-size: 8px;
+    --toggle-thumb-size: var(--space-fib-3);
     --toggle-thumb-radius: 50%;
-    --toggle-thumb-offset: 3px;
+    --toggle-thumb-offset: var(--space-fib-1);
     --toggle-thumb-active-offset: calc(var(--toggle-width) - var(--toggle-thumb-size) - (var(--toggle-thumb-offset) * 2));
 
     --toggle-gap: var(--space-gap-control);
@@ -73,21 +73,27 @@
                 background var(--toggle-transition-duration) var(--toggle-transition-ease),
                 box-shadow var(--toggle-transition-duration) var(--toggle-transition-ease);
   }
-
-  .toggleContainer:not([data-disabled="true"]):hover .switchThumb {
-    filter: brightness(1.15);
-  }
 }
 
 @layer exceptions {
+  .toggleContainer:hover:not(:disabled) {
+    --toggle-track-border-color: var(--ui-control-default);
+    --toggle-thumb-bg: var(--ui-control-hover);
+  }
+
   .toggleContainer[data-checked="true"] {
-    --toggle-track-bg: var(--ui-control-active-bg);
-    --toggle-track-border-color: oklch(from var(--ui-control-active) l c h / 0.40);
-    --toggle-thumb-bg: var(--ui-control-active);
-    --toggle-thumb-glow: var(--ui-control-active-glow);
+    --toggle-track-bg: var(--state-active-subtle);
+    --toggle-track-border-color: var(--border-focus);
+    --toggle-thumb-bg: var(--state-active);
+    --toggle-thumb-glow: var(--palette-accent-focus-halo);
     --toggle-thumb-transform: translateX(var(--toggle-thumb-active-offset));
   }
 
+  .toggleContainer[data-checked="true"]:hover:not(:disabled) {
+    --toggle-thumb-bg: var(--palette-accent-focus-hover);
+  }
+
+  .toggleContainer:disabled,
   .toggleContainer[data-disabled="true"] {
     --toggle-opacity: var(--ui-disabled-opacity);
     --toggle-cursor: not-allowed;

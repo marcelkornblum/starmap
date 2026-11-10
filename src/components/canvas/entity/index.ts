@@ -11,5 +11,11 @@ export * from './EntityLabel';
 export * from './CelestialEntity';
 export * from './OcclusionPass';
 export * from './PlanetBody';
+export {
+  type PlanetPalette,
+  CLASSIFICATION_PALETTES,
+  getClassificationPalette,
+} from '../../../data/planetPalettes';
 export * from './JourneyChord';
+export * from './sectorPointCloudShaders';
 export * from './SectorPointCloud';

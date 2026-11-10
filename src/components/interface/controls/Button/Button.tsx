@@ -3,7 +3,7 @@ import { resolveAppHref } from '../../../../utils/url';
 import { handleSpaNavigation } from '../../../../hooks/spaNavigation';
 import styles from './Button.module.css';
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'style'> {
   variant?: 'primary' | 'subtle' | 'danger' | 'default';
   size?: 'sm' | 'md' | 'lg';
   children?: ReactNode;
@@ -20,13 +20,8 @@ export const Button = ({
   target,
   rel,
   children,
-  className,
   ...rest
 }: ButtonProps) => {
-  const combinedClassName = className
-    ? `${styles.button} ${className}`
-    : styles.button;
-
   if (href !== undefined) {
     const { onClick, ...anchorRest } = rest;
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>): void => {
@@ -39,7 +34,7 @@ export const Button = ({
         href={resolveAppHref(href)}
         target={target}
         rel={rel}
-        className={combinedClassName}
+        className={styles.button}
         data-variant={variant}
         data-size={size}
         {...(anchorRest as AnchorHTMLAttributes<HTMLAnchorElement>)}
@@ -53,7 +48,7 @@ export const Button = ({
   return (
     <button
       type={type}
-      className={combinedClassName}
+      className={styles.button}
       data-variant={variant}
       data-size={size}
       {...rest}

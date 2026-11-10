@@ -1,7 +1,7 @@
 @layer blocks {
   .viewportContainer {
     inline-size: 100%;
-    block-size: 820px;
+    block-size: calc(var(--size-measure-lg) + var(--size-measure-sm));
     position: relative;
     overflow: hidden;
     border-radius: var(--radius-container);

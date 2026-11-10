@@ -1,31 +1,15 @@
-import React, { createContext, useContext } from 'react';
+import React from 'react';
 import * as THREE from 'three';
-import { useStore } from 'zustand';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import {
-  createSpatialEntityStore,
-  deriveEntityTier,
-  type SpatialEntityStore,
   type SpatialEntityState,
-  type CelestialInteractionState,
 } from './SpatialEntityStore';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { FRAME_PRIORITY } from '../engineConfig';
-import {
-  CelestialOcclusionManager,
-} from '../cartography/celestialOcclusionRegistry';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
-
-const SpatialEntityStoreContext = createContext<SpatialEntityStore | null>(null);
-export const OcclusionContext = createContext<CelestialOcclusionManager | null>(null);
-
-export interface SpatialEntityProviderProps {
-  store?: SpatialEntityStore;
-  occlusionManager?: CelestialOcclusionManager;
-  children?: React.ReactNode;
-}
+import { useSpatialEntityStoreApi } from './SpatialEntityContext';
 
 const APERTURE_EPSILON = 0.05;
 
@@ -143,60 +127,3 @@ export const ApertureEvaluator: React.FC = () => {
 
   return null;
 };
-
-export const SpatialEntityProvider: React.FC<SpatialEntityProviderProps> = ({
-  store: explicitStore,
-  occlusionManager: explicitManager,
-  children,
-}) => {
-  const [localStore] = React.useState(() => createSpatialEntityStore());
-  const activeStore = explicitStore ?? localStore;
-  const [localManager] = React.useState(() => new CelestialOcclusionManager());
-  const activeManager = explicitManager ?? localManager;
-
-  return (
-    <SpatialEntityStoreContext.Provider value={activeStore}>
-      <OcclusionContext.Provider value={activeManager}>
-        {children}
-      </OcclusionContext.Provider>
-    </SpatialEntityStoreContext.Provider>
-  );
-};
-
-export function useOcclusionManager(): CelestialOcclusionManager {
-  const manager = useContext(OcclusionContext);
-  if (!manager) {
-    throw new Error('useOcclusionManager must be used within an <OcclusionContext.Provider> or <SpatialEntityProvider>');
-  }
-  return manager;
-}
-
-export function useSpatialEntityStore<T>(selector: (state: SpatialEntityState) => T): T {
-  const store = useContext(SpatialEntityStoreContext);
-  if (!store) {
-    throw new Error('useSpatialEntityStore must be used within a <SpatialEntityProvider>');
-  }
-  return useStore(store, selector);
-}
-
-export function useSpatialEntityStoreApi(): SpatialEntityStore {
-  const store = useContext(SpatialEntityStoreContext);
-  if (!store) {
-    throw new Error('useSpatialEntityStore must be used within a <SpatialEntityProvider>');
-  }
-  return store;
-}
-
-export function useOptionalSpatialEntityStoreApi(): SpatialEntityStore | null {
-  return useContext(SpatialEntityStoreContext);
-}
-
-/**
- * Subscribes to the authoritative derived visual tier for an entity.
- * Component only re-renders when this specific entity's tier changes.
- */
-export function useEntityTier(id: string): CelestialInteractionState {
-  return useSpatialEntityStore((s) => deriveEntityTier(id, s));
-}
-
-

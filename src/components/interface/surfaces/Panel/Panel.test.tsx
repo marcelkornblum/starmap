@@ -34,15 +34,15 @@ describe('<Panel />', () => {
     expect(screen.getByText('Main Observation Matrix')).toBeDefined();
   });
 
-  it('merges custom className and forwards extra attributes', () => {
+  it('applies static module class and forwards extra attributes', () => {
     render(
-      <Panel className="custom-panel" role="region" aria-label="System details" data-testid="panel">
+      <Panel role="region" aria-label="System details" data-testid="panel">
         Content
       </Panel>
     );
 
     const panel = screen.getByTestId('panel');
-    expect(panel.className).toContain('custom-panel');
+    expect(panel.className).toMatch(/panel/);
     expect(panel.getAttribute('role')).toBe('region');
     expect(panel.getAttribute('aria-label')).toBe('System details');
   });

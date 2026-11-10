@@ -1,6 +1,6 @@
 import React from 'react';
 import * as THREE from 'three';
-import { useSpatialFrameSafe } from './SpatialFrameProvider';
+import { useSpatialFrameSafe } from './spatialFrameContext';
 import type { FrameLightingConfig } from './referenceFrame';
 
 export interface CartographicLightingProps {

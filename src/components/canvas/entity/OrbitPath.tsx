@@ -10,7 +10,7 @@ import {
   CartoLineMaterial,
   CARTO_LINE_CONSTANTS,
 } from '../materials/CartoLineMaterial';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 

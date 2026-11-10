@@ -393,6 +393,12 @@
     --space-fib-5: calc(var(--space-fib-3) + var(--space-fib-4));       /* 21px */
     --space-fib-6: calc(var(--space-fib-4) + var(--space-fib-5));       /* 34px */
     --space-fib-7: calc(var(--space-fib-5) + var(--space-fib-6));       /* 55px */
+    --space-fib-8: calc(var(--space-fib-6) + var(--space-fib-7));       /* 89px */
+    --space-fib-9: calc(var(--space-fib-7) + var(--space-fib-8));       /* 144px */
+    --space-fib-10: calc(var(--space-fib-8) + var(--space-fib-9));      /* 233px */
+    --space-fib-11: calc(var(--space-fib-9) + var(--space-fib-10));     /* 377px */
+    --space-fib-12: calc(var(--space-fib-10) + var(--space-fib-11));    /* 610px */
+    --space-fib-13: calc(var(--space-fib-11) + var(--space-fib-12));    /* 987px */
 
     /* ------------------------------------------------------------------------ */
     /* 4. Literal Geometry & Strokes                                            */
@@ -400,6 +406,7 @@
     --radius-0: 0px;
     --radius-1: 2px;
     --radius-2: 4px;
+    --radius-pill-literal: 9999px;
 
     --stroke-width-0: 0px;
     --stroke-width-1: 1px;

@@ -19,17 +19,13 @@ export const Sidebar = ({
   gap = 'default',
   noStretch = false,
   children,
-  className,
   ...rest
 }: SidebarProps) => {
   const Tag = as as 'div';
-  const combinedClassName = className
-    ? `${styles.sidebarContainer} ${className}`
-    : styles.sidebarContainer;
 
   return (
     <Tag
-      className={combinedClassName}
+      className={styles.sidebarContainer}
       data-side={side}
       data-width={sideWidth}
       data-content-min={contentMin}

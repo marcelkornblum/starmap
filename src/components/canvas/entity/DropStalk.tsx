@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoHairlineMaterial } from '../materials/CartoLineMaterial';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import {
   createReticleGeometry,
   DEFAULT_RETICLE_SIZE,
