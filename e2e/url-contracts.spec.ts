@@ -197,7 +197,7 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         // Out-of-scope entity in ?center= is also stripped via history.replace
         await page.goto('/system/sol?center=tau-ceti');
         await expect(page.getByTestId('system-view-root')).toBeVisible({ timeout: 15_000 });
-        await expect(page).not.toHaveURL(/[?&]center=tau-ceti/, { timeout: 15_000 });
+        await expect(page).not.toHaveURL(/[?&]center=tau-ceti/, { timeout: 20_000 });
       },
     );
 

@@ -12,10 +12,15 @@ export const SearchInput = ({
   id = 'starmap-search-input',
   label = 'Search query',
 }: SearchInputProps) => {
-  const { query, setQuery, isFocused } = useSearchContext();
+  const { query, setQuery, isFocused, setIsFocused } = useSearchContext();
 
   const handleQueryChange = (event: ChangeEvent<HTMLInputElement>): void => {
+    setIsFocused?.(true);
     setQuery(event.target.value);
+  };
+
+  const handleFocus = (): void => {
+    setIsFocused?.(true);
   };
 
   const handleClearQuery = (): void => {
@@ -38,6 +43,7 @@ export const SearchInput = ({
           sizeVariant="sm"
           placeholder="Search stars, planets, layers..."
           value={query}
+          onFocus={handleFocus}
           onChange={handleQueryChange}
         />
       </div>

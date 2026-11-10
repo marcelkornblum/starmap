@@ -202,6 +202,9 @@ export const useSearchExecution = ({
   const setQuery = useCallback(
     (nextQuery: string): void => {
       setQueryState(nextQuery);
+      if (nextQuery.trim().length > 0) {
+        setIsFocused(true);
+      }
 
       if (deferredSearchTimerRef.current !== null) {
         clearTimeout(deferredSearchTimerRef.current);

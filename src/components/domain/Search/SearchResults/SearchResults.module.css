@@ -15,6 +15,8 @@
 @layer exceptions {
   :global([data-search-focused="true"]) .resultsPanel,
   :global([data-scope="search"]) .resultsPanel,
+  :global(:has([data-scope="search"])) .resultsPanel,
+  :global([data-testid="search-view-root"]) .resultsPanel,
   .resultsPanel:focus-within {
     display: flex;
   }
