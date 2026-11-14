@@ -5,7 +5,7 @@ import type {
   FocusedStarEntityDetails,
   FocusedStructureEntityDetails,
   FocusedSystemEntityDetails,
-} from '../../../services/detailsService';
+} from '../../src/services/detailsService';
 
 export const systemDetailsFixture: FocusedSystemEntityDetails = {
   id: 'tau-ceti',

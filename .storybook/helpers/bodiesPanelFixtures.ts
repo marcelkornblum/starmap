@@ -2,7 +2,7 @@ import type {
   GalaxyBodiesSummary,
   PlanetaryBodiesSummary,
   SystemBodiesSummary,
-} from '../../../services/detailsService';
+} from '../../src/services/detailsService';
 
 export const solSystemBodiesFixture: SystemBodiesSummary = {
   scope: 'system',

@@ -250,11 +250,13 @@ const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
           data-testid="bodies-minor-bodies-section"
           className={styles.section}
         >
-          <div className={styles.sectionHeading}>
-            <Heading as="h3" id="bodies-minor-bodies-heading">
-              Minor Bodies &amp; Spacecraft
-            </Heading>
-          </div>
+          <Heading
+            as="h3"
+            size="eyebrow"
+            id="bodies-minor-bodies-heading"
+          >
+            Minor Bodies &amp; Spacecraft
+          </Heading>
           <DataTable data-testid="bodies-minor-bodies-list">
             <DataTable.Head>
               <DataTable.Row>

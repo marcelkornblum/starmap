@@ -5,7 +5,7 @@ import {
   earthPlanetaryBodiesFixture,
   solGalaxyBodiesFixture,
   solSystemBodiesFixture,
-} from './BodiesPanel.stories.fixtures';
+} from '../../../../.storybook/helpers/bodiesPanelFixtures';
 
 import storyStyles from '../domainStories.module.css';
 

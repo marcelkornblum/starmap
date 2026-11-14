@@ -183,7 +183,15 @@ describe('<BodiesPanel />', () => {
     expect(panel.getAttribute('data-scope')).toBe('system');
     expect(panel.getAttribute('data-system-id')).toBe('sol');
     expect(screen.getByTestId('orbital-schematic-panel')).toBeDefined();
-    expect(screen.getByTestId('bodies-minor-bodies-section')).toBeDefined();
+
+    const minorBodiesSection = screen.getByTestId('bodies-minor-bodies-section');
+    expect(minorBodiesSection).toBeDefined();
+
+    const heading = screen.getByRole('heading', { level: 3, name: /minor bodies/i });
+    expect(heading).toBeDefined();
+    expect(heading.parentElement).toBe(minorBodiesSection);
+    expect(heading.getAttribute('data-size')).toBe('eyebrow');
+
     expect(screen.getByText('Voyager 1')).toBeDefined();
   });
 

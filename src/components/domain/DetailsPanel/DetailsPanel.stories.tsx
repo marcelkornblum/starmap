@@ -5,7 +5,7 @@ import { Stack } from '../../interface/layouts/Stack/Stack';
 import {
   DETAILS_BY_KIND,
   systemDetailsFixture,
-} from './DetailsPanel.stories.fixtures';
+} from '../../../../.storybook/helpers/detailsPanelFixtures';
 
 import storyStyles from '../domainStories.module.css';
 
