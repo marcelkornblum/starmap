@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { BodyMarker } from './BodyMarker';
@@ -9,6 +9,10 @@ import { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegi
 describe('BodyMarker Component & Interaction (AUD-115, AUD-116)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('renders central celestial marker in monochrome and hitarea mesh', async () => {

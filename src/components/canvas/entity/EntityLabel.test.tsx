@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { screen, render } from '@testing-library/react';
@@ -12,6 +12,10 @@ import { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegi
 describe('EntityLabel Primitive (Layer 3: Typographic Label)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('renders with label text and spectral tag cleanly via portal outlet', async () => {

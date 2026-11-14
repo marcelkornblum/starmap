@@ -86,6 +86,7 @@ describe('reticleGeometry', () => {
       });
       // 8 diamond points + 96 multiplicity points + 48 planetary points = 152 points
       expect(geom.getAttribute('position').count).toBe(152);
+      geom.dispose();
     });
 
     it('creates concentric double-circle reticle geometry for super-earth', () => {
