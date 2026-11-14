@@ -728,6 +728,41 @@ Records programme-level and per-track decisions for the architecture remediation
   3. *Option C (Mock R3F Primitives Only):* Mock R3F primitives and test only extracted builders.
 - **Decision:** Option B. Install `@react-three/test-renderer` as a `devDependency` and mount 3D R3F scene-graph components via `@react-three/test-renderer` so `renderToString` and `react-dom` R3F tag/prop warnings are eliminated together.
 
+---
+
+## Track T10 · Closing Audit
+
+### DEC-R058: Track T10 Review Mode (`DEC-R006`)
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** Confirm review mode before executing Track T10 (`architecture-remediation_10_closing-audit_20261106`).
+- **Options Considered:**
+  1. *Whole-Track Review in PR:* Execute all phases continuously through completion (pausing for unratified Phase 1 atomic decisions) and present the completed track in the Pull Request.
+  2. *Phase-by-Phase Review:* Halt at each phase checkpoint and await explicit permission.
+- **Decision:** Option 1 — **Whole-Track Review in PR**.
+
+---
+
+### DEC-R059: Guard Baseline Disposition vs. Track T10 Scope Boundary
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** Track T10 `spec.md` stated both *"Out of scope: New remediation work (raise follow-on tracks instead)"* and *"Owned guard baselines at zero: all guards permanent at zero"*. While all structural, UI, R3F, and test-hygiene guard rules (`G-imports`, `G-imports-cycle`, `G-shims`, `G-canvas`, `G-r3f`, `G-ui`, `only-export-components`, `react(globals)`, `forbidden-rendertostring`) are permanently at `0`, `scripts/guards/baseline.json` still contains 112 entries: 14 non-production `eslint(max-lines)` entries (`tests/`, `e2e/`, `scripts/`, `content/`) caused by `.oxlintrc.json` lacking non-UI exclusions, plus 98 entries for oversized service/codec/canvas modules (`G-size` / `max-lines`), broad `G-literals` numeric-fallback AST matches (`?? 1`), and React compiler/hook edge cases.
+- **Options Considered:**
+  1. *Option A (Honest Ratchet + Scoped `.oxlintrc.json` + Follow-On Track):* Scope `.oxlintrc.json` `max-lines` to exclude `**/*.test.*`, `tests/**`, `e2e/**`, `scripts/**`, and `content/**` (`112 → 98` entries), retain `scripts/guards/baseline.json` as the permanent shrink-only CI gate for those 98 entries without hiding them behind blanket suppression comments, reconcile T10/initiative closure wording accordingly, and scaffold a follow-on chore track for service/codec/canvas decomposition and `G-literals` heuristic refinement.
+  2. *Option B (Inline Suppressions):* Add 98 inline `guard-disable` / `oxlint-disable` comments so `baseline.json` hits literal `0` entries today.
+  3. *Option C (Pause T10):* Insert multi-PR decomposition tracks ahead of T10.
+- **Decision:** Option A. Fix `.oxlintrc.json` `max-lines` scoping (`112 → 98` entries), keep `baseline.json` as the permanent downward-only CI gate, reconcile closure criteria wording, and raise a follow-on chore track for the remaining service/codec/canvas decomposition and `G-literals` AST refinement.
+
+---
+
+### DEC-R060: Target Architecture Promotion to `docs/` & Initiative Archival Scope (`AUD-150`)
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** Track T10 closes `architecture-remediation`. Two placeholder files in `docs/architecture/` (`3d-canvas-management.md`, `routing-and-state.md`) date from September 30, several docs (`docs/design-system.md`, `docs/3d-spatial-architecture.md`, `docs/scene-requirements.md`, `conductor/tech-stack.md`, `conductor/code_styleguides/components.md`, root `README.md`) contain pre-remediation drift (`AUD-150`), and `conductor/tracks.md` / `conductor/index.md` still carry the `DEC-R003` feature-freeze banner.
+- **Options Considered:**
+  1. *Option A (Full Promotion + Initiative & Track Archival + Feature-Freeze Lift):* Author/replace 4 authoritative target-architecture docs under `docs/architecture/` (`3d-canvas-management.md`, `routing-and-state.md`, `layering-and-guardrails.md`, `data-pipeline-and-codecs.md`); remediate drift across `docs/design-system.md`, `docs/3d-spatial-architecture.md`, `docs/scene-requirements.md`, `docs/README.md`, `conductor/tech-stack.md`, `conductor/code_styleguides/components.md`, and root `README.md`; archive `conductor/initiatives/architecture-remediation/` → `conductor/archive/initiatives/architecture-remediation/` and all 10 tracks `conductor/tracks/architecture-remediation_*` → `conductor/archive/tracks/`; and lift the `DEC-R003` feature freeze in `conductor/tracks.md` and `conductor/index.md`.
+  2. *Option B (Promote Docs & Fix Drift Only, Leave Initiative Unarchived):* Promote docs and lift `DEC-R003`, but keep the initiative and its 10 tracks in active directories.
+- **Decision:** Option A. Execute full target-architecture promotion to `docs/architecture/`, remediate all documentation drift, archive the completed initiative and all 10 tracks under `conductor/archive/`, and lift the `DEC-R003` feature freeze.
 
 
 

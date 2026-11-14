@@ -25,7 +25,7 @@ AUD-150 · AUD-151 (see [findings ledger](../../initiatives/architecture-remedia
 ## Acceptance Criteria
 
 - [ ] Every owned finding (AUD-150, AUD-151) marked `verified` by the end-of-track audit.
-- [ ] Owned guard baselines at zero: all guards permanent at zero.
+- [ ] Owned guard baselines at zero: all structural, UI, R3F, and test-hygiene guards (`G-imports`, `G-imports-cycle`, `G-shims`, `G-canvas`, `G-r3f`, `G-ui`, `only-export-components`, `react(globals)`, `forbidden-rendertostring`) permanent at zero; `.oxlintrc.json` `max-lines` scoped to production code (`112 → 98` entries); remaining service/codec/canvas size and `G-literals` heuristic entries governed by permanent shrink-only `baseline.json` and tracked in a follow-on chore track (`DEC-R059`).
 - [ ] No guard baseline increased.
 - [ ] Full e2e suite including URL contract specs green.
 - [ ] Manual smoke checklist passed.

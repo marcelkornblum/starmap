@@ -14,7 +14,7 @@
 - [x] **Track T07: One Persistent Canvas & R3F Hot Paths** *Link: [conductor/tracks/architecture-remediation_07_persistent-canvas_20261106/index.md](./tracks/architecture-remediation_07_persistent-canvas_20261106/index.md)* *(depends on T06)*
 - [x] **Track T08: View & UI Decomposition** *Link: [conductor/tracks/architecture-remediation_08_ui-decomposition_20261106/index.md](./tracks/architecture-remediation_08_ui-decomposition_20261106/index.md)* *(depends on T05, T06)*
 - [x] **Track T09: Test Restructure** *Link: [conductor/tracks/architecture-remediation_09_test-restructure_20261106/index.md](./tracks/architecture-remediation_09_test-restructure_20261106/index.md)* *(depends on T07, T08)*
-- [ ] **Track T10: Closing Audit** *Link: [conductor/tracks/architecture-remediation_10_closing-audit_20261106/index.md](./tracks/architecture-remediation_10_closing-audit_20261106/index.md)* *(depends on T09)*
+- [~] **Track T10: Closing Audit** *Link: [conductor/tracks/architecture-remediation_10_closing-audit_20261106/index.md](./tracks/architecture-remediation_10_closing-audit_20261106/index.md)* *(depends on T09)*
 
 ---
 
