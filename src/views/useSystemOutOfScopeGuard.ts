@@ -83,7 +83,7 @@ export function useSystemOutOfScopeGuard({
     }
   }, [
     urlSystemSlug,
-    activeCorpus.length,
+    activeCorpus,
     urlFocusSlug,
     isFocusInThisSystem,
     center,

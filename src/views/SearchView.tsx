@@ -13,6 +13,7 @@ export const SearchView: React.FC = () => {
       <Search.Root>
         <Search.Panel scope="search" />
         <Search.Results
+          alwaysOpen
           renderItem={(result) => (
             <SearchResultItem key={result.id} result={result} />
           )}

@@ -13,19 +13,31 @@ export interface SearchResultsProps {
   readonly heading?: string;
   readonly searchViewPath?: string;
   readonly renderItem?: (result: SearchResultItem) => ReactNode;
+  readonly alwaysOpen?: boolean;
 }
 
 export const SearchResults = ({
   heading = 'Search Results',
   searchViewPath,
   renderItem,
+  alwaysOpen,
 }: SearchResultsProps) => {
-  const { query, filter, status, errorMessage, results, onSelectResult, dismissSearch } =
-    useSearchContext();
+  const {
+    query,
+    filter,
+    status,
+    errorMessage,
+    results,
+    isFocused,
+    onSelectResult,
+    dismissSearch,
+  } = useSearchContext();
 
   if (query.trim().length === 0) {
     return null;
   }
+
+  const isOpen = Boolean(alwaysOpen || isFocused);
 
   const handleResultsClick = (event: MouseEvent<HTMLElement>): void => {
     const target = event.target as Element | null;
@@ -40,6 +52,7 @@ export const SearchResults = ({
       aria-labelledby="search-results-heading"
       data-testid="search-results-panel"
       data-status={status}
+      data-open={isOpen ? 'true' : 'false'}
       className={styles.resultsPanel}
       onMouseDown={(e) => e.preventDefault()}
       onClick={handleResultsClick}

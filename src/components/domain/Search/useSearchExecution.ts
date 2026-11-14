@@ -227,7 +227,7 @@ export const useSearchExecution = ({
         void submitSearch(searchQuery, filter);
       }, effectiveDebounceMs);
     },
-    [effectiveDebounceMs, filter, isSync, submitSearch, syncUrl],
+    [effectiveDebounceMs, filter, isSync, setIsFocused, submitSearch, syncUrl],
   );
 
   const setFilter = useCallback(

@@ -43,3 +43,33 @@ export const Default: Story = {
     </SearchContext.Provider>
   ),
 };
+
+export const AlwaysOpen: Story = {
+  render: () => (
+    <SearchContext.Provider
+      value={{
+        query: 'tau',
+        filter: 'all',
+        status: 'ready',
+        errorMessage: null,
+        results: executeCatalogSearch(
+          [
+            {
+              i: 'tau-ceti',
+              n: 'Tau Ceti',
+              m: [3.5, 'G8V', 4, 1],
+              a: 'tau ceti',
+            },
+          ],
+          { query: 'tau', filter: 'all' },
+        ),
+        setQuery: () => undefined,
+        setFilter: () => undefined,
+        submitSearch: async () => undefined,
+        isFocused: false,
+      }}
+    >
+      <SearchResults alwaysOpen />
+    </SearchContext.Provider>
+  ),
+};

@@ -39,6 +39,7 @@ describe('<SearchResults />', () => {
 
     const panel = screen.getByTestId('search-results-panel');
     expect(panel).toBeDefined();
+    expect(panel.getAttribute('data-open')).toBe('true');
 
     const heading = screen.getByRole('heading', { level: 2 });
     expect(heading.textContent).toBe('Search Results');
@@ -50,5 +51,75 @@ describe('<SearchResults />', () => {
     const resultItem = screen.getByTestId('search-result-item');
     expect(resultItem).toBeDefined();
     expect(screen.getByText('Tau Ceti')).toBeDefined();
+  });
+
+  it('sets data-open="false" when isFocused is false and alwaysOpen is not provided', () => {
+    const results = executeCatalogSearch(
+      [
+        {
+          i: 'tau-ceti',
+          n: 'Tau Ceti',
+          m: [3.5, 'G8V', 4, 1],
+          a: 'tau ceti',
+        },
+      ],
+      { query: 'tau', filter: 'all' },
+    );
+
+    render(
+      <SearchContext.Provider
+        value={{
+          query: 'tau',
+          filter: 'all',
+          status: 'ready',
+          errorMessage: null,
+          results,
+          setQuery: () => undefined,
+          setFilter: () => undefined,
+          submitSearch: async () => undefined,
+          isFocused: false,
+        }}
+      >
+        <SearchResults />
+      </SearchContext.Provider>,
+    );
+
+    const panel = screen.getByTestId('search-results-panel');
+    expect(panel.getAttribute('data-open')).toBe('false');
+  });
+
+  it('sets data-open="true" when alwaysOpen is passed even if isFocused is false', () => {
+    const results = executeCatalogSearch(
+      [
+        {
+          i: 'tau-ceti',
+          n: 'Tau Ceti',
+          m: [3.5, 'G8V', 4, 1],
+          a: 'tau ceti',
+        },
+      ],
+      { query: 'tau', filter: 'all' },
+    );
+
+    render(
+      <SearchContext.Provider
+        value={{
+          query: 'tau',
+          filter: 'all',
+          status: 'ready',
+          errorMessage: null,
+          results,
+          setQuery: () => undefined,
+          setFilter: () => undefined,
+          submitSearch: async () => undefined,
+          isFocused: false,
+        }}
+      >
+        <SearchResults alwaysOpen />
+      </SearchContext.Provider>,
+    );
+
+    const panel = screen.getByTestId('search-results-panel');
+    expect(panel.getAttribute('data-open')).toBe('true');
   });
 });
