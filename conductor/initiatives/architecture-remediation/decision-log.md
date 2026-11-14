@@ -682,6 +682,51 @@ Records programme-level and per-track decisions for the architecture remediation
   2. *Option B (Keep `src/components/search/` Separate):* Add `src/components/search` to `COMPONENT_QUAD_DIRS`, preserving a redundant 4th component tier.
 - **Decision:** Option A. Consolidate all search UI into `src/components/domain/Search/` with full Component File Quads, pure `.ts` barrel exports, and a clean cutover across all imports and `scripts/audit-ui.ts` / `scripts/audit-guards.ts`.
 
+---
+
+### DEC-R054: Track T09 Review Mode
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** Confirm review mode before starting Track T09 (`architecture-remediation_09_test-restructure_20261106`) per `DEC-R006` and Conductor pre-flight gate.
+- **Options Considered:**
+  1. *Option A (Whole-Track Review in PR):* Execute all phases continuously after ratifying Phase 1 atomic decisions, run the three-auditor gate + GitHub Actions CI + Gemini Code Review loop, and present in PR.
+  2. *Option B (Phase-by-Phase Review):* Halt after each phase checkpoint and await explicit permission before continuing.
+- **Decision:** Option A. Whole-Track Review in PR.
+
+---
+
+### DEC-R055: Split Vitest Projects (`unit:node` + `unit:dom`) (`AUD-143`)
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** `vite.config.ts` defaulted the single `unit` project to `environment: 'node'`, forcing 24 test files to add `// @vitest-environment jsdom` pragmas while 21 legacy suites imported `renderToString` (`AUD-004`) to avoid DOM setup.
+- **Options Considered:**
+  1. *Option A (Single `jsdom` Default):* Default the single `unit` project to `environment: 'jsdom'`, paying `jsdom` worker startup cost on pure data/math/codec suites.
+  2. *Option B (Split `unit:node` + `unit:dom` Projects):* Split Vitest into two deterministic projects partitioned cleanly by file extension (`unit:node` with `environment: 'node'` matching `**/*.test.ts` for pure logic/data/services/math/stores, and `unit:dom` with `environment: 'jsdom'` matching `**/*.test.tsx` for components, views, DOM/React hooks, and router rendering), removing all per-file `@vitest-environment` pragmas.
+- **Decision:** Option B. Configure `unit:node` (`**/*.test.ts`, `environment: 'node'`) and `unit:dom` (`**/*.test.tsx`, `environment: 'jsdom'`) in `vite.config.ts`, naming any test that invokes `render`, `renderHook`, or DOM APIs `.test.tsx` and pure non-DOM tests `.test.ts`, and remove per-file `@vitest-environment jsdom` pragmas.
+
+---
+
+### DEC-R056: Colocated 1:1 `src/` Tests vs Top-Level `tests/` Integration Boundary (`AUD-140`, `AUD-141`, `AUD-142`)
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** Top-level `tests/` held 36 `.test.*` files mixing monolithic catch-all suites (`searchService.test.ts`, `detailsServiceAndPanel.test.tsx`, `guideViews.test.tsx`, `layerCardAndExplore.test.tsx`, `journeyServiceAndPanel.test.tsx`), misplaced single-module unit/component/hook/canvas tests, and cross-module user-journey integration flows, while `src/views/**`, `src/services/**`, `src/services/details/**`, `src/components/domain/Search/**` helpers, and `src/utils/nomenclature.ts` lacked 1:1 colocated tests.
+- **Options Considered:**
+  1. *Option A (Strict 1:1 Colocation in `src/` + Cross-Module Integration Only in `tests/`):* Split all catch-all monoliths and relocate all single-module unit, hook, component, canvas, router, and view tests into colocated 1:1 `.test.ts(x)` files alongside their `src/**` modules; reserve top-level `tests/` strictly for `tests/setup.ts`, `tests/fixtures/`, and genuine cross-module user-journey integration suites (`journey1..5*Flow.test.tsx`, `searchAndFocusIntegration.test.tsx`).
+  2. *Option B (Scoped `AUD-140..142` Only):* Colocate only the explicitly named `AUD-142` targets and leave other single-module tests in `tests/`.
+  3. *Option C (Dissolve All `tests/*.test.*` Files):* Dissolve cross-module journey integration suites into single-module unit tests as well.
+- **Decision:** Option A. Colocate all single-module 1:1 tests in `src/**` (`.test.ts` for `unit:node`, `.test.tsx` for `unit:dom`) and reserve top-level `tests/` strictly for `tests/setup.ts`, shared `tests/fixtures/`, and cross-module integration flows migrated to `@testing-library/react`.
+
+---
+
+### DEC-R057: `@react-three/test-renderer` for 3D R3F Scene-Graph Unit Tests (`AUD-144`, `AUD-004`)
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** Legacy 3D canvas suites used `renderToString` (`AUD-004`), while newer 3D tests mounted R3F `<mesh>`, `<group>`, `<ambientLight>`, and `<shaderMaterial>` elements into `react-dom` `render(...)`, flooding test output with React 19 DOM casing/prop warnings (`AUD-144`) and binding refs to `HTMLUnknownElement` rather than Three.js `Object3D` instances.
+- **Options Considered:**
+  1. *Option A (Custom `createRoot` Harness):* Build an in-repo reconciler wrapper over `@react-three/fiber`'s `createRoot`.
+  2. *Option B (`@react-three/test-renderer` devDependency):* Add official `@react-three/test-renderer` as a `devDependency` for 3D R3F scene-graph unit tests (`ReactThreeTestRenderer.create(...)`), while HTML/HUD overlays use `@testing-library/react` `render(...)`.
+  3. *Option C (Mock R3F Primitives Only):* Mock R3F primitives and test only extracted builders.
+- **Decision:** Option B. Install `@react-three/test-renderer` as a `devDependency` and mount 3D R3F scene-graph components via `@react-three/test-renderer` so `renderToString` and `react-dom` R3F tag/prop warnings are eliminated together.
 
 
 
