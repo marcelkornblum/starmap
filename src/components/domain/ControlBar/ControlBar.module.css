@@ -9,12 +9,12 @@
     inline-size: 100%;
   }
 
-  .mobileToggle {
+  .controlBar [data-mobile-toggle] {
     display: none;
     align-items: center;
     justify-content: center;
-    inline-size: 36px;
-    block-size: 36px;
+    inline-size: calc(var(--space-fib-6) + var(--stroke-width-2));
+    block-size: calc(var(--space-fib-6) + var(--stroke-width-2));
     border-radius: var(--radius-control);
     background: var(--surface-hud-bg);
     border: var(--surface-hud-border-width) var(--surface-hud-border-style) var(--surface-hud-border-color);
@@ -26,27 +26,16 @@
                 color var(--motion-duration-feedback) var(--motion-ease-out);
   }
 
-  .mobileToggle:hover {
+  .controlBar [data-mobile-toggle]:hover {
     background: var(--surface-dock-bg);
     color: var(--content-prominent);
   }
 
-  .mobileToggle:focus-visible {
-    outline: 2px solid var(--state-focus);
-    outline-offset: 2px;
+  .controlBar [data-mobile-toggle]:focus-visible {
+    outline: var(--state-focus-ring-width) solid var(--state-focus);
+    outline-offset: var(--state-focus-ring-offset);
   }
 
-  .srOnly {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
 
   .timeController {
     display: flex;
@@ -62,30 +51,16 @@
     gap: var(--space-fib-2);
   }
 
-  .shortcutsList {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-fib-3);
+  .controlBar [data-shortcuts-list] {
     font-family: var(--font-interface);
     font-size: var(--type-scale-neg-1);
     color: var(--content-muted);
-  }
-
-  .shortcutItem {
-    margin: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-fib-1);
   }
 }
 
 @layer exceptions {
   @media (max-width: 767px) {
-    .mobileToggle {
+    .controlBar [data-mobile-toggle] {
       display: inline-flex;
     }
 
@@ -93,7 +68,7 @@
       gap: var(--space-fib-2);
     }
 
-    .shortcutsList {
+    .controlBar [data-shortcuts-list] {
       display: none;
     }
 
@@ -116,7 +91,7 @@
       gap: var(--space-fib-2);
     }
 
-    .controlBar[data-mobile-expanded="true"] .mobileToggle {
+    .controlBar[data-mobile-expanded="true"] [data-mobile-toggle] {
       align-self: flex-end;
     }
 

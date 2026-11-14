@@ -22,7 +22,7 @@ export const GuideExamplesList: React.FC<GuideExamplesListProps> = ({
   return (
     <section className={styles.cardItem}>
       <Heading as="h3">{title}</Heading>
-      <DataTable data-testid="guide-examples-list" className={styles.examplesList}>
+      <DataTable data-testid="guide-examples-list">
         <DataTable.Head>
           <DataTable.Row>
             <DataTable.HeaderCell>Benchmark</DataTable.HeaderCell>

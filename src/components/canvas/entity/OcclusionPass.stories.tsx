@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
 import { OcclusionPass } from './OcclusionPass';
 import { CelestialEntity } from './CelestialEntity';
-import { SpatialEntityProvider, ApertureEvaluator } from './SpatialEntityContext';
+import { SpatialEntityProvider } from './SpatialEntityProvider';
+import { ApertureEvaluator } from './ApertureEvaluator';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
 
 const meta: Meta<typeof OcclusionPass> = {

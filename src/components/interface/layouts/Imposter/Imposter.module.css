@@ -1,4 +1,4 @@
-@layer composition {
+@layer blocks {
   .imposter {
     --imposter-margin: var(--space-stack-default);
 
@@ -7,6 +7,7 @@
     max-inline-size: calc(100% - (var(--imposter-margin) * 2));
     max-block-size: calc(100% - (var(--imposter-margin) * 2));
     overflow: auto;
+    margin: 0;
   }
 
   .imposter[data-fixed="true"] {

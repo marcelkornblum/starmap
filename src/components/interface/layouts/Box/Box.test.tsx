@@ -99,10 +99,10 @@ describe('<Box />', () => {
     expect(container.getAttribute('aria-label')).toBe('Sensor Matrix Box');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Box className="custom-box" data-testid="box-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Box data-testid="box-container" />);
 
     const container = screen.getByTestId('box-container');
-    expect(container.className).toContain('custom-box');
+    expect(container.className).toBeTruthy();
   });
 });

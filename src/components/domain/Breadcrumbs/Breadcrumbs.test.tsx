@@ -41,9 +41,12 @@ describe('<Breadcrumbs />', () => {
 
     const galaxyBtn = screen.getByTestId('breadcrumbs-mode-galaxy');
     expect(galaxyBtn.getAttribute('aria-current')).toBe('page');
+    expect(galaxyBtn.getAttribute('data-active')).toBe('true');
+    expect(galaxyBtn.hasAttribute('data-mode-button')).toBe(true);
 
     const companionLink = screen.getByTestId('breadcrumbs-companion-link');
     expect(companionLink.getAttribute('href')).toContain('/guide/star-types/G2V');
+    expect(companionLink.hasAttribute('data-mode-button')).toBe(true);
   });
 
   it('renders mode menu with Guide active in guide context', () => {
@@ -52,9 +55,12 @@ describe('<Breadcrumbs />', () => {
 
     const guideBtn = screen.getByTestId('breadcrumbs-mode-guide');
     expect(guideBtn.getAttribute('aria-current')).toBe('page');
+    expect(guideBtn.getAttribute('data-active')).toBe('true');
+    expect(guideBtn.hasAttribute('data-mode-button')).toBe(true);
 
     const companionLink = screen.getByTestId('breadcrumbs-companion-link');
     expect(companionLink.getAttribute('href')).toContain('/galaxy?focus=sol');
+    expect(companionLink.hasAttribute('data-mode-button')).toBe(true);
   });
 
   it('falls back to default /galaxy companion href in guide context when companionHref is omitted', () => {

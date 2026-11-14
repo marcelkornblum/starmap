@@ -627,6 +627,62 @@ Records programme-level and per-track decisions for the architecture remediation
   - **State & Tokens:** Remove module fallback singletons (throw if hook used outside provider); centralise camera restoration into `CameraRig`; store theme tokens as immutable hex strings in Zustand; unify cartographic line metrics in a single token module; replace `EntityLabel` inline styles with CSS custom properties (`--label-offset-x`, `--label-offset-y`).
   - **Interaction:** Call `billboardRef.current.updateMatrixWorld(true)` immediately after transform updates in `useFrame`; track pointer-down / pointer-up Euclidean distance with a 6–8 px threshold on `BodyMarker` to prevent click suppression under `OrbitControls` damping.
 
+---
+
+### DEC-R049: Review Mode for Track T08 (`DEC-R006`)
+- **Date:** 2026-11-10
+- **Status:** `Ratified`
+- **Context:** Re-confirming review mode at the start of Track T08 (`View & UI Decomposition`) per `DEC-R006`.
+- **Decision:** Whole-Track Review in PR. Align on Phase 1 atomic decisions one by one, execute implementation continuously across phases, run the three-auditor verification gate, and present the completed track in the Pull Request with multi-viewport Playwright screenshots and clickable LAN review links.
+
+---
+
+### DEC-R050: Strict Zero-`className` Policy on Tier 1 Interface Primitives (`AUD-125`)
+- **Date:** 2026-11-10
+- **Status:** `Ratified`
+- **Context:** Tier 1 primitives (`Stack`, `Cluster`, `Grid`, `Center`, `Imposter`, `Unit`, `DetentSheet`, `Button`, etc.) accepted `className?: string` and dynamically concatenated `${styles.primitive} ${className}`, triggering `G-ui` `forbidden-dynamic-classname` violations and allowing domain panels (such as `DirectionsPanel.module.css`) to override internal primitive styling and layout flow.
+- **Options Considered:**
+  1. *Option A (Strict Zero-`className` on Tier 1 Primitives):* Remove `className` from Tier 1 primitives completely. Primitives bind their own CSS Module root class statically and expose customisation exclusively via typed props (`gap`, `align`, `justify`, `variant`, `size`) and HTML `data-*` attributes. Domain panels compose semantic block wrappers around primitives and consume native `<Button>` variants rather than injecting external classes.
+  2. *Option B (Layout Exemption):* Exempt `interface/layouts/**` from `forbidden-dynamic-classname`, leaving layout primitives vulnerable to external margin/display overrides.
+- **Decision:** Option A. Remove external `className` passthrough from Tier 1 primitives, replace `DirectionsPanel` `<Button>` CSS overrides with native `<Button>` variants, and drive `G-ui` `forbidden-dynamic-classname` to zero.
+
+---
+
+### DEC-R051: `DetentSheet` Snap Physics & Single `@container` Hierarchy Threshold (`AUD-128`)
+- **Date:** 2026-11-10
+- **Status:** `Ratified`
+- **Context:** `DetentSheet.tsx` mutated `--sheet-mobile-height` via `sheetRef.current.style.setProperty(...)` (`AUD-128`), lacked proper snap physics, and showed too much content in `peek` without a distinct `@container` information-hierarchy boundary at `partial`. Meanwhile, using a `100dvh` transparent `scroll-snap-type` wrapper is ruled out because it would intercept touch/wheel gestures meant for the underlying 3D WebGL `<Canvas>` and would not vary `<aside>`'s `block-size` for container queries.
+- **Decision:**
+  1. **Sanctioned Scoped Custom Property (`AUD-128`):** Permit updating the single scoped CSS custom property `--detent-sheet-block-size` on `sheetRef.current` during mobile sheet sizing/dragging (with `container-type: inline-size` preserved on desktop `>= 768px` for intrinsic card sizing, and `container-type: size; container-name: detent-sheet;` enabled on mobile `< 768px`).
+  2. **1-Row `peek` Minimum:** Size `peek` (`--detent-sheet-peek-size`) strictly to the drag handle + 1 heading row so only the heading is visible at minimum visibility.
+  3. **Asymmetric Snap Physics (`detentSheetMath.ts`):**
+     - **Below `partial` (`peek` $\leftrightarrow$ `partial`):** Snap bands **abut** at the midpoint between `peek` and `partial` — releasing anywhere below `partial` always snaps cleanly either down to `peek` or up to `partial` (never resting in between).
+     - **Above `partial` (`partial` $\leftrightarrow$ `full`):** Proximity snap bands apply around `partial` (upper band) and `full` (`100dvh` max expansion), with a **free-rest zone** in between so users can leave the sheet anywhere between `partial`'s upper band and `full`'s lower band.
+  4. **Single `@container` Information Hierarchy Threshold (at `partial` only):** Define exactly **one** `@container detent-sheet (min-block-size: ...)` breakpoint calibrated at `partial`. Below `partial`, only the minimal `peek` presentation is active; at `partial` and above (all the way through the free-rest zone to `full`), the `@container` query reveals all expanded panel content (`partial` + `full` sections with internal scrolling), with no second container query above `partial`.
+
+---
+
+### DEC-R052: Single-Anchor Accessible Search Result Row (`AUD-127`)
+- **Date:** 2026-11-10
+- **Status:** `Ratified`
+- **Context:** `SearchResultItem.tsx` emulated full-row clickability via `handleRowClick` calling `anchorRef.current?.click()` (`AUD-127`) because `<CelestialBadge>` and `<SpectralBadge>` rendered nested `/guide/...` `<a>` links inside the row. Clicking a badge inside a compact search result row could also unexpectedly navigate away to the Guide rather than selecting the search result.
+- **Options Considered:**
+  1. *Option A (CSS Stretched-Link Overlay):* Keep nested badge links with `z-index: 2` over `.primaryLink::after`.
+  2. *Option B (Non-Interactive Badges + Single Row `<a href>`):* Render `<CelestialBadge>` and `<SpectralBadge>` as non-interactive visual badges inside `SearchResultItem` (no nested `<a>` tags) and wrap the entire search result row content in a single native `<a href>`.
+- **Decision:** Option B. Suppress secondary `/guide` badge links inside `SearchResultItem`, delete `anchorRef` and `handleRowClick`, and wrap the entire search result row in a single native `<a href>`.
+
+---
+
+### DEC-R053: Consolidate `src/components/search/**` into `src/components/domain/Search/` (`AUD-122`, `AUD-129`, `AUD-130`)
+- **Date:** 2026-11-10
+- **Status:** `Ratified`
+- **Context:** Search UI components lived in a standalone 4th top-level component folder `src/components/search/` (omitted from `COMPONENT_QUAD_DIRS` in `scripts/audit-ui.ts`), while `SearchResultItem` lived in `src/components/domain/SearchResultItem/` and imported back across into `../../search/SearchContext`. In addition, `Search.tsx` triggered `only-export-components` lint warnings by mixing namespace object exports with re-exports.
+- **Options Considered:**
+  1. *Option A (Consolidate into `src/components/domain/Search/`):* Move `src/components/search/**` into `src/components/domain/Search/` so `src/components/` strictly follows the 3-tier `interface/` · `domain/` · `canvas/` taxonomy, export the `Search` namespace from pure barrel `src/components/domain/Search/index.ts`, decompose `SearchRoot` into focused sub-modules $\le 300$ lines, and enforce full `domain/` Component File Quad governance with zero back-compat shims.
+  2. *Option B (Keep `src/components/search/` Separate):* Add `src/components/search` to `COMPONENT_QUAD_DIRS`, preserving a redundant 4th component tier.
+- **Decision:** Option A. Consolidate all search UI into `src/components/domain/Search/` with full Component File Quads, pure `.ts` barrel exports, and a clean cutover across all imports and `scripts/audit-ui.ts` / `scripts/audit-guards.ts`.
+
+
 
 
 

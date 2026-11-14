@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useKeyboardShortcuts } from '../../../hooks/useKeyboardShortcuts';
-import { Button, Heading, Input, Kbd, Slider, Toggle } from '../../interface';
+import { Button, Cluster, Heading, Input, Kbd, Slider, Toggle } from '../../interface';
 import styles from './ControlBar.module.css';
 
 export interface ControlBarProps {
@@ -45,12 +45,12 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
       data-scope={scope}
       data-mobile-expanded={isMobileExpanded ? 'true' : 'false'}
     >
-      <Heading as="h2" id="control-bar-heading" className={styles.srOnly}>
+      <Heading as="h2" id="control-bar-heading" visuallyHidden>
         Controls
       </Heading>
 
       <Button
-        className={styles.mobileToggle}
+        data-mobile-toggle
         data-testid="control-bar-mobile-toggle"
         aria-expanded={isMobileExpanded}
         aria-label={isMobileExpanded ? 'Minimise controls' : 'Expand controls'}
@@ -172,21 +172,26 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
         />
       </div>
 
-      <ul
-        className={styles.shortcutsList}
+      <Cluster
+        as="ul"
+        gap="fib-3"
+        align="center"
+        data-shortcuts-list
         data-testid="control-bar-shortcuts-list"
       >
         {SHORTCUTS.map((shortcut) => (
-          <li
+          <Cluster
+            as="li"
             key={shortcut.key}
-            className={styles.shortcutItem}
+            gap="dense"
+            align="center"
             data-testid="control-bar-shortcut-item"
           >
             <Kbd>{shortcut.key}</Kbd>
             <span>{shortcut.label}</span>
-          </li>
+          </Cluster>
         ))}
-      </ul>
+      </Cluster>
     </section>
   );
 };

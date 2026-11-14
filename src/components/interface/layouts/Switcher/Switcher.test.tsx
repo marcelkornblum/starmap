@@ -89,10 +89,10 @@ describe('<Switcher />', () => {
     expect(container.getAttribute('aria-label')).toBe('Responsive Cluster Switcher');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Switcher className="custom-switcher" data-testid="switcher-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Switcher data-testid="switcher-container" />);
 
     const container = screen.getByTestId('switcher-container');
-    expect(container.className).toContain('custom-switcher');
+    expect(container.className).toBeTruthy();
   });
 });

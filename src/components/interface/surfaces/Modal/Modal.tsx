@@ -3,7 +3,7 @@ import { Stack } from '../../layouts/Stack/Stack';
 import { Button } from '../../controls/Button/Button';
 import styles from './Modal.module.css';
 
-export interface ModalProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'title'> {
+export interface ModalProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'title' | 'className' | 'style'> {
   isOpen: boolean;
   onClose: () => void;
   title?: ReactNode;
@@ -17,7 +17,6 @@ export const Modal = ({
   title,
   children,
   isModal = true,
-  className,
   ...rest
 }: ModalProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -44,18 +43,14 @@ export const Modal = ({
     }
   }, [isOpen, isModal]);
 
-  const combinedClassName = className
-    ? `${styles.modal} ${className}`
-    : styles.modal;
-
   return (
     <dialog
       ref={dialogRef}
-      className={combinedClassName}
+      className={styles.modal}
       role="dialog"
-      aria-modal="true"
-      aria-labelledby={title ? (rest['aria-labelledby'] || titleId) : rest['aria-labelledby']}
-      aria-label={!title && typeof rest['aria-label'] === 'string' ? rest['aria-label'] : undefined}
+      aria-modal={isModal ? 'true' : undefined}
+      aria-labelledby={title ? titleId : undefined}
+      onClose={onClose}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -69,18 +64,21 @@ export const Modal = ({
     >
       <div className={styles.modalContent}>
         <Stack gap="default">
-          <div className={styles.headerRow}>
-            {title && <h2 id={titleId} className={styles.title}>{title}</h2>}
+          <header className={styles.headerRow}>
+            {title && (
+              <h3 id={titleId} className={styles.title}>
+                {title}
+              </h3>
+            )}
             <Button
               variant="subtle"
               size="sm"
-              className={styles.closeButton}
               onClick={onClose}
               aria-label="Close dialog"
             >
               ✕
             </Button>
-          </div>
+          </header>
           <div>{children}</div>
         </Stack>
       </div>

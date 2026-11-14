@@ -77,7 +77,9 @@ describe('<Minimap />', () => {
     expect(panel.getAttribute('data-anchor-id')).toBe('sol');
 
     expect(screen.getByTestId('minimap-anchor-name').textContent).toBe('Sol');
-    expect(screen.getByTestId('minimap-telemetry')).toBeDefined();
+    const telemetry = screen.getByTestId('minimap-telemetry');
+    expect(telemetry).toBeDefined();
+    expect(telemetry.hasAttribute('data-telemetry')).toBe(true);
     expect(screen.getByTestId('minimap-coordinates').textContent).toContain('0, 0, 0');
 
     const markers = screen.getAllByTestId('minimap-marker-item');

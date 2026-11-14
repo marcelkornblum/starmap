@@ -19,7 +19,6 @@ export interface CelestialTitleProps {
   readonly symbolTestId?: string;
   readonly titleTestId?: string;
   readonly showTooltip?: boolean;
-  readonly className?: string;
   readonly 'data-testid'?: string;
   readonly onClick?: MouseEventHandler<HTMLAnchorElement>;
   readonly target?: string;
@@ -36,16 +35,11 @@ export const CelestialTitle: FC<CelestialTitleProps> = ({
   symbolTestId,
   titleTestId,
   showTooltip = true,
-  className,
   'data-testid': dataTestId,
   onClick,
   target,
   rel,
 }) => {
-  const wrapperClass = className
-    ? `${styles.celestialTitle} ${className}`
-    : styles.celestialTitle;
-
   const badgeProps = {
     type,
     size,
@@ -90,7 +84,7 @@ export const CelestialTitle: FC<CelestialTitleProps> = ({
 
   return (
     <span
-      className={wrapperClass}
+      className={styles.celestialTitle}
       data-celestial-title={type}
       data-testid={dataTestId}
     >

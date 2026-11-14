@@ -71,17 +71,16 @@ describe('<Toggle />', () => {
     expect(toggle).toBeDefined();
   });
 
-  it('merges custom className with container style', () => {
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
     render(
       <Toggle
         checked={false}
         onChange={vi.fn()}
-        className="custom-toggle"
         aria-label="Toggle"
       />
     );
 
     const toggle = screen.getByRole('switch', { name: 'Toggle' });
-    expect(toggle.className).toContain('custom-toggle');
+    expect(toggle.className).toBeTruthy();
   });
 });

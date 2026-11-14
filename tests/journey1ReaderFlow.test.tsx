@@ -3,7 +3,7 @@ import { createElement, type ReactElement } from 'react';
 import { render } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import {
   BodiesPanel,
@@ -384,7 +384,7 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(buildStarTypeGuideHref('')).toBe('/guide/star-types');
     expect(buildStarTypeGuideHref('Unknown')).toBe('/guide/star-types');
 
-    // SearchResultItem spectral badge links to /guide/star-types/G8V
+    // SearchResultItem spectral badge is non-interactive per DEC-R052 (single anchor row)
     const searchRes = executeCatalogSearch(SAMPLE_CORPUS, {
       query: 'Tau Ceti',
       filter: 'stars',
@@ -393,7 +393,7 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     const itemHtml = renderToHtml(
       createElement(SearchResultItem, { result: tauItem }),
     );
-    expect(itemHtml).toContain('href="/guide/star-types/G8V"');
+    expect(itemHtml).not.toContain('href="/guide/star-types/G8V"');
     expect(itemHtml).toContain('data-testid="result-spectral-badge"');
 
     // DetailsPanel links G8V in Peek badge, Partial summary, and Full Stars list

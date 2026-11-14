@@ -15,15 +15,13 @@ export const Cluster = ({
   align = 'center',
   justify = 'start',
   children,
-  className,
   ...rest
 }: ClusterProps) => {
   const Tag = as as 'div';
-  const combinedClassName = className ? `${styles.cluster} ${className}` : styles.cluster;
 
   return (
     <Tag
-      className={combinedClassName}
+      className={styles.cluster}
       data-gap={gap}
       data-align={align}
       data-justify={justify}

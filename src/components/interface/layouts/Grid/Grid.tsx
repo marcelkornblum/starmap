@@ -13,17 +13,13 @@ export const Grid = ({
   minWidth = 'md',
   gap = 'default',
   children,
-  className,
   ...rest
 }: GridProps) => {
   const Tag = as as 'div';
-  const combinedClassName = className
-    ? `${styles.grid} ${className}`
-    : styles.grid;
 
   return (
     <Tag
-      className={combinedClassName}
+      className={styles.grid}
       data-min={minWidth}
       data-gap={gap}
       {...rest}

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { SpatialShell, resolvePrimaryPanels } from './SpatialShell';
+import { SpatialShell } from './SpatialShell';
+import { resolvePrimaryPanels } from './spatialShellHelpers';
 import { useUIStore } from '../../../stores/useUIStore';
 
 describe('SpatialShell Domain Component', () => {

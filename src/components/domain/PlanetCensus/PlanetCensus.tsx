@@ -2,14 +2,14 @@ import type { HTMLAttributes } from 'react';
 import { Quantity } from '../../interface/information/Quantity/Quantity';
 import { CelestialSymbol } from '../../interface/information/CelestialSymbol/CelestialSymbol';
 import { Cluster } from '../../interface/layouts/Cluster/Cluster';
-import styles from './PlanetCensus.module.css';
+import './PlanetCensus.module.css';
 
 export interface PlanetCensusBreakdownItem {
   readonly composition: 'terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant';
   readonly count?: number;
 }
 
-export interface PlanetCensusProps extends HTMLAttributes<HTMLDivElement> {
+export interface PlanetCensusProps extends Omit<HTMLAttributes<HTMLDivElement>, 'className' | 'style'> {
   readonly planetCount: number;
   readonly breakdown?: readonly PlanetCensusBreakdownItem[];
   readonly hasHabitableCandidate?: boolean;
@@ -31,7 +31,6 @@ export const PlanetCensus = ({
   planetTypeTestId = 'details-summary-planet-type-link',
   habitableTestId = 'details-habitable-zone-link',
   'data-testid': dataTestId,
-  className,
   ...rest
 }: PlanetCensusProps) => {
   if (planetCount <= 0) {
@@ -40,16 +39,11 @@ export const PlanetCensus = ({
         data-testid={dataTestId}
         value={0}
         unit="confirmed planets"
-        className={className}
       />
     );
   }
 
   const hasBreakdown = Boolean(breakdown && breakdown.length > 0);
-
-  const combinedClassName = className
-    ? `${styles.census} ${className}`
-    : styles.census;
 
   return (
     <Cluster
@@ -57,7 +51,6 @@ export const PlanetCensus = ({
       align="center"
       data-planet-census="true"
       data-testid={dataTestId}
-      className={combinedClassName}
       {...rest}
     >
       {!hasBreakdown ? (
@@ -72,7 +65,6 @@ export const PlanetCensus = ({
           gap="dense"
           align="center"
           data-planet-census-item={item.composition}
-          className={styles.item}
         >
           {item.count !== undefined ? <Quantity value={item.count} /> : null}
           <CelestialSymbol

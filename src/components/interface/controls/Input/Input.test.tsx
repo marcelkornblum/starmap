@@ -82,9 +82,9 @@ describe('<Input />', () => {
     expect(input.hasAttribute('required')).toBe(true);
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Input className="custom-input-class" placeholder="Custom" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Input placeholder="Custom" />);
     const input = screen.getByPlaceholderText('Custom');
-    expect(input.className).toContain('custom-input-class');
+    expect(input.className).toBeTruthy();
   });
 });

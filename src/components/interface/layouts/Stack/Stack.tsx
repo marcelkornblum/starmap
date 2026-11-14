@@ -13,15 +13,13 @@ export const Stack = ({
   gap = 'default',
   align = 'stretch',
   children,
-  className,
   ...rest
 }: StackProps) => {
   const Tag = as as 'div';
-  const combinedClassName = className ? `${styles.stack} ${className}` : styles.stack;
 
   return (
     <Tag
-      className={combinedClassName}
+      className={styles.stack}
       data-gap={gap}
       data-align={align}
       {...rest}

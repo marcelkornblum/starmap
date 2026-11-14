@@ -80,10 +80,10 @@ describe('<Reel />', () => {
     expect(container.getAttribute('aria-label')).toBe('Spectral Gallery');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Reel className="custom-reel" data-testid="reel-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Reel data-testid="reel-container" />);
 
     const container = screen.getByTestId('reel-container');
-    expect(container.className).toContain('custom-reel');
+    expect(container.className).toBeTruthy();
   });
 });

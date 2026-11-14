@@ -3,33 +3,33 @@
     inline-size: 100vw;
     block-size: 100vh;
     position: relative;
-    padding: var(--space-inset-card, 24px);
+    padding: var(--space-inset-card);
     box-sizing: border-box;
     overflow: hidden;
   }
 
   .topLeft {
     position: absolute;
-    inset-inline-start: var(--space-inset-card, 24px);
-    inset-block-start: var(--space-inset-card, 24px);
+    inset-inline-start: var(--space-inset-card);
+    inset-block-start: var(--space-inset-card);
   }
 
   .topRight {
     position: absolute;
-    inset-inline-end: var(--space-inset-card, 24px);
-    inset-block-start: var(--space-inset-card, 24px);
+    inset-inline-end: var(--space-inset-card);
+    inset-block-start: var(--space-inset-card);
   }
 
   .bottomLeft {
     position: absolute;
-    inset-inline-start: var(--space-inset-card, 24px);
-    inset-block-end: var(--space-inset-card, 24px);
+    inset-inline-start: var(--space-inset-card);
+    inset-block-end: var(--space-inset-card);
   }
 
   .bottomRight {
     position: absolute;
-    inset-inline-end: var(--space-inset-card, 24px);
-    inset-block-end: var(--space-inset-card, 24px);
+    inset-inline-end: var(--space-inset-card);
+    inset-block-end: var(--space-inset-card);
   }
 
   .center {

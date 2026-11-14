@@ -1,13 +1,19 @@
 @layer blocks {
   .datum {
     --datum-font-family: var(--font-interface);
-    --datum-font-size: var(--data-datum-font-size);
-    --datum-label-color: var(--data-datum-label-color);
-    --datum-value-color: var(--data-datum-value-color);
-    --datum-border-color: var(--data-datum-border-color);
-    --datum-border-width: var(--data-datum-border-width);
-    --datum-border-style: var(--data-datum-border-style);
-    --datum-padding-y: var(--data-datum-padding-y);
+    --datum-font-size: var(--text-content-data-value-size);
+    --datum-label-font-size: var(--text-content-data-label-size);
+    --datum-label-color: var(--content-muted);
+    --datum-value-color: var(--content-default);
+    --datum-value-weight: 500;
+    --datum-border-color: var(--border-color-subtle);
+    --datum-border-width: var(--border-width-1);
+    --datum-border-style: var(--border-style-provisional);
+    --datum-padding-y: var(--space-inset-cell-y);
+    --datum-unit-font-size: var(--text-content-metric-unit-size);
+
+    --quantity-gap: var(--space-gap-datum);
+    --quantity-color: var(--datum-value-color);
 
     display: flex;
     justify-content: space-between;
@@ -16,18 +22,14 @@
     border-block-end: var(--datum-border-width) var(--datum-border-style) var(--datum-border-color);
     font-family: var(--datum-font-family);
     font-size: var(--datum-font-size);
+    font-weight: var(--datum-value-weight);
+    margin: 0;
   }
 
   .label {
     color: var(--datum-label-color);
-    font-size: var(--data-datum-label-font-size);
+    font-size: var(--datum-label-font-size);
     white-space: nowrap;
-  }
-
-  .valueWrapper {
-    --quantity-gap: var(--space-gap-datum);
-    --quantity-color: var(--datum-value-color);
-    font-weight: var(--data-datum-value-weight);
   }
 
   .valueGroup {
@@ -38,13 +40,25 @@
 }
 
 @layer exceptions {
-  .datum[data-status="nominal"] { --datum-value-color: var(--status-nominal); }
-  .datum[data-status="caution"] { --datum-value-color: var(--status-caution); }
-  .datum[data-status="critical"] { --datum-value-color: var(--status-critical); }
-  .datum[data-status="info"] { --datum-value-color: var(--status-info); }
+  .datum[data-status="nominal"] {
+    --datum-value-color: var(--status-nominal);
+    --quantity-color: var(--status-nominal);
+  }
+  .datum[data-status="caution"] {
+    --datum-value-color: var(--status-caution);
+    --quantity-color: var(--status-caution);
+  }
+  .datum[data-status="critical"] {
+    --datum-value-color: var(--status-critical);
+    --quantity-color: var(--status-critical);
+  }
+  .datum[data-status="info"] {
+    --datum-value-color: var(--status-info);
+    --quantity-color: var(--status-info);
+  }
 
   .datum[data-size="sm"] {
-    --datum-font-size: var(--data-datum-sm-font-size);
-    --datum-padding-y: var(--data-datum-sm-padding-y);
+    --datum-font-size: var(--type-scale-neg-2);
+    --datum-padding-y: var(--space-fib-1);
   }
 }

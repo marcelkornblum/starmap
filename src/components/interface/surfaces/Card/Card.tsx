@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import styles from './Card.module.css';
 
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {
+export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'className' | 'style'> {
   status?: 'nominal' | 'caution' | 'critical' | 'info' | 'neutral';
   interactive?: boolean;
   padding?: 'none' | 'tight' | 'default' | 'loose';
@@ -13,16 +13,11 @@ export const Card = ({
   interactive = false,
   padding = 'default',
   children,
-  className,
   ...rest
 }: CardProps) => {
-  const combinedClassName = className
-    ? `${styles.card} ${className}`
-    : styles.card;
-
   return (
     <div
-      className={combinedClassName}
+      className={styles.card}
       data-status={status}
       data-interactive={interactive ? 'true' : undefined}
       data-padding={padding}

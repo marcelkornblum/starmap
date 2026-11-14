@@ -93,10 +93,10 @@ describe('<Center />', () => {
     expect(container.getAttribute('aria-label')).toBe('Modal Shell');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Center className="custom-center" data-testid="center-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Center data-testid="center-container" />);
 
     const container = screen.getByTestId('center-container');
-    expect(container.className).toContain('custom-center');
+    expect(container.className).toBeTruthy();
   });
 });

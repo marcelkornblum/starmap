@@ -53,8 +53,8 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
           className={styles.comparisonColumn}
         >
           <Heading as="h4">
-            Baseline:{' '}
             <Cluster as="span" gap="tight" align="center">
+              <span>Baseline</span>
               <CelestialSymbol type={baselineSymbolType} size="sm" showTooltip={false} />
               <a href={resolveAppHref(comparison.baselineHref)}>{comparison.baselineName}</a>
             </Cluster>
@@ -76,8 +76,8 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
             className={styles.comparisonColumn}
           >
             <Heading as="h4">
-              Target:{' '}
               <Cluster as="span" gap="tight" align="center">
+                <span>Target</span>
                 <CelestialSymbol
                   type={
                     ('reticleType' in target ? target.reticleType : undefined) ??
@@ -98,7 +98,11 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
             </Stack>
             {targets.length > 1 && (
               <div className={styles.comparisonRatio}>
-                {target.relativeRatioLabel}
+                <Datum
+                  label="Relative Scale"
+                  value={target.relativeRatioLabel}
+                  data-testid={targets.length <= 1 ? 'metric-comparison-ratio' : undefined}
+                />
               </div>
             )}
           </div>
@@ -106,11 +110,12 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
       </div>
 
       {targets.length <= 1 && (
-        <div
-          data-testid="metric-comparison-ratio"
-          className={styles.comparisonRatio}
-        >
-          {comparison.relativeRatioLabel}
+        <div className={styles.comparisonRatio}>
+          <Datum
+            label="Relative Scale"
+            value={comparison.relativeRatioLabel}
+            data-testid={targets.length <= 1 ? 'metric-comparison-ratio' : undefined}
+          />
         </div>
       )}
     </section>

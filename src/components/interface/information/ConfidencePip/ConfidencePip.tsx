@@ -8,20 +8,15 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { Tooltip } from '../../surfaces/Tooltip/Tooltip';
+import {
+  normalizeConfidence,
+  type ConfidenceLevel,
+} from './confidencePipUtils';
 import styles from './ConfidencePip.module.css';
 
-export type ConfidenceLevel =
-  | 'confirmed'
-  | 'candidate'
-  | 'theoretical'
-  | 'projected'
-  | 'unverified'
-  | 'high'
-  | 'medium'
-  | 'moderate'
-  | 'low';
+export type { ConfidenceLevel };
 
-export interface ConfidencePipProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'onClick'> {
+export interface ConfidencePipProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'onClick' | 'className' | 'style'> {
   /** The observational confidence level represented by the pip */
   confidence: ConfidenceLevel;
   /** Custom label to show for the level name. If omitted, derives from confidence */
@@ -42,28 +37,6 @@ export interface ConfidencePipProps extends Omit<HTMLAttributes<HTMLSpanElement>
   onClick?: (event: ReactMouseEvent<HTMLButtonElement>) => void;
 }
 
-export function normalizeConfidence(confidence: ConfidenceLevel): {
-  canonical: 'confirmed' | 'candidate' | 'theoretical' | 'unverified';
-  defaultLabel: string;
-} {
-  switch (confidence) {
-    case 'confirmed':
-    case 'high':
-      return { canonical: 'confirmed', defaultLabel: 'Confirmed' };
-    case 'candidate':
-    case 'medium':
-    case 'moderate':
-      return { canonical: 'candidate', defaultLabel: 'Candidate' };
-    case 'theoretical':
-    case 'projected':
-    case 'low':
-      return { canonical: 'theoretical', defaultLabel: 'Theoretical' };
-    case 'unverified':
-    default:
-      return { canonical: 'unverified', defaultLabel: 'Unverified' };
-  }
-}
-
 export const ConfidencePip = ({
   confidence,
   label,
@@ -74,7 +47,6 @@ export const ConfidencePip = ({
   defaultOpen = false,
   onOpenChange,
   onClick,
-  className,
   ...rest
 }: ConfidencePipProps) => {
   const generatedId = useId();
@@ -103,10 +75,6 @@ export const ConfidencePip = ({
     setOpen(!isOpen);
   };
 
-  const combinedClassName = className
-    ? `${styles.pipWrapper} ${className}`
-    : styles.pipWrapper;
-
   const tooltipContent = (
     <span className={styles.tooltipContent}>
       <span className={styles.tooltipPrefix}>We have </span>
@@ -129,7 +97,7 @@ export const ConfidencePip = ({
   return (
     <span
       ref={containerRef}
-      className={combinedClassName}
+      className={styles.pipWrapper}
       data-confidence={canonical}
       data-size={size}
       data-testid="confidence-pip-wrapper"

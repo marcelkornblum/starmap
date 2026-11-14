@@ -1,22 +1,11 @@
-import { Fragment, type ReactNode } from 'react';
-import type {
-  EntityHazardItem,
-  SystemSummarySegment,
-} from '../../../services/detailsService';
-import {
-  buildPlanetTypeGuideHref,
-  buildStarTypeGuideHref,
-  buildTagGalaxyHref,
-} from '../../../services/searchService';
+import type { EntityHazardItem } from '../../../services/detailsService';
 import {
   buildHazardGuideHref,
   HAZARDS_GUIDE_PATH,
 } from '../../../services/guideService';
 import {
-  CelestialBadge,
   HazardBadge,
   Quantity,
-  SpectralBadge,
   Unit,
 } from '../../interface';
 
@@ -73,41 +62,3 @@ export const HazardSummary = ({
     </span>
   );
 };
-
-export const renderSystemSummarySegments = (
-  segments: readonly SystemSummarySegment[],
-): ReactNode =>
-  segments.map((seg, idx) => {
-    if (seg.kind === 'spectral-badge') {
-      return (
-        <SpectralBadge
-          key={idx}
-          spectralType={seg.spectralType}
-          href={buildStarTypeGuideHref(seg.spectralType)}
-          fallback={seg.spectralType}
-          data-testid="details-summary-spectral-link"
-        />
-      );
-    }
-    if (seg.kind === 'planet-type-badge') {
-      return (
-        <CelestialBadge
-          key={idx}
-          type={seg.composition}
-          href={buildPlanetTypeGuideHref(seg.composition)}
-          data-testid="details-summary-planet-type-link"
-        />
-      );
-    }
-    if (seg.kind === 'habitable-badge') {
-      return (
-        <CelestialBadge
-          key={idx}
-          type="habitable-zone"
-          href={buildTagGalaxyHref('HabitableCandidate')}
-          data-testid="details-summary-habitable-link"
-        />
-      );
-    }
-    return <Fragment key={idx}>{seg.text}</Fragment>;
-  });

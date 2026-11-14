@@ -3,11 +3,11 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
+import { CanvasLayer } from './CanvasLayer';
 import {
-  CanvasLayer,
   canMountWebGLCanvas,
   _resetWebGLSupportedForTesting,
-} from './CanvasLayer';
+} from './webglSupport';
 import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import { useCameraStore } from '../../../stores/useCameraStore';
 

@@ -6,7 +6,7 @@ import {
 } from '../src/components/interface/information/CelestialSymbol';
 import { DetailsPanel } from '../src/components/domain/DetailsPanel/DetailsPanel';
 import { BodiesPanel } from '../src/components/domain/BodiesPanel/BodiesPanel';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { Breadcrumbs } from '../src/components/domain/Breadcrumbs/Breadcrumbs';
 import { GuideExamplesList } from '../src/components/domain/GuideExamplesList/GuideExamplesList';
 import { PreviewPanel } from '../src/components/domain/PreviewPanel/PreviewPanel';

@@ -127,17 +127,17 @@ Source: 2026-11-06 audit of `main` @ `4c45916`. Every finding below has been ver
 
 | ID | Finding | Evidence | Acceptance check | Status |
 |---|---|---|---|---|
-| AUD-120 | God components: `SearchRoot` (774), `GalaxyView` (750), `DirectionsPanel` (525) | — | `G-size` ≤ 300 for components/views | open |
-| AUD-121 | Hardcoded px/rem/rgba/ms in CSS modules | `views/GuideViews.module.css`, `SpatialShell.module.css`, `DetentSheet.module.css`, `CelestialSymbol.module.css` | `G-ui` token rule at zero | open |
-| AUD-122 | Quad gaps: `CelestialBadge`, `SpectralBadge`, `HazardBadge`, `CelestialTitle`, seven `DetailsPanel` sub-components, `components/search/**` | `interface/information/CelestialSymbol/`, `domain/DetailsPanel/`, `components/search/` | `G-ui` per-file quad rule at zero | open |
-| AUD-123 | Raw `<ul>`/`<ol>` lists in domain components and views | `DirectionsPanel.tsx#L301`, `#L411`, `StarTypesListView.tsx#L18`, `SearchResults.tsx#L94` | `G-ui` raw-list rule at zero | open |
-| AUD-124 | Counts/ratios in `<Badge>`, `→`/`←` string arrows, `unit="of 5"` | `LayerCard.tsx#L103-L197`, `MetricComparativePanel.tsx#L78`, `DirectionsPanel.tsx#L374-L419` | Rule-compliant primitives | open |
-| AUD-125 | `className` concatenation in primitives; `DirectionsPanel` restyles `<Button>` | `Stack.tsx#L20`, `Cluster.tsx#L22`, `Imposter.tsx#L30`, `DetentSheet.tsx#L233`, `DirectionsPanel.module.css#L47-L66` | Per T08 decision on `className` passthrough | open |
-| AUD-126 | Component-specific tokens in global `semantic.css` | `styles/tokens/semantic.css#L106-L195` | Moved into component modules | open |
-| AUD-127 | Row click emulated via `anchorRef.current.click()` | `SearchResultItem.tsx#L107-L149` | Accessible interactive row pattern | open |
-| AUD-128 | `DetentSheet` writes `style.setProperty` through a ref | `DetentSheet.tsx#L127`, `#L168` | Per T08 decision | open |
-| AUD-129 | ~60 non-component exports from component files | lint `only-export-components` | Lint rule warnings at zero | open |
-| AUD-130 | Missing `index.ts` barrels (`SearchResultItem`, `LayerCard`) | — | Barrels present | open |
+| AUD-120 | God components: `SearchRoot` (774), `GalaxyView` (750), `DirectionsPanel` (525) | — | `G-size` ≤ 300 for components/views | verified |
+| AUD-121 | Hardcoded px/rem/rgba/ms in CSS modules | `views/GuideViews.module.css`, `SpatialShell.module.css`, `DetentSheet.module.css`, `CelestialSymbol.module.css` | `G-ui` token rule at zero | verified |
+| AUD-122 | Quad gaps: `CelestialBadge`, `SpectralBadge`, `HazardBadge`, `CelestialTitle`, seven `DetailsPanel` sub-components, `components/search/**` | `interface/information/CelestialSymbol/`, `domain/DetailsPanel/`, `components/search/` | `G-ui` per-file quad rule at zero | verified |
+| AUD-123 | Raw `<ul>`/`<ol>` lists in domain components and views | `DirectionsPanel.tsx#L301`, `#L411`, `StarTypesListView.tsx#L18`, `SearchResults.tsx#L94` | `G-ui` raw-list rule at zero | verified |
+| AUD-124 | Counts/ratios in `<Badge>`, `→`/`←` string arrows, `unit="of 5"` | `LayerCard.tsx#L103-L197`, `MetricComparativePanel.tsx#L78`, `DirectionsPanel.tsx#L374-L419` | Rule-compliant primitives | verified |
+| AUD-125 | `className` concatenation in primitives; `DirectionsPanel` restyles `<Button>` | `Stack.tsx#L20`, `Cluster.tsx#L22`, `Imposter.tsx#L30`, `DetentSheet.tsx#L233`, `DirectionsPanel.module.css#L47-L66` | Per T08 decision on `className` passthrough | verified |
+| AUD-126 | Component-specific tokens in global `semantic.css` | `styles/tokens/semantic.css#L106-L195` | Moved into component modules | verified |
+| AUD-127 | Row click emulated via `anchorRef.current.click()` | `SearchResultItem.tsx#L107-L149` | Accessible interactive row pattern | verified |
+| AUD-128 | `DetentSheet` writes `style.setProperty` through a ref | `DetentSheet.tsx#L127`, `#L168` | Per T08 decision | verified |
+| AUD-129 | ~60 non-component exports from component files | lint `only-export-components` | Lint rule warnings at zero | verified |
+| AUD-130 | Missing `index.ts` barrels (`SearchResultItem`, `LayerCard`) | — | Barrels present | verified |
 
 ## T09 · Test Restructure
 

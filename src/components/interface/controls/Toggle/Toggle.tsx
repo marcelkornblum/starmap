@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import styles from './Toggle.module.css';
 
-export interface ToggleProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
+export interface ToggleProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'className' | 'style'> {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label?: ReactNode;
@@ -13,13 +13,8 @@ export const Toggle = ({
   onChange,
   label,
   disabled = false,
-  className,
   ...rest
 }: ToggleProps) => {
-  const combinedClassName = className
-    ? `${styles.toggleContainer} ${className}`
-    : styles.toggleContainer;
-
   const handleClick = () => {
     if (!disabled) {
       onChange(!checked);
@@ -29,7 +24,7 @@ export const Toggle = ({
   return (
     <button
       type="button"
-      className={combinedClassName}
+      className={styles.toggleContainer}
       data-checked={checked ? 'true' : undefined}
       data-disabled={disabled ? 'true' : undefined}
       role="switch"

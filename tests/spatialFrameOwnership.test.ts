@@ -26,7 +26,7 @@ import {
   SpatialEntityProvider,
   useOcclusionManager,
   ApertureEvaluator,
-} from '../src/components/canvas/entity/SpatialEntityContext';
+} from '../src/components/canvas/entity';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import { CelestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
 import { useActiveStarsStore } from '../src/stores/useActiveStarsStore';

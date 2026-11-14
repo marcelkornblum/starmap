@@ -12,7 +12,7 @@ import {
 } from 'react';
 import styles from './Tooltip.module.css';
 
-export interface TooltipProps extends HTMLAttributes<HTMLSpanElement> {
+export interface TooltipProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'className' | 'style'> {
   /** The content displayed inside the tooltip bubble */
   text: ReactNode;
   /** Primary target position relative to the trigger. Default: 'top' */
@@ -29,8 +29,6 @@ export interface TooltipProps extends HTMLAttributes<HTMLSpanElement> {
   onOpenChange?: (open: boolean) => void;
   /** Boundary margin in pixels to prevent touching viewport edges. Default: 12 */
   boundaryMargin?: number;
-  /** Optional class name applied to the outer wrapper (when wrapping children) */
-  wrapperClassName?: string;
 }
 
 export const Tooltip = ({
@@ -42,8 +40,6 @@ export const Tooltip = ({
   defaultOpen,
   onOpenChange,
   boundaryMargin = 12,
-  className,
-  wrapperClassName,
   ...rest
 }: TooltipProps) => {
   const generatedId = useId();
@@ -202,14 +198,6 @@ export const Tooltip = ({
     }
   };
 
-  const combinedClassName = className
-    ? `${styles.tooltip} ${className}`
-    : styles.tooltip;
-
-  const combinedWrapperClassName = wrapperClassName
-    ? `${styles.tooltipWrapper} ${wrapperClassName}`
-    : styles.tooltipWrapper;
-
   const isVisible = hasExplicitState ? isOpen : true;
 
   const triggerElement = isValidElement(children)
@@ -227,7 +215,7 @@ export const Tooltip = ({
     <span
       ref={tooltipRef}
       id={tooltipId}
-      className={combinedClassName}
+      className={styles.tooltip}
       data-position={effectivePosition}
       data-align={effectiveAlign}
       data-state={hasExplicitState && isOpen ? 'open' : undefined}
@@ -242,7 +230,7 @@ export const Tooltip = ({
     return (
       <span
         ref={wrapperRef}
-        className={combinedWrapperClassName}
+        className={styles.tooltipWrapper}
         onMouseEnter={handleMouseEnter}
         onFocus={handleFocus}
       >

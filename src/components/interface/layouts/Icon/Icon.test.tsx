@@ -63,10 +63,20 @@ describe('<Icon />', () => {
     expect(container.getAttribute('aria-label')).toBe('Star Glyph');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Icon className="custom-icon" data-testid="icon-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Icon data-testid="icon-container" />);
 
     const container = screen.getByTestId('icon-container');
-    expect(container.className).toContain('custom-icon');
+    expect(container.className).toBeTruthy();
+  });
+
+  it('renders inline svg arrow when direction is provided', () => {
+    render(<Icon direction="right" data-testid="icon-container" />);
+
+    const container = screen.getByTestId('icon-container');
+    const svg = container.querySelector('svg');
+    expect(svg).toBeDefined();
+    expect(svg?.getAttribute('data-direction')).toBe('right');
+    expect(svg?.getAttribute('viewBox')).toBe('0 0 12 12');
   });
 });

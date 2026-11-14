@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ConfidencePip, normalizeConfidence } from './ConfidencePip';
+import { ConfidencePip } from './ConfidencePip';
+import { normalizeConfidence } from './confidencePipUtils';
 
 describe('<ConfidencePip />', () => {
   describe('normalizeConfidence helper', () => {

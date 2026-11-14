@@ -103,10 +103,10 @@ describe('<Cover />', () => {
     expect(container.getAttribute('aria-label')).toBe('Mission Briefing Cover');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Cover className="custom-cover" data-testid="cover-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Cover data-testid="cover-container" />);
 
     const container = screen.getByTestId('cover-container');
-    expect(container.className).toContain('custom-cover');
+    expect(container.className).toBeTruthy();
   });
 });

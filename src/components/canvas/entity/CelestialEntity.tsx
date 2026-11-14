@@ -14,7 +14,7 @@ import { DropStalk } from './DropStalk';
 import { KinematicVector } from './KinematicVector';
 import { OrbitPath } from './OrbitPath';
 import { EntityLabel } from './EntityLabel';
-import { useSpatialFrameSafe } from '../instrument/SpatialFrameProvider';
+import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
 import {

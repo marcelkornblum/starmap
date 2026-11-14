@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useSpatialFrame } from './SpatialFrameProvider';
+import { useSpatialFrame } from './spatialFrameContext';
 import { FRAME_PRIORITY } from '../engineConfig';
 import {
   CardinalTransitionController,

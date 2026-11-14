@@ -1,0 +1,21 @@
+@layer blocks {
+  .resultsPanel {
+    --search-results-gap: var(--space-fib-2);
+
+    display: none;
+    flex-direction: column;
+    gap: var(--search-results-gap);
+    max-block-size: 50dvh;
+    overflow-y: auto;
+    padding-block-start: var(--space-fib-2);
+    border-block-start: var(--rule-hairline);
+  }
+}
+
+@layer exceptions {
+  .resultsPanel[data-open='true'],
+  :global([data-search-focused='true']) .resultsPanel,
+  .resultsPanel:focus-within {
+    display: flex;
+  }
+}

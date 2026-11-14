@@ -6,10 +6,11 @@
     --modal-border-style: var(--surface-modal-border-style);
     --modal-shadow: var(--surface-modal-shadow);
     --modal-padding: var(--space-inset-modal);
-    --modal-radius: var(--surface-modal-radius);
+    --modal-radius: var(--radius-container);
     --modal-color: var(--content-default);
 
-    --modal-title-font-size: var(--text-ui-modal-title-size);
+    --modal-title-size: var(--type-scale-2);
+    --modal-title-font-size: var(--modal-title-size);
     --modal-title-font-weight: 600;
     --modal-title-color: var(--content-prominent);
 
@@ -21,14 +22,16 @@
 
     position: fixed;
     inset: 0;
-    margin: auto;
+    margin: 0;
+    justify-self: center;
+    align-self: center;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
     background: transparent;
     border: none;
     padding: 0;
-    max-inline-size: min(90vw, 560px);
+    max-inline-size: min(90vw, calc(var(--space-fib-7) * 10));
     max-block-size: 85vh;
     overflow: visible;
     color: var(--modal-color);
@@ -59,7 +62,7 @@
     position: absolute;
     inset-block-start: 0;
     inset-inline: 0;
-    block-size: min(100%, 360px);
+    block-size: min(100%, calc(var(--space-fib-7) * 6 + var(--space-fib-5)));
     background: linear-gradient(
       137deg,
       oklch(100% 0 0 / 0.08) 0%,

@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import styles from './Popover.module.css';
 
-export interface PopoverProps extends HTMLAttributes<HTMLDivElement> {
+export interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, 'className' | 'style'> {
   isOpen: boolean;
   position?: 'top' | 'bottom' | 'left' | 'right';
   trigger?: ReactNode;
@@ -15,18 +15,13 @@ export const Popover = ({
   trigger,
   children,
   role,
-  className,
   ...rest
 }: PopoverProps) => {
-  const combinedClassName = className
-    ? `${styles.popover} ${className}`
-    : styles.popover;
-
   const resolvedRole = role ?? (rest['aria-label'] || rest['aria-labelledby'] ? 'region' : undefined);
 
   const popoverElement = isOpen ? (
     <div
-      className={combinedClassName}
+      className={styles.popover}
       data-position={position}
       role={resolvedRole}
       {...rest}

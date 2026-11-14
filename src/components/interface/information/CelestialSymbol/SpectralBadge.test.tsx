@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { SpectralBadge, shouldDisplaySpectralBadge } from './SpectralBadge';
+import { SpectralBadge } from './SpectralBadge';
+import { shouldDisplaySpectralBadge } from './spectralBadgeUtils';
 
 describe('<SpectralBadge />', () => {
   describe('shouldDisplaySpectralBadge helper', () => {

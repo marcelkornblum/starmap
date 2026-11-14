@@ -30,9 +30,9 @@ test.describe('Journey 3: The Casual Explorer Flow (Serendipitous Discovery)', (
     await expect(layerCardOverview.getByRole('heading', { level: 3 })).toBeVisible();
     await expect(layerCardOverview.getByText(/entr(y|ies)/i)).toBeVisible();
 
-    // Start link: "Explore: ... →" or "Explore Layer →"
+    // Start link: "Explore: ..." or "Explore Layer"
     const startLink = layerCardOverview.getByRole('link', {
-      name: /Explore: .* →|Explore Layer →/i,
+      name: /Explore: .*|Explore Layer/i,
     });
     await expect(startLink).toBeVisible();
 

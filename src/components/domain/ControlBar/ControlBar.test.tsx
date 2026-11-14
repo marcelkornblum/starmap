@@ -143,6 +143,7 @@ describe('ControlBar Domain Component', () => {
 
     const list = screen.getByTestId('control-bar-shortcuts-list');
     expect(list).toBeDefined();
+    expect(list.hasAttribute('data-shortcuts-list')).toBe(true);
 
     const items = screen.getAllByTestId('control-bar-shortcut-item');
     expect(items.length).toBe(4);
