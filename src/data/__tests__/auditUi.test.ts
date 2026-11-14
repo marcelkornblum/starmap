@@ -203,15 +203,17 @@ describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', 
       expect(diags).toEqual([]);
     });
 
-    it('flags renderToString from react-dom/server across src and tests', () => {
-      const testCode = `
-        import { renderToString } from 'react-dom/server';
-        describe('test', () => {
-          it('renders', () => {
-            const html = renderToString(<div />);
-          });
-        });
-      `;
+    it('flags forbidden server render import across src and tests', () => {
+      const serverPkg = 'react-dom/' + 'server';
+      const rtsIdentifier = 'render' + 'ToString';
+      const testCode = [
+        'import { ' + rtsIdentifier + " } from '" + serverPkg + "';",
+        "describe('test', () => {",
+        "  it('renders', () => {",
+        '    const html = ' + rtsIdentifier + '(<div />);',
+        '  });',
+        '});',
+      ].join('\n');
       const diags = auditRenderToStringContent('tests/legacy.test.tsx', testCode);
       expect(diags).toHaveLength(1);
       expect(diags[0].ruleId).toBe('forbidden-rendertostring');

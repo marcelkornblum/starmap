@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { render, screen, fireEvent } from '@testing-library/react';

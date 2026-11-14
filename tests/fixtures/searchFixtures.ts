@@ -1,4 +1,4 @@
-import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
+import type { CompactSearchEntry } from '../../src/utils/compactDataCodec';
 
 export const SAMPLE_CORPUS: readonly CompactSearchEntry[] = [
   {

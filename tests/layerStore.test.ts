@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearLayerRepositoryCache } from '../src/data/layerRepository';
 import { useLayerStore } from '../src/stores';
-import { LAYER_INDEX_ENTRIES } from './layerFixtures';
+import { LAYER_INDEX_ENTRIES } from './fixtures/layerFixtures';
 
 const resetStore = () =>
   useLayerStore.setState({ index: [], status: 'idle' });

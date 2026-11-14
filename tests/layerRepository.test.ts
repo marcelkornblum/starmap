@@ -9,7 +9,7 @@ import {
   getCachedLayerManifest,
 } from '../src/data/layerRepository';
 import { getShardKey } from '../src/utils/compactDataCodec';
-import { createLayerFetch, RESOLVED_LAYER_MANIFESTS } from './layerFixtures';
+import { createLayerFetch, RESOLVED_LAYER_MANIFESTS } from './fixtures/layerFixtures';
 
 const makeFetch = () => vi.fn(createLayerFetch());
 

@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEntityDetails } from './useEntityDetails';

@@ -7,7 +7,7 @@ import {
 } from '../src/hooks/useLayerData';
 import type { DatasetLayerManifest } from '../src/types/astro';
 import type { DecodedEntityAnnotation } from '../src/utils/datasetLayerCodec';
-import { resetLayerRuntime, seedLayerRuntime } from './layerFixtures';
+import { resetLayerRuntime, seedLayerRuntime } from './fixtures/layerFixtures';
 
 const renderManifests = (search: string): readonly DatasetLayerManifest[] => {
   let captured: readonly DatasetLayerManifest[] = [];

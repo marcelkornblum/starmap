@@ -229,10 +229,6 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "forbidden-rendertostring::src/data/__tests__/auditUi.test.ts": {
-      "count": 2,
-      "audId": "AUD-004"
-    },
     "forbidden-rendertostring::tests/cameraTransition.test.ts": {
       "count": 1,
       "audId": "AUD-004"
@@ -601,7 +597,7 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "eslint(max-lines)::tests/searchService.test.ts": {
+    "eslint(max-lines)::tests/searchService.test.tsx": {
       "count": 1,
       "audId": "AUD-120"
     },

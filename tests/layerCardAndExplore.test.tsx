@@ -21,7 +21,7 @@ import {
   annotationRecordsFor,
   resetLayerRuntime,
   seedLayerRuntime,
-} from './layerFixtures';
+} from './fixtures/layerFixtures';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
 import type { DatasetLayerManifest, DatasetLayerEntry } from '../src/types/astro';
 import { buildFocusedEntityDetails } from '../src/services/detailsService';

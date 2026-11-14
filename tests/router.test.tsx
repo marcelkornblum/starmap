@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createElement, type ReactElement } from 'react';
 import { render, cleanup } from '@testing-library/react';

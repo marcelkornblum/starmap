@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { createElement, type ReactElement } from 'react';
 import { render } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -61,13 +60,13 @@ import {
   LAYER_INDEX_ENTRIES,
   resetLayerRuntime,
   seedAllLayerData,
-} from './layerFixtures';
+} from './fixtures/layerFixtures';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 
 const renderToHtml = (element: ReactElement): string =>
   render(createElement(SpatialEntityProvider, null, element)).container.innerHTML;
 
-import { SAMPLE_CORPUS } from './searchFixtures';
+import { SAMPLE_CORPUS } from './fixtures/searchFixtures';
 export { SAMPLE_CORPUS };
 
 describe('searchService (Pure Service Layer)', () => {

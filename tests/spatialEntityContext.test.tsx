@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import React from 'react';
 import { renderHook } from '@testing-library/react';

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createElement } from 'react';
+import { render } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import {
   decodeSystemHazards,
@@ -1647,33 +1648,33 @@ describe('DEC-034: 3D Cartographic Instrument Sphere & Galaxy Bodies Panel', () 
     });
 
     it('returns null when isOpen is explicitly false', () => {
-      const html = renderToString(
+      const { container } = render(
         createElement(DetailsPanel, {
           details: mockDetails,
           isOpen: false,
         }),
       );
-      expect(html).toBe('');
+      expect(container.innerHTML).toBe('');
     });
 
     it('returns null when store detent is collapsed and isOpen is undefined', () => {
       useUIStore.getState().setDetailsDetent('collapsed');
-      const html = renderToString(
+      const { container } = render(
         createElement(DetailsPanel, {
           details: mockDetails,
         }),
       );
-      expect(html).toBe('');
+      expect(container.innerHTML).toBe('');
     });
 
     it('respects store detailsDetent when activeDetent prop is omitted', () => {
       useUIStore.getState().setDetailsDetent('full');
-      const html = renderToString(
+      const { container } = render(
         createElement(DetailsPanel, {
           details: mockDetails,
         }),
       );
-      expect(html).toContain('data-detent="full"');
+      expect(container.innerHTML).toContain('data-detent="full"');
     });
 
     it('allows activeDetent prop to explicitly override store detailsDetent', () => {

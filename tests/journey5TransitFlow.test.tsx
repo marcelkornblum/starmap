@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { createElement, type ReactElement } from 'react';
 import { render } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -29,8 +28,8 @@ import {
   annotationRecordsFor,
   resetLayerRuntime,
   seedAllLayerData,
-} from './layerFixtures';
-import { SAMPLE_CORPUS } from './searchFixtures';
+} from './fixtures/layerFixtures';
+import { SAMPLE_CORPUS } from './fixtures/searchFixtures';
 
 const renderToHtml = (element: ReactElement): string =>
   render(createElement(SpatialEntityProvider, null, element)).container.innerHTML;

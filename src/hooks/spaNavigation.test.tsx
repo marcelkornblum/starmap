@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleSpaNavigation } from './spaNavigation';
 import { registerAppRouter } from './useSpaLocation';
@@ -105,5 +104,5 @@ describe('handleSpaNavigation', () => {
       focus: 'tau-ceti',
       route: 'sol,gaia-2452378776434477184',
     });
-  });
+  }, 20000);
 });

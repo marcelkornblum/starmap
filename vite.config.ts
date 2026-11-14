@@ -18,6 +18,44 @@ export default defineConfig(({ mode }) => {
   const base = process.env.BASE_PATH ?? (isProduction ? '/starmap/' : '/');
 
   return {
+    resolve: {
+      dedupe: ['three', '@react-three/fiber', '@react-three/drei', 'maath'],
+      alias: [
+        {
+          find: /^three$/,
+          replacement: path.resolve(dirname, 'node_modules/three/build/three.module.js'),
+        },
+        {
+          find: /^@react-three\/fiber$/,
+          replacement: path.resolve(dirname, 'node_modules/@react-three/fiber/dist/react-three-fiber.esm.js'),
+        },
+        {
+          find: /^@react-three\/drei$/,
+          replacement: path.resolve(dirname, 'node_modules/@react-three/drei/index.js'),
+        },
+        {
+          find: /^maath$/,
+          replacement: path.resolve(dirname, 'node_modules/maath/dist/maath.esm.js'),
+        },
+        {
+          find: /^troika-three-text$/,
+          replacement: path.resolve(dirname, 'node_modules/troika-three-text/dist/troika-three-text.esm.js'),
+        },
+        {
+          find: /^troika-three-utils$/,
+          replacement: path.resolve(dirname, 'node_modules/troika-three-utils/dist/troika-three-utils.esm.js'),
+        },
+        {
+          find: /^meshline$/,
+          replacement: path.resolve(dirname, 'node_modules/meshline/dist/index.js'),
+        },
+        {
+          find: /^three-mesh-bvh$/,
+          replacement: path.resolve(dirname, 'node_modules/three-mesh-bvh/src/index.js'),
+        },
+      ],
+      mainFields: ['module', 'main'],
+    },
     plugins: [
       react(),
       {
@@ -65,14 +103,45 @@ export default defineConfig(({ mode }) => {
         {
           extends: true,
           test: {
-            name: 'unit',
+            name: 'unit:node',
             globals: true,
             environment: 'node',
-            setupFiles: ['./tests/setup.ts'],
+            include: ['**/*.test.ts'],
             exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
+            setupFiles: ['./tests/setup.ts'],
             server: {
               deps: {
-                inline: ['three'],
+                inline: [
+                  /three/,
+                  /@react-three/,
+                  '@monogrid/gainmap-js',
+                  'camera-controls',
+                  'meshline',
+                  'maath',
+                ],
+              },
+            },
+          },
+        },
+        {
+          extends: true,
+          test: {
+            name: 'unit:dom',
+            globals: true,
+            environment: 'jsdom',
+            include: ['**/*.test.tsx'],
+            exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
+            setupFiles: ['./tests/setup.ts'],
+            server: {
+              deps: {
+                inline: [
+                  /three/,
+                  /@react-three/,
+                  '@monogrid/gainmap-js',
+                  'camera-controls',
+                  'meshline',
+                  'maath',
+                ],
               },
             },
           },
