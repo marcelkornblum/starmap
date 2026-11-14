@@ -176,6 +176,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
         as="ul"
         gap="fib-3"
         align="center"
+        data-shortcuts-list
         data-testid="control-bar-shortcuts-list"
       >
         {SHORTCUTS.map((shortcut) => (

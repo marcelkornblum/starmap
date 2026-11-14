@@ -102,6 +102,7 @@ export const Breadcrumbs = ({
           variant={isGuideContext ? 'subtle' : 'primary'}
           aria-current={!isGuideContext ? 'page' : undefined}
           data-active={!isGuideContext ? 'true' : undefined}
+          data-mode-button
           data-testid={isGuideContext ? 'breadcrumbs-companion-link' : 'breadcrumbs-mode-galaxy'}
         >
           Galaxy
@@ -112,6 +113,7 @@ export const Breadcrumbs = ({
           variant={isGuideContext ? 'primary' : 'subtle'}
           aria-current={isGuideContext ? 'page' : undefined}
           data-active={isGuideContext ? 'true' : undefined}
+          data-mode-button
           data-testid={!isGuideContext ? 'breadcrumbs-companion-link' : 'breadcrumbs-mode-guide'}
         >
           Guide

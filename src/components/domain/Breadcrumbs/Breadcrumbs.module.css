@@ -10,16 +10,6 @@
     line-height: var(--leading-tight);
   }
 
-  .breadcrumbsList {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-fib-1);
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    min-inline-size: 0;
-  }
-
   .breadcrumbItem {
     display: inline-flex;
     align-items: center;
@@ -58,22 +48,18 @@
     flex: 0 0 auto;
   }
 
-  .modeButton {
+  .modeMenu [data-mode-button] {
     flex: 0 0 auto;
-    font-size: var(--type-scale-neg-1);
-    padding-block: var(--stroke-width-2);
-    padding-inline: var(--space-fib-2);
+    --button-font-size: var(--type-scale-neg-1);
+    --button-padding-block: var(--stroke-width-2);
+    --button-padding-inline: var(--space-fib-2);
+    --button-leading: var(--scalar-line-100);
+    --button-radius: calc(var(--radius-control) - var(--stroke-width-2));
     min-block-size: var(--ui-control-height-sm);
-    line-height: 1;
-    border-radius: calc(var(--radius-control) - var(--stroke-width-2));
   }
 
-  .modeButton[data-active="true"] {
-    font-weight: var(--weight-semibold);
-  }
-
-  .companionLink {
-    flex: 0 0 auto;
+  .modeMenu [data-mode-button][data-active="true"] {
+    --button-font-weight: var(--weight-semibold);
   }
 }
 
@@ -89,17 +75,9 @@
       gap: var(--stroke-width-1);
     }
 
-    .modeButton {
-      font-size: var(--type-scale-neg-2);
-      padding-block: var(--stroke-width-2);
-      padding-inline: var(--space-fib-1);
-      min-block-size: var(--space-fib-5);
-    }
-
-    .companionLink {
-      font-size: var(--type-scale-neg-2);
-      padding-block: var(--stroke-width-2);
-      padding-inline: var(--space-fib-2);
+    .modeMenu [data-mode-button] {
+      --button-font-size: var(--type-scale-neg-2);
+      --button-padding-inline: var(--space-fib-1);
       min-block-size: var(--space-fib-5);
     }
   }

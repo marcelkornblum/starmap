@@ -51,7 +51,7 @@
     gap: var(--space-fib-2);
   }
 
-  .controlBar [data-testid="control-bar-shortcuts-list"] {
+  .controlBar [data-shortcuts-list] {
     font-family: var(--font-interface);
     font-size: var(--type-scale-neg-1);
     color: var(--content-muted);
@@ -68,7 +68,7 @@
       gap: var(--space-fib-2);
     }
 
-    .controlBar [data-testid="control-bar-shortcuts-list"] {
+    .controlBar [data-shortcuts-list] {
       display: none;
     }
 

@@ -71,7 +71,7 @@ export const Minimap: React.FC<MinimapProps> = ({ orientation }) => {
         </Cluster>
 
         {hasTelemetry ? (
-          <Stack gap="none" data-testid="minimap-telemetry">
+          <Stack gap="none" data-telemetry data-testid="minimap-telemetry">
             {coordinatesPc ? (
               <Datum
                 label="Coordinates"

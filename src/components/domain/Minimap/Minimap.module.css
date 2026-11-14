@@ -12,7 +12,7 @@
     gap: var(--space-fib-1);
   }
 
-  .viewportSlot [data-testid="minimap-telemetry"] {
+  .viewportSlot [data-telemetry] {
     margin: 0;
     font-family: var(--font-interface);
     font-size: var(--type-scale-neg-1);
