@@ -89,4 +89,21 @@ describe('<DirectionsPanel />', () => {
     fireEvent.click(backButton);
     expect(onOptionSelect).toHaveBeenCalledWith(null);
   });
+
+  it('renders geometry list data table when activeDetent is full in options overview', () => {
+    const journey = buildJourneyPlan({
+      stops: ['sol', 'tau-ceti'],
+      corpus: testCorpus,
+    });
+
+    render(
+      <DirectionsPanel
+        journey={journey}
+        activeDetent="full"
+      />
+    );
+
+    expect(screen.getByTestId('directions-geometry-list')).toBeDefined();
+    expect(screen.getAllByTestId('directions-geometry-leg').length).toBeGreaterThan(0);
+  });
 });

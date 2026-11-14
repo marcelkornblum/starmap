@@ -2,21 +2,35 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DetentSheet } from './DetentSheet';
 import {
+  MIN_SHEET_HEIGHT_PX,
+  DEFAULT_MOBILE_SHEET_RATIO,
+  PARTIAL_SHEET_RATIO,
+  SNAP_PROXIMITY_BAND_RATIO,
   resolveDetentFromHeight,
   computeSheetDragStep,
   computeSheetReleaseSnap,
 } from './detentSheetMath';
 
 describe('<DetentSheet />', () => {
-  describe('pure math helpers', () => {
-    it('resolves detent from height ratios correctly', () => {
+  describe('pure math helpers and constants', () => {
+    it('exports expected constants', () => {
+      expect(MIN_SHEET_HEIGHT_PX).toBe(56);
+      expect(DEFAULT_MOBILE_SHEET_RATIO).toBe(0.45);
+      expect(PARTIAL_SHEET_RATIO).toBe(0.45);
+      expect(SNAP_PROXIMITY_BAND_RATIO).toBe(0.08);
+    });
+
+    it('resolves detent from height ratios correctly, including non-positive viewport heights', () => {
       // vh = 1000 => midpoint = 253, full band = 920
       expect(resolveDetentFromHeight(200, 1000)).toBe('peek');
       expect(resolveDetentFromHeight(500, 1000)).toBe('partial');
       expect(resolveDetentFromHeight(950, 1000)).toBe('full');
+
+      expect(resolveDetentFromHeight(50, 0)).toBe('full');
+      expect(resolveDetentFromHeight(50, -100)).toBe('full');
     });
 
-    it('computes sheet drag step for upward expansion', () => {
+    it('computes sheet drag step for upward expansion, clamping, and scroll prevention', () => {
       const step = computeSheetDragStep({
         startHeightPx: 100,
         startClientY: 500,
@@ -30,6 +44,28 @@ describe('<DetentSheet />', () => {
       expect(step.isFullScreen).toBe(false);
       expect(step.shouldPreventScroll).toBe(true);
       expect(step.effectiveDetent).toBe('peek');
+
+      const clampedStep = computeSheetDragStep({
+        startHeightPx: 100,
+        startClientY: 300,
+        currentClientY: 700,
+        viewportHeightPx: 1000,
+        isFullScreen: false,
+        scrollTop: 0,
+      });
+      expect(clampedStep.nextHeightPx).toBe(MIN_SHEET_HEIGHT_PX);
+      expect(clampedStep.effectiveDetent).toBe('peek');
+
+      const scrollingStep = computeSheetDragStep({
+        startHeightPx: 1000,
+        startClientY: 200,
+        currentClientY: 350,
+        viewportHeightPx: 1000,
+        isFullScreen: true,
+        scrollTop: 45,
+      });
+      expect(scrollingStep.nextHeightPx).toBe(1000);
+      expect(scrollingStep.shouldPreventScroll).toBe(false);
     });
 
     it('computes sheet drag step at full screen boundary', () => {
@@ -47,7 +83,7 @@ describe('<DetentSheet />', () => {
       expect(step.effectiveDetent).toBe('full');
     });
 
-    it('computes snap physics correctly on release', () => {
+    it('computes snap physics correctly on release including free-resting and non-positive viewport', () => {
       const snapPeek = computeSheetReleaseSnap({ heightPx: 200, viewportHeightPx: 1000 });
       expect(snapPeek.detent).toBe('peek');
       expect(snapPeek.snappedHeightPx).toBe(56);
@@ -56,13 +92,19 @@ describe('<DetentSheet />', () => {
       expect(snapPartial.detent).toBe('partial');
       expect(snapPartial.snappedHeightPx).toBe(450);
 
+      const snapFreeRest = computeSheetReleaseSnap({ heightPx: 725.4, viewportHeightPx: 1000 });
+      expect(snapFreeRest).toEqual({ snappedHeightPx: 725, detent: 'partial', isFullScreen: false });
+
       const snapFull = computeSheetReleaseSnap({ heightPx: 950, viewportHeightPx: 1000 });
       expect(snapFull.detent).toBe('full');
       expect(snapFull.snappedHeightPx).toBe(1000);
+
+      const snapNonPositive = computeSheetReleaseSnap({ heightPx: 200, viewportHeightPx: 0 });
+      expect(snapNonPositive).toEqual({ snappedHeightPx: 56, detent: 'full', isFullScreen: true });
     });
   });
 
-  it('renders aside element with accessible landmarks and detent sections', () => {
+  it('renders aside element with accessible landmarks, detent sections, and children', () => {
     render(
       <DetentSheet
         testIdPrefix="details"
@@ -73,13 +115,16 @@ describe('<DetentSheet />', () => {
         data-entity-id="trappist-1"
         data-system-id="trappist-1-sys"
         data-focused-kind="star"
-      />
+      >
+        <footer data-testid="footer-content">Footer Content</footer>
+      </DetentSheet>
     );
 
     const panel = screen.getByTestId('details-panel');
     expect(panel.tagName.toLowerCase()).toBe('aside');
     expect(panel.getAttribute('data-detent')).toBe('peek');
     expect(panel.getAttribute('data-is-full-screen')).toBe('false');
+    expect(panel.getAttribute('data-min-height-px')).toBe('56');
     expect(panel.getAttribute('data-entity-id')).toBe('trappist-1');
     expect(panel.getAttribute('data-system-id')).toBe('trappist-1-sys');
     expect(panel.getAttribute('data-focused-kind')).toBe('star');
@@ -90,6 +135,7 @@ describe('<DetentSheet />', () => {
     expect(screen.getByTestId('details-detent-peek').textContent).toContain('Quick Summary');
     expect(screen.getByTestId('details-detent-partial').textContent).toContain('Atmospheric Telemetry');
     expect(screen.getByTestId('details-detent-full').textContent).toContain('Complete Ephemeris Dossier');
+    expect(screen.getByTestId('footer-content').textContent).toContain('Footer Content');
 
     const handle = screen.getByRole('separator', { name: 'Drag to resize panel' });
     expect(handle).toBeDefined();
@@ -123,7 +169,7 @@ describe('<DetentSheet />', () => {
     expect(panel.getAttribute('data-is-full-screen')).toBe('true');
   });
 
-  it('handles pointer drag interactions on resize handle', () => {
+  it('handles pointer and touch drag interactions on resize handle', () => {
     render(
       <DetentSheet
         testIdPrefix="test"
@@ -134,8 +180,12 @@ describe('<DetentSheet />', () => {
 
     const handle = screen.getByTestId('test-drag-handle');
     fireEvent.pointerDown(handle, { clientY: 500, pointerId: 1 });
-    fireEvent.pointerMove(handle, { clientY: 200, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientY: 200, pointerId: 1, cancelable: true });
     fireEvent.pointerUp(handle, { pointerId: 1 });
+
+    fireEvent.touchStart(handle, { touches: [{ clientY: 500 }] });
+    fireEvent.touchMove(handle, { touches: [{ clientY: 350 }], cancelable: true });
+    fireEvent.touchEnd(handle);
 
     const panel = screen.getByTestId('test-panel');
     expect(panel).toBeDefined();

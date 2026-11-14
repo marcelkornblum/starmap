@@ -2,6 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CelestialTitle } from './CelestialTitle';
 
+const expectPrecedes = (firstNode: Node, secondNode: Node) => {
+  const position = firstNode.compareDocumentPosition(secondNode);
+  expect((position & Node.DOCUMENT_POSITION_FOLLOWING) !== 0).toBe(true);
+};
+
 describe('<CelestialTitle />', () => {
   it('renders celestial symbol badge and title with wrapper data attribute', () => {
     render(
@@ -19,6 +24,10 @@ describe('<CelestialTitle />', () => {
     const titleEl = screen.getByTestId('title-text');
     expect(titleEl.tagName.toLowerCase()).toBe('span');
     expect(titleEl.textContent).toBe('Betelgeuse');
+
+    const badge = root.querySelector('[data-celestial-badge="star"]');
+    expect(badge).not.toBeNull();
+    expectPrecedes(badge!, titleEl);
   });
 
   it('renders title as a link when href is provided', () => {
@@ -40,6 +49,10 @@ describe('<CelestialTitle />', () => {
     expect(link.getAttribute('href')).toContain('/system/sol/earth');
     expect(link.getAttribute('target')).toBe('_blank');
     expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+
+    const badge = link.parentElement?.querySelector('[data-celestial-badge="terrestrial"]');
+    expect(badge).not.toBeNull();
+    expectPrecedes(badge!, link);
 
     fireEvent.click(link);
     expect(handleClick).toHaveBeenCalledTimes(1);
@@ -75,5 +88,45 @@ describe('<CelestialTitle />', () => {
 
     const heading = screen.getByRole('heading', { level: 3, name: 'Kepler-452b' });
     expect(heading).toBeDefined();
+  });
+
+  it('forwards symbolHref and symbolTestId to reticle badge', () => {
+    render(
+      <CelestialTitle
+        type="gas-giant"
+        title="Jupiter"
+        symbolHref="/guide/planet-types/gas-giant"
+        symbolTestId="jupiter-symbol"
+        titleTestId="jupiter-title"
+      />,
+    );
+
+    const symbol = screen.getByTestId('jupiter-symbol');
+    const symbolLink = symbol.closest('a') ?? symbol;
+    expect(symbolLink.getAttribute('href')).toBe('/guide/planet-types/gas-giant');
+
+    const title = screen.getByTestId('jupiter-title');
+    expectPrecedes(symbol, title);
+  });
+
+  it('respects showTooltip={false} by suppressing Tooltip wrapper', () => {
+    const { unmount } = render(
+      <CelestialTitle
+        type="star"
+        title="Vega"
+        showTooltip={true}
+      />,
+    );
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+    unmount();
+
+    render(
+      <CelestialTitle
+        type="star"
+        title="Vega"
+        showTooltip={false}
+      />,
+    );
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
   });
 });

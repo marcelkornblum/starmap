@@ -1,10 +1,68 @@
 import { describe, it, expect } from 'vitest';
+import ReactThreeTest from '@react-three/test-renderer';
+import { SystemScene, type StarDossierData } from './SystemScene';
 import {
   resolveSystemPlanetEntity,
   resolveCorpusPlanetEntity,
 } from './systemPlanetResolver';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+
+const mockSolSystem: StarDossierData = {
+  id: 'sol',
+  name: 'Sol',
+  spectralType: 'G2V',
+  planets: [
+    {
+      id: 'earth',
+      name: 'Earth',
+      letter: 'b',
+      composition: 'terrestrial',
+      orbit: {
+        semiMajorAxis: 1.0,
+        eccentricity: 0.017,
+        inclination: 0,
+        ascendingNode: 0,
+        argumentOfPeriapsis: 0,
+        meanAnomaly: 0,
+        periodDays: 365.25,
+      },
+    },
+    {
+      id: 'jupiter',
+      name: 'Jupiter',
+      letter: 'c',
+      composition: 'gas-giant',
+      orbit: {
+        semiMajorAxis: 5.2,
+        eccentricity: 0.048,
+        inclination: 1.3,
+        ascendingNode: 100,
+        argumentOfPeriapsis: 273,
+        meanAnomaly: 45,
+        periodDays: 4332.6,
+      },
+    },
+  ],
+};
+
+describe('SystemScene Component Rendering', () => {
+  it('renders SystemScene with central star and orbiting planets with Keplerian paths', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SystemScene systemId="sol" system={mockSolSystem} />,
+    );
+
+    expect(renderer.scene.findByProps({ name: 'spatial-viewport' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'cartographic-grid' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'celestial-entity-sol' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'celestial-entity-earth' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'celestial-entity-jupiter' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'orbital-ring-earth' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'orbital-ring-jupiter' })).toBeDefined();
+
+    await renderer.unmount();
+  });
+});
 
 describe('SystemScene orbital element resolution (AUD-024 / DEC-R019)', () => {
   describe('resolveSystemPlanetEntity', () => {

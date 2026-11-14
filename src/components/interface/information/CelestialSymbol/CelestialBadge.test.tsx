@@ -32,4 +32,18 @@ describe('<CelestialBadge />', () => {
     const badge = screen.getByTestId('celestial-badge');
     expect(badge.textContent).toContain('Super-Earth');
   });
+
+  it('renders CelestialSymbol directly without wrapping in an outlined Badge box', () => {
+    render(
+      <CelestialBadge
+        type="star"
+        data-testid="unboxed-badge"
+      />,
+    );
+    const badge = screen.getByTestId('unboxed-badge');
+    expect(badge.getAttribute('data-celestial-badge')).toBe('star');
+    expect(badge.getAttribute('data-celestial-symbol')).toBe('star');
+    // Must not render badge container class
+    expect(badge.className).not.toContain('_badge_');
+  });
 });

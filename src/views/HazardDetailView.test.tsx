@@ -1,18 +1,29 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { useParams } from '@tanstack/react-router';
 import { HazardDetailView } from './HazardDetailView';
 
 describe('<HazardDetailView />', () => {
+  beforeEach(() => {
+    vi.mocked(useParams).mockReturnValue({});
+  });
+
   it('renders single hazard detail view for high-gravity', () => {
     render(<HazardDetailView hazardId="high-gravity" />);
-    expect(screen.getByTestId('hazard-detail-view-root')).toBeDefined();
-    expect(screen.getByTestId('guide-detail-summary')).toBeDefined();
-    expect(screen.getByTestId('guide-detail-telemetry')).toBeDefined();
+    const root = screen.getByTestId('hazard-detail-view-root');
+    expect(root).toBeTruthy();
+    expect(root.getAttribute('data-hazard-id')).toBe('high-gravity');
+
+    const summary = screen.getByTestId('guide-detail-summary');
+    expect(summary.textContent).toBeTruthy();
+
+    const telemetry = screen.getByTestId('guide-detail-telemetry');
+    expect(telemetry.textContent).toContain('Trigger Threshold');
   });
 
   it('renders cards for all classifications when multi-value hazard is provided (AUD-092)', () => {
     render(<HazardDetailView hazardId="high-gravity,tidal-locking" />);
-    expect(screen.getByTestId('hazard-detail-view-root')).toBeDefined();
+    expect(screen.getByTestId('hazard-detail-view-root')).toBeTruthy();
     expect(screen.getAllByText('High surface gravity').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Tidal locking').length).toBeGreaterThan(0);
   });
@@ -25,12 +36,22 @@ describe('<HazardDetailView />', () => {
       />,
     );
     const focusContext = screen.getByTestId('guide-focus-context');
-    expect(focusContext).toBeDefined();
+    expect(focusContext).toBeTruthy();
     expect(focusContext.textContent).toContain('jupiter');
   });
 
   it('renders fallback gracefully when hazard is not recognized', () => {
     render(<HazardDetailView hazardId="quantum-instability" />);
-    expect(screen.getByTestId('hazard-detail-fallback')).toBeDefined();
+    const fallback = screen.getByTestId('hazard-detail-fallback');
+    expect(fallback).toBeTruthy();
+    expect(fallback.textContent).toContain('quantum-instability');
+  });
+
+  it('extracts hazardId from route params via useParams when propHazardId is omitted', () => {
+    vi.mocked(useParams).mockReturnValue({ hazardId: 'extreme-heat' });
+    render(<HazardDetailView />);
+    const root = screen.getByTestId('hazard-detail-view-root');
+    expect(root.getAttribute('data-hazard-id')).toBe('extreme-heat');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Environmental Hazard: Extreme thermal regime');
   });
 });

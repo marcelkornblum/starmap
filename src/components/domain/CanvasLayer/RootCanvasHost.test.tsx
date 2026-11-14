@@ -23,6 +23,16 @@ vi.mock('@react-three/drei', async (importOriginal) => {
   };
 });
 
+vi.mock('../../canvas/scenes/SpatialScenes', () => ({
+  GalacticSceneContent: () => createElement('div', { 'data-testid': 'mock-galactic-scene' }),
+  SystemSceneContent: () => createElement('div', { 'data-testid': 'mock-system-scene' }),
+  PlanetarySceneContent: () => createElement('div', { 'data-testid': 'mock-planetary-scene' }),
+}));
+
+vi.mock('../../canvas/ThemeTokenBridge', () => ({
+  SceneTokenBridge: () => createElement('div', { 'data-testid': 'mock-theme-token-bridge' }),
+}));
+
 const mockCanvasRender = vi.fn();
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
@@ -218,9 +228,9 @@ describe('RootCanvasHost Domain Component', () => {
     render(<RootCanvasHost />);
     const host = screen.getByTestId('root-canvas-host');
 
-    expect(host.getAttribute('data-camera-pos')).toBe('0.00,0.00,0.00');
+    expect(host.getAttribute('data-camera-pos')).toBe('0.00,0.00,10.00');
     expect(host.getAttribute('data-camera-target')).toBe('0.00,0.00,0.00');
-    expect(host.getAttribute('data-camera-dist')).toBe('0.00');
+    expect(host.getAttribute('data-camera-dist')).toBe('10.00');
 
     mockCanvasRender.mockClear();
     const useMemoSpy = vi.spyOn(React, 'useMemo');

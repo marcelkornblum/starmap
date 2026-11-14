@@ -1,0 +1,28 @@
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { SearchView } from './SearchView';
+import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
+
+describe('<SearchView />', () => {
+  it('renders search view root, breadcrumbs, and search panel with alwaysOpen results', () => {
+    render(
+      <SpatialEntityProvider>
+        <SearchView />
+      </SpatialEntityProvider>,
+    );
+
+    const root = screen.getByTestId('search-view-root');
+    expect(root).toBeTruthy();
+
+    const breadcrumbs = screen.getByTestId('view-breadcrumbs');
+    expect(breadcrumbs).toBeTruthy();
+    expect(breadcrumbs.textContent).toContain('Galaxy');
+    expect(breadcrumbs.textContent).toContain('Search');
+
+    const searchRoot = screen.getByTestId('search-root');
+    expect(searchRoot).toBeTruthy();
+
+    const searchInput = screen.getByRole('searchbox');
+    expect(searchInput).toBeTruthy();
+  });
+});

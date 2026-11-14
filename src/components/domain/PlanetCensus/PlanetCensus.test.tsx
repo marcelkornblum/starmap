@@ -16,15 +16,20 @@ describe('<PlanetCensus />', () => {
   });
 
   it('renders simple count when no breakdown is provided', () => {
-    render(<PlanetCensus planetCount={3} data-testid="census-simple" />);
+    const { rerender } = render(<PlanetCensus planetCount={1} data-testid="census-simple" />);
 
-    const el = screen.getByTestId('census-simple');
+    let el = screen.getByTestId('census-simple');
     expect(el.getAttribute('data-planet-census')).toBe('true');
+    expect(el.textContent).toContain('1');
+    expect(el.textContent).toContain('planet');
+
+    rerender(<PlanetCensus planetCount={3} data-testid="census-simple" />);
+    el = screen.getByTestId('census-simple');
     expect(el.textContent).toContain('3');
     expect(el.textContent).toContain('planets');
   });
 
-  it('renders breakdown with composition items and habitable candidate icon', () => {
+  it('renders breakdown with composition items and habitable candidate icon, omitting leading count', () => {
     render(
       <PlanetCensus
         planetCount={5}
@@ -40,6 +45,9 @@ describe('<PlanetCensus />', () => {
     const el = screen.getByTestId('census-breakdown');
     expect(el).toBeDefined();
 
+    // Leading count "5 planets" must NOT be rendered when breakdown is present
+    expect(el.textContent).not.toContain('5 planets');
+
     const terrestrial = el.querySelector('[data-planet-census-item="terrestrial"]');
     expect(terrestrial).toBeDefined();
     expect(terrestrial?.textContent).toContain('3');
@@ -48,6 +56,8 @@ describe('<PlanetCensus />', () => {
     expect(gasGiant).toBeDefined();
     expect(gasGiant?.textContent).toContain('2');
 
-    expect(screen.getByTestId('details-habitable-zone-link')).toBeDefined();
+    const hzLink = screen.getByTestId('details-habitable-zone-link');
+    expect(hzLink).toBeDefined();
+    expect(hzLink.getAttribute('href')).toContain('/guide/planet-types/habitable-zone');
   });
 });

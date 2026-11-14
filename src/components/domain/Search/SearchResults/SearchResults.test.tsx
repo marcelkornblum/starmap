@@ -121,4 +121,44 @@ describe('<SearchResults />', () => {
     const panel = screen.getByTestId('search-results-panel');
     expect(panel.getAttribute('data-open')).toBe('true');
   });
+
+  it('truncates results per category when limitPerCategory is set, renders filtered search links under populated headings, and omits empty category sections', () => {
+    const multiResults = executeCatalogSearch(
+      [
+        { i: 'sol', n: 'Sol', m: [-26.7, 'G2V', 8, 1], a: 'sol' },
+        { i: 'ceres', k: 4, n: 'Ceres', s: 'sol', a: 'ceres' },
+        { i: 'earth', k: 2, n: 'Earth', s: 'sol', a: 'earth' },
+        { i: 'pluto', k: 4, n: 'Pluto', s: 'sol', a: 'pluto' },
+      ],
+      { query: 'Sol', filter: 'all', limitPerCategory: 2 },
+    );
+
+    render(
+      <SearchContext.Provider
+        value={{
+          query: 'Sol',
+          filter: 'all',
+          status: 'ready',
+          errorMessage: null,
+          results: multiResults,
+          setQuery: () => undefined,
+          setFilter: () => undefined,
+          submitSearch: async () => undefined,
+          isFocused: true,
+        }}
+      >
+        <SearchResults searchViewPath="/search" />
+      </SearchContext.Provider>,
+    );
+
+    // Ceres and Earth should be rendered, Pluto truncated
+    expect(screen.getByText('Ceres')).toBeDefined();
+    expect(screen.getByText('Earth')).toBeDefined();
+    expect(screen.queryByText('Pluto')).toBeNull();
+
+    // Empty categories are omitted completely
+    expect(screen.queryByTestId('search-results-group-structures')).toBeNull();
+    expect(screen.queryByTestId('search-results-group-minor-bodies')).toBeNull();
+    expect(screen.queryByTestId('search-results-group-layers')).toBeNull();
+  });
 });

@@ -1,5 +1,5 @@
-import { createElement, type ReactElement } from 'react';
-import { render } from '@testing-library/react';
+import { createElement } from 'react';
+import { render, screen, act } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
@@ -22,13 +22,11 @@ import {
 } from './fixtures/layerFixtures';
 import { SAMPLE_CORPUS } from './fixtures/searchFixtures';
 
-const renderToHtml = (element: ReactElement): string => render(element).container.innerHTML;
-
 describe('Journey 2: Author Flow - Fictional Canon Layers & Galaxy Annotations', () => {
   beforeAll(seedAllLayerData);
   afterAll(resetLayerRuntime);
 
-  it('links each canon title in DetailsPanel to /galaxy?select=layer:<layerSlug>&layer=<layerSlug> and selects all annotated systems when GalaxyView loads', () => {
+  it('links each canon title in DetailsPanel to /galaxy?select=layer:<layerSlug>&layer=<layerSlug> and selects all annotated systems when GalaxyView loads', async () => {
     expect(buildLayerGalaxyHref('canon-project-hail-mary')).toBe(
       '/galaxy?select=layer:project-hail-mary&layer=project-hail-mary',
     );
@@ -60,18 +58,16 @@ describe('Journey 2: Author Flow - Fictional Canon Layers & Galaxy Annotations',
       corpus: SAMPLE_CORPUS,
       canonRecords: annotationRecordsFor(['gaia-2452378776434477184']),
     });
-    const detailsHtml = renderToHtml(
+    const { container, unmount } = render(
       createElement(DetailsPanel, { details: focusedDetails }),
     );
-    expect(detailsHtml).toContain('data-testid="details-canon-item-title"');
-    expect(detailsHtml).toContain('data-testid="details-canon-link"');
+    expect(container.querySelector('[data-testid="details-canon-item-title"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="details-canon-link"]')).not.toBeNull();
     expect(
-      detailsHtml.indexOf('data-testid="details-canon-item-title"'),
-    ).toBeLessThan(detailsHtml.indexOf('data-testid="details-canon-link"'));
-    expect(detailsHtml).toContain(
-      'href="/galaxy?select=layer:project-hail-mary&amp;layer=project-hail-mary"',
-    );
-    expect(detailsHtml).toContain('href="/galaxy?select=layer:halo&amp;layer=halo"');
+      container.querySelector('a[href="/galaxy?select=layer:project-hail-mary&layer=project-hail-mary"]'),
+    ).not.toBeNull();
+    expect(container.querySelector('a[href="/galaxy?select=layer:halo&layer=halo"]')).not.toBeNull();
+    unmount();
 
     // resolveSelectedSystemsFromLayer resolves all annotated systems
     const phmSystems = resolveSelectedSystemsFromLayer(
@@ -96,38 +92,42 @@ describe('Journey 2: Author Flow - Fictional Canon Layers & Galaxy Annotations',
 
     // MainView loading /galaxy?select=layer:project-hail-mary selects all systems in that canon and focuses nothing
     const store = createSpatialEntityStore();
-    const html = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store },
-        createElement(GalaxyView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/galaxy',
-          locationSearch: '?select=layer:project-hail-mary',
-        }),
-      ),
-    );
+    await act(async () => {
+      render(
+        createElement(
+          SpatialEntityProvider,
+          { store },
+          createElement(GalaxyView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/galaxy',
+            locationSearch: '?select=layer:project-hail-mary',
+          }),
+        ),
+      );
+    });
 
     const selected = store.getState().getEntitiesByState('selected');
     expect(selected.map((s) => s.name)).toEqual(['Tau Ceti', 'Keid']);
     expect(store.getState().getEntitiesByState('focused')).toEqual([]);
-    expect(html).not.toContain('data-testid="details-panel"');
-    expect(html).not.toContain('data-testid="systems-panel"');
+    expect(screen.queryByTestId('details-panel')).toBeNull();
+    expect(screen.queryByTestId('systems-panel')).toBeNull();
   });
 
-  it('DEC-018: verifies Canon Layers section is removed from BodiesPanel', () => {
+  it('DEC-018: verifies Canon Layers section is removed from BodiesPanel', async () => {
     const store = createSpatialEntityStore();
-    const systemHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store },
-        createElement(SystemView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/system/sol',
-          locationSearch: '',
-        }),
-      ),
-    );
-    expect(systemHtml).not.toContain('data-testid="bodies-canon-section"');
+    await act(async () => {
+      render(
+        createElement(
+          SpatialEntityProvider,
+          { store },
+          createElement(SystemView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/system/sol',
+            locationSearch: '',
+          }),
+        ),
+      );
+    });
+    expect(screen.queryByTestId('bodies-canon-section')).toBeNull();
   });
 });

@@ -22,6 +22,16 @@ vi.mock('@react-three/drei', async (importOriginal) => {
   };
 });
 
+vi.mock('../../canvas/scenes/SpatialScenes', () => ({
+  GalacticSceneContent: () => createElement('div', { 'data-testid': 'mock-galactic-scene' }),
+  SystemSceneContent: () => createElement('div', { 'data-testid': 'mock-system-scene' }),
+  PlanetarySceneContent: () => createElement('div', { 'data-testid': 'mock-planetary-scene' }),
+}));
+
+vi.mock('../../canvas/ThemeTokenBridge', () => ({
+  SceneTokenBridge: () => createElement('div', { 'data-testid': 'mock-theme-token-bridge' }),
+}));
+
 vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {

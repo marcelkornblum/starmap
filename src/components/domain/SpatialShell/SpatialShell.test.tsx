@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import { SpatialShell } from './SpatialShell';
-import { resolvePrimaryPanels } from './spatialShellHelpers';
 import { useUIStore } from '../../../stores/useUIStore';
 
 describe('SpatialShell Domain Component', () => {
   beforeEach(() => {
-    useUIStore.getState().resetUI();
+    act(() => {
+      useUIStore.getState().resetUI();
+    });
   });
 
   describe('Landmarks and Spatial Regions', () => {
@@ -60,6 +61,20 @@ describe('SpatialShell Domain Component', () => {
       expect(document.querySelector('[data-spatial-region="breadcrumbs"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="search"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="layer-card"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="floating-left"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="controls"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="minimap"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="bodies"]')).not.toBeNull();
+    });
+
+    it('renders all regions even when slot props are omitted', () => {
+      render(<SpatialShell testId="empty-shell" />);
+
+      const root = screen.getByTestId('empty-shell');
+      expect(root).toBeDefined();
+      expect(root.getAttribute('data-spatial-shell')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="canvas"]')).not.toBeNull();
+      expect(document.querySelector('[data-spatial-region="top-bar"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="floating-left"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="controls"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="minimap"]')).not.toBeNull();
@@ -144,99 +159,49 @@ describe('SpatialShell Domain Component', () => {
     });
 
     it('reads initial state from useUIStore activeDrawer', () => {
-      useUIStore.getState().setActiveDrawer('bodies');
+      act(() => {
+        useUIStore.getState().setActiveDrawer('bodies');
+      });
 
       render(<SpatialShell bodies={<div>Bodies</div>} />);
 
       const root = screen.getByTestId('spatial-shell-root');
       expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
     });
+
+    it('supports controlled isBodiesDrawerOpen prop taking priority over store state', () => {
+      act(() => {
+        useUIStore.getState().setActiveDrawer('bodies');
+      });
+
+      const { rerender } = render(
+        <SpatialShell
+          testId="controlled-shell"
+          isBodiesDrawerOpen={false}
+          bodies={<div data-testid="bodies-content">Bodies</div>}
+        />,
+      );
+
+      const root = screen.getByTestId('controlled-shell');
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('false');
+
+      act(() => {
+        useUIStore.getState().setActiveDrawer(null);
+      });
+
+      rerender(
+        <SpatialShell
+          testId="controlled-shell"
+          isBodiesDrawerOpen={true}
+          bodies={<div data-testid="bodies-content">Bodies</div>}
+        />,
+      );
+
+      expect(root.getAttribute('data-bodies-drawer-open')).toBe('true');
+    });
   });
 
-  describe('Primary Float Panel Resolution (resolvePrimaryPanels)', () => {
-    it('returns primaryFloat if passed alone', () => {
-      const result = resolvePrimaryPanels({
-        primaryFloat: <div data-testid="legacy-float">Float</div>,
-      });
-
-      render(<div>{result}</div>);
-      expect(screen.getByTestId('legacy-float')).toBeDefined();
-    });
-
-    it('returns detailsPanel when only detailsPanel is provided and open', () => {
-      const result = resolvePrimaryPanels({
-        detailsPanel: <div data-testid="details">Details</div>,
-        isDetailsOpen: true,
-      });
-
-      render(<div>{result}</div>);
-      expect(screen.getByTestId('details')).toBeDefined();
-    });
-
-    it('returns directionsPanel when only directionsPanel is provided and open', () => {
-      const result = resolvePrimaryPanels({
-        directionsPanel: <div data-testid="directions">Directions</div>,
-        isDirectionsOpen: true,
-      });
-
-      render(<div>{result}</div>);
-      expect(screen.getByTestId('directions')).toBeDefined();
-    });
-
-    it('respects primaryPanelPriority in single-panel mode', () => {
-      const detailsResult = resolvePrimaryPanels({
-        detailsPanel: <div data-testid="details">Details</div>,
-        directionsPanel: <div data-testid="directions">Directions</div>,
-        isDetailsOpen: true,
-        isDirectionsOpen: true,
-        primaryPanelPriority: 'details',
-        dualPanelPolicy: 'single',
-      });
-
-      const { unmount } = render(<div>{detailsResult}</div>);
-      expect(screen.getByTestId('details')).toBeDefined();
-      expect(screen.queryByTestId('directions')).toBeNull();
-      unmount();
-
-      const directionsResult = resolvePrimaryPanels({
-        detailsPanel: <div data-testid="details">Details</div>,
-        directionsPanel: <div data-testid="directions">Directions</div>,
-        isDetailsOpen: true,
-        isDirectionsOpen: true,
-        primaryPanelPriority: 'directions',
-        dualPanelPolicy: 'single',
-      });
-
-      render(<div>{directionsResult}</div>);
-      expect(screen.getByTestId('directions')).toBeDefined();
-      expect(screen.queryByTestId('details')).toBeNull();
-    });
-
-    it('renders both panels when dualPanelPolicy is simultaneous', () => {
-      const simultaneousResult = resolvePrimaryPanels({
-        detailsPanel: <div data-testid="details">Details</div>,
-        directionsPanel: <div data-testid="directions">Directions</div>,
-        isDetailsOpen: true,
-        isDirectionsOpen: true,
-        dualPanelPolicy: 'simultaneous',
-      });
-
-      render(<div>{simultaneousResult}</div>);
-      expect(screen.getByTestId('details')).toBeDefined();
-      expect(screen.getByTestId('directions')).toBeDefined();
-    });
-
-    it('handles closed panel states cleanly', () => {
-      const result = resolvePrimaryPanels({
-        detailsPanel: <div data-testid="details">Details</div>,
-        directionsPanel: <div data-testid="directions">Directions</div>,
-        isDetailsOpen: false,
-        isDirectionsOpen: false,
-      });
-
-      expect(result).toBeNull();
-    });
-
+  describe('Primary Float Panel Integration', () => {
     it('suppresses preview when detailsPanel is showing and shows it when details is closed', () => {
       act(() => {
         useUIStore.getState().setDetailsOpen(true);
@@ -265,6 +230,51 @@ describe('SpatialShell Domain Component', () => {
 
       expect(screen.queryByTestId('details')).toBeNull();
       expect(screen.getByTestId('preview')).toBeDefined();
+    });
+
+    it('integrates with useUIStore panel state and dual-panel policy', () => {
+      act(() => {
+        useUIStore.getState().setPrimaryPanelPriority('directions');
+        useUIStore.getState().setDualPanelPolicy('single');
+      });
+
+      const { rerender } = render(
+        <SpatialShell
+          detailsPanel={<div data-testid="store-details">Details</div>}
+          directionsPanel={<div data-testid="store-directions">Directions</div>}
+        />,
+      );
+
+      expect(screen.getByTestId('store-directions')).toBeDefined();
+      expect(screen.queryByTestId('store-details')).toBeNull();
+
+      act(() => {
+        useUIStore.getState().setPrimaryPanelPriority('details');
+      });
+
+      rerender(
+        <SpatialShell
+          detailsPanel={<div data-testid="store-details">Details</div>}
+          directionsPanel={<div data-testid="store-directions">Directions</div>}
+        />,
+      );
+
+      expect(screen.getByTestId('store-details')).toBeDefined();
+      expect(screen.queryByTestId('store-directions')).toBeNull();
+
+      act(() => {
+        useUIStore.getState().setDualPanelPolicy('simultaneous');
+      });
+
+      rerender(
+        <SpatialShell
+          detailsPanel={<div data-testid="store-details">Details</div>}
+          directionsPanel={<div data-testid="store-directions">Directions</div>}
+        />,
+      );
+
+      expect(screen.getByTestId('store-details')).toBeDefined();
+      expect(screen.getByTestId('store-directions')).toBeDefined();
     });
   });
 });

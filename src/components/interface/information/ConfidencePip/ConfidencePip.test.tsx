@@ -64,6 +64,7 @@ describe('<ConfidencePip />', () => {
       name: 'We have confirmed confidence in this data',
     });
     expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByTestId('confidence-pip-dot')).toBeDefined();
   });
 
   it('toggles uncontrolled tooltip on button click', () => {
@@ -134,5 +135,19 @@ describe('<ConfidencePip />', () => {
     );
 
     expect(screen.getByTestId('confidence-pip-tooltip')).toBeDefined();
+  });
+
+  it('supports custom tooltip position and renders data-position and data-align', () => {
+    render(
+      <ConfidencePip
+        confidence="theoretical"
+        defaultOpen={true}
+        tooltipPosition="right"
+      />
+    );
+
+    const tooltip = screen.getByTestId('confidence-pip-tooltip');
+    expect(tooltip.getAttribute('data-position')).toBe('right');
+    expect(tooltip.getAttribute('data-align')).toBe('start');
   });
 });

@@ -79,6 +79,23 @@ describe('<SearchResultItem />', () => {
     expect(screen.getByText('Star Trek Canon')).toBeDefined();
   });
 
+  it('renders a bare star without spectral badge when spectral type is missing or unknown', () => {
+    const bareStar: SearchResultItemModel = {
+      id: 'bare-star',
+      name: 'Bare Star',
+      category: 'stars',
+      entityKind: 'star-system',
+      reticleType: 'stellar-system',
+      targetView: 'galaxy',
+      href: '/galaxy?focus=bare-star',
+      score: 1.0,
+    };
+    render(<SearchResultItem result={bareStar} />);
+
+    expect(screen.getByText('Bare Star')).toBeDefined();
+    expect(screen.queryByTestId('result-spectral-badge')).toBeNull();
+  });
+
   it('calls onSelect and dismissSearch on single-anchor click', () => {
     const onSelect = vi.fn();
     const dismissSearch = vi.fn();

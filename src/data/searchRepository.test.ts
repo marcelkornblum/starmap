@@ -4,6 +4,7 @@ import {
   fetchSearchShard,
   getCachedCorpusForFilter,
   loadSearchCorpusForFilter,
+  mergeSearchShards,
   subscribeSearchRepository,
 } from './searchRepository';
 
@@ -135,6 +136,71 @@ describe('searchRepository (AUD-090 & DEC-R043)', () => {
       expect(listener).toHaveBeenCalled();
 
       unsubscribe();
+    });
+  });
+
+  describe('Shard Merging and Parallel Loading', () => {
+    it('merges shards and deduplicates by entry ID', () => {
+      const merged = mergeSearchShards([
+        [
+          { i: 'sol', n: 'Sol' },
+          { i: 'tau-ceti', n: 'Tau Ceti' },
+        ],
+        [
+          { i: 'tau-ceti', n: 'Tau Ceti' },
+          { i: 'keid', n: 'Keid' },
+        ],
+      ]);
+      expect(merged).toHaveLength(3);
+      expect(merged.map((e) => e.i)).toEqual(['sol', 'tau-ceti', 'keid']);
+    });
+
+    it('loads core, structures, and minor-bodies shards in parallel when filter is all', async () => {
+      clearSearchRepositoryCache();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          i: url,
+          n: url,
+          c: 1,
+          t: '2026-10-17T00:00:00Z',
+          d: url.includes('minor-bodies')
+            ? [{ i: 'mpc-433', n: '433 Eros' }]
+            : url.includes('structures')
+              ? [{ i: 'ngc-1976', n: 'Orion Nebula' }]
+              : [{ i: 'sol', n: 'Sol' }],
+        }),
+      }));
+
+      const entries = await loadSearchCorpusForFilter(
+        'all',
+        mockFetch as unknown as typeof fetch,
+      );
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(entries.map((e) => e.i)).toEqual(['sol', 'ngc-1976', 'mpc-433']);
+    });
+
+    it('throws a descriptive error when shard fetch fails or returns invalid schema', async () => {
+      const failingFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({}),
+      });
+
+      await expect(
+        fetchSearchShard('layers', failingFetch as unknown as typeof fetch),
+      ).rejects.toThrow(/Failed to load search shard "layers"/);
+
+      const invalidSchemaFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ invalid: true }),
+      });
+
+      await expect(
+        fetchSearchShard('layers', invalidSchemaFetch as unknown as typeof fetch),
+      ).rejects.toThrow(/Invalid search index envelope/);
     });
   });
 });
