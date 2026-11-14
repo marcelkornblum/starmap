@@ -143,12 +143,12 @@ Source: 2026-11-06 audit of `main` @ `4c45916`. Every finding below has been ver
 
 | ID | Finding | Evidence | Acceptance check | Status |
 |---|---|---|---|---|
-| AUD-140 | `tests/searchService.test.ts` (1,739 lines) catch-all with `innerHTML` substring assertions | `tests/searchService.test.ts#L67` | File removed; split into colocated 1:1 tests using Testing Library queries | claimed |
-| AUD-141 | `tests/router.test.ts` uses `renderHtml` → `toContain` | `tests/router.test.ts#L36-L39` | Testing Library queries only | claimed |
-| AUD-142 | No colocated 1:1 tests for views, `components/search/**`, `journeyService`, `guideService`, `layerCardService`, `details/*`, `nomenclature` | — | Every module has a colocated test | claimed |
-| AUD-143 | Unit test environment defaults to `node` | `vite.config.ts#L70` | Per T09 decision (jsdom default or split projects) | claimed |
-| AUD-144 | `act()` warnings and duplicate Three.js instance / CJS deprecation warnings in every suite | test output; `vite.config.ts#L73-L77` | Zero such warnings in test output | claimed |
-| AUD-145 | `toBeDefined()`-only smoke tests; `as any` mocks; `react(globals)` lint warnings in tests | `tests/stores.test.ts#L143-L145`, `tests/searchService.test.ts#L453` | Removed / typed | claimed |
+| AUD-140 | `tests/searchService.test.ts` (1,739 lines) catch-all with `innerHTML` substring assertions | `tests/searchService.test.ts#L67` | File removed; split into colocated 1:1 tests using Testing Library queries | verified |
+| AUD-141 | `tests/router.test.ts` uses `renderHtml` → `toContain` | `tests/router.test.ts#L36-L39` | Testing Library queries only | verified |
+| AUD-142 | No colocated 1:1 tests for views, `components/search/**`, `journeyService`, `guideService`, `layerCardService`, `details/*`, `nomenclature` | — | Every module has a colocated test | verified |
+| AUD-143 | Unit test environment defaults to `node` | `vite.config.ts#L70` | Per T09 decision (jsdom default or split projects) | verified |
+| AUD-144 | `act()` warnings and duplicate Three.js instance / CJS deprecation warnings in every suite | test output; `vite.config.ts#L73-L77` | Zero such warnings in test output | verified |
+| AUD-145 | `toBeDefined()`-only smoke tests; `as any` mocks; `react(globals)` lint warnings in tests | `tests/stores.test.ts#L143-L145`, `tests/searchService.test.ts#L453` | Removed / typed | verified |
 
 ## T10 · Closing Audit
 

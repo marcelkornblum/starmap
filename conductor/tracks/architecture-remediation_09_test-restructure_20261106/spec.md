@@ -28,9 +28,9 @@ AUD-140 · AUD-141 · AUD-142 · AUD-143 · AUD-144 · AUD-145 (see [findings le
 
 ## Acceptance Criteria
 
-- [ ] Every owned finding (AUD-140 … AUD-145) marked `verified` by the end-of-track audit.
-- [ ] Owned guard baselines at zero: `G-lint` (react globals in tests).
-- [ ] No guard baseline increased.
-- [ ] Full e2e suite including URL contract specs green.
+- [x] Every owned finding (AUD-140 … AUD-145) marked `verified` by the end-of-track audit.
+- [x] Owned guard baselines at zero: `G-lint` (react globals in tests).
+- [x] No guard baseline increased.
+- [x] Full e2e suite including URL contract specs green.
 - [ ] Manual smoke checklist passed.
-- [ ] Audit report written to `audit-report.md`.
+- [x] Audit report written to `audit-report.md`.
