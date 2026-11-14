@@ -1,0 +1,11 @@
+@layer blocks {
+  .searchRoot {
+    --search-root-gap: var(--space-fib-2);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--search-root-gap);
+    inline-size: 100%;
+    position: relative;
+  }
+}

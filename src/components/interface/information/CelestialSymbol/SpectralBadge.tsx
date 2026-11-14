@@ -1,13 +1,8 @@
 import type { ReactNode } from 'react';
 import { Badge, type BadgeProps } from '../Badge/Badge';
 import { buildStarTypeGuideHref } from '../../../../utils/url';
-
-/**
- * Pure predicate determining whether a stellar spectral type badge should be displayed.
- * Returns false for undefined, blank strings, or placeholder 'Unknown'.
- */
-export const shouldDisplaySpectralBadge = (spectralType?: string): boolean =>
-  Boolean(spectralType && spectralType.trim().length > 0 && spectralType !== 'Unknown');
+import { shouldDisplaySpectralBadge } from './spectralBadgeUtils';
+import styles from './SpectralBadge.module.css';
 
 export interface SpectralBadgeProps extends Omit<BadgeProps, 'category'> {
   readonly spectralType?: string;
@@ -24,6 +19,7 @@ export const SpectralBadge = ({
   children,
   ...rest
 }: SpectralBadgeProps) => {
+  void styles;
   if (!shouldDisplaySpectralBadge(spectralType)) {
     return <>{fallback}</>;
   }

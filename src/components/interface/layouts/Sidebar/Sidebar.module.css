@@ -1,7 +1,7 @@
-@layer composition {
+@layer blocks {
   .sidebarContainer {
     --sidebar-gap: var(--space-stack-default);
-    --sidebar-width: 280px;
+    --sidebar-width: calc(var(--space-fib-7) * 5);
     --content-min: 50%;
 
     display: flex;
@@ -55,9 +55,9 @@
   .sidebarContainer[data-gap="fib-6"] { --sidebar-gap: var(--space-fib-6); }
   .sidebarContainer[data-gap="fib-7"] { --sidebar-gap: var(--space-fib-7); }
 
-  .sidebarContainer[data-width="sm"] { --sidebar-width: 220px; }
-  .sidebarContainer[data-width="md"] { --sidebar-width: 300px; }
-  .sidebarContainer[data-width="lg"] { --sidebar-width: 380px; }
+  .sidebarContainer[data-width="sm"] { --sidebar-width: calc(var(--space-fib-7) * 4); }
+  .sidebarContainer[data-width="md"] { --sidebar-width: calc(var(--space-fib-7) * 5 + var(--space-fib-4)); }
+  .sidebarContainer[data-width="lg"] { --sidebar-width: calc(var(--space-fib-7) * 7); }
 
   .sidebarContainer[data-content-min="50%"] { --content-min: 50%; }
   .sidebarContainer[data-content-min="60%"] { --content-min: 60%; }

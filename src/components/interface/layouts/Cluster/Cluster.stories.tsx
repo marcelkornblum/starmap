@@ -39,7 +39,7 @@ export const Cluster: Story = {
         </p>
       </div>
       <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
-        <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <Component {...args}>
           <div style={{ backgroundColor: '#ff5c5c', padding: '0.5rem 1rem' }}>1</div>
           <div style={{ backgroundColor: '#5cff8a', padding: '0.5rem 2rem' }}>2</div>
           <div style={{ backgroundColor: '#5c8aff', padding: '0.5rem 1.5rem' }}>3</div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSpatialFrame } from './SpatialFrameProvider';
+import { useSpatialFrame } from './spatialFrameContext';
 import { PlanarGrid, type PlanarFootprintItem } from './PlanarGrid';
 import { CoordinateFins } from './CoordinateFins';
 import { BearingVectors } from './BearingVectors';

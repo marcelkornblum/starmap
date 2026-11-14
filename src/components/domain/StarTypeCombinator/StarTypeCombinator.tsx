@@ -103,7 +103,7 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
 
         <div data-testid="combinator-slice-class" className={styles.sliceRow}>
           <strong>Slice 1: Spectral Class</strong>
-          <Cluster gap="dense" className={styles.sliceButtonGroup}>
+          <Cluster gap="dense">
             {CLASS_CHOICES.map((cls) => (
               <Button
                 key={cls}
@@ -123,7 +123,7 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
 
         <div data-testid="combinator-slice-subdivision" className={styles.sliceRow}>
           <strong>Slice 2: Subdivision (0–9)</strong>
-          <Cluster gap="dense" className={styles.sliceButtonGroup}>
+          <Cluster gap="dense">
             {SUBDIVISION_CHOICES.map((sub) => (
               <Button
                 key={sub}
@@ -143,7 +143,7 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
 
         <div data-testid="combinator-slice-luminosity" className={styles.sliceRow}>
           <strong>Slice 3: Luminosity Class</strong>
-          <Cluster gap="dense" className={styles.sliceButtonGroup}>
+          <Cluster gap="dense">
             {LUMINOSITY_CHOICES.map((lum) => (
               <Button
                 key={lum}

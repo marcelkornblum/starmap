@@ -32,7 +32,7 @@ import { StarTypesListView } from '../src/views/StarTypesListView';
 import { SystemView } from '../src/views/SystemView';
 import { SEARCH_CATEGORIES } from '../src/services/searchService';
 import { useStarmapNav } from '../src/router/navigation';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 
 const renderHtml = (el: ReactElement): string => {
   const { container } = render(createElement(SpatialEntityProvider, null, el));

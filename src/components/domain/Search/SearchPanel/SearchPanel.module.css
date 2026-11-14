@@ -1,0 +1,39 @@
+@layer blocks {
+  .searchPanel {
+    --search-panel-gap: var(--space-fib-2);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--search-panel-gap);
+    inline-size: 100%;
+  }
+
+  .searchForm {
+    --search-form-gap: var(--space-fib-2);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--search-form-gap);
+    inline-size: 100%;
+  }
+
+  .expandedDrawer {
+    --search-drawer-gap: var(--space-fib-2);
+
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--search-drawer-gap);
+    flex-wrap: wrap;
+    padding-block-start: var(--space-fib-1);
+    border-block-start: var(--rule-hairline);
+  }
+}
+
+@layer exceptions {
+  .searchPanel[data-search-focused="true"] .expandedDrawer,
+  .searchPanel:focus-within .expandedDrawer,
+  .searchPanel[data-scope="search"] .expandedDrawer {
+    display: flex;
+  }
+}

@@ -5,17 +5,6 @@
     gap: var(--space-fib-2);
   }
 
-  .srOnly {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
 
   .viewportSlot {
     display: flex;
@@ -23,14 +12,7 @@
     gap: var(--space-fib-1);
   }
 
-  .referenceFrame {
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: var(--space-fib-1);
-  }
-
-  .telemetry {
+  .viewportSlot [data-telemetry] {
     margin: 0;
     font-family: var(--font-interface);
     font-size: var(--type-scale-neg-1);

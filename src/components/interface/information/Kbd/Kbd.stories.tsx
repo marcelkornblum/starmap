@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Kbd } from './Kbd';
 import { Stack } from '../../layouts/Stack/Stack';
 import { Cluster } from '../../layouts/Cluster/Cluster';
-import { DataTable } from '../DataTable/DataTable';
+import { DataTable } from '../DataTable';
 
 import storyStyles from '../informationStories.module.css';
 

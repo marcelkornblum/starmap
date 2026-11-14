@@ -1,21 +1,40 @@
 export {
   BodiesPanel,
   type BodiesPanelProps,
-} from './BodiesPanel/BodiesPanel';
+} from './BodiesPanel';
 export {
   Breadcrumbs,
   type BreadcrumbItem,
   type BreadcrumbsProps,
-} from './Breadcrumbs/Breadcrumbs';
+} from './Breadcrumbs';
 export {
   DetailsPanel,
   type DetailsPanelProps,
-} from './DetailsPanel/DetailsPanel';
+} from './DetailsPanel';
 export {
   SearchResultItem,
   formatPlanetCountSummary,
   type SearchResultItemProps,
-} from './SearchResultItem/SearchResultItem';
+} from './SearchResultItem';
+export {
+  Search,
+  SearchRoot,
+  SearchPanel,
+  SearchInput,
+  SearchCategoryFilterSelect,
+  SearchResults,
+  useSearchContext,
+  SEARCH_DEBOUNCE_MS,
+  SEARCH_MIN_QUERY_LENGTH,
+  prefetchSearchResultsDetails,
+  type SearchRootProps,
+  type SearchPanelProps,
+  type SearchInputProps,
+  type SearchCategoryFilterProps,
+  type SearchResultsProps,
+  type SearchContextValue,
+  type SearchExecutionStatus,
+} from './Search';
 export {
   PlanetCensus,
   type PlanetCensusProps,
@@ -82,9 +101,8 @@ export {
 export {
   LayerCard,
   type LayerCardProps,
-} from './LayerCard/LayerCard';
+} from './LayerCard';
 export {
   CanonLayerItem,
   type CanonLayerItemProps,
 } from './CanonLayerItem';
-

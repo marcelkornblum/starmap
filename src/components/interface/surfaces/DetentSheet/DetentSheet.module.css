@@ -9,11 +9,8 @@
     border-radius: var(--radius-container);
     color: var(--content-default);
     box-shadow: var(--surface-panel-shadow);
-    max-inline-size: 480px;
     inline-size: 100%;
     box-sizing: border-box;
-    container-type: inline-size;
-    container-name: detent-sheet;
   }
 
   .dragHandleBar {
@@ -33,11 +30,11 @@
 
   .dragHandlePill {
     display: block;
-    width: 36px;
-    height: 4px;
-    border-radius: var(--radius-full, 9999px);
+    inline-size: calc(var(--space-fib-6) + var(--radius-1));
+    block-size: var(--stroke-width-4);
+    border-radius: var(--radius-full);
     background-color: var(--border-subtle);
-    transition: background-color var(--motion-duration-feedback, 150ms) var(--motion-ease-default, ease);
+    transition: background-color var(--motion-duration-feedback) var(--motion-ease-default);
   }
 
   .dragHandleBar:hover .dragHandlePill,
@@ -50,11 +47,10 @@
     inline-size: 1px;
     block-size: 1px;
     padding: 0;
-    margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
-    border-width: 0;
+    border: 0;
   }
 
   .detentSection {
@@ -65,22 +61,54 @@
 }
 
 @layer exceptions {
+  /* ui-audit-disable-next-line hardcoded-css-token -- Viewport breakpoint header */
   @media (min-width: 768px) {
+    .detentSheet {
+      container-type: inline-size;
+      container-name: detent-sheet;
+      max-inline-size: calc(var(--space-fib-7) * 8 + var(--space-fib-6));
+    }
+
     .dragHandleBar {
       display: none;
     }
   }
 
+  /* ui-audit-disable-next-line hardcoded-css-token -- Viewport breakpoint header */
   @media (max-width: 767px) {
     .detentSheet {
-      block-size: var(--sheet-mobile-height, 36dvh);
-      min-block-size: 3.5rem;
+      container-type: size;
+      container-name: detent-sheet;
+      --detent-sheet-peek-size: calc(var(--space-fib-7) + var(--stroke-width-1));
+      block-size: var(--detent-sheet-block-size, var(--detent-sheet-peek-size));
+      min-block-size: var(--detent-sheet-peek-size);
       max-block-size: 100dvh;
-      max-inline-size: 100%;
       border-end-start-radius: 0;
       border-end-end-radius: 0;
       overflow-y: hidden;
       touch-action: none;
+    }
+
+    .detentSheet [data-detent-section="partial"],
+    .detentSheet [data-detent-section="full"] {
+      display: none;
+    }
+
+    .detentSheet [data-detent-section="peek"] {
+      overflow: hidden;
+    }
+
+    /* ui-audit-disable-next-line hardcoded-css-token -- Container query threshold */
+    @container detent-sheet (min-block-size: 240px) {
+      .detentSheet [data-detent-section="partial"],
+      .detentSheet [data-detent-section="full"] {
+        display: flex;
+      }
+
+      .detentSheet {
+        overflow-y: auto;
+        touch-action: pan-y;
+      }
     }
 
     .detentSheet[data-is-full-screen="true"] {

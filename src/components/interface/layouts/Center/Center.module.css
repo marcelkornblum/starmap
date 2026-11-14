@@ -1,12 +1,14 @@
-@layer composition {
+@layer blocks {
   .center {
     --center-max: 60ch;
     --center-gutter: var(--space-stack-default);
 
     box-sizing: content-box;
-    margin-inline: auto;
+    align-self: center;
+    inline-size: 100%;
     max-inline-size: var(--center-max);
     padding-inline: var(--center-gutter);
+    margin: 0;
   }
 
   .center[data-and-text="true"] {

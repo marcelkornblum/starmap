@@ -9,7 +9,7 @@ import {
   type ScreenEdgeBearingType,
   type ScreenEdgeBearingResult,
 } from '../cartography/cartographyMath';
-import { useSpatialFrame } from './SpatialFrameProvider';
+import { useSpatialFrame } from './spatialFrameContext';
 import { type BearingDefinition } from './referenceFrame';
 import styles from './ScreenEdgeCue.module.css';
 

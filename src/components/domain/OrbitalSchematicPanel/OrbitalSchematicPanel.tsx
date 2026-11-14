@@ -14,9 +14,10 @@ import {
   CelestialTitle,
   type CelestialSymbolType,
   Quantity,
+  Stack,
   Unit,
   shouldDisplaySpectralBadge,
-} from '../../interface/information';
+} from '../../interface';
 import styles from './OrbitalSchematicPanel.module.css';
 
 export interface OrbitalSchematicItemProps {
@@ -157,11 +158,11 @@ export function OrbitalSchematicList({
   items,
 }: OrbitalSchematicListProps): React.ReactElement {
   return (
-    <ol className={styles.list} data-testid="orbital-schematic-list">
+    <Stack as="ol" gap="tight" data-testid="orbital-schematic-list">
       {items.map((item) => (
         <OrbitalSchematicItem key={item.id} item={item} />
       ))}
-    </ol>
+    </Stack>
   );
 }
 

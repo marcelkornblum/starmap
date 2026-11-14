@@ -36,7 +36,7 @@ export const Reel: Story = {
         </p>
       </div>
       <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
-        <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <Component {...args}>
           <div style={{ backgroundColor: '#ff5c5c', padding: '2rem', flexShrink: 0, minWidth: '300px' }}>1</div>
           <div style={{ backgroundColor: '#5cff8a', padding: '2rem', flexShrink: 0, minWidth: '300px' }}>2</div>
           <div style={{ backgroundColor: '#5c8aff', padding: '2rem', flexShrink: 0, minWidth: '300px' }}>3</div>

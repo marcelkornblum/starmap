@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
-import { Badge, Cluster, Datum, HazardBadge, Heading } from '../components/interface';
+import { Badge, Cluster, Datum, Grid, HazardBadge, Heading } from '../components/interface';
 import { HAZARD_GUIDE_ENTRIES } from '../services/guideService';
 import styles from './GuideViews.module.css';
 
@@ -15,7 +15,7 @@ export const HazardsListView: React.FC = () => {
       />
       <GuideSectionNav currentSection="hazards" />
       <Heading as="h1">Environmental Hazards</Heading>
-      <ul data-testid="hazards-guide-list" className={styles.cardList}>
+      <Grid as="ul" minWidth="md" gap="default" data-testid="hazards-guide-list">
         {HAZARD_GUIDE_ENTRIES.map((entry) => (
           <li
             key={entry.id}
@@ -49,7 +49,7 @@ export const HazardsListView: React.FC = () => {
             </a>
           </li>
         ))}
-      </ul>
+      </Grid>
     </main>
   );
 };

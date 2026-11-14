@@ -14,7 +14,7 @@
 
   .viewportContainer {
     inline-size: 100%;
-    block-size: 550px;
+    block-size: var(--size-measure-lg);
     position: relative;
     overflow: hidden;
     border-radius: var(--radius-container);
@@ -83,7 +83,6 @@
     border-collapse: collapse;
     font-family: var(--font-data);
     font-size: var(--text-caption-size);
-    margin-block-start: var(--space-fib-1);
   }
 
   .diagTable th,

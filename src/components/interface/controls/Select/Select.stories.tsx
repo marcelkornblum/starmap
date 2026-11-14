@@ -23,26 +23,28 @@ export const SelectStory: Story = {
           Native dropdown for picking from a constrained list of options. Styled to match the system aesthetic while retaining native device select mechanics.
         </p>
       </div>
-      <Stack gap="loose" style={{ maxWidth: '400px' }}>
-        <Select 
-          {...args} 
-          value="opt1" 
-          onChange={() => {}} 
-          options={[
-            { value: 'opt1', label: 'Option 1' },
-            { value: 'opt2', label: 'Option 2' }
-          ]} 
-        />
-        <Select 
-          {...args} 
-          disabled 
-          value="opt1" 
-          onChange={() => {}} 
-          options={[
-            { value: 'opt1', label: 'Disabled Option' }
-          ]} 
-        />
-      </Stack>
+      <div style={{ maxWidth: '400px' }}>
+        <Stack gap="loose">
+          <Select 
+            {...args} 
+            value="opt1" 
+            onChange={() => {}} 
+            options={[
+              { value: 'opt1', label: 'Option 1' },
+              { value: 'opt2', label: 'Option 2' }
+            ]} 
+          />
+          <Select 
+            {...args} 
+            disabled 
+            value="opt1" 
+            onChange={() => {}} 
+            options={[
+              { value: 'opt1', label: 'Disabled Option' }
+            ]} 
+          />
+        </Stack>
+      </div>
     </div>
   ),
 };

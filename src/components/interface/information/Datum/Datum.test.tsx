@@ -65,18 +65,17 @@ describe('<Datum />', () => {
     expect(button).toBeDefined();
   });
 
-  it('applies custom className and forwards extra attributes', () => {
+  it('applies static module class and forwards extra attributes', () => {
     render(
       <Datum
         label="Metallicity"
         value="+0.12"
-        className="astronomy-datum"
         data-custom="custom-attr"
       />
     );
 
     const datum = screen.getByText('Metallicity').closest('[data-datum="true"]');
-    expect(datum?.className).toContain('astronomy-datum');
+    expect(datum?.className).toMatch(/datum/);
     expect(datum?.getAttribute('data-custom')).toBe('custom-attr');
   });
 });

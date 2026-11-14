@@ -35,15 +35,15 @@ describe('<Hud />', () => {
     expect(hud.getAttribute('data-padded')).toBeNull();
   });
 
-  it('merges custom className and forwards extra attributes', () => {
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
     render(
-      <Hud className="custom-hud" aria-label="Flight telemetry" data-testid="hud">
+      <Hud aria-label="Flight telemetry" data-testid="hud">
         Telemetry Readout
       </Hud>
     );
 
     const hud = screen.getByTestId('hud');
-    expect(hud.className).toContain('custom-hud');
+    expect(hud.className).toBeTruthy();
     expect(hud.getAttribute('aria-label')).toBe('Flight telemetry');
   });
 });

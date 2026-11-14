@@ -1,6 +1,6 @@
 import React from 'react';
 import * as THREE from 'three';
-import { useSpatialFrame } from './SpatialFrameProvider';
+import { useSpatialFrame } from './spatialFrameContext';
 import { ScreenEdgeCue } from './ScreenEdgeCue';
 
 export interface ScreenEdgeIndicatorsProps {

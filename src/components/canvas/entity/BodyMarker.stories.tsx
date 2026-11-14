@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
 import { BodyMarker } from './BodyMarker';
-import { SpatialEntityProvider } from './SpatialEntityContext';
+import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
 
 const meta: Meta<typeof BodyMarker> = {

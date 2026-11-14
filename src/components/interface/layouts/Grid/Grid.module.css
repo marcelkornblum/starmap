@@ -1,11 +1,12 @@
-@layer composition {
+@layer blocks {
   .grid {
     --grid-gap: var(--space-grid-gap);
-    --grid-min: 240px;
+    --grid-min: var(--grid-column-min, calc(var(--space-fib-7) * 4));
 
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--grid-min)), 1fr));
     gap: var(--grid-gap);
+    list-style: none;
     margin: 0;
     padding: 0;
   }
@@ -26,9 +27,9 @@
   .grid[data-gap="fib-6"] { --grid-gap: var(--space-fib-6); }
   .grid[data-gap="fib-7"] { --grid-gap: var(--space-fib-7); }
 
-  .grid[data-min="xs"] { --grid-min: 160px; }
-  .grid[data-min="sm"] { --grid-min: 220px; }
-  .grid[data-min="md"] { --grid-min: 280px; }
-  .grid[data-min="lg"] { --grid-min: 360px; }
-  .grid[data-min="xl"] { --grid-min: 440px; }
+  .grid[data-min="xs"] { --grid-min: calc(var(--space-fib-7) * 3); }
+  .grid[data-min="sm"] { --grid-min: calc(var(--space-fib-7) * 4); }
+  .grid[data-min="md"] { --grid-min: calc(var(--space-fib-7) * 5); }
+  .grid[data-min="lg"] { --grid-min: calc(var(--space-fib-7) * 6 + var(--space-fib-6)); }
+  .grid[data-min="xl"] { --grid-min: calc(var(--space-fib-7) * 8); }
 }

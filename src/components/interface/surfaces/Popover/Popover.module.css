@@ -11,7 +11,7 @@
     --popover-border-style: var(--surface-popover-border-style);
     --popover-shadow: var(--surface-popover-shadow);
     --popover-padding: var(--space-inset-popover);
-    --popover-radius: var(--surface-popover-radius);
+    --popover-radius: var(--radius-container);
     --popover-offset: var(--space-offset-overlay);
     --popover-backdrop-blur: var(--surface-popover-backdrop-blur);
 
@@ -34,7 +34,7 @@
     position: absolute;
     inset-block-start: 0;
     inset-inline: 0;
-    block-size: min(100%, 360px);
+    block-size: min(100%, calc(var(--space-fib-7) * 6 + var(--space-fib-5)));
     background: linear-gradient(
       137deg,
       oklch(100% 0 0 / 0.08) 0%,

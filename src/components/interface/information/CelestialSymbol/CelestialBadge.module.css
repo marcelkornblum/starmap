@@ -1,0 +1,6 @@
+@layer blocks {
+  .celestialBadge {
+    display: inline-flex;
+    margin: 0;
+  }
+}

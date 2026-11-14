@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
-import { CelestialSymbol, Cluster, Datum, Heading, SpectralBadge } from '../components/interface';
+import { CelestialSymbol, Cluster, Datum, Grid, Heading, SpectralBadge } from '../components/interface';
 import { STAR_TYPE_GUIDE_ENTRIES } from '../services/guideService';
 import styles from './GuideViews.module.css';
 
@@ -15,7 +15,7 @@ export const StarTypesListView: React.FC = () => {
       />
       <GuideSectionNav currentSection="star-types" />
       <Heading as="h1">Star Types</Heading>
-      <ul data-testid="star-types-guide-list" className={styles.cardList}>
+      <Grid as="ul" minWidth="md" gap="default" data-testid="star-types-guide-list">
         {STAR_TYPE_GUIDE_ENTRIES.map((entry) => (
           <li
             key={entry.id}
@@ -57,7 +57,7 @@ export const StarTypesListView: React.FC = () => {
             </a>
           </li>
         ))}
-      </ul>
+      </Grid>
     </main>
   );
 };

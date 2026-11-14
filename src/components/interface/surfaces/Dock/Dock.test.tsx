@@ -34,15 +34,15 @@ describe('<Dock />', () => {
     expect(dock.getAttribute('data-padded')).toBeNull();
   });
 
-  it('merges custom className and forwards extra attributes', () => {
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
     render(
-      <Dock className="custom-dock" role="toolbar" aria-label="Quick actions" data-testid="dock">
+      <Dock role="toolbar" aria-label="Quick actions" data-testid="dock">
         Tools
       </Dock>
     );
 
     const dock = screen.getByTestId('dock');
-    expect(dock.className).toContain('custom-dock');
+    expect(dock.className).toBeTruthy();
     expect(dock.getAttribute('role')).toBe('toolbar');
     expect(dock.getAttribute('aria-label')).toBe('Quick actions');
   });

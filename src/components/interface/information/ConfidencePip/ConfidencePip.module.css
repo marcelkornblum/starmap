@@ -1,6 +1,6 @@
 @layer blocks {
   .pipWrapper {
-    --pip-size: 6px;
+    --pip-size: calc(var(--space-fib-1) * 2);
     --pip-color: var(--confidence-confirmed);
     --pip-glow: var(--confidence-confirmed-glow);
 
@@ -34,13 +34,13 @@
   .pipButton::before {
     content: '';
     position: absolute;
-    inset: -6px;
+    inset: calc(-1 * var(--space-fib-1) * 2);
     border-radius: 50%;
   }
 
   .pipButton:focus-visible {
     outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus-ring-color);
-    outline-offset: 2px;
+    outline-offset: var(--stroke-width-2);
   }
 
   .dot {
@@ -85,20 +85,19 @@
     padding-inline-start: var(--space-cluster-dense);
     border-inline-start: var(--stroke-hairline) solid var(--border-color-subtle);
     display: inline-block;
-    margin-inline-start: var(--space-cluster-dense);
   }
 }
 
 @layer exceptions {
   /* Pip Sizes: calibrated smaller for inline typographic balance */
   .pipWrapper[data-size="sm"] {
-    --pip-size: 4px;
+    --pip-size: var(--stroke-width-4);
   }
   .pipWrapper[data-size="md"] {
-    --pip-size: 6px;
+    --pip-size: calc(var(--space-fib-1) * 2);
   }
   .pipWrapper[data-size="lg"] {
-    --pip-size: 8px;
+    --pip-size: var(--space-fib-3);
   }
 
   /* Confidence Optics */

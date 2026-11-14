@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import * as THREE from 'three';
 import { BodyMarker } from '../src/components/canvas/entity/BodyMarker';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/canvas/instrument';
 
 const frameCallbackQueue: Array<(state: any, delta: number) => void> = [];

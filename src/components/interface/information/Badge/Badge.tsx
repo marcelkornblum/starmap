@@ -6,7 +6,7 @@ export type BadgeStatus = 'nominal' | 'caution' | 'critical' | 'info' | 'neutral
 export type BadgeConfidence = 'confirmed' | 'candidate' | 'projected' | 'unverified';
 export type BadgeCategory = 'star' | 'planet' | 'nebula' | 'constellation';
 
-export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+export interface BadgeProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'className' | 'style'> {
   status?: BadgeStatus;
   confidence?: BadgeConfidence;
   category?: BadgeCategory;
@@ -24,20 +24,15 @@ export const Badge = ({
   target,
   rel,
   children,
-  className,
   ...rest
 }: BadgeProps) => {
-  const combinedClassName = className
-    ? `${styles.badge} ${className}`
-    : styles.badge;
-
   if (href !== undefined) {
     return (
       <a
         href={resolveAppHref(href)}
         target={target}
         rel={rel}
-        className={combinedClassName}
+        className={styles.badge}
         data-status={status}
         data-confidence={confidence}
         data-category={category}
@@ -50,7 +45,7 @@ export const Badge = ({
 
   return (
     <span
-      className={combinedClassName}
+      className={styles.badge}
       data-status={status}
       data-confidence={confidence}
       data-category={category}

@@ -4,13 +4,15 @@ import styles from './Heading.module.css';
 export type HeadingLevel = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 export type HeadingSize = 'hero' | 'title' | 'section' | 'lead' | 'eyebrow';
 
-export interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
+export interface HeadingProps extends Omit<HTMLAttributes<HTMLHeadingElement>, 'className' | 'style'> {
   as?: HeadingLevel;
   size?: HeadingSize;
   eyebrow?: ReactNode;
   subtitle?: ReactNode;
   badge?: ReactNode;
+  visuallyHidden?: boolean;
   children?: ReactNode;
+  'data-testid'?: string;
 }
 
 function resolveDefaultSize(as: HeadingLevel): HeadingSize {
@@ -35,9 +37,9 @@ export const Heading = ({
   eyebrow,
   subtitle,
   badge,
+  visuallyHidden,
   children,
   id,
-  className,
   ...rest
 }: HeadingProps) => {
   const Tag = as;
@@ -45,12 +47,12 @@ export const Heading = ({
   const hasGroup = Boolean(eyebrow || subtitle || badge);
 
   if (hasGroup) {
-    const combinedGroupClassName = className
-      ? `${styles.headingGroup} ${className}`
-      : styles.headingGroup;
-
     return (
-      <div className={combinedGroupClassName} data-heading-group="true">
+      <div
+        className={styles.headingGroup}
+        data-heading-group="true"
+        data-visually-hidden={visuallyHidden ? 'true' : undefined}
+      >
         {eyebrow && <span className={styles.eyebrow}>{eyebrow}</span>}
         {badge ? (
           <div className={styles.titleRow}>
@@ -69,16 +71,13 @@ export const Heading = ({
     );
   }
 
-  const combinedClassName = className
-    ? `${styles.heading} ${className}`
-    : styles.heading;
-
   return (
     <Tag
       id={id}
-      className={combinedClassName}
+      className={styles.heading}
       data-heading="true"
       data-size={resolvedSize}
+      data-visually-hidden={visuallyHidden ? 'true' : undefined}
       {...rest}
     >
       {children}

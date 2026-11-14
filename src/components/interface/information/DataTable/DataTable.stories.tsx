@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { DataTable } from './DataTable';
+import { DataTable } from './index';
 import { Badge } from '../Badge/Badge';
 import { ConfidencePip } from '../ConfidencePip/ConfidencePip';
 import { Stack } from '../../layouts/Stack/Stack';

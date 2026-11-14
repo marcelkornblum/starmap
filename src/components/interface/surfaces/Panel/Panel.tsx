@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import styles from './Panel.module.css';
 
-export interface PanelProps extends HTMLAttributes<HTMLDivElement> {
+export interface PanelProps extends Omit<HTMLAttributes<HTMLDivElement>, 'className' | 'style'> {
   header?: ReactNode;
   footer?: ReactNode;
   status?: 'nominal' | 'caution' | 'critical' | 'info' | 'neutral';
@@ -15,16 +15,11 @@ export const Panel = ({
   status,
   padding = 'default',
   children,
-  className,
   ...rest
 }: PanelProps) => {
-  const combinedClassName = className
-    ? `${styles.panel} ${className}`
-    : styles.panel;
-
   return (
     <div
-      className={combinedClassName}
+      className={styles.panel}
       data-status={status}
       data-padding={padding}
       {...rest}

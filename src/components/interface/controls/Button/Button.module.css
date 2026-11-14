@@ -6,9 +6,9 @@
     --button-border-width: var(--border-width-1);
     --button-border-style: var(--border-style-boundary);
     --button-radius: var(--radius-control);
-    --button-padding-inline: var(--space-inset-button-default-x);
-    --button-padding-block: var(--space-inset-button-default-y);
-    --button-font-size: var(--text-ui-button-default-size);
+    --button-padding-inline: var(--button-padding-x, var(--space-fib-4));
+    --button-padding-block: var(--button-padding-y, var(--space-fib-2));
+    --button-font-size: var(--type-scale-0);
     --button-font-weight: 500;
     --button-leading: var(--leading-control);
     --button-gap: var(--space-cluster-dense);
@@ -154,14 +154,14 @@
 
   /* Sizes */
   .button[data-size="sm"] {
-    --button-padding-inline: var(--space-inset-button-sm-x);
-    --button-padding-block: var(--space-inset-button-sm-y);
-    --button-font-size: var(--text-ui-button-subtle-size);
+    --button-padding-inline: var(--space-fib-3);
+    --button-padding-block: var(--space-fib-1);
+    --button-font-size: var(--type-scale-neg-1);
   }
 
   .button[data-size="lg"] {
-    --button-padding-inline: var(--space-inset-button-lg-x);
-    --button-padding-block: var(--space-inset-button-lg-y);
-    --button-font-size: var(--text-ui-button-prominent-size);
+    --button-padding-inline: var(--space-fib-5);
+    --button-padding-block: var(--space-fib-3);
+    --button-font-size: var(--type-scale-0);
   }
 }

@@ -29,7 +29,7 @@ import {
   fetchDetailRecord,
   clearDetailsRepositoryCache,
 } from '../src/data/detailsRepository';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import type { SystemManifest, CircumstellarDiskRecord } from '../src/types/astro';
 import {

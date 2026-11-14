@@ -1,7 +1,7 @@
-@layer composition {
+@layer blocks {
   .reel {
     --reel-gap: var(--space-stack-default);
-    --reel-item-width: 260px;
+    --reel-item-width: calc(var(--space-fib-7) * 4 + var(--space-fib-6));
 
     display: flex;
     overflow-x: auto;
@@ -41,7 +41,7 @@
   .reel[data-gap="fib-6"] { --reel-gap: var(--space-fib-6); }
   .reel[data-gap="fib-7"] { --reel-gap: var(--space-fib-7); }
 
-  .reel[data-item-width="sm"] { --reel-item-width: 180px; }
-  .reel[data-item-width="md"] { --reel-item-width: 260px; }
-  .reel[data-item-width="lg"] { --reel-item-width: 360px; }
+  .reel[data-item-width="sm"] { --reel-item-width: calc(var(--space-fib-7) * 3 + var(--space-fib-4)); }
+  .reel[data-item-width="md"] { --reel-item-width: calc(var(--space-fib-7) * 4 + var(--space-fib-6)); }
+  .reel[data-item-width="lg"] { --reel-item-width: calc(var(--space-fib-7) * 6 + var(--space-fib-5)); }
 }

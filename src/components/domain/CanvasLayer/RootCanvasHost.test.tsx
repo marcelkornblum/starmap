@@ -3,10 +3,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
-import {
-  CanvasLayer,
-  _resetWebGLSupportedForTesting,
-} from './CanvasLayer';
+import { CanvasLayer } from './CanvasLayer';
+import { _resetWebGLSupportedForTesting } from './webglSupport';
 import { RootCanvasHost } from './RootCanvasHost';
 import {
   useCanvasStageStore,

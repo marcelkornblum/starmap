@@ -19,37 +19,6 @@
     gap: var(--space-fib-1);
   }
 
-  .closeButton {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-fib-1) var(--space-fib-2);
-    margin: 0;
-    background-color: transparent;
-    border: var(--border-width-1) solid transparent;
-    border-radius: var(--radius-sm);
-    color: var(--content-muted);
-    font-size: var(--type-scale-1);
-    line-height: 1;
-    text-decoration: none;
-    cursor: pointer;
-    transition:
-      color var(--duration-fast) var(--motion-ease-out),
-      border-color var(--duration-fast) var(--motion-ease-out);
-  }
-
-  .closeButton:hover {
-    color: var(--content-prominent);
-    border-color: var(--border-subtle);
-  }
-
-  .title {
-    margin: 0;
-    font-family: var(--font-interface);
-    font-size: var(--type-scale-2);
-    color: var(--content-prominent);
-  }
-
   .subtitle {
     margin: 0;
     font-family: var(--font-interface);
@@ -61,12 +30,6 @@
   .text {
     margin: 0;
     font-family: var(--font-interface);
-    font-size: var(--type-scale-0);
-    color: var(--content-muted);
-  }
-
-  .count {
-    font-family: var(--font-data);
     font-size: var(--type-scale-0);
     color: var(--content-muted);
   }
@@ -104,12 +67,6 @@
   .footer {
     padding-top: var(--space-fib-2);
     border-top: var(--border-width-1) solid var(--border-subtle);
-  }
-
-  .actionButton {
-    inline-size: 100%;
-    width: 100%;
-    box-sizing: border-box;
   }
 }
 

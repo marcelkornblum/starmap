@@ -105,17 +105,16 @@ describe('<Select />', () => {
     expect(select.getAttribute('name')).toBe('source');
   });
 
-  it('merges custom className with scoped module class', () => {
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
     render(
       <Select
         options={mockOptions}
         value="gaia"
         onChange={vi.fn()}
-        className="custom-select"
         aria-label="Catalogue"
       />
     );
     const select = screen.getByLabelText('Catalogue');
-    expect(select.className).toContain('custom-select');
+    expect(select.className).toBeTruthy();
   });
 });

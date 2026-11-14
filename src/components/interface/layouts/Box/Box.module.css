@@ -1,4 +1,4 @@
-@layer composition {
+@layer blocks {
   .box {
     --box-padding: var(--space-stack-default);
     --box-border-color: transparent;

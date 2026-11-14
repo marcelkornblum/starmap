@@ -1,8 +1,5 @@
-import { useRef, type MouseEvent, type ReactNode } from 'react';
-import {
-  buildStarTypeGuideHref,
-  type SearchResultItem as SearchResultItemModel,
-} from '../../../services/searchService';
+import type { MouseEvent, ReactNode } from 'react';
+import type { SearchResultItem as SearchResultItemModel } from '../../../services/searchService';
 import {
   Badge,
   CelestialBadge,
@@ -11,7 +8,7 @@ import {
   SpectralBadge,
   shouldDisplaySpectralBadge,
 } from '../../interface';
-import { useSearchContext } from '../../search/SearchContext';
+import { useSearchContext } from '../Search/SearchContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { resolveAppHref } from '../../../utils/url';
 import { handleSpaNavigation } from '../../../hooks/spaNavigation';
@@ -21,16 +18,6 @@ export interface SearchResultItemProps {
   readonly result: SearchResultItemModel;
   readonly onSelect?: (result: SearchResultItemModel) => void;
 }
-
-/**
- * Pure formatter producing the pluralized planet count summary for a stellar system result.
- */
-export const formatPlanetCountSummary = (planetCount?: number): string | null => {
-  if (planetCount === undefined || planetCount <= 0) {
-    return null;
-  }
-  return `${planetCount} ${planetCount === 1 ? 'planet' : 'planets'}`;
-};
 
 const renderVariationContent = (
   data: SearchResultItemModel,
@@ -49,7 +36,7 @@ const renderVariationContent = (
           {hasSpect && spectralType ? (
             <SpectralBadge
               spectralType={spectralType}
-              href={spectralType ? buildStarTypeGuideHref(spectralType) : undefined}
+              interactive={false}
               data-testid="result-spectral-badge"
             />
           ) : null}
@@ -91,7 +78,7 @@ const renderVariationContent = (
  * Domain Component (`<SearchResultItem>`): accepts a `SearchResultItem` domain record,
  * unpacks its identity, navigation link (`href`), reticle classification (`reticleType`),
  * and category-specific metadata (`stars`, `planets`, `structures`, `minor-bodies`, `layers`),
- * and renders an unstyled semantic stub (Stage 1).
+ * and renders a single-anchor keyboard/pointer accessible list item (DEC-R052).
  */
 export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) => {
   const {
@@ -105,7 +92,6 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
     systemId,
   } = result;
 
-  const anchorRef = useRef<HTMLAnchorElement>(null);
   const searchCtx = useSearchContext();
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>): void => {
@@ -129,12 +115,6 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
     handleSpaNavigation(event, href);
   };
 
-  const handleRowClick = (e: MouseEvent<HTMLLIElement>): void => {
-    if (!(e.target as Element | null)?.closest('a[href]')) {
-      anchorRef.current?.click();
-    }
-  };
-
   return (
     <li
       className={styles.searchResultItem}
@@ -145,15 +125,22 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
       data-entity-kind={entityKind}
       data-reticle={reticleType}
       data-target-view={targetView}
-      onClick={handleRowClick}
     >
-      <Cluster gap="tight" align="center">
-        <CelestialBadge type={reticleType} data-testid="result-reticle-type" />
-        <a ref={anchorRef} href={resolveAppHref(href)} onClick={handleClick}>
-          {name}
-        </a>
-        {renderVariationContent(result)}
-      </Cluster>
+      <a
+        href={resolveAppHref(href)}
+        className={styles.resultLink}
+        onClick={handleClick}
+      >
+        <Cluster gap="tight" align="center">
+          <CelestialBadge
+            type={reticleType}
+            interactive={false}
+            data-testid="result-reticle-type"
+          />
+          <span className={styles.resultName}>{name}</span>
+          {renderVariationContent(result)}
+        </Cluster>
+      </a>
     </li>
   );
 };

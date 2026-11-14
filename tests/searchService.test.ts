@@ -7,7 +7,7 @@ import {
   formatPlanetCountSummary,
 } from '../src/components/domain';
 import { shouldDisplaySpectralBadge } from '../src/components/interface';
-import { Search, prefetchSearchResultsDetails } from '../src/components/search';
+import { Search, prefetchSearchResultsDetails } from '../src/components/domain/Search';
 import * as detailsRepo from '../src/data/detailsRepository';
 import * as layerRepo from '../src/data/layerRepository';
 import {
@@ -62,7 +62,7 @@ import {
   resetLayerRuntime,
   seedAllLayerData,
 } from './layerFixtures';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 
 const renderToHtml = (element: ReactElement): string =>
   render(createElement(SpatialEntityProvider, null, element)).container.innerHTML;
@@ -362,7 +362,7 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
     expect(html).toContain('data-testid="result-variation-stars"');
     expect(html).toContain('data-testid="result-spectral-badge"');
     expect(html).toContain('data-spectral-badge="G8V"');
-    expect(html).toContain('href="/guide/star-types/G8V"');
+    expect(html).not.toContain('href="/guide/star-types/G8V"');
     expect(html).toContain('data-testid="result-planet-summary"');
     expect(html).toContain('>4</span>');
     expect(html).toContain('planets</span>');
@@ -727,10 +727,10 @@ describe('Search Compound Component Boundary (<Search.Root>, <Search.Panel>, <Se
       '<span data-testid="result-variation-layers"></span>',
     );
 
-    // Reticle is positioned to the left of the item title link
+    // Reticle is positioned to the left of the item title (DEC-R052 single-anchor row)
     const htmlStarOnePlanet = renderToHtml(createElement(SearchResultItem, { result: starOnePlanet }));
     const reticleIdx = htmlStarOnePlanet.indexOf('data-testid="result-reticle-type"');
-    const titleIdx = htmlStarOnePlanet.indexOf('>One Planet Star</a>');
+    const titleIdx = htmlStarOnePlanet.indexOf('One Planet Star');
     expect(reticleIdx).toBeGreaterThan(-1);
     expect(titleIdx).toBeGreaterThan(-1);
     expect(reticleIdx).toBeLessThan(titleIdx);

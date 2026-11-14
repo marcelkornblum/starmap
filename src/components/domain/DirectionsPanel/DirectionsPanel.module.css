@@ -2,7 +2,7 @@
   .directionsPanel {
     --directions-panel-gap: var(--space-fib-2);
     --directions-panel-padding: var(--space-fib-3);
-    --directions-panel-bg: var(--surface-sunken);
+    --directions-panel-bg: var(--surface-sunken-bg);
     --directions-panel-border: var(--rule-hairline);
     --directions-panel-radius: var(--radius-md);
     display: flex;
@@ -13,15 +13,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--directions-panel-gap);
+    gap: var(--space-fib-2);
     flex-wrap: wrap;
-  }
-
-  .routeTitle {
-    font-family: var(--font-sans);
-    font-size: var(--type-scale-0);
-    font-weight: var(--weight-semibold);
-    color: var(--content-prominent);
   }
 
   .legEndpoints {
@@ -38,54 +31,6 @@
     color: var(--content-muted);
   }
 
-  .actions {
-    display: flex;
-    align-items: center;
-    gap: var(--directions-panel-gap);
-  }
-
-  .actionButton,
-  .closeLink {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-fib-1) var(--space-fib-3);
-    font-family: var(--font-mono);
-    font-size: var(--type-scale-min);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-caps);
-    color: var(--content-prominent);
-    background: var(--surface-panel);
-    border: var(--directions-panel-border);
-    border-radius: var(--radius-sm);
-    text-decoration: none;
-    cursor: pointer;
-    transition:
-      background-color var(--motion-duration-feedback) var(--motion-ease-out),
-      border-color var(--motion-duration-feedback) var(--motion-ease-out);
-  }
-
-  .actionButton:hover,
-  .closeLink:hover {
-    background: var(--state-hover);
-    border-color: var(--border-prominent);
-  }
-
-  .comingSoon {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-fib-1);
-  }
-
-  .comingSoonBadge {
-    font-family: var(--font-mono);
-    font-size: var(--type-scale-min);
-    font-weight: var(--weight-semibold);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-caps);
-    color: var(--status-warning-fg);
-  }
-
   .comingSoonText {
     font-size: var(--type-scale-min);
     color: var(--content-default);
@@ -96,61 +41,31 @@
   .comingSoonSection {
     display: flex;
     flex-direction: column;
-    gap: var(--directions-panel-gap);
-    padding: var(--directions-panel-padding);
-    background: var(--directions-panel-bg);
-    border: var(--rule-dashed);
-    border-radius: var(--directions-panel-radius);
+    gap: var(--space-fib-2);
+    padding: var(--space-fib-3);
+    background: var(--surface-sunken-bg);
+    border: 1px dashed var(--border-color-subtle);
+    border-radius: var(--radius-md);
     font-size: var(--type-scale-min);
     color: var(--content-default);
-  }
-
-  .comingSoonSection h4 {
-    margin: 0;
-    font-family: var(--font-sans);
-    font-size: var(--type-scale-0);
-    color: var(--content-prominent);
-  }
-
-  .optionsList,
-  .geometryList,
-  .stepsList {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--directions-panel-padding);
   }
 
   .optionItem {
     display: flex;
     flex-direction: column;
-    gap: var(--directions-panel-gap);
-    padding: var(--directions-panel-padding);
-    background: var(--directions-panel-bg);
-    border: var(--directions-panel-border);
-    border-radius: var(--directions-panel-radius);
+    gap: var(--space-fib-2);
+    padding: var(--space-fib-3);
+    background: var(--surface-sunken-bg);
+    border: var(--rule-hairline);
+    border-radius: var(--radius-md);
   }
 
   .optionHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--directions-panel-gap);
+    gap: var(--space-fib-2);
     flex-wrap: wrap;
-  }
-
-  .optionSelectLink {
-    font-family: var(--font-sans);
-    font-size: var(--type-scale-0);
-    font-weight: var(--weight-semibold);
-    color: var(--content-accent);
-    text-decoration: none;
-  }
-
-  .optionSelectLink:hover {
-    text-decoration: underline;
   }
 
   .optionTime {
@@ -167,43 +82,20 @@
     margin: 0;
   }
 
-  .geometryItem,
   .stepItem {
     display: flex;
     flex-direction: column;
     gap: var(--space-fib-1);
-    padding: var(--directions-panel-gap);
-    background: var(--directions-panel-bg);
-    border: var(--directions-panel-border);
+    padding: var(--space-fib-2);
+    background: var(--surface-sunken-bg);
+    border: var(--rule-hairline);
     border-radius: var(--radius-sm);
     font-size: var(--type-scale-min);
-  }
-
-  .stepHeading {
-    font-family: var(--font-sans);
-    font-size: var(--type-scale-min);
-    font-weight: var(--weight-semibold);
-    color: var(--content-prominent);
-    margin: 0;
   }
 
   .telemetrySection {
     display: flex;
     flex-direction: column;
-    gap: var(--directions-panel-gap);
-  }
-
-  .telemetryHeading {
-    font-family: var(--font-mono);
-    font-size: var(--type-scale-min);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-caps);
-    color: var(--content-muted);
-    margin: 0;
-  }
-
-  .telemetryList,
-  .stepMetricsList {
-    inline-size: 100%;
+    gap: var(--space-fib-2);
   }
 }

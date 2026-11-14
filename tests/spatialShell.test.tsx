@@ -11,12 +11,12 @@ import {
   canMountWebGLCanvas,
   _resetWebGLSupportedForTesting,
 } from '../src/components/domain';
-import { resolvePrimaryPanels } from '../src/components/domain/SpatialShell/SpatialShell';
-import { Search } from '../src/components/search';
+import { resolvePrimaryPanels } from '../src/components/domain/SpatialShell/spatialShellHelpers';
+import { Search } from '../src/components/domain/Search';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { SystemView } from '../src/views/SystemView';
 import { PlanetView } from '../src/views/PlanetView';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import { useUIStore } from '../src/stores/useUIStore';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';

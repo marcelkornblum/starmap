@@ -5,8 +5,8 @@
     --input-border-color: var(--ui-control-inset-border-color);
     --input-border-width: var(--border-width-1);
     --input-border-style: var(--border-style-boundary);
-    --input-padding-inline: var(--space-inset-control-x);
-    --input-padding-block: var(--space-inset-control-y);
+    --input-padding-inline: var(--input-padding-x, var(--space-inset-control-x));
+    --input-padding-block: var(--input-padding-y, var(--space-inset-control-y));
     --input-font-size: var(--type-scale-0);
     --input-radius: var(--radius-control);
     --input-shadow: var(--ui-control-inset-shadow);
@@ -39,7 +39,7 @@
     --input-shadow:
       inset 0 -1px 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
       inset -1px 0 0 0 oklch(from var(--state-focus) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
-      inset 0 0 4px 0 oklch(from var(--state-focus) l c h / 0.20),
+      inset 0 0 var(--radius-2) 0 oklch(from var(--state-focus) l c h / 0.20),
       var(--ui-control-inset-shadow);
     box-shadow: var(--input-shadow);
   }
@@ -61,7 +61,7 @@
     --input-shadow:
       inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.35),
       inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.20),
-      inset 0 0 4px 0 oklch(from var(--status-critical) l c h / 0.20),
+      inset 0 0 var(--radius-2) 0 oklch(from var(--status-critical) l c h / 0.20),
       var(--ui-control-inset-shadow);
   }
   .input[data-status="error"]:focus {
@@ -69,7 +69,7 @@
     --input-shadow:
       inset 0 -1px 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.40),
       inset -1px 0 0 0 oklch(from var(--status-critical) var(--ui-control-specular-l) var(--ui-control-specular-c) h / 0.25),
-      inset 0 0 5px 0 oklch(from var(--status-critical) l c h / 0.25),
+      inset 0 0 var(--space-fib-2) 0 oklch(from var(--status-critical) l c h / 0.25),
       var(--ui-control-inset-shadow);
     box-shadow: var(--input-shadow);
   }
@@ -79,8 +79,8 @@
   }
 
   .input[data-size="sm"] {
-    --input-padding-inline: var(--space-inset-input-sm-x);
-    --input-padding-block: var(--space-inset-input-sm-y);
+    --input-padding-inline: var(--space-fib-2);
+    --input-padding-block: var(--space-fib-1);
     --input-font-size: var(--type-scale-neg-1);
   }
 }

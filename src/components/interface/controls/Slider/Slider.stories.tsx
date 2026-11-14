@@ -26,10 +26,12 @@ export const SliderStory: Story = {
           Range input for selecting continuous analog values. Highly visible track and thumb designed for touch and cursor interaction.
         </p>
       </div>
-      <Stack gap="loose" style={{ maxWidth: '400px' }}>
-        <Slider {...args} value={50} onChange={() => {}} min={0} max={100} />
-        <Slider {...args} value={25} onChange={() => {}} disabled min={0} max={100} />
-      </Stack>
+      <div style={{ maxWidth: '400px' }}>
+        <Stack gap="loose">
+          <Slider {...args} value={50} onChange={() => {}} min={0} max={100} />
+          <Slider {...args} value={25} onChange={() => {}} disabled min={0} max={100} />
+        </Stack>
+      </div>
     </div>
   ),
 };

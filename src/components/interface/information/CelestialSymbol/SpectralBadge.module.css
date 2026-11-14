@@ -1,0 +1,6 @@
+@layer blocks {
+  .spectralBadge {
+    display: inline-flex;
+    margin: 0;
+  }
+}

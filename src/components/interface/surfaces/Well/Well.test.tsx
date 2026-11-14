@@ -35,15 +35,15 @@ describe('<Well />', () => {
     expect(well.getAttribute('data-tabular')).toBeNull();
   });
 
-  it('merges custom className and forwards extra attributes', () => {
+  it('applies static module class and forwards extra attributes', () => {
     render(
-      <Well className="custom-well" role="note" data-testid="well">
+      <Well role="note" data-testid="well">
         Note content
       </Well>
     );
 
     const well = screen.getByTestId('well');
-    expect(well.className).toContain('custom-well');
+    expect(well.className).toMatch(/well/);
     expect(well.getAttribute('role')).toBe('note');
   });
 });

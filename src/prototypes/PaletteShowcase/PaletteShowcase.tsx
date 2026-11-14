@@ -776,7 +776,7 @@ export const PaletteShowcaseScene = () => {
                 </div>
                 <div className={styles.confidenceValueGroup}>
                   <span className={styles.confidenceNumber}>{item.value}</span>
-                  <Unit className={styles.confidenceUnit}>{item.unit}</Unit>
+                  <Unit>{item.unit}</Unit>
                   <ConfidencePip
                     confidence={item.confidence as any}
                     details={item.certainty}
@@ -804,7 +804,7 @@ export const PaletteShowcaseScene = () => {
                 </div>
                 <div className={styles.confidenceValueGroup}>
                   <span className={styles.confidenceNumber}>{item.value}</span>
-                  <Unit className={styles.confidenceUnit}>{item.unit}</Unit>
+                  <Unit>{item.unit}</Unit>
                   <ConfidencePip
                     confidence={item.confidence as any}
                     details={item.certainty}

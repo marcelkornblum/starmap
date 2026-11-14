@@ -3,7 +3,7 @@ import { Stack } from '../../layouts/Stack/Stack';
 import { Button } from '../../controls/Button/Button';
 import styles from './Drawer.module.css';
 
-export interface DrawerProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'title'> {
+export interface DrawerProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'title' | 'className' | 'style'> {
   isOpen: boolean;
   onClose: () => void;
   position?: 'left' | 'right' | 'top' | 'bottom';
@@ -19,7 +19,6 @@ export const Drawer = ({
   title,
   children,
   isModal = true,
-  className,
   ...rest
 }: DrawerProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -46,19 +45,15 @@ export const Drawer = ({
     }
   }, [isOpen, isModal]);
 
-  const combinedClassName = className
-    ? `${styles.drawer} ${className}`
-    : styles.drawer;
-
   return (
     <dialog
       ref={dialogRef}
-      className={combinedClassName}
+      className={styles.drawer}
       data-position={position}
       role="dialog"
-      aria-modal="true"
-      aria-labelledby={title ? (rest['aria-labelledby'] || titleId) : rest['aria-labelledby']}
-      aria-label={!title && typeof rest['aria-label'] === 'string' ? rest['aria-label'] : undefined}
+      aria-modal={isModal ? 'true' : undefined}
+      aria-labelledby={title ? titleId : undefined}
+      onClose={onClose}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -70,22 +65,25 @@ export const Drawer = ({
       }}
       {...rest}
     >
-      <div className={styles.drawerContent}>
-        <Stack gap="default">
-          <div className={styles.headerRow}>
-            {title && <h2 id={titleId} className={styles.title}>{title}</h2>}
+      <div className={styles.container}>
+        {title && (
+          <header className={styles.header}>
+            <h3 id={titleId} className={styles.title}>
+              {title}
+            </h3>
             <Button
               variant="subtle"
               size="sm"
-              className={styles.closeButton}
               onClick={onClose}
               aria-label="Close drawer"
             >
               ✕
             </Button>
-          </div>
-          <div>{children}</div>
-        </Stack>
+          </header>
+        )}
+        <div className={styles.body}>
+          <Stack gap="default">{children}</Stack>
+        </div>
       </div>
     </dialog>
   );

@@ -86,10 +86,10 @@ describe('<Stack />', () => {
     expect(container.getAttribute('aria-label')).toBe('Telemetry Panel');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Stack className="custom-stack" data-testid="stack-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Stack data-testid="stack-container" />);
 
     const container = screen.getByTestId('stack-container');
-    expect(container.className).toContain('custom-stack');
+    expect(container.className).toBeTruthy();
   });
 });

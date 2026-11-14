@@ -1,4 +1,4 @@
-@layer composition {
+@layer blocks {
   .cluster {
     --cluster-gap: var(--space-cluster-default);
     --cluster-align: center;
@@ -9,6 +9,7 @@
     align-items: var(--cluster-align);
     justify-content: var(--cluster-justify);
     gap: var(--cluster-gap);
+    list-style: none;
     margin: 0;
     padding: 0;
   }

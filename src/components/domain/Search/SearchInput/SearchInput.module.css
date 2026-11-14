@@ -1,0 +1,41 @@
+@layer blocks {
+  .inputRow {
+    --search-input-gap: var(--space-fib-2);
+
+    display: flex;
+    align-items: center;
+    gap: var(--search-input-gap);
+    inline-size: 100%;
+  }
+
+  .srOnly {
+    clip-path: inset(50%);
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .inputWrapper {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    inline-size: 100%;
+  }
+
+  .expandedControl {
+    display: none;
+    flex: 0 0 auto;
+  }
+}
+
+@layer exceptions {
+  .inputRow[data-search-focused="true"] .expandedControl,
+  .inputRow:focus-within .expandedControl,
+  :global([data-search-focused="true"]) .expandedControl,
+  :global([data-scope="search"]) .expandedControl {
+    display: inline-flex;
+  }
+}

@@ -2,7 +2,7 @@
 import { createElement, type ReactElement } from 'react';
 import { render } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import { DetailsPanel } from '../src/components/domain';
 import { buildFocusedEntityDetails } from '../src/services/detailsService';

@@ -6,21 +6,21 @@
     --toast-border-style: var(--surface-toast-border-style);
     --toast-shadow: var(--surface-toast-shadow);
     --toast-padding: var(--space-inset-toast);
-    --toast-radius: var(--surface-toast-radius);
+    --toast-radius: var(--radius-container);
     --toast-gap: var(--space-gap-layout);
     --toast-backdrop-blur: var(--surface-toast-backdrop-blur);
 
     --toast-content-gap: var(--space-gap-item);
-    --toast-title-size: var(--text-ui-toast-title-size);
+    --toast-title-size: var(--type-scale-0);
     --toast-title-weight: 600;
     --toast-title-color: var(--content-prominent);
 
-    --toast-message-size: var(--text-ui-toast-message-size);
+    --toast-message-size: var(--type-scale-neg-1);
     --toast-message-color: var(--content-default);
 
     --toast-close-color: var(--content-muted);
     --toast-close-hover-color: var(--content-prominent);
-    --toast-close-size: var(--text-ui-toast-title-size);
+    --toast-close-size: var(--toast-title-size);
     --toast-close-padding: var(--space-gap-item);
     --toast-close-radius: var(--radius-control);
 
@@ -36,8 +36,8 @@
     padding: var(--toast-padding);
     backdrop-filter: blur(var(--toast-backdrop-blur));
     -webkit-backdrop-filter: blur(var(--toast-backdrop-blur));
-    min-inline-size: min(100%, 280px);
-    max-inline-size: min(100%, 420px);
+    min-inline-size: min(100%, calc(var(--space-fib-10) + var(--space-fib-6) + var(--space-fib-4)));
+    max-inline-size: min(100%, calc(var(--space-fib-11) + var(--space-fib-6) + var(--space-fib-3) + 1px));
     margin: 0;
   }
 

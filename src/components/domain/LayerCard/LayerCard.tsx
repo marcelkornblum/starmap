@@ -7,6 +7,7 @@ import {
   Cluster,
   ConfidencePip,
   Heading,
+  Icon,
   Quantity,
 } from '../../interface';
 import styles from './LayerCard.module.css';
@@ -51,14 +52,13 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
               aria-label="Close layer card"
               size="sm"
               variant="subtle"
-              className={styles.closeButton}
             >
               ×
             </Button>
           </Cluster>
         </header>
 
-        <Heading as="h3" data-testid="layer-card-title" className={styles.title}>
+        <Heading as="h3" data-testid="layer-card-title">
           {card.title}
         </Heading>
         {card.subtitle ? (
@@ -74,7 +74,6 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
         <Cluster justify="between" align="center">
           <Quantity
             data-testid="layer-card-count"
-            className={styles.count}
             value={card.itemCount}
             unit={card.itemCount === 1 ? 'entry' : 'entries'}
           />
@@ -97,11 +96,11 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
             data-testid="layer-card-start"
             size="sm"
             variant="primary"
-            className={styles.actionButton}
           >
             {card.firstItemTitle
-              ? `Explore: ${card.firstItemTitle} →`
-              : 'Explore Layer →'}
+              ? `Explore: ${card.firstItemTitle} `
+              : 'Explore Layer '}
+            <Icon direction="right" size="sm" />
           </Button>
         </footer>
       </aside>
@@ -128,12 +127,9 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
               {card.layerTitle}
             </a>
             <span className={styles.divider}>/</span>
-            <Quantity
-              data-testid="layer-card-step"
-              className={styles.step}
-              value={card.stepIndex}
-              unit={`of ${card.totalItems}`}
-            />
+            <span data-testid="layer-card-step" className={styles.step}>
+              {card.stepIndex} of {card.totalItems}
+            </span>
           </Cluster>
           <Button
             href={card.closeHref}
@@ -141,14 +137,13 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
             aria-label="Close layer card"
             size="sm"
             variant="subtle"
-            className={styles.closeButton}
           >
             ×
           </Button>
         </Cluster>
       </header>
 
-      <Heading as="h3" data-testid="layer-card-title" className={styles.title}>
+      <Heading as="h3" data-testid="layer-card-title">
         <CelestialTitle
           type="stellar-system"
           title={card.itemTitle}
@@ -192,18 +187,18 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
             data-testid="layer-card-prev"
             size="sm"
             variant="subtle"
-            className={styles.navButton}
           >
-            ← {card.prevLabel}
+            <Icon direction="left" size="sm" />
+            {` ${card.prevLabel}`}
           </Button>
           <Button
             href={card.nextHref}
             data-testid="layer-card-next"
             size="sm"
             variant="subtle"
-            className={styles.navButton}
           >
-            {card.nextLabel} →
+            {`${card.nextLabel} `}
+            <Icon direction="right" size="sm" />
           </Button>
         </Cluster>
       </footer>

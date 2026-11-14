@@ -17,17 +17,13 @@ export const Cover = ({
   header,
   footer,
   children,
-  className,
   ...rest
 }: CoverProps) => {
   const Tag = as as 'div';
-  const combinedClassName = className
-    ? `${styles.cover} ${className}`
-    : styles.cover;
 
   return (
     <Tag
-      className={combinedClassName}
+      className={styles.cover}
       data-min-height={minHeight}
       data-gap={gap}
       {...rest}

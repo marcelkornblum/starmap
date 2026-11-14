@@ -1,4 +1,5 @@
 import type React from 'react';
+import { Cluster } from '../../interface';
 import {
   STAR_TYPES_GUIDE_PATH,
   PLANET_TYPES_GUIDE_PATH,
@@ -18,7 +19,7 @@ export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection
       data-testid="guide-section-nav"
       className={styles.sectionNav}
     >
-      <ul className={styles.sectionNavList}>
+      <Cluster as="ul" gap="tight" align="center">
         <li>
           <a
             href={STAR_TYPES_GUIDE_PATH}
@@ -55,7 +56,7 @@ export const GuideSectionNav: React.FC<GuideSectionNavProps> = ({ currentSection
             Environmental Hazards
           </a>
         </li>
-      </ul>
+      </Cluster>
     </nav>
   );
 };

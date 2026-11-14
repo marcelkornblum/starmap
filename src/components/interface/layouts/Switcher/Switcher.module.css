@@ -1,7 +1,8 @@
-@layer composition {
+@layer blocks {
   .switcher {
     --switcher-gap: var(--space-stack-default);
-    --switcher-threshold: 30rem; /* ~480px */
+    --switcher-threshold: calc(var(--space-fib-7) * 8);
+    --switcher-limit: 4;
 
     display: flex;
     flex-wrap: wrap;
@@ -15,19 +16,9 @@
     flex-basis: calc((var(--switcher-threshold) - 100%) * 999);
   }
 
-  /* Limit items: if more than limit, force vertical */
-  .switcher[data-limit="2"] > :nth-last-child(n+3),
-  .switcher[data-limit="2"] > :nth-last-child(n+3) ~ * {
-    flex-basis: 100%;
-  }
-
-  .switcher[data-limit="3"] > :nth-last-child(n+4),
-  .switcher[data-limit="3"] > :nth-last-child(n+4) ~ * {
-    flex-basis: 100%;
-  }
-
-  .switcher[data-limit="4"] > :nth-last-child(n+5),
-  .switcher[data-limit="4"] > :nth-last-child(n+5) ~ * {
+  /* Limit max items per row before wrapping occurs */
+  .switcher > :nth-last-child(n + 5),
+  .switcher > :nth-last-child(n + 5) ~ * {
     flex-basis: 100%;
   }
 }
@@ -47,8 +38,23 @@
   .switcher[data-gap="fib-6"] { --switcher-gap: var(--space-fib-6); }
   .switcher[data-gap="fib-7"] { --switcher-gap: var(--space-fib-7); }
 
-  .switcher[data-threshold="sm"] { --switcher-threshold: 20rem; }
-  .switcher[data-threshold="md"] { --switcher-threshold: 30rem; }
-  .switcher[data-threshold="lg"] { --switcher-threshold: 45rem; }
-  .switcher[data-threshold="xl"] { --switcher-threshold: 60rem; }
+  .switcher[data-threshold="sm"] { --switcher-threshold: calc(var(--space-fib-7) * 6); }
+  .switcher[data-threshold="md"] { --switcher-threshold: calc(var(--space-fib-7) * 8); }
+  .switcher[data-threshold="lg"] { --switcher-threshold: calc(var(--space-fib-7) * 12); }
+  .switcher[data-threshold="xl"] { --switcher-threshold: calc(var(--space-fib-7) * 16); }
+
+  .switcher[data-limit="2"] > :nth-last-child(n + 3),
+  .switcher[data-limit="2"] > :nth-last-child(n + 3) ~ * {
+    flex-basis: 100%;
+  }
+
+  .switcher[data-limit="3"] > :nth-last-child(n + 4),
+  .switcher[data-limit="3"] > :nth-last-child(n + 4) ~ * {
+    flex-basis: 100%;
+  }
+
+  .switcher[data-limit="4"] > :nth-last-child(n + 5),
+  .switcher[data-limit="4"] > :nth-last-child(n + 5) ~ * {
+    flex-basis: 100%;
+  }
 }

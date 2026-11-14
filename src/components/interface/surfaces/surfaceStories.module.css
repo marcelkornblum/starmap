@@ -6,11 +6,13 @@
     block-size: 100dvh;
     overflow-y: auto;
     box-sizing: border-box;
-    max-inline-size: 800px;
+    max-inline-size: calc(var(--space-fib-12) + var(--space-fib-9) + var(--space-fib-6) + var(--space-fib-4));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
   }
 
   .header {
-    margin-block-end: var(--space-4);
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
@@ -56,7 +58,7 @@
 
   .previewContainer {
     position: relative;
-    min-block-size: 160px;
+    min-block-size: calc(var(--space-fib-9) + var(--space-fib-4) + var(--space-fib-1));
     background: var(--surface-canvas-bg);
     border: var(--rule-hairline);
     border-radius: var(--radius-container);

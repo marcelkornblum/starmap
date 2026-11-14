@@ -13,10 +13,9 @@ import {
 
 import {
   type PlanetPalette,
-  CLASSIFICATION_PALETTES,
   getClassificationPalette,
 } from '../../../data/planetPalettes';
-export { type PlanetPalette, CLASSIFICATION_PALETTES, getClassificationPalette };
+export type { PlanetPalette };
 
 /**
  * Generates an in-memory procedural cartographic texture matching classification.

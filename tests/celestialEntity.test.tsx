@@ -6,7 +6,7 @@ import { useFrame } from '@react-three/fiber';
 import { CelestialEntity } from '../src/components/canvas/entity/CelestialEntity';
 import {
   SpatialEntityProvider,
-} from '../src/components/canvas/entity/SpatialEntityContext';
+} from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import { CelestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
 

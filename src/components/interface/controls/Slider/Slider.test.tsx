@@ -116,16 +116,16 @@ describe('<Slider />', () => {
         value={5}
         onChange={vi.fn()}
         aria-label="Volume"
-        containerProps={{ id: 'custom-container', className: 'wrapper-mod' }}
+        containerProps={{ id: 'custom-container' }}
       />
     );
 
     const container = document.getElementById('custom-container');
     expect(container).not.toBeNull();
-    expect(container?.className).toContain('wrapper-mod');
+    expect(container?.className).toBeTruthy();
   });
 
-  it('merges custom className onto range input', () => {
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
     render(
       <Slider
         min={0}
@@ -133,11 +133,10 @@ describe('<Slider />', () => {
         value={5}
         onChange={vi.fn()}
         aria-label="Density"
-        className="custom-range"
       />
     );
 
     const slider = screen.getByRole('slider', { name: 'Density' });
-    expect(slider.className).toContain('custom-range');
+    expect(slider.className).toBeTruthy();
   });
 });

@@ -6,7 +6,7 @@ export interface SelectOption {
   label: string;
 }
 
-export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value'> {
+export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value' | 'className' | 'style'> {
   options: SelectOption[];
   value: string;
   onChange: (val: string) => void;
@@ -18,16 +18,11 @@ export const Select = ({
   value,
   onChange,
   sizeVariant = 'md',
-  className,
   ...rest
 }: SelectProps) => {
-  const combinedClassName = className
-    ? `${styles.select} ${className}`
-    : styles.select;
-
   return (
     <select
-      className={combinedClassName}
+      className={styles.select}
       value={value}
       data-size={sizeVariant}
       onChange={(e) => onChange(e.target.value)}

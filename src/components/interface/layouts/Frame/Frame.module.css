@@ -1,4 +1,4 @@
-@layer composition {
+@layer blocks {
   .frame {
     --frame-ratio: 16 / 9;
 

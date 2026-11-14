@@ -36,7 +36,7 @@ export const Imposter: Story = {
         </p>
       </div>
       <div style={{ position: 'relative', width: '100%', height: '300px', backgroundColor: '#ffe6cc', overflow: 'hidden' }}>
-        <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff', padding: '1rem' }}>
+        <Component {...args}>
           <div style={{ backgroundColor: '#ff5c5c', padding: '1rem', color: 'white' }}>Imposter Element</div>
         </Component>
       </div>

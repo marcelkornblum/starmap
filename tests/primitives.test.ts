@@ -35,14 +35,14 @@ describe('Tier 1: Layout Primitives (Every Layout)', () => {
     const htmlCustom = renderToString(
       createElement(
         Stack,
-        { as: 'section', gap: 'tight', align: 'center', className: 'custom-stack' },
+        { as: 'section', gap: 'tight', align: 'center' },
         createElement('div', null, 'Child')
       )
     );
     expect(htmlCustom).toContain('<section');
     expect(htmlCustom).toContain('data-gap="tight"');
     expect(htmlCustom).toContain('data-align="center"');
-    expect(htmlCustom).toContain('custom-stack');
+    expect(htmlCustom).toMatch(/class="[^"]*stack/);
   });
 
   it('renders Cluster with flex-wrap and alignment tokens', () => {

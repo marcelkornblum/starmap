@@ -29,8 +29,6 @@ import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
 
-export { extractFocusIdFromSearch };
-
 export interface MetricDetailViewProps {
   readonly metricId?: string;
   readonly locationPathname?: string;

@@ -1,4 +1,4 @@
-@layer composition {
+@layer blocks {
   .stack {
     --stack-gap: var(--space-stack-default);
     --stack-align: stretch;
@@ -8,6 +8,7 @@
     justify-content: flex-start;
     align-items: var(--stack-align);
     gap: var(--stack-gap);
+    list-style: none;
     margin: 0;
     padding: 0;
   }

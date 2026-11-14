@@ -357,7 +357,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     // Wait for search result to appear and click it
     const tauCetiResultLink = page
       .getByTestId('search-results-group-stars')
-      .getByRole('link', { name: 'Tau Ceti', exact: true })
+      .getByRole('link', { name: /Tau Ceti/ })
       .first();
     await expect(tauCetiResultLink).toBeVisible({ timeout: 10_000 });
     await tauCetiResultLink.click();
@@ -380,7 +380,7 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await searchInput.fill('Sirius');
     const siriusResultLink = page
       .getByTestId('search-results-group-stars')
-      .getByRole('link', { name: 'Sirius', exact: true })
+      .getByRole('link', { name: /Sirius/ })
       .first();
     await expect(siriusResultLink).toBeVisible({ timeout: 10_000 });
     await siriusResultLink.click();

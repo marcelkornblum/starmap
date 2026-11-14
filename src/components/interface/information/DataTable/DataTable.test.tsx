@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { DataTable } from './DataTable';
+import { DataTable } from './index';
 import { Unit } from '../Unit/Unit';
 
 describe('<DataTable />', () => {

@@ -50,10 +50,10 @@ describe('<Badge />', () => {
     expect(link.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
-  it('applies custom className alongside default badge styling', () => {
-    render(<Badge className="custom-badge-class">Custom</Badge>);
-    const badge = screen.getByText('Custom');
-    expect(badge.className).toContain('custom-badge-class');
+  it('applies static module class and forwards attributes', () => {
+    render(<Badge data-testid="static-badge">Static</Badge>);
+    const badge = screen.getByTestId('static-badge');
+    expect(badge.className).toMatch(/badge/);
   });
 
   it('forwards additional HTML and ARIA attributes', () => {

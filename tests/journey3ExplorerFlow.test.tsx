@@ -3,7 +3,7 @@ import { createElement, type ReactElement } from 'react';
 import { cleanup, render } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import {
   DetailsPanel,
@@ -35,7 +35,7 @@ import {
   isCatalogTag,
   resolveSelectedSystemsFromTag,
 } from '../src/services/searchService';
-import { syncSelectedSystemsToStore } from '../src/components/search/searchStoreSync';
+import { syncSelectedSystemsToStore } from '../src/components/domain/Search/searchStoreSync';
 import { type CompactSearchEntry } from '../src/utils/compactDataCodec';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { PlanetView } from '../src/views/PlanetView';

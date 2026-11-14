@@ -17,17 +17,13 @@ export const Center = ({
   gutter = 'default',
   intrinsic = false,
   children,
-  className,
   ...rest
 }: CenterProps) => {
   const Tag = as as 'div';
-  const combinedClassName = className
-    ? `${styles.center} ${className}`
-    : styles.center;
 
   return (
     <Tag
-      className={combinedClassName}
+      className={styles.center}
       data-max={max}
       data-and-text={andText ? 'true' : undefined}
       data-gutter={gutter}

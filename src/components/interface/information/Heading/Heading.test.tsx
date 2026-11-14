@@ -56,15 +56,16 @@ describe('<Heading />', () => {
     expect(screen.getByTestId('badge-indicator')).toBeDefined();
   });
 
-  it('forwards custom className and attributes', () => {
+  it('applies visuallyHidden data attribute and forwards attributes', () => {
     render(
-      <Heading id="stellar-section" className="custom-heading" data-testid="styled-h">
+      <Heading id="stellar-section" visuallyHidden data-testid="styled-h">
         Overview
       </Heading>
     );
 
     const heading = screen.getByTestId('styled-h');
     expect(heading.getAttribute('id')).toBe('stellar-section');
-    expect(heading.className).toContain('custom-heading');
+    expect(heading.getAttribute('data-visually-hidden')).toBe('true');
+    expect(heading.className).toMatch(/heading/);
   });
 });

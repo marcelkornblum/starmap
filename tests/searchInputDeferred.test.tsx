@@ -2,9 +2,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createElement } from 'react';
-import { Search } from '../src/components/search';
-import { SEARCH_DEBOUNCE_MS } from '../src/components/search/Search';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { Search, SEARCH_DEBOUNCE_MS } from '../src/components/domain/Search';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
 import * as detailsRepo from '../src/data/detailsRepository';

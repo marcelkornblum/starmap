@@ -5,7 +5,7 @@ import {
   ConfidencePip,
   normalizeConfidence,
   type ConfidenceLevel,
-} from '../src/components/interface/information/ConfidencePip/ConfidencePip';
+} from '../src/components/interface/information/ConfidencePip';
 
 describe('Tier 1: Data Primitives - ConfidencePip', () => {
   describe('normalizeConfidence helper', () => {

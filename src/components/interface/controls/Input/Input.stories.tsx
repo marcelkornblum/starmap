@@ -31,12 +31,14 @@ export const InputStory: Story = {
           Text entry field for short-form alphanumeric data. Includes status states for validation feedback.
         </p>
       </div>
-      <Stack gap="loose" style={{ maxWidth: '400px' }}>
-        <Input {...args} placeholder="Default input..." />
-        <Input {...args} defaultValue="Filled value" />
-        <Input {...args} placeholder="Error state..." status="error" />
-        <Input {...args} placeholder="Disabled input..." disabled />
-      </Stack>
+      <div style={{ maxWidth: '400px' }}>
+        <Stack gap="loose">
+          <Input {...args} placeholder="Default input..." />
+          <Input {...args} defaultValue="Filled value" />
+          <Input {...args} placeholder="Error state..." status="error" />
+          <Input {...args} placeholder="Disabled input..." disabled />
+        </Stack>
+      </div>
     </div>
   ),
 };

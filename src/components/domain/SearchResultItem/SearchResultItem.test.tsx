@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { SearchResultItem, formatPlanetCountSummary } from './SearchResultItem';
-import { SearchContext } from '../../search/SearchContext';
+import { SearchResultItem } from './SearchResultItem';
+import { formatPlanetCountSummary } from './searchResultFormatting';
+import { SearchContext } from '../Search/SearchContext';
 import {
   executeCatalogSearch,
   type SearchResultItem as SearchResultItemModel,
@@ -48,16 +49,27 @@ describe('<SearchResultItem />', () => {
     score: 0.9,
   };
 
-  it('renders a star result with reticle, spectral badge, and planet count', () => {
+  it('renders a star result with single anchor, non-interactive badges, and planet count', () => {
     render(<SearchResultItem result={mockStarResult} />);
 
     const item = screen.getByTestId('search-result-item');
     expect(item.getAttribute('data-entity-id')).toBe('sol');
     expect(item.getAttribute('data-category')).toBe('stars');
 
-    expect(screen.getByTestId('result-reticle-type')).toBeDefined();
+    // Single native anchor per row (DEC-R052)
+    const links = item.querySelectorAll('a');
+    expect(links.length).toBe(1);
+    expect(links[0].getAttribute('href')).toBe('/system/sol');
+
+    const reticleBadge = screen.getByTestId('result-reticle-type');
+    expect(reticleBadge.tagName).not.toBe('A');
+    expect(reticleBadge.closest('a')).toBe(links[0]);
+
+    const spectralBadge = screen.getByTestId('result-spectral-badge');
+    expect(spectralBadge.tagName).not.toBe('A');
+    expect(spectralBadge.getAttribute('href')).toBeNull();
+
     expect(screen.getByText('Sol System')).toBeDefined();
-    expect(screen.getByTestId('result-spectral-badge')).toBeDefined();
     expect(screen.getByTestId('result-planet-summary')).toBeDefined();
   });
 
@@ -68,7 +80,7 @@ describe('<SearchResultItem />', () => {
     expect(screen.getByText('Star Trek Canon')).toBeDefined();
   });
 
-  it('calls onSelect and dismissSearch on link click', () => {
+  it('calls onSelect and dismissSearch on single-anchor click', () => {
     const onSelect = vi.fn();
     const dismissSearch = vi.fn();
 
@@ -89,10 +101,10 @@ describe('<SearchResultItem />', () => {
         }}
       >
         <SearchResultItem result={mockStarResult} onSelect={onSelect} />
-      </SearchContext.Provider>
+      </SearchContext.Provider>,
     );
 
-    const link = screen.getByText('Sol System');
+    const link = screen.getByRole('link', { name: /sol system/i });
     fireEvent.click(link);
 
     expect(dismissSearch).toHaveBeenCalledWith(mockStarResult);

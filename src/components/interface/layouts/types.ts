@@ -18,7 +18,7 @@ export type SpacingScale =
 export type AlignItems = 'start' | 'center' | 'end' | 'stretch' | 'baseline';
 export type JustifyContent = 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
 
-export interface BasePrimitiveProps extends HTMLAttributes<HTMLElement> {
+export interface BasePrimitiveProps extends Omit<HTMLAttributes<HTMLElement>, 'className' | 'style'> {
   as?: keyof React.JSX.IntrinsicElements;
   children?: ReactNode;
 }

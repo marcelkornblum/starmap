@@ -15,7 +15,7 @@
     white-space: nowrap;
     pointer-events: none;
     user-select: none;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(var(--filter-blur-1));
     box-shadow: var(--shadow-elevation-1);
   }
 

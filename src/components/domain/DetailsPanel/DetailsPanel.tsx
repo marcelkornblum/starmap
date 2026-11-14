@@ -8,17 +8,17 @@ import { Heading } from '../../interface';
 import { useUIStore } from '../../../stores/useUIStore';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
 import { PreviewPanel } from '../PreviewPanel';
-import { DetailsActionBar } from './DetailsActionBar';
+import { DetailsActionControls } from './DetailsActionControls';
 import {
   DetailsCanonLayersSection,
   DetailsHazardsSection,
-} from './DetailsCanonAndHazards';
+} from './DetailsCanonSection';
 import {
   DetailsPlanetHierarchy,
   DetailsSystemHierarchy,
 } from './DetailsHierarchySections';
 import { DetailsIdentityHeader } from './DetailsIdentityHeader';
-import { DetailsQuickTelemetry } from './DetailsQuickTelemetry';
+import { DetailsQuickTelemetrySection } from './DetailsQuickTelemetrySection';
 import { DetailsTelemetrySections } from './DetailsTelemetrySections';
 import styles from './DetailsPanel.module.css';
 
@@ -87,13 +87,13 @@ export const DetailsPanel = ({
         spectralType={spectralType}
         starCount={starCount}
       />
-      <DetailsQuickTelemetry details={details} />
+      <DetailsQuickTelemetrySection details={details} />
     </>
   );
 
   const partialContent = (
     <>
-      <DetailsActionBar
+      <DetailsActionControls
         id={id}
         directionsHref={details.directionsHref}
         centerHref={details.centerHref}
@@ -143,7 +143,6 @@ export const DetailsPanel = ({
 
   return (
     <DetentSheet
-      className={styles.detailsPanel}
       testIdPrefix="details"
       heading="Details"
       headingId="details-panel-heading"

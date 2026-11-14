@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { useSpatialFrame } from './SpatialFrameProvider';
+import { useSpatialFrame } from './spatialFrameContext';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import {
   createCircleGeometry,

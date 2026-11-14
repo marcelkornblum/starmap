@@ -28,7 +28,7 @@
     position: absolute;
     inset-block-start: 0;
     inset-inline: 0;
-    block-size: min(100%, 360px);
+    block-size: min(100%, calc(var(--space-fib-7) * 6 + var(--space-fib-5)));
     background: linear-gradient(
       137deg,
       oklch(100% 0 0 / 0.08) 0%,

@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, Ref } from 'react';
 import styles from './Input.module.css';
 
-export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'style'> {
   status?: 'error' | 'success';
   sizeVariant?: 'sm' | 'md';
   tabular?: boolean;
@@ -12,18 +12,13 @@ export const Input = ({
   status,
   sizeVariant = 'md',
   tabular = false,
-  className,
   ref,
   ...rest
 }: InputProps) => {
-  const combinedClassName = className
-    ? `${styles.input} ${className}`
-    : styles.input;
-
   return (
     <input
       ref={ref}
-      className={combinedClassName}
+      className={styles.input}
       data-status={status}
       data-size={sizeVariant}
       data-tabular={tabular ? 'true' : undefined}

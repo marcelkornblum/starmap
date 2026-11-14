@@ -4,31 +4,27 @@ import styles from './Switcher.module.css';
 
 export interface SwitcherProps extends BasePrimitiveProps {
   threshold?: 'sm' | 'md' | 'lg' | 'xl';
-  limit?: 2 | 3 | 4;
   gap?: SpacingScale;
+  limit?: 2 | 3 | 4;
   children?: ReactNode;
 }
 
 export const Switcher = ({
   as = 'div',
   threshold = 'md',
-  limit,
   gap = 'default',
+  limit,
   children,
-  className,
   ...rest
 }: SwitcherProps) => {
   const Tag = as as 'div';
-  const combinedClassName = className
-    ? `${styles.switcher} ${className}`
-    : styles.switcher;
 
   return (
     <Tag
-      className={combinedClassName}
+      className={styles.switcher}
       data-threshold={threshold}
-      data-limit={limit}
       data-gap={gap}
+      data-limit={limit}
       {...rest}
     >
       {children}

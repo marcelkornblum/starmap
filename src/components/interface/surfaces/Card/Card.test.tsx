@@ -36,15 +36,15 @@ describe('<Card />', () => {
     expect(card.getAttribute('data-padding')).toBe('tight');
   });
 
-  it('merges custom className and forwards HTML attributes', () => {
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
     render(
-      <Card className="custom-surface" role="region" aria-label="System telemetry" data-testid="card">
+      <Card role="region" aria-label="System telemetry" data-testid="card">
         Details
       </Card>
     );
 
     const card = screen.getByTestId('card');
-    expect(card.className).toContain('custom-surface');
+    expect(card.className).toBeTruthy();
     expect(card.getAttribute('role')).toBe('region');
     expect(card.getAttribute('aria-label')).toBe('System telemetry');
   });

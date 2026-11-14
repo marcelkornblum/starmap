@@ -26,13 +26,13 @@ import { DetentSheet } from '../src/components/interface/surfaces/DetentSheet';
 import {
   DirectionsPanel,
   renderStructuredQuantity,
-} from '../src/components/domain/DirectionsPanel/DirectionsPanel';
+} from '../src/components/domain/DirectionsPanel';
 import { buildSystemBodiesSummary } from '../src/services/details/bodiesAndSchematics';
 import { buildFocusedEntityDetails } from '../src/services/details/focusedEntityDetails';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { SystemView } from '../src/views/SystemView';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
 
 const SAMPLE_BENCHMARK_CORPUS: readonly CompactSearchEntry[] = [

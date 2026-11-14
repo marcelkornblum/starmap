@@ -96,30 +96,6 @@
     --text-ui-nav-tab-size:             var(--type-scale-0);
     --text-ui-breadcrumb-size:          var(--type-scale-neg-1);
     --text-ui-breadcrumb-active-size:   var(--type-scale-neg-1);
-
-    --text-ui-search-input-size:        var(--type-scale-1);
-    --text-ui-search-placeholder-size:  var(--type-scale-1);
-    --text-ui-search-shortcut-size:     var(--type-scale-neg-1);
-    --text-ui-search-result-title-size: var(--type-scale-0);
-    --text-ui-search-result-desc-size:  var(--type-scale-neg-1);
-
-    --text-ui-button-prominent-size:    var(--type-scale-0);
-    --text-ui-button-default-size:      var(--type-scale-0);
-    --text-ui-button-subtle-size:       var(--type-scale-neg-1);
-
-    --text-ui-input-size:               var(--type-scale-0);
-    --text-ui-input-placeholder-size:   var(--type-scale-0);
-    --text-ui-input-label-size:         var(--type-scale-neg-1);
-
-    --text-ui-modal-title-size:         var(--type-scale-2);
-    --text-ui-menu-item-size:           var(--type-scale-0);
-    --text-ui-tooltip-size:             var(--type-scale-neg-1);
-    --text-ui-toast-title-size:         var(--type-scale-0);
-    --text-ui-toast-message-size:       var(--type-scale-neg-1);
-    --text-ui-table-header-size:        var(--type-scale-neg-2);
-    --text-ui-table-cell-size:          var(--type-scale-neg-1);
-    --text-ui-table-unit-size:          calc(1em / var(--type-ratio));
-    --text-ui-dossier-title-size:       var(--type-scale-2);
     --text-content-title-size:          var(--type-scale-2);
     --text-content-caption-size:        var(--type-scale-neg-1);
 
@@ -146,15 +122,7 @@
     --space-inset-toolbar:       var(--space-fib-2) var(--space-fib-4);
     --space-offset-overlay:      var(--space-fib-2);
 
-    --space-inset-button-sm-x:   var(--space-fib-3);
-    --space-inset-button-sm-y:   var(--space-fib-1);
-    --space-inset-button-default-x: var(--space-fib-4);
-    --space-inset-button-default-y: var(--space-fib-2);
-    --space-inset-button-lg-x:   var(--space-fib-5);
-    --space-inset-button-lg-y:   var(--space-fib-3);
-    --space-inset-input-sm-x:    var(--space-fib-2);
-    --space-inset-input-sm-y:    var(--space-fib-1);
-
+    /* Spacing Insets */
     --space-gap-badge:           var(--space-fib-1);
     --space-gap-datum:           var(--space-fib-2);
     --space-gap-metric:          var(--space-fib-2);
@@ -186,18 +154,31 @@
     --radius-control:            var(--radius-0);
     --radius-badge:              var(--radius-1);
 
-    --surface-modal-radius:      var(--radius-container);
-    --surface-popover-radius:    var(--radius-container);
-    --surface-drawer-radius:     var(--radius-none);
-    --surface-toast-radius:      var(--radius-container);
-    --ui-tooltip-radius:         var(--radius-badge);
-    --ui-kbd-radius:             var(--radius-control);
-    --ui-table-radius:           var(--radius-container);
-
     --radius-sm:                 var(--radius-control);
     --radius-md:                 var(--radius-container);
     --radius-lg:                 var(--radius-container);
     --radius-pill:               var(--radius-control);
+    --radius-full:               var(--radius-pill-literal);
+
+    /* Universal Icon & Indicator Dimensions */
+    --size-indicator-xs:         var(--stroke-width-2);
+    --size-indicator-sm:         var(--stroke-width-4);
+    --size-indicator-md:         var(--space-fib-2);
+    --size-indicator-lg:         var(--space-fib-3);
+    --size-icon-sm:              var(--space-fib-4);
+    --size-icon-md:              calc(var(--space-fib-3) * 2);
+    --size-icon-lg:              var(--space-fib-5);
+    --size-icon-xl:              var(--space-fib-6);
+
+    /* Universal Container & Layout Measures */
+    --size-measure-xs:           var(--space-fib-9);
+    --size-measure-sm:           var(--space-fib-10);
+    --size-measure-md:           calc(var(--space-fib-10) + var(--space-fib-7));
+    --size-measure-panel:        var(--space-fib-11);
+    --size-measure-card:         calc(var(--space-fib-11) + var(--space-fib-8));
+    --size-measure-lg:           var(--space-fib-12);
+    --size-measure-xl:           var(--space-fib-13);
+    --size-measure-2xl:          calc(var(--space-fib-13) + var(--space-fib-10));
 
     --border-width-1:            var(--stroke-width-1);
     --border-width-2:            var(--stroke-width-2);
@@ -231,31 +212,6 @@
 
 
 
-    /* Data Telemetry Metrics */
-    --data-datum-font-size:         var(--text-content-data-value-size);
-    --data-datum-label-font-size:   var(--text-content-data-label-size);
-    --data-datum-value-weight:      500;
-    --data-datum-border-width:      var(--border-width-1);
-    --data-datum-border-style:      var(--border-style-provisional);
-    --data-datum-padding-y:         var(--space-inset-cell-y);
-    --data-datum-unit-font-size:    var(--text-content-metric-unit-size);
-    --data-datum-sm-font-size:      var(--type-scale-neg-2);
-    --data-datum-sm-padding-y:      var(--space-fib-1);
-
-    --data-metric-border-width:     var(--border-width-1);
-    --data-metric-border-style:     var(--border-style-boundary);
-    --data-metric-radius:           var(--radius-container);
-    --data-metric-padding:          var(--space-inset-well-default);
-    --data-metric-gap:              var(--space-gap-item);
-    --data-metric-label-font-size:  var(--text-content-data-label-size);
-    --data-metric-label-tracking:   0.05em;
-    --data-metric-label-weight:     600;
-    --data-metric-value-font-size:  var(--text-content-metric-value-size);
-    --data-metric-value-weight:     700;
-    --data-metric-value-leading:    var(--leading-metric);
-    --data-metric-unit-font-size:   var(--text-content-metric-unit-size);
-    --data-metric-trend-font-size:  var(--text-content-data-label-size);
-
     /* Cartographic Cues & On-Map Nodes Dimensions */
     --chrome-bearing-cue-gap:            var(--space-fib-1);
     --chrome-bearing-cue-padding:        var(--space-inset-badge);
@@ -287,18 +243,6 @@
     --chrome-footprint-stamp-duration: var(--motion-duration-feedback);
 
     /* UI Element Optics Defaults */
-    --ui-button-prominent-opacity:       var(--opacity-100);
-    --ui-button-prominent-backdrop-blur: var(--filter-blur-0);
-
-    --ui-button-default-opacity:         var(--opacity-100);
-    --ui-button-default-backdrop-blur:   var(--filter-blur-0);
-
-    --ui-button-subtle-opacity:          var(--opacity-0);
-    --ui-button-subtle-backdrop-blur:    var(--filter-blur-0);
-
-    --ui-search-pill-opacity:            var(--opacity-100);
-    --ui-search-pill-backdrop-blur:      var(--filter-blur-0);
-
     --ui-command-palette-opacity:        var(--opacity-100);
     --ui-command-palette-backdrop-blur:  var(--filter-blur-2);
 
@@ -448,19 +392,7 @@
     --ui-table-row-hover-bg:    var(--state-hover-overlay);
     --ui-table-row-hover-shadow: var(--palette-specular-white-8);
     --ui-table-row-selected-bg: var(--state-selected-bg);
-
-    --data-datum-label-color:   var(--content-muted);
-    --data-datum-value-color:   var(--content-default);
-    --data-datum-border-color:  var(--border-color-subtle);
-    --data-datum-unit-color:    var(--content-muted);
     --content-unit:             var(--content-muted);
-
-    --data-metric-bg:           var(--surface-inset-bg);
-    --data-metric-border-color: var(--surface-inset-border-color);
-    --data-metric-value-color:  var(--content-prominent);
-    --data-metric-label-color:  var(--content-muted);
-    --data-metric-unit-color:   var(--content-muted);
-    --data-metric-trend-color:  var(--content-muted);
 
     --border-default:           var(--palette-specular-white-8);
     --border-focus:             var(--state-focus);
@@ -974,19 +906,7 @@
     --ui-table-row-hover-bg:    var(--state-hover-overlay);
     --ui-table-row-hover-shadow: var(--palette-specular-black-4);
     --ui-table-row-selected-bg: var(--state-selected-bg);
-
-    --data-datum-label-color:   var(--content-muted);
-    --data-datum-value-color:   var(--content-default);
-    --data-datum-border-color:  var(--border-color-subtle);
-    --data-datum-unit-color:    var(--content-muted);
     --content-unit:             var(--content-muted);
-
-    --data-metric-bg:           var(--surface-inset-bg);
-    --data-metric-border-color: var(--surface-inset-border-color);
-    --data-metric-value-color:  var(--content-prominent);
-    --data-metric-label-color:  var(--content-muted);
-    --data-metric-unit-color:   var(--content-muted);
-    --data-metric-trend-color:  var(--content-muted);
 
     --border-default:           var(--palette-specular-black-16);
     --border-focus:             var(--state-focus);

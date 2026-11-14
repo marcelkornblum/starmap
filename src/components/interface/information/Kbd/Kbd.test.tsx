@@ -11,15 +11,15 @@ describe('<Kbd />', () => {
     expect(kbd.getAttribute('data-kbd')).toBe('true');
   });
 
-  it('merges custom className and forwards extra attributes', () => {
+  it('applies static module class and forwards extra attributes', () => {
     render(
-      <Kbd className="custom-key" aria-label="Command Key" data-testid="kbd-key">
+      <Kbd aria-label="Command Key" data-testid="kbd-key">
         Ctrl
       </Kbd>
     );
 
     const kbd = screen.getByTestId('kbd-key');
-    expect(kbd.className).toContain('custom-key');
+    expect(kbd.className).toMatch(/kbd/);
     expect(kbd.getAttribute('aria-label')).toBe('Command Key');
   });
 });

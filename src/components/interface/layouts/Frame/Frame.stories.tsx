@@ -29,7 +29,7 @@ export const Frame: Story = {
         </p>
       </div>
       <div style={{ backgroundColor: '#ffe6cc', padding: '1rem', width: '300px' }}>
-        <Component {...args} style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}>
+        <Component {...args}>
           <div style={{ width: '100%', height: '100%', backgroundColor: '#ff5c5c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             Cropped Content
           </div>

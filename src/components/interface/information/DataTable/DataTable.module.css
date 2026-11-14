@@ -1,18 +1,18 @@
 @layer blocks {
   .tableContainer {
     --table-bg: transparent;
-    --table-border-color: var(--ui-table-border-color);
-    --table-border-width: var(--stroke-width-0, 0px);
-    --table-border-style: var(--stroke-style-none, none);
-    --table-radius: var(--ui-table-radius, var(--radius-container));
-    --table-header-bg: var(--ui-table-header-bg, transparent);
+    --table-border-color: var(--border-color-subtle);
+    --table-border-width: var(--stroke-width-0);
+    --table-border-style: var(--stroke-style-none);
+    --table-radius: var(--radius-container);
+    --table-header-bg: transparent;
     --table-header-color: var(--content-default);
-    --table-row-hover-bg: var(--ui-table-row-hover-bg);
-    --table-row-hover-shadow: var(--ui-table-row-hover-shadow);
-    --table-row-selected-bg: var(--ui-table-row-selected-bg);
+    --table-row-hover-bg: var(--surface-inset-bg);
+    --table-row-hover-shadow: none;
+    --table-row-selected-bg: var(--surface-dock-bg);
     --table-cell-padding: var(--space-inset-cell-y) var(--space-inset-cell-x);
-    --table-font-size: var(--text-ui-table-cell-size);
-    --table-header-font-size: var(--text-ui-table-header-size);
+    --table-font-size: var(--type-scale-neg-1);
+    --table-header-font-size: var(--type-scale-neg-2);
     --table-unit-font-size: calc(1em / var(--type-ratio, 1.25));
     --table-unit-color: var(--content-muted);
     --table-divider-width: var(--rule-hairline-width);
@@ -38,7 +38,7 @@
   }
 
   .caption {
-    padding: var(--space-fib-3, 8px) var(--space-fib-4, 13px);
+    padding: var(--space-fib-3) var(--space-fib-4);
     text-align: start;
     caption-side: top;
     color: var(--content-muted);
@@ -122,7 +122,7 @@
 
   .row[data-interactive="true"]:focus-visible {
     outline: var(--state-focus-ring-width) var(--state-focus-ring-style) var(--state-focus);
-    outline-offset: -2px;
+    outline-offset: calc(-1 * var(--stroke-width-2));
   }
 
   .row[data-selected="true"] {

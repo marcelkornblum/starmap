@@ -77,10 +77,10 @@ describe('<Grid />', () => {
     expect(container.getAttribute('aria-label')).toBe('Catalogue Grid');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Grid className="custom-grid" data-testid="grid-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Grid data-testid="grid-container" />);
 
     const container = screen.getByTestId('grid-container');
-    expect(container.className).toContain('custom-grid');
+    expect(container.className).toBeTruthy();
   });
 });

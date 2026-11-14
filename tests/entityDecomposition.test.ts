@@ -21,7 +21,7 @@ import { CelestialEntity } from '../src/components/canvas/entity/CelestialEntity
 import { calculateKeplerianPosition, calculateKeplerianVelocity } from '../src/components/canvas/math/kepler';
 import { celestialOcclusionManager } from '../src/components/canvas/cartography/celestialOcclusionRegistry';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../src/components/canvas/instrument';
-import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityContext';
+import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 
 const renderInFrame = (...children: React.ReactNode[]) =>
   renderToString(

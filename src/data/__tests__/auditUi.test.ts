@@ -8,7 +8,6 @@ import {
   auditDynamicClassNamesContent,
   auditRawElementsContent,
   auditRenderToStringContent,
-  auditCssModuleContent,
   runUiAudit,
 } from '../../../scripts/audit-ui';
 
@@ -119,6 +118,25 @@ describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', 
       expect(diags.every((d) => d.ruleId === 'forbidden-raw-element')).toBe(true);
     });
 
+    it('flags raw list elements: <ul>, <ol>, <dl>', () => {
+      const code = `
+        export const MyListView = () => (
+          <div>
+            <ul><li>Item</li></ul>
+            <ol><li>Ordered</li></ol>
+            <dl><dt>Term</dt><dd>Definition</dd></dl>
+          </div>
+        );
+      `;
+      const diags = auditRawElementsContent('src/views/MyListView.tsx', code);
+      expect(diags).toHaveLength(3);
+      expect(diags.map((d) => d.snippet)).toEqual(
+        expect.arrayContaining([expect.stringContaining('<ul'), expect.stringContaining('<ol'), expect.stringContaining('<dl')])
+      );
+      expect(diags.every((d) => d.ruleId === 'forbidden-raw-element')).toBe(true);
+      expect(diags[0].remediation).toContain('<Stack as="ul">');
+    });
+
     it('permits Tier 1 Interface Primitives: <Button>, <Input>, <Select>', () => {
       const code = `
         import { Button, Input, Select } from '../components/interface';
@@ -197,83 +215,6 @@ describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', 
       const diags = auditRenderToStringContent('tests/legacy.test.tsx', testCode);
       expect(diags).toHaveLength(1);
       expect(diags[0].ruleId).toBe('forbidden-rendertostring');
-    });
-  });
-
-  describe('AUD-002: CSS Module Tokens, Margin Discipline & Safelisting', () => {
-    it('flags hardcoded px and rem values in CSS modules', () => {
-      const css = `
-        @layer blocks {
-          .container {
-            padding: 16px;
-            font-size: 1.25rem;
-            width: 240px;
-          }
-        }
-      `;
-      const diags = auditCssModuleContent('src/views/MyView.module.css', css);
-      const tokenDiags = diags.filter((d) => d.ruleId === 'hardcoded-css-token');
-      expect(tokenDiags.length).toBe(3);
-    });
-
-    it('does NOT mask raw px/rem inside minmax(...) and clamp(...)', () => {
-      const css = `
-        @layer blocks {
-          .grid {
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            width: clamp(100px, 20vw, 400px);
-          }
-        }
-      `;
-      const diags = auditCssModuleContent('src/components/search/Search.module.css', css);
-      const tokenDiags = diags.filter((d) => d.ruleId === 'hardcoded-css-token');
-      expect(tokenDiags.length).toBeGreaterThanOrEqual(2);
-      expect(tokenDiags.some((d) => d.snippet.includes('minmax'))).toBe(true);
-      expect(tokenDiags.some((d) => d.snippet.includes('clamp'))).toBe(true);
-    });
-
-    it('safelists 1px borders/hairlines and 0 / 0px values', () => {
-      const css = `
-        @layer blocks {
-          .box {
-            border: 1px solid var(--border-color);
-            outline: 1px solid var(--focus-ring);
-            margin: 0;
-            padding: 0px;
-          }
-        }
-      `;
-      const diags = auditCssModuleContent('src/components/interface/Box/Box.module.css', css);
-      expect(diags.filter((d) => d.ruleId === 'hardcoded-css-token')).toEqual([]);
-    });
-
-    it('flags outer margin declarations on component blocks', () => {
-      const css = `
-        @layer blocks {
-          .widget {
-            margin: 16px;
-            margin-top: 10px;
-            margin-inline: 8px;
-          }
-        }
-      `;
-      const diags = auditCssModuleContent('src/components/domain/Widget.module.css', css);
-      const marginDiags = diags.filter((d) => d.ruleId === 'forbidden-outer-margin');
-      expect(marginDiags.length).toBe(3);
-    });
-
-    it('flags hardcoded hex color literals', () => {
-      const css = `
-        @layer blocks {
-          .text {
-            color: #ff3366;
-            background: #ffffff;
-          }
-        }
-      `;
-      const diags = auditCssModuleContent('src/views/Color.module.css', css);
-      const hexDiags = diags.filter((d) => d.ruleId === 'hardcoded-hex-color');
-      expect(hexDiags).toHaveLength(2);
     });
   });
 

@@ -11,17 +11,13 @@ export const Frame = ({
   as = 'div',
   ratio = '16:9',
   children,
-  className,
   ...rest
 }: FrameProps) => {
   const Tag = as as 'div';
-  const combinedClassName = className
-    ? `${styles.frame} ${className}`
-    : styles.frame;
 
   return (
     <Tag
-      className={combinedClassName}
+      className={styles.frame}
       data-ratio={ratio}
       {...rest}
     >

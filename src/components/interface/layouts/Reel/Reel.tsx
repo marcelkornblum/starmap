@@ -15,17 +15,13 @@ export const Reel = ({
   gap = 'default',
   snap = true,
   children,
-  className,
   ...rest
 }: ReelProps) => {
   const Tag = as as 'div';
-  const combinedClassName = className
-    ? `${styles.reel} ${className}`
-    : styles.reel;
 
   return (
     <Tag
-      className={combinedClassName}
+      className={styles.reel}
       data-item-width={itemWidth}
       data-gap={gap}
       data-snap={snap ? 'true' : undefined}

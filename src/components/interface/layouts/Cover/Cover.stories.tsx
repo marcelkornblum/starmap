@@ -28,7 +28,6 @@ export const Cover: Story = {
       <div style={{ backgroundColor: '#ffe6cc', padding: '1rem' }}>
         <Component 
           {...args} 
-          style={{ border: '4px solid black', backgroundColor: '#e6ccff' }}
           header={<div style={{ backgroundColor: '#5c8aff', padding: '1rem' }}>Header</div>}
           footer={<div style={{ backgroundColor: '#5cff8a', padding: '1rem' }}>Footer</div>}
         >

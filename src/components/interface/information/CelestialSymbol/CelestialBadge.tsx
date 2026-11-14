@@ -5,8 +5,9 @@ import {
   CELESTIAL_SYMBOL_META,
   type CelestialSymbolType,
 } from './CelestialSymbol';
+import styles from './CelestialBadge.module.css';
 
-export interface CelestialBadgeProps extends HTMLAttributes<HTMLElement> {
+export interface CelestialBadgeProps extends Omit<HTMLAttributes<HTMLElement>, 'className' | 'style'> {
   readonly type: CelestialSymbolType;
   readonly href?: string;
   readonly target?: string;
@@ -33,6 +34,7 @@ export const CelestialBadge = ({
   children,
   ...rest
 }: CelestialBadgeProps) => {
+  void styles;
   const meta = CELESTIAL_SYMBOL_META[type] ?? {
     type,
     label: type,

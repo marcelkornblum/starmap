@@ -92,10 +92,10 @@ describe('<Imposter />', () => {
     expect(container.getAttribute('aria-label')).toBe('Target System Details');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Imposter className="custom-imposter" data-testid="imposter-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Imposter data-testid="imposter-container" />);
 
     const container = screen.getByTestId('imposter-container');
-    expect(container.className).toContain('custom-imposter');
+    expect(container.className).toBeTruthy();
   });
 });

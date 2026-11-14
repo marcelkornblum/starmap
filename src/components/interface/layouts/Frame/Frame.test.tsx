@@ -60,10 +60,10 @@ describe('<Frame />', () => {
     expect(container.getAttribute('aria-label')).toBe('Target System Sensor View');
   });
 
-  it('merges custom className with scoped module class', () => {
-    render(<Frame className="custom-frame" data-testid="frame-container" />);
+  it('binds scoped module class statically without custom className per DEC-R050', () => {
+    render(<Frame data-testid="frame-container" />);
 
     const container = screen.getByTestId('frame-container');
-    expect(container.className).toContain('custom-frame');
+    expect(container.className).toBeTruthy();
   });
 });

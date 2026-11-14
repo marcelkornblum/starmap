@@ -10,16 +10,6 @@
     line-height: var(--leading-tight);
   }
 
-  .breadcrumbsList {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-fib-1);
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    min-inline-size: 0;
-  }
-
   .breadcrumbItem {
     display: inline-flex;
     align-items: center;
@@ -50,30 +40,26 @@
   .modeMenu {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    background: var(--surface-dock-bg, rgba(0, 0, 0, 0.4));
-    border: 1px solid var(--surface-dock-border-color, rgba(255, 255, 255, 0.1));
+    gap: var(--stroke-width-2);
+    background: var(--surface-dock-bg);
+    border: var(--border-width-1) solid var(--surface-dock-border-color);
     border-radius: var(--radius-control);
-    padding: 2px;
+    padding: var(--stroke-width-2);
     flex: 0 0 auto;
   }
 
-  .modeButton {
+  .modeMenu [data-mode-button] {
     flex: 0 0 auto;
-    font-size: var(--type-scale-neg-1);
-    padding-block: 2px;
-    padding-inline: var(--space-fib-2);
-    min-block-size: 24px;
-    line-height: 1;
-    border-radius: calc(var(--radius-control) - 2px);
+    --button-font-size: var(--type-scale-neg-1);
+    --button-padding-block: var(--stroke-width-2);
+    --button-padding-inline: var(--space-fib-2);
+    --button-leading: var(--scalar-line-100);
+    --button-radius: calc(var(--radius-control) - var(--stroke-width-2));
+    min-block-size: var(--ui-control-height-sm);
   }
 
-  .modeButton[data-active="true"] {
-    font-weight: var(--weight-semibold);
-  }
-
-  .companionLink {
-    flex: 0 0 auto;
+  .modeMenu [data-mode-button][data-active="true"] {
+    --button-font-weight: var(--weight-semibold);
   }
 }
 
@@ -85,22 +71,14 @@
     }
 
     .modeMenu {
-      padding: 1px;
-      gap: 1px;
+      padding: var(--stroke-width-1);
+      gap: var(--stroke-width-1);
     }
 
-    .modeButton {
-      font-size: var(--type-scale-neg-2);
-      padding-block: 2px;
-      padding-inline: var(--space-fib-1);
-      min-block-size: 20px;
-    }
-
-    .companionLink {
-      font-size: var(--type-scale-neg-2);
-      padding-block: 2px;
-      padding-inline: var(--space-fib-2);
-      min-block-size: 22px;
+    .modeMenu [data-mode-button] {
+      --button-font-size: var(--type-scale-neg-2);
+      --button-padding-inline: var(--space-fib-1);
+      min-block-size: var(--space-fib-5);
     }
   }
 }

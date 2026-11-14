@@ -8,7 +8,7 @@ import {
   STARFIELD_PASSIVE_POINT_SIZE,
   STARFIELD_VERTEX_SHADER,
   STARFIELD_FRAGMENT_SHADER,
-} from '../src/components/canvas/entity/SectorPointCloud';
+} from '../src/components/canvas/entity/sectorPointCloudShaders';
 
 describe('SectorPointCloud - Starfield Shader & Continuous Boundary Hydration', () => {
   beforeEach(() => {

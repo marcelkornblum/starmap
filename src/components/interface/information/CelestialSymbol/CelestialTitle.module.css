@@ -2,8 +2,9 @@
   .celestialTitle {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-2xs, 0.375rem);
+    gap: var(--space-fib-2);
     vertical-align: middle;
+    margin: 0;
   }
 
   .title {

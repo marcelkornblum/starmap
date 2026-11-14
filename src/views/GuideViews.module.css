@@ -14,17 +14,17 @@
     --planet-theme-ice-giant: var(--spectral-ice-giant);
     --planet-theme-gas-giant: var(--spectral-gas-giant);
 
-    --sphere-highlight-high: rgba(255, 255, 255, 0.92);
-    --sphere-highlight-mid: rgba(255, 255, 255, 0.45);
-    --sphere-highlight-low: rgba(255, 255, 255, 0.25);
-    --sphere-highlight-band: rgba(255, 255, 255, 0.16);
-    --sphere-shadow-soft: rgba(0, 0, 0, 0.35);
-    --sphere-shadow-band: rgba(0, 0, 0, 0.22);
-    --sphere-shadow-deep: rgba(0, 0, 0, 0.55);
-    --sphere-shadow-inset: rgba(0, 0, 0, 0.75);
-    --sphere-shadow-base: rgba(0, 0, 0, 0.82);
-    --sphere-planet-dark: var(--surface-base);
-    --sphere-planet-glow: rgba(120, 180, 255, 0.25);
+    --sphere-highlight-high: oklch(100% 0 0 / 0.92);
+    --sphere-highlight-mid: oklch(100% 0 0 / 0.45);
+    --sphere-highlight-low: oklch(100% 0 0 / 0.25);
+    --sphere-highlight-band: oklch(100% 0 0 / 0.16);
+    --sphere-shadow-soft: oklch(0% 0 0 / 0.35);
+    --sphere-shadow-band: oklch(0% 0 0 / 0.22);
+    --sphere-shadow-deep: oklch(0% 0 0 / 0.55);
+    --sphere-shadow-inset: oklch(0% 0 0 / 0.75);
+    --sphere-shadow-base: oklch(0% 0 0 / 0.82);
+    --sphere-planet-dark: var(--surface-canvas-bg);
+    --sphere-planet-glow: oklch(76% 0.10 240 / 0.25);
 
     display: flex;
     flex-direction: column;
@@ -32,7 +32,7 @@
     padding: var(--space-inset-panel);
     color: var(--content-default);
     font-family: var(--font-interface);
-    max-width: 1200px;
+    max-width: var(--size-measure-2xl);
     position: relative;
     z-index: var(--layer-hud);
   }
@@ -58,7 +58,7 @@
     font-weight: 500;
     padding: var(--space-fib-2) var(--space-fib-3);
     border-radius: var(--radius-sm);
-    transition: color 150ms ease, background-color 150ms ease;
+    transition: color var(--motion-duration-interactive) ease, background-color var(--motion-duration-interactive) ease;
   }
 
   .sectionNavLink:hover {
@@ -74,7 +74,7 @@
 
   .cardList {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--size-measure-panel), 1fr));
     gap: var(--space-fib-4);
     list-style: none;
     padding: 0;
@@ -111,74 +111,74 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 168px;
+    height: calc(var(--space-fib-9) + var(--space-fib-5));
     border-radius: var(--radius-sm);
-    background: radial-gradient(circle at center, var(--surface-overlay) 0%, var(--surface-base) 100%);
+    background: radial-gradient(circle at center, var(--surface-popover-bg) 0%, var(--surface-canvas-bg) 100%);
     border: var(--border-width-1) solid var(--border-subtle);
     overflow: hidden;
   }
 
   .detailPreviewSlot {
-    height: 210px;
+    height: calc(var(--space-fib-10) - var(--space-fib-3) * 3);
   }
 
   .sphereVisual {
     position: relative;
-    width: 108px;
-    height: 108px;
-    border-radius: 50%;
+    width: calc(var(--space-fib-8) + var(--space-fib-4) + var(--space-fib-2));
+    height: calc(var(--space-fib-8) + var(--space-fib-4) + var(--space-fib-2));
+    border-radius: var(--radius-full);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: width 200ms ease, height 200ms ease, transform 200ms ease;
+    transition: width var(--motion-duration-interactive) ease, height var(--motion-duration-interactive) ease, transform var(--motion-duration-interactive) ease;
   }
 
   /* Common comparative scale for Star Types list & detail views */
   .previewSlot[data-spectral-class="O"] .sphereVisual,
   .previewSlot[data-spectral-letter="O"] .sphereVisual {
-    width: 210px;
-    height: 210px;
+    width: calc(var(--space-fib-10) - var(--space-fib-3) * 3);
+    height: calc(var(--space-fib-10) - var(--space-fib-3) * 3);
   }
   .previewSlot[data-spectral-class="B"] .sphereVisual,
   .previewSlot[data-spectral-letter="B"] .sphereVisual {
-    width: 176px;
-    height: 176px;
+    width: calc(var(--space-fib-9) + var(--space-fib-6));
+    height: calc(var(--space-fib-9) + var(--space-fib-6));
   }
   .previewSlot[data-spectral-class="A"] .sphereVisual,
   .previewSlot[data-spectral-letter="A"] .sphereVisual {
-    width: 148px;
-    height: 148px;
+    width: calc(var(--space-fib-9) + var(--space-fib-1));
+    height: calc(var(--space-fib-9) + var(--space-fib-1));
   }
   .previewSlot[data-spectral-class="F"] .sphereVisual,
   .previewSlot[data-spectral-letter="F"] .sphereVisual {
-    width: 126px;
-    height: 126px;
+    width: calc(var(--space-fib-8) + var(--space-fib-6));
+    height: calc(var(--space-fib-8) + var(--space-fib-6));
   }
   .previewSlot[data-spectral-class="G"] .sphereVisual,
   .previewSlot[data-spectral-letter="G"] .sphereVisual {
-    width: 108px;
-    height: 108px;
+    width: calc(var(--space-fib-8) + var(--space-fib-4) + var(--space-fib-2));
+    height: calc(var(--space-fib-8) + var(--space-fib-4) + var(--space-fib-2));
   }
   .previewSlot[data-spectral-class="K"] .sphereVisual,
   .previewSlot[data-spectral-letter="K"] .sphereVisual {
-    width: 90px;
-    height: 90px;
+    width: var(--space-fib-8);
+    height: var(--space-fib-8);
   }
   .previewSlot[data-spectral-class="M"] .sphereVisual,
   .previewSlot[data-spectral-letter="M"] .sphereVisual {
-    width: 68px;
-    height: 68px;
+    width: calc(var(--space-fib-7) + var(--space-fib-4));
+    height: calc(var(--space-fib-7) + var(--space-fib-4));
   }
   .previewSlot[data-spectral-class="L/T/Y"] .sphereVisual,
   .previewSlot[data-spectral-letter="L"] .sphereVisual {
-    width: 48px;
-    height: 48px;
+    width: calc(var(--space-fib-6) + var(--space-fib-4));
+    height: calc(var(--space-fib-6) + var(--space-fib-4));
   }
   .previewSlot[data-spectral-class="D"] .sphereVisual,
   .previewSlot[data-spectral-letter="D"] .sphereVisual,
   .previewSlot[data-luminosity-class="VII"] .sphereVisual {
-    width: 30px;
-    height: 30px;
+    width: calc(var(--space-fib-5) + var(--space-fib-3));
+    height: calc(var(--space-fib-5) + var(--space-fib-3));
   }
 
   /* Luminosity class expansion on the 3-slice combinator */
@@ -194,32 +194,32 @@
 
   /* Common comparative scale for Planet Types */
   .previewSlot[data-preview-kind="planet"][data-composition="Terrestrial"] .sphereVisual {
-    width: 80px;
-    height: 80px;
+    width: calc(var(--space-fib-8) - var(--space-fib-3));
+    height: calc(var(--space-fib-8) - var(--space-fib-3));
     color: var(--planet-theme-terrestrial);
   }
   .previewSlot[data-preview-kind="planet"][data-composition="Ice Giant"] .sphereVisual {
-    width: 136px;
-    height: 136px;
+    width: calc(var(--space-fib-9) - var(--space-fib-3));
+    height: calc(var(--space-fib-9) - var(--space-fib-3));
     color: var(--planet-theme-ice-giant);
   }
   .previewSlot[data-preview-kind="planet"][data-composition="Gas Giant"] .sphereVisual {
-    width: 200px;
-    height: 200px;
+    width: calc(var(--space-fib-10) - var(--space-fib-6));
+    height: calc(var(--space-fib-10) - var(--space-fib-6));
     color: var(--planet-theme-gas-giant);
   }
 
   .sphereCore {
     width: 100%;
     height: 100%;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     background:
       radial-gradient(circle at 32% 28%, var(--sphere-highlight-high) 0%, var(--sphere-highlight-low) 28%, transparent 55%),
       radial-gradient(circle at 65% 68%, var(--sphere-shadow-soft) 0%, transparent 48%),
       radial-gradient(circle at 40% 38%, var(--content-prominent) 0%, currentColor 54%, var(--sphere-shadow-base) 100%);
     box-shadow:
-      inset -8px -8px 18px var(--sphere-shadow-deep),
-      0 0 28px currentColor;
+      inset calc(-1 * var(--space-fib-3)) calc(-1 * var(--space-fib-3)) calc(var(--space-fib-4) + var(--space-fib-2)) var(--sphere-shadow-deep),
+      0 0 calc(var(--space-fib-5) + var(--space-fib-3)) currentColor;
   }
 
   .sphereVisual[data-kind="planet"] .sphereCore {
@@ -228,12 +228,12 @@
       repeating-linear-gradient(
         -14deg,
         var(--sphere-highlight-band) 0px,
-        var(--sphere-highlight-band) 5px,
-        var(--sphere-shadow-band) 5px,
-        var(--sphere-shadow-band) 11px
+        var(--sphere-highlight-band) var(--space-fib-2),
+        var(--sphere-shadow-band) var(--space-fib-2),
+        var(--sphere-shadow-band) calc(var(--space-fib-3) + var(--space-fib-1))
       ),
       radial-gradient(circle at 35% 35%, currentColor 0%, currentColor 62%, var(--sphere-planet-dark) 100%);
-    box-shadow: inset -10px -10px 20px var(--sphere-shadow-inset), 0 0 14px var(--sphere-planet-glow);
+    box-shadow: inset calc(-1 * var(--space-fib-2) * 2) calc(-1 * var(--space-fib-2) * 2) calc(var(--space-fib-5) - 1px) var(--sphere-shadow-inset), 0 0 calc(var(--space-fib-4) + 1px) var(--sphere-planet-glow);
   }
 
   .previewSlot[data-spectral-letter="O"] .sphereVisual { color: var(--star-chromaticity-o); }
@@ -272,8 +272,8 @@
   }
 
   .metricEntityStage .sphereVisual {
-    width: 56px;
-    height: 56px;
+    width: var(--space-fib-7);
+    height: var(--space-fib-7);
   }
 
   .metricEntityStage .sphereVisual[data-baseline="Sol"] {
@@ -285,8 +285,8 @@
   }
 
   .metricEntityStage .sphereVisual[data-target="true"] {
-    width: 68px;
-    height: 68px;
+    width: calc(var(--space-fib-7) + var(--space-fib-4));
+    height: calc(var(--space-fib-7) + var(--space-fib-4));
     color: var(--star-chromaticity-k);
   }
 
@@ -330,7 +330,7 @@
 
   .combinatorSection {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(var(--size-measure-panel), 1fr));
     gap: var(--space-fib-4);
     align-items: start;
     padding: var(--space-inset-card);
@@ -362,12 +362,12 @@
     border: var(--border-width-1) solid var(--border-subtle);
     background-color: var(--surface-overlay);
     color: var(--content-default);
-    padding: var(--space-inset-button-sm-y) var(--space-inset-button-sm-x);
+    padding: var(--space-fib-1) var(--space-fib-3);
     border-radius: var(--radius-sm);
     font-family: var(--font-data);
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 150ms ease, border-color 150ms ease;
+    transition: background-color var(--motion-duration-interactive) ease, border-color var(--motion-duration-interactive) ease;
   }
 
   .sliceButton:hover {
@@ -425,7 +425,7 @@
 
   .comparisonGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(var(--size-measure-sm), 1fr));
     gap: var(--space-fib-4);
   }
 
