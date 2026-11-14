@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DetailsPanel } from './DetailsPanel';
@@ -177,5 +176,57 @@ describe('<DetailsPanel />', () => {
     expect(panel.getAttribute('data-entity-id')).toBe('earth');
     expect(panel.getAttribute('data-focused-kind')).toBe('planet');
     expect(screen.getByText('Moon')).toBeDefined();
+  });
+
+  it('renders orbital schematic list when schematic is passed for system focus, replacing separate hierarchy sections', () => {
+    const schematic = {
+      scope: 'system' as const,
+      systemId: 'tau-ceti',
+      systemName: 'Tau Ceti',
+      totalCount: 2,
+      regions: [],
+      items: [
+        {
+          id: 'tau-ceti-star',
+          name: 'Tau Ceti',
+          kind: 'star' as const,
+          kindLabel: 'Star',
+          href: '/system/tau-ceti?focus=tau-ceti-star',
+          semiMajorAxisAu: 0,
+          orbitRank: 0,
+          summaryLabel: 'Host Star',
+          inHabitableZone: false,
+          isFocused: false,
+          isSelected: false,
+        },
+        {
+          id: 'tau-ceti-e',
+          name: 'Tau Ceti e',
+          kind: 'planet' as const,
+          kindLabel: 'Planet',
+          href: '/system/tau-ceti?focus=tau-ceti-e',
+          semiMajorAxisAu: 0.538,
+          orbitRank: 1,
+          summaryLabel: '0.538 AU',
+          inHabitableZone: true,
+          isFocused: false,
+          isSelected: false,
+        },
+      ],
+    };
+
+    render(
+      <DetailsPanel
+        details={mockSystemDetails}
+        isOpen={true}
+        activeDetent="full"
+        schematic={schematic}
+      />,
+    );
+
+    expect(screen.getByTestId('orbital-schematic-panel')).toBeDefined();
+    expect(screen.getByTestId('orbital-schematic-list')).toBeDefined();
+    expect(screen.queryByTestId('details-stars-section')).toBeNull();
+    expect(screen.queryByTestId('details-planets-section')).toBeNull();
   });
 });

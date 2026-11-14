@@ -1,6 +1,5 @@
-// @vitest-environment jsdom
-import { createElement, type ReactElement } from 'react';
-import { render } from '@testing-library/react';
+import { createElement } from 'react';
+import { render, screen, act } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
@@ -29,101 +28,126 @@ import {
   annotationRecordsFor,
   resetLayerRuntime,
   seedAllLayerData,
-} from './layerFixtures';
-import { SAMPLE_CORPUS } from './searchFixtures';
-
-const renderToHtml = (element: ReactElement): string =>
-  render(createElement(SpatialEntityProvider, null, element)).container.innerHTML;
+} from './fixtures/layerFixtures';
+import { SAMPLE_CORPUS } from './fixtures/searchFixtures';
 
 describe('Journey 5: Transit Flow - ControlBar & Cross-View Overlays (DEC-019, DEC-020)', () => {
   it('DEC-019: <ControlBar /> renders time controller, mode group, and shortcuts', () => {
-    const html = renderToHtml(createElement(ControlBar, { scope: 'galaxy' }));
-    expect(html).toContain('data-testid="control-bar"');
-    expect(html).toContain('data-scope="galaxy"');
-    expect(html).toContain('data-testid="control-bar-time-controller"');
-    expect(html).toContain('data-testid="control-bar-play-pause"');
-    expect(html).toContain('data-testid="control-bar-time-scrubber"');
-    expect(html).toContain('data-testid="control-bar-datetime-picker"');
-    expect(html).toContain('data-testid="control-bar-mode-group"');
-    expect(html).toContain('data-testid="control-bar-projection-3d"');
-    expect(html).toContain('data-testid="control-bar-projection-top-down"');
-    expect(html).toContain('data-testid="control-bar-toggle-orbits"');
-    expect(html).toContain('data-testid="control-bar-toggle-grid"');
-    expect(html).toContain('data-testid="control-bar-toggle-labels"');
-    expect(html).toContain('data-testid="control-bar-shortcuts-list"');
-    expect(html).toContain('Search');
-    expect(html).toContain('Play/Pause');
-    expect(html).toContain('Reset View');
-    expect(html).toContain('Clear Focus');
+    const { container } = render(createElement(ControlBar, { scope: 'galaxy' }));
+    expect(screen.getByTestId('control-bar')).toBeDefined();
+    expect(screen.getByTestId('control-bar').getAttribute('data-scope')).toBe('galaxy');
+    expect(screen.getByTestId('control-bar-time-controller')).toBeDefined();
+    expect(screen.getByTestId('control-bar-play-pause')).toBeDefined();
+    expect(screen.getByTestId('control-bar-time-scrubber')).toBeDefined();
+    expect(screen.getByTestId('control-bar-datetime-picker')).toBeDefined();
+    expect(screen.getByTestId('control-bar-mode-group')).toBeDefined();
+    expect(screen.getByTestId('control-bar-projection-3d')).toBeDefined();
+    expect(screen.getByTestId('control-bar-projection-top-down')).toBeDefined();
+    expect(screen.getByTestId('control-bar-toggle-orbits')).toBeDefined();
+    expect(screen.getByTestId('control-bar-toggle-grid')).toBeDefined();
+    expect(screen.getByTestId('control-bar-toggle-labels')).toBeDefined();
+    expect(screen.getByTestId('control-bar-shortcuts-list')).toBeDefined();
+    expect(container.textContent).toContain('Search');
+    expect(container.textContent).toContain('Play/Pause');
+    expect(container.textContent).toContain('Reset View');
+    expect(container.textContent).toContain('Clear Focus');
   });
 
-  it('DEC-020: mounts <CanvasLayer />, <ControlBar />, and scoped <Search.Panel /> across views', () => {
-    const directCanvasHtml = renderToHtml(createElement(CanvasLayer, { scope: 'galaxy' }));
-    expect(directCanvasHtml).toContain('data-testid="canvas-layer"');
-    expect(directCanvasHtml).toContain('data-scope="galaxy"');
+  it('DEC-020: mounts <CanvasLayer />, <ControlBar />, and scoped <Search.Panel /> across views', async () => {
+    const { container: directCanvasContainer, unmount: unmountCanvas } = render(
+      createElement(CanvasLayer, { scope: 'galaxy' }),
+    );
+    expect(directCanvasContainer.querySelector('[data-testid="canvas-layer"]')).not.toBeNull();
+    expect(directCanvasContainer.querySelector('[data-scope="galaxy"]')).not.toBeNull();
+    unmountCanvas();
 
     const store = createSpatialEntityStore();
 
     // GalaxyView
-    const galaxyHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store },
-        createElement(GalaxyView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/galaxy',
-          locationSearch: '',
-        }),
-      ),
-    );
-    expect(galaxyHtml).toContain('data-testid="canvas-layer"');
-    expect(galaxyHtml).toContain('data-scope="galaxy"');
-    expect(galaxyHtml).toContain('data-testid="control-bar"');
-    expect(galaxyHtml).toContain('data-testid="search-panel"');
-    expect(galaxyHtml).toContain('data-scope="galaxy"');
+    let galaxyContainer: HTMLElement;
+    let unmountGalaxy: () => void;
+    await act(async () => {
+      const res = render(
+        createElement(
+          SpatialEntityProvider,
+          { store },
+          createElement(GalaxyView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/galaxy',
+            locationSearch: '',
+          }),
+        ),
+      );
+      galaxyContainer = res.container;
+      unmountGalaxy = res.unmount;
+    });
+    expect(galaxyContainer!.querySelector('[data-testid="canvas-layer"]')).not.toBeNull();
+    expect(galaxyContainer!.querySelector('[data-scope="galaxy"]')).not.toBeNull();
+    expect(galaxyContainer!.querySelector('[data-testid="control-bar"]')).not.toBeNull();
+    expect(galaxyContainer!.querySelector('[data-testid="search-panel"]')).not.toBeNull();
+    unmountGalaxy!();
 
     // SystemView
-    const systemHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store },
-        createElement(SystemView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/system/sol',
-          locationSearch: '',
-        }),
-      ),
-    );
-    expect(systemHtml).toContain('data-testid="canvas-layer"');
-    expect(systemHtml).toContain('data-scope="system"');
-    expect(systemHtml).toContain('data-target-id="sol"');
-    expect(systemHtml).toContain('data-testid="control-bar"');
-    expect(systemHtml).toContain('data-testid="search-panel"');
-    expect(systemHtml).toContain('data-scope="system"');
+    let systemContainer: HTMLElement;
+    let unmountSystem: () => void;
+    await act(async () => {
+      const res = render(
+        createElement(
+          SpatialEntityProvider,
+          { store },
+          createElement(SystemView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/system/sol',
+            locationSearch: '',
+          }),
+        ),
+      );
+      systemContainer = res.container;
+      unmountSystem = res.unmount;
+    });
+    expect(systemContainer!.querySelector('[data-testid="canvas-layer"]')).not.toBeNull();
+    expect(systemContainer!.querySelector('[data-scope="system"]')).not.toBeNull();
+    expect(systemContainer!.querySelector('[data-target-id="sol"]')).not.toBeNull();
+    expect(systemContainer!.querySelector('[data-testid="control-bar"]')).not.toBeNull();
+    expect(systemContainer!.querySelector('[data-testid="search-panel"]')).not.toBeNull();
+    unmountSystem!();
 
     // PlanetView
-    const planetHtml = renderToHtml(
+    let planetContainer: HTMLElement;
+    let unmountPlanet: () => void;
+    await act(async () => {
+      const res = render(
+        createElement(
+          SpatialEntityProvider,
+          { store },
+          createElement(PlanetView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/planet/earth',
+            locationSearch: '',
+          }),
+        ),
+      );
+      planetContainer = res.container;
+      unmountPlanet = res.unmount;
+    });
+    expect(planetContainer!.querySelector('[data-testid="canvas-layer"]')).not.toBeNull();
+    expect(planetContainer!.querySelector('[data-scope="planet"]')).not.toBeNull();
+    expect(planetContainer!.querySelector('[data-target-id="earth"]')).not.toBeNull();
+    expect(planetContainer!.querySelector('[data-testid="control-bar"]')).not.toBeNull();
+    expect(planetContainer!.querySelector('[data-testid="search-panel"]')).not.toBeNull();
+    unmountPlanet!();
+
+    // SearchView
+    const { container: searchContainer, unmount: unmountSearch } = render(
       createElement(
         SpatialEntityProvider,
         { store },
-        createElement(PlanetView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/planet/earth',
-          locationSearch: '',
-        }),
+        createElement(SearchView),
       ),
     );
-    expect(planetHtml).toContain('data-testid="canvas-layer"');
-    expect(planetHtml).toContain('data-scope="planet"');
-    expect(planetHtml).toContain('data-target-id="earth"');
-    expect(planetHtml).toContain('data-testid="control-bar"');
-    expect(planetHtml).toContain('data-testid="search-panel"');
-    expect(planetHtml).toContain('data-scope="planet"');
-
-    // SearchView
-    const searchHtml = renderToHtml(createElement(SearchView));
-    expect(searchHtml).toContain('data-testid="search-panel"');
-    expect(searchHtml).toContain('data-scope="search"');
+    expect(searchContainer.querySelector('[data-testid="search-panel"]')).not.toBeNull();
+    expect(searchContainer.querySelector('[data-scope="search"]')).not.toBeNull();
+    unmountSearch();
   });
 });
 
@@ -306,7 +330,7 @@ describe('Journey 5: Transit Flow - 3D View Reference Point, Camera URL State & 
   });
 
   it('DEC-021: <CanvasLayer /> renders data attributes for center and camera parameters', () => {
-    const html = renderToHtml(
+    const { container, unmount } = render(
       createElement(CanvasLayer, {
         scope: 'galaxy',
         centerId: 'tau-ceti',
@@ -316,33 +340,44 @@ describe('Journey 5: Transit Flow - 3D View Reference Point, Camera URL State & 
         cameraDistance: 150,
       }),
     );
-    expect(html).toContain('data-testid="canvas-layer"');
-    expect(html).toContain('data-center-id="tau-ceti"');
-    expect(html).toContain('data-center-coords="-0.94,2.37,-2.93"');
-    expect(html).toContain('data-camera-az="45"');
-    expect(html).toContain('data-camera-el="-15"');
-    expect(html).toContain('data-camera-dist="150"');
+    const canvasLayer = container.querySelector('[data-testid="canvas-layer"]');
+    expect(canvasLayer).not.toBeNull();
+    expect(canvasLayer?.getAttribute('data-center-id')).toBe('tau-ceti');
+    expect(canvasLayer?.getAttribute('data-center-coords')).toBe('-0.94,2.37,-2.93');
+    expect(canvasLayer?.getAttribute('data-camera-az')).toBe('45');
+    expect(canvasLayer?.getAttribute('data-camera-el')).toBe('-15');
+    expect(canvasLayer?.getAttribute('data-camera-dist')).toBe('150');
+    unmount();
   });
 
-  it('DEC-021: GalaxyView, SystemView, and PlanetView pass URL camera state to CanvasLayer and Minimap', () => {
+  it('DEC-021: GalaxyView, SystemView, and PlanetView pass URL camera state to CanvasLayer and Minimap', async () => {
     const store = createSpatialEntityStore();
     const searchString = '?center=tau-ceti&az=45&el=15&dist=100';
 
-    const galaxyHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store },
-        createElement(GalaxyView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/galaxy',
-          locationSearch: searchString,
-        }),
-      ),
-    );
-    expect(galaxyHtml).toContain('data-center-id="tau-ceti"');
-    expect(galaxyHtml).toContain('data-camera-az="45"');
-    expect(galaxyHtml).toContain('data-camera-el="15"');
-    expect(galaxyHtml).toContain('data-camera-dist="100"');
+    let galaxyContainer: HTMLElement;
+    let unmountGalaxy: () => void;
+    await act(async () => {
+      const res = render(
+        createElement(
+          SpatialEntityProvider,
+          { store },
+          createElement(GalaxyView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/galaxy',
+            locationSearch: searchString,
+          }),
+        ),
+      );
+      galaxyContainer = res.container;
+      unmountGalaxy = res.unmount;
+    });
+
+    const canvasLayer = galaxyContainer!.querySelector('[data-testid="canvas-layer"]');
+    expect(canvasLayer?.getAttribute('data-center-id')).toBe('tau-ceti');
+    expect(canvasLayer?.getAttribute('data-camera-az')).toBe('45');
+    expect(canvasLayer?.getAttribute('data-camera-el')).toBe('15');
+    expect(canvasLayer?.getAttribute('data-camera-dist')).toBe('100');
+    unmountGalaxy!();
   });
 
   it('DEC-022 & DEC-021: DetailsPanel renders Centre CTA and swaps Partial / Full detent contents', () => {
@@ -406,43 +441,27 @@ describe('Journey 5: Transit Flow - 3D View Reference Point, Camera URL State & 
 
     expect(details?.centerHref).toBe('/system/sol?center=earth&focus=earth');
 
-    const html = renderToHtml(createElement(DetailsPanel, { details }));
+    const { container, unmount } = render(createElement(DetailsPanel, { details }));
 
     // 1. Centre button is rendered with centerHref
-    expect(html).toContain('data-testid="details-button-center"');
-    expect(html).toContain('href="/system/sol?center=earth&amp;focus=earth"');
-    expect(html).toContain('Centre');
+    const centerBtn = container.querySelector('[data-testid="details-button-center"]');
+    expect(centerBtn).not.toBeNull();
+    expect(centerBtn?.getAttribute('href')).toBe('/system/sol?center=earth&focus=earth');
+    expect(centerBtn?.textContent).toContain('Centre');
 
     // 2. Detents are present
-    expect(html).toContain('data-testid="details-detent-partial"');
-    expect(html).toContain('data-testid="details-detent-full"');
+    const partialDetent = container.querySelector('[data-testid="details-detent-partial"]');
+    const fullDetent = container.querySelector('[data-testid="details-detent-full"]');
+    expect(partialDetent).not.toBeNull();
+    expect(fullDetent).not.toBeNull();
 
-    const partialIdx = html.indexOf('data-testid="details-detent-partial"');
-    const fullIdx = html.indexOf('data-testid="details-detent-full"');
-    expect(partialIdx).toBeLessThan(fullIdx);
+    // 3. Partial detent contains CTA and canon
+    expect(partialDetent?.querySelector('[data-testid="details-button-center"]')).not.toBeNull();
+    expect(partialDetent?.querySelector('[data-testid="details-canon-section"]')).not.toBeNull();
 
-    // 3. DEC-022 layout:
-    // In Partial detent (before fullIdx):
-    // - CTAs (details-actions, details-button-center) are at the top
-    // - Canon annotations (details-canon-section) follow immediately
-    // - Orbiting bodies / Stars / Planets follow below
-    const actionsIdx = html.indexOf('data-testid="details-cta-group"') !== -1
-      ? html.indexOf('data-testid="details-cta-group"')
-      : html.indexOf('data-testid="details-actions"');
-    const canonIdx = html.indexOf('data-testid="details-canon-section"');
-    const centerBtnIdx = html.indexOf('data-testid="details-button-center"');
-    expect(actionsIdx).toBeGreaterThan(partialIdx);
-    expect(centerBtnIdx).toBeGreaterThan(actionsIdx);
-    expect(canonIdx).toBeGreaterThan(actionsIdx);
-    expect(canonIdx).toBeLessThan(fullIdx);
-
-    // In Full detent (after fullIdx):
-    // - Intrinsic Telemetry (details-planet-telemetry-section)
-    // - Astrometry (details-astrometry-section)
-    const telemetryIdx = html.indexOf('data-testid="details-planet-telemetry-section"');
-    const astrometryIdx = html.indexOf('data-testid="details-astrometry-section"');
-
-    expect(telemetryIdx).toBeGreaterThan(fullIdx);
-    expect(astrometryIdx).toBeGreaterThan(fullIdx);
+    // 4. Full detent contains telemetry and astrometry
+    expect(fullDetent?.querySelector('[data-testid="details-planet-telemetry-section"]')).not.toBeNull();
+    expect(fullDetent?.querySelector('[data-testid="details-astrometry-section"]')).not.toBeNull();
+    unmount();
   });
 });

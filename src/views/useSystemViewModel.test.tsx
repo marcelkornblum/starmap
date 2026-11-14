@@ -1,0 +1,153 @@
+import React from 'react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { useSystemViewModel } from './useSystemViewModel';
+import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
+import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
+import {
+  clearDetailsRepositoryCache,
+  seedDetailRecord,
+  seedSummaryNode,
+} from '../data/detailsRepository';
+import { useCameraStore } from '../stores/useCameraStore';
+import { useUIStore } from '../stores/useUIStore';
+import { registerAppRouter } from '../hooks/useSpaLocation';
+import type { SystemManifest, SystemSummaryNode } from '../types/astro';
+
+const SOL_FIXTURE: SystemManifest = {
+  id: 'sol',
+  name: 'Sol',
+  x: 0,
+  y: 0,
+  z: 0,
+  dist: 0,
+  sectorId: 'sector_0_0_0',
+  stars: [
+    {
+      id: 'sol-star',
+      name: 'Sol',
+      componentDesignation: 'A',
+      spectralType: 'G2V',
+      mag: -26.7,
+      absmag: 4.83,
+    },
+  ],
+  planets: [
+    {
+      id: 'earth',
+      name: 'Earth',
+      letter: 'd',
+      composition: 'terrestrial',
+    },
+  ],
+};
+
+const SOL_SUMMARY: SystemSummaryNode = {
+  id: 'sol',
+  name: 'Sol',
+  x: 0,
+  y: 0,
+  z: 0,
+  dist: 0,
+  mag: -26.7,
+  absmag: 4.83,
+  spect: 'G2V',
+  starCount: 1,
+  planetCount: 1,
+  hasHabitableCandidate: true,
+  sectorId: 'sector_0_0_0',
+};
+
+describe('useSystemViewModel', () => {
+  let navigateSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    clearDetailsRepositoryCache();
+    seedDetailRecord('sol', { kind: 'system', record: SOL_FIXTURE });
+    seedSummaryNode('sol', SOL_SUMMARY);
+    useUIStore.setState({ detailsDetent: 'collapsed' });
+    useCameraStore.setState({ lastGalaxySearch: '' });
+    navigateSpy = vi.fn().mockResolvedValue(undefined);
+    registerAppRouter({ navigate: navigateSpy });
+  });
+
+  afterEach(() => {
+    registerAppRouter(null);
+  });
+
+  const createWrapper = (store: ReturnType<typeof createSpatialEntityStore>) => {
+    return ({ children }: { children: React.ReactNode }) => (
+      <SpatialEntityStoreContext.Provider value={store}>
+        {children}
+      </SpatialEntityStoreContext.Provider>
+    );
+  };
+
+  it('initializes system view model and resolves breadcrumbs', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useSystemViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useSystemViewModel({
+            systemId: 'sol',
+            locationPathname: '/system/sol',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(hookResult.result.current.targetId).toBe('sol');
+    expect(hookResult.result.current.pathname).toBe('/system/sol');
+    expect(hookResult.result.current.resolvedBreadcrumbs.length).toBeGreaterThan(0);
+    expect(hookResult.result.current.resolvedBreadcrumbs[0]?.label).toBe('Galaxy');
+  });
+
+  it('updates galaxy breadcrumb link when lastGalaxySearch is in camera store', async () => {
+    useCameraStore.setState({ lastGalaxySearch: '?focus=proxima-centauri' });
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useSystemViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useSystemViewModel({
+            systemId: 'sol',
+            locationPathname: '/system/sol',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    const galaxyCrumb = hookResult.result.current.resolvedBreadcrumbs.find((b) => b.label === 'Galaxy');
+    expect(galaxyCrumb?.href).toBe('/galaxy?focus=proxima-centauri');
+  });
+
+  it('handles handleSelectEntity by navigating with new focus', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useSystemViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useSystemViewModel({
+            systemId: 'sol',
+            locationPathname: '/system/sol',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    act(() => {
+      hookResult.result.current.handleSelectEntity('earth');
+    });
+
+    expect(navigateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: '/system/$systemId',
+        params: { systemId: 'sol' },
+      }),
+    );
+  });
+});

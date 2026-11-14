@@ -1,6 +1,5 @@
-// @vitest-environment jsdom
-import { createElement, type ReactElement } from 'react';
-import { render } from '@testing-library/react';
+import { createElement } from 'react';
+import { act, render } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
@@ -62,18 +61,19 @@ import {
   annotationRecordsFor,
   resetLayerRuntime,
   seedAllLayerData,
-} from './layerFixtures';
-import { SAMPLE_CORPUS } from './searchFixtures';
-
-const renderToHtml = (element: ReactElement): string =>
-  render(createElement(SpatialEntityProvider, null, element)).container.innerHTML;
+} from './fixtures/layerFixtures';
+import { SAMPLE_CORPUS } from './fixtures/searchFixtures';
 
 describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () => {
   beforeAll(seedAllLayerData);
   afterAll(resetLayerRuntime);
   it('evaluates detailsService builders, detailsRepository bucket lookups, and DetailsPanel decomposition across all branches', async () => {
     // 1. DetailsPanel returns null when details is null
-    expect(renderToHtml(createElement(DetailsPanel, { details: null }))).toBe('');
+    const { container: nullDetails, unmount: unmountNullDetails } = render(
+      createElement(DetailsPanel, { details: null }),
+    );
+    expect(nullDetails.firstChild).toBeNull();
+    unmountNullDetails();
     expect(buildFocusedEntityDetails({ focusedEntity: null })).toBeNull();
     expect(buildSystemDetailsHref('tau-ceti')).toBe('/system/tau-ceti');
     expect(buildSystemDetailsHref('')).toBe('/system/sol');
@@ -320,19 +320,22 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(fullDetails).not.toBeNull();
     expect(fullDetails?.planets.map((p) => p.id)).toEqual(['tau-ceti-g', 'tau-ceti-e']);
 
-    const fullHtml = renderToHtml(createElement(DetailsPanel, { details: fullDetails }));
-    expect(fullHtml).toContain('0.538');
-    expect(fullHtml).toContain('href="/guide/metrics/semi-major-axis?focus=');
-    expect(fullHtml).toContain('162.87');
-    expect(fullHtml).toContain('href="/guide/metrics/orbital-period?focus=');
-    expect(fullHtml).toContain('3.93');
-    expect(fullHtml).toContain('href="/guide/metrics/planetary-mass?focus=');
-    expect(fullHtml).toContain('270');
-    expect(fullHtml).toContain('href="/guide/metrics/equilibrium-temperature?focus=');
-    expect(fullHtml).toContain('href="/guide/metrics/stellar-magnitude?focus=');
-    expect(fullHtml).toContain('href="/guide/metrics/galactic-coordinates?focus=');
-    expect(fullHtml).toContain('data-testid="details-metric-unit-link"');
-    expect(fullHtml).toContain('data-testid="details-astrometry-tags"');
+    const { container: fullContainer, unmount: unmountFull } = render(
+      createElement(DetailsPanel, { details: fullDetails }),
+    );
+    expect(fullContainer.textContent).toContain('0.538');
+    expect(fullContainer.querySelector('a[href^="/guide/metrics/semi-major-axis?focus="]')).not.toBeNull();
+    expect(fullContainer.textContent).toContain('162.87');
+    expect(fullContainer.querySelector('a[href^="/guide/metrics/orbital-period?focus="]')).not.toBeNull();
+    expect(fullContainer.textContent).toContain('3.93');
+    expect(fullContainer.querySelector('a[href^="/guide/metrics/planetary-mass?focus="]')).not.toBeNull();
+    expect(fullContainer.textContent).toContain('270');
+    expect(fullContainer.querySelector('a[href^="/guide/metrics/equilibrium-temperature?focus="]')).not.toBeNull();
+    expect(fullContainer.querySelector('a[href^="/guide/metrics/stellar-magnitude?focus="]')).not.toBeNull();
+    expect(fullContainer.querySelector('a[href^="/guide/metrics/galactic-coordinates?focus="]')).not.toBeNull();
+    expect(fullContainer.querySelector('[data-testid="details-metric-unit-link"]')).not.toBeNull();
+    expect(fullContainer.querySelector('[data-testid="details-astrometry-tags"]')).not.toBeNull();
+    unmountFull();
 
     // Error handling in detailsRepository
     clearDetailsRepositoryCache();
@@ -357,24 +360,27 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(buildMetricGuideHref('')).toBe('/guide/metrics');
     expect(buildMetricGuideHref('Unknown')).toBe('/guide/metrics');
 
-    const listViewHtml = renderToHtml(createElement(MetricsListView));
-    expect(listViewHtml).toContain('data-testid="metrics-list-view-root"');
-    expect(listViewHtml).toContain('Telemetry Metrics');
+    const { container: listContainer, unmount: unmountList } = render(createElement(MetricsListView));
+    expect(listContainer.querySelector('[data-testid="metrics-list-view-root"]')).not.toBeNull();
+    expect(listContainer.textContent).toContain('Telemetry Metrics');
+    unmountList();
 
-    const detailViewHtml = renderToHtml(
+    const { container: detailContainer, unmount: unmountDetail } = render(
       createElement(MetricDetailView, {
         metricId: 'semi-major-axis',
       }),
     );
-    expect(detailViewHtml).toContain('data-testid="metric-detail-view-root"');
-    expect(detailViewHtml).toContain('data-metric-id="semi-major-axis"');
-    expect(detailViewHtml).toContain('Metric: semi-major-axis');
-    expect(detailViewHtml).toContain('href="/guide/metrics"');
+    expect(detailContainer.querySelector('[data-testid="metric-detail-view-root"]')).not.toBeNull();
+    expect(detailContainer.querySelector('[data-metric-id="semi-major-axis"]')).not.toBeNull();
+    expect(detailContainer.textContent).toContain('Metric: semi-major-axis');
+    expect(detailContainer.querySelector('a[href="/guide/metrics"]')).not.toBeNull();
+    unmountDetail();
 
-    const explicitPropDetailHtml = renderToHtml(
+    const { container: explicitPropDetailContainer, unmount: unmountExplicit } = render(
       createElement(MetricDetailView, { metricId: 'planetary-mass' }),
     );
-    expect(explicitPropDetailHtml).toContain('data-metric-id="planetary-mass"');
+    expect(explicitPropDetailContainer.querySelector('[data-metric-id="planetary-mass"]')).not.toBeNull();
+    unmountExplicit();
   });
 
   it('links all stellar classifications to /guide/star-types/$starType and renders StarTypesListView and StarTypeDetailView', () => {
@@ -390,11 +396,12 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
       filter: 'stars',
     });
     const tauItem = searchRes.groups.stars.items[0]!;
-    const itemHtml = renderToHtml(
+    const { container: itemContainer, unmount: unmountItem } = render(
       createElement(SearchResultItem, { result: tauItem }),
     );
-    expect(itemHtml).not.toContain('href="/guide/star-types/G8V"');
-    expect(itemHtml).toContain('data-testid="result-spectral-badge"');
+    expect(itemContainer.querySelector('a[href="/guide/star-types/G8V"]')).toBeNull();
+    expect(itemContainer.querySelector('[data-testid="result-spectral-badge"]')).not.toBeNull();
+    unmountItem();
 
     // DetailsPanel links G8V in Peek badge, Partial summary, and Full Stars list
     const focusedDetails = buildFocusedEntityDetails({
@@ -407,28 +414,31 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
       },
       corpus: SAMPLE_CORPUS,
     });
-    const detailsHtml = renderToHtml(
+    const { container: detailsContainer, unmount: unmountDetails } = render(
       createElement(DetailsPanel, { details: focusedDetails }),
     );
-    expect(detailsHtml).toContain('data-testid="details-spectral-badge"');
-    expect(detailsHtml).toContain('data-testid="details-summary-spectral-link"');
-    expect(detailsHtml).toContain('data-testid="details-star-spectral-link"');
-    expect(detailsHtml.match(/href="\/guide\/star-types\/G8V"/g)?.length).toBeGreaterThanOrEqual(
+    expect(detailsContainer.querySelector('[data-testid="details-spectral-badge"]')).not.toBeNull();
+    expect(detailsContainer.querySelector('[data-testid="details-summary-spectral-link"]')).not.toBeNull();
+    expect(detailsContainer.querySelector('[data-testid="details-star-spectral-link"]')).not.toBeNull();
+    expect(detailsContainer.querySelectorAll('a[href="/guide/star-types/G8V"]').length).toBeGreaterThanOrEqual(
       3,
     );
+    unmountDetails();
 
     // StarTypesListView and StarTypeDetailView render cleanly
-    const listViewHtml = renderToHtml(createElement(StarTypesListView));
-    expect(listViewHtml).toContain('data-testid="star-types-list-view-root"');
-    expect(listViewHtml).toContain('Star Types');
+    const { container: starListViewContainer, unmount: unmountStarList } = render(createElement(StarTypesListView));
+    expect(starListViewContainer.querySelector('[data-testid="star-types-list-view-root"]')).not.toBeNull();
+    expect(starListViewContainer.textContent).toContain('Star Types');
+    unmountStarList();
 
-    const detailViewHtml = renderToHtml(
+    const { container: starDetailContainer, unmount: unmountStarDetail } = render(
       createElement(StarTypeDetailView, { starType: 'G8V' }),
     );
-    expect(detailViewHtml).toContain('data-testid="star-type-detail-view-root"');
-    expect(detailViewHtml).toContain('data-star-type="G8V"');
-    expect(detailViewHtml).toContain('Star Type: G8V');
-    expect(detailViewHtml).toContain('href="/guide/star-types"');
+    expect(starDetailContainer.querySelector('[data-testid="star-type-detail-view-root"]')).not.toBeNull();
+    expect(starDetailContainer.querySelector('[data-star-type="G8V"]')).not.toBeNull();
+    expect(starDetailContainer.textContent).toContain('Star Type: G8V');
+    expect(starDetailContainer.querySelector('a[href="/guide/star-types"]')).not.toBeNull();
+    unmountStarDetail();
   });
 
   it('links planet type labels in DetailsPanel to /guide/planet-types/$planetType and renders PlanetTypesListView and PlanetTypeDetailView', () => {
@@ -454,16 +464,16 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
       },
       corpus: SAMPLE_CORPUS,
     });
-    const detailsHtml = renderToHtml(
+    const { container: detailsContainer, unmount: unmountDetails } = render(
       createElement(DetailsPanel, { details: focusedDetails }),
     );
 
     // Peek planet composition summary links terrestrial to /guide/planet-types/terrestrial
-    expect(detailsHtml).toContain('data-testid="details-summary-planet-type-link"');
+    expect(detailsContainer.querySelector('[data-testid="details-summary-planet-type-link"]')).not.toBeNull();
     // Full Planets list links terrestrial to /guide/planet-types/terrestrial
-    expect(detailsHtml).toContain('data-testid="details-planet-type-link"');
+    expect(detailsContainer.querySelector('[data-testid="details-planet-type-link"]')).not.toBeNull();
     expect(
-      detailsHtml.match(/href="\/guide\/planet-types\/terrestrial"/g)?.length,
+      detailsContainer.querySelectorAll('a[href="/guide/planet-types/terrestrial"]').length,
     ).toBeGreaterThanOrEqual(2);
 
     // Star and planet names in DetailsPanel link to /system/<systemSlug>?focus=<elementSlug>
@@ -473,148 +483,181 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(buildSystemElementFocusHref('Tau Ceti', '')).toBe(
       '/system/tau-ceti',
     );
-    expect(detailsHtml).toContain('data-testid="details-star-name-link"');
-    expect(detailsHtml).toContain('href="/system/tau-ceti?focus=tau-ceti"');
-    expect(detailsHtml).toContain('data-testid="details-planet-name-link"');
-    expect(detailsHtml).toContain('href="/system/tau-ceti?focus=tau-ceti-e"');
+    expect(detailsContainer.querySelector('[data-testid="details-star-name-link"]')).not.toBeNull();
+    expect(detailsContainer.querySelector('a[href="/system/tau-ceti?focus=tau-ceti"]')).not.toBeNull();
+    expect(detailsContainer.querySelector('[data-testid="details-planet-name-link"]')).not.toBeNull();
+    expect(detailsContainer.querySelector('a[href="/system/tau-ceti?focus=tau-ceti-e"]')).not.toBeNull();
+    unmountDetails();
 
     // PlanetTypesListView and PlanetTypeDetailView render cleanly
-    const listViewHtml = renderToHtml(createElement(PlanetTypesListView));
-    expect(listViewHtml).toContain('data-testid="planet-types-list-view-root"');
-    expect(listViewHtml).toContain('Planet Types');
+    const { container: pListContainer, unmount: unmountPList } = render(createElement(PlanetTypesListView));
+    expect(pListContainer.querySelector('[data-testid="planet-types-list-view-root"]')).not.toBeNull();
+    expect(pListContainer.textContent).toContain('Planet Types');
+    unmountPList();
 
-    const detailViewHtml = renderToHtml(
+    const { container: pDetailContainer, unmount: unmountPDetail } = render(
       createElement(PlanetTypeDetailView, {
         planetType: 'terrestrial',
       }),
     );
-    expect(detailViewHtml).toContain('data-testid="planet-type-detail-view-root"');
-    expect(detailViewHtml).toContain('data-planet-type="terrestrial"');
-    expect(detailViewHtml).toContain('Planet Type: terrestrial');
-    expect(detailViewHtml).toContain('href="/guide/planet-types"');
+    expect(pDetailContainer.querySelector('[data-testid="planet-type-detail-view-root"]')).not.toBeNull();
+    expect(pDetailContainer.querySelector('[data-planet-type="terrestrial"]')).not.toBeNull();
+    expect(pDetailContainer.textContent).toContain('Planet Type: terrestrial');
+    expect(pDetailContainer.querySelector('a[href="/guide/planet-types"]')).not.toBeNull();
+    unmountPDetail();
   });
 
-  it('renders Breadcrumbs at the top of every view, populates entity-specific telemetry in DetailsPanel, and renders BodiesPanel in SystemView and PlanetView', () => {
+  it('renders Breadcrumbs at the top of every view, populates entity-specific telemetry in DetailsPanel, and renders BodiesPanel in SystemView and PlanetView', async () => {
     expect(hasExplicitFocusParam('?focus=tau-ceti-e')).toBe(true);
     expect(hasExplicitFocusParam('')).toBe(false);
 
     // Empty breadcrumbs returns null
-    expect(renderToHtml(createElement(Breadcrumbs, { items: [] }))).toBe('');
-    expect(
-      renderToHtml(createElement(BodiesPanel, { elements: null })),
-    ).toBe('');
+    const { container: emptyBreadcrumbs, unmount: unmountEmptyB } = render(
+      createElement(Breadcrumbs, { items: [] }),
+    );
+    expect(emptyBreadcrumbs.firstChild).toBeNull();
+    unmountEmptyB();
+
+    const { container: emptyBodies, unmount: unmountEmptyBod } = render(
+      createElement(
+        SpatialEntityProvider,
+        null,
+        createElement(BodiesPanel, { elements: null }),
+      ),
+    );
+    expect(emptyBodies.firstChild).toBeNull();
+    unmountEmptyBod();
     expect(buildSystemBodiesSummary({ details: null })).toBeNull();
 
     // Guide & Search views render breadcrumbs at top
-    expect(renderToHtml(createElement(SearchView))).toContain(
-      'data-testid="view-breadcrumbs"',
-    );
-    expect(renderToHtml(createElement(StarTypesListView))).toContain(
-      'data-testid="view-breadcrumbs"',
-    );
-    expect(
-      renderToHtml(
-        createElement(StarTypeDetailView, {
-          starType: 'G8V',
-        }),
+    const searchStore = createSpatialEntityStore();
+    const { container: sView, unmount: unmountSView } = render(
+      createElement(
+        SpatialEntityProvider,
+        { store: searchStore },
+        createElement(SearchView),
       ),
-    ).toContain('data-testid="view-breadcrumbs"');
-    expect(renderToHtml(createElement(PlanetTypesListView))).toContain(
-      'data-testid="view-breadcrumbs"',
     );
-    expect(
-      renderToHtml(
-        createElement(PlanetTypeDetailView, {
-          locationPathname: '/guide/planet-types/terrestrial',
-        }),
-      ),
-    ).toContain('data-testid="view-breadcrumbs"');
-    expect(renderToHtml(createElement(MetricsListView))).toContain(
-      'data-testid="view-breadcrumbs"',
+    expect(sView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    unmountSView();
+
+    const { container: stlView, unmount: unmountStl } = render(createElement(StarTypesListView));
+    expect(stlView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    unmountStl();
+
+    const { container: stdView, unmount: unmountStd } = render(
+      createElement(StarTypeDetailView, {
+        starType: 'G8V',
+      }),
     );
-    expect(
-      renderToHtml(
-        createElement(MetricDetailView, {
-          locationPathname: '/guide/metrics/semi-major-axis',
-        }),
-      ),
-    ).toContain('data-testid="view-breadcrumbs"');
+    expect(stdView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    unmountStd();
+
+    const { container: ptlView, unmount: unmountPtl } = render(createElement(PlanetTypesListView));
+    expect(ptlView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    unmountPtl();
+
+    const { container: ptdView, unmount: unmountPtd } = render(
+      createElement(PlanetTypeDetailView, {
+        locationPathname: '/guide/planet-types/terrestrial',
+      }),
+    );
+    expect(ptdView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    unmountPtd();
+
+    const { container: mlView, unmount: unmountMl } = render(createElement(MetricsListView));
+    expect(mlView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    unmountMl();
+
+    const { container: mdView, unmount: unmountMd } = render(
+      createElement(MetricDetailView, {
+        locationPathname: '/guide/metrics/semi-major-axis',
+      }),
+    );
+    expect(mdView.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    unmountMd();
 
     // SystemView at /system/tau-ceti?focus=tau-ceti-e renders Breadcrumbs, BodiesPanel, and Details (planet telemetry)
     const sysStore = createSpatialEntityStore();
-    const sysHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store: sysStore },
-        createElement(SystemView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/system/tau-ceti',
-          locationSearch: '?focus=tau-ceti-e',
-        }),
-      ),
-    );
-    expect(sysHtml).toContain('data-testid="view-breadcrumbs"');
-    expect(sysHtml).toContain('data-testid="bodies-panel"');
-    expect(sysHtml).toContain('data-scope="system"');
-    expect(sysHtml).toContain('data-system-id="gaia-2452378776434477184"');
-    expect(sysHtml).toContain('data-testid="orbital-schematic-panel"');
-    expect(sysHtml).toContain('data-testid="orbital-schematic-list"');
-    expect(sysHtml).toContain('data-testid="orbital-schematic-item"');
-    expect(sysHtml).not.toContain('data-testid="bodies-stars-section"');
-    expect(sysHtml).not.toContain('data-testid="bodies-planets-section"');
-    expect(sysHtml).not.toContain('data-testid="bodies-canon-section"');
-    expect(sysHtml).toContain('data-testid="details-canon-section"');
-    expect(sysHtml).toContain('data-focused="true"');
-    expect(sysHtml).toContain('data-testid="details-panel"');
-    expect(sysHtml).toContain('data-focused-kind="planet"');
-    expect(sysHtml).toContain('data-testid="details-planet-telemetry-section"');
-    expect(sysHtml).not.toContain('data-testid="details-planet-composition"');
-    expect(sysHtml).not.toContain('data-testid="details-stars-section"');
-    expect(sysHtml).not.toContain('data-testid="details-planets-section"');
+    let sysRes: ReturnType<typeof render>;
+    await act(async () => {
+      sysRes = render(
+        createElement(
+          SpatialEntityProvider,
+          { store: sysStore },
+          createElement(SystemView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/system/tau-ceti',
+            locationSearch: '?focus=tau-ceti-e',
+          }),
+        ),
+      );
+    });
+    expect(sysRes!.container.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="bodies-panel"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-scope="system"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-system-id="gaia-2452378776434477184"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="orbital-schematic-list"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="orbital-schematic-item"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="bodies-stars-section"]')).toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="bodies-planets-section"]')).toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="bodies-canon-section"]')).toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="details-canon-section"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-focused="true"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="details-panel"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-focused-kind="planet"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="details-planet-telemetry-section"]')).not.toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="details-planet-composition"]')).toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="details-stars-section"]')).toBeNull();
+    expect(sysRes!.container.querySelector('[data-testid="details-planets-section"]')).toBeNull();
+    sysRes!.unmount();
 
     // SystemView at /system/sol?select=earth renders earth as selected in BodiesPanel and hides DetailsPanel
     const solSelectStore = createSpatialEntityStore();
-    const solSelectHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store: solSelectStore },
-        createElement(SystemView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/system/sol',
-          locationSearch: '?select=earth',
-        }),
-      ),
-    );
-    expect(solSelectHtml).toContain('data-testid="orbital-schematic-item"');
-    expect(solSelectHtml).toContain('data-selected="true"');
-    expect(solSelectHtml).not.toContain('data-testid="details-panel"');
-    expect(solSelectHtml).toContain('data-testid="orbital-schematic-panel"');
+    let solSelectRes: ReturnType<typeof render>;
+    await act(async () => {
+      solSelectRes = render(
+        createElement(
+          SpatialEntityProvider,
+          { store: solSelectStore },
+          createElement(SystemView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/system/sol',
+            locationSearch: '?select=earth',
+          }),
+        ),
+      );
+    });
+    expect(solSelectRes!.container.querySelector('[data-testid="orbital-schematic-item"]')).not.toBeNull();
+    expect(solSelectRes!.container.querySelector('[data-selected="true"]')).not.toBeNull();
+    expect(solSelectRes!.container.querySelector('[data-testid="details-panel"]')).toBeNull();
+    expect(solSelectRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    solSelectRes!.unmount();
 
     // SystemView at /system/sol?focus=earth renders Orbiting Bodies (Moon) in DetailsPanel Full and links Details button to /planet/earth
     const earthFocusStore = createSpatialEntityStore();
-    const earthFocusHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store: earthFocusStore },
-        createElement(SystemView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/system/sol',
-          locationSearch: '?focus=earth',
-        }),
-      ),
-    );
-    expect(earthFocusHtml).toContain(
-      'data-testid="details-orbiting-bodies-section"',
-    );
-    expect(earthFocusHtml).toContain(
-      'data-testid="details-orbiting-body-link"',
-    );
-    expect(earthFocusHtml).toContain('href="/planet/earth?focus=moon"');
-    expect(earthFocusHtml).toContain('1 catalogued body in orbit.');
-    expect(earthFocusHtml).toContain(
-      'data-testid="details-button-system-details"',
-    );
-    expect(earthFocusHtml).toContain('href="/planet/earth"');
+    let earthFocusRes: ReturnType<typeof render>;
+    await act(async () => {
+      earthFocusRes = render(
+        createElement(
+          SpatialEntityProvider,
+          { store: earthFocusStore },
+          createElement(SystemView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/system/sol',
+            locationSearch: '?focus=earth',
+          }),
+        ),
+      );
+    });
+    expect(earthFocusRes!.container.querySelector('[data-testid="details-orbiting-bodies-section"]')).not.toBeNull();
+    expect(earthFocusRes!.container.querySelector('[data-testid="details-orbiting-body-link"]')).not.toBeNull();
+    expect(earthFocusRes!.container.querySelector('a[href="/planet/earth?focus=moon"]')).not.toBeNull();
+    expect(earthFocusRes!.container.textContent).toContain('1 catalogued body in orbit.');
+    expect(earthFocusRes!.container.querySelector('[data-testid="details-button-system-details"]')).not.toBeNull();
+    expect(earthFocusRes!.container.querySelector('a[href="/planet/earth"]')).not.toBeNull();
+    earthFocusRes!.unmount();
 
     // PlanetView at /planet/earth renders Breadcrumbs (Galaxy -> Sol -> Earth), BodiesPanel, and OrbitalSchematicPanel
     expect(buildPlanetDetailsHref('earth')).toBe('/planet/earth');
@@ -631,90 +674,100 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     ]);
 
     const planetStore = createSpatialEntityStore();
-    const planetHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store: planetStore },
-        createElement(PlanetView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/planet/earth',
-          locationSearch: '?select=moon',
-        }),
-      ),
-    );
-    expect(planetHtml).toContain('data-testid="planet-view-root"');
-    expect(planetHtml).toContain('data-testid="view-breadcrumbs"');
-    expect(planetHtml).toContain('href="/galaxy"');
-    expect(planetHtml).toContain('href="/system/sol"');
-    expect(planetHtml).toContain('data-testid="bodies-panel"');
-    expect(planetHtml).toContain('data-scope="planet"');
-    expect(planetHtml).toContain('data-planet-id="earth"');
-    expect(planetHtml).toContain('data-selected="true"');
-    expect(planetHtml).not.toContain('data-testid="details-panel"');
-    expect(planetHtml).toContain('data-testid="orbital-schematic-panel"');
-    expect(planetHtml).toContain('data-testid="orbital-schematic-list"');
-    expect(planetHtml).toContain('data-testid="orbital-schematic-item"');
-    expect(planetHtml).toContain('href="/planet/earth?focus=moon"');
-    expect(planetHtml).not.toContain('data-testid="bodies-planet-section"');
-    expect(planetHtml).not.toContain('data-testid="bodies-moons-section"');
+    let planetRes: ReturnType<typeof render>;
+    await act(async () => {
+      planetRes = render(
+        createElement(
+          SpatialEntityProvider,
+          { store: planetStore },
+          createElement(PlanetView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/planet/earth',
+            locationSearch: '?select=moon',
+          }),
+        ),
+      );
+    });
+    expect(planetRes!.container.querySelector('[data-testid="planet-view-root"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="view-breadcrumbs"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('a[href="/galaxy"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('a[href="/system/sol"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="bodies-panel"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-scope="planet"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-planet-id="earth"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-selected="true"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="details-panel"]')).toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="orbital-schematic-list"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="orbital-schematic-item"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('a[href="/planet/earth?focus=moon"]')).not.toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="bodies-planet-section"]')).toBeNull();
+    expect(planetRes!.container.querySelector('[data-testid="bodies-moons-section"]')).toBeNull();
+    planetRes!.unmount();
 
     // PlanetView at /planet/earth?focus=moon focuses Moon (minor-body) and renders Galaxy -> Sol -> Earth breadcrumbs (never Moon)
     const moonFocusStore = createSpatialEntityStore();
-    const moonFocusHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store: moonFocusStore },
-        createElement(PlanetView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/planet/earth',
-          locationSearch: '?focus=moon',
-        }),
-      ),
-    );
-    expect(moonFocusHtml).toContain('data-focused-kind="minor-body"');
-    expect(moonFocusHtml).toContain('href="/planet/earth"');
-    expect(moonFocusHtml).toContain(
-      'Moon is a moon orbiting Earth.',
-    );
-    expect(moonFocusHtml).toContain('data-focused="true"');
-    expect(moonFocusHtml).toContain('data-testid="details-panel"');
+    let moonFocusRes: ReturnType<typeof render>;
+    await act(async () => {
+      moonFocusRes = render(
+        createElement(
+          SpatialEntityProvider,
+          { store: moonFocusStore },
+          createElement(PlanetView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/planet/earth',
+            locationSearch: '?focus=moon',
+          }),
+        ),
+      );
+    });
+    expect(moonFocusRes!.container.querySelector('[data-focused-kind="minor-body"]')).not.toBeNull();
+    expect(moonFocusRes!.container.querySelector('a[href="/planet/earth"]')).not.toBeNull();
+    expect(moonFocusRes!.container.textContent).toContain('Moon is a moon orbiting Earth.');
+    expect(moonFocusRes!.container.querySelector('[data-focused="true"]')).not.toBeNull();
+    expect(moonFocusRes!.container.querySelector('[data-testid="details-panel"]')).not.toBeNull();
+    moonFocusRes!.unmount();
 
     // PlanetView at /planet/earth?focus=earth focuses Earth and renders DetailsPanel
     const earthHostFocusStore = createSpatialEntityStore();
-    const earthHostFocusHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store: earthHostFocusStore },
-        createElement(PlanetView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/planet/earth',
-          locationSearch: '?focus=earth',
-        }),
-      ),
-    );
-    expect(earthHostFocusHtml).toContain('data-testid="details-panel"');
-    expect(earthHostFocusHtml).toContain('data-focused-kind="planet"');
-    expect(earthHostFocusHtml).toContain('data-focused="true"');
+    let earthHostFocusRes: ReturnType<typeof render>;
+    await act(async () => {
+      earthHostFocusRes = render(
+        createElement(
+          SpatialEntityProvider,
+          { store: earthHostFocusStore },
+          createElement(PlanetView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/planet/earth',
+            locationSearch: '?focus=earth',
+          }),
+        ),
+      );
+    });
+    expect(earthHostFocusRes!.container.querySelector('[data-testid="details-panel"]')).not.toBeNull();
+    expect(earthHostFocusRes!.container.querySelector('[data-focused-kind="planet"]')).not.toBeNull();
+    expect(earthHostFocusRes!.container.querySelector('[data-focused="true"]')).not.toBeNull();
+    earthHostFocusRes!.unmount();
 
     // PlanetView at /planet/tau-ceti-e renders exoplanet with canon layer and empty moons message
     const exoPlanetStore = createSpatialEntityStore();
-    const exoPlanetHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store: exoPlanetStore },
-        createElement(PlanetView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/planet/tau-ceti-e',
-          locationSearch: '',
-        }),
-      ),
-    );
-    expect(exoPlanetHtml).toContain(
-      'data-testid="orbital-schematic-panel"',
-    );
-    expect(exoPlanetHtml).not.toContain(
-      'data-testid="bodies-canon-section"',
-    );
+    let exoPlanetRes: ReturnType<typeof render>;
+    await act(async () => {
+      exoPlanetRes = render(
+        createElement(
+          SpatialEntityProvider,
+          { store: exoPlanetStore },
+          createElement(PlanetView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/planet/tau-ceti-e',
+            locationSearch: '',
+          }),
+        ),
+      );
+    });
+    expect(exoPlanetRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(exoPlanetRes!.container.querySelector('[data-testid="bodies-canon-section"]')).toBeNull();
+    exoPlanetRes!.unmount();
 
     // With explicit focus on tau-ceti-e, DetailsPanel renders details-canon-section with canon annotation
     const focusedExoStore = createSpatialEntityStore({ focusedId: 'tau-ceti-e' });
@@ -724,37 +777,43 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
       position: new THREE.Vector3(0, 0, 0),
       classification: 'terrestrial',
     });
-    const focusedExoHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store: focusedExoStore },
-        createElement(PlanetView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/planet/tau-ceti-e',
-          locationSearch: '?focus=tau-ceti-e',
-        }),
-      ),
-    );
-    expect(focusedExoHtml).toContain('data-testid="details-canon-section"');
-    expect(focusedExoHtml).toContain('Adrian');
+    let focusedExoRes: ReturnType<typeof render>;
+    await act(async () => {
+      focusedExoRes = render(
+        createElement(
+          SpatialEntityProvider,
+          { store: focusedExoStore },
+          createElement(PlanetView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/planet/tau-ceti-e',
+            locationSearch: '?focus=tau-ceti-e',
+          }),
+        ),
+      );
+    });
+    expect(focusedExoRes!.container.querySelector('[data-testid="details-canon-section"]')).not.toBeNull();
+    expect(focusedExoRes!.container.textContent).toContain('Adrian');
+    focusedExoRes!.unmount();
 
     // SystemView at /system/sol renders Orbital Schematic and Minor Bodies & Spacecraft sections
     const solStore = createSpatialEntityStore();
-    const solHtml = renderToHtml(
-      createElement(
-        SpatialEntityProvider,
-        { store: solStore },
-        createElement(SystemView, {
-          initialCorpus: SAMPLE_CORPUS,
-          locationPathname: '/system/sol',
-          locationSearch: '',
-        }),
-      ),
-    );
-    expect(solHtml).toContain('data-testid="orbital-schematic-panel"');
-    expect(solHtml).toContain(
-      'data-testid="bodies-minor-bodies-section"',
-    );
+    let solRes: ReturnType<typeof render>;
+    await act(async () => {
+      solRes = render(
+        createElement(
+          SpatialEntityProvider,
+          { store: solStore },
+          createElement(SystemView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/system/sol',
+            locationSearch: '',
+          }),
+        ),
+      );
+    });
+    expect(solRes!.container.querySelector('[data-testid="orbital-schematic-panel"]')).not.toBeNull();
+    expect(solRes!.container.querySelector('[data-testid="bodies-minor-bodies-section"]')).not.toBeNull();
+    solRes!.unmount();
 
     // Entity-specific telemetry branches in buildFocusedEntityDetails + DetailsPanel:
     // 1. Star focus (?focus=tau-ceti)
@@ -798,27 +857,28 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     });
     expect(starDetails?.focusedKind).toBe('star');
     expect(starDetails?.starTelemetry).toBeDefined();
-    const starHtml = renderToHtml(
+    const { container: starContainer, unmount: unmountStar } = render(
       createElement(DetailsPanel, { details: starDetails }),
     );
-    expect(starHtml).toContain('data-testid="details-star-telemetry-section"');
-    expect(starHtml).toContain('data-testid="details-star-telemetry-mass"');
-    expect(starHtml).toContain('data-testid="details-star-telemetry-radius"');
-    expect(starHtml).toContain('data-testid="details-star-telemetry-luminosity"');
-    expect(starHtml).toContain('data-testid="details-star-telemetry-temp"');
-    expect(starHtml).toContain('href="/guide/metrics/stellar-mass?focus=');
-    expect(starHtml).toContain('href="/guide/metrics/stellar-radius?focus=');
-    expect(starHtml).toContain('href="/guide/metrics/stellar-luminosity?focus=');
-    expect(starHtml).toContain('href="/guide/metrics/effective-temperature?focus=');
+    expect(starContainer.querySelector('[data-testid="details-star-telemetry-section"]')).not.toBeNull();
+    expect(starContainer.querySelector('[data-testid="details-star-telemetry-mass"]')).not.toBeNull();
+    expect(starContainer.querySelector('[data-testid="details-star-telemetry-radius"]')).not.toBeNull();
+    expect(starContainer.querySelector('[data-testid="details-star-telemetry-luminosity"]')).not.toBeNull();
+    expect(starContainer.querySelector('[data-testid="details-star-telemetry-temp"]')).not.toBeNull();
+    expect(starContainer.querySelector('a[href^="/guide/metrics/stellar-mass?focus="]')).not.toBeNull();
+    expect(starContainer.querySelector('a[href^="/guide/metrics/stellar-radius?focus="]')).not.toBeNull();
+    expect(starContainer.querySelector('a[href^="/guide/metrics/stellar-luminosity?focus="]')).not.toBeNull();
+    expect(starContainer.querySelector('a[href^="/guide/metrics/effective-temperature?focus="]')).not.toBeNull();
 
     // DEC-025: StarFocus is strictly scoped to the focused star in DetailsPanel
-    expect(starHtml).not.toContain('data-testid="details-star-count"');
-    expect(starHtml).not.toContain('data-testid="details-planet-composition"');
-    expect(starHtml).not.toContain('data-testid="details-stars-section"');
-    expect(starHtml).not.toContain('data-testid="details-planets-section"');
+    expect(starContainer.querySelector('[data-testid="details-star-count"]')).toBeNull();
+    expect(starContainer.querySelector('[data-testid="details-planet-composition"]')).toBeNull();
+    expect(starContainer.querySelector('[data-testid="details-stars-section"]')).toBeNull();
+    expect(starContainer.querySelector('[data-testid="details-planets-section"]')).toBeNull();
     // DEC-026: Details CTA is omitted for star focus
     expect(starDetails?.systemDetailsHref).toBeUndefined();
-    expect(starHtml).not.toContain('data-testid="details-button-system-details"');
+    expect(starContainer.querySelector('[data-testid="details-button-system-details"]')).toBeNull();
+    unmountStar();
 
     // 2. Planet focus with full SystemManifest
     const manifestPlanetDetails = buildFocusedEntityDetails({
@@ -884,36 +944,19 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(manifestPlanetDetails?.systemSummary).toBe(
       'Tau Ceti b is a terrestrial planet orbiting Tau Ceti.',
     );
-    const manifestPlanetHtml = renderToHtml(
+    const { container: manifestPlanetContainer, unmount: unmountManifestPlanet } = render(
       createElement(DetailsPanel, { details: manifestPlanetDetails }),
     );
-    expect(manifestPlanetHtml).toContain(
-      'data-testid="details-planet-telemetry-section"',
-    );
-    expect(manifestPlanetHtml).toContain(
-      'data-testid="details-planet-telemetry-inclination"',
-    );
-    expect(manifestPlanetHtml).toContain(
-      'data-testid="details-planet-telemetry-radius"',
-    );
-    expect(manifestPlanetHtml).toContain(
-      'href="/guide/metrics/orbital-inclination?focus=',
-    );
-    expect(manifestPlanetHtml).toContain(
-      'href="/guide/metrics/planetary-radius?focus=',
-    );
-    expect(manifestPlanetHtml).toContain(
-      'data-testid="details-planet-telemetry-discovery"',
-    );
-    expect(manifestPlanetHtml).not.toContain(
-      'data-testid="details-planet-composition"',
-    );
-    expect(manifestPlanetHtml).not.toContain(
-      'data-testid="details-stars-section"',
-    );
-    expect(manifestPlanetHtml).not.toContain(
-      'data-testid="details-planets-section"',
-    );
+    expect(manifestPlanetContainer.querySelector('[data-testid="details-planet-telemetry-section"]')).not.toBeNull();
+    expect(manifestPlanetContainer.querySelector('[data-testid="details-planet-telemetry-inclination"]')).not.toBeNull();
+    expect(manifestPlanetContainer.querySelector('[data-testid="details-planet-telemetry-radius"]')).not.toBeNull();
+    expect(manifestPlanetContainer.querySelector('a[href^="/guide/metrics/orbital-inclination?focus="]')).not.toBeNull();
+    expect(manifestPlanetContainer.querySelector('a[href^="/guide/metrics/planetary-radius?focus="]')).not.toBeNull();
+    expect(manifestPlanetContainer.querySelector('[data-testid="details-planet-telemetry-discovery"]')).not.toBeNull();
+    expect(manifestPlanetContainer.querySelector('[data-testid="details-planet-composition"]')).toBeNull();
+    expect(manifestPlanetContainer.querySelector('[data-testid="details-stars-section"]')).toBeNull();
+    expect(manifestPlanetContainer.querySelector('[data-testid="details-planets-section"]')).toBeNull();
+    unmountManifestPlanet();
 
     // 3. Minor-body focus (Moon k=3, Dwarf Planet k=4, Asteroid/Minor Body k=6, Spacecraft k=6)
     for (const bodyId of ['moon', 'pluto', 'mpc-433', 'voyager-1']) {
@@ -930,12 +973,11 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         ],
       });
       expect(bodyDetails?.focusedKind).toBe('minor-body');
-      const bodyHtml = renderToHtml(
+      const { container: bodyContainer, unmount: unmountBody } = render(
         createElement(DetailsPanel, { details: bodyDetails }),
       );
-      expect(bodyHtml).toContain(
-        'data-testid="details-minor-body-telemetry-section"',
-      );
+      expect(bodyContainer.querySelector('[data-testid="details-minor-body-telemetry-section"]')).not.toBeNull();
+      unmountBody();
     }
 
     // 4. Structure focus (k=7)
@@ -964,17 +1006,14 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
       },
     });
     expect(structDetails?.focusedKind).toBe('structure');
-    const structHtml = renderToHtml(
+    const { container: structContainer, unmount: unmountStruct } = render(
       createElement(DetailsPanel, { details: structDetails }),
     );
-    expect(structHtml).toContain(
-      'data-testid="details-structure-telemetry-section"',
-    );
-    expect(structHtml).toContain(
-      'data-testid="details-structure-telemetry-radius"',
-    );
-    expect(structHtml).not.toContain('data-testid="details-star-count"');
-    expect(structHtml).not.toContain('data-testid="details-planet-composition"');
+    expect(structContainer.querySelector('[data-testid="details-structure-telemetry-section"]')).not.toBeNull();
+    expect(structContainer.querySelector('[data-testid="details-structure-telemetry-radius"]')).not.toBeNull();
+    expect(structContainer.querySelector('[data-testid="details-star-count"]')).toBeNull();
+    expect(structContainer.querySelector('[data-testid="details-planet-composition"]')).toBeNull();
+    unmountStruct();
 
     // 5. Precalculated planetCompositionCounts (b) and tag bitmask (g) on search corpus entries
     const precalcSolDetails = buildFocusedEntityDetails({
@@ -1100,29 +1139,32 @@ describe('Journey 1: Reader Flow - Nested Moons, Scoped Star Focus & Contextual 
     });
 
     expect(starDetails?.focusedKind).toBe('star');
-    const html = renderToHtml(createElement(DetailsPanel, { details: starDetails }));
+    const { container: starDetContainer, unmount: unmountStarDet } = render(
+      createElement(DetailsPanel, { details: starDetails }),
+    );
 
     // Shows star header, reticle type, spectral badge
-    expect(html).toContain('Alpha Centauri A');
-    expect(html).toContain('star');
-    expect(html).toContain('data-testid="details-spectral-badge"');
+    expect(starDetContainer.textContent).toContain('Alpha Centauri A');
+    expect(starDetContainer.textContent).toContain('star');
+    expect(starDetContainer.querySelector('[data-testid="details-spectral-badge"]')).not.toBeNull();
 
     // Does NOT show system star count in peek header
-    expect(html).not.toContain('data-testid="details-star-count"');
+    expect(starDetContainer.querySelector('[data-testid="details-star-count"]')).toBeNull();
 
     // Does NOT show planet composition in peek
-    expect(html).not.toContain('data-testid="details-planet-composition"');
+    expect(starDetContainer.querySelector('[data-testid="details-planet-composition"]')).toBeNull();
 
     // Does NOT repeat system-wide star and planet lists in Partial
-    expect(html).not.toContain('data-testid="details-stars-section"');
-    expect(html).not.toContain('data-testid="details-planets-section"');
+    expect(starDetContainer.querySelector('[data-testid="details-stars-section"]')).toBeNull();
+    expect(starDetContainer.querySelector('[data-testid="details-planets-section"]')).toBeNull();
 
     // Shows details-system-summary and details-cta-group / details-actions
-    expect(html).toContain('data-testid="details-system-summary"');
+    expect(starDetContainer.querySelector('[data-testid="details-system-summary"]')).not.toBeNull();
     expect(
-      html.includes('data-testid="details-cta-group"') ||
-        html.includes('data-testid="details-actions"'),
+      starDetContainer.querySelector('[data-testid="details-cta-group"]') !== null ||
+        starDetContainer.querySelector('[data-testid="details-actions"]') !== null,
     ).toBe(true);
+    unmountStarDet();
   });
 
   it('DEC-026: computes contextual systemDetailsHref and conditionally renders Details CTA in DetailsPanel', () => {
@@ -1138,9 +1180,12 @@ describe('Journey 1: Reader Flow - Nested Moons, Scoped Star Focus & Contextual 
     });
     expect(sysGalaxyDetails?.focusedKind).toBe('system');
     expect(sysGalaxyDetails?.systemDetailsHref).toBe('/system/sol');
-    const sysGalaxyHtml = renderToHtml(createElement(DetailsPanel, { details: sysGalaxyDetails }));
-    expect(sysGalaxyHtml).toContain('data-testid="details-button-system-details"');
-    expect(sysGalaxyHtml).toContain('href="/system/sol"');
+    const { container: sysGalContainer, unmount: unmountSysGal } = render(
+      createElement(DetailsPanel, { details: sysGalaxyDetails }),
+    );
+    expect(sysGalContainer.querySelector('[data-testid="details-button-system-details"]')).not.toBeNull();
+    expect(sysGalContainer.querySelector('a[href="/system/sol"]')).not.toBeNull();
+    unmountSysGal();
 
     // 2. System in System view -> systemDetailsHref is undefined, CTA omitted
     const sysSystemDetails = buildFocusedEntityDetails({
@@ -1154,8 +1199,11 @@ describe('Journey 1: Reader Flow - Nested Moons, Scoped Star Focus & Contextual 
       corpus: SAMPLE_CORPUS,
     });
     expect(sysSystemDetails?.systemDetailsHref).toBeUndefined();
-    const sysSystemHtml = renderToHtml(createElement(DetailsPanel, { details: sysSystemDetails }));
-    expect(sysSystemHtml).not.toContain('data-testid="details-button-system-details"');
+    const { container: sysSysContainer, unmount: unmountSysSys } = render(
+      createElement(DetailsPanel, { details: sysSystemDetails }),
+    );
+    expect(sysSysContainer.querySelector('[data-testid="details-button-system-details"]')).toBeNull();
+    unmountSysSys();
 
     // 3. Planet in Galaxy view -> has planetDetailsHref
     const planetGalaxyDetails = buildFocusedEntityDetails({
@@ -1169,9 +1217,12 @@ describe('Journey 1: Reader Flow - Nested Moons, Scoped Star Focus & Contextual 
     });
     expect(planetGalaxyDetails?.focusedKind).toBe('planet');
     expect(planetGalaxyDetails?.systemDetailsHref).toBe('/planet/earth');
-    const planetGalaxyHtml = renderToHtml(createElement(DetailsPanel, { details: planetGalaxyDetails }));
-    expect(planetGalaxyHtml).toContain('data-testid="details-button-system-details"');
-    expect(planetGalaxyHtml).toContain('href="/planet/earth"');
+    const { container: pGalContainer, unmount: unmountPGal } = render(
+      createElement(DetailsPanel, { details: planetGalaxyDetails }),
+    );
+    expect(pGalContainer.querySelector('[data-testid="details-button-system-details"]')).not.toBeNull();
+    expect(pGalContainer.querySelector('a[href="/planet/earth"]')).not.toBeNull();
+    unmountPGal();
 
     // 4. Planet in System view -> has planetDetailsHref
     const planetSystemDetails = buildFocusedEntityDetails({
@@ -1185,9 +1236,12 @@ describe('Journey 1: Reader Flow - Nested Moons, Scoped Star Focus & Contextual 
       corpus: SAMPLE_CORPUS,
     });
     expect(planetSystemDetails?.systemDetailsHref).toBe('/planet/earth');
-    const planetSystemHtml = renderToHtml(createElement(DetailsPanel, { details: planetSystemDetails }));
-    expect(planetSystemHtml).toContain('data-testid="details-button-system-details"');
-    expect(planetSystemHtml).toContain('href="/planet/earth"');
+    const { container: pSysContainer, unmount: unmountPSys } = render(
+      createElement(DetailsPanel, { details: planetSystemDetails }),
+    );
+    expect(pSysContainer.querySelector('[data-testid="details-button-system-details"]')).not.toBeNull();
+    expect(pSysContainer.querySelector('a[href="/planet/earth"]')).not.toBeNull();
+    unmountPSys();
 
     // 5. Planet in Planet view -> systemDetailsHref is undefined, CTA omitted
     const planetPlanetDetails = buildFocusedEntityDetails({
@@ -1201,8 +1255,11 @@ describe('Journey 1: Reader Flow - Nested Moons, Scoped Star Focus & Contextual 
       corpus: SAMPLE_CORPUS,
     });
     expect(planetPlanetDetails?.systemDetailsHref).toBeUndefined();
-    const planetPlanetHtml = renderToHtml(createElement(DetailsPanel, { details: planetPlanetDetails }));
-    expect(planetPlanetHtml).not.toContain('data-testid="details-button-system-details"');
+    const { container: pPlanContainer, unmount: unmountPPlan } = render(
+      createElement(DetailsPanel, { details: planetPlanetDetails }),
+    );
+    expect(pPlanContainer.querySelector('[data-testid="details-button-system-details"]')).toBeNull();
+    unmountPPlan();
 
     // 6. Star, minor-body, structure -> systemDetailsHref is undefined
     const starDetails = buildFocusedEntityDetails({

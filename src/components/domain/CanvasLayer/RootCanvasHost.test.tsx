@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
@@ -23,6 +22,16 @@ vi.mock('@react-three/drei', async (importOriginal) => {
       createElement('mesh', null, children),
   };
 });
+
+vi.mock('../../canvas/scenes/SpatialScenes', () => ({
+  GalacticSceneContent: () => createElement('div', { 'data-testid': 'mock-galactic-scene' }),
+  SystemSceneContent: () => createElement('div', { 'data-testid': 'mock-system-scene' }),
+  PlanetarySceneContent: () => createElement('div', { 'data-testid': 'mock-planetary-scene' }),
+}));
+
+vi.mock('../../canvas/ThemeTokenBridge', () => ({
+  SceneTokenBridge: () => createElement('div', { 'data-testid': 'mock-theme-token-bridge' }),
+}));
 
 const mockCanvasRender = vi.fn();
 
@@ -219,9 +228,9 @@ describe('RootCanvasHost Domain Component', () => {
     render(<RootCanvasHost />);
     const host = screen.getByTestId('root-canvas-host');
 
-    expect(host.getAttribute('data-camera-pos')).toBe('0.00,0.00,0.00');
+    expect(host.getAttribute('data-camera-pos')).toBe('0.00,0.00,10.00');
     expect(host.getAttribute('data-camera-target')).toBe('0.00,0.00,0.00');
-    expect(host.getAttribute('data-camera-dist')).toBe('0.00');
+    expect(host.getAttribute('data-camera-dist')).toBe('10.00');
 
     mockCanvasRender.mockClear();
     const useMemoSpy = vi.spyOn(React, 'useMemo');

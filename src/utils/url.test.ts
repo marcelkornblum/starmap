@@ -17,13 +17,15 @@ import {
 describe('url utils', () => {
   describe('resolveDataUrl', () => {
     it('prepends base URL to data assets', () => {
+      expect(resolveDataUrl('data/search/core.json')).toBe('/data/search/core.json');
       expect(resolveDataUrl('/data/search/core.json')).toBe('/data/search/core.json');
     });
   });
 
   describe('resolveAppHref', () => {
-    it('returns undefined for undefined input', () => {
+    it('returns undefined for undefined or null input', () => {
       expect(resolveAppHref(undefined)).toBeUndefined();
+      expect(resolveAppHref(null)).toBeUndefined();
     });
 
     it('returns empty string unchanged', () => {
@@ -32,12 +34,32 @@ describe('url utils', () => {
 
     it('leaves external or hash URLs unchanged', () => {
       expect(resolveAppHref('#anchor')).toBe('#anchor');
+      expect(resolveAppHref('#section')).toBe('#section');
       expect(resolveAppHref('https://example.com')).toBe('https://example.com');
+      expect(resolveAppHref('http://example.com')).toBe('http://example.com');
       expect(resolveAppHref('mailto:astronomy@starmap.local')).toBe('mailto:astronomy@starmap.local');
+      expect(resolveAppHref('tel:+1234567890')).toBe('tel:+1234567890');
     });
 
     it('ensures leading slash on internal paths', () => {
       expect(resolveAppHref('galaxy?focus=sol')).toBe('/galaxy?focus=sol');
+      expect(resolveAppHref('/galaxy')).toBe('/galaxy');
+      expect(resolveAppHref('/system/sol?focus=earth')).toBe('/system/sol?focus=earth');
+      expect(resolveAppHref('system/sol?focus=earth')).toBe('/system/sol?focus=earth');
+    });
+
+    it('handles subpath base prefix in production', () => {
+      const originalBase = import.meta.env.BASE_URL;
+      try {
+        import.meta.env.BASE_URL = '/starmap/';
+        expect(resolveAppHref('/galaxy')).toBe('/starmap/galaxy');
+        expect(resolveAppHref('galaxy')).toBe('/starmap/galaxy');
+        expect(resolveAppHref('/starmap/galaxy')).toBe('/starmap/galaxy');
+        expect(resolveAppHref('/starmap?focus=sol')).toBe('/starmap?focus=sol');
+        expect(resolveAppHref('/starmap')).toBe('/starmap');
+      } finally {
+        import.meta.env.BASE_URL = originalBase;
+      }
     });
   });
 

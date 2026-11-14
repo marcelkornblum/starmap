@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEntityDetails } from './useEntityDetails';
@@ -131,14 +130,13 @@ describe('useEntityDetails (AUD-087 & DEC-R042)', () => {
   });
 
   it('updates reactively when cache is seeded externally while mounted', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
     const { result } = renderHook(() => useEntityDetails('sys-external'));
 
     expect(result.current.detail).toBeUndefined();
 
     act(() => {
       seedSummaryNode('sys-external', makeSummaryNode('sys-external'));
-    });
-    act(() => {
       seedDetailRecord('sys-external', makeDetailRecord('sys-external'));
     });
 

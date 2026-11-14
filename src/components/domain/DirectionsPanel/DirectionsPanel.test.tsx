@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DirectionsPanel } from './DirectionsPanel';
@@ -89,5 +88,22 @@ describe('<DirectionsPanel />', () => {
     const backButton = screen.getByTestId('directions-back-to-options');
     fireEvent.click(backButton);
     expect(onOptionSelect).toHaveBeenCalledWith(null);
+  });
+
+  it('renders geometry list data table when activeDetent is full in options overview', () => {
+    const journey = buildJourneyPlan({
+      stops: ['sol', 'tau-ceti'],
+      corpus: testCorpus,
+    });
+
+    render(
+      <DirectionsPanel
+        journey={journey}
+        activeDetent="full"
+      />
+    );
+
+    expect(screen.getByTestId('directions-geometry-list')).toBeDefined();
+    expect(screen.getAllByTestId('directions-geometry-leg').length).toBeGreaterThan(0);
   });
 });

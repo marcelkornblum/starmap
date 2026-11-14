@@ -229,94 +229,6 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "forbidden-rendertostring::src/data/__tests__/auditUi.test.ts": {
-      "count": 2,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/cameraTransition.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/canvasAndLoaders.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/celestialSymbolAndCensus.test.tsx": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/confidencePip.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/deadCodeRemediation.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/detailsServiceAndPanel.test.tsx": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/detentSheetDrag.test.tsx": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/entityDecomposition.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/instrumentDecomposition.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/interfacePrimitives.test.tsx": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/journeyServiceAndPanel.test.tsx": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/layerCardAndExplore.test.tsx": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/planetBody.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/primitives.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/spatialFrameOwnership.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/spatialShell.test.tsx": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/spatialViewport.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/surfacesAndTemplates.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/threeTokenBridge.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/useLayerData.test.tsx": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
-    "forbidden-rendertostring::tests/useLazyRef.test.ts": {
-      "count": 1,
-      "audId": "AUD-004"
-    },
     "eslint(max-lines)::src/services/details/navigationAndCamera.ts": {
       "count": 1,
       "audId": "AUD-120"
@@ -465,14 +377,6 @@
       "count": 3,
       "audId": "AUD-105"
     },
-    "react(refs)::src/components/canvas/entity/EntityLabel.tsx": {
-      "count": 1,
-      "audId": "AUD-105"
-    },
-    "react(preserve-manual-memoization)::src/components/canvas/entity/EntityLabel.tsx": {
-      "count": 3,
-      "audId": "AUD-004"
-    },
     "eslint(max-lines)::src/components/canvas/entity/CelestialEntity.tsx": {
       "count": 1,
       "audId": "AUD-120"
@@ -505,10 +409,6 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "eslint(max-lines)::tests/consolidateMultiStarSystems.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "react-hooks(exhaustive-deps)::src/hooks/useLayerData.ts": {
       "count": 2,
       "audId": "AUD-004"
@@ -517,35 +417,11 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "eslint(max-lines)::tests/cartographyComponents.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/nomenclatureAndExoJoin.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "eslint(max-lines)::tests/journey3ExplorerFlow.test.tsx": {
       "count": 1,
       "audId": "AUD-120"
     },
-    "typescript(no-non-null-asserted-optional-chain)::tests/journey3ExplorerFlow.test.tsx": {
-      "count": 3,
-      "audId": "AUD-004"
-    },
     "eslint(max-lines)::scripts/audit-r3f.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/journeyServiceAndPanel.test.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/instrumentDecomposition.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/detailsServiceAndPanel.test.tsx": {
       "count": 1,
       "audId": "AUD-120"
     },
@@ -561,10 +437,6 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "eslint(max-lines)::tests/celestialSymbolAndCensus.test.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "eslint(max-lines)::tests/journey5TransitFlow.test.tsx": {
       "count": 1,
       "audId": "AUD-120"
@@ -573,75 +445,7 @@
       "count": 1,
       "audId": "AUD-120"
     },
-    "eslint(max-lines)::tests/layerCardAndExplore.test.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/compactDataAndSearch.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/spatialFrameOwnership.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "react(globals)::tests/spatialFrameOwnership.test.ts": {
-      "count": 2,
-      "audId": "AUD-145"
-    },
-    "react(globals)::tests/cameraTransition.test.ts": {
-      "count": 2,
-      "audId": "AUD-145"
-    },
-    "eslint(max-lines)::tests/datasetLayerCodec.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/entityDecomposition.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/searchService.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/spatialShell.test.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "react(globals)::tests/spatialShell.test.tsx": {
-      "count": 3,
-      "audId": "AUD-145"
-    },
-    "eslint(max-lines)::tests/celestialTitle.test.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/primitives.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "eslint(max-lines)::scripts/capture-views.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "react(refs)::tests/useLazyRef.test.ts": {
-      "count": 2,
-      "audId": "AUD-105"
-    },
-    "eslint(max-lines)::tests/cameraMath.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/guideViews.test.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "react(globals)::tests/useLayerData.test.tsx": {
-      "count": 2,
-      "audId": "AUD-145"
-    },
-    "eslint(max-lines)::tests/cameraRig.test.ts": {
       "count": 1,
       "audId": "AUD-120"
     }

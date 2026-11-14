@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { renderHook, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSystemData } from './useSystemData';
@@ -102,6 +101,7 @@ describe('useSystemData (AUD-087 & DEC-R042)', () => {
   });
 
   it('updates reactively when external cache seeding occurs', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
     const { result } = renderHook(() => useSystemData('kepler-22', 'kepler-22-b'));
 
     expect(result.current.systemSummary).toBeUndefined();
@@ -109,11 +109,7 @@ describe('useSystemData (AUD-087 & DEC-R042)', () => {
 
     act(() => {
       seedSummaryNode('kepler-22', makeSummaryNode('kepler-22'));
-    });
-    act(() => {
       seedDetailRecord('kepler-22', makeSystemDetail('kepler-22'));
-    });
-    act(() => {
       seedDetailRecord('kepler-22-b', makePlanetDetail('kepler-22-b'));
     });
 

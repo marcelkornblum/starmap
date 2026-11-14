@@ -1,6 +1,5 @@
-// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
+import ReactThreeTest from '@react-three/test-renderer';
 import * as THREE from 'three';
 import * as reticleGeomModule from '../cartography/reticleGeometry';
 import {
@@ -10,20 +9,6 @@ import {
 } from './PlanarGrid';
 import { SpatialFrameProvider } from './SpatialFrameProvider';
 import { GALACTIC_FRAME } from './referenceFrame';
-
-vi.mock('@react-three/fiber', async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  return {
-    ...actual,
-    useFrame: vi.fn(),
-    useThree: () => ({
-      camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
-      gl: { setClearColor: vi.fn() },
-      scene: new THREE.Scene(),
-      size: { width: 1920, height: 1080 },
-    }),
-  };
-});
 
 describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () => {
   let createReticleSpy: ReturnType<typeof vi.spyOn>;
@@ -39,11 +24,10 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
   });
 
   afterEach(() => {
-    cleanup();
     vi.restoreAllMocks();
   });
 
-  it('allocates geometry once and does not re-invoke createReticleGeometry on re-render with identical props', () => {
+  it('allocates geometry once and does not re-invoke createReticleGeometry on re-render with identical props', async () => {
     const fp: PlanarFootprintItemType = {
       id: 'test-star-1',
       position: [10, 20, 0],
@@ -53,13 +37,13 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
       opacity: 0.8,
     };
 
-    const { rerender } = render(
+    const renderer = await ReactThreeTest.create(
       <PlanarFootprintItem
         footprint={fp}
         defaultSize={12}
         defaultColor="#ffffff"
         defaultAlpha={1.0}
-      />
+      />,
     );
 
     expect(createReticleSpy).toHaveBeenCalledTimes(1);
@@ -69,40 +53,42 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
     });
 
     // Re-render with identical footprint data
-    rerender(
+    await renderer.update(
       <PlanarFootprintItem
         footprint={fp}
         defaultSize={12}
         defaultColor="#ffffff"
         defaultAlpha={1.0}
-      />
+      />,
     );
 
     // Geometry creation should remain memoised
     expect(createReticleSpy).toHaveBeenCalledTimes(1);
     expect(disposeSpy).not.toHaveBeenCalled();
+
+    await renderer.unmount();
   });
 
-  it('calls .dispose() on the geometry when PlanarFootprintItem is unmounted', () => {
+  it('calls .dispose() on the geometry when PlanarFootprintItem is unmounted', async () => {
     const fp: PlanarFootprintItemType = {
       id: 'test-star-2',
       position: [0, 0, 0],
       classification: 'gas-giant',
     };
 
-    const { unmount } = render(
-      <PlanarFootprintItem footprint={fp} />
+    const renderer = await ReactThreeTest.create(
+      <PlanarFootprintItem footprint={fp} />,
     );
 
     expect(createReticleSpy).toHaveBeenCalledTimes(1);
     expect(disposeSpy).not.toHaveBeenCalled();
 
-    unmount();
+    await renderer.unmount();
 
     expect(disposeSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('disposes previous geometry and re-allocates when geometry-defining props change', () => {
+  it('disposes previous geometry and re-allocates when geometry-defining props change', async () => {
     const fp1: PlanarFootprintItemType = {
       id: 'test-star-3',
       position: [0, 0, 0],
@@ -113,8 +99,8 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
     const newGeom = new THREE.BufferGeometry();
     const newDisposeSpy = vi.spyOn(newGeom, 'dispose');
 
-    const { rerender } = render(
-      <PlanarFootprintItem footprint={fp1} />
+    const renderer = await ReactThreeTest.create(
+      <PlanarFootprintItem footprint={fp1} />,
     );
 
     expect(createReticleSpy).toHaveBeenCalledTimes(1);
@@ -127,33 +113,35 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
       size: 25, // size changed
     };
 
-    rerender(
-      <PlanarFootprintItem footprint={fp2} />
+    await renderer.update(
+      <PlanarFootprintItem footprint={fp2} />,
     );
 
     expect(createReticleSpy).toHaveBeenCalledTimes(2);
     // Old geometry should be disposed
     expect(disposeSpy).toHaveBeenCalledTimes(1);
     expect(newDisposeSpy).not.toHaveBeenCalled();
+
+    await renderer.unmount();
   });
 
-  it('renders footprints inside PlanarGrid without crashing and cleans up on unmount', () => {
+  it('renders footprints inside PlanarGrid without crashing and cleans up on unmount', async () => {
     const footprints: PlanarFootprintItemType[] = [
       { id: 'alpha', position: [5, 5, 0], classification: 'star' },
       { id: 'beta', position: [-5, -5, 0], classification: 'terrestrial' },
     ];
 
-    const { unmount, container } = render(
+    const renderer = await ReactThreeTest.create(
       <SpatialFrameProvider frame={GALACTIC_FRAME}>
         <PlanarGrid showPlanarFootprint={false} footprints={footprints} />
-      </SpatialFrameProvider>
+      </SpatialFrameProvider>,
     );
 
-    expect(container).toBeDefined();
+    expect(renderer.scene).toBeDefined();
     // 1 primary footprint geom + 2 explicit footprints
     expect(createReticleSpy).toHaveBeenCalledTimes(3);
 
-    unmount();
+    await renderer.unmount();
     // Primary footprint geom + both footprint geometries disposed
     expect(disposeSpy).toHaveBeenCalledTimes(3);
   });

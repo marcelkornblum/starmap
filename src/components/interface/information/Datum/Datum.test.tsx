@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Datum } from './Datum';
@@ -77,5 +76,20 @@ describe('<Datum />', () => {
     const datum = screen.getByText('Metallicity').closest('[data-datum="true"]');
     expect(datum?.className).toMatch(/datum/);
     expect(datum?.getAttribute('data-custom')).toBe('custom-attr');
+  });
+
+  it('wraps React element values cleanly with valueTestId', () => {
+    render(
+      <Datum
+        label="Classification"
+        value={<span data-testid="badge-elem">Terrestrial</span>}
+        valueTestId="details-planet-telemetry-composition"
+      />
+    );
+
+    const val = screen.getByTestId('details-planet-telemetry-composition');
+    expect(val).toBeDefined();
+    expect(screen.getByText('Classification')).toBeDefined();
+    expect(screen.getByTestId('badge-elem').textContent).toBe('Terrestrial');
   });
 });
