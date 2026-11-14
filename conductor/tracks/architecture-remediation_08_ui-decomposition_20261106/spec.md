@@ -33,9 +33,9 @@ AUD-120 · AUD-121 · AUD-122 · AUD-123 · AUD-124 · AUD-125 · AUD-126 · AUD
 
 ## Acceptance Criteria
 
-- [ ] Every owned finding (AUD-120 … AUD-130) marked `verified` by the end-of-track audit.
-- [ ] Owned guard baselines at zero: `G-ui`, `G-size`, `G-lint` (only-export-components).
-- [ ] No guard baseline increased.
-- [ ] Full e2e suite including URL contract specs green.
-- [ ] Manual smoke checklist passed.
-- [ ] Audit report written to `audit-report.md`.
+- [x] Every owned finding (AUD-120 … AUD-130) marked `verified` by the end-of-track audit.
+- [x] Owned guard baselines at zero: `G-ui`, `G-size`, `G-lint` (only-export-components).
+- [x] No guard baseline increased.
+- [x] Full e2e suite including URL contract specs green.
+- [ ] Manual smoke checklist passed *(ready over LAN at `http://192.168.1.124:5173` prior to PR merge)*.
+- [x] Audit report written to `audit-report.md`.
