@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderHook, act, render } from '@testing-library/react';
 import { useGalaxyStoreSync, type UseGalaxyStoreSyncParams } from './useGalaxyStoreSync';
 import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
 import { useCameraStore } from '../stores/useCameraStore';
@@ -97,18 +97,31 @@ describe('useGalaxyStoreSync', () => {
     expect(store.getState().focusedId).toBeNull();
   });
 
-  it('clears focus during render when isExplicitLocation is true without focus slug', () => {
+  it('does NOT call setFocused during render execution, and clears focusedId to null in effect when isExplicitLocation is true without focus slug', () => {
     const store = createSpatialEntityStore({ focusedId: 'lingering-focus' });
+    let focusedDuringRender: string | null = 'not-called';
+    const originalSetFocused = store.getState().setFocused;
+    const setFocusedSpy = vi.fn((id: string | null) => {
+      originalSetFocused(id);
+    });
+    store.setState({ setFocused: setFocusedSpy });
 
-    renderHook(() =>
+    function TestComponent() {
       useGalaxyStoreSync({
         ...createParams(store),
         isExplicitLocation: true,
         urlFocusSlug: null,
         hasExplicitFocus: false,
-      }),
-    );
+      });
+      focusedDuringRender = store.getState().focusedId;
+      expect(setFocusedSpy).not.toHaveBeenCalled();
+      return null;
+    }
 
+    render(<TestComponent />);
+
+    expect(focusedDuringRender).toBe('lingering-focus');
+    expect(setFocusedSpy).toHaveBeenCalledWith(null);
     expect(store.getState().focusedId).toBeNull();
   });
 

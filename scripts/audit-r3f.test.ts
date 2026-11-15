@@ -3,7 +3,7 @@ import {
   auditSourceFile,
   auditFile,
   runR3fAudit,
-} from '../../../scripts/audit-r3f';
+} from './audit-r3f';
 
 describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
   describe('AUD-003: useFrame Layout Reads Detection', () => {

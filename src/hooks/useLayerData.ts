@@ -5,13 +5,17 @@ import {
   getCachedEntityAnnotations,
   getCachedLayerManifest,
 } from '../data/layerRepository';
-import { extractUrlSelectSlugs } from '../services/searchService';
+import {
+  extractUrlSelectSlugs,
+  findCanonLayerById,
+} from '../services/searchService';
 import { useLayerStore } from '../stores/useLayerStore';
 import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,
 } from '../types/astro';
 import type { DecodedEntityAnnotation } from '../utils/datasetLayerCodec';
+import { parseLayerQueryParam } from '../utils/url';
 
 const getLayerIndexSnapshot = (): readonly DatasetLayerIndexEntry[] =>
   useLayerStore.getState().index;
@@ -38,8 +42,20 @@ export const useLoadedLayerManifests = (
   const layerIndex = useLayerIndex();
   const [loadTick, setLoadTick] = useState<number>(0);
 
+  const selectLayerSlugs = extractUrlSelectSlugs(search, layerIndex).layerSlugs;
+  const cleanSearch = search.startsWith('?') ? search.slice(1) : search;
+  const rawLayers = new URLSearchParams(cleanSearch).getAll('layer');
+  const layerParamSlugs: string[] = [];
+  for (const raw of rawLayers) {
+    const parsed = parseLayerQueryParam(raw);
+    if (parsed) {
+      const matched = findCanonLayerById(parsed.layerSlug, layerIndex);
+      layerParamSlugs.push(matched ? matched.layerId : parsed.layerSlug);
+    }
+  }
+
   const layerIds = [
-    ...new Set(extractUrlSelectSlugs(search, layerIndex).layerSlugs),
+    ...new Set([...selectLayerSlugs, ...layerParamSlugs]),
   ];
   const layerKey = layerIds.join(',');
 

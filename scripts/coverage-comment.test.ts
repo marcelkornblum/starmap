@@ -15,7 +15,7 @@ import {
   postOrUpdateComment,
   DEFAULT_THRESHOLDS,
   type CoverageSummaryData,
-} from '../../../scripts/coverage-comment';
+} from './coverage-comment';
 
 describe('coverage-comment script', () => {
   const sampleData: CoverageSummaryData = {

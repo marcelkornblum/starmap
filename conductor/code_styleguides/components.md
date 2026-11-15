@@ -20,7 +20,7 @@ Components are categorised into a strict four-tier hierarchy (`docs/design-syste
 
 ### Architectural Invariants
 - **Zero Outer Margins:** Components must never declare external `margin`, positioning offsets, or self-layout. Layout and flow are strictly owned by parent composition primitives.
-- **Semantic Interface Primitives Over Raw Strings & HTML:** Domain assemblies and views (`src/components/domain/`, `src/components/search/`, `src/views/`) must never render raw HTML controls (`<button>`, `<input>`, `<select>`), raw `<dl>`/`<ul>` telemetry lists, or ASCII punctuation workarounds (`[reticle]`, `' · a = '`, `(0 pc)`):
+- **Semantic Interface Primitives Over Raw Strings & HTML:** Domain assemblies and views (`src/components/domain/`, `src/components/domain/Search/`, `src/views/`) must never render raw HTML controls (`<button>`, `<input>`, `<select>`), raw `<dl>`/`<ul>` telemetry lists, or ASCII punctuation workarounds (`[reticle]`, `' · a = '`, `(0 pc)`):
   - **Telemetry Key/Value Pairs:** Always use `<Datum>` inside `<Stack gap="none">`.
   - **Multi-Column Entity, Orbit & Step Lists:** Always use `<DataTable>`.
   - **Magnitudes, Counts & Units:** Always use `<Quantity>` and `<Unit>` (including counts such as `0 hazards` or `4 planets`), fed by structured numeric/unit objects (`StructuredQuantity`) from services—never regex-split display strings in view components.
@@ -28,10 +28,11 @@ Components are categorised into a strict four-tier hierarchy (`docs/design-syste
   - **Controls:** Always use `<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`, and `<Kbd>`.
 - **Presenter/Container Decoupling:** Presentation components (Tiers 1–3) must remain pure, deterministic, and decoupled from global stores or side-effects. Stateful orchestration and telemetry subscriptions belong exclusively in Tier 4 assemblies or dedicated container hooks.
 - **Mandatory Component File Quad:** Every component in `src/components/interface/**` and `src/components/domain/**` MUST have:
-  1. `<Component>.tsx` (implementation; keep domain components focused and under ~300 lines by decomposing complex panels into sub-components)
+  1. `<Component>.tsx` (implementation; keep domain components focused and under ~300 lines by decomposing complex panels into sub-components, extracting non-component helpers, math, and serializers into pure `.ts` companion files per `AUD-122` and `AUD-129`)
   2. `<Component>.module.css` (scoped CSS Module inside `@layer blocks` / `@layer exceptions` with a `--<component>-*` local token interface)
   3. `<Component>.stories.tsx` (Storybook stories)
   4. `<Component>.test.tsx` (colocated unit test run by `npm run test` / `npm run test:coverage`)
+- **Strict Zero-`className` and Zero-`style` on Tier 1 Primitives (`DEC-R050`):** Tier 1 layout and presentation primitives (`src/components/interface/**`) must NEVER accept `className` or `style` props. Primitives encapsulate their own scoped CSS Modules statically and expose variants/geometry exclusively via typed semantic props (`gap`, `align`, `variant`, `size`) and HTML `data-*` attributes. Dynamic class concatenation or external style injection into primitives is strictly forbidden.
 - **Strict `@testing-library/react` DOM Testing:** All `.test.tsx` component and view tests MUST run in `jsdom` using `@testing-library/react` (`render`, `screen`, `within`, `fireEvent` / `userEvent`) to test accessible roles, `data-*` attributes, keyboard/pointer interactions, and callbacks. Importing `renderToString` from `react-dom/server` in tests is strictly forbidden.
 - **1:1 Focused Test Files (Zero Monolith Test Suites):** Every service, hook, component, and view must have its own focused `.test.ts(x)` file; dumping unrelated component or view assertions into catch-all files like `tests/searchService.test.ts` is forbidden.
 - **Production / Fixture Segregation:** Test fixtures, visual preview scaffolding, and Storybook decorators (such as `StoryCanvas`) must never reside within production component directories (`src/components/...`). They belong strictly in `.storybook/helpers/` or dedicated test utilities (`src/test-utils/`) to keep component packages pure and shippable.

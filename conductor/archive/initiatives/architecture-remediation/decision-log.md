@@ -764,5 +764,18 @@ Records programme-level and per-track decisions for the architecture remediation
   2. *Option B (Promote Docs & Fix Drift Only, Leave Initiative Unarchived):* Promote docs and lift `DEC-R003`, but keep the initiative and its 10 tracks in active directories.
 - **Decision:** Option A. Execute full target-architecture promotion to `docs/architecture/`, remediate all documentation drift, archive the completed initiative and all 10 tracks under `conductor/archive/`, and lift the `DEC-R003` feature freeze.
 
+---
+
+### DEC-R061: Disposition of Fresh Six-Area Closing Audit Findings (`AUD-151`)
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** The independent six-area closing audit (`AUD-151`) confirmed **0 Critical / 0 High** findings across Areas 2, 3, 4, and 5, while Areas 1 and 6 surfaced 3 upstream-ledger regressions/colocation gaps (`AUD-085` synchronous render-body `setFocused(null)` in `src/views/useGalaxyStoreSync.ts#L36-L40`; `AUD-091`/`DEC-R014f` residual implicit `?layer=<slug>` → 3D selection conversion in `src/services/searchService.ts#L954` & `src/views/useGalaxyViewModel.ts#L93-L112`; and `AUD-003` guard/coverage script unit tests sitting in `src/data/__tests__/` rather than colocated in `scripts/*.test.ts`) alongside Medium/Low hygiene items (`Quantity` legacy `Measurement` alias, `OrbitalSchematicPanel` nested `<a>` in `<Badge>` / raw `<h2>`, residual `journeyOption` query param, unused `src/router/navigation.ts`, dead CSS/props, `'earth'` fallback literals, and oversized service/codec modules). Programme Rule 2 requires *"Partial fixes are reopened within the same track, never deferred silently"* and `AUD-151` requires *"No new Critical/High findings; all IDs above `verified`"*, whereas T10 `spec.md` marks *"New remediation work (raise follow-on tracks instead)"* out of scope.
+- **Options Considered:**
+  1. *Option A (Surgical Upstream-Ledger Closure in T10 + Follow-On Chore Track):* Fix the 3 upstream High/colocation gaps directly in T10 (`useGalaxyStoreSync.ts` effect move, `DEC-R014f` `?layer=` vs `?select=layer:` independence + E2E assertion, and relocating the 5 guard/coverage tests to `scripts/*.test.ts`) so `AUD-151` closes with `0` Critical/High findings and 100% verified upstream IDs, and log all Medium/Low hygiene items plus the 98 `baseline.json` decomposition entries into `guard-baseline-zero-and-module-decomposition_20261114`.
+  2. *Option B (Include Medium/Low Shim & Dead-Code Cleanups in T10):* Apply the 3 upstream fixes plus all small Medium/Low shim/dead-code cleanups inside T10.
+  3. *Option C (Strict Zero-Code T10):* Defer all 3 High/colocation items alongside Medium/Low items to a follow-on track.
+- **Decision:** Option A. Remediate the 3 upstream High/colocation gaps directly in T10 so `AUD-151` closes with `0` Critical/High findings, and capture all Medium/Low hygiene items alongside the 98 `baseline.json` decomposition entries in the standalone chore track `guard-baseline-zero-and-module-decomposition_20261114`.
+
+
 
 

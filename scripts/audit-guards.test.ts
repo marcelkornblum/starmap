@@ -10,7 +10,7 @@ import {
   detectImportCycles,
   type GuardViolation,
   type GuardBaseline,
-} from '../../../scripts/audit-guards';
+} from './audit-guards';
 
 describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
   describe('G-literals: Entity IDs, Names & Numeric Fallbacks (DEC-R011)', () => {
