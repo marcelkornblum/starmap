@@ -8,6 +8,7 @@ import {
   auditFileSize,
   compareBaseline,
   detectImportCycles,
+  isTelemetryIdentifier,
   type GuardViolation,
   type GuardBaseline,
 } from './audit-guards';
@@ -153,6 +154,48 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
       expect(diags.every((d) => d.ruleId === 'G-literals')).toBe(true);
       expect(diags.some((d) => d.snippet?.includes('planet.radiusEarth ?? 1'))).toBe(true);
       expect(diags.some((d) => d.snippet?.includes('rawMass || 1'))).toBe(true);
+    });
+
+    it('flags telemetry identifiers across camelCase, PascalCase and compound names with fallback 1 (planet.massEarth, planetMass, semiMajorAxisAu, PlanetRadius)', () => {
+      const code = `
+        export const calculateTelemetry = (planet: { massEarth?: number }, planetMass?: number, semiMajorAxisAu?: number, PlanetRadius?: number) => {
+          const m1 = planet.massEarth ?? 1;
+          const m2 = planetMass ?? 1;
+          const a = semiMajorAxisAu ?? 1;
+          const r = PlanetRadius ?? 1;
+          return { m1, m2, a, r };
+        };
+      `;
+      const diags = auditLiteralsContent('src/services/astroService.ts', code, mockCatalog);
+      expect(diags.length).toBe(4);
+      expect(diags.every((d) => d.ruleId === 'G-literals')).toBe(true);
+      expect(diags.some((d) => d.snippet?.includes('planet.massEarth ?? 1'))).toBe(true);
+      expect(diags.some((d) => d.snippet?.includes('planetMass ?? 1'))).toBe(true);
+      expect(diags.some((d) => d.snippet?.includes('semiMajorAxisAu ?? 1'))).toBe(true);
+      expect(diags.some((d) => d.snippet?.includes('PlanetRadius ?? 1'))).toBe(true);
+    });
+
+    it('permits non-telemetry identifiers containing partial stem substrings (opacity, page, template) with fallback 1', () => {
+      const code = `
+        export const getUIConfig = (rawOpacity?: number, rawPage?: number, rawTemplate?: number) => {
+          const opacity = rawOpacity ?? 1;
+          const page = rawPage ?? 1;
+          const template = rawTemplate ?? 1;
+          return { opacity, page, template };
+        };
+      `;
+      const diags = auditLiteralsContent('src/services/uiService.ts', code, mockCatalog);
+      expect(diags).toEqual([]);
+    });
+
+    it('verifies isTelemetryIdentifier correctly identifies telemetry stems and ignores non-telemetry words', () => {
+      expect(isTelemetryIdentifier('massEarth')).toBe(true);
+      expect(isTelemetryIdentifier('planetMass')).toBe(true);
+      expect(isTelemetryIdentifier('semiMajorAxisAu')).toBe(true);
+      expect(isTelemetryIdentifier('PlanetRadius')).toBe(true);
+      expect(isTelemetryIdentifier('opacity')).toBe(false);
+      expect(isTelemetryIdentifier('page')).toBe(false);
+      expect(isTelemetryIdentifier('template')).toBe(false);
     });
   });
 

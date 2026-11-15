@@ -167,8 +167,36 @@ function checkSuppression(lines: string[], targetLine: number, ruleId: string): 
   return { suppressed: false };
 }
 
-const TELEMETRY_STEM_REGEX =
-  /^(?:mass|radius|semiMajorAxis|sma|eccentricity|inclination|period|teff|temp|luminosity|distance|parallax|metallicity|age|gravity|density|insolation|albedo)|(?:Mass|Radius|SemiMajorAxis|Sma|Eccentricity|Inclination|Period|Teff|Temp|Luminosity|Distance|Parallax|Metallicity|Age|Gravity|Density|Insolation|Albedo)/;
+const TELEMETRY_TOKEN_SET = new Set([
+  'mass',
+  'radius',
+  'sma',
+  'eccentricity',
+  'inclination',
+  'period',
+  'teff',
+  'temp',
+  'luminosity',
+  'distance',
+  'parallax',
+  'metallicity',
+  'age',
+  'gravity',
+  'density',
+  'insolation',
+  'albedo',
+]);
+
+export function isTelemetryIdentifier(name: string): boolean {
+  const lower = name.toLowerCase();
+  if (lower.includes('semimajoraxis')) return true;
+  const tokens = name
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
+    .toLowerCase()
+    .split(/_+/);
+  return tokens.some((tok) => TELEMETRY_TOKEN_SET.has(tok));
+}
 
 /**
  * G-literals: Checks source for entity literal mentions and suspicious numeric fallbacks.
@@ -299,7 +327,7 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
             if (node.left) {
               traverseAst(node.left, (childNode) => {
                 if (childNode.type === 'Identifier' && typeof childNode.name === 'string') {
-                  if (TELEMETRY_STEM_REGEX.test(childNode.name)) {
+                  if (isTelemetryIdentifier(childNode.name)) {
                     hasTelemetry = true;
                   }
                 }

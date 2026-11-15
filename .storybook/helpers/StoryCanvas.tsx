@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect, useImperativeHandle } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -145,27 +145,34 @@ const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
   maxDistance,
 }) => {
   const threeCamera = useThree((s) => s.camera);
-  const internalRef = useRef<OrbitControlsImpl>(null);
-  const prevTargetRef = useRef<[number, number, number] | null>(null);
+  const defaultControls = useThree((s) => s.controls) as OrbitControlsImpl | null;
+  const prevAppliedRef = useRef<{
+    controls: OrbitControlsImpl;
+    target: [number, number, number];
+  } | null>(null);
 
-  // Initialise target once, and only update if explicit prop coordinates change
   useEffect(() => {
-    const controls = internalRef.current;
-    if (!controls) return;
-    const prev = prevTargetRef.current;
-    if (!prev || prev[0] !== target[0] || prev[1] !== target[1] || prev[2] !== target[2]) {
-      controls.target.set(target[0], target[1], target[2]);
-      controls.update();
-      prevTargetRef.current = [target[0], target[1], target[2]];
+    if (!defaultControls) return;
+    const prev = prevAppliedRef.current;
+    if (
+      !prev ||
+      prev.controls !== defaultControls ||
+      prev.target[0] !== target[0] ||
+      prev.target[1] !== target[1] ||
+      prev.target[2] !== target[2]
+    ) {
+      defaultControls.target.set(target[0], target[1], target[2]);
+      defaultControls.update();
+      prevAppliedRef.current = {
+        controls: defaultControls,
+        target: [target[0], target[1], target[2]],
+      };
     }
-  }, [target]);
-
-  // Expose internal controls instance to optional caller ref
-  useImperativeHandle(controlsRef, () => internalRef.current as OrbitControlsImpl);
+  }, [defaultControls, target]);
 
   return (
     <OrbitControls
-      ref={internalRef}
+      ref={controlsRef}
       camera={threeCamera}
       makeDefault
       enablePan={true}
