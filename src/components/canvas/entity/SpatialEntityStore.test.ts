@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
-import {
-  createSpatialEntityStore,
-  type SpatialEntityDefinition,
-} from './SpatialEntityStore';
+import { createSpatialEntityStore } from './SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../../../types/spatial';
 
 describe('SpatialEntityStore (FSM & Registry)', () => {
   let store: ReturnType<typeof createSpatialEntityStore>;

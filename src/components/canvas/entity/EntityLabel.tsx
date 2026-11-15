@@ -7,10 +7,10 @@ import styles from './EntityLabel.module.css';
 import type { CelestialInteractionState } from './types';
 import { useOcclusionManager } from './SpatialEntityContext';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
-import {
-  type CelestialFootprint,
-  type Box2D,
-} from '../cartography/celestialOcclusionRegistry';
+import type {
+  CelestialFootprint,
+  Box2D,
+} from '../cartography/occlusionTypes';
 import {
   DEFAULT_RETICLE_SIZE,
   formatDesignationTag,

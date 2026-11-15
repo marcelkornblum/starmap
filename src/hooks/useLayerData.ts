@@ -78,7 +78,7 @@ export const useLoadedLayerManifests = (
   }, [layerKey]);
 
   return useMemo(() => {
-    if (!layerKey) {
+    if (!layerKey || loadTick < 0) {
       return [];
     }
     return layerKey.split(',').flatMap((id) => {
@@ -118,8 +118,10 @@ export const useEntityAnnotations = (
     };
   }, [entityKey]);
 
-  return useMemo(
-    () => getCachedEntityAnnotations(entityKey ? entityKey.split('\n') : []),
-    [entityKey, loadTick],
-  );
+  return useMemo(() => {
+    if (loadTick < 0) {
+      return [];
+    }
+    return getCachedEntityAnnotations(entityKey ? entityKey.split('\n') : []);
+  }, [entityKey, loadTick]);
 };

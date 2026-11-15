@@ -11,6 +11,11 @@ import {
 } from '../cartography/cartographyMath';
 import { useSpatialFrame } from './spatialFrameContext';
 import { type BearingDefinition } from './referenceFrame';
+import {
+  DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
+  DEFAULT_VIEWPORT_WIDTH_PX,
+  DEFAULT_VIEWPORT_HEIGHT_PX,
+} from './instrumentDefaults';
 import styles from './ScreenEdgeCue.module.css';
 
 export interface ScreenEdgeCueProps {
@@ -26,12 +31,7 @@ export interface ScreenEdgeCueProps {
 }
 
 const HTML_Z_INDEX_RANGE: [number, number] = [100, 0];
-const pinToViewportOrigin = (
-  _el: THREE.Object3D,
-  _camera: THREE.Camera,
-  _size: { width: number; height: number },
-  target?: [number, number],
-): void => {
+const pinToViewportOrigin = (_el: THREE.Object3D, _camera: THREE.Camera, _size: { width: number; height: number }, target?: [number, number]): void => {
   if (target) {
     target[0] = 0;
     target[1] = 0;
@@ -42,7 +42,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
   bearing,
   origin: explicitOrigin,
   margin = 28,
-  extent = 2000,
+  extent = DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
   centerDistance,
   rGc,
   minLineLength = 40,
@@ -54,15 +54,15 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
   const labelRef = useRef<HTMLDivElement>(null);
 
   const scratchOrigin = useLazyRef(() => new THREE.Vector3());
-  const scratchScreenSize = useLazyRef(() => ({ width: 0, height: 0 }));
-  const scratchResult = useLazyRef<ScreenEdgeBearingResult>(() => ({
+  const scratchScreenSize = useRef({ width: 0, height: 0 });
+  const scratchResult = useRef<ScreenEdgeBearingResult>({
     x: 0,
     y: 0,
     edge: 'right' as ScreenEdgeSide,
     angle: 0,
     isAttached: false,
     visible: false,
-  }));
+  });
 
   const lastEdge = useRef<ScreenEdgeSide | null>(null);
   const lastDetached = useRef<boolean | null>(null);
@@ -74,8 +74,8 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
   const lastOffsetY = useRef<number>(Number.NaN);
 
   useFrame(({ camera: activeCamera, size: viewportSize }) => {
-    const width = viewportSize?.width || (typeof window !== 'undefined' ? window.innerWidth : 1920);
-    const height = viewportSize?.height || (typeof window !== 'undefined' ? window.innerHeight : 1080);
+    const width = viewportSize?.width || (typeof window !== 'undefined' ? window.innerWidth : DEFAULT_VIEWPORT_WIDTH_PX);
+    const height = viewportSize?.height || (typeof window !== 'undefined' ? window.innerHeight : DEFAULT_VIEWPORT_HEIGHT_PX);
     const screenSize = scratchScreenSize.current;
     screenSize.width = width;
     screenSize.height = height;
@@ -96,7 +96,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
     }
 
     const bType: ScreenEdgeBearingType = bearing.id === 'orbital' ? 'orbital' : 'core';
-    const effectiveCenterDistance = centerDistance ?? rGc ?? frameRef?.current?.frame?.centerDistance ?? 2000;
+    const effectiveCenterDistance = centerDistance ?? rGc ?? frameRef?.current?.frame?.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
 
     calculateScreenEdgeBearing(
       activeCamera,

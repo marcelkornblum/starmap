@@ -1,14 +1,19 @@
 import { createStore } from 'zustand/vanilla';
-import * as THREE from 'three';
+import type * as THREE from 'three';
 import type {
   SpatialEntityDefinition,
   CelestialInteractionState,
-} from './types';
-
+} from '../../../types/spatial';
 import { deriveEntityTier } from '../math/tiers';
-
-export type { SpatialEntityDefinition, CelestialInteractionState };
-export { deriveEntityTier };
+import {
+  isEntityRegistrationIdentical,
+  mergeRegisteredEntity,
+  isEntityUpdateUnchanged,
+  areSetsEqual,
+  findEntitiesInAperture,
+  findEntitiesByState,
+  resolveInitialEntitySelection,
+} from './spatialEntityReducers';
 
 export interface SpatialEntityState {
   entities: Record<string, SpatialEntityDefinition>;
@@ -37,22 +42,7 @@ export interface SpatialEntityState {
   getEntitiesByState: (state: CelestialInteractionState) => SpatialEntityDefinition[];
 }
 
-const isSameSpatialPosition = (
-  a: SpatialEntityDefinition['position'] | undefined,
-  b: SpatialEntityDefinition['position'] | undefined,
-): boolean => {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  const ax = a instanceof THREE.Vector3 ? a.x : Array.isArray(a) ? a[0] : undefined;
-  const ay = a instanceof THREE.Vector3 ? a.y : Array.isArray(a) ? a[1] : undefined;
-  const az = a instanceof THREE.Vector3 ? a.z : Array.isArray(a) ? a[2] : undefined;
-  const bx = b instanceof THREE.Vector3 ? b.x : Array.isArray(b) ? b[0] : undefined;
-  const by = b instanceof THREE.Vector3 ? b.y : Array.isArray(b) ? b[1] : undefined;
-  const bz = b instanceof THREE.Vector3 ? b.z : Array.isArray(b) ? b[2] : undefined;
-  return ax === bx && ay === by && az === bz;
-};
-
-export const createSpatialEntityStore = (initial?: {
+export interface SpatialEntityStoreInitial {
   selectedId?: string | null;
   selectedIds?: Iterable<string>;
   focusedId?: string | null;
@@ -61,22 +51,11 @@ export const createSpatialEntityStore = (initial?: {
   apertureIds?: Set<string>;
   apertureRadius?: number | null;
   apertureCenter?: readonly [number, number, number] | null;
-}) => {
-  const initialSelectedSet = new Set<string>(
-    initial?.selectedIds ?? (initial?.selectedId ? [initial.selectedId] : []),
-  );
-  const initialSelectedId =
-    initial?.selectedId !== undefined
-      ? initial.selectedId
-      : (initialSelectedSet.values().next().value ?? null);
+}
 
-  const initialFocusedSet = new Set<string>(
-    initial?.focusedIds ?? (initial?.focusedId ? [initial.focusedId] : []),
-  );
-  const initialFocusedId =
-    initial?.focusedId !== undefined
-      ? initial.focusedId
-      : (initialFocusedSet.values().next().value ?? null);
+export const createSpatialEntityStore = (initial?: SpatialEntityStoreInitial) => {
+  const { initialSelectedId, initialSelectedSet, initialFocusedId, initialFocusedSet } =
+    resolveInitialEntitySelection(initial);
 
   return createStore<SpatialEntityState>((set, get) => ({
     entities: {},
@@ -92,62 +71,13 @@ export const createSpatialEntityStore = (initial?: {
     registerEntity: (entity) => {
       set((state) => {
         const existing = state.entities[entity.id];
-        if (
-          existing &&
-          existing.name === entity.name &&
-          existing.classification === entity.classification &&
-          existing.spectralType === entity.spectralType &&
-          existing.multiplicity === entity.multiplicity &&
-          existing.planets === entity.planets &&
-          isSameSpatialPosition(existing.position, entity.position)
-        ) {
+        if (isEntityRegistrationIdentical(existing, entity)) {
           return state;
         }
-
-        let entityToRegister = entity;
-        if (existing) {
-          const ep = existing.position;
-          const existingNonZero =
-            entity.id !== 'sol' &&
-            (Array.isArray(ep)
-              ? ep[0] !== 0 || ep[1] !== 0 || ep[2] !== 0
-              : ep instanceof THREE.Vector3
-                ? ep.x !== 0 || ep.y !== 0 || ep.z !== 0
-                : false);
-
-          const np = entity.position;
-          const newZero = Array.isArray(np)
-            ? np[0] === 0 && np[1] === 0 && np[2] === 0
-            : np instanceof THREE.Vector3
-              ? np.x === 0 && np.y === 0 && np.z === 0
-              : true;
-
-          const preserveRichStarAttrs =
-            existing.multiplicity !== undefined ||
-            existing.planets !== undefined ||
-            (entity.classification === 'stellar-system' &&
-              existing.classification !== undefined &&
-              existing.classification !== 'stellar-system');
-
-          if ((existingNonZero && newZero) || preserveRichStarAttrs) {
-            entityToRegister = {
-              ...entity,
-              position: existingNonZero && newZero ? existing.position : entity.position,
-              classification:
-                entity.classification === 'stellar-system' && existing.classification
-                  ? existing.classification
-                  : entity.classification,
-              spectralType: entity.spectralType ?? existing.spectralType,
-              multiplicity: entity.multiplicity ?? existing.multiplicity,
-              planets: entity.planets ?? existing.planets,
-            };
-          }
-        }
-
         return {
           entities: {
             ...state.entities,
-            [entity.id]: entityToRegister,
+            [entity.id]: mergeRegisteredEntity(existing, entity),
           },
         };
       });
@@ -172,19 +102,7 @@ export const createSpatialEntityStore = (initial?: {
     updateEntity: (id, updates) => {
       set((state) => {
         const existing = state.entities[id];
-        if (!existing) return state;
-        if (
-          (updates.name === undefined || updates.name === existing.name) &&
-          (updates.classification === undefined || updates.classification === existing.classification) &&
-          (updates.spectralType === undefined || updates.spectralType === existing.spectralType) &&
-          (updates.multiplicity === undefined || updates.multiplicity === existing.multiplicity) &&
-          (updates.planets === undefined || updates.planets === existing.planets) &&
-          (updates.parentBodyId === undefined || updates.parentBodyId === existing.parentBodyId) &&
-          (updates.position === undefined || isSameSpatialPosition(existing.position, updates.position)) &&
-          (updates.velocity === undefined || isSameSpatialPosition(existing.velocity, updates.velocity)) &&
-          (updates.orbit === undefined || updates.orbit === existing.orbit) &&
-          (updates.bodyRadius === undefined || updates.bodyRadius === existing.bodyRadius)
-        ) {
+        if (!existing || isEntityUpdateUnchanged(existing, updates)) {
           return state;
         }
         return {
@@ -201,11 +119,7 @@ export const createSpatialEntityStore = (initial?: {
 
     setSelected: (id) =>
       set((state) => {
-        if (
-          state.selectedId === id &&
-          state.selectedIds.size === (id ? 1 : 0) &&
-          (id === null || state.selectedIds.has(id))
-        ) {
+        if (state.selectedId === id && state.selectedIds.size === (id ? 1 : 0) && (id === null || state.selectedIds.has(id))) {
           return state;
         }
         return {
@@ -218,26 +132,15 @@ export const createSpatialEntityStore = (initial?: {
       set((state) => {
         const nextSelectedIds = new Set<string>(ids);
         const nextSelectedId = nextSelectedIds.values().next().value ?? null;
-        if (
-          state.selectedId === nextSelectedId &&
-          state.selectedIds.size === nextSelectedIds.size &&
-          Array.from(nextSelectedIds).every((item) => state.selectedIds.has(item))
-        ) {
+        if (state.selectedId === nextSelectedId && areSetsEqual(state.selectedIds, nextSelectedIds)) {
           return state;
         }
-        return {
-          selectedId: nextSelectedId,
-          selectedIds: nextSelectedIds,
-        };
+        return { selectedId: nextSelectedId, selectedIds: nextSelectedIds };
       }),
 
     setFocused: (id) =>
       set((state) => {
-        if (
-          state.focusedId === id &&
-          state.focusedIds.size === (id ? 1 : 0) &&
-          (id === null || state.focusedIds.has(id))
-        ) {
+        if (state.focusedId === id && state.focusedIds.size === (id ? 1 : 0) && (id === null || state.focusedIds.has(id))) {
           return state;
         }
         return {
@@ -250,17 +153,10 @@ export const createSpatialEntityStore = (initial?: {
       set((state) => {
         const nextFocusedIds = new Set<string>(ids);
         const nextFocusedId = nextFocusedIds.values().next().value ?? null;
-        if (
-          state.focusedId === nextFocusedId &&
-          state.focusedIds.size === nextFocusedIds.size &&
-          Array.from(nextFocusedIds).every((item) => state.focusedIds.has(item))
-        ) {
+        if (state.focusedId === nextFocusedId && areSetsEqual(state.focusedIds, nextFocusedIds)) {
           return state;
         }
-        return {
-          focusedId: nextFocusedId,
-          focusedIds: nextFocusedIds,
-        };
+        return { focusedId: nextFocusedId, focusedIds: nextFocusedIds };
       }),
 
     setEntityInAperture: (id, inAperture) => {
@@ -276,10 +172,7 @@ export const createSpatialEntityStore = (initial?: {
 
     setApertureIds: (apertureIds) =>
       set((state) => {
-        if (
-          state.apertureIds.size === apertureIds.size &&
-          Array.from(apertureIds).every((id) => state.apertureIds.has(id))
-        ) {
+        if (areSetsEqual(state.apertureIds, apertureIds)) {
           return state;
         }
         return { apertureIds };
@@ -302,44 +195,16 @@ export const createSpatialEntityStore = (initial?: {
 
     getEntityState: (id) => deriveEntityTier(id, get()),
 
-    getEntitiesInAperture: (center, radius) => {
-      const state = get();
-      const radiusSq = radius * radius;
-      const matches: SpatialEntityDefinition[] = [];
-      const scratchVec = new THREE.Vector3();
+    getEntitiesInAperture: (center, radius) =>
+      findEntitiesInAperture(get().entities, center, radius),
 
-      for (const id in state.entities) {
-        const entity = state.entities[id];
-        const p = entity.position;
-        if (p instanceof THREE.Vector3) {
-          scratchVec.copy(p);
-        } else if (Array.isArray(p)) {
-          scratchVec.set(p[0], p[1], p[2]);
-        }
-        if (scratchVec.distanceToSquared(center) <= radiusSq) {
-          matches.push(entity);
-        }
-      }
-
-      return matches;
-    },
-
-    getEntitiesByState: (targetState) => {
-      const state = get();
-      const matches: SpatialEntityDefinition[] = [];
-      if (targetState === 'focused' && state.focusedId && state.entities[state.focusedId]) {
-        matches.push(state.entities[state.focusedId]);
-      }
-      for (const id in state.entities) {
-        if (targetState === 'focused' && id === state.focusedId) {
-          continue;
-        }
-        if (state.getEntityState(id) === targetState) {
-          matches.push(state.entities[id]);
-        }
-      }
-      return matches;
-    },
+    getEntitiesByState: (targetState) =>
+      findEntitiesByState(
+        get().entities,
+        targetState,
+        get().focusedId,
+        (id) => deriveEntityTier(id, get()),
+      ),
   }));
 };
 

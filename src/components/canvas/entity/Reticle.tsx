@@ -3,12 +3,14 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import type {
+  CelestialClassification,
+  PlanetCensusEntry,
+} from '../../../types/spatial';
+import { classifyPlanetPhysical as classifyPlanet } from '../../../utils/planetaryPhysics';
 import {
   createReticleGeometry,
-  classifyPlanet,
   DEFAULT_RETICLE_SIZE,
-  type CelestialClassification,
-  type PlanetCensusEntry,
 } from '../cartography/reticleGeometry';
 import { useOcclusionManager } from './SpatialEntityContext';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';

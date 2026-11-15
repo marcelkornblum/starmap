@@ -4,7 +4,11 @@ import { PlanarGrid, type PlanarFootprintItem } from './PlanarGrid';
 import { CoordinateFins } from './CoordinateFins';
 import { BearingVectors } from './BearingVectors';
 import { ScreenEdgeIndicators } from './ScreenEdgeIndicators';
-import { type CelestialClassification } from '../cartography/reticleGeometry';
+import { type CelestialClassification } from '../../../types/spatial';
+import {
+  DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
+  DEFAULT_INSTRUMENT_EXTENT,
+} from './instrumentDefaults';
 
 export interface CartographicInstrumentProps {
   /** Explicit fixed range rings override */
@@ -62,8 +66,8 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = ({
   const { frame } = useSpatialFrame();
   const finsEnabled = showFins ?? frame.coordinateFins.enabled;
   const isPlaneEnabled = showDatumPlane ?? showGalacticPlane;
-  const centerDistance = frame.centerDistance ?? 2000;
-  const extent = frame.extent ?? 1200;
+  const centerDistance = frame.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
+  const extent = frame.extent ?? DEFAULT_INSTRUMENT_EXTENT;
 
   return (
     <group name="cartographic-grid">

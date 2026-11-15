@@ -5,11 +5,11 @@ import {
   GalacticViewScene,
   SystemViewScene,
   PlanetaryViewScene,
-  InteractiveNavigator,
   GalacticSceneContent,
   SystemSceneContent,
   PlanetarySceneContent,
 } from './SpatialScenes';
+import { InteractiveNavigator } from './InteractiveNavigator';
 import { GALAXY_SCENE_MAX_STREAMED_ENTITIES } from './GalaxyScene';
 import type { SpatialEntityDefinition } from '../entity';
 import type { StarDossierData } from './SystemScene';

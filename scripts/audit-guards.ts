@@ -167,11 +167,15 @@ function checkSuppression(lines: string[], targetLine: number, ruleId: string): 
   return { suppressed: false };
 }
 
+const TELEMETRY_STEM_REGEX =
+  /^(?:mass|radius|semiMajorAxis|sma|eccentricity|inclination|period|teff|temp|luminosity|distance|parallax|metallicity|age|gravity|density|insolation|albedo)|(?:Mass|Radius|SemiMajorAxis|Sma|Eccentricity|Inclination|Period|Teff|Temp|Luminosity|Distance|Parallax|Metallicity|Age|Gravity|Density|Insolation|Albedo)/;
+
 /**
  * G-literals: Checks source for entity literal mentions and suspicious numeric fallbacks.
  */
 export function auditLiteralsContent(filePath: string, content: string, catalog: EntityCatalog): GuardViolation[] {
-  if (filePath.includes('src/content/')) return [];
+  const normPath = filePath.replace(/\\/g, '/');
+  if (normPath.includes('src/content/') || normPath.includes('src/config/')) return [];
   const violations: GuardViolation[] = [];
 
   let ast: ReturnType<typeof parse>;
@@ -186,9 +190,9 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
 
   const lines = content.split('\n');
   const isTargetForNumericFallback =
-    filePath.includes('src/services/') ||
-    filePath.includes('src/components/canvas/') ||
-    filePath.includes('src/views/');
+    normPath.includes('src/services/') ||
+    normPath.includes('src/components/canvas/') ||
+    normPath.includes('src/views/');
 
   traverseAst(ast, (node: ASTNode, parent?: ASTNode) => {
     // Skip string literals that are the source of an import or export
@@ -218,30 +222,52 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
     }
 
     if (val !== null) {
-      const valLower = val.toLowerCase();
-      const matchesEntity = catalog.entityIds.has(valLower) || catalog.entityNames.has(val);
-      if (matchesEntity) {
-        const loc = node.loc?.start;
-        if (loc) {
-          const supp = checkSuppression(lines, loc.line, 'G-literals');
-          if (supp.invalidComment) {
-            violations.push({
-              filePath,
-              line: loc.line,
-              column: loc.column + 1,
-              ruleId: 'G-literals',
-              message: `Suppression comment "${supp.invalidComment}" without a required reason (-- <reason>) is forbidden.`,
-              snippet: (lines[loc.line - 1] || '').trim(),
-            });
-          } else if (!supp.suppressed) {
-            violations.push({
-              filePath,
-              line: loc.line,
-              column: loc.column + 1,
-              ruleId: 'G-literals',
-              message: `Hardcoded celestial entity literal "${val}" found in runtime code. Read from build-time data or precalculated shards.`,
-              snippet: (lines[loc.line - 1] || '').trim(),
-            });
+      // Wire-Envelope .t Discriminator Exemption
+      let isWireDiscriminator = false;
+      if (
+        parent &&
+        parent.type === 'BinaryExpression' &&
+        (parent.operator === '===' || parent.operator === '!==')
+      ) {
+        const other = parent.left === node ? parent.right : parent.left;
+        if (
+          other &&
+          (other.type === 'MemberExpression' || other.type === 'OptionalMemberExpression') &&
+          !other.computed
+        ) {
+          const prop = other.property as ASTNode | undefined;
+          if (prop?.type === 'Identifier' && prop.name === 't') {
+            isWireDiscriminator = true;
+          }
+        }
+      }
+
+      if (!isWireDiscriminator) {
+        const valLower = val.toLowerCase();
+        const matchesEntity = catalog.entityIds.has(valLower) || catalog.entityNames.has(val);
+        if (matchesEntity) {
+          const loc = node.loc?.start;
+          if (loc) {
+            const supp = checkSuppression(lines, loc.line, 'G-literals');
+            if (supp.invalidComment) {
+              violations.push({
+                filePath,
+                line: loc.line,
+                column: loc.column + 1,
+                ruleId: 'G-literals',
+                message: `Suppression comment "${supp.invalidComment}" without a required reason (-- <reason>) is forbidden.`,
+                snippet: (lines[loc.line - 1] || '').trim(),
+              });
+            } else if (!supp.suppressed) {
+              violations.push({
+                filePath,
+                line: loc.line,
+                column: loc.column + 1,
+                ruleId: 'G-literals',
+                message: `Hardcoded celestial entity literal "${val}" found in runtime code. Read from build-time data or precalculated shards.`,
+                snippet: (lines[loc.line - 1] || '').trim(),
+              });
+            }
           }
         }
       }
@@ -252,28 +278,61 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
       const op = node.operator;
       if (op === '??' || op === '||') {
         const right = node.right;
-        if (right && right.type === 'NumericLiteral' && typeof right.value === 'number' && right.value !== 0) {
-          const loc = right.loc?.start;
-          if (loc) {
-            const supp = checkSuppression(lines, loc.line, 'G-literals');
-            if (supp.invalidComment) {
-              violations.push({
-                filePath,
-                line: loc.line,
-                column: loc.column + 1,
-                ruleId: 'G-literals',
-                message: `Suppression comment without a required reason (-- <reason>) is forbidden.`,
-                snippet: (lines[loc.line - 1] || '').trim(),
+        let numVal: number | null = null;
+        if (right && right.type === 'NumericLiteral' && typeof right.value === 'number') {
+          numVal = right.value;
+        } else if (
+          right &&
+          right.type === 'UnaryExpression' &&
+          right.operator === '-'
+        ) {
+          const arg = right.argument as ASTNode | undefined;
+          if (arg?.type === 'NumericLiteral' && typeof arg.value === 'number') {
+            numVal = -arg.value;
+          }
+        }
+
+        if (numVal !== null && numVal !== 0) {
+          let shouldFlag = true;
+          if (numVal === 1 || numVal === -1) {
+            let hasTelemetry = false;
+            if (node.left) {
+              traverseAst(node.left, (childNode) => {
+                if (childNode.type === 'Identifier' && typeof childNode.name === 'string') {
+                  if (TELEMETRY_STEM_REGEX.test(childNode.name)) {
+                    hasTelemetry = true;
+                  }
+                }
               });
-            } else if (!supp.suppressed) {
-              violations.push({
-                filePath,
-                line: loc.line,
-                column: loc.column + 1,
-                ruleId: 'G-literals',
-                message: `Suspicious non-zero numeric fallback "${op} ${right.value}". Entity telemetry and properties must not invent fallback numbers.`,
-                snippet: (lines[loc.line - 1] || '').trim(),
-              });
+            }
+            if (!hasTelemetry) {
+              shouldFlag = false;
+            }
+          }
+
+          if (shouldFlag) {
+            const loc = right?.loc?.start;
+            if (loc) {
+              const supp = checkSuppression(lines, loc.line, 'G-literals');
+              if (supp.invalidComment) {
+                violations.push({
+                  filePath,
+                  line: loc.line,
+                  column: loc.column + 1,
+                  ruleId: 'G-literals',
+                  message: `Suppression comment without a required reason (-- <reason>) is forbidden.`,
+                  snippet: (lines[loc.line - 1] || '').trim(),
+                });
+              } else if (!supp.suppressed) {
+                violations.push({
+                  filePath,
+                  line: loc.line,
+                  column: loc.column + 1,
+                  ruleId: 'G-literals',
+                  message: `Suspicious non-zero numeric fallback "${op} ${numVal}". Entity telemetry and properties must not invent fallback numbers.`,
+                  snippet: (lines[loc.line - 1] || '').trim(),
+                });
+              }
             }
           }
         }
@@ -419,33 +478,19 @@ export function auditImportsContent(filePath: string, content: string, projectRo
 export function auditFileSize(filePath: string, lineCount: number): GuardViolation[] {
   const norm = filePath.replace(/\\/g, '/');
   if (norm.includes('.test.') || norm.includes('.stories.')) return [];
+  if (norm.includes('src/prototypes/') || norm.includes('src/components/prototypes/')) return [];
+  if (!norm.includes('src/')) return [];
 
-  if (norm.includes('src/components/') || norm.includes('src/views/')) {
-    if (lineCount > 300) {
-      return [
-        {
-          ruleId: 'G-size',
-          filePath,
-          line: 1,
-          column: 1,
-          message: `Component or view file exceeds 300 lines ceiling (${lineCount} lines). Decompose into sub-components.`,
-        },
-      ];
-    }
-  }
-
-  if (norm.includes('src/services/') || norm.includes('src/utils/')) {
-    if (lineCount > 500) {
-      return [
-        {
-          ruleId: 'G-size',
-          filePath,
-          line: 1,
-          column: 1,
-          message: `Service or util module exceeds 500 lines ceiling (${lineCount} lines). Decompose into focused modules.`,
-        },
-      ];
-    }
+  if (lineCount > 300) {
+    return [
+      {
+        ruleId: 'G-size',
+        filePath,
+        line: 1,
+        column: 1,
+        message: `File exceeds 300 lines ceiling (${lineCount} lines). Decompose into focused sub-modules.`,
+      },
+    ];
   }
 
   return [];

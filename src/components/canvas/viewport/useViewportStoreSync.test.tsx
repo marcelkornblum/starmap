@@ -1,0 +1,82 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { useViewportStoreSync } from './useViewportStoreSync';
+import { createSpatialEntityStore } from '../entity';
+
+describe('useViewportStoreSync hook', () => {
+  let localStore: ReturnType<typeof createSpatialEntityStore>;
+  let outerStore: ReturnType<typeof createSpatialEntityStore>;
+
+  beforeEach(() => {
+    localStore = createSpatialEntityStore();
+    outerStore = createSpatialEntityStore();
+    localStore.getState().registerEntity({
+      id: 'star-1',
+      name: 'Star 1',
+      classification: 'star',
+      position: [10, 0, 0],
+    });
+    outerStore.getState().registerEntity({
+      id: 'star-1',
+      name: 'Star 1',
+      classification: 'star',
+      position: [10, 0, 0],
+    });
+  });
+
+  it('initializes selection when initialSelectedId is provided', () => {
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        initialSelectedId: 'star-1',
+      }),
+    );
+
+    expect(localStore.getState().selectedId).toBe('star-1');
+  });
+
+  it('synchronizes outer store selectedIds inward to local store', () => {
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      outerStore.getState().setSelectedIds(new Set(['star-1']));
+    });
+
+    expect(localStore.getState().selectedIds.has('star-1')).toBe(true);
+  });
+
+  it('synchronizes local store selectedId outward to outer store', () => {
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      localStore.getState().setSelected('star-1');
+    });
+
+    expect(outerStore.getState().selectedId).toBe('star-1');
+  });
+
+  it('synchronizes local store focusedId outward to outer store', () => {
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      localStore.getState().setFocused('star-1');
+    });
+
+    expect(outerStore.getState().focusedId).toBe('star-1');
+  });
+});

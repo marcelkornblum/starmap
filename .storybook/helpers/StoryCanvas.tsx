@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useImperativeHandle } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -8,7 +8,7 @@ import {
   type ReferenceFrame,
   GALACTIC_FRAME,
 } from '../../src/components/canvas/instrument/referenceFrame';
-import { getStandardInitialCamera } from '../../src/components/canvas/cartography/cartographyMath';
+import { getStandardInitialCamera } from '../../src/components/canvas/cartography/cartographyCamera';
 import { CONTROLS_DAMPING_FACTOR } from '../../src/components/canvas/engineConfig';
 import styles from './StoryCanvas.module.css';
 
@@ -147,7 +147,6 @@ const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
   maxDistance,
 }) => {
   const threeCamera = useThree((s) => s.camera);
-  const stableCameraRef = useRef(threeCamera);
   const internalRef = useRef<OrbitControlsImpl>(null);
   const prevTargetRef = useRef<[number, number, number] | null>(null);
 
@@ -163,21 +162,13 @@ const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
     }
   }, [target]);
 
-  const setControlsRef = (instance: OrbitControlsImpl | null) => {
-    (internalRef as React.MutableRefObject<OrbitControlsImpl | null>).current = instance;
-    if (controlsRef) {
-      if (typeof controlsRef === 'function') {
-        controlsRef(instance);
-      } else {
-        (controlsRef as React.MutableRefObject<OrbitControlsImpl | null>).current = instance;
-      }
-    }
-  };
+  // Expose internal controls instance to optional caller ref
+  useImperativeHandle(controlsRef, () => internalRef.current as OrbitControlsImpl, []);
 
   return (
     <OrbitControls
-      ref={setControlsRef}
-      camera={stableCameraRef.current}
+      ref={internalRef}
+      camera={threeCamera}
       makeDefault
       enablePan={true}
       screenSpacePanning={true}

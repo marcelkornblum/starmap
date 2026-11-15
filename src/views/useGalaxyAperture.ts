@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useSpatialEntityStore } from '../components/canvas/entity/SpatialEntityContext';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../types/spatial';
 import { resolveGalacticInstrumentAperture } from '../services/details/galacticAperture';
 import type {
   GalacticInstrumentApertureResult,

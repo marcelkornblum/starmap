@@ -4,47 +4,26 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useUIStore } from '../../../stores/useUIStore';
 import { FRAME_PRIORITY } from '../engineConfig';
+import { criticallyDamped, interpolateLogarithmicDistance } from '../math/cameraFrustumMath';
+import { DEFAULT_TRANSITION_DURATION_SEC } from './instrumentDefaults';
 
-import {
-  criticallyDamped,
-  interpolateLogarithmicDistance,
-} from '../math/cameraMath';
-
-export type CameraTransitionEasing =
-  | 'easeInOutCubic'
-  | 'criticallyDamped'
-  | ((t: number) => number);
+export type CameraTransitionEasing = 'easeInOutCubic' | 'criticallyDamped' | ((t: number) => number);
 
 export interface CameraTransitionOptions {
-  /** Transition duration in seconds. Default: 0.8 */
   duration?: number;
-  /** Optional target camera distance from focal point. Preserves current distance if omitted */
   targetDistance?: number;
-  /** Easing curve: 'easeInOutCubic' (default), 'criticallyDamped', or custom function */
   easing?: CameraTransitionEasing;
-  /** Whether to interpolate camera distance logarithmically across astronomical scales. Default: true */
   logarithmicDistance?: boolean;
-  /** Callback invoked when transition successfully completes */
   onComplete?: () => void;
-  /** Callback invoked if transition is cancelled by user input */
   onCancel?: () => void;
 }
 
 export interface CameraTransitionApi {
-  /** Smoothly transitions the camera and controls target to the specified world coordinates */
-  transitionTo: (
-    target: THREE.Vector3 | [number, number, number],
-    options?: CameraTransitionOptions,
-  ) => void;
-  /** Immediately halts any running transition */
+  transitionTo: (target: THREE.Vector3 | [number, number, number], options?: CameraTransitionOptions) => void;
   cancelTransition: () => void;
-  /** Returns whether a programmatic transition is currently active */
   isTransitioning: () => boolean;
 }
 
-/**
- * Standard cubic ease-in-out easing function.
- */
 export function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
@@ -56,14 +35,13 @@ export function easeInOutCubic(t: number): number {
 export class CameraTransitionController {
   private isTransitioningState = false;
   private startTime = 0;
-  private duration = 0.8;
+  private duration = DEFAULT_TRANSITION_DURATION_SEC;
   private options?: CameraTransitionOptions;
 
   private startTarget = new THREE.Vector3();
   private endTarget = new THREE.Vector3();
   private startCamPos = new THREE.Vector3();
   private endCamPos = new THREE.Vector3();
-
   private startDist = 0;
   private endDist = 0;
   private useLogDist = false;
@@ -93,46 +71,44 @@ export class CameraTransitionController {
     options?: CameraTransitionOptions,
     now: number = performance.now(),
   ): void {
-    // 1. Resolve target position
     if (target instanceof THREE.Vector3) {
       this.endTarget.copy(target);
     } else {
       this.endTarget.set(target[0], target[1], target[2]);
     }
 
-    // 2. Resolve start target (from controls or default origin)
-    if (controlsTarget instanceof THREE.Vector3) {
+    if (controlsTarget) {
       this.startTarget.copy(controlsTarget);
     } else {
-      this.startTarget.set(0, 0, 0);
+      camera.getWorldDirection(this.scratchDir);
+      const camDist = Math.max(camera.position.length(), 1.0);
+      this.startTarget.copy(camera.position).addScaledVector(this.scratchDir, camDist);
     }
 
-    // 3. Compute relative camera offset and target camera distance
     this.scratchOffset.copy(camera.position).sub(this.startTarget);
     const currentDist = this.scratchOffset.length();
-    const targetDist = options?.targetDistance ?? currentDist;
-    this.startDist = Math.max(1e-4, currentDist);
-    this.endDist = Math.max(1e-4, targetDist);
-    this.useLogDist =
-      (options?.logarithmicDistance ?? true) &&
-      Math.abs(this.endDist - this.startDist) > 1e-3;
-
     if (currentDist > 1e-4) {
-      this.scratchDir.copy(this.scratchOffset).normalize();
+      this.scratchDir.copy(this.scratchOffset).divideScalar(currentDist);
     } else {
       this.scratchDir.set(0, 0, 1);
     }
+
+    const targetDist = options?.targetDistance ?? currentDist;
+    this.startDist = currentDist;
+    this.endDist = targetDist;
+    this.useLogDist =
+      (options?.logarithmicDistance ?? true) &&
+      this.startDist > 1e-3 &&
+      this.endDist > 1e-3 &&
+      Math.abs(Math.log10(this.endDist / this.startDist)) > 0.05;
 
     if (options?.targetDistance !== undefined && currentDist > 1e-4) {
       this.scratchOffset.copy(this.scratchDir).multiplyScalar(targetDist);
     }
 
-    // 4. Configure start and end camera positions
     this.startCamPos.copy(camera.position);
     this.endCamPos.copy(this.endTarget).add(this.scratchOffset);
-
-    // 5. Initialize timing and state
-    this.duration = options?.duration ?? 0.8;
+    this.duration = options?.duration ?? DEFAULT_TRANSITION_DURATION_SEC;
     this.options = options;
     this.startTime = now;
     this.isTransitioningState = true;
@@ -160,7 +136,6 @@ export class CameraTransitionController {
     }
 
     this.scratchCurrentTarget.lerpVectors(this.startTarget, this.endTarget, t);
-
     if (this.useLogDist) {
       const d = interpolateLogarithmicDistance(this.startDist, this.endDist, t);
       this.scratchCurrentCamPos.copy(this.scratchCurrentTarget).addScaledVector(this.scratchDir, d);
@@ -171,9 +146,7 @@ export class CameraTransitionController {
     if (controls && controls.target instanceof THREE.Vector3) {
       controls.target.copy(this.scratchCurrentTarget);
       camera.position.copy(this.scratchCurrentCamPos);
-      if (typeof controls.update === 'function') {
-        controls.update();
-      }
+      if (typeof controls.update === 'function') controls.update();
     } else {
       camera.position.copy(this.scratchCurrentCamPos);
       camera.lookAt(this.scratchCurrentTarget);
@@ -185,15 +158,12 @@ export class CameraTransitionController {
       this.options = undefined;
       onComplete?.();
     }
-
     return true;
   }
 }
 
 /**
  * Hook providing smooth, zero-allocation camera and instrument focal transitions.
- * Coordinates controls.target and camera.position, maintaining viewing angle
- * while cleanly yielding if the user interacts during the transition.
  */
 export function useCameraTransition(): CameraTransitionApi {
   const { camera, invalidate } = useThree();
@@ -219,12 +189,8 @@ export function useCameraTransition(): CameraTransitionApi {
   }, [controllerRef]);
 
   const transitionTo = useCallback(
-    (
-      target: THREE.Vector3 | [number, number, number],
-      options?: CameraTransitionOptions,
-    ) => {
+    (target: THREE.Vector3 | [number, number, number], options?: CameraTransitionOptions) => {
       useUIStore.getState().setCameraTransitioning(true);
-
       const wrappedOptions: CameraTransitionOptions = {
         ...options,
         onComplete: () => {
@@ -237,56 +203,34 @@ export function useCameraTransition(): CameraTransitionApi {
         },
       };
 
-      controllerRef.current.start(
-        camera,
-        target,
-        controls?.target,
-        wrappedOptions,
-      );
+      controllerRef.current.start(camera, target, controls?.target, wrappedOptions);
       invalidate();
     },
     [camera, controls, invalidate, controllerRef],
   );
 
-  // Yield cleanly to user interaction if OrbitControls is manipulated
   useEffect(() => {
     if (!controls || typeof controls.addEventListener !== 'function') return;
-
-    const handleUserInteract = () => {
-      cancelTransition();
-    };
-
+    const handleUserInteract = () => { cancelTransition(); };
     controls.addEventListener('start', handleUserInteract);
     return () => {
       controls.removeEventListener?.('start', handleUserInteract);
     };
   }, [controls, cancelTransition]);
 
-  // Cleanly reset store transition state on unmount
   useEffect(() => {
+    const controller = controllerRef.current;
     return () => {
-      if (controllerRef.current.isTransitioning()) {
+      if (controller.isTransitioning()) {
         useUIStore.getState().setCameraTransitioning(false);
       }
     };
   }, [controllerRef]);
 
-  // Frame animation loop: runs before OrbitControls and the spatial frame (see FRAME_PRIORITY)
   useFrame(() => {
     const updated = controllerRef.current.update(camera, controls);
-    if (updated) {
-      invalidate();
-    }
+    if (updated) invalidate();
   }, FRAME_PRIORITY.cameraTransition);
 
-  const isTransitioning = useCallback(
-    () => controllerRef.current.isTransitioning(),
-    [controllerRef],
-  );
-
-  return {
-    transitionTo,
-    cancelTransition,
-    isTransitioning,
-  };
+  return { transitionTo, cancelTransition, isTransitioning: () => controllerRef.current.isTransitioning() };
 }

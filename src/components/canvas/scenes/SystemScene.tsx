@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import { SYSTEM_FRAME } from '../instrument/referenceFrame';
-import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
+import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyCamera';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
 import { toUrlSlug } from '../../../utils/datasetLayerSlugs';

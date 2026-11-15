@@ -1,4 +1,5 @@
 import type React from 'react';
+import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import styles from './Guide3DPreview.module.css';
 
 export interface GuideStarPreviewProps {
@@ -122,7 +123,7 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
     );
   }
 
-  const baselineKind = props.baselineName === 'Sol' ? 'star' : 'planet';
+  const baselineKind = props.baselineName === SOL_REFERENCE_TARGET.name ? 'star' : 'planet';
 
   return (
     <div

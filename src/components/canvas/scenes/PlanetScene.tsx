@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import { PLANETARY_FRAME } from '../instrument/referenceFrame';
-import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
+import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyCamera';
 import { calculateKeplerianPosition } from '../math/kepler';
 import { PlanetBody } from '../entity/PlanetBody';
 import type { SpatialEntityDefinition } from '../entity';
-import type { CelestialClassification } from '../cartography/reticleGeometry';
+import type { CelestialClassification } from '../../../types/spatial';
 import type { PlanetRecord, SatelliteRecord } from '../../../types/astro';
 import { getCachedDetailRecord } from '../../../data/detailsRepository';
 import {
@@ -26,6 +26,8 @@ export interface PlanetSceneProps {
   onSelectEntity?: (entityId: string | null) => void;
   debugHitarea?: boolean;
 }
+
+const DEFAULT_SATELLITE_RADIUS_EARTH = 0.272;
 
 /**
  * PlanetScene: Canonical production scene for planetary body inspection.
@@ -88,7 +90,7 @@ export const PlanetScene: React.FC<PlanetSceneProps> = ({
           name: sat.name,
           classification: satClassification,
           position: [satX, satY, satZ],
-          bodyRadius: (sat.radiusEarth ?? 0.272) * radius,
+          bodyRadius: (sat.radiusEarth ?? DEFAULT_SATELLITE_RADIUS_EARTH) * radius,
           orbit: {
             semiMajorAxis: satSemiMajorAxis,
             eccentricity: sat.orbit.eccentricity,

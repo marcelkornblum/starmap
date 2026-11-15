@@ -1,6 +1,6 @@
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
-import { classifyPlanet } from '../cartography/reticleGeometry';
+import { classifyPlanetPhysical as classifyPlanet } from '../../../utils/planetaryPhysics';
 import { resolveCorpusEntryComposition } from '../../../services/details/detailsComposition';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import { calculateKeplerianPosition } from '../math/kepler';

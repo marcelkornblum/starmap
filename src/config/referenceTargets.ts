@@ -77,23 +77,14 @@ export interface DefaultOriginTargets {
   readonly galacticOriginCoordinates: readonly [number, number, number];
 }
 
-// guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)
 const SOL_ID = 'sol';
-// guard-disable-next-line G-literals -- compact wire discriminator tag (DEC-GBZ-004)
 export const COMPACT_SOLAR_BODY_TAG = 'sol' as const;
-// guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)
 const SOL_NAME = 'Sol';
-// guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)
 const EARTH_ID = 'earth';
-// guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)
 const EARTH_NAME = 'Earth';
-// guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)
 const TAU_CETI_ID = 'tau-ceti';
-// guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)
 const TAU_CETI_NAME = 'Tau Ceti';
-// guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)
 const TAU_CETI_E_ID = 'tau-ceti-e';
-// guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)
 const TAU_CETI_E_NAME = 'Tau Ceti e';
 
 export const SOL_REFERENCE_TARGET: SolReferenceTarget = {
@@ -117,7 +108,7 @@ export const SOL_REFERENCE_TARGET: SolReferenceTarget = {
     },
     stellarMagnitude: {
       value: '-26.74 V / +4.83 M_V',
-      familiar: 'Brightest celestial body from Earth', // guard-disable-line G-literals -- educational reference target baseline (DEC-R033)
+      familiar: 'Brightest celestial body from Earth',
     },
     stellarMass: {
       value: '1.00 M☉',
@@ -160,7 +151,7 @@ export const EARTH_REFERENCE_TARGET: EarthReferenceTarget = {
     },
     orbitalPeriod: {
       value: '365.25 d',
-      familiar: '1.00 Earth year (12 months)', // guard-disable-line G-literals -- educational reference target baseline (DEC-R033)
+      familiar: '1.00 Earth year (12 months)',
     },
     orbitalInclination: {
       value: '0.00°',
@@ -168,7 +159,7 @@ export const EARTH_REFERENCE_TARGET: EarthReferenceTarget = {
     },
     planetaryMass: {
       value: '1.00 M⊕',
-      familiar: '5.972 × 10²⁴ kg (1.0× Earth mass)', // guard-disable-line G-literals -- educational reference target baseline (DEC-R033)
+      familiar: '5.972 × 10²⁴ kg (1.0× Earth mass)',
     },
     planetaryRadius: {
       value: '1.00 R⊕',

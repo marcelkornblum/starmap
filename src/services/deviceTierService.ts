@@ -5,6 +5,13 @@
  * based on device capabilities (CPU cores, memory, WebGL constraints, saveData).
  */
 
+import {
+  TIER_PROFILE_RECORDS,
+  resolveApertureCutoffForViewportWidth,
+  probeNavigatorHardwareCapabilities,
+  classifyHardwareTier,
+} from './deviceTierProfiles';
+
 export type DevicePerformanceTier = 'tier1' | 'tier2' | 'tier3';
 
 export interface DeviceCapabilitiesInput {
@@ -49,135 +56,32 @@ export interface CeilingCameraDistanceOptions {
 export const ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER = 2.25;
 export const MEAN_CATALOG_STARS_PER_CUBIC_PC = 751.5 / (25 * 25 * 25);
 
+export const DEFAULT_REFERENCE_APERTURE_RADIUS_PC = 10;
+export const DEFAULT_REFERENCE_CAMERA_DISTANCE_PC = 34.9;
+export const DEFAULT_MIN_CAMERA_DISTANCE_PC = 1;
+
 export const APERTURE_ACTIVE_CUTOFF_MOBILE = 40;
 export const APERTURE_ACTIVE_CUTOFF_TABLET = 60;
 export const APERTURE_ACTIVE_CUTOFF_DESKTOP = 96;
 
 export function getApertureActiveCutoffForViewportWidth(widthPx?: number): number {
-  const resolvedWidth =
-    widthPx !== undefined && Number.isFinite(widthPx) && widthPx > 0
-      ? widthPx
-      : typeof globalThis !== 'undefined' &&
-          typeof (globalThis as { innerWidth?: number }).innerWidth === 'number' &&
-          (globalThis as { innerWidth: number }).innerWidth > 0
-        ? (globalThis as { innerWidth: number }).innerWidth
-        : 1440;
-
-  if (resolvedWidth <= 767) {
-    return APERTURE_ACTIVE_CUTOFF_MOBILE;
-  }
-  if (resolvedWidth < 1024) {
-    return APERTURE_ACTIVE_CUTOFF_TABLET;
-  }
-  return APERTURE_ACTIVE_CUTOFF_DESKTOP;
+  return resolveApertureCutoffForViewportWidth(widthPx);
 }
 
 export const DEVICE_TIER_BUDGETS: Readonly<Record<DevicePerformanceTier, DeviceTierBudget>> = {
-  tier1: {
-    tier: 'tier1',
-    maxActivePoints: 75_000,
-    maxActiveEntities: 450,
-    maxBufferBytes: 1_572_864, // 1.5 MB
-    maxActiveSectors: 12,
-    lruCacheMaxSectors: 16,
-    prefetchRingRadius: 1,
-    maxCameraDistancePc: 75,
-    maxGpuUploadsPerFrame: 1,
-  },
-  tier2: {
-    tier: 'tier2',
-    maxActivePoints: 200_000,
-    maxActiveEntities: 750,
-    maxBufferBytes: 5_242_880, // 5.0 MB
-    maxActiveSectors: 27,
-    lruCacheMaxSectors: 40,
-    prefetchRingRadius: 2,
-    maxCameraDistancePc: 150,
-    maxGpuUploadsPerFrame: 2,
-  },
-  tier3: {
-    tier: 'tier3',
-    maxActivePoints: 350_000,
-    maxActiveEntities: 1200,
-    maxBufferBytes: 15_728_640, // 15.0 MB
-    maxActiveSectors: 64,
-    lruCacheMaxSectors: 80,
-    prefetchRingRadius: 2,
-    maxCameraDistancePc: 375,
-    maxGpuUploadsPerFrame: 2,
-  },
+  tier1: { tier: 'tier1', ...TIER_PROFILE_RECORDS.tier1 },
+  tier2: { tier: 'tier2', ...TIER_PROFILE_RECORDS.tier2 },
+  tier3: { tier: 'tier3', ...TIER_PROFILE_RECORDS.tier3 },
 } as const;
 
-interface NetworkInformationLike {
-  readonly saveData?: boolean;
-}
-
-interface NavigatorCapabilitiesLike {
-  readonly deviceMemory?: number;
-  readonly hardwareConcurrency?: number;
-  readonly connection?: NetworkInformationLike;
-}
-
-/**
- * Safely probes browser hardware capabilities, handling SSR and missing APIs cleanly.
- */
 export function probeBrowserDeviceCapabilities(): DeviceCapabilitiesInput {
-  if (
-    typeof globalThis === 'undefined' ||
-    typeof globalThis.navigator === 'undefined' ||
-    globalThis.navigator === null
-  ) {
-    return {};
-  }
-
-  try {
-    const nav = globalThis.navigator as unknown as NavigatorCapabilitiesLike;
-    return {
-      ...(typeof nav.deviceMemory === 'number' ? { deviceMemory: nav.deviceMemory } : {}),
-      ...(typeof nav.hardwareConcurrency === 'number'
-        ? { hardwareConcurrency: nav.hardwareConcurrency }
-        : {}),
-      ...(typeof nav.connection?.saveData === 'boolean'
-        ? { saveData: nav.connection.saveData }
-        : {}),
-    };
-  } catch {
-    return {};
-  }
+  return probeNavigatorHardwareCapabilities();
 }
 
-/**
- * Classifies device performance tier based on hardware capabilities and WebGL constraints.
- */
 export function classifyDeviceTier(input?: DeviceCapabilitiesInput): DevicePerformanceTier {
-  const caps = input ?? probeBrowserDeviceCapabilities();
-
-  // Low-resource or constrained environment downgrades immediately to tier1
-  if (
-    caps.saveData === true ||
-    (caps.deviceMemory !== undefined && caps.deviceMemory <= 4) ||
-    (caps.hardwareConcurrency !== undefined && caps.hardwareConcurrency <= 4) ||
-    (caps.maxTextureSize !== undefined && caps.maxTextureSize < 4096) ||
-    (caps.maxVertexAttribs !== undefined && caps.maxVertexAttribs < 16)
-  ) {
-    return 'tier1';
-  }
-
-  // Tier 3 requires 8+ GB RAM (or unknown in privacy-preserving browsers), 8+ cores, and adequate WebGL
-  const hasAdequateMemory = caps.deviceMemory === undefined || caps.deviceMemory >= 8;
-  const hasAdequateCores = caps.hardwareConcurrency !== undefined && caps.hardwareConcurrency >= 8;
-  const hasAdequateTexture = caps.maxTextureSize === undefined || caps.maxTextureSize >= 8192;
-
-  if (hasAdequateMemory && hasAdequateCores && hasAdequateTexture) {
-    return 'tier3';
-  }
-
-  return 'tier2';
+  return classifyHardwareTier(input ?? probeBrowserDeviceCapabilities());
 }
 
-/**
- * Returns the exact memory and point budget for a given tier or capabilities input.
- */
 export function getDeviceTierBudget(
   inputOrTier?: DevicePerformanceTier | DeviceCapabilitiesInput,
 ): DeviceTierBudget {
@@ -187,14 +91,9 @@ export function getDeviceTierBudget(
   ) {
     return DEVICE_TIER_BUDGETS[inputOrTier];
   }
-
-  const tier = classifyDeviceTier(inputOrTier);
-  return DEVICE_TIER_BUDGETS[tier];
+  return DEVICE_TIER_BUDGETS[classifyDeviceTier(inputOrTier)];
 }
 
-/**
- * Estimates the minimum number of cubic sectors required to encompass a sphere of cameraDistancePc.
- */
 export function estimateRequiredSectorsForDistance(
   cameraDistancePc: number,
   sectorSizePc = 25,
@@ -209,9 +108,6 @@ export function estimateRequiredSectorsForDistance(
   return Math.max(1, Math.ceil(sphericalVolume / sectorVolume));
 }
 
-/**
- * Derives the maximum safe camera distance (in parsecs) based on the tier's memory and sector budgets.
- */
 export function computeMaxSafeCameraDistancePc(
   budget: DeviceTierBudget,
   options?: CameraDistanceBudgetOptions,
@@ -232,7 +128,7 @@ export function computeMaxSafeCameraDistancePc(
   const minDistancePc =
     rawMinDist !== undefined && Number.isFinite(rawMinDist) && rawMinDist > 0
       ? rawMinDist
-      : 1;
+      : DEFAULT_MIN_CAMERA_DISTANCE_PC;
 
   const maxSectorsFromMemory = Math.floor(budget.maxBufferBytes / avgBytesPerSector);
   const maxSectors = Math.max(1, Math.min(budget.maxActiveSectors, maxSectorsFromMemory));
@@ -241,18 +137,14 @@ export function computeMaxSafeCameraDistancePc(
   return Math.min(budget.maxCameraDistancePc, Math.max(minDistancePc, rawDist));
 }
 
-/**
- * Computes the active entity ceiling camera distance, capped at 2.25x zoom out multiplier
- * and bounded by the tier's max safe camera distance.
- */
 export function computeCeilingMaxCameraDistancePc(
   budget: DeviceTierBudget,
   options?: CeilingCameraDistanceOptions,
 ): number {
-  const refApertureRadius = options?.referenceApertureRadiusPc ?? 10;
-  const refCameraDist = options?.referenceCameraDistancePc ?? 34.9;
+  const refApertureRadius = options?.referenceApertureRadiusPc ?? DEFAULT_REFERENCE_APERTURE_RADIUS_PC;
+  const refCameraDist = options?.referenceCameraDistancePc ?? DEFAULT_REFERENCE_CAMERA_DISTANCE_PC;
   const zoomMultiplier = options?.zoomOutMultiplier ?? ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER;
-  const minDistancePc = options?.minDistancePc ?? 1;
+  const minDistancePc = options?.minDistancePc ?? DEFAULT_MIN_CAMERA_DISTANCE_PC;
 
   const maxSafe = computeMaxSafeCameraDistancePc(budget, { minDistancePc: options?.minDistancePc });
 
@@ -275,10 +167,6 @@ export function computeCeilingMaxCameraDistancePc(
   return Math.min(maxSafe, Math.max(minDistancePc, cappedDist));
 }
 
-/**
- * Clamps a requested camera distance to the safe memory budget range, locking out zoom-out
- * if memory is currently saturated.
- */
 export function clampCameraDistanceToMemoryBudget(
   requestedDistancePc: number,
   budget: DeviceTierBudget,
@@ -288,7 +176,7 @@ export function clampCameraDistanceToMemoryBudget(
   const minDistancePc =
     rawMinDist !== undefined && Number.isFinite(rawMinDist) && rawMinDist > 0
       ? rawMinDist
-      : 1;
+      : DEFAULT_MIN_CAMERA_DISTANCE_PC;
   const maxSafe = computeMaxSafeCameraDistancePc(budget, options);
 
   let sanitizedRequested = requestedDistancePc;
@@ -310,9 +198,6 @@ export function clampCameraDistanceToMemoryBudget(
   return Math.min(maxSafe, Math.max(minDistancePc, sanitizedRequested));
 }
 
-/**
- * Returns true if an additional sector can be allocated without exceeding sector or byte limits.
- */
 export function canAllocateSector(
   budget: DeviceTierBudget,
   currentActiveSectors: number,
@@ -320,12 +205,9 @@ export function canAllocateSector(
   nextSectorBytes: number,
 ): boolean {
   if (
-    !Number.isFinite(currentActiveSectors) ||
-    currentActiveSectors < 0 ||
-    !Number.isFinite(currentAllocatedBytes) ||
-    currentAllocatedBytes < 0 ||
-    !Number.isFinite(nextSectorBytes) ||
-    nextSectorBytes < 0
+    !Number.isFinite(currentActiveSectors) || currentActiveSectors < 0 ||
+    !Number.isFinite(currentAllocatedBytes) || currentAllocatedBytes < 0 ||
+    !Number.isFinite(nextSectorBytes) || nextSectorBytes < 0
   ) {
     return false;
   }

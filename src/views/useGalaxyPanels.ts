@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../types/spatial';
 import { buildJourneyPlan } from '../services/journey/journeyBuilder';
 import {
   extractUrlJourneyOptionId,

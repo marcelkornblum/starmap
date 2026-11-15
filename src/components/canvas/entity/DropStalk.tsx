@@ -5,10 +5,10 @@ import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoHairlineMaterial } from '../materials/CartoLineMaterial';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
+import type { CelestialClassification } from '../../../types/spatial';
 import {
   createReticleGeometry,
   DEFAULT_RETICLE_SIZE,
-  type CelestialClassification,
 } from '../cartography/reticleGeometry';
 import { resolveEntityScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';

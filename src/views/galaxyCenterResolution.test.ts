@@ -5,7 +5,7 @@ import {
   resolveGalaxyCenterCoordinates,
   type ResolveGalaxyCenterCoordinatesParams,
 } from './galaxyCenterResolution';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../types/spatial';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 describe('galaxyCenterResolution (unit:node)', () => {

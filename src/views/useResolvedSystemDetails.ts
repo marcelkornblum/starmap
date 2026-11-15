@@ -3,7 +3,7 @@ import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
 } from '../components/canvas/entity/SpatialEntityContext';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../types/spatial';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
 import { useSystemData } from '../hooks/useSystemData';

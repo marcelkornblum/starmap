@@ -58,27 +58,27 @@
 
 ## Phase 4: Canvas Decomposition & Zero-Baseline Cutover
 
-- [ ] Task 4.1 (Guard Heuristic Refinement — `G-literals`):
+- [x] Task 4.1 (Guard Heuristic Refinement — `G-literals`):
   - Refine AST literal matching in `scripts/audit-guards.ts` to recognise benign math/transform constants (`0`, `1`, `-1`, `2 * Math.PI`, bitmask shifts `1 << n`) while strictly catching real celestial magic numbers.
   - Verify `G-literals` baseline drops cleanly without false positives.
-- [ ] Task 4.2 (React Compiler & Hook Warnings Resolution):
+- [x] Task 4.2 (React Compiler & Hook Warnings Resolution):
   - Resolve `react(refs)` in `CelestialEntity.tsx`, `CameraRig.tsx`, `SectorPointCloud.tsx`, and `.storybook/helpers/StoryCanvas.tsx`.
   - Resolve `react(set-state-in-effect)` in `CelestialEntity.tsx`.
   - Resolve `react(immutability)` in `ScreenEdgeCue.tsx`, `PlanarGrid.tsx`, and `SectorPointCloud.tsx`.
   - Resolve `react-hooks(exhaustive-deps)` in `useLayerData.ts`, `useThemeTokenSync.ts`, and `useCameraTransition.ts`.
   - Verify zero warnings across overlay primitives (`SearchRoot.tsx`, `Tooltip.tsx`, `Modal.tsx`, `Popover.tsx`, `Toast.tsx`, `Drawer.tsx`, `DetentSheet.tsx`).
-- [ ] Task 4.3 (3D Canvas Decomposition):
+- [x] Task 4.3 (3D Canvas Decomposition):
   - Decompose `src/components/canvas/entity/**`: `CelestialEntity.tsx`, `OrbitPath.tsx`, `SectorPointCloud.tsx`, and `SpatialEntityStore.ts`.
   - Decompose `src/components/canvas/instrument/**`: `CoordinateFins.tsx`, `PlanarGrid.tsx`, `CameraRig.tsx`, and `cameraRigControls.ts`.
   - Decompose `src/components/canvas/scenes/**`: `SpatialScenes.tsx`, `SystemScene.tsx`, and `PlanetScene.tsx`.
   - Decompose `src/components/canvas/viewport/**`: `SpatialViewport.tsx`.
   - Decompose `src/components/canvas/cartography/**` & materials: `cartographyMath.ts`, `celestialOcclusionRegistry.ts`, `reticleGeometry.ts`, and `CartoLineMaterial.ts`.
   - Ensure every component and helper is ≤ 300 lines with colocated R3F tests.
-- [ ] Task 4.4 (Zero-Baseline Cutover):
+- [x] Task 4.4 (Zero-Baseline Cutover):
   - Empty `scripts/guards/baseline.json` to 0 entries.
   - Run `npm run audit:guards` to verify 0 violations and 0 baseline entries.
   - Enforce strict downward-only CI check.
-- [ ] Task 4.5: Phase Verification & Checkpoint.
+- [x] Task 4.5: Phase Verification & Checkpoint.
 
 ---
 

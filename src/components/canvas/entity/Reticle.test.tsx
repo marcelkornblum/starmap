@@ -3,7 +3,7 @@ import ReactThreeTest from '@react-three/test-renderer';
 import { Reticle } from './Reticle';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
-import type { CelestialClassification } from '../cartography/reticleGeometry';
+import type { CelestialClassification } from '../../../types/spatial';
 
 describe('Reticle Primitive (Layer 2: Tactical Geometric Reticle)', () => {
   it('renders basic geometric diamond frame for single star without multiplicity annotations in active state', async () => {

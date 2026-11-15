@@ -108,6 +108,52 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
       const diags = auditLiteralsContent('src/services/astroService.ts', code, mockCatalog);
       expect(diags).toEqual([]);
     });
+
+    it('exempts files in src/config/ from G-literals checks', () => {
+      const code = `
+        export const SOL_ID = 'sol';
+        export const SOL_NAME = 'Sol';
+      `;
+      const diags = auditLiteralsContent('src/config/referenceTargets.ts', code, mockCatalog);
+      expect(diags).toEqual([]);
+    });
+
+    it('exempts wire discriminator comparisons (record.t === "sol", record.t !== "sol")', () => {
+      const code = `
+        export const isSolar = (record: { t: string }) => {
+          return record.t === 'sol' || record?.t !== 'earth';
+        };
+      `;
+      const diags = auditLiteralsContent('src/utils/compactDataCodec.ts', code, mockCatalog);
+      expect(diags).toEqual([]);
+    });
+
+    it('permits multiplicative identity fallback (1 / -1) when LHS has no telemetry identifier', () => {
+      const code = `
+        export const getRenderSettings = (rawOpacity?: number, rawZoom?: number) => {
+          const opacity = rawOpacity ?? 1;
+          const zoom = rawZoom || 1;
+          return { opacity, zoom };
+        };
+      `;
+      const diags = auditLiteralsContent('src/services/renderService.ts', code, mockCatalog);
+      expect(diags).toEqual([]);
+    });
+
+    it('flags multiplicative identity fallback (1 / -1) when LHS contains an astronomical telemetry identifier', () => {
+      const code = `
+        export const getPlanetProps = (planet: { radiusEarth?: number }, rawMass?: number) => {
+          const radius = planet.radiusEarth ?? 1;
+          const mass = rawMass || 1;
+          return { radius, mass };
+        };
+      `;
+      const diags = auditLiteralsContent('src/services/astroService.ts', code, mockCatalog);
+      expect(diags.length).toBe(2);
+      expect(diags.every((d) => d.ruleId === 'G-literals')).toBe(true);
+      expect(diags.some((d) => d.snippet?.includes('planet.radiusEarth ?? 1'))).toBe(true);
+      expect(diags.some((d) => d.snippet?.includes('rawMass || 1'))).toBe(true);
+    });
   });
 
   describe('G-imports: Layer Boundary Hierarchy & Cycle Detection (DEC-R012)', () => {
@@ -231,19 +277,24 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
       expect(diagsView[0].ruleId).toBe('G-size');
     });
 
-    it('flags service or util files exceeding 500 lines', () => {
-      const diagsServ = auditFileSize('src/services/BigService.ts', 550);
-      expect(diagsServ).toHaveLength(1);
-      expect(diagsServ[0].ruleId).toBe('G-size');
+    it('enforces universal 300-line ceiling across all production files in src/', () => {
+      expect(auditFileSize('src/services/BigService.ts', 301)).toHaveLength(1);
+      expect(auditFileSize('src/utils/BigUtil.ts', 305)).toHaveLength(1);
+      expect(auditFileSize('src/hooks/BigHook.ts', 301)).toHaveLength(1);
+      expect(auditFileSize('src/types/BigTypes.ts', 301)).toHaveLength(1);
+      expect(auditFileSize('src/components/BigComponent.tsx', 301)).toHaveLength(1);
+      expect(auditFileSize('src/views/BigView.tsx', 301)).toHaveLength(1);
 
-      const diagsUtil = auditFileSize('src/utils/BigUtil.ts', 505);
-      expect(diagsUtil).toHaveLength(1);
-      expect(diagsUtil[0].ruleId).toBe('G-size');
-    });
+      // Excluded
+      expect(auditFileSize('src/services/BigService.test.ts', 500)).toEqual([]);
+      expect(auditFileSize('src/components/BigComponent.stories.tsx', 500)).toEqual([]);
+      expect(auditFileSize('src/prototypes/PrototypeView.tsx', 500)).toEqual([]);
+      expect(auditFileSize('src/components/prototypes/PrototypePanel.tsx', 500)).toEqual([]);
+      expect(auditFileSize('scripts/audit-guards.ts', 900)).toEqual([]);
 
-    it('permits files within limits', () => {
-      expect(auditFileSize('src/components/Normal.tsx', 250)).toEqual([]);
-      expect(auditFileSize('src/services/NormalService.ts', 450)).toEqual([]);
+      // Within limit
+      expect(auditFileSize('src/services/NormalService.ts', 250)).toEqual([]);
+      expect(auditFileSize('src/utils/NormalUtil.ts', 250)).toEqual([]);
     });
   });
 

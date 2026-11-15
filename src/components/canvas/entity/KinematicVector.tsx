@@ -4,10 +4,8 @@ import { useFrame } from '@react-three/fiber';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
-import {
-  CartoLineMaterial,
-  CARTO_LINE_CONSTANTS,
-} from '../materials/CartoLineMaterial';
+import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
+import { CartoLineMaterial } from '../materials/CartoLineMaterial';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { calculateScreenInvariantScale } from '../engineConfig';
 import type { CelestialInteractionState } from './types';

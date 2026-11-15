@@ -6,7 +6,7 @@ import storyCanvasStyles from '../../../../.storybook/helpers/StoryCanvas.module
 import { CameraRig } from './CameraRig';
 import { SpatialFrameProvider, GALACTIC_FRAME, SYSTEM_FRAME, PlanarGrid } from './index';
 import { useCameraStore } from '../../../stores/useCameraStore';
-import type { CardinalDirection } from '../math/cameraMath';
+import type { CardinalDirection } from '../../../types/spatial';
 
 const meta: Meta<typeof CameraRig> = {
   title: 'CANVAS/Instrument',

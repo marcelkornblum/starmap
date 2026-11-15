@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { InteractiveNavigator } from './SpatialScenes';
+import { InteractiveNavigator } from './InteractiveNavigator';
 import styles from '../../../../.storybook/helpers/StoryCanvas.module.css';
 
 const meta: Meta<typeof InteractiveNavigator> = {

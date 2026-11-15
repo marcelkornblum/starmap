@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { SpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../types/spatial';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
 

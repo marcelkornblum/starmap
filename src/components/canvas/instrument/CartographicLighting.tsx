@@ -2,6 +2,10 @@ import React from 'react';
 import * as THREE from 'three';
 import { useSpatialFrameSafe } from './spatialFrameContext';
 import type { FrameLightingConfig } from './referenceFrame';
+import {
+  DEFAULT_AMBIENT_INTENSITY,
+  DEFAULT_DIRECTIONAL_INTENSITY,
+} from './instrumentDefaults';
 
 export interface CartographicLightingProps {
   ambientIntensity?: number;
@@ -32,7 +36,7 @@ export const CartographicLighting: React.FC<CartographicLightingProps> = ({
     lightingOverride?.ambientIntensity ??
     propAmbInt ??
     frameLighting?.ambientIntensity ??
-    0.6;
+    DEFAULT_AMBIENT_INTENSITY;
 
   const ambientColor =
     lightingOverride?.ambientColor ??
@@ -44,7 +48,7 @@ export const CartographicLighting: React.FC<CartographicLightingProps> = ({
     lightingOverride?.directionalIntensity ??
     propDirInt ??
     frameLighting?.directionalIntensity ??
-    0.4;
+    DEFAULT_DIRECTIONAL_INTENSITY;
 
   const directionalColor =
     lightingOverride?.directionalColor ??

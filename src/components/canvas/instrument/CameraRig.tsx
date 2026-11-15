@@ -1,26 +1,14 @@
-import React, { useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useThree } from '@react-three/fiber';
 import { useSpatialFrame } from './spatialFrameContext';
-import { FRAME_PRIORITY } from '../engineConfig';
-import {
-  CardinalTransitionController,
-  applyOrthographicLock,
-  releaseOrthographicLock,
-  handleDiscreteSnapOnEnd,
-  syncControlsDistance,
-  resetPerspectiveCamera,
-  orientRadialPerspectiveCamera,
-  type OrbitControlsLike,
-} from './cameraRigControls';
-import {
-  type CardinalDirection,
-  getCardinalDirectionFromVector,
-  synchronizePerspectiveWithOrtho,
-} from '../math/cameraMath';
 import { useCameraStore } from '../../../stores/useCameraStore';
-import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { useLazyRef } from '../../../hooks/useLazyRef';
+import {
+  releaseOrthographicLock,
+  type OrbitControlsLike,
+} from './cameraRigZoomAndPan';
+import { useCameraRigProjection } from './useCameraRigProjection';
+import { useCameraRigStoreSync } from './useCameraRigStoreSync';
 
 const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
 
@@ -64,454 +52,59 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   const get = useMemo(() => threeState.get ?? (() => threeState), [threeState]);
   const { frame } = useSpatialFrame();
 
-  const configuredBaseFov = explicitBaseFov ?? frame.camera.baseFov ?? 45;
-  const snapThresholdRad = (snapThresholdDeg * Math.PI) / 180;
-
-  const controllerRef = useLazyRef(() => new CardinalTransitionController());
-
-  // Maintain persistent perspective and orthographic camera instances
-  const perspCamRef = useRef<THREE.PerspectiveCamera | null>(
-    camera instanceof THREE.PerspectiveCamera ? camera : null,
-  );
-  useEffect(() => {
-    if (camera instanceof THREE.PerspectiveCamera) {
-      perspCamRef.current = camera;
-    }
-  }, [camera]);
-  const orthoCamRef = useLazyRef(() => new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 2000));
-
-  const controlsMax = controls?.maxDistance;
-  const frameMax = frame.camera.maxDistance;
-  const hasStricterMax =
-    typeof controlsMax === 'number' &&
-    Number.isFinite(controlsMax) &&
-    controlsMax > 0 &&
-    typeof frameMax === 'number' &&
-    controlsMax < frameMax;
-
-  const resolvedMaxDistance =
-    hasStricterMax && typeof controlsMax === 'number' && typeof frameMax === 'number'
-      ? Math.min(controlsMax, frameMax)
-      : frameMax;
-
-  const resolvedMinDistance = hasStricterMax
-    ? Math.max(controls?.minDistance ?? 0, frame.camera.minDistance ?? 0)
-    : frame.camera.minDistance;
-
-  // Controls distance constraints synchronisation (immediate for SSR & runtime)
-  syncControlsDistance(controls, resolvedMinDistance, resolvedMaxDistance);
-
-  useEffect(() => {
-    if (!controls) return;
-    const prevMin = controls.minDistance;
-    const prevMax = controls.maxDistance;
-
-    syncControlsDistance(controls, resolvedMinDistance, resolvedMaxDistance);
-
-    return () => {
-      syncControlsDistance(controls, prevMin, prevMax);
-    };
-  }, [controls, resolvedMinDistance, resolvedMaxDistance]);
-
-  const persistentTargetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
-  const justUnlockedRef = useRef<boolean>(false);
-
-  // Hook into camera store & settings store
-  const isLocked = useCameraStore((s) => s.isLocked);
-  const pendingAxisRequest = useCameraStore((s) => s.pendingAxisRequest);
-  const pendingPresetRequest = useCameraStore((s) => s.pendingPresetRequest);
-  const enableOrthographicProjection = useSettingsStore(
-    (s) => s.enableOrthographicProjection,
-  );
-  const projection = useSettingsStore((s) => s.projection);
-  const isOrthoProjectionActive = projection === 'top-down' || enableOrthographicProjection;
-
-  const isOrthoAllowed = useCallback(() => {
-    const s = useSettingsStore.getState();
-    return s.enableOrthographicProjection || s.projection === 'top-down';
-  }, []);
-
-  // Lock to true orthographic camera
-  const lockToOrthographic = useCallback(
-    (cardinal?: CardinalDirection) => {
-      if (!isOrthoAllowed()) return;
-      const state = get();
-      const currentCamera = state.camera;
-      const perspCam = perspCamRef.current ?? (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
-      const orthoCam = orthoCamRef.current;
-      if (!perspCam || !orthoCam) return;
-
-      const currentControls = (state as { controls?: OrbitControlsLike }).controls;
-      const target = currentControls?.target ? persistentTargetRef.current.copy(currentControls.target) : persistentTargetRef.current;
-      const width = state.size?.width ?? 1920;
-      const height = state.size?.height ?? 1080;
-      const aspect = width / Math.max(height, 1);
-
-      applyOrthographicLock(perspCam, orthoCam, target, aspect, currentControls);
-      state.set?.({ camera: orthoCam });
-      useCameraStore.getState().setLocked(true);
-      useCameraStore.getState().setMode('orthographic');
-
-      const camDir = new THREE.Vector3().copy(perspCam.position).sub(target).normalize();
-      const effectiveCardinal = cardinal ?? getCardinalDirectionFromVector(camDir);
-      useCameraStore.getState().setActiveCardinal(effectiveCardinal);
-
-      state.invalidate?.();
-    },
-    [get, isOrthoAllowed, orthoCamRef],
-  );
-
-  // Restore to standard 3D perspective camera
-  const unlockFromOrthographic = useCallback(() => {
-    const state = get();
-    const perspCam = perspCamRef.current;
-    const orthoCam = orthoCamRef.current;
-    if (!perspCam || !orthoCam) return;
-
-    const currentControls = (state as { controls?: OrbitControlsLike }).controls;
-    const target = currentControls?.target
-      ? persistentTargetRef.current.copy(currentControls.target)
-      : persistentTargetRef.current;
-
-    releaseOrthographicLock(orthoCam, perspCam, target, configuredBaseFov, currentControls);
-    state.set?.({ camera: perspCam });
-    useCameraStore.getState().setLocked(false);
-    useCameraStore.getState().setActiveCardinal(null);
-    useCameraStore.getState().setMode('perspective');
-    useCameraStore.getState().setCameraTransform(
-      [perspCam.position.x, perspCam.position.y, perspCam.position.z],
-      [target.x, target.y, target.z],
-    );
-    justUnlockedRef.current = true;
-    state.invalidate?.();
-  }, [get, configuredBaseFov, orthoCamRef]);
-
-  // Glide to a designated cardinal axis
-  const glideToCardinal = useCallback(
-    (cardinal: CardinalDirection) => {
-      if (!isOrthoAllowed()) return;
-      const state = get();
-      const currentCamera = state.camera;
-      const perspCam = perspCamRef.current ?? (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
-      if (!perspCam) return;
-
-      const currentControls = (state as { controls?: OrbitControlsLike }).controls;
-      const target = currentControls?.target ?? FALLBACK_TARGET;
-
-      if (currentCamera instanceof THREE.OrthographicCamera && orthoCamRef.current) {
-        synchronizePerspectiveWithOrtho(orthoCamRef.current, perspCam, target, configuredBaseFov);
-        state.set?.({ camera: perspCam });
-        useCameraStore.getState().setLocked(false);
-        useCameraStore.getState().setMode('perspective');
-      }
-
-      controllerRef.current.start(
-        perspCam,
-        target,
-        cardinal,
-        snapDuration,
-        () => {
-          if (isOrthoAllowed()) {
-            lockToOrthographic(cardinal);
-          }
-        },
-        performance.now(),
-        currentControls,
-      );
-      state.invalidate?.();
-    },
-    [
-      get,
-      snapDuration,
-      configuredBaseFov,
-      controllerRef,
-      isOrthoAllowed,
-      lockToOrthographic,
-      orthoCamRef,
-    ],
-  );
-
-  // Handle programmatic axis request from store
-  useEffect(() => {
-    if (!pendingAxisRequest) return;
-    useCameraStore.getState().clearAxisRequest();
-    if (!isOrthoAllowed()) return;
-    glideToCardinal(pendingAxisRequest);
-  }, [pendingAxisRequest, isOrthoAllowed, glideToCardinal]);
-
-  // Handle programmatic preset requests
-  useEffect(() => {
-    if (!pendingPresetRequest) return;
-    const preset = pendingPresetRequest;
-    useCameraStore.getState().clearPresetRequest();
-
-    const state = get();
-    const activeControls = (state as { controls?: OrbitControlsLike }).controls;
-
-    switch (preset) {
-      case 'top-down':
-        if (isOrthoAllowed()) {
-          glideToCardinal('top');
-        }
-        break;
-
-      case 'reset': {
-        const defaultPos = frame.camera.defaultPosition ?? [0, -35, 20];
-        const defaultTgt = frame.camera.defaultTarget ?? [0, 0, 0];
-        const currentCamera = state.camera;
-        const perspCam =
-          perspCamRef.current ??
-          (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
-
-        if (currentCamera instanceof THREE.OrthographicCamera && orthoCamRef.current && perspCam) {
-          unlockFromOrthographic();
-        }
-
-        if (perspCam) {
-          resetPerspectiveCamera(perspCam, defaultPos, defaultTgt, configuredBaseFov, activeControls);
-          state.invalidate?.();
-        }
-        break;
-      }
-
-      case 'orbital-lock':
-        if (isOrthoAllowed()) {
-          glideToCardinal('front');
-        }
-        break;
-
-      case 'radial': {
-        const currentCamera = state.camera;
-        const perspCam =
-          perspCamRef.current ??
-          (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
-        if (currentCamera instanceof THREE.OrthographicCamera && orthoCamRef.current && perspCam) {
-          unlockFromOrthographic();
-        }
-
-        const target = activeControls?.target ?? FALLBACK_TARGET;
-        const dist = perspCam ? perspCam.position.distanceTo(target) : 32;
-
-        if (perspCam) {
-          orientRadialPerspectiveCamera(perspCam, target, dist, activeControls);
-          state.invalidate?.();
-        }
-        break;
-      }
-    }
-  }, [
-    pendingPresetRequest,
+  const projection = useCameraRigProjection({
+    camera,
+    controls,
+    sizeWidth,
+    sizeHeight,
     get,
-    isOrthoAllowed,
-    glideToCardinal,
-    unlockFromOrthographic,
-    frame.camera.defaultPosition,
-    frame.camera.defaultTarget,
-    configuredBaseFov,
-    perspCamRef,
-    orthoCamRef,
-  ]);
+    frame,
+    explicitBaseFov,
+    snapThresholdDeg,
+    snapDuration,
+  });
 
-  // If orthographic projection is disabled while locked, immediately unlock
-  useEffect(() => {
-    if (!isOrthoProjectionActive) {
-      if (useCameraStore.getState().isLocked || get().camera === orthoCamRef.current) {
-        unlockFromOrthographic();
-      }
-    }
-  }, [isOrthoProjectionActive, get, unlockFromOrthographic, orthoCamRef]);
-
-  // Handle lock state changes from external store toggle
-  useEffect(() => {
-    const currentCamera = get().camera;
-    if (isLocked) {
-      if (isOrthoAllowed()) {
-        if (currentCamera !== orthoCamRef.current) {
-          lockToOrthographic();
-        }
-      } else {
-        useCameraStore.getState().setLocked(false);
-      }
-    } else {
-      if (currentCamera === orthoCamRef.current) {
-        unlockFromOrthographic();
-      }
-    }
-  }, [isLocked, isOrthoAllowed, get, lockToOrthographic, unlockFromOrthographic, orthoCamRef]);
-
-  // Window resize synchronization for orthographic frustum
-  useEffect(() => {
-    if (!isLocked) return;
-    const orthoCam = orthoCamRef.current;
-    if (!orthoCam) return;
-    const width = sizeWidth ?? 1920;
-    const height = sizeHeight ?? 1080;
-    const aspect = width / Math.max(height, 1);
-    const halfHeight = (orthoCam.top - orthoCam.bottom) / (2 * Math.max(orthoCam.zoom, 1e-4));
-    orthoCam.left = -halfHeight * aspect;
-    orthoCam.right = halfHeight * aspect;
-    orthoCam.updateProjectionMatrix();
-    get().invalidate?.();
-  }, [sizeWidth, sizeHeight, isLocked, get, orthoCamRef]);
-
-  // Camera pose synchronization helper: updates useCameraStore with current position, target, and zoom
-  const syncPoseToStore = useCallback(() => {
-    const currentCam = get().camera ?? camera;
-    if (!currentCam) return;
-    const targetVec = controls?.target ?? persistentTargetRef.current ?? FALLBACK_TARGET;
-    const store = useCameraStore.getState();
-    const currentPos: [number, number, number] = [
-      currentCam.position.x,
-      currentCam.position.y,
-      currentCam.position.z,
-    ];
-    const currentTarget: [number, number, number] = [
-      targetVec.x,
-      targetVec.y,
-      targetVec.z,
-    ];
-    const currentZoom =
-      (currentCam as THREE.OrthographicCamera | THREE.PerspectiveCamera).zoom ?? 1;
-
-    const posDiff = Math.hypot(
-      currentPos[0] - store.position[0],
-      currentPos[1] - store.position[1],
-      currentPos[2] - store.position[2],
-    );
-    const targetDiff = Math.hypot(
-      currentTarget[0] - store.target[0],
-      currentTarget[1] - store.target[1],
-      currentTarget[2] - store.target[2],
-    );
-    const zoomDiff = Math.abs(currentZoom - (store.zoom ?? 1));
-
-    if (posDiff > 1e-3 || targetDiff > 1e-3 || zoomDiff > 1e-3) {
-      store.setCameraTransform(currentPos, currentTarget, currentZoom);
-    }
-  }, [camera, controls, get]);
-
-  // Initial mount pose sync
-  useEffect(() => {
-    syncPoseToStore();
-  }, [syncPoseToStore]);
-
-  // OrbitControls interaction listener: discrete snap-on-release and cancel-on-drag
-  useEffect(() => {
-    if (!controls || typeof controls.addEventListener !== 'function') return;
-
-    const handleStart = () => {
-      if (controllerRef.current.isTransitioning()) {
-        controllerRef.current.cancel();
-      }
-    };
-
-    const handleChange = () => {
-      syncPoseToStore();
-    };
-
-    const handleEnd = () => {
-      syncPoseToStore();
-      if (!snapOnRelease || !isOrthoAllowed()) return;
-      if (useCameraStore.getState().isLocked) return;
-
-      const currentCamera = get().camera;
-      const perspCam = perspCamRef.current ?? currentCamera;
-      const target = controls.target ?? FALLBACK_TARGET;
-      handleDiscreteSnapOnEnd(perspCam, target, snapThresholdRad, (cardinal) => {
-        glideToCardinal(cardinal);
-      });
-    };
-
-    controls.addEventListener('start', handleStart);
-    controls.addEventListener('change', handleChange);
-    controls.addEventListener('end', handleEnd);
-
-    // Initial sync with active controls
-    syncPoseToStore();
-
-    return () => {
-      controls.removeEventListener?.('start', handleStart);
-      controls.removeEventListener?.('change', handleChange);
-      controls.removeEventListener?.('end', handleEnd);
-    };
-  }, [
+  useCameraRigStoreSync({
+    camera,
     controls,
     get,
+    frame,
+    configuredBaseFov: projection.configuredBaseFov,
     snapOnRelease,
-    snapThresholdRad,
-    glideToCardinal,
-    controllerRef,
-    isOrthoAllowed,
-    perspCamRef,
-    syncPoseToStore,
-  ]);
+    snapThresholdRad: projection.snapThresholdRad,
+    controllerRef: projection.controllerRef,
+    perspCamRef: projection.perspCamRef,
+    orthoCamRef: projection.orthoCamRef,
+    persistentTargetRef: projection.persistentTargetRef,
+    justUnlockedRef: projection.justUnlockedRef,
+    isOrthoAllowed: projection.isOrthoAllowed,
+    lockToOrthographic: projection.lockToOrthographic,
+    unlockFromOrthographic: projection.unlockFromOrthographic,
+    glideToCardinal: projection.glideToCardinal,
+  });
 
-  // Frame update loop
-  useFrame((state) => {
-    const activeControls = (state as { controls?: OrbitControlsLike }).controls;
-
-    // Track or restore target across controls recreations
-    if (activeControls?.target) {
-      if (justUnlockedRef.current) {
-        if (activeControls.target.distanceTo(persistentTargetRef.current) > 1e-4) {
-          activeControls.target.copy(persistentTargetRef.current);
-          activeControls.update?.();
-        }
-        justUnlockedRef.current = false;
-      } else {
-        persistentTargetRef.current.copy(activeControls.target);
-      }
-    }
-
-    const updated = controllerRef.current.update(state.camera, activeControls);
-    if (updated) {
-      syncPoseToStore();
-      state.invalidate();
-    }
-
-    // Strict runtime guard: if locked, tilt is completely disabled and left click & single touch are screen-space pan
-    if (isLocked && enableOrthographicProjection && activeControls) {
-      if (activeControls.enableRotate) {
-        activeControls.enableRotate = false;
-      }
-      if ('enablePan' in activeControls && !activeControls.enablePan) {
-        activeControls.enablePan = true;
-      }
-      if ('screenSpacePanning' in activeControls && !activeControls.screenSpacePanning) {
-        activeControls.screenSpacePanning = true;
-      }
-      if (activeControls.mouseButtons && activeControls.mouseButtons.LEFT !== THREE.MOUSE.PAN) {
-        activeControls.mouseButtons.LEFT = THREE.MOUSE.PAN;
-      }
-      if (activeControls.touches && activeControls.touches.ONE !== THREE.TOUCH.PAN) {
-        activeControls.touches.ONE = THREE.TOUCH.PAN;
-      }
-      if (activeControls.object !== orthoCamRef.current && orthoCamRef.current) {
-        activeControls.object = orthoCamRef.current;
-      }
-    }
-  }, FRAME_PRIORITY.cameraRig);
-
-  // Cleanup on unmount: restore perspective and unlock
   useEffect(() => {
-    const controller = controllerRef.current;
-    const orthoCam = orthoCamRef.current;
+    const controller = projection.controllerRef.current;
+    const orthoCam = projection.orthoCamRef.current;
+    const baseFov = projection.configuredBaseFov;
+    const perspCam = projection.perspCamRef;
+
     return () => {
       controller.cancel();
-      if (useCameraStore.getState().isLocked && perspCamRef.current) {
+      if (useCameraStore.getState().isLocked && perspCam.current) {
         const state = get();
         const activeControls = (state as { controls?: OrbitControlsLike }).controls;
         releaseOrthographicLock(
           orthoCam,
-          perspCamRef.current,
+          perspCam.current,
           FALLBACK_TARGET,
-          configuredBaseFov,
+          baseFov,
           activeControls,
         );
-        state.set?.({ camera: perspCamRef.current });
+        state.set?.({ camera: perspCam.current });
       }
     };
-  }, [get, configuredBaseFov, controllerRef, orthoCamRef]);
+  }, [get, projection.configuredBaseFov, projection.controllerRef, projection.orthoCamRef, projection.perspCamRef]);
 
   return null;
 };

@@ -1,4 +1,4 @@
-import type { CelestialClassification } from '../../canvas/cartography/reticleGeometry';
+import type { CelestialClassification } from '../../../types/spatial';
 import { buildStarTypeGuideHref } from '../../../content/guide';
 import {
   Badge,

@@ -6,7 +6,7 @@ import {
   SYSTEM_FRAME,
   PLANETARY_FRAME,
 } from '../instrument/referenceFrame';
-import type { SpatialEntityDefinition } from '../entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../../../types/spatial';
 import { useUIStore } from '../../../stores/useUIStore';
 
 describe('SpatialViewport Composition Root (Phase 4)', () => {

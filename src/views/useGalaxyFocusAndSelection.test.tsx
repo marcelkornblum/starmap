@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useGalaxyFocusAndSelection } from './useGalaxyFocusAndSelection';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../types/spatial';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 describe('useGalaxyFocusAndSelection', () => {

@@ -1,11 +1,11 @@
 import { createContext, useContext } from 'react';
 import { useStore } from 'zustand';
-import {
-  deriveEntityTier,
-  type SpatialEntityStore,
-  type SpatialEntityState,
-  type CelestialInteractionState,
+import type {
+  SpatialEntityStore,
+  SpatialEntityState,
 } from './SpatialEntityStore';
+import type { CelestialInteractionState } from '../../../types/spatial';
+import { deriveEntityTier } from '../math/tiers';
 import { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
 
 export const SpatialEntityStoreContext = createContext<SpatialEntityStore | null>(null);

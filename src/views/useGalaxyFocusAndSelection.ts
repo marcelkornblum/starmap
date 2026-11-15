@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../types/spatial';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
 import { resolveFocusedEntityFromCorpus } from '../services/search/searchSelection';
 import { resolveSelectedSystemsFromUrlSelect } from '../services/search/searchUrlSelectionResolvers';
