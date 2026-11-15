@@ -107,8 +107,14 @@ export function encodeExoplanet(planet: ExoplanetRecord): CompactExoplanet {
     compact.R = planet.radiusRjup;
   }
   if (planet.equilibriumTempK !== undefined) compact.T = planet.equilibriumTempK;
-  if (planet.esi !== undefined) compact.s = Math.round(planet.esi * 1000) / 1000;
-  const surfaceGravityG = planet.surfaceGravityG ?? computePlanetSurfaceGravityG(planet);
+  if (planet.esi !== undefined && Number.isFinite(planet.esi)) {
+    compact.s = Math.round(planet.esi * 1000) / 1000;
+  }
+  const rawSurfaceGravityG = planet.surfaceGravityG ?? computePlanetSurfaceGravityG(planet);
+  const surfaceGravityG =
+    rawSurfaceGravityG !== undefined && Number.isFinite(rawSurfaceGravityG)
+      ? rawSurfaceGravityG
+      : undefined;
   if (surfaceGravityG !== undefined) compact.g = surfaceGravityG;
 
   const hazardMask =

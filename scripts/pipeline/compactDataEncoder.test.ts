@@ -87,6 +87,47 @@ describe('compactDataEncoder & compactEntityEncoder', () => {
     expect(planet.C).toBe(2);
   });
 
+  it('omits compact.g and compact.s when surfaceGravityG or esi is non-finite', () => {
+    const planetWithNaN = encodeExoplanet({
+      id: 'test-planet-nan',
+      name: 'Test Planet NaN',
+      letter: 'b',
+      surfaceGravityG: Number.NaN,
+      esi: Number.NaN,
+    });
+    expect(planetWithNaN.g).toBeUndefined();
+    expect(planetWithNaN.s).toBeUndefined();
+    const serializedNaN = JSON.stringify(planetWithNaN);
+    expect(serializedNaN).not.toContain('"g":');
+    expect(serializedNaN).not.toContain('"s":');
+
+    const planetWithInf = encodeExoplanet({
+      id: 'test-planet-inf',
+      name: 'Test Planet Inf',
+      letter: 'c',
+      surfaceGravityG: Number.POSITIVE_INFINITY,
+      esi: Number.POSITIVE_INFINITY,
+    });
+    expect(planetWithInf.g).toBeUndefined();
+    expect(planetWithInf.s).toBeUndefined();
+    const serializedInf = JSON.stringify(planetWithInf);
+    expect(serializedInf).not.toContain('"g":');
+    expect(serializedInf).not.toContain('"s":');
+
+    const planetWithFinite = encodeExoplanet({
+      id: 'test-planet-finite',
+      name: 'Test Planet Finite',
+      letter: 'd',
+      surfaceGravityG: 1.15,
+      esi: 0.85,
+    });
+    expect(planetWithFinite.g).toBe(1.15);
+    expect(planetWithFinite.s).toBe(0.85);
+    const serializedFinite = JSON.stringify(planetWithFinite);
+    expect(serializedFinite).toContain('"g":1.15');
+    expect(serializedFinite).toContain('"s":0.85');
+  });
+
   it('throws descriptive error if satellite is missing required orbit elements', () => {
     expect(() =>
       encodeSatellite({
