@@ -4,9 +4,11 @@ import { addKeyVariants, getStrippedSystemBaseName, isDuplicateCatalogRecord, me
 import type { ConsolidateMultiStarSystemsParams } from './types';
 
 export function compareComponentsByMagnitude(a: { id: string; mag?: number }, b: { id: string; mag?: number }): number {
-  const finA = a.mag !== undefined && Number.isFinite(a.mag);
-  const finB = b.mag !== undefined && Number.isFinite(b.mag);
-  if (finA && finB && a.mag !== b.mag) return a.mag! - b.mag!;
+  const magA = a.mag;
+  const magB = b.mag;
+  const finA = magA !== undefined && Number.isFinite(magA);
+  const finB = magB !== undefined && Number.isFinite(magB);
+  if (finA && finB && magA !== magB) return magA - magB;
   if (finA !== finB) return finA ? -1 : 1;
   return a.id.localeCompare(b.id);
 }
