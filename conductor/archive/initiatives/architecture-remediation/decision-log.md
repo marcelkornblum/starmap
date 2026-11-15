@@ -728,6 +728,54 @@ Records programme-level and per-track decisions for the architecture remediation
   3. *Option C (Mock R3F Primitives Only):* Mock R3F primitives and test only extracted builders.
 - **Decision:** Option B. Install `@react-three/test-renderer` as a `devDependency` and mount 3D R3F scene-graph components via `@react-three/test-renderer` so `renderToString` and `react-dom` R3F tag/prop warnings are eliminated together.
 
+---
+
+## Track T10 · Closing Audit
+
+### DEC-R058: Track T10 Review Mode (`DEC-R006`)
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** Confirm review mode before executing Track T10 (`architecture-remediation_10_closing-audit_20261106`).
+- **Options Considered:**
+  1. *Whole-Track Review in PR:* Execute all phases continuously through completion (pausing for unratified Phase 1 atomic decisions) and present the completed track in the Pull Request.
+  2. *Phase-by-Phase Review:* Halt at each phase checkpoint and await explicit permission.
+- **Decision:** Option 1 — **Whole-Track Review in PR**.
+
+---
+
+### DEC-R059: Guard Baseline Disposition vs. Track T10 Scope Boundary
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** Track T10 `spec.md` stated both *"Out of scope: New remediation work (raise follow-on tracks instead)"* and *"Owned guard baselines at zero: all guards permanent at zero"*. While all structural, UI, R3F, and test-hygiene guard rules (`G-imports`, `G-imports-cycle`, `G-shims`, `G-canvas`, `G-r3f`, `G-ui`, `only-export-components`, `react(globals)`, `forbidden-rendertostring`) are permanently at `0`, `scripts/guards/baseline.json` still contains 112 entries: 14 non-production `eslint(max-lines)` entries (`tests/`, `e2e/`, `scripts/`, `content/`) caused by `.oxlintrc.json` lacking non-UI exclusions, plus 98 entries for oversized service/codec/canvas modules (`G-size` / `max-lines`), broad `G-literals` numeric-fallback AST matches (`?? 1`), and React compiler/hook edge cases.
+- **Options Considered:**
+  1. *Option A (Honest Ratchet + Scoped `.oxlintrc.json` + Follow-On Track):* Scope `.oxlintrc.json` `max-lines` to exclude `**/*.test.*`, `tests/**`, `e2e/**`, `scripts/**`, and `content/**` (`112 → 98` entries), retain `scripts/guards/baseline.json` as the permanent shrink-only CI gate for those 98 entries without hiding them behind blanket suppression comments, reconcile T10/initiative closure wording accordingly, and scaffold a follow-on chore track for service/codec/canvas decomposition and `G-literals` heuristic refinement.
+  2. *Option B (Inline Suppressions):* Add 98 inline `guard-disable` / `oxlint-disable` comments so `baseline.json` hits literal `0` entries today.
+  3. *Option C (Pause T10):* Insert multi-PR decomposition tracks ahead of T10.
+- **Decision:** Option A. Fix `.oxlintrc.json` `max-lines` scoping (`112 → 98` entries), keep `baseline.json` as the permanent downward-only CI gate, reconcile closure criteria wording, and raise a follow-on chore track for the remaining service/codec/canvas decomposition and `G-literals` AST refinement.
+
+---
+
+### DEC-R060: Target Architecture Promotion to `docs/` & Initiative Archival Scope (`AUD-150`)
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** Track T10 closes `architecture-remediation`. Two placeholder files in `docs/architecture/` (`3d-canvas-management.md`, `routing-and-state.md`) date from September 30, several docs (`docs/design-system.md`, `docs/3d-spatial-architecture.md`, `docs/scene-requirements.md`, `conductor/tech-stack.md`, `conductor/code_styleguides/components.md`, root `README.md`) contain pre-remediation drift (`AUD-150`), and `conductor/tracks.md` / `conductor/index.md` still carry the `DEC-R003` feature-freeze banner.
+- **Options Considered:**
+  1. *Option A (Full Promotion + Initiative & Track Archival + Feature-Freeze Lift):* Author/replace 4 authoritative target-architecture docs under `docs/architecture/` (`3d-canvas-management.md`, `routing-and-state.md`, `layering-and-guardrails.md`, `data-pipeline-and-codecs.md`); remediate drift across `docs/design-system.md`, `docs/3d-spatial-architecture.md`, `docs/scene-requirements.md`, `docs/README.md`, `conductor/tech-stack.md`, `conductor/code_styleguides/components.md`, and root `README.md`; archive `conductor/initiatives/architecture-remediation/` → `conductor/archive/initiatives/architecture-remediation/` and all 10 tracks `conductor/tracks/architecture-remediation_*` → `conductor/archive/tracks/`; and lift the `DEC-R003` feature freeze in `conductor/tracks.md` and `conductor/index.md`.
+  2. *Option B (Promote Docs & Fix Drift Only, Leave Initiative Unarchived):* Promote docs and lift `DEC-R003`, but keep the initiative and its 10 tracks in active directories.
+- **Decision:** Option A. Execute full target-architecture promotion to `docs/architecture/`, remediate all documentation drift, archive the completed initiative and all 10 tracks under `conductor/archive/`, and lift the `DEC-R003` feature freeze.
+
+---
+
+### DEC-R061: Disposition of Fresh Six-Area Closing Audit Findings (`AUD-151`)
+- **Date:** 2026-11-14
+- **Status:** `Ratified`
+- **Context:** The independent six-area closing audit (`AUD-151`) confirmed **0 Critical / 0 High** findings across Areas 2, 3, 4, and 5, while Areas 1 and 6 surfaced 3 upstream-ledger regressions/colocation gaps (`AUD-085` synchronous render-body `setFocused(null)` in `src/views/useGalaxyStoreSync.ts#L36-L40`; `AUD-091`/`DEC-R014f` residual implicit `?layer=<slug>` → 3D selection conversion in `src/services/searchService.ts#L954` & `src/views/useGalaxyViewModel.ts#L93-L112`; and `AUD-003` guard/coverage script unit tests sitting in `src/data/__tests__/` rather than colocated in `scripts/*.test.ts`) alongside Medium/Low hygiene items (`Quantity` legacy `Measurement` alias, `OrbitalSchematicPanel` nested `<a>` in `<Badge>` / raw `<h2>`, residual `journeyOption` query param, unused `src/router/navigation.ts`, dead CSS/props, `'earth'` fallback literals, and oversized service/codec modules). Programme Rule 2 requires *"Partial fixes are reopened within the same track, never deferred silently"* and `AUD-151` requires *"No new Critical/High findings; all IDs above `verified`"*, whereas T10 `spec.md` marks *"New remediation work (raise follow-on tracks instead)"* out of scope.
+- **Options Considered:**
+  1. *Option A (Surgical Upstream-Ledger Closure in T10 + Follow-On Chore Track):* Fix the 3 upstream High/colocation gaps directly in T10 (`useGalaxyStoreSync.ts` effect move, `DEC-R014f` `?layer=` vs `?select=layer:` independence + E2E assertion, and relocating the 5 guard/coverage tests to `scripts/*.test.ts`) so `AUD-151` closes with `0` Critical/High findings and 100% verified upstream IDs, and log all Medium/Low hygiene items plus the 98 `baseline.json` decomposition entries into `guard-baseline-zero-and-module-decomposition_20261114`.
+  2. *Option B (Include Medium/Low Shim & Dead-Code Cleanups in T10):* Apply the 3 upstream fixes plus all small Medium/Low shim/dead-code cleanups inside T10.
+  3. *Option C (Strict Zero-Code T10):* Defer all 3 High/colocation items alongside Medium/Low items to a follow-on track.
+- **Decision:** Option A. Remediate the 3 upstream High/colocation gaps directly in T10 so `AUD-151` closes with `0` Critical/High findings, and capture all Medium/Low hygiene items alongside the 98 `baseline.json` decomposition entries in the standalone chore track `guard-baseline-zero-and-module-decomposition_20261114`.
+
 
 
 

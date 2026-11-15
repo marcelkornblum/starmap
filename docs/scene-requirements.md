@@ -5,7 +5,9 @@ This document defines the cartographic rules, rendering requirements, UX goals, 
 > [!IMPORTANT]
 > **Architectural Precedence:**
 > - Spatial coordinate frames, travelling fins, and datum surfaces are governed by [`docs/3d-spatial-architecture.md`](./3d-spatial-architecture.md).
-> - 2D UI tokens, typography, monospace alignments, and CUBE exceptions are governed by [`docs/ui-visual-language.md`](./ui-visual-language.md).
+> - WebGL persistent canvas lifecycle, stage slots, and 60fps frame loops are governed by [`docs/architecture/3d-canvas-management.md`](./architecture/3d-canvas-management.md).
+> - URL navigation, selection state, and orthogonal search parameters are governed by [`docs/architecture/routing-and-state.md`](./architecture/routing-and-state.md).
+> - 2D UI tokens, typography, monospace alignments, and CUBE exceptions are governed by [`docs/ui-visual-language.md`](./ui-visual-language.md) and [`docs/design-system.md`](./design-system.md).
 > - CSS token synchronization to WebGL materials is governed by [`docs/threejs-token-sync.md`](./threejs-token-sync.md).
 > - Hand-crafted control fixtures are housed in [`tests/fixtures/system.fixture.json`](../tests/fixtures/system.fixture.json) and [`tests/fixtures/planet.fixture.json`](../tests/fixtures/planet.fixture.json).
 
@@ -63,7 +65,7 @@ A unified companion panel pattern deployed across all views to list child or in-
 - **Background Filtering:** During route planning or candidate filter mode, non-matching stars dim to low-opacity background points to eliminate visual noise.
 
 ### 3.4 Contextual Controls & HUD Elements
-- **Command Palette (`/` or `Ctrl+K`):** Global search with fuzzy autocomplete on proper name, Bayer designation, catalog ID, or spectral class.
+- **Search Panel (`/` or `Ctrl+K` backlog):** Global search across celestial entities, structures, and guide articles with prefix matching via the persistent Search assembly (`src/components/domain/Search/`), synchronising selection and focus to the canonical URL grammar (`?focus=`, `?select=`, `?q=`). (A floating modal Command Palette remains a future backlog item).
 - **Spatial Anchor Selector:** Ability to set any system as the Primary Spatial Anchor (distances measured relative to anchor, not forced to Sol).
 - **Candidate Filter Drawer:** Sliders for radius ($\le 15\text{ ly}$), spectral types (G, K, M), and intent switches (e.g. *"Habitable Zone Host"*).
 - **Attitude Gimbal Minimap:** Corner micro-viewport displaying camera pitch, roll, and yaw relative to the Galactic Equator.

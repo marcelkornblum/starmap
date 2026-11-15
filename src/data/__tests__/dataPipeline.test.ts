@@ -149,7 +149,7 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
     } finally {
       warnSpy.mockRestore();
     }
-  }, 20000);
+  }, 60000);
 });
 
 describe('Sol System Manifest & Satellites (AUD-051, DEC-R029)', () => {

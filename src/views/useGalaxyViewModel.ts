@@ -89,8 +89,30 @@ export function useGalaxyViewModel({
   );
 
   const layerIndex = useLayerIndex();
-  const loadedLayers = useLoadedLayerManifests(layer ? `?layer=${encodeURIComponent(layer)}` : search);
-  const selectQuery = select ? `?select=${encodeURIComponent(select)}` : search;
+  const loadedLayersSearch = useMemo(() => {
+    if (isExplicitLocation) {
+      return search;
+    }
+    const params = new URLSearchParams(search);
+    if (layer && !params.has('layer')) {
+      params.set('layer', layer);
+    }
+    if (select && !params.has('select')) {
+      params.set('select', select);
+    }
+    const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
+    return qs ? `?${qs}` : '';
+  }, [isExplicitLocation, search, layer, select]);
+  const loadedLayers = useLoadedLayerManifests(loadedLayersSearch);
+
+  const selectValues = searchParams.getAll('select');
+  const effectiveSelectValues = selectValues.length > 0 ? selectValues : select ? [select] : [];
+  const selectQuery =
+    effectiveSelectValues.length > 0
+      ? `?${effectiveSelectValues.map((v) => `select=${encodeURIComponent(v)}`).join('&')}`
+          .replace(/%3A/gi, ':')
+          .replace(/%2C/gi, ',')
+      : '';
 
   const {
     focusedEntity,
@@ -109,7 +131,7 @@ export function useGalaxyViewModel({
     selectQuery,
   });
 
-  const hasExplicitSelection = Boolean(search.includes('select=') || search.includes('layer='));
+  const hasExplicitSelection = Boolean(select !== undefined || searchParams.has('select'));
 
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
   const centerEntity = useMemo(() => {

@@ -9,7 +9,7 @@ import {
   auditRawElementsContent,
   auditRenderToStringContent,
   runUiAudit,
-} from '../../../scripts/audit-ui';
+} from './audit-ui';
 
 describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', () => {
   let tempDir: string;

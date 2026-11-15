@@ -389,65 +389,9 @@
       "count": 1,
       "audId": "AUD-004"
     },
-    "eslint(max-lines)::src/services/__tests__/instrumentHydrationService.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/__tests__/sectorStreamingService.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/__tests__/deviceTierService.test.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::scripts/coverage-comment.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::content/layers/overlay-constellations.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "react-hooks(exhaustive-deps)::src/hooks/useLayerData.ts": {
       "count": 2,
       "audId": "AUD-004"
-    },
-    "eslint(max-lines)::scripts/sources.config.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/journey3ExplorerFlow.test.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::scripts/audit-r3f.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::scripts/audit-guards.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::scripts/audit-ui.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::e2e/canvas-interaction-and-fps.spec.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/journey5TransitFlow.test.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::tests/journey1ReaderFlow.test.tsx": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::scripts/capture-views.ts": {
-      "count": 1,
-      "audId": "AUD-120"
     }
   }
 }

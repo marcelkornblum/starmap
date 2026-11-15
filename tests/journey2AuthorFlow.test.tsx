@@ -111,6 +111,23 @@ describe('Journey 2: Author Flow - Fictional Canon Layers & Galaxy Annotations',
     expect(store.getState().getEntitiesByState('focused')).toEqual([]);
     expect(screen.queryByTestId('details-panel')).toBeNull();
     expect(screen.queryByTestId('systems-panel')).toBeNull();
+
+    // GalaxyView loading /galaxy?layer=project-hail-mary alone does not select layer systems in store
+    const layerOnlyStore = createSpatialEntityStore();
+    await act(async () => {
+      render(
+        createElement(
+          SpatialEntityProvider,
+          { store: layerOnlyStore },
+          createElement(GalaxyView, {
+            initialCorpus: SAMPLE_CORPUS,
+            locationPathname: '/galaxy',
+            locationSearch: '?layer=project-hail-mary',
+          }),
+        ),
+      );
+    });
+    expect(layerOnlyStore.getState().getEntitiesByState('selected')).toEqual([]);
   });
 
   it('DEC-018: verifies Canon Layers section is removed from BodiesPanel', async () => {

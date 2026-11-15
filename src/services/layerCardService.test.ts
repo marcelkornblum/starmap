@@ -163,24 +163,24 @@ describe('layerCardService (DEC-039)', () => {
   });
 
   describe('buildLayerCloseHref', () => {
-    it('removes layer query param and strips active layer from select while preserving pathname and other params', () => {
+    it('removes only layer query param while preserving select, pathname, and other params (DEC-R014f)', () => {
       const currentPath = '/system/lhs-1140';
       const currentSearch =
         '?focus=lhs-1140-b&select=tag:habitable-candidate,layer:recent-discoveries&layer=recent-discoveries:lhs-1140-b&center=sol';
       const closeHref = buildLayerCloseHref(currentPath, currentSearch);
       expect(closeHref).not.toContain('layer=');
-      expect(closeHref).not.toContain('layer:recent-discoveries');
+      expect(closeHref).toContain('layer:recent-discoveries');
       expect(closeHref).toContain('focus=lhs-1140-b');
       expect(closeHref).toContain('select=tag:habitable-candidate');
       expect(closeHref).toContain('center=sol');
       expect(closeHref.startsWith('/system/lhs-1140')).toBe(true);
     });
 
-    it('completely removes select if active layer was the sole selection token', () => {
+    it('preserves select when closing layer card (DEC-R014f)', () => {
       const currentPath = '/galaxy';
       const currentSearch = '?select=layer:recent-discoveries&layer=recent-discoveries';
       const closeHref = buildLayerCloseHref(currentPath, currentSearch);
-      expect(closeHref).toBe('/galaxy');
+      expect(closeHref).toBe('/galaxy?select=layer:recent-discoveries');
     });
   });
 
@@ -222,7 +222,7 @@ describe('layerCardService (DEC-039)', () => {
       expect(card.kindLabel).toBe('Scientific Layer');
       expect(card.itemCount).toBeGreaterThan(0);
       expect(card.startHref).toContain('layer=recent-discoveries:');
-      expect(card.closeHref).toBe('/galaxy');
+      expect(card.closeHref).toBe('/galaxy?select=layer:recent-discoveries');
     });
 
     it('returns Item card model with step index, prev/next links, and tag links when itemSlug is present', () => {

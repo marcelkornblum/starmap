@@ -73,7 +73,7 @@ flowchart TD
     Panel["Tier 3: --surface-panel (Dossiers, telemetry sheets)"]
     Drawer["Tier 4: --surface-drawer (Full-height sliding filters)"]
     Popover["Tier 5: --surface-popover (Context flyouts, tooltips)"]
-    Modal["Tier 6: --surface-modal (Command Palette, dialogues)"]
+    Modal["Tier 6: --surface-modal (Dialogues, modals)"]
     Toast["Tier 7: --surface-toast (Transient system alerts)"]
     Inset["Nested: --surface-inset (Sunken wells, inputs)"]
 
@@ -94,8 +94,8 @@ To prevent coupling and permit independent visual tuning, **each tier defines it
 - Backdrop Blur: `--surface-<tier>-backdrop-blur`
 - Stacking: `--z-<tier>`
 
-### Search & Command Palette Modal Paradigm
-Search operates at the **Modal** tier (`--surface-modal`) as a unified Command Palette (`<CommandPalette>`), invoked from the dock search pill. This isolates dense search and coordinate queries from underlying viewport interactions and traps keyboard focus cleanly.
+### Search Architecture & Modal Boundaries
+Search operates across the interface via the persistent Dock and dedicated Search panel/view (`src/components/domain/Search/`: `SearchRoot`, `SearchPanel`, `SearchInput`, `SearchCategoryFilterSelect`, `SearchResults`, and single-anchor `SearchResultItem` per `DEC-R052`, `DEC-R053`). This coordinates query filtering and entity selection cleanly without interfering with underlying 3D viewport interactions. A floating `Cmd+K` / `Ctrl+K` Command Palette operating at the Modal tier (`--surface-modal`) remains a planned future backlog capability.
 
 ---
 
@@ -144,7 +144,7 @@ flowchart TD
     Tier1["Tier 1: Primitives\nLayout (Every Layout) • Data (Datum, Badge, Quantity, Unit) • Controls (Button, Input)"]
     --> Tier2["Tier 2: Surfaces & Overlays\nCard • Panel • Dock • Well • Modal • Drawer • Popover • Tooltip • Toast"]
     --> Tier3["Tier 3: Structural Layout Templates\nDossierLayout • ToolbarLayout"]
-    --> Tier4["Tier 4: Domain Features\nStarDossier • OrbitTable • CommandPalette • SystemControls"]
+    --> Tier4["Tier 4: Domain Features\nDetailsPanel • BodiesPanel • DirectionsPanel • LayerCard • SpatialShell • ControlBar • Search"]
 ```
 
 ### Tier 1: Primitives (Base Elements)
@@ -180,11 +180,14 @@ Domain-agnostic layouts composed of Tier 1 primitives and Tier 2 surfaces. They 
 - `<ToolbarLayout>`: Arranges navigation tabs, active filters, and auxiliary action clusters.
 
 ### Tier 4: Domain Features (Application Assemblies)
-Starmap-specific components that bind live data and application state to Tier 3 templates and Tier 2 surfaces:
-- `<StarDossier>`: Renders spectral class, luminosity, habitable zone boundaries, and exoplanet inventory.
-- `<OrbitTable>`: Tabular telemetry of Keplerian orbital elements (semi-major axis, eccentricity, inclination).
-- `<CommandPalette>`: Modal search interface for celestial entities and galactic coordinates.
-- `<SystemControls>`: HUD-pinned controls for time scrubbing, orbit projection toggles, and coordinate grids.
+Starmap-specific assemblies that bind live data, astronomical repositories, and application state to Tier 3 templates and Tier 2 surfaces:
+- `<DetailsPanel>`: Comprehensive astronomical dossiers rendering physical parameters, spectral classifications, habitable zone calculations, and exoplanet inventory.
+- `<BodiesPanel>`: Tabular telemetry and list views of system bodies, natural satellites, and Keplerian orbital parameters.
+- `<DirectionsPanel>`: Multi-hop interstellar transit routing, propulsion benchmarks, and light-speed radio communication delays.
+- `<LayerCard>`: Fictional canon, custom user, and scientific overlay metadata cards with toggleable visual filters.
+- `<SpatialShell>`: Macro layout container coordinating persistent canvas stages, HUD docks, and responsive detent sheets.
+- `<ControlBar>`: HUD-pinned camera mode selectors, spatial anchor controls, and coordinate grid options.
+- `<Search>` (`SearchRoot`, `SearchPanel`, `SearchInput`, `SearchCategoryFilterSelect`, `SearchResults`, `SearchResultItem`): Unified search interface across celestial entities, structures, and guide articles.
 
 ---
 
@@ -252,6 +255,21 @@ State variants, confidence indicators, and category themes are driven strictly b
 ### Guardrail 4: Single-Aspect Override Rule
 When applying status, category, or confidence semantics, components override only a single aspect at a time (e.g. `border-color`), preserving the structural tokens governing width, style, and baseline geometry.
 
+### Guardrail 5: Strict Zero-`className` & Zero-`style` on Tier 1 Primitives (`DEC-R050`)
+Tier 1 layout and presentation primitives (`src/components/interface/**`) must never accept `className` or `style` props. Primitives encapsulate their own scoped CSS Modules statically and expose customization exclusively via typed props (`gap`, `align`, `justify`, `variant`, `size`) and HTML `data-*` attributes. Layout rhythm and outer spacing are 100% owned by parent composition primitives.
+
+### Guardrail 6: Mandatory Component File Quads & Pure Helper Extraction (`AUD-122`, `AUD-129`)
+Every component in `src/components/interface/**` and `src/components/domain/**` must strictly adhere to the 4-file component quad:
+1. `<Component>.tsx` (focused implementation, $\le 300$ lines)
+2. `<Component>.module.css` (scoped CSS Module in `@layer blocks` / `@layer exceptions`)
+3. `<Component>.stories.tsx` (Storybook stories)
+4. `<Component>.test.tsx` (colocated unit tests run via `@testing-library/react` in `jsdom`)
+
+Non-component helpers, calculations, serializers, and pure algorithms must be extracted into pure `.ts` companion files (e.g. `detentSheetMath.ts`, `searchHelpers.ts`) to keep component files clean and testable.
+
+### Guardrail 7: `DetentSheet` Snap Physics & `--detent-sheet-block-size` (`DEC-R051`)
+Mobile sheets (`DetentSheet`) manage height dynamically through a single sanctioned CSS custom property `--detent-sheet-block-size` set on the sheet element, preserving `container-type: inline-size` on desktop ($\ge 768\text{px}$) and enabling `container-type: size; container-name: detent-sheet;` on mobile ($< 768\text{px}$). Snap physics enforce asymmetric release snap bands (clean snap between `peek` and `partial`, with a free-rest zone between `partial` and `full`) and a single `@container` information-hierarchy threshold calibrated strictly at `partial`.
+
 ---
 
 ## 7. Step-by-Step Component Implementation Recipe
@@ -260,7 +278,7 @@ When creating a new UI component in Starmap, follow this strict recipe:
 
 ### 1. Component TypeScript Definition
 ```tsx
-// src/components/primitives/Datum/Datum.tsx
+// src/components/interface/information/Datum/Datum.tsx
 import React from 'react';
 import styles from './Datum.module.css';
 
@@ -286,7 +304,7 @@ export const Datum: React.FC<DatumProps> = ({ label, value, unit, status }) => {
 
 ### 2. Component CSS Module
 ```css
-/* src/components/primitives/Datum/Datum.module.css */
+/* src/components/interface/information/Datum/Datum.module.css */
 @layer blocks {
   .datum {
     /* 1. Local Token Interface */

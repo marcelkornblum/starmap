@@ -143,6 +143,8 @@ describe('searchService - Option C ?select= URL Grammar & Layer Target Links', (
     expect(parseUrlSelectTokens('?select=sol', LAYER_INDEX_ENTRIES)).toEqual([
       { kind: 'entity', slug: 'sol' },
     ]);
+    expect(parseUrlSelectTokens('?layer=project-hail-mary', LAYER_INDEX_ENTRIES)).toEqual([]);
+    expect(parseUrlSelectTokens('?layer=recent-discoveries', LAYER_INDEX_ENTRIES)).toEqual([]);
 
     const multi = parseUrlSelectTokens(
       '?select=star-type:g,layer:project-hail-mary,sol',
@@ -259,6 +261,14 @@ describe('searchService - Option C ?select= URL Grammar & Layer Target Links', (
       LAYER_MANIFESTS,
     );
     expect(combined.some((s) => s.id === 'sol')).toBe(true);
+
+    const layerOnly = resolveSelectedSystemsFromUrlSelect(
+      '?layer=extreme-worlds',
+      testCorpus,
+      LAYER_INDEX_ENTRIES,
+      LAYER_MANIFESTS,
+    );
+    expect(layerOnly).toEqual([]);
   });
 
   it('builds canonical galaxy view URLs using helper functions', () => {

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { auditCssModuleContent } from '../../../scripts/audit-ui';
+import { auditCssModuleContent } from './audit-ui';
 
 describe('UI Design System & CSS Governance Audit (scripts/audit-ui.ts)', () => {
   describe('AUD-002: CSS Module Tokens, Margin Discipline & Safelisting', () => {

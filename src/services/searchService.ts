@@ -942,17 +942,14 @@ export type UrlSelectToken =
 /**
  * Pure parser extracting structured selection tokens (`tag:<slug>`, `layer:<slug>`,
  * `star-type:<slug>`, `planet-type:<slug>`, or `<entityId>`)
- * from a URL search string's `?select=` parameter (plus legacy `?layer=` support).
+ * from a URL search string's `?select=` parameter.
  */
 export const parseUrlSelectTokens = (
   searchString: string,
   layerIndex: readonly DatasetLayerIndexEntry[],
 ): readonly UrlSelectToken[] => {
   const params = new URLSearchParams(searchString);
-  const rawValues = [
-    ...params.getAll('select'),
-    ...params.getAll('layer').map((l) => `layer:${l}`),
-  ];
+  const rawValues = params.getAll('select');
   const tokens: UrlSelectToken[] = [];
 
   for (const rawValue of rawValues) {
@@ -1028,7 +1025,16 @@ export const extractUrlLayerId = (
   const layerToken = parseUrlSelectTokens(searchString, layerIndex).find(
     (t): t is Extract<UrlSelectToken, { readonly kind: 'layer' }> => t.kind === 'layer',
   );
-  return layerToken ? layerToken.layerId : null;
+  if (layerToken) {
+    return layerToken.layerId;
+  }
+  const rawLayer = new URLSearchParams(searchString).get('layer');
+  const parsed = parseLayerQueryParam(rawLayer);
+  if (parsed) {
+    const matched = findCanonLayerById(parsed.layerSlug, layerIndex);
+    return matched ? matched.layerId : parsed.layerSlug;
+  }
+  return null;
 };
 
 /**
@@ -1498,13 +1504,7 @@ export const resolveSelectedSystemsFromUrlSelect = (
 ): readonly SpatialEntityDefinition[] => {
   const tokens = parseUrlSelectTokens(searchString, layerIndex);
 
-  const cleanSearch = searchString.startsWith('?')
-    ? searchString.slice(1)
-    : searchString;
-  const layerParam = new URLSearchParams(cleanSearch).get('layer');
-  const parsedLayer = parseLayerQueryParam(layerParam);
-
-  if (tokens.length === 0 && !parsedLayer) {
+  if (tokens.length === 0) {
     return [];
   }
 
@@ -1542,20 +1542,6 @@ export const resolveSelectedSystemsFromUrlSelect = (
       if (entity) {
         entitiesById.set(entity.id, entity);
       }
-    }
-  }
-
-  if (parsedLayer) {
-    const matched =
-      findCanonLayerById(parsedLayer.layerSlug, loadedLayers) ??
-      findCanonLayerById(parsedLayer.layerSlug, layerIndex);
-    const layerId = matched?.layerId ?? parsedLayer.layerSlug;
-    for (const sys of resolveSelectedSystemsFromLayer(
-      layerId,
-      corpus,
-      loadedLayers,
-    )) {
-      entitiesById.set(sys.id, sys);
     }
   }
 

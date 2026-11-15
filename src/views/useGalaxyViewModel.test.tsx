@@ -110,4 +110,22 @@ describe('useGalaxyViewModel', () => {
       }),
     );
   });
+
+  it('does not select entities when ?layer=<slug> alone is present without select=', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useGalaxyViewModel({
+            locationPathname: '/galaxy',
+            locationSearch: '?layer=project-hail-mary',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(hookResult.result.current.canvasEntities).toEqual([]);
+    expect(store.getState().selectedIds.size).toBe(0);
+  });
 });

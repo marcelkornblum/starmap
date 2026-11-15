@@ -33,12 +33,6 @@ export function useGalaxyStoreSync({
 }: UseGalaxyStoreSyncParams): void {
   const prevUrlFocusSlugRef = useRef<string | null>(urlFocusSlug);
 
-  if (isExplicitLocation && !urlFocusSlug && !hasExplicitFocus) {
-    if (storeApi.getState().focusedId) {
-      storeApi.getState().setFocused(null);
-    }
-  }
-
   useEffect(() => {
     const store = storeApi.getState();
     const currentFocusedId = store.focusedId;
@@ -57,13 +51,17 @@ export function useGalaxyStoreSync({
       if (useUIStore.getState().detailsDetent === 'collapsed') {
         useUIStore.getState().setDetailsDetent('peek');
       }
+    } else if (isExplicitLocation && !hasExplicitFocus) {
+      if (currentFocusedId !== null) {
+        store.setFocused(null);
+      }
     } else if (prevUrlFocusSlugRef.current !== null && !urlFocusSlug) {
       if (currentFocusedId !== null) {
         store.setFocused(null);
       }
     }
     prevUrlFocusSlugRef.current = urlFocusSlug;
-  }, [urlFocusSlug, focusedEntity, storeApi]);
+  }, [urlFocusSlug, focusedEntity, storeApi, isExplicitLocation, hasExplicitFocus]);
 
   useEffect(() => {
     if (pathname === '/galaxy') {

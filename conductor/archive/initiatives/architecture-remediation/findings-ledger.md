@@ -154,5 +154,5 @@ Source: 2026-11-06 audit of `main` @ `4c45916`. Every finding below has been ver
 
 | ID | Finding | Evidence | Acceptance check | Status |
 |---|---|---|---|---|
-| AUD-150 | Docs drift: `<CommandPalette>` at `--surface-modal` does not exist; tech-stack says React 18+ | `docs/design-system.md#L97-L98`, `conductor/tech-stack.md#L4` | Docs reflect final architecture | open |
-| AUD-151 | Fresh six-area audit after T09 | — | No new Critical/High findings; all IDs above `verified` | open |
+| AUD-150 | Docs drift: `<CommandPalette>` at `--surface-modal` does not exist; tech-stack says React 18+ | `docs/design-system.md#L97-L98`, `conductor/tech-stack.md#L4` | Docs reflect final architecture | verified |
+| AUD-151 | Fresh six-area audit after T09 | — | No new Critical/High findings; all IDs above `verified` | verified |

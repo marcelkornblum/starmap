@@ -197,40 +197,15 @@ export function resolveLayerItemTargetHref(
 }
 
 /**
- * Pure helper building the close/dismiss href that strips the active layer from `layer`
- * and `select` query parameters while preserving pathname and all other parameters.
+ * Pure helper building the close/dismiss href that strips only the active `layer`
+ * query parameter while preserving `select`, pathname, and all other parameters (DEC-R014f).
  */
 export function buildLayerCloseHref(
   currentPathname: string,
   currentSearch: string,
 ): string {
   const params = new URLSearchParams(currentSearch);
-  const layerParam = params.get('layer');
-  const parsed = parseLayerQueryParam(layerParam);
-
   params.delete('layer');
-
-  if (parsed?.layerSlug) {
-    const select = params.get('select');
-    if (select) {
-      const remainingTokens = select
-        .split(',')
-        .map((t) => t.trim())
-        .filter((token) => {
-          const match = /^layer:(.+)$/i.exec(token);
-          if (match?.[1]) {
-            return toCanonicalLayerSlug(match[1]) !== parsed.layerSlug;
-          }
-          return true;
-        });
-
-      if (remainingTokens.length > 0) {
-        params.set('select', remainingTokens.join(','));
-      } else {
-        params.delete('select');
-      }
-    }
-  }
 
   const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
   return `${currentPathname}${qs.length > 0 ? `?${qs}` : ''}`;

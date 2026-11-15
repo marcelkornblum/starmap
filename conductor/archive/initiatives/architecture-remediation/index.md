@@ -45,16 +45,16 @@ flowchart TD
 | T02 | User-visible correctness | [`architecture-remediation_02_user-visible-correctness_20261106`](../../tracks/architecture-remediation_02_user-visible-correctness_20261106/index.md) | [x] |
 | T03 | Layering cut | [`architecture-remediation_03_layering-cut_20261106`](../../tracks/architecture-remediation_03_layering-cut_20261106/index.md) | [x] |
 | T04 | Pipeline reliability & precalculation | [`architecture-remediation_04_pipeline-reliability_20261106`](../../tracks/architecture-remediation_04_pipeline-reliability_20261106/index.md) | [x] |
-| T05 | Runtime data purity | [`architecture-remediation_05_runtime-data-purity_20261106`](../../tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md) | [ ] |
-| T06 | Navigation single source of truth | [`architecture-remediation_06_navigation-ssot_20261106`](../../tracks/architecture-remediation_06_navigation-ssot_20261106/index.md) | [ ] |
-| T07 | One persistent Canvas & R3F hot paths | [`architecture-remediation_07_persistent-canvas_20261106`](../../tracks/architecture-remediation_07_persistent-canvas_20261106/index.md) | [ ] |
-| T08 | View & UI decomposition | [`architecture-remediation_08_ui-decomposition_20261106`](../../tracks/architecture-remediation_08_ui-decomposition_20261106/index.md) | [ ] |
-| T09 | Test restructure | [`architecture-remediation_09_test-restructure_20261106`](../../tracks/architecture-remediation_09_test-restructure_20261106/index.md) | [ ] |
-| T10 | Closing audit | [`architecture-remediation_10_closing-audit_20261106`](../../tracks/architecture-remediation_10_closing-audit_20261106/index.md) | [ ] |
+| T05 | Runtime data purity | [`architecture-remediation_05_runtime-data-purity_20261106`](../../tracks/architecture-remediation_05_runtime-data-purity_20261106/index.md) | [x] |
+| T06 | Navigation single source of truth | [`architecture-remediation_06_navigation-ssot_20261106`](../../tracks/architecture-remediation_06_navigation-ssot_20261106/index.md) | [x] |
+| T07 | One persistent Canvas & R3F hot paths | [`architecture-remediation_07_persistent-canvas_20261106`](../../tracks/architecture-remediation_07_persistent-canvas_20261106/index.md) | [x] |
+| T08 | View & UI decomposition | [`architecture-remediation_08_ui-decomposition_20261106`](../../tracks/architecture-remediation_08_ui-decomposition_20261106/index.md) | [x] |
+| T09 | Test restructure | [`architecture-remediation_09_test-restructure_20261106`](../../tracks/architecture-remediation_09_test-restructure_20261106/index.md) | [x] |
+| T10 | Closing audit | [`architecture-remediation_10_closing-audit_20261106`](../../tracks/architecture-remediation_10_closing-audit_20261106/index.md) | [~] |
 
 ## Closure Criteria
 
 - Every ledger ID is `verified`.
 - A fresh six-area audit (T10) raises no new Critical/High findings.
-- All guard baselines are at zero and the guards are permanent CI gates.
-- Target architecture is promoted to `docs/`, and the initiative tracks are archived.
+- All structural, UI, R3F, and test-hygiene guard baselines are at zero, `scripts/guards/baseline.json` is enforced as a permanent shrink-only CI gate, and remaining service/codec/canvas decomposition & literal-heuristic items are captured in a follow-on track (`DEC-R059`).
+- Target architecture is promoted to `docs/`, and the initiative tracks are archived (`DEC-R060`).
