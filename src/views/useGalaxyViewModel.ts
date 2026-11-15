@@ -100,18 +100,19 @@ export function useGalaxyViewModel({
     if (select && !params.has('select')) {
       params.set('select', select);
     }
-    const qs = params.toString();
+    const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
     return qs ? `?${qs}` : '';
   }, [isExplicitLocation, search, layer, select]);
   const loadedLayers = useLoadedLayerManifests(loadedLayersSearch);
 
   const selectValues = searchParams.getAll('select');
+  const effectiveSelectValues = selectValues.length > 0 ? selectValues : select ? [select] : [];
   const selectQuery =
-    selectValues.length > 0
-      ? `?${selectValues.map((v) => `select=${encodeURIComponent(v)}`).join('&')}`
-      : select
-        ? `?select=${encodeURIComponent(select)}`
-        : '';
+    effectiveSelectValues.length > 0
+      ? `?${effectiveSelectValues.map((v) => `select=${encodeURIComponent(v)}`).join('&')}`
+          .replace(/%3A/gi, ':')
+          .replace(/%2C/gi, ',')
+      : '';
 
   const {
     focusedEntity,
