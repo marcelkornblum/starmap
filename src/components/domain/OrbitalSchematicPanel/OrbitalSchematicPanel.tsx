@@ -6,14 +6,15 @@ import type {
 import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
-  buildStarTypeGuideHref,
   buildTagGalaxyHref,
 } from '../../../services/searchService';
 import {
   Badge,
   CelestialTitle,
   type CelestialSymbolType,
+  Heading,
   Quantity,
+  SpectralBadge,
   Stack,
   Unit,
   shouldDisplaySpectralBadge,
@@ -68,22 +69,17 @@ export function OrbitalSchematicItem({
         titleTestId="orbital-schematic-item-link"
       />{' '}
       {item.kind === 'star' && shouldDisplaySpectralBadge(item.summaryLabel) ? (
-        <Badge category="star">
-          <a
-            href={buildStarTypeGuideHref(item.summaryLabel)}
-            data-testid="orbital-schematic-spectral-link"
-          >
-            {item.summaryLabel}
-          </a>
-        </Badge>
+        <SpectralBadge
+          spectralType={item.summaryLabel}
+          data-testid="orbital-schematic-spectral-link"
+        />
       ) : item.kind === 'planet' ? (
-        <Badge category="planet">
-          <a
-            href={buildPlanetTypeGuideHref(item.summaryLabel)}
-            data-testid="orbital-schematic-planet-type-link"
-          >
-            {item.summaryLabel}
-          </a>
+        <Badge
+          category="planet"
+          href={buildPlanetTypeGuideHref(item.summaryLabel)}
+          data-testid="orbital-schematic-planet-type-link"
+        >
+          {item.summaryLabel}
         </Badge>
       ) : item.kind === 'belt' ? (
         <Badge
@@ -108,13 +104,11 @@ export function OrbitalSchematicItem({
             data-testid="orbital-schematic-belt-span"
             value={`${item.radialSpanAu[0]}–${item.radialSpanAu[1]}`}
             unit={
-              <Unit>
-                <a
-                  href={buildMetricGuideHref('semi-major-axis')}
-                  data-testid="orbital-schematic-belt-unit-link"
-                >
-                  AU
-                </a>
+              <Unit
+                href={buildMetricGuideHref('semi-major-axis')}
+                data-testid="orbital-schematic-belt-unit-link"
+              >
+                AU
               </Unit>
             }
           />
@@ -123,13 +117,12 @@ export function OrbitalSchematicItem({
       {item.kind !== 'belt' && item.region === 'habitable-zone' ? (
         <>
           {' '}
-          <Badge status="nominal">
-            <a
-              href={buildTagGalaxyHref('HabitableCandidate')}
-              data-testid="orbital-schematic-habitable-link"
-            >
-              Habitable zone
-            </a>
+          <Badge
+            status="nominal"
+            href={buildTagGalaxyHref('HabitableCandidate')}
+            data-testid="orbital-schematic-habitable-link"
+          >
+            Habitable zone
           </Badge>
         </>
       ) : item.kind !== 'belt' && item.region === 'asteroid-belt' ? (
@@ -186,7 +179,9 @@ export const OrbitalSchematicPanel: React.FC<OrbitalSchematicPanelProps> = ({
       data-system-id={elements.systemId}
       data-planet-id={elements.scope === 'planet' ? elements.planetId : undefined}
     >
-      <h2 id="orbital-schematic-panel-heading">Orbital Schematic</h2>
+      <Heading as="h2" id="orbital-schematic-panel-heading">
+        Orbital Schematic
+      </Heading>
       <OrbitalSchematicList items={elements.items} />
     </section>
   );

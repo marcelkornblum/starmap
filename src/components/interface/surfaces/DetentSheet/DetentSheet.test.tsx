@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { DetentSheet } from './DetentSheet';
 import {
   MIN_SHEET_HEIGHT_PX,
@@ -130,7 +131,7 @@ describe('<DetentSheet />', () => {
     expect(panel.getAttribute('data-focused-kind')).toBe('star');
 
     const heading = screen.getByRole('heading', { level: 2, name: 'Target Details' });
-    expect(heading).toBeDefined();
+    expect(heading).toBeInTheDocument();
 
     expect(screen.getByTestId('details-detent-peek').textContent).toContain('Quick Summary');
     expect(screen.getByTestId('details-detent-partial').textContent).toContain('Atmospheric Telemetry');
@@ -138,7 +139,7 @@ describe('<DetentSheet />', () => {
     expect(screen.getByTestId('footer-content').textContent).toContain('Footer Content');
 
     const handle = screen.getByRole('separator', { name: 'Drag to resize panel' });
-    expect(handle).toBeDefined();
+    expect(handle).toBeInTheDocument();
   });
 
   it('reacts to activeDetent prop updates', () => {
@@ -188,6 +189,6 @@ describe('<DetentSheet />', () => {
     fireEvent.touchEnd(handle);
 
     const panel = screen.getByTestId('test-panel');
-    expect(panel).toBeDefined();
+    expect(panel).toBeInTheDocument();
   });
 });

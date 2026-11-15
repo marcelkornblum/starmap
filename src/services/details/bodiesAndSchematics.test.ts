@@ -4,6 +4,7 @@ import {
   buildSystemBodiesSummary,
   buildPlanetaryBodiesSummary,
 } from './bodiesAndSchematics';
+import { EARTH_REFERENCE_TARGET } from '../../config/referenceTargets';
 import { extractGalaxyBodies, resolveGalacticInstrumentAperture } from './galacticAperture';
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 
@@ -259,6 +260,28 @@ describe('bodiesAndSchematics', () => {
     it('returns null when details is not provided', () => {
       expect(buildSystemBodiesSummary({ details: null })).toBeNull();
       expect(buildPlanetaryBodiesSummary({ details: null })).toBeNull();
+    });
+
+    it('falls back to EARTH_REFERENCE_TARGET when planet id and name are absent', () => {
+      const summary = buildPlanetaryBodiesSummary({
+        details: {
+          id: '',
+          name: '',
+          systemId: 'sol',
+          systemName: 'Sol',
+          focusedKind: 'star',
+          stars: [],
+          planets: [],
+          moons: [],
+          minorBodies: [],
+          structures: [],
+          isSolarSystem: true,
+        } as any,
+      });
+
+      expect(summary).not.toBeNull();
+      expect(summary?.planetId).toBe(EARTH_REFERENCE_TARGET.id);
+      expect(summary?.planetName).toBe(EARTH_REFERENCE_TARGET.name);
     });
   });
 });

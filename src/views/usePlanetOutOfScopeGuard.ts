@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
-import { appRouter } from '../hooks/useSpaLocation';
+import { appRouter, type StarmapSearchParams } from '../hooks/useSpaLocation';
 import { toUrlSlug } from '../services/searchService';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 
@@ -74,23 +74,8 @@ export function usePlanetOutOfScopeGuard({
     if (!urlPlanetSlug) return;
     if (activeCorpus.length === 0 && !systemDetail) return;
 
-    if (urlFocusSlug && !isFocusInPlanetScope) {
-      if (import.meta.env?.DEV) {
-        console.warn(`[router] Out-of-scope focus '${urlFocusSlug}' stripped on /planet/${urlPlanetSlug}`);
-      }
-      if (typeof window !== 'undefined') {
-        const nextUrl = new URL(window.location.href);
-        if (nextUrl.searchParams.has('focus')) {
-          nextUrl.searchParams.delete('focus');
-          const nextHref = nextUrl.pathname + (nextUrl.search ? nextUrl.search : '');
-          if (appRouter.history?.replace) {
-            appRouter.history.replace(nextHref);
-          } else if (window.history?.replaceState) {
-            window.history.replaceState(null, '', nextHref);
-          }
-        }
-      }
-    }
+    const stripFocus = Boolean(urlFocusSlug && !isFocusInPlanetScope);
+    let stripCenter = false;
 
     if (centerParam && !centerParam.includes(',')) {
       const centerSlug = toUrlSlug(centerParam);
@@ -100,19 +85,28 @@ export function usePlanetOutOfScopeGuard({
         orbitingBodyIds.some((id) => id === centerSlug || toUrlSlug(id) === centerSlug);
 
       if (!isCenterInPlanetScope) {
-        if (typeof window !== 'undefined') {
-          const nextUrl = new URL(window.location.href);
-          if (nextUrl.searchParams.has('center')) {
-            nextUrl.searchParams.delete('center');
-            const nextHref = nextUrl.pathname + (nextUrl.search ? nextUrl.search : '');
-            if (appRouter.history?.replace) {
-              appRouter.history.replace(nextHref);
-            } else if (window.history?.replaceState) {
-              window.history.replaceState(null, '', nextHref);
-            }
-          }
-        }
+        stripCenter = true;
       }
+    }
+
+    if (stripFocus && import.meta.env?.DEV) {
+      console.warn(`[router] Out-of-scope focus '${urlFocusSlug}' stripped on /planet/${urlPlanetSlug}`);
+    }
+
+    if (stripFocus || stripCenter) {
+      void appRouter.navigate?.({
+        search: (prev: StarmapSearchParams = {}) => {
+          const next: StarmapSearchParams = { ...prev };
+          if (stripFocus) {
+            delete next.focus;
+          }
+          if (stripCenter) {
+            delete next.center;
+          }
+          return next;
+        },
+        replace: true,
+      });
     }
   }, [
     urlPlanetSlug,

@@ -68,15 +68,15 @@ describe('<SearchResultItem />', () => {
     expect(spectralBadge.tagName).not.toBe('A');
     expect(spectralBadge.getAttribute('href')).toBeNull();
 
-    expect(screen.getByText('Sol System')).toBeDefined();
-    expect(screen.getByTestId('result-planet-summary')).toBeDefined();
+    expect(screen.getByText('Sol System')).toBeInTheDocument();
+    expect(screen.getByTestId('result-planet-summary')).toBeInTheDocument();
   });
 
   it('renders a layer result with canon badge', () => {
     render(<SearchResultItem result={mockLayerResult} />);
 
-    expect(screen.getByTestId('result-variation-layers')).toBeDefined();
-    expect(screen.getByText('Star Trek Canon')).toBeDefined();
+    expect(screen.getByTestId('result-variation-layers')).toBeInTheDocument();
+    expect(screen.getByText('Star Trek Canon')).toBeInTheDocument();
   });
 
   it('renders a bare star without spectral badge when spectral type is missing or unknown', () => {
@@ -92,7 +92,7 @@ describe('<SearchResultItem />', () => {
     };
     render(<SearchResultItem result={bareStar} />);
 
-    expect(screen.getByText('Bare Star')).toBeDefined();
+    expect(screen.getByText('Bare Star')).toBeInTheDocument();
     expect(screen.queryByTestId('result-spectral-badge')).toBeNull();
   });
 

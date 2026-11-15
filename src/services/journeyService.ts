@@ -67,6 +67,14 @@ export interface StructuredQuantity {
   readonly secondaryUnit?: string;
 }
 
+export type JourneySecondaryGeometry =
+  | { readonly kind: 'elevation'; readonly deltaZ: StructuredQuantity }
+  | { readonly kind: 'orbital-range'; readonly min: StructuredQuantity; readonly max: StructuredQuantity };
+
+export type JourneyOptionElevationOrRange =
+  | { readonly kind: 'single-leg'; readonly geometry: JourneySecondaryGeometry }
+  | { readonly kind: 'multi-leg'; readonly legCount: number; readonly domain: JourneyDomain };
+
 export interface JourneyStep {
   readonly stepIndex: number;
   readonly id: string;
@@ -83,7 +91,7 @@ export interface JourneyStep {
   readonly oneWayLightTime: StructuredQuantity;
   readonly roundTripLightTime: StructuredQuantity;
   readonly primaryDistance: StructuredQuantity;
-  readonly secondaryGeometryLabel: string;
+  readonly secondaryGeometry: JourneySecondaryGeometry;
 }
 
 export interface JourneyStepOptionMetrics {
@@ -101,7 +109,7 @@ export interface JourneyOptionStats {
   readonly originLabel: string;
   readonly destinationLabel: string;
   readonly distancePrimary: StructuredQuantity;
-  readonly elevationOrRangeLabel: string;
+  readonly elevationOrRange: JourneyOptionElevationOrRange;
   readonly shipTime: StructuredQuantity;
   readonly coordinateTime: StructuredQuantity;
   readonly oneWayComms: StructuredQuantity;
@@ -579,7 +587,15 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         secondaryValue: Number(distancePc.toFixed(2)),
         secondaryUnit: 'pc',
       };
-      const secondaryGeometryLabel = `Δz = ${deltaZPc >= 0 ? '+' : ''}${deltaZPc.toFixed(2)} pc (${deltaZLy >= 0 ? '+' : ''}${deltaZLy.toFixed(1)} ly)`;
+      const secondaryGeometry: JourneySecondaryGeometry = {
+        kind: 'elevation',
+        deltaZ: {
+          value: Number(deltaZPc.toFixed(2)),
+          unit: 'pc',
+          secondaryValue: Number(deltaZLy.toFixed(1)),
+          secondaryUnit: 'ly',
+        },
+      };
 
       steps.push({
         stepIndex,
@@ -594,7 +610,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         oneWayLightTime,
         roundTripLightTime,
         primaryDistance,
-        secondaryGeometryLabel,
+        secondaryGeometry,
       });
     } else {
       // Intra-system
@@ -631,7 +647,21 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         secondaryValue: Number(((dMean * AU_TO_KM) / 1e6).toFixed(1)),
         secondaryUnit: 'M km',
       };
-      const secondaryGeometryLabel = `Range: ${dMin.toFixed(2)}–${dMax.toFixed(2)} AU (${((dMin * AU_TO_KM) / 1e6).toFixed(1)}–${((dMax * AU_TO_KM) / 1e6).toFixed(1)}M km)`;
+      const secondaryGeometry: JourneySecondaryGeometry = {
+        kind: 'orbital-range',
+        min: {
+          value: Number(dMin.toFixed(2)),
+          unit: 'AU',
+          secondaryValue: Number(((dMin * AU_TO_KM) / 1e6).toFixed(1)),
+          secondaryUnit: 'M km',
+        },
+        max: {
+          value: Number(dMax.toFixed(2)),
+          unit: 'AU',
+          secondaryValue: Number(((dMax * AU_TO_KM) / 1e6).toFixed(1)),
+          secondaryUnit: 'M km',
+        },
+      };
 
       steps.push({
         stepIndex,
@@ -645,7 +675,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         oneWayLightTime,
         roundTripLightTime,
         primaryDistance,
-        secondaryGeometryLabel,
+        secondaryGeometry,
       });
     }
   }
@@ -673,7 +703,10 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       secondaryValue: Number(totalDistancePc.toFixed(2)),
       secondaryUnit: 'pc',
     };
-    const elevationOrRangeLabel = steps.length === 1 ? steps[0].secondaryGeometryLabel : `${steps.length} sequential legs`;
+    const elevationOrRange: JourneyOptionElevationOrRange =
+      steps.length === 1
+        ? { kind: 'single-leg', geometry: steps[0].secondaryGeometry }
+        : { kind: 'multi-leg', legCount: steps.length, domain };
 
     // 1. Light-speed
     options.push({
@@ -688,7 +721,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         originLabel,
         destinationLabel,
         distancePrimary,
-        elevationOrRangeLabel,
+        elevationOrRange,
         shipTime: { value: 'instantaneous', unit: '(photon frame)' },
         coordinateTime: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
         oneWayComms: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
@@ -728,7 +761,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         originLabel,
         destinationLabel,
         distancePrimary,
-        elevationOrRangeLabel,
+        elevationOrRange,
         shipTime: { value: Number(rel1g.shipProperTimeYears.toFixed(2)), unit: 'years' },
         coordinateTime: { value: Number(rel1g.coordinateTimeYears.toFixed(2)), unit: 'years' },
         oneWayComms: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
@@ -777,7 +810,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         originLabel,
         destinationLabel,
         distancePrimary,
-        elevationOrRangeLabel,
+        elevationOrRange,
         shipTime: { value: Number(rel05g.shipProperTimeYears.toFixed(2)), unit: 'years' },
         coordinateTime: { value: Number(rel05g.coordinateTimeYears.toFixed(2)), unit: 'years' },
         oneWayComms: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
@@ -821,7 +854,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         originLabel,
         destinationLabel,
         distancePrimary,
-        elevationOrRangeLabel,
+        elevationOrRange,
         shipTime: { value: Number(am10.shipProperTimeYears.toFixed(1)), unit: 'years' },
         coordinateTime: { value: Number(am10.coordinateTimeYears.toFixed(1)), unit: 'years' },
         oneWayComms: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
@@ -859,7 +892,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         originLabel,
         destinationLabel,
         distancePrimary,
-        elevationOrRangeLabel,
+        elevationOrRange,
         shipTime: { value: Number(fus05.shipProperTimeYears.toFixed(1)), unit: 'years' },
         coordinateTime: { value: Number(fus05.coordinateTimeYears.toFixed(1)), unit: 'years' },
         oneWayComms: { value: Number(totalDistanceLy.toFixed(1)), unit: 'yr' },
@@ -892,7 +925,10 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
       secondaryValue: Number(((totalDistanceAu * AU_TO_KM) / 1e6).toFixed(1)),
       secondaryUnit: 'M km',
     };
-    const elevationOrRangeLabel = steps.length === 1 ? steps[0].secondaryGeometryLabel : `${steps.length} planetary transfers`;
+    const elevationOrRange: JourneyOptionElevationOrRange =
+      steps.length === 1
+        ? { kind: 'single-leg', geometry: steps[0].secondaryGeometry }
+        : { kind: 'multi-leg', legCount: steps.length, domain };
 
     // 1. Light-speed
     const totalLightMinMean = totalDistanceAu * AU_TO_LIGHT_MINUTES;
@@ -909,7 +945,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         originLabel,
         destinationLabel,
         distancePrimary,
-        elevationOrRangeLabel,
+        elevationOrRange,
         shipTime: { value: 0, unit: 's' },
         coordinateTime: { value: Number(totalLightMinMean.toFixed(1)), unit: 'min' },
         oneWayComms: { value: Number(totalLightMinMean.toFixed(1)), unit: 'min' },
@@ -947,7 +983,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         originLabel,
         destinationLabel,
         distancePrimary,
-        elevationOrRangeLabel,
+        elevationOrRange,
         shipTime: {
           value: Number(b1g.transitDays.toFixed(2)),
           unit: 'days',
@@ -995,7 +1031,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         originLabel,
         destinationLabel,
         distancePrimary,
-        elevationOrRangeLabel,
+        elevationOrRange,
         shipTime: { value: Number(b01g.transitDays.toFixed(2)), unit: 'days' },
         coordinateTime: { value: Number(b01g.transitDays.toFixed(2)), unit: 'days' },
         oneWayComms: { value: Number(totalLightMinMean.toFixed(1)), unit: 'min' },
@@ -1052,7 +1088,7 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
         originLabel,
         destinationLabel,
         distancePrimary,
-        elevationOrRangeLabel,
+        elevationOrRange,
         shipTime: {
           value: Math.round(hohmann.transitDays),
           unit: 'days',

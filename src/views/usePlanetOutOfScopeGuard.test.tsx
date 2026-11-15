@@ -4,18 +4,18 @@ import {
   checkIsFocusInPlanetScope,
   usePlanetOutOfScopeGuard,
 } from './usePlanetOutOfScopeGuard';
-import { registerAppRouter } from '../hooks/useSpaLocation';
+import { registerAppRouter, type StarmapSearchParams } from '../hooks/useSpaLocation';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 
 describe('usePlanetOutOfScopeGuard', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
-  let replaceSpy: ReturnType<typeof vi.fn>;
+  let navigateSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    replaceSpy = vi.fn();
-    registerAppRouter({ history: { replace: replaceSpy } });
+    navigateSpy = vi.fn();
+    registerAppRouter({ navigate: navigateSpy });
   });
 
   afterEach(() => {
@@ -101,9 +101,7 @@ describe('usePlanetOutOfScopeGuard', () => {
   });
 
   describe('usePlanetOutOfScopeGuard hook', () => {
-    it('warns and strips out-of-scope focus on planet route', () => {
-      window.history.pushState({}, '', '/planet/earth?focus=mars');
-
+    it('warns and strips out-of-scope focus via TanStack Router navigate on planet route', () => {
       renderHook(() =>
         usePlanetOutOfScopeGuard({
           urlPlanetSlug: 'earth',
@@ -119,12 +117,16 @@ describe('usePlanetOutOfScopeGuard', () => {
       expect(warnSpy).toHaveBeenCalledWith(
         "[router] Out-of-scope focus 'mars' stripped on /planet/earth",
       );
-      expect(replaceSpy).toHaveBeenCalledWith('/planet/earth');
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      const navCall = navigateSpy.mock.calls[0][0];
+      expect(navCall.replace).toBe(true);
+      expect(typeof navCall.search).toBe('function');
+
+      const searchUpdater = navCall.search as (prev: StarmapSearchParams) => StarmapSearchParams;
+      expect(searchUpdater({ focus: 'mars', select: 'earth' })).toEqual({ select: 'earth' });
     });
 
     it('preserves valid in-scope focus without warning or router replacement', () => {
-      window.history.pushState({}, '', '/planet/earth?focus=moon');
-
       renderHook(() =>
         usePlanetOutOfScopeGuard({
           urlPlanetSlug: 'earth',
@@ -138,12 +140,10 @@ describe('usePlanetOutOfScopeGuard', () => {
       );
 
       expect(warnSpy).not.toHaveBeenCalled();
-      expect(replaceSpy).not.toHaveBeenCalled();
+      expect(navigateSpy).not.toHaveBeenCalled();
     });
 
-    it('strips out-of-scope center parameter when center is not in planet scope', () => {
-      window.history.pushState({}, '', '/planet/earth?center=jupiter');
-
+    it('strips out-of-scope center parameter via TanStack Router navigate', () => {
       renderHook(() =>
         usePlanetOutOfScopeGuard({
           urlPlanetSlug: 'earth',
@@ -157,7 +157,35 @@ describe('usePlanetOutOfScopeGuard', () => {
         }),
       );
 
-      expect(replaceSpy).toHaveBeenCalledWith('/planet/earth');
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      const navCall = navigateSpy.mock.calls[0][0];
+      expect(navCall.replace).toBe(true);
+      expect(typeof navCall.search).toBe('function');
+
+      const searchUpdater = navCall.search as (prev: StarmapSearchParams) => StarmapSearchParams;
+      expect(searchUpdater({ center: 'jupiter', select: 'earth' })).toEqual({ select: 'earth' });
+    });
+
+    it('strips both out-of-scope focus and center in a single navigate call when both are invalid', () => {
+      renderHook(() =>
+        usePlanetOutOfScopeGuard({
+          urlPlanetSlug: 'earth',
+          activeCorpus: dummyCorpus,
+          urlFocusSlug: 'mars',
+          isFocusInPlanetScope: false,
+          centerParam: 'jupiter',
+          targetPlanetId: 'earth',
+          orbitingBodyIds: ['moon'],
+          systemDetail: dummySystemDetail,
+        }),
+      );
+
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      const navCall = navigateSpy.mock.calls[0][0];
+      expect(navCall.replace).toBe(true);
+
+      const searchUpdater = navCall.search as (prev: StarmapSearchParams) => StarmapSearchParams;
+      expect(searchUpdater({ focus: 'mars', center: 'jupiter', select: 'earth' })).toEqual({ select: 'earth' });
     });
   });
 });

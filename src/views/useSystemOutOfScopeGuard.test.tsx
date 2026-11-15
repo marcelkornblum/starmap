@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useSystemOutOfScopeGuard } from './useSystemOutOfScopeGuard';
-import { registerAppRouter } from '../hooks/useSpaLocation';
+import { registerAppRouter, type StarmapSearchParams } from '../hooks/useSpaLocation';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
 import type { CompactSearchEntry } from '../utils/compactDataCodec';
 
 describe('useSystemOutOfScopeGuard', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
-  let replaceSpy: ReturnType<typeof vi.fn>;
+  let navigateSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    replaceSpy = vi.fn();
-    registerAppRouter({ history: { replace: replaceSpy } });
+    navigateSpy = vi.fn();
+    registerAppRouter({ navigate: navigateSpy });
   });
 
   afterEach(() => {
@@ -37,7 +37,7 @@ describe('useSystemOutOfScopeGuard', () => {
     );
 
     expect(warnSpy).not.toHaveBeenCalled();
-    expect(replaceSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
   });
 
   it('does nothing when activeCorpus is empty and systemDetail is undefined', () => {
@@ -52,12 +52,10 @@ describe('useSystemOutOfScopeGuard', () => {
     );
 
     expect(warnSpy).not.toHaveBeenCalled();
-    expect(replaceSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
   });
 
-  it('warns and strips out-of-scope focus parameter when focus is not in this system', () => {
-    window.history.pushState({}, '', '/system/sol?focus=alpha-centauri');
-
+  it('warns and strips out-of-scope focus parameter via TanStack Router navigate', () => {
     renderHook(() =>
       useSystemOutOfScopeGuard({
         urlSystemSlug: 'sol',
@@ -71,12 +69,16 @@ describe('useSystemOutOfScopeGuard', () => {
     expect(warnSpy).toHaveBeenCalledWith(
       "[router] Out-of-scope focus 'alpha-centauri' stripped on /system/sol",
     );
-    expect(replaceSpy).toHaveBeenCalledWith('/system/sol');
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    const navCall = navigateSpy.mock.calls[0][0];
+    expect(navCall.replace).toBe(true);
+    expect(typeof navCall.search).toBe('function');
+
+    const searchUpdater = navCall.search as (prev: StarmapSearchParams) => StarmapSearchParams;
+    expect(searchUpdater({ focus: 'alpha-centauri', select: 'sol' })).toEqual({ select: 'sol' });
   });
 
   it('preserves valid in-scope focus without warning or router replacement', () => {
-    window.history.pushState({}, '', '/system/sol?focus=earth');
-
     renderHook(() =>
       useSystemOutOfScopeGuard({
         urlSystemSlug: 'sol',
@@ -88,12 +90,10 @@ describe('useSystemOutOfScopeGuard', () => {
     );
 
     expect(warnSpy).not.toHaveBeenCalled();
-    expect(replaceSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
   });
 
-  it('strips out-of-scope center parameter when center is not in this system', () => {
-    window.history.pushState({}, '', '/system/sol?center=sirius');
-
+  it('strips out-of-scope center parameter via TanStack Router navigate', () => {
     const systemDetail: DecodedDetailRecord = {
       kind: 'system',
       record: {
@@ -121,6 +121,32 @@ describe('useSystemOutOfScopeGuard', () => {
       }),
     );
 
-    expect(replaceSpy).toHaveBeenCalledWith('/system/sol');
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    const navCall = navigateSpy.mock.calls[0][0];
+    expect(navCall.replace).toBe(true);
+    expect(typeof navCall.search).toBe('function');
+
+    const searchUpdater = navCall.search as (prev: StarmapSearchParams) => StarmapSearchParams;
+    expect(searchUpdater({ center: 'sirius', select: 'sol' })).toEqual({ select: 'sol' });
+  });
+
+  it('strips both out-of-scope focus and center in a single navigate call when both are invalid', () => {
+    renderHook(() =>
+      useSystemOutOfScopeGuard({
+        urlSystemSlug: 'sol',
+        activeCorpus: dummyCorpus,
+        urlFocusSlug: 'alpha-centauri',
+        isFocusInThisSystem: false,
+        center: 'sirius',
+        targetSystemId: 'sol',
+      }),
+    );
+
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    const navCall = navigateSpy.mock.calls[0][0];
+    expect(navCall.replace).toBe(true);
+
+    const searchUpdater = navCall.search as (prev: StarmapSearchParams) => StarmapSearchParams;
+    expect(searchUpdater({ focus: 'alpha-centauri', center: 'sirius', select: 'sol' })).toEqual({ select: 'sol' });
   });
 });

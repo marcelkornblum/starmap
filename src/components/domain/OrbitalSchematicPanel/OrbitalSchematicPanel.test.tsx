@@ -67,10 +67,29 @@ describe('<OrbitalSchematicPanel />', () => {
     const lists = screen.getAllByTestId('orbital-schematic-list');
     expect(lists.length).toBe(2);
 
-    expect(screen.getByText('Sol')).toBeDefined();
-    expect(screen.getByText('Earth')).toBeDefined();
+    expect(screen.getByText('Sol')).toBeInTheDocument();
+    expect(screen.getByText('Earth')).toBeInTheDocument();
     expect(screen.getAllByText('Moon').length).toBeGreaterThan(0);
-    expect(screen.getByTestId('orbital-schematic-habitable-link')).toBeDefined();
+    const heading = screen.getByRole('heading', { level: 2, name: 'Orbital Schematic' });
+    expect(heading.getAttribute('data-heading')).toBe('true');
+    expect(heading.getAttribute('data-size')).toBe('section');
+
+    const habitableLink = screen.getByTestId('orbital-schematic-habitable-link');
+    expect(habitableLink.tagName).toBe('A');
+    expect(habitableLink.getAttribute('data-status')).toBe('nominal');
+    expect(habitableLink.closest('[data-testid="orbital-schematic-item"]')?.querySelectorAll('a a').length).toBe(0);
+
+    const spectralLink = screen.getByTestId('orbital-schematic-spectral-link');
+    expect(spectralLink.tagName).toBe('A');
+    expect(spectralLink.getAttribute('data-spectral-badge')).toBe('G2V');
+    expect(spectralLink.getAttribute('href')).toContain('/guide/star-types/G2V');
+    expect(spectralLink.closest('[data-testid="orbital-schematic-item"]')?.querySelectorAll('a a').length).toBe(0);
+
+    const planetLink = screen.getByTestId('orbital-schematic-planet-type-link');
+    expect(planetLink.tagName).toBe('A');
+    expect(planetLink.getAttribute('data-category')).toBe('planet');
+    expect(planetLink.getAttribute('href')).toContain('/guide/planet-types/Terrestrial');
+    expect(planetLink.closest('[data-testid="orbital-schematic-item"]')?.querySelectorAll('a a').length).toBe(0);
   });
 
   it('renders belt item with radialSpanAu and unit link', () => {
@@ -91,8 +110,8 @@ describe('<OrbitalSchematicPanel />', () => {
       />
     );
 
-    expect(screen.getByTestId('orbital-schematic-belt-badge')).toBeDefined();
-    expect(screen.getByTestId('orbital-schematic-belt-span')).toBeDefined();
-    expect(screen.getByTestId('orbital-schematic-belt-unit-link')).toBeDefined();
+    expect(screen.getByTestId('orbital-schematic-belt-badge')).toBeInTheDocument();
+    expect(screen.getByTestId('orbital-schematic-belt-span')).toBeInTheDocument();
+    expect(screen.getByTestId('orbital-schematic-belt-unit-link')).toBeInTheDocument();
   });
 });

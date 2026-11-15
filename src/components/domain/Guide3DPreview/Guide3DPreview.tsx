@@ -9,8 +9,8 @@ export interface GuideStarPreviewProps {
   readonly radiusRsun?: number;
   readonly tempK?: number;
   readonly chromaticityHex?: string;
+  readonly chromaticityToken?: string;
   readonly isDetail?: boolean;
-  readonly className?: string;
 }
 
 export interface GuidePlanetPreviewProps {
@@ -19,7 +19,6 @@ export interface GuidePlanetPreviewProps {
   readonly radiusRearth?: number;
   readonly textureTheme?: string;
   readonly isDetail?: boolean;
-  readonly className?: string;
 }
 
 export interface GuideMetricPreviewProps {
@@ -32,7 +31,6 @@ export interface GuideMetricPreviewProps {
   readonly targetName?: string;
   readonly targetValue?: string;
   readonly isDetail?: boolean;
-  readonly className?: string;
 }
 
 export interface GuideHazardPreviewProps {
@@ -41,7 +39,6 @@ export interface GuideHazardPreviewProps {
   readonly domain?: 'stellar' | 'planetary';
   readonly severity?: 'warning' | 'critical';
   readonly isDetail?: boolean;
-  readonly className?: string;
 }
 
 export type Guide3DPreviewProps =
@@ -54,6 +51,7 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
   const detailAttr = props.isDetail ? 'true' : undefined;
 
   if (props.kind === 'star') {
+    const chromaticity = props.chromaticityToken ?? props.chromaticityHex;
     return (
       <div
         data-testid="guide-3d-preview"
@@ -65,12 +63,13 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
         data-radius-rsun={props.radiusRsun}
         data-temp-k={props.tempK}
         data-chromaticity-hex={props.chromaticityHex}
+        data-chromaticity-token={props.chromaticityToken}
         className={styles.previewSlot}
       >
         <div
           className={styles.sphereVisual}
           data-kind="star"
-          data-chromaticity={props.chromaticityHex}
+          data-chromaticity={chromaticity}
         >
           <span className={styles.sphereCore} />
         </div>

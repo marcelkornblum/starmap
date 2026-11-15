@@ -11,9 +11,9 @@ describe('<Frame />', () => {
     );
 
     const container = screen.getByTestId('frame-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
-    expect(screen.getByAltText('Test frame target')).toBeDefined();
+    expect(screen.getByAltText('Test frame target')).toBeInTheDocument();
   });
 
   it('sets default data-ratio="16:9"', () => {

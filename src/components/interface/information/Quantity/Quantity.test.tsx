@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Quantity, Measurement } from './Quantity';
+import { Quantity } from './Quantity';
 import { Unit } from '../Unit/Unit';
 
 describe('<Quantity />', () => {
@@ -60,11 +60,11 @@ describe('<Quantity />', () => {
     expect(qty.textContent).toBe('Custom Rendered 12.5 pc');
   });
 
-  it('supports Measurement alias identically', () => {
-    render(<Measurement value="10" unit="parsecs" data-testid="measurement" />);
-    const m = screen.getByTestId('measurement');
-    expect(m.getAttribute('data-quantity')).toBe('true');
-    expect(m.textContent).toContain('10');
-    expect(m.textContent).toContain('parsecs');
+  it('handles custom react elements in unit safely without throwing', () => {
+    render(<Quantity value="10" unit={<span>parsecs</span>} data-testid="qty" />);
+    const q = screen.getByTestId('qty');
+    expect(q.getAttribute('data-quantity')).toBe('true');
+    expect(q.textContent).toContain('10');
+    expect(q.textContent).toContain('parsecs');
   });
 });

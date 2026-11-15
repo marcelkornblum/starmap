@@ -201,6 +201,21 @@ describe('journeyService & transit mathematics (DEC-033)', () => {
       expect(plan.options.map((o) => o.id)).toContain('torchship-1g');
       expect(plan.options.map((o) => o.id)).toContain('antimatter-0.1c');
       expect(plan.chordLegs).toHaveLength(1);
+      expect(plan.steps[0].secondaryGeometry).toEqual({
+        kind: 'elevation',
+        deltaZ: {
+          value: expect.any(Number),
+          unit: 'pc',
+          secondaryValue: expect.any(Number),
+          secondaryUnit: 'ly',
+        },
+      });
+      expect((plan.steps[0] as any).secondaryGeometryLabel).toBeUndefined();
+      expect(plan.options[0].stats.elevationOrRange).toEqual({
+        kind: 'single-leg',
+        geometry: plan.steps[0].secondaryGeometry,
+      });
+      expect((plan.options[0].stats as any).elevationOrRangeLabel).toBeUndefined();
     });
 
     it('builds comprehensive intra-system JourneyPlan with brachistochrone and Hohmann options', () => {
@@ -218,6 +233,27 @@ describe('journeyService & transit mathematics (DEC-033)', () => {
       expect(plan.totalCommsOneWay?.unit).toBe('min');
       expect(plan.options.map((o) => o.id)).toContain('torchship-1g');
       expect(plan.options.map((o) => o.id)).toContain('hohmann-transfer');
+      expect(plan.steps[0].secondaryGeometry).toEqual({
+        kind: 'orbital-range',
+        min: {
+          value: expect.any(Number),
+          unit: 'AU',
+          secondaryValue: expect.any(Number),
+          secondaryUnit: 'M km',
+        },
+        max: {
+          value: expect.any(Number),
+          unit: 'AU',
+          secondaryValue: expect.any(Number),
+          secondaryUnit: 'M km',
+        },
+      });
+      expect((plan.steps[0] as any).secondaryGeometryLabel).toBeUndefined();
+      expect(plan.options[0].stats.elevationOrRange).toEqual({
+        kind: 'single-leg',
+        geometry: plan.steps[0].secondaryGeometry,
+      });
+      expect((plan.options[0].stats as any).elevationOrRangeLabel).toBeUndefined();
     });
 
     it('supports multi-stop routes with cumulative distance and multiple chord legs', () => {
@@ -232,6 +268,11 @@ describe('journeyService & transit mathematics (DEC-033)', () => {
       expect(plan.steps).toHaveLength(2);
       expect(plan.chordLegs).toHaveLength(2);
       expect(plan.focusedStopIds).toEqual(['sol', 'proxima-centauri', 'sirius']);
+      expect(plan.options[0].stats.elevationOrRange).toEqual({
+        kind: 'multi-leg',
+        legCount: 2,
+        domain: 'interstellar',
+      });
     });
   });
 });

@@ -65,7 +65,7 @@ describe('AUD-022: validateSearch query param sanitization', () => {
     expect(nonStringCenter.center).toBeUndefined();
   });
 
-  it('sanitizes string fields (q, searchCategory, focus, select, layer, route, journeyOption)', () => {
+  it('sanitizes string fields (q, searchCategory, focus, select, layer, route) and drops deprecated journeyOption', () => {
     const validated = validate({
       q: 'Tau Ceti',
       searchCategory: 'stars',
@@ -82,7 +82,8 @@ describe('AUD-022: validateSearch query param sanitization', () => {
     expect(validated.select).toBe('layer:project-hail-mary,sol');
     expect(validated.layer).toBe('project-hail-mary');
     expect(validated.route).toBe('sol-to-tau-ceti');
-    expect(validated.journeyOption).toBe('standard');
+    expect((validated as Record<string, unknown>).journeyOption).toBeUndefined();
+    expect('journeyOption' in validated).toBe(false);
   });
 
   it('handles empty search parameters gracefully', () => {

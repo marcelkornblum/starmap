@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Modal } from './Modal';
 
 describe('<Modal />', () => {
@@ -24,8 +25,8 @@ describe('<Modal />', () => {
 
     const dialog = screen.getByRole('dialog');
     expect(dialog.tagName.toLowerCase()).toBe('dialog');
-    expect(screen.getByRole('heading', { name: 'System Confirmation' })).toBeDefined();
-    expect(screen.getByText('Confirm warp drive engagement?')).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'System Confirmation' })).toBeInTheDocument();
+    expect(screen.getByText('Confirm warp drive engagement?')).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', () => {

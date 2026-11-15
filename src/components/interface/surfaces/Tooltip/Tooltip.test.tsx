@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Tooltip } from './Tooltip';
 
 describe('<Tooltip />', () => {
@@ -41,7 +42,7 @@ describe('<Tooltip />', () => {
       </Tooltip>
     );
 
-    expect(screen.getByRole('tooltip')).toBeDefined();
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
   it('dismisses when Escape key is pressed', () => {
@@ -56,7 +57,7 @@ describe('<Tooltip />', () => {
       </Tooltip>
     );
 
-    expect(screen.getByRole('tooltip')).toBeDefined();
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(handleOpenChange).toHaveBeenCalledWith(false);

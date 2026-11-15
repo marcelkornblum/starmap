@@ -6,7 +6,7 @@ describe('<Datum />', () => {
   it('renders datum with label and formatted quantity value', () => {
     render(<Datum label="Orbital Period" value="365.25" unit="d" valueTestId="period-val" />);
 
-    expect(screen.getByText('Orbital Period')).toBeDefined();
+    expect(screen.getByText('Orbital Period')).toBeInTheDocument();
     const val = screen.getByTestId('period-val');
     expect(val.textContent).toContain('365.25');
     expect(val.textContent).toContain('d');
@@ -61,7 +61,7 @@ describe('<Datum />', () => {
     const button = screen.getByRole('button', {
       name: 'We have confirmed confidence in this data',
     });
-    expect(button).toBeDefined();
+    expect(button).toBeInTheDocument();
   });
 
   it('applies static module class and forwards extra attributes', () => {
@@ -88,8 +88,8 @@ describe('<Datum />', () => {
     );
 
     const val = screen.getByTestId('details-planet-telemetry-composition');
-    expect(val).toBeDefined();
-    expect(screen.getByText('Classification')).toBeDefined();
+    expect(val).toBeInTheDocument();
+    expect(screen.getByText('Classification')).toBeInTheDocument();
     expect(screen.getByTestId('badge-elem').textContent).toBe('Terrestrial');
   });
 });

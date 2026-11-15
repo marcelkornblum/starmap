@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
 import { CARTO_LINE_CONSTANTS } from '../styles/tokens/cartography';
+import { parseCssCubicBezier } from '../utils/easingMath';
 import {
   parseCssColor,
   parseCssDuration,
   parseCssPx,
-  parseCssCubicBezier,
   createDefaultTokenSnapshot,
   extractThreeTokens,
   useThreeTokenStore,

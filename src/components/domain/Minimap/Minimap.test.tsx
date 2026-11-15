@@ -77,13 +77,13 @@ describe('<Minimap />', () => {
 
     expect(screen.getByTestId('minimap-anchor-name').textContent).toBe('Sol');
     const telemetry = screen.getByTestId('minimap-telemetry');
-    expect(telemetry).toBeDefined();
+    expect(telemetry).toBeInTheDocument();
     expect(telemetry.hasAttribute('data-telemetry')).toBe(true);
     expect(screen.getByTestId('minimap-coordinates').textContent).toContain('0, 0, 0');
 
     const markers = screen.getAllByTestId('minimap-marker-item');
     expect(markers.length).toBe(2);
-    expect(screen.getByText('Alpha Centauri')).toBeDefined();
+    expect(screen.getByText('Alpha Centauri')).toBeInTheDocument();
   });
 
   it('renders planet orientation with system badge and telemetry', () => {
@@ -93,8 +93,8 @@ describe('<Minimap />', () => {
     expect(panel.getAttribute('data-scope')).toBe('planet');
     expect(panel.getAttribute('data-anchor-id')).toBe('earth');
 
-    expect(screen.getByText('Earth')).toBeDefined();
-    expect(screen.getByText('Sol')).toBeDefined();
-    expect(screen.getByTestId('minimap-orbiting-count')).toBeDefined();
+    expect(screen.getByText('Earth')).toBeInTheDocument();
+    expect(screen.getByText('Sol')).toBeInTheDocument();
+    expect(screen.getByTestId('minimap-orbiting-count')).toBeInTheDocument();
   });
 });

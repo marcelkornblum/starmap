@@ -25,7 +25,7 @@ describe('ScreenEdgeCue and ScreenEdgeIndicators', () => {
     const cueGroup = renderer.scene.findByProps({ name: 'screen-edge-cue-core' });
     expect(cueGroup).toBeDefined();
 
-    expect(screen.getByText('CORE 000°')).toBeDefined();
+    expect(screen.getByText('CORE 000°')).toBeInTheDocument();
 
     await renderer.unmount();
     unmountOutlet();
@@ -43,8 +43,8 @@ describe('ScreenEdgeCue and ScreenEdgeIndicators', () => {
     const group = renderer.scene.findByProps({ name: 'screen-edge-bearing-indicators' });
     expect(group).toBeDefined();
 
-    expect(screen.getByText('CORE 000°')).toBeDefined();
-    expect(screen.getByText('ORB 090°')).toBeDefined();
+    expect(screen.getByText('CORE 000°')).toBeInTheDocument();
+    expect(screen.getByText('ORB 090°')).toBeInTheDocument();
 
     await renderer.unmount();
     unmountOutlet();

@@ -88,7 +88,7 @@ describe('Search and Focus Integration - Infinite Render Loop Regression', () =>
       );
     }).not.toThrow();
 
-    expect(screen.getByTestId('galaxy-view-root')).toBeDefined();
+    expect(screen.getByTestId('galaxy-view-root')).toBeInTheDocument();
     expect(store.getState().focusedId).toBe('tau-ceti');
     expect(screen.getAllByText('Tau Ceti').length).toBeGreaterThan(0);
 

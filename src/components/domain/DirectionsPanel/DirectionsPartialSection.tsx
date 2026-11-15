@@ -11,6 +11,7 @@ import {
 } from '../../interface';
 import {
   renderDirectionsDatum,
+  renderSecondaryGeometry,
   renderStructuredQuantity,
 } from './directionsQuantityHelpers';
 import styles from './DirectionsPanel.module.css';
@@ -191,7 +192,9 @@ export const DirectionsPartialSection: React.FC<DirectionsPartialSectionProps> =
                 <DataTable.Cell numeric>
                   {renderStructuredQuantity(step.primaryDistance)}
                 </DataTable.Cell>
-                <DataTable.Cell>{step.secondaryGeometryLabel}</DataTable.Cell>
+                <DataTable.Cell>
+                  {renderSecondaryGeometry(step.secondaryGeometry)}
+                </DataTable.Cell>
               </DataTable.Row>
             ))}
           </DataTable.Body>

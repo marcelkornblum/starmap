@@ -25,6 +25,23 @@ describe('<Guide3DPreview />', () => {
     expect(preview.getAttribute('data-chromaticity-hex')).toBe('#fff4ea');
   });
 
+  it('renders star preview with chromaticityToken attribute and sphere color', () => {
+    render(
+      <Guide3DPreview
+        kind="star"
+        spectralClass="O5V"
+        spectralLetter="O"
+        luminosityClass="V"
+        chromaticityToken="var(--star-chromaticity-o)"
+      />
+    );
+
+    const preview = screen.getByTestId('guide-3d-preview');
+    expect(preview.getAttribute('data-chromaticity-token')).toBe('var(--star-chromaticity-o)');
+    const sphere = preview.querySelector('[data-kind="star"]');
+    expect(sphere?.getAttribute('data-chromaticity')).toBe('var(--star-chromaticity-o)');
+  });
+
   it('renders planet preview with composition attributes', () => {
     render(
       <Guide3DPreview
@@ -75,7 +92,7 @@ describe('<Guide3DPreview />', () => {
     const preview = screen.getByTestId('guide-3d-preview');
     expect(preview.getAttribute('data-preview-kind')).toBe('metric');
     expect(preview.getAttribute('data-metric-id')).toBe('semi-major-axis');
-    expect(screen.getByText('Sol: 1.0 AU')).toBeDefined();
-    expect(screen.getByText('Tau Ceti: 0.538 AU')).toBeDefined();
+    expect(screen.getByText('Sol: 1.0 AU')).toBeInTheDocument();
+    expect(screen.getByText('Tau Ceti: 0.538 AU')).toBeInTheDocument();
   });
 });

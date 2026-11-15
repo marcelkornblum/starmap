@@ -84,7 +84,7 @@ describe('SpatialScenes Storybook Suite', () => {
       const { container } = render(
         <GalacticViewScene additionalEntities={mockAdditionalEntities} variant="card" />,
       );
-      expect(screen.getByTestId('mock-canvas')).toBeDefined();
+      expect(screen.getByTestId('mock-canvas')).toBeInTheDocument();
       expect(container.querySelector('[data-variant="card"]')).not.toBeNull();
     });
 
@@ -92,26 +92,26 @@ describe('SpatialScenes Storybook Suite', () => {
       const { container } = render(
         <SystemViewScene system={mockSolSystem} variant="fullscreen" />,
       );
-      expect(screen.getByTestId('mock-canvas')).toBeDefined();
+      expect(screen.getByTestId('mock-canvas')).toBeInTheDocument();
       expect(container.querySelector('[data-variant="fullscreen"]')).not.toBeNull();
     });
 
     it('renders PlanetaryViewScene with canvas wrapper', () => {
       render(<PlanetaryViewScene planetId="earth" />);
-      expect(screen.getByTestId('mock-canvas')).toBeDefined();
+      expect(screen.getByTestId('mock-canvas')).toBeInTheDocument();
     });
 
     it('accepts centerCoordinates array and object for camera positioning', () => {
       const { unmount } = render(
         <GalacticViewScene centerCoordinates={[-1.4, -3.2, 0.4]} />,
       );
-      expect(screen.getByTestId('mock-canvas')).toBeDefined();
+      expect(screen.getByTestId('mock-canvas')).toBeInTheDocument();
       unmount();
 
       render(
         <GalacticViewScene centerCoordinates={{ x: -1.4, y: -3.2, z: 0.4 }} />,
       );
-      expect(screen.getByTestId('mock-canvas')).toBeDefined();
+      expect(screen.getByTestId('mock-canvas')).toBeInTheDocument();
     });
 
     it('exports GALAXY_SCENE_MAX_STREAMED_ENTITIES = 1200', () => {
@@ -122,7 +122,7 @@ describe('SpatialScenes Storybook Suite', () => {
   describe('InteractiveNavigator', () => {
     it('renders initial scale canvas cleanly', () => {
       render(<InteractiveNavigator additionalEntities={mockAdditionalEntities} />);
-      expect(screen.getByTestId('mock-canvas')).toBeDefined();
+      expect(screen.getByTestId('mock-canvas')).toBeInTheDocument();
     });
 
     it('maintains a single persistent <Canvas> element when scale transitions via Escape key', () => {

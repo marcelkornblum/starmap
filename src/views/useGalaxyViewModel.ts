@@ -74,7 +74,6 @@ export function useGalaxyViewModel({
   const select = (isExplicitLocation ? searchParams.get('select') : (routeSearch?.select ?? searchParams.get('select'))) ?? undefined;
   const layer = (isExplicitLocation ? searchParams.get('layer') : (routeSearch?.layer ?? searchParams.get('layer'))) ?? undefined;
   const route = (isExplicitLocation ? searchParams.get('route') : (routeSearch?.route ?? searchParams.get('route'))) ?? undefined;
-  const journeyOption = (isExplicitLocation ? searchParams.get('journeyOption') : (routeSearch?.journeyOption ?? searchParams.get('journeyOption'))) ?? undefined;
   const center = (isExplicitLocation ? searchParams.get('center') : (routeSearch?.center ?? searchParams.get('center'))) ?? undefined;
 
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
@@ -190,7 +189,6 @@ export function useGalaxyViewModel({
     selectedEntities,
     instrumentAperture,
     route,
-    journeyOption,
   });
 
   const resolvedCenterCoordinates = useMemo(

@@ -60,7 +60,6 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
   const focus = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
   const layer = routeSearch?.layer ?? searchParams.get('layer') ?? undefined;
   const route = routeSearch?.route ?? searchParams.get('route') ?? undefined;
-  const journeyOption = routeSearch?.journeyOption ?? searchParams.get('journeyOption') ?? undefined;
   const center = routeSearch?.center ?? searchParams.get('center') ?? undefined;
 
   const rawPlanetId = routeParams?.planetId ?? propPlanetId;
@@ -143,11 +142,9 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
     );
   }, [breadcrumbs, lastGalaxySearch]);
 
-  const routeSearchQuery = route
-    ? `?route=${encodeURIComponent(route)}${journeyOption ? `&journeyOption=${encodeURIComponent(journeyOption)}` : ''}`
-    : search;
+  const routeSearchQuery = route ? `?route=${encodeURIComponent(route)}` : search;
   const routeStops = extractUrlRouteStops(routeSearchQuery, 'planet');
-  const routeOptionId = journeyOption ?? extractUrlJourneyOptionId(routeSearchQuery);
+  const routeOptionId = extractUrlJourneyOptionId(routeSearchQuery);
   const activeJourney = routeStops
     ? buildJourneyPlan({
         stops: routeStops,

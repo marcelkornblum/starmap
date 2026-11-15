@@ -7,7 +7,6 @@ export interface StarmapSearchParams {
   select?: string;
   layer?: string;
   route?: string;
-  journeyOption?: string;
   center?: string;
 }
 

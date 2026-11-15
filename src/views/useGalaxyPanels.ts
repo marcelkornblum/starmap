@@ -37,7 +37,6 @@ export interface UseGalaxyPanelsParams {
   readonly selectedEntities: readonly SpatialEntityDefinition[];
   readonly instrumentAperture: GalacticInstrumentApertureResult;
   readonly route?: string;
-  readonly journeyOption?: string;
 }
 
 export function useGalaxyPanels({
@@ -56,7 +55,6 @@ export function useGalaxyPanels({
   selectedEntities,
   instrumentAperture,
   route,
-  journeyOption,
 }: UseGalaxyPanelsParams) {
   const canonRecords = useEntityAnnotations([
     toAnnotationLookupKey(focusedEntity?.id ?? targetSystemId),
@@ -141,11 +139,9 @@ export function useGalaxyPanels({
     [focusedEntity, selectedEntities, focusedDetails, cameraState, centerEntity],
   );
 
-  const routeSearchQuery = route
-    ? `?route=${encodeURIComponent(route)}${journeyOption ? `&journeyOption=${encodeURIComponent(journeyOption)}` : ''}`
-    : search;
+  const routeSearchQuery = route ? `?route=${encodeURIComponent(route)}` : search;
   const routeStops = extractUrlRouteStops(routeSearchQuery, 'galaxy');
-  const routeOptionId = journeyOption ?? extractUrlJourneyOptionId(routeSearchQuery);
+  const routeOptionId = extractUrlJourneyOptionId(routeSearchQuery);
   const activeJourney = routeStops
     ? buildJourneyPlan({
         stops: routeStops,

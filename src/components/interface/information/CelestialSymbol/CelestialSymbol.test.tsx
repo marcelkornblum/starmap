@@ -100,13 +100,13 @@ describe('<CelestialSymbol />', () => {
 
   it('renders visual label when showLabel is true', () => {
     render(<CelestialSymbol type="gas-giant" showLabel showTooltip={false} />);
-    expect(screen.getByText('Gas Giant')).toBeDefined();
+    expect(screen.getByText('Gas Giant')).toBeInTheDocument();
   });
 
   it('wraps with Tooltip when showTooltip is true', () => {
     render(<CelestialSymbol type="white-dwarf" showTooltip={true} tooltipText="Dense Degenerate Star" />);
     // The tooltip renders around the symbol
-    expect(screen.getByRole('img', { name: 'White Dwarf' })).toBeDefined();
+    expect(screen.getByRole('img', { name: 'White Dwarf' })).toBeInTheDocument();
   });
 
   it('exposes valid metadata for all defined celestial symbol types', () => {

@@ -12,10 +12,10 @@ describe('<Stack />', () => {
     );
 
     const container = screen.getByTestId('stack-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
-    expect(screen.getByText('Child 1')).toBeDefined();
-    expect(screen.getByText('Child 2')).toBeDefined();
+    expect(screen.getByText('Child 1')).toBeInTheDocument();
+    expect(screen.getByText('Child 2')).toBeInTheDocument();
   });
 
   it('sets default data-gap="default" and data-align="stretch"', () => {

@@ -134,7 +134,7 @@ export interface MetricComparison {
 export interface SpectralCombinationResult {
   readonly combinedCode: string;
   readonly effectiveTempK: number;
-  readonly chromaticityHex: string;
+  readonly chromaticityToken: string;
   readonly radiusRsun: number;
   readonly luminosityLsun: number;
   readonly habitableZoneAu: string;
@@ -392,7 +392,7 @@ interface ClassBaseData {
   readonly temp9: number;
   readonly baseRadius: number;
   readonly classEffect: string;
-  readonly hex: string;
+  readonly chromaticityToken: string;
 }
 
 const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
@@ -402,7 +402,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 10.0,
     classEffect:
       'Class O establishes an extreme high-mass ionizing ultraviolet regime (> 30,000 K) with ionized helium lines.',
-    hex: 'var(--star-chromaticity-o)',
+    chromaticityToken: 'var(--star-chromaticity-o)',
   },
   B: {
     temp0: 30000,
@@ -410,7 +410,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 4.5,
     classEffect:
       'Class B establishes a hot luminous blue-white regime (10,000–30,000 K) characterized by neutral helium.',
-    hex: 'var(--star-chromaticity-b)',
+    chromaticityToken: 'var(--star-chromaticity-b)',
   },
   A: {
     temp0: 10000,
@@ -418,7 +418,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 1.8,
     classEffect:
       'Class A establishes a white photospheric regime (7,500–10,000 K) dominated by prominent hydrogen Balmer lines.',
-    hex: 'var(--star-chromaticity-a)',
+    chromaticityToken: 'var(--star-chromaticity-a)',
   },
   F: {
     temp0: 7500,
@@ -426,7 +426,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 1.3,
     classEffect:
       'Class F establishes a yellow-white regime (6,000–7,500 K) with developing ionized metal absorption spectra.',
-    hex: 'var(--star-chromaticity-f)',
+    chromaticityToken: 'var(--star-chromaticity-f)',
   },
   G: {
     temp0: 6000,
@@ -434,7 +434,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 1.0,
     classEffect:
       'Class G establishes a solar-type yellow regime (5,200–6,000 K) with neutral iron and ionized calcium lines.',
-    hex: 'var(--star-chromaticity-g)',
+    chromaticityToken: 'var(--star-chromaticity-g)',
   },
   K: {
     temp0: 5200,
@@ -442,7 +442,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 0.8,
     classEffect:
       'Class K establishes an orange dwarf regime (3,700–5,200 K) offering billions of years of stable irradiance.',
-    hex: 'var(--star-chromaticity-k)',
+    chromaticityToken: 'var(--star-chromaticity-k)',
   },
   M: {
     temp0: 3700,
@@ -450,7 +450,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 0.35,
     classEffect:
       'Class M establishes a cool red dwarf regime (< 3,700 K) dominated by titanium oxide molecular bands.',
-    hex: 'var(--star-chromaticity-m)',
+    chromaticityToken: 'var(--star-chromaticity-m)',
   },
   L: {
     temp0: 2400,
@@ -458,7 +458,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 0.1,
     classEffect:
       'Class L/T/Y establishes a substellar brown dwarf regime (< 2,400 K) cooling across infrared wavelengths.',
-    hex: 'var(--star-chromaticity-l)',
+    chromaticityToken: 'var(--star-chromaticity-l)',
   },
   D: {
     temp0: 30000,
@@ -466,7 +466,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
     baseRadius: 0.012,
     classEffect:
       'Class D establishes an electron-degenerate white dwarf core remnant cooling via radiative leakage.',
-    hex: 'var(--star-chromaticity-d)',
+    chromaticityToken: 'var(--star-chromaticity-d)',
   },
 };
 
@@ -543,7 +543,7 @@ export const computeSpectralCombination = (
   return {
     combinedCode,
     effectiveTempK,
-    chromaticityHex: data.hex,
+    chromaticityToken: data.chromaticityToken,
     radiusRsun,
     luminosityLsun,
     habitableZoneAu,

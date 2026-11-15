@@ -1,16 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Button } from './Button';
 
 describe('<Button />', () => {
   it('renders a button element with default attributes and children', () => {
     render(<Button>Engage</Button>);
     const button = screen.getByRole('button', { name: 'Engage' });
-    expect(button).toBeDefined();
+    expect(button).toBeInTheDocument();
     expect(button.tagName.toLowerCase()).toBe('button');
-    expect(button.getAttribute('type')).toBe('button');
-    expect(button.getAttribute('data-variant')).toBe('default');
-    expect(button.getAttribute('data-size')).toBe('md');
+    expect(button).toHaveAttribute('type', 'button');
+    expect(button).toHaveAttribute('data-variant', 'default');
+    expect(button).toHaveAttribute('data-size', 'md');
   });
 
   it('renders all variant attributes correctly', () => {
@@ -100,6 +101,7 @@ describe('<Button />', () => {
   it('binds scoped module class statically without custom className per DEC-R050', () => {
     render(<Button>Styled</Button>);
     const button = screen.getByRole('button', { name: 'Styled' });
-    expect(button.className).toBeTruthy();
+    expect(button).toHaveAttribute('class');
+    expect(button.className.length).toBeGreaterThan(0);
   });
 });

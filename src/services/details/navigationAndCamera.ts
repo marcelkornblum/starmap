@@ -212,7 +212,7 @@ export const buildSystemElementFocusHref = (
  */
 export const buildPlanetDetailsHref = (planetNameOrId: string): string => {
   const slug = toUrlSlug(planetNameOrId);
-  return `/planet/${encodeURIComponent(slug || planetNameOrId.trim() || 'earth')}`;
+  return `/planet/${encodeURIComponent(slug || planetNameOrId.trim() || DEFAULT_ORIGIN_TARGETS.intraSystemOriginId)}`;
 };
 
 /**

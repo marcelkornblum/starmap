@@ -11,9 +11,9 @@ describe('<Imposter />', () => {
     );
 
     const container = screen.getByTestId('imposter-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
-    expect(screen.getByText('Overlay Modal')).toBeDefined();
+    expect(screen.getByText('Overlay Modal')).toBeInTheDocument();
   });
 
   it('sets default data-position="center", data-margin="default", and omits data-fixed', () => {

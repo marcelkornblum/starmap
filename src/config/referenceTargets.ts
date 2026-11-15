@@ -79,6 +79,8 @@ export interface DefaultOriginTargets {
 
 // guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)
 const SOL_ID = 'sol';
+// guard-disable-next-line G-literals -- compact wire discriminator tag (DEC-GBZ-004)
+export const COMPACT_SOLAR_BODY_TAG = 'sol' as const;
 // guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)
 const SOL_NAME = 'Sol';
 // guard-disable-next-line G-literals -- educational reference target baseline (DEC-R033)

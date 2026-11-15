@@ -11,7 +11,7 @@ describe('<PlanetTypeDetailView />', () => {
   it('renders single planet type detail view for terrestrial', () => {
     render(<PlanetTypeDetailView planetType="terrestrial" />);
     const root = screen.getByTestId('planet-type-detail-view-root');
-    expect(root).toBeTruthy();
+    expect(root).toBeInTheDocument();
     expect(root.getAttribute('data-planet-type')).toBe('terrestrial');
 
     const summary = screen.getByTestId('guide-detail-summary');
@@ -23,9 +23,9 @@ describe('<PlanetTypeDetailView />', () => {
 
   it('renders cards for all classifications when multi-value planet type is provided (AUD-092)', () => {
     render(<PlanetTypeDetailView planetType="terrestrial,super-earth" />);
-    expect(screen.getByTestId('planet-type-detail-view-root')).toBeTruthy();
-    expect(screen.getByText('Terrestrial Worlds')).toBeTruthy();
-    expect(screen.getByText('Super-Earths')).toBeTruthy();
+    expect(screen.getByTestId('planet-type-detail-view-root')).toBeInTheDocument();
+    expect(screen.getByText('Terrestrial Worlds')).toBeInTheDocument();
+    expect(screen.getByText('Super-Earths')).toBeInTheDocument();
   });
 
   it('renders focus context return button when ?focus= is provided in search (AUD-092)', () => {
@@ -36,13 +36,13 @@ describe('<PlanetTypeDetailView />', () => {
       />,
     );
     const focusContext = screen.getByTestId('guide-focus-context');
-    expect(focusContext).toBeTruthy();
+    expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('earth');
   });
 
   it('renders fallback gracefully when planet type is not recognized', () => {
     render(<PlanetTypeDetailView planetType="plasma-world" />);
-    expect(screen.getByText(/No guide record found for planet classification/i)).toBeTruthy();
+    expect(screen.getByText(/No guide record found for planet classification/i)).toBeInTheDocument();
   });
 
   it('extracts planetType from route params via useParams when propPlanetType is omitted', () => {

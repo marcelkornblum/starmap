@@ -11,9 +11,9 @@ describe('<Box />', () => {
     );
 
     const container = screen.getByTestId('box-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
-    expect(screen.getByText('Box content')).toBeDefined();
+    expect(screen.getByText('Box content')).toBeInTheDocument();
   });
 
   it('sets default data-padding="default", data-border="none", and omits data-background', () => {

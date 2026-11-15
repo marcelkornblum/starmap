@@ -17,8 +17,8 @@ describe('SafeHtml & View Lifecycle Safeguards', () => {
     expect(renderer.scene.children[0].type).toBe('Group');
 
     // SafeHtml renders portal through SafeHtmlPortalOutlet to DOM
-    expect(screen.getByTestId('safe-html-overlay')).toBeDefined();
-    expect(screen.getByText('Overlay Content')).toBeDefined();
+    expect(screen.getByTestId('safe-html-overlay')).toBeInTheDocument();
+    expect(screen.getByText('Overlay Content')).toBeInTheDocument();
 
     await renderer.unmount();
     unmountOutlet();

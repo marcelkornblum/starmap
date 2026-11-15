@@ -52,7 +52,7 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
           luminosityClass={selectedLum}
           radiusRsun={combination.radiusRsun}
           tempK={combination.effectiveTempK}
-          chromaticityHex={combination.chromaticityHex}
+          chromaticityToken={combination.chromaticityToken}
           isDetail
         />
 
@@ -80,7 +80,7 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
           />
           <Datum
             label="Chromaticity"
-            value={combination.chromaticityHex}
+            value={combination.chromaticityToken}
           />
         </Stack>
 

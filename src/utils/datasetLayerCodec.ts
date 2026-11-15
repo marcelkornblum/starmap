@@ -17,6 +17,8 @@ import {
   formatSlugFallbackTitle,
   normalizeCleanKey,
 } from './nomenclature';
+import { BoundedLruCache } from './lruCache';
+import { SLUG_CACHE_LIMIT } from '../config/cacheConfig';
 
 const LAYER_KIND_TO_CODE: Record<DatasetLayerKind, number> = {
   'fictional-canon': 1,
@@ -341,8 +343,7 @@ export function buildEntityAnnotationBuckets(
   return buckets;
 }
 
-const SLUG_CACHE = new Map<string, string>();
-const SLUG_CACHE_MAX = 65536;
+const SLUG_CACHE = new BoundedLruCache<string, string>(SLUG_CACHE_LIMIT);
 
 export function toUrlSlug(value: string): string {
   if (!value) return '';
@@ -355,9 +356,6 @@ export function toUrlSlug(value: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  if (SLUG_CACHE.size >= SLUG_CACHE_MAX) {
-    SLUG_CACHE.clear();
-  }
   SLUG_CACHE.set(value, slug);
   return slug;
 }

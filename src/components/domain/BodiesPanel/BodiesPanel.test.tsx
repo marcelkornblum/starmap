@@ -157,7 +157,7 @@ describe('<BodiesPanel />', () => {
     const panel = screen.getByTestId('bodies-panel');
     expect(panel.getAttribute('data-scope')).toBe('galaxy');
     expect(panel.getAttribute('data-center-id')).toBe('sol');
-    expect(screen.getByText('Distances from Sol')).toBeDefined();
+    expect(screen.getByText('Distances from Sol')).toBeInTheDocument();
 
     const systemItems = screen.getAllByTestId('bodies-galaxy-system-item');
     expect(systemItems.length).toBe(2);
@@ -181,17 +181,17 @@ describe('<BodiesPanel />', () => {
     const panel = screen.getByTestId('bodies-panel');
     expect(panel.getAttribute('data-scope')).toBe('system');
     expect(panel.getAttribute('data-system-id')).toBe('sol');
-    expect(screen.getByTestId('orbital-schematic-panel')).toBeDefined();
+    expect(screen.getByTestId('orbital-schematic-panel')).toBeInTheDocument();
 
     const minorBodiesSection = screen.getByTestId('bodies-minor-bodies-section');
-    expect(minorBodiesSection).toBeDefined();
+    expect(minorBodiesSection).toBeInTheDocument();
 
     const heading = screen.getByRole('heading', { level: 3, name: /minor bodies/i });
-    expect(heading).toBeDefined();
+    expect(heading).toBeInTheDocument();
     expect(heading.parentElement).toBe(minorBodiesSection);
     expect(heading.getAttribute('data-size')).toBe('eyebrow');
 
-    expect(screen.getByText('Voyager 1')).toBeDefined();
+    expect(screen.getByText('Voyager 1')).toBeInTheDocument();
   });
 
   it('renders planetary scope', () => {

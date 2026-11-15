@@ -1,4 +1,5 @@
 // Setup global test environment polyfills
+import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;

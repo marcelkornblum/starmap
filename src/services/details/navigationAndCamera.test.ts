@@ -4,8 +4,10 @@ import {
   buildGalaxySystemNavigationHref,
   buildSystemViewBreadcrumbs,
   buildPlanetViewBreadcrumbs,
+  buildPlanetDetailsHref,
   extractUrlSceneCameraState,
 } from './navigationAndCamera';
+import { DEFAULT_ORIGIN_TARGETS } from '../../config/referenceTargets';
 
 describe('navigationAndCamera', () => {
   describe('buildGalaxySystemNavigationHref', () => {
@@ -127,6 +129,10 @@ describe('navigationAndCamera', () => {
       expect(breadcrumbs[0].label).toBe('Galaxy');
       expect(breadcrumbs[1].label).toBe('System');
       expect(breadcrumbs[2].label).toBe('Earth');
+    });
+
+    it('buildPlanetDetailsHref falls back to DEFAULT_ORIGIN_TARGETS.intraSystemOriginId when empty', () => {
+      expect(buildPlanetDetailsHref('')).toBe(`/planet/${DEFAULT_ORIGIN_TARGETS.intraSystemOriginId}`);
     });
   });
 

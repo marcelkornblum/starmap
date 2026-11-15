@@ -82,12 +82,12 @@ describe('<SystemView />', () => {
       );
     });
 
-    expect(screen.getByTestId('system-view-root')).toBeTruthy();
-    expect(screen.getByTestId('view-breadcrumbs')).toBeTruthy();
+    expect(screen.getByTestId('system-view-root')).toBeInTheDocument();
+    expect(screen.getByTestId('view-breadcrumbs')).toBeInTheDocument();
     expect(screen.getByTestId('view-breadcrumbs').textContent).toContain('Galaxy');
     expect(screen.getByTestId('view-breadcrumbs').textContent).toContain('Sol');
-    expect(screen.getByTestId('search-root')).toBeTruthy();
-    expect(screen.getByTestId('control-bar')).toBeTruthy();
+    expect(screen.getByTestId('search-root')).toBeInTheDocument();
+    expect(screen.getByTestId('control-bar')).toBeInTheDocument();
     const canvas = screen.getByTestId('canvas-layer');
     expect(canvas.getAttribute('data-scope')).toBe('system');
   });
@@ -106,8 +106,8 @@ describe('<SystemView />', () => {
       );
     });
 
-    expect(screen.getByTestId('system-view-root')).toBeTruthy();
-    expect(screen.getByTestId('details-panel')).toBeTruthy();
+    expect(screen.getByTestId('system-view-root')).toBeInTheDocument();
+    expect(screen.getByTestId('details-panel')).toBeInTheDocument();
   });
 
   it('renders directions panel when route query is provided', async () => {
@@ -124,6 +124,6 @@ describe('<SystemView />', () => {
       );
     });
 
-    expect(screen.getByTestId('directions-panel')).toBeTruthy();
+    expect(screen.getByTestId('directions-panel')).toBeInTheDocument();
   });
 });

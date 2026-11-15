@@ -51,9 +51,9 @@ describe('<PreviewPanel />', () => {
     expect(panel.getAttribute('data-preview-mode')).toBe('system-orbits');
 
     expect(screen.getByTestId('preview-target-name').textContent).toBe('Sol System');
-    expect(screen.getByText('system-orbits')).toBeDefined();
+    expect(screen.getByText('system-orbits')).toBeInTheDocument();
 
-    expect(screen.getByTestId('preview-primary-orbit-telemetry')).toBeDefined();
+    expect(screen.getByTestId('preview-primary-orbit-telemetry')).toBeInTheDocument();
     expect(screen.getByTestId('preview-primary-eccentricity').textContent).toContain('0.0167');
   });
 
@@ -61,12 +61,12 @@ describe('<PreviewPanel />', () => {
     render(<PreviewPanel preview={mockPreview} />);
 
     const orbitsList = screen.getByTestId('preview-orbits-list');
-    expect(orbitsList).toBeDefined();
+    expect(orbitsList).toBeInTheDocument();
 
     const items = screen.getAllByTestId('preview-orbit-item');
     expect(items.length).toBe(2);
-    expect(screen.getByText('Mercury')).toBeDefined();
-    expect(screen.getByText('Earth')).toBeDefined();
+    expect(screen.getByText('Mercury')).toBeInTheDocument();
+    expect(screen.getByText('Earth')).toBeInTheDocument();
   });
 
   it('renders explicit reticleType from preview', () => {

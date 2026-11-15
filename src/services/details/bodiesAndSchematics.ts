@@ -1,6 +1,9 @@
 import type { CompactSearchEntry } from '../../utils/compactDataCodec';
 import type { DecodedEntityAnnotation } from '../../utils/datasetLayerCodec';
-import { DEFAULT_ORIGIN_TARGETS } from '../../config/referenceTargets';
+import {
+  DEFAULT_ORIGIN_TARGETS,
+  EARTH_REFERENCE_TARGET,
+} from '../../config/referenceTargets';
 import {
   findFocusedEntryInCorpus,
   formatSlugFallbackTitle,
@@ -139,7 +142,7 @@ export const buildPlanetaryBodiesSummary = (
     planetCorpusEntry?.i ??
     (details?.focusedKind === 'planet'
       ? details.id
-      : (urlPlanetSlug ?? details?.id ?? 'earth'));
+      : (urlPlanetSlug || details?.id || EARTH_REFERENCE_TARGET.id));
 
   const matchedPlanetFromDetails = details?.planets.find((p) => {
     const pId = toUrlSlug(p.id);
@@ -154,7 +157,7 @@ export const buildPlanetaryBodiesSummary = (
       ? resolveResultDisplayTitle(planetCorpusEntry)
       : details?.focusedKind === 'planet'
         ? details.name
-        : formatSlugFallbackTitle(urlPlanetSlug ?? details?.name ?? 'Earth'));
+        : formatSlugFallbackTitle(urlPlanetSlug || details?.name || EARTH_REFERENCE_TARGET.name));
 
   const planetHref = buildPlanetDetailsHref(planetName || planetId);
   const systemId = details?.systemId ?? planetCorpusEntry?.s ?? DEFAULT_ORIGIN_TARGETS.interstellarOriginId;

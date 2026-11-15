@@ -12,10 +12,10 @@ describe('<Reel />', () => {
     );
 
     const container = screen.getByTestId('reel-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
-    expect(screen.getByText('Item 1')).toBeDefined();
-    expect(screen.getByText('Item 2')).toBeDefined();
+    expect(screen.getByText('Item 1')).toBeInTheDocument();
+    expect(screen.getByText('Item 2')).toBeInTheDocument();
   });
 
   it('sets default data-item-width="md", data-gap="default", and data-snap="true"', () => {

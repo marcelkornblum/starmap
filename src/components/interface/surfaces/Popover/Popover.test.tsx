@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Popover } from './Popover';
 
 describe('<Popover />', () => {
@@ -23,7 +24,7 @@ describe('<Popover />', () => {
       </Popover>
     );
 
-    expect(screen.getByRole('button', { name: 'Toggle Popover' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Toggle Popover' })).toBeInTheDocument();
     expect(screen.queryByText('Popover Content')).toBeNull();
   });
 
@@ -55,7 +56,7 @@ describe('<Popover />', () => {
     );
 
     const popover = screen.getByRole('region', { name: 'Filter Options' });
-    expect(popover).toBeDefined();
+    expect(popover).toBeInTheDocument();
   });
 
   it('allows explicit role override', () => {
@@ -70,6 +71,6 @@ describe('<Popover />', () => {
     );
 
     const popover = screen.getByRole('dialog');
-    expect(popover).toBeDefined();
+    expect(popover).toBeInTheDocument();
   });
 });

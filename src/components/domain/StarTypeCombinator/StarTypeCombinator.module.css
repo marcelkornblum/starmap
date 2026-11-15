@@ -32,65 +32,9 @@
     gap: var(--space-fib-2);
   }
 
-  .sliceButtonGroup {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-fib-2);
-  }
-
-  .sliceButton {
-    appearance: none;
-    border: var(--border-width-1) solid var(--border-subtle);
-    background-color: var(--surface-overlay);
-    color: var(--content-default);
-    padding: var(--space-fib-1) var(--space-fib-3);
-    border-radius: var(--radius-sm);
-    font-family: var(--font-data);
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color var(--motion-duration-interactive) ease, border-color var(--motion-duration-interactive) ease;
-  }
-
-  .sliceButton:hover {
-    background-color: var(--surface-base);
-    color: var(--content-prominent);
-  }
-
   .sliceEffect {
     font-size: var(--text-content-caption-size);
     color: var(--content-muted);
     margin: 0;
-  }
-
-  .telemetryDl {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    column-gap: var(--space-fib-4);
-    row-gap: var(--space-fib-2);
-    padding: var(--space-inset-card-tight);
-    background-color: var(--surface-overlay);
-    border-radius: var(--radius-sm);
-    border: var(--border-width-1) solid var(--border-subtle);
-    margin: 0;
-  }
-
-  .telemetryDl dt {
-    font-family: var(--font-interface);
-    font-weight: 600;
-    color: var(--content-muted);
-  }
-
-  .telemetryDl dd {
-    margin: 0;
-    font-family: var(--font-data);
-    color: var(--content-prominent);
-  }
-}
-
-@layer exceptions {
-  .sliceButton[aria-pressed='true'] {
-    border-color: var(--state-focus);
-    background-color: var(--state-selected-bg);
-    color: var(--content-prominent);
   }
 }

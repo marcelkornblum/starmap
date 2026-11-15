@@ -11,28 +11,28 @@
 
 ## Phase 2: UI/Router/CI Hygiene & Audit Cleanups (T10 Medium/Low Items)
 
-- [ ] Task 2.1 (Area 1 — Routing & State Machine):
+- [x] Task 2.1 (Area 1 — Routing & State Machine):
   - Replace `window.location.href` and `window.history.replaceState` fallbacks in `src/views/useSystemOutOfScopeGuard.ts` and `src/views/usePlanetOutOfScopeGuard.ts` with pure TanStack Router `navigate({ replace: true })`.
   - Remove residual deprecated `journeyOption` query parameter from `src/router/index.ts`, `src/hooks/useSpaLocation.ts`, and `src/views/useGalaxyViewModel.ts` (`DEC-R014h`).
   - Delete unused `src/router/navigation.ts` (`useStarmapNav`, `AUD-088`) and clean up references.
   - Extract pure easing functions out of `src/stores/useThreeTokenStore.ts` into a dedicated math utility.
-- [ ] Task 2.2 (Area 2 & 3 — Codecs & Services Hygiene):
+- [x] Task 2.2 (Area 2 & 3 — Codecs & Services Hygiene):
   - Replace ad-hoc `SLUG_CACHE` raw `Map.clear()` in `src/utils/datasetLayerCodec.ts#L344-L362` with `BoundedLruCache`.
   - Replace pre-formatted `secondaryGeometryLabel` prose in `src/services/journeyService.ts#L582,634` with structured quantities (`{ value, unit }`).
   - Rename `chromaticityHex` in `src/services/guideService.ts#L137` to `chromaticityToken`.
   - Replace hardcoded `'earth'`/`'Earth'` fallback literals in `src/services/details/navigationAndCamera.ts#L215` and `src/services/details/bodiesAndSchematics.ts#L142,157`.
   - Annotate/rename `'sol'` shard tag in `src/data/detailsRepository.ts#L118`.
-- [ ] Task 2.3 (Area 5 — UI Design System):
+- [x] Task 2.3 (Area 5 — UI Design System):
   - Remove legacy `Measurement` and `MeasurementProps` alias exports in `src/components/interface/information/Quantity/Quantity.tsx#L62-L63`.
   - Refactor `src/components/domain/OrbitalSchematicPanel/OrbitalSchematicPanel.tsx` to compose `<SpectralBadge>`, `<Badge href={...}>` (unnesting the inner `<a>`), and `<Heading as="h2">`.
   - Purge dead CSS selectors in `StarTypeCombinator.module.css` and unused `className` props in `Guide3DPreview.tsx`.
   - Replace `(unit.type as any)` with typed discriminated narrowing in `DataTable.tsx` and `Quantity.tsx`.
-- [ ] Task 2.4 (Area 6 — Tests & CI Workflow):
+- [x] Task 2.4 (Area 6 — Tests & CI Workflow):
   - Replace weak `.toBeDefined()` and `.toBeTruthy()` assertions on `screen.getBy*` with exact accessibility or DOM matching across unit tests.
   - Replace `.querySelector` and `.textContent` DOM assertions in `tests/journey5TransitFlow.test.tsx` with Testing Library queries (`screen.getByRole`, `screen.getByText`).
   - Deduplicate redundant pure unit test assertions inside `tests/journey1ReaderFlow.test.tsx` and `tests/journey3ExplorerFlow.test.tsx`.
   - Remove dead `Test Python scripts` step and append `&& !cancelled()` to `coverage:comment` in `.github/workflows/ci.yml`.
-- [ ] Task 2.5: Phase Verification & Checkpoint.
+- [x] Task 2.5: Phase Verification & Checkpoint.
 
 ---
 

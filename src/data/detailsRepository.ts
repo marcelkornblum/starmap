@@ -19,6 +19,7 @@ import {
   DETAIL_BUCKET_CACHE_LIMIT,
   DETAIL_RECORD_CACHE_LIMIT,
 } from '../config/cacheConfig';
+import { COMPACT_SOLAR_BODY_TAG } from '../config/referenceTargets';
 import {
   clearSummaryCache,
   fetchSummaryNode as fetchSummaryNodeImpl,
@@ -114,7 +115,7 @@ export const decodeDetailRecord = (
       record: decodeGalacticStructure(compact, id),
     };
   }
-  if (compact.t === 'sol') {
+  if (compact.t === COMPACT_SOLAR_BODY_TAG) {
     return {
       kind: 'solar-body',
       record: decodeSolarSystemBody(compact, id),

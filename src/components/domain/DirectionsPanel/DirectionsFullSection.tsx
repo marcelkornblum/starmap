@@ -130,7 +130,7 @@ export const DirectionsFullSection: React.FC<DirectionsFullSectionProps> = ({
               )}
               {renderDirectionsDatum(
                 'Geometry',
-                step.secondaryGeometryLabel,
+                step.secondaryGeometry,
                 'directions-stat-geometry',
               )}
               {renderDirectionsDatum(

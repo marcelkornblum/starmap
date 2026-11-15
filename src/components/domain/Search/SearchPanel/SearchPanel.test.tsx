@@ -7,14 +7,14 @@ describe('<SearchPanel />', () => {
     render(<SearchPanel scope="search" />);
 
     const panel = screen.getByTestId('search-panel');
-    expect(panel).toBeDefined();
+    expect(panel).toBeInTheDocument();
     expect(panel.getAttribute('data-scope')).toBe('search');
 
     const heading = screen.getByRole('heading', { level: 2 });
     expect(heading.textContent).toBe('Search');
     expect(heading.getAttribute('data-visually-hidden')).toBe('true');
 
-    expect(screen.getByRole('search')).toBeDefined();
-    expect(screen.getByTestId('search-expanded-drawer')).toBeDefined();
+    expect(screen.getByRole('search')).toBeInTheDocument();
+    expect(screen.getByTestId('search-expanded-drawer')).toBeInTheDocument();
   });
 });

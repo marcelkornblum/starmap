@@ -30,10 +30,10 @@ describe('<RootLayout />', () => {
     const { container } = render(<RootLayout />);
 
     const rootEl = container.querySelector('#starmap-app-root');
-    expect(rootEl).toBeDefined();
-    expect(screen.getByTestId('theme-token-bridge')).toBeDefined();
-    expect(screen.getByTestId('root-canvas-host')).toBeDefined();
-    expect(screen.getByTestId('router-outlet')).toBeDefined();
+    expect(rootEl).not.toBeNull();
+    expect(screen.getByTestId('theme-token-bridge')).toBeInTheDocument();
+    expect(screen.getByTestId('root-canvas-host')).toBeInTheDocument();
+    expect(screen.getByTestId('router-outlet')).toBeInTheDocument();
   });
 
   it('delegates internal link clicks to handleSpaNavigation', () => {

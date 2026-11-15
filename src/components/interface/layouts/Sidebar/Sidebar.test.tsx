@@ -12,10 +12,10 @@ describe('<Sidebar />', () => {
     );
 
     const container = screen.getByTestId('sidebar-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
-    expect(screen.getByText('Sidebar Nav')).toBeDefined();
-    expect(screen.getByText('Main Area')).toBeDefined();
+    expect(screen.getByText('Sidebar Nav')).toBeInTheDocument();
+    expect(screen.getByText('Main Area')).toBeInTheDocument();
   });
 
   it('sets default data attributes and omits data-no-stretch', () => {

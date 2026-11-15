@@ -12,10 +12,10 @@ describe('<Cluster />', () => {
     );
 
     const container = screen.getByTestId('cluster-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
-    expect(screen.getByRole('button', { name: 'Action A' })).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Action B' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Action A' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Action B' })).toBeInTheDocument();
   });
 
   it('sets default data-gap="default", data-align="center", and data-justify="start"', () => {

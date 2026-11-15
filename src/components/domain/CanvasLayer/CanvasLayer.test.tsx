@@ -221,7 +221,7 @@ describe('CanvasLayer Domain Component', () => {
         />,
       );
 
-      expect(screen.getByTestId('my-custom-slot')).toBeDefined();
+      expect(screen.getByTestId('my-custom-slot')).toBeInTheDocument();
       expect(screen.queryByTestId('canvas-layer-slot')).toBeNull();
     });
   });

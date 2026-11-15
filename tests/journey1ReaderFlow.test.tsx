@@ -1,5 +1,6 @@
 import { createElement } from 'react';
 import { act, render } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
@@ -30,7 +31,6 @@ import {
   buildSystemBodiesSummary,
   buildSystemDetailsHref,
   buildSystemElementFocusHref,
-  buildSystemOrbitalSchematic,
   buildSystemViewBreadcrumbs,
   classifyExoplanetComposition,
   isExoplanetHabitableCandidate,
@@ -1067,50 +1067,6 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
 });
 
 describe('Journey 1: Reader Flow - Nested Moons, Scoped Star Focus & Contextual Details Drill-Down CTA (DEC-024, DEC-025, DEC-026)', () => {
-  it('DEC-024: attaches nested moon children to host planets in buildSystemOrbitalSchematic and excludes minor bodies', () => {
-    const solDetails = buildFocusedEntityDetails({
-      focusedEntity: null,
-      urlSystemSlug: 'sol',
-      corpus: SAMPLE_CORPUS,
-      summaryNode: {
-        id: 'sol',
-        name: 'Sol',
-        spect: 'G2V',
-        dist: 0,
-        starCount: 1,
-        planetCount: 8,
-        mag: -26.74,
-        absmag: 4.83,
-        x: 0,
-        y: 0,
-        z: 0,
-        hasHabitableCandidate: true,
-        sectorId: 'SEC-0-0-0',
-      },
-    });
-
-    const solBodies = buildSystemBodiesSummary({
-      details: solDetails,
-      corpus: SAMPLE_CORPUS,
-    });
-
-    const schematic = buildSystemOrbitalSchematic(solBodies, SAMPLE_CORPUS);
-    expect(schematic).not.toBeNull();
-    const earthItem = schematic?.items.find((i) => i.id === 'earth');
-    expect(earthItem?.children).toBeDefined();
-    expect(earthItem?.children).toHaveLength(1);
-    expect(earthItem?.children?.[0]).toMatchObject({
-      id: 'moon',
-      name: 'Moon',
-      kind: 'moon',
-      orbitRank: 1,
-    });
-
-    // Spacecraft or minor bodies orbiting host are excluded from candidate items
-    const voyagerItem = schematic?.items.find((i) => i.id === 'voyager-1');
-    expect(voyagerItem).toBeUndefined();
-  });
-
   it('DEC-025: scopes StarFocus in DetailsPanel strictly to the star without repeating system-wide lists', () => {
     const starDetails = buildFocusedEntityDetails({
       focusedEntity: {

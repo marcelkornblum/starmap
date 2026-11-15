@@ -11,10 +11,10 @@ describe('<Icon />', () => {
     );
 
     const container = screen.getByTestId('icon-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('span');
     expect(container.getAttribute('aria-hidden')).toBe('true');
-    expect(screen.getByTestId('test-svg')).toBeDefined();
+    expect(screen.getByTestId('test-svg')).toBeInTheDocument();
   });
 
   it('sets default data-size="md"', () => {

@@ -17,7 +17,7 @@ describe('<Breadcrumbs />', () => {
 
     render(<Breadcrumbs items={items} />);
 
-    expect(screen.getByTestId('view-breadcrumbs')).toBeDefined();
+    expect(screen.getByTestId('view-breadcrumbs')).toBeInTheDocument();
     const renderedItems = screen.getAllByTestId('breadcrumb-item');
     expect(renderedItems.length).toBe(3);
 
@@ -36,7 +36,7 @@ describe('<Breadcrumbs />', () => {
     render(<Breadcrumbs items={items} companionHref="/guide/star-types/G2V" />);
 
     const modeMenu = screen.getByTestId('breadcrumbs-mode-menu');
-    expect(modeMenu).toBeDefined();
+    expect(modeMenu).toBeInTheDocument();
 
     const galaxyBtn = screen.getByTestId('breadcrumbs-mode-galaxy');
     expect(galaxyBtn.getAttribute('aria-current')).toBe('page');

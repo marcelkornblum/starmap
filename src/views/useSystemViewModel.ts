@@ -74,7 +74,6 @@ export function useSystemViewModel(props: UseSystemViewModelProps) {
   const layer = routeSearch?.layer ?? searchParams.get('layer') ?? undefined;
   const route = routeSearch?.route ?? searchParams.get('route') ?? undefined;
   const center = routeSearch?.center ?? searchParams.get('center') ?? undefined;
-  const journeyOption = routeSearch?.journeyOption ?? searchParams.get('journeyOption') ?? undefined;
 
   const rawSystemId = routeParams?.systemId ?? propSystemId;
   const targetId = toUrlSlug(rawSystemId ?? '') || SOL_REFERENCE_TARGET.id;
@@ -211,11 +210,9 @@ export function useSystemViewModel(props: UseSystemViewModelProps) {
       )
     : null;
 
-  const routeSearchQuery = route
-    ? `?route=${encodeURIComponent(route)}&journeyOption=${encodeURIComponent(journeyOption ?? '')}`
-    : search;
+  const routeSearchQuery = route ? `?route=${encodeURIComponent(route)}` : search;
   const routeStops = extractUrlRouteStops(routeSearchQuery, 'system');
-  const routeOptionId = journeyOption ?? extractUrlJourneyOptionId(routeSearchQuery);
+  const routeOptionId = extractUrlJourneyOptionId(routeSearchQuery);
   const activeJourney = routeStops
     ? buildJourneyPlan({
         stops: routeStops,

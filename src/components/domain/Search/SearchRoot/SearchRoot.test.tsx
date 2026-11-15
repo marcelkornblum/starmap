@@ -86,7 +86,7 @@ describe('<SearchRoot />', () => {
 
     fireEvent.change(input, { target: { value: 'Tau' } });
     expect(input.value).toBe('Tau');
-    expect(screen.getByText('Tau Ceti')).toBeDefined();
+    expect(screen.getByText('Tau Ceti')).toBeInTheDocument();
   });
 
   it('updates input UI immediately and defers catalog search until 3 characters and the debounce elapse in standard mode', () => {
@@ -151,7 +151,7 @@ describe('<SearchRoot />', () => {
       vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
     });
 
-    expect(screen.getByText('Tau Ceti')).toBeDefined();
+    expect(screen.getByText('Tau Ceti')).toBeInTheDocument();
     expect(summarySpy).toHaveBeenCalledWith('tau-ceti');
     expect(detailSpy).toHaveBeenCalledWith('tau-ceti');
     expect(annotationsSpy).toHaveBeenCalledWith(

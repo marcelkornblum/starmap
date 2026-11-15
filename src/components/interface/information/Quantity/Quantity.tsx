@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import React, { type HTMLAttributes, type ReactNode } from 'react';
 import { Unit } from '../Unit/Unit';
 import styles from './Quantity.module.css';
 
@@ -30,10 +30,12 @@ export const Quantity = ({
   const renderUnit = () => {
     if (!unit) return null;
     if (
-      typeof unit === 'object' &&
-      unit !== null &&
-      'type' in unit &&
-      (unit.type === Unit || (unit.type as any)?.displayName === 'Unit')
+      React.isValidElement(unit) &&
+      (unit.type === Unit ||
+        ((typeof unit.type === 'function' || typeof unit.type === 'object') &&
+          unit.type !== null &&
+          'displayName' in unit.type &&
+          unit.type.displayName === 'Unit'))
     ) {
       return unit;
     }
@@ -58,6 +60,3 @@ export const Quantity = ({
 };
 
 Quantity.displayName = 'Quantity';
-
-export { Quantity as Measurement };
-export type { QuantityProps as MeasurementProps };

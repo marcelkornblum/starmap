@@ -46,15 +46,15 @@ describe('SpatialShell Domain Component', () => {
         </SpatialShell>,
       );
 
-      expect(screen.getByTestId('slot-canvas')).toBeDefined();
-      expect(screen.getByTestId('slot-breadcrumbs')).toBeDefined();
-      expect(screen.getByTestId('slot-search')).toBeDefined();
-      expect(screen.getByTestId('slot-layer-card')).toBeDefined();
-      expect(screen.getByTestId('slot-details')).toBeDefined();
-      expect(screen.getByTestId('slot-controls')).toBeDefined();
-      expect(screen.getByTestId('slot-minimap')).toBeDefined();
-      expect(screen.getByTestId('slot-bodies')).toBeDefined();
-      expect(screen.getByTestId('slot-children')).toBeDefined();
+      expect(screen.getByTestId('slot-canvas')).toBeInTheDocument();
+      expect(screen.getByTestId('slot-breadcrumbs')).toBeInTheDocument();
+      expect(screen.getByTestId('slot-search')).toBeInTheDocument();
+      expect(screen.getByTestId('slot-layer-card')).toBeInTheDocument();
+      expect(screen.getByTestId('slot-details')).toBeInTheDocument();
+      expect(screen.getByTestId('slot-controls')).toBeInTheDocument();
+      expect(screen.getByTestId('slot-minimap')).toBeInTheDocument();
+      expect(screen.getByTestId('slot-bodies')).toBeInTheDocument();
+      expect(screen.getByTestId('slot-children')).toBeInTheDocument();
 
       expect(document.querySelector('[data-spatial-region="canvas"]')).not.toBeNull();
       expect(document.querySelector('[data-spatial-region="top-bar"]')).not.toBeNull();
@@ -214,7 +214,7 @@ describe('SpatialShell Domain Component', () => {
         />,
       );
 
-      expect(screen.getByTestId('details')).toBeDefined();
+      expect(screen.getByTestId('details')).toBeInTheDocument();
       expect(screen.queryByTestId('preview')).toBeNull();
 
       act(() => {
@@ -229,7 +229,7 @@ describe('SpatialShell Domain Component', () => {
       );
 
       expect(screen.queryByTestId('details')).toBeNull();
-      expect(screen.getByTestId('preview')).toBeDefined();
+      expect(screen.getByTestId('preview')).toBeInTheDocument();
     });
 
     it('integrates with useUIStore panel state and dual-panel policy', () => {
@@ -245,7 +245,7 @@ describe('SpatialShell Domain Component', () => {
         />,
       );
 
-      expect(screen.getByTestId('store-directions')).toBeDefined();
+      expect(screen.getByTestId('store-directions')).toBeInTheDocument();
       expect(screen.queryByTestId('store-details')).toBeNull();
 
       act(() => {
@@ -259,7 +259,7 @@ describe('SpatialShell Domain Component', () => {
         />,
       );
 
-      expect(screen.getByTestId('store-details')).toBeDefined();
+      expect(screen.getByTestId('store-details')).toBeInTheDocument();
       expect(screen.queryByTestId('store-directions')).toBeNull();
 
       act(() => {
@@ -273,8 +273,8 @@ describe('SpatialShell Domain Component', () => {
         />,
       );
 
-      expect(screen.getByTestId('store-details')).toBeDefined();
-      expect(screen.getByTestId('store-directions')).toBeDefined();
+      expect(screen.getByTestId('store-details')).toBeInTheDocument();
+      expect(screen.getByTestId('store-directions')).toBeInTheDocument();
     });
   });
 });

@@ -6,7 +6,10 @@ import {
   resolveSystemLayerEntries,
   buildSearchEntriesFromLayers,
   getOrderedLayerEntries,
+  toUrlSlug,
+  toCanonicalLayerSlug,
 } from './datasetLayerCodec';
+import { SLUG_CACHE_LIMIT } from '../config/cacheConfig';
 import type { DatasetLayerManifest } from '../types/astro';
 
 describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-007)', () => {
@@ -289,5 +292,33 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     expect(decoded.entries.europa.order).toBe(1);
     expect(decoded.entries.europa.parentBodyId).toBe('jupiter');
     expect(decoded).toEqual(orderedMoonLayer);
+  });
+
+  describe('toUrlSlug & SLUG_CACHE_LIMIT (DEC-GBZ-003)', () => {
+    it('exports SLUG_CACHE_LIMIT of 5000', () => {
+      expect(SLUG_CACHE_LIMIT).toBe(5000);
+    });
+
+    it('converts strings to URL slugs and handles edge cases', () => {
+      expect(toUrlSlug('')).toBe('');
+      expect(toUrlSlug('Alpha Centauri A')).toBe('alpha-centauri-a');
+      expect(toUrlSlug('  Tau  Ceti  ')).toBe('tau-ceti');
+      expect(toUrlSlug('HD 219134 b')).toBe('hd-219134-b');
+      expect(toUrlSlug('---Leading-and-trailing---')).toBe('leading-and-trailing');
+    });
+
+    it('returns cached results on repeated calls', () => {
+      const first = toUrlSlug('Proxima Centauri');
+      const second = toUrlSlug('Proxima Centauri');
+      expect(first).toBe('proxima-centauri');
+      expect(second).toBe(first);
+    });
+
+    it('toCanonicalLayerSlug strips layer prefixes correctly', () => {
+      expect(toCanonicalLayerSlug('canon-project-hail-mary')).toBe('project-hail-mary');
+      expect(toCanonicalLayerSlug('overlay-jwst-targets')).toBe('jwst-targets');
+      expect(toCanonicalLayerSlug('layer-habitable-worlds')).toBe('habitable-worlds');
+      expect(toCanonicalLayerSlug('custom-user-layer')).toBe('custom-user-layer');
+    });
   });
 });

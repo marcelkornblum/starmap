@@ -9,8 +9,10 @@ import {
   seedDetailRecord,
   seedSummaryNode,
   subscribeDetailsRepository,
+  decodeDetailRecord,
   type DecodedDetailRecord,
 } from './detailsRepository';
+import { COMPACT_SOLAR_BODY_TAG } from '../config/referenceTargets';
 import {
   DETAIL_RECORD_CACHE_LIMIT,
   SUMMARY_NODE_CACHE_LIMIT,
@@ -287,6 +289,28 @@ describe('detailsRepository (AUD-090 & DEC-R043)', () => {
       expect(listener).toHaveBeenCalledTimes(2);
 
       unsubscribe();
+    });
+  });
+
+  describe('decodeDetailRecord & COMPACT_SOLAR_BODY_TAG (DEC-GBZ-004)', () => {
+    it('decodes solar-body record using COMPACT_SOLAR_BODY_TAG discriminator', () => {
+      expect(COMPACT_SOLAR_BODY_TAG).toBe('sol');
+
+      const decoded = decodeDetailRecord(
+        {
+          t: COMPACT_SOLAR_BODY_TAG,
+          n: 'Mars',
+          k: 'planet',
+          s: 'sol',
+          p: [0, 0, 0],
+          r: 3389.5,
+        } as any,
+        'mars',
+      );
+
+      expect(decoded.kind).toBe('solar-body');
+      expect(decoded.record.id).toBe('mars');
+      expect(decoded.record.name).toBe('Mars');
     });
   });
 });
