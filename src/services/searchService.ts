@@ -1028,8 +1028,7 @@ export const extractUrlLayerId = (
   if (layerToken) {
     return layerToken.layerId;
   }
-  const cleanSearch = searchString.startsWith('?') ? searchString.slice(1) : searchString;
-  const rawLayer = new URLSearchParams(cleanSearch).get('layer');
+  const rawLayer = new URLSearchParams(searchString).get('layer');
   const parsed = parseLayerQueryParam(rawLayer);
   if (parsed) {
     const matched = findCanonLayerById(parsed.layerSlug, layerIndex);

@@ -43,8 +43,7 @@ export const useLoadedLayerManifests = (
   const [loadTick, setLoadTick] = useState<number>(0);
 
   const selectLayerSlugs = extractUrlSelectSlugs(search, layerIndex).layerSlugs;
-  const cleanSearch = search.startsWith('?') ? search.slice(1) : search;
-  const rawLayers = new URLSearchParams(cleanSearch).getAll('layer');
+  const rawLayers = new URLSearchParams(search).getAll('layer');
   const layerParamSlugs: string[] = [];
   for (const raw of rawLayers) {
     const parsed = parseLayerQueryParam(raw);
