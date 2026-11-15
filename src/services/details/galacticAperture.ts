@@ -1,4 +1,4 @@
-import { GALACTIC_FRAME } from '../../types/spatial';
+import { GALACTIC_FRAME } from '../../config/referenceFrames';
 import {
   DEFAULT_ORIGIN_TARGETS,
   SOL_REFERENCE_TARGET,

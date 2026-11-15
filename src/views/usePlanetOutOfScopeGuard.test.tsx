@@ -119,6 +119,8 @@ describe('usePlanetOutOfScopeGuard', () => {
       );
       expect(navigateSpy).toHaveBeenCalledTimes(1);
       const navCall = navigateSpy.mock.calls[0][0];
+      expect(navCall.to).toBe('/planet/$planetId');
+      expect(navCall.params).toEqual({ planetId: 'earth' });
       expect(navCall.replace).toBe(true);
       expect(typeof navCall.search).toBe('function');
 
@@ -159,6 +161,8 @@ describe('usePlanetOutOfScopeGuard', () => {
 
       expect(navigateSpy).toHaveBeenCalledTimes(1);
       const navCall = navigateSpy.mock.calls[0][0];
+      expect(navCall.to).toBe('/planet/$planetId');
+      expect(navCall.params).toEqual({ planetId: 'earth' });
       expect(navCall.replace).toBe(true);
       expect(typeof navCall.search).toBe('function');
 
@@ -182,6 +186,8 @@ describe('usePlanetOutOfScopeGuard', () => {
 
       expect(navigateSpy).toHaveBeenCalledTimes(1);
       const navCall = navigateSpy.mock.calls[0][0];
+      expect(navCall.to).toBe('/planet/$planetId');
+      expect(navCall.params).toEqual({ planetId: 'earth' });
       expect(navCall.replace).toBe(true);
 
       const searchUpdater = navCall.search as (prev: StarmapSearchParams) => StarmapSearchParams;

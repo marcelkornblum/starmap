@@ -1,7 +1,7 @@
 import React from 'react';
 import * as THREE from 'three';
 import { useSpatialFrameSafe } from './spatialFrameContext';
-import type { FrameLightingConfig } from './referenceFrame';
+import type { FrameLightingConfig } from '../../../types/spatial';
 import {
   DEFAULT_AMBIENT_INTENSITY,
   DEFAULT_DIRECTIONAL_INTENSITY,

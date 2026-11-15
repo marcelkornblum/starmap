@@ -5,7 +5,7 @@ import {
   GALACTIC_FRAME,
   SYSTEM_FRAME,
   PLANETARY_FRAME,
-} from '../instrument/referenceFrame';
+} from '../../../config/referenceFrames';
 import type { SpatialEntityDefinition } from '../../../types/spatial';
 import { useUIStore } from '../../../stores/useUIStore';
 

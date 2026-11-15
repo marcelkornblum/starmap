@@ -19,7 +19,6 @@
 ---
 
 ## Standalone & Downstream Tracks
-- [~] **Track: Guard Baseline Zero & Module Decomposition** *Link: [conductor/tracks/guard-baseline-zero-and-module-decomposition_20261114/index.md](./tracks/guard-baseline-zero-and-module-decomposition_20261114/index.md)* *(Follow-on chore track from `architecture-remediation` T10: eliminates the remaining 98 baselined production guard entries and Medium/Low closing-audit hygiene items)*
 - [x] **Track: Dataset Layers, Search Indexing & Tag Taxonomy Expansion** *Link: [conductor/tracks/dataset-layers-expansion_20261021/index.md](./tracks/dataset-layers-expansion_20261021/index.md)*
 - [ ] **Track: Interaction Controls** *Link: [conductor/tracks/interaction-controls_20261010/index.md](./tracks/interaction-controls_20261010/index.md)* *(Coupled with [Minimap & Scene Transitions](./tracks/minimap-scene-transitions_20261010/index.md), [3D Engine Implementation](./tracks/3d-engine-implementation_20260929/index.md), and Backlog item `FS-012`)*
 - [ ] **Track: Minimap & Scene Transitions** *Link: [conductor/tracks/minimap-scene-transitions_20261010/index.md](./tracks/minimap-scene-transitions_20261010/index.md)* *(Coupled with [Interaction Controls](./tracks/interaction-controls_20261010/index.md), [3D Engine Implementation](./tracks/3d-engine-implementation_20260929/index.md), [Console UI Shell](./tracks/console-ui-shell_20261004/index.md), and Backlog item `FS-012`)*
@@ -71,3 +70,4 @@
 - [x] **Track: Visual Language Token Layer** *Link: [conductor/archive/tracks/visual-language-tokens_20261004/index.md](./archive/tracks/visual-language-tokens_20261004/index.md)*
 - [x] **Track: Camera & Orthographic Projection** *Link: [conductor/archive/tracks/camera-orthographic-projection_20261010/index.md](./archive/tracks/camera-orthographic-projection_20261010/index.md)*
 - [x] **Track: Spatial Data Runtime & Sector Streaming** *Link: [conductor/archive/tracks/spatial-data-runtime_20261025/index.md](./archive/tracks/spatial-data-runtime_20261025/index.md)*
+- [x] **Track: Guard Baseline Zero & Module Decomposition** *Link: [conductor/archive/tracks/guard-baseline-zero-and-module-decomposition_20261114/index.md](./archive/tracks/guard-baseline-zero-and-module-decomposition_20261114/index.md)*

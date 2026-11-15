@@ -204,7 +204,6 @@ const GALAXY_NAV_PRESERVED_PARAMS = new Set([
   'dist',
   'zoom',
   'route',
-  'journeyOption',
 ]);
 
 export function buildGalaxySystemNavigationHref(

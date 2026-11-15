@@ -10,7 +10,7 @@ import {
   type ScreenEdgeBearingResult,
 } from '../cartography/cartographyMath';
 import { useSpatialFrame } from './spatialFrameContext';
-import { type BearingDefinition } from './referenceFrame';
+import type { BearingDefinition } from '../../../types/spatial';
 import {
   DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
   DEFAULT_VIEWPORT_WIDTH_PX,

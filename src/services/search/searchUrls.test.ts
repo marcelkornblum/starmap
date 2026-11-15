@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildLayerGalaxyHref,
-  buildPlanetTypeGalaxyHref,
   buildSearchViewHref,
-  buildStarTypeGalaxyHref,
   buildTagGalaxyHref,
   buildUpdatedSearchUrl,
   parseSearchUrlParams,
@@ -18,14 +16,6 @@ describe('searchUrls', () => {
       '/galaxy?select=layer:project-hail-mary&layer=project-hail-mary',
     );
     expect(buildLayerGalaxyHref('')).toBe('/galaxy');
-
-    expect(buildStarTypeGalaxyHref('G')).toBe('/galaxy?select=star-type:g');
-    expect(buildStarTypeGalaxyHref('g2v')).toBe('/galaxy?select=star-type:g2v');
-    expect(buildStarTypeGalaxyHref('')).toBe('/galaxy');
-
-    expect(buildPlanetTypeGalaxyHref('super-earth')).toBe('/galaxy?select=planet-type:super-earth');
-    expect(buildPlanetTypeGalaxyHref('Super-Earth')).toBe('/galaxy?select=planet-type:super-earth');
-    expect(buildPlanetTypeGalaxyHref('')).toBe('/galaxy');
   });
 
   it('builds and parses search view href and parameters', () => {

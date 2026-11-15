@@ -4,8 +4,8 @@ import {
   GALACTIC_FRAME,
   SYSTEM_FRAME,
   PLANETARY_FRAME,
-  createCustomReferenceFrame,
-} from './referenceFrame';
+} from '../../../config/referenceFrames';
+import { createCustomReferenceFrame } from './referenceFrame';
 
 describe('referenceFrame presets & maths', () => {
   it('defines GALACTIC_FRAME with correct spatial units, bearings, and datum plane', () => {

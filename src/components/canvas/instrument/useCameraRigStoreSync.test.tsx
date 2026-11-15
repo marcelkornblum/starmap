@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
 import { renderHook, act } from '@testing-library/react';
 import { useCameraRigStoreSync } from './useCameraRigStoreSync';
-import { GALACTIC_FRAME } from './referenceFrame';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { CardinalTransitionController } from './cameraRigControls';
 import type { CardinalDirection } from '../../../types/spatial';

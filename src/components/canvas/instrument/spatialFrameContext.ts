@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import * as THREE from 'three';
-import { type ReferenceFrame } from './referenceFrame';
+import type { ReferenceFrame } from '../../../types/spatial';
 import {
   type CardinalAlignment,
   type AllPlaneQuadrantWeights,

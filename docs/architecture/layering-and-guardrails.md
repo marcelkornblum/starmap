@@ -78,7 +78,7 @@ Inspects TypeScript ASTs across all workspace files:
 - **`G-literals` (Zero Hardcoded Celestial Entities):** Celestial entity names, catalog IDs, and classifications must not be hardcoded in runtime code (`src/`). All entities must be read from the precalculated data pipeline shards.
 - **`G-imports` (Layer Hierarchy):** Enforces rank boundaries, prevents upward imports, enforces primitive purity, and preserves prototype isolation.
 - **`G-imports-cycle` (Zero Cycles):** Detects and fails on any circular dependency chains.
-- **`G-size` (File Size Caps):** Flags source files exceeding 400 lines (300 lines for components), encouraging decomposition into focused sub-modules.
+- **`G-size` (File Size Caps):** Flags source files exceeding 300 lines across all production .ts and .tsx files in src/, encouraging decomposition into focused sub-modules.
 
 ### 2.2 `npm run audit:ui` (`scripts/audit-ui.ts`)
 Enforces strict design system standards across `src/components/` and `src/views/`:
@@ -101,10 +101,10 @@ Enforces 60fps WebGL execution guardrails:
 
 ## 3. The Shrink-Only Baseline Contract
 
-Historical violations or legacy exceptions are tracked in `scripts/guards/baseline.json`. The guard harness enforces a strict **Shrink-Only Policy**:
+Historical violations or legacy exceptions were tracked in `scripts/guards/baseline.json`. The baseline has now been ratcheted down to **0 entries** (`{ "version": 1, "entries": {} }`), enforcing zero tolerance where any violation is an immediate hard CI error:
 
-1. **Monotonic Decrease:** Baseline violation counts can only stay the same or decrease over time.
-2. **Zero Influx:** If a commit or PR introduces a new violation or increases an existing baseline counter, CI immediately fails.
+1. **Zero Baseline Entries:** With zero baseline entries remaining, no legacy violations are grandfathered in.
+2. **Zero Influx:** If a commit or PR introduces any violation, CI immediately fails.
 3. **No Unsanctioned Suppressions:** Inline suppressions (`// guard-disable-next-line <rule> -- <reason>`) require an explicit explanation and are audited for validity.
 
 ---

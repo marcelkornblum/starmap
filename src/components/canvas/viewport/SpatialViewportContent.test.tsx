@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
 import { SpatialViewportContent } from './SpatialViewportContent';
-import { GALACTIC_FRAME } from '../instrument/referenceFrame';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { SpatialFrameProvider } from '../instrument/SpatialFrameProvider';
 import { SpatialEntityProvider, createSpatialEntityStore } from '../entity';
 

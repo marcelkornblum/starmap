@@ -27,7 +27,7 @@ describe('detailsNavigation', () => {
       expect(href).toContain('dist=35');
       expect(href).toContain('zoom=1.5');
       expect(href).toContain('route=sol,tau-ceti');
-      expect(href).toContain('journeyOption=torchship-1g');
+      expect(href).not.toContain('journeyOption');
     });
 
     it('returns clean galaxy href when no search params are present', () => {

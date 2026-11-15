@@ -30,15 +30,11 @@ describe('journeyProfilesAndUrls', () => {
   });
 
   describe('extractUrlJourneyOptionId', () => {
-    it('extracts journeyOption ID from URL query search strings', () => {
-      expect(extractUrlJourneyOptionId('?route=sol,tau-ceti&journeyOption=fusion-01c')).toBe(
-        'fusion-01c',
-      );
-      expect(extractUrlJourneyOptionId('?route=sol,tau-ceti')).toBeNull();
-    });
-
     it('extracts option ID embedded in route stops syntax', () => {
       expect(extractUrlJourneyOptionId('?route=sol:torchship-1g,tau-ceti')).toBe('torchship-1g');
+      expect(extractUrlJourneyOptionId('?route=sol:fusion-01c,tau-ceti')).toBe('fusion-01c');
+      expect(extractUrlJourneyOptionId('?route=sol,tau-ceti')).toBeNull();
+      expect(extractUrlJourneyOptionId('')).toBeNull();
     });
   });
 
@@ -78,18 +74,25 @@ describe('journeyProfilesAndUrls', () => {
   });
 
   describe('URL navigation href helpers', () => {
-    it('builds option href correctly', () => {
+    it('builds option href correctly with compound route departure mode syntax', () => {
       const href = buildJourneyOptionHref('/galaxy', '?q=sol', ['sol', 'tau-ceti'], 'torchship-1g');
-      expect(href).toBe('/galaxy?q=sol&route=sol,tau-ceti&journeyOption=torchship-1g');
+      expect(href).toBe('/galaxy?q=sol&route=sol:torchship-1g,tau-ceti');
     });
 
-    it('builds clear option href correctly', () => {
-      const href = buildJourneyClearOptionHref('/galaxy', '?route=sol,tau-ceti&journeyOption=torchship-1g', ['sol', 'tau-ceti']);
+    it('builds clear option href correctly, stripping departure mode from route stops', () => {
+      const href = buildJourneyClearOptionHref(
+        '/galaxy',
+        '?route=sol:torchship-1g,tau-ceti',
+        ['sol:torchship-1g', 'tau-ceti'],
+      );
       expect(href).toBe('/galaxy?route=sol,tau-ceti');
     });
 
     it('builds close href correctly', () => {
-      const href = buildJourneyCloseHref('/galaxy', '?route=sol,tau-ceti&journeyOption=torchship-1g&focus=sol');
+      const href = buildJourneyCloseHref(
+        '/galaxy',
+        '?route=sol:torchship-1g,tau-ceti&focus=sol',
+      );
       expect(href).toBe('/galaxy?focus=sol');
     });
   });

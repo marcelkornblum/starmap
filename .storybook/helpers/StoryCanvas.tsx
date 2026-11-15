@@ -4,10 +4,8 @@ import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { ThemeTokenBridge } from '../../src/components/canvas/ThemeTokenBridge';
 import { SafeHtmlPortalOutlet } from '../../src/components/canvas/SafeHtml';
-import {
-  type ReferenceFrame,
-  GALACTIC_FRAME,
-} from '../../src/components/canvas/instrument/referenceFrame';
+import type { ReferenceFrame } from '../../src/types/spatial';
+import { GALACTIC_FRAME } from '../../src/config/referenceFrames';
 import { getStandardInitialCamera } from '../../src/components/canvas/cartography/cartographyCamera';
 import { CONTROLS_DAMPING_FACTOR } from '../../src/components/canvas/engineConfig';
 import styles from './StoryCanvas.module.css';

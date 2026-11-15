@@ -14,7 +14,7 @@ import {
   orientRadialPerspectiveCamera,
   type OrbitControlsLike,
 } from './cameraRigZoomAndPan';
-import type { ReferenceFrame } from './referenceFrame';
+import type { ReferenceFrame } from '../../../types/spatial';
 
 const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
 

@@ -84,8 +84,8 @@
 
 ## Phase 5: Review & Verification
 
-- [ ] Task 5.1: Automated QA Suite Execution (`qa-verifier` flash subagent). Run `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:ui`, `npm run audit:r3f`, `npm run audit:guards`, and `npm run test:e2e`. All checks must pass with zero warnings or errors.
-- [ ] Task 5.2: Multi-Viewport Visual Smoke Verification (`screenshot-capturer` flash subagent). Capture 5 standard viewports (`390×844`, `768×1024`, `1024×768`, `1440×900`, `2560×1440`) to verify zero visual regressions in canvas, navigation, or panels.
-- [ ] Task 5.3: Pre-PR Code Review via `code-review` skill.
-- [ ] Task 5.4: PR Creation, CI & Gemini Automated Review Loop. Open PR against `main`, monitor GitHub Actions CI, and address any automated Gemini review comments.
-- [ ] Task 5.5: Phase Verification & Checkpoint.
+- [x] Task 5.1: Automated QA Suite Execution (`qa-verifier` flash subagent). Run `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:ui`, `npm run audit:r3f`, `npm run audit:guards`, and `npm run test:e2e`. All checks must pass with zero warnings or errors.
+- [x] Task 5.2: Multi-Viewport Visual Smoke Verification (`screenshot-capturer` flash subagent). Capture 5 standard viewports (`390×844`, `768×1024`, `1024×768`, `1440×900`, `2560×1440`) to verify zero visual regressions in canvas, navigation, or panels.
+- [x] Task 5.3: Pre-PR Code Review via `code-review` skill.
+- [x] Task 5.4: PR Creation, CI & Gemini Automated Review Loop. Open PR against `main`, monitor GitHub Actions CI, and address any automated Gemini review comments.
+- [x] Task 5.5: Phase Verification & Checkpoint.

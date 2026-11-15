@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { SpatialViewport } from '../viewport/SpatialViewport';
-import { PLANETARY_FRAME } from '../instrument/referenceFrame';
+import { PLANETARY_FRAME } from '../../../config/referenceFrames';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyCamera';
 import { calculateKeplerianPosition } from '../math/kepler';
 import { PlanetBody } from '../entity/PlanetBody';

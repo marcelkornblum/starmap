@@ -63,6 +63,8 @@ export function useSystemOutOfScopeGuard({
 
     if (stripFocus || stripCenter) {
       void appRouter.navigate?.({
+        to: '/system/$systemId',
+        params: { systemId: urlSystemSlug },
         search: (prev: StarmapSearchParams = {}) => {
           const next: StarmapSearchParams = { ...prev };
           if (stripFocus) {
@@ -74,7 +76,7 @@ export function useSystemOutOfScopeGuard({
           return next;
         },
         replace: true,
-      });
+      })?.catch(() => {});
     }
   }, [
     urlSystemSlug,

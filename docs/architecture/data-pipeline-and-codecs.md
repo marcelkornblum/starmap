@@ -134,7 +134,7 @@ When fetched by the client, `decodeBinarySector()` creates zero-copy typed array
 
 ## 5. Compact JSON Sharding & Codecs
 
-For rich text metadata, search indices, and detailed orbital dossiers, Starmap uses dense, array-tuple JSON envelopes (`compactDataCodec.ts` and `datasetLayerCodec.ts`):
+For rich text metadata, search indices, and detailed orbital dossiers, Starmap uses dense, array-tuple JSON envelopes. Build-time encoding lives in `scripts/pipeline/compactDataEncoder.ts` and `scripts/pipeline/datasetLayerEncoder.ts`, paired with runtime decoders `src/utils/compactDataCodec.ts` and `src/utils/datasetLayerCodec.ts`:
 
 ### 5.1 FNV-1a 32-Bit Hashing & Modulo-36 Sharding
 Entity IDs are hashed deterministically using 32-bit FNV-1a:
@@ -149,7 +149,7 @@ Rather than serialising verbose JSON object keys (`{ "id": "...", "name": "..." 
 ```json
 ["sol", "Sol", 0, 0, 0, "G2V", 8, 1, 0, 0]
 ```
-Decoded via `compactDataCodec.ts`, this schema reduces compressed payload sizes by over 70% while parsing significantly faster than nested JSON trees.
+Decoded via `src/utils/compactDataCodec.ts`, this schema reduces compressed payload sizes by over 70% while parsing significantly faster than nested JSON trees.
 
 ### 5.3 Bitmask Compression
 Categorical and physical attributes are packed into bitmasks:

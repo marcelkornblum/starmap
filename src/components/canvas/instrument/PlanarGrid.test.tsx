@@ -8,7 +8,7 @@ import {
   type PlanarFootprintItem as PlanarFootprintItemType,
 } from './PlanarGrid';
 import { SpatialFrameProvider } from './SpatialFrameProvider';
-import { GALACTIC_FRAME } from './referenceFrame';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 
 describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () => {
   let createReticleSpy: ReturnType<typeof vi.spyOn>;

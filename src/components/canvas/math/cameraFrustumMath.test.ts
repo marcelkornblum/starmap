@@ -14,7 +14,7 @@ import {
   GALACTIC_FRAME,
   SYSTEM_FRAME,
   PLANETARY_FRAME,
-} from '../instrument/referenceFrame';
+} from '../../../config/referenceFrames';
 
 describe('Camera Frustum Math: cameraFrustumMath.ts', () => {
   describe('calculateOrthographicFrustum & Screen Space Equivalence', () => {

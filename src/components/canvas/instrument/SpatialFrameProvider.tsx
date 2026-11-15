@@ -8,10 +8,8 @@ import {
   REFERENCE_INSTRUMENT_FOOTPRINT,
   SCREEN_HEIGHT_REFERENCE_SCALE,
 } from '../engineConfig';
-import {
-  type ReferenceFrame,
-  GALACTIC_FRAME,
-} from './referenceFrame';
+import type { ReferenceFrame } from '../../../types/spatial';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { computeApertureRadius } from '../math/aperture';
 import {
   computeCardinalAlignment,

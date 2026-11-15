@@ -22,24 +22,6 @@ export const buildLayerGalaxyHref = (layerId: string): string => {
 };
 
 /**
- * Pure unit function building the URL to the Galaxy View with a star-type shortcut in `?select=`
- * (`/galaxy?select=star-type:<starTypeSlug>`, e.g. `/galaxy?select=star-type:g`).
- */
-export const buildStarTypeGalaxyHref = (starType: string): string => {
-  const slug = toUrlSlug(starType.trim().replace(/^star-type:/i, ''));
-  return slug ? `/galaxy?select=star-type:${slug}` : '/galaxy';
-};
-
-/**
- * Pure unit function building the URL to the Galaxy View with a planet-type shortcut in `?select=`
- * (`/galaxy?select=planet-type:<planetTypeSlug>`, e.g. `/galaxy?select=planet-type:super-earth`).
- */
-export const buildPlanetTypeGalaxyHref = (planetType: string): string => {
-  const slug = toUrlSlug(planetType.trim().replace(/^planet-type:/i, ''));
-  return slug ? `/galaxy?select=planet-type:${slug}` : '/galaxy';
-};
-
-/**
  * Pure unit function that builds a URL to the dedicated `/search` view,
  * optionally scoped to a query string (`?q=`) and/or category filter (`?searchCategory=`).
  */

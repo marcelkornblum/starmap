@@ -13,7 +13,7 @@ Eliminate the remaining 98 baselined production guard entries in `scripts/guards
 ## Lineage & Context
 
 - **Predecessor:** `architecture-remediation_10_closing-audit_20261106`
-- **Decisions:** [DEC-R059](../../archive/initiatives/architecture-remediation/decision-log.md#dec-r059-guard-baseline-disposition-vs-track-t10-scope-boundary) & [DEC-R061](../../archive/initiatives/architecture-remediation/decision-log.md#dec-r061-disposition-of-fresh-six-area-closing-audit-findings-aud-151)
+- **Decisions:** [DEC-R059](../../initiatives/architecture-remediation/decision-log.md#dec-r059-guard-baseline-disposition-vs-track-t10-scope-boundary) & [DEC-R061](../../initiatives/architecture-remediation/decision-log.md#dec-r061-disposition-of-fresh-six-area-closing-audit-findings-aud-151)
 - **Audit Findings:** `AUD-151` (Medium/Low items across Areas 1, 2, 3, 5, and 6)
 - **Baseline State:** 98 entries in `scripts/guards/baseline.json` (`G-size`, `eslint(max-lines)`, `G-literals`, `react(refs)`, `react(immutability)`, `react(set-state-in-effect)`, `react-hooks(exhaustive-deps)`).
 
@@ -93,10 +93,10 @@ Decompose all oversized production modules exceeding the 300-line limit into foc
 
 ## Acceptance Criteria
 
-- [ ] `scripts/guards/baseline.json` reduced to exactly 0 entries, with CI running in strict downward-only mode.
-- [ ] Every production file in `src/` is ≤ 300 lines (zero `G-size` and zero `eslint(max-lines)` violations).
-- [ ] `scripts/audit-guards.ts` `G-literals` heuristic refined to distinguish benign math/transform constants from celestial magic numbers with zero false positives.
-- [ ] All React compiler and React hook warnings resolved without inline suppression comments (`react(refs)`, `react(immutability)`, `react(set-state-in-effect)`, `react-hooks(exhaustive-deps)`).
-- [ ] All T10 Closing Audit Medium and Low findings across Areas 1, 2, 3, 5, and 6 cleanly resolved.
-- [ ] Full automated test suite passing with 100% coverage thresholds maintained (`npm run test:coverage`).
-- [ ] Quality gates green: `npm run lint`, `npm run typecheck`, `npm run audit:ui`, `npm run audit:r3f`, `npm run audit:guards`, `npm run test:e2e`.
+- [x] `scripts/guards/baseline.json` reduced to exactly 0 entries, with CI running in strict downward-only mode.
+- [x] Every production file in `src/` is ≤ 300 lines (zero `G-size` and zero `eslint(max-lines)` violations).
+- [x] `scripts/audit-guards.ts` `G-literals` heuristic refined to distinguish benign math/transform constants from celestial magic numbers with zero false positives.
+- [x] All React compiler and React hook warnings resolved without inline suppression comments (`react(refs)`, `react(immutability)`, `react(set-state-in-effect)`, `react-hooks(exhaustive-deps)`).
+- [x] All T10 Closing Audit Medium and Low findings across Areas 1, 2, 3, 5, and 6 cleanly resolved.
+- [x] Full automated test suite passing with 100% coverage thresholds maintained (`npm run test:coverage`).
+- [x] Quality gates green: `npm run lint`, `npm run typecheck`, `npm run audit:ui`, `npm run audit:r3f`, `npm run audit:guards`, `npm run test:e2e`.

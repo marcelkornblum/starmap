@@ -43,17 +43,12 @@ export function extractUrlRouteStops(
 }
 
 /**
- * Extracts journeyOption ID from URL search string (?journeyOption=torchship-1g).
- * Also inspects embedded departure modes on route stops (e.g. ?route=sol:torchship-1g,tau-ceti).
+ * Extracts journeyOption ID from embedded departure modes on route stops (e.g. ?route=sol:torchship-1g,tau-ceti).
  */
 export function extractUrlJourneyOptionId(searchString: string): string | null {
   if (!searchString) return null;
   const query = searchString.startsWith('?') ? searchString.slice(1) : searchString;
   const params = new URLSearchParams(query);
-  const optionId = params.get('journeyOption');
-  if (optionId && optionId.trim().length > 0) {
-    return optionId.trim();
-  }
 
   const routeParam = params.get('route');
   if (routeParam) {
@@ -133,9 +128,11 @@ export function buildDirectionsTriggerHref(input: {
   }
 
   searchParams.set('route', `${originId},${targetId}`);
-  searchParams.delete('journeyOption');
 
-  const queryString = searchParams.toString().replace(/%2C/gi, ',');
+  const queryString = searchParams
+    .toString()
+    .replace(/%2C/gi, ',')
+    .replace(/%3A/gi, ':');
   return `${basePath}${queryString ? `?${queryString}` : ''}`;
 }
 
@@ -148,9 +145,12 @@ export function buildJourneyOptionHref(
   const params = new URLSearchParams(
     currentSearch.startsWith('?') ? currentSearch.slice(1) : currentSearch,
   );
-  params.set('route', routeStopIds.join(','));
-  params.set('journeyOption', optionId);
-  const qs = params.toString().replace(/%2C/gi, ',');
+  const cleanStops = routeStopIds.map((id) => id.split(':')[0] ?? id);
+  const encodedStops = cleanStops.map((stop, idx) =>
+    idx === 0 && optionId ? `${stop}:${optionId}` : stop,
+  );
+  params.set('route', encodedStops.join(','));
+  const qs = params.toString().replace(/%2C/gi, ',').replace(/%3A/gi, ':');
   return `${currentPathname}${qs ? `?${qs}` : ''}`;
 }
 
@@ -162,9 +162,9 @@ export function buildJourneyClearOptionHref(
   const params = new URLSearchParams(
     currentSearch.startsWith('?') ? currentSearch.slice(1) : currentSearch,
   );
-  params.set('route', routeStopIds.join(','));
-  params.delete('journeyOption');
-  const qs = params.toString().replace(/%2C/gi, ',');
+  const cleanRoute = routeStopIds.map((id) => id.split(':')[0] ?? id).join(',');
+  params.set('route', cleanRoute);
+  const qs = params.toString().replace(/%2C/gi, ',').replace(/%3A/gi, ':');
   return `${currentPathname}${qs ? `?${qs}` : ''}`;
 }
 
@@ -176,7 +176,6 @@ export function buildJourneyCloseHref(
     currentSearch.startsWith('?') ? currentSearch.slice(1) : currentSearch,
   );
   params.delete('route');
-  params.delete('journeyOption');
-  const qs = params.toString().replace(/%2C/gi, ',');
+  const qs = params.toString().replace(/%2C/gi, ',').replace(/%3A/gi, ':');
   return `${currentPathname}${qs ? `?${qs}` : ''}`;
 }

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
 import { renderHook, act } from '@testing-library/react';
 import { useCameraRigProjection } from './useCameraRigProjection';
-import { GALACTIC_FRAME } from './referenceFrame';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 

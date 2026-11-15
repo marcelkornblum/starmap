@@ -95,6 +95,8 @@ export function usePlanetOutOfScopeGuard({
 
     if (stripFocus || stripCenter) {
       void appRouter.navigate?.({
+        to: '/planet/$planetId',
+        params: { planetId: urlPlanetSlug },
         search: (prev: StarmapSearchParams = {}) => {
           const next: StarmapSearchParams = { ...prev };
           if (stripFocus) {
@@ -106,7 +108,7 @@ export function usePlanetOutOfScopeGuard({
           return next;
         },
         replace: true,
-      });
+      })?.catch(() => {});
     }
   }, [
     urlPlanetSlug,

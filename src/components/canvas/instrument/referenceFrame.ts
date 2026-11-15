@@ -1,31 +1,4 @@
-import type {
-  BearingDefinition,
-  CameraRigConfig,
-  FrameLightingConfig,
-  RangeRingConfig,
-  ReferenceFrame,
-  SpatialUnit,
-} from '../../../types/spatial';
-import {
-  GALACTIC_FRAME,
-  PLANETARY_FRAME,
-  SYSTEM_FRAME,
-} from '../../../types/spatial';
-
-export type {
-  BearingDefinition,
-  CameraRigConfig,
-  FrameLightingConfig,
-  RangeRingConfig,
-  ReferenceFrame,
-  SpatialUnit,
-};
-
-export {
-  GALACTIC_FRAME,
-  PLANETARY_FRAME,
-  SYSTEM_FRAME,
-};
+import type { ReferenceFrame } from '../../../types/spatial';
 
 /**
  * Creates a custom reference frame by applying partial overrides to a base frame.

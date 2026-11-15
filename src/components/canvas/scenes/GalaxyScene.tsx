@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SpatialViewport } from '../viewport/SpatialViewport';
-import { GALACTIC_FRAME } from '../instrument/referenceFrame';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyCamera';
 import { SectorPointCloud, type SpatialEntityDefinition } from '../entity';
 import type { PlanetCensusEntry } from '../../../types/spatial';

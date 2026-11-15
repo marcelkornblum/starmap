@@ -13,7 +13,7 @@ import {
   type OrbitControlsLike,
 } from './cameraRigZoomAndPan';
 import { CardinalTransitionController } from './cameraRigControls';
-import type { ReferenceFrame } from './referenceFrame';
+import type { ReferenceFrame } from '../../../types/spatial';
 import {
   DEFAULT_BASE_FOV_DEG,
   DEFAULT_VIEWPORT_WIDTH_PX,

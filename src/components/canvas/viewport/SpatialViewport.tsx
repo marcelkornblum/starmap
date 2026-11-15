@@ -1,12 +1,9 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { type ThreeEvent } from '@react-three/fiber';
-import {
-  type ReferenceFrame,
-  GALACTIC_FRAME,
-  createCustomReferenceFrame,
-  type FrameLightingConfig,
-} from '../instrument/referenceFrame';
+import type { ReferenceFrame, FrameLightingConfig } from '../../../types/spatial';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
+import { createCustomReferenceFrame } from '../instrument/referenceFrame';
 import { SpatialFrameProvider } from '../instrument/SpatialFrameProvider';
 import {
   SpatialEntityProvider,
