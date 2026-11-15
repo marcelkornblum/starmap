@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -146,29 +146,13 @@ const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
 }) => {
   const threeCamera = useThree((s) => s.camera);
   const defaultControls = useThree((s) => s.controls) as OrbitControlsImpl | null;
-  const prevAppliedRef = useRef<{
-    controls: OrbitControlsImpl;
-    target: [number, number, number];
-  } | null>(null);
+  const [targetX, targetY, targetZ] = target;
 
   useEffect(() => {
     if (!defaultControls) return;
-    const prev = prevAppliedRef.current;
-    if (
-      !prev ||
-      prev.controls !== defaultControls ||
-      prev.target[0] !== target[0] ||
-      prev.target[1] !== target[1] ||
-      prev.target[2] !== target[2]
-    ) {
-      defaultControls.target.set(target[0], target[1], target[2]);
-      defaultControls.update();
-      prevAppliedRef.current = {
-        controls: defaultControls,
-        target: [target[0], target[1], target[2]],
-      };
-    }
-  }, [defaultControls, target]);
+    defaultControls.target.set(targetX, targetY, targetZ);
+    defaultControls.update();
+  }, [defaultControls, targetX, targetY, targetZ]);
 
   return (
     <OrbitControls
