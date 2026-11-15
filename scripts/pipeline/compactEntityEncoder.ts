@@ -35,6 +35,8 @@ import {
   resolveDefaultStructureDescription,
 } from '../../src/utils/astroPrecalculation';
 
+export function encodeOrbitTuple(orbit: KeplerianOrbit): OrbitTuple;
+export function encodeOrbitTuple(orbit?: KeplerianOrbit): OrbitTuple | undefined;
 export function encodeOrbitTuple(orbit?: KeplerianOrbit): OrbitTuple | undefined {
   if (!orbit) return undefined;
   return [
@@ -49,19 +51,14 @@ export function encodeOrbitTuple(orbit?: KeplerianOrbit): OrbitTuple | undefined
 }
 
 export function encodeSatellite(sat: SatelliteRecord): CompactSatelliteRecord {
+  if (!sat.orbit) {
+    throw new Error(`Satellite "${sat.id}" is missing required Keplerian orbit elements.`);
+  }
   const compact: CompactSatelliteRecord = {
     i: sat.id,
     n: sat.name,
     p: sat.parentId,
-    o: encodeOrbitTuple(sat.orbit) ?? [
-      sat.orbit.semiMajorAxis,
-      sat.orbit.eccentricity,
-      sat.orbit.inclination,
-      sat.orbit.ascendingNode,
-      sat.orbit.argumentOfPeriapsis,
-      sat.orbit.meanAnomaly,
-      sat.orbit.periodDays,
-    ],
+    o: encodeOrbitTuple(sat.orbit),
   };
   if (sat.radiusKm !== undefined) compact.r = sat.radiusKm;
   if (sat.radiusEarth !== undefined) compact.re = sat.radiusEarth;

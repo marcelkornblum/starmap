@@ -161,7 +161,7 @@ const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
   }, [target]);
 
   // Expose internal controls instance to optional caller ref
-  useImperativeHandle(controlsRef, () => internalRef.current as OrbitControlsImpl, []);
+  useImperativeHandle(controlsRef, () => internalRef.current as OrbitControlsImpl);
 
   return (
     <OrbitControls

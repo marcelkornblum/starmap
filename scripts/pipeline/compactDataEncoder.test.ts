@@ -17,6 +17,7 @@ import {
 } from './compactEntityEncoder';
 import type {
   KeplerianOrbit,
+  SatelliteRecord,
   SystemManifest,
   SystemSummaryNode,
 } from '../../src/types/astro';
@@ -59,6 +60,7 @@ describe('compactDataEncoder & compactEntityEncoder', () => {
     });
     expect(sat.i).toBe('moon');
     expect(sat.r).toBe(1737.4);
+    expect(sat.o).toEqual([1.0, 0.0167, 0.0, 0.0, 102.9, 100.4, 365.25]);
 
     const disk = encodeCircumstellarDisk({
       id: 'kuiper-belt',
@@ -83,6 +85,16 @@ describe('compactDataEncoder & compactEntityEncoder', () => {
     expect(planet.i).toBe('tau-ceti-e');
     expect(planet.h).toBe(1);
     expect(planet.C).toBe(2);
+  });
+
+  it('throws descriptive error if satellite is missing required orbit elements', () => {
+    expect(() =>
+      encodeSatellite({
+        id: 'europa',
+        name: 'Europa',
+        parentId: 'jupiter',
+      } as unknown as SatelliteRecord),
+    ).toThrowError('Satellite "europa" is missing required Keplerian orbit elements.');
   });
 
   it('encodes summary nodes, system manifests, sectors, structures, and solar bodies', () => {
