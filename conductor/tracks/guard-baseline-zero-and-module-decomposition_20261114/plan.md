@@ -2,10 +2,10 @@
 
 ## Phase 1: Alignment & Baseline Inventory
 
-- [ ] Task 1.1: Confirm review mode (Phase-by-Phase vs Whole-Track PR) and create feature branch `chore/guard-baseline-zero-and-module-decomposition`.
-- [ ] Task 1.2: Baseline Inventory & Audit Mapping (`codebase-researcher` flash subagent). Map all 98 entries in `scripts/guards/baseline.json` to their target decomposition modules, AST heuristic rules, or React compiler warning fixes.
-- [ ] Task 1.3: Architectural Alignment & Decision Ratification. Ratify module partitioning boundaries for `compactDataCodec.ts`, `astroMath.ts`, `nomenclature.ts`, and details services, `BoundedLruCache` sizing for `SLUG_CACHE`, and `G-literals` allowlist criteria in the track decision log.
-- [ ] Task 1.4: Phase Verification & Checkpoint.
+- [x] Task 1.1: Confirm review mode (Phase-by-Phase vs Whole-Track PR) and create feature branch `chore/guard-baseline-zero-and-module-decomposition`.
+- [x] Task 1.2: Baseline Inventory & Audit Mapping (`codebase-researcher` flash subagent). Map all 98 entries in `scripts/guards/baseline.json` to their target decomposition modules, AST heuristic rules, or React compiler warning fixes.
+- [x] Task 1.3: Architectural Alignment & Decision Ratification. Ratify module partitioning boundaries for `compactDataCodec.ts`, `astroMath.ts`, `nomenclature.ts`, and details services, `BoundedLruCache` sizing for `SLUG_CACHE`, and `G-literals` allowlist criteria in the track decision log.
+- [x] Task 1.4: Phase Verification & Checkpoint.
 
 ---
 

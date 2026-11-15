@@ -2,6 +2,7 @@
 
 - [Specification](./spec.md)
 - [Implementation Plan](./plan.md)
+- [Decision Log](./decision-log.md)
 - [Metadata](./metadata.json)
 
 **Track ID:** `guard-baseline-zero-and-module-decomposition_20261114`  
