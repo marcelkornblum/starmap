@@ -13,7 +13,7 @@ Eliminate the remaining 98 baselined production guard entries in `scripts/guards
 ## Lineage & Context
 
 - **Predecessor:** `architecture-remediation_10_closing-audit_20261106`
-- **Decisions:** [DEC-R059](../../initiatives/architecture-remediation/decision-log.md#dec-r059-guard-baseline-disposition-vs-track-t10-scope-boundary) & [DEC-R061](../../initiatives/architecture-remediation/decision-log.md#dec-r061-disposition-of-fresh-six-area-closing-audit-findings-aud-151)
+- **Decisions:** [DEC-R059](../../archive/initiatives/architecture-remediation/decision-log.md#dec-r059-guard-baseline-disposition-vs-track-t10-scope-boundary) & [DEC-R061](../../archive/initiatives/architecture-remediation/decision-log.md#dec-r061-disposition-of-fresh-six-area-closing-audit-findings-aud-151)
 - **Audit Findings:** `AUD-151` (Medium/Low items across Areas 1, 2, 3, 5, and 6)
 - **Baseline State:** 98 entries in `scripts/guards/baseline.json` (`G-size`, `eslint(max-lines)`, `G-literals`, `react(refs)`, `react(immutability)`, `react(set-state-in-effect)`, `react-hooks(exhaustive-deps)`).
 

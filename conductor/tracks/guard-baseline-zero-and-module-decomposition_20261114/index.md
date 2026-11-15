@@ -6,5 +6,5 @@
 
 **Track ID:** `guard-baseline-zero-and-module-decomposition_20261114`  
 **Type:** Standalone Chore Track  
-**Predecessor:** [Track T10 Closing Audit](../architecture-remediation_10_closing-audit_20261106/index.md) (`architecture-remediation_10_closing-audit_20261106`)  
-**Direct Mandates:** `DEC-R059`, `DEC-R061`, and `AUD-151` from the [Architecture Remediation Decision Log](../../initiatives/architecture-remediation/decision-log.md)
+**Predecessor:** [Track T10 Closing Audit](../../archive/tracks/architecture-remediation_10_closing-audit_20261106/index.md) (`architecture-remediation_10_closing-audit_20261106`)  
+**Direct Mandates:** `DEC-R059`, `DEC-R061`, and `AUD-151` from the [Architecture Remediation Decision Log](../../archive/initiatives/architecture-remediation/decision-log.md)
