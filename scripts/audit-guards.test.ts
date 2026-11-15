@@ -189,6 +189,8 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
     });
 
     it('verifies isTelemetryIdentifier correctly identifies telemetry stems and ignores non-telemetry words', () => {
+      expect(isTelemetryIdentifier('dist')).toBe(true);
+      expect(isTelemetryIdentifier('distance')).toBe(true);
       expect(isTelemetryIdentifier('massEarth')).toBe(true);
       expect(isTelemetryIdentifier('planetMass')).toBe(true);
       expect(isTelemetryIdentifier('semiMajorAxisAu')).toBe(true);
@@ -196,6 +198,19 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
       expect(isTelemetryIdentifier('opacity')).toBe(false);
       expect(isTelemetryIdentifier('page')).toBe(false);
       expect(isTelemetryIdentifier('template')).toBe(false);
+    });
+
+    it('flags dist as telemetry identifier with fallback 1 (sys.dist ?? 1)', () => {
+      const code = `
+        export const getSystemDistance = (sys: { dist?: number }) => {
+          const d = sys.dist ?? 1;
+          return d;
+        };
+      `;
+      const diags = auditLiteralsContent('src/services/astroService.ts', code, mockCatalog);
+      expect(diags.length).toBe(1);
+      expect(diags[0]?.ruleId).toBe('G-literals');
+      expect(diags[0]?.snippet).toContain('sys.dist ?? 1');
     });
   });
 

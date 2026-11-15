@@ -76,6 +76,19 @@ export function indexStarSystems(
   }
 }
 
+export function comparePlanetsByOrbit(
+  a: { id: string; orbit?: { semiMajorAxis?: number } },
+  b: { id: string; orbit?: { semiMajorAxis?: number } },
+): number {
+  const smaA = a.orbit?.semiMajorAxis;
+  const smaB = b.orbit?.semiMajorAxis;
+  const finA = smaA !== undefined && Number.isFinite(smaA);
+  const finB = smaB !== undefined && Number.isFinite(smaB);
+  if (finA && finB && smaA !== smaB) return smaA - smaB;
+  if (finA !== finB) return finA ? -1 : 1;
+  return a.id.localeCompare(b.id);
+}
+
 export function indexExoplanets(
   manifests: SystemManifest[],
   starAliasesById: Map<string, string[]> | undefined,
@@ -86,14 +99,12 @@ export function indexExoplanets(
   for (const manifest of manifests) {
     if (manifest.id === 'sol') continue;
     const hostAliases = starAliasesById?.get(manifest.id) ?? [];
-    const sortedPlanets = [...manifest.planets].sort(
-      (a, b) =>
-        (a.orbit?.semiMajorAxis ?? Number.POSITIVE_INFINITY) -
-        (b.orbit?.semiMajorAxis ?? Number.POSITIVE_INFINITY),
-    );
+    const sortedPlanets = [...manifest.planets].sort(comparePlanetsByOrbit);
     const exoplanetRankMap = new Map<string, number>();
     sortedPlanets.forEach((p, idx) => {
-      if (p.orbit?.semiMajorAxis !== undefined) exoplanetRankMap.set(p.id, idx + 1);
+      if (p.orbit?.semiMajorAxis !== undefined && Number.isFinite(p.orbit.semiMajorAxis)) {
+        exoplanetRankMap.set(p.id, idx + 1);
+      }
     });
 
     for (const planet of manifest.planets) {
@@ -126,10 +137,10 @@ export function indexExoplanets(
         a: cleanKeys,
       };
       if (exoplanetRankMap.has(planet.id)) planetEntry.r = exoplanetRankMap.get(planet.id);
-      if (planet.orbit?.semiMajorAxis !== undefined) {
+      if (planet.orbit?.semiMajorAxis !== undefined && Number.isFinite(planet.orbit.semiMajorAxis)) {
         planetEntry.A = Math.round(planet.orbit.semiMajorAxis * 10000) / 10000;
       }
-      if (planet.orbit?.periodDays !== undefined) {
+      if (planet.orbit?.periodDays !== undefined && Number.isFinite(planet.orbit.periodDays)) {
         planetEntry.P = Math.round(planet.orbit.periodDays * 1000) / 1000;
       }
       if (comp === 'super-earth') planetEntry.u = 'super-earth';

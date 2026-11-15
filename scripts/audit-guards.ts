@@ -178,6 +178,7 @@ const TELEMETRY_TOKEN_SET = new Set([
   'temp',
   'luminosity',
   'distance',
+  'dist',
   'parallax',
   'metallicity',
   'age',

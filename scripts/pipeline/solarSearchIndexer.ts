@@ -10,6 +10,7 @@ import {
   isCoreSearchMinorBody,
   precalculateSolarSystemBodyFlags,
 } from '../../src/utils/astroPrecalculation';
+import { comparePlanetsByOrbit } from './searchEntryIndexers';
 
 export function indexSolarBodies(
   solarBodies: SolarSystemBodyRecord[],
@@ -40,11 +41,7 @@ export function indexSolarBodies(
   }
 
   for (const [, bodies] of solarBodiesByParent) {
-    bodies.sort((a, b) => {
-      const diff = (a.orbit?.semiMajorAxis ?? 0) - (b.orbit?.semiMajorAxis ?? 0);
-      if (diff !== 0) return diff;
-      return a.id.localeCompare(b.id);
-    });
+    bodies.sort(comparePlanetsByOrbit);
     bodies.forEach((b, idx) => {
       orbitRankMap.set(b.id, idx + 1);
     });
