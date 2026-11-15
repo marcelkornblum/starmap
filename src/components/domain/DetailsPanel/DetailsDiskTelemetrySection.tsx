@@ -1,5 +1,5 @@
-import type { FocusedDiskTelemetry } from '../../../services/detailsService';
-import { buildMetricGuideHref } from '../../../services/searchService';
+import type { FocusedDiskTelemetry } from '../../../services/details/detailsTelemetryTypes';
+import { buildMetricGuideHref } from '../../../content/guide';
 import {
   Badge,
   type BadgeConfidence,

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { DirectionsPanel } from './DirectionsPanel';
-import { buildJourneyPlan } from '../../../services/journeyService';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import { buildJourneyPlan } from '../../../services/journey/journeyBuilder';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 
 const testCorpus: readonly CompactSearchEntry[] = [
   { i: 'sol', n: 'Sol', h: 1, p: [0, 0, 0], m: [-26.74, 'G2V', 8, 1] },

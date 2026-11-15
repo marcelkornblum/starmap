@@ -1,7 +1,7 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
 import { Badge, Cluster, Datum, Grid, HazardBadge, Heading } from '../components/interface';
-import { HAZARD_GUIDE_ENTRIES } from '../services/guideService';
+import { HAZARD_GUIDE_ENTRIES } from '../content/guide';
 import styles from './GuideViews.module.css';
 
 export const HazardsListView: React.FC = () => {

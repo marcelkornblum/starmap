@@ -28,7 +28,7 @@ import { SearchView } from '../views/SearchView';
 import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
-import { SEARCH_CATEGORIES } from '../services/searchService';
+import { SEARCH_CATEGORIES } from '../types/search';
 import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
 
 vi.mock('@tanstack/react-router', async () => {

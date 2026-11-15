@@ -5,16 +5,14 @@ import {
   getCachedEntityAnnotations,
   getCachedLayerManifest,
 } from '../data/layerRepository';
-import {
-  extractUrlSelectSlugs,
-  findCanonLayerById,
-} from '../services/searchService';
+import { extractUrlSelectSlugs } from '../services/search/searchUrlSelection';
+import { findCanonLayerById } from '../utils/datasetLayerSlugs';
 import { useLayerStore } from '../stores/useLayerStore';
 import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,
-} from '../types/astro';
-import type { DecodedEntityAnnotation } from '../utils/datasetLayerCodec';
+} from '../types/datasetLayers';
+import type { DecodedEntityAnnotation } from '../utils/datasetLayerTypes';
 import { parseLayerQueryParam } from '../utils/url';
 
 const getLayerIndexSnapshot = (): readonly DatasetLayerIndexEntry[] =>

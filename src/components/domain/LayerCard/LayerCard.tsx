@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ActiveLayerCardModel } from '../../../services/layerCardService';
+import type { ActiveLayerCardModel } from '../../../services/layerCardNavigation';
 import {
   Badge,
   Button,

@@ -1,4 +1,4 @@
-import type { FocusedEntityDetails } from '../../../services/detailsService';
+import type { FocusedEntityDetails } from '../../../services/details/detailsEntityTypes';
 import { DetailsAstrometrySection } from './DetailsAstrometrySection';
 import { DetailsDiskTelemetrySection } from './DetailsDiskTelemetrySection';
 import {

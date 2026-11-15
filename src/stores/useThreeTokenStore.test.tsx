@@ -6,11 +6,11 @@ import {
   parseCssColor,
   parseCssDuration,
   parseCssPx,
-  createDefaultTokenSnapshot,
-  extractThreeTokens,
-  useThreeTokenStore,
   getThreeColor,
-} from './useThreeTokenStore';
+} from '../utils/cssTokenParsers';
+import { createDefaultTokenSnapshot } from './threeTokenDefaults';
+import { extractThreeTokens } from './extractThreeTokens';
+import { useThreeTokenStore } from './useThreeTokenStore';
 import { useSettingsStore } from './useSettingsStore';
 
 describe('useThreeTokenStore & parseCssColor', () => {

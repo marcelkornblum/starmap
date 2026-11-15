@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Minimap } from './Minimap';
-import type { MinimapOrientationSummary } from '../../../services/detailsService';
+import type { MinimapOrientationSummary } from '../../../services/details/detailsNavigationTypes';
 
 const mockGalaxyOrientation: MinimapOrientationSummary = {
   scope: 'galaxy',

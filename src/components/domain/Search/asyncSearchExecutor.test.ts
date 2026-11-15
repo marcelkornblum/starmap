@@ -4,7 +4,7 @@ import {
   fetchAndComputeAsyncSearch,
 } from './asyncSearchExecutor';
 import * as searchRepo from '../../../data/searchRepository';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 
 const SAMPLE_STAR: CompactSearchEntry = {
   i: 'sol',

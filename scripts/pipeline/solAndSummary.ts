@@ -3,20 +3,22 @@ import type {
   ExoplanetRecord,
   KeplerianOrbit,
   SatelliteRecord,
-  SolarSystemBodyRecord,
   StarmapNode,
   SystemManifest,
   SystemSummaryNode,
 } from '../../src/types/astro';
+import type { SolarSystemBodyRecord } from '../../src/types/astroStructures';
 import {
   classifyPlanetPhysical,
   computePlanetCompositionCounts,
-  computePlanetHazardMask,
   computePlanetSurfaceGravityG,
-  computeSystemHazardMask,
-  formatSectorId,
   isPlanetHabitableCandidate,
-} from '../../src/utils/astroMath';
+} from '../../src/utils/planetaryPhysics';
+import {
+  computePlanetHazardMask,
+  computeSystemHazardMask,
+} from '../../src/utils/astroHazards';
+import { formatSectorId } from '../../src/utils/sectorMath';
 import {
   resolvePlanetReticleType,
   resolveStellarClassificationFromSpectrum,

@@ -20,24 +20,30 @@ import {
   getCachedExoplanetFromSystem,
   getCachedSummaryNode,
 } from '../src/data/detailsRepository';
+import { buildFocusedEntityDetails } from '../src/services/details/focusedEntityDetails';
+import { buildIntrinsicSystemSummary } from '../src/services/details/detailsSystemSummary';
 import {
-  buildFocusedEntityDetails,
-  buildIntrinsicSystemSummary,
   buildPlanetCompositionSummary,
-  buildPlanetDetailsHref,
-  buildPlanetElementFocusHref,
-  buildPlanetaryBodiesSummary,
-  buildPlanetViewBreadcrumbs,
-  buildSystemBodiesSummary,
-  buildSystemDetailsHref,
-  buildSystemElementFocusHref,
-  buildSystemViewBreadcrumbs,
   classifyExoplanetComposition,
   isExoplanetHabitableCandidate,
+} from '../src/services/details/detailsComposition';
+import {
+  buildPlanetDetailsHref,
+  buildPlanetElementFocusHref,
+  buildSystemDetailsHref,
+  buildSystemElementFocusHref,
+} from '../src/services/details/detailsNavigation';
+import { buildPlanetaryBodiesSummary } from '../src/services/details/planetaryBodiesSummary';
+import {
+  buildPlanetViewBreadcrumbs,
+  buildSystemViewBreadcrumbs,
+} from '../src/services/details/detailsBreadcrumbs';
+import { buildSystemBodiesSummary } from '../src/services/details/systemBodiesSummary';
+import {
   resolveCanonLayerKindPriority,
   resolveFocusedCanonAnnotations,
   sortCanonAnnotations,
-} from '../src/services/detailsService';
+} from '../src/services/details/detailsCanonAnnotations';
 import {
   METRICS_GUIDE_PATH,
   PLANET_TYPES_GUIDE_PATH,
@@ -45,9 +51,9 @@ import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
-  executeCatalogSearch,
-  hasExplicitFocusParam,
-} from '../src/services/searchService';
+} from '../src/content/guide';
+import { executeCatalogSearch } from '../src/services/search/searchExecution';
+import { hasExplicitFocusParam } from '../src/utils/url';
 import { MetricDetailView } from '../src/views/MetricDetailView';
 import { MetricsListView } from '../src/views/MetricsListView';
 import { PlanetTypeDetailView } from '../src/views/PlanetTypeDetailView';
@@ -67,7 +73,7 @@ import { SAMPLE_CORPUS } from './fixtures/searchFixtures';
 describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () => {
   beforeAll(seedAllLayerData);
   afterAll(resetLayerRuntime);
-  it('evaluates detailsService builders, detailsRepository bucket lookups, and DetailsPanel decomposition across all branches', async () => {
+  it('evaluates details builders, detailsRepository bucket lookups, and DetailsPanel decomposition across all branches', async () => {
     // 1. DetailsPanel returns null when details is null
     const { container: nullDetails, unmount: unmountNullDetails } = render(
       createElement(DetailsPanel, { details: null }),

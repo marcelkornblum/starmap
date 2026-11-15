@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
-import {
-  extractGalaxyBodies,
-  extractUrlSceneCameraState,
-  mergeActiveStarsIntoCorpus,
-  resolveGalacticInstrumentAperture,
-} from '../../../services/detailsService';
+import { extractGalaxyBodies } from '../../../services/details/galaxyBodiesExtractor';
+import { extractUrlSceneCameraState } from '../../../services/details/detailsCamera';
+import { mergeActiveStarsIntoCorpus } from '../../../services/details/activeStarsCorpus';
+import { resolveGalacticInstrumentAperture } from '../../../services/details/galacticAperture';
 import type { SystemSummaryNode } from '../../../types/astro';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import { ApertureEvaluator } from './ApertureEvaluator';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { createSpatialEntityStore } from './SpatialEntityStore';

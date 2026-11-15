@@ -12,15 +12,17 @@ import {
 } from '../src/components/domain';
 import {
   buildCenterEntityHref,
-  buildFocusedEntityDetails,
-  buildGalaxyMinimapOrientation,
-  buildPlanetMinimapOrientation,
-  buildSystemMinimapOrientation,
   extractUrlSceneCameraState,
-  type PlanetaryBodiesSummary,
-  type SceneCameraUrlState,
-  type SystemBodiesSummary,
-} from '../src/services/detailsService';
+} from '../src/services/details/detailsCamera';
+import { buildFocusedEntityDetails } from '../src/services/details/focusedEntityDetails';
+import { buildGalaxyMinimapOrientation } from '../src/services/details/galaxyMinimap';
+import { buildPlanetMinimapOrientation } from '../src/services/details/planetMinimap';
+import { buildSystemMinimapOrientation } from '../src/services/details/systemMinimap';
+import type {
+  PlanetaryBodiesSummary,
+  SystemBodiesSummary,
+} from '../src/services/details/detailsHierarchyTypes';
+import type { SceneCameraUrlState } from '../src/services/details/detailsNavigationTypes';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { PlanetView } from '../src/views/PlanetView';
 import { SearchView } from '../src/views/SearchView';

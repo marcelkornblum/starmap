@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { MinimapOrientationSummary } from '../../../services/detailsService';
+import type { MinimapOrientationSummary } from '../../../services/details/detailsNavigationTypes';
 import {
   Badge,
   Cluster,

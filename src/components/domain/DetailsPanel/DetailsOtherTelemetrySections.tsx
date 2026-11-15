@@ -1,8 +1,8 @@
 import type {
   FocusedMinorBodyTelemetry,
   FocusedStructureTelemetry,
-} from '../../../services/detailsService';
-import { buildMetricGuideHref } from '../../../services/searchService';
+} from '../../../services/details/detailsTelemetryTypes';
+import { buildMetricGuideHref } from '../../../content/guide';
 import {
   Badge,
   CelestialBadge,

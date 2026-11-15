@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildCompactLayerSearchKeys,
   applyResolvedNamesToLayer,
   applyResolvedNamesToLayers,
-  collectUnresolvedLayerTargets,
+  buildCompactLayerSearchKeys,
   buildSearchEntriesFromLayers,
-} from './datasetLayerCodec';
-import type { DatasetLayerManifest } from '../types/astro';
+  collectUnresolvedLayerTargets,
+} from '../../scripts/pipeline/datasetLayerSearchBuilder';
+import type { DatasetLayerManifest } from '../types/datasetLayers';
 
 describe('datasetLayerCodec - Search Index Optimization & Precalculated Real Names', () => {
   it('buildCompactLayerSearchKeys strips English stopwords and tokens that duplicate name or canon title', () => {

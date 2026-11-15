@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 import { useSpatialEntityStore } from '../../canvas/entity/SpatialEntityContext';
-import {
-  buildPlanetaryOrbitalSchematic,
-  buildSystemOrbitalSchematic,
-  type BodiesPanelSummary,
-  type OrbitalSchematicSummary,
-} from '../../../services/detailsService';
+import { buildPlanetaryOrbitalSchematic } from '../../../services/details/planetaryOrbitalSchematic';
+import { buildSystemOrbitalSchematic } from '../../../services/details/systemOrbitalSchematic';
+import type {
+  BodiesPanelSummary,
+  OrbitalSchematicSummary,
+} from '../../../services/details/detailsHierarchyTypes';
 import {
   Badge, CelestialBadge, CelestialTitle, Cluster, DataTable,
   HazardBadge, Heading, Quantity, SpectralBadge, Unit,

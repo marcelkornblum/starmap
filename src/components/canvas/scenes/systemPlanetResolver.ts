@@ -1,8 +1,8 @@
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
 import { classifyPlanet } from '../cartography/reticleGeometry';
-import { resolveCorpusEntryComposition } from '../../../services/details/hazardsAndComposition';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import { resolveCorpusEntryComposition } from '../../../services/details/detailsComposition';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import { calculateKeplerianPosition } from '../math/kepler';
 
 const finiteOr = (val: number | undefined, fallback: number): number =>

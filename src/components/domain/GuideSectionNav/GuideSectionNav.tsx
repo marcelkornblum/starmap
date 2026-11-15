@@ -5,7 +5,7 @@ import {
   PLANET_TYPES_GUIDE_PATH,
   METRICS_GUIDE_PATH,
   HAZARDS_GUIDE_PATH,
-} from '../../../services/guideService';
+} from '../../../content/guide';
 import styles from './GuideSectionNav.module.css';
 
 export interface GuideSectionNavProps {

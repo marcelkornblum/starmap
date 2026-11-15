@@ -4,15 +4,15 @@ import fs from 'node:fs';
 import {
   buildCleanKeys,
   collectStarLookupKeys,
-  IAU_CONSTELLATION_NOMINATIVE_MAP,
 } from './nomenclature';
+import { IAU_CONSTELLATION_NOMINATIVE_MAP } from './constellationTables';
 import {
   isSearchableStarSystem,
   isCoreSearchStarSystem,
   isCoreSearchMinorBody,
   isCoreSearchStructure,
-  buildSearchIndexEnvelope,
-} from './compactDataCodec';
+} from './astroPrecalculation';
+import { buildSearchIndexEnvelope } from '../../scripts/pipeline/searchIndexBuilder';
 import {
   loadAllExoplanetCatalogs,
   matchExoplanetsForStar,

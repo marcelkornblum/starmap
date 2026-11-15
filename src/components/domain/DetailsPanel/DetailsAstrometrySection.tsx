@@ -1,8 +1,6 @@
 import { Fragment } from 'react';
-import {
-  buildMetricGuideHref,
-  buildTagGalaxyHref,
-} from '../../../services/searchService';
+import { buildMetricGuideHref } from '../../../content/guide';
+import { buildTagGalaxyHref } from '../../../services/search/searchUrls';
 import { Badge, Datum, Heading, Stack, Unit } from '../../interface';
 
 export interface DetailsAstrometrySectionProps {

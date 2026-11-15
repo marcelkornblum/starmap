@@ -2,10 +2,8 @@ import type React from 'react';
 import { CelestialSymbol, Cluster, Datum, Heading, Stack } from '../../interface';
 import { resolveAppHref } from '../../../utils/url';
 import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
-import type {
-  MetricComparison,
-  MetricGuideEntry,
-} from '../../../services/guideService';
+import type { MetricGuideEntry } from '../../../content/guide';
+import type { MetricComparison } from '../../../services/guide/guideTypes';
 import { Guide3DPreview } from '../Guide3DPreview';
 import styles from './MetricComparativePanel.module.css';
 

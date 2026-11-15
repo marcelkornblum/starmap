@@ -1,5 +1,5 @@
 import type { CelestialClassification } from '../../canvas/cartography/reticleGeometry';
-import { buildStarTypeGuideHref } from '../../../services/searchService';
+import { buildStarTypeGuideHref } from '../../../content/guide';
 import {
   Badge,
   CelestialTitle,

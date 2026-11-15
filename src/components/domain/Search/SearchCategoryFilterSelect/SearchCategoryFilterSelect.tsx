@@ -1,7 +1,5 @@
-import {
-  SEARCH_CATEGORIES,
-  isSearchCategoryFilter,
-} from '../../../../services/searchService';
+import { SEARCH_CATEGORIES } from '../../../../types/search';
+import { isSearchCategoryFilter } from '../../../../services/search/searchTypes';
 import { Select } from '../../../interface';
 import { useSearchContext } from '../SearchContext';
 import styles from './SearchCategoryFilterSelect.module.css';

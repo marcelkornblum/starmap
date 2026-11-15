@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  resolveGalacticInstrumentAperture,
-  mergeActiveStarsIntoCorpus,
-} from './galacticAperture';
-import type { CompactSearchEntry } from '../../utils/compactDataCodec';
-import type { SystemSummaryNode } from '../../types/astro';
+import { resolveGalacticInstrumentAperture } from './galacticAperture';
+import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 
 const SAMPLE_GALAXY_CORPUS: readonly CompactSearchEntry[] = [
   {
@@ -92,47 +88,6 @@ describe('galacticAperture', () => {
 
       expect(aperture.centerCoordinatesPc).toEqual([5, 15, 25]);
       expect(aperture.apertureRadiusPc).toBe(42.18);
-    });
-  });
-
-  describe('mergeActiveStarsIntoCorpus', () => {
-    it('merges active stars with corpus deduplicating by ID', () => {
-      const activeStars: SystemSummaryNode[] = [
-        {
-          id: 'alpha-centauri',
-          name: 'Alpha Centauri',
-          x: -0.47,
-          y: 1.32,
-          z: -0.33,
-          dist: 1.3,
-          mag: -0.27,
-          absmag: 4.38,
-          spect: 'G2V',
-          starCount: 3,
-          planetCount: 1,
-          hasHabitableCandidate: false,
-          sectorId: 'sector_-000_+001_-000',
-        },
-        {
-          id: 'new-star',
-          name: 'New Star',
-          x: 2,
-          y: 3,
-          z: 4,
-          dist: 5.38,
-          mag: 5.0,
-          absmag: 6.0,
-          spect: 'K0V',
-          starCount: 1,
-          planetCount: 0,
-          hasHabitableCandidate: false,
-          sectorId: 'sector_+002_+003_+004',
-        },
-      ];
-
-      const merged = mergeActiveStarsIntoCorpus(SAMPLE_GALAXY_CORPUS, activeStars);
-      expect(merged.length).toBe(SAMPLE_GALAXY_CORPUS.length + 1);
-      expect(merged.some((e) => e.i === 'new-star')).toBe(true);
     });
   });
 });

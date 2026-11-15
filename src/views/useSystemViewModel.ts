@@ -4,25 +4,21 @@ import {
   useSpatialEntityStoreApi,
 } from '../components/canvas/entity/SpatialEntityContext';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
+import { buildJourneyPlan } from '../services/journey/journeyBuilder';
 import {
-  buildJourneyPlan,
   extractUrlJourneyOptionId,
   extractUrlRouteStops,
-} from '../services/journeyService';
+} from '../services/journey/journeyProfilesAndUrls';
 import { resolveActiveLayerCard } from '../services/layerCardService';
-import {
-  buildFocusedPreviewSummary,
-  buildSystemBodiesSummary,
-  buildSystemMinimapOrientation,
-  buildSystemOrbitalSchematic,
-  buildSystemViewBreadcrumbs,
-  extractUrlSceneCameraState,
-} from '../services/detailsService';
+import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
+import { buildSystemBodiesSummary } from '../services/details/systemBodiesSummary';
+import { buildSystemMinimapOrientation } from '../services/details/systemMinimap';
+import { buildSystemOrbitalSchematic } from '../services/details/systemOrbitalSchematic';
+import { buildSystemViewBreadcrumbs } from '../services/details/detailsBreadcrumbs';
+import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { useParams, useSearch } from '@tanstack/react-router';
-import {
-  resolveSelectedSystemsFromUrlSelect,
-  toUrlSlug,
-} from '../services/searchService';
+import { resolveSelectedSystemsFromUrlSelect } from '../services/search/searchUrlSelectionResolvers';
+import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { useLayerIndex, useLoadedLayerManifests } from '../hooks/useLayerData';
 import {
   appRouter,

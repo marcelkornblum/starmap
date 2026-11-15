@@ -6,7 +6,7 @@ import {
   subscribeSearchRepository,
 } from '../data/searchRepository';
 import type { SearchCategoryFilter } from '../types/search';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 export interface UseSearchCorpusResult {
   readonly corpus: readonly CompactSearchEntry[] | undefined;

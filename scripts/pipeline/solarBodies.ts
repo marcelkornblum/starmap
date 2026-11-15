@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { SolarSystemBodyRecord } from '../../src/types/astro';
+import type { SolarSystemBodyRecord } from '../../src/types/astroStructures';
 import { precalculateSolarSystemBodyFlags } from '../../src/utils/astroPrecalculation';
 import { FULL_SOLAR_SYSTEM_BODIES } from './seedCatalogs';
 

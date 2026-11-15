@@ -7,8 +7,8 @@ import {
   runDiscoverySync,
   type RecentDiscoveryItem,
 } from '../../../scripts/sync-discoveries';
-import type { CompactSearchEntry } from '../../utils/compactDataCodec';
-import type { DatasetLayerManifest } from '../../types/astro';
+import type { CompactSearchEntry } from '../../utils/compactDataTypes';
+import type { DatasetLayerManifest } from '../../types/datasetLayers';
 
 describe('DEC-040: sync-discoveries pipeline helpers', () => {
   it('buildTapRecentDiscoveriesQuery creates a valid NASA Exoplanet Archive TAP query URL for sy_dist <= 100', () => {

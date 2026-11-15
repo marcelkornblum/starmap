@@ -1,8 +1,6 @@
-import type {
-  FocusedEntityDetails,
-  FocusedPreviewSummary,
-  OrbitalSchematicSummary,
-} from '../../../services/detailsService';
+import type { FocusedEntityDetails } from '../../../services/details/detailsEntityTypes';
+import type { FocusedPreviewSummary } from '../../../services/details/detailsNavigationTypes';
+import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
 import { DetentSheet, type DetentLevel } from '../../interface/surfaces/DetentSheet';
 import { Heading } from '../../interface';
 import { useUIStore } from '../../../stores/useUIStore';

@@ -8,7 +8,7 @@ import {
   seedSummaryNode,
 } from '../data/detailsRepository';
 import type { SystemManifest, SystemSummaryNode } from '../types/astro';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 const SOL_FIXTURE: SystemManifest = {
   id: 'sol',

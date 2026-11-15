@@ -8,21 +8,14 @@ import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
 import { useSystemData } from '../hooks/useSystemData';
 import { useSearchCorpus } from '../hooks/useSearchCorpus';
-import {
-  buildFocusedEntityDetails,
-  type FocusedEntityDetails,
-} from '../services/detailsService';
+import { buildFocusedEntityDetails } from '../services/details/focusedEntityDetails';
+import type { FocusedEntityDetails } from '../services/details/detailsEntityTypes';
 import { useParams, useSearch } from '@tanstack/react-router';
-import {
-  findFocusedEntryInCorpus,
-  resolveFocusedEntityFromCorpus,
-  toUrlSlug,
-} from '../services/searchService';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
-import {
-  toAnnotationLookupKey,
-  type DecodedEntityAnnotation,
-} from '../utils/datasetLayerCodec';
+import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
+import { resolveFocusedEntityFromCorpus } from '../services/search/searchSelection';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import { toAnnotationLookupKey, toUrlSlug } from '../utils/datasetLayerSlugs';
+import type { DecodedEntityAnnotation } from '../utils/datasetLayerTypes';
 import { useEntityAnnotations } from '../hooks/useLayerData';
 import {
   useSpaLocation,

@@ -1,5 +1,5 @@
 import type { MouseEvent, ReactNode } from 'react';
-import type { SearchResultItem as SearchResultItemModel } from '../../../services/searchService';
+import type { SearchResultItem as SearchResultItemModel } from '../../../services/search/searchTypes';
 import {
   Badge,
   CelestialBadge,

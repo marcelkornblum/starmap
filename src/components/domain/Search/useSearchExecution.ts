@@ -8,10 +8,10 @@ import {
 import { getCachedCorpusForFilter } from '../../../data/searchRepository';
 import type {
   GroupedSearchResults,
-  SearchCategoryFilter,
   SearchResultItem,
-} from '../../../services/searchService';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+} from '../../../services/search/searchTypes';
+import type { SearchCategoryFilter } from '../../../types/search';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import type { SearchExecutionStatus } from './SearchContext';
 import {
   SEARCH_MIN_QUERY_LENGTH,

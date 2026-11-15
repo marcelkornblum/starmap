@@ -1,18 +1,15 @@
 import type {
   ExoplanetRecord,
-  GalacticStructureRecord,
-  SolarSystemBodyRecord,
   SystemManifest,
   SystemSummaryNode,
 } from '../types/astro';
-import {
-  decodeGalacticStructure,
-  decodeSolarSystemBody,
-  decodeSystemManifest,
-  getShardKey,
-  type CompactDetailRecord,
-  type ShardedBucketEnvelope,
-} from '../utils/compactDataCodec';
+import type {
+  GalacticStructureRecord,
+  SolarSystemBodyRecord,
+} from '../types/astroStructures';
+import { decodeSystemManifest, getShardKey } from '../utils/compactDataCodec';
+import { decodeGalacticStructure, decodeSolarSystemBody } from '../utils/compactEntityDecoder';
+import type { CompactDetailRecord, ShardedBucketEnvelope } from '../utils/compactDataTypes';
 import { resolveDataUrl } from '../utils/url';
 import { BoundedLruCache } from '../utils/lruCache';
 import {

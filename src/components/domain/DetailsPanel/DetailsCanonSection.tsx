@@ -1,11 +1,9 @@
-import type {
-  EntityHazardItem,
-  FocusedCanonAnnotation,
-} from '../../../services/detailsService';
+import type { EntityHazardItem } from '../../../services/details/detailsEntityTypes';
+import type { FocusedCanonAnnotation } from '../../../services/details/detailsCanonTypes';
 import {
   buildHazardGuideHref,
   HAZARDS_GUIDE_PATH,
-} from '../../../services/guideService';
+} from '../../../content/guide';
 import { resolveAppHref } from '../../../utils/url';
 import {
   DataTable,

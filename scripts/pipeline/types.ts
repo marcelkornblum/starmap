@@ -1,8 +1,8 @@
 import type {
-  CatalogManifestHeader,
   SystemManifest,
   SystemSummaryNode,
 } from '../../src/types/astro';
+import type { CatalogManifestHeader } from '../../src/types/astroCoordinates';
 
 export interface HygCrossMatch {
   id: number;

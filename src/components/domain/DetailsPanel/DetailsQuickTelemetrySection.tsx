@@ -1,9 +1,9 @@
-import type { FocusedEntityDetails } from '../../../services/detailsService';
+import type { FocusedEntityDetails } from '../../../services/details/detailsEntityTypes';
 import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
-  buildTagGalaxyHref,
-} from '../../../services/searchService';
+} from '../../../content/guide';
+import { buildTagGalaxyHref } from '../../../services/search/searchUrls';
 import { resolveAppHref } from '../../../utils/url';
 import {
   Badge,

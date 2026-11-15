@@ -1,4 +1,4 @@
-import { toCanonicalLayerSlug, toUrlSlug } from './datasetLayerCodec';
+import { toCanonicalLayerSlug, toUrlSlug } from './datasetLayerSlugs';
 
 export const STAR_TYPES_GUIDE_PATH = '/guide/star-types' as const;
 export const PLANET_TYPES_GUIDE_PATH = '/guide/planet-types' as const;

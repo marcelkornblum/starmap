@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { SearchResults } from './SearchResults';
 import { SearchContext } from '../SearchContext';
-import { executeCatalogSearch } from '../../../../services/searchService';
+import { executeCatalogSearch } from '../../../../services/search/searchExecution';
 
 describe('<SearchResults />', () => {
   it('renders search results groups with visuallyHidden heading and stack list', () => {

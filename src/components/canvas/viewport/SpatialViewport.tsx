@@ -31,7 +31,7 @@ import {
 import type { JourneyChordLeg } from '../cartography';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
-import { toUrlSlug } from '../../../utils/datasetLayerCodec';
+import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
 
 export interface SpatialViewportProps {
   /** The reference frame driving spatial instrument metrics and scale. Defaults to GALACTIC_FRAME */

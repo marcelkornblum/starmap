@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react';
 import { useSystemOutOfScopeGuard } from './useSystemOutOfScopeGuard';
 import { registerAppRouter, type StarmapSearchParams } from '../hooks/useSpaLocation';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 describe('useSystemOutOfScopeGuard', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;

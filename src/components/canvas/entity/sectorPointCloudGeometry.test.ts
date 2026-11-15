@@ -5,7 +5,7 @@ import {
   createSceneSectorPointsFactory,
 } from './sectorPointCloudGeometry';
 import { encodeBinarySector, decodeBinarySector } from '../../../utils/binarySectorCodec';
-import type { SectorPartitionManifest } from '../../../types/astro';
+import type { SectorPartitionManifest } from '../../../types/astroCoordinates';
 
 function createMockSectorBuffer(
   sectorId: string,

@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useSearchExecution } from './useSearchExecution';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 
 const TEST_CORPUS: readonly CompactSearchEntry[] = [
   { i: 'sol', n: 'Sol', m: [-26.74, 'G2V', 8, 1], h: 1, a: 'sol' },

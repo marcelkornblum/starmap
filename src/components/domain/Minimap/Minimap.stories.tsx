@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import type { MinimapOrientationSummary } from '../../../services/detailsService';
+import type { MinimapOrientationSummary } from '../../../services/details/detailsNavigationTypes';
 import { Minimap } from './Minimap';
 import { Stack } from '../../interface/layouts/Stack/Stack';
 

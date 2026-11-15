@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { CONSTELLATION_LAYER_MANIFESTS } from './overlay-constellations';
 import { LAYER_MANIFESTS } from './index';
-import { collectUnresolvedLayerTargets } from '../../src/utils/datasetLayerCodec';
-import { resolveSelectedSystemsFromLayer } from '../../src/services/searchService';
+import { collectUnresolvedLayerTargets } from '../../scripts/pipeline/datasetLayerSearchBuilder';
+import { resolveSelectedSystemsFromLayer } from '../../src/services/search/searchUrlSelectionResolvers';
 import { resolveActiveLayerCard } from '../../src/services/layerCardService';
 
 describe('Scientific Overlay Constellation Layers', () => {

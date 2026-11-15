@@ -8,7 +8,7 @@ import {
   seedSummaryNode,
 } from '../data/detailsRepository';
 import type { SystemManifest, SystemSummaryNode } from '../types/astro';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 const TAU_CETI_FIXTURE: SystemManifest = {
   id: 'gaia-2452378776434477184',

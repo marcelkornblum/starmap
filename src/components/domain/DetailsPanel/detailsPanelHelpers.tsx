@@ -1,8 +1,8 @@
-import type { EntityHazardItem } from '../../../services/detailsService';
+import type { EntityHazardItem } from '../../../services/details/detailsEntityTypes';
 import {
   buildHazardGuideHref,
   HAZARDS_GUIDE_PATH,
-} from '../../../services/guideService';
+} from '../../../content/guide';
 import {
   HazardBadge,
   Quantity,

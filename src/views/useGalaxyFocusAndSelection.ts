@@ -1,13 +1,11 @@
 import { useMemo } from 'react';
 import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
-import {
-  findFocusedEntryInCorpus,
-  resolveFocusedEntityFromCorpus,
-  resolveSelectedSystemsFromUrlSelect,
-  toUrlSlug,
-} from '../services/searchService';
-import type { DatasetLayerIndexEntry, DatasetLayerManifest } from '../types/astro';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
+import { resolveFocusedEntityFromCorpus } from '../services/search/searchSelection';
+import { resolveSelectedSystemsFromUrlSelect } from '../services/search/searchUrlSelectionResolvers';
+import { toUrlSlug } from '../utils/datasetLayerSlugs';
+import type { DatasetLayerIndexEntry, DatasetLayerManifest } from '../types/datasetLayers';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 export interface UseGalaxyFocusAndSelectionParams {
   readonly urlFocusSlug: string | null;

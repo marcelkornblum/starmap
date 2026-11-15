@@ -4,7 +4,7 @@ import { DetailsPanel } from './DetailsPanel';
 import type {
   FocusedPlanetEntityDetails,
   FocusedSystemEntityDetails,
-} from '../../../services/detailsService';
+} from '../../../services/details/detailsEntityTypes';
 
 const mockSystemDetails: FocusedSystemEntityDetails = {
   id: 'tau-ceti',

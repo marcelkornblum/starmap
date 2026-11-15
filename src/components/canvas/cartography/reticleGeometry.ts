@@ -26,7 +26,7 @@ import {
   classifyPlanetPhysical,
   type PlanetPhysicalProperties,
   type PlanetCensusClassification,
-} from '../../../utils/astroMath';
+} from '../../../utils/planetaryPhysics';
 
 export {
   classifyPlanetPhysical,

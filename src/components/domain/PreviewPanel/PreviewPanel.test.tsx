@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { PreviewPanel } from './PreviewPanel';
-import type { FocusedPreviewSummary } from '../../../services/detailsService';
+import type { FocusedPreviewSummary } from '../../../services/details/detailsNavigationTypes';
 
 const mockPreview: FocusedPreviewSummary = {
   targetId: 'sol',

@@ -1,7 +1,7 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
 import { CelestialSymbol, Cluster, Datum, Grid, Heading, SpectralBadge } from '../components/interface';
-import { STAR_TYPE_GUIDE_ENTRIES } from '../services/guideService';
+import { STAR_TYPE_GUIDE_ENTRIES } from '../content/guide';
 import styles from './GuideViews.module.css';
 
 export const StarTypesListView: React.FC = () => {

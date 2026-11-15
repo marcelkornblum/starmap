@@ -1,8 +1,8 @@
-import type { FocusedPlanetTelemetry } from '../../../services/detailsService';
+import type { FocusedPlanetTelemetry } from '../../../services/details/detailsTelemetryTypes';
 import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
-} from '../../../services/searchService';
+} from '../../../content/guide';
 import {
   Badge,
   CelestialBadge,

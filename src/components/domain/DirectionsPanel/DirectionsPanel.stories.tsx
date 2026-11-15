@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { DirectionsPanel } from './DirectionsPanel';
-import { buildJourneyPlan } from '../../../services/journeyService';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import { buildJourneyPlan } from '../../../services/journey/journeyBuilder';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import type { DetentLevel } from '../../interface/surfaces/DetentSheet';
 import { Stack } from '../../interface/layouts/Stack/Stack';
 

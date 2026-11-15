@@ -129,159 +129,15 @@
       "count": 1,
       "audId": "AUD-020"
     },
-    "G-size::src/services/details/bodiesAndSchematics.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-size::src/services/details/focusedEntityDetails.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-literals::src/services/details/focusedEntityDetails.ts": {
-      "count": 1,
-      "audId": "AUD-062"
-    },
-    "G-size::src/services/details/galacticAperture.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-size::src/services/details/hazardsAndComposition.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-size::src/services/details/minimapAndPreview.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-size::src/services/details/types.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "G-literals::src/services/deviceTierService.ts": {
       "count": 3,
       "audId": "AUD-020"
     },
-    "G-size::src/services/guideService.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-literals::src/services/guideService.ts": {
-      "count": 3,
-      "audId": "AUD-060"
-    },
-    "G-size::src/services/journeyService.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-literals::src/services/layerCardService.ts": {
-      "count": 1,
-      "audId": "AUD-020"
-    },
-    "G-size::src/services/searchService.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-size::src/services/sectorStreamingService.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-literals::src/services/sectorStreamingService.ts": {
-      "count": 1,
-      "audId": "AUD-020"
-    },
-    "G-size::src/utils/astroMath.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-literals::src/utils/astroMath.ts": {
-      "count": 1,
-      "audId": "AUD-020"
-    },
-    "G-size::src/utils/compactDataCodec.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "G-literals::src/utils/compactDataCodec.ts": {
-      "count": 15,
+      "count": 1,
       "audId": "AUD-020"
-    },
-    "G-size::src/utils/datasetLayerCodec.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "G-literals::src/utils/datasetLayerCodec.ts": {
-      "count": 2,
-      "audId": "AUD-020"
-    },
-    "G-size::src/utils/nomenclature.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/details/navigationAndCamera.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/guideService.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/utils/datasetLayerCodec.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/types/astro.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/details/bodiesAndSchematics.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/details/types.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/details/focusedEntityDetails.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/details/minimapAndPreview.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/details/hazardsAndComposition.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/details/galacticAperture.ts": {
-      "count": 1,
-      "audId": "AUD-120"
     },
     "eslint(max-lines)::src/components/canvas/cartography/reticleGeometry.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/searchService.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/utils/nomenclature.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/utils/astroMath.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/journeyService.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/layerCardService.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/utils/compactDataCodec.ts": {
       "count": 1,
       "audId": "AUD-120"
     },
@@ -329,10 +185,6 @@
       "count": 3,
       "audId": "AUD-105"
     },
-    "eslint(max-lines)::src/stores/useThreeTokenStore.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
     "eslint(max-lines)::src/components/canvas/cartography/celestialOcclusionRegistry.ts": {
       "count": 1,
       "audId": "AUD-120"
@@ -346,10 +198,6 @@
       "audId": "AUD-120"
     },
     "eslint(max-lines)::src/components/canvas/entity/SpatialEntityStore.ts": {
-      "count": 1,
-      "audId": "AUD-120"
-    },
-    "eslint(max-lines)::src/services/sectorStreamingService.ts": {
       "count": 1,
       "audId": "AUD-120"
     },

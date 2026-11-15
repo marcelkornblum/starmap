@@ -1,83 +1,27 @@
 import type {
-  DatasetLayerEntry,
   DatasetLayerIndexEntry,
-  DatasetLayerKind,
   DatasetLayerManifest,
-  DatasetLayerSourceMeta,
-  ObservationalConfidence,
-} from '../types/astro';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+} from '../types/datasetLayers';
+import { getOrderedLayerEntries } from '../utils/datasetLayerCodec';
 import {
   findCanonLayerById,
-  getOrderedLayerEntries,
   splitAliases,
   toCanonicalLayerSlug,
   toUrlSlug,
-} from '../utils/datasetLayerCodec';
+} from '../utils/datasetLayerSlugs';
 import { parseLayerQueryParam } from '../utils/url';
-export { parseLayerQueryParam };
-import type { OrbitTargetView } from './details/navigationAndCamera';
+import {
+  buildLayerCloseHref,
+  resolveLayerItemTargetHref,
+  type ActiveLayerCardModel,
+  type ActiveLayerOverviewCardModel,
+  type ResolveActiveLayerCardInput,
+} from './layerCardNavigation';
 import {
   findFocusedEntryInCorpus,
-  formatSlugFallbackTitle,
   resolveResultDisplayTitle,
-} from './searchService';
-
-export interface ActiveLayerOverviewCardModel {
-  readonly mode: 'overview';
-  readonly layerId: string;
-  readonly layerSlug: string;
-  readonly title: string;
-  readonly subtitle?: string;
-  readonly kind: DatasetLayerKind;
-  readonly kindLabel: string;
-  readonly description: string;
-  readonly itemCount: number;
-  readonly source?: DatasetLayerSourceMeta;
-  readonly firstItemTitle?: string;
-  readonly startHref: string;
-  readonly closeHref: string;
-}
-
-export interface ActiveLayerItemCardModel {
-  readonly mode: 'item';
-  readonly layerId: string;
-  readonly layerSlug: string;
-  readonly layerTitle: string;
-  readonly subtitle?: string;
-  readonly kind: DatasetLayerKind;
-  readonly kindLabel: string;
-  readonly overviewHref: string;
-  readonly stepIndex: number;
-  readonly totalItems: number;
-  readonly itemSlug: string;
-  readonly itemTitle: string;
-  readonly text: string;
-  readonly confidence?: ObservationalConfidence;
-  readonly prevHref: string;
-  readonly prevLabel: string;
-  readonly nextHref: string;
-  readonly nextLabel: string;
-  readonly closeHref: string;
-}
-
-export type ActiveLayerCardModel =
-  | ActiveLayerOverviewCardModel
-  | ActiveLayerItemCardModel;
-
-export interface LayerItemTargetResult {
-  readonly itemSlug: string;
-  readonly targetView: OrbitTargetView;
-  readonly href: string;
-}
-
-export interface ResolveActiveLayerCardInput {
-  readonly layerParam?: string | null;
-  readonly currentPathname: string;
-  readonly currentSearch: string;
-  readonly corpus?: readonly CompactSearchEntry[];
-  readonly layers: readonly DatasetLayerManifest[];
-}
+} from './search/searchCorpusHelpers';
+import { formatSlugFallbackTitle } from '../utils/starNaming';
 
 /**
  * Random exploration picker excluding the currently active layer.
@@ -88,205 +32,71 @@ export function pickRandomLayerOverviewHref(
   randomFn: () => number,
   layers: readonly DatasetLayerIndexEntry[],
 ): string {
-  if (layers.length === 0) {
-    return '/galaxy';
-  }
-
+  if (layers.length === 0) return '/galaxy';
   const parsedCurrent = parseLayerQueryParam(currentLayerParam);
   const activeSlug = parsedCurrent?.layerSlug;
 
-  const multiEntryLayers = layers.filter((l) => (l.entryCount ?? 1) > 1);
+  const multiEntryLayers = layers.filter((l) => (l.entryCount ?? 0) > 1);
   const basePool = multiEntryLayers.length > 0 ? multiEntryLayers : layers;
-
   const candidates = activeSlug
     ? basePool.filter((l) => toCanonicalLayerSlug(l.layerId) !== activeSlug)
     : basePool;
 
   const pool = candidates.length > 0 ? candidates : basePool;
-  const pickedIndex = Math.min(
-    Math.floor(randomFn() * pool.length),
-    pool.length - 1,
-  );
+  const pickedIndex = Math.min(Math.floor(randomFn() * pool.length), pool.length - 1);
   const chosen = pool[pickedIndex] ?? pool[0];
   const chosenSlug = toCanonicalLayerSlug(chosen.layerId);
-
   return `/galaxy?select=layer:${chosenSlug}&layer=${chosenSlug}`;
 }
 
-/**
- * Minimal layer identity needed to build an item target href.
- */
-export interface LayerItemTargetLayer {
-  readonly layerId: string;
-}
-
-/**
- * Entry-like fields needed to build an item target href. Satisfied by both
- * `DatasetLayerEntry` (manifests) and `DecodedEntityAnnotation` (by-entity shards).
- */
-export interface LayerItemTargetFields {
-  readonly targetId: string;
-  readonly targetType: DatasetLayerEntry['targetType'];
-  readonly systemId: string;
-  readonly inUniverseName?: string;
-  readonly resolvedName?: string;
-  readonly subtitle?: string;
-  readonly parentBodyId?: string;
-}
-
-/**
- * Pure helper resolving the orbit-context navigation target href and view for a layer entry.
- */
-export function resolveLayerItemTargetHref(
-  layer: LayerItemTargetLayer,
-  entry: LayerItemTargetFields,
-  corpus?: readonly CompactSearchEntry[],
-  currentPathname?: string,
-): LayerItemTargetResult {
-  const layerSlug = toCanonicalLayerSlug(layer.layerId);
-  const cleanId = entry.targetId.includes(':')
-    ? entry.targetId.split(':').slice(1).join(':')
-    : entry.targetId;
-  const itemSlug = toUrlSlug(cleanId);
-
-  let systemName: string | undefined;
-  if (entry.systemId && corpus) {
-    const sysEntry = findFocusedEntryInCorpus(entry.systemId, corpus);
-    if (sysEntry) {
-      systemName = resolveResultDisplayTitle(sysEntry);
-    }
-  }
-
-  const sysSlug = toUrlSlug(systemName || entry.systemId || cleanId);
-
-  let targetView: OrbitTargetView = 'galaxy';
-  let targetPathname = '/galaxy';
-  const params = new URLSearchParams();
-
-  if (currentPathname?.startsWith('/system/')) {
-    targetView = 'system';
-    targetPathname = `/system/${encodeURIComponent(sysSlug)}`;
-    params.set('center', itemSlug);
-    params.set('focus', itemSlug);
-    params.set('select', `layer:${layerSlug}`);
-    params.set('layer', `${layerSlug}:${itemSlug}`);
-  } else if (currentPathname?.startsWith('/planet/')) {
-    targetView = 'planet';
-    targetPathname = currentPathname.split('?')[0].split('#')[0];
-    params.set('center', itemSlug);
-    params.set('focus', itemSlug);
-    params.set('select', `layer:${layerSlug}`);
-    params.set('layer', `${layerSlug}:${itemSlug}`);
-  } else {
-    targetView = 'galaxy';
-    targetPathname = '/galaxy';
-    params.set('center', sysSlug);
-    params.set('focus', itemSlug);
-    params.set('select', `layer:${layerSlug}`);
-    params.set('layer', `${layerSlug}:${itemSlug}`);
-  }
-
-  const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
-  const href = `${targetPathname}?${qs}`;
+export function buildLayerOverviewCard(
+  layer: DatasetLayerManifest,
+  layerSlug: string,
+  kindLabel: string,
+  input: ResolveActiveLayerCardInput,
+  closeHref: string,
+): ActiveLayerOverviewCardModel {
+  const orderedEntries = getOrderedLayerEntries(layer);
+  const firstEntry = orderedEntries[0];
+  const firstItemTitle = firstEntry
+    ? firstEntry.inUniverseName || firstEntry.resolvedName || formatSlugFallbackTitle(firstEntry.targetId)
+    : undefined;
+  const startHref = firstEntry
+    ? resolveLayerItemTargetHref(layer, firstEntry, input.corpus, input.currentPathname).href
+    : input.currentPathname;
 
   return {
-    itemSlug,
-    targetView,
-    href,
+    mode: 'overview',
+    layerId: layer.layerId,
+    layerSlug,
+    title: layer.title,
+    ...(layer.subtitle ? { subtitle: layer.subtitle } : {}),
+    kind: layer.kind,
+    kindLabel,
+    description: layer.description,
+    itemCount: orderedEntries.length,
+    ...(layer.source ? { source: layer.source } : {}),
+    ...(firstItemTitle ? { firstItemTitle } : {}),
+    startHref,
+    closeHref,
   };
 }
 
-/**
- * Pure helper building the close/dismiss href that strips only the active `layer`
- * query parameter while preserving `select`, pathname, and all other parameters (DEC-R014f).
- */
-export function buildLayerCloseHref(
-  currentPathname: string,
-  currentSearch: string,
-): string {
-  const params = new URLSearchParams(currentSearch);
-  params.delete('layer');
-
-  const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
-  return `${currentPathname}${qs.length > 0 ? `?${qs}` : ''}`;
-}
-
-/**
- * Pure domain resolver that constructs an `ActiveLayerCardModel` (Overview or Item)
- * from the active URL query parameters and layer manifests.
- */
-export function resolveActiveLayerCard(
+export function buildLayerItemCard(
+  layer: DatasetLayerManifest,
+  layerSlug: string,
+  kindLabel: string,
+  targetItemSlug: string,
   input: ResolveActiveLayerCardInput,
-): ActiveLayerCardModel | null {
-  const parsed = parseLayerQueryParam(input.layerParam);
-  if (!parsed) {
-    return null;
-  }
-
-  const activeLayers = input.layers;
-  const layer = findCanonLayerById(parsed.layerSlug, activeLayers);
-  if (!layer) {
-    return null;
-  }
-
-  const layerSlug = toCanonicalLayerSlug(layer.layerId);
-  const kindLabel =
-    layer.kind === 'scientific-overlay'
-      ? 'Scientific Layer'
-      : layer.kind === 'custom-user'
-        ? 'Custom Layer'
-        : 'Fictional Canon';
-
-  const closeHref = buildLayerCloseHref(
-    input.currentPathname,
-    input.currentSearch,
-  );
+  closeHref: string,
+): ActiveLayerCardModel {
   const orderedEntries = getOrderedLayerEntries(layer);
   const overviewHref = `/galaxy?select=layer:${layerSlug}&layer=${layerSlug}`;
 
-  // Mode 1: Overview mode when itemSlug is absent
-  if (!parsed.itemSlug) {
-    const firstEntry = orderedEntries[0];
-    const firstItemTitle = firstEntry
-      ? firstEntry.inUniverseName ||
-        firstEntry.resolvedName ||
-        formatSlugFallbackTitle(firstEntry.targetId)
-      : undefined;
-    const startHref = firstEntry
-      ? resolveLayerItemTargetHref(
-          layer,
-          firstEntry,
-          input.corpus,
-          input.currentPathname,
-        ).href
-      : input.currentPathname;
-
-    return {
-      mode: 'overview',
-      layerId: layer.layerId,
-      layerSlug,
-      title: layer.title,
-      ...(layer.subtitle ? { subtitle: layer.subtitle } : {}),
-      kind: layer.kind,
-      kindLabel,
-      description: layer.description,
-      itemCount: orderedEntries.length,
-      ...(layer.source ? { source: layer.source } : {}),
-      ...(firstItemTitle ? { firstItemTitle } : {}),
-      startHref,
-      closeHref,
-    };
-  }
-
-  // Mode 2: Item mode when itemSlug is present
-  const targetItemSlug = parsed.itemSlug;
   const entryIndex = orderedEntries.findIndex((entry) => {
     const rawTargetSlug = toUrlSlug(entry.targetId);
-    const cleanTargetSlug = toUrlSlug(
-      entry.targetId.includes(':')
-        ? entry.targetId.split(':').slice(1).join(':')
-        : entry.targetId,
-    );
+    const cleanId = entry.targetId.includes(':') ? entry.targetId.split(':').slice(1).join(':') : entry.targetId;
+    const cleanTargetSlug = toUrlSlug(cleanId);
     const systemSlug = entry.systemId ? toUrlSlug(entry.systemId) : '';
     const nameSlug = entry.inUniverseName ? toUrlSlug(entry.inUniverseName) : '';
     const resolvedSlug = entry.resolvedName ? toUrlSlug(entry.resolvedName) : '';
@@ -295,9 +105,7 @@ export function resolveActiveLayerCard(
     let systemDisplaySlug = '';
     if (entry.systemId && input.corpus) {
       const sysEntry = findFocusedEntryInCorpus(entry.systemId, input.corpus);
-      if (sysEntry) {
-        systemDisplaySlug = toUrlSlug(resolveResultDisplayTitle(sysEntry));
-      }
+      if (sysEntry) systemDisplaySlug = toUrlSlug(resolveResultDisplayTitle(sysEntry));
     }
 
     return (
@@ -313,74 +121,24 @@ export function resolveActiveLayerCard(
     );
   });
 
-  const effectiveEntryIndex =
-    entryIndex === -1 && orderedEntries.length === 1 ? 0 : entryIndex;
-
-  // If itemSlug does not match any entry in this layer, fallback to overview
-  if (effectiveEntryIndex === -1) {
-    const firstEntry = orderedEntries[0];
-    const firstItemTitle = firstEntry
-      ? firstEntry.inUniverseName ||
-        firstEntry.resolvedName ||
-        formatSlugFallbackTitle(firstEntry.targetId)
-      : undefined;
-    const startHref = firstEntry
-      ? resolveLayerItemTargetHref(
-          layer,
-          firstEntry,
-          input.corpus,
-          input.currentPathname,
-        ).href
-      : input.currentPathname;
-
-    return {
-      mode: 'overview',
-      layerId: layer.layerId,
-      layerSlug,
-      title: layer.title,
-      ...(layer.subtitle ? { subtitle: layer.subtitle } : {}),
-      kind: layer.kind,
-      kindLabel,
-      description: layer.description,
-      itemCount: orderedEntries.length,
-      ...(layer.source ? { source: layer.source } : {}),
-      ...(firstItemTitle ? { firstItemTitle } : {}),
-      startHref,
-      closeHref,
-    };
+  const effectiveIndex = entryIndex === -1 && orderedEntries.length === 1 ? 0 : entryIndex;
+  if (effectiveIndex === -1) {
+    return buildLayerOverviewCard(layer, layerSlug, kindLabel, input, closeHref);
   }
 
-  const activeEntry = orderedEntries[effectiveEntryIndex];
+  const activeEntry = orderedEntries[effectiveIndex];
   const totalItems = orderedEntries.length;
-  const stepIndex = effectiveEntryIndex + 1;
+  const stepIndex = effectiveIndex + 1;
 
-  const prevHref =
-    effectiveEntryIndex === 0
-      ? overviewHref
-      : resolveLayerItemTargetHref(
-          layer,
-          orderedEntries[effectiveEntryIndex - 1],
-          input.corpus,
-          input.currentPathname,
-        ).href;
-  const prevLabel = effectiveEntryIndex === 0 ? 'Overview' : 'Previous';
+  const prevHref = effectiveIndex === 0
+    ? overviewHref
+    : resolveLayerItemTargetHref(layer, orderedEntries[effectiveIndex - 1], input.corpus, input.currentPathname).href;
 
-  const nextEntry =
-    effectiveEntryIndex === totalItems - 1
-      ? orderedEntries[0]
-      : orderedEntries[effectiveEntryIndex + 1];
-  const nextHref = resolveLayerItemTargetHref(
-    layer,
-    nextEntry,
-    input.corpus,
-    input.currentPathname,
-  ).href;
-  const nextLabel = 'Next';
+  const nextEntry = effectiveIndex === totalItems - 1 ? orderedEntries[0] : orderedEntries[effectiveIndex + 1];
+  const nextHref = resolveLayerItemTargetHref(layer, nextEntry, input.corpus, input.currentPathname).href;
 
   const itemTitle =
-    activeEntry.inUniverseName ||
-    activeEntry.resolvedName ||
-    formatSlugFallbackTitle(activeEntry.targetId);
+    activeEntry.inUniverseName || activeEntry.resolvedName || formatSlugFallbackTitle(activeEntry.targetId);
 
   return {
     mode: 'item',
@@ -393,14 +151,42 @@ export function resolveActiveLayerCard(
     overviewHref,
     stepIndex,
     totalItems,
-    itemSlug: parsed.itemSlug,
+    itemSlug: targetItemSlug,
     itemTitle,
     text: activeEntry.text,
     ...(activeEntry.confidence ? { confidence: activeEntry.confidence } : {}),
     prevHref,
-    prevLabel,
+    prevLabel: effectiveIndex === 0 ? 'Overview' : 'Previous',
     nextHref,
-    nextLabel,
+    nextLabel: 'Next',
     closeHref,
   };
+}
+
+/**
+ * Pure domain resolver constructing an ActiveLayerCardModel (Overview or Item).
+ */
+export function resolveActiveLayerCard(
+  input: ResolveActiveLayerCardInput,
+): ActiveLayerCardModel | null {
+  const parsed = parseLayerQueryParam(input.layerParam);
+  if (!parsed) return null;
+
+  const layer = findCanonLayerById(parsed.layerSlug, input.layers);
+  if (!layer) return null;
+
+  const layerSlug = toCanonicalLayerSlug(layer.layerId);
+  const kindLabel =
+    layer.kind === 'scientific-overlay'
+      ? 'Scientific Layer'
+      : layer.kind === 'custom-user'
+        ? 'Custom Layer'
+        : 'Fictional Canon';
+
+  const closeHref = buildLayerCloseHref(input.currentPathname, input.currentSearch);
+
+  if (!parsed.itemSlug) {
+    return buildLayerOverviewCard(layer, layerSlug, kindLabel, input, closeHref);
+  }
+  return buildLayerItemCard(layer, layerSlug, kindLabel, parsed.itemSlug, input, closeHref);
 }

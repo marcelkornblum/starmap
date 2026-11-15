@@ -7,10 +7,8 @@ import {
   Stack,
   Unit,
 } from '../../interface';
-import {
-  buildStarTypeGuideHref,
-  computeSpectralCombination,
-} from '../../../services/guideService';
+import { buildStarTypeGuideHref } from '../../../content/guide';
+import { computeSpectralCombination } from '../../../services/guide/guideCombinator';
 import { Guide3DPreview } from '../Guide3DPreview';
 import styles from './StarTypeCombinator.module.css';
 

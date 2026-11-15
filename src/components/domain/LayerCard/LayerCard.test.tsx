@@ -4,7 +4,7 @@ import { LayerCard } from './LayerCard';
 import type {
   ActiveLayerOverviewCardModel,
   ActiveLayerItemCardModel,
-} from '../../../services/layerCardService';
+} from '../../../services/layerCardNavigation';
 
 const mockOverviewCard: ActiveLayerOverviewCardModel = {
   mode: 'overview',

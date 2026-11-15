@@ -38,21 +38,21 @@
 
 ## Phase 3: Codec, Math & Service Decomposition
 
-- [ ] Task 3.1 (Compact Data Codec Split):
+- [x] Task 3.1 (Compact Data Codec Split):
   - Split `src/utils/compactDataCodec.ts` (1,809 lines) into a lightweight runtime decoder (`src/utils/compactDataCodec.ts` ≤ 300 lines) and build-time pipeline encoder (`scripts/pipeline/compactDataEncoder.ts`).
   - Update `scripts/build-data.ts` to consume the pipeline encoder.
   - Colocate 1:1 tests for both decoder and encoder; verify data build reproducibility (`npm run build:data`).
-- [ ] Task 3.2 (Nomenclature & Astronomy Math):
+- [x] Task 3.2 (Nomenclature & Astronomy Math):
   - Extract static Bayer/IAU nomenclature lookup tables from `src/utils/nomenclature.ts` (810 lines) into `src/utils/nomenclatureTables.ts` (or `data/seed/`), ensuring `nomenclature.ts` ≤ 300 lines.
   - Decompose `src/utils/astroMath.ts` (783 lines) into domain math modules (`coordinates.ts`, `kepler.ts`, `relativity.ts`, `planetaryPhysics.ts`).
   - Verify all astronomical calculation tests pass.
-- [ ] Task 3.3 (Domain Services & Types Decomposition):
+- [x] Task 3.3 (Domain Services & Types Decomposition):
   - Decompose `src/services/searchService.ts` into indexing, query filtering, and ranking sub-modules ≤ 300 lines.
   - Decompose `src/services/guideService.ts`, `src/services/journeyService.ts`, `src/services/sectorStreamingService.ts`, and `src/services/layerCardService.ts` into ≤ 300-line sub-modules with colocated tests.
   - Partition `src/types/astro.ts` into domain-specific type files (`bodies.ts`, `orbits.ts`, `spectral.ts`).
-- [ ] Task 3.4 (Details Services Decomposition):
+- [x] Task 3.4 (Details Services Decomposition):
   - Decompose `src/services/details/**` oversized modules: `types.ts`, `navigationAndCamera.ts`, `bodiesAndSchematics.ts`, `focusedEntityDetails.ts`, `minimapAndPreview.ts`, `hazardsAndComposition.ts`, and `galacticAperture.ts` into ≤ 300-line sub-modules with colocated tests.
-- [ ] Task 3.5: Phase Verification & Checkpoint.
+- [x] Task 3.5: Phase Verification & Checkpoint.
 
 ---
 

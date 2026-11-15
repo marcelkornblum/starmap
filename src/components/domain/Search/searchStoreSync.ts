@@ -1,17 +1,17 @@
 import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,
-} from '../../../types/astro';
+} from '../../../types/datasetLayers';
+import { findFocusedEntryInCorpus } from '../../../services/search/searchCorpusHelpers';
 import {
-  findFocusedEntryInCorpus,
   resolveFocusedEntityFromCorpus,
   resolveSelectedSystemsFromSearchResults,
-  resolveSelectedSystemsFromUrlSelect,
-  toUrlSlug,
-  type GroupedSearchResults,
-} from '../../../services/searchService';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
-import { extractUrlRouteStops } from '../../../services/journeyService';
+} from '../../../services/search/searchSelection';
+import { resolveSelectedSystemsFromUrlSelect } from '../../../services/search/searchUrlSelectionResolvers';
+import type { GroupedSearchResults } from '../../../services/search/searchTypes';
+import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
+import { extractUrlRouteStops } from '../../../services/journey/journeyProfilesAndUrls';
 import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
 

@@ -6,7 +6,7 @@ import {
   resolveCorpusPlanetEntity,
 } from './systemPlanetResolver';
 import type { ExoplanetRecord } from '../../../types/astro';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 
 const mockSolSystem: StarDossierData = {
   id: 'sol',

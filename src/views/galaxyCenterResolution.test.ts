@@ -6,7 +6,7 @@ import {
   type ResolveGalaxyCenterCoordinatesParams,
 } from './galaxyCenterResolution';
 import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 describe('galaxyCenterResolution (unit:node)', () => {
   describe('getCorpusSystemFirstChildMap', () => {

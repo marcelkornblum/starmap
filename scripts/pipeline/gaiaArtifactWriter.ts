@@ -1,28 +1,30 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type {
-  GalacticStructureRecord,
-  SectorPartitionManifest,
-  SolarSystemBodyRecord,
   SystemManifest,
   SystemSummaryNode,
 } from '../../src/types/astro';
+import type { SectorPartitionManifest } from '../../src/types/astroCoordinates';
+import type {
+  GalacticStructureRecord,
+  SolarSystemBodyRecord,
+} from '../../src/types/astroStructures';
 import { LAYER_MANIFESTS } from '../../content/layers';
 import { encodeBinarySector } from '../../src/utils/binarySectorCodec';
+import { COMPACT_SCHEMA_VERSION } from '../../src/utils/compactDataConstants';
+import { buildShardedSummariesAndDetails } from './compactDataEncoder';
+import { buildSearchIndices } from './searchIndexBuilder';
 import {
-  COMPACT_SCHEMA_VERSION,
-  buildSearchIndices,
-  buildShardedSummariesAndDetails,
-} from '../../src/utils/compactDataCodec';
-import {
-  applyResolvedNamesToLayers,
   buildEntityAnnotationBuckets,
   buildLayerIndexManifest,
+  encodeLayerManifest,
+} from './datasetLayerEncoder';
+import {
+  applyResolvedNamesToLayers,
   buildSearchEntriesFromLayers,
   collectUnresolvedLayerTargets,
-  encodeLayerManifest,
-} from '../../src/utils/datasetLayerCodec';
-import { DEFAULT_SECTOR_SIZE_PC, getSectorBounds } from '../../src/utils/astroMath';
+} from './datasetLayerSearchBuilder';
+import { DEFAULT_SECTOR_SIZE_PC, getSectorBounds } from '../../src/utils/sectorMath';
 import { loadAllGalacticStructures } from './galacticStructures';
 import { resolveBuildTimestampIso } from './seedCatalogs';
 import { loadAllSolarSystemBodies } from './solarBodies';

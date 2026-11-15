@@ -1,12 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import {
-  encodeLayerManifest,
   decodeLayerManifest,
-  buildLayerIndexManifest,
   getOrderedLayerEntries,
+} from './datasetLayerCodec';
+import {
   findCanonLayerById,
   toCanonicalLayerSlug,
-} from './datasetLayerCodec';
+} from './datasetLayerSlugs';
+import {
+  buildLayerIndexManifest,
+  encodeLayerManifest,
+} from '../../scripts/pipeline/datasetLayerEncoder';
 import { LAYER_MANIFESTS } from '../../content/layers';
 
 describe('datasetLayerCodec - LAYER_MANIFESTS & Canon Slug Resolution', () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { DetailsPlanetTelemetrySection } from './DetailsPlanetTelemetrySection';
-import type { FocusedPlanetTelemetry } from '../../../services/details/types';
+import type { FocusedPlanetTelemetry } from '../../../services/details/detailsTelemetryTypes';
 
 describe('DetailsPlanetTelemetrySection (AUD-024 / DEC-R019)', () => {
   const baseTelemetry: FocusedPlanetTelemetry = {

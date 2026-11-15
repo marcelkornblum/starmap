@@ -1,8 +1,6 @@
-import {
-  buildSystemElementFocusHref,
-  type FocusedDiskDetail,
-} from '../../../services/detailsService';
-import { buildMetricGuideHref } from '../../../services/searchService';
+import { buildSystemElementFocusHref } from '../../../services/details/detailsNavigation';
+import type { FocusedDiskDetail } from '../../../services/details/detailsEntityTypes';
+import { buildMetricGuideHref } from '../../../content/guide';
 import {
   CelestialTitle,
   Cluster,

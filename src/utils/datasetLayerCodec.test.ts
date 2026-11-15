@@ -1,16 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import {
-  encodeLayerManifest,
   decodeLayerManifest,
+  getOrderedLayerEntries,
   resolveEntityLayers,
   resolveSystemLayerEntries,
-  buildSearchEntriesFromLayers,
-  getOrderedLayerEntries,
-  toUrlSlug,
-  toCanonicalLayerSlug,
 } from './datasetLayerCodec';
+import {
+  toCanonicalLayerSlug,
+  toUrlSlug,
+} from './datasetLayerSlugs';
+import { encodeLayerManifest } from '../../scripts/pipeline/datasetLayerEncoder';
+import { buildSearchEntriesFromLayers } from '../../scripts/pipeline/datasetLayerSearchBuilder';
 import { SLUG_CACHE_LIMIT } from '../config/cacheConfig';
-import type { DatasetLayerManifest } from '../types/astro';
+import type { DatasetLayerManifest } from '../types/datasetLayers';
 
 describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-007)', () => {
   const sampleCanonLayer: DatasetLayerManifest = {

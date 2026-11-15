@@ -3,7 +3,7 @@ import type {
   JourneyOptionElevationOrRange,
   JourneySecondaryGeometry,
   StructuredQuantity,
-} from '../../../services/journeyService';
+} from '../../../services/journey/journeyTypes';
 import { Datum, Quantity, Unit } from '../../interface';
 
 export function renderStructuredQuantity(

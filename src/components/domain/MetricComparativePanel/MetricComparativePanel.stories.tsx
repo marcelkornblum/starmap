@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   resolveMetricComparison,
   resolveMetricGuideEntry,
-} from '../../../services/guideService';
+} from '../../../services/guide/guideMetrics';
 import { MetricComparativePanel } from './MetricComparativePanel';
 import { Stack } from '../../interface/layouts/Stack/Stack';
 

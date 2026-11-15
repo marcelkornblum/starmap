@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { DecodedBinarySector } from '../../../utils/binarySectorCodec';
-import type { DisposableGpuResource } from '../../../services/sectorStreamingService';
+import type { DisposableGpuResource } from '../../../services/sectorSelection';
 
 /**
  * Creates default Three.js BufferGeometry with precomputed bounding sphere.

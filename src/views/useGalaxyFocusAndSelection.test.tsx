@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useGalaxyFocusAndSelection } from './useGalaxyFocusAndSelection';
 import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 describe('useGalaxyFocusAndSelection', () => {
   const corpus: CompactSearchEntry[] = [

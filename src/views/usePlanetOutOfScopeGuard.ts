@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
 import { appRouter, type StarmapSearchParams } from '../hooks/useSpaLocation';
-import { toUrlSlug } from '../services/searchService';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { toUrlSlug } from '../utils/datasetLayerSlugs';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 export interface UsePlanetOutOfScopeGuardParams {
   readonly urlPlanetSlug: string | null;

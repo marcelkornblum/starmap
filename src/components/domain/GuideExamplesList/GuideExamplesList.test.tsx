@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { GuideExamplesList } from './GuideExamplesList';
-import type { GuideExampleTarget } from '../../../services/guideService';
+import type { GuideExampleTarget } from '../../../content/guide';
 
 const mockExamples: readonly GuideExampleTarget[] = [
   {

@@ -1,6 +1,6 @@
 import type React from 'react';
-import type { FocusedPreviewSummary } from '../../../services/detailsService';
-import { buildMetricGuideHref } from '../../../services/searchService';
+import type { FocusedPreviewSummary } from '../../../services/details/detailsNavigationTypes';
+import { buildMetricGuideHref } from '../../../content/guide';
 import {
   Badge,
   CelestialSymbol,

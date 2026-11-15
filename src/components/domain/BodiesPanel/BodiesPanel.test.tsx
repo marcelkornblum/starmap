@@ -9,7 +9,7 @@ import type {
   GalaxyBodiesSummary,
   PlanetaryBodiesSummary,
   SystemBodiesSummary,
-} from '../../../services/detailsService';
+} from '../../../services/details/detailsHierarchyTypes';
 
 const mockGalaxyFixture: GalaxyBodiesSummary = {
   scope: 'galaxy',

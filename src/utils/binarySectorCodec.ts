@@ -1,4 +1,4 @@
-import type { SectorPartitionManifest } from '../types/astro';
+import type { SectorPartitionManifest } from '../types/astroCoordinates';
 
 /**
  * Binary sector format constants for Frontier-defined spatial sector partitions.

@@ -1,24 +1,24 @@
 import { useMemo } from 'react';
 import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import { buildJourneyPlan } from '../services/journey/journeyBuilder';
 import {
-  buildJourneyPlan,
   extractUrlJourneyOptionId,
   extractUrlRouteStops,
-} from '../services/journeyService';
+} from '../services/journey/journeyProfilesAndUrls';
 import { resolveActiveLayerCard } from '../services/layerCardService';
 import { useSystemData } from '../hooks/useSystemData';
-import {
-  buildFocusedEntityDetails,
-  buildFocusedPreviewSummary,
-  buildGalaxyMinimapOrientation,
-  buildSystemOrbitalSchematic,
-  extractGalaxyBodies,
-  type GalacticInstrumentApertureResult,
-  type SceneCameraUrlState,
-} from '../services/detailsService';
-import type { DatasetLayerManifest } from '../types/astro';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
-import { toAnnotationLookupKey } from '../utils/datasetLayerCodec';
+import { buildFocusedEntityDetails } from '../services/details/focusedEntityDetails';
+import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
+import { buildGalaxyMinimapOrientation } from '../services/details/galaxyMinimap';
+import { buildSystemOrbitalSchematic } from '../services/details/systemOrbitalSchematic';
+import { extractGalaxyBodies } from '../services/details/galaxyBodiesExtractor';
+import type {
+  GalacticInstrumentApertureResult,
+  SceneCameraUrlState,
+} from '../services/details/detailsNavigationTypes';
+import type { DatasetLayerManifest } from '../types/datasetLayers';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import { toAnnotationLookupKey } from '../utils/datasetLayerSlugs';
 import { useEntityAnnotations } from '../hooks/useLayerData';
 
 export interface UseGalaxyPanelsParams {

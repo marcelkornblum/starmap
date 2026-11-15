@@ -3,10 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { SearchResultItem } from './SearchResultItem';
 import { formatPlanetCountSummary } from './searchResultFormatting';
 import { SearchContext } from '../Search/SearchContext';
-import {
-  executeCatalogSearch,
-  type SearchResultItem as SearchResultItemModel,
-} from '../../../services/searchService';
+import { executeCatalogSearch } from '../../../services/search/searchExecution';
+import type { SearchResultItem as SearchResultItemModel } from '../../../services/search/searchTypes';
 
 describe('<SearchResultItem />', () => {
   describe('formatPlanetCountSummary', () => {

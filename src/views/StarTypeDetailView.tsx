@@ -14,11 +14,9 @@ import {
   SpectralBadge,
   Stack,
 } from '../components/interface';
-import {
-  STAR_TYPES_GUIDE_PATH,
-  extractFocusIdFromSearch,
-  resolveStarTypeGuideEntries,
-} from '../services/guideService';
+import { STAR_TYPES_GUIDE_PATH } from '../content/guide';
+import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
+import { resolveStarTypeGuideEntries } from '../services/guide/guideCatalogExamples';
 import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';

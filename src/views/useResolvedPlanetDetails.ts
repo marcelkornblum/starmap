@@ -12,35 +12,18 @@ import type { DecodedDetailRecord } from '../data/detailsRepository';
 import { useEntityDetails } from '../hooks/useEntityDetails';
 import { useSystemData } from '../hooks/useSystemData';
 import { useSearchCorpus } from '../hooks/useSearchCorpus';
-import {
-  buildFocusedEntityDetails,
-  type FocusedEntityDetails,
-} from '../services/detailsService';
+import { buildFocusedEntityDetails } from '../services/details/focusedEntityDetails';
+import type { FocusedEntityDetails } from '../services/details/detailsEntityTypes';
 import { useParams, useSearch } from '@tanstack/react-router';
-import {
-  findFocusedEntryInCorpus,
-  resolveFocusedEntityFromCorpus,
-  resolveSelectedSystemsFromUrlSelect,
-  toUrlSlug,
-} from '../services/searchService';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
-import {
-  toAnnotationLookupKey,
-  type DecodedEntityAnnotation,
-} from '../utils/datasetLayerCodec';
-import {
-  useEntityAnnotations,
-  useLayerIndex,
-  useLoadedLayerManifests,
-} from '../hooks/useLayerData';
-import {
-  useSpaLocation,
-  type StarmapSearchParams,
-} from '../hooks/useSpaLocation';
-import {
-  checkIsFocusInPlanetScope,
-  usePlanetOutOfScopeGuard,
-} from './usePlanetOutOfScopeGuard';
+import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
+import { resolveFocusedEntityFromCorpus } from '../services/search/searchSelection';
+import { resolveSelectedSystemsFromUrlSelect } from '../services/search/searchUrlSelectionResolvers';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import { toAnnotationLookupKey, toUrlSlug } from '../utils/datasetLayerSlugs';
+import type { DecodedEntityAnnotation } from '../utils/datasetLayerTypes';
+import { useEntityAnnotations, useLayerIndex, useLoadedLayerManifests } from '../hooks/useLayerData';
+import { useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
+import { checkIsFocusInPlanetScope, usePlanetOutOfScopeGuard } from './usePlanetOutOfScopeGuard';
 
 export interface UseResolvedPlanetDetailsProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import type { SearchResultItem as SearchResultItemModel } from '../../../services/searchService';
+import type { SearchResultItem as SearchResultItemModel } from '../../../services/search/searchTypes';
 import { SearchResultItem } from './SearchResultItem';
 import { Stack } from '../../interface/layouts/Stack/Stack';
 

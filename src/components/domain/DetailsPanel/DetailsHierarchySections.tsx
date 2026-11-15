@@ -2,9 +2,11 @@ import type {
   FocusedDiskDetail,
   FocusedPlanetDetail,
   FocusedStarDetail,
+} from '../../../services/details/detailsEntityTypes';
+import type {
   OrbitalSchematicSummary,
   SystemElementBodyItem,
-} from '../../../services/detailsService';
+} from '../../../services/details/detailsHierarchyTypes';
 import { Heading } from '../../interface';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
 import { DetailsDisksSection } from './DetailsDisksSection';

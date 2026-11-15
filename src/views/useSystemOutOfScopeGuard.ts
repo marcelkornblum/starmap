@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
 import { appRouter, type StarmapSearchParams } from '../hooks/useSpaLocation';
-import { findFocusedEntryInCorpus, toUrlSlug } from '../services/searchService';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
+import { toUrlSlug } from '../utils/datasetLayerSlugs';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 export interface UseSystemOutOfScopeGuardParams {
   readonly urlSystemSlug: string | null;

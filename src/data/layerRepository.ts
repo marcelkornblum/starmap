@@ -1,18 +1,15 @@
 import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,
-} from '../types/astro';
-import {
-  getShardKey,
-  type ShardedBucketEnvelope,
-} from '../utils/compactDataCodec';
-import {
-  decodeEntityAnnotation,
-  decodeLayerManifest,
-  type CompactEntityAnnotation,
-  type CompactLayerManifest,
-  type DecodedEntityAnnotation,
-} from '../utils/datasetLayerCodec';
+} from '../types/datasetLayers';
+import { getShardKey } from '../utils/compactDataCodec';
+import type { ShardedBucketEnvelope } from '../utils/compactDataTypes';
+import { decodeEntityAnnotation, decodeLayerManifest } from '../utils/datasetLayerCodec';
+import type {
+  CompactEntityAnnotation,
+  CompactLayerManifest,
+  DecodedEntityAnnotation,
+} from '../utils/datasetLayerTypes';
 import { resolveDataUrl } from '../utils/url';
 import { BoundedLruCache } from '../utils/lruCache';
 import {

@@ -4,7 +4,7 @@ import {
   OrbitalSchematicPanel,
   OrbitalSchematicItem,
 } from './OrbitalSchematicPanel';
-import type { OrbitalSchematicSummary } from '../../../services/detailsService';
+import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
 
 const mockSchematicSummary: OrbitalSchematicSummary = {
   scope: 'system',

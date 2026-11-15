@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import type { FocusedCanonAnnotation } from '../../../services/details/types';
-import { buildLayerGalaxyHref } from '../../../services/searchService';
+import type { FocusedCanonAnnotation } from '../../../services/details/detailsCanonTypes';
+import { buildLayerGalaxyHref } from '../../../services/search/searchUrls';
 import { Badge } from '../../interface';
 import styles from './CanonLayerItem.module.css';
 

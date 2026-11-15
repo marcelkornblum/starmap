@@ -4,9 +4,9 @@ import {
   syncUrlFocusToStore,
 } from './searchStoreSync';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
-import { executeCatalogSearch } from '../../../services/searchService';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
-import type { DatasetLayerIndexEntry, DatasetLayerManifest } from '../../../types/astro';
+import { executeCatalogSearch } from '../../../services/search/searchExecution';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
+import type { DatasetLayerIndexEntry, DatasetLayerManifest } from '../../../types/datasetLayers';
 
 const TEST_CORPUS: readonly CompactSearchEntry[] = [
   {

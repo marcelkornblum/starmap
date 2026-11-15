@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { CanonLayerItem } from './CanonLayerItem';
-import type { FocusedCanonAnnotation } from '../../../services/details/types';
+import type { FocusedCanonAnnotation } from '../../../services/details/detailsCanonTypes';
 
 const sampleAnnotation: FocusedCanonAnnotation = {
   layerId: 'layer-project-hail-mary',

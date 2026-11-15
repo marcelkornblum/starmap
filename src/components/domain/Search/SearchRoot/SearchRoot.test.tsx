@@ -7,8 +7,8 @@ import { SearchResults } from '../SearchResults';
 import { SEARCH_DEBOUNCE_MS } from '../searchHelpers';
 import { SpatialEntityProvider } from '../../../canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../../../canvas/entity/SpatialEntityStore';
-import type { CompactSearchEntry } from '../../../../utils/compactDataCodec';
-import type { DatasetLayerManifest } from '../../../../types/astro';
+import type { CompactSearchEntry } from '../../../../utils/compactDataTypes';
+import type { DatasetLayerManifest } from '../../../../types/datasetLayers';
 import * as detailsRepo from '../../../../data/detailsRepository';
 import * as layerRepo from '../../../../data/layerRepository';
 

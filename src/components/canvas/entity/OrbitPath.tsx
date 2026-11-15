@@ -5,7 +5,7 @@ import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
-import { rotateToOrbitalPlane, DEG_TO_RADIANS } from '../../../utils/astroMath';
+import { rotateToOrbitalPlane, DEG_TO_RADIANS } from '../../../utils/astroCoordinates';
 import {
   CartoLineMaterial,
   CARTO_LINE_CONSTANTS,

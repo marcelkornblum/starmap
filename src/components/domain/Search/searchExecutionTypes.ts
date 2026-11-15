@@ -2,13 +2,13 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,
-} from '../../../types/astro';
+} from '../../../types/datasetLayers';
 import type {
   GroupedSearchResults,
-  SearchCategoryFilter,
   SearchResultItem,
-} from '../../../services/searchService';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+} from '../../../services/search/searchTypes';
+import type { SearchCategoryFilter } from '../../../types/search';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 import type { SearchExecutionStatus } from './SearchContext';
 

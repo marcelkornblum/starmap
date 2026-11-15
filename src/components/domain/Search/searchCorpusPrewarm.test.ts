@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runSearchCorpusPrewarm } from './searchCorpusPrewarm';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 import * as searchRepo from '../../../data/searchRepository';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 
 const SAMPLE_ENTRIES: CompactSearchEntry[] = [
   { i: 'sol', n: 'Sol', m: [-26.74, 'G2V', 8, 1], h: 1 },

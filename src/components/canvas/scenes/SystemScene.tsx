@@ -5,17 +5,15 @@ import { SYSTEM_FRAME } from '../instrument/referenceFrame';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyMath';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
-import { toUrlSlug } from '../../../utils/datasetLayerCodec';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import { GalacticCameraController } from './GalacticCameraController';
 import {
   resolveSystemPlanetEntity,
   resolveCorpusPlanetEntity,
 } from './systemPlanetResolver';
-import {
-  findFocusedEntryInCorpus,
-  formatSlugFallbackTitle,
-} from '../../../services/searchService';
+import { findFocusedEntryInCorpus } from '../../../services/search/searchCorpusHelpers';
+import { formatSlugFallbackTitle } from '../../../utils/starNaming';
 import { useSystemData } from '../../../hooks/useSystemData';
 import { useSearchCorpus } from '../../../hooks/useSearchCorpus';
 

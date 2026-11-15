@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CanonLayerItem } from './CanonLayerItem';
-import type { FocusedCanonAnnotation } from '../../../services/details/types';
+import type { FocusedCanonAnnotation } from '../../../services/details/detailsCanonTypes';
 import storyStyles from '../domainStories.module.css';
 
 const fictionalWithSubtitle: FocusedCanonAnnotation = {

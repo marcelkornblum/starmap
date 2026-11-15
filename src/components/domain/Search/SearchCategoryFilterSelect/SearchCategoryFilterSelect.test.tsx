@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SearchCategoryFilterSelect } from './SearchCategoryFilterSelect';
 import { SearchContext } from '../SearchContext';
-import { executeCatalogSearch } from '../../../../services/searchService';
+import { executeCatalogSearch } from '../../../../services/search/searchExecution';
 
 describe('<SearchCategoryFilterSelect />', () => {
   it('renders select with categories and invokes setFilter on change', () => {

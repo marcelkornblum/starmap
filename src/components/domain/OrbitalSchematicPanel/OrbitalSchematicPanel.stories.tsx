@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import type { OrbitalSchematicSummary } from '../../../services/detailsService';
+import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
 import { OrbitalSchematicPanel } from './OrbitalSchematicPanel';
 
 const meta: Meta<typeof OrbitalSchematicPanel> = {

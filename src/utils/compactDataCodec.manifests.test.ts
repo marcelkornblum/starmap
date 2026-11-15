@@ -1,26 +1,34 @@
 import { describe, it, expect } from 'vitest';
 import {
-  encodeSystemManifest,
-  decodeSystemManifest,
-  encodeGalacticStructure,
-  decodeGalacticStructure,
-  encodeSolarSystemBody,
-  decodeSolarSystemBody,
-  encodeSectorPartition,
   decodeSectorPartition,
-  decodeCompactSearchEntry,
-  encodeSummaryNode,
   decodeSummaryNode,
-  type CompactSearchEntry,
+  decodeSystemManifest,
 } from './compactDataCodec';
+import {
+  decodeCompactSearchEntry,
+  decodeGalacticStructure,
+  decodeSolarSystemBody,
+} from './compactEntityDecoder';
+import type { CompactSearchEntry } from './compactDataTypes';
+import {
+  encodeSectorPartition,
+  encodeSummaryNode,
+  encodeSystemManifest,
+} from '../../scripts/pipeline/compactDataEncoder';
+import {
+  encodeGalacticStructure,
+  encodeSolarSystemBody,
+} from '../../scripts/pipeline/compactEntityEncoder';
 import { resolveDefaultStructureDescription } from './astroPrecalculation';
 import type {
   SystemSummaryNode,
   SystemManifest,
+} from '../types/astro';
+import type { SectorPartitionManifest } from '../types/astroCoordinates';
+import type {
   GalacticStructureRecord,
   SolarSystemBodyRecord,
-  SectorPartitionManifest,
-} from '../types/astro';
+} from '../types/astroStructures';
 
 describe('compactDataCodec - Manifests, Structures, Solar Bodies & Sectors', () => {
   it('round-trips natural satellites attached to PlanetRecord', () => {

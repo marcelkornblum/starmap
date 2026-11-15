@@ -13,27 +13,25 @@ import {
   OrbitalSchematicPanel,
   PreviewPanel,
 } from '../src/components/domain';
-import {
-  buildFocusedEntityDetails,
-  buildFocusedPreviewSummary,
-  buildPlanetMinimapOrientation,
-  buildPlanetaryBodiesSummary,
-  buildPlanetaryOrbitalSchematic,
-  buildSystemMinimapOrientation,
-  type FocusedPreviewSummary,
-  type MinimapOrientationSummary,
-  type OrbitalSchematicSummary,
-} from '../src/services/detailsService';
-import {
-  buildTagGalaxyHref,
-  doesSystemEntryMatchTag,
-  executeCatalogSearch,
-  extractUrlTagFocus,
-  isCatalogTag,
-  resolveSelectedSystemsFromTag,
-} from '../src/services/searchService';
+import { buildFocusedEntityDetails } from '../src/services/details/focusedEntityDetails';
+import { buildFocusedPreviewSummary } from '../src/services/details/detailsPreview';
+import { buildPlanetMinimapOrientation } from '../src/services/details/planetMinimap';
+import { buildPlanetaryBodiesSummary } from '../src/services/details/planetaryBodiesSummary';
+import { buildPlanetaryOrbitalSchematic } from '../src/services/details/planetaryOrbitalSchematic';
+import { buildSystemMinimapOrientation } from '../src/services/details/systemMinimap';
+import type {
+  FocusedPreviewSummary,
+  MinimapOrientationSummary,
+} from '../src/services/details/detailsNavigationTypes';
+import type { OrbitalSchematicSummary } from '../src/services/details/detailsHierarchyTypes';
+import { buildTagGalaxyHref } from '../src/services/search/searchUrls';
+import { doesSystemEntryMatchTag } from '../src/services/search/searchTagTriggers';
+import { executeCatalogSearch } from '../src/services/search/searchExecution';
+import { extractUrlTagFocus } from '../src/services/search/searchUrlSelection';
+import { isCatalogTag } from '../src/services/search/searchTagDefinitions';
+import { resolveSelectedSystemsFromTag } from '../src/services/search/searchUrlSelectionResolvers';
 import { syncSelectedSystemsToStore } from '../src/components/domain/Search/searchStoreSync';
-import { type CompactSearchEntry } from '../src/utils/compactDataCodec';
+import { type CompactSearchEntry } from '../src/utils/compactDataTypes';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { PlanetView } from '../src/views/PlanetView';
 import { SystemView } from '../src/views/SystemView';

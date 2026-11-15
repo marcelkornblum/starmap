@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MetricComparativePanel } from './MetricComparativePanel';
+import type { MetricComparison } from '../../../services/guide/guideTypes';
 import {
   resolveMetricComparison,
   resolveMetricGuideEntry,
-  type MetricComparison,
-} from '../../../services/guideService';
+} from '../../../services/guide/guideMetrics';
 import { seedDetailRecord } from '../../../data/detailsRepository';
 
 describe('<MetricComparativePanel />', () => {

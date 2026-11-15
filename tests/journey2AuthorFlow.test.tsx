@@ -4,13 +4,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
 import { DetailsPanel } from '../src/components/domain';
-import { buildFocusedEntityDetails } from '../src/services/detailsService';
-import {
-  buildLayerGalaxyHref,
-  extractUrlLayerId,
-  findCanonLayerById,
-  resolveSelectedSystemsFromLayer,
-} from '../src/services/searchService';
+import { buildFocusedEntityDetails } from '../src/services/details/focusedEntityDetails';
+import { buildLayerGalaxyHref } from '../src/services/search/searchUrls';
+import { extractUrlLayerId } from '../src/services/search/searchUrlSelection';
+import { resolveSelectedSystemsFromLayer } from '../src/services/search/searchUrlSelectionResolvers';
+import { findCanonLayerById } from '../src/utils/datasetLayerSlugs';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { SystemView } from '../src/views/SystemView';
 import { LAYER_MANIFESTS } from '../content/layers';

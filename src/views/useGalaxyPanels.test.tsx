@@ -7,7 +7,7 @@ import {
   seedSummaryNode,
 } from '../data/detailsRepository';
 import type { SystemManifest, SystemSummaryNode } from '../types/astro';
-import type { GalacticInstrumentApertureResult } from '../services/detailsService';
+import type { GalacticInstrumentApertureResult } from '../services/details/detailsNavigationTypes';
 
 const TAU_CETI_FIXTURE: SystemManifest = {
   id: 'gaia-2452378776434477184',

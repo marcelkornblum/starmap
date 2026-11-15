@@ -2,12 +2,12 @@ import type React from 'react';
 import type {
   OrbitalSchematicItem as OrbitalSchematicItemType,
   OrbitalSchematicSummary,
-} from '../../../services/detailsService';
+} from '../../../services/details/detailsHierarchyTypes';
 import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
-  buildTagGalaxyHref,
-} from '../../../services/searchService';
+} from '../../../content/guide';
+import { buildTagGalaxyHref } from '../../../services/search/searchUrls';
 import {
   Badge,
   CelestialTitle,

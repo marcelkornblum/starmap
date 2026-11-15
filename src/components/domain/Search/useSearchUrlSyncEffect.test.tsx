@@ -5,7 +5,7 @@ import {
   useSearchUrlSyncEffect,
 } from './useSearchUrlSyncEffect';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
-import { executeCatalogSearch } from '../../../services/searchService';
+import { executeCatalogSearch } from '../../../services/search/searchExecution';
 
 describe('useSearchUrlSyncEffect', () => {
   describe('getSearchRelevantUrlKey', () => {

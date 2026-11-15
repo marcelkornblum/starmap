@@ -1,10 +1,8 @@
 import type { FormEvent, ReactNode } from 'react';
 import { useRouter } from '@tanstack/react-router';
 import { useLayerIndex } from '../../../../hooks/useLayerData';
-import {
-  parseLayerQueryParam,
-  pickRandomLayerOverviewHref,
-} from '../../../../services/layerCardService';
+import { pickRandomLayerOverviewHref } from '../../../../services/layerCardService';
+import { parseLayerQueryParam } from '../../../../utils/url';
 import { Button, Heading } from '../../../interface';
 import { useSearchContext } from '../SearchContext';
 import { SearchInput } from '../SearchInput';

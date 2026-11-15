@@ -1,5 +1,5 @@
 import type { SearchCategoryFilter } from '../types/search';
-import type { CompactSearchEntry, SearchIndexEnvelope } from '../utils/compactDataCodec';
+import type { CompactSearchEntry, SearchIndexEnvelope } from '../utils/compactDataTypes';
 import { resolveDataUrl } from '../utils/url';
 import { BoundedLruCache } from '../utils/lruCache';
 import { SEARCH_SHARD_CACHE_LIMIT } from '../config/cacheConfig';
