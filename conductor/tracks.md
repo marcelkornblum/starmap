@@ -59,7 +59,7 @@
 - [x] **Track T07: One Persistent Canvas & R3F Hot Paths** *Link: [conductor/archive/tracks/architecture-remediation_07_persistent-canvas_20261106/index.md](./archive/tracks/architecture-remediation_07_persistent-canvas_20261106/index.md)*
 - [x] **Track T08: View & UI Decomposition** *Link: [conductor/archive/tracks/architecture-remediation_08_ui-decomposition_20261106/index.md](./archive/tracks/architecture-remediation_08_ui-decomposition_20261106/index.md)*
 - [x] **Track T09: Test Restructure** *Link: [conductor/archive/tracks/architecture-remediation_09_test-restructure_20261106/index.md](./archive/tracks/architecture-remediation_09_test-restructure_20261106/index.md)*
-- [~] **Track T10: Closing Audit** *Link: [conductor/archive/tracks/architecture-remediation_10_closing-audit_20261106/index.md](./archive/tracks/architecture-remediation_10_closing-audit_20261106/index.md)*
+- [x] **Track T10: Closing Audit** *Link: [conductor/archive/tracks/architecture-remediation_10_closing-audit_20261106/index.md](./archive/tracks/architecture-remediation_10_closing-audit_20261106/index.md)*
 
 ### Archived Standalone Tracks (`conductor/archive/tracks/`)
 - [x] **Track: Astro Math Core** *Link: [conductor/archive/tracks/astro-math-core_20260929/index.md](./archive/tracks/astro-math-core_20260929/index.md)*

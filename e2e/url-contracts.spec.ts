@@ -211,9 +211,9 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         // Implicit select=layer: is NOT injected into URL
         await expect(page).not.toHaveURL(/[?&]select=layer:project-hail-mary/);
 
-        // No systems in BodiesPanel are selected
+        // No layer systems in Minimap are selected
         await expect(
-          page.locator('[data-testid="bodies-galaxy-system-item"][data-selected="true"]'),
+          page.locator('[data-testid="minimap-marker-role"]:has-text("selected")'),
         ).toHaveCount(0);
 
         // Explicit ?select=layer:project-hail-mary explicitly selects layer entities
@@ -221,7 +221,7 @@ test.describe('URL Contract E2E Suite (AUD-009, DEC-R014a–DEC-R014l)', () => {
         await expect(page.getByTestId('layer-card')).toBeVisible();
         await expect(page).toHaveURL(/[?&]select=layer:project-hail-mary/);
         await expect(
-          page.locator('[data-testid="bodies-galaxy-system-item"][data-selected="true"]'),
+          page.locator('[data-testid="minimap-marker-role"]:has-text("selected")'),
         ).not.toHaveCount(0);
 
         // Closing the layer card removes only ?layer=
