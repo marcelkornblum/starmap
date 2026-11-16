@@ -184,4 +184,52 @@ test.describe('3D Canvas <-> DOM UI Synchronization & Mobile DetentSheet', () =>
     }
     await expect(page.getByTestId('details-button-system-details')).toBeVisible();
   });
+
+  test('Search result selection displays visible 3D focused entity label across default and zoomed apertures', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    await expect(page.getByTestId('galaxy-view-root')).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(1500);
+
+    const assertSearchTargetLabelVisible = async (query: string) => {
+      const searchInput = page.getByRole('searchbox', { name: /search query/i });
+      await searchInput.click();
+      await searchInput.fill('');
+      await searchInput.pressSequentially(query, { delay: 35 });
+      const firstResult = page
+        .locator('[data-testid="search-result-item"][data-target-view="galaxy"] a')
+        .first();
+      await expect(firstResult).toBeVisible({ timeout: 10_000 });
+      await page.waitForTimeout(250);
+      await firstResult.click();
+
+      const focusedLabel = page
+        .locator('[data-testid^="entity-label-inner-"][data-state="focused"]')
+        .first();
+      await expect(focusedLabel).toBeVisible({ timeout: 10_000 });
+      await expect(focusedLabel).toHaveAttribute('data-occluded', 'false');
+      const box = await focusedLabel.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        expect(box.width).toBeGreaterThan(40);
+        expect(box.height).toBeGreaterThan(20);
+      }
+    };
+
+    await assertSearchTargetLabelVisible('Tau Ceti');
+    await assertSearchTargetLabelVisible('51 Pegasi');
+    await assertSearchTargetLabelVisible('Aldebaran');
+    await assertSearchTargetLabelVisible('Betelgeuse');
+    await assertSearchTargetLabelVisible('Kepler');
+    await assertSearchTargetLabelVisible('Sirius');
+
+    // Also verify when zoomed in (dist=10)
+    await page.goto('/galaxy?dist=10');
+    await page.waitForTimeout(1500);
+    await assertSearchTargetLabelVisible('Tau Ceti');
+    await assertSearchTargetLabelVisible('Barnard');
+    await assertSearchTargetLabelVisible('51 Pegasi');
+  });
 });

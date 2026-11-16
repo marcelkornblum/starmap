@@ -135,12 +135,19 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     div.style.transformOrigin = '0 0';
     div.style.display = 'none';
     containerRef.current = div;
+    lastX.current = Number.NaN;
+    lastY.current = Number.NaN;
+    lastCenter.current = null;
+    lastZIndex.current = null;
+    lastVisible.current = null;
+    lastTransform.current = '';
 
     const target = (gl.domElement?.parentNode as HTMLElement | null) ?? document.body;
     target.appendChild(div);
 
     return () => {
       containerRef.current = null;
+      lastVisible.current = null;
       portalRegistry.delete(portalId);
       emitPortalChange();
       if (div.parentNode) {
@@ -242,7 +249,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
       activeContainer.style.transform = transform;
     }
 
-    if (lastVisible.current !== true) {
+    if (lastVisible.current !== true || activeContainer.style.display === 'none') {
       lastVisible.current = true;
       activeContainer.style.display = '';
       if (onOccludeRef.current) {

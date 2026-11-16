@@ -80,7 +80,10 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
   });
 
   const setBillboardRef = useCallback((node: THREE.Group | null) => {
-    if (node && 'isGroup' in node) billboardRef.current = node;
+    if (node && 'isGroup' in node) {
+      if (billboardRef.current !== node) lastTransformRef.current.qw = Number.NaN;
+      billboardRef.current = node;
+    }
   }, [billboardRef]);
 
   const isAnnotated = state === 'selected' || state === 'focused';
