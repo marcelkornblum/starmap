@@ -13,6 +13,7 @@ export interface DetentSheetProps {
   readonly heading: ReactNode;
   readonly headingId?: string;
   readonly activeDetent?: DetentLevel;
+  readonly onDetentChange?: (detent: DetentLevel) => void;
   readonly peek: ReactNode;
   readonly partial?: ReactNode;
   readonly full?: ReactNode;
@@ -32,6 +33,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
   heading,
   headingId,
   activeDetent = 'peek',
+  onDetentChange,
   peek,
   partial,
   full,
@@ -48,9 +50,11 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
   const [detentState, setDetentState] = useState<DetentLevel>(activeDetent);
   const [isFullScreenState, setIsFullScreenState] = useState<boolean>(activeDetent === 'full');
 
+  const isFirstMountRef = useRef(true);
   const prevActiveDetentRef = useRef(activeDetent);
   useEffect(() => {
-    if (prevActiveDetentRef.current !== activeDetent) {
+    if (isFirstMountRef.current || prevActiveDetentRef.current !== activeDetent) {
+      isFirstMountRef.current = false;
       prevActiveDetentRef.current = activeDetent;
       setDetentState(activeDetent);
       setIsFullScreenState(activeDetent === 'full');
@@ -66,11 +70,10 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
     }
   }, [activeDetent]);
 
+  const didDragRef = useRef(false);
   const dragStartRef = useRef<{
-    startY: number;
-    startHeight: number;
-    isFullScreen: boolean;
-    isDragging: boolean;
+    startY: number; startHeight: number; startDetent: DetentLevel;
+    isFullScreen: boolean; isDragging: boolean; hasMoved: boolean;
   } | null>(null);
 
   const startDrag = (clientY: number) => {
@@ -81,16 +84,23 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
          Math.round(vh * PARTIAL_SHEET_RATIO))
       : Math.round(vh * PARTIAL_SHEET_RATIO);
 
+    didDragRef.current = false;
     dragStartRef.current = {
       startY: clientY,
       startHeight: currentHeight,
+      startDetent: detentState,
       isFullScreen: isFullScreenState,
       isDragging: true,
+      hasMoved: false,
     };
   };
 
   const onDragMove = (clientY: number, e?: { cancelable?: boolean; preventDefault?: () => void }) => {
     if (!dragStartRef.current || !dragStartRef.current.isDragging) return;
+    if (Math.abs(clientY - dragStartRef.current.startY) > 5) {
+      dragStartRef.current.hasMoved = true;
+      didDragRef.current = true;
+    }
     const vh = getViewportHeight();
     const scrollTop = sheetRef.current ? sheetRef.current.scrollTop : 0;
     const step = computeSheetDragStep({
@@ -119,28 +129,50 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
 
   const endDrag = () => {
     if (dragStartRef.current && dragStartRef.current.isDragging) {
-      const vh = getViewportHeight();
-      const currentHeight = sheetRef.current
-        ? (parseFloat(sheetRef.current.style.getPropertyValue('--detent-sheet-block-size') || '0') ||
-           sheetRef.current.getBoundingClientRect().height ||
-           Math.round(vh * PARTIAL_SHEET_RATIO))
-        : Math.round(vh * PARTIAL_SHEET_RATIO);
+      if (dragStartRef.current.hasMoved) {
+        const vh = getViewportHeight();
+        const currentHeight = sheetRef.current
+          ? (parseFloat(sheetRef.current.style.getPropertyValue('--detent-sheet-block-size') || '0') ||
+             sheetRef.current.getBoundingClientRect().height ||
+             Math.round(vh * PARTIAL_SHEET_RATIO))
+          : Math.round(vh * PARTIAL_SHEET_RATIO);
 
-      const snap = computeSheetReleaseSnap({
-        heightPx: currentHeight,
-        viewportHeightPx: vh,
-        minHeightPx: MIN_SHEET_HEIGHT_PX,
-        partialRatio: PARTIAL_SHEET_RATIO,
-      });
+        const snap = computeSheetReleaseSnap({
+          heightPx: currentHeight,
+          viewportHeightPx: vh,
+          minHeightPx: MIN_SHEET_HEIGHT_PX,
+          partialRatio: PARTIAL_SHEET_RATIO,
+        });
 
-      // DEC-R051: Sanctioned scoped custom property for mobile DetentSheet block-size
-      sheetRef.current?.style.setProperty('--detent-sheet-block-size', `${snap.snappedHeightPx}px`);
-      setDetentState(snap.detent);
-      setIsFullScreenState(snap.isFullScreen);
+        // DEC-R051: Sanctioned scoped custom property for mobile DetentSheet block-size
+        sheetRef.current?.style.setProperty('--detent-sheet-block-size', `${snap.snappedHeightPx}px`);
+        const changed = snap.detent !== dragStartRef.current.startDetent;
+        setDetentState(snap.detent);
+        setIsFullScreenState(snap.isFullScreen);
+        if (changed) {
+          onDetentChange?.(snap.detent);
+        }
+      }
 
       dragStartRef.current.isDragging = false;
       dragStartRef.current = null;
     }
+  };
+
+  const expandFromPeek = (e: React.MouseEvent) => {
+    if (didDragRef.current) {
+      didDragRef.current = false;
+      return;
+    }
+    if (detentState !== 'peek') return;
+    if ((e.target as Element | null)?.closest?.('a, button')) return;
+    const vh = getViewportHeight();
+    const partialH = Math.round(vh * PARTIAL_SHEET_RATIO);
+    // DEC-R051: Sanctioned scoped custom property for mobile DetentSheet block-size
+    sheetRef.current?.style.setProperty('--detent-sheet-block-size', `${partialH}px`);
+    setDetentState('partial');
+    setIsFullScreenState(false);
+    onDetentChange?.('partial');
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -165,31 +197,14 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
     }
   };
 
-  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragStartRef.current?.isDragging) {
-      try {
-        (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
-      } catch {
-        // ignore
-      }
-      endDrag();
-    }
-  };
-
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length > 0) {
-      startDrag(e.touches[0].clientY);
-    }
+    if (e.touches.length > 0) startDrag(e.touches[0].clientY);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (dragStartRef.current?.isDragging && e.touches.length > 0) {
       onDragMove(e.touches[0].clientY, e);
     }
-  };
-
-  const handleTouchEnd = () => {
-    endDrag();
   };
 
   return (
@@ -203,8 +218,8 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
       className={styles.detentSheet}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
+      onTouchEnd={endDrag}
+      onTouchCancel={endDrag}
       {...(entityId !== undefined ? { 'data-entity-id': entityId } : {})}
       {...(systemId !== undefined ? { 'data-system-id': systemId } : {})}
       {...(focusedKind !== undefined ? { 'data-focused-kind': focusedKind } : {})}
@@ -215,14 +230,15 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
         role="separator"
         aria-orientation="horizontal"
         aria-label="Drag to resize panel"
+        onClick={expandFromPeek}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
+        onPointerCancel={handlePointerUp}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
+        onTouchEnd={endDrag}
+        onTouchCancel={endDrag}
       >
         <span className={styles.dragHandlePill} />
       </div>
@@ -236,6 +252,7 @@ export const DetentSheet: React.FC<DetentSheetProps> = ({
         data-testid={`${testIdPrefix}-detent-peek`}
         data-detent-section="peek"
         className={styles.detentSection}
+        onClick={expandFromPeek}
       >
         <h3 id={`${testIdPrefix}-peek-heading`} className={styles.srOnly}>
           Peek

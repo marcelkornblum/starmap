@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { DetentSheet } from './DetentSheet';
@@ -190,5 +190,110 @@ describe('<DetentSheet />', () => {
 
     const panel = screen.getByTestId('test-panel');
     expect(panel).toBeInTheDocument();
+  });
+
+  it('invokes onDetentChange when dragging and releasing to a new detent', () => {
+    const onDetentChange = vi.fn();
+    render(
+      <DetentSheet
+        testIdPrefix="test-drag"
+        heading="Drag Sheet"
+        activeDetent="peek"
+        onDetentChange={onDetentChange}
+        peek={<div>Peek</div>}
+      />
+    );
+
+    const handle = screen.getByTestId('test-drag-drag-handle');
+    fireEvent.pointerDown(handle, { clientY: 700, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientY: 400, pointerId: 1, cancelable: true });
+    fireEvent.pointerUp(handle, { pointerId: 1 });
+
+    expect(onDetentChange).toHaveBeenCalledWith('partial');
+  });
+
+  it('sets --detent-sheet-block-size on initial mount when activeDetent is partial', () => {
+    const expectedHeight = `${Math.round(window.innerHeight * PARTIAL_SHEET_RATIO)}px`;
+    render(
+      <DetentSheet
+        testIdPrefix="test-mount"
+        heading="Mount Sheet"
+        activeDetent="partial"
+        peek={<div>Peek</div>}
+      />
+    );
+
+    const panel = screen.getByTestId('test-mount-panel');
+    expect(panel.style.getPropertyValue('--detent-sheet-block-size')).toBe(expectedHeight);
+  });
+
+  it('expands data-detent to partial, sets --detent-sheet-block-size, and invokes onDetentChange when clicking drag handle or peek section in peek detent', () => {
+    const expectedHeight = `${Math.round(window.innerHeight * PARTIAL_SHEET_RATIO)}px`;
+    const onDetentChange = vi.fn();
+    render(
+      <DetentSheet
+        testIdPrefix="test-tap"
+        heading="Tap Sheet"
+        activeDetent="peek"
+        onDetentChange={onDetentChange}
+        peek={<div><span data-testid="peek-inner">Peek Body</span></div>}
+      />
+    );
+
+    const panel = screen.getByTestId('test-tap-panel');
+    const handle = screen.getByTestId('test-tap-drag-handle');
+
+    // Click drag handle to expand
+    fireEvent.click(handle);
+    expect(panel.getAttribute('data-detent')).toBe('partial');
+    expect(panel.style.getPropertyValue('--detent-sheet-block-size')).toBe(expectedHeight);
+    expect(onDetentChange).toHaveBeenCalledTimes(1);
+    expect(onDetentChange).toHaveBeenCalledWith('partial');
+
+    // Test peek section click
+    onDetentChange.mockClear();
+    render(
+      <DetentSheet
+        testIdPrefix="test-tap-2"
+        heading="Tap Sheet 2"
+        activeDetent="peek"
+        onDetentChange={onDetentChange}
+        peek={<div><span data-testid="peek-inner-2">Peek Body 2</span></div>}
+      />
+    );
+
+    const panel2 = screen.getByTestId('test-tap-2-panel');
+    const peekInner = screen.getByTestId('peek-inner-2');
+    fireEvent.click(peekInner);
+    expect(panel2.getAttribute('data-detent')).toBe('partial');
+    expect(panel2.style.getPropertyValue('--detent-sheet-block-size')).toBe(expectedHeight);
+    expect(onDetentChange).toHaveBeenCalledTimes(1);
+    expect(onDetentChange).toHaveBeenCalledWith('partial');
+  });
+
+  it('does not expand or trigger onDetentChange when clicking an anchor link inside peek', () => {
+    const onDetentChange = vi.fn();
+    render(
+      <DetentSheet
+        testIdPrefix="test-link"
+        heading="Link Sheet"
+        activeDetent="peek"
+        onDetentChange={onDetentChange}
+        peek={
+          <div>
+            <a href="/target" data-testid="target-link">
+              Link Target
+            </a>
+          </div>
+        }
+      />
+    );
+
+    const panel = screen.getByTestId('test-link-panel');
+    const link = screen.getByTestId('target-link');
+
+    fireEvent.click(link);
+    expect(onDetentChange).not.toHaveBeenCalled();
+    expect(panel.getAttribute('data-detent')).toBe('peek');
   });
 });

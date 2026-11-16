@@ -146,4 +146,27 @@ describe('<RootLayout />', () => {
       registerAppRouter(null);
     }
   });
+
+  it('mounts GalaxyView from Render 1 when routerState.matches starts empty []', () => {
+    const routerState = {
+      matches: [],
+    };
+
+    registerAppRouter({
+      get state() {
+        return routerState;
+      },
+      subscribe: () => () => {},
+    });
+
+    try {
+      window.history.pushState({}, '', '/galaxy');
+      render(<RootLayout />);
+
+      expect(screen.getByTestId('mock-galaxy-view')).toBeInTheDocument();
+      expect(galaxyViewMountSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      registerAppRouter(null);
+    }
+  });
 });

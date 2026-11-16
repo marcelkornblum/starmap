@@ -42,6 +42,8 @@ export interface SystemViewSceneProps extends SystemSceneContentProps {
 export interface PlanetarySceneContentProps {
   planetId?: string;
   planet?: PlanetRecord;
+  onInspectSatellite?: (satelliteId: string) => void;
+  onSelectEntity?: (entityId: string | null) => void;
 }
 
 export interface PlanetaryViewSceneProps extends PlanetarySceneContentProps {

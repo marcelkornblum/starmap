@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useSpatialEntityStoreApi } from '../components/canvas/entity/SpatialEntityContext';
 import { EARTH_REFERENCE_TARGET } from '../config/referenceTargets';
 import { buildJourneyPlan } from '../services/journey/journeyBuilder';
@@ -17,6 +17,7 @@ import { useParams, useSearch } from '@tanstack/react-router';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { useLoadedLayerManifests } from '../hooks/useLayerData';
 import {
+  appRouter,
   useSpaLocation,
   type StarmapSearchParams,
 } from '../hooks/useSpaLocation';
@@ -164,6 +165,41 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
     layers: loadedLayers,
   });
 
+  const handleSelectEntity = useCallback(
+    (id: string | null) => {
+      if (id) {
+        if (useUIStore.getState().detailsDetent === 'collapsed') {
+          useUIStore.getState().setDetailsDetent('peek');
+        }
+        void appRouter
+          .navigate?.({
+            to: '/planet/$planetId',
+            params: { planetId: targetId },
+            search: (prev: StarmapSearchParams = {}) => ({
+              ...prev,
+              focus: id,
+            }),
+            replace: true,
+          })
+          ?.catch(() => {});
+      } else {
+        void appRouter
+          .navigate?.({
+            to: '/planet/$planetId',
+            params: { planetId: targetId },
+            search: (prev: StarmapSearchParams = {}) => {
+              const next = { ...prev };
+              delete next.focus;
+              return next;
+            },
+            replace: true,
+          })
+          ?.catch(() => {});
+      }
+    },
+    [targetId],
+  );
+
   return {
     pathname,
     search,
@@ -179,5 +215,6 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
     planetaryBodies,
     routeStops,
     resolvedBreadcrumbs,
+    handleSelectEntity,
   };
 }

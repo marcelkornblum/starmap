@@ -101,4 +101,32 @@ describe('useViewportStoreSync hook', () => {
 
     expect(localStore.getState().focusedId).toBe('gliese-581');
   });
+
+  it('synchronizes outer store hover inward resolving by slug or name in O(1)', () => {
+    localStore.getState().registerEntity({
+      id: 'hip-71683',
+      name: 'Alpha Centauri',
+      classification: 'star',
+      position: [1.34, 0, 0],
+    });
+    outerStore.getState().registerEntity({
+      id: 'alpha-centauri',
+      name: 'Alpha Centauri',
+      classification: 'star',
+      position: [1.34, 0, 0],
+    });
+
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      outerStore.getState().setHovered('alpha-centauri');
+    });
+
+    expect(localStore.getState().hoveredId).toBe('hip-71683');
+  });
 });

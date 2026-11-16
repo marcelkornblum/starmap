@@ -163,4 +163,67 @@ describe('useResolvedPlanetDetails', () => {
     expect(hookResult.result.current.urlPlanetSlug).toBe('earth');
     expect(hookResult.result.current.focusedDetails).toBeNull();
   });
+
+  it('resolves focusedDetails from store-driven focusedEntity even before URL sync (when urlFocusSlug is absent)', async () => {
+    const store = createSpatialEntityStore();
+    store.getState().registerEntities([
+      {
+        id: 'moon',
+        name: 'Moon',
+        classification: 'terrestrial',
+        parentBodyId: 'earth',
+        position: [0.00257, 0, 0],
+      },
+    ]);
+    store.getState().setFocused('moon');
+
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useResolvedPlanetDetails>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useResolvedPlanetDetails({
+            planetId: 'earth',
+            initialCorpus: corpus,
+            locationPathname: '/planet/earth',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(hookResult.result.current.focusedEntity?.id).toBe('moon');
+    expect(hookResult.result.current.focusedDetails).not.toBeNull();
+  });
+
+  it('ignores and clears stale out-of-scope store focusedId (mars) on /planet/earth', async () => {
+    const store = createSpatialEntityStore();
+    store.getState().registerEntities([
+      {
+        id: 'mars',
+        name: 'Mars',
+        classification: 'terrestrial',
+        parentBodyId: 'sol',
+        position: [1.5, 0, 0],
+      },
+    ]);
+    store.getState().setFocused('mars');
+
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useResolvedPlanetDetails>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useResolvedPlanetDetails({
+            planetId: 'earth',
+            initialCorpus: corpus,
+            locationPathname: '/planet/earth',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(hookResult.result.current.focusedEntity).toBeNull();
+    expect(hookResult.result.current.focusedDetails).toBeNull();
+    expect(store.getState().focusedId).toBeNull();
+  });
 });

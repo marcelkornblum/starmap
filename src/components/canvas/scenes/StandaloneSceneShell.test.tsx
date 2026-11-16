@@ -2,16 +2,30 @@ import { describe, it, expect, vi } from 'vitest';
 import type React from 'react';
 import { render, screen } from '@testing-library/react';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
+import {
+  SpatialEntityStoreContext,
+  useOptionalSpatialEntityStoreApi,
+} from '../entity/SpatialEntityContext';
+import { createSpatialEntityStore } from '../entity/SpatialEntityStore';
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {
     ...actual,
-    Canvas: ({ children: _children }: { children?: React.ReactNode }) => (
-      <div data-testid="mock-canvas" />
+    Canvas: ({ children }: { children?: React.ReactNode }) => (
+      <div data-testid="mock-canvas">{children}</div>
     ),
   };
 });
+
+vi.mock('../ThemeTokenBridge', () => ({
+  SceneTokenBridge: () => <div data-testid="mock-scene-token-bridge" />,
+}));
+
+const ChildProbe: React.FC = () => {
+  const store = useOptionalSpatialEntityStoreApi();
+  return <div data-testid="child-probe" data-has-store={String(Boolean(store))} />;
+};
 
 describe('StandaloneSceneShell Component', () => {
   it('renders container with data-variant and canvas wrapper', () => {
@@ -36,5 +50,19 @@ describe('StandaloneSceneShell Component', () => {
 
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain('custom-class');
+  });
+
+  it('bridges outer SpatialEntityStoreContext into Canvas children', () => {
+    const store = createSpatialEntityStore();
+    render(
+      <SpatialEntityStoreContext.Provider value={store}>
+        <StandaloneSceneShell>
+          <ChildProbe />
+        </StandaloneSceneShell>
+      </SpatialEntityStoreContext.Provider>,
+    );
+
+    const probe = screen.getByTestId('child-probe');
+    expect(probe.getAttribute('data-has-store')).toBe('true');
   });
 });

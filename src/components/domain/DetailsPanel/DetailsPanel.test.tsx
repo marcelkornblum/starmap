@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { DetailsPanel } from './DetailsPanel';
+import { useUIStore } from '../../../stores/useUIStore';
 import type {
   FocusedPlanetEntityDetails,
   FocusedSystemEntityDetails,
@@ -228,5 +229,23 @@ describe('<DetailsPanel />', () => {
     expect(screen.getByTestId('orbital-schematic-list')).toBeInTheDocument();
     expect(screen.queryByTestId('details-stars-section')).toBeNull();
     expect(screen.queryByTestId('details-planets-section')).toBeNull();
+  });
+
+  it('forwards detent changes from DetentSheet to useUIStore and onDetentChange prop', () => {
+    useUIStore.getState().setDetailsDetent('peek');
+    const onDetentChange = vi.fn();
+    render(
+      <DetailsPanel
+        details={mockSystemDetails}
+        isOpen={true}
+        onDetentChange={onDetentChange}
+      />,
+    );
+
+    const handle = screen.getByTestId('details-drag-handle');
+    fireEvent.click(handle);
+
+    expect(onDetentChange).toHaveBeenCalledWith('partial');
+    expect(useUIStore.getState().detailsDetent).toBe('partial');
   });
 });

@@ -232,7 +232,7 @@ export function useResolvedSystemDetails(
     ],
   );
 
-  const focusedDetails = (focusedEntity && isFocusInThisSystem) || matchingDisk ? systemContextDetails : null;
+  const focusedDetails = (focusedEntity && (urlFocusSlug ? isFocusInThisSystem : true)) || matchingDisk ? systemContextDetails : null;
 
   return {
     focusedDetails,

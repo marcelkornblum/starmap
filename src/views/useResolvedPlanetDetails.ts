@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
@@ -135,9 +135,41 @@ export function useResolvedPlanetDetails(
         : null,
     [urlFocusSlug, isFocusInPlanetScope, activeCorpus],
   );
+  const rawStoreFocused = storeApi.getState().getEntitiesByState('focused')[0] ?? null;
+  const isStoreFocusedInPlanetScope = rawStoreFocused
+    ? checkIsFocusInPlanetScope(
+        toUrlSlug(rawStoreFocused.id),
+        urlPlanetSlug,
+        targetPlanetId,
+        systemDetail,
+        orbitingBodyIds,
+        activeCorpus.length,
+      )
+    : false;
+  const storeFocusedEntity = isStoreFocusedInPlanetScope ? rawStoreFocused : null;
+
   const focusedEntity = urlFocusSlug
-    ? (urlFocusEntity ?? (isFocusInPlanetScope ? storeApi.getState().getEntitiesByState('focused')[0] ?? null : null))
-    : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
+    ? (urlFocusEntity ?? (isFocusInPlanetScope ? storeFocusedEntity : null))
+    : storeFocusedEntity;
+
+  useEffect(() => {
+    if (!urlFocusSlug) {
+      const currentFocusedId = storeApi.getState().focusedId;
+      if (
+        currentFocusedId &&
+        !checkIsFocusInPlanetScope(
+          toUrlSlug(currentFocusedId),
+          urlPlanetSlug,
+          targetPlanetId,
+          systemDetail,
+          orbitingBodyIds,
+          activeCorpus.length,
+        )
+      ) {
+        storeApi.getState().setFocused(null);
+      }
+    }
+  }, [urlFocusSlug, urlPlanetSlug, targetPlanetId, systemDetail, orbitingBodyIds, activeCorpus.length, storeApi]);
 
   const focusedEntityId = focusedEntity?.id ?? '';
 
@@ -190,7 +222,7 @@ export function useResolvedPlanetDetails(
     currentSearch: search,
   });
 
-  const focusedDetails = (focusedEntity && isFocusInPlanetScope) ? systemContextDetails : null;
+  const focusedDetails = (focusedEntity && (urlFocusSlug ? isFocusInPlanetScope : true)) ? systemContextDetails : null;
 
   const storeSelected = storeApi.getState().getEntitiesByState('selected');
   const selectQuery = selectParam ? `?select=${encodeURIComponent(selectParam)}` : search;

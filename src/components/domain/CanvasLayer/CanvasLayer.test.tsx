@@ -7,8 +7,16 @@ import {
   canMountWebGLCanvas,
   _resetWebGLSupportedForTesting,
 } from './webglSupport';
-import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
+import {
+  useCanvasStageStore,
+  RootCanvasStageContext,
+} from '../../../stores/useCanvasStageStore';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import {
+  SpatialEntityStoreContext,
+  useOptionalSpatialEntityStoreApi,
+} from '../../canvas/entity/SpatialEntityContext';
+import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();
@@ -25,7 +33,19 @@ vi.mock('@react-three/drei', async (importOriginal) => {
 vi.mock('../../canvas/scenes/SpatialScenes', () => ({
   GalacticSceneContent: () => createElement('div', { 'data-testid': 'mock-galactic-scene' }),
   SystemSceneContent: () => createElement('div', { 'data-testid': 'mock-system-scene' }),
-  PlanetarySceneContent: () => createElement('div', { 'data-testid': 'mock-planetary-scene' }),
+  PlanetarySceneContent: (props: {
+    planetId?: string;
+    onInspectSatellite?: (id: string) => void;
+    onSelectEntity?: (id: string | null) => void;
+  }) => {
+    const store = useOptionalSpatialEntityStoreApi();
+    return createElement('div', {
+      'data-testid': 'mock-planetary-scene',
+      'data-has-inspect': String(Boolean(props.onInspectSatellite)),
+      'data-has-select': String(Boolean(props.onSelectEntity)),
+      'data-has-bridged-store': String(Boolean(store)),
+    });
+  },
 }));
 
 vi.mock('../../canvas/ThemeTokenBridge', () => ({
@@ -223,6 +243,49 @@ describe('CanvasLayer Domain Component', () => {
 
       expect(screen.getByTestId('my-custom-slot')).toBeInTheDocument();
       expect(screen.queryByTestId('canvas-layer-slot')).toBeNull();
+    });
+
+    it('renders as a metadata slot when wrapped in RootCanvasStageContext.Provider even if isRootCanvasMounted is false', () => {
+      render(
+        <RootCanvasStageContext.Provider value={true}>
+          <CanvasLayer scope="galaxy" centerId="sol" />
+        </RootCanvasStageContext.Provider>,
+      );
+
+      const slot = screen.getByTestId('canvas-layer-slot');
+      expect(slot).toBeInTheDocument();
+      expect(slot.getAttribute('data-slot')).toBe('true');
+      expect(screen.queryByTestId('mock-canvas')).toBeNull();
+    });
+
+    it('bridges outer SpatialEntityStoreContext and forwards onInspect and onSelect to PlanetarySceneContent in direct mode', () => {
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      const testStore = createSpatialEntityStore();
+      const onInspect = vi.fn();
+      const onSelect = vi.fn();
+
+      render(
+        <SpatialEntityStoreContext.Provider value={testStore}>
+          <CanvasLayer
+            scope="planet"
+            targetId="earth"
+            onInspect={onInspect}
+            onSelect={onSelect}
+          />
+        </SpatialEntityStoreContext.Provider>,
+      );
+
+      const planetScene = screen.getByTestId('mock-planetary-scene');
+      expect(planetScene.getAttribute('data-has-inspect')).toBe('true');
+      expect(planetScene.getAttribute('data-has-select')).toBe('true');
+      expect(planetScene.getAttribute('data-has-bridged-store')).toBe('true');
     });
   });
 });

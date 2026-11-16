@@ -56,6 +56,15 @@ describe('useSpaLocation and router proxy', () => {
       appRouter.subscribe?.('onResolved', vi.fn());
       expect(mockSubscribe).toHaveBeenCalled();
     });
+
+    it('persists registeredRouter on globalThis.__STARMAP_APP_ROUTER__', () => {
+      const mockRouter: SpaRouterLike = { state: { foo: 'bar' } };
+      registerAppRouter(mockRouter);
+      const globalObj = globalThis as { __STARMAP_APP_ROUTER__?: SpaRouterLike | null };
+      expect(globalObj.__STARMAP_APP_ROUTER__).toBe(mockRouter);
+      registerAppRouter(null);
+      expect(globalObj.__STARMAP_APP_ROUTER__).toBeNull();
+    });
   });
 
   describe('useSpaLocation hook', () => {
@@ -90,6 +99,19 @@ describe('useSpaLocation and router proxy', () => {
 
       unmount();
       expect(unsubscribeMock).toHaveBeenCalled();
+    });
+
+    it('re-renders when starmap:locationchange event is dispatched', () => {
+      window.history.pushState({}, '', '/galaxy?focus=sol');
+      const { result } = renderHook(() => useSpaLocation());
+      expect(result.current.search).toBe('?focus=sol');
+
+      act(() => {
+        window.history.pushState({}, '', '/galaxy?focus=sirius');
+        window.dispatchEvent(new Event('starmap:locationchange'));
+      });
+
+      expect(result.current.search).toBe('?focus=sirius');
     });
   });
 });

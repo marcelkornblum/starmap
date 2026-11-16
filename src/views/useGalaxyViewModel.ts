@@ -59,26 +59,46 @@ function handleGalaxyFocusChange(id: string | null): void {
     cam.setPendingCenterSlug(null);
     cam.setInFlightFocusSlug(null);
   }
-  const currentPathname = (
-    appRouter.state as { location?: { pathname?: string } } | undefined
-  )?.location?.pathname;
-  const navPromise = appRouter.navigate?.({
-    to: currentPathname === '/' ? '/' : '/galaxy',
-    search: (prev: StarmapSearchParams = {}) => {
-      const next = { ...prev };
-      if (id) next.focus = id;
-      else delete next.focus;
-      return next;
-    },
-    replace: true,
-  });
-  if (navPromise && typeof navPromise.then === 'function') {
-    void navPromise.catch(() => {}).finally(() => {
-      if (useCameraStore.getState().inFlightFocusSlug === slug) {
-        useCameraStore.getState().setInFlightFocusSlug(undefined);
-      }
+  if (appRouter.navigate) {
+    const currentPathname = (
+      appRouter.state as { location?: { pathname?: string } } | undefined
+    )?.location?.pathname;
+    const navPromise = appRouter.navigate({
+      to: currentPathname === '/' ? '/' : '/galaxy',
+      search: (prev: StarmapSearchParams = {}) => {
+        const next = { ...prev };
+        if (id) next.focus = id;
+        else delete next.focus;
+        return next;
+      },
+      replace: true,
     });
+    if (navPromise && typeof navPromise.then === 'function') {
+      void navPromise.catch(() => {}).finally(() => {
+        if (useCameraStore.getState().inFlightFocusSlug === slug) {
+          useCameraStore.getState().setInFlightFocusSlug(undefined);
+        }
+      });
+    } else {
+      cam.setInFlightFocusSlug(undefined);
+    }
   } else {
+    try {
+      if (typeof window !== 'undefined') {
+        const searchParams = new URLSearchParams(window.location.search);
+        if (id) {
+          searchParams.set('focus', id);
+        } else {
+          searchParams.delete('focus');
+        }
+        const newQs = searchParams.toString();
+        const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ''}${window.location.hash}`;
+        window.history.replaceState(window.history.state, '', newUrl);
+        window.dispatchEvent(new Event('starmap:locationchange'));
+      }
+    } catch {
+      // noop
+    }
     cam.setInFlightFocusSlug(undefined);
   }
 }

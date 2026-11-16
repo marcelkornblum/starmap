@@ -159,6 +159,8 @@ export const SystemViewScene: React.FC<SystemViewSceneProps> = (props) => {
 export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
   planetId = EARTH_REFERENCE_TARGET.id,
   planet,
+  onInspectSatellite,
+  onSelectEntity,
 }) => {
   const isEarth = planetId.toLowerCase() === EARTH_REFERENCE_TARGET.id;
   const planetDisplayName = isEarth
@@ -190,6 +192,8 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
         planetName={planetDisplayName}
         classification="terrestrial"
         planet={planet}
+        onInspectSatellite={onInspectSatellite}
+        onSelectEntity={onSelectEntity}
       />
     </>
   );

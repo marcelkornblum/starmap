@@ -1,8 +1,11 @@
+import { createContext } from 'react';
 import { create } from 'zustand';
 import type {
   JourneyChordLeg,
   SpatialEntityDefinition,
 } from '../types/spatial';
+
+export const RootCanvasStageContext = createContext<boolean>(false);
 
 export interface CanvasStageData<
   TEntity = SpatialEntityDefinition,
@@ -30,36 +33,52 @@ export interface CanvasStageCallbacks {
   readonly onFocusChange?: (id: string | null) => void;
 }
 
+interface StarmapStageGlobal {
+  __STARMAP_STAGE_CB__?: CanvasStageCallbacks;
+  __STARMAP_STAGE_CB_LISTENERS__?: Set<() => void>;
+}
+
 const EMPTY_STAGE_CALLBACKS: CanvasStageCallbacks = {};
-let stageCallbacks: CanvasStageCallbacks = EMPTY_STAGE_CALLBACKS;
-const stageCallbackListeners = new Set<() => void>();
+const stageGlobal = globalThis as unknown as StarmapStageGlobal;
+if (!stageGlobal.__STARMAP_STAGE_CB__) {
+  stageGlobal.__STARMAP_STAGE_CB__ = EMPTY_STAGE_CALLBACKS;
+}
+if (!stageGlobal.__STARMAP_STAGE_CB_LISTENERS__) {
+  stageGlobal.__STARMAP_STAGE_CB_LISTENERS__ = new Set<() => void>();
+}
 
 function notifyStageCallbackListeners(): void {
-  for (const listener of stageCallbackListeners) {
+  const listeners = stageGlobal.__STARMAP_STAGE_CB_LISTENERS__;
+  if (!listeners) return;
+  for (const listener of listeners) {
     listener();
   }
 }
 
 export function setStageCallbacks(callbacks: CanvasStageCallbacks): void {
+  const current = stageGlobal.__STARMAP_STAGE_CB__ ?? EMPTY_STAGE_CALLBACKS;
   if (
-    stageCallbacks.onInspect === callbacks.onInspect &&
-    stageCallbacks.onSelect === callbacks.onSelect &&
-    stageCallbacks.onFocusChange === callbacks.onFocusChange
+    current.onInspect === callbacks.onInspect &&
+    current.onSelect === callbacks.onSelect &&
+    current.onFocusChange === callbacks.onFocusChange
   ) {
     return;
   }
-  stageCallbacks = callbacks;
+  stageGlobal.__STARMAP_STAGE_CB__ = callbacks;
   notifyStageCallbackListeners();
 }
 
 export function getStageCallbacks(): CanvasStageCallbacks {
-  return stageCallbacks;
+  return stageGlobal.__STARMAP_STAGE_CB__ ?? EMPTY_STAGE_CALLBACKS;
 }
 
 export function subscribeStageCallbacks(listener: () => void): () => void {
-  stageCallbackListeners.add(listener);
+  if (!stageGlobal.__STARMAP_STAGE_CB_LISTENERS__) {
+    stageGlobal.__STARMAP_STAGE_CB_LISTENERS__ = new Set<() => void>();
+  }
+  stageGlobal.__STARMAP_STAGE_CB_LISTENERS__.add(listener);
   return () => {
-    stageCallbackListeners.delete(listener);
+    stageGlobal.__STARMAP_STAGE_CB_LISTENERS__?.delete(listener);
   };
 }
 

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
+import { appRouter } from './useSpaLocation';
 
 export interface UseKeyboardShortcutsOptions {
   readonly onTogglePlay?: () => void;
@@ -95,19 +96,47 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): voi
           if (options?.onClearFocus) {
             options.onClearFocus();
           } else {
-            try {
-              if (typeof window !== 'undefined') {
-                const searchParams = new URLSearchParams(window.location.search);
-                if (searchParams.has('focus')) {
-                  searchParams.delete('focus');
-                  const newQs = searchParams.toString();
-                  const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ''}${window.location.hash}`;
-                  window.history.replaceState(window.history.state, '', newUrl);
-                  window.dispatchEvent(new Event('starmap:locationchange'));
-                }
+            useCameraStore.getState().clearCanvasFocus();
+            useCameraStore.getState().setPendingCenterSlug(null);
+            if (
+              appRouter.navigate &&
+              typeof window !== 'undefined' &&
+              window.location.search.includes('focus')
+            ) {
+              useCameraStore.getState().setInFlightFocusSlug(null);
+              const navPromise = appRouter.navigate({
+                search: (prev: Record<string, unknown> = {}) => {
+                  const next = { ...prev };
+                  delete next.focus;
+                  return next;
+                },
+                replace: true,
+              });
+              if (navPromise && typeof navPromise.then === 'function') {
+                void navPromise.catch(() => {}).finally(() => {
+                  if (useCameraStore.getState().inFlightFocusSlug === null) {
+                    useCameraStore.getState().setInFlightFocusSlug(undefined);
+                  }
+                });
+              } else {
+                useCameraStore.getState().setInFlightFocusSlug(undefined);
               }
-            } catch {
-              // noop
+            } else {
+              useCameraStore.getState().setInFlightFocusSlug(undefined);
+              try {
+                if (typeof window !== 'undefined') {
+                  const searchParams = new URLSearchParams(window.location.search);
+                  if (searchParams.has('focus')) {
+                    searchParams.delete('focus');
+                    const newQs = searchParams.toString();
+                    const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ''}${window.location.hash}`;
+                    window.history.replaceState(window.history.state, '', newUrl);
+                    window.dispatchEvent(new Event('starmap:locationchange'));
+                  }
+                }
+              } catch {
+                // noop
+              }
             }
             if (document.activeElement instanceof HTMLElement) {
               document.activeElement.blur();

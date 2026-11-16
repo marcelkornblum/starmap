@@ -129,6 +129,7 @@ export const PlanetScene: React.FC<PlanetSceneProps> = ({
       cameraDistance={STANDARD_CAMERA_DISTANCES.planetary}
       onInspect={onInspectSatellite}
       onSelect={onSelectEntity}
+      onFocusChange={onSelectEntity}
       debugHitarea={debugHitarea}
     >
       <PlanetBody

@@ -297,6 +297,10 @@
       z-index: var(--layer-hud);
     }
 
+    .stage:has(.floatingLeft:not(:empty)) .controlsRegion:not(:has([data-mobile-expanded="true"])) {
+      bottom: calc(var(--space-fib-7) + var(--space-fib-3));
+    }
+
     .controlsRegion > * {
       pointer-events: auto;
     }

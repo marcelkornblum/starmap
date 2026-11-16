@@ -179,4 +179,38 @@ describe('useResolvedSystemDetails', () => {
 
     expect(hookResult.result.current.systemContextDetails).toBe(initialContextDetails);
   });
+
+  it('resolves focusedDetails from store-driven focusedEntity even before URL sync (when urlFocusSlug is absent)', async () => {
+    const store = createSpatialEntityStore();
+    store.getState().registerEntities([
+      {
+        id: 'tau-ceti-e',
+        name: 'Tau Ceti e',
+        classification: 'terrestrial',
+        parentBodyId: 'tau-ceti',
+        position: [3.156, 1.54, -1.003],
+      },
+    ]);
+
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useResolvedSystemDetails>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useResolvedSystemDetails({
+            systemId: 'tau-ceti',
+            initialCorpus: corpus,
+            locationPathname: '/system/tau-ceti',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    await act(async () => {
+      store.getState().setFocused('tau-ceti-e');
+    });
+
+    expect(hookResult.result.current.focusedEntity?.id).toBe('tau-ceti-e');
+    expect(hookResult.result.current.focusedDetails).not.toBeNull();
+  });
 });

@@ -1,9 +1,13 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { useContext } from 'react';
+import { renderHook } from '@testing-library/react';
 import {
   useCanvasStageStore,
   setStageCallbacks,
   getStageCallbacks,
   subscribeStageCallbacks,
+  RootCanvasStageContext,
   type CanvasStageData,
 } from './useCanvasStageStore';
 
@@ -116,5 +120,20 @@ describe('useCanvasStageStore', () => {
     unsubscribe();
     setStageCallbacks({});
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('provides RootCanvasStageContext with default value false', () => {
+    const { result } = renderHook(() => useContext(RootCanvasStageContext));
+    expect(result.current).toBe(false);
+  });
+
+  it('persists stageCallbacks and listeners on globalThis for Vite HMR resilience', () => {
+    const onInspect = vi.fn();
+    setStageCallbacks({ onInspect });
+    const globalObj = globalThis as { __STARMAP_STAGE_CB__?: { onInspect?: (id: string) => void } };
+    expect(globalObj.__STARMAP_STAGE_CB__?.onInspect).toBe(onInspect);
+
+    useCanvasStageStore.getState().resetCanvasStageStore();
+    expect(globalObj.__STARMAP_STAGE_CB__).toEqual({});
   });
 });

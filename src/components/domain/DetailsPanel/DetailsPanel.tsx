@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import type { FocusedEntityDetails } from '../../../services/details/detailsEntityTypes';
 import type { FocusedPreviewSummary } from '../../../services/details/detailsNavigationTypes';
 import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
@@ -36,13 +36,22 @@ export const DetailsPanel = memo(function DetailsPanel({
   preview,
   isOpen,
   onClose: _onClose,
-  onDetentChange: _onDetentChange,
+  onDetentChange,
 }: DetailsPanelProps) {
   const subscribedDetent = useUIStore((s) => s.detailsDetent);
+  const setDetailsDetent = useUIStore((s) => s.setDetailsDetent);
   const storeDetent =
     typeof window === 'undefined'
       ? useUIStore.getState().detailsDetent
       : subscribedDetent;
+
+  const handleDetentChange = useCallback(
+    (nextDetent: DetentLevel) => {
+      setDetailsDetent(nextDetent);
+      onDetentChange?.(nextDetent);
+    },
+    [setDetailsDetent, onDetentChange]
+  );
 
   const effectiveIsOpen = isOpen !== undefined ? isOpen : storeDetent !== 'collapsed';
   if (!effectiveIsOpen || !details) {
@@ -123,6 +132,7 @@ export const DetailsPanel = memo(function DetailsPanel({
       heading="Details"
       headingId="details-panel-heading"
       activeDetent={effectiveDetent}
+      onDetentChange={handleDetentChange}
       data-entity-id={id}
       data-system-id={systemId}
       data-focused-kind={focusedKind}

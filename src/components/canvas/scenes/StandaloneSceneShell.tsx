@@ -2,6 +2,10 @@ import type React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { SceneTokenBridge } from '../ThemeTokenBridge';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
+import {
+  SpatialEntityStoreContext,
+  useOptionalSpatialEntityStoreApi,
+} from '../entity/SpatialEntityContext';
 import styles from './SpatialScenes.module.css';
 
 export interface StandaloneSceneShellProps {
@@ -21,6 +25,7 @@ export const StandaloneSceneShell: React.FC<StandaloneSceneShellProps> = ({
   camera,
   children,
 }) => {
+  const outerStore = useOptionalSpatialEntityStoreApi();
   const containerClass = className
     ? `${styles.viewportContainer} ${className}`
     : styles.viewportContainer;
@@ -34,8 +39,10 @@ export const StandaloneSceneShell: React.FC<StandaloneSceneShellProps> = ({
           camera={camera}
           gl={{ antialias: true, alpha: true }}
         >
-          <SceneTokenBridge />
-          {children}
+          <SpatialEntityStoreContext.Provider value={outerStore}>
+            <SceneTokenBridge />
+            {children}
+          </SpatialEntityStoreContext.Provider>
         </Canvas>
         <SafeHtmlPortalOutlet />
       </div>

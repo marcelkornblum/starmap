@@ -25,14 +25,17 @@ export function useViewportStoreSync({
     const applyOuterSelection = (ids: ReadonlySet<string>): void => {
       storeApi.getState().setSelectedIds(ids);
     };
-    applyOuterSelection(outerStore.getState().selectedIds);
+    const initialOuterSelected = outerStore.getState().selectedIds;
+    if (initialOuterSelected.size > 0 || !initialSelectedId) {
+      applyOuterSelection(initialOuterSelected);
+    }
 
     return outerStore.subscribe((state, prevState) => {
       if (state.selectedIds !== prevState.selectedIds) {
         applyOuterSelection(state.selectedIds);
       }
     });
-  }, [outerStore, storeApi]);
+  }, [outerStore, storeApi, initialSelectedId]);
 
   // Synchronise outer store focusedId inward to local spatial entity store
   useEffect(() => {
@@ -72,8 +75,17 @@ export function useViewportStoreSync({
   useEffect(() => {
     if (!outerStore || outerStore === storeApi) return;
     const applyOuterHover = (hoveredId: string | null): void => {
-      if (storeApi.getState().hoveredId !== hoveredId) {
-        storeApi.getState().setHovered(hoveredId);
+      let resolvedLocalId = hoveredId;
+      if (hoveredId) {
+        const localState = storeApi.getState();
+        const outerEntity = outerStore.getState().entities[hoveredId];
+        resolvedLocalId =
+          localState.resolveEntityId(hoveredId) ??
+          (outerEntity?.name ? localState.resolveEntityId(outerEntity.name) : null) ??
+          hoveredId;
+      }
+      if (storeApi.getState().hoveredId !== resolvedLocalId) {
+        storeApi.getState().setHovered(resolvedLocalId);
       }
     };
     applyOuterHover(outerStore.getState().hoveredId);
