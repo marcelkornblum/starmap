@@ -186,8 +186,6 @@ export function encodeGalacticStructure(
   return compact;
 }
 
-export const encodeStructure = encodeGalacticStructure;
-
 export function encodeSolarSystemBody(
   rawBody: SolarSystemBodyRecord,
   options?: { omitId?: boolean },
@@ -225,5 +223,3 @@ export function encodeSolarSystemBody(
 
   return compact;
 }
-
-export const encodeMinorBody = encodeSolarSystemBody;

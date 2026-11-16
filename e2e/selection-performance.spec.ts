@@ -108,7 +108,7 @@ async function measureCanvasStarClick(
           requestAnimationFrame(tick);
         };
 
-        let resolveCommitted!: () => void;
+        let resolveCommitted: () => void = () => {};
         const committedPromise = new Promise<void>((res) => {
           resolveCommitted = res;
         });
@@ -246,7 +246,7 @@ async function measureSearchResultClick(
       };
       requestAnimationFrame(tick);
 
-      let resolveCommitted!: () => void;
+      let resolveCommitted: () => void = () => {};
       const committedPromise = new Promise<void>((res) => {
         resolveCommitted = res;
       });
@@ -392,10 +392,18 @@ async function measureFocusedOrbitDrag(page: Page, route: string): Promise<DragM
 
           const deltas: number[] = [];
           for (let i = 1; i < timestamps.length; i++) {
-            deltas.push(timestamps[i]! - timestamps[i - 1]!);
+            const curr = timestamps[i];
+            const prev = timestamps[i - 1];
+            if (curr !== undefined && prev !== undefined) {
+              deltas.push(curr - prev);
+            }
           }
+          const firstTimestamp = timestamps[0];
+          const lastTimestamp = timestamps[timestamps.length - 1];
           const totalDuration =
-            timestamps.length >= 2 ? timestamps[timestamps.length - 1]! - timestamps[0]! : 1;
+            firstTimestamp !== undefined && lastTimestamp !== undefined && lastTimestamp >= firstTimestamp
+              ? Math.max(lastTimestamp - firstTimestamp, 1)
+              : 1;
           const sorted = [...deltas].sort((a, b) => a - b);
           const p95Idx = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95));
 
@@ -448,9 +456,11 @@ test.describe('System Selection Latency & Focused Interaction Performance Guard'
     await page.waitForTimeout(300);
 
     const box10 = await canvasDist10.boundingBox();
-    expect(box10).not.toBeNull();
-    const cx10 = box10!.x + box10!.width / 2;
-    const cy10 = box10!.y + box10!.height / 2;
+    if (!box10) {
+      throw new Error('Missing bounding box for canvasDist10');
+    }
+    const cx10 = box10.x + box10.width / 2;
+    const cy10 = box10.y + box10.height / 2;
 
     selectionSamples.push(
       await measureCanvasStarClick(page, {
@@ -464,9 +474,11 @@ test.describe('System Selection Latency & Focused Interaction Performance Guard'
     await expect(page.locator('[data-testid="details-panel"]')).toBeVisible({ timeout: 15_000 });
 
     const activeCanvasBox = await canvasDist10.boundingBox();
-    expect(activeCanvasBox).not.toBeNull();
-    const curCx = activeCanvasBox!.x + activeCanvasBox!.width / 2;
-    const curCy = activeCanvasBox!.y + activeCanvasBox!.height / 2;
+    if (!activeCanvasBox) {
+      throw new Error('Missing bounding box for activeCanvasBox');
+    }
+    const curCx = activeCanvasBox.x + activeCanvasBox.width / 2;
+    const curCy = activeCanvasBox.y + activeCanvasBox.height / 2;
 
     await page.mouse.move(curCx, curCy);
     await page.mouse.down({ button: 'right' });
@@ -489,12 +501,13 @@ test.describe('System Selection Latency & Focused Interaction Performance Guard'
       prevSample = currentSample;
     }
 
-    const targetAfterPan = (await hostDist10.getAttribute('data-camera-target'))!
-      .split(',')
-      .map(Number) as [number, number, number];
-    const posAfterPan = (await hostDist10.getAttribute('data-camera-pos'))!
-      .split(',')
-      .map(Number) as [number, number, number];
+    const rawTarget = await hostDist10.getAttribute('data-camera-target');
+    const rawPos = await hostDist10.getAttribute('data-camera-pos');
+    if (!rawTarget || !rawPos) {
+      throw new Error('Missing camera target or position attributes on rootHost');
+    }
+    const targetAfterPan = rawTarget.split(',').map(Number) as [number, number, number];
+    const posAfterPan = rawPos.split(',').map(Number) as [number, number, number];
 
     const nonSolCandidates: Array<{ id: string; name: string; pos: [number, number, number] }> = [
       { id: 'hip-32349', name: 'Sirius', pos: [-0.494, 2.477, -0.759] },
@@ -507,7 +520,7 @@ test.describe('System Selection Latency & Focused Interaction Performance Guard'
     let nonSolClickedCount = 0;
     for (const cand of nonSolCandidates) {
       if (nonSolClickedCount >= 3) break;
-      const pt = projectStarScreenPoint(cand.pos, posAfterPan, targetAfterPan, activeCanvasBox!);
+      const pt = projectStarScreenPoint(cand.pos, posAfterPan, targetAfterPan, activeCanvasBox);
       const isCanvasHit = await page.evaluate(
         ({ x, y }) => document.elementFromPoint(x, y)?.tagName.toLowerCase() === 'canvas',
         pt,
