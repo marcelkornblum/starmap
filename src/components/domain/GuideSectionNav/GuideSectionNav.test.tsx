@@ -7,12 +7,12 @@ describe('<GuideSectionNav />', () => {
     render(<GuideSectionNav />);
 
     const nav = screen.getByTestId('guide-section-nav');
-    expect(nav).toBeDefined();
+    expect(nav).toBeInTheDocument();
 
-    expect(screen.getByRole('link', { name: 'Star Types' })).toBeDefined();
-    expect(screen.getByRole('link', { name: 'Planet Types' })).toBeDefined();
-    expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).toBeDefined();
-    expect(screen.getByRole('link', { name: 'Environmental Hazards' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Star Types' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Planet Types' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Telemetry Metrics' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Environmental Hazards' })).toBeInTheDocument();
   });
 
   it('marks current section with aria-current="page"', () => {

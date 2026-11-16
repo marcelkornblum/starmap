@@ -1,10 +1,6 @@
 import type { SystemSummaryNode } from '../types/astro';
-import {
-  decodeSummaryNode,
-  getShardKey,
-  type CompactSummaryNode,
-  type ShardedBucketEnvelope,
-} from '../utils/compactDataCodec';
+import { decodeSummaryNode, getShardKey } from '../utils/compactDataCodec';
+import type { CompactSummaryNode, ShardedBucketEnvelope } from '../utils/compactDataTypes';
 import { fnv1a32, getShardKeyFromHash } from '../utils/binarySectorCodec';
 import { resolveDataUrl } from '../utils/url';
 import { BoundedLruCache } from '../utils/lruCache';
@@ -130,7 +126,6 @@ export const loadSummaryBucket = (
           (await response.json()) as ShardedBucketEnvelope<CompactSummaryNode>;
         const data = envelope.d ?? {};
         RESOLVED_SUMMARY_BUCKET_CACHE.set(bucketKey, data);
-        getOrBuildBucketHashIndex(bucketKey, data);
         onLoaded?.();
         return data;
       } finally {

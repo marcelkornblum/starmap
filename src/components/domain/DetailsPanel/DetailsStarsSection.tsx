@@ -1,11 +1,9 @@
-import {
-  buildSystemElementFocusHref,
-  type FocusedStarDetail,
-} from '../../../services/detailsService';
+import { buildSystemElementFocusHref } from '../../../services/details/detailsNavigation';
+import type { FocusedStarDetail } from '../../../services/details/detailsEntityTypes';
 import {
   buildMetricGuideHref,
   buildStarTypeGuideHref,
-} from '../../../services/searchService';
+} from '../../../content/guide';
 import {
   CelestialTitle,
   DataTable,

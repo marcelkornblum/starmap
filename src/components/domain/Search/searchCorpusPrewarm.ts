@@ -1,21 +1,19 @@
 import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,
-} from '../../../types/astro';
+} from '../../../types/datasetLayers';
 import {
   fetchSearchShard,
   getCachedCorpusForFilter,
   loadSearchCorpusForFilter,
   mergeSearchShards,
 } from '../../../data/searchRepository';
-import {
-  findFocusedEntryInCorpus,
-  type GroupedSearchResults,
-  type SearchCategoryFilter,
-} from '../../../services/searchService';
-import { mergeActiveStarsIntoCorpus } from '../../../services/detailsService';
+import { findFocusedEntryInCorpus } from '../../../services/search/searchCorpusHelpers';
+import type { GroupedSearchResults } from '../../../services/search/searchTypes';
+import type { SearchCategoryFilter } from '../../../types/search';
+import { mergeActiveStarsIntoCorpus } from '../../../services/details/activeStarsCorpus';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 import type { SearchExecutionStatus } from './SearchContext';
 import {

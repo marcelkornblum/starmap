@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { usePlanetViewModel } from './usePlanetViewModel';
 import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
@@ -11,6 +11,7 @@ import {
 } from '../data/detailsRepository';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
+import { registerAppRouter } from '../hooks/useSpaLocation';
 import type { SystemManifest, SystemSummaryNode } from '../types/astro';
 
 const SOL_FIXTURE: SystemManifest = {
@@ -133,5 +134,58 @@ describe('usePlanetViewModel', () => {
 
     expect(hookResult.result.current.routeStops).toEqual(['sol', 'earth']);
     expect(hookResult.result.current.activeJourney).toBeTruthy();
+  });
+
+  it('provides handleSelectEntity that navigates and elevates UI detent when selecting an entity', async () => {
+    const navigateSpy = vi.fn().mockResolvedValue(undefined);
+    registerAppRouter({ navigate: navigateSpy });
+
+    try {
+      const store = createSpatialEntityStore();
+      let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof usePlanetViewModel>, unknown>>;
+      await act(async () => {
+        hookResult = renderHook(
+          () =>
+            usePlanetViewModel({
+              planetId: 'earth',
+              locationPathname: '/planet/earth',
+              locationSearch: '',
+            }),
+          { wrapper: createWrapper(store) },
+        );
+      });
+
+      expect(useUIStore.getState().detailsDetent).toBe('collapsed');
+      expect(typeof (hookResult.result.current as unknown as { handleSelectEntity: unknown }).handleSelectEntity).toBe('function');
+
+      await act(async () => {
+        (hookResult.result.current as unknown as { handleSelectEntity: (id: string | null) => void }).handleSelectEntity('moon');
+      });
+
+      expect(useUIStore.getState().detailsDetent).toBe('peek');
+      expect(navigateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: '/planet/$planetId',
+          params: { planetId: 'earth' },
+          replace: true,
+        }),
+      );
+
+      navigateSpy.mockClear();
+
+      await act(async () => {
+        (hookResult.result.current as unknown as { handleSelectEntity: (id: string | null) => void }).handleSelectEntity(null);
+      });
+
+      expect(navigateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: '/planet/$planetId',
+          params: { planetId: 'earth' },
+          replace: true,
+        }),
+      );
+    } finally {
+      registerAppRouter(null);
+    }
   });
 });

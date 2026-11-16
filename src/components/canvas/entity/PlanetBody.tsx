@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
-import type { CelestialClassification } from '../cartography/reticleGeometry';
+import type { CelestialClassification } from '../../../types/spatial';
 import {
   projectedPixelDiameter,
   bodyVisibility,

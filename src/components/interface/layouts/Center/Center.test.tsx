@@ -11,9 +11,9 @@ describe('<Center />', () => {
     );
 
     const container = screen.getByTestId('center-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
-    expect(screen.getByText('Centered Content')).toBeDefined();
+    expect(screen.getByText('Centered Content')).toBeInTheDocument();
   });
 
   it('sets default data-max="md", data-gutter="default", and omits boolean data flags', () => {

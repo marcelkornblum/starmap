@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Dock } from './Dock';
 
 describe('<Dock />', () => {
@@ -41,7 +42,8 @@ describe('<Dock />', () => {
     );
 
     const dock = screen.getByTestId('dock');
-    expect(dock.className).toBeTruthy();
+    expect(dock).toHaveAttribute('class');
+    expect(dock.className.length).toBeGreaterThan(0);
     expect(dock.getAttribute('role')).toBe('toolbar');
     expect(dock.getAttribute('aria-label')).toBe('Quick actions');
   });

@@ -84,9 +84,6 @@ export const rootRoute = createRootRoute({
     if (typeof search.route === 'string' && search.route.length > 0) {
       result.route = search.route;
     }
-    if (typeof search.journeyOption === 'string' && search.journeyOption.length > 0) {
-      result.journeyOption = search.journeyOption;
-    }
     if (typeof search.center === 'string' && search.center.trim().length > 0) {
       result.center = search.center.trim();
     }

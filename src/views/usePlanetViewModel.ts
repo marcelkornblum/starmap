@@ -1,24 +1,23 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useSpatialEntityStoreApi } from '../components/canvas/entity/SpatialEntityContext';
 import { EARTH_REFERENCE_TARGET } from '../config/referenceTargets';
+import { buildJourneyPlan } from '../services/journey/journeyBuilder';
 import {
-  buildJourneyPlan,
   extractUrlJourneyOptionId,
   extractUrlRouteStops,
-} from '../services/journeyService';
+} from '../services/journey/journeyProfilesAndUrls';
 import { resolveActiveLayerCard } from '../services/layerCardService';
-import {
-  buildFocusedPreviewSummary,
-  buildPlanetaryBodiesSummary,
-  buildPlanetMinimapOrientation,
-  buildPlanetaryOrbitalSchematic,
-  buildPlanetViewBreadcrumbs,
-  extractUrlSceneCameraState,
-} from '../services/detailsService';
+import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
+import { buildPlanetaryBodiesSummary } from '../services/details/planetaryBodiesSummary';
+import { buildPlanetMinimapOrientation } from '../services/details/planetMinimap';
+import { buildPlanetaryOrbitalSchematic } from '../services/details/planetaryOrbitalSchematic';
+import { buildPlanetViewBreadcrumbs } from '../services/details/detailsBreadcrumbs';
+import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { useParams, useSearch } from '@tanstack/react-router';
-import { toUrlSlug } from '../services/searchService';
+import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { useLoadedLayerManifests } from '../hooks/useLayerData';
 import {
+  appRouter,
   useSpaLocation,
   type StarmapSearchParams,
 } from '../hooks/useSpaLocation';
@@ -60,7 +59,6 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
   const focus = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
   const layer = routeSearch?.layer ?? searchParams.get('layer') ?? undefined;
   const route = routeSearch?.route ?? searchParams.get('route') ?? undefined;
-  const journeyOption = routeSearch?.journeyOption ?? searchParams.get('journeyOption') ?? undefined;
   const center = routeSearch?.center ?? searchParams.get('center') ?? undefined;
 
   const rawPlanetId = routeParams?.planetId ?? propPlanetId;
@@ -143,11 +141,9 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
     );
   }, [breadcrumbs, lastGalaxySearch]);
 
-  const routeSearchQuery = route
-    ? `?route=${encodeURIComponent(route)}${journeyOption ? `&journeyOption=${encodeURIComponent(journeyOption)}` : ''}`
-    : search;
+  const routeSearchQuery = route ? `?route=${encodeURIComponent(route)}` : search;
   const routeStops = extractUrlRouteStops(routeSearchQuery, 'planet');
-  const routeOptionId = journeyOption ?? extractUrlJourneyOptionId(routeSearchQuery);
+  const routeOptionId = extractUrlJourneyOptionId(routeSearchQuery);
   const activeJourney = routeStops
     ? buildJourneyPlan({
         stops: routeStops,
@@ -169,6 +165,41 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
     layers: loadedLayers,
   });
 
+  const handleSelectEntity = useCallback(
+    (id: string | null) => {
+      if (id) {
+        if (useUIStore.getState().detailsDetent === 'collapsed') {
+          useUIStore.getState().setDetailsDetent('peek');
+        }
+        void appRouter
+          .navigate?.({
+            to: '/planet/$planetId',
+            params: { planetId: targetId },
+            search: (prev: StarmapSearchParams = {}) => ({
+              ...prev,
+              focus: id,
+            }),
+            replace: true,
+          })
+          ?.catch(() => {});
+      } else {
+        void appRouter
+          .navigate?.({
+            to: '/planet/$planetId',
+            params: { planetId: targetId },
+            search: (prev: StarmapSearchParams = {}) => {
+              const next = { ...prev };
+              delete next.focus;
+              return next;
+            },
+            replace: true,
+          })
+          ?.catch(() => {});
+      }
+    },
+    [targetId],
+  );
+
   return {
     pathname,
     search,
@@ -184,5 +215,6 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
     planetaryBodies,
     routeStops,
     resolvedBreadcrumbs,
+    handleSelectEntity,
   };
 }

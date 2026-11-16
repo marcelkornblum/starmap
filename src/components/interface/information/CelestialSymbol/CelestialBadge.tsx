@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import { memo, type HTMLAttributes, type ReactNode } from 'react';
 import type { BadgeCategory, BadgeStatus } from '../Badge/Badge';
 import {
   CelestialSymbol,
@@ -14,6 +14,7 @@ export interface CelestialBadgeProps extends Omit<HTMLAttributes<HTMLElement>, '
   readonly rel?: string;
   readonly interactive?: boolean;
   readonly showLabel?: boolean;
+  readonly showTooltip?: boolean;
   readonly tooltipText?: ReactNode;
   readonly size?: 'sm' | 'md' | 'lg';
   readonly status?: BadgeStatus;
@@ -22,18 +23,19 @@ export interface CelestialBadgeProps extends Omit<HTMLAttributes<HTMLElement>, '
   readonly 'data-testid'?: string;
 }
 
-export const CelestialBadge = ({
+export const CelestialBadge = memo(function CelestialBadge({
   type,
   href,
   interactive,
   showLabel = false,
+  showTooltip = true,
   tooltipText,
   size = 'sm',
   status,
   category,
   children,
   ...rest
-}: CelestialBadgeProps) => {
+}: CelestialBadgeProps) {
   void styles;
   const meta = CELESTIAL_SYMBOL_META[type] ?? {
     type,
@@ -50,7 +52,7 @@ export const CelestialBadge = ({
       size={size}
       href={resolvedHref}
       showLabel={showLabel}
-      showTooltip={true}
+      showTooltip={showTooltip}
       tooltipText={tooltipText ?? meta.label}
       category={resolvedCategory}
       status={resolvedStatus}
@@ -63,4 +65,6 @@ export const CelestialBadge = ({
       {children}
     </CelestialSymbol>
   );
-};
+});
+
+CelestialBadge.displayName = 'CelestialBadge';

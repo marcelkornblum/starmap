@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Button, Cluster } from '../../interface';
 
 export interface DetailsActionControlsProps {
@@ -7,12 +8,12 @@ export interface DetailsActionControlsProps {
   readonly systemDetailsHref?: string;
 }
 
-export const DetailsActionControls = ({
+export const DetailsActionControls = memo(function DetailsActionControls({
   id,
   directionsHref,
   centerHref,
   systemDetailsHref,
-}: DetailsActionControlsProps) => {
+}: DetailsActionControlsProps) {
   const resolvedCenterHref =
     centerHref ??
     `/galaxy?center=${encodeURIComponent(id)}&focus=${encodeURIComponent(id)}`;
@@ -44,4 +45,6 @@ export const DetailsActionControls = ({
       </Button>
     </Cluster>
   );
-};
+});
+
+DetailsActionControls.displayName = 'DetailsActionControls';

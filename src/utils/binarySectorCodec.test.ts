@@ -15,7 +15,8 @@ import {
   type DecodedBinarySector,
 } from './binarySectorCodec';
 import { getShardKey } from './compactDataCodec';
-import type { SectorPartitionManifest, SystemSummaryNode } from '../types/astro';
+import type { SystemSummaryNode } from '../types/astro';
+import type { SectorPartitionManifest } from '../types/astroCoordinates';
 
 function toArrayBuffer(arr: Uint8Array): ArrayBuffer {
   return arr.buffer.slice(arr.byteOffset, arr.byteOffset + arr.byteLength) as ArrayBuffer;

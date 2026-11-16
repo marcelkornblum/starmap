@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import {
-  getShardKey,
-  buildShardedSummariesAndDetails,
-  buildSearchIndices,
-} from './compactDataCodec';
+import { getShardKey } from './compactDataCodec';
+import { buildShardedSummariesAndDetails } from '../../scripts/pipeline/compactDataEncoder';
+import { buildSearchIndices } from '../../scripts/pipeline/searchIndexBuilder';
 import type {
   SystemSummaryNode,
   SystemManifest,
+} from '../types/astro';
+import type {
   GalacticStructureRecord,
   SolarSystemBodyRecord,
-} from '../types/astro';
+} from '../types/astroStructures';
 
 describe('compactDataCodec - Sharding & Search Indices', () => {
   it('builds 36-bucket summaries and details dictionaries and dual-tier + category-sharded search indices', () => {

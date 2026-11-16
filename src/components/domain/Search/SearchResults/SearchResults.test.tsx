@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { SearchResults } from './SearchResults';
 import { SearchContext } from '../SearchContext';
-import { executeCatalogSearch } from '../../../../services/searchService';
+import { executeCatalogSearch } from '../../../../services/search/searchExecution';
 
 describe('<SearchResults />', () => {
   it('renders search results groups with visuallyHidden heading and stack list', () => {
@@ -45,11 +45,11 @@ describe('<SearchResults />', () => {
     expect(heading.getAttribute('data-visually-hidden')).toBe('true');
 
     const group = screen.getByTestId('search-results-group-stars');
-    expect(group).toBeDefined();
+    expect(group).toBeInTheDocument();
 
     const resultItem = screen.getByTestId('search-result-item');
-    expect(resultItem).toBeDefined();
-    expect(screen.getByText('Tau Ceti')).toBeDefined();
+    expect(resultItem).toBeInTheDocument();
+    expect(screen.getByText('Tau Ceti')).toBeInTheDocument();
   });
 
   it('sets data-open="false" when isFocused is false and alwaysOpen is not provided', () => {
@@ -152,8 +152,8 @@ describe('<SearchResults />', () => {
     );
 
     // Ceres and Earth should be rendered, Pluto truncated
-    expect(screen.getByText('Ceres')).toBeDefined();
-    expect(screen.getByText('Earth')).toBeDefined();
+    expect(screen.getByText('Ceres')).toBeInTheDocument();
+    expect(screen.getByText('Earth')).toBeInTheDocument();
     expect(screen.queryByText('Pluto')).toBeNull();
 
     // Empty categories are omitted completely

@@ -12,10 +12,10 @@ describe('<Switcher />', () => {
     );
 
     const container = screen.getByTestId('switcher-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
-    expect(screen.getByText('Switch 1')).toBeDefined();
-    expect(screen.getByText('Switch 2')).toBeDefined();
+    expect(screen.getByText('Switch 1')).toBeInTheDocument();
+    expect(screen.getByText('Switch 2')).toBeInTheDocument();
   });
 
   it('sets default data attributes and omits data-limit when not provided', () => {

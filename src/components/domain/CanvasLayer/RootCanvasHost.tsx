@@ -14,7 +14,7 @@ const useIsomorphicLayoutEffect =
 export const RootCanvasHost: React.FC = () => {
   const hostRef = useRef<HTMLDivElement>(null);
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
-  const activeSlotCount = useCanvasStageStore((s) => s.activeSlotCount);
+  const hasActiveSlot = useCanvasStageStore((s) => s.activeSlotCount > 0);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
   const { onInspect, onSelect, onFocusChange } = useSyncExternalStore(
     subscribeStageCallbacks,
@@ -149,7 +149,7 @@ export const RootCanvasHost: React.FC = () => {
       ref={hostRef}
       className={styles.rootCanvasHost}
       data-testid="root-canvas-host"
-      data-stage-inactive={activeSlotCount === 0 ? 'true' : undefined}
+      data-stage-inactive={!hasActiveSlot ? 'true' : undefined}
       data-camera-mode={initialCam.mode}
       data-camera-pos={initialCam.position.map((v) => v.toFixed(2)).join(',')}
       data-camera-target={initialCam.target.map((v) => v.toFixed(2)).join(',')}

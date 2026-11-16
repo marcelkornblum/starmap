@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { CelestialSymbolType } from './celestialSymbolMeta';
 
-export const renderGlyphContent = (type: CelestialSymbolType): ReactNode => {
+const createGlyphContent = (type: CelestialSymbolType): ReactNode => {
   switch (type) {
     case 'star':
     case 'stellar-system':
@@ -118,4 +118,15 @@ export const renderGlyphContent = (type: CelestialSymbolType): ReactNode => {
         </>
       );
   }
+};
+
+const GLYPH_NODE_CACHE = new Map<CelestialSymbolType, ReactNode>();
+
+export const renderGlyphContent = (type: CelestialSymbolType): ReactNode => {
+  let cached = GLYPH_NODE_CACHE.get(type);
+  if (cached === undefined) {
+    cached = createGlyphContent(type);
+    GLYPH_NODE_CACHE.set(type, cached);
+  }
+  return cached;
 };

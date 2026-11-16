@@ -7,7 +7,7 @@ import { createSpatialEntityStore } from '../src/components/canvas/entity/Spatia
 import { GalaxyView } from '../src/views/GalaxyView';
 import { useUIStore } from '../src/stores/useUIStore';
 import { useCameraStore } from '../src/stores/useCameraStore';
-import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
+import type { CompactSearchEntry } from '../src/utils/compactDataTypes';
 
 vi.mock('@react-three/drei', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/drei')>();
@@ -88,7 +88,7 @@ describe('Search and Focus Integration - Infinite Render Loop Regression', () =>
       );
     }).not.toThrow();
 
-    expect(screen.getByTestId('galaxy-view-root')).toBeDefined();
+    expect(screen.getByTestId('galaxy-view-root')).toBeInTheDocument();
     expect(store.getState().focusedId).toBe('tau-ceti');
     expect(screen.getAllByText('Tau Ceti').length).toBeGreaterThan(0);
 

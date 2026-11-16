@@ -14,13 +14,13 @@ import {
   Stack,
   Unit,
 } from '../components/interface';
+import { METRICS_GUIDE_PATH } from '../content/guide';
+import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
 import {
-  METRICS_GUIDE_PATH,
-  extractFocusIdFromSearch,
   hydrateMetricComparison,
   resolveMetricComparison,
   resolveMetricGuideEntries,
-} from '../services/guideService';
+} from '../services/guide/guideMetrics';
 import {
   subscribeDetailsRepository,
   getDetailsRepositoryVersion,

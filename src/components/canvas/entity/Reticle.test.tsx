@@ -3,7 +3,8 @@ import ReactThreeTest from '@react-three/test-renderer';
 import { Reticle } from './Reticle';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
-import type { CelestialClassification } from '../cartography/reticleGeometry';
+import { NOOP_RAYCAST } from '../engineConfig';
+import type { CelestialClassification } from '../../../types/spatial';
 
 describe('Reticle Primitive (Layer 2: Tactical Geometric Reticle)', () => {
   it('renders basic geometric diamond frame for single star without multiplicity annotations in active state', async () => {
@@ -21,7 +22,9 @@ describe('Reticle Primitive (Layer 2: Tactical Geometric Reticle)', () => {
     );
 
     expect(renderer.scene.findAll((node) => node.props.name === 'reticle-star-reticle')).toHaveLength(1);
-    expect(renderer.scene.findAll((node) => node.props.name === 'reticle-geometry')).toHaveLength(1);
+    const geom = renderer.scene.find((node) => node.props.name === 'reticle-geometry');
+    expect(geom).toBeDefined();
+    expect(geom.props.raycast).toBe(NOOP_RAYCAST);
     expect(renderer.scene.findAll((node) => node.props.name === 'multiplicity-pips')).toHaveLength(0);
 
     await renderer.unmount();

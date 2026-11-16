@@ -3,7 +3,7 @@ import { buildFocusedEntityDetails } from './focusedEntityDetails';
 import {
   PLANET_HAZARD_BITS,
   SYSTEM_HAZARD_BITS,
-} from '../../utils/astroMath';
+} from '../../utils/astroHazards';
 import type {
   CircumstellarDiskRecord,
   SystemManifest,
@@ -11,7 +11,7 @@ import type {
 import type {
   FocusedBeltEntityDetails,
   FocusedPlanetEntityDetails,
-} from './types';
+} from './detailsEntityTypes';
 
 const mockProximaManifest: SystemManifest = {
   id: 'proxima-centauri',

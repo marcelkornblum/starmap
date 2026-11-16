@@ -37,8 +37,8 @@ describe('EntityLabel Primitive (Layer 3: Typographic Label)', () => {
     );
 
     expect(renderer.scene.children).toHaveLength(1);
-    expect(screen.getByText('40 Eridani')).toBeDefined();
-    expect(screen.getByText('K1V · dM4.5e · DA4')).toBeDefined();
+    expect(screen.getByText('40 Eridani')).toBeInTheDocument();
+    expect(screen.getByText('K1V · dM4.5e · DA4')).toBeInTheDocument();
 
     await renderer.unmount();
     unmountOutlet();

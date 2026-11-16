@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
-  encodeLayerManifest,
-  decodeLayerManifest,
-  buildEntityAnnotationBuckets,
   decodeEntityAnnotation,
+  decodeLayerManifest,
 } from './datasetLayerCodec';
+import {
+  buildEntityAnnotationBuckets,
+  encodeLayerManifest,
+} from '../../scripts/pipeline/datasetLayerEncoder';
 import { getShardKey } from './compactDataCodec';
 import { LAYER_MANIFESTS } from '../../content/layers';
-import type { DatasetLayerManifest } from '../types/astro';
+import type { DatasetLayerManifest } from '../types/datasetLayers';
 
 describe('datasetLayerCodec - By-Entity Annotation Buckets', () => {
   const annotationLayer: DatasetLayerManifest = {

@@ -1,10 +1,10 @@
 import { createContext, useContext } from 'react';
-import {
-  executeCatalogSearch,
-  type GroupedSearchResults,
-  type SearchCategoryFilter,
-  type SearchResultItem,
-} from '../../../services/searchService';
+import { executeCatalogSearch } from '../../../services/search/searchExecution';
+import type {
+  GroupedSearchResults,
+  SearchResultItem,
+} from '../../../services/search/searchTypes';
+import type { SearchCategoryFilter } from '../../../types/search';
 
 export type SearchExecutionStatus = 'idle' | 'loading' | 'ready' | 'error';
 

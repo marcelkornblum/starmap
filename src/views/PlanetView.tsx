@@ -13,7 +13,7 @@ import {
   SearchResultItem,
   SpatialShell,
 } from '../components/domain';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 import { usePlanetViewModel } from './usePlanetViewModel';
 
 export interface PlanetViewProps {
@@ -40,6 +40,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     planetaryBodies,
     routeStops,
     resolvedBreadcrumbs,
+    handleSelectEntity,
   } = usePlanetViewModel(props);
 
   return (
@@ -65,6 +66,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
             activeJourney?.selectedOption?.id ??
             activeJourney?.options[0]?.id
           }
+          onSelect={handleSelectEntity}
         />
       }
       breadcrumbs={<Breadcrumbs items={resolvedBreadcrumbs} />}

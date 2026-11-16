@@ -1,4 +1,4 @@
-import type { DatasetLayerManifest } from '../../src/types/astro';
+import type { DatasetLayerManifest } from '../../src/types/datasetLayers';
 
 const layer: DatasetLayerManifest = {
   layerId: 'overlay-recent-discoveries',

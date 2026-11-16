@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import type { GalacticStructureRecord } from '../../src/types/astro';
-import { equatorialToCartesian } from '../../src/utils/astroMath';
+import type { GalacticStructureRecord } from '../../src/types/astroStructures';
+import { equatorialToCartesian } from '../../src/utils/astroCoordinates';
 import {
   resolveDefaultStructureDescription,
   resolveStructureReticleType,

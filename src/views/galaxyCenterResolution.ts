@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../types/spatial';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
-import { findFocusedEntryInCorpus, toUrlSlug } from '../services/searchService';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
+import { toUrlSlug } from '../utils/datasetLayerSlugs';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 export const corpusSystemFirstChildCache = new WeakMap<
   readonly CompactSearchEntry[],

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { JourneyPlan } from '../../../services/journeyService';
+import type { JourneyPlan } from '../../../services/journey/journeyTypes';
 import { DetentSheet, type DetentLevel } from '../../interface/surfaces/DetentSheet';
 import { DirectionsPeekSection } from './DirectionsPeekSection';
 import { DirectionsPartialSection } from './DirectionsPartialSection';

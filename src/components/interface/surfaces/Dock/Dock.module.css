@@ -5,7 +5,6 @@
     --dock-border-width: var(--surface-dock-border-width);
     --dock-border-style: var(--surface-dock-border-style);
     --dock-shadow: var(--surface-dock-shadow);
-    --dock-blur: var(--surface-dock-backdrop-blur);
     --dock-padding: var(--space-inset-control-x);
     --dock-radius: var(--radius-container);
     --dock-z-index: var(--layer-dock);
@@ -15,8 +14,6 @@
     background: var(--dock-bg);
     border: var(--dock-border-width) var(--dock-border-style) var(--dock-border-color);
     box-shadow: var(--dock-shadow);
-    backdrop-filter: blur(var(--dock-blur));
-    -webkit-backdrop-filter: blur(var(--dock-blur));
     border-radius: var(--dock-radius);
     padding: var(--dock-padding);
     z-index: var(--dock-z-index);

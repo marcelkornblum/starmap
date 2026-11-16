@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { SearchResults } from './SearchResults';
 import { SearchContext } from '../SearchContext';
-import { executeCatalogSearch } from '../../../../services/searchService';
+import { executeCatalogSearch } from '../../../../services/search/searchExecution';
 
 const meta: Meta<typeof SearchResults> = {
   title: 'DOMAIN/Search/SearchResults',

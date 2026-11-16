@@ -11,11 +11,11 @@ describe('<Cover />', () => {
     );
 
     const container = screen.getByTestId('cover-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
 
     const principal = container.querySelector('[data-principal="true"]');
-    expect(principal).toBeDefined();
+    expect(principal).not.toBeNull();
     expect(principal?.textContent).toBe('Principal Content');
   });
 
@@ -66,9 +66,9 @@ describe('<Cover />', () => {
       </Cover>
     );
 
-    expect(screen.getByTestId('cover-header')).toBeDefined();
-    expect(screen.getByTestId('cover-footer')).toBeDefined();
-    expect(screen.getByText('Main Body')).toBeDefined();
+    expect(screen.getByTestId('cover-header')).toBeInTheDocument();
+    expect(screen.getByTestId('cover-footer')).toBeInTheDocument();
+    expect(screen.getByText('Main Body')).toBeInTheDocument();
 
     rerender(
       <Cover data-testid="cover-container">

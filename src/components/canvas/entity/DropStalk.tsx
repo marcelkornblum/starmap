@@ -5,12 +5,12 @@ import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoHairlineMaterial } from '../materials/CartoLineMaterial';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
+import type { CelestialClassification } from '../../../types/spatial';
 import {
   createReticleGeometry,
   DEFAULT_RETICLE_SIZE,
-  type CelestialClassification,
 } from '../cartography/reticleGeometry';
-import { resolveEntityScreenInvariantScale } from '../engineConfig';
+import { resolveEntityScreenInvariantScale, NOOP_RAYCAST } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 
 export interface DropStalkProps {
@@ -30,7 +30,7 @@ export interface DropStalkProps {
  * Footprint exists on datum plane if and only if stalk exists.
  * Extend/retract animated with semantic motion tokens.
  */
-export const DropStalk: React.FC<DropStalkProps> = ({
+export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   id,
   position = [0, 0, 0],
   entityZ,
@@ -79,6 +79,8 @@ export const DropStalk: React.FC<DropStalkProps> = ({
   const progressRef = useRef(
     typeof window === 'undefined' ? (isStalkTier ? 1.0 : 0.0) : 0.0,
   );
+  const lastProgressRef = useRef<number>(Number.NaN);
+  const lastFootprintOpacityRef = useRef<number>(Number.NaN);
   const lineMeshRef = useRef<THREE.LineSegments>(null);
   const footprintRef = useLazyRef(() => {
     const g = new THREE.Group();
@@ -159,6 +161,12 @@ export const DropStalk: React.FC<DropStalkProps> = ({
     };
   }, [lineMaterial]);
 
+  useEffect(() => {
+    if (footprintMatRef.current?.color) {
+      footprintMatRef.current.color.set(resolvedFootprintColor);
+    }
+  }, [resolvedFootprintColor]);
+
   useFrame(({ camera, size }, delta) => {
     const target = isStalkTier ? 1.0 : 0.0;
     const dur = target > progressRef.current ? stalkExtendDuration : stalkRetractDuration;
@@ -178,7 +186,8 @@ export const DropStalk: React.FC<DropStalkProps> = ({
 
     // Mutate stalk line vertex 2 in-place: current tip Z = startZ + p * (targetZ - startZ)
     const geom = lineMeshRef.current?.geometry as THREE.BufferGeometry | undefined;
-    if (geom) {
+    if (geom && Math.abs(p - lastProgressRef.current) > 1e-5) {
+      lastProgressRef.current = p;
       const posAttr = geom.getAttribute('position') as THREE.BufferAttribute;
       const arr = posAttr.array as Float32Array;
       arr[5] = startZ + p * (targetZ - startZ);
@@ -217,9 +226,10 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       }
     }
 
-    if (footprintMatRef.current?.color) {
-      footprintMatRef.current.color.set(resolvedFootprintColor);
-      footprintMatRef.current.opacity = resolvedFootprintAlpha * fadePlanar;
+    const nextOpacity = resolvedFootprintAlpha * fadePlanar;
+    if (footprintMatRef.current && Math.abs(nextOpacity - lastFootprintOpacityRef.current) > 1e-4) {
+      footprintMatRef.current.opacity = nextOpacity;
+      lastFootprintOpacityRef.current = nextOpacity;
     }
 
     lineMaterial.updateResolution(camera, size.height);
@@ -230,7 +240,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
   return (
     <group name={`drop-stalk-${id}`} userData={{ hemisphere }}>
       {/* Vertical Stalk Line */}
-      <lineSegments ref={lineMeshRef} name="stalk-line" material={lineMaterial} frustumCulled={false}>
+      <lineSegments ref={lineMeshRef} name="stalk-line" material={lineMaterial} frustumCulled={false} raycast={NOOP_RAYCAST}>
         <primitive object={lineGeom} attach="geometry" />
       </lineSegments>
 
@@ -240,7 +250,7 @@ export const DropStalk: React.FC<DropStalkProps> = ({
         position={[x, y, targetZ + 0.002]}
         name="stalk-footprint"
       >
-        <lineSegments frustumCulled={false}>
+        <lineSegments frustumCulled={false} raycast={NOOP_RAYCAST}>
           <primitive object={footprintGeom} attach="geometry" />
           <lineBasicMaterial
             ref={footprintMatRef}
@@ -253,4 +263,6 @@ export const DropStalk: React.FC<DropStalkProps> = ({
       </group>
     </group>
   );
-};
+});
+
+DropStalk.displayName = 'DropStalk';

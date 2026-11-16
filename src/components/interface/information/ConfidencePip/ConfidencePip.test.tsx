@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { ConfidencePip } from './ConfidencePip';
 import { normalizeConfidence } from './confidencePipUtils';
 
@@ -64,7 +65,7 @@ describe('<ConfidencePip />', () => {
       name: 'We have confirmed confidence in this data',
     });
     expect(button.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.getByTestId('confidence-pip-dot')).toBeDefined();
+    expect(screen.getByTestId('confidence-pip-dot')).toBeInTheDocument();
   });
 
   it('toggles uncontrolled tooltip on button click', () => {
@@ -77,7 +78,7 @@ describe('<ConfidencePip />', () => {
 
     fireEvent.click(button);
     expect(button.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByTestId('confidence-pip-tooltip')).toBeDefined();
+    expect(screen.getByTestId('confidence-pip-tooltip')).toBeInTheDocument();
     expect(screen.getByTestId('confidence-level-name').textContent).toBe('candidate');
 
     fireEvent.click(button);
@@ -98,7 +99,7 @@ describe('<ConfidencePip />', () => {
     const button = screen.getByRole('button', {
       name: 'We have Fully Calibrated confidence in this data',
     });
-    expect(button).toBeDefined();
+    expect(button).toBeInTheDocument();
 
     expect(screen.getByTestId('confidence-level-name').textContent).toBe('Fully Calibrated');
     expect(screen.getByTestId('custom-metric').textContent).toBe('RUWE 1.02');
@@ -134,7 +135,7 @@ describe('<ConfidencePip />', () => {
       />
     );
 
-    expect(screen.getByTestId('confidence-pip-tooltip')).toBeDefined();
+    expect(screen.getByTestId('confidence-pip-tooltip')).toBeInTheDocument();
   });
 
   it('supports custom tooltip position and renders data-position and data-align', () => {

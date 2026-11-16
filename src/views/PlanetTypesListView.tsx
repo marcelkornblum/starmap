@@ -1,7 +1,7 @@
 import type React from 'react';
 import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
 import { CelestialBadge, Cluster, Datum, Grid, Heading } from '../components/interface';
-import { PLANET_TYPE_GUIDE_ENTRIES } from '../services/guideService';
+import { PLANET_TYPE_GUIDE_ENTRIES } from '../content/guide';
 import styles from './GuideViews.module.css';
 
 export const PlanetTypesListView: React.FC = () => {

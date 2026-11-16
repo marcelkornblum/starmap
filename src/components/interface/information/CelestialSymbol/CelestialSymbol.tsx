@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
+import { memo, type AnchorHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
 import type { BadgeCategory, BadgeStatus } from '../Badge/Badge';
 import { Tooltip } from '../../surfaces/Tooltip/Tooltip';
 import { resolveAppHref } from '../../../../utils/url';
@@ -28,7 +28,7 @@ export interface CelestialSymbolProps extends Omit<HTMLAttributes<HTMLElement>, 
   readonly children?: ReactNode;
 }
 
-export const CelestialSymbol = ({
+export const CelestialSymbol = memo(function CelestialSymbol({
   type,
   size = 'md',
   showTooltip = true,
@@ -42,7 +42,7 @@ export const CelestialSymbol = ({
   status,
   children,
   ...rest
-}: CelestialSymbolProps) => {
+}: CelestialSymbolProps) {
   const meta = CELESTIAL_SYMBOL_META[type] ?? {
     type,
     label: type,
@@ -122,4 +122,6 @@ export const CelestialSymbol = ({
   }
 
   return symbolContent;
-};
+});
+
+CelestialSymbol.displayName = 'CelestialSymbol';

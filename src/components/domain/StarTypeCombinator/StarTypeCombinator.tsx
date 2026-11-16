@@ -7,10 +7,8 @@ import {
   Stack,
   Unit,
 } from '../../interface';
-import {
-  buildStarTypeGuideHref,
-  computeSpectralCombination,
-} from '../../../services/guideService';
+import { buildStarTypeGuideHref } from '../../../content/guide';
+import { computeSpectralCombination } from '../../../services/guide/guideCombinator';
 import { Guide3DPreview } from '../Guide3DPreview';
 import styles from './StarTypeCombinator.module.css';
 
@@ -52,7 +50,7 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
           luminosityClass={selectedLum}
           radiusRsun={combination.radiusRsun}
           tempK={combination.effectiveTempK}
-          chromaticityHex={combination.chromaticityHex}
+          chromaticityToken={combination.chromaticityToken}
           isDetail
         />
 
@@ -80,7 +78,7 @@ export const StarTypeCombinator: React.FC<StarTypeCombinatorProps> = ({
           />
           <Datum
             label="Chromaticity"
-            value={combination.chromaticityHex}
+            value={combination.chromaticityToken}
           />
         </Stack>
 

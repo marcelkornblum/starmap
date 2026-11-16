@@ -3,16 +3,18 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import type {
+  CelestialClassification,
+  PlanetCensusEntry,
+} from '../../../types/spatial';
+import { classifyPlanetPhysical as classifyPlanet } from '../../../utils/planetaryPhysics';
 import {
   createReticleGeometry,
-  classifyPlanet,
   DEFAULT_RETICLE_SIZE,
-  type CelestialClassification,
-  type PlanetCensusEntry,
 } from '../cartography/reticleGeometry';
 import { useOcclusionManager } from './SpatialEntityContext';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
-import { resolveEntityScreenInvariantScale } from '../engineConfig';
+import { resolveEntityScreenInvariantScale, NOOP_RAYCAST } from '../engineConfig';
 import type { CelestialInteractionState, NodeAlphaRef } from './types';
 
 export interface ReticleProps {
@@ -36,7 +38,7 @@ export interface ReticleProps {
  * Renders universal taxonomy category frame and facet decorations (multiplicity, census pips, spectral symbol).
  * Implements Reticle Attention Gating (unannotated basic frame in active, Four-Facet composite in selected/focused).
  */
-export const Reticle: React.FC<ReticleProps> = ({
+export const Reticle: React.FC<ReticleProps> = React.memo(({
   id,
   position,
   worldPosition,
@@ -170,7 +172,7 @@ export const Reticle: React.FC<ReticleProps> = ({
   return (
     <group ref={groupRef} position={resolvedPos} name={`reticle-${id}`}>
       {/* Primary Geometric Frame */}
-      <lineSegments name="reticle-geometry">
+      <lineSegments name="reticle-geometry" raycast={NOOP_RAYCAST}>
         <primitive object={reticleGeom} attach="geometry" />
         <lineBasicMaterial
           ref={materialRef}
@@ -191,4 +193,6 @@ export const Reticle: React.FC<ReticleProps> = ({
       )}
     </group>
   );
-};
+});
+
+Reticle.displayName = 'Reticle';

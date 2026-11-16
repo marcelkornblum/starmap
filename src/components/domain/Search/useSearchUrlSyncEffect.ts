@@ -1,28 +1,17 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type {
-  DatasetLayerIndexEntry,
-  DatasetLayerManifest,
-} from '../../../types/astro';
+import type { DatasetLayerIndexEntry, DatasetLayerManifest } from '../../../types/datasetLayers';
 import { getCachedCorpusForFilter } from '../../../data/searchRepository';
-import {
-  toUrlSlug,
-  type GroupedSearchResults,
-  type SearchCategoryFilter,
-} from '../../../services/searchService';
-import { mergeActiveStarsIntoCorpus } from '../../../services/detailsService';
+import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
+import type { GroupedSearchResults } from '../../../services/search/searchTypes';
+import type { SearchCategoryFilter } from '../../../types/search';
+import { mergeActiveStarsIntoCorpus } from '../../../services/details/activeStarsCorpus';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 import type { SearchExecutionStatus } from './SearchContext';
-import {
-  resolveInitialFilter,
-  resolveInitialQuery,
-} from './searchUrlSync';
-import {
-  syncSelectedSystemsToStore,
-  syncUrlFocusToStore,
-} from './searchStoreSync';
+import { resolveInitialFilter, resolveInitialQuery } from './searchUrlSync';
+import { syncSelectedSystemsToStore, syncUrlFocusToStore } from './searchStoreSync';
 import { runSearchCorpusPrewarm } from './searchCorpusPrewarm';
 
 export const getSearchRelevantUrlKey = (pathname: string, search: string): string => {

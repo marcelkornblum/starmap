@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import * as THREE from 'three';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import type * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
@@ -15,6 +15,8 @@ import {
   computeStarfieldHorizonRadius,
   createStarfieldPointsMaterial,
 } from './sectorPointCloudShaders';
+
+const DEFAULT_STARFIELD_APERTURE_RADIUS_PC = 15.0;
 
 export interface SectorPointCloudProps {
   readonly manager?: SectorStreamingManager;
@@ -43,68 +45,62 @@ export function SectorPointCloud({
   const frameCtx = useSpatialFrameSafe();
   const groupRef = useRef<THREE.Group>(null);
 
-  const material = useMemo(() => {
-    return createStarfieldPointsMaterial();
-  }, []);
+  const material = useMemo(() => createStarfieldPointsMaterial(), []);
+  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    materialRef.current = material;
     return () => {
+      materialRef.current = null;
       material.dispose();
     };
   }, [material]);
 
   useEffect(() => {
-    material.uniforms.uPointSize.value = pointSize;
-    material.uniforms.uBaseOpacity.value = pointOpacity;
-    material.uniforms.uActivePointSize.value = activePointSize;
-  }, [material, pointSize, pointOpacity, activePointSize]);
+    const mat = materialRef.current;
+    if (!mat) return;
+    mat.uniforms.uPointSize.value = pointSize;
+    mat.uniforms.uBaseOpacity.value = pointOpacity;
+    mat.uniforms.uActivePointSize.value = activePointSize;
+  }, [pointSize, pointOpacity, activePointSize]);
 
   useEffect(() => {
-    material.uniforms.uColor.value.set(reticleBracketColor);
-  }, [material, reticleBracketColor]);
+    const mat = materialRef.current;
+    if (mat) mat.uniforms.uColor.value.set(reticleBracketColor);
+  }, [reticleBracketColor]);
 
   const targetRef = useRef<{ group: THREE.Group | null; material: THREE.Material | null }>({
     group: null,
     material: null,
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     targetRef.current.group = groupRef.current;
     targetRef.current.material = material;
   }, [material]);
 
-  const internalManager = useMemo(() => {
-    if (manager) return null;
-    return new SectorStreamingManager({
+  const internalManagerRef = useRef<SectorStreamingManager | null>(null);
+
+  useLayoutEffect(() => {
+    if (manager) return;
+    const mgr = new SectorStreamingManager({
       gpuResourceFactory: createSceneSectorPointsFactory(() => targetRef.current),
     });
+    internalManagerRef.current = mgr;
+    return () => {
+      internalManagerRef.current = null;
+      mgr.dispose();
+    };
   }, [manager]);
 
-  useEffect(() => {
-    return () => {
-      internalManager?.dispose();
-    };
-  }, [internalManager]);
-
-  const resolvedManager = manager ?? internalManager;
-
   const hydrationBridge = useMemo(() => new InstrumentHydrationBridge(), []);
-
-  useEffect(() => {
-    return () => {
-      hydrationBridge.dispose();
-    };
-  }, [hydrationBridge]);
+  useEffect(() => () => { hydrationBridge.dispose(); }, [hydrationBridge]);
 
   const onSummariesRef = useRef(onHydratedSummariesChange);
-  useEffect(() => {
-    onSummariesRef.current = onHydratedSummariesChange;
-  }, [onHydratedSummariesChange]);
+  useEffect(() => { onSummariesRef.current = onHydratedSummariesChange; }, [onHydratedSummariesChange]);
 
   const frameCtxRef = useRef(frameCtx);
-  useEffect(() => {
-    frameCtxRef.current = frameCtx;
-  }, [frameCtx]);
+  useEffect(() => { frameCtxRef.current = frameCtx; }, [frameCtx]);
 
   const lastXRef = useRef(Number.NaN);
   const lastYRef = useRef(Number.NaN);
@@ -117,11 +113,18 @@ export function SectorPointCloud({
   const lastHydratedRadiusRef = useRef(Number.NaN);
   const hydratingRef = useRef(false);
   const pendingHydrationRef = useRef(false);
+  const prevFrameXRef = useRef(Number.NaN);
+  const prevFrameYRef = useRef(Number.NaN);
+  const prevFrameZRef = useRef(Number.NaN);
+  const prevFrameRadiusRef = useRef(Number.NaN);
+  const settledFramesRef = useRef(0);
+  const lastHydrationTimeRef = useRef(0);
 
   const triggerHydrationRef = useRef<((fx: number, fy: number, fz: number, apertureRadius: number) => void) | null>(null);
 
   const triggerHydration = useCallback(
     (fx: number, fy: number, fz: number, apertureRadius: number) => {
+      const resolvedManager = manager ?? internalManagerRef.current;
       if (!resolvedManager) return;
       if (
         typeof (resolvedManager as unknown as { isActiveRingReady?: () => boolean }).isActiveRingReady === 'function' &&
@@ -134,14 +137,13 @@ export function SectorPointCloud({
         return;
       }
       hydratingRef.current = true;
+      lastHydrationTimeRef.current = performance.now();
       lastHydratedXRef.current = fx;
       lastHydratedYRef.current = fy;
       lastHydratedZRef.current = fz;
       lastHydratedRadiusRef.current = apertureRadius;
 
       const queryInputs = resolvedManager.getActiveSectorQueryInputs();
-      // querySectorsWithinInstrumentSphere reads coordinates synchronously on entry,
-      // and hydratingRef.current guarantees exclusive single-flight execution.
       scratchPosRef.current[0] = fx;
       scratchPosRef.current[1] = fy;
       scratchPosRef.current[2] = fz;
@@ -157,7 +159,7 @@ export function SectorPointCloud({
             const currentFx = currentFocus ? currentFocus.x : lastHydratedXRef.current;
             const currentFy = currentFocus ? currentFocus.y : lastHydratedYRef.current;
             const currentFz = currentFocus ? currentFocus.z : lastHydratedZRef.current;
-            const currentRadius = frameCtxRef.current?.frameRef?.current?.apertureRadius ?? 15.0;
+            const currentRadius = frameCtxRef.current?.frameRef?.current?.apertureRadius ?? DEFAULT_STARFIELD_APERTURE_RADIUS_PC;
             triggerHydrationRef.current?.(currentFx, currentFy, currentFz, currentRadius);
           }
         })
@@ -165,13 +167,15 @@ export function SectorPointCloud({
           hydratingRef.current = false;
         });
     },
-    [resolvedManager, hydrationBridge, scratchPosRef],
+    [manager, hydrationBridge, scratchPosRef],
   );
+
   useEffect(() => {
     triggerHydrationRef.current = triggerHydration;
   }, [triggerHydration]);
 
   useEffect(() => {
+    const resolvedManager = manager ?? internalManagerRef.current;
     if (!resolvedManager) return;
 
     const unsubscribe = resolvedManager.subscribe(() => {
@@ -179,7 +183,7 @@ export function SectorPointCloud({
       const fx = focus ? focus.x : (Number.isNaN(lastXRef.current) ? 0 : lastXRef.current);
       const fy = focus ? focus.y : (Number.isNaN(lastYRef.current) ? 0 : lastYRef.current);
       const fz = focus ? focus.z : (Number.isNaN(lastZRef.current) ? 0 : lastZRef.current);
-      const apertureRadius = frameCtxRef.current?.frameRef?.current?.apertureRadius ?? 15.0;
+      const apertureRadius = frameCtxRef.current?.frameRef?.current?.apertureRadius ?? DEFAULT_STARFIELD_APERTURE_RADIUS_PC;
       triggerHydrationRef.current?.(fx, fy, fz, apertureRadius);
     });
 
@@ -194,25 +198,42 @@ export function SectorPointCloud({
     return () => {
       unsubscribe();
     };
-  }, [resolvedManager, hydrationBridge, scratchPosRef]);
+  }, [manager, hydrationBridge, scratchPosRef]);
 
   useFrame(({ camera }) => {
+    const resolvedManager = manager ?? internalManagerRef.current;
     if (!resolvedManager) return;
 
     const focusPoint = frameCtx?.frameRef?.current?.focusPoint;
     const fx = focusPoint ? focusPoint.x : (Number.isNaN(lastXRef.current) ? 0 : lastXRef.current);
     const fy = focusPoint ? focusPoint.y : (Number.isNaN(lastYRef.current) ? 0 : lastYRef.current);
     const fz = focusPoint ? focusPoint.z : (Number.isNaN(lastZRef.current) ? 0 : lastZRef.current);
-    const apertureRadius = frameCtx?.frameRef?.current?.apertureRadius ?? 15.0;
+    const apertureRadius = frameCtx?.frameRef?.current?.apertureRadius ?? DEFAULT_STARFIELD_APERTURE_RADIUS_PC;
 
-    material.uniforms.uFocusCenter.value.set(fx, fy, fz);
-    material.uniforms.uApertureRadius.value = apertureRadius;
-    material.uniforms.uHorizonRadius.value = computeStarfieldHorizonRadius(apertureRadius);
-    material.uniforms.uCameraPos.value.set(
-      camera.position.x,
-      camera.position.y,
-      camera.position.z,
-    );
+    const mat = materialRef.current;
+    if (mat) {
+      mat.uniforms.uFocusCenter.value.set(fx, fy, fz);
+      mat.uniforms.uApertureRadius.value = apertureRadius;
+      mat.uniforms.uHorizonRadius.value = computeStarfieldHorizonRadius(apertureRadius);
+      mat.uniforms.uCameraPos.value.set(camera.position.x, camera.position.y, camera.position.z);
+    }
+
+    const stepDx = fx - prevFrameXRef.current;
+    const stepDy = fy - prevFrameYRef.current;
+    const stepDz = fz - prevFrameZRef.current;
+    const stepSq = stepDx * stepDx + stepDy * stepDy + stepDz * stepDz;
+    const stepRad = Math.abs(apertureRadius - prevFrameRadiusRef.current);
+
+    prevFrameXRef.current = fx;
+    prevFrameYRef.current = fy;
+    prevFrameZRef.current = fz;
+    prevFrameRadiusRef.current = apertureRadius;
+
+    if (!Number.isFinite(stepSq) || (stepSq <= 0.0004 && (!Number.isFinite(stepRad) || stepRad <= 0.01))) {
+      settledFramesRef.current += 1;
+    } else {
+      settledFramesRef.current = 0;
+    }
 
     const lx = lastXRef.current;
     const ly = lastYRef.current;
@@ -246,7 +267,14 @@ export function SectorPointCloud({
     const rDiff = Math.abs(apertureRadius - hr);
 
     if (!Number.isFinite(hDistSq) || hDistSq > 0.25 || !Number.isFinite(rDiff) || rDiff > 0.25) {
-      triggerHydration(fx, fy, fz, apertureRadius);
+      if (!Number.isFinite(hDistSq) || !Number.isFinite(rDiff)) {
+        triggerHydration(fx, fy, fz, apertureRadius);
+      } else if (
+        settledFramesRef.current >= 3 ||
+        performance.now() - lastHydrationTimeRef.current >= 1200
+      ) {
+        triggerHydration(fx, fy, fz, apertureRadius);
+      }
     }
 
     resolvedManager.processFrameUploads();

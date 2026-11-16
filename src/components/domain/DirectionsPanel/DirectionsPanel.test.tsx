@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { DirectionsPanel } from './DirectionsPanel';
-import { buildJourneyPlan } from '../../../services/journeyService';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import { buildJourneyPlan } from '../../../services/journey/journeyBuilder';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 
 const testCorpus: readonly CompactSearchEntry[] = [
   { i: 'sol', n: 'Sol', h: 1, p: [0, 0, 0], m: [-26.74, 'G2V', 8, 1] },
@@ -35,9 +35,9 @@ describe('<DirectionsPanel />', () => {
 
     render(<DirectionsPanel journey={comingSoonJourney} activeDetent="peek" />);
 
-    expect(screen.getByTestId('directions-panel')).toBeDefined();
+    expect(screen.getByTestId('directions-panel')).toBeInTheDocument();
     expect(screen.getAllByTestId('directions-coming-soon').length).toBeGreaterThan(0);
-    expect(screen.getByText('Coming soon')).toBeDefined();
+    expect(screen.getByText('Coming soon')).toBeInTheDocument();
   });
 
   it('renders options overview mode and allows selecting an option', () => {
@@ -55,7 +55,7 @@ describe('<DirectionsPanel />', () => {
       />
     );
 
-    expect(screen.getByTestId('directions-total-distance')).toBeDefined();
+    expect(screen.getByTestId('directions-total-distance')).toBeInTheDocument();
     const options = screen.getAllByTestId('directions-option-item');
     expect(options.length).toBeGreaterThan(0);
 
@@ -82,8 +82,8 @@ describe('<DirectionsPanel />', () => {
       />
     );
 
-    expect(screen.getByTestId('directions-option-profile')).toBeDefined();
-    expect(screen.getByTestId('directions-steps-list')).toBeDefined();
+    expect(screen.getByTestId('directions-option-profile')).toBeInTheDocument();
+    expect(screen.getByTestId('directions-steps-list')).toBeInTheDocument();
 
     const backButton = screen.getByTestId('directions-back-to-options');
     fireEvent.click(backButton);
@@ -103,7 +103,37 @@ describe('<DirectionsPanel />', () => {
       />
     );
 
-    expect(screen.getByTestId('directions-geometry-list')).toBeDefined();
+    const geometryList = screen.getByTestId('directions-geometry-list');
+    expect(geometryList).toBeInTheDocument();
     expect(screen.getAllByTestId('directions-geometry-leg').length).toBeGreaterThan(0);
+    expect(within(geometryList).getByText(/Δz/)).toBeInTheDocument();
+  });
+
+  it('renders intra-system secondary geometry and full step detail geometry datum', () => {
+    const intraJourney = buildJourneyPlan({
+      stops: ['earth', 'mars'],
+      corpus: [
+        ...testCorpus,
+        {
+          i: 'mars',
+          n: 'Mars',
+          k: 2,
+          s: 'sol',
+          p: [0, 0, 0],
+          r: 4,
+          A: 1.524,
+          P: 686.98,
+        },
+      ],
+    });
+
+    render(
+      <DirectionsPanel
+        journey={intraJourney}
+        activeDetent="full"
+      />
+    );
+
+    expect(screen.getByTestId('directions-stat-geometry')).toBeInTheDocument();
   });
 });

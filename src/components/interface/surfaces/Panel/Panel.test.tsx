@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Panel } from './Panel';
 
 describe('<Panel />', () => {
@@ -30,7 +31,7 @@ describe('<Panel />', () => {
     expect(panel.getAttribute('data-padding')).toBe('loose');
     expect(screen.getByTestId('panel-header').textContent).toBe('Telemetry Header');
     expect(screen.getByTestId('panel-footer').textContent).toBe('Status: Calibrated');
-    expect(screen.getByText('Main Observation Matrix')).toBeDefined();
+    expect(screen.getByText('Main Observation Matrix')).toBeInTheDocument();
   });
 
   it('applies static module class and forwards extra attributes', () => {

@@ -1,8 +1,8 @@
-import type {
-  HTMLAttributes,
-  ReactNode,
-  TdHTMLAttributes,
-  ThHTMLAttributes,
+import React, {
+  type HTMLAttributes,
+  type ReactNode,
+  type TdHTMLAttributes,
+  type ThHTMLAttributes,
 } from 'react';
 import { Unit } from '../Unit/Unit';
 import styles from './DataTable.module.css';
@@ -108,10 +108,12 @@ export const DataTableHeaderCell = ({
   const renderUnit = () => {
     if (!unit) return null;
     if (
-      typeof unit === 'object' &&
-      unit !== null &&
-      'type' in unit &&
-      (unit.type === Unit || (unit.type as any)?.displayName === 'Unit')
+      React.isValidElement(unit) &&
+      (unit.type === Unit ||
+        ((typeof unit.type === 'function' || typeof unit.type === 'object') &&
+          unit.type !== null &&
+          'displayName' in unit.type &&
+          unit.type.displayName === 'Unit'))
     ) {
       return unit;
     }

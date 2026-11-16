@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Hud } from './Hud';
 
 describe('<Hud />', () => {
@@ -42,7 +43,8 @@ describe('<Hud />', () => {
     );
 
     const hud = screen.getByTestId('hud');
-    expect(hud.className).toBeTruthy();
+    expect(hud).toHaveAttribute('class');
+    expect(hud.className.length).toBeGreaterThan(0);
     expect(hud.getAttribute('aria-label')).toBe('Flight telemetry');
   });
 });

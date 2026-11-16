@@ -8,7 +8,7 @@ import {
   seedSummaryNode,
 } from '../data/detailsRepository';
 import type { SystemManifest, SystemSummaryNode } from '../types/astro';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 const SOL_FIXTURE: SystemManifest = {
   id: 'sol',
@@ -100,12 +100,12 @@ describe('<PlanetView />', () => {
       );
     });
 
-    expect(screen.getByTestId('planet-view-root')).toBeTruthy();
-    expect(screen.getByTestId('view-breadcrumbs')).toBeTruthy();
+    expect(screen.getByTestId('planet-view-root')).toBeInTheDocument();
+    expect(screen.getByTestId('view-breadcrumbs')).toBeInTheDocument();
     expect(screen.getByTestId('view-breadcrumbs').textContent).toContain('Galaxy');
     expect(screen.getByTestId('view-breadcrumbs').textContent).toContain('Earth');
-    expect(screen.getByTestId('search-root')).toBeTruthy();
-    expect(screen.getByTestId('control-bar')).toBeTruthy();
+    expect(screen.getByTestId('search-root')).toBeInTheDocument();
+    expect(screen.getByTestId('control-bar')).toBeInTheDocument();
     const canvas = screen.getByTestId('canvas-layer');
     expect(canvas.getAttribute('data-scope')).toBe('planet');
   });
@@ -124,8 +124,8 @@ describe('<PlanetView />', () => {
       );
     });
 
-    expect(screen.getByTestId('planet-view-root')).toBeTruthy();
-    expect(screen.getByTestId('details-panel')).toBeTruthy();
+    expect(screen.getByTestId('planet-view-root')).toBeInTheDocument();
+    expect(screen.getByTestId('details-panel')).toBeInTheDocument();
   });
 
   it('renders directions panel when route query is provided', async () => {
@@ -142,6 +142,6 @@ describe('<PlanetView />', () => {
       );
     });
 
-    expect(screen.getByTestId('directions-panel')).toBeTruthy();
+    expect(screen.getByTestId('directions-panel')).toBeInTheDocument();
   });
 });

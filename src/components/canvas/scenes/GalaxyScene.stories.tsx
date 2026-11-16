@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
-import { GALACTIC_FRAME } from '../instrument/referenceFrame';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { GalaxyScene, type GalaxySceneProps } from './GalaxyScene';
 
 const meta: Meta<GalaxySceneProps> = {

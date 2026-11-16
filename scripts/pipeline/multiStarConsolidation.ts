@@ -1,21 +1,17 @@
-import type {
-  CircumstellarDiskRecord,
-  ExoplanetRecord,
-  StellarComponent,
-  SystemSummaryNode,
-} from '../../src/types/astro';
-import {
-  resolveStellarClassificationFromSpectrum,
-  resolveStellarReticleType,
-} from '../../src/utils/astroPrecalculation';
-import {
-  addKeyVariants,
-  getStrippedSystemBaseName,
-  isDuplicateCatalogRecord,
-  mergeSystemAliases,
-  pruneAbsorbedCollections,
-} from './systemNomenclature';
+import type { CircumstellarDiskRecord, ExoplanetRecord, StellarComponent, SystemSummaryNode } from '../../src/types/astro';
+import { resolveStellarClassificationFromSpectrum, resolveStellarReticleType } from '../../src/utils/astroPrecalculation';
+import { addKeyVariants, getStrippedSystemBaseName, isDuplicateCatalogRecord, mergeSystemAliases, pruneAbsorbedCollections } from './systemNomenclature';
 import type { ConsolidateMultiStarSystemsParams } from './types';
+
+export function compareComponentsByMagnitude(a: { id: string; mag?: number }, b: { id: string; mag?: number }): number {
+  const magA = a.mag;
+  const magB = b.mag;
+  const finA = magA !== undefined && Number.isFinite(magA);
+  const finB = magB !== undefined && Number.isFinite(magB);
+  if (finA && finB && magA !== magB) return magA - magB;
+  if (finA !== finB) return finA ? -1 : 1;
+  return a.id.localeCompare(b.id);
+}
 
 export function consolidateMultiStarSystems(params: ConsolidateMultiStarSystemsParams): {
   consolidatedCount: number;
@@ -180,7 +176,7 @@ export function consolidateMultiStarSystems(params: ConsolidateMultiStarSystemsP
     consolidatedCount++;
     totalSystemsReduced += groupIndices.length - 1;
 
-    const components = groupIndices.map((idx) => summaries[idx]!).sort((a, b) => (a.mag ?? 99) - (b.mag ?? 99));
+    const components = groupIndices.map((idx) => summaries[idx]!).sort(compareComponentsByMagnitude);
     const primary = components[0]!;
     const secondaries = components.slice(1);
     const canonicalName = getStrippedSystemBaseName(primary.name);

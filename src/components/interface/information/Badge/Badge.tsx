@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
+import { memo, type AnchorHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
 import { resolveAppHref } from '../../../../utils/url';
 import styles from './Badge.module.css';
 
@@ -16,7 +16,7 @@ export interface BadgeProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'class
   children?: ReactNode;
 }
 
-export const Badge = ({
+export const Badge = memo(function Badge({
   status,
   confidence,
   category,
@@ -25,7 +25,7 @@ export const Badge = ({
   rel,
   children,
   ...rest
-}: BadgeProps) => {
+}: BadgeProps) {
   if (href !== undefined) {
     return (
       <a
@@ -54,4 +54,6 @@ export const Badge = ({
       {children}
     </span>
   );
-};
+});
+
+Badge.displayName = 'Badge';

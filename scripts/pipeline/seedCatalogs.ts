@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { GalacticStructureRecord, SolarSystemBodyRecord } from '../../src/types/astro';
+import type { GalacticStructureRecord, SolarSystemBodyRecord } from '../../src/types/astroStructures';
 
 const SEED_DIR = path.resolve(process.cwd(), 'data/seed');
 

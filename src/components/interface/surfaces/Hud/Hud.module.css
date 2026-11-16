@@ -5,7 +5,6 @@
     --hud-border-width: var(--surface-hud-border-width);
     --hud-border-style: var(--surface-hud-border-style);
     --hud-shadow: var(--surface-hud-shadow);
-    --hud-blur: var(--surface-hud-backdrop-blur);
     --hud-opacity: var(--surface-hud-opacity);
     --hud-padding-x: var(--space-stack-loose);
     --hud-padding-y: var(--space-stack-compact);
@@ -19,8 +18,6 @@
     background: var(--hud-bg);
     border: var(--hud-border-width) var(--hud-border-style) var(--hud-border-color);
     box-shadow: var(--hud-shadow);
-    backdrop-filter: blur(var(--hud-blur));
-    -webkit-backdrop-filter: blur(var(--hud-blur));
     opacity: var(--hud-opacity);
     border-radius: var(--hud-radius);
     padding: var(--hud-padding-y) var(--hud-padding-x);

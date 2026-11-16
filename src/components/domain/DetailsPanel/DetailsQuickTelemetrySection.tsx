@@ -1,9 +1,10 @@
-import type { FocusedEntityDetails } from '../../../services/detailsService';
+import { memo } from 'react';
+import type { FocusedEntityDetails } from '../../../services/details/detailsEntityTypes';
 import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
-  buildTagGalaxyHref,
-} from '../../../services/searchService';
+} from '../../../content/guide';
+import { buildTagGalaxyHref } from '../../../services/search/searchUrls';
 import { resolveAppHref } from '../../../utils/url';
 import {
   Badge,
@@ -21,7 +22,9 @@ export interface DetailsQuickTelemetrySectionProps {
   readonly details: FocusedEntityDetails;
 }
 
-export const DetailsQuickTelemetrySection = ({ details }: DetailsQuickTelemetrySectionProps) => {
+export const DetailsQuickTelemetrySection = memo(function DetailsQuickTelemetrySection({
+  details,
+}: DetailsQuickTelemetrySectionProps) {
   const {
     id,
     focusedKind,
@@ -274,4 +277,6 @@ export const DetailsQuickTelemetrySection = ({ details }: DetailsQuickTelemetryS
       </p>
     </>
   );
-};
+});
+
+DetailsQuickTelemetrySection.displayName = 'DetailsQuickTelemetrySection';

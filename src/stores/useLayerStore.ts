@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { fetchLayerIndex } from '../data/layerRepository';
-import type { DatasetLayerIndexEntry } from '../types/astro';
+import type { DatasetLayerIndexEntry } from '../types/datasetLayers';
 
 export type LayerIndexStatus = 'idle' | 'loading' | 'ready' | 'error';
 

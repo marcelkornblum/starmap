@@ -1,0 +1,94 @@
+import type { DecodedDetailRecord } from '../../data/detailsRepository';
+import type {
+  FocusedEntityDetails,
+} from './detailsEntityTypes';
+import type {
+  FocusedPreviewSummary,
+  PreviewMode,
+  PreviewOrbitElement,
+} from './detailsNavigationTypes';
+import type { OrbitalSchematicEntityKind } from './detailsHierarchyTypes';
+
+export const buildFocusedPreviewSummary = (
+  details: FocusedEntityDetails | null,
+  entityDetail?: DecodedDetailRecord,
+): FocusedPreviewSummary | null => {
+  if (!details) {
+    return null;
+  }
+
+  const { id: targetId, name: targetName, systemId, systemName, focusedKind } = details;
+
+  let previewMode: PreviewMode;
+  if (focusedKind === 'system' || focusedKind === 'star') {
+    previewMode = 'system-orbits';
+  } else if (focusedKind === 'planet') {
+    previewMode = 'planetary-system';
+  } else {
+    previewMode = 'object-orbit';
+  }
+
+  const solarOrbit =
+    entityDetail?.kind === 'solar-body' ? entityDetail.record.orbit : undefined;
+
+  let primaryInclinationDeg: number | undefined;
+  let primaryEccentricity: number | undefined;
+  let primarySemiMajorAxisAu: number | undefined;
+
+  if (focusedKind === 'planet') {
+    primaryInclinationDeg =
+      details.planetTelemetry?.inclinationDeg ?? solarOrbit?.inclination;
+    primaryEccentricity =
+      details.planetTelemetry?.eccentricity ?? solarOrbit?.eccentricity;
+    primarySemiMajorAxisAu =
+      details.planetTelemetry?.semiMajorAxisAu ?? solarOrbit?.semiMajorAxis;
+  } else if (focusedKind === 'minor-body') {
+    primaryInclinationDeg = solarOrbit?.inclination;
+    primaryEccentricity = solarOrbit?.eccentricity;
+    primarySemiMajorAxisAu = solarOrbit?.semiMajorAxis;
+  }
+
+  let orbitElements: PreviewOrbitElement[] = [];
+  if (previewMode === 'system-orbits') {
+    orbitElements = details.planets.map((p, index) => ({
+      id: p.id,
+      name: p.name,
+      kind: 'planet',
+      orbitRank: index + 1,
+      ...(p.semiMajorAxisAu !== undefined ? { semiMajorAxisAu: p.semiMajorAxisAu } : {}),
+      ...(p.inclinationDeg !== undefined ? { inclinationDeg: p.inclinationDeg } : {}),
+      ...(p.eccentricity !== undefined ? { eccentricity: p.eccentricity } : {}),
+      inHabitableZone: p.isHabitableCandidate,
+    }));
+  } else if (previewMode === 'planetary-system') {
+    orbitElements = (details.orbitingBodies ?? []).map((b, index) => {
+      const kind: OrbitalSchematicEntityKind =
+        b.categoryLabel === 'Moon'
+          ? 'moon'
+          : b.categoryLabel === 'Spacecraft'
+            ? 'spacecraft'
+            : 'minor-body';
+      return {
+        id: b.id,
+        name: b.name,
+        kind,
+        orbitRank: index + 1,
+        inHabitableZone: false,
+      };
+    });
+  }
+
+  return {
+    targetId,
+    targetName,
+    systemId,
+    systemName,
+    focusedKind,
+    previewMode,
+    reticleType: details.reticleType,
+    ...(primaryInclinationDeg !== undefined ? { primaryInclinationDeg } : {}),
+    ...(primaryEccentricity !== undefined ? { primaryEccentricity } : {}),
+    ...(primarySemiMajorAxisAu !== undefined ? { primarySemiMajorAxisAu } : {}),
+    orbitElements,
+  };
+};

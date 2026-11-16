@@ -9,7 +9,7 @@ import {
   resolveMinorBodyReticleType,
   precalculateSolarSystemBodyFlags,
 } from './astroPrecalculation';
-import type { SolarSystemBodyRecord } from '../types/astro';
+import type { SolarSystemBodyRecord } from '../types/astroStructures';
 
 describe('astroPrecalculation', () => {
   describe('DEFAULT_STRUCTURE_DESCRIPTIONS & resolveDefaultStructureDescription', () => {

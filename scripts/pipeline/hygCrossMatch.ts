@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { KinematicVector, StarmapNode } from '../../src/types/astro';
-import { equatorialToCartesian, parseKinematicVector } from '../../src/utils/astroMath';
+import { equatorialToCartesian, parseKinematicVector } from '../../src/utils/astroCoordinates';
 import { parseCsvRowsSync } from './csvParser';
 import { OFFICIAL_IAU_STAR_NAMES } from './seedCatalogs';
 import type { HygCrossMatch } from './types';

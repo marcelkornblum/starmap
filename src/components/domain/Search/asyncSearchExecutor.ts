@@ -4,11 +4,9 @@ import {
   loadSearchCorpusForFilter,
   mergeSearchShards,
 } from '../../../data/searchRepository';
-import type {
-  GroupedSearchResults,
-  SearchCategoryFilter,
-} from '../../../services/searchService';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import type { GroupedSearchResults } from '../../../services/search/searchTypes';
+import type { SearchCategoryFilter } from '../../../types/search';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import { searchCatalog } from './searchHelpers';
 
 export const expandStarsShardIfEmpty = async (

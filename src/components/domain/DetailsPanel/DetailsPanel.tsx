@@ -1,26 +1,18 @@
-import type {
-  FocusedEntityDetails,
-  FocusedPreviewSummary,
-  OrbitalSchematicSummary,
-} from '../../../services/detailsService';
+import { memo, useCallback } from 'react';
+import type { FocusedEntityDetails } from '../../../services/details/detailsEntityTypes';
+import type { FocusedPreviewSummary } from '../../../services/details/detailsNavigationTypes';
+import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
 import { DetentSheet, type DetentLevel } from '../../interface/surfaces/DetentSheet';
-import { Heading } from '../../interface';
 import { useUIStore } from '../../../stores/useUIStore';
-import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
-import { PreviewPanel } from '../PreviewPanel';
 import { DetailsActionControls } from './DetailsActionControls';
-import {
-  DetailsCanonLayersSection,
-  DetailsHazardsSection,
-} from './DetailsCanonSection';
-import {
-  DetailsPlanetHierarchy,
-  DetailsSystemHierarchy,
-} from './DetailsHierarchySections';
+import { DetailsHazardsSection } from './DetailsCanonSection';
 import { DetailsIdentityHeader } from './DetailsIdentityHeader';
 import { DetailsQuickTelemetrySection } from './DetailsQuickTelemetrySection';
 import { DetailsTelemetrySections } from './DetailsTelemetrySections';
-import styles from './DetailsPanel.module.css';
+import {
+  DetailsDeferredFull,
+  DetailsDeferredPartialLower,
+} from './DetailsDeferredSections';
 
 export interface DetailsPanelProps {
   readonly details: FocusedEntityDetails | null;
@@ -37,20 +29,29 @@ export interface DetailsPanelProps {
  * domain property (`details`), returns `null` when nothing is focused, and decomposes
  * the focused entity's data into the 3 detent areas (`Peek`, `Partial`, `Full`).
  */
-export const DetailsPanel = ({
+export const DetailsPanel = memo(function DetailsPanel({
   details,
   activeDetent: propActiveDetent,
   schematic,
   preview,
   isOpen,
   onClose: _onClose,
-  onDetentChange: _onDetentChange,
-}: DetailsPanelProps) => {
+  onDetentChange,
+}: DetailsPanelProps) {
   const subscribedDetent = useUIStore((s) => s.detailsDetent);
+  const setDetailsDetent = useUIStore((s) => s.setDetailsDetent);
   const storeDetent =
     typeof window === 'undefined'
       ? useUIStore.getState().detailsDetent
       : subscribedDetent;
+
+  const handleDetentChange = useCallback(
+    (nextDetent: DetentLevel) => {
+      setDetailsDetent(nextDetent);
+      onDetentChange?.(nextDetent);
+    },
+    [setDetailsDetent, onDetentChange]
+  );
 
   const effectiveIsOpen = isOpen !== undefined ? isOpen : storeDetent !== 'collapsed';
   if (!effectiveIsOpen || !details) {
@@ -100,15 +101,12 @@ export const DetailsPanel = ({
         systemDetailsHref={details.systemDetailsHref}
       />
       <DetailsHazardsSection hazards={details.hazards} />
-      <DetailsCanonLayersSection canonAnnotations={canonAnnotations} />
-      <DetailsPlanetHierarchy
+      <DetailsDeferredPartialLower
+        canonAnnotations={canonAnnotations}
         focusedKind={focusedKind}
-        schematic={schematic}
-        orbitingBodies={orbitingBodies}
-      />
-      <DetailsSystemHierarchy
         isSystemFocus={isSystemFocus}
         schematic={schematic}
+        orbitingBodies={orbitingBodies}
         stars={stars}
         planets={planets}
         disks={details.disks}
@@ -120,24 +118,11 @@ export const DetailsPanel = ({
   const fullContent = (
     <>
       <DetailsTelemetrySections details={details} />
-      {!isSystemFocus &&
-      schematic &&
-      schematic.scope === 'system' &&
-      schematic.items.length > 0 ? (
-        <section
-          aria-labelledby="details-schematic-heading"
-          data-testid="orbital-schematic-panel"
-          data-scope={schematic.scope}
-          data-system-id={schematic.systemId}
-          className={styles.schematicSection}
-        >
-          <Heading as="h4" size="eyebrow" id="details-schematic-heading">
-            Orbital Schematic
-          </Heading>
-          <OrbitalSchematicList items={schematic.items} />
-        </section>
-      ) : null}
-      {preview ? <PreviewPanel preview={preview} /> : null}
+      <DetailsDeferredFull
+        isSystemFocus={isSystemFocus}
+        schematic={schematic}
+        preview={preview}
+      />
     </>
   );
 
@@ -147,6 +132,7 @@ export const DetailsPanel = ({
       heading="Details"
       headingId="details-panel-heading"
       activeDetent={effectiveDetent}
+      onDetentChange={handleDetentChange}
       data-entity-id={id}
       data-system-id={systemId}
       data-focused-kind={focusedKind}
@@ -155,4 +141,6 @@ export const DetailsPanel = ({
       full={fullContent}
     />
   );
-};
+});
+
+DetailsPanel.displayName = 'DetailsPanel';

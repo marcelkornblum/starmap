@@ -1,9 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useSettingsStore } from '../../stores/useSettingsStore';
-import {
-  useThreeTokenStore,
-  extractThreeTokens,
-} from '../../stores/useThreeTokenStore';
+import { useThreeTokenStore } from '../../stores/useThreeTokenStore';
+import { extractThreeTokens } from '../../stores/extractThreeTokens';
 
 /**
  * Hook synchronising DOM theme tokens with the Three.js token store.
@@ -12,7 +10,6 @@ import {
  */
 export function useThemeTokenSync(): void {
   const theme = useSettingsStore((state) => state.theme);
-  const palette = useSettingsStore((state) => state.palette);
   const setTokens = useThreeTokenStore((state) => state.setTokens);
 
   const resolveTokens = useCallback(() => {
@@ -20,7 +17,7 @@ export function useThemeTokenSync(): void {
     const computed = window.getComputedStyle(document.documentElement);
     const snapshot = extractThreeTokens(computed, theme);
     setTokens(snapshot);
-  }, [theme, palette, setTokens]);
+  }, [theme, setTokens]);
 
   useEffect(() => {
     // 1. Resolve immediately on mount or store theme change

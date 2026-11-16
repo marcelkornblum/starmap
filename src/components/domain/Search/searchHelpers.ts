@@ -1,6 +1,6 @@
-import type { GroupedSearchResults } from '../../../services/searchService';
-import { executeCatalogSearch } from '../../../services/searchService';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import type { GroupedSearchResults } from '../../../services/search/searchTypes';
+import { executeCatalogSearch } from '../../../services/search/searchExecution';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import {
   fetchDetailRecord,
   fetchSummaryNode,

@@ -50,9 +50,9 @@ describe('<Heading />', () => {
     const group = screen.getByText('Alpha Centauri A').closest('[data-heading-group="true"]');
     expect(group).toBeDefined();
 
-    expect(screen.getByText('SYSTEM CATALOG')).toBeDefined();
-    expect(screen.getByText('Catalogued across Gaia DR3 and Hipparcos ephemerides')).toBeDefined();
-    expect(screen.getByTestId('badge-indicator')).toBeDefined();
+    expect(screen.getByText('SYSTEM CATALOG')).toBeInTheDocument();
+    expect(screen.getByText('Catalogued across Gaia DR3 and Hipparcos ephemerides')).toBeInTheDocument();
+    expect(screen.getByTestId('badge-indicator')).toBeInTheDocument();
   });
 
   it('applies visuallyHidden data attribute and forwards attributes', () => {

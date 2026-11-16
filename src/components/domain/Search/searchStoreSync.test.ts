@@ -4,9 +4,9 @@ import {
   syncUrlFocusToStore,
 } from './searchStoreSync';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
-import { executeCatalogSearch } from '../../../services/searchService';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
-import type { DatasetLayerIndexEntry, DatasetLayerManifest } from '../../../types/astro';
+import { executeCatalogSearch } from '../../../services/search/searchExecution';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
+import type { DatasetLayerIndexEntry, DatasetLayerManifest } from '../../../types/datasetLayers';
 
 const TEST_CORPUS: readonly CompactSearchEntry[] = [
   {
@@ -151,6 +151,22 @@ describe('searchStoreSync', () => {
 
       expect(store.getState().entities['fallback-entity']).toBeUndefined();
       expect(fallbackRef.current).toBeNull();
+    });
+
+    it('uses existing registered entity when focusSlug matches via resolveEntityId', () => {
+      const store = createSpatialEntityStore();
+      store.getState().registerEntity({
+        id: 'gliese-581',
+        name: 'Gliese 581',
+        position: [20, 1, 0],
+        classification: 'star',
+      });
+
+      syncUrlFocusToStore(store, 'Gliese-581', TEST_CORPUS);
+
+      const state = store.getState();
+      expect(state.focusedId).toBe('gliese-581');
+      expect(state.entities['gliese-581'].position).toEqual([20, 1, 0]);
     });
   });
 });

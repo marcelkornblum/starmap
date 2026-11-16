@@ -17,6 +17,7 @@ describe('Camera Store: useCameraStore.ts', () => {
     expect(state.savedGalaxyCamera).toBeNull();
     expect(state.lastGalaxySearch).toBe('');
     expect(state.pendingCenterSlug).toBeNull();
+    expect(state.inFlightFocusSlug).toBeUndefined();
     expect(state.canvasFocusedSlugs.size).toBe(0);
   });
 
@@ -118,6 +119,85 @@ describe('Camera Store: useCameraStore.ts', () => {
     expect(useCameraStore.getState().canvasFocusedSlugs.size).toBe(0);
   });
 
+  it('guarantees setter idempotency without triggering store subscribers on unchanged values', () => {
+    let notifications = 0;
+    const unsub = useCameraStore.subscribe(() => {
+      notifications++;
+    });
+
+    useCameraStore.getState().setMode('perspective'); // already 'perspective'
+    expect(notifications).toBe(0);
+
+    useCameraStore.getState().setActiveCardinal(null); // already null
+    expect(notifications).toBe(0);
+
+    useCameraStore.getState().setLastGalaxySearch(''); // already ''
+    expect(notifications).toBe(0);
+
+    useCameraStore.getState().setPendingCenterSlug(null); // already null
+    expect(notifications).toBe(0);
+
+    useCameraStore.getState().clearCanvasFocus(); // already empty
+    expect(notifications).toBe(0);
+
+    // Now change values:
+    useCameraStore.getState().setMode('orthographic');
+    expect(notifications).toBe(1);
+
+    // Setting same value again should be a no-op
+    useCameraStore.getState().setMode('orthographic');
+    expect(notifications).toBe(1);
+
+    useCameraStore.getState().setActiveCardinal('top');
+    expect(notifications).toBe(2);
+    useCameraStore.getState().setActiveCardinal('top');
+    expect(notifications).toBe(2);
+
+    useCameraStore.getState().setLastGalaxySearch('?q=test');
+    expect(notifications).toBe(3);
+    useCameraStore.getState().setLastGalaxySearch('?q=test');
+    expect(notifications).toBe(3);
+
+    useCameraStore.getState().setPendingCenterSlug('sol');
+    expect(notifications).toBe(4);
+    useCameraStore.getState().setPendingCenterSlug('sol');
+    expect(notifications).toBe(4);
+
+    unsub();
+  });
+
+  it('supports recordCanvasFocus with arrays and avoids notifications on duplicate slugs', () => {
+    let notifications = 0;
+    const unsub = useCameraStore.subscribe(() => {
+      notifications++;
+    });
+
+    // Recording an array of multiple new slugs should trigger exactly ONE notification
+    useCameraStore.getState().recordCanvasFocus(['sol', 'sirius', 'vega']);
+    expect(notifications).toBe(1);
+    expect(useCameraStore.getState().canvasFocusedSlugs.has('sol')).toBe(true);
+    expect(useCameraStore.getState().canvasFocusedSlugs.has('sirius')).toBe(true);
+    expect(useCameraStore.getState().canvasFocusedSlugs.has('vega')).toBe(true);
+
+    // Recording already-present slugs (single or array) triggers ZERO notifications
+    useCameraStore.getState().recordCanvasFocus('sol');
+    expect(notifications).toBe(1);
+
+    useCameraStore.getState().recordCanvasFocus(['sol', 'vega']);
+    expect(notifications).toBe(1);
+
+    // Clearing canvas focus
+    useCameraStore.getState().clearCanvasFocus();
+    expect(notifications).toBe(2);
+    expect(useCameraStore.getState().canvasFocusedSlugs.size).toBe(0);
+
+    // Clearing again is an idempotent no-op
+    useCameraStore.getState().clearCanvasFocus();
+    expect(notifications).toBe(2);
+
+    unsub();
+  });
+
   it('resets to initial state with reset', () => {
     useCameraStore.getState().setLocked(true);
     useCameraStore.getState().requestAxisView('front');
@@ -157,6 +237,42 @@ describe('Camera Store: useCameraStore.ts', () => {
 
       useCameraStore.getState().setRadialView();
       expect(useCameraStore.getState().pendingPresetRequest).toBe('radial');
+    });
+
+    it('focusFromSearch clears canvasFocusedSlugs, sets pendingCenterSlug, resets inFlightFocusSlug, and increments recenterTick in a single store notification', () => {
+      useCameraStore.getState().recordCanvasFocus('sol');
+      useCameraStore.getState().setInFlightFocusSlug('alpha-centauri');
+      expect(useCameraStore.getState().canvasFocusedSlugs.has('sol')).toBe(true);
+      expect(useCameraStore.getState().inFlightFocusSlug).toBe('alpha-centauri');
+
+      let notifications = 0;
+      const unsubscribe = useCameraStore.subscribe(() => {
+        notifications++;
+      });
+
+      useCameraStore.getState().focusFromSearch('sirius');
+      unsubscribe();
+
+      const state = useCameraStore.getState();
+      expect(notifications).toBe(1);
+      expect(state.canvasFocusedSlugs.size).toBe(0);
+      expect(state.pendingCenterSlug).toBe('sirius');
+      expect(state.inFlightFocusSlug).toBeUndefined();
+      expect(state.recenterTick).toBe(1);
+    });
+
+    it('manages inFlightFocusSlug and resets it cleanly on reset()', () => {
+      useCameraStore.getState().setInFlightFocusSlug('vega');
+      expect(useCameraStore.getState().inFlightFocusSlug).toBe('vega');
+
+      useCameraStore.getState().setInFlightFocusSlug(null);
+      expect(useCameraStore.getState().inFlightFocusSlug).toBeNull();
+
+      useCameraStore.getState().setInFlightFocusSlug('altair');
+      expect(useCameraStore.getState().inFlightFocusSlug).toBe('altair');
+
+      useCameraStore.getState().reset();
+      expect(useCameraStore.getState().inFlightFocusSlug).toBeUndefined();
     });
   });
 });

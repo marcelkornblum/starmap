@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   Button,
   CelestialTitle,
@@ -25,7 +26,7 @@ export interface BreadcrumbsProps {
  * at the top of a view alongside a persistent mode menu (Galaxy and Guide)
  * showing the active screen.
  */
-export const Breadcrumbs = ({
+export const Breadcrumbs = memo(({
   items,
   companionHref,
   companionLabel: _companionLabel,
@@ -121,4 +122,4 @@ export const Breadcrumbs = ({
       </div>
     </nav>
   );
-};
+});

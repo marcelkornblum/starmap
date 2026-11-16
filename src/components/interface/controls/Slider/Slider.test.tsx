@@ -16,7 +16,7 @@ describe('<Slider />', () => {
     );
 
     const slider = screen.getByRole('slider', { name: 'Sensor Gain' }) as HTMLInputElement;
-    expect(slider).toBeDefined();
+    expect(slider).toBeInTheDocument();
     expect(slider.type).toBe('range');
     expect(slider.min).toBe('0');
     expect(slider.max).toBe('100');
@@ -69,10 +69,10 @@ describe('<Slider />', () => {
       />
     );
 
-    expect(screen.getByText('Parallax Threshold')).toBeDefined();
-    expect(screen.getByText('15')).toBeDefined();
+    expect(screen.getByText('Parallax Threshold')).toBeInTheDocument();
+    expect(screen.getByText('15')).toBeInTheDocument();
     const slider = screen.getByRole('slider', { name: 'Parallax Threshold' });
-    expect(slider).toBeDefined();
+    expect(slider).toBeInTheDocument();
   });
 
   it('respects explicitly provided id for label association', () => {

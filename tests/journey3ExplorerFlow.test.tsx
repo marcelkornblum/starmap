@@ -1,5 +1,6 @@
 import { createElement } from 'react';
 import { cleanup, render, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
@@ -12,30 +13,25 @@ import {
   OrbitalSchematicPanel,
   PreviewPanel,
 } from '../src/components/domain';
-import {
-  buildFocusedEntityDetails,
-  buildFocusedPreviewSummary,
-  buildGalaxyMinimapOrientation,
-  buildPlanetMinimapOrientation,
-  buildPlanetaryBodiesSummary,
-  buildPlanetaryOrbitalSchematic,
-  buildSystemBodiesSummary,
-  buildSystemMinimapOrientation,
-  buildSystemOrbitalSchematic,
-  type FocusedPreviewSummary,
-  type MinimapOrientationSummary,
-  type OrbitalSchematicSummary,
-} from '../src/services/detailsService';
-import {
-  buildTagGalaxyHref,
-  doesSystemEntryMatchTag,
-  executeCatalogSearch,
-  extractUrlTagFocus,
-  isCatalogTag,
-  resolveSelectedSystemsFromTag,
-} from '../src/services/searchService';
+import { buildFocusedEntityDetails } from '../src/services/details/focusedEntityDetails';
+import { buildFocusedPreviewSummary } from '../src/services/details/detailsPreview';
+import { buildPlanetMinimapOrientation } from '../src/services/details/planetMinimap';
+import { buildPlanetaryBodiesSummary } from '../src/services/details/planetaryBodiesSummary';
+import { buildPlanetaryOrbitalSchematic } from '../src/services/details/planetaryOrbitalSchematic';
+import { buildSystemMinimapOrientation } from '../src/services/details/systemMinimap';
+import type {
+  FocusedPreviewSummary,
+  MinimapOrientationSummary,
+} from '../src/services/details/detailsNavigationTypes';
+import type { OrbitalSchematicSummary } from '../src/services/details/detailsHierarchyTypes';
+import { buildTagGalaxyHref } from '../src/services/search/searchUrls';
+import { doesSystemEntryMatchTag } from '../src/services/search/searchTagTriggers';
+import { executeCatalogSearch } from '../src/services/search/searchExecution';
+import { extractUrlTagFocus } from '../src/services/search/searchUrlSelection';
+import { isCatalogTag } from '../src/services/search/searchTagDefinitions';
+import { resolveSelectedSystemsFromTag } from '../src/services/search/searchUrlSelectionResolvers';
 import { syncSelectedSystemsToStore } from '../src/components/domain/Search/searchStoreSync';
-import { type CompactSearchEntry } from '../src/utils/compactDataCodec';
+import { type CompactSearchEntry } from '../src/utils/compactDataTypes';
 import { GalaxyView } from '../src/views/GalaxyView';
 import { PlanetView } from '../src/views/PlanetView';
 import { SystemView } from '../src/views/SystemView';
@@ -77,7 +73,7 @@ describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', 
       );
     });
 
-    expect(screen.getByTestId('galaxy-view-root')).toBeDefined();
+    expect(screen.getByTestId('galaxy-view-root')).toBeInTheDocument();
     expect(screen.queryByTestId('systems-panel')).toBeNull();
     // "Adrian" is a fictional entry in the Tau Ceti system -> Tau Ceti becomes selected
     expect(store.getState().getEntitiesByState('selected').map((e) => e.name)).toEqual([
@@ -110,13 +106,13 @@ describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', 
       'tau Ceti e',
     ]);
     expect(screen.queryByTestId('systems-panel')).toBeNull();
-    expect(screen.getByTestId('details-panel')).toBeDefined();
+    expect(screen.getByTestId('details-panel')).toBeInTheDocument();
     expect(res!.container.querySelector('#details-panel-heading')?.textContent).toContain('Details');
     expect(res!.container.querySelector('#details-peek-heading')?.textContent).toContain('Peek');
     expect(res!.container.querySelector('#details-partial-heading')?.textContent).toContain('Partial');
     expect(res!.container.querySelector('#details-full-heading')?.textContent).toContain('Full');
     expect(screen.getByTestId('details-button-system-details').getAttribute('href')).toBe('/planet/tau-ceti-e');
-    expect(screen.getByTestId('details-button-directions')).toBeDefined();
+    expect(screen.getByTestId('details-button-directions')).toBeInTheDocument();
     expect(res!.container.textContent).toContain('Hail Mary');
     expect(res!.container.textContent).toContain('Adrian');
     res!.unmount();
@@ -142,7 +138,7 @@ describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', 
       'Tau Ceti',
     ]);
     expect(screen.queryByTestId('systems-panel')).toBeNull();
-    expect(screen.getByTestId('details-panel')).toBeDefined();
+    expect(screen.getByTestId('details-panel')).toBeInTheDocument();
     expect(screen.getByTestId('details-spectral-badge').getAttribute('data-spectral-badge')).toBe('G8V');
     expect(screen.getByTestId('details-spectral-badge').getAttribute('href')).toBe('/guide/star-types/G8V');
     expect(screen.getByTestId('details-reticle-type').getAttribute('data-celestial-symbol')).toBe('stellar-system');
@@ -317,97 +313,12 @@ describe('Journey 3: Explorer Flow - Multi-Entity Selection & Astrometry Tags', 
         .getEntitiesByState('focused')
         .map((s) => s.name),
     ).toEqual(['Tau Ceti']);
-    expect(screen.getByTestId('details-panel')).toBeDefined();
+    expect(screen.getByTestId('details-panel')).toBeInTheDocument();
     gal2!.unmount();
   });
 });
 
 describe('Journey 3: Explorer Flow - Orbital Schematic Domain and Component Boundary (DEC-014)', () => {
-  it('builds system orbital schematic with precalculated orbital rank r and region overlaps', () => {
-    // Sol system summary with Earth, Ceres, Pluto, Voyager 1
-    const solDetails = buildFocusedEntityDetails({
-      focusedEntity: null,
-      urlSystemSlug: 'sol',
-      corpus: SAMPLE_CORPUS,
-      summaryNode: {
-        id: 'sol',
-        name: 'Sol',
-        spect: 'G2V',
-        dist: 0,
-        starCount: 1,
-        planetCount: 8,
-        mag: -26.74,
-        absmag: 4.83,
-        x: 0,
-        y: 0,
-        z: 0,
-        hasHabitableCandidate: true,
-        sectorId: 'SEC-0-0-0',
-      },
-    });
-
-    const solBodies = buildSystemBodiesSummary({
-      details: solDetails,
-      corpus: SAMPLE_CORPUS,
-    });
-
-    const schematic = buildSystemOrbitalSchematic(solBodies, SAMPLE_CORPUS);
-    expect(schematic).not.toBeNull();
-    expect(schematic?.scope).toBe('system');
-    expect(schematic?.systemId).toBe('sol');
-    expect(schematic?.items.length).toBeGreaterThan(0);
-
-    // Primary star at rank 0
-    const starItem = schematic?.items.find((i) => i.kind === 'star');
-    expect(starItem).toMatchObject({
-      id: 'sol-A',
-      kind: 'star',
-      orbitRank: 0,
-      summaryLabel: 'Component A · G2V',
-    });
-
-    // Earth at rank 3 with habitable zone region and nested moon children
-    const earthItem = schematic?.items.find((i) => i.id === 'earth');
-    expect(earthItem).toMatchObject({
-      id: 'earth',
-      kind: 'planet',
-      orbitRank: 3,
-      inHabitableZone: true,
-      region: 'habitable-zone',
-    });
-    expect(earthItem?.children).toHaveLength(1);
-    expect(earthItem?.children?.[0]).toMatchObject({
-      id: 'moon',
-      name: 'Moon',
-      kind: 'moon',
-      orbitRank: 1,
-    });
-
-    // Ceres at rank 5 in asteroid belt
-    const ceresItem = schematic?.items.find((i) => i.id === 'ceres');
-    expect(ceresItem).toMatchObject({
-      id: 'ceres',
-      kind: 'dwarf-planet',
-      orbitRank: 5,
-      region: 'asteroid-belt',
-    });
-
-    // Pluto at rank 10 in kuiper belt
-    const plutoItem = schematic?.items.find((i) => i.id === 'pluto');
-    expect(plutoItem).toMatchObject({
-      id: 'pluto',
-      kind: 'dwarf-planet',
-      orbitRank: 10,
-      region: 'kuiper-belt',
-    });
-
-    // Verify ordering: star (0) < earth (3) < ceres (5) < pluto (10)
-    const itemIds = schematic?.items.map((i) => i.id) ?? [];
-    expect(itemIds.indexOf('sol-A')).toBeLessThan(itemIds.indexOf('earth'));
-    expect(itemIds.indexOf('earth')).toBeLessThan(itemIds.indexOf('ceres'));
-    expect(itemIds.indexOf('ceres')).toBeLessThan(itemIds.indexOf('pluto'));
-  });
-
   it('builds planetary orbital schematic with host at rank 0 and orbiting bodies sorted by r', () => {
     const earthDetails = buildFocusedEntityDetails({
       focusedEntity: null,
@@ -593,140 +504,6 @@ describe('Journey 3: Explorer Flow - Orbital Schematic Domain and Component Boun
 });
 
 describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary (DEC-016)', () => {
-  it('buildFocusedPreviewSummary produces correct previewMode, primary telemetry, and orbit elements across all modes', () => {
-    // 1. null details returns null
-    expect(buildFocusedPreviewSummary(null)).toBeNull();
-
-    // 2. System mode ('system-orbits')
-    const systemDetails = buildFocusedEntityDetails({
-      focusedEntity: {
-        id: 'sol',
-        name: 'Sol',
-        position: [0, 0, 0],
-        classification: 'stellar-system',
-      },
-      corpus: SAMPLE_CORPUS,
-      urlSystemSlug: 'sol',
-      hasExplicitFocus: true,
-      summaryNode: {
-        id: 'sol',
-        name: 'Sol',
-        spect: 'G2V',
-        dist: 0,
-        starCount: 1,
-        planetCount: 8,
-        mag: -26.74,
-        absmag: 4.83,
-        x: 0,
-        y: 0,
-        z: 0,
-        hasHabitableCandidate: true,
-        sectorId: 'SEC-0-0-0',
-      },
-    });
-
-    const systemPreview = buildFocusedPreviewSummary(systemDetails);
-    expect(systemPreview).not.toBeNull();
-    expect(systemPreview?.previewMode).toBe('system-orbits');
-    expect(systemPreview?.targetId).toBe('sol');
-    expect(systemPreview?.systemId).toBe('sol');
-    expect(systemPreview?.orbitElements.length).toBeGreaterThan(0);
-    const earthElement = systemPreview?.orbitElements.find((e) => e.id === 'earth');
-    expect(earthElement).toMatchObject({
-      id: 'earth',
-      kind: 'planet',
-      inHabitableZone: true,
-    });
-
-    // 3. Planet mode ('planetary-system')
-    const planetDetails = buildFocusedEntityDetails({
-      focusedEntity: {
-        id: 'earth',
-        name: 'Earth',
-        position: [0, 0, 0],
-        classification: 'terrestrial',
-      },
-      corpus: SAMPLE_CORPUS,
-      urlSystemSlug: 'sol',
-      urlPlanetSlug: 'earth',
-      hasExplicitFocus: true,
-      entityDetail: {
-        kind: 'solar-body',
-        record: {
-          id: 'earth',
-          name: 'Earth',
-          classification: 'Planet',
-          meanRadiusKm: 6371,
-          orbit: {
-            semiMajorAxis: 1.0,
-            eccentricity: 0.0167,
-            inclination: 0.00005,
-            periodDays: 365.25,
-            ascendingNode: 0,
-            argumentOfPeriapsis: 102.9,
-            meanAnomaly: 100.46,
-          },
-        },
-      },
-    });
-
-    const planetPreview = buildFocusedPreviewSummary(planetDetails);
-    expect(planetPreview).not.toBeNull();
-    expect(planetPreview?.previewMode).toBe('planetary-system');
-    expect(planetPreview?.targetId).toBe('earth');
-    expect(planetPreview?.primarySemiMajorAxisAu).toBe(1.0);
-    expect(planetPreview?.primaryEccentricity).toBe(0.0167);
-    expect(planetPreview?.primaryInclinationDeg).toBe(0.00005);
-    // Orbit elements should contain moons
-    const moonElement = planetPreview?.orbitElements.find((e) => e.id === 'moon');
-    expect(moonElement).toMatchObject({
-      id: 'moon',
-      kind: 'moon',
-      orbitRank: 1,
-      inHabitableZone: false,
-    });
-
-    // 4. Object orbit mode ('object-orbit') for minor body
-    const minorBodyDetails = buildFocusedEntityDetails({
-      focusedEntity: {
-        id: 'ceres',
-        name: 'Ceres',
-        position: [0, 0, 0],
-      },
-      corpus: SAMPLE_CORPUS,
-      urlSystemSlug: 'sol',
-      hasExplicitFocus: true,
-    });
-
-    const ceresDetailRecord = {
-      kind: 'solar-body' as const,
-      record: {
-        id: 'ceres',
-        name: 'Ceres',
-        classification: 'DwarfPlanet' as const,
-        meanRadiusKm: 469.7,
-        orbit: {
-          semiMajorAxis: 2.77,
-          eccentricity: 0.076,
-          inclination: 10.59,
-          periodDays: 1682,
-          ascendingNode: 80.3,
-          argumentOfPeriapsis: 73.1,
-          meanAnomaly: 77.4,
-        },
-      },
-    };
-
-    const minorBodyPreview = buildFocusedPreviewSummary(minorBodyDetails, ceresDetailRecord);
-    expect(minorBodyPreview).not.toBeNull();
-    expect(minorBodyPreview?.previewMode).toBe('object-orbit');
-    expect(minorBodyPreview?.targetId).toBe('ceres');
-    expect(minorBodyPreview?.primarySemiMajorAxisAu).toBe(2.77);
-    expect(minorBodyPreview?.primaryEccentricity).toBe(0.076);
-    expect(minorBodyPreview?.primaryInclinationDeg).toBe(10.59);
-    expect(minorBodyPreview?.orbitElements).toEqual([]);
-  });
-
   it('renders <PreviewPanel /> with semantic attributes, telemetry, and orbit elements, and hides when preview is null', () => {
     // 1. null preview returns empty markup
     const { container: nullPrevContainer, unmount: unmountNullPrev } = render(
@@ -853,7 +630,7 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
       );
     });
     const sysPreview = screen.getByTestId('preview-panel');
-    expect(sysPreview).toBeDefined();
+    expect(sysPreview).toBeInTheDocument();
     expect(sysPreview.getAttribute('data-preview-mode')).toBe('planetary-system');
     expect(screen.getAllByTestId('preview-panel')).toHaveLength(1);
     sys2!.unmount();
@@ -872,7 +649,7 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
         ),
       );
     });
-    expect(screen.getByTestId('preview-panel')).toBeDefined();
+    expect(screen.getByTestId('preview-panel')).toBeInTheDocument();
     expect(screen.getAllByTestId('preview-panel')).toHaveLength(1);
     plan2!.unmount();
   });
@@ -992,45 +769,6 @@ describe('Journey 3: Explorer Flow - Focus Preview Domain and Component Boundary
 });
 
 describe('Journey 3: Explorer Flow - Minimap Global Spatial Orientation Panel (DEC-017)', () => {
-  it('buildGalaxyMinimapOrientation produces correct origin anchor, coordinates, and markers', () => {
-    // 1. Unfocused state
-    const unfocusedOrientation = buildGalaxyMinimapOrientation(undefined, [], null);
-    expect(unfocusedOrientation.scope).toBe('galaxy');
-    expect(unfocusedOrientation.anchorId).toBe('sol');
-    expect(unfocusedOrientation.anchorName).toBe('Sol');
-    expect(unfocusedOrientation.distanceFromOriginPc).toBe(0);
-    expect(unfocusedOrientation.focusedMarker).toBeNull();
-    expect(unfocusedOrientation.markers).toHaveLength(1);
-    expect(unfocusedOrientation.markers[0].role).toBe('origin');
-    expect(unfocusedOrientation.markers[0].id).toBe('sol');
-
-    // 2. Focused and selected state
-    const focusedOrientation = buildGalaxyMinimapOrientation(
-      {
-        id: 'alpha-centauri',
-        name: 'Alpha Centauri',
-        position: [-0.47, 1.32, -0.33],
-        classification: 'stellar-system',
-      },
-      [
-        {
-          id: 'sirius',
-          name: 'Sirius',
-          position: [-1.6, -1.9, -1.1],
-          classification: 'stellar-system',
-        },
-      ],
-      null,
-    );
-    expect(focusedOrientation.focusedMarker?.id).toBe('alpha-centauri');
-    expect(focusedOrientation.focusedMarker?.role).toBe('focused');
-    expect(focusedOrientation.focusedMarker?.distanceFromOriginPc).toBe(1.44);
-    expect(focusedOrientation.selectedMarkers).toHaveLength(1);
-    expect(focusedOrientation.selectedMarkers[0].id).toBe('sirius');
-    expect(focusedOrientation.selectedMarkers[0].role).toBe('selected');
-    expect(focusedOrientation.markers).toHaveLength(3); // origin + focused + selected
-  });
-
   it('buildSystemMinimapOrientation produces correct anchor, orbital metrics, and markers', () => {
     const dummySystemBodies = {
       scope: 'system' as const,

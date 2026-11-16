@@ -1,7 +1,5 @@
-import {
-  parseSearchUrlParams,
-  type SearchCategoryFilter,
-} from '../../../services/searchService';
+import { parseSearchUrlParams } from '../../../services/search/searchUrls';
+import type { SearchCategoryFilter } from '../../../types/search';
 import { appRouter, type StarmapSearchParams } from '../../../hooks/useSpaLocation';
 
 export const resolveInitialQuery = (

@@ -7,7 +7,6 @@ export interface StarmapSearchParams {
   select?: string;
   layer?: string;
   route?: string;
-  journeyOption?: string;
   center?: string;
 }
 
@@ -40,28 +39,30 @@ export interface SpaRouterLike {
   };
 }
 
-let registeredRouter: SpaRouterLike | null = null;
+interface StarmapRouterGlobal {
+  __STARMAP_APP_ROUTER__?: SpaRouterLike | null;
+}
+
+const routerGlobal = globalThis as unknown as StarmapRouterGlobal;
 
 export function registerAppRouter(routerInstance: unknown): void {
-  registeredRouter = (routerInstance ?? null) as SpaRouterLike | null;
+  routerGlobal.__STARMAP_APP_ROUTER__ = (routerInstance ?? null) as SpaRouterLike | null;
 }
 
 export const appRouter: SpaRouterLike = {
   get navigate() {
-    return registeredRouter?.navigate
-      ? registeredRouter.navigate.bind(registeredRouter)
-      : undefined;
+    const router = routerGlobal.__STARMAP_APP_ROUTER__;
+    return router?.navigate ? router.navigate.bind(router) : undefined;
   },
   get state() {
-    return registeredRouter?.state;
+    return routerGlobal.__STARMAP_APP_ROUTER__?.state;
   },
   get subscribe() {
-    return registeredRouter?.subscribe
-      ? registeredRouter.subscribe.bind(registeredRouter)
-      : undefined;
+    const router = routerGlobal.__STARMAP_APP_ROUTER__;
+    return router?.subscribe ? router.subscribe.bind(router) : undefined;
   },
   get history() {
-    return registeredRouter?.history;
+    return routerGlobal.__STARMAP_APP_ROUTER__?.history;
   },
 };
 
@@ -113,11 +114,13 @@ export function useSpaLocation(
     const unsubRouter = appRouter.subscribe?.('onResolved', handleLocationChange);
     const unsubHistory = appRouter.history?.subscribe?.(handleLocationChange);
     window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('starmap:locationchange', handleLocationChange);
 
     return () => {
       unsubRouter?.();
       unsubHistory?.();
       window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('starmap:locationchange', handleLocationChange);
     };
   }, [locationPathname, locationSearch]);
 

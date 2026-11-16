@@ -7,7 +7,7 @@ describe('<Toggle />', () => {
     render(<Toggle checked={false} onChange={vi.fn()} aria-label="Constellation grid" />);
 
     const toggle = screen.getByRole('switch', { name: 'Constellation grid' });
-    expect(toggle).toBeDefined();
+    expect(toggle).toBeInTheDocument();
     expect(toggle.getAttribute('type')).toBe('button');
     expect(toggle.getAttribute('aria-checked')).toBe('false');
     expect(toggle.getAttribute('aria-pressed')).toBe('false');
@@ -65,9 +65,9 @@ describe('<Toggle />', () => {
   it('renders optional label element', () => {
     render(<Toggle checked={false} onChange={vi.fn()} label="Spectral Classification" />);
 
-    expect(screen.getByText('Spectral Classification')).toBeDefined();
+    expect(screen.getByText('Spectral Classification')).toBeInTheDocument();
     const toggle = screen.getByRole('switch', { name: 'Spectral Classification' });
-    expect(toggle).toBeDefined();
+    expect(toggle).toBeInTheDocument();
   });
 
   it('binds scoped module class statically without custom className per DEC-R050', () => {

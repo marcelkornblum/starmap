@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { DetailsPanel } from './DetailsPanel';
+import { useUIStore } from '../../../stores/useUIStore';
 import type {
   FocusedPlanetEntityDetails,
   FocusedSystemEntityDetails,
-} from '../../../services/detailsService';
+} from '../../../services/details/detailsEntityTypes';
 
 const mockSystemDetails: FocusedSystemEntityDetails = {
   id: 'tau-ceti',
@@ -155,12 +156,12 @@ describe('<DetailsPanel />', () => {
     expect(panel.getAttribute('data-entity-id')).toBe('tau-ceti');
     expect(panel.getAttribute('data-system-id')).toBe('tau-ceti');
 
-    expect(screen.getByTestId('details-detent-peek')).toBeDefined();
-    expect(screen.getByTestId('details-detent-partial')).toBeDefined();
-    expect(screen.getByTestId('details-detent-full')).toBeDefined();
+    expect(screen.getByTestId('details-detent-peek')).toBeInTheDocument();
+    expect(screen.getByTestId('details-detent-partial')).toBeInTheDocument();
+    expect(screen.getByTestId('details-detent-full')).toBeInTheDocument();
 
     expect(screen.getByTestId('details-peek-name').textContent).toBe('Tau Ceti');
-    expect(screen.getByText('Project Hail Mary')).toBeDefined();
+    expect(screen.getByText('Project Hail Mary')).toBeInTheDocument();
   });
 
   it('renders planet details with orbiting bodies', () => {
@@ -175,7 +176,7 @@ describe('<DetailsPanel />', () => {
     const panel = screen.getByTestId('details-panel');
     expect(panel.getAttribute('data-entity-id')).toBe('earth');
     expect(panel.getAttribute('data-focused-kind')).toBe('planet');
-    expect(screen.getByText('Moon')).toBeDefined();
+    expect(screen.getByText('Moon')).toBeInTheDocument();
   });
 
   it('renders orbital schematic list when schematic is passed for system focus, replacing separate hierarchy sections', () => {
@@ -224,9 +225,27 @@ describe('<DetailsPanel />', () => {
       />,
     );
 
-    expect(screen.getByTestId('orbital-schematic-panel')).toBeDefined();
-    expect(screen.getByTestId('orbital-schematic-list')).toBeDefined();
+    expect(screen.getByTestId('orbital-schematic-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('orbital-schematic-list')).toBeInTheDocument();
     expect(screen.queryByTestId('details-stars-section')).toBeNull();
     expect(screen.queryByTestId('details-planets-section')).toBeNull();
+  });
+
+  it('forwards detent changes from DetentSheet to useUIStore and onDetentChange prop', () => {
+    useUIStore.getState().setDetailsDetent('peek');
+    const onDetentChange = vi.fn();
+    render(
+      <DetailsPanel
+        details={mockSystemDetails}
+        isOpen={true}
+        onDetentChange={onDetentChange}
+      />,
+    );
+
+    const handle = screen.getByTestId('details-drag-handle');
+    fireEvent.click(handle);
+
+    expect(onDetentChange).toHaveBeenCalledWith('partial');
+    expect(useUIStore.getState().detailsDetent).toBe('partial');
   });
 });

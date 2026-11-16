@@ -6,11 +6,11 @@ describe('<StarTypeCombinator />', () => {
   it('renders with default G2V classification and telemetry', () => {
     render(<StarTypeCombinator />);
 
-    expect(screen.getByTestId('star-type-combinator')).toBeDefined();
-    expect(screen.getByText('Classification: G2V')).toBeDefined();
+    expect(screen.getByTestId('star-type-combinator')).toBeInTheDocument();
+    expect(screen.getByText('Classification: G2V')).toBeInTheDocument();
 
     const telemetry = screen.getByTestId('combinator-computed-telemetry');
-    expect(telemetry).toBeDefined();
+    expect(telemetry).toBeInTheDocument();
 
     const permalink = screen.getByTestId('combinator-permalink');
     expect(permalink.getAttribute('href')).toContain('/guide/star-types/G2V');
@@ -27,7 +27,7 @@ describe('<StarTypeCombinator />', () => {
     const fiveButton = within(subSlice).getByRole('button', { name: '5' });
     fireEvent.click(fiveButton);
 
-    expect(screen.getByText('Classification: M5V')).toBeDefined();
+    expect(screen.getByText('Classification: M5V')).toBeInTheDocument();
     const permalink = screen.getByTestId('combinator-permalink');
     expect(permalink.getAttribute('href')).toContain('/guide/star-types/M5V');
   });

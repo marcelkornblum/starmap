@@ -1,10 +1,10 @@
 import React, { Fragment, type ReactNode } from 'react';
-import type { SystemSummarySegment } from '../../../services/detailsService';
+import type { SystemSummarySegment } from '../../../services/details/detailsEntityTypes';
 import {
   buildPlanetTypeGuideHref,
   buildStarTypeGuideHref,
-  buildTagGalaxyHref,
-} from '../../../services/searchService';
+} from '../../../content/guide';
+import { buildTagGalaxyHref } from '../../../services/search/searchUrls';
 import {
   CelestialBadge,
   SpectralBadge,

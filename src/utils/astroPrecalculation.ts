@@ -1,10 +1,6 @@
-import type {
-  CelestialSymbolType,
-  GalacticStructureRecord,
-  SolarSystemBodyRecord,
-  SystemSummaryNode,
-} from '../types/astro';
-import { classifyPlanetPhysical } from './astroMath';
+import type { CelestialSymbolType, SystemSummaryNode } from '../types/astro';
+import type { GalacticStructureRecord, SolarSystemBodyRecord } from '../types/astroStructures';
+import { classifyPlanetPhysical } from './planetaryPhysics';
 
 export const DEFAULT_STRUCTURE_DESCRIPTIONS: Record<number, string> = {
   1: 'Galactic open star cluster cataloged in Cantat-Gaudin Gaia survey.',
@@ -239,11 +235,7 @@ export function isCoreSearchMinorBody(body: SolarSystemBodyRecord): boolean {
   if (body.isCoreSearch !== undefined) {
     return body.isCoreSearch;
   }
-  return (
-    !body.id.startsWith('pha-') &&
-    !body.id.startsWith('distant-') &&
-    !body.id.startsWith('comet-')
-  );
+  return !body.id.startsWith('pha-') && !body.id.startsWith('distant-') && !body.id.startsWith('comet-');
 }
 
 export function isCoreSearchStructure(struct: GalacticStructureRecord): boolean {

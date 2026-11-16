@@ -5,7 +5,7 @@ import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { ApertureEvaluator } from './ApertureEvaluator';
 import { OcclusionPass } from './OcclusionPass';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
-import type { CelestialClassification } from '../cartography/reticleGeometry';
+import type { CelestialClassification } from '../../../types/spatial';
 import type { CelestialInteractionState } from './types';
 
 interface FullEntityStoryArgs {

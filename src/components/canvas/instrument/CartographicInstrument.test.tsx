@@ -21,14 +21,17 @@ describe('CartographicInstrument (Composite)', () => {
     );
 
     expect(renderer.scene.findByProps({ name: 'cartographic-grid' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'hairline-shader-warmup' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'dashed-hairline-shader-warmup' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'line-basic-shader-warmup' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'datum-plane' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'range-rings' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'travelling-fins' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'bearing-vectors' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'screen-edge-bearing-indicators' })).toBeDefined();
 
-    expect(screen.getByText('CORE 000°')).toBeDefined();
-    expect(screen.getByText('ORB 090°')).toBeDefined();
+    expect(screen.getByText('CORE 000°')).toBeInTheDocument();
+    expect(screen.getByText('ORB 090°')).toBeInTheDocument();
 
     expect(renderer.scene.findByProps({ name: 'full-ring-2.5' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'full-ring-5' })).toBeDefined();
@@ -48,11 +51,14 @@ describe('CartographicInstrument (Composite)', () => {
     );
 
     expect(renderer.scene.findByProps({ name: 'cartographic-grid' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'hairline-shader-warmup' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'dashed-hairline-shader-warmup' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'line-basic-shader-warmup' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'datum-plane' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'planar-galactic-grid' })).toBeDefined();
 
     expect(screen.queryByText('CORE 000°')).toBeNull();
-    expect(screen.getByText('ORB 090°')).toBeDefined();
+    expect(screen.getByText('ORB 090°')).toBeInTheDocument();
 
     await renderer.unmount();
     unmountOutlet();

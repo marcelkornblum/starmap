@@ -1,4 +1,4 @@
-import type { DatasetLayerManifest } from '../../src/types/astro';
+import type { DatasetLayerManifest } from '../../src/types/datasetLayers';
 import canonProjectHailMary from './canon-project-hail-mary';
 import canonStarTrek from './canon-star-trek';
 import canonThreeBody from './canon-three-body';

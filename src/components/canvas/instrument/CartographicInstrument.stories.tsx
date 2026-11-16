@@ -10,8 +10,8 @@ import {
   GALACTIC_FRAME,
   SYSTEM_FRAME,
   PLANETARY_FRAME,
-  type ReferenceFrame,
 } from './index';
+import type { ReferenceFrame } from '../../../types/spatial';
 
 const meta: Meta<typeof CartographicInstrument> = {
   title: 'CANVAS/Instrument',

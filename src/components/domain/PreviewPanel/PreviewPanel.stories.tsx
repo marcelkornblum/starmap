@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import type { FocusedPreviewSummary } from '../../../services/detailsService';
+import type { FocusedPreviewSummary } from '../../../services/details/detailsNavigationTypes';
 import { PreviewPanel } from './PreviewPanel';
 import { Stack } from '../../interface/layouts/Stack/Stack';
 

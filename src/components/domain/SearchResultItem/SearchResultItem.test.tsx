@@ -3,10 +3,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { SearchResultItem } from './SearchResultItem';
 import { formatPlanetCountSummary } from './searchResultFormatting';
 import { SearchContext } from '../Search/SearchContext';
-import {
-  executeCatalogSearch,
-  type SearchResultItem as SearchResultItemModel,
-} from '../../../services/searchService';
+import { executeCatalogSearch } from '../../../services/search/searchExecution';
+import type { SearchResultItem as SearchResultItemModel } from '../../../services/search/searchTypes';
+import { useCameraStore } from '../../../stores/useCameraStore';
+import * as prefetchModule from '../../../services/details/prefetchEntitySelection';
 
 describe('<SearchResultItem />', () => {
   describe('formatPlanetCountSummary', () => {
@@ -68,15 +68,15 @@ describe('<SearchResultItem />', () => {
     expect(spectralBadge.tagName).not.toBe('A');
     expect(spectralBadge.getAttribute('href')).toBeNull();
 
-    expect(screen.getByText('Sol System')).toBeDefined();
-    expect(screen.getByTestId('result-planet-summary')).toBeDefined();
+    expect(screen.getByText('Sol System')).toBeInTheDocument();
+    expect(screen.getByTestId('result-planet-summary')).toBeInTheDocument();
   });
 
   it('renders a layer result with canon badge', () => {
     render(<SearchResultItem result={mockLayerResult} />);
 
-    expect(screen.getByTestId('result-variation-layers')).toBeDefined();
-    expect(screen.getByText('Star Trek Canon')).toBeDefined();
+    expect(screen.getByTestId('result-variation-layers')).toBeInTheDocument();
+    expect(screen.getByText('Star Trek Canon')).toBeInTheDocument();
   });
 
   it('renders a bare star without spectral badge when spectral type is missing or unknown', () => {
@@ -92,7 +92,7 @@ describe('<SearchResultItem />', () => {
     };
     render(<SearchResultItem result={bareStar} />);
 
-    expect(screen.getByText('Bare Star')).toBeDefined();
+    expect(screen.getByText('Bare Star')).toBeInTheDocument();
     expect(screen.queryByTestId('result-spectral-badge')).toBeNull();
   });
 
@@ -125,5 +125,71 @@ describe('<SearchResultItem />', () => {
 
     expect(dismissSearch).toHaveBeenCalledWith(mockStarResult);
     expect(onSelect).toHaveBeenCalledWith(mockStarResult);
+  });
+
+  it('invokes focusFromSearch when clicking a galaxy-targeted result with a focus param', () => {
+    const focusFromSearchSpy = vi.fn();
+    vi.spyOn(useCameraStore, 'getState').mockReturnValue({
+      focusFromSearch: focusFromSearchSpy,
+    } as unknown as ReturnType<typeof useCameraStore.getState>);
+
+    const galaxyResult: SearchResultItemModel = {
+      id: 'sirius',
+      name: 'Sirius',
+      category: 'stars',
+      entityKind: 'star-system',
+      reticleType: 'stellar-system',
+      targetView: 'galaxy',
+      href: '/galaxy?focus=sirius',
+      score: 1.0,
+    };
+
+    render(
+      <SearchContext.Provider
+        value={{
+          query: 'sirius',
+          filter: 'all',
+          status: 'ready',
+          errorMessage: null,
+          results: executeCatalogSearch([], { query: 'sirius', filter: 'all' }),
+          setQuery: vi.fn(),
+          setFilter: vi.fn(),
+          submitSearch: vi.fn(),
+          isFocused: true,
+          setIsFocused: vi.fn(),
+          dismissSearch: vi.fn(),
+        }}
+      >
+        <SearchResultItem result={galaxyResult} />
+      </SearchContext.Provider>,
+    );
+
+    const link = screen.getByRole('link', { name: /sirius/i });
+    fireEvent.click(link);
+
+    expect(focusFromSearchSpy).toHaveBeenCalledWith('sirius');
+  });
+
+  it('triggers hover prefetch scheduling on mouse enter and focus, cancelling on mouse leave, blur, and click', () => {
+    const scheduleSpy = vi.spyOn(prefetchModule, 'scheduleHoverPrefetch').mockReturnValue();
+    const cancelSpy = vi.spyOn(prefetchModule, 'cancelHoverPrefetch').mockReturnValue();
+
+    render(<SearchResultItem result={mockStarResult} />);
+
+    const link = screen.getByRole('link', { name: /sol system/i });
+    fireEvent.mouseEnter(link);
+    expect(scheduleSpy).toHaveBeenCalledWith('sol', 'sol');
+
+    fireEvent.mouseLeave(link);
+    expect(cancelSpy).toHaveBeenCalled();
+
+    fireEvent.focus(link);
+    expect(scheduleSpy).toHaveBeenCalledWith('sol', 'sol');
+
+    fireEvent.blur(link);
+    expect(cancelSpy).toHaveBeenCalled();
+
+    fireEvent.click(link);
+    expect(cancelSpy).toHaveBeenCalled();
   });
 });

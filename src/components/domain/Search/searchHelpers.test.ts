@@ -5,9 +5,9 @@ import {
   prefetchSearchResultsDetails,
   searchCatalog,
 } from './searchHelpers';
-import type { GroupedSearchResults } from '../../../services/searchService';
-import type { DatasetLayerManifest } from '../../../types/astro';
-import type { CompactSearchEntry } from '../../../utils/compactDataCodec';
+import type { GroupedSearchResults } from '../../../services/search/searchTypes';
+import type { DatasetLayerManifest } from '../../../types/datasetLayers';
+import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import * as detailsRepo from '../../../data/detailsRepository';
 import * as layerRepo from '../../../data/layerRepository';
 

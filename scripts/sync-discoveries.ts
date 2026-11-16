@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { DatasetLayerEntry } from '../src/types/astro';
-import type { CompactSearchEntry } from '../src/utils/compactDataCodec';
-import { splitAliases, toUrlSlug } from '../src/utils/datasetLayerCodec';
+import type { DatasetLayerEntry } from '../src/types/datasetLayers';
+import type { CompactSearchEntry } from '../src/utils/compactDataTypes';
+import { splitAliases, toUrlSlug } from '../src/utils/datasetLayerSlugs';
 import { LAYER_MANIFESTS } from '../content/layers';
-import { findFocusedEntryInCorpus } from '../src/services/searchService';
+import { findFocusedEntryInCorpus } from '../src/services/search/searchCorpusHelpers';
 import { parseCsvRecordsSync } from './pipeline/csvParser';
 
 export interface RecentDiscoveryItem {

@@ -9,7 +9,7 @@ import {
   createCartoLineGeometry,
 } from '../materials/CartoLineMaterial';
 import { SafeHtml } from '../SafeHtml';
-import { calculateScreenInvariantScale } from '../engineConfig';
+import { calculateScreenInvariantScale, NOOP_RAYCAST } from '../engineConfig';
 import {
   buildJourneyChordRenderData,
   type JourneyChordLeg,
@@ -76,6 +76,7 @@ const JourneyChordLegView: React.FC<JourneyChordLegViewProps> = ({
 
   const line2Mesh = useMemo(() => {
     const mesh = new Line2(lineGeom, lineMat);
+    mesh.raycast = NOOP_RAYCAST;
     mesh.computeLineDistances();
     return mesh;
   }, [lineGeom, lineMat]);
@@ -134,7 +135,7 @@ const JourneyChordLegView: React.FC<JourneyChordLegViewProps> = ({
     >
       <primitive object={line2Mesh} />
       {projGeom && (
-        <lineSegments geometry={projGeom} material={projMat} />
+        <lineSegments geometry={projGeom} material={projMat} raycast={NOOP_RAYCAST} />
       )}
       {showLabels && (
         <SafeHtml
@@ -206,6 +207,7 @@ const JourneyChordWaypointMarker: React.FC<JourneyChordWaypointMarkerProps> = ({
       position={waypoint.position as unknown as [number, number, number]}
       name="journey-chord-waypoint"
       userData={{ testId: 'journey-chord-waypoint', waypointId: waypoint.id, waypointRole: waypoint.role }}
+      raycast={NOOP_RAYCAST}
     />
   );
 };

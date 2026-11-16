@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
-import { PLANETARY_FRAME } from '../instrument/referenceFrame';
+import { PLANETARY_FRAME } from '../../../config/referenceFrames';
 import { PlanetScene, type PlanetSceneProps } from './PlanetScene';
 
 const meta: Meta<PlanetSceneProps> = {

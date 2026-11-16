@@ -13,7 +13,7 @@ import {
   SearchResultItem,
   SpatialShell,
 } from '../components/domain';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 import { useSystemViewModel } from './useSystemViewModel';
 
 export interface SystemViewProps {

@@ -4,7 +4,7 @@ import { LayerCard } from './LayerCard';
 import type {
   ActiveLayerOverviewCardModel,
   ActiveLayerItemCardModel,
-} from '../../../services/layerCardService';
+} from '../../../services/layerCardNavigation';
 
 const mockOverviewCard: ActiveLayerOverviewCardModel = {
   mode: 'overview',
@@ -63,7 +63,7 @@ describe('<LayerCard />', () => {
 
     expect(screen.getByTestId('layer-card-title').textContent).toBe('Hard Sci-Fi Canon');
     expect(screen.getByTestId('layer-card-kind').textContent).toBe('Fictional Canon');
-    expect(screen.getByTestId('layer-card-count')).toBeDefined();
+    expect(screen.getByTestId('layer-card-count')).toBeInTheDocument();
     expect(screen.getByTestId('layer-card-source').getAttribute('href')).toBe('https://example.com/source');
     expect(screen.getByTestId('layer-card-start').textContent).toContain('Explore: Tau Ceti');
   });
@@ -75,9 +75,9 @@ describe('<LayerCard />', () => {
     expect(card.getAttribute('data-card-mode')).toBe('item');
 
     expect(screen.getByTestId('layer-card-overview-link').textContent).toBe('Hard Sci-Fi Canon');
-    expect(screen.getByTestId('layer-card-step')).toBeDefined();
+    expect(screen.getByTestId('layer-card-step')).toBeInTheDocument();
     expect(screen.getByTestId('layer-card-text').textContent).toContain('Destination star system');
-    expect(screen.getByTestId('layer-card-confidence')).toBeDefined();
+    expect(screen.getByTestId('layer-card-confidence')).toBeInTheDocument();
 
     expect(screen.getByTestId('layer-card-prev').textContent).toContain('Sol');
     expect(screen.getByTestId('layer-card-next').textContent).toContain('Alpha Centauri');

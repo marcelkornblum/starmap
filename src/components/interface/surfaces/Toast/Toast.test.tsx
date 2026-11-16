@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Toast } from './Toast';
 
 describe('<Toast />', () => {
@@ -9,7 +10,7 @@ describe('<Toast />', () => {
     const toast = screen.getByRole('status');
     expect(toast.getAttribute('aria-live')).toBe('polite');
     expect(toast.getAttribute('data-status')).toBe('info');
-    expect(screen.getByRole('heading', { level: 4, name: 'Trajectory Locked' })).toBeDefined();
+    expect(screen.getByRole('heading', { level: 4, name: 'Trajectory Locked' })).toBeInTheDocument();
   });
 
   it('renders message body and custom status attribute', () => {
@@ -23,7 +24,7 @@ describe('<Toast />', () => {
 
     const toast = screen.getByRole('status');
     expect(toast.getAttribute('data-status')).toBe('critical');
-    expect(screen.getByText('Apoapsis below safety threshold.')).toBeDefined();
+    expect(screen.getByText('Apoapsis below safety threshold.')).toBeInTheDocument();
   });
 
   it('renders dismiss button when onClose is provided and handles click', () => {

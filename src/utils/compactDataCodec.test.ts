@@ -1,20 +1,24 @@
 import { describe, it, expect } from 'vitest';
+import { COMPACT_SCHEMA_VERSION } from './compactDataConstants';
 import {
-  COMPACT_SCHEMA_VERSION,
-  encodeCircumstellarDisk,
   decodeCircumstellarDisk,
-  encodeSystemManifest,
-  decodeSystemManifest,
-  encodeSummaryNode,
-  decodeSummaryNode,
+  decodeDetailBucket,
   decodeSectorPartition,
   decodeSummaryBucket,
-  decodeDetailBucket,
-  type CompactSectorPartition,
-  type ShardedBucketEnvelope,
-  type CompactSummaryNode,
-  type CompactDetailRecord,
+  decodeSummaryNode,
+  decodeSystemManifest,
 } from './compactDataCodec';
+import type {
+  CompactDetailRecord,
+  CompactSectorPartition,
+  CompactSummaryNode,
+  ShardedBucketEnvelope,
+} from './compactDataTypes';
+import {
+  encodeSummaryNode,
+  encodeSystemManifest,
+} from '../../scripts/pipeline/compactDataEncoder';
+import { encodeCircumstellarDisk } from '../../scripts/pipeline/compactEntityEncoder';
 import type {
   CircumstellarDiskRecord,
   SystemManifest,

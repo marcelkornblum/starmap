@@ -1,37 +1,21 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { type ThreeEvent } from '@react-three/fiber';
-import {
-  type ReferenceFrame,
-  GALACTIC_FRAME,
-  createCustomReferenceFrame,
-  type FrameLightingConfig,
-} from '../instrument/referenceFrame';
-import { CartographicInstrument } from '../instrument/CartographicInstrument';
-import { CameraRig } from '../instrument/CameraRig';
-import { CartographicLighting } from '../instrument/CartographicLighting';
+import type { ReferenceFrame, FrameLightingConfig } from '../../../types/spatial';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
+import { createCustomReferenceFrame } from '../instrument/referenceFrame';
 import { SpatialFrameProvider } from '../instrument/SpatialFrameProvider';
-import { useCameraTransition } from '../instrument/useCameraTransition';
 import {
   SpatialEntityProvider,
-  ApertureEvaluator,
-  useSpatialEntityStoreApi,
   useOptionalSpatialEntityStoreApi,
-  useOcclusionManager,
-  CelestialEntity,
-  OcclusionPass,
   type SpatialEntityDefinition,
   type SpatialEntityStore,
   createSpatialEntityStore,
-  activateEntity,
-  focusEntity,
-  clearInteraction,
-  JourneyChord,
 } from '../entity';
 import type { JourneyChordLeg } from '../cartography';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import { getApertureActiveCutoffForViewportWidth } from '../../../services/deviceTierService';
-import { toUrlSlug } from '../../../utils/datasetLayerCodec';
+import { SpatialViewportContent } from './SpatialViewportContent';
 
 export interface SpatialViewportProps {
   /** The reference frame driving spatial instrument metrics and scale. Defaults to GALACTIC_FRAME */
@@ -79,293 +63,8 @@ export interface SpatialViewportProps {
 }
 
 /**
- * Inner viewport content with access to scoped SpatialEntityStore
- */
-const SpatialViewportContent: React.FC<SpatialViewportProps> = React.memo(({
-  entities = [],
-  mode = 'explore',
-  onInspect,
-  onSelect,
-  onFocusChange,
-  outerStore,
-  children,
-  showInstrument = true,
-  showPlanarFootprint = false,
-  debugHitarea = false,
-  syncWithUIStore: _syncWithUIStore = true,
-  initialSelectedId,
-  enableFocusTransition = true,
-  focusTransitionDuration = 0.8,
-  onDoubleClick,
-  lighting,
-  journeyLegs,
-  activeJourneyMethod,
-}) => {
-  const storeApi = useSpatialEntityStoreApi();
-  const occlusionManager = useOcclusionManager();
-  const { transitionTo } = useCameraTransition();
-
-  // Initialize selection on mount if initialSelectedId is provided
-  useEffect(() => {
-    if (initialSelectedId) {
-      storeApi.getState().setSelected(initialSelectedId);
-    }
-  }, [initialSelectedId, storeApi]);
-
-  // Synchronise outer store selectedIds inward to local spatial entity store.
-  useEffect(() => {
-    if (!outerStore || outerStore === storeApi) return;
-    const applyOuterSelection = (ids: ReadonlySet<string>): void => {
-      storeApi.getState().setSelectedIds(ids);
-    };
-    applyOuterSelection(outerStore.getState().selectedIds);
-
-    return outerStore.subscribe((state, prevState) => {
-      if (state.selectedIds !== prevState.selectedIds) {
-        applyOuterSelection(state.selectedIds);
-      }
-    });
-  }, [outerStore, storeApi]);
-
-  // Synchronise outer store focusedId inward to local spatial entity store
-  useEffect(() => {
-    if (!outerStore || outerStore === storeApi) return;
-    const applyOuterFocus = (focusedId: string | null): void => {
-      const curFocused = storeApi.getState().focusedId;
-      if (curFocused === focusedId) return;
-
-      let resolvedLocalId = focusedId;
-      if (focusedId) {
-        const localEntities = storeApi.getState().entities;
-        if (localEntities[focusedId]) {
-          resolvedLocalId = focusedId;
-        } else {
-          const outerEntity = outerStore.getState().entities[focusedId];
-          const targetSlug = toUrlSlug(focusedId);
-          const outerNameSlug = outerEntity?.name ? toUrlSlug(outerEntity.name) : null;
-
-          const localMatch = Object.values(localEntities).find(
-            (e) =>
-              toUrlSlug(e.id) === targetSlug ||
-              toUrlSlug(e.name) === targetSlug ||
-              (outerNameSlug && toUrlSlug(e.name) === outerNameSlug),
-          );
-
-          if (localMatch) {
-            resolvedLocalId = localMatch.id;
-          } else if (outerEntity && !localEntities[outerEntity.id]) {
-            storeApi.getState().registerEntity(outerEntity);
-          }
-        }
-      }
-      if (storeApi.getState().focusedId !== resolvedLocalId) {
-        storeApi.getState().setFocused(resolvedLocalId);
-      }
-    };
-    applyOuterFocus(outerStore.getState().focusedId);
-
-    return outerStore.subscribe((state, prevState) => {
-      if (state.focusedId !== prevState.focusedId) {
-        applyOuterFocus(state.focusedId);
-      }
-    });
-  }, [outerStore, storeApi]);
-
-  // Synchronise outer store hoveredId inward to local spatial entity store
-  useEffect(() => {
-    if (!outerStore || outerStore === storeApi) return;
-    const applyOuterHover = (hoveredId: string | null): void => {
-      if (storeApi.getState().hoveredId !== hoveredId) {
-        storeApi.getState().setHovered(hoveredId);
-      }
-    };
-    applyOuterHover(outerStore.getState().hoveredId);
-
-    return outerStore.subscribe((state, prevState) => {
-      if (state.hoveredId !== prevState.hoveredId) {
-        applyOuterHover(state.hoveredId);
-      }
-    });
-  }, [outerStore, storeApi]);
-
-  // Initial outerStore aperture synchronization
-  useEffect(() => {
-    if (!outerStore || outerStore === storeApi) return;
-    const initialLocal = storeApi.getState();
-    if (initialLocal.apertureCenter || initialLocal.apertureRadius !== null) {
-      outerStore.getState().setApertureFrame(initialLocal.apertureCenter, initialLocal.apertureRadius);
-    }
-    if (initialLocal.apertureIds.size > 0) {
-      outerStore.getState().setApertureIds(initialLocal.apertureIds);
-    }
-  }, [outerStore, storeApi]);
-
-  // Synchronise local store selection & focus changes outward to outer spatial store and callbacks
-  useEffect(() => {
-    return storeApi.subscribe((state, prevState) => {
-      if (state.hoveredId !== prevState.hoveredId) {
-        if (outerStore && outerStore !== storeApi) {
-          if (outerStore.getState().hoveredId !== state.hoveredId) {
-            outerStore.getState().setHovered(state.hoveredId);
-          }
-        }
-      }
-
-      if (outerStore && outerStore !== storeApi) {
-        if (
-          state.apertureCenter !== prevState.apertureCenter ||
-          state.apertureRadius !== prevState.apertureRadius
-        ) {
-          const currentOuter = outerStore.getState();
-          const curCenter = currentOuter.apertureCenter;
-          const nextCenter = state.apertureCenter;
-          const centerChanged =
-            (curCenter === null) !== (nextCenter === null) ||
-            (curCenter !== null &&
-              nextCenter !== null &&
-              (Math.abs(curCenter[0] - nextCenter[0]) > 0.05 ||
-                Math.abs(curCenter[1] - nextCenter[1]) > 0.05 ||
-                Math.abs(curCenter[2] - nextCenter[2]) > 0.05));
-          const radiusChanged =
-            (currentOuter.apertureRadius === null) !== (state.apertureRadius === null) ||
-            (currentOuter.apertureRadius !== null &&
-              state.apertureRadius !== null &&
-              Math.abs(currentOuter.apertureRadius - state.apertureRadius) > 0.05);
-
-          if (centerChanged || radiusChanged) {
-            outerStore.getState().setApertureFrame(state.apertureCenter, state.apertureRadius);
-          }
-        }
-        if (state.apertureIds !== prevState.apertureIds) {
-          outerStore.getState().setApertureIds(state.apertureIds);
-        }
-      }
-
-      if (state.selectedId !== prevState.selectedId) {
-        if (outerStore && outerStore !== storeApi) {
-          if (state.selectedId) {
-            const entity = state.entities[state.selectedId];
-            if (entity) {
-              outerStore.getState().registerEntity(entity);
-            }
-          }
-          if (outerStore.getState().selectedId !== state.selectedId) {
-            outerStore.getState().setSelected(state.selectedId);
-          }
-        }
-      }
-
-      if (state.focusedId !== prevState.focusedId) {
-        if (outerStore && outerStore !== storeApi) {
-          if (state.focusedId) {
-            const entity = state.entities[state.focusedId];
-            if (entity) {
-              outerStore.getState().registerEntity(entity);
-            }
-          }
-          if (outerStore.getState().focusedId !== state.focusedId) {
-            outerStore.getState().setFocused(state.focusedId);
-          }
-        }
-      }
-    });
-  }, [storeApi, outerStore]);
-
-  // Single click: select, or advance cyclic selection when re-clicking the selected entity
-  const handleEntityClick = useCallback(
-    (id: string) => {
-      activateEntity(storeApi, id, (targetId) =>
-        occlusionManager.getCyclicSelectionTarget(targetId),
-      );
-      const state = storeApi.getState();
-      const entityId = state.focusedId ?? state.selectedId;
-      if (onFocusChange) {
-        onFocusChange(state.focusedId);
-      } else {
-        onSelect?.(entityId);
-      }
-    },
-    [storeApi, occlusionManager, onSelect, onFocusChange],
-  );
-
-  // Double click: centre the instrument, focus the entity, and inspect (the single inspect gesture)
-  const handleEntityDoubleClick = useCallback(
-    (id: string, e: ThreeEvent<MouseEvent>) => {
-      const entity = storeApi.getState().entities[id];
-      if (entity?.position && enableFocusTransition) {
-        transitionTo(entity.position, { duration: focusTransitionDuration });
-      }
-
-      focusEntity(storeApi, id);
-      onInspect?.(id);
-      onDoubleClick?.(id, e);
-      onSelect?.(id);
-      onFocusChange?.(id);
-    },
-    [
-      storeApi,
-      enableFocusTransition,
-      focusTransitionDuration,
-      transitionTo,
-      onInspect,
-      onDoubleClick,
-      onSelect,
-      onFocusChange,
-    ],
-  );
-
-  return (
-    <group
-      name="spatial-viewport"
-      userData={{ mode }}
-      onPointerMissed={() => {
-        clearInteraction(storeApi);
-        onSelect?.(null);
-        onFocusChange?.(null);
-      }}
-    >
-      {/* Dynamic O(n) screen-space occlusion pass */}
-      <OcclusionPass enabled={true} />
-      <ApertureEvaluator />
-
-      {/* Frame-driven camera rig and lighting */}
-      <CameraRig />
-      {lighting !== false && (
-        <CartographicLighting
-          lightingOverride={typeof lighting === 'object' ? lighting : undefined}
-        />
-      )}
-
-      {/* Cartographic Instrument Primitives (consume the viewport's single SpatialFrameProvider) */}
-      {showInstrument && <CartographicInstrument showPlanarFootprint={showPlanarFootprint} />}
-
-      {/* Decomposed Celestial Entities */}
-      {entities.map((entity) => (
-        <CelestialEntity
-          key={entity.id}
-          {...entity}
-          debugHitarea={debugHitarea}
-          onClick={handleEntityClick}
-          onDoubleClick={handleEntityDoubleClick}
-        />
-      ))}
-
-      {/* 3D Journey Chord visualization */}
-      {journeyLegs && journeyLegs.length > 0 ? (
-        <JourneyChord legs={journeyLegs} activeMethodId={activeJourneyMethod} />
-      ) : null}
-
-      {/* Custom bespoke visuals (e.g. PlanetBody, route corridors) */}
-      {children}
-    </group>
-  );
-});
-
-SpatialViewportContent.displayName = 'SpatialViewportContent';
-
-/**
  * SpatialViewport: Canonical Composition Root for 3D Cartography Scenes.
- * 
+ *
  * Sets up the scoped SpatialFrameProvider and SpatialEntityStore provider per viewport instance,
  * harmonises reference frames, and coordinates instrument primitives,
  * entity composites, and bespoke planetary bodies.
@@ -376,7 +75,6 @@ const SpatialViewportComponent: React.FC<SpatialViewportProps> = (props) => {
   const { frame = GALACTIC_FRAME, cameraDistance, initialSelectedId } = props;
 
   // Single source of the screen-constant reference distance for both instrument and entities.
-  // Preserves the instrument footprint previously derived from `cameraDistance`.
   const resolvedFrame = useMemo(
     () =>
       cameraDistance

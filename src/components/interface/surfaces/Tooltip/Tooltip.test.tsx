@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Tooltip } from './Tooltip';
 
 describe('<Tooltip />', () => {
@@ -41,7 +42,7 @@ describe('<Tooltip />', () => {
       </Tooltip>
     );
 
-    expect(screen.getByRole('tooltip')).toBeDefined();
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
   it('dismisses when Escape key is pressed', () => {
@@ -56,7 +57,7 @@ describe('<Tooltip />', () => {
       </Tooltip>
     );
 
-    expect(screen.getByRole('tooltip')).toBeDefined();
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(handleOpenChange).toHaveBeenCalledWith(false);
@@ -82,5 +83,42 @@ describe('<Tooltip />', () => {
     const outsideEl = screen.getByTestId('outside-el');
     fireEvent.mouseDown(outsideEl);
     expect(handleOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('does not calculate placement or attach window listeners on mount when uncontrolled, activating on mouseEnter and detaching on mouseLeave', () => {
+    const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect');
+    const addListenerSpy = vi.spyOn(window, 'addEventListener');
+    const removeListenerSpy = vi.spyOn(window, 'removeEventListener');
+
+    rectSpy.mockClear();
+    addListenerSpy.mockClear();
+    removeListenerSpy.mockClear();
+
+    const { container } = render(
+      <Tooltip text="Star">
+        <button type="button">Trigger</button>
+      </Tooltip>
+    );
+
+    const scrollAddsOnMount = addListenerSpy.mock.calls.filter(([event]) => event === 'scroll' || event === 'resize');
+    expect(scrollAddsOnMount).toHaveLength(0);
+    expect(rectSpy).not.toHaveBeenCalled();
+
+    const wrapper = container.firstElementChild as HTMLElement;
+
+    fireEvent.mouseEnter(wrapper);
+
+    const scrollAddsOnHover = addListenerSpy.mock.calls.filter(([event]) => event === 'scroll' || event === 'resize');
+    expect(scrollAddsOnHover.length).toBeGreaterThan(0);
+    expect(rectSpy).toHaveBeenCalled();
+
+    fireEvent.mouseLeave(wrapper);
+
+    const scrollRemovesOnLeave = removeListenerSpy.mock.calls.filter(([event]) => event === 'scroll' || event === 'resize');
+    expect(scrollRemovesOnLeave.length).toBeGreaterThan(0);
+
+    rectSpy.mockRestore();
+    addListenerSpy.mockRestore();
+    removeListenerSpy.mockRestore();
   });
 });

@@ -9,7 +9,7 @@ describe('spatialShellHelpers - resolvePrimaryPanels', () => {
     });
 
     render(<div>{result}</div>);
-    expect(screen.getByTestId('legacy-float')).toBeDefined();
+    expect(screen.getByTestId('legacy-float')).toBeInTheDocument();
   });
 
   it('returns detailsPanel when only detailsPanel is provided and open', () => {
@@ -19,7 +19,7 @@ describe('spatialShellHelpers - resolvePrimaryPanels', () => {
     });
 
     render(<div>{result}</div>);
-    expect(screen.getByTestId('details')).toBeDefined();
+    expect(screen.getByTestId('details')).toBeInTheDocument();
     expect(screen.queryByTestId('directions')).toBeNull();
   });
 
@@ -30,7 +30,7 @@ describe('spatialShellHelpers - resolvePrimaryPanels', () => {
     });
 
     render(<div>{result}</div>);
-    expect(screen.getByTestId('directions')).toBeDefined();
+    expect(screen.getByTestId('directions')).toBeInTheDocument();
     expect(screen.queryByTestId('details')).toBeNull();
   });
 
@@ -48,8 +48,8 @@ describe('spatialShellHelpers - resolvePrimaryPanels', () => {
     });
 
     const { unmount, container: containerDir } = render(<div>{directionsFirst}</div>);
-    expect(screen.getByTestId('directions')).toBeDefined();
-    expect(screen.getByTestId('details')).toBeDefined();
+    expect(screen.getByTestId('directions')).toBeInTheDocument();
+    expect(screen.getByTestId('details')).toBeInTheDocument();
     const childrenDir = containerDir.firstElementChild?.children;
     expect(childrenDir?.[0]?.getAttribute('data-testid')).toBe('directions');
     expect(childrenDir?.[1]?.getAttribute('data-testid')).toBe('details');
@@ -65,8 +65,8 @@ describe('spatialShellHelpers - resolvePrimaryPanels', () => {
     });
 
     const { container: containerDet } = render(<div>{detailsFirst}</div>);
-    expect(screen.getByTestId('details')).toBeDefined();
-    expect(screen.getByTestId('directions')).toBeDefined();
+    expect(screen.getByTestId('details')).toBeInTheDocument();
+    expect(screen.getByTestId('directions')).toBeInTheDocument();
     const childrenDet = containerDet.firstElementChild?.children;
     expect(childrenDet?.[0]?.getAttribute('data-testid')).toBe('details');
     expect(childrenDet?.[1]?.getAttribute('data-testid')).toBe('directions');
@@ -86,7 +86,7 @@ describe('spatialShellHelpers - resolvePrimaryPanels', () => {
     });
 
     const { unmount } = render(<div>{narrow}</div>);
-    expect(screen.getByTestId('directions')).toBeDefined();
+    expect(screen.getByTestId('directions')).toBeInTheDocument();
     expect(screen.queryByTestId('details')).toBeNull();
     unmount();
 
@@ -100,8 +100,8 @@ describe('spatialShellHelpers - resolvePrimaryPanels', () => {
     });
 
     render(<div>{wide}</div>);
-    expect(screen.getByTestId('directions')).toBeDefined();
-    expect(screen.getByTestId('details')).toBeDefined();
+    expect(screen.getByTestId('directions')).toBeInTheDocument();
+    expect(screen.getByTestId('details')).toBeInTheDocument();
   });
 
   it('handles closed panel states cleanly', () => {

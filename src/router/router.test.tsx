@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import {
   router,
@@ -28,8 +28,7 @@ import { SearchView } from '../views/SearchView';
 import { StarTypeDetailView } from '../views/StarTypeDetailView';
 import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
-import { SEARCH_CATEGORIES } from '../services/searchService';
-import { useStarmapNav } from './navigation';
+import { SEARCH_CATEGORIES } from '../types/search';
 import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
 
 vi.mock('@tanstack/react-router', async () => {
@@ -42,8 +41,6 @@ vi.mock('@tanstack/react-router', async () => {
     useSearch: vi.fn(() => ({})),
   };
 });
-
-import { useNavigate, useRouter } from '@tanstack/react-router';
 
 describe('TanStack Router Architecture', () => {
   it('registers clean-slate root routes', () => {
@@ -89,7 +86,6 @@ describe('TanStack Router Architecture', () => {
       select: 'layer:project-hail-mary,sol',
       layer: 'project-hail-mary',
       route: 'sol-to-tau-ceti',
-      journeyOption: 'standard',
       center: 'sol',
       x: '12.5',
       y: 42,
@@ -107,7 +103,6 @@ describe('TanStack Router Architecture', () => {
     expect(validated.select).toBe('layer:project-hail-mary,sol');
     expect(validated.layer).toBe('project-hail-mary');
     expect(validated.route).toBe('sol-to-tau-ceti');
-    expect(validated.journeyOption).toBe('standard');
     expect(validated.center).toBe('sol');
 
     // Legacy positioning params stripped
@@ -180,18 +175,18 @@ describe('TanStack Router Architecture', () => {
       </SpatialEntityProvider>,
     );
 
-    expect(screen.getByTestId('galaxy-view-root')).toBeDefined();
-    expect(screen.getByTestId('search-panel')).toBeDefined();
-    expect(screen.getByRole('heading', { level: 2, name: 'Search' })).toBeDefined();
-    expect(screen.getByLabelText('Search query')).toBeDefined();
-    expect(screen.getByTestId('search-clear-button')).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Clear search' })).toBeDefined();
-    expect(screen.getByLabelText('Filter')).toBeDefined();
+    expect(screen.getByTestId('galaxy-view-root')).toBeInTheDocument();
+    expect(screen.getByTestId('search-panel')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Search' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Search query')).toBeInTheDocument();
+    expect(screen.getByTestId('search-clear-button')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear search' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Filter')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Enter' })).toBeNull();
     expect(screen.queryByTestId('search-results-panel')).toBeNull();
 
     for (const category of SEARCH_CATEGORIES) {
-      expect(screen.getByRole('option', { name: category.heading })).toBeDefined();
+      expect(screen.getByRole('option', { name: category.heading })).toBeInTheDocument();
     }
   });
 
@@ -201,8 +196,8 @@ describe('TanStack Router Architecture', () => {
         <SearchView />
       </SpatialEntityProvider>,
     );
-    expect(screen.getByTestId('search-view-root')).toBeDefined();
-    expect(screen.getByTestId('search-panel')).toBeDefined();
+    expect(screen.getByTestId('search-view-root')).toBeInTheDocument();
+    expect(screen.getByTestId('search-panel')).toBeInTheDocument();
     expect(screen.queryByTestId('search-results-panel')).toBeNull();
 
     rerender(
@@ -210,8 +205,8 @@ describe('TanStack Router Architecture', () => {
         <SystemView initialCorpus={[]} />
       </SpatialEntityProvider>,
     );
-    expect(screen.getByTestId('system-view-root')).toBeDefined();
-    expect(screen.getByTestId('search-panel')).toBeDefined();
+    expect(screen.getByTestId('system-view-root')).toBeInTheDocument();
+    expect(screen.getByTestId('search-panel')).toBeInTheDocument();
     expect(screen.queryByTestId('search-results-panel')).toBeNull();
 
     await act(async () => {
@@ -221,88 +216,9 @@ describe('TanStack Router Architecture', () => {
         </SpatialEntityProvider>,
       );
     });
-    expect(screen.getByTestId('planet-view-root')).toBeDefined();
-    expect(screen.getByTestId('search-panel')).toBeDefined();
+    expect(screen.getByTestId('planet-view-root')).toBeInTheDocument();
+    expect(screen.getByTestId('search-panel')).toBeInTheDocument();
     expect(screen.queryByTestId('search-results-panel')).toBeNull();
-  });
-});
-
-describe('useStarmapNav Navigation Enforcer', () => {
-  const mockNavigate = vi.fn();
-  const mockRouter = {
-    state: {
-      location: {
-        pathname: '/galaxy',
-      },
-    },
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
-    vi.mocked(useRouter).mockReturnValue(mockRouter as unknown as ReturnType<typeof useRouter>);
-  });
-
-  it('enforces push (replace: false) on major view transition to /galaxy', async () => {
-    const nav = useStarmapNav();
-    await nav.toGalaxy({ center: 'sol' });
-
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    const callArg = mockNavigate.mock.calls[0][0];
-    expect(callArg.to).toBe('/galaxy');
-    expect(callArg.replace).toBe(false);
-    expect(callArg.search({ focus: 'sol' })).toEqual({ focus: 'sol', center: 'sol' });
-  });
-
-  it('enforces push (replace: false) on major view transition to /system/$systemId', async () => {
-    const nav = useStarmapNav();
-    await nav.toSystem('sol', { focus: 'earth' });
-
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    const callArg = mockNavigate.mock.calls[0][0];
-    expect(callArg.to).toBe('/system/$systemId');
-    expect(callArg.params).toEqual({ systemId: 'sol' });
-    expect(callArg.replace).toBe(false);
-    expect(callArg.search({ center: 'sol' })).toEqual({ center: 'sol', focus: 'earth' });
-  });
-
-  it('enforces push (replace: false) on major view transition to /planet/$planetId', async () => {
-    const nav = useStarmapNav();
-    await nav.toPlanet('earth', { focus: 'moon' });
-
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    const callArg = mockNavigate.mock.calls[0][0];
-    expect(callArg.to).toBe('/planet/$planetId');
-    expect(callArg.params).toEqual({ planetId: 'earth' });
-    expect(callArg.replace).toBe(false);
-    expect(callArg.search({ center: 'earth' })).toEqual({ center: 'earth', focus: 'moon' });
-  });
-
-  it('enforces push (replace: false) on major view transition to /guide/star-types', async () => {
-    const nav = useStarmapNav();
-    await nav.toReference({ center: 'icrs' });
-
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    const callArg = mockNavigate.mock.calls[0][0];
-    expect(callArg.to).toBe('/guide/star-types');
-    expect(callArg.replace).toBe(false);
-    expect(callArg.search({})).toEqual({ center: 'icrs' });
-  });
-
-  it('enforces replace (replace: true) on intra-view parameter updates', async () => {
-    const nav = useStarmapNav();
-    await nav.updateParams({ center: '10,20,30', focus: 'sol' });
-
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    const callArg = mockNavigate.mock.calls[0][0];
-    expect(callArg.to).toBe('.');
-    expect(callArg.replace).toBe(true);
-    expect(callArg.search({ select: 'sol' })).toEqual({ select: 'sol', center: '10,20,30', focus: 'sol' });
-  });
-
-  it('exposes currentPath from router state', () => {
-    const nav = useStarmapNav();
-    expect(nav.currentPath).toBe('/galaxy');
   });
 
   it('configures router basepath and normalises location pathname in resolveSpaLocation', () => {

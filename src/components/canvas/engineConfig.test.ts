@@ -9,6 +9,7 @@ import {
   SCREEN_HEIGHT_REFERENCE_SCALE,
   FRAME_PRIORITY,
   CONTROLS_DAMPING_FACTOR,
+  NOOP_RAYCAST,
 } from './engineConfig';
 
 describe('engineConfig & Screen Invariant Scaling', () => {
@@ -20,6 +21,8 @@ describe('engineConfig & Screen Invariant Scaling', () => {
     expect(FRAME_PRIORITY.cameraTransition).toBeLessThan(FRAME_PRIORITY.spatialFrame);
     expect(FRAME_PRIORITY.spatialFrame).toBeLessThan(FRAME_PRIORITY.cameraRig);
     expect(FRAME_PRIORITY.cameraRig).toBeLessThan(0);
+    expect(typeof NOOP_RAYCAST).toBe('function');
+    expect(NOOP_RAYCAST()).toBeUndefined();
   });
 
   describe('calculateScreenInvariantScale', () => {

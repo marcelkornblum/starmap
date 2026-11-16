@@ -7,7 +7,6 @@
     --card-shadow: var(--surface-panel-shadow);
     --card-padding: var(--space-inset-card);
     --card-radius: var(--radius-container);
-    --card-backdrop-blur: var(--surface-panel-backdrop-blur);
 
     display: flex;
     flex-direction: column;
@@ -18,8 +17,6 @@
     border-radius: var(--card-radius);
     padding: var(--card-padding);
     margin: 0;
-    backdrop-filter: blur(var(--card-backdrop-blur));
-    -webkit-backdrop-filter: blur(var(--card-backdrop-blur));
     transition: border-color var(--motion-duration-feedback) var(--motion-ease-default),
                 box-shadow var(--motion-duration-feedback) var(--motion-ease-default);
   }

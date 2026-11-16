@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { CelestialSymbol, CELESTIAL_SYMBOL_META, type CelestialSymbolType } from './CelestialSymbol';
+import { renderGlyphContent } from './celestialSymbolGlyphs';
 
 const ALL_SYMBOL_TYPES: CelestialSymbolType[] = [
   'star',
@@ -100,13 +101,13 @@ describe('<CelestialSymbol />', () => {
 
   it('renders visual label when showLabel is true', () => {
     render(<CelestialSymbol type="gas-giant" showLabel showTooltip={false} />);
-    expect(screen.getByText('Gas Giant')).toBeDefined();
+    expect(screen.getByText('Gas Giant')).toBeInTheDocument();
   });
 
   it('wraps with Tooltip when showTooltip is true', () => {
     render(<CelestialSymbol type="white-dwarf" showTooltip={true} tooltipText="Dense Degenerate Star" />);
     // The tooltip renders around the symbol
-    expect(screen.getByRole('img', { name: 'White Dwarf' })).toBeDefined();
+    expect(screen.getByRole('img', { name: 'White Dwarf' })).toBeInTheDocument();
   });
 
   it('exposes valid metadata for all defined celestial symbol types', () => {
@@ -123,5 +124,15 @@ describe('<CelestialSymbol />', () => {
     expect(CELESTIAL_SYMBOL_META['neutron-star'].badgeStatus).toBe('critical');
     expect(CELESTIAL_SYMBOL_META['terrestrial'].badgeCategory).toBe('planet');
     expect(CELESTIAL_SYMBOL_META['asteroid-belt'].badgeStatus).toBe('caution');
+  });
+
+  it('reuses cached ReactNode instances across renderGlyphContent calls', () => {
+    const node1 = renderGlyphContent('star');
+    const node2 = renderGlyphContent('star');
+    expect(node1).toBe(node2);
+
+    const planet1 = renderGlyphContent('terrestrial');
+    const planet2 = renderGlyphContent('terrestrial');
+    expect(planet1).toBe(planet2);
   });
 });

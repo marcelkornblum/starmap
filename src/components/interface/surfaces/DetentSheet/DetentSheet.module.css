@@ -1,9 +1,13 @@
 @layer blocks {
   .detentSheet {
+    --detent-sheet-gap: var(--space-fib-3);
+    --detent-sheet-padding-block: var(--space-inset-panel);
+    --detent-sheet-padding-inline: var(--space-inset-panel);
     display: flex;
     flex-direction: column;
-    gap: var(--space-fib-3);
-    padding: var(--space-inset-panel);
+    gap: var(--detent-sheet-gap);
+    padding-block: var(--detent-sheet-padding-block);
+    padding-inline: var(--detent-sheet-padding-inline);
     background: var(--surface-panel-bg);
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     border-radius: var(--radius-container);
@@ -77,6 +81,9 @@
   /* ui-audit-disable-next-line hardcoded-css-token -- Viewport breakpoint header */
   @media (max-width: 767px) {
     .detentSheet {
+      --detent-sheet-gap: var(--space-fib-1);
+      --detent-sheet-padding-block: var(--space-fib-1);
+      --detent-sheet-padding-inline: var(--space-fib-4);
       container-type: size;
       container-name: detent-sheet;
       --detent-sheet-peek-size: calc(var(--space-fib-7) + var(--stroke-width-1));
@@ -95,19 +102,37 @@
     }
 
     .detentSheet [data-detent-section="peek"] {
+      flex-shrink: 0;
       overflow: hidden;
+      cursor: pointer;
+    }
+
+    .detentSheet [data-detent-section="peek"] > :nth-child(n + 3) {
+      display: none;
     }
 
     /* ui-audit-disable-next-line hardcoded-css-token -- Container query threshold */
     @container detent-sheet (min-block-size: 240px) {
+      .detentSheet {
+        --detent-sheet-gap: var(--space-fib-3);
+        --detent-sheet-padding-block: var(--space-inset-panel);
+        --detent-sheet-padding-inline: var(--space-inset-panel);
+        overflow-y: auto;
+        touch-action: pan-y;
+      }
+
       .detentSheet [data-detent-section="partial"],
       .detentSheet [data-detent-section="full"] {
         display: flex;
       }
 
-      .detentSheet {
-        overflow-y: auto;
-        touch-action: pan-y;
+      .detentSheet [data-detent-section="peek"] {
+        overflow: visible;
+        cursor: default;
+      }
+
+      .detentSheet [data-detent-section="peek"] > :nth-child(n + 3) {
+        display: revert;
       }
     }
 

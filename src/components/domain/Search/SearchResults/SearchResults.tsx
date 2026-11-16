@@ -1,9 +1,7 @@
 import type { MouseEvent, ReactNode } from 'react';
-import {
-  SEARCH_CATEGORIES,
-  buildSearchViewHref,
-  type SearchResultItem,
-} from '../../../../services/searchService';
+import { SEARCH_CATEGORIES } from '../../../../types/search';
+import { buildSearchViewHref } from '../../../../services/search/searchUrls';
+import type { SearchResultItem } from '../../../../services/search/searchTypes';
 import { Heading, Stack } from '../../../interface';
 import { SearchResultItem as SearchResultItemRow } from '../../SearchResultItem';
 import { useSearchContext } from '../SearchContext';

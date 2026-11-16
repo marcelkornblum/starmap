@@ -43,8 +43,7 @@
     z-index: 600;
     opacity: 0;
     overflow: hidden;
-    backdrop-filter: blur(var(--tooltip-backdrop-blur));
-    -webkit-backdrop-filter: blur(var(--tooltip-backdrop-blur));
+    contain: layout style paint;
     transition: opacity var(--tooltip-transition-duration) var(--tooltip-transition-ease);
   }
 
@@ -87,6 +86,8 @@
   .tooltipWrapper:hover .tooltip,
   .tooltipWrapper:focus-within .tooltip {
     opacity: 1;
+    backdrop-filter: blur(var(--tooltip-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--tooltip-backdrop-blur));
   }
 }
 
@@ -159,5 +160,7 @@
   .tooltip[data-state="open"] {
     opacity: 1;
     pointer-events: auto;
+    backdrop-filter: blur(var(--tooltip-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--tooltip-backdrop-blur));
   }
 }

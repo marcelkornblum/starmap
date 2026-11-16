@@ -26,6 +26,10 @@ export class BoundedLruCache<K, V> {
     return value;
   }
 
+  peek(key: K): V | undefined {
+    return this.items.get(key);
+  }
+
   set(key: K, value: V): this {
     if (this.items.has(key)) {
       this.items.delete(key);

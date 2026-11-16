@@ -8,13 +8,9 @@ import {
   REFERENCE_INSTRUMENT_FOOTPRINT,
   SCREEN_HEIGHT_REFERENCE_SCALE,
 } from '../engineConfig';
-import {
-  type ReferenceFrame,
-  GALACTIC_FRAME,
-} from './referenceFrame';
-import {
-  computeApertureRadius,
-} from '../math/aperture';
+import type { ReferenceFrame } from '../../../types/spatial';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
+import { computeApertureRadius } from '../math/aperture';
 import {
   computeCardinalAlignment,
   computeAllPlaneQuadrantWeights,
@@ -27,6 +23,11 @@ import {
   type SpatialFrameState,
   type SpatialFrameContextValue,
 } from './spatialFrameContext';
+import {
+  DEFAULT_CAMERA_THRESHOLD_START,
+  DEFAULT_CAMERA_THRESHOLD_END,
+  DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
+} from './instrumentDefaults';
 
 export type { SpatialFrameState, SpatialFrameContextValue };
 
@@ -73,14 +74,8 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
   const scratchBaseQuat = useLazyRef(() => new THREE.Quaternion());
   const scratchTiltQuat = useLazyRef(() => new THREE.Quaternion());
 
-  const coreBearing = useMemo(
-    () => frame.bearings.find((b) => b.id === 'core'),
-    [frame],
-  );
-
-  const enableOrthographicProjectionRef = useRef(
-    useSettingsStore.getState().enableOrthographicProjection,
-  );
+  const coreBearing = useMemo(() => frame.bearings.find((b) => b.id === 'core'), [frame]);
+  const enableOrthographicProjectionRef = useRef(useSettingsStore.getState().enableOrthographicProjection);
 
   useEffect(() => {
     return useSettingsStore.subscribe((state) => {
@@ -92,20 +87,11 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     const s = stateRef.current;
     s.frame = frame;
     const camera = state.camera;
-    // Runs after drei OrbitControls (FRAME_PRIORITY.spatialFrame), so camera and target are already settled.
     const controls = (state as unknown as { controls?: { target?: THREE.Vector3 } }).controls;
 
     // 1. Resolve Focus Point
-    if (lockToFocusPoint) {
-      if (controls?.target) {
-        s.focusPoint.copy(controls.target);
-      } else if (explicitFocusPoint) {
-        if (explicitFocusPoint instanceof THREE.Vector3) {
-          s.focusPoint.copy(explicitFocusPoint);
-        } else {
-          s.focusPoint.set(explicitFocusPoint[0], explicitFocusPoint[1], explicitFocusPoint[2]);
-        }
-      }
+    if (lockToFocusPoint && controls?.target) {
+      s.focusPoint.copy(controls.target);
     } else if (explicitFocusPoint) {
       if (explicitFocusPoint instanceof THREE.Vector3) {
         s.focusPoint.copy(explicitFocusPoint);
@@ -117,22 +103,12 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     // 2. Camera distance & Direction
     const camDist = Math.max(camera.position.distanceTo(s.focusPoint), 1e-4);
     s.cameraDistance = camDist;
-
-    // Centralised screen-scale constants & frame-evaluated dynamic factors
     s.referenceFootprint = REFERENCE_INSTRUMENT_FOOTPRINT;
     s.referenceFovDeg = frame.camera.baseFov ?? REFERENCE_FOV_DEG;
     s.screenHeightReferenceScale = SCREEN_HEIGHT_REFERENCE_SCALE;
 
-    const isOrtho =
-      camera &&
-      typeof camera === 'object' &&
-      'isOrthographicCamera' in camera &&
-      (camera as { isOrthographicCamera: boolean }).isOrthographicCamera;
-    const isPersp =
-      camera &&
-      typeof camera === 'object' &&
-      'isPerspectiveCamera' in camera &&
-      (camera as { isPerspectiveCamera: boolean }).isPerspectiveCamera;
+    const isOrtho = camera && typeof camera === 'object' && 'isOrthographicCamera' in camera && (camera as { isOrthographicCamera: boolean }).isOrthographicCamera;
+    const isPersp = camera && typeof camera === 'object' && 'isPerspectiveCamera' in camera && (camera as { isPerspectiveCamera: boolean }).isPerspectiveCamera;
 
     let fovFactor = 1.0;
     let screenScale = 1.0;
@@ -159,25 +135,16 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
 
     s.fovFactor = fovFactor;
     s.screenScale = screenScale;
-
     const camDir = scratchCamDir.current.copy(camera.position).sub(s.focusPoint).divideScalar(camDist);
 
     // 3. Aperture Radius
     const refDist = frame.radius * frame.referenceDistanceMultiplier;
-    s.apertureRadius = computeApertureRadius(
-      effectiveApertureDist,
-      frame.radius,
-      refDist,
-      frame.screenConstant,
-      3.5,
-    );
+    s.apertureRadius = computeApertureRadius(effectiveApertureDist, frame.radius, refDist, frame.screenConstant, 3.5);
 
     // 4. Cardinal alignment & Plane Quadrant weights
-    const startThresh = frame.camera.thresholdStart ?? 0.94;
-    const endThresh = frame.camera.thresholdEnd ?? 0.985;
-    const enableOrthographicProjection = enableOrthographicProjectionRef.current;
-    const allowPolarDial =
-      enableOrthographicProjection && frame.coordinateFins.polarDialExpansion !== false;
+    const startThresh = frame.camera.thresholdStart ?? DEFAULT_CAMERA_THRESHOLD_START;
+    const endThresh = frame.camera.thresholdEnd ?? DEFAULT_CAMERA_THRESHOLD_END;
+    const allowPolarDial = enableOrthographicProjectionRef.current && frame.coordinateFins.polarDialExpansion !== false;
 
     if (!allowPolarDial) {
       s.cardinalAlignment = DEFAULT_CARDINAL_ALIGNMENT;
@@ -188,7 +155,6 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     }
 
     // 5. Orthonormal Basis & Orientation
-    // Resolve any specified frame base orientation (e.g. planetary axial tilt or invariable plane):
     let hasBaseOrientation = false;
     if (frame.orientation) {
       if (frame.orientation instanceof THREE.Quaternion) {
@@ -199,29 +165,18 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
         hasBaseOrientation = true;
       } else if (Array.isArray(frame.orientation)) {
         if (frame.orientation.length === 4) {
-          scratchBaseQuat.current.set(
-            frame.orientation[0],
-            frame.orientation[1],
-            frame.orientation[2],
-            frame.orientation[3],
-          );
+          scratchBaseQuat.current.set(frame.orientation[0], frame.orientation[1], frame.orientation[2], frame.orientation[3]);
           hasBaseOrientation = true;
         } else if (frame.orientation.length === 3) {
-          scratchEuler.current.set(
-            frame.orientation[0],
-            frame.orientation[1],
-            frame.orientation[2],
-          );
+          scratchEuler.current.set(frame.orientation[0], frame.orientation[1], frame.orientation[2]);
           scratchBaseQuat.current.setFromEuler(scratchEuler.current);
           hasBaseOrientation = true;
         }
       }
     }
 
-    // Tilt is never independently configurable; it exists iff the frame declares a core bearing
-    // and follows that bearing's target. Orbital bearing is independent of the core bearing.
     if (coreBearing) {
-      let targetX = frame.centerDistance ?? coreBearing.extent ?? 2000;
+      let targetX = frame.centerDistance ?? coreBearing.extent ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
       let targetY = 0;
       let targetZ = 0;
       if (coreBearing.target) {
@@ -236,26 +191,15 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
         }
       }
 
-      const vCore = scratchVCore.current.set(
-        targetX - s.focusPoint.x,
-        targetY - s.focusPoint.y,
-        targetZ - s.focusPoint.z,
-      );
-      if (vCore.lengthSq() < 1e-6) {
-        vCore.set(1, 0, 0);
-      }
+      const vCore = scratchVCore.current.set(targetX - s.focusPoint.x, targetY - s.focusPoint.y, targetZ - s.focusPoint.z);
+      if (vCore.lengthSq() < 1e-6) vCore.set(1, 0, 0);
       const uCore = scratchUCore.current.copy(vCore).normalize();
 
-      // Orbital vector: horizontal in reference plane (Z=0), perpendicular to Core vector:
       const vOrbital = scratchVOrbital.current.set(-uCore.y, uCore.x, 0);
-      if (vOrbital.lengthSq() < 1e-6) {
-        vOrbital.set(0, 1, 0);
-      }
+      if (vOrbital.lengthSq() < 1e-6) vOrbital.set(0, 1, 0);
       const uOrbital = scratchUOrbital.current.copy(vOrbital).normalize();
 
-      // Zenith vector: orthogonal to both Core and Orbital:
       const uZenith = scratchUZenith.current.crossVectors(uCore, uOrbital).normalize();
-
       scratchBasisMatrix.current.makeBasis(uCore, uOrbital, uZenith);
       scratchTiltQuat.current.setFromRotationMatrix(scratchBasisMatrix.current);
 

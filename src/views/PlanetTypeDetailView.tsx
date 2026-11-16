@@ -13,11 +13,9 @@ import {
   Heading,
   Stack,
 } from '../components/interface';
-import {
-  PLANET_TYPES_GUIDE_PATH,
-  extractFocusIdFromSearch,
-  resolvePlanetTypeGuideEntries,
-} from '../services/guideService';
+import { PLANET_TYPES_GUIDE_PATH } from '../content/guide';
+import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
+import { resolvePlanetTypeGuideEntries } from '../services/guide/guideCatalogExamples';
 import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';

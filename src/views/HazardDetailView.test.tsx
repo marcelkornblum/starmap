@@ -11,7 +11,7 @@ describe('<HazardDetailView />', () => {
   it('renders single hazard detail view for high-gravity', () => {
     render(<HazardDetailView hazardId="high-gravity" />);
     const root = screen.getByTestId('hazard-detail-view-root');
-    expect(root).toBeTruthy();
+    expect(root).toBeInTheDocument();
     expect(root.getAttribute('data-hazard-id')).toBe('high-gravity');
 
     const summary = screen.getByTestId('guide-detail-summary');
@@ -23,7 +23,7 @@ describe('<HazardDetailView />', () => {
 
   it('renders cards for all classifications when multi-value hazard is provided (AUD-092)', () => {
     render(<HazardDetailView hazardId="high-gravity,tidal-locking" />);
-    expect(screen.getByTestId('hazard-detail-view-root')).toBeTruthy();
+    expect(screen.getByTestId('hazard-detail-view-root')).toBeInTheDocument();
     expect(screen.getAllByText('High surface gravity').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Tidal locking').length).toBeGreaterThan(0);
   });
@@ -36,14 +36,14 @@ describe('<HazardDetailView />', () => {
       />,
     );
     const focusContext = screen.getByTestId('guide-focus-context');
-    expect(focusContext).toBeTruthy();
+    expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('jupiter');
   });
 
   it('renders fallback gracefully when hazard is not recognized', () => {
     render(<HazardDetailView hazardId="quantum-instability" />);
     const fallback = screen.getByTestId('hazard-detail-fallback');
-    expect(fallback).toBeTruthy();
+    expect(fallback).toBeInTheDocument();
     expect(fallback.textContent).toContain('quantum-instability');
   });
 

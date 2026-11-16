@@ -46,4 +46,17 @@ describe('<CelestialBadge />', () => {
     // Must not render badge container class
     expect(badge.className).not.toContain('_badge_');
   });
+
+  it('respects showTooltip={false} by suppressing Tooltip wrapper', () => {
+    const { unmount } = render(
+      <CelestialBadge type="star" showTooltip={true} />
+    );
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+    unmount();
+
+    render(
+      <CelestialBadge type="star" showTooltip={false} />
+    );
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+  });
 });

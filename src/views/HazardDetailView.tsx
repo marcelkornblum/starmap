@@ -14,11 +14,9 @@ import {
   Heading,
   Stack,
 } from '../components/interface';
-import {
-  HAZARDS_GUIDE_PATH,
-  extractFocusIdFromSearch,
-  resolveHazardGuideEntries,
-} from '../services/guideService';
+import { HAZARDS_GUIDE_PATH } from '../content/guide';
+import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
+import { resolveHazardGuideEntries } from '../services/guide/guideCatalogExamples';
 import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';

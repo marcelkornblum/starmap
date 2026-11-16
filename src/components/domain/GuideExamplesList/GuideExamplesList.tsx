@@ -5,7 +5,7 @@ import {
   Heading,
   type CelestialSymbolType,
 } from '../../interface';
-import type { GuideExampleTarget } from '../../../services/guideService';
+import type { GuideExampleTarget } from '../../../content/guide';
 import styles from './GuideExamplesList.module.css';
 
 export interface GuideExamplesListProps {

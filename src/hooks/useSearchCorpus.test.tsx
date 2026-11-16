@@ -5,7 +5,7 @@ import {
   clearSearchRepositoryCache,
   fetchSearchShard,
 } from '../data/searchRepository';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 const makeEntry = (id: string, name: string): CompactSearchEntry => ({
   i: id,

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
+import { NOOP_RAYCAST } from '../engineConfig';
 import type { DecodedBinarySector } from '../../../utils/binarySectorCodec';
-import type { DisposableGpuResource } from '../../../services/sectorStreamingService';
+import type { DisposableGpuResource } from '../../../services/sectorSelection';
 
 /**
  * Creates default Three.js BufferGeometry with precomputed bounding sphere.
@@ -33,6 +34,7 @@ export function createSceneSectorPointsFactory(
     let points: THREE.Points | null = null;
     if (group && material) {
       points = new THREE.Points(geometry, material);
+      points.raycast = NOOP_RAYCAST;
       points.name = `sector-points-${sectorId}`;
       points.frustumCulled = true;
       group.add(points);

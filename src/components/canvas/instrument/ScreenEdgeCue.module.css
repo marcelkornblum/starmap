@@ -24,7 +24,6 @@
     --indicator-bg: var(--chrome-bearing-cue-bg);
     --indicator-padding: var(--chrome-bearing-cue-padding);
     --indicator-radius: var(--chrome-bearing-cue-radius);
-    --indicator-backdrop-blur: var(--chrome-bearing-cue-backdrop-blur);
     --indicator-chevron-size: var(--chrome-bearing-chevron-size);
     --indicator-opacity-attached: var(--chrome-bearing-cue-opacity-attached);
     --indicator-opacity-detached: var(--chrome-bearing-cue-opacity-detached);
@@ -69,7 +68,6 @@
     padding: var(--indicator-padding);
     border-radius: var(--indicator-radius);
     background: var(--indicator-bg);
-    backdrop-filter: blur(var(--indicator-backdrop-blur));
     will-change: transform;
   }
 

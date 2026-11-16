@@ -129,12 +129,43 @@ describe('GalaxyScene - Streamed Stars Deduplication & Classification Derivation
     });
 
     expect(capturedEntities).toHaveLength(4);
-    expect(capturedEntities[0]?.classification).toBe('white-dwarf');
-    expect(capturedEntities[1]?.classification).toBe('brown-dwarf');
-    expect(capturedEntities[2]?.classification).toBe('neutron-star');
-    expect(capturedEntities[3]?.classification).toBe('star');
-    expect(capturedEntities[3]?.planets).toHaveLength(2);
-    expect(capturedEntities[3]?.planets?.[0]?.classification).toBe('terrestrial');
-    expect(capturedEntities[3]?.planets?.[1]?.classification).toBe('super-earth');
+    const byId = new Map(capturedEntities.map((e) => [e.id, e]));
+    expect(byId.get('wd-1')?.classification).toBe('white-dwarf');
+    expect(byId.get('bd-1')?.classification).toBe('brown-dwarf');
+    expect(byId.get('psr-1')?.classification).toBe('neutron-star');
+    const exo = byId.get('exo-1');
+    expect(exo?.classification).toBe('star');
+    expect(exo?.planets).toHaveLength(2);
+    expect(exo?.planets?.[0]?.classification).toBe('terrestrial');
+    expect(exo?.planets?.[1]?.classification).toBe('super-earth');
+  });
+
+  it('stabilises entity references via WeakMap cache and activates fast-path when additionalEntities match by slug', () => {
+    const summary = makeStreamedSummary('hip-8102', 'Tau Ceti', 3.156, 1.54, -1.003, 1, {
+      planetCensus: ['terrestrial'],
+    });
+
+    const { rerender } = render(<GalaxyScene additionalEntities={[]} />);
+
+    act(() => {
+      triggerHydration?.([summary]);
+    });
+
+    const firstCapture = capturedEntities;
+    const firstPlanets = capturedEntities[0]?.planets;
+
+    // Rerender with additionalEntities matching by display name slug
+    const matchingEntity: SpatialEntityDefinition = {
+      id: 'tau-ceti-slug',
+      name: 'Tau Ceti',
+      classification: 'star',
+      position: [3.156, 1.54, -1.003],
+    };
+
+    rerender(<GalaxyScene additionalEntities={[matchingEntity]} />);
+
+    // Fast-path should return the exact same streamedEntities reference!
+    expect(capturedEntities).toBe(firstCapture);
+    expect(capturedEntities[0]?.planets).toBe(firstPlanets);
   });
 });

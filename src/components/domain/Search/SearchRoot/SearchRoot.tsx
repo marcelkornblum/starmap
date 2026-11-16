@@ -11,11 +11,9 @@ import {
   useLoadedLayerManifests,
 } from '../../../../hooks/useLayerData';
 import { useSpaLocation } from '../../../../hooks/useSpaLocation';
-import type {
-  SearchCategoryFilter,
-  SearchResultItem,
-} from '../../../../services/searchService';
-import type { CompactSearchEntry } from '../../../../utils/compactDataCodec';
+import type { SearchCategoryFilter } from '../../../../types/search';
+import type { SearchResultItem } from '../../../../services/search/searchTypes';
+import type { CompactSearchEntry } from '../../../../utils/compactDataTypes';
 import { useSpatialEntityStoreApi } from '../../../canvas/entity/SpatialEntityContext';
 import {
   SearchContext,

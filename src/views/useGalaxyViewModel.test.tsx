@@ -73,7 +73,7 @@ describe('useGalaxyViewModel', () => {
       );
     });
 
-    act(() => {
+    await act(async () => {
       hookResult.result.current.handleFocusChange('sol');
     });
 
@@ -100,7 +100,7 @@ describe('useGalaxyViewModel', () => {
       );
     });
 
-    act(() => {
+    await act(async () => {
       hookResult.result.current.handleFocusChange(null);
     });
 
@@ -127,5 +127,68 @@ describe('useGalaxyViewModel', () => {
 
     expect(hookResult.result.current.canvasEntities).toEqual([]);
     expect(store.getState().selectedIds.size).toBe(0);
+  });
+
+  it('preserves root path "/" when appRouter.state.location.pathname is "/" during focus change', async () => {
+    registerAppRouter({
+      navigate: navigateSpy,
+      state: { location: { pathname: '/' } },
+    });
+
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useGalaxyViewModel({
+            locationPathname: '/',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    await act(async () => {
+      hookResult.result.current.handleFocusChange('sol');
+    });
+
+    expect(navigateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: '/',
+      }),
+    );
+  });
+
+  it('updates window.history.replaceState and dispatches starmap:locationchange when appRouter.navigate is undefined', async () => {
+    registerAppRouter(null);
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useGalaxyViewModel({
+            locationPathname: '/galaxy',
+            locationSearch: '',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    await act(async () => {
+      hookResult.result.current.handleFocusChange('sol');
+    });
+
+    expect(replaceStateSpy).toHaveBeenCalledWith(
+      window.history.state,
+      '',
+      expect.stringContaining('focus=sol'),
+    );
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'starmap:locationchange' }),
+    );
+    expect(useCameraStore.getState().inFlightFocusSlug).toBeUndefined();
   });
 });

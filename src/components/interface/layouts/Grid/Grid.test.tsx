@@ -12,10 +12,10 @@ describe('<Grid />', () => {
     );
 
     const container = screen.getByTestId('grid-container');
-    expect(container).toBeDefined();
+    expect(container).toBeInTheDocument();
     expect(container.tagName.toLowerCase()).toBe('div');
-    expect(screen.getByText('Card 1')).toBeDefined();
-    expect(screen.getByText('Card 2')).toBeDefined();
+    expect(screen.getByText('Card 1')).toBeInTheDocument();
+    expect(screen.getByText('Card 2')).toBeInTheDocument();
   });
 
   it('sets default data-min="md" and data-gap="default"', () => {

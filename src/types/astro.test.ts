@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { StarmapNode, SystemManifest, DetailedPlanetRecord } from './astro';
+import type { StarmapNode, SystemManifest } from './astro';
+import type { DetailedPlanetRecord } from './astroStructures';
 import starsFixture from '../../tests/fixtures/stars.fixture.json';
 import systemFixture from '../../tests/fixtures/system.fixture.json';
 import planetFixture from '../../tests/fixtures/planet.fixture.json';

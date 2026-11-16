@@ -5,7 +5,7 @@ import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { ApertureEvaluator } from './ApertureEvaluator';
 import { OcclusionPass } from './OcclusionPass';
 import { SpatialFrameProvider, SYSTEM_FRAME } from '../instrument';
-import type { CelestialClassification, PlanetCensusEntry } from '../cartography/reticleGeometry';
+import type { CelestialClassification, PlanetCensusEntry } from '../../../types/spatial';
 import type { CelestialInteractionState } from './types';
 
 interface ReticleTaxonomyStoryArgs {

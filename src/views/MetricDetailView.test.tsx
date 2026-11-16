@@ -60,10 +60,10 @@ describe('<MetricDetailView />', () => {
   it('renders single metric detail view with baseline and comparative panel', () => {
     render(<MetricDetailView metricId="stellar-mass" />);
     const root = screen.getByTestId('metric-detail-view-root');
-    expect(root).toBeTruthy();
+    expect(root).toBeInTheDocument();
     expect(root.getAttribute('data-metric-id')).toBe('stellar-mass');
 
-    expect(screen.getByTestId('metric-comparative-3d')).toBeTruthy();
+    expect(screen.getByTestId('metric-comparative-3d')).toBeInTheDocument();
     const summary = screen.getByTestId('guide-detail-summary');
     expect(summary.textContent).toBeTruthy();
   });
@@ -77,7 +77,7 @@ describe('<MetricDetailView />', () => {
     );
 
     const target = screen.getByTestId('metric-comparison-target');
-    expect(target).toBeTruthy();
+    expect(target).toBeInTheDocument();
     expect(target.textContent).not.toContain('0.78');
     expect(target.textContent).not.toContain('0.783');
   });
@@ -90,20 +90,20 @@ describe('<MetricDetailView />', () => {
       />,
     );
     const focusContext = screen.getByTestId('guide-focus-context');
-    expect(focusContext).toBeTruthy();
+    expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('jupiter');
   });
 
   it('renders cards for all classifications when multi-value metric is provided (AUD-092)', () => {
     render(<MetricDetailView metricId="stellar-mass,stellar-radius" />);
-    expect(screen.getByTestId('metric-detail-view-root')).toBeTruthy();
-    expect(screen.getByText('Stellar Mass')).toBeTruthy();
-    expect(screen.getByText('Stellar Radius')).toBeTruthy();
+    expect(screen.getByTestId('metric-detail-view-root')).toBeInTheDocument();
+    expect(screen.getByText('Stellar Mass')).toBeInTheDocument();
+    expect(screen.getByText('Stellar Radius')).toBeInTheDocument();
   });
 
   it('renders fallback gracefully when metric is not recognized', () => {
     render(<MetricDetailView metricId="hyperdrive-efficiency" />);
-    expect(screen.getByText(/No guide record found for telemetry metric/i)).toBeTruthy();
+    expect(screen.getByText(/No guide record found for telemetry metric/i)).toBeInTheDocument();
   });
 
   it('extracts metricId from route params via useParams when propMetricId is omitted', () => {

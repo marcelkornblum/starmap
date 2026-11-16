@@ -1,14 +1,12 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { ThemeTokenBridge } from '../../src/components/canvas/ThemeTokenBridge';
 import { SafeHtmlPortalOutlet } from '../../src/components/canvas/SafeHtml';
-import {
-  type ReferenceFrame,
-  GALACTIC_FRAME,
-} from '../../src/components/canvas/instrument/referenceFrame';
-import { getStandardInitialCamera } from '../../src/components/canvas/cartography/cartographyMath';
+import type { ReferenceFrame } from '../../src/types/spatial';
+import { GALACTIC_FRAME } from '../../src/config/referenceFrames';
+import { getStandardInitialCamera } from '../../src/components/canvas/cartography/cartographyCamera';
 import { CONTROLS_DAMPING_FACTOR } from '../../src/components/canvas/engineConfig';
 import styles from './StoryCanvas.module.css';
 
@@ -147,37 +145,19 @@ const OrbitControlsBridge: React.FC<OrbitControlsBridgeProps> = ({
   maxDistance,
 }) => {
   const threeCamera = useThree((s) => s.camera);
-  const stableCameraRef = useRef(threeCamera);
-  const internalRef = useRef<OrbitControlsImpl>(null);
-  const prevTargetRef = useRef<[number, number, number] | null>(null);
+  const defaultControls = useThree((s) => s.controls) as OrbitControlsImpl | null;
+  const [targetX, targetY, targetZ] = target;
 
-  // Initialise target once, and only update if explicit prop coordinates change
   useEffect(() => {
-    const controls = internalRef.current;
-    if (!controls) return;
-    const prev = prevTargetRef.current;
-    if (!prev || prev[0] !== target[0] || prev[1] !== target[1] || prev[2] !== target[2]) {
-      controls.target.set(target[0], target[1], target[2]);
-      controls.update();
-      prevTargetRef.current = [target[0], target[1], target[2]];
-    }
-  }, [target]);
-
-  const setControlsRef = (instance: OrbitControlsImpl | null) => {
-    (internalRef as React.MutableRefObject<OrbitControlsImpl | null>).current = instance;
-    if (controlsRef) {
-      if (typeof controlsRef === 'function') {
-        controlsRef(instance);
-      } else {
-        (controlsRef as React.MutableRefObject<OrbitControlsImpl | null>).current = instance;
-      }
-    }
-  };
+    if (!defaultControls) return;
+    defaultControls.target.set(targetX, targetY, targetZ);
+    defaultControls.update();
+  }, [defaultControls, targetX, targetY, targetZ]);
 
   return (
     <OrbitControls
-      ref={setControlsRef}
-      camera={stableCameraRef.current}
+      ref={controlsRef}
+      camera={threeCamera}
       makeDefault
       enablePan={true}
       screenSpacePanning={true}

@@ -5,16 +5,16 @@ import {
   fetchLayerManifest,
 } from '../../src/data/layerRepository';
 import { useLayerStore } from '../../src/stores/useLayerStore';
-import type { DatasetLayerIndexEntry } from '../../src/types/astro';
+import type { DatasetLayerIndexEntry } from '../../src/types/datasetLayers';
 import { getShardKey } from '../../src/utils/compactDataCodec';
+import { decodeEntityAnnotation } from '../../src/utils/datasetLayerCodec';
+import type { DecodedEntityAnnotation } from '../../src/utils/datasetLayerTypes';
 import {
-  applyResolvedNamesToLayers,
   buildEntityAnnotationBuckets,
   buildLayerIndexManifest,
-  decodeEntityAnnotation,
   encodeLayerManifest,
-  type DecodedEntityAnnotation,
-} from '../../src/utils/datasetLayerCodec';
+} from '../../scripts/pipeline/datasetLayerEncoder';
+import { applyResolvedNamesToLayers } from '../../scripts/pipeline/datasetLayerSearchBuilder';
 
 /**
  * Well-known real-sky names used to populate `resolvedName` in test layer fixtures,

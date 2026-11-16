@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { GuideExamplesList } from './GuideExamplesList';
-import type { GuideExampleTarget } from '../../../services/guideService';
+import type { GuideExampleTarget } from '../../../content/guide';
 
 const mockExamples: readonly GuideExampleTarget[] = [
   {
@@ -20,8 +20,8 @@ describe('<GuideExamplesList />', () => {
   it('renders default title and example rows', () => {
     render(<GuideExamplesList examples={mockExamples} />);
 
-    expect(screen.getByText('Canonical System Benchmarks')).toBeDefined();
-    expect(screen.getByTestId('guide-examples-list')).toBeDefined();
+    expect(screen.getByText('Canonical System Benchmarks')).toBeInTheDocument();
+    expect(screen.getByTestId('guide-examples-list')).toBeInTheDocument();
 
     const items = screen.getAllByTestId('guide-example-item');
     expect(items.length).toBe(2);
@@ -30,7 +30,7 @@ describe('<GuideExamplesList />', () => {
     expect(links[0].textContent).toBe('Sol');
     expect(links[1].textContent).toBe('Earth');
 
-    expect(screen.getByText('G2V reference standard for solar mass, radius, and luminosity.')).toBeDefined();
+    expect(screen.getByText('G2V reference standard for solar mass, radius, and luminosity.')).toBeInTheDocument();
   });
 
   it('renders custom title when provided', () => {
@@ -41,7 +41,7 @@ describe('<GuideExamplesList />', () => {
       />
     );
 
-    expect(screen.getByText('Featured Exoplanet Laboratories')).toBeDefined();
+    expect(screen.getByText('Featured Exoplanet Laboratories')).toBeInTheDocument();
   });
 
   it('uses explicit reticleType from example item or props rather than string matching', () => {

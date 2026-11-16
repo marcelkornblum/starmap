@@ -4,8 +4,9 @@ import {
   createDefaultSectorGeometry,
   createSceneSectorPointsFactory,
 } from './sectorPointCloudGeometry';
+import { NOOP_RAYCAST } from '../engineConfig';
 import { encodeBinarySector, decodeBinarySector } from '../../../utils/binarySectorCodec';
-import type { SectorPartitionManifest } from '../../../types/astro';
+import type { SectorPartitionManifest } from '../../../types/astroCoordinates';
 
 function createMockSectorBuffer(
   sectorId: string,
@@ -83,6 +84,7 @@ describe('sectorPointCloudGeometry', () => {
       const points = group.children[0] as THREE.Points;
       expect(points.name).toBe('sector-points-sector_+000_+000_+000');
       expect(points.frustumCulled).toBe(true);
+      expect(points.raycast).toBe(NOOP_RAYCAST);
 
       resource.dispose();
       expect(group.children.length).toBe(0);

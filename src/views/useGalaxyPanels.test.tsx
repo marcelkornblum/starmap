@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useGalaxyPanels, type UseGalaxyPanelsParams } from './useGalaxyPanels';
+import {
+  useGalaxyPanels,
+  stripFocusFromSearch,
+  type UseGalaxyPanelsParams,
+} from './useGalaxyPanels';
 import {
   clearDetailsRepositoryCache,
   seedDetailRecord,
   seedSummaryNode,
 } from '../data/detailsRepository';
 import type { SystemManifest, SystemSummaryNode } from '../types/astro';
-import type { GalacticInstrumentApertureResult } from '../services/detailsService';
+import type { GalacticInstrumentApertureResult } from '../services/details/detailsNavigationTypes';
 
 const TAU_CETI_FIXTURE: SystemManifest = {
   id: 'gaia-2452378776434477184',
@@ -159,5 +163,40 @@ describe('useGalaxyPanels', () => {
     expect(hookResult.result.current.routeStops).toEqual(['sol', 'tau-ceti']);
     expect(hookResult.result.current.activeJourney).toBeTruthy();
     expect(hookResult.result.current.activeJourney?.steps.length).toBe(1);
+  });
+
+  it('short-circuits route parsing in O(1) when route and search.includes("route=") are absent', async () => {
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyPanels>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(() =>
+        useGalaxyPanels({
+          ...baseParams,
+          route: undefined,
+          search: '',
+        }),
+      );
+    });
+
+    expect(hookResult.result.current.routeStops).toBeNull();
+    expect(hookResult.result.current.activeJourney).toBeNull();
+  });
+
+  describe('stripFocusFromSearch', () => {
+    it('returns empty string for empty, undefined, or ? search', () => {
+      expect(stripFocusFromSearch('')).toBe('');
+      expect(stripFocusFromSearch('?')).toBe('');
+    });
+
+    it('returns empty string when focus is the sole param', () => {
+      expect(stripFocusFromSearch('?focus=sol')).toBe('');
+      expect(stripFocusFromSearch('focus=sol')).toBe('');
+    });
+
+    it('preserves other params without focus and keeps : and , unencoded', () => {
+      expect(stripFocusFromSearch('?select=earth')).toBe('?select=earth');
+      expect(stripFocusFromSearch('?select=layer:project-hail-mary,sol&focus=sol')).toBe(
+        '?select=layer:project-hail-mary,sol',
+      );
+    });
   });
 });

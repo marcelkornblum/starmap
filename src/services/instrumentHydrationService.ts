@@ -10,6 +10,14 @@
 import type { SystemSummaryNode } from '../types/astro';
 import type { DecodedBinarySector } from '../utils/binarySectorCodec';
 import { fetchSummaryNodeByHash } from '../data/detailsRepository';
+import {
+  computeBoxMinDistSq,
+  scanSectorWithinSphere,
+  partitionAndSortHits,
+  evictStaleMetadata,
+  resolveHitsSummaries,
+  executeStarHydration,
+} from './instrumentHydrationHelpers';
 
 export const DEFAULT_INSTRUMENT_LEAD_BUFFER_PC = 2.0;
 
@@ -63,8 +71,6 @@ export function querySectorsWithinInstrumentSphere(
   const fx = Number.isFinite(focusPointPc?.[0]) ? (focusPointPc[0] as number) : 0;
   const fy = Number.isFinite(focusPointPc?.[1]) ? (focusPointPc[1] as number) : 0;
   const fz = Number.isFinite(focusPointPc?.[2]) ? (focusPointPc[2] as number) : 0;
-  const sanitizedFocus: readonly [number, number, number] = [fx, fy, fz];
-
   const sanitizedAperture = Number.isFinite(apertureRadiusPc) ? Math.max(0, apertureRadiusPc) : 0;
   const sanitizedLeadBuffer = Number.isFinite(leadBufferPc) ? Math.max(0, leadBufferPc) : 0;
   const queryRadiusPc = sanitizedAperture + sanitizedLeadBuffer;
@@ -76,97 +82,20 @@ export function querySectorsWithinInstrumentSphere(
   for (let s = 0; s < sectors.length; s++) {
     const sector = sectors[s]!;
     const header = sector.decoded.header;
-    const size = header.sectorSize;
-    const minX = header.origin[0];
-    const minY = header.origin[1];
-    const minZ = header.origin[2];
-    const maxX = minX + size;
-    const maxY = minY + size;
-    const maxZ = minZ + size;
+    const boxDistSq = computeBoxMinDistSq(
+      fx, fy, fz,
+      header.origin[0], header.origin[1], header.origin[2],
+      header.sectorSize,
+    );
+    if (boxDistSq > queryRadiusSq) continue;
 
-    // Broad-phase AABB-to-sphere minimum squared distance check
-    let boxDistSq = 0;
-    if (fx < minX) {
-      const d = minX - fx;
-      boxDistSq += d * d;
-    } else if (fx > maxX) {
-      const d = fx - maxX;
-      boxDistSq += d * d;
-    }
-
-    if (fy < minY) {
-      const d = minY - fy;
-      boxDistSq += d * d;
-    } else if (fy > maxY) {
-      const d = fy - maxY;
-      boxDistSq += d * d;
-    }
-
-    if (fz < minZ) {
-      const d = minZ - fz;
-      boxDistSq += d * d;
-    } else if (fz > maxZ) {
-      const d = fz - maxZ;
-      boxDistSq += d * d;
-    }
-
-    if (boxDistSq > queryRadiusSq) {
-      continue;
-    }
-
-    // Narrow-phase scan
-    const positions = sector.decoded.positions;
-    const ids = sector.decoded.ids;
-    const count = header.count;
-
-    for (let i = 0; i < count; i++) {
-      const px = positions[i * 3 + 0]!;
-      const py = positions[i * 3 + 1]!;
-      const pz = positions[i * 3 + 2]!;
-
-      const dx = px - fx;
-      const dy = py - fy;
-      const dz = pz - fz;
-      const distSq = dx * dx + dy * dy + dz * dz;
-
-      if (distSq <= queryRadiusSq) {
-        const idHash = ids[i]! >>> 0;
-        const existing = seenHashes.get(idHash);
-        if (!existing || distSq < existing.distancePc * existing.distancePc) {
-          const distancePc = Math.sqrt(distSq);
-          const inInnerAperture = distSq <= innerRadiusSq;
-          seenHashes.set(idHash, {
-            idHash,
-            x: px,
-            y: py,
-            z: pz,
-            distancePc,
-            inInnerAperture,
-            sectorId: sector.sectorId,
-          });
-        }
-      }
-    }
+    scanSectorWithinSphere(sector, fx, fy, fz, queryRadiusSq, innerRadiusSq, seenHashes);
   }
 
-  const activeStars: SpatialStarHit[] = [];
-  const leadBufferStars: SpatialStarHit[] = [];
-  const allPerimeterHashes = new Set<number>();
-
-  for (const hit of seenHashes.values()) {
-    allPerimeterHashes.add(hit.idHash);
-    if (hit.inInnerAperture) {
-      activeStars.push(hit);
-    } else {
-      leadBufferStars.push(hit);
-    }
-  }
-
-  activeStars.sort((a, b) => a.distancePc - b.distancePc || a.idHash - b.idHash);
-  leadBufferStars.sort((a, b) => a.distancePc - b.distancePc || a.idHash - b.idHash);
+  const { activeStars, leadBufferStars, allPerimeterHashes } = partitionAndSortHits(seenHashes);
 
   return {
-    focusPointPc: sanitizedFocus,
+    focusPointPc: [fx, fy, fz],
     apertureRadiusPc: sanitizedAperture,
     leadBufferPc: sanitizedLeadBuffer,
     queryRadiusPc,
@@ -222,29 +151,18 @@ export class InstrumentHydrationBridge {
 
     this.currentPerimeterHashes = query.allPerimeterHashes;
 
-    // Transient metadata eviction
-    for (const idHash of Array.from(this.hydratedMap.keys())) {
-      if (!query.allPerimeterHashes.has(idHash)) {
-        this.hydratedMap.delete(idHash);
-        this.evictedMetadataCount++;
-      }
-    }
+    this.evictedMetadataCount += evictStaleMetadata(
+      this.hydratedMap,
+      this.unresolvableHashes,
+      query.allPerimeterHashes,
+    );
 
-    for (const idHash of Array.from(this.unresolvableHashes)) {
-      if (!query.allPerimeterHashes.has(idHash)) {
-        this.unresolvableHashes.delete(idHash);
-      }
-    }
-
-    // On-demand hydration
     const hydrationPromises: Promise<SystemSummaryNode | undefined>[] = [];
     const starsToHydrate = [...query.activeStars, ...query.leadBufferStars];
 
     for (const hit of starsToHydrate) {
       const idHash = hit.idHash;
-      if (this.hydratedMap.has(idHash) || this.unresolvableHashes.has(idHash)) {
-        continue;
-      }
+      if (this.hydratedMap.has(idHash) || this.unresolvableHashes.has(idHash)) continue;
 
       const existingPending = this.inFlightMap.get(idHash);
       if (existingPending) {
@@ -252,33 +170,16 @@ export class InstrumentHydrationBridge {
         continue;
       }
 
-      const pending = (async () => {
-        try {
-          const summary = await this.hydrateByHash(idHash);
-          if (this.isDisposed) {
-            return undefined;
-          }
-          if (summary) {
-            // Guard: ensure star is still within current perimeter when hydration settles
-            if (this.currentPerimeterHashes.has(idHash)) {
-              this.hydratedMap.set(idHash, summary);
-            }
-            return summary;
-          } else {
-            if (this.currentPerimeterHashes.has(idHash)) {
-              this.unresolvableHashes.add(idHash);
-            }
-            return undefined;
-          }
-        } catch {
-          if (!this.isDisposed && this.currentPerimeterHashes.has(idHash)) {
-            this.unresolvableHashes.add(idHash);
-          }
-          return undefined;
-        } finally {
-          this.inFlightMap.delete(idHash);
-        }
-      })();
+      const pending = executeStarHydration(
+        idHash,
+        this.hydrateByHash,
+        () => this.isDisposed,
+        (hash) => this.currentPerimeterHashes.has(hash),
+        this.hydratedMap,
+        this.unresolvableHashes,
+      ).finally(() => {
+        this.inFlightMap.delete(idHash);
+      });
 
       this.inFlightMap.set(idHash, pending);
       hydrationPromises.push(pending);
@@ -286,21 +187,8 @@ export class InstrumentHydrationBridge {
 
     await Promise.allSettled(hydrationPromises);
 
-    const activeSummaries: SystemSummaryNode[] = [];
-    for (const hit of query.activeStars) {
-      const summary = this.hydratedMap.get(hit.idHash);
-      if (summary) {
-        activeSummaries.push(summary);
-      }
-    }
-
-    const leadBufferSummaries: SystemSummaryNode[] = [];
-    for (const hit of query.leadBufferStars) {
-      const summary = this.hydratedMap.get(hit.idHash);
-      if (summary) {
-        leadBufferSummaries.push(summary);
-      }
-    }
+    const activeSummaries = resolveHitsSummaries(query.activeStars, this.hydratedMap);
+    const leadBufferSummaries = resolveHitsSummaries(query.leadBufferStars, this.hydratedMap);
 
     return {
       hydratedByHash: new Map(this.hydratedMap),
@@ -311,9 +199,7 @@ export class InstrumentHydrationBridge {
   }
 
   getHydratedSummary(idHash: number): SystemSummaryNode | undefined {
-    if (!Number.isFinite(idHash)) {
-      return undefined;
-    }
+    if (!Number.isFinite(idHash)) return undefined;
     return this.hydratedMap.get(idHash >>> 0);
   }
 

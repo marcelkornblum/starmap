@@ -1,18 +1,15 @@
 import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,
-} from '../types/astro';
-import {
-  getShardKey,
-  type ShardedBucketEnvelope,
-} from '../utils/compactDataCodec';
-import {
-  decodeEntityAnnotation,
-  decodeLayerManifest,
-  type CompactEntityAnnotation,
-  type CompactLayerManifest,
-  type DecodedEntityAnnotation,
-} from '../utils/datasetLayerCodec';
+} from '../types/datasetLayers';
+import { getShardKey } from '../utils/compactDataCodec';
+import type { ShardedBucketEnvelope } from '../utils/compactDataTypes';
+import { decodeEntityAnnotation, decodeLayerManifest } from '../utils/datasetLayerCodec';
+import type {
+  CompactEntityAnnotation,
+  CompactLayerManifest,
+  DecodedEntityAnnotation,
+} from '../utils/datasetLayerTypes';
 import { resolveDataUrl } from '../utils/url';
 import { BoundedLruCache } from '../utils/lruCache';
 import {
@@ -71,6 +68,18 @@ const collectEntityAnnotations = (
 const normaliseEntityIds = (entityIds: readonly string[]): string[] => [
   ...new Set(entityIds.filter((id) => id.length > 0)),
 ];
+
+/**
+ * Checks whether the by-entity annotation buckets for all given entity IDs are already cached.
+ * Returns true if entityIds is empty or every required shard bucket is in RESOLVED_ENTITY_BUCKET_CACHE.
+ */
+export const areEntityAnnotationsCached = (entityIds: readonly string[]): boolean => {
+  const ids = normaliseEntityIds(entityIds);
+  if (ids.length === 0) {
+    return true;
+  }
+  return ids.every((id) => RESOLVED_ENTITY_BUCKET_CACHE.get(getShardKey(id)) !== undefined);
+};
 
 /**
  * Synchronously retrieves the decoded union of annotation records for the given entity IDs

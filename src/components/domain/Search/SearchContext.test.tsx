@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { SearchContext, useSearchContext, type SearchContextValue } from './SearchContext';
-import { executeCatalogSearch } from '../../../services/searchService';
+import { executeCatalogSearch } from '../../../services/search/searchExecution';
 
 describe('SearchContext', () => {
   it('returns default fallback values when rendered outside a provider', async () => {

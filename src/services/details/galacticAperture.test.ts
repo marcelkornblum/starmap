@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  resolveGalacticInstrumentAperture,
-  mergeActiveStarsIntoCorpus,
-} from './galacticAperture';
-import type { CompactSearchEntry } from '../../utils/compactDataCodec';
-import type { SystemSummaryNode } from '../../types/astro';
+import { resolveGalacticInstrumentAperture } from './galacticAperture';
+import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 
 const SAMPLE_GALAXY_CORPUS: readonly CompactSearchEntry[] = [
   {
@@ -93,46 +89,36 @@ describe('galacticAperture', () => {
       expect(aperture.centerCoordinatesPc).toEqual([5, 15, 25]);
       expect(aperture.apertureRadiusPc).toBe(42.18);
     });
-  });
 
-  describe('mergeActiveStarsIntoCorpus', () => {
-    it('merges active stars with corpus deduplicating by ID', () => {
-      const activeStars: SystemSummaryNode[] = [
-        {
-          id: 'alpha-centauri',
-          name: 'Alpha Centauri',
-          x: -0.47,
-          y: 1.32,
-          z: -0.33,
-          dist: 1.3,
-          mag: -0.27,
-          absmag: 4.38,
-          spect: 'G2V',
-          starCount: 3,
-          planetCount: 1,
-          hasHabitableCandidate: false,
-          sectorId: 'sector_-000_+001_-000',
-        },
-        {
-          id: 'new-star',
-          name: 'New Star',
-          x: 2,
-          y: 3,
-          z: 4,
-          dist: 5.38,
-          mag: 5.0,
-          absmag: 6.0,
-          spect: 'K0V',
-          starCount: 1,
-          planetCount: 0,
-          hasHabitableCandidate: false,
-          sectorId: 'sector_+002_+003_+004',
-        },
+    it('identifies identical aperture candidates via spatial grid lookup when cell count is small', () => {
+      // Build 120 stars scattered across a 200pc box
+      const syntheticCorpus: CompactSearchEntry[] = [
+        { i: 'sol', n: 'Sol', p: [0, 0, 0], c: 'stars' },
       ];
+      for (let i = 1; i <= 120; i++) {
+        // Place some near origin and some far away
+        const dist = i < 10 ? i * 0.5 : 20 + i;
+        syntheticCorpus.push({
+          i: `star-${i}`,
+          n: `Star ${i}`,
+          p: [dist, 0, 0],
+          c: 'stars',
+        });
+      }
 
-      const merged = mergeActiveStarsIntoCorpus(SAMPLE_GALAXY_CORPUS, activeStars);
-      expect(merged.length).toBe(SAMPLE_GALAXY_CORPUS.length + 1);
-      expect(merged.some((e) => e.i === 'new-star')).toBe(true);
+      const aperture = resolveGalacticInstrumentAperture({
+        corpus: syntheticCorpus,
+        liveApertureCenterPc: [0, 0, 0],
+        liveApertureRadiusPc: 4.5,
+      });
+
+      // Stars within 4.5 pc: sol (0), star-1 (0.5), star-2 (1.0), star-3 (1.5), star-4 (2.0),
+      // star-5 (2.5), star-6 (3.0), star-7 (3.5), star-8 (4.0), star-9 (4.5)
+      expect(aperture.apertureIds.has('sol')).toBe(true);
+      expect(aperture.apertureIds.has('star-1')).toBe(true);
+      expect(aperture.apertureIds.has('star-9')).toBe(true);
+      expect(aperture.apertureIds.has('star-10')).toBe(false);
+      expect(aperture.apertureIds.size).toBe(10);
     });
   });
 });

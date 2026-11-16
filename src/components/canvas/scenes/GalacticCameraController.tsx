@@ -78,7 +78,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     );
     const distDiff = Math.abs(focalDistance - store.focalDistance);
 
-    if (force || posDiff > 0.05 || targetDiff > 0.05 || distDiff > 0.05) {
+    if (force || posDiff > 0.002 || targetDiff > 0.002 || distDiff > 0.002) {
       if (force) {
         store.setSavedGalaxyCamera({
           position: pos,

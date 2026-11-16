@@ -1,8 +1,8 @@
-import type { FocusedStarTelemetry } from '../../../services/detailsService';
+import type { FocusedStarTelemetry } from '../../../services/details/detailsTelemetryTypes';
 import {
   buildMetricGuideHref,
   buildStarTypeGuideHref,
-} from '../../../services/searchService';
+} from '../../../content/guide';
 import { Datum, Heading, SpectralBadge, Stack, Unit } from '../../interface';
 
 export interface DetailsStarTelemetrySectionProps {

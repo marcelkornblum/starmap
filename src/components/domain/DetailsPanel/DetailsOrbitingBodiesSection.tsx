@@ -1,4 +1,4 @@
-import type { SystemElementBodyItem } from '../../../services/detailsService';
+import type { SystemElementBodyItem } from '../../../services/details/detailsHierarchyTypes';
 import { CelestialTitle, DataTable, Heading } from '../../interface';
 
 export interface DetailsOrbitingBodiesSectionProps {

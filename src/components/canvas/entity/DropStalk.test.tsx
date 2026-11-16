@@ -3,6 +3,7 @@ import ReactThreeTest from '@react-three/test-renderer';
 import { DropStalk } from './DropStalk';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
   it('does NOT render drop stalk in passive or active states (Single-Stalk Rule)', async () => {
@@ -36,8 +37,12 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
       </SpatialEntityProvider>,
     );
     expect(selectedRenderer.scene.findAll((node) => node.props.name === 'drop-stalk-stalk-node')).toHaveLength(1);
-    expect(selectedRenderer.scene.findAll((node) => node.props.name === 'stalk-line')).toHaveLength(1);
-    expect(selectedRenderer.scene.findAll((node) => node.props.name === 'stalk-footprint')).toHaveLength(1);
+    const stalkLine = selectedRenderer.scene.find((node) => node.props.name === 'stalk-line');
+    const stalkFootprint = selectedRenderer.scene.find((node) => node.props.name === 'stalk-footprint');
+    expect(stalkLine).toBeDefined();
+    expect(stalkLine.props.raycast).toBe(NOOP_RAYCAST);
+    expect(stalkFootprint).toBeDefined();
+    expect(stalkFootprint.children[0].props.raycast).toBe(NOOP_RAYCAST);
     await selectedRenderer.unmount();
 
     const focusedRenderer = await ReactThreeTest.create(

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { StoryCanvas } from '../../../../.storybook/helpers/StoryCanvas';
 import { SpatialViewport, type SpatialViewportProps } from './SpatialViewport';
-import { GALACTIC_FRAME } from '../instrument/referenceFrame';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import type { SpatialEntityDefinition } from '../entity';
 
 const SAMPLE_ENTITIES: SpatialEntityDefinition[] = [

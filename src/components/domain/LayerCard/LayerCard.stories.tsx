@@ -3,7 +3,7 @@ import { LayerCard } from './LayerCard';
 import type {
   ActiveLayerItemCardModel,
   ActiveLayerOverviewCardModel,
-} from '../../../services/layerCardService';
+} from '../../../services/layerCardNavigation';
 import { Stack } from '../../interface/layouts/Stack/Stack';
 
 import storyStyles from '../domainStories.module.css';

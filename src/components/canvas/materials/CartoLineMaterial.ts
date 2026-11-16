@@ -5,91 +5,36 @@ import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeome
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
-
-export { CARTO_LINE_CONSTANTS };
-
-export type CartoLineStyle = 'solid' | 'dashed' | 'dotted';
-
-export interface CartoLineMaterialParameters {
-  color?: THREE.Color | string | number;
-  opacity?: number;
-  lineWidth?: number;
-  lineStyle?: CartoLineStyle;
-  dashSize?: number;
-  gapSize?: number;
-  dashOffset?: number;
-  transparent?: boolean;
-  depthWrite?: boolean;
-  depthTest?: boolean;
-}
-
-/**
- * Patches LineMaterial's fragment shader to evaluate dashes in perspective-invariant
- * screen-space pixels using gl_FragCoord.w and uResolutionScale, while maintaining
- * zero shader recompilation when toggling between solid, dashed, and dotted styles.
- */
-function patchLineMaterialFragmentShader(originalShader: string): string {
-  let frag = originalShader;
-
-  // Add uResolutionScale uniform if not present
-  if (!frag.includes('uniform float uResolutionScale;')) {
-    frag = frag.replace(
-      'uniform float gapSize;',
-      'uniform float gapSize;\n\t\t\tuniform float uResolutionScale;',
-    );
-  }
-
-  // Replace world-space dash calculation with perspective-invariant screen pixel distance
-  const targetPattern =
-    'if ( mod( vLineDistance + dashOffset, dashSize + gapSize ) > dashSize ) discard; // todo - FIX';
-  const replacement = `if ( gapSize > 0.0 && ( dashSize + gapSize ) > 0.0 ) {
-\t\t\t\t\tif ( vUv.y < - 1.0 || vUv.y > 1.0 ) discard;
-\t\t\t\t\tfloat screenDist = vLineDistance * gl_FragCoord.w * uResolutionScale;
-\t\t\t\t\tif ( mod( screenDist + dashOffset, dashSize + gapSize ) > dashSize ) discard;
-\t\t\t\t}`;
-
-  if (frag.includes(targetPattern)) {
-    // Also remove the standalone endcap discard right above it to avoid double-discard
-    const endcapPattern = 'if ( vUv.y < - 1.0 || vUv.y > 1.0 ) discard; // discard endcaps\n\n\t\t\t\t';
-    if (frag.includes(endcapPattern + targetPattern)) {
-      frag = frag.replace(endcapPattern + targetPattern, replacement);
-    } else {
-      frag = frag.replace(targetPattern, replacement);
-    }
-  }
-
-  return frag;
-}
+import {
+  type CartoLineStyle,
+  type CartoLineMaterialParameters,
+  DEFAULT_CARTO_LINE_COLOR,
+  DEFAULT_CARTO_LINE_OPACITY,
+  DEFAULT_CARTO_RESOLUTION_SCALE,
+  resolveDashGap,
+  toCoordinateArray,
+  patchLineMaterialFragmentShader,
+  HAIRLINE_VERT,
+  HAIRLINE_FRAG,
+} from './cartoLineShaders';
 
 /**
  * Wide screen-space line material extending Three.js LineMaterial.
- * Supports arbitrary line widths (in CSS screen pixels) and perspective-invariant
- * solid, dashed, and dotted styles with in-place uniform mutation.
  */
 export class CartoLineMaterial extends LineMaterial {
   private _lineStyle: CartoLineStyle;
 
   constructor(params: CartoLineMaterialParameters = {}) {
     const lineStyle = params.lineStyle ?? 'solid';
-    const isDotted = lineStyle === 'dotted';
-    const isDashed = lineStyle === 'dashed';
-
-    const defaultDash = isDotted
-      ? CARTO_LINE_CONSTANTS.dotSize
-      : CARTO_LINE_CONSTANTS.dashSize;
-    const defaultGap = isDotted
-      ? CARTO_LINE_CONSTANTS.dotGap
-      : isDashed
-        ? CARTO_LINE_CONSTANTS.gapSize
-        : 0.0;
+    const defaults = resolveDashGap(lineStyle);
 
     super({
-      color: params.color !== undefined ? new THREE.Color(params.color as THREE.ColorRepresentation).getHex() : 0xffffff,
-      opacity: params.opacity ?? 1.0,
+      color: params.color !== undefined ? new THREE.Color(params.color as THREE.ColorRepresentation).getHex() : DEFAULT_CARTO_LINE_COLOR,
+      opacity: params.opacity ?? DEFAULT_CARTO_LINE_OPACITY,
       linewidth: params.lineWidth ?? CARTO_LINE_CONSTANTS.hairlineWidth,
-      dashed: true, // Always compile USE_DASH so style toggles avoid recompilation
-      dashSize: params.dashSize ?? defaultDash,
-      gapSize: params.gapSize ?? defaultGap,
+      dashed: true,
+      dashSize: params.dashSize ?? defaults.dash,
+      gapSize: params.gapSize ?? defaults.gap,
       dashOffset: params.dashOffset ?? 0,
       transparent: params.transparent ?? true,
       depthWrite: params.depthWrite ?? false,
@@ -97,13 +42,11 @@ export class CartoLineMaterial extends LineMaterial {
     });
 
     this._lineStyle = lineStyle;
-    this.uniforms.uResolutionScale = { value: 1000.0 };
+    this.uniforms.uResolutionScale = { value: DEFAULT_CARTO_RESOLUTION_SCALE };
     this.fragmentShader = patchLineMaterialFragmentShader(this.fragmentShader);
   }
 
-  get lineStyle(): CartoLineStyle {
-    return this._lineStyle;
-  }
+  get lineStyle(): CartoLineStyle { return this._lineStyle; }
 
   updateResolution(camera: THREE.Camera, widthOrHeight: number, height?: number): void {
     const actualHeight = height ?? widthOrHeight;
@@ -141,85 +84,33 @@ export class CartoLineMaterial extends LineMaterial {
 
   setStyle(style: CartoLineStyle): void {
     this._lineStyle = style;
-    if (style === 'solid') {
-      this.uniforms.gapSize.value = 0.0;
-    } else if (style === 'dashed') {
-      this.uniforms.dashSize.value = CARTO_LINE_CONSTANTS.dashSize;
-      this.uniforms.gapSize.value = CARTO_LINE_CONSTANTS.gapSize;
-    } else if (style === 'dotted') {
-      this.uniforms.dashSize.value = CARTO_LINE_CONSTANTS.dotSize;
-      this.uniforms.gapSize.value = CARTO_LINE_CONSTANTS.dotGap;
-    }
+    const { dash, gap } = resolveDashGap(style);
+    this.uniforms.dashSize.value = dash;
+    this.uniforms.gapSize.value = gap;
   }
 }
-
-const HAIRLINE_VERT = `
-attribute float lineDistance;
-varying float vLineDistance;
-
-void main() {
-  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-  gl_Position = projectionMatrix * mvPosition;
-  vLineDistance = lineDistance;
-}
-`;
-
-const HAIRLINE_FRAG = `
-uniform vec3 uColor;
-uniform float uOpacity;
-uniform float uDashSize;
-uniform float uGapSize;
-uniform float uDashOffset;
-uniform float uResolutionScale;
-
-varying float vLineDistance;
-
-void main() {
-  float cycle = uDashSize + uGapSize;
-  if (uGapSize > 0.0 && cycle > 0.0) {
-    float screenDist = vLineDistance * gl_FragCoord.w * uResolutionScale;
-    if (mod(screenDist + uDashOffset, cycle) > uDashSize) {
-      discard;
-    }
-  }
-  gl_FragColor = vec4(uColor, uOpacity);
-}
-`;
 
 /**
  * Lightweight screen-space hairline material for standard THREE.Line / LineSegments.
- * Ideal for high-density 1px lines (graticules, degree ticks, elevation stalks).
  */
 export class CartoHairlineMaterial extends THREE.ShaderMaterial {
   private _lineStyle: CartoLineStyle;
 
   constructor(params: CartoLineMaterialParameters = {}) {
     const lineStyle = params.lineStyle ?? 'solid';
-    const isDotted = lineStyle === 'dotted';
-    const isDashed = lineStyle === 'dashed';
-
-    const defaultDash = isDotted
-      ? CARTO_LINE_CONSTANTS.dotSize
-      : CARTO_LINE_CONSTANTS.dashSize;
-    const defaultGap = isDotted
-      ? CARTO_LINE_CONSTANTS.dotGap
-      : isDashed
-        ? CARTO_LINE_CONSTANTS.gapSize
-        : 0.0;
-
-    const initialColor =
-      params.color instanceof THREE.Color
-        ? params.color.clone()
-        : new THREE.Color((params.color ?? 0xffffff) as THREE.ColorRepresentation);
+    const defaults = resolveDashGap(lineStyle);
+    const initialColor = params.color instanceof THREE.Color
+      ? params.color.clone()
+      : new THREE.Color((params.color ?? DEFAULT_CARTO_LINE_COLOR) as THREE.ColorRepresentation);
 
     super({
       uniforms: {
         uColor: { value: initialColor },
-        uOpacity: { value: params.opacity ?? 1.0 },
-        uDashSize: { value: params.dashSize ?? defaultDash },
-        uGapSize: { value: params.gapSize ?? defaultGap },
+        uOpacity: { value: params.opacity ?? DEFAULT_CARTO_LINE_OPACITY },
+        uDashSize: { value: params.dashSize ?? defaults.dash },
+        uGapSize: { value: params.gapSize ?? defaults.gap },
         uDashOffset: { value: params.dashOffset ?? 0.0 },
-        uResolutionScale: { value: 1000.0 },
+        uResolutionScale: { value: DEFAULT_CARTO_RESOLUTION_SCALE },
       },
       vertexShader: HAIRLINE_VERT,
       fragmentShader: HAIRLINE_FRAG,
@@ -231,9 +122,7 @@ export class CartoHairlineMaterial extends THREE.ShaderMaterial {
     this._lineStyle = lineStyle;
   }
 
-  get lineStyle(): CartoLineStyle {
-    return this._lineStyle;
-  }
+  get lineStyle(): CartoLineStyle { return this._lineStyle; }
 
   updateResolution(camera: THREE.Camera, widthOrHeight: number, height?: number): void {
     const actualHeight = height ?? widthOrHeight;
@@ -241,36 +130,23 @@ export class CartoHairlineMaterial extends THREE.ShaderMaterial {
     this.uniforms.uResolutionScale.value = proj11 * (actualHeight * 0.5);
   }
 
-  get color(): THREE.Color {
-    return this.uniforms.uColor.value;
-  }
+  get color(): THREE.Color { return this.uniforms.uColor.value; }
 
   override set opacity(value: number) {
     super.opacity = value;
-    if (this.uniforms?.uOpacity) {
-      this.uniforms.uOpacity.value = value;
-    }
+    if (this.uniforms?.uOpacity) this.uniforms.uOpacity.value = value;
   }
 
-  override get opacity(): number {
-    return this.uniforms?.uOpacity?.value ?? super.opacity;
-  }
+  override get opacity(): number { return this.uniforms?.uOpacity?.value ?? super.opacity; }
 
   setColor(color: THREE.Color | string | number): void {
-    if (color instanceof THREE.Color) {
-      this.uniforms.uColor.value.copy(color);
-    } else {
-      this.uniforms.uColor.value.set(color as THREE.ColorRepresentation);
-    }
+    if (color instanceof THREE.Color) this.uniforms.uColor.value.copy(color);
+    else this.uniforms.uColor.value.set(color as THREE.ColorRepresentation);
   }
 
-  setOpacity(opacity: number): void {
-    this.uniforms.uOpacity.value = opacity;
-  }
+  setOpacity(opacity: number): void { this.uniforms.uOpacity.value = opacity; }
 
-  setLineWidth(_width: number): void {
-    // Hairline lines are strictly 1px in WebGL gl.LINES
-  }
+  setLineWidth(_width: number): void { /* Hairlines are 1px in WebGL */ }
 
   setPattern(dashSize: number, gapSize: number, dashOffset = 0.0): void {
     this.uniforms.uDashSize.value = dashSize;
@@ -280,59 +156,32 @@ export class CartoHairlineMaterial extends THREE.ShaderMaterial {
 
   setStyle(style: CartoLineStyle): void {
     this._lineStyle = style;
-    if (style === 'solid') {
-      this.uniforms.uGapSize.value = 0.0;
-    } else if (style === 'dashed') {
-      this.uniforms.uDashSize.value = CARTO_LINE_CONSTANTS.dashSize;
-      this.uniforms.uGapSize.value = CARTO_LINE_CONSTANTS.gapSize;
-    } else if (style === 'dotted') {
-      this.uniforms.uDashSize.value = CARTO_LINE_CONSTANTS.dotSize;
-      this.uniforms.uGapSize.value = CARTO_LINE_CONSTANTS.dotGap;
-    }
+    const { dash, gap } = resolveDashGap(style);
+    this.uniforms.uDashSize.value = dash;
+    this.uniforms.uGapSize.value = gap;
   }
 }
 
 /**
  * Creates a LineGeometry populated with positions and computed distances.
  */
-export function createCartoLineGeometry(
-  points: THREE.Vector3[] | number[],
-): LineGeometry {
+export function createCartoLineGeometry(points: THREE.Vector3[] | number[]): LineGeometry {
   const geom = new LineGeometry();
-  if (points.length > 0 && typeof points[0] === 'number') {
-    geom.setPositions(points as number[]);
-  } else {
-    const coords: number[] = [];
-    for (const p of points as THREE.Vector3[]) {
-      coords.push(p.x, p.y, p.z);
-    }
-    geom.setPositions(coords);
-  }
+  geom.setPositions(toCoordinateArray(points));
   return geom;
 }
 
 /**
  * Creates a LineSegmentsGeometry populated with positions and computed distances.
  */
-export function createCartoLineSegmentsGeometry(
-  segments: THREE.Vector3[] | number[],
-): LineSegmentsGeometry {
+export function createCartoLineSegmentsGeometry(segments: THREE.Vector3[] | number[]): LineSegmentsGeometry {
   const geom = new LineSegmentsGeometry();
-  if (segments.length > 0 && typeof segments[0] === 'number') {
-    geom.setPositions(segments as number[]);
-  } else {
-    const coords: number[] = [];
-    for (const p of segments as THREE.Vector3[]) {
-      coords.push(p.x, p.y, p.z);
-    }
-    geom.setPositions(coords);
-  }
+  geom.setPositions(toCoordinateArray(segments));
   return geom;
 }
 
 /**
- * Creates an appropriate Line mesh:
- * Returns `Line2` with `CartoLineMaterial` if lineWidth > 1, or `THREE.Line` with `CartoHairlineMaterial` if lineWidth === 1.
+ * Creates an appropriate Line mesh (Line2 or THREE.Line).
  */
 export function createCartoLineMesh(
   points: THREE.Vector3[] | number[],
@@ -340,46 +189,27 @@ export function createCartoLineMesh(
 ): Line2 | THREE.Line {
   const width = params.lineWidth ?? CARTO_LINE_CONSTANTS.hairlineWidth;
   if (width > 1.0) {
-    const geom = createCartoLineGeometry(points);
-    const mat = new CartoLineMaterial(params);
-    const mesh = new Line2(geom, mat);
+    const mesh = new Line2(createCartoLineGeometry(points), new CartoLineMaterial(params));
     mesh.computeLineDistances();
     return mesh;
   }
 
+  const rawCoords = toCoordinateArray(points);
   const bufGeom = new THREE.BufferGeometry();
-  const rawCoords =
-    points.length > 0 && typeof points[0] === 'number'
-      ? (points as number[])
-      : (points as THREE.Vector3[]).flatMap((p) => [p.x, p.y, p.z]);
+  bufGeom.setAttribute('position', new THREE.Float32BufferAttribute(rawCoords, 3));
 
-  bufGeom.setAttribute(
-    'position',
-    new THREE.Float32BufferAttribute(rawCoords, 3),
-  );
-
-  // Compute Euclidean lineDistance attribute
   const distances: number[] = [0];
   let acc = 0;
   for (let i = 3; i < rawCoords.length; i += 3) {
-    const dx = rawCoords[i] - rawCoords[i - 3];
-    const dy = rawCoords[i + 1] - rawCoords[i - 2];
-    const dz = rawCoords[i + 2] - rawCoords[i - 1];
-    acc += Math.sqrt(dx * dx + dy * dy + dz * dz);
+    acc += Math.hypot(rawCoords[i] - rawCoords[i - 3], rawCoords[i + 1] - rawCoords[i - 2], rawCoords[i + 2] - rawCoords[i - 1]);
     distances.push(acc);
   }
-  bufGeom.setAttribute(
-    'lineDistance',
-    new THREE.Float32BufferAttribute(distances, 1),
-  );
-
-  const mat = new CartoHairlineMaterial(params);
-  return new THREE.Line(bufGeom, mat);
+  bufGeom.setAttribute('lineDistance', new THREE.Float32BufferAttribute(distances, 1));
+  return new THREE.Line(bufGeom, new CartoHairlineMaterial(params));
 }
 
 /**
- * Creates an appropriate LineSegments mesh:
- * Returns `LineSegments2` with `CartoLineMaterial` if lineWidth > 1, or `THREE.LineSegments` with `CartoHairlineMaterial` if lineWidth === 1.
+ * Creates an appropriate LineSegments mesh (LineSegments2 or THREE.LineSegments).
  */
 export function createCartoLineSegmentsMesh(
   segments: THREE.Vector3[] | number[],
@@ -387,37 +217,20 @@ export function createCartoLineSegmentsMesh(
 ): LineSegments2 | THREE.LineSegments {
   const width = params.lineWidth ?? CARTO_LINE_CONSTANTS.hairlineWidth;
   if (width > 1.0) {
-    const geom = createCartoLineSegmentsGeometry(segments);
-    const mat = new CartoLineMaterial(params);
-    const mesh = new LineSegments2(geom, mat);
+    const mesh = new LineSegments2(createCartoLineSegmentsGeometry(segments), new CartoLineMaterial(params));
     mesh.computeLineDistances();
     return mesh;
   }
 
+  const rawCoords = toCoordinateArray(segments);
   const bufGeom = new THREE.BufferGeometry();
-  const rawCoords =
-    segments.length > 0 && typeof segments[0] === 'number'
-      ? (segments as number[])
-      : (segments as THREE.Vector3[]).flatMap((p) => [p.x, p.y, p.z]);
-
-  bufGeom.setAttribute(
-    'position',
-    new THREE.Float32BufferAttribute(rawCoords, 3),
-  );
+  bufGeom.setAttribute('position', new THREE.Float32BufferAttribute(rawCoords, 3));
 
   const distances: number[] = [];
   for (let i = 0; i < rawCoords.length; i += 6) {
-    const dx = rawCoords[i + 3] - rawCoords[i];
-    const dy = rawCoords[i + 4] - rawCoords[i + 1];
-    const dz = rawCoords[i + 5] - rawCoords[i + 2];
-    const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const len = Math.hypot(rawCoords[i + 3] - rawCoords[i], rawCoords[i + 4] - rawCoords[i + 1], rawCoords[i + 5] - rawCoords[i + 2]);
     distances.push(0, len);
   }
-  bufGeom.setAttribute(
-    'lineDistance',
-    new THREE.Float32BufferAttribute(distances, 1),
-  );
-
-  const mat = new CartoHairlineMaterial(params);
-  return new THREE.LineSegments(bufGeom, mat);
+  bufGeom.setAttribute('lineDistance', new THREE.Float32BufferAttribute(distances, 1));
+  return new THREE.LineSegments(bufGeom, new CartoHairlineMaterial(params));
 }

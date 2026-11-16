@@ -111,7 +111,19 @@ validateSearch: (search: Record<string, unknown>): StarmapSearchParams => {
     const cleaned = search.select
       .split(',')
       .map((s) => s.trim())
-      .filter((token) => token && !token.includes(':'))
+      .filter((token) => {
+        if (!token) return false;
+        if (
+          token.startsWith('tag:') ||
+          token.startsWith('star-type:') ||
+          token.startsWith('planet-type:') ||
+          token.startsWith('collection:') ||
+          token.startsWith('canon:')
+        ) {
+          return false;
+        }
+        return true;
+      })
       .join(',');
     if (cleaned.length > 0) result.select = cleaned;
   }
@@ -119,9 +131,6 @@ validateSearch: (search: Record<string, unknown>): StarmapSearchParams => {
     result.layer = search.layer.trim();
   }
   if (typeof search.route === 'string' && search.route.length > 0) result.route = search.route;
-  if (typeof search.journeyOption === 'string' && search.journeyOption.length > 0) {
-    result.journeyOption = search.journeyOption;
-  }
   if (typeof search.center === 'string' && search.center.trim().length > 0) {
     result.center = search.center.trim();
   }
@@ -142,7 +151,7 @@ State in Starmap is strictly partitioned into two categories: **URL-Governed Sta
 - Navigational routes (`/galaxy`, `/system/$systemId`, `/planet/$planetId`, `/guide/...`).
 - Active focal entity (`?focus=`) and focal barycentre (`?center=`).
 - Selected entity set (`?select=`).
-- Route planning waypoints (`?route=`) and travel options (`?journeyOption=`).
+- Route planning waypoints and compound departure modes (`?route=`, e.g. `?route=sol:torchship-1g,tau-ceti`).
 - Analytical layer filters (`?layer=`).
 - Search input text (`?q=`) and category (`?searchCategory=`).
 

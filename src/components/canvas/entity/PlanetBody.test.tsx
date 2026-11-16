@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { PlanetBody } from './PlanetBody';
 import { getClassificationPalette } from '../../../data/planetPalettes';
-import type { CelestialClassification } from '../cartography/reticleGeometry';
+import type { CelestialClassification } from '../../../types/spatial';
 
 describe('PlanetBody Component (Phase 4)', () => {
   let getContextSpy: ReturnType<typeof vi.spyOn>;

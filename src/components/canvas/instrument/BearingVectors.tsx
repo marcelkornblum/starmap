@@ -3,8 +3,13 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useSpatialFrame } from './spatialFrameContext';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
-import { populateCurvedDashedLineBuffer } from '../cartography/cartographyMath';
+import { populateCurvedDashedLineBuffer } from '../cartography/cartographyDashedLines';
 import { calculateBearingProximityFade } from '../math';
+import {
+  DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
+  DEFAULT_INSTRUMENT_EXTENT,
+} from './instrumentDefaults';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 export interface BearingVectorsProps {
   /** Whether to render axis spokes */
@@ -19,12 +24,12 @@ export interface BearingVectorsProps {
   extent?: number;
 }
 
-export const BearingVectors: React.FC<BearingVectorsProps> = ({
+export const BearingVectors: React.FC<BearingVectorsProps> = React.memo(({
   showAxisLines = true,
   showCardinalBearings = true,
   centerDistance,
   rGc,
-  extent = 1200,
+  extent = DEFAULT_INSTRUMENT_EXTENT,
 }) => {
   const { frame, frameRef } = useSpatialFrame();
   const axisLineColor = useThreeTokenStore((s) => s.tokens.axisLineColor);
@@ -46,41 +51,28 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
   const bearingCoreMatRef = useRef<THREE.LineBasicMaterial>(null);
   const bearingOrbitalRef = useRef<THREE.LineSegments>(null);
   const bearingOrbitalMatRef = useRef<THREE.LineBasicMaterial>(null);
-  const lastOrbitalDashRef = useRef<{
-    extent: number;
-    centerDist: number;
-    scale: number;
-  }>({ extent: -1, centerDist: -1, scale: -1 });
+  const lastOrbitalDashRef = useRef({ extent: -1, centerDist: -1, scale: -1 });
 
-  // Unit axis spokes: -X, -Y, +Z, -Z
   const spokeGeoms = useMemo(() => {
-    const makeSpokeGeom = (direction: [number, number, number]) => {
-      const geom = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(...direction),
-      ]);
-      geom.computeBoundingSphere();
-      return geom;
+    const makeSpoke = (x: number, y: number, z: number) => {
+      const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(x, y, z)]);
+      g.computeBoundingSphere();
+      return g;
     };
     return {
-      negX: makeSpokeGeom([0, 0, 0]),
-      negY: makeSpokeGeom([0, -1, 0]),
-      posZ: makeSpokeGeom([0, 0, 1]),
-      negZ: makeSpokeGeom([0, 0, -1]),
+      negX: makeSpoke(0, 0, 0),
+      negY: makeSpoke(0, -1, 0),
+      posZ: makeSpoke(0, 0, 1),
+      negZ: makeSpoke(0, 0, -1),
     };
   }, []);
 
-  // Unit Core bearing geometry along +X (heads into centre from +X, terminating at (0,0,0))
   const coreBearingGeom = useMemo(() => {
-    const geom = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(1, 0, 0),
-      new THREE.Vector3(0, 0, 0),
-    ]);
-    geom.computeBoundingSphere();
-    return geom;
+    const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0)]);
+    g.computeBoundingSphere();
+    return g;
   }, []);
 
-  // Curved orbital bearing line buffer & geometry extending to extent (1200)
   const orbitalBuffer = useMemo(() => new Float32Array(30000), []);
   const orbitalGeom = useMemo(() => {
     const geom = new THREE.BufferGeometry();
@@ -101,7 +93,6 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
 
   useFrame(({ camera }) => {
     const { apertureRadius, focusPoint, planeWeights, orientation, screenScale } = frameRef.current;
-
     if (rootGroupRef.current) {
       rootGroupRef.current.position.copy(focusPoint);
       rootGroupRef.current.quaternion.copy(orientation);
@@ -109,77 +100,36 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
 
     if (spokeGroupRef.current) {
       spokeGroupRef.current.scale.set(apertureRadius, apertureRadius, apertureRadius);
-
       const { qwXY, qwXZ, qwYZ, fadeXY, fadeXZ, fadeYZ } = planeWeights;
-      if (spokeMatsRef.current.negX) {
-        // Suppress -X spoke so the Core bearing terminates at (0, 0, 0) without continuing past center
-        spokeMatsRef.current.negX.opacity = 0;
-      }
+      if (spokeMatsRef.current.negX) spokeMatsRef.current.negX.opacity = 0;
 
-      const presenceXY_negY = Math.max(qwXY[2], qwXY[3]) * fadeXY;
-      const presenceYZ_negY = Math.max(qwYZ[1], qwYZ[2]) * fadeYZ;
-      const alphaNegY = axisLineAlpha * Math.min(presenceXY_negY, presenceYZ_negY);
-      if (spokeMatsRef.current.negY) {
-        spokeMatsRef.current.negY.opacity = alphaNegY;
-      }
+      const alphaNegY = axisLineAlpha * Math.min(Math.max(qwXY[2], qwXY[3]) * fadeXY, Math.max(qwYZ[1], qwYZ[2]) * fadeYZ);
+      if (spokeMatsRef.current.negY) spokeMatsRef.current.negY.opacity = alphaNegY;
 
-      const presenceXZ_posZ = Math.max(qwXZ[0], qwXZ[1]) * fadeXZ;
-      const presenceYZ_posZ = Math.max(qwYZ[0], qwYZ[1]) * fadeYZ;
-      const alphaPosZ = axisLineAlpha * Math.min(presenceXZ_posZ, presenceYZ_posZ);
-      if (spokeMatsRef.current.posZ) {
-        spokeMatsRef.current.posZ.opacity = alphaPosZ;
-      }
+      const alphaPosZ = axisLineAlpha * Math.min(Math.max(qwXZ[0], qwXZ[1]) * fadeXZ, Math.max(qwYZ[0], qwYZ[1]) * fadeYZ);
+      if (spokeMatsRef.current.posZ) spokeMatsRef.current.posZ.opacity = alphaPosZ;
 
-      const presenceXZ_negZ = Math.max(qwXZ[2], qwXZ[3]) * fadeXZ;
-      const presenceYZ_negZ = Math.max(qwYZ[2], qwYZ[3]) * fadeYZ;
-      const alphaNegZ = axisLineAlpha * Math.min(presenceXZ_negZ, presenceYZ_negZ);
-      if (spokeMatsRef.current.negZ) {
-        spokeMatsRef.current.negZ.opacity = alphaNegZ;
-      }
+      const alphaNegZ = axisLineAlpha * Math.min(Math.max(qwXZ[2], qwXZ[3]) * fadeXZ, Math.max(qwYZ[2], qwYZ[3]) * fadeYZ);
+      if (spokeMatsRef.current.negZ) spokeMatsRef.current.negZ.opacity = alphaNegZ;
     }
 
-    const effectiveCenterDistance = centerDistance ?? rGc ?? frame.centerDistance ?? 2000;
+    const effectiveCenterDistance = centerDistance ?? rGc ?? frame.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
+    const coreProximityFade = calculateBearingProximityFade(camera.position, focusPoint, 'core', extent, effectiveCenterDistance, apertureRadius, orientation);
+    const orbitalProximityFade = calculateBearingProximityFade(camera.position, focusPoint, 'orbital', extent, effectiveCenterDistance, apertureRadius, orientation);
 
-    // Bearing Proximity Fades: smoothly fade lines before hitting the camera
-    const coreProximityFade = calculateBearingProximityFade(
-      camera.position,
-      focusPoint,
-      'core',
-      extent,
-      effectiveCenterDistance,
-      apertureRadius,
-      orientation,
-    );
-    const orbitalProximityFade = calculateBearingProximityFade(
-      camera.position,
-      focusPoint,
-      'orbital',
-      extent,
-      effectiveCenterDistance,
-      apertureRadius,
-      orientation,
-    );
-
-    // Extended Core bearing (+X) extending to destination/infinity (extent)
     if (bearingCoreRef.current) {
       bearingCoreRef.current.scale.set(extent, extent, 1);
-      bearingCoreRef.current.visible = coreProximityFade > 1e-4;
+      bearingCoreRef.current.visible = hasCore && coreProximityFade > 1e-3;
     }
     if (bearingCoreMatRef.current) {
       bearingCoreMatRef.current.opacity = bearingCoreAlpha * coreProximityFade;
     }
 
-    // Extended Orbital bearing (+Y curved dashed) extending to destination/infinity (extent)
-    if (hasOrbital && orbitalGeom) {
-      if (bearingOrbitalRef.current) {
-        bearingOrbitalRef.current.visible = orbitalProximityFade > 1e-4;
-      }
-      if (bearingOrbitalMatRef.current) {
-        bearingOrbitalMatRef.current.opacity = bearingOrbitalAlpha * orbitalProximityFade;
-      }
-
-      if (orbitalProximityFade > 1e-4) {
-        const invScale = screenScale;
+    const invScale = screenScale;
+    if (bearingOrbitalRef.current && orbitalGeom) {
+      const showOrbital = hasOrbital && orbitalProximityFade > 1e-3;
+      bearingOrbitalRef.current.visible = showOrbital;
+      if (showOrbital) {
         const prevDash = lastOrbitalDashRef.current;
         if (
           Math.abs(prevDash.extent - extent) > 1e-4 ||
@@ -189,80 +139,53 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
           prevDash.extent = extent;
           prevDash.centerDist = effectiveCenterDistance;
           prevDash.scale = invScale;
-          const vCount = populateCurvedDashedLineBuffer(
-            orbitalBuffer,
-            extent,
-            effectiveCenterDistance,
-            1,
-            0.18 * invScale,
-            0.12 * invScale,
-          );
-          const posAttr = orbitalGeom.getAttribute('position') as THREE.BufferAttribute;
-          posAttr.needsUpdate = true;
+          const vCount = populateCurvedDashedLineBuffer(orbitalBuffer, extent, effectiveCenterDistance, 1, 0.18 * invScale, 0.12 * invScale);
+          (orbitalGeom.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
           orbitalGeom.setDrawRange(0, vCount);
         }
       }
     }
+    if (bearingOrbitalMatRef.current) {
+      bearingOrbitalMatRef.current.opacity = bearingOrbitalAlpha * orbitalProximityFade;
+    }
   });
+
+  useEffect(() => {
+    Object.values(spokeMatsRef.current).forEach((mat) => { if (mat?.color) mat.color.set(axisLineColor); });
+    if (bearingCoreMatRef.current?.color) bearingCoreMatRef.current.color.set(bearingCoreColor);
+    if (bearingOrbitalMatRef.current?.color) bearingOrbitalMatRef.current.color.set(bearingOrbitalColor);
+  }, [axisLineColor, bearingCoreColor, bearingOrbitalColor]);
+
+  const spokeList: { name: string; geom: THREE.BufferGeometry; matKey: keyof typeof spokeMatsRef.current }[] = [
+    { name: 'axis-neg-x', geom: spokeGeoms.negX, matKey: 'negX' },
+    { name: 'axis-neg-y', geom: spokeGeoms.negY, matKey: 'negY' },
+    { name: 'axis-pos-z', geom: spokeGeoms.posZ, matKey: 'posZ' },
+    { name: 'axis-neg-z', geom: spokeGeoms.negZ, matKey: 'negZ' },
+  ];
 
   return (
     <group ref={rootGroupRef} name="bearing-vectors">
-      {/* Structural Axis Spokes of length R (scaled to apertureRadius) */}
       {showAxisLines && (
         <group ref={spokeGroupRef} name="axis-spokes">
-          <lineSegments name="axis-neg-x" visible={false} frustumCulled={false}>
-            <primitive object={spokeGeoms.negX} attach="geometry" />
-            <lineBasicMaterial
-              ref={(el) => { spokeMatsRef.current.negX = el; }}
-              color={axisLineColor}
-              opacity={0}
-              transparent
-              depthWrite={false}
-            />
-          </lineSegments>
-          <lineSegments name="axis-neg-y" frustumCulled={false}>
-            <primitive object={spokeGeoms.negY} attach="geometry" />
-            <lineBasicMaterial
-              ref={(el) => { spokeMatsRef.current.negY = el; }}
-              color={axisLineColor}
-              opacity={axisLineAlpha}
-              transparent
-              depthWrite={false}
-            />
-          </lineSegments>
-          <lineSegments name="axis-pos-z" frustumCulled={false}>
-            <primitive object={spokeGeoms.posZ} attach="geometry" />
-            <lineBasicMaterial
-              ref={(el) => { spokeMatsRef.current.posZ = el; }}
-              color={axisLineColor}
-              opacity={axisLineAlpha}
-              transparent
-              depthWrite={false}
-            />
-          </lineSegments>
-          <lineSegments name="axis-neg-z" frustumCulled={false}>
-            <primitive object={spokeGeoms.negZ} attach="geometry" />
-            <lineBasicMaterial
-              ref={(el) => { spokeMatsRef.current.negZ = el; }}
-              color={axisLineColor}
-              opacity={axisLineAlpha}
-              transparent
-              depthWrite={false}
-            />
-          </lineSegments>
+          {spokeList.map(({ name, geom, matKey }) => (
+            <lineSegments key={name} name={name} frustumCulled={false} raycast={NOOP_RAYCAST}>
+              <primitive object={geom} attach="geometry" />
+              <lineBasicMaterial
+                ref={(el: THREE.LineBasicMaterial | null) => { spokeMatsRef.current[matKey] = el; }}
+                color={axisLineColor}
+                opacity={axisLineAlpha}
+                transparent
+                depthWrite={false}
+              />
+            </lineSegments>
+          ))}
         </group>
       )}
 
-      {/* Prominent Extended Cardinal Bearing Lines: +X (Galactic Core Accent), +Y (Galactic Orbit Dashed) */}
       {showCardinalBearings && (
         <group name="cardinal-bearings">
           {hasCore && (
-            <lineSegments
-              ref={bearingCoreRef}
-              name="bearing-core"
-              scale={[extent, extent, 1]}
-              frustumCulled={false}
-            >
+            <lineSegments ref={bearingCoreRef} name="bearing-core" scale={[extent, extent, 1]} frustumCulled={false} raycast={NOOP_RAYCAST}>
               <primitive object={coreBearingGeom} attach="geometry" />
               <lineBasicMaterial
                 ref={bearingCoreMatRef}
@@ -274,11 +197,7 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
             </lineSegments>
           )}
           {hasOrbital && (
-            <lineSegments
-              ref={bearingOrbitalRef}
-              name="bearing-orbital"
-              frustumCulled={false}
-            >
+            <lineSegments ref={bearingOrbitalRef} name="bearing-orbital" frustumCulled={false} raycast={NOOP_RAYCAST}>
               <primitive object={orbitalGeom} attach="geometry" />
               <lineBasicMaterial
                 ref={bearingOrbitalMatRef}
@@ -293,4 +212,4 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
       )}
     </group>
   );
-};
+});

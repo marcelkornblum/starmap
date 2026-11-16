@@ -3,15 +3,13 @@ import path from 'node:path';
 import type { ExoplanetRecord, KeplerianOrbit, StarmapNode } from '../../src/types/astro';
 import {
   classifyPlanetPhysical,
-  computePlanetHazardMask,
   computePlanetSurfaceGravityG,
   isPlanetHabitableCandidate,
-} from '../../src/utils/astroMath';
+} from '../../src/utils/planetaryPhysics';
+import { computePlanetHazardMask } from '../../src/utils/astroHazards';
 import { resolvePlanetReticleType } from '../../src/utils/astroPrecalculation';
-import {
-  collectStarLookupKeys,
-  expandGouldOrConstellationSuffix,
-} from '../../src/utils/nomenclature';
+import { collectStarLookupKeys } from '../../src/utils/nomenclature';
+import { expandGouldOrConstellationSuffix } from '../../src/utils/starNaming';
 import { parseCsvRowsSync } from './csvParser';
 import { IAU_NAME_EXOWORLDS } from './seedCatalogs';
 

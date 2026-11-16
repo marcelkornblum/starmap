@@ -90,6 +90,12 @@ export function reticleSizeToScreenPx(
   return (reticleSize / referenceScale) * screenHeight;
 }
 
+/**
+ * Shared no-op Three.js raycast callback for visual-only meshes, lines, and point clouds
+ * so root viewport `onPointerMissed` traversal skips expensive vertex/segment intersection math.
+ */
+export const NOOP_RAYCAST = (): void => {};
+
 export interface EntityScaleFrameState {
   screenScale: number;
   referenceFootprint: number;

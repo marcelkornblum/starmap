@@ -162,4 +162,19 @@ describe('useKeyboardShortcuts', () => {
 
     expect(onClearFocus).toHaveBeenCalledTimes(1);
   });
+
+  it('clears canvas focus and inFlightFocusSlug on Escape', () => {
+    window.history.pushState({}, '', '/galaxy?focus=sol');
+    useCameraStore.getState().recordCanvasFocus(['sol', 'sol']);
+    useCameraStore.getState().setInFlightFocusSlug('sol');
+
+    renderHook(() => useKeyboardShortcuts());
+
+    const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+    window.dispatchEvent(event);
+
+    expect(useCameraStore.getState().canvasFocusedSlugs.size).toBe(0);
+    expect(useCameraStore.getState().inFlightFocusSlug).toBeUndefined();
+    expect(window.location.search).not.toContain('focus=sol');
+  });
 });

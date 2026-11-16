@@ -1,24 +1,25 @@
 import { useMemo } from 'react';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../types/spatial';
+import { buildJourneyPlan } from '../services/journey/journeyBuilder';
 import {
-  buildJourneyPlan,
   extractUrlJourneyOptionId,
   extractUrlRouteStops,
-} from '../services/journeyService';
+} from '../services/journey/journeyProfilesAndUrls';
 import { resolveActiveLayerCard } from '../services/layerCardService';
 import { useSystemData } from '../hooks/useSystemData';
-import {
-  buildFocusedEntityDetails,
-  buildFocusedPreviewSummary,
-  buildGalaxyMinimapOrientation,
-  buildSystemOrbitalSchematic,
-  extractGalaxyBodies,
-  type GalacticInstrumentApertureResult,
-  type SceneCameraUrlState,
-} from '../services/detailsService';
-import type { DatasetLayerManifest } from '../types/astro';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
-import { toAnnotationLookupKey } from '../utils/datasetLayerCodec';
+import { buildFocusedEntityDetails } from '../services/details/focusedEntityDetails';
+import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
+import { buildGalaxyMinimapOrientation } from '../services/details/galaxyMinimap';
+import { buildSystemOrbitalSchematic } from '../services/details/systemOrbitalSchematic';
+import { extractGalaxyBodies } from '../services/details/galaxyBodiesExtractor';
+import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
+import type {
+  GalacticInstrumentApertureResult,
+  SceneCameraUrlState,
+} from '../services/details/detailsNavigationTypes';
+import type { DatasetLayerManifest } from '../types/datasetLayers';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import { toAnnotationLookupKey } from '../utils/datasetLayerSlugs';
 import { useEntityAnnotations } from '../hooks/useLayerData';
 
 export interface UseGalaxyPanelsParams {
@@ -37,8 +38,24 @@ export interface UseGalaxyPanelsParams {
   readonly selectedEntities: readonly SpatialEntityDefinition[];
   readonly instrumentAperture: GalacticInstrumentApertureResult;
   readonly route?: string;
-  readonly journeyOption?: string;
 }
+
+export const stripFocusFromSearch = (rawSearch: string): string => {
+  if (!rawSearch || rawSearch === '?') {
+    return '';
+  }
+  if (!rawSearch.includes('focus=')) {
+    return rawSearch;
+  }
+  const clean = rawSearch.startsWith('?') ? rawSearch.slice(1) : rawSearch;
+  const params = new URLSearchParams(clean);
+  params.delete('focus');
+  const serialized = params.toString();
+  if (!serialized) {
+    return '';
+  }
+  return `?${serialized.replace(/%3A/gi, ':').replace(/%2C/gi, ',')}`;
+};
 
 export function useGalaxyPanels({
   focusedEntity,
@@ -56,12 +73,12 @@ export function useGalaxyPanels({
   selectedEntities,
   instrumentAperture,
   route,
-  journeyOption,
 }: UseGalaxyPanelsParams) {
-  const canonRecords = useEntityAnnotations([
-    toAnnotationLookupKey(focusedEntity?.id ?? targetSystemId),
-    targetSystemId,
-  ]);
+  const canonLookupIds = useMemo(
+    () => [toAnnotationLookupKey(focusedEntity?.id ?? targetSystemId), targetSystemId],
+    [focusedEntity?.id, targetSystemId],
+  );
+  const canonRecords = useEntityAnnotations(canonLookupIds);
 
   const focusedEntityId = focusedEntity?.id ?? '';
   const { systemSummary, systemDetail, focusedDetail } = useSystemData(
@@ -69,11 +86,25 @@ export function useGalaxyPanels({
     focusedEntityId,
   );
 
+  const focusedExtraEntry = useMemo(() => {
+    if (activeCorpus.length === 0) return undefined;
+    const lookup = focusedEntity?.id || urlFocusSlug || targetSystemId;
+    if (!lookup || findFocusedEntryInCorpus(lookup, activeCorpus)) {
+      return undefined;
+    }
+    return findFocusedEntryInCorpus(lookup, apertureCorpus);
+  }, [activeCorpus, apertureCorpus, focusedEntity?.id, urlFocusSlug, targetSystemId]);
+
+  const detailsCorpus = useMemo(() => {
+    if (activeCorpus.length === 0) return apertureCorpus;
+    return focusedExtraEntry ? [...activeCorpus, focusedExtraEntry] : activeCorpus;
+  }, [activeCorpus, apertureCorpus, focusedExtraEntry]);
+
   const focusedDetails = useMemo(
     () =>
       buildFocusedEntityDetails({
         focusedEntity,
-        corpus: apertureCorpus,
+        corpus: detailsCorpus,
         summaryNode: systemSummary,
         systemDetail,
         entityDetail: focusedDetail,
@@ -86,7 +117,7 @@ export function useGalaxyPanels({
       }),
     [
       focusedEntity,
-      apertureCorpus,
+      detailsCorpus,
       systemSummary,
       systemDetail,
       focusedDetail,
@@ -103,6 +134,8 @@ export function useGalaxyPanels({
     [focusedDetails, focusedDetail],
   );
 
+  const nonFocusSearch = useMemo(() => stripFocusFromSearch(search), [search]);
+
   const galaxyBodies = useMemo(
     () =>
       extractGalaxyBodies({
@@ -113,7 +146,7 @@ export function useGalaxyPanels({
         centerEntity,
         urlSystemSlug: urlFocusSlug,
         hasExplicitFocus,
-        currentSearch: search,
+        currentSearch: nonFocusSearch,
         aperture: instrumentAperture,
       }),
     [
@@ -124,7 +157,7 @@ export function useGalaxyPanels({
       centerEntity,
       urlFocusSlug,
       hasExplicitFocus,
-      search,
+      nonFocusSearch,
       instrumentAperture,
     ],
   );
@@ -141,28 +174,63 @@ export function useGalaxyPanels({
     [focusedEntity, selectedEntities, focusedDetails, cameraState, centerEntity],
   );
 
-  const routeSearchQuery = route
-    ? `?route=${encodeURIComponent(route)}${journeyOption ? `&journeyOption=${encodeURIComponent(journeyOption)}` : ''}`
-    : search;
-  const routeStops = extractUrlRouteStops(routeSearchQuery, 'galaxy');
-  const routeOptionId = journeyOption ?? extractUrlJourneyOptionId(routeSearchQuery);
-  const activeJourney = routeStops
-    ? buildJourneyPlan({
-        stops: routeStops,
-        selectedOptionId: routeOptionId,
-        corpus: activeCorpus,
-        viewScope: 'galaxy',
-        currentPathname: pathname,
-        currentSearch: search,
-      })
-    : null;
+  const { routeStops, activeJourney } = useMemo(() => {
+    if (!route && !search.includes('route=')) {
+      return { routeStops: null, activeJourney: null };
+    }
+    const routeSearchQuery = route ? `?route=${encodeURIComponent(route)}` : search;
+    const stops = extractUrlRouteStops(routeSearchQuery, 'galaxy');
+    const optionId = extractUrlJourneyOptionId(routeSearchQuery);
+    const journey = stops
+      ? buildJourneyPlan({
+          stops,
+          selectedOptionId: optionId,
+          corpus: activeCorpus,
+          viewScope: 'galaxy',
+          currentPathname: pathname,
+          currentSearch: search,
+        })
+      : null;
+    return { routeStops: stops, activeJourney: journey };
+  }, [route, search, activeCorpus, pathname]);
+
+  const isSystemFocused = focusedDetails?.focusedKind === 'system';
+  const focusedId = focusedDetails?.id;
+  const focusedSysId = focusedDetails?.systemId;
+  const focusedName = focusedDetails?.name;
+  const focusedSysName = focusedDetails?.systemName;
+  const focusedStars = focusedDetails?.stars;
+  const focusedPlanets = focusedDetails?.planets;
+  const focusedDisks = focusedDetails?.disks;
 
   const orbitalSchematic = useMemo(
     () =>
-      focusedDetails && focusedDetails.focusedKind === 'system'
-        ? buildSystemOrbitalSchematic(focusedDetails, apertureCorpus)
+      isSystemFocused && focusedId && focusedSysId && focusedStars && focusedPlanets
+        ? buildSystemOrbitalSchematic(
+            {
+              id: focusedId,
+              systemId: focusedSysId,
+              name: focusedName ?? '',
+              systemName: focusedSysName ?? '',
+              focusedKind: 'system',
+              stars: focusedStars,
+              planets: focusedPlanets,
+              disks: focusedDisks,
+            },
+            activeCorpus,
+          )
         : null,
-    [focusedDetails, apertureCorpus],
+    [
+      isSystemFocused,
+      focusedId,
+      focusedSysId,
+      focusedName,
+      focusedSysName,
+      focusedStars,
+      focusedPlanets,
+      focusedDisks,
+      activeCorpus,
+    ],
   );
 
   const activeLayerCard = useMemo(

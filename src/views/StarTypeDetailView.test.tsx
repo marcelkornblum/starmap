@@ -11,7 +11,7 @@ describe('<StarTypeDetailView />', () => {
   it('renders single star type detail view for G8.5V with combinator and telemetry', () => {
     render(<StarTypeDetailView starType="G8.5V" />);
     const root = screen.getByTestId('star-type-detail-view-root');
-    expect(root).toBeTruthy();
+    expect(root).toBeInTheDocument();
     expect(root.getAttribute('data-star-type')).toBe('G8.5V');
 
     expect(screen.getAllByText(/G8.5V/i).length).toBeGreaterThan(0);
@@ -19,7 +19,7 @@ describe('<StarTypeDetailView />', () => {
     expect(decoded.textContent).toContain('Main-Sequence Dwarf');
 
     const combinator = screen.getByTestId('star-type-combinator');
-    expect(combinator).toBeTruthy();
+    expect(combinator).toBeInTheDocument();
 
     const summary = screen.getByTestId('guide-detail-summary');
     expect(summary.textContent).toBeTruthy();
@@ -30,16 +30,16 @@ describe('<StarTypeDetailView />', () => {
 
   it('renders cards for all classifications when multi-value star type is provided (AUD-092)', () => {
     render(<StarTypeDetailView starType="G2V,K1V" />);
-    expect(screen.getByTestId('star-type-detail-view-root')).toBeTruthy();
-    expect(screen.getByText('G2V')).toBeTruthy();
-    expect(screen.getByText('K1V')).toBeTruthy();
+    expect(screen.getByTestId('star-type-detail-view-root')).toBeInTheDocument();
+    expect(screen.getByText('G2V')).toBeInTheDocument();
+    expect(screen.getByText('K1V')).toBeInTheDocument();
   });
 
   it('renders compound star types separated by plus (e.g. G2V+K1V) (AUD-092)', () => {
     render(<StarTypeDetailView starType="G2V+K1V" />);
-    expect(screen.getByTestId('star-type-detail-view-root')).toBeTruthy();
-    expect(screen.getByText('G2V')).toBeTruthy();
-    expect(screen.getByText('K1V')).toBeTruthy();
+    expect(screen.getByTestId('star-type-detail-view-root')).toBeInTheDocument();
+    expect(screen.getByText('G2V')).toBeInTheDocument();
+    expect(screen.getByText('K1V')).toBeInTheDocument();
   });
 
   it('renders focus context return button when ?focus= is provided in search (AUD-092)', () => {
@@ -50,13 +50,13 @@ describe('<StarTypeDetailView />', () => {
       />,
     );
     const focusContext = screen.getByTestId('guide-focus-context');
-    expect(focusContext).toBeTruthy();
+    expect(focusContext).toBeInTheDocument();
     expect(focusContext.textContent).toContain('sol');
   });
 
   it('renders fallback gracefully when star type is not recognized', () => {
     render(<StarTypeDetailView starType="warp-star" />);
-    expect(screen.getByText(/No guide record found for stellar classification/i)).toBeTruthy();
+    expect(screen.getByText(/No guide record found for stellar classification/i)).toBeInTheDocument();
   });
 
   it('extracts starType from route params via useParams when propStarType is omitted', () => {

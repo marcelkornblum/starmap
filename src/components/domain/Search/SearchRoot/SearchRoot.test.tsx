@@ -7,8 +7,8 @@ import { SearchResults } from '../SearchResults';
 import { SEARCH_DEBOUNCE_MS } from '../searchHelpers';
 import { SpatialEntityProvider } from '../../../canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../../../canvas/entity/SpatialEntityStore';
-import type { CompactSearchEntry } from '../../../../utils/compactDataCodec';
-import type { DatasetLayerManifest } from '../../../../types/astro';
+import type { CompactSearchEntry } from '../../../../utils/compactDataTypes';
+import type { DatasetLayerManifest } from '../../../../types/datasetLayers';
 import * as detailsRepo from '../../../../data/detailsRepository';
 import * as layerRepo from '../../../../data/layerRepository';
 
@@ -86,7 +86,7 @@ describe('<SearchRoot />', () => {
 
     fireEvent.change(input, { target: { value: 'Tau' } });
     expect(input.value).toBe('Tau');
-    expect(screen.getByText('Tau Ceti')).toBeDefined();
+    expect(screen.getByText('Tau Ceti')).toBeInTheDocument();
   });
 
   it('updates input UI immediately and defers catalog search until 3 characters and the debounce elapse in standard mode', () => {
@@ -151,12 +151,10 @@ describe('<SearchRoot />', () => {
       vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
     });
 
-    expect(screen.getByText('Tau Ceti')).toBeDefined();
-    expect(summarySpy).toHaveBeenCalledWith('tau-ceti');
-    expect(detailSpy).toHaveBeenCalledWith('tau-ceti');
-    expect(annotationsSpy).toHaveBeenCalledWith(
-      expect.arrayContaining(['tau-ceti']),
-    );
+    expect(screen.getByText('Tau Ceti')).toBeInTheDocument();
+    expect(summarySpy).not.toHaveBeenCalled();
+    expect(detailSpy).not.toHaveBeenCalled();
+    expect(annotationsSpy).not.toHaveBeenCalled();
 
     // 5. Clicking clear search clears immediately
     const clearButton = screen.getByTestId('search-clear-button');

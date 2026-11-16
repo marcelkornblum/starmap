@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Drawer } from './Drawer';
 
 describe('<Drawer />', () => {
@@ -25,8 +26,8 @@ describe('<Drawer />', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog.tagName.toLowerCase()).toBe('dialog');
     expect(dialog.getAttribute('data-position')).toBe('left');
-    expect(screen.getByRole('heading', { name: 'Target Filter' })).toBeDefined();
-    expect(screen.getByText('Filter Content')).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Target Filter' })).toBeInTheDocument();
+    expect(screen.getByText('Filter Content')).toBeInTheDocument();
   });
 
   it('calls onClose when the close button is clicked', () => {

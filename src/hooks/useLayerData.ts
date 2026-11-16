@@ -1,20 +1,22 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
+  startTransition,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import {
+  areEntityAnnotationsCached,
   fetchEntityAnnotations,
   fetchLayerManifest,
   getCachedEntityAnnotations,
   getCachedLayerManifest,
 } from '../data/layerRepository';
-import {
-  extractUrlSelectSlugs,
-  findCanonLayerById,
-} from '../services/searchService';
+import { extractUrlSelectSlugs } from '../services/search/searchUrlSelection';
+import { findCanonLayerById } from '../utils/datasetLayerSlugs';
 import { useLayerStore } from '../stores/useLayerStore';
-import type {
-  DatasetLayerIndexEntry,
-  DatasetLayerManifest,
-} from '../types/astro';
-import type { DecodedEntityAnnotation } from '../utils/datasetLayerCodec';
+import type { DatasetLayerIndexEntry, DatasetLayerManifest } from '../types/datasetLayers';
+import type { DecodedEntityAnnotation } from '../utils/datasetLayerTypes';
 import { parseLayerQueryParam } from '../utils/url';
 
 const getLayerIndexSnapshot = (): readonly DatasetLayerIndexEntry[] =>
@@ -53,9 +55,7 @@ export const useLoadedLayerManifests = (
     }
   }
 
-  const layerIds = [
-    ...new Set([...selectLayerSlugs, ...layerParamSlugs]),
-  ];
+  const layerIds = [...new Set([...selectLayerSlugs, ...layerParamSlugs])];
   const layerKey = layerIds.join(',');
 
   useEffect(() => {
@@ -71,7 +71,13 @@ export const useLoadedLayerManifests = (
       ids.map((id) => fetchLayerManifest(id).catch(() => undefined)),
     ).then(() => {
       if (!cancelled) {
-        setLoadTick((n) => n + 1);
+        if (import.meta.env.MODE !== 'test') {
+          startTransition(() => {
+            setLoadTick((n) => n + 1);
+          });
+        } else {
+          setLoadTick((n) => n + 1);
+        }
       }
     });
     return () => {
@@ -80,7 +86,7 @@ export const useLoadedLayerManifests = (
   }, [layerKey]);
 
   return useMemo(() => {
-    if (!layerKey) {
+    if (!layerKey || loadTick < 0) {
       return [];
     }
     return layerKey.split(',').flatMap((id) => {
@@ -99,20 +105,28 @@ export const useEntityAnnotations = (
   entityIds: readonly string[],
 ): readonly DecodedEntityAnnotation[] => {
   const [loadTick, setLoadTick] = useState<number>(0);
-  const entityKey = [...new Set(entityIds.filter((id) => id.length > 0))].join(
-    '\n',
-  );
+  const entityKey = [...new Set(entityIds.filter((id) => id.length > 0))].join('\n');
 
   useEffect(() => {
     if (!entityKey || typeof window === 'undefined') {
       return;
     }
+    const ids = entityKey.split('\n');
+    if (ids.length === 0 || areEntityAnnotationsCached(ids)) {
+      return;
+    }
     let cancelled = false;
-    void fetchEntityAnnotations(entityKey.split('\n'))
+    void fetchEntityAnnotations(ids)
       .catch(() => undefined)
       .then(() => {
         if (!cancelled) {
-          setLoadTick((n) => n + 1);
+          if (import.meta.env.MODE !== 'test') {
+            startTransition(() => {
+              setLoadTick((n) => n + 1);
+            });
+          } else {
+            setLoadTick((n) => n + 1);
+          }
         }
       });
     return () => {
@@ -120,8 +134,10 @@ export const useEntityAnnotations = (
     };
   }, [entityKey]);
 
-  return useMemo(
-    () => getCachedEntityAnnotations(entityKey ? entityKey.split('\n') : []),
-    [entityKey, loadTick],
-  );
+  return useMemo(() => {
+    if (loadTick < 0) {
+      return [];
+    }
+    return getCachedEntityAnnotations(entityKey ? entityKey.split('\n') : []);
+  }, [entityKey, loadTick]);
 };

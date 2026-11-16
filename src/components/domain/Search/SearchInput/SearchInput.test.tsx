@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SearchInput } from './SearchInput';
 import { SearchContext } from '../SearchContext';
-import { executeCatalogSearch } from '../../../../services/searchService';
+import { executeCatalogSearch } from '../../../../services/search/searchExecution';
 
 describe('<SearchInput />', () => {
   it('renders input with placeholder, handles change and clear', () => {

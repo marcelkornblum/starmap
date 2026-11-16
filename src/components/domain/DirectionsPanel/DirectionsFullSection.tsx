@@ -1,5 +1,5 @@
 import React from 'react';
-import type { JourneyPlan } from '../../../services/journeyService';
+import type { JourneyPlan } from '../../../services/journey/journeyTypes';
 import {
   CelestialSymbol,
   Heading,
@@ -130,7 +130,7 @@ export const DirectionsFullSection: React.FC<DirectionsFullSectionProps> = ({
               )}
               {renderDirectionsDatum(
                 'Geometry',
-                step.secondaryGeometryLabel,
+                step.secondaryGeometry,
                 'directions-stat-geometry',
               )}
               {renderDirectionsDatum(

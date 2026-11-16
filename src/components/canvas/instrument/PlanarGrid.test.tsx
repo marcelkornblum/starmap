@@ -8,7 +8,8 @@ import {
   type PlanarFootprintItem as PlanarFootprintItemType,
 } from './PlanarGrid';
 import { SpatialFrameProvider } from './SpatialFrameProvider';
-import { GALACTIC_FRAME } from './referenceFrame';
+import { GALACTIC_FRAME } from '../../../config/referenceFrames';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () => {
   let createReticleSpy: ReturnType<typeof vi.spyOn>;
@@ -144,5 +145,38 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
     await renderer.unmount();
     // Primary footprint geom + both footprint geometries disposed
     expect(disposeSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('attaches NOOP_RAYCAST to PlanarFootprintItem and PlanarGrid elements', async () => {
+    const fp: PlanarFootprintItemType = {
+      id: 'test-star-fp',
+      position: [0, 0, 0],
+      classification: 'star',
+    };
+    const fpRenderer = await ReactThreeTest.create(
+      <PlanarFootprintItem footprint={fp} />,
+    );
+    const fpLines = fpRenderer.scene.find((node) => node.type === 'LineSegments');
+    expect(fpLines.props.raycast).toBe(NOOP_RAYCAST);
+    await fpRenderer.unmount();
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <PlanarGrid showFill={true} showPlanarGrid={true} showPlanarFootprint={true} />
+      </SpatialFrameProvider>,
+    );
+    const fill = renderer.scene.find((node) => node.props.name === 'datum-plane-fill');
+    expect(fill.props.raycast).toBe(NOOP_RAYCAST);
+    const boundary = renderer.scene.find((node) => node.props.name === 'datum-plane-boundary');
+    expect(boundary.props.raycast).toBe(NOOP_RAYCAST);
+    const grid = renderer.scene.find((node) => node.props.name === 'planar-galactic-grid');
+    expect(grid.props.raycast).toBe(NOOP_RAYCAST);
+    const core = renderer.scene.find((node) => node.props.name === 'bearing-core');
+    expect(core.props.raycast).toBe(NOOP_RAYCAST);
+    const orbital = renderer.scene.find((node) => node.props.name === 'bearing-orbital');
+    expect(orbital.props.raycast).toBe(NOOP_RAYCAST);
+    const footprint = renderer.scene.find((node) => node.props.name === 'planar-footprint');
+    expect(footprint.children[0].props.raycast).toBe(NOOP_RAYCAST);
+    await renderer.unmount();
   });
 });

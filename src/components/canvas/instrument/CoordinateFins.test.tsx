@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { CoordinateFins } from './CoordinateFins';
 import { SpatialFrameProvider, GALACTIC_FRAME } from './index';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 describe('CoordinateFins Primitive', () => {
   beforeEach(() => {
@@ -65,6 +66,23 @@ describe('CoordinateFins Primitive', () => {
     expect(colorCopySpy).not.toHaveBeenCalled();
     colorCopySpy.mockRestore();
 
+    await renderer.unmount();
+  });
+
+  it('attaches NOOP_RAYCAST to all fin lineSegments', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <CoordinateFins enabled={true} rings={[5]} />
+      </SpatialFrameProvider>,
+    );
+    const perimeter = renderer.scene.findByProps({ name: 'xy-perimeter-q0' });
+    expect(perimeter.props.raycast).toBe(NOOP_RAYCAST);
+    const baseline = renderer.scene.findByProps({ name: 'xy-baseline-q0' });
+    expect(baseline.props.raycast).toBe(NOOP_RAYCAST);
+    const ticks = renderer.scene.findByProps({ name: 'xy-ticks-q0' });
+    expect(ticks.props.raycast).toBe(NOOP_RAYCAST);
+    const arc = renderer.scene.findByProps({ name: 'xy-q0-r0' });
+    expect(arc.props.raycast).toBe(NOOP_RAYCAST);
     await renderer.unmount();
   });
 });

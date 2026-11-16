@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   useSpatialEntityStore,
   useSpatialEntityStoreApi,
 } from '../components/canvas/entity/SpatialEntityContext';
-import type { SpatialEntityDefinition } from '../components/canvas/entity/SpatialEntityStore';
+import type { SpatialEntityDefinition } from '../types/spatial';
 import {
   EARTH_REFERENCE_TARGET,
   SOL_REFERENCE_TARGET,
@@ -12,35 +12,18 @@ import type { DecodedDetailRecord } from '../data/detailsRepository';
 import { useEntityDetails } from '../hooks/useEntityDetails';
 import { useSystemData } from '../hooks/useSystemData';
 import { useSearchCorpus } from '../hooks/useSearchCorpus';
-import {
-  buildFocusedEntityDetails,
-  type FocusedEntityDetails,
-} from '../services/detailsService';
+import { buildFocusedEntityDetails } from '../services/details/focusedEntityDetails';
+import type { FocusedEntityDetails } from '../services/details/detailsEntityTypes';
 import { useParams, useSearch } from '@tanstack/react-router';
-import {
-  findFocusedEntryInCorpus,
-  resolveFocusedEntityFromCorpus,
-  resolveSelectedSystemsFromUrlSelect,
-  toUrlSlug,
-} from '../services/searchService';
-import type { CompactSearchEntry } from '../utils/compactDataCodec';
-import {
-  toAnnotationLookupKey,
-  type DecodedEntityAnnotation,
-} from '../utils/datasetLayerCodec';
-import {
-  useEntityAnnotations,
-  useLayerIndex,
-  useLoadedLayerManifests,
-} from '../hooks/useLayerData';
-import {
-  useSpaLocation,
-  type StarmapSearchParams,
-} from '../hooks/useSpaLocation';
-import {
-  checkIsFocusInPlanetScope,
-  usePlanetOutOfScopeGuard,
-} from './usePlanetOutOfScopeGuard';
+import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
+import { resolveFocusedEntityFromCorpus } from '../services/search/searchSelection';
+import { resolveSelectedSystemsFromUrlSelect } from '../services/search/searchUrlSelectionResolvers';
+import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import { toAnnotationLookupKey, toUrlSlug } from '../utils/datasetLayerSlugs';
+import type { DecodedEntityAnnotation } from '../utils/datasetLayerTypes';
+import { useEntityAnnotations, useLayerIndex, useLoadedLayerManifests } from '../hooks/useLayerData';
+import { useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
+import { checkIsFocusInPlanetScope, usePlanetOutOfScopeGuard } from './usePlanetOutOfScopeGuard';
 
 export interface UseResolvedPlanetDetailsProps {
   readonly initialCorpus?: readonly CompactSearchEntry[];
@@ -152,9 +135,41 @@ export function useResolvedPlanetDetails(
         : null,
     [urlFocusSlug, isFocusInPlanetScope, activeCorpus],
   );
+  const rawStoreFocused = storeApi.getState().getEntitiesByState('focused')[0] ?? null;
+  const isStoreFocusedInPlanetScope = rawStoreFocused
+    ? checkIsFocusInPlanetScope(
+        toUrlSlug(rawStoreFocused.id),
+        urlPlanetSlug,
+        targetPlanetId,
+        systemDetail,
+        orbitingBodyIds,
+        activeCorpus.length,
+      )
+    : false;
+  const storeFocusedEntity = isStoreFocusedInPlanetScope ? rawStoreFocused : null;
+
   const focusedEntity = urlFocusSlug
-    ? (urlFocusEntity ?? (isFocusInPlanetScope ? storeApi.getState().getEntitiesByState('focused')[0] ?? null : null))
-    : (storeApi.getState().getEntitiesByState('focused')[0] ?? null);
+    ? (urlFocusEntity ?? (isFocusInPlanetScope ? storeFocusedEntity : null))
+    : storeFocusedEntity;
+
+  useEffect(() => {
+    if (!urlFocusSlug) {
+      const currentFocusedId = storeApi.getState().focusedId;
+      if (
+        currentFocusedId &&
+        !checkIsFocusInPlanetScope(
+          toUrlSlug(currentFocusedId),
+          urlPlanetSlug,
+          targetPlanetId,
+          systemDetail,
+          orbitingBodyIds,
+          activeCorpus.length,
+        )
+      ) {
+        storeApi.getState().setFocused(null);
+      }
+    }
+  }, [urlFocusSlug, urlPlanetSlug, targetPlanetId, systemDetail, orbitingBodyIds, activeCorpus.length, storeApi]);
 
   const focusedEntityId = focusedEntity?.id ?? '';
 
@@ -207,7 +222,7 @@ export function useResolvedPlanetDetails(
     currentSearch: search,
   });
 
-  const focusedDetails = (focusedEntity && isFocusInPlanetScope) ? systemContextDetails : null;
+  const focusedDetails = (focusedEntity && (urlFocusSlug ? isFocusInPlanetScope : true)) ? systemContextDetails : null;
 
   const storeSelected = storeApi.getState().getEntitiesByState('selected');
   const selectQuery = selectParam ? `?select=${encodeURIComponent(selectParam)}` : search;

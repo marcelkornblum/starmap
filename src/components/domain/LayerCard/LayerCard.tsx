@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ActiveLayerCardModel } from '../../../services/layerCardService';
+import type { ActiveLayerCardModel } from '../../../services/layerCardNavigation';
 import {
   Badge,
   Button,
@@ -23,7 +23,7 @@ export interface LayerCardProps {
  * 2. Item Mode: Active layer item details, step counter (X of Y), item title, prose text, observational confidence,
  *    thematic tags with filtered galaxy links, and step-by-step previous/next navigation with wrapping.
  */
-export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
+export const LayerCard: React.FC<LayerCardProps> = React.memo(({ card }) => {
   if (!card) {
     return null;
   }
@@ -204,4 +204,4 @@ export const LayerCard: React.FC<LayerCardProps> = ({ card }) => {
       </footer>
     </aside>
   );
-};
+});

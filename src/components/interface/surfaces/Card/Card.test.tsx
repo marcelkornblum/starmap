@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import { Card } from './Card';
 
 describe('<Card />', () => {
@@ -43,7 +44,8 @@ describe('<Card />', () => {
     );
 
     const card = screen.getByTestId('card');
-    expect(card.className).toBeTruthy();
+    expect(card).toHaveAttribute('class');
+    expect(card.className.length).toBeGreaterThan(0);
     expect(card.getAttribute('role')).toBe('region');
     expect(card.getAttribute('aria-label')).toBe('System telemetry');
   });

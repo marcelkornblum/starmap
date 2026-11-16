@@ -1,12 +1,10 @@
-import {
-  buildSystemElementFocusHref,
-  type FocusedPlanetDetail,
-} from '../../../services/detailsService';
+import { buildSystemElementFocusHref } from '../../../services/details/detailsNavigation';
+import type { FocusedPlanetDetail } from '../../../services/details/detailsEntityTypes';
 import {
   buildMetricGuideHref,
   buildPlanetTypeGuideHref,
-  buildTagGalaxyHref,
-} from '../../../services/searchService';
+} from '../../../content/guide';
+import { buildTagGalaxyHref } from '../../../services/search/searchUrls';
 import {
   CelestialBadge,
   CelestialTitle,

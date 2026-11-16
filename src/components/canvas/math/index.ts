@@ -6,3 +6,4 @@ export * from './tiers';
 export * from './kepler';
 export * from './bodyCrossfade';
 export * from './cameraMath';
+export * from './cameraFrustumMath';

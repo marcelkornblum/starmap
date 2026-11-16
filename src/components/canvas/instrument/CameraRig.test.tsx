@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
 import {
   CardinalTransitionController,
-  type OrbitControlsLike,
 } from './cameraRigControls';
+import { type OrbitControlsLike } from './cameraRigZoomAndPan';
 import { computeAllPlaneQuadrantWeights } from '../math/cardinal';
 import { useCameraStore } from '../../../stores/useCameraStore';
 
