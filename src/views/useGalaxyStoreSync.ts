@@ -7,6 +7,7 @@ import { useUIStore } from '../stores/useUIStore';
 export interface UseGalaxyStoreSyncParams {
   readonly storeApi: SpatialEntityStore;
   readonly urlFocusSlug: string | null;
+  readonly actualUrlFocusSlug?: string | null;
   readonly hasExplicitFocus: boolean;
   readonly focusedEntity: SpatialEntityDefinition | null;
   readonly urlSelectedEntities: readonly SpatialEntityDefinition[];
@@ -21,6 +22,7 @@ export interface UseGalaxyStoreSyncParams {
 export function useGalaxyStoreSync({
   storeApi,
   urlFocusSlug,
+  actualUrlFocusSlug,
   hasExplicitFocus,
   focusedEntity,
   urlSelectedEntities,
@@ -32,6 +34,13 @@ export function useGalaxyStoreSync({
   isExplicitLocation,
 }: UseGalaxyStoreSyncParams): void {
   const prevUrlFocusSlugRef = useRef<string | null>(urlFocusSlug);
+
+  useEffect(() => {
+    const pending = useCameraStore.getState().pendingCenterSlug;
+    if (actualUrlFocusSlug && pending === actualUrlFocusSlug) {
+      useCameraStore.getState().setPendingCenterSlug(null);
+    }
+  }, [actualUrlFocusSlug]);
 
   useEffect(() => {
     const store = storeApi.getState();

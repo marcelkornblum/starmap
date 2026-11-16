@@ -54,6 +54,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
   const scratchBoxRef = useLazyRef<Box2D>(() => ({ left: 0, top: 0, right: 0, bottom: 0 }));
   const lastOccludedRef = useRef<boolean | null>(null);
   const lastStateRef = useRef<CelestialInteractionState | null>(null);
+  const lastDisplacedRef = useRef<boolean>(false);
   const lastXRef = useRef<number | null>(null);
   const lastYRef = useRef<number | null>(null);
   const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
@@ -79,9 +80,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
   });
 
   const setBillboardRef = useCallback((node: THREE.Group | null) => {
-    if (node && 'isGroup' in node) {
-      billboardRef.current = node;
-    }
+    if (node && 'isGroup' in node) billboardRef.current = node;
   }, [billboardRef]);
 
   const isAnnotated = state === 'selected' || state === 'focused';
@@ -102,11 +101,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
         g.getWorldPosition(scratchWorldPos.current);
       }
       const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
-      const invScale = resolveEntityScreenInvariantScale(
-        camDist,
-        camera,
-        frameCtx?.frameRef?.current,
-      );
+      const invScale = resolveEntityScreenInvariantScale(camDist, camera, frameCtx?.frameRef?.current);
 
       const cq = camera.quaternion;
       const last = lastTransformRef.current;
@@ -122,9 +117,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
         g.position.set(rx, ry, rz);
         g.quaternion.copy(cq);
         g.scale.set(invScale, invScale, invScale);
-        if (typeof g.updateMatrixWorld === 'function') {
-          g.updateMatrixWorld(true);
-        }
+        if (typeof g.updateMatrixWorld === 'function') g.updateMatrixWorld(true);
         last.px = rx; last.py = ry; last.pz = rz;
         last.qx = cq.x; last.qy = cq.y; last.qz = cq.z; last.qw = cq.w;
         last.scale = invScale;
@@ -134,9 +127,7 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
   );
 
   const handleCalculatePosition = useCallback(
-    (
-      el: THREE.Object3D, camera: THREE.Camera, size: { width: number; height: number }, target?: [number, number],
-    ): [number, number] | void => {
+    (el: THREE.Object3D, camera: THREE.Camera, size: { width: number; height: number }, target?: [number, number]): [number, number] | void => {
       syncBillboardTransform(camera);
       el.getWorldPosition(scratchAnchorWorldPos.current);
       scratchAnchorNdc.current.copy(scratchAnchorWorldPos.current).project(camera);
@@ -222,23 +213,27 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
     }
 
     if (evalState.labelEval.isDisplaced) {
-      const dx = evalState.labelEval.displacementX;
-      const dy = evalState.labelEval.displacementY;
+      const dx = Math.round(evalState.labelEval.displacementX);
+      const dy = Math.round(evalState.labelEval.displacementY);
+      if (!lastDisplacedRef.current) {
+        lastDisplacedRef.current = true;
+        labelRef.current.setAttribute('data-displaced', 'true');
+        leaderLineRef.current?.setAttribute('x2', '0');
+        leaderLineRef.current?.setAttribute('visibility', 'visible');
+      }
       if (lastXRef.current !== dx || lastYRef.current !== dy) {
         lastXRef.current = dx;
         lastYRef.current = dy;
         labelRef.current.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
-        labelRef.current.setAttribute('data-displaced', 'true');
         if (leaderLineRef.current) {
-          const lh = labelDimensionsRef.current.height ? labelDimensionsRef.current.height / 2 : 9;
+          const lh = labelDimensionsRef.current.height ? Math.round(labelDimensionsRef.current.height / 2) : 9;
           leaderLineRef.current.setAttribute('x1', String(-dx));
           leaderLineRef.current.setAttribute('y1', String(-dy));
-          leaderLineRef.current.setAttribute('x2', '0');
           leaderLineRef.current.setAttribute('y2', String(lh));
-          leaderLineRef.current.setAttribute('visibility', 'visible');
         }
       }
-    } else if (lastXRef.current !== null) {
+    } else if (lastDisplacedRef.current) {
+      lastDisplacedRef.current = false;
       lastXRef.current = null;
       lastYRef.current = null;
       labelRef.current.style.transform = '';

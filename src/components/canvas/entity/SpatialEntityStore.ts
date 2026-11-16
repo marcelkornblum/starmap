@@ -13,10 +13,14 @@ import {
   findEntitiesInAperture,
   findEntitiesByState,
   resolveInitialEntitySelection,
+  indexEntitySlugs,
+  removeEntityFromSlugIndex,
+  resolveEntityIdFromState,
 } from './spatialEntityReducers';
 
 export interface SpatialEntityState {
   entities: Record<string, SpatialEntityDefinition>;
+  entityIdBySlug: Record<string, string>;
   hoveredId: string | null;
   selectedId: string | null;
   selectedIds: Set<string>;
@@ -27,8 +31,12 @@ export interface SpatialEntityState {
   apertureCenter: readonly [number, number, number] | null;
 
   registerEntity: (entity: SpatialEntityDefinition) => void;
+  registerEntities: (entities: readonly SpatialEntityDefinition[]) => void;
   unregisterEntity: (id: string) => void;
+  unregisterEntities: (ids: readonly string[]) => void;
+  clearEntities: () => void;
   updateEntity: (id: string, updates: Partial<SpatialEntityDefinition>) => void;
+  resolveEntityId: (idOrSlug: string) => string | null;
   setHovered: (id: string | null) => void;
   setSelected: (id: string | null) => void;
   setSelectedIds: (ids: Iterable<string>) => void;
@@ -59,6 +67,7 @@ export const createSpatialEntityStore = (initial?: SpatialEntityStoreInitial) =>
 
   return createStore<SpatialEntityState>((set, get) => ({
     entities: {},
+    entityIdBySlug: {},
     hoveredId: initial?.hoveredId ?? null,
     selectedId: initialSelectedId,
     selectedIds: initialSelectedSet,
@@ -79,23 +88,85 @@ export const createSpatialEntityStore = (initial?: SpatialEntityStoreInitial) =>
             ...state.entities,
             [entity.id]: mergeRegisteredEntity(existing, entity),
           },
+          entityIdBySlug: indexEntitySlugs(state.entityIdBySlug, entity, existing),
+        };
+      });
+    },
+
+    registerEntities: (entityList) => {
+      set((state) => {
+        let changed = false;
+        let nextEntities = state.entities;
+        let nextSlugIndex = state.entityIdBySlug;
+        for (const entity of entityList) {
+          const existing = nextEntities[entity.id];
+          if (isEntityRegistrationIdentical(existing, entity)) {
+            continue;
+          }
+          if (!changed) {
+            nextEntities = { ...state.entities };
+            nextSlugIndex = state.entityIdBySlug;
+            changed = true;
+          }
+          nextEntities[entity.id] = mergeRegisteredEntity(existing, entity);
+          nextSlugIndex = indexEntitySlugs(nextSlugIndex, entity, existing);
+        }
+        if (!changed) return state;
+        return {
+          entities: nextEntities,
+          entityIdBySlug: nextSlugIndex,
         };
       });
     },
 
     unregisterEntity: (id) => {
+      get().unregisterEntities([id]);
+    },
+
+    unregisterEntities: (ids) => {
       set((state) => {
-        if (!(id in state.entities) && !state.apertureIds.has(id)) {
+        let changed = false;
+        let nextEntities = state.entities;
+        let nextAperture = state.apertureIds;
+        let nextSlugIndex = state.entityIdBySlug;
+        for (const id of ids) {
+          const existing = nextEntities[id];
+          const inAperture = nextAperture.has(id);
+          if (!existing && !inAperture) continue;
+          if (!changed) {
+            nextEntities = { ...state.entities };
+            nextAperture = new Set(state.apertureIds);
+            changed = true;
+          }
+          if (existing) {
+            delete nextEntities[id];
+            nextSlugIndex = removeEntityFromSlugIndex(nextSlugIndex, id, existing);
+          }
+          if (inAperture) nextAperture.delete(id);
+        }
+        if (!changed) return state;
+        return {
+          entities: nextEntities,
+          entityIdBySlug: nextSlugIndex,
+          apertureIds: nextAperture,
+        };
+      });
+    },
+
+    clearEntities: () => {
+      set((state) => {
+        if (
+          Object.keys(state.entities).length === 0 &&
+          Object.keys(state.entityIdBySlug).length === 0 &&
+          state.apertureIds.size === 0
+        ) {
           return state;
         }
-        const next = { ...state.entities };
-        delete next[id];
-        let nextAperture = state.apertureIds;
-        if (state.apertureIds.has(id)) {
-          nextAperture = new Set(state.apertureIds);
-          nextAperture.delete(id);
-        }
-        return { entities: next, apertureIds: nextAperture };
+        return {
+          entities: {},
+          entityIdBySlug: {},
+          apertureIds: new Set<string>(),
+        };
       });
     },
 
@@ -105,14 +176,19 @@ export const createSpatialEntityStore = (initial?: SpatialEntityStoreInitial) =>
         if (!existing || isEntityUpdateUnchanged(existing, updates)) {
           return state;
         }
+        const updated = { ...existing, ...updates };
         return {
           entities: {
             ...state.entities,
-            [id]: { ...existing, ...updates },
+            [id]: updated,
           },
+          entityIdBySlug: indexEntitySlugs(state.entityIdBySlug, updated, existing),
         };
       });
     },
+
+    resolveEntityId: (idOrSlug) =>
+      resolveEntityIdFromState(get().entities, get().entityIdBySlug, idOrSlug),
 
     setHovered: (id) =>
       set((state) => (state.hoveredId === id ? state : { hoveredId: id })),

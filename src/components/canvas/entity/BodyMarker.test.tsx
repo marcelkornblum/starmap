@@ -5,6 +5,7 @@ import { BodyMarker } from './BodyMarker';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
 import { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 describe('BodyMarker Component & Interaction (AUD-115, AUD-116)', () => {
   beforeEach(() => {
@@ -27,6 +28,12 @@ describe('BodyMarker Component & Interaction (AUD-115, AUD-116)', () => {
     expect(renderer.scene.findAll((node) => node.props.name === 'body-marker-test-node')).toHaveLength(1);
     expect(renderer.scene.findAll((node) => node.props.name === 'celestial-point-dot')).toHaveLength(1);
     expect(renderer.scene.findAll((node) => node.props.name === 'celestial-hitarea')).toHaveLength(1);
+
+    const dot = renderer.scene.find((node) => node.props.name === 'celestial-point-dot');
+    const hitarea = renderer.scene.find((node) => node.props.name === 'celestial-hitarea');
+    expect(dot.props.raycast).toBe(NOOP_RAYCAST);
+    expect(hitarea.props.raycast).toBeUndefined();
+    expect(hitarea.instance.raycast).not.toBe(NOOP_RAYCAST);
 
     await renderer.unmount();
   });

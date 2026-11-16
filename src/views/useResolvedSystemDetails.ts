@@ -51,8 +51,7 @@ export function useResolvedSystemDetails(
   _shouldFetchShards = false,
 ): ResolvedSystemDetailsResult {
   const storeApi = useSpatialEntityStoreApi();
-  useSpatialEntityStore((state) => state.entities);
-  useSpatialEntityStore((state) => state.focusedId);
+  const focusedId = useSpatialEntityStore((state) => state.focusedId);
 
   const { pathname, search } = useSpaLocation(
     locationPathname,
@@ -77,14 +76,21 @@ export function useResolvedSystemDetails(
   const { corpus } = useSearchCorpus('all', initialCorpus);
   const activeCorpus = corpus ?? EMPTY_CORPUS;
 
-  const urlSystemEntry = urlSystemSlug
-    ? findFocusedEntryInCorpus(urlSystemSlug, activeCorpus)
-    : undefined;
-  const targetSystemId =
-    urlSystemEntry?.s ??
-    urlSystemEntry?.i ??
-    urlSystemSlug ??
-    '';
+  const urlSystemEntry = useMemo(
+    () =>
+      urlSystemSlug
+        ? findFocusedEntryInCorpus(urlSystemSlug, activeCorpus)
+        : undefined,
+    [urlSystemSlug, activeCorpus],
+  );
+  const targetSystemId = useMemo(
+    () =>
+      urlSystemEntry?.s ??
+      urlSystemEntry?.i ??
+      urlSystemSlug ??
+      '',
+    [urlSystemEntry, urlSystemSlug],
+  );
 
   const { systemSummary, systemDetail, focusedDetail } = useSystemData(
     targetSystemId,
@@ -135,7 +141,9 @@ export function useResolvedSystemDetails(
     [urlFocusSlug, isFocusInThisSystem, activeCorpus],
   );
 
-  const rawStoreFocused = storeApi.getState().getEntitiesByState('focused')[0] ?? null;
+  const rawStoreFocused = focusedId
+    ? (storeApi.getState().entities[focusedId] ?? null)
+    : null;
 
   const isStoreFocusedInCurrentSystem =
     rawStoreFocused && urlSystemSlug
@@ -178,29 +186,51 @@ export function useResolvedSystemDetails(
     }
   }, [urlSystemSlug, urlFocusSlug, targetSystemId, storeApi]);
 
-  const canonRecords = useEntityAnnotations([
-    toAnnotationLookupKey(
-      matchingDisk?.id ?? focusedEntity?.id ?? targetSystemId,
-    ),
-    targetSystemId,
-  ]);
+  const canonLookupIds = useMemo(
+    () => [
+      toAnnotationLookupKey(
+        matchingDisk?.id ?? focusedEntity?.id ?? targetSystemId,
+      ),
+      targetSystemId,
+    ],
+    [matchingDisk?.id, focusedEntity?.id, targetSystemId],
+  );
+
+  const canonRecords = useEntityAnnotations(canonLookupIds);
 
   const effectiveUrlFocusSlug = isFocusInThisSystem ? urlFocusSlug : null;
 
-  const systemContextDetails = buildFocusedEntityDetails({
-    focusedEntity,
-    corpus: activeCorpus,
-    summaryNode: systemSummary,
-    systemDetail,
-    entityDetail: focusedDetail,
-    urlSystemSlug,
-    urlFocusSlug: effectiveUrlFocusSlug,
-    hasExplicitFocus: Boolean(hasExplicitFocus && isFocusInThisSystem),
-    canonRecords,
-    viewScope: 'system',
-    currentPathname: pathname,
-    currentSearch: search,
-  });
+  const systemContextDetails = useMemo(
+    () =>
+      buildFocusedEntityDetails({
+        focusedEntity,
+        corpus: activeCorpus,
+        summaryNode: systemSummary,
+        systemDetail,
+        entityDetail: focusedDetail,
+        urlSystemSlug,
+        urlFocusSlug: effectiveUrlFocusSlug,
+        hasExplicitFocus: Boolean(hasExplicitFocus && isFocusInThisSystem),
+        canonRecords,
+        viewScope: 'system',
+        currentPathname: pathname,
+        currentSearch: search,
+      }),
+    [
+      focusedEntity,
+      activeCorpus,
+      systemSummary,
+      systemDetail,
+      focusedDetail,
+      urlSystemSlug,
+      effectiveUrlFocusSlug,
+      hasExplicitFocus,
+      isFocusInThisSystem,
+      canonRecords,
+      pathname,
+      search,
+    ],
+  );
 
   const focusedDetails = (focusedEntity && isFocusInThisSystem) || matchingDisk ? systemContextDetails : null;
 

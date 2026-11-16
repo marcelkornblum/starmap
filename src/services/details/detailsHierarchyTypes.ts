@@ -160,4 +160,15 @@ export type SystemOrbitalSchematicInput =
       })
   | (SystemBodiesSummary & {
       readonly corpus?: readonly CompactSearchEntry[];
-    });
+    })
+  | Pick<
+      FocusedEntityDetails,
+      | 'id'
+      | 'systemId'
+      | 'name'
+      | 'systemName'
+      | 'focusedKind'
+      | 'stars'
+      | 'planets'
+      | 'disks'
+    >;

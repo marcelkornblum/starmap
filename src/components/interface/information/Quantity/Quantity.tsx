@@ -1,4 +1,4 @@
-import React, { type HTMLAttributes, type ReactNode } from 'react';
+import React, { memo, type HTMLAttributes, type ReactNode } from 'react';
 import { Unit } from '../Unit/Unit';
 import styles from './Quantity.module.css';
 
@@ -14,13 +14,13 @@ export interface QuantityProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'cl
   'data-testid'?: string;
 }
 
-export const Quantity = ({
+export const Quantity = memo(function Quantity({
   value,
   unit,
   children,
   noGap,
   ...rest
-}: QuantityProps) => {
+}: QuantityProps) {
   const isDegreeSymbol =
     typeof unit === 'string' &&
     (unit.trim() === '°' || unit.trim() === '′' || unit.trim() === '″');
@@ -57,6 +57,6 @@ export const Quantity = ({
       )}
     </span>
   );
-};
+});
 
 Quantity.displayName = 'Quantity';

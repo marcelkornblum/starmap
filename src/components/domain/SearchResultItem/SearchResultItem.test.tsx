@@ -5,6 +5,8 @@ import { formatPlanetCountSummary } from './searchResultFormatting';
 import { SearchContext } from '../Search/SearchContext';
 import { executeCatalogSearch } from '../../../services/search/searchExecution';
 import type { SearchResultItem as SearchResultItemModel } from '../../../services/search/searchTypes';
+import { useCameraStore } from '../../../stores/useCameraStore';
+import * as prefetchModule from '../../../services/details/prefetchEntitySelection';
 
 describe('<SearchResultItem />', () => {
   describe('formatPlanetCountSummary', () => {
@@ -123,5 +125,71 @@ describe('<SearchResultItem />', () => {
 
     expect(dismissSearch).toHaveBeenCalledWith(mockStarResult);
     expect(onSelect).toHaveBeenCalledWith(mockStarResult);
+  });
+
+  it('invokes focusFromSearch when clicking a galaxy-targeted result with a focus param', () => {
+    const focusFromSearchSpy = vi.fn();
+    vi.spyOn(useCameraStore, 'getState').mockReturnValue({
+      focusFromSearch: focusFromSearchSpy,
+    } as unknown as ReturnType<typeof useCameraStore.getState>);
+
+    const galaxyResult: SearchResultItemModel = {
+      id: 'sirius',
+      name: 'Sirius',
+      category: 'stars',
+      entityKind: 'star-system',
+      reticleType: 'stellar-system',
+      targetView: 'galaxy',
+      href: '/galaxy?focus=sirius',
+      score: 1.0,
+    };
+
+    render(
+      <SearchContext.Provider
+        value={{
+          query: 'sirius',
+          filter: 'all',
+          status: 'ready',
+          errorMessage: null,
+          results: executeCatalogSearch([], { query: 'sirius', filter: 'all' }),
+          setQuery: vi.fn(),
+          setFilter: vi.fn(),
+          submitSearch: vi.fn(),
+          isFocused: true,
+          setIsFocused: vi.fn(),
+          dismissSearch: vi.fn(),
+        }}
+      >
+        <SearchResultItem result={galaxyResult} />
+      </SearchContext.Provider>,
+    );
+
+    const link = screen.getByRole('link', { name: /sirius/i });
+    fireEvent.click(link);
+
+    expect(focusFromSearchSpy).toHaveBeenCalledWith('sirius');
+  });
+
+  it('triggers hover prefetch scheduling on mouse enter and focus, cancelling on mouse leave, blur, and click', () => {
+    const scheduleSpy = vi.spyOn(prefetchModule, 'scheduleHoverPrefetch').mockReturnValue();
+    const cancelSpy = vi.spyOn(prefetchModule, 'cancelHoverPrefetch').mockReturnValue();
+
+    render(<SearchResultItem result={mockStarResult} />);
+
+    const link = screen.getByRole('link', { name: /sol system/i });
+    fireEvent.mouseEnter(link);
+    expect(scheduleSpy).toHaveBeenCalledWith('sol', 'sol');
+
+    fireEvent.mouseLeave(link);
+    expect(cancelSpy).toHaveBeenCalled();
+
+    fireEvent.focus(link);
+    expect(scheduleSpy).toHaveBeenCalledWith('sol', 'sol');
+
+    fireEvent.blur(link);
+    expect(cancelSpy).toHaveBeenCalled();
+
+    fireEvent.click(link);
+    expect(cancelSpy).toHaveBeenCalled();
   });
 });

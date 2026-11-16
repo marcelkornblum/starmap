@@ -20,6 +20,8 @@ const scratchHeadingDir = new THREE.Vector3();
 const scratchVCam = new THREE.Vector3();
 const scratchOriginCam = new THREE.Vector3();
 const scratchEndCam = new THREE.Vector3();
+const SCRATCH_P = new Float64Array(4);
+const SCRATCH_Q = new Float64Array(4);
 
 function sampleBearingPoint(
   s: number,
@@ -121,19 +123,27 @@ export function calculateScreenEdgeBearing(
 
     const dx = sBx - sAx;
     const dy = sBy - sAy;
-    const p = [-dx, dx, -dy, dy];
-    const q = [sAx - xMin, xMax - sAx, sAy - yMin, yMax - sAy];
+    SCRATCH_P[0] = -dx;
+    SCRATCH_P[1] = dx;
+    SCRATCH_P[2] = -dy;
+    SCRATCH_P[3] = dy;
+    SCRATCH_Q[0] = sAx - xMin;
+    SCRATCH_Q[1] = xMax - sAx;
+    SCRATCH_Q[2] = sAy - yMin;
+    SCRATCH_Q[3] = yMax - sAy;
     let u1 = 0;
     let u2 = 1;
     let exitEdge: ScreenEdgeSide | null = null;
     let possible = true;
 
     for (let k = 0; k < 4; k++) {
-      if (p[k] === 0) {
-        if (q[k] < 0) { possible = false; break; }
+      const pk = SCRATCH_P[k];
+      const qk = SCRATCH_Q[k];
+      if (pk === 0) {
+        if (qk < 0) { possible = false; break; }
       } else {
-        const t = q[k] / p[k];
-        if (p[k] < 0) {
+        const t = qk / pk;
+        if (pk < 0) {
           if (t > u2) { possible = false; break; }
           if (t > u1) u1 = t;
         } else {

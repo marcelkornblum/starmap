@@ -1,4 +1,4 @@
-import type React from 'react';
+import React, { useEffect } from 'react';
 import {
   BodiesPanel,
   Breadcrumbs,
@@ -14,6 +14,8 @@ import {
   SpatialShell,
 } from '../components/domain';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
+import { prefetchEntitySelection } from '../services/details/prefetchEntitySelection';
 import { useGalaxyViewModel } from './useGalaxyViewModel';
 
 export interface GalaxyViewProps {
@@ -23,6 +25,12 @@ export interface GalaxyViewProps {
 }
 
 const GALAXY_BREADCRUMBS = [{ label: 'Galaxy' }];
+const GALAXY_BREADCRUMBS_NODE = <Breadcrumbs items={GALAXY_BREADCRUMBS} />;
+const GALAXY_CONTROLS_NODE = <ControlBar scope="galaxy" />;
+
+const renderGalaxySearchResultItem = (
+  result: React.ComponentProps<typeof SearchResultItem>['result'],
+) => <SearchResultItem key={result.id} result={result} />;
 
 export const GalaxyView: React.FC<GalaxyViewProps> = ({
   initialCorpus,
@@ -53,6 +61,14 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
     locationSearch,
   });
 
+  useEffect(() => {
+    const t = setTimeout(
+      () => prefetchEntitySelection(SOL_REFERENCE_TARGET.id, SOL_REFERENCE_TARGET.systemId),
+      100,
+    );
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <SpatialShell
       testId="galaxy-view-root"
@@ -75,8 +91,8 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           onFocusChange={handleFocusChange}
         />
       }
-      breadcrumbs={<Breadcrumbs items={GALAXY_BREADCRUMBS} />}
-      controls={<ControlBar scope="galaxy" />}
+      breadcrumbs={GALAXY_BREADCRUMBS_NODE}
+      controls={GALAXY_CONTROLS_NODE}
       search={
         <Search.Root
           limitPerCategory={3}
@@ -87,9 +103,7 @@ export const GalaxyView: React.FC<GalaxyViewProps> = ({
           <Search.Panel scope="galaxy" />
           <Search.Results
             searchViewPath="/search"
-            renderItem={(result) => (
-              <SearchResultItem key={result.id} result={result} />
-            )}
+            renderItem={renderGalaxySearchResultItem}
           />
         </Search.Root>
       }

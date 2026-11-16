@@ -12,6 +12,7 @@ import {
   resolveSystemPlanetEntity,
   resolveCorpusPlanetEntity,
 } from './systemPlanetResolver';
+import { getCorpusSystemChildrenIndex } from '../../../services/details/focusedChildrenResolver';
 import { findFocusedEntryInCorpus } from '../../../services/search/searchCorpusHelpers';
 import { formatSlugFallbackTitle } from '../../../utils/starNaming';
 import { useSystemData } from '../../../hooks/useSystemData';
@@ -127,11 +128,24 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
         resolveSystemPlanetEntity(p, index, primaryStarMassMsun),
       );
     } else {
-      const corpusPlanets = activeCorpus.filter(
-        (entry) =>
-          entry.k === 2 &&
-          ((resolvedId && entry.s === resolvedId) || (targetId && entry.s === targetId)),
-      );
+      const childrenIndex = getCorpusSystemChildrenIndex(activeCorpus);
+      const seen = new Set<CompactSearchEntry>();
+      const corpusPlanets: CompactSearchEntry[] = [];
+      const addChildren = (key: string | null | undefined) => {
+        if (!key) return;
+        const list = childrenIndex.get(key);
+        if (!list) return;
+        for (const entry of list) {
+          if (entry.k === 2 && !seen.has(entry)) {
+            seen.add(entry);
+            corpusPlanets.push(entry);
+          }
+        }
+      };
+      addChildren(resolvedId);
+      if (targetId && targetId !== resolvedId) {
+        addChildren(targetId);
+      }
       if (corpusPlanets.length > 0) {
         planetEntities = corpusPlanets.map((p, index) =>
           resolveCorpusPlanetEntity(p, index),

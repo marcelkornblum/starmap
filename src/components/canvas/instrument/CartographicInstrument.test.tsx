@@ -21,6 +21,9 @@ describe('CartographicInstrument (Composite)', () => {
     );
 
     expect(renderer.scene.findByProps({ name: 'cartographic-grid' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'hairline-shader-warmup' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'dashed-hairline-shader-warmup' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'line-basic-shader-warmup' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'datum-plane' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'range-rings' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'travelling-fins' })).toBeDefined();
@@ -48,6 +51,9 @@ describe('CartographicInstrument (Composite)', () => {
     );
 
     expect(renderer.scene.findByProps({ name: 'cartographic-grid' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'hairline-shader-warmup' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'dashed-hairline-shader-warmup' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'line-basic-shader-warmup' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'datum-plane' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'planar-galactic-grid' })).toBeDefined();
 

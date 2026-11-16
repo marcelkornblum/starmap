@@ -18,6 +18,8 @@ export interface UseGalaxyFocusAndSelectionParams {
   readonly selectQuery: string;
 }
 
+const EMPTY_ENTITIES: readonly SpatialEntityDefinition[] = [];
+
 export function useGalaxyFocusAndSelection({
   urlFocusSlug,
   storeFocusedEntity,
@@ -82,28 +84,33 @@ export function useGalaxyFocusAndSelection({
   );
 
   const canvasEntities = useMemo(() => {
-    if (!focusedEntity) return selectedEntities;
+    if (!focusedEntity) {
+      return selectedEntities.length > 0 ? selectedEntities : EMPTY_ENTITIES;
+    }
     if (selectedEntities.some((e) => e.id === focusedEntity.id)) {
       return selectedEntities;
     }
     return [focusedEntity, ...selectedEntities];
   }, [focusedEntity, selectedEntities]);
 
-  const matchedEntry = focusedEntity
-    ? (findFocusedEntryInCorpus(focusedEntity.id, apertureCorpus) ??
-       findFocusedEntryInCorpus(focusedEntity.name, apertureCorpus))
-    : undefined;
-  const urlSystemEntry = urlFocusSlug
-    ? findFocusedEntryInCorpus(urlFocusSlug, apertureCorpus)
-    : undefined;
-  const targetSystemId =
-    matchedEntry?.s ??
-    matchedEntry?.i ??
-    urlSystemEntry?.s ??
-    urlSystemEntry?.i ??
-    focusedEntity?.parentBodyId ??
-    focusedEntity?.id ??
-    '';
+  const targetSystemId = useMemo(() => {
+    const matchedEntry = focusedEntity
+      ? (findFocusedEntryInCorpus(focusedEntity.id, apertureCorpus) ??
+         findFocusedEntryInCorpus(focusedEntity.name, apertureCorpus))
+      : undefined;
+    const urlSystemEntry = urlFocusSlug
+      ? findFocusedEntryInCorpus(urlFocusSlug, apertureCorpus)
+      : undefined;
+    return (
+      matchedEntry?.s ??
+      matchedEntry?.i ??
+      urlSystemEntry?.s ??
+      urlSystemEntry?.i ??
+      focusedEntity?.parentBodyId ??
+      focusedEntity?.id ??
+      ''
+    );
+  }, [focusedEntity, urlFocusSlug, apertureCorpus]);
 
   return {
     focusedEntity,

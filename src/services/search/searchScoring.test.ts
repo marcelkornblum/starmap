@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   compareSearchResultItems,
+  getPreparedSearchEntry,
   normaliseSearchQuery,
   scoreSearchEntry,
 } from './searchScoring';
@@ -77,5 +78,27 @@ describe('searchScoring', () => {
 
     expect(compareSearchResultItems(itemC, itemA)).toBeLessThan(0);
     expect(compareSearchResultItems(itemA, itemB)).toBeLessThan(0);
+  });
+
+  it('prepares and caches compact search entries in a WeakMap', () => {
+    const entry = {
+      i: 'GAIA-123',
+      n: 'Tau Ceti (Astrophage Destination)',
+      a: 'astrophage grace',
+      c: 'Project Hail Mary',
+    };
+
+    const prepared1 = getPreparedSearchEntry(entry);
+    const prepared2 = getPreparedSearchEntry(entry);
+
+    expect(prepared1).toBe(prepared2);
+    expect(prepared1.idLower).toBe('gaia-123');
+    expect(prepared1.nameLower).toBe('tau ceti (astrophage destination)');
+    expect(prepared1.nameClean).toBe('taucetiastrophagedestination');
+    expect(prepared1.nameSegments).toContain('tauceti');
+    expect(prepared1.nameSegments).toContain('astrophagedestination');
+    expect(prepared1.aliasKeys).toEqual(['astrophage', 'grace']);
+    expect(prepared1.canonLower).toBe('project hail mary');
+    expect(prepared1.canonClean).toBe('projecthailmary');
   });
 });

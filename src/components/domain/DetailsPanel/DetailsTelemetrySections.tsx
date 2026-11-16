@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { FocusedEntityDetails } from '../../../services/details/detailsEntityTypes';
 import { DetailsAstrometrySection } from './DetailsAstrometrySection';
 import { DetailsDiskTelemetrySection } from './DetailsDiskTelemetrySection';
@@ -21,9 +22,9 @@ export interface DetailsTelemetrySectionsProps {
   readonly details: FocusedEntityDetails;
 }
 
-export const DetailsTelemetrySections = ({
+export const DetailsTelemetrySections = memo(function DetailsTelemetrySections({
   details,
-}: DetailsTelemetrySectionsProps) => {
+}: DetailsTelemetrySectionsProps) {
   const {
     id,
     systemId,
@@ -67,4 +68,6 @@ export const DetailsTelemetrySections = ({
       />
     </>
   );
-};
+});
+
+DetailsTelemetrySections.displayName = 'DetailsTelemetrySections';

@@ -7,8 +7,10 @@ import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { mergeActiveStarsIntoCorpus } from '../services/details/activeStarsCorpus';
 import { useSearch } from '@tanstack/react-router';
 import { resolveFocusedEntityFromCorpus } from '../services/search/searchSelection';
+import { prefetchEntitySelection } from '../services/details/prefetchEntitySelection';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import { BoundedLruCache } from '../utils/lruCache';
 import { useLayerIndex, useLoadedLayerManifests } from '../hooks/useLayerData';
 import { appRouter, useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
 import { useActiveStarsStore } from '../stores/useActiveStarsStore';
@@ -28,6 +30,58 @@ export interface UseGalaxyViewModelParams {
 
 const EMPTY_CORPUS: readonly CompactSearchEntry[] = [];
 const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
+const COORD_TUPLE_CACHE = new BoundedLruCache<string, readonly [number, number, number]>(256);
+
+function internCoords(
+  coords: readonly [number, number, number] | undefined,
+): readonly [number, number, number] | undefined {
+  if (!coords) return undefined;
+  const key = `${coords[0]},${coords[1]},${coords[2]}`;
+  const existing = COORD_TUPLE_CACHE.get(key);
+  if (existing) return existing;
+  COORD_TUPLE_CACHE.set(key, coords);
+  return coords;
+}
+
+function handleGalaxyFocusChange(id: string | null): void {
+  const slug = id ? toUrlSlug(id) : null;
+  const cam = useCameraStore.getState();
+  if (id && slug) {
+    prefetchEntitySelection(id, id);
+    cam.recordCanvasFocus([slug, id]);
+    cam.setPendingCenterSlug(null);
+    cam.setInFlightFocusSlug(slug);
+    if (useUIStore.getState().detailsDetent === 'collapsed') {
+      useUIStore.getState().setDetailsDetent('peek');
+    }
+  } else {
+    cam.clearCanvasFocus();
+    cam.setPendingCenterSlug(null);
+    cam.setInFlightFocusSlug(null);
+  }
+  const currentPathname = (
+    appRouter.state as { location?: { pathname?: string } } | undefined
+  )?.location?.pathname;
+  const navPromise = appRouter.navigate?.({
+    to: currentPathname === '/' ? '/' : '/galaxy',
+    search: (prev: StarmapSearchParams = {}) => {
+      const next = { ...prev };
+      if (id) next.focus = id;
+      else delete next.focus;
+      return next;
+    },
+    replace: true,
+  });
+  if (navPromise && typeof navPromise.then === 'function') {
+    void navPromise.catch(() => {}).finally(() => {
+      if (useCameraStore.getState().inFlightFocusSlug === slug) {
+        useCameraStore.getState().setInFlightFocusSlug(undefined);
+      }
+    });
+  } else {
+    cam.setInFlightFocusSlug(undefined);
+  }
+}
 
 export function useGalaxyViewModel({
   initialCorpus,
@@ -36,10 +90,23 @@ export function useGalaxyViewModel({
 }: UseGalaxyViewModelParams) {
   const storeApi = useSpatialEntityStoreApi();
   const storeFocusedEntity = useSpatialEntityStore((state) =>
-    (state.focusedId && state.entities[state.focusedId]) ? state.entities[state.focusedId] : (state.getEntitiesByState('focused')[0] ?? null),
+    state.focusedId
+      ? (state.entities[state.focusedId] ?? null)
+      : state.focusedIds?.size
+        ? (state.entities[state.focusedIds.values().next().value ?? ''] ?? null)
+        : null,
   );
   const storeSelected = useSpatialEntityStore(
-    useShallow((state) => (!state.selectedIds || state.selectedIds.size === 0 ? EMPTY_SELECTED_ENTITIES : state.getEntitiesByState('selected'))),
+    useShallow((state) => {
+      const ids = state.selectedIds?.size ? state.selectedIds : state.selectedId ? [state.selectedId] : null;
+      if (!ids) return EMPTY_SELECTED_ENTITIES;
+      const list: SpatialEntityDefinition[] = [];
+      for (const id of ids) {
+        const ent = state.entities[id];
+        if (ent) list.push(ent);
+      }
+      return list.length > 0 ? list : EMPTY_SELECTED_ENTITIES;
+    }),
   );
 
   const { corpus } = useSearchCorpus('all', initialCorpus);
@@ -57,7 +124,28 @@ export function useGalaxyViewModel({
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const hasExplicitFocus = Boolean(focus && urlFocusSlug && urlFocusSlug.length > 0);
   const pendingCenterSlug = useCameraStore((state) => state.pendingCenterSlug);
+  const inFlightFocusSlug = useCameraStore((state) => state.inFlightFocusSlug);
   const canvasFocusedSlugs = useCameraStore((state) => state.canvasFocusedSlugs);
+
+  const optimisticFocusSlug =
+    inFlightFocusSlug !== undefined
+      ? inFlightFocusSlug
+      : (pendingCenterSlug ?? urlFocusSlug);
+  const effectiveHasExplicitFocus = Boolean(hasExplicitFocus || optimisticFocusSlug);
+  const effectiveSearch = useMemo(() => {
+    if (isExplicitLocation || !optimisticFocusSlug || optimisticFocusSlug === urlFocusSlug) {
+      return search;
+    }
+    if (
+      !search ||
+      (!search.includes('&') && (search.startsWith('?focus=') || search.startsWith('focus=')))
+    ) {
+      return `?focus=${encodeURIComponent(optimisticFocusSlug)}`;
+    }
+    const p = new URLSearchParams(search);
+    p.set('focus', optimisticFocusSlug);
+    return `?${p.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',')}`;
+  }, [isExplicitLocation, optimisticFocusSlug, urlFocusSlug, search]);
 
   const activeStars = useActiveStarsStore((state) => state.summaries);
   const apertureCorpus = useMemo(
@@ -85,7 +173,7 @@ export function useGalaxyViewModel({
   const {
     focusedEntity, urlSelectedEntities, selectedEntities, canvasEntities, targetSystemId,
   } = useGalaxyFocusAndSelection({
-    urlFocusSlug, storeFocusedEntity, apertureCorpus, activeCorpus, storeSelected, layerIndex, loadedLayers, selectQuery,
+    urlFocusSlug: optimisticFocusSlug, storeFocusedEntity, apertureCorpus, activeCorpus, storeSelected, layerIndex, loadedLayers, selectQuery,
   });
 
   const hasExplicitSelection = Boolean(select !== undefined || searchParams.has('select'));
@@ -97,11 +185,12 @@ export function useGalaxyViewModel({
   }, [cameraState.center, storeApi, apertureCorpus]);
 
   const { liveApertureRadius, instrumentAperture } = useGalaxyAperture({
-    cameraState, apertureCorpus, focusedEntity, centerEntity, urlFocusSlug,
+    cameraState, apertureCorpus, focusedEntity, centerEntity, urlFocusSlug: optimisticFocusSlug,
   });
 
   useGalaxyStoreSync({
-    storeApi, urlFocusSlug, hasExplicitFocus, focusedEntity, urlSelectedEntities,
+    storeApi, urlFocusSlug: optimisticFocusSlug, actualUrlFocusSlug: urlFocusSlug,
+    hasExplicitFocus: effectiveHasExplicitFocus, focusedEntity, urlSelectedEntities,
     hasExplicitSelection, apertureIds: instrumentAperture.apertureIds,
     liveApertureRadius, pathname, search, isExplicitLocation,
   });
@@ -110,52 +199,26 @@ export function useGalaxyViewModel({
     focusedDetails, focusedPreview, galaxyBodies, minimapOrientation,
     activeJourney, orbitalSchematic, activeLayerCard, routeStops,
   } = useGalaxyPanels({
-    focusedEntity, apertureCorpus, targetSystemId, urlFocusSlug, hasExplicitFocus,
-    pathname, search, activeCorpus, loadedLayers, layerParam: layer ?? searchParams.get('layer'),
+    focusedEntity, apertureCorpus, targetSystemId, urlFocusSlug: optimisticFocusSlug, hasExplicitFocus: effectiveHasExplicitFocus,
+    pathname, search: effectiveSearch, activeCorpus, loadedLayers, layerParam: layer ?? searchParams.get('layer'),
     cameraState, centerEntity, selectedEntities, instrumentAperture, route,
   });
 
-  const resolvedCenterCoordinates = useMemo(
-    () => resolveGalaxyCenterCoordinates({
-      cameraState, urlFocusSlug, canvasFocusedSlugs, pendingCenterSlug,
+  const resolvedCenterCoordinates = useMemo(() => {
+    const next = resolveGalaxyCenterCoordinates({
+      cameraState, urlFocusSlug: optimisticFocusSlug, canvasFocusedSlugs, pendingCenterSlug,
       center, focusedEntity, centerEntity, selectedEntities, apertureCorpus,
-    }),
-    [apertureCorpus, cameraState, canvasFocusedSlugs, center, centerEntity, focusedEntity, pendingCenterSlug, selectedEntities, urlFocusSlug],
-  );
+    });
+    return internCoords(next);
+  }, [
+    apertureCorpus, cameraState, canvasFocusedSlugs, center, centerEntity,
+    focusedEntity, optimisticFocusSlug, pendingCenterSlug, selectedEntities,
+  ]);
 
   const handleHoverEntity = useCallback(
-    (id: string | null) => {
-      storeApi.getState().setHovered(id);
-    },
+    (id: string | null) => { storeApi.getState().setHovered(id); },
     [storeApi],
   );
-
-  const handleFocusChange = useCallback((id: string | null) => {
-    if (id) {
-      const slug = toUrlSlug(id);
-      const cam = useCameraStore.getState();
-      if (!cam.canvasFocusedSlugs.has(slug)) {
-        cam.recordCanvasFocus(slug);
-        cam.recordCanvasFocus(id);
-      }
-      if (useUIStore.getState().detailsDetent === 'collapsed') {
-        useUIStore.getState().setDetailsDetent('peek');
-      }
-    }
-    useCameraStore.getState().setPendingCenterSlug(null);
-    void appRouter
-      .navigate?.({
-        to: '/galaxy',
-        search: (prev: StarmapSearchParams = {}) => {
-          const next = { ...prev };
-          if (id) next.focus = id;
-          else delete next.focus;
-          return next;
-        },
-        replace: true,
-      })
-      ?.catch(() => {});
-  }, []);
 
   const centerId = center ? toUrlSlug(center) : cameraState.center;
 
@@ -163,6 +226,6 @@ export function useGalaxyViewModel({
     pathname, search, canvasEntities, cameraState, centerId, resolvedCenterCoordinates,
     activeJourney, activeLayerCard, focusedDetails, orbitalSchematic, focusedPreview,
     minimapOrientation, galaxyBodies, routeStops, handleHoverEntity,
-    handleFocusChange, handleSelectSystem: handleFocusChange,
+    handleFocusChange: handleGalaxyFocusChange, handleSelectSystem: handleGalaxyFocusChange,
   };
 }

@@ -162,4 +162,26 @@ describe('useEntityDetails (AUD-087 & DEC-R042)', () => {
 
     expect(capturedSignal?.aborted).toBe(true);
   });
+
+  it('clears isLoading to false when fetch completes with 404 / empty data', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      json: async () => ({}),
+    } as unknown as Response));
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useEntityDetails('unknown-sys'));
+
+    expect(result.current.isLoading).toBe(true);
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.detail).toBeUndefined();
+    expect(result.current.summary).toBeUndefined();
+  });
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, events as createDomEvents } from '@react-three/fiber';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
 import {
   getStandardInitialCamera,
@@ -47,6 +47,25 @@ const initialPersistentCam = getStandardInitialCamera(
   STANDARD_CAMERA_DISTANCES.galactic,
   [0, 0, 0],
 );
+
+const createDragSafeCanvasEvents: NonNullable<
+  React.ComponentProps<typeof Canvas>['events']
+> = (store) => {
+  const manager = createDomEvents(store);
+  if (manager.handlers?.onPointerMove) {
+    const rawOnPointerMove = manager.handlers.onPointerMove;
+    manager.handlers = {
+      ...manager.handlers,
+      onPointerMove: (event: Event) => {
+        if ('buttons' in event && (event as PointerEvent).buttons > 0) {
+          return;
+        }
+        rawOnPointerMove(event);
+      },
+    };
+  }
+  return manager;
+};
 
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
@@ -186,6 +205,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
           <Canvas
             flat
             dpr={1}
+            events={createDragSafeCanvasEvents}
             camera={{
               position: initialPersistentCam.position,
               up: initialPersistentCam.up,

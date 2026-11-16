@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type {
   FocusedDiskDetail,
   FocusedPlanetDetail,
@@ -27,11 +28,11 @@ export interface DetailsPlanetHierarchyProps {
   readonly orbitingBodies?: readonly SystemElementBodyItem[];
 }
 
-export const DetailsPlanetHierarchy = ({
+export const DetailsPlanetHierarchy = memo(function DetailsPlanetHierarchy({
   focusedKind,
   schematic,
   orbitingBodies,
-}: DetailsPlanetHierarchyProps) => {
+}: DetailsPlanetHierarchyProps) {
   if (
     focusedKind === 'planet' &&
     schematic &&
@@ -60,7 +61,9 @@ export const DetailsPlanetHierarchy = ({
       orbitingBodies={orbitingBodies}
     />
   );
-};
+});
+
+DetailsPlanetHierarchy.displayName = 'DetailsPlanetHierarchy';
 
 export interface DetailsSystemHierarchyProps {
   readonly isSystemFocus: boolean;
@@ -71,14 +74,14 @@ export interface DetailsSystemHierarchyProps {
   readonly systemNameOrId: string;
 }
 
-export const DetailsSystemHierarchy = ({
+export const DetailsSystemHierarchy = memo(function DetailsSystemHierarchy({
   isSystemFocus,
   schematic,
   stars = [],
   planets = [],
   disks = [],
   systemNameOrId,
-}: DetailsSystemHierarchyProps) => {
+}: DetailsSystemHierarchyProps) {
   if (!isSystemFocus) {
     return null;
   }
@@ -107,4 +110,6 @@ export const DetailsSystemHierarchy = ({
       <DetailsDisksSection disks={disks} systemNameOrId={systemNameOrId} />
     </>
   );
-};
+});
+
+DetailsSystemHierarchy.displayName = 'DetailsSystemHierarchy';

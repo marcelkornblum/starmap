@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
 import { BearingVectors } from './BearingVectors';
 import { SpatialFrameProvider, GALACTIC_FRAME, SYSTEM_FRAME } from './index';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 describe('BearingVectors Primitive', () => {
   beforeEach(() => {
@@ -48,6 +49,21 @@ describe('BearingVectors Primitive', () => {
     );
 
     expect(renderer.scene.findByProps({ name: 'bearing-vectors' })).toBeDefined();
+    await renderer.unmount();
+  });
+
+  it('attaches NOOP_RAYCAST to all bearing and spoke lineSegments', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <BearingVectors showAxisLines={true} showCardinalBearings={true} />
+      </SpatialFrameProvider>,
+    );
+    const spokeNegX = renderer.scene.findByProps({ name: 'axis-neg-x' });
+    expect(spokeNegX.props.raycast).toBe(NOOP_RAYCAST);
+    const bearingCore = renderer.scene.findByProps({ name: 'bearing-core' });
+    expect(bearingCore.props.raycast).toBe(NOOP_RAYCAST);
+    const bearingOrbital = renderer.scene.findByProps({ name: 'bearing-orbital' });
+    expect(bearingOrbital.props.raycast).toBe(NOOP_RAYCAST);
     await renderer.unmount();
   });
 });

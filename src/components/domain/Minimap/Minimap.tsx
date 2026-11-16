@@ -1,4 +1,4 @@
-import type React from 'react';
+import React, { memo } from 'react';
 import type { MinimapOrientationSummary } from '../../../services/details/detailsNavigationTypes';
 import {
   Badge,
@@ -16,7 +16,9 @@ export interface MinimapProps {
   readonly orientation: MinimapOrientationSummary | null;
 }
 
-export const Minimap: React.FC<MinimapProps> = ({ orientation }) => {
+export const Minimap = memo(function Minimap({
+  orientation,
+}: MinimapProps): React.ReactElement | null {
   if (!orientation) {
     return null;
   }
@@ -162,4 +164,6 @@ export const Minimap: React.FC<MinimapProps> = ({ orientation }) => {
       </div>
     </section>
   );
-};
+});
+
+Minimap.displayName = 'Minimap';

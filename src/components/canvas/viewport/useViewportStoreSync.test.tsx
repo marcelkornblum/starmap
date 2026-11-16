@@ -79,4 +79,26 @@ describe('useViewportStoreSync hook', () => {
 
     expect(outerStore.getState().focusedId).toBe('star-1');
   });
+
+  it('synchronizes outer store focus inward resolving by slug or name in O(1)', () => {
+    localStore.getState().registerEntity({
+      id: 'gliese-581',
+      name: 'Gliese 581',
+      classification: 'star',
+      position: [20, 0, 0],
+    });
+
+    renderHook(() =>
+      useViewportStoreSync({
+        storeApi: localStore,
+        outerStore,
+      }),
+    );
+
+    act(() => {
+      outerStore.getState().setFocused('Gliese 581');
+    });
+
+    expect(localStore.getState().focusedId).toBe('gliese-581');
+  });
 });

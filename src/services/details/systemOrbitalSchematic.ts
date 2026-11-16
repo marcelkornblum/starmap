@@ -1,6 +1,8 @@
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import { resolveResultDisplayTitle } from '../search/searchCorpusHelpers';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
+import { getCorpusSystemChildrenIndex } from './focusedChildrenResolver';
+import { getMergedCorpusParts } from './activeStarsCorpus';
 import { isDwarfPlanetInDisk } from './detailsHazards';
 import {
   buildPlanetDetailsHref,
@@ -19,6 +21,57 @@ import type {
   SystemOrbitalSchematicInput,
 } from './detailsHierarchyTypes';
 
+export interface SchematicCorpusLookup {
+  readonly byId: ReadonlyMap<string, CompactSearchEntry>;
+  readonly bySlug: ReadonlyMap<string, CompactSearchEntry>;
+}
+
+const schematicCorpusIndexCache = new WeakMap<
+  readonly CompactSearchEntry[],
+  SchematicCorpusLookup
+>();
+
+export function getOrBuildSchematicCorpusIndex(
+  corpus: readonly CompactSearchEntry[],
+): SchematicCorpusLookup {
+  let cached = schematicCorpusIndexCache.get(corpus);
+  if (!cached) {
+    const parts = getMergedCorpusParts(corpus);
+    if (parts) {
+      const baseIndex = getOrBuildSchematicCorpusIndex(parts.base);
+      if (parts.extras.length === 0) {
+        schematicCorpusIndexCache.set(corpus, baseIndex);
+        return baseIndex;
+      }
+      const byId = new Map<string, CompactSearchEntry>(baseIndex.byId);
+      const bySlug = new Map<string, CompactSearchEntry>(baseIndex.bySlug);
+      for (const entry of parts.extras) {
+        if (!byId.has(entry.i)) byId.set(entry.i, entry);
+        const slug = toUrlSlug(entry.i);
+        if (slug && !bySlug.has(slug)) bySlug.set(slug, entry);
+      }
+      cached = { byId, bySlug };
+      schematicCorpusIndexCache.set(corpus, cached);
+      return cached;
+    }
+
+    const byId = new Map<string, CompactSearchEntry>();
+    const bySlug = new Map<string, CompactSearchEntry>();
+    for (const entry of corpus) {
+      if (!byId.has(entry.i)) {
+        byId.set(entry.i, entry);
+      }
+      const slug = toUrlSlug(entry.i);
+      if (slug && !bySlug.has(slug)) {
+        bySlug.set(slug, entry);
+      }
+    }
+    cached = { byId, bySlug };
+    schematicCorpusIndexCache.set(corpus, cached);
+  }
+  return cached;
+}
+
 export const buildSystemOrbitalSchematic = (
   systemBodies: SystemOrbitalSchematicInput | null,
   corpusInput: readonly CompactSearchEntry[] = [],
@@ -28,25 +81,36 @@ export const buildSystemOrbitalSchematic = (
   }
 
   const corpus: readonly CompactSearchEntry[] =
-    corpusInput.length > 0 ? corpusInput : (systemBodies.corpus ?? []);
+    corpusInput.length > 0
+      ? corpusInput
+      : 'corpus' in systemBodies && systemBodies.corpus
+        ? systemBodies.corpus
+        : [];
 
-  const {
-    systemId,
-    systemName,
-    focusedEntityId,
-    selectedEntityIds,
-    stars,
-    planets,
-    disks = [],
-    moonsAndDwarfPlanets: inputMoonsAndDwarfPlanets,
-  } = systemBodies;
+  const { systemId, systemName, stars, planets } = systemBodies;
+  const focusedEntityId =
+    'focusedEntityId' in systemBodies ? systemBodies.focusedEntityId : undefined;
+  const selectedEntityIds =
+    'selectedEntityIds' in systemBodies ? systemBodies.selectedEntityIds : undefined;
+  const disks = 'disks' in systemBodies ? systemBodies.disks ?? [] : [];
+  const inputMoonsAndDwarfPlanets =
+    'moonsAndDwarfPlanets' in systemBodies
+      ? systemBodies.moonsAndDwarfPlanets
+      : undefined;
 
   const rawMoonsAndDwarfPlanets = inputMoonsAndDwarfPlanets ?? [];
+  const systemChildren = getCorpusSystemChildrenIndex(corpus);
+  const sysSlug = toUrlSlug(systemId);
+  const candidateChildren =
+    systemChildren.get(sysSlug) ??
+    (systemId !== sysSlug ? systemChildren.get(systemId) : undefined) ??
+    [];
+
   const moonsAndDwarfPlanets =
     rawMoonsAndDwarfPlanets.length > 0
       ? rawMoonsAndDwarfPlanets
-      : corpus
-          .filter((e) => e.s === systemId && (e.k === 3 || e.k === 4))
+      : candidateChildren
+          .filter((e) => e.k === 3 || e.k === 4)
           .map((e) => ({
             id: e.i,
             name: resolveResultDisplayTitle(e),
@@ -54,7 +118,7 @@ export const buildSystemOrbitalSchematic = (
               systemName || systemId,
               resolveResultDisplayTitle(e) || e.i,
             ),
-            categoryKey: e.k === 3 ? 'moon' as const : 'dwarf-planet' as const,
+            categoryKey: e.k === 3 ? ('moon' as const) : ('dwarf-planet' as const),
             categoryLabel: e.k === 3 ? 'Moon' : 'Dwarf Planet',
           }));
 
@@ -81,19 +145,9 @@ export const buildSystemOrbitalSchematic = (
   }
 
   const candidates: CandidateItem[] = [];
-  const corpusById = new Map<string, CompactSearchEntry>();
-  const corpusBySlug = new Map<string, CompactSearchEntry>();
-  for (const entry of corpus) {
-    if (!corpusById.has(entry.i)) {
-      corpusById.set(entry.i, entry);
-    }
-    const slug = toUrlSlug(entry.i);
-    if (slug && !corpusBySlug.has(slug)) {
-      corpusBySlug.set(slug, entry);
-    }
-  }
+  const { byId, bySlug } = getOrBuildSchematicCorpusIndex(corpus);
   const getCorpusEntry = (id: string): CompactSearchEntry | undefined =>
-    corpusById.get(id) ?? corpusBySlug.get(toUrlSlug(id));
+    byId.get(id) ?? bySlug.get(toUrlSlug(id));
 
   for (const planet of planets) {
     const entry = getCorpusEntry(planet.id);

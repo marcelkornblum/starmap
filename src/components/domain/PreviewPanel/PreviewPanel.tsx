@@ -1,4 +1,4 @@
-import type React from 'react';
+import React, { memo } from 'react';
 import type { FocusedPreviewSummary } from '../../../services/details/detailsNavigationTypes';
 import { buildMetricGuideHref } from '../../../content/guide';
 import {
@@ -18,7 +18,7 @@ export interface PreviewPanelProps {
   readonly preview: FocusedPreviewSummary | null;
 }
 
-export const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
+export const PreviewPanel: React.FC<PreviewPanelProps> = memo(function PreviewPanel({ preview }) {
   if (!preview) {
     return null;
   }
@@ -162,4 +162,6 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ preview }) => {
       </div>
     </section>
   );
-};
+});
+
+PreviewPanel.displayName = 'PreviewPanel';

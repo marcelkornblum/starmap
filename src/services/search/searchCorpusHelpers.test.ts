@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   findFocusedEntryInCorpus,
+  getOrBuildCorpusIndex,
   isArtificialSpacecraftEntry,
   isChildOfHostSystem,
   resolveEntityKind,
@@ -9,6 +10,7 @@ import {
   resolveResultSystemTitle,
   resolveReticleType,
 } from './searchCorpusHelpers';
+import { mergeActiveStarsIntoCorpus } from '../details/activeStarsCorpus';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import { SAMPLE_CORPUS } from '../../../tests/fixtures/searchFixtures';
 
@@ -105,5 +107,34 @@ describe('searchCorpusHelpers', () => {
 
     const segmentMatch = findFocusedEntryInCorpus('astrophage-destination', SAMPLE_CORPUS);
     expect(segmentMatch).toBeDefined();
+  });
+
+  it('incrementally indexes merged corpus extras on top of base corpus index', () => {
+    const baseIndex = getOrBuildCorpusIndex(SAMPLE_CORPUS);
+    const merged = mergeActiveStarsIntoCorpus(SAMPLE_CORPUS, [
+      {
+        id: 'streamed-star-1',
+        name: 'Streamed Star 1',
+        x: 10,
+        y: 20,
+        z: 30,
+        dist: 37.4,
+        mag: 6.0,
+        absmag: 5.0,
+        spect: 'G2V',
+        starCount: 1,
+        planetCount: 0,
+        hasHabitableCandidate: false,
+        sectorId: 'sector_1_2_3',
+      },
+    ]);
+
+    const mergedIndex = getOrBuildCorpusIndex(merged);
+    expect(mergedIndex).not.toBe(baseIndex);
+    expect(mergedIndex.base).toBe(baseIndex);
+    expect(mergedIndex.idMap.get('streamed-star-1')?.n).toBe('Streamed Star 1');
+    expect(mergedIndex.base?.idMap.get('sol')?.i).toBe('sol');
+    expect(findFocusedEntryInCorpus('streamed-star-1', merged)?.i).toBe('streamed-star-1');
+    expect(findFocusedEntryInCorpus('sol', merged)?.i).toBe('sol');
   });
 });

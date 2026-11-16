@@ -5,7 +5,10 @@ const SLUG_CACHE = new BoundedLruCache<string, string>(SLUG_CACHE_LIMIT);
 
 export function toUrlSlug(value: string): string {
   if (!value) return '';
-  const cached = SLUG_CACHE.get(value);
+  const cached =
+    SLUG_CACHE.size < SLUG_CACHE.limit
+      ? SLUG_CACHE.peek(value)
+      : SLUG_CACHE.get(value);
   if (cached !== undefined) return cached;
 
   const slug = value

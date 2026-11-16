@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useKeyboardShortcuts } from '../../../hooks/useKeyboardShortcuts';
 import { Button, Cluster, Heading, Input, Kbd, Slider, Toggle } from '../../interface';
@@ -15,7 +15,9 @@ const SHORTCUTS = [
   { key: 'Esc', label: 'Clear Focus' },
 ];
 
-export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
+export const ControlBar = memo(function ControlBar({
+  scope,
+}: ControlBarProps): React.ReactElement {
   const [isMobileExpanded, setIsMobileExpanded] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [timeSpeed, setTimeSpeed] = useState<number>(1);
@@ -194,4 +196,6 @@ export const ControlBar: React.FC<ControlBarProps> = ({ scope }) => {
       </Cluster>
     </section>
   );
-};
+});
+
+ControlBar.displayName = 'ControlBar';

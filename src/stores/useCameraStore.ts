@@ -39,6 +39,8 @@ export interface CameraState {
   lastGalaxySearch: string;
   /** Pending focus slug to center the camera upon (e.g. from search result selection) */
   pendingCenterSlug: string | null;
+  /** Transient in-flight optimistic focus slug during navigation transitions */
+  inFlightFocusSlug: string | null | undefined;
   /** Set of entity slugs focused directly via canvas interaction (prevents unwanted recentering) */
   canvasFocusedSlugs: ReadonlySet<string>;
 }
@@ -65,7 +67,9 @@ export interface CameraActions {
   setSavedGalaxyCamera: (pose: SavedGalaxyCameraPose | null) => void;
   setLastGalaxySearch: (search: string) => void;
   setPendingCenterSlug: (slug: string | null) => void;
-  recordCanvasFocus: (slug: string) => void;
+  setInFlightFocusSlug: (slug: string | null | undefined) => void;
+  focusFromSearch: (pendingCenterSlug: string) => void;
+  recordCanvasFocus: (slugOrSlugs: string | readonly string[]) => void;
   clearCanvasFocus: () => void;
   requestAxisView: (direction: CardinalDirection) => void;
   clearAxisRequest: () => void;
@@ -95,12 +99,14 @@ export const INITIAL_CAMERA_STATE: CameraState = {
   savedGalaxyCamera: null,
   lastGalaxySearch: '',
   pendingCenterSlug: null,
+  inFlightFocusSlug: undefined,
   canvasFocusedSlugs: new Set<string>(),
 };
 
 export const useCameraStore = create<CameraStore>()((set) => ({
   ...INITIAL_CAMERA_STATE,
-  setMode: (mode: CameraProjectionMode) => set({ mode }),
+  setMode: (mode: CameraProjectionMode) =>
+    set((state) => (state.mode === mode ? state : { mode })),
   setLocked: (isLocked: boolean) =>
     set(() =>
       isLocked
@@ -113,7 +119,10 @@ export const useCameraStore = create<CameraStore>()((set) => ({
         ? { isLocked: false, mode: 'perspective', activeCardinal: null }
         : { isLocked: true, mode: 'orthographic' },
     ),
-  setActiveCardinal: (activeCardinal: CardinalDirection | null) => set({ activeCardinal }),
+  setActiveCardinal: (activeCardinal: CardinalDirection | null) =>
+    set((state) =>
+      state.activeCardinal === activeCardinal ? state : { activeCardinal },
+    ),
   setCameraTransform: (
     position: [number, number, number],
     target: [number, number, number],
@@ -150,11 +159,50 @@ export const useCameraStore = create<CameraStore>()((set) => ({
     }),
   setSavedGalaxyCamera: (savedGalaxyCamera: SavedGalaxyCameraPose | null) =>
     set({ savedGalaxyCamera }),
-  setLastGalaxySearch: (lastGalaxySearch: string) => set({ lastGalaxySearch }),
-  setPendingCenterSlug: (pendingCenterSlug: string | null) => set({ pendingCenterSlug }),
-  recordCanvasFocus: (slug: string) =>
-    set((state) => ({ canvasFocusedSlugs: new Set(state.canvasFocusedSlugs).add(slug) })),
-  clearCanvasFocus: () => set({ canvasFocusedSlugs: new Set<string>() }),
+  setLastGalaxySearch: (lastGalaxySearch: string) =>
+    set((state) =>
+      state.lastGalaxySearch === lastGalaxySearch ? state : { lastGalaxySearch },
+    ),
+  setPendingCenterSlug: (pendingCenterSlug: string | null) =>
+    set((state) =>
+      state.pendingCenterSlug === pendingCenterSlug
+        ? state
+        : { pendingCenterSlug },
+    ),
+  setInFlightFocusSlug: (inFlightFocusSlug: string | null | undefined) =>
+    set((state) =>
+      state.inFlightFocusSlug === inFlightFocusSlug
+        ? state
+        : { inFlightFocusSlug },
+    ),
+  focusFromSearch: (pendingCenterSlug: string) =>
+    set((state) => ({
+      canvasFocusedSlugs:
+        state.canvasFocusedSlugs.size === 0 ? state.canvasFocusedSlugs : new Set<string>(),
+      pendingCenterSlug,
+      inFlightFocusSlug: undefined,
+      recenterTick: state.recenterTick + 1,
+    })),
+  recordCanvasFocus: (slugOrSlugs: string | readonly string[]) =>
+    set((state) => {
+      const slugs = Array.isArray(slugOrSlugs) ? slugOrSlugs : [slugOrSlugs];
+      const validSlugs = slugs.filter((s) => typeof s === 'string' && s.length > 0);
+      if (validSlugs.length === 0) return state;
+      if (validSlugs.every((s) => state.canvasFocusedSlugs.has(s))) {
+        return state;
+      }
+      const next = new Set(state.canvasFocusedSlugs);
+      for (const s of validSlugs) {
+        next.add(s);
+      }
+      return { canvasFocusedSlugs: next };
+    }),
+  clearCanvasFocus: () =>
+    set((state) =>
+      state.canvasFocusedSlugs.size === 0
+        ? state
+        : { canvasFocusedSlugs: new Set<string>() },
+    ),
   requestAxisView: (direction: CardinalDirection) => set({ pendingAxisRequest: direction }),
   clearAxisRequest: () => set({ pendingAxisRequest: null }),
   applyPreset: (preset: CameraPreset) => set({ pendingPresetRequest: preset }),

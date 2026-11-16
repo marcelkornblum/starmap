@@ -4,6 +4,7 @@ import {
   resolveOrbitingBodies,
   resolveDiskResidentBodies,
 } from './focusedChildrenResolver';
+import { mergeActiveStarsIntoCorpus } from './activeStarsCorpus';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 
 describe('focusedChildrenResolver', () => {
@@ -16,6 +17,30 @@ describe('focusedChildrenResolver', () => {
   it('builds system children index by system slug', () => {
     const index = getCorpusSystemChildrenIndex(corpus);
     expect(index.get('sol')).toHaveLength(3);
+  });
+
+  it('reuses base index in O(1) for merged corpus with extra stars', () => {
+    const baseIndex = getCorpusSystemChildrenIndex(corpus);
+    const merged = mergeActiveStarsIntoCorpus(corpus, [
+      {
+        id: 'new-star',
+        name: 'New Star',
+        x: 1,
+        y: 2,
+        z: 3,
+        dist: 3.74,
+        mag: 5.0,
+        absmag: 5.0,
+        spect: 'G2V',
+        starCount: 1,
+        planetCount: 0,
+        hasHabitableCandidate: false,
+        sectorId: 'sector_0_0_0',
+      },
+    ]);
+
+    const mergedIndex = getCorpusSystemChildrenIndex(merged);
+    expect(mergedIndex).toBe(baseIndex);
   });
 
   it('resolves orbiting bodies matching planet slug', () => {

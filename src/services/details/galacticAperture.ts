@@ -140,7 +140,7 @@ export function resolveGalacticInstrumentAperture(
     Math.round(rawAperturePc * PARSEC_TO_LY * 100) / 100;
 
   const apertureIds = new Set<string>();
-  const { systemsById, stars } = getOrBuildCorpusStarSystems(corpus);
+  const { systemsById, stars, grid, cellSizePc } = getOrBuildCorpusStarSystems(corpus);
 
   const effectiveMaxActive =
     input.maxActiveEntities ?? getApertureActiveCutoffForViewportWidth(input.viewportWidthPx);
@@ -152,21 +152,61 @@ export function resolveGalacticInstrumentAperture(
   }> = [];
 
   const [cx, cy, cz] = centerCoordinatesPc;
-  for (let i = 0; i < stars.length; i++) {
-    const star = stars[i]!;
-    const pos = star.pos;
-    if (
-      Math.abs(pos[0] - cx) <= rawAperturePc &&
-      Math.abs(pos[1] - cy) <= rawAperturePc &&
-      Math.abs(pos[2] - cz) <= rawAperturePc &&
-      isInsideAperture(pos, centerCoordinatesPc, rawAperturePc)
-    ) {
-      const distance = computeEuclideanDistance3D(centerCoordinatesPc, pos).distance;
-      inApertureCandidates.push({
-        sysSlug: star.sysSlug,
-        entry: star.entry,
-        distance,
-      });
+  const useGrid =
+    Number.isFinite(rawAperturePc) &&
+    rawAperturePc > 0 &&
+    (Math.ceil((rawAperturePc * 2) / cellSizePc) + 1) ** 3 < stars.length / 4;
+
+  if (useGrid) {
+    const minX = Math.floor((cx - rawAperturePc) / cellSizePc);
+    const maxX = Math.floor((cx + rawAperturePc) / cellSizePc);
+    const minY = Math.floor((cy - rawAperturePc) / cellSizePc);
+    const maxY = Math.floor((cy + rawAperturePc) / cellSizePc);
+    const minZ = Math.floor((cz - rawAperturePc) / cellSizePc);
+    const maxZ = Math.floor((cz + rawAperturePc) / cellSizePc);
+
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        for (let z = minZ; z <= maxZ; z++) {
+          const cell = grid.get(`${x},${y},${z}`);
+          if (!cell) continue;
+          for (let i = 0; i < cell.length; i++) {
+            const star = cell[i]!;
+            const pos = star.pos;
+            if (
+              Math.abs(pos[0] - cx) <= rawAperturePc &&
+              Math.abs(pos[1] - cy) <= rawAperturePc &&
+              Math.abs(pos[2] - cz) <= rawAperturePc &&
+              isInsideAperture(pos, centerCoordinatesPc, rawAperturePc)
+            ) {
+              const distance = computeEuclideanDistance3D(centerCoordinatesPc, pos).distance;
+              inApertureCandidates.push({
+                sysSlug: star.sysSlug,
+                entry: star.entry,
+                distance,
+              });
+            }
+          }
+        }
+      }
+    }
+  } else {
+    for (let i = 0; i < stars.length; i++) {
+      const star = stars[i]!;
+      const pos = star.pos;
+      if (
+        Math.abs(pos[0] - cx) <= rawAperturePc &&
+        Math.abs(pos[1] - cy) <= rawAperturePc &&
+        Math.abs(pos[2] - cz) <= rawAperturePc &&
+        isInsideAperture(pos, centerCoordinatesPc, rawAperturePc)
+      ) {
+        const distance = computeEuclideanDistance3D(centerCoordinatesPc, pos).distance;
+        inApertureCandidates.push({
+          sysSlug: star.sysSlug,
+          entry: star.entry,
+          distance,
+        });
+      }
     }
   }
 

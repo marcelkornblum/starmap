@@ -1,4 +1,4 @@
-import type React from 'react';
+import React, { memo } from 'react';
 import type {
   OrbitalSchematicItem as OrbitalSchematicItemType,
   OrbitalSchematicSummary,
@@ -20,6 +20,8 @@ import {
   shouldDisplaySpectralBadge,
 } from '../../interface';
 import styles from './OrbitalSchematicPanel.module.css';
+
+const EMPTY_SCHEMATIC_ITEMS: readonly OrbitalSchematicItemType[] = [];
 
 export interface OrbitalSchematicItemProps {
   readonly item: OrbitalSchematicItemType;
@@ -47,9 +49,11 @@ const resolveSchematicReticle = (kind: string): CelestialSymbolType => {
   }
 };
 
-export function OrbitalSchematicItem({
+export const OrbitalSchematicItem = memo(function OrbitalSchematicItem({
   item,
 }: OrbitalSchematicItemProps): React.ReactElement {
+  const childItems = item.children ?? EMPTY_SCHEMATIC_ITEMS;
+
   return (
     <li
       className={styles.item}
@@ -66,6 +70,7 @@ export function OrbitalSchematicItem({
         type={resolveSchematicReticle(item.kind)}
         title={item.name}
         href={item.href}
+        showTooltip={false}
         titleTestId="orbital-schematic-item-link"
       />{' '}
       {item.kind === 'star' && shouldDisplaySpectralBadge(item.summaryLabel) ? (
@@ -136,18 +141,20 @@ export function OrbitalSchematicItem({
           <Badge status="info">Kuiper belt</Badge>
         </>
       ) : null}
-      {item.children && item.children.length > 0 ? (
-        <OrbitalSchematicList items={item.children} />
+      {childItems.length > 0 ? (
+        <OrbitalSchematicList items={childItems} />
       ) : null}
     </li>
   );
-}
+});
+
+OrbitalSchematicItem.displayName = 'OrbitalSchematicItem';
 
 export interface OrbitalSchematicListProps {
   readonly items: readonly OrbitalSchematicItemType[];
 }
 
-export function OrbitalSchematicList({
+export const OrbitalSchematicList = memo(function OrbitalSchematicList({
   items,
 }: OrbitalSchematicListProps): React.ReactElement {
   return (
@@ -157,15 +164,17 @@ export function OrbitalSchematicList({
       ))}
     </Stack>
   );
-}
+});
+
+OrbitalSchematicList.displayName = 'OrbitalSchematicList';
 
 export interface OrbitalSchematicPanelProps {
   readonly elements: OrbitalSchematicSummary | null;
 }
 
-export const OrbitalSchematicPanel: React.FC<OrbitalSchematicPanelProps> = ({
+export const OrbitalSchematicPanel = memo(function OrbitalSchematicPanel({
   elements,
-}) => {
+}: OrbitalSchematicPanelProps): React.ReactElement | null {
   if (!elements) {
     return null;
   }
@@ -185,4 +194,6 @@ export const OrbitalSchematicPanel: React.FC<OrbitalSchematicPanelProps> = ({
       <OrbitalSchematicList items={elements.items} />
     </section>
   );
-};
+});
+
+OrbitalSchematicPanel.displayName = 'OrbitalSchematicPanel';

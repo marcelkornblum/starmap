@@ -2,8 +2,13 @@
 import { toCanonicalLayerSlug, toUrlSlug } from '../../utils/datasetLayerSlugs';
 import { DEFAULT_ORIGIN_TARGETS } from '../../config/referenceTargets';
 
-
 export type OrbitTargetView = 'galaxy' | 'system' | 'planet';
+
+const encodeQueryParam = (v: string): string =>
+  encodeURIComponent(v)
+    .replace(/%20/g, '+')
+    .replace(/%3A/gi, ':')
+    .replace(/%2C/gi, ',');
 
 export interface EntityOrbitTargetInput {
   readonly id: string;
@@ -63,14 +68,12 @@ export function buildEntityOrbitTargetHref(
   if (isMoon) {
     const parentPlanetSlug = toUrlSlug(parentBodyId ?? DEFAULT_ORIGIN_TARGETS.intraSystemOriginId);
     const moonSlug = targetSlug;
-    const params = new URLSearchParams({ focus: moonSlug });
+    let qs = `focus=${encodeQueryParam(moonSlug)}`;
     if (layerSlug) {
-      params.set('select', `layer:${layerSlug}`);
-      params.set('layer', `${layerSlug}:${moonSlug}`);
+      qs += `&select=layer:${encodeQueryParam(layerSlug)}&layer=${encodeQueryParam(layerSlug)}:${encodeQueryParam(moonSlug)}`;
     } else if (tag) {
-      params.set('select', `tag:${tag}`);
+      qs += `&select=tag:${encodeQueryParam(tag)}`;
     }
-    const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
     return {
       targetView: 'planet',
       href: `/planet/${encodeURIComponent(parentPlanetSlug)}?${qs}`,
@@ -110,28 +113,24 @@ export function buildEntityOrbitTargetHref(
 
     if (matchesCurrentSystem) {
       const activeSystemSlug = currentSysSlug ?? sysSlug;
-      const params = new URLSearchParams();
+      let qs = '';
       if (layerSlug) {
-        params.set('select', `layer:${layerSlug}`);
-        params.set('layer', `${layerSlug}:${itemSlug}`);
+        qs = `select=layer:${encodeQueryParam(layerSlug)}&layer=${encodeQueryParam(layerSlug)}:${encodeQueryParam(itemSlug)}`;
       } else if (tag) {
-        params.set('select', `tag:${tag}`);
+        qs = `select=tag:${encodeQueryParam(tag)}`;
       }
-      const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
       return {
         targetView: 'system',
         href: `/system/${encodeURIComponent(activeSystemSlug)}${qs.length > 0 ? `?${qs}` : ''}`,
       };
     }
 
-    const params = new URLSearchParams({ focus: sysSlug });
+    let qs = `focus=${encodeQueryParam(sysSlug)}`;
     if (layerSlug) {
-      params.set('select', `layer:${layerSlug}`);
-      params.set('layer', `${layerSlug}:${itemSlug}`);
+      qs += `&select=layer:${encodeQueryParam(layerSlug)}&layer=${encodeQueryParam(layerSlug)}:${encodeQueryParam(itemSlug)}`;
     } else if (tag) {
-      params.set('select', `tag:${tag}`);
+      qs += `&select=tag:${encodeQueryParam(tag)}`;
     }
-    const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
     return {
       targetView: 'galaxy',
       href: `/galaxy?${qs}`,
@@ -140,14 +139,12 @@ export function buildEntityOrbitTargetHref(
 
   const sysSlug = toUrlSlug(systemName ?? systemId ?? name ?? id ?? DEFAULT_ORIGIN_TARGETS.interstellarOriginId);
   const itemSlug = targetSlug;
-  const params = new URLSearchParams({ focus: itemSlug });
+  let qs = `focus=${encodeQueryParam(itemSlug)}`;
   if (layerSlug) {
-    params.set('select', `layer:${layerSlug}`);
-    params.set('layer', `${layerSlug}:${itemSlug}`);
+    qs += `&select=layer:${encodeQueryParam(layerSlug)}&layer=${encodeQueryParam(layerSlug)}:${encodeQueryParam(itemSlug)}`;
   } else if (tag) {
-    params.set('select', `tag:${tag}`);
+    qs += `&select=tag:${encodeQueryParam(tag)}`;
   }
-  const qs = params.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
   return {
     targetView: 'system',
     href: `/system/${encodeURIComponent(sysSlug)}?${qs}`,
@@ -168,8 +165,7 @@ export const buildSystemElementFocusHref = (
   if (!focusSlug) {
     return baseHref;
   }
-  const params = new URLSearchParams({ focus: focusSlug });
-  return `${baseHref}?${params.toString()}`;
+  return `${baseHref}?focus=${encodeQueryParam(focusSlug)}`;
 };
 
 export const buildPlanetDetailsHref = (planetNameOrId: string): string => {
@@ -186,8 +182,7 @@ export const buildPlanetElementFocusHref = (
   if (!focusSlug) {
     return baseHref;
   }
-  const params = new URLSearchParams({ focus: focusSlug });
-  return `${baseHref}?${params.toString()}`;
+  return `${baseHref}?focus=${encodeQueryParam(focusSlug)}`;
 };
 
 const GALAXY_NAV_PRESERVED_PARAMS = new Set([
@@ -211,19 +206,26 @@ export function buildGalaxySystemNavigationHref(
   currentSearch = '',
 ): string {
   const slug = toUrlSlug(systemId) || systemId.trim();
+
+  if (
+    !currentSearch ||
+    (!currentSearch.includes('&') &&
+      (currentSearch.startsWith('?focus=') || currentSearch.startsWith('focus=')))
+  ) {
+    return `/galaxy?focus=${encodeQueryParam(slug)}`;
+  }
+
   const outParams = new URLSearchParams();
   outParams.set('focus', slug);
 
-  if (currentSearch) {
-    const cleanSearch = currentSearch.startsWith('?')
-      ? currentSearch.slice(1)
-      : currentSearch;
-    if (cleanSearch) {
-      const inParams = new URLSearchParams(cleanSearch);
-      for (const [key, val] of inParams.entries()) {
-        if (GALAXY_NAV_PRESERVED_PARAMS.has(key)) {
-          outParams.append(key, val);
-        }
+  const cleanSearch = currentSearch.startsWith('?')
+    ? currentSearch.slice(1)
+    : currentSearch;
+  if (cleanSearch) {
+    const inParams = new URLSearchParams(cleanSearch);
+    for (const [key, val] of inParams.entries()) {
+      if (GALAXY_NAV_PRESERVED_PARAMS.has(key)) {
+        outParams.append(key, val);
       }
     }
   }

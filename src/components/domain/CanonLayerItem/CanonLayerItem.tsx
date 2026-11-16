@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import type { FocusedCanonAnnotation } from '../../../services/details/detailsCanonTypes';
 import { buildLayerGalaxyHref } from '../../../services/search/searchUrls';
 import { Badge } from '../../interface';
@@ -17,10 +17,10 @@ export interface CanonLayerItemProps {
  * - Layer badge on the right for quick layer overview navigation.
  * - No accordion or duplicate layer prefix.
  */
-export const CanonLayerItem = ({
+export const CanonLayerItem = memo(function CanonLayerItem({
   annotation,
   as = 'li',
-}: CanonLayerItemProps): ReactNode => {
+}: CanonLayerItemProps): ReactNode {
   const Component = as;
   const title =
     annotation.inUniverseName ||
@@ -79,4 +79,6 @@ export const CanonLayerItem = ({
       </div>
     </Component>
   );
-};
+});
+
+CanonLayerItem.displayName = 'CanonLayerItem';

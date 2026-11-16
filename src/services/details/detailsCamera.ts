@@ -20,9 +20,25 @@ export const buildCenterEntityHref = (
   return `/planet/${encTarget}?center=${encFocus}&focus=${encFocus}`;
 };
 
+const EMPTY_SCENE_CAMERA_URL_STATE: SceneCameraUrlState = Object.freeze({});
+
 export const extractUrlSceneCameraState = (
   searchString: string,
 ): SceneCameraUrlState => {
+  if (
+    !searchString ||
+    (!searchString.includes('center=') &&
+      !searchString.includes('x=') &&
+      !searchString.includes('y=') &&
+      !searchString.includes('z=') &&
+      !searchString.includes('az=') &&
+      !searchString.includes('el=') &&
+      !searchString.includes('dist=') &&
+      !searchString.includes('zoom='))
+  ) {
+    return EMPTY_SCENE_CAMERA_URL_STATE;
+  }
+
   const params = new URLSearchParams(searchString);
   const centerRaw = params.get('center');
   const center =
@@ -44,6 +60,19 @@ export const extractUrlSceneCameraState = (
   const el = parseNum('el');
   const dist = parseNum('dist');
   const zoom = parseNum('zoom');
+
+  if (
+    center === undefined &&
+    x === undefined &&
+    y === undefined &&
+    z === undefined &&
+    az === undefined &&
+    el === undefined &&
+    dist === undefined &&
+    zoom === undefined
+  ) {
+    return EMPTY_SCENE_CAMERA_URL_STATE;
+  }
 
   return {
     ...(center !== undefined ? { center } : {}),

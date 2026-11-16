@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { CelestialClassification } from '../../../types/spatial';
 import { buildStarTypeGuideHref } from '../../../content/guide';
 import {
@@ -17,14 +18,14 @@ export interface DetailsIdentityHeaderProps {
   readonly starCount?: number;
 }
 
-export const DetailsIdentityHeader = ({
+export const DetailsIdentityHeader = memo(function DetailsIdentityHeader({
   name,
   systemName,
   reticleType,
   focusedKind,
   spectralType,
   starCount,
-}: DetailsIdentityHeaderProps) => {
+}: DetailsIdentityHeaderProps) {
   const isSystemFocus = focusedKind === 'system';
 
   return (
@@ -57,4 +58,6 @@ export const DetailsIdentityHeader = ({
       ) : null}
     </Cluster>
   );
-};
+});
+
+DetailsIdentityHeader.displayName = 'DetailsIdentityHeader';

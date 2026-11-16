@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import {
-  useSpatialEntityStore,
-  useSpatialEntityStoreApi,
-} from '../components/canvas/entity/SpatialEntityContext';
+import { useShallow } from 'zustand/react/shallow';
+import { useParams, useSearch } from '@tanstack/react-router';
+import { useSpatialEntityStore, useSpatialEntityStoreApi } from '../components/canvas/entity/SpatialEntityContext';
+import type { SpatialEntityDefinition } from '../types/spatial';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import { buildJourneyPlan } from '../services/journey/journeyBuilder';
-import {
-  extractUrlJourneyOptionId,
-  extractUrlRouteStops,
-} from '../services/journey/journeyProfilesAndUrls';
+import { extractUrlJourneyOptionId, extractUrlRouteStops } from '../services/journey/journeyProfilesAndUrls';
 import { resolveActiveLayerCard } from '../services/layerCardService';
 import { buildFocusedPreviewSummary } from '../services/details/detailsPreview';
 import { buildSystemBodiesSummary } from '../services/details/systemBodiesSummary';
@@ -16,30 +13,39 @@ import { buildSystemMinimapOrientation } from '../services/details/systemMinimap
 import { buildSystemOrbitalSchematic } from '../services/details/systemOrbitalSchematic';
 import { buildSystemViewBreadcrumbs } from '../services/details/detailsBreadcrumbs';
 import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
-import { useParams, useSearch } from '@tanstack/react-router';
 import { resolveSelectedSystemsFromUrlSelect } from '../services/search/searchUrlSelectionResolvers';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { useLayerIndex, useLoadedLayerManifests } from '../hooks/useLayerData';
-import {
-  appRouter,
-  useSpaLocation,
-  type StarmapSearchParams,
-} from '../hooks/useSpaLocation';
+import { appRouter, useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
-import {
-  useResolvedSystemDetails,
-  type UseResolvedSystemDetailsProps,
-} from './useResolvedSystemDetails';
+import { useResolvedSystemDetails, type UseResolvedSystemDetailsProps } from './useResolvedSystemDetails';
 import { useSystemOutOfScopeGuard } from './useSystemOutOfScopeGuard';
 
 export type UseSystemViewModelProps = UseResolvedSystemDetailsProps;
 
+const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
+
 export function useSystemViewModel(props: UseSystemViewModelProps) {
   const { locationPathname, locationSearch, systemId: propSystemId } = props;
   const storeApi = useSpatialEntityStoreApi();
-  useSpatialEntityStore((state) => state.selectedId);
-  useSpatialEntityStore((state) => state.selectedIds);
+  const storeSelected = useSpatialEntityStore(
+    useShallow((state) => {
+      const hasSet = state.selectedIds && state.selectedIds.size > 0;
+      if (!hasSet && !state.selectedId) return EMPTY_SELECTED_ENTITIES;
+      const list: SpatialEntityDefinition[] = [];
+      if (hasSet) {
+        for (const id of state.selectedIds) {
+          const ent = state.entities[id];
+          if (ent) list.push(ent);
+        }
+      } else if (state.selectedId) {
+        const ent = state.entities[state.selectedId];
+        if (ent) list.push(ent);
+      }
+      return list.length > 0 ? list : EMPTY_SELECTED_ENTITIES;
+    }),
+  );
 
   const {
     focusedDetails,
@@ -74,8 +80,11 @@ export function useSystemViewModel(props: UseSystemViewModelProps) {
   const rawSystemId = routeParams?.systemId ?? propSystemId;
   const targetId = toUrlSlug(rawSystemId ?? '') || SOL_REFERENCE_TARGET.id;
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
-  const cameraState = extractUrlSceneCameraState(search);
-  const effectiveCenterId = center ? toUrlSlug(center) : cameraState.center;
+  const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
+  const effectiveCenterId = useMemo(
+    () => (center ? toUrlSlug(center) : cameraState.center),
+    [center, cameraState.center],
+  );
 
   useEffect(() => {
     if (!urlFocusSlug || !focusedEntity) return;
@@ -91,9 +100,9 @@ export function useSystemViewModel(props: UseSystemViewModelProps) {
     }
   }, [urlFocusSlug, focusedEntity, storeApi]);
 
-  const breadcrumbs = buildSystemViewBreadcrumbs(
-    systemContextDetails,
-    urlSystemSlug,
+  const breadcrumbs = useMemo(
+    () => buildSystemViewBreadcrumbs(systemContextDetails, urlSystemSlug),
+    [systemContextDetails, urlSystemSlug],
   );
 
   const lastGalaxySearch = useCameraStore((s) => s.lastGalaxySearch);
@@ -140,17 +149,19 @@ export function useSystemViewModel(props: UseSystemViewModelProps) {
   const layerIndex = useLayerIndex();
   const loadedLayers = useLoadedLayerManifests(search);
 
-  const storeSelected = storeApi.getState().getEntitiesByState('selected');
   const selectQuery = select ? `?select=${encodeURIComponent(select)}` : search;
-  const selectedEntities =
-    storeSelected.length > 0
-      ? storeSelected
-      : resolveSelectedSystemsFromUrlSelect(
-          selectQuery,
-          activeCorpus,
-          layerIndex,
-          loadedLayers,
-        );
+  const selectedEntities = useMemo(
+    () =>
+      storeSelected.length > 0
+        ? storeSelected
+        : resolveSelectedSystemsFromUrlSelect(
+            selectQuery,
+            activeCorpus,
+            layerIndex,
+            loadedLayers,
+          ),
+    [storeSelected, selectQuery, activeCorpus, layerIndex, loadedLayers],
+  );
 
   const urlExplicitSelectSlugs = useMemo(() => {
     return (select ?? searchParams.get('select') ?? '')
@@ -177,57 +188,89 @@ export function useSystemViewModel(props: UseSystemViewModelProps) {
     systemDetail,
   });
 
-  const systemBodies = buildSystemBodiesSummary({
-    details: systemContextDetails,
-    corpus: activeCorpus,
-    canonRecords,
-    selectedEntityIds,
-    focusedEntityId,
-  });
-
-  const orbitalSchematic = buildSystemOrbitalSchematic(
-    systemBodies,
-    activeCorpus,
-  );
-
-  const focusedPreview = buildFocusedPreviewSummary(
-    focusedDetails,
-    focusedDetail,
-  );
-
-  const minimapOrientation = systemBodies
-    ? buildSystemMinimapOrientation(
-        systemBodies,
-        orbitalSchematic,
-        systemContextDetails ?? focusedDetails,
-        focusedEntity,
-        selectedEntities,
-        cameraState,
-      )
-    : null;
-
-  const routeSearchQuery = route ? `?route=${encodeURIComponent(route)}` : search;
-  const routeStops = extractUrlRouteStops(routeSearchQuery, 'system');
-  const routeOptionId = extractUrlJourneyOptionId(routeSearchQuery);
-  const activeJourney = routeStops
-    ? buildJourneyPlan({
-        stops: routeStops,
-        selectedOptionId: routeOptionId,
+  const systemBodies = useMemo(
+    () =>
+      buildSystemBodiesSummary({
+        details: systemContextDetails,
         corpus: activeCorpus,
-        viewScope: 'system',
-        currentPathname: pathname,
-        currentSearch: search,
-      })
-    : null;
+        canonRecords,
+        selectedEntityIds,
+        focusedEntityId,
+      }),
+    [
+      systemContextDetails,
+      activeCorpus,
+      canonRecords,
+      selectedEntityIds,
+      focusedEntityId,
+    ],
+  );
+
+  const orbitalSchematic = useMemo(
+    () => buildSystemOrbitalSchematic(systemBodies, activeCorpus),
+    [systemBodies, activeCorpus],
+  );
+
+  const focusedPreview = useMemo(
+    () => buildFocusedPreviewSummary(focusedDetails, focusedDetail),
+    [focusedDetails, focusedDetail],
+  );
+
+  const minimapOrientation = useMemo(
+    () =>
+      systemBodies
+        ? buildSystemMinimapOrientation(
+            systemBodies,
+            orbitalSchematic,
+            systemContextDetails ?? focusedDetails,
+            focusedEntity,
+            selectedEntities,
+            cameraState,
+          )
+        : null,
+    [
+      systemBodies,
+      orbitalSchematic,
+      systemContextDetails,
+      focusedDetails,
+      focusedEntity,
+      selectedEntities,
+      cameraState,
+    ],
+  );
+
+  const { routeStops, activeJourney } = useMemo(() => {
+    if (!route && !search.includes('route=')) {
+      return { routeStops: null, activeJourney: null };
+    }
+    const routeSearchQuery = route ? `?route=${encodeURIComponent(route)}` : search;
+    const stops = extractUrlRouteStops(routeSearchQuery, 'system');
+    const optionId = extractUrlJourneyOptionId(routeSearchQuery);
+    const journey = stops
+      ? buildJourneyPlan({
+          stops,
+          selectedOptionId: optionId,
+          corpus: activeCorpus,
+          viewScope: 'system',
+          currentPathname: pathname,
+          currentSearch: search,
+        })
+      : null;
+    return { routeStops: stops, activeJourney: journey };
+  }, [route, search, activeCorpus, pathname]);
 
   const layerParam = layer ?? searchParams.get('layer');
-  const activeLayerCard = resolveActiveLayerCard({
-    layerParam,
-    currentPathname: pathname,
-    currentSearch: search,
-    corpus: activeCorpus,
-    layers: loadedLayers,
-  });
+  const activeLayerCard = useMemo(
+    () =>
+      resolveActiveLayerCard({
+        layerParam,
+        currentPathname: pathname,
+        currentSearch: search,
+        corpus: activeCorpus,
+        layers: loadedLayers,
+      }),
+    [layerParam, pathname, search, activeCorpus, loadedLayers],
+  );
 
   return {
     pathname,

@@ -4,6 +4,10 @@ import type { SpatialEntityStore } from './SpatialEntityStore';
 import type { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
 import type { CelestialInteractionState } from '../../../types/spatial';
 import { activateEntity, focusEntity } from './interactionActions';
+import {
+  cancelHoverPrefetch,
+  scheduleHoverPrefetch,
+} from '../../../services/details/prefetchEntitySelection';
 
 export interface UseCelestialEntityInteractionsParams {
   activeState: CelestialInteractionState;
@@ -65,6 +69,7 @@ export function useCelestialEntityInteractions({
   const handleMarkerPointerOver = useCallback(
     (targetId: string, e: ThreeEvent<PointerEvent>) => {
       if (activeStateRef.current === 'passive') return;
+      scheduleHoverPrefetch(targetId, targetId, 12);
       storeApi.getState().setHovered(targetId);
       onPointerOverRef.current?.(targetId, e);
     },
@@ -73,6 +78,7 @@ export function useCelestialEntityInteractions({
 
   const handleMarkerPointerOut = useCallback(
     (targetId: string, e: ThreeEvent<PointerEvent>) => {
+      cancelHoverPrefetch();
       if (activeStateRef.current === 'passive') return;
       if (storeApi.getState().hoveredId === targetId) {
         storeApi.getState().setHovered(null);

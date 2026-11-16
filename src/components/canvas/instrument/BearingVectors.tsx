@@ -9,6 +9,7 @@ import {
   DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
   DEFAULT_INSTRUMENT_EXTENT,
 } from './instrumentDefaults';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 export interface BearingVectorsProps {
   /** Whether to render axis spokes */
@@ -23,7 +24,7 @@ export interface BearingVectorsProps {
   extent?: number;
 }
 
-export const BearingVectors: React.FC<BearingVectorsProps> = ({
+export const BearingVectors: React.FC<BearingVectorsProps> = React.memo(({
   showAxisLines = true,
   showCardinalBearings = true,
   centerDistance,
@@ -167,7 +168,7 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
       {showAxisLines && (
         <group ref={spokeGroupRef} name="axis-spokes">
           {spokeList.map(({ name, geom, matKey }) => (
-            <lineSegments key={name} name={name} frustumCulled={false}>
+            <lineSegments key={name} name={name} frustumCulled={false} raycast={NOOP_RAYCAST}>
               <primitive object={geom} attach="geometry" />
               <lineBasicMaterial
                 ref={(el: THREE.LineBasicMaterial | null) => { spokeMatsRef.current[matKey] = el; }}
@@ -184,7 +185,7 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
       {showCardinalBearings && (
         <group name="cardinal-bearings">
           {hasCore && (
-            <lineSegments ref={bearingCoreRef} name="bearing-core" scale={[extent, extent, 1]} frustumCulled={false}>
+            <lineSegments ref={bearingCoreRef} name="bearing-core" scale={[extent, extent, 1]} frustumCulled={false} raycast={NOOP_RAYCAST}>
               <primitive object={coreBearingGeom} attach="geometry" />
               <lineBasicMaterial
                 ref={bearingCoreMatRef}
@@ -196,7 +197,7 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
             </lineSegments>
           )}
           {hasOrbital && (
-            <lineSegments ref={bearingOrbitalRef} name="bearing-orbital" frustumCulled={false}>
+            <lineSegments ref={bearingOrbitalRef} name="bearing-orbital" frustumCulled={false} raycast={NOOP_RAYCAST}>
               <primitive object={orbitalGeom} attach="geometry" />
               <lineBasicMaterial
                 ref={bearingOrbitalMatRef}
@@ -211,4 +212,4 @@ export const BearingVectors: React.FC<BearingVectorsProps> = ({
       )}
     </group>
   );
-};
+});

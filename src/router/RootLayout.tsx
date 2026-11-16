@@ -4,9 +4,14 @@ import { RootCanvasHost } from '../components/domain/CanvasLayer';
 import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
 import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
 import { handleSpaNavigation } from '../hooks/spaNavigation';
+import { GalaxyView } from '../views/GalaxyView';
+import { appRouter, useSpaLocation } from '../hooks/useSpaLocation';
 
 export const RootLayout: React.FC = () => {
+  const { pathname } = useSpaLocation(undefined, undefined, '');
+
   const handleRootClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.defaultPrevented) return;
     const target = event.target as Element | null;
     const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
     if (!anchor) return;
@@ -17,12 +22,19 @@ export const RootLayout: React.FC = () => {
     handleSpaNavigation(event, href);
   }, []);
 
+  const matches = (
+    appRouter.state as { matches?: ReadonlyArray<{ routeId?: string }> } | undefined
+  )?.matches;
+  const hasRouterMatches = Boolean(matches && matches.length > 0);
+  const isPersistentGalaxyRoute =
+    hasRouterMatches && (pathname === '/' || pathname === '/galaxy');
+
   return (
     <SpatialEntityProvider>
-      <div id="starmap-app-root" onClickCapture={handleRootClick}>
+      <div id="starmap-app-root" onClick={handleRootClick}>
         <ThemeTokenBridge />
         <RootCanvasHost />
-        <Outlet />
+        {isPersistentGalaxyRoute ? <GalaxyView /> : <Outlet />}
       </div>
     </SpatialEntityProvider>
   );

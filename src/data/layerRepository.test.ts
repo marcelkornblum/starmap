@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LAYER_MANIFESTS } from '../../content/layers';
 import {
+  areEntityAnnotationsCached,
   clearLayerRepositoryCache,
   fetchEntityAnnotations,
   fetchLayerIndex,
@@ -115,6 +116,18 @@ describe('layerRepository', () => {
     expect(getCachedLayerManifest('canon-halo')?.layerId).toBe('canon-halo');
     expect(getCachedEntityAnnotations(['tau-ceti-e'])).toEqual(fetched);
     expect(getCachedEntityAnnotations([''])).toEqual([]);
+  });
+
+  it('areEntityAnnotationsCached returns true for empty or cached entity IDs and false for uncached', async () => {
+    expect(areEntityAnnotationsCached([])).toBe(true);
+    expect(areEntityAnnotationsCached([''])).toBe(true);
+    expect(areEntityAnnotationsCached(['tau-ceti-e'])).toBe(false);
+
+    const fetchImpl = makeFetch();
+    await fetchEntityAnnotations(['tau-ceti-e'], fetchImpl);
+
+    expect(areEntityAnnotationsCached(['tau-ceti-e'])).toBe(true);
+    expect(areEntityAnnotationsCached(['tau-ceti-e', 'uncached-entity'])).toBe(false);
   });
 
   it('rejects when a by-entity bucket fails to load and retries on the next call', async () => {

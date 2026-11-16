@@ -146,4 +146,37 @@ describe('useResolvedSystemDetails', () => {
     expect(hookResult.result.current.isFocusInThisSystem).toBe(false);
     expect(hookResult.result.current.focusedDetails).toBeNull();
   });
+
+  it('preserves systemContextDetails reference stability when unrelated entities register in store', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useResolvedSystemDetails>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useResolvedSystemDetails({
+            systemId: 'tau-ceti',
+            initialCorpus: corpus,
+            locationPathname: '/system/tau-ceti',
+            locationSearch: '?focus=tau-ceti-e',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    const initialContextDetails = hookResult.result.current.systemContextDetails;
+
+    // Register unrelated entities in store
+    act(() => {
+      store.getState().registerEntities([
+        {
+          id: 'unrelated-star',
+          name: 'Unrelated Star',
+          classification: 'star',
+          position: [100, 200, 300],
+        },
+      ]);
+    });
+
+    expect(hookResult.result.current.systemContextDetails).toBe(initialContextDetails);
+  });
 });

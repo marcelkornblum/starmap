@@ -70,6 +70,18 @@ const normaliseEntityIds = (entityIds: readonly string[]): string[] => [
 ];
 
 /**
+ * Checks whether the by-entity annotation buckets for all given entity IDs are already cached.
+ * Returns true if entityIds is empty or every required shard bucket is in RESOLVED_ENTITY_BUCKET_CACHE.
+ */
+export const areEntityAnnotationsCached = (entityIds: readonly string[]): boolean => {
+  const ids = normaliseEntityIds(entityIds);
+  if (ids.length === 0) {
+    return true;
+  }
+  return ids.every((id) => RESOLVED_ENTITY_BUCKET_CACHE.get(getShardKey(id)) !== undefined);
+};
+
+/**
  * Synchronously retrieves the decoded union of annotation records for the given entity IDs
  * from by-entity buckets that have already been fetched (unfetched buckets contribute nothing).
  */

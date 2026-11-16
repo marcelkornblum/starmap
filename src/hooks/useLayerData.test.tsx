@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import * as layerRepository from '../data/layerRepository';
 import {
   useEntityAnnotations,
   useLoadedLayerManifests,
@@ -97,5 +98,21 @@ describe('useLayerData hooks', () => {
       res3 = hook3.result;
     });
     expect(res3.current).toEqual([]);
+  });
+
+  it('resolves cached entity annotations synchronously without triggering fetchEntityAnnotations', async () => {
+    await seedLayerRuntime({ entityIds: ['tau-ceti-e'] });
+
+    const fetchSpy = vi.spyOn(layerRepository, 'fetchEntityAnnotations');
+
+    let res!: { current: ReturnType<typeof useEntityAnnotations> };
+    await act(async () => {
+      const hook = renderHook(() => useEntityAnnotations(['tau-ceti-e']));
+      res = hook.result;
+    });
+
+    expect(res.current.length).toBeGreaterThan(0);
+    expect(res.current.some((r) => r.targetId === 'tau-ceti-e')).toBe(true);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

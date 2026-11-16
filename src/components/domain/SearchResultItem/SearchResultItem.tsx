@@ -12,6 +12,10 @@ import { useSearchContext } from '../Search/SearchContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { resolveAppHref } from '../../../utils/url';
 import { handleSpaNavigation } from '../../../hooks/spaNavigation';
+import {
+  cancelHoverPrefetch,
+  scheduleHoverPrefetch,
+} from '../../../services/details/prefetchEntitySelection';
 import styles from './SearchResultItem.module.css';
 
 export interface SearchResultItemProps {
@@ -95,12 +99,11 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
   const searchCtx = useSearchContext();
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>): void => {
+    cancelHoverPrefetch();
     if (targetView === 'galaxy') {
       const focusParam = new URLSearchParams(href.split('?')[1] ?? '').get('focus');
       if (focusParam) {
-        useCameraStore.getState().clearCanvasFocus();
-        useCameraStore.getState().setPendingCenterSlug(focusParam);
-        useCameraStore.getState().triggerRecenter();
+        useCameraStore.getState().focusFromSearch(focusParam);
       }
     }
     if (searchCtx.dismissSearch) {
@@ -130,6 +133,10 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
         href={resolveAppHref(href)}
         className={styles.resultLink}
         onClick={handleClick}
+        onMouseEnter={() => scheduleHoverPrefetch(id, systemId)}
+        onFocus={() => scheduleHoverPrefetch(id, systemId)}
+        onMouseLeave={cancelHoverPrefetch}
+        onBlur={cancelHoverPrefetch}
       >
         <Cluster gap="tight" align="center">
           <CelestialBadge

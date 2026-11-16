@@ -55,6 +55,26 @@ describe('BoundedLruCache', () => {
     expect(cache.has('d')).toBe(true);
   });
 
+  it('peek returns value without promoting recency on subsequent eviction', () => {
+    const cache = new BoundedLruCache<string, number>(3);
+    cache.set('a', 1);
+    cache.set('b', 2);
+    cache.set('c', 3);
+
+    // Peek 'a' - should return 1 but NOT promote recency
+    expect(cache.peek('a')).toBe(1);
+    expect(cache.peek('nonexistent')).toBeUndefined();
+
+    // Inserting 'd' should still evict 'a' because peek did not refresh recency
+    cache.set('d', 4);
+
+    expect(cache.has('a')).toBe(false);
+    expect(cache.get('a')).toBeUndefined();
+    expect(cache.get('b')).toBe(2);
+    expect(cache.get('c')).toBe(3);
+    expect(cache.get('d')).toBe(4);
+  });
+
   it('refreshes recency when updating an existing key via set', () => {
     const cache = new BoundedLruCache<string, number>(3);
     cache.set('a', 1);

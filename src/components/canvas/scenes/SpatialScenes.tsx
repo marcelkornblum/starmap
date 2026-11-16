@@ -1,5 +1,4 @@
-import type React from 'react';
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { OrbitControls } from '@react-three/drei';
 
 import {
@@ -36,7 +35,7 @@ const ORIGIN_COORDS: readonly [number, number, number] = [0, 0, 0];
 const getPlanetaryCamera = () =>
   getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, ORIGIN_COORDS as [number, number, number]);
 
-export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = ({
+export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = React.memo(({
   initialSelectedId = null,
   onInspectSystem,
   onSelectSystem,
@@ -78,7 +77,7 @@ export const GalacticSceneContent: React.FC<GalacticSceneContentProps> = ({
       />
     </>
   );
-};
+});
 
 export const GalacticViewScene: React.FC<GalacticViewSceneProps> = (props) => {
   const standardCam = useGalaxyViewCamera(props.centerCoordinates, props.cameraDistance);

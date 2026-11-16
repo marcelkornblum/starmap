@@ -1,6 +1,7 @@
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
 import { resolveSchematicRegion } from './orbitalSchematicHelpers';
+import { getOrBuildSchematicCorpusIndex } from './systemOrbitalSchematic';
 import type {
   OrbitalSchematicEntityKind,
   OrbitalSchematicItem,
@@ -56,11 +57,12 @@ export const buildPlanetaryOrbitalSchematic = (
   });
 
   const orbitingCandidates: CandidateItem[] = [];
+  const { byId, bySlug } = getOrBuildSchematicCorpusIndex(corpus);
+  const getCorpusEntry = (id: string): CompactSearchEntry | undefined =>
+    byId.get(id) ?? bySlug.get(toUrlSlug(id));
 
   for (const moon of moons) {
-    const entry =
-      corpus.find((e) => e.i === moon.id) ||
-      corpus.find((e) => toUrlSlug(e.i) === toUrlSlug(moon.id));
+    const entry = getCorpusEntry(moon.id);
     const isDwarf = entry?.k === 4 || moon.categoryLabel === 'Dwarf Planet';
     orbitingCandidates.push({
       id: moon.id,

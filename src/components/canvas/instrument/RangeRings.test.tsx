@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { RangeRings } from './RangeRings';
 import { SpatialFrameProvider, GALACTIC_FRAME } from './index';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 describe('RangeRings Primitive', () => {
   beforeEach(() => {
@@ -61,6 +62,17 @@ describe('RangeRings Primitive', () => {
     expect(colorCopySpy).not.toHaveBeenCalled();
     colorCopySpy.mockRestore();
 
+    await renderer.unmount();
+  });
+
+  it('attaches NOOP_RAYCAST to all ring lineLoop meshes', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <RangeRings rings={[5]} />
+      </SpatialFrameProvider>,
+    );
+    const ring5 = renderer.scene.findByProps({ name: 'full-ring-5' });
+    expect(ring5.props.raycast).toBe(NOOP_RAYCAST);
     await renderer.unmount();
   });
 });

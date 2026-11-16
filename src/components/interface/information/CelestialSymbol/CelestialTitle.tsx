@@ -1,5 +1,6 @@
 import {
   createElement,
+  memo,
   type FC,
   type MouseEventHandler,
   type ReactNode,
@@ -25,7 +26,7 @@ export interface CelestialTitleProps {
   readonly rel?: string;
 }
 
-export const CelestialTitle: FC<CelestialTitleProps> = ({
+export const CelestialTitle: FC<CelestialTitleProps> = memo(function CelestialTitle({
   type,
   title,
   href,
@@ -39,16 +40,16 @@ export const CelestialTitle: FC<CelestialTitleProps> = ({
   onClick,
   target,
   rel,
-}) => {
-  const badgeProps = {
-    type,
-    size,
-    href: symbolHref,
-    'data-testid': symbolTestId,
-    ...(showTooltip !== undefined ? ({ showTooltip } as Record<string, unknown>) : {}),
-  };
-
-  const badgeElement = <CelestialBadge {...badgeProps} />;
+}: CelestialTitleProps) {
+  const badgeElement = (
+    <CelestialBadge
+      type={type}
+      size={size}
+      href={symbolHref}
+      showTooltip={showTooltip}
+      data-testid={symbolTestId}
+    />
+  );
 
   let titleElement: ReactNode;
   if (href) {
@@ -92,4 +93,6 @@ export const CelestialTitle: FC<CelestialTitleProps> = ({
       {titleElement}
     </span>
   );
-};
+});
+
+CelestialTitle.displayName = 'CelestialTitle';

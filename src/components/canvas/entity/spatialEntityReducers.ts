@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
+import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
 import type {
   SpatialEntityDefinition,
   CelestialInteractionState,
@@ -186,4 +187,95 @@ export function resolveInitialEntitySelection(initial?: {
     initialFocusedId,
     initialFocusedSet,
   };
+}
+
+export function indexEntitySlugs(
+  currentIndex: Record<string, string>,
+  entity: SpatialEntityDefinition,
+  existing?: SpatialEntityDefinition,
+): Record<string, string> {
+  const idSlug = toUrlSlug(entity.id);
+  const nameSlug = entity.name ? toUrlSlug(entity.name) : undefined;
+  const oldNameSlug = existing?.name ? toUrlSlug(existing.name) : undefined;
+
+  let next: Record<string, string> | null = null;
+
+  if (oldNameSlug && oldNameSlug !== nameSlug && currentIndex[oldNameSlug] === entity.id) {
+    next = { ...currentIndex };
+    delete next[oldNameSlug];
+  }
+
+  const base = next ?? currentIndex;
+  const needsIdSlug = Boolean(idSlug && base[idSlug] !== entity.id);
+
+  const currentOwnerOfNameSlug = nameSlug ? base[nameSlug] : undefined;
+  const nameSlugClaimedById = currentOwnerOfNameSlug
+    ? toUrlSlug(currentOwnerOfNameSlug) === nameSlug
+    : false;
+  const canSetOrKeepNameSlug = Boolean(
+    nameSlug &&
+      (!currentOwnerOfNameSlug ||
+        currentOwnerOfNameSlug === entity.id ||
+        !nameSlugClaimedById),
+  );
+  const needsNameSlug = Boolean(canSetOrKeepNameSlug && base[nameSlug!] !== entity.id);
+
+  if (needsIdSlug || needsNameSlug) {
+    if (!next) next = { ...currentIndex };
+    if (needsIdSlug && idSlug) {
+      next[idSlug] = entity.id;
+    }
+    if (needsNameSlug && nameSlug) {
+      next[nameSlug] = entity.id;
+    }
+  }
+
+  return next ?? currentIndex;
+}
+
+export function removeEntityFromSlugIndex(
+  currentIndex: Record<string, string>,
+  id: string,
+  existing?: SpatialEntityDefinition,
+): Record<string, string> {
+  const idSlug = toUrlSlug(id);
+  const nameSlug = existing?.name ? toUrlSlug(existing.name) : undefined;
+  let next: Record<string, string> | null = null;
+
+  if (idSlug && currentIndex[idSlug] === id) {
+    next = { ...currentIndex };
+    delete next[idSlug];
+  }
+  if (nameSlug && (next ?? currentIndex)[nameSlug] === id) {
+    if (!next) next = { ...currentIndex };
+    delete next[nameSlug];
+  }
+  const target = next ?? currentIndex;
+  for (const slug in target) {
+    if (target[slug] === id) {
+      if (!next) next = { ...currentIndex };
+      delete next[slug];
+    }
+  }
+
+  return next ?? currentIndex;
+}
+
+export function resolveEntityIdFromState(
+  entities: Record<string, SpatialEntityDefinition>,
+  entityIdBySlug: Record<string, string>,
+  idOrSlug: string,
+): string | null {
+  if (!idOrSlug) return null;
+  if (entities[idOrSlug]) {
+    return idOrSlug;
+  }
+  const slug = toUrlSlug(idOrSlug);
+  if (slug) {
+    const targetId = entityIdBySlug[slug];
+    if (targetId && entities[targetId]) {
+      return targetId;
+    }
+  }
+  return null;
 }

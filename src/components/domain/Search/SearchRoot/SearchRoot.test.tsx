@@ -152,11 +152,9 @@ describe('<SearchRoot />', () => {
     });
 
     expect(screen.getByText('Tau Ceti')).toBeInTheDocument();
-    expect(summarySpy).toHaveBeenCalledWith('tau-ceti');
-    expect(detailSpy).toHaveBeenCalledWith('tau-ceti');
-    expect(annotationsSpy).toHaveBeenCalledWith(
-      expect.arrayContaining(['tau-ceti']),
-    );
+    expect(summarySpy).not.toHaveBeenCalled();
+    expect(detailSpy).not.toHaveBeenCalled();
+    expect(annotationsSpy).not.toHaveBeenCalled();
 
     // 5. Clicking clear search clears immediately
     const clearButton = screen.getByTestId('search-clear-button');

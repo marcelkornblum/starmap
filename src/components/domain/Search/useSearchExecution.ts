@@ -1,33 +1,15 @@
-import {
-  startTransition,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 import { getCachedCorpusForFilter } from '../../../data/searchRepository';
-import type {
-  GroupedSearchResults,
-  SearchResultItem,
-} from '../../../services/search/searchTypes';
+import type { GroupedSearchResults, SearchResultItem } from '../../../services/search/searchTypes';
 import type { SearchCategoryFilter } from '../../../types/search';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import type { SearchExecutionStatus } from './SearchContext';
-import {
-  SEARCH_MIN_QUERY_LENGTH,
-  prefetchSearchResultsDetails,
-  searchCatalog,
-} from './searchHelpers';
+import { SEARCH_MIN_QUERY_LENGTH, searchCatalog } from './searchHelpers';
 import { syncSearchUrlParams } from './searchUrlSync';
 import { syncSelectedSystemsToStore } from './searchStoreSync';
-import {
-  expandStarsShardIfEmpty,
-  fetchAndComputeAsyncSearch,
-} from './asyncSearchExecutor';
-import type {
-  UseSearchExecutionOptions,
-  UseSearchExecutionReturn,
-} from './searchExecutionTypes';
+import { expandStarsShardIfEmpty, fetchAndComputeAsyncSearch } from './asyncSearchExecutor';
+import type { UseSearchExecutionOptions, UseSearchExecutionReturn } from './searchExecutionTypes';
+import { prefetchEntitySelection } from '../../../services/details/prefetchEntitySelection';
 
 export const useSearchExecution = ({
   initialQuery,
@@ -90,6 +72,17 @@ export const useSearchExecution = ({
     ): void => {
       setResults(nextResults);
 
+      if (nextResults.query.trim().length >= 3) {
+        const topHit =
+          nextResults.groups.stars.items[0] ??
+          nextResults.groups.planets.items[0] ??
+          nextResults.groups['minor-bodies'].items[0] ??
+          nextResults.groups.structures.items[0];
+        if (topHit) {
+          prefetchEntitySelection(topHit.id, topHit.systemId);
+        }
+      }
+
       const effectiveSearch = overrideSearch ?? activeSearch;
       const effectiveCorpus =
         overrideCorpus ??
@@ -108,10 +101,6 @@ export const useSearchExecution = ({
           layerDataRef.current.loadedLayers,
         );
       });
-
-      if (nextResults.query.trim().length >= 3) {
-        prefetchSearchResultsDetails(nextResults);
-      }
     },
     [activeSearch, initialCorpus, store],
   );
@@ -249,8 +238,6 @@ export const useSearchExecution = ({
         clearTimeout(deferredSearchTimerRef.current);
         deferredSearchTimerRef.current = null;
       }
-      setQueryState('');
-      setIsFocused(false);
       if (
         typeof document !== 'undefined' &&
         searchRootRef.current &&
@@ -259,11 +246,31 @@ export const useSearchExecution = ({
       ) {
         document.activeElement.blur();
       }
-      if (syncUrl && !item) syncSearchUrlParams('', filter);
+      if (item) {
+        ++requestSeqRef.current;
+        setQueryState('');
+        setIsFocused(false);
+        setStatus('idle');
+        setErrorMessage(null);
+        setResults(
+          searchCatalog([], {
+            query: '',
+            filter,
+            limitPerCategory,
+          }),
+        );
+        if (!item.href.includes('select=')) {
+          store.getState().setSelectedIds([]);
+        }
+        if (onSelectResult) onSelectResult(item);
+        return;
+      }
+      setQueryState('');
+      setIsFocused(false);
+      if (syncUrl) syncSearchUrlParams('', filter);
       void submitSearch('', filter);
-      if (item && onSelectResult) onSelectResult(item);
     },
-    [filter, onSelectResult, searchRootRef, setIsFocused, submitSearch, syncUrl],
+    [filter, limitPerCategory, onSelectResult, searchRootRef, setIsFocused, store, submitSearch, syncUrl],
   );
 
   return {

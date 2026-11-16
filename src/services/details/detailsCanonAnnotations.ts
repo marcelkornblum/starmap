@@ -94,19 +94,23 @@ const toFocusedCanonAnnotation = (
   _corpus?: readonly CompactSearchEntry[],
   currentPathname?: string,
   currentSearch?: string,
+  hrefBuilder?: (layerId: string, targetId: string, name?: string) => string,
 ): FocusedCanonAnnotation => {
   const displayName = record.inUniverseName || record.resolvedName;
+  const href = hrefBuilder
+    ? hrefBuilder(record.layerId, record.targetId, displayName)
+    : buildInPlaceLayerItemHref(
+        record.layerId,
+        record.targetId,
+        displayName,
+        currentPathname,
+        currentSearch,
+      );
   return {
     layerId: record.layerId,
     layerTitle: record.layerTitle,
     layerHref: buildLayerGalaxyHref(record.layerId),
-    href: buildInPlaceLayerItemHref(
-      record.layerId,
-      record.targetId,
-      displayName,
-      currentPathname,
-      currentSearch,
-    ),
+    href,
     kind: record.kind,
     targetId: record.targetId,
     targetType: record.targetType,
@@ -138,6 +142,27 @@ export const resolveFocusedCanonAnnotations = (
     (r) => r.systemId === systemId || r.targetId === systemId,
   );
 
+  const searchSource =
+    currentSearch ??
+    (currentPathname?.includes('?')
+      ? currentPathname.split('?')[1]?.split('#')[0]
+      : '');
+  const searchParams = new URLSearchParams(searchSource);
+  searchParams.delete('select');
+  searchParams.delete('layer');
+  const preservedQs = searchParams.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
+  const preservedPrefix = preservedQs ? `${preservedQs}&` : '';
+  const basePath = (currentPathname || '/galaxy').split('?')[0].split('#')[0];
+
+  const hrefBuilder = (layerId: string, recordTargetId: string, name?: string): string => {
+    const cleanId = recordTargetId.includes(':')
+      ? recordTargetId.split(':').slice(1).join(':')
+      : recordTargetId;
+    const itemSlug = toUrlSlug(name || cleanId);
+    const layerSlug = toCanonicalLayerSlug(layerId) || toUrlSlug(layerId);
+    return `${basePath}?${preservedPrefix}select=layer:${layerSlug}&layer=${layerSlug}:${itemSlug}`;
+  };
+
   const seen = new Set<string>();
   const annotations: FocusedCanonAnnotation[] = [];
 
@@ -148,7 +173,13 @@ export const resolveFocusedCanonAnnotations = (
     }
     seen.add(dedupeKey);
     annotations.push(
-      toFocusedCanonAnnotation(record, corpus, currentPathname, currentSearch),
+      toFocusedCanonAnnotation(
+        record,
+        corpus,
+        currentPathname,
+        currentSearch,
+        hrefBuilder,
+      ),
     );
   }
 

@@ -41,6 +41,47 @@ export const normaliseSearchQuery = (rawQuery: string): NormalizedSearchQuery =>
   };
 };
 
+export interface PreparedSearchEntry {
+  readonly idLower: string;
+  readonly nameLower: string;
+  readonly nameClean: string;
+  readonly nameSegments: readonly string[];
+  readonly aliasKeys: readonly string[];
+  readonly canonLower: string;
+  readonly canonClean: string;
+}
+
+const PREPARED_SEARCH_CACHE = new WeakMap<CompactSearchEntry, PreparedSearchEntry>();
+
+export const getPreparedSearchEntry = (
+  entry: CompactSearchEntry,
+): PreparedSearchEntry => {
+  const cached = PREPARED_SEARCH_CACHE.get(entry);
+  if (cached) {
+    return cached;
+  }
+
+  const nameSegments = /[(),/]/.test(entry.n)
+    ? entry.n
+        .split(/[(),/]+/)
+        .map((s) => normalizeCleanKey(s))
+        .filter((s) => s.length > 0)
+    : [];
+
+  const prepared: PreparedSearchEntry = {
+    idLower: entry.i.toLowerCase(),
+    nameLower: entry.n.toLowerCase(),
+    nameClean: normalizeCleanKey(entry.n),
+    nameSegments,
+    aliasKeys: entry.a ? entry.a.split(' ') : [],
+    canonLower: entry.c ? entry.c.toLowerCase() : '',
+    canonClean: entry.c ? normalizeCleanKey(entry.c) : '',
+  };
+
+  PREPARED_SEARCH_CACHE.set(entry, prepared);
+  return prepared;
+};
+
 /**
  * Pure unit function scoring a single CompactSearchEntry against a NormalizedSearchQuery.
  * Returns 0 if the entry does not match.
@@ -53,40 +94,36 @@ export const scoreSearchEntry = (
     return 0;
   }
 
-  const nameLower = entry.n.toLowerCase();
-  const nameClean = normalizeCleanKey(entry.n);
-  const aliasKeys = entry.a ? entry.a.split(' ') : [];
-  const canonLower = entry.c ? entry.c.toLowerCase() : '';
-  const canonClean = entry.c ? normalizeCleanKey(entry.c) : '';
+  const prepared = getPreparedSearchEntry(entry);
 
   // 1. Exact display name match
-  if (nameLower === query.expandedLower || nameLower === query.rawLower) {
+  if (
+    prepared.nameLower === query.expandedLower ||
+    prepared.nameLower === query.rawLower
+  ) {
     return 1000;
   }
 
   // 2. Exact clean key match on display name
-  if (nameClean === query.cleanKey || nameClean === query.rawCleanKey) {
+  if (
+    prepared.nameClean === query.cleanKey ||
+    prepared.nameClean === query.rawCleanKey
+  ) {
     return 950;
   }
 
   // 2b. Exact match on a parenthetical, comma-delimited, or slash-delimited display name segment
-  if (/[(),/]/.test(entry.n)) {
-    const segments = entry.n
-      .split(/[(),/]+/)
-      .map((s) => normalizeCleanKey(s))
-      .filter((s) => s.length > 0);
-    if (
-      segments.some(
-        (seg) => seg === query.cleanKey || seg === query.rawCleanKey,
-      )
-    ) {
-      return 925;
-    }
+  if (
+    prepared.nameSegments.some(
+      (seg) => seg === query.cleanKey || seg === query.rawCleanKey,
+    )
+  ) {
+    return 925;
   }
 
   // 3. Exact match on one of the space-delimited clean alias keys
   if (
-    aliasKeys.some(
+    prepared.aliasKeys.some(
       (alias) => alias === query.cleanKey || alias === query.rawCleanKey,
     )
   ) {
@@ -95,29 +132,30 @@ export const scoreSearchEntry = (
 
   // 4. Exact match on fictional canon / work title
   if (
-    canonClean.length > 0 &&
-    (canonClean === query.cleanKey || canonLower === query.rawLower)
+    prepared.canonClean.length > 0 &&
+    (prepared.canonClean === query.cleanKey ||
+      prepared.canonLower === query.rawLower)
   ) {
     return 860;
   }
 
   // 5. Exact match on entity ID
-  if (entry.i.toLowerCase() === query.rawLower) {
+  if (prepared.idLower === query.rawLower) {
     return 850;
   }
 
   // 6. Display name prefix match
   if (
-    nameLower.startsWith(query.expandedLower) ||
-    nameLower.startsWith(query.rawLower) ||
-    nameClean.startsWith(query.cleanKey)
+    prepared.nameLower.startsWith(query.expandedLower) ||
+    prepared.nameLower.startsWith(query.rawLower) ||
+    prepared.nameClean.startsWith(query.cleanKey)
   ) {
     return 750;
   }
 
   // 7. Alias key prefix match
   if (
-    aliasKeys.some(
+    prepared.aliasKeys.some(
       (alias) =>
         alias.startsWith(query.cleanKey) || alias.startsWith(query.rawCleanKey),
     )
@@ -127,10 +165,11 @@ export const scoreSearchEntry = (
 
   // 8. Substring match on display name, canon title, or alias keys
   if (
-    nameClean.includes(query.cleanKey) ||
-    nameClean.includes(query.rawCleanKey) ||
-    (canonClean.length > 0 && canonClean.includes(query.cleanKey)) ||
-    aliasKeys.some(
+    prepared.nameClean.includes(query.cleanKey) ||
+    prepared.nameClean.includes(query.rawCleanKey) ||
+    (prepared.canonClean.length > 0 &&
+      prepared.canonClean.includes(query.cleanKey)) ||
+    prepared.aliasKeys.some(
       (alias) =>
         alias.includes(query.cleanKey) || alias.includes(query.rawCleanKey),
     )
@@ -140,7 +179,7 @@ export const scoreSearchEntry = (
 
   // 9. Multi-token conjunction match across combined searchable text
   if (query.tokens.length > 1) {
-    const combined = `${nameClean} ${entry.a ?? ''} ${canonClean}`;
+    const combined = `${prepared.nameClean} ${entry.a ?? ''} ${prepared.canonClean}`;
     if (query.tokens.every((token) => combined.includes(token))) {
       return 450;
     }

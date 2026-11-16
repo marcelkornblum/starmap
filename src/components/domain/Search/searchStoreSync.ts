@@ -9,7 +9,6 @@ import {
 } from '../../../services/search/searchSelection';
 import { resolveSelectedSystemsFromUrlSelect } from '../../../services/search/searchUrlSelectionResolvers';
 import type { GroupedSearchResults } from '../../../services/search/searchTypes';
-import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import { extractUrlRouteStops } from '../../../services/journey/journeyProfilesAndUrls';
 import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
@@ -71,13 +70,8 @@ export const syncUrlFocusToStore = (
   let primaryEntity = null;
   let hasValidPosition = false;
   if (focusSlug) {
-    const targetSlug = toUrlSlug(focusSlug);
-    const existingMatch = Object.values(state.entities).find(
-      (e) =>
-        e.id === focusSlug ||
-        toUrlSlug(e.id) === targetSlug ||
-        toUrlSlug(e.name) === targetSlug,
-    );
+    const matchedId = state.resolveEntityId(focusSlug);
+    const existingMatch = matchedId ? state.entities[matchedId] : undefined;
     hasValidPosition = Boolean(
       existingMatch &&
         (existingMatch.id === SOL_REFERENCE_TARGET.id ||

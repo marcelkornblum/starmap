@@ -23,6 +23,15 @@ describe('detailsCamera', () => {
       const state = extractUrlSceneCameraState('?center=Tau%20Ceti');
       expect(state.center).toBe('tau-ceti');
     });
+
+    it('returns the same frozen empty singleton for empty or non-camera search strings', () => {
+      const empty1 = extractUrlSceneCameraState('');
+      const empty2 = extractUrlSceneCameraState('?focus=sol');
+      const empty3 = extractUrlSceneCameraState('?select=earth');
+      expect(empty1).toBe(empty2);
+      expect(empty2).toBe(empty3);
+      expect(Object.isFrozen(empty1)).toBe(true);
+    });
   });
 
   describe('buildCenterEntityHref', () => {

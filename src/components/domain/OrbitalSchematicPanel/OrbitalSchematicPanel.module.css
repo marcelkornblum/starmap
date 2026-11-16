@@ -14,5 +14,6 @@
     align-items: center;
     flex-wrap: wrap;
     gap: var(--space-fib-2);
+    contain: layout style;
   }
 }

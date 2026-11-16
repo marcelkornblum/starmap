@@ -297,8 +297,8 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
   });
 
   describe('toUrlSlug & SLUG_CACHE_LIMIT (DEC-GBZ-003)', () => {
-    it('exports SLUG_CACHE_LIMIT of 5000', () => {
-      expect(SLUG_CACHE_LIMIT).toBe(5000);
+    it('exports SLUG_CACHE_LIMIT of 100000', () => {
+      expect(SLUG_CACHE_LIMIT).toBe(100_000);
     });
 
     it('converts strings to URL slugs and handles edge cases', () => {

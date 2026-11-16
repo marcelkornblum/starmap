@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeActiveStarsIntoCorpus } from './activeStarsCorpus';
+import { getMergedCorpusParts, mergeActiveStarsIntoCorpus } from './activeStarsCorpus';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import type { SystemSummaryNode } from '../../types/astro';
 
@@ -24,6 +24,7 @@ const SAMPLE_GALAXY_CORPUS: readonly CompactSearchEntry[] = [
 describe('activeStarsCorpus', () => {
   it('returns same corpus if activeStars is empty', () => {
     expect(mergeActiveStarsIntoCorpus(SAMPLE_GALAXY_CORPUS, [])).toBe(SAMPLE_GALAXY_CORPUS);
+    expect(getMergedCorpusParts(SAMPLE_GALAXY_CORPUS)).toBeUndefined();
   });
 
   it('merges active stars deduplicating by ID', () => {
@@ -63,5 +64,38 @@ describe('activeStarsCorpus', () => {
     const merged = mergeActiveStarsIntoCorpus(SAMPLE_GALAXY_CORPUS, activeStars);
     expect(merged.length).toBe(SAMPLE_GALAXY_CORPUS.length + 1);
     expect(merged.some((e) => e.i === 'new-star')).toBe(true);
+
+    const parts = getMergedCorpusParts(merged);
+    expect(parts).toBeDefined();
+    expect(parts?.base).toBe(SAMPLE_GALAXY_CORPUS);
+    expect(parts?.extras).toHaveLength(1);
+    expect(parts?.extras[0].i).toBe('new-star');
+  });
+
+  it('preserves referential stability when activeStars is recreated with identical extra IDs', () => {
+    const makeStar = (id: string, name: string): SystemSummaryNode => ({
+      id,
+      name,
+      x: 1,
+      y: 2,
+      z: 3,
+      dist: 3.74,
+      mag: 4.5,
+      absmag: 5.0,
+      spect: 'G2V',
+      starCount: 1,
+      planetCount: 0,
+      hasHabitableCandidate: false,
+      sectorId: 'sector_+001_+002_+003',
+    });
+
+    const activeList1 = [makeStar('star-x', 'Star X'), makeStar('star-y', 'Star Y')];
+    const activeList2 = [makeStar('star-x', 'Star X'), makeStar('star-y', 'Star Y')];
+
+    expect(activeList1).not.toBe(activeList2);
+    const merged1 = mergeActiveStarsIntoCorpus(SAMPLE_GALAXY_CORPUS, activeList1);
+    const merged2 = mergeActiveStarsIntoCorpus(SAMPLE_GALAXY_CORPUS, activeList2);
+
+    expect(merged1).toBe(merged2);
   });
 });

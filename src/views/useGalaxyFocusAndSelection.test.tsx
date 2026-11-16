@@ -134,4 +134,27 @@ describe('useGalaxyFocusAndSelection', () => {
     expect(result.current.canvasEntities.length).toBe(1);
     expect(result.current.canvasEntities[0]?.id).toBe('sol');
   });
+
+  it('maintains reference stability for canvasEntities returning empty array when focusedEntity is null and selectedEntities is empty', () => {
+    const { result, rerender } = renderHook(
+      ({ selectQuery }: { selectQuery: string }) =>
+        useGalaxyFocusAndSelection({
+          urlFocusSlug: null,
+          storeFocusedEntity: null,
+          apertureCorpus: corpus,
+          activeCorpus: corpus,
+          storeSelected: [],
+          layerIndex: [],
+          loadedLayers: [],
+          selectQuery,
+        }),
+      { initialProps: { selectQuery: '' } },
+    );
+
+    const firstCanvasEntities = result.current.canvasEntities;
+    expect(firstCanvasEntities).toEqual([]);
+
+    rerender({ selectQuery: '' });
+    expect(result.current.canvasEntities).toBe(firstCanvasEntities);
+  });
 });

@@ -1,11 +1,30 @@
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import type { SystemSummaryNode } from '../../types/astro';
 
+export interface MergedCorpusParts {
+  readonly base: readonly CompactSearchEntry[];
+  readonly extras: readonly CompactSearchEntry[];
+}
+
 const corpusKnownIdsCache = new WeakMap<readonly CompactSearchEntry[], ReadonlySet<string>>();
+const mergedCorpusPartsMap = new WeakMap<readonly CompactSearchEntry[], MergedCorpusParts>();
+
+interface MergedCorpusCacheEntry {
+  readonly activeStars: readonly SystemSummaryNode[];
+  readonly extraKey: string;
+  readonly result: readonly CompactSearchEntry[];
+}
+
 const mergedCorpusCache = new WeakMap<
   readonly CompactSearchEntry[],
-  { activeStars: readonly SystemSummaryNode[]; result: readonly CompactSearchEntry[] }
+  MergedCorpusCacheEntry
 >();
+
+export function getMergedCorpusParts(
+  corpus: readonly CompactSearchEntry[],
+): MergedCorpusParts | undefined {
+  return mergedCorpusPartsMap.get(corpus);
+}
 
 /**
  * Pure merge of the stars hydrated from streamed sector partitions (every star inside the live
@@ -35,13 +54,13 @@ export function mergeActiveStarsIntoCorpus(
     knownIds = ids;
   }
 
-  const seenIds = new Set<string>(knownIds);
+  const extraSeenIds = new Set<string>();
   const extraEntries: CompactSearchEntry[] = [];
   for (const star of activeStars) {
-    if (seenIds.has(star.id)) {
+    if (knownIds.has(star.id) || extraSeenIds.has(star.id)) {
       continue;
     }
-    seenIds.add(star.id);
+    extraSeenIds.add(star.id);
     extraEntries.push({
       i: star.id,
       n: star.properName ?? star.name,
@@ -55,11 +74,18 @@ export function mergeActiveStarsIntoCorpus(
   }
 
   if (extraEntries.length === 0) {
-    mergedCorpusCache.set(corpus, { activeStars, result: corpus });
+    mergedCorpusCache.set(corpus, { activeStars, extraKey: '', result: corpus });
     return corpus;
   }
 
+  const extraKey = extraEntries.map((e) => e.i).join('\0');
+  if (cachedMerged && cachedMerged.extraKey === extraKey) {
+    mergedCorpusCache.set(corpus, { activeStars, extraKey, result: cachedMerged.result });
+    return cachedMerged.result;
+  }
+
   const result: readonly CompactSearchEntry[] = [...corpus, ...extraEntries];
-  mergedCorpusCache.set(corpus, { activeStars, result });
+  mergedCorpusCache.set(corpus, { activeStars, extraKey, result });
+  mergedCorpusPartsMap.set(result, { base: corpus, extras: extraEntries });
   return result;
 }

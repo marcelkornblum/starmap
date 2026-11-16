@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import type { SpatialEntityStore } from '../entity';
-import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
 
 export interface ViewportStoreSyncOptions {
   readonly storeApi: SpatialEntityStore;
@@ -44,26 +43,16 @@ export function useViewportStoreSync({
 
       let resolvedLocalId = focusedId;
       if (focusedId) {
-        const localEntities = storeApi.getState().entities;
-        if (localEntities[focusedId]) {
-          resolvedLocalId = focusedId;
-        } else {
-          const outerEntity = outerStore.getState().entities[focusedId];
-          const targetSlug = toUrlSlug(focusedId);
-          const outerNameSlug = outerEntity?.name ? toUrlSlug(outerEntity.name) : null;
+        const localState = storeApi.getState();
+        const outerEntity = outerStore.getState().entities[focusedId];
+        const resolved =
+          localState.resolveEntityId(focusedId) ??
+          (outerEntity?.name ? localState.resolveEntityId(outerEntity.name) : null);
 
-          const localMatch = Object.values(localEntities).find(
-            (e) =>
-              toUrlSlug(e.id) === targetSlug ||
-              toUrlSlug(e.name) === targetSlug ||
-              (outerNameSlug && toUrlSlug(e.name) === outerNameSlug),
-          );
-
-          if (localMatch) {
-            resolvedLocalId = localMatch.id;
-          } else if (outerEntity && !localEntities[outerEntity.id]) {
-            storeApi.getState().registerEntity(outerEntity);
-          }
+        if (resolved) {
+          resolvedLocalId = resolved;
+        } else if (outerEntity && !localState.entities[outerEntity.id]) {
+          storeApi.getState().registerEntity(outerEntity);
         }
       }
       if (storeApi.getState().focusedId !== resolvedLocalId) {

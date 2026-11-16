@@ -14,6 +14,7 @@ import {
 } from './planarGridGeometry';
 import { usePlanarGridMaterials } from './usePlanarGridMaterials';
 import { DEFAULT_PLANAR_GRID_GAP, DEFAULT_GALACTIC_CENTER_DISTANCE_PC, DEFAULT_FRAME_RADIUS } from './instrumentDefaults';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 export interface PlanarFootprintItem extends PlanarFootprintData {}
 export type { PlanarGridProps, PlanarFootprintComponentProps };
@@ -26,12 +27,12 @@ export const PlanarFootprintItem: React.FC<PlanarFootprintComponentProps> = ({ f
   const fpY = Array.isArray(fp.position) ? (fp.position[1] ?? 0) : (fp.position?.y ?? 0);
   return (
     <group position={[fpX, fpY, 0]} name={`planar-footprint-${fp.id}`}>
-      <lineSegments frustumCulled={false}><primitive object={geom} attach="geometry" /><lineBasicMaterial color={fp.color ?? defaultColor} opacity={fp.opacity ?? defaultAlpha} transparent depthWrite={false} /></lineSegments>
+      <lineSegments frustumCulled={false} raycast={NOOP_RAYCAST}><primitive object={geom} attach="geometry" /><lineBasicMaterial color={fp.color ?? defaultColor} opacity={fp.opacity ?? defaultAlpha} transparent depthWrite={false} /></lineSegments>
     </group>
   );
 };
 
-export const PlanarGrid: React.FC<PlanarGridProps> = ({
+export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
   enabled, showFill, showPlanarGrid, planarGridGap, rings, majorRingIndex, showPlanarFootprint,
   footprintClassification = 'star', footprintSize = DEFAULT_RETICLE_SIZE, footprints, centerDistance, galacticCenterDistance,
 }) => {
@@ -160,18 +161,18 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
   return (
     <group ref={groupRef} name="datum-plane">
       {isFillEnabled && (
-        <mesh ref={fillMeshRef} name="datum-plane-fill" frustumCulled={false}>
+        <mesh ref={fillMeshRef} name="datum-plane-fill" frustumCulled={false} raycast={NOOP_RAYCAST}>
           <primitive object={fillCircleGeom} attach="geometry" />
           <shaderMaterial vertexShader={DATUM_FILL_VERTEX_SHADER} fragmentShader={DATUM_FILL_FRAGMENT_SHADER} uniforms={fillUniforms} transparent depthWrite={false} side={THREE.DoubleSide} />
         </mesh>
       )}
-      <lineLoop ref={boundaryLineRef} name="datum-plane-boundary" frustumCulled={false}>
+      <lineLoop ref={boundaryLineRef} name="datum-plane-boundary" frustumCulled={false} raycast={NOOP_RAYCAST}>
         <primitive object={boundaryGeom} attach="geometry" />
         <lineBasicMaterial ref={boundaryMatRef} color={datumPlaneMajorColor} opacity={datumPlaneMajorAlpha} transparent depthWrite={false} />
       </lineLoop>
       {isGridEnabled && gridGeom && (
         <group ref={staticPlanarGridRef} name="static-planar-grid-group">
-          <lineSegments name="planar-galactic-grid" frustumCulled={false}>
+          <lineSegments name="planar-galactic-grid" frustumCulled={false} raycast={NOOP_RAYCAST}>
             <primitive object={gridGeom} attach="geometry" />
             <lineBasicMaterial ref={gridMatRef} color={datumPlaneMinorColor} opacity={datumPlaneMinorAlpha} transparent depthWrite={false} />
           </lineSegments>
@@ -181,13 +182,13 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       {(hasCore || hasOrbital) && (
         <group ref={diskBearingsRef} name="disk-bearings">
           {hasCore && (
-            <lineSegments ref={diskCoreRef} name="bearing-core" scale={[1, 1, 1]} frustumCulled={false}>
+            <lineSegments ref={diskCoreRef} name="bearing-core" scale={[1, 1, 1]} frustumCulled={false} raycast={NOOP_RAYCAST}>
               <primitive object={bearingCoreGeom} attach="geometry" />
               <lineBasicMaterial ref={diskCoreMatRef} color={bearingCoreColor} opacity={bearingCoreAlpha} transparent depthWrite={false} />
             </lineSegments>
           )}
           {hasOrbital && (
-            <lineSegments ref={diskOrbitalRef} name="bearing-orbital" frustumCulled={false}>
+            <lineSegments ref={diskOrbitalRef} name="bearing-orbital" frustumCulled={false} raycast={NOOP_RAYCAST}>
               <primitive object={diskOrbitalGeom} attach="geometry" />
               <lineBasicMaterial ref={diskOrbitalMatRef} color={bearingOrbitalColor} opacity={bearingOrbitalAlpha} transparent depthWrite={false} />
             </lineSegments>
@@ -196,7 +197,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       )}
       {isFootprintEnabled && (
         <group ref={primaryFootprintRef} name="planar-footprint">
-          <lineSegments frustumCulled={false}>
+          <lineSegments frustumCulled={false} raycast={NOOP_RAYCAST}>
             <primitive object={primaryFootprintGeom} attach="geometry" />
             <lineBasicMaterial ref={primaryFootprintMatRef} color={footprintColor} opacity={footprintAlpha} transparent depthWrite={false} />
           </lineSegments>
@@ -211,4 +212,4 @@ export const PlanarGrid: React.FC<PlanarGridProps> = ({
       )}
     </group>
   );
-};
+});

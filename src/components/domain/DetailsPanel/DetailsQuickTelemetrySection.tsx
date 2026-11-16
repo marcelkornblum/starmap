@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { FocusedEntityDetails } from '../../../services/details/detailsEntityTypes';
 import {
   buildMetricGuideHref,
@@ -21,7 +22,9 @@ export interface DetailsQuickTelemetrySectionProps {
   readonly details: FocusedEntityDetails;
 }
 
-export const DetailsQuickTelemetrySection = ({ details }: DetailsQuickTelemetrySectionProps) => {
+export const DetailsQuickTelemetrySection = memo(function DetailsQuickTelemetrySection({
+  details,
+}: DetailsQuickTelemetrySectionProps) {
   const {
     id,
     focusedKind,
@@ -274,4 +277,6 @@ export const DetailsQuickTelemetrySection = ({ details }: DetailsQuickTelemetryS
       </p>
     </>
   );
-};
+});
+
+DetailsQuickTelemetrySection.displayName = 'DetailsQuickTelemetrySection';

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
+import * as prefetchModule from '../../../services/details/prefetchEntitySelection';
 import { useSearchExecution } from './useSearchExecution';
 import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
@@ -131,5 +132,83 @@ describe('useSearchExecution', () => {
     });
 
     expect(setIsFocused).toHaveBeenCalledWith(false);
+  });
+
+  it('dismisses search synchronously when selecting a search result item', () => {
+    const store = createSpatialEntityStore();
+    store.getState().setSelectedIds(['sol']);
+    const searchRootRef = { current: document.createElement('div') };
+    const setIsFocused = vi.fn();
+    const onSelectResult = vi.fn();
+
+    const { result } = renderHook(() =>
+      useSearchExecution({
+        initialQuery: 'Sol',
+        initialFilter: 'all',
+        initialCorpus: TEST_CORPUS,
+        syncUrl: false,
+        isSync: true,
+        effectiveDebounceMs: 0,
+        activeSearch: '',
+        store,
+        layerIndex: [],
+        loadedLayers: [],
+        searchRootRef,
+        setIsFocused,
+        onSelectResult,
+      }),
+    );
+
+    const mockItem = {
+      id: 'tau-ceti',
+      name: 'Tau Ceti',
+      category: 'stars' as const,
+      entityKind: 'star-system' as const,
+      reticleType: 'stellar-system' as const,
+      targetView: 'galaxy' as const,
+      href: '/galaxy?focus=tau-ceti',
+      score: 1.0,
+    };
+
+    act(() => {
+      result.current.dismissSearch(mockItem);
+    });
+
+    expect(setIsFocused).toHaveBeenCalledWith(false);
+    expect(result.current.query).toBe('');
+    expect(result.current.status).toBe('idle');
+    expect(result.current.errorMessage).toBeNull();
+    expect(store.getState().selectedIds.size).toBe(0);
+    expect(onSelectResult).toHaveBeenCalledWith(mockItem);
+  });
+
+  it('prefetches top hit entity selection when query is 3 or more characters', () => {
+    const prefetchSpy = vi.spyOn(prefetchModule, 'prefetchEntitySelection');
+    const store = createSpatialEntityStore();
+    const searchRootRef = { current: document.createElement('div') };
+    const setIsFocused = vi.fn();
+
+    const { result } = renderHook(() =>
+      useSearchExecution({
+        initialQuery: '',
+        initialFilter: 'all',
+        initialCorpus: TEST_CORPUS,
+        syncUrl: false,
+        isSync: true,
+        effectiveDebounceMs: 0,
+        activeSearch: '',
+        store,
+        layerIndex: [],
+        loadedLayers: [],
+        searchRootRef,
+        setIsFocused,
+      }),
+    );
+
+    act(() => {
+      result.current.setQuery('Tau');
+    });
+
+    expect(prefetchSpy).toHaveBeenCalledWith('tau-ceti', undefined);
   });
 });

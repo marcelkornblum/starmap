@@ -7,10 +7,13 @@ import type {
   OrbitalSchematicSummary,
 } from '../../../services/details/detailsHierarchyTypes';
 import {
-  Badge, CelestialBadge, CelestialTitle, Cluster, DataTable,
-  HazardBadge, Heading, Quantity, SpectralBadge, Unit,
+  CelestialTitle,
+  DataTable,
+  Heading,
 } from '../../interface';
 import { OrbitalSchematicList } from '../OrbitalSchematicPanel/OrbitalSchematicPanel';
+import { useBoundedDeferredValue } from '../../../hooks/useBoundedDeferredValue';
+import { BodiesGalaxySystemRow } from './BodiesGalaxySystemRow';
 import styles from './BodiesPanel.module.css';
 
 export interface BodiesPanelProps {
@@ -20,32 +23,22 @@ export interface BodiesPanelProps {
   readonly onHoverEntity?: (entityId: string | null) => void;
 }
 
-const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
+const BodiesPanelInner = React.memo(function BodiesPanelInner({
   elements,
   schematic,
   hoveredEntityId,
   onHoverEntity,
-}) => {
+}: BodiesPanelProps) {
   const storeHoveredId = useSpatialEntityStore((state) => state.hoveredId);
   const activeHoveredId = hoveredEntityId !== undefined ? hoveredEntityId : storeHoveredId;
   const selectedEntityIds = elements?.selectedEntityIds;
-  const selectedSet = useMemo(
-    () => new Set(selectedEntityIds ?? []),
-    [selectedEntityIds],
-  );
+  const selectedSet = useMemo(() => new Set(selectedEntityIds ?? []), [selectedEntityIds]);
+  const galaxySystems = elements?.scope === 'galaxy' ? elements.systems : [];
 
-  if (!elements) {
-    return null;
-  }
+  if (!elements) return null;
 
   if (elements.scope === 'galaxy') {
-    const {
-      centerId,
-      apertureRadiusPc,
-      focusedSystemId,
-      focusedSystemName,
-      systems,
-    } = elements;
+    const { centerId, apertureRadiusPc, focusedSystemId, focusedSystemName } = elements;
 
     return (
       <section
@@ -61,10 +54,7 @@ const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
         </Heading>
 
         {focusedSystemId && focusedSystemName ? (
-          <p
-            data-testid="bodies-distance-caption"
-            className={styles.distanceCaption}
-          >
+          <p data-testid="bodies-distance-caption" className={styles.distanceCaption}>
             Distances from {focusedSystemName}
           </p>
         ) : null}
@@ -80,132 +70,23 @@ const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
             </DataTable.Row>
           </DataTable.Head>
           <DataTable.Body>
-            {systems.map((sys) => {
-              const isItemFocused = sys.tier === 'focused';
-              const isItemSelected =
-                sys.tier === 'selected' || selectedSet.has(sys.id);
-              const isItemHovered =
-                (activeHoveredId ?? elements.hoveredEntityId) === sys.id;
-
-              return (
-                <DataTable.Row
-                  key={sys.id}
-                  data-testid="bodies-galaxy-system-item"
-                  data-system-id={sys.id}
-                  data-tier={sys.tier}
-                  data-focused={isItemFocused ? 'true' : undefined}
-                  data-selected={isItemSelected ? 'true' : undefined}
-                  data-hovered={isItemHovered ? 'true' : undefined}
-                  selected={isItemFocused || isItemSelected}
-                  interactive
-                  onMouseEnter={() => onHoverEntity?.(sys.id)}
-                  onMouseLeave={() => onHoverEntity?.(null)}
-                  onFocus={() => onHoverEntity?.(sys.id)}
-                  onBlur={() => onHoverEntity?.(null)}
-                >
-                  <DataTable.Cell>
-                    <CelestialTitle
-                      type={sys.reticleType}
-                      title={sys.name}
-                      href={sys.href}
-                      titleTestId="bodies-galaxy-system-link"
-                      symbolTestId="bodies-galaxy-system-reticle"
-                    />
-                  </DataTable.Cell>
-                  <DataTable.Cell>
-                    {sys.spectralType && sys.starTypeGuideHref ? (
-                      <SpectralBadge
-                        spectralType={sys.spectralType}
-                        href={sys.starTypeGuideHref}
-                        data-testid="bodies-galaxy-system-spectral-link"
-                      />
-                    ) : (
-                      '—'
-                    )}
-                  </DataTable.Cell>
-                  <DataTable.Cell numeric>
-                    <Quantity
-                      data-testid="bodies-galaxy-system-planets"
-                      value={sys.planetCount}
-                      unit={sys.planetCount === 1 ? 'planet' : 'planets'}
-                    />
-                  </DataTable.Cell>
-                  <DataTable.Cell>
-                    <Cluster gap="tight" align="center">
-                      {sys.hasHabitableCandidate && sys.habitableZoneGuideHref ? (
-                        <CelestialBadge
-                          type="habitable-zone"
-                          href={sys.habitableZoneGuideHref}
-                          data-testid="bodies-galaxy-system-hz-link"
-                        />
-                      ) : null}
-                      {sys.hazardCount > 0 ? (
-                        <HazardBadge
-                          label={sys.hazardSummaryLabel}
-                          severity={sys.hasCriticalHazard ? 'critical' : 'caution'}
-                          data-testid="bodies-galaxy-system-hazard"
-                        />
-                      ) : null}
-                    </Cluster>
-                  </DataTable.Cell>
-                  <DataTable.Cell numeric>
-                    {sys.distanceFromFocusPc !== undefined ? (
-                      sys.tier === 'focused' && sys.distanceFromFocusPc === 0 ? (
-                        <Cluster
-                          gap="tight"
-                          align="center"
-                          justify="end"
-                          data-testid="bodies-focused-origin-badge"
-                        >
-                          <Badge status="info">Focused</Badge>
-                          <Quantity value={0} unit="pc" />
-                        </Cluster>
-                      ) : (
-                        <Cluster
-                          gap="tight"
-                          align="center"
-                          justify="end"
-                          data-testid="bodies-system-distance"
-                        >
-                          <Quantity
-                            value={sys.distanceFromFocusPc}
-                            unit={
-                              <Unit>
-                                {sys.distanceGuideHref ? (
-                                  <a
-                                    href={sys.distanceGuideHref}
-                                    data-testid="bodies-distance-unit-link"
-                                  >
-                                    pc
-                                  </a>
-                                ) : (
-                                  'pc'
-                                )}
-                              </Unit>
-                            }
-                          />
-                          <Quantity value={sys.distanceFromFocusLy} unit="ly" />
-                        </Cluster>
-                      )
-                    ) : (
-                      '—'
-                    )}
-                  </DataTable.Cell>
-                </DataTable.Row>
-              );
-            })}
+            {galaxySystems.map((sys) => (
+              <BodiesGalaxySystemRow
+                key={sys.id}
+                sys={sys}
+                isItemFocused={sys.tier === 'focused'}
+                isItemSelected={sys.tier === 'selected' || selectedSet.has(sys.id)}
+                isItemHovered={(activeHoveredId ?? elements.hoveredEntityId) === sys.id}
+                onHoverEntity={onHoverEntity}
+              />
+            ))}
           </DataTable.Body>
         </DataTable>
       </section>
     );
   }
 
-  const {
-    scope,
-    systemId,
-    focusedEntityId,
-    minorBodiesAndSpacecraft,
-  } = elements;
+  const { scope, systemId, focusedEntityId, minorBodiesAndSpacecraft } = elements;
 
   const resolvedSchematic =
     schematic ??
@@ -250,11 +131,7 @@ const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
           data-testid="bodies-minor-bodies-section"
           className={styles.section}
         >
-          <Heading
-            as="h3"
-            size="eyebrow"
-            id="bodies-minor-bodies-heading"
-          >
+          <Heading as="h3" size="eyebrow" id="bodies-minor-bodies-heading">
             Minor Bodies &amp; Spacecraft
           </Heading>
           <DataTable data-testid="bodies-minor-bodies-list">
@@ -292,7 +169,11 @@ const BodiesPanelComponent: React.FC<BodiesPanelProps> = ({
       ) : null}
     </section>
   );
-};
+});
 
-export const BodiesPanel = React.memo(BodiesPanelComponent);
+export const BodiesPanel = React.memo(function BodiesPanel(props: BodiesPanelProps) {
+  const effectiveElements = useBoundedDeferredValue(props.elements, props.elements, 900);
+  return <BodiesPanelInner {...props} elements={effectiveElements} />;
+});
+
 BodiesPanel.displayName = 'BodiesPanel';

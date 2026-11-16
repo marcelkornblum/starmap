@@ -4,7 +4,10 @@ import {
   OrbitalSchematicPanel,
   OrbitalSchematicItem,
 } from './OrbitalSchematicPanel';
-import type { OrbitalSchematicSummary } from '../../../services/details/detailsHierarchyTypes';
+import type {
+  OrbitalSchematicItem as OrbitalSchematicItemType,
+  OrbitalSchematicSummary,
+} from '../../../services/details/detailsHierarchyTypes';
 
 const mockSchematicSummary: OrbitalSchematicSummary = {
   scope: 'system',
@@ -113,5 +116,46 @@ describe('<OrbitalSchematicPanel />', () => {
     expect(screen.getByTestId('orbital-schematic-belt-badge')).toBeInTheDocument();
     expect(screen.getByTestId('orbital-schematic-belt-span')).toBeInTheDocument();
     expect(screen.getByTestId('orbital-schematic-belt-unit-link')).toBeInTheDocument();
+  });
+
+  it('renders all deferred items cleanly when list exceeds 8 top-level items and 4 nested moon children', () => {
+    const manyMoons: OrbitalSchematicItemType[] = Array.from({ length: 7 }, (_, i) => ({
+      id: `moon-${i}`,
+      name: `Moon ${i}`,
+      href: `/planet/jupiter?focus=moon-${i}`,
+      kind: 'moon',
+      orbitRank: i + 1,
+      summaryLabel: 'Moon',
+      inHabitableZone: false,
+      isFocused: false,
+      isSelected: false,
+    }));
+
+    const manyItems: OrbitalSchematicSummary = {
+      scope: 'system',
+      systemId: 'sol',
+      systemName: 'Sol',
+      items: Array.from({ length: 12 }, (_, i) => ({
+        id: `planet-${i}`,
+        name: `Planet ${i}`,
+        href: `/planet/planet-${i}`,
+        kind: 'planet',
+        orbitRank: i + 1,
+        summaryLabel: 'Terrestrial',
+        inHabitableZone: false,
+        isFocused: false,
+        isSelected: false,
+        children: i === 0 ? manyMoons : undefined,
+      })),
+    };
+
+    render(<OrbitalSchematicPanel elements={manyItems} />);
+
+    const renderedItems = screen.getAllByTestId('orbital-schematic-item');
+    expect(renderedItems).toHaveLength(19);
+    expect(screen.getByText('Planet 0')).toBeInTheDocument();
+    expect(screen.getByText('Planet 11')).toBeInTheDocument();
+    expect(screen.getByText('Moon 0')).toBeInTheDocument();
+    expect(screen.getByText('Moon 6')).toBeInTheDocument();
   });
 });

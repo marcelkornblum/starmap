@@ -113,6 +113,12 @@ export function SectorPointCloud({
   const lastHydratedRadiusRef = useRef(Number.NaN);
   const hydratingRef = useRef(false);
   const pendingHydrationRef = useRef(false);
+  const prevFrameXRef = useRef(Number.NaN);
+  const prevFrameYRef = useRef(Number.NaN);
+  const prevFrameZRef = useRef(Number.NaN);
+  const prevFrameRadiusRef = useRef(Number.NaN);
+  const settledFramesRef = useRef(0);
+  const lastHydrationTimeRef = useRef(0);
 
   const triggerHydrationRef = useRef<((fx: number, fy: number, fz: number, apertureRadius: number) => void) | null>(null);
 
@@ -131,6 +137,7 @@ export function SectorPointCloud({
         return;
       }
       hydratingRef.current = true;
+      lastHydrationTimeRef.current = performance.now();
       lastHydratedXRef.current = fx;
       lastHydratedYRef.current = fy;
       lastHydratedZRef.current = fz;
@@ -211,6 +218,23 @@ export function SectorPointCloud({
       mat.uniforms.uCameraPos.value.set(camera.position.x, camera.position.y, camera.position.z);
     }
 
+    const stepDx = fx - prevFrameXRef.current;
+    const stepDy = fy - prevFrameYRef.current;
+    const stepDz = fz - prevFrameZRef.current;
+    const stepSq = stepDx * stepDx + stepDy * stepDy + stepDz * stepDz;
+    const stepRad = Math.abs(apertureRadius - prevFrameRadiusRef.current);
+
+    prevFrameXRef.current = fx;
+    prevFrameYRef.current = fy;
+    prevFrameZRef.current = fz;
+    prevFrameRadiusRef.current = apertureRadius;
+
+    if (!Number.isFinite(stepSq) || (stepSq <= 0.0004 && (!Number.isFinite(stepRad) || stepRad <= 0.01))) {
+      settledFramesRef.current += 1;
+    } else {
+      settledFramesRef.current = 0;
+    }
+
     const lx = lastXRef.current;
     const ly = lastYRef.current;
     const lz = lastZRef.current;
@@ -243,7 +267,14 @@ export function SectorPointCloud({
     const rDiff = Math.abs(apertureRadius - hr);
 
     if (!Number.isFinite(hDistSq) || hDistSq > 0.25 || !Number.isFinite(rDiff) || rDiff > 0.25) {
-      triggerHydration(fx, fy, fz, apertureRadius);
+      if (!Number.isFinite(hDistSq) || !Number.isFinite(rDiff)) {
+        triggerHydration(fx, fy, fz, apertureRadius);
+      } else if (
+        settledFramesRef.current >= 3 ||
+        performance.now() - lastHydrationTimeRef.current >= 1200
+      ) {
+        triggerHydration(fx, fy, fz, apertureRadius);
+      }
     }
 
     resolvedManager.processFrameUploads();

@@ -75,6 +75,43 @@ describe('detailsCanonAnnotations', () => {
     expect(result[1].targetId).toBe('tau-ceti');
   });
 
+  it('resolveFocusedCanonAnnotations preserves query params while replacing select and layer across items', () => {
+    const records: DecodedEntityAnnotation[] = [
+      {
+        layerId: 'canon-expanse',
+        layerTitle: 'The Expanse',
+        kind: 'fictional-canon',
+        targetId: 'earth',
+        systemId: 'sol',
+        targetType: 'planet',
+        text: 'United Nations of Earth',
+      },
+      {
+        layerId: 'canon-mars',
+        layerTitle: 'Mars Federation',
+        kind: 'fictional-canon',
+        targetId: 'mars',
+        systemId: 'sol',
+        targetType: 'planet',
+        text: 'MCRN base',
+      },
+    ];
+
+    const result = resolveFocusedCanonAnnotations(
+      'earth',
+      'sol',
+      records,
+      undefined,
+      undefined,
+      '/galaxy?center=sol&select=layer:old&layer=old:target',
+      '?center=sol&select=layer:old&layer=old:target',
+    );
+
+    expect(result).toHaveLength(2);
+    expect(result[0].href).toBe('/galaxy?center=sol&select=layer:expanse&layer=expanse:earth');
+    expect(result[1].href).toBe('/galaxy?center=sol&select=layer:mars&layer=mars:mars');
+  });
+
   it('resolveDirectTargetCanonAnnotations matches direct target ids', () => {
     const recordsById: Record<string, DecodedEntityAnnotation[]> = {
       earth: [

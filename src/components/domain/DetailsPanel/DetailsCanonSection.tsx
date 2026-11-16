@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { EntityHazardItem } from '../../../services/details/detailsEntityTypes';
 import type { FocusedCanonAnnotation } from '../../../services/details/detailsCanonTypes';
 import {
@@ -51,68 +52,72 @@ export interface DetailsHazardsSectionProps {
   readonly hazards: readonly EntityHazardItem[];
 }
 
-export const DetailsHazardsSection = ({
+export const DetailsHazardsSection = memo(function DetailsHazardsSection({
   hazards,
-}: DetailsHazardsSectionProps) => (
-  <section
-    aria-labelledby="details-hazards-heading"
-    data-testid="details-hazards-section"
-  >
-    <Heading as="h4" size="eyebrow" id="details-hazards-heading">
-      Environmental Hazards
-    </Heading>
-    {hazards.length === 0 ? (
-      <Stack gap="none" data-testid="details-hazards-nominal">
-        <Datum
-          label="Status"
-          value="Nominal environment"
-          unit={
-            <Quantity
-              value={0}
-              unit={
-                <Unit>
-                  <a
-                    href={resolveAppHref(HAZARDS_GUIDE_PATH)}
-                    data-testid="details-hazards-guide-link"
-                  >
-                    hazards
-                  </a>
-                </Unit>
-              }
-            />
-          }
-        />
-      </Stack>
-    ) : (
-      <DataTable data-testid="details-hazards-list">
-        <DataTable.Head>
-          <DataTable.Row>
-            <DataTable.HeaderCell>Hazard</DataTable.HeaderCell>
-            <DataTable.HeaderCell>Operational Impact</DataTable.HeaderCell>
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {hazards.map((hazard) => (
-            <DataTable.Row
-              key={hazard.code}
-              data-testid="details-hazard-item"
-              data-hazard-code={hazard.code}
-              data-hazard-severity={hazard.severity}
-            >
-              <DataTable.Cell>
-                <HazardBadge
-                  code={hazard.code}
-                  label={hazard.label}
-                  severity={hazard.severity}
-                  href={buildHazardGuideHref(hazard.code)}
-                  data-testid="details-hazard-guide-link"
-                />
-              </DataTable.Cell>
-              <DataTable.Cell>{hazard.description}</DataTable.Cell>
+}: DetailsHazardsSectionProps) {
+  return (
+    <section
+      aria-labelledby="details-hazards-heading"
+      data-testid="details-hazards-section"
+    >
+      <Heading as="h4" size="eyebrow" id="details-hazards-heading">
+        Environmental Hazards
+      </Heading>
+      {hazards.length === 0 ? (
+        <Stack gap="none" data-testid="details-hazards-nominal">
+          <Datum
+            label="Status"
+            value="Nominal environment"
+            unit={
+              <Quantity
+                value={0}
+                unit={
+                  <Unit>
+                    <a
+                      href={resolveAppHref(HAZARDS_GUIDE_PATH)}
+                      data-testid="details-hazards-guide-link"
+                    >
+                      hazards
+                    </a>
+                  </Unit>
+                }
+              />
+            }
+          />
+        </Stack>
+      ) : (
+        <DataTable data-testid="details-hazards-list">
+          <DataTable.Head>
+            <DataTable.Row>
+              <DataTable.HeaderCell>Hazard</DataTable.HeaderCell>
+              <DataTable.HeaderCell>Operational Impact</DataTable.HeaderCell>
             </DataTable.Row>
-          ))}
-        </DataTable.Body>
-      </DataTable>
-    )}
-  </section>
-);
+          </DataTable.Head>
+          <DataTable.Body>
+            {hazards.map((hazard) => (
+              <DataTable.Row
+                key={hazard.code}
+                data-testid="details-hazard-item"
+                data-hazard-code={hazard.code}
+                data-hazard-severity={hazard.severity}
+              >
+                <DataTable.Cell>
+                  <HazardBadge
+                    code={hazard.code}
+                    label={hazard.label}
+                    severity={hazard.severity}
+                    href={buildHazardGuideHref(hazard.code)}
+                    data-testid="details-hazard-guide-link"
+                  />
+                </DataTable.Cell>
+                <DataTable.Cell>{hazard.description}</DataTable.Cell>
+              </DataTable.Row>
+            ))}
+          </DataTable.Body>
+        </DataTable>
+      )}
+    </section>
+  );
+});
+
+DetailsHazardsSection.displayName = 'DetailsHazardsSection';

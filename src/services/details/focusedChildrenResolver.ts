@@ -4,6 +4,7 @@ import {
   resolveResultDisplayTitle,
 } from '../search/searchCorpusHelpers';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
+import { getMergedCorpusParts } from './activeStarsCorpus';
 import { isDwarfPlanetInDisk, resolveMinorBodyCategoryLabel } from './detailsHazards';
 import {
   buildPlanetElementFocusHref,
@@ -25,6 +26,13 @@ export function getCorpusSystemChildrenIndex(
 ): ReadonlyMap<string, readonly CompactSearchEntry[]> {
   let index = corpusSystemChildrenCache.get(corpus);
   if (!index) {
+    const parts = getMergedCorpusParts(corpus);
+    if (parts && parts.extras.every((e) => !e.s)) {
+      index = getCorpusSystemChildrenIndex(parts.base);
+      corpusSystemChildrenCache.set(corpus, index);
+      return index;
+    }
+
     const map = new Map<string, CompactSearchEntry[]>();
     for (const entry of corpus) {
       if (!entry.s) continue;

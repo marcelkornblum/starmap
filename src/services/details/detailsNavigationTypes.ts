@@ -111,7 +111,7 @@ export interface GalacticInstrumentApertureResult {
   readonly apertureRadiusLy: number;
   readonly apertureIds: Set<string>;
   readonly ceilingApertureRadiusPc?: number | null;
-  readonly systemsById: Map<
+  readonly systemsById: ReadonlyMap<
     string,
     {
       readonly id: string;

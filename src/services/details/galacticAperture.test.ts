@@ -89,5 +89,36 @@ describe('galacticAperture', () => {
       expect(aperture.centerCoordinatesPc).toEqual([5, 15, 25]);
       expect(aperture.apertureRadiusPc).toBe(42.18);
     });
+
+    it('identifies identical aperture candidates via spatial grid lookup when cell count is small', () => {
+      // Build 120 stars scattered across a 200pc box
+      const syntheticCorpus: CompactSearchEntry[] = [
+        { i: 'sol', n: 'Sol', p: [0, 0, 0], c: 'stars' },
+      ];
+      for (let i = 1; i <= 120; i++) {
+        // Place some near origin and some far away
+        const dist = i < 10 ? i * 0.5 : 20 + i;
+        syntheticCorpus.push({
+          i: `star-${i}`,
+          n: `Star ${i}`,
+          p: [dist, 0, 0],
+          c: 'stars',
+        });
+      }
+
+      const aperture = resolveGalacticInstrumentAperture({
+        corpus: syntheticCorpus,
+        liveApertureCenterPc: [0, 0, 0],
+        liveApertureRadiusPc: 4.5,
+      });
+
+      // Stars within 4.5 pc: sol (0), star-1 (0.5), star-2 (1.0), star-3 (1.5), star-4 (2.0),
+      // star-5 (2.5), star-6 (3.0), star-7 (3.5), star-8 (4.0), star-9 (4.5)
+      expect(aperture.apertureIds.has('sol')).toBe(true);
+      expect(aperture.apertureIds.has('star-1')).toBe(true);
+      expect(aperture.apertureIds.has('star-9')).toBe(true);
+      expect(aperture.apertureIds.has('star-10')).toBe(false);
+      expect(aperture.apertureIds.size).toBe(10);
+    });
   });
 });

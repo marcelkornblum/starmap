@@ -8,6 +8,7 @@ import {
   populateZoomAdaptiveRings,
   type ScaledRingInfo,
 } from '../math/rings';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 const DEFAULT_FIXED_RINGS: readonly number[] = [2.5, 5, 10];
 
@@ -24,7 +25,7 @@ export interface RangeRingsProps {
   position?: [number, number, number] | THREE.Vector3;
 }
 
-export const RangeRings: React.FC<RangeRingsProps> = ({
+export const RangeRings: React.FC<RangeRingsProps> = React.memo(({
   rings: explicitRings,
   majorRingIndex,
   poolSize = 8,
@@ -124,6 +125,7 @@ export const RangeRings: React.FC<RangeRingsProps> = ({
             scale={[initialRadius, initialRadius, 1]}
             name={ringName}
             frustumCulled={false}
+            raycast={NOOP_RAYCAST}
           >
             <primitive object={unitCircleGeom} attach="geometry" />
             <lineBasicMaterial
@@ -140,4 +142,4 @@ export const RangeRings: React.FC<RangeRingsProps> = ({
       })}
     </group>
   );
-};
+});

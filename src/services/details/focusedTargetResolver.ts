@@ -106,7 +106,7 @@ export function resolveFocusedTarget(
     }
     const sysSlug = toUrlSlug(systemId);
     const candidateEntries = getCorpusSystemChildrenIndex(corpus).get(sysSlug) ??
-      (systemId !== sysSlug ? getCorpusSystemChildrenIndex(corpus).get(systemId) : undefined) ?? corpus;
+      (systemId !== sysSlug ? getCorpusSystemChildrenIndex(corpus).get(systemId) : undefined) ?? [];
     planets = candidateEntries
       .filter((e) => e.k === 2 && (e.s === systemId || toUrlSlug(e.s ?? '') === sysSlug))
       .map((entry) => {

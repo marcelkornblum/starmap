@@ -7,10 +7,7 @@ import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useOcclusionManager } from './SpatialEntityContext';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
-import {
-  resolveEntityScreenInvariantScale,
-  reticleSizeToScreenPx,
-} from '../engineConfig';
+import { NOOP_RAYCAST, resolveEntityScreenInvariantScale, reticleSizeToScreenPx } from '../engineConfig';
 import type { NodeAlphaRef } from './types';
 
 export interface BodyMarkerProps {
@@ -39,7 +36,7 @@ const SHARED_HITAREA_GEOMETRY = new THREE.CircleGeometry(1.0, 32);
  * Renders central celestial marker at strictly invariant screen-pixel size in monochrome.
  * Features camera-facing invisible hitarea mesh for pointer interactions.
  */
-export const BodyMarker: React.FC<BodyMarkerProps> = ({
+export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
   id,
   position,
   worldPosition,
@@ -227,7 +224,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
   return (
     <group ref={setGroupRef} position={[posX, posY, posZ]} name={`body-marker-${id}`}>
       {/* Physical System Dot (Invariant Screen Size, Monochrome) */}
-      <mesh ref={setMarkerRef} name="celestial-point-dot" geometry={SHARED_DOT_GEOMETRY}>
+      <mesh ref={setMarkerRef} name="celestial-point-dot" geometry={SHARED_DOT_GEOMETRY} raycast={NOOP_RAYCAST}>
         <meshBasicMaterial
           ref={markerMaterialRef}
           color={color ?? reticleBracketColor}
@@ -284,5 +281,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = ({
       )}
     </group>
   );
-};
+});
+
+BodyMarker.displayName = 'BodyMarker';
 

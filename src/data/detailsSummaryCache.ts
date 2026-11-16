@@ -126,7 +126,6 @@ export const loadSummaryBucket = (
           (await response.json()) as ShardedBucketEnvelope<CompactSummaryNode>;
         const data = envelope.d ?? {};
         RESOLVED_SUMMARY_BUCKET_CACHE.set(bucketKey, data);
-        getOrBuildBucketHashIndex(bucketKey, data);
         onLoaded?.();
         return data;
       } finally {

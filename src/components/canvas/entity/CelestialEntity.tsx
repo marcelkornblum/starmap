@@ -57,6 +57,40 @@ export interface CelestialEntityProps extends Partial<SpatialEntityDefinition> {
 
 const ZERO_POS: [number, number, number] = [0, 0, 0];
 
+interface BodyCrossfadeTrackerProps {
+  readonly nodeGroupRef: React.RefObject<THREE.Group | null>;
+  readonly nodeAlphaRef: React.RefObject<number>;
+  readonly bodyRadius: number;
+  readonly bodyMinPixelSize?: number;
+  readonly bodyFadeRange?: number;
+}
+
+const BodyCrossfadeTracker: React.FC<BodyCrossfadeTrackerProps> = ({
+  nodeGroupRef,
+  nodeAlphaRef,
+  bodyRadius,
+  bodyMinPixelSize,
+  bodyFadeRange,
+}) => {
+  const scratchWorldPosRef = useLazyRef(() => new THREE.Vector3());
+
+  useFrame(({ camera, size }) => {
+    if (nodeGroupRef.current) {
+      const worldPos = nodeGroupRef.current.getWorldPosition(scratchWorldPosRef.current);
+      const diameterPx = projectedPixelDiameter(camera, worldPos, bodyRadius, size.height);
+      const alpha = nodeVisibility(
+        diameterPx,
+        bodyMinPixelSize ?? DEFAULT_BODY_MIN_PIXEL_SIZE,
+        bodyFadeRange ?? DEFAULT_BODY_FADE_RANGE,
+      );
+      nodeAlphaRef.current = alpha;
+      nodeGroupRef.current.visible = alpha > CROSSFADE_VISIBILITY_EPSILON;
+    }
+  });
+
+  return null;
+};
+
 const CelestialEntityComponent: React.FC<CelestialEntityProps> = ({
   id,
   name,
@@ -135,18 +169,6 @@ const CelestialEntityComponent: React.FC<CelestialEntityProps> = ({
     id, name, activeState, classification, multiplicity, planets, resolvedPos, occlusionManager,
   });
 
-  const scratchWorldPosRef = useLazyRef(() => new THREE.Vector3());
-
-  useFrame(({ camera, size }) => {
-    if (hasBodyCrossfade && bodyRadius !== undefined && nodeGroupRef.current) {
-      const worldPos = nodeGroupRef.current.getWorldPosition(scratchWorldPosRef.current);
-      const diameterPx = projectedPixelDiameter(camera, worldPos, bodyRadius, size.height);
-      const alpha = nodeVisibility(diameterPx, bodyMinPixelSize ?? DEFAULT_BODY_MIN_PIXEL_SIZE, bodyFadeRange ?? DEFAULT_BODY_FADE_RANGE);
-      nodeAlphaRef.current = alpha;
-      nodeGroupRef.current.visible = alpha > CROSSFADE_VISIBILITY_EPSILON;
-    }
-  });
-
   const isStalkTier = (activeState === 'selected' || activeState === 'focused') && Math.abs(resolvedPos.z) > 1e-4;
   const [isRetracting, setIsRetracting] = useState(false);
   const [prevIsStalkTier, setPrevIsStalkTier] = useState(isStalkTier);
@@ -175,6 +197,15 @@ const CelestialEntityComponent: React.FC<CelestialEntityProps> = ({
 
   return (
     <group position={resolvedPos} userData={{ position: `${resolvedPos.x},${resolvedPos.y},${resolvedPos.z}` }} name={`celestial-entity-${id}`}>
+      {hasBodyCrossfade && bodyRadius !== undefined && (
+        <BodyCrossfadeTracker
+          nodeGroupRef={nodeGroupRef}
+          nodeAlphaRef={nodeAlphaRef}
+          bodyRadius={bodyRadius}
+          bodyMinPixelSize={bodyMinPixelSize}
+          bodyFadeRange={bodyFadeRange}
+        />
+      )}
       <group ref={nodeGroupRef} name={`node-representation-${id}`}>
         <BodyMarker
           id={id} position={ZERO_POS} worldPosition={resolvedPos} reticleSize={DEFAULT_RETICLE_SIZE}

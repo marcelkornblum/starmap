@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { CelestialSymbol, CELESTIAL_SYMBOL_META, type CelestialSymbolType } from './CelestialSymbol';
+import { renderGlyphContent } from './celestialSymbolGlyphs';
 
 const ALL_SYMBOL_TYPES: CelestialSymbolType[] = [
   'star',
@@ -123,5 +124,15 @@ describe('<CelestialSymbol />', () => {
     expect(CELESTIAL_SYMBOL_META['neutron-star'].badgeStatus).toBe('critical');
     expect(CELESTIAL_SYMBOL_META['terrestrial'].badgeCategory).toBe('planet');
     expect(CELESTIAL_SYMBOL_META['asteroid-belt'].badgeStatus).toBe('caution');
+  });
+
+  it('reuses cached ReactNode instances across renderGlyphContent calls', () => {
+    const node1 = renderGlyphContent('star');
+    const node2 = renderGlyphContent('star');
+    expect(node1).toBe(node2);
+
+    const planet1 = renderGlyphContent('terrestrial');
+    const planet2 = renderGlyphContent('terrestrial');
+    expect(planet1).toBe(planet2);
   });
 });

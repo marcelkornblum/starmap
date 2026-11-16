@@ -12,6 +12,7 @@ import {
   disposeAllFinGeometries,
   updateCoordinateFinsFrame,
 } from './coordinateFinsGeometry';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 export interface CoordinateFinsProps {
   /** Whether to render travelling coordinate fins */
@@ -24,7 +25,7 @@ export interface CoordinateFinsProps {
   poolSize?: number;
 }
 
-export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
+export const CoordinateFins: React.FC<CoordinateFinsProps> = React.memo(({
   enabled,
   rings: explicitRings,
   majorRingIndex,
@@ -135,6 +136,7 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
               visible={quad.qx === 1 && quad.qy === 1}
               scale={[frame.radius, frame.radius, frame.radius]}
               frustumCulled={false}
+              raycast={NOOP_RAYCAST}
             >
               <primitive object={finGeoms.quadrantGeoms[plane][qIdx]} attach="geometry" />
               <lineBasicMaterial
@@ -155,6 +157,7 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
               visible={quad.qx === 1 && quad.qy === 1}
               scale={[frame.radius, frame.radius, frame.radius]}
               frustumCulled={false}
+              raycast={NOOP_RAYCAST}
             >
               <primitive object={finGeoms.baselineGeoms[plane][qIdx]} attach="geometry" />
               <lineBasicMaterial
@@ -176,6 +179,7 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
                 visible={quad.qx === 1 && quad.qy === 1}
                 scale={[frame.radius, frame.radius, frame.radius]}
                 frustumCulled={false}
+                raycast={NOOP_RAYCAST}
               >
                 <primitive object={finGeoms.tickGeoms[plane][qIdx]} attach="geometry" />
                 <lineBasicMaterial
@@ -202,6 +206,7 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
                     visible={rIdx < initialRings.length && quad.qx === 1 && quad.qy === 1}
                     scale={[rIdx < initialRings.length ? initialRings[rIdx] : 1.0, rIdx < initialRings.length ? initialRings[rIdx] : 1.0, rIdx < initialRings.length ? initialRings[rIdx] : 1.0]}
                     frustumCulled={false}
+                    raycast={NOOP_RAYCAST}
                   >
                     <primitive object={finGeoms.quadrantGeoms[plane][qIdx]} attach="geometry" />
                     <lineBasicMaterial
@@ -222,4 +227,4 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = ({
       ))}
     </group>
   );
-};
+});

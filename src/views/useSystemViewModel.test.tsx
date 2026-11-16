@@ -150,4 +150,39 @@ describe('useSystemViewModel', () => {
       }),
     );
   });
+
+  it('preserves reference stability for memoised view properties across renders when state is unchanged', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useSystemViewModel>, { search: string }>>;
+    await act(async () => {
+      hookResult = renderHook(
+        ({ search }) =>
+          useSystemViewModel({
+            systemId: 'sol',
+            locationPathname: '/system/sol',
+            locationSearch: search,
+          }),
+        {
+          wrapper: createWrapper(store),
+          initialProps: { search: '' },
+        },
+      );
+    });
+
+    const initialCameraState = hookResult.result.current.cameraState;
+    const initialSystemBodies = hookResult.result.current.systemBodies;
+    const initialSchematic = hookResult.result.current.orbitalSchematic;
+    const initialPreview = hookResult.result.current.focusedPreview;
+    const initialMinimap = hookResult.result.current.minimapOrientation;
+
+    await act(async () => {
+      hookResult.rerender({ search: '' });
+    });
+
+    expect(hookResult.result.current.cameraState).toBe(initialCameraState);
+    expect(hookResult.result.current.systemBodies).toBe(initialSystemBodies);
+    expect(hookResult.result.current.orbitalSchematic).toBe(initialSchematic);
+    expect(hookResult.result.current.focusedPreview).toBe(initialPreview);
+    expect(hookResult.result.current.minimapOrientation).toBe(initialMinimap);
+  });
 });

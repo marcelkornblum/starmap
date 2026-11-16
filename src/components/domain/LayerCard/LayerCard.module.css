@@ -8,8 +8,6 @@
     border: var(--surface-panel-border-width) var(--surface-panel-border-style) var(--surface-panel-border-color);
     box-shadow: var(--surface-panel-shadow);
     border-radius: var(--radius-container);
-    backdrop-filter: blur(var(--surface-panel-backdrop-blur));
-    -webkit-backdrop-filter: blur(var(--surface-panel-backdrop-blur));
     color: var(--content-prominent);
   }
 

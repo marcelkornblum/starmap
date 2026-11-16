@@ -1,10 +1,9 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import {
   fetchDetailRecord,
   fetchSummaryNode,
   getCachedDetailRecord,
   getCachedSummaryNode,
-  getDetailsRepositoryVersion,
   subscribeDetailsRepository,
   type DecodedDetailRecord,
 } from '../data/detailsRepository';
@@ -25,27 +24,27 @@ export interface UseEntityDetailsResult {
 export function useEntityDetails(
   entityId: string | null | undefined,
 ): UseEntityDetailsResult {
-  useSyncExternalStore(
-    subscribeDetailsRepository,
-    getDetailsRepositoryVersion,
-    getDetailsRepositoryVersion,
+  const getDetailSnapshot = useCallback(
+    () => (entityId ? getCachedDetailRecord(entityId) : undefined),
+    [entityId],
   );
+  const getSummarySnapshot = useCallback(
+    () => (entityId ? getCachedSummaryNode(entityId) : undefined),
+    [entityId],
+  );
+
+  const detail = useSyncExternalStore(subscribeDetailsRepository, getDetailSnapshot);
+  const summary = useSyncExternalStore(subscribeDetailsRepository, getSummarySnapshot);
 
   const [completedId, setCompletedId] = useState<string | null>(null);
 
-  const detail = entityId ? getCachedDetailRecord(entityId) : undefined;
-  const summary = entityId ? getCachedSummaryNode(entityId) : undefined;
-
   const isCached =
-    !entityId ||
-    Boolean(detail && (detail.kind !== 'system' || Boolean(summary)));
+    !entityId || Boolean(detail && (detail.kind !== 'system' || Boolean(summary)));
 
   const isPending = Boolean(entityId && !isCached && completedId !== entityId);
 
   useEffect(() => {
-    if (!entityId) {
-      return undefined;
-    }
+    if (!entityId) return undefined;
 
     const cachedDetail = getCachedDetailRecord(entityId);
     const cachedSummary = getCachedSummaryNode(entityId);
@@ -54,22 +53,22 @@ export function useEntityDetails(
     }
 
     const controller = new AbortController();
-
     const needDetail = !cachedDetail;
     const needSummary = !cachedSummary && (!cachedDetail || cachedDetail.kind === 'system');
 
     void Promise.all([
-      needDetail
-        ? fetchDetailRecord(entityId, fetch, controller.signal)
-        : Promise.resolve(undefined),
-      needSummary
-        ? fetchSummaryNode(entityId, fetch, controller.signal)
-        : Promise.resolve(undefined),
+      needDetail ? fetchDetailRecord(entityId, fetch, controller.signal) : Promise.resolve(undefined),
+      needSummary ? fetchSummaryNode(entityId, fetch, controller.signal) : Promise.resolve(undefined),
     ])
       .catch(() => undefined)
       .finally(() => {
         if (!controller.signal.aborted) {
-          setCompletedId(entityId);
+          const nowDetail = getCachedDetailRecord(entityId);
+          const nowSummary = getCachedSummaryNode(entityId);
+          const nowCached = Boolean(
+            nowDetail && (nowDetail.kind !== 'system' || Boolean(nowSummary)),
+          );
+          if (!nowCached) setCompletedId(entityId);
         }
       });
 
@@ -78,9 +77,5 @@ export function useEntityDetails(
     };
   }, [entityId]);
 
-  return {
-    detail,
-    summary,
-    isLoading: isPending,
-  };
+  return { detail, summary, isLoading: isPending };
 }
