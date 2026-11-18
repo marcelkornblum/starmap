@@ -1,41 +1,23 @@
 # Implementation Plan: Interaction Controls
 
-## Phase 1: References & Exploration (Professional 3D Control Paradigms & Input Modalities)
-- [ ] Task: Research and benchmark control methods across CAD, DCC (Blender, Maya), GIS, observatories (Stellarium, Aladin), and space flight systems.
-- [ ] Task: Document input mapping matrices (orbit, pan, dolly, pinch, roll) and capability detection strategies across mouse, trackpad, keyboard, touch, and hybrid devices in `docs/3d-interaction-controls.md`.
-- [ ] Task: Explore control dampening techniques near coordinate poles to mitigate gimbal lock and erratic camera yaw without forced roll snapping.
-- [ ] Task: Synthesise and ratify control paradigms and multi-modal HUD adaptation rules with the user.
+> **Phase skeleton (rewritten 2026-11-17).** The previous plan (26 tasks across research, capability detection, registry, timeline scrubber and `ControlBar`) was reset to the residual scope in [spec.md](./spec.md). Phases below are to be detailed into TDD tasks at track kick-off via `conductor-new-track`; do not start implementation from this skeleton.
+
+## Phase 1: Input-Capability Detection & Multi-Modal `ControlBar`
+- [ ] Task: To be detailed at kick-off — capability detector (`hasKeyboard`, `hasTouch`, `hasMouse`, `hasTrackpad`), runtime promotion, test overrides.
+- [ ] Task: To be detailed at kick-off — capability-aware `ControlBar` (keyboard tiles via `Kbd`, touch controls, hybrid) with stories per permutation.
+- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:guards`.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
-## Phase 2: Explicit Input Capability Detection & Multi-Modal State Slice
-- [ ] Task: Write unit tests for non-exclusive input capability detection (`hasKeyboard`, `hasTouch`, `hasMouse`, `hasTrackpad`), dynamic runtime promotion (`PointerEvent`, `KeyboardEvent`, `WheelEvent`), and deterministic test overrides.
-- [ ] Task: Implement input capability detector (`useInputCapabilities` / store slice in `src/stores/useSettingsStore.ts`) supporting independent and combined modalities (`keyboard-only`, `touch-only`, `mouse+keyboard`, `touch+keyboard`, `mouse+touch+keyboard`).
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
+## Phase 2: Shortcut Registry, Dispatcher, Router SSOT Fix & Keyboard Help Modal
+- [ ] Task: To be detailed at kick-off — declarative shortcut registry and single global dispatcher (editable-element guards).
+- [ ] Task: To be detailed at kick-off — migrate `/`, `R`, `Esc` and add the missing bindings (Scope item 2); `ControlBar` tiles read the registry.
+- [ ] Task: To be detailed at kick-off — remove `window.location` / `history.replaceState` / `starmap:locationchange` from `src/hooks/useKeyboardShortcuts.ts` in favour of typed router navigation.
+- [ ] Task: To be detailed at kick-off — keyboard help modal generated from the registry.
+- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:guards`.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
 
-## Phase 3: Unified Keyboard Shortcut Registry, Navigation Modes & Layer State Store
-- [ ] Task: Write unit tests for the unified keyboard shortcut registry and global keybinding dispatcher (`/`, `Ctrl+K`/`Cmd+K` search focus, `Escape` dismiss/blur, `ArrowUp`/`ArrowDown`/`Enter` result navigation, `W/A/S/D`, `Q/E`, `+/-`, `R`, `G`, `L`, `O`, `Space`) including editable input focus guards.
-- [ ] Task: Implement the unified keyboard shortcut registry and hook so `<ControlBar />` `<Key />` tiles and global keyboard listeners share a single source of truth.
-- [ ] Task: Write unit tests for navigation mode transitions (Free Orbit, Ecliptic, Top-Down) in `src/stores/useSettingsStore.ts`.
-- [ ] Task: Extend layer visibility state with typed toggles for grid, orbits, stalks, labels, and vectors.
-- [ ] Task: Wire layer visibility state and input-capability-aware gesture/key handlers to canvas scene elements and verify reactive updates.
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
+## Phase 3: Navigation Modes
+- [ ] Task: To be detailed at kick-off — Free Orbit / Ecliptic / Top-Down mode state in `useSettingsStore` and camera gesture/key reconfiguration.
+- [ ] Task: To be detailed at kick-off — pole dampening.
+- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run audit:guards`.
 - [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
-
-## Phase 4: Temporal Playback & Interactive Timeline Scrubber
-- [ ] Task: Write unit tests for time simulation store (play/pause, forward/backward, speed multipliers, scrubhead epoch).
-- [ ] Task: Implement simulation clock hook syncing Keplerian anomaly advancement with R3F `useFrame`.
-- [ ] Task: Implement interactive timeline scrubber well and scrubhead component supporting pointer drag, touch scrub, and keyboard step keys with zero inline styles.
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
-
-## Phase 5: Production `ViewControlsDock` / `ControlBar` & Multi-Modal HUD Accommodation
-- [ ] Task: Write unit and integration tests for `ViewControlsDock` / `ControlBar` verifying explicit input accommodation:
-  - `hasKeyboard: true, hasTouch: false` → renders `<Key />` keyboard shortcut tiles only.
-  - `hasKeyboard: false, hasTouch: true` → renders explicit touch control affordances only (hiding keyboard tiles).
-  - `hasKeyboard: true, hasTouch: true` → renders both keyboard shortcut tiles and touch control affordances simultaneously.
-- [ ] Task: Implement `ViewControlsDock` / `ControlBar` composing `Button`, `Toggle`, `Slider`, `<Key />` tiles, touch controls, and scrubber controls with scoped CSS Modules and CUBE `data-*` capability attributes.
-- [ ] Task: Create Storybook stories showcasing layer toggles, presets, temporal controls, and each input capability permutation (`KeyboardAndMouse`, `TouchOnly`, `HybridTouchAndKeyboard`).
-- [ ] Task: Quality Check: `npm run lint`, `npm run typecheck`, `npm run test:coverage`.
-- [ ] Task: Phase Verification & Checkpoint (Refer to workflow.md)
-

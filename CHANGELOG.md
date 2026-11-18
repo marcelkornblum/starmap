@@ -5,6 +5,29 @@ All notable changes to the Starmap project are documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **Conductor Tracks & Registry Tidy (`chore/tracks-registry-tidy` — decisions `T1`–`T8`):**
+  - **Initiative Closure & Archival (`T1`, `T2`, `T2a`):** Closed the `journey-ui-scaffolding` initiative (Option B: Stage 2 tracks detached with `initiative: null`) and archived it with its Journey tracks 01–05 to `conductor/archive/initiatives/journey-ui-scaffolding/` and `conductor/archive/tracks/` (`decision-log.md` and `view-requirements.md` moved verbatim; reconciled versions follow under `docs/`); archived the completed `dataset-layers-expansion` track (duplicate `DL-01`/`DL-03`/`DL-05`/`DL-08` headings merged into single resolved entries, decision log linked from the track index).
+  - **Camera Track Consolidation (`T4`, `T6a`):** Deleted the unstarted `minimap-scene-transitions` track and scaffolded two standalone tracks, `camera-choreography_20261117` (cross-scale glides, HUD retraction + viewport compensation, `FS-003` search framing, `FS-013` conditional `Centre` CTA) and `orientation-instruments_20261117` (compass/attitude widget, datum-plane tilt indicators); the six-way `FS-012` coupling block now lives only in `camera-choreography`.
+  - **Interaction Controls Rewrite (`T6d`):** Reset `interaction-controls_20261010` to input-capability detection, a unified shortcut registry with keyboard help modal and the `useKeyboardShortcuts.ts` router-SSOT fix, and navigation modes; the `ControlBar` time controller moved to the backlog routing group with `FS-017`.
+  - **Single Backlog & Status Vocabulary (`T8`):** `conductor/backlog.md` is now the only backlog list (`tracks.md` links to it) with demoted residuals grouped as "Routing (future initiative)", "Shell, Panels & Search Surfaces"; `FS-006` narrowed to escalation and device/network tiering; `FS-016` and `FS-009` annotated with the data/templates that exist; `FS-003`/`FS-012`/`FS-013` removed (graduated); track `status` vocabulary unified to `completed`/`new`.
+- **Standalone Track (`3D Engine Implementation` — archived complete 2026-11-17):**
+  - **Shipped Engine Scope (archived `camera-orthographic-projection` + PRs #81/#82, `T07`):** Camera coupling and perspective ↔ orthographic blending, GPU `Points` bulk rendering (`SectorPointCloud.tsx`, `sectorPointCloudShaders.ts`, in place of `InstancedMesh`), token-synced materials (`ThemeTokenBridge.tsx`, `useThemeTokenSync.ts`), zoom clamping and far-horizon fade, unified 2D ↔ 3D selection (`interactionActions.ts`) and projection bridge (`EntityLabel`, `ScreenEdgeIndicators`), persistent `RootCanvasHost` route integration and the `npm run audit:r3f` memory audit.
+  - **Residuals:** Post-processing (`@react-three/postprocessing`) dropped; compass/attitude widget and datum-plane tilt indicators → `orientation-instruments`; 3D-synchronised search framing → `camera-choreography`.
+- **Standalone Track (`Route & Measurement UI Surfaces` — archived complete 2026-11-17):**
+  - **Shipped via Journeys 1 and 5 (`DEC-033`):** Contextual route initiation (`buildDirectionsTriggerHref`, `?route=` + `DirectionsPanel`), the 3D measurement chord (`JourneyChord.tsx`, `journeyChordGeometry.ts`), one-way/round-trip comms latency and interstellar/intra-system transit maths (`src/services/journey/*`).
+  - **Residuals:** Multi-waypoint planner and two-point route framing demoted to the backlog "Routing (future initiative)" group with `FS-014`/`FS-017`; the `telemetry-container` dependency was dropped.
+- **Standalone Track (`Console UI Shell` — archived complete 2026-11-17):**
+  - **Shipped Shell (different names):** `SpatialShell` slot layout (`src/components/domain/SpatialShell/`), `Breadcrumbs` component quad, `DetentSheet` Peek/Partial/Full mobile detents, and the single persistent canvas (`RootCanvasHost`, `T07`).
+  - **Residuals:** Camera viewport compensation and HUD retraction → `camera-choreography`; Docked mode and Guide/Search views inside `SpatialShell` → backlog.
+- **Standalone Track (`Telemetry Container & Dossiers` — archived complete 2026-11-17):**
+  - **Shipped Panels (different names):** `Heading` primitive, `DetentSheet`, `DetailsPanel` (peek/partial/full, `DEC-022`), `OrbitalSchematicPanel` orbit-ordered ladder with belts and disks, and `BodiesPanel scope="galaxy"` with bi-directional hover/selection sync (`DEC-034`).
+  - **Residuals:** Per-symbol tooltips and schematic accordion → backlog "Details panel polish"; attribution footer merged into `FS-019`; unwired `Dock` → backlog "Dock: wire or delete"; conditional `Centre` CTA → `camera-choreography`.
+- **Standalone Track (`Search & Discovery UI Surfaces` — archived complete 2026-11-17):**
+  - **Shipped Search UI:** Search pill and autocomplete (`src/components/domain/Search/SearchPanel/`), category filter, unified URL/store selection sync, zero-query `Explore` button (`DEC-039`), core-first corpus prewarm, and `tag:` intent tokens.
+  - **Residuals:** Scope switcher and filter drawer → backlog "Search scope & filters"; `FS-006` narrowed to zero-result escalation and device/network tiering; 3D search framing → `camera-choreography`.
+- **Standalone Track (`Reference Engine & MDX` — archived complete 2026-11-17):**
+  - **MDX Dropped (`T7`):** Superseding decision — guide content stays TypeScript (`src/content/guide/*.ts`), as shipped in Journey 4; `@mdx-js/*`, `MDXProvider`, `ReferenceLayout` and the MDX-hosted `<Inline3DCard>` plan are void.
+  - **Shipped via Journey 4:** Guide article templates, category indices, Relative Parameter Comparator, breadcrumbs and classification deep-links; live 3D exemplars remain with backlog `FS-011`.
 - **Standalone Chore Track (`Guard Baseline Zero & Module Decomposition` — `DEC-GBZ-001`–`DEC-GBZ-004`):**
   - **Zero-Entry Guard Baseline & Universal `≤ 300`-Line Cap (`DEC-GBZ-002`, `DEC-GBZ-004`):** Drove `scripts/guards/baseline.json` from `98` entries (`153` violation instances) to literal `0` entries (`{ "version": 1, "entries": {} }`) with zero inline guard/lint suppressions; refined `G-literals` AST heuristics in `scripts/audit-guards.ts` to exempt `src/config/` and wire-envelope `.t` discriminators while permitting unit identities (`0`, `1`, `-1`, `2 * Math.PI`, `1 << n`) only on non-astronomical expressions; and enforced a universal `≤ 300` raw-line `G-size` cap across every production `.ts`/`.tsx` module in `src/`.
   - **Codec, Math, Service & 3D Canvas Module Decomposition (`DEC-GBZ-002`, `DEC-GBZ-003`):** Split runtime decoders (`src/utils/compactDataCodec.ts`, `src/utils/datasetLayerCodec.ts` with `BoundedLruCache` `SLUG_CACHE_LIMIT = 5_000`) from build-time encoders (`scripts/pipeline/compactDataEncoder.ts`, `scripts/pipeline/datasetLayerEncoder.ts`); decomposed `nomenclature.ts`, `astroMath.ts`, `useThreeTokenStore.ts`, `types/astro.ts`, `src/services/{search,guide,journey,sectorStreaming,layerCard,details}/*`, and 14 oversized 3D canvas/cartography modules into focused sub-modules `≤ 300` lines with `309` colocated test suites (`1,741` passing tests); moved runtime reference-frame constants out of Rank 0 `src/types/spatial.ts` into Rank 1 `src/config/referenceFrames.ts`; and resolved all `22` React Compiler and Hook warnings (`npm run lint` = `0` warnings, `0` errors).
@@ -79,6 +102,79 @@ All notable changes to the Starmap project are documented in this file.
   - Explicit TypeScript `strict: true` enforcement and added `scripts/**/*.ts` to the typechecked project scope (`tsconfig.node.json`).
   - Playwright URL-contract test suite (`e2e/url-contracts.spec.ts`) validating deep links, navigation state, back/forward history, and query parameter contracts.
   - 3D frame-time baseline regression gate (`e2e/frame-time-baseline.spec.ts`) establishing p95 and max frame duration thresholds across target viewports.
+
+## [Spatial Data Runtime & Sector Streaming] - 2026-10-25
+
+### Added
+- **Binary Sector Streaming (`scripts/build-data.ts`, `sectorStreamingService.ts`, PR #61):**
+  - Build-time 16-byte-aligned binary sector packing (`sector_*.bin`, 24-byte header, `[x, y, z, id]` records) for direct GPU ingestion, with round-trip encode/decode unit tests.
+  - View-frustum and distance-gated asynchronous streaming: 27-sector active ring, 2-ring (125-sector) low-priority prefetch hysteresis, LRU cache with `geometry.dispose()` on eviction, and staggered GPU ingestion (max 2 sectors per frame).
+- **Hardware Device Tiering & Zoom Clamping (`deviceTierService.ts`):** Composite `navigator.deviceMemory` / `hardwareConcurrency` / WebGL-limit heuristic assigning three tiers (point budgets 50k–100k, 150k–250k, 300k+; active-sector and LRU limits per tier), with memory-governed maximum camera distance clamping.
+- **Scope 2 Instrument Hydration Bridge:** Queries stars within `R_aperture + ΔR` of the camera focus and hydrates metadata O(1) from the 36-bucket summary shards, evicting on exit.
+
+## [Dataset Layers, Search Indexing & Tag Taxonomy Expansion] - 2026-10-24
+
+### Added
+- **Unified Dataset Layer Schema & Externalised Authoring (`DL-01`–`DL-05`, PR #56):**
+  - Optional `subtitle` (`t`), space-delimited `aliases` (`a`) and optional `inUniverseName` (`u`) on `DatasetLayerManifest` / `DatasetLayerEntry`; book-author surnames authored into parent `aliases` rather than parsed from `source.creator`; real-sky display names and the search `h` flag (`isSolSystem`) precalculated in `scripts/build-data.ts` with the hardcoded entity-ID list removed.
+  - Authored layers moved out of `src/` to one TypeScript module per layer in `content/layers/` (50+ `canon-*.ts` and 8 `overlay-*.ts` plus barrel), served as generated `overlays/layers/*.json` shards and `by-entity/<bucket>.json` reverse-lookup shards through the new `src/data/layerRepository.ts`; `SEED_FICTIONAL_CANON_LAYERS` and the `SEED_*` default parameters deleted.
+- **Layer Curation & Scientific Overlays (`DL-06`–`DL-09`):** Tightened the ten original canon layers, split the `canon-classic-scifi` grab-bag into six single-franchise layers, authored the 114-franchise master roster with verify-before-author sourcing, and reorganised factual overlays into the ratified set (interstellar probes, SETI landmarks, solar landmarks, JWST targets, habitable worlds, recent discoveries, extreme worlds).
+- **Tag Taxonomy Unification (`DL-10`):** Dropped hand-authored canon entry tags; `?select=tag:` resolves catalogue system tags (pipeline bitmask) only; retired the duplicate `SEED_CURATED_COLLECTIONS`, unified `SYSTEM_TAG_BITS`, and updated the `canon-layer-author` and `astro-news-curator` skills.
+
+## [Journey 3 — Curated On-Ramps & Narrative Waypoints] - 2026-10-20
+
+### Added
+- **Curated Layers & Tour Flow (`DEC-036`–`DEC-040`, PR #40; initiative `journey-ui-scaffolding`, archived 2026-11-17):** Unified scientific tours and fictional universes under `DatasetLayerManifest` with optional item `order`, the `'layers'` search category, centralised orbit-context targeting (`buildEntityOrbitTargetHref`) and compound `?layer=` grammar, the `<LayerCard />` Overview/Item stepper, the `Explore` button, and the `astro-news-curator` skill with `sync:discoveries` script and scheduled CI workflow.
+
+## [Journey 2 — Spatial Anchor & Candidate Sync] - 2026-10-20
+
+### Added
+- **Galaxy Candidate Flow (`DEC-034`, `DEC-035`, PR #39; initiative `journey-ui-scaffolding`, archived 2026-11-17):** 3D Cartographic Instrument intersection driving `'active'` systems, `<BodiesPanel scope="galaxy" />` with focus-relative distance and bi-directional 2D ↔ 3D hover/selection sync, and build-time precalculated circumstellar debris disks and belts surfaced in the system manifest, schematic and details panel. Multi-leg network plotting and user layers deferred to backlog `FS-014`/`FS-015`.
+
+## [Journey 5 — Intra-System Transfer Logistics] - 2026-10-19
+
+### Added
+- **Transit Planner Data Model (`DEC-033`, PR #38; initiative `journey-ui-scaffolding`, archived 2026-11-17):** Intra-system route planning (`?route=earth,<target>`), Hohmann transfer (`Δv`, transit duration, synodic launch window) and continuous-thrust brachistochrone profiles, light-minute comms delay, and the 3D `<JourneyChord />`, surfaced in `DirectionsPanel`. Epoch orbital propagation and solar conjunction blackout warnings were deferred by design to backlog `FS-017`.
+
+## [Journey 4 — Classification Deep-Links & Encyclopedia] - 2026-10-19
+
+### Added
+- **Encyclopedia Flow (`DEC-027`–`DEC-029`, `DEC-032`, PRs #37, #38; initiative `journey-ui-scaffolding`, archived 2026-11-17):** `/guide` routes for star types, planet types, metrics and hazards with article templates, category indices, a Relative Parameter Comparator against Earth/Sol/Jupiter anchors, 3-slice Yerkes spectral combinator, classification deep-link `(i)` triggers with return-to-origin context, and `Guide` ↔ `Map` breadcrumbs. Live 3D cutaways deferred to backlog `FS-011`.
+
+## [Journey 1 — Target Acquisition & Reader Flow] - 2026-10-19
+
+### Added
+- **Reader Flow Views & Data Models (`DEC-009`–`DEC-033`, PRs #37, #38; initiative `journey-ui-scaffolding`, archived 2026-11-17):** Galaxy, System, Planet, Search and Guide scaffolding views on the live router, search query contract and candidate view model, intrinsic system summary, two-point route and travel benchmark (Euclidean separation, one-way/round-trip comms delay, sub-light and relativistic `1g` burn), orbital hierarchy and planetary inspection models, sharded data pipeline and the first canon layers, with 5-viewport Playwright capture of each journey.
+
+## [Camera & Orthographic Projection] - 2026-10-17
+
+### Added
+- **Precision Camera Control (PR #30):** Dolly/aperture coupling, continuous perspective ↔ orthographic blending with invariant screen-space scale, discrete snap-on-release to cardinal axes with an orthographic lock state machine (screen-space pan, rotation disabled), dedicated six-direction axis navigation, critically damped glides with logarithmic zoom stepping, camera presets (top-down, orbital lock, reset) and a headless camera state model.
+
+## [Visual Language Token Layer] - 2026-10-17
+
+### Added
+- **Semantic Token Vocabulary (stub plan; delivered with PR #21 "Phase 2 Component Promotion" and later token work):** Hazard, confidence, category, overlay and reserved focus channels in `src/styles/tokens/semantic.css`, bridged into WebGL through `useThreeTokenStore`, with CUBE `data-*` exception attributes on promoted primitives and surfaces. The plan file was never ticked; later component-scoped token interfaces were completed in remediation `T08`.
+
+## [3D Component Architecture Refactor] - 2026-10-05
+
+### Added
+- **Decomposed 3D Spatial Layer (PR #17):** Split `CartographicGrid` into `SpatialFrameProvider`, `PlanarGrid`, `RangeRings`, `CoordinateFins`, `BearingVectors`, `ScreenEdgeCue` and `CameraRig`; split `CelestialNode` into `BodyMarkers`, `Reticles`, `EntityLabels`, `DropStalks`, `KinematicVector`, `OrbitPath` and `OcclusionPass` driven by a per-viewport `useSpatialEntityStore`; unified `CartoLineMaterial`; headless spatial maths; declarative `ReferenceFrame` presets (`GALACTIC_FRAME`, `SYSTEM_FRAME`, `PLANETARY_FRAME`); and canonical `GalaxyScene`, `SystemScene`, `PlanetScene` inside `SpatialViewport`.
+
+## [Visual Design Exploration] - 2026-10-04
+
+### Added
+- **3D Cartography Language & Token Sync (PR #16):** `docs/3d-spatial-architecture.md`, `docs/ui-visual-language.md` and the CSS-token → Three.js sync mechanism (`docs/threejs-token-sync.md`, `useThreeTokenStore`, `ThemeTokenBridge`), the 8-tier surface hierarchy, system/planet fixtures, and isolated Storybook 3D prototypes toggling Light/Dark themes.
+
+## [UI System & Primitives] - 2026-10-02
+
+### Added
+- **CUBE CSS Design System (PR #15):** Literal and semantic token vocabulary with harmonic type scale, fluid Every Layout composition primitives (`Stack`, `Cluster`, `Sidebar`, `Switcher`, …), localised component token interfaces in CSS Modules, comprehensive Storybook coverage, `docs/design-system.md` and `.agents/AGENTS.md` guardrails banning magic numbers, and migration of application views off inline styles.
+
+## [Core Routing & State] - 2026-10-01
+
+### Added
+- **Routing Skeleton & Global Canvas (PR #4):** TanStack Router hierarchy (`/galaxy`, `/system/$systemId`, `/planet/$planetId`, reference routes), persisted Zustand settings store, ephemeral view-level stores, a type-safe navigation enforcer (`push` for view changes, `replace` for parameter updates), render-then-fetch route loaders and a persistent global `<Canvas>` that swaps scenes without destroying the WebGL context (later superseded by `RootCanvasHost`, `T07`, and router-as-single-source-of-truth, `T06`).
 
 ## [Data Pipeline] - 2026-09-30
 
