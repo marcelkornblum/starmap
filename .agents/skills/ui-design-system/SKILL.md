@@ -11,9 +11,9 @@ This skill enforces Starmap's Design System, CUBE CSS Modules, Tier 1 Interface 
 
 ## 1. Mandatory Reading & Foundations
 Before making any UI, component, view, or styling changes, you must review and adhere to:
-- [docs/design-system.md](../../../docs/design-system.md): System overview, 3-tier token architecture (Literal -> Semantic -> Component), typography, color channel separation, and cascading layers.
+- [docs/design/design-system.md](../../../docs/design/design-system.md): System overview, 3-tier token architecture (Literal -> Semantic -> Component), typography, color channel separation, and cascading layers.
 - [conductor/code_styleguides/html-css.md](../../../conductor/code_styleguides/html-css.md): CUBE CSS, CSS Modules, Local Token Interfaces, and zero-outer-margin rules.
-- [conductor/code_styleguides/components.md](../../../conductor/code_styleguides/components.md): React 19 conventions, 4-tier taxonomy, semantic accessibility, presenter/container decoupling, and testing contracts.
+- [conductor/code_styleguides/components.md](../../../conductor/code_styleguides/components.md): React 19 conventions, 3-tier taxonomy, semantic accessibility, presenter/container decoupling, and testing contracts.
 
 ---
 

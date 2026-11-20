@@ -1,7 +1,3 @@
----
-trigger: always_on
----
-
 # General Coding Best Practices
 
 ## Naming Conventions

@@ -2,17 +2,18 @@
 
 ## Definition
 
--   [Product Definition](./product.md)
+Starmap is a comprehensive and modern A-Z style atlas for space enthusiasts and galactic pilots, from beginners to seasoned professionals. It features easy exploration across planetary, system, and neighbourhood scales, robust route finding and journey planning tools, and encyclopaedic help and reference guides.
+
 -   [Product Guidelines](./product-guidelines.md)
 -   [Tech Stack](./tech-stack.md)
--   [Data Sources Specification](../docs/data-sources.md)
--   [Architecture Specifications (`docs/architecture/`)](../docs/README.md)
+-   [Data Sources Specification](../docs/reference/data-sources.md)
+-   [Documentation Index (`docs/`)](../docs/README.md)
 
 ## Workflow
 
--   [Workflow](./workflow.md)
+-   [Workflow (Conductor v2)](./workflow.md)
 -   [Code Style Guides](./code_styleguides/)
--   [Local Network Review & Multi-Viewport Screenshots](../docs/local-review-and-screenshots.md)
+-   [Local Network Review & Multi-Viewport Screenshots](./local-review-and-screenshots.md)
 
 ## Tracks & Initiatives
 

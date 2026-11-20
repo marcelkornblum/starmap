@@ -1,13 +1,14 @@
 # HTML & Modular CSS Style Guide
 
-All component styling must adhere to the design system specifications in `docs/design-system.md` and the component architecture standards in [components.md](./components.md).
+All component styling must adhere to the design system specification in [`docs/design/design-system.md`](../../docs/design/design-system.md) and the component architecture standards in [components.md](./components.md). This guide is the single owner of the CSS guardrails checklist.
 
-## 1. Core Invariants
+## 1. Core Invariants (CSS Guardrails Checklist)
 
-- **Modular CSS Exclusively:** Every component must have a dedicated CSS Module (`<Component>.module.css`). Global styles are strictly restricted to `src/styles/` (`layers.css`, `tokens.css`, `index.css`).
+- **Modular CSS Exclusively:** Every component must have a dedicated CSS Module (`<Component>.module.css`). Global styles are strictly restricted to `src/index.css` and `src/styles/` (`layers.css`, `tokens.css`, `fonts.css`, `tokens/`).
 - **Zero Inline Styles:** Inline styles (`style={{ ... }}`) are strictly forbidden in JSX and HTML. Never use `style` attributes for dynamic properties, positioning, or theming.
 - **Zero Outer Margins:** Component blocks MUST NEVER define external `margin` or layout positioning. All spacing and structural flow are owned by Composition Primitives (`<Stack>`, `<Cluster>`, `<Grid>`).
-- **Semantic Tokens Only:** Hardcoded hex colors, raw pixel spacings, and arbitrary font sizes are strictly forbidden. All styling values must consume semantic tokens (`var(--token-name)`).
+- **Semantic Tokens Only:** Hardcoded hex colors, raw pixel spacings, and arbitrary font sizes are strictly forbidden. All styling values must consume semantic tokens (`var(--token-name)`: `--surface-*`, `--content-*`, `--state-*`, `--status-*`). Direct references to literal palettes (`--palette-*`) are forbidden.
+- **CUBE `data-*` Variants:** Variants and states are expressed as HTML `data-*` attributes (`data-status`, `data-variant`, `data-density`) that mutate the local token interface. Dynamic `className` string interpolation is forbidden.
 - **Tabular Data Numerals:** Numeric measurements, coordinates, and astronomical data must use `--font-data` and `font-variant-numeric: tabular-nums`.
 
 ## 2. CUBE CSS & Layer Architecture
@@ -15,7 +16,7 @@ All component styling must adhere to the design system specifications in `docs/d
 Component stylesheets must implement the CUBE pattern using `@layer blocks` and `@layer exceptions`:
 
 ```css
-/* src/components/surfaces/Card/Card.module.css */
+/* src/components/interface/surfaces/Card/Card.module.css */
 @layer blocks {
   .card {
     /* 1. Local Token Interface at the top of the selector */
@@ -51,5 +52,6 @@ Component stylesheets must implement the CUBE pattern using `@layer blocks` and 
 1. **State & Variants:** Bind variants (`data-status`, `data-variant`, `data-density`) to HTML `data-*` attributes. Dynamic `className` string interpolation is forbidden.
 2. **Atomic Exception Overrides:** Exceptions mutate only the targeted custom property (e.g. `--card-border-color`), preserving base layout and geometry.
 3. **Class Naming:** Use `camelCase` for CSS Module exports (e.g. `styles.dataRow`).
-4. **No Component-Specific Global Tokens:** Component-specific property tokens (`--<component>-*`) must never leak into global `src/styles/tokens/semantic.css`. Consume universal semantic primitives (`--ui-control-*`, `--surface-*`) exclusively through the Local Token Interface.
-5. **Physical Lighting & State Integration:** Respect the 137° directional lighting model (top-left specular highlights for raised surfaces; top-left overhang shadows and bottom-right specular lips for recessed wells). Derive dynamic state highlights (`:focus`, `:active`, `[data-status="error"]`) via relative OKLCH (`oklch(from var(--token) ...)`) rather than flat outlines.
+4. **No Component-Specific Global Tokens:** Component-specific property tokens (`--<component>-*`, `--ui-button-*`, `--ui-input-*`) must never leak into global `src/styles/tokens/semantic.css`. Global semantic tokens stay abstract and composable (`--surface-*`, `--ui-control-*` elevation, specular, inset and state tokens); components consume them exclusively through their Local Token Interface.
+5. **Physical Lighting & State Integration:** Respect the 137° directional lighting model (see [components.md](./components.md#5-modular-css--design-token-architecture)). Derive dynamic state highlights (`:focus`, `:active`, `[data-status="error"]`) via relative OKLCH (`oklch(from var(--token) ...)`) rather than flat outlines.
+6. **Enforcement:** `npm run audit:ui` checks component quads, inline styles, `@layer` usage and hardcoded colours.

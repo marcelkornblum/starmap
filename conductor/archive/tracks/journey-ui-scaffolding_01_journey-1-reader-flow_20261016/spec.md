@@ -2,7 +2,7 @@
 
 > [!CAUTION]
 > **STRICT STAGE 1 RULE — CLEAN SLATE VIEWS & WHAT ON-SCREEN, NOT HOW TO PRESENT IT:**
-> This track defines **only** the required screens/views, URL paths, features, view data models, selectors, and interface state logic for Journey 1 ([`docs/user-journeys.md`](../../../../docs/user-journeys.md#L44-L53)).
+> This track defines **only** the required screens/views, URL paths, features, view data models, selectors, and interface state logic for Journey 1 ([`docs/design/user-journeys.md`](../../../../docs/design/user-journeys.md#L44-L53)).
 > - **Zero Pre-Assumed Views or Paths:** Existing POC views are quarantined in `src/views/poc/` (`/poc/*`) and `/` starts as a blank slate. Do NOT assume which views exist or what their URL paths are ahead of time; decide screen boundaries, view names, and routes step by step with the user.
 > - **Zero Presentation Assumptions:** Do NOT design UI chrome, layout splits, panel detents, or visual components.
 > - **One Decision at a Time:** Every screen boundary, URL path, data field, calculation contract, and user action must be broken into small, atomic pieces and discussed one by one with the user via `ask_question`, recording options and trade-offs in [`decision-log.md`](../../initiatives/journey-ui-scaffolding/decision-log.md) and [`view-requirements.md`](../../initiatives/journey-ui-scaffolding/view-requirements.md).

@@ -4,6 +4,8 @@ You are a Principal Software Engineer reviewing Pull Requests for `starmap`, an 
 
 Your objective is to provide a constructive, focused, and high-signal code review. Annotate specific lines in the diff where improvements can be made, and provide an overall summary.
 
+The authoritative project standards (TypeScript, React, R3F and Starmap conventions only) live in `conductor/code_styleguides/` (`general.md`, `typescript.md`, `components.md`, `html-css.md`, `webgl-r3f.md`); the focus areas below summarise what to enforce in review.
+
 ---
 
 ## Areas of Focus
@@ -28,7 +30,7 @@ Your objective is to provide a constructive, focused, and high-signal code revie
 
 5. **Styling, Semantic UI Primitives & Schematic UX**:
    - CSS Modules with central design token custom properties. Reject arbitrary inline styles or hardcoded magic values.
-   - Semantic Interface Primitives & Regulated Badges Only: Domain components and views (`src/components/domain/`, `src/components/search/`, `src/views/`) must compose Tier 1 Interface Primitives (`<Datum>`, `<DataTable>`, `<Quantity>`, `<Unit>`, `<Badge>`, `<CelestialSymbol>`, `<CelestialBadge>`, `<SpectralBadge>`, `<HazardBadge>`, `<PlanetCensus>`, `<ConfidencePip>`, `<Heading>`, `<Kbd>`, `<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`, `<Stack>`, `<Cluster>`) rather than raw `<button>`/`<input>`/`<select>`/`<dl>`/`<ul>` tags, ASCII punctuation workarounds (`[reticle]`, `' · a = '`, `(0 pc)`), or ad-hoc `<Badge>{string}</Badge>` assemblies for celestial classifications. Services must return strict TypeScript classification unions and structured `{ value, unit }` objects rather than pre-formatted display strings parsed by regex in views. Reject numeric counts (`0 hazards`, `0 confirmed planets`, `1 of 5`) or plain telemetry prose wrapped in `<Badge>`.
+   - Semantic Interface Primitives & Regulated Badges Only: Domain components and views (`src/components/domain/`, `src/components/domain/Search/`, `src/views/`) must compose Tier 1 Interface Primitives (`<Datum>`, `<DataTable>`, `<Quantity>`, `<Unit>`, `<Badge>`, `<CelestialSymbol>`, `<CelestialBadge>`, `<SpectralBadge>`, `<HazardBadge>`, `<PlanetCensus>`, `<ConfidencePip>`, `<Heading>`, `<Kbd>`, `<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`, `<Stack>`, `<Cluster>`) rather than raw `<button>`/`<input>`/`<select>`/`<dl>`/`<ul>` tags, ASCII punctuation workarounds (`[reticle]`, `' · a = '`, `(0 pc)`), or ad-hoc `<Badge>{string}</Badge>` assemblies for celestial classifications. Services must return strict TypeScript classification unions and structured `{ value, unit }` objects rather than pre-formatted display strings parsed by regex in views. Reject numeric counts (`0 hazards`, `0 confirmed planets`, `1 of 5`) or plain telemetry prose wrapped in `<Badge>`.
    - Progressive disclosure: Prioritize schematic clarity and readable navigation over raw visual clutter.
 
 6. **Testing Standards & Anti-Patterns**:

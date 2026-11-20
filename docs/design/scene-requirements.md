@@ -4,12 +4,12 @@ This document defines the cartographic rules, rendering requirements, UX goals, 
 
 > [!IMPORTANT]
 > **Architectural Precedence:**
-> - Spatial coordinate frames, travelling fins, and datum surfaces are governed by [`docs/3d-spatial-architecture.md`](./3d-spatial-architecture.md).
-> - WebGL persistent canvas lifecycle, stage slots, and 60fps frame loops are governed by [`docs/architecture/3d-canvas-management.md`](./architecture/3d-canvas-management.md).
-> - URL navigation, selection state, and orthogonal search parameters are governed by [`docs/architecture/routing-and-state.md`](./architecture/routing-and-state.md).
-> - 2D UI tokens, typography, monospace alignments, and CUBE exceptions are governed by [`docs/ui-visual-language.md`](./ui-visual-language.md) and [`docs/design-system.md`](./design-system.md).
-> - CSS token synchronization to WebGL materials is governed by [`docs/threejs-token-sync.md`](./threejs-token-sync.md).
-> - Hand-crafted control fixtures are housed in [`tests/fixtures/system.fixture.json`](../tests/fixtures/system.fixture.json) and [`tests/fixtures/planet.fixture.json`](../tests/fixtures/planet.fixture.json).
+> - Spatial coordinate frames, travelling fins, and datum surfaces are governed by [`docs/design/3d-spatial-architecture.md`](./3d-spatial-architecture.md).
+> - WebGL persistent canvas lifecycle, stage slots, and 60fps frame loops are governed by [`docs/architecture/3d-canvas-management.md`](../architecture/3d-canvas-management.md).
+> - URL navigation, selection state, and orthogonal search parameters are governed by [`docs/architecture/routing-and-state.md`](../architecture/routing-and-state.md).
+> - 2D UI tokens, typography, monospace alignments, and CUBE exceptions are governed by [`docs/design/ui-visual-language.md`](./ui-visual-language.md) and [`docs/design/design-system.md`](./design-system.md).
+> - CSS token synchronization to WebGL materials is governed by [`docs/architecture/theme-token-bridge.md`](../architecture/theme-token-bridge.md).
+> - Hand-crafted control fixtures are housed in [`tests/fixtures/system.fixture.json`](../../tests/fixtures/system.fixture.json) and [`tests/fixtures/planet.fixture.json`](../../tests/fixtures/planet.fixture.json).
 
 ---
 
@@ -199,9 +199,9 @@ Scale transitions between view tiers (Galaxy $\rightarrow$ System $\rightarrow$ 
 
 Visual prototyping in Storybook and automated unit testing consume the hand-crafted control fixtures:
 
-1. **[`tests/fixtures/system.fixture.json`](../tests/fixtures/system.fixture.json):**
+1. **[`tests/fixtures/system.fixture.json`](../../tests/fixtures/system.fixture.json):**
    - **Sol System:** Rich, complete baseline with 8 planets, fully characterised Keplerian orbital elements, high confidence, nominal hazard status.
    - **Tau Ceti System:** Sparser exoplanetary system with 4 confirmed candidates ($g, h, e, f$), unconstrained orbital inclinations, mass-radius estimates, demonstrating observational uncertainties and em-dash fallbacks.
-2. **[`tests/fixtures/planet.fixture.json`](../tests/fixtures/planet.fixture.json):**
+2. **[`tests/fixtures/planet.fixture.json`](../../tests/fixtures/planet.fixture.json):**
    - **Earth:** Terrestrial archetype, in-situ verified, nominal status, atmospheric breakdown, single moon.
    - **Tau Ceti e:** Super-Earth exoplanet archetype in the CHZ, radial-velocity constrained, caution hazard status, explicit measurement uncertainties ($\pm 0.8\text{ M}_\oplus, \pm 0.4\text{ R}_\oplus$), em-dash nulls for unmeasured atmospheric and magnetic properties.

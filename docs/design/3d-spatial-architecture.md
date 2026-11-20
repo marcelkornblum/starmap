@@ -6,9 +6,9 @@ This document is the **single authoritative specification** for Starmap's 3D coo
 > **Source of Truth Rule:** All exploratory AI-generated renders contain technical inaccuracies and hallucinations (e.g. scale compression, planar artifacts, excessive line density). They are discarded reference sketches. This document and its corresponding code tokens represent the sole authoritative specification.
 > 
 > **Related Architecture Specifications:**
-> - WebGL persistent canvas lifecycle, stage slots, and 60fps frame loops: [`docs/architecture/3d-canvas-management.md`](./architecture/3d-canvas-management.md).
-> - URL navigation, focal selection, and orthogonal query grammar: [`docs/architecture/routing-and-state.md`](./architecture/routing-and-state.md).
-> - CSS token synchronization to WebGL materials: [`docs/threejs-token-sync.md`](./threejs-token-sync.md).
+> - WebGL persistent canvas lifecycle, stage slots, and 60fps frame loops: [`docs/architecture/3d-canvas-management.md`](../architecture/3d-canvas-management.md).
+> - URL navigation, focal selection, and orthogonal query grammar: [`docs/architecture/routing-and-state.md`](../architecture/routing-and-state.md).
+> - CSS token synchronization to WebGL materials: [`docs/architecture/theme-token-bridge.md`](../architecture/theme-token-bridge.md).
 
 ---
 

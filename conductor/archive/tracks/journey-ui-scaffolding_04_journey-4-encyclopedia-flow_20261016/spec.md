@@ -2,7 +2,7 @@
 
 > [!CAUTION]
 > **STRICT STAGE 1 RULE — CLEAN SLATE VIEWS & WHAT ON-SCREEN, NOT HOW TO PRESENT IT:**
-> This track defines **only** the required screens/views, URL paths, features, view data models, selectors, and interface state logic for Journey 4 ([`docs/user-journeys.md`](../../../../docs/user-journeys.md#L77-L93)).
+> This track defines **only** the required screens/views, URL paths, features, view data models, selectors, and interface state logic for Journey 4 ([`docs/design/user-journeys.md`](../../../../docs/design/user-journeys.md#L77-L93)).
 > - **Zero Pre-Assumed Views or Paths:** Do NOT assume view names or URL paths ahead of time; decide whether encyclopedia/classification inspection uses a dedicated view/route or layers onto existing views step by step with the user.
 > - **Zero Presentation Assumptions:** Do NOT design MDX page layouts, comparator charts, or visual cards.
 > - **One Decision at a Time:** Every screen boundary, URL path, classification taxonomy, reference anchor benchmark, and return-to-origin state field must be discussed one by one with the user via `ask_question`, recording options and trade-offs in [`decision-log.md`](../../initiatives/journey-ui-scaffolding/decision-log.md) and [`view-requirements.md`](../../initiatives/journey-ui-scaffolding/view-requirements.md).

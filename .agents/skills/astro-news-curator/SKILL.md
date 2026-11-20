@@ -62,11 +62,11 @@ If a discovery's host star is not yet present in Starmap:
      targetId: 'proxima-centauri-d',
      targetType: 'planet',
      systemId: 'gaia-5853498713190525696',
-     inUniverseName: 'Proxima Centauri d',
+     subtitle: 'Sub-Earth Candidate',
      text: 'Sub-Earth candidate orbiting Sol’s closest stellar neighbour at 4.25 light-years with a 5.1-day period.',
      workTitle: 'ESPRESSO / ESO (2022)',
-     aliases: ['Proxima Centauri d', 'Proxima d'],
-     tags: ['Sub-Earth', 'Proxima Centauri', 'Nearby World'],
+     aliases: 'closest neighbour',
+     // no entry `tags` field exists (removed, DL-10)
      confidence: 'confirmed',
    },
    ```
@@ -75,5 +75,5 @@ If a discovery's host star is not yet present in Starmap:
 ### Step 4: Rebuild Data & Verify
 Run the following checks as separate single commands:
 1. `npm run build:data` to rebuild `public/data/overlays/layers/*.json` and search indices.
-2. `npx vitest run tests/syncDiscoveries.test.ts tests/datasetLayerCodec.test.ts` to ensure data codec and sync tests pass cleanly.
+2. `npx vitest run src/data/__tests__/syncDiscoveries.test.ts src/utils/datasetLayerCodec.test.ts` to ensure data codec and sync tests pass cleanly.
 3. `npm run typecheck` to verify complete type safety.
