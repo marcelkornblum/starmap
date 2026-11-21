@@ -6,6 +6,8 @@ import { SearchContext } from '../Search/SearchContext';
 import { executeCatalogSearch } from '../../../services/search/searchExecution';
 import type { SearchResultItem as SearchResultItemModel } from '../../../services/search/searchTypes';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
+import { SpatialEntityStoreContext } from '../../canvas/entity/SpatialEntityContext';
 import * as prefetchModule from '../../../services/details/prefetchEntitySelection';
 
 describe('<SearchResultItem />', () => {
@@ -191,5 +193,69 @@ describe('<SearchResultItem />', () => {
 
     fireEvent.click(link);
     expect(cancelSpy).toHaveBeenCalled();
+  });
+
+  it('registers entity coordinates in SpatialEntityStore (replacing [0,0,0] fallback), invokes focusFromSearch, and preserves focused state after dismissSearch', () => {
+    const focusFromSearchSpy = vi.fn();
+    vi.spyOn(useCameraStore, 'getState').mockReturnValue({
+      focusFromSearch: focusFromSearchSpy,
+    } as unknown as ReturnType<typeof useCameraStore.getState>);
+
+    const spatialStore = createSpatialEntityStore();
+    spatialStore.getState().registerEntity({
+      id: 'sirius',
+      name: 'Sirius',
+      position: [0, 0, 0],
+      classification: 'stellar-system',
+    });
+    spatialStore.getState().setSelectedIds(['sirius']);
+
+    const galaxyResult: SearchResultItemModel = {
+      id: 'sirius',
+      name: 'Sirius',
+      category: 'stars',
+      entityKind: 'star-system',
+      reticleType: 'stellar-system',
+      targetView: 'galaxy',
+      href: '/galaxy?focus=sirius',
+      position: [-1.61, 2.09, -0.45],
+      spectralType: 'A1V',
+      score: 1.0,
+    };
+
+    const dismissSearch = vi.fn(() => {
+      spatialStore.getState().setSelectedIds([]);
+      spatialStore.getState().setFocused(null);
+    });
+
+    render(
+      <SpatialEntityStoreContext.Provider value={spatialStore}>
+        <SearchContext.Provider
+          value={{
+            query: 'sirius',
+            filter: 'all',
+            status: 'ready',
+            errorMessage: null,
+            results: executeCatalogSearch([], { query: 'sirius', filter: 'all' }),
+            setQuery: vi.fn(),
+            setFilter: vi.fn(),
+            submitSearch: vi.fn(),
+            isFocused: true,
+            setIsFocused: vi.fn(),
+            dismissSearch,
+          }}
+        >
+          <SearchResultItem result={galaxyResult} />
+        </SearchContext.Provider>
+      </SpatialEntityStoreContext.Provider>,
+    );
+
+    const link = screen.getByRole('link', { name: /sirius/i });
+    fireEvent.click(link);
+
+    expect(focusFromSearchSpy).toHaveBeenCalledWith('sirius');
+    expect(dismissSearch).toHaveBeenCalledWith(galaxyResult);
+    expect(spatialStore.getState().entities['sirius']?.position).toEqual([-1.61, 2.09, -0.45]);
+    expect(spatialStore.getState().focusedId).toBe('sirius');
   });
 });

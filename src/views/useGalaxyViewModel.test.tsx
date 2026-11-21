@@ -13,6 +13,10 @@ import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEnt
 import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
+import {
+  clearSearchRepositoryCache,
+  fetchSearchShard,
+} from '../data/searchRepository';
 
 describe('useGalaxyViewModel', () => {
   let navigateSpy: ReturnType<typeof vi.fn>;
@@ -217,5 +221,53 @@ describe('useGalaxyViewModel', () => {
     expect(replaceStateSpy).not.toHaveBeenCalled();
     expect(useCameraStore.getState().inFlightFocusSlug).toBeUndefined();
     replaceStateSpy.mockRestore();
+  });
+
+  it('prefers cached all corpus over startup corpus when initialCorpus is omitted', async () => {
+    clearSearchRepositoryCache();
+    const mockFetch = vi.fn(async (url: string) => {
+      const d = url.includes('core.json')
+        ? [{ i: 'epsilon-indi', n: 'Epsilon Indi', p: [2.5, -1.2, 0.8] }]
+        : url.includes('startup.json')
+          ? [{ i: 'sol', n: 'Sol', p: [0, 0, 0] }]
+          : [];
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          v: 1,
+          i: url,
+          n: url,
+          c: d.length,
+          t: '2026-10-17T00:00:00Z',
+          d,
+        }),
+      } as unknown as Response;
+    });
+
+    await fetchSearchShard('startup', mockFetch as unknown as typeof fetch);
+    await fetchSearchShard('core', mockFetch as unknown as typeof fetch);
+    await fetchSearchShard('structures', mockFetch as unknown as typeof fetch);
+    await fetchSearchShard('minor-bodies', mockFetch as unknown as typeof fetch);
+
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(
+        () =>
+          useGalaxyViewModel({
+            locationPathname: '/galaxy',
+            locationSearch: '?focus=epsilon-indi',
+          }),
+        { wrapper: createWrapper(store) },
+      );
+    });
+
+    expect(hookResult.result.current.resolvedCenterCoordinates).toEqual([2.5, -1.2, 0.8]);
+    await act(async () => {
+      hookResult.unmount();
+      clearSearchRepositoryCache();
+    });
   });
 });

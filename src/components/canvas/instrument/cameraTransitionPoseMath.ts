@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {
+  computeCameraTransitionDuration,
   evaluateCameraEasing,
   DEFAULT_CAMERA_EASING_CURVE,
   type CameraEasingCurveId,
@@ -174,5 +175,63 @@ export function resolveStartDirection(
   }
   outStartDir.set(0, 0, 1);
   return { startDist, hasStartDir: false };
+}
+
+export function resolveTransitionDuration(
+  explicitDuration: number | undefined,
+  startTarget: THREE.Vector3,
+  endTarget: THREE.Vector3,
+  startDist: number,
+  endDist: number,
+): number {
+  if (explicitDuration !== undefined) {
+    return explicitDuration;
+  }
+  return computeCameraTransitionDuration(
+    startTarget.distanceTo(endTarget),
+    Math.max(startDist, endDist, 1),
+  );
+}
+
+export interface TransitionOpticsState {
+  animateFov: boolean;
+  startFov: number;
+  endFov: number;
+  animateOrthoZoom: boolean;
+  startOrthoZoom: number;
+  endOrthoZoom: number;
+}
+
+export function initOpticalTransitionState(
+  camera: THREE.Camera,
+  endPose: CameraTransitionPose,
+  optics: TransitionOpticsState,
+): void {
+  optics.animateFov = typeof endPose.fov === 'number' && camera instanceof THREE.PerspectiveCamera;
+  if (typeof endPose.fov === 'number' && camera instanceof THREE.PerspectiveCamera) {
+    optics.startFov = camera.fov;
+    optics.endFov = endPose.fov;
+  }
+  optics.animateOrthoZoom =
+    typeof endPose.orthoZoom === 'number' && camera instanceof THREE.OrthographicCamera;
+  if (typeof endPose.orthoZoom === 'number' && camera instanceof THREE.OrthographicCamera) {
+    optics.startOrthoZoom = camera.zoom;
+    optics.endOrthoZoom = endPose.orthoZoom;
+  }
+}
+
+export function applyOpticalTransitionValues(
+  camera: THREE.Camera,
+  t: number,
+  optics: TransitionOpticsState,
+): void {
+  if (optics.animateFov && camera instanceof THREE.PerspectiveCamera) {
+    camera.fov = optics.startFov + (optics.endFov - optics.startFov) * t;
+    camera.updateProjectionMatrix();
+  }
+  if (optics.animateOrthoZoom && camera instanceof THREE.OrthographicCamera) {
+    camera.zoom = optics.startOrthoZoom + (optics.endOrthoZoom - optics.startOrthoZoom) * t;
+    camera.updateProjectionMatrix();
+  }
 }
 

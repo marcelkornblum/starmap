@@ -138,9 +138,9 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     expect(mockControls.target.x).toBeGreaterThan(0);
     expect(mockControls.target.x).toBeLessThan(10);
 
-    // Settle at 1800ms
+    // Settle by max auto duration (1500ms)
     act(() => {
-      advanceTransitionFrames([1800], nowSpy);
+      advanceTransitionFrames([2500], nowSpy);
     });
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     expect(mockControls.target.x).toBeCloseTo(10, 4);
@@ -272,5 +272,23 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
       }),
     );
     expect(mockInvalidate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not glide to [0, 0, 0] when hasExplicitCenter is false and recenterTick increments', () => {
+    const { rerender } = render(
+      createElement(GalacticCameraController, { target: [12, 4, -3], hasExplicitCenter: true }),
+    );
+    expect(mockControls.target.toArray()).toEqual([12, 4, -3]);
+
+    // Canvas-click focus clears explicit center (target falls back to [0,0,0], hasExplicitCenter=false)
+    rerender(createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }));
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+
+    // Incrementing recenterTick while hasExplicitCenter is false must not glide to [0, 0, 0]
+    act(() => {
+      useCameraStore.getState().focusFromSearch('sirius');
+    });
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
+    expect(mockControls.target.toArray()).toEqual([12, 4, -3]);
   });
 });

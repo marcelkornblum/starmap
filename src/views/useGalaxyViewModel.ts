@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useSpatialEntityStore, useSpatialEntityStoreApi } from '../components/canvas/entity/SpatialEntityContext';
 import type { SpatialEntityDefinition } from '../types/spatial';
 import { scheduleSearchBackgroundWarmup } from '../data/searchBackgroundWarmup';
+import { getCachedCorpusForFilter } from '../data/searchRepository';
 import { useSearchCorpus } from '../hooks/useSearchCorpus';
 import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { mergeActiveStarsIntoCorpus } from '../services/details/activeStarsCorpus';
@@ -73,15 +74,17 @@ export function useGalaxyViewModel({
     }),
   );
 
-  const { corpus } = useSearchCorpus('startup', initialCorpus);
-  const activeCorpus = corpus ?? EMPTY_CORPUS;
+  const { corpus: startupCorpus } = useSearchCorpus('startup', initialCorpus);
+  const activeCorpus =
+    (initialCorpus ? startupCorpus : (getCachedCorpusForFilter('all') ?? startupCorpus)) ??
+    EMPTY_CORPUS;
   const isHydrated = useActiveStarsStore((state) => state.isHydrated);
 
   useEffect(() => {
-    if (!initialCorpus && corpus && isHydrated) {
+    if (!initialCorpus && startupCorpus && isHydrated) {
       scheduleSearchBackgroundWarmup();
     }
-  }, [initialCorpus, corpus, isHydrated]);
+  }, [initialCorpus, startupCorpus, isHydrated]);
 
   const { pathname, search } = useSpaLocation(locationPathname, locationSearch, '/galaxy');
 

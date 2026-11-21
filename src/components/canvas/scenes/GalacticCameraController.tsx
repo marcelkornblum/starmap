@@ -120,7 +120,14 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       return;
     }
 
-    if (!isInitialMount && !hasExplicitCenter && isDistSame && isTickSame && isControlsSame) {
+    if (!isInitialMount && !hasExplicitCenter && isDistSame) {
+      if (!hasRestoredRef.current && controls && isTargetSame && isTickSame) {
+        controls.target.set(targetX, targetY, targetZ);
+        controls.update?.();
+        hasRestoredRef.current = true;
+        invalidate?.();
+      }
+      prevControlsRef.current = controls;
       return;
     }
 

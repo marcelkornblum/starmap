@@ -92,12 +92,12 @@ describe('CameraTransitionController & useCameraTransition', () => {
       expect(controller.isTransitioning()).toBe(true);
 
       controller.update(mockCamera, mockControls, 1500);
-      expect(mockControls.target.x).toBeCloseTo(25, 2);
+      expect(mockControls.target.x).toBeCloseTo(43.75, 2);
       expect(mockControls.target.y).toBeCloseTo(0, 2);
-      expect(mockControls.target.z).toBeCloseTo(-12.5, 2);
-      expect(mockCamera.position.x).toBeCloseTo(25, 2);
+      expect(mockControls.target.z).toBeCloseTo(-21.875, 2);
+      expect(mockCamera.position.x).toBeCloseTo(43.75, 2);
       expect(mockCamera.position.y).toBeCloseTo(10, 2);
-      expect(mockCamera.position.z).toBeCloseTo(7.5, 2);
+      expect(mockCamera.position.z).toBeCloseTo(-1.875, 2);
       expect(mockControls.update).not.toHaveBeenCalled();
       expect(onComplete).not.toHaveBeenCalled();
 

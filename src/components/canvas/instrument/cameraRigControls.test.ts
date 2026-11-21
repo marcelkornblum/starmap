@@ -139,17 +139,17 @@ describe('cameraRigControls', () => {
       expect(mockControls.enabled).toBe(true);
     });
 
-    it('uses easeInOutQuad (DEFAULT_CAMERA_EASING_CURVE) along cardinal glide', () => {
+    it('uses easeOutCubic (DEFAULT_CAMERA_EASING_CURVE) along cardinal glide', () => {
       const controller = new CardinalTransitionController();
       camera.position.set(0, -10, 0);
       camera.up.set(0, 0, 1);
 
       // 90 deg rotation from front (0,-1,0) to top (0,0,1)
       controller.start(camera, target, 'top', 1.0, undefined, 1000);
-      // At progress = 0.25, easeInOutQuad(0.25) = 0.125 (vs cubic 0.0625)
-      // angle = 0.125 * 90 deg = 11.25 deg -> z = 10 * sin(11.25 deg) ≈ 1.9509
+      // At progress = 0.25, easeOutCubic(0.25) = 1 - (0.75)^3 = 0.578125
+      // angle = 0.578125 * 90 deg -> z = 10 * sin(angle)
       controller.update(camera, mockControls, 1250);
-      expect(camera.position.z).toBeCloseTo(10 * Math.sin(0.125 * (Math.PI / 2)), 3);
+      expect(camera.position.z).toBeCloseTo(10 * Math.sin(0.578125 * (Math.PI / 2)), 3);
     });
 
     it('anchors startTime on first update when now is omitted (pendingStart guard)', () => {
@@ -181,6 +181,21 @@ describe('cameraRigControls', () => {
       expect(camera.position.z).toBeCloseTo(10, 3);
       expect(mockControls.enabled).toBe(true);
       expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses computeCameraTransitionDuration(0, 1) (0.8s) and easeOutCubic when duration is omitted', () => {
+      const controller = new CardinalTransitionController();
+      camera.position.set(0, -10, 0);
+      camera.up.set(0, 0, 1);
+
+      controller.start(camera, target, 'top', undefined, undefined, 1000);
+      // At 400ms of 800ms -> progress = 0.5 -> easeOutCubic(0.5) = 0.875 -> angle = 0.875 * 90 deg
+      controller.update(camera, mockControls, 1400);
+      expect(controller.isTransitioning()).toBe(true);
+      expect(camera.position.z).toBeCloseTo(10 * Math.sin(0.875 * (Math.PI / 2)), 3);
+
+      controller.update(camera, mockControls, 1800);
+      expect(controller.isTransitioning()).toBe(false);
     });
   });
 });

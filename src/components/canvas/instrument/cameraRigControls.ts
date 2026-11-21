@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {
-  evaluateCameraEasing,
   DEFAULT_CAMERA_EASING_CURVE,
+  computeCameraTransitionDuration,
+  evaluateCameraEasing,
 } from '../../../utils/cameraEasing';
 import { prefersReducedMotion } from '../../../utils/reducedMotion';
 import type { CardinalDirection } from '../../../types/spatial';
@@ -64,7 +65,7 @@ export class CardinalTransitionController {
     camera: THREE.Camera,
     target: THREE.Vector3,
     cardinal: CardinalDirection,
-    duration = 0.35,
+    duration = computeCameraTransitionDuration(0, 1),
     onComplete?: () => void,
     now?: number,
     controls?: OrbitControlsLike,

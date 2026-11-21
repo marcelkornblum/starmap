@@ -44,13 +44,13 @@ describe('cameraTransitionEngine', () => {
     vi.restoreAllMocks();
   });
 
-  it('uses DEFAULT_CAMERA_EASING_CURVE (easeInOutQuad) by default', () => {
+  it('uses DEFAULT_CAMERA_EASING_CURVE (easeOutCubic) by default', () => {
     const controller = new CameraTransitionController();
     controller.start(perspCam, [100, 0, 0], mockControls.target, { duration: 1.0 }, 1000);
 
-    // At progress = 0.25, easeInOutQuad(0.25) = 2 * 0.25 * 0.25 = 0.125 (vs cubic 0.0625)
+    // At progress = 0.25, easeOutCubic(0.25) = 1 - (0.75)^3 = 0.578125
     controller.update(perspCam, mockControls, 1250);
-    expect(mockControls.target.x).toBeCloseTo(12.5, 4);
+    expect(mockControls.target.x).toBeCloseTo(57.8125, 4);
   });
 
   it('gates OrbitControls.enabled during flight and calls controls.update() once on settle', () => {
@@ -106,7 +106,7 @@ describe('cameraTransitionEngine', () => {
 
   it('anchors startTime on first update when now is omitted (pendingStart frame-0 stall guard)', () => {
     const controller = new CameraTransitionController();
-    controller.start(perspCam, [100, 0, 0], mockControls.target, { duration: 1.0 });
+    controller.start(perspCam, [100, 0, 0], mockControls.target, { duration: 1.0, easing: 'linear' });
 
     // Simulate a 5-second shader-compile stall before frame 0 update arrives
     const firstTick = controller.update(perspCam, mockControls, 5000);

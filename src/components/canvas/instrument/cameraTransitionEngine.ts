@@ -1,20 +1,24 @@
 import * as THREE from 'three';
 import {
-  interpolateCameraDistance,
   DEFAULT_CAMERA_TRANSITION_DURATION_SEC,
+  interpolateCameraDistance,
   easeInOutCubic,
 } from '../../../utils/cameraEasing';
 import { prefersReducedMotion } from '../../../utils/reducedMotion';
 import {
+  applyOpticalTransitionValues,
   copyVec3Input,
   computeAngleAndAxis,
   evaluateTransitionEasing,
+  initOpticalTransitionState,
   resolveEndPoseDirectionAndPos,
   resolveStartTarget,
   resolveStartDirection,
+  resolveTransitionDuration,
   type CameraTransitionOptions,
   type CameraTransitionPose,
   type TransitionControlsLike,
+  type TransitionOpticsState,
 } from './cameraTransitionPoseMath';
 
 export { easeInOutCubic };
@@ -57,12 +61,14 @@ export class CameraTransitionController {
   private upAxis = new THREE.Vector3(1, 0, 0);
   private upAngle = 0;
 
-  private animateFov = false;
-  private startFov = 45;
-  private endFov = 45;
-  private animateOrthoZoom = false;
-  private startOrthoZoom = 1;
-  private endOrthoZoom = 1;
+  private optics: TransitionOpticsState = {
+    animateFov: false,
+    startFov: 45,
+    endFov: 45,
+    animateOrthoZoom: false,
+    startOrthoZoom: 1,
+    endOrthoZoom: 1,
+  };
 
   private scratchOffset = new THREE.Vector3();
   private scratchDir = new THREE.Vector3();
@@ -103,11 +109,11 @@ export class CameraTransitionController {
     this.endDist = options?.targetDistance ?? this.startDist;
     this.endCamPos.copy(this.endTarget).addScaledVector(this.endDir, this.endDist);
     this.animateUp = false;
-    this.animateFov = false;
-    this.animateOrthoZoom = false;
+    this.optics.animateFov = false;
+    this.optics.animateOrthoZoom = false;
     this.useLogDist = options?.logarithmicDistance ?? true;
 
-    const duration = options?.duration ?? DEFAULT_CAMERA_TRANSITION_DURATION_SEC;
+    const duration = this.resolveDuration(options?.duration);
     if (prefersReducedMotion() || duration <= 0) {
       if (controlsTarget instanceof THREE.Vector3) controlsTarget.copy(this.endTarget);
       this.applyFinalPose(camera);
@@ -147,7 +153,7 @@ export class CameraTransitionController {
     this.dirAngle = computeAngleAndAxis(this.startDir, this.endDir, this.startUp, this.endUp, this.dirAxis);
     this.useLogDist = options?.logarithmicDistance ?? true;
 
-    const duration = options?.duration ?? DEFAULT_CAMERA_TRANSITION_DURATION_SEC;
+    const duration = this.resolveDuration(options?.duration);
     if (prefersReducedMotion() || duration <= 0) {
       if (controls?.target instanceof THREE.Vector3) controls.target.copy(this.endTarget);
       this.applyFinalPose(camera);
@@ -192,7 +198,7 @@ export class CameraTransitionController {
       }
       camera.up.copy(this.scratchCurrentUp);
     }
-    this.applyOpticalValues(camera, t);
+    applyOpticalTransitionValues(camera, t, this.optics);
 
     const activeCtrl = controls ?? this.activeControls;
     if (activeCtrl?.target instanceof THREE.Vector3) {
@@ -228,16 +234,7 @@ export class CameraTransitionController {
       this.animateUp = false;
     }
 
-    this.animateFov = typeof endPose.fov === 'number' && camera instanceof THREE.PerspectiveCamera;
-    if (typeof endPose.fov === 'number' && camera instanceof THREE.PerspectiveCamera) {
-      this.startFov = camera.fov;
-      this.endFov = endPose.fov;
-    }
-    this.animateOrthoZoom = typeof endPose.orthoZoom === 'number' && camera instanceof THREE.OrthographicCamera;
-    if (typeof endPose.orthoZoom === 'number' && camera instanceof THREE.OrthographicCamera) {
-      this.startOrthoZoom = camera.zoom;
-      this.endOrthoZoom = endPose.orthoZoom;
-    }
+    initOpticalTransitionState(camera, endPose, this.optics);
   }
 
   private beginFlight(
@@ -274,21 +271,20 @@ export class CameraTransitionController {
     this.prevControlsEnabled = undefined;
   }
 
-  private applyOpticalValues(camera: THREE.Camera, t: number): void {
-    if (this.animateFov && camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = this.startFov + (this.endFov - this.startFov) * t;
-      camera.updateProjectionMatrix();
-    }
-    if (this.animateOrthoZoom && camera instanceof THREE.OrthographicCamera) {
-      camera.zoom = this.startOrthoZoom + (this.endOrthoZoom - this.startOrthoZoom) * t;
-      camera.updateProjectionMatrix();
-    }
+  private resolveDuration(explicitDuration: number | undefined): number {
+    return resolveTransitionDuration(
+      explicitDuration,
+      this.startTarget,
+      this.endTarget,
+      this.startDist,
+      this.endDist,
+    );
   }
 
   private applyFinalPose(camera: THREE.Camera): void {
     camera.position.copy(this.endCamPos);
     if (this.animateUp) camera.up.copy(this.endUp);
-    this.applyOpticalValues(camera, 1.0);
+    applyOpticalTransitionValues(camera, 1.0, this.optics);
     camera.lookAt(this.endTarget);
     camera.updateMatrixWorld();
   }

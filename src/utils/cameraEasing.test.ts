@@ -10,12 +10,13 @@ import {
   linear,
   evaluateCameraEasing,
   interpolateCameraDistance,
+  computeCameraTransitionDuration,
   type CameraEasingCurveId,
 } from './cameraEasing';
 
 describe('cameraEasing', () => {
   it('exposes the expected defaults and curve registry', () => {
-    expect(DEFAULT_CAMERA_EASING_CURVE).toBe('easeInOutQuad');
+    expect(DEFAULT_CAMERA_EASING_CURVE).toBe('easeOutCubic');
     expect(DEFAULT_CAMERA_TRANSITION_DURATION_SEC).toBe(0.8);
 
     const ids = CAMERA_EASING_CURVES.map((c) => c.id);
@@ -95,5 +96,32 @@ describe('cameraEasing', () => {
     // Non-positive start or end
     expect(interpolateCameraDistance(0, 100, 0.5, true)).toBeCloseTo(50, 6);
     expect(interpolateCameraDistance(-10, 100, 0.5, true)).toBeCloseTo(45, 6);
+  });
+
+  it('computes distance-dependent durations across pure rotation, short, medium, and long hops', () => {
+    // Pure rotation / preset (travelDistance <= 1e-4)
+    expect(computeCameraTransitionDuration(0, 20)).toBe(0.8);
+    expect(computeCameraTransitionDuration(1e-4, 20)).toBe(0.8);
+    expect(computeCameraTransitionDuration(-5, 20)).toBe(0.8);
+
+    // Tiny non-zero hop clamps at 0.75s floor
+    expect(computeCameraTransitionDuration(0.001, 1000)).toBeCloseTo(0.75, 4);
+
+    // Short hops (~0.1-0.2x scale -> ~0.79-0.85s)
+    const shortHop = computeCameraTransitionDuration(10, 100);
+    expect(shortHop).toBeGreaterThanOrEqual(0.75);
+    expect(shortHop).toBeLessThan(0.9);
+
+    // Medium hops (~0.9-1.2x scale -> ~1.14-1.24s)
+    const mediumHop = computeCameraTransitionDuration(100, 100);
+    expect(mediumHop).toBeGreaterThan(1.1);
+    expect(mediumHop).toBeLessThan(1.3);
+
+    // Long hops (>= 2.5x scale -> capped at 1.5s)
+    expect(computeCameraTransitionDuration(250, 100)).toBeCloseTo(1.5, 6);
+    expect(computeCameraTransitionDuration(1000, 100)).toBe(1.5);
+
+    // Guards tiny or non-positive referenceScale cleanly
+    expect(computeCameraTransitionDuration(10, 0)).toBe(1.5);
   });
 });

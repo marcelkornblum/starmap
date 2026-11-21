@@ -36,12 +36,11 @@
   - Resolve the dual-controller overlap in `SystemSceneEntry` (`SystemCameraController` + `SystemScene -> GalacticCameraController`), wire `centerId` into `PlanetarySceneContent`, and ensure `SystemCameraController` keeps `useCameraStore.target` in sync on settle.
   - Separate `center` from `focused` cleanly: cold-loading a focused view centres on that target; subsequent panning mutates `center` without altering `focused`; applying `?focus=` does not force-re-centre.
   - Remove remaining `window.location.search` / `replaceSpaHistoryUrl` camera-URL leaks (`GalacticCameraController`, `useGalaxyViewModel`, `useKeyboardShortcuts`, `spaNavigation`, `SearchPanel`) in favour of typed TanStack Router navigation (`DEC-R014`).
-- [~] **Task 1.4: Temporary Uncommitted Demo Lab (Removed Before Commit)**
-  - During Phase 1 live review only, mount a temporary uncommitted Motion Lab overlay to swap curves/durations and trigger short/medium/long journeys; remove it cleanly and bake in the ratified curve/duration before committing the Phase 1 checkpoint.
-- [ ] **Task 1.5: Quality Gate & Standards Cleanup**
+- [x] **Task 1.4: Temporary Uncommitted Demo Lab (Removed Before Commit)** *(ratified `easeOutCubic` + dynamic distance duration `computeCameraTransitionDuration`, fixed Search result jump/focus bug, and removed Motion Lab completely)*
+- [x] **Task 1.5: Quality Gate & Standards Cleanup** *(lint 0, typecheck, audit:guards, audit:ui, audit:r3f, 344 test files green)*
   - Run `standards` cleanup; verify `max-lines: 300` and `DEC-R012` boundaries.
   - Run `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, `npm run audit:r3f`, `npm run test:coverage`.
-- [ ] **Task 1.6: Phase 1 Verification, Demo Link & Checkpoint**
+- [~] **Task 1.6: Phase 1 Verification, Demo Link & Checkpoint**
   - Commit checkpoint on `feat/camera-choreography`.
   - Present clickable `<LAN_HOST>:5173` links (`/galaxy`, `/system/sol`, `/planet/earth`), **"What to see & try"** walkthrough (Motion Lab curve switcher + short/medium/long journeys, clicking `Centre`, stepping `<LayerCard />`, picking search results, presets, panning away from focus), and HALT for user feedback & curve tuning.
 
