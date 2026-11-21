@@ -68,7 +68,10 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
   if (!routeStopIds || routeStopIds.length < 2) return null;
 
   const stops = routeStopIds.map((id) => resolveEndpoint(id, corpusEntries, systemDetail, summaryNode));
-  const allSameSystem = stops.every((s) => s.systemId === stops[0].systemId);
+  const firstStop = stops[0];
+  const lastStop = stops[stops.length - 1];
+  if (!firstStop || !lastStop) return null;
+  const allSameSystem = stops.every((s) => s.systemId === firstStop.systemId);
   const domain: JourneyDomain =
     domainOverride ??
     (((input.viewScope === 'system' || input.viewScope === 'planet') && allSameSystem) ||
@@ -83,7 +86,10 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
   let status: 'ready' | 'coming-soon' = 'ready';
   let statusReason: string | undefined = undefined;
 
-  const hasSelfLoop = stops.some((s, idx) => idx > 0 && s.id === stops[idx - 1].id);
+  const hasSelfLoop = stops.some((s, idx) => {
+    const prev = idx > 0 ? stops[idx - 1] : undefined;
+    return prev !== undefined && s.id === prev.id;
+  });
   if (hasSelfLoop) {
     status = 'coming-soon';
     statusReason = 'Origin and destination are identical.';
@@ -136,9 +142,12 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
   let totalDistanceAu = 0;
 
   for (let i = 0; i < stops.length - 1; i++) {
+    const fromStop = stops[i];
+    const toStop = stops[i + 1];
+    if (!fromStop || !toStop) continue;
     const step = domain === 'interstellar'
-      ? buildInterstellarStep(stops[i], stops[i + 1], i)
-      : buildIntraSystemStep(stops[i], stops[i + 1], i);
+      ? buildInterstellarStep(fromStop, toStop, i)
+      : buildIntraSystemStep(fromStop, toStop, i);
     steps.push(step);
     if (domain === 'interstellar') {
       totalDistanceLy += step.distanceLy ?? 0;
@@ -148,8 +157,8 @@ export function buildJourneyPlan(input: BuildJourneyPlanInput): JourneyPlan | nu
   }
 
   const makeOptionHref = (optionId: string) => buildJourneyOptionHref(currentPathname, currentSearch, routeStopIds, optionId);
-  const originLabel = stops[0].name;
-  const destinationLabel = stops[stops.length - 1].name;
+  const originLabel = firstStop.name;
+  const destinationLabel = lastStop.name;
 
   const options: JourneyOption[] = domain === 'interstellar'
     ? [...buildInterstellarOptions(steps, totalDistanceLy, originLabel, destinationLabel, makeOptionHref)]

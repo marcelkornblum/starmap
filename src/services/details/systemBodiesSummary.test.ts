@@ -50,8 +50,8 @@ describe('systemBodiesSummary', () => {
     expect(summary).not.toBeNull();
     expect(summary?.planets).toHaveLength(1);
     expect(summary?.moonsAndDwarfPlanets).toHaveLength(1);
-    expect(summary?.moonsAndDwarfPlanets[0].id).toBe('ceres');
+    expect(summary?.moonsAndDwarfPlanets[0]?.id).toBe('ceres');
     expect(summary?.minorBodiesAndSpacecraft).toHaveLength(1);
-    expect(summary?.minorBodiesAndSpacecraft[0].id).toBe('voyager-1');
+    expect(summary?.minorBodiesAndSpacecraft[0]?.id).toBe('voyager-1');
   });
 });

@@ -77,7 +77,8 @@ export const resolveStarTypeGuideEntry = (
   const match = YERKES_REGEX.exec(trimmed);
   if (!match) return null;
 
-  const spectralLetter = match[1].toUpperCase();
+  const spectralLetter = match[1]?.toUpperCase();
+  if (!spectralLetter) return null;
   const entryId = SPECTRAL_LETTER_TO_ID[spectralLetter];
   if (!entryId) return null;
 
@@ -85,10 +86,13 @@ export const resolveStarTypeGuideEntry = (
   if (!entry) return null;
 
   const subdivision = match[3] || undefined;
-  let luminosityClass = match[4]
-    ? match[4].length === 2 && match[4].toLowerCase().startsWith('i') && (match[4].endsWith('a') || match[4].endsWith('b'))
-      ? `${match[4][0].toUpperCase()}${match[4][1].toLowerCase()}`
-      : match[4].toUpperCase()
+  const rawLuminosity = match[4];
+  let luminosityClass = rawLuminosity
+    ? rawLuminosity.length === 2 &&
+      rawLuminosity.toLowerCase().startsWith('i') &&
+      (rawLuminosity.endsWith('a') || rawLuminosity.endsWith('b'))
+      ? `${rawLuminosity.charAt(0).toUpperCase()}${rawLuminosity.charAt(1).toLowerCase()}`
+      : rawLuminosity.toUpperCase()
     : undefined;
 
   // White dwarfs (D) default to luminosity class VII when not otherwise specified

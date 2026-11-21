@@ -112,20 +112,20 @@ describe('galaxyBodiesExtractor', () => {
       },
     });
 
-    expect(summary.systems[0].id).toBe('sol');
-    expect(summary.systems[0].distanceFromFocusPc).toBe(0);
-    expect(summary.systems[0].distanceFromFocusLy).toBe(0);
+    expect(summary.systems[0]?.id).toBe('sol');
+    expect(summary.systems[0]?.distanceFromFocusPc).toBe(0);
+    expect(summary.systems[0]?.distanceFromFocusLy).toBe(0);
 
-    expect(summary.systems[1].id).toBe('alpha-centauri');
-    expect(summary.systems[1].distanceFromFocusPc).toBe(1.44);
-    expect(summary.systems[1].distanceFromFocusLy).toBe(4.7);
-    expect(summary.systems[1].distanceGuideHref).toBe('/guide/metrics/distance?focus=alpha-centauri');
+    expect(summary.systems[1]?.id).toBe('alpha-centauri');
+    expect(summary.systems[1]?.distanceFromFocusPc).toBe(1.44);
+    expect(summary.systems[1]?.distanceFromFocusLy).toBe(4.7);
+    expect(summary.systems[1]?.distanceGuideHref).toBe('/guide/metrics/distance?focus=alpha-centauri');
 
-    expect(summary.systems[2].id).toBe('barnard-star');
-    expect(summary.systems[2].distanceFromFocusPc).toBe(1.88);
+    expect(summary.systems[2]?.id).toBe('barnard-star');
+    expect(summary.systems[2]?.distanceFromFocusPc).toBe(1.88);
 
-    expect(summary.systems[3].id).toBe('tau-ceti');
-    expect(summary.systems[3].distanceFromFocusPc).toBe(3.71);
+    expect(summary.systems[3]?.id).toBe('tau-ceti');
+    expect(summary.systems[3]?.distanceFromFocusPc).toBe(3.71);
   });
 
   it('resolves parent system slug when child planet/star is focused on GalaxyView', () => {
@@ -158,7 +158,7 @@ describe('galaxyBodiesExtractor', () => {
       expect(sys.distanceFromFocusLy).toBeUndefined();
       expect(sys.distanceGuideHref).toBeUndefined();
     }
-    expect(summary.systems[0].id).toBe('sol');
+    expect(summary.systems[0]?.id).toBe('sol');
   });
 
   it('preserves query parameters like select, center, dist on system navigation href', () => {

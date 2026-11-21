@@ -63,11 +63,12 @@ describe('systemOrbitalSchematic', () => {
     );
 
     expect(schematic).not.toBeNull();
-    expect(schematic!.items.length).toBe(4);
-    expect(schematic!.items[0].id).toBe('sol-star');
-    expect(schematic!.items[1].id).toBe('earth');
-    expect(schematic!.items[2].id).toBe('asteroid-belt');
-    expect(schematic!.items[3].id).toBe('jupiter');
+    if (!schematic) return;
+    expect(schematic.items.length).toBe(4);
+    expect(schematic.items[0]?.id).toBe('sol-star');
+    expect(schematic.items[1]?.id).toBe('earth');
+    expect(schematic.items[2]?.id).toBe('asteroid-belt');
+    expect(schematic.items[3]?.id).toBe('jupiter');
   });
 
   it('populates moons and dwarf planets from corpus when omitted in input', () => {

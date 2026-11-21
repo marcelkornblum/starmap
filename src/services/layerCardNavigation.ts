@@ -128,7 +128,7 @@ export function resolveLayerItemTargetHref(
     params.set('layer', `${layerSlug}:${itemSlug}`);
   } else if (currentPathname?.startsWith('/planet/')) {
     targetView = 'planet';
-    targetPathname = currentPathname.split('?')[0].split('#')[0];
+    targetPathname = currentPathname.split('?')[0]?.split('#')[0] ?? '';
     params.set('center', itemSlug);
     params.set('focus', itemSlug);
     params.set('select', `layer:${layerSlug}`);

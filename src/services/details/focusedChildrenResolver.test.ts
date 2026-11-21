@@ -46,8 +46,8 @@ describe('focusedChildrenResolver', () => {
   it('resolves orbiting bodies matching planet slug', () => {
     const bodies = resolveOrbitingBodies(new Set(['jupiter']), 'sol', corpus);
     expect(bodies).toHaveLength(1);
-    expect(bodies[0].id).toBe('europa');
-    expect(bodies[0].categoryKey).toBe('moon');
+    expect(bodies[0]?.id).toBe('europa');
+    expect(bodies[0]?.categoryKey).toBe('moon');
   });
 
   it('resolves disk resident bodies', () => {
@@ -65,7 +65,7 @@ describe('focusedChildrenResolver', () => {
     };
     const residents = resolveDiskResidentBodies(disk, 'sol', corpus, 'sol');
     expect(residents).toHaveLength(1);
-    expect(residents[0].id).toBe('ceres');
-    expect(residents[0].categoryKey).toBe('dwarf-planet');
+    expect(residents[0]?.id).toBe('ceres');
+    expect(residents[0]?.categoryKey).toBe('dwarf-planet');
   });
 });

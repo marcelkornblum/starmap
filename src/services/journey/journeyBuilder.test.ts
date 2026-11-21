@@ -147,7 +147,12 @@ describe('journeyBuilder', () => {
       expect(plan.options.map((o) => o.id)).toContain('torchship-1g');
       expect(plan.options.map((o) => o.id)).toContain('antimatter-0.1c');
       expect(plan.chordLegs).toHaveLength(1);
-      expect(plan.steps[0].secondaryGeometry).toEqual({
+      const firstStep = plan.steps[0];
+      const firstOption = plan.options[0];
+      expect(firstStep).toBeDefined();
+      expect(firstOption).toBeDefined();
+      if (!firstStep || !firstOption) return;
+      expect(firstStep.secondaryGeometry).toEqual({
         kind: 'elevation',
         deltaZ: {
           value: expect.any(Number),
@@ -156,12 +161,12 @@ describe('journeyBuilder', () => {
           secondaryUnit: 'ly',
         },
       });
-      expect('secondaryGeometryLabel' in plan.steps[0]).toBe(false);
-      expect(plan.options[0].stats.elevationOrRange).toEqual({
+      expect('secondaryGeometryLabel' in firstStep).toBe(false);
+      expect(firstOption.stats.elevationOrRange).toEqual({
         kind: 'single-leg',
-        geometry: plan.steps[0].secondaryGeometry,
+        geometry: firstStep.secondaryGeometry,
       });
-      expect('elevationOrRangeLabel' in plan.options[0].stats).toBe(false);
+      expect('elevationOrRangeLabel' in firstOption.stats).toBe(false);
     });
 
     it('builds comprehensive intra-system JourneyPlan with brachistochrone and Hohmann options', () => {
@@ -179,7 +184,12 @@ describe('journeyBuilder', () => {
       expect(plan.totalCommsOneWay?.unit).toBe('min');
       expect(plan.options.map((o) => o.id)).toContain('torchship-1g');
       expect(plan.options.map((o) => o.id)).toContain('hohmann-transfer');
-      expect(plan.steps[0].secondaryGeometry).toEqual({
+      const firstStep = plan.steps[0];
+      const firstOption = plan.options[0];
+      expect(firstStep).toBeDefined();
+      expect(firstOption).toBeDefined();
+      if (!firstStep || !firstOption) return;
+      expect(firstStep.secondaryGeometry).toEqual({
         kind: 'orbital-range',
         min: {
           value: expect.any(Number),
@@ -194,12 +204,12 @@ describe('journeyBuilder', () => {
           secondaryUnit: 'M km',
         },
       });
-      expect('secondaryGeometryLabel' in plan.steps[0]).toBe(false);
-      expect(plan.options[0].stats.elevationOrRange).toEqual({
+      expect('secondaryGeometryLabel' in firstStep).toBe(false);
+      expect(firstOption.stats.elevationOrRange).toEqual({
         kind: 'single-leg',
-        geometry: plan.steps[0].secondaryGeometry,
+        geometry: firstStep.secondaryGeometry,
       });
-      expect('elevationOrRangeLabel' in plan.options[0].stats).toBe(false);
+      expect('elevationOrRangeLabel' in firstOption.stats).toBe(false);
     });
 
     it('supports multi-stop routes with cumulative distance and multiple chord legs', () => {
@@ -214,7 +224,7 @@ describe('journeyBuilder', () => {
       expect(plan.steps).toHaveLength(2);
       expect(plan.chordLegs).toHaveLength(2);
       expect(plan.focusedStopIds).toEqual(['sol', 'proxima-centauri', 'sirius']);
-      expect(plan.options[0].stats.elevationOrRange).toEqual({
+      expect(plan.options[0]?.stats.elevationOrRange).toEqual({
         kind: 'multi-leg',
         legCount: 2,
         domain: 'interstellar',

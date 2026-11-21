@@ -129,19 +129,22 @@ export function buildIntraSystemOptions(
     secondaryValue: Number(((totalDistanceAu * AU_TO_KM) / 1e6).toFixed(1)),
     secondaryUnit: 'M km',
   };
+  const firstStep = steps[0];
   const elevationOrRange: JourneyOptionElevationOrRange =
-    steps.length === 1
-      ? { kind: 'single-leg', geometry: steps[0].secondaryGeometry }
+    steps.length === 1 && firstStep
+      ? { kind: 'single-leg', geometry: firstStep.secondaryGeometry }
       : { kind: 'multi-leg', legCount: steps.length, domain: 'intra-system' };
 
   const commonStats: CommonIntraSystemStats = { originLabel, destinationLabel, distancePrimary, elevationOrRange };
   const totalLightMinMean = totalDistanceAu * AU_TO_LIGHT_MINUTES;
 
-  const r1 = stops[0].semiMajorAxisAu;
-  const r2 = stops[stops.length - 1].semiMajorAxisAu;
-  if (typeof r1 !== 'number' || typeof r2 !== 'number' || r1 <= 0 || r2 <= 0) {
+  const firstStop = stops[0];
+  const lastStop = stops[stops.length - 1];
+  const r1 = firstStop?.semiMajorAxisAu;
+  const r2 = lastStop?.semiMajorAxisAu;
+  if (!firstStop || !lastStop || typeof r1 !== 'number' || typeof r2 !== 'number' || r1 <= 0 || r2 <= 0) {
     throw new Error(
-      `Missing or non-positive orbital semi-major axis telemetry for Hohmann transfer between ${stops[0].name} and ${stops[stops.length - 1].name}.`,
+      `Missing or non-positive orbital semi-major axis telemetry for Hohmann transfer between ${firstStop?.name ?? 'unknown'} and ${lastStop?.name ?? 'unknown'}.`,
     );
   }
   const hohmann = computeHohmannTransferOrbit(r1, r2, 1.0);

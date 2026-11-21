@@ -41,6 +41,15 @@ interface ClassBaseData {
   readonly chromaticityToken: string;
 }
 
+const G_CLASS_BASE_DATA: ClassBaseData = {
+  temp0: 6000,
+  temp9: 5200,
+  baseRadius: 1.0,
+  classEffect:
+    'Class G establishes a solar-type yellow regime (5,200–6,000 K) with neutral iron and ionized calcium lines.',
+  chromaticityToken: 'var(--star-chromaticity-g)',
+};
+
 const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
   O: {
     temp0: 50000,
@@ -74,14 +83,7 @@ const CLASS_BASE_DATA: Record<string, ClassBaseData> = {
       'Class F establishes a yellow-white regime (6,000–7,500 K) with developing ionized metal absorption spectra.',
     chromaticityToken: 'var(--star-chromaticity-f)',
   },
-  G: {
-    temp0: 6000,
-    temp9: 5200,
-    baseRadius: 1.0,
-    classEffect:
-      'Class G establishes a solar-type yellow regime (5,200–6,000 K) with neutral iron and ionized calcium lines.',
-    chromaticityToken: 'var(--star-chromaticity-g)',
-  },
+  G: G_CLASS_BASE_DATA,
   K: {
     temp0: 5200,
     temp9: 3700,
@@ -141,8 +143,8 @@ export const computeSpectralCombination = (
   subdivision: string,
   luminosityClass: string,
 ): SpectralCombinationResult => {
-  const letter = (spectralLetter.trim().toUpperCase() || 'G')[0];
-  const data = CLASS_BASE_DATA[letter] ?? CLASS_BASE_DATA.G;
+  const letter = (spectralLetter.trim().toUpperCase() || 'G').charAt(0);
+  const data = CLASS_BASE_DATA[letter] ?? G_CLASS_BASE_DATA;
 
   const rawSub = Number.parseFloat(subdivision);
   const subNum = Number.isFinite(rawSub) ? Math.max(0, Math.min(9.9, rawSub)) : 2;

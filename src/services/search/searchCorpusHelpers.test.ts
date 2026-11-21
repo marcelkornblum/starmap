@@ -14,28 +14,34 @@ import { mergeActiveStarsIntoCorpus } from '../details/activeStarsCorpus';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import { SAMPLE_CORPUS } from '../../../tests/fixtures/searchFixtures';
 
+const corpusEntryAt = (index: number): CompactSearchEntry => {
+  const entry = SAMPLE_CORPUS[index];
+  if (!entry) throw new Error(`Missing SAMPLE_CORPUS[${index}]`);
+  return entry;
+};
+
 describe('searchCorpusHelpers', () => {
   it('maps CompactSearchEntry kind codes to categories and entity kinds', () => {
-    expect(resolveEntryCategory(SAMPLE_CORPUS[0])).toBe('stars');
-    expect(resolveEntityKind(SAMPLE_CORPUS[0])).toBe('star-system');
+    expect(resolveEntryCategory(corpusEntryAt(0))).toBe('stars');
+    expect(resolveEntityKind(corpusEntryAt(0))).toBe('star-system');
 
-    expect(resolveEntryCategory(SAMPLE_CORPUS[3])).toBe('planets');
-    expect(resolveEntityKind(SAMPLE_CORPUS[3])).toBe('planet');
+    expect(resolveEntryCategory(corpusEntryAt(3))).toBe('planets');
+    expect(resolveEntityKind(corpusEntryAt(3))).toBe('planet');
 
-    expect(resolveEntryCategory(SAMPLE_CORPUS[5])).toBe('planets');
-    expect(resolveEntityKind(SAMPLE_CORPUS[5])).toBe('moon');
+    expect(resolveEntryCategory(corpusEntryAt(5))).toBe('planets');
+    expect(resolveEntityKind(corpusEntryAt(5))).toBe('moon');
 
-    expect(resolveEntryCategory(SAMPLE_CORPUS[6])).toBe('planets');
-    expect(resolveEntityKind(SAMPLE_CORPUS[6])).toBe('dwarf-planet');
+    expect(resolveEntryCategory(corpusEntryAt(6))).toBe('planets');
+    expect(resolveEntityKind(corpusEntryAt(6))).toBe('dwarf-planet');
 
-    expect(resolveEntryCategory(SAMPLE_CORPUS[7])).toBe('structures');
-    expect(resolveEntityKind(SAMPLE_CORPUS[7])).toBe('galactic-structure');
+    expect(resolveEntryCategory(corpusEntryAt(7))).toBe('structures');
+    expect(resolveEntityKind(corpusEntryAt(7))).toBe('galactic-structure');
 
-    expect(resolveEntryCategory(SAMPLE_CORPUS[8])).toBe('minor-bodies');
-    expect(resolveEntityKind(SAMPLE_CORPUS[8])).toBe('minor-body');
+    expect(resolveEntryCategory(corpusEntryAt(8))).toBe('minor-bodies');
+    expect(resolveEntityKind(corpusEntryAt(8))).toBe('minor-body');
 
-    expect(resolveEntryCategory(SAMPLE_CORPUS[9])).toBe('layers');
-    expect(resolveEntityKind(SAMPLE_CORPUS[9])).toBe('fictional-entry');
+    expect(resolveEntryCategory(corpusEntryAt(9))).toBe('layers');
+    expect(resolveEntityKind(corpusEntryAt(9))).toBe('fictional-entry');
 
     const parentLayerEntry: CompactSearchEntry = {
       i: 'canon-project-hail-mary',

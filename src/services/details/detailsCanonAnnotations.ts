@@ -85,7 +85,7 @@ export function buildInPlaceLayerItemHref(
   searchParams.set('select', `layer:${layerSlug}`);
   searchParams.set('layer', `${layerSlug}:${itemSlug}`);
   const qs = searchParams.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
-  const basePath = (currentPathname || '/galaxy').split('?')[0].split('#')[0];
+  const basePath = (currentPathname || '/galaxy').split('?')[0]?.split('#')[0] ?? '';
   return `${basePath}?${qs}`;
 }
 
@@ -152,7 +152,7 @@ export const resolveFocusedCanonAnnotations = (
   searchParams.delete('layer');
   const preservedQs = searchParams.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
   const preservedPrefix = preservedQs ? `${preservedQs}&` : '';
-  const basePath = (currentPathname || '/galaxy').split('?')[0].split('#')[0];
+  const basePath = (currentPathname || '/galaxy').split('?')[0]?.split('#')[0] ?? '';
 
   const hrefBuilder = (layerId: string, recordTargetId: string, name?: string): string => {
     const cleanId = recordTargetId.includes(':')

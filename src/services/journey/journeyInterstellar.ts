@@ -180,9 +180,10 @@ export function buildInterstellarOptions(
     secondaryValue: Number(totalDistancePc.toFixed(2)),
     secondaryUnit: 'pc',
   };
+  const firstStep = steps[0];
   const elevationOrRange: JourneyOptionElevationOrRange =
-    steps.length === 1
-      ? { kind: 'single-leg', geometry: steps[0].secondaryGeometry }
+    steps.length === 1 && firstStep
+      ? { kind: 'single-leg', geometry: firstStep.secondaryGeometry }
       : { kind: 'multi-leg', legCount: steps.length, domain: 'interstellar' };
 
   const commonStats: CommonInterstellarStats = {

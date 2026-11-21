@@ -38,7 +38,7 @@ describe('orbitalSchematicHelpers', () => {
       { id: 'a', name: 'A', href: '', kind: 'planet' as const, summaryLabel: '', semiMajorAxisAu: 1.0, isHabitableCandidate: true, originalIndex: 1 },
     ];
     const sorted = sortSchematicCandidates(candidates);
-    expect(sorted[0].id).toBe('a');
-    expect(sorted[1].id).toBe('b');
+    expect(sorted[0]?.id).toBe('a');
+    expect(sorted[1]?.id).toBe('b');
   });
 });
