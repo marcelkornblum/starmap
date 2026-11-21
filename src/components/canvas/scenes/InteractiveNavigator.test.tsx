@@ -8,8 +8,8 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {
     ...actual,
-    Canvas: ({ children: _children }: { children?: React.ReactNode }) => (
-      <div data-testid="mock-canvas" />
+    Canvas: ({ children: _children, frameloop }: { children?: React.ReactNode; frameloop?: string }) => (
+      <div data-testid="mock-canvas" data-frameloop={frameloop} />
     ),
   };
 });
@@ -24,9 +24,11 @@ const mockAdditionalEntities: readonly SpatialEntityDefinition[] = [
 ];
 
 describe('InteractiveNavigator Component', () => {
-  it('renders initial scale canvas cleanly', () => {
+  it('renders initial scale canvas cleanly with frameloop="demand"', () => {
     render(<InteractiveNavigator additionalEntities={mockAdditionalEntities} />);
-    expect(screen.getByTestId('mock-canvas')).toBeInTheDocument();
+    const canvas = screen.getByTestId('mock-canvas');
+    expect(canvas).toBeInTheDocument();
+    expect(canvas).toHaveAttribute('data-frameloop', 'demand');
   });
 
   it('maintains a single persistent canvas element when scale transitions via Escape key', () => {

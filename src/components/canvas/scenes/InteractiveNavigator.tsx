@@ -53,6 +53,7 @@ export const InteractiveNavigator: React.FC<InteractiveNavigatorProps> = ({
     <div className={containerClass} data-variant={variant}>
       <div className={styles.canvasWrapper}>
         <Canvas
+          frameloop="demand"
           flat
           dpr={1}
           gl={{ antialias: true, alpha: true }}

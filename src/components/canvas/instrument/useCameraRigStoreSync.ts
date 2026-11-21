@@ -16,6 +16,8 @@ import {
 } from './cameraRigZoomAndPan';
 import type { ReferenceFrame } from '../../../types/spatial';
 
+import type { CameraRigThreeState } from './useCameraRigProjection';
+
 const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
 
 export interface UseCameraRigStoreSyncOptions {
@@ -24,7 +26,7 @@ export interface UseCameraRigStoreSyncOptions {
     addEventListener?: (type: string, listener: () => void) => void;
     removeEventListener?: (type: string, listener: () => void) => void;
   };
-  get: () => any;
+  get: () => CameraRigThreeState;
   frame: ReferenceFrame;
   configuredBaseFov: number;
   snapOnRelease?: boolean;

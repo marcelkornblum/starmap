@@ -48,10 +48,12 @@ Tier 1 and Tier 2 interface primitives in `src/components/interface/` must remai
 - **`components/interface` cannot import from `data`, `content`, `services`, or `stores`**.
 Any attempt by a primitive to bind directly to a repository or global store fails `npm run lint`. For component design rules, see [Component Architecture](../../conductor/code_styleguides/components.md).
 
-### 1.3 Zero Import Cycles & File Size Ceiling (`.oxlintrc.json`)
+### 1.3 Zero Import Cycles, Strict Typing & File Size Ceiling (`.oxlintrc.json`)
 Circular dependencies (`A -> B -> A` or deep transitive loops) create initialisation order bugs and break bundler tree-shaking. `.oxlintrc.json` enforces:
 - **`import/no-cycle: "error"`:** Ensures the entire codebase contains **zero** import cycles.
 - **`max-lines: "error"`:** Enforces a 300-line ceiling (skipping blank lines and comments) across production source files, exempting tests, stories, `scripts/`, `e2e/`, `tests/`, and `content/`.
+- **`typescript/no-explicit-any: "error"`:** Forbids explicit `any` across all production, test, story, script, and E2E files.
+- **`typescript/no-non-null-assertion: "error"`:** Forbids non-null assertions (`!`) in production `src/` files (disabled in test/story/script overrides).
 
 ---
 
@@ -61,17 +63,18 @@ Each static analysis tool owns a distinct, non-overlapping concern and is run on
 
 ```
 npm run check         ──► Single-pass gate: lint -> typecheck -> audit:guards -> audit:ui -> audit:r3f
-npm run lint          ──► Oxlint (Layering, Import Cycles, 300-Line Ceiling, React Hooks)
+npm run lint          ──► Oxlint (Layering, Import Cycles, 300-Line Ceiling, React Hooks, Strict Types)
 npm run typecheck     ──► TypeScript Project References (tsc -b)
-npm run audit:guards  ──► Domain Literal Guard (G-literals: Zero Hardcoded Celestial Entities)
+npm run audit:guards  ──► Domain Literal Guard (G-literals) & Global Mutation Guard (no-global-this-mutation)
 npm run audit:ui      ──► Design System, Component Quads, CUBE CSS, Zero Inline Styles
-npm run audit:r3f     ──► 60fps Three.js Frame Loop Memory & Performance Audits
+npm run audit:r3f     ──► 60fps R3F Audits (useFrame, Atomic Selectors, On-Demand Frameloop, Resource Disposal, Raycast)
 ```
 
-### 2.1 Domain Literal Guard (`scripts/audit-guards.ts`)
-`audit:guards` focuses exclusively on **`G-literals` (Zero Hardcoded Celestial Entities)**:
-- Scans TypeScript ASTs in `src/` (excluding tests, stories, `src/config/`, and `src/content/`) to verify that celestial entity IDs, names, and classifications are not hardcoded into runtime code. All entities must be read from precalculated data pipeline shards.
+### 2.1 Domain Literal & Global State Guards (`scripts/audit-guards.ts`)
+`audit:guards` enforces **`G-literals` (Zero Hardcoded Celestial Entities)** and **`no-global-this-mutation`**:
+- Scans TypeScript ASTs in `src/` (excluding tests and stories) to verify that celestial entity IDs, names, and classifications are not hardcoded into runtime code. All entities must be read from precalculated data pipeline shards.
 - Flags suspicious non-zero numeric fallbacks (`?? <num>`, `|| <num>`) on astronomical telemetry in `src/services/`, `src/components/canvas/`, and `src/views/`.
+- **`no-global-this-mutation`:** Forbids mutating properties on `globalThis` in production `src/` files (direct/bracket/casted assignments, `Object.defineProperty(globalThis, ...)`, and `Reflect.set(globalThis, ...)`), while permitting read-only property access.
 - Fails closed on parse errors or unexpected exceptions.
 
 ### 2.2 Design System Guard Suite (`scripts/audit-ui.ts`)
@@ -86,11 +89,13 @@ Enforces strict design system standards across `src/components/` and `src/views/
 - **`hardcoded-hex-color` & `hardcoded-css-token`:** Disallows literal hex codes (`#ffffff`) or pixel values; all CSS must consume semantic tokens (`var(--token)`).
 
 ### 2.3 WebGL & Frame-Loop Guard Suite (`scripts/audit-r3f.ts`)
-Enforces 60fps WebGL execution guardrails (see [WebGL, Three.js & R3F Style Guide](../../conductor/code_styleguides/webgl-r3f.md)):
-- Flags any object instantiation (`new THREE.Vector3()`, `new THREE.Matrix4()`, `new Object()`, array literals `[]`) inside `useFrame` callbacks.
-- Flags Zustand store subscriptions or state mutations inside `useFrame`.
-- Flags whole-store or broad object subscriptions in canvas components (`atomic-store-selectors`).
-- Verifies material and geometry reuse across instances.
+Enforces 60fps WebGL execution guardrails across `src/components/canvas/`, `src/components/domain/`, `src/hooks/`, and `src/views/` (see [WebGL, Three.js & R3F Style Guide](../../conductor/code_styleguides/webgl-r3f.md)):
+- **`no-alloc-in-use-frame`, `no-layout-in-use-frame`, `no-setstate-in-use-frame`:** Flags object/array/closure allocations, DOM layout measurements, and React state setters inside `useFrame` callbacks.
+- **`atomic-store-selectors`:** Flags whole-store, identity, object-literal, or broad `state.tokens` Zustand subscriptions across canvas, domain, hook, and view files.
+- **`require-demand-frameloop`:** Flags any production `<Canvas>` missing an explicit `frameloop` attribute or specifying `frameloop="always"`.
+- **`require-resource-dispose`:** Flags `useMemo` GPU resource allocations (`*Geometry`, `*Material`, `*Texture`, `WebGLRenderTarget`) in `src/components/canvas/` production files lacking a `.dispose()` cleanup call.
+- **`require-noop-raycast`:** Flags decorative `<mesh>`, `<lineSegments>`, and `new Line2(...)` instances in `src/components/canvas/` without pointer handlers or `NOOP_RAYCAST`.
+- **`no-inline-jsx-geometry`, `no-material-memo-color-deps`, `valid-r3f-intrinsics`:** Flags inline JSX geometry instantiations, colour/opacity material recreation dependencies, and invalid R3F intrinsic tags.
 
 ---
 

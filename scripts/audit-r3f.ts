@@ -14,7 +14,7 @@ export interface AuditDiagnostic {
   remediation: string;
 }
 
-const R3F_FILES_GLOB = ['src/components/canvas', 'src/views'];
+export const R3F_FILES_GLOB = ['src/components/canvas', 'src/components/domain', 'src/hooks', 'src/views'];
 const INVALID_R3F_TAGS = new Set(['threeline']);
 const POINTER_EVENT_HANDLERS = new Set([
   'onClick',
@@ -33,7 +33,7 @@ const POINTER_EVENT_HANDLERS = new Set([
  * Checks whether a comment on the preceding line or current line suppresses the diagnostic.
  */
 function checkSuppression(text: string, ruleId: string): { suppressed: boolean; invalid: boolean } | null {
-  const match = text.match(/\/\/\s*r3f-audit-disable(?:-next-line)?(?:\s+([\w-]+))?(.*)/);
+  const match = text.match(/(?:\/\/|\/\*)\s*r3f-audit-disable(?:-next-line)?(?:\s+([\w-]+))?(.*)/);
   if (!match) return null;
   const specifiedRule = match[1];
   const rest = match[2]?.trim() || '';
@@ -98,14 +98,15 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
   // Check for unreasoned r3f-audit-disable comments
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const match = line.match(/\/\/\s*r3f-audit-disable(?:-next-line)?(?:\s+([\w-]+))?(.*)/);
+    const match = line.match(/(?:\/\/|\/\*)\s*r3f-audit-disable(?:-next-line)?(?:\s+([\w-]+))?(.*)/);
     if (match) {
       const rest = match[2]?.trim() || '';
       if (!rest.match(/^--\s+(\S+.*)/)) {
+        const commentIdx = line.indexOf('//') >= 0 ? line.indexOf('//') : line.indexOf('/*');
         diagnostics.push({
           filePath,
           line: i + 1,
-          column: (line.indexOf('//') >= 0 ? line.indexOf('//') : 0) + 1,
+          column: (commentIdx >= 0 ? commentIdx : 0) + 1,
           ruleId: 'invalid-suppression',
           severity: 'error',
           message: `Suppression comment "${line.trim()}" without a required reason (-- <reason>) is forbidden.`,
@@ -191,9 +192,68 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
   let insideUseMemoDepth = 0;
   let insideJsxExprDepth = 0;
   const normalizedPath = filePath.replace(/\\/g, '/');
+  const isProductionFile = !/\.(?:stories|test)\.[jt]sx?$/.test(normalizedPath);
   const isCanvasProductionFile =
-    /(?:^|\/)src\/components\/canvas\//.test(normalizedPath) &&
-    !/\.(?:stories|test)\.[jt]sx?$/.test(normalizedPath);
+    /(?:^|\/)src\/components\/canvas\//.test(normalizedPath) && isProductionFile;
+
+  function isGpuResourceConstructor(ctorName: string): boolean {
+    return (
+      ctorName.endsWith('Geometry') ||
+      ctorName.endsWith('Material') ||
+      ctorName.endsWith('Texture') ||
+      ctorName === 'WebGLRenderTarget'
+    );
+  }
+
+  function hasDisposeCleanupCall(rootNode: ASTNode): boolean {
+    let found = false;
+    simpleTraverse(rootNode, (n: ASTNode) => {
+      if (found) return;
+      if (n.type === 'CallExpression' || n.type === 'OptionalCallExpression') {
+        const callee = n.callee as ASTNode | undefined;
+        if (
+          (callee?.type === 'MemberExpression' || callee?.type === 'OptionalMemberExpression') &&
+          callee.property?.type === 'Identifier' &&
+          callee.property.name === 'dispose'
+        ) {
+          found = true;
+        } else if (
+          callee?.type === 'Identifier' &&
+          typeof callee.name === 'string' &&
+          (callee.name === 'dispose' || /^dispose[A-Z]/.test(callee.name))
+        ) {
+          found = true;
+        }
+      }
+    });
+    return found;
+  }
+
+  const fileHasDispose = isCanvasProductionFile
+    ? hasDisposeCleanupCall(ast as unknown as ASTNode)
+    : true;
+
+  function isFrameloopAlwaysValue(attr: ASTNode): boolean {
+    const val = attr.value as ASTNode | null | undefined;
+    if (!val) return false;
+    if (val.type === 'StringLiteral' && val.value === 'always') return true;
+    if (val.type === 'JSXExpressionContainer') {
+      const expr = val.expression as ASTNode | undefined;
+      if (expr?.type === 'StringLiteral' && expr.value === 'always') return true;
+      if (
+        expr?.type === 'TemplateLiteral' &&
+        Array.isArray(expr.expressions) &&
+        expr.expressions.length === 0 &&
+        Array.isArray(expr.quasis) &&
+        expr.quasis.length === 1
+      ) {
+        const quasi = expr.quasis[0] as { value?: { cooked?: string; raw?: string } };
+        const text = quasi.value?.cooked ?? quasi.value?.raw;
+        if (text === 'always') return true;
+      }
+    }
+    return false;
+  }
 
   function hasRaycastNoopAssignment(scopeNode: ASTNode, targetVarName: string): boolean {
     let found = false;
@@ -298,16 +358,29 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       }
     }
 
-    // 2. Check no-inline-jsx-geometry
-    if (obj.type === 'NewExpression' && insideJsxExprDepth > 0 && insideUseMemoDepth === 0) {
+    // 2. Check no-inline-jsx-geometry & require-resource-dispose
+    if (obj.type === 'NewExpression') {
       const ctorName = getConstructorName(obj.callee);
-      if (ctorName.endsWith('Geometry')) {
+      if (insideJsxExprDepth > 0 && insideUseMemoDepth === 0 && ctorName.endsWith('Geometry')) {
         addDiagnostic(
           obj.loc?.start,
           'no-inline-jsx-geometry',
           'error',
           `Inline geometry instantiation \`new ${ctorName}()\` inside JSX prop. Geometries created in JSX are recreated on every render and leak GPU memory unless disposed.`,
           'Instantiate geometry in useMemo or module scope, and dispose on unmount.'
+        );
+      } else if (
+        isCanvasProductionFile &&
+        insideUseMemoDepth > 0 &&
+        !fileHasDispose &&
+        isGpuResourceConstructor(ctorName)
+      ) {
+        addDiagnostic(
+          obj.loc?.start,
+          'require-resource-dispose',
+          'error',
+          `GPU resource \`new ${ctorName}()\` allocated inside \`useMemo\` without a corresponding \`.dispose()\` cleanup call in this file.`,
+          'Register a `useEffect(() => () => resource.dispose(), [resource])` cleanup effect.'
         );
       }
     }
@@ -337,9 +410,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       // 4. Detect atomic-store-selectors: Zustand store subscriptions
       if (
         callName !== 'useSyncExternalStore' &&
-        (/^use[A-Z]\w*Store$/.test(callName) ||
-          callName === 'useThemeStore' ||
-          callName === 'useStarmapStore')
+        /^use[A-Z]\w*Store$/.test(callName)
       ) {
         if (!obj.arguments || obj.arguments.length === 0) {
           addDiagnostic(
@@ -455,7 +526,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       }
     }
 
-    // 5. Detect invalid JSX intrinsic tags (e.g. <threeLine>) & require-noop-raycast
+    // 5. Detect invalid JSX intrinsic tags (e.g. <threeLine>), require-noop-raycast & require-demand-frameloop
     if (obj.type === 'JSXOpeningElement' || obj.type === 'JSXSelfClosingElement') {
       const tagObj = typeof obj.name === 'object' ? obj.name : undefined;
       const tagNameStr = typeof obj.name === 'string' ? obj.name : tagObj?.name;
@@ -469,6 +540,30 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
             `Invalid React Three Fiber intrinsic element <${tagNameStr}> detected. R3F intrinsic tags map directly to lowercase Three.js classes.`,
             'Replace with `<line>` (maps to `THREE.Line`) or `<lineSegments>`.'
           );
+        } else if (isProductionFile && tagNameStr === 'Canvas') {
+          const attrs = Array.isArray(obj.attributes) ? (obj.attributes as ASTNode[]) : [];
+          const frameloopAttr = attrs.find((attr) => {
+            if (attr.type !== 'JSXAttribute') return false;
+            const attrNameNode = typeof attr.name === 'object' ? (attr.name as ASTNode) : undefined;
+            return attrNameNode?.name === 'frameloop';
+          });
+          if (!frameloopAttr) {
+            addDiagnostic(
+              obj.loc?.start || tagObj.loc?.start,
+              'require-demand-frameloop',
+              'error',
+              '<Canvas> is missing an explicit `frameloop` attribute (R3F defaults to `"always"` continuous rendering).',
+              'Add `frameloop="demand"` (or `"never"` / a dynamic `frameloop` prop) to avoid idle GPU rendering.'
+            );
+          } else if (isFrameloopAlwaysValue(frameloopAttr)) {
+            addDiagnostic(
+              frameloopAttr.loc?.start || obj.loc?.start,
+              'require-demand-frameloop',
+              'error',
+              '<Canvas frameloop="always"> forces a continuous 60fps WebGL loop even when the scene is static.',
+              'Use `frameloop="demand"` (with `invalidate()` where needed) or `frameloop="never"`.'
+            );
+          }
         } else if (
           isCanvasProductionFile &&
           (tagNameStr === 'mesh' || tagNameStr === 'lineSegments') &&
@@ -714,7 +809,11 @@ export function runR3fAudit(targetDirs: string[] = R3F_FILES_GLOB): AuditDiagnos
 
   for (const file of filesToScan) {
     const content = fs.readFileSync(file, 'utf8');
-    const hasThree = content.includes('useFrame') || content.includes('@react-three') || content.includes('three');
+    const hasThree =
+      content.includes('useFrame') ||
+      content.includes('@react-three') ||
+      content.includes('three') ||
+      content.includes('<Canvas');
     const hasStore = content.includes('Store(') || /use[A-Z]\w*Store/.test(content);
     if (!hasThree && !hasStore) {
       continue;

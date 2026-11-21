@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
 import { renderHook, act } from '@testing-library/react';
 import { useCameraRigStoreSync } from './useCameraRigStoreSync';
+import type { CameraRigThreeState } from './useCameraRigProjection';
+import type { OrbitControlsLike } from './cameraRigZoomAndPan';
 import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { CardinalTransitionController } from './cameraRigControls';
@@ -11,11 +13,16 @@ vi.mock('@react-three/fiber', () => ({
   useFrame: vi.fn(),
 }));
 
+type MockStoreSyncControls = OrbitControlsLike & {
+  addEventListener: ReturnType<typeof vi.fn<(type: string, listener: () => void) => void>>;
+  removeEventListener: ReturnType<typeof vi.fn<(type: string, listener: () => void) => void>>;
+};
+
 describe('useCameraRigStoreSync', () => {
   let camera: THREE.PerspectiveCamera;
   let target: THREE.Vector3;
-  let mockControls: any;
-  let threeGet: () => any;
+  let mockControls: MockStoreSyncControls;
+  let threeGet: () => CameraRigThreeState;
   let controller: CardinalTransitionController;
   let mockGlideToCardinal: ReturnType<typeof vi.fn<(cardinal: CardinalDirection) => void>>;
 
@@ -35,8 +42,8 @@ describe('useCameraRigStoreSync', () => {
       screenSpacePanning: false,
       mouseButtons: { LEFT: THREE.MOUSE.ROTATE },
       touches: { ONE: THREE.TOUCH.ROTATE },
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
+      addEventListener: vi.fn<(type: string, listener: () => void) => void>(),
+      removeEventListener: vi.fn<(type: string, listener: () => void) => void>(),
       update: vi.fn(),
     };
 

@@ -11,22 +11,26 @@ The authoritative project standards (TypeScript, React, R3F and Starmap conventi
 ## Areas of Focus
 
 1. **TypeScript & Component Architecture**:
-   - Strictly typed: Avoid `any` (prefer `unknown` or explicit types). Avoid non-null assertions (`!`) unless clearly justified.
+   - Strictly typed: Zero `any` (`typescript/no-explicit-any`) across production and test files. Zero non-null assertions (`!`) in production source files (`typescript/no-non-null-assertion`).
+   - Zero `globalThis` mutable state or locators: Never assign properties on `globalThis` or call `Object.defineProperty(globalThis, ...)` / `Reflect.set(globalThis, ...)` (`no-global-this-mutation`).
+   - Zero backwards-compatible shims or legacy aliases: Perform clean, complete cutovers across build scripts, runtime code, data shards, and tests whenever contracts change.
    - React components: Defined as `const` arrow functions with explicitly typed prop interfaces. Named exports only (no default exports unless required by route file conventions).
    - Single responsibility: Keep UI rendering, coordinate math, and state mutation decoupled.
 
 2. **3D & WebGL Performance (Three.js / React Three Fiber)**:
+   - On-demand rendering (`require-demand-frameloop`): Every production `<Canvas>` must set `frameloop="demand"` (or `"never"` / a dynamic prop), never `"always"` or omitted.
    - Frame rate: Respect the 60fps frame budget. Never allocate objects (`new THREE.Vector3()`, arrays, object literals) inside `useFrame` render loops; reuse scratch instances.
-   - Resource disposal: Ensure custom geometries, materials, and textures are cleaned up / disposed of properly on unmount to prevent WebGL memory leaks.
-   - Rendering strategy: Use `InstancedMesh`, `Points`, or batched draw calls for star systems rather than spawning thousands of individual meshes.
+   - Resource disposal (`require-resource-dispose`): Ensure custom geometries, materials, textures, and render targets allocated in `useMemo` are cleaned up via `.dispose()` on unmount to prevent WebGL memory leaks.
+   - Rendering strategy: Use `InstancedMesh`, `Points`, or batched draw calls (such as merged line segments) rather than spawning individual meshes per entity.
 
 3. **Astronomical Calculations & Accuracy**:
    - Coordinate transformations: Check precision and edge cases in transforms (RA/Dec/Parallax to Cartesian XYZ, J2000 epoch, light-year/parsec units).
    - Guard against invalid astronomical values: Zero or negative parallax/distance, divide-by-zero, `NaN`, or missing magnitude values.
 
-4. **State Management & Routing (Zustand & TanStack Router)**:
-   - Zustand: Use atomic selectors to prevent unnecessary component re-renders. Avoid storing derived or transient animation data in global stores.
-   - TanStack Router: Ensure type-safe search params and route navigation contracts are maintained.
+4. **State Management, Routing & Data Shards**:
+   - Zustand: Use atomic selectors (`atomic-store-selectors`) to prevent unnecessary component re-renders. Avoid storing derived or transient animation data in global stores.
+   - R3F router bridging: Bridge outer TanStack Router instances across `<Canvas>` reconciler boundaries using `CanvasRouterBridgeContext` rather than `globalThis` hooks or duplicate router instances.
+   - TanStack Router & content-hashed shards: Maintain type-safe search params and route navigation contracts, and resolve build-time data shards via `manifest.json` content-hashed URLs.
 
 5. **Styling, Semantic UI Primitives & Schematic UX**:
    - CSS Modules with central design token custom properties. Reject arbitrary inline styles or hardcoded magic values.

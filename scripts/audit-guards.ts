@@ -304,16 +304,17 @@ function pushGuardedViolation(
   filePath: string,
   lines: string[],
   loc: { line: number; column: number } | undefined,
-  message: string
+  message: string,
+  ruleId = 'G-literals'
 ): void {
   if (!loc) return;
-  const supp = checkSuppression(lines, loc.line, 'G-literals');
+  const supp = checkSuppression(lines, loc.line, ruleId);
   if (supp.invalidComment) {
     violations.push({
       filePath,
       line: loc.line,
       column: loc.column + 1,
-      ruleId: 'G-literals',
+      ruleId,
       message: `Suppression comment "${supp.invalidComment}" without a required reason (-- <reason>) is forbidden.`,
       snippet: (lines[loc.line - 1] || '').trim(),
     });
@@ -322,7 +323,7 @@ function pushGuardedViolation(
       filePath,
       line: loc.line,
       column: loc.column + 1,
-      ruleId: 'G-literals',
+      ruleId,
       message,
       snippet: (lines[loc.line - 1] || '').trim(),
     });
@@ -540,6 +541,101 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
   return violations;
 }
 
+function unwrapTsExpression(node: ASTNode | undefined): ASTNode | undefined {
+  let current = node;
+  while (
+    current &&
+    (current.type === 'TSAsExpression' ||
+      current.type === 'TSSatisfiesExpression' ||
+      current.type === 'TSTypeAssertion' ||
+      current.type === 'TSNonNullExpression' ||
+      current.type === 'ParenthesizedExpression')
+  ) {
+    current = current.expression as ASTNode | undefined;
+  }
+  return current;
+}
+
+function isGlobalThisIdentifier(node: ASTNode | undefined): boolean {
+  const unwrapped = unwrapTsExpression(node);
+  return unwrapped?.type === 'Identifier' && unwrapped.name === 'globalThis';
+}
+
+/**
+ * no-global-this-mutation: Forbids writing properties or defining descriptors on globalThis.
+ */
+export function auditGlobalThisMutationContent(filePath: string, content: string): GuardViolation[] {
+  const violations: GuardViolation[] = [];
+
+  let ast: ReturnType<typeof parse>;
+  try {
+    ast = parse(content, {
+      sourceType: 'module',
+      plugins: ['typescript', 'jsx'],
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const loc =
+      err && typeof err === 'object' && 'loc' in err
+        ? (err as { loc?: { line?: number; column?: number } }).loc
+        : undefined;
+    violations.push({
+      filePath,
+      line: loc?.line ?? 1,
+      column: (loc?.column ?? 0) + 1,
+      ruleId: 'parse-error',
+      message: `Failed to parse file for no-global-this-mutation check: ${message}`,
+    });
+    return violations;
+  }
+
+  const lines = content.split('\n');
+
+  traverseAst(ast, (node: ASTNode) => {
+    if (node.type === 'AssignmentExpression') {
+      const left = unwrapTsExpression(node.left);
+      if (left?.type === 'MemberExpression' && isGlobalThisIdentifier(left.object as ASTNode | undefined)) {
+        pushGuardedViolation(
+          violations,
+          filePath,
+          lines,
+          node.loc?.start,
+          'Mutating properties on `globalThis` is forbidden in runtime code. Use React context or Zustand stores instead.',
+          'no-global-this-mutation'
+        );
+      }
+    } else if (node.type === 'CallExpression' || node.type === 'OptionalCallExpression') {
+      const callee = unwrapTsExpression(node.callee as ASTNode | undefined);
+      if (callee?.type === 'MemberExpression' && !callee.computed) {
+        const obj = unwrapTsExpression(callee.object as ASTNode | undefined);
+        const prop = callee.property as ASTNode | undefined;
+        const args = Array.isArray(node.arguments) ? (node.arguments as ASTNode[]) : [];
+        const objName = obj?.type === 'Identifier' && typeof obj.name === 'string' ? obj.name : '';
+        const propName = prop?.type === 'Identifier' && typeof prop.name === 'string' ? prop.name : '';
+        const isObjectDefine =
+          objName === 'Object' &&
+          (propName === 'defineProperty' || propName === 'defineProperties' || propName === 'assign');
+        const isReflectWrite =
+          objName === 'Reflect' &&
+          (propName === 'set' || propName === 'defineProperty' || propName === 'deleteProperty');
+
+        if ((isObjectDefine || isReflectWrite) && isGlobalThisIdentifier(args[0])) {
+          pushGuardedViolation(
+            violations,
+            filePath,
+            lines,
+            node.loc?.start,
+            `Mutating \`globalThis\` via \`${objName}.${propName}(globalThis, ...)\` is forbidden in runtime code.`,
+            'no-global-this-mutation'
+          );
+        }
+      }
+    }
+  });
+
+  return violations;
+}
+
 /**
  * Collects all source files in directory matching extensions.
  */
@@ -577,6 +673,7 @@ export function runAllGuards(projectRoot = process.cwd()): GuardViolation[] {
     if (file.includes('.test.') || file.includes('.stories.')) continue;
     const content = fs.readFileSync(file, 'utf8');
     allViolations.push(...auditLiteralsContent(file, content, catalog));
+    allViolations.push(...auditGlobalThisMutationContent(file, content));
   }
 
   return allViolations;

@@ -50,9 +50,10 @@ export function scanSectorWithinSphere(
   const count = sector.decoded.header.count;
 
   for (let i = 0; i < count; i++) {
-    const px = positions[i * 3 + 0]!;
-    const py = positions[i * 3 + 1]!;
-    const pz = positions[i * 3 + 2]!;
+    const px = positions[i * 3 + 0];
+    const py = positions[i * 3 + 1];
+    const pz = positions[i * 3 + 2];
+    if (px === undefined || py === undefined || pz === undefined) continue;
 
     const dx = px - fx;
     const dy = py - fy;
@@ -60,7 +61,9 @@ export function scanSectorWithinSphere(
     const distSq = dx * dx + dy * dy + dz * dz;
 
     if (distSq <= queryRadiusSq) {
-      const idHash = ids[i]! >>> 0;
+      const rawId = ids[i];
+      if (rawId === undefined) continue;
+      const idHash = rawId >>> 0;
       const existing = seenHashes.get(idHash);
       if (!existing || distSq < existing.distancePc * existing.distancePc) {
         const distancePc = Math.sqrt(distSq);

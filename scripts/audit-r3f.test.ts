@@ -7,6 +7,7 @@ import {
   auditFile,
   runR3fAudit,
   runR3FAudit,
+  R3F_FILES_GLOB,
 } from './audit-r3f';
 
 describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
@@ -423,6 +424,180 @@ describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
           (d) => d.ruleId === 'require-noop-raycast',
         ),
       ).toEqual([]);
+    });
+  });
+
+  describe('require-demand-frameloop Rule', () => {
+    it('flags <Canvas> without frameloop or with frameloop="always" in production files', () => {
+      const missingCode = `
+        import { Canvas } from '@react-three/fiber';
+        export const Scene = () => (
+          <Canvas camera={{ position: [0, 0, 10] }}>
+            <mesh />
+          </Canvas>
+        );
+      `;
+      const missingDiags = auditSourceFile('src/views/GalaxyView.tsx', missingCode).filter(
+        (d) => d.ruleId === 'require-demand-frameloop',
+      );
+      expect(missingDiags).toHaveLength(1);
+      expect(missingDiags[0].message).toContain('frameloop');
+
+      const alwaysCode = `
+        import { Canvas } from '@react-three/fiber';
+        export const MiniScene = () => (
+          <>
+            <Canvas frameloop="always" />
+            <Canvas frameloop={'always'} />
+            <Canvas frameloop={\`always\`} />
+          </>
+        );
+      `;
+      const alwaysDiags = auditSourceFile('src/components/domain/MiniMap.tsx', alwaysCode).filter(
+        (d) => d.ruleId === 'require-demand-frameloop',
+      );
+      expect(alwaysDiags).toHaveLength(3);
+    });
+
+    it('permits frameloop="demand", frameloop="never", dynamic props, stories/tests, and reasoned suppressions', () => {
+      const validCode = `
+        import { Canvas } from '@react-three/fiber';
+        export const ValidScenes = ({ frameloop }: { frameloop: 'demand' | 'always' }) => (
+          <>
+            <Canvas frameloop="demand" />
+            <Canvas frameloop="never" />
+            <Canvas frameloop={frameloop} />
+            {/* r3f-audit-disable-next-line require-demand-frameloop -- Continuous calibration test */}
+            <Canvas frameloop="always" />
+          </>
+        );
+      `;
+      expect(
+        auditSourceFile('src/views/SystemView.tsx', validCode).filter(
+          (d) => d.ruleId === 'require-demand-frameloop',
+        ),
+      ).toEqual([]);
+
+      const storyCode = `
+        import { Canvas } from '@react-three/fiber';
+        export const StoryCanvas = () => <Canvas />;
+      `;
+      expect(
+        auditSourceFile('src/components/domain/Scene.stories.tsx', storyCode).filter(
+          (d) => d.ruleId === 'require-demand-frameloop',
+        ),
+      ).toEqual([]);
+    });
+  });
+
+  describe('require-resource-dispose Rule', () => {
+    it('flags GPU resource allocations in useMemo without a .dispose() call in src/components/canvas/ production files', () => {
+      const leakyCode = `
+        import { useMemo } from 'react';
+        import * as THREE from 'three';
+        export const LeakyCanvasItem = () => {
+          const geo = useMemo(() => new THREE.BufferGeometry(), []);
+          const mat = useMemo(() => new THREE.MeshBasicMaterial(), []);
+          const dataTex = useMemo(() => new THREE.DataTexture(new Uint8Array(4), 1, 1), []);
+          const canvasTex = useMemo(() => new THREE.CanvasTexture(document.createElement('canvas')), []);
+          const rt = useMemo(() => new THREE.WebGLRenderTarget(64, 64), []);
+          return <mesh geometry={geo} material={mat} />;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/entity/Leaky.tsx', leakyCode).filter(
+        (d) => d.ruleId === 'require-resource-dispose',
+      );
+      expect(diags).toHaveLength(5);
+    });
+
+    it('permits useMemo GPU resource allocations when .dispose() or cleanup is present, or outside canvas production files', () => {
+      const cleanCode = `
+        import { useEffect, useMemo } from 'react';
+        import * as THREE from 'three';
+        export const CleanCanvasItem = () => {
+          const geo = useMemo(() => new THREE.SphereGeometry(1, 16, 16), []);
+          const mat = useMemo(() => new THREE.MeshStandardMaterial(), []);
+          useEffect(() => {
+            return () => {
+              geo.dispose();
+              mat?.dispose();
+            };
+          }, [geo, mat]);
+          return <mesh geometry={geo} material={mat} />;
+        };
+      `;
+      expect(
+        auditSourceFile('src/components/canvas/entity/Clean.tsx', cleanCode).filter(
+          (d) => d.ruleId === 'require-resource-dispose',
+        ),
+      ).toEqual([]);
+
+      const storyCode = `
+        import { useMemo } from 'react';
+        import * as THREE from 'three';
+        export const StoryMesh = () => {
+          const geo = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
+          return <mesh geometry={geo} />;
+        };
+      `;
+      expect(
+        auditSourceFile('src/components/canvas/entity/Demo.stories.tsx', storyCode).filter(
+          (d) => d.ruleId === 'require-resource-dispose',
+        ),
+      ).toEqual([]);
+    });
+
+    it('respects reasoned suppression for require-resource-dispose', () => {
+      const suppressedCode = `
+        import { useMemo } from 'react';
+        import * as THREE from 'three';
+        export const SharedGeoItem = () => {
+          // r3f-audit-disable-next-line require-resource-dispose -- Managed by shared registry cache
+          const geo = useMemo(() => new THREE.BufferGeometry(), []);
+          return <mesh geometry={geo} />;
+        };
+      `;
+      expect(
+        auditSourceFile('src/components/canvas/entity/Shared.tsx', suppressedCode).filter(
+          (d) => d.ruleId === 'require-resource-dispose',
+        ),
+      ).toEqual([]);
+    });
+  });
+
+  describe('Scope Expansion: src/components/domain and src/hooks', () => {
+    it('includes src/components/domain and src/hooks in R3F_FILES_GLOB', () => {
+      expect(R3F_FILES_GLOB).toContain('src/components/canvas');
+      expect(R3F_FILES_GLOB).toContain('src/components/domain');
+      expect(R3F_FILES_GLOB).toContain('src/hooks');
+      expect(R3F_FILES_GLOB).toContain('src/views');
+    });
+
+    it('flags atomic-store-selectors in src/components/domain and src/hooks', () => {
+      const domainCode = `
+        import { useCameraStore } from '../../stores/useCameraStore';
+        export const DomainPanel = () => {
+          const store = useCameraStore();
+          return null;
+        };
+      `;
+      expect(
+        auditSourceFile('src/components/domain/Panel.tsx', domainCode).filter(
+          (d) => d.ruleId === 'atomic-store-selectors',
+        ),
+      ).toHaveLength(1);
+
+      const hookCode = `
+        import { useUIStore } from '../stores/useUIStore';
+        export const useMyHook = () => {
+          return useUIStore((s) => s);
+        };
+      `;
+      expect(
+        auditSourceFile('src/hooks/useMyHook.ts', hookCode).filter(
+          (d) => d.ruleId === 'atomic-store-selectors',
+        ),
+      ).toHaveLength(1);
     });
   });
 });

@@ -1,15 +1,31 @@
 import { describe, expect, it } from 'vitest';
+import type { FocusedEntityDetailsBase } from './detailsEntityTypes';
 import {
   buildFocusedSystemDetails,
   buildFocusedStarDetails,
 } from './focusedStarSystemDetails';
 
 describe('focusedStarSystemDetails', () => {
-  const base: any = {
+  const base: FocusedEntityDetailsBase = {
     id: 'sol',
     name: 'Sol',
     systemId: 'sol',
     systemName: 'Sol',
+    reticleType: 'stellar-system',
+    starCount: 1,
+    planetCount: 0,
+    planetCompositionBreakdown: [],
+    planetCompositionSummary: '',
+    hasHabitableCandidate: false,
+    hazardCount: 0,
+    hazards: [],
+    hazardSummaryLabel: '0 hazards',
+    systemSummary: '',
+    systemSummarySegments: [],
+    coordinatesPc: [0, 0, 0],
+    sectorId: '',
+    tags: [],
+    directionsHref: '',
     stars: [
       {
         id: 'sol-star',
@@ -21,7 +37,7 @@ describe('focusedStarSystemDetails', () => {
       },
     ],
     planets: [],
-    hazards: [],
+    canonAnnotations: [],
   };
 
   it('builds system entity details', () => {

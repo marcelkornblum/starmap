@@ -135,8 +135,7 @@ export class SectorStreamingManager {
     let currentUploadedSectors = this.bufferCache.getUploadedSectorCount();
     let currentGpuBytes = this.bufferCache.getAllocatedGpuBytes();
 
-    for (let i = 0; i < this.pendingUploadQueue.length; i++) {
-      const sectorId = this.pendingUploadQueue[i]!;
+    for (const sectorId of this.pendingUploadQueue) {
       if (uploadedThisFrame.length >= maxUploads) {
         remainingQueue.push(sectorId);
         continue;

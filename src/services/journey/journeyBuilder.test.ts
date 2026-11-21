@@ -156,12 +156,12 @@ describe('journeyBuilder', () => {
           secondaryUnit: 'ly',
         },
       });
-      expect((plan.steps[0] as any).secondaryGeometryLabel).toBeUndefined();
+      expect('secondaryGeometryLabel' in plan.steps[0]).toBe(false);
       expect(plan.options[0].stats.elevationOrRange).toEqual({
         kind: 'single-leg',
         geometry: plan.steps[0].secondaryGeometry,
       });
-      expect((plan.options[0].stats as any).elevationOrRangeLabel).toBeUndefined();
+      expect('elevationOrRangeLabel' in plan.options[0].stats).toBe(false);
     });
 
     it('builds comprehensive intra-system JourneyPlan with brachistochrone and Hohmann options', () => {
@@ -194,12 +194,12 @@ describe('journeyBuilder', () => {
           secondaryUnit: 'M km',
         },
       });
-      expect((plan.steps[0] as any).secondaryGeometryLabel).toBeUndefined();
+      expect('secondaryGeometryLabel' in plan.steps[0]).toBe(false);
       expect(plan.options[0].stats.elevationOrRange).toEqual({
         kind: 'single-leg',
         geometry: plan.steps[0].secondaryGeometry,
       });
-      expect((plan.options[0].stats as any).elevationOrRangeLabel).toBeUndefined();
+      expect('elevationOrRangeLabel' in plan.options[0].stats).toBe(false);
     });
 
     it('supports multi-stop routes with cumulative distance and multiple chord legs', () => {

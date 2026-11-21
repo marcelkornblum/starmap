@@ -240,7 +240,7 @@ export function indexEntitySlugs(
         currentOwnerOfNameSlug === entity.id ||
         !nameSlugClaimedById),
   );
-  const needsNameSlug = Boolean(canSetOrKeepNameSlug && base[nameSlug!] !== entity.id);
+  const needsNameSlug = Boolean(canSetOrKeepNameSlug && nameSlug && base[nameSlug] !== entity.id);
 
   if (needsIdSlug || needsNameSlug) {
     if (!next) next = { ...currentIndex };

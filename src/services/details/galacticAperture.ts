@@ -170,8 +170,7 @@ export function resolveGalacticInstrumentAperture(
         for (let z = minZ; z <= maxZ; z++) {
           const cell = grid.get(`${x},${y},${z}`);
           if (!cell) continue;
-          for (let i = 0; i < cell.length; i++) {
-            const star = cell[i]!;
+          for (const star of cell) {
             const pos = star.pos;
             if (
               Math.abs(pos[0] - cx) <= rawAperturePc &&
@@ -191,8 +190,7 @@ export function resolveGalacticInstrumentAperture(
       }
     }
   } else {
-    for (let i = 0; i < stars.length; i++) {
-      const star = stars[i]!;
+    for (const star of stars) {
       const pos = star.pos;
       if (
         Math.abs(pos[0] - cx) <= rawAperturePc &&

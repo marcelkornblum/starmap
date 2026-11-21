@@ -20,7 +20,7 @@ export class BoundedLruCache<K, V> {
     if (!this.items.has(key)) {
       return undefined;
     }
-    const value = this.items.get(key)!;
+    const value = this.items.get(key) as V;
     this.items.delete(key);
     this.items.set(key, value);
     return value;

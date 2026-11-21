@@ -244,8 +244,9 @@ export const getCachedCorpusForFilter = (
       if (planets) layersToMerge.push(planets);
       if (minorBodies) layersToMerge.push(minorBodies);
       if (layersToMerge.length > 0) {
+        const [firstLayer] = layersToMerge;
         const upgraded =
-          layersToMerge.length === 1 ? layersToMerge[0]! : mergeSearchShards(layersToMerge);
+          layersToMerge.length === 1 && firstLayer ? firstLayer : mergeSearchShards(layersToMerge);
         resolvedFilterCache.set('startup', upgraded);
         return upgraded;
       }

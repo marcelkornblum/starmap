@@ -3,6 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
+  auditGlobalThisMutationContent,
   auditLiteralsContent,
   isTelemetryIdentifier,
   loadEntityCatalog,
@@ -436,6 +437,92 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
 
       fs.writeFileSync(path.join(servicesDir, 'bad.ts'), "export const star = 'sol';\n");
       expect(runGuardsAudit(tempDir)).toBe(1);
+    });
+
+    it('flags no-global-this-mutation via runAllGuards across production src/ files while skipping tests', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-global-runner-'));
+      tempDirs.push(tempDir);
+      writeMinimalSeeds(tempDir);
+      const servicesDir = path.join(tempDir, 'src', 'services');
+      fs.mkdirSync(servicesDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(servicesDir, 'mutator.ts'),
+        '(globalThis as Record<string, unknown>).__starmap = true;\n'
+      );
+      fs.writeFileSync(
+        path.join(servicesDir, 'mutator.test.ts'),
+        '(globalThis as Record<string, unknown>).__starmap = true;\n'
+      );
+
+      const violations = runAllGuards(tempDir);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]?.ruleId).toBe('no-global-this-mutation');
+    });
+  });
+
+  describe('no-global-this-mutation', () => {
+    it('flags direct, bracket, and type-casted assignments to globalThis properties', () => {
+      const code = `
+        export const mutateGlobals = () => {
+          (globalThis as unknown as { __STARMAP_STATE__: unknown }).__STARMAP_STATE__ = {};
+          (globalThis as Record<string, unknown>)['__foo'] = 123;
+          globalThis['__bar'] = 'abc';
+          (globalThis as { count?: number }).count = 1;
+        };
+      `;
+      const violations = auditGlobalThisMutationContent('src/services/globalState.ts', code);
+      expect(violations).toHaveLength(4);
+      expect(violations.every((v) => v.ruleId === 'no-global-this-mutation')).toBe(true);
+    });
+
+    it('flags Object.defineProperty(globalThis, ...) and Reflect.set(globalThis, ...)', () => {
+      const code = `
+        export const defineGlobals = () => {
+          Object.defineProperty(globalThis, '__STARMAP__', { value: 1 });
+          Object.defineProperty(globalThis as object, '__OTHER__', { value: 2 });
+          Reflect.set(globalThis, '__REFLECT__', true);
+          Reflect.set(globalThis as Record<string, unknown>, '__REFLECT2__', false);
+        };
+      `;
+      const violations = auditGlobalThisMutationContent('src/utils/globalPatch.ts', code);
+      expect(violations).toHaveLength(4);
+      expect(violations.every((v) => v.ruleId === 'no-global-this-mutation')).toBe(true);
+    });
+
+    it('permits read-only access to globalThis properties and nested DOM properties', () => {
+      const code = `
+        export const readEnvironment = () => {
+          const ua = globalThis.navigator?.userAgent ?? '';
+          const storage = globalThis.localStorage;
+          const href = globalThis.location?.href ?? '';
+          const idle = globalThis.requestIdleCallback;
+          const val = (globalThis as Record<string, unknown>)['__READ_ONLY__'];
+          return { ua, storage, href, idle, val };
+        };
+      `;
+      const violations = auditGlobalThisMutationContent('src/utils/env.ts', code);
+      expect(violations).toEqual([]);
+    });
+
+    it('validates // guard-disable-next-line no-global-this-mutation -- <reason>', () => {
+      const validSuppressed = `
+        export const installHook = () => {
+          // guard-disable-next-line no-global-this-mutation -- Required WebGL polyfill
+          (globalThis as Record<string, unknown>).__POLYFILL__ = true;
+        };
+      `;
+      expect(auditGlobalThisMutationContent('src/utils/polyfill.ts', validSuppressed)).toEqual([]);
+
+      const bareSuppressed = `
+        export const installHook = () => {
+          // guard-disable-next-line no-global-this-mutation
+          (globalThis as Record<string, unknown>).__POLYFILL__ = true;
+        };
+      `;
+      const violations = auditGlobalThisMutationContent('src/utils/polyfill.ts', bareSuppressed);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]?.ruleId).toBe('no-global-this-mutation');
+      expect(violations[0]?.message).toContain('without a required reason');
     });
   });
 });

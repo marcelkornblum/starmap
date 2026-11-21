@@ -85,8 +85,7 @@ export function querySectorsWithinInstrumentSphere(
 
   const seenHashes = new Map<number, SpatialStarHit>();
 
-  for (let s = 0; s < sectors.length; s++) {
-    const sector = sectors[s]!;
+  for (const sector of sectors) {
     const header = sector.decoded.header;
     const boxDistSq = computeBoxMinDistSq(
       fx, fy, fz,
