@@ -12,6 +12,7 @@ let mockControls: {
   addEventListener: ReturnType<typeof vi.fn>;
   removeEventListener: ReturnType<typeof vi.fn>;
 };
+const mockInvalidate = vi.fn();
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
@@ -21,6 +22,7 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
       camera: mockCamera,
       controls: mockControls,
       size: { width: 1920, height: 1080 },
+      invalidate: mockInvalidate,
     }),
   };
 });
@@ -94,5 +96,30 @@ describe('GalacticCameraController Camera Ownership (AUD-110)', () => {
     expect(mockCamera.position.x).toBe(initialPosCopy.x);
     expect(mockCamera.position.y).toBe(initialPosCopy.y);
     expect(mockCamera.position.z).toBe(initialPosCopy.z);
+  });
+
+  it('calls invalidate() after imperative camera mutations on mount and target change, and skips when target is unchanged', () => {
+    const { rerender } = render(
+      createElement(GalacticCameraController, {
+        target: [0, 0, 0],
+      }),
+    );
+
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
+
+    mockInvalidate.mockClear();
+    rerender(
+      createElement(GalacticCameraController, {
+        target: [0, 0, 0],
+      }),
+    );
+    expect(mockInvalidate).not.toHaveBeenCalled();
+
+    rerender(
+      createElement(GalacticCameraController, {
+        target: [5, 10, 15],
+      }),
+    );
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
   });
 });

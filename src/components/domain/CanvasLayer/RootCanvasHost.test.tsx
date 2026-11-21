@@ -39,9 +39,21 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {
     ...actual,
-    Canvas: ({ children, className }: { children?: React.ReactNode; className?: string }) => {
+    Canvas: ({
+      children,
+      className,
+      frameloop,
+    }: {
+      children?: React.ReactNode;
+      className?: string;
+      frameloop?: string;
+    }) => {
       mockCanvasRender();
-      return createElement('div', { 'data-testid': 'mock-canvas', className }, children);
+      return createElement(
+        'div',
+        { 'data-testid': 'mock-canvas', 'data-frameloop': frameloop, className },
+        children,
+      );
     },
     useFrame: vi.fn(),
     useThree: () => ({
@@ -253,5 +265,62 @@ describe('RootCanvasHost Domain Component', () => {
     expect(useMemoSpy).not.toHaveBeenCalled();
     expect(mockCanvasRender).not.toHaveBeenCalled();
     useMemoSpy.mockRestore();
+  });
+
+  it('sets frameloop="never" and unmounts spatial scene when activeSlotCount === 0, then activates frameloop="demand" when slot mounts', () => {
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+      if (contextId === 'webgl2' || contextId === 'webgl') {
+        return {} as WebGLRenderingContext;
+      }
+      return null;
+    });
+    _resetWebGLSupportedForTesting();
+
+    const { rerender } = render(
+      <div>
+        <RootCanvasHost />
+      </div>,
+    );
+
+    const persistentCanvas = screen.getByTestId('mock-canvas');
+    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('never');
+    expect(screen.getByTestId('mock-theme-token-bridge')).toBeInTheDocument();
+    expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+
+    // Mount a route slot
+    rerender(
+      <div>
+        <RootCanvasHost />
+        <CanvasLayer scope="galaxy" centerId="sol" />
+      </div>,
+    );
+
+    expect(screen.getByTestId('mock-canvas')).toBe(persistentCanvas);
+    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('demand');
+    expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+
+    // Navigate away to non-spatial route (slot unmounts)
+    rerender(
+      <div>
+        <RootCanvasHost />
+      </div>,
+    );
+
+    expect(screen.getByTestId('mock-canvas')).toBe(persistentCanvas);
+    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('never');
+    expect(screen.getByTestId('mock-theme-token-bridge')).toBeInTheDocument();
+    expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+
+    // Return to spatial route with identical stageProps -> transitions back to demand and remounts scene
+    rerender(
+      <div>
+        <RootCanvasHost />
+        <CanvasLayer scope="galaxy" centerId="sol" />
+      </div>,
+    );
+
+    expect(screen.getByTestId('mock-canvas')).toBe(persistentCanvas);
+    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('demand');
+    expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
   });
 });

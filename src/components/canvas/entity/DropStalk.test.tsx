@@ -1,11 +1,47 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
 import { DropStalk } from './DropStalk';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
 import { NOOP_RAYCAST } from '../engineConfig';
 
+const { mockInvalidate, wrappedInvalidateCache } = vi.hoisted(() => ({
+  mockInvalidate: vi.fn(),
+  wrappedInvalidateCache: new WeakMap<
+    (frames?: number) => void,
+    (frames?: number) => void
+  >(),
+}));
+
+vi.mock('@react-three/fiber', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@react-three/fiber')>();
+  return {
+    ...actual,
+    useThree: ((selector?: (state: unknown) => unknown) => {
+      const realInvalidate = actual.useThree((s) => s.invalidate);
+      const selected: unknown = actual.useThree(
+        (selector ?? ((s: unknown) => s)) as Parameters<typeof actual.useThree>[0],
+      );
+      if (selected === realInvalidate) {
+        let wrapped = wrappedInvalidateCache.get(realInvalidate);
+        if (!wrapped) {
+          wrapped = (frames?: number) => {
+            mockInvalidate(frames);
+            return realInvalidate(frames);
+          };
+          wrappedInvalidateCache.set(realInvalidate, wrapped);
+        }
+        return wrapped;
+      }
+      return selected;
+    }) as typeof actual.useThree,
+  };
+});
+
 describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
+  beforeEach(() => {
+    mockInvalidate.mockClear();
+  });
   it('does NOT render drop stalk in passive or active states (Single-Stalk Rule)', async () => {
     const passiveRenderer = await ReactThreeTest.create(
       <SpatialEntityProvider>
@@ -121,6 +157,55 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
 
     const stalkAfter = renderer.scene.find((node) => node.props.name === 'drop-stalk-node-1');
     expect(stalkAfter).toBeDefined();
+
+    await renderer.unmount();
+  });
+
+  it('calls invalidate() while extending/retracting and settles to 0 calls once settled', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <DropStalk id="anim-stalk" position={[0, 0, 5]} state="selected" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    // Initial mount / target change triggers invalidation
+    expect(mockInvalidate).toHaveBeenCalled();
+
+    // First small step: still moving toward target (default extend duration ~0.18s)
+    mockInvalidate.mockClear();
+    await renderer.advanceFrames(1, 0.05);
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
+
+    // Advance enough delta to reach target=1.0
+    mockInvalidate.mockClear();
+    await renderer.advanceFrames(1, 1.0);
+    // Settled on this frame -> 0 further invalidate calls
+    expect(mockInvalidate).not.toHaveBeenCalled();
+
+    // Subsequent idle frames -> 0 invalidate calls
+    await renderer.advanceFrames(3, 0.016);
+    expect(mockInvalidate).not.toHaveBeenCalled();
+
+    // Retract (state -> passive): triggers invalidation on target change and during retraction
+    mockInvalidate.mockClear();
+    await renderer.update(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <DropStalk id="anim-stalk" position={[0, 0, 5]} state="passive" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+    expect(mockInvalidate).toHaveBeenCalled();
+
+    mockInvalidate.mockClear();
+    await renderer.advanceFrames(1, 0.05);
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
+
+    mockInvalidate.mockClear();
+    await renderer.advanceFrames(1, 1.0);
+    expect(mockInvalidate).not.toHaveBeenCalled();
 
     await renderer.unmount();
   });

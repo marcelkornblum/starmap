@@ -1,11 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
-import { screen, render } from '@testing-library/react';
+import { screen, render, act } from '@testing-library/react';
 import { CelestialEntity } from './CelestialEntity';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { createSpatialEntityStore } from './SpatialEntityStore';
 import { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
+
+const { mockInvalidate, wrappedInvalidateCache } = vi.hoisted(() => ({
+  mockInvalidate: vi.fn(),
+  wrappedInvalidateCache: new WeakMap<
+    (frames?: number) => void,
+    (frames?: number) => void
+  >(),
+}));
+
+vi.mock('@react-three/fiber', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@react-three/fiber')>();
+  return {
+    ...actual,
+    useThree: ((selector?: (state: unknown) => unknown) => {
+      const realInvalidate = actual.useThree((s) => s.invalidate);
+      const selected: unknown = actual.useThree(
+        (selector ?? ((s: unknown) => s)) as Parameters<typeof actual.useThree>[0],
+      );
+      if (selected === realInvalidate) {
+        let wrapped = wrappedInvalidateCache.get(realInvalidate);
+        if (!wrapped) {
+          wrapped = (frames?: number) => {
+            mockInvalidate(frames);
+            return realInvalidate(frames);
+          };
+          wrappedInvalidateCache.set(realInvalidate, wrapped);
+        }
+        return wrapped;
+      }
+      return selected;
+    }) as typeof actual.useThree,
+  };
+});
 
 describe('CelestialEntity - Active Label Density Suppression Rule', () => {
   beforeEach(() => {
@@ -183,5 +216,32 @@ describe('CelestialEntity - Occlusion Lifecycle & Frame Loop Purity (AUD-103, AU
     const unregisterSpy = vi.spyOn(occlusionManager, 'unregister');
     await renderer.unmount();
     expect(unregisterSpy).toHaveBeenCalledWith('target-star');
+  });
+
+  it('calls invalidate() when the DropStalk retraction timer finishes', async () => {
+    vi.useFakeTimers();
+    const store = createSpatialEntityStore({ selectedId: 'target-star' });
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider store={store}>
+        <CelestialEntity id="target-star" name="Target Star" position={[0, 0, 5]} />
+      </SpatialEntityProvider>,
+    );
+
+    mockInvalidate.mockClear();
+
+    await act(async () => {
+      store.getState().setSelected(null);
+    });
+
+    mockInvalidate.mockClear();
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(mockInvalidate).toHaveBeenCalled();
+
+    await renderer.unmount();
+    vi.useRealTimers();
   });
 });

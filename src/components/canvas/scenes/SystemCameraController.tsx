@@ -15,6 +15,8 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
 }) => {
   const three = useThree();
   const camera = three.camera;
+  const invalidate =
+    'invalidate' in three && typeof three.invalidate === 'function' ? three.invalidate : undefined;
   const controls =
     'controls' in three &&
     typeof three.controls === 'object' &&
@@ -35,7 +37,8 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     } else {
       camera.lookAt(target[0], target[1], target[2]);
     }
-  }, [camera, controls, position, target, up]);
+    invalidate?.();
+  }, [camera, controls, invalidate, position, target, up]);
 
   return null;
 };

@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CartoHairlineMaterial } from '../materials/CartoLineMaterial';
@@ -91,6 +91,7 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
 
   const frameCtx = useSpatialFrameSafe();
+  const invalidate = useThree((s) => s.invalidate);
 
   // Stalk vertical line remains neutral / monochrome; datum reticle adopts state color
   const stalkColor = state === 'focused' ? stalkFocusedColor : stalkSelectedColor;
@@ -167,6 +168,10 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
     }
   }, [resolvedFootprintColor]);
 
+  useEffect(() => {
+    invalidate();
+  }, [invalidate, isStalkTier, stalkColor, stalkOpacity, resolvedFootprintColor, resolvedFootprintAlpha]);
+
   useFrame(({ camera, size }, delta) => {
     const target = isStalkTier ? 1.0 : 0.0;
     const dur = target > progressRef.current ? stalkExtendDuration : stalkRetractDuration;
@@ -233,6 +238,10 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
     }
 
     lineMaterial.updateResolution(camera, size.height);
+
+    if (Math.abs(target - p) > 1e-4) {
+      invalidate();
+    }
   });
 
   if (!isStalkTier && progressRef.current <= 0.001) return null;

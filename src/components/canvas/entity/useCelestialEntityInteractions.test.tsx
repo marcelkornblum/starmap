@@ -14,12 +14,14 @@ describe('useCelestialEntityInteractions', () => {
     const onDoubleClick = vi.fn();
     const onPointerOver = vi.fn();
     const onPointerOut = vi.fn();
+    const invalidate = vi.fn();
 
     const { result } = renderHook(() =>
       useCelestialEntityInteractions({
         activeState: 'active',
         storeApi: store,
         occlusionManager,
+        invalidate,
         onClick,
         onDoubleClick,
         onPointerOver,
@@ -40,25 +42,30 @@ describe('useCelestialEntityInteractions', () => {
     expect(onDoubleClick).toHaveBeenCalledWith('star-1', mockMouseEvent);
     expect(onPointerOver).toHaveBeenCalledWith('star-1', mockPointerEvent);
     expect(store.getState().hoveredId).toBe('star-1');
+    expect(invalidate).toHaveBeenCalledTimes(3);
 
+    invalidate.mockClear();
     act(() => {
       result.current.handleMarkerPointerOut('star-1', mockPointerEvent);
     });
 
     expect(onPointerOut).toHaveBeenCalledWith('star-1', mockPointerEvent);
     expect(store.getState().hoveredId).toBeNull();
+    expect(invalidate).toHaveBeenCalledTimes(1);
   });
 
-  it('ignores interactions when activeState is passive', () => {
+  it('ignores interactions and does not invalidate when activeState is passive', () => {
     const store = createSpatialEntityStore();
     const occlusionManager = new CelestialOcclusionManager();
     const onClick = vi.fn();
+    const invalidate = vi.fn();
 
     const { result } = renderHook(() =>
       useCelestialEntityInteractions({
         activeState: 'passive',
         storeApi: store,
         occlusionManager,
+        invalidate,
         onClick,
       }),
     );
@@ -69,6 +76,7 @@ describe('useCelestialEntityInteractions', () => {
     });
 
     expect(onClick).not.toHaveBeenCalled();
+    expect(invalidate).not.toHaveBeenCalled();
   });
 
   it('schedules hover prefetch with 12ms delay and retains prefetch on click', () => {

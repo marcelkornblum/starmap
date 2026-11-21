@@ -99,6 +99,8 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   } = props;
 
   const isRootCanvasMounted = useCanvasStageStore((s) => s.isRootCanvasMounted);
+  const hasActiveSlot = useCanvasStageStore((s) => s.activeSlotCount > 0);
+  const hasStageProps = useCanvasStageStore((s) => s.stageProps !== null);
   const mountSlot = useCanvasStageStore((s) => s.mountSlot);
   const unmountSlot = useCanvasStageStore((s) => s.unmountSlot);
   const setStageProps = useCanvasStageStore((s) => s.setStageProps);
@@ -106,6 +108,8 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   const hasRootHostContext = React.useContext(RootCanvasStageContext);
 
   const isSlot = (isRootCanvasMounted || hasRootHostContext) && !isRootHost;
+  const frameloop = isRootHost ? (hasActiveSlot ? 'demand' : 'never') : 'demand';
+  const isSpatialSceneMounted = !isRootHost || (hasActiveSlot && hasStageProps);
 
   useIsomorphicLayoutEffect(() => {
     if (!isRootHost) {
@@ -212,6 +216,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
           <Canvas
             flat
             dpr={1}
+            frameloop={frameloop}
             events={createDragSafeCanvasEvents}
             camera={{
               position: initialPersistentCam.position,
@@ -223,7 +228,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
           >
             <SpatialEntityStoreContext.Provider value={outerStore}>
               <SceneTokenBridge />
-              {scope === 'galaxy' && (
+              {isSpatialSceneMounted && scope === 'galaxy' && (
                 <GalacticSceneContent
                   initialSelectedId={centerId ?? null}
                   centerCoordinates={centerCoordinates}
@@ -235,7 +240,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
                   onFocusChange={onFocusChange}
                 />
               )}
-              {scope === 'system' && (
+              {isSpatialSceneMounted && scope === 'system' && (
                 targetId ? (
                   <SystemSceneContent
                     systemId={targetId}
@@ -246,7 +251,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
                   />
                 ) : null
               )}
-              {scope === 'planet' && (
+              {isSpatialSceneMounted && scope === 'planet' && (
                 targetId ? (
                   <PlanetarySceneContent
                     planetId={targetId}

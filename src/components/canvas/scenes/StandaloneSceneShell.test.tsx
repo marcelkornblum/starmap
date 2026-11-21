@@ -12,8 +12,8 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {
     ...actual,
-    Canvas: ({ children }: { children?: React.ReactNode }) => (
-      <div data-testid="mock-canvas">{children}</div>
+    Canvas: ({ children, frameloop }: { children?: React.ReactNode; frameloop?: string }) => (
+      <div data-testid="mock-canvas" data-frameloop={frameloop}>{children}</div>
     ),
   };
 });
@@ -38,7 +38,9 @@ describe('StandaloneSceneShell Component', () => {
     const root = container.firstElementChild as HTMLElement;
     expect(root).toBeInTheDocument();
     expect(root.getAttribute('data-variant')).toBe('fullscreen');
-    expect(screen.getByTestId('mock-canvas')).toBeInTheDocument();
+    const canvas = screen.getByTestId('mock-canvas');
+    expect(canvas).toBeInTheDocument();
+    expect(canvas.getAttribute('data-frameloop')).toBe('demand');
   });
 
   it('applies custom className when provided', () => {

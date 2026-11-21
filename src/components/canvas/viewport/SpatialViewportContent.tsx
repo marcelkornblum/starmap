@@ -1,5 +1,6 @@
 import React, { useLayoutEffect, useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { useThree } from '@react-three/fiber';
 import {
   useSpatialEntityStoreApi,
   useOcclusionManager,
@@ -49,6 +50,7 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
 }) => {
   const storeApi = useSpatialEntityStoreApi();
   const occlusionManager = useOcclusionManager();
+  const invalidate = useThree((s) => s.invalidate);
   const { transitionTo } = useCameraTransition();
   const prevEntityIdsRef = useRef<Set<string>>(new Set());
   const frameCtx = useSpatialFrameSafe();
@@ -117,6 +119,7 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
     storeApi,
     occlusionManager,
     transitionTo,
+    invalidate,
     enableFocusTransition,
     focusTransitionDuration,
     onInspect,
