@@ -39,9 +39,9 @@ flowchart TD
         SpatialStore["SpatialEntityStore\nRaycast hit areas, hover tracking"]
     end
 
-    subgraph DataRepositories["Reactive Repositories (Bounded LRU Caches)"]
-        DetailsRepo["detailsRepository\n(DETAIL_RECORD_CACHE_LIMIT = 100)"]
-        SystemRepo["systemRepository / summaries\n(SUMMARY_NODE_CACHE_LIMIT = 500)"]
+    subgraph DataRepositories["Reactive Repositories & Caches (Bounded LRU)"]
+        DetailsRepo["detailsRepository\n(DETAIL_RECORD_CACHE_LIMIT = 500)"]
+        SummaryCache["detailsSummaryCache\n(SUMMARY_NODE_CACHE_LIMIT = 2000)"]
         LayerRepo["layerRepository\n(LAYER_MANIFEST_CACHE_LIMIT = 200)"]
         SearchRepo["searchRepository\n(SEARCH_SHARD_CACHE_LIMIT = 50)"]
     end
@@ -72,17 +72,9 @@ Starmap enforces a strictly orthogonal URL search query grammar governed by `DEC
 | `?searchCategory=` | String | Category filter for search queries (`all`, `stars`, `planets`, `structures`, `moons`, etc.) | `?searchCategory=planets` |
 
 ### 2.1 RFC 3986 Search String Serialiser (`stringifyStarmapSearch`)
-Standard URI parameter encoders (such as `encodeURIComponent`) unnecessarily encode colons (`:`) to `%3A` and commas (`,`) to `%2C`. In Starmap, search queries frequently represent coordinate tuples and lists. 
+Standard URI parameter encoders (such as `encodeURIComponent`) unnecessarily encode colons (`:`) to `%3A` and commas (`,`) to `%2C`. In Starmap, search queries frequently represent coordinate tuples, layer identifiers, and lists.
 
-In `src/router/index.ts`, `stringifyStarmapSearch` enforces RFC 3986 §3.4 compliance by preserving unencoded `:` and `,` characters in query strings:
-```typescript
-export function stringifyStarmapSearch(search: Record<string, unknown>): string {
-  return defaultStringifySearch(search)
-    .replace(/%3A/gi, ':')
-    .replace(/%2C/gi, ',');
-}
-```
-This produces clean, readable URLs such as `?select=sol,sirius-a` rather than `?select=sol%2Csirius-a`.
+To maintain readable, idiomatic URLs, [`stringifyStarmapSearch`](../../src/router/index.ts) post-processes the router's query string output to preserve literal `:` and `,` characters per RFC 3986 §3.4. This ensures parameters such as `?select=sol,sirius-a` or `?route=sol:torchship-1g,tau-ceti` remain unescaped.
 
 ### 2.2 Out-of-Scope Guards & Legacy Prefix Stripping
 To maintain clean orthogonality and eliminate backward-compatibility shims, `rootRoute.validateSearch` automatically strips legacy, deprecated, or out-of-scope prefixes from `select=`:
@@ -96,48 +88,16 @@ Reference guide routes (`/guide/star-types/$starType`, `/guide/planet-types/$pla
 
 ## 3. Strict `validateSearch` Sanitisation
 
-All search parameters pass through strict type checking, trimming, and sanitisation at the root route before any view component mounts:
+All search parameters pass through strict type checking, trimming, and sanitisation at the root route before any view component mounts. The authoritative implementation is defined in [`rootRoute.validateSearch`](../../src/router/index.ts).
 
-```typescript
-validateSearch: (search: Record<string, unknown>): StarmapSearchParams => {
-  const result: StarmapSearchParams = {};
-
-  if (typeof search.q === 'string' && search.q.length > 0) result.q = search.q;
-  if (typeof search.searchCategory === 'string' && search.searchCategory.length > 0) {
-    result.searchCategory = search.searchCategory;
-  }
-  if (typeof search.focus === 'string' && search.focus.length > 0) result.focus = search.focus;
-  if (typeof search.select === 'string' && search.select.length > 0) {
-    const cleaned = search.select
-      .split(',')
-      .map((s) => s.trim())
-      .filter((token) => {
-        if (!token) return false;
-        if (
-          token.startsWith('tag:') ||
-          token.startsWith('star-type:') ||
-          token.startsWith('planet-type:') ||
-          token.startsWith('collection:') ||
-          token.startsWith('canon:')
-        ) {
-          return false;
-        }
-        return true;
-      })
-      .join(',');
-    if (cleaned.length > 0) result.select = cleaned;
-  }
-  if (typeof search.layer === 'string' && search.layer.trim().length > 0) {
-    result.layer = search.layer.trim();
-  }
-  if (typeof search.route === 'string' && search.route.length > 0) result.route = search.route;
-  if (typeof search.center === 'string' && search.center.trim().length > 0) {
-    result.center = search.center.trim();
-  }
-
-  return result;
-}
-```
+Key validation rules include:
+1. **Free-text Query (`?q=`):** Stripped if empty or not a string.
+2. **Search Category (`?searchCategory=`):** Preserved only when a non-empty string.
+3. **Focal Target (`?focus=`):** Preserved only when a non-empty string identifier.
+4. **Selection Set (`?select=`):** Comma-separated tokens are trimmed and filtered. Any token beginning with out-of-scope prefixes (`tag:`, `star-type:`, `planet-type:`, `collection:`, or `canon:`) is discarded immediately.
+5. **Active Analytical Layer (`?layer=`):** Trimmed string; discarded if empty.
+6. **Transit Route Waypoints (`?route=`):** Validated comma-delimited waypoints.
+7. **Focal Centre Anchor (`?center=`):** Trimmed string coordinate or identifier; discarded if empty.
 
 Malformed parameters, empty strings, and null characters are discarded, guaranteeing that downstream hooks receive pure, validated domain state.
 
@@ -172,7 +132,7 @@ Ephemeral stores hold high-frequency, transient, or hardware-specific state that
 4. **`useSettingsStore` (`src/stores/useSettingsStore.ts`):**
    - Client-side preferences persisted to `localStorage` (preferred units, reduced motion overrides, debug overlays).
 5. **`SpatialEntityStore` (`src/components/canvas/entity/SpatialEntityStore.ts`):**
-   - Scoped per viewport instance via `SpatialEntityProvider`.
+   - Scoped per viewport instance via `SpatialEntityProvider` (`src/components/canvas/entity/SpatialEntityProvider.tsx`).
    - Dynamic 3D raycast hitarea bounding boxes, screen coordinates, and hover tracking.
 
 ---
@@ -183,21 +143,23 @@ Data fetching in Starmap operates through reactive repository hooks that shield 
 
 ### 5.1 Reactive Repository Hooks
 Views and domain panels consume data via dedicated hooks:
-- **`useEntityDetails(id)`:** Resolves comprehensive astronomical dossiers for stars, planets, and minor bodies.
-- **`useSystemData(systemId)`:** Fetches multi-body system manifests, Keplerian orbital parameters, and planetary hierarchies.
-- **`useLayerData(layerId)`:** Retrieves analytical dataset layers, fictional canon records, and scientific overlays.
+- **`useEntityDetails(id)`:** Resolves comprehensive astronomical dossiers for stars, planets, and minor bodies, backed by `detailsRepository` (`src/data/detailsRepository.ts`) and `detailsSummaryCache` (`src/data/detailsSummaryCache.ts`).
+- **`useSystemData(systemId)`:** Fetches multi-body system manifests, Keplerian orbital parameters, and planetary hierarchies, backed by `detailsRepository` and `detailsSummaryCache`.
+- **`useLoadedLayerManifests(search)` / `useLayerData`:** Retrieves analytical dataset layers, fictional canon records, and scientific overlays via `layerRepository` (`src/data/layerRepository.ts`).
+- **`useSearchCorpus(category)`:** Loads compact search shards and performs client-side indexing via `searchRepository` (`src/data/searchRepository.ts`).
 
 ### 5.2 Bounded LRU Caches & Eviction Limits
 To prevent unbounded memory growth during prolonged exploration across the 100pc volume, all repositories enforce strict Least-Recently-Used (LRU) cache boundaries defined in `src/config/cacheConfig.ts` (`AUD-090` & `DEC-R043`):
 
 ```typescript
-export const DETAIL_RECORD_CACHE_LIMIT = 100;
-export const SUMMARY_NODE_CACHE_LIMIT = 500;
+export const DETAIL_RECORD_CACHE_LIMIT = 500;
+export const SUMMARY_NODE_CACHE_LIMIT = 2_000;
 export const SUMMARY_BUCKET_CACHE_LIMIT = 36;
 export const DETAIL_BUCKET_CACHE_LIMIT = 36;
 export const LAYER_MANIFEST_CACHE_LIMIT = 200;
 export const LAYER_ENTITY_BUCKET_CACHE_LIMIT = 36;
 export const SEARCH_SHARD_CACHE_LIMIT = 50;
+export const SLUG_CACHE_LIMIT = 100_000;
 ```
 
 When cache sizes exceed these limits, oldest unreferenced entries are automatically purged.

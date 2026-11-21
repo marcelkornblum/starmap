@@ -2,7 +2,7 @@
 
 > [!CAUTION]
 > **STRICT STAGE 1 RULE — CLEAN SLATE VIEWS & WHAT ON-SCREEN, NOT HOW TO PRESENT IT:**
-> This track defines **only** the required screens/views, URL paths, features, view data models, selectors, and interface state logic for Journey 2 ([`docs/user-journeys.md`](../../../../docs/user-journeys.md#L55-L68)).
+> This track defines **only** the required screens/views, URL paths, features, view data models, selectors, and interface state logic for Journey 2 ([`docs/design/user-journeys.md`](../../../../docs/design/user-journeys.md#L55-L68)).
 > - **Zero Pre-Assumed Views or Paths:** Do NOT assume view names or URL paths ahead of time; decide whether each step layers onto a scaffolding view from Track 01 or introduces a new view/route.
 > - **Zero Presentation Assumptions:** Do NOT design UI chrome, filter drawers, or visual components.
 > - **One Decision at a Time:** Every screen boundary, filter criterion, network leg model, and URL serialisation parameter must be discussed one by one with the user via `ask_question`, recording options and trade-offs in [`decision-log.md`](../../initiatives/journey-ui-scaffolding/decision-log.md) and [`view-requirements.md`](../../initiatives/journey-ui-scaffolding/view-requirements.md).

@@ -13,20 +13,13 @@ Always check the active track in `conductor/tracks/` before making any codebase 
 # Code Styleguides
 There are clear styleguides to follow; you can find them in `conductor/code_styleguides/`.
 
-## Design System & Styling Guardrails
-Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-css.md`:
-- **Modular CSS Only:** Scoped CSS Modules (`*.module.css`) only; zero inline styles (`style={{ ... }}` is strictly forbidden).
-- **Zero Outer Margins:** Components never declare external margin or positioning; layout flow is 100% owned by Composition Primitives (`<Stack>`, `<Cluster>`, etc.).
-- **Tokens First:** Zero hardcoded colors, spacings, or font sizes; all styling consumes semantic tokens (`var(--token-name)`).
-- **CUBE Exceptions via HTML `data-*`:** Variants and states mutate local token interfaces via `data-*` attributes (`data-status="critical"`). Dynamic `className` concatenation is forbidden.
-- **Semantic Interface Primitives & Regulated Badges Only (Zero Raw Strings / Controls / Lists):** Domain components and views must compose Tier 1 Interface Primitives (`<Datum>`, `<DataTable>`, `<Quantity>`, `<Unit>`, `<Badge>`, `<CelestialSymbol>`, `<CelestialBadge>`, `<SpectralBadge>`, `<HazardBadge>`, `<PlanetCensus>`, `<ConfidencePip>`, `<Heading>`, `<Kbd>`, `<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`, `<Stack>`, `<Cluster>`) rather than raw `<button>`/`<input>`/`<select>`/`<dl>`/`<ul>` tags, middle-dot/bracket string concatenations (`' · a = '`, `[reticle]`), or view-assembled string badges. Services must return strict TypeScript classification unions and structured `{ value, unit }` quantities rather than pre-formatted display strings parsed by regex in views. Never wrap numeric counts (`0 hazards`, `0 confirmed planets`, `1 of 5`) or plain telemetry prose in `<Badge>`.
-- **Mandatory Component File Quad:** Every component in `src/components/interface/**` and `src/components/domain/**` MUST have:
-  1. `<Component>.tsx` (implementation; keep domain components focused and under ~300 lines by decomposing complex panels into sub-components)
-  2. `<Component>.module.css` (scoped CSS Module inside `@layer blocks` / `@layer exceptions` with a `--<component>-*` local token interface)
-  3. `<Component>.stories.tsx` (Storybook stories)
-  4. `<Component>.test.tsx` (colocated unit test run by `npm run test` / `npm run test:coverage`)
-- **Strict `@testing-library/react` DOM Testing:** All `.test.tsx` component and view tests MUST run in `jsdom` using `@testing-library/react` (`render`, `screen`, `within`, `fireEvent` / `userEvent`) to test accessible roles, `data-*` attributes, keyboard/pointer interactions, and callbacks. Importing `renderToString` from `react-dom/server` in tests is strictly forbidden.
-- **1:1 Focused Test Files (Zero Monolith Test Suites):** Every service, hook, component, and view must have its own focused `.test.ts(x)` file; dumping unrelated component or view assertions into catch-all files like `tests/searchService.test.ts` is forbidden.
+## Design System, Styling & Testing Guardrails
+The detailed rules live in one place each; follow them strictly:
+- **CSS guardrails** (CSS Modules only, zero inline styles, zero outer margins, semantic tokens only, CUBE `data-*` variants, no dynamic `className`): [`conductor/code_styleguides/html-css.md`](../conductor/code_styleguides/html-css.md).
+- **Component architecture** (Tier 1 Interface Primitives and regulated badges instead of raw controls/lists/string badges, structured `{ value, unit }` quantities from services, mandatory component file quad): [`conductor/code_styleguides/components.md`](../conductor/code_styleguides/components.md).
+- **TypeScript & testing** (strict types, 1:1 colocated test files, `@testing-library/react` in `jsdom`, no `renderToString`): [`conductor/code_styleguides/typescript.md`](../conductor/code_styleguides/typescript.md).
+- **R3F / WebGL** (frame-loop allocation, disposal, canvas layering): [`conductor/code_styleguides/webgl-r3f.md`](../conductor/code_styleguides/webgl-r3f.md).
+- **Design system specification** (tokens, elevation tiers, primitives): [`docs/design/design-system.md`](../docs/design/design-system.md).
 
 ## Data Layer & Zero-Hardcoding Guardrails
 - **Zero Hardcoded Entity Attributes:** Never hardcode entity names, classifications, compositions, habitability flags, spacecraft lists, or orbital parent relationships inside runtime UI or service layers (`src/`).
@@ -50,7 +43,7 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
   1. Start each track with a **Journey Onboarding Briefing** written to a commentable artifact (Archetype, Mental Model, Deal-Breakers, JTBDs, and End-to-End Flow) and **HALT**. Let the user read the summary and tell you where to start; do not propose options or launch decision prompts until the user directs you.
   2. Work **screen by screen, one by one** as directed by the user: align on **what** data and requirement notes belong on that screen (zero presentation/layout assumptions), implement the data model, and layer the data and requirement notes cumulatively onto that screen's scaffolding view before moving to the next screen.
 - **Local Network & Multi-Viewport Screenshot Review**: At every visual checkpoint or option review:
-  1. Present clickable local-network URLs (`http://192.168.1.124:5173/...` for App, `http://192.168.1.124:6006/...` for Storybook).
+  1. Present clickable local-network URLs (`http://<LAN_HOST>:5173/...` for App, `http://<LAN_HOST>:6006/...` for Storybook); `<LAN_HOST>` is resolved by `capture:views` (override with `--lan-host`), see [`conductor/local-review-and-screenshots.md`](../conductor/local-review-and-screenshots.md).
   2. Run `npm run capture:views` to capture live Playwright renders across all 5 standard viewports (`390×844` Mobile Portrait, `768×1024` Tablet Portrait, `1024×768` Tablet Landscape, `1440×900` Desktop Standard, `2560×1440` Desktop Ultrawide) into `/tmp/starmap-screenshots` (the default `--out-dir`) and copy only the embedded images needed for the active review into the conversation artifact directory.
 - **Ephemeral Artifacts & Reports in `/tmp` (Zero Workspace Bloat)**: All generated test, coverage, screenshot, and build outputs MUST be written under `/tmp/starmap-*` (`/tmp/starmap-coverage`, `/tmp/starmap-test-results`, `/tmp/starmap-playwright-report`, `/tmp/starmap-screenshots`, `/tmp/starmap-storybook-static`) rather than inside the workspace directory so they are easily cleaned up and never bloat the repository.
 - **Context Compaction Marker**: Whenever a context compaction occurs, begin your next chat response with a horizontal rule and minimal note (`---\n*Context compacted*`) so the user can see when compaction happened.
@@ -69,7 +62,7 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
   - **Specialised `flash` Subagents (define via `define_subagent` & spawn via `invoke_subagent` with `Model: "flash"` so they remain visible in the UI subagent panel and maintain lean context windows)**:
     1. `codebase-researcher` (`enable_write_tools: false`): Multi-file codebase, type, test, and data-shard inspection.
     2. `tdd-worker` (`enable_write_tools: true`): Red/Green/Refactor unit tests, selectors, `scripts/build-data.ts` precalculations, and scaffolding view wiring once a decision is ratified.
-    3. `qa-verifier` (`enable_write_tools: true`): Runs `npm run lint`, `npm run typecheck`, `npm run test:coverage`, and `npm run audit:r3f` in parallel single commands and resolves mechanical lint/type issues.
+    3. `qa-verifier` (`enable_write_tools: true`): Runs `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run test:coverage`, and `npm run audit:r3f` in parallel single commands and resolves mechanical lint/type issues.
     4. `screenshot-capturer` (`enable_write_tools: true`): Runs `npm run capture:views -- --routes=<routes> --out-dir=/tmp/starmap-screenshots` across all 5 standard viewports and returns the LAN links and Markdown `carousel` blocks.
 - **Permission-Safe Subagent Rules (Prevent `waiting_for_input` Stalls)**:
   1. **Single-Command `run_command` Only**: Never chain commands with `&&`, `||`, `;`, pipes `|`, redirection `>`, or subshells `$()` in `run_command`. Compound shell strings trigger manual permission review. Invoke one `npm run <script>` or `npx <tool>` command per `run_command` call (use parallel `run_command` tool calls when running multiple checks).
@@ -96,7 +89,7 @@ Adhere strictly to `docs/design-system.md` and `conductor/code_styleguides/html-
 4. **Regular Unprompted Commits:** Commit completed tasks and phase checkpoints automatically on the active feature/chore branch without waiting to be asked. Do not use git notes.
 5. **PRs Only:** All code must be integrated into `main` strictly via Pull Requests. Do not merge locally.
 6. **Mandatory Pre-PR Checks & Code Review:** Every time you finish any work, before opening a PR:
-   - Run the local quality suite: linting (`npm run lint`), type checking (`npm run typecheck`), and tests with coverage (`npm run test:coverage`). All must pass cleanly with zero errors.
+   - Run the local quality suite: linting (`npm run lint`), type checking (`npm run typecheck`), architectural guards (`npm run audit:guards`), and tests with coverage (`npm run test:coverage`). All must pass cleanly with zero errors.
    - Run a `/code-review` (or invoke the `code-review` skill) to identify and eliminate technical debt, code smells, or guideline violations before submitting.
 7. **Always Open a Pull Request:** The final step of any completed request or task is NOT just committing changes—you MUST push the feature/chore branch to origin and open a Pull Request against `main` (via `gh pr create`).
 8. **Verify CI Completion:** After opening the PR, monitor and ensure that all automated CI checks (`Lint`, `Type Check`, `Test`, `Build`, and `CI Complete`) complete successfully.

@@ -1,7 +1,7 @@
 # Initiative: Journey-Driven View Data Models & UI Scaffolding (`journey-ui-scaffolding`)
 
 ## Overview
-Instead of prematurely designing and hardening isolated UI chrome or telemetry components in a vacuum, this initiative works systematically through the 5 canonical user journeys documented in [`docs/user-journeys.md`](../../../../docs/user-journeys.md).
+Instead of prematurely designing and hardening isolated UI chrome or telemetry components in a vacuum, this initiative works systematically through the 5 canonical user journeys documented in [`docs/design/user-journeys.md`](../../../../docs/design/user-journeys.md).
 
 The initiative is structured into two distinct stages:
 

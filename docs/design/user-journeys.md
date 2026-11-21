@@ -43,7 +43,7 @@ This document is the authoritative specification for Starmap's user archetypes, 
 
 ### Journey 1: Target Acquisition & Travel Planning (The Reader Flow)
 *Goal: Locate a star mentioned in a book, calculate transit times, and inspect its planets.*
-1. **Entry & Search (Galaxy Scale):** User opens Command Palette (`/` or `Ctrl+K`) and enters "Tau Ceti". The autocomplete system matches proper name, Bayer designation (`tau Cet`), and catalog ID. The 3D viewport live-frames the candidate star.
+1. **Entry & Search (Galaxy Scale):** User focuses the global Search (`/`) and enters "Tau Ceti". The autocomplete system matches proper name, Bayer designation (`tau Cet`), and catalog ID. The 3D viewport live-frames the candidate star.
 2. **Spatial Framing (Galaxy Scale):** The camera smoothly glides to center Tau Ceti in the focal aperture. Range rings dynamically rescale. The telemetry container displays an intrinsic summary (G8V yellow dwarf, 4 confirmed planets, 0 hazards), purposefully omitting a default Sol distance until an anchor is set.
 3. **Route Mode & Travel Benchmarks:** User activates "Plot Route / Measure" and selects Sol as the secondary spatial anchor. The 3D camera auto-frames both systems and renders the 3D measurement chord. The route panel displays:
    - Light-speed communication delay: 11.9 years one-way / 23.8 years round-trip.

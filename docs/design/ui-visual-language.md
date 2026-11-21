@@ -15,16 +15,15 @@ Starmap is a high-density, technical telemetry console for navigating astronomic
 │                        STRICT CHANNEL SEPARATION                       │
 ├──────────────────────────┬──────────────────────┬──────────────────────┤
 │    Achromatic Neutral    │   Reserved Focus     │ Scientific Indicators│
-│      Reading Plane       │     Interaction      │ & Analytical Layers  │
+│      Reading Plane       │     Interaction      │  & Domain Semantics  │
 ├──────────────────────────┼──────────────────────┼──────────────────────┤
-│ • Typography & labels    │ • Active waypoints   │ • Hazard condition   │
+│ • Typography & labels    │ • Active waypoints   │ • Telemetry status   │
 │ • Container surfaces     │ • Target reticles    │ • Observational cert.│
 │ • Monospace telemetry    │ • Keyboard focus     │ • Entity categories  │
-│ • Hairline grid rules    │ • Scrubhead needles  │ • Analytical overlays│
-│ (--content-*,            │ (--state-focus)      │ (--hazard-*,         │
+│ • Hairline grid rules    │ • Scrubhead needles  │                      │
+│ (--content-*,            │ (--state-focus)      │ (--status-*,         │
 │  --surface-*)            │                      │  --confidence-*,     │
-│                          │                      │  --category-*,       │
-│                          │                      │  --overlay-*)        │
+│                          │                      │  --category-*)       │
 └──────────────────────────┴──────────────────────┴──────────────────────┘
 ```
 
@@ -34,20 +33,14 @@ Starmap is a high-density, technical telemetry console for navigating astronomic
 2. **Reserved Interactive Focus:**
    The interactive focus token (`--state-focus`) is strictly reserved for user navigation: active waypoints, camera focal reticles, active navigation indicators, and keyboard `:focus-visible` rings. It is never used for decorative badges, status chips, or passive data labels.
 3. **Decoupled Scientific Channels:**
-   Chromatic channels are strictly restricted to four orthogonal scientific dimensions:
-   - **Hazard & Environmental Safety (`--hazard-*`)**
-   - **Observational Confidence (`--confidence-*`)**
-   - **Entity Categories (`--category-*`)**
-   - **Analytical Overlays (`--overlay-*`)**
+   Chromatic channels are strictly restricted to three orthogonal scientific dimensions:
+   - **Condition & Status (`--status-*`)**: Telemetry stability, environmental hazard severity, and system state.
+   - **Observational Confidence (`--confidence-*`)**: Empirical certainty and catalogue validation level.
+   - **Entity Categories (`--category-*`)**: Primary astronomical classification domains.
 4. **Pure Orthogonal Geometry:**
    Containers, panels, cards, buttons, badges, and input controls maintain `--radius-none` (`0px`) with sharp $90^\circ$ corners.
-5. **Global 4-Tier Interaction State Taxonomy:**
-   All entities, reticles, and interactive surfaces across 3D and 2D views strictly adhere to four universal interaction tiers:
-   - `passive`: Baseline background entity, minimal unreticled dot or neutral element.
-   - `active`: Within interactive scope or volume; basic reticle or row highlight present.
-   - `selected`: Full decorated reticle applied (hover, click, or list selection may apply this state).
-   - `focused`: Top-level prominence; accented with `--state-focus`, camera focal lock, and telemetry container engagement.
-
+5. **Universal 4-Tier Interaction State Taxonomy:**
+   All entities, reticles, and interactive surfaces across 3D and 2D views strictly adhere to the universal 4-tier interaction taxonomy (`passive`, `active`, `selected`, `focused`). The scale-aware definitions, reticle graphics, and bi-directional secondary pane synchronisation rules are specified in [`scene-requirements.md` §2.1](./scene-requirements.md#21-four-tier-entity-interaction-state-taxonomy).
 
 ---
 
@@ -56,33 +49,32 @@ Starmap is a high-density, technical telemetry console for navigating astronomic
 ```mermaid
 flowchart TD
     subgraph Dimensions["Semantic Data Dimensions"]
-        Hazard["1. Hazard & Safety\n(--hazard-*)\nEnvironmental risk & stability"]
+        Status["1. Condition & Status\n(--status-*)\nTelemetry state & environmental risk"]
         Confidence["2. Observational Confidence\n(--confidence-*)\nEmpirical & scientific certainty"]
-        Category["3. Entity Categories\n(--category-*)\nPhysical object classification"]
-        Overlay["4. Analytical Overlays\n(--overlay-*)\nScalar metrics & heatmaps"]
+        Category["3. Entity Categories\n(--category-*)\nAstronomical classification domains"]
     end
 
-    Hazard -.-> Containers["Surface Washes & Hairlines"]
+    Status -.-> Containers["Surface Washes, Hairlines & Badges"]
     Confidence -.-> Pips["In-situ Datum Pips & Tooltips"]
     Category -.-> Badges["Metadata Chips & Symbology"]
-    Overlay -.-> Heatmaps["Analytical Views & Gradients"]
 ```
 
 ---
 
-### 2.1 Hazard & Environmental Safety (`--hazard-*`)
+### 2.1 Condition & Status (`--status-*`)
 
-Reframed from generic "status" to communicate environmental hazard, radiation levels, orbital stability, and gravitational risk.
+Communicates telemetry operational health, system alerts, and environmental hazard severity (e.g. radiation levels, orbital eccentricity risk, Roche limit proximity).
 
 | Semantic Token | Semantic Intent | Visual Manifestation on Containers |
 | :--- | :--- | :--- |
-| `--hazard-nominal` | Benign environment, stable orbit, safe radiation baseline. | **Neutral Baseline:** Achromatic chrome. Zero chromatic border, zero surface wash. Prevents visual fatigue. |
-| `--hazard-caution` | Elevated hazard (e.g. high eccentricity, tidal heating, flare risk). | Subtle caution hairline border paired with a faint caution surface wash token (`--hazard-caution-surface`). |
-| `--hazard-critical`| Extreme hazard (e.g. relativistic beam, Roche limit breach, lethal flare). | Critical hairline border paired with a distinct critical surface wash token (`--hazard-critical-surface`). |
+| `--status-nominal` | Benign environment, stable orbit, nominal telemetry baseline. | **Neutral Baseline:** Achromatic chrome (`var(--palette-accent-neutral)`). Zero chromatic border, zero surface wash. Prevents visual fatigue. |
+| `--status-caution` | Elevated hazard or abnormal telemetry (e.g. high eccentricity, tidal heating, flare risk). | Subtle caution hairline border (`--status-caution-border`) paired with a faint caution surface wash token (`--status-caution-surface`) and background tint (`--status-caution-bg`). |
+| `--status-critical`| Extreme hazard or critical telemetry (e.g. relativistic beam, Roche limit breach, lethal flare). | Critical hairline border (`--status-critical-border`) paired with a distinct critical surface wash token (`--status-critical-surface`) and background tint (`--status-critical-bg`). |
+| `--status-info`    | Auxiliary operational telemetry or informational notice. | Info hairline border (`--status-info-border`) paired with an informational surface wash (`--status-info-surface`) and background tint (`--status-info-bg`). |
 
 #### Rules:
-- **Quiet Baseline:** Nominal is the expected baseline and must remain completely neutral. Never flood healthy systems with chromatic green.
-- **Surface Washes:** Applied via dedicated semantic surface tokens (`--hazard-*-surface`), never arbitrary opacity hacks.
+- **Quiet Baseline:** Nominal is the expected baseline and must remain completely neutral. Healthy systems are never flooded with chromatic green.
+- **Surface Washes:** Applied via dedicated semantic surface tokens (`--status-*-surface`), never arbitrary opacity hacks.
 
 ---
 
@@ -90,13 +82,13 @@ Reframed from generic "status" to communicate environmental hazard, radiation le
 
 Quantifies the empirical certainty of an astronomical detection or parameter calculation.
 
-Confidence data exists in distinct scientific pockets within the catalog:
-- **Exoplanets:** Validation status (`confirmed`, `candidate`, `controversial`).
+Confidence data exists in distinct scientific pockets within the catalogue:
+- **Exoplanets:** Validation status (`confirmed`, `candidate`, `theoretical`).
 - **Astrometry:** Astrometric quality (Gaia RUWE, parallax error margins).
 - **Small Bodies:** Orbital condition codes (JPL $U$-values).
 
 #### Visual Representation: Dedicated Datum Pip
-Rather than applying heavy stroke styling across entire objects, observational confidence is rendered as a **dedicated indicator pip** (a small indicator dot) placed directly alongside the specific datum in question, paired with a contextual tooltip explaining the confidence tier and source catalog:
+Rather than applying heavy stroke styling across entire objects, observational confidence is rendered as a **dedicated indicator pip** (`<ConfidencePip>`) placed directly alongside the specific datum in question, paired with a contextual tooltip explaining the confidence tier and source catalogue:
 
 ```
 [ Proxima Centauri b ]  (•) ──► Tooltip: "Confirmed Exoplanet (RV + Transit Consensus)"
@@ -106,36 +98,24 @@ Rather than applying heavy stroke styling across entire objects, observational c
 
 | Semantic Token | Epistemic Meaning |
 | :--- | :--- |
-| `--confidence-confirmed` | Independently verified detection; multi-instrument consensus. |
-| `--confidence-candidate` | Single-instrument detection; threshold crossing event pending validation. |
-| `--confidence-theoretical` | Mathematically modelled or dynamically inferred entity / parameter. |
+| `--confidence-confirmed` | Independently verified detection; multi-instrument consensus. Paired with `--confidence-confirmed-bg` and `--confidence-confirmed-glow`. |
+| `--confidence-candidate` | Single-instrument detection; threshold crossing event pending validation. Paired with `--confidence-candidate-bg` and `--confidence-candidate-glow`. |
+| `--confidence-theoretical` | Mathematically modelled or dynamically inferred entity / parameter. Paired with `--confidence-theoretical-bg` and `--confidence-theoretical-glow`. |
 
 ---
 
 ### 2.3 Entity Categories (`--category-*`)
 
-Broad classification of physical objects. Granular differences within a category (e.g. main sequence star vs giant, or terrestrial planet vs gas giant) are resolved via **symbology and reticle geometry**, keeping the chromatic palette concise.
+Broad classification of primary astronomical domains:
 
-| Semantic Token | Scope of Physical Entities |
+| Semantic Token | Scope of Physical Entities & Attributes |
 | :--- | :--- |
-| `--category-stellar` | Single stars, multiple stellar systems, barycentres, brown dwarfs. |
-| `--category-planetary` | Major exoplanets and planets (terrestrial, gas giants, ice giants). |
-| `--category-minor-body` | Moons, dwarf planets, asteroids, comets, trojans. |
-| `--category-artificial` | Orbital stations, outposts, beacons, communications relays, vessels. |
-| `--category-deep-sky` | Nebulae, star clusters, interstellar clouds, degenerate remnants (white dwarfs, neutron stars, black holes). |
+| `--category-star` | Single stars, stellar components, spectral types, host systems (`var(--palette-solarized-orange)` / `--category-star-bg`). |
+| `--category-planet` | Major planets, terrestrial worlds, gas giants, ice giants, moons (`var(--palette-solarized-cyan)` / `--category-planet-bg`). |
+| `--category-orbit` | Orbital paths, semi-major axis, eccentricity, transit vectors (`var(--palette-solarized-violet)` / `--category-orbit-bg`). |
+| `--category-habitability` | Circumstellar habitable zones (CHZ), flux margins, ESI indices (`var(--palette-solarized-green)` / `--category-habitability-bg`). |
 
----
-
-### 2.4 Analytical Overlays (`--overlay-*`)
-
-Scalar layers and heatmap projections across the celestial environment, strictly decoupled from entity taxonomy:
-
-| Semantic Token | Analytical Focus |
-| :--- | :--- |
-| `--overlay-luminosity` | Visual magnitude, absolute brightness, stellar luminosity bands. |
-| `--overlay-temperature` | Effective surface temperature ($T_{\text{eff}}$), thermal bands. |
-| `--overlay-velocity` | Proper motion, space velocity vectors, radial drift. |
-| `--overlay-habitability`| Circumstellar habitable zone (CHZ) flux, Earth Similarity Index (ESI). |
+Granular distinctions (e.g. Yerkes spectral class, planet sub-composition, celestial structures) are resolved via **canonical SVG symbology** (`<CelestialSymbol>`) and **regulated classification badges** (`<CelestialBadge>`, `<SpectralBadge>`, `<HazardBadge>`), keeping the colour token taxonomy clean and strictly decoupled from arbitrary object counts.
 
 ---
 
@@ -160,7 +140,7 @@ Astronomical telemetry demands high data density, absolute alignment rigor, and 
 | :--- | :--- | :--- |
 | **Entity Names & Designations** | `text-align: start` (Left) | Natural reading flow for text identifiers. |
 | **Numeric Telemetry & Coordinates** | `text-align: end` (Right) | Rigorous vertical decimal and magnitude alignment. |
-| **Status / Hazard Indicators** | `text-align: center` or `start` | Dedicated column with self-contained indicator. |
+| **Status / Condition Indicators** | `text-align: center` or `start` | Dedicated column with self-contained indicator. |
 
 ---
 
@@ -183,7 +163,7 @@ Whenever a physical unit is rendered—whether inline in a cell, next to a hero 
 
 ### 3.4 Missing, Incomplete, and Anomalous Values
 
-When a sensor parameter or catalog field is unavailable:
+When a sensor parameter or catalogue field is unavailable:
 - **Authoritative Standard:** Render the **Em Dash** (`—` / `\u2014`).
 - **Styling:** Monospace, `--content-muted`, inheriting column alignment (`text-align: end`).
 - **Strictly Banned:** `N/A`, `null`, `undefined`, `NaN`, `-1`, or blank cells.
@@ -214,13 +194,15 @@ Starmap enforces CUBE CSS (Composition, Utility, Block, Exception) governed by C
 
 An **Exception** is strictly a **state or contextual deviation from a component's neutral baseline**, hooked via an HTML `data-*` attribute to mutate its Local Token Interface.
 
-Valid exceptions are restricted to three categories:
-1. **Hazard / Condition Exceptions:**
-   `data-hazard="caution"`, `data-hazard="critical"`
-2. **Interactive & State Exceptions:**
-   `data-state="passive" | "active" | "selected" | "focused"`, `data-pinned="true"`
-3. **Category & Overlay Exceptions:**
-   `data-category="stellar"`, `data-category="deep-sky"`, `data-overlay="luminosity"`
+Valid exceptions are restricted to four categories:
+1. **Status & Condition Exceptions:**
+   `data-status="nominal" | "caution" | "critical" | "info"`
+2. **Observational Confidence Exceptions:**
+   `data-confidence="confirmed" | "candidate" | "theoretical"`
+3. **Category Exceptions:**
+   `data-category="star" | "planet" | "orbit" | "habitability"`
+4. **Interactive & State Exceptions:**
+   `data-state="passive" | "active" | "selected" | "focused"`, `data-interactive="true"`, `data-selected="true"`, `data-state="open"`
 
 #### What is NOT an Exception:
 - **Layout & Spacing:** Margin, padding between elements, and wrapping are 100% owned by Composition Primitives (`<Stack>`, `<Cluster>`, `<Grid>`).
@@ -271,14 +253,14 @@ Because `@layer exceptions` sits immediately after `@layer blocks`, attribute se
 
 @layer exceptions {
   /* Mutate only the local tokens */
-  .card[data-hazard="caution"] {
-    --card-border-color: var(--hazard-caution);
-    --card-bg:           var(--hazard-caution-surface);
+  .card[data-status="caution"] {
+    --card-border-color: var(--status-caution-border);
+    --card-bg:           var(--status-caution-surface);
   }
 
-  .card[data-hazard="critical"] {
-    --card-border-color: var(--hazard-critical);
-    --card-bg:           var(--hazard-critical-surface);
+  .card[data-status="critical"] {
+    --card-border-color: var(--status-critical-border);
+    --card-bg:           var(--status-critical-surface);
   }
 
   .card[data-interactive="true"]:hover {

@@ -1,6 +1,6 @@
 # Starmap
 
-A high-precision, technical 3D cartographic application and reference console for navigating the solar neighbourhood ($100\text{ pc}$ volume), stellar systems, and planetary worlds.
+A comprehensive and modern A-Z style atlas for space enthusiasts and galactic pilots, from beginners to seasoned professionals. Starmap is a high-precision, technical 3D cartographic application and reference console for navigating the solar neighbourhood ($100\text{ pc}$ volume), stellar systems, and planetary worlds, with easy exploration across planetary, system, and neighbourhood scales, route finding and journey planning tools, and encyclopaedic help and reference guides.
 
 Built with **React 19**, **Three.js**, **React Three Fiber (R3F)**, **TanStack Router**, and **Zustand**, driven by an offline astronomical data pipeline ingesting Gaia DR3, HYG v3, and NASA Exoplanet Archive catalogues.
 
@@ -11,10 +11,10 @@ Built with **React 19**, **Three.js**, **React Three Fiber (R3F)**, **TanStack R
 - **Single Persistent WebGL Canvas:** Mounted once at the root (`RootCanvasHost`), surviving route transitions without context destruction or shader recompilation. Views interact via declarative `<CanvasLayer>` stage slots.
 - **TanStack Router as Single Source of Truth:** Navigation, selection, focus, and analytical filters are fully synchronised with an orthogonal URL search query grammar (`?center=`, `?select=`, `?focus=`, `?route=`, `?layer=`, `?q=`, `?searchCategory=`) adhering to RFC 3986 literal preservation (`stringifyStarmapSearch`).
 - **Zero Hardcoded Entity Attributes:** All celestial properties, classifications, habitability flags, and orbital parent hierarchies are precalculated at build time and served via 28-byte binary sector shards (`.bin`) and compact JSON shards.
-- **Strict 1-Directional Module Layering:** Monitored by custom AST guards enforcing a 10-rank module hierarchy, zero import cycles, prototype isolation, and primitive purity.
+- **Strict 1-Directional Module Layering:** Monitored by custom AST guards enforcing an 11-rank (ranks 0–10) module hierarchy, zero import cycles, prototype isolation, and primitive purity.
 - **CUBE CSS Design System:** Scoped CSS Modules with local token interfaces (`--<component>-*`), Tier 1 interface primitives with strict zero-`className`/`style` passthrough, and `@layer blocks` / `@layer exceptions` cascade control.
 
-For in-depth architectural details, see the [Architecture Documentation](docs/README.md).
+For in-depth documentation, see the [Documentation Index](docs/README.md).
 
 ---
 
@@ -62,7 +62,7 @@ npm run data:refresh
 
 ## Quality, Testing & Guard Suites
 
-Starmap enforces a comprehensive automated verification suite:
+Starmap enforces a comprehensive automated verification suite (highlights only; see `package.json` for the full script list):
 
 ```bash
 # Fast Oxlint linting
@@ -97,11 +97,5 @@ npm run capture:views
 
 ## Documentation Index
 
-- [**Documentation Home (`docs/README.md`)**](docs/README.md): Authoritative documentation registry and index.
-- [**3D Canvas Management (`docs/architecture/3d-canvas-management.md`)**](docs/architecture/3d-canvas-management.md): WebGL lifecycle, persistent canvas, stage slots, and 60fps frame loop.
-- [**Routing and State (`docs/architecture/routing-and-state.md`)**](docs/architecture/routing-and-state.md): URL grammar, parameter sanitisation, and state boundaries.
-- [**Layering and Guardrails (`docs/architecture/layering-and-guardrails.md`)**](docs/architecture/layering-and-guardrails.md): 1-directional module hierarchy, CI guard suite, and shrink-only baselines.
-- [**Data Pipeline and Codecs (`docs/architecture/data-pipeline-and-codecs.md`)**](docs/architecture/data-pipeline-and-codecs.md): 11-stage offline pipeline, binary sector shards, and compact JSON encoding.
-- [**Design System Specification (`docs/design-system.md`)**](docs/design-system.md): CUBE CSS, tokens, primitives, and component quads.
-- [**3D Spatial Architecture (`docs/3d-spatial-architecture.md`)**](docs/3d-spatial-architecture.md): Tri-axial coordinate system, travelling fins, and cartography.
-- [**Conductor Track Registry (`conductor/index.md`)**](conductor/index.md): Project roadmap, tracks, and initiative specifications.
+- [**Documentation Index (`docs/README.md`)**](docs/README.md): Architecture, reference and design specifications.
+- [**Conductor (`conductor/index.md`)**](conductor/index.md): Workflow, styleguides, tracks, backlog and initiative history.

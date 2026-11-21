@@ -4,12 +4,12 @@ This document defines the cartographic rules, rendering requirements, UX goals, 
 
 > [!IMPORTANT]
 > **Architectural Precedence:**
-> - Spatial coordinate frames, travelling fins, and datum surfaces are governed by [`docs/3d-spatial-architecture.md`](./3d-spatial-architecture.md).
-> - WebGL persistent canvas lifecycle, stage slots, and 60fps frame loops are governed by [`docs/architecture/3d-canvas-management.md`](./architecture/3d-canvas-management.md).
-> - URL navigation, selection state, and orthogonal search parameters are governed by [`docs/architecture/routing-and-state.md`](./architecture/routing-and-state.md).
-> - 2D UI tokens, typography, monospace alignments, and CUBE exceptions are governed by [`docs/ui-visual-language.md`](./ui-visual-language.md) and [`docs/design-system.md`](./design-system.md).
-> - CSS token synchronization to WebGL materials is governed by [`docs/threejs-token-sync.md`](./threejs-token-sync.md).
-> - Hand-crafted control fixtures are housed in [`tests/fixtures/system.fixture.json`](../tests/fixtures/system.fixture.json) and [`tests/fixtures/planet.fixture.json`](../tests/fixtures/planet.fixture.json).
+> - Spatial coordinate frames, travelling fins, and datum surfaces are governed by [`docs/design/3d-spatial-architecture.md`](./3d-spatial-architecture.md).
+> - WebGL persistent canvas lifecycle, stage slots, and 60fps frame loops are governed by [`docs/architecture/3d-canvas-management.md`](../architecture/3d-canvas-management.md).
+> - URL navigation, selection state, and orthogonal search parameters are governed by [`docs/architecture/routing-and-state.md`](../architecture/routing-and-state.md).
+> - 2D UI tokens, typography, monospace alignments, and CUBE exceptions are governed by [`docs/design/ui-visual-language.md`](./ui-visual-language.md) and [`docs/design/design-system.md`](./design-system.md).
+> - CSS token synchronization to WebGL materials is governed by [`docs/architecture/theme-token-bridge.md`](../architecture/theme-token-bridge.md).
+> - Hand-crafted control fixtures are housed in [`tests/fixtures/system.fixture.json`](../../tests/fixtures/system.fixture.json) and [`tests/fixtures/planet.fixture.json`](../../tests/fixtures/planet.fixture.json).
 
 ---
 
@@ -65,7 +65,7 @@ A unified companion panel pattern deployed across all views to list child or in-
 - **Background Filtering:** During route planning or candidate filter mode, non-matching stars dim to low-opacity background points to eliminate visual noise.
 
 ### 3.4 Contextual Controls & HUD Elements
-- **Search Panel (`/` or `Ctrl+K` backlog):** Global search across celestial entities, structures, and guide articles with prefix matching via the persistent Search assembly (`src/components/domain/Search/`), synchronising selection and focus to the canonical URL grammar (`?focus=`, `?select=`, `?q=`). (A floating modal Command Palette remains a future backlog item).
+- **Search Panel (`/` focuses the search input):** Global search across celestial entities, structures, and guide articles with prefix matching via the persistent Search assembly (`src/components/domain/Search/`), synchronising selection and focus to the canonical URL grammar (`?focus=`, `?select=`, `?q=`). (A floating modal Command Palette remains a future backlog item).
 - **Spatial Anchor Selector:** Ability to set any system as the Primary Spatial Anchor (distances measured relative to anchor, not forced to Sol).
 - **Candidate Filter Drawer:** Sliders for radius ($\le 15\text{ ly}$), spectral types (G, K, M), and intent switches (e.g. *"Habitable Zone Host"*).
 - **Attitude Gimbal Minimap:** Corner micro-viewport displaying camera pitch, roll, and yaw relative to the Galactic Equator.
@@ -146,7 +146,7 @@ When inspecting a planet, the primary dossier panel presents:
 - **Physical Data:** Semi-Major Axis, Eccentricity, Axial Tilt, Escape Velocity.
 - **Classifications:** Formal Scientific Taxonomy (e.g. `Terrestrial`, `Super-Earth`, `Gas Giant`) accompanied by an Accessible Descriptive Archetype tag (e.g. *"Warm Rocky World"*, *"Cold Gas Giant"*).
 - **Atmospheric Data:** Gas percentage breakdown, or em dash fallback (`—` / `Awaiting Spectroscopy`).
-- **Status & Confidence:** Observational Confidence Pip (`--confidence-*`) and Hazard Status Badge (`--hazard-*`).
+- **Status & Confidence:** Observational Confidence Pip (`--confidence-*`) and Hazard Status Badge (`--status-*`).
 
 ### 5.8 Satellite Manifest Integration
 Major moons and natural satellites are hosted in the **Universal Secondary Objects Pane** with bi-directional selection synchronization with the 3D canvas.
@@ -191,17 +191,17 @@ Search behaviour adapts automatically to the active view level with a GitHub-sty
 - **Planet View:** Default scope: `In this Body` (matches moons, planetary surface features, atmospheric strata).
 
 ### 6.3 Scale Transitions
-Scale transitions between view tiers (Galaxy $\rightarrow$ System $\rightarrow$ Planet) must maintain spatial context and prevent disorientation. The exact camera mechanics, easing curves, and interpolation dynamics are deferred to dedicated interaction design and the `3d-engine-implementation` track.
+Scale transitions between view tiers (Galaxy $\rightarrow$ System $\rightarrow$ Planet) must maintain spatial context and prevent disorientation. The exact camera mechanics, easing curves, and interpolation dynamics are deferred to dedicated interaction design and the `camera-choreography` track ([`3d-engine-implementation`](../../conductor/archive/tracks/3d-engine-implementation_20260929/index.md) shipped the underlying engine).
 
 ---
 
 ## 7. Prototype Fixture Integration
 
-Visual prototyping in Storybook and automated unit testing consume the hand-crafted control fixtures:
+The hand-crafted control fixtures are consumed only by the type-contract tests in [`src/types/astro.test.ts`](../../src/types/astro.test.ts); Storybook stories use their own fixtures under `.storybook/helpers/`.
 
-1. **[`tests/fixtures/system.fixture.json`](../tests/fixtures/system.fixture.json):**
-   - **Sol System:** Rich, complete baseline with 8 planets, fully characterised Keplerian orbital elements, high confidence, nominal hazard status.
+1. **[`tests/fixtures/system.fixture.json`](../../tests/fixtures/system.fixture.json):**
+   - **Sol System:** Rich, complete baseline with 8 planets, fully characterised Keplerian orbital elements, high confidence.
    - **Tau Ceti System:** Sparser exoplanetary system with 4 confirmed candidates ($g, h, e, f$), unconstrained orbital inclinations, mass-radius estimates, demonstrating observational uncertainties and em-dash fallbacks.
-2. **[`tests/fixtures/planet.fixture.json`](../tests/fixtures/planet.fixture.json):**
+2. **[`tests/fixtures/planet.fixture.json`](../../tests/fixtures/planet.fixture.json):**
    - **Earth:** Terrestrial archetype, in-situ verified, nominal status, atmospheric breakdown, single moon.
    - **Tau Ceti e:** Super-Earth exoplanet archetype in the CHZ, radial-velocity constrained, caution hazard status, explicit measurement uncertainties ($\pm 0.8\text{ M}_\oplus, \pm 0.4\text{ R}_\oplus$), em-dash nulls for unmeasured atmospheric and magnetic properties.

@@ -6,36 +6,32 @@ This guide establishes the architectural, accessibility, state, and styling stan
 
 ## 1. Architectural Taxonomy & Separation of Concerns
 
-Components are categorised into a strict four-tier hierarchy (`docs/design-system.md`):
+Components are categorised into a strict three-tier hierarchy ([`docs/design/design-system.md`](../../docs/design/design-system.md)):
 
 1. **Tier 1: Primitives**
    - **Layout Primitives:** Own all spatial flow, geometry, and insets (`<Stack>`, `<Cluster>`, `<Grid>`, `<Center>`, etc.).
    - **Presentation Atoms:** Pure, single-responsibility controls and data presentation elements (`<Button>`, `<Input>`, `<Badge>`, `<Datum>`, etc.).
 2. **Tier 2: Surfaces & Overlays**
    - Provide visual containment, spatial elevation, and contextual planes (`<Card>`, `<Panel>`, `<Modal>`, `<Drawer>`, etc.).
-3. **Tier 3: Structural Templates**
-   - Standardise recurring macro layout configurations by composing primitives and surfaces without embedding domain models (`<SplitScreen>`, `<DockLayout>`, etc.).
-4. **Tier 4: Application Assemblies**
+3. **Tier 3: Application Assemblies**
    - High-level domain widgets and feature views bound to application state, astronomical data, and telemetry.
 
 ### Architectural Invariants
-- **Zero Outer Margins:** Components must never declare external `margin`, positioning offsets, or self-layout. Layout and flow are strictly owned by parent composition primitives.
-- **Semantic Interface Primitives Over Raw Strings & HTML:** Domain assemblies and views (`src/components/domain/`, `src/components/domain/Search/`, `src/views/`) must never render raw HTML controls (`<button>`, `<input>`, `<select>`), raw `<dl>`/`<ul>` telemetry lists, or ASCII punctuation workarounds (`[reticle]`, `' · a = '`, `(0 pc)`):
+- **Zero Outer Margins:** Components must never declare external `margin`, positioning offsets, or self-layout. Layout and flow are strictly owned by parent composition primitives. The full CSS checklist lives in [html-css.md](./html-css.md).
+- **Semantic Interface Primitives Over Raw Strings & HTML:** Domain assemblies and views (`src/components/domain/`, `src/views/`) must never render raw HTML controls (`<button>`, `<input>`, `<select>`), raw `<dl>`/`<ul>` telemetry lists, or ASCII punctuation workarounds (`[reticle]`, `' · a = '`, `(0 pc)`):
   - **Telemetry Key/Value Pairs:** Always use `<Datum>` inside `<Stack gap="none">`.
   - **Multi-Column Entity, Orbit & Step Lists:** Always use `<DataTable>`.
   - **Magnitudes, Counts & Units:** Always use `<Quantity>` and `<Unit>` (including counts such as `0 hazards` or `4 planets`), fed by structured numeric/unit objects (`StructuredQuantity`) from services—never regex-split display strings in view components.
-  - **Regulated Classification Badges & Symbology:** Views must never manually assemble `<Badge>` with ad-hoc strings for celestial classifications, spectral classes, habitable zones, or hazards. Always use the regulated type-driven badge components (`<CelestialSymbol>`, `<CelestialBadge type={...} />`, `<SpectralBadge spectralType={...} />`, `<HazardBadge ... />`, and `<PlanetCensus ... />`) so every TypeScript classification union deterministically renders the canonical 1px SVG symbol, `<Tooltip>`, semantic colour token, and `/guide` link. Never wrap numeric counts (`0 hazards`, `0 confirmed planets`, `1 of 5`) or plain telemetry prose (`Free rotation`, `Outside optimistic zone`, hex codes) in `<Badge>`, and never include ASCII brackets `[...]` inside `<Badge>`.
+  - **Regulated Classification Badges & Symbology:** Views must never manually assemble `<Badge>` with ad-hoc strings for celestial classifications, spectral classes, habitable zones, or hazards. Always use the regulated type-driven badge components (`<CelestialSymbol>`, `<CelestialBadge type={...} />`, `<SpectralBadge spectralType={...} />`, `<HazardBadge ... />`, `<PlanetCensus ... />`, `<ConfidencePip />`) so every TypeScript classification union deterministically renders the canonical 1px SVG symbol, `<Tooltip>`, semantic colour token, and `/guide` link. Never wrap numeric counts (`0 hazards`, `0 confirmed planets`, `1 of 5`) or plain telemetry prose (`Free rotation`, `Outside optimistic zone`, hex codes) in `<Badge>`, and never include ASCII brackets `[...]` inside `<Badge>`.
   - **Controls:** Always use `<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`, and `<Kbd>`.
-- **Presenter/Container Decoupling:** Presentation components (Tiers 1–3) must remain pure, deterministic, and decoupled from global stores or side-effects. Stateful orchestration and telemetry subscriptions belong exclusively in Tier 4 assemblies or dedicated container hooks.
+- **Presenter/Container Decoupling:** Presentation components (Tiers 1–2) must remain pure, deterministic, and decoupled from global stores or side-effects. Stateful orchestration and telemetry subscriptions belong exclusively in Tier 3 assemblies or dedicated container hooks.
 - **Mandatory Component File Quad:** Every component in `src/components/interface/**` and `src/components/domain/**` MUST have:
   1. `<Component>.tsx` (implementation; keep domain components focused and under ~300 lines by decomposing complex panels into sub-components, extracting non-component helpers, math, and serializers into pure `.ts` companion files per `AUD-122` and `AUD-129`)
   2. `<Component>.module.css` (scoped CSS Module inside `@layer blocks` / `@layer exceptions` with a `--<component>-*` local token interface)
   3. `<Component>.stories.tsx` (Storybook stories)
-  4. `<Component>.test.tsx` (colocated unit test run by `npm run test` / `npm run test:coverage`)
+  4. `<Component>.test.tsx` (colocated unit test run by `npm run test` / `npm run test:coverage`; testing rules in [typescript.md](./typescript.md#4-testing-standards))
 - **Strict Zero-`className` and Zero-`style` on Tier 1 Primitives (`DEC-R050`):** Tier 1 layout and presentation primitives (`src/components/interface/**`) must NEVER accept `className` or `style` props. Primitives encapsulate their own scoped CSS Modules statically and expose variants/geometry exclusively via typed semantic props (`gap`, `align`, `variant`, `size`) and HTML `data-*` attributes. Dynamic class concatenation or external style injection into primitives is strictly forbidden.
-- **Strict `@testing-library/react` DOM Testing:** All `.test.tsx` component and view tests MUST run in `jsdom` using `@testing-library/react` (`render`, `screen`, `within`, `fireEvent` / `userEvent`) to test accessible roles, `data-*` attributes, keyboard/pointer interactions, and callbacks. Importing `renderToString` from `react-dom/server` in tests is strictly forbidden.
-- **1:1 Focused Test Files (Zero Monolith Test Suites):** Every service, hook, component, and view must have its own focused `.test.ts(x)` file; dumping unrelated component or view assertions into catch-all files like `tests/searchService.test.ts` is forbidden.
-- **Production / Fixture Segregation:** Test fixtures, visual preview scaffolding, and Storybook decorators (such as `StoryCanvas`) must never reside within production component directories (`src/components/...`). They belong strictly in `.storybook/helpers/` or dedicated test utilities (`src/test-utils/`) to keep component packages pure and shippable.
+- **Production / Fixture Segregation:** Test fixtures, visual preview scaffolding, and Storybook decorators (such as `StoryCanvas`) must never reside within production component directories (`src/components/...`). They belong strictly in `.storybook/helpers/` or `tests/fixtures/` to keep component packages pure and shippable.
 
 ---
 
@@ -77,33 +73,7 @@ Components are categorised into a strict four-tier hierarchy (`docs/design-syste
 
 ## 5. Modular CSS & Design Token Architecture
 
-- **Strict Scoping:** Every component is styled exclusively via an adjacent CSS Module (`<Component>.module.css`). Inline styles (`style={{ ... }}`) are strictly forbidden.
-- **Semantic Token Consumption:** Component stylesheets must consume semantic tokens (`--surface-*`, `--content-*`, `--state-*`, `--status-*`). Direct references to literal color palettes (`--palette-*`) are forbidden.
-- **The Local Token Interface Pattern:**
-  - Define component-scoped custom properties (`--component-*`) at the root selector in `@layer blocks`:
-    ```css
-    @layer blocks {
-      .component {
-        --component-bg:     var(--surface-panel-bg);
-        --component-border: var(--surface-panel-border-color);
-        background: var(--component-bg);
-        border: var(--stroke-hairline) solid var(--component-border);
-      }
-    }
-    ```
-- **Declarative Variant Exceptions:**
-  - In `@layer exceptions`, mutate local custom properties using HTML `data-*` selectors, preserving base geometry and layout:
-    ```css
-    @layer exceptions {
-      .component[data-status="critical"] {
-        --component-border: var(--status-critical);
-      }
-    }
-    ```
-- **Component-Internal Token Scoping (Preventing Global Token Pollution):**
-  - Never place component-specific properties (e.g. `--ui-button-*`, `--ui-input-*`, `--ui-slider-*`, `--ui-toggle-*`) in global `semantic.css`.
-  - Global semantic tokens must remain abstract and composable: universal surfaces (`--surface-*`), elevation/specular mechanics (`--ui-control-elevation`, `--ui-control-specular-l`, `--ui-control-specular-c`), control cavity layers (`--ui-control-inset-bg`, `--ui-control-inset-border-color`, `--ui-control-inset-shadow`), and hardware states (`--ui-control-default`, `--ui-control-subtle`, `--ui-control-hover`, `--ui-control-active`).
-  - Components declare their own private `--<component>-*` variables in their module block, mapping directly to these semantic tokens.
+- **CSS Guardrails:** Scoping, semantic-token consumption, the Local Token Interface pattern, `data-*` variant exceptions, and component-internal token scoping are owned by [html-css.md](./html-css.md).
 - **Physical Lighting Model (137° Overhead Illumination):**
   - Starmap simulates directional overhead-left illumination (137°):
     - **Raised Controls (`<Button>`):** Top and left edges catch illuminated specular rims (`inset 0 1px 0 0 ...`, `inset 1px 0 0 0 ...`), while bottom and right edges cast exterior drop shadows.

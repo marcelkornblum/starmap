@@ -102,4 +102,4 @@ Once ratified by the user, delegate emission, data build, and verification to `t
    - `public/data/overlays/layers/<layerId>.json`
    - `public/data/overlays/layers/by-entity/<0..z>.json`
    - `public/data/search/layers.json`, `public/data/search/core.json`, and `public/data/search/full.json`
-3. Run `npx vitest run tests/datasetLayerCodec.test.ts` and `npm run typecheck` as separate single commands to verify lossless round-trip encoding and search index generation.
+3. Run `npx vitest run src/utils/datasetLayerCodec.test.ts` and `npm run typecheck` as separate single commands to verify lossless round-trip encoding and search index generation.

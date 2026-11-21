@@ -3,12 +3,12 @@
 This document is the **single authoritative specification** for Starmap's 3D coordinate environment, reference planes, orientation cues, and operational modes across the unbounded galactic starfield.
 
 > [!IMPORTANT]
-> **Source of Truth Rule:** All exploratory AI-generated renders contain technical inaccuracies and hallucinations (e.g. scale compression, planar artifacts, excessive line density). They are discarded reference sketches. This document and its corresponding code tokens represent the sole authoritative specification.
+> **Source of Truth Rule:** This document and its corresponding code tokens are the sole authoritative specification for the 3D coordinate environment; earlier exploratory sketches are not a reference.
 > 
 > **Related Architecture Specifications:**
-> - WebGL persistent canvas lifecycle, stage slots, and 60fps frame loops: [`docs/architecture/3d-canvas-management.md`](./architecture/3d-canvas-management.md).
-> - URL navigation, focal selection, and orthogonal query grammar: [`docs/architecture/routing-and-state.md`](./architecture/routing-and-state.md).
-> - CSS token synchronization to WebGL materials: [`docs/threejs-token-sync.md`](./threejs-token-sync.md).
+> - WebGL persistent canvas lifecycle, stage slots, and 60fps frame loops: [`docs/architecture/3d-canvas-management.md`](../architecture/3d-canvas-management.md).
+> - URL navigation, focal selection, and orthogonal query grammar: [`docs/architecture/routing-and-state.md`](../architecture/routing-and-state.md).
+> - CSS token synchronization to WebGL materials: [`docs/architecture/theme-token-bridge.md`](../architecture/theme-token-bridge.md).
 
 ---
 
@@ -109,7 +109,7 @@ To resolve spatial density without falsifying astronomical positions or creating
 * **Priority Occlusion Masking:**
   * Equal-priority reticles (e.g. ambient contacts) overlay directly without suppression.
   * Significant reticles (an active focused target or selected node) establish an attentional priority mask, cleanly **occluding/suppressing lesser background reticles** colliding directly beneath them.
-  * *(The formal multi-tier reticle priority hierarchy will be established alongside User Journeys & Features in Phase 4).*
+  * *(Only the masking rule above is specified; a finer multi-tier reticle priority hierarchy is not yet defined.)*
 
 ### 2.3 Typographic Labels
 * **Screen-Space Displacement:** When systems crowd in screen space, labels dynamically displace along thin 1px leader stems up to a defined collision radius.
