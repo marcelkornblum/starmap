@@ -135,8 +135,8 @@ export function writeHashedDataManifest(
   }
 
   const sortedFiles: Record<string, string> = {};
-  for (const key of Object.keys(rawFiles).sort()) {
-    sortedFiles[key] = rawFiles[key]!;
+  for (const [key, value] of Object.entries(rawFiles).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+    sortedFiles[key] = value;
   }
 
   const manifest: DataManifestFile = {

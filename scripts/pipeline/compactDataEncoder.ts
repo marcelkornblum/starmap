@@ -302,12 +302,18 @@ export function buildHybridSummariesAndDetails(input: {
 
   const routingSummaryMap: Record<string, number> = {};
   for (const [id, sectorId] of summarySectorById.entries()) {
-    routingSummaryMap[id] = sectorToIdx.get(sectorId)!;
+    const idx = sectorToIdx.get(sectorId);
+    if (idx !== undefined) {
+      routingSummaryMap[id] = idx;
+    }
   }
 
   const routingDetailMap: Record<string, number> = {};
   for (const [id, sectorId] of detailSectorById.entries()) {
-    routingDetailMap[id] = sectorToIdx.get(sectorId)!;
+    const idx = sectorToIdx.get(sectorId);
+    if (idx !== undefined) {
+      routingDetailMap[id] = idx;
+    }
   }
 
   for (const rawBody of input.primarySolarBodies) {
