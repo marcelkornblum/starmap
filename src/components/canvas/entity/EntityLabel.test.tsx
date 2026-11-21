@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { screen, render } from '@testing-library/react';
 import { EntityLabel } from './EntityLabel';
+import { OcclusionPass } from './OcclusionPass';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { createSpatialEntityStore } from './SpatialEntityStore';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
@@ -15,6 +16,7 @@ describe('EntityLabel Primitive (Layer 3: Typographic Label)', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -145,5 +147,74 @@ describe('EntityLabel Primitive (Layer 3: Typographic Label)', () => {
 
     updateMatrixSpy.mockRestore();
     await renderer.unmount();
+  });
+
+  it('skips evaluateNodeOcclusion on idle frames even after >250ms, and re-evaluates on footprint change (P-09)', async () => {
+    let now = 10_000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    const store = createSpatialEntityStore();
+    const occlusionManager = new CelestialOcclusionManager();
+    const evalSpy = vi.spyOn(occlusionManager, 'evaluateNodeOcclusion');
+    const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+
+    occlusionManager.register({
+      id: 'star-idle',
+      name: 'Vega',
+      state: 'active',
+      screenX: 0,
+      screenY: 0,
+      worldPos: [0, 0, 0],
+      reticleRadius: 20,
+      starRadius: 0.035,
+      hasReticle: true,
+      visible: true,
+      updatedAt: 0,
+    });
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <SpatialEntityProvider store={store} occlusionManager={occlusionManager}>
+          <OcclusionPass enabled={true} />
+          <EntityLabel
+            id="star-idle"
+            name="Vega"
+            spectralType="A0V"
+            state="active"
+            position={[0, 0, 0]}
+          />
+        </SpatialEntityProvider>
+      </SpatialFrameProvider>,
+    );
+
+    // Frame 1 evaluates occlusion
+    await renderer.advanceFrames(1, 0.016);
+    expect(evalSpy).toHaveBeenCalledTimes(1);
+
+    // Advance >250ms on idle frames: evaluateNodeOcclusion must NOT be called again
+    evalSpy.mockClear();
+    now += 300;
+    await renderer.advanceFrames(1, 0.016);
+    expect(evalSpy).not.toHaveBeenCalled();
+
+    // Mutate footprint: evaluateNodeOcclusion immediately re-runs on next frame
+    occlusionManager.register({
+      id: 'star-other',
+      name: 'Altair',
+      state: 'selected',
+      screenX: 0,
+      screenY: 0,
+      worldPos: [1, 0, 0],
+      reticleRadius: 20,
+      starRadius: 0.035,
+      hasReticle: true,
+      visible: true,
+      updatedAt: 0,
+    });
+    await renderer.advanceFrames(1, 0.016);
+    expect(evalSpy).toHaveBeenCalledTimes(1);
+
+    await renderer.unmount();
+    unmountOutlet();
   });
 });

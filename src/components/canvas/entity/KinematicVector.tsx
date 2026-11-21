@@ -7,7 +7,7 @@ import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
 import { CartoLineMaterial } from '../materials/CartoLineMaterial';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
-import { calculateScreenInvariantScale } from '../engineConfig';
+import { calculateScreenInvariantScale, NOOP_RAYCAST } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 
 export interface KinematicVectorProps {
@@ -88,6 +88,7 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
 
   const lineMesh = useMemo(() => {
     const mesh = new Line2(lineGeom, lineMat);
+    mesh.raycast = NOOP_RAYCAST;
     mesh.frustumCulled = false;
     return mesh;
   }, [lineGeom, lineMat]);
@@ -145,7 +146,7 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
       </group>
 
       {/* Terminus Waypoint Pip */}
-      <mesh ref={terminusRef} position={p1} name="velocity-vector-terminus">
+      <mesh ref={terminusRef} position={p1} name="velocity-vector-terminus" raycast={NOOP_RAYCAST}>
         <sphereGeometry args={[0.035, 12, 12]} />
         <meshBasicMaterial
           ref={terminusMatRef}

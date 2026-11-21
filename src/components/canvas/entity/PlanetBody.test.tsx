@@ -4,6 +4,7 @@ import ReactThreeTest from '@react-three/test-renderer';
 import { PlanetBody } from './PlanetBody';
 import { getClassificationPalette } from '../../../data/planetPalettes';
 import type { CelestialClassification } from '../../../types/spatial';
+import { NOOP_RAYCAST } from '../engineConfig';
 
 describe('PlanetBody Component (Phase 4)', () => {
   let getContextSpy: ReturnType<typeof vi.spyOn>;
@@ -108,5 +109,19 @@ describe('PlanetBody Component (Phase 4)', () => {
       rendererWithoutAtmosphere.scene.findAll((node) => node.props.name === 'planet-atmosphere'),
     ).toHaveLength(0);
     await rendererWithoutAtmosphere.unmount();
+  });
+
+  it('attaches NOOP_RAYCAST to planet-surface and planet-atmosphere meshes (P-10)', async () => {
+    const renderer = await ReactThreeTest.create(
+      <PlanetBody name="Earth" classification="terrestrial" hasAtmosphere={true} />,
+    );
+
+    const surface = renderer.scene.find((node) => node.props.name === 'planet-surface');
+    expect(surface.props.raycast).toBe(NOOP_RAYCAST);
+
+    const atmosphere = renderer.scene.find((node) => node.props.name === 'planet-atmosphere');
+    expect(atmosphere.props.raycast).toBe(NOOP_RAYCAST);
+
+    await renderer.unmount();
   });
 });

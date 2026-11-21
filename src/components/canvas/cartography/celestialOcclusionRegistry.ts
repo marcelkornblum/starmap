@@ -29,6 +29,8 @@ export class CelestialOcclusionManager {
   private scratchVec = new THREE.Vector3();
   private scratchCamSpaceVec = new THREE.Vector3();
   public lastEvaluationTime = 0;
+  private hasBatchPass = false;
+  private lastBatchPassTime = 0;
 
   private lastCamMatrixElements = new Float32Array(16);
   private lastProjMatrixElements = new Float32Array(16);
@@ -38,10 +40,15 @@ export class CelestialOcclusionManager {
   private cameraOrFootprintsChangedThisFrame = true;
 
   public didCameraOrFootprintsChange(): boolean { return this.cameraOrFootprintsChangedThisFrame; }
-  public isBatchEvaluating(): boolean { return performance.now() - this.lastEvaluationTime < 250; }
+  public isBatchEvaluating(): boolean {
+    return this.hasBatchPass && performance.now() - this.lastBatchPassTime < 250;
+  }
 
   public evaluate(camera: THREE.Camera, size: { width: number; height: number }): void {
-    if (this.lastEvaluationTime === 0) this.lastEvaluationTime = performance.now();
+    const now = performance.now();
+    this.hasBatchPass = true;
+    this.lastBatchPassTime = now;
+    if (this.lastEvaluationTime === 0) this.lastEvaluationTime = now;
 
     const camEls = camera.matrixWorldInverse.elements;
     const projEls = camera.projectionMatrix.elements;
@@ -59,7 +66,7 @@ export class CelestialOcclusionManager {
       return;
     }
 
-    this.lastEvaluationTime = performance.now();
+    this.lastEvaluationTime = now;
     this.cameraOrFootprintsChangedThisFrame = true;
     this.footprintsMutated = false;
     this.lastSizeWidth = size.width;
@@ -148,6 +155,9 @@ export class CelestialOcclusionManager {
     this.gridDirty = false;
     this.footprintsMutated = true;
     this.cameraOrFootprintsChangedThisFrame = true;
+    this.hasBatchPass = false;
+    this.lastBatchPassTime = 0;
+    this.lastEvaluationTime = 0;
     this.lastSizeWidth = -1;
     this.lastSizeHeight = -1;
     this.updateStalkedSnapshot();

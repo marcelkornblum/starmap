@@ -7,7 +7,7 @@ import { useLazyRef } from '../../../hooks/useLazyRef';
 import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
 import { CartoLineMaterial } from '../materials/CartoLineMaterial';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
-import { calculateScreenInvariantScale } from '../engineConfig';
+import { calculateScreenInvariantScale, NOOP_RAYCAST } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
 import { buildOrbitGeometries } from './orbitPathGeometry';
 
@@ -98,6 +98,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
 
   const lineMesh = useMemo(() => {
     const mesh = new Line2(orbitGeometry, lineMat);
+    mesh.raycast = NOOP_RAYCAST;
     mesh.computeLineDistances();
     mesh.frustumCulled = false;
     return mesh;
@@ -158,7 +159,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
       </group>
 
       {showPeriapsisTick && tickGeometry && (
-        <lineSegments name="orbit-periapsis-tick">
+        <lineSegments name="orbit-periapsis-tick" raycast={NOOP_RAYCAST}>
           <primitive object={tickGeometry} attach="geometry" />
           <lineBasicMaterial
             color={resolvedColor}
@@ -175,7 +176,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
           position={arrowPosition}
           name="orbit-direction-arrow-billboard"
         >
-          <mesh name="orbit-direction-arrow">
+          <mesh name="orbit-direction-arrow" raycast={NOOP_RAYCAST}>
             <primitive object={directionGeometry} attach="geometry" />
             <meshBasicMaterial
               ref={directionMatRef}

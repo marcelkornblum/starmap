@@ -16,6 +16,18 @@ export interface AuditDiagnostic {
 
 const R3F_FILES_GLOB = ['src/components/canvas', 'src/views'];
 const INVALID_R3F_TAGS = new Set(['threeline']);
+const POINTER_EVENT_HANDLERS = new Set([
+  'onClick',
+  'onDoubleClick',
+  'onPointerOver',
+  'onPointerOut',
+  'onPointerMove',
+  'onPointerDown',
+  'onPointerUp',
+  'onPointerEnter',
+  'onPointerLeave',
+  'onPointerMissed',
+]);
 
 /**
  * Checks whether a comment on the preceding line or current line suppresses the diagnostic.
@@ -178,10 +190,67 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
 
   let insideUseMemoDepth = 0;
   let insideJsxExprDepth = 0;
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const isCanvasProductionFile =
+    /(?:^|\/)src\/components\/canvas\//.test(normalizedPath) &&
+    !/\.(?:stories|test)\.[jt]sx?$/.test(normalizedPath);
 
-  function traverseAst(node: unknown) {
+  function hasRaycastNoopAssignment(scopeNode: ASTNode, targetVarName: string): boolean {
+    let found = false;
+    simpleTraverse(scopeNode, (n: ASTNode) => {
+      if (found || n.type !== 'AssignmentExpression' || n.operator !== '=') return;
+      const left = n.left as ASTNode | undefined;
+      const right = n.right as ASTNode | undefined;
+      if (
+        left?.type === 'MemberExpression' &&
+        !left.computed &&
+        (left.object as ASTNode | undefined)?.type === 'Identifier' &&
+        ((left.object as ASTNode).name as string | undefined) === targetVarName &&
+        left.property?.type === 'Identifier' &&
+        left.property.name === 'raycast' &&
+        right?.type === 'Identifier' &&
+        right.name === 'NOOP_RAYCAST'
+      ) {
+        found = true;
+      }
+    });
+    return found;
+  }
+
+  function hasNoopRaycastOrPointerHandler(openingEl: ASTNode): boolean {
+    const attrs = Array.isArray(openingEl.attributes) ? (openingEl.attributes as ASTNode[]) : [];
+    for (const attr of attrs) {
+      if (attr.type !== 'JSXAttribute') continue;
+      const attrNameNode = typeof attr.name === 'object' ? (attr.name as ASTNode) : undefined;
+      const attrName = typeof attrNameNode?.name === 'string' ? attrNameNode.name : '';
+      if (POINTER_EVENT_HANDLERS.has(attrName)) return true;
+      if (attrName === 'raycast') {
+        const val = attr.value as ASTNode | undefined;
+        if (
+          val?.type === 'JSXExpressionContainer' &&
+          (val.expression as ASTNode | undefined)?.type === 'Identifier' &&
+          ((val.expression as ASTNode).name as string | undefined) === 'NOOP_RAYCAST'
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  const scopeStack: ASTNode[] = [];
+
+  function traverseAst(node: unknown, parent?: ASTNode) {
     if (!node || typeof node !== 'object') return;
     const obj = node as ASTNode;
+
+    const pushesScope =
+      obj.type === 'Program' ||
+      obj.type === 'BlockStatement' ||
+      obj.type === 'FunctionDeclaration' ||
+      obj.type === 'FunctionExpression' ||
+      obj.type === 'ArrowFunctionExpression';
+    if (pushesScope) scopeStack.push(obj);
 
     const isUseMemoCall =
       obj.type === 'CallExpression' &&
@@ -386,7 +455,7 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       }
     }
 
-    // 5. Detect invalid JSX intrinsic tags (e.g. <threeLine>)
+    // 5. Detect invalid JSX intrinsic tags (e.g. <threeLine>) & require-noop-raycast
     if (obj.type === 'JSXOpeningElement' || obj.type === 'JSXSelfClosingElement') {
       const tagObj = typeof obj.name === 'object' ? obj.name : undefined;
       const tagNameStr = typeof obj.name === 'string' ? obj.name : tagObj?.name;
@@ -400,7 +469,40 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
             `Invalid React Three Fiber intrinsic element <${tagNameStr}> detected. R3F intrinsic tags map directly to lowercase Three.js classes.`,
             'Replace with `<line>` (maps to `THREE.Line`) or `<lineSegments>`.'
           );
+        } else if (
+          isCanvasProductionFile &&
+          (tagNameStr === 'mesh' || tagNameStr === 'lineSegments') &&
+          !hasNoopRaycastOrPointerHandler(obj)
+        ) {
+          addDiagnostic(
+            obj.loc?.start || tagObj.loc?.start,
+            'require-noop-raycast',
+            'error',
+            `Decorative <${tagNameStr}> without pointer handlers must set \`raycast={NOOP_RAYCAST}\` to skip Three.js raycasting.`,
+            'Add `raycast={NOOP_RAYCAST}` or attach pointer handlers if the mesh is interactive.'
+          );
         }
+      }
+    }
+
+    // 6. require-noop-raycast on `new Line2(...)`
+    if (isCanvasProductionFile && obj.type === 'NewExpression' && getConstructorName(obj.callee) === 'Line2') {
+      let varName: string | undefined;
+      if (parent?.type === 'VariableDeclarator' && (parent.id as ASTNode | undefined)?.type === 'Identifier') {
+        varName = (parent.id as ASTNode).name as string;
+      } else if (parent?.type === 'AssignmentExpression' && (parent.left as ASTNode | undefined)?.type === 'Identifier') {
+        varName = (parent.left as ASTNode).name as string;
+      }
+      const enclosingScope = scopeStack[scopeStack.length - 1];
+      const hasAssignment = Boolean(varName && enclosingScope && hasRaycastNoopAssignment(enclosingScope, varName));
+      if (!hasAssignment) {
+        addDiagnostic(
+          obj.loc?.start,
+          'require-noop-raycast',
+          'error',
+          '`new Line2(...)` allocation without `.raycast = NOOP_RAYCAST` leaves fat-line geometry active in Three.js raycasting.',
+          'Assign `<mesh>.raycast = NOOP_RAYCAST;` immediately after constructing the `Line2` instance.'
+        );
       }
     }
 
@@ -411,21 +513,22 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
       const child = obj[key];
       if (isUseMemoCall && key === 'arguments' && Array.isArray(child) && child.length > 0) {
         insideUseMemoDepth++;
-        traverseAst(child[0]);
+        traverseAst(child[0], obj);
         insideUseMemoDepth--;
         for (let idx = 1; idx < child.length; idx++) {
-          traverseAst(child[idx]);
+          traverseAst(child[idx], obj);
         }
       } else if (Array.isArray(child)) {
         for (const item of child) {
-          traverseAst(item);
+          traverseAst(item, obj);
         }
       } else if (child && typeof child === 'object') {
-        traverseAst(child);
+        traverseAst(child, obj);
       }
     }
 
     if (isJsxExpr) insideJsxExprDepth--;
+    if (pushesScope) scopeStack.pop();
   }
 
   traverseAst(ast);

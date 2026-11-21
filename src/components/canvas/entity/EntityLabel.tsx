@@ -54,6 +54,8 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
   const scratchBoxRef = useLazyRef<Box2D>(() => ({ left: 0, top: 0, right: 0, bottom: 0 }));
   const lastOccludedRef = useRef<boolean | null>(null);
   const lastStateRef = useRef<CelestialInteractionState | null>(null);
+  const lastIsOccludedPropRef = useRef<boolean | null>(null);
+  const propsDirtyRef = useRef(true);
   const lastDisplacedRef = useRef<boolean>(false);
   const lastXRef = useRef<number | null>(null);
   const lastYRef = useRef<number | null>(null);
@@ -165,16 +167,24 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
     return () => observer.disconnect();
   }, [name, spectralType, isAnnotated]);
 
+  useEffect(() => {
+    propsDirtyRef.current = true;
+  }, [id, name, spectralType, resolvedPos, worldPosition, offset, isOccluded]);
+
   useFrame(({ camera }) => {
     if (
+      !propsDirtyRef.current &&
       occlusionManager.isBatchEvaluating() &&
       !occlusionManager.didCameraOrFootprintsChange() &&
       lastOccludedRef.current !== null &&
-      lastStateRef.current === state
+      lastStateRef.current === state &&
+      lastIsOccludedPropRef.current === isOccluded
     ) {
       return;
     }
+    propsDirtyRef.current = false;
     lastStateRef.current = state;
+    lastIsOccludedPropRef.current = isOccluded;
 
     syncBillboardTransform(camera);
 

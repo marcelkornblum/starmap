@@ -336,4 +336,93 @@ describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
       expect(runR3FAudit([tempDir])).toBe(1);
     });
   });
+
+  describe('P-10: require-noop-raycast Rule', () => {
+    it('flags new Line2(...) in src/components/canvas/ when .raycast = NOOP_RAYCAST is not assigned', () => {
+      const code = `
+        import { useMemo } from 'react';
+        import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+        export const BadLine = ({ geom, mat }: any) => {
+          const mesh = useMemo(() => {
+            const m = new Line2(geom, mat);
+            return m;
+          }, [geom, mat]);
+          return <primitive object={mesh} />;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/entity/BadLine.tsx', code);
+      const rayDiags = diags.filter((d) => d.ruleId === 'require-noop-raycast');
+      expect(rayDiags.length).toBe(1);
+      expect(rayDiags[0].message).toContain('Line2');
+    });
+
+    it('permits new Line2(...) when .raycast = NOOP_RAYCAST is assigned or suppressed with reason', () => {
+      const code = `
+        import { useMemo } from 'react';
+        import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+        import { NOOP_RAYCAST } from '../engineConfig';
+        export const GoodLine = ({ geom, mat }: any) => {
+          const mesh = useMemo(() => {
+            const m = new Line2(geom, mat);
+            m.raycast = NOOP_RAYCAST;
+            return m;
+          }, [geom, mat]);
+          const interactiveMesh = useMemo(() => {
+            // r3f-audit-disable-next-line require-noop-raycast -- Line is directly clickable
+            return new Line2(geom, mat);
+          }, [geom, mat]);
+          return <group><primitive object={mesh} /><primitive object={interactiveMesh} /></group>;
+        };
+      `;
+      const diags = auditSourceFile('src/components/canvas/entity/GoodLine.tsx', code);
+      expect(diags.filter((d) => d.ruleId === 'require-noop-raycast')).toEqual([]);
+    });
+
+    it('flags decorative <mesh> and <lineSegments> without pointer handlers or raycast={NOOP_RAYCAST}', () => {
+      const code = `
+        import '@react-three/fiber';
+        export const BadMeshes = () => (
+          <group>
+            <mesh name="deco-sphere">
+              <sphereGeometry args={[1, 16, 16]} />
+            </mesh>
+            <lineSegments name="deco-lines" />
+          </group>
+        );
+      `;
+      const diags = auditSourceFile('src/components/canvas/entity/BadMeshes.tsx', code);
+      const rayDiags = diags.filter((d) => d.ruleId === 'require-noop-raycast');
+      expect(rayDiags.length).toBe(2);
+    });
+
+    it('permits <mesh> and <lineSegments> with raycast={NOOP_RAYCAST}, pointer handlers, or in story files', () => {
+      const code = `
+        import '@react-three/fiber';
+        import { NOOP_RAYCAST } from '../engineConfig';
+        export const GoodMeshes = ({ onClick, onPointerOver }: any) => (
+          <group>
+            <mesh name="deco-sphere" raycast={NOOP_RAYCAST} />
+            <lineSegments name="deco-lines" raycast={NOOP_RAYCAST} />
+            <mesh name="hitarea" onClick={onClick} />
+            <mesh name="hoverarea" onPointerOver={onPointerOver} />
+          </group>
+        );
+      `;
+      expect(
+        auditSourceFile('src/components/canvas/entity/GoodMeshes.tsx', code).filter(
+          (d) => d.ruleId === 'require-noop-raycast',
+        ),
+      ).toEqual([]);
+
+      const storyCode = `
+        import '@react-three/fiber';
+        export const Demo = () => <mesh name="story-demo" />;
+      `;
+      expect(
+        auditSourceFile('src/components/canvas/instrument/Demo.stories.tsx', storyCode).filter(
+          (d) => d.ruleId === 'require-noop-raycast',
+        ),
+      ).toEqual([]);
+    });
+  });
 });

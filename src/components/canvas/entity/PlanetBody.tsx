@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
+import { NOOP_RAYCAST } from '../engineConfig';
 import type { CelestialClassification } from '../../../types/spatial';
 import {
   projectedPixelDiameter,
@@ -166,7 +167,7 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
   return (
     <group ref={groupRef} position={resolvedPos} name={`planet-body-${name}`}>
       {/* Planetary Core Surface (Uniform Cartographic Lit) */}
-      <mesh name="planet-surface">
+      <mesh name="planet-surface" raycast={NOOP_RAYCAST}>
         <sphereGeometry args={[radius, 48, 48]} />
         <meshBasicMaterial
           ref={surfaceMatRef}
@@ -177,7 +178,7 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
 
       {/* Atmospheric Haze Layer */}
       {hasAtmosphere && (
-        <mesh name="planet-atmosphere">
+        <mesh name="planet-atmosphere" raycast={NOOP_RAYCAST}>
           <sphereGeometry args={[radius * 1.05, 32, 32]} />
           <meshBasicMaterial
             ref={atmoMatRef}

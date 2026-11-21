@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as THREE from 'three';
 import {
   CelestialOcclusionManager,
   celestialOcclusionManager,
@@ -7,6 +8,10 @@ import {
 describe('celestialOcclusionRegistry - Occlusion Rules & Displacement', () => {
   beforeEach(() => {
     celestialOcclusionManager.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('evaluates label visibility according to authoritative occlusion rules', () => {
@@ -352,5 +357,76 @@ describe('celestialOcclusionRegistry - Occlusion Rules & Displacement', () => {
     expect(snapshot2).toBe(snapshot1); // Exact same array reference preserved
 
     unsubscribe();
+  });
+
+  it('keeps isBatchEvaluating() true and didCameraOrFootprintsChange() false across >250ms idle evaluate() frames (P-09)', () => {
+    let now = 10_000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    const manager = new CelestialOcclusionManager();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.set(0, 0, 10);
+    camera.updateMatrixWorld();
+    const size = { width: 1440, height: 900 };
+
+    expect(manager.isBatchEvaluating()).toBe(false);
+
+    manager.register({
+      id: 'sol',
+      state: 'active',
+      screenX: 0,
+      screenY: 0,
+      worldPos: [0, 0, 0],
+      reticleRadius: 30,
+      starRadius: 4,
+      hasReticle: true,
+      visible: true,
+      updatedAt: 0,
+    });
+
+    // Initial evaluation
+    manager.evaluate(camera, size);
+    const firstEvalTime = manager.lastEvaluationTime;
+    expect(manager.isBatchEvaluating()).toBe(true);
+    expect(manager.didCameraOrFootprintsChange()).toBe(true);
+
+    // Advance >250ms while evaluate() keeps running on idle frames
+    now += 300;
+    manager.evaluate(camera, size);
+    expect(manager.isBatchEvaluating()).toBe(true);
+    expect(manager.didCameraOrFootprintsChange()).toBe(false);
+    expect(manager.lastEvaluationTime).toBe(firstEvalTime);
+
+    // Moving camera immediately flips didCameraOrFootprintsChange() to true
+    camera.position.set(2, 0, 10);
+    camera.updateMatrixWorld();
+    manager.evaluate(camera, size);
+    expect(manager.didCameraOrFootprintsChange()).toBe(true);
+
+    // Idle frame resets didCameraOrFootprintsChange() to false while keeping batch active
+    now += 300;
+    manager.evaluate(camera, size);
+    expect(manager.isBatchEvaluating()).toBe(true);
+    expect(manager.didCameraOrFootprintsChange()).toBe(false);
+
+    // Mutating a footprint immediately flips didCameraOrFootprintsChange() to true on next evaluate()
+    manager.register({
+      id: 'alpha-centauri',
+      state: 'selected',
+      screenX: 0,
+      screenY: 0,
+      worldPos: [5, 0, 0],
+      reticleRadius: 30,
+      starRadius: 4,
+      hasReticle: true,
+      visible: true,
+      updatedAt: 0,
+    });
+    manager.evaluate(camera, size);
+    expect(manager.didCameraOrFootprintsChange()).toBe(true);
+
+    // Stopping evaluate() for >250ms expires batch evaluation so fallback projection can resume
+    now += 300;
+    expect(manager.isBatchEvaluating()).toBe(false);
   });
 });
