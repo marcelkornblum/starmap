@@ -24,7 +24,7 @@ flowchart TD
     L9["Rank 9: views\n(src/views)"]
     L10["Rank 10: router & main\n(src/router, src/App.tsx, src/main.tsx)"]
     
-    Isolated["Rank 99: prototypes (Isolated)\n(src/prototypes, src/components/prototypes)"]
+    Isolated["Rank 99: prototypes (Isolated)\n(src/prototypes)"]
 
     L0 --> L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7 --> L8 --> L9 --> L10
     
@@ -46,14 +46,15 @@ flowchart TD
 | **8** | `src/components/domain/` | Application assemblies (`Search`, `DetailsPanel`, `BodiesPanel`, `DirectionsPanel`). | May import Ranks 0–7. |
 | **9** | `src/views/` | Top-level routed views (`GalaxyView`, `SystemView`, `PlanetView`, `SearchView`). | May import Ranks 0–8. |
 | **10** | `src/router/`<br/>`src/App.tsx`<br/>`src/main.tsx` | Route definitions, root layouts, and application bootstrap. | Top of hierarchy. May import all production layers. |
+| **99** | `src/prototypes/` | Exploratory spikes and unverified research interfaces. | Isolated. Production code must never import prototypes. |
 
 ### 1.2 Interface Primitive Purity (`Rank 6`)
 Tier 1 and Tier 2 interface primitives in `src/components/interface/` must remain pure, reusable design-system assets with zero knowledge of astronomical business logic. The guard suite enforces an explicit rule:
 - **`components/interface` cannot import from `data`, `services`, or `stores`**.
-Any attempt by a primitive to bind directly to a repository or global store fails the `G-imports` audit.
+Any attempt by a primitive to bind directly to a repository or global store fails the `G-imports` audit. For component design rules, see [Component Architecture](../../conductor/code_styleguides/components.md).
 
 ### 1.3 Prototype Isolation (`Rank 99`)
-Exploratory prototypes located in `src/prototypes/` or `src/components/prototypes/` are strictly isolated:
+Exploratory prototypes located in `src/prototypes/` are strictly isolated:
 - Prototypes may import production modules for exploratory spikes.
 - Production code (`ranks 0..10`) is **strictly forbidden from importing anything from `prototypes/`**.
 This ensures prototype experiments never leak into shipping bundles.
@@ -65,47 +66,53 @@ Circular dependencies (`A -> B -> A` or deep transitive loops) create initializa
 
 ## 2. Permanent Automated CI Guard Suite
 
-Starmap relies on three custom AST-based static analysis suites, running in parallel during CI and pre-commit checks:
+Starmap relies on custom static analysis suites running automatically in GitHub Actions CI:
 
 ```
-npm run audit:guards  ──► AST Module Layering, Imports, Cycles & Zero Hardcoded Literals
+npm run audit:guards  ──► Master Aggregation Suite (AST Layering, Cycles, Literals, Sizes, UI, R3F & Oxlint)
 npm run audit:ui      ──► Design System, Component Quads, CUBE CSS, Zero Inline Styles
 npm run audit:r3f     ──► 60fps Three.js Frame Loop Memory & Performance Audits
 ```
 
-### 2.1 `npm run audit:guards` (`scripts/audit-guards.ts`)
-Inspects TypeScript ASTs across all workspace files:
-- **`G-literals` (Zero Hardcoded Celestial Entities):** Celestial entity names, catalog IDs, and classifications must not be hardcoded in runtime code (`src/`). All entities must be read from the precalculated data pipeline shards.
-- **`G-imports` (Layer Hierarchy):** Enforces rank boundaries, prevents upward imports, enforces primitive purity, and preserves prototype isolation.
-- **`G-imports-cycle` (Zero Cycles):** Detects and fails on any circular dependency chains.
-- **`G-size` (File Size Caps):** Flags source files exceeding 300 lines across all production .ts and .tsx files in src/, encouraging decomposition into focused sub-modules.
+### 2.1 Master Guard Runner (`scripts/audit-guards.ts`)
+The `audit:guards` runner executes a comprehensive, multi-stage static analysis pass across the repository, aggregating errors into a unified reporting format:
 
-### 2.2 `npm run audit:ui` (`scripts/audit-ui.ts`)
-Enforces strict design system standards across `src/components/` and `src/views/`:
+1. **`G-literals` (Zero Hardcoded Celestial Entities):** Scans TypeScript ASTs to verify that celestial entity names, catalog IDs, and classifications are not hardcoded into runtime code (`src/`). All entities must be read from precalculated data pipeline shards. Also flags suspicious non-zero numeric fallbacks on astronomical quantities.
+2. **`G-imports` (Layer Hierarchy):** Enforces rank boundaries (ranks 0–10), prevents upward imports, guarantees interface primitive purity, and preserves prototype isolation.
+3. **`G-imports-cycle` (Zero Import Cycles):** Traverses the directed dependency graph to detect and block circular import chains.
+4. **`G-size` (File Size Caps):** Flags source files exceeding 300 lines across all production `.ts` and `.tsx` files in `src/`, encouraging modular decomposition.
+5. **`G-ui` (Design System Audits):** Ingests all diagnostics from `runUiAudit()` (`scripts/audit-ui.ts`), validating component quads, CUBE CSS rules, and semantic token usage.
+6. **`G-r3f` (WebGL & Frame-Loop Audits):** Ingests all diagnostics from `runR3fAudit()` (`scripts/audit-r3f.ts`), enforcing zero-allocation hot paths and atomic store selectors.
+7. **`G-lint-warnings` (Linter Integration):** Runs `oxlint --format json` across workspace files and elevates linter warnings, errors, and denials into guard violations.
+
+### 2.2 Design System Guard Suite (`scripts/audit-ui.ts`)
+Enforces strict design system standards across `src/components/` and `src/views/` (see [HTML & CSS Style Guide](../../conductor/code_styleguides/html-css.md)):
 - **`missing-component-quad`:** Every component in `interface/` and `domain/` must have all 4 quad files: `<Component>.tsx`, `<Component>.module.css`, `<Component>.stories.tsx`, and `<Component>.test.tsx`.
 - **`forbidden-raw-element`:** Disallows raw HTML controls (`<button>`, `<input>`, `<select>`) or telemetry lists (`<dl>`, `<ul>`); domain views must compose Tier 1 primitives.
-- **`forbidden-dynamic-classname`:** Disallows dynamic `className` concatenation (`${styles.base} ${active ? styles.on : ''}`); state and variant styling must consume HTML `data-*` attributes.
+- **`forbidden-dynamic-classname`:** Disallows dynamic `className` concatenation; state and variant styling must consume HTML `data-*` attributes.
 - **`forbidden-inline-style`:** Zero `style={{ ... }}` attributes; all styling lives in scoped CSS Modules.
 - **`forbidden-rendertostring`:** Disallows `renderToString` in unit tests; all tests must render via `@testing-library/react` in `jsdom`.
 - **`missing-layer-blocks`:** Component stylesheets must declare `@layer blocks` and `@layer exceptions`.
 - **`forbidden-outer-margin`:** Components must never declare outer `margin` or self-layout. Layout rhythm is owned by layout primitives (`<Stack>`, `<Cluster>`).
 - **`hardcoded-hex-color` & `hardcoded-css-token`:** Disallows literal hex codes (`#ffffff`) or pixel values; all CSS must consume semantic tokens (`var(--token)`).
 
-### 2.3 `npm run audit:r3f` (`scripts/audit-r3f.ts`)
-Enforces 60fps WebGL execution guardrails:
+### 2.3 WebGL & Frame-Loop Guard Suite (`scripts/audit-r3f.ts`)
+Enforces 60fps WebGL execution guardrails (see [WebGL, Three.js & R3F Style Guide](../../conductor/code_styleguides/webgl-r3f.md)):
 - Flags any object instantiation (`new THREE.Vector3()`, `new THREE.Matrix4()`, `new Object()`, array literals `[]`) inside `useFrame` callbacks.
 - Flags Zustand store subscriptions or state mutations inside `useFrame`.
+- Flags whole-store or broad object subscriptions in canvas components (`atomic-store-selectors`).
 - Verifies material and geometry reuse across instances.
 
 ---
 
 ## 3. The Shrink-Only Baseline Contract
 
-Historical violations or legacy exceptions were tracked in `scripts/guards/baseline.json`. The baseline has now been ratcheted down to **0 entries** (`{ "version": 1, "entries": {} }`), enforcing zero tolerance where any violation is an immediate hard CI error:
+Historical violations or legacy exceptions were tracked in `scripts/guards/baseline.json`. The baseline has now been ratcheted down to **0 entries** (`{ "version": 1, "entries": {} }`), enforcing zero tolerance:
 
 1. **Zero Baseline Entries:** With zero baseline entries remaining, no legacy violations are grandfathered in.
 2. **Zero Influx:** If a commit or PR introduces any violation, CI immediately fails.
-3. **No Unsanctioned Suppressions:** Inline suppressions (`// guard-disable-next-line <rule> -- <reason>`) require an explicit explanation and are audited for validity.
+3. **No Unsanctioned Suppressions:** Inline suppressions (`// guard-disable-next-line <rule> -- <reason>` or `// r3f-audit-disable-next-line <rule> -- <reason>`) require an explicit technical justification after `-- <reason>`. Unreasoned comments are flagged as invalid suppressions.
+4. **Ratcheting Updates:** Running `npm run audit:guards -- --update` can only ratchet counts downwards as existing issues are resolved, pruning entries that reach zero.
 
 ---
 

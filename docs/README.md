@@ -11,14 +11,14 @@ Authoritative specifications for the 3D cartographic engine, UI system, data pip
 | [`architecture/layering-and-guardrails.md`](./architecture/layering-and-guardrails.md) | Module layer ranks (0–10), CI guard suite, shrink-only baselines | Authoritative |
 | [`architecture/data-pipeline.md`](./architecture/data-pipeline.md) | Offline build pipeline, binary sector shards, compact JSON codecs | Authoritative |
 | [`architecture/theme-token-bridge.md`](./architecture/theme-token-bridge.md) | CSS custom properties synchronised into WebGL materials | Authoritative |
+| [`reference/data-formats.md`](./reference/data-formats.md) | Binary sector headers, compact JSON codecs, sharding grammar | Authoritative |
 | [`reference/data-sources.md`](./reference/data-sources.md) | Catalogue provenance, coordinate frames, ingestion | Authoritative |
 | [`design/design-system.md`](./design/design-system.md) | Tokens, primitives, CUBE CSS, component quads | Authoritative |
 | [`design/ui-visual-language.md`](./design/ui-visual-language.md) | Semantic token rules: hazards, confidence, tabular data | Authoritative |
+| [`design/view-requirements.md`](./design/view-requirements.md) | Per-screen requirements inventory and telemetry specifications | Authoritative |
 | [`design/3d-spatial-architecture.md`](./design/3d-spatial-architecture.md) | Coordinate system, datum plane, travelling fins, zoom dynamics | Authoritative |
 | [`design/scene-requirements.md`](./design/scene-requirements.md) | Scale hierarchy, interaction states, per-view rendering rules | Authoritative |
 | [`design/user-journeys.md`](./design/user-journeys.md) | User archetypes, JTBDs, end-to-end journeys | Authoritative |
-| [`ui-paradigm-exploration.md`](./ui-paradigm-exploration.md) | Adaptive hybrid console layout decisions | Pending Phase 2 merge into `design/` |
-| [`../public/data/README.md`](../public/data/README.md) | Layout of generated data shards | Pending Phase 2 review |
 
 Review tooling (LAN links, multi-viewport screenshots) is documented in [`conductor/local-review-and-screenshots.md`](../conductor/local-review-and-screenshots.md).
 

@@ -1,6 +1,6 @@
 # Starmap Design System & Architecture Specification
 
-This document defines the architectural foundations, spatial hierarchies, design tokens, and component guidelines for Starmap. It serves as the single source of truth for frontend developers and contributors.
+This document defines the architectural foundations, spatial hierarchies, design tokens, and component guidelines for Starmap. It serves as the canonical design system specification for frontend developers and contributors.
 
 ---
 
@@ -11,17 +11,58 @@ Starmap is a technical, high-density schematic tool for navigating astronomical 
 ### Core Principles
 
 1. **Schematic Map over Realistic Void:** The interface avoids pseudo-cinematic glows and dark void clichés. Space is presented as an organised, measured coordinate environment with precise typography and clear spatial planes.
-2. **Strict Color Channel Separation:**
+2. **Strict Colour Channel Separation:**
    - **Achromatic Text & Surfaces:** All typography, reading prose, container panels, and table structures operate on a high-contrast neutral axis. Text never borrows chromatic hues from data categories.
-   - **Reserved Interactive Focus:** Vibrant chromatic cyan/blue (`--state-focus`) is strictly reserved for user tracking, active waypoints, and keyboard `:focus-visible` states.
-   - **Scientific Indicators:** Chromatic hues (green, yellow, red, violet) are restricted strictly to telemetry status (`--status-*`), observational confidence (`--confidence-*`), and astronomical domains (`--category-*`).
+   - **Reserved Interactive Focus:** Vibrant chromatic accent (`--state-focus`) is strictly reserved for user tracking, active waypoints, and keyboard `:focus-visible` states.
+   - **Scientific Indicators:** Chromatic hues are restricted strictly to telemetry condition/status (`--status-*`), observational confidence (`--confidence-*`), and astronomical domains (`--category-*`).
    - **Neutral Cartographic Chrome:** Grids, range circles, reticles, and coordinate axes are rendered in neutral lines so they never compete with thematic star data.
-3. **Themed Solarized Palette in OKLCH:** Initial color literals are derived from Ethan Schoonover’s canonical Solarized palette, mapped in the perceptually uniform **OKLCH** color space to guarantee predictable lightness, uniform contrast, and clean alpha blending.
+3. **Themed Solarized Palette & Multi-Palette OKLCH System:** Initial color literals are derived from Ethan Schoonover’s canonical Solarized palette, mapped in the perceptually uniform **OKLCH** color space to guarantee predictable lightness, uniform contrast, and clean alpha blending. Multi-palette themes extend this across four distinct spectral identities (`src/styles/tokens/palettes.css`).
 4. **Pure Orthogonal Geometry:** All surfaces, containers, buttons, and inputs default to `--radius-none` (`0px`), creating a sharp, high-precision aesthetic.
 
 ---
 
-## 2. Token Architecture & The 3-Tier Pipeline
+## 2. Layout Paradigm: Adaptive Hybrid Console
+
+Starmap adopts an **Adaptive Hybrid Console** model, combining the unobstructed immersion of a peripheral dock with the high-density utility of a split workstation.
+
+### Foundational Components
+
+1. **3D Viewport Canvas:**
+   - The primary spatial environment for astronomical navigation.
+2. **Persistent Navigation & Control Dock:**
+   - Anchors global navigation, time/epoch controls, and search entry point.
+   - Sits **coplanar** (flush) on the exact same physical plane as the 3D canvas, separated by a clean 1px hairline boundary divider.
+   - Provides a consistent structural anchor across all device classes.
+3. **Fluid Telemetry Container:**
+   - The dedicated host for astronomical entity data, catalogues, and telemetry readouts.
+   - Adapts dynamically to viewport shape, orientation, and user intent.
+
+### Telemetry Container Modes
+
+The telemetry container supports two primary operational states across desktop and landscape environments:
+
+- **Overlay Mode:**
+  - Floats above the 3D canvas for rapid inspection and glanceable reads.
+  - The canvas remains full-bleed beneath, preserving spatial continuity.
+- **Docked Mode:**
+  - Locks flush with the viewport frame as a structural co-presence.
+  - The 3D canvas bounds adjust so that space objects and telemetry exist side-by-side with zero occlusion.
+  - **Camera Viewport Compensation:** The 3D camera controller automatically recalculates its projection and framing to keep the active celestial target centred within the adjusted canvas area.
+
+### Responsive Spatial Behaviours
+
+- **Mobile & Portrait Orientation (< 768px):**
+  - The telemetry container docks to the bottom edge above the persistent dock via `<DetentSheet>`.
+  - Operates via stepped vertical detents:
+    - **Peek:** Compact summary displaying identity and primary status, leaving maximum space for 3D interaction.
+    - **Partial View:** Displays key tabular metrics and immediate actions.
+    - **Full View:** Maximised sheet for comprehensive data analysis and reading.
+- **Wide Displays (≥ 1920px):**
+  - The container expands horizontally into **Multi-Bay** configurations (via `SpatialShell`), grouping related data sets (e.g. physical parameters alongside orbital elements) when real estate permits.
+
+---
+
+## 3. Token Architecture & The 3-Tier Pipeline
 
 Tokens are structured into a 3-tier pipeline that decouples raw mathematical measurements from UI intent and component implementations:
 
@@ -34,15 +75,26 @@ flowchart LR
 
 ### 1. Literal Layer (`src/styles/tokens/literal.css`)
 Contains pure scales, units, and swatches with zero domain or UI meaning:
-- **Palette Swatches:** Canonical Solarized neutral and chromatic coordinates in OKLCH.
-- **Mathematical Scales:** Computed dynamically via CSS `calc()`.
-- **Naming Pattern:** `--[scale-type]-[dimension]-[step]` (e.g. `--palette-solarized-base02`, `--type-scale-1`, `--space-fib-4`, `--stroke-width-1`, `--opacity-85`).
+- **Palette Swatches:** Canonical Solarized neutral and chromatic coordinates in OKLCH (`--palette-solarized-base03` through `--palette-solarized-base3`, `--palette-solarized-yellow`, `--palette-solarized-orange`, `--palette-solarized-red`, `--palette-solarized-magenta`, `--palette-solarized-violet`, `--palette-solarized-blue`, `--palette-solarized-cyan`, `--palette-solarized-green`).
+- **Extended Accents & Hardware:** `--palette-accent-focus`, `--palette-accent-neutral`, `--palette-control-handle-dark/light`, `--palette-control-subtle-dark/light`.
+- **Surface Families:** `--palette-surface-canvas-dark/light`, `--palette-surface-inset-dark/light`, `--palette-surface-chassis-dark/light`, `--palette-surface-slab-dark/light`, `--palette-surface-overlay-dark/light`, `--palette-surface-overlay-glass-dark/light`.
+- **Mathematical Scales:** Computed dynamically via CSS `calc()`:
+  - **Type Scale:** Major Third (`--type-ratio: 1.25`) from `--type-scale-neg-3` (~`8.19px`) to `--type-scale-4` (~`39.06px`).
+  - **Spacing:** Fibonacci sequence (`--space-fib-1` [3px] through `--space-fib-13` [987px]).
+  - **Geometry & Strokes:** `--radius-0` (`0px`) through `--radius-2` (`4px`), `--radius-pill-literal`; stroke widths `--stroke-width-0` through `--stroke-width-4`.
+  - **Elevation & Directional Shadows:** Ambient and negative-spread directional shadows (`--elevation-hud`, `--elevation-dock`, `--elevation-panel`, `--elevation-drawer`, `--elevation-popover`, `--elevation-button`, `--elevation-modal`, `--elevation-toast`).
+  - **Optics:** Paired opacity steps (`--opacity-0` through `--opacity-100`) and blur radii (`--filter-blur-0` through `--filter-blur-4`).
+  - **Motion:** Discrete durations (`--time-0` [0ms] to `--time-4` [400ms]) and curves (`--curve-snappy`, `--curve-spatial`, `--curve-in`, `--curve-linear`).
+  - **Stacking Context:** `--z-canvas` (0), `--z-hud` (10), `--z-dock` (20), `--z-panel` (30), `--z-drawer` (40), `--z-popover` (50), `--z-modal` (60), `--z-toast` (70).
 
 ### 2. Semantic Layer (`src/styles/tokens/semantic.css`)
 Maps literal values to UI roles, spatial tiers, and domain meaning. **This is the boundary where Dark and Light themes diverge:**
 - Changing a theme remaps semantic tokens to different literal swatches; component styles remain untouched.
-- Standardized property suffixes are used uniformly across all categories: `-bg`, `-color`, `-width`, `-style`, `-shadow`, `-opacity`, `-backdrop-blur`, `-size`, `-tracking`, `-transform`, `-leading`.
+- Standardised property suffixes are used uniformly across all categories: `-bg`, `-color`, `-width`, `-style`, `-shadow`, `-opacity`, `-backdrop-blur`, `-size`, `-tracking`, `-transform`, `-leading`.
 - **Naming Pattern:** `--[category]-[target]-[property]` (e.g. `--surface-panel-bg`, `--text-content-hero-title-size`, `--space-inset-card`, `--chrome-range-ring-color`).
+
+### Multi-Palette Theme Architecture (`src/styles/tokens/palettes.css`)
+In addition to light and dark theme switching (`data-theme="dark" | "light"`), Starmap supports calibrated multi-palette skins (`data-palette="kepler" | "cygnus" | "carbon" | "obsidian"`) configured in `src/styles/tokens/palettes.css` and managed via `src/styles/tokens/paletteTheme.ts`. Each palette tailors the surface hue angle, focus accent chromaticity, gradients, and specular rims without altering semantic token interfaces.
 
 ### 3. Component Layer (Local Token Interface)
 Components declare localized CSS variables at the top of their CSS Module rules. Components consume **only** Semantic tokens, never Literal tokens.
@@ -61,7 +113,7 @@ Global specificity is governed by CSS Cascading Layers declared at the applicati
 
 ---
 
-## 3. Spatial Surface Hierarchy
+## 4. Spatial Surface Hierarchy
 
 The viewport comprises an 8-tier stack of semantic container planes anchored above the 3D WebGL canvas:
 
@@ -95,37 +147,37 @@ To prevent coupling and permit independent visual tuning, **each tier defines it
 - Stacking: `--z-<tier>`
 
 ### Search Architecture & Modal Boundaries
-Search operates across the interface via the persistent Dock and dedicated Search panel/view (`src/components/domain/Search/`: `SearchRoot`, `SearchPanel`, `SearchInput`, `SearchCategoryFilterSelect`, `SearchResults`, and single-anchor `SearchResultItem` per `DEC-R052`, `DEC-R053`). This coordinates query filtering and entity selection cleanly without interfering with underlying 3D viewport interactions. A floating `Cmd+K` / `Ctrl+K` Command Palette operating at the Modal tier (`--surface-modal`) remains a planned future backlog capability.
+Search operates across the interface via the persistent Dock and dedicated Search panel/view (`src/components/domain/Search/`: `SearchRoot`, `SearchPanel`, `SearchInput`, `SearchCategoryFilterSelect`, `SearchResults`, and single-anchor `SearchResultItem`). This coordinates query filtering and entity selection cleanly without interfering with underlying 3D viewport interactions. A floating `Cmd+K` / `Ctrl+K` Command Palette operating at the Modal tier (`--surface-modal`) remains a planned future backlog capability.
 
 ---
 
-## 4. Mathematical Systems & Conventions
+## 5. Mathematical Systems & Conventions
 
 ### 1. Modular Typography: Major Third (1.250)
 Type scale steps are derived mathematically from a base of `1rem` (`16px`) via CSS `calc()`. Adjusting `--type-ratio` in the literal layer dynamically recalculates the entire scale:
-- Decreasing steps: `--type-scale-neg-2` (~`10.2px`), `--type-scale-neg-1` (`12.8px`)
+- Decreasing steps: `--type-scale-neg-3` (~`8.2px`), `--type-scale-neg-2` (~`10.2px`), `--type-scale-neg-1` (`12.8px`)
 - Baseline step: `--type-scale-0` (`16.0px`)
 - Increasing steps: `--type-scale-1` (`20.0px`), `--type-scale-2` (`25.0px`), `--type-scale-3` (~`31.3px`), `--type-scale-4` (~`39.1px`)
 
 Semantic typography is classified across three dedicated application domains:
 1. **The 3D Map Itself (`--text-map-*`):** Celestial nodes (`system`, `planet`, `satellite`, `phenomenon`, `structure`, `vehicle`) and cartographic labels (`region`, `scale`, `coordinate`, `annotation`).
-2. **Data Content (`--text-content-*`):** Headers (`hero-title`, `subtitle`, `section-title`, `eyebrow`), telemetry metrics (`metric-value`, `metric-unit`, `data-label`, `data-value`, `uncertainty`), prose (`body-lead`, `body`), and catalog metadata (`badge`, `catalog-id`, `footnote`).
-3. **UI Chrome (`--text-ui-*`):** Navigation (`nav-tab`, `breadcrumb`, `breadcrumb-active`), search (`search-input`, `search-placeholder`, `search-shortcut`), buttons (`button-prominent`, `button-default`, `button-subtle`), and controls (`input`, `modal-title`, `tooltip`, `toast-*`).
+2. **Data Content (`--text-content-*`):** Headers (`hero-title`, `subtitle`, `section-title`, `eyebrow`), telemetry metrics (`metric-value`, `metric-unit`, `data-label`, `data-value`, `uncertainty`), prose (`body-lead`, `body`), and catalogue metadata (`badge`, `catalog-id`, `footnote`).
+3. **UI Chrome (`--text-ui-*`):** Navigation (`nav-tab`, `breadcrumb`, `breadcrumb-active`), search (`search-input`, `search-placeholder`), buttons, and controls (`input`, `caption`).
 
 ### 2. Spacing: Pure Additive Fibonacci Sequence
 Spacing follows the Fibonacci sequence ($a + b = c$) derived dynamically via `calc()`, guaranteeing harmonious optical proportions:
 - `--space-fib-1` (`3px`), `--space-fib-2` (`5px`), `--space-fib-3` (`8px`), `--space-fib-4` (`13px`), `--space-fib-5` (`21px`), `--space-fib-6` (`34px`), `--space-fib-7` (`55px`).
 
 Semantic spacing maps these steps into four layout categories:
-- **Insets:** `--space-inset-card`, `--space-inset-panel`, `--space-inset-control-x/y`, `--space-inset-cell-x/y`, `--space-inset-badge`.
-- **Stack Gaps:** `--space-stack-dense` (paired label/value), `--space-stack-control` (form fields), `--space-stack-default` (paragraphs), `--space-stack-section` (major dividers).
-- **Cluster Gaps:** `--space-cluster-dense` (badge lists), `--space-cluster-default` (buttons), `--space-cluster-loose` (nav tabs).
-- **Layout Gutters:** `--space-grid-gap` (card grids), `--space-viewport-edge` (screen margins).
+- **Insets:** `--space-inset-card`, `--space-inset-panel`, `--space-inset-control-x/y`, `--space-inset-cell-x/y`, `--space-inset-badge`, `--space-inset-toolbar`.
+- **Stack Gaps:** `--space-stack-dense`, `--space-stack-compact`, `--space-stack-control`, `--space-stack-default`, `--space-stack-section`.
+- **Cluster Gaps:** `--space-cluster-dense`, `--space-cluster-compact`, `--space-cluster-default`, `--space-cluster-loose`.
+- **Layout Gutters:** `--space-grid-gap`, `--space-viewport-edge`.
 
 ### 3. Symmetrical Opacity & Backdrop Blur Pairs
 To support translucent and glassmorphism themes without stylesheet refactoring, every opacity token is paired symmetrically with a backdrop blur token:
 - Surfaces: `--surface-<tier>-opacity` paired with `--surface-<tier>-backdrop-blur`.
-- Controls: `--ui-<element>-opacity` paired with `--ui-<element>-backdrop-blur`.
+- Overlays & Badges: `--ui-badge-fill-opacity` paired with `--ui-badge-backdrop-blur`, `--ui-tooltip-opacity` paired with `--ui-tooltip-backdrop-blur`.
 - Values obey standard CSS direction: `0` = completely transparent, `1.0` = completely solid.
 
 ### 4. Technical Motion & Accessibility
@@ -135,16 +187,15 @@ To support translucent and glassmorphism themes without stylesheet refactoring, 
 
 ---
 
-## 5. Component Taxonomy
+## 6. Component Taxonomy
 
-Starmap enforces a 4-tier component taxonomy. Developers must assemble views strictly following this hierarchy:
+Starmap enforces a strict 3-tier component hierarchy, fully aligned with [`conductor/code_styleguides/components.md`](../../conductor/code_styleguides/components.md):
 
 ```mermaid
 flowchart TD
-    Tier1["Tier 1: Primitives\nLayout (Every Layout) • Data (Datum, Badge, Quantity, Unit) • Controls (Button, Input)"]
-    --> Tier2["Tier 2: Surfaces & Overlays\nCard • Panel • Dock • Well • Modal • Drawer • Popover • Tooltip • Toast"]
-    --> Tier3["Tier 3: Structural Layout Templates\nDossierLayout • ToolbarLayout"]
-    --> Tier4["Tier 4: Domain Features\nDetailsPanel • BodiesPanel • DirectionsPanel • LayerCard • SpatialShell • ControlBar • Search"]
+    Tier1["Tier 1: Primitives\nLayout (Every Layout) • Data Atoms (Datum, Badge, Quantity, Unit) • Controls (Button, Input, Select, Toggle, Slider)"]
+    --> Tier2["Tier 2: Surfaces & Overlays\nCard • Panel • Dock • Well • Modal • Drawer • Popover • Tooltip • Toast • DetentSheet"]
+    --> Tier3["Tier 3: Application Assemblies (Domain Features & Views)\nDetailsPanel • BodiesPanel • DirectionsPanel • LayerCard • SpatialShell • ControlBar • Search • Views"]
 ```
 
 ### Tier 1: Primitives (Base Elements)
@@ -157,146 +208,103 @@ Atomic, domain-agnostic elements with no knowledge of stars, orbits, or applicat
   - `<Grid>`: Responsive auto-fit CSS grid (`repeat(auto-fit, minmax(var(--min), 1fr))`).
   - `<Center>`: Horizontally centred container with `max-inline-size` and gutter padding.
   - `<Cover>`: Minimum 100% block-height container centring a principal element with optional header/footer.
-  - `<Frame>`: Aspect-ratio locked container (`aspect-ratio: var(--ratio)`) for previews and reticles.
+  - `<Frame>`: Aspect-ratio locked container for previews and reticles.
   - `<Reel>`: Horizontal scroll container with scroll snap points.
   - `<Box>`: Foundational wrapper providing token-driven padding, border, and background slots.
   - `<Imposter>`: Absolute/fixed overlay anchored to a container or viewport.
-  - `<Icon>`: Inline $1\text{em} \times 1\text{em}$ container aligning SVGs with adjacent typography.
-- **Data Primitives:**
-  - `<Datum>`: Horizontal key-value row for dense parameter listings (e.g. `Mass: 1.04 M☉`).
+  - `<Icon>`: Inline container aligning SVGs with adjacent typography.
+- **Data Atoms:**
+  - `<Datum>`: Horizontal key-value row for dense parameter listings.
   - `<Quantity>`: Formatted numeric quantity value with optional paired `<Unit>`.
   - `<Unit>`: Scientific unit presentation with optional contextual guide navigation.
   - `<Badge>`: Status, confidence, or category metadata chip.
-- **Control Primitives:** `<Button>`, `<Input>`, `<Toggle>`, `<Slider>`, `<Select>`.
+  - `<DataTable>`: Tabular telemetry grid with rigid column alignment.
+  - `<Heading>` / `<Typography>` / `<Kbd>`: Semantic typography atoms.
+- **Control Primitives:** `<Button>`, `<Input>`, `<Select>`, `<Toggle>`, `<Slider>`.
 
-### Tier 2: Surfaces & Overlays (Spatial planes)
+### Tier 2: Surfaces & Overlays (Spatial Planes)
 Containers that implement Tier profiles (fill, border, shadow, elevation, and optics):
 - Surfaces: `<Card>` (`--surface-panel`), `<Panel>` (`--surface-panel`), `<Dock>` (`--surface-dock`), `<Well>` (`--surface-inset`).
 - Overlays: `<Modal>` (`--surface-modal`), `<Drawer>` (`--surface-drawer`), `<Popover>` (`--surface-popover`), `<Tooltip>` (`--surface-popover`), `<Toast>` (`--surface-toast`).
+- Responsive Detents: `<DetentSheet>` (`--surface-panel` / `--surface-drawer`), providing mobile vertical detent states (`peek`, `partial`, `full`) and desktop side-sheet integration.
 
-### Tier 3: Structural Layout Templates (Reusable Wireframes)
-Domain-agnostic layouts composed of Tier 1 primitives and Tier 2 surfaces. They provide internal layout slots without binding to any specific astronomical model:
-- `<DossierLayout>`: Standard wireframe providing a hero header slot, summary metric cluster, tabular data stack, and action footer.
-- `<ToolbarLayout>`: Arranges navigation tabs, active filters, and auxiliary action clusters.
-
-### Tier 4: Domain Features (Application Assemblies)
-Starmap-specific assemblies that bind live data, astronomical repositories, and application state to Tier 3 templates and Tier 2 surfaces:
-- `<DetailsPanel>`: Comprehensive astronomical dossiers rendering physical parameters, spectral classifications, habitable zone calculations, and exoplanet inventory.
-- `<BodiesPanel>`: Tabular telemetry and list views of system bodies, natural satellites, and Keplerian orbital parameters.
-- `<DirectionsPanel>`: Multi-hop interstellar transit routing, propulsion benchmarks, and light-speed radio communication delays.
-- `<LayerCard>`: Fictional canon, custom user, and scientific overlay metadata cards with toggleable visual filters.
-- `<SpatialShell>`: Macro layout container coordinating persistent canvas stages, HUD docks, and responsive detent sheets.
-- `<ControlBar>`: HUD-pinned camera mode selectors, spatial anchor controls, and coordinate grid options.
-- `<Search>` (`SearchRoot`, `SearchPanel`, `SearchInput`, `SearchCategoryFilterSelect`, `SearchResults`, `SearchResultItem`): Unified search interface across celestial entities, structures, and guide articles.
+### Tier 3: Application Assemblies (Domain Features & Views)
+Starmap-specific assemblies that bind live data, astronomical repositories, and application state to Tier 2 surfaces and Tier 1 primitives:
+- Domain feature panels, assemblies, and macro layout shells (e.g. `SpatialShell`, `DetailsPanel`, `BodiesPanel`, `DirectionsPanel`, `LayerCard`, `ControlBar`, `Minimap`, `Search`, `PreviewPanel`).
+- Comprehensive component documentation, props, and interactive variations are maintained live in Storybook and inspected directly under [`src/components/domain/`](../../src/components/domain/).
 
 ---
 
-## 6. Developer Guidelines & Architectural Guardrails
+## 7. Developer Guidelines & Architectural Guardrails
 
-### Guardrail 1: The "No Outer Margins" Rule (Composition First)
-**Blocks MUST NEVER set outer margins, outer layout positioning, or floats.**
-- External spacing between components is strictly owned by Composition Primitives (`<Stack gap="...">`, `<Cluster gap="...">`).
-- If a component needs space around it, wrap it in a `<Stack>` or `<Box padding="...">`.
+Starmap enforces strict engineering guardrails across styling, component architecture, and type safety. Detailed specifications live in the Conductor styleguides:
 
-```tsx
-/* BAD: Card manages its own margin */
-<Card style={{ marginBottom: '20px' }} />
-
-/* GOOD: Layout primitive owns the spatial rhythm */
-<Stack gap="space-stack-default">
-  <Card />
-  <Card />
-</Stack>
-```
-
-### Guardrail 2: The Local Token Interface Pattern
-Every UI block’s CSS Module must declare component-scoped CSS variables at the top of its root class selector, mapping semantic design tokens to local variables:
-
-```css
-/* Card.module.css */
-@layer blocks {
-  .card {
-    /* 1. Local Token Interface */
-    --card-bg:           var(--surface-panel-bg);
-    --card-border-color: var(--surface-panel-border-color);
-    --card-border-width: var(--surface-panel-border-width);
-    --card-border-style: var(--surface-panel-border-style);
-    --card-shadow:       var(--surface-panel-shadow);
-    --card-padding:      var(--space-inset-card);
-
-    /* 2. Structural Declarations */
-    background:   var(--card-bg);
-    border:       var(--card-border-width) var(--card-border-style) var(--card-border-color);
-    box-shadow:   var(--card-shadow);
-    padding:      var(--card-padding);
-  }
-}
-```
-
-### Guardrail 3: CUBE Exceptions via HTML `data-*` Attributes
-State variants, confidence indicators, and category themes are driven strictly by HTML `data-*` attributes and ARIA states, **never** by class-name concatenation:
-- React components forward semantic props directly to HTML data attributes (`status="critical"` renders `data-status="critical"`).
-- In CSS, exceptions mutate the **Local Token Interface**, adhering to the Single-Aspect Override Rule:
-
-```css
-/* Card.module.css */
-@layer exceptions {
-  /* Mutate the local token, never the CSS property directly */
-  .card[data-status="critical"] {
-    --card-border-color: var(--status-critical);
-  }
-
-  .card[data-status="caution"] {
-    --card-border-color: var(--status-caution);
-  }
-}
-```
-
-### Guardrail 4: Single-Aspect Override Rule
-When applying status, category, or confidence semantics, components override only a single aspect at a time (e.g. `border-color`), preserving the structural tokens governing width, style, and baseline geometry.
-
-### Guardrail 5: Strict Zero-`className` & Zero-`style` on Tier 1 Primitives (`DEC-R050`)
-Tier 1 layout and presentation primitives (`src/components/interface/**`) must never accept `className` or `style` props. Primitives encapsulate their own scoped CSS Modules statically and expose customization exclusively via typed props (`gap`, `align`, `justify`, `variant`, `size`) and HTML `data-*` attributes. Layout rhythm and outer spacing are 100% owned by parent composition primitives.
-
-### Guardrail 6: Mandatory Component File Quads & Pure Helper Extraction (`AUD-122`, `AUD-129`)
-Every component in `src/components/interface/**` and `src/components/domain/**` must strictly adhere to the 4-file component quad:
-1. `<Component>.tsx` (focused implementation, $\le 300$ lines)
-2. `<Component>.module.css` (scoped CSS Module in `@layer blocks` / `@layer exceptions`)
-3. `<Component>.stories.tsx` (Storybook stories)
-4. `<Component>.test.tsx` (colocated unit tests run via `@testing-library/react` in `jsdom`)
-
-Non-component helpers, calculations, serializers, and pure algorithms must be extracted into pure `.ts` companion files (e.g. `detentSheetMath.ts`, `searchHelpers.ts`) to keep component files clean and testable.
-
-### Guardrail 7: `DetentSheet` Snap Physics & `--detent-sheet-block-size` (`DEC-R051`)
-Mobile sheets (`DetentSheet`) manage height dynamically through a single sanctioned CSS custom property `--detent-sheet-block-size` set on the sheet element, preserving `container-type: inline-size` on desktop ($\ge 768\text{px}$) and enabling `container-type: size; container-name: detent-sheet;` on mobile ($< 768\text{px}$). Snap physics enforce asymmetric release snap bands (clean snap between `peek` and `partial`, with a free-rest zone between `partial` and `full`) and a single `@container` information-hierarchy threshold calibrated strictly at `partial`.
+- **Zero Outer Margins & CUBE CSS:** Components must never set external `margin`, positioning offsets, or dynamic class concatenation. See [`conductor/code_styleguides/html-css.md`](../../conductor/code_styleguides/html-css.md).
+- **Interface Primitives & Regulated Badges:** Views and domain assemblies must compose Tier 1 primitives rather than raw HTML controls (`<input>`, `<select>`, `<button>`). Domain classifications must use regulated badges (`<CelestialBadge>`, `<SpectralBadge>`, `<HazardBadge>`). See [`conductor/code_styleguides/components.md`](../../conductor/code_styleguides/components.md).
+- **Strict Zero-`className` and Zero-`style` on Tier 1 Primitives:** Tier 1 primitives encapsulate their scoped CSS Modules statically and reject external `className` or `style` props (`DEC-R050`). See [`conductor/code_styleguides/components.md`](../../conductor/code_styleguides/components.md).
+- **Mandatory Component File Quads:** Every component in `src/components/interface/**` and `src/components/domain/**` must adhere to the 4-file quad (`.tsx`, `.module.css`, `.stories.tsx`, `.test.tsx`). See [`conductor/code_styleguides/components.md`](../../conductor/code_styleguides/components.md).
+- **Strict DOM Testing & TypeScript:** Tests run in `jsdom` using `@testing-library/react` with zero `renderToString`. See [`conductor/code_styleguides/typescript.md`](../../conductor/code_styleguides/typescript.md).
 
 ---
 
-## 7. Step-by-Step Component Implementation Recipe
+## 8. Step-by-Step Component Implementation Recipe
 
-When creating a new UI component in Starmap, follow this strict recipe:
+When creating a new UI component in Starmap, follow this recipe (exemplified by `<Datum>`):
 
 ### 1. Component TypeScript Definition
 ```tsx
 // src/components/interface/information/Datum/Datum.tsx
-import React from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
+import { Quantity } from '../Quantity/Quantity';
+import { ConfidencePip, type ConfidenceLevel } from '../ConfidencePip/ConfidencePip';
 import styles from './Datum.module.css';
 
-export interface DatumProps {
-  label: string;
-  value: string | number;
-  unit?: string;
-  status?: 'nominal' | 'caution' | 'critical';
+export interface DatumProps extends Omit<HTMLAttributes<HTMLDivElement>, 'className' | 'style'> {
+  label: ReactNode;
+  value: ReactNode;
+  unit?: ReactNode;
+  status?: 'nominal' | 'caution' | 'critical' | 'info';
+  size?: 'sm' | 'md';
+  valueTestId?: string;
+  confidence?: ConfidenceLevel;
+  'data-testid'?: string;
 }
 
-export const Datum: React.FC<DatumProps> = ({ label, value, unit, status }) => {
+export const Datum = ({
+  label,
+  value,
+  unit,
+  status,
+  size = 'md',
+  valueTestId,
+  confidence,
+  ...rest
+}: DatumProps) => {
+  const valueElement = (
+    <Quantity
+      value={value}
+      unit={unit}
+      data-testid={valueTestId}
+    />
+  );
+
   return (
-    <div className={styles.datum} data-status={status}>
+    <div
+      className={styles.datum}
+      data-datum="true"
+      data-status={status}
+      data-size={size}
+      {...rest}
+    >
       <span className={styles.label}>{label}</span>
-      <span className={styles.valueGroup}>
-        <span className={styles.value}>{value}</span>
-        {unit && <span className={styles.unit}>{unit}</span>}
-      </span>
+      {confidence ? (
+        <span className={styles.valueGroup}>
+          {valueElement}
+          <ConfidencePip confidence={confidence} size="sm" />
+        </span>
+      ) : (
+        valueElement
+      )}
     </div>
   );
 };
@@ -308,55 +316,73 @@ export const Datum: React.FC<DatumProps> = ({ label, value, unit, status }) => {
 @layer blocks {
   .datum {
     /* 1. Local Token Interface */
-    --datum-padding-y:    var(--space-inset-cell-y);
-    --datum-padding-x:    var(--space-inset-cell-x);
+    --datum-font-family: var(--font-interface);
+    --datum-font-size: var(--text-content-data-value-size);
+    --datum-label-font-size: var(--text-content-data-label-size);
+    --datum-label-color: var(--content-muted);
+    --datum-value-color: var(--content-default);
+    --datum-value-weight: 500;
     --datum-border-color: var(--border-color-subtle);
-    --datum-border-width: var(--border-width-subtle);
-    --datum-border-style: var(--border-style-boundary);
+    --datum-border-width: var(--border-width-1);
+    --datum-border-style: var(--border-style-provisional);
+    --datum-padding-y: var(--space-inset-cell-y);
+    --datum-unit-font-size: var(--text-content-metric-unit-size);
+
+    --quantity-gap: var(--space-gap-datum);
+    --quantity-color: var(--datum-value-color);
 
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    padding: var(--datum-padding-y) var(--datum-padding-x);
-    border-bottom: var(--datum-border-width) var(--datum-border-style) var(--datum-border-color);
+    padding-block: var(--datum-padding-y);
+    border-block-end: var(--datum-border-width) var(--datum-border-style) var(--datum-border-color);
+    font-family: var(--datum-font-family);
+    font-size: var(--datum-font-size);
+    font-weight: var(--datum-value-weight);
+    margin: 0;
   }
 
   .label {
-    font-family: var(--font-interface);
-    font-size:   var(--text-content-data-label-size);
-    color:       var(--content-default);
+    color: var(--datum-label-color);
+    font-size: var(--datum-label-font-size);
+    white-space: nowrap;
   }
 
   .valueGroup {
     display: inline-flex;
-    gap:     var(--space-cluster-dense);
-    align-items: baseline;
-  }
-
-  .value {
-    font-family: var(--font-data);
-    font-size:   var(--text-content-data-value-size);
-    color:       var(--content-prominent);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .unit {
-    font-family: var(--font-data);
-    font-size:   var(--text-content-metric-unit-size);
-    color:       var(--content-muted);
+    align-items: center;
+    gap: var(--space-gap-datum);
   }
 }
 
 @layer exceptions {
+  .datum[data-status="nominal"] {
+    --datum-value-color: var(--status-nominal);
+    --quantity-color: var(--status-nominal);
+  }
+  .datum[data-status="caution"] {
+    --datum-value-color: var(--status-caution);
+    --quantity-color: var(--status-caution);
+  }
   .datum[data-status="critical"] {
-    --datum-border-color: var(--status-critical);
+    --datum-value-color: var(--status-critical);
+    --quantity-color: var(--status-critical);
+  }
+  .datum[data-status="info"] {
+    --datum-value-color: var(--status-info);
+    --quantity-color: var(--status-info);
+  }
+
+  .datum[data-size="sm"] {
+    --datum-font-size: var(--type-scale-neg-2);
+    --datum-padding-y: var(--space-fib-1);
   }
 }
 ```
 
 ---
 
-## 8. Contributor Checklist (Before Submitting PRs)
+## 9. Contributor Checklist (Before Submitting PRs)
 
 Before opening any PR involving UI or styling, verify the following:
 - [ ] **Zero Magic Numbers:** No hardcoded hex values (`#fff`), pixel spacing (`margin: 12px`), or arbitrary font sizes. Everything consumes `var(--token)`.

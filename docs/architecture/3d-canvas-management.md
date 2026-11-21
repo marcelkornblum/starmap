@@ -13,7 +13,7 @@ flowchart TD
     subgraph RootLayout["RootLayout (src/router/RootLayout.tsx)"]
         direction TB
         DOM["DOM Layout & Click Interceptor"]
-        Theme["ThemeTokenBridge (DOM Side)"]
+        Theme["ThemeTokenBridge (src/components/canvas/ThemeTokenBridge.tsx)"]
         RootHost["RootCanvasHost (src/components/domain/CanvasLayer/RootCanvasHost.tsx)"]
         Outlet["TanStack Router <Outlet />"]
         
@@ -23,27 +23,29 @@ flowchart TD
     end
 
     subgraph CanvasHost["RootCanvasHost Container"]
+        CanvasLayerHost["CanvasLayer (isRootHost=true)\n(src/components/domain/CanvasLayer/CanvasLayer.tsx)"]
         Canvas["R3F <Canvas flat dpr={1} gl={{ antialias: true, alpha: true }}>"]
-        Bridge["SceneTokenBridge (Canvas Side)"]
+        Bridge["SceneTokenBridge (src/components/canvas/ThemeTokenBridge.tsx)"]
         StageSwitcher{"Active Scope Switcher"}
         
+        CanvasLayerHost --> Canvas
         Canvas --> Bridge
         Canvas --> StageSwitcher
-        StageSwitcher -->|scope = 'galaxy'| GalaxyScene["GalacticSceneContent"]
-        StageSwitcher -->|scope = 'system'| SystemScene["SystemSceneContent"]
-        StageSwitcher -->|scope = 'planet'| PlanetScene["PlanetarySceneContent"]
+        StageSwitcher -->|scope = 'galaxy'| GalaxyScene["GalacticSceneContent\n(src/components/canvas/scenes/SpatialScenes.tsx)"]
+        StageSwitcher -->|scope = 'system'| SystemScene["SystemSceneContent\n(src/components/canvas/scenes/SpatialScenes.tsx)"]
+        StageSwitcher -->|scope = 'planet'| PlanetScene["PlanetarySceneContent\n(src/components/canvas/scenes/SpatialScenes.tsx)"]
     end
 
     subgraph ActiveView["Active Route View (<CanvasLayer /> Slot)"]
-        Slot["<CanvasLayer scope='...' /> (data-slot='true')"]
-        StoreSync["useCanvasStageStore.setStageProps(...)"]
+        Slot["<CanvasLayer scope='...' /> (data-slot='true')\n(src/components/domain/CanvasLayer/CanvasLayer.tsx)"]
+        StoreSync["useCanvasStageStore.setStageProps(...)\n(src/stores/useCanvasStageStore.ts)"]
         CallbackSync["setStageCallbacks({ onInspect, onSelect, onFocusChange })"]
         
         Slot --> StoreSync
         Slot --> CallbackSync
     end
 
-    RootHost --> Canvas
+    RootHost --> CanvasLayerHost
     StoreSync -.-> StageSwitcher
 ```
 
@@ -53,10 +55,10 @@ Creating a WebGL context is computationally expensive: shader programs must be c
 2. GPU garbage collection spikes and potential memory leaks in mobile WebGL drivers.
 3. Shader recompilation pipeline stalls.
 
-To eliminate these defects, `<Canvas>` is mounted exclusively inside `RootCanvasHost` (`src/components/domain/CanvasLayer/RootCanvasHost.tsx`), which sits directly inside `RootLayout` (`src/router/RootLayout.tsx`). The WebGL context survives all route navigations, selection changes, and UI state mutations.
+To eliminate these defects, `<Canvas>` is mounted exclusively inside `CanvasLayer` (`src/components/domain/CanvasLayer/CanvasLayer.tsx`) rendered by `RootCanvasHost` (`src/components/domain/CanvasLayer/RootCanvasHost.tsx`), which sits directly inside `RootLayout` (`src/router/RootLayout.tsx`). The WebGL context survives all route navigations, selection changes, and UI state mutations.
 
 ### 1.2 Absence of `@react-three/drei <View>` Scissor-Testing
-Starmap deliberately does **not** use `@react-three/drei <View>` scissor-testing. In high-density astronomical visualization, multiple active scissor viewports introduce per-frame draw-call overhead, synchronization complexities with scrolling DOM containers, and touch/wheel gesture conflicts. Instead, Starmap uses a single full-bleed viewport where scenes are swapped declaratively via stage slots.
+Starmap deliberately does **not** use `@react-three/drei <View>` scissor-testing. In high-density astronomical visualisations, multiple active scissor viewports introduce per-frame draw-call overhead, synchronisation complexities with scrolling DOM containers, and touch/wheel gesture conflicts. Instead, Starmap uses a single full-bleed viewport where scenes are swapped declaratively via stage slots.
 
 ---
 
@@ -86,7 +88,7 @@ When `RootCanvasHost` is mounted in the document:
 5. If no view provides an active stage slot (`activeSlotCount === 0`), `RootCanvasHost` sets `data-stage-inactive="true"`, placing the 3D stage into a dormant, low-overhead state.
 
 ### 2.2 Direct Scene Children & Scope Switching
-Inside the persistent `<Canvas>`, `RootCanvasHost` consumes the active stage props and swaps between direct scene components:
+Inside `CanvasLayer` mounted by `RootCanvasHost`, active stage props are consumed to switch declaratively between direct scene components defined in `src/components/canvas/scenes/SpatialScenes.tsx`:
 - `scope === 'galaxy'`: Renders `<GalacticSceneContent>` (parsec-scale stellar cartography, travelling fins, galactic datum).
 - `scope === 'system'`: Renders `<SystemSceneContent>` (AU-scale Keplerian planetary orbits, invariant plane, host star).
 - `scope === 'planet'`: Renders `<PlanetarySceneContent>` (kilometre-scale planetary disc, axial tilt, natural satellite orbits).
@@ -95,15 +97,15 @@ Inside the persistent `<Canvas>`, `RootCanvasHost` consumes the active stage pro
 
 ## 3. Theme Synchronisation via `ThemeTokenBridge`
 
-WebGL materials and clear colours must respond immediately to light and dark theme toggling without remounting the canvas or tearing down Three.js meshes.
+WebGL materials and clear colours must respond immediately to light and dark theme toggling without remounting the canvas or tearing down Three.js meshes. For full design-token integration details, see the [Three.js Token Synchronisation Architecture](theme-token-bridge.md).
 
 ```
 [ DOM: HTML Document ] ──► [ ThemeTokenBridge ] ──► [ useThreeTokenStore ] ──► [ SceneTokenBridge ] ──► [ Three.js Scene ]
 (CSS Custom Properties)      (Resize/MutationObserver)   (Reactive Hex Cache)     (Canvas In-Place Sync)    (Materials & Background)
 ```
 
-1. **DOM Side (`ThemeTokenBridge`):** Mounted in `RootLayout`. Observes CSS custom properties on `:root` and updates `useThreeTokenStore` (`src/stores/useThreeTokenStore.ts`).
-2. **Canvas Side (`SceneTokenBridge`):** Mounted inside the persistent `<Canvas>`. Reads hexadecimal colour tokens from `useThreeTokenStore` and synchronises renderer clear colours and ambient scene parameters in-place via Three.js `.setHex()` / `.copy()`.
+1. **DOM Side (`ThemeTokenBridge`):** Mounted in `RootLayout` (`src/components/canvas/ThemeTokenBridge.tsx`). Observes CSS custom properties on `:root` via `useThemeTokenSync` (`src/components/canvas/useThemeTokenSync.ts`) and updates `useThreeTokenStore` (`src/stores/useThreeTokenStore.ts`).
+2. **Canvas Side (`SceneTokenBridge`):** Mounted inside the persistent `<Canvas>` (`src/components/canvas/ThemeTokenBridge.tsx`). Reads colour tokens from `useThreeTokenStore` and synchronises renderer clear colours and ambient scene parameters in-place via Three.js `.setClearColor()`.
 3. **Zero Shader Recompilation:** Materials consume uniforms or direct attribute buffers; theme changes never alter shader source code or invalidate compiled program caches.
 
 ---
@@ -112,22 +114,20 @@ WebGL materials and clear colours must respond immediately to light and dark the
 
 The 3D cartography engine runs at a locked 60fps. Every frame callback (`useFrame`) executes within a strict 16.6ms budget. Any memory allocation inside `useFrame` triggers garbage collection pauses, producing noticeable frame drops.
 
-### 4.1 Strict Allocation Rules
-- **Zero Object Instantiation in `useFrame`:** Creating new `THREE.Vector3`, `THREE.Matrix4`, `THREE.Color`, or plain JavaScript objects/arrays inside `useFrame` is strictly prohibited and enforced by `npm run audit:r3f`.
-- **Scratch Objects via `useLazyRef`:** Reusable scratch vectors, quaternions, matrices, and boxes are allocated once per component lifecycle using `useLazyRef()`:
-  ```tsx
-  const scratchWorldPos = useLazyRef(() => new THREE.Vector3());
-  const scratchBox = useLazyRef<Box2D>(() => ({ left: 0, top: 0, right: 0, bottom: 0 }));
-  ```
-- **Zero Zustand Store Subscriptions in `useFrame`:** Components must never call `useStore.getState()` or trigger reactive state setters inside `useFrame`. Data flow into the frame loop occurs via mutable references or batch registries.
+### 4.1 Frame-Loop Invariants
+For complete mandatory rules, scratch object patterns, and resource disposal standards, see the [WebGL, Three.js & R3F Style Guide](../../conductor/code_styleguides/webgl-r3f.md).
+
+- **Zero Allocations in `useFrame`:** Creating new `THREE.Vector3`, `THREE.Matrix4`, `THREE.Color`, or plain JavaScript objects/arrays inside `useFrame` is strictly prohibited and enforced by static AST analysis (`npm run audit:r3f`).
+- **Scratch Objects via `useLazyRef`:** Reusable scratch vectors, quaternions, matrices, and boxes are allocated once per component lifecycle using `useLazyRef` (`src/hooks/useLazyRef.ts`).
+- **Zero Zustand Store Subscriptions in `useFrame`:** Components must never call store selectors or trigger reactive state setters inside `useFrame`. Data flow into the frame loop occurs via mutable references or batch registries.
 
 ### 4.2 Lifecycle-Only Occlusion Registration & $O(N)$ Batch Pass
 To prevent $O(N^2)$ collision cascades when resolving reticles and labels across thousands of celestial entities:
-1. **Lifecycle-Only Registration:** Entities register their screen footprint in `celestialOcclusionRegistry.ts` on mount, state change, or scope switch—never on every raw tick.
+1. **Lifecycle-Only Registration:** Entities register their screen footprint in `celestialOcclusionRegistry.ts` (`src/components/canvas/cartography/celestialOcclusionRegistry.ts`) on mount, state change, or scope switch—never on every raw tick.
 2. **`other.hasReticle` Filtering:** Ambient background entities without visible reticles (`state === 'passive'`) are excluded from reticle-to-reticle collision tests.
 3. **Single `OcclusionPass` Batch Pass:** Mounted once inside the scene (`src/components/canvas/entity/OcclusionPass.tsx`), evaluating screen-space projections, priority occlusion masking, and proximity culling across all registered footprints in a single linear $O(N)$ pass per frame.
 
-### 4.3 `EntityLabel` Optimization & `ResizeObserver` Caching
+### 4.3 `EntityLabel` Optimisation & `ResizeObserver` Caching
 Typographic labels rendered in HTML via `<SafeHtml>` (`src/components/canvas/entity/EntityLabel.tsx`) adhere to strict performance rules:
 - **`ResizeObserver` Dimension Caching:** Label dimensions (`width`, `height`) are observed asynchronously and cached in `labelDimensionsRef`. Synchronous DOM layout reads (`getBoundingClientRect()`, `offsetWidth`) are strictly forbidden inside the render path.
 - **Hardware-Accelerated Transforms:** Displaced labels update positions exclusively via `style.transform = 'translate3d(x, y, 0)'` and communicate visibility through HTML `data-occluded` attributes, bypassing React re-renders.
