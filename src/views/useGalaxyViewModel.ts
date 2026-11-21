@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useSpatialEntityStore, useSpatialEntityStoreApi } from '../components/canvas/entity/SpatialEntityContext';
 import type { SpatialEntityDefinition } from '../types/spatial';
 import { scheduleSearchBackgroundWarmup } from '../data/searchBackgroundWarmup';
-import { getCachedCorpusForFilter } from '../data/searchRepository';
+import { getCachedCorpusForFilter, subscribeSearchRepository } from '../data/searchRepository';
 import { useSearchCorpus } from '../hooks/useSearchCorpus';
 import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { mergeActiveStarsIntoCorpus } from '../services/details/activeStarsCorpus';
@@ -75,8 +75,13 @@ export function useGalaxyViewModel({
   );
 
   const { corpus: startupCorpus } = useSearchCorpus('startup', initialCorpus);
+  const cachedAllCorpus = useSyncExternalStore(
+    subscribeSearchRepository,
+    () => getCachedCorpusForFilter('all'),
+    () => getCachedCorpusForFilter('all'),
+  );
   const activeCorpus =
-    (initialCorpus ? startupCorpus : (getCachedCorpusForFilter('all') ?? startupCorpus)) ??
+    (initialCorpus ? startupCorpus : (cachedAllCorpus ?? startupCorpus)) ??
     EMPTY_CORPUS;
   const isHydrated = useActiveStarsStore((state) => state.isHydrated);
 

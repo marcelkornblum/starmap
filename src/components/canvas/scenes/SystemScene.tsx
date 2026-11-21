@@ -1,9 +1,13 @@
 import React, { useMemo } from 'react';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import { SYSTEM_FRAME } from '../../../config/referenceFrames';
-import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyCamera';
+import {
+  getStandardInitialCamera,
+  STANDARD_CAMERA_DISTANCES,
+} from '../cartography/cartographyCamera';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
+import { SystemCameraController } from './SystemCameraController';
 import {
   resolveTargetCoordsFromEntities,
   useResolvedSystemEntitiesAndTarget,
@@ -28,7 +32,10 @@ export interface SystemSceneProps {
   systemId?: string;
   system?: StarDossierData;
   centerId?: string;
-  centerCoordinates?: readonly [number, number, number] | [number, number, number];
+  centerCoordinates?:
+    | readonly [number, number, number]
+    | [number, number, number]
+    | { x: number; y: number; z: number };
   resolvedEntities?: SpatialEntityDefinition[];
   onInspectPlanet?: (planetId: string) => void;
   onSelectEntity?: (entityId: string | null) => void;
@@ -38,6 +45,7 @@ export interface SystemSceneProps {
 interface SystemSceneViewportProps {
   readonly entities: SpatialEntityDefinition[];
   readonly targetCoords: [number, number, number];
+  readonly hasExplicitCenter: boolean;
   readonly onInspectPlanet?: (planetId: string) => void;
   readonly onSelectEntity?: (entityId: string | null) => void;
   readonly debugHitarea: boolean;
@@ -46,10 +54,16 @@ interface SystemSceneViewportProps {
 const SystemSceneViewport: React.FC<SystemSceneViewportProps> = ({
   entities,
   targetCoords,
+  hasExplicitCenter,
   onInspectPlanet,
   onSelectEntity,
   debugHitarea,
 }) => {
+  const standardCam = useMemo(
+    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.system, targetCoords),
+    [targetCoords],
+  );
+
   if (entities.length === 0) {
     return null;
   }
@@ -59,12 +73,18 @@ const SystemSceneViewport: React.FC<SystemSceneViewportProps> = ({
       frame={SYSTEM_FRAME}
       entities={entities}
       cameraDistance={STANDARD_CAMERA_DISTANCES.system}
-      cameraTarget={targetCoords}
       onInspect={onInspectPlanet}
       onSelect={onSelectEntity}
       onFocusChange={onSelectEntity}
       debugHitarea={debugHitarea}
-    />
+    >
+      <SystemCameraController
+        position={standardCam.position}
+        target={standardCam.target}
+        up={standardCam.up}
+        hasExplicitCenter={hasExplicitCenter}
+      />
+    </SpatialViewport>
   );
 };
 
@@ -83,11 +103,13 @@ const SystemSceneFromLookup: React.FC<SystemSceneProps> = ({
     centerId,
     centerCoordinates,
   );
+  const hasExplicitCenter = Boolean(centerCoordinates || centerId);
 
   return (
     <SystemSceneViewport
       entities={entities}
       targetCoords={targetCoords}
+      hasExplicitCenter={hasExplicitCenter}
       onInspectPlanet={onInspectPlanet}
       onSelectEntity={onSelectEntity}
       debugHitarea={debugHitarea}
@@ -109,11 +131,13 @@ const SystemSceneWithEntities: React.FC<
     () => resolveTargetCoordsFromEntities(resolvedEntities, centerId, centerCoordinates),
     [resolvedEntities, centerId, centerCoordinates],
   );
+  const hasExplicitCenter = Boolean(centerCoordinates || centerId);
 
   return (
     <SystemSceneViewport
       entities={resolvedEntities}
       targetCoords={targetCoords}
+      hasExplicitCenter={hasExplicitCenter}
       onInspectPlanet={onInspectPlanet}
       onSelectEntity={onSelectEntity}
       debugHitarea={debugHitarea}

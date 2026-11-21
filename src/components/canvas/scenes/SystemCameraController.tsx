@@ -92,6 +92,21 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     }
 
     if (
+      !isInitialMount &&
+      isTargetSame &&
+      isControlsSame &&
+      controls?.target &&
+      Math.hypot(
+        controls.target.x - tgtX,
+        controls.target.y - tgtY,
+        controls.target.z - tgtZ,
+      ) < 1e-3
+    ) {
+      prevTickRef.current = recenterTick;
+      return;
+    }
+
+    if (
       isInitialMount ||
       (!hasAppliedControlsRef.current && controls && isTargetSame && isTickSame)
     ) {

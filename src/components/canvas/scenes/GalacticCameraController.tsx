@@ -131,6 +131,22 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       return;
     }
 
+    if (
+      !isInitialMount &&
+      isTargetSame &&
+      isDistSame &&
+      isControlsSame &&
+      controls?.target &&
+      Math.hypot(
+        controls.target.x - targetX,
+        controls.target.y - targetY,
+        controls.target.z - targetZ,
+      ) < 1e-3
+    ) {
+      prevRecenterTickRef.current = recenterTick;
+      return;
+    }
+
     const saved = persistGalaxyPose ? useCameraStore.getState().savedGalaxyCamera : null;
 
     if (!hasRestoredRef.current && saved && distance === undefined) {
