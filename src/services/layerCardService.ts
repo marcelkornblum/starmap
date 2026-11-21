@@ -45,6 +45,7 @@ export function pickRandomLayerOverviewHref(
   const pool = candidates.length > 0 ? candidates : basePool;
   const pickedIndex = Math.min(Math.floor(randomFn() * pool.length), pool.length - 1);
   const chosen = pool[pickedIndex] ?? pool[0];
+  if (!chosen) return '/galaxy';
   const chosenSlug = toCanonicalLayerSlug(chosen.layerId);
   return `/galaxy?select=layer:${chosenSlug}&layer=${chosenSlug}`;
 }
@@ -127,14 +128,18 @@ export function buildLayerItemCard(
   }
 
   const activeEntry = orderedEntries[effectiveIndex];
+  if (!activeEntry) {
+    return buildLayerOverviewCard(layer, layerSlug, kindLabel, input, closeHref);
+  }
   const totalItems = orderedEntries.length;
   const stepIndex = effectiveIndex + 1;
 
-  const prevHref = effectiveIndex === 0
-    ? overviewHref
-    : resolveLayerItemTargetHref(layer, orderedEntries[effectiveIndex - 1], input.corpus, input.currentPathname).href;
+  const prevEntry = effectiveIndex > 0 ? orderedEntries[effectiveIndex - 1] : undefined;
+  const prevHref = prevEntry
+    ? resolveLayerItemTargetHref(layer, prevEntry, input.corpus, input.currentPathname).href
+    : overviewHref;
 
-  const nextEntry = effectiveIndex === totalItems - 1 ? orderedEntries[0] : orderedEntries[effectiveIndex + 1];
+  const nextEntry = (effectiveIndex === totalItems - 1 ? orderedEntries[0] : orderedEntries[effectiveIndex + 1]) ?? activeEntry;
   const nextHref = resolveLayerItemTargetHref(layer, nextEntry, input.corpus, input.currentPathname).href;
 
   const itemTitle =

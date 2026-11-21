@@ -59,10 +59,10 @@ export interface ThresholdConfig {
 }
 
 export const DEFAULT_THRESHOLDS: Required<ThresholdConfig> = {
-  lines: 78,
-  statements: 78,
-  branches: 70,
-  functions: 78,
+  lines: 88,
+  statements: 86,
+  branches: 76,
+  functions: 88,
 };
 
 export function parseVitestThresholds(configContent: string): ThresholdConfig {

@@ -123,7 +123,7 @@ export async function fetchAllDataSources(
   options?: FetchAllOptions,
 ): Promise<FetchSummary[]> {
   if (options?.refreshEpoch) {
-    writeBuildEpochIso(undefined, options.epochFilePath);
+    writeBuildEpochIso(new Date().toISOString(), options.epochFilePath);
   }
 
   const summaries: FetchSummary[] = [];

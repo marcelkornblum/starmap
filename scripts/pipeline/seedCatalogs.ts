@@ -182,7 +182,7 @@ export function resolveBuildTimestampIso(overrideEpoch?: string): string {
  * Writes the specified ISO timestamp to build-epoch.json (or optional custom path).
  */
 export function writeBuildEpochIso(
-  isoTimestamp: string = new Date().toISOString(),
+  isoTimestamp: string,
   filePath?: string,
 ): string {
   const targetPath = filePath ?? path.join(SEED_DIR, 'build-epoch.json');

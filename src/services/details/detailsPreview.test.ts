@@ -51,7 +51,7 @@ describe('detailsPreview', () => {
     expect(summary?.targetId).toBe('sol');
     expect(summary?.previewMode).toBe('system-orbits');
     expect(summary?.orbitElements).toHaveLength(1);
-    expect(summary?.orbitElements[0].id).toBe('earth');
+    expect(summary?.orbitElements[0]?.id).toBe('earth');
   });
 
   it('builds planetary-system preview summary for planet focus', () => {
@@ -105,6 +105,6 @@ describe('detailsPreview', () => {
     expect(summary).not.toBeNull();
     expect(summary?.previewMode).toBe('planetary-system');
     expect(summary?.orbitElements).toHaveLength(1);
-    expect(summary?.orbitElements[0].id).toBe('moon');
+    expect(summary?.orbitElements[0]?.id).toBe('moon');
   });
 });

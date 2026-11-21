@@ -48,10 +48,11 @@ describe('planetaryOrbitalSchematic', () => {
     );
 
     expect(schematic).not.toBeNull();
-    expect(schematic!.items).toHaveLength(3);
-    expect(schematic!.items[0].id).toBe('jupiter');
-    expect(schematic!.items[1].id).toBe('io');
-    expect(schematic!.items[2].id).toBe('europa');
+    if (!schematic) return;
+    expect(schematic.items).toHaveLength(3);
+    expect(schematic.items[0]?.id).toBe('jupiter');
+    expect(schematic.items[1]?.id).toBe('io');
+    expect(schematic.items[2]?.id).toBe('europa');
   });
 
   it('matches moons by url slug and applies region/rank from corpus', () => {
@@ -88,9 +89,10 @@ describe('planetaryOrbitalSchematic', () => {
     );
 
     expect(schematic).not.toBeNull();
-    expect(schematic!.items).toHaveLength(2);
-    expect(schematic!.items[1].id).toBe('Enceladus-Moon');
-    expect(schematic!.items[1].orbitRank).toBe(2);
-    expect(schematic!.items[1].inHabitableZone).toBe(true);
+    if (!schematic) return;
+    expect(schematic.items).toHaveLength(2);
+    expect(schematic.items[1]?.id).toBe('Enceladus-Moon');
+    expect(schematic.items[1]?.orbitRank).toBe(2);
+    expect(schematic.items[1]?.inHabitableZone).toBe(true);
   });
 });

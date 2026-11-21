@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
 import { renderHook, act } from '@testing-library/react';
-import { useCameraRigProjection } from './useCameraRigProjection';
+import { useCameraRigProjection, type CameraRigThreeState } from './useCameraRigProjection';
+import type { OrbitControlsLike } from './cameraRigZoomAndPan';
 import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
@@ -9,8 +10,8 @@ import { useSettingsStore } from '../../../stores/useSettingsStore';
 describe('useCameraRigProjection', () => {
   let camera: THREE.PerspectiveCamera;
   let target: THREE.Vector3;
-  let mockControls: any;
-  let threeGet: () => any;
+  let mockControls: OrbitControlsLike;
+  let threeGet: () => CameraRigThreeState;
 
   beforeEach(() => {
     useCameraStore.getState().reset();
@@ -33,11 +34,11 @@ describe('useCameraRigProjection', () => {
       update: vi.fn(),
     };
 
-    const threeState = {
+    const threeState: CameraRigThreeState = {
       camera,
       controls: mockControls,
       size: { width: 1920, height: 1080 },
-      set: vi.fn((update: any) => {
+      set: vi.fn((update: { camera?: THREE.PerspectiveCamera | THREE.OrthographicCamera }) => {
         if (update.camera) threeState.camera = update.camera;
       }),
       invalidate: vi.fn(),

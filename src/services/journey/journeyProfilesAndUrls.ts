@@ -32,6 +32,7 @@ export function extractUrlRouteStops(
 
   if (rawStops.length === 1) {
     const singleStop = rawStops[0];
+    if (!singleStop) return null;
     const defaultOrigin =
       viewScope === 'system' || viewScope === 'planet'
         ? DEFAULT_INTRA_SYSTEM_ORIGIN_ID

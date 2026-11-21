@@ -56,11 +56,11 @@ describe('focusedManifestMapper', () => {
 
     const mapped = mapManifestToStarsAndPlanets(manifest, 'sol');
     expect(mapped.stars).toHaveLength(1);
-    expect(mapped.stars[0].id).toBe('sol');
+    expect(mapped.stars[0]?.id).toBe('sol');
     expect(mapped.planets).toHaveLength(1);
-    expect(mapped.planets[0].id).toBe('earth');
-    expect(mapped.planets[0].composition).toBe('terrestrial');
+    expect(mapped.planets[0]?.id).toBe('earth');
+    expect(mapped.planets[0]?.composition).toBe('terrestrial');
     expect(mapped.disks).toHaveLength(1);
-    expect(mapped.disks[0].id).toBe('asteroid-belt');
+    expect(mapped.disks[0]?.id).toBe('asteroid-belt');
   });
 });

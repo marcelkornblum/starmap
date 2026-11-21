@@ -96,6 +96,10 @@ describe('layerCardService (DEC-039)', () => {
       )!;
       const entries = Object.values(layer.entries);
       const lastEntry = entries[entries.length - 1];
+      const firstEntry = entries[0];
+      expect(lastEntry).toBeDefined();
+      expect(firstEntry).toBeDefined();
+      if (!lastEntry || !firstEntry) return;
 
       const cardLast = resolveActiveLayerCard({
         layerParam: `recent-discoveries:${lastEntry.targetId}`,
@@ -109,7 +113,6 @@ describe('layerCardService (DEC-039)', () => {
       if (!cardLast || cardLast.mode !== 'item') throw new Error('Expected item card');
 
       expect(cardLast.stepIndex).toBe(entries.length);
-      const firstEntry = entries[0];
       expect(cardLast.nextHref).toContain(`layer=recent-discoveries:${firstEntry.targetId}`);
     });
   });

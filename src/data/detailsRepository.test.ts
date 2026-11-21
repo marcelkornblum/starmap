@@ -352,11 +352,10 @@ describe('detailsRepository (hybrid spatial + domain sharding)', () => {
         {
           t: COMPACT_SOLAR_BODY_TAG,
           n: 'Mars',
-          k: 'planet',
+          k: 1,
           s: 'sol',
-          p: [0, 0, 0],
           r: 3389.5,
-        } as any,
+        },
         'mars',
       );
 

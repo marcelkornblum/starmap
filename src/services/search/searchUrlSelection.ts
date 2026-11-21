@@ -35,6 +35,9 @@ export const parseUrlSelectTokens = (
       const layerMatch = /^layer:(.+)$/i.exec(token);
       if (layerMatch?.[1]) {
         const rawSlug = layerMatch[1].trim().split(':')[0];
+        if (!rawSlug) {
+          continue;
+        }
         const matchedLayer = findCanonLayerById(rawSlug, layerIndex);
         if (matchedLayer) {
           tokens.push({ kind: 'layer', layerId: matchedLayer.layerId });

@@ -2,16 +2,19 @@
   "/galaxy": {
     "fps": 40.0,
     "meanFrameTimeMs": 25.0,
-    "p95FrameTimeMs": 50.0
+    "p95FrameTimeMs": 50.0,
+    "maxDrawCalls": 50
   },
   "/system/sol": {
     "fps": 40.0,
     "meanFrameTimeMs": 25.0,
-    "p95FrameTimeMs": 50.0
+    "p95FrameTimeMs": 50.0,
+    "maxDrawCalls": 85
   },
   "/planet/earth": {
     "fps": 40.0,
     "meanFrameTimeMs": 25.0,
-    "p95FrameTimeMs": 50.0
+    "p95FrameTimeMs": 50.0,
+    "maxDrawCalls": 45
   }
 }

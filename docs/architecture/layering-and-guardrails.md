@@ -45,13 +45,17 @@ flowchart TD
 
 ### 1.2 Interface Primitive Purity (`Rank 6`)
 Tier 1 and Tier 2 interface primitives in `src/components/interface/` must remain pure, reusable design-system assets with zero knowledge of astronomical business logic. `.oxlintrc.json` enforces an explicit rule:
-- **`components/interface` cannot import from `data`, `content`, `services`, or `stores`**.
-Any attempt by a primitive to bind directly to a repository or global store fails `npm run lint`. For component design rules, see [Component Architecture](../../conductor/code_styleguides/components.md).
+- **`components/interface` cannot import from `data`, `content`, `services`, `stores`, `three`, or `@react-three/*`**.
+Any attempt by a primitive to bind directly to a repository, global store, or WebGL engine fails `npm run lint`. For component design rules, see [Component Architecture](../../conductor/code_styleguides/components.md).
 
-### 1.3 Zero Import Cycles & File Size Ceiling (`.oxlintrc.json`)
+### 1.3 Zero Import Cycles, Strict Typing, Three.js Isolation & File Size Ceiling (`.oxlintrc.json`)
 Circular dependencies (`A -> B -> A` or deep transitive loops) create initialisation order bugs and break bundler tree-shaking. `.oxlintrc.json` enforces:
 - **`import/no-cycle: "error"`:** Ensures the entire codebase contains **zero** import cycles.
 - **`max-lines: "error"`:** Enforces a 300-line ceiling (skipping blank lines and comments) across production source files, exempting tests, stories, `scripts/`, `e2e/`, `tests/`, and `content/`.
+- **`typescript/no-explicit-any: "error"`:** Forbids explicit `any` across all production, test, story, script, and E2E files.
+- **`typescript/no-non-null-assertion: "error"`:** Forbids non-null assertions (`!`) in production `src/` files (disabled in test/story/script overrides).
+- **Three.js / R3F Isolation:** Forbids importing `@react-three/*` in `src/types/**` (type-only `three` imports remain permitted in `src/types/spatial.ts`), and forbids importing `three`, `three/*`, and `@react-three/*` across `src/config/**`, `src/data/**`, `src/content/**`, `src/services/**`, production `src/stores/**`, `src/hooks/**`, and `src/components/interface/**` (`src/utils/**` remains the sanctioned colour-token bridge).
+- **Zero Lint Warnings:** `npm run lint` executes `oxlint --deny-warnings`.
 
 ---
 
@@ -60,23 +64,31 @@ Circular dependencies (`A -> B -> A` or deep transitive loops) create initialisa
 Each static analysis tool owns a distinct, non-overlapping concern and is run once via the unified `npm run check` gate:
 
 ```
-npm run check         ──► Single-pass gate: lint -> typecheck -> audit:guards -> audit:ui -> audit:r3f
-npm run lint          ──► Oxlint (Layering, Import Cycles, 300-Line Ceiling, React Hooks)
+npm run check         ──► Single-pass gate: lint -> typecheck -> audit:guards -> audit:ui -> audit:r3f -> audit:budgets
+npm run lint          ──► Oxlint (Layering, Import Cycles, 300-Line Ceiling, React Hooks, Strict Types)
 npm run typecheck     ──► TypeScript Project References (tsc -b)
-npm run audit:guards  ──► Domain Literal Guard (G-literals: Zero Hardcoded Celestial Entities)
-npm run audit:ui      ──► Design System, Component Quads, CUBE CSS, Zero Inline Styles
-npm run audit:r3f     ──► 60fps Three.js Frame Loop Memory & Performance Audits
+npm run audit:guards  ──► Domain Literal Guard (G-literals) & Structural Guards (history SSOT, globalThis, deprecated, pipeline clock, Vitest env)
+npm run audit:ui      ──► Design System, Component Quads, Primitive Purity, CUBE CSS, Zero Inline Styles
+npm run audit:r3f     ──► 60fps R3F Audits (Single Canvas Host, useFrame, Atomic Selectors, On-Demand Frameloop, Resource Disposal, Raycast)
+npm run audit:budgets ──► Suppression Ratchet & Data Manifest / Shard Size Budgets (scripts/guards/budgets.json)
+npm run audit:bundle  ──► Built Entry JS/CSS Gzip Budgets & Lazy 3D Chunk Isolation (runs post-build)
 ```
 
-### 2.1 Domain Literal Guard (`scripts/audit-guards.ts`)
-`audit:guards` focuses exclusively on **`G-literals` (Zero Hardcoded Celestial Entities)**:
-- Scans TypeScript ASTs in `src/` (excluding tests, stories, `src/config/`, and `src/content/`) to verify that celestial entity IDs, names, and classifications are not hardcoded into runtime code. All entities must be read from precalculated data pipeline shards.
+### 2.1 Domain Literal & Structural Guards (`scripts/audit-guards.ts`)
+`audit:guards` enforces **`G-literals` (Zero Hardcoded Celestial Entities)** alongside structural invariants across runtime, pipeline, and test code:
+- Scans TypeScript ASTs in `src/` (excluding tests and stories) to verify that celestial entity IDs, names, and classifications are not hardcoded into runtime code. All entities must be read from precalculated data pipeline shards.
 - Flags suspicious non-zero numeric fallbacks (`?? <num>`, `|| <num>`) on astronomical telemetry in `src/services/`, `src/components/canvas/`, and `src/views/`.
+- **`no-global-this-mutation`:** Forbids mutating properties on `globalThis` in production `src/` files (direct/bracket/casted assignments, `Object.defineProperty(globalThis, ...)`, and `Reflect.set(globalThis, ...)`), while permitting read-only property access.
+- **`no-direct-history-mutation`:** Enforces router SSOT by forbidding direct `history.pushState`, `history.replaceState`, `location.assign`, `location.replace`, and `location.href = ...` mutations in production `src/` files outside `src/hooks/spaNavigation.ts`.
+- **`no-deprecated-shims`:** Forbids `@deprecated` JSDoc/comment shims in production `src/` files so renames and cutovers stay complete.
+- **`no-wall-clock-in-pipeline`:** Scans `scripts/pipeline/**/*.ts` (excluding `*.test.ts`) and forbids non-deterministic 0-argument `new Date()` and `Date.now()` calls (1-argument `new Date(epochMs)` / `new Date(isoString)` remains permitted).
+- **`no-vitest-environment-pragma`:** Scans `src/**/*.test.{ts,tsx}` and `tests/**/*.test.{ts,tsx}` and forbids `@vitest-environment` pragmas, enforcing the split `.test.ts` (Node) vs `.test.tsx` (jsdom) Vitest project boundary (`DEC-R055`).
 - Fails closed on parse errors or unexpected exceptions.
 
 ### 2.2 Design System Guard Suite (`scripts/audit-ui.ts`)
 Enforces strict design system standards across `src/components/` and `src/views/` (see [HTML & CSS Style Guide](../../conductor/code_styleguides/html-css.md)):
 - **`missing-component-quad`:** Every component in `interface/` and `domain/` must have all 4 quad files: `<Component>.tsx`, `<Component>.module.css`, `<Component>.stories.tsx`, and `<Component>.test.tsx`.
+- **`forbidden-primitive-escape-hatch`:** Inspects `*Props` interfaces and type aliases in `src/components/interface/**/*.tsx` production files and forbids `className` or `style` escape-hatch properties.
 - **`forbidden-raw-element`:** Disallows raw HTML controls (`<button>`, `<input>`, `<select>`) or telemetry lists (`<dl>`, `<ul>`, `<ol>`); domain views must compose Tier 1 primitives.
 - **`forbidden-dynamic-classname`:** Disallows dynamic `className` concatenation; state and variant styling must consume HTML `data-*` attributes.
 - **`forbidden-inline-style`:** Zero `style={{ ... }}` attributes; all styling lives in scoped CSS Modules.
@@ -86,20 +98,32 @@ Enforces strict design system standards across `src/components/` and `src/views/
 - **`hardcoded-hex-color` & `hardcoded-css-token`:** Disallows literal hex codes (`#ffffff`) or pixel values; all CSS must consume semantic tokens (`var(--token)`).
 
 ### 2.3 WebGL & Frame-Loop Guard Suite (`scripts/audit-r3f.ts`)
-Enforces 60fps WebGL execution guardrails (see [WebGL, Three.js & R3F Style Guide](../../conductor/code_styleguides/webgl-r3f.md)):
-- Flags any object instantiation (`new THREE.Vector3()`, `new THREE.Matrix4()`, `new Object()`, array literals `[]`) inside `useFrame` callbacks.
-- Flags Zustand store subscriptions or state mutations inside `useFrame`.
-- Flags whole-store or broad object subscriptions in canvas components (`atomic-store-selectors`).
-- Verifies material and geometry reuse across instances.
+Enforces 60fps WebGL execution guardrails across `src/components/canvas/`, `src/components/domain/`, `src/hooks/`, `src/views/`, and `src/router/` (see [WebGL, Three.js & R3F Style Guide](../../conductor/code_styleguides/webgl-r3f.md)):
+- **`single-canvas-host`:** Flags any production `src/` `<Canvas>` instantiation outside the 3 sanctioned hosts (`src/components/domain/CanvasLayer/CanvasWebGLHost.tsx`, `src/components/canvas/scenes/StandaloneSceneShell.tsx`, `src/components/canvas/scenes/InteractiveNavigator.tsx`).
+- **`no-alloc-in-use-frame`, `no-layout-in-use-frame`, `no-setstate-in-use-frame`:** Flags object/array/closure allocations, DOM layout measurements, and React state setters inside `useFrame` callbacks.
+- **`atomic-store-selectors`:** Flags whole-store, identity, object-literal, or broad `state.tokens` Zustand subscriptions across canvas, domain, hook, and view files.
+- **`require-demand-frameloop`:** Flags any production `<Canvas>` missing an explicit `frameloop` attribute or specifying `frameloop="always"`.
+- **`require-resource-dispose`:** Flags `useMemo` GPU resource allocations (`*Geometry`, `*Material`, `*Texture`, `WebGLRenderTarget`) in `src/components/canvas/` production files lacking a `.dispose()` cleanup call.
+- **`require-noop-raycast`:** Flags decorative `<mesh>`, `<lineSegments>`, and `new Line2(...)` instances in `src/components/canvas/` without pointer handlers or `NOOP_RAYCAST`.
+- **`no-inline-jsx-geometry`, `no-material-memo-color-deps`, `valid-r3f-intrinsics`:** Flags inline JSX geometry instantiations, colour/opacity material recreation dependencies, and invalid R3F intrinsic tags.
+
+### 2.4 Suppression Ratchet, Data Manifest & Bundle Budgets (`scripts/audit-budgets.ts`)
+Configured via [`scripts/guards/budgets.json`](../../scripts/guards/budgets.json):
+- **`audit:budgets` (Offline, part of `npm run check`):**
+  - **Suppression Ratchet:** Scans non-test, non-story `.ts`, `.tsx`, and `.css` files under `src/` and enforces strict ceilings for `guard-disable`, `r3f-audit-disable`, `ui-audit-disable`, `eslint-disable`, `oxlint-disable`, and `@ts-ignore`/`@ts-expect-error`, failing with exact `file:line` locations if any ceiling is exceeded.
+  - **Data Manifest & Shard Budgets:** Validates `public/data/manifest.json`, ensures every referenced shard exists on disk, forbids orphan files under `public/data/` outside `allowedNonManifestFiles` (`[".gitkeep", "README.md"]`), and enforces `maxTotalBytes` (`40 MiB`) and `maxStartupSearchBytes` (`1.5 MiB` for `search/startup`).
+- **`audit:bundle` (`--bundle`, post-`npm run build` in CI):**
+  - Resolves entry JS and CSS assets from `dist/index.html` (supporting `/` and `/starmap/` base paths), verifies gzipped entry sizes remain within `maxEntryJsGzipBytes` (`30 KiB`) and `maxEntryCssGzipBytes` (`20 KiB`), and asserts neither `dist/index.html` (including `<link rel="modulepreload">`) nor static ESM imports/re-exports in the entry JS chunk reference lazy 3D chunks (`vendor-three`, `vendor-r3f`).
 
 ---
 
-## 3. Zero-Tolerance Policy & Justified Suppressions
+## 3. Zero-Tolerance Policy, Justified Suppressions & Coverage Floor
 
 All static analysis suites operate with zero-tolerance, fail-closed enforcement (no baseline grandfathering):
 
-1. **Zero Influx:** Any violation across `oxlint`, `tsc`, `audit:guards`, `audit:ui`, or `audit:r3f` immediately fails `npm run check` and CI.
-2. **Justified Suppressions Only:** Inline suppressions (`// guard-disable-next-line <rule> -- <reason>`, `/* ui-audit-disable-next-line <rule> -- <reason> */`, or `// r3f-audit-disable-next-line <rule> -- <reason>`) require an explicit technical justification after `-- <reason>`. Unreasoned suppression comments are flagged as errors.
+1. **Zero Influx:** Any violation across `oxlint`, `tsc`, `audit:guards`, `audit:ui`, `audit:r3f`, or `audit:budgets` immediately fails `npm run check` and CI.
+2. **Justified Suppressions Only:** Inline suppressions (`// guard-disable-next-line <rule> -- <reason>`, `/* ui-audit-disable-next-line <rule> -- <reason> */`, or `// r3f-audit-disable-next-line <rule> -- <reason>`) require an explicit technical justification after `-- <reason>`. Unreasoned suppression comments are flagged as errors, and total suppression counts across `src/` are capped by `scripts/guards/budgets.json`.
+3. **Ratcheted Unit Coverage Floor (`vite.config.ts`):** `npm run test:coverage` enforces minimum coverage thresholds of `88%` lines, `86%` statements, `76%` branches, and `88%` functions across `src/**/*.{ts,tsx}`.
 
 ---
 
@@ -108,4 +132,4 @@ All static analysis suites operate with zero-tolerance, fail-closed enforcement 
 In addition to static AST audits, Playwright executes automated contracts against the built application:
 
 - **URL Contracts (`e2e/url-contracts.spec.ts`):** Validates that all canonical deep-links, guide slugs, and orthogonal search query parameters resolve deterministically.
-- **Frame-Time Baseline (`e2e/frame-time-baseline.spec.ts`):** Measures real-world 60fps rendering performance under continuous camera orbit and zoom operations, ensuring frame times remain within the 16.6ms budget (`scripts/guards/frame-time-baseline.json`).
+- **Frame-Time & Draw-Call Baseline (`e2e/frame-time-baseline.spec.ts`):** Measures real-world 60fps rendering performance under continuous camera orbit and zoom operations, ensuring frame times remain within the 16.6ms budget (`scripts/guards/frame-time-baseline.json`). In dev builds (`import.meta.env.DEV`), `AdaptiveQualityMonitor` publishes WebGL draw-call counts (`gl.info.render.calls`) to `canvas[data-gl-draw-calls]` only when the count changes, allowing `e2e/frame-time-baseline.spec.ts` to record `maxDrawCalls` and enforce calibrated draw-call ceilings when present in `scripts/guards/frame-time-baseline.json`.

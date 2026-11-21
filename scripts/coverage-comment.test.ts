@@ -60,10 +60,10 @@ describe('coverage-comment script', () => {
   it('extracts coverage thresholds matching vite.config.ts', () => {
     const thresholds = getVitestCoverageThresholds();
     expect(thresholds).toEqual({
-      lines: 78,
-      statements: 78,
-      branches: 70,
-      functions: 78,
+      lines: 88,
+      statements: 86,
+      branches: 76,
+      functions: 88,
     });
   });
 
@@ -95,10 +95,10 @@ describe('coverage-comment script', () => {
     const parsed = parseVitestThresholds('export default {}');
     expect(parsed).toEqual({});
     expect(DEFAULT_THRESHOLDS).toEqual({
-      lines: 78,
-      statements: 78,
-      branches: 70,
-      functions: 78,
+      lines: 88,
+      statements: 86,
+      branches: 76,
+      functions: 88,
     });
   });
 
@@ -195,10 +195,10 @@ describe('coverage-comment script', () => {
     const { total, moduleSummaries, filesList } = parseCoverageData(belowData, '/repo');
     const markdown = generateCoverageMarkdown(total, moduleSummaries, filesList);
 
-    expect(markdown).toContain('| **Lines** | 75 / 100 | 75.0% | 78% | 🔴 Below Ratchet |');
-    expect(markdown).toContain('| **Statements** | 75 / 100 | 75.0% | 78% | 🔴 Below Ratchet |');
-    expect(markdown).toContain('| **Branches** | 65 / 100 | 65.0% | 70% | 🔴 Below Ratchet |');
-    expect(markdown).toContain('| **Functions** | 75 / 100 | 75.0% | 78% | 🔴 Below Ratchet |');
+    expect(markdown).toContain('| **Lines** | 75 / 100 | 75.0% | 88% | 🔴 Below Ratchet |');
+    expect(markdown).toContain('| **Statements** | 75 / 100 | 75.0% | 86% | 🔴 Below Ratchet |');
+    expect(markdown).toContain('| **Branches** | 65 / 100 | 65.0% | 76% | 🔴 Below Ratchet |');
+    expect(markdown).toContain('| **Functions** | 75 / 100 | 75.0% | 88% | 🔴 Below Ratchet |');
   });
 
   it('identifies existing coverage comments', async () => {

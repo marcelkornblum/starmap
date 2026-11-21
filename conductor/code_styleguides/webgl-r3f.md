@@ -58,10 +58,10 @@ Subscribing to broad state objects causes unnecessary React re-renders across th
 - **Atomic Selectors Only:** Never subscribe to entire store slices or root objects in canvas components:
   ```typescript
   // FORBIDDEN: Re-renders on ANY token change across the entire application
-  const tokens = useThemeStore((state) => state.tokens);
+  const tokens = useThreeTokenStore((state) => state.tokens);
 
   // MANDATORY: Re-renders only when this exact property changes
-  const datumColor = useThemeStore((state) => state.tokens.datumPlaneColor);
+  const datumColor = useThreeTokenStore((state) => state.tokens.datumPlaneColor);
   ```
 - **Decouple Data Feeds from Canvas Renders:** If high-frequency coordinates or telemetry must be consumed in 3D, subscribe via store listeners (`store.subscribe()`) or store refs rather than driving the component via top-level React props.
 
@@ -69,7 +69,9 @@ Subscribing to broad state objects causes unnecessary React re-renders across th
 
 ## 4. React Three Fiber (R3F) Component Architecture
 
-### Element Semantics & Instancing:
+### Element Semantics, Framing & Instancing:
+- **On-Demand Frame Loop (`require-demand-frameloop`):** Every production `<Canvas>` must explicitly specify `frameloop="demand"` (or `"never"` / a typed dynamic prop expression). Never omit `frameloop` (which defaults to `"always"`) or hardcode `frameloop="always"`. Call `invalidate()` when animations or camera transitions require redraws.
+- **Router Context Bridging (`CanvasRouterBridgeContext`):** R3F creates a separate React reconciler root inside `<Canvas>`, severing outer React context. Always bridge the outer router into `<Canvas>` via `<CanvasRouterBridgeContext.Provider value={outerRouter}>` so scene controls and `Html` portals resolve navigation via `useOptionalRouter()` without `globalThis` state.
 - **Valid Intrinsic Tags:** All R3F JSX elements map directly to Three.js classes in lowercase (e.g. `<line>` for `THREE.Line`, `<lineSegments>` for `THREE.LineSegments`, `<points>` for `THREE.Points`, `<mesh>` for `THREE.Mesh`). Never fabricate non-existent intrinsic tags (such as `<threeLine>`).
 - **Instancing over Mass Meshes:** For rendering large numbers of entities (stars, coordinate ticks, reticle brackets, orbital markers), always use `THREE.InstancedMesh` or shared geometries and materials. Spawning individual `<mesh>` elements with their own geometries for hundreds of nodes creates massive draw-call overhead and GPU memory fragmentation.
 - **Strict Event Typing:** Type all R3F pointer events explicitly using `ThreeEvent<MouseEvent>` or `ThreeEvent<PointerEvent>` from `@react-three/fiber`. Never cast events or controls to `any`. Narrow object types safely using the `in` operator.

@@ -5,8 +5,15 @@ import {
   normaliseSearchQuery,
   scoreSearchEntry,
 } from './searchScoring';
+import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import type { SearchResultItem } from './searchTypes';
 import { SAMPLE_CORPUS } from '../../../tests/fixtures/searchFixtures';
+
+const corpusEntryAt = (index: number): CompactSearchEntry => {
+  const entry = SAMPLE_CORPUS[index];
+  if (!entry) throw new Error(`Missing SAMPLE_CORPUS[${index}]`);
+  return entry;
+};
 
 describe('searchScoring', () => {
   it('normalises search queries and expands astronomical suffixes', () => {
@@ -25,15 +32,15 @@ describe('searchScoring', () => {
 
   it('scores entries with deterministic ranking weights', () => {
     const exactQuery = normaliseSearchQuery('Tau Ceti');
-    expect(scoreSearchEntry(SAMPLE_CORPUS[1], exactQuery)).toBe(1000);
-    expect(scoreSearchEntry(SAMPLE_CORPUS[3], exactQuery)).toBe(750);
-    expect(scoreSearchEntry(SAMPLE_CORPUS[7], exactQuery)).toBe(0);
+    expect(scoreSearchEntry(corpusEntryAt(1), exactQuery)).toBe(1000);
+    expect(scoreSearchEntry(corpusEntryAt(3), exactQuery)).toBe(750);
+    expect(scoreSearchEntry(corpusEntryAt(7), exactQuery)).toBe(0);
 
     const idQuery = normaliseSearchQuery('ngc-1976');
-    expect(scoreSearchEntry(SAMPLE_CORPUS[7], idQuery)).toBeGreaterThanOrEqual(850);
+    expect(scoreSearchEntry(corpusEntryAt(7), idQuery)).toBeGreaterThanOrEqual(850);
 
     const multiTokenQuery = normaliseSearchQuery('Star Trek NiVar');
-    expect(scoreSearchEntry(SAMPLE_CORPUS[11], multiTokenQuery)).toBe(450);
+    expect(scoreSearchEntry(corpusEntryAt(11), multiTokenQuery)).toBe(450);
 
     expect(scoreSearchEntry({ i: 'sol', n: 'Sol' }, normaliseSearchQuery('   '))).toBe(0);
     expect(

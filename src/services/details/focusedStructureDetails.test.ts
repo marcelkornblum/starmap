@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { FocusedEntityDetailsBase } from './detailsEntityTypes';
 import {
   resolveStructureSymbolType,
   buildFocusedStructureDetails,
@@ -15,14 +16,29 @@ describe('focusedStructureDetails', () => {
   });
 
   it('builds structure entity details correctly', () => {
-    const base: any = {
+    const base: FocusedEntityDetailsBase = {
       id: 'm13',
       name: 'M13',
       systemId: 'm13',
       systemName: 'M13',
+      reticleType: 'stellar-system',
+      starCount: 0,
+      planetCount: 0,
+      planetCompositionBreakdown: [],
+      planetCompositionSummary: '',
+      hasHabitableCandidate: false,
+      hazardCount: 0,
+      hazards: [],
+      hazardSummaryLabel: '0 hazards',
+      systemSummary: '',
+      systemSummarySegments: [],
+      coordinatesPc: [0, 0, 0],
+      sectorId: '',
+      tags: [],
+      directionsHref: '',
       stars: [],
       planets: [],
-      hazards: [],
+      canonAnnotations: [],
     };
     const details = buildFocusedStructureDetails(base, {
       id: 'm13',

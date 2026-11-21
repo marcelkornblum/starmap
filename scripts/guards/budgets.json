@@ -1,0 +1,21 @@
+{
+  "suppressions": {
+    "guardDisable": 0,
+    "r3fAuditDisable": 0,
+    "uiAuditDisable": 4,
+    "eslintDisable": 5,
+    "oxlintDisable": 0,
+    "tsIgnoreOrExpectError": 0
+  },
+  "data": {
+    "maxTotalBytes": 41943040,
+    "maxStartupSearchBytes": 1572864,
+    "forbidOrphanFiles": true,
+    "allowedNonManifestFiles": [".gitkeep", "README.md"]
+  },
+  "bundle": {
+    "maxEntryJsGzipBytes": 30720,
+    "maxEntryCssGzipBytes": 20480,
+    "forbidEntryChunkReferences": ["vendor-three", "vendor-r3f"]
+  }
+}

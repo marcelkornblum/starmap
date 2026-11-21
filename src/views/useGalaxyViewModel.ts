@@ -14,6 +14,7 @@ import type { CompactSearchEntry } from '../utils/compactDataTypes';
 import { BoundedLruCache } from '../utils/lruCache';
 import { useLayerIndex, useLoadedLayerManifests } from '../hooks/useLayerData';
 import { useOptionalRouter, useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
+import { replaceSpaHistoryUrl } from '../hooks/spaNavigation';
 import { useActiveStarsStore } from '../stores/useActiveStarsStore';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -238,8 +239,7 @@ export function useGalaxyViewModel({
             }
             const newQs = searchParams.toString();
             const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ''}${window.location.hash}`;
-            window.history.replaceState(window.history.state, '', newUrl);
-            window.dispatchEvent(new Event('starmap:locationchange'));
+            replaceSpaHistoryUrl(newUrl);
           }
         } catch {
           // noop

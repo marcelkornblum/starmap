@@ -34,7 +34,13 @@ describe('planetaryBodiesSummary', () => {
         tags: [],
         directionsHref: '',
         canonAnnotations: [],
-      } as any,
+        starTelemetry: {
+          componentDesignation: 'A',
+          spectralType: 'G2V',
+          mag: -26.74,
+          absmag: 4.83,
+        },
+      },
     });
 
     expect(summary).not.toBeNull();

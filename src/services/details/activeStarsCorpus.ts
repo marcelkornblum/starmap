@@ -64,10 +64,12 @@ function createLayeredSearchCorpus(
           thisArg?: unknown,
         ) => {
           for (let i = 0; i < base.length; i++) {
-            if (pred.call(thisArg, base[i]!, i, receiver)) return true;
+            const entry = base[i];
+            if (entry !== undefined && pred.call(thisArg, entry, i, receiver)) return true;
           }
           for (let j = 0; j < extras.length; j++) {
-            if (pred.call(thisArg, extras[j]!, base.length + j, receiver)) return true;
+            const entry = extras[j];
+            if (entry !== undefined && pred.call(thisArg, entry, base.length + j, receiver)) return true;
           }
           return false;
         };
@@ -78,10 +80,12 @@ function createLayeredSearchCorpus(
           thisArg?: unknown,
         ) => {
           for (let i = 0; i < base.length; i++) {
-            if (!pred.call(thisArg, base[i]!, i, receiver)) return false;
+            const entry = base[i];
+            if (entry !== undefined && !pred.call(thisArg, entry, i, receiver)) return false;
           }
           for (let j = 0; j < extras.length; j++) {
-            if (!pred.call(thisArg, extras[j]!, base.length + j, receiver)) return false;
+            const entry = extras[j];
+            if (entry !== undefined && !pred.call(thisArg, entry, base.length + j, receiver)) return false;
           }
           return true;
         };
@@ -92,12 +96,12 @@ function createLayeredSearchCorpus(
           thisArg?: unknown,
         ) => {
           for (let i = 0; i < base.length; i++) {
-            const entry = base[i]!;
-            if (pred.call(thisArg, entry, i, receiver)) return entry;
+            const entry = base[i];
+            if (entry !== undefined && pred.call(thisArg, entry, i, receiver)) return entry;
           }
           for (let j = 0; j < extras.length; j++) {
-            const entry = extras[j]!;
-            if (pred.call(thisArg, entry, base.length + j, receiver)) return entry;
+            const entry = extras[j];
+            if (entry !== undefined && pred.call(thisArg, entry, base.length + j, receiver)) return entry;
           }
           return undefined;
         };
@@ -107,8 +111,14 @@ function createLayeredSearchCorpus(
           cb: (entry: CompactSearchEntry, idx: number, arr: readonly CompactSearchEntry[]) => void,
           thisArg?: unknown,
         ) => {
-          for (let i = 0; i < base.length; i++) cb.call(thisArg, base[i]!, i, receiver);
-          for (let j = 0; j < extras.length; j++) cb.call(thisArg, extras[j]!, base.length + j, receiver);
+          for (let i = 0; i < base.length; i++) {
+            const entry = base[i];
+            if (entry !== undefined) cb.call(thisArg, entry, i, receiver);
+          }
+          for (let j = 0; j < extras.length; j++) {
+            const entry = extras[j];
+            if (entry !== undefined) cb.call(thisArg, entry, base.length + j, receiver);
+          }
         };
       }
       if (prop === 'filter') {
@@ -118,12 +128,12 @@ function createLayeredSearchCorpus(
         ) => {
           const out: CompactSearchEntry[] = [];
           for (let i = 0; i < base.length; i++) {
-            const entry = base[i]!;
-            if (pred.call(thisArg, entry, i, receiver)) out.push(entry);
+            const entry = base[i];
+            if (entry !== undefined && pred.call(thisArg, entry, i, receiver)) out.push(entry);
           }
           for (let j = 0; j < extras.length; j++) {
-            const entry = extras[j]!;
-            if (pred.call(thisArg, entry, base.length + j, receiver)) out.push(entry);
+            const entry = extras[j];
+            if (entry !== undefined && pred.call(thisArg, entry, base.length + j, receiver)) out.push(entry);
           }
           return out;
         };
@@ -134,9 +144,13 @@ function createLayeredSearchCorpus(
           thisArg?: unknown,
         ) => {
           const out: U[] = [];
-          for (let i = 0; i < base.length; i++) out.push(fn.call(thisArg, base[i]!, i, receiver));
+          for (let i = 0; i < base.length; i++) {
+            const entry = base[i];
+            if (entry !== undefined) out.push(fn.call(thisArg, entry, i, receiver));
+          }
           for (let j = 0; j < extras.length; j++) {
-            out.push(fn.call(thisArg, extras[j]!, base.length + j, receiver));
+            const entry = extras[j];
+            if (entry !== undefined) out.push(fn.call(thisArg, entry, base.length + j, receiver));
           }
           return out;
         };

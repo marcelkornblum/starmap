@@ -128,7 +128,7 @@ describe('detailsHazards', () => {
   describe('toCoordinatesTuple', () => {
     it('normalises array and object coordinates', () => {
       expect(toCoordinatesTuple([1, 2, 3])).toEqual([1, 2, 3]);
-      expect(toCoordinatesTuple({ x: 4, y: 5, z: 6 } as any)).toEqual([4, 5, 6]);
+      expect(toCoordinatesTuple({ x: 4, y: 5, z: 6 } as import('three').Vector3)).toEqual([4, 5, 6]);
       expect(toCoordinatesTuple(undefined)).toEqual([0, 0, 0]);
     });
   });

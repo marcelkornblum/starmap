@@ -73,7 +73,7 @@ describe('activeStarsCorpus', () => {
     expect(parts).toBeDefined();
     expect(parts?.base).toBe(SAMPLE_GALAXY_CORPUS);
     expect(parts?.extras).toHaveLength(1);
-    expect(parts?.extras[0].i).toBe('new-star');
+    expect(parts?.extras[0]?.i).toBe('new-star');
   });
 
   it('preserves referential stability when activeStars is recreated with identical extra IDs', () => {

@@ -304,16 +304,17 @@ function pushGuardedViolation(
   filePath: string,
   lines: string[],
   loc: { line: number; column: number } | undefined,
-  message: string
+  message: string,
+  ruleId = 'G-literals'
 ): void {
   if (!loc) return;
-  const supp = checkSuppression(lines, loc.line, 'G-literals');
+  const supp = checkSuppression(lines, loc.line, ruleId);
   if (supp.invalidComment) {
     violations.push({
       filePath,
       line: loc.line,
       column: loc.column + 1,
-      ruleId: 'G-literals',
+      ruleId,
       message: `Suppression comment "${supp.invalidComment}" without a required reason (-- <reason>) is forbidden.`,
       snippet: (lines[loc.line - 1] || '').trim(),
     });
@@ -322,7 +323,7 @@ function pushGuardedViolation(
       filePath,
       line: loc.line,
       column: loc.column + 1,
-      ruleId: 'G-literals',
+      ruleId,
       message,
       snippet: (lines[loc.line - 1] || '').trim(),
     });
@@ -540,6 +541,414 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
   return violations;
 }
 
+function unwrapTsExpression(node: ASTNode | undefined): ASTNode | undefined {
+  let current = node;
+  while (
+    current &&
+    (current.type === 'TSAsExpression' ||
+      current.type === 'TSSatisfiesExpression' ||
+      current.type === 'TSTypeAssertion' ||
+      current.type === 'TSNonNullExpression' ||
+      current.type === 'ParenthesizedExpression')
+  ) {
+    current = current.expression as ASTNode | undefined;
+  }
+  return current;
+}
+
+function isGlobalThisIdentifier(node: ASTNode | undefined): boolean {
+  const unwrapped = unwrapTsExpression(node);
+  return unwrapped?.type === 'Identifier' && unwrapped.name === 'globalThis';
+}
+
+/**
+ * no-global-this-mutation: Forbids writing properties or defining descriptors on globalThis.
+ */
+export function auditGlobalThisMutationContent(filePath: string, content: string): GuardViolation[] {
+  const violations: GuardViolation[] = [];
+
+  let ast: ReturnType<typeof parse>;
+  try {
+    ast = parse(content, {
+      sourceType: 'module',
+      plugins: ['typescript', 'jsx'],
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const loc =
+      err && typeof err === 'object' && 'loc' in err
+        ? (err as { loc?: { line?: number; column?: number } }).loc
+        : undefined;
+    violations.push({
+      filePath,
+      line: loc?.line ?? 1,
+      column: (loc?.column ?? 0) + 1,
+      ruleId: 'parse-error',
+      message: `Failed to parse file for no-global-this-mutation check: ${message}`,
+    });
+    return violations;
+  }
+
+  const lines = content.split('\n');
+
+  traverseAst(ast, (node: ASTNode) => {
+    if (node.type === 'AssignmentExpression') {
+      const left = unwrapTsExpression(node.left);
+      if (left?.type === 'MemberExpression' && isGlobalThisIdentifier(left.object as ASTNode | undefined)) {
+        pushGuardedViolation(
+          violations,
+          filePath,
+          lines,
+          node.loc?.start,
+          'Mutating properties on `globalThis` is forbidden in runtime code. Use React context or Zustand stores instead.',
+          'no-global-this-mutation'
+        );
+      }
+    } else if (node.type === 'CallExpression' || node.type === 'OptionalCallExpression') {
+      const callee = unwrapTsExpression(node.callee as ASTNode | undefined);
+      if (callee?.type === 'MemberExpression' && !callee.computed) {
+        const obj = unwrapTsExpression(callee.object as ASTNode | undefined);
+        const prop = callee.property as ASTNode | undefined;
+        const args = Array.isArray(node.arguments) ? (node.arguments as ASTNode[]) : [];
+        const objName = obj?.type === 'Identifier' && typeof obj.name === 'string' ? obj.name : '';
+        const propName = prop?.type === 'Identifier' && typeof prop.name === 'string' ? prop.name : '';
+        const isObjectDefine =
+          objName === 'Object' &&
+          (propName === 'defineProperty' || propName === 'defineProperties' || propName === 'assign');
+        const isReflectWrite =
+          objName === 'Reflect' &&
+          (propName === 'set' || propName === 'defineProperty' || propName === 'deleteProperty');
+
+        if ((isObjectDefine || isReflectWrite) && isGlobalThisIdentifier(args[0])) {
+          pushGuardedViolation(
+            violations,
+            filePath,
+            lines,
+            node.loc?.start,
+            `Mutating \`globalThis\` via \`${objName}.${propName}(globalThis, ...)\` is forbidden in runtime code.`,
+            'no-global-this-mutation'
+          );
+        }
+      }
+    }
+  });
+
+  return violations;
+}
+
+function isWindowOrGlobalRef(node: ASTNode | undefined): boolean {
+  const unwrapped = unwrapTsExpression(node);
+  return unwrapped?.type === 'Identifier' && (unwrapped.name === 'window' || unwrapped.name === 'globalThis');
+}
+
+function isHostObject(node: ASTNode | undefined, targetName: string): boolean {
+  const unwrapped = unwrapTsExpression(node);
+  if (!unwrapped) return false;
+  if (unwrapped.type === 'Identifier' && unwrapped.name === targetName) {
+    return true;
+  }
+  if (
+    (unwrapped.type === 'MemberExpression' || unwrapped.type === 'OptionalMemberExpression') &&
+    !unwrapped.computed
+  ) {
+    const prop = unwrapped.property as ASTNode | undefined;
+    return (
+      isWindowOrGlobalRef(unwrapped.object as ASTNode | undefined) &&
+      prop?.type === 'Identifier' &&
+      prop.name === targetName
+    );
+  }
+  return false;
+}
+
+/**
+ * no-direct-history-mutation: Enforces router SSOT by forbidding direct history/location mutations outside src/hooks/spaNavigation.ts.
+ */
+export function auditDirectHistoryMutationContent(filePath: string, content: string): GuardViolation[] {
+  const normPath = filePath.replace(/\\/g, '/');
+  if (normPath === 'src/hooks/spaNavigation.ts' || normPath.endsWith('/src/hooks/spaNavigation.ts')) {
+    return [];
+  }
+
+  const violations: GuardViolation[] = [];
+  let ast: ReturnType<typeof parse>;
+  try {
+    ast = parse(content, {
+      sourceType: 'module',
+      plugins: ['typescript', 'jsx'],
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const loc =
+      err && typeof err === 'object' && 'loc' in err
+        ? (err as { loc?: { line?: number; column?: number } }).loc
+        : undefined;
+    violations.push({
+      filePath,
+      line: loc?.line ?? 1,
+      column: (loc?.column ?? 0) + 1,
+      ruleId: 'parse-error',
+      message: `Failed to parse file for no-direct-history-mutation check: ${message}`,
+    });
+    return violations;
+  }
+
+  const lines = content.split('\n');
+
+  traverseAst(ast, (node: ASTNode) => {
+    if (node.type === 'CallExpression' || node.type === 'OptionalCallExpression') {
+      const callee = unwrapTsExpression(node.callee as ASTNode | undefined);
+      if (
+        (callee?.type === 'MemberExpression' || callee?.type === 'OptionalMemberExpression') &&
+        !callee.computed
+      ) {
+        const prop = callee.property as ASTNode | undefined;
+        const propName = prop?.type === 'Identifier' && typeof prop.name === 'string' ? prop.name : '';
+        if (
+          (propName === 'pushState' || propName === 'replaceState') &&
+          isHostObject(callee.object as ASTNode | undefined, 'history')
+        ) {
+          pushGuardedViolation(
+            violations,
+            filePath,
+            lines,
+            node.loc?.start,
+            `Direct \`history.${propName}()\` mutation is forbidden outside src/hooks/spaNavigation.ts. Route SPA history updates through TanStack Router or spaNavigation.ts.`,
+            'no-direct-history-mutation'
+          );
+        } else if (
+          (propName === 'assign' || propName === 'replace') &&
+          isHostObject(callee.object as ASTNode | undefined, 'location')
+        ) {
+          pushGuardedViolation(
+            violations,
+            filePath,
+            lines,
+            node.loc?.start,
+            `Direct \`location.${propName}()\` navigation is forbidden outside src/hooks/spaNavigation.ts. Use TanStack Router or spaNavigation.ts.`,
+            'no-direct-history-mutation'
+          );
+        }
+      }
+    } else if (node.type === 'AssignmentExpression') {
+      const left = unwrapTsExpression(node.left);
+      if (
+        (left?.type === 'MemberExpression' || left?.type === 'OptionalMemberExpression') &&
+        !left.computed
+      ) {
+        const prop = left.property as ASTNode | undefined;
+        if (
+          prop?.type === 'Identifier' &&
+          prop.name === 'href' &&
+          isHostObject(left.object as ASTNode | undefined, 'location')
+        ) {
+          pushGuardedViolation(
+            violations,
+            filePath,
+            lines,
+            node.loc?.start,
+            'Direct `location.href = ...` assignment is forbidden outside src/hooks/spaNavigation.ts. Use TanStack Router or spaNavigation.ts.',
+            'no-direct-history-mutation'
+          );
+        }
+      }
+    }
+  });
+
+  return violations;
+}
+
+/**
+ * no-deprecated-shims: Forbids @deprecated JSDoc/comment shims in production src/ files.
+ */
+export function auditDeprecatedShimsContent(filePath: string, content: string): GuardViolation[] {
+  const violations: GuardViolation[] = [];
+  if (!content.includes('@deprecated')) {
+    return violations;
+  }
+
+  let ast: ReturnType<typeof parse>;
+  try {
+    ast = parse(content, {
+      sourceType: 'module',
+      plugins: ['typescript', 'jsx'],
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const loc =
+      err && typeof err === 'object' && 'loc' in err
+        ? (err as { loc?: { line?: number; column?: number } }).loc
+        : undefined;
+    violations.push({
+      filePath,
+      line: loc?.line ?? 1,
+      column: (loc?.column ?? 0) + 1,
+      ruleId: 'parse-error',
+      message: `Failed to parse file for no-deprecated-shims check: ${message}`,
+    });
+    return violations;
+  }
+
+  const lines = content.split('\n');
+  const comments = (ast as unknown as { comments?: { value: string; loc?: { start: { line: number; column: number } } }[] }).comments ?? [];
+
+  for (const comment of comments) {
+    if (!comment.loc?.start) continue;
+    const trimmed = comment.value.trim();
+    if (/^(?:guard-disable(?:-next-line)?\s+no-deprecated-shims)\b/.test(trimmed)) {
+      continue;
+    }
+    const commentLines = comment.value.split('\n');
+    for (let idx = 0; idx < commentLines.length; idx++) {
+      const commentLine = commentLines[idx];
+      if (/@deprecated\b/.test(commentLine)) {
+        const lineNum = comment.loc.start.line + idx;
+        const col = idx === 0 ? comment.loc.start.column : Math.max(0, commentLine.indexOf('@deprecated'));
+        pushGuardedViolation(
+          violations,
+          filePath,
+          lines,
+          { line: lineNum, column: col },
+          '`@deprecated` shims and aliases are forbidden in production code. Perform a clean, complete cutover instead.',
+          'no-deprecated-shims'
+        );
+      }
+    }
+  }
+
+  return violations;
+}
+
+/**
+ * no-wall-clock-in-pipeline: Forbids non-deterministic 0-arg `new Date()` and `Date.now()` in scripts/pipeline/.
+ */
+export function auditWallClockInPipelineContent(filePath: string, content: string): GuardViolation[] {
+  const violations: GuardViolation[] = [];
+  let ast: ReturnType<typeof parse>;
+  try {
+    ast = parse(content, {
+      sourceType: 'module',
+      plugins: ['typescript', 'jsx'],
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const loc =
+      err && typeof err === 'object' && 'loc' in err
+        ? (err as { loc?: { line?: number; column?: number } }).loc
+        : undefined;
+    violations.push({
+      filePath,
+      line: loc?.line ?? 1,
+      column: (loc?.column ?? 0) + 1,
+      ruleId: 'parse-error',
+      message: `Failed to parse file for no-wall-clock-in-pipeline check: ${message}`,
+    });
+    return violations;
+  }
+
+  const lines = content.split('\n');
+
+  traverseAst(ast, (node: ASTNode) => {
+    if (node.type === 'NewExpression') {
+      const callee = unwrapTsExpression(node.callee as ASTNode | undefined);
+      const args = Array.isArray(node.arguments) ? node.arguments : [];
+      if (callee?.type === 'Identifier' && callee.name === 'Date' && args.length === 0) {
+        pushGuardedViolation(
+          violations,
+          filePath,
+          lines,
+          node.loc?.start,
+          'Non-deterministic 0-argument `new Date()` is forbidden in scripts/pipeline/. Pass explicit deterministic timestamps (e.g. resolveBuildTimestampIso()).',
+          'no-wall-clock-in-pipeline'
+        );
+      }
+    } else if (node.type === 'CallExpression' || node.type === 'OptionalCallExpression') {
+      const callee = unwrapTsExpression(node.callee as ASTNode | undefined);
+      if (
+        (callee?.type === 'MemberExpression' || callee?.type === 'OptionalMemberExpression') &&
+        !callee.computed
+      ) {
+        const obj = unwrapTsExpression(callee.object as ASTNode | undefined);
+        const prop = callee.property as ASTNode | undefined;
+        if (
+          obj?.type === 'Identifier' &&
+          obj.name === 'Date' &&
+          prop?.type === 'Identifier' &&
+          prop.name === 'now'
+        ) {
+          pushGuardedViolation(
+            violations,
+            filePath,
+            lines,
+            node.loc?.start,
+            'Non-deterministic `Date.now()` is forbidden in scripts/pipeline/. Pass explicit deterministic timestamps.',
+            'no-wall-clock-in-pipeline'
+          );
+        }
+      }
+    }
+  });
+
+  return violations;
+}
+
+/**
+ * no-vitest-environment-pragma: Enforces split .test.ts (Node) vs .test.tsx (jsdom) projects by forbidding @vitest-environment pragmas.
+ */
+export function auditVitestEnvironmentPragmaContent(filePath: string, content: string): GuardViolation[] {
+  const violations: GuardViolation[] = [];
+  if (!content.includes('@vitest-environment')) {
+    return violations;
+  }
+
+  let ast: ReturnType<typeof parse>;
+  try {
+    ast = parse(content, {
+      sourceType: 'module',
+      plugins: ['typescript', 'jsx'],
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const loc =
+      err && typeof err === 'object' && 'loc' in err
+        ? (err as { loc?: { line?: number; column?: number } }).loc
+        : undefined;
+    violations.push({
+      filePath,
+      line: loc?.line ?? 1,
+      column: (loc?.column ?? 0) + 1,
+      ruleId: 'parse-error',
+      message: `Failed to parse file for no-vitest-environment-pragma check: ${message}`,
+    });
+    return violations;
+  }
+
+  const lines = content.split('\n');
+  const comments = (ast as unknown as { comments?: { value: string; loc?: { start: { line: number; column: number } } }[] }).comments ?? [];
+
+  for (const comment of comments) {
+    if (!comment.loc?.start) continue;
+    const commentLines = comment.value.split('\n');
+    for (let idx = 0; idx < commentLines.length; idx++) {
+      const commentLine = commentLines[idx];
+      if (/@vitest-environment\b/.test(commentLine)) {
+        const lineNum = comment.loc.start.line + idx;
+        const col = idx === 0 ? comment.loc.start.column : Math.max(0, commentLine.indexOf('@vitest-environment'));
+        pushGuardedViolation(
+          violations,
+          filePath,
+          lines,
+          { line: lineNum, column: col },
+          'Inline `@vitest-environment` pragmas are forbidden (DEC-R055). Use `.test.ts` for Node tests and `.test.tsx` for jsdom tests.',
+          'no-vitest-environment-pragma'
+        );
+      }
+    }
+  }
+
+  return violations;
+}
+
 /**
  * Collects all source files in directory matching extensions.
  */
@@ -564,7 +973,7 @@ function collectAllSourceFiles(dir: string, exts: string[]): string[] {
 }
 
 /**
- * Runs G-literals domain guard across runtime source files in src/.
+ * Runs G-literals and structural guard suite across src/, scripts/pipeline/, and test suites.
  */
 export function runAllGuards(projectRoot = process.cwd()): GuardViolation[] {
   const allViolations: GuardViolation[] = [];
@@ -577,6 +986,27 @@ export function runAllGuards(projectRoot = process.cwd()): GuardViolation[] {
     if (file.includes('.test.') || file.includes('.stories.')) continue;
     const content = fs.readFileSync(file, 'utf8');
     allViolations.push(...auditLiteralsContent(file, content, catalog));
+    allViolations.push(...auditGlobalThisMutationContent(file, content));
+    allViolations.push(...auditDirectHistoryMutationContent(file, content));
+    allViolations.push(...auditDeprecatedShimsContent(file, content));
+  }
+
+  const pipelineDir = path.join(projectRoot, 'scripts', 'pipeline');
+  const pipelineFiles = collectAllSourceFiles(pipelineDir, ['.ts']);
+  for (const file of pipelineFiles) {
+    if (file.endsWith('.test.ts')) continue;
+    const content = fs.readFileSync(file, 'utf8');
+    allViolations.push(...auditWallClockInPipelineContent(file, content));
+  }
+
+  const testsDir = path.join(projectRoot, 'tests');
+  const testFiles = [
+    ...collectAllSourceFiles(srcDir, ['.test.ts', '.test.tsx']),
+    ...collectAllSourceFiles(testsDir, ['.test.ts', '.test.tsx']),
+  ];
+  for (const file of testFiles) {
+    const content = fs.readFileSync(file, 'utf8');
+    allViolations.push(...auditVitestEnvironmentPragmaContent(file, content));
   }
 
   return allViolations;

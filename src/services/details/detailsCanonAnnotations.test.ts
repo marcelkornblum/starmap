@@ -37,8 +37,8 @@ describe('detailsCanonAnnotations', () => {
     ];
 
     const sorted = sortCanonAnnotations(annotations);
-    expect(sorted[0].layerId).toBe('sci-1');
-    expect(sorted[1].layerId).toBe('fic-1');
+    expect(sorted[0]?.layerId).toBe('sci-1');
+    expect(sorted[1]?.layerId).toBe('fic-1');
   });
 
   it('buildInPlaceLayerItemHref formats query params preserving search state', () => {
@@ -71,8 +71,8 @@ describe('detailsCanonAnnotations', () => {
 
     const result = resolveFocusedCanonAnnotations('tau-ceti-e', 'tau-ceti', records);
     expect(result).toHaveLength(2);
-    expect(result[0].targetId).toBe('tau-ceti-e');
-    expect(result[1].targetId).toBe('tau-ceti');
+    expect(result[0]?.targetId).toBe('tau-ceti-e');
+    expect(result[1]?.targetId).toBe('tau-ceti');
   });
 
   it('resolveFocusedCanonAnnotations preserves query params while replacing select and layer across items', () => {
@@ -108,8 +108,8 @@ describe('detailsCanonAnnotations', () => {
     );
 
     expect(result).toHaveLength(2);
-    expect(result[0].href).toBe('/galaxy?center=sol&select=layer:expanse&layer=expanse:earth');
-    expect(result[1].href).toBe('/galaxy?center=sol&select=layer:mars&layer=mars:mars');
+    expect(result[0]?.href).toBe('/galaxy?center=sol&select=layer:expanse&layer=expanse:earth');
+    expect(result[1]?.href).toBe('/galaxy?center=sol&select=layer:mars&layer=mars:mars');
   });
 
   it('resolveDirectTargetCanonAnnotations matches direct target ids', () => {
@@ -129,6 +129,6 @@ describe('detailsCanonAnnotations', () => {
 
     const result = resolveDirectTargetCanonAnnotations(['earth'], recordsById);
     expect(result).toHaveLength(1);
-    expect(result[0].layerId).toBe('sci-earth');
+    expect(result[0]?.layerId).toBe('sci-earth');
   });
 });

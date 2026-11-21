@@ -5,7 +5,9 @@
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }],
     "import/no-cycle": "error",
-    "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }]
+    "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error"
   },
   "overrides": [
     {
@@ -18,6 +20,10 @@
               {
                 "group": ["../config/**", "**/utils/**", "**/data/**", "../content/**", "**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'types' cannot import from other layers."
+              },
+              {
+                "group": ["@react-three/**"],
+                "message": "Layer 'types' cannot import from '@react-three/*'."
               }
             ]
           }
@@ -34,6 +40,10 @@
               {
                 "group": ["**/data/**", "../content/**", "**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'config' may only import from 'types' and 'utils'."
+              },
+              {
+                "group": ["three", "three/**", "@react-three/**"],
+                "message": "Layer 'config' cannot import Three.js or React Three Fiber."
               }
             ]
           }
@@ -66,6 +76,10 @@
               {
                 "group": ["**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'data' may only import from 'types', 'config', and 'utils'."
+              },
+              {
+                "group": ["three", "three/**", "@react-three/**"],
+                "message": "Layer 'data' cannot import Three.js or React Three Fiber."
               }
             ]
           }
@@ -82,6 +96,10 @@
               {
                 "group": ["**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'content' may only import from 'types', 'config', 'utils', and 'data'."
+              },
+              {
+                "group": ["three", "three/**", "@react-three/**"],
+                "message": "Layer 'content' cannot import Three.js or React Three Fiber."
               }
             ]
           }
@@ -98,6 +116,10 @@
               {
                 "group": ["**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'services' may only import from 'types', 'config', 'utils', 'data', and 'content'."
+              },
+              {
+                "group": ["three", "three/**", "@react-three/**"],
+                "message": "Layer 'services' cannot import Three.js or React Three Fiber."
               }
             ]
           }
@@ -121,6 +143,27 @@
       }
     },
     {
+      "files": ["src/stores/**"],
+      "excludeFiles": ["**/*.test.*", "**/*.stories.*"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
+                "message": "DEC-R012: Layer 'stores' cannot import from 'hooks', 'components', 'views', or 'router'."
+              },
+              {
+                "group": ["three", "three/**", "@react-three/**"],
+                "message": "Layer 'stores' cannot import Three.js or React Three Fiber."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["src/hooks/**"],
       "rules": {
         "no-restricted-imports": [
@@ -130,6 +173,10 @@
               {
                 "group": ["**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'hooks' cannot import from 'components', 'views', or 'router'."
+              },
+              {
+                "group": ["three", "three/**", "@react-three/**"],
+                "message": "Layer 'hooks' cannot import Three.js or React Three Fiber."
               }
             ]
           }
@@ -146,6 +193,10 @@
               {
                 "group": ["**/data/**", "**/content/**", "**/services/**", "**/stores/**", "**/canvas/**", "**/domain/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'components/interface' may only import from 'types', 'config', 'utils', and 'hooks'."
+              },
+              {
+                "group": ["three", "three/**", "@react-three/**"],
+                "message": "Layer 'components/interface' cannot import Three.js or React Three Fiber."
               }
             ]
           }
@@ -212,7 +263,8 @@
         "content/**"
       ],
       "rules": {
-        "max-lines": "off"
+        "max-lines": "off",
+        "typescript/no-non-null-assertion": "off"
       }
     }
   ]

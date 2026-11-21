@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useOptionalRouter, type StarmapSearchParams } from './useSpaLocation';
+import { replaceSpaHistoryUrl } from './spaNavigation';
 
 export interface UseKeyboardShortcutsOptions {
   readonly onTogglePlay?: () => void;
@@ -134,8 +135,7 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): voi
                     searchParams.delete('focus');
                     const newQs = searchParams.toString();
                     const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ''}${window.location.hash}`;
-                    window.history.replaceState(window.history.state, '', newUrl);
-                    window.dispatchEvent(new Event('starmap:locationchange'));
+                    replaceSpaHistoryUrl(newUrl);
                   }
                 }
               } catch {

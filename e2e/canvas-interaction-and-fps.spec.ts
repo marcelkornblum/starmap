@@ -262,13 +262,14 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
       const bodyStyle = window.getComputedStyle(document.body);
       const host = document.querySelector('[data-testid="root-canvas-host"]');
       const hostStyle = host ? window.getComputedStyle(host) : null;
+      type WebKitStyle = CSSStyleDeclaration & { webkitTapHighlightColor?: string };
       return {
         bodyOverscroll: bodyStyle.overscrollBehavior,
         bodyUserSelect: bodyStyle.userSelect,
-        bodyTapHighlight: (bodyStyle as any).webkitTapHighlightColor,
+        bodyTapHighlight: (bodyStyle as WebKitStyle).webkitTapHighlightColor,
         hostOverscroll: hostStyle?.overscrollBehavior,
         hostUserSelect: hostStyle?.userSelect,
-        hostTapHighlight: hostStyle ? (hostStyle as any).webkitTapHighlightColor : null,
+        hostTapHighlight: hostStyle ? (hostStyle as WebKitStyle).webkitTapHighlightColor : null,
       };
     });
 

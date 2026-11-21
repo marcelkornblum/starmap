@@ -22,12 +22,20 @@ import {
 
 const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
 
+export interface CameraRigThreeState {
+  camera: THREE.Camera;
+  controls?: unknown;
+  size?: { width: number; height: number };
+  set?: (partial: { camera?: THREE.PerspectiveCamera | THREE.OrthographicCamera }) => void;
+  invalidate?: () => void;
+}
+
 export interface UseCameraRigProjectionOptions {
   camera: THREE.Camera;
   controls?: OrbitControlsLike;
   sizeWidth?: number;
   sizeHeight?: number;
-  get: () => any;
+  get: () => CameraRigThreeState;
   frame: ReferenceFrame;
   explicitBaseFov?: number;
   snapThresholdDeg?: number;

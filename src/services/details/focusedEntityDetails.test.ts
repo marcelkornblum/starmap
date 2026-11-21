@@ -108,7 +108,7 @@ describe('focusedEntityDetails', () => {
     expect(details?.focusedKind).toBe('system');
     expect(details?.hazardCount).toBe(1);
     expect(details?.hazards).toHaveLength(1);
-    expect(details?.hazards[0].code).toBe('flare-star');
+    expect(details?.hazards[0]?.code).toBe('flare-star');
     expect(details?.hazardSummaryLabel).toBe('1 hazard');
     expect(details?.planetCompositionBreakdown).toEqual([
       { composition: 'terrestrial', count: 1 },
@@ -183,7 +183,7 @@ describe('focusedEntityDetails', () => {
     expect(details).not.toBeNull();
     expect(details?.focusedKind).toBe('star');
     expect(details?.hazardCount).toBe(1);
-    expect(details?.hazards[0].code).toBe('flare-star');
+    expect(details?.hazards[0]?.code).toBe('flare-star');
   });
 
   it('resolves focusedKind to system on GalaxyView and star when in SystemView', () => {

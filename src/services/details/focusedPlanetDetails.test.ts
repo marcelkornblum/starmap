@@ -1,15 +1,31 @@
 import { describe, expect, it } from 'vitest';
+import type { FocusedEntityDetailsBase } from './detailsEntityTypes';
 import { buildFocusedPlanetDetails } from './focusedPlanetDetails';
 
 describe('focusedPlanetDetails', () => {
-  const base: any = {
+  const base: FocusedEntityDetailsBase = {
     id: 'proxima-b',
     name: 'Proxima b',
     systemId: 'proxima',
     systemName: 'Proxima',
+    reticleType: 'stellar-system',
+    starCount: 0,
+    planetCount: 0,
+    planetCompositionBreakdown: [],
+    planetCompositionSummary: '',
+    hasHabitableCandidate: false,
+    hazardCount: 0,
+    hazards: [],
+    hazardSummaryLabel: '0 hazards',
+    systemSummary: '',
+    systemSummarySegments: [],
+    coordinatesPc: [0, 0, 0],
+    sectorId: '',
+    tags: [],
+    directionsHref: '',
     stars: [],
     planets: [],
-    hazards: [],
+    canonAnnotations: [],
   };
 
   it('reads precalculated planet telemetry cleanly', () => {

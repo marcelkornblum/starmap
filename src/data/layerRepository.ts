@@ -105,11 +105,12 @@ export const fetchLayerIndex = (
   if (!layerIndexPromise) {
     let onAbort: (() => void) | undefined;
     if (signal) {
-      onAbort = () => {
-        signal.removeEventListener('abort', onAbort!);
+      const handleAbort = () => {
+        signal.removeEventListener('abort', handleAbort);
         layerIndexPromise = undefined;
       };
-      signal.addEventListener('abort', onAbort);
+      onAbort = handleAbort;
+      signal.addEventListener('abort', handleAbort);
     }
 
     layerIndexPromise = (async () => {
@@ -156,13 +157,14 @@ export const fetchLayerManifest = (
   if (!pending) {
     let onAbort: (() => void) | undefined;
     if (signal) {
-      onAbort = () => {
-        signal.removeEventListener('abort', onAbort!);
+      const handleAbort = () => {
+        signal.removeEventListener('abort', handleAbort);
         if (MANIFEST_CACHE.get(layerId) === pending) {
           MANIFEST_CACHE.delete(layerId);
         }
       };
-      signal.addEventListener('abort', onAbort);
+      onAbort = handleAbort;
+      signal.addEventListener('abort', handleAbort);
     }
 
     pending = (async () => {
@@ -208,13 +210,14 @@ const fetchEntityBucket = (
   if (!pending) {
     let onAbort: (() => void) | undefined;
     if (signal) {
-      onAbort = () => {
-        signal.removeEventListener('abort', onAbort!);
+      const handleAbort = () => {
+        signal.removeEventListener('abort', handleAbort);
         if (ENTITY_BUCKET_CACHE.get(bucketKey) === pending) {
           ENTITY_BUCKET_CACHE.delete(bucketKey);
         }
       };
-      signal.addEventListener('abort', onAbort);
+      onAbort = handleAbort;
+      signal.addEventListener('abort', handleAbort);
     }
 
     pending = (async () => {

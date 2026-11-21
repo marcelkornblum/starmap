@@ -3,7 +3,12 @@ import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
+  auditDeprecatedShimsContent,
+  auditDirectHistoryMutationContent,
+  auditGlobalThisMutationContent,
   auditLiteralsContent,
+  auditVitestEnvironmentPragmaContent,
+  auditWallClockInPipelineContent,
   isTelemetryIdentifier,
   loadEntityCatalog,
   runAllGuards,
@@ -436,6 +441,279 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
 
       fs.writeFileSync(path.join(servicesDir, 'bad.ts'), "export const star = 'sol';\n");
       expect(runGuardsAudit(tempDir)).toBe(1);
+    });
+
+    it('flags no-global-this-mutation via runAllGuards across production src/ files while skipping tests', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-global-runner-'));
+      tempDirs.push(tempDir);
+      writeMinimalSeeds(tempDir);
+      const servicesDir = path.join(tempDir, 'src', 'services');
+      fs.mkdirSync(servicesDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(servicesDir, 'mutator.ts'),
+        '(globalThis as Record<string, unknown>).__starmap = true;\n'
+      );
+      fs.writeFileSync(
+        path.join(servicesDir, 'mutator.test.ts'),
+        '(globalThis as Record<string, unknown>).__starmap = true;\n'
+      );
+
+      const violations = runAllGuards(tempDir);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]?.ruleId).toBe('no-global-this-mutation');
+    });
+  });
+
+  describe('no-global-this-mutation', () => {
+    it('flags direct, bracket, and type-casted assignments to globalThis properties', () => {
+      const code = `
+        export const mutateGlobals = () => {
+          (globalThis as unknown as { __STARMAP_STATE__: unknown }).__STARMAP_STATE__ = {};
+          (globalThis as Record<string, unknown>)['__foo'] = 123;
+          globalThis['__bar'] = 'abc';
+          (globalThis as { count?: number }).count = 1;
+        };
+      `;
+      const violations = auditGlobalThisMutationContent('src/services/globalState.ts', code);
+      expect(violations).toHaveLength(4);
+      expect(violations.every((v) => v.ruleId === 'no-global-this-mutation')).toBe(true);
+    });
+
+    it('flags Object.defineProperty(globalThis, ...) and Reflect.set(globalThis, ...)', () => {
+      const code = `
+        export const defineGlobals = () => {
+          Object.defineProperty(globalThis, '__STARMAP__', { value: 1 });
+          Object.defineProperty(globalThis as object, '__OTHER__', { value: 2 });
+          Reflect.set(globalThis, '__REFLECT__', true);
+          Reflect.set(globalThis as Record<string, unknown>, '__REFLECT2__', false);
+        };
+      `;
+      const violations = auditGlobalThisMutationContent('src/utils/globalPatch.ts', code);
+      expect(violations).toHaveLength(4);
+      expect(violations.every((v) => v.ruleId === 'no-global-this-mutation')).toBe(true);
+    });
+
+    it('permits read-only access to globalThis properties and nested DOM properties', () => {
+      const code = `
+        export const readEnvironment = () => {
+          const ua = globalThis.navigator?.userAgent ?? '';
+          const storage = globalThis.localStorage;
+          const href = globalThis.location?.href ?? '';
+          const idle = globalThis.requestIdleCallback;
+          const val = (globalThis as Record<string, unknown>)['__READ_ONLY__'];
+          return { ua, storage, href, idle, val };
+        };
+      `;
+      const violations = auditGlobalThisMutationContent('src/utils/env.ts', code);
+      expect(violations).toEqual([]);
+    });
+
+    it('validates // guard-disable-next-line no-global-this-mutation -- <reason>', () => {
+      const validSuppressed = `
+        export const installHook = () => {
+          // guard-disable-next-line no-global-this-mutation -- Required WebGL polyfill
+          (globalThis as Record<string, unknown>).__POLYFILL__ = true;
+        };
+      `;
+      expect(auditGlobalThisMutationContent('src/utils/polyfill.ts', validSuppressed)).toEqual([]);
+
+      const bareSuppressed = `
+        export const installHook = () => {
+          // guard-disable-next-line no-global-this-mutation
+          (globalThis as Record<string, unknown>).__POLYFILL__ = true;
+        };
+      `;
+      const violations = auditGlobalThisMutationContent('src/utils/polyfill.ts', bareSuppressed);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]?.ruleId).toBe('no-global-this-mutation');
+      expect(violations[0]?.message).toContain('without a required reason');
+    });
+  });
+
+  describe('no-direct-history-mutation', () => {
+    it('flags history.pushState, history.replaceState, location.assign, location.replace, and location.href assignment', () => {
+      const code = `
+        export const badNav = (url: string) => {
+          window.history.pushState({}, '', url);
+          history.replaceState(history.state, '', url);
+          window.location.assign(url);
+          window.location.replace(url);
+          window.location.href = url;
+          location.href = url;
+        };
+      `;
+      const violations = auditDirectHistoryMutationContent('src/hooks/useBadNav.ts', code);
+      expect(violations).toHaveLength(6);
+      expect(violations.every((v) => v.ruleId === 'no-direct-history-mutation')).toBe(true);
+    });
+
+    it('permits src/hooks/spaNavigation.ts, read-only location access, and reasoned suppressions', () => {
+      const spaCode = `
+        export const replaceSpaHistoryUrl = (url: string) => {
+          window.history.replaceState(window.history.state, '', url);
+        };
+      `;
+      expect(auditDirectHistoryMutationContent('src/hooks/spaNavigation.ts', spaCode)).toEqual([]);
+
+      const readOnlyCode = `
+        export const readUrl = () => {
+          const href = window.location.href;
+          const search = location.search;
+          return { href, search };
+        };
+      `;
+      expect(auditDirectHistoryMutationContent('src/hooks/useReadUrl.ts', readOnlyCode)).toEqual([]);
+
+      const suppressedCode = `
+        export const hardRedirect = (url: string) => {
+          // guard-disable-next-line no-direct-history-mutation -- External OAuth redirect
+          window.location.assign(url);
+        };
+      `;
+      expect(auditDirectHistoryMutationContent('src/hooks/useAuth.ts', suppressedCode)).toEqual([]);
+    });
+  });
+
+  describe('no-deprecated-shims', () => {
+    it('flags @deprecated JSDoc and comment tags in production src/ files', () => {
+      const code = `
+        /**
+         * Legacy helper.
+         * @deprecated Use newHelper instead.
+         */
+        export const oldHelper = () => 1;
+        // @deprecated Remove me
+        export const olderHelper = () => 2;
+      `;
+      const violations = auditDeprecatedShimsContent('src/services/legacy.ts', code);
+      expect(violations).toHaveLength(2);
+      expect(violations.every((v) => v.ruleId === 'no-deprecated-shims')).toBe(true);
+    });
+
+    it('ignores @deprecated inside string literals and supports reasoned suppressions', () => {
+      const code = `
+        export const DOC_HINT = '@deprecated';
+        // guard-disable-next-line no-deprecated-shims -- Documenting upstream tag
+        // @deprecated External API marker
+        export const ok = true;
+      `;
+      expect(auditDeprecatedShimsContent('src/services/docs.ts', code)).toEqual([]);
+    });
+  });
+
+  describe('no-wall-clock-in-pipeline', () => {
+    it('flags 0-arg new Date() and Date.now() in pipeline files', () => {
+      const code = `
+        export const makeStamp = () => {
+          const nowIso = new Date().toISOString();
+          const nowMs = Date.now();
+          return { nowIso, nowMs };
+        };
+      `;
+      const violations = auditWallClockInPipelineContent('scripts/pipeline/badStep.ts', code);
+      expect(violations).toHaveLength(2);
+      expect(violations.every((v) => v.ruleId === 'no-wall-clock-in-pipeline')).toBe(true);
+    });
+
+    it('permits deterministic new Date(epoch) and new Date(isoString)', () => {
+      const code = `
+        export const parseStamp = (unixSec: number, iso: string) => {
+          return {
+            fromSec: new Date(unixSec * 1000).toISOString(),
+            fromIso: new Date(iso).toISOString(),
+          };
+        };
+      `;
+      expect(auditWallClockInPipelineContent('scripts/pipeline/seedCatalogs.ts', code)).toEqual([]);
+    });
+  });
+
+  describe('no-vitest-environment-pragma', () => {
+    it('flags vitest environment pragmas in test files', () => {
+      const pragma = '@vitest-' + 'environment';
+      const code = `// ${pragma} jsdom
+import { describe, it, expect } from 'vitest';
+describe('test', () => { it('works', () => expect(true).toBe(true)); });
+`;
+      const violations = auditVitestEnvironmentPragmaContent('src/stores/sample.test.ts', code);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]?.ruleId).toBe('no-vitest-environment-pragma');
+    });
+
+    it('permits clean test files without vitest environment pragmas', () => {
+      const code = `import { describe, it, expect } from 'vitest';
+describe('test', () => { it('works', () => expect(true).toBe(true)); });
+`;
+      expect(auditVitestEnvironmentPragmaContent('src/stores/sample.test.ts', code)).toEqual([]);
+    });
+  });
+
+  describe('runAllGuards integration for new rules', () => {
+    const tempDirs: string[] = [];
+
+    const writeMinimalSeeds = (rootDir: string) => {
+      const seedDir = path.join(rootDir, 'data', 'seed');
+      fs.mkdirSync(seedDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(seedDir, 'solar-system-bodies.json'),
+        JSON.stringify([{ id: 'sol', name: 'Sol (Sun)', displayName: 'Sol' }]),
+      );
+      fs.writeFileSync(
+        path.join(seedDir, 'guide-examples.json'),
+        JSON.stringify({ starTypes: { g: [{ entityId: 'tau-ceti' }] } }),
+      );
+    };
+
+    afterEach(() => {
+      while (tempDirs.length > 0) {
+        const dir = tempDirs.pop();
+        if (dir) fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('runs no-direct-history-mutation, no-deprecated-shims, no-wall-clock-in-pipeline, and no-vitest-environment-pragma', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-all-rules-'));
+      tempDirs.push(tempDir);
+      writeMinimalSeeds(tempDir);
+
+      fs.mkdirSync(path.join(tempDir, 'src', 'hooks'), { recursive: true });
+      fs.mkdirSync(path.join(tempDir, 'src', 'services'), { recursive: true });
+      fs.mkdirSync(path.join(tempDir, 'scripts', 'pipeline'), { recursive: true });
+      fs.mkdirSync(path.join(tempDir, 'tests'), { recursive: true });
+
+      fs.writeFileSync(
+        path.join(tempDir, 'src', 'hooks', 'spaNavigation.ts'),
+        "export const replaceSpaHistoryUrl = (u: string) => window.history.replaceState(null, '', u);\n",
+      );
+      fs.writeFileSync(
+        path.join(tempDir, 'src', 'hooks', 'badHook.ts'),
+        "export const bad = (u: string) => window.history.replaceState(null, '', u);\n",
+      );
+      fs.writeFileSync(
+        path.join(tempDir, 'src', 'services', 'legacy.ts'),
+        '/** @deprecated */\nexport const legacy = 1;\n',
+      );
+      fs.writeFileSync(
+        path.join(tempDir, 'scripts', 'pipeline', 'buildStep.ts'),
+        'export const t = () => new Date();\n',
+      );
+      fs.writeFileSync(
+        path.join(tempDir, 'scripts', 'pipeline', 'buildStep.test.ts'),
+        'export const testTime = () => Date.now();\n',
+      );
+      const pragma = '@vitest-' + 'environment';
+      fs.writeFileSync(
+        path.join(tempDir, 'tests', 'env.test.ts'),
+        `// ${pragma} jsdom\nexport const x = 1;\n`,
+      );
+
+      const violations = runAllGuards(tempDir);
+      expect(violations.map((v) => v.ruleId).sort()).toEqual([
+        'no-deprecated-shims',
+        'no-direct-history-mutation',
+        'no-vitest-environment-pragma',
+        'no-wall-clock-in-pipeline',
+      ]);
     });
   });
 });

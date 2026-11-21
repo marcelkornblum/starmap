@@ -38,13 +38,14 @@ export const fetchDetailsRoutingTable = async (
   if (!currentPending) {
     let onAbort: (() => void) | undefined;
     if (signal) {
-      onAbort = () => {
-        signal.removeEventListener('abort', onAbort!);
+      const handleAbort = () => {
+        signal.removeEventListener('abort', handleAbort);
         if (pendingRouting === currentPending) {
           pendingRouting = undefined;
         }
       };
-      signal.addEventListener('abort', onAbort);
+      onAbort = handleAbort;
+      signal.addEventListener('abort', handleAbort);
     }
 
     currentPending = (async (): Promise<DetailsRoutingIndex | null> => {

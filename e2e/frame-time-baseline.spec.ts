@@ -9,6 +9,7 @@ export interface FrameTimeMetrics {
   readonly p95FrameTimeMs: number;
   readonly frameCount?: number;
   readonly totalDuration?: number;
+  readonly maxDrawCalls?: number;
 }
 
 export type FrameTimeBaseline = Record<string, FrameTimeMetrics>;
@@ -28,15 +29,16 @@ async function measurePointerDragMetrics(
   route: string,
   rootTestId: string,
 ): Promise<FrameTimeMetrics> {
-  await page.goto(route);
+  await page.goto(route, { waitUntil: 'networkidle' });
   await expect(page.getByTestId(rootTestId)).toBeVisible({ timeout: 15_000 });
 
   const rootHost = page.locator('[data-testid="root-canvas-host"]');
   await expect(rootHost).toBeVisible({ timeout: 15_000 });
   const canvas = rootHost.locator('canvas');
   await expect(canvas).toBeVisible({ timeout: 15_000 });
+  await expect(canvas).toHaveAttribute('data-gl-draw-calls', /^[1-9]\d*$/, { timeout: 15_000 });
 
-  // Settle initial scene hydration
+  // Allow post-hydration shader compilation to settle before steady-state drag measurement
   await page.waitForTimeout(500);
 
   const box = await canvas.boundingBox();
@@ -55,12 +57,14 @@ async function measurePointerDragMetrics(
         p95FrameTimeMs: number;
         frameCount: number;
         totalDuration: number;
+        maxDrawCalls?: number;
       }>((resolve) => {
         const canvasEl = document.querySelector('[data-testid="root-canvas-host"] canvas');
         const timestamps: number[] = [];
         const radius = 80;
         const totalSteps = 30;
         let frameIndex = 0;
+        let maxDrawCalls: number | undefined;
 
         if (canvasEl) {
           canvasEl.dispatchEvent(
@@ -77,6 +81,16 @@ async function measurePointerDragMetrics(
         function onFrame(now: number) {
           if (frameIndex >= warmupFrames) {
             timestamps.push(now);
+            if (canvasEl) {
+              const rawDrawCalls = canvasEl.getAttribute('data-gl-draw-calls');
+              if (rawDrawCalls !== null) {
+                const parsed = Number.parseInt(rawDrawCalls, 10);
+                if (Number.isFinite(parsed)) {
+                  maxDrawCalls =
+                    maxDrawCalls === undefined ? parsed : Math.max(maxDrawCalls, parsed);
+                }
+              }
+            }
           }
           const measuredStep = frameIndex - warmupFrames;
           if (measuredStep < totalSteps) {
@@ -110,7 +124,14 @@ async function measurePointerDragMetrics(
           }
 
           if (timestamps.length < 2) {
-            resolve({ fps: 0, meanFrameTimeMs: 0, p95FrameTimeMs: 0, frameCount: timestamps.length, totalDuration: 0 });
+            resolve({
+              fps: 0,
+              meanFrameTimeMs: 0,
+              p95FrameTimeMs: 0,
+              frameCount: timestamps.length,
+              totalDuration: 0,
+              ...(maxDrawCalls !== undefined ? { maxDrawCalls } : {}),
+            });
             return;
           }
 
@@ -131,6 +152,7 @@ async function measurePointerDragMetrics(
             p95FrameTimeMs: Number(p95FrameTimeMs.toFixed(2)),
             frameCount: deltas.length,
             totalDuration: Number(totalDuration.toFixed(2)),
+            ...(maxDrawCalls !== undefined ? { maxDrawCalls } : {}),
           });
         }
 
@@ -139,8 +161,10 @@ async function measurePointerDragMetrics(
     { centerX: cx, centerY: cy, warmupFrames: WARMUP_FRAMES },
   );
 
+  const drawCallsSuffix =
+    stats.maxDrawCalls !== undefined ? ` | Max Draw Calls: ${stats.maxDrawCalls}` : '';
   console.log(
-    `[Frame-Time Telemetry] ${route} Measured: ${stats.fps.toFixed(1)} FPS | Mean: ${stats.meanFrameTimeMs.toFixed(2)}ms | p95: ${stats.p95FrameTimeMs.toFixed(2)}ms (${stats.frameCount} frames over ${stats.totalDuration.toFixed(0)}ms)`,
+    `[Frame-Time Telemetry] ${route} Measured: ${stats.fps.toFixed(1)} FPS | Mean: ${stats.meanFrameTimeMs.toFixed(2)}ms | p95: ${stats.p95FrameTimeMs.toFixed(2)}ms (${stats.frameCount} frames over ${stats.totalDuration.toFixed(0)}ms)${drawCallsSuffix}`,
   );
 
   return stats;
@@ -191,6 +215,17 @@ test.describe('Spatial View Frame-Time Baseline Guard (AUD-009, DEC-R016)', () =
         measured.meanFrameTimeMs,
         `[DEC-R016 Frame-Time Budget] ${route} measured mean frame time (${measured.meanFrameTimeMs}ms) exceeded absolute ceiling (${ABSOLUTE_MAX_MEAN_FRAME_TIME_MS}ms)`,
       ).toBeLessThanOrEqual(ABSOLUTE_MAX_MEAN_FRAME_TIME_MS);
+
+      if (targetBaseline.maxDrawCalls !== undefined) {
+        expect(
+          measured.maxDrawCalls,
+          `[DEC-R016 Draw-Call Telemetry] ${route} measured maxDrawCalls was undefined`,
+        ).toBeDefined();
+        expect(
+          measured.maxDrawCalls,
+          `[DEC-R016 Draw-Call Budget] ${route} measured maxDrawCalls (${measured.maxDrawCalls}) exceeded baseline (${targetBaseline.maxDrawCalls})`,
+        ).toBeLessThanOrEqual(targetBaseline.maxDrawCalls);
+      }
     }
   });
 });

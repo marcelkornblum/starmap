@@ -49,13 +49,14 @@ export const loadShardedEnvelopeData = async <T>(
   if (!pending) {
     let onAbort: (() => void) | undefined;
     if (signal) {
-      onAbort = () => {
-        signal.removeEventListener('abort', onAbort!);
+      const handleAbort = () => {
+        signal.removeEventListener('abort', handleAbort);
         if (pendingCache.get(cacheKey) === pending) {
           pendingCache.delete(cacheKey);
         }
       };
-      signal.addEventListener('abort', onAbort);
+      onAbort = handleAbort;
+      signal.addEventListener('abort', handleAbort);
     }
 
     pending = (async () => {

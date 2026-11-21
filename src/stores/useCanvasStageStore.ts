@@ -118,7 +118,7 @@ export const areStagePropsEqual = (
     if (!a.selectedEntities || !b.selectedEntities) return false;
     if (a.selectedEntities.length !== b.selectedEntities.length) return false;
     for (let i = 0; i < a.selectedEntities.length; i++) {
-      if (a.selectedEntities[i].id !== b.selectedEntities[i].id) return false;
+      if (a.selectedEntities[i]?.id !== b.selectedEntities[i]?.id) return false;
     }
   }
 
@@ -136,10 +136,14 @@ export const areStagePropsEqual = (
     if (!a.journeyLegs || !b.journeyLegs) return false;
     if (a.journeyLegs.length !== b.journeyLegs.length) return false;
     for (let i = 0; i < a.journeyLegs.length; i++) {
+      const legA = a.journeyLegs[i];
+      const legB = b.journeyLegs[i];
       if (
-        a.journeyLegs[i].id !== b.journeyLegs[i].id ||
-        a.journeyLegs[i].fromId !== b.journeyLegs[i].fromId ||
-        a.journeyLegs[i].toId !== b.journeyLegs[i].toId
+        !legA ||
+        !legB ||
+        legA.id !== legB.id ||
+        legA.fromId !== legB.fromId ||
+        legA.toId !== legB.toId
       ) {
         return false;
       }
