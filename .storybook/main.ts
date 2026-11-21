@@ -1,5 +1,12 @@
 import type { StorybookConfig } from '@storybook/react-vite';
 
+const extraAllowedHosts = (process.env.STORYBOOK_ALLOWED_HOSTS ?? '')
+  .split(',')
+  .map((host) => host.trim())
+  .filter(Boolean);
+
+const allowedHosts = Array.from(new Set(['localhost', '127.0.0.1', ...extraAllowedHosts]));
+
 const config: StorybookConfig = {
   "stories": [
     {
@@ -18,11 +25,11 @@ const config: StorybookConfig = {
   ],
   "framework": "@storybook/react-vite",
   "core": {
-    "allowedHosts": ["192.168.1.124", "localhost", "127.0.0.1"],
+    allowedHosts,
   },
   async viteFinal(config) {
     config.server = config.server || {};
-    config.server.allowedHosts = true;
+    config.server.allowedHosts = allowedHosts;
     return config;
   },
 };

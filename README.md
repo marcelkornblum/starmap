@@ -65,6 +65,9 @@ npm run data:refresh
 Starmap enforces a comprehensive automated verification suite (highlights only; see `package.json` for the full script list):
 
 ```bash
+# Run the unified static quality gate (lint, typecheck, guards, UI, and R3F audits)
+npm run check
+
 # Fast Oxlint linting
 npm run lint
 

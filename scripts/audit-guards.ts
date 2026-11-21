@@ -92,8 +92,6 @@ interface ASTNode {
   quasis?: { value?: { raw?: string } }[];
   expressions?: unknown[];
   source?: { value?: string };
-  specifiers?: { type?: string; local?: { name?: string }; imported?: { name?: string } }[];
-  importKind?: string;
   [key: string]: unknown;
 }
 

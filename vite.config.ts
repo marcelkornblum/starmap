@@ -27,41 +27,14 @@ export default defineConfig(({ mode }) => {
 
   return {
     resolve: {
-      dedupe: ['three', '@react-three/fiber', '@react-three/drei', 'maath'],
+      // Exact-boundary ESM alias prevents CJS require('three') ([THREE_CJS_DEPRECATED]) in Vitest.
       alias: [
         {
           find: /^three$/,
           replacement: path.resolve(dirname, 'node_modules/three/build/three.module.js'),
         },
-        {
-          find: /^@react-three\/fiber$/,
-          replacement: path.resolve(dirname, 'node_modules/@react-three/fiber/dist/react-three-fiber.esm.js'),
-        },
-        {
-          find: /^@react-three\/drei$/,
-          replacement: path.resolve(dirname, 'node_modules/@react-three/drei/index.js'),
-        },
-        {
-          find: /^maath$/,
-          replacement: path.resolve(dirname, 'node_modules/maath/dist/maath.esm.js'),
-        },
-        {
-          find: /^troika-three-text$/,
-          replacement: path.resolve(dirname, 'node_modules/troika-three-text/dist/troika-three-text.esm.js'),
-        },
-        {
-          find: /^troika-three-utils$/,
-          replacement: path.resolve(dirname, 'node_modules/troika-three-utils/dist/troika-three-utils.esm.js'),
-        },
-        {
-          find: /^meshline$/,
-          replacement: path.resolve(dirname, 'node_modules/meshline/dist/index.js'),
-        },
-        {
-          find: /^three-mesh-bvh$/,
-          replacement: path.resolve(dirname, 'node_modules/three-mesh-bvh/src/index.js'),
-        },
       ],
+      dedupe: ['three', '@react-three/fiber', '@react-three/drei', 'maath'],
       mainFields: ['module', 'main'],
     },
     plugins: [
