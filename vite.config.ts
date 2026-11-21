@@ -8,6 +8,14 @@ import { defineConfig } from 'vitest/config';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import { playwright } from '@vitest/browser-playwright';
 const dirname = import.meta.dirname ?? path.dirname(fileURLToPath(import.meta.url));
+const TEST_INLINE_DEPS = [
+  /three/,
+  /@react-three/,
+  '@monogrid/gainmap-js',
+  'camera-controls',
+  'meshline',
+  'maath',
+];
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig(({ mode }) => {
@@ -108,17 +116,10 @@ export default defineConfig(({ mode }) => {
             environment: 'node',
             include: ['**/*.test.ts'],
             exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
-            setupFiles: ['./tests/setup.ts'],
+            setupFiles: ['./tests/setup.node.ts'],
             server: {
               deps: {
-                inline: [
-                  /three/,
-                  /@react-three/,
-                  '@monogrid/gainmap-js',
-                  'camera-controls',
-                  'meshline',
-                  'maath',
-                ],
+                inline: TEST_INLINE_DEPS,
               },
             },
           },
@@ -134,14 +135,7 @@ export default defineConfig(({ mode }) => {
             setupFiles: ['./tests/setup.ts'],
             server: {
               deps: {
-                inline: [
-                  /three/,
-                  /@react-three/,
-                  '@monogrid/gainmap-js',
-                  'camera-controls',
-                  'meshline',
-                  'maath',
-                ],
+                inline: TEST_INLINE_DEPS,
               },
             },
           },
