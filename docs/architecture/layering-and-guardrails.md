@@ -45,15 +45,17 @@ flowchart TD
 
 ### 1.2 Interface Primitive Purity (`Rank 6`)
 Tier 1 and Tier 2 interface primitives in `src/components/interface/` must remain pure, reusable design-system assets with zero knowledge of astronomical business logic. `.oxlintrc.json` enforces an explicit rule:
-- **`components/interface` cannot import from `data`, `content`, `services`, or `stores`**.
-Any attempt by a primitive to bind directly to a repository or global store fails `npm run lint`. For component design rules, see [Component Architecture](../../conductor/code_styleguides/components.md).
+- **`components/interface` cannot import from `data`, `content`, `services`, `stores`, `three`, or `@react-three/*`**.
+Any attempt by a primitive to bind directly to a repository, global store, or WebGL engine fails `npm run lint`. For component design rules, see [Component Architecture](../../conductor/code_styleguides/components.md).
 
-### 1.3 Zero Import Cycles, Strict Typing & File Size Ceiling (`.oxlintrc.json`)
+### 1.3 Zero Import Cycles, Strict Typing, Three.js Isolation & File Size Ceiling (`.oxlintrc.json`)
 Circular dependencies (`A -> B -> A` or deep transitive loops) create initialisation order bugs and break bundler tree-shaking. `.oxlintrc.json` enforces:
 - **`import/no-cycle: "error"`:** Ensures the entire codebase contains **zero** import cycles.
 - **`max-lines: "error"`:** Enforces a 300-line ceiling (skipping blank lines and comments) across production source files, exempting tests, stories, `scripts/`, `e2e/`, `tests/`, and `content/`.
 - **`typescript/no-explicit-any: "error"`:** Forbids explicit `any` across all production, test, story, script, and E2E files.
 - **`typescript/no-non-null-assertion: "error"`:** Forbids non-null assertions (`!`) in production `src/` files (disabled in test/story/script overrides).
+- **Three.js / R3F Isolation:** Forbids importing `@react-three/*` in `src/types/**` (type-only `three` imports remain permitted in `src/types/spatial.ts`), and forbids importing `three`, `three/*`, and `@react-three/*` across `src/config/**`, `src/data/**`, `src/content/**`, `src/services/**`, production `src/stores/**`, `src/hooks/**`, and `src/components/interface/**` (`src/utils/**` remains the sanctioned colour-token bridge).
+- **Zero Lint Warnings:** `npm run lint` executes `oxlint --deny-warnings`.
 
 ---
 
@@ -65,23 +67,28 @@ Each static analysis tool owns a distinct, non-overlapping concern and is run on
 npm run check         ──► Single-pass gate: lint -> typecheck -> audit:guards -> audit:ui -> audit:r3f -> audit:budgets
 npm run lint          ──► Oxlint (Layering, Import Cycles, 300-Line Ceiling, React Hooks, Strict Types)
 npm run typecheck     ──► TypeScript Project References (tsc -b)
-npm run audit:guards  ──► Domain Literal Guard (G-literals) & Global Mutation Guard (no-global-this-mutation)
-npm run audit:ui      ──► Design System, Component Quads, CUBE CSS, Zero Inline Styles
-npm run audit:r3f     ──► 60fps R3F Audits (useFrame, Atomic Selectors, On-Demand Frameloop, Resource Disposal, Raycast)
+npm run audit:guards  ──► Domain Literal Guard (G-literals) & Structural Guards (history SSOT, globalThis, deprecated, pipeline clock, Vitest env)
+npm run audit:ui      ──► Design System, Component Quads, Primitive Purity, CUBE CSS, Zero Inline Styles
+npm run audit:r3f     ──► 60fps R3F Audits (Single Canvas Host, useFrame, Atomic Selectors, On-Demand Frameloop, Resource Disposal, Raycast)
 npm run audit:budgets ──► Suppression Ratchet & Data Manifest / Shard Size Budgets (scripts/guards/budgets.json)
 npm run audit:bundle  ──► Built Entry JS/CSS Gzip Budgets & Lazy 3D Chunk Isolation (runs post-build)
 ```
 
-### 2.1 Domain Literal & Global State Guards (`scripts/audit-guards.ts`)
-`audit:guards` enforces **`G-literals` (Zero Hardcoded Celestial Entities)** and **`no-global-this-mutation`**:
+### 2.1 Domain Literal & Structural Guards (`scripts/audit-guards.ts`)
+`audit:guards` enforces **`G-literals` (Zero Hardcoded Celestial Entities)** alongside structural invariants across runtime, pipeline, and test code:
 - Scans TypeScript ASTs in `src/` (excluding tests and stories) to verify that celestial entity IDs, names, and classifications are not hardcoded into runtime code. All entities must be read from precalculated data pipeline shards.
 - Flags suspicious non-zero numeric fallbacks (`?? <num>`, `|| <num>`) on astronomical telemetry in `src/services/`, `src/components/canvas/`, and `src/views/`.
 - **`no-global-this-mutation`:** Forbids mutating properties on `globalThis` in production `src/` files (direct/bracket/casted assignments, `Object.defineProperty(globalThis, ...)`, and `Reflect.set(globalThis, ...)`), while permitting read-only property access.
+- **`no-direct-history-mutation`:** Enforces router SSOT by forbidding direct `history.pushState`, `history.replaceState`, `location.assign`, `location.replace`, and `location.href = ...` mutations in production `src/` files outside `src/hooks/spaNavigation.ts`.
+- **`no-deprecated-shims`:** Forbids `@deprecated` JSDoc/comment shims in production `src/` files so renames and cutovers stay complete.
+- **`no-wall-clock-in-pipeline`:** Scans `scripts/pipeline/**/*.ts` (excluding `*.test.ts`) and forbids non-deterministic 0-argument `new Date()` and `Date.now()` calls (1-argument `new Date(epochMs)` / `new Date(isoString)` remains permitted).
+- **`no-vitest-environment-pragma`:** Scans `src/**/*.test.{ts,tsx}` and `tests/**/*.test.{ts,tsx}` and forbids `@vitest-environment` pragmas, enforcing the split `.test.ts` (Node) vs `.test.tsx` (jsdom) Vitest project boundary (`DEC-R055`).
 - Fails closed on parse errors or unexpected exceptions.
 
 ### 2.2 Design System Guard Suite (`scripts/audit-ui.ts`)
 Enforces strict design system standards across `src/components/` and `src/views/` (see [HTML & CSS Style Guide](../../conductor/code_styleguides/html-css.md)):
 - **`missing-component-quad`:** Every component in `interface/` and `domain/` must have all 4 quad files: `<Component>.tsx`, `<Component>.module.css`, `<Component>.stories.tsx`, and `<Component>.test.tsx`.
+- **`forbidden-primitive-escape-hatch`:** Inspects `*Props` interfaces and type aliases in `src/components/interface/**/*.tsx` production files and forbids `className` or `style` escape-hatch properties.
 - **`forbidden-raw-element`:** Disallows raw HTML controls (`<button>`, `<input>`, `<select>`) or telemetry lists (`<dl>`, `<ul>`, `<ol>`); domain views must compose Tier 1 primitives.
 - **`forbidden-dynamic-classname`:** Disallows dynamic `className` concatenation; state and variant styling must consume HTML `data-*` attributes.
 - **`forbidden-inline-style`:** Zero `style={{ ... }}` attributes; all styling lives in scoped CSS Modules.
@@ -91,7 +98,8 @@ Enforces strict design system standards across `src/components/` and `src/views/
 - **`hardcoded-hex-color` & `hardcoded-css-token`:** Disallows literal hex codes (`#ffffff`) or pixel values; all CSS must consume semantic tokens (`var(--token)`).
 
 ### 2.3 WebGL & Frame-Loop Guard Suite (`scripts/audit-r3f.ts`)
-Enforces 60fps WebGL execution guardrails across `src/components/canvas/`, `src/components/domain/`, `src/hooks/`, and `src/views/` (see [WebGL, Three.js & R3F Style Guide](../../conductor/code_styleguides/webgl-r3f.md)):
+Enforces 60fps WebGL execution guardrails across `src/components/canvas/`, `src/components/domain/`, `src/hooks/`, `src/views/`, and `src/router/` (see [WebGL, Three.js & R3F Style Guide](../../conductor/code_styleguides/webgl-r3f.md)):
+- **`single-canvas-host`:** Flags any production `src/` `<Canvas>` instantiation outside the 3 sanctioned hosts (`src/components/domain/CanvasLayer/CanvasWebGLHost.tsx`, `src/components/canvas/scenes/StandaloneSceneShell.tsx`, `src/components/canvas/scenes/InteractiveNavigator.tsx`).
 - **`no-alloc-in-use-frame`, `no-layout-in-use-frame`, `no-setstate-in-use-frame`:** Flags object/array/closure allocations, DOM layout measurements, and React state setters inside `useFrame` callbacks.
 - **`atomic-store-selectors`:** Flags whole-store, identity, object-literal, or broad `state.tokens` Zustand subscriptions across canvas, domain, hook, and view files.
 - **`require-demand-frameloop`:** Flags any production `<Canvas>` missing an explicit `frameloop` attribute or specifying `frameloop="always"`.

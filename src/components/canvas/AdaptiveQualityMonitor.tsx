@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { extractWebGLGpuTelemetry } from '../../services/deviceTierProfiles';
 import {
@@ -25,7 +25,7 @@ export const AdaptiveQualityMonitor: React.FC = () => {
   const glRef = useRef(gl);
   const lastDrawCallsRef = useRef<number>(-1);
   const drawCallsQueuedRef = useRef<boolean>(false);
-  const flushDrawCallsRef = useRef<() => void>(() => {
+  const flushDrawCalls = useCallback(() => {
     drawCallsQueuedRef.current = false;
     const activeGl = glRef.current;
     const drawCalls = activeGl?.info?.render?.calls;
@@ -37,7 +37,7 @@ export const AdaptiveQualityMonitor: React.FC = () => {
       lastDrawCallsRef.current = drawCalls;
       activeGl.domElement.dataset.glDrawCalls = String(drawCalls);
     }
-  });
+  }, []);
   if (controllerRef.current === null) {
     controllerRef.current = new AdaptiveQualityController({
       initialDpr,
@@ -71,7 +71,7 @@ export const AdaptiveQualityMonitor: React.FC = () => {
 
     if (import.meta.env.DEV && !drawCallsQueuedRef.current) {
       drawCallsQueuedRef.current = true;
-      queueMicrotask(flushDrawCallsRef.current);
+      queueMicrotask(flushDrawCalls);
     }
   });
 

@@ -10,7 +10,7 @@
     "dev": "vite --host 0.0.0.0 --port 5173 --strictPort",
     "build": "vite build",
     "build:all": "npm run data:pipeline && npm run typecheck && npm run build",
-    "lint": "oxlint",
+    "lint": "oxlint --deny-warnings",
     "typecheck": "tsc -b",
     "audit:guards": "tsx scripts/audit-guards.ts",
     "audit:r3f": "tsx scripts/audit-r3f.ts",

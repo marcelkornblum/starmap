@@ -15,6 +15,7 @@ export interface AuditDiagnostic {
 }
 
 export const COMPONENT_QUAD_DIRS = ['src/components/interface', 'src/components/domain'];
+export const PRIMITIVE_INTERFACE_DIRS = ['src/components/interface'];
 export const AST_SCAN_DIRS = [
   'src/components/interface',
   'src/components/domain',
@@ -277,6 +278,116 @@ export function auditComponentQuads(targetDirs: string[] = COMPONENT_QUAD_DIRS):
 }
 
 export const checkComponentQuads = auditComponentQuads;
+
+/**
+ * Audits a Tier 1 primitive source string for forbidden `className` or `style` props escape hatches.
+ */
+export function auditPrimitiveEscapeHatchContent(filePath: string, content: string): AuditDiagnostic[] {
+  const diagnostics: AuditDiagnostic[] = [];
+  const lines = content.split('\n');
+  diagnostics.push(...checkInvalidSuppressions(filePath, lines));
+
+  if (!content.includes('Props')) {
+    return diagnostics;
+  }
+
+  let ast: ReturnType<typeof parse>;
+  try {
+    ast = parse(content, {
+      sourceType: 'module',
+      plugins: ['typescript', 'jsx'],
+    });
+  } catch {
+    return diagnostics;
+  }
+
+  function inspectMembers(members: ASTNode[] | undefined) {
+    if (!Array.isArray(members)) return;
+    for (const member of members) {
+      if (member.type !== 'TSPropertySignature') continue;
+      const key = member.key as ASTNode | undefined;
+      const propName =
+        key?.type === 'Identifier'
+          ? (key.name as string | undefined)
+          : key?.type === 'StringLiteral'
+          ? (key.value as unknown as string | undefined)
+          : undefined;
+      if (propName === 'className' || propName === 'style') {
+        const loc = member.loc?.start;
+        if (loc && !isLineSuppressed(lines, loc.line, 'forbidden-primitive-escape-hatch')) {
+          diagnostics.push({
+            filePath,
+            line: loc.line,
+            column: loc.column + 1,
+            ruleId: 'forbidden-primitive-escape-hatch',
+            severity: 'error',
+            message: `Forbidden escape-hatch prop "${propName}" in Tier 1 primitive Props definition. Primitives must style strictly via CUBE data-* attributes and CSS Modules.`,
+            snippet: (lines[loc.line - 1] || '').trim().slice(0, 80),
+            remediation: `Omit "${propName}" from the Props interface (e.g. Omit<HTMLAttributes<...>, 'className' | 'style'>) and expose semantic data-* variant props instead.`,
+          });
+        }
+      }
+    }
+  }
+
+  function inspectTypeNode(typeNode: ASTNode | undefined) {
+    if (!typeNode) return;
+    if (typeNode.type === 'TSTypeLiteral') {
+      inspectMembers(typeNode.members as ASTNode[] | undefined);
+    } else if (
+      (typeNode.type === 'TSIntersectionType' || typeNode.type === 'TSUnionType') &&
+      Array.isArray(typeNode.types)
+    ) {
+      for (const sub of typeNode.types as ASTNode[]) {
+        inspectTypeNode(sub);
+      }
+    }
+  }
+
+  traverseAst(ast, (node: ASTNode) => {
+    if (node.type === 'TSInterfaceDeclaration') {
+      const idName = (node.id as ASTNode | undefined)?.name as string | undefined;
+      if (idName && idName.endsWith('Props')) {
+        const bodyNode = node.body as ASTNode | undefined;
+        inspectMembers(bodyNode?.body as ASTNode[] | undefined);
+      }
+    } else if (node.type === 'TSTypeAliasDeclaration') {
+      const idName = (node.id as ASTNode | undefined)?.name as string | undefined;
+      if (idName && idName.endsWith('Props')) {
+        inspectTypeNode(node.typeAnnotation as ASTNode | undefined);
+      }
+    }
+  });
+
+  return diagnostics;
+}
+
+/**
+ * Scans Tier 1 primitive directories for forbidden className/style Props escape hatches.
+ */
+export function auditPrimitiveEscapeHatches(targetDirs: string[] = PRIMITIVE_INTERFACE_DIRS): AuditDiagnostic[] {
+  const diagnostics: AuditDiagnostic[] = [];
+  const files: string[] = [];
+
+  for (const baseDir of targetDirs) {
+    files.push(
+      ...collectFiles(baseDir, (filePath) => {
+        return (
+          filePath.endsWith('.tsx') &&
+          !filePath.endsWith('.test.tsx') &&
+          !filePath.endsWith('.stories.tsx')
+        );
+      })
+    );
+  }
+
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf8');
+    diagnostics.push(...auditPrimitiveEscapeHatchContent(file, content));
+  }
+
+  return diagnostics;
+}
 
 /**
  * Audits a source string for raw HTML interactive elements (<button>, <input>, <select>).
@@ -763,12 +874,18 @@ export function auditCssModules(targetDirs: string[] = CSS_MODULE_DIRS): AuditDi
  */
 export function runUiAudit(targetDir?: string): AuditDiagnostic[] {
   const quadDirs = targetDir ? [targetDir] : COMPONENT_QUAD_DIRS;
+  const primitiveDirs = targetDir
+    ? targetDir.replace(/\\/g, '/').includes('interface')
+      ? [targetDir]
+      : []
+    : PRIMITIVE_INTERFACE_DIRS;
   const astDirs = targetDir ? [targetDir] : AST_SCAN_DIRS;
   const renderDirs = targetDir ? [targetDir] : RENDER_TO_STRING_DIRS;
   const cssDirs = targetDir ? [targetDir] : CSS_MODULE_DIRS;
 
   const raw = [
     ...auditComponentQuads(quadDirs),
+    ...auditPrimitiveEscapeHatches(primitiveDirs),
     ...auditInlineStyles(astDirs),
     ...auditDynamicClassNames(astDirs),
     ...auditRawElements(astDirs),

@@ -8,6 +8,7 @@ import {
   auditDynamicClassNamesContent,
   auditRawElementsContent,
   auditRenderToStringContent,
+  auditPrimitiveEscapeHatchContent,
   runUiAudit,
   runUIAudit,
 } from './audit-ui';
@@ -249,6 +250,75 @@ describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', 
       fs.writeFileSync(path.join(badDir, 'BadComp.tsx'), 'export const BadComp = () => <button>Click</button>;');
       expect(runUIAudit(tempDir)).toBe(1);
       vi.restoreAllMocks();
+    });
+  });
+
+  describe('forbidden-primitive-escape-hatch Rule', () => {
+    it('flags className and style properties on *Props interfaces and type aliases in src/components/interface/', () => {
+      const code = `
+        import type { ReactNode } from 'react';
+        export interface BadButtonProps {
+          children: ReactNode;
+          className?: string;
+          style?: Record<string, string>;
+        }
+        export type BadCardProps = {
+          className?: string;
+        };
+      `;
+      const diags = auditPrimitiveEscapeHatchContent(
+        'src/components/interface/controls/Button/BadButton.tsx',
+        code,
+      );
+      expect(diags).toHaveLength(3);
+      expect(diags.every((d) => d.ruleId === 'forbidden-primitive-escape-hatch')).toBe(true);
+      expect(diags.every((d) => d.severity === 'error')).toBe(true);
+    });
+
+    it('permits Omit<..., "className" | "style"> and non-Props types without escape hatches', () => {
+      const code = `
+        import type { ButtonHTMLAttributes } from 'react';
+        export interface CleanButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'style'> {
+          variant?: 'primary' | 'ghost';
+        }
+        export interface InternalHelperOptions {
+          className?: string;
+          style?: string;
+        }
+      `;
+      const diags = auditPrimitiveEscapeHatchContent(
+        'src/components/interface/controls/Button/CleanButton.tsx',
+        code,
+      );
+      expect(diags).toEqual([]);
+    });
+
+    it('supports ui-audit-disable-next-line suppression with required reason and rejects unreasoned suppression', () => {
+      const suppressedCode = `
+        export interface SpecialPrimitiveProps {
+          // ui-audit-disable-next-line forbidden-primitive-escape-hatch -- Required for portal measurement
+          className?: string;
+        }
+      `;
+      expect(
+        auditPrimitiveEscapeHatchContent(
+          'src/components/interface/surfaces/Special.tsx',
+          suppressedCode,
+        ),
+      ).toEqual([]);
+
+      const bareCode = `
+        export interface BadSuppressionProps {
+          // ui-audit-disable-next-line forbidden-primitive-escape-hatch
+          style?: object;
+        }
+      `;
+      const diags = auditPrimitiveEscapeHatchContent(
+        'src/components/interface/surfaces/Bad.tsx',
+        bareCode,
+      );
+      expect(diags.some((d) => d.ruleId === 'invalid-suppression')).toBe(true);
+      expect(diags.some((d) => d.ruleId === 'forbidden-primitive-escape-hatch')).toBe(true);
     });
   });
 });

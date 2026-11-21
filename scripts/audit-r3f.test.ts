@@ -566,11 +566,12 @@ describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
   });
 
   describe('Scope Expansion: src/components/domain and src/hooks', () => {
-    it('includes src/components/domain and src/hooks in R3F_FILES_GLOB', () => {
+    it('includes src/components/domain, src/hooks, and src/router in R3F_FILES_GLOB', () => {
       expect(R3F_FILES_GLOB).toContain('src/components/canvas');
       expect(R3F_FILES_GLOB).toContain('src/components/domain');
       expect(R3F_FILES_GLOB).toContain('src/hooks');
       expect(R3F_FILES_GLOB).toContain('src/views');
+      expect(R3F_FILES_GLOB).toContain('src/router');
     });
 
     it('flags atomic-store-selectors in src/components/domain and src/hooks', () => {
@@ -598,6 +599,90 @@ describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
           (d) => d.ruleId === 'atomic-store-selectors',
         ),
       ).toHaveLength(1);
+    });
+  });
+
+  describe('single-canvas-host Rule', () => {
+    const canvasCode = `
+      import { Canvas } from '@react-three/fiber';
+      export const Host = () => (
+        <Canvas frameloop="demand">
+          <mesh />
+        </Canvas>
+      );
+    `;
+
+    it('permits <Canvas> in the 3 sanctioned host files', () => {
+      const sanctionedHosts = [
+        'src/components/domain/CanvasLayer/CanvasWebGLHost.tsx',
+        'src/components/canvas/scenes/StandaloneSceneShell.tsx',
+        'src/components/canvas/scenes/InteractiveNavigator.tsx',
+        '/repo/starmap/src/components/domain/CanvasLayer/CanvasWebGLHost.tsx',
+      ];
+      for (const hostPath of sanctionedHosts) {
+        expect(
+          auditSourceFile(hostPath, canvasCode).filter((d) => d.ruleId === 'single-canvas-host'),
+        ).toEqual([]);
+      }
+    });
+
+    it('flags <Canvas> in unsanctioned view, domain, or router production files', () => {
+      const unsanctionedPaths = [
+        'src/views/GalaxyView.tsx',
+        'src/components/domain/MiniMap/MiniMap.tsx',
+        'src/router/AppLayout.tsx',
+      ];
+      for (const filePath of unsanctionedPaths) {
+        const diags = auditSourceFile(filePath, canvasCode).filter(
+          (d) => d.ruleId === 'single-canvas-host',
+        );
+        expect(diags).toHaveLength(1);
+        expect(diags[0].severity).toBe('error');
+        expect(diags[0].message).toContain('Canvas');
+      }
+    });
+
+    it('exempts stories and test files from single-canvas-host and allows reasoned suppressions', () => {
+      expect(
+        auditSourceFile('src/components/domain/MiniMap/MiniMap.stories.tsx', canvasCode).filter(
+          (d) => d.ruleId === 'single-canvas-host',
+        ),
+      ).toEqual([]);
+      expect(
+        auditSourceFile('src/views/GalaxyView.test.tsx', canvasCode).filter(
+          (d) => d.ruleId === 'single-canvas-host',
+        ),
+      ).toEqual([]);
+
+      const suppressedCode = `
+        import { Canvas } from '@react-three/fiber';
+        export const SpecialHost = () => (
+          // r3f-audit-disable-next-line single-canvas-host -- Isolated WebGL calibration harness
+          <Canvas frameloop="demand" />
+        );
+      `;
+      expect(
+        auditSourceFile('src/views/CalibrationView.tsx', suppressedCode).filter(
+          (d) => d.ruleId === 'single-canvas-host',
+        ),
+      ).toEqual([]);
+    });
+
+    it('scans files containing <Canvas> in runR3fAudit even without useFrame or three imports', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'r3f-canvas-host-'));
+      try {
+        const routerDir = path.join(tempDir, 'src', 'router');
+        fs.mkdirSync(routerDir, { recursive: true });
+        const routerFile = path.join(routerDir, 'RouteCanvas.tsx');
+        fs.writeFileSync(
+          routerFile,
+          'export const RouteCanvas = () => <Canvas frameloop="demand" />;\n',
+        );
+        const diags = runR3fAudit([routerDir]);
+        expect(diags.some((d) => d.ruleId === 'single-canvas-host')).toBe(true);
+      } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
     });
   });
 });

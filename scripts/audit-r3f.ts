@@ -14,7 +14,18 @@ export interface AuditDiagnostic {
   remediation: string;
 }
 
-export const R3F_FILES_GLOB = ['src/components/canvas', 'src/components/domain', 'src/hooks', 'src/views'];
+export const R3F_FILES_GLOB = [
+  'src/components/canvas',
+  'src/components/domain',
+  'src/hooks',
+  'src/views',
+  'src/router',
+];
+const SANCTIONED_CANVAS_HOSTS = [
+  'src/components/domain/CanvasLayer/CanvasWebGLHost.tsx',
+  'src/components/canvas/scenes/StandaloneSceneShell.tsx',
+  'src/components/canvas/scenes/InteractiveNavigator.tsx',
+];
 const INVALID_R3F_TAGS = new Set(['threeline']);
 const POINTER_EVENT_HANDLERS = new Set([
   'onClick',
@@ -541,6 +552,19 @@ export function auditSourceFile(filePath: string, sourceText: string): AuditDiag
             'Replace with `<line>` (maps to `THREE.Line`) or `<lineSegments>`.'
           );
         } else if (isProductionFile && tagNameStr === 'Canvas') {
+          const isSanctionedHost = SANCTIONED_CANVAS_HOSTS.some(
+            (host) => normalizedPath === host || normalizedPath.endsWith(`/${host}`)
+          );
+          if (!isSanctionedHost) {
+            addDiagnostic(
+              obj.loc?.start || tagObj.loc?.start,
+              'single-canvas-host',
+              'error',
+              `Unsanctioned <Canvas> host in "${filePath}". Starmap enforces a single persistent root WebGL <Canvas> host.`,
+              'Mount 3D scenes via <CanvasLayer> inside the persistent root Canvas host instead of instantiating a new <Canvas>.'
+            );
+          }
+
           const attrs = Array.isArray(obj.attributes) ? (obj.attributes as ASTNode[]) : [];
           const frameloopAttr = attrs.find((attr) => {
             if (attr.type !== 'JSXAttribute') return false;
