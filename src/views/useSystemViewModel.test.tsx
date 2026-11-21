@@ -8,6 +8,7 @@ vi.mock('@tanstack/react-router', () => ({
   useSearch: vi.fn(() => ({})),
   useRouter: vi.fn(() => undefined),
 }));
+import { useRouter } from '@tanstack/react-router';
 import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
 import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
 import {
@@ -17,7 +18,6 @@ import {
 } from '../data/detailsRepository';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
-import { registerAppRouter } from '../hooks/useSpaLocation';
 import type { SystemManifest, SystemSummaryNode } from '../types/astro';
 
 const SOL_FIXTURE: SystemManifest = {
@@ -74,11 +74,11 @@ describe('useSystemViewModel', () => {
     useUIStore.setState({ detailsDetent: 'collapsed' });
     useCameraStore.setState({ lastGalaxySearch: '' });
     navigateSpy = vi.fn().mockResolvedValue(undefined);
-    registerAppRouter({ navigate: navigateSpy });
+    vi.mocked(useRouter).mockReturnValue({ navigate: navigateSpy } as never);
   });
 
   afterEach(() => {
-    registerAppRouter(null);
+    vi.mocked(useRouter).mockReturnValue(undefined as never);
   });
 
   const createWrapper = (store: ReturnType<typeof createSpatialEntityStore>) => {

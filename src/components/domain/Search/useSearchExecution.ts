@@ -11,6 +11,7 @@ import { syncSelectedSystemsToStore } from './searchStoreSync';
 import { expandStarsShardIfEmpty, fetchAndComputeAsyncSearch } from './asyncSearchExecutor';
 import type { UseSearchExecutionOptions, UseSearchExecutionReturn } from './searchExecutionTypes';
 import { prefetchEntitySelection } from '../../../services/details/prefetchEntitySelection';
+import { useOptionalRouter } from '../../../hooks/useSpaLocation';
 
 export const useSearchExecution = ({
   initialQuery,
@@ -28,6 +29,7 @@ export const useSearchExecution = ({
   searchRootRef,
   setIsFocused,
 }: UseSearchExecutionOptions): UseSearchExecutionReturn => {
+  const router = useOptionalRouter();
   const [query, setQueryState] = useState<string>(initialQuery);
   const [filter, setFilterState] = useState<SearchCategoryFilter>(initialFilter);
 
@@ -209,18 +211,18 @@ export const useSearchExecution = ({
       const executeSync = searchQuery.length === 0 || isSync;
 
       if (executeSync) {
-        if (syncUrl) syncSearchUrlParams(nextQuery, filter);
+        if (syncUrl) syncSearchUrlParams(nextQuery, filter, router);
         void submitSearch(searchQuery, filter);
         return;
       }
 
       deferredSearchTimerRef.current = setTimeout(() => {
         deferredSearchTimerRef.current = null;
-        if (syncUrl) syncSearchUrlParams(nextQuery, filter);
+        if (syncUrl) syncSearchUrlParams(nextQuery, filter, router);
         void submitSearch(searchQuery, filter);
       }, effectiveDebounceMs);
     },
-    [effectiveDebounceMs, filter, initialCorpus, isSync, setIsFocused, submitSearch, syncUrl],
+    [effectiveDebounceMs, filter, initialCorpus, isSync, router, setIsFocused, submitSearch, syncUrl],
   );
 
   const setFilter = useCallback(
@@ -235,10 +237,10 @@ export const useSearchExecution = ({
         });
       }
       setFilterState(nextFilter);
-      if (syncUrl) syncSearchUrlParams(query, nextFilter);
+      if (syncUrl) syncSearchUrlParams(query, nextFilter, router);
       void submitSearch(query, nextFilter);
     },
-    [initialCorpus, query, submitSearch, syncUrl],
+    [initialCorpus, query, router, submitSearch, syncUrl],
   );
 
   const dismissSearch = useCallback(
@@ -276,10 +278,10 @@ export const useSearchExecution = ({
       }
       setQueryState('');
       setIsFocused(false);
-      if (syncUrl) syncSearchUrlParams('', filter);
+      if (syncUrl) syncSearchUrlParams('', filter, router);
       void submitSearch('', filter);
     },
-    [filter, limitPerCategory, onSelectResult, searchRootRef, setIsFocused, store, submitSearch, syncUrl],
+    [filter, limitPerCategory, onSelectResult, router, searchRootRef, setIsFocused, store, submitSearch, syncUrl],
   );
 
   return {

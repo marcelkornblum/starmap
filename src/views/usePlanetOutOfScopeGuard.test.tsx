@@ -1,12 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import { useRouter } from '@tanstack/react-router';
 import {
   checkIsFocusInPlanetScope,
   usePlanetOutOfScopeGuard,
 } from './usePlanetOutOfScopeGuard';
-import { registerAppRouter, type StarmapSearchParams } from '../hooks/useSpaLocation';
+import type { StarmapSearchParams } from '../hooks/useSpaLocation';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
+
+vi.mock('@tanstack/react-router', () => ({
+  useRouter: vi.fn(() => undefined),
+}));
 
 describe('usePlanetOutOfScopeGuard', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -15,12 +20,12 @@ describe('usePlanetOutOfScopeGuard', () => {
   beforeEach(() => {
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     navigateSpy = vi.fn();
-    registerAppRouter({ navigate: navigateSpy });
+    vi.mocked(useRouter).mockReturnValue({ navigate: navigateSpy } as never);
   });
 
   afterEach(() => {
     warnSpy.mockRestore();
-    registerAppRouter(null);
+    vi.mocked(useRouter).mockReturnValue(undefined as never);
   });
 
   const dummySystemDetail: DecodedDetailRecord = {

@@ -1,3 +1,4 @@
 export * from './CanvasLayer';
 export * from './RootCanvasHost';
-export * from './webglSupport';
+export * from './RootCanvasStageContext';
+export { canMountWebGLCanvas } from './webglSupport';

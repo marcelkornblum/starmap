@@ -240,8 +240,14 @@ export function consolidateMultiStarSystems(params: ConsolidateMultiStarSystemsP
     let mergedCompCounts: [number, number, number, number] | undefined;
     for (const c of components) {
       if (c.planetCompositionCounts) {
+        const counts = c.planetCompositionCounts;
         if (!mergedCompCounts) mergedCompCounts = [0, 0, 0, 0];
-        for (let idx = 0; idx < 4; idx++) mergedCompCounts[idx] += c.planetCompositionCounts[idx] || 0;
+        mergedCompCounts = [
+          mergedCompCounts[0] + (counts[0] ?? 0),
+          mergedCompCounts[1] + (counts[1] ?? 0),
+          mergedCompCounts[2] + (counts[2] ?? 0),
+          mergedCompCounts[3] + (counts[3] ?? 0),
+        ];
       }
     }
     if (mergedCompCounts) primary.planetCompositionCounts = mergedCompCounts;

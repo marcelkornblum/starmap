@@ -1,11 +1,9 @@
 import React, { Suspense, lazy, useEffect, useLayoutEffect } from 'react';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
-import {
-  useCanvasStageStore,
-  setStageCallbacks,
-  RootCanvasStageContext,
-} from '../../../stores/useCanvasStageStore';
+import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
+import { setStageCallbacks } from '../../../stores/canvasStageCallbacks';
+import { RootCanvasStageContext } from './RootCanvasStageContext';
 import { canMountWebGLCanvas } from './webglSupport';
 import type { CanvasWebGLHostProps } from './CanvasWebGLHost';
 import { preloadSceneEntry, type SpatialCanvasScope } from './sceneEntryLoader';
@@ -43,7 +41,6 @@ export interface CanvasLayerProps {
   readonly activeSystemName?: string;
   readonly focusedTargetName?: string;
   readonly routeWaypoints?: readonly string[];
-  readonly cameraState?: Record<string, unknown>;
   readonly testId?: string;
   readonly isRootHost?: boolean;
   readonly onInspect?: (id: string) => void;
@@ -69,7 +66,6 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
     activeSystemName,
     focusedTargetName,
     routeWaypoints,
-    cameraState,
     testId,
     isRootHost = false,
     onInspect,
@@ -116,7 +112,6 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
         activeSystemName,
         focusedTargetName,
         routeWaypoints,
-        cameraState,
       });
     }
   }, [
@@ -134,7 +129,6 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
     activeSystemName,
     focusedTargetName,
     routeWaypoints,
-    cameraState,
     onInspect,
     onSelect,
     onFocusChange,

@@ -18,8 +18,6 @@ export interface BearingVectorsProps {
   showCardinalBearings?: boolean;
   /** Distance to system/galactic centre for curved orbital calculation */
   centerDistance?: number;
-  /** @deprecated Use centerDistance instead */
-  rGc?: number;
   /** Extent to which extended bearings project into the scene (default: 1200) */
   extent?: number;
 }
@@ -28,7 +26,6 @@ export const BearingVectors: React.FC<BearingVectorsProps> = React.memo(({
   showAxisLines = true,
   showCardinalBearings = true,
   centerDistance,
-  rGc,
   extent = DEFAULT_INSTRUMENT_EXTENT,
 }) => {
   const { frame, frameRef } = useSpatialFrame();
@@ -113,7 +110,7 @@ export const BearingVectors: React.FC<BearingVectorsProps> = React.memo(({
       if (spokeMatsRef.current.negZ) spokeMatsRef.current.negZ.opacity = alphaNegZ;
     }
 
-    const effectiveCenterDistance = centerDistance ?? rGc ?? frame.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
+    const effectiveCenterDistance = centerDistance ?? frame.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
     const coreProximityFade = calculateBearingProximityFade(camera.position, focusPoint, 'core', extent, effectiveCenterDistance, apertureRadius, orientation);
     const orbitalProximityFade = calculateBearingProximityFade(camera.position, focusPoint, 'orbital', extent, effectiveCenterDistance, apertureRadius, orientation);
 

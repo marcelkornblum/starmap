@@ -1,5 +1,5 @@
 import { CARTO_LINE_CONSTANTS } from '../styles/tokens/cartography';
-import { parseCssCubicBezier } from '../utils/easingMath';
+import { parseCssCubicBezier } from './easingMath';
 import type { ThreeTheme, ThreeTokenSnapshot } from '../types/threeTokens';
 
 /**

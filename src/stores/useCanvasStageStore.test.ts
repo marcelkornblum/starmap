@@ -1,15 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useContext } from 'react';
-import { renderHook } from '@testing-library/react';
 import {
   useCanvasStageStore,
-  setStageCallbacks,
-  getStageCallbacks,
-  subscribeStageCallbacks,
-  RootCanvasStageContext,
   type CanvasStageData,
 } from './useCanvasStageStore';
+import {
+  getStageCallbacks,
+  setStageCallbacks,
+} from './canvasStageCallbacks';
 
 describe('useCanvasStageStore', () => {
   beforeEach(() => {
@@ -41,7 +39,7 @@ describe('useCanvasStageStore', () => {
     expect(useCanvasStageStore.getState().activeSlotCount).toBe(0);
   });
 
-  it('stores strictly serialisable stageProps and strips callback functions', () => {
+  it('stores strictly serialisable stageProps and strips callback functions and unknown fields', () => {
     const onInspect = vi.fn();
     const onSelect = vi.fn();
 
@@ -53,6 +51,7 @@ describe('useCanvasStageStore', () => {
       cameraDistance: 100,
       testId: 'custom-id',
       isRootHost: false,
+      cameraState: { unused: true },
       onInspect,
       onSelect,
     };
@@ -66,29 +65,17 @@ describe('useCanvasStageStore', () => {
     expect(stageProps?.centerId).toBe('sol');
     expect(stageProps?.cameraDistance).toBe(100);
 
-    // Assert callbacks and host flags are stripped from stageProps
+    // Assert callbacks, host flags, and deleted cameraState are stripped from stageProps
     expect('onInspect' in (stageProps ?? {})).toBe(false);
     expect('onSelect' in (stageProps ?? {})).toBe(false);
     expect('isRootHost' in (stageProps ?? {})).toBe(false);
     expect('testId' in (stageProps ?? {})).toBe(false);
+    expect('cameraState' in (stageProps ?? {})).toBe(false);
 
     // Verify strict serialisability
     const serialised = JSON.stringify(stageProps);
     const parsed = JSON.parse(serialised) as CanvasStageData;
     expect(parsed).toEqual(stageProps);
-  });
-
-  it('isolates stage callbacks in module-level getter/setter', () => {
-    const onInspect = vi.fn();
-    const onSelect = vi.fn();
-
-    setStageCallbacks({ onInspect, onSelect });
-    const callbacks = getStageCallbacks();
-    expect(callbacks.onInspect).toBe(onInspect);
-    expect(callbacks.onSelect).toBe(onSelect);
-
-    callbacks.onInspect?.('alpha-centauri');
-    expect(onInspect).toHaveBeenCalledWith('alpha-centauri');
   });
 
   it('clears stageProps and resets callbacks on clearStageProps and resetCanvasStageStore', () => {
@@ -104,36 +91,5 @@ describe('useCanvasStageStore', () => {
     useCanvasStageStore.getState().resetCanvasStageStore();
     expect(useCanvasStageStore.getState().isRootCanvasMounted).toBe(false);
     expect(getStageCallbacks()).toEqual({});
-  });
-
-  it('notifies subscribers when stage callbacks change and skips redundant notifications', () => {
-    const listener = vi.fn();
-    const unsubscribe = subscribeStageCallbacks(listener);
-    const onInspect = vi.fn();
-
-    setStageCallbacks({ onInspect });
-    expect(listener).toHaveBeenCalledTimes(1);
-
-    setStageCallbacks({ onInspect });
-    expect(listener).toHaveBeenCalledTimes(1);
-
-    unsubscribe();
-    setStageCallbacks({});
-    expect(listener).toHaveBeenCalledTimes(1);
-  });
-
-  it('provides RootCanvasStageContext with default value false', () => {
-    const { result } = renderHook(() => useContext(RootCanvasStageContext));
-    expect(result.current).toBe(false);
-  });
-
-  it('persists stageCallbacks and listeners on globalThis for Vite HMR resilience', () => {
-    const onInspect = vi.fn();
-    setStageCallbacks({ onInspect });
-    const globalObj = globalThis as { __STARMAP_STAGE_CB__?: { onInspect?: (id: string) => void } };
-    expect(globalObj.__STARMAP_STAGE_CB__?.onInspect).toBe(onInspect);
-
-    useCanvasStageStore.getState().resetCanvasStageStore();
-    expect(globalObj.__STARMAP_STAGE_CB__).toEqual({});
   });
 });

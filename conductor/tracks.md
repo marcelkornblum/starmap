@@ -2,11 +2,6 @@
 
 ## Active Tracks
 
-### Performance & Architecture Remediation (sequenced standalone tracks)
-Recommended execution order: `1 (archived) → 2 (archived) → 3 (archived) → 4 (archived) → 5 (archived) → 6 (archived) → 7` (enforced via `depends_on` in each track's `metadata.json`; archive each on completion before PR).
-
-- [ ] **Track: State, Layering & Legacy Surface Cleanup** *Link: [conductor/tracks/state-layering-and-legacy-cleanup_20261121/index.md](./tracks/state-layering-and-legacy-cleanup_20261121/index.md)* *(7th — `M3`/`M4` remove `globalThis` locators, `M5` relocate token extractors, `M6` delete `PaletteShowcase` while keeping `Dock`, `M11`/`M12` purge aliases & shims, `L1` options object, `L5` `noUncheckedIndexedAccess`)*
-
 ### Product & Spatial Feature Tracks
 - [ ] **Track: Camera Choreography** *Link: [conductor/tracks/camera-choreography_20261117/index.md](./tracks/camera-choreography_20261117/index.md)* *(Cross-scale glides, HUD retraction + viewport compensation, search framing `FS-003`, conditional `Centre` CTA `FS-013`; owns backlog item `FS-012`; coordinate with `render-loop-and-r3f-hot-paths_20261121`)*
 - [ ] **Track: Orientation Instruments** *Link: [conductor/tracks/orientation-instruments_20261117/index.md](./tracks/orientation-instruments_20261117/index.md)* *(Compass / attitude widget and datum-plane tilt indicators; coordinate with `scene-draw-calls-and-gpu-tiering_20261121` `P-08`)*
@@ -65,4 +60,5 @@ Single backlog list: see [conductor/backlog.md](./backlog.md).
 - [x] **Track: Startup, Code Splitting & Fonts** *(archived complete 2026-11-21; PR #122)* *Link: [conductor/archive/tracks/startup-code-splitting-and-fonts_20261121/index.md](./archive/tracks/startup-code-splitting-and-fonts_20261121/index.md)*
 - [x] **Track: Data Contract Purity & Precalculation** *(archived complete 2026-11-21; PR #123)* *Link: [conductor/archive/tracks/data-contract-purity_20261121/index.md](./archive/tracks/data-contract-purity_20261121/index.md)*
 - [x] **Track: Spatial Data Delivery, Search & Hydration** *(archived complete 2026-11-21; PR #124)* *Link: [conductor/archive/tracks/spatial-data-delivery-and-search_20261121/index.md](./archive/tracks/spatial-data-delivery-and-search_20261121/index.md)*
-- [x] **Track: Scene Draw-Call Reduction & Adaptive GPU Tiering** *(archived complete 2026-11-21)* *Link: [conductor/archive/tracks/scene-draw-calls-and-gpu-tiering_20261121/index.md](./archive/tracks/scene-draw-calls-and-gpu-tiering_20261121/index.md)*
+- [x] **Track: Scene Draw-Call Reduction & Adaptive GPU Tiering** *(archived complete 2026-11-21; PR #125)* *Link: [conductor/archive/tracks/scene-draw-calls-and-gpu-tiering_20261121/index.md](./archive/tracks/scene-draw-calls-and-gpu-tiering_20261121/index.md)*
+- [x] **Track: State, Layering & Legacy Surface Cleanup** *(archived complete 2026-11-21)* *Link: [conductor/archive/tracks/state-layering-and-legacy-cleanup_20261121/index.md](./archive/tracks/state-layering-and-legacy-cleanup_20261121/index.md)*

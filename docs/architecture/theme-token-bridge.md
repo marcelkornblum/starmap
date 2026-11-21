@@ -42,8 +42,9 @@ The token synchronisation bridge is organised across focused TypeScript modules:
 | :--- | :--- | :--- |
 | [`src/types/threeTokens.ts`](../../src/types/threeTokens.ts) | Canonical TypeScript definitions for token snapshots and line styles. | `ThreeTokenSnapshot`, `ThreeTheme`, `ThreeLineStyle` |
 | [`src/utils/cssTokenParsers.ts`](../../src/utils/cssTokenParsers.ts) | Parses OKLCH, RGB, hex, durations, and pixel values; caches `THREE.Color` instances. | `parseCssColor`, `getThreeColor`, `parseCssDuration`, `parseCssPx` |
-| [`src/stores/extractThreeTokens.ts`](../../src/stores/extractThreeTokens.ts) | Single-pass extractor mapping DOM computed styles into `ThreeTokenSnapshot`. | `extractThreeTokens`, `readThreeTokensFromDom` |
-| [`src/stores/extractThreeColorTokens.ts`](../../src/stores/extractThreeColorTokens.ts) | Resolves CSS `var(--...)` references recursively (depth $\le 10$) and extracts colour hexes. | `extractThreeColorTokens`, `resolveCssVar`, `readCssColor` |
+| [`src/utils/threeTokenDefaults.ts`](../../src/utils/threeTokenDefaults.ts) | Default theme token snapshot baselines (`dark`, `light`, `amoled`). | `createDefaultTokenSnapshot`, `DEFAULT_DARK_TOKEN_SNAPSHOT` |
+| [`src/utils/extractThreeTokens.ts`](../../src/utils/extractThreeTokens.ts) | Single-pass extractor mapping DOM computed styles into `ThreeTokenSnapshot`. | `extractThreeTokens`, `readThreeTokensFromDom` |
+| [`src/utils/extractThreeColorTokens.ts`](../../src/utils/extractThreeColorTokens.ts) | Resolves CSS `var(--...)` references recursively (depth $\le 10$) and extracts colour hexes. | `extractThreeColorTokens`, `resolveCssVar`, `readCssColor` |
 | [`src/stores/useThreeTokenStore.ts`](../../src/stores/useThreeTokenStore.ts) | Lightweight Zustand store holding the current immutable token snapshot. | `useThreeTokenStore`, `ThreeTokenState` |
 | [`src/components/canvas/useThemeTokenSync.ts`](../../src/components/canvas/useThemeTokenSync.ts) | Event-driven hook binding DOM theme changes to `useThreeTokenStore`. | `useThemeTokenSync` |
 | [`src/components/canvas/ThemeTokenBridge.tsx`](../../src/components/canvas/ThemeTokenBridge.tsx) | DOM-side bridge provider and Canvas-side clear-colour synchroniser. | `ThemeTokenBridge`, `SceneTokenBridge` |

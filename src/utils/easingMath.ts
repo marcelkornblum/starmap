@@ -43,12 +43,14 @@ export function parseCssCubicBezier(cssEasing: string): (t: number) => number {
   );
   if (match) {
     const [, x1, y1, x2, y2] = match;
-    return createCubicBezierSolver(
-      Number.parseFloat(x1),
-      Number.parseFloat(y1),
-      Number.parseFloat(x2),
-      Number.parseFloat(y2),
-    );
+    if (x1 !== undefined && y1 !== undefined && x2 !== undefined && y2 !== undefined) {
+      return createCubicBezierSolver(
+        Number.parseFloat(x1),
+        Number.parseFloat(y1),
+        Number.parseFloat(x2),
+        Number.parseFloat(y2),
+      );
+    }
   }
   return (t) => t;
 }

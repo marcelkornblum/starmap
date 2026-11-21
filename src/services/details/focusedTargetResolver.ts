@@ -1,7 +1,4 @@
-import type { CelestialClassification, SpatialEntityDefinition } from '../../types/spatial';
-import type { SystemSummaryNode } from '../../types/astro';
-import type { DecodedDetailRecord } from '../../data/detailsRepository';
-import type { CompactSearchEntry } from '../../utils/compactDataTypes';
+import type { CelestialClassification } from '../../types/spatial';
 import {
   findFocusedEntryInCorpus,
   resolveEntryCategory,
@@ -29,22 +26,28 @@ import type {
   FocusedStarDetail,
 } from './detailsEntityTypes';
 
-import type { ResolvedFocusedTarget } from './focusedTargetResolverTypes';
+import type {
+  ResolvedFocusedTarget,
+  ResolveFocusedTargetOptions,
+} from './focusedTargetResolverTypes';
 
-export type { ResolvedFocusedTarget };
+export type { ResolvedFocusedTarget, ResolveFocusedTargetOptions };
 
 export function resolveFocusedTarget(
-  focusedEntity: SpatialEntityDefinition | null | undefined,
-  corpus: readonly CompactSearchEntry[],
-  summaryNode: SystemSummaryNode | undefined,
-  systemDetail: DecodedDetailRecord | undefined,
-  entityDetail: DecodedDetailRecord | undefined,
-  urlSystemSlug: string | null | undefined,
-  urlPlanetSlug: string | null | undefined,
-  urlFocusSlug: string | null | undefined,
-  hasExplicitFocus: boolean,
-  inputViewScope: 'galaxy' | 'system' | 'planet' | undefined,
+  options: ResolveFocusedTargetOptions,
 ): ResolvedFocusedTarget {
+  const {
+    focusedEntity,
+    corpus = [],
+    summaryNode,
+    systemDetail,
+    entityDetail,
+    urlSystemSlug,
+    urlPlanetSlug,
+    urlFocusSlug,
+    hasExplicitFocus = false,
+    viewScope: inputViewScope,
+  } = options;
   const matchedCorpusEntry = focusedEntity
     ? (findFocusedEntryInCorpus(focusedEntity.id, corpus) ?? findFocusedEntryInCorpus(focusedEntity.name, corpus))
     : undefined;

@@ -1,4 +1,4 @@
-import { parseCssColor, parseCssFloat } from '../utils/cssTokenParsers';
+import { parseCssColor, parseCssFloat } from './cssTokenParsers';
 import type { ParsedColorResult, ThreeTokenSnapshot } from '../types/threeTokens';
 
 /**
@@ -10,8 +10,9 @@ export function resolveCssVar(computed: CSSStyleDeclaration, value: string): str
   while (current.startsWith('var(') && depth < 10) {
     depth++;
     const match = current.match(/^var\(\s*(--[a-zA-Z0-9_-]+)/);
-    if (!match) break;
-    const resolved = computed.getPropertyValue(match[1]).trim();
+    const propName = match?.[1];
+    if (!propName) break;
+    const resolved = computed.getPropertyValue(propName).trim();
     if (!resolved) break;
     current = resolved;
   }

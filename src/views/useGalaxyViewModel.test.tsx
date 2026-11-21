@@ -8,11 +8,11 @@ vi.mock('@tanstack/react-router', () => ({
   useSearch: vi.fn(() => ({})),
   useRouter: vi.fn(() => undefined),
 }));
+import { useRouter } from '@tanstack/react-router';
 import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
 import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
-import { registerAppRouter } from '../hooks/useSpaLocation';
 
 describe('useGalaxyViewModel', () => {
   let navigateSpy: ReturnType<typeof vi.fn>;
@@ -24,11 +24,11 @@ describe('useGalaxyViewModel', () => {
       pendingCenterSlug: null,
     });
     navigateSpy = vi.fn().mockResolvedValue(undefined);
-    registerAppRouter({ navigate: navigateSpy });
+    vi.mocked(useRouter).mockReturnValue({ navigate: navigateSpy } as never);
   });
 
   afterEach(() => {
-    registerAppRouter(null);
+    vi.mocked(useRouter).mockReturnValue(undefined as never);
   });
 
   const createWrapper = (store: ReturnType<typeof createSpatialEntityStore>) => {
@@ -135,11 +135,11 @@ describe('useGalaxyViewModel', () => {
     expect(store.getState().selectedIds.size).toBe(0);
   });
 
-  it('preserves root path "/" when appRouter.state.location.pathname is "/" during focus change', async () => {
-    registerAppRouter({
+  it('preserves root path "/" when router.state.location.pathname is "/" during focus change', async () => {
+    vi.mocked(useRouter).mockReturnValue({
       navigate: navigateSpy,
       state: { location: { pathname: '/' } },
-    });
+    } as never);
 
     const store = createSpatialEntityStore();
     let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, unknown>>;
@@ -165,8 +165,8 @@ describe('useGalaxyViewModel', () => {
     );
   });
 
-  it('updates window.history.replaceState and dispatches starmap:locationchange when appRouter.navigate is undefined', async () => {
-    registerAppRouter(null);
+  it('updates window.history.replaceState and dispatches starmap:locationchange when router.navigate is undefined', async () => {
+    vi.mocked(useRouter).mockReturnValue(undefined as never);
     const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
     const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
 

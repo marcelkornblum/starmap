@@ -1,5 +1,5 @@
-import { parseCssPx, parseCssDuration, parseCssFloat } from '../utils/cssTokenParsers';
-import { parseCssCubicBezier } from '../utils/easingMath';
+import { parseCssPx, parseCssDuration, parseCssFloat } from './cssTokenParsers';
+import { parseCssCubicBezier } from './easingMath';
 import type { ThreeTheme, ThreeLineStyle, ThreeTokenSnapshot, EasingFunction } from '../types/threeTokens';
 import { createDefaultTokenSnapshot } from './threeTokenDefaults';
 import { extractThreeColorTokens, resolveCssVar, readCssOpacity } from './extractThreeColorTokens';

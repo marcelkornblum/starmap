@@ -25,8 +25,6 @@ export interface ScreenEdgeCueProps {
   extent?: number;
   /** Distance to system/galactic centre for curved orbital calculation */
   centerDistance?: number;
-  /** @deprecated Use centerDistance instead */
-  rGc?: number;
   minLineLength?: number;
 }
 
@@ -44,7 +42,6 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
   margin = 28,
   extent = DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
   centerDistance,
-  rGc,
   minLineLength = 40,
 }) => {
   const { frameRef } = useSpatialFrame();
@@ -96,7 +93,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
     }
 
     const bType: ScreenEdgeBearingType = bearing.id === 'orbital' ? 'orbital' : 'core';
-    const effectiveCenterDistance = centerDistance ?? rGc ?? frameRef?.current?.frame?.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
+    const effectiveCenterDistance = centerDistance ?? frameRef?.current?.frame?.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
 
     calculateScreenEdgeBearing(
       activeCamera,

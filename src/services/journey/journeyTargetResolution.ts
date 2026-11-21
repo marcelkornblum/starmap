@@ -5,7 +5,7 @@ import {
 } from '../../data/detailsRepository';
 import { getCachedReferenceBaselines } from '../../data/referenceBaselinesRepository';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
-import type { SystemSummaryNode, SystemManifest, PlanetRecord } from '../../types/astro';
+import type { SystemSummaryNode, SystemManifest, ExoplanetRecord } from '../../types/astro';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
 import { formatSlugFallbackTitle } from '../../utils/starNaming';
 import { DEFAULT_ORIGIN_TARGETS } from '../../config/referenceTargets';
@@ -49,7 +49,7 @@ export function resolveEndpoint(
     parentDetail?.kind === 'system' ? parentDetail.record : sysRecord;
 
   const planetMatch = parentSysRecord?.planets?.find(
-    (p: PlanetRecord) => toUrlSlug(p.id) === slug || toUrlSlug(p.name) === slug,
+    (p: ExoplanetRecord) => toUrlSlug(p.id) === slug || toUrlSlug(p.name) === slug,
   );
 
   const solarBodyRecord =

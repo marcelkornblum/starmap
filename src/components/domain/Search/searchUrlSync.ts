@@ -1,6 +1,6 @@
 import { parseSearchUrlParams } from '../../../services/search/searchUrls';
 import type { SearchCategoryFilter } from '../../../types/search';
-import { appRouter, type StarmapSearchParams } from '../../../hooks/useSpaLocation';
+import type { AppRouterAdapter, StarmapSearchParams } from '../../../hooks/useSpaLocation';
 
 export const resolveInitialQuery = (
   syncUrl: boolean,
@@ -27,10 +27,11 @@ export const resolveInitialFilter = (
 export const syncSearchUrlParams = (
   nextQuery: string,
   nextFilter: SearchCategoryFilter,
+  router?: AppRouterAdapter | null,
 ): void => {
-  if (appRouter?.navigate && appRouter?.state) {
+  if (router && typeof router.navigate === 'function' && router.state !== undefined) {
     const qTrimmed = nextQuery.trim();
-    void appRouter.navigate({
+    void router.navigate({
       to: '.',
       search: (prev: StarmapSearchParams = {}) => {
         const next: StarmapSearchParams = { ...prev };

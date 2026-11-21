@@ -1,32 +1,36 @@
 import React, { Suspense, lazy, useCallback } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { RootCanvasHost } from '../components/domain/CanvasLayer';
+import { RootCanvasStageContext } from '../components/domain/CanvasLayer/RootCanvasStageContext';
 import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
 import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
 import { handleSpaNavigation } from '../hooks/spaNavigation';
-import { appRouter, useSpaLocation } from '../hooks/useSpaLocation';
-import { RootCanvasStageContext } from '../stores/useCanvasStageStore';
+import { useOptionalRouter, useSpaLocation } from '../hooks/useSpaLocation';
 
 const LazyGalaxyView = lazy(() =>
   import('../views/GalaxyView').then((m) => ({ default: m.GalaxyView })),
 );
 
 export const RootLayout: React.FC = () => {
+  const router = useOptionalRouter();
   const { pathname } = useSpaLocation(undefined, undefined, '');
 
-  const handleRootClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.defaultPrevented) return;
-    const target = event.target as Element | null;
-    const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
-    if (!anchor) return;
-    if (anchor.target && anchor.target !== '_self') return;
-    if (anchor.hasAttribute('download')) return;
-    const href = anchor.getAttribute('href');
-    if (!href) return;
-    handleSpaNavigation(event, href);
-  }, []);
+  const handleRootClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (event.defaultPrevented) return;
+      const target = event.target as Element | null;
+      const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!anchor) return;
+      if (anchor.target && anchor.target !== '_self') return;
+      if (anchor.hasAttribute('download')) return;
+      const href = anchor.getAttribute('href');
+      if (!href) return;
+      handleSpaNavigation(event, href, router);
+    },
+    [router],
+  );
 
-  const hasRegisteredRouter = appRouter.state !== undefined;
+  const hasRegisteredRouter = router?.state !== undefined;
   const isPersistentGalaxyRoute =
     hasRegisteredRouter && (pathname === '/' || pathname === '/galaxy');
 

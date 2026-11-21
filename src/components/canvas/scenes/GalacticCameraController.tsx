@@ -4,7 +4,7 @@ import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
-import { appRouter, type StarmapSearchParams } from '../../../hooks/useSpaLocation';
+import { useOptionalRouter, type StarmapSearchParams } from '../../../hooks/useSpaLocation';
 import {
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
@@ -35,6 +35,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   const invalidate = useThree((s) => s.invalidate);
   const rawControls = useThree((s) => s.controls);
   const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
+  const router = useOptionalRouter();
   const recenterTick = useCameraStore((s) => s.recenterTick);
   const prevTargetRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
   const prevDistanceRef = useRef<number>(Number.NaN);
@@ -105,7 +106,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       const handleChange = () => saveCurrentGalaxyPose(false);
       const handleEnd = () => {
         saveCurrentGalaxyPose(true);
-        if (controls && appRouter?.navigate && typeof window !== 'undefined') {
+        if (controls && router && typeof router.navigate === 'function' && typeof window !== 'undefined') {
           const tgt = controls.target;
           const searchParams = new URLSearchParams(window.location.search);
           const centerParam = searchParams.get('center');
@@ -115,7 +116,8 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
             if (currentDistFromTarget > 0.05) {
               const coordStr = `${tgt.x.toFixed(1)},${tgt.y.toFixed(1)},${tgt.z.toFixed(1)}`;
               if (centerParam !== coordStr) {
-                void appRouter.navigate({
+                void router.navigate({
+                  to: '.',
                   search: (prev: StarmapSearchParams = {}) => ({ ...prev, center: coordStr }),
                   replace: true,
                 });
@@ -132,7 +134,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
         controls.removeEventListener?.('end', handleEnd);
       };
     }
-  }, [controls, persistGalaxyPose, saveCurrentGalaxyPose]);
+  }, [controls, persistGalaxyPose, router, saveCurrentGalaxyPose]);
 
   useEffect(() => {
     const prev = prevTargetRef.current;

@@ -6,7 +6,7 @@ import { calculateKeplerianPosition } from '../math/kepler';
 import { PlanetBody } from '../entity/PlanetBody';
 import type { SpatialEntityDefinition } from '../entity';
 import type { CelestialClassification } from '../../../types/spatial';
-import type { PlanetRecord, SatelliteRecord } from '../../../types/astro';
+import type { ExoplanetRecord, SatelliteRecord } from '../../../types/astro';
 import { getCachedDetailRecord } from '../../../data/detailsRepository';
 import {
   EARTH_REFERENCE_TARGET,
@@ -20,7 +20,7 @@ export interface PlanetSceneProps {
   radius?: number;
   minPixelSize?: number;
   fadeRange?: number;
-  planet?: PlanetRecord;
+  planet?: ExoplanetRecord;
   satellites?: SpatialEntityDefinition[];
   onInspectSatellite?: (satelliteId: string) => void;
   onSelectEntity?: (entityId: string | null) => void;

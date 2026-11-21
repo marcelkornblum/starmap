@@ -73,7 +73,6 @@ export function renderDirectionsDatum(
     | undefined
     | null,
   statTestId: string,
-  legacyTestId?: string,
 ): ReactNode {
   if (!quantityOrStr) return null;
   if (typeof quantityOrStr === 'string') {
@@ -81,7 +80,6 @@ export function renderDirectionsDatum(
       label,
       value: quantityOrStr,
       valueTestId: statTestId,
-      'data-testid': legacyTestId,
     });
   }
 
@@ -105,7 +103,6 @@ export function renderDirectionsDatum(
         value: `Δz ${signedVal}`,
         unit: unitText ? React.createElement(Unit, null, unitText) : undefined,
         valueTestId: statTestId,
-        'data-testid': legacyTestId,
       });
     }
 
@@ -122,12 +119,11 @@ export function renderDirectionsDatum(
         value: rangeVal,
         unit: React.createElement(Unit, null, unitText),
         valueTestId: statTestId,
-        'data-testid': legacyTestId,
       });
     }
 
     if (quantityOrStr.kind === 'single-leg') {
-      return renderDirectionsDatum(label, quantityOrStr.geometry, statTestId, legacyTestId);
+      return renderDirectionsDatum(label, quantityOrStr.geometry, statTestId);
     }
 
     const legLabel = `${quantityOrStr.legCount} legs`;
@@ -135,7 +131,6 @@ export function renderDirectionsDatum(
       label,
       value: legLabel,
       valueTestId: statTestId,
-      'data-testid': legacyTestId,
     });
   }
 
@@ -149,6 +144,5 @@ export function renderDirectionsDatum(
     value: quantityOrStr.value,
     unit: unitText ? React.createElement(Unit, null, unitText) : undefined,
     valueTestId: statTestId,
-    'data-testid': legacyTestId,
   });
 }

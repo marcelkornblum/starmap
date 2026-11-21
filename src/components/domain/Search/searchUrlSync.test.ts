@@ -4,7 +4,7 @@ import {
   resolveInitialQuery,
   syncSearchUrlParams,
 } from './searchUrlSync';
-import { registerAppRouter } from '../../../hooks/useSpaLocation';
+import type { AppRouterAdapter } from '../../../hooks/useSpaLocation';
 
 describe('searchUrlSync', () => {
   describe('resolveInitialQuery', () => {
@@ -38,34 +38,37 @@ describe('searchUrlSync', () => {
   });
 
   describe('syncSearchUrlParams', () => {
-    it('updates search query and filter in appRouter when navigate is available', () => {
+    it('updates search query and filter in passed router when navigate is available', () => {
       const navigateMock = vi.fn().mockResolvedValue(undefined);
-      registerAppRouter({
+      const mockRouter: AppRouterAdapter = {
         navigate: navigateMock,
         state: {},
-      });
+      };
 
-      try {
-        syncSearchUrlParams('Sol', 'stars');
-        expect(navigateMock).toHaveBeenCalled();
+      syncSearchUrlParams('Sol', 'stars', mockRouter);
+      expect(navigateMock).toHaveBeenCalled();
 
-        const navArg = navigateMock.mock.calls[0][0];
-        expect(navArg.to).toBe('.');
-        const updatedSearch = navArg.search({});
-        expect(updatedSearch.q).toBe('Sol');
-        expect(updatedSearch.select).toBe('search');
-        expect(updatedSearch.searchCategory).toBe('stars');
+      const navArg = navigateMock.mock.calls[0][0];
+      expect(navArg.to).toBe('.');
+      const updatedSearch = navArg.search({});
+      expect(updatedSearch.q).toBe('Sol');
+      expect(updatedSearch.select).toBe('search');
+      expect(updatedSearch.searchCategory).toBe('stars');
 
-        // Test clearing search
-        syncSearchUrlParams('', 'all');
-        const clearedArg = navigateMock.mock.calls[1][0];
-        const clearedSearch = clearedArg.search({ q: 'Sol', select: 'search', searchCategory: 'stars' });
-        expect(clearedSearch.q).toBeUndefined();
-        expect(clearedSearch.select).toBeUndefined();
-        expect(clearedSearch.searchCategory).toBeUndefined();
-      } finally {
-        registerAppRouter(null);
-      }
+      // Test clearing search
+      syncSearchUrlParams('', 'all', mockRouter);
+      const clearedArg = navigateMock.mock.calls[1][0];
+      const clearedSearch = clearedArg.search({ q: 'Sol', select: 'search', searchCategory: 'stars' });
+      expect(clearedSearch.q).toBeUndefined();
+      expect(clearedSearch.select).toBeUndefined();
+      expect(clearedSearch.searchCategory).toBeUndefined();
+    });
+
+    it('is a no-op when router or router.state is unavailable', () => {
+      const navigateMock = vi.fn();
+      syncSearchUrlParams('Sol', 'stars', undefined);
+      syncSearchUrlParams('Sol', 'stars', { navigate: navigateMock });
+      expect(navigateMock).not.toHaveBeenCalled();
     });
   });
 });

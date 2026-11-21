@@ -3,18 +3,14 @@ import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { CanvasLayer } from './CanvasLayer';
-import {
-  canMountWebGLCanvas,
-  _resetWebGLSupportedForTesting,
-} from './webglSupport';
+import { canMountWebGLCanvas } from './webglSupport';
+import { _resetWebGLSupportedForTesting } from './webglSupport.testing';
 import {
   getRegisteredWebGLGpuTelemetry,
   resetDeviceTierRuntimeState,
 } from '../../../services/deviceTierService';
-import {
-  useCanvasStageStore,
-  RootCanvasStageContext,
-} from '../../../stores/useCanvasStageStore';
+import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
+import { RootCanvasStageContext } from './RootCanvasStageContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import {
   SpatialEntityStoreContext,

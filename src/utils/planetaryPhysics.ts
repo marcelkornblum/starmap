@@ -9,8 +9,6 @@ export interface PlanetPhysicalProperties {
   classification?: string;
 }
 
-export type PlanetCensusClassification = PlanetComposition;
-
 /** Conversion constants between Jupiter and Earth units */
 export const RJUP_TO_REARTH = 11.209;
 export const MJUP_TO_MEARTH = 317.83;
@@ -27,7 +25,7 @@ export const ICE_GIANT_MAX_MASS_MEARTH = 50.0;
  * Authoritative classification of a planet or exoplanet based on physical metrics.
  * Falls back to explicit string classification or terrestrial default if physical values are absent.
  */
-export function classifyPlanetPhysical(planet: PlanetPhysicalProperties): PlanetCensusClassification {
+export function classifyPlanetPhysical(planet: PlanetPhysicalProperties): PlanetComposition {
   if (planet.classification) {
     const norm = planet.classification.toLowerCase();
     if (norm.includes('super-earth') || norm.includes('super earth') || norm.includes('superearth')) {
@@ -122,7 +120,7 @@ export function isPlanetHabitableCandidate(
  */
 export function computePlanetCompositionCounts(
   planets: readonly (PlanetPhysicalProperties & {
-    readonly composition?: PlanetCensusClassification;
+    readonly composition?: PlanetComposition;
   })[],
 ): PlanetCompositionCounts | undefined {
   if (planets.length === 0) {

@@ -150,7 +150,6 @@ export interface CameraRigConfig {
   maxDistance: number;
   defaultPosition: [number, number, number];
   defaultTarget: [number, number, number];
-  adaptiveProjection?: boolean;
   thresholdStart?: number;
   thresholdEnd?: number;
 }

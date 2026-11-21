@@ -205,8 +205,6 @@ export interface ExoplanetRecord {
   theoreticalFlags?: number;
 }
 
-export type PlanetRecord = ExoplanetRecord;
-
 /** Individual stellar component in a single or multi-star system. */
 export interface StellarComponent {
   id: string;
@@ -221,8 +219,6 @@ export interface StellarComponent {
   effectiveTempK?: number;
   reticleType?: CelestialSymbolType;
 }
-
-export type StarRecord = StellarComponent;
 
 /** Detailed manifest for a single stellar system (drill-down view). */
 export interface SystemManifest {
@@ -244,8 +240,6 @@ export interface SystemManifest {
   hazardMask?: number;
   disks?: CircumstellarDiskRecord[];
 }
-
-export type StarSystemManifest = SystemManifest;
 
 /** Kind of circumstellar disk or belt (DEC-035). */
 export type CircumstellarDiskKind = 'asteroid-belt' | 'kuiper-belt' | 'debris-disk';

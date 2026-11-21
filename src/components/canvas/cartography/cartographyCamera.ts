@@ -5,8 +5,6 @@ export interface StandardCameraConfig {
   fov: number;
 }
 
-export type StandardCameraSetup = StandardCameraConfig;
-
 export const STANDARD_CAMERA_DISTANCES = {
   galactic: 28,
   system: 22,
@@ -25,7 +23,7 @@ export function getStandardInitialCamera(
   distance: number,
   target: [number, number, number] = [0, 0, 0],
   fov = 45,
-): StandardCameraSetup {
+): StandardCameraConfig {
   const DEG_TO_RAD = Math.PI / 180;
   const theta = 32 * DEG_TO_RAD;
   const phi = 14 * DEG_TO_RAD;

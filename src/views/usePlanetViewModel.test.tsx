@@ -8,6 +8,7 @@ vi.mock('@tanstack/react-router', () => ({
   useSearch: vi.fn(() => ({})),
   useRouter: vi.fn(() => undefined),
 }));
+import { useRouter } from '@tanstack/react-router';
 import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
 import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
 import {
@@ -17,7 +18,6 @@ import {
 } from '../data/detailsRepository';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
-import { registerAppRouter } from '../hooks/useSpaLocation';
 import type { SystemManifest, SystemSummaryNode } from '../types/astro';
 
 const SOL_FIXTURE: SystemManifest = {
@@ -144,7 +144,7 @@ describe('usePlanetViewModel', () => {
 
   it('provides handleSelectEntity that navigates and elevates UI detent when selecting an entity', async () => {
     const navigateSpy = vi.fn().mockResolvedValue(undefined);
-    registerAppRouter({ navigate: navigateSpy });
+    vi.mocked(useRouter).mockReturnValue({ navigate: navigateSpy } as never);
 
     try {
       const store = createSpatialEntityStore();
@@ -191,7 +191,7 @@ describe('usePlanetViewModel', () => {
         }),
       );
     } finally {
-      registerAppRouter(null);
+      vi.mocked(useRouter).mockReturnValue(undefined as never);
     }
   });
 });

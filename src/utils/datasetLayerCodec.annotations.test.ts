@@ -72,7 +72,7 @@ describe('datasetLayerCodec - By-Entity Annotation Buckets', () => {
 
   it('encodes compact records with defaults omitted and decodes them losslessly', () => {
     const buckets = buildEntityAnnotationBuckets([annotationLayer, overlayLayer]);
-    const [hostRecord] = buckets[getShardKey('host-star')]['host-star'];
+    const hostRecord = buckets[getShardKey('host-star')]?.['host-star']?.[0];
     expect(hostRecord).toEqual({
       i: 'canon-sample',
       n: 'Sample Canon',
@@ -82,26 +82,33 @@ describe('datasetLayerCodec - By-Entity Annotation Buckets', () => {
       r: '1999',
     });
 
-    const planetRecord = buckets[getShardKey('host-star-b')]['host-star-b'][0];
-    expect(decodeEntityAnnotation(planetRecord)).toEqual({
-      layerId: 'canon-sample',
-      layerTitle: 'Sample Canon',
-      kind: 'fictional-canon',
-      targetId: 'host-star-b',
-      targetType: 'planet',
-      systemId: 'host-star',
-      parentBodyId: 'host-star',
-      inUniverseName: 'Bee',
-      subtitle: 'Second world',
-      workTitle: 'Sample Book',
-      text: 'The planet.',
-      order: 2,
-      creator: 'Jane Author',
-      publicationYear: '1999',
-    });
+    const planetRecords = buckets[getShardKey('host-star-b')]?.['host-star-b'];
+    const planetRecord = planetRecords?.[0];
+    expect(planetRecord).toBeDefined();
+    if (planetRecord) {
+      expect(decodeEntityAnnotation(planetRecord)).toEqual({
+        layerId: 'canon-sample',
+        layerTitle: 'Sample Canon',
+        kind: 'fictional-canon',
+        targetId: 'host-star-b',
+        targetType: 'planet',
+        systemId: 'host-star',
+        parentBodyId: 'host-star',
+        inUniverseName: 'Bee',
+        subtitle: 'Second world',
+        workTitle: 'Sample Book',
+        text: 'The planet.',
+        order: 2,
+        creator: 'Jane Author',
+        publicationYear: '1999',
+      });
+    }
 
-    const overlayRecord = buckets[getShardKey('host-star-b')]['host-star-b'][1];
-    expect(decodeEntityAnnotation(overlayRecord).kind).toBe('scientific-overlay');
+    const overlayRecord = planetRecords?.[1];
+    expect(overlayRecord).toBeDefined();
+    if (overlayRecord) {
+      expect(decodeEntityAnnotation(overlayRecord).kind).toBe('scientific-overlay');
+    }
   });
 
   it('covers every entry of every authored layer under both its target and system keys', () => {
@@ -143,10 +150,14 @@ describe('datasetLayerCodec - By-Entity Annotation Buckets', () => {
     expect(decoded.entries['gaia-2452378776434477184']?.resolvedName).toBe('Tau Ceti');
 
     const buckets = buildEntityAnnotationBuckets([manifestWithResolved]);
-    const [shardRecord] = buckets[getShardKey('gaia-2452378776434477184')]['gaia-2452378776434477184'];
-    expect(shardRecord.d).toBe('Tau Ceti');
+    const shardRecord =
+      buckets[getShardKey('gaia-2452378776434477184')]?.['gaia-2452378776434477184']?.[0];
+    expect(shardRecord).toBeDefined();
+    if (shardRecord) {
+      expect(shardRecord.d).toBe('Tau Ceti');
 
-    const decodedAnnotation = decodeEntityAnnotation(shardRecord);
-    expect(decodedAnnotation.resolvedName).toBe('Tau Ceti');
+      const decodedAnnotation = decodeEntityAnnotation(shardRecord);
+      expect(decodedAnnotation.resolvedName).toBe('Tau Ceti');
+    }
   });
 });

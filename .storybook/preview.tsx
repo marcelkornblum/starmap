@@ -14,7 +14,7 @@ const preview: Preview = {
         const [aCategory, aSubcategory] = a.title.split('/');
         const [bCategory, bSubcategory] = b.title.split('/');
 
-        const categoryOrder = ['INTERFACE', 'CANVAS', 'PROTOTYPES', 'POC'];
+        const categoryOrder = ['INTERFACE', 'CANVAS', 'POC'];
         const aCatIdx = categoryOrder.indexOf(aCategory);
         const bCatIdx = categoryOrder.indexOf(bCategory);
 
@@ -41,16 +41,6 @@ const preview: Preview = {
           const canvasSubOrder = ['Overview', 'Assembly', 'Viewport', 'Instrument', 'Entities', 'Scenes'];
           const aSubIdx = canvasSubOrder.indexOf(aSubcategory);
           const bSubIdx = canvasSubOrder.indexOf(bSubcategory);
-          if (aSubIdx !== -1 && bSubIdx !== -1 && aSubIdx !== bSubIdx) {
-            return aSubIdx - bSubIdx;
-          }
-        }
-
-        // In PROTOTYPES
-        if (aCategory === 'PROTOTYPES' && bCategory === 'PROTOTYPES') {
-          const protoSubOrder = ['Typography Review', 'Colour Palette', 'Full UI'];
-          const aSubIdx = protoSubOrder.indexOf(aSubcategory);
-          const bSubIdx = protoSubOrder.indexOf(bSubcategory);
           if (aSubIdx !== -1 && bSubIdx !== -1 && aSubIdx !== bSubIdx) {
             return aSubIdx - bSubIdx;
           }

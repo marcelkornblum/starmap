@@ -59,7 +59,7 @@ export function parseCsvRowsSync(content: string, separator = ','): string[][] {
         currentRow.push(currentField);
         currentField = '';
 
-        const isBlank = currentRow.length === 1 && currentRow[0].trim() === '';
+        const isBlank = currentRow.length === 1 && (currentRow[0] ?? '').trim() === '';
         if (!isBlank) {
           rows.push(currentRow);
         }
@@ -78,7 +78,7 @@ export function parseCsvRowsSync(content: string, separator = ','): string[][] {
     }
     if (currentField.length > 0 || currentRow.length > 0) {
       currentRow.push(currentField);
-      const isBlank = currentRow.length === 1 && currentRow[0].trim() === '';
+      const isBlank = currentRow.length === 1 && (currentRow[0] ?? '').trim() === '';
       if (!isBlank) {
         rows.push(currentRow);
       }
@@ -96,15 +96,17 @@ export function parseCsvRecordsSync(
   separator = ',',
 ): Array<Record<string, string>> {
   const rows = parseCsvRowsSync(content, separator);
-  if (rows.length === 0) {
+  const firstRow = rows[0];
+  if (!firstRow) {
     return [];
   }
 
-  const headers = rows[0].map((h) => h.trim());
+  const headers = firstRow.map((h) => h.trim());
   const records: Array<Record<string, string>> = [];
 
   for (let r = 1; r < rows.length; r++) {
     const row = rows[r];
+    if (!row) continue;
     const record: Record<string, string> = {};
     for (let c = 0; c < headers.length; c++) {
       const header = headers[c];

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
 export interface ResolvePrimaryPanelsOptions {
-  readonly primaryFloat?: React.ReactNode;
   readonly detailsPanel?: React.ReactNode;
   readonly directionsPanel?: React.ReactNode;
   readonly isDetailsOpen?: boolean;
@@ -12,7 +11,6 @@ export interface ResolvePrimaryPanelsOptions {
 }
 
 export function resolvePrimaryPanels({
-  primaryFloat,
   detailsPanel,
   directionsPanel,
   isDetailsOpen = true,
@@ -21,18 +19,13 @@ export function resolvePrimaryPanels({
   dualPanelPolicy = 'auto',
   isWideViewport = false,
 }: ResolvePrimaryPanelsOptions): React.ReactNode {
-  // If primaryFloat is explicitly passed alone (e.g. in legacy unit tests), render primaryFloat.
-  if (primaryFloat !== undefined && detailsPanel === undefined && directionsPanel === undefined) {
-    return primaryFloat;
-  }
-
   // Filter by isDetailsOpen and isDirectionsOpen
   const showDetails = Boolean(detailsPanel && isDetailsOpen);
   const showDirections = Boolean(directionsPanel && isDirectionsOpen);
 
   // If neither is available/open
   if (!showDetails && !showDirections) {
-    return primaryFloat ?? null;
+    return null;
   }
 
   // If only one is available/open, render that one

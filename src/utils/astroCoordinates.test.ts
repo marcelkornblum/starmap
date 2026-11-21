@@ -126,7 +126,8 @@ describe('rotateToOrbitalPlane', () => {
     expect(buffer[1]).toBeCloseTo(100 * Math.sin(tiltRad), 4);
     expect(buffer[2]).toBeCloseTo(100 * Math.cos(tiltRad), 4);
 
-    const dist = Math.sqrt(buffer[0] ** 2 + buffer[1] ** 2 + buffer[2] ** 2);
+    const [bx = 0, by = 0, bz = 0] = buffer;
+    const dist = Math.sqrt(bx ** 2 + by ** 2 + bz ** 2);
     expect(dist).toBeCloseTo(100, 4);
   });
 
@@ -144,7 +145,8 @@ describe('rotateToOrbitalPlane', () => {
     const buffer = new Float32Array([100, 0, 0]);
     rotateToOrbitalPlane(buffer, 90, 90, { degrees: true });
 
-    const dist = Math.sqrt(buffer[0] ** 2 + buffer[1] ** 2 + buffer[2] ** 2);
+    const [bx = 0, by = 0, bz = 0] = buffer;
+    const dist = Math.sqrt(bx ** 2 + by ** 2 + bz ** 2);
     expect(dist).toBeCloseTo(100, 4);
   });
 
@@ -153,18 +155,23 @@ describe('rotateToOrbitalPlane', () => {
     const buffer = new Float32Array(stars.length * 3);
 
     for (let i = 0; i < stars.length; i++) {
-      buffer[i * 3] = stars[i].x;
-      buffer[i * 3 + 1] = stars[i].y;
-      buffer[i * 3 + 2] = stars[i].z;
+      const star = stars[i];
+      if (!star) continue;
+      buffer[i * 3] = star.x;
+      buffer[i * 3 + 1] = star.y;
+      buffer[i * 3 + 2] = star.z;
     }
 
     rotateToOrbitalPlane(buffer, 45, 30, { degrees: true });
 
     for (let i = 0; i < stars.length; i++) {
-      const origDist = Math.sqrt(stars[i].x ** 2 + stars[i].y ** 2 + stars[i].z ** 2);
-      const rotatedDist = Math.sqrt(
-        buffer[i * 3] ** 2 + buffer[i * 3 + 1] ** 2 + buffer[i * 3 + 2] ** 2,
-      );
+      const star = stars[i];
+      if (!star) continue;
+      const origDist = Math.sqrt(star.x ** 2 + star.y ** 2 + star.z ** 2);
+      const rx = buffer[i * 3] ?? 0;
+      const ry = buffer[i * 3 + 1] ?? 0;
+      const rz = buffer[i * 3 + 2] ?? 0;
+      const rotatedDist = Math.sqrt(rx ** 2 + ry ** 2 + rz ** 2);
       expect(rotatedDist).toBeCloseTo(origDist, 3);
     }
   });

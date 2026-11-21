@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useThreeTokenStore } from '../../stores/useThreeTokenStore';
-import { extractThreeTokens } from '../../stores/extractThreeTokens';
+import { extractThreeTokens } from '../../utils/extractThreeTokens';
 
 /**
  * Hook synchronising DOM theme tokens with the Three.js token store.

@@ -207,6 +207,8 @@ describe('binarySectorCodec (AUD-048 / DEC-R029)', () => {
 
       for (let i = 0; i < mockSystems.length; i++) {
         const sys = mockSystems[i];
+        expect(sys).toBeDefined();
+        if (!sys) continue;
         expect(decoded.positions[i * 3 + 0]).toBeCloseTo(sys.x, 4);
         expect(decoded.positions[i * 3 + 1]).toBeCloseTo(sys.y, 4);
         expect(decoded.positions[i * 3 + 2]).toBeCloseTo(sys.z, 4);
@@ -228,6 +230,8 @@ describe('binarySectorCodec (AUD-048 / DEC-R029)', () => {
 
       for (let i = 0; i < mockSystems.length; i++) {
         const sys = mockSystems[i];
+        expect(sys).toBeDefined();
+        if (!sys) continue;
         const offset = i * BINARY_SECTOR_STRIDE_ELEMENTS;
         expect(decoded.interleavedFloats[offset + 0]).toBeCloseTo(sys.x, 4);
         expect(decoded.interleavedFloats[offset + 1]).toBeCloseTo(sys.y, 4);
@@ -253,6 +257,8 @@ describe('binarySectorCodec (AUD-048 / DEC-R029)', () => {
       for (let i = 0; i < mockSystems.length; i++) {
         const recOffset = BINARY_SECTOR_HEADER_BYTES + i * BINARY_SECTOR_RECORD_BYTES;
         const sys = mockSystems[i];
+        expect(sys).toBeDefined();
+        if (!sys) continue;
         expect(view.getFloat32(recOffset + 0, true)).toBeCloseTo(sys.x, 4);
         expect(view.getFloat32(recOffset + 4, true)).toBeCloseTo(sys.y, 4);
         expect(view.getFloat32(recOffset + 8, true)).toBeCloseTo(sys.z, 4);

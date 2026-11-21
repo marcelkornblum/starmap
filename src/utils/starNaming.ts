@@ -35,6 +35,7 @@ export function expandGreekBayer(bayer: string): string {
   if (!match) return trimmed;
 
   const rawPrefix = match[1];
+  if (rawPrefix === undefined) return trimmed;
   const hyphenOrSpaceSuffix = match[2];
   const superscriptSuffix = match[3];
   const plainDigitSuffix = match[4];
@@ -107,11 +108,13 @@ export function expandGouldOrConstellationSuffix(rawName: string): string {
   const trailingSuffix: string[] = [];
   const starTokens = [...tokens];
 
-  if (starTokens.length > 2 && /^[b-z]$/.test(starTokens[starTokens.length - 1])) {
+  const lastBeforePlanet = starTokens.at(-1);
+  if (starTokens.length > 2 && lastBeforePlanet !== undefined && /^[b-z]$/.test(lastBeforePlanet)) {
     const popped = starTokens.pop();
     if (popped) trailingSuffix.unshift(popped);
   }
-  if (starTokens.length > 2 && /^[A-D]$/.test(starTokens[starTokens.length - 1])) {
+  const lastBeforeComp = starTokens.at(-1);
+  if (starTokens.length > 2 && lastBeforeComp !== undefined && /^[A-D]$/.test(lastBeforeComp)) {
     const popped = starTokens.pop();
     if (popped) trailingSuffix.unshift(popped);
   }
@@ -127,8 +130,9 @@ export function expandGouldOrConstellationSuffix(rawName: string): string {
     }
   }
 
-  if (!genitive && starTokens.length >= 1) {
-    const lastOne = starTokens[starTokens.length - 1].toLowerCase();
+  const lastToken = starTokens.at(-1);
+  if (!genitive && lastToken !== undefined) {
+    const lastOne = lastToken.toLowerCase();
     genitive = IAU_CONSTELLATION_GENITIVE_MAP[lastOne] || KNOWN_GENITIVE_MAP[lastOne];
     if (genitive) {
       constellationTokenCount = 1;
@@ -139,16 +143,20 @@ export function expandGouldOrConstellationSuffix(rawName: string): string {
 
   const remainingStarTokens = starTokens.slice(0, starTokens.length - constellationTokenCount);
 
+  const firstToken = remainingStarTokens[0];
+  const secondToken = remainingStarTokens[1];
   if (
     remainingStarTokens.length === 2 &&
-    isGreekBayerPrefix(remainingStarTokens[0]) &&
-    (/^\d+$/.test(remainingStarTokens[1]) || /^[¹²³⁴⁵⁶⁷⁸⁹⁰]+$/.test(remainingStarTokens[1]))
+    firstToken !== undefined &&
+    secondToken !== undefined &&
+    isGreekBayerPrefix(firstToken) &&
+    (/^\d+$/.test(secondToken) || /^[¹²³⁴⁵⁶⁷⁸⁹⁰]+$/.test(secondToken))
   ) {
-    const prefix = expandGreekBayer(remainingStarTokens[0]);
-    const digits = transliterateGreekAndSuperscripts(remainingStarTokens[1]);
+    const prefix = expandGreekBayer(firstToken);
+    const digits = transliterateGreekAndSuperscripts(secondToken);
     remainingStarTokens.splice(0, 2, `${prefix}-${digits}`);
-  } else if (remainingStarTokens.length === 1) {
-    remainingStarTokens[0] = expandGreekBayer(remainingStarTokens[0]);
+  } else if (remainingStarTokens.length === 1 && firstToken !== undefined) {
+    remainingStarTokens[0] = expandGreekBayer(firstToken);
   }
 
   return [...remainingStarTokens, genitive, ...trailingSuffix].join(' ');

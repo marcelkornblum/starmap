@@ -194,7 +194,7 @@ describe('DEC-035: Circumstellar Disk & Belt Compact Codec', () => {
 
     const decoded = decodeSystemManifest(compact);
     expect(decoded.disks?.length).toBe(2);
-    expect(decoded.stars[0].reticleType).toBe('star');
+    expect(decoded.stars[0]?.reticleType).toBe('star');
   });
 });
 

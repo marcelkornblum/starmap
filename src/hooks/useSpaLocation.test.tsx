@@ -1,16 +1,30 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import React from 'react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { useRouter } from '@tanstack/react-router';
 import {
+  CanvasRouterBridgeContext,
   resolveSpaLocation,
-  registerAppRouter,
-  appRouter,
+  useOptionalRouter,
   useSpaLocation,
-  type SpaRouterLike,
+  type AppRouterAdapter,
 } from './useSpaLocation';
 
-describe('useSpaLocation and router proxy', () => {
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-router')>();
+  return {
+    ...actual,
+    useRouter: vi.fn(() => undefined),
+  };
+});
+
+describe('useSpaLocation', () => {
+  beforeEach(() => {
+    vi.mocked(useRouter).mockReturnValue(undefined as never);
+  });
+
   afterEach(() => {
-    registerAppRouter(null);
+    vi.clearAllMocks();
   });
 
   describe('resolveSpaLocation', () => {
@@ -30,40 +44,13 @@ describe('useSpaLocation and router proxy', () => {
       const loc = resolveSpaLocation('/starmap', '', '/starmap');
       expect(loc.pathname).toBe('/');
     });
-  });
 
-  describe('registerAppRouter and appRouter proxy', () => {
-    it('proxies navigate, state, subscribe, and history to registered instance', () => {
-      const mockNavigate = vi.fn();
-      const mockSubscribe = vi.fn();
-      const mockHistorySub = vi.fn();
-      const mockRouter: SpaRouterLike = {
-        navigate: mockNavigate,
-        state: { currentPath: '/galaxy' },
-        subscribe: mockSubscribe,
-        history: { subscribe: mockHistorySub },
-      };
-
-      expect(appRouter.navigate).toBeUndefined();
-      expect(appRouter.state).toBeUndefined();
-
-      registerAppRouter(mockRouter);
-
-      expect(appRouter.state).toEqual({ currentPath: '/galaxy' });
-      appRouter.navigate?.({ to: '/system' });
-      expect(mockNavigate).toHaveBeenCalledWith({ to: '/system' });
-
-      appRouter.subscribe?.('onResolved', vi.fn());
-      expect(mockSubscribe).toHaveBeenCalled();
-    });
-
-    it('persists registeredRouter on globalThis.__STARMAP_APP_ROUTER__', () => {
-      const mockRouter: SpaRouterLike = { state: { foo: 'bar' } };
-      registerAppRouter(mockRouter);
-      const globalObj = globalThis as { __STARMAP_APP_ROUTER__?: SpaRouterLike | null };
-      expect(globalObj.__STARMAP_APP_ROUTER__).toBe(mockRouter);
-      registerAppRouter(null);
-      expect(globalObj.__STARMAP_APP_ROUTER__).toBeNull();
+    it('falls back to routerState location when rawPathname and rawSearch are omitted', () => {
+      const loc = resolveSpaLocation(undefined, undefined, '/', {
+        location: { pathname: '/system/sol', searchStr: '?focus=earth' },
+      });
+      expect(loc.pathname).toBe('/system/sol');
+      expect(loc.search).toBe('?focus=earth');
     });
   });
 
@@ -76,32 +63,60 @@ describe('useSpaLocation and router proxy', () => {
       expect(result.current.search).toBe('?select=sol');
     });
 
-    it('subscribes to registered router events and updates when router emits', () => {
+    it('subscribes to TanStack router events and updates when router emits', () => {
       let routerListener: (() => void) | undefined;
-      const unsubscribeMock = vi.fn();
-      const mockRouter: SpaRouterLike = {
+      let historyListener: (() => void) | undefined;
+      const unsubscribeRouter = vi.fn();
+      const unsubscribeHistory = vi.fn();
+      let currentLocation = { pathname: '/galaxy', searchStr: '?focus=sol' };
+
+      const mockRouter: AppRouterAdapter = {
+        get state() {
+          return { location: currentLocation };
+        },
         subscribe: vi.fn((_event, cb) => {
           routerListener = cb;
-          return unsubscribeMock;
+          return unsubscribeRouter;
         }),
+        history: {
+          subscribe: vi.fn((cb) => {
+            historyListener = cb;
+            return unsubscribeHistory;
+          }),
+        },
       };
-      registerAppRouter(mockRouter);
+      vi.mocked(useRouter).mockReturnValue(mockRouter as never);
 
-      const { unmount } = renderHook(() => useSpaLocation());
+      const { result, unmount } = renderHook(() => useSpaLocation());
       expect(mockRouter.subscribe).toHaveBeenCalledWith(
         'onResolved',
         expect.any(Function),
       );
+      expect(mockRouter.history?.subscribe).toHaveBeenCalledWith(
+        expect.any(Function),
+      );
+      expect(result.current).toEqual({ pathname: '/galaxy', search: '?focus=sol' });
 
       act(() => {
+        currentLocation = { pathname: '/system/sol', searchStr: '?focus=earth' };
         routerListener?.();
       });
 
+      expect(result.current).toEqual({ pathname: '/system/sol', search: '?focus=earth' });
+
+      act(() => {
+        currentLocation = { pathname: '/planet/earth', searchStr: '' };
+        historyListener?.();
+      });
+
+      expect(result.current).toEqual({ pathname: '/planet/earth', search: '' });
+
       unmount();
-      expect(unsubscribeMock).toHaveBeenCalled();
+      expect(unsubscribeRouter).toHaveBeenCalled();
+      expect(unsubscribeHistory).toHaveBeenCalled();
     });
 
-    it('re-renders when starmap:locationchange event is dispatched', () => {
+    it('re-renders when starmap:locationchange event is dispatched without a mounted router', () => {
       window.history.pushState({}, '', '/galaxy?focus=sol');
       const { result } = renderHook(() => useSpaLocation());
       expect(result.current.search).toBe('?focus=sol');
@@ -112,6 +127,40 @@ describe('useSpaLocation and router proxy', () => {
       });
 
       expect(result.current.search).toBe('?focus=sirius');
+    });
+  });
+
+  describe('useOptionalRouter & CanvasRouterBridgeContext', () => {
+    it('falls back to CanvasRouterBridgeContext when useRouter returns undefined (e.g. inside R3F Canvas)', () => {
+      const bridgedRouter: AppRouterAdapter = {
+        state: { location: { pathname: '/galaxy', searchStr: '?center=sol' } },
+      };
+      const wrapper: React.FC<{ readonly children: React.ReactNode }> = ({ children }) => (
+        <CanvasRouterBridgeContext.Provider value={bridgedRouter}>
+          {children}
+        </CanvasRouterBridgeContext.Provider>
+      );
+
+      const { result } = renderHook(() => useOptionalRouter(), { wrapper });
+      expect(result.current).toBe(bridgedRouter);
+    });
+
+    it('prefers direct useRouter instance over CanvasRouterBridgeContext when both exist', () => {
+      const bridgedRouter: AppRouterAdapter = {
+        state: { location: { pathname: '/galaxy', searchStr: '?center=sol' } },
+      };
+      const directRouter: AppRouterAdapter = {
+        state: { location: { pathname: '/system/sol', searchStr: '' } },
+      };
+      vi.mocked(useRouter).mockReturnValue(directRouter as never);
+      const wrapper: React.FC<{ readonly children: React.ReactNode }> = ({ children }) => (
+        <CanvasRouterBridgeContext.Provider value={bridgedRouter}>
+          {children}
+        </CanvasRouterBridgeContext.Provider>
+      );
+
+      const { result } = renderHook(() => useOptionalRouter(), { wrapper });
+      expect(result.current).toBe(directRouter);
     });
   });
 });
