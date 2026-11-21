@@ -3,7 +3,7 @@
 ## Active Tracks
 
 ### Product & Spatial Feature Tracks
-- [ ] **Track: Camera Choreography** *Link: [conductor/tracks/camera-choreography_20261117/index.md](./tracks/camera-choreography_20261117/index.md)* *(Cross-scale glides, HUD retraction + viewport compensation, search framing `FS-003`, conditional `Centre` CTA `FS-013`; owns backlog item `FS-012`; coordinate with `render-loop-and-r3f-hot-paths_20261121`)*
+- [~] **Track: Camera Choreography** *Link: [conductor/tracks/camera-choreography_20261117/index.md](./tracks/camera-choreography_20261117/index.md)* *(Cross-scale glides, HUD retraction + viewport compensation, search framing `FS-003`, conditional `Centre` CTA `FS-013`; owns backlog item `FS-012`; coordinate with `render-loop-and-r3f-hot-paths_20261121`)*
 - [ ] **Track: Orientation Instruments** *Link: [conductor/tracks/orientation-instruments_20261117/index.md](./tracks/orientation-instruments_20261117/index.md)* *(Compass / attitude widget and datum-plane tilt indicators; coordinate with `scene-draw-calls-and-gpu-tiering_20261121` `P-08`)*
 - [ ] **Track: Interaction Controls** *Link: [conductor/tracks/interaction-controls_20261010/index.md](./tracks/interaction-controls_20261010/index.md)* *(Input-capability detection, shortcut registry + keyboard help modal, navigation modes)*
 
