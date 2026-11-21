@@ -1,16 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   auditLiteralsContent,
-  auditImportsContent,
-  auditFileSize,
-  compareBaseline,
-  detectImportCycles,
   isTelemetryIdentifier,
-  type GuardViolation,
-  type GuardBaseline,
+  runAllGuards,
+  runGuardsAudit,
 } from './audit-guards';
 
 describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
@@ -212,213 +208,55 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
       expect(diags[0]?.ruleId).toBe('G-literals');
       expect(diags[0]?.snippet).toContain('sys.dist ?? 1');
     });
+
+    it('reports parse-error violation on invalid syntax instead of silently passing', () => {
+      const code = `export const broken = (`;
+      const diags = auditLiteralsContent('src/services/broken.ts', code, mockCatalog);
+      expect(diags.length).toBe(1);
+      expect(diags[0]?.ruleId).toBe('parse-error');
+    });
   });
 
-  describe('G-imports: Layer Boundary Hierarchy & Cycle Detection (DEC-R012)', () => {
-    it('flags utils importing from components/canvas', () => {
-      const code = `
-        import { CameraRig } from '../components/canvas/CameraRig';
-        export const util = () => CameraRig;
-      `;
-      const diags = auditImportsContent('src/utils/math.ts', code);
-      expect(diags.length).toBe(1);
-      expect(diags[0].ruleId).toBe('G-imports');
-      expect(diags[0].message).toContain('Layer "utils" cannot import from higher layer "components/canvas"');
-    });
+  describe('runAllGuards & runGuardsAudit (G-literals Single Runner)', () => {
+    const tempDirs: string[] = [];
 
-    it('flags services importing from stores', () => {
-      const code = `
-        import { useUIStore } from '../stores/useUIStore';
-        export const runService = () => useUIStore.getState();
-      `;
-      const diags = auditImportsContent('src/services/searchService.ts', code);
-      expect(diags.length).toBe(1);
-      expect(diags[0].ruleId).toBe('G-imports');
-      expect(diags[0].message).toContain('Layer "services" cannot import from higher layer "stores"');
-    });
-
-    it('flags interface primitive importing from data or services', () => {
-      const code = `
-        import { guideCatalog } from '../../../data/guideCatalog';
-        export const SpectralBadge = () => guideCatalog;
-      `;
-      const diags = auditImportsContent('src/components/interface/information/SpectralBadge.tsx', code);
-      expect(diags.length).toBe(1);
-      expect(diags[0].ruleId).toBe('G-imports');
-      expect(diags[0].message).toContain('Layer "components/interface" cannot import from "data"');
-    });
-
-    it('flags any file importing from isolated prototypes directory', () => {
-      const code = `
-        import { PaletteShowcase } from '../components/prototypes/PaletteShowcase';
-        export const View = () => PaletteShowcase;
-      `;
-      const diags = auditImportsContent('src/views/GalaxyView.tsx', code);
-      expect(diags.length).toBe(1);
-      expect(diags[0].ruleId).toBe('G-imports');
-      expect(diags[0].message).toContain('Prototypes is isolated');
-    });
-
-    it('flags unreasoned guard-disable comment in auditImportsContent', () => {
-      const code = `
-        // guard-disable-next-line G-imports
-        import { CameraRig } from '../components/canvas/CameraRig';
-        export const util = () => CameraRig;
-      `;
-      const diags = auditImportsContent('src/utils/math.ts', code);
-      expect(diags.length).toBe(1);
-      expect(diags[0].message).toContain('without a required reason');
-    });
-
-    it('detects multi-line import cycles across files', () => {
-      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cycle-test-'));
-      try {
-        const fileA = path.join(tempDir, 'a.ts');
-        const fileB = path.join(tempDir, 'b.ts');
-        fs.writeFileSync(
-          fileA,
-          `import {\n  funcB,\n  otherVal,\n} from './b';\nexport const funcA = () => funcB();\n`
-        );
-        fs.writeFileSync(
-          fileB,
-          `import {\n  funcA,\n} from './a';\nexport const funcB = () => funcA();\n`
-        );
-        const violations = detectImportCycles([fileA, fileB], tempDir);
-        expect(violations.length).toBeGreaterThan(0);
-        expect(violations[0].ruleId).toBe('G-imports-cycle');
-        expect(violations[0].message).toContain('a.ts -> b.ts -> a.ts');
-      } finally {
-        fs.rmSync(tempDir, { recursive: true, force: true });
+    afterEach(() => {
+      vi.restoreAllMocks();
+      while (tempDirs.length > 0) {
+        const dir = tempDirs.pop();
+        if (dir) fs.rmSync(dir, { recursive: true, force: true });
       }
     });
 
-    it('ignores type-only imports in cycle detection', () => {
-      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cycle-type-test-'));
-      try {
-        const fileA = path.join(tempDir, 'a.ts');
-        const fileB = path.join(tempDir, 'b.ts');
-        fs.writeFileSync(
-          fileA,
-          `import type { TypeB } from './b';\nexport interface TypeA { b: TypeB; }\n`
-        );
-        fs.writeFileSync(
-          fileB,
-          `import type { TypeA } from './a';\nexport interface TypeB { a: TypeA; }\n`
-        );
-        const violations = detectImportCycles([fileA, fileB], tempDir);
-        expect(violations).toEqual([]);
-      } finally {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
+    it('scans src/ for G-literals while skipping test and story files', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-runner-test-'));
+      tempDirs.push(tempDir);
+      const servicesDir = path.join(tempDir, 'src', 'services');
+      fs.mkdirSync(servicesDir, { recursive: true });
+      fs.writeFileSync(path.join(servicesDir, 'bad.ts'), "export const star = 'tau-ceti';\n");
+      fs.writeFileSync(path.join(servicesDir, 'bad.test.ts'), "export const testStar = 'tau-ceti';\n");
+      fs.writeFileSync(path.join(servicesDir, 'bad.stories.tsx'), "export const storyStar = 'tau-ceti';\n");
+
+      const violations = runAllGuards(tempDir);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]?.ruleId).toBe('G-literals');
+      expect(violations[0]?.filePath).toContain('bad.ts');
     });
 
-    it('permits valid downward imports', () => {
-      const code = `
-        import type { CelestialEntity } from '../types/astro';
-        import { calculateDistance } from '../utils/math';
-        import { searchRepository } from '../data/searchRepository';
-        export const service = () => ({ calculateDistance, searchRepository });
-      `;
-      const diags = auditImportsContent('src/services/queryService.ts', code);
-      expect(diags).toEqual([]);
-    });
-  });
+    it('fails closed (exit code 1) when violations are found and returns 0 when clean', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-cli-test-'));
+      tempDirs.push(tempDir);
+      const servicesDir = path.join(tempDir, 'src', 'services');
+      fs.mkdirSync(servicesDir, { recursive: true });
+      fs.writeFileSync(path.join(servicesDir, 'clean.ts'), "export const ok = 'nominal';\n");
 
-  describe('G-size: File Size Limits', () => {
-    it('flags component or view files exceeding 300 lines', () => {
-      const diagsComp = auditFileSize('src/components/domain/BigPanel.tsx', 305);
-      expect(diagsComp).toHaveLength(1);
-      expect(diagsComp[0].ruleId).toBe('G-size');
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const diagsView = auditFileSize('src/views/BigView.tsx', 301);
-      expect(diagsView).toHaveLength(1);
-      expect(diagsView[0].ruleId).toBe('G-size');
-    });
+      expect(runGuardsAudit(tempDir)).toBe(0);
 
-    it('enforces universal 300-line ceiling across all production files in src/', () => {
-      expect(auditFileSize('src/services/BigService.ts', 301)).toHaveLength(1);
-      expect(auditFileSize('src/utils/BigUtil.ts', 305)).toHaveLength(1);
-      expect(auditFileSize('src/hooks/BigHook.ts', 301)).toHaveLength(1);
-      expect(auditFileSize('src/types/BigTypes.ts', 301)).toHaveLength(1);
-      expect(auditFileSize('src/components/BigComponent.tsx', 301)).toHaveLength(1);
-      expect(auditFileSize('src/views/BigView.tsx', 301)).toHaveLength(1);
-
-      // Excluded
-      expect(auditFileSize('src/services/BigService.test.ts', 500)).toEqual([]);
-      expect(auditFileSize('src/components/BigComponent.stories.tsx', 500)).toEqual([]);
-      expect(auditFileSize('src/prototypes/PrototypeView.tsx', 500)).toEqual([]);
-      expect(auditFileSize('src/components/prototypes/PrototypePanel.tsx', 500)).toEqual([]);
-      expect(auditFileSize('scripts/audit-guards.ts', 900)).toEqual([]);
-
-      // Within limit
-      expect(auditFileSize('src/services/NormalService.ts', 250)).toEqual([]);
-      expect(auditFileSize('src/utils/NormalUtil.ts', 250)).toEqual([]);
-    });
-  });
-
-  describe('DEC-R010: Baseline Comparison & Ratchet Logic', () => {
-    const sampleBaseline: GuardBaseline = {
-      version: 1,
-      entries: {
-        'G-literals::src/services/legacy.ts': { count: 3, audId: 'AUD-060' },
-        'G-size::src/views/GalaxyView.tsx': { count: 1, audId: 'AUD-120' },
-      },
-    };
-
-    it('passes when violations match or are below baseline counts', () => {
-      const violations: GuardViolation[] = [
-        { ruleId: 'G-literals', filePath: 'src/services/legacy.ts', line: 10, column: 1, message: 'literal' },
-        { ruleId: 'G-literals', filePath: 'src/services/legacy.ts', line: 20, column: 1, message: 'literal' },
-        { ruleId: 'G-size', filePath: 'src/views/GalaxyView.tsx', line: 1, column: 1, message: 'size' },
-      ];
-      const result = compareBaseline(violations, sampleBaseline);
-      expect(result.success).toBe(true);
-      expect(result.unbaselinedErrors).toEqual([]);
-    });
-
-    it('fails when an unbaselined violation is introduced', () => {
-      const violations: GuardViolation[] = [
-        { ruleId: 'G-literals', filePath: 'src/services/newFile.ts', line: 5, column: 1, message: 'new literal' },
-      ];
-      const result = compareBaseline(violations, sampleBaseline);
-      expect(result.success).toBe(false);
-      expect(result.unbaselinedErrors.length).toBe(1);
-      expect(result.unbaselinedErrors[0].key).toBe('G-literals::src/services/newFile.ts');
-    });
-
-    it('fails when a violation count increases above baseline', () => {
-      const violations: GuardViolation[] = [
-        { ruleId: 'G-literals', filePath: 'src/services/legacy.ts', line: 10, column: 1, message: '1' },
-        { ruleId: 'G-literals', filePath: 'src/services/legacy.ts', line: 20, column: 1, message: '2' },
-        { ruleId: 'G-literals', filePath: 'src/services/legacy.ts', line: 30, column: 1, message: '3' },
-        { ruleId: 'G-literals', filePath: 'src/services/legacy.ts', line: 40, column: 1, message: '4' },
-      ];
-      const result = compareBaseline(violations, sampleBaseline);
-      expect(result.success).toBe(false);
-      expect(result.unbaselinedErrors.some((e) => e.message.includes('increased from 3 to 4'))).toBe(true);
-    });
-
-    it('--update mode only ratchets downward and prunes zero-count entries', () => {
-      const violations: GuardViolation[] = [
-        // legacy dropped from 3 to 1
-        { ruleId: 'G-literals', filePath: 'src/services/legacy.ts', line: 10, column: 1, message: '1' },
-        // GalaxyView size fixed (0 violations)
-      ];
-      const result = compareBaseline(violations, sampleBaseline, { update: true });
-      expect(result.success).toBe(true);
-      expect(result.updatedBaseline).toBeDefined();
-      expect(result.updatedBaseline?.entries['G-literals::src/services/legacy.ts']?.count).toBe(1);
-      expect(result.updatedBaseline?.entries['G-size::src/views/GalaxyView.tsx']).toBeUndefined();
-    });
-
-    it('--update mode rejects count increases or new entries without --init-baseline', () => {
-      const violations: GuardViolation[] = [
-        { ruleId: 'G-literals', filePath: 'src/services/legacy.ts', line: 10, column: 1, message: '1' },
-        { ruleId: 'G-literals', filePath: 'src/services/brandNew.ts', line: 1, column: 1, message: 'brand new' },
-      ];
-      const result = compareBaseline(violations, sampleBaseline, { update: true, initBaseline: false });
-      expect(result.success).toBe(false);
-      expect(result.unbaselinedErrors.some((e) => e.message.includes('Cannot add new entry in update mode'))).toBe(true);
+      fs.writeFileSync(path.join(servicesDir, 'bad.ts'), "export const star = 'sol';\n");
+      expect(runGuardsAudit(tempDir)).toBe(1);
     });
   });
 });

@@ -1,10 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
 import { parse } from '@babel/parser';
-import { runUiAudit } from './audit-ui';
-import { runR3fAudit } from './audit-r3f';
 
 export interface GuardViolation {
   ruleId: string;
@@ -13,16 +10,6 @@ export interface GuardViolation {
   column: number;
   message: string;
   snippet?: string;
-}
-
-export interface GuardBaselineEntry {
-  count: number;
-  audId: string;
-}
-
-export interface GuardBaseline {
-  version: number;
-  entries: Record<string, GuardBaselineEntry>;
 }
 
 export interface EntityCatalog {
@@ -213,7 +200,19 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
       sourceType: 'module',
       plugins: ['typescript', 'jsx'],
     });
-  } catch {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const loc =
+      err && typeof err === 'object' && 'loc' in err
+        ? (err as { loc?: { line?: number; column?: number } }).loc
+        : undefined;
+    violations.push({
+      filePath,
+      line: loc?.line ?? 1,
+      column: (loc?.column ?? 0) + 1,
+      ruleId: 'parse-error',
+      message: `Failed to parse file for G-literals check: ${message}`,
+    });
     return violations;
   }
 
@@ -372,328 +371,6 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
   return violations;
 }
 
-// Layer rank hierarchy
-const LAYER_HIERARCHY: { name: string; prefix: string; rank: number }[] = [
-  { name: 'types', prefix: 'src/types', rank: 0 },
-  { name: 'config', prefix: 'src/config', rank: 1 },
-  { name: 'utils', prefix: 'src/utils', rank: 1 },
-  { name: 'data', prefix: 'src/data', rank: 2 },
-  { name: 'content', prefix: 'src/content', rank: 2 },
-  { name: 'services', prefix: 'src/services', rank: 3 },
-  { name: 'stores', prefix: 'src/stores', rank: 4 },
-  { name: 'hooks', prefix: 'src/hooks', rank: 5 },
-  { name: 'components/interface', prefix: 'src/components/interface', rank: 6 },
-  { name: 'components/canvas', prefix: 'src/components/canvas', rank: 7 },
-  { name: 'components/domain', prefix: 'src/components/domain', rank: 8 },
-  { name: 'views', prefix: 'src/views', rank: 9 },
-  { name: 'router', prefix: 'src/router', rank: 10 },
-  { name: 'router', prefix: 'src/App.tsx', rank: 10 },
-  { name: 'router', prefix: 'src/main.tsx', rank: 10 },
-];
-
-function getLayer(filePath: string): { name: string; rank: number } | null {
-  const norm = filePath.replace(/\\/g, '/');
-  if (norm.includes('src/components/prototypes') || norm.includes('src/prototypes')) {
-    return { name: 'prototypes', rank: 99 };
-  }
-  for (const layer of LAYER_HIERARCHY) {
-    if (norm.includes(layer.prefix)) {
-      return { name: layer.name, rank: layer.rank };
-    }
-  }
-  return null;
-}
-
-/**
- * G-imports: Audits file for layer boundary violations.
- */
-export function auditImportsContent(filePath: string, content: string, projectRoot = process.cwd()): GuardViolation[] {
-  const violations: GuardViolation[] = [];
-
-  let ast: ReturnType<typeof parse>;
-  try {
-    ast = parse(content, {
-      sourceType: 'module',
-      plugins: ['typescript', 'jsx'],
-    });
-  } catch {
-    return violations;
-  }
-
-  const sourceLayer = getLayer(filePath);
-  if (!sourceLayer) return violations;
-
-  const lines = content.split('\n');
-  const fileDir = path.dirname(path.resolve(projectRoot, filePath));
-
-  traverseAst(ast, (node: ASTNode) => {
-    if (node.type === 'ImportDeclaration' || node.type === 'ExportNamedDeclaration' || node.type === 'ExportAllDeclaration') {
-      const sourceVal = node.source?.value;
-      if (!sourceVal || typeof sourceVal !== 'string') return;
-
-      // Only check relative or workspace-local imports
-      if (!sourceVal.startsWith('.') && !sourceVal.startsWith('/')) return;
-
-      const resolvedPath = path.resolve(fileDir, sourceVal);
-      const relTarget = path.relative(projectRoot, resolvedPath).replace(/\\/g, '/');
-      const targetLayer = getLayer(relTarget);
-      if (!targetLayer) return;
-
-      const loc = node.loc?.start;
-      if (!loc) return;
-
-      const supp = checkSuppression(lines, loc.line, 'G-imports');
-      if (supp.invalidComment) {
-        violations.push({
-          filePath,
-          line: loc.line,
-          column: loc.column + 1,
-          ruleId: 'G-imports',
-          message: `Suppression comment "${supp.invalidComment}" without a required reason (-- <reason>) is forbidden.`,
-          snippet: (lines[loc.line - 1] || '').trim(),
-        });
-        return;
-      }
-      if (supp.suppressed) return;
-
-      // 1. Prototypes isolation rule
-      if (targetLayer.name === 'prototypes' && sourceLayer.name !== 'prototypes') {
-        violations.push({
-          filePath,
-          line: loc.line,
-          column: loc.column + 1,
-          ruleId: 'G-imports',
-          message: `Prototypes is isolated; file cannot import from prototypes: "${sourceVal}"`,
-          snippet: (lines[loc.line - 1] || '').trim(),
-        });
-        return;
-      }
-
-      // 2. components/interface cannot import data, services, or stores
-      if (sourceLayer.name === 'components/interface') {
-        if (targetLayer.name === 'data' || targetLayer.name === 'services' || targetLayer.name === 'stores') {
-          violations.push({
-            filePath,
-            line: loc.line,
-            column: loc.column + 1,
-            ruleId: 'G-imports',
-            message: `Layer "components/interface" cannot import from "${targetLayer.name}": "${sourceVal}"`,
-            snippet: (lines[loc.line - 1] || '').trim(),
-          });
-          return;
-        }
-      }
-
-      // 3. Upward layer forbidden
-      if (targetLayer.rank > sourceLayer.rank) {
-        violations.push({
-          filePath,
-          line: loc.line,
-          column: loc.column + 1,
-          ruleId: 'G-imports',
-          message: `Layer "${sourceLayer.name}" cannot import from higher layer "${targetLayer.name}": "${sourceVal}"`,
-          snippet: (lines[loc.line - 1] || '').trim(),
-        });
-      }
-    }
-  });
-
-  return violations;
-}
-
-/**
- * G-size: File size check.
- */
-export function auditFileSize(filePath: string, lineCount: number): GuardViolation[] {
-  const norm = filePath.replace(/\\/g, '/');
-  if (norm.includes('.test.') || norm.includes('.stories.')) return [];
-  if (norm.includes('src/prototypes/') || norm.includes('src/components/prototypes/')) return [];
-  if (!norm.includes('src/')) return [];
-
-  if (lineCount > 300) {
-    return [
-      {
-        ruleId: 'G-size',
-        filePath,
-        line: 1,
-        column: 1,
-        message: `File exceeds 300 lines ceiling (${lineCount} lines). Decompose into focused sub-modules.`,
-      },
-    ];
-  }
-
-  return [];
-}
-
-/**
- * Infers an appropriate AUD-NNN tag for a violation key.
- */
-function inferAudId(key: string): string {
-  if (key.startsWith('missing-component-quad::')) return 'AUD-122';
-  if (key.startsWith('hardcoded-css-token::') || key.startsWith('missing-layer-blocks::') || key.startsWith('hardcoded-hex-color::') || key.startsWith('forbidden-outer-margin::')) {
-    return 'AUD-121';
-  }
-  if (key.startsWith('forbidden-raw-element::')) return 'AUD-123';
-  if (key.startsWith('forbidden-dynamic-classname::')) return 'AUD-125';
-  if (key.startsWith('forbidden-inline-style::')) {
-    return key.includes('EntityLabel') ? 'AUD-113' : 'AUD-121';
-  }
-  if (key.startsWith('file-size-exceeded::') || key.startsWith('G-size::') || key.startsWith('eslint(max-lines)::')) {
-    return 'AUD-120';
-  }
-  if (key.startsWith('no-layout-in-use-frame::')) return 'AUD-104';
-  if (key.startsWith('no-alloc-in-use-frame::')) return 'AUD-106';
-  if (key.startsWith('no-setstate-in-use-frame::')) return 'AUD-108';
-  if (key.startsWith('atomic-store-selectors::')) {
-    return key.includes('SceneBridge') ? 'AUD-101' : 'AUD-003';
-  }
-  if (key.startsWith('no-material-memo-color-deps::')) return 'AUD-103';
-  if (key.startsWith('no-inline-jsx-geometry::')) return 'AUD-102';
-  if (key.startsWith('import(no-cycle)::') || key.startsWith('G-imports-cycle::')) return 'AUD-032';
-  if (key.includes('only-export-components')) return 'AUD-129';
-  if (key.includes('react(refs)') || key.includes('react(immutability)')) return 'AUD-105';
-  if (key.includes('react(globals)')) return 'AUD-145';
-
-  if (key.startsWith('eslint(no-restricted-imports)::')) {
-    if (key.includes('searchRepository')) return 'AUD-031';
-    if (key.includes('useCanvasStageStore')) return 'AUD-034';
-    if (key.includes('SpectralBadge')) return 'AUD-035';
-    if (key.includes('PaletteShowcase') || key.includes('prototypes')) return 'AUD-036';
-    return 'AUD-030';
-  }
-
-  if (key.startsWith('G-literals::')) {
-    if (key.includes('guideCatalog') || key.includes('content/guide')) return 'AUD-071';
-    if (key.includes('guideService')) return 'AUD-060';
-    if (key.includes('journeyService')) return 'AUD-061';
-    if (key.includes('details/')) return 'AUD-062';
-    if (key.includes('PlanetScene')) return 'AUD-063';
-    if (key.includes('GalaxyScene')) return 'AUD-064';
-    if (key.includes('CanvasLayer') || key.includes('SystemScene')) return 'AUD-072';
-    return 'AUD-020';
-  }
-
-  if (key.startsWith('G-imports::')) {
-    if (key.includes('searchRepository')) return 'AUD-031';
-    if (key.includes('useCanvasStageStore')) return 'AUD-034';
-    if (key.includes('SpectralBadge')) return 'AUD-035';
-    if (key.includes('PaletteShowcase') || key.includes('prototypes')) return 'AUD-036';
-    return 'AUD-030';
-  }
-
-  return 'AUD-004';
-}
-
-/**
- * Baseline comparison and ratcheting logic (DEC-R010).
- */
-export function compareBaseline(
-  violations: GuardViolation[],
-  baseline: GuardBaseline,
-  options: { update?: boolean; initBaseline?: boolean } = {}
-): {
-  success: boolean;
-  unbaselinedErrors: { key: string; message: string }[];
-  updatedBaseline?: GuardBaseline;
-} {
-  const unbaselinedErrors: { key: string; message: string }[] = [];
-  const actualCounts = new Map<string, number>();
-
-  for (const v of violations) {
-    const rel = path.relative(process.cwd(), path.resolve(v.filePath)).replace(/\\/g, '/');
-    const key = `${v.ruleId}::${rel}`;
-    actualCounts.set(key, (actualCounts.get(key) || 0) + 1);
-  }
-
-  // If initBaseline: build fresh baseline from actual counts
-  if (options.initBaseline) {
-    const newEntries: Record<string, GuardBaselineEntry> = {};
-    for (const [key, count] of actualCounts) {
-      newEntries[key] = {
-        count,
-        audId: inferAudId(key),
-      };
-    }
-    return {
-      success: true,
-      unbaselinedErrors: [],
-      updatedBaseline: { version: 1, entries: newEntries },
-    };
-  }
-
-  // Validate baseline AUD tags
-  for (const [key, entry] of Object.entries(baseline.entries)) {
-    if (!entry.audId || !/^AUD-\d{3}$/.test(entry.audId)) {
-      unbaselinedErrors.push({
-        key,
-        message: `Baseline entry "${key}" is missing a valid AUD-NNN tag (found "${entry.audId}").`,
-      });
-    }
-  }
-
-  // Normal comparison mode
-  if (!options.update) {
-    // 1. Check for unbaselined violations
-    for (const [key, count] of actualCounts) {
-      const baseEntry = baseline.entries[key];
-      if (!baseEntry) {
-        unbaselinedErrors.push({
-          key,
-          message: `Unbaselined violation: "${key}" (${count} violation${count === 1 ? '' : 's'}).`,
-        });
-      } else if (count > baseEntry.count) {
-        unbaselinedErrors.push({
-          key,
-          message: `Violation count regression: "${key}" increased from ${baseEntry.count} to ${count}.`,
-        });
-      }
-    }
-
-    return {
-      success: unbaselinedErrors.length === 0,
-      unbaselinedErrors,
-    };
-  }
-
-  // Update mode: ratchets downward only, prunes 0 counts
-  const updatedEntries: Record<string, GuardBaselineEntry> = {};
-
-  // Preserve existing key ordering from baseline.entries for clean git diffs
-  for (const [key, baseEntry] of Object.entries(baseline.entries)) {
-    const count = actualCounts.get(key);
-    if (count === undefined || count === 0) {
-      continue; // pruned when count drops to 0
-    }
-    if (count > baseEntry.count) {
-      unbaselinedErrors.push({
-        key,
-        message: `Cannot increase baseline count in update mode: "${key}" increased from ${baseEntry.count} to ${count}.`,
-      });
-    } else {
-      updatedEntries[key] = {
-        count, // ratcheted down to actualCount
-        audId: baseEntry.audId,
-      };
-    }
-  }
-
-  // Check that no new entries exist
-  for (const [key] of actualCounts) {
-    if (!baseline.entries[key]) {
-      unbaselinedErrors.push({
-        key,
-        message: `Cannot add new entry in update mode without --init-baseline: "${key}".`,
-      });
-    }
-  }
-
-  return {
-    success: unbaselinedErrors.length === 0,
-    unbaselinedErrors,
-    updatedBaseline: { version: 1, entries: updatedEntries },
-  };
-}
-
 /**
  * Collects all source files in directory matching extensions.
  */
@@ -718,89 +395,7 @@ function collectAllSourceFiles(dir: string, exts: string[]): string[] {
 }
 
 /**
- * Detects import cycles using DFS over the source dependency graph.
- */
-export function detectImportCycles(srcFiles: string[], projectRoot: string): GuardViolation[] {
-  const violations: GuardViolation[] = [];
-  const graph = new Map<string, string[]>();
-
-  for (const file of srcFiles) {
-    if (file.includes('.test.') || file.includes('.stories.')) continue;
-    const content = fs.readFileSync(file, 'utf8');
-    const imports: string[] = [];
-
-    try {
-      const ast = parse(content, {
-        sourceType: 'module',
-        plugins: ['typescript', 'jsx'],
-      });
-      traverseAst(ast, (node: ASTNode) => {
-        if (
-          node.type === 'ImportDeclaration' ||
-          node.type === 'ExportNamedDeclaration' ||
-          node.type === 'ExportAllDeclaration'
-        ) {
-          if (node.importKind === 'type' || node.exportKind === 'type') return;
-          const imp = node.source?.value;
-          if (!imp || typeof imp !== 'string' || !imp.startsWith('.')) return;
-          const resolved = path.resolve(path.dirname(file), imp);
-          for (const ext of ['', '.ts', '.tsx', '/index.ts', '/index.tsx']) {
-            const cand = resolved + ext;
-            if (fs.existsSync(cand) && fs.statSync(cand).isFile()) {
-              imports.push(cand);
-              break;
-            }
-          }
-        }
-      });
-    } catch {
-      // Ignore unparseable files
-    }
-    graph.set(file, imports);
-  }
-
-  // DFS cycle detection
-  const visited = new Set<string>();
-  const inStack = new Set<string>();
-
-  function dfs(node: string, stack: string[]) {
-    visited.add(node);
-    inStack.add(node);
-    stack.push(node);
-
-    const neighbors = graph.get(node) || [];
-    for (const neighbor of neighbors) {
-      if (!visited.has(neighbor)) {
-        dfs(neighbor, stack);
-      } else if (inStack.has(neighbor)) {
-        // Cycle detected
-        const cycleStart = stack.indexOf(neighbor);
-        const cyclePath = stack.slice(cycleStart).concat(neighbor);
-        violations.push({
-          ruleId: 'G-imports-cycle',
-          filePath: node,
-          line: 1,
-          column: 1,
-          message: `Import cycle detected: ${cyclePath.map((p) => path.relative(projectRoot, p)).join(' -> ')}`,
-        });
-      }
-    }
-
-    stack.pop();
-    inStack.delete(node);
-  }
-
-  for (const file of graph.keys()) {
-    if (!visited.has(file)) {
-      dfs(file, []);
-    }
-  }
-
-  return violations;
-}
-
-/**
- * Runs full structural guard suite.
+ * Runs G-literals domain guard across runtime source files in src/.
  */
 export function runAllGuards(projectRoot = process.cwd()): GuardViolation[] {
   const allViolations: GuardViolation[] = [];
@@ -809,167 +404,50 @@ export function runAllGuards(projectRoot = process.cwd()): GuardViolation[] {
   const srcDir = path.join(projectRoot, 'src');
   const srcFiles = collectAllSourceFiles(srcDir, ['.ts', '.tsx']);
 
-  // 1. G-literals & G-imports & G-size
   for (const file of srcFiles) {
     if (file.includes('.test.') || file.includes('.stories.')) continue;
     const content = fs.readFileSync(file, 'utf8');
-    const lines = content.split('\n');
-
-    // G-size
-    allViolations.push(...auditFileSize(file, lines.length));
-
-    // G-literals
     allViolations.push(...auditLiteralsContent(file, content, catalog));
-
-    // G-imports
-    allViolations.push(...auditImportsContent(file, content, projectRoot));
-  }
-
-  // 2. G-imports-cycle
-  allViolations.push(...detectImportCycles(srcFiles, projectRoot));
-
-  // 3. G-ui (from audit-ui)
-  const uiDiags = runUiAudit();
-  for (const d of uiDiags) {
-    allViolations.push({
-      ruleId: d.ruleId,
-      filePath: d.filePath,
-      line: d.line,
-      column: d.column,
-      message: d.message,
-      snippet: d.snippet,
-    });
-  }
-
-  // 4. G-r3f (from audit-r3f)
-  const r3fDiags = runR3fAudit();
-  for (const d of r3fDiags) {
-    allViolations.push({
-      ruleId: d.ruleId,
-      filePath: d.filePath,
-      line: d.line,
-      column: d.column,
-      message: d.message,
-      snippet: d.snippet,
-    });
-  }
-
-  // 5. G-lint-warnings (from oxlint)
-  let oxlintOutput: string | null = null;
-  const oxlintBin = path.resolve(
-    projectRoot,
-    process.platform === 'win32' ? 'node_modules/.bin/oxlint.cmd' : 'node_modules/.bin/oxlint',
-  );
-  try {
-    oxlintOutput = execFileSync(oxlintBin, ['--format', 'json'], {
-      cwd: projectRoot,
-      encoding: 'utf8',
-      shell: process.platform === 'win32',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
-  } catch (err: unknown) {
-    if (err && typeof err === 'object' && 'stdout' in err) {
-      const stdout = (err as { stdout?: string | Buffer }).stdout;
-      if (stdout) {
-        oxlintOutput = typeof stdout === 'string' ? stdout : stdout.toString('utf8');
-      }
-    }
-  }
-
-  if (oxlintOutput) {
-    try {
-      const parsed: unknown = JSON.parse(oxlintOutput);
-      if (parsed && typeof parsed === 'object' && 'diagnostics' in parsed && Array.isArray((parsed as { diagnostics: unknown[] }).diagnostics)) {
-        for (const diag of (parsed as { diagnostics: Array<{ severity?: string; code?: string; filename?: string; message?: string; labels?: Array<{ span?: { line?: number; column?: number } }> }> }).diagnostics) {
-          if (
-            diag &&
-            (diag.severity === 'warning' ||
-              diag.severity === 'error' ||
-              diag.severity === 'deny' ||
-              diag.severity === 'warn')
-          ) {
-            const ruleCode = diag.code || 'oxlint-warning';
-            allViolations.push({
-              ruleId: ruleCode,
-              filePath: diag.filename || 'unknown',
-              line: diag.labels?.[0]?.span?.line || 1,
-              column: diag.labels?.[0]?.span?.column || 1,
-              message: diag.message || '',
-            });
-          }
-        }
-      }
-    } catch {
-      // Ignore oxlint failure in runner if tool unavailable or stdout not json
-    }
   }
 
   return allViolations;
 }
 
-export function isGuardBaseline(val: unknown): val is GuardBaseline {
-  if (!val || typeof val !== 'object') return false;
-  const obj = val as Record<string, unknown>;
-  if (typeof obj.version !== 'number') return false;
-  if (!obj.entries || typeof obj.entries !== 'object' || Array.isArray(obj.entries)) return false;
-  const entries = obj.entries as Record<string, unknown>;
-  for (const [k, v] of Object.entries(entries)) {
-    if (typeof k !== 'string') return false;
-    if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
-    const entry = v as Record<string, unknown>;
-    if (typeof entry.count !== 'number' || typeof entry.audId !== 'string') return false;
+/**
+ * Evaluates G-literals guard suite and returns a process exit code (0 = pass, 1 = fail).
+ */
+export function runGuardsAudit(projectRoot = process.cwd()): number {
+  console.log('\n--- Running Starmap Domain Literal Guard Suite (G-literals) ---');
+
+  const violations = runAllGuards(projectRoot);
+
+  if (violations.length > 0) {
+    console.error(`\n❌ Guard verification failed with ${violations.length} violation(s):`);
+    for (const v of violations.slice(0, 50)) {
+      const rel = path.relative(projectRoot, path.resolve(v.filePath)).replace(/\\/g, '/');
+      console.error(`  - ${rel}:${v.line}:${v.column} [${v.ruleId}] ${v.message}`);
+    }
+    if (violations.length > 50) {
+      console.error(`  ... and ${violations.length - 50} more violation(s).`);
+    }
+    return 1;
   }
-  return true;
+
+  console.log('\n✨ All domain literal guards (G-literals) passed cleanly.');
+  return 0;
 }
 
 /**
- * CLI runner.
+ * Fail-closed CLI runner.
  */
 export function main(): void {
-  const args = process.argv.slice(2);
-  const isUpdate = args.includes('--update');
-  const isInit = args.includes('--init-baseline');
-  const baselinePath = path.resolve('scripts/guards/baseline.json');
-
-  console.log('\n--- Running Starmap Structural & Domain Guard Suite ---');
-
-  const violations = runAllGuards();
-
-  let baseline: GuardBaseline = { version: 1, entries: {} };
-  if (fs.existsSync(baselinePath)) {
-    try {
-      const parsed: unknown = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
-      if (isGuardBaseline(parsed)) {
-        baseline = parsed;
-      } else {
-        console.error(`Invalid baseline.json schema.`);
-      }
-    } catch (e) {
-      console.error(`Failed to read baseline.json:`, e);
-    }
-  }
-
-  const result = compareBaseline(violations, baseline, { update: isUpdate, initBaseline: isInit });
-
-  if (isInit || (isUpdate && result.updatedBaseline)) {
-    fs.mkdirSync(path.dirname(baselinePath), { recursive: true });
-    fs.writeFileSync(baselinePath, JSON.stringify(result.updatedBaseline, null, 2) + '\n');
-    console.log(`\n💾 Saved updated baseline to ${baselinePath} (${Object.keys(result.updatedBaseline?.entries || {}).length} entries).`);
-  }
-
-  if (!result.success) {
-    console.error(`\n❌ Guard verification failed with ${result.unbaselinedErrors.length} unbaselined error(s):`);
-    for (const err of result.unbaselinedErrors.slice(0, 50)) {
-      console.error(`  - ${err.message}`);
-    }
-    if (result.unbaselinedErrors.length > 50) {
-      console.error(`  ... and ${result.unbaselinedErrors.length - 50} more errors.`);
-    }
+  try {
+    const exitCode = runGuardsAudit();
+    process.exit(exitCode);
+  } catch (err: unknown) {
+    console.error('\n❌ Guard suite aborted due to unexpected error:', err);
     process.exit(1);
   }
-
-  console.log(`\n✨ All structural guards passed cleanly within committed baseline (${violations.length} baselined violations).`);
-  process.exit(0);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {

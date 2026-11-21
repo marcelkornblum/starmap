@@ -12,6 +12,7 @@
     "audit:guards": "tsx scripts/audit-guards.ts",
     "audit:r3f": "tsx scripts/audit-r3f.ts",
     "audit:ui": "tsx scripts/audit-ui.ts",
+    "check": "npm run lint && npm run typecheck && npm run audit:guards && npm run audit:ui && npm run audit:r3f",
     "preview": "vite preview --host 0.0.0.0 --port 4173 --strictPort",
     "test": "vitest run",
     "test:watch": "vitest",
