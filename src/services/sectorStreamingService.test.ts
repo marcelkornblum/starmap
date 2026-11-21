@@ -141,6 +141,35 @@ describe('SectorStreamingManager', () => {
     manager.dispose();
   });
 
+  it('sorts pendingUploadQueue only when dirty and skips redundant re-sorts on unchanged frames', async () => {
+    const fetcher = createMockFetcher();
+    const manager = new SectorStreamingManager({
+      budget: DEVICE_TIER_BUDGETS.tier2, // maxGpuUploadsPerFrame: 2, 27 active sectors
+      fetcher,
+      gpuResourceFactory: createTrackingGpuFactory(),
+    });
+
+    await manager.updateCameraPosition([0, 0, 0]);
+
+    const sortSpy = vi.spyOn(Array.prototype, 'sort');
+
+    manager.processFrameUploads();
+    expect(sortSpy).toHaveBeenCalledTimes(1);
+
+    manager.processFrameUploads();
+    manager.processFrameUploads();
+    expect(sortSpy).toHaveBeenCalledTimes(1);
+
+    await manager.updateCameraPosition([12.5, 12.5, 12.5]);
+    sortSpy.mockClear();
+    manager.processFrameUploads();
+    expect(sortSpy).toHaveBeenCalledTimes(1);
+    manager.processFrameUploads();
+    expect(sortSpy).toHaveBeenCalledTimes(1);
+
+    manager.dispose();
+  });
+
   it('promotes prefetched sector from RAM with 0 network re-fetches and disposes departed sector GPU resources', async () => {
     const fetcher = createMockFetcher();
     const manager = new SectorStreamingManager({

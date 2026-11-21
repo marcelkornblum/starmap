@@ -1,7 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import type React from 'react';
 import { render, screen } from '@testing-library/react';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
+import {
+  registerWebGLGpuTelemetry,
+  resetDeviceTierRuntimeState,
+} from '../../../services/deviceTierService';
 import {
   SpatialEntityStoreContext,
   useOptionalSpatialEntityStoreApi,
@@ -12,9 +16,14 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {
     ...actual,
-    Canvas: ({ children, frameloop }: { children?: React.ReactNode; frameloop?: string }) => (
-      <div data-testid="mock-canvas" data-frameloop={frameloop}>{children}</div>
+    Canvas: ({ children, frameloop, dpr }: { children?: React.ReactNode; frameloop?: string; dpr?: number }) => (
+      <div data-testid="mock-canvas" data-frameloop={frameloop} data-dpr={dpr}>{children}</div>
     ),
+    useFrame: vi.fn(),
+    useThree: (selector?: (s: unknown) => unknown) => {
+      const state = { gl: {}, setDpr: vi.fn() };
+      return selector ? selector(state) : state;
+    },
   };
 });
 
@@ -28,6 +37,26 @@ const ChildProbe: React.FC = () => {
 };
 
 describe('StandaloneSceneShell Component', () => {
+  afterEach(() => {
+    resetDeviceTierRuntimeState();
+    vi.unstubAllGlobals();
+  });
+
+  it('passes tier-aware initial DPR to Canvas based on probed capabilities', () => {
+    vi.stubGlobal('navigator', { deviceMemory: 8, hardwareConcurrency: 8 });
+    vi.stubGlobal('devicePixelRatio', 2);
+    registerWebGLGpuTelemetry({ gpuRenderer: 'Apple M2 Max', maxTextureSize: 16384 });
+
+    render(
+      <StandaloneSceneShell>
+        <div>Content</div>
+      </StandaloneSceneShell>,
+    );
+
+    const canvas = screen.getByTestId('mock-canvas');
+    expect(canvas.getAttribute('data-dpr')).toBe('2');
+  });
+
   it('renders container with data-variant and canvas wrapper', () => {
     const { container } = render(
       <StandaloneSceneShell variant="fullscreen">

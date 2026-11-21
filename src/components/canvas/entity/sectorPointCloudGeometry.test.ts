@@ -45,7 +45,7 @@ function createMockSectorBuffer(
 
 describe('sectorPointCloudGeometry', () => {
   describe('createDefaultSectorGeometry', () => {
-    it('creates THREE.BufferGeometry with position, starId, and precomputed boundingSphere', () => {
+    it('creates THREE.BufferGeometry with position and precomputed boundingSphere without uploading starId to GPU', () => {
       const buffer = createMockSectorBuffer('sector_+000_+000_+000', [0, 0, 0], 5);
       const decoded = decodeBinarySector(buffer);
 
@@ -57,10 +57,8 @@ describe('sectorPointCloudGeometry', () => {
       expect(posAttr.itemSize).toBe(3);
       expect(posAttr.count).toBe(5);
 
-      const idAttr = geometry.getAttribute('starId');
-      expect(idAttr).toBeDefined();
-      expect(idAttr.itemSize).toBe(1);
-      expect(idAttr.count).toBe(5);
+      expect(geometry.getAttribute('starId')).toBeUndefined();
+      expect(decoded.ids.length).toBe(5);
 
       expect(geometry.boundingSphere).toBeDefined();
       expect(geometry.boundingSphere?.center).toEqual(new THREE.Vector3(12.5, 12.5, 12.5));

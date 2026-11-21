@@ -82,11 +82,18 @@ interface NavigatorCapabilitiesLike {
   readonly connection?: NetworkInformationLike;
 }
 
+export interface WebGLGpuTelemetry {
+  readonly gpuRenderer?: string;
+  readonly maxTextureSize?: number;
+  readonly maxVertexAttribs?: number;
+}
+
 export interface HardwareCapabilities {
   deviceMemory?: number;
   hardwareConcurrency?: number;
   maxVertexAttribs?: number;
   maxTextureSize?: number;
+  gpuRenderer?: string;
   saveData?: boolean;
 }
 
@@ -147,11 +154,69 @@ export function isHighPerformanceGpuRenderer(rendererString?: string): boolean {
   );
 }
 
+/**
+ * Safely extracts WebGL GPU renderer and capability limits from a rendering context.
+ */
+export function extractWebGLGpuTelemetry(
+  gl: WebGLRenderingContext | WebGL2RenderingContext | null | undefined,
+): WebGLGpuTelemetry {
+  if (!gl || typeof gl.getParameter !== 'function') {
+    return {};
+  }
+
+  let maxTextureSize: number | undefined;
+  let maxVertexAttribs: number | undefined;
+  let gpuRenderer: string | undefined;
+
+  try {
+    const rawTexSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    if (typeof rawTexSize === 'number' && Number.isFinite(rawTexSize) && rawTexSize > 0) {
+      maxTextureSize = rawTexSize;
+    }
+  } catch {
+    // Ignore WebGL parameter probe errors
+  }
+
+  try {
+    const rawAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+    if (typeof rawAttribs === 'number' && Number.isFinite(rawAttribs) && rawAttribs > 0) {
+      maxVertexAttribs = rawAttribs;
+    }
+  } catch {
+    // Ignore WebGL parameter probe errors
+  }
+
+  try {
+    let rawRenderer: unknown;
+    if (typeof gl.getExtension === 'function') {
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (debugInfo && typeof debugInfo.UNMASKED_RENDERER_WEBGL === 'number') {
+        rawRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+      }
+    }
+    if (typeof rawRenderer !== 'string' || rawRenderer.trim().length === 0) {
+      rawRenderer = gl.getParameter(gl.RENDERER);
+    }
+    if (typeof rawRenderer === 'string' && rawRenderer.trim().length > 0) {
+      gpuRenderer = rawRenderer.trim();
+    }
+  } catch {
+    // Ignore WebGL renderer probe errors
+  }
+
+  return {
+    ...(gpuRenderer !== undefined ? { gpuRenderer } : {}),
+    ...(maxTextureSize !== undefined ? { maxTextureSize } : {}),
+    ...(maxVertexAttribs !== undefined ? { maxVertexAttribs } : {}),
+  };
+}
+
 export function classifyHardwareTier(
   caps?: HardwareCapabilities,
   gpuRenderer?: string,
 ): 'tier1' | 'tier2' | 'tier3' {
   const resolved: HardwareCapabilities = caps ?? probeNavigatorHardwareCapabilities();
+  const resolvedGpuRenderer = gpuRenderer ?? resolved.gpuRenderer;
 
   if (
     resolved.saveData === true ||
@@ -159,20 +224,63 @@ export function classifyHardwareTier(
     (resolved.hardwareConcurrency !== undefined && resolved.hardwareConcurrency <= 4) ||
     (resolved.maxTextureSize !== undefined && resolved.maxTextureSize < 4096) ||
     (resolved.maxVertexAttribs !== undefined && resolved.maxVertexAttribs < 16) ||
-    isConstrainedGpuRenderer(gpuRenderer)
+    isConstrainedGpuRenderer(resolvedGpuRenderer)
   ) {
     return 'tier1';
   }
 
-  const hasAdequateMemory = resolved.deviceMemory === undefined || resolved.deviceMemory >= 8;
-  const hasAdequateCores =
-    resolved.hardwareConcurrency !== undefined && resolved.hardwareConcurrency >= 8;
   const hasAdequateTexture =
     resolved.maxTextureSize === undefined || resolved.maxTextureSize >= 8192;
+  const isHighPerfGpu = isHighPerformanceGpuRenderer(resolvedGpuRenderer);
 
-  if (hasAdequateMemory && hasAdequateCores && hasAdequateTexture) {
+  if (isHighPerfGpu && hasAdequateTexture) {
     return 'tier3';
   }
 
+  const hasAdequateCores =
+    resolved.hardwareConcurrency !== undefined && resolved.hardwareConcurrency >= 8;
+
+  if (resolved.deviceMemory !== undefined) {
+    if (resolved.deviceMemory >= 8 && hasAdequateCores && hasAdequateTexture) {
+      return 'tier3';
+    }
+  } else {
+    const hasPositiveGpuEvidence =
+      isHighPerfGpu ||
+      (resolved.maxTextureSize !== undefined && resolved.maxTextureSize >= 16384);
+    if (hasAdequateCores && hasPositiveGpuEvidence && hasAdequateTexture) {
+      return 'tier3';
+    }
+  }
+
   return 'tier2';
+}
+
+/**
+ * Resolves capped initial canvas DPR for the classified device tier.
+ */
+export function resolveInitialDprForTier(
+  tier: 'tier1' | 'tier2' | 'tier3',
+  gpuRenderer?: string,
+  nativeDpr?: number,
+): number {
+  const rawDpr =
+    nativeDpr !== undefined && Number.isFinite(nativeDpr) && nativeDpr > 0
+      ? nativeDpr
+      : typeof globalThis !== 'undefined' &&
+          typeof (globalThis as { devicePixelRatio?: number }).devicePixelRatio === 'number' &&
+          Number.isFinite((globalThis as { devicePixelRatio: number }).devicePixelRatio) &&
+          (globalThis as { devicePixelRatio: number }).devicePixelRatio > 0
+        ? (globalThis as { devicePixelRatio: number }).devicePixelRatio
+        : 1;
+
+  const clampedNative = Math.max(1, rawDpr);
+
+  if (tier === 'tier1' || isConstrainedGpuRenderer(gpuRenderer)) {
+    return 1;
+  }
+  if (tier === 'tier2') {
+    return Math.min(clampedNative, 1.5);
+  }
+  return Math.min(clampedNative, 2);
 }

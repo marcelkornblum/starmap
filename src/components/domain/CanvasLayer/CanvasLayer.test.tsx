@@ -8,6 +8,10 @@ import {
   _resetWebGLSupportedForTesting,
 } from './webglSupport';
 import {
+  getRegisteredWebGLGpuTelemetry,
+  resetDeviceTierRuntimeState,
+} from '../../../services/deviceTierService';
+import {
   useCanvasStageStore,
   RootCanvasStageContext,
 } from '../../../stores/useCanvasStageStore';
@@ -107,6 +111,7 @@ describe('CanvasLayer Domain Component', () => {
   afterEach(() => {
     HTMLCanvasElement.prototype.getContext = originalGetContext;
     _resetWebGLSupportedForTesting();
+    resetDeviceTierRuntimeState();
   });
 
   describe('Standalone Direct Mode (when isRootCanvasMounted is false)', () => {
@@ -174,6 +179,41 @@ describe('CanvasLayer Domain Component', () => {
       });
 
       expect(canMountWebGLCanvas()).toBe(true);
+    });
+
+    it('probes WebGL GPU telemetry and releases the temporary probe context via WEBGL_lose_context', () => {
+      const loseContext = vi.fn();
+      const UNMASKED_RENDERER_WEBGL = 0x9246;
+      const mockGl = {
+        MAX_TEXTURE_SIZE: 0x0d33,
+        MAX_VERTEX_ATTRIBS: 0x8869,
+        RENDERER: 0x1f01,
+        getExtension: vi.fn((name: string) => {
+          if (name === 'WEBGL_debug_renderer_info') return { UNMASKED_RENDERER_WEBGL };
+          if (name === 'WEBGL_lose_context') return { loseContext };
+          return null;
+        }),
+        getParameter: vi.fn((param: number) => {
+          if (param === 0x0d33) return 16384;
+          if (param === 0x8869) return 16;
+          if (param === UNMASKED_RENDERER_WEBGL) return 'NVIDIA GeForce RTX 4090';
+          return 'WebGL';
+        }),
+      } as unknown as WebGLRenderingContext;
+
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2') return mockGl;
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      expect(canMountWebGLCanvas()).toBe(true);
+      expect(getRegisteredWebGLGpuTelemetry()).toEqual({
+        gpuRenderer: 'NVIDIA GeForce RTX 4090',
+        maxTextureSize: 16384,
+        maxVertexAttribs: 16,
+      });
+      expect(loseContext).toHaveBeenCalledTimes(1);
     });
 
     it('maintains a single persistent <Canvas> element when scope transitions galaxy -> system -> planet in direct mode', async () => {

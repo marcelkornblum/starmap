@@ -13,6 +13,10 @@ export interface FrameTimeMetrics {
 
 export type FrameTimeBaseline = Record<string, FrameTimeMetrics>;
 
+export const ABSOLUTE_MAX_P95_FRAME_TIME_MS = 65;
+const ABSOLUTE_MAX_MEAN_FRAME_TIME_MS = 40;
+const WARMUP_FRAMES = 3;
+
 const SPATIAL_VIEWS = [
   { route: '/galaxy', rootTestId: 'galaxy-view-root' },
   { route: '/system/sol', rootTestId: 'system-view-root' },
@@ -42,9 +46,9 @@ async function measurePointerDragMetrics(
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
 
-  // Drive 30-frame pointer drag and rAF timestamp collection entirely inside the browser context (zero CDP IPC roundtrip latency)
+  // Drive warm-up frames + 30-frame pointer drag and rAF timestamp collection entirely inside the browser context (zero CDP IPC roundtrip latency)
   const stats = await page.evaluate(
-    ({ centerX, centerY }) =>
+    ({ centerX, centerY, warmupFrames }) =>
       new Promise<{
         fps: number;
         meanFrameTimeMs: number;
@@ -56,7 +60,7 @@ async function measurePointerDragMetrics(
         const timestamps: number[] = [];
         const radius = 80;
         const totalSteps = 30;
-        let step = 0;
+        let frameIndex = 0;
 
         if (canvasEl) {
           canvasEl.dispatchEvent(
@@ -71,9 +75,12 @@ async function measurePointerDragMetrics(
         }
 
         function onFrame(now: number) {
-          timestamps.push(now);
-          if (step < totalSteps) {
-            const angle = (step / totalSteps) * Math.PI * 2;
+          if (frameIndex >= warmupFrames) {
+            timestamps.push(now);
+          }
+          const measuredStep = frameIndex - warmupFrames;
+          if (measuredStep < totalSteps) {
+            const angle = (frameIndex / (totalSteps + warmupFrames)) * Math.PI * 2;
             if (canvasEl) {
               canvasEl.dispatchEvent(
                 new PointerEvent('pointermove', {
@@ -85,7 +92,7 @@ async function measurePointerDragMetrics(
                 }),
               );
             }
-            step++;
+            frameIndex++;
             requestAnimationFrame(onFrame);
             return;
           }
@@ -129,7 +136,7 @@ async function measurePointerDragMetrics(
 
         requestAnimationFrame(onFrame);
       }),
-    { centerX: cx, centerY: cy },
+    { centerX: cx, centerY: cy, warmupFrames: WARMUP_FRAMES },
   );
 
   console.log(
@@ -165,17 +172,25 @@ test.describe('Spatial View Frame-Time Baseline Guard (AUD-009, DEC-R016)', () =
 
     const baseline: FrameTimeBaseline = JSON.parse(fs.readFileSync(baselinePath, 'utf-8'));
 
-    // Assert that each view does not regress beyond +25% tolerance
+    // Assert that each view does not regress beyond +25% tolerance or the absolute frame-time ceiling
     for (const { route } of SPATIAL_VIEWS) {
       const measured = measuredResults[route];
       const targetBaseline = baseline[route];
       expect(targetBaseline).toBeDefined();
 
-      const maxAllowedP95 = targetBaseline.p95FrameTimeMs * 1.25;
+      const maxAllowedP95 = Math.min(
+        targetBaseline.p95FrameTimeMs * 1.25,
+        ABSOLUTE_MAX_P95_FRAME_TIME_MS,
+      );
       expect(
         measured.p95FrameTimeMs,
-        `[DEC-R016 Frame-Time Regression] ${route} measured p95 frame time (${measured.p95FrameTimeMs}ms) exceeded baseline (${targetBaseline.p95FrameTimeMs}ms) by more than 25% (threshold: ${maxAllowedP95.toFixed(2)}ms)`,
+        `[DEC-R016 Frame-Time Regression] ${route} measured p95 frame time (${measured.p95FrameTimeMs}ms) exceeded threshold ${maxAllowedP95.toFixed(2)}ms (baseline: ${targetBaseline.p95FrameTimeMs}ms + 25%, absolute ceiling: ${ABSOLUTE_MAX_P95_FRAME_TIME_MS}ms)`,
       ).toBeLessThanOrEqual(maxAllowedP95);
+
+      expect(
+        measured.meanFrameTimeMs,
+        `[DEC-R016 Frame-Time Budget] ${route} measured mean frame time (${measured.meanFrameTimeMs}ms) exceeded absolute ceiling (${ABSOLUTE_MAX_MEAN_FRAME_TIME_MS}ms)`,
+      ).toBeLessThanOrEqual(ABSOLUTE_MAX_MEAN_FRAME_TIME_MS);
     }
   });
 });

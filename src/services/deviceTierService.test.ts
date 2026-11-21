@@ -15,12 +15,20 @@ import {
   APERTURE_ACTIVE_CUTOFF_TABLET,
   APERTURE_ACTIVE_CUTOFF_DESKTOP,
   getApertureActiveCutoffForViewportWidth,
+  registerWebGLGpuTelemetry,
+  getRegisteredWebGLGpuTelemetry,
+  subscribeDeviceTier,
+  resetDeviceTierRuntimeState,
+  getRuntimeCutoffMultiplier,
+  setRuntimeCutoffMultiplier,
+  getInitialCanvasDpr,
   type DevicePerformanceTier,
   type DeviceTierBudget,
 } from './deviceTierService';
 
 describe('deviceTierService', () => {
   afterEach(() => {
+    resetDeviceTierRuntimeState();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -172,20 +180,34 @@ describe('deviceTierService', () => {
         ).toBe('tier2');
       });
 
-      it('classifies undefined deviceMemory with 8 cores as tier3', () => {
+      it('keeps undefined deviceMemory with 8 or 16 cores at tier2 without positive GPU evidence', () => {
         expect(
           classifyDeviceTier({
             deviceMemory: undefined,
             hardwareConcurrency: 8,
           }),
-        ).toBe('tier3');
-      });
-
-      it('classifies undefined deviceMemory with 16 cores as tier3', () => {
+        ).toBe('tier2');
         expect(
           classifyDeviceTier({
             deviceMemory: undefined,
             hardwareConcurrency: 16,
+          }),
+        ).toBe('tier2');
+      });
+
+      it('classifies undefined deviceMemory with 8+ cores as tier3 when positive GPU evidence is present', () => {
+        expect(
+          classifyDeviceTier({
+            deviceMemory: undefined,
+            hardwareConcurrency: 8,
+            maxTextureSize: 16384,
+          }),
+        ).toBe('tier3');
+        expect(
+          classifyDeviceTier({
+            deviceMemory: undefined,
+            hardwareConcurrency: 8,
+            gpuRenderer: 'Apple M2 Max',
           }),
         ).toBe('tier3');
       });
@@ -508,6 +530,84 @@ describe('deviceTierService', () => {
     it('defaults to desktop (1440px -> 96) if window.innerWidth is unavailable', () => {
       vi.stubGlobal('innerWidth', undefined);
       expect(getApertureActiveCutoffForViewportWidth()).toBe(96);
+    });
+
+    it('scales cutoffs by runtime cutoff multiplier and floors at 20', () => {
+      expect(getRuntimeCutoffMultiplier()).toBe(1.0);
+      setRuntimeCutoffMultiplier(0.75);
+      expect(getRuntimeCutoffMultiplier()).toBe(0.75);
+      expect(getApertureActiveCutoffForViewportWidth(1440)).toBe(72);
+      expect(getApertureActiveCutoffForViewportWidth(800)).toBe(45);
+      expect(getApertureActiveCutoffForViewportWidth(390)).toBe(30);
+
+      setRuntimeCutoffMultiplier(0.25); // Clamps to 0.5
+      expect(getRuntimeCutoffMultiplier()).toBe(0.5);
+      expect(getApertureActiveCutoffForViewportWidth(390)).toBe(20);
+      expect(getApertureActiveCutoffForViewportWidth(1440)).toBe(48);
+
+      setRuntimeCutoffMultiplier(1.5); // Clamps to 1.0
+      expect(getRuntimeCutoffMultiplier()).toBe(1.0);
+      expect(getApertureActiveCutoffForViewportWidth(1440)).toBe(96);
+    });
+  });
+
+  describe('Live WebGL GPU Telemetry & Reactive Subscription', () => {
+    it('merges registered WebGL telemetry into probeBrowserDeviceCapabilities and classifyDeviceTier()', () => {
+      vi.stubGlobal('navigator', {
+        deviceMemory: undefined,
+        hardwareConcurrency: 8,
+      });
+
+      expect(getRegisteredWebGLGpuTelemetry()).toBeNull();
+      expect(classifyDeviceTier()).toBe('tier2');
+
+      const listener = vi.fn();
+      const unsubscribe = subscribeDeviceTier(listener);
+
+      registerWebGLGpuTelemetry({
+        gpuRenderer: 'Apple M2 Max',
+        maxTextureSize: 16384,
+        maxVertexAttribs: 16,
+      });
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(getRegisteredWebGLGpuTelemetry()).toEqual({
+        gpuRenderer: 'Apple M2 Max',
+        maxTextureSize: 16384,
+        maxVertexAttribs: 16,
+      });
+      expect(probeBrowserDeviceCapabilities()).toEqual({
+        hardwareConcurrency: 8,
+        gpuRenderer: 'Apple M2 Max',
+        maxTextureSize: 16384,
+        maxVertexAttribs: 16,
+      });
+      expect(classifyDeviceTier()).toBe('tier3');
+
+      registerWebGLGpuTelemetry({
+        gpuRenderer: 'Google SwiftShader',
+        maxTextureSize: 8192,
+        maxVertexAttribs: 16,
+      });
+      expect(listener).toHaveBeenCalledTimes(2);
+      expect(classifyDeviceTier()).toBe('tier1');
+
+      unsubscribe();
+      setRuntimeCutoffMultiplier(0.75);
+      expect(listener).toHaveBeenCalledTimes(2);
+    });
+
+    it('resolves initial canvas DPR based on classified tier and native DPR', () => {
+      vi.stubGlobal('navigator', {
+        deviceMemory: 8,
+        hardwareConcurrency: 8,
+      });
+      registerWebGLGpuTelemetry({ gpuRenderer: 'Apple M2 Max', maxTextureSize: 16384 });
+      expect(getInitialCanvasDpr(2)).toBe(2);
+      expect(getInitialCanvasDpr(3)).toBe(2);
+
+      registerWebGLGpuTelemetry({ gpuRenderer: 'Google SwiftShader', maxTextureSize: 8192 });
+      expect(getInitialCanvasDpr(2)).toBe(1);
     });
   });
 });

@@ -1,13 +1,15 @@
 /* ui-audit-disable-next-line missing-component-quad -- Lazy-loaded WebGL host extracted from CanvasLayer; styled via CanvasLayer.module.css and tested via CanvasLayer.test.tsx */
-import React, { Suspense } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { Canvas, events as createDomEvents } from '@react-three/fiber';
 import {
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
 } from '../../canvas/cartography';
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
+import { AdaptiveQualityMonitor } from '../../canvas/AdaptiveQualityMonitor';
 import { SceneTokenBridge } from '../../canvas/SceneTokenBridge';
 import { SafeHtmlPortalOutlet } from '../../canvas/SafeHtml';
+import { getInitialCanvasDpr } from '../../../services/deviceTierService';
 import {
   SpatialEntityStoreContext,
   useOptionalSpatialEntityStoreApi,
@@ -74,6 +76,7 @@ export const CanvasWebGLHost: React.FC<CanvasWebGLHostProps> = React.memo(({
   onFocusChange,
 }) => {
   const outerStore = useOptionalSpatialEntityStoreApi();
+  const initialDpr = useMemo(() => getInitialCanvasDpr(), []);
   const GalacticSceneComponent = getLoadedGalacticScene() ?? LazyGalacticSceneContent;
   const SystemSceneComponent = getLoadedSystemScene() ?? LazySystemSceneContent;
   const PlanetarySceneComponent = getLoadedPlanetaryScene() ?? LazyPlanetarySceneContent;
@@ -82,7 +85,7 @@ export const CanvasWebGLHost: React.FC<CanvasWebGLHostProps> = React.memo(({
     <div className={styles.canvasWrapper}>
       <Canvas
         flat
-        dpr={1}
+        dpr={initialDpr}
         frameloop={frameloop}
         events={createDragSafeCanvasEvents}
         camera={{
@@ -95,6 +98,7 @@ export const CanvasWebGLHost: React.FC<CanvasWebGLHostProps> = React.memo(({
       >
         <SpatialEntityStoreContext.Provider value={outerStore}>
           <SceneTokenBridge />
+          <AdaptiveQualityMonitor />
           <Suspense fallback={null}>
             {isSpatialSceneMounted && scope === 'galaxy' && (
               <GalacticSceneComponent
