@@ -6,7 +6,7 @@ How to open live Starmap views over the local network from any device, and how `
 
 ## 1. Local Network URLs
 
-The Vite application server and Storybook bind to `0.0.0.0` with `strictPort: true` and `allowedHosts: true`, so their ports never drift to fallbacks. `<LAN_HOST>` is the developer machine's LAN IPv4 address or hostname (`capture:views` auto-detects the first non-internal IPv4 address; override with `--lan-host=<host>`).
+The Vite application server binds to `0.0.0.0` with `strictPort: true` and `allowedHosts: true`, and Storybook binds to `0.0.0.0` on port `6006` (`--exact-port`) using `STORYBOOK_ALLOWED_HOSTS` (defaulting to `localhost,127.0.0.1`; pass `STORYBOOK_ALLOWED_HOSTS=<LAN_HOST>` when browsing Storybook from another LAN device). `<LAN_HOST>` is the developer machine's LAN IPv4 address or hostname (`capture:views` auto-detects the first non-internal IPv4 address; override with `--lan-host=<host>`).
 
 | Service | Command | URL |
 | :--- | :--- | :--- |

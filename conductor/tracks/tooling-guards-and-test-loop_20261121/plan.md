@@ -34,3 +34,5 @@ Ratified decisions:
 - [x] `.github/workflows/data-reproducibility.yml`: check `git status --porcelain public/data` so newly created untracked files cannot slip past `git diff --exit-code`.
 - [x] `scripts/audit-guards.ts`: remove unused `specifiers` and `importKind` fields left over on `ASTNode`.
 - [x] `vite.config.ts`: restore single exact-boundary `/^three$/` ESM alias (keeping the other 7 `node_modules` aliases deleted) to eliminate `[THREE_CJS_DEPRECATED]` runner warnings.
+- [x] `.tool-versions` / `package.json`: restore `.tool-versions` to `nodejs lts` (caught by local `asdf` smoke test) and declare `"engines": { "node": ">=22 <23" }` in `package.json` to match CI without breaking `asdf`.
+- [x] `conductor/workflow.md`, `.agents/skills/conductor-review/SKILL.md`, `conductor/local-review-and-screenshots.md`: mandate live `<LAN_HOST>` smoke-test links on every track review and document `STORYBOOK_ALLOWED_HOSTS` for Storybook LAN access.
