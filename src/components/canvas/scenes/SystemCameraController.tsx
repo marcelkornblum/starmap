@@ -13,16 +13,14 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
   target,
   up,
 }) => {
-  const three = useThree();
-  const camera = three.camera;
-  const invalidate =
-    'invalidate' in three && typeof three.invalidate === 'function' ? three.invalidate : undefined;
+  const camera = useThree((s) => s.camera);
+  const invalidate = useThree((s) => s.invalidate);
+  const rawControls = useThree((s) => s.controls);
   const controls =
-    'controls' in three &&
-    typeof three.controls === 'object' &&
-    three.controls !== null &&
-    'target' in three.controls
-      ? (three.controls as {
+    typeof rawControls === 'object' &&
+    rawControls !== null &&
+    'target' in rawControls
+      ? (rawControls as {
           target: { set: (x: number, y: number, z: number) => void };
           update?: () => void;
         })

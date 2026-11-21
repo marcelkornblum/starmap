@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
@@ -16,74 +16,8 @@ import {
   type PlanetPalette,
   getClassificationPalette,
 } from '../../../data/planetPalettes';
+import { getOrCreatePlanetTexture } from './planetBodyTexture';
 export type { PlanetPalette };
-
-/**
- * Generates an in-memory procedural cartographic texture matching classification.
- */
-function createPlanetTexture(classification: CelestialClassification, palette: PlanetPalette): THREE.CanvasTexture | null {
-  if (typeof document === 'undefined') return null;
-
-  try {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-
-    // Fill base planetary ocean/surface
-    ctx.fillStyle = palette.baseColor;
-    ctx.fillRect(0, 0, 512, 256);
-
-    if (classification === 'gas-giant' || classification === 'ice-giant' || classification === 'brown-dwarf') {
-      // Atmospheric planetary latitudinal bands
-      const bands = palette.bands ?? [palette.accentColor, palette.baseColor];
-      const bandHeight = 256 / bands.length;
-      bands.forEach((color, i) => {
-        ctx.fillStyle = color;
-        ctx.fillRect(0, i * bandHeight, 512, bandHeight);
-
-        // Subtle gradient transition
-        const grad = ctx.createLinearGradient(0, i * bandHeight, 0, (i + 1) * bandHeight);
-        grad.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
-        grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.08)');
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, i * bandHeight, 512, bandHeight);
-      });
-
-      // Gas giant storm spot
-      if (classification === 'gas-giant') {
-        ctx.fillStyle = '#b04020';
-        ctx.beginPath();
-        ctx.ellipse(320, 160, 42, 24, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    } else {
-      // Terrestrial continents & landmasses
-      ctx.fillStyle = palette.accentColor;
-      for (let i = 0; i < 6; i++) {
-        const cx = 80 + i * 70;
-        const cy = 70 + (i % 2) * 80;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 32 + (i % 3) * 8, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Polar ice caps
-      ctx.fillStyle = 'rgba(235, 245, 255, 0.85)';
-      ctx.fillRect(0, 0, 512, 24);
-      ctx.fillRect(0, 232, 512, 24);
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    return texture;
-  } catch {
-    return null;
-  }
-}
 
 export interface PlanetBodyProps {
   name: string;
@@ -118,13 +52,7 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
   children,
 }) => {
   const palette = useMemo(() => getClassificationPalette(classification), [classification]);
-  const texture = useMemo(() => createPlanetTexture(classification, palette), [classification, palette]);
-
-  useEffect(() => {
-    return () => {
-      texture?.dispose();
-    };
-  }, [texture]);
+  const texture = useMemo(() => getOrCreatePlanetTexture(classification, palette), [classification, palette]);
 
   const groupRef = useRef<THREE.Group | null>(null);
   const surfaceMatRef = useRef<THREE.MeshBasicMaterial | null>(null);
@@ -139,7 +67,8 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
     return position;
   }, [position]);
 
-  const { camera, size } = useThree();
+  const camera = useThree((s) => s.camera);
+  const sizeHeight = useThree((s) => s.size.height);
 
   useFrame(() => {
     if (!surfaceMatRef.current) return;
@@ -148,7 +77,7 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
       ? groupRef.current.getWorldPosition(scratchPos.current)
       : scratchPos.current.set(resolvedPos[0], resolvedPos[1], resolvedPos[2]);
 
-    const diameterPx = projectedPixelDiameter(camera, worldPos, radius, size.height);
+    const diameterPx = projectedPixelDiameter(camera, worldPos, radius, sizeHeight);
     const alpha = bodyVisibility(diameterPx, minPixelSize, fadeRange);
 
     surfaceMatRef.current.opacity = alpha;
@@ -168,7 +97,7 @@ export const PlanetBody: React.FC<PlanetBodyProps> = ({
     <group ref={groupRef} position={resolvedPos} name={`planet-body-${name}`}>
       {/* Planetary Core Surface (Uniform Cartographic Lit) */}
       <mesh name="planet-surface" raycast={NOOP_RAYCAST}>
-        <sphereGeometry args={[radius, 48, 48]} />
+        <sphereGeometry args={[radius, 32, 32]} />
         <meshBasicMaterial
           ref={surfaceMatRef}
           color={texture ? '#ffffff' : palette.baseColor}

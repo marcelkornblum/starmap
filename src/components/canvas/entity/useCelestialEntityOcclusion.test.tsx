@@ -99,4 +99,29 @@ describe('useCelestialEntityOcclusion', () => {
 
     await renderer.unmount();
   });
+
+  it('invalidates the R3F frame when registering and unregistering footprints under demand frameloop', async () => {
+    const occlusionManager = new CelestialOcclusionManager();
+    const resolvedPos = new THREE.Vector3(2, -2, 2);
+
+    const renderer = await ReactThreeTest.create(
+      <TestOcclusionConsumer
+        occlusionManager={occlusionManager}
+        resolvedPos={resolvedPos}
+      />,
+    );
+
+    const invalidateSpy = vi.spyOn(renderer.scene._fiber.root.getState(), 'invalidate');
+    await renderer.update(
+      <TestOcclusionConsumer
+        occlusionManager={occlusionManager}
+        resolvedPos={new THREE.Vector3(3, -3, 3)}
+      />,
+    );
+    expect(invalidateSpy).toHaveBeenCalled();
+
+    invalidateSpy.mockClear();
+    await renderer.unmount();
+    expect(invalidateSpy).toHaveBeenCalled();
+  });
 });

@@ -7,10 +7,13 @@ const mockSetClearColor = vi.fn();
 const mockInvalidate = vi.fn();
 
 vi.mock('@react-three/fiber', () => ({
-  useThree: () => ({
-    gl: { setClearColor: mockSetClearColor },
-    invalidate: mockInvalidate,
-  }),
+  useThree: (selector?: (s: unknown) => unknown) => {
+    const state = {
+      gl: { setClearColor: mockSetClearColor },
+      invalidate: mockInvalidate,
+    };
+    return selector ? selector(state) : state;
+  },
 }));
 
 vi.mock('./useThemeTokenSync', () => ({

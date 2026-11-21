@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { PlanetBody } from './PlanetBody';
+import {
+  clearPlanetTextureCache,
+  getOrCreatePlanetTexture,
+} from './planetBodyTexture';
 import { getClassificationPalette } from '../../../data/planetPalettes';
 import type { CelestialClassification } from '../../../types/spatial';
 import { NOOP_RAYCAST } from '../engineConfig';
@@ -10,6 +14,7 @@ describe('PlanetBody Component (Phase 4)', () => {
   let getContextSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    clearPlanetTextureCache();
     const mockCtx = {
       fillStyle: '',
       fillRect: vi.fn(),
@@ -123,5 +128,85 @@ describe('PlanetBody Component (Phase 4)', () => {
     expect(atmosphere.props.raycast).toBe(NOOP_RAYCAST);
 
     await renderer.unmount();
+  });
+
+  it('uses 32x32 sphere segments for planet-surface geometry (P-16)', async () => {
+    const renderer = await ReactThreeTest.create(
+      <PlanetBody name="Earth" classification="terrestrial" radius={2.5} />,
+    );
+
+    const surface = renderer.scene.find((node) => node.props.name === 'planet-surface');
+    const mesh = surface.instance as THREE.Mesh;
+    const geom = mesh.geometry as THREE.SphereGeometry;
+    expect(geom).toBeInstanceOf(THREE.SphereGeometry);
+    expect(geom.parameters.radius).toBe(2.5);
+    expect(geom.parameters.widthSegments).toBe(32);
+    expect(geom.parameters.heightSegments).toBe(32);
+
+    await renderer.unmount();
+  });
+
+  it('caches generated textures across mounts and avoids disposing shared textures on unmount (P-16)', async () => {
+    const disposeSpy = vi.spyOn(THREE.CanvasTexture.prototype, 'dispose');
+    const callsBefore = getContextSpy.mock.calls.length;
+
+    const rendererA = await ReactThreeTest.create(
+      <PlanetBody name="CachePlanetA" classification="ice-giant" radius={2.0} />,
+    );
+    const callsAfterA = getContextSpy.mock.calls.length - callsBefore;
+    await rendererA.unmount();
+
+    const rendererB = await ReactThreeTest.create(
+      <PlanetBody name="CachePlanetB" classification="ice-giant" radius={2.0} />,
+    );
+    const callsAfterB = getContextSpy.mock.calls.length - callsBefore;
+
+    expect(callsAfterA).toBeLessThanOrEqual(1);
+    expect(callsAfterB).toBe(callsAfterA);
+    expect(disposeSpy).not.toHaveBeenCalled();
+
+    await rendererB.unmount();
+    expect(disposeSpy).not.toHaveBeenCalled();
+  });
+
+  it('creates separate cache entries for different classifications (P-16)', async () => {
+    const rendererA = await ReactThreeTest.create(
+      <PlanetBody name="PairTerrestrial" classification="terrestrial" />,
+    );
+    const surfaceA = rendererA.scene.find((node) => node.props.name === 'planet-surface');
+    const matA = (surfaceA.instance as THREE.Mesh).material as THREE.MeshBasicMaterial;
+
+    const rendererB = await ReactThreeTest.create(
+      <PlanetBody name="PairGasGiant" classification="gas-giant" />,
+    );
+    const surfaceB = rendererB.scene.find((node) => node.props.name === 'planet-surface');
+    const matB = (surfaceB.instance as THREE.Mesh).material as THREE.MeshBasicMaterial;
+
+    expect(matA.map).toBeInstanceOf(THREE.CanvasTexture);
+    expect(matB.map).toBeInstanceOf(THREE.CanvasTexture);
+    expect(matA.map).not.toBe(matB.map);
+
+    await rendererA.unmount();
+    await rendererB.unmount();
+  });
+
+  it('creates separate cache entries for different (classification, palette) pairs (P-16)', () => {
+    const paletteA = getClassificationPalette('terrestrial');
+    const paletteB = {
+      ...paletteA,
+      baseColor: '#aa2233',
+      accentColor: '#dd8844',
+    };
+
+    const texA1 = getOrCreatePlanetTexture('terrestrial', paletteA);
+    const texA2 = getOrCreatePlanetTexture('terrestrial', paletteA);
+    const texB = getOrCreatePlanetTexture('terrestrial', paletteB);
+    const texOtherClass = getOrCreatePlanetTexture('star', paletteA);
+
+    expect(texA1).toBeInstanceOf(THREE.CanvasTexture);
+    expect(texA2).toBe(texA1);
+    expect(texB).not.toBe(texA1);
+    expect(texOtherClass).not.toBe(texA1);
+    expect(getContextSpy).toHaveBeenCalledTimes(3);
   });
 });

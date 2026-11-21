@@ -158,6 +158,7 @@ export function SectorPointCloud({
         .then((state) => {
           hydratingRef.current = false;
           onSummariesRef.current?.(state.activeSummaries, [fx, fy, fz]);
+          invalidate();
           if (pendingHydrationRef.current) {
             pendingHydrationRef.current = false;
             const currentFocus = frameCtxRef.current?.frameRef?.current?.focusPoint;
@@ -172,7 +173,7 @@ export function SectorPointCloud({
           hydratingRef.current = false;
         });
     },
-    [manager, hydrationBridge, scratchPosRef],
+    [manager, hydrationBridge, scratchPosRef, invalidate],
   );
 
   useEffect(() => {
@@ -273,13 +274,15 @@ export function SectorPointCloud({
     const rDiff = Math.abs(apertureRadius - hr);
 
     if (!Number.isFinite(hDistSq) || hDistSq > 0.25 || !Number.isFinite(rDiff) || rDiff > 0.25) {
-      if (!Number.isFinite(hDistSq) || !Number.isFinite(rDiff)) {
-        triggerHydration(fx, fy, fz, apertureRadius);
-      } else if (
+      if (
+        !Number.isFinite(hDistSq) ||
+        !Number.isFinite(rDiff) ||
         settledFramesRef.current >= 3 ||
         performance.now() - lastHydrationTimeRef.current >= 1200
       ) {
         triggerHydration(fx, fy, fz, apertureRadius);
+      } else {
+        invalidate();
       }
     }
 

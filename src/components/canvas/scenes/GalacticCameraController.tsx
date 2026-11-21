@@ -31,12 +31,10 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   hasExplicitCenter = true,
   persistGalaxyPose = true,
 }) => {
-  const three = useThree();
-  const camera = three.camera;
-  const invalidate =
-    'invalidate' in three && typeof three.invalidate === 'function' ? three.invalidate : undefined;
-  const controls =
-    'controls' in three && isOrbitControlsLike(three.controls) ? three.controls : undefined;
+  const camera = useThree((s) => s.camera);
+  const invalidate = useThree((s) => s.invalidate);
+  const rawControls = useThree((s) => s.controls);
+  const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
   const recenterTick = useCameraStore((s) => s.recenterTick);
   const prevTargetRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
   const prevDistanceRef = useRef<number>(Number.NaN);

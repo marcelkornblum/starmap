@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import type { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
 import type { CelestialFootprint } from '../cartography/occlusionTypes';
@@ -29,6 +29,7 @@ export function useCelestialEntityOcclusion({
   resolvedPos,
   occlusionManager,
 }: UseCelestialEntityOcclusionParams) {
+  const invalidate = useThree((s) => s.invalidate);
   const footprintRef = useRef<CelestialFootprint>({
     id,
     name,
@@ -66,10 +67,12 @@ export function useCelestialEntityOcclusion({
       fp.worldPos = [resolvedPos.x, resolvedPos.y, resolvedPos.z];
     }
     occlusionManager.register(fp);
+    invalidate();
     return () => {
       occlusionManager.unregister(id);
+      invalidate();
     };
-  }, [id, name, activeState, multiplicity, planets, classification, resolvedPos, occlusionManager]);
+  }, [id, name, activeState, multiplicity, planets, classification, resolvedPos, occlusionManager, invalidate]);
 
   const scratchNdcRef = useLazyRef(() => new THREE.Vector3());
   const scratchWorldPosRef = useLazyRef(() => new THREE.Vector3());

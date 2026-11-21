@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import * as THREE from 'three';
 import { useThree } from '@react-three/fiber';
 import { useSpatialFrame } from './spatialFrameContext';
@@ -25,31 +25,24 @@ export interface CameraRigProps {
   snapDuration?: number;
 }
 
+type CameraRigControls = OrbitControlsLike & {
+  minDistance?: number;
+  maxDistance?: number;
+  addEventListener?: (type: string, listener: () => void) => void;
+  removeEventListener?: (type: string, listener: () => void) => void;
+};
+
 export const CameraRig: React.FC<CameraRigProps> = ({
   baseFov: explicitBaseFov,
   snapOnRelease = true,
   snapThresholdDeg = 10,
   snapDuration = 0.35,
 }) => {
-  const threeState = useThree() as {
-    camera: THREE.Camera;
-    controls?: OrbitControlsLike & {
-      minDistance?: number;
-      maxDistance?: number;
-      addEventListener?: (type: string, listener: () => void) => void;
-      removeEventListener?: (type: string, listener: () => void) => void;
-    };
-    size?: { width: number; height: number };
-    get?: () => any;
-    set?: (state: any) => void;
-    invalidate?: () => void;
-  };
-
-  const camera = threeState.camera;
-  const controls = threeState.controls;
-  const sizeWidth = threeState.size?.width;
-  const sizeHeight = threeState.size?.height;
-  const get = useMemo(() => threeState.get ?? (() => threeState), [threeState]);
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => (s as unknown as { controls?: CameraRigControls }).controls);
+  const sizeWidth = useThree((s) => s.size?.width);
+  const sizeHeight = useThree((s) => s.size?.height);
+  const get = useThree((s) => s.get);
   const { frame } = useSpatialFrame();
 
   const projection = useCameraRigProjection({

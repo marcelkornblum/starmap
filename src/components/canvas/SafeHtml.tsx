@@ -1,47 +1,50 @@
 import type React from 'react';
-import { useId, useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react';
+import { memo, useId, useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
+import {
+  setPortalEntry,
+  deletePortalEntry,
+  subscribePortalIds,
+  getPortalIdsSnapshot,
+  getServerPortalIdsSnapshot,
+  subscribePortalSlot,
+  getPortalSlotSnapshot,
+  getServerPortalSlotSnapshot,
+} from './safeHtmlPortalStore';
 
-const portalRegistry = new Map<string, React.ReactPortal>();
-const portalListeners = new Set<() => void>();
-let portalSnapshot: React.ReactPortal[] = [];
-
-function emitPortalChange(): void {
-  portalSnapshot = Array.from(portalRegistry.values());
-  for (const listener of portalListeners) {
-    listener();
-  }
+interface SafeHtmlPortalSlotProps {
+  portalId: string;
 }
 
-function subscribePortals(listener: () => void): () => void {
-  portalListeners.add(listener);
-  return () => {
-    portalListeners.delete(listener);
-  };
-}
-
-function getPortalSnapshot(): React.ReactPortal[] {
-  return portalSnapshot;
-}
-
-const EMPTY_PORTALS: React.ReactPortal[] = [];
-function getServerPortalSnapshot(): React.ReactPortal[] {
-  return EMPTY_PORTALS;
-}
+const SafeHtmlPortalSlot: React.FC<SafeHtmlPortalSlotProps> = memo(({ portalId }) => {
+  const subscribe = useCallback(
+    (listener: () => void) => subscribePortalSlot(portalId, listener),
+    [portalId],
+  );
+  const getSnapshot = useCallback(() => getPortalSlotSnapshot(portalId), [portalId]);
+  return useSyncExternalStore(subscribe, getSnapshot, getServerPortalSlotSnapshot);
+});
+SafeHtmlPortalSlot.displayName = 'SafeHtmlPortalSlot';
 
 /**
  * Renders active SafeHtml portals inside the outer react-dom tree (outside R3F's <Canvas>)
  * so HTML/SVG children are reconciled by react-dom and inherit the full React Context tree.
  */
 export const SafeHtmlPortalOutlet: React.FC = () => {
-  const portals = useSyncExternalStore(
-    subscribePortals,
-    getPortalSnapshot,
-    getServerPortalSnapshot,
+  const portalIds = useSyncExternalStore(
+    subscribePortalIds,
+    getPortalIdsSnapshot,
+    getServerPortalIdsSnapshot,
   );
-  return <>{portals}</>;
+  return (
+    <>
+      {portalIds.map((id) => (
+        <SafeHtmlPortalSlot key={id} portalId={id} />
+      ))}
+    </>
+  );
 };
 
 export interface SafeHtmlProps {
@@ -121,7 +124,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     };
   }, []);
 
-  const { gl, camera, size } = useThree();
+  const gl = useThree((s) => s.gl);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const portalId = useId();
 
@@ -148,8 +151,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     return () => {
       containerRef.current = null;
       lastVisible.current = null;
-      portalRegistry.delete(portalId);
-      emitPortalChange();
+      deletePortalEntry(portalId);
       if (div.parentNode) {
         div.parentNode.removeChild(div);
       }
@@ -162,7 +164,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
     div.style.pointerEvents = pointerEvents;
     div.className = wrapperClass ?? '';
 
-    portalRegistry.set(
+    setPortalEntry(
       portalId,
       createPortal(
         <div className={className} data-testid={dataTestId}>
@@ -172,10 +174,9 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
         portalId,
       ),
     );
-    emitPortalChange();
   }, [gl, portalId, children, className, dataTestId, pointerEvents, wrapperClass]);
 
-  useFrame(() => {
+  useFrame(({ camera, size }) => {
     const activeContainer = containerRef.current;
     if (!activeContainer || !groupRef.current) return;
 

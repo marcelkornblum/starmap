@@ -15,12 +15,15 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {
     ...actual,
-    useThree: () => ({
-      camera: mockCamera,
-      controls: mockControls,
-      size: { width: 1920, height: 1080 },
-      invalidate: mockInvalidate,
-    }),
+    useThree: (selector?: (s: unknown) => unknown) => {
+      const state = {
+        camera: mockCamera,
+        controls: mockControls,
+        size: { width: 1920, height: 1080 },
+        invalidate: mockInvalidate,
+      };
+      return selector ? selector(state) : state;
+    },
   };
 });
 
