@@ -49,7 +49,6 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
 
       <OrbitControls
         makeDefault
-        target={standardCam.target}
         enableDamping
         dampingFactor={CONTROLS_DAMPING_FACTOR}
         minDistance={1.2}

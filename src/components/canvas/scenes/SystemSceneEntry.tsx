@@ -42,7 +42,6 @@ export const SystemSceneContent: React.FC<SystemSceneContentProps> = ({
 
       <OrbitControls
         makeDefault
-        target={standardCam.target}
         enableDamping
         dampingFactor={CONTROLS_DAMPING_FACTOR}
         minDistance={2.0}

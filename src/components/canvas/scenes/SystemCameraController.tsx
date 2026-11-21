@@ -31,12 +31,10 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
   const invalidate = useThree((s) => s.invalidate);
   const rawControls = useThree((s) => s.controls);
   const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
-  const { transitionToPose } = useCameraTransition();
+  const { transitionTo } = useCameraTransition();
   const recenterTick = useCameraStore((s) => s.recenterTick);
 
-  const prevPosRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
   const prevTargetRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
-  const prevUpRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
   const prevTickRef = useRef<number>(-1);
   const prevControlsRef = useRef<OrbitControlsLike | undefined>(undefined);
   const hasAppliedControlsRef = useRef(false);
@@ -76,34 +74,26 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
   }, [controls, syncPoseToStore]);
 
   useEffect(() => {
-    const prevPos = prevPosRef.current;
     const prevTarget = prevTargetRef.current;
-    const prevUp = prevUpRef.current;
     const isInitialMount = Number.isNaN(prevTarget[0]);
-    const isPoseSame =
-      prevPos[0] === posX &&
-      prevPos[1] === posY &&
-      prevPos[2] === posZ &&
+    const isTargetSame =
       prevTarget[0] === tgtX &&
       prevTarget[1] === tgtY &&
-      prevTarget[2] === tgtZ &&
-      prevUp[0] === upX &&
-      prevUp[1] === upY &&
-      prevUp[2] === upZ;
+      prevTarget[2] === tgtZ;
     const isTickSame = recenterTick === prevTickRef.current;
     const isControlsSame = controls === prevControlsRef.current;
 
-    if (isPoseSame && isTickSame && isControlsSame) {
+    if (isTargetSame && isTickSame && isControlsSame) {
       return;
     }
 
-    if (!isInitialMount && !hasExplicitCenter && isTickSame && isControlsSame) {
+    if (!isInitialMount && !hasExplicitCenter && isControlsSame) {
       return;
     }
 
     if (
       isInitialMount ||
-      (!hasAppliedControlsRef.current && controls && isPoseSame && isTickSame)
+      (!hasAppliedControlsRef.current && controls && isTargetSame && isTickSame)
     ) {
       const applied = applyImmediateCameraPose(
         camera,
@@ -115,34 +105,23 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
       );
       if (applied) hasAppliedControlsRef.current = true;
       syncPoseToStore([tgtX, tgtY, tgtZ]);
-      prevPosRef.current = [posX, posY, posZ];
       prevTargetRef.current = [tgtX, tgtY, tgtZ];
-      prevUpRef.current = [upX, upY, upZ];
       prevTickRef.current = recenterTick;
       prevControlsRef.current = controls;
       invalidate?.();
       return;
     }
 
-    transitionToPose(
-      {
-        target: [tgtX, tgtY, tgtZ],
-        position: [posX, posY, posZ],
-        up: [upX, upY, upZ],
+    transitionTo([tgtX, tgtY, tgtZ], {
+      onComplete: () => {
+        controls?.update?.();
+        hasAppliedControlsRef.current = Boolean(controls);
+        syncPoseToStore([tgtX, tgtY, tgtZ]);
+        invalidate?.();
       },
-      {
-        onComplete: () => {
-          controls?.update?.();
-          hasAppliedControlsRef.current = Boolean(controls);
-          syncPoseToStore([tgtX, tgtY, tgtZ]);
-          invalidate?.();
-        },
-      },
-    );
+    });
 
-    prevPosRef.current = [posX, posY, posZ];
     prevTargetRef.current = [tgtX, tgtY, tgtZ];
-    prevUpRef.current = [upX, upY, upZ];
     prevTickRef.current = recenterTick;
     prevControlsRef.current = controls;
   }, [
@@ -161,7 +140,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     controls,
     invalidate,
     syncPoseToStore,
-    transitionToPose,
+    transitionTo,
   ]);
 
   return null;

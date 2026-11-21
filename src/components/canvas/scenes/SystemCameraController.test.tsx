@@ -115,7 +115,7 @@ describe('SystemCameraController Component', () => {
     expect(useCameraStore.getState().target).toEqual([1, 2, 3]);
   });
 
-  it('glides smoothly via transitionToPose when camera pose props update and syncs store on settle', () => {
+  it('glides smoothly preserving the user viewing angle and distance when target updates', () => {
     const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(1000);
     const { rerender } = render(
       createElement(SystemCameraController, {
@@ -125,11 +125,14 @@ describe('SystemCameraController Component', () => {
       }),
     );
 
+    // Simulate user orbiting to a custom viewing offset (+5, -4, +6) from target [1, 2, 3]
+    mockCamera.position.set(6, -2, 9);
     mockInvalidate.mockClear();
+
     rerender(
       createElement(SystemCameraController, {
         position: [20, 30, 40],
-        target: [2, 3, 4],
+        target: [11, 2, 3],
         up: [0, 0, 1],
       }),
     );
@@ -142,16 +145,19 @@ describe('SystemCameraController Component', () => {
       advanceTransitionFrames([1000, 1400], nowSpy);
     });
     expect(mockControls.target.x).toBeGreaterThan(1);
-    expect(mockControls.target.x).toBeLessThan(2);
+    expect(mockControls.target.x).toBeLessThan(11);
 
     act(() => {
-      advanceTransitionFrames([1800], nowSpy);
+      advanceTransitionFrames([2500], nowSpy);
     });
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
-    expect(mockControls.target.x).toBeCloseTo(2, 4);
-    expect(mockCamera.position.x).toBeCloseTo(20, 4);
-    expect(useCameraStore.getState().target[0]).toBeCloseTo(2, 4);
-    expect(useCameraStore.getState().position[0]).toBeCloseTo(20, 4);
+    expect(mockControls.target.x).toBeCloseTo(11, 4);
+    // Offset (+5, -4, +6) preserved instead of reorienting to [20, 30, 40]
+    expect(mockCamera.position.x).toBeCloseTo(16, 4);
+    expect(mockCamera.position.y).toBeCloseTo(-2, 4);
+    expect(mockCamera.position.z).toBeCloseTo(9, 4);
+    expect(useCameraStore.getState().target[0]).toBeCloseTo(11, 4);
+    expect(useCameraStore.getState().position[0]).toBeCloseTo(16, 4);
   });
 
   it('syncs useCameraStore on OrbitControls end only when not transitioning', () => {
