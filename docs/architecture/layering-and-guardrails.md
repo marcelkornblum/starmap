@@ -62,12 +62,14 @@ Circular dependencies (`A -> B -> A` or deep transitive loops) create initialisa
 Each static analysis tool owns a distinct, non-overlapping concern and is run once via the unified `npm run check` gate:
 
 ```
-npm run check         ──► Single-pass gate: lint -> typecheck -> audit:guards -> audit:ui -> audit:r3f
+npm run check         ──► Single-pass gate: lint -> typecheck -> audit:guards -> audit:ui -> audit:r3f -> audit:budgets
 npm run lint          ──► Oxlint (Layering, Import Cycles, 300-Line Ceiling, React Hooks, Strict Types)
 npm run typecheck     ──► TypeScript Project References (tsc -b)
 npm run audit:guards  ──► Domain Literal Guard (G-literals) & Global Mutation Guard (no-global-this-mutation)
 npm run audit:ui      ──► Design System, Component Quads, CUBE CSS, Zero Inline Styles
 npm run audit:r3f     ──► 60fps R3F Audits (useFrame, Atomic Selectors, On-Demand Frameloop, Resource Disposal, Raycast)
+npm run audit:budgets ──► Suppression Ratchet & Data Manifest / Shard Size Budgets (scripts/guards/budgets.json)
+npm run audit:bundle  ──► Built Entry JS/CSS Gzip Budgets & Lazy 3D Chunk Isolation (runs post-build)
 ```
 
 ### 2.1 Domain Literal & Global State Guards (`scripts/audit-guards.ts`)
@@ -97,14 +99,23 @@ Enforces 60fps WebGL execution guardrails across `src/components/canvas/`, `src/
 - **`require-noop-raycast`:** Flags decorative `<mesh>`, `<lineSegments>`, and `new Line2(...)` instances in `src/components/canvas/` without pointer handlers or `NOOP_RAYCAST`.
 - **`no-inline-jsx-geometry`, `no-material-memo-color-deps`, `valid-r3f-intrinsics`:** Flags inline JSX geometry instantiations, colour/opacity material recreation dependencies, and invalid R3F intrinsic tags.
 
+### 2.4 Suppression Ratchet, Data Manifest & Bundle Budgets (`scripts/audit-budgets.ts`)
+Configured via [`scripts/guards/budgets.json`](../../scripts/guards/budgets.json):
+- **`audit:budgets` (Offline, part of `npm run check`):**
+  - **Suppression Ratchet:** Scans non-test, non-story `.ts`, `.tsx`, and `.css` files under `src/` and enforces strict ceilings for `guard-disable`, `r3f-audit-disable`, `ui-audit-disable`, `eslint-disable`, `oxlint-disable`, and `@ts-ignore`/`@ts-expect-error`, failing with exact `file:line` locations if any ceiling is exceeded.
+  - **Data Manifest & Shard Budgets:** Validates `public/data/manifest.json`, ensures every referenced shard exists on disk, forbids orphan files under `public/data/` outside `allowedNonManifestFiles` (`[".gitkeep", "README.md"]`), and enforces `maxTotalBytes` (`40 MiB`) and `maxStartupSearchBytes` (`1.5 MiB` for `search/startup`).
+- **`audit:bundle` (`--bundle`, post-`npm run build` in CI):**
+  - Resolves entry JS and CSS assets from `dist/index.html` (supporting `/` and `/starmap/` base paths), verifies gzipped entry sizes remain within `maxEntryJsGzipBytes` (`30 KiB`) and `maxEntryCssGzipBytes` (`20 KiB`), and asserts neither `dist/index.html` (including `<link rel="modulepreload">`) nor static ESM imports/re-exports in the entry JS chunk reference lazy 3D chunks (`vendor-three`, `vendor-r3f`).
+
 ---
 
-## 3. Zero-Tolerance Policy & Justified Suppressions
+## 3. Zero-Tolerance Policy, Justified Suppressions & Coverage Floor
 
 All static analysis suites operate with zero-tolerance, fail-closed enforcement (no baseline grandfathering):
 
-1. **Zero Influx:** Any violation across `oxlint`, `tsc`, `audit:guards`, `audit:ui`, or `audit:r3f` immediately fails `npm run check` and CI.
-2. **Justified Suppressions Only:** Inline suppressions (`// guard-disable-next-line <rule> -- <reason>`, `/* ui-audit-disable-next-line <rule> -- <reason> */`, or `// r3f-audit-disable-next-line <rule> -- <reason>`) require an explicit technical justification after `-- <reason>`. Unreasoned suppression comments are flagged as errors.
+1. **Zero Influx:** Any violation across `oxlint`, `tsc`, `audit:guards`, `audit:ui`, `audit:r3f`, or `audit:budgets` immediately fails `npm run check` and CI.
+2. **Justified Suppressions Only:** Inline suppressions (`// guard-disable-next-line <rule> -- <reason>`, `/* ui-audit-disable-next-line <rule> -- <reason> */`, or `// r3f-audit-disable-next-line <rule> -- <reason>`) require an explicit technical justification after `-- <reason>`. Unreasoned suppression comments are flagged as errors, and total suppression counts across `src/` are capped by `scripts/guards/budgets.json`.
+3. **Ratcheted Unit Coverage Floor (`vite.config.ts`):** `npm run test:coverage` enforces minimum coverage thresholds of `88%` lines, `86%` statements, `76%` branches, and `88%` functions across `src/**/*.{ts,tsx}`.
 
 ---
 
@@ -113,4 +124,4 @@ All static analysis suites operate with zero-tolerance, fail-closed enforcement 
 In addition to static AST audits, Playwright executes automated contracts against the built application:
 
 - **URL Contracts (`e2e/url-contracts.spec.ts`):** Validates that all canonical deep-links, guide slugs, and orthogonal search query parameters resolve deterministically.
-- **Frame-Time Baseline (`e2e/frame-time-baseline.spec.ts`):** Measures real-world 60fps rendering performance under continuous camera orbit and zoom operations, ensuring frame times remain within the 16.6ms budget (`scripts/guards/frame-time-baseline.json`).
+- **Frame-Time & Draw-Call Baseline (`e2e/frame-time-baseline.spec.ts`):** Measures real-world 60fps rendering performance under continuous camera orbit and zoom operations, ensuring frame times remain within the 16.6ms budget (`scripts/guards/frame-time-baseline.json`). In dev builds (`import.meta.env.DEV`), `AdaptiveQualityMonitor` publishes WebGL draw-call counts (`gl.info.render.calls`) to `canvas[data-gl-draw-calls]` only when the count changes, allowing `e2e/frame-time-baseline.spec.ts` to record `maxDrawCalls` and enforce calibrated draw-call ceilings when present in `scripts/guards/frame-time-baseline.json`.

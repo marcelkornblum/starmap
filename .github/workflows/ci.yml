@@ -88,6 +88,8 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+      - name: Verify bundle budgets
+        run: npm run audit:bundle
       - name: Build Storybook
         run: npm run build-storybook
       - name: Upload artifact

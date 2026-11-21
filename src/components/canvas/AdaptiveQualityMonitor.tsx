@@ -22,6 +22,22 @@ export const AdaptiveQualityMonitor: React.FC = () => {
 
   const initialDpr = getInitialCanvasDpr();
   const controllerRef = useRef<AdaptiveQualityController | null>(null);
+  const glRef = useRef(gl);
+  const lastDrawCallsRef = useRef<number>(-1);
+  const drawCallsQueuedRef = useRef<boolean>(false);
+  const flushDrawCallsRef = useRef<() => void>(() => {
+    drawCallsQueuedRef.current = false;
+    const activeGl = glRef.current;
+    const drawCalls = activeGl?.info?.render?.calls;
+    if (
+      typeof drawCalls === 'number' &&
+      drawCalls !== lastDrawCallsRef.current &&
+      activeGl?.domElement?.dataset
+    ) {
+      lastDrawCallsRef.current = drawCalls;
+      activeGl.domElement.dataset.glDrawCalls = String(drawCalls);
+    }
+  });
   if (controllerRef.current === null) {
     controllerRef.current = new AdaptiveQualityController({
       initialDpr,
@@ -31,6 +47,7 @@ export const AdaptiveQualityMonitor: React.FC = () => {
   }
 
   useEffect(() => {
+    glRef.current = gl;
     const rawContext = typeof gl?.getContext === 'function' ? gl.getContext() : null;
     if (!rawContext) return;
     registerWebGLGpuTelemetry(extractWebGLGpuTelemetry(rawContext));
@@ -50,6 +67,11 @@ export const AdaptiveQualityMonitor: React.FC = () => {
       }
     } else if (decision.action === 'cutoff') {
       applyRuntimeCutoffMultiplier(decision.nextCutoffMultiplier);
+    }
+
+    if (import.meta.env.DEV && !drawCallsQueuedRef.current) {
+      drawCallsQueuedRef.current = true;
+      queueMicrotask(flushDrawCallsRef.current);
     }
   });
 

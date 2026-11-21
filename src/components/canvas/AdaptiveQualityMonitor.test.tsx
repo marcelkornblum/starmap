@@ -12,6 +12,8 @@ type FrameCallback = (state: unknown, delta: number) => void;
 const mockSetDpr = vi.fn();
 let capturedFrameCallback: FrameCallback | null = null;
 let mockGlContext: WebGLRenderingContext | null = null;
+let mockDrawCalls = 0;
+let mockDataset: Record<string, string | undefined> = {};
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
@@ -25,6 +27,16 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
         setDpr: mockSetDpr,
         gl: {
           getContext: () => mockGlContext,
+          info: {
+            render: {
+              get calls() {
+                return mockDrawCalls;
+              },
+            },
+          },
+          domElement: {
+            dataset: mockDataset,
+          },
         },
       }),
   };
@@ -34,6 +46,8 @@ describe('AdaptiveQualityMonitor', () => {
   beforeEach(() => {
     capturedFrameCallback = null;
     mockSetDpr.mockClear();
+    mockDrawCalls = 0;
+    mockDataset = {};
     resetDeviceTierRuntimeState();
     vi.stubGlobal('navigator', {
       deviceMemory: 8,
@@ -109,5 +123,47 @@ describe('AdaptiveQualityMonitor', () => {
     });
 
     expect(getRuntimeCutoffMultiplier()).toBe(0.75);
+  });
+
+  it('writes dev draw-call telemetry to gl.domElement.dataset.glDrawCalls after render only when calls change', async () => {
+    let storedDrawCalls: string | undefined;
+    const setSpy = vi.fn((next: string) => {
+      storedDrawCalls = next;
+    });
+    Object.defineProperty(mockDataset, 'glDrawCalls', {
+      configurable: true,
+      get: () => storedDrawCalls,
+      set: setSpy,
+    });
+
+    render(<AdaptiveQualityMonitor />);
+    expect(capturedFrameCallback).not.toBeNull();
+
+    await act(async () => {
+      capturedFrameCallback?.({}, 0.016);
+      // Simulate gl.render() populating info.render.calls synchronously after useFrame callbacks
+      mockDrawCalls = 14;
+      await Promise.resolve();
+    });
+    expect(storedDrawCalls).toBe('14');
+    expect(setSpy).toHaveBeenCalledTimes(1);
+
+    // Same draw-call count on subsequent frames must not redundantly overwrite dataset
+    await act(async () => {
+      capturedFrameCallback?.({}, 0.016);
+      await Promise.resolve();
+      capturedFrameCallback?.({}, 0.016);
+      await Promise.resolve();
+    });
+    expect(setSpy).toHaveBeenCalledTimes(1);
+
+    // Changed draw-call count updates dataset again
+    await act(async () => {
+      capturedFrameCallback?.({}, 0.016);
+      mockDrawCalls = 22;
+      await Promise.resolve();
+    });
+    expect(storedDrawCalls).toBe('22');
+    expect(setSpy).toHaveBeenCalledTimes(2);
   });
 });
