@@ -1,14 +1,12 @@
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { SceneTokenBridge } from '../ThemeTokenBridge';
+import { SceneTokenBridge } from '../SceneTokenBridge';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
 import type { SpatialEntityDefinition } from '../entity';
-import {
-  GalacticSceneContent,
-  SystemSceneContent,
-  PlanetarySceneContent,
-} from './SpatialScenes';
+import { GalacticSceneContent } from './GalacticSceneEntry';
+import { SystemSceneContent } from './SystemSceneEntry';
+import { PlanetarySceneContent } from './PlanetarySceneEntry';
 import {
   EARTH_REFERENCE_TARGET,
   SOL_REFERENCE_TARGET,

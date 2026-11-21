@@ -53,6 +53,41 @@ export default defineConfig(({ mode }) => {
     ],
     // Set base path for production deployment under /starmap/
     base,
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              {
+                name: 'vendor-react',
+                test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+                priority: 40,
+              },
+              {
+                name: 'vendor-zustand',
+                test: /node_modules[\\/]zustand[\\/]/,
+                priority: 35,
+              },
+              {
+                name: 'vendor-router',
+                test: /node_modules[\\/]@tanstack[\\/]/,
+                priority: 30,
+              },
+              {
+                name: 'vendor-three',
+                test: /node_modules[\\/](three|three-stdlib)[\\/]/,
+                priority: 20,
+              },
+              {
+                name: 'vendor-r3f',
+                test: /node_modules[\\/](@react-three[\\/]fiber|@react-three[\\/]drei|camera-controls|maath|meshline|troika-.*|three-mesh-bvh)[\\/]/,
+                priority: 10,
+              },
+            ],
+          },
+        },
+      },
+    },
     server: {
       host: '0.0.0.0',
       port: 5173,

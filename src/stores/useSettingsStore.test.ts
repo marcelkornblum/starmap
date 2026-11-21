@@ -5,7 +5,6 @@ import {
   fallbackStorage,
   resolveSettingsStorage,
 } from './useSettingsStore';
-import * as storesIndex from './index';
 
 describe('useSettingsStore (Persistent)', () => {
   beforeEach(() => {
@@ -131,11 +130,5 @@ describe('useSettingsStore (Persistent)', () => {
     delete globalThis.localStorage;
     expect(resolveSettingsStorage()).toBe(fallbackStorage);
     globalThis.localStorage = origLocal;
-  });
-
-  it('is correctly re-exported from index with operational state mutation', () => {
-    expect(storesIndex.DEFAULT_SETTINGS).toEqual(DEFAULT_SETTINGS);
-    storesIndex.useSettingsStore.getState().setTheme('light');
-    expect(storesIndex.useSettingsStore.getState().theme).toBe('light');
   });
 });

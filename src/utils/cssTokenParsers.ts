@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import type { ParsedColorResult } from '../types/threeTokens';
 
 /**
@@ -24,6 +23,38 @@ function oklchToLinearRgb(L: number, C: number, H: number): [number, number, num
   return [r, g, bl];
 }
 
+function linearToSrgbHexByte(linearChannel: number): string {
+  const clamped = Math.max(0, Math.min(1, linearChannel));
+  const srgb =
+    clamped <= 0.0031308
+      ? clamped * 12.92
+      : 1.055 * clamped ** (1 / 2.4) - 0.055;
+  return Math.round(Math.max(0, Math.min(255, srgb * 255)))
+    .toString(16)
+    .padStart(2, '0');
+}
+
+function parseHexColor(trimmed: string): ParsedColorResult | null {
+  const shortMatch = trimmed.match(/^#([0-9a-f]{3})([0-9a-f])?$/i);
+  if (shortMatch) {
+    const [r, g, b] = shortMatch[1].split('');
+    const colorHex = `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+    const alpha = shortMatch[2]
+      ? Number.parseInt(`${shortMatch[2]}${shortMatch[2]}`, 16) / 255
+      : 1;
+    return { colorHex, alpha };
+  }
+
+  const longMatch = trimmed.match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i);
+  if (longMatch) {
+    const colorHex = `#${longMatch[1].toLowerCase()}`;
+    const alpha = longMatch[2] ? Number.parseInt(longMatch[2], 16) / 255 : 1;
+    return { colorHex, alpha };
+  }
+
+  return null;
+}
+
 /**
  * Parses any browser-computed or CSS string (hex, rgb, rgba, oklch)
  * into an immutable hex color string and an alpha scalar.
@@ -32,6 +63,13 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
   const trimmed = cssColorString.trim();
   if (!trimmed) {
     return { colorHex: '#000000', alpha: 1 };
+  }
+
+  if (trimmed.startsWith('#')) {
+    const hexResult = parseHexColor(trimmed);
+    if (hexResult) {
+      return hexResult;
+    }
   }
 
   const oklchMatch = trimmed.match(
@@ -47,8 +85,8 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
     if (rawA !== undefined) {
       alpha = rawA.endsWith('%') ? Number.parseFloat(rawA) / 100 : Number.parseFloat(rawA);
     }
-    const color = new THREE.Color(r, g, b);
-    return { colorHex: `#${color.getHexString()}`, alpha };
+    const colorHex = `#${linearToSrgbHexByte(r)}${linearToSrgbHexByte(g)}${linearToSrgbHexByte(b)}`;
+    return { colorHex, alpha };
   }
 
   const rgbaMatch = trimmed.match(
@@ -70,13 +108,8 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
     return { colorHex, alpha };
   }
 
-  try {
-    const color = new THREE.Color(0, 0, 0);
-    color.set(trimmed);
-    return { colorHex: `#${color.getHexString()}`, alpha: 1 };
-  } catch {
-    return { colorHex: '#000000', alpha: 1 };
-  }
+  console.warn(`Unable to parse CSS color "${trimmed}", falling back to #000000.`);
+  return { colorHex: '#000000', alpha: 1 };
 }
 
 /**
@@ -84,21 +117,6 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
  */
 export function parseCssColorToHex(cssColorString: string): string {
   return parseCssColor(cssColorString).colorHex;
-}
-
-const threeColorCache = new Map<string, THREE.Color>();
-
-/**
- * Returns a cached linear THREE.Color instance for the given hex color string.
- */
-export function getThreeColor(hex: string): THREE.Color {
-  const normalized = hex.toLowerCase();
-  let color = threeColorCache.get(normalized);
-  if (!color) {
-    color = new THREE.Color(normalized);
-    threeColorCache.set(normalized, color);
-  }
-  return color;
 }
 
 /**

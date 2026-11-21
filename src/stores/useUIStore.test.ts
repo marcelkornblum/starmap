@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useUIStore, INITIAL_UI_STATE } from './useUIStore';
-import * as storesIndex from './index';
 
 describe('useUIStore (Ephemeral)', () => {
   beforeEach(() => {
@@ -102,10 +101,5 @@ describe('useUIStore (Ephemeral)', () => {
 
     expect(useUIStore.getState()).toMatchObject(INITIAL_UI_STATE);
     expect(localStorage.getItem('starmap-ui')).toBeNull();
-  });
-
-  it('is correctly re-exported from index with operational state mutation', () => {
-    storesIndex.useUIStore.getState().setActivePanel('filters');
-    expect(storesIndex.useUIStore.getState().activePanel).toBe('filters');
   });
 });

@@ -1,5 +1,7 @@
 import type React from 'react';
-import { Breadcrumbs, Search, SearchResultItem } from '../components/domain';
+import { Breadcrumbs } from '../components/domain/Breadcrumbs';
+import { Search } from '../components/domain/Search';
+import { SearchResultItem } from '../components/domain/SearchResultItem';
 
 export const SearchView: React.FC = () => {
   return (

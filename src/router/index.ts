@@ -1,21 +1,10 @@
+import { lazy } from 'react';
 import {
   createRouter,
   createRoute,
   createRootRoute,
   defaultStringifySearch,
 } from '@tanstack/react-router';
-import { GalaxyView } from '../views/GalaxyView';
-import { HazardDetailView } from '../views/HazardDetailView';
-import { HazardsListView } from '../views/HazardsListView';
-import { MetricDetailView } from '../views/MetricDetailView';
-import { MetricsListView } from '../views/MetricsListView';
-import { PlanetTypeDetailView } from '../views/PlanetTypeDetailView';
-import { PlanetTypesListView } from '../views/PlanetTypesListView';
-import { PlanetView } from '../views/PlanetView';
-import { SearchView } from '../views/SearchView';
-import { StarTypeDetailView } from '../views/StarTypeDetailView';
-import { StarTypesListView } from '../views/StarTypesListView';
-import { SystemView } from '../views/SystemView';
 import {
   useSpaLocation,
   resolveSpaLocation,
@@ -23,6 +12,43 @@ import {
   registerAppRouter,
 } from '../hooks/useSpaLocation';
 import { RootLayout } from './RootLayout';
+
+const GalaxyView = lazy(() =>
+  import('../views/GalaxyView').then((m) => ({ default: m.GalaxyView })),
+);
+const HazardDetailView = lazy(() =>
+  import('../views/HazardDetailView').then((m) => ({ default: m.HazardDetailView })),
+);
+const HazardsListView = lazy(() =>
+  import('../views/HazardsListView').then((m) => ({ default: m.HazardsListView })),
+);
+const MetricDetailView = lazy(() =>
+  import('../views/MetricDetailView').then((m) => ({ default: m.MetricDetailView })),
+);
+const MetricsListView = lazy(() =>
+  import('../views/MetricsListView').then((m) => ({ default: m.MetricsListView })),
+);
+const PlanetTypeDetailView = lazy(() =>
+  import('../views/PlanetTypeDetailView').then((m) => ({ default: m.PlanetTypeDetailView })),
+);
+const PlanetTypesListView = lazy(() =>
+  import('../views/PlanetTypesListView').then((m) => ({ default: m.PlanetTypesListView })),
+);
+const PlanetView = lazy(() =>
+  import('../views/PlanetView').then((m) => ({ default: m.PlanetView })),
+);
+const SearchView = lazy(() =>
+  import('../views/SearchView').then((m) => ({ default: m.SearchView })),
+);
+const StarTypeDetailView = lazy(() =>
+  import('../views/StarTypeDetailView').then((m) => ({ default: m.StarTypeDetailView })),
+);
+const StarTypesListView = lazy(() =>
+  import('../views/StarTypesListView').then((m) => ({ default: m.StarTypesListView })),
+);
+const SystemView = lazy(() =>
+  import('../views/SystemView').then((m) => ({ default: m.SystemView })),
+);
 
 export {
   useSpaLocation,

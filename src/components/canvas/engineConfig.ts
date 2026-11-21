@@ -38,6 +38,9 @@ export const CONTROLS_DAMPING_FACTOR = 0.14;
  */
 export const REFERENCE_FOV_DEG = 45;
 
+/** Authoritative default reticle size in world units (~half of legacy 0.45) */
+export const DEFAULT_RETICLE_SIZE = 0.22;
+
 /**
  * Invariant instrument footprint radius in scene units at the reference camera distance.
  * Consumed across reticle, stalk, label, and instrument scaling. Backed by `--chrome-instrument-footprint`.

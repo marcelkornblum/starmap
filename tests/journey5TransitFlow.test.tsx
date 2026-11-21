@@ -11,11 +11,9 @@ vi.mock('@tanstack/react-router', () => ({
 import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
-import {
-  CanvasLayer,
-  ControlBar,
-  DetailsPanel,
-} from '../src/components/domain';
+import { CanvasLayer } from '../src/components/domain/CanvasLayer';
+import { ControlBar } from '../src/components/domain/ControlBar';
+import { DetailsPanel } from '../src/components/domain/DetailsPanel';
 import {
   buildCenterEntityHref,
   extractUrlSceneCameraState,

@@ -1,5 +1,7 @@
 import type React from 'react';
-import { Breadcrumbs, Guide3DPreview, GuideSectionNav } from '../components/domain';
+import { Breadcrumbs } from '../components/domain/Breadcrumbs';
+import { Guide3DPreview } from '../components/domain/Guide3DPreview';
+import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import { Badge, Cluster, Datum, Grid, Heading, Unit } from '../components/interface';
 import { METRIC_GUIDE_ENTRIES } from '../content/guide';
 import styles from './GuideViews.module.css';

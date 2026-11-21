@@ -18,7 +18,7 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
   };
 });
 
-vi.mock('../ThemeTokenBridge', () => ({
+vi.mock('../SceneTokenBridge', () => ({
   SceneTokenBridge: () => <div data-testid="mock-scene-token-bridge" />,
 }));
 

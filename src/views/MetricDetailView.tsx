@@ -1,10 +1,8 @@
 import React, { useMemo, useEffect, useSyncExternalStore } from 'react';
-import {
-  Breadcrumbs,
-  GuideExamplesList,
-  GuideSectionNav,
-  MetricComparativePanel,
-} from '../components/domain';
+import { Breadcrumbs } from '../components/domain/Breadcrumbs';
+import { GuideExamplesList } from '../components/domain/GuideExamplesList';
+import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { MetricComparativePanel } from '../components/domain/MetricComparativePanel';
 import {
   Badge,
   Button,

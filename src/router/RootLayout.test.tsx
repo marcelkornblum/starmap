@@ -92,7 +92,7 @@ describe('<RootLayout />', () => {
     expect(handleSpaNavSpy).not.toHaveBeenCalled();
   });
 
-  it('keeps GalaxyView mounted without remounting when router transitions between / and /galaxy', () => {
+  it('keeps GalaxyView mounted without remounting when router transitions between / and /galaxy', async () => {
     let resolvedCallback: (() => void) | undefined;
     let routerState = {
       matches: [{ routeId: '/' }],
@@ -114,7 +114,7 @@ describe('<RootLayout />', () => {
       window.history.pushState({}, '', '/');
       render(<RootLayout />);
 
-      expect(screen.getByTestId('mock-galaxy-view')).toBeInTheDocument();
+      expect(await screen.findByTestId('mock-galaxy-view')).toBeInTheDocument();
       expect(galaxyViewMountSpy).toHaveBeenCalledTimes(1);
       expect(galaxyViewUnmountSpy).not.toHaveBeenCalled();
 
@@ -140,14 +140,14 @@ describe('<RootLayout />', () => {
         resolvedCallback?.();
       });
 
-      expect(screen.getByTestId('router-outlet')).toBeInTheDocument();
+      expect(await screen.findByTestId('router-outlet')).toBeInTheDocument();
       expect(galaxyViewUnmountSpy).toHaveBeenCalledTimes(1);
     } finally {
       registerAppRouter(null);
     }
   });
 
-  it('mounts GalaxyView from Render 1 when routerState.matches starts empty []', () => {
+  it('mounts GalaxyView from Render 1 when routerState.matches starts empty []', async () => {
     const routerState = {
       matches: [],
     };
@@ -163,7 +163,7 @@ describe('<RootLayout />', () => {
       window.history.pushState({}, '', '/galaxy');
       render(<RootLayout />);
 
-      expect(screen.getByTestId('mock-galaxy-view')).toBeInTheDocument();
+      expect(await screen.findByTestId('mock-galaxy-view')).toBeInTheDocument();
       expect(galaxyViewMountSpy).toHaveBeenCalledTimes(1);
     } finally {
       registerAppRouter(null);

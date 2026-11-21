@@ -4,10 +4,10 @@ import type {
   PlanetCensusEntry,
   ReticleAnnotationOptions,
 } from '../../../types/spatial';
+import { DEFAULT_RETICLE_SIZE } from '../engineConfig';
 import { appendReticleBracketPoints } from './reticleBrackets';
 
-/** Authoritative default reticle size in world units (~half of legacy 0.45) */
-export const DEFAULT_RETICLE_SIZE = 0.22;
+export { DEFAULT_RETICLE_SIZE };
 
 /**
  * Formats a designation or spectral classification tag for compact reticle facet display.

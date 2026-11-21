@@ -6,8 +6,8 @@ import {
   parseCssColor,
   parseCssDuration,
   parseCssPx,
-  getThreeColor,
 } from '../utils/cssTokenParsers';
+import { getThreeColor } from '../utils/threeColorCache';
 import { createDefaultTokenSnapshot } from './threeTokenDefaults';
 import { extractThreeTokens } from './extractThreeTokens';
 import { useThreeTokenStore } from './useThreeTokenStore';

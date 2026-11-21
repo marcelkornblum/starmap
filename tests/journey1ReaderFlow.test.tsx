@@ -11,12 +11,10 @@ vi.mock('@tanstack/react-router', () => ({
 import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
-import {
-  BodiesPanel,
-  Breadcrumbs,
-  DetailsPanel,
-  SearchResultItem,
-} from '../src/components/domain';
+import { BodiesPanel } from '../src/components/domain/BodiesPanel';
+import { Breadcrumbs } from '../src/components/domain/Breadcrumbs';
+import { DetailsPanel } from '../src/components/domain/DetailsPanel';
+import { SearchResultItem } from '../src/components/domain/SearchResultItem';
 import {
   clearDetailsRepositoryCache,
   decodeDetailRecord,

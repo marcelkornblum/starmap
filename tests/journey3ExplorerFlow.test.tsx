@@ -11,14 +11,14 @@ vi.mock('@tanstack/react-router', () => ({
 import * as THREE from 'three';
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
+import { DetailsPanel } from '../src/components/domain/DetailsPanel';
+import { Minimap } from '../src/components/domain/Minimap';
 import {
-  DetailsPanel,
-  Minimap,
   OrbitalSchematicItem,
   OrbitalSchematicList,
   OrbitalSchematicPanel,
-  PreviewPanel,
-} from '../src/components/domain';
+} from '../src/components/domain/OrbitalSchematicPanel';
+import { PreviewPanel } from '../src/components/domain/PreviewPanel';
 import { buildFocusedEntityDetails } from '../src/services/details/focusedEntityDetails';
 import { buildFocusedPreviewSummary } from '../src/services/details/detailsPreview';
 import { buildPlanetMinimapOrientation } from '../src/services/details/planetMinimap';

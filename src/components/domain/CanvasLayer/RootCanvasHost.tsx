@@ -1,4 +1,11 @@
-import React, { useSyncExternalStore, useLayoutEffect, useEffect, useMemo, useRef } from 'react';
+import React, {
+  useSyncExternalStore,
+  useLayoutEffect,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   useCanvasStageStore,
   getStageCallbacks,
@@ -15,7 +22,14 @@ export const RootCanvasHost: React.FC = () => {
   const hostRef = useRef<HTMLDivElement>(null);
   const setRootCanvasMounted = useCanvasStageStore((s) => s.setRootCanvasMounted);
   const hasActiveSlot = useCanvasStageStore((s) => s.activeSlotCount > 0);
+  const [hasActivatedSpatialCanvas, setHasActivatedSpatialCanvas] = useState(hasActiveSlot);
   const stageProps = useCanvasStageStore((s) => s.stageProps);
+
+  useIsomorphicLayoutEffect(() => {
+    if (hasActiveSlot) {
+      setHasActivatedSpatialCanvas(true);
+    }
+  }, [hasActiveSlot]);
   const { onInspect, onSelect, onFocusChange } = useSyncExternalStore(
     subscribeStageCallbacks,
     getStageCallbacks,
@@ -156,7 +170,7 @@ export const RootCanvasHost: React.FC = () => {
       data-camera-dist={initialCam.focalDistance.toFixed(2)}
       aria-hidden="true"
     >
-      {canvasLayerContent}
+      {hasActivatedSpatialCanvas ? canvasLayerContent : null}
     </div>
   );
 };
