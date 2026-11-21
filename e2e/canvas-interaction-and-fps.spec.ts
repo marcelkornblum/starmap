@@ -639,6 +639,9 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const canvasDist10 = hostDist10.locator('canvas');
     await expect(canvasDist10).toBeVisible({ timeout: 15_000 });
 
+    // Wait for GalacticCameraController to settle at dist=10 (prevents hitting foreground 61 Cygni at dist=28)
+    await expect(hostDist10).toHaveAttribute('data-camera-dist', '10.00', { timeout: 10_000 });
+
     // Wait for 2 animation frames + 300ms for sector hydration to settle
     await page.evaluate(
       () =>

@@ -103,7 +103,8 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
         }
       }
     }
-  }, [entities, storeApi, frameCtx]);
+    invalidate();
+  }, [entities, storeApi, frameCtx, invalidate]);
 
   useViewportStoreSync({
     storeApi,
