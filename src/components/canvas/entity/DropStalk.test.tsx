@@ -209,4 +209,22 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
 
     await renderer.unmount();
   });
+
+  it('clamps large idle delta so frame 0 under demand frameloop does not snap progress to 1', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <DropStalk id="idle-clamp-stalk" position={[0, 0, 5]} state="selected" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    // Simulate a 1.0s idle gap on frame 0: clamped to 0.1s (< 0.15s extend duration),
+    // so progress advances to ~0.67 and continues requesting invalidation instead of snapping to 1.0.
+    mockInvalidate.mockClear();
+    await renderer.advanceFrames(1, 1.0);
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
+
+    await renderer.unmount();
+  });
 });

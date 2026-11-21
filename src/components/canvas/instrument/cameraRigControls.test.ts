@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as THREE from 'three';
 import {
   CardinalTransitionController,
@@ -6,10 +6,12 @@ import {
 } from './cameraRigControls';
 import { applyOrthographicLock, type OrbitControlsLike } from './cameraRigZoomAndPan';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import * as reducedMotion from '../../../utils/reducedMotion';
 
 interface MockControls extends OrbitControlsLike {
   object: THREE.Camera;
   target: THREE.Vector3;
+  enabled: boolean;
   enableRotate: boolean;
   mouseButtons: { LEFT: number; MIDDLE: number; RIGHT: number };
   touches: { ONE: number; TWO: number };
@@ -34,6 +36,7 @@ describe('cameraRigControls', () => {
     mockControls = {
       object: camera,
       target,
+      enabled: true,
       enableRotate: true,
       mouseButtons: {
         LEFT: THREE.MOUSE.ROTATE,
@@ -46,6 +49,10 @@ describe('cameraRigControls', () => {
       },
       update: vi.fn(),
     };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('handleDiscreteSnapOnEnd', () => {
@@ -130,6 +137,50 @@ describe('cameraRigControls', () => {
       controller.cancel();
       expect(controller.isTransitioning()).toBe(false);
       expect(mockControls.enabled).toBe(true);
+    });
+
+    it('uses easeInOutQuad (DEFAULT_CAMERA_EASING_CURVE) along cardinal glide', () => {
+      const controller = new CardinalTransitionController();
+      camera.position.set(0, -10, 0);
+      camera.up.set(0, 0, 1);
+
+      // 90 deg rotation from front (0,-1,0) to top (0,0,1)
+      controller.start(camera, target, 'top', 1.0, undefined, 1000);
+      // At progress = 0.25, easeInOutQuad(0.25) = 0.125 (vs cubic 0.0625)
+      // angle = 0.125 * 90 deg = 11.25 deg -> z = 10 * sin(11.25 deg) ≈ 1.9509
+      controller.update(camera, mockControls, 1250);
+      expect(camera.position.z).toBeCloseTo(10 * Math.sin(0.125 * (Math.PI / 2)), 3);
+    });
+
+    it('anchors startTime on first update when now is omitted (pendingStart guard)', () => {
+      const controller = new CardinalTransitionController();
+      camera.position.set(0, -10, 0);
+      camera.up.set(0, 0, 1);
+
+      controller.start(camera, target, 'top', 1.0, undefined, undefined, mockControls);
+      // Frame 0 arrives after a long 4000ms stall
+      controller.update(camera, mockControls, 4000);
+      expect(controller.isTransitioning()).toBe(true);
+      expect(camera.position.y).toBeCloseTo(-10, 3);
+
+      // Complete 1.0s after frame 0
+      controller.update(camera, mockControls, 5000);
+      expect(controller.isTransitioning()).toBe(false);
+      expect(camera.position.z).toBeCloseTo(10, 3);
+    });
+
+    it('settles immediately when prefersReducedMotion is active', () => {
+      vi.spyOn(reducedMotion, 'prefersReducedMotion').mockReturnValue(true);
+
+      const onComplete = vi.fn();
+      const controller = new CardinalTransitionController();
+      camera.position.set(0, -10, 0);
+      controller.start(camera, target, 'top', 0.35, onComplete, undefined, mockControls);
+
+      expect(controller.isTransitioning()).toBe(false);
+      expect(camera.position.z).toBeCloseTo(10, 3);
+      expect(mockControls.enabled).toBe(true);
+      expect(onComplete).toHaveBeenCalledTimes(1);
     });
   });
 });

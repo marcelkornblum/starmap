@@ -72,7 +72,45 @@ describe('useViewportPointerHandlers hook', () => {
     expect(transitionTo).toHaveBeenCalledWith([10, 20, 30], { duration: 0.8 });
     expect(onInspect).toHaveBeenCalledWith('star-1');
     expect(onDoubleClick).toHaveBeenCalledWith('star-1', mockEvent);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onFocusChange).not.toHaveBeenCalled();
     expect(mockInvalidate).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to onFocusChange or onSelect on double click only when onInspect is absent', () => {
+    const { result: withFocus } = renderHook(() =>
+      useViewportPointerHandlers({
+        storeApi: mockStore,
+        occlusionManager: mockOcclusionManager,
+        transitionTo,
+        invalidate: mockInvalidate,
+        onSelect,
+        onFocusChange,
+      }),
+    );
+
+    const mockEvent = {} as ThreeEvent<MouseEvent>;
+    act(() => {
+      withFocus.current.handleEntityDoubleClick('star-1', mockEvent);
+    });
+    expect(onFocusChange).toHaveBeenCalledWith('star-1');
+    expect(onSelect).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    const { result: withSelectOnly } = renderHook(() =>
+      useViewportPointerHandlers({
+        storeApi: mockStore,
+        occlusionManager: mockOcclusionManager,
+        transitionTo,
+        invalidate: mockInvalidate,
+        onSelect,
+      }),
+    );
+
+    act(() => {
+      withSelectOnly.current.handleEntityDoubleClick('star-1', mockEvent);
+    });
+    expect(onSelect).toHaveBeenCalledWith('star-1');
   });
 
   it('clears interaction and signals null on pointer missed and invalidates canvas', () => {

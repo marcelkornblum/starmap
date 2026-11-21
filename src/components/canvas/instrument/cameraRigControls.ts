@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import { easeInOutCubic } from './useCameraTransition';
+import {
+  evaluateCameraEasing,
+  DEFAULT_CAMERA_EASING_CURVE,
+} from '../../../utils/cameraEasing';
+import { prefersReducedMotion } from '../../../utils/reducedMotion';
 import type { CardinalDirection } from '../../../types/spatial';
 import {
   isNearCardinalAxis,
@@ -15,6 +19,7 @@ import type { OrbitControlsLike } from './cameraRigZoomAndPan';
  */
 export class CardinalTransitionController {
   private isTransitioningState = false;
+  private pendingStart = false;
   private startTime = 0;
   private duration = 0.35;
   private cardinal: CardinalDirection | null = null;
@@ -44,11 +49,13 @@ export class CardinalTransitionController {
   public cancel(): void {
     if (this.isTransitioningState) {
       this.isTransitioningState = false;
+      this.pendingStart = false;
       this.cardinal = null;
       this.onComplete = undefined;
       if (this.activeControls && this.prevControlsEnabled !== undefined) {
         this.activeControls.enabled = this.prevControlsEnabled;
         this.activeControls = undefined;
+        this.prevControlsEnabled = undefined;
       }
     }
   }
@@ -59,19 +66,10 @@ export class CardinalTransitionController {
     cardinal: CardinalDirection,
     duration = 0.35,
     onComplete?: () => void,
-    now: number = performance.now(),
+    now?: number,
     controls?: OrbitControlsLike,
   ): void {
-    this.cardinal = cardinal;
-    this.duration = Math.max(duration, 0.01);
-    this.startTime = now;
-    this.onComplete = onComplete;
-
-    if (controls) {
-      this.activeControls = controls;
-      this.prevControlsEnabled = controls.enabled ?? true;
-      controls.enabled = false;
-    }
+    if (this.isTransitioningState) this.cancel();
 
     this.target.copy(target);
     this.radius = Math.max(camera.position.distanceTo(target), 1e-3);
@@ -79,6 +77,31 @@ export class CardinalTransitionController {
     this.endDir.copy(getCardinalNormal(cardinal)).normalize();
     this.startUp.copy(camera.up).normalize();
     this.endUp.copy(getCardinalUp(cardinal)).normalize();
+
+    if (prefersReducedMotion() || duration <= 0) {
+      camera.position.copy(this.target).addScaledVector(this.endDir, this.radius);
+      camera.up.copy(this.endUp);
+      camera.lookAt(this.target);
+      camera.updateMatrixWorld();
+      this.isTransitioningState = false;
+      this.pendingStart = false;
+      this.cardinal = null;
+      controls?.update?.();
+      onComplete?.();
+      return;
+    }
+
+    this.cardinal = cardinal;
+    this.duration = Math.max(duration, 0.01);
+    this.pendingStart = now === undefined;
+    this.startTime = now ?? 0;
+    this.onComplete = onComplete;
+
+    if (controls) {
+      this.activeControls = controls;
+      this.prevControlsEnabled = controls.enabled ?? true;
+      controls.enabled = false;
+    }
 
     const dot = Math.max(-1, Math.min(1, this.startDir.dot(this.endDir)));
     this.totalAngle = Math.acos(dot);
@@ -110,10 +133,14 @@ export class CardinalTransitionController {
     now: number = performance.now(),
   ): boolean {
     if (!this.isTransitioningState) return false;
+    if (this.pendingStart) {
+      this.startTime = now;
+      this.pendingStart = false;
+    }
 
-    const elapsed = (now - this.startTime) / 1000;
+    const elapsed = Math.max(0, (now - this.startTime) / 1000);
     const progress = Math.min(elapsed / this.duration, 1.0);
-    const t = easeInOutCubic(progress);
+    const t = evaluateCameraEasing(DEFAULT_CAMERA_EASING_CURVE, progress);
 
     const currentAngle = this.totalAngle * t;
     this.currentDir.copy(this.startDir).applyAxisAngle(this.rotationAxis, currentAngle).normalize();

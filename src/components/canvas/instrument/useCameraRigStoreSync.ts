@@ -2,20 +2,20 @@ import { useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { FRAME_PRIORITY } from '../engineConfig';
+import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
-import type { CardinalDirection } from '../../../types/spatial';
+import { useUIStore } from '../../../stores/useUIStore';
+import type { CardinalDirection, ReferenceFrame } from '../../../types/spatial';
 import {
   handleDiscreteSnapOnEnd,
   type CardinalTransitionController,
 } from './cameraRigControls';
+import { type OrbitControlsLike } from './cameraRigZoomAndPan';
 import {
-  resetPerspectiveCamera,
-  orientRadialPerspectiveCamera,
-  type OrbitControlsLike,
-} from './cameraRigZoomAndPan';
-import type { ReferenceFrame } from '../../../types/spatial';
-
+  CameraTransitionController,
+  type CameraTransitionPose,
+} from './cameraTransitionEngine';
 import type { CameraRigThreeState } from './useCameraRigProjection';
 
 const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
@@ -62,12 +62,58 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
     glideToCardinal,
   } = options;
 
+  const poseControllerRef = useLazyRef(() => new CameraTransitionController());
   const isLocked = useCameraStore((s) => s.isLocked);
   const pendingAxisRequest = useCameraStore((s) => s.pendingAxisRequest);
   const pendingPresetRequest = useCameraStore((s) => s.pendingPresetRequest);
+  const isCameraTransitioning = useUIStore((s) => s.isCameraTransitioning);
   const enableOrthographicProjection = useSettingsStore((s) => s.enableOrthographicProjection);
   const projection = useSettingsStore((s) => s.projection);
   const isOrthoProjectionActive = projection === 'top-down' || enableOrthographicProjection;
+
+  const syncPoseToStore = useCallback(() => {
+    const currentCam = get().camera ?? camera;
+    if (!currentCam) return;
+    const targetVec = controls?.target ?? persistentTargetRef.current ?? FALLBACK_TARGET;
+    const store = useCameraStore.getState();
+    const currentPos: [number, number, number] = [currentCam.position.x, currentCam.position.y, currentCam.position.z];
+    const currentTarget: [number, number, number] = [targetVec.x, targetVec.y, targetVec.z];
+    const currentZoom = (currentCam as THREE.OrthographicCamera | THREE.PerspectiveCamera).zoom ?? 1;
+
+    const posDiff = Math.hypot(currentPos[0] - store.position[0], currentPos[1] - store.position[1], currentPos[2] - store.position[2]);
+    const targetDiff = Math.hypot(currentTarget[0] - store.target[0], currentTarget[1] - store.target[1], currentTarget[2] - store.target[2]);
+    const zoomDiff = Math.abs(currentZoom - (store.zoom ?? 1));
+
+    if (posDiff > 1e-3 || targetDiff > 1e-3 || zoomDiff > 1e-3) {
+      store.setCameraTransform(currentPos, currentTarget, currentZoom);
+    }
+  }, [camera, controls, get, persistentTargetRef]);
+
+  const startPresetPoseGlide = useCallback(
+    (
+      perspCam: THREE.PerspectiveCamera,
+      endPose: CameraTransitionPose,
+      activeControls: OrbitControlsLike | undefined,
+      afterSettle?: () => void,
+    ) => {
+      poseControllerRef.current.startPose(perspCam, endPose, activeControls, {
+        onComplete: () => {
+          afterSettle?.();
+          useUIStore.getState().setCameraTransitioning(false);
+          syncPoseToStore();
+        },
+        onCancel: () => {
+          useUIStore.getState().setCameraTransitioning(false);
+          syncPoseToStore();
+        },
+      });
+      if (poseControllerRef.current.isTransitioning()) {
+        useUIStore.getState().setCameraTransitioning(true);
+      }
+      get().invalidate?.();
+    },
+    [get, poseControllerRef, syncPoseToStore],
+  );
 
   useEffect(() => {
     if (!pendingAxisRequest) return;
@@ -93,8 +139,23 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
           unlockFromOrthographic();
         }
         if (perspCam) {
-          resetPerspectiveCamera(perspCam, frame.camera.defaultPosition ?? [0, -35, 20], frame.camera.defaultTarget ?? [0, 0, 0], configuredBaseFov, activeControls);
-          state.invalidate?.();
+          startPresetPoseGlide(
+            perspCam,
+            {
+              target: frame.camera.defaultTarget ?? [0, 0, 0],
+              position: frame.camera.defaultPosition ?? [0, -35, 20],
+              up: [0, 0, 1],
+              fov: configuredBaseFov,
+            },
+            activeControls,
+            () => {
+              if (perspCam.zoom !== 1.0) {
+                perspCam.zoom = 1.0;
+                perspCam.updateProjectionMatrix();
+              }
+              state.invalidate?.();
+            },
+          );
         }
         break;
       }
@@ -105,16 +166,28 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
         if (currentCamera instanceof THREE.OrthographicCamera && orthoCamRef.current && perspCam) {
           unlockFromOrthographic();
         }
-        const target = activeControls?.target ?? FALLBACK_TARGET;
-        const dist = perspCam ? perspCam.position.distanceTo(target) : 32;
         if (perspCam) {
-          orientRadialPerspectiveCamera(perspCam, target, dist, activeControls);
-          state.invalidate?.();
+          const target = activeControls?.target ?? FALLBACK_TARGET;
+          const dist = Math.max(1, perspCam.position.distanceTo(target));
+          const elev = Math.sin((30 * Math.PI) / 180);
+          const planeR = Math.cos((30 * Math.PI) / 180);
+          const yaw = (-45 * Math.PI) / 180;
+          startPresetPoseGlide(
+            perspCam,
+            {
+              target: [target.x, target.y, target.z],
+              direction: [planeR * Math.cos(yaw), planeR * Math.sin(yaw), elev],
+              distance: dist,
+              up: [0, 0, 1],
+            },
+            activeControls,
+            () => { state.invalidate?.(); },
+          );
         }
         break;
       }
     }
-  }, [pendingPresetRequest, get, isOrthoAllowed, glideToCardinal, unlockFromOrthographic, frame, configuredBaseFov, perspCamRef, orthoCamRef]);
+  }, [pendingPresetRequest, get, isOrthoAllowed, glideToCardinal, unlockFromOrthographic, startPresetPoseGlide, frame, configuredBaseFov, perspCamRef, orthoCamRef]);
 
   useEffect(() => {
     if (!isOrthoProjectionActive && (useCameraStore.getState().isLocked || get().camera === orthoCamRef.current)) {
@@ -135,30 +208,33 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
     }
   }, [isLocked, isOrthoAllowed, get, lockToOrthographic, unlockFromOrthographic, orthoCamRef]);
 
-  const syncPoseToStore = useCallback(() => {
-    const currentCam = get().camera ?? camera;
-    if (!currentCam) return;
-    const targetVec = controls?.target ?? persistentTargetRef.current ?? FALLBACK_TARGET;
-    const store = useCameraStore.getState();
-    const currentPos: [number, number, number] = [currentCam.position.x, currentCam.position.y, currentCam.position.z];
-    const currentTarget: [number, number, number] = [targetVec.x, targetVec.y, targetVec.z];
-    const currentZoom = (currentCam as THREE.OrthographicCamera | THREE.PerspectiveCamera).zoom ?? 1;
-
-    const posDiff = Math.hypot(currentPos[0] - store.position[0], currentPos[1] - store.position[1], currentPos[2] - store.position[2]);
-    const targetDiff = Math.hypot(currentTarget[0] - store.target[0], currentTarget[1] - store.target[1], currentTarget[2] - store.target[2]);
-    const zoomDiff = Math.abs(currentZoom - (store.zoom ?? 1));
-
-    if (posDiff > 1e-3 || targetDiff > 1e-3 || zoomDiff > 1e-3) {
-      store.setCameraTransform(currentPos, currentTarget, currentZoom);
+  useEffect(() => {
+    if (!isCameraTransitioning) {
+      syncPoseToStore();
     }
-  }, [camera, controls, get, persistentTargetRef]);
+  }, [isCameraTransitioning, syncPoseToStore]);
 
-  useEffect(() => { syncPoseToStore(); }, [syncPoseToStore]);
+  useEffect(() => {
+    const poseController = poseControllerRef.current;
+    return () => {
+      if (poseController.isTransitioning()) {
+        poseController.cancel();
+        useUIStore.getState().setCameraTransitioning(false);
+      }
+    };
+  }, [poseControllerRef]);
 
   useEffect(() => {
     if (!controls || typeof controls.addEventListener !== 'function') return;
-    const handleStart = () => { if (controllerRef.current.isTransitioning()) controllerRef.current.cancel(); };
-    const handleChange = () => { syncPoseToStore(); };
+    const handleStart = () => {
+      if (controllerRef.current.isTransitioning()) controllerRef.current.cancel();
+      if (poseControllerRef.current.isTransitioning()) poseControllerRef.current.cancel();
+    };
+    const handleChange = () => {
+      if (!useUIStore.getState().isCameraTransitioning) {
+        syncPoseToStore();
+      }
+    };
     const handleEnd = () => {
       syncPoseToStore();
       if (!snapOnRelease || !isOrthoAllowed() || useCameraStore.getState().isLocked) return;
@@ -178,7 +254,7 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
       controls.removeEventListener?.('change', handleChange);
       controls.removeEventListener?.('end', handleEnd);
     };
-  }, [controls, get, snapOnRelease, snapThresholdRad, glideToCardinal, controllerRef, isOrthoAllowed, perspCamRef, syncPoseToStore]);
+  }, [controls, get, snapOnRelease, snapThresholdRad, glideToCardinal, controllerRef, poseControllerRef, isOrthoAllowed, perspCamRef, syncPoseToStore]);
 
   useFrame((state) => {
     const activeControls = (state as { controls?: OrbitControlsLike }).controls;
@@ -194,9 +270,12 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
       }
     }
 
-    const updated = controllerRef.current.update(state.camera, activeControls);
-    if (updated) {
-      syncPoseToStore();
+    const cardinalUpdated = controllerRef.current.update(state.camera, activeControls);
+    const poseUpdated = poseControllerRef.current.update(state.camera, activeControls);
+    if (cardinalUpdated || poseUpdated) {
+      if (!useUIStore.getState().isCameraTransitioning) {
+        syncPoseToStore();
+      }
       state.invalidate();
     }
 

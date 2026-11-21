@@ -27,11 +27,11 @@
   - Create `src/utils/cameraEasing.ts` (`easeInOutQuad` default, pure easing & distance interpolation helpers) and `src/utils/reducedMotion.ts` + `src/hooks/useReducedMotion.ts`.
   - Keep `useCameraStore.ts` free of temporary tuning knobs.
   - Unit tests covering curve endpoints, monotonicity, and reduced-motion short-circuit.
-- [~] **Task 1.2 (Red/Green/Refactor): Unified Camera Transition Engine**
+- [x] **Task 1.2 (Red/Green/Refactor): Unified Camera Transition Engine** *(shipped `cameraTransitionEngine.ts`, `cameraTransitionPoseMath.ts`, `useCameraTransition.ts`, `cameraRigControls.ts`, `useCameraRigStoreSync.ts`, `DropStalk.tsx`, `useViewportPointerHandlers.ts` + 68 tests green)*
   - Unify `CameraTransitionController`, `CardinalTransitionController`, and perspective/orthographic camera presets (`reset`, `radial`, `top-down`, `orbital-lock`, cardinal axes) onto a single controller interpolating `(target, sphericalDir, distance/orthoZoom, up, fov)` via `src/utils/cameraEasing.ts`.
   - Anchor `startTime` on the first `useFrame` tick (`pendingStart`); clamp idle `delta` in `DropStalk.tsx` as well; gate `OrbitControls` updates and suppress 60fps store/URL sync while `isCameraTransitioning` is true (syncing once on settle).
   - Ensure OrbitControls user `'start'` interrupts any active glide cleanly and clears damping momentum; deduplicate double-click callbacks in `useViewportPointerHandlers.ts`.
-- [ ] **Task 1.3 (Red/Green/Refactor): Replace Synchronous Snaps & Establish `center` vs. `focused` Semantics**
+- [~] **Task 1.3 (Red/Green/Refactor): Replace Synchronous Snaps & Establish `center` vs. `focused` Semantics**
   - Replace synchronous snaps in `GalacticCameraController` and `SystemCameraController` with unified glides (keeping cold-load initial placement instant so initial load does not swoop from `[0,0,0]`).
   - Resolve the dual-controller overlap in `SystemSceneEntry` (`SystemCameraController` + `SystemScene -> GalacticCameraController`), wire `centerId` into `PlanetarySceneContent`, and ensure `SystemCameraController` keeps `useCameraStore.target` in sync on settle.
   - Separate `center` from `focused` cleanly: cold-loading a focused view centres on that target; subsequent panning mutates `center` without altering `focused`; applying `?focus=` does not force-re-centre.

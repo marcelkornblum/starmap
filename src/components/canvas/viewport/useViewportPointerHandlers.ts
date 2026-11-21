@@ -69,10 +69,14 @@ export function useViewportPointerHandlers({
 
       focusEntity(storeApi, id);
       triggerInvalidate();
-      onInspect?.(id);
+      if (onInspect) {
+        onInspect(id);
+      } else if (onFocusChange) {
+        onFocusChange(id);
+      } else {
+        onSelect?.(id);
+      }
       onDoubleClick?.(id, e);
-      onSelect?.(id);
-      onFocusChange?.(id);
     },
     [
       storeApi,

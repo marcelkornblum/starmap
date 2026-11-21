@@ -167,13 +167,14 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   }, [invalidate, isStalkTier, stalkColor, stalkOpacity, resolvedFootprintColor, resolvedFootprintAlpha]);
 
   useFrame(({ camera, size }, delta) => {
+    const clampedDelta = Math.min(delta, 0.1);
     const target = isStalkTier ? 1.0 : 0.0;
     const dur = target > progressRef.current ? stalkExtendDuration : stalkRetractDuration;
 
     if (dur <= 0) {
       progressRef.current = target;
     } else {
-      const step = delta / dur;
+      const step = clampedDelta / dur;
       if (target > progressRef.current) {
         progressRef.current = Math.min(target, progressRef.current + step);
       } else {

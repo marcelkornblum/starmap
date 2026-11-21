@@ -1,0 +1,178 @@
+import * as THREE from 'three';
+import {
+  evaluateCameraEasing,
+  DEFAULT_CAMERA_EASING_CURVE,
+  type CameraEasingCurveId,
+} from '../../../utils/cameraEasing';
+import { criticallyDamped } from '../math/cameraFrustumMath';
+
+export type Vector3Input = THREE.Vector3 | readonly [number, number, number];
+
+export type CameraTransitionEasing =
+  | CameraEasingCurveId
+  | 'criticallyDamped'
+  | ((t: number) => number);
+
+export interface CameraTransitionOptions {
+  duration?: number;
+  targetDistance?: number;
+  easing?: CameraTransitionEasing;
+  logarithmicDistance?: boolean;
+  onComplete?: () => void;
+  onCancel?: () => void;
+}
+
+export interface CameraTransitionPose {
+  target: Vector3Input;
+  position?: Vector3Input;
+  direction?: Vector3Input;
+  distance?: number;
+  up?: Vector3Input;
+  fov?: number;
+  orthoZoom?: number;
+}
+
+export interface TransitionControlsLike {
+  target?: THREE.Vector3;
+  enabled?: boolean;
+  update?: (() => void) | Function;
+}
+
+export interface CameraTransitionApi {
+  transitionTo: (target: THREE.Vector3 | [number, number, number], options?: CameraTransitionOptions) => void;
+  transitionToPose: (endPose: CameraTransitionPose, options?: CameraTransitionOptions) => void;
+  cancelTransition: () => void;
+  isTransitioning: () => boolean;
+}
+
+export function copyVec3Input(dest: THREE.Vector3, src: Vector3Input): void {
+  if (src instanceof THREE.Vector3) {
+    dest.copy(src);
+  } else {
+    dest.set(src[0], src[1], src[2]);
+  }
+}
+
+export function computePerpAxis(
+  dir: THREE.Vector3,
+  hintA: THREE.Vector3,
+  hintB: THREE.Vector3,
+  out: THREE.Vector3,
+): void {
+  if (Math.abs(hintA.dot(dir)) < 0.9 && hintA.lengthSq() > 1e-6) {
+    out.crossVectors(dir, hintA).normalize();
+  } else if (Math.abs(hintB.dot(dir)) < 0.9 && hintB.lengthSq() > 1e-6) {
+    out.crossVectors(dir, hintB).normalize();
+  } else if (Math.abs(dir.z) < 0.9) {
+    out.set(-dir.y, dir.x, 0).normalize();
+  } else {
+    out.set(0, -dir.z, dir.y).normalize();
+  }
+}
+
+export function computeAngleAndAxis(
+  from: THREE.Vector3,
+  to: THREE.Vector3,
+  hintA: THREE.Vector3,
+  hintB: THREE.Vector3,
+  outAxis: THREE.Vector3,
+): number {
+  const dot = Math.max(-1, Math.min(1, from.dot(to)));
+  const angle = Math.acos(dot);
+  if (angle > 1e-4) {
+    if (dot < -1 + 1e-4) {
+      computePerpAxis(from, hintA, hintB, outAxis);
+    } else {
+      outAxis.crossVectors(from, to).normalize();
+    }
+  }
+  return angle;
+}
+
+export function evaluateTransitionEasing(
+  easing: CameraTransitionEasing | undefined,
+  progress: number,
+): number {
+  const resolved = easing ?? DEFAULT_CAMERA_EASING_CURVE;
+  if (typeof resolved === 'function') return resolved(progress);
+  if (resolved === 'criticallyDamped') return criticallyDamped(progress);
+  return evaluateCameraEasing(resolved, progress);
+}
+
+export function resolveEndPoseDirectionAndPos(
+  endPose: CameraTransitionPose,
+  options: CameraTransitionOptions | undefined,
+  startDir: THREE.Vector3,
+  startDist: number,
+  hasStartDir: boolean,
+  endTarget: THREE.Vector3,
+  endDir: THREE.Vector3,
+  endCamPos: THREE.Vector3,
+  scratchOffset: THREE.Vector3,
+): number {
+  let endDist: number;
+  if (endPose.position !== undefined) {
+    copyVec3Input(endCamPos, endPose.position);
+    scratchOffset.copy(endCamPos).sub(endTarget);
+    const posDist = scratchOffset.length();
+    if (posDist > 1e-4) {
+      endDir.copy(scratchOffset).divideScalar(posDist);
+    } else if (endPose.direction !== undefined) {
+      copyVec3Input(endDir, endPose.direction);
+      if (endDir.lengthSq() > 1e-8) endDir.normalize();
+      else endDir.copy(startDir);
+    } else {
+      endDir.copy(startDir);
+    }
+    endDist = endPose.distance ?? posDist;
+    if (endPose.distance !== undefined) {
+      endCamPos.copy(endTarget).addScaledVector(endDir, endDist);
+    }
+  } else if (endPose.direction !== undefined) {
+    copyVec3Input(endDir, endPose.direction);
+    if (endDir.lengthSq() > 1e-8) endDir.normalize();
+    else endDir.copy(startDir);
+    endDist = endPose.distance ?? options?.targetDistance ?? startDist;
+    endCamPos.copy(endTarget).addScaledVector(endDir, endDist);
+  } else {
+    endDir.copy(startDir);
+    endDist = endPose.distance ?? options?.targetDistance ?? startDist;
+    endCamPos.copy(endTarget).addScaledVector(endDir, endDist);
+  }
+
+  if (!hasStartDir) startDir.copy(endDir);
+  if (endDist <= 1e-4 && hasStartDir) endDir.copy(startDir);
+  return endDist;
+}
+
+export function resolveStartTarget(
+  camera: THREE.Camera,
+  controlsTarget: THREE.Vector3 | undefined,
+  outStartTarget: THREE.Vector3,
+  scratchDir: THREE.Vector3,
+): void {
+  if (controlsTarget instanceof THREE.Vector3) {
+    outStartTarget.copy(controlsTarget);
+  } else {
+    camera.getWorldDirection(scratchDir);
+    const camDist = Math.max(camera.position.length(), 1.0);
+    outStartTarget.copy(camera.position).addScaledVector(scratchDir, camDist);
+  }
+}
+
+export function resolveStartDirection(
+  camera: THREE.Camera,
+  startTarget: THREE.Vector3,
+  outStartDir: THREE.Vector3,
+  scratchOffset: THREE.Vector3,
+): { startDist: number; hasStartDir: boolean } {
+  scratchOffset.copy(camera.position).sub(startTarget);
+  const startDist = scratchOffset.length();
+  if (startDist > 1e-4) {
+    outStartDir.copy(scratchOffset).divideScalar(startDist);
+    return { startDist, hasStartDir: true };
+  }
+  outStartDir.set(0, 0, 1);
+  return { startDist, hasStartDir: false };
+}
+
