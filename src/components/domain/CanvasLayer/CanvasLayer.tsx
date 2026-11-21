@@ -1,30 +1,33 @@
-import React, { useEffect, useLayoutEffect } from 'react';
-import { Canvas, events as createDomEvents } from '@react-three/fiber';
+import React, { Suspense, lazy, useEffect, useLayoutEffect } from 'react';
 import type { JourneyChordLeg } from '../../canvas/cartography/journeyChordGeometry';
-import {
-  getStandardInitialCamera,
-  STANDARD_CAMERA_DISTANCES,
-} from '../../canvas/cartography';
 import type { SpatialEntityDefinition } from '../../canvas/entity/types';
-import { SceneTokenBridge } from '../../canvas/ThemeTokenBridge';
-import { SafeHtmlPortalOutlet } from '../../canvas/SafeHtml';
-import {
-  GalacticSceneContent,
-  SystemSceneContent,
-  PlanetarySceneContent,
-} from '../../canvas/scenes/SpatialScenes';
 import {
   useCanvasStageStore,
   setStageCallbacks,
   RootCanvasStageContext,
 } from '../../../stores/useCanvasStageStore';
-import {
-  SpatialEntityStoreContext,
-  useOptionalSpatialEntityStoreApi,
-} from '../../canvas/entity/SpatialEntityContext';
 import { canMountWebGLCanvas } from './webglSupport';
+import type { CanvasWebGLHostProps } from './CanvasWebGLHost';
+import { preloadSceneEntry, type SpatialCanvasScope } from './sceneEntryLoader';
 import styles from './CanvasLayer.module.css';
 
+let cachedHostLazy: React.LazyExoticComponent<React.ComponentType<CanvasWebGLHostProps>> | null =
+  null;
+
+function getWebGLHostLazy(
+  initialScope: SpatialCanvasScope,
+): React.LazyExoticComponent<React.ComponentType<CanvasWebGLHostProps>> {
+  if (!cachedHostLazy) {
+    cachedHostLazy = lazy(async () => {
+      const [hostMod] = await Promise.all([
+        import('./CanvasWebGLHost'),
+        preloadSceneEntry(initialScope),
+      ]);
+      return hostMod;
+    });
+  }
+  return cachedHostLazy;
+}
 
 export interface CanvasLayerProps {
   readonly scope: 'galaxy' | 'system' | 'planet';
@@ -47,30 +50,6 @@ export interface CanvasLayerProps {
   readonly onSelect?: (id: string | null) => void;
   readonly onFocusChange?: (id: string | null) => void;
 }
-
-const initialPersistentCam = getStandardInitialCamera(
-  STANDARD_CAMERA_DISTANCES.galactic,
-  [0, 0, 0],
-);
-
-const createDragSafeCanvasEvents: NonNullable<
-  React.ComponentProps<typeof Canvas>['events']
-> = (store) => {
-  const manager = createDomEvents(store);
-  if (manager.handlers?.onPointerMove) {
-    const rawOnPointerMove = manager.handlers.onPointerMove;
-    manager.handlers = {
-      ...manager.handlers,
-      onPointerMove: (event: Event) => {
-        if ('buttons' in event && (event as PointerEvent).buttons > 0) {
-          return;
-        }
-        rawOnPointerMove(event);
-      },
-    };
-  }
-  return manager;
-};
 
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
@@ -104,7 +83,6 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   const mountSlot = useCanvasStageStore((s) => s.mountSlot);
   const unmountSlot = useCanvasStageStore((s) => s.unmountSlot);
   const setStageProps = useCanvasStageStore((s) => s.setStageProps);
-  const outerStore = useOptionalSpatialEntityStoreApi();
   const hasRootHostContext = React.useContext(RootCanvasStageContext);
 
   const isSlot = (isRootCanvasMounted || hasRootHostContext) && !isRootHost;
@@ -191,6 +169,7 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
   }
 
   const mountCanvas = canMountWebGLCanvas();
+  const WebGLHostComponent = mountCanvas ? getWebGLHostLazy(scope) : null;
 
   return (
     <div
@@ -211,63 +190,25 @@ export const CanvasLayer: React.FC<CanvasLayerProps> = React.memo((props) => {
       data-journey-method={activeJourneyMethod}
       aria-label={`${scope} 3D canvas layer`}
     >
-      {mountCanvas && (
-        <div className={styles.canvasWrapper}>
-          <Canvas
-            flat
-            dpr={1}
+      {WebGLHostComponent && (
+        <Suspense fallback={null}>
+          <WebGLHostComponent
+            scope={scope}
+            targetId={targetId}
+            centerId={centerId}
+            centerCoordinates={centerCoordinates}
+            selectedEntities={selectedEntities}
+            cameraDistance={cameraDistance}
             frameloop={frameloop}
-            events={createDragSafeCanvasEvents}
-            camera={{
-              position: initialPersistentCam.position,
-              up: initialPersistentCam.up,
-              fov: initialPersistentCam.fov,
-            }}
-            gl={{ antialias: true, alpha: true }}
-            className={styles.persistentCanvas}
-          >
-            <SpatialEntityStoreContext.Provider value={outerStore}>
-              <SceneTokenBridge />
-              {isSpatialSceneMounted && scope === 'galaxy' && (
-                <GalacticSceneContent
-                  initialSelectedId={centerId ?? null}
-                  centerCoordinates={centerCoordinates}
-                  centerId={centerId}
-                  cameraDistance={cameraDistance}
-                  additionalEntities={selectedEntities}
-                  onInspectSystem={onInspect}
-                  onSelectSystem={onSelect}
-                  onFocusChange={onFocusChange}
-                />
-              )}
-              {isSpatialSceneMounted && scope === 'system' && (
-                targetId ? (
-                  <SystemSceneContent
-                    systemId={targetId}
-                    centerId={centerId}
-                    centerCoordinates={centerCoordinates}
-                    onInspectPlanet={onInspect}
-                    onSelectEntity={onSelect}
-                  />
-                ) : null
-              )}
-              {isSpatialSceneMounted && scope === 'planet' && (
-                targetId ? (
-                  <PlanetarySceneContent
-                    planetId={targetId}
-                    onInspectSatellite={onInspect}
-                    onSelectEntity={onSelect}
-                  />
-                ) : null
-              )}
-            </SpatialEntityStoreContext.Provider>
-          </Canvas>
-          <SafeHtmlPortalOutlet />
-        </div>
+            isSpatialSceneMounted={isSpatialSceneMounted}
+            onInspect={onInspect}
+            onSelect={onSelect}
+            onFocusChange={onFocusChange}
+          />
+        </Suspense>
       )}
     </div>
   );
 });
 
 CanvasLayer.displayName = 'CanvasLayer';
-

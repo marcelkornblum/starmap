@@ -16,17 +16,13 @@ import {
   planetTypeDetailRoute,
   metricsListRoute,
   metricDetailRoute,
+  hazardsListRoute,
+  hazardDetailRoute,
   resolveSpaLocation,
 } from './index';
 import { GalaxyView } from '../views/GalaxyView';
-import { MetricDetailView } from '../views/MetricDetailView';
-import { MetricsListView } from '../views/MetricsListView';
-import { PlanetTypeDetailView } from '../views/PlanetTypeDetailView';
-import { PlanetTypesListView } from '../views/PlanetTypesListView';
 import { PlanetView } from '../views/PlanetView';
 import { SearchView } from '../views/SearchView';
-import { StarTypeDetailView } from '../views/StarTypeDetailView';
-import { StarTypesListView } from '../views/StarTypesListView';
 import { SystemView } from '../views/SystemView';
 import { SEARCH_CATEGORIES } from '../types/search';
 import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
@@ -154,18 +150,28 @@ describe('TanStack Router Architecture', () => {
     expect(emptyCenter.center).toBeUndefined();
   });
 
-  it('maps route definitions to view components correctly', () => {
-    expect(indexRoute.options.component).toBe(GalaxyView);
-    expect(mainGalaxyRoute.options.component).toBe(GalaxyView);
-    expect(mainSearchRoute.options.component).toBe(SearchView);
-    expect(mainSystemRoute.options.component).toBe(SystemView);
-    expect(mainPlanetRoute.options.component).toBe(PlanetView);
-    expect(starTypesListRoute.options.component).toBe(StarTypesListView);
-    expect(starTypeDetailRoute.options.component).toBe(StarTypeDetailView);
-    expect(planetTypesListRoute.options.component).toBe(PlanetTypesListView);
-    expect(planetTypeDetailRoute.options.component).toBe(PlanetTypeDetailView);
-    expect(metricsListRoute.options.component).toBe(MetricsListView);
-    expect(metricDetailRoute.options.component).toBe(MetricDetailView);
+  it('maps route definitions to lazy-loaded view components correctly', () => {
+    const REACT_LAZY_TYPE = Symbol.for('react.lazy');
+    const routeComponents = [
+      indexRoute.options.component,
+      mainGalaxyRoute.options.component,
+      mainSearchRoute.options.component,
+      mainSystemRoute.options.component,
+      mainPlanetRoute.options.component,
+      starTypesListRoute.options.component,
+      starTypeDetailRoute.options.component,
+      planetTypesListRoute.options.component,
+      planetTypeDetailRoute.options.component,
+      metricsListRoute.options.component,
+      metricDetailRoute.options.component,
+      hazardsListRoute.options.component,
+      hazardDetailRoute.options.component,
+    ];
+    for (const comp of routeComponents) {
+      expect(comp).toBeDefined();
+      expect((comp as unknown as { $$typeof?: symbol }).$$typeof).toBe(REACT_LAZY_TYPE);
+    }
+    expect(indexRoute.options.component).toBe(mainGalaxyRoute.options.component);
   });
 
   it('renders GalaxyView with accessible elements and search controls', () => {

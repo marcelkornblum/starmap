@@ -1,18 +1,16 @@
 import type React from 'react';
-import {
-  BodiesPanel,
-  Breadcrumbs,
-  CanvasLayer,
-  ControlBar,
-  DetailsPanel,
-  DirectionsPanel,
-  LayerCard,
-  Minimap,
-  PreviewPanel,
-  Search,
-  SearchResultItem,
-  SpatialShell,
-} from '../components/domain';
+import { BodiesPanel } from '../components/domain/BodiesPanel';
+import { Breadcrumbs } from '../components/domain/Breadcrumbs';
+import { CanvasLayer } from '../components/domain/CanvasLayer';
+import { ControlBar } from '../components/domain/ControlBar';
+import { DetailsPanel } from '../components/domain/DetailsPanel';
+import { DirectionsPanel } from '../components/domain/DirectionsPanel';
+import { LayerCard } from '../components/domain/LayerCard';
+import { Minimap } from '../components/domain/Minimap';
+import { PreviewPanel } from '../components/domain/PreviewPanel';
+import { Search } from '../components/domain/Search';
+import { SearchResultItem } from '../components/domain/SearchResultItem';
+import { SpatialShell } from '../components/domain/SpatialShell';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 import { useSystemViewModel } from './useSystemViewModel';
 

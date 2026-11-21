@@ -3,6 +3,7 @@ export * from './math';
 export * from './materials';
 export * from './SafeHtml';
 export * from './ThemeTokenBridge';
+export * from './SceneTokenBridge';
 export * from './engineConfig';
 export * from './useThemeTokenSync';
 export * from './entity';

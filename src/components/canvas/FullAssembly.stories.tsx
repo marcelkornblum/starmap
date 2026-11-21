@@ -1,11 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import {
-  GalacticViewScene,
-  SystemViewScene,
-  PlanetaryViewScene,
-} from './scenes/SpatialScenes';
+import { GalacticViewScene } from './scenes/GalacticSceneEntry';
+import { SystemViewScene } from './scenes/SystemSceneEntry';
+import { PlanetaryViewScene } from './scenes/PlanetarySceneEntry';
 import styles from './FullAssembly.module.css';
 
 const meta: Meta = {

@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import type * as THREE from 'three';
 import type { Box2D, CelestialFootprint, LabelOcclusionResult } from './occlusionTypes';
 import { ScreenSpatialGrid, checkGridIntersection } from './occlusionGeometryMath';
 import { computeHitAreaCluster, resolveCyclicSelectionTarget } from './occlusionClusterSolver';
@@ -26,8 +26,8 @@ export class CelestialOcclusionManager {
     visible: true, behindCanvas: true, displacementX: 0, displacementY: 0, isDisplaced: false,
   };
   private scratchHitOffset = { x: 0, y: 0 };
-  private scratchVec = new THREE.Vector3();
-  private scratchCamSpaceVec = new THREE.Vector3();
+  private scratchVec: THREE.Vector3 | null = null;
+  private scratchCamSpaceVec: THREE.Vector3 | null = null;
   public lastEvaluationTime = 0;
   private hasBatchPass = false;
   private lastBatchPassTime = 0;
@@ -74,6 +74,10 @@ export class CelestialOcclusionManager {
     this.lastCamMatrixElements.set(camEls);
     this.lastProjMatrixElements.set(projEls);
 
+    if (!this.scratchVec || !this.scratchCamSpaceVec) {
+      this.scratchVec = camera.position.clone();
+      this.scratchCamSpaceVec = camera.position.clone();
+    }
     const zNear = ('near' in camera && typeof camera.near === 'number') ? camera.near : 0.1;
     for (const fp of this.footprints.values()) {
       projectFootprint(fp, camera, size, this.scratchVec, this.scratchCamSpaceVec, zNear, this.lastEvaluationTime);

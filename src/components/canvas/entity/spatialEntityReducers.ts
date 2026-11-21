@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import type * as THREE from 'three';
 import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import { toUrlSlug } from '../../../utils/datasetLayerSlugs';
 import type {
@@ -6,18 +6,29 @@ import type {
   CelestialInteractionState,
 } from '../../../types/spatial';
 
+function isVector3Like(value: unknown): value is THREE.Vector3 {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    typeof (value as { x?: unknown }).x === 'number' &&
+    typeof (value as { y?: unknown }).y === 'number' &&
+    typeof (value as { z?: unknown }).z === 'number'
+  );
+}
+
 export function isSameSpatialPosition(
   a: SpatialEntityDefinition['position'] | undefined,
   b: SpatialEntityDefinition['position'] | undefined,
 ): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
-  const ax = a instanceof THREE.Vector3 ? a.x : Array.isArray(a) ? a[0] : undefined;
-  const ay = a instanceof THREE.Vector3 ? a.y : Array.isArray(a) ? a[1] : undefined;
-  const az = a instanceof THREE.Vector3 ? a.z : Array.isArray(a) ? a[2] : undefined;
-  const bx = b instanceof THREE.Vector3 ? b.x : Array.isArray(b) ? b[0] : undefined;
-  const by = b instanceof THREE.Vector3 ? b.y : Array.isArray(b) ? b[1] : undefined;
-  const bz = b instanceof THREE.Vector3 ? b.z : Array.isArray(b) ? b[2] : undefined;
+  const ax = isVector3Like(a) ? a.x : Array.isArray(a) ? a[0] : undefined;
+  const ay = isVector3Like(a) ? a.y : Array.isArray(a) ? a[1] : undefined;
+  const az = isVector3Like(a) ? a.z : Array.isArray(a) ? a[2] : undefined;
+  const bx = isVector3Like(b) ? b.x : Array.isArray(b) ? b[0] : undefined;
+  const by = isVector3Like(b) ? b.y : Array.isArray(b) ? b[1] : undefined;
+  const bz = isVector3Like(b) ? b.z : Array.isArray(b) ? b[2] : undefined;
   return ax === bx && ay === by && az === bz;
 }
 
@@ -47,14 +58,14 @@ export function mergeRegisteredEntity(
     entity.id !== SOL_REFERENCE_TARGET.id &&
     (Array.isArray(ep)
       ? ep[0] !== 0 || ep[1] !== 0 || ep[2] !== 0
-      : ep instanceof THREE.Vector3
+      : isVector3Like(ep)
         ? ep.x !== 0 || ep.y !== 0 || ep.z !== 0
         : false);
 
   const np = entity.position;
   const newZero = Array.isArray(np)
     ? np[0] === 0 && np[1] === 0 && np[2] === 0
-    : np instanceof THREE.Vector3
+    : isVector3Like(np)
       ? np.x === 0 && np.y === 0 && np.z === 0
       : true;
 
@@ -115,17 +126,26 @@ export function findEntitiesInAperture(
 ): SpatialEntityDefinition[] {
   const radiusSq = radius * radius;
   const matches: SpatialEntityDefinition[] = [];
-  const scratchVec = new THREE.Vector3();
+  let px = 0;
+  let py = 0;
+  let pz = 0;
 
   for (const id in entities) {
     const entity = entities[id];
     const p = entity.position;
-    if (p instanceof THREE.Vector3) {
-      scratchVec.copy(p);
+    if (isVector3Like(p)) {
+      px = p.x;
+      py = p.y;
+      pz = p.z;
     } else if (Array.isArray(p)) {
-      scratchVec.set(p[0], p[1], p[2]);
+      px = p[0];
+      py = p[1];
+      pz = p[2];
     }
-    if (scratchVec.distanceToSquared(center) <= radiusSq) {
+    const dx = px - center.x;
+    const dy = py - center.y;
+    const dz = pz - center.z;
+    if (dx * dx + dy * dy + dz * dz <= radiusSq) {
       matches.push(entity);
     }
   }

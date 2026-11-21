@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Canvas } from '@react-three/fiber';
-import { SceneTokenBridge } from '../ThemeTokenBridge';
+import { SceneTokenBridge } from '../SceneTokenBridge';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
 import {
   SpatialEntityStoreContext,

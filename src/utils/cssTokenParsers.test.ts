@@ -7,8 +7,8 @@ import {
   parseCssDurationSec,
   parseCssFloat,
   parseCssPx,
-  getThreeColor,
 } from './cssTokenParsers';
+import { getThreeColor } from './threeColorCache';
 
 describe('cssTokenParsers', () => {
   describe('parseCssPx', () => {

@@ -1,12 +1,15 @@
-import React, { useCallback } from 'react';
+import React, { Suspense, lazy, useCallback } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { RootCanvasHost } from '../components/domain/CanvasLayer';
 import { ThemeTokenBridge } from '../components/canvas/ThemeTokenBridge';
 import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
 import { handleSpaNavigation } from '../hooks/spaNavigation';
-import { GalaxyView } from '../views/GalaxyView';
 import { appRouter, useSpaLocation } from '../hooks/useSpaLocation';
 import { RootCanvasStageContext } from '../stores/useCanvasStageStore';
+
+const LazyGalaxyView = lazy(() =>
+  import('../views/GalaxyView').then((m) => ({ default: m.GalaxyView })),
+);
 
 export const RootLayout: React.FC = () => {
   const { pathname } = useSpaLocation(undefined, undefined, '');
@@ -33,7 +36,9 @@ export const RootLayout: React.FC = () => {
         <ThemeTokenBridge />
         <RootCanvasStageContext.Provider value={true}>
           <RootCanvasHost />
-          {isPersistentGalaxyRoute ? <GalaxyView /> : <Outlet />}
+          <Suspense fallback={null}>
+            {isPersistentGalaxyRoute ? <LazyGalaxyView /> : <Outlet />}
+          </Suspense>
         </RootCanvasStageContext.Provider>
       </div>
     </SpatialEntityProvider>

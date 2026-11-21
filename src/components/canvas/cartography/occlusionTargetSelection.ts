@@ -1,6 +1,5 @@
 import type * as THREE from 'three';
-import { DEFAULT_RETICLE_SIZE } from './reticleGeometry';
-import { reticleSizeToScreenPx } from '../engineConfig';
+import { DEFAULT_RETICLE_SIZE, reticleSizeToScreenPx } from '../engineConfig';
 import type { CelestialFootprint } from './occlusionTypes';
 
 /**

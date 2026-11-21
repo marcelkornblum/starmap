@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
 import { render, screen, fireEvent } from '@testing-library/react';
-import {
+import GalacticSceneEntryDefault, {
   GalacticViewScene,
-  SystemViewScene,
-  PlanetaryViewScene,
   GalacticSceneContent,
+} from './GalacticSceneEntry';
+import SystemSceneEntryDefault, {
+  SystemViewScene,
   SystemSceneContent,
+} from './SystemSceneEntry';
+import PlanetarySceneEntryDefault, {
+  PlanetaryViewScene,
   PlanetarySceneContent,
-} from './SpatialScenes';
+} from './PlanetarySceneEntry';
 import { InteractiveNavigator } from './InteractiveNavigator';
 import { GALAXY_SCENE_MAX_STREAMED_ENTITIES } from './GalaxyScene';
 import type { SpatialEntityDefinition } from '../entity';
@@ -194,6 +198,12 @@ describe('SpatialScenes Storybook Suite', () => {
 
       await renderer.unmount();
       unmountOutlet();
+    });
+
+    it('exports default scene content components from each independent scene entry', () => {
+      expect(GalacticSceneEntryDefault).toBe(GalacticSceneContent);
+      expect(SystemSceneEntryDefault).toBe(SystemSceneContent);
+      expect(PlanetarySceneEntryDefault).toBe(PlanetarySceneContent);
     });
   });
 });

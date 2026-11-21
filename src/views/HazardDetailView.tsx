@@ -1,10 +1,8 @@
 import React, { useMemo } from 'react';
-import {
-  Breadcrumbs,
-  Guide3DPreview,
-  GuideExamplesList,
-  GuideSectionNav,
-} from '../components/domain';
+import { Breadcrumbs } from '../components/domain/Breadcrumbs';
+import { Guide3DPreview } from '../components/domain/Guide3DPreview';
+import { GuideExamplesList } from '../components/domain/GuideExamplesList';
+import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import {
   Badge,
   Button,

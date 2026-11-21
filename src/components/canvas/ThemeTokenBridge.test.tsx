@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, renderHook, act } from '@testing-library/react';
-import { ThemeTokenBridge, SceneTokenBridge } from './ThemeTokenBridge';
+import { ThemeTokenBridge } from './ThemeTokenBridge';
+import { SceneTokenBridge } from './SceneTokenBridge';
 import { useThreeTokenStore } from '../../stores/useThreeTokenStore';
 
 const mockSetClearColor = vi.fn();

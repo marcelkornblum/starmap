@@ -1,10 +1,8 @@
 import React, { useMemo } from 'react';
-import {
-  Breadcrumbs,
-  GuideExamplesList,
-  GuideSectionNav,
-  StarTypeCombinator,
-} from '../components/domain';
+import { Breadcrumbs } from '../components/domain/Breadcrumbs';
+import { GuideExamplesList } from '../components/domain/GuideExamplesList';
+import { GuideSectionNav } from '../components/domain/GuideSectionNav';
+import { StarTypeCombinator } from '../components/domain/StarTypeCombinator';
 import {
   Button,
   CelestialSymbol,

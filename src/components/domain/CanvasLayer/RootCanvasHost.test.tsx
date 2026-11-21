@@ -23,13 +23,22 @@ vi.mock('@react-three/drei', async (importOriginal) => {
   };
 });
 
-vi.mock('../../canvas/scenes/SpatialScenes', () => ({
+vi.mock('../../canvas/scenes/GalacticSceneEntry', () => ({
+  default: () => createElement('div', { 'data-testid': 'mock-galactic-scene' }),
   GalacticSceneContent: () => createElement('div', { 'data-testid': 'mock-galactic-scene' }),
+}));
+
+vi.mock('../../canvas/scenes/SystemSceneEntry', () => ({
+  default: () => createElement('div', { 'data-testid': 'mock-system-scene' }),
   SystemSceneContent: () => createElement('div', { 'data-testid': 'mock-system-scene' }),
+}));
+
+vi.mock('../../canvas/scenes/PlanetarySceneEntry', () => ({
+  default: () => createElement('div', { 'data-testid': 'mock-planetary-scene' }),
   PlanetarySceneContent: () => createElement('div', { 'data-testid': 'mock-planetary-scene' }),
 }));
 
-vi.mock('../../canvas/ThemeTokenBridge', () => ({
+vi.mock('../../canvas/SceneTokenBridge', () => ({
   SceneTokenBridge: () => createElement('div', { 'data-testid': 'mock-theme-token-bridge' }),
 }));
 
@@ -82,8 +91,9 @@ describe('RootCanvasHost Domain Component', () => {
     _resetWebGLSupportedForTesting();
   });
 
-  it('mounts root persistent canvas and syncs isRootCanvasMounted lifecycle and camera telemetry', () => {
+  it('does NOT mount CanvasLayer or WebGL on cold load when activeSlotCount === 0, while keeping root-canvas-host and telemetry mounted', () => {
     expect(useCanvasStageStore.getState().isRootCanvasMounted).toBe(false);
+    expect(useCanvasStageStore.getState().activeSlotCount).toBe(0);
 
     const { unmount } = render(<RootCanvasHost />);
 
@@ -98,10 +108,9 @@ describe('RootCanvasHost Domain Component', () => {
     expect(host.getAttribute('data-camera-target')).toBe('0.00,0.00,0.00');
     expect(host.getAttribute('data-camera-dist')).toBe('10.00');
 
-    // Root host child canvas has isRootHost=true, so it renders canvas-layer (not slot)
-    const hostChild = screen.getByTestId('canvas-layer');
-    expect(hostChild).toBeDefined();
-    expect(hostChild.getAttribute('data-scope')).toBe('galaxy');
+    // Cold non-spatial load must NOT mount root CanvasLayer or <Canvas>
+    expect(screen.queryByTestId('canvas-layer')).toBeNull();
+    expect(screen.queryByTestId('mock-canvas')).toBeNull();
 
     unmount();
     expect(useCanvasStageStore.getState().isRootCanvasMounted).toBe(false);
@@ -185,7 +194,7 @@ describe('RootCanvasHost Domain Component', () => {
     expect(useCanvasStageStore.getState().stageProps?.targetId).toBe('alpha-centauri');
   });
 
-  it('maintains a single persistent <Canvas> element when RootCanvasHost transitions across scopes via stageProps', () => {
+  it('maintains a single persistent <Canvas> element when RootCanvasHost transitions across scopes via stageProps', async () => {
     HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
       if (contextId === 'webgl2' || contextId === 'webgl') {
         return {} as WebGLRenderingContext;
@@ -195,6 +204,7 @@ describe('RootCanvasHost Domain Component', () => {
     _resetWebGLSupportedForTesting();
 
     act(() => {
+      useCanvasStageStore.getState().mountSlot();
       useCanvasStageStore.getState().setStageProps({
         scope: 'galaxy',
         centerId: 'sol',
@@ -203,7 +213,7 @@ describe('RootCanvasHost Domain Component', () => {
 
     render(<RootCanvasHost />);
 
-    const canvasGalaxy = screen.getByTestId('mock-canvas');
+    const canvasGalaxy = await screen.findByTestId('mock-canvas');
     expect(canvasGalaxy).toBeDefined();
 
     act(() => {
@@ -214,7 +224,7 @@ describe('RootCanvasHost Domain Component', () => {
       });
     });
 
-    const canvasSystem = screen.getByTestId('mock-canvas');
+    const canvasSystem = await screen.findByTestId('mock-canvas');
     expect(canvasSystem).toBe(canvasGalaxy);
 
     act(() => {
@@ -224,11 +234,11 @@ describe('RootCanvasHost Domain Component', () => {
       });
     });
 
-    const canvasPlanet = screen.getByTestId('mock-canvas');
+    const canvasPlanet = await screen.findByTestId('mock-canvas');
     expect(canvasPlanet).toBe(canvasGalaxy);
   });
 
-  it('updates data-camera-* DOM attributes imperatively without re-rendering CanvasLayer or child tree', () => {
+  it('updates data-camera-* DOM attributes imperatively without re-rendering CanvasLayer or child tree', async () => {
     HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
       if (contextId === 'webgl2' || contextId === 'webgl') {
         return {} as WebGLRenderingContext;
@@ -237,8 +247,14 @@ describe('RootCanvasHost Domain Component', () => {
     });
     _resetWebGLSupportedForTesting();
 
+    act(() => {
+      useCanvasStageStore.getState().mountSlot();
+      useCanvasStageStore.getState().setStageProps({ scope: 'galaxy', centerId: 'sol' });
+    });
+
     render(<RootCanvasHost />);
     const host = screen.getByTestId('root-canvas-host');
+    await screen.findByTestId('mock-canvas');
 
     expect(host.getAttribute('data-camera-pos')).toBe('0.00,0.00,10.00');
     expect(host.getAttribute('data-camera-target')).toBe('0.00,0.00,0.00');
@@ -267,7 +283,7 @@ describe('RootCanvasHost Domain Component', () => {
     useMemoSpy.mockRestore();
   });
 
-  it('sets frameloop="never" and unmounts spatial scene when activeSlotCount === 0, then activates frameloop="demand" when slot mounts', () => {
+  it('latches WebGL host off on cold load (activeSlotCount === 0), mounts on first activeSlotCount > 0, and stays mounted with frameloop="never" when returning to 0', async () => {
     HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
       if (contextId === 'webgl2' || contextId === 'webgl') {
         return {} as WebGLRenderingContext;
@@ -282,12 +298,11 @@ describe('RootCanvasHost Domain Component', () => {
       </div>,
     );
 
-    const persistentCanvas = screen.getByTestId('mock-canvas');
-    expect(persistentCanvas.getAttribute('data-frameloop')).toBe('never');
-    expect(screen.getByTestId('mock-theme-token-bridge')).toBeInTheDocument();
-    expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+    expect(screen.getByTestId('root-canvas-host').getAttribute('data-stage-inactive')).toBe('true');
+    expect(screen.queryByTestId('canvas-layer')).toBeNull();
+    expect(screen.queryByTestId('mock-canvas')).toBeNull();
 
-    // Mount a route slot
+    // Mount a route slot -> activates latch and mounts WebGL + galactic scene
     rerender(
       <div>
         <RootCanvasHost />
@@ -295,17 +310,21 @@ describe('RootCanvasHost Domain Component', () => {
       </div>,
     );
 
-    expect(screen.getByTestId('mock-canvas')).toBe(persistentCanvas);
+    const persistentCanvas = await screen.findByTestId('mock-canvas');
+    expect(screen.getByTestId('canvas-layer')).toBeInTheDocument();
     expect(persistentCanvas.getAttribute('data-frameloop')).toBe('demand');
-    expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-theme-token-bridge')).toBeInTheDocument();
+    expect(await screen.findByTestId('mock-galactic-scene')).toBeInTheDocument();
 
-    // Navigate away to non-spatial route (slot unmounts)
+    // Navigate away to non-spatial route (slot unmounts) -> stays latched & mounted with frameloop="never"
     rerender(
       <div>
         <RootCanvasHost />
       </div>,
     );
 
+    expect(screen.getByTestId('root-canvas-host').getAttribute('data-stage-inactive')).toBe('true');
+    expect(screen.getByTestId('canvas-layer')).toBeInTheDocument();
     expect(screen.getByTestId('mock-canvas')).toBe(persistentCanvas);
     expect(persistentCanvas.getAttribute('data-frameloop')).toBe('never');
     expect(screen.getByTestId('mock-theme-token-bridge')).toBeInTheDocument();
@@ -321,6 +340,6 @@ describe('RootCanvasHost Domain Component', () => {
 
     expect(screen.getByTestId('mock-canvas')).toBe(persistentCanvas);
     expect(persistentCanvas.getAttribute('data-frameloop')).toBe('demand');
-    expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+    expect(await screen.findByTestId('mock-galactic-scene')).toBeInTheDocument();
   });
 });

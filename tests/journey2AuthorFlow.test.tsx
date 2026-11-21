@@ -9,7 +9,7 @@ vi.mock('@tanstack/react-router', () => ({
 }));
 import { SpatialEntityProvider } from '../src/components/canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../src/components/canvas/entity/SpatialEntityStore';
-import { DetailsPanel } from '../src/components/domain';
+import { DetailsPanel } from '../src/components/domain/DetailsPanel';
 import { buildFocusedEntityDetails } from '../src/services/details/focusedEntityDetails';
 import { buildLayerGalaxyHref } from '../src/services/search/searchUrls';
 import { extractUrlLayerId } from '../src/services/search/searchUrlSelection';
