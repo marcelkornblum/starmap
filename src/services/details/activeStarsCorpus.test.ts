@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getMergedCorpusParts, mergeActiveStarsIntoCorpus } from './activeStarsCorpus';
+import {
+  appendExtraEntriesToCorpus,
+  getMergedCorpusParts,
+  mergeActiveStarsIntoCorpus,
+} from './activeStarsCorpus';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import type { SystemSummaryNode } from '../../types/astro';
 
@@ -97,5 +101,20 @@ describe('activeStarsCorpus', () => {
     const merged2 = mergeActiveStarsIntoCorpus(SAMPLE_GALAXY_CORPUS, activeList2);
 
     expect(merged1).toBe(merged2);
+  });
+
+  it('provides layered array access and appendExtraEntriesToCorpus without cloning base corpus', () => {
+    const extra: CompactSearchEntry = { i: 'extra-1', n: 'Extra 1', c: 'stars' };
+    const layered = appendExtraEntriesToCorpus(SAMPLE_GALAXY_CORPUS, [extra]);
+    expect(Array.isArray(layered)).toBe(true);
+    expect(layered.length).toBe(3);
+    expect(layered[0]).toBe(SAMPLE_GALAXY_CORPUS[0]);
+    expect(layered[2]).toBe(extra);
+    expect(Array.from(layered)).toHaveLength(3);
+    expect(layered.some((e) => e.i === 'extra-1')).toBe(true);
+    expect(getMergedCorpusParts(layered)).toEqual({
+      base: SAMPLE_GALAXY_CORPUS,
+      extras: [extra],
+    });
   });
 });

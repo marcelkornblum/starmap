@@ -6,14 +6,14 @@
  */
 
 import { decodeBinarySector, type DecodedBinarySector } from '../utils/binarySectorCodec';
-import { resolveDataUrl } from '../utils/url';
+import { resolveManifestDataUrl } from '../data/dataManifestRepository';
 import type { CachedSectorEntry } from './sectorSelection';
 
 export async function fetchSectorBinaryBuffer(
   sectorId: string,
   priority: 'high' | 'low' = 'low',
 ): Promise<ArrayBuffer | null> {
-  const url = resolveDataUrl(`data/partitions/${sectorId}.bin`);
+  const url = await resolveManifestDataUrl(`partitions/${sectorId}.bin`);
   try {
     const response = await fetch(url, { priority } as RequestInit);
     return response.ok ? await response.arrayBuffer() : null;

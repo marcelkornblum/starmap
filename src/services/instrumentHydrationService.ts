@@ -9,13 +9,19 @@
 
 import type { SystemSummaryNode } from '../types/astro';
 import type { DecodedBinarySector } from '../utils/binarySectorCodec';
-import { fetchSummaryNodeByHash } from '../data/detailsRepository';
+import {
+  fetchSummaryNodeByHash,
+  getCachedSummaryNodeByHashInSector,
+  isSummarySectorCached,
+  preloadSummarySectors,
+} from '../data/detailsRepository';
 import {
   computeBoxMinDistSq,
   scanSectorWithinSphere,
   partitionAndSortHits,
   evictStaleMetadata,
   resolveHitsSummaries,
+  collectUnhydratedSectorIds,
   executeStarHydration,
 } from './instrumentHydrationHelpers';
 
@@ -47,10 +53,10 @@ export interface InstrumentProximityQueryResult {
 }
 
 export interface HydratedInstrumentState {
-  readonly hydratedByHash: ReadonlyMap<number, SystemSummaryNode>;
   readonly activeSummaries: readonly SystemSummaryNode[];
   readonly leadBufferSummaries: readonly SystemSummaryNode[];
   readonly evictedMetadataCount: number;
+  readonly hasActiveSummariesChanged: boolean;
 }
 
 export interface InstrumentHydrationOptions {
@@ -110,18 +116,26 @@ export function querySectorsWithinInstrumentSphere(
  */
 export class InstrumentHydrationBridge {
   private readonly defaultLeadBufferPc: number;
-  private readonly hydrateByHash: (idHash: number) => Promise<SystemSummaryNode | undefined>;
+  private readonly hasCustomHydrateByHash: boolean;
+  private readonly hydrateByHash: (
+    idHash: number,
+    sectorId?: string,
+  ) => Promise<SystemSummaryNode | undefined>;
 
   private readonly hydratedMap = new Map<number, SystemSummaryNode>();
   private readonly inFlightMap = new Map<number, Promise<SystemSummaryNode | undefined>>();
   private readonly unresolvableHashes = new Set<number>();
   private currentPerimeterHashes: ReadonlySet<number> = new Set();
+  private prevActiveSummaries: readonly SystemSummaryNode[] | null = null;
   private evictedMetadataCount = 0;
   private isDisposed = false;
 
   constructor(options?: InstrumentHydrationOptions) {
     this.defaultLeadBufferPc = options?.leadBufferPc ?? DEFAULT_INSTRUMENT_LEAD_BUFFER_PC;
-    this.hydrateByHash = options?.hydrateByHash ?? ((idHash) => fetchSummaryNodeByHash(idHash));
+    this.hasCustomHydrateByHash = Boolean(options?.hydrateByHash);
+    this.hydrateByHash =
+      options?.hydrateByHash ??
+      ((idHash, sectorId) => fetchSummaryNodeByHash(idHash, fetch, undefined, sectorId));
   }
 
   /**
@@ -135,10 +149,10 @@ export class InstrumentHydrationBridge {
   ): Promise<HydratedInstrumentState> {
     if (this.isDisposed) {
       return {
-        hydratedByHash: new Map(),
         activeSummaries: [],
         leadBufferSummaries: [],
         evictedMetadataCount: this.evictedMetadataCount,
+        hasActiveSummariesChanged: false,
       };
     }
 
@@ -160,9 +174,44 @@ export class InstrumentHydrationBridge {
     const hydrationPromises: Promise<SystemSummaryNode | undefined>[] = [];
     const starsToHydrate = [...query.activeStars, ...query.leadBufferStars];
 
+    if (!this.hasCustomHydrateByHash) {
+      const uniqueSectorIds = collectUnhydratedSectorIds(
+        starsToHydrate,
+        this.hydratedMap,
+        this.unresolvableHashes,
+      );
+      if (uniqueSectorIds.length > 0) {
+        await preloadSummarySectors(uniqueSectorIds);
+        if (this.isDisposed) {
+          return {
+            activeSummaries: [],
+            leadBufferSummaries: [],
+            evictedMetadataCount: this.evictedMetadataCount,
+            hasActiveSummariesChanged: false,
+          };
+        }
+      }
+    }
+
     for (const hit of starsToHydrate) {
       const idHash = hit.idHash;
       if (this.hydratedMap.has(idHash) || this.unresolvableHashes.has(idHash)) continue;
+
+      if (!this.hasCustomHydrateByHash && hit.sectorId) {
+        const cachedNode = getCachedSummaryNodeByHashInSector(hit.sectorId, idHash);
+        if (cachedNode) {
+          if (this.currentPerimeterHashes.has(idHash)) {
+            this.hydratedMap.set(idHash, cachedNode);
+          }
+          continue;
+        }
+        if (isSummarySectorCached(hit.sectorId)) {
+          if (this.currentPerimeterHashes.has(idHash)) {
+            this.unresolvableHashes.add(idHash);
+          }
+          continue;
+        }
+      }
 
       const existingPending = this.inFlightMap.get(idHash);
       if (existingPending) {
@@ -172,7 +221,7 @@ export class InstrumentHydrationBridge {
 
       const pending = executeStarHydration(
         idHash,
-        this.hydrateByHash,
+        (hash) => this.hydrateByHash(hash, hit.sectorId),
         () => this.isDisposed,
         (hash) => this.currentPerimeterHashes.has(hash),
         this.hydratedMap,
@@ -187,14 +236,24 @@ export class InstrumentHydrationBridge {
 
     await Promise.allSettled(hydrationPromises);
 
-    const activeSummaries = resolveHitsSummaries(query.activeStars, this.hydratedMap);
+    const nextActiveSummaries = resolveHitsSummaries(query.activeStars, this.hydratedMap);
+    const prevActive = this.prevActiveSummaries;
+    const hasActiveSummariesChanged =
+      prevActive === null ||
+      prevActive.length !== nextActiveSummaries.length ||
+      nextActiveSummaries.some((s, idx) => s.id !== prevActive[idx]?.id);
+
+    const activeSummaries = hasActiveSummariesChanged
+      ? (this.prevActiveSummaries = nextActiveSummaries)
+      : prevActive;
+
     const leadBufferSummaries = resolveHitsSummaries(query.leadBufferStars, this.hydratedMap);
 
     return {
-      hydratedByHash: new Map(this.hydratedMap),
       activeSummaries,
       leadBufferSummaries,
       evictedMetadataCount: this.evictedMetadataCount,
+      hasActiveSummariesChanged,
     };
   }
 
@@ -213,5 +272,6 @@ export class InstrumentHydrationBridge {
     this.inFlightMap.clear();
     this.unresolvableHashes.clear();
     this.currentPerimeterHashes = new Set();
+    this.prevActiveSummaries = null;
   }
 }

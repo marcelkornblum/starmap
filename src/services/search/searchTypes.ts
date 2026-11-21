@@ -74,6 +74,7 @@ export interface NormalizedSearchQuery {
   readonly expandedLower: string;
   readonly rawCleanKey: string;
   readonly cleanKey: string;
+  readonly canonicalGlieseKey: string;
   readonly tokens: readonly string[];
 }
 

@@ -158,10 +158,9 @@ describe('searchEntryIndexers', () => {
       };
 
       const coreEntries: CompactSearchEntry[] = [];
-      const fullEntries: CompactSearchEntry[] = [];
       const planetsEntries: CompactSearchEntry[] = [];
 
-      indexExoplanets([manifest], undefined, coreEntries, fullEntries, planetsEntries);
+      indexExoplanets([manifest], undefined, coreEntries, planetsEntries);
 
       expect(planetsEntries.length).toBe(4);
 

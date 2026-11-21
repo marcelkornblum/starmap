@@ -17,6 +17,75 @@ export function normalizeCleanKey(raw: string): string {
   return transliterated.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+const GLIESE_CLEAN_REGEX = /^(?:gliese|gj|gl|nn|wo)(\d[a-z0-9]*)$/;
+
+/**
+ * Canonicalizes a clean key's Gliese/GJ/Gl/NN/Wo numeric designation prefix to `gj<suffix>`.
+ */
+export function canonicalizeGlieseCleanKey(cleanKey: string): string {
+  const match = GLIESE_CLEAN_REGEX.exec(cleanKey);
+  return match ? `gj${match[1]}` : cleanKey;
+}
+
+/**
+ * Strips alias keys that are already derivable at query time from `entryId`, `entryName`,
+ * `gaia-<id>` -> `gaiadr3<id>`, and collapses redundant `gl`/`gj`/`gliese` variants to a
+ * single canonical `gj<suffix>` key.
+ */
+export function pruneDerivableAliases(
+  entryId: string,
+  entryName: string,
+  cleanKeysSpaceDelimited: string,
+): string {
+  if (!cleanKeysSpaceDelimited) {
+    return '';
+  }
+
+  const derivable = new Set<string>();
+  const addDerivable = (key: string) => {
+    if (!key) return;
+    derivable.add(key);
+    derivable.add(canonicalizeGlieseCleanKey(key));
+  };
+
+  addDerivable(normalizeCleanKey(entryName));
+  addDerivable(normalizeCleanKey(entryId));
+  addDerivable(entryId.toLowerCase());
+
+  if (/[(),/]/.test(entryName)) {
+    for (const segment of entryName.split(/[(),/]+/)) {
+      addDerivable(normalizeCleanKey(segment));
+    }
+  }
+
+  const lowerId = entryId.toLowerCase();
+  if (lowerId.startsWith('gaia-')) {
+    const digits = normalizeCleanKey(lowerId.slice(5));
+    if (digits) {
+      addDerivable(`gaiadr3${digits}`);
+    }
+  }
+
+  const remaining: string[] = [];
+  const seen = new Set<string>();
+  for (const rawKey of cleanKeysSpaceDelimited.split(' ')) {
+    if (!rawKey) continue;
+    const canonical = canonicalizeGlieseCleanKey(rawKey);
+    if (derivable.has(rawKey) || derivable.has(canonical)) {
+      continue;
+    }
+    if (!seen.has(canonical)) {
+      seen.add(canonical);
+      remaining.push(canonical);
+    }
+  }
+
+  const filtered = remaining.filter(
+    (key) => !remaining.some((other) => other.length > key.length && other.startsWith(key)),
+  );
+  return filtered.join(' ');
+}
+
 /**
  * Expands a Gliese / Jahreiß / Woolley catalog designation into its canonical prefix forms.
  */

@@ -60,7 +60,7 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
 }) => {
   const targetId = explicitSystem?.id ?? systemId;
 
-  const { corpus } = useSearchCorpus('all');
+  const { corpus } = useSearchCorpus('startup');
   const activeCorpus = corpus ?? EMPTY_CORPUS;
 
   const matchedEntry = useMemo(

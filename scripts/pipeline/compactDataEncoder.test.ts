@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildShardedSummariesAndDetails,
+  buildHybridSummariesAndDetails,
   encodePlanetCensusMask,
   encodeSectorPartition,
   encodeSummaryNode,
@@ -202,7 +202,7 @@ describe('compactDataEncoder & compactEntityEncoder', () => {
     expect(body.n).toBe('Mars');
   });
 
-  it('builds sharded summaries and details across 36 buckets', () => {
+  it('builds hybrid spatial + domain shards and compact routing table', () => {
     const systems: SystemSummaryNode[] = [
       {
         id: 'sol',
@@ -251,33 +251,77 @@ describe('compactDataEncoder & compactEntityEncoder', () => {
       },
     ];
 
-    const solarBodies: SolarSystemBodyRecord[] = [
+    const primarySolarBodies: SolarSystemBodyRecord[] = [
+      {
+        id: 'sol',
+        name: 'Sol (Sun)',
+        classification: 'Star',
+        meanRadiusKm: 696340,
+      },
       {
         id: 'earth',
         name: 'Earth',
         classification: 'Planet',
         parentBodyId: 'sol',
         meanRadiusKm: 6371,
-        targetStarId: 'sol',
       },
     ];
 
-    const { summariesByBucket, detailsByBucket } = buildShardedSummariesAndDetails({
+    const minorSolarBodies: SolarSystemBodyRecord[] = [
+      {
+        id: 'pha-00433',
+        name: '(433) Eros',
+        classification: 'AsteroidNEO',
+        parentBodyId: 'sol',
+        meanRadiusKm: 8.42,
+      },
+      {
+        id: 'custom-minor',
+        name: 'Custom Minor',
+        classification: 'AsteroidMainBelt',
+        parentBodyId: 'sol',
+        meanRadiusKm: 5.0,
+      },
+    ];
+
+    const result = buildHybridSummariesAndDetails({
       systems,
       manifests,
       structures,
-      solarBodies,
+      primarySolarBodies,
+      minorSolarBodies,
     });
 
-    expect(summariesByBucket.size).toBe(36);
-    expect(detailsByBucket.size).toBe(36);
+    expect(result.summariesBySector.size).toBe(1);
+    const originSummaryEnv = result.summariesBySector.get('sector_+000_+000_+000');
+    expect(originSummaryEnv?.c).toBe(1);
+    expect(originSummaryEnv?.d['sol']?.i).toBeUndefined();
+    expect(originSummaryEnv?.d['sol']?.q).toBeUndefined();
 
-    let totalSummaries = 0;
-    for (const [, env] of summariesByBucket) totalSummaries += env.c;
-    expect(totalSummaries).toBe(1);
+    expect(result.detailSectorsBySector.size).toBe(1);
+    const originDetailEnv = result.detailSectorsBySector.get('sector_+000_+000_+000');
+    const solDetail = originDetailEnv?.d['sol'];
+    expect(solDetail?.t).toBe('sys');
+    if (solDetail?.t === 'sys') {
+      expect(solDetail.q).toBeUndefined();
+    }
 
-    let totalDetails = 0;
-    for (const [, env] of detailsByBucket) totalDetails += env.c;
-    expect(totalDetails).toBe(3); // sol manifest + pleiades + earth
+    // Sol primary star body is keyed as sol-A and does NOT collide with system manifest 'sol'
+    expect(result.solPrimary.c).toBe(2);
+    expect(result.solPrimary.d['sol-A']?.t).toBe('sol');
+    expect(result.solPrimary.d['earth']?.t).toBe('sol');
+
+    expect(result.structures.c).toBe(1);
+    expect(result.structures.d['pleiades']?.t).toBe('str');
+
+    expect(result.routing.k).toEqual(['sector_+000_+000_+000']);
+    expect(result.routing.s).toEqual({ sol: 0 });
+    expect(result.routing.d['sol']).toBe(0);
+    expect(result.routing.d['sol-A']).toBe(-1);
+    expect(result.routing.d['earth']).toBe(-1);
+    expect(result.routing.d['pleiades']).toBe(-2);
+    // pha- prefix is inferred O(1) so omitted from routing.d; non-prefixed minor body gets -3
+    expect(result.routing.d['pha-00433']).toBeUndefined();
+    expect(result.routing.d['custom-minor']).toBe(-3);
   });
 });

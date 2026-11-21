@@ -189,11 +189,26 @@ export async function runDiscoverySync(
   );
 
   let corpus: CompactSearchEntry[] = [];
-  const starsPath = path.resolve(process.cwd(), 'public/data/search/stars.json');
+  const dataDir = path.resolve(process.cwd(), 'public/data');
+  const manifestPath = path.join(dataDir, 'manifest.json');
+  let starsRelativePath = 'search/stars.json';
+  if (fs.existsSync(manifestPath)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as {
+        files?: Record<string, string>;
+      };
+      if (manifest.files?.['search/stars.json']) {
+        starsRelativePath = manifest.files['search/stars.json'];
+      }
+    } catch {
+      starsRelativePath = 'search/stars.json';
+    }
+  }
+  const starsPath = path.join(dataDir, starsRelativePath);
   if (fs.existsSync(starsPath)) {
     try {
       const data = JSON.parse(fs.readFileSync(starsPath, 'utf8'));
-      corpus = Array.isArray(data) ? data : data.entries ?? [];
+      corpus = Array.isArray(data) ? data : data.entries ?? data.d ?? [];
     } catch {
       corpus = [];
     }

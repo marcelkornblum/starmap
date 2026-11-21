@@ -97,7 +97,7 @@ export async function buildGaiaDataPipeline(
 
     local10pcSystems.push(solSummary); referenceBrightSystems.push(solSummary); cataloguedSummaries.push(solSummary);
     starAliasesById.set('sol', ['Sol', 'Sun', 'Solar System']); sectorMap.set('sector_+000_+000_+000', [solSummary]);
-    if (options?.systemsDir || options?.detailsDir || options?.searchDir) {
+    if (options?.detailsDir || options?.searchDir || options?.dataDir) {
       sectorManifestsMap.set('sector_+000_+000_+000', [solManifest]); allSystemManifests.push(solManifest);
     }
 
@@ -105,7 +105,14 @@ export async function buildGaiaDataPipeline(
     writeStream.write(`[${JSON.stringify(solNode)}`); totalStars++; totalKinematics++;
 
     const matchedHygIds = new Set<number>();
-    const round3 = (n: number) => Math.round(n * 1000) / 1000; const round2 = (n: number) => Math.round(n * 100) / 100;
+    const round3 = (n: number) => {
+      const r = Math.round(n * 1000) / 1000;
+      return Object.is(r, -0) ? 0 : r;
+    };
+    const round2 = (n: number) => {
+      const r = Math.round(n * 100) / 100;
+      return Object.is(r, -0) ? 0 : r;
+    };
 
     const findOfficialStarName = (h?: HygCrossMatch) => {
       if (!h) return undefined;
@@ -123,7 +130,10 @@ export async function buildGaiaDataPipeline(
       pmra: number, pmdec: number, rv: number | null, gmag: number, bpmag: number, rpmag: number,
       hygMatch: HygCrossMatch | undefined, ePlx?: number,
     ) {
-      const [x, y, z] = equatorialToCartesian(ra / 15, dec, dist);
+      const [rawX, rawY, rawZ] = equatorialToCartesian(ra / 15, dec, dist);
+      const x = round3(rawX);
+      const y = round3(rawY);
+      const z = round3(rawZ);
       const velocity = computeGaiaKinematics(ra, dec, dist, isNaN(pmra) ? 0 : pmra, isNaN(pmdec) ? 0 : pmdec, rv);
       totalKinematics++;
 
@@ -202,7 +212,7 @@ export async function buildGaiaDataPipeline(
       if (!bucket) sectorMap.set(sectorId, (bucket = []));
       bucket.push(summary);
 
-      if ((options?.systemsDir || options?.detailsDir || options?.searchDir) && (matchedPlanets.length > 0 || matchedDisks.length > 0 || mag <= 4.0)) {
+      if ((options?.detailsDir || options?.searchDir || options?.dataDir) && (matchedPlanets.length > 0 || matchedDisks.length > 0 || mag <= 4.0)) {
         let mb = sectorManifestsMap.get(sectorId);
         if (!mb) sectorManifestsMap.set(sectorId, (mb = []));
         mb.push({
@@ -266,7 +276,10 @@ export async function buildGaiaDataPipeline(
 
       for (const recons of RECONS_10PC_SUPPLEMENT) {
         if (cataloguedSummaries.some((s) => s.id === recons.id || s.name.toLowerCase() === recons.name.toLowerCase())) continue;
-        const [rx, ry, rz] = equatorialToCartesian(recons.ra, recons.dec, recons.dist);
+        const [rawRx, rawRy, rawRz] = equatorialToCartesian(recons.ra, recons.dec, recons.dist);
+        const rx = round3(rawRx);
+        const ry = round3(rawRy);
+        const rz = round3(rawRz);
         const rSectorId = formatSectorId(rx, ry, rz);
         const reconsLookup = {
           id: totalStars, name: recons.name, properName: recons.properName, aliases: recons.aliases,
@@ -305,7 +318,7 @@ export async function buildGaiaDataPipeline(
           if (!b) sectorMap.set(rSectorId, (b = []));
           b.push(rSummary);
         }
-        if (options?.systemsDir || options?.detailsDir || options?.searchDir) {
+        if (options?.detailsDir || options?.searchDir || options?.dataDir) {
           let mb = sectorManifestsMap.get(rSectorId);
           if (!mb) sectorManifestsMap.set(rSectorId, (mb = []));
           mb.push({
@@ -344,19 +357,22 @@ export async function buildGaiaDataPipeline(
     });
 
     writeStream.on('finish', () => {
-      const { galacticCount, solarBodiesCount } = writePipelineArtifacts({
-        options, local10pcSystems, referenceBrightSystems, sectorMap, sectorManifestsMap,
-        cataloguedSummaries, allSystemManifests, exoplanetHostSummaries, starAliasesById,
-        multiStarConsolidationResult: multiStarConsolidationResult ?? undefined,
-      });
+      try {
+        const { galacticCount, solarBodiesCount } = writePipelineArtifacts({
+          options, sectorMap, cataloguedSummaries, allSystemManifests, starAliasesById,
+          multiStarConsolidationResult: multiStarConsolidationResult ?? undefined,
+        });
 
-      resolve({
-        totalStars, totalRows: totalStars, validStars: totalStars, skippedRows: 0,
-        kinematicCount: totalKinematics, totalKinematics, localVolume10pcCount: local10pcCount, local10pcCount,
-        referenceBrightCount, sectorPartitionCount: sectorMap.size, exoplanetSystemCount: exoplanetHostSummaries.length,
-        totalExoplanets, totalExoplanetsAttached: totalExoplanets,
-        galacticStructuresCount: galacticCount, solarSystemBodiesCount: solarBodiesCount, outputPath: resolvedOutput,
-      });
+        resolve({
+          totalStars, totalRows: totalStars, validStars: totalStars, skippedRows: 0,
+          kinematicCount: totalKinematics, totalKinematics, localVolume10pcCount: local10pcCount, local10pcCount,
+          referenceBrightCount, sectorPartitionCount: sectorMap.size, exoplanetSystemCount: exoplanetHostSummaries.length,
+          totalExoplanets, totalExoplanetsAttached: totalExoplanets,
+          galacticStructuresCount: galacticCount, solarSystemBodiesCount: solarBodiesCount, outputPath: resolvedOutput,
+        });
+      } catch (err) {
+        reject(err);
+      }
     });
 
     writeStream.on('error', reject);

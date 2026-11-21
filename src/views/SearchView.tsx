@@ -1,9 +1,14 @@
-import type React from 'react';
+import { useEffect, type FC } from 'react';
+import { escalateSearchBackgroundWarmup } from '../data/searchBackgroundWarmup';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Search } from '../components/domain/Search';
 import { SearchResultItem } from '../components/domain/SearchResultItem';
 
-export const SearchView: React.FC = () => {
+export const SearchView: FC = () => {
+  useEffect(() => {
+    escalateSearchBackgroundWarmup();
+  }, []);
+
   return (
     <main data-testid="search-view-root">
       <Breadcrumbs

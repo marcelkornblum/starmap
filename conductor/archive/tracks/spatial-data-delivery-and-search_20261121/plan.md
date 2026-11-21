@@ -1,0 +1,33 @@
+# Implementation Plan: Spatial Data Delivery, Search & Hydration
+
+> **Ratified Decisions (2026-11-21):**
+> - **A1 (`M16`):** Content-hashed filenames on disk (`<name>.<8-char-sha256>.<ext>`) listed in fixed-path `public/data/manifest.json` (`v: COMPACT_SCHEMA_VERSION`), with stale hashed artefacts cleaned before each `data:build`.
+> - **A2 (`P-03`):** Hybrid spatial + domain detail sharding — `summaries/<sectorId>.<hash>.json` (1:1 with 25 pc sectors), `details/sectors/<sectorId>.<hash>.json` (star systems), `details/sol-primary.<hash>.json` + lazy `details/sol-minor/<bucket>.<hash>.json` (Solar bodies), `details/structures.<hash>.json` (galactic structures), and `details/routing.<hash>.json` (cold-miss fallback).
+> - **A3 (`P-04`):** Lean `search/startup.<hash>.json` (Sol System primary bodies with `o` parent links, all layer-referenced entities, galactic structures, and nearby/bright core systems with derivable aliases pruned) + post-idle Web Worker warm-up for remaining search shards (`stars`, `planets`, then `minor-bodies` unless `navigator.connection?.saveData` is true, escalating immediately on Search intent, category filter, or `/search`).
+
+## Phase 1: Artefact Pruning, Schema Versioning, Manifest, Lazy Search & Hydration Diffs (`P-13`, `M16`, `P-04`, `P-11`)
+- [x] Task 1.1: **Prune unreferenced artefacts (`P-13`):** Stop emitting `public/data/{systems,sol,catalogs}`, `public/data/search/full.json`, and `public/data/overlays/{exoplanetary-systems,galactic-structures}.json` in `scripts/build-data.ts` and `scripts/pipeline/gaiaArtifactWriter.ts`; remove stale unreferenced directories/files from `public/data/` (target ≥ 30 MB reduction vs 68 MB baseline).
+- [x] Task 1.2: **Strict schema versioning (`M16`):** Implement a single shared `assertSchemaVersion()` helper in `src/utils/compactDataCodec.ts` and require `v` unconditionally across all compact envelopes (`compactDataCodec`, `datasetLayerCodec`, `detailsSummaryCache`, `detailsRepository`, `searchRepository`, `layerRepository`, `guideExamplesRepository`, `referenceBaselinesRepository`). Update unit test mock envelopes accordingly.
+- [x] Task 1.3: **Content-hashed filenames & `public/data/manifest.json` (`M16`):** Add a build-time content-hashing + stale-file cleanup + `manifest.json` writer in `scripts/pipeline/dataManifestWriter.ts` invoked by `scripts/build-data.ts`; add runtime `src/data/dataManifestRepository.ts` (`fetchDataManifest`, `resolveManifestDataUrl`, `seedDataManifest`, `clearDataManifestCache`) wired into all runtime data repositories (`searchRepository`, `detailsRepository`, `detailsSummaryCache`, `layerRepository`, `sectorBufferCache`, `guideExamplesRepository`, `referenceBaselinesRepository`), preserving clean fallback paths when tests inject custom `fetchImpl` or mock unhashed URLs.
+- [x] Task 1.4: **Startup index, alias pruning & post-idle Web Worker search (`P-04`):**
+  - Prune derivable aliases (`gaiadr3...`, exact `normalizeCleanKey(n)`, redundant `gl`/`gj`/`gliese` duplicates) in `scripts/pipeline/searchEntryIndexers.ts` / `src/utils/nomenclature.ts` and normalise `gl`/`gj`/`gliese` prefixes in `src/services/search/searchScoring.ts`.
+  - Emit lean `search/startup` shard containing Sol primary bodies (with `o` parent links), every entity referenced in `overlays/layers/*`, galactic structures, and nearby/bright core systems.
+  - Add Web Worker JSON fetch/parse helper (`src/data/jsonParseWorker.ts` + `src/data/workerJsonParser.ts` with automatic main-thread fallback when `Worker` is unavailable or custom `fetchImpl` is injected).
+  - Refactor `searchRepository.ts`, `useSearchCorpus.ts`, and `searchCorpusPrewarm.ts` so initial view mount loads ONLY `search/startup`, while `stars`, `planets`, and `minor-bodies` warm up via `requestIdleCallback` in the Worker after initial hydration settles (skipping `minor-bodies` background prefetch when `saveData` is true, and escalating immediately on Search focus/input, category filter, or `/search`).
+- [x] Task 1.5: **Hydration diffs & layered corpus (`P-11`):**
+  - Remove the unused `hydratedByHash: new Map(...)` copy from `InstrumentHydrationBridge.updateInstrumentPerimeter` and return incremental change metadata (`added`/`removed` or `changed` flag) so unchanged hydrations skip downstream updates.
+  - Eliminate full ~12k array copies in `src/services/details/activeStarsCorpus.ts` (`mergeActiveStarsIntoCorpus`), `src/views/useGalaxyPanels.ts`, and `src/views/galaxyCenterResolution.ts` (layered corpus reads).
+  - Coalesce state updates in `src/components/canvas/scenes/GalaxyScene.tsx` to avoid multi-render waterfalls per hydration.
+- [x] Task 1.6: Rebuild `public/data/` via `npm run data:build`, verify `npm run check`, `npx vitest run`, `npm run build`, record exact `public/data/` size and startup payload savings, and checkpoint commit Phase 1.
+
+## Phase 2: Spatial Sector-Based Summary/Detail Sharding & Worker Parsing (`P-03`)
+- [x] Task 2.1: Round `[x, y, z]` (`round3`) *before* `formatSectorId` in `scripts/pipeline/gaiaPipeline.ts` so rounded summary/search coordinates always map deterministically to the exact spatial sector with zero boundary drift.
+- [x] Task 2.2: Replace FNV 36-bucket `summaries/<0..z>` and `details/<0..z>` with hybrid spatial + domain content-hashed shards listed in `public/data/manifest.json`:
+  - `summaries/<sectorId>.<hash>.json` (1:1 with `partitions/<sectorId>.<hash>.bin`, containing all sector stars' summaries)
+  - `details/sectors/<sectorId>.<hash>.json` (star system manifests `t: 'sys'`)
+  - `details/sol-primary.<hash>.json` (Sol System primary bodies: Sol, planets, moons, major probes/rings)
+  - `details/sol-minor/<0..z>.<hash>.json` (Solar minor bodies: asteroids/NEOs/comets, lazy)
+  - `details/structures.<hash>.json` (galactic structures `t: 'str'`)
+  - `details/routing.<hash>.json` (compact fallback ID→shard routing table for cold-URL misses outside `search/startup`)
+- [x] Task 2.3: Update `InstrumentHydrationBridge`, `detailsSummaryCache.ts`, and `detailsRepository.ts` to batch aperture hits by `hit.sectorId` (fetching only local `summaries/<sectorId>` shards through the Worker parser) and route `fetchDetailRecord(id)` / `fetchSummaryNode(id)` via spatial/domain lookup + lazy `details/routing` fallback.
+- [x] Task 2.4: Rebuild `public/data/` via `npm run data:build`, update `scripts/pipeline/shardContract.test.ts` and all unit/integration tests, run full quality gate (`npm run check`, `npm run test:coverage`, `npm run build`, `npm run build-storybook`, Playwright E2E, 5-viewport `capture:views`), update `CHANGELOG.md`, archive Track 5, and deliver via PR.

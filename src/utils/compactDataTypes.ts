@@ -193,6 +193,13 @@ export interface ShardedBucketEnvelope<T> {
   d: Record<string, T>;
 }
 
+export interface DetailsRoutingIndex {
+  v: number;
+  k: string[];
+  s: Record<string, number>;
+  d: Record<string, number>;
+}
+
 export type SearchSummaryTuple = [
   mag: number,
   spect: string,

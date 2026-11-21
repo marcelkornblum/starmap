@@ -3,16 +3,18 @@ import {
   clearSearchRepositoryCache,
   fetchSearchShard,
   getCachedCorpusForFilter,
+  getCachedSearchEntryById,
   loadSearchCorpusForFilter,
   mergeSearchShards,
   subscribeSearchRepository,
 } from './searchRepository';
 
-const makeShardResponse = (shard: string) => ({
+const makeShardResponse = (shard: string, version: unknown = 1) => ({
   ok: true,
   status: 200,
   statusText: 'OK',
   json: async () => ({
+    ...(version !== undefined ? { v: version } : {}),
     d: [
       {
         i: `entity-${shard}`,
@@ -161,6 +163,7 @@ describe('searchRepository (AUD-090 & DEC-R043)', () => {
         ok: true,
         status: 200,
         json: async () => ({
+          v: 1,
           i: url,
           n: url,
           c: 1,
@@ -201,6 +204,80 @@ describe('searchRepository (AUD-090 & DEC-R043)', () => {
       await expect(
         fetchSearchShard('layers', invalidSchemaFetch as unknown as typeof fetch),
       ).rejects.toThrow(/Invalid search index envelope/);
+
+      const missingVersionFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({ d: [] }),
+      });
+      await expect(
+        fetchSearchShard('layers', missingVersionFetch as unknown as typeof fetch),
+      ).rejects.toThrow(/Unsupported schema version/);
+
+      const wrongVersionFetch = vi.fn().mockResolvedValue(
+        makeShardResponse('layers', 99),
+      );
+      await expect(
+        fetchSearchShard('layers', wrongVersionFetch as unknown as typeof fetch),
+      ).rejects.toThrow(/Unsupported schema version/);
+    });
+
+    it('loads only startup shard for startup scope and seamlessly upgrades when background shards arrive', async () => {
+      clearSearchRepositoryCache();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => ({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          v: 1,
+          i: url,
+          n: url,
+          c: 1,
+          t: '2026-10-17T00:00:00Z',
+          d: url.includes('startup')
+            ? [{ i: 'sol', n: 'Sol' }]
+            : url.includes('stars')
+              ? [{ i: 'faint-star', n: 'Faint Star' }]
+              : [{ i: 'faint-planet', n: 'Faint Planet' }],
+        }),
+      }));
+
+      const startupEntries = await loadSearchCorpusForFilter(
+        'startup',
+        mockFetch as unknown as typeof fetch,
+      );
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/data/search/startup.json'));
+      expect(startupEntries.map((e) => e.i)).toEqual(['sol']);
+
+      await fetchSearchShard('stars', mockFetch as unknown as typeof fetch);
+      await fetchSearchShard('planets', mockFetch as unknown as typeof fetch);
+
+      const upgraded = getCachedCorpusForFilter('startup');
+      expect(upgraded?.map((e) => e.i)).toEqual(['sol', 'faint-star', 'faint-planet']);
+    });
+
+    it('resolves cached search entries in O(1) via getCachedSearchEntryById and invalidates on cache updates', async () => {
+      clearSearchRepositoryCache();
+      expect(getCachedSearchEntryById('entity-stars')).toBeUndefined();
+
+      const mockFetch = vi.fn(async (url: string) => {
+        if (url.includes('stars.json')) {
+          return makeShardResponse('stars') as unknown as Response;
+        }
+        return makeShardResponse('structures') as unknown as Response;
+      });
+
+      await fetchSearchShard('stars', mockFetch as unknown as typeof fetch);
+      expect(getCachedSearchEntryById('entity-stars')?.i).toBe('entity-stars');
+      expect(getCachedSearchEntryById('entity-structures')).toBeUndefined();
+
+      await fetchSearchShard('structures', mockFetch as unknown as typeof fetch);
+      expect(getCachedSearchEntryById('entity-structures')?.i).toBe('entity-structures');
+
+      clearSearchRepositoryCache();
+      expect(getCachedSearchEntryById('entity-stars')).toBeUndefined();
     });
   });
 });

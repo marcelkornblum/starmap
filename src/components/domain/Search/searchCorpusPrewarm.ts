@@ -8,6 +8,7 @@ import {
   loadSearchCorpusForFilter,
   mergeSearchShards,
 } from '../../../data/searchRepository';
+import { escalateSearchBackgroundWarmup } from '../../../data/searchBackgroundWarmup';
 import { findFocusedEntryInCorpus } from '../../../services/search/searchCorpusHelpers';
 import type { GroupedSearchResults } from '../../../services/search/searchTypes';
 import type { SearchCategoryFilter } from '../../../types/search';
@@ -31,6 +32,7 @@ export interface PrewarmCorpusParams {
   readonly activeSearch: string;
   readonly initialQuery: string;
   readonly syncUrl: boolean;
+  readonly isSearchRoute?: boolean;
   readonly limitPerCategory?: number;
   readonly store: SpatialEntityStore;
   readonly layerIndex: readonly DatasetLayerIndexEntry[];
@@ -47,6 +49,7 @@ export const runSearchCorpusPrewarm = async ({
   activeSearch,
   initialQuery,
   syncUrl,
+  isSearchRoute = false,
   limitPerCategory,
   store,
   layerIndex,
@@ -57,21 +60,34 @@ export const runSearchCorpusPrewarm = async ({
   fallbackFocusIdRef,
   isCancelled,
 }: PrewarmCorpusParams): Promise<readonly CompactSearchEntry[] | undefined> => {
+  const startQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
+  const hasActiveSearchIntent =
+    isSearchRoute ||
+    startQuery.trim().length >= SEARCH_MIN_QUERY_LENGTH ||
+    initialFilter !== 'all';
+
+  if (hasActiveSearchIntent) {
+    escalateSearchBackgroundWarmup();
+  }
+
+  const targetScope = hasActiveSearchIntent ? initialFilter : 'startup';
   const [corpus, coreShard] = await Promise.all([
-    loadSearchCorpusForFilter(initialFilter),
-    initialFilter === 'all'
-      ? Promise.resolve(undefined)
-      : fetchSearchShard('core').catch(() => undefined),
+    loadSearchCorpusForFilter(targetScope),
+    hasActiveSearchIntent && initialFilter !== 'all'
+      ? fetchSearchShard('core').catch(() => undefined)
+      : Promise.resolve(undefined),
   ]);
   if (isCancelled()) return undefined;
 
-  const systemEntries = coreShard ?? getCachedCorpusForFilter('all');
-  let focusCorpus = systemEntries
-    ? mergeSearchShards([corpus, systemEntries])
-    : corpus;
+  const systemEntries = coreShard ?? getCachedCorpusForFilter('all') ?? corpus;
+  let focusCorpus =
+    coreShard && coreShard !== corpus
+      ? mergeSearchShards([corpus, coreShard])
+      : corpus;
 
   const initialFocusSlug = resolveCurrentFocusSlug(activeSearch);
   if (initialFocusSlug && !findFocusedEntryInCorpus(initialFocusSlug, focusCorpus)) {
+    escalateSearchBackgroundWarmup();
     const planetsShard = await fetchSearchShard('planets').catch(() => undefined);
     if (isCancelled()) return undefined;
     if (planetsShard) {
@@ -86,7 +102,6 @@ export const runSearchCorpusPrewarm = async ({
     }
   }
 
-  const startQuery = resolveInitialQuery(syncUrl, activeSearch, initialQuery);
   if (startQuery.trim().length >= SEARCH_MIN_QUERY_LENGTH) {
     const computed = searchCatalog(corpus, {
       query: startQuery,

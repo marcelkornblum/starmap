@@ -5,6 +5,7 @@ import {
   clearSearchRepositoryCache,
   fetchSearchShard,
 } from '../data/searchRepository';
+import { clearDataManifestCache } from '../data/dataManifestRepository';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 const makeEntry = (id: string, name: string): CompactSearchEntry => ({
@@ -17,6 +18,7 @@ const makeEntry = (id: string, name: string): CompactSearchEntry => ({
 describe('useSearchCorpus (AUD-087 & DEC-R042)', () => {
   beforeEach(() => {
     clearSearchRepositoryCache();
+    clearDataManifestCache();
     vi.restoreAllMocks();
   });
 
@@ -34,6 +36,7 @@ describe('useSearchCorpus (AUD-087 & DEC-R042)', () => {
       status: 200,
       statusText: 'OK',
       json: async () => ({
+        v: 1,
         d: [makeEntry('star-1', 'Star 1')],
       }),
     } as unknown as Response));
@@ -48,14 +51,25 @@ describe('useSearchCorpus (AUD-087 & DEC-R042)', () => {
   });
 
   it('fetches corpus when not cached and updates reactively', async () => {
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      status: 200,
-      statusText: 'OK',
-      json: async () => ({
-        d: [makeEntry('planet-1', 'Planet 1')],
-      }),
-    } as unknown as Response));
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      if (String(url).includes('/data/manifest.json')) {
+        return {
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          json: async () => ({}),
+        } as unknown as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          v: 1,
+          d: [makeEntry('planet-1', 'Planet 1')],
+        }),
+      } as unknown as Response;
+    });
 
     vi.stubGlobal('fetch', fetchMock);
 

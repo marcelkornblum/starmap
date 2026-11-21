@@ -81,73 +81,90 @@ describe('instrumentHydrationService', () => {
   });
 
   describe('detailsRepository hash-based lookup', () => {
-    it('synchronously and asynchronously resolves summary nodes by 32-bit FNV-1a hash', async () => {
+    it('synchronously and asynchronously resolves summary nodes by 32-bit FNV-1a hash per sector', async () => {
       const tauCetiHash = fnv1a32('tau-ceti');
       const solHash = fnv1a32('sol');
 
       expect(getCachedSummaryNodeByHash(tauCetiHash)).toBeUndefined();
 
-      // Mock fetch for tau-ceti summary bucket
       const mockFetch = vi.fn(async (url: string | URL | Request) => {
         const urlStr = String(url);
-        if (urlStr.includes('/data/summaries/')) {
-          // Sharded bucket format: { d: { id: compactRecord } }
-          const payload = {
-            d: {
-              'tau-ceti': {
-                i: 'tau-ceti',
-                n: 'Tau Ceti',
-                p: [-1.6, 2.1, -2.8],
-                m: 3.5,
-                M: 5.68,
-                s: 'G8V',
-                u: 1,
-                k: 4,
-                h: 1,
-                q: 'sector_-025_+025_-025',
+        if (urlStr.includes('/data/summaries/sector_-025_+025_-025.json')) {
+          return new Response(
+            JSON.stringify({
+              v: 1,
+              i: 'sector_-025_+025_-025',
+              c: 1,
+              d: {
+                'tau-ceti': {
+                  n: 'Tau Ceti',
+                  p: [-1.6, 2.1, -2.8],
+                  m: 3.5,
+                  M: 5.68,
+                  s: 'G8V',
+                  u: 1,
+                  k: 4,
+                  h: 1,
+                },
               },
-              sol: {
-                i: 'sol',
-                n: 'Sol',
-                p: [0, 0, 0],
-                m: -26.7,
-                M: 4.83,
-                s: 'G2V',
-                u: 1,
-                k: 8,
-                h: 1,
-                q: 'sector_+000_+000_+000',
+            }),
+            { status: 200 },
+          );
+        }
+        if (urlStr.includes('/data/summaries/sector_+000_+000_+000.json')) {
+          return new Response(
+            JSON.stringify({
+              v: 1,
+              i: 'sector_+000_+000_+000',
+              c: 1,
+              d: {
+                sol: {
+                  n: 'Sol',
+                  p: [0, 0, 0],
+                  m: -26.7,
+                  M: 4.83,
+                  s: 'G2V',
+                  u: 1,
+                  k: 8,
+                  h: 1,
+                },
               },
-            },
-          };
-          return new Response(JSON.stringify(payload), { status: 200 });
+            }),
+            { status: 200 },
+          );
         }
         return new Response('Not Found', { status: 404 });
       });
 
-      // Async fetch by hash
-      const node = await fetchSummaryNodeByHash(tauCetiHash, mockFetch as unknown as typeof fetch);
+      const node = await fetchSummaryNodeByHash(
+        tauCetiHash,
+        mockFetch as unknown as typeof fetch,
+        undefined,
+        'sector_-025_+025_-025',
+      );
       expect(node).toBeDefined();
       expect(node?.id).toBe('tau-ceti');
       expect(node?.name).toBe('Tau Ceti');
+      expect(node?.sectorId).toBe('sector_-025_+025_-025');
 
-      // Now synchronous lookup works immediately from cached bucket and returns memoized decoded reference
       const syncNode = getCachedSummaryNodeByHash(tauCetiHash);
       expect(syncNode).toBe(node);
       expect(getCachedSummaryNode('tau-ceti')).toBe(node);
 
-      // Fetch sol by hash
-      const solNode = await fetchSummaryNodeByHash(solHash, mockFetch as unknown as typeof fetch);
+      const solNode = await fetchSummaryNodeByHash(
+        solHash,
+        mockFetch as unknown as typeof fetch,
+        undefined,
+        'sector_+000_+000_+000',
+      );
       expect(solNode).toBeDefined();
       expect(solNode?.id).toBe('sol');
       expect(getCachedSummaryNodeByHash(solHash)).toBe(solNode);
       expect(getCachedSummaryNode('sol')).toBe(solNode);
 
-      // Invalid or non-finite hashes return undefined
       expect(getCachedSummaryNodeByHash(NaN)).toBeUndefined();
       expect(await fetchSummaryNodeByHash(NaN)).toBeUndefined();
 
-      // clearDetailsRepositoryCache clears resolved caches
       clearDetailsRepositoryCache();
       expect(getCachedSummaryNode('tau-ceti')).toBeUndefined();
     });
@@ -279,11 +296,18 @@ describe('instrumentHydrationService', () => {
       const state = await bridge.updateInstrumentPerimeter([sector], [0, 0, 0], 5.0, 2.0);
 
       expect(hydrateByHash).toHaveBeenCalledTimes(2);
+      expect(state.hasActiveSummariesChanged).toBe(true);
       expect(state.activeSummaries.length).toBe(1);
       expect(state.activeSummaries[0]?.id).toBe('star-active');
       expect(state.leadBufferSummaries.length).toBe(1);
       expect(state.leadBufferSummaries[0]?.id).toBe('star-lead');
-      expect(state.hydratedByHash.size).toBe(2);
+      expect(bridge.getHydratedSummary(fnv1a32('star-active'))?.id).toBe('star-active');
+      expect(bridge.getHydratedSummary(fnv1a32('star-lead'))?.id).toBe('star-lead');
+
+      // Re-running at identical position reports hasActiveSummariesChanged: false and preserves array reference
+      const stateSame = await bridge.updateInstrumentPerimeter([sector], [0, 0, 0], 5.0, 2.0);
+      expect(stateSame.hasActiveSummariesChanged).toBe(false);
+      expect(stateSame.activeSummaries).toBe(state.activeSummaries);
 
       bridge.dispose();
     });
@@ -397,6 +421,68 @@ describe('instrumentHydrationService', () => {
       // Second update at same position does not re-query unresolvable hash
       await bridge.updateInstrumentPerimeter([sector], [0, 0, 0], 5.0, 2.0);
       expect(hydrateByHash).toHaveBeenCalledTimes(1);
+
+      bridge.dispose();
+    });
+
+    it('batch-preloads unique hit.sectorId summary shards once per sector when hydrateByHash is default', async () => {
+      const fetchMock = vi.fn(async (url: string | URL | Request) => {
+        const urlStr = String(url);
+        if (urlStr.includes('/data/manifest.json')) {
+          return new Response('Not Found', { status: 404 });
+        }
+        if (urlStr.includes('/data/summaries/sector_+000_+000_+000.json')) {
+          return new Response(
+            JSON.stringify({
+              v: 1,
+              i: 'sector_+000_+000_+000',
+              c: 2,
+              d: {
+                'star-a': { n: 'Star A', p: [1, 0, 0], m: 4, M: 4, s: 'G2V' },
+                'star-b': { n: 'Star B', p: [2, 0, 0], m: 5, M: 5, s: 'K0V' },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        if (urlStr.includes('/data/summaries/sector_-025_+000_+000.json')) {
+          return new Response(
+            JSON.stringify({
+              v: 1,
+              i: 'sector_-025_+000_+000',
+              c: 1,
+              d: {
+                'star-west': { n: 'Star West', p: [-1, 0, 0], m: 6, M: 6, s: 'M0V' },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response('Not Found', { status: 404 });
+      });
+
+      vi.stubGlobal('fetch', fetchMock);
+      const bridge = new InstrumentHydrationBridge();
+
+      const sectorEast = createMockSector('sector_+000_+000_+000', [0, 0, 0], [
+        { id: 'star-a', x: 1, y: 0, z: 0 },
+        { id: 'star-b', x: 2, y: 0, z: 0 },
+        { id: 'uncatalogued-gaia', x: 3, y: 0, z: 0 },
+      ]);
+      const sectorWest = createMockSector('sector_-025_+000_+000', [-25, 0, 0], [
+        { id: 'star-west', x: -1.5, y: 0, z: 0 },
+      ]);
+
+      const state = await bridge.updateInstrumentPerimeter(
+        [sectorEast, sectorWest],
+        [0, 0, 0],
+        5.0,
+        2.0,
+      );
+
+      const summaryCalls = fetchMock.mock.calls.filter(([u]) => String(u).includes('/data/summaries/'));
+      expect(summaryCalls).toHaveLength(2);
+      expect(state.activeSummaries.map((s) => s.id)).toEqual(['star-a', 'star-west', 'star-b']);
 
       bridge.dispose();
     });

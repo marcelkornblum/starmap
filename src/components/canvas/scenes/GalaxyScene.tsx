@@ -51,6 +51,12 @@ export interface GalaxySceneProps {
   onCeilingApertureRadiusChange?: (radiusPc: number | null) => void;
 }
 
+interface GalaxyHydrationSnapshot {
+  readonly streamedSummaries: readonly SystemSummaryNode[];
+  readonly hasHydrated: boolean;
+  readonly focusPointPc: readonly [number, number, number];
+}
+
 /**
  * GalaxyScene: Canonical production scene for Milky Way top-level galactic cartography.
  * Renders streamed 3D sector point cloud and nearest stellar nodes mapped into GALACTIC_FRAME.
@@ -64,9 +70,12 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
   debugHitarea = false,
   onCeilingApertureRadiusChange,
 }) => {
-  const [streamedSummaries, setStreamedSummaries] = useState<readonly SystemSummaryNode[]>([]);
-  const [hasHydrated, setHasHydrated] = useState(() => useActiveStarsStore.getState().isHydrated);
-  const [focusPointPc, setFocusPointPc] = useState<readonly [number, number, number]>([0, 0, 0]);
+  const [hydrationState, setHydrationState] = useState<GalaxyHydrationSnapshot>(() => ({
+    streamedSummaries: [],
+    hasHydrated: useActiveStarsStore.getState().isHydrated,
+    focusPointPc: [0, 0, 0],
+  }));
+  const { streamedSummaries, hasHydrated, focusPointPc } = hydrationState;
   const budget = useMemo(() => getDeviceTierBudget(), []);
   const lastCeilingRadiusRef = useRef<number | null>(null);
   const hasReceivedFirstSummariesRef = useRef(false);
@@ -75,20 +84,29 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
   const handleHydratedSummariesChange = useCallback(
     (summaries: readonly SystemSummaryNode[], nextFocusPointPc?: readonly [number, number, number]) => {
       const applyUpdates = () => {
-        setHasHydrated(true);
         useActiveStarsStore.getState().setSummaries(summaries);
-        if (nextFocusPointPc) {
-          setFocusPointPc((prev) =>
-            prev[0] === nextFocusPointPc[0] && prev[1] === nextFocusPointPc[1] && prev[2] === nextFocusPointPc[2]
-              ? prev
+        setHydrationState((prev) => {
+          const summariesUnchanged =
+            prev.streamedSummaries.length === summaries.length &&
+            prev.streamedSummaries.every((s, idx) => s.id === summaries[idx]?.id);
+          const focusUnchanged =
+            !nextFocusPointPc ||
+            (prev.focusPointPc[0] === nextFocusPointPc[0] &&
+              prev.focusPointPc[1] === nextFocusPointPc[1] &&
+              prev.focusPointPc[2] === nextFocusPointPc[2]);
+
+          if (prev.hasHydrated && summariesUnchanged && focusUnchanged) {
+            return prev;
+          }
+
+          return {
+            hasHydrated: true,
+            streamedSummaries: summariesUnchanged ? prev.streamedSummaries : summaries,
+            focusPointPc: focusUnchanged
+              ? prev.focusPointPc
               : [nextFocusPointPc[0], nextFocusPointPc[1], nextFocusPointPc[2]],
-          );
-        }
-        setStreamedSummaries((prev) =>
-          prev.length === summaries.length && prev.every((s, idx) => s.id === summaries[idx]?.id)
-            ? prev
-            : summaries,
-        );
+          };
+        });
       };
       if (!hasReceivedFirstSummariesRef.current || import.meta.env.MODE === 'test') {
         hasReceivedFirstSummariesRef.current = true;

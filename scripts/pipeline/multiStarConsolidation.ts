@@ -7,6 +7,7 @@ import type {
   SystemTag,
 } from '../../src/types/astro';
 import { resolveStellarClassificationFromSpectrum, resolveStellarReticleType } from '../../src/utils/astroPrecalculation';
+import { formatSectorId } from '../../src/utils/sectorMath';
 import { addKeyVariants, getStrippedSystemBaseName, isDuplicateCatalogRecord, mergeSystemAliases, pruneAbsorbedCollections } from './systemNomenclature';
 import type { ConsolidateMultiStarSystemsParams } from './types';
 
@@ -187,6 +188,24 @@ export function consolidateMultiStarSystems(params: ConsolidateMultiStarSystemsP
     const primary = components[0]!;
     const secondaries = components.slice(1);
     const canonicalName = getStrippedSystemBaseName(primary.name);
+    const canonicalSectorId = formatSectorId(primary.x, primary.y, primary.z);
+
+    if (primary.sectorId !== canonicalSectorId) {
+      if (params.sectorMap) {
+        const oldBucket = params.sectorMap.get(primary.sectorId);
+        if (oldBucket) {
+          const idx = oldBucket.indexOf(primary);
+          if (idx !== -1) oldBucket.splice(idx, 1);
+        }
+        let targetBucket = params.sectorMap.get(canonicalSectorId);
+        if (!targetBucket) {
+          targetBucket = [];
+          params.sectorMap.set(canonicalSectorId, targetBucket);
+        }
+        if (!targetBucket.includes(primary)) targetBucket.push(primary);
+      }
+      primary.sectorId = canonicalSectorId;
+    }
 
     for (const sec of secondaries) {
       allAbsorbedIds.add(sec.id);
@@ -276,14 +295,28 @@ export function consolidateMultiStarSystems(params: ConsolidateMultiStarSystemsP
       if (!primaryManifest && params.allSystemManifests) {
         primaryManifest = {
           id: primary.id, name: primary.name, properName: primary.properName,
-          x: primary.x, y: primary.y, z: primary.z, dist: primary.dist, sectorId: primary.sectorId,
+          x: primary.x, y: primary.y, z: primary.z, dist: primary.dist, sectorId: canonicalSectorId,
           stars: stellarComponents, planets: allPlanets,
         };
         params.allSystemManifests.push(primaryManifest);
-        const bucket = params.sectorManifestsMap?.get(primary.sectorId);
-        if (bucket && !bucket.includes(primaryManifest)) bucket.push(primaryManifest);
       }
       if (primaryManifest) {
+        if (params.sectorManifestsMap) {
+          if (primaryManifest.sectorId && primaryManifest.sectorId !== canonicalSectorId) {
+            const oldBucket = params.sectorManifestsMap.get(primaryManifest.sectorId);
+            if (oldBucket) {
+              const idx = oldBucket.indexOf(primaryManifest);
+              if (idx !== -1) oldBucket.splice(idx, 1);
+            }
+          }
+          let bucket = params.sectorManifestsMap.get(canonicalSectorId);
+          if (!bucket) {
+            bucket = [];
+            params.sectorManifestsMap.set(canonicalSectorId, bucket);
+          }
+          if (!bucket.includes(primaryManifest)) bucket.push(primaryManifest);
+        }
+        primaryManifest.sectorId = canonicalSectorId;
         primaryManifest.name = primary.name;
         if (primary.properName) primaryManifest.properName = primary.properName;
         primaryManifest.stars = stellarComponents;

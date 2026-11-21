@@ -7,6 +7,7 @@ import {
 import { useLayerStore } from '../../src/stores/useLayerStore';
 import type { DatasetLayerIndexEntry } from '../../src/types/datasetLayers';
 import { getShardKey } from '../../src/utils/compactDataCodec';
+import { COMPACT_SCHEMA_VERSION } from '../../src/utils/compactDataConstants';
 import { decodeEntityAnnotation } from '../../src/utils/datasetLayerCodec';
 import type { DecodedEntityAnnotation } from '../../src/utils/datasetLayerTypes';
 import {
@@ -113,7 +114,7 @@ export function createLayerFetch(): typeof fetch {
     if (bucketMatch) {
       const bucket = bucketMatch[1]!;
       const entities = ANNOTATION_BUCKETS[bucket] ?? {};
-      return jsonResponse({ i: bucket, c: Object.keys(entities).length, d: entities });
+      return jsonResponse({ v: COMPACT_SCHEMA_VERSION, i: bucket, c: Object.keys(entities).length, d: entities });
     }
     for (const layer of RESOLVED_LAYER_MANIFESTS) {
       if (url.endsWith(`/data/overlays/layers/${layer.layerId}.json`)) {

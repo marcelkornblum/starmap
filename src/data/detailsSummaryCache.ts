@@ -1,20 +1,25 @@
 import type { SystemSummaryNode } from '../types/astro';
-import { decodeSummaryNode, getShardKey } from '../utils/compactDataCodec';
-import type { CompactSummaryNode, ShardedBucketEnvelope } from '../utils/compactDataTypes';
-import { fnv1a32, getShardKeyFromHash } from '../utils/binarySectorCodec';
-import { resolveDataUrl } from '../utils/url';
+import { decodeSummaryNode } from '../utils/compactDataCodec';
+import type { CompactSummaryNode } from '../utils/compactDataTypes';
+import { fnv1a32 } from '../utils/binarySectorCodec';
 import { BoundedLruCache } from '../utils/lruCache';
+import { formatSectorId } from '../utils/sectorMath';
+import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import {
   SUMMARY_BUCKET_CACHE_LIMIT,
   SUMMARY_NODE_CACHE_LIMIT,
 } from '../config/cacheConfig';
+import { hasManifestDataPath } from './dataManifestRepository';
+import { fetchDetailsRoutingTable } from './detailsRouting';
+import { getCachedSearchEntryById } from './searchRepository';
+import { loadShardedEnvelopeData } from './shardFetchHelper';
 
-const SUMMARY_BUCKET_CACHE = new BoundedLruCache<
+const SUMMARY_SECTOR_CACHE = new BoundedLruCache<
   string,
   Promise<Record<string, CompactSummaryNode>>
 >(SUMMARY_BUCKET_CACHE_LIMIT);
 
-const RESOLVED_SUMMARY_BUCKET_CACHE = new BoundedLruCache<
+const RESOLVED_SUMMARY_SECTOR_CACHE = new BoundedLruCache<
   string,
   Record<string, CompactSummaryNode>
 >(SUMMARY_BUCKET_CACHE_LIMIT);
@@ -29,27 +34,47 @@ const RESOLVED_SUMMARY_NODE_CACHE = new BoundedLruCache<
   SystemSummaryNode
 >(SUMMARY_NODE_CACHE_LIMIT);
 
-/**
- * Builds or retrieves a reverse mapping from 32-bit FNV-1a hash to canonical string ID for a summary bucket.
- */
-function getOrBuildBucketHashIndex(
-  bucketKey: string,
+const summaryLogicalPath = (sectorId: string): string =>
+  `summaries/${sectorId}.json`;
+
+function getOrBuildSectorHashIndex(
+  sectorId: string,
   data: Record<string, CompactSummaryNode>,
 ): Map<number, string> {
-  let index = RESOLVED_SUMMARY_HASH_INDEX.get(bucketKey);
+  let index = RESOLVED_SUMMARY_HASH_INDEX.get(sectorId);
   if (!index) {
     index = new Map<number, string>();
     for (const id of Object.keys(data)) {
       index.set(fnv1a32(id) >>> 0, id);
     }
-    RESOLVED_SUMMARY_HASH_INDEX.set(bucketKey, index);
+    RESOLVED_SUMMARY_HASH_INDEX.set(sectorId, index);
   }
   return index;
 }
 
+function getOrDecodeSummaryNode(
+  id: string,
+  compact: CompactSummaryNode,
+  sectorId: string,
+): SystemSummaryNode {
+  const cachedDecoded = RESOLVED_SUMMARY_NODE_CACHE.get(id);
+  if (cachedDecoded) {
+    return cachedDecoded;
+  }
+  const decoded = decodeSummaryNode(compact, id, sectorId);
+  RESOLVED_SUMMARY_NODE_CACHE.set(id, decoded);
+  return decoded;
+}
+
 /**
- * Synchronously retrieves a decoded `SystemSummaryNode` by ID if its 36-bucket shard
- * is already cached in memory.
+ * Returns whether a sector's summary shard is already resolved in memory.
+ */
+export const isSummarySectorCached = (sectorId: string): boolean =>
+  Boolean(sectorId && RESOLVED_SUMMARY_SECTOR_CACHE.has(sectorId));
+
+/**
+ * Synchronously retrieves a decoded `SystemSummaryNode` by ID if already cached
+ * or present in any loaded summary sector shard.
  */
 export const getCachedSummaryNode = (
   id: string,
@@ -61,19 +86,39 @@ export const getCachedSummaryNode = (
   if (cachedDecoded) {
     return cachedDecoded;
   }
-  const bucketKey = getShardKey(id);
-  const bucket = RESOLVED_SUMMARY_BUCKET_CACHE.get(bucketKey);
-  const compact = bucket?.[id];
-  if (!compact) {
-    return undefined;
+  for (const [sectorId, sectorData] of RESOLVED_SUMMARY_SECTOR_CACHE.entries()) {
+    const compact = sectorData[id];
+    if (compact) {
+      return getOrDecodeSummaryNode(id, compact, sectorId);
+    }
   }
-  const decoded = decodeSummaryNode(compact, id);
-  RESOLVED_SUMMARY_NODE_CACHE.set(id, decoded);
-  return decoded;
+  return undefined;
 };
 
 /**
- * Synchronously retrieves a decoded `SystemSummaryNode` by 32-bit FNV-1a ID hash if its bucket is cached in memory.
+ * Synchronously retrieves a decoded `SystemSummaryNode` by 32-bit FNV-1a ID hash
+ * within a specific cached sector shard in O(1).
+ */
+export const getCachedSummaryNodeByHashInSector = (
+  sectorId: string,
+  idHash: number,
+): SystemSummaryNode | undefined => {
+  if (!sectorId || !Number.isFinite(idHash)) {
+    return undefined;
+  }
+  const sectorData = RESOLVED_SUMMARY_SECTOR_CACHE.get(sectorId);
+  if (!sectorData) {
+    return undefined;
+  }
+  const unsignedHash = idHash >>> 0;
+  const canonicalId = getOrBuildSectorHashIndex(sectorId, sectorData).get(unsignedHash);
+  const compact = canonicalId ? sectorData[canonicalId] : undefined;
+  return canonicalId && compact ? getOrDecodeSummaryNode(canonicalId, compact, sectorId) : undefined;
+};
+
+/**
+ * Synchronously retrieves a decoded `SystemSummaryNode` by 32-bit FNV-1a ID hash
+ * across all currently cached summary sector shards.
  */
 export const getCachedSummaryNodeByHash = (
   idHash: number,
@@ -82,70 +127,93 @@ export const getCachedSummaryNodeByHash = (
     return undefined;
   }
   const unsignedHash = idHash >>> 0;
-  const bucketKey = getShardKeyFromHash(unsignedHash);
-  const bucket = RESOLVED_SUMMARY_BUCKET_CACHE.get(bucketKey);
-  if (!bucket) {
-    return undefined;
-  }
-  const index = getOrBuildBucketHashIndex(bucketKey, bucket);
-  const canonicalId = index.get(unsignedHash);
-  return canonicalId ? getCachedSummaryNode(canonicalId) : undefined;
-};
-
-export const loadSummaryBucket = (
-  bucketKey: string,
-  fetchImpl: typeof fetch = fetch,
-  signal?: AbortSignal,
-  onLoaded?: () => void,
-): Promise<Record<string, CompactSummaryNode>> => {
-  let pending = SUMMARY_BUCKET_CACHE.get(bucketKey);
-  if (!pending) {
-    let onAbort: (() => void) | undefined;
-    if (signal) {
-      onAbort = () => {
-        signal.removeEventListener('abort', onAbort!);
-        if (SUMMARY_BUCKET_CACHE.get(bucketKey) === pending) {
-          SUMMARY_BUCKET_CACHE.delete(bucketKey);
-        }
-      };
-      signal.addEventListener('abort', onAbort);
+  for (const [sectorId, sectorData] of RESOLVED_SUMMARY_SECTOR_CACHE.entries()) {
+    const canonicalId = getOrBuildSectorHashIndex(sectorId, sectorData).get(unsignedHash);
+    const compact = canonicalId ? sectorData[canonicalId] : undefined;
+    if (canonicalId && compact) {
+      return getOrDecodeSummaryNode(canonicalId, compact, sectorId);
     }
-
-    pending = (async () => {
-      try {
-        const url = resolveDataUrl(`/data/summaries/${bucketKey}.json`);
-        const response = signal
-          ? await fetchImpl(url, { signal })
-          : await fetchImpl(url);
-        if (!response.ok) {
-          throw new Error(
-            `Failed to load summary shard "${bucketKey}": ${response.status} ${response.statusText}`,
-          );
-        }
-        const envelope =
-          (await response.json()) as ShardedBucketEnvelope<CompactSummaryNode>;
-        const data = envelope.d ?? {};
-        RESOLVED_SUMMARY_BUCKET_CACHE.set(bucketKey, data);
-        onLoaded?.();
-        return data;
-      } finally {
-        if (signal && onAbort) {
-          signal.removeEventListener('abort', onAbort);
-        }
-      }
-    })().catch((err: unknown) => {
-      SUMMARY_BUCKET_CACHE.delete(bucketKey);
-      throw err;
-    });
-
-    SUMMARY_BUCKET_CACHE.set(bucketKey, pending);
   }
-
-  return pending;
+  return undefined;
 };
 
 /**
- * Fetches and caches the summary shard bucket (`public/data/summaries/<0..z>.json`) for a given entity ID.
+ * Fetches, parses (via Web Worker when available), validates, and caches
+ * a spatial summary sector shard (`public/data/summaries/<sectorId>.json`).
+ */
+export const loadSummarySector = (
+  sectorId: string,
+  fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
+  onLoaded?: () => void,
+): Promise<Record<string, CompactSummaryNode>> =>
+  loadShardedEnvelopeData({
+    cacheKey: sectorId,
+    logicalPath: summaryLogicalPath(sectorId),
+    label: `summary shard "${sectorId}"`,
+    pendingCache: SUMMARY_SECTOR_CACHE,
+    resolvedCache: RESOLVED_SUMMARY_SECTOR_CACHE,
+    fetchImpl,
+    signal,
+    onLoaded,
+  });
+
+/**
+ * Deduplicates and batch-preloads summary sector shards in parallel.
+ */
+export const preloadSummarySectors = async (
+  sectorIds: readonly string[],
+  fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
+  onLoaded?: () => void,
+): Promise<void> => {
+  if (signal?.aborted) {
+    throw new DOMException('The operation was aborted.', 'AbortError');
+  }
+  const uniqueSectors: string[] = [];
+  const seen = new Set<string>();
+  for (const sectorId of sectorIds) {
+    if (!sectorId || seen.has(sectorId)) continue;
+    seen.add(sectorId);
+    if (RESOLVED_SUMMARY_SECTOR_CACHE.has(sectorId)) continue;
+    if (hasManifestDataPath(summaryLogicalPath(sectorId)) === false) {
+      RESOLVED_SUMMARY_SECTOR_CACHE.set(sectorId, {});
+      continue;
+    }
+    uniqueSectors.push(sectorId);
+  }
+
+  if (uniqueSectors.length === 0) {
+    return;
+  }
+
+  await Promise.allSettled(
+    uniqueSectors.map((sectorId) => loadSummarySector(sectorId, fetchImpl, signal, onLoaded)),
+  );
+  if (signal?.aborted) {
+    throw new DOMException('The operation was aborted.', 'AbortError');
+  }
+};
+
+function resolveSectorIdFromSearchEntry(id: string): string | undefined {
+  const entry = getCachedSearchEntryById(id);
+  if (!entry) {
+    return undefined;
+  }
+  if (entry.k === undefined || entry.k === 1) {
+    if (entry.p) {
+      return formatSectorId(entry.p[0], entry.p[1], entry.p[2]);
+    }
+    if (entry.h === 1 || id === SOL_REFERENCE_TARGET.id) {
+      return formatSectorId(0, 0, 0);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Fetches and caches the spatial summary shard (`public/data/summaries/<sectorId>.json`)
+ * for a given entity ID using O(1) search entry coordinates or `details/routing.json`.
  */
 export const fetchSummaryNode = async (
   id: string,
@@ -161,31 +229,49 @@ export const fetchSummaryNode = async (
     return cached;
   }
 
-  const bucketKey = getShardKey(id);
-  await loadSummaryBucket(bucketKey, fetchImpl, signal, onLoaded);
+  let sectorId = resolveSectorIdFromSearchEntry(id);
+  if (!sectorId) {
+    const routing = await fetchDetailsRoutingTable(fetchImpl, signal);
+    const sectorIdx = routing?.s[id];
+    if (sectorIdx !== undefined) {
+      sectorId = routing?.k[sectorIdx];
+    }
+  }
+  if (!sectorId) {
+    return undefined;
+  }
+
+  await loadSummarySector(sectorId, fetchImpl, signal, onLoaded);
   return getCachedSummaryNode(id);
 };
 
 /**
- * Fetches and caches the summary shard bucket for a given 32-bit FNV-1a ID hash.
+ * Fetches and caches the summary sector shard for a given 32-bit FNV-1a ID hash.
+ * When `sectorId` is provided, resolves strictly within that sector's shard.
  */
 export const fetchSummaryNodeByHash = async (
   idHash: number,
   fetchImpl: typeof fetch = fetch,
   signal?: AbortSignal,
   onLoaded?: () => void,
+  sectorId?: string,
 ): Promise<SystemSummaryNode | undefined> => {
   if (!Number.isFinite(idHash)) {
     return undefined;
   }
-  const cached = getCachedSummaryNodeByHash(idHash);
-  if (cached) {
-    return cached;
+  const unsignedHash = idHash >>> 0;
+  if (sectorId) {
+    const cachedInSector = getCachedSummaryNodeByHashInSector(sectorId, unsignedHash);
+    if (cachedInSector) {
+      return cachedInSector;
+    }
+    if (RESOLVED_SUMMARY_SECTOR_CACHE.has(sectorId)) {
+      return undefined;
+    }
+    await loadSummarySector(sectorId, fetchImpl, signal, onLoaded);
+    return getCachedSummaryNodeByHashInSector(sectorId, unsignedHash);
   }
 
-  const unsignedHash = idHash >>> 0;
-  const bucketKey = getShardKeyFromHash(unsignedHash);
-  await loadSummaryBucket(bucketKey, fetchImpl, signal, onLoaded);
   return getCachedSummaryNodeByHash(unsignedHash);
 };
 
@@ -205,8 +291,8 @@ export const seedSummaryNode = (
  * Clears all in-memory summary caches.
  */
 export const clearSummaryCache = (): void => {
-  SUMMARY_BUCKET_CACHE.clear();
-  RESOLVED_SUMMARY_BUCKET_CACHE.clear();
+  SUMMARY_SECTOR_CACHE.clear();
+  RESOLVED_SUMMARY_SECTOR_CACHE.clear();
   RESOLVED_SUMMARY_HASH_INDEX.clear();
   RESOLVED_SUMMARY_NODE_CACHE.clear();
 };

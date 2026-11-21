@@ -13,6 +13,7 @@ import { buildGalaxyMinimapOrientation } from '../services/details/galaxyMinimap
 import { buildSystemOrbitalSchematic } from '../services/details/systemOrbitalSchematic';
 import { extractGalaxyBodies } from '../services/details/galaxyBodiesExtractor';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
+import { appendExtraEntriesToCorpus } from '../services/details/activeStarsCorpus';
 import type {
   GalacticInstrumentApertureResult,
   SceneCameraUrlState,
@@ -97,7 +98,9 @@ export function useGalaxyPanels({
 
   const detailsCorpus = useMemo(() => {
     if (activeCorpus.length === 0) return apertureCorpus;
-    return focusedExtraEntry ? [...activeCorpus, focusedExtraEntry] : activeCorpus;
+    return focusedExtraEntry
+      ? appendExtraEntriesToCorpus(activeCorpus, [focusedExtraEntry])
+      : activeCorpus;
   }, [activeCorpus, apertureCorpus, focusedExtraEntry]);
 
   const focusedDetails = useMemo(

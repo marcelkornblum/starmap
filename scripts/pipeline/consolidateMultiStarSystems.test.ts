@@ -334,4 +334,58 @@ describe('consolidateMultiStarSystems', () => {
     // Manifest must have 1 stellar component, NOT 2!
     expect(allSystemManifests[0]?.stars).toHaveLength(1);
   });
+
+  it('keeps consolidated primary sectorId aligned with formatSectorId(x, y, z) and sectorMap/sectorManifestsMap keys', () => {
+    const primaryStar = makeSummary('comp-a', 'Boundary Star A', 25.0, 1.0, 1.0, 4.5, 'G2V', {
+      sectorId: 'sector_+000_+000_+000', // deliberately stale/mismatched sectorId
+    });
+    const secondaryStar = makeSummary('comp-b', 'Boundary Star B', 25.01, 1.0, 1.0, 8.0, 'K2V', {
+      sectorId: 'sector_+025_+000_+000',
+      planetCount: 1,
+    });
+    const secondaryManifest: SystemManifest = {
+      id: 'comp-b',
+      name: 'Boundary Star B',
+      x: 25.01,
+      y: 1.0,
+      z: 1.0,
+      dist: Math.hypot(25.01, 1.0, 1.0),
+      sectorId: 'sector_+025_+000_+000',
+      stars: [
+        {
+          id: 'comp-b-A',
+          name: 'Boundary Star B',
+          componentDesignation: 'A',
+          spectralType: 'K2V',
+          mag: 8.0,
+          absmag: 6.0,
+        },
+      ],
+      planets: [{ id: 'comp-b-b', name: 'Boundary Star B b', letter: 'b' }],
+    };
+
+    const cataloguedSummaries = [primaryStar, secondaryStar];
+    const sectorMap = new Map<string, SystemSummaryNode[]>([
+      ['sector_+000_+000_+000', [primaryStar]],
+      ['sector_+025_+000_+000', [secondaryStar]],
+    ]);
+    const allSystemManifests = [secondaryManifest];
+    const sectorManifestsMap = new Map<string, SystemManifest[]>([
+      ['sector_+025_+000_+000', [secondaryManifest]],
+    ]);
+
+    consolidateMultiStarSystems({
+      cataloguedSummaries,
+      sectorMap,
+      allSystemManifests,
+      sectorManifestsMap,
+    });
+
+    expect(primaryStar.sectorId).toBe('sector_+025_+000_+000');
+    expect(sectorMap.get('sector_+000_+000_+000')).toEqual([]);
+    expect(sectorMap.get('sector_+025_+000_+000')?.map((s) => s.id)).toEqual(['comp-a']);
+    expect(allSystemManifests[0]?.id).toBe('comp-a');
+    expect(allSystemManifests[0]?.sectorId).toBe('sector_+025_+000_+000');
+    expect(sectorManifestsMap.get('sector_+025_+000_+000')?.map((m) => m.id)).toEqual(['comp-a']);
+  });
 });

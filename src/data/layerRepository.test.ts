@@ -23,12 +23,12 @@ const jsonResponse = (payload: unknown, ok = true): Response =>
     json: async () => payload,
   }) as unknown as Response;
 
-const makeManifestPayload = (id: string) => ({
+const makeManifestPayload = (id: string, version: unknown = 1) => ({
   i: id,
   n: `Layer ${id}`,
   k: 1,
   d: 'Test layer',
-  v: '1.0.0',
+  ...(version !== undefined ? { v: version } : {}),
   e: {},
 });
 
@@ -153,7 +153,7 @@ describe('layerRepository', () => {
           ok: true,
           status: 200,
           statusText: 'OK',
-          json: async () => ({ d: [] }),
+          json: async () => ({ v: 1, d: [] }),
         } as unknown as Response;
       });
 
@@ -205,7 +205,7 @@ describe('layerRepository', () => {
           ok: true,
           status: 200,
           statusText: 'OK',
-          json: async () => ({ d: {} }),
+          json: async () => ({ v: 1, d: {} }),
         } as unknown as Response;
       });
 
@@ -244,6 +244,33 @@ describe('layerRepository', () => {
       expect(getCachedLayerManifest('manifest-1')).toBeUndefined();
       expect(getCachedLayerManifest('manifest-0')).toBeDefined();
       expect(getCachedLayerManifest('manifest-overflow')).toBeDefined();
+    });
+  });
+
+  describe('Schema version enforcement (M16)', () => {
+    it('rejects layer index with missing or mismatched v', async () => {
+      const missingFetch = vi.fn(async () => jsonResponse({ i: 'idx', n: 'Idx', c: 0, d: [] }));
+      await expect(fetchLayerIndex(missingFetch)).rejects.toThrow(/unsupported schema version/i);
+
+      const wrongFetch = vi.fn(async () => jsonResponse({ v: 99, i: 'idx', n: 'Idx', c: 0, d: [] }));
+      await expect(fetchLayerIndex(wrongFetch)).rejects.toThrow(/unsupported schema version/i);
+    });
+
+    it('rejects layer manifest with missing or mismatched v', async () => {
+      const missingPayload = { i: 'canon-bad', n: 'Layer canon-bad', k: 1, d: 'Test', e: {} };
+      const missingFetch = vi.fn(async () => jsonResponse(missingPayload));
+      await expect(fetchLayerManifest('canon-bad', missingFetch)).rejects.toThrow(/unsupported schema version/i);
+
+      const wrongFetch = vi.fn(async () => jsonResponse(makeManifestPayload('canon-bad-2', 99)));
+      await expect(fetchLayerManifest('canon-bad-2', wrongFetch)).rejects.toThrow(/unsupported schema version/i);
+    });
+
+    it('rejects by-entity buckets with missing or mismatched v', async () => {
+      const missingFetch = vi.fn(async () => jsonResponse({ i: '0', c: 0, d: {} }));
+      await expect(fetchEntityAnnotations(['sol'], missingFetch)).rejects.toThrow(/unsupported schema version/i);
+
+      const wrongFetch = vi.fn(async () => jsonResponse({ v: 99, i: '0', c: 0, d: {} }));
+      await expect(fetchEntityAnnotations(['sol'], wrongFetch)).rejects.toThrow(/unsupported schema version/i);
     });
   });
 });

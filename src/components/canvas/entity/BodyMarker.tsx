@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
-import { useFrame, type ThreeEvent } from '@react-three/fiber';
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 
@@ -54,6 +54,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
 }) => {
   const reticleBracketColor = useThreeTokenStore((s) => s.tokens.reticleBracketColor);
   const stateFocus = useThreeTokenStore((s) => s.tokens.stateFocus);
+  const invalidate = useThree((s) => s.invalidate);
 
   const [posX, posY, posZ] = position instanceof THREE.Vector3 ? [position.x, position.y, position.z] : position;
 
@@ -99,7 +100,8 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
   useEffect(() => {
     lastBillboardSyncRef.current.qx = Number.NaN;
     hasSyncedFrameRef.current = false;
-  }, [id, posX, posY, posZ, worldPosition, pixelSize, hitRadius, reticleSize, interactive]);
+    invalidate();
+  }, [id, posX, posY, posZ, worldPosition, pixelSize, hitRadius, reticleSize, interactive, invalidate]);
 
   const getPointerCoord = (e: ThreeEvent<PointerEvent>): { x: number; y: number } => {
     const n = e.nativeEvent as (PointerEvent | MouseEvent | undefined);
@@ -256,6 +258,7 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
             ref={setHitareaRef}
             name="celestial-hitarea"
             geometry={SHARED_HITAREA_GEOMETRY}
+            scale={0}
             onPointerDown={onClick ? handlePointerDown : undefined}
             onPointerUp={onClick ? handlePointerUp : undefined}
             onDoubleClick={onDoubleClick ? (e) => {

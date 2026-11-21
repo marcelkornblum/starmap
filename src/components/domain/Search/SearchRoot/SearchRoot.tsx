@@ -15,6 +15,7 @@ import type { SearchCategoryFilter } from '../../../../types/search';
 import type { SearchResultItem } from '../../../../services/search/searchTypes';
 import type { CompactSearchEntry } from '../../../../utils/compactDataTypes';
 import { useSpatialEntityStoreApi } from '../../../canvas/entity/SpatialEntityContext';
+import { escalateSearchBackgroundWarmup } from '../../../../data/searchBackgroundWarmup';
 import {
   SearchContext,
   type SearchContextValue,
@@ -127,7 +128,10 @@ export const SearchRoot = ({
 
   const handleFocusCapture = useCallback((): void => {
     setIsFocused(true);
-  }, []);
+    if (!initialCorpus) {
+      escalateSearchBackgroundWarmup();
+    }
+  }, [initialCorpus]);
 
   const handleBlurCapture = useCallback(
     (event: FocusEvent<HTMLDivElement>): void => {

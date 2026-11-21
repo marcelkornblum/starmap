@@ -101,4 +101,33 @@ describe('searchScoring', () => {
     expect(prepared1.canonLower).toBe('project hail mary');
     expect(prepared1.canonClean).toBe('projecthailmary');
   });
+
+  it('matches Gliese/GJ/Gl and Gaia DR3 queries identically after derivable alias pruning', () => {
+    const glieseEntry = {
+      i: 'hip-74995',
+      n: 'Gliese 581',
+      a: 'wolf562',
+    };
+    expect(scoreSearchEntry(glieseEntry, normaliseSearchQuery('Gliese 581'))).toBe(1000);
+    expect(scoreSearchEntry(glieseEntry, normaliseSearchQuery('GJ 581'))).toBe(900);
+    expect(scoreSearchEntry(glieseEntry, normaliseSearchQuery('Gl 581'))).toBe(900);
+    expect(scoreSearchEntry(glieseEntry, normaliseSearchQuery('GJ 58'))).toBe(700);
+
+    const aliasOnlyGlieseEntry = {
+      i: 'hip-80824',
+      n: 'Wolf 1061',
+      a: 'gj628',
+    };
+    expect(scoreSearchEntry(aliasOnlyGlieseEntry, normaliseSearchQuery('Gliese 628'))).toBe(900);
+    expect(scoreSearchEntry(aliasOnlyGlieseEntry, normaliseSearchQuery('GJ 628'))).toBe(900);
+    expect(scoreSearchEntry(aliasOnlyGlieseEntry, normaliseSearchQuery('Gl 628'))).toBe(900);
+
+    const gaiaEntry = {
+      i: 'gaia-2452378776434477184',
+      n: 'Tau Ceti',
+      a: 'hd10700 hip8102',
+    };
+    expect(scoreSearchEntry(gaiaEntry, normaliseSearchQuery('Gaia DR3 2452378776434477184'))).toBe(900);
+    expect(scoreSearchEntry(gaiaEntry, normaliseSearchQuery('Gaia DR3 245237'))).toBe(700);
+  });
 });

@@ -2,7 +2,6 @@ import type {
   SystemManifest,
   SystemSummaryNode,
 } from '../../src/types/astro';
-import type { CatalogManifestHeader } from '../../src/types/astroCoordinates';
 
 export interface HygCrossMatch {
   id: number;
@@ -35,11 +34,8 @@ export interface HygCrossMatch {
 
 export interface BuildPipelineOptions {
   dataDir?: string;
-  catalogsDir?: string;
   partitionsDir?: string;
-  systemsDir?: string;
   overlaysDir?: string;
-  solDir?: string;
   summariesDir?: string;
   detailsDir?: string;
   searchDir?: string;
@@ -65,11 +61,6 @@ export interface PipelineSummary {
   totalExoplanetsAttached?: number;
   galacticStructuresCount?: number;
   solarSystemBodiesCount?: number;
-}
-
-export interface CatalogPayload {
-  header: CatalogManifestHeader;
-  systems: SystemSummaryNode[];
 }
 
 export interface ConsolidateMultiStarSystemsParams {

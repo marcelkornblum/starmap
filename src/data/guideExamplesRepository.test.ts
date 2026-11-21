@@ -83,4 +83,26 @@ describe('guideExamplesRepository', () => {
     expect(getCachedGuideExamplesForEntry('starTypes', 'g')).toEqual([]);
     unsub();
   });
+
+  it('rejects guide-examples.json with missing or mismatched version', async () => {
+    const missingFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ generatedAt: '2026-01-01T00:00:00.000Z', sections: MOCK_GUIDE_EXAMPLES.sections }),
+    }));
+    await expect(
+      fetchGuideExamples(missingFetch as unknown as typeof fetch),
+    ).rejects.toThrow(/unsupported schema version/i);
+
+    const wrongFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ ...MOCK_GUIDE_EXAMPLES, version: 2 }),
+    }));
+    await expect(
+      fetchGuideExamples(wrongFetch as unknown as typeof fetch),
+    ).rejects.toThrow(/unsupported schema version/i);
+  });
 });

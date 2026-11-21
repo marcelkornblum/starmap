@@ -129,15 +129,46 @@ describe('searchIndexBuilder', () => {
       systems,
       manifests,
       structures,
-      solarBodies,
+      solarBodies: [
+        ...solarBodies,
+        {
+          id: 'pha-99942',
+          name: '99942 Apophis',
+          classification: 'AsteroidNEO',
+          parentBodyId: 'sol',
+          meanRadiusKm: 0.185,
+          orbit: dummyOrbit(1.922),
+          isCoreSearch: false,
+        },
+        {
+          id: 'voyager-1',
+          name: 'Voyager 1',
+          classification: 'AsteroidDistant',
+          parentBodyId: 'sol',
+          meanRadiusKm: 0.001,
+          tags: ['Spacecraft'],
+          isCoreSearch: true,
+        },
+      ],
+      referencedLayerIds: new Set(['tau-ceti']),
     });
 
+    expect(indices.startup.v).toBe(1);
+    expect(indices.startup.c).toBeGreaterThan(0);
+    expect(indices.startup.d.every((e) => e.a === undefined)).toBe(true);
+    expect(indices.startup.d.some((e) => e.i === 'earth')).toBe(true);
+    expect(indices.startup.d.some((e) => e.i === 'moon' && e.o === 'earth')).toBe(true);
+    expect(indices.startup.d.some((e) => e.i === 'crab-nebula')).toBe(true);
+    expect(indices.startup.d.some((e) => e.i === 'voyager-1')).toBe(true);
+    // Bulk minor bodies (without o / not construct / not layer-referenced) are excluded from startup
+    expect(indices.startup.d.some((e) => e.i === 'vesta')).toBe(false);
+    expect(indices.startup.d.some((e) => e.i === 'pha-99942')).toBe(false);
+
     expect(indices.core.c).toBeGreaterThan(0);
-    expect(indices.full.c).toBeGreaterThan(0);
     expect(indices.stars.c).toBe(1);
     expect(indices.planets.c).toBe(4); // tau-ceti-e, tau-ceti-f, earth, moon
     expect(indices.structures.c).toBe(1);
-    expect(indices.minorBodies.c).toBe(1); // vesta
+    expect(indices.minorBodies.c).toBe(3); // vesta, pha-99942, voyager-1
 
     const earth = indices.planets.d.find((e) => e.i === 'earth');
     expect(earth?.z).toBe(1);

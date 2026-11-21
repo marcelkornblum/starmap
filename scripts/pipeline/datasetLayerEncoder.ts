@@ -4,7 +4,10 @@ import type {
   DatasetLayerManifest,
   DatasetLayerSourceMeta,
 } from '../../src/types/datasetLayers';
-import { CONFIDENCE_TO_CODE } from '../../src/utils/compactDataConstants';
+import {
+  COMPACT_SCHEMA_VERSION,
+  CONFIDENCE_TO_CODE,
+} from '../../src/utils/compactDataConstants';
 import { getShardKey } from '../../src/utils/compactDataCodec';
 import {
   LAYER_KIND_TO_CODE,
@@ -122,12 +125,14 @@ export function buildEntityAnnotationBuckets(
 }
 
 export function buildLayerIndexManifest(layers: readonly DatasetLayerManifest[]): {
+  v: number;
   i: string;
   n: string;
   c: number;
   d: DatasetLayerIndexEntry[];
 } {
   return {
+    v: COMPACT_SCHEMA_VERSION,
     i: 'dataset-layers-index',
     n: 'Dataset Layers Registry (FS-001 & FS-002)',
     c: layers.length,

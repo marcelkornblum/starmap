@@ -3,7 +3,8 @@ import type {
   DatasetLayerManifest,
   DatasetLayerSourceMeta,
 } from '../types/datasetLayers';
-import { CODE_TO_CONFIDENCE } from './compactDataConstants';
+import { assertSchemaVersion } from './compactDataCodec';
+import { CODE_TO_CONFIDENCE, COMPACT_SCHEMA_VERSION } from './compactDataConstants';
 import {
   CODE_TO_LAYER_KIND,
   CODE_TO_TARGET_TYPE,
@@ -28,6 +29,11 @@ function decodeSourceMeta(b?: CompactLayerSourceMeta): DatasetLayerSourceMeta | 
 }
 
 export function decodeLayerManifest(compact: CompactLayerManifest): DatasetLayerManifest {
+  assertSchemaVersion(
+    compact,
+    COMPACT_SCHEMA_VERSION,
+    `layer manifest "${compact?.i ?? 'unknown'}"`,
+  );
   const entries: Record<string, DatasetLayerEntry> = {};
 
   for (const [targetId, ce] of Object.entries(compact.e)) {

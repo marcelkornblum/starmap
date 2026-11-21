@@ -40,9 +40,17 @@ describe('Scientific Overlay Constellation Layers', () => {
   });
 
   it('guarantees zero unresolved targets for all constellation layers against core/stars search indices', () => {
-    const rawCore = fs.readFileSync(path.resolve('public/data/search/core.json'), 'utf-8');
-    const rawStars = fs.readFileSync(path.resolve('public/data/search/stars.json'), 'utf-8');
-    const rawStructures = fs.readFileSync(path.resolve('public/data/search/structures.json'), 'utf-8');
+    const dataDir = path.resolve('public/data');
+    const manifestPath = path.join(dataDir, 'manifest.json');
+    const manifest = fs.existsSync(manifestPath)
+      ? (JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as { files?: Record<string, string> })
+      : undefined;
+    const readSearch = (logical: string) =>
+      fs.readFileSync(path.join(dataDir, manifest?.files?.[logical] ?? logical), 'utf-8');
+
+    const rawCore = readSearch('search/core.json');
+    const rawStars = readSearch('search/stars.json');
+    const rawStructures = readSearch('search/structures.json');
     const core = JSON.parse(rawCore).d as Array<{ i: string; n: string }>;
     const stars = JSON.parse(rawStars).d as Array<{ i: string; n: string }>;
     const structures = JSON.parse(rawStructures).d as Array<{ i: string; n: string }>;

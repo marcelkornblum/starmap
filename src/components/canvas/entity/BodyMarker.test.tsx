@@ -36,6 +36,9 @@ describe('BodyMarker Component & Interaction (AUD-115, AUD-116)', () => {
     expect(dot.props.raycast).toBe(NOOP_RAYCAST);
     expect(hitarea.props.raycast).toBeUndefined();
     expect(hitarea.instance.raycast).not.toBe(NOOP_RAYCAST);
+    // Hitarea starts collapsed at scale 0 until first useFrame syncs matrixWorld and screen-invariant radius
+    expect(hitarea.instance.scale.x).toBe(0);
+    expect(hitarea.instance.scale.y).toBe(0);
 
     await renderer.unmount();
   });

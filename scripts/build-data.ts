@@ -19,11 +19,8 @@ if (isDirectExecution) {
   const gcnsGz = process.env.GCNS_GZ || 'data/raw/gaia_dr3_gcns.dat.gz';
   const outputJson = process.env.OUTPUT_JSON || 'data/stars.json';
   const dataDir = process.env.DATA_DIR || 'public/data';
-  const catalogsDir = process.env.CATALOGS_DIR || 'public/data/catalogs';
   const partitionsDir = process.env.PARTITIONS_DIR || 'public/data/partitions';
-  const systemsDir = process.env.SYSTEMS_DIR || 'public/data/systems';
   const overlaysDir = process.env.OVERLAYS_DIR || 'public/data/overlays';
-  const solDir = process.env.SOL_DIR || 'public/data/sol';
   const summariesDir = process.env.SUMMARIES_DIR || 'public/data/summaries';
   const detailsDir = process.env.DETAILS_DIR || 'public/data/details';
   const searchDir = process.env.SEARCH_DIR || 'public/data/search';
@@ -33,11 +30,8 @@ if (isDirectExecution) {
 
   buildStarDataPipeline(gcnsGz, outputJson, {
     dataDir,
-    catalogsDir,
     partitionsDir,
-    systemsDir,
     overlaysDir,
-    solDir,
     summariesDir,
     detailsDir,
     searchDir,

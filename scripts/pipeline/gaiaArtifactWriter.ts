@@ -12,7 +12,7 @@ import type {
 import { LAYER_MANIFESTS } from '../../content/layers';
 import { encodeBinarySector } from '../../src/utils/binarySectorCodec';
 import { COMPACT_SCHEMA_VERSION } from '../../src/utils/compactDataConstants';
-import { buildShardedSummariesAndDetails } from './compactDataEncoder';
+import { buildHybridSummariesAndDetails } from './compactDataEncoder';
 import { buildSearchIndices } from './searchIndexBuilder';
 import {
   buildEntityAnnotationBuckets,
@@ -30,17 +30,17 @@ import { resolveBuildTimestampIso } from './seedCatalogs';
 import { loadAllSolarSystemBodies } from './solarBodies';
 import { buildSolSystemManifest } from './solAndSummary';
 import { writeGuideAndBaselinesArtifacts } from './guideAndBaselinesEmitter';
+import {
+  cleanStaleDataArtifacts,
+  writeHashedDataManifest,
+} from './dataManifestWriter';
 import type { BuildPipelineOptions } from './types';
 
 export interface WritePipelineArtifactsParams {
   options?: BuildPipelineOptions;
-  local10pcSystems: SystemSummaryNode[];
-  referenceBrightSystems: SystemSummaryNode[];
   sectorMap: Map<string, SystemSummaryNode[]>;
-  sectorManifestsMap: Map<string, SystemManifest[]>;
   cataloguedSummaries: SystemSummaryNode[];
   allSystemManifests: SystemManifest[];
-  exoplanetHostSummaries: SystemSummaryNode[];
   starAliasesById: Map<string, string[]>;
   multiStarConsolidationResult?: {
     consolidatedCount: number;
@@ -54,40 +54,18 @@ export function writePipelineArtifacts(params: WritePipelineArtifactsParams): {
   solarBodiesCount: number;
 } {
   const {
-    options, local10pcSystems, referenceBrightSystems, sectorMap, sectorManifestsMap,
-    cataloguedSummaries, allSystemManifests, exoplanetHostSummaries, starAliasesById,
+    options, sectorMap, cataloguedSummaries, allSystemManifests, starAliasesById,
     multiStarConsolidationResult,
   } = params;
 
-  console.log('Writing partitions, catalogs, and multi-layer overlays...');
+  console.log('Writing partitions, shards, and multi-layer overlays...');
   const nowIso = resolveBuildTimestampIso();
 
-  // 1. Write formal catalogs
-  if (options?.catalogsDir) {
-    const dir = path.resolve(options.catalogsDir);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    const writeCat = (file: string, payload: unknown) =>
-      fs.writeFileSync(path.join(dir, file), JSON.stringify(payload), 'utf-8');
-
-    writeCat('solar-neighborhood-10pc.json', {
-      header: {
-        catalogId: 'solar-neighborhood-10pc', name: 'Solar Neighborhood 10-Parsec Census',
-        description: 'Census of verified stellar systems within 10 parsecs of Sol from Gaia DR3 GCNS and RECONS ground truth',
-        epoch: 'J2000', count: local10pcSystems.length, timestamp: nowIso,
-      },
-      systems: local10pcSystems,
-    });
-    writeCat('reference-bright-stars.json', {
-      header: {
-        catalogId: 'reference-bright-stars', name: 'Photometric Reference Bright Stars (V <= 6.5, <= 100 pc)',
-        description: 'Naked-eye navigational reference stars within 100 pc enriched with official IAU proper names',
-        epoch: 'J2000', count: referenceBrightSystems.length, timestamp: nowIso,
-      },
-      systems: referenceBrightSystems,
-    });
+  if (options?.dataDir) {
+    cleanStaleDataArtifacts(path.resolve(options.dataDir));
   }
 
-  // 2. Write spatial sector partitions (Binary .bin ONLY)
+  // 1. Write spatial sector partitions (Binary .bin ONLY)
   if (options?.partitionsDir) {
     const dir = path.resolve(options.partitionsDir);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -104,81 +82,79 @@ export function writePipelineArtifacts(params: WritePipelineArtifactsParams): {
     }
   }
 
-  // 3. Write detailed system manifests
-  if (options?.systemsDir && sectorManifestsMap.size > 0) {
-    const dir = path.resolve(options.systemsDir);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    for (const [sectorId, manifests] of sectorManifestsMap.entries()) {
-      fs.writeFileSync(path.join(dir, `${sectorId}.json`), JSON.stringify(manifests), 'utf-8');
-    }
-  }
-
-  // 4. Ingest and write Layer 3 Galactic Structures & Deep Sky
+  // 2. Ingest Layer 3 Galactic Structures & Deep Sky in memory
   let galacticCount = 0;
   let allStructures: GalacticStructureRecord[] = [];
-  if (options?.overlaysDir || options?.detailsDir || options?.searchDir) {
+  if (options?.overlaysDir || options?.detailsDir || options?.searchDir || options?.dataDir) {
     allStructures = loadAllGalacticStructures();
     galacticCount = allStructures.length;
   }
 
-  if (options?.overlaysDir) {
-    const dir = path.resolve(options.overlaysDir);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-    fs.writeFileSync(path.join(dir, 'exoplanetary-systems.json'), JSON.stringify({
-      overlayId: 'exoplanetary-systems', title: 'Exoplanetary Systems Index',
-      totalSystems: exoplanetHostSummaries.length, timestamp: nowIso, systems: exoplanetHostSummaries,
-    }), 'utf-8');
-
-    fs.writeFileSync(path.join(dir, 'galactic-structures.json'), JSON.stringify({
-      overlayId: 'galactic-structures', title: 'Local Galactic Structures, Clusters, Remnants & Deep Sky',
-      count: allStructures.length, timestamp: nowIso, structures: allStructures,
-    }), 'utf-8');
-  }
-
-  // 5. Ingest and write Layer 4 Solar System natural bodies & orbits
+  // 3. Ingest Layer 4 Solar System natural bodies & orbits in memory
   let solarBodiesCount = 0;
+  let primarySolarBodies: SolarSystemBodyRecord[] = [];
+  let minorSolarBodies: SolarSystemBodyRecord[] = [];
   let allSolarBodies: SolarSystemBodyRecord[] = [];
-  if (options?.solDir || options?.detailsDir || options?.searchDir || options?.overlaysDir) {
+  if (options?.detailsDir || options?.searchDir || options?.overlaysDir || options?.dataDir) {
     const { primaryBodies, phaAsteroids, distantAsteroids, comets } = loadAllSolarSystemBodies();
-    allSolarBodies = [...primaryBodies, ...phaAsteroids, ...distantAsteroids, ...comets];
+    primarySolarBodies = primaryBodies;
+    minorSolarBodies = [...phaAsteroids, ...distantAsteroids, ...comets];
+    allSolarBodies = [...primarySolarBodies, ...minorSolarBodies];
     solarBodiesCount = allSolarBodies.length;
-
-    if (options?.solDir) {
-      const dir = path.resolve(options.solDir);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      const writeSol = (file: string, datasetId: string, title: string, bodies: SolarSystemBodyRecord[]) => {
-        fs.writeFileSync(path.join(dir, file), JSON.stringify({ datasetId, title, epoch: 'J2000', count: bodies.length, timestamp: nowIso, bodies }), 'utf-8');
-      };
-
-      writeSol('ephemeris-primary-bodies.json', 'sol-primary-bodies', 'Solar System Primary Bodies & Major Moons', primaryBodies);
-      writeSol('orbital-elements-asteroids.json', 'sol-asteroids-distant', 'Solar System Centaurs, Trojans & Kuiper Belt Objects', distantAsteroids);
-      writeSol('orbital-elements-neo.json', 'sol-minor-bodies-pha', 'Solar System Potentially Hazardous Asteroids (PHAs)', phaAsteroids);
-      writeSol('orbital-elements-comets.json', 'sol-comets', 'Solar System Periodic & Historic Comets', comets);
-    }
   }
 
-  // 6. Write 36-bucket dictionary shards for summaries/ and details/
+  // 4. Write hybrid spatial + domain shards for summaries/ and details/
   if (options?.summariesDir || options?.detailsDir) {
-    const { summariesByBucket, detailsByBucket } = buildShardedSummariesAndDetails({
-      systems: cataloguedSummaries, manifests: allSystemManifests,
-      structures: allStructures, solarBodies: allSolarBodies,
+    const hybrid = buildHybridSummariesAndDetails({
+      systems: cataloguedSummaries,
+      manifests: allSystemManifests,
+      structures: allStructures,
+      primarySolarBodies,
+      minorSolarBodies,
     });
 
     if (options.summariesDir) {
       const dir = path.resolve(options.summariesDir);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      for (const [bucket, env] of summariesByBucket.entries()) {
-        fs.writeFileSync(path.join(dir, `${bucket}.json`), JSON.stringify(env), 'utf-8');
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.endsWith('.json')) {
+          fs.unlinkSync(path.join(dir, entry.name));
+        }
+      }
+      for (const [sectorId, env] of hybrid.summariesBySector.entries()) {
+        fs.writeFileSync(path.join(dir, `${sectorId}.json`), JSON.stringify(env), 'utf-8');
       }
     }
 
     if (options.detailsDir) {
       const dir = path.resolve(options.detailsDir);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      for (const [bucket, env] of detailsByBucket.entries()) {
-        fs.writeFileSync(path.join(dir, `${bucket}.json`), JSON.stringify(env), 'utf-8');
+      const sectorsDir = path.join(dir, 'sectors');
+      const minorDir = path.join(dir, 'sol-minor');
+      fs.mkdirSync(sectorsDir, { recursive: true });
+      fs.mkdirSync(minorDir, { recursive: true });
+
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.endsWith('.json')) {
+          fs.unlinkSync(path.join(dir, entry.name));
+        }
       }
+      for (const subDir of [sectorsDir, minorDir]) {
+        for (const entry of fs.readdirSync(subDir, { withFileTypes: true })) {
+          if (entry.isFile() && entry.name.endsWith('.json')) {
+            fs.unlinkSync(path.join(subDir, entry.name));
+          }
+        }
+      }
+
+      for (const [sectorId, env] of hybrid.detailSectorsBySector.entries()) {
+        fs.writeFileSync(path.join(sectorsDir, `${sectorId}.json`), JSON.stringify(env), 'utf-8');
+      }
+      fs.writeFileSync(path.join(dir, 'sol-primary.json'), JSON.stringify(hybrid.solPrimary), 'utf-8');
+      for (const [bucket, env] of hybrid.solMinorByBucket.entries()) {
+        fs.writeFileSync(path.join(minorDir, `${bucket}.json`), JSON.stringify(env), 'utf-8');
+      }
+      fs.writeFileSync(path.join(dir, 'structures.json'), JSON.stringify(hybrid.structures), 'utf-8');
+      fs.writeFileSync(path.join(dir, 'routing.json'), JSON.stringify(hybrid.routing), 'utf-8');
     }
   }
 
@@ -228,15 +204,24 @@ export function writePipelineArtifacts(params: WritePipelineArtifactsParams): {
     for (const man of allSystemManifests) for (const pl of man.planets) coordsById.set(pl.id, [man.x, man.y, man.z]);
     for (const st of allStructures) coordsById.set(st.id, [st.x, st.y, st.z]);
     const layerEntries = buildSearchEntriesFromLayers(layersWithResolvedNames, coordsById, realNames);
+    const referencedLayerIds = new Set<string>();
+    for (const layer of layersWithResolvedNames) {
+      for (const entry of Object.values(layer.entries)) {
+        referencedLayerIds.add(entry.targetId);
+        if (entry.systemId) referencedLayerIds.add(entry.systemId);
+        if (entry.parentBodyId) referencedLayerIds.add(entry.parentBodyId);
+      }
+    }
 
     const indices = buildSearchIndices({
       systems: cataloguedSummaries, manifests: allSystemManifests,
       structures: allStructures, solarBodies: allSolarBodies,
-      starAliasesById, layerEntries,
+      starAliasesById, layerEntries, referencedLayerIds,
     }, nowIso);
 
     const indexFiles: [string, unknown][] = [
-      ['core.json', indices.core], ['full.json', indices.full],
+      ['startup.json', indices.startup],
+      ['core.json', indices.core],
       ['stars.json', indices.stars], ['planets.json', indices.planets],
       ['structures.json', indices.structures], ['minor-bodies.json', indices.minorBodies],
       ['layers.json', indices.layers],
@@ -244,18 +229,20 @@ export function writePipelineArtifacts(params: WritePipelineArtifactsParams): {
     for (const [file, val] of indexFiles) fs.writeFileSync(path.join(dir, file), JSON.stringify(val), 'utf-8');
   }
 
-  // 8. Write reference-baselines.json and guide-examples.json
+  // 8. Write reference-baselines.json and guide-examples.json, then content-hash active shards into manifest.json
   if (options?.dataDir) {
+    const resolvedDataDir = path.resolve(options.dataDir);
     const solManifest =
       allSystemManifests.find((m) => m.id === 'sol') ?? buildSolSystemManifest();
     writeGuideAndBaselinesArtifacts({
-      outDir: path.resolve(options.dataDir),
+      outDir: resolvedDataDir,
       solManifest,
       solarBodies: allSolarBodies,
       allSummaries: cataloguedSummaries,
       systemManifests: allSystemManifests,
       generatedAt: nowIso,
     });
+    writeHashedDataManifest(resolvedDataDir, nowIso);
   }
 
   return { galacticCount, solarBodiesCount };

@@ -1,4 +1,5 @@
 import type { ChangeEvent } from 'react';
+import { escalateSearchBackgroundWarmup } from '../../../../data/searchBackgroundWarmup';
 import { Button, Input } from '../../../interface';
 import { useSearchContext } from '../SearchContext';
 import styles from './SearchInput.module.css';
@@ -16,11 +17,15 @@ export const SearchInput = ({
 
   const handleQueryChange = (event: ChangeEvent<HTMLInputElement>): void => {
     setIsFocused?.(true);
+    if (event.target.value.trim().length > 0) {
+      escalateSearchBackgroundWarmup();
+    }
     setQuery(event.target.value);
   };
 
   const handleFocus = (): void => {
     setIsFocused?.(true);
+    escalateSearchBackgroundWarmup();
   };
 
   const handleClearQuery = (): void => {

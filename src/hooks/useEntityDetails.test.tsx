@@ -78,18 +78,37 @@ describe('useEntityDetails (AUD-087 & DEC-R042)', () => {
   it('initiates fetch and updates reactively when data arrives', async () => {
     const fetchMock = vi.fn(async (url: string | URL | Request) => {
       const urlStr = String(url);
+      if (urlStr.includes('/data/manifest.json')) {
+        return { ok: false, status: 404, statusText: 'Not Found', json: async () => ({}) } as unknown as Response;
+      }
+      if (urlStr.includes('/data/details/routing.json')) {
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: async () => ({
+            v: 1,
+            k: ['sector_+000_+000_+000'],
+            s: { 'sys-1': 0 },
+            d: { 'sys-1': 0 },
+          }),
+        } as unknown as Response;
+      }
       if (urlStr.includes('/data/summaries/')) {
         return {
           ok: true,
           status: 200,
           statusText: 'OK',
           json: async () => ({
+            v: 1,
+            i: 'sector_+000_+000_+000',
+            c: 1,
             d: {
               'sys-1': {
                 n: 'Star sys-1',
                 p: [1, 2, 3],
                 m: 5.5,
-                a: 4.2,
+                M: 4.2,
                 s: 'G',
                 c: 0.65,
               },
@@ -102,13 +121,15 @@ describe('useEntityDetails (AUD-087 & DEC-R042)', () => {
         status: 200,
         statusText: 'OK',
         json: async () => ({
+          v: 1,
+          i: 'sector_+000_+000_+000',
+          c: 1,
           d: {
             'sys-1': {
               t: 'sys',
               n: 'System sys-1',
               p: [1, 2, 3],
-              q: 'sector_0_0_0',
-              S: [{ i: 'sys-1', n: 'Star sys-1', c: 'A', s: 'G2V', m: 5.5, a: 4.2, rt: 'stellar-system' }],
+              S: [{ i: 'sys-1', n: 'Star sys-1', c: 'A', s: 'G2V', m: 5.5, M: 4.2, rt: 'stellar-system' }],
               E: [],
             },
           },
