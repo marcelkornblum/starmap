@@ -6,6 +6,7 @@ import type {
   StarmapNode,
   SystemManifest,
   SystemSummaryNode,
+  SystemTag,
 } from '../../src/types/astro';
 import type { SolarSystemBodyRecord } from '../../src/types/astroStructures';
 import {
@@ -13,6 +14,7 @@ import {
   computePlanetCompositionCounts,
   computePlanetSurfaceGravityG,
   isPlanetHabitableCandidate,
+  isPlanetTidallyLocked,
 } from '../../src/utils/planetaryPhysics';
 import {
   computePlanetHazardMask,
@@ -30,6 +32,7 @@ import {
 } from '../../src/utils/nomenclature';
 import {
   checkHabitableCandidate,
+  computeEsi,
   enrichPlanetsWithPrecalculatedFields,
   getPlanetCensus,
 } from './exoplanets';
@@ -125,6 +128,11 @@ export function buildSolSystemManifest(
       const composition = classifyPlanetPhysical({ massMearth, radiusRearth, classification: b.tags?.join(' ') });
       const isHabitableCandidate = isPlanetHabitableCandidate({ equilibriumTempK, semiMajorAxis: a, tags: b.tags }, 1.0);
       const surfaceGravityG = computePlanetSurfaceGravityG({ massMearth, radiusRearth });
+      const isTidallyLocked = isPlanetTidallyLocked({
+        periodDays: b.orbit?.periodDays,
+        semiMajorAxisAu: a,
+      });
+      const esi = computeEsi(radiusRearth, equilibriumTempK);
       const hazardMask = computePlanetHazardMask({
         equilibriumTempK,
         surfaceGravityG,
@@ -155,16 +163,32 @@ export function buildSolSystemManifest(
         radiusRearth,
         radiusRjup,
         equilibriumTempK,
+        ...(esi !== undefined ? { esi } : {}),
         surfaceGravityG,
+        isTidallyLocked,
         ...(hazardMask > 0 ? { hazardMask } : {}),
         composition,
-        reticleType: resolvePlanetReticleType(composition === 'ice-giant' ? 'sub-neptune' : composition),
+        reticleType: resolvePlanetReticleType(composition),
         isHabitableCandidate,
         orbit: b.orbit,
         ...(satellites.length > 0 ? { satellites } : {}),
         confidence: 'confirmed',
       };
     });
+
+  const solTags: SystemTag[] = [
+    'HomeSystem',
+    'SolarNeighborhood10pc',
+    'NakedEye',
+    'ExoplanetHost',
+    'HabitableCandidate',
+  ];
+  const solHazardMask = computeSystemHazardMask({
+    spect: 'G2V',
+    lum: 1.0,
+    effectiveTempK: 5778,
+    tags: solTags,
+  });
 
   return {
     id: 'sol',
@@ -187,11 +211,13 @@ export function buildSolSystemManifest(
       massMsun: 1.0,
       radiusRsun: 1.0,
       effectiveTempK: 5778,
+      reticleType: resolveStellarReticleType(resolveStellarClassificationFromSpectrum('G2V'), false),
     }],
     planets: solPlanets,
     planetCompositionCounts: computePlanetCompositionCounts(solPlanets),
     hasHabitableCandidate: solPlanets.some((p) => Boolean(p.isHabitableCandidate)),
-    tags: ['HomeSystem', 'SolarNeighborhood10pc', 'NakedEye', 'ExoplanetHost', 'HabitableCandidate'],
+    tags: solTags,
+    ...(solHazardMask > 0 ? { hazardMask: solHazardMask } : {}),
     disks: CIRCUMSTELLAR_DISKS_CATALOG['Sol'],
   };
 }
@@ -200,7 +226,7 @@ export function starNodeToSystemSummary(
   star: StarmapNode,
   planets: ExoplanetRecord[] = [],
 ): SystemSummaryNode {
-  const tags: string[] = [];
+  const tags: SystemTag[] = [];
   if (star.mag <= 6.5) tags.push('NakedEye');
   if (star.dist <= 10) tags.push('SolarNeighborhood10pc');
   if (star.name === 'Sol') tags.push('HomeSystem');

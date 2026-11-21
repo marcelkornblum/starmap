@@ -1,14 +1,21 @@
 import type * as THREE from 'three';
+import type { PlanetComposition, StellarClassification } from './astro';
+
+export type { PlanetComposition, StellarClassification };
 
 export type CelestialClassification =
-  | 'star' | 'stellar-system' | 'brown-dwarf' | 'white-dwarf' | 'neutron-star'
-  | 'hazard' | 'black-hole' | 'barycentre' | 'stellar-cluster' | 'construct'
-  | 'terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant';
+  | StellarClassification
+  | 'stellar-system'
+  | 'hazard'
+  | 'barycentre'
+  | 'stellar-cluster'
+  | 'construct'
+  | PlanetComposition;
 
 export interface PlanetCensusEntry {
   id: string;
   name: string;
-  classification: 'terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant';
+  classification: PlanetComposition;
 }
 
 export interface ReticleAnnotationOptions {

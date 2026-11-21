@@ -1,3 +1,41 @@
+export const PLANET_COMPOSITIONS = [
+  'terrestrial',
+  'super-earth',
+  'ice-giant',
+  'gas-giant',
+] as const;
+
+export type PlanetComposition = (typeof PLANET_COMPOSITIONS)[number];
+
+export type PlanetCompositionCounts = readonly [
+  terrestrial: number,
+  superEarth: number,
+  iceGiant: number,
+  gasGiant: number,
+];
+
+export type StellarClassification =
+  | 'star'
+  | 'white-dwarf'
+  | 'brown-dwarf'
+  | 'neutron-star'
+  | 'black-hole';
+
+export type SystemTag =
+  | 'HomeSystem'
+  | 'SolarNeighborhood10pc'
+  | 'NakedEye'
+  | 'ExoplanetHost'
+  | 'HabitableCandidate'
+  | 'VariableStar'
+  | 'RECONSGroundTruth';
+
+export type SystemTagBit = 1 | 2 | 4 | 8 | 16 | 32 | 64;
+
+export type SystemHazardBit = 1 | 2 | 4;
+
+export type PlanetHazardBit = 1 | 2 | 4 | 8 | 16;
+
 export type CelestialSymbolType =
   // Group A: 3D Reticle & Planetary Taxonomy
   | 'star'
@@ -15,7 +53,6 @@ export type CelestialSymbolType =
   | 'spacecraft'
   | 'terrestrial'
   | 'super-earth'
-  | 'sub-neptune'
   | 'gas-giant'
   | 'ice-giant'
   // Group B: Sub-Planetary, Disk, Structure, & Environmental Taxonomy
@@ -98,15 +135,15 @@ export interface SystemSummaryNode {
   ci?: number | null;
   starCount: number;
   planetCount: number;
-  planetCensus?: ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[];
-  planetCompositionCounts?: [terrestrial: number, superEarth: number, iceGiant: number, gasGiant: number];
+  planetCensus?: PlanetComposition[];
+  planetCompositionCounts?: PlanetCompositionCounts;
   hasHabitableCandidate: boolean;
   sectorId: string;
-  tags?: string[];
+  tags?: SystemTag[];
   confidence?: ObservationalConfidence;
   theoreticalFlags?: number;
   hazardMask?: number;
-  classification?: 'star' | 'white-dwarf' | 'brown-dwarf' | 'neutron-star' | 'black-hole';
+  classification?: StellarClassification;
   reticleType?: CelestialSymbolType;
 }
 
@@ -137,7 +174,7 @@ export interface SatelliteRecord {
   radiusKm?: number;
   radiusEarth?: number;
   massEarth?: number;
-  composition?: 'terrestrial' | 'super-earth' | 'sub-neptune' | 'gas-giant';
+  composition?: PlanetComposition;
   reticleType?: CelestialSymbolType;
   orbit: KeplerianOrbit;
   description?: string;
@@ -157,8 +194,9 @@ export interface ExoplanetRecord {
   equilibriumTempK?: number;
   esi?: number;
   surfaceGravityG?: number;
+  isTidallyLocked?: boolean;
   hazardMask?: number;
-  composition?: 'terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant';
+  composition?: PlanetComposition;
   isHabitableCandidate?: boolean;
   orbit?: KeplerianOrbit;
   satellites?: SatelliteRecord[];
@@ -199,9 +237,9 @@ export interface SystemManifest {
   sectorId: string;
   stars: StellarComponent[];
   planets: ExoplanetRecord[];
-  planetCompositionCounts?: [terrestrial: number, superEarth: number, iceGiant: number, gasGiant: number];
+  planetCompositionCounts?: PlanetCompositionCounts;
   hasHabitableCandidate?: boolean;
-  tags?: string[];
+  tags?: SystemTag[];
   overviewText?: string;
   hazardMask?: number;
   disks?: CircumstellarDiskRecord[];

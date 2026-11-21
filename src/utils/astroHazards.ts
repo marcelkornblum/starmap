@@ -1,10 +1,10 @@
 import { isPlanetTidallyLocked } from './planetaryPhysics';
+import {
+  PLANET_HAZARD_BITS,
+  SYSTEM_HAZARD_BITS,
+} from './compactDataConstants';
 
-export const SYSTEM_HAZARD_BITS = {
-  FLARE_STAR: 1,
-  IONISING_RADIATION: 2,
-  VARIABLE_FLUX: 4,
-} as const;
+export { PLANET_HAZARD_BITS, SYSTEM_HAZARD_BITS };
 
 /**
  * Computes bitmask of stellar environmental hazards:
@@ -57,14 +57,6 @@ export function computeSystemHazardMask(input: {
 
   return mask;
 }
-
-export const PLANET_HAZARD_BITS = {
-  EXTREME_HEAT: 1,
-  CRYOGENIC_COLD: 2,
-  HIGH_GRAVITY: 4,
-  TIDAL_LOCKING: 8,
-  HIGH_ECCENTRICITY: 16,
-} as const;
 
 /**
  * Computes bitmask of planetary environmental hazards:

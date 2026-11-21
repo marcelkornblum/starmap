@@ -1,4 +1,11 @@
-import type { CircumstellarDiskRecord, ExoplanetRecord, StellarComponent, SystemSummaryNode } from '../../src/types/astro';
+import type {
+  CircumstellarDiskRecord,
+  ExoplanetRecord,
+  PlanetComposition,
+  StellarComponent,
+  SystemSummaryNode,
+  SystemTag,
+} from '../../src/types/astro';
 import { resolveStellarClassificationFromSpectrum, resolveStellarReticleType } from '../../src/utils/astroPrecalculation';
 import { addKeyVariants, getStrippedSystemBaseName, isDuplicateCatalogRecord, mergeSystemAliases, pruneAbsorbedCollections } from './systemNomenclature';
 import type { ConsolidateMultiStarSystemsParams } from './types';
@@ -207,7 +214,7 @@ export function consolidateMultiStarSystems(params: ConsolidateMultiStarSystemsP
     primary.planetCount = components.reduce((sum, c) => sum + (c.planetCount || 0), 0);
     primary.hasHabitableCandidate = components.some((c) => Boolean(c.hasHabitableCandidate));
 
-    const mergedCensus = new Set<'terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant'>();
+    const mergedCensus = new Set<PlanetComposition>();
     for (const c of components) if (Array.isArray(c.planetCensus)) for (const cat of c.planetCensus) mergedCensus.add(cat);
     if (mergedCensus.size > 0) primary.planetCensus = Array.from(mergedCensus);
 
@@ -220,9 +227,13 @@ export function consolidateMultiStarSystems(params: ConsolidateMultiStarSystemsP
     }
     if (mergedCompCounts) primary.planetCompositionCounts = mergedCompCounts;
 
-    const mergedTags = new Set<string>();
+    const mergedTags = new Set<SystemTag>();
     for (const c of components) if (c.tags) for (const t of c.tags) mergedTags.add(t);
     if (mergedTags.size > 0) primary.tags = Array.from(mergedTags);
+
+    let mergedHazardMask = 0;
+    for (const c of components) if (c.hazardMask) mergedHazardMask |= c.hazardMask;
+    if (mergedHazardMask > 0) primary.hazardMask = mergedHazardMask;
 
     if (primary.planetCount > 0 && params.exoplanetHostSummaries && !params.exoplanetHostSummaries.some((s) => s.id === primary.id)) {
       params.exoplanetHostSummaries.push(primary);
@@ -249,9 +260,11 @@ export function consolidateMultiStarSystems(params: ConsolidateMultiStarSystemsP
         const desig = String.fromCharCode(65 + idx);
         const ex = params.allSystemManifests?.find((m) => m.id === comp.id)?.stars
           .find((st) => st.componentDesignation === 'A' || st.id === comp.id || st.name === comp.name);
+        const compClass = comp.classification ?? resolveStellarClassificationFromSpectrum(comp.spect);
         return {
           id: `${primary.id}-${desig}`, name: comp.name, componentDesignation: desig,
           spectralType: comp.spect || 'Unknown', mag: comp.mag, absmag: comp.absmag,
+          reticleType: ex?.reticleType ?? resolveStellarReticleType(compClass, false),
           ...(ex?.luminosityLsun !== undefined ? { luminosityLsun: ex.luminosityLsun } : {}),
           ...(ex?.massMsun !== undefined ? { massMsun: ex.massMsun } : {}),
           ...(ex?.radiusRsun !== undefined ? { radiusRsun: ex.radiusRsun } : {}),
@@ -279,6 +292,7 @@ export function consolidateMultiStarSystems(params: ConsolidateMultiStarSystemsP
         if (primary.planetCompositionCounts) primaryManifest.planetCompositionCounts = primary.planetCompositionCounts;
         if (primary.hasHabitableCandidate !== undefined) primaryManifest.hasHabitableCandidate = primary.hasHabitableCandidate;
         if (primary.tags) primaryManifest.tags = primary.tags;
+        if (primary.hazardMask && primary.hazardMask > 0) primaryManifest.hazardMask = primary.hazardMask;
       }
     }
   }

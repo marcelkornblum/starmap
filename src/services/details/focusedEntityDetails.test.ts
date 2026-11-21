@@ -3,7 +3,7 @@ import { buildFocusedEntityDetails } from './focusedEntityDetails';
 import {
   PLANET_HAZARD_BITS,
   SYSTEM_HAZARD_BITS,
-} from '../../utils/astroHazards';
+} from '../../utils/compactDataConstants';
 import type {
   CircumstellarDiskRecord,
   SystemManifest,
@@ -55,6 +55,7 @@ const mockProximaManifest: SystemManifest = {
         meanAnomaly: 0,
       },
       hazardMask: PLANET_HAZARD_BITS.TIDAL_LOCKING,
+      isTidallyLocked: true,
       isHabitableCandidate: true,
     },
     {
@@ -77,6 +78,7 @@ const mockProximaManifest: SystemManifest = {
         meanAnomaly: 0,
       },
       hazardMask: PLANET_HAZARD_BITS.CRYOGENIC_COLD | PLANET_HAZARD_BITS.HIGH_GRAVITY,
+      isTidallyLocked: false,
       isHabitableCandidate: false,
     },
   ],

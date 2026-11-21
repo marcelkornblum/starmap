@@ -1,9 +1,4 @@
-import type { ExoplanetRecord } from '../../types/astro';
-import {
-  classifyPlanetPhysical,
-  isPlanetHabitableCandidate,
-  computePlanetCompositionCounts,
-} from '../../utils/planetaryPhysics';
+import type { ExoplanetRecord, PlanetCompositionCounts } from '../../types/astro';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import type {
   FocusedPlanetDetail,
@@ -12,25 +7,20 @@ import type {
 } from './detailsEntityTypes';
 
 export const classifyExoplanetComposition = (planet: {
-  readonly massMearth?: number;
-  readonly radiusRearth?: number;
   readonly composition?: PlanetCompositionClass;
 }): PlanetCompositionClass => {
-  return planet.composition ?? classifyPlanetPhysical(planet);
+  return planet.composition ?? 'terrestrial';
 };
 
 export const isExoplanetHabitableCandidate = (
-  planet: Pick<
-    ExoplanetRecord,
-    'equilibriumTempK' | 'esi' | 'isHabitableCandidate'
-  >,
-): boolean => isPlanetHabitableCandidate(planet);
+  planet: Pick<ExoplanetRecord, 'isHabitableCandidate'>,
+): boolean => Boolean(planet.isHabitableCandidate);
 
 export const buildPlanetCompositionBreakdown = (
   planets: readonly FocusedPlanetDetail[],
   fallbackCount: number,
   fallbackCensus?: readonly PlanetCompositionClass[],
-  precalculatedCounts?: readonly [number, number, number, number],
+  precalculatedCounts?: PlanetCompositionCounts,
 ): readonly PlanetCompositionCount[] => {
   const totalCount = Math.max(planets.length, fallbackCount);
   if (totalCount <= 0) {
@@ -63,8 +53,16 @@ export const buildPlanetCompositionBreakdown = (
   }
 
   if (planets.length > 0 && planets.length >= totalCount) {
-    const counts = computePlanetCompositionCounts(planets) ?? [0, 0, 0, 0];
-    const [terrestrial, superEarth, iceGiant, gasGiant] = counts;
+    let terrestrial = 0;
+    let superEarth = 0;
+    let iceGiant = 0;
+    let gasGiant = 0;
+    for (const p of planets) {
+      if (p.composition === 'gas-giant') gasGiant++;
+      else if (p.composition === 'ice-giant') iceGiant++;
+      else if (p.composition === 'super-earth') superEarth++;
+      else terrestrial++;
+    }
     const items: PlanetCompositionCount[] = [];
     if (terrestrial > 0) {
       items.push({ composition: 'terrestrial', count: terrestrial });

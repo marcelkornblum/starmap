@@ -7,7 +7,6 @@ import type {
   CelestialClassification,
   PlanetCensusEntry,
 } from '../../../types/spatial';
-import { classifyPlanetPhysical as classifyPlanet } from '../../../utils/planetaryPhysics';
 import {
   createReticleGeometry,
   DEFAULT_RETICLE_SIZE,
@@ -25,7 +24,7 @@ export interface ReticleProps {
   state?: CelestialInteractionState;
   size?: number;
   multiplicity?: number;
-  planets?: Array<PlanetCensusEntry | { id: string; name: string; radiusRearth?: number; radiusRjup?: number; massMearth?: number; massMjup?: number; classification?: string }>;
+  planets?: PlanetCensusEntry[];
   spectralType?: string;
   color?: string | THREE.Color;
   opacity?: number;
@@ -66,28 +65,13 @@ export const Reticle: React.FC<ReticleProps> = React.memo(({
   // Attention Gating: Annotations activate in active, selected, or focused states
   const isAnnotated = state === 'active' || state === 'selected' || state === 'focused';
 
-  const planetsKey = useMemo(() => {
-    if (!planets || planets.length === 0) return '';
-    return planets.map((p) => `${p.id}:${p.name}:${classifyPlanet(p)}`).join('|');
-  }, [planets]);
-
-  const resolvedPlanets = useMemo<PlanetCensusEntry[] | undefined>(() => {
-    if (!planets || planets.length === 0) return undefined;
-    return planets.map((p) => ({
-      id: p.id,
-      name: p.name,
-      classification: classifyPlanet(p),
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planetsKey]);
-
   const reticleGeom = useMemo(() => {
     return createReticleGeometry(classification, size, {
       isAnnotated,
       multiplicity,
-      planets: resolvedPlanets,
+      planets,
     });
-  }, [classification, size, isAnnotated, multiplicity, resolvedPlanets]);
+  }, [classification, size, isAnnotated, multiplicity, planets]);
 
   useEffect(() => {
     return () => {

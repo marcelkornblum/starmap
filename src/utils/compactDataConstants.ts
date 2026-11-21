@@ -1,13 +1,54 @@
 import type {
   CircumstellarDiskKind,
   ObservationalConfidence,
+  PlanetComposition,
+  PlanetHazardBit,
+  SystemHazardBit,
+  SystemTag,
+  SystemTagBit,
 } from '../types/astro';
 import type {
   GalacticStructureRecord,
   SolarSystemBodyRecord,
 } from '../types/astroStructures';
 
+export type {
+  PlanetHazardBit,
+  SystemHazardBit,
+  SystemTag,
+  SystemTagBit,
+};
+
 export const COMPACT_SCHEMA_VERSION = 1;
+
+export const SYSTEM_HAZARD_BITS: Record<
+  'FLARE_STAR' | 'IONISING_RADIATION' | 'VARIABLE_FLUX',
+  SystemHazardBit
+> = {
+  FLARE_STAR: 1,
+  IONISING_RADIATION: 2,
+  VARIABLE_FLUX: 4,
+} as const;
+
+export const PLANET_HAZARD_BITS: Record<
+  'EXTREME_HEAT' | 'CRYOGENIC_COLD' | 'HIGH_GRAVITY' | 'TIDAL_LOCKING' | 'HIGH_ECCENTRICITY',
+  PlanetHazardBit
+> = {
+  EXTREME_HEAT: 1,
+  CRYOGENIC_COLD: 2,
+  HIGH_GRAVITY: 4,
+  TIDAL_LOCKING: 8,
+  HIGH_ECCENTRICITY: 16,
+} as const;
+
+export const DEFAULT_STRUCTURE_DESCRIPTIONS: Record<number, string> = {
+  1: 'Galactic open star cluster cataloged in Cantat-Gaudin Gaia survey.',
+  2: 'Milky Way halo globular cluster from Harris (2010) catalog.',
+  3: "Galactic supernova remnant from Green's SNR Catalogue.",
+  4: 'Rotation-powered pulsar from ATNF Pulsar Database.',
+  9: 'Dark absorption cloud cataloged by E. E. Barnard.',
+  10: 'Deep sky landmark cataloged in OpenNGC.',
+};
 
 export const CONFIDENCE_TO_CODE: Record<ObservationalConfidence, 1 | 2 | 3 | 4> = {
   confirmed: 1,
@@ -43,17 +84,14 @@ export const THEORETICAL_SOLAR_FLAGS = {
   RADIUS: 1,
 } as const;
 
-export const PLANET_CENSUS_BITS: Record<
-  'terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant',
-  number
-> = {
+export const PLANET_CENSUS_BITS: Record<PlanetComposition, number> = {
   terrestrial: 1,
   'ice-giant': 2,
   'gas-giant': 4,
   'super-earth': 8,
 };
 
-export const SYSTEM_TAG_BITS: Record<string, number> = {
+export const SYSTEM_TAG_BITS: Record<SystemTag, SystemTagBit> = {
   HomeSystem: 1,
   SolarNeighborhood10pc: 2,
   NakedEye: 4,
@@ -63,8 +101,8 @@ export const SYSTEM_TAG_BITS: Record<string, number> = {
   RECONSGroundTruth: 64,
 };
 
-export const BIT_TO_SYSTEM_TAG: [number, string][] = Object.entries(SYSTEM_TAG_BITS).map(
-  ([tag, bit]) => [bit, tag],
+export const BIT_TO_SYSTEM_TAG: [SystemTagBit, SystemTag][] = Object.entries(SYSTEM_TAG_BITS).map(
+  ([tag, bit]) => [bit, tag as SystemTag],
 );
 
 export const DISCOVERY_METHOD_TO_CODE: Record<string, number> = {
@@ -86,20 +124,14 @@ export const CODE_TO_DISCOVERY_METHOD: Record<number, string> = {
   6: 'Timing',
 };
 
-export const PLANET_COMP_TO_CODE: Record<
-  'terrestrial' | 'ice-giant' | 'gas-giant' | 'super-earth',
-  1 | 2 | 3 | 4
-> = {
+export const PLANET_COMP_TO_CODE: Record<PlanetComposition, 1 | 2 | 3 | 4> = {
   terrestrial: 1,
   'ice-giant': 2,
   'gas-giant': 3,
   'super-earth': 4,
 };
 
-export const CODE_TO_PLANET_COMP: Record<
-  number,
-  'terrestrial' | 'ice-giant' | 'gas-giant' | 'super-earth'
-> = {
+export const CODE_TO_PLANET_COMP: Record<number, PlanetComposition> = {
   1: 'terrestrial',
   2: 'ice-giant',
   3: 'gas-giant',
@@ -167,3 +199,13 @@ export const CODE_TO_SOLAR_CLASS: Record<number, SolarSystemBodyRecord['classifi
 };
 
 export const ALL_36_BUCKETS = Array.from({ length: 36 }, (_, idx) => idx.toString(36));
+
+export function resolveDefaultStructureDescription(
+  type: GalacticStructureRecord['type'],
+): string {
+  const code = STRUCTURE_TYPE_TO_CODE[type];
+  return (
+    (code !== undefined ? DEFAULT_STRUCTURE_DESCRIPTIONS[code] : undefined) ??
+    'Galactic deep-sky structure.'
+  );
+}

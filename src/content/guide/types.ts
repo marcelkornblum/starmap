@@ -13,7 +13,11 @@ import {
   buildMetricGuideHref,
   buildHazardGuideHref,
 } from '../../utils/url';
-import type { CelestialSymbolType } from '../../types/astro';
+import {
+  PLANET_COMPOSITIONS,
+  type CelestialSymbolType,
+  type PlanetComposition,
+} from '../../types/astro';
 
 export {
   STAR_TYPES_GUIDE_PATH,
@@ -26,14 +30,9 @@ export {
   buildHazardGuideHref,
 };
 
-export const PLANET_COMPOSITION_TYPES = [
-  'terrestrial',
-  'super-earth',
-  'ice-giant',
-  'gas-giant',
-] as const;
+export const PLANET_COMPOSITION_TYPES = PLANET_COMPOSITIONS;
 
-export type PlanetCompositionClass = (typeof PLANET_COMPOSITION_TYPES)[number];
+export type PlanetCompositionClass = PlanetComposition;
 
 export interface GuideExampleTarget {
   readonly name: string;

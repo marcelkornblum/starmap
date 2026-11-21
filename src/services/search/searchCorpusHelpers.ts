@@ -90,7 +90,7 @@ export const resolveEntityKind = (entry: CompactSearchEntry): SearchEntityKind =
  */
 export const resolveReticleType = (entry: CompactSearchEntry): CelestialClassification => {
   if (entry.u) {
-    return entry.u === 'sub-neptune' ? 'ice-giant' : entry.u;
+    return entry.u;
   }
   switch (entry.k) {
     case 0:

@@ -89,7 +89,7 @@ describe('astroPrecalculation', () => {
 
     it('maps planetary compositions to their reticle types', () => {
       expect(resolvePlanetReticleType('gas-giant')).toBe('gas-giant');
-      expect(resolvePlanetReticleType('sub-neptune')).toBe('sub-neptune');
+      expect(resolvePlanetReticleType('ice-giant')).toBe('ice-giant');
       expect(resolvePlanetReticleType('super-earth')).toBe('super-earth');
       expect(resolvePlanetReticleType('terrestrial')).toBe('terrestrial');
       expect(resolvePlanetReticleType()).toBe('terrestrial');

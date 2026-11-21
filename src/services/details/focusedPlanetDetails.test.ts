@@ -12,7 +12,7 @@ describe('focusedPlanetDetails', () => {
     hazards: [],
   };
 
-  it('builds planet details with physics calculations', () => {
+  it('reads precalculated planet telemetry cleanly', () => {
     const details = buildFocusedPlanetDetails(
       base,
       {
@@ -22,6 +22,9 @@ describe('focusedPlanetDetails', () => {
         massMearth: 1.07,
         radiusRearth: 1.03,
         equilibriumTempK: 234,
+        surfaceGravityG: 1.01,
+        esi: 0.87,
+        isTidallyLocked: true,
         isHabitableCandidate: true,
       },
       undefined,
@@ -36,6 +39,7 @@ describe('focusedPlanetDetails', () => {
     expect(details.focusedKind).toBe('planet');
     expect(details.planetTelemetry.composition).toBe('terrestrial');
     expect(details.planetTelemetry.surfaceGravityG).toBeCloseTo(1.01, 2);
-    expect(details.planetTelemetry.esi).toBeDefined();
+    expect(details.planetTelemetry.esi).toBe(0.87);
+    expect(details.planetTelemetry.isTidallyLocked).toBe(true);
   });
 });

@@ -99,12 +99,6 @@ export const CELESTIAL_SYMBOL_META: Record<CelestialSymbolType, CelestialSymbolM
     badgeCategory: 'planet',
     defaultGuideHref: '/guide/planet-types/super-earth',
   },
-  'sub-neptune': {
-    type: 'sub-neptune',
-    label: 'Sub-Neptune',
-    badgeCategory: 'planet',
-    defaultGuideHref: '/guide/planet-types/ice-giant',
-  },
   'gas-giant': {
     type: 'gas-giant',
     label: 'Gas Giant',

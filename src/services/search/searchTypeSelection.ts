@@ -62,8 +62,8 @@ export const resolveSelectedSystemsFromStarType = (
 
 /**
  * Pure unit function resolving all deduplicated host star systems of matching planet entries
- * (e.g. 'terrestrial', 'super-earth', 'sub-neptune', 'gas-giant') from `?select=planet-type:<planetType>`.
- * Falls back to star `entry.b` composition counts tuple [terrestrialAndSuperEarth, subNeptune, gasGiant]
+ * (e.g. 'terrestrial', 'super-earth', 'ice-giant', 'gas-giant') from `?select=planet-type:<planetType>`.
+ * Falls back to star `entry.b` composition counts tuple [terrestrial, superEarth, iceGiant, gasGiant]
  * when no child planet entries are in the corpus.
  */
 export const resolveSelectedSystemsFromPlanetType = (
@@ -85,8 +85,7 @@ export const resolveSelectedSystemsFromPlanetType = (
       rawType === normPlanetType ||
       (normPlanetType === 'super-earth' && rawType === 'super-earth') ||
       (normPlanetType === 'terrestrial' && rawType === 'terrestrial') ||
-      (normPlanetType === 'sub-neptune' && (rawType === 'sub-neptune' || rawType === 'ice-giant')) ||
-      (normPlanetType === 'ice-giant' && (rawType === 'ice-giant' || rawType === 'sub-neptune')) ||
+      (normPlanetType === 'ice-giant' && rawType === 'ice-giant') ||
       (normPlanetType === 'gas-giant' && rawType === 'gas-giant');
 
     if (matches && planet.s) {
@@ -101,11 +100,11 @@ export const resolveSelectedSystemsFromPlanetType = (
         if (entry.b.length === 4) {
           if (normPlanetType === 'terrestrial') count = entry.b[0] ?? 0;
           else if (normPlanetType === 'super-earth') count = entry.b[1] ?? 0;
-          else if (normPlanetType === 'sub-neptune' || normPlanetType === 'ice-giant') count = entry.b[2] ?? 0;
+          else if (normPlanetType === 'ice-giant') count = entry.b[2] ?? 0;
           else if (normPlanetType === 'gas-giant') count = entry.b[3] ?? 0;
         } else {
           if (normPlanetType === 'terrestrial' || normPlanetType === 'super-earth') count = entry.b[0] ?? 0;
-          else if (normPlanetType === 'sub-neptune' || normPlanetType === 'ice-giant') count = entry.b[1] ?? 0;
+          else if (normPlanetType === 'ice-giant') count = entry.b[1] ?? 0;
           else if (normPlanetType === 'gas-giant') count = entry.b[2] ?? 0;
         }
         if (count > 0) {

@@ -84,7 +84,7 @@ export const PlanetScene: React.FC<PlanetSceneProps> = ({
           sat.orbit.meanAnomaly,
         );
         const satClassification: CelestialClassification =
-          sat.composition === 'sub-neptune' ? 'ice-giant' : (sat.composition ?? 'terrestrial');
+          sat.composition ?? 'terrestrial';
         return {
           id: sat.id,
           name: sat.name,

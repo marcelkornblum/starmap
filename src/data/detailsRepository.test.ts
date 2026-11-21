@@ -49,7 +49,7 @@ const makeDetailResponse = (id: string) => ({
         n: `System ${id}`,
         p: [1, 2, 3],
         q: 'sector_0_0_0',
-        S: [{ i: id, n: `Star ${id}`, c: 'A', s: 'G2V', m: 5.5, a: 4.2 }],
+        S: [{ i: id, n: `Star ${id}`, c: 'A', s: 'G2V', m: 5.5, a: 4.2, rt: 'stellar-system' }],
         E: [],
       },
     },

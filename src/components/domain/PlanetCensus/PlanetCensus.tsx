@@ -1,11 +1,12 @@
 import type { HTMLAttributes } from 'react';
+import type { PlanetComposition } from '../../../types/astro';
 import { Quantity } from '../../interface/information/Quantity/Quantity';
 import { CelestialSymbol } from '../../interface/information/CelestialSymbol/CelestialSymbol';
 import { Cluster } from '../../interface/layouts/Cluster/Cluster';
 import './PlanetCensus.module.css';
 
 export interface PlanetCensusBreakdownItem {
-  readonly composition: 'terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant';
+  readonly composition: PlanetComposition;
   readonly count?: number;
 }
 
@@ -15,7 +16,7 @@ export interface PlanetCensusProps extends Omit<HTMLAttributes<HTMLDivElement>, 
   readonly hasHabitableCandidate?: boolean;
   readonly habitableHref?: string;
   readonly planetTypeHrefBuilder?: (
-    composition: 'terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant',
+    composition: PlanetComposition,
   ) => string;
   readonly planetTypeTestId?: string;
   readonly habitableTestId?: string;

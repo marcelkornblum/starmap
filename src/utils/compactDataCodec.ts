@@ -1,8 +1,11 @@
 import type {
   CircumstellarDiskRecord,
+  PlanetComposition,
+  StellarClassification,
   StellarComponent,
   SystemManifest,
   SystemSummaryNode,
+  SystemTag,
 } from '../types/astro';
 import type { SectorPartitionManifest } from '../types/astroCoordinates';
 import type {
@@ -23,7 +26,6 @@ import type {
   CompactSystemManifest,
   ShardedBucketEnvelope,
 } from './compactDataTypes';
-import { computePlanetCompositionCounts } from './planetaryPhysics';
 import { formatSectorId } from './sectorMath';
 import { resolveStarDisplayName } from './starNaming';
 import { fnv1a32, getShardKeyFromHash } from './binarySectorCodec';
@@ -39,9 +41,9 @@ export function getShardKey(id: string): string {
 
 function decodePlanetCensusMask(
   mask?: number,
-): ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[] | undefined {
+): PlanetComposition[] | undefined {
   if (!mask) return undefined;
-  const result: ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[] = [];
+  const result: PlanetComposition[] = [];
   if (mask & 1) result.push('terrestrial');
   if (mask & 8) result.push('super-earth');
   if (mask & 4) result.push('gas-giant');
@@ -49,9 +51,9 @@ function decodePlanetCensusMask(
   return result.length > 0 ? result : undefined;
 }
 
-export function decodeTagsMask(mask?: number): string[] | undefined {
+export function decodeTagsMask(mask?: number): SystemTag[] | undefined {
   if (!mask) return undefined;
-  const tags: string[] = [];
+  const tags: SystemTag[] = [];
   for (const [bit, tag] of BIT_TO_SYSTEM_TAG) {
     if (mask & bit) tags.push(tag);
   }
@@ -70,7 +72,7 @@ export function decodeSummaryNode(
   const sectorId = compact.q ?? fallbackSectorId ?? formatSectorId(x, y, z);
 
   let planetCount = 0;
-  let classification: 'star' | 'white-dwarf' | 'brown-dwarf' | 'neutron-star' | 'black-hole' | undefined;
+  let classification: StellarClassification | undefined;
   if (typeof compact.k === 'number') {
     planetCount = compact.k;
   } else if (typeof compact.k === 'string') {
@@ -168,22 +170,34 @@ export function decodeSystemManifest(
   const dist = Math.round(Math.sqrt(x * x + y * y + z * z) * 1000) / 1000;
   const sectorId = compact.q ?? fallbackSectorId ?? formatSectorId(x, y, z);
 
-  const stars: StellarComponent[] = compact.S.map((s) => ({
-    id: s.i,
-    name: s.n,
-    componentDesignation: s.d ?? 'A',
-    spectralType: s.s,
-    mag: s.m,
-    absmag: s.M,
-    luminosityLsun: s.l,
-    massMsun: s.u,
-    radiusRsun: s.r,
-    effectiveTempK: s.T,
-    reticleType: s.rt,
-  }));
+  const stars: StellarComponent[] = compact.S.map((s) => {
+    if (!s.rt) {
+      throw new Error(
+        `Stellar component "${s.i}" in system "${id}" is missing required precalculated field "rt" (reticleType).`,
+      );
+    }
+    return {
+      id: s.i,
+      name: s.n,
+      componentDesignation: s.d ?? 'A',
+      spectralType: s.s,
+      mag: s.m,
+      absmag: s.M,
+      luminosityLsun: s.l,
+      massMsun: s.u,
+      radiusRsun: s.r,
+      effectiveTempK: s.T,
+      reticleType: s.rt,
+    };
+  });
 
   const planets = compact.E.map(decodeExoplanet);
-  const planetCompositionCounts = compact.b ?? computePlanetCompositionCounts(planets);
+  if (planets.length > 0 && !compact.b) {
+    throw new Error(
+      `Planet-hosting system "${id}" is missing required precalculated field "b" (planetCompositionCounts).`,
+    );
+  }
+  const planetCompositionCounts = compact.b;
   const hasHabitableCandidate = compact.h === 1 || planets.some((p) => Boolean(p.isHabitableCandidate));
   const tags = decodeTagsMask(compact.g);
   const disks = compact.D ? compact.D.map(decodeCircumstellarDisk) : undefined;

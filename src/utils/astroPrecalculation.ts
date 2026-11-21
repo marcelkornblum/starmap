@@ -1,42 +1,26 @@
-import type { CelestialSymbolType, SystemSummaryNode } from '../types/astro';
+import type {
+  CelestialSymbolType,
+  PlanetComposition,
+  StellarClassification,
+  SystemSummaryNode,
+} from '../types/astro';
 import type { GalacticStructureRecord, SolarSystemBodyRecord } from '../types/astroStructures';
-import { classifyPlanetPhysical } from './planetaryPhysics';
+import {
+  DEFAULT_STRUCTURE_DESCRIPTIONS,
+  resolveDefaultStructureDescription,
+} from './compactDataConstants';
+import {
+  classifyPlanetPhysical,
+  computePlanetSurfaceGravityG,
+  isPlanetTidallyLocked,
+} from './planetaryPhysics';
+import { computePlanetHazardMask } from './astroHazards';
 
-export const DEFAULT_STRUCTURE_DESCRIPTIONS: Record<number, string> = {
-  1: 'Galactic open star cluster cataloged in Cantat-Gaudin Gaia survey.',
-  2: 'Milky Way halo globular cluster from Harris (2010) catalog.',
-  3: "Galactic supernova remnant from Green's SNR Catalogue.",
-  4: 'Rotation-powered pulsar from ATNF Pulsar Database.',
-  9: 'Dark absorption cloud cataloged by E. E. Barnard.',
-  10: 'Deep sky landmark cataloged in OpenNGC.',
-};
-
-const STRUCTURE_TYPE_TO_CODE: Record<GalacticStructureRecord['type'], number> = {
-  OpenCluster: 1,
-  GlobularCluster: 2,
-  SupernovaRemnant: 3,
-  Pulsar: 4,
-  PlanetaryNebula: 5,
-  InterstellarMedium: 6,
-  MovingGroup: 7,
-  EmissionNebula: 8,
-  DarkNebula: 9,
-  DeepSkyLandmark: 10,
-};
-
-export function resolveDefaultStructureDescription(
-  type: GalacticStructureRecord['type'],
-): string {
-  const code = STRUCTURE_TYPE_TO_CODE[type];
-  return (
-    (code !== undefined ? DEFAULT_STRUCTURE_DESCRIPTIONS[code] : undefined) ??
-    'Galactic deep-sky structure.'
-  );
-}
+export { DEFAULT_STRUCTURE_DESCRIPTIONS, resolveDefaultStructureDescription };
 
 export function resolveStellarClassificationFromSpectrum(
   spect?: string,
-): 'star' | 'white-dwarf' | 'brown-dwarf' | 'neutron-star' | 'black-hole' {
+): StellarClassification {
   if (!spect) {
     return 'star';
   }
@@ -58,7 +42,7 @@ export function resolveStellarClassificationFromSpectrum(
 }
 
 export function resolveStellarReticleType(
-  classification: 'star' | 'white-dwarf' | 'brown-dwarf' | 'neutron-star' | 'black-hole',
+  classification: StellarClassification,
   isMultiStar = false,
 ): CelestialSymbolType {
   switch (classification) {
@@ -77,7 +61,7 @@ export function resolveStellarReticleType(
 }
 
 export function resolvePlanetReticleType(
-  composition?: 'terrestrial' | 'super-earth' | 'sub-neptune' | 'gas-giant',
+  composition?: PlanetComposition,
   isDwarfPlanet = false,
 ): CelestialSymbolType {
   if (isDwarfPlanet) {
@@ -86,8 +70,8 @@ export function resolvePlanetReticleType(
   switch (composition) {
     case 'gas-giant':
       return 'gas-giant';
-    case 'sub-neptune':
-      return 'sub-neptune';
+    case 'ice-giant':
+      return 'ice-giant';
     case 'super-earth':
       return 'super-earth';
     case 'terrestrial':
@@ -171,16 +155,41 @@ export function precalculateSolarSystemBodyFlags(
       !body.id.startsWith('comet-'));
 
   let composition = body.composition;
-  if (!composition && body.classification === 'Planet') {
+  let surfaceGravityG = body.surfaceGravityG;
+  let isTidallyLocked = body.isTidallyLocked;
+  let hazardMask = body.hazardMask;
+
+  if (body.classification === 'Planet') {
     const mEarth =
       body.massKg !== undefined ? body.massKg / 5.97237e24 : undefined;
     const rEarth = body.meanRadiusKm > 0 ? body.meanRadiusKm / 6371.0 : undefined;
-    const physical = classifyPlanetPhysical({
-      massMearth: mEarth,
-      radiusRearth: rEarth,
-      classification: body.tags?.join(' '),
-    });
-    composition = physical === 'ice-giant' ? 'sub-neptune' : physical;
+    if (!composition) {
+      composition = classifyPlanetPhysical({
+        massMearth: mEarth,
+        radiusRearth: rEarth,
+        classification: body.tags?.join(' '),
+      });
+    }
+    if (surfaceGravityG === undefined) {
+      surfaceGravityG = computePlanetSurfaceGravityG({
+        massMearth: mEarth,
+        radiusRearth: rEarth,
+      });
+    }
+    if (isTidallyLocked === undefined) {
+      isTidallyLocked = isPlanetTidallyLocked({
+        periodDays: body.orbit?.periodDays,
+        semiMajorAxisAu: sma,
+      });
+    }
+    if (hazardMask === undefined) {
+      hazardMask = computePlanetHazardMask({
+        surfaceGravityG,
+        periodDays: body.orbit?.periodDays,
+        semiMajorAxisAu: sma,
+        eccentricity: body.orbit?.eccentricity,
+      });
+    }
   }
 
   let reticleType = body.reticleType;
@@ -206,6 +215,9 @@ export function precalculateSolarSystemBodyFlags(
     isCoreSearch,
     composition,
     reticleType,
+    ...(surfaceGravityG !== undefined ? { surfaceGravityG } : {}),
+    ...(isTidallyLocked !== undefined ? { isTidallyLocked } : {}),
+    ...(hazardMask !== undefined && hazardMask > 0 ? { hazardMask } : {}),
   };
 }
 

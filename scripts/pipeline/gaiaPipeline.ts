@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import zlib from 'node:zlib';
-import type { StarmapNode, SystemManifest, SystemSummaryNode } from '../../src/types/astro';
+import type { StarmapNode, SystemManifest, SystemSummaryNode, SystemTag } from '../../src/types/astro';
 import { equatorialToCartesian } from '../../src/utils/astroCoordinates';
 import { computePlanetCompositionCounts } from '../../src/utils/planetaryPhysics';
 import { computeSystemHazardMask } from '../../src/utils/astroHazards';
@@ -46,11 +46,14 @@ export async function buildGaiaDataPipeline(
       id: 0, name: 'Sol', properName: 'Sol', dist: 0, ra: 0, dec: 0, mag: -26.74, absmag: 4.83, spect: 'G2V', ci: 0.656,
       x: 0, y: 0, z: 0, lum: 1.0, velocity: { vx: 0, vy: 0, vz: 0, speed: 0, radialVelocity: 0 },
     };
+    const solClassification = resolveStellarClassificationFromSpectrum('G2V');
     const solSummary: SystemSummaryNode = {
       id: 'sol', name: 'Sol', properName: 'Sun', x: 0, y: 0, z: 0, dist: 0, mag: -26.74, absmag: 4.83, spect: 'G2V',
-      classification: resolveStellarClassificationFromSpectrum('G2V'), reticleType: resolveStellarReticleType('star', false),
-      ci: 0.656, starCount: 1, planetCount: solManifest.planets.length, planetCensus: ['terrestrial', 'gas-giant', 'ice-giant'],
-      planetCompositionCounts: solManifest.planetCompositionCounts, hasHabitableCandidate: true,
+      classification: solClassification, reticleType: resolveStellarReticleType(solClassification, false),
+      ci: 0.656, starCount: 1, planetCount: solManifest.planets.length, planetCensus: getPlanetCensus(solManifest.planets),
+      planetCompositionCounts: solManifest.planetCompositionCounts,
+      hasHabitableCandidate: Boolean(solManifest.hasHabitableCandidate),
+      ...(solManifest.hazardMask && solManifest.hazardMask > 0 ? { hazardMask: solManifest.hazardMask } : {}),
       sectorId: 'sector_+000_+000_+000', tags: solManifest.tags, velocity: solNode.velocity,
     };
 
@@ -130,17 +133,19 @@ export async function buildGaiaDataPipeline(
       const hasHabitableCandidate = matchedPlanets.some((p) => Boolean(p.isHabitableCandidate));
       const planetCompositionCounts = computePlanetCompositionCounts(matchedPlanets);
       const sectorId = formatSectorId(x, y, z);
-      const tags: string[] = [];
+      const tags: SystemTag[] = [];
       if (dist <= 10) tags.push('SolarNeighborhood10pc');
       if (mag <= 6.5) tags.push('NakedEye');
       if (matchedPlanets.length > 0) tags.push('ExoplanetHost');
       if (hasHabitableCandidate) tags.push('HabitableCandidate');
       const hazardMask = computeSystemHazardMask({ spect, lum: hygMatch?.lum !== undefined && !isNaN(hygMatch.lum) ? hygMatch.lum : undefined, tags });
+      const stellarClass = resolveStellarClassificationFromSpectrum(spect);
+      const stellarReticle = resolveStellarReticleType(stellarClass, false);
 
       const summary: SystemSummaryNode = {
         id: sysId, name, x: round3(x), y: round3(y), z: round3(z), dist: round3(dist), mag: round2(mag), absmag: round2(absmag),
-        spect: spect || 'Unknown', classification: resolveStellarClassificationFromSpectrum(spect),
-        reticleType: resolveStellarReticleType(resolveStellarClassificationFromSpectrum(spect), false), starCount: 1, planetCount: matchedPlanets.length,
+        spect: spect || 'Unknown', classification: stellarClass,
+        reticleType: stellarReticle, starCount: 1, planetCount: matchedPlanets.length,
         planetCensus: getPlanetCensus(matchedPlanets), planetCompositionCounts, hasHabitableCandidate, sectorId,
         confidence: isCandidateParallax ? 'candidate' : 'confirmed',
         ...(theoreticalFlags > 0 ? { theoreticalFlags } : {}), ...(properName ? { properName } : {}),
@@ -165,7 +170,16 @@ export async function buildGaiaDataPipeline(
         mb.push({
           id: sysId, name, properName, x: round3(x), y: round3(y), z: round3(z), dist: round3(dist),
           velocity: { vx: round2(velocity.vx), vy: round2(velocity.vy), vz: round2(velocity.vz), speed: round2(velocity.speed) },
-          sectorId, stars: [{ id: `${sourceId}-A`, name, componentDesignation: 'A', spectralType: spect || 'Unknown', mag: round2(mag), absmag: round2(absmag) }],
+          sectorId,
+          stars: [{
+            id: `${sourceId}-A`,
+            name,
+            componentDesignation: 'A',
+            spectralType: spect || 'Unknown',
+            mag: round2(mag),
+            absmag: round2(absmag),
+            reticleType: stellarReticle,
+          }],
           planets: matchedPlanets, ...(matchedDisks.length > 0 ? { disks: matchedDisks } : {}),
           planetCompositionCounts, hasHabitableCandidate, ...(tags.length > 0 ? { tags } : {}), ...(hazardMask > 0 ? { hazardMask } : {}),
         });
@@ -224,20 +238,26 @@ export async function buildGaiaDataPipeline(
         const matchedDisks = matchCircumstellarDisksForStar(reconsLookup);
         if (matchedPlanets.length > 0) totalExoplanets += matchedPlanets.length;
         const hasHabitableCandidate = matchedPlanets.some((p) => Boolean(p.isHabitableCandidate));
-        const rTags = [
-          ...(recons.dist <= 10 ? ['SolarNeighborhood10pc', 'RECONSGroundTruth'] : []),
-          ...(matchedPlanets.length > 0 ? ['ExoplanetHost'] : []),
-          ...(hasHabitableCandidate ? ['HabitableCandidate'] : []),
+        const rTags: SystemTag[] = [
+          ...(recons.dist <= 10 ? (['SolarNeighborhood10pc', 'RECONSGroundTruth'] as const) : []),
+          ...(matchedPlanets.length > 0 ? (['ExoplanetHost'] as const) : []),
+          ...(hasHabitableCandidate ? (['HabitableCandidate'] as const) : []),
         ];
+        const rClass = resolveStellarClassificationFromSpectrum(recons.spect);
+        const rReticle = resolveStellarReticleType(rClass, (recons.starCount ?? 1) > 1);
+        const rStarReticle = resolveStellarReticleType(rClass, false);
+        const rHazardMask = computeSystemHazardMask({ spect: recons.spect, tags: rTags });
 
         const rSummary: SystemSummaryNode = {
           id: recons.id, name: recons.name, properName: recons.properName,
           x: round3(rx), y: round3(ry), z: round3(rz), dist: round3(recons.dist), mag: round2(recons.mag), absmag: round2(recons.absmag),
-          spect: recons.spect, starCount: recons.starCount, classification: resolveStellarClassificationFromSpectrum(recons.spect),
-          reticleType: resolveStellarReticleType(resolveStellarClassificationFromSpectrum(recons.spect), (recons.starCount ?? 1) > 1),
+          spect: recons.spect, starCount: recons.starCount, classification: rClass,
+          reticleType: rReticle,
           planetCount: matchedPlanets.length, planetCensus: getPlanetCensus(matchedPlanets),
           planetCompositionCounts: computePlanetCompositionCounts(matchedPlanets), hasHabitableCandidate,
-          sectorId: rSectorId, confidence: 'confirmed', ...(rTags.length > 0 ? { tags: rTags } : {}),
+          sectorId: rSectorId, confidence: 'confirmed',
+          ...(rTags.length > 0 ? { tags: rTags } : {}),
+          ...(rHazardMask > 0 ? { hazardMask: rHazardMask } : {}),
         };
         cataloguedSummaries.push(rSummary); starAliasesById.set(recons.id, collectStarLookupKeys(reconsLookup));
         if (recons.dist <= 10) { local10pcSystems.push(rSummary); local10pcCount++; }
@@ -254,9 +274,19 @@ export async function buildGaiaDataPipeline(
             id: recons.id, name: recons.name, properName: recons.properName,
             x: round3(rx), y: round3(ry), z: round3(rz), dist: round3(recons.dist),
             velocity: { vx: 0, vy: 0, vz: 0, speed: 0 }, sectorId: rSectorId,
-            stars: [{ id: `${recons.id}-A`, name: recons.name, componentDesignation: 'A', spectralType: recons.spect, mag: round2(recons.mag), absmag: round2(recons.absmag) }],
+            stars: [{
+              id: `${recons.id}-A`,
+              name: recons.name,
+              componentDesignation: 'A',
+              spectralType: recons.spect,
+              mag: round2(recons.mag),
+              absmag: round2(recons.absmag),
+              reticleType: rStarReticle,
+            }],
             planets: matchedPlanets, ...(matchedDisks.length > 0 ? { disks: matchedDisks } : {}),
-            planetCompositionCounts: computePlanetCompositionCounts(matchedPlanets), hasHabitableCandidate, ...(rTags.length > 0 ? { tags: rTags } : {}),
+            planetCompositionCounts: computePlanetCompositionCounts(matchedPlanets), hasHabitableCandidate,
+            ...(rTags.length > 0 ? { tags: rTags } : {}),
+            ...(rHazardMask > 0 ? { hazardMask: rHazardMask } : {}),
           });
           allSystemManifests.push(mb[mb.length - 1]!);
         }

@@ -60,7 +60,6 @@ const createGlyphContent = (type: CelestialSymbolType): ReactNode => {
       );
 
     case 'ice-giant':
-    case 'sub-neptune':
       return (
         <>
           <circle cx="0" cy="0" r="5.2" />

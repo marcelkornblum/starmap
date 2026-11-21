@@ -1,9 +1,4 @@
 import type { SystemManifest } from '../../types/astro';
-import {
-  computePlanetSurfaceGravityG,
-  isPlanetTidallyLocked,
-} from '../../utils/planetaryPhysics';
-import { computePlanetHazardMask } from '../../utils/astroHazards';
 import { buildMetricGuideHref } from '../../content/guide';
 import {
   classifyExoplanetComposition,
@@ -94,25 +89,9 @@ export const mapManifestToStarsAndPlanets = (
       isTheoreticalOrbit = true;
     }
 
-    const surfaceGravityG =
-      p.surfaceGravityG ?? computePlanetSurfaceGravityG(p);
-    const isTidallyLocked =
-      p.orbit !== undefined
-        ? isPlanetTidallyLocked({
-            periodDays: p.orbit.periodDays,
-            semiMajorAxisAu,
-          })
-        : false;
-    const effectiveHazardMask =
-      p.hazardMask ??
-      computePlanetHazardMask({
-        equilibriumTempK: p.equilibriumTempK,
-        surfaceGravityG,
-        periodDays: p.orbit?.periodDays,
-        semiMajorAxisAu,
-        eccentricity: p.orbit?.eccentricity,
-      });
-    const hazards = decodePlanetHazards(effectiveHazardMask);
+    const surfaceGravityG = p.surfaceGravityG;
+    const isTidallyLocked = p.isTidallyLocked ?? false;
+    const hazards = decodePlanetHazards(p.hazardMask ?? 0);
 
     return {
       id: p.id,

@@ -6,7 +6,7 @@ import type {
 import {
   PLANET_HAZARD_BITS,
   SYSTEM_HAZARD_BITS,
-} from '../../utils/astroHazards';
+} from '../../utils/compactDataConstants';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import { isArtificialSpacecraftEntry } from '../search/searchCorpusHelpers';
 import type {

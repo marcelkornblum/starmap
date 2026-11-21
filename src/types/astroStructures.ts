@@ -2,6 +2,7 @@ import type {
   CelestialSymbolType,
   KeplerianOrbit,
   ObservationalConfidence,
+  PlanetComposition,
 } from './astro';
 
 /**
@@ -77,7 +78,10 @@ export interface SolarSystemBodyRecord {
   beltZone?: 'belt' | 'kuiper';
   isCoreSearch?: boolean;
   reticleType?: CelestialSymbolType;
-  composition?: 'terrestrial' | 'super-earth' | 'sub-neptune' | 'gas-giant';
+  composition?: PlanetComposition;
+  surfaceGravityG?: number;
+  isTidallyLocked?: boolean;
+  hazardMask?: number;
 }
 
 /**

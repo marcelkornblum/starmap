@@ -154,10 +154,9 @@ export function evaluateMetricForTarget(
       }
       break;
     case 'surface-gravity': {
-      const rawG = targetPlanet?.surfaceGravityG && targetPlanet.surfaceGravityG > 0
-        ? targetPlanet.surfaceGravityG
-        : targetPlanet?.massMearth && targetPlanet.massMearth > 0 && targetPlanet?.radiusRearth && targetPlanet.radiusRearth > 0
-          ? Math.round((targetPlanet.massMearth / (targetPlanet.radiusRearth * targetPlanet.radiusRearth)) * 100) / 100
+      const rawG =
+        targetPlanet?.surfaceGravityG && targetPlanet.surfaceGravityG > 0
+          ? targetPlanet.surfaceGravityG
           : undefined;
       if (rawG !== undefined) {
         const g = Number(rawG.toFixed(2));

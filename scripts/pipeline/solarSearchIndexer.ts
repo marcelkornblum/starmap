@@ -1,10 +1,5 @@
 import type { SolarSystemBodyRecord } from '../../src/types/astroStructures';
 import type { CompactSearchEntry } from '../../src/utils/compactDataTypes';
-import {
-  classifyPlanetPhysical,
-  computePlanetSurfaceGravityG,
-} from '../../src/utils/planetaryPhysics';
-import { computePlanetHazardMask } from '../../src/utils/astroHazards';
 import { buildCleanKeys } from '../../src/utils/nomenclature';
 import {
   isCoreSearchMinorBody,
@@ -82,29 +77,8 @@ export function indexSolarBodies(
       if (body.beltZone) entry.e = body.beltZone;
 
       if (body.classification === 'Planet') {
-        const mEarth = body.massKg !== undefined ? body.massKg / 5.97237e24 : undefined;
-        const rEarth = body.meanRadiusKm / 6371.0;
-        const comp = classifyPlanetPhysical({
-          massMearth: mEarth,
-          radiusRearth: rEarth,
-          classification: body.tags?.join(' '),
-        });
-        if (comp === 'super-earth') entry.u = 'super-earth';
-        else if (comp === 'ice-giant') entry.u = 'ice-giant';
-        else if (comp === 'gas-giant') entry.u = 'gas-giant';
-        else entry.u = 'terrestrial';
-
-        const surfaceGravityG =
-          mEarth !== undefined && rEarth > 0
-            ? computePlanetSurfaceGravityG({ massMearth: mEarth, radiusRearth: rEarth })
-            : undefined;
-        const hazardMask = computePlanetHazardMask({
-          surfaceGravityG,
-          periodDays: body.orbit?.periodDays,
-          semiMajorAxisAu: body.orbit?.semiMajorAxis,
-          eccentricity: body.orbit?.eccentricity,
-        });
-        if (hazardMask > 0) entry.H = hazardMask;
+        entry.u = body.composition ?? 'terrestrial';
+        if (body.hazardMask && body.hazardMask > 0) entry.H = body.hazardMask;
       } else {
         entry.u = 'terrestrial';
       }

@@ -3,8 +3,6 @@ import {
   PARSEC_TO_LY,
   computeEuclideanDistance3D,
 } from '../../utils/transitDynamics';
-import { computeSystemHazardMask } from '../../utils/astroHazards';
-import { decodeTagsMask } from '../../utils/compactDataCodec';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import {
   buildMetricGuideHref,
@@ -137,13 +135,7 @@ export function extractGalaxyBodies(
       ? buildTagGalaxyHref('HabitableCandidate')
       : undefined;
 
-    const rawHazardMask =
-      entry.H ??
-      computeSystemHazardMask({
-        spect: spectralType,
-        tags: decodeTagsMask(entry.g),
-      });
-    const hazards = decodeSystemHazards(rawHazardMask);
+    const hazards = decodeSystemHazards(entry.H ?? 0);
     const hazardCount = hazards.length;
     const hazardSummaryLabel =
       hazardCount <= 0
