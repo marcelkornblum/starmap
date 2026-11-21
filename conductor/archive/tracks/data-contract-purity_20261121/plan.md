@@ -30,13 +30,13 @@
 - [x] Task 2.6: Phase 2 Checkpoint commit on `chore/data-contract-purity`.
 
 ## Phase 3: Seed-Backed `G-literals` & Exemption Removal (`H1`, `M2`)
-- [ ] Task 3.1: Refactor `scripts/audit-guards.ts`:
+- [x] Task 3.1: Refactor `scripts/audit-guards.ts`:
   - Remove the blanket `src/content/` and `src/config/` exemptions from `auditLiteralsContent`.
   - Add narrow structural-ID allowlist strictly for `src/config/referenceTargets.ts` (allowing only ID constants, still rejecting any display names, physical values, or numeric fallbacks).
   - Replace `loadEntityCatalog` to load strictly from `data/seed/*.json` (failing loudly with an error if the loaded catalogue is empty) and remove the 9 hand-listed benchmark names/IDs.
   - Add structural catalogue-ID literal detection (`/^gaia-\d+$/`, `/^hip-\d+$/`, `/^hyg-\d+$/`) so raw catalogue IDs from `data/raw/` cannot be hardcoded in `src/`.
-- [ ] Task 3.2: Update `scripts/audit-guards.test.ts` to verify seed-backed loading, fail-loud empty catalogue guard, enforcement across `src/content/` and `src/config/`, narrow `referenceTargets.ts` ID-only allowance, and structural catalogue-ID regexes.
-- [ ] Task 3.3: Full Quality Gate, Archival & Delivery:
+- [x] Task 3.2: Update `scripts/audit-guards.test.ts` to verify seed-backed loading, fail-loud empty catalogue guard, enforcement across `src/content/` and `src/config/`, narrow `referenceTargets.ts` ID-only allowance, and structural catalogue-ID regexes.
+- [x] Task 3.3: Full Quality Gate, Archival & Delivery:
   - Run `npm run check`, `npm run test:coverage`, `npm run build`, `npm run build-storybook`, Playwright E2E, and `code-review` self-audit.
   - Update `CHANGELOG.md`, archive `conductor/tracks/data-contract-purity_20261121` → `conductor/archive/tracks/data-contract-purity_20261121` and update `conductor/tracks.md`.
   - Commit, push `chore/data-contract-purity`, open PR against `main`, monitor CI + Gemini Code Review until clean pass, and present live LAN smoke-test links.

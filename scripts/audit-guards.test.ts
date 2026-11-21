@@ -5,6 +5,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   auditLiteralsContent,
   isTelemetryIdentifier,
+  loadEntityCatalog,
   runAllGuards,
   runGuardsAudit,
 } from './audit-guards';
@@ -106,13 +107,77 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
       expect(diags).toEqual([]);
     });
 
-    it('exempts files in src/config/ from G-literals checks', () => {
-      const code = `
+    it('enforces G-literals inside src/content/ and non-allowlisted src/config/ files', () => {
+      const contentCode = `
+        export const EXAMPLES = ['Sol', 'Earth', 'Tau Ceti'];
+      `;
+      const contentDiags = auditLiteralsContent('src/content/guide/starTypes.ts', contentCode, mockCatalog);
+      expect(contentDiags).toHaveLength(3);
+      expect(contentDiags.every((d) => d.ruleId === 'G-literals')).toBe(true);
+
+      const configCode = `
+        export const TARGET_NAME = 'Tau Ceti';
+        export const TARGET_ID = 'sol';
+      `;
+      const configDiags = auditLiteralsContent('src/config/otherConfig.ts', configCode, mockCatalog);
+      expect(configDiags).toHaveLength(2);
+      expect(configDiags.every((d) => d.ruleId === 'G-literals')).toBe(true);
+    });
+
+    it('allows only lowercase structural IDs in src/config/referenceTargets.ts while rejecting display names, telemetry properties, and formatted telemetry strings', () => {
+      const validCode = `
+        const SOL_ID = 'sol';
+        const EARTH_ID = 'earth';
+        export const SOL_TARGET = {
+          id: SOL_ID,
+          href: \`/system/\${SOL_ID}\`,
+          coordinatesPc: [0, 0, 0],
+        };
+      `;
+      expect(auditLiteralsContent('src/config/referenceTargets.ts', validCode, mockCatalog)).toEqual([]);
+
+      const badDisplayCode = `
         export const SOL_ID = 'sol';
         export const SOL_NAME = 'Sol';
+        export const TARGET = {
+          effectiveTempK: 5778,
+          massMsun: 1,
+          visualMagnitude: -26.74,
+          tempLabel: '5,778 K',
+        };
       `;
-      const diags = auditLiteralsContent('src/config/referenceTargets.ts', code, mockCatalog);
-      expect(diags).toEqual([]);
+      const diags = auditLiteralsContent('src/config/referenceTargets.ts', badDisplayCode, mockCatalog);
+      expect(diags.some((d) => d.message.includes('Sol'))).toBe(true);
+      expect(diags.some((d) => d.message.includes('5778'))).toBe(true);
+      expect(diags.some((d) => d.message.includes('massMsun') || d.message.includes('1'))).toBe(true);
+      expect(diags.some((d) => d.message.includes('-26.74'))).toBe(true);
+      expect(diags.some((d) => d.message.includes('5,778 K'))).toBe(true);
+    });
+
+    it('flags raw structural catalogue-ID literals (gaia-*, hip-*, hyg-*) even when absent from seed catalog', () => {
+      const emptyishCatalog = {
+        entityIds: new Set(['sol']),
+        entityNames: new Set(['Sol']),
+      };
+      const code = `
+        export const targets = [
+          'gaia-2452378776434477184',
+          'hip-32349',
+          'hyg-119518',
+          'hip-71683-A',
+        ];
+      `;
+      const diags = auditLiteralsContent('src/services/targetService.ts', code, emptyishCatalog);
+      expect(diags).toHaveLength(4);
+      expect(diags.every((d) => d.ruleId === 'G-literals')).toBe(true);
+
+      const refDiags = auditLiteralsContent(
+        'src/config/referenceTargets.ts',
+        "export const RAW_ID = 'hip-32349';\n",
+        emptyishCatalog
+      );
+      expect(refDiags).toHaveLength(1);
+      expect(refDiags[0]?.ruleId).toBe('G-literals');
     });
 
     it('exempts wire discriminator comparisons (record.t === "sol", record.t !== "sol")', () => {
@@ -217,8 +282,120 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
     });
   });
 
+  describe('loadEntityCatalog (Seed-Backed A3)', () => {
+    const tempDirs: string[] = [];
+
+    afterEach(() => {
+      while (tempDirs.length > 0) {
+        const dir = tempDirs.pop();
+        if (dir) fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('loads entity IDs and names strictly from data/seed/*.json and ignores public/data/search/', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-seed-test-'));
+      tempDirs.push(tempDir);
+      const seedDir = path.join(tempDir, 'data', 'seed');
+      const searchDir = path.join(tempDir, 'public', 'data', 'search');
+      fs.mkdirSync(seedDir, { recursive: true });
+      fs.mkdirSync(searchDir, { recursive: true });
+
+      fs.writeFileSync(
+        path.join(searchDir, 'core.json'),
+        JSON.stringify({ d: [{ i: 'search-only-id', n: 'Search Only Name' }] })
+      );
+      fs.writeFileSync(
+        path.join(seedDir, 'solar-system-bodies.json'),
+        JSON.stringify([{ id: 'sol', name: 'Sol (Sun)', displayName: 'Sol', properName: 'Sun' }])
+      );
+      fs.writeFileSync(
+        path.join(seedDir, 'iau-star-names.json'),
+        JSON.stringify({ 'hip-32349': { properName: 'Sirius', aliases: ['Dog Star'] } })
+      );
+      fs.writeFileSync(
+        path.join(seedDir, 'recons-10pc.json'),
+        JSON.stringify([{ id: 'luhman-16', name: 'Luhman 16 (WISE 1049-5319)', properName: 'Luhman 16', aliases: ['WISE 1049-5319'] }])
+      );
+      fs.writeFileSync(
+        path.join(seedDir, 'name-exoworlds.json'),
+        JSON.stringify({ '51 Pegasi b': { starName: 'Helvetios', planetName: 'Dimidium' } })
+      );
+      fs.writeFileSync(
+        path.join(seedDir, 'galactic-structures.json'),
+        JSON.stringify([{ id: 'hyades', name: 'Hyades Cluster', designations: ['Melotte 25'] }])
+      );
+      fs.writeFileSync(
+        path.join(seedDir, 'circumstellar-disks.json'),
+        JSON.stringify({
+          Sol: [{ id: 'kuiper-belt', name: 'Kuiper Belt' }],
+          Fomalhaut: [{ id: 'fomalhaut-outer-belt', name: 'Fomalhaut Great Dust Belt' }],
+        })
+      );
+      fs.writeFileSync(
+        path.join(seedDir, 'system-aliases.json'),
+        JSON.stringify({
+          specialSystemNameMap: { 'rigil kentaurus': 'Alpha Centauri' },
+          diskHostAliases: { 'Tau Ceti': ['tau ceti', 'hd 10700'] },
+        })
+      );
+      fs.writeFileSync(
+        path.join(seedDir, 'guide-examples.json'),
+        JSON.stringify({
+          starTypes: { g: [{ entityId: 'tau-ceti', systemId: 'tau-ceti-sys' }] },
+        })
+      );
+
+      const catalog = loadEntityCatalog(tempDir);
+      expect(catalog.entityIds.has('sol')).toBe(true);
+      expect(catalog.entityIds.has('luhman-16')).toBe(true);
+      expect(catalog.entityIds.has('hyades')).toBe(true);
+      expect(catalog.entityIds.has('fomalhaut-outer-belt')).toBe(true);
+      expect(catalog.entityIds.has('kuiper-belt')).toBe(false);
+      expect(catalog.entityIds.has('tau-ceti')).toBe(true);
+      expect(catalog.entityIds.has('tau-ceti-sys')).toBe(true);
+      expect(catalog.entityIds.has('search-only-id')).toBe(false);
+
+      expect(catalog.entityNames.has('Sol')).toBe(true);
+      expect(catalog.entityNames.has('Kuiper Belt')).toBe(false);
+      expect(catalog.entityNames.has('Sirius')).toBe(true);
+      expect(catalog.entityNames.has('Dog Star')).toBe(true);
+      expect(catalog.entityNames.has('Luhman 16')).toBe(true);
+      expect(catalog.entityNames.has('Helvetios')).toBe(true);
+      expect(catalog.entityNames.has('Dimidium')).toBe(true);
+      expect(catalog.entityNames.has('Melotte 25')).toBe(true);
+      expect(catalog.entityNames.has('Fomalhaut')).toBe(true);
+      expect(catalog.entityNames.has('Alpha Centauri')).toBe(true);
+      expect(catalog.entityNames.has('Tau Ceti')).toBe(true);
+      expect(catalog.entityNames.has('Search Only Name')).toBe(false);
+    });
+
+    it('throws loudly when data/seed/ is missing or empty', () => {
+      const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-empty-seed-'));
+      tempDirs.push(emptyDir);
+      expect(() => loadEntityCatalog(emptyDir)).toThrow();
+
+      const seedDir = path.join(emptyDir, 'data', 'seed');
+      fs.mkdirSync(seedDir, { recursive: true });
+      fs.writeFileSync(path.join(seedDir, 'solar-system-bodies.json'), '[]');
+      expect(() => loadEntityCatalog(emptyDir)).toThrow();
+    });
+  });
+
   describe('runAllGuards & runGuardsAudit (G-literals Single Runner)', () => {
     const tempDirs: string[] = [];
+
+    const writeMinimalSeeds = (rootDir: string) => {
+      const seedDir = path.join(rootDir, 'data', 'seed');
+      fs.mkdirSync(seedDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(seedDir, 'solar-system-bodies.json'),
+        JSON.stringify([{ id: 'sol', name: 'Sol (Sun)', displayName: 'Sol' }])
+      );
+      fs.writeFileSync(
+        path.join(seedDir, 'guide-examples.json'),
+        JSON.stringify({ starTypes: { g: [{ entityId: 'tau-ceti' }] } })
+      );
+    };
 
     afterEach(() => {
       vi.restoreAllMocks();
@@ -231,6 +408,7 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
     it('scans src/ for G-literals while skipping test and story files', () => {
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-runner-test-'));
       tempDirs.push(tempDir);
+      writeMinimalSeeds(tempDir);
       const servicesDir = path.join(tempDir, 'src', 'services');
       fs.mkdirSync(servicesDir, { recursive: true });
       fs.writeFileSync(path.join(servicesDir, 'bad.ts'), "export const star = 'tau-ceti';\n");
@@ -246,6 +424,7 @@ describe('Structural Guard Suite (scripts/audit-guards.ts)', () => {
     it('fails closed (exit code 1) when violations are found and returns 0 when clean', () => {
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-cli-test-'));
       tempDirs.push(tempDir);
+      writeMinimalSeeds(tempDir);
       const servicesDir = path.join(tempDir, 'src', 'services');
       fs.mkdirSync(servicesDir, { recursive: true });
       fs.writeFileSync(path.join(servicesDir, 'clean.ts'), "export const ok = 'nominal';\n");
