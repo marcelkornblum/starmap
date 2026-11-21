@@ -17,7 +17,7 @@ import { useParams, useSearch } from '@tanstack/react-router';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { useLoadedLayerManifests } from '../hooks/useLayerData';
 import {
-  appRouter,
+  useOptionalRouter,
   useSpaLocation,
   type StarmapSearchParams,
 } from '../hooks/useSpaLocation';
@@ -45,6 +45,7 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
     focusedEntity,
   } = useResolvedPlanetDetails(props, true);
 
+  const router = useOptionalRouter();
   const storeApi = useSpatialEntityStoreApi();
   const { pathname, search } = useSpaLocation(
     locationPathname,
@@ -171,20 +172,22 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
         if (useUIStore.getState().detailsDetent === 'collapsed') {
           useUIStore.getState().setDetailsDetent('peek');
         }
-        void appRouter
-          .navigate?.({
-            to: '/planet/$planetId',
-            params: { planetId: targetId },
-            search: (prev: StarmapSearchParams = {}) => ({
-              ...prev,
-              focus: id,
+        if (router && typeof router.navigate === 'function') {
+          void Promise.resolve(
+            router.navigate({
+              to: '/planet/$planetId',
+              params: { planetId: targetId },
+              search: (prev: StarmapSearchParams = {}) => ({
+                ...prev,
+                focus: id,
+              }),
+              replace: true,
             }),
-            replace: true,
-          })
-          ?.catch(() => {});
-      } else {
-        void appRouter
-          .navigate?.({
+          ).catch(() => {});
+        }
+      } else if (router && typeof router.navigate === 'function') {
+        void Promise.resolve(
+          router.navigate({
             to: '/planet/$planetId',
             params: { planetId: targetId },
             search: (prev: StarmapSearchParams = {}) => {
@@ -193,11 +196,11 @@ export function usePlanetViewModel(props: UsePlanetViewModelProps) {
               return next;
             },
             replace: true,
-          })
-          ?.catch(() => {});
+          }),
+        ).catch(() => {});
       }
     },
-    [targetId],
+    [router, targetId],
   );
 
   return {

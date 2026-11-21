@@ -16,7 +16,7 @@ import { extractUrlSceneCameraState } from '../services/details/detailsCamera';
 import { resolveSelectedSystemsFromUrlSelect } from '../services/search/searchUrlSelectionResolvers';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { useLayerIndex, useLoadedLayerManifests } from '../hooks/useLayerData';
-import { appRouter, useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
+import { useOptionalRouter, useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useResolvedSystemDetails, type UseResolvedSystemDetailsProps } from './useResolvedSystemDetails';
@@ -28,6 +28,7 @@ const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
 
 export function useSystemViewModel(props: UseSystemViewModelProps) {
   const { locationPathname, locationSearch, systemId: propSystemId } = props;
+  const router = useOptionalRouter();
   const storeApi = useSpatialEntityStoreApi();
   const storeSelected = useSpatialEntityStore(
     useShallow((state) => {
@@ -116,9 +117,12 @@ export function useSystemViewModel(props: UseSystemViewModelProps) {
 
   const handleSelectEntity = useCallback(
     (id: string | null) => {
+      if (!router || typeof router.navigate !== 'function') {
+        return;
+      }
       if (id) {
-        void appRouter
-          .navigate?.({
+        void Promise.resolve(
+          router.navigate({
             to: '/system/$systemId',
             params: { systemId: targetId },
             search: (prev: StarmapSearchParams = {}) => ({
@@ -126,11 +130,11 @@ export function useSystemViewModel(props: UseSystemViewModelProps) {
               focus: id,
             }),
             replace: true,
-          })
-          ?.catch(() => {});
+          }),
+        ).catch(() => {});
       } else {
-        void appRouter
-          .navigate?.({
+        void Promise.resolve(
+          router.navigate({
             to: '/system/$systemId',
             params: { systemId: targetId },
             search: (prev: StarmapSearchParams = {}) => {
@@ -139,11 +143,11 @@ export function useSystemViewModel(props: UseSystemViewModelProps) {
               return next;
             },
             replace: true,
-          })
-          ?.catch(() => {});
+          }),
+        ).catch(() => {});
       }
     },
-    [targetId],
+    [router, targetId],
   );
 
   const layerIndex = useLayerIndex();

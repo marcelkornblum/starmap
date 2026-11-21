@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, type RegisteredRouter } from '@tanstack/react-router';
 
 export interface StarmapSearchParams {
   q?: string;
@@ -10,78 +11,58 @@ export interface StarmapSearchParams {
   center?: string;
 }
 
-export interface SpaRouterNavigateOptions {
-  to?: string;
-  href?: string;
-  search?:
-    | ((prev: StarmapSearchParams) => StarmapSearchParams)
-    | ((prev: Record<string, unknown>) => Record<string, unknown>)
-    | StarmapSearchParams
-    | Record<string, unknown>
-    | boolean;
-  replace?: boolean;
-  params?: Record<string, unknown>;
-  resetScroll?: boolean;
-  [key: string]: unknown;
-}
-
-export interface SpaRouterLike {
-  navigate?(options: SpaRouterNavigateOptions): Promise<unknown>;
-  readonly state?: unknown;
-  readonly subscribe?: (
-    event: 'onResolved' | string,
-    callback: () => void,
-  ) => (() => void) | undefined;
-  readonly history?: {
-    subscribe?: (callback: () => void) => (() => void) | undefined;
-    push?: (path: string) => void;
-    replace?: (path: string) => void;
+export interface AppRouterState {
+  readonly location?: {
+    readonly pathname?: string;
+    readonly searchStr?: string;
   };
 }
 
-interface StarmapRouterGlobal {
-  __STARMAP_APP_ROUTER__?: SpaRouterLike | null;
+export interface AppRouterAdapter {
+  readonly navigate?: RegisteredRouter['navigate'];
+  readonly state?: AppRouterState;
+  subscribe?(
+    event: 'onResolved',
+    callback: () => void,
+  ): (() => void) | undefined;
+  readonly history?: {
+    subscribe?(callback: () => void): (() => void) | undefined;
+    push?(path: string): void;
+    replace?(path: string): void;
+  };
 }
 
-const routerGlobal = globalThis as unknown as StarmapRouterGlobal;
-
-export function registerAppRouter(routerInstance: unknown): void {
-  routerGlobal.__STARMAP_APP_ROUTER__ = (routerInstance ?? null) as SpaRouterLike | null;
+export function useOptionalRouter(): AppRouterAdapter | undefined {
+  const router: AppRouterAdapter | null | undefined = useRouter({ warn: false });
+  return router ?? undefined;
 }
-
-export const appRouter: SpaRouterLike = {
-  get navigate() {
-    const router = routerGlobal.__STARMAP_APP_ROUTER__;
-    return router?.navigate ? router.navigate.bind(router) : undefined;
-  },
-  get state() {
-    return routerGlobal.__STARMAP_APP_ROUTER__?.state;
-  },
-  get subscribe() {
-    const router = routerGlobal.__STARMAP_APP_ROUTER__;
-    return router?.subscribe ? router.subscribe.bind(router) : undefined;
-  },
-  get history() {
-    return routerGlobal.__STARMAP_APP_ROUTER__?.history;
-  },
-};
 
 /**
  * Pure function normalizing a raw location pathname against the application's basepath.
  * Strips subpath base prefix (e.g. '/starmap/galaxy' -> '/galaxy', '/starmap/' -> '/').
  */
 export function resolveSpaLocation(
-  rawPathname: string,
-  rawSearch: string,
+  rawPathname?: string,
+  rawSearch?: string,
   basepath = import.meta.env?.BASE_URL ?? '/',
+  routerState?: AppRouterState,
 ): { readonly pathname: string; readonly search: string } {
+  const effectivePathname =
+    rawPathname ??
+    routerState?.location?.pathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : '/');
+  const effectiveSearch =
+    rawSearch ??
+    routerState?.location?.searchStr ??
+    (typeof window !== 'undefined' ? window.location.search : '');
+
   const base = basepath.replace(/\/+$/, '');
   const normalizedPathname =
-    base && base !== '/' && rawPathname.startsWith(base)
-      ? (rawPathname.slice(base.length) || '/')
-      : rawPathname;
+    base && base !== '/' && effectivePathname.startsWith(base)
+      ? (effectivePathname.slice(base.length) || '/')
+      : effectivePathname;
 
-  return { pathname: normalizedPathname, search: rawSearch };
+  return { pathname: normalizedPathname, search: effectiveSearch };
 }
 
 export function useSpaLocation(
@@ -89,12 +70,19 @@ export function useSpaLocation(
   locationSearch?: string,
   fallbackPathname = '/galaxy',
 ): { readonly pathname: string; readonly search: string } {
+  const router = useOptionalRouter();
   const [, setLocationTick] = useState<number>(0);
-  const lastLocationRef = useRef<string>(
-    typeof window !== 'undefined'
-      ? `${window.location.pathname}${window.location.search}`
-      : fallbackPathname,
-  );
+
+  const rawPathname =
+    locationPathname ??
+    router?.state?.location?.pathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : fallbackPathname);
+  const rawSearch =
+    locationSearch ??
+    router?.state?.location?.searchStr ??
+    (typeof window !== 'undefined' ? window.location.search : '');
+
+  const lastLocationRef = useRef<string>(`${rawPathname}${rawSearch}`);
 
   useEffect(() => {
     if (
@@ -104,15 +92,23 @@ export function useSpaLocation(
       return;
     }
     const handleLocationChange = (): void => {
-      const current = `${window.location.pathname}${window.location.search}`;
+      const nextPathname =
+        locationPathname ??
+        router?.state?.location?.pathname ??
+        window.location.pathname;
+      const nextSearch =
+        locationSearch ??
+        router?.state?.location?.searchStr ??
+        window.location.search;
+      const current = `${nextPathname}${nextSearch}`;
       if (current !== lastLocationRef.current) {
         lastLocationRef.current = current;
         setLocationTick((n) => n + 1);
       }
     };
 
-    const unsubRouter = appRouter.subscribe?.('onResolved', handleLocationChange);
-    const unsubHistory = appRouter.history?.subscribe?.(handleLocationChange);
+    const unsubRouter = router?.subscribe?.('onResolved', handleLocationChange);
+    const unsubHistory = router?.history?.subscribe?.(handleLocationChange);
     window.addEventListener('popstate', handleLocationChange);
     window.addEventListener('starmap:locationchange', handleLocationChange);
 
@@ -122,14 +118,7 @@ export function useSpaLocation(
       window.removeEventListener('popstate', handleLocationChange);
       window.removeEventListener('starmap:locationchange', handleLocationChange);
     };
-  }, [locationPathname, locationSearch]);
-
-  const rawPathname =
-    locationPathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : fallbackPathname);
-  const rawSearch =
-    locationSearch ??
-    (typeof window !== 'undefined' ? window.location.search : '');
+  }, [locationPathname, locationSearch, router]);
 
   return useMemo(
     () => resolveSpaLocation(rawPathname, rawSearch),

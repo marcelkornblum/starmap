@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { extractThreeTokens, readThreeTokensFromDom } from './extractThreeTokens';
-import { getThreeColor } from '../utils/threeColorCache';
+import { getThreeColor } from './threeColorCache';
 
 describe('extractThreeTokens & readThreeTokensFromDom', () => {
   it('extracts tokens from computed styles with fallback preservation', () => {

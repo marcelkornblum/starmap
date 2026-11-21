@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { ThreeTokenSnapshot } from '../types/threeTokens';
-import { DEFAULT_DARK_TOKEN_SNAPSHOT } from './threeTokenDefaults';
+import { DEFAULT_DARK_TOKEN_SNAPSHOT } from '../utils/threeTokenDefaults';
 
 export interface ThreeTokenState {
   tokens: ThreeTokenSnapshot;

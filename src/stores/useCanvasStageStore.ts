@@ -1,11 +1,9 @@
-import { createContext } from 'react';
 import { create } from 'zustand';
 import type {
   JourneyChordLeg,
   SpatialEntityDefinition,
 } from '../types/spatial';
-
-export const RootCanvasStageContext = createContext<boolean>(false);
+import { resetStageCallbacks } from './canvasStageCallbacks';
 
 export interface CanvasStageData<
   TEntity = SpatialEntityDefinition,
@@ -24,62 +22,6 @@ export interface CanvasStageData<
   readonly activeSystemName?: string;
   readonly focusedTargetName?: string;
   readonly routeWaypoints?: readonly string[];
-  readonly cameraState?: Record<string, unknown>;
-}
-
-export interface CanvasStageCallbacks {
-  readonly onInspect?: (id: string) => void;
-  readonly onSelect?: (id: string | null) => void;
-  readonly onFocusChange?: (id: string | null) => void;
-}
-
-interface StarmapStageGlobal {
-  __STARMAP_STAGE_CB__?: CanvasStageCallbacks;
-  __STARMAP_STAGE_CB_LISTENERS__?: Set<() => void>;
-}
-
-const EMPTY_STAGE_CALLBACKS: CanvasStageCallbacks = {};
-const stageGlobal = globalThis as unknown as StarmapStageGlobal;
-if (!stageGlobal.__STARMAP_STAGE_CB__) {
-  stageGlobal.__STARMAP_STAGE_CB__ = EMPTY_STAGE_CALLBACKS;
-}
-if (!stageGlobal.__STARMAP_STAGE_CB_LISTENERS__) {
-  stageGlobal.__STARMAP_STAGE_CB_LISTENERS__ = new Set<() => void>();
-}
-
-function notifyStageCallbackListeners(): void {
-  const listeners = stageGlobal.__STARMAP_STAGE_CB_LISTENERS__;
-  if (!listeners) return;
-  for (const listener of listeners) {
-    listener();
-  }
-}
-
-export function setStageCallbacks(callbacks: CanvasStageCallbacks): void {
-  const current = stageGlobal.__STARMAP_STAGE_CB__ ?? EMPTY_STAGE_CALLBACKS;
-  if (
-    current.onInspect === callbacks.onInspect &&
-    current.onSelect === callbacks.onSelect &&
-    current.onFocusChange === callbacks.onFocusChange
-  ) {
-    return;
-  }
-  stageGlobal.__STARMAP_STAGE_CB__ = callbacks;
-  notifyStageCallbackListeners();
-}
-
-export function getStageCallbacks(): CanvasStageCallbacks {
-  return stageGlobal.__STARMAP_STAGE_CB__ ?? EMPTY_STAGE_CALLBACKS;
-}
-
-export function subscribeStageCallbacks(listener: () => void): () => void {
-  if (!stageGlobal.__STARMAP_STAGE_CB_LISTENERS__) {
-    stageGlobal.__STARMAP_STAGE_CB_LISTENERS__ = new Set<() => void>();
-  }
-  stageGlobal.__STARMAP_STAGE_CB_LISTENERS__.add(listener);
-  return () => {
-    stageGlobal.__STARMAP_STAGE_CB_LISTENERS__?.delete(listener);
-  };
 }
 
 export interface CanvasStageState {
@@ -120,7 +62,6 @@ function sanitizeStageProps(props: CanvasStageData | (CanvasStageData & Record<s
     activeSystemName,
     focusedTargetName,
     routeWaypoints,
-    cameraState,
   } = props;
 
   return {
@@ -137,7 +78,6 @@ function sanitizeStageProps(props: CanvasStageData | (CanvasStageData & Record<s
     ...(activeSystemName !== undefined ? { activeSystemName } : {}),
     ...(focusedTargetName !== undefined ? { focusedTargetName } : {}),
     ...(routeWaypoints !== undefined ? { routeWaypoints } : {}),
-    ...(cameraState !== undefined ? { cameraState } : {}),
   };
 }
 
@@ -206,17 +146,6 @@ export const areStagePropsEqual = (
     }
   }
 
-  // cameraState equality
-  if (a.cameraState !== b.cameraState) {
-    if (!a.cameraState || !b.cameraState) return false;
-    const aKeys = Object.keys(a.cameraState);
-    const bKeys = Object.keys(b.cameraState);
-    if (aKeys.length !== bKeys.length) return false;
-    for (const key of aKeys) {
-      if (a.cameraState[key] !== b.cameraState[key]) return false;
-    }
-  }
-
   return true;
 };
 
@@ -235,11 +164,11 @@ export const useCanvasStageStore = create<CanvasStageStore>()((set) => ({
       return { stageProps: sanitized };
     }),
   clearStageProps: () => {
-    setStageCallbacks(EMPTY_STAGE_CALLBACKS);
+    resetStageCallbacks();
     set({ stageProps: null });
   },
   resetCanvasStageStore: () => {
-    setStageCallbacks(EMPTY_STAGE_CALLBACKS);
+    resetStageCallbacks();
     set({ ...INITIAL_CANVAS_STAGE_STATE });
   },
 }));

@@ -13,7 +13,7 @@ import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 import { BoundedLruCache } from '../utils/lruCache';
 import { useLayerIndex, useLoadedLayerManifests } from '../hooks/useLayerData';
-import { appRouter, useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
+import { useOptionalRouter, useSpaLocation, type StarmapSearchParams } from '../hooks/useSpaLocation';
 import { useActiveStarsStore } from '../stores/useActiveStarsStore';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -44,71 +44,12 @@ function internCoords(
   return coords;
 }
 
-function handleGalaxyFocusChange(id: string | null): void {
-  const slug = id ? toUrlSlug(id) : null;
-  const cam = useCameraStore.getState();
-  if (id && slug) {
-    prefetchEntitySelection(id, id);
-    cam.recordCanvasFocus([slug, id]);
-    cam.setPendingCenterSlug(null);
-    cam.setInFlightFocusSlug(slug);
-    if (useUIStore.getState().detailsDetent === 'collapsed') {
-      useUIStore.getState().setDetailsDetent('peek');
-    }
-  } else {
-    cam.clearCanvasFocus();
-    cam.setPendingCenterSlug(null);
-    cam.setInFlightFocusSlug(null);
-  }
-  if (appRouter.navigate) {
-    const currentPathname = (
-      appRouter.state as { location?: { pathname?: string } } | undefined
-    )?.location?.pathname;
-    const navPromise = appRouter.navigate({
-      to: currentPathname === '/' ? '/' : '/galaxy',
-      search: (prev: StarmapSearchParams = {}) => {
-        const next = { ...prev };
-        if (id) next.focus = id;
-        else delete next.focus;
-        return next;
-      },
-      replace: true,
-    });
-    if (navPromise && typeof navPromise.then === 'function') {
-      void navPromise.catch(() => {}).finally(() => {
-        if (useCameraStore.getState().inFlightFocusSlug === slug) {
-          useCameraStore.getState().setInFlightFocusSlug(undefined);
-        }
-      });
-    } else {
-      cam.setInFlightFocusSlug(undefined);
-    }
-  } else {
-    try {
-      if (typeof window !== 'undefined') {
-        const searchParams = new URLSearchParams(window.location.search);
-        if (id) {
-          searchParams.set('focus', id);
-        } else {
-          searchParams.delete('focus');
-        }
-        const newQs = searchParams.toString();
-        const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ''}${window.location.hash}`;
-        window.history.replaceState(window.history.state, '', newUrl);
-        window.dispatchEvent(new Event('starmap:locationchange'));
-      }
-    } catch {
-      // noop
-    }
-    cam.setInFlightFocusSlug(undefined);
-  }
-}
-
 export function useGalaxyViewModel({
   initialCorpus,
   locationPathname,
   locationSearch,
 }: UseGalaxyViewModelParams) {
+  const router = useOptionalRouter();
   const storeApi = useSpatialEntityStoreApi();
   const storeFocusedEntity = useSpatialEntityStore((state) =>
     state.focusedId
@@ -248,12 +189,73 @@ export function useGalaxyViewModel({
     [storeApi],
   );
 
+  const handleFocusChange = useCallback(
+    (id: string | null): void => {
+      const slug = id ? toUrlSlug(id) : null;
+      const cam = useCameraStore.getState();
+      if (id && slug) {
+        prefetchEntitySelection(id, id);
+        cam.recordCanvasFocus([slug, id]);
+        cam.setPendingCenterSlug(null);
+        cam.setInFlightFocusSlug(slug);
+        if (useUIStore.getState().detailsDetent === 'collapsed') {
+          useUIStore.getState().setDetailsDetent('peek');
+        }
+      } else {
+        cam.clearCanvasFocus();
+        cam.setPendingCenterSlug(null);
+        cam.setInFlightFocusSlug(null);
+      }
+      if (router && typeof router.navigate === 'function') {
+        const currentPathname = router.state?.location?.pathname;
+        const navPromise = router.navigate({
+          to: currentPathname === '/' ? '/' : '/galaxy',
+          search: (prev: StarmapSearchParams = {}) => {
+            const next = { ...prev };
+            if (id) next.focus = id;
+            else delete next.focus;
+            return next;
+          },
+          replace: true,
+        });
+        if (navPromise && typeof navPromise.then === 'function') {
+          void navPromise.catch(() => {}).finally(() => {
+            if (useCameraStore.getState().inFlightFocusSlug === slug) {
+              useCameraStore.getState().setInFlightFocusSlug(undefined);
+            }
+          });
+        } else {
+          cam.setInFlightFocusSlug(undefined);
+        }
+      } else {
+        try {
+          if (typeof window !== 'undefined') {
+            const searchParams = new URLSearchParams(window.location.search);
+            if (id) {
+              searchParams.set('focus', id);
+            } else {
+              searchParams.delete('focus');
+            }
+            const newQs = searchParams.toString();
+            const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ''}${window.location.hash}`;
+            window.history.replaceState(window.history.state, '', newUrl);
+            window.dispatchEvent(new Event('starmap:locationchange'));
+          }
+        } catch {
+          // noop
+        }
+        cam.setInFlightFocusSlug(undefined);
+      }
+    },
+    [router],
+  );
+
   const centerId = center ? toUrlSlug(center) : cameraState.center;
 
   return {
     pathname, search, canvasEntities, cameraState, centerId, resolvedCenterCoordinates,
     activeJourney, activeLayerCard, focusedDetails, orbitalSchematic, focusedPreview,
     minimapOrientation, galaxyBodies, routeStops, handleHoverEntity,
-    handleFocusChange: handleGalaxyFocusChange, handleSelectSystem: handleGalaxyFocusChange,
+    handleFocusChange, handleSelectSystem: handleFocusChange,
   };
 }

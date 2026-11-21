@@ -6,11 +6,11 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
 import {
-  useCanvasStageStore,
   getStageCallbacks,
   subscribeStageCallbacks,
-} from '../../../stores/useCanvasStageStore';
+} from '../../../stores/canvasStageCallbacks';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { CanvasLayer } from './CanvasLayer';
 import styles from './RootCanvasHost.module.css';
@@ -131,7 +131,6 @@ export const RootCanvasHost: React.FC = () => {
         activeSystemName={stageProps?.activeSystemName}
         focusedTargetName={stageProps?.focusedTargetName}
         routeWaypoints={stageProps?.routeWaypoints}
-        cameraState={stageProps?.cameraState}
         onInspect={onInspect}
         onSelect={onSelect}
         onFocusChange={onFocusChange}
@@ -151,7 +150,6 @@ export const RootCanvasHost: React.FC = () => {
       stageProps?.activeSystemName,
       stageProps?.focusedTargetName,
       stageProps?.routeWaypoints,
-      stageProps?.cameraState,
       onInspect,
       onSelect,
       onFocusChange,

@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import { useRouter } from '@tanstack/react-router';
 import { RootLayout } from './RootLayout';
 import * as spaNav from '../hooks/spaNavigation';
-import { registerAppRouter } from '../hooks/useSpaLocation';
 
 const galaxyViewMountSpy = vi.fn();
 const galaxyViewUnmountSpy = vi.fn();
@@ -21,6 +21,7 @@ vi.mock('../views/GalaxyView', () => ({
 }));
 
 vi.mock('@tanstack/react-router', () => ({
+  useRouter: vi.fn(() => undefined),
   Outlet: () => (
     <div data-testid="router-outlet">
       <a href="/galaxy?focus=sol" data-testid="test-link">
@@ -50,6 +51,7 @@ vi.mock('../components/canvas/ThemeTokenBridge', () => ({
 describe('<RootLayout />', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(useRouter).mockReturnValue(undefined as never);
   });
 
   it('renders root layout container, canvas host, theme bridge, and router outlet', () => {
@@ -73,6 +75,7 @@ describe('<RootLayout />', () => {
     expect(handleSpaNavSpy).toHaveBeenCalledWith(
       expect.anything(),
       '/galaxy?focus=sol',
+      undefined,
     );
   });
 
@@ -98,7 +101,7 @@ describe('<RootLayout />', () => {
       matches: [{ routeId: '/' }],
     };
 
-    registerAppRouter({
+    vi.mocked(useRouter).mockReturnValue({
       get state() {
         return routerState;
       },
@@ -108,43 +111,39 @@ describe('<RootLayout />', () => {
           resolvedCallback = undefined;
         };
       },
+    } as never);
+
+    window.history.pushState({}, '', '/');
+    render(<RootLayout />);
+
+    expect(await screen.findByTestId('mock-galaxy-view')).toBeInTheDocument();
+    expect(galaxyViewMountSpy).toHaveBeenCalledTimes(1);
+    expect(galaxyViewUnmountSpy).not.toHaveBeenCalled();
+
+    // Transition to /galaxy
+    act(() => {
+      window.history.pushState({}, '', '/galaxy?focus=tau-ceti');
+      routerState = {
+        matches: [{ routeId: '/galaxy' }],
+      };
+      resolvedCallback?.();
     });
 
-    try {
-      window.history.pushState({}, '', '/');
-      render(<RootLayout />);
+    expect(screen.getByTestId('mock-galaxy-view')).toBeInTheDocument();
+    expect(galaxyViewMountSpy).toHaveBeenCalledTimes(1);
+    expect(galaxyViewUnmountSpy).not.toHaveBeenCalled();
 
-      expect(await screen.findByTestId('mock-galaxy-view')).toBeInTheDocument();
-      expect(galaxyViewMountSpy).toHaveBeenCalledTimes(1);
-      expect(galaxyViewUnmountSpy).not.toHaveBeenCalled();
+    // Transition to /search to verify it unmounts and renders outlet
+    act(() => {
+      window.history.pushState({}, '', '/search');
+      routerState = {
+        matches: [{ routeId: '/search' }],
+      };
+      resolvedCallback?.();
+    });
 
-      // Transition to /galaxy
-      act(() => {
-        window.history.pushState({}, '', '/galaxy?focus=tau-ceti');
-        routerState = {
-          matches: [{ routeId: '/galaxy' }],
-        };
-        resolvedCallback?.();
-      });
-
-      expect(screen.getByTestId('mock-galaxy-view')).toBeInTheDocument();
-      expect(galaxyViewMountSpy).toHaveBeenCalledTimes(1);
-      expect(galaxyViewUnmountSpy).not.toHaveBeenCalled();
-
-      // Transition to /search to verify it unmounts and renders outlet
-      act(() => {
-        window.history.pushState({}, '', '/search');
-        routerState = {
-          matches: [{ routeId: '/search' }],
-        };
-        resolvedCallback?.();
-      });
-
-      expect(await screen.findByTestId('router-outlet')).toBeInTheDocument();
-      expect(galaxyViewUnmountSpy).toHaveBeenCalledTimes(1);
-    } finally {
-      registerAppRouter(null);
-    }
+    expect(await screen.findByTestId('router-outlet')).toBeInTheDocument();
+    expect(galaxyViewUnmountSpy).toHaveBeenCalledTimes(1);
   });
 
   it('mounts GalaxyView from Render 1 when routerState.matches starts empty []', async () => {
@@ -152,21 +151,17 @@ describe('<RootLayout />', () => {
       matches: [],
     };
 
-    registerAppRouter({
+    vi.mocked(useRouter).mockReturnValue({
       get state() {
         return routerState;
       },
       subscribe: () => () => {},
-    });
+    } as never);
 
-    try {
-      window.history.pushState({}, '', '/galaxy');
-      render(<RootLayout />);
+    window.history.pushState({}, '', '/galaxy');
+    render(<RootLayout />);
 
-      expect(await screen.findByTestId('mock-galaxy-view')).toBeInTheDocument();
-      expect(galaxyViewMountSpy).toHaveBeenCalledTimes(1);
-    } finally {
-      registerAppRouter(null);
-    }
+    expect(await screen.findByTestId('mock-galaxy-view')).toBeInTheDocument();
+    expect(galaxyViewMountSpy).toHaveBeenCalledTimes(1);
   });
 });

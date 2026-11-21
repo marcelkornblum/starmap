@@ -6,7 +6,7 @@ import {
   type CelestialSymbolType,
 } from '../../interface';
 import { resolveAppHref } from '../../../utils/url';
-import { handleSpaNavigation } from '../../../hooks/spaNavigation';
+import { useSpaLinkClick } from '../../../hooks/spaNavigation';
 import styles from './Breadcrumbs.module.css';
 
 export interface BreadcrumbItem {
@@ -31,6 +31,8 @@ export const Breadcrumbs = memo(({
   companionHref,
   companionLabel: _companionLabel,
 }: BreadcrumbsProps) => {
+  const handleSpaLinkClick = useSpaLinkClick();
+
   if (items.length === 0) {
     return null;
   }
@@ -75,7 +77,7 @@ export const Breadcrumbs = memo(({
                 <a
                   href={resolveAppHref(item.href)}
                   data-testid="breadcrumb-link"
-                  onClick={(e) => handleSpaNavigation(e, item.href)}
+                  onClick={(e) => handleSpaLinkClick(e, item.href)}
                 >
                   {itemContent}
                 </a>

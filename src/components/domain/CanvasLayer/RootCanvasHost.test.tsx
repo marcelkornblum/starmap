@@ -5,10 +5,8 @@ import * as THREE from 'three';
 import { CanvasLayer } from './CanvasLayer';
 import { _resetWebGLSupportedForTesting } from './webglSupport';
 import { RootCanvasHost } from './RootCanvasHost';
-import {
-  useCanvasStageStore,
-  getStageCallbacks,
-} from '../../../stores/useCanvasStageStore';
+import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
+import { getStageCallbacks } from '../../../stores/canvasStageCallbacks';
 import { useCameraStore } from '../../../stores/useCameraStore';
 
 vi.mock('@react-three/drei', async (importOriginal) => {

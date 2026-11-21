@@ -11,7 +11,7 @@ import {
 import { useSearchContext } from '../Search/SearchContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { resolveAppHref } from '../../../utils/url';
-import { handleSpaNavigation } from '../../../hooks/spaNavigation';
+import { useSpaLinkClick } from '../../../hooks/spaNavigation';
 import {
   cancelHoverPrefetch,
   scheduleHoverPrefetch,
@@ -97,6 +97,7 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
   } = result;
 
   const searchCtx = useSearchContext();
+  const handleSpaLinkClick = useSpaLinkClick();
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>): void => {
     cancelHoverPrefetch();
@@ -115,7 +116,7 @@ export const SearchResultItem = ({ result, onSelect }: SearchResultItemProps) =>
     if (onSelect) {
       onSelect(result);
     }
-    handleSpaNavigation(event, href);
+    handleSpaLinkClick(event, href);
   };
 
   return (

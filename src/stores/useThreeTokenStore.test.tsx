@@ -8,8 +8,8 @@ import {
   parseCssPx,
 } from '../utils/cssTokenParsers';
 import { getThreeColor } from '../utils/threeColorCache';
-import { createDefaultTokenSnapshot } from './threeTokenDefaults';
-import { extractThreeTokens } from './extractThreeTokens';
+import { createDefaultTokenSnapshot } from '../utils/threeTokenDefaults';
+import { extractThreeTokens } from '../utils/extractThreeTokens';
 import { useThreeTokenStore } from './useThreeTokenStore';
 import { useSettingsStore } from './useSettingsStore';
 

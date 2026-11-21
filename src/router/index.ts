@@ -9,7 +9,6 @@ import {
   useSpaLocation,
   resolveSpaLocation,
   type StarmapSearchParams,
-  registerAppRouter,
 } from '../hooks/useSpaLocation';
 import { RootLayout } from './RootLayout';
 
@@ -219,8 +218,6 @@ export const router = createRouter({
   defaultPreload: 'intent',
   stringifySearch: stringifyStarmapSearch,
 });
-
-registerAppRouter(router);
 
 declare module '@tanstack/react-router' {
   interface Register {

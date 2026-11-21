@@ -1,7 +1,19 @@
+import { useCallback } from 'react';
 import type React from 'react';
 import { useCameraStore } from '../stores/useCameraStore';
 import { resolveAppHref } from '../utils/url';
-import { appRouter } from './useSpaLocation';
+import { useOptionalRouter, type AppRouterAdapter } from './useSpaLocation';
+
+function hasCenterSearchParam(href: string): boolean {
+  try {
+    const parsedUrl = new URL(href, 'http://localhost');
+    return parsedUrl.searchParams.has('center');
+  } catch {
+    const queryIndex = href.indexOf('?');
+    if (queryIndex === -1) return false;
+    return new URLSearchParams(href.slice(queryIndex + 1)).has('center');
+  }
+}
 
 /**
  * Handles client-side SPA navigation for anchor clicks, preventing full page HTTP reloads
@@ -10,6 +22,7 @@ import { appRouter } from './useSpaLocation';
 export function handleSpaNavigation(
   event: React.MouseEvent<HTMLElement> | MouseEvent,
   href?: string | null,
+  router?: AppRouterAdapter | null,
 ): boolean {
   if (
     !href ||
@@ -37,13 +50,25 @@ export function handleSpaNavigation(
 
   event.preventDefault();
   const resolved = resolveAppHref(rawHref) ?? rawHref;
-  if (resolved.includes('center=')) {
+  if (hasCenterSearchParam(resolved)) {
     useCameraStore.getState().triggerRecenter();
   }
-  if (appRouter.navigate) {
-    void appRouter.navigate({ href: resolved });
-  } else if (appRouter.history?.push) {
-    appRouter.history.push(resolved);
+  if (router && typeof router.navigate === 'function') {
+    void router.navigate({ href: resolved });
+  } else if (router?.history?.push) {
+    router.history.push(resolved);
   }
   return true;
+}
+
+export function useSpaLinkClick(): (
+  event: React.MouseEvent<HTMLElement> | MouseEvent,
+  href?: string | null,
+) => boolean {
+  const router = useOptionalRouter();
+  return useCallback(
+    (event: React.MouseEvent<HTMLElement> | MouseEvent, href?: string | null) =>
+      handleSpaNavigation(event, href, router),
+    [router],
+  );
 }

@@ -1,4 +1,4 @@
-import { parseCssColor, parseCssFloat } from '../utils/cssTokenParsers';
+import { parseCssColor, parseCssFloat } from './cssTokenParsers';
 import type { ParsedColorResult, ThreeTokenSnapshot } from '../types/threeTokens';
 
 /**

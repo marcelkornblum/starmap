@@ -11,10 +11,8 @@ import {
   getRegisteredWebGLGpuTelemetry,
   resetDeviceTierRuntimeState,
 } from '../../../services/deviceTierService';
-import {
-  useCanvasStageStore,
-  RootCanvasStageContext,
-} from '../../../stores/useCanvasStageStore';
+import { useCanvasStageStore } from '../../../stores/useCanvasStageStore';
+import { RootCanvasStageContext } from './RootCanvasStageContext';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import {
   SpatialEntityStoreContext,

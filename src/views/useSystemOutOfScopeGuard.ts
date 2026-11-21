@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
-import { appRouter, type StarmapSearchParams } from '../hooks/useSpaLocation';
+import { useOptionalRouter, type StarmapSearchParams } from '../hooks/useSpaLocation';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
@@ -24,6 +24,8 @@ export function useSystemOutOfScopeGuard({
   targetSystemId,
   systemDetail,
 }: UseSystemOutOfScopeGuardParams): void {
+  const router = useOptionalRouter();
+
   useEffect(() => {
     if (!urlSystemSlug) return;
     if (activeCorpus.length === 0 && !systemDetail) return;
@@ -61,22 +63,24 @@ export function useSystemOutOfScopeGuard({
       console.warn(`[router] Out-of-scope focus '${urlFocusSlug}' stripped on /system/${urlSystemSlug}`);
     }
 
-    if (stripFocus || stripCenter) {
-      void appRouter.navigate?.({
-        to: '/system/$systemId',
-        params: { systemId: urlSystemSlug },
-        search: (prev: StarmapSearchParams = {}) => {
-          const next: StarmapSearchParams = { ...prev };
-          if (stripFocus) {
-            delete next.focus;
-          }
-          if (stripCenter) {
-            delete next.center;
-          }
-          return next;
-        },
-        replace: true,
-      })?.catch(() => {});
+    if ((stripFocus || stripCenter) && router && typeof router.navigate === 'function') {
+      void Promise.resolve(
+        router.navigate({
+          to: '/system/$systemId',
+          params: { systemId: urlSystemSlug },
+          search: (prev: StarmapSearchParams = {}) => {
+            const next: StarmapSearchParams = { ...prev };
+            if (stripFocus) {
+              delete next.focus;
+            }
+            if (stripCenter) {
+              delete next.center;
+            }
+            return next;
+          },
+          replace: true,
+        }),
+      ).catch(() => {});
     }
   }, [
     urlSystemSlug,
@@ -86,5 +90,6 @@ export function useSystemOutOfScopeGuard({
     center,
     targetSystemId,
     systemDetail,
+    router,
   ]);
 }

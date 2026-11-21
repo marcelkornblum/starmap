@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
-import { appRouter } from './useSpaLocation';
+import { useOptionalRouter, type StarmapSearchParams } from './useSpaLocation';
 
 export interface UseKeyboardShortcutsOptions {
   readonly onTogglePlay?: () => void;
@@ -38,6 +38,8 @@ export function isTypingInInputElement(target: EventTarget | null): boolean {
 }
 
 export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): void {
+  const router = useOptionalRouter();
+
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
@@ -99,13 +101,15 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): voi
             useCameraStore.getState().clearCanvasFocus();
             useCameraStore.getState().setPendingCenterSlug(null);
             if (
-              appRouter.navigate &&
+              router &&
+              typeof router.navigate === 'function' &&
               typeof window !== 'undefined' &&
               window.location.search.includes('focus')
             ) {
               useCameraStore.getState().setInFlightFocusSlug(null);
-              const navPromise = appRouter.navigate({
-                search: (prev: Record<string, unknown> = {}) => {
+              const navPromise = router.navigate({
+                to: '.',
+                search: (prev: StarmapSearchParams = {}) => {
                   const next = { ...prev };
                   delete next.focus;
                   return next;
@@ -151,5 +155,5 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): voi
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [options]);
+  }, [options, router]);
 }
