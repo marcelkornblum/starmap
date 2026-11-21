@@ -181,6 +181,21 @@ describe('spatialEntityReducers', () => {
       expect(res[0].id).toBe('star-1');
     });
 
+    it('skips entities with missing or invalid positions without leaking prior coordinates', () => {
+      const mixed: Record<string, SpatialEntityDefinition> = {
+        'star-1': { id: 'star-1', name: 'Near', position: [1, 0, 0] },
+        'star-invalid': {
+          id: 'star-invalid',
+          name: 'Invalid',
+          position: undefined as unknown as [number, number, number],
+        },
+        'star-2': { id: 'star-2', name: 'Far', position: [100, 0, 0] },
+      };
+      const res = findEntitiesInAperture(mixed, new THREE.Vector3(0, 0, 0), 10);
+      expect(res).toHaveLength(1);
+      expect(res[0].id).toBe('star-1');
+    });
+
     it('finds entities by state and prioritizes focusedId', () => {
       const getState = (id: string): CelestialInteractionState =>
         id === 'star-1' ? 'focused' : 'active';

@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
@@ -232,6 +233,71 @@ describe('SectorPointCloud - Starfield Shader & Component', () => {
       pending = false;
       await renderer.advanceFrames(3, 0.016);
       expect(mockInvalidate).not.toHaveBeenCalled();
+
+      await renderer.unmount();
+    });
+
+    it('re-issues initial streaming query and keeps hydration bridge live across effect cleanup and replay', async () => {
+      const createMockManager = () => {
+        let subscriber: (() => void) | null = null;
+        const updateCameraPosition = vi.fn(async () => ({
+          activeSectorIds: [],
+          prefetchSectorIds: [],
+        }));
+        const mockManager = {
+          subscribe: vi.fn((cb: () => void) => {
+            subscriber = cb;
+            return () => {
+              subscriber = null;
+            };
+          }),
+          updateCameraPosition,
+          processFrameUploads: vi.fn<() => string[]>(() => []),
+          hasPendingUploads: vi.fn<() => boolean>(() => false),
+          isActiveRingReady: vi.fn(() => true),
+          getActiveSectorQueryInputs: vi.fn(() => []),
+        } as unknown as SectorStreamingManager;
+        return {
+          mockManager,
+          updateCameraPosition,
+          getSubscriber: () => subscriber,
+        };
+      };
+
+      const first = createMockManager();
+      const second = createMockManager();
+      const onHydrated = vi.fn();
+
+      const renderer = await ReactThreeTest.create(
+        <StrictMode>
+          <SectorPointCloud
+            manager={first.mockManager}
+            onHydratedSummariesChange={onHydrated}
+          />
+        </StrictMode>,
+      );
+
+      expect(first.updateCameraPosition).toHaveBeenCalled();
+
+      // Re-running the subscription effect with a new manager simulates cleanup + remount
+      await renderer.update(
+        <StrictMode>
+          <SectorPointCloud
+            manager={second.mockManager}
+            onHydratedSummariesChange={onHydrated}
+          />
+        </StrictMode>,
+      );
+
+      // Cleanup must reset lastXRef so the second manager still issues its initial camera query
+      expect(second.updateCameraPosition).toHaveBeenCalledTimes(1);
+      expect(second.getSubscriber()).not.toBeNull();
+
+      // Notification on the live effect invokes hydration on the active bridge
+      second.getSubscriber()!();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(onHydrated).toHaveBeenCalled();
 
       await renderer.unmount();
     });

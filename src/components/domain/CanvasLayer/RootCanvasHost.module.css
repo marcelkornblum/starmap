@@ -15,3 +15,10 @@
     contain: strict;
   }
 }
+
+@layer exceptions {
+  .rootCanvasHost[data-stage-inactive='true'] {
+    pointer-events: none;
+    visibility: hidden;
+  }
+}

@@ -1069,4 +1069,40 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     expect(touchTapStats.states).toEqual(['focused']);
     expect(touchTapStats.removedCount).toBe(0);
   });
+
+  test('navigating to guide and back preserves active aperture states and canvas selection', async ({
+    page,
+  }) => {
+    await page.goto('/galaxy?dist=10');
+
+    const rootHost = page.locator('[data-testid="root-canvas-host"]');
+    await expect(rootHost).toBeVisible({ timeout: 15_000 });
+    const canvas = rootHost.locator('canvas');
+    await expect(canvas).toBeVisible({ timeout: 15_000 });
+    await expect(rootHost).toHaveAttribute('data-camera-pos', /.+/);
+
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    const cx = box!.x + box!.width / 2;
+    const cy = box!.y + box!.height / 2;
+
+    await page.waitForTimeout(400);
+
+    // Navigate to Guide via the Breadcrumbs mode menu
+    await page.getByTestId('breadcrumbs-companion-link').click();
+    await expect(page).toHaveURL(/\/guide/, { timeout: 10_000 });
+    await expect(rootHost).toHaveAttribute('data-stage-inactive', 'true', { timeout: 10_000 });
+
+    // Navigate back to Galaxy via the Breadcrumbs mode menu
+    await page.getByTestId('breadcrumbs-companion-link').click();
+    await expect(page).toHaveURL(/\/galaxy/, { timeout: 10_000 });
+    await expect(rootHost).not.toHaveAttribute('data-stage-inactive', 'true', { timeout: 10_000 });
+
+    await page.waitForTimeout(800);
+
+    // Clicking Sol at canvas center must still select Sol and open Details panel
+    await page.mouse.click(cx, cy);
+    await expect(page).toHaveURL(/focus=sol/, { timeout: 10_000 });
+    await expect(page.getByTestId('details-peek-name')).toHaveText('Sol', { timeout: 10_000 });
+  });
 });

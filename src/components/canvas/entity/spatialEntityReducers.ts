@@ -141,6 +141,8 @@ export function findEntitiesInAperture(
       px = p[0];
       py = p[1];
       pz = p[2];
+    } else {
+      continue;
     }
     const dx = px - center.x;
     const dy = py - center.y;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import type * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
@@ -45,17 +45,26 @@ export function SectorPointCloud({
   const frameCtx = useSpatialFrameSafe();
   const invalidate = useThree((s) => s.invalidate);
   const groupRef = useRef<THREE.Group>(null);
-
-  const material = useMemo(() => createStarfieldPointsMaterial(), []);
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 
+  const targetRef = useRef<{ group: THREE.Group | null; material: THREE.Material | null }>({
+    group: null,
+    material: null,
+  });
+
   useLayoutEffect(() => {
-    materialRef.current = material;
+    const mat = createStarfieldPointsMaterial();
+    const target = targetRef.current;
+    materialRef.current = mat;
+    target.group = groupRef.current;
+    target.material = mat;
     return () => {
       materialRef.current = null;
-      material.dispose();
+      target.material = null;
+      target.group = null;
+      mat.dispose();
     };
-  }, [material]);
+  }, []);
 
   useEffect(() => {
     const mat = materialRef.current;
@@ -74,17 +83,17 @@ export function SectorPointCloud({
     }
   }, [reticleBracketColor, invalidate]);
 
-  const targetRef = useRef<{ group: THREE.Group | null; material: THREE.Material | null }>({
-    group: null,
-    material: null,
-  });
+  const internalManagerRef = useRef<SectorStreamingManager | null>(null);
+  const hydrationBridgeRef = useRef<InstrumentHydrationBridge | null>(null);
 
   useLayoutEffect(() => {
-    targetRef.current.group = groupRef.current;
-    targetRef.current.material = material;
-  }, [material]);
-
-  const internalManagerRef = useRef<SectorStreamingManager | null>(null);
+    const bridge = new InstrumentHydrationBridge();
+    hydrationBridgeRef.current = bridge;
+    return () => {
+      hydrationBridgeRef.current = null;
+      bridge.dispose();
+    };
+  }, []);
 
   useLayoutEffect(() => {
     if (manager) return;
@@ -97,9 +106,6 @@ export function SectorPointCloud({
       mgr.dispose();
     };
   }, [manager]);
-
-  const hydrationBridge = useMemo(() => new InstrumentHydrationBridge(), []);
-  useEffect(() => () => { hydrationBridge.dispose(); }, [hydrationBridge]);
 
   const onSummariesRef = useRef(onHydratedSummariesChange);
   useEffect(() => { onSummariesRef.current = onHydratedSummariesChange; }, [onHydratedSummariesChange]);
@@ -130,7 +136,8 @@ export function SectorPointCloud({
   const triggerHydration = useCallback(
     (fx: number, fy: number, fz: number, apertureRadius: number) => {
       const resolvedManager = manager ?? internalManagerRef.current;
-      if (!resolvedManager) return;
+      const bridge = hydrationBridgeRef.current;
+      if (!resolvedManager || !bridge) return;
       if (
         typeof (resolvedManager as unknown as { isActiveRingReady?: () => boolean }).isActiveRingReady === 'function' &&
         !(resolvedManager as unknown as { isActiveRingReady: () => boolean }).isActiveRingReady()
@@ -153,9 +160,10 @@ export function SectorPointCloud({
       scratchPosRef.current[1] = fy;
       scratchPosRef.current[2] = fz;
 
-      void hydrationBridge
+      void bridge
         .updateInstrumentPerimeter(queryInputs, scratchPosRef.current, apertureRadius)
         .then((state) => {
+          if (hydrationBridgeRef.current !== bridge) return;
           hydratingRef.current = false;
           onSummariesRef.current?.(state.activeSummaries, [fx, fy, fz]);
           invalidate();
@@ -170,10 +178,12 @@ export function SectorPointCloud({
           }
         })
         .catch(() => {
-          hydratingRef.current = false;
+          if (hydrationBridgeRef.current === bridge) {
+            hydratingRef.current = false;
+          }
         });
     },
-    [manager, hydrationBridge, scratchPosRef, invalidate],
+    [manager, scratchPosRef, invalidate],
   );
 
   useEffect(() => {
@@ -204,8 +214,17 @@ export function SectorPointCloud({
 
     return () => {
       unsubscribe();
+      lastXRef.current = Number.NaN;
+      lastYRef.current = Number.NaN;
+      lastZRef.current = Number.NaN;
+      lastHydratedXRef.current = Number.NaN;
+      lastHydratedYRef.current = Number.NaN;
+      lastHydratedZRef.current = Number.NaN;
+      lastHydratedRadiusRef.current = Number.NaN;
+      hydratingRef.current = false;
+      pendingHydrationRef.current = false;
     };
-  }, [manager, hydrationBridge, scratchPosRef, invalidate]);
+  }, [manager, scratchPosRef, invalidate]);
 
   useFrame(({ camera }) => {
     const resolvedManager = manager ?? internalManagerRef.current;
