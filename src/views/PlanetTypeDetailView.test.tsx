@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { PlanetTypeDetailView } from './PlanetTypeDetailView';
+import {
+  clearGuideExamplesCache,
+  seedGuideExamples,
+} from '../data/guideExamplesRepository';
 
 vi.mock('@tanstack/react-router', () => ({
   useParams: vi.fn(() => ({})),
@@ -12,6 +16,7 @@ vi.mock('@tanstack/react-router', () => ({
 describe('<PlanetTypeDetailView />', () => {
   beforeEach(() => {
     vi.mocked(useParams).mockReturnValue({});
+    clearGuideExamplesCache();
   });
 
   it('renders single planet type detail view for terrestrial', () => {
@@ -57,5 +62,32 @@ describe('<PlanetTypeDetailView />', () => {
     const root = screen.getByTestId('planet-type-detail-view-root');
     expect(root.getAttribute('data-planet-type')).toBe('gas-giant');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Planet Type: gas-giant');
+  });
+
+  it('renders dataset-driven examples when guideExamplesRepository is hydrated', () => {
+    seedGuideExamples({
+      version: 1,
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      sections: {
+        starTypes: {},
+        planetTypes: {
+          terrestrial: [
+            {
+              id: 'earth',
+              name: 'Earth',
+              href: '/system/sol?focus=earth',
+              note: 'Terrestrial benchmark.',
+              reticleType: 'terrestrial',
+            },
+          ],
+        },
+        metricTypes: {},
+        hazardTypes: {},
+      },
+    });
+    render(<PlanetTypeDetailView planetType="terrestrial" />);
+    const links = screen.getAllByTestId('guide-example-link');
+    expect(links[0]?.textContent).toBe('Earth');
+    expect(links[0]?.getAttribute('href')).toBe('/system/sol?focus=earth');
   });
 });

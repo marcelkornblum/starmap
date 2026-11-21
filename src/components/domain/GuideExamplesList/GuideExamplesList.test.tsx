@@ -5,11 +5,13 @@ import type { GuideExampleTarget } from '../../../content/guide';
 
 const mockExamples: readonly GuideExampleTarget[] = [
   {
+    id: 'sol',
     name: 'Sol',
     href: '/system/sol?focus=sol',
     note: 'G2V reference standard for solar mass, radius, and luminosity.',
   },
   {
+    id: 'earth',
     name: 'Earth',
     href: '/planet/earth',
     note: 'Standard terrestrial reference body for planetary mass and radius.',
@@ -47,6 +49,7 @@ describe('<GuideExamplesList />', () => {
   it('uses explicit reticleType from example item or props rather than string matching', () => {
     const examplesWithReticles: readonly GuideExampleTarget[] = [
       {
+        id: 'jupiter',
         name: 'Jupiter',
         href: '/planet/jupiter',
         note: 'Gas giant exemplar',

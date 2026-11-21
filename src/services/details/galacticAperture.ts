@@ -1,8 +1,6 @@
 import { GALACTIC_FRAME } from '../../config/referenceFrames';
-import {
-  DEFAULT_ORIGIN_TARGETS,
-  SOL_REFERENCE_TARGET,
-} from '../../config/referenceTargets';
+import { DEFAULT_ORIGIN_TARGETS } from '../../config/referenceTargets';
+import { getCachedReferenceBaselines } from '../../data/referenceBaselinesRepository';
 import {
   computeApertureRadius,
   isInsideAperture,
@@ -40,7 +38,9 @@ export function resolveGalacticInstrumentAperture(
   } = input;
 
   let centerId = DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
-  let centerName = SOL_REFERENCE_TARGET.name;
+  let centerName =
+    getCachedReferenceBaselines()?.targets.sol.name ??
+    formatSlugFallbackTitle(DEFAULT_ORIGIN_TARGETS.interstellarOriginId);
   let centerCoordinatesPc: readonly [number, number, number] = DEFAULT_ORIGIN_TARGETS.galacticOriginCoordinates;
 
   if (liveApertureCenterPc) {

@@ -276,11 +276,11 @@
     height: var(--space-fib-7);
   }
 
-  .metricEntityStage .sphereVisual[data-baseline="Sol"] {
+  .metricEntityStage .sphereVisual[data-baseline-kind="star"] {
     color: var(--star-chromaticity-g);
   }
 
-  .metricEntityStage .sphereVisual[data-baseline="Earth"] {
+  .metricEntityStage .sphereVisual[data-baseline-kind="planet"] {
     color: var(--planet-theme-terrestrial);
   }
 

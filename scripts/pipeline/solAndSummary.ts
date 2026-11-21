@@ -6,13 +6,14 @@ import type {
   StarmapNode,
   SystemManifest,
   SystemSummaryNode,
+  SystemTag,
 } from '../../src/types/astro';
-import type { SolarSystemBodyRecord } from '../../src/types/astroStructures';
 import {
   classifyPlanetPhysical,
   computePlanetCompositionCounts,
   computePlanetSurfaceGravityG,
   isPlanetHabitableCandidate,
+  isPlanetTidallyLocked,
 } from '../../src/utils/planetaryPhysics';
 import {
   computePlanetHazardMask,
@@ -30,6 +31,7 @@ import {
 } from '../../src/utils/nomenclature';
 import {
   checkHabitableCandidate,
+  computeEsi,
   enrichPlanetsWithPrecalculatedFields,
   getPlanetCensus,
 } from './exoplanets';
@@ -38,6 +40,7 @@ import {
   CIRCUMSTELLAR_DISKS_CATALOG,
   DISK_HOST_ALIASES,
   FULL_SOLAR_SYSTEM_BODIES,
+  type SolarSystemBodyEntry,
 } from './seedCatalogs';
 
 let diskLookupMapCache: Map<string, CircumstellarDiskRecord[]> | null = null;
@@ -89,13 +92,38 @@ const DEFAULT_ORBIT: KeplerianOrbit = {
   semiMajorAxis: 0, eccentricity: 0, inclination: 0, ascendingNode: 0, argumentOfPeriapsis: 0, meanAnomaly: 0, periodDays: 0,
 };
 
+const RSUN_IN_AU = 0.00465047;
+const EARTH_MASS_KG = 5.97237e24;
+const JUPITER_MASS_KG = 1.8982e27;
+const EARTH_RADIUS_KM = 6371.0;
+const JUPITER_RADIUS_KM = 69911.0;
+
 export function buildSolSystemManifest(
-  solarBodies: readonly SolarSystemBodyRecord[] = FULL_SOLAR_SYSTEM_BODIES,
+  solarBodies: readonly SolarSystemBodyEntry[] = FULL_SOLAR_SYSTEM_BODIES,
 ): SystemManifest {
   const round2 = (n: number) => Math.round(n * 100) / 100;
   const round4 = (n: number) => Math.round(n * 10000) / 10000;
-  const hostTempK = 5778;
-  const hostRadiusAu = 1.0 * 0.00465047;
+  const solSeed =
+    solarBodies.find((b) => b.id === 'sol') ??
+    FULL_SOLAR_SYSTEM_BODIES.find((b) => b.id === 'sol');
+  if (
+    !solSeed ||
+    solSeed.effectiveTempK === undefined ||
+    solSeed.mag === undefined ||
+    solSeed.absmag === undefined ||
+    solSeed.luminosityLsun === undefined ||
+    !solSeed.spectralType
+  ) {
+    throw new Error('Missing required Sol stellar seed fields in solar-system-bodies.json');
+  }
+  const hostTempK = solSeed.effectiveTempK;
+  const hostLuminosityLsun = solSeed.luminosityLsun;
+  const hostRadiusRsun = solSeed.radiusRsun ?? 1.0;
+  const hostMassMsun = solSeed.massMsun ?? 1.0;
+  const hostRadiusAu = hostRadiusRsun * RSUN_IN_AU;
+  const [sx, sy, sz] = solSeed.coordinatesPc ?? [0, 0, 0];
+  const solSystemName = solSeed.systemName ?? solSeed.displayName ?? solSeed.name;
+  const solProperName = solSeed.properName ?? solSystemName;
 
   const moonsByParent = new Map<string, typeof solarBodies[number][]>();
   for (const b of solarBodies) {
@@ -113,18 +141,23 @@ export function buildSolSystemManifest(
   const solPlanets: ExoplanetRecord[] = solarBodies
     .filter((b) => b.classification === 'Planet')
     .map((b) => {
-      const massMearth = b.massKg !== undefined ? round2(b.massKg / 5.97237e24) : undefined;
-      const massMjup = b.massKg !== undefined ? round4(b.massKg / 1.8982e27) : undefined;
-      const radiusRearth = round2(b.meanRadiusKm / 6371.0);
-      const radiusRjup = round4(b.meanRadiusKm / 69911.0);
+      const massMearth = b.massKg !== undefined ? round2(b.massKg / EARTH_MASS_KG) : undefined;
+      const massMjup = b.massKg !== undefined ? round4(b.massKg / JUPITER_MASS_KG) : undefined;
+      const radiusRearth = round2(b.meanRadiusKm / EARTH_RADIUS_KM);
+      const radiusRjup = round4(b.meanRadiusKm / JUPITER_RADIUS_KM);
       const a = b.orbit?.semiMajorAxis;
       const albedo = b.albedo ?? 0.3;
       const equilibriumTempK = a && a > 0
         ? round2(hostTempK * Math.pow(Math.max(0, 1 - Math.min(0.99, albedo)), 0.25) * Math.sqrt(hostRadiusAu / (2 * a)))
         : undefined;
       const composition = classifyPlanetPhysical({ massMearth, radiusRearth, classification: b.tags?.join(' ') });
-      const isHabitableCandidate = isPlanetHabitableCandidate({ equilibriumTempK, semiMajorAxis: a, tags: b.tags }, 1.0);
+      const isHabitableCandidate = isPlanetHabitableCandidate({ equilibriumTempK, semiMajorAxis: a, tags: b.tags }, hostLuminosityLsun);
       const surfaceGravityG = computePlanetSurfaceGravityG({ massMearth, radiusRearth });
+      const isTidallyLocked = isPlanetTidallyLocked({
+        periodDays: b.orbit?.periodDays,
+        semiMajorAxisAu: a,
+      });
+      const esi = computeEsi(radiusRearth, equilibriumTempK);
       const hazardMask = computePlanetHazardMask({
         equilibriumTempK,
         surfaceGravityG,
@@ -139,8 +172,8 @@ export function buildSolSystemManifest(
         name: moon.name,
         parentId: moon.parentBodyId ?? b.id,
         radiusKm: moon.meanRadiusKm,
-        radiusEarth: round4(moon.meanRadiusKm / 6371.0),
-        ...(moon.massKg !== undefined ? { massEarth: round4(moon.massKg / 5.97237e24) } : {}),
+        radiusEarth: round4(moon.meanRadiusKm / EARTH_RADIUS_KM),
+        ...(moon.massKg !== undefined ? { massEarth: round4(moon.massKg / EARTH_MASS_KG) } : {}),
         composition: 'terrestrial',
         reticleType: 'moon',
         orbit: moon.orbit ?? DEFAULT_ORBIT,
@@ -155,10 +188,12 @@ export function buildSolSystemManifest(
         radiusRearth,
         radiusRjup,
         equilibriumTempK,
+        ...(esi !== undefined ? { esi } : {}),
         surfaceGravityG,
+        isTidallyLocked,
         ...(hazardMask > 0 ? { hazardMask } : {}),
         composition,
-        reticleType: resolvePlanetReticleType(composition === 'ice-giant' ? 'sub-neptune' : composition),
+        reticleType: resolvePlanetReticleType(composition),
         isHabitableCandidate,
         orbit: b.orbit,
         ...(satellites.length > 0 ? { satellites } : {}),
@@ -166,33 +201,52 @@ export function buildSolSystemManifest(
       };
     });
 
+  const solTags: SystemTag[] = [
+    'HomeSystem',
+    'SolarNeighborhood10pc',
+    'NakedEye',
+    'ExoplanetHost',
+    'HabitableCandidate',
+  ];
+  const solHazardMask = computeSystemHazardMask({
+    spect: solSeed.spectralType,
+    lum: hostLuminosityLsun,
+    effectiveTempK: hostTempK,
+    tags: solTags,
+  });
+
   return {
-    id: 'sol',
-    name: 'Sol',
-    properName: 'Sun',
-    x: 0,
-    y: 0,
-    z: 0,
-    dist: 0,
+    id: solSeed.id,
+    name: solSystemName,
+    properName: solProperName,
+    x: sx,
+    y: sy,
+    z: sz,
+    dist: Math.hypot(sx, sy, sz),
     velocity: { vx: 0, vy: 0, vz: 0, speed: 0 },
-    sectorId: 'sector_+000_+000_+000',
+    sectorId: formatSectorId(sx, sy, sz),
     stars: [{
-      id: 'sol-A',
-      name: 'Sol',
+      id: `${solSeed.id}-A`,
+      name: solSystemName,
       componentDesignation: 'A',
-      spectralType: 'G2V',
-      mag: -26.74,
-      absmag: 4.83,
-      luminosityLsun: 1.0,
-      massMsun: 1.0,
-      radiusRsun: 1.0,
-      effectiveTempK: 5778,
+      spectralType: solSeed.spectralType,
+      mag: solSeed.mag,
+      absmag: solSeed.absmag,
+      luminosityLsun: hostLuminosityLsun,
+      massMsun: hostMassMsun,
+      radiusRsun: hostRadiusRsun,
+      effectiveTempK: hostTempK,
+      reticleType: resolveStellarReticleType(
+        resolveStellarClassificationFromSpectrum(solSeed.spectralType),
+        false,
+      ),
     }],
     planets: solPlanets,
     planetCompositionCounts: computePlanetCompositionCounts(solPlanets),
     hasHabitableCandidate: solPlanets.some((p) => Boolean(p.isHabitableCandidate)),
-    tags: ['HomeSystem', 'SolarNeighborhood10pc', 'NakedEye', 'ExoplanetHost', 'HabitableCandidate'],
-    disks: CIRCUMSTELLAR_DISKS_CATALOG['Sol'],
+    tags: solTags,
+    ...(solHazardMask > 0 ? { hazardMask: solHazardMask } : {}),
+    disks: CIRCUMSTELLAR_DISKS_CATALOG[solSystemName] ?? CIRCUMSTELLAR_DISKS_CATALOG['Sol'],
   };
 }
 
@@ -200,7 +254,7 @@ export function starNodeToSystemSummary(
   star: StarmapNode,
   planets: ExoplanetRecord[] = [],
 ): SystemSummaryNode {
-  const tags: string[] = [];
+  const tags: SystemTag[] = [];
   if (star.mag <= 6.5) tags.push('NakedEye');
   if (star.dist <= 10) tags.push('SolarNeighborhood10pc');
   if (star.name === 'Sol') tags.push('HomeSystem');

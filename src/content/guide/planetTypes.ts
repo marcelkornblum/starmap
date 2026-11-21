@@ -3,7 +3,7 @@
  * Curated planetary classification guide entries covering canonical compositions.
  */
 
-import { PLANET_TYPES_GUIDE_PATH, type PlanetTypeGuideEntry } from './types';
+import { buildPlanetTypeGuideHref, type PlanetTypeGuideEntry } from './types';
 
 export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
   {
@@ -20,19 +20,7 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
     canonicalRadiusRearth: 1.0,
     textureTheme: 'rocky-silicate',
     interiorLayers: ['Iron-Nickel Core', 'Silicate Mantle', 'Rocky Crust'],
-    href: `${PLANET_TYPES_GUIDE_PATH}/terrestrial`,
-    examples: [
-      {
-        name: 'Earth', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/system/sol?focus=earth',
-        note: 'Standard terrestrial benchmark with active plate tectonics and surface hydrosphere.',
-      },
-      {
-        name: 'Proxima Centauri b',
-        href: '/galaxy?focus=proxima-centauri-b',
-        note: 'Terrestrial exoplanet orbiting within the conservative habitable zone of Proxima Centauri.',
-      },
-    ],
+    href: buildPlanetTypeGuideHref('terrestrial'),
   },
   {
     id: 'super-earth',
@@ -48,19 +36,7 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
     canonicalRadiusRearth: 1.6,
     textureTheme: 'rocky-silicate',
     interiorLayers: ['Metallic Core', 'Silicate Mantle', 'Crust / Ocean Layer'],
-    href: `${PLANET_TYPES_GUIDE_PATH}/super-earth`,
-    examples: [
-      {
-        name: 'Tau Ceti e', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/galaxy?focus=tau-ceti-e',
-        note: 'Potentially rocky super-Earth orbiting near the inner edge of Tau Ceti’s habitable zone.',
-      },
-      {
-        name: 'Tau Ceti f',
-        href: '/galaxy?focus=tau-ceti-f',
-        note: 'Outer super-Earth candidate in the Tau Ceti system.',
-      },
-    ],
+    href: buildPlanetTypeGuideHref('super-earth'),
   },
   {
     id: 'ice-giant',
@@ -80,24 +56,7 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
       'Supercritical Water-Ammonia-Methane Mantle',
       'Hydrogen-Helium Atmosphere',
     ],
-    href: `${PLANET_TYPES_GUIDE_PATH}/ice-giant`,
-    examples: [
-      {
-        name: 'Uranus',
-        href: '/system/sol?focus=uranus',
-        note: 'Seventh planet from Sol, featuring an extreme 97.8° axial tilt.',
-      },
-      {
-        name: 'Neptune',
-        href: '/system/sol?focus=neptune',
-        note: 'Outer ice giant of the Solar System with dynamic supersonic storm systems.',
-      },
-      {
-        name: 'Tau Ceti g',
-        href: '/galaxy?focus=tau-ceti-g',
-        note: 'Candidate sub-Neptune / ice-giant companion in the Tau Ceti system.',
-      },
-    ],
+    href: buildPlanetTypeGuideHref('ice-giant'),
   },
   {
     id: 'gas-giant',
@@ -117,18 +76,6 @@ export const PLANET_TYPE_GUIDE_ENTRIES: readonly PlanetTypeGuideEntry[] = [
       'Liquid Metallic Hydrogen Mantle',
       'Molecular Hydrogen-Helium Envelope',
     ],
-    href: `${PLANET_TYPES_GUIDE_PATH}/gas-giant`,
-    examples: [
-      {
-        name: 'Jupiter', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/system/sol?focus=jupiter',
-        note: 'Largest planet in the Solar System, possessing a vast magnetosphere and 95 known moons.',
-      },
-      {
-        name: 'Saturn', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/system/sol?focus=saturn',
-        note: 'Extensive ring system with diverse major icy satellites including Titan and Enceladus.',
-      },
-    ],
+    href: buildPlanetTypeGuideHref('gas-giant'),
   },
 ];

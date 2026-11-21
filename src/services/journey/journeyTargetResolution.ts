@@ -3,14 +3,12 @@ import {
   getCachedSummaryNode,
   type DecodedDetailRecord,
 } from '../../data/detailsRepository';
+import { getCachedReferenceBaselines } from '../../data/referenceBaselinesRepository';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import type { SystemSummaryNode, SystemManifest, PlanetRecord } from '../../types/astro';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
-import {
-  DEFAULT_ORIGIN_TARGETS,
-  EARTH_REFERENCE_TARGET,
-  SOL_REFERENCE_TARGET,
-} from '../../config/referenceTargets';
+import { formatSlugFallbackTitle } from '../../utils/starNaming';
+import { DEFAULT_ORIGIN_TARGETS } from '../../config/referenceTargets';
 import {
   DEFAULT_INTERSTELLAR_ORIGIN_ID,
   DEFAULT_INTRA_SYSTEM_ORIGIN_ID,
@@ -57,16 +55,22 @@ export function resolveEndpoint(
   const solarBodyRecord =
     cachedDetail?.kind === 'solar-body' ? cachedDetail.record : undefined;
 
+  const baselines = getCachedReferenceBaselines();
+  const solBaselineName =
+    baselines?.targets.sol.name ?? formatSlugFallbackTitle(DEFAULT_INTERSTELLAR_ORIGIN_ID);
+  const earthBaselineName =
+    baselines?.targets.earth.name ?? formatSlugFallbackTitle(DEFAULT_INTRA_SYSTEM_ORIGIN_ID);
+
   const name =
     planetMatch?.name ??
     solarBodyRecord?.name ??
     corpusMatch?.n ??
     cachedSummary?.name ??
     (slug === DEFAULT_INTERSTELLAR_ORIGIN_ID
-      ? SOL_REFERENCE_TARGET.name
+      ? solBaselineName
       : slug === DEFAULT_INTRA_SYSTEM_ORIGIN_ID
-        ? EARTH_REFERENCE_TARGET.name
-        : slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+        ? earthBaselineName
+        : formatSlugFallbackTitle(slug));
 
   const isPlanet =
     Boolean(planetMatch) ||
@@ -107,7 +111,7 @@ export function resolveEndpoint(
     parentSysRecord?.name ??
     cachedSummary?.name ??
     (systemId === DEFAULT_INTERSTELLAR_ORIGIN_ID
-      ? SOL_REFERENCE_TARGET.name
+      ? solBaselineName
       : name);
 
   const coordinatesPc: readonly [number, number, number] = corpusMatch?.p
@@ -126,7 +130,7 @@ export function resolveEndpoint(
     planetMatch?.orbit?.semiMajorAxis ??
     solarBodyRecord?.orbit?.semiMajorAxis ??
     (slug === DEFAULT_INTRA_SYSTEM_ORIGIN_ID
-      ? EARTH_REFERENCE_TARGET.semiMajorAxisAu
+      ? baselines?.targets.earth.semiMajorAxisAu.value
       : undefined);
 
   const periodDays =
@@ -134,7 +138,7 @@ export function resolveEndpoint(
     planetMatch?.orbit?.periodDays ??
     solarBodyRecord?.orbit?.periodDays ??
     (slug === DEFAULT_INTRA_SYSTEM_ORIGIN_ID
-      ? EARTH_REFERENCE_TARGET.periodDays
+      ? baselines?.targets.earth.periodDays.value
       : undefined);
 
   const position3D: readonly [number, number, number] =

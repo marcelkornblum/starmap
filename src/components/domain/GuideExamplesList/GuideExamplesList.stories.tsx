@@ -6,11 +6,13 @@ import storyStyles from '../domainStories.module.css';
 
 const stellarExamples = [
   {
+    id: 'sol',
     name: 'Sol',
     href: '/system/sol',
     note: 'Canonical G2V yellow dwarf host star of humanity.',
   },
   {
+    id: 'tau-ceti',
     name: 'Tau Ceti',
     href: '/system/tau-ceti',
     note: 'G8.5V dwarf anchor at 3.65 pc.',
@@ -19,11 +21,13 @@ const stellarExamples = [
 
 const planetaryExamples = [
   {
+    id: 'earth',
     name: 'Earth',
     href: '/planet/earth',
     note: 'Canonical terrestrial reference world (1.0 R⊕).',
   },
   {
+    id: 'tau-ceti-e',
     name: 'Tau Ceti e',
     href: '/planet/tau-ceti-e',
     note: 'Potentially habitable super-Earth in habitable zone.',

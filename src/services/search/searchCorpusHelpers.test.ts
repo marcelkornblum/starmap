@@ -86,7 +86,7 @@ describe('searchCorpusHelpers', () => {
     expect(resolveReticleType({ i: 's2', n: 'BD', u: 'brown-dwarf', m: [16, 'T8', 0] })).toBe('brown-dwarf');
     expect(resolveReticleType({ i: 's3', n: 'PSR', u: 'neutron-star', m: [20, 'PSR', 0] })).toBe('neutron-star');
     expect(resolveReticleType({ i: 'jupiter', k: 2, n: 'Jupiter', u: 'gas-giant' })).toBe('gas-giant');
-    expect(resolveReticleType({ i: 'neptune', k: 2, n: 'Neptune', u: 'sub-neptune' })).toBe('ice-giant');
+    expect(resolveReticleType({ i: 'neptune', k: 2, n: 'Neptune', u: 'ice-giant' })).toBe('ice-giant');
     expect(resolveReticleType({ i: 'snr-crab', k: 5, n: 'Crab Remnant', u: 'hazard' })).toBe('hazard');
     expect(resolveReticleType({ i: 'voyager-1', k: 6, n: 'Voyager 1', u: 'construct' })).toBe('construct');
     expect(resolveReticleType({ i: '433-eros', k: 6, n: '433 Eros' })).toBe('terrestrial');

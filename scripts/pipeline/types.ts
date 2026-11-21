@@ -34,6 +34,7 @@ export interface HygCrossMatch {
 }
 
 export interface BuildPipelineOptions {
+  dataDir?: string;
   catalogsDir?: string;
   partitionsDir?: string;
   systemsDir?: string;

@@ -39,6 +39,6 @@ describe('planetaryBodiesSummary', () => {
 
     expect(summary).not.toBeNull();
     expect(summary?.planetId).toBe(EARTH_REFERENCE_TARGET.id);
-    expect(summary?.planetName).toBe(EARTH_REFERENCE_TARGET.name);
+    expect(summary?.planetName).toBe('Earth');
   });
 });

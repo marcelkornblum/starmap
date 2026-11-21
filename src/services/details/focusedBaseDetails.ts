@@ -1,4 +1,3 @@
-import { computePlanetHazardMask, computeSystemHazardMask } from '../../utils/astroHazards';
 import { formatSectorId } from '../../utils/sectorMath';
 import { decodeTagsMask } from '../../utils/compactDataCodec';
 import { buildDirectionsTriggerHref } from '../journey/journeyProfilesAndUrls';
@@ -22,9 +21,6 @@ import type {
   PlanetCompositionCount,
   SystemSummarySegment,
 } from './detailsEntityTypes';
-
-const EARTH_MASS_KG = 5.97237e24;
-const EARTH_RADIUS_KM = 6371.0;
 
 export interface BaseDetailsResult {
   readonly baseDetails: FocusedEntityDetailsBase;
@@ -161,26 +157,12 @@ export function buildFocusedBaseDetails(
     (matchedCorpusEntry && resolveEntryCategory(matchedCorpusEntry) === 'stars'
       ? matchedCorpusEntry.H
       : undefined);
-  const effSysHz = rawSysHz ?? computeSystemHazardMask({ spect: spectralType, tags });
-  const systemHazards = decodeSystemHazards(effSysHz);
+  const systemHazards = decodeSystemHazards(rawSysHz ?? 0);
 
-  const surfaceGravityG =
-    matchedPlanetDetail?.surfaceGravityG ??
-    (solarBodyRecord && solarBodyRecord.massKg && solarBodyRecord.meanRadiusKm
-      ? (solarBodyRecord.massKg / EARTH_MASS_KG) / Math.pow(solarBodyRecord.meanRadiusKm / EARTH_RADIUS_KM, 2)
-      : undefined);
-
-  const computedPlanetHazardMask = computePlanetHazardMask({
-    equilibriumTempK: matchedPlanetDetail?.equilibriumTempK,
-    surfaceGravityG,
-    periodDays: matchedPlanetDetail?.periodDays ?? solarBodyRecord?.orbit?.periodDays,
-    semiMajorAxisAu: matchedPlanetDetail?.semiMajorAxisAu ?? solarBodyRecord?.orbit?.semiMajorAxis,
-    eccentricity: matchedPlanetDetail?.eccentricity ?? solarBodyRecord?.orbit?.eccentricity,
-  });
   const planetHazards =
     matchedPlanetDetail?.hazards && matchedPlanetDetail.hazards.length > 0
       ? matchedPlanetDetail.hazards
-      : decodePlanetHazards(matchedCorpusEntry?.H ?? computedPlanetHazardMask);
+      : decodePlanetHazards(solarBodyRecord?.hazardMask ?? matchedCorpusEntry?.H ?? 0);
 
   const hazards =
     focusedKind === 'planet'

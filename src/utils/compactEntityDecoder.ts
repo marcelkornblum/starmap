@@ -13,6 +13,7 @@ import {
   CODE_TO_PLANET_COMP,
   CODE_TO_SOLAR_CLASS,
   CODE_TO_STRUCTURE_TYPE,
+  resolveDefaultStructureDescription,
 } from './compactDataConstants';
 import type {
   CompactExoplanet,
@@ -24,13 +25,6 @@ import type {
   OrbitTuple,
 } from './compactDataTypes';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
-import {
-  classifyPlanetPhysical,
-  computePlanetSurfaceGravityG,
-  isPlanetHabitableCandidate,
-} from './planetaryPhysics';
-import { computePlanetHazardMask } from './astroHazards';
-import { resolveDefaultStructureDescription } from './astroPrecalculation';
 
 export function decodeOrbitTuple(tuple?: OrbitTuple): KeplerianOrbit | undefined {
   if (!tuple || tuple.length < 7) return undefined;
@@ -83,29 +77,15 @@ export function decodeExoplanet(compact: CompactExoplanet): ExoplanetRecord {
     typeof compact.d === 'number' ? CODE_TO_DISCOVERY_METHOD[compact.d] : compact.d;
 
   const orbit = decodeOrbitTuple(compact.o);
-  const composition =
-    (compact.c ? CODE_TO_PLANET_COMP[compact.c] : undefined) ??
-    classifyPlanetPhysical({ massMearth, massMjup, radiusRearth, radiusRjup });
-  const isHabitableCandidate =
-    compact.h === 1 ||
-    isPlanetHabitableCandidate({
-      equilibriumTempK: compact.T,
-      esi: compact.s,
-      semiMajorAxis: orbit?.semiMajorAxis,
-    });
-
-  const surfaceGravityG =
-    compact.g ?? computePlanetSurfaceGravityG({ massMearth, radiusRearth });
-
-  const hazardMask =
-    compact.H ??
-    computePlanetHazardMask({
-      equilibriumTempK: compact.T,
-      surfaceGravityG,
-      periodDays: orbit?.periodDays,
-      semiMajorAxisAu: orbit?.semiMajorAxis,
-      eccentricity: orbit?.eccentricity,
-    });
+  const composition = CODE_TO_PLANET_COMP[compact.c];
+  if (!composition) {
+    throw new Error(
+      `Exoplanet "${compact.i}" is missing required precalculated field "c" (composition).`,
+    );
+  }
+  const isHabitableCandidate = compact.h === 1;
+  const surfaceGravityG = compact.g;
+  const hazardMask = compact.H ?? 0;
 
   const result: ExoplanetRecord = {
     id: compact.i,
@@ -120,6 +100,7 @@ export function decodeExoplanet(compact: CompactExoplanet): ExoplanetRecord {
     equilibriumTempK: compact.T,
     esi: compact.s,
     ...(surfaceGravityG !== undefined ? { surfaceGravityG } : {}),
+    isTidallyLocked: compact.tl === 1,
     ...(hazardMask > 0 ? { hazardMask } : {}),
     composition,
     isHabitableCandidate,
@@ -200,6 +181,9 @@ export function decodeSolarSystemBody(
   if (compact.e) result.beltZone = compact.e;
   if (compact.s) result.targetStarId = compact.s;
   if (compact.u) result.composition = compact.u;
+  if (compact.sg !== undefined) result.surfaceGravityG = compact.sg;
+  if (compact.H && compact.H > 0) result.hazardMask = compact.H;
+  if (compact.tl === 1) result.isTidallyLocked = true;
   if (compact.core === 1) result.isCoreSearch = true;
   return result;
 }

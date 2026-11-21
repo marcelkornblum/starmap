@@ -9,7 +9,6 @@ export interface GuideStarPreviewProps {
   readonly luminosityClass?: string;
   readonly radiusRsun?: number;
   readonly tempK?: number;
-  readonly chromaticityHex?: string;
   readonly chromaticityToken?: string;
   readonly isDetail?: boolean;
 }
@@ -26,6 +25,8 @@ export interface GuideMetricPreviewProps {
   readonly kind: 'metric';
   readonly metricId?: string;
   readonly unit?: string;
+  readonly baselineId?: string;
+  readonly baselineKind?: 'star' | 'planet';
   readonly baselineName?: string;
   readonly baselineValue?: string;
   readonly comparisonTarget?: string;
@@ -52,7 +53,6 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
   const detailAttr = props.isDetail ? 'true' : undefined;
 
   if (props.kind === 'star') {
-    const chromaticity = props.chromaticityToken ?? props.chromaticityHex;
     return (
       <div
         data-testid="guide-3d-preview"
@@ -63,14 +63,13 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
         data-luminosity-class={props.luminosityClass}
         data-radius-rsun={props.radiusRsun}
         data-temp-k={props.tempK}
-        data-chromaticity-hex={props.chromaticityHex}
         data-chromaticity-token={props.chromaticityToken}
         className={styles.previewSlot}
       >
         <div
           className={styles.sphereVisual}
           data-kind="star"
-          data-chromaticity={chromaticity}
+          data-chromaticity={props.chromaticityToken}
         >
           <span className={styles.sphereCore} />
         </div>
@@ -123,7 +122,12 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
     );
   }
 
-  const baselineKind = props.baselineName === SOL_REFERENCE_TARGET.name ? 'star' : 'planet';
+  const baselineKind =
+    props.baselineKind ??
+    (props.baselineId === SOL_REFERENCE_TARGET.id ||
+    props.baselineName?.toLowerCase() === SOL_REFERENCE_TARGET.id
+      ? 'star'
+      : 'planet');
 
   return (
     <div
@@ -140,7 +144,8 @@ export const Guide3DPreview: React.FC<Guide3DPreviewProps> = (props) => {
           <div
             className={styles.sphereVisual}
             data-kind={baselineKind}
-            data-baseline={props.baselineName}
+            data-baseline-kind={baselineKind}
+            data-baseline={props.baselineId ?? props.baselineName}
           >
             <span className={styles.sphereCore} />
           </div>

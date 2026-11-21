@@ -1,5 +1,10 @@
 import type { CelestialClassification } from '../types/spatial';
-import type { CelestialSymbolType } from '../types/astro';
+import type {
+  CelestialSymbolType,
+  PlanetComposition,
+  PlanetCompositionCounts,
+  StellarClassification,
+} from '../types/astro';
 import type { COMPACT_SOLAR_BODY_TAG } from '../config/referenceTargets';
 
 export type OrbitTuple = [
@@ -23,11 +28,11 @@ export interface CompactSummaryNode {
   s?: string;
   c?: number;
   u?: number;
-  k?: 'star' | 'white-dwarf' | 'brown-dwarf' | 'neutron-star' | 'black-hole' | number;
-  cl?: 'star' | 'white-dwarf' | 'brown-dwarf' | 'neutron-star' | 'black-hole';
+  k?: StellarClassification | number;
+  cl?: StellarClassification;
   rt?: CelestialSymbolType;
   e?: number;
-  b?: [number, number, number, number];
+  b?: PlanetCompositionCounts;
   h?: 1;
   g?: number;
   q?: string;
@@ -55,7 +60,7 @@ export interface CompactStellarComponent {
   u?: number;
   r?: number;
   T?: number;
-  rt?: CelestialSymbolType;
+  rt: CelestialSymbolType;
 }
 
 export type CompactStarRecord = CompactStellarComponent;
@@ -67,7 +72,7 @@ export interface CompactSatelliteRecord {
   r?: number;
   re?: number;
   me?: number;
-  c?: 'terrestrial' | 'super-earth' | 'sub-neptune' | 'gas-giant';
+  c?: PlanetComposition;
   rt?: CelestialSymbolType;
   o: OrbitTuple;
   d?: string;
@@ -85,8 +90,9 @@ export interface CompactExoplanet {
   R?: number;
   T?: number;
   s?: number;
-  c?: 2 | 3 | 4;
+  c: 1 | 2 | 3 | 4;
   g?: number;
+  tl?: 1;
   H?: number;
   h?: 1;
   o?: OrbitTuple;
@@ -122,7 +128,7 @@ export interface CompactSystemManifest {
   S: CompactStellarComponent[];
   E: CompactExoplanet[];
   D?: CompactCircumstellarDisk[];
-  b?: [number, number, number, number];
+  b?: PlanetCompositionCounts;
   h?: 1;
   g?: number;
   o?: string;
@@ -166,7 +172,10 @@ export interface CompactSolarSystemBody {
   z?: 1;
   e?: 'belt' | 'kuiper';
   s?: string;
-  u?: 'terrestrial' | 'super-earth' | 'sub-neptune' | 'gas-giant';
+  u?: PlanetComposition;
+  sg?: number;
+  H?: number;
+  tl?: 1;
   core?: 1;
 }
 
@@ -199,8 +208,8 @@ export interface CompactSearchEntry {
   p?: [number, number, number];
   m?: SearchSummaryTuple;
   g?: number;
-  b?: [number, number, number, number];
-  u?: CelestialClassification | 'super-earth' | 'sub-neptune';
+  b?: PlanetCompositionCounts;
+  u?: CelestialClassification;
   H?: number;
   z?: 1;
   r?: number;

@@ -1,6 +1,8 @@
 import type {
+  PlanetComposition,
   SystemManifest,
   SystemSummaryNode,
+  SystemTag,
 } from '../../src/types/astro';
 import type { SectorPartitionManifest } from '../../src/types/astroCoordinates';
 import type {
@@ -27,7 +29,11 @@ import {
   computePlanetCompositionCounts,
   isPlanetHabitableCandidate,
 } from '../../src/utils/planetaryPhysics';
-import { precalculateSolarSystemBodyFlags } from '../../src/utils/astroPrecalculation';
+import {
+  precalculateSolarSystemBodyFlags,
+  resolveStellarClassificationFromSpectrum,
+  resolveStellarReticleType,
+} from '../../src/utils/astroPrecalculation';
 import {
   encodeCircumstellarDisk,
   encodeExoplanet,
@@ -36,7 +42,7 @@ import {
 } from './compactEntityEncoder';
 
 export function encodePlanetCensusMask(
-  census?: ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[],
+  census?: PlanetComposition[],
 ): number | undefined {
   if (!census || census.length === 0) return undefined;
   let mask = 0;
@@ -46,7 +52,7 @@ export function encodePlanetCensusMask(
   return mask > 0 ? mask : undefined;
 }
 
-export function encodeTagsMask(tags?: readonly string[]): number | undefined {
+export function encodeTagsMask(tags?: readonly SystemTag[]): number | undefined {
   if (!tags || tags.length === 0) return undefined;
   let mask = 0;
   for (const tag of tags) {
@@ -154,13 +160,18 @@ export function encodeSystemManifest(
         s: s.spectralType,
         m: s.mag,
         M: s.absmag,
+        rt:
+          s.reticleType ??
+          resolveStellarReticleType(
+            resolveStellarClassificationFromSpectrum(s.spectralType),
+            false,
+          ),
       };
       if (s.componentDesignation && s.componentDesignation !== 'A') comp.d = s.componentDesignation;
       if (s.luminosityLsun !== undefined) comp.l = s.luminosityLsun;
       if (s.massMsun !== undefined) comp.u = s.massMsun;
       if (s.radiusRsun !== undefined) comp.r = s.radiusRsun;
       if (s.effectiveTempK !== undefined) comp.T = s.effectiveTempK;
-      if (s.reticleType !== undefined) comp.rt = s.reticleType;
       return comp;
     }),
     E: sys.planets.map(encodeExoplanet),
@@ -176,7 +187,8 @@ export function encodeSystemManifest(
   const counts = sys.planetCompositionCounts ?? computePlanetCompositionCounts(sys.planets);
   if (
     counts &&
-    ((counts[0] ?? 0) > 0 ||
+    (sys.planets.length > 0 ||
+      (counts[0] ?? 0) > 0 ||
       (counts[1] ?? 0) > 0 ||
       (counts[2] ?? 0) > 0 ||
       (counts[3] !== undefined && counts[3] > 0))

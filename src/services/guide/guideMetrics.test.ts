@@ -9,7 +9,79 @@ import {
   clearDetailsRepositoryCache,
   seedDetailRecord,
 } from '../../data/detailsRepository';
+import {
+  clearReferenceBaselinesCache,
+  seedReferenceBaselines,
+} from '../../data/referenceBaselinesRepository';
 import type { SystemManifest } from '../../types/astro';
+import type { ReferenceBaselinesDataset } from '../../types/guideData';
+
+const BASELINES_FIXTURE: ReferenceBaselinesDataset = {
+  version: 1,
+  generatedAt: '2026-01-01T00:00:00.000Z',
+  targets: {
+    sol: {
+      id: 'sol',
+      name: 'Sol',
+      systemId: 'sol',
+      href: '/system/sol',
+      spectralType: 'G2V',
+      coordinatesPc: [0, 0, 0],
+      massMsun: { value: 1.0, unit: 'M☉' },
+      radiusRsun: { value: 1.0, unit: 'R☉' },
+      luminosityLsun: { value: 1.0, unit: 'L☉' },
+      effectiveTempK: { value: 5778, unit: 'K' },
+      visualMagnitude: { value: -26.74, unit: 'V' },
+      absoluteMagnitude: { value: 4.83, unit: 'M_V' },
+      reticleType: 'stellar-system',
+    },
+    earth: {
+      id: 'earth',
+      name: 'Earth',
+      systemId: 'sol',
+      systemName: 'Sol',
+      href: '/planet/earth',
+      coordinatesPc: [0, 0, 0],
+      massMearth: { value: 1.0, unit: 'M⊕' },
+      radiusRearth: { value: 1.0, unit: 'R⊕' },
+      semiMajorAxisAu: { value: 1.0, unit: 'AU' },
+      periodDays: { value: 365.26, unit: 'd' },
+      inclinationDeg: { value: 0, unit: '°' },
+      equilibriumTempK: { value: 248.52, unit: 'K' },
+      surfaceGravityG: { value: 1.0, unit: 'g' },
+      reticleType: 'terrestrial',
+    },
+    stellarBenchmark: {
+      id: 'tau-ceti',
+      systemId: 'gaia-2452378776434477184',
+      name: 'Tau Ceti',
+      href: '/system/tau-ceti',
+      spectralType: 'G8V',
+      coordinatesPc: [3.156, 1.54, -1.003],
+      reticleType: 'stellar-system',
+    },
+    orbitalBenchmark: {
+      id: 'tau-ceti-e',
+      systemId: 'gaia-2452378776434477184',
+      systemName: 'Tau Ceti',
+      name: 'Tau Ceti e',
+      href: '/system/tau-ceti?focus=tau-ceti-e',
+      reticleType: 'super-earth',
+    },
+  },
+  metrics: {
+    'surface-gravity': {
+      baselineId: 'earth',
+      baselineName: 'Earth',
+      baselineHref: '/planet/earth',
+      baselineReticleType: 'terrestrial',
+      value: '1.00 g',
+      familiar: '1.00 g (9.81 m/s²)',
+      numericValue: 1.0,
+      unit: 'g',
+    },
+  },
+};
 
 const TAU_CETI_FIXTURE: SystemManifest = {
   id: 'gaia-2452378776434477184',
@@ -60,6 +132,7 @@ const TAU_CETI_FIXTURE: SystemManifest = {
 describe('guideMetrics', () => {
   beforeEach(() => {
     clearDetailsRepositoryCache();
+    clearReferenceBaselinesCache();
   });
 
   describe('resolveMetricGuideEntry & resolveMetricGuideEntries', () => {
@@ -110,6 +183,7 @@ describe('guideMetrics', () => {
 
   describe('resolveMetricComparison', () => {
     beforeEach(() => {
+      seedReferenceBaselines(BASELINES_FIXTURE);
       seedDetailRecord('tau-ceti', { kind: 'system', record: TAU_CETI_FIXTURE });
       seedDetailRecord('tau-ceti-e', { kind: 'system', record: TAU_CETI_FIXTURE });
     });

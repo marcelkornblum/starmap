@@ -17,7 +17,7 @@ export const StarPreviewG2V: Story = {
     luminosityClass: 'V',
     radiusRsun: 1.0,
     tempK: 5778,
-    chromaticityHex: '#fff4ea',
+    chromaticityToken: 'var(--star-chromaticity-g)',
     isDetail: true,
   },
 };
@@ -30,7 +30,7 @@ export const StarPreviewOType: Story = {
     luminosityClass: 'V',
     radiusRsun: 10.0,
     tempK: 33000,
-    chromaticityHex: '#9bb0ff',
+    chromaticityToken: 'var(--star-chromaticity-o)',
     isDetail: true,
   },
 };

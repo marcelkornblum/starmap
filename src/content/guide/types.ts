@@ -13,7 +13,11 @@ import {
   buildMetricGuideHref,
   buildHazardGuideHref,
 } from '../../utils/url';
-import type { CelestialSymbolType } from '../../types/astro';
+import {
+  PLANET_COMPOSITIONS,
+  type PlanetComposition,
+} from '../../types/astro';
+import type { ResolvedGuideExampleItem } from '../../types/guideData';
 
 export {
   STAR_TYPES_GUIDE_PATH,
@@ -26,21 +30,11 @@ export {
   buildHazardGuideHref,
 };
 
-export const PLANET_COMPOSITION_TYPES = [
-  'terrestrial',
-  'super-earth',
-  'ice-giant',
-  'gas-giant',
-] as const;
+export const PLANET_COMPOSITION_TYPES = PLANET_COMPOSITIONS;
 
-export type PlanetCompositionClass = (typeof PLANET_COMPOSITION_TYPES)[number];
+export type PlanetCompositionClass = PlanetComposition;
 
-export interface GuideExampleTarget {
-  readonly name: string;
-  readonly href: string;
-  readonly note: string;
-  readonly reticleType?: CelestialSymbolType;
-}
+export type GuideExampleTarget = ResolvedGuideExampleItem;
 
 export interface GuideCatalogEntry {
   readonly id: string;
@@ -61,10 +55,8 @@ export interface StarTypeGuideEntry {
   readonly habitableZoneAu: string;
   readonly chromaticity: string;
   readonly href: string;
-  readonly examples: readonly GuideExampleTarget[];
   readonly canonicalRadiusRsun: number;
-  readonly canonicalTempK: number;
-  readonly chromaticityHex: string;
+  readonly chromaticityToken: string;
   readonly interiorLayers: readonly string[];
 }
 
@@ -78,7 +70,6 @@ export interface PlanetTypeGuideEntry {
   readonly bulkComposition: string;
   readonly habitabilityNotes: string;
   readonly href: string;
-  readonly examples: readonly GuideExampleTarget[];
   readonly canonicalRadiusRearth: number;
   readonly textureTheme: string;
   readonly interiorLayers: readonly string[];
@@ -94,10 +85,8 @@ export interface MetricGuideEntry {
   readonly physicalDefinition: string;
   readonly referenceBaseline: string;
   readonly href: string;
-  readonly examples: readonly GuideExampleTarget[];
   readonly familiarConversion: string;
-  readonly comparisonBaselineLabel: 'Sol' | 'Earth';
-  readonly comparisonBaselineValue: string;
+  readonly comparisonBaselineId: string;
 }
 
 export interface HazardGuideEntry {
@@ -120,5 +109,4 @@ export interface HazardGuideEntry {
   readonly operationalImpact: string;
   readonly mitigationNotes: string;
   readonly href: string;
-  readonly examples: readonly GuideExampleTarget[];
 }

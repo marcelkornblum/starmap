@@ -28,11 +28,13 @@ import {
   classifyPlanetPhysical,
   computePlanetSurfaceGravityG,
   isPlanetHabitableCandidate,
+  isPlanetTidallyLocked,
 } from '../../src/utils/planetaryPhysics';
 import { computePlanetHazardMask } from '../../src/utils/astroHazards';
 import {
   precalculateSolarSystemBodyFlags,
   resolveDefaultStructureDescription,
+  resolvePlanetReticleType,
 } from '../../src/utils/astroPrecalculation';
 
 export function encodeOrbitTuple(orbit: KeplerianOrbit): OrbitTuple;
@@ -87,10 +89,13 @@ export function encodeCircumstellarDisk(disk: CircumstellarDiskRecord): CompactC
 }
 
 export function encodeExoplanet(planet: ExoplanetRecord): CompactExoplanet {
+  const comp = planet.composition ?? classifyPlanetPhysical(planet);
+  const compCode = PLANET_COMP_TO_CODE[comp];
   const compact: CompactExoplanet = {
     i: planet.id,
     n: planet.name,
     l: planet.letter,
+    c: compCode,
   };
   if (planet.discoveryYear !== undefined) compact.y = planet.discoveryYear;
   if (planet.discoveryMethod) {
@@ -117,6 +122,14 @@ export function encodeExoplanet(planet: ExoplanetRecord): CompactExoplanet {
       : undefined;
   if (surfaceGravityG !== undefined) compact.g = surfaceGravityG;
 
+  const isTidallyLocked =
+    planet.isTidallyLocked ??
+    isPlanetTidallyLocked({
+      periodDays: planet.orbit?.periodDays,
+      semiMajorAxisAu: planet.orbit?.semiMajorAxis,
+    });
+  if (isTidallyLocked) compact.tl = 1;
+
   const hazardMask =
     planet.hazardMask ??
     computePlanetHazardMask({
@@ -127,10 +140,6 @@ export function encodeExoplanet(planet: ExoplanetRecord): CompactExoplanet {
       eccentricity: planet.orbit?.eccentricity,
     });
   if (hazardMask > 0) compact.H = hazardMask;
-
-  const comp = planet.composition ?? classifyPlanetPhysical(planet);
-  const compCode = PLANET_COMP_TO_CODE[comp];
-  if (compCode !== 1) compact.c = compCode as 2 | 3 | 4;
 
   const isHz =
     planet.isHabitableCandidate ??
@@ -148,7 +157,7 @@ export function encodeExoplanet(planet: ExoplanetRecord): CompactExoplanet {
     if (code !== 1) compact.C = code;
   }
   if (planet.theoreticalFlags && planet.theoreticalFlags > 0) compact.f = planet.theoreticalFlags;
-  if (planet.reticleType) compact.rt = planet.reticleType;
+  compact.rt = planet.reticleType ?? resolvePlanetReticleType(comp);
   if (planet.satellites && planet.satellites.length > 0) {
     compact.sat = planet.satellites.map(encodeSatellite);
   }
@@ -219,6 +228,11 @@ export function encodeSolarSystemBody(
   if (body.beltZone) compact.e = body.beltZone;
   if (body.targetStarId) compact.s = body.targetStarId;
   if (body.composition) compact.u = body.composition;
+  if (body.surfaceGravityG !== undefined && Number.isFinite(body.surfaceGravityG)) {
+    compact.sg = body.surfaceGravityG;
+  }
+  if (body.hazardMask && body.hazardMask > 0) compact.H = body.hazardMask;
+  if (body.isTidallyLocked) compact.tl = 1;
   if (body.isCoreSearch) compact.core = 1;
 
   return compact;

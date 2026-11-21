@@ -14,7 +14,11 @@ import {
 } from '../components/interface';
 import { HAZARDS_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
-import { resolveHazardGuideEntries } from '../services/guide/guideCatalogExamples';
+import {
+  getGuideExamplesForEntry,
+  resolveHazardGuideEntries,
+} from '../services/guide/guideCatalogExamples';
+import { useHydratedGuideExamples } from '../hooks/useGuideData';
 import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
@@ -39,6 +43,8 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
   const resolvedHazardId =
     routeParams?.hazardId ?? propHazardId ?? '';
   const focusedEntityId = extractFocusIdFromSearch(search);
+
+  useHydratedGuideExamples();
 
   const entries = useMemo(
     () => resolveHazardGuideEntries(resolvedHazardId),
@@ -130,7 +136,9 @@ export const HazardDetailView: React.FC<HazardDetailViewProps> = ({
                 <Datum label="Mitigation" value={entry.mitigationNotes} />
               </Stack>
 
-              <GuideExamplesList examples={entry.examples} />
+              <GuideExamplesList
+                examples={getGuideExamplesForEntry('hazardTypes', entry.id)}
+              />
             </section>
           ))}
         </>

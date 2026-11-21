@@ -10,10 +10,6 @@ import type {
   ExoplanetRecord,
 } from '../../types/astro';
 import type { StarTypeGuideEntry } from '../../content/guide';
-import {
-  SOL_REFERENCE_TARGET,
-  EARTH_REFERENCE_TARGET,
-} from '../../config/referenceTargets';
 
 export interface DecodedStarSubtype {
   readonly spectralLetter: string;
@@ -43,7 +39,8 @@ export interface MetricTargetComparison {
 
 export interface MetricComparison {
   readonly metricId: string;
-  readonly baselineName: typeof SOL_REFERENCE_TARGET.name | typeof EARTH_REFERENCE_TARGET.name;
+  readonly baselineId: string;
+  readonly baselineName: string;
   readonly baselineHref: string;
   readonly baselineValue: string;
   readonly baselineFamiliar: string;

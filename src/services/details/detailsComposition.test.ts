@@ -14,34 +14,29 @@ describe('detailsComposition', () => {
       expect(
         classifyExoplanetComposition({ composition: 'super-earth' }),
       ).toBe('super-earth');
+      expect(
+        classifyExoplanetComposition({ composition: 'gas-giant' }),
+      ).toBe('gas-giant');
     });
 
-    it('derives composition physically when absent', () => {
-      expect(
-        classifyExoplanetComposition({ massMearth: 1.0, radiusRearth: 1.0 }),
-      ).toBe('terrestrial');
-      expect(
-        classifyExoplanetComposition({ massMearth: 300, radiusRearth: 11.2 }),
-      ).toBe('gas-giant');
+    it('defaults to terrestrial when precalculated composition is absent', () => {
+      expect(classifyExoplanetComposition({})).toBe('terrestrial');
     });
   });
 
   describe('isExoplanetHabitableCandidate', () => {
-    it('checks optimistic habitable envelope', () => {
+    it('reads precalculated isHabitableCandidate directly', () => {
       expect(
         isExoplanetHabitableCandidate({
-          equilibriumTempK: 255,
-          esi: 0.8,
           isHabitableCandidate: true,
         }),
       ).toBe(true);
       expect(
         isExoplanetHabitableCandidate({
-          equilibriumTempK: 500,
-          esi: 0.2,
           isHabitableCandidate: false,
         }),
       ).toBe(false);
+      expect(isExoplanetHabitableCandidate({})).toBe(false);
     });
   });
 

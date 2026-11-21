@@ -9,6 +9,8 @@ vi.mock('@tanstack/react-router', () => ({
   useRouter: vi.fn(() => undefined),
 }));
 import { clearDetailsRepositoryCache, seedDetailRecord } from '../data/detailsRepository';
+import { clearGuideExamplesCache } from '../data/guideExamplesRepository';
+import { clearReferenceBaselinesCache } from '../data/referenceBaselinesRepository';
 import type { SystemManifest } from '../types/astro';
 
 const TAU_CETI_FIXTURE: SystemManifest = {
@@ -61,6 +63,8 @@ describe('<MetricDetailView />', () => {
   beforeEach(() => {
     vi.mocked(useParams).mockReturnValue({});
     clearDetailsRepositoryCache();
+    clearGuideExamplesCache();
+    clearReferenceBaselinesCache();
   });
 
   it('renders single metric detail view with baseline and comparative panel', () => {

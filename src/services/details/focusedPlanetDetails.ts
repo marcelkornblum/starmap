@@ -1,10 +1,6 @@
 import type { SystemManifest } from '../../types/astro';
 import type { SolarSystemBodyRecord } from '../../types/astroStructures';
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
-import {
-  computePlanetSurfaceGravityG,
-  isPlanetTidallyLocked,
-} from '../../utils/planetaryPhysics';
 import type {
   EntityHazardItem,
   FocusedEntityDetailsBase,
@@ -16,9 +12,6 @@ import type { SystemElementBodyItem } from './detailsHierarchyTypes';
 
 const DEFAULT_STAR_MASS_MSUN = 1.0;
 const EARTH_ORBITAL_YEAR_DAYS = 365.25;
-const EARTH_MASS_KG = 5.97237e24;
-const EARTH_RADIUS_KM = 6371.0;
-const ESI_REFERENCE_TEMP_K = 288;
 
 export function buildFocusedPlanetDetails(
   baseDetails: FocusedEntityDetailsBase,
@@ -75,37 +68,14 @@ export function buildFocusedPlanetDetails(
     matchedPlanetDetail?.inclinationDeg ?? fallbackInclination;
 
   const surfaceGravityG =
-    matchedPlanetDetail?.surfaceGravityG ??
-    (solarBodyRecord && solarBodyRecord.massKg && solarBodyRecord.meanRadiusKm
-      ? computePlanetSurfaceGravityG({
-          massMearth: solarBodyRecord.massKg / EARTH_MASS_KG,
-          radiusRearth: solarBodyRecord.meanRadiusKm / EARTH_RADIUS_KM,
-        })
-      : computePlanetSurfaceGravityG({
-          massMearth: matchedPlanetDetail?.massMearth,
-          radiusRearth: matchedPlanetDetail?.radiusRearth,
-        }));
+    matchedPlanetDetail?.surfaceGravityG ?? solarBodyRecord?.surfaceGravityG;
 
   const isTidallyLockedFlag =
     matchedPlanetDetail?.isTidallyLocked ??
-    isPlanetTidallyLocked({
-      periodDays,
-      semiMajorAxisAu,
-    });
+    solarBodyRecord?.isTidallyLocked ??
+    false;
 
-  const esi =
-    matchedPlanetDetail?.esi ??
-    (matchedPlanetDetail?.radiusRearth && matchedPlanetDetail?.equilibriumTempK
-      ? Math.round(
-          Math.sqrt(
-            Math.max(
-              0,
-              (1 - Math.abs((matchedPlanetDetail.radiusRearth - 1) / (matchedPlanetDetail.radiusRearth + 1))) *
-                (1 - Math.abs((matchedPlanetDetail.equilibriumTempK - ESI_REFERENCE_TEMP_K) / (matchedPlanetDetail.equilibriumTempK + ESI_REFERENCE_TEMP_K))),
-            ),
-          ) * 100,
-        ) / 100
-      : undefined);
+  const esi = matchedPlanetDetail?.esi;
 
   return {
     ...baseDetails,

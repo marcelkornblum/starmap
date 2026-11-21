@@ -1,10 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { ExoplanetRecord, KeplerianOrbit, StarmapNode } from '../../src/types/astro';
+import type {
+  ExoplanetRecord,
+  KeplerianOrbit,
+  PlanetComposition,
+  StarmapNode,
+} from '../../src/types/astro';
 import {
   classifyPlanetPhysical,
   computePlanetSurfaceGravityG,
   isPlanetHabitableCandidate,
+  isPlanetTidallyLocked,
 } from '../../src/utils/planetaryPhysics';
 import { computePlanetHazardMask } from '../../src/utils/astroHazards';
 import { resolvePlanetReticleType } from '../../src/utils/astroPrecalculation';
@@ -13,7 +19,7 @@ import { expandGouldOrConstellationSuffix } from '../../src/utils/starNaming';
 import { parseCsvRowsSync } from './csvParser';
 import { IAU_NAME_EXOWORLDS } from './seedCatalogs';
 
-function computeEsi(rEarth?: number, temperature?: number): number | undefined {
+export function computeEsi(rEarth?: number, temperature?: number): number | undefined {
   if (rEarth !== undefined && temperature !== undefined && !isNaN(rEarth) && !isNaN(temperature)) {
     const rTerm = 1 - Math.abs((rEarth - 1) / (rEarth + 1));
     const tTerm = 1 - Math.abs((temperature - 288) / (temperature + 288));
@@ -246,7 +252,7 @@ export function checkHabitableCandidate(planets: ExoplanetRecord[], starLum?: nu
   );
 }
 
-export function classifyExoplanet(planet: ExoplanetRecord): 'terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant' {
+export function classifyExoplanet(planet: ExoplanetRecord): PlanetComposition {
   return planet.composition ?? classifyPlanetPhysical(planet);
 }
 
@@ -257,26 +263,37 @@ export function enrichPlanetsWithPrecalculatedFields(
   return planets.map((p) => {
     const composition = p.composition ?? classifyPlanetPhysical(p);
     const surfaceGravityG = p.surfaceGravityG ?? computePlanetSurfaceGravityG(p);
+    const isTidallyLocked =
+      p.isTidallyLocked ??
+      isPlanetTidallyLocked({
+        periodDays: p.orbit?.periodDays,
+        semiMajorAxisAu: p.orbit?.semiMajorAxis,
+      });
+    const esi = p.esi ?? computeEsi(p.radiusRearth, p.equilibriumTempK);
     const hazardMask =
       p.hazardMask ??
       computePlanetHazardMask({
         equilibriumTempK: p.equilibriumTempK, surfaceGravityG, periodDays: p.orbit?.periodDays, semiMajorAxisAu: p.orbit?.semiMajorAxis, eccentricity: p.orbit?.eccentricity,
       });
 
-    const reticleComp = composition === 'ice-giant' ? 'sub-neptune' : composition;
     return {
-      ...p, composition, reticleType: p.reticleType ?? resolvePlanetReticleType(reticleComp),
+      ...p,
+      composition,
+      reticleType: p.reticleType ?? resolvePlanetReticleType(composition),
       isHabitableCandidate:
         p.isHabitableCandidate ??
         isPlanetHabitableCandidate(
-          { equilibriumTempK: p.equilibriumTempK, esi: p.esi, semiMajorAxis: p.orbit?.semiMajorAxis }, starLum,
+          { equilibriumTempK: p.equilibriumTempK, esi, semiMajorAxis: p.orbit?.semiMajorAxis }, starLum,
         ),
-      ...(surfaceGravityG !== undefined ? { surfaceGravityG } : {}), ...(hazardMask > 0 ? { hazardMask } : {}),
+      isTidallyLocked,
+      ...(esi !== undefined ? { esi } : {}),
+      ...(surfaceGravityG !== undefined ? { surfaceGravityG } : {}),
+      ...(hazardMask > 0 ? { hazardMask } : {}),
     };
   });
 }
 
-export function getPlanetCensus(planets: ExoplanetRecord[]): ('terrestrial' | 'super-earth' | 'gas-giant' | 'ice-giant')[] | undefined {
+export function getPlanetCensus(planets: ExoplanetRecord[]): PlanetComposition[] | undefined {
   if (planets.length === 0) return undefined;
   const present = (['terrestrial', 'super-earth', 'gas-giant', 'ice-giant'] as const).filter((cat) =>
     planets.some((p) => classifyExoplanet(p) === cat)

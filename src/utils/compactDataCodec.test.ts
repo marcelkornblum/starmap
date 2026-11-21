@@ -8,10 +8,13 @@ import {
   decodeSummaryNode,
   decodeSystemManifest,
 } from './compactDataCodec';
+import { decodeExoplanet } from './compactEntityDecoder';
 import type {
   CompactDetailRecord,
+  CompactExoplanet,
   CompactSectorPartition,
   CompactSummaryNode,
+  CompactSystemManifest,
   ShardedBucketEnvelope,
 } from './compactDataTypes';
 import {
@@ -268,5 +271,32 @@ describe('AUD-048 / AUD-051 / DEC-R029: Wire Format Versioning & Precalculated F
     const decoded = decodeSummaryNode(encoded);
     expect(decoded.classification).toBe('white-dwarf');
     expect(decoded.reticleType).toBe('white-dwarf');
+  });
+
+  it('throws explicit descriptive errors when required precalculated fields are missing in decoders', () => {
+    const missingCompPlanet = {
+      i: 'bad-planet',
+      n: 'Bad Planet',
+      l: 'b',
+    } as unknown as CompactExoplanet;
+    expect(() => decodeExoplanet(missingCompPlanet)).toThrow(/composition/i);
+
+    const missingStarRtManifest = {
+      n: 'Bad System',
+      p: [1, 2, 3],
+      S: [{ i: 's1', n: 'Star 1', s: 'G2V', m: 5, M: 4 }],
+      E: [],
+    } as unknown as CompactSystemManifest;
+    expect(() => decodeSystemManifest(missingStarRtManifest, 'bad-sys')).toThrow(/reticleType|rt/i);
+
+    const missingCountsManifest = {
+      n: 'Bad Planet System',
+      p: [1, 2, 3],
+      S: [{ i: 's1', n: 'Star 1', s: 'G2V', m: 5, M: 4, rt: 'stellar-system' }],
+      E: [{ i: 'p1', n: 'Planet b', l: 'b', c: 1 }],
+    } as unknown as CompactSystemManifest;
+    expect(() => decodeSystemManifest(missingCountsManifest, 'bad-planet-sys')).toThrow(
+      /planetCompositionCounts|b/i,
+    );
   });
 });

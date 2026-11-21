@@ -21,6 +21,7 @@ export interface EntityCatalog {
 const GENERIC_EXCLUSION_WORDS = new Set([
   'name', 'type', 'id', 'system', 'systems', 'planet', 'planets', 'star', 'stars',
   'moon', 'moons', 'galaxy', 'galaxies', 'core', 'belt', 'ring', 'rings', 'disk', 'disks',
+  'kuiper-belt', 'kuiper belt', 'asteroid-belt', 'asteroid belt', 'debris-disk', 'debris disk',
   'cluster', 'group', 'orbit', 'orbits', 'view', 'guide', 'search', 'filter', 'sort',
   'light', 'dark', 'auto', 'none', 'default', 'small', 'medium', 'large', 'sm', 'md', 'lg',
   'px', 'rem', 'em', 'deg', 'rad', 'au', 'pc', 'ly', 'km', 'm', 's', 'kg', 'k', 'ms', 'fps',
@@ -33,51 +34,165 @@ const GENERIC_EXCLUSION_WORDS = new Set([
   'wheel', 'scroll', 'resize', 'body', 'bodies', 'node', 'nodes', 'child', 'children',
 ]);
 
+const RAW_CATALOG_ID_PATTERNS = [
+  /^gaia-\d+(?:-[a-z0-9]+)?$/i,
+  /^hip-\d+(?:-[a-z0-9]+)?$/i,
+  /^hyg-\d+(?:-[a-z0-9]+)?$/i,
+];
+
+const SLUG_ID_PATTERN = /^[a-z0-9-]+$/;
+
+function isRawCatalogIdLiteral(value: string): boolean {
+  return RAW_CATALOG_ID_PATTERNS.some((pattern) => pattern.test(value));
+}
+
+function addEntityId(entityIds: Set<string>, raw: unknown): void {
+  if (typeof raw !== 'string') return;
+  const normalized = raw.trim().toLowerCase();
+  if (normalized.length >= 3 && !GENERIC_EXCLUSION_WORDS.has(normalized)) {
+    entityIds.add(normalized);
+  }
+}
+
+function addEntityName(entityNames: Set<string>, raw: unknown): void {
+  if (typeof raw !== 'string') return;
+  const trimmed = raw.trim();
+  if (trimmed.length >= 3 && !GENERIC_EXCLUSION_WORDS.has(trimmed.toLowerCase())) {
+    entityNames.add(trimmed);
+  }
+}
+
+function readSeedJson(seedDir: string, filename: string): unknown | null {
+  const filePath = path.join(seedDir, filename);
+  if (!fs.existsSync(filePath)) return null;
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
 /**
- * Loads entity IDs and names from public/data search shards.
+ * Loads entity IDs and names strictly from data/seed/*.json.
+ * Fails loudly if the resulting entity catalog is empty.
  */
 export function loadEntityCatalog(projectRoot = process.cwd()): EntityCatalog {
   const entityIds = new Set<string>();
   const entityNames = new Set<string>();
+  const seedDir = path.join(projectRoot, 'data/seed');
 
-  const searchFiles = [
-    path.join(projectRoot, 'public/data/search/core.json'),
-    path.join(projectRoot, 'public/data/search/stars.json'),
-    path.join(projectRoot, 'public/data/search/planets.json'),
-  ];
-
-  for (const file of searchFiles) {
-    if (!fs.existsSync(file)) continue;
-    try {
-      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-      if (Array.isArray(data.d)) {
-        for (const item of data.d) {
-          if (item.i && typeof item.i === 'string') {
-            const id = item.i.toLowerCase();
-            if (!GENERIC_EXCLUSION_WORDS.has(id) && id.length >= 3) {
-              entityIds.add(id);
-            }
-          }
-          if (item.n && typeof item.n === 'string') {
-            const name = item.n.trim();
-            if (!GENERIC_EXCLUSION_WORDS.has(name.toLowerCase()) && name.length >= 3) {
-              entityNames.add(name);
-            }
-          }
-        }
-      }
-    } catch {
-      // Ignore JSON parse errors in individual shards
+  const solarBodies = readSeedJson(seedDir, 'solar-system-bodies.json');
+  if (Array.isArray(solarBodies)) {
+    for (const body of solarBodies) {
+      if (!body || typeof body !== 'object') continue;
+      const rec = body as Record<string, unknown>;
+      addEntityId(entityIds, rec.id);
+      addEntityName(entityNames, rec.name);
+      addEntityName(entityNames, rec.displayName);
+      addEntityName(entityNames, rec.properName);
     }
   }
 
-  // Ensure key benchmark celestial names are always included
-  ['sol', 'earth', 'luna', 'mars', 'venus', 'jupiter', 'saturn', 'tau-ceti', 'proxima-centauri'].forEach((id) =>
-    entityIds.add(id)
-  );
-  ['Sol', 'Earth', 'Luna', 'Mars', 'Venus', 'Jupiter', 'Saturn', 'Tau Ceti', 'Proxima Centauri'].forEach((name) =>
-    entityNames.add(name)
-  );
+  const iauStars = readSeedJson(seedDir, 'iau-star-names.json');
+  if (iauStars && typeof iauStars === 'object' && !Array.isArray(iauStars)) {
+    for (const [starId, entry] of Object.entries(iauStars as Record<string, unknown>)) {
+      addEntityId(entityIds, starId);
+      if (!entry || typeof entry !== 'object') continue;
+      const rec = entry as Record<string, unknown>;
+      addEntityName(entityNames, rec.properName);
+      if (Array.isArray(rec.aliases)) {
+        for (const alias of rec.aliases) addEntityName(entityNames, alias);
+      }
+    }
+  }
+
+  const recons = readSeedJson(seedDir, 'recons-10pc.json');
+  if (Array.isArray(recons)) {
+    for (const item of recons) {
+      if (!item || typeof item !== 'object') continue;
+      const rec = item as Record<string, unknown>;
+      addEntityId(entityIds, rec.id);
+      addEntityName(entityNames, rec.name);
+      addEntityName(entityNames, rec.properName);
+      if (Array.isArray(rec.aliases)) {
+        for (const alias of rec.aliases) addEntityName(entityNames, alias);
+      }
+    }
+  }
+
+  const exoNames = readSeedJson(seedDir, 'name-exoworlds.json');
+  if (exoNames && typeof exoNames === 'object' && !Array.isArray(exoNames)) {
+    for (const entry of Object.values(exoNames as Record<string, unknown>)) {
+      if (!entry || typeof entry !== 'object') continue;
+      const rec = entry as Record<string, unknown>;
+      addEntityName(entityNames, rec.starName);
+      addEntityName(entityNames, rec.planetName);
+    }
+  }
+
+  const structures = readSeedJson(seedDir, 'galactic-structures.json');
+  if (Array.isArray(structures)) {
+    for (const item of structures) {
+      if (!item || typeof item !== 'object') continue;
+      const rec = item as Record<string, unknown>;
+      addEntityId(entityIds, rec.id);
+      addEntityName(entityNames, rec.name);
+      if (Array.isArray(rec.designations)) {
+        for (const designation of rec.designations) addEntityName(entityNames, designation);
+      }
+    }
+  }
+
+  const disks = readSeedJson(seedDir, 'circumstellar-disks.json');
+  if (disks && typeof disks === 'object' && !Array.isArray(disks)) {
+    for (const [hostName, diskList] of Object.entries(disks as Record<string, unknown>)) {
+      addEntityName(entityNames, hostName);
+      if (!Array.isArray(diskList)) continue;
+      for (const disk of diskList) {
+        if (!disk || typeof disk !== 'object') continue;
+        const rec = disk as Record<string, unknown>;
+        addEntityId(entityIds, rec.id);
+        addEntityName(entityNames, rec.name);
+      }
+    }
+  }
+
+  const aliases = readSeedJson(seedDir, 'system-aliases.json');
+  if (aliases && typeof aliases === 'object' && !Array.isArray(aliases)) {
+    const rec = aliases as Record<string, unknown>;
+    if (rec.specialSystemNameMap && typeof rec.specialSystemNameMap === 'object') {
+      for (const [aliasKey, canonicalName] of Object.entries(rec.specialSystemNameMap as Record<string, unknown>)) {
+        addEntityName(entityNames, aliasKey);
+        addEntityName(entityNames, canonicalName);
+      }
+    }
+    if (rec.diskHostAliases && typeof rec.diskHostAliases === 'object') {
+      for (const [hostKey, aliasList] of Object.entries(rec.diskHostAliases as Record<string, unknown>)) {
+        addEntityName(entityNames, hostKey);
+        if (Array.isArray(aliasList)) {
+          for (const alias of aliasList) addEntityName(entityNames, alias);
+        }
+      }
+    }
+  }
+
+  const guideExamples = readSeedJson(seedDir, 'guide-examples.json');
+  if (guideExamples && typeof guideExamples === 'object' && !Array.isArray(guideExamples)) {
+    for (const section of Object.values(guideExamples as Record<string, unknown>)) {
+      if (!section || typeof section !== 'object' || Array.isArray(section)) continue;
+      for (const group of Object.values(section as Record<string, unknown>)) {
+        if (!Array.isArray(group)) continue;
+        for (const item of group) {
+          if (!item || typeof item !== 'object') continue;
+          const rec = item as Record<string, unknown>;
+          addEntityId(entityIds, rec.entityId);
+          addEntityId(entityIds, rec.systemId);
+        }
+      }
+    }
+  }
+
+  if (entityIds.size === 0 || entityNames.size === 0) {
+    throw new Error(
+      `G-literals entity catalog loaded from ${seedDir} is empty (entityIds=${entityIds.size}, entityNames=${entityNames.size}).`
+    );
+  }
 
   return { entityIds, entityNames };
 }
@@ -184,12 +299,60 @@ export function isTelemetryIdentifier(name: string): boolean {
   return tokens.some((tok) => TELEMETRY_TOKEN_SET.has(tok));
 }
 
+function pushGuardedViolation(
+  violations: GuardViolation[],
+  filePath: string,
+  lines: string[],
+  loc: { line: number; column: number } | undefined,
+  message: string
+): void {
+  if (!loc) return;
+  const supp = checkSuppression(lines, loc.line, 'G-literals');
+  if (supp.invalidComment) {
+    violations.push({
+      filePath,
+      line: loc.line,
+      column: loc.column + 1,
+      ruleId: 'G-literals',
+      message: `Suppression comment "${supp.invalidComment}" without a required reason (-- <reason>) is forbidden.`,
+      snippet: (lines[loc.line - 1] || '').trim(),
+    });
+  } else if (!supp.suppressed) {
+    violations.push({
+      filePath,
+      line: loc.line,
+      column: loc.column + 1,
+      ruleId: 'G-literals',
+      message,
+      snippet: (lines[loc.line - 1] || '').trim(),
+    });
+  }
+}
+
+function getBindingContextLabel(parent?: ASTNode): string | null {
+  if (!parent) return null;
+  if (parent.type === 'ObjectProperty' && parent.key && typeof parent.key === 'object') {
+    const keyNode = parent.key as ASTNode;
+    if (keyNode.type === 'Identifier' && typeof keyNode.name === 'string') {
+      return keyNode.name;
+    }
+  }
+  if (parent.type === 'VariableDeclarator' && parent.id && typeof parent.id === 'object') {
+    const idNode = parent.id as ASTNode;
+    if (idNode.type === 'Identifier' && typeof idNode.name === 'string') {
+      return idNode.name;
+    }
+  }
+  return null;
+}
+
 /**
  * G-literals: Checks source for entity literal mentions and suspicious numeric fallbacks.
  */
 export function auditLiteralsContent(filePath: string, content: string, catalog: EntityCatalog): GuardViolation[] {
   const normPath = filePath.replace(/\\/g, '/');
-  if (normPath.includes('src/content/') || normPath.includes('src/config/')) return [];
+  const isReferenceTargetsFile =
+    normPath === 'src/config/referenceTargets.ts' || normPath.endsWith('/src/config/referenceTargets.ts');
   const violations: GuardViolation[] = [];
 
   let ast: ReturnType<typeof parse>;
@@ -233,7 +396,7 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
       return;
     }
 
-    // 1. Literal Entity IDs and Display Names (StringLiteral and 0-expression TemplateLiteral)
+    // 1. Literal Entity IDs, Display Names & Raw Catalogue IDs (StringLiteral and 0-expression TemplateLiteral)
     let val: string | null = null;
     if (node.type === 'StringLiteral' && typeof node.value === 'string') {
       val = node.value.trim();
@@ -248,7 +411,6 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
     }
 
     if (val !== null) {
-      // Wire-Envelope .t Discriminator Exemption
       let isWireDiscriminator = false;
       if (
         parent &&
@@ -270,36 +432,65 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
 
       if (!isWireDiscriminator) {
         const valLower = val.toLowerCase();
+        const isRawCatId = isRawCatalogIdLiteral(val);
         const matchesEntity = catalog.entityIds.has(valLower) || catalog.entityNames.has(val);
-        if (matchesEntity) {
-          const loc = node.loc?.start;
-          if (loc) {
-            const supp = checkSuppression(lines, loc.line, 'G-literals');
-            if (supp.invalidComment) {
-              violations.push({
-                filePath,
-                line: loc.line,
-                column: loc.column + 1,
-                ruleId: 'G-literals',
-                message: `Suppression comment "${supp.invalidComment}" without a required reason (-- <reason>) is forbidden.`,
-                snippet: (lines[loc.line - 1] || '').trim(),
-              });
-            } else if (!supp.suppressed) {
-              violations.push({
-                filePath,
-                line: loc.line,
-                column: loc.column + 1,
-                ruleId: 'G-literals',
-                message: `Hardcoded celestial entity literal "${val}" found in runtime code. Read from build-time data or precalculated shards.`,
-                snippet: (lines[loc.line - 1] || '').trim(),
-              });
-            }
+
+        if (isRawCatId) {
+          pushGuardedViolation(
+            violations,
+            filePath,
+            lines,
+            node.loc?.start,
+            `Hardcoded raw catalogue-ID literal "${val}" found in runtime code. Read from build-time data or precalculated shards.`
+          );
+        } else if (isReferenceTargetsFile) {
+          if (!SLUG_ID_PATTERN.test(val)) {
+            const msg = matchesEntity
+              ? `Hardcoded celestial entity display name "${val}" is forbidden in referenceTargets.ts; only lowercase structural slug IDs are permitted.`
+              : `Forbidden non-ID string literal "${val}" in referenceTargets.ts; only lowercase structural slug IDs are permitted.`;
+            pushGuardedViolation(violations, filePath, lines, node.loc?.start, msg);
           }
+        } else if (matchesEntity) {
+          pushGuardedViolation(
+            violations,
+            filePath,
+            lines,
+            node.loc?.start,
+            `Hardcoded celestial entity literal "${val}" found in runtime code. Read from build-time data or precalculated shards.`
+          );
         }
       }
     }
 
-    // 2. Suspicious non-zero numeric fallback check (?? <num> / || <num>)
+    // 2. Forbid non-zero numeric constants / telemetry properties in src/config/referenceTargets.ts
+    if (isReferenceTargetsFile) {
+      const isNegativeNumeric =
+        node.type === 'UnaryExpression' &&
+        node.operator === '-' &&
+        (node.argument as ASTNode | undefined)?.type === 'NumericLiteral';
+      const isStandaloneNumeric =
+        node.type === 'NumericLiteral' &&
+        !(parent?.type === 'UnaryExpression' && parent.operator === '-');
+
+      if (isNegativeNumeric || isStandaloneNumeric) {
+        const numVal = isNegativeNumeric
+          ? -((node.argument as ASTNode).value as number)
+          : (node.value as number);
+        if (typeof numVal === 'number' && numVal !== 0) {
+          const contextLabel = getBindingContextLabel(parent);
+          const detail = contextLabel ? `${contextLabel}: ${numVal}` : `${numVal}`;
+          pushGuardedViolation(
+            violations,
+            filePath,
+            lines,
+            node.loc?.start,
+            `Forbidden non-zero numeric constant (${detail}) in referenceTargets.ts. Physical telemetry must come from build-time data shards.`
+          );
+        }
+      }
+    }
+
+    // 3. Suspicious non-zero numeric fallback check (?? <num> / || <num>)
     if (isTargetForNumericFallback && node.type === 'LogicalExpression') {
       const op = node.operator;
       if (op === '??' || op === '||') {
@@ -307,11 +498,7 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
         let numVal: number | null = null;
         if (right && right.type === 'NumericLiteral' && typeof right.value === 'number') {
           numVal = right.value;
-        } else if (
-          right &&
-          right.type === 'UnaryExpression' &&
-          right.operator === '-'
-        ) {
+        } else if (right && right.type === 'UnaryExpression' && right.operator === '-') {
           const arg = right.argument as ASTNode | undefined;
           if (arg?.type === 'NumericLiteral' && typeof arg.value === 'number') {
             numVal = -arg.value;
@@ -337,29 +524,13 @@ export function auditLiteralsContent(filePath: string, content: string, catalog:
           }
 
           if (shouldFlag) {
-            const loc = right?.loc?.start;
-            if (loc) {
-              const supp = checkSuppression(lines, loc.line, 'G-literals');
-              if (supp.invalidComment) {
-                violations.push({
-                  filePath,
-                  line: loc.line,
-                  column: loc.column + 1,
-                  ruleId: 'G-literals',
-                  message: `Suppression comment without a required reason (-- <reason>) is forbidden.`,
-                  snippet: (lines[loc.line - 1] || '').trim(),
-                });
-              } else if (!supp.suppressed) {
-                violations.push({
-                  filePath,
-                  line: loc.line,
-                  column: loc.column + 1,
-                  ruleId: 'G-literals',
-                  message: `Suspicious non-zero numeric fallback "${op} ${numVal}". Entity telemetry and properties must not invent fallback numbers.`,
-                  snippet: (lines[loc.line - 1] || '').trim(),
-                });
-              }
-            }
+            pushGuardedViolation(
+              violations,
+              filePath,
+              lines,
+              right?.loc?.start,
+              `Suspicious non-zero numeric fallback "${op} ${numVal}". Entity telemetry and properties must not invent fallback numbers.`
+            );
           }
         }
       }

@@ -1,4 +1,5 @@
 import { EARTH_REFERENCE_TARGET } from '../config/referenceTargets';
+import type { PlanetComposition, PlanetCompositionCounts } from '../types/astro';
 
 export interface PlanetPhysicalProperties {
   radiusRearth?: number;
@@ -8,7 +9,7 @@ export interface PlanetPhysicalProperties {
   classification?: string;
 }
 
-export type PlanetCensusClassification = 'terrestrial' | 'super-earth' | 'ice-giant' | 'gas-giant';
+export type PlanetCensusClassification = PlanetComposition;
 
 /** Conversion constants between Jupiter and Earth units */
 export const RJUP_TO_REARTH = 11.209;
@@ -123,7 +124,7 @@ export function computePlanetCompositionCounts(
   planets: readonly (PlanetPhysicalProperties & {
     readonly composition?: PlanetCensusClassification;
   })[],
-): [terrestrial: number, superEarth: number, iceGiant: number, gasGiant: number] | undefined {
+): PlanetCompositionCounts | undefined {
   if (planets.length === 0) {
     return undefined;
   }

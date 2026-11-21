@@ -65,7 +65,7 @@ export const buildPlanetaryBodiesSummary = (
       ? resolveResultDisplayTitle(planetCorpusEntry)
       : details?.focusedKind === 'planet'
         ? details.name
-        : formatSlugFallbackTitle(urlPlanetSlug || details?.name || EARTH_REFERENCE_TARGET.name));
+        : formatSlugFallbackTitle(urlPlanetSlug || details?.name || EARTH_REFERENCE_TARGET.id));
 
   const planetHref = buildPlanetDetailsHref(planetName || planetId);
   const systemId = details?.systemId ?? planetCorpusEntry?.s ?? DEFAULT_ORIGIN_TARGETS.interstellarOriginId;

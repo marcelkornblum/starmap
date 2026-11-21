@@ -89,13 +89,14 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(buildSystemDetailsHref('')).toBe('/system/sol');
 
     // 2. classifyExoplanetComposition & isExoplanetHabitableCandidate
-    expect(classifyExoplanetComposition({ massMearth: 1.2, radiusRearth: 1.1 })).toBe('terrestrial');
-    expect(classifyExoplanetComposition({ massMearth: 15, radiusRearth: 3.5 })).toBe('ice-giant');
-    expect(classifyExoplanetComposition({ massMearth: 300, radiusRearth: 11 })).toBe('gas-giant');
+    expect(classifyExoplanetComposition({ composition: 'terrestrial' })).toBe('terrestrial');
+    expect(classifyExoplanetComposition({ composition: 'ice-giant' })).toBe('ice-giant');
+    expect(classifyExoplanetComposition({ composition: 'gas-giant' })).toBe('gas-giant');
+    expect(classifyExoplanetComposition({})).toBe('terrestrial');
 
-    expect(isExoplanetHabitableCandidate({ esi: 0.82 })).toBe(true);
-    expect(isExoplanetHabitableCandidate({ equilibriumTempK: 260 })).toBe(true);
-    expect(isExoplanetHabitableCandidate({ equilibriumTempK: 800, esi: 0.2 })).toBe(false);
+    expect(isExoplanetHabitableCandidate({ isHabitableCandidate: true })).toBe(true);
+    expect(isExoplanetHabitableCandidate({ isHabitableCandidate: false })).toBe(false);
+    expect(isExoplanetHabitableCandidate({})).toBe(false);
 
     // 3. buildPlanetCompositionSummary
     expect(buildPlanetCompositionSummary([], 0, false)).toBe('0 confirmed planets');
@@ -277,8 +278,10 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
                   r: 0.79,
                   l: 0.52,
                   T: 5344,
+                  rt: 'stellar-system',
                 },
               ],
+              b: [1, 1, 0, 0],
               E: [
                 {
                   i: 'tau-ceti-e',
@@ -289,12 +292,16 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
                   e: 3.93,
                   r: 1.8,
                   T: 270,
+                  c: 4,
+                  h: 1,
                   o: [0.538, 0.18, 0, 0, 0, 0, 162.87],
                 },
                 {
                   i: 'tau-ceti-g',
                   n: 'Tau Ceti g',
                   l: 'g',
+                  c: 1,
+                  tl: 1,
                   o: [0.133, 0.06, 0, 0, 0, 0, 20.0],
                 },
               ],

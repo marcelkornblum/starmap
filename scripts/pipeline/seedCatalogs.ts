@@ -63,6 +63,9 @@ export interface GalacticStructureEntry {
 export interface SolarSystemBodyEntry {
   id: string;
   name: string;
+  displayName?: string;
+  systemName?: string;
+  properName?: string;
   classification: SolarSystemBodyRecord['classification'];
   parentBodyId?: string;
   meanRadiusKm: number;
@@ -70,6 +73,15 @@ export interface SolarSystemBodyEntry {
   gm?: number;
   albedo?: number;
   rotationalPeriodHours?: number;
+  spectralType?: string;
+  mag?: number;
+  absmag?: number;
+  colorIndex?: number;
+  luminosityLsun?: number;
+  massMsun?: number;
+  radiusRsun?: number;
+  effectiveTempK?: number;
+  coordinatesPc?: readonly [number, number, number];
   orbit?: {
     semiMajorAxis: number;
     eccentricity: number;

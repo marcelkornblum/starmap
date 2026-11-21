@@ -22,7 +22,7 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
       : [comparison];
   const baselineSymbolType =
     comparison.baselineReticleType ??
-    (comparison.baselineName === SOL_REFERENCE_TARGET.displayName ? 'star' : 'terrestrial');
+    (comparison.baselineId === SOL_REFERENCE_TARGET.id ? 'star' : 'terrestrial');
   const fallbackTargetSymbolType =
     entry.category === 'Stellar Telemetry' ? 'star' : 'terrestrial';
 
@@ -38,6 +38,8 @@ export const MetricComparativePanel: React.FC<MetricComparativePanelProps> = ({
         metricId={entry.id}
         unit={entry.unitSymbol}
         comparisonTarget={comparison.targetId}
+        baselineId={comparison.baselineId}
+        baselineKind={baselineSymbolType === 'star' || baselineSymbolType === 'stellar-system' ? 'star' : 'planet'}
         baselineName={comparison.baselineName}
         baselineValue={comparison.baselineValue}
         targetName={comparison.targetName}

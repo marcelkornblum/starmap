@@ -166,7 +166,7 @@ describe('SystemScene orbital element resolution (AUD-024 / DEC-R019)', () => {
       expect(entity.orbit?.period).toBe(Math.round(Math.pow(1.0, 1.5) * 365.25));
     });
 
-    it('uses planet.composition if present, otherwise classifies via physical properties', () => {
+    it('uses planet.composition if present, otherwise defaults to terrestrial', () => {
       const planetWithComp: ExoplanetRecord = {
         id: 'gas-giant-planet',
         name: 'Gas Giant Planet',
@@ -177,13 +177,12 @@ describe('SystemScene orbital element resolution (AUD-024 / DEC-R019)', () => {
       expect(entityWithComp.classification).toBe('gas-giant');
 
       const planetWithoutComp: ExoplanetRecord = {
-        id: 'classified-planet',
-        name: 'Classified Planet',
+        id: 'default-planet',
+        name: 'Default Planet',
         letter: 'c',
-        radiusRearth: 11.2, // Jupiter radius -> gas-giant
       };
       const entityWithoutComp = resolveSystemPlanetEntity(planetWithoutComp, 0);
-      expect(entityWithoutComp.classification).toBe('gas-giant');
+      expect(entityWithoutComp.classification).toBe('terrestrial');
     });
   });
 

@@ -205,11 +205,11 @@
   .previewSlot[data-spectral-letter="L"] .sphereVisual { color: var(--star-chromaticity-l); }
   .previewSlot[data-spectral-letter="D"] .sphereVisual { color: var(--star-chromaticity-d); }
 
-  .metricEntityStage .sphereVisual[data-baseline="Sol"] {
+  .metricEntityStage .sphereVisual[data-baseline-kind="star"] {
     color: var(--star-chromaticity-g);
   }
 
-  .metricEntityStage .sphereVisual[data-baseline="Earth"] {
+  .metricEntityStage .sphereVisual[data-baseline-kind="planet"] {
     color: var(--planet-theme-terrestrial);
   }
 

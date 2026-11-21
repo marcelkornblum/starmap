@@ -1,6 +1,5 @@
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
-import { classifyPlanetPhysical as classifyPlanet } from '../../../utils/planetaryPhysics';
 import { resolveCorpusEntryComposition } from '../../../services/details/detailsComposition';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 import { calculateKeplerianPosition } from '../math/kepler';
@@ -39,7 +38,7 @@ export function resolveSystemPlanetEntity(
     id: planet.id,
     name: planet.name,
     position: calculateKeplerianPosition(a, e, inc, node, peri, meanAnomaly),
-    classification: planet.composition ?? classifyPlanet(planet),
+    classification: planet.composition ?? 'terrestrial',
     orbit: {
       semiMajorAxis: a,
       eccentricity: e,

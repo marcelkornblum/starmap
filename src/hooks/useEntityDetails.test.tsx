@@ -108,7 +108,7 @@ describe('useEntityDetails (AUD-087 & DEC-R042)', () => {
               n: 'System sys-1',
               p: [1, 2, 3],
               q: 'sector_0_0_0',
-              S: [{ i: 'sys-1', n: 'Star sys-1', c: 'A', s: 'G2V', m: 5.5, a: 4.2 }],
+              S: [{ i: 'sys-1', n: 'Star sys-1', c: 'A', s: 'G2V', m: 5.5, a: 4.2, rt: 'stellar-system' }],
               E: [],
             },
           },

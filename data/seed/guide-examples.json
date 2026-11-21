@@ -1,0 +1,460 @@
+{
+  "starTypes": {
+    "o": [
+      {
+        "entityId": "hip-25930",
+        "scope": "galaxy",
+        "framing": "Luminous O-type bright giant in Orion's Belt"
+      },
+      {
+        "entityId": "gaia-2210120493272273920",
+        "scope": "galaxy",
+        "framing": "O-type main-sequence dwarf in Cepheus"
+      }
+    ],
+    "b": [
+      {
+        "entityId": "hip-24436",
+        "scope": "galaxy",
+        "framing": "Blue supergiant in Orion"
+      },
+      {
+        "entityId": "hip-49669",
+        "scope": "galaxy",
+        "framing": "Rapidly rotating primary in Leo"
+      }
+    ],
+    "a": [
+      {
+        "entityId": "hip-32349",
+        "scope": "galaxy",
+        "framing": "Primary of the nearby Sirius binary system"
+      },
+      {
+        "entityId": "hip-91262",
+        "scope": "galaxy",
+        "framing": "Standard optical photometric calibration baseline"
+      }
+    ],
+    "f": [
+      {
+        "entityId": "hip-37279",
+        "scope": "galaxy",
+        "framing": "Subgiant primary in Canis Minor"
+      },
+      {
+        "entityId": "hip-61941",
+        "scope": "galaxy",
+        "framing": "Binary F0V stellar pair in Virgo"
+      }
+    ],
+    "g": [
+      {
+        "entityId": "sol",
+        "scope": "system",
+        "framing": "Solar System primary"
+      },
+      {
+        "entityId": "gaia-2452378776434477184",
+        "scope": "galaxy",
+        "framing": "Nearby single G-type dwarf hosting a debris disk and planetary system"
+      },
+      {
+        "entityId": "hip-71683-A",
+        "scope": "system",
+        "systemId": "hip-71683",
+        "framing": "Primary component of the Alpha Centauri triple system"
+      }
+    ],
+    "k": [
+      {
+        "entityId": "hip-71683-B",
+        "scope": "system",
+        "systemId": "hip-71683",
+        "framing": "Secondary K-dwarf component of Alpha Centauri"
+      },
+      {
+        "entityId": "gaia-5164707970261890560",
+        "scope": "galaxy",
+        "framing": "Young K-type dwarf with confirmed debris ring and exoplanet"
+      }
+    ],
+    "m": [
+      {
+        "entityId": "hip-71683-C",
+        "scope": "system",
+        "systemId": "hip-71683",
+        "framing": "Nearest star to the Solar System, hosting terrestrial worlds"
+      },
+      {
+        "entityId": "gaia-4472832130942575872",
+        "scope": "galaxy",
+        "framing": "High proper motion red dwarf in Ophiuchus"
+      }
+    ],
+    "l": [
+      {
+        "entityId": "luhman-16",
+        "scope": "galaxy",
+        "framing": "Nearest known brown dwarf binary system"
+      }
+    ],
+    "d": [
+      {
+        "entityId": "hip-32349-B",
+        "scope": "system",
+        "systemId": "hip-32349",
+        "framing": "Nearest known white dwarf, orbiting Sirius A"
+      }
+    ]
+  },
+  "planetTypes": {
+    "terrestrial": [
+      {
+        "entityId": "earth",
+        "scope": "system",
+        "systemId": "sol",
+        "framing": "Standard terrestrial benchmark with active plate tectonics and surface hydrosphere"
+      },
+      {
+        "entityId": "proxima-centauri-b",
+        "scope": "galaxy",
+        "systemId": "hip-71683",
+        "framing": "Terrestrial exoplanet orbiting within the conservative habitable zone"
+      }
+    ],
+    "super-earth": [
+      {
+        "entityId": "tau-ceti-e",
+        "scope": "galaxy",
+        "systemId": "gaia-2452378776434477184",
+        "framing": "Potentially rocky super-Earth orbiting near the inner habitable zone"
+      },
+      {
+        "entityId": "tau-ceti-f",
+        "scope": "galaxy",
+        "systemId": "gaia-2452378776434477184",
+        "framing": "Outer super-Earth candidate in the habitable zone"
+      }
+    ],
+    "ice-giant": [
+      {
+        "entityId": "uranus",
+        "scope": "system",
+        "systemId": "sol",
+        "framing": "Seventh planet in the Solar System with extreme axial tilt"
+      },
+      {
+        "entityId": "neptune",
+        "scope": "system",
+        "systemId": "sol",
+        "framing": "Outer ice giant of the Solar System with supersonic storm systems"
+      },
+      {
+        "entityId": "k2-18-b",
+        "scope": "galaxy",
+        "systemId": "gaia-3910747531814692736",
+        "framing": "Temperate sub-Neptune / ice-giant Hycean candidate characterised by JWST"
+      }
+    ],
+    "gas-giant": [
+      {
+        "entityId": "jupiter",
+        "scope": "system",
+        "systemId": "sol",
+        "framing": "Largest planet in the Solar System with a vast magnetosphere and major Galilean moons"
+      },
+      {
+        "entityId": "saturn",
+        "scope": "system",
+        "systemId": "sol",
+        "framing": "Extensive ring system with diverse icy satellites including Titan and Enceladus"
+      }
+    ]
+  },
+  "metricTypes": {
+    "galactic-coordinates": [
+      {
+        "entityId": "sol",
+        "scope": "system",
+        "framing": "Heliocentric galactic origin"
+      },
+      {
+        "entityId": "hip-71683",
+        "scope": "system",
+        "framing": "Nearest stellar system to the Solar System"
+      }
+    ],
+    "stellar-magnitude": [
+      {
+        "entityId": "sol",
+        "scope": "system",
+        "framing": "Solar apparent and absolute magnitude baseline"
+      },
+      {
+        "entityId": "hip-32349",
+        "scope": "system",
+        "framing": "Brightest star in Earth's night sky"
+      }
+    ],
+    "stellar-mass": [
+      {
+        "entityId": "sol",
+        "scope": "system",
+        "framing": "Solar mass reference standard"
+      },
+      {
+        "entityId": "gaia-2452378776434477184",
+        "scope": "system",
+        "framing": "Nearby G-type main-sequence dwarf"
+      }
+    ],
+    "stellar-radius": [
+      {
+        "entityId": "sol",
+        "scope": "system",
+        "framing": "Solar photospheric radius reference"
+      },
+      {
+        "entityId": "hip-71683-A",
+        "scope": "system",
+        "systemId": "hip-71683",
+        "framing": "Solar-type primary component"
+      }
+    ],
+    "stellar-luminosity": [
+      {
+        "entityId": "sol",
+        "scope": "system",
+        "framing": "Solar bolometric output reference"
+      },
+      {
+        "entityId": "gaia-2452378776434477184",
+        "scope": "system",
+        "framing": "Nearby G-type comparison target"
+      }
+    ],
+    "effective-temperature": [
+      {
+        "entityId": "sol",
+        "scope": "system",
+        "framing": "Solar photospheric blackbody temperature"
+      },
+      {
+        "entityId": "hip-71683-C",
+        "scope": "system",
+        "systemId": "hip-71683",
+        "framing": "Cool M-type red dwarf companion"
+      }
+    ],
+    "semi-major-axis": [
+      {
+        "entityId": "earth",
+        "scope": "planet",
+        "systemId": "sol",
+        "framing": "Astronomical Unit orbital reference"
+      },
+      {
+        "entityId": "tau-ceti-e",
+        "scope": "system",
+        "systemId": "gaia-2452378776434477184",
+        "framing": "Inner habitable-zone exoplanet orbit"
+      }
+    ],
+    "orbital-period": [
+      {
+        "entityId": "earth",
+        "scope": "planet",
+        "systemId": "sol",
+        "framing": "Sidereal year reference"
+      },
+      {
+        "entityId": "proxima-centauri-b",
+        "scope": "system",
+        "systemId": "hip-71683",
+        "framing": "Compact M-dwarf habitable-zone period"
+      }
+    ],
+    "orbital-inclination": [
+      {
+        "entityId": "earth",
+        "scope": "planet",
+        "systemId": "sol",
+        "framing": "Ecliptic reference plane"
+      },
+      {
+        "entityId": "mercury",
+        "scope": "system",
+        "systemId": "sol",
+        "framing": "Most inclined major planet in the Solar System"
+      }
+    ],
+    "planetary-mass": [
+      {
+        "entityId": "earth",
+        "scope": "planet",
+        "systemId": "sol",
+        "framing": "Terrestrial planetary mass baseline"
+      },
+      {
+        "entityId": "jupiter",
+        "scope": "planet",
+        "systemId": "sol",
+        "framing": "Gas giant mass benchmark"
+      }
+    ],
+    "planetary-radius": [
+      {
+        "entityId": "earth",
+        "scope": "planet",
+        "systemId": "sol",
+        "framing": "Terrestrial planetary radius baseline"
+      },
+      {
+        "entityId": "jupiter",
+        "scope": "planet",
+        "systemId": "sol",
+        "framing": "Gas giant radius benchmark"
+      }
+    ],
+    "equilibrium-temperature": [
+      {
+        "entityId": "earth",
+        "scope": "planet",
+        "systemId": "sol",
+        "framing": "Radiative equilibrium benchmark"
+      },
+      {
+        "entityId": "proxima-centauri-b",
+        "scope": "system",
+        "systemId": "hip-71683",
+        "framing": "Temperate exoplanet equilibrium regime"
+      }
+    ],
+    "surface-gravity": [
+      {
+        "entityId": "earth",
+        "scope": "planet",
+        "systemId": "sol",
+        "framing": "Standard terrestrial surface gravity baseline"
+      },
+      {
+        "entityId": "tau-ceti-e",
+        "scope": "system",
+        "systemId": "gaia-2452378776434477184",
+        "framing": "High-gravity super-Earth candidate"
+      }
+    ]
+  },
+  "hazardTypes": {
+    "flare-star": [
+      {
+        "entityId": "hip-71683-C",
+        "scope": "system",
+        "systemId": "hip-71683",
+        "framing": "Active flare dwarf host to Proxima Centauri b"
+      },
+      {
+        "entityId": "gaia-2635476908753563008-B",
+        "scope": "system",
+        "systemId": "gaia-2635476908753563008",
+        "framing": "Ultra-cool M-dwarf with frequent coronal mass ejections"
+      }
+    ],
+    "ionising-radiation": [
+      {
+        "entityId": "hip-32349-B",
+        "scope": "system",
+        "systemId": "hip-32349",
+        "framing": "Hot white dwarf remnant with intense UV flux"
+      },
+      {
+        "entityId": "hip-91262",
+        "scope": "system",
+        "framing": "Luminous A-type star with elevated ultraviolet radiation"
+      }
+    ],
+    "variable-flux": [
+      {
+        "entityId": "hip-27989",
+        "scope": "system",
+        "framing": "Semiregular pulsating red supergiant with brightness swings"
+      },
+      {
+        "entityId": "gaia-2500734851146653312",
+        "scope": "system",
+        "framing": "Archetypal pulsating variable star"
+      }
+    ],
+    "extreme-heat": [
+      {
+        "entityId": "venus",
+        "scope": "system",
+        "systemId": "sol",
+        "framing": "Runaway greenhouse terrestrial planet"
+      },
+      {
+        "entityId": "mercury",
+        "scope": "system",
+        "systemId": "sol",
+        "framing": "Airless innermost planet under intense solar irradiation"
+      }
+    ],
+    "cryogenic-cold": [
+      {
+        "entityId": "titan",
+        "scope": "system",
+        "systemId": "sol",
+        "framing": "Outer moon with cryogenic hydrocarbon lakes"
+      },
+      {
+        "entityId": "pluto",
+        "scope": "system",
+        "systemId": "sol",
+        "framing": "Kuiper Belt dwarf planet with nitrogen-ice plains"
+      }
+    ],
+    "high-gravity": [
+      {
+        "entityId": "tau-ceti-e",
+        "scope": "system",
+        "systemId": "gaia-2452378776434477184",
+        "framing": "Super-Earth candidate with elevated surface gravity"
+      },
+      {
+        "entityId": "proxima-centauri-c",
+        "scope": "system",
+        "systemId": "hip-71683",
+        "framing": "Massive super-Earth with high surface acceleration"
+      }
+    ],
+    "tidal-locking": [
+      {
+        "entityId": "proxima-centauri-b",
+        "scope": "system",
+        "systemId": "hip-71683",
+        "framing": "Synchronously rotating world around its host red dwarf"
+      },
+      {
+        "entityId": "trappist-1-e",
+        "scope": "system",
+        "systemId": "gaia-2635476908753563008",
+        "framing": "Tidally locked temperate planet in the habitable zone"
+      }
+    ],
+    "high-eccentricity": [
+      {
+        "entityId": "16-cyg-bb",
+        "scope": "system",
+        "systemId": "gaia-2135550755683405952",
+        "framing": "High-eccentricity planet experiencing severe seasonal flux variation"
+      },
+      {
+        "entityId": "hd-80606-b",
+        "scope": "system",
+        "systemId": "gaia-1019003226022657920",
+        "framing": "Extreme eccentric gas giant with violent periastron heating"
+      }
+    ]
+  }
+}
