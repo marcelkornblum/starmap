@@ -11,8 +11,8 @@
 ---
 
 ## Core Design Seams (Kept Tunable)
-- **Single Easing Source (`DEC-R012`-compliant):** Pure easing math and curve registry live in `src/utils/cameraEasing.ts` (importable by both `src/stores/` and `src/components/canvas/`), defaulting to quadratic (`easeInOutQuad`), with named alternatives (`easeOutQuad`, `easeInOutCubic`, `linear`, etc.) for live comparison.
-- **Live Experimentation Hook:** A lightweight store/config knob on `useCameraStore` (active curve name, base duration, and linear vs. logarithmic distance interpolation toggle) read by the single camera engine so you can experiment live without hunting across files.
+- **Single Easing Source (`DEC-R012`-compliant):** Pure easing math and curve registry live in `src/utils/cameraEasing.ts` (importable by both `src/stores/` and `src/components/canvas/`), defaulting to quadratic (`easeInOutQuad`).
+- **Temporary Live Experimentation (Never Committed):** Any temporary curve/duration/journey demo UI or runtime tuning knobs used during live Phase 1 review stay strictly uncommitted in the working tree and are removed cleanly before committing the phase checkpoint so production code and stores remain spotless.
 - **Single Camera Engine:** One unified transition controller interpolates `(target, sphericalDir, distance/orthoZoom, up, fov)` along the shared easing curve, gating `OrbitControls` updates and store/URL sync while in flight (eliminating double `controls.update()`, damping battles, and 60fps store writes).
 - **`frameloop="demand"` & Frame-0 Safety:** Transitions anchor `startTime` on the **first `useFrame` tick** (`pendingStart` flag) so shader-compile or scene-mount stalls never cause frame-0 jumps, and call `invalidate()` strictly while active.
 - **Reduced Motion:** `prefersReducedMotion()` (`src/utils/reducedMotion.ts`) and `useReducedMotion()` (`src/hooks/useReducedMotion.ts`) short-circuit all camera glides and HUD retractions to immediate settle (never pulsing `isCameraTransitioning`).
@@ -23,11 +23,11 @@
 ## Phase 1: Unified Single-Curve Camera Engine, Intra-View Glides & `center`/`focused` Foundation
 **Goal:** Collapse split/snapping camera controllers into one unified single-curve glide engine across Galaxy, System, and Planet views, establish clean `center` vs. `focused` independence early (avoiding rework in Phases 2–5), and deliver an immediate live demo to feel and tune the quadratic curve.
 
-- [~] **Task 1.1 (Red/Green/Refactor): Shared Easing Registry, Reduced-Motion & Experimentation Knob**
-  - Create `src/utils/cameraEasing.ts` (`easeInOutQuad` default, named alternatives, pure interpolation helpers) and `src/utils/reducedMotion.ts` + `src/hooks/useReducedMotion.ts`.
-  - Add tunable `easingCurve`, `transitionDurationSec`, and `useLogarithmicDistance` settings to `useCameraStore` (defaulting to `'easeInOutQuad'`).
-  - Unit tests covering curve endpoints, monotonicity, curve switching, and reduced-motion short-circuit.
-- [ ] **Task 1.2 (Red/Green/Refactor): Unified Camera Transition Engine**
+- [x] **Task 1.1 (Red/Green/Refactor): Shared Easing Module & Reduced-Motion Helper** *(shipped `cameraEasing.ts`, `reducedMotion.ts`, `useReducedMotion.ts` + 12 unit tests)*
+  - Create `src/utils/cameraEasing.ts` (`easeInOutQuad` default, pure easing & distance interpolation helpers) and `src/utils/reducedMotion.ts` + `src/hooks/useReducedMotion.ts`.
+  - Keep `useCameraStore.ts` free of temporary tuning knobs.
+  - Unit tests covering curve endpoints, monotonicity, and reduced-motion short-circuit.
+- [~] **Task 1.2 (Red/Green/Refactor): Unified Camera Transition Engine**
   - Unify `CameraTransitionController`, `CardinalTransitionController`, and perspective/orthographic camera presets (`reset`, `radial`, `top-down`, `orbital-lock`, cardinal axes) onto a single controller interpolating `(target, sphericalDir, distance/orthoZoom, up, fov)` via `src/utils/cameraEasing.ts`.
   - Anchor `startTime` on the first `useFrame` tick (`pendingStart`); clamp idle `delta` in `DropStalk.tsx` as well; gate `OrbitControls` updates and suppress 60fps store/URL sync while `isCameraTransitioning` is true (syncing once on settle).
   - Ensure OrbitControls user `'start'` interrupts any active glide cleanly and clears damping momentum; deduplicate double-click callbacks in `useViewportPointerHandlers.ts`.
@@ -36,8 +36,8 @@
   - Resolve the dual-controller overlap in `SystemSceneEntry` (`SystemCameraController` + `SystemScene -> GalacticCameraController`), wire `centerId` into `PlanetarySceneContent`, and ensure `SystemCameraController` keeps `useCameraStore.target` in sync on settle.
   - Separate `center` from `focused` cleanly: cold-loading a focused view centres on that target; subsequent panning mutates `center` without altering `focused`; applying `?focus=` does not force-re-centre.
   - Remove remaining `window.location.search` / `replaceSpaHistoryUrl` camera-URL leaks (`GalacticCameraController`, `useGalaxyViewModel`, `useKeyboardShortcuts`, `spaNavigation`, `SearchPanel`) in favour of typed TanStack Router navigation (`DEC-R014`).
-- [ ] **Task 1.4 (Red/Green/Refactor): Dev-Only Camera Motion Lab UI**
-  - Add a compact, collapsible dev-only (`import.meta.env.DEV`) Motion Lab overlay/popover (using Tier 1 Interface Primitives, CSS Modules, and full component quad) allowing live switching of easing curve, duration, and linear vs. logarithmic distance, plus one-click test journeys of varying lengths (short / medium / long hops sampled dynamically from loaded entities in `SpatialEntityStore` — zero hardcoded entity names) and camera presets.
+- [ ] **Task 1.4: Temporary Uncommitted Demo Lab (Removed Before Commit)**
+  - During Phase 1 live review only, mount a temporary uncommitted Motion Lab overlay to swap curves/durations and trigger short/medium/long journeys; remove it cleanly and bake in the ratified curve/duration before committing the Phase 1 checkpoint.
 - [ ] **Task 1.5: Quality Gate & Standards Cleanup**
   - Run `standards` cleanup; verify `max-lines: 300` and `DEC-R012` boundaries.
   - Run `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, `npm run audit:r3f`, `npm run test:coverage`.
