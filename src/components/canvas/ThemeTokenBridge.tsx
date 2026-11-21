@@ -23,7 +23,8 @@ export interface SceneTokenBridgeProps {
  * Mount inside the R3F <Canvas> tree to update clear colour and scene background.
  */
 export const SceneTokenBridge: React.FC<SceneTokenBridgeProps> = ({ transparent = true }) => {
-  const { gl } = useThree();
+  const gl = useThree((s) => s.gl);
+  const invalidate = useThree((s) => s.invalidate);
   const canvasBg = useThreeTokenStore((state) => state.tokens.canvasBg);
   const canvasOpacity = useThreeTokenStore((state) => state.tokens.canvasOpacity);
 
@@ -34,7 +35,8 @@ export const SceneTokenBridge: React.FC<SceneTokenBridgeProps> = ({ transparent 
     } else {
       gl.setClearColor(canvasBg, canvasOpacity);
     }
-  }, [gl, transparent, canvasBg, canvasOpacity]);
+    invalidate?.();
+  }, [gl, invalidate, transparent, canvasBg, canvasOpacity]);
 
   if (transparent || canvasOpacity <= 0) {
     return null;

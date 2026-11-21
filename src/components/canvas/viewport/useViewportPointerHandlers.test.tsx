@@ -16,6 +16,7 @@ describe('useViewportPointerHandlers hook', () => {
   const onSelect = vi.fn();
   const onFocusChange = vi.fn();
   const onDoubleClick = vi.fn();
+  const mockInvalidate = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -27,12 +28,13 @@ describe('useViewportPointerHandlers hook', () => {
     });
   });
 
-  it('triggers onSelect / onFocusChange on entity click', () => {
+  it('triggers onSelect / onFocusChange on entity click and invalidates canvas', () => {
     const { result } = renderHook(() =>
       useViewportPointerHandlers({
         storeApi: mockStore,
         occlusionManager: mockOcclusionManager,
         transitionTo,
+        invalidate: mockInvalidate,
         onInspect,
         onSelect,
         onFocusChange,
@@ -45,14 +47,16 @@ describe('useViewportPointerHandlers hook', () => {
     });
 
     expect(onFocusChange).toHaveBeenCalled();
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
   });
 
-  it('transitions camera and triggers inspect on entity double click', () => {
+  it('transitions camera and triggers inspect on entity double click and invalidates canvas', () => {
     const { result } = renderHook(() =>
       useViewportPointerHandlers({
         storeApi: mockStore,
         occlusionManager: mockOcclusionManager,
         transitionTo,
+        invalidate: mockInvalidate,
         onInspect,
         onSelect,
         onFocusChange,
@@ -68,14 +72,16 @@ describe('useViewportPointerHandlers hook', () => {
     expect(transitionTo).toHaveBeenCalledWith([10, 20, 30], { duration: 0.8 });
     expect(onInspect).toHaveBeenCalledWith('star-1');
     expect(onDoubleClick).toHaveBeenCalledWith('star-1', mockEvent);
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
   });
 
-  it('clears interaction and signals null on pointer missed', () => {
+  it('clears interaction and signals null on pointer missed and invalidates canvas', () => {
     const { result } = renderHook(() =>
       useViewportPointerHandlers({
         storeApi: mockStore,
         occlusionManager: mockOcclusionManager,
         transitionTo,
+        invalidate: mockInvalidate,
         onInspect,
         onSelect,
         onFocusChange,
@@ -89,5 +95,6 @@ describe('useViewportPointerHandlers hook', () => {
 
     expect(onSelect).toHaveBeenCalledWith(null);
     expect(onFocusChange).toHaveBeenCalledWith(null);
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
   });
 });

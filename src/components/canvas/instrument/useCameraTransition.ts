@@ -166,7 +166,8 @@ export class CameraTransitionController {
  * Hook providing smooth, zero-allocation camera and instrument focal transitions.
  */
 export function useCameraTransition(): CameraTransitionApi {
-  const { camera, invalidate } = useThree();
+  const camera = useThree((s) => s.camera);
+  const invalidate = useThree((s) => s.invalidate);
   const controls = useThree(
     (s) =>
       (

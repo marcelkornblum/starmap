@@ -36,6 +36,7 @@ export const StandaloneSceneShell: React.FC<StandaloneSceneShellProps> = ({
         <Canvas
           flat
           dpr={1}
+          frameloop="demand"
           camera={camera}
           gl={{ antialias: true, alpha: true }}
         >

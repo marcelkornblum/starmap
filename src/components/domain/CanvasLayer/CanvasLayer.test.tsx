@@ -56,8 +56,20 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {
     ...actual,
-    Canvas: ({ children, className }: { children?: React.ReactNode; className?: string }) =>
-      createElement('div', { 'data-testid': 'mock-canvas', className }, children),
+    Canvas: ({
+      children,
+      className,
+      frameloop,
+    }: {
+      children?: React.ReactNode;
+      className?: string;
+      frameloop?: string;
+    }) =>
+      createElement(
+        'div',
+        { 'data-testid': 'mock-canvas', 'data-frameloop': frameloop, className },
+        children,
+      ),
     useFrame: vi.fn(),
     useThree: () => ({
       camera: new THREE.PerspectiveCamera(45, 1, 0.1, 1000),
@@ -286,6 +298,59 @@ describe('CanvasLayer Domain Component', () => {
       expect(planetScene.getAttribute('data-has-inspect')).toBe('true');
       expect(planetScene.getAttribute('data-has-select')).toBe('true');
       expect(planetScene.getAttribute('data-has-bridged-store')).toBe('true');
+    });
+
+    it('uses frameloop="demand" in standalone direct mode', () => {
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      render(<CanvasLayer scope="galaxy" centerId="sol" />);
+
+      const canvas = screen.getByTestId('mock-canvas');
+      expect(canvas.getAttribute('data-frameloop')).toBe('demand');
+      expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+    });
+
+    it('gates frameloop to "never" and unmounts spatial scene when isRootHost has activeSlotCount === 0, then mounts on activeSlotCount > 0', () => {
+      HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
+        if (contextId === 'webgl2' || contextId === 'webgl') {
+          return {} as WebGLRenderingContext;
+        }
+        return null;
+      });
+      _resetWebGLSupportedForTesting();
+
+      render(<CanvasLayer isRootHost scope="galaxy" centerId="sol" />);
+
+      const canvas = screen.getByTestId('mock-canvas');
+      expect(canvas.getAttribute('data-frameloop')).toBe('never');
+      expect(screen.getByTestId('mock-theme-token-bridge')).toBeInTheDocument();
+      expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+
+      // Activate a slot and set stageProps
+      act(() => {
+        useCanvasStageStore.getState().mountSlot();
+        useCanvasStageStore.getState().setStageProps({ scope: 'galaxy', centerId: 'sol' });
+      });
+
+      expect(screen.getByTestId('mock-canvas')).toBe(canvas);
+      expect(canvas.getAttribute('data-frameloop')).toBe('demand');
+      expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+
+      // Unmount slot (e.g. navigating to /search or /guide)
+      act(() => {
+        useCanvasStageStore.getState().unmountSlot();
+      });
+
+      expect(screen.getByTestId('mock-canvas')).toBe(canvas);
+      expect(canvas.getAttribute('data-frameloop')).toBe('never');
+      expect(screen.getByTestId('mock-theme-token-bridge')).toBeInTheDocument();
+      expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
     });
   });
 });

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { SectorPointCloud } from './SectorPointCloud';
+import type { SectorStreamingManager } from '../../../services/sectorStreamingService';
 import {
   computeStarfieldHorizonRadius,
   createStarfieldPointsMaterial,
@@ -12,9 +13,43 @@ import {
   STARFIELD_FRAGMENT_SHADER,
 } from './sectorPointCloudShaders';
 
+const { mockInvalidate, wrappedInvalidateCache } = vi.hoisted(() => ({
+  mockInvalidate: vi.fn(),
+  wrappedInvalidateCache: new WeakMap<
+    (frames?: number) => void,
+    (frames?: number) => void
+  >(),
+}));
+
+vi.mock('@react-three/fiber', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@react-three/fiber')>();
+  return {
+    ...actual,
+    useThree: ((selector?: (state: unknown) => unknown) => {
+      const realInvalidate = actual.useThree((s) => s.invalidate);
+      const selected: unknown = actual.useThree(
+        (selector ?? ((s: unknown) => s)) as Parameters<typeof actual.useThree>[0],
+      );
+      if (selected === realInvalidate) {
+        let wrapped = wrappedInvalidateCache.get(realInvalidate);
+        if (!wrapped) {
+          wrapped = (frames?: number) => {
+            mockInvalidate(frames);
+            return realInvalidate(frames);
+          };
+          wrappedInvalidateCache.set(realInvalidate, wrapped);
+        }
+        return wrapped;
+      }
+      return selected;
+    }) as typeof actual.useThree,
+  };
+});
+
 describe('SectorPointCloud - Starfield Shader & Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockInvalidate.mockClear();
   });
 
   it('mounts SectorPointCloud cleanly in 3D canvas', async () => {
@@ -141,6 +176,64 @@ describe('SectorPointCloud - Starfield Shader & Component', () => {
       const hydrationDistSqThreshold = 0.25;
       expect(hydrationDistSqThreshold).toBe(0.25);
       expect(Math.sqrt(hydrationDistSqThreshold)).toBe(0.5);
+    });
+  });
+
+  describe('On-demand invalidation for sector streaming & uploads', () => {
+    it('invalidates on streaming notifications and frame uploads, then settles to 0 calls when idle', async () => {
+      let subscriber: (() => void) | null = null;
+      let pending = false;
+      const processFrameUploads = vi.fn<() => string[]>(() => []);
+      const hasPendingUploads = vi.fn<() => boolean>(() => pending);
+      const mockManager = {
+        subscribe: vi.fn((cb: () => void) => {
+          subscriber = cb;
+          return () => {
+            subscriber = null;
+          };
+        }),
+        updateCameraPosition: vi.fn(async () => ({
+          activeSectorIds: [],
+          prefetchSectorIds: [],
+        })),
+        processFrameUploads,
+        hasPendingUploads,
+        isActiveRingReady: vi.fn(() => false),
+        getActiveSectorQueryInputs: vi.fn(() => []),
+      } as unknown as SectorStreamingManager;
+
+      const renderer = await ReactThreeTest.create(
+        <SectorPointCloud manager={mockManager} />,
+      );
+
+      // 1. Streaming notifies new data -> invalidates
+      mockInvalidate.mockClear();
+      expect(subscriber).not.toBeNull();
+      subscriber!();
+      expect(mockInvalidate).toHaveBeenCalledTimes(1);
+
+      // 2. Frame uploads a sector -> invalidates
+      mockInvalidate.mockClear();
+      processFrameUploads.mockReturnValueOnce(['sector_+000_+000_+000']);
+      pending = true;
+      await renderer.advanceFrames(1, 0.016);
+      expect(mockInvalidate).toHaveBeenCalledTimes(1);
+
+      // 3. No sector uploaded this frame, but pending uploads still queued -> invalidates
+      mockInvalidate.mockClear();
+      processFrameUploads.mockReturnValueOnce([]);
+      pending = true;
+      await renderer.advanceFrames(1, 0.016);
+      expect(mockInvalidate).toHaveBeenCalledTimes(1);
+
+      // 4. Queue drained and idle -> 0 invalidate calls
+      mockInvalidate.mockClear();
+      processFrameUploads.mockReturnValueOnce([]);
+      pending = false;
+      await renderer.advanceFrames(3, 0.016);
+      expect(mockInvalidate).not.toHaveBeenCalled();
+
+      await renderer.unmount();
     });
   });
 });

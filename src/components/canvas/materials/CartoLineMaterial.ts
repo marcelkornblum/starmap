@@ -5,6 +5,7 @@ import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeome
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
+import { NOOP_RAYCAST } from '../engineConfig';
 import {
   type CartoLineStyle,
   type CartoLineMaterialParameters,
@@ -190,6 +191,7 @@ export function createCartoLineMesh(
   const width = params.lineWidth ?? CARTO_LINE_CONSTANTS.hairlineWidth;
   if (width > 1.0) {
     const mesh = new Line2(createCartoLineGeometry(points), new CartoLineMaterial(params));
+    mesh.raycast = NOOP_RAYCAST;
     mesh.computeLineDistances();
     return mesh;
   }

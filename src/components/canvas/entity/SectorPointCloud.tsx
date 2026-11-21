@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
@@ -43,6 +43,7 @@ export function SectorPointCloud({
 }: SectorPointCloudProps) {
   const reticleBracketColor = useThreeTokenStore((s) => s.tokens.reticleBracketColor);
   const frameCtx = useSpatialFrameSafe();
+  const invalidate = useThree((s) => s.invalidate);
   const groupRef = useRef<THREE.Group>(null);
 
   const material = useMemo(() => createStarfieldPointsMaterial(), []);
@@ -62,12 +63,16 @@ export function SectorPointCloud({
     mat.uniforms.uPointSize.value = pointSize;
     mat.uniforms.uBaseOpacity.value = pointOpacity;
     mat.uniforms.uActivePointSize.value = activePointSize;
-  }, [pointSize, pointOpacity, activePointSize]);
+    invalidate();
+  }, [pointSize, pointOpacity, activePointSize, invalidate]);
 
   useEffect(() => {
     const mat = materialRef.current;
-    if (mat) mat.uniforms.uColor.value.set(reticleBracketColor);
-  }, [reticleBracketColor]);
+    if (mat) {
+      mat.uniforms.uColor.value.set(reticleBracketColor);
+      invalidate();
+    }
+  }, [reticleBracketColor, invalidate]);
 
   const targetRef = useRef<{ group: THREE.Group | null; material: THREE.Material | null }>({
     group: null,
@@ -153,6 +158,7 @@ export function SectorPointCloud({
         .then((state) => {
           hydratingRef.current = false;
           onSummariesRef.current?.(state.activeSummaries, [fx, fy, fz]);
+          invalidate();
           if (pendingHydrationRef.current) {
             pendingHydrationRef.current = false;
             const currentFocus = frameCtxRef.current?.frameRef?.current?.focusPoint;
@@ -167,7 +173,7 @@ export function SectorPointCloud({
           hydratingRef.current = false;
         });
     },
-    [manager, hydrationBridge, scratchPosRef],
+    [manager, hydrationBridge, scratchPosRef, invalidate],
   );
 
   useEffect(() => {
@@ -179,6 +185,7 @@ export function SectorPointCloud({
     if (!resolvedManager) return;
 
     const unsubscribe = resolvedManager.subscribe(() => {
+      invalidate();
       const focus = frameCtxRef.current?.frameRef?.current?.focusPoint;
       const fx = focus ? focus.x : (Number.isNaN(lastXRef.current) ? 0 : lastXRef.current);
       const fy = focus ? focus.y : (Number.isNaN(lastYRef.current) ? 0 : lastYRef.current);
@@ -198,7 +205,7 @@ export function SectorPointCloud({
     return () => {
       unsubscribe();
     };
-  }, [manager, hydrationBridge, scratchPosRef]);
+  }, [manager, hydrationBridge, scratchPosRef, invalidate]);
 
   useFrame(({ camera }) => {
     const resolvedManager = manager ?? internalManagerRef.current;
@@ -267,17 +274,25 @@ export function SectorPointCloud({
     const rDiff = Math.abs(apertureRadius - hr);
 
     if (!Number.isFinite(hDistSq) || hDistSq > 0.25 || !Number.isFinite(rDiff) || rDiff > 0.25) {
-      if (!Number.isFinite(hDistSq) || !Number.isFinite(rDiff)) {
-        triggerHydration(fx, fy, fz, apertureRadius);
-      } else if (
+      if (
+        !Number.isFinite(hDistSq) ||
+        !Number.isFinite(rDiff) ||
         settledFramesRef.current >= 3 ||
         performance.now() - lastHydrationTimeRef.current >= 1200
       ) {
         triggerHydration(fx, fy, fz, apertureRadius);
+      } else {
+        invalidate();
       }
     }
 
-    resolvedManager.processFrameUploads();
+    const uploaded = resolvedManager.processFrameUploads();
+    const hasPending =
+      typeof resolvedManager.hasPendingUploads === 'function' &&
+      resolvedManager.hasPendingUploads();
+    if (uploaded.length > 0 || hasPending) {
+      invalidate();
+    }
   });
 
   return <group ref={groupRef} name="galactic-sector-point-cloud" />;

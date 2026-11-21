@@ -131,6 +131,12 @@ describe('SectorStreamingManager', () => {
     expect(frame2.length).toBe(2);
     expect(manager.getTelemetry().uploadedSectorCount).toBe(4);
     expect(manager.getTelemetry().pendingUploadCount).toBe(23);
+    expect(manager.hasPendingUploads()).toBe(true);
+
+    while (manager.hasPendingUploads()) {
+      manager.processFrameUploads(10);
+    }
+    expect(manager.hasPendingUploads()).toBe(false);
 
     manager.dispose();
   });

@@ -84,6 +84,8 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
   }, [groupRef]);
 
   const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
+  const hasSyncedFrameRef = useRef(false);
+  const lastAlphaRef = useRef(Number.NaN);
   const lastBillboardSyncRef = useRef({
     qx: Number.NaN,
     qy: Number.NaN,
@@ -96,7 +98,8 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
 
   useEffect(() => {
     lastBillboardSyncRef.current.qx = Number.NaN;
-  }, [interactive]);
+    hasSyncedFrameRef.current = false;
+  }, [id, posX, posY, posZ, worldPosition, pixelSize, hitRadius, reticleSize, interactive]);
 
   const getPointerCoord = (e: ThreeEvent<PointerEvent>): { x: number; y: number } => {
     const n = e.nativeEvent as (PointerEvent | MouseEvent | undefined);
@@ -144,8 +147,21 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
     if (!markerRef.current || !groupRef.current) return;
 
     if (nodeAlphaRef && markerMaterialRef.current) {
-      markerMaterialRef.current.opacity = nodeAlphaRef.current;
+      const nextAlpha = nodeAlphaRef.current;
+      if (lastAlphaRef.current !== nextAlpha) {
+        markerMaterialRef.current.opacity = nextAlpha;
+        lastAlphaRef.current = nextAlpha;
+      }
     }
+
+    if (
+      hasSyncedFrameRef.current &&
+      occlusionManager.isBatchEvaluating() &&
+      !occlusionManager.didCameraOrFootprintsChange()
+    ) {
+      return;
+    }
+    hasSyncedFrameRef.current = true;
 
     // 1. Retrieve the actual world position of this node (supports arbitrary parent transforms)
     groupRef.current.position.set(posX, posY, posZ);

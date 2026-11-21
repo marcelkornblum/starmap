@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
-import type { ThreeEvent } from '@react-three/fiber';
+import { invalidate as r3fInvalidate, type ThreeEvent } from '@react-three/fiber';
 import type { SpatialEntityStore } from './SpatialEntityStore';
 import type { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
 import type { CelestialInteractionState } from '../../../types/spatial';
@@ -13,6 +13,7 @@ export interface UseCelestialEntityInteractionsParams {
   activeState: CelestialInteractionState;
   storeApi: SpatialEntityStore;
   occlusionManager: CelestialOcclusionManager;
+  invalidate?: () => void;
   onClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
   onDoubleClick?: (id: string, e: ThreeEvent<MouseEvent>) => void;
   onPointerOver?: (id: string, e: ThreeEvent<PointerEvent>) => void;
@@ -23,11 +24,13 @@ export function useCelestialEntityInteractions({
   activeState,
   storeApi,
   occlusionManager,
+  invalidate,
   onClick,
   onDoubleClick,
   onPointerOver,
   onPointerOut,
 }: UseCelestialEntityInteractionsParams) {
+  const triggerInvalidate = invalidate ?? r3fInvalidate;
   const onClickRef = useRef(onClick);
   const onDoubleClickRef = useRef(onDoubleClick);
   const onPointerOverRef = useRef(onPointerOver);
@@ -50,8 +53,9 @@ export function useCelestialEntityInteractions({
       } else {
         activateEntity(storeApi, targetId, (tId) => occlusionManager.getCyclicSelectionTarget(tId));
       }
+      triggerInvalidate();
     },
-    [storeApi, occlusionManager],
+    [storeApi, occlusionManager, triggerInvalidate],
   );
 
   const handleMarkerDoubleClick = useCallback(
@@ -62,8 +66,9 @@ export function useCelestialEntityInteractions({
       } else {
         focusEntity(storeApi, targetId);
       }
+      triggerInvalidate();
     },
-    [storeApi],
+    [storeApi, triggerInvalidate],
   );
 
   const handleMarkerPointerOver = useCallback(
@@ -71,21 +76,30 @@ export function useCelestialEntityInteractions({
       if (activeStateRef.current === 'passive') return;
       scheduleHoverPrefetch(targetId, targetId, 12);
       storeApi.getState().setHovered(targetId);
+      triggerInvalidate();
       onPointerOverRef.current?.(targetId, e);
     },
-    [storeApi],
+    [storeApi, triggerInvalidate],
   );
 
   const handleMarkerPointerOut = useCallback(
     (targetId: string, e: ThreeEvent<PointerEvent>) => {
       cancelHoverPrefetch();
       if (activeStateRef.current === 'passive') return;
+      let shouldInvalidate = false;
       if (storeApi.getState().hoveredId === targetId) {
         storeApi.getState().setHovered(null);
+        shouldInvalidate = true;
       }
-      onPointerOutRef.current?.(targetId, e);
+      if (onPointerOutRef.current) {
+        onPointerOutRef.current(targetId, e);
+        shouldInvalidate = true;
+      }
+      if (shouldInvalidate) {
+        triggerInvalidate();
+      }
     },
-    [storeApi],
+    [storeApi, triggerInvalidate],
   );
 
   return {

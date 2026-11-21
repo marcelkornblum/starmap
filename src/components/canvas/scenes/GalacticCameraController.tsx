@@ -31,10 +31,10 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   hasExplicitCenter = true,
   persistGalaxyPose = true,
 }) => {
-  const three = useThree();
-  const camera = three.camera;
-  const controls =
-    'controls' in three && isOrbitControlsLike(three.controls) ? three.controls : undefined;
+  const camera = useThree((s) => s.camera);
+  const invalidate = useThree((s) => s.invalidate);
+  const rawControls = useThree((s) => s.controls);
+  const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
   const recenterTick = useCameraStore((s) => s.recenterTick);
   const prevTargetRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
   const prevDistanceRef = useRef<number>(Number.NaN);
@@ -192,6 +192,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
         prevDistanceRef.current = distance ?? Number.NaN;
         prevRecenterTickRef.current = recenterTick;
         prevControlsRef.current = controls;
+        invalidate?.();
         return;
       }
     }
@@ -232,6 +233,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       prevDistanceRef.current = distance ?? Number.NaN;
       prevRecenterTickRef.current = recenterTick;
       prevControlsRef.current = controls;
+      invalidate?.();
       return;
     }
 
@@ -282,10 +284,11 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     prevDistanceRef.current = distance ?? Number.NaN;
     prevRecenterTickRef.current = recenterTick;
     prevControlsRef.current = controls;
+    invalidate?.();
   }, [
     targetX, targetY, targetZ, distance,
     hasExplicitCenter, persistGalaxyPose, recenterTick,
-    camera, controls, saveCurrentGalaxyPose,
+    camera, controls, invalidate, saveCurrentGalaxyPose,
     scratchNewTargetRef, scratchPrevTargetRef, scratchDeltaRef, scratchOffsetRef,
   ]);
 

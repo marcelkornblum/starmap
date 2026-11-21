@@ -175,6 +175,10 @@ export class SectorStreamingManager {
     return this.bufferCache.isRingReady(this.activeSet);
   }
 
+  hasPendingUploads(): boolean {
+    return this.pendingUploadQueue.length > 0;
+  }
+
   getTelemetry(): SectorStreamingTelemetry {
     return {
       tier: this.budget.tier,

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { BodyMarker } from './BodyMarker';
+import { OcclusionPass } from './OcclusionPass';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
 import { CelestialOcclusionManager } from '../cartography/celestialOcclusionRegistry';
@@ -13,6 +14,7 @@ describe('BodyMarker Component & Interaction (AUD-115, AUD-116)', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -167,6 +169,50 @@ describe('BodyMarker Component & Interaction (AUD-115, AUD-116)', () => {
     await renderer.fireEvent(hitarea, 'pointerUp', { clientX: 110, clientY: 100, stopPropagation: vi.fn() });
 
     expect(handleClick).not.toHaveBeenCalled();
+
+    await renderer.unmount();
+  });
+
+  it('skips redundant hitarea/projection work during idle OcclusionPass frames even after >250ms, and resumes on footprint change (P-09)', async () => {
+    let now = 10_000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    const occlusionManager = new CelestialOcclusionManager();
+    const evalHitAreaSpy = vi.spyOn(occlusionManager, 'evaluateHitAreaOffset');
+
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider occlusionManager={occlusionManager}>
+        <OcclusionPass enabled={true} />
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <BodyMarker id="idle-marker" position={[1, 2, 3]} interactive={true} />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    await renderer.advanceFrames(1, 0.016);
+    expect(evalHitAreaSpy).toHaveBeenCalledTimes(1);
+
+    // Advance >250ms while idle: should skip evaluateHitAreaOffset completely
+    evalHitAreaSpy.mockClear();
+    now += 300;
+    await renderer.advanceFrames(1, 0.016);
+    expect(evalHitAreaSpy).not.toHaveBeenCalled();
+
+    // Mutate footprint: should immediately re-evaluate on next frame
+    occlusionManager.register({
+      id: 'idle-marker',
+      state: 'selected',
+      screenX: 0,
+      screenY: 0,
+      worldPos: [1, 2, 3],
+      reticleRadius: 20,
+      starRadius: 0.035,
+      hasReticle: true,
+      visible: true,
+      updatedAt: 0,
+    });
+    await renderer.advanceFrames(1, 0.016);
+    expect(evalHitAreaSpy).toHaveBeenCalledTimes(1);
 
     await renderer.unmount();
   });

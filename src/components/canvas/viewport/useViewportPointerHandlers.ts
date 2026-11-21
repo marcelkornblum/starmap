@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type * as THREE from 'three';
-import type { ThreeEvent } from '@react-three/fiber';
+import { invalidate as r3fInvalidate, type ThreeEvent } from '@react-three/fiber';
 import {
   type SpatialEntityStore,
   type useOcclusionManager,
@@ -18,6 +18,7 @@ export interface ViewportPointerHandlerOptions {
     target: [number, number, number] | THREE.Vector3,
     options?: { duration?: number },
   ) => void;
+  readonly invalidate?: () => void;
   readonly enableFocusTransition?: boolean;
   readonly focusTransitionDuration?: number;
   readonly onInspect?: (id: string) => void;
@@ -30,6 +31,7 @@ export function useViewportPointerHandlers({
   storeApi,
   occlusionManager,
   transitionTo,
+  invalidate,
   enableFocusTransition = true,
   focusTransitionDuration = DEFAULT_FOCUS_TRANSITION_DURATION,
   onInspect,
@@ -37,12 +39,15 @@ export function useViewportPointerHandlers({
   onFocusChange,
   onDoubleClick,
 }: ViewportPointerHandlerOptions) {
+  const triggerInvalidate = invalidate ?? r3fInvalidate;
+
   // Single click: select, or advance cyclic selection when re-clicking the selected entity
   const handleEntityClick = useCallback(
     (id: string) => {
       activateEntity(storeApi, id, (targetId) =>
         occlusionManager.getCyclicSelectionTarget(targetId),
       );
+      triggerInvalidate();
       const state = storeApi.getState();
       const entityId = state.focusedId ?? state.selectedId;
       if (onFocusChange) {
@@ -51,7 +56,7 @@ export function useViewportPointerHandlers({
         onSelect?.(entityId);
       }
     },
-    [storeApi, occlusionManager, onSelect, onFocusChange],
+    [storeApi, occlusionManager, triggerInvalidate, onSelect, onFocusChange],
   );
 
   // Double click: centre the instrument, focus the entity, and inspect
@@ -63,6 +68,7 @@ export function useViewportPointerHandlers({
       }
 
       focusEntity(storeApi, id);
+      triggerInvalidate();
       onInspect?.(id);
       onDoubleClick?.(id, e);
       onSelect?.(id);
@@ -73,6 +79,7 @@ export function useViewportPointerHandlers({
       enableFocusTransition,
       focusTransitionDuration,
       transitionTo,
+      triggerInvalidate,
       onInspect,
       onDoubleClick,
       onSelect,
@@ -82,9 +89,10 @@ export function useViewportPointerHandlers({
 
   const handlePointerMissed = useCallback(() => {
     clearInteraction(storeApi);
+    triggerInvalidate();
     onSelect?.(null);
     onFocusChange?.(null);
-  }, [storeApi, onSelect, onFocusChange]);
+  }, [storeApi, triggerInvalidate, onSelect, onFocusChange]);
 
   return {
     handleEntityClick,

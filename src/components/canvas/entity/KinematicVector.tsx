@@ -4,11 +4,10 @@ import { useFrame } from '@react-three/fiber';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
-import { CARTO_LINE_CONSTANTS } from '../../../styles/tokens/cartography';
-import { CartoLineMaterial } from '../materials/CartoLineMaterial';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
-import { calculateScreenInvariantScale } from '../engineConfig';
+import { calculateScreenInvariantScale, NOOP_RAYCAST } from '../engineConfig';
 import type { CelestialInteractionState } from './types';
+import { getSharedKinematicLineMaterial } from './kinematicVectorMaterial';
 
 export interface KinematicVectorProps {
   id: string;
@@ -19,20 +18,13 @@ export interface KinematicVectorProps {
   visible?: boolean;
 }
 
-/**
- * KinematicVector (§5: Projected Kinematic Velocity Vectors):
- * Renders a projected dotted/dashed velocity vector line to a fixed time delta Δt:
- * p(t + Δt) = p(t) + v * Δt.
- * Uses semantic kinematic color and perspective-invariant dashed line styling matching OrbitPath.
- */
-export const KinematicVector: React.FC<KinematicVectorProps> = ({
-  id,
-  position,
-  velocity,
-  deltaTime = 1.0,
-  state = 'passive',
-  visible: explicitVisible,
-}) => {
+interface KinematicVectorActiveProps {
+  id: string;
+  p0: THREE.Vector3;
+  p1: THREE.Vector3;
+}
+
+const KinematicVectorActive: React.FC<KinematicVectorActiveProps> = ({ id, p0, p1 }) => {
   const kinematicColor = useThreeTokenStore((s) => s.tokens.kinematicColor);
   const kinematicAlpha = useThreeTokenStore((s) => s.tokens.kinematicAlpha);
 
@@ -41,59 +33,17 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
   const terminusMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const frameCtx = useSpatialFrameSafe();
 
-  // Render if explicitly visible or when entity is selected/focused and velocity is defined
-  const isEnabled = explicitVisible ?? (state === 'selected' || state === 'focused');
-
-  const [p0, p1, dir, hasVelocity] = useMemo(() => {
-    if (!velocity) return [null, null, null, false];
-
-    const posX = position instanceof THREE.Vector3 ? position.x : position[0];
-    const posY = position instanceof THREE.Vector3 ? position.y : position[1];
-    const posZ = position instanceof THREE.Vector3 ? position.z : position[2];
-
-    const velX = velocity instanceof THREE.Vector3 ? velocity.x : velocity[0];
-    const velY = velocity instanceof THREE.Vector3 ? velocity.y : velocity[1];
-    const velZ = velocity instanceof THREE.Vector3 ? velocity.z : velocity[2];
-
-    const speedSq = velX * velX + velY * velY + velZ * velZ;
-    if (speedSq < 1e-6) return [null, null, null, false];
-
-    const start = new THREE.Vector3(posX, posY, posZ);
-    const end = new THREE.Vector3(
-      posX + velX * deltaTime,
-      posY + velY * deltaTime,
-      posZ + velZ * deltaTime,
-    );
-    const distance = start.distanceTo(end);
-    const direction = new THREE.Vector3().subVectors(end, start).divideScalar(distance);
-
-    return [start, end, direction, true];
-  }, [position, velocity, deltaTime]);
-
   const lineGeom = useMemo(() => new LineGeometry(), []);
-  const lineMat = useMemo(() => {
-    return new CartoLineMaterial({
-      color: kinematicColor,
-      opacity: kinematicAlpha,
-      lineWidth: 2.0,
-      lineStyle: 'dashed',
-      dashSize: CARTO_LINE_CONSTANTS.dashSize,
-      gapSize: CARTO_LINE_CONSTANTS.gapSize,
-      transparent: true,
-      depthWrite: false,
-    });
-    // Keep material instance stable; mutate color/opacity in useEffect below
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const lineMat = useMemo(() => getSharedKinematicLineMaterial(), []);
 
   const lineMesh = useMemo(() => {
     const mesh = new Line2(lineGeom, lineMat);
+    mesh.raycast = NOOP_RAYCAST;
     mesh.frustumCulled = false;
     return mesh;
   }, [lineGeom, lineMat]);
 
   useEffect(() => {
-    if (!p0 || !p1) return;
     lineGeom.setPositions([p0.x, p0.y, p0.z, p1.x, p1.y, p1.z]);
     lineMesh.computeLineDistances();
   }, [p0, p1, lineGeom, lineMesh]);
@@ -105,12 +55,6 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
   }, [lineGeom]);
 
   useEffect(() => {
-    return () => {
-      lineMat.dispose();
-    };
-  }, [lineMat]);
-
-  useEffect(() => {
     lineMat.setColor(kinematicColor);
     lineMat.setOpacity(kinematicAlpha);
     if (terminusMatRef.current?.color) {
@@ -120,8 +64,6 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
   }, [lineMat, kinematicColor, kinematicAlpha]);
 
   useFrame(({ camera, size }) => {
-    if (!isEnabled || !hasVelocity || !p0 || !p1 || !dir) return;
-
     lineMat.updateResolution(camera, size.width, size.height);
 
     const camDist = Math.max(camera.position.distanceTo(p0), 1e-4);
@@ -135,8 +77,6 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
     }
   });
 
-  if (!isEnabled || !hasVelocity || !p0 || !p1) return null;
-
   return (
     <group ref={groupRef} name={`kinematic-vector-${id}`}>
       {/* Projected Velocity Vector Line (Screen-Space Invariant Dashed 2px Line) */}
@@ -145,7 +85,7 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
       </group>
 
       {/* Terminus Waypoint Pip */}
-      <mesh ref={terminusRef} position={p1} name="velocity-vector-terminus">
+      <mesh ref={terminusRef} position={p1} name="velocity-vector-terminus" raycast={NOOP_RAYCAST}>
         <sphereGeometry args={[0.035, 12, 12]} />
         <meshBasicMaterial
           ref={terminusMatRef}
@@ -157,4 +97,48 @@ export const KinematicVector: React.FC<KinematicVectorProps> = ({
       </mesh>
     </group>
   );
+};
+
+/**
+ * KinematicVector (§5: Projected Kinematic Velocity Vectors):
+ * Thin guard wrapper evaluating enablement and velocity before mounting GPU resources.
+ * p(t + Δt) = p(t) + v * Δt.
+ */
+export const KinematicVector: React.FC<KinematicVectorProps> = ({
+  id,
+  position,
+  velocity,
+  deltaTime = 1.0,
+  state = 'passive',
+  visible: explicitVisible,
+}) => {
+  const isEnabled = explicitVisible ?? (state === 'selected' || state === 'focused');
+
+  const [p0, p1, hasVelocity] = useMemo(() => {
+    if (!isEnabled || !velocity) return [null, null, false] as const;
+
+    const posX = position instanceof THREE.Vector3 ? position.x : position[0];
+    const posY = position instanceof THREE.Vector3 ? position.y : position[1];
+    const posZ = position instanceof THREE.Vector3 ? position.z : position[2];
+
+    const velX = velocity instanceof THREE.Vector3 ? velocity.x : velocity[0];
+    const velY = velocity instanceof THREE.Vector3 ? velocity.y : velocity[1];
+    const velZ = velocity instanceof THREE.Vector3 ? velocity.z : velocity[2];
+
+    const speedSq = velX * velX + velY * velY + velZ * velZ;
+    if (speedSq < 1e-6) return [null, null, false] as const;
+
+    const start = new THREE.Vector3(posX, posY, posZ);
+    const end = new THREE.Vector3(
+      posX + velX * deltaTime,
+      posY + velY * deltaTime,
+      posZ + velZ * deltaTime,
+    );
+
+    return [start, end, true] as const;
+  }, [isEnabled, position, velocity, deltaTime]);
+
+  if (!isEnabled || !hasVelocity || !p0 || !p1) return null;
+
+  return <KinematicVectorActive id={id} p0={p0} p1={p1} />;
 };

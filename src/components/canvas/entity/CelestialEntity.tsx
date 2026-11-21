@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { type ThreeEvent, useFrame } from '@react-three/fiber';
+import { type ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import {
   useSpatialEntityStoreApi,
@@ -114,6 +114,7 @@ const CelestialEntityComponent: React.FC<CelestialEntityProps> = ({
 }) => {
   const storeApi = useSpatialEntityStoreApi();
   const occlusionManager = useOcclusionManager();
+  const invalidate = useThree((s) => s.invalidate);
   const nodeGroupRef = useRef<THREE.Group>(null);
   const nodeAlphaRef = useRef(1);
   const hasBodyCrossfade = bodyRadius !== undefined && bodyRadius > 0;
@@ -180,9 +181,12 @@ const CelestialEntityComponent: React.FC<CelestialEntityProps> = ({
 
   useEffect(() => {
     if (!isRetracting) return;
-    const timer = setTimeout(() => { setIsRetracting(false); }, 250);
+    const timer = setTimeout(() => {
+      setIsRetracting(false);
+      invalidate();
+    }, 250);
     return () => clearTimeout(timer);
-  }, [isRetracting]);
+  }, [isRetracting, invalidate]);
 
   const stalkMounted = isStalkTier || isRetracting;
 
@@ -192,7 +196,7 @@ const CelestialEntityComponent: React.FC<CelestialEntityProps> = ({
     handleMarkerPointerOver,
     handleMarkerPointerOut,
   } = useCelestialEntityInteractions({
-    activeState, storeApi, occlusionManager, onClick, onDoubleClick, onPointerOver, onPointerOut,
+    activeState, storeApi, occlusionManager, invalidate, onClick, onDoubleClick, onPointerOver, onPointerOut,
   });
 
   return (
