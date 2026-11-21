@@ -1,4 +1,5 @@
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
+import { parseCenterCoordinatesString } from '../../utils/url';
 import type { SceneCameraUrlState } from './detailsNavigationTypes';
 
 export const buildCenterEntityHref = (
@@ -41,9 +42,10 @@ export const extractUrlSceneCameraState = (
 
   const params = new URLSearchParams(searchString);
   const centerRaw = params.get('center');
+  const trimmedCenter = centerRaw?.trim();
   const center =
-    centerRaw !== null && centerRaw.trim().length > 0
-      ? toUrlSlug(centerRaw)
+    trimmedCenter && trimmedCenter.length > 0
+      ? (parseCenterCoordinatesString(trimmedCenter) ? trimmedCenter : toUrlSlug(trimmedCenter))
       : undefined;
 
   const parseNum = (key: string): number | undefined => {

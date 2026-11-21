@@ -61,15 +61,6 @@ export function handleSpaNavigation(
   return true;
 }
 
-/**
- * Updates the current SPA URL via history.replaceState and notifies useSpaLocation listeners.
- */
-export function replaceSpaHistoryUrl(url: string): void {
-  if (typeof window === 'undefined') return;
-  window.history.replaceState(window.history.state, '', url);
-  window.dispatchEvent(new Event('starmap:locationchange'));
-}
-
 export function useSpaLinkClick(): (
   event: React.MouseEvent<HTMLElement> | MouseEvent,
   href?: string | null,

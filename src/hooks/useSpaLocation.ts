@@ -15,6 +15,7 @@ export interface AppRouterState {
   readonly location?: {
     readonly pathname?: string;
     readonly searchStr?: string;
+    readonly search?: StarmapSearchParams;
   };
 }
 

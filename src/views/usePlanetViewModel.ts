@@ -27,6 +27,7 @@ import {
   useResolvedPlanetDetails,
   type UseResolvedPlanetDetailsProps,
 } from './useResolvedPlanetDetails';
+import { useColdLoadCenter } from './useColdLoadCenterId';
 
 export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
   const { locationPathname, locationSearch, planetId: propPlanetId } = props;
@@ -63,8 +64,12 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
   const rawPlanetId = routeParams?.planetId ?? propPlanetId;
   const targetId = toUrlSlug(rawPlanetId ?? '') || EARTH_REFERENCE_TARGET.id;
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
-  const cameraState = extractUrlSceneCameraState(search);
-  const effectiveCenterId = center ? toUrlSlug(center) : cameraState.center;
+  const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
+  const { effectiveCenterId, resolvedCenterCoordinates } = useColdLoadCenter(
+    center,
+    cameraState,
+    urlFocusSlug,
+  );
 
   useEffect(() => {
     if (!urlFocusSlug || !focusedEntity) return;
@@ -206,6 +211,7 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
     search,
     targetId,
     effectiveCenterId,
+    resolvedCenterCoordinates,
     cameraState,
     activeJourney,
     activeLayerCard,

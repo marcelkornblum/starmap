@@ -165,10 +165,37 @@ describe('useGalaxyViewModel', () => {
     );
   });
 
-  it('updates window.history.replaceState and dispatches starmap:locationchange when router.navigate is undefined', async () => {
+  it('centres on ?focus= on cold load, but does not force-re-centre when ?focus= changes subsequently without ?center=', async () => {
+    const store = createSpatialEntityStore();
+    const corpus = [
+      { i: 'tau-ceti', n: 'Tau Ceti', p: [3.16, 1.54, -1.0] as [number, number, number] },
+      { i: 'sol', n: 'Sol', p: [0, 0, 0] as [number, number, number] },
+    ];
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, { search: string }>>;
+    await act(async () => {
+      hookResult = renderHook(
+        ({ search }) =>
+          useGalaxyViewModel({
+            initialCorpus: corpus,
+            locationPathname: '/galaxy',
+            locationSearch: search,
+          }),
+        { wrapper: createWrapper(store), initialProps: { search: '?focus=tau-ceti' } },
+      );
+    });
+
+    expect(hookResult.result.current.resolvedCenterCoordinates).toEqual([3.16, 1.54, -1.0]);
+
+    await act(async () => {
+      hookResult.rerender({ search: '?focus=sol' });
+    });
+
+    expect(hookResult.result.current.resolvedCenterCoordinates).toBeUndefined();
+  });
+
+  it('does not mutate window.history.replaceState when router.navigate is undefined', async () => {
     vi.mocked(useRouter).mockReturnValue(undefined as never);
     const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
-    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
 
     const store = createSpatialEntityStore();
     let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useGalaxyViewModel>, unknown>>;
@@ -187,14 +214,8 @@ describe('useGalaxyViewModel', () => {
       hookResult.result.current.handleFocusChange('sol');
     });
 
-    expect(replaceStateSpy).toHaveBeenCalledWith(
-      window.history.state,
-      '',
-      expect.stringContaining('focus=sol'),
-    );
-    expect(dispatchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'starmap:locationchange' }),
-    );
+    expect(replaceStateSpy).not.toHaveBeenCalled();
     expect(useCameraStore.getState().inFlightFocusSlug).toBeUndefined();
+    replaceStateSpy.mockRestore();
   });
 });

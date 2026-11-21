@@ -186,11 +186,15 @@ describe('SpatialScenes Storybook Suite', () => {
       unmountOutlet();
     });
 
-    it('renders PlanetarySceneContent with cartographic grid and planet entity', async () => {
+    it('renders PlanetarySceneContent with cartographic grid and planet entity and forwards centerId', async () => {
       const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
 
       const renderer = await ReactThreeTest.create(
-        <PlanetarySceneContent planetId="earth" />,
+        <PlanetarySceneContent
+          planetId="earth"
+          centerId="moon"
+          centerCoordinates={[12, 3, -4]}
+        />,
       );
 
       expect(renderer.scene.findByProps({ name: 'cartographic-grid' })).toBeDefined();

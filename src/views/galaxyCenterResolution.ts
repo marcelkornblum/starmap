@@ -4,6 +4,7 @@ import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
 import { getMergedCorpusParts } from '../services/details/activeStarsCorpus';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
+import { parseCenterCoordinatesString } from '../utils/url';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 export const corpusSystemFirstChildCache = new WeakMap<
@@ -64,6 +65,7 @@ export interface ResolveGalaxyCenterCoordinatesParams {
     readonly center?: string;
   };
   readonly urlFocusSlug: string | null;
+  readonly isColdLoadFocus?: boolean;
   readonly canvasFocusedSlugs: ReadonlySet<string>;
   readonly pendingCenterSlug: string | null;
   readonly center?: string;
@@ -82,6 +84,7 @@ function extractPositionCoords(
 export function resolveGalaxyCenterCoordinates({
   cameraState,
   urlFocusSlug,
+  isColdLoadFocus = true,
   canvasFocusedSlugs,
   pendingCenterSlug,
   center,
@@ -98,6 +101,11 @@ export function resolveGalaxyCenterCoordinates({
     return [cameraState.x, cameraState.y, cameraState.z];
   }
 
+  const parsedCenterCoords = parseCenterCoordinatesString(center ?? cameraState.center);
+  if (parsedCenterCoords) {
+    return parsedCenterCoords;
+  }
+
   const isCanvasClickFocus =
     urlFocusSlug !== null &&
     (canvasFocusedSlugs.has(urlFocusSlug) ||
@@ -108,7 +116,7 @@ export function resolveGalaxyCenterCoordinates({
     (center ? toUrlSlug(center) : undefined) ??
     cameraState.center ??
     pendingCenterSlug ??
-    (!isCanvasClickFocus && urlFocusSlug ? toUrlSlug(urlFocusSlug) : undefined) ??
+    (!isCanvasClickFocus && isColdLoadFocus && urlFocusSlug ? toUrlSlug(urlFocusSlug) : undefined) ??
     undefined;
 
   if (

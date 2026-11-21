@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRouter } from '@tanstack/react-router';
-import { handleSpaNavigation, replaceSpaHistoryUrl, useSpaLinkClick } from './spaNavigation';
+import { handleSpaNavigation, useSpaLinkClick } from './spaNavigation';
 import type { AppRouterAdapter } from './useSpaLocation';
 import { useCameraStore } from '../stores/useCameraStore';
 
@@ -129,19 +129,4 @@ describe('handleSpaNavigation', () => {
       route: 'sol,gaia-2452378776434477184',
     });
   }, 20000);
-});
-
-describe('replaceSpaHistoryUrl', () => {
-  it('calls window.history.replaceState and dispatches starmap:locationchange', () => {
-    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
-    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
-
-    replaceSpaHistoryUrl('/galaxy?focus=tau-ceti');
-
-    expect(replaceStateSpy).toHaveBeenCalledWith(window.history.state, '', '/galaxy?focus=tau-ceti');
-    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'starmap:locationchange' }));
-
-    replaceStateSpy.mockRestore();
-    dispatchSpy.mockRestore();
-  });
 });

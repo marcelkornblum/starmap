@@ -191,6 +191,27 @@ describe('galaxyCenterResolution (unit:node)', () => {
       expect(result).toBeUndefined();
     });
 
+    it('returns undefined when applying ?focus= without ?center= and isColdLoadFocus is false', () => {
+      const corpus: CompactSearchEntry[] = [
+        { i: 'vega', n: 'Vega', p: [7.7, 1.1, 2.2] },
+      ];
+      const result = resolveGalaxyCenterCoordinates({
+        ...baseParams,
+        urlFocusSlug: 'vega',
+        isColdLoadFocus: false,
+        apertureCorpus: corpus,
+      });
+      expect(result).toBeUndefined();
+    });
+
+    it('parses x,y,z coordinate string in center query param per DEC-R014a', () => {
+      const result = resolveGalaxyCenterCoordinates({
+        ...baseParams,
+        center: '12.5,42.0,-10.8',
+      });
+      expect(result).toEqual([12.5, 42.0, -10.8]);
+    });
+
     it('returns undefined if no matching entity or coordinates are found', () => {
       const result = resolveGalaxyCenterCoordinates({
         ...baseParams,

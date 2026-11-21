@@ -2,16 +2,12 @@ import React, { useMemo } from 'react';
 import { SpatialViewport } from '../viewport/SpatialViewport';
 import { PLANETARY_FRAME } from '../../../config/referenceFrames';
 import { STANDARD_CAMERA_DISTANCES } from '../cartography/cartographyCamera';
-import { calculateKeplerianPosition } from '../math/kepler';
 import { PlanetBody } from '../entity/PlanetBody';
 import type { SpatialEntityDefinition } from '../entity';
 import type { CelestialClassification } from '../../../types/spatial';
-import type { ExoplanetRecord, SatelliteRecord } from '../../../types/astro';
-import { getCachedDetailRecord } from '../../../data/detailsRepository';
-import {
-  EARTH_REFERENCE_TARGET,
-  SOL_REFERENCE_TARGET,
-} from '../../../config/referenceTargets';
+import type { ExoplanetRecord } from '../../../types/astro';
+import { EARTH_REFERENCE_TARGET } from '../../../config/referenceTargets';
+import { resolvePlanetaryEntitiesAndTarget } from './sceneTargetHelpers';
 
 export interface PlanetSceneProps {
   planetId?: string;
@@ -22,12 +18,12 @@ export interface PlanetSceneProps {
   fadeRange?: number;
   planet?: ExoplanetRecord;
   satellites?: SpatialEntityDefinition[];
+  centerId?: string;
+  centerCoordinates?: readonly [number, number, number] | [number, number, number];
   onInspectSatellite?: (satelliteId: string) => void;
   onSelectEntity?: (entityId: string | null) => void;
   debugHitarea?: boolean;
 }
-
-const DEFAULT_SATELLITE_RADIUS_EARTH = 0.272;
 
 /**
  * PlanetScene: Canonical production scene for planetary body inspection.
@@ -43,90 +39,46 @@ export const PlanetScene: React.FC<PlanetSceneProps> = ({
   fadeRange = 16,
   planet,
   satellites: explicitSatellites,
+  centerId,
+  centerCoordinates,
   onInspectSatellite,
   onSelectEntity,
   debugHitarea = false,
 }) => {
-  const resolvedName = planetName ?? (planetId.charAt(0).toUpperCase() + planetId.slice(1));
-
-  const resolvedSatellites = useMemo<readonly SatelliteRecord[]>(() => {
-    if (planet?.satellites && planet.satellites.length > 0) {
-      return planet.satellites;
-    }
-    if (planetId) {
-      const detail = getCachedDetailRecord(planetId);
-      if (detail?.kind === 'system') {
-        const found = detail.record.planets?.find((p) => p.id === planetId);
-        if (found?.satellites) return found.satellites;
-      }
-      const sol = getCachedDetailRecord(SOL_REFERENCE_TARGET.id);
-      if (sol?.kind === 'system') {
-        const found = sol.record.planets?.find(
-          (p) => p.id === planetId || p.name.toLowerCase() === planetId.toLowerCase(),
-        );
-        if (found?.satellites) return found.satellites;
-      }
-    }
-    return [];
-  }, [planet, planetId]);
-
-  const satellites = useMemo<SpatialEntityDefinition[]>(() => {
-    if (explicitSatellites) return explicitSatellites;
-    if (resolvedSatellites.length > 0) {
-      return resolvedSatellites.map((sat) => {
-        const satSemiMajorAxis = sat.orbit.semiMajorAxis;
-        const [satX, satY, satZ] = calculateKeplerianPosition(
-          satSemiMajorAxis,
-          sat.orbit.eccentricity,
-          sat.orbit.inclination,
-          sat.orbit.ascendingNode,
-          sat.orbit.argumentOfPeriapsis,
-          sat.orbit.meanAnomaly,
-        );
-        const satClassification: CelestialClassification =
-          sat.composition ?? 'terrestrial';
-        return {
-          id: sat.id,
-          name: sat.name,
-          classification: satClassification,
-          position: [satX, satY, satZ],
-          bodyRadius: (sat.radiusEarth ?? DEFAULT_SATELLITE_RADIUS_EARTH) * radius,
-          orbit: {
-            semiMajorAxis: satSemiMajorAxis,
-            eccentricity: sat.orbit.eccentricity,
-            inclination: sat.orbit.inclination,
-            ascendingNode: sat.orbit.ascendingNode,
-            argumentOfPeriapsis: sat.orbit.argumentOfPeriapsis,
-            period: sat.orbit.periodDays,
-            meanAnomaly: sat.orbit.meanAnomaly,
-          },
-        };
-      });
-    }
-    return [];
-  }, [explicitSatellites, resolvedSatellites, radius]);
-
-  // Central planet representation: seamlessly cross-fades between 3D PlanetBody and invariant node
-  const planetEntity = useMemo<SpatialEntityDefinition>(() => ({
-    id: planetId,
-    name: resolvedName,
-    classification,
-    position: [0, 0, 0],
-    bodyRadius: radius,
-    bodyMinPixelSize: minPixelSize,
-    bodyFadeRange: fadeRange,
-  }), [planetId, resolvedName, classification, radius, minPixelSize, fadeRange]);
-
-  const allEntities = useMemo<SpatialEntityDefinition[]>(() => {
-    const hasPlanet = satellites.some((e) => e.id === planetId);
-    return hasPlanet ? satellites : [planetEntity, ...satellites];
-  }, [satellites, planetEntity, planetId]);
+  const { resolvedName, allEntities, targetCoords } = useMemo(
+    () =>
+      resolvePlanetaryEntitiesAndTarget({
+        planetId,
+        planetName,
+        classification,
+        radius,
+        minPixelSize,
+        fadeRange,
+        planet,
+        explicitSatellites,
+        centerId,
+        centerCoordinates,
+      }),
+    [
+      planetId,
+      planetName,
+      classification,
+      radius,
+      minPixelSize,
+      fadeRange,
+      planet,
+      explicitSatellites,
+      centerId,
+      centerCoordinates,
+    ],
+  );
 
   return (
     <SpatialViewport
       frame={PLANETARY_FRAME}
       entities={allEntities}
       cameraDistance={STANDARD_CAMERA_DISTANCES.planetary}
+      cameraTarget={targetCoords}
       onInspect={onInspectSatellite}
       onSelect={onSelectEntity}
       onFocusChange={onSelectEntity}

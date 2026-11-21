@@ -28,6 +28,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
     search,
     targetId,
     effectiveCenterId,
+    resolvedCenterCoordinates,
     cameraState,
     activeJourney,
     activeLayerCard,
@@ -49,13 +50,7 @@ export const PlanetView: React.FC<PlanetViewProps> = (props) => {
           scope="planet"
           targetId={targetId}
           centerId={effectiveCenterId}
-          centerCoordinates={
-            cameraState.x !== undefined &&
-            cameraState.y !== undefined &&
-            cameraState.z !== undefined
-              ? [cameraState.x, cameraState.y, cameraState.z]
-              : undefined
-          }
+          centerCoordinates={resolvedCenterCoordinates}
           cameraAzimuthDeg={cameraState.az}
           cameraElevationDeg={cameraState.el}
           cameraDistance={cameraState.dist}

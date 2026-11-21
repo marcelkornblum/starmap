@@ -1,8 +1,36 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { SearchPanel } from './SearchPanel';
+import { useRouter } from '@tanstack/react-router';
+
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-router')>();
+  return {
+    ...actual,
+    useRouter: vi.fn(() => undefined),
+  };
+});
+
+vi.mock('../../../../hooks/useLayerData', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../hooks/useLayerData')>();
+  return {
+    ...actual,
+    useLayerIndex: () => [
+      { layerId: 'project-hail-mary', title: 'Project Hail Mary', entryCount: 3 },
+      { layerId: 'exoplanet-archive', title: 'Exoplanet Archive', entryCount: 5 },
+    ],
+  };
+});
 
 describe('<SearchPanel />', () => {
+  beforeEach(() => {
+    vi.mocked(useRouter).mockReturnValue(undefined as never);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('renders search panel with visuallyHidden heading and search form', () => {
     render(<SearchPanel scope="search" />);
 
@@ -16,5 +44,27 @@ describe('<SearchPanel />', () => {
 
     expect(screen.getByRole('search')).toBeInTheDocument();
     expect(screen.getByTestId('search-expanded-drawer')).toBeInTheDocument();
+  });
+
+  it('reads current layer from typed TanStack Router search state on Explore click', () => {
+    const navigate = vi.fn();
+    vi.mocked(useRouter).mockReturnValue({
+      navigate,
+      state: { location: { pathname: '/galaxy', search: { layer: 'project-hail-mary' } } },
+    } as never);
+    window.history.pushState({}, '', '/galaxy');
+
+    render(<SearchPanel scope="galaxy" />);
+    fireEvent.click(screen.getByTestId('search-explore-button'));
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    const navCall = navigate.mock.calls[0]?.[0] as {
+      to: string;
+      search: (prev: Record<string, unknown>) => Record<string, unknown>;
+    };
+    expect(navCall.to).toBe('/galaxy');
+    const nextSearch = navCall.search({ layer: 'project-hail-mary' });
+    expect(nextSearch.layer).not.toBe('project-hail-mary');
+    expect(nextSearch.select).toBe(`layer:${nextSearch.layer}`);
   });
 });

@@ -194,4 +194,31 @@ describe('usePlanetViewModel', () => {
       vi.mocked(useRouter).mockReturnValue(undefined as never);
     }
   });
+
+  it('centres on ?focus= on cold load, but clears effectiveCenterId when ?focus= changes subsequently without ?center=', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof usePlanetViewModel>, { search: string }>>;
+    await act(async () => {
+      hookResult = renderHook(
+        ({ search }) =>
+          usePlanetViewModel({
+            planetId: 'earth',
+            locationPathname: '/planet/earth',
+            locationSearch: search,
+          }),
+        {
+          wrapper: createWrapper(store),
+          initialProps: { search: '?focus=moon' },
+        },
+      );
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBe('moon');
+
+    await act(async () => {
+      hookResult.rerender({ search: '?focus=earth' });
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+  });
 });

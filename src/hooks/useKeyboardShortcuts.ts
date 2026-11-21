@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useOptionalRouter, type StarmapSearchParams } from './useSpaLocation';
-import { replaceSpaHistoryUrl } from './spaNavigation';
 
 export interface UseKeyboardShortcutsOptions {
   readonly onTogglePlay?: () => void;
@@ -101,12 +100,11 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): voi
           } else {
             useCameraStore.getState().clearCanvasFocus();
             useCameraStore.getState().setPendingCenterSlug(null);
-            if (
-              router &&
-              typeof router.navigate === 'function' &&
-              typeof window !== 'undefined' &&
-              window.location.search.includes('focus')
-            ) {
+            const hasRouterFocus = Boolean(
+              router?.state?.location?.search?.focus ||
+                router?.state?.location?.searchStr?.includes('focus'),
+            );
+            if (router && typeof router.navigate === 'function' && hasRouterFocus) {
               useCameraStore.getState().setInFlightFocusSlug(null);
               const navPromise = router.navigate({
                 to: '.',
@@ -128,19 +126,6 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): voi
               }
             } else {
               useCameraStore.getState().setInFlightFocusSlug(undefined);
-              try {
-                if (typeof window !== 'undefined') {
-                  const searchParams = new URLSearchParams(window.location.search);
-                  if (searchParams.has('focus')) {
-                    searchParams.delete('focus');
-                    const newQs = searchParams.toString();
-                    const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ''}${window.location.hash}`;
-                    replaceSpaHistoryUrl(newUrl);
-                  }
-                }
-              } catch {
-                // noop
-              }
             }
             if (document.activeElement instanceof HTMLElement) {
               document.activeElement.blur();

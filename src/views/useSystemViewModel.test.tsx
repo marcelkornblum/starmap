@@ -191,4 +191,31 @@ describe('useSystemViewModel', () => {
     expect(hookResult.result.current.focusedPreview).toBe(initialPreview);
     expect(hookResult.result.current.minimapOrientation).toBe(initialMinimap);
   });
+
+  it('centres on ?focus= on cold load, but clears effectiveCenterId when ?focus= changes subsequently without ?center=', async () => {
+    const store = createSpatialEntityStore();
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useSystemViewModel>, { search: string }>>;
+    await act(async () => {
+      hookResult = renderHook(
+        ({ search }) =>
+          useSystemViewModel({
+            systemId: 'sol',
+            locationPathname: '/system/sol',
+            locationSearch: search,
+          }),
+        {
+          wrapper: createWrapper(store),
+          initialProps: { search: '?focus=earth' },
+        },
+      );
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBe('earth');
+
+    await act(async () => {
+      hookResult.rerender({ search: '?focus=sol' });
+    });
+
+    expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+  });
 });

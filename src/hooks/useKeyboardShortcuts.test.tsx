@@ -6,6 +6,20 @@ import {
 } from './useKeyboardShortcuts';
 import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
+import type { StarmapSearchParams } from './useSpaLocation';
+
+let mockRouter: {
+  navigate: ReturnType<typeof vi.fn>;
+  state: { location: { pathname: string; search: StarmapSearchParams } };
+} | undefined;
+
+vi.mock('./useSpaLocation', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./useSpaLocation')>();
+  return {
+    ...actual,
+    useOptionalRouter: () => mockRouter,
+  };
+});
 
 describe('useKeyboardShortcuts', () => {
   beforeEach(() => {
@@ -163,8 +177,13 @@ describe('useKeyboardShortcuts', () => {
     expect(onClearFocus).toHaveBeenCalledTimes(1);
   });
 
-  it('clears canvas focus and inFlightFocusSlug on Escape', () => {
-    window.history.pushState({}, '', '/galaxy?focus=sol');
+  it('clears canvas focus and removes focus via typed TanStack Router navigation on Escape', () => {
+    const navigate = vi.fn().mockResolvedValue(undefined);
+    mockRouter = {
+      navigate,
+      state: { location: { pathname: '/galaxy', search: { focus: 'sol', center: 'tau-ceti' } } },
+    };
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
     useCameraStore.getState().recordCanvasFocus(['sol', 'sol']);
     useCameraStore.getState().setInFlightFocusSlug('sol');
 
@@ -174,7 +193,16 @@ describe('useKeyboardShortcuts', () => {
     window.dispatchEvent(event);
 
     expect(useCameraStore.getState().canvasFocusedSlugs.size).toBe(0);
-    expect(useCameraStore.getState().inFlightFocusSlug).toBeUndefined();
-    expect(window.location.search).not.toContain('focus=sol');
+    expect(navigate).toHaveBeenCalledTimes(1);
+    const navArg = navigate.mock.calls[0]?.[0] as {
+      to: string;
+      search: (prev: StarmapSearchParams) => StarmapSearchParams;
+      replace: boolean;
+    };
+    expect(navArg.to).toBe('.');
+    expect(navArg.replace).toBe(true);
+    expect(navArg.search({ focus: 'sol', center: 'tau-ceti' })).toEqual({ center: 'tau-ceti' });
+    expect(replaceStateSpy).not.toHaveBeenCalled();
+    mockRouter = undefined;
   });
 });

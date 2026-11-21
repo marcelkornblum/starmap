@@ -10,6 +10,7 @@ import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import { SystemCameraController } from './SystemCameraController';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
 import { resolveCenterCoords } from './useGalaxyViewCamera';
+import { useResolvedSystemEntitiesAndTarget } from './sceneTargetHelpers';
 import type {
   SystemSceneContentProps,
   SystemViewSceneProps,
@@ -23,7 +24,13 @@ export const SystemSceneContent: React.FC<SystemSceneContentProps> = ({
   onInspectPlanet,
   onSelectEntity,
 }) => {
-  const targetCoords = useMemo(() => resolveCenterCoords(centerCoordinates), [centerCoordinates]);
+  const { entities, targetCoords } = useResolvedSystemEntitiesAndTarget(
+    systemId,
+    system,
+    centerId,
+    centerCoordinates,
+  );
+  const hasExplicitCenter = Boolean(centerCoordinates || centerId);
   const standardCam = useMemo(
     () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.system, targetCoords),
     [targetCoords],
@@ -46,13 +53,15 @@ export const SystemSceneContent: React.FC<SystemSceneContentProps> = ({
         position={standardCam.position}
         target={standardCam.target}
         up={standardCam.up}
+        hasExplicitCenter={hasExplicitCenter}
       />
 
       <SystemScene
         systemId={systemId}
         system={system}
         centerId={centerId}
-        centerCoordinates={centerCoordinates ? targetCoords : undefined}
+        centerCoordinates={targetCoords}
+        resolvedEntities={entities}
         onInspectPlanet={onInspectPlanet}
         onSelectEntity={onSelectEntity}
       />

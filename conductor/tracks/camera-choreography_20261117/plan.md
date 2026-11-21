@@ -31,12 +31,12 @@
   - Unify `CameraTransitionController`, `CardinalTransitionController`, and perspective/orthographic camera presets (`reset`, `radial`, `top-down`, `orbital-lock`, cardinal axes) onto a single controller interpolating `(target, sphericalDir, distance/orthoZoom, up, fov)` via `src/utils/cameraEasing.ts`.
   - Anchor `startTime` on the first `useFrame` tick (`pendingStart`); clamp idle `delta` in `DropStalk.tsx` as well; gate `OrbitControls` updates and suppress 60fps store/URL sync while `isCameraTransitioning` is true (syncing once on settle).
   - Ensure OrbitControls user `'start'` interrupts any active glide cleanly and clears damping momentum; deduplicate double-click callbacks in `useViewportPointerHandlers.ts`.
-- [~] **Task 1.3 (Red/Green/Refactor): Replace Synchronous Snaps & Establish `center` vs. `focused` Semantics**
+- [x] **Task 1.3 (Red/Green/Refactor): Replace Synchronous Snaps & Establish `center` vs. `focused` Semantics** *(shipped smooth glides in `GalacticCameraController` & `SystemCameraController`, unified System/Planet controllers, `useColdLoadCenterId`, router SSOT cleanup + 130 tests green)*
   - Replace synchronous snaps in `GalacticCameraController` and `SystemCameraController` with unified glides (keeping cold-load initial placement instant so initial load does not swoop from `[0,0,0]`).
   - Resolve the dual-controller overlap in `SystemSceneEntry` (`SystemCameraController` + `SystemScene -> GalacticCameraController`), wire `centerId` into `PlanetarySceneContent`, and ensure `SystemCameraController` keeps `useCameraStore.target` in sync on settle.
   - Separate `center` from `focused` cleanly: cold-loading a focused view centres on that target; subsequent panning mutates `center` without altering `focused`; applying `?focus=` does not force-re-centre.
   - Remove remaining `window.location.search` / `replaceSpaHistoryUrl` camera-URL leaks (`GalacticCameraController`, `useGalaxyViewModel`, `useKeyboardShortcuts`, `spaNavigation`, `SearchPanel`) in favour of typed TanStack Router navigation (`DEC-R014`).
-- [ ] **Task 1.4: Temporary Uncommitted Demo Lab (Removed Before Commit)**
+- [~] **Task 1.4: Temporary Uncommitted Demo Lab (Removed Before Commit)**
   - During Phase 1 live review only, mount a temporary uncommitted Motion Lab overlay to swap curves/durations and trigger short/medium/long journeys; remove it cleanly and bake in the ratified curve/duration before committing the Phase 1 checkpoint.
 - [ ] **Task 1.5: Quality Gate & Standards Cleanup**
   - Run `standards` cleanup; verify `max-lines: 300` and `DEC-R012` boundaries.

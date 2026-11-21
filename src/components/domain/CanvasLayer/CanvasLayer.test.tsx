@@ -43,6 +43,8 @@ vi.mock('../../canvas/scenes/SystemSceneEntry', () => ({
 vi.mock('../../canvas/scenes/PlanetarySceneEntry', () => {
   const MockPlanetarySceneContent = (props: {
     planetId?: string;
+    centerId?: string;
+    centerCoordinates?: readonly [number, number, number];
     onInspectSatellite?: (id: string) => void;
     onSelectEntity?: (id: string | null) => void;
   }) => {
@@ -52,6 +54,8 @@ vi.mock('../../canvas/scenes/PlanetarySceneEntry', () => {
       'data-has-inspect': String(Boolean(props.onInspectSatellite)),
       'data-has-select': String(Boolean(props.onSelectEntity)),
       'data-has-bridged-store': String(Boolean(store)),
+      'data-center-id': props.centerId,
+      'data-center-coords': props.centerCoordinates?.join(','),
     });
   };
   return {
@@ -336,6 +340,8 @@ describe('CanvasLayer Domain Component', () => {
           <CanvasLayer
             scope="planet"
             targetId="earth"
+            centerId="moon"
+            centerCoordinates={[10, 2, -1]}
             onInspect={onInspect}
             onSelect={onSelect}
           />
@@ -346,6 +352,8 @@ describe('CanvasLayer Domain Component', () => {
       expect(planetScene.getAttribute('data-has-inspect')).toBe('true');
       expect(planetScene.getAttribute('data-has-select')).toBe('true');
       expect(planetScene.getAttribute('data-has-bridged-store')).toBe('true');
+      expect(planetScene.getAttribute('data-center-id')).toBe('moon');
+      expect(planetScene.getAttribute('data-center-coords')).toBe('10,2,-1');
     });
 
     it('uses frameloop="demand" in standalone direct mode', async () => {

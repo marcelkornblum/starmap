@@ -5,6 +5,8 @@ import {
   resolveSystemPlanetEntity,
   resolveCorpusPlanetEntity,
 } from './systemPlanetResolver';
+import { resolveTargetCoordsFromEntities } from './sceneTargetHelpers';
+import { useCameraStore } from '../../../stores/useCameraStore';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
 
@@ -59,6 +61,23 @@ describe('SystemScene Component Rendering', () => {
     expect(renderer.scene.findByProps({ name: 'celestial-entity-jupiter' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'orbital-ring-earth' })).toBeDefined();
     expect(renderer.scene.findByProps({ name: 'orbital-ring-jupiter' })).toBeDefined();
+
+    await renderer.unmount();
+  });
+
+  it('resolves centerId target coords cleanly without mounting GalacticCameraController inside SystemScene', async () => {
+    useCameraStore.getState().reset();
+    const jupiterEntity = resolveSystemPlanetEntity(mockSolSystem.planets![1]!, 1);
+    const coords = resolveTargetCoordsFromEntities([jupiterEntity], 'jupiter');
+    expect(coords[0]).not.toBe(0);
+
+    const renderer = await ReactThreeTest.create(
+      <SystemScene systemId="sol" system={mockSolSystem} centerId="jupiter" />,
+    );
+
+    // GalacticCameraController is NOT mounted inside SystemScene, so camera store is untouched by SystemScene alone
+    expect(useCameraStore.getState().target).toEqual([0, 0, 0]);
+    expect(renderer.scene.findByProps({ name: 'celestial-entity-jupiter' })).toBeDefined();
 
     await renderer.unmount();
   });

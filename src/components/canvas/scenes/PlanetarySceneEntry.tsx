@@ -10,24 +10,38 @@ import { EARTH_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import { formatSlugFallbackTitle } from '../../../utils/starNaming';
 import { SystemCameraController } from './SystemCameraController';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
+import { resolveCenterCoords } from './useGalaxyViewCamera';
+import { resolvePlanetaryEntitiesAndTarget } from './sceneTargetHelpers';
 import type {
   PlanetarySceneContentProps,
   PlanetaryViewSceneProps,
 } from './spatialSceneTypes';
 
-const ORIGIN_COORDS: readonly [number, number, number] = [0, 0, 0];
-
-const getPlanetaryCamera = () =>
-  getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, ORIGIN_COORDS as [number, number, number]);
-
 export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
   planetId = EARTH_REFERENCE_TARGET.id,
   planet,
+  centerId,
+  centerCoordinates,
   onInspectSatellite,
   onSelectEntity,
 }) => {
   const planetDisplayName = planet?.name ?? formatSlugFallbackTitle(planetId);
-  const standardCam = useMemo(() => getPlanetaryCamera(), []);
+  const { targetCoords } = useMemo(
+    () =>
+      resolvePlanetaryEntitiesAndTarget({
+        planetId,
+        planetName: planetDisplayName,
+        planet,
+        centerId,
+        centerCoordinates,
+      }),
+    [planetId, planetDisplayName, planet, centerId, centerCoordinates],
+  );
+  const hasExplicitCenter = Boolean(centerCoordinates || centerId);
+  const standardCam = useMemo(
+    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, targetCoords),
+    [targetCoords],
+  );
 
   return (
     <>
@@ -46,6 +60,7 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
         position={standardCam.position}
         target={standardCam.target}
         up={standardCam.up}
+        hasExplicitCenter={hasExplicitCenter}
       />
 
       <PlanetScene
@@ -53,6 +68,8 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
         planetName={planetDisplayName}
         classification="terrestrial"
         planet={planet}
+        centerId={centerId}
+        centerCoordinates={targetCoords}
         onInspectSatellite={onInspectSatellite}
         onSelectEntity={onSelectEntity}
       />
@@ -61,7 +78,11 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
 };
 
 export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = (props) => {
-  const standardCam = useMemo(() => getPlanetaryCamera(), []);
+  const targetCoords = useMemo(() => resolveCenterCoords(props.centerCoordinates), [props.centerCoordinates]);
+  const standardCam = useMemo(
+    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.planetary, targetCoords),
+    [targetCoords],
+  );
 
   return (
     <StandaloneSceneShell

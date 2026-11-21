@@ -1,6 +1,7 @@
 import type { FormEvent, ReactNode } from 'react';
 import { useRouter } from '@tanstack/react-router';
 import { useLayerIndex } from '../../../../hooks/useLayerData';
+import type { StarmapSearchParams } from '../../../../hooks/useSpaLocation';
 import { pickRandomLayerOverviewHref } from '../../../../services/layerCardService';
 import { parseLayerQueryParam } from '../../../../utils/url';
 import { Button, Heading } from '../../../interface';
@@ -38,7 +39,8 @@ export const SearchPanel = ({
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    const currentLayer = new URLSearchParams(window.location.search).get('layer');
+    const routerSearch = router?.state?.location?.search as StarmapSearchParams | undefined;
+    const currentLayer = routerSearch?.layer ?? null;
     const nextHref = pickRandomLayerOverviewHref(
       currentLayer,
       Math.random,

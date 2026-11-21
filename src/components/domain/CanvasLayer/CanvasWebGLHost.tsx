@@ -130,6 +130,8 @@ export const CanvasWebGLHost: React.FC<CanvasWebGLHostProps> = React.memo(({
               {isSpatialSceneMounted && scope === 'planet' && targetId && (
                 <PlanetarySceneComponent
                   planetId={targetId}
+                  centerId={centerId}
+                  centerCoordinates={centerCoordinates}
                   onInspectSatellite={onInspect}
                   onSelectEntity={onSelect}
                 />

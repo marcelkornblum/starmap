@@ -1,10 +1,10 @@
 import type React from 'react';
 import { useCallback, useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
-import * as THREE from 'three';
 import { useCameraStore } from '../../../stores/useCameraStore';
-import { useLazyRef } from '../../../hooks/useLazyRef';
-import { useOptionalRouter, type StarmapSearchParams } from '../../../hooks/useSpaLocation';
+import { useUIStore } from '../../../stores/useUIStore';
+import { useOptionalRouter } from '../../../hooks/useSpaLocation';
+import { useCameraTransition } from '../instrument/useCameraTransition';
 import {
   getStandardInitialCamera,
   STANDARD_CAMERA_DISTANCES,
@@ -12,9 +12,15 @@ import {
 import {
   type OrbitControlsLike,
   isOrbitControlsLike,
-  applyCameraSavedZoom,
   getCameraZoom,
 } from './cameraControllerUtils';
+import {
+  applyImmediateCameraPose,
+  computeCameraPoseSnapshot,
+  formatCenterCoordString,
+  navigatePanCenterToRouter,
+  persistCameraPoseToStore,
+} from './galacticCameraHelpers';
 
 export type { OrbitControlsLike };
 
@@ -36,17 +42,15 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   const rawControls = useThree((s) => s.controls);
   const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
   const router = useOptionalRouter();
+  const { transitionTo } = useCameraTransition();
   const recenterTick = useCameraStore((s) => s.recenterTick);
+
   const prevTargetRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
   const prevDistanceRef = useRef<number>(Number.NaN);
   const prevRecenterTickRef = useRef<number>(-1);
   const prevControlsRef = useRef<OrbitControlsLike | undefined>(undefined);
   const hasRestoredRef = useRef(false);
-
-  const scratchNewTargetRef = useLazyRef(() => new THREE.Vector3());
-  const scratchPrevTargetRef = useLazyRef(() => new THREE.Vector3());
-  const scratchDeltaRef = useLazyRef(() => new THREE.Vector3());
-  const scratchOffsetRef = useLazyRef(() => new THREE.Vector3());
+  const pendingPanTargetRef = useRef<string | null>(null);
 
   const [targetX, targetY, targetZ] = target;
   const targetPosRef = useRef({ x: targetX, y: targetY, z: targetZ });
@@ -54,86 +58,40 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     targetPosRef.current = { x: targetX, y: targetY, z: targetZ };
   }, [targetX, targetY, targetZ]);
 
-  const saveCurrentGalaxyPose = useCallback((force = false) => {
-    if (!persistGalaxyPose) return;
-    const cur = targetPosRef.current;
-    const tgt: [number, number, number] = controls?.target
-      ? [controls.target.x, controls.target.y, controls.target.z]
-      : [cur.x, cur.y, cur.z];
-    const pos: [number, number, number] = [camera.position.x, camera.position.y, camera.position.z];
-    const up: [number, number, number] = [camera.up.x, camera.up.y, camera.up.z];
-    const focalDistance = controls?.target
-      ? camera.position.distanceTo(controls.target)
-      : camera.position.length();
-
-    const store = useCameraStore.getState();
-    const posDiff = Math.hypot(
-      pos[0] - store.position[0],
-      pos[1] - store.position[1],
-      pos[2] - store.position[2],
-    );
-    const targetDiff = Math.hypot(
-      tgt[0] - store.target[0],
-      tgt[1] - store.target[1],
-      tgt[2] - store.target[2],
-    );
-    const distDiff = Math.abs(focalDistance - store.focalDistance);
-
-    if (force || posDiff > 0.002 || targetDiff > 0.002 || distDiff > 0.002) {
-      if (force) {
-        store.setSavedGalaxyCamera({
-          position: pos,
-          target: tgt,
-          up,
-          zoom: getCameraZoom(camera),
-          focalDistance,
-          centerKey: `${tgt[0]},${tgt[1]},${tgt[2]}`,
-        });
-      }
-      store.setCameraPose({
-        position: pos,
-        target: tgt,
-        up,
-        zoom: getCameraZoom(camera),
-        focalDistance,
-      });
-    }
-  }, [camera, controls, persistGalaxyPose]);
+  const saveCurrentGalaxyPose = useCallback(
+    (force = false) => {
+      const snapshot = computeCameraPoseSnapshot(camera, controls, [
+        targetPosRef.current.x,
+        targetPosRef.current.y,
+        targetPosRef.current.z,
+      ]);
+      persistCameraPoseToStore(snapshot, persistGalaxyPose, force);
+    },
+    [camera, controls, persistGalaxyPose],
+  );
 
   useEffect(() => {
     if (!persistGalaxyPose) return;
-    if (controls?.addEventListener && controls?.removeEventListener) {
-      const handleChange = () => saveCurrentGalaxyPose(false);
-      const handleEnd = () => {
-        saveCurrentGalaxyPose(true);
-        if (controls && router && typeof router.navigate === 'function' && typeof window !== 'undefined') {
-          const tgt = controls.target;
-          const searchParams = new URLSearchParams(window.location.search);
-          const centerParam = searchParams.get('center');
-          if (centerParam) {
-            const cur = targetPosRef.current;
-            const currentDistFromTarget = Math.hypot(tgt.x - cur.x, tgt.y - cur.y, tgt.z - cur.z);
-            if (currentDistFromTarget > 0.05) {
-              const coordStr = `${tgt.x.toFixed(1)},${tgt.y.toFixed(1)},${tgt.z.toFixed(1)}`;
-              if (centerParam !== coordStr) {
-                void router.navigate({
-                  to: '.',
-                  search: (prev: StarmapSearchParams = {}) => ({ ...prev, center: coordStr }),
-                  replace: true,
-                });
-              }
-            }
-          }
-        }
-      };
-      controls.addEventListener('change', handleChange);
-      controls.addEventListener('end', handleEnd);
-      return () => {
-        saveCurrentGalaxyPose(true);
-        controls.removeEventListener?.('change', handleChange);
-        controls.removeEventListener?.('end', handleEnd);
-      };
-    }
+    if (!controls?.addEventListener || !controls?.removeEventListener) return;
+
+    const handleChange = () => {
+      if (useUIStore.getState().isCameraTransitioning) return;
+      saveCurrentGalaxyPose(false);
+    };
+
+    const handleEnd = () => {
+      if (useUIStore.getState().isCameraTransitioning) return;
+      saveCurrentGalaxyPose(true);
+      navigatePanCenterToRouter(router, controls, targetPosRef.current, pendingPanTargetRef);
+    };
+
+    controls.addEventListener('change', handleChange);
+    controls.addEventListener('end', handleEnd);
+    return () => {
+      saveCurrentGalaxyPose(true);
+      controls.removeEventListener?.('change', handleChange);
+      controls.removeEventListener?.('end', handleEnd);
+    };
   }, [controls, persistGalaxyPose, router, saveCurrentGalaxyPose]);
 
   useEffect(() => {
@@ -150,6 +108,18 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       return;
     }
 
+    const incomingCoordStr = formatCenterCoordString(targetX, targetY, targetZ);
+    if (
+      pendingPanTargetRef.current === incomingCoordStr &&
+      isDistSame &&
+      isTickSame &&
+      isControlsSame
+    ) {
+      pendingPanTargetRef.current = null;
+      prevTargetRef.current = [targetX, targetY, targetZ];
+      return;
+    }
+
     if (!isInitialMount && !hasExplicitCenter && isDistSame && isTickSame && isControlsSame) {
       return;
     }
@@ -157,27 +127,28 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     const saved = persistGalaxyPose ? useCameraStore.getState().savedGalaxyCamera : null;
 
     if (!hasRestoredRef.current && saved && distance === undefined) {
-      const isMatch = Math.hypot(
-        saved.target[0] - targetX,
-        saved.target[1] - targetY,
-        saved.target[2] - targetZ,
-      ) < 0.05;
+      const isMatch =
+        Math.hypot(
+          saved.target[0] - targetX,
+          saved.target[1] - targetY,
+          saved.target[2] - targetZ,
+        ) < 0.05;
       const isTransientZero =
-        targetX === 0 && targetY === 0 && targetZ === 0 &&
+        targetX === 0 &&
+        targetY === 0 &&
+        targetZ === 0 &&
         (saved.target[0] !== 0 || saved.target[1] !== 0 || saved.target[2] !== 0);
 
       if (isMatch || isTransientZero) {
-        camera.position.set(saved.position[0], saved.position[1], saved.position[2]);
-        camera.up.set(saved.up[0], saved.up[1], saved.up[2]);
-        applyCameraSavedZoom(camera, saved.zoom);
-
-        if (controls) {
-          controls.target.set(saved.target[0], saved.target[1], saved.target[2]);
-          controls.update?.();
-          hasRestoredRef.current = true;
-        } else {
-          camera.lookAt(saved.target[0], saved.target[1], saved.target[2]);
-        }
+        const appliedControls = applyImmediateCameraPose(
+          camera,
+          controls,
+          saved.position,
+          saved.target,
+          saved.up,
+          saved.zoom,
+        );
+        if (appliedControls) hasRestoredRef.current = true;
 
         useCameraStore.getState().setCameraPose({
           position: saved.position,
@@ -199,29 +170,30 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       }
     }
 
-    if (isInitialMount && !saved && distance === undefined) {
+    if (isInitialMount && !saved) {
+      const initialDistSetting =
+        typeof distance === 'number' && Number.isFinite(distance) && distance > 0
+          ? distance
+          : STANDARD_CAMERA_DISTANCES.galactic;
       const initialCam = getStandardInitialCamera(
-        STANDARD_CAMERA_DISTANCES.galactic,
+        initialDistSetting,
         [targetX, targetY, targetZ],
       );
-      camera.position.set(initialCam.position[0], initialCam.position[1], initialCam.position[2]);
-      camera.up.set(initialCam.up[0], initialCam.up[1], initialCam.up[2]);
-      applyCameraSavedZoom(camera, 1);
-
-      if (controls) {
-        controls.target.set(targetX, targetY, targetZ);
-        controls.update?.();
-        hasRestoredRef.current = true;
-      } else {
-        camera.lookAt(targetX, targetY, targetZ);
-      }
+      const appliedControls = applyImmediateCameraPose(
+        camera,
+        controls,
+        initialCam.position,
+        [targetX, targetY, targetZ],
+        initialCam.up,
+        1,
+      );
+      if (appliedControls) hasRestoredRef.current = true;
 
       const initialDist = Math.hypot(
         camera.position.x - targetX,
         camera.position.y - targetY,
         camera.position.z - targetZ,
       );
-
       useCameraStore.getState().setCameraPose({
         position: [camera.position.x, camera.position.y, camera.position.z],
         target: [targetX, targetY, targetZ],
@@ -239,59 +211,55 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       return;
     }
 
-    const newTarget = scratchNewTargetRef.current.set(targetX, targetY, targetZ);
-    const prevTarget = Number.isFinite(prev[0])
-      ? scratchPrevTargetRef.current.set(prev[0], prev[1], prev[2])
-      : controls?.target
-        ? scratchPrevTargetRef.current.copy(controls.target)
-        : scratchPrevTargetRef.current.set(0, 0, 0);
-    const delta = scratchDeltaRef.current.copy(newTarget).sub(prevTarget);
-
-    camera.position.add(delta);
-    camera.lookAt(newTarget);
-    if (controls) controls.target.copy(newTarget);
-
-    if (typeof distance === 'number' && Number.isFinite(distance) && distance > 0) {
-      const offset = scratchOffsetRef.current.copy(camera.position).sub(newTarget);
-      if (offset.lengthSq() > 1e-6) {
-        offset.setLength(distance);
-        camera.position.copy(newTarget).add(offset);
-      }
-    }
-
-    if (controls) {
+    if (!isInitialMount && !hasRestoredRef.current && controls && isTargetSame && isDistSame && isTickSame) {
+      controls.target.set(targetX, targetY, targetZ);
       controls.update?.();
       hasRestoredRef.current = true;
+      prevControlsRef.current = controls;
+      invalidate?.();
+      return;
     }
 
-    const finalTarget: [number, number, number] = controls?.target
-      ? [controls.target.x, controls.target.y, controls.target.z]
-      : [targetX, targetY, targetZ];
-    const finalPos: [number, number, number] = [camera.position.x, camera.position.y, camera.position.z];
-    const finalDist = Math.hypot(
-      finalPos[0] - finalTarget[0],
-      finalPos[1] - finalTarget[1],
-      finalPos[2] - finalTarget[2],
-    );
-    useCameraStore.getState().setCameraPose({
-      position: finalPos,
-      target: finalTarget,
-      up: [camera.up.x, camera.up.y, camera.up.z],
-      zoom: getCameraZoom(camera),
-      focalDistance: finalDist,
+    const resolvedDistance =
+      typeof distance === 'number' && Number.isFinite(distance) && distance > 0
+        ? distance
+        : undefined;
+
+    transitionTo([targetX, targetY, targetZ], {
+      ...(resolvedDistance !== undefined ? { targetDistance: resolvedDistance } : {}),
+      onComplete: () => {
+        controls?.update?.();
+        hasRestoredRef.current = true;
+        const snapshot = computeCameraPoseSnapshot(camera, controls, [targetX, targetY, targetZ]);
+        useCameraStore.getState().setCameraPose({
+          position: snapshot.position,
+          target: snapshot.target,
+          up: snapshot.up,
+          zoom: snapshot.zoom,
+          focalDistance: snapshot.focalDistance,
+        });
+        saveCurrentGalaxyPose(true);
+        invalidate?.();
+      },
     });
-    saveCurrentGalaxyPose(true);
 
     prevTargetRef.current = [targetX, targetY, targetZ];
     prevDistanceRef.current = distance ?? Number.NaN;
     prevRecenterTickRef.current = recenterTick;
     prevControlsRef.current = controls;
-    invalidate?.();
   }, [
-    targetX, targetY, targetZ, distance,
-    hasExplicitCenter, persistGalaxyPose, recenterTick,
-    camera, controls, invalidate, saveCurrentGalaxyPose,
-    scratchNewTargetRef, scratchPrevTargetRef, scratchDeltaRef, scratchOffsetRef,
+    targetX,
+    targetY,
+    targetZ,
+    distance,
+    hasExplicitCenter,
+    persistGalaxyPose,
+    recenterTick,
+    camera,
+    controls,
+    invalidate,
+    saveCurrentGalaxyPose,
+    transitionTo,
   ]);
 
   return null;

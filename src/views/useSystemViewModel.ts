@@ -21,6 +21,7 @@ import { useCameraStore } from '../stores/useCameraStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useResolvedSystemDetails, type UseResolvedSystemDetailsProps } from './useResolvedSystemDetails';
 import { useSystemOutOfScopeGuard } from './useSystemOutOfScopeGuard';
+import { useColdLoadCenter } from './useColdLoadCenterId';
 
 const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
 
@@ -80,9 +81,10 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   const targetId = toUrlSlug(rawSystemId ?? '') || SOL_REFERENCE_TARGET.id;
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
-  const effectiveCenterId = useMemo(
-    () => (center ? toUrlSlug(center) : cameraState.center),
-    [center, cameraState.center],
+  const { effectiveCenterId, resolvedCenterCoordinates } = useColdLoadCenter(
+    center,
+    cameraState,
+    urlFocusSlug,
   );
 
   useEffect(() => {
@@ -279,6 +281,7 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
     search,
     targetId,
     effectiveCenterId,
+    resolvedCenterCoordinates,
     cameraState,
     activeJourney,
     activeLayerCard,
