@@ -21,9 +21,11 @@ describe('datasetLayerCodec - LAYER_MANIFESTS & Canon Slug Resolution', () => {
     expect(recent).toBeDefined();
     expect(recent?.kind).toBe('scientific-overlay');
     expect(recent?.title).toBe('Recent Discoveries');
-    const recentOrdered = getOrderedLayerEntries(recent!);
-    expect(recentOrdered).toHaveLength(5);
-    expect(recentOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
+    if (recent) {
+      const recentOrdered = getOrderedLayerEntries(recent);
+      expect(recentOrdered).toHaveLength(5);
+      expect(recentOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
+    }
 
     const jwst = LAYER_MANIFESTS.find(
       (l) => l.layerId === 'overlay-jwst-targets',
@@ -31,9 +33,11 @@ describe('datasetLayerCodec - LAYER_MANIFESTS & Canon Slug Resolution', () => {
     expect(jwst).toBeDefined();
     expect(jwst?.kind).toBe('scientific-overlay');
     expect(jwst?.title).toBe('JWST Targets');
-    const jwstOrdered = getOrderedLayerEntries(jwst!);
-    expect(jwstOrdered).toHaveLength(6);
-    expect(jwstOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5, 6]);
+    if (jwst) {
+      const jwstOrdered = getOrderedLayerEntries(jwst);
+      expect(jwstOrdered).toHaveLength(6);
+      expect(jwstOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5, 6]);
+    }
 
     const extreme = LAYER_MANIFESTS.find(
       (l) => l.layerId === 'overlay-extreme-worlds',
@@ -41,10 +45,12 @@ describe('datasetLayerCodec - LAYER_MANIFESTS & Canon Slug Resolution', () => {
     expect(extreme).toBeDefined();
     expect(extreme?.kind).toBe('scientific-overlay');
     expect(extreme?.title).toBe('Extreme Worlds');
-    const extremeOrdered = getOrderedLayerEntries(extreme!);
-    expect(extremeOrdered).toHaveLength(5);
-    expect(extremeOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
-    expect(extreme?.entries.europa.parentBodyId).toBe('jupiter');
+    if (extreme) {
+      const extremeOrdered = getOrderedLayerEntries(extreme);
+      expect(extremeOrdered).toHaveLength(5);
+      expect(extremeOrdered.map((e) => e.order)).toEqual([1, 2, 3, 4, 5]);
+      expect(extreme.entries.europa?.parentBodyId).toBe('jupiter');
+    }
   });
 
   it('tags parentBodyId on moon entries in existing fictional canon layers', () => {

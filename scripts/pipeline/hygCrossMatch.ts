@@ -10,18 +10,19 @@ const DEG2RAD = Math.PI / 180;
 const K_CONSTANT = 4.74047; // km/s per (AU * mas/yr)
 
 export function parseHygRow(row: Record<string, string>): StarmapNode | null {
-  const id = parseInt(row.id, 10);
+  const id = parseInt(row.id ?? '', 10);
   if (isNaN(id)) return null;
 
-  const [dist, ra, dec] = [parseFloat(row.dist), parseFloat(row.ra), parseFloat(row.dec)];
+  const [dist, ra, dec] = [parseFloat(row.dist ?? ''), parseFloat(row.ra ?? ''), parseFloat(row.dec ?? '')];
   if (isNaN(dist) || isNaN(ra) || isNaN(dec) || dist < 0) return null;
 
   const hip = row.hip?.trim() ? parseInt(row.hip, 10) : null;
   const hd = row.hd?.trim() ? parseInt(row.hd, 10) : null;
   let properName = row.proper?.trim() || undefined;
 
-  if (!properName && hip && OFFICIAL_IAU_STAR_NAMES[`hip-${hip}`]) {
-    properName = OFFICIAL_IAU_STAR_NAMES[`hip-${hip}`].properName;
+  const iauEntry = hip ? OFFICIAL_IAU_STAR_NAMES[`hip-${hip}`] : undefined;
+  if (!properName && iauEntry) {
+    properName = iauEntry.properName;
   }
 
   let name = properName;
@@ -85,6 +86,7 @@ export function loadIauStarNames(csvPath: string): Map<number, string> {
   const rows = parseCsvRowsSync(content);
   for (let i = 1; i < rows.length; i++) {
     const parts = rows[i];
+    if (!parts) continue;
     const properName = parts[0]?.trim();
     const hipStr = parts[3]?.trim();
     if (properName && hipStr && !isNaN(parseInt(hipStr, 10))) {
@@ -109,9 +111,9 @@ export function loadHygCrossMatch(csvPath: string): {
 
   const content = fs.readFileSync(resolved, 'utf-8');
   const rows = parseCsvRowsSync(content);
-  if (rows.length <= 1) return { byHip, byCoord, byCoordCandidates, allItems };
-
   const header = rows[0];
+  if (rows.length <= 1 || !header) return { byHip, byCoord, byCoordCandidates, allItems };
+
   const idx = (k: string) => header.indexOf(k);
   const [idIdx, hipIdx, hdIdx, hrIdx, glIdx, bfIdx, properIdx, bayerIdx, flamIdx, conIdx] = [
     idx('id'), idx('hip'), idx('hd'), idx('hr'), idx('gl'), idx('bf'), idx('proper'), idx('bayer'), idx('flam'), idx('con'),
@@ -134,15 +136,18 @@ export function loadHygCrossMatch(csvPath: string): {
 
   for (let i = 1; i < rows.length; i++) {
     const parts = rows[i];
-    const id = parseInt(parts[idIdx], 10);
+    if (!parts) continue;
+    const id = parseInt(parts[idIdx] ?? '', 10);
     if (isNaN(id)) continue;
 
     const parseNum = (cIdx: number) => {
-      const v = cIdx >= 0 && parts[cIdx] ? parseFloat(parts[cIdx]) : undefined;
+      const raw = cIdx >= 0 ? parts[cIdx] : undefined;
+      const v = raw ? parseFloat(raw) : undefined;
       return v !== undefined && !isNaN(v) ? v : undefined;
     };
     const parseIntNum = (cIdx: number) => {
-      const v = cIdx >= 0 && parts[cIdx] ? parseInt(parts[cIdx], 10) : undefined;
+      const raw = cIdx >= 0 ? parts[cIdx] : undefined;
+      const v = raw ? parseInt(raw, 10) : undefined;
       return v !== undefined && !isNaN(v) ? v : undefined;
     };
     const parseStr = (cIdx: number) => (cIdx >= 0 ? parts[cIdx]?.trim() || undefined : undefined);

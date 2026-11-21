@@ -44,7 +44,7 @@ export const buildFocusedEntityDetails = (
 
   if (!focusedEntity && !urlSystemSlug && !urlFocusSlug) return null;
 
-  const resolved = resolveFocusedTarget(
+  const resolved = resolveFocusedTarget({
     focusedEntity,
     corpus,
     summaryNode,
@@ -54,8 +54,8 @@ export const buildFocusedEntityDetails = (
     urlPlanetSlug,
     urlFocusSlug,
     hasExplicitFocus,
-    inputViewScope,
-  );
+    viewScope: inputViewScope,
+  });
 
   const {
     matchedCorpusEntry,

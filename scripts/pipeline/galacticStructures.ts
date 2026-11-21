@@ -37,12 +37,12 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
       if (!line.trim()) continue;
       const tokens = line.trim().split(/\s+/);
       const name = tokens[0];
-      const ra = parseFloat(tokens[1]);
-      const dec = parseFloat(tokens[2]);
-      const nbStars = parseInt(tokens[6], 10);
-      const plx = parseFloat(tokens[11]);
-      const logAge = parseFloat(tokens[14]);
-      const dmode = parseFloat(tokens[17]);
+      const ra = parseFloat(tokens[1] ?? '');
+      const dec = parseFloat(tokens[2] ?? '');
+      const nbStars = parseInt(tokens[6] ?? '', 10);
+      const plx = parseFloat(tokens[11] ?? '');
+      const logAge = parseFloat(tokens[14] ?? '');
+      const dmode = parseFloat(tokens[17] ?? '');
 
       const dist = !isNaN(dmode) && dmode > 0
         ? Math.round(dmode * 100) / 100
@@ -176,6 +176,7 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
     const rows = parseCsvRowsSync(fs.readFileSync(ngcPath, 'utf-8'), ';');
     for (let i = 1; i < rows.length; i++) {
       const parts = rows[i];
+      if (!parts) continue;
       const name = parts[0]?.trim();
       const type = parts[1]?.trim();
       const raStr = parts[2]?.trim();
@@ -191,13 +192,13 @@ export function loadAllGalacticStructures(): GalacticStructureRecord[] {
       const distPc = !isNaN(pax) && pax > 0 ? Math.round((1000 / pax) * 100) / 100 : NaN;
       if (isNaN(distPc) || distPc <= 0) continue;
 
-      const [raH, raM, raS] = raStr.split(':').map(Number);
+      const [raH, raM = 0, raS = 0] = raStr.split(':').map(Number);
       const decParts = decStr.split(':').map(Number);
       const decSign = decStr.startsWith('-') ? -1 : 1;
-      const decD = Math.abs(decParts[0]);
-      const decM = decParts[1] || 0;
-      const decS = decParts[2] || 0;
-      if (isNaN(raH) || isNaN(decD)) continue;
+      const decD = Math.abs(decParts[0] ?? NaN);
+      const decM = decParts[1] ?? 0;
+      const decS = decParts[2] ?? 0;
+      if (raH === undefined || isNaN(raH) || isNaN(decD)) continue;
 
       const structType: GalacticStructureRecord['type'] =
         type === 'OCl' ? 'OpenCluster' : type === 'GCl' ? 'GlobularCluster' : type === 'PN' ? 'PlanetaryNebula' : type === 'Neb' ? 'EmissionNebula' : 'DeepSkyLandmark';

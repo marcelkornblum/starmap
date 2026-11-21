@@ -185,9 +185,9 @@ describe('spatialMath', () => {
       const result = buildJourneyChordRenderData(legs);
       expect(result.legs).toHaveLength(2);
       expect(result.waypoints).toHaveLength(3);
-      expect(result.waypoints[0].role).toBe('origin');
-      expect(result.waypoints[1].role).toBe('waypoint');
-      expect(result.waypoints[2].role).toBe('destination');
+      expect(result.waypoints[0]?.role).toBe('origin');
+      expect(result.waypoints[1]?.role).toBe('waypoint');
+      expect(result.waypoints[2]?.role).toBe('destination');
       expect(result.totalEuclideanLength).toBeCloseTo(3.14, 2);
     });
   });

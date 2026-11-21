@@ -56,11 +56,14 @@ export function getSectorBounds(
   }
 
   const match = /^sector_([+-]\d+)_([+-]\d+)_([+-]\d+)$/.exec(sectorId);
-  if (!match) return null;
+  const rawX = match?.[1];
+  const rawY = match?.[2];
+  const rawZ = match?.[3];
+  if (!rawX || !rawY || !rawZ) return null;
 
-  const minX = parseInt(match[1], 10);
-  const minY = parseInt(match[2], 10);
-  const minZ = parseInt(match[3], 10);
+  const minX = parseInt(rawX, 10);
+  const minY = parseInt(rawY, 10);
+  const minZ = parseInt(rawZ, 10);
 
   return {
     min: { x: minX, y: minY, z: minZ },

@@ -96,18 +96,18 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
       u: 'https://en.wikipedia.org/wiki/Project_Hail_Mary',
     });
 
-    expect(compact.e['gaia-2452378776434477184'].k).toBeUndefined();
-    expect(compact.e['gaia-2452378776434477184'].s).toBeUndefined();
-    expect(compact.e['gaia-2452378776434477184'].c).toBeUndefined();
+    expect(compact.e['gaia-2452378776434477184']?.k).toBeUndefined();
+    expect(compact.e['gaia-2452378776434477184']?.s).toBeUndefined();
+    expect(compact.e['gaia-2452378776434477184']?.c).toBeUndefined();
 
-    expect(compact.e['tau-ceti-e'].k).toBe(2);
-    expect(compact.e['tau-ceti-e'].s).toBe('gaia-2452378776434477184');
-    expect(compact.e['tau-ceti-e'].u).toBe('Adrian');
-    expect(compact.e['tau-ceti-e'].x).toContain('Taumoeba');
+    expect(compact.e['tau-ceti-e']?.k).toBe(2);
+    expect(compact.e['tau-ceti-e']?.s).toBe('gaia-2452378776434477184');
+    expect(compact.e['tau-ceti-e']?.u).toBe('Adrian');
+    expect(compact.e['tau-ceti-e']?.x).toContain('Taumoeba');
 
-    expect(compact.e['canon-project-hail-mary:erid-homeworld'].k).toBe(6);
-    expect(compact.e['canon-project-hail-mary:erid-homeworld'].s).toBe('gaia-3195919528989223040');
-    expect(compact.e['canon-project-hail-mary:erid-homeworld'].c).toBe(2);
+    expect(compact.e['canon-project-hail-mary:erid-homeworld']?.k).toBe(6);
+    expect(compact.e['canon-project-hail-mary:erid-homeworld']?.s).toBe('gaia-3195919528989223040');
+    expect(compact.e['canon-project-hail-mary:erid-homeworld']?.c).toBe(2);
 
     const decoded = decodeLayerManifest(compact);
     expect(decoded).toEqual(sampleCanonLayer);
@@ -153,12 +153,12 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     const compact = encodeLayerManifest(layer);
     expect(compact.t).toBe("Remembrance of Earth's Past");
     expect(compact.a).toBe('liu trisolaris');
-    expect(compact.e['alpha-centauri'].t).toBe('Trisolaran Home System');
-    expect(compact.e['alpha-centauri'].a).toBe('trisolaris');
-    expect(compact.e['alpha-centauri'].u).toBeUndefined();
-    expect(compact.e['tau-ceti-e'].t).toBeUndefined();
-    expect(compact.e['tau-ceti-e'].a).toBeUndefined();
-    expect(compact.e['tau-ceti-e'].u).toBeUndefined();
+    expect(compact.e['alpha-centauri']?.t).toBe('Trisolaran Home System');
+    expect(compact.e['alpha-centauri']?.a).toBe('trisolaris');
+    expect(compact.e['alpha-centauri']?.u).toBeUndefined();
+    expect(compact.e['tau-ceti-e']?.t).toBeUndefined();
+    expect(compact.e['tau-ceti-e']?.a).toBeUndefined();
+    expect(compact.e['tau-ceti-e']?.u).toBeUndefined();
 
     expect(decodeLayerManifest(compact)).toEqual(layer);
   });
@@ -170,13 +170,13 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     ]);
 
     expect(resolved).toHaveLength(2);
-    expect(resolved[0].layerId).toBe('canon-project-hail-mary');
-    expect(resolved[0].source?.creator).toBe('Andy Weir');
-    expect(resolved[0].entry.inUniverseName).toBe('Tau Ceti (Astrophage Destination)');
-    expect(resolved[1].layerId).toBe('custom-user-campaign');
-    expect(resolved[1].entry.inUniverseName).toBe('Outpost Ceti');
-    expect(resolved[1].entry.text).toBe('Refuelling station established in 2194.');
-    expect(resolved[1].entry.confidence).toBe('unverified');
+    expect(resolved[0]?.layerId).toBe('canon-project-hail-mary');
+    expect(resolved[0]?.source?.creator).toBe('Andy Weir');
+    expect(resolved[0]?.entry.inUniverseName).toBe('Tau Ceti (Astrophage Destination)');
+    expect(resolved[1]?.layerId).toBe('custom-user-campaign');
+    expect(resolved[1]?.entry.inUniverseName).toBe('Outpost Ceti');
+    expect(resolved[1]?.entry.text).toBe('Refuelling station established in 2194.');
+    expect(resolved[1]?.entry.confidence).toBe('unverified');
 
     const systemRollup = resolveSystemLayerEntries('gaia-2452378776434477184', [sampleCanonLayer]);
     expect(systemRollup).toHaveLength(2);
@@ -295,12 +295,12 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     };
 
     const compact = encodeLayerManifest(orderedMoonLayer);
-    expect(compact.e.europa.o).toBe(1);
-    expect(compact.e.europa.p).toBe('jupiter');
+    expect(compact.e.europa?.o).toBe(1);
+    expect(compact.e.europa?.p).toBe('jupiter');
 
     const decoded = decodeLayerManifest(compact);
-    expect(decoded.entries.europa.order).toBe(1);
-    expect(decoded.entries.europa.parentBodyId).toBe('jupiter');
+    expect(decoded.entries.europa?.order).toBe(1);
+    expect(decoded.entries.europa?.parentBodyId).toBe('jupiter');
     expect(decoded).toEqual(orderedMoonLayer);
   });
 

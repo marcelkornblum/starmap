@@ -36,8 +36,9 @@ function linearToSrgbHexByte(linearChannel: number): string {
 
 function parseHexColor(trimmed: string): ParsedColorResult | null {
   const shortMatch = trimmed.match(/^#([0-9a-f]{3})([0-9a-f])?$/i);
-  if (shortMatch) {
-    const [r, g, b] = shortMatch[1].split('');
+  const shortRgb = shortMatch?.[1];
+  if (shortMatch && shortRgb !== undefined) {
+    const [r = '', g = '', b = ''] = shortRgb.split('');
     const colorHex = `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
     const alpha = shortMatch[2]
       ? Number.parseInt(`${shortMatch[2]}${shortMatch[2]}`, 16) / 255
@@ -46,8 +47,9 @@ function parseHexColor(trimmed: string): ParsedColorResult | null {
   }
 
   const longMatch = trimmed.match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i);
-  if (longMatch) {
-    const colorHex = `#${longMatch[1].toLowerCase()}`;
+  const longRgb = longMatch?.[1];
+  if (longMatch && longRgb !== undefined) {
+    const colorHex = `#${longRgb.toLowerCase()}`;
     const alpha = longMatch[2] ? Number.parseInt(longMatch[2], 16) / 255 : 1;
     return { colorHex, alpha };
   }
@@ -77,16 +79,18 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
   );
   if (oklchMatch) {
     const [, rawL, rawC, rawH, rawA] = oklchMatch;
-    const L = rawL.endsWith('%') ? Number.parseFloat(rawL) / 100 : Number.parseFloat(rawL);
-    const C = Number.parseFloat(rawC);
-    const H = Number.parseFloat(rawH);
-    const [r, g, b] = oklchToLinearRgb(L, C, H);
-    let alpha = 1;
-    if (rawA !== undefined) {
-      alpha = rawA.endsWith('%') ? Number.parseFloat(rawA) / 100 : Number.parseFloat(rawA);
+    if (rawL !== undefined && rawC !== undefined && rawH !== undefined) {
+      const L = rawL.endsWith('%') ? Number.parseFloat(rawL) / 100 : Number.parseFloat(rawL);
+      const C = Number.parseFloat(rawC);
+      const H = Number.parseFloat(rawH);
+      const [r, g, b] = oklchToLinearRgb(L, C, H);
+      let alpha = 1;
+      if (rawA !== undefined) {
+        alpha = rawA.endsWith('%') ? Number.parseFloat(rawA) / 100 : Number.parseFloat(rawA);
+      }
+      const colorHex = `#${linearToSrgbHexByte(r)}${linearToSrgbHexByte(g)}${linearToSrgbHexByte(b)}`;
+      return { colorHex, alpha };
     }
-    const colorHex = `#${linearToSrgbHexByte(r)}${linearToSrgbHexByte(g)}${linearToSrgbHexByte(b)}`;
-    return { colorHex, alpha };
   }
 
   const rgbaMatch = trimmed.match(
@@ -94,18 +98,20 @@ export function parseCssColor(cssColorString: string): ParsedColorResult {
   );
   if (rgbaMatch) {
     const [, r, g, b, rawAlpha] = rgbaMatch;
-    const hexR = Math.round(Math.max(0, Math.min(255, Number.parseFloat(r)))).toString(16).padStart(2, '0');
-    const hexG = Math.round(Math.max(0, Math.min(255, Number.parseFloat(g)))).toString(16).padStart(2, '0');
-    const hexB = Math.round(Math.max(0, Math.min(255, Number.parseFloat(b)))).toString(16).padStart(2, '0');
-    const colorHex = `#${hexR}${hexG}${hexB}`;
+    if (r !== undefined && g !== undefined && b !== undefined) {
+      const hexR = Math.round(Math.max(0, Math.min(255, Number.parseFloat(r)))).toString(16).padStart(2, '0');
+      const hexG = Math.round(Math.max(0, Math.min(255, Number.parseFloat(g)))).toString(16).padStart(2, '0');
+      const hexB = Math.round(Math.max(0, Math.min(255, Number.parseFloat(b)))).toString(16).padStart(2, '0');
+      const colorHex = `#${hexR}${hexG}${hexB}`;
 
-    let alpha = 1;
-    if (rawAlpha !== undefined) {
-      alpha = rawAlpha.endsWith('%')
-        ? Number.parseFloat(rawAlpha.slice(0, -1)) / 100
-        : Number.parseFloat(rawAlpha);
+      let alpha = 1;
+      if (rawAlpha !== undefined) {
+        alpha = rawAlpha.endsWith('%')
+          ? Number.parseFloat(rawAlpha.slice(0, -1)) / 100
+          : Number.parseFloat(rawAlpha);
+      }
+      return { colorHex, alpha };
     }
-    return { colorHex, alpha };
   }
 
   console.warn(`Unable to parse CSS color "${trimmed}", falling back to #000000.`);

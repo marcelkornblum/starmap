@@ -1,5 +1,6 @@
-import type { CelestialClassification } from '../../types/spatial';
-import type { SystemManifest } from '../../types/astro';
+import type { CelestialClassification, SpatialEntityDefinition } from '../../types/spatial';
+import type { SystemManifest, SystemSummaryNode } from '../../types/astro';
+import type { DecodedDetailRecord } from '../../data/detailsRepository';
 import type {
   GalacticStructureRecord,
   SolarSystemBodyRecord,
@@ -13,6 +14,19 @@ import type {
   PlanetCompositionClass,
 } from './detailsEntityTypes';
 import type { SystemElementBodyItem } from './detailsHierarchyTypes';
+
+export interface ResolveFocusedTargetOptions {
+  readonly focusedEntity?: SpatialEntityDefinition | null;
+  readonly corpus?: readonly CompactSearchEntry[];
+  readonly summaryNode?: SystemSummaryNode;
+  readonly systemDetail?: DecodedDetailRecord;
+  readonly entityDetail?: DecodedDetailRecord;
+  readonly urlSystemSlug?: string | null;
+  readonly urlPlanetSlug?: string | null;
+  readonly urlFocusSlug?: string | null;
+  readonly hasExplicitFocus?: boolean;
+  readonly viewScope?: 'galaxy' | 'system' | 'planet';
+}
 
 export interface ResolvedFocusedTarget {
   readonly matchedCorpusEntry?: CompactSearchEntry;

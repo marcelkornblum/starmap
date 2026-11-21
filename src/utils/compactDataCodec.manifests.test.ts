@@ -74,14 +74,14 @@ describe('compactDataCodec - Manifests, Structures, Solar Bodies & Sectors', () 
     };
 
     const encoded = encodeSystemManifest(manifest);
-    expect(encoded.E[0].sat?.length).toBe(1);
-    expect(encoded.E[0].sat?.[0].i).toBe('moon');
-    expect(encoded.E[0].sat?.[0].rt).toBe('moon');
+    expect(encoded.E[0]?.sat?.length).toBe(1);
+    expect(encoded.E[0]?.sat?.[0]?.i).toBe('moon');
+    expect(encoded.E[0]?.sat?.[0]?.rt).toBe('moon');
 
     const decoded = decodeSystemManifest(encoded);
-    expect(decoded.planets[0].satellites?.length).toBe(1);
-    expect(decoded.planets[0].satellites?.[0].id).toBe('moon');
-    expect(decoded.planets[0].satellites?.[0].reticleType).toBe('moon');
+    expect(decoded.planets[0]?.satellites?.length).toBe(1);
+    expect(decoded.planets[0]?.satellites?.[0]?.id).toBe('moon');
+    expect(decoded.planets[0]?.satellites?.[0]?.reticleType).toBe('moon');
   });
 
   it('strictly enforces 4-tuple planetCompositionCounts in manifest codec', () => {
@@ -206,10 +206,10 @@ describe('compactDataCodec - Manifests, Structures, Solar Bodies & Sectors', () 
 
     const roundTripped = decodeSectorPartition(compactSector);
     expect(roundTripped.sectorId).toBe('sector_+000_+000_-025');
-    expect(roundTripped.systems[0].name).toBe('Tau Ceti');
+    expect(roundTripped.systems[0]?.name).toBe('Tau Ceti');
 
     const legacyDecoded = decodeSectorPartition(manifest);
-    expect(legacyDecoded.systems[0].name).toBe('Tau Ceti');
+    expect(legacyDecoded.systems[0]?.name).toBe('Tau Ceti');
   });
 
   it('encodes and decodes SystemManifest, GalacticStructureRecord, and SolarSystemBodyRecord losslessly', () => {

@@ -133,6 +133,7 @@ export function rotateToOrbitalPlane(
     const x = buffer[i];
     const y = buffer[i + 1];
     const z = buffer[i + 2];
+    if (x === undefined || y === undefined || z === undefined) continue;
 
     buffer[i] = m00 * x + m01 * y + m02 * z;
     buffer[i + 1] = m10 * x + m11 * y + m12 * z;

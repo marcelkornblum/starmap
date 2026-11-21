@@ -9,6 +9,10 @@ import {
   SpatialEntityStoreContext,
   useOptionalSpatialEntityStoreApi,
 } from '../entity/SpatialEntityContext';
+import {
+  CanvasRouterBridgeContext,
+  useOptionalRouter,
+} from '../../../hooks/useSpaLocation';
 import styles from './SpatialScenes.module.css';
 
 export interface StandaloneSceneShellProps {
@@ -29,6 +33,7 @@ export const StandaloneSceneShell: React.FC<StandaloneSceneShellProps> = ({
   children,
 }) => {
   const outerStore = useOptionalSpatialEntityStoreApi();
+  const outerRouter = useOptionalRouter();
   const initialDpr = useMemo(() => getInitialCanvasDpr(), []);
   const containerClass = className
     ? `${styles.viewportContainer} ${className}`
@@ -44,11 +49,13 @@ export const StandaloneSceneShell: React.FC<StandaloneSceneShellProps> = ({
           camera={camera}
           gl={{ antialias: true, alpha: true }}
         >
-          <SpatialEntityStoreContext.Provider value={outerStore}>
-            <SceneTokenBridge />
-            <AdaptiveQualityMonitor />
-            {children}
-          </SpatialEntityStoreContext.Provider>
+          <CanvasRouterBridgeContext.Provider value={outerRouter}>
+            <SpatialEntityStoreContext.Provider value={outerStore}>
+              <SceneTokenBridge />
+              <AdaptiveQualityMonitor />
+              {children}
+            </SpatialEntityStoreContext.Provider>
+          </CanvasRouterBridgeContext.Provider>
         </Canvas>
         <SafeHtmlPortalOutlet />
       </div>

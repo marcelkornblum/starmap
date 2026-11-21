@@ -1,8 +1,11 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRouter } from '@tanstack/react-router';
 import {
+  CanvasRouterBridgeContext,
   resolveSpaLocation,
+  useOptionalRouter,
   useSpaLocation,
   type AppRouterAdapter,
 } from './useSpaLocation';
@@ -124,6 +127,40 @@ describe('useSpaLocation', () => {
       });
 
       expect(result.current.search).toBe('?focus=sirius');
+    });
+  });
+
+  describe('useOptionalRouter & CanvasRouterBridgeContext', () => {
+    it('falls back to CanvasRouterBridgeContext when useRouter returns undefined (e.g. inside R3F Canvas)', () => {
+      const bridgedRouter: AppRouterAdapter = {
+        state: { location: { pathname: '/galaxy', searchStr: '?center=sol' } },
+      };
+      const wrapper: React.FC<{ readonly children: React.ReactNode }> = ({ children }) => (
+        <CanvasRouterBridgeContext.Provider value={bridgedRouter}>
+          {children}
+        </CanvasRouterBridgeContext.Provider>
+      );
+
+      const { result } = renderHook(() => useOptionalRouter(), { wrapper });
+      expect(result.current).toBe(bridgedRouter);
+    });
+
+    it('prefers direct useRouter instance over CanvasRouterBridgeContext when both exist', () => {
+      const bridgedRouter: AppRouterAdapter = {
+        state: { location: { pathname: '/galaxy', searchStr: '?center=sol' } },
+      };
+      const directRouter: AppRouterAdapter = {
+        state: { location: { pathname: '/system/sol', searchStr: '' } },
+      };
+      vi.mocked(useRouter).mockReturnValue(directRouter as never);
+      const wrapper: React.FC<{ readonly children: React.ReactNode }> = ({ children }) => (
+        <CanvasRouterBridgeContext.Provider value={bridgedRouter}>
+          {children}
+        </CanvasRouterBridgeContext.Provider>
+      );
+
+      const { result } = renderHook(() => useOptionalRouter(), { wrapper });
+      expect(result.current).toBe(directRouter);
     });
   });
 });

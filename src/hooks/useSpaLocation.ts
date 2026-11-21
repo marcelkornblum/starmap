@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, type RegisteredRouter } from '@tanstack/react-router';
 
 export interface StarmapSearchParams {
@@ -32,9 +32,15 @@ export interface AppRouterAdapter {
   };
 }
 
+/**
+ * React context bridging the active TanStack Router instance across R3F's `<Canvas>` reconciler boundary.
+ */
+export const CanvasRouterBridgeContext = createContext<AppRouterAdapter | undefined>(undefined);
+
 export function useOptionalRouter(): AppRouterAdapter | undefined {
+  const bridgedRouter = useContext(CanvasRouterBridgeContext);
   const router: AppRouterAdapter | null | undefined = useRouter({ warn: false });
-  return router ?? undefined;
+  return router ?? bridgedRouter;
 }
 
 /**

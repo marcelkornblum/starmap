@@ -83,8 +83,9 @@ export function loadAllExoplanetCatalogs(
     let bucket = hostMap.get(key);
     if (!bucket) hostMap.set(key, (bucket = []));
     const idx = bucket.findIndex((p) => p.letter === planet.letter || p.id === planet.id);
-    if (idx === -1) bucket.push(planet);
-    else bucket[idx] = mergeExoplanetRecords(bucket[idx], planet);
+    const existing = idx >= 0 ? bucket[idx] : undefined;
+    if (!existing) bucket.push(planet);
+    else bucket[idx] = mergeExoplanetRecords(existing, planet);
   }
 
   function addIauExo(rawName: string, expName: string, record: ExoplanetRecord, host: string) {
@@ -98,14 +99,16 @@ export function loadAllExoplanetCatalogs(
     const rows = parseCsvRowsSync(fs.readFileSync(oecCsv, 'utf-8'));
     for (let i = 1; i < rows.length; i++) {
       const parts = rows[i];
-      const parsed = splitPlanetName(parts[0]);
-      if (!parsed) continue;
-      const planetName = parts[0]!.trim();
+      if (!parts) continue;
+      const rawName = parts[0];
+      const parsed = splitPlanetName(rawName);
+      if (!parsed || !rawName) continue;
+      const planetName = rawName.trim();
       const [mass, radius, period, semimajoraxis, eccentricity] = [
-        parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]), parseFloat(parts[5]), parseFloat(parts[6]),
+        parseFloat(parts[2] ?? ''), parseFloat(parts[3] ?? ''), parseFloat(parts[4] ?? ''), parseFloat(parts[5] ?? ''), parseFloat(parts[6] ?? ''),
       ];
-      let temperature = parseFloat(parts[11]);
-      const [hostRadiusRsun, hostTempK] = [parseFloat(parts[20]), parseFloat(parts[22])];
+      let temperature = parseFloat(parts[11] ?? '');
+      const [hostRadiusRsun, hostTempK] = [parseFloat(parts[20] ?? ''), parseFloat(parts[22] ?? '')];
 
       let derivedTemp = false;
       if (isNaN(temperature) && hostTempK > 0 && hostRadiusRsun > 0 && semimajoraxis > 0) {
@@ -121,11 +124,11 @@ export function loadAllExoplanetCatalogs(
 
       addIauExo(planetName, expName, {
         id: expName.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: expName, letter: parsed.letter,
-        discoveryYear: parseInt(parts[14], 10) || undefined, discoveryMethod: parts[13]?.trim() || undefined,
+        discoveryYear: parseInt(parts[14] ?? '', 10) || undefined, discoveryMethod: parts[13]?.trim() || undefined,
         massMjup: !isNaN(mass) ? mass : undefined, massMearth: mEarth,
         radiusRjup: !isNaN(radius) ? radius : undefined, radiusRearth: rEarth,
         equilibriumTempK: !isNaN(temperature) ? temperature : undefined, esi,
-        orbit: makeOrbit(semimajoraxis, eccentricity, parseFloat(parts[10]), parseFloat(parts[9]), parseFloat(parts[7]), period),
+        orbit: makeOrbit(semimajoraxis, eccentricity, parseFloat(parts[10] ?? ''), parseFloat(parts[9] ?? ''), parseFloat(parts[7] ?? ''), period),
         confidence: hasNasaCatalog ? 'candidate' : 'confirmed',
         ...(theoreticalFlags > 0 ? { theoreticalFlags } : {}),
       }, parsed.hostName);
@@ -136,16 +139,17 @@ export function loadAllExoplanetCatalogs(
     const rows = parseCsvRowsSync(fs.readFileSync(nasaCsv, 'utf-8'));
     for (let i = 1; i < rows.length; i++) {
       const parts = rows[i];
+      if (!parts) continue;
       const [planetName, hostName] = [parts[0]?.trim(), parts[1]?.trim()];
       if (!planetName || !hostName) continue;
 
       const [period, semimajoraxis, massEarth, radiusEarth, temperature] = [
-        parseFloat(parts[6]), parseFloat(parts[7]), parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]),
+        parseFloat(parts[6] ?? ''), parseFloat(parts[7] ?? ''), parseFloat(parts[8] ?? ''), parseFloat(parts[9] ?? ''), parseFloat(parts[10] ?? ''),
       ];
       const expName = expandGouldOrConstellationSuffix(planetName);
       addIauExo(planetName, expName, {
         id: expName.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: expName, letter: planetName.split(' ').pop() || 'b',
-        discoveryYear: parseInt(parts[5], 10) || undefined, discoveryMethod: parts[4]?.trim() || undefined,
+        discoveryYear: parseInt(parts[5] ?? '', 10) || undefined, discoveryMethod: parts[4]?.trim() || undefined,
         massMearth: !isNaN(massEarth) ? massEarth : undefined, massMjup: !isNaN(massEarth) ? massEarth / 317.828 : undefined,
         radiusRearth: !isNaN(radiusEarth) ? radiusEarth : undefined, radiusRjup: !isNaN(radiusEarth) ? radiusEarth / 11.209 : undefined,
         equilibriumTempK: !isNaN(temperature) ? temperature : undefined,
@@ -159,15 +163,18 @@ export function loadAllExoplanetCatalogs(
     const rows = parseCsvRowsSync(fs.readFileSync(euCsv, 'utf-8'));
     for (let i = 1; i < rows.length; i++) {
       const parts = rows[i];
-      const parsed = splitPlanetName(parts[0]);
-      if (!parsed) continue;
+      if (!parts) continue;
+      const rawName = parts[0];
+      const parsed = splitPlanetName(rawName);
+      if (!parsed || !rawName) continue;
       const [mass, radius, period, semimajoraxis, eccentricity, inclination] = [
-        parseFloat(parts[2]), parseFloat(parts[8]), parseFloat(parts[11]), parseFloat(parts[14]), parseFloat(parts[17]), parseFloat(parts[20]),
+        parseFloat(parts[2] ?? ''), parseFloat(parts[8] ?? ''), parseFloat(parts[11] ?? ''), parseFloat(parts[14] ?? ''), parseFloat(parts[17] ?? ''), parseFloat(parts[20] ?? ''),
       ];
-      const expName = expandGouldOrConstellationSuffix(parts[0]!.trim());
-      addIauExo(parts[0]!.trim(), expName, {
+      const trimmedName = rawName.trim();
+      const expName = expandGouldOrConstellationSuffix(trimmedName);
+      addIauExo(trimmedName, expName, {
         id: expName.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: expName, letter: parsed.letter,
-        discoveryYear: parseInt(parts[24], 10) || undefined, discoveryMethod: parts[63]?.trim() || undefined,
+        discoveryYear: parseInt(parts[24] ?? '', 10) || undefined, discoveryMethod: parts[63]?.trim() || undefined,
         massMjup: !isNaN(mass) ? mass : undefined, massMearth: !isNaN(mass) ? Math.round(mass * 317.828 * 100) / 100 : undefined,
         radiusRjup: !isNaN(radius) ? radius : undefined, radiusRearth: !isNaN(radius) ? Math.round(radius * 11.209 * 100) / 100 : undefined,
         orbit: makeOrbit(semimajoraxis, eccentricity, inclination, 0, 0, period),
@@ -190,18 +197,20 @@ export function loadExoplanetCatalog(csvPath: string): Map<string, ExoplanetReco
 
   for (let i = 1; i < rows.length; i++) {
     const parts = rows[i];
-    const parsed = splitPlanetName(parts[0]);
-    if (!parsed) continue;
-    const planetName = parts[0]!.trim();
+    if (!parts) continue;
+    const rawName = parts[0];
+    const parsed = splitPlanetName(rawName);
+    if (!parsed || !rawName) continue;
+    const planetName = rawName.trim();
     const [mass, radius, period, semimajoraxis, eccentricity, periastron, ascendingnode, inclination, temperature] = [
-      parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]), parseFloat(parts[5]),
-      parseFloat(parts[6]), parseFloat(parts[7]), parseFloat(parts[9]), parseFloat(parts[10]), parseFloat(parts[11]),
+      parseFloat(parts[2] ?? ''), parseFloat(parts[3] ?? ''), parseFloat(parts[4] ?? ''), parseFloat(parts[5] ?? ''),
+      parseFloat(parts[6] ?? ''), parseFloat(parts[7] ?? ''), parseFloat(parts[9] ?? ''), parseFloat(parts[10] ?? ''), parseFloat(parts[11] ?? ''),
     ];
     const iauMatch = IAU_NAME_EXOWORLDS[planetName];
     const planetRecord: ExoplanetRecord = {
       id: planetName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       name: iauMatch ? `${planetName} (${iauMatch.planetName})` : planetName,
-      letter: parsed.letter, discoveryYear: parseInt(parts[14], 10) || undefined, discoveryMethod: parts[13]?.trim() || undefined,
+      letter: parsed.letter, discoveryYear: parseInt(parts[14] ?? '', 10) || undefined, discoveryMethod: parts[13]?.trim() || undefined,
       massMjup: !isNaN(mass) ? mass : undefined, radiusRjup: !isNaN(radius) ? radius : undefined,
       equilibriumTempK: !isNaN(temperature) ? temperature : undefined,
       orbit: makeOrbit(semimajoraxis, eccentricity, inclination, ascendingnode, periastron, period),

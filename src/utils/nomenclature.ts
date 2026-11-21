@@ -95,10 +95,11 @@ export function expandGlieseVariants(rawDesignation?: string | null): string[] {
   }
   const trimmed = rawDesignation.trim();
   const glMatch = trimmed.match(/^(?:gliese|gl|gj|nn|wo)\s*(.+)$/i);
-  if (!glMatch) {
+  const rawSuffix = glMatch?.[1];
+  if (!rawSuffix) {
     return [];
   }
-  const suffix = glMatch[1].trim();
+  const suffix = rawSuffix.trim();
   return Array.from(new Set([trimmed, `Gl ${suffix}`, `GJ ${suffix}`, `Gliese ${suffix}`]));
 }
 

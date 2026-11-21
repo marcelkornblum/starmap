@@ -97,8 +97,7 @@ export function encodeBinarySector(manifest: SectorPartitionManifest): Uint8Arra
 
   // Star records (16 bytes each)
   let offset = BINARY_SECTOR_HEADER_BYTES;
-  for (let i = 0; i < count; i++) {
-    const sys = manifest.systems[i];
+  for (const sys of manifest.systems) {
     view.setFloat32(offset + 0, sys.x, true);
     view.setFloat32(offset + 4, sys.y, true);
     view.setFloat32(offset + 8, sys.z, true);

@@ -85,7 +85,7 @@ describe('datasetLayerCodec - Search Index Optimization & Precalculated Real Nam
     expect(resolved.entries['mars']?.inUniverseName).toBe('Ares Prime');
 
     const batchResolved = applyResolvedNamesToLayers([layerWithoutInUniverse], realNames);
-    expect(batchResolved[0].entries['gaia-2452378776434477184']?.resolvedName).toBe('Tau Ceti');
+    expect(batchResolved[0]?.entries['gaia-2452378776434477184']?.resolvedName).toBe('Tau Ceti');
   });
 
   it('collectUnresolvedLayerTargets flags layer entries lacking inUniverseName and real-sky match', () => {

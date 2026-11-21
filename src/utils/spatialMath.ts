@@ -158,6 +158,7 @@ export function buildJourneyChordRenderData(
 
   for (let i = 0; i < legs.length; i++) {
     const leg = legs[i];
+    if (leg === undefined) continue;
     const [x1, y1, z1] = leg.fromPosition;
     const [x2, y2, z2] = leg.toPosition;
 
