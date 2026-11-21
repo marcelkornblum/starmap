@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
 import { SystemScene, type StarDossierData } from './SystemScene';
 import {
@@ -6,6 +6,8 @@ import {
   resolveCorpusPlanetEntity,
 } from './systemPlanetResolver';
 import { resolveTargetCoordsFromEntities } from './sceneTargetHelpers';
+import * as useSearchCorpusHook from '../../../hooks/useSearchCorpus';
+import * as useSystemDataHook from '../../../hooks/useSystemData';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
@@ -79,6 +81,39 @@ describe('SystemScene Component Rendering', () => {
     expect(useCameraStore.getState().target).toEqual([0, 0, 0]);
     expect(renderer.scene.findByProps({ name: 'celestial-entity-jupiter' })).toBeDefined();
 
+    await renderer.unmount();
+  });
+
+  it('is wrapped in React.memo and skips useSearchCorpus/useSystemData when resolvedEntities is passed', async () => {
+    expect((SystemScene as unknown as { $$typeof?: symbol }).$$typeof).toBe(
+      Symbol.for('react.memo'),
+    );
+
+    const searchCorpusSpy = vi.spyOn(useSearchCorpusHook, 'useSearchCorpus');
+    const systemDataSpy = vi.spyOn(useSystemDataHook, 'useSystemData');
+
+    const entities = [
+      {
+        id: 'sol',
+        name: 'Sol',
+        position: [0, 0, 0] as [number, number, number],
+        classification: 'star' as const,
+        spectralType: 'G2V',
+      },
+      resolveSystemPlanetEntity(mockSolSystem.planets![0]!, 0),
+    ];
+
+    const renderer = await ReactThreeTest.create(
+      <SystemScene systemId="sol" system={mockSolSystem} resolvedEntities={entities} />,
+    );
+
+    expect(searchCorpusSpy).not.toHaveBeenCalled();
+    expect(systemDataSpy).not.toHaveBeenCalled();
+    expect(renderer.scene.findByProps({ name: 'celestial-entity-sol' })).toBeDefined();
+    expect(renderer.scene.findByProps({ name: 'celestial-entity-earth' })).toBeDefined();
+
+    searchCorpusSpy.mockRestore();
+    systemDataSpy.mockRestore();
     await renderer.unmount();
   });
 });

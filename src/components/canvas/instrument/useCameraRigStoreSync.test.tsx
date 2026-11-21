@@ -7,6 +7,7 @@ import type { CameraRigThreeState } from './useCameraRigProjection';
 import type { OrbitControlsLike } from './cameraRigZoomAndPan';
 import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import { useCameraStore } from '../../../stores/useCameraStore';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import { CardinalTransitionController } from './cameraRigControls';
 import type { CardinalDirection } from '../../../types/spatial';
@@ -50,6 +51,7 @@ describe('useCameraRigStoreSync', () => {
     setReducedMotion(false);
     vi.clearAllMocks();
     useCameraStore.getState().reset();
+    useSettingsStore.getState().resetSettings();
     useUIStore.getState().resetUI();
     camera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
     camera.position.set(20, 20, 20);
@@ -234,5 +236,21 @@ describe('useCameraRigStoreSync', () => {
     expect(setTransformSpy).toHaveBeenCalledTimes(1);
     expect(useCameraStore.getState().position).toEqual([50, 60, 70]);
     setTransformSpy.mockRestore();
+  });
+
+  it('exits 2D top-down projection back to 3d when reset or radial preset runs', () => {
+    renderSyncHook();
+
+    act(() => {
+      useSettingsStore.getState().setProjection('top-down');
+      useCameraStore.getState().applyPreset('reset');
+    });
+    expect(useSettingsStore.getState().projection).toBe('3d');
+
+    act(() => {
+      useSettingsStore.getState().setProjection('top-down');
+      useCameraStore.getState().applyPreset('radial');
+    });
+    expect(useSettingsStore.getState().projection).toBe('3d');
   });
 });

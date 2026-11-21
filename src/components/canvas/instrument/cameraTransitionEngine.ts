@@ -42,7 +42,7 @@ export class CameraTransitionController {
   private duration = DEFAULT_CAMERA_TRANSITION_DURATION_SEC;
   private options?: CameraTransitionOptions;
   private activeControls?: TransitionControlsLike;
-  private prevControlsEnabled?: boolean;
+  private prevEnableDamping?: boolean;
 
   private startTarget = new THREE.Vector3();
   private endTarget = new THREE.Vector3();
@@ -171,7 +171,7 @@ export class CameraTransitionController {
     now: number = performance.now(),
   ): boolean {
     if (!this.isTransitioningState) return false;
-    if (controls && !this.activeControls) this.lockControls(controls);
+    if (controls && !this.activeControls) this.pauseControlsDamping(controls);
     if (this.pendingStart) {
       this.startTime = now;
       this.pendingStart = false;
@@ -243,7 +243,7 @@ export class CameraTransitionController {
     controls: TransitionControlsLike | undefined,
     now: number | undefined,
   ): void {
-    if (controls) this.lockControls(controls);
+    if (controls) this.pauseControlsDamping(controls);
     this.duration = duration;
     this.options = options;
     this.pendingStart = now === undefined;
@@ -251,24 +251,24 @@ export class CameraTransitionController {
     this.isTransitioningState = true;
   }
 
-  private lockControls(controls: TransitionControlsLike): void {
+  private pauseControlsDamping(controls: TransitionControlsLike): void {
     this.activeControls = controls;
-    if (typeof controls.enabled === 'boolean') {
-      this.prevControlsEnabled = controls.enabled;
-      controls.enabled = false;
+    if (this.prevEnableDamping === undefined && controls.enableDamping === true) {
+      this.prevEnableDamping = true;
+      controls.enableDamping = false;
     }
   }
 
   private restoreAndSettleControls(controls?: TransitionControlsLike): void {
     const targetControls = controls ?? this.activeControls;
     if (targetControls) {
-      if (this.prevControlsEnabled !== undefined) {
-        targetControls.enabled = this.prevControlsEnabled;
+      if (this.prevEnableDamping !== undefined) {
+        targetControls.enableDamping = this.prevEnableDamping;
       }
       targetControls.update?.();
     }
     this.activeControls = undefined;
-    this.prevControlsEnabled = undefined;
+    this.prevEnableDamping = undefined;
   }
 
   private resolveDuration(explicitDuration: number | undefined): number {

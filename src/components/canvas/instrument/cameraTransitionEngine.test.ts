@@ -9,6 +9,7 @@ import * as reducedMotion from '../../../utils/reducedMotion';
 interface MockControls extends TransitionControlsLike {
   target: THREE.Vector3;
   enabled: boolean;
+  enableDamping: boolean;
   update: ReturnType<typeof vi.fn>;
 }
 
@@ -35,6 +36,7 @@ describe('cameraTransitionEngine', () => {
     mockControls = {
       target: new THREE.Vector3(0, 0, 0),
       enabled: true,
+      enableDamping: true,
       update: vi.fn(),
     };
   });
@@ -53,7 +55,7 @@ describe('cameraTransitionEngine', () => {
     expect(mockControls.target.x).toBeCloseTo(57.8125, 4);
   });
 
-  it('gates OrbitControls.enabled during flight and calls controls.update() once on settle', () => {
+  it('keeps OrbitControls.enabled true, pauses enableDamping during flight, and restores on settle', () => {
     const controller = new CameraTransitionController();
     const onComplete = vi.fn();
 
@@ -65,23 +67,26 @@ describe('cameraTransitionEngine', () => {
       1000,
     );
 
-    expect(mockControls.enabled).toBe(false);
+    expect(mockControls.enabled).toBe(true);
+    expect(mockControls.enableDamping).toBe(false);
     expect(mockControls.update).not.toHaveBeenCalled();
 
-    // Intermediate frame: controls stay disabled and controls.update is NOT called
+    // Intermediate frame: controls stay enabled, damping stays paused, controls.update is NOT called
     controller.update(perspCam, mockControls, 1500);
-    expect(mockControls.enabled).toBe(false);
+    expect(mockControls.enabled).toBe(true);
+    expect(mockControls.enableDamping).toBe(false);
     expect(mockControls.update).not.toHaveBeenCalled();
 
-    // Completion frame: controls.enabled restored and controls.update called exactly once
+    // Completion frame: enableDamping restored and controls.update called exactly once
     controller.update(perspCam, mockControls, 2000);
     expect(controller.isTransitioning()).toBe(false);
     expect(mockControls.enabled).toBe(true);
+    expect(mockControls.enableDamping).toBe(true);
     expect(mockControls.update).toHaveBeenCalledTimes(1);
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it('restores OrbitControls.enabled and calls controls.update() once on cancel', () => {
+  it('keeps OrbitControls.enabled true, restores enableDamping, and calls controls.update() once on cancel', () => {
     const controller = new CameraTransitionController();
     const onCancel = vi.fn();
 
@@ -93,15 +98,34 @@ describe('cameraTransitionEngine', () => {
       1000,
     );
 
-    expect(mockControls.enabled).toBe(false);
+    expect(mockControls.enabled).toBe(true);
+    expect(mockControls.enableDamping).toBe(false);
     controller.update(perspCam, mockControls, 1250);
     expect(mockControls.update).not.toHaveBeenCalled();
 
     controller.cancel();
     expect(controller.isTransitioning()).toBe(false);
     expect(mockControls.enabled).toBe(true);
+    expect(mockControls.enableDamping).toBe(true);
     expect(mockControls.update).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not overwrite enableDamping when already disabled before flight', () => {
+    mockControls.enableDamping = false;
+    const controller = new CameraTransitionController();
+
+    controller.startPose(
+      perspCam,
+      { target: [10, 0, 0], position: [10, 0, 20] },
+      mockControls,
+      { duration: 1.0 },
+      1000,
+    );
+    expect(mockControls.enableDamping).toBe(false);
+
+    controller.update(perspCam, mockControls, 2000);
+    expect(mockControls.enableDamping).toBe(false);
   });
 
   it('anchors startTime on first update when now is omitted (pendingStart frame-0 stall guard)', () => {
@@ -224,7 +248,7 @@ describe('cameraTransitionEngine', () => {
     expect(controller.isTransitioning()).toBe(false);
   });
 
-  it('preempts an active transition cleanly without overwriting prevControlsEnabled', () => {
+  it('preempts an active transition cleanly without leaving enableDamping disabled', () => {
     const controller = new CameraTransitionController();
     const firstCancel = vi.fn();
 
@@ -235,7 +259,8 @@ describe('cameraTransitionEngine', () => {
       { duration: 1.0, onCancel: firstCancel },
       1000,
     );
-    expect(mockControls.enabled).toBe(false);
+    expect(mockControls.enabled).toBe(true);
+    expect(mockControls.enableDamping).toBe(false);
 
     controller.startPose(
       perspCam,
@@ -245,10 +270,12 @@ describe('cameraTransitionEngine', () => {
       1200,
     );
     expect(firstCancel).toHaveBeenCalledTimes(1);
-    expect(mockControls.enabled).toBe(false);
+    expect(mockControls.enabled).toBe(true);
+    expect(mockControls.enableDamping).toBe(false);
 
     controller.update(perspCam, mockControls, 2200);
     expect(mockControls.enabled).toBe(true);
+    expect(mockControls.enableDamping).toBe(true);
     expect(mockControls.target.x).toBeCloseTo(20, 4);
   });
 });

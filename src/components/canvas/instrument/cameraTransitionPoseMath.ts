@@ -36,6 +36,7 @@ export interface CameraTransitionPose {
 export interface TransitionControlsLike {
   target?: THREE.Vector3;
   enabled?: boolean;
+  enableDamping?: boolean;
   update?: (() => void) | Function;
 }
 

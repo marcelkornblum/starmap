@@ -208,6 +208,12 @@ describe('SpatialScenes Storybook Suite', () => {
       expect(GalacticSceneEntryDefault).toBe(GalacticSceneContent);
       expect(SystemSceneEntryDefault).toBe(SystemSceneContent);
       expect(PlanetarySceneEntryDefault).toBe(PlanetarySceneContent);
+      expect((SystemSceneContent as unknown as { $$typeof?: symbol }).$$typeof).toBe(
+        Symbol.for('react.memo'),
+      );
+      expect((PlanetarySceneContent as unknown as { $$typeof?: symbol }).$$typeof).toBe(
+        Symbol.for('react.memo'),
+      );
     });
   });
 });

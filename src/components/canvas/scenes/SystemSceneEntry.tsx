@@ -16,7 +16,7 @@ import type {
   SystemViewSceneProps,
 } from './spatialSceneTypes';
 
-export const SystemSceneContent: React.FC<SystemSceneContentProps> = ({
+export const SystemSceneContent: React.FC<SystemSceneContentProps> = React.memo(({
   systemId = SOL_REFERENCE_TARGET.id,
   system,
   centerId,
@@ -66,7 +66,7 @@ export const SystemSceneContent: React.FC<SystemSceneContentProps> = ({
       />
     </>
   );
-};
+});
 
 export const SystemViewScene: React.FC<SystemViewSceneProps> = (props) => {
   const targetCoords = useMemo(() => resolveCenterCoords(props.centerCoordinates), [props.centerCoordinates]);

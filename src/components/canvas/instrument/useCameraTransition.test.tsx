@@ -236,6 +236,49 @@ describe('CameraTransitionController & useCameraTransition', () => {
       expect(result.current.isTransitioning()).toBe(true);
       unmount();
     });
+
+    it('cancels an in-flight transition on instance A when instance B starts transitionTo or transitionToPose', () => {
+      useUIStore.getState().resetUI();
+      const instanceA = renderHook(() => useCameraTransition());
+      const instanceB = renderHook(() => useCameraTransition());
+      const onCancelA = vi.fn();
+
+      act(() => {
+        instanceA.result.current.transitionTo([10, 0, 0], { duration: 1.0, onCancel: onCancelA });
+      });
+      expect(instanceA.result.current.isTransitioning()).toBe(true);
+      expect(instanceB.result.current.isTransitioning()).toBe(false);
+
+      act(() => {
+        instanceB.result.current.transitionTo([20, 0, 0], { duration: 1.0 });
+      });
+      expect(onCancelA).toHaveBeenCalledTimes(1);
+      expect(instanceA.result.current.isTransitioning()).toBe(false);
+      expect(instanceB.result.current.isTransitioning()).toBe(true);
+      expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+
+      const onCancelB = vi.fn();
+      act(() => {
+        instanceB.result.current.transitionToPose(
+          { target: [30, 0, 0], position: [30, 0, 20] },
+          { duration: 1.0, onCancel: onCancelB },
+        );
+      });
+      expect(instanceB.result.current.isTransitioning()).toBe(true);
+
+      act(() => {
+        instanceA.result.current.transitionToPose(
+          { target: [40, 0, 0], position: [40, 0, 20] },
+          { duration: 1.0 },
+        );
+      });
+      expect(onCancelB).toHaveBeenCalledTimes(1);
+      expect(instanceB.result.current.isTransitioning()).toBe(false);
+      expect(instanceA.result.current.isTransitioning()).toBe(true);
+
+      instanceA.unmount();
+      instanceB.unmount();
+    });
   });
 
   describe('SpatialEntityStore Focus & Selection Synchronisation', () => {

@@ -35,36 +35,21 @@ export interface SystemSceneProps {
   debugHitarea?: boolean;
 }
 
-/**
- * SystemScene: Canonical production scene for stellar system cartography.
- * Renders the central star(s) and Keplerian orbiting planetary bodies mapped into SYSTEM_FRAME.
- */
-export const SystemScene: React.FC<SystemSceneProps> = ({
-  systemId,
-  system: explicitSystem,
-  centerId,
-  centerCoordinates,
-  resolvedEntities,
+interface SystemSceneViewportProps {
+  readonly entities: SpatialEntityDefinition[];
+  readonly targetCoords: [number, number, number];
+  readonly onInspectPlanet?: (planetId: string) => void;
+  readonly onSelectEntity?: (entityId: string | null) => void;
+  readonly debugHitarea: boolean;
+}
+
+const SystemSceneViewport: React.FC<SystemSceneViewportProps> = ({
+  entities,
+  targetCoords,
   onInspectPlanet,
   onSelectEntity,
-  debugHitarea = false,
+  debugHitarea,
 }) => {
-  const resolved = useResolvedSystemEntitiesAndTarget(
-    resolvedEntities ? undefined : systemId,
-    resolvedEntities ? undefined : explicitSystem,
-    centerId,
-    centerCoordinates,
-  );
-
-  const entities = resolvedEntities ?? resolved.entities;
-  const targetCoords = useMemo(
-    () =>
-      resolvedEntities
-        ? resolveTargetCoordsFromEntities(resolvedEntities, centerId, centerCoordinates)
-        : resolved.targetCoords,
-    [resolvedEntities, centerId, centerCoordinates, resolved.targetCoords],
-  );
-
   if (entities.length === 0) {
     return null;
   }
@@ -82,3 +67,67 @@ export const SystemScene: React.FC<SystemSceneProps> = ({
     />
   );
 };
+
+const SystemSceneFromLookup: React.FC<SystemSceneProps> = ({
+  systemId,
+  system: explicitSystem,
+  centerId,
+  centerCoordinates,
+  onInspectPlanet,
+  onSelectEntity,
+  debugHitarea = false,
+}) => {
+  const { entities, targetCoords } = useResolvedSystemEntitiesAndTarget(
+    systemId,
+    explicitSystem,
+    centerId,
+    centerCoordinates,
+  );
+
+  return (
+    <SystemSceneViewport
+      entities={entities}
+      targetCoords={targetCoords}
+      onInspectPlanet={onInspectPlanet}
+      onSelectEntity={onSelectEntity}
+      debugHitarea={debugHitarea}
+    />
+  );
+};
+
+const SystemSceneWithEntities: React.FC<
+  SystemSceneProps & { readonly resolvedEntities: SpatialEntityDefinition[] }
+> = ({
+  resolvedEntities,
+  centerId,
+  centerCoordinates,
+  onInspectPlanet,
+  onSelectEntity,
+  debugHitarea = false,
+}) => {
+  const targetCoords = useMemo(
+    () => resolveTargetCoordsFromEntities(resolvedEntities, centerId, centerCoordinates),
+    [resolvedEntities, centerId, centerCoordinates],
+  );
+
+  return (
+    <SystemSceneViewport
+      entities={resolvedEntities}
+      targetCoords={targetCoords}
+      onInspectPlanet={onInspectPlanet}
+      onSelectEntity={onSelectEntity}
+      debugHitarea={debugHitarea}
+    />
+  );
+};
+
+/**
+ * SystemScene: Canonical production scene for stellar system cartography.
+ * Renders the central star(s) and Keplerian orbiting planetary bodies mapped into SYSTEM_FRAME.
+ */
+export const SystemScene: React.FC<SystemSceneProps> = React.memo((props) => {
+  if (props.resolvedEntities) {
+    return <SystemSceneWithEntities {...props} resolvedEntities={props.resolvedEntities} />;
+  }
+  return <SystemSceneFromLookup {...props} />;
+});

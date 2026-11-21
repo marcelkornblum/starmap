@@ -135,6 +135,9 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
         if (isOrthoAllowed()) glideToCardinal('top');
         break;
       case 'reset': {
+        if (useSettingsStore.getState().projection === 'top-down') {
+          useSettingsStore.getState().setProjection('3d');
+        }
         if (currentCamera instanceof THREE.OrthographicCamera && orthoCamRef.current && perspCam) {
           unlockFromOrthographic();
         }
@@ -163,6 +166,9 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
         if (isOrthoAllowed()) glideToCardinal('front');
         break;
       case 'radial': {
+        if (useSettingsStore.getState().projection === 'top-down') {
+          useSettingsStore.getState().setProjection('3d');
+        }
         if (currentCamera instanceof THREE.OrthographicCamera && orthoCamRef.current && perspCam) {
           unlockFromOrthographic();
         }

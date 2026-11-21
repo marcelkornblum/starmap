@@ -44,4 +44,10 @@ describe('PlanetScene Primitive', () => {
 
     await renderer.unmount();
   });
+
+  it('is wrapped in React.memo', () => {
+    expect((PlanetScene as unknown as { $$typeof?: symbol }).$$typeof).toBe(
+      Symbol.for('react.memo'),
+    );
+  });
 });

@@ -19,7 +19,13 @@ type ControlsWithEvents = TransitionControlsLike & {
   removeEventListener?: (type: string, listener: () => void) => void;
 };
 
+interface ActiveRunningTransition {
+  controller: CameraTransitionController;
+  cancel: () => void;
+}
+
 let activeTransitionApi: CameraTransitionApi | null = null;
+let activeRunningTransition: ActiveRunningTransition | null = null;
 
 export function transitionTo(
   target: THREE.Vector3 | [number, number, number],
@@ -40,7 +46,11 @@ export function transitionToPose(
 }
 
 export function cancelActiveCameraTransition(): void {
-  activeTransitionApi?.cancelTransition();
+  if (activeRunningTransition) {
+    activeRunningTransition.cancel();
+  } else {
+    activeTransitionApi?.cancelTransition();
+  }
 }
 
 /**
@@ -56,45 +66,65 @@ export function useCameraTransition(): CameraTransitionApi {
   const controllerRef = useLazyRef(() => new CameraTransitionController());
 
   const cancelTransition = useCallback(() => {
+    if (activeRunningTransition?.controller === controllerRef.current) {
+      activeRunningTransition = null;
+    }
+    const wasTransitioning = controllerRef.current.isTransitioning();
     controllerRef.current.cancel();
-    useUIStore.getState().setCameraTransitioning(false);
+    if (wasTransitioning || !activeRunningTransition) {
+      useUIStore.getState().setCameraTransitioning(false);
+    }
   }, [controllerRef]);
 
   const wrapOptions = useCallback(
     (options?: CameraTransitionOptions): CameraTransitionOptions => ({
       ...options,
       onComplete: () => {
+        if (activeRunningTransition?.controller === controllerRef.current) {
+          activeRunningTransition = null;
+        }
         useUIStore.getState().setCameraTransitioning(false);
         options?.onComplete?.();
       },
       onCancel: () => {
+        if (activeRunningTransition?.controller === controllerRef.current) {
+          activeRunningTransition = null;
+        }
         useUIStore.getState().setCameraTransitioning(false);
         options?.onCancel?.();
       },
     }),
-    [],
+    [controllerRef],
   );
 
   const startTransitionTo = useCallback(
     (target: THREE.Vector3 | [number, number, number], options?: CameraTransitionOptions) => {
+      if (activeRunningTransition && activeRunningTransition.controller !== controllerRef.current) {
+        activeRunningTransition.cancel();
+      }
       controllerRef.current.start(camera, target, controls?.target, wrapOptions(options));
       if (controllerRef.current.isTransitioning()) {
+        activeRunningTransition = { controller: controllerRef.current, cancel: cancelTransition };
         useUIStore.getState().setCameraTransitioning(true);
       }
       invalidate();
     },
-    [camera, controls, invalidate, controllerRef, wrapOptions],
+    [camera, controls, invalidate, controllerRef, wrapOptions, cancelTransition],
   );
 
   const startTransitionToPose = useCallback(
     (endPose: CameraTransitionPose, options?: CameraTransitionOptions) => {
+      if (activeRunningTransition && activeRunningTransition.controller !== controllerRef.current) {
+        activeRunningTransition.cancel();
+      }
       controllerRef.current.startPose(camera, endPose, controls, wrapOptions(options));
       if (controllerRef.current.isTransitioning()) {
+        activeRunningTransition = { controller: controllerRef.current, cancel: cancelTransition };
         useUIStore.getState().setCameraTransitioning(true);
       }
       invalidate();
     },
-    [camera, controls, invalidate, controllerRef, wrapOptions],
+    [camera, controls, invalidate, controllerRef, wrapOptions, cancelTransition],
   );
 
   const isTransitioning = useCallback(
@@ -133,6 +163,9 @@ export function useCameraTransition(): CameraTransitionApi {
   useEffect(() => {
     const controller = controllerRef.current;
     return () => {
+      if (activeRunningTransition?.controller === controller) {
+        activeRunningTransition = null;
+      }
       if (controller.isTransitioning()) {
         controller.cancel();
         useUIStore.getState().setCameraTransitioning(false);

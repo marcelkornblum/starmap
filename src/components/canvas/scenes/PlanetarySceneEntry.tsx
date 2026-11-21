@@ -17,7 +17,7 @@ import type {
   PlanetaryViewSceneProps,
 } from './spatialSceneTypes';
 
-export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
+export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = React.memo(({
   planetId = EARTH_REFERENCE_TARGET.id,
   planet,
   centerId,
@@ -74,7 +74,7 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
       />
     </>
   );
-};
+});
 
 export const PlanetaryViewScene: React.FC<PlanetaryViewSceneProps> = (props) => {
   const targetCoords = useMemo(() => resolveCenterCoords(props.centerCoordinates), [props.centerCoordinates]);

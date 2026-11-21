@@ -30,7 +30,7 @@ export interface PlanetSceneProps {
  * Renders the physical uniform-lit PlanetBody alongside Keplerian natural/artificial satellites in PLANETARY_FRAME.
  * Seamlessly cross-fades the 3D globe into an invariant cartographic node with reticle when zooming out.
  */
-export const PlanetScene: React.FC<PlanetSceneProps> = ({
+export const PlanetScene: React.FC<PlanetSceneProps> = React.memo(({
   planetId = EARTH_REFERENCE_TARGET.id,
   planetName,
   classification = 'terrestrial',
@@ -94,4 +94,4 @@ export const PlanetScene: React.FC<PlanetSceneProps> = ({
       />
     </SpatialViewport>
   );
-};
+});
