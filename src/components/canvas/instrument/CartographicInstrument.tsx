@@ -49,8 +49,6 @@ export interface CartographicInstrumentProps {
   showFins?: boolean;
   /** Whether to render datum plane */
   showDatumPlane?: boolean;
-  /** @deprecated Use showDatumPlane instead */
-  showGalacticPlane?: boolean;
   /** Whether to render planar footprints on datum */
   showPlanarFootprint?: boolean;
   /** Footprint classification */
@@ -82,7 +80,6 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = Rea
   majorRingIndex,
   showFins,
   showDatumPlane,
-  showGalacticPlane,
   showPlanarFootprint = false,
   footprintClassification,
   footprintSize,
@@ -95,7 +92,6 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = Rea
 }) => {
   const { frame } = useSpatialFrame();
   const finsEnabled = showFins ?? frame.coordinateFins.enabled;
-  const isPlaneEnabled = showDatumPlane ?? showGalacticPlane;
   const centerDistance = frame.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
   const extent = frame.extent ?? DEFAULT_INSTRUMENT_EXTENT;
 
@@ -125,7 +121,7 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = Rea
 
       {/* Datum Floor, Planar Grid & Datum Range Rings */}
       <PlanarGrid
-        enabled={isPlaneEnabled}
+        enabled={showDatumPlane}
         showPlanarGrid={showPlanarGrid}
         planarGridGap={planarGridGap}
         rings={rangeRings}
@@ -135,7 +131,6 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = Rea
         footprintSize={footprintSize}
         footprints={footprints}
         centerDistance={centerDistance}
-        galacticCenterDistance={centerDistance}
       />
 
       {/* Three Mobile Orthogonal Travelling Fins with 360° Polar Dial Expansion */}
@@ -146,7 +141,6 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = Rea
         <BearingVectors
           showAxisLines={showAxisLines}
           centerDistance={centerDistance}
-          rGc={centerDistance}
           extent={extent}
         />
       )}
@@ -155,7 +149,6 @@ export const CartographicInstrument: React.FC<CartographicInstrumentProps> = Rea
       {showAxisLines && showScreenEdgeIndicators && finsEnabled && (
         <ScreenEdgeIndicators
           centerDistance={centerDistance}
-          rGc={centerDistance}
           extent={extent}
         />
       )}

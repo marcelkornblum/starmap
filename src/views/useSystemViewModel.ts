@@ -22,11 +22,9 @@ import { useUIStore } from '../stores/useUIStore';
 import { useResolvedSystemDetails, type UseResolvedSystemDetailsProps } from './useResolvedSystemDetails';
 import { useSystemOutOfScopeGuard } from './useSystemOutOfScopeGuard';
 
-export type UseSystemViewModelProps = UseResolvedSystemDetailsProps;
-
 const EMPTY_SELECTED_ENTITIES: readonly SpatialEntityDefinition[] = [];
 
-export function useSystemViewModel(props: UseSystemViewModelProps) {
+export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   const { locationPathname, locationSearch, systemId: propSystemId } = props;
   const router = useOptionalRouter();
   const storeApi = useSpatialEntityStoreApi();

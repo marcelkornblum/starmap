@@ -3,15 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { resolvePrimaryPanels } from './spatialShellHelpers';
 
 describe('spatialShellHelpers - resolvePrimaryPanels', () => {
-  it('returns primaryFloat if passed alone', () => {
-    const result = resolvePrimaryPanels({
-      primaryFloat: <div data-testid="legacy-float">Float</div>,
-    });
-
-    render(<div>{result}</div>);
-    expect(screen.getByTestId('legacy-float')).toBeInTheDocument();
-  });
-
   it('returns detailsPanel when only detailsPanel is provided and open', () => {
     const result = resolvePrimaryPanels({
       detailsPanel: <div data-testid="details">Details</div>,

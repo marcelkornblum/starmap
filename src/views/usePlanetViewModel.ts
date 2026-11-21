@@ -28,9 +28,7 @@ import {
   type UseResolvedPlanetDetailsProps,
 } from './useResolvedPlanetDetails';
 
-export type UsePlanetViewModelProps = UseResolvedPlanetDetailsProps;
-
-export function usePlanetViewModel(props: UsePlanetViewModelProps) {
+export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
   const { locationPathname, locationSearch, planetId: propPlanetId } = props;
   const {
     focusedDetails,

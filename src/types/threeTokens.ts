@@ -157,7 +157,7 @@ export interface TelemetryStatusTokens {
   confidenceTheoretical: string;
 }
 
-export interface ThreeTokenMap
+export interface ThreeTokenSnapshot
   extends CanvasEnvironmentTokens,
     GraticuleTokens,
     DatumPlaneTokens,
@@ -174,5 +174,3 @@ export interface ThreeTokenMap
     TelemetryStatusTokens {
   theme: ThreeTheme;
 }
-
-export type ThreeTokenSnapshot = ThreeTokenMap;

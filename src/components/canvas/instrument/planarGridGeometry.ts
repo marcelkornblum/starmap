@@ -56,7 +56,6 @@ export interface PlanarGridProps {
   footprintSize?: number;
   footprints?: PlanarFootprintData[];
   centerDistance?: number;
-  galacticCenterDistance?: number;
 }
 
 export interface PlanarFootprintComponentProps {

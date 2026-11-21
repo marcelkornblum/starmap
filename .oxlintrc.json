@@ -16,7 +16,7 @@
           {
             "patterns": [
               {
-                "group": ["../config/**", "**/utils/**", "**/data/**", "../content/**", "**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["../config/**", "**/utils/**", "**/data/**", "../content/**", "**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'types' cannot import from other layers."
               }
             ]
@@ -32,7 +32,7 @@
           {
             "patterns": [
               {
-                "group": ["**/data/**", "../content/**", "**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["**/data/**", "../content/**", "**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'config' may only import from 'types' and 'utils'."
               }
             ]
@@ -48,7 +48,7 @@
           {
             "patterns": [
               {
-                "group": ["**/data/**", "../content/**", "**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["**/data/**", "../content/**", "**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'utils' may only import from 'types' and 'config'."
               }
             ]
@@ -64,7 +64,7 @@
           {
             "patterns": [
               {
-                "group": ["**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'data' may only import from 'types', 'config', and 'utils'."
               }
             ]
@@ -80,7 +80,7 @@
           {
             "patterns": [
               {
-                "group": ["**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["**/services/**", "**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'content' may only import from 'types', 'config', 'utils', and 'data'."
               }
             ]
@@ -96,7 +96,7 @@
           {
             "patterns": [
               {
-                "group": ["**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["**/stores/**", "**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'services' may only import from 'types', 'config', 'utils', 'data', and 'content'."
               }
             ]
@@ -112,7 +112,7 @@
           {
             "patterns": [
               {
-                "group": ["**/hooks/**", "**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["**/hooks/**", "**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'stores' cannot import from 'hooks', 'components', 'views', or 'router'."
               }
             ]
@@ -128,7 +128,7 @@
           {
             "patterns": [
               {
-                "group": ["**/components/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["**/components/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'hooks' cannot import from 'components', 'views', or 'router'."
               }
             ]
@@ -144,7 +144,7 @@
           {
             "patterns": [
               {
-                "group": ["**/data/**", "**/content/**", "**/services/**", "**/stores/**", "**/canvas/**", "**/domain/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["**/data/**", "**/content/**", "**/services/**", "**/stores/**", "**/canvas/**", "**/domain/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'components/interface' may only import from 'types', 'config', 'utils', and 'hooks'."
               }
             ]
@@ -160,7 +160,7 @@
           {
             "patterns": [
               {
-                "group": ["**/domain/**", "**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["**/domain/**", "**/views/**", "**/router/**"],
                 "message": "DEC-R012: Layer 'components/canvas' cannot import from 'domain', 'views', or 'router'."
               }
             ]
@@ -176,7 +176,7 @@
           {
             "patterns": [
               {
-                "group": ["**/views/**", "**/router/**", "**/prototypes/**"],
+                "group": ["**/views/**", "**/router/**"],
                 "message": "DEC-R012: Domain and search components cannot import from 'views' or 'router'."
               }
             ]
@@ -192,35 +192,12 @@
           {
             "patterns": [
               {
-                "group": ["**/router/**", "**/prototypes/**"],
-                "message": "DEC-R012: Layer 'views' cannot import from 'router' or 'prototypes'."
+                "group": ["**/router/**"],
+                "message": "DEC-R012: Layer 'views' cannot import from 'router'."
               }
             ]
           }
         ]
-      }
-    },
-    {
-      "files": ["src/router/**", "src/App.tsx", "src/main.tsx"],
-      "rules": {
-        "no-restricted-imports": [
-          "error",
-          {
-            "patterns": [
-              {
-                "group": ["**/prototypes/**"],
-                "message": "DEC-R012: Production code must not import from 'prototypes'."
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "files": ["src/prototypes/**"],
-      "rules": {
-        "max-lines": "off",
-        "react/only-export-components": "off"
       }
     },
     {

@@ -15,8 +15,6 @@ const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
 export interface CameraRigProps {
   /** Baseline perspective field of view in degrees. Default: frame.camera.baseFov (45) */
   baseFov?: number;
-  /** Whether to blend FOV and zoom on approach to cardinal views. Kept for backwards compatibility */
-  adaptiveProjection?: boolean;
   /** Whether to snap smoothly to the nearest cardinal axis on pointer drag release. Default: true */
   snapOnRelease?: boolean;
   /** Cardinal capture angle in degrees for snap-on-release. Default: 10 */

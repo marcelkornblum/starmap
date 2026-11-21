@@ -68,49 +68,41 @@ export const DirectionsPartialSection: React.FC<DirectionsPartialSectionProps> =
               'Ship Time (Proper)',
               selectedOption.stats.shipTime,
               'directions-stat-ship-time',
-              'directions-option-ship-time',
             )}
             {renderDirectionsDatum(
               'Coordinate Time',
               selectedOption.stats.coordinateTime,
               'directions-stat-coord-time',
-              'directions-option-coord-time',
             )}
             {renderDirectionsDatum(
               'Peak Velocity',
               selectedOption.stats.peakVelocity,
               'directions-stat-peak-velocity',
-              'directions-option-peak-velocity',
             )}
             {renderDirectionsDatum(
               'Time Dilation (γ)',
               selectedOption.stats.lorentzFactor,
               'directions-stat-lorentz-gamma',
-              'directions-option-gamma',
             )}
             {renderDirectionsDatum(
               'Turnaround Point',
               selectedOption.stats.turnaroundPoint,
               'directions-stat-turnaround',
-              'directions-option-turnaround',
             )}
             {renderDirectionsDatum(
               'Delta-V',
               selectedOption.stats.deltaV,
               'directions-stat-delta-v',
-              'directions-option-deltav',
             )}
             {renderDirectionsDatum(
               'Synodic Period',
               selectedOption.stats.synodicPeriod,
               'directions-stat-synodic-period',
-              'directions-option-synodic',
             )}
             {renderDirectionsDatum(
               'Propulsion',
               selectedOption.stats.propulsionProfile,
               'directions-stat-propulsion',
-              'directions-option-propulsion',
             )}
           </Stack>
         </section>

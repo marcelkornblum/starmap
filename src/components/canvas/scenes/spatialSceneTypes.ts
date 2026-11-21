@@ -1,6 +1,6 @@
 import type { SpatialEntityDefinition } from '../entity';
 import type { StarDossierData } from './SystemScene';
-import type { PlanetRecord } from '../../../types/astro';
+import type { ExoplanetRecord } from '../../../types/astro';
 
 export interface GalacticSceneContentProps {
   initialSelectedId?: string | null;
@@ -41,7 +41,7 @@ export interface SystemViewSceneProps extends SystemSceneContentProps {
 
 export interface PlanetarySceneContentProps {
   planetId?: string;
-  planet?: PlanetRecord;
+  planet?: ExoplanetRecord;
   onInspectSatellite?: (satelliteId: string) => void;
   onSelectEntity?: (entityId: string | null) => void;
 }

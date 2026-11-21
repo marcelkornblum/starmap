@@ -31,7 +31,7 @@ import type {
 } from '../types/astroStructures';
 
 describe('compactDataCodec - Manifests, Structures, Solar Bodies & Sectors', () => {
-  it('round-trips natural satellites attached to PlanetRecord', () => {
+  it('round-trips natural satellites attached to ExoplanetRecord', () => {
     const manifest: SystemManifest = {
       id: 'sol',
       name: 'Sol',

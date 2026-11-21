@@ -38,6 +38,7 @@ export const canMountWebGLCanvas = (): boolean => {
   return webglSupported;
 };
 
-export const _resetWebGLSupportedForTesting = (): void => {
+/** @internal Test-only reset hook; import via webglSupport.testing.ts */
+export const resetWebGLSupportedCacheInternal = (): void => {
   webglSupported = null;
 };

@@ -107,7 +107,7 @@ export default defineConfig(({ mode }) => {
         reportsDirectory: '/tmp/starmap-coverage',
         reporter: ['text', 'json', 'html', 'json-summary', 'cobertura'],
         include: ['src/**/*.{ts,tsx}'],
-        exclude: ['src/**/*.stories.@(js|jsx|mjs|ts|tsx)', 'src/main.tsx', 'src/components/prototypes/**'],
+        exclude: ['src/**/*.stories.@(js|jsx|mjs|ts|tsx)', 'src/main.tsx'],
         thresholds: {
           lines: 78,
           statements: 78,

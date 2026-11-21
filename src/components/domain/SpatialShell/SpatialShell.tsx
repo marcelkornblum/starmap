@@ -13,7 +13,6 @@ export interface SpatialShellProps {
   readonly breadcrumbs?: React.ReactNode;
   readonly search?: React.ReactNode;
   readonly layerCard?: React.ReactNode;
-  readonly primaryFloat?: React.ReactNode;
   readonly detailsPanel?: React.ReactNode;
   readonly directionsPanel?: React.ReactNode;
   readonly preview?: React.ReactNode;
@@ -35,7 +34,6 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   breadcrumbs,
   search,
   layerCard,
-  primaryFloat,
   detailsPanel,
   directionsPanel,
   preview,
@@ -97,7 +95,6 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
     : styles.spatialShell;
 
   const resolvedPrimaryFloat = resolvePrimaryPanels({
-    primaryFloat,
     detailsPanel,
     directionsPanel,
     isDetailsOpen,

@@ -63,8 +63,6 @@ export interface CompactStellarComponent {
   rt: CelestialSymbolType;
 }
 
-export type CompactStarRecord = CompactStellarComponent;
-
 export interface CompactSatelliteRecord {
   i: string;
   n: string;
@@ -102,8 +100,6 @@ export interface CompactExoplanet {
   sat?: CompactSatelliteRecord[];
 }
 
-export type CompactPlanetRecord = CompactExoplanet;
-
 export interface CompactCircumstellarDisk {
   i: string;
   n: string;
@@ -114,8 +110,6 @@ export interface CompactCircumstellarDisk {
   C?: 2 | 3 | 4;
   rt?: CelestialSymbolType;
 }
-
-export type CompactDiskRecord = CompactCircumstellarDisk;
 
 export interface CompactSystemManifest {
   t?: 'sys';
@@ -151,8 +145,6 @@ export interface CompactGalacticStructure {
   rt?: CelestialSymbolType;
 }
 
-export type CompactStructureRecord = CompactGalacticStructure;
-
 export interface CompactSolarSystemBody {
   t?: typeof COMPACT_SOLAR_BODY_TAG;
   i?: string;
@@ -178,8 +170,6 @@ export interface CompactSolarSystemBody {
   tl?: 1;
   core?: 1;
 }
-
-export type CompactMinorBodyRecord = CompactSolarSystemBody;
 
 export type CompactDetailRecord =
   | (CompactSystemManifest & { t: 'sys' })

@@ -33,7 +33,7 @@ export const PlanarFootprintItem: React.FC<PlanarFootprintComponentProps> = ({ f
 
 export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
   enabled, showFill, showPlanarGrid, planarGridGap, rings, majorRingIndex, showPlanarFootprint,
-  footprintClassification = 'star', footprintSize = DEFAULT_RETICLE_SIZE, footprints, centerDistance, galacticCenterDistance,
+  footprintClassification = 'star', footprintSize = DEFAULT_RETICLE_SIZE, footprints, centerDistance,
 }) => {
   const { frame, frameRef } = useSpatialFrame();
   const datumPlaneFillColor = useThreeTokenStore((s) => s.tokens.datumPlaneFillColor);
@@ -73,9 +73,9 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
   const gridGeom = useMemo(() => {
     if (!isPlaneEnabled || !isGridEnabled) return null;
     const gap = planarGridGap ?? frame.datumPlane.planarGridGap ?? DEFAULT_PLANAR_GRID_GAP;
-    const effDist = centerDistance ?? galacticCenterDistance ?? frame.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
+    const effDist = centerDistance ?? frame.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
     return buildPlanarGridGeometry(frame.radius ?? DEFAULT_FRAME_RADIUS, gap, effDist);
-  }, [isPlaneEnabled, isGridEnabled, planarGridGap, frame.datumPlane.planarGridGap, centerDistance, galacticCenterDistance, frame.centerDistance, frame.radius]);
+  }, [isPlaneEnabled, isGridEnabled, planarGridGap, frame.datumPlane.planarGridGap, centerDistance, frame.centerDistance, frame.radius]);
 
   useEffect(() => () => { gridGeom?.dispose(); }, [gridGeom]);
 
@@ -108,7 +108,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
     }
     if (boundaryMatRef.current) boundaryMatRef.current.opacity = datumPlaneMajorAlpha * fadePlanar;
 
-    const effDist = centerDistance ?? galacticCenterDistance ?? frame.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
+    const effDist = centerDistance ?? frame.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
     const coreFade = hasCore ? calculateBearingProximityFade(camera.position, focusPoint, 'core', apertureRadius, effDist, apertureRadius) : 0;
     const orbFade = hasOrbital ? calculateBearingProximityFade(camera.position, focusPoint, 'orbital', apertureRadius, effDist, apertureRadius) : 0;
     const suppress = frame.coordinateFins.enabled && Math.abs(focusPoint.z) < 1e-3;

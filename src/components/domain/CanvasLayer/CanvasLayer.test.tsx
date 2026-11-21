@@ -3,10 +3,8 @@ import React, { createElement } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { CanvasLayer } from './CanvasLayer';
-import {
-  canMountWebGLCanvas,
-  _resetWebGLSupportedForTesting,
-} from './webglSupport';
+import { canMountWebGLCanvas } from './webglSupport';
+import { _resetWebGLSupportedForTesting } from './webglSupport.testing';
 import {
   getRegisteredWebGLGpuTelemetry,
   resetDeviceTierRuntimeState,

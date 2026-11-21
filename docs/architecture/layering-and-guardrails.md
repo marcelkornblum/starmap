@@ -23,12 +23,8 @@ flowchart TD
     L8["Rank 8: components/domain\n(src/components/domain)"]
     L9["Rank 9: views\n(src/views)"]
     L10["Rank 10: router & main\n(src/router, src/App.tsx, src/main.tsx)"]
-    
-    Isolated["Rank 99: prototypes (Isolated)\n(src/prototypes)"]
 
     L0 --> L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7 --> L8 --> L9 --> L10
-    
-    style Isolated fill:#2a1b1b,stroke:#e06c75,stroke-dasharray: 5 5
 ```
 
 ### 1.1 Layer Rank Table & Responsibilities
@@ -45,24 +41,17 @@ flowchart TD
 | **7** | `src/components/canvas/` | 3D WebGL cartography, materials, reticles, markers, and R3F components. | May import Ranks 0–6. |
 | **8** | `src/components/domain/` | Application assemblies (`Search`, `DetailsPanel`, `BodiesPanel`, `DirectionsPanel`). | May import Ranks 0–7. |
 | **9** | `src/views/` | Top-level routed views (`GalaxyView`, `SystemView`, `PlanetView`, `SearchView`). | May import Ranks 0–8. |
-| **10** | `src/router/`<br/>`src/App.tsx`<br/>`src/main.tsx` | Route definitions, root layouts, and application bootstrap. | Top of hierarchy. May import all production layers except `prototypes`. |
-| **99** | `src/prototypes/` | Exploratory spikes and unverified research interfaces. | Isolated. Production code must never import prototypes. |
+| **10** | `src/router/`<br/>`src/App.tsx`<br/>`src/main.tsx` | Route definitions, root layouts, and application bootstrap. | Top of hierarchy. May import all production layers. |
 
 ### 1.2 Interface Primitive Purity (`Rank 6`)
 Tier 1 and Tier 2 interface primitives in `src/components/interface/` must remain pure, reusable design-system assets with zero knowledge of astronomical business logic. `.oxlintrc.json` enforces an explicit rule:
 - **`components/interface` cannot import from `data`, `content`, `services`, or `stores`**.
 Any attempt by a primitive to bind directly to a repository or global store fails `npm run lint`. For component design rules, see [Component Architecture](../../conductor/code_styleguides/components.md).
 
-### 1.3 Prototype Isolation (`Rank 99`)
-Exploratory prototypes located in `src/prototypes/` are strictly isolated:
-- Prototypes may import production modules for exploratory spikes.
-- Production code (`ranks 0..10`) is **strictly forbidden from importing anything from `prototypes/`**.
-This ensures prototype experiments never leak into shipping bundles.
-
-### 1.4 Zero Import Cycles & File Size Ceiling (`.oxlintrc.json`)
+### 1.3 Zero Import Cycles & File Size Ceiling (`.oxlintrc.json`)
 Circular dependencies (`A -> B -> A` or deep transitive loops) create initialisation order bugs and break bundler tree-shaking. `.oxlintrc.json` enforces:
 - **`import/no-cycle: "error"`:** Ensures the entire codebase contains **zero** import cycles.
-- **`max-lines: "error"`:** Enforces a 300-line ceiling (skipping blank lines and comments) across production source files, exempting tests, stories, `scripts/`, `e2e/`, `tests/`, `content/`, and `src/prototypes/`.
+- **`max-lines: "error"`:** Enforces a 300-line ceiling (skipping blank lines and comments) across production source files, exempting tests, stories, `scripts/`, `e2e/`, `tests/`, and `content/`.
 
 ---
 
