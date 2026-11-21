@@ -41,6 +41,32 @@ const resolvedFilterCache = new BoundedLruCache<SearchCorpusScope, readonly Comp
 const searchListeners = new Set<() => void>();
 const clearCacheListeners = new Set<() => void>();
 let searchRepoVersion = 0;
+let cachedEntriesById: Map<string, CompactSearchEntry> | null = null;
+let cachedEntriesVersion = -1;
+
+/**
+ * Synchronously resolves an already-loaded search entry by entity ID in O(1).
+ */
+export const getCachedSearchEntryById = (
+  id: string,
+): CompactSearchEntry | undefined => {
+  if (!id) {
+    return undefined;
+  }
+  if (!cachedEntriesById || cachedEntriesVersion !== searchRepoVersion) {
+    const nextMap = new Map<string, CompactSearchEntry>();
+    for (const entries of resolvedShardCache.values()) {
+      for (const entry of entries) {
+        if (!nextMap.has(entry.i)) {
+          nextMap.set(entry.i, entry);
+        }
+      }
+    }
+    cachedEntriesById = nextMap;
+    cachedEntriesVersion = searchRepoVersion;
+  }
+  return cachedEntriesById.get(id);
+};
 
 /**
  * Registers a listener invoked when `clearSearchRepositoryCache()` runs (e.g. test cleanup).
@@ -109,52 +135,56 @@ export const fetchSearchShard = async (
 ): Promise<readonly CompactSearchEntry[]> => {
   const cached = shardCache.get(shard);
   if (cached) {
-    return cached;
-  }
-
-  let loadPromise = shardCache.get(shard);
-  if (!loadPromise) {
-    loadPromise = (async (): Promise<readonly CompactSearchEntry[]> => {
-      const url = await resolveManifestDataUrl(
-        SHARD_LOGICAL_PATHS[shard],
-        fetcher,
-        signal,
-      );
-      let payload: unknown;
-      try {
-        payload = await fetchAndParseJson(url, fetcher, signal);
-      } catch (err: unknown) {
-        if (err instanceof JsonHttpError) {
-          throw new Error(`Failed to load search shard "${shard}" (${err.status})`);
-        }
-        throw err;
+    return cached.catch((err: unknown) => {
+      if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {
+        return fetchSearchShard(shard, fetcher, signal);
       }
-      if (!isSearchIndexEnvelope(payload)) {
-        throw new Error(`Invalid search index envelope in shard "${shard}"`);
-      }
-      assertSchemaVersion(payload, COMPACT_SCHEMA_VERSION, `search shard "${shard}"`);
-      resolvedShardCache.set(shard, payload.d);
-      resolvedFilterCache.delete('startup');
-      resolvedFilterCache.delete('all');
-      notifySearchListeners();
-      return payload.d;
-    })().catch((err: unknown) => {
-      shardCache.delete(shard);
       throw err;
     });
-
-    if (signal) {
-      const onAbort = () => {
-        signal.removeEventListener('abort', onAbort);
-        if (shardCache.get(shard) === loadPromise) {
-          shardCache.delete(shard);
-        }
-      };
-      signal.addEventListener('abort', onAbort);
-    }
-
-    shardCache.set(shard, loadPromise);
   }
+
+  const loadPromise: Promise<readonly CompactSearchEntry[]> = (async (): Promise<
+    readonly CompactSearchEntry[]
+  > => {
+    const url = await resolveManifestDataUrl(
+      SHARD_LOGICAL_PATHS[shard],
+      fetcher,
+      signal,
+    );
+    let payload: unknown;
+    try {
+      payload = await fetchAndParseJson(url, fetcher, signal);
+    } catch (err: unknown) {
+      if (err instanceof JsonHttpError) {
+        throw new Error(`Failed to load search shard "${shard}" (${err.status})`);
+      }
+      throw err;
+    }
+    if (!isSearchIndexEnvelope(payload)) {
+      throw new Error(`Invalid search index envelope in shard "${shard}"`);
+    }
+    assertSchemaVersion(payload, COMPACT_SCHEMA_VERSION, `search shard "${shard}"`);
+    resolvedShardCache.set(shard, payload.d);
+    resolvedFilterCache.delete('startup');
+    resolvedFilterCache.delete('all');
+    notifySearchListeners();
+    return payload.d;
+  })().catch((err: unknown) => {
+    shardCache.delete(shard);
+    throw err;
+  });
+
+  if (signal) {
+    const onAbort = () => {
+      signal.removeEventListener('abort', onAbort);
+      if (shardCache.get(shard) === loadPromise) {
+        shardCache.delete(shard);
+      }
+    };
+    signal.addEventListener('abort', onAbort);
+  }
+
+  shardCache.set(shard, loadPromise);
 
   return loadPromise.catch((err: unknown) => {
     if (err instanceof Error && err.name === 'AbortError' && !signal?.aborted) {

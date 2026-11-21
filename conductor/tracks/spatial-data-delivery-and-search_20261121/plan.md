@@ -21,13 +21,13 @@
 - [x] Task 1.6: Rebuild `public/data/` via `npm run data:build`, verify `npm run check`, `npx vitest run`, `npm run build`, record exact `public/data/` size and startup payload savings, and checkpoint commit Phase 1.
 
 ## Phase 2: Spatial Sector-Based Summary/Detail Sharding & Worker Parsing (`P-03`)
-- [ ] Task 2.1: Round `[x, y, z]` (`round3`) *before* `formatSectorId` in `scripts/pipeline/gaiaPipeline.ts` so rounded summary/search coordinates always map deterministically to the exact spatial sector with zero boundary drift.
-- [ ] Task 2.2: Replace FNV 36-bucket `summaries/<0..z>` and `details/<0..z>` with hybrid spatial + domain content-hashed shards listed in `public/data/manifest.json`:
+- [x] Task 2.1: Round `[x, y, z]` (`round3`) *before* `formatSectorId` in `scripts/pipeline/gaiaPipeline.ts` so rounded summary/search coordinates always map deterministically to the exact spatial sector with zero boundary drift.
+- [x] Task 2.2: Replace FNV 36-bucket `summaries/<0..z>` and `details/<0..z>` with hybrid spatial + domain content-hashed shards listed in `public/data/manifest.json`:
   - `summaries/<sectorId>.<hash>.json` (1:1 with `partitions/<sectorId>.<hash>.bin`, containing all sector stars' summaries)
   - `details/sectors/<sectorId>.<hash>.json` (star system manifests `t: 'sys'`)
   - `details/sol-primary.<hash>.json` (Sol System primary bodies: Sol, planets, moons, major probes/rings)
   - `details/sol-minor/<0..z>.<hash>.json` (Solar minor bodies: asteroids/NEOs/comets, lazy)
   - `details/structures.<hash>.json` (galactic structures `t: 'str'`)
   - `details/routing.<hash>.json` (compact fallback ID→shard routing table for cold-URL misses outside `search/startup`)
-- [ ] Task 2.3: Update `InstrumentHydrationBridge`, `detailsSummaryCache.ts`, and `detailsRepository.ts` to batch aperture hits by `hit.sectorId` (fetching only local `summaries/<sectorId>` shards through the Worker parser) and route `fetchDetailRecord(id)` / `fetchSummaryNode(id)` via spatial/domain lookup + lazy `details/routing` fallback.
+- [x] Task 2.3: Update `InstrumentHydrationBridge`, `detailsSummaryCache.ts`, and `detailsRepository.ts` to batch aperture hits by `hit.sectorId` (fetching only local `summaries/<sectorId>` shards through the Worker parser) and route `fetchDetailRecord(id)` / `fetchSummaryNode(id)` via spatial/domain lookup + lazy `details/routing` fallback.
 - [ ] Task 2.4: Rebuild `public/data/` via `npm run data:build`, update `scripts/pipeline/shardContract.test.ts` and all unit/integration tests, run full quality gate (`npm run check`, `npm run test:coverage`, `npm run build`, `npm run build-storybook`, Playwright E2E, 5-viewport `capture:views`), update `CHANGELOG.md`, archive Track 5, and deliver via PR.

@@ -7,33 +7,38 @@ import type {
   GalacticStructureRecord,
   SolarSystemBodyRecord,
 } from '../types/astroStructures';
-import {
-  assertSchemaVersion,
-  decodeSystemManifest,
-  getShardKey,
-} from '../utils/compactDataCodec';
-import { COMPACT_SCHEMA_VERSION } from '../utils/compactDataConstants';
+import { decodeSystemManifest, getShardKey } from '../utils/compactDataCodec';
 import { decodeGalacticStructure, decodeSolarSystemBody } from '../utils/compactEntityDecoder';
-import type { CompactDetailRecord, ShardedBucketEnvelope } from '../utils/compactDataTypes';
+import type { CompactDetailRecord } from '../utils/compactDataTypes';
 import { BoundedLruCache } from '../utils/lruCache';
-import { resolveManifestDataUrl } from './dataManifestRepository';
+import { formatSectorId } from '../utils/sectorMath';
 import {
   DETAIL_BUCKET_CACHE_LIMIT,
   DETAIL_RECORD_CACHE_LIMIT,
 } from '../config/cacheConfig';
-import { COMPACT_SOLAR_BODY_TAG } from '../config/referenceTargets';
+import { COMPACT_SOLAR_BODY_TAG, SOL_REFERENCE_TARGET } from '../config/referenceTargets';
+import { clearDetailsRoutingCache, fetchDetailsRoutingTable } from './detailsRouting';
+import { getCachedSearchEntryById } from './searchRepository';
+import { loadShardedEnvelopeData } from './shardFetchHelper';
 import {
   clearSummaryCache,
   fetchSummaryNode as fetchSummaryNodeImpl,
   fetchSummaryNodeByHash as fetchSummaryNodeByHashImpl,
   getCachedSummaryNode,
   getCachedSummaryNodeByHash,
+  getCachedSummaryNodeByHashInSector,
+  isSummarySectorCached,
+  loadSummarySector as loadSummarySectorImpl,
+  preloadSummarySectors as preloadSummarySectorsImpl,
   seedSummaryNode as seedSummaryNodeImpl,
 } from './detailsSummaryCache';
 
 export {
+  fetchDetailsRoutingTable,
   getCachedSummaryNode,
   getCachedSummaryNodeByHash,
+  getCachedSummaryNodeByHashInSector,
+  isSummarySectorCached,
 };
 
 export type DecodedDetailRecord =
@@ -41,18 +46,16 @@ export type DecodedDetailRecord =
   | { readonly kind: 'structure'; readonly record: GalacticStructureRecord }
   | { readonly kind: 'solar-body'; readonly record: SolarSystemBodyRecord };
 
+const SECTOR_SHARD_PREFIX = 'details/sectors/';
+const SOL_PRIMARY_SHARD = 'details/sol-primary.json';
+const STRUCTURES_SHARD = 'details/structures.json';
+const MINOR_INFERRED_PREFIXES = ['pha-', 'distant-', 'comet-'] as const;
+
 const detailsListeners = new Set<() => void>();
 let detailsRepoVersion = 0;
 
-/**
- * Returns the current version counter of the details repository cache.
- */
 export const getDetailsRepositoryVersion = (): number => detailsRepoVersion;
 
-/**
- * Subscribes to changes in the details repository in-memory cache.
- * Returns an unsubscribe callback.
- */
 export const subscribeDetailsRepository = (listener: () => void): (() => void) => {
   detailsListeners.add(listener);
   return () => {
@@ -67,21 +70,32 @@ const notifyDetailsListeners = (): void => {
   }
 };
 
+export const loadSummarySector = (
+  sectorId: string,
+  fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
+) => loadSummarySectorImpl(sectorId, fetchImpl, signal, notifyDetailsListeners);
+
+export const preloadSummarySectors = (
+  sectorIds: readonly string[],
+  fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
+) => preloadSummarySectorsImpl(sectorIds, fetchImpl, signal, notifyDetailsListeners);
+
 export const fetchSummaryNode = async (
   id: string,
   fetchImpl: typeof fetch = fetch,
   signal?: AbortSignal,
-): Promise<SystemSummaryNode | undefined> => {
-  return fetchSummaryNodeImpl(id, fetchImpl, signal, notifyDetailsListeners);
-};
+): Promise<SystemSummaryNode | undefined> =>
+  fetchSummaryNodeImpl(id, fetchImpl, signal, notifyDetailsListeners);
 
 export const fetchSummaryNodeByHash = async (
   idHash: number,
   fetchImpl: typeof fetch = fetch,
   signal?: AbortSignal,
-): Promise<SystemSummaryNode | undefined> => {
-  return fetchSummaryNodeByHashImpl(idHash, fetchImpl, signal, notifyDetailsListeners);
-};
+  sectorId?: string,
+): Promise<SystemSummaryNode | undefined> =>
+  fetchSummaryNodeByHashImpl(idHash, fetchImpl, signal, notifyDetailsListeners, sectorId);
 
 export const seedSummaryNode = (
   id: string,
@@ -90,11 +104,11 @@ export const seedSummaryNode = (
   seedSummaryNodeImpl(id, node, notifyDetailsListeners);
 };
 
-const DETAIL_BUCKET_CACHE = new BoundedLruCache<
+const DETAIL_SHARD_CACHE = new BoundedLruCache<
   string,
   Promise<Record<string, CompactDetailRecord>>
 >(DETAIL_BUCKET_CACHE_LIMIT);
-const RESOLVED_DETAIL_BUCKET_CACHE = new BoundedLruCache<
+const RESOLVED_DETAIL_SHARD_CACHE = new BoundedLruCache<
   string,
   Record<string, CompactDetailRecord>
 >(DETAIL_BUCKET_CACHE_LIMIT);
@@ -103,35 +117,32 @@ const RESOLVED_DETAIL_RECORD_CACHE = new BoundedLruCache<
   DecodedDetailRecord
 >(DETAIL_RECORD_CACHE_LIMIT);
 
+function extractSectorIdFromShardPath(shardPath: string): string | undefined {
+  if (!shardPath.startsWith(SECTOR_SHARD_PREFIX) || !shardPath.endsWith('.json')) {
+    return undefined;
+  }
+  return shardPath.slice(SECTOR_SHARD_PREFIX.length, -'.json'.length);
+}
+
 /**
- * Pure decoder converting a `CompactDetailRecord` from `public/data/details/<0..z>.json`
- * into its strongly-typed domain representation.
+ * Pure decoder converting a `CompactDetailRecord` into its strongly-typed domain representation.
  */
 export const decodeDetailRecord = (
   compact: CompactDetailRecord,
   id: string,
+  fallbackSectorId?: string,
 ): DecodedDetailRecord => {
   if (compact.t === 'str') {
-    return {
-      kind: 'structure',
-      record: decodeGalacticStructure(compact, id),
-    };
+    return { kind: 'structure', record: decodeGalacticStructure(compact, id) };
   }
   if (compact.t === COMPACT_SOLAR_BODY_TAG) {
-    return {
-      kind: 'solar-body',
-      record: decodeSolarSystemBody(compact, id),
-    };
+    return { kind: 'solar-body', record: decodeSolarSystemBody(compact, id) };
   }
-  return {
-    kind: 'system',
-    record: decodeSystemManifest(compact, id),
-  };
+  return { kind: 'system', record: decodeSystemManifest(compact, id, fallbackSectorId) };
 };
 
 /**
- * Synchronously retrieves a decoded detail record by ID if its 36-bucket shard
- * is already cached in memory.
+ * Synchronously retrieves a decoded detail record by ID if already cached in memory.
  */
 export const getCachedDetailRecord = (
   id: string,
@@ -143,15 +154,19 @@ export const getCachedDetailRecord = (
   if (cachedDecoded) {
     return cachedDecoded;
   }
-  const bucketKey = getShardKey(id);
-  const bucket = RESOLVED_DETAIL_BUCKET_CACHE.get(bucketKey);
-  const compact = bucket?.[id];
-  if (!compact) {
-    return undefined;
+  for (const [shardPath, shardData] of RESOLVED_DETAIL_SHARD_CACHE.entries()) {
+    const compact = shardData[id];
+    if (compact) {
+      const decoded = decodeDetailRecord(
+        compact,
+        id,
+        extractSectorIdFromShardPath(shardPath),
+      );
+      RESOLVED_DETAIL_RECORD_CACHE.set(id, decoded);
+      return decoded;
+    }
   }
-  const decoded = decodeDetailRecord(compact, id);
-  RESOLVED_DETAIL_RECORD_CACHE.set(id, decoded);
-  return decoded;
+  return undefined;
 };
 
 /**
@@ -168,64 +183,45 @@ export const getCachedExoplanetFromSystem = (
   return sysDetail.record.planets.find((p) => p.id === planetId);
 };
 
-const loadDetailBucket = (
-  bucketKey: string,
-  fetchImpl: typeof fetch = fetch,
-  signal?: AbortSignal,
-): Promise<Record<string, CompactDetailRecord>> => {
-  let pending = DETAIL_BUCKET_CACHE.get(bucketKey);
-  if (!pending) {
-    let onAbort: (() => void) | undefined;
-    if (signal) {
-      onAbort = () => {
-        signal.removeEventListener('abort', onAbort!);
-        if (DETAIL_BUCKET_CACHE.get(bucketKey) === pending) {
-          DETAIL_BUCKET_CACHE.delete(bucketKey);
-        }
-      };
-      signal.addEventListener('abort', onAbort);
-    }
-
-    pending = (async () => {
-      try {
-        const url = await resolveManifestDataUrl(
-          `details/${bucketKey}.json`,
-          fetchImpl,
-          signal,
-        );
-        const response = signal
-          ? await fetchImpl(url, { signal })
-          : await fetchImpl(url);
-        if (!response.ok) {
-          throw new Error(
-            `Failed to load detail shard "${bucketKey}": ${response.status} ${response.statusText}`,
-          );
-        }
-        const envelope =
-          (await response.json()) as ShardedBucketEnvelope<CompactDetailRecord>;
-        assertSchemaVersion(envelope, COMPACT_SCHEMA_VERSION, `detail shard "${bucketKey}"`);
-        const data = envelope.d ?? {};
-        RESOLVED_DETAIL_BUCKET_CACHE.set(bucketKey, data);
-        notifyDetailsListeners();
-        return data;
-      } finally {
-        if (signal && onAbort) {
-          signal.removeEventListener('abort', onAbort);
-        }
-      }
-    })().catch((err: unknown) => {
-      DETAIL_BUCKET_CACHE.delete(bucketKey);
-      throw err;
-    });
-
-    DETAIL_BUCKET_CACHE.set(bucketKey, pending);
+function resolveFastDetailShardPath(id: string): string | undefined {
+  if (MINOR_INFERRED_PREFIXES.some((prefix) => id.startsWith(prefix))) {
+    return `details/sol-minor/${getShardKey(id)}.json`;
   }
 
-  return pending;
-};
+  const cachedSummary = getCachedSummaryNode(id);
+  if (cachedSummary) {
+    return `${SECTOR_SHARD_PREFIX}${cachedSummary.sectorId}.json`;
+  }
+
+  const searchEntry = getCachedSearchEntryById(id);
+  if (!searchEntry) {
+    return undefined;
+  }
+
+  if (searchEntry.k === undefined || searchEntry.k === 1) {
+    if (searchEntry.p) {
+      const sectorId = formatSectorId(searchEntry.p[0], searchEntry.p[1], searchEntry.p[2]);
+      return `${SECTOR_SHARD_PREFIX}${sectorId}.json`;
+    }
+    if (searchEntry.h === 1 || id === SOL_REFERENCE_TARGET.id) {
+      return `${SECTOR_SHARD_PREFIX}${formatSectorId(0, 0, 0)}.json`;
+    }
+  } else if (searchEntry.k === 2) {
+    if (searchEntry.s === SOL_REFERENCE_TARGET.id || searchEntry.h === 1) {
+      return SOL_PRIMARY_SHARD;
+    }
+  } else if (searchEntry.k === 3 || searchEntry.k === 4 || searchEntry.k === 6) {
+    return SOL_PRIMARY_SHARD;
+  } else if (searchEntry.k === 5) {
+    return STRUCTURES_SHARD;
+  }
+
+  return undefined;
+}
 
 /**
- * Fetches and caches the detail shard bucket (`public/data/details/<0..z>.json`) for a given entity ID.
+ * Fetches and caches the hybrid detail shard (`sectors/`, `sol-primary`, `sol-minor/`, `structures`)
+ * for a given entity ID, using O(1) cache/search inference before falling back to `details/routing.json`.
  */
 export const fetchDetailRecord = async (
   id: string,
@@ -240,8 +236,42 @@ export const fetchDetailRecord = async (
     return cached;
   }
 
-  const bucketKey = getShardKey(id);
-  await loadDetailBucket(bucketKey, fetchImpl, signal);
+  let shardPath = resolveFastDetailShardPath(id);
+  if (!shardPath) {
+    const routing = await fetchDetailsRoutingTable(fetchImpl, signal);
+    const code = routing?.d[id];
+    if (code === undefined) {
+      return undefined;
+    }
+    if (code === -1) {
+      shardPath = SOL_PRIMARY_SHARD;
+    } else if (code === -2) {
+      shardPath = STRUCTURES_SHARD;
+    } else if (code === -3) {
+      shardPath = `details/sol-minor/${getShardKey(id)}.json`;
+    } else if (code >= 0) {
+      const sectorId = routing?.k[code];
+      if (!sectorId) {
+        return undefined;
+      }
+      shardPath = `${SECTOR_SHARD_PREFIX}${sectorId}.json`;
+    }
+  }
+
+  if (!shardPath) {
+    return undefined;
+  }
+
+  await loadShardedEnvelopeData({
+    cacheKey: shardPath,
+    logicalPath: shardPath,
+    label: `detail shard "${shardPath}"`,
+    pendingCache: DETAIL_SHARD_CACHE,
+    resolvedCache: RESOLVED_DETAIL_SHARD_CACHE,
+    fetchImpl,
+    signal,
+    onLoaded: notifyDetailsListeners,
+  });
   return getCachedDetailRecord(id);
 };
 
@@ -257,12 +287,13 @@ export const seedDetailRecord = (
 };
 
 /**
- * Clears all in-memory summary and detail bucket caches (used in tests).
+ * Clears all in-memory summary, routing, and detail shard caches (used in tests).
  */
 export const clearDetailsRepositoryCache = (): void => {
   clearSummaryCache();
-  DETAIL_BUCKET_CACHE.clear();
-  RESOLVED_DETAIL_BUCKET_CACHE.clear();
+  clearDetailsRoutingCache();
+  DETAIL_SHARD_CACHE.clear();
+  RESOLVED_DETAIL_SHARD_CACHE.clear();
   RESOLVED_DETAIL_RECORD_CACHE.clear();
   notifyDetailsListeners();
 };

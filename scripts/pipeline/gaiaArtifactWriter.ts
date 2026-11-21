@@ -12,7 +12,7 @@ import type {
 import { LAYER_MANIFESTS } from '../../content/layers';
 import { encodeBinarySector } from '../../src/utils/binarySectorCodec';
 import { COMPACT_SCHEMA_VERSION } from '../../src/utils/compactDataConstants';
-import { buildShardedSummariesAndDetails } from './compactDataEncoder';
+import { buildHybridSummariesAndDetails } from './compactDataEncoder';
 import { buildSearchIndices } from './searchIndexBuilder';
 import {
   buildEntityAnnotationBuckets,
@@ -92,34 +92,69 @@ export function writePipelineArtifacts(params: WritePipelineArtifactsParams): {
 
   // 3. Ingest Layer 4 Solar System natural bodies & orbits in memory
   let solarBodiesCount = 0;
+  let primarySolarBodies: SolarSystemBodyRecord[] = [];
+  let minorSolarBodies: SolarSystemBodyRecord[] = [];
   let allSolarBodies: SolarSystemBodyRecord[] = [];
   if (options?.detailsDir || options?.searchDir || options?.overlaysDir || options?.dataDir) {
     const { primaryBodies, phaAsteroids, distantAsteroids, comets } = loadAllSolarSystemBodies();
-    allSolarBodies = [...primaryBodies, ...phaAsteroids, ...distantAsteroids, ...comets];
+    primarySolarBodies = primaryBodies;
+    minorSolarBodies = [...phaAsteroids, ...distantAsteroids, ...comets];
+    allSolarBodies = [...primarySolarBodies, ...minorSolarBodies];
     solarBodiesCount = allSolarBodies.length;
   }
 
-  // 4. Write 36-bucket dictionary shards for summaries/ and details/
+  // 4. Write hybrid spatial + domain shards for summaries/ and details/
   if (options?.summariesDir || options?.detailsDir) {
-    const { summariesByBucket, detailsByBucket } = buildShardedSummariesAndDetails({
-      systems: cataloguedSummaries, manifests: allSystemManifests,
-      structures: allStructures, solarBodies: allSolarBodies,
+    const hybrid = buildHybridSummariesAndDetails({
+      systems: cataloguedSummaries,
+      manifests: allSystemManifests,
+      structures: allStructures,
+      primarySolarBodies,
+      minorSolarBodies,
     });
 
     if (options.summariesDir) {
       const dir = path.resolve(options.summariesDir);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      for (const [bucket, env] of summariesByBucket.entries()) {
-        fs.writeFileSync(path.join(dir, `${bucket}.json`), JSON.stringify(env), 'utf-8');
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.endsWith('.json')) {
+          fs.unlinkSync(path.join(dir, entry.name));
+        }
+      }
+      for (const [sectorId, env] of hybrid.summariesBySector.entries()) {
+        fs.writeFileSync(path.join(dir, `${sectorId}.json`), JSON.stringify(env), 'utf-8');
       }
     }
 
     if (options.detailsDir) {
       const dir = path.resolve(options.detailsDir);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      for (const [bucket, env] of detailsByBucket.entries()) {
-        fs.writeFileSync(path.join(dir, `${bucket}.json`), JSON.stringify(env), 'utf-8');
+      const sectorsDir = path.join(dir, 'sectors');
+      const minorDir = path.join(dir, 'sol-minor');
+      fs.mkdirSync(sectorsDir, { recursive: true });
+      fs.mkdirSync(minorDir, { recursive: true });
+
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.endsWith('.json')) {
+          fs.unlinkSync(path.join(dir, entry.name));
+        }
       }
+      for (const subDir of [sectorsDir, minorDir]) {
+        for (const entry of fs.readdirSync(subDir, { withFileTypes: true })) {
+          if (entry.isFile() && entry.name.endsWith('.json')) {
+            fs.unlinkSync(path.join(subDir, entry.name));
+          }
+        }
+      }
+
+      for (const [sectorId, env] of hybrid.detailSectorsBySector.entries()) {
+        fs.writeFileSync(path.join(sectorsDir, `${sectorId}.json`), JSON.stringify(env), 'utf-8');
+      }
+      fs.writeFileSync(path.join(dir, 'sol-primary.json'), JSON.stringify(hybrid.solPrimary), 'utf-8');
+      for (const [bucket, env] of hybrid.solMinorByBucket.entries()) {
+        fs.writeFileSync(path.join(minorDir, `${bucket}.json`), JSON.stringify(env), 'utf-8');
+      }
+      fs.writeFileSync(path.join(dir, 'structures.json'), JSON.stringify(hybrid.structures), 'utf-8');
+      fs.writeFileSync(path.join(dir, 'routing.json'), JSON.stringify(hybrid.routing), 'utf-8');
     }
   }
 

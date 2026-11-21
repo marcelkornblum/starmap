@@ -143,6 +143,28 @@ export function resolveHitsSummaries(
 }
 
 /**
+ * Collects unique unhydrated sector IDs from spatial star hits for batch preloading.
+ */
+export function collectUnhydratedSectorIds(
+  hits: readonly SpatialStarHit[],
+  hydratedMap: ReadonlyMap<number, SystemSummaryNode>,
+  unresolvableHashes: ReadonlySet<number>,
+): string[] {
+  const uniqueSectorIds: string[] = [];
+  const seen = new Set<string>();
+  for (const hit of hits) {
+    if (hydratedMap.has(hit.idHash) || unresolvableHashes.has(hit.idHash)) {
+      continue;
+    }
+    if (hit.sectorId && !seen.has(hit.sectorId)) {
+      seen.add(hit.sectorId);
+      uniqueSectorIds.push(hit.sectorId);
+    }
+  }
+  return uniqueSectorIds;
+}
+
+/**
  * Executes async hydration for a single star hash with perimeter guard check.
  */
 export async function executeStarHydration(

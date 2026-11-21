@@ -39,8 +39,12 @@ describe('dataManifestWriter', () => {
     };
 
     const partBytes = writeFile('partitions/sector_+000_+000_+000.bin', 'binary-sector');
-    const sumBytes = writeFile('summaries/0.json', '{"v":1,"i":"0","c":0,"d":{}}');
-    const detBytes = writeFile('details/0.json', '{"v":1,"i":"0","c":0,"d":{}}');
+    const sumBytes = writeFile('summaries/sector_+000_+000_+000.json', '{"v":1,"i":"sector_+000_+000_+000","c":0,"d":{}}');
+    const detSectorBytes = writeFile('details/sectors/sector_+000_+000_+000.json', '{"v":1,"i":"sector_+000_+000_+000","c":0,"d":{}}');
+    const detPrimaryBytes = writeFile('details/sol-primary.json', '{"v":1,"i":"sol-primary","c":0,"d":{}}');
+    const detMinorBytes = writeFile('details/sol-minor/0.json', '{"v":1,"i":"0","c":0,"d":{}}');
+    const detStructBytes = writeFile('details/structures.json', '{"v":1,"i":"structures","c":0,"d":{}}');
+    const detRoutingBytes = writeFile('details/routing.json', '{"v":1,"k":[],"s":{},"d":{}}');
     const searchBytes = writeFile('search/startup.json', '{"v":1,"i":"startup","n":"Startup","c":0,"t":"2026","d":[]}');
     const layerIdxBytes = writeFile('overlays/layers/index.json', '{"v":1,"i":"idx","n":"Idx","c":0,"d":[]}');
     const layerManBytes = writeFile('overlays/layers/canon-halo.json', '{"v":1,"i":"canon-halo"}');
@@ -55,8 +59,12 @@ describe('dataManifestWriter', () => {
 
     const expectedMapping: Array<[string, string, Buffer]> = [
       ['partitions/sector_+000_+000_+000.bin', `partitions/sector_+000_+000_+000.${computeContentHash8(partBytes)}.bin`, partBytes],
-      ['summaries/0.json', `summaries/0.${computeContentHash8(sumBytes)}.json`, sumBytes],
-      ['details/0.json', `details/0.${computeContentHash8(detBytes)}.json`, detBytes],
+      ['summaries/sector_+000_+000_+000.json', `summaries/sector_+000_+000_+000.${computeContentHash8(sumBytes)}.json`, sumBytes],
+      ['details/sectors/sector_+000_+000_+000.json', `details/sectors/sector_+000_+000_+000.${computeContentHash8(detSectorBytes)}.json`, detSectorBytes],
+      ['details/sol-primary.json', `details/sol-primary.${computeContentHash8(detPrimaryBytes)}.json`, detPrimaryBytes],
+      ['details/sol-minor/0.json', `details/sol-minor/0.${computeContentHash8(detMinorBytes)}.json`, detMinorBytes],
+      ['details/structures.json', `details/structures.${computeContentHash8(detStructBytes)}.json`, detStructBytes],
+      ['details/routing.json', `details/routing.${computeContentHash8(detRoutingBytes)}.json`, detRoutingBytes],
       ['search/startup.json', `search/startup.${computeContentHash8(searchBytes)}.json`, searchBytes],
       ['overlays/layers/index.json', `overlays/layers/index.${computeContentHash8(layerIdxBytes)}.json`, layerIdxBytes],
       ['overlays/layers/canon-halo.json', `overlays/layers/canon-halo.${computeContentHash8(layerManBytes)}.json`, layerManBytes],
@@ -86,7 +94,15 @@ describe('dataManifestWriter', () => {
 
     mk('partitions/sector_+000_+000_+000.deadbeef.bin');
     mk('summaries/0.deadbeef.json');
+    mk('summaries/0.json');
+    mk('summaries/sector_+000_+000_+000.deadbeef.json');
     mk('details/0.deadbeef.json');
+    mk('details/0.json');
+    mk('details/sectors/sector_+000_+000_+000.deadbeef.json');
+    mk('details/sol-minor/0.deadbeef.json');
+    mk('details/sol-primary.deadbeef.json');
+    mk('details/structures.deadbeef.json');
+    mk('details/routing.deadbeef.json');
     mk('search/startup.deadbeef.json');
     mk('overlays/layers/index.deadbeef.json');
     mk('overlays/layers/by-entity/0.deadbeef.json');
@@ -104,7 +120,15 @@ describe('dataManifestWriter', () => {
 
     expect(fs.existsSync(path.join(tempRoot, 'partitions/sector_+000_+000_+000.deadbeef.bin'))).toBe(false);
     expect(fs.existsSync(path.join(tempRoot, 'summaries/0.deadbeef.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tempRoot, 'summaries/0.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tempRoot, 'summaries/sector_+000_+000_+000.deadbeef.json'))).toBe(false);
     expect(fs.existsSync(path.join(tempRoot, 'details/0.deadbeef.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tempRoot, 'details/0.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tempRoot, 'details/sectors/sector_+000_+000_+000.deadbeef.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tempRoot, 'details/sol-minor/0.deadbeef.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tempRoot, 'details/sol-primary.deadbeef.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tempRoot, 'details/structures.deadbeef.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tempRoot, 'details/routing.deadbeef.json'))).toBe(false);
     expect(fs.existsSync(path.join(tempRoot, 'search/startup.deadbeef.json'))).toBe(false);
     expect(fs.existsSync(path.join(tempRoot, 'overlays/layers/index.deadbeef.json'))).toBe(false);
     expect(fs.existsSync(path.join(tempRoot, 'overlays/layers/by-entity/0.deadbeef.json'))).toBe(false);

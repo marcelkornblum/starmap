@@ -10,19 +10,20 @@ import type {
   SolarSystemBodyRecord,
 } from '../../src/types/astroStructures';
 import {
-  ALL_36_BUCKETS,
   COMPACT_SCHEMA_VERSION,
   CONFIDENCE_TO_CODE,
   PLANET_CENSUS_BITS,
   SYSTEM_TAG_BITS,
 } from '../../src/utils/compactDataConstants';
 import { getShardKey } from '../../src/utils/compactDataCodec';
+import { formatSectorId } from '../../src/utils/sectorMath';
 import type {
   CompactDetailRecord,
   CompactSectorPartition,
   CompactStellarComponent,
   CompactSummaryNode,
   CompactSystemManifest,
+  DetailsRoutingIndex,
   ShardedBucketEnvelope,
 } from '../../src/utils/compactDataTypes';
 import {
@@ -221,59 +222,141 @@ export function encodeSystemManifest(
   return compact;
 }
 
-export function buildShardedSummariesAndDetails(input: {
+export interface HybridShardedDataOutput {
+  summariesBySector: Map<string, ShardedBucketEnvelope<CompactSummaryNode>>;
+  detailSectorsBySector: Map<string, ShardedBucketEnvelope<CompactDetailRecord>>;
+  solPrimary: ShardedBucketEnvelope<CompactDetailRecord>;
+  solMinorByBucket: Map<string, ShardedBucketEnvelope<CompactDetailRecord>>;
+  structures: ShardedBucketEnvelope<CompactDetailRecord>;
+  routing: DetailsRoutingIndex;
+}
+
+const MINOR_BODY_INFERRED_PREFIXES = ['pha-', 'distant-', 'comet-'] as const;
+
+function hasInferredMinorBodyPrefix(id: string): boolean {
+  return MINOR_BODY_INFERRED_PREFIXES.some((prefix) => id.startsWith(prefix));
+}
+
+export function buildHybridSummariesAndDetails(input: {
   systems: SystemSummaryNode[];
   manifests: SystemManifest[];
   structures: GalacticStructureRecord[];
-  solarBodies: SolarSystemBodyRecord[];
-}): {
-  summariesByBucket: Map<string, ShardedBucketEnvelope<CompactSummaryNode>>;
-  detailsByBucket: Map<string, ShardedBucketEnvelope<CompactDetailRecord>>;
-} {
-  const summariesByBucket = new Map<string, ShardedBucketEnvelope<CompactSummaryNode>>();
-  const detailsByBucket = new Map<string, ShardedBucketEnvelope<CompactDetailRecord>>();
+  primarySolarBodies: SolarSystemBodyRecord[];
+  minorSolarBodies: SolarSystemBodyRecord[];
+}): HybridShardedDataOutput {
+  const summariesBySector = new Map<string, ShardedBucketEnvelope<CompactSummaryNode>>();
+  const detailSectorsBySector = new Map<string, ShardedBucketEnvelope<CompactDetailRecord>>();
+  const solMinorByBucket = new Map<string, ShardedBucketEnvelope<CompactDetailRecord>>();
 
-  for (const b of ALL_36_BUCKETS) {
-    summariesByBucket.set(b, { v: COMPACT_SCHEMA_VERSION, i: b, c: 0, d: {} });
-    detailsByBucket.set(b, { v: COMPACT_SCHEMA_VERSION, i: b, c: 0, d: {} });
-  }
+  const solPrimary: ShardedBucketEnvelope<CompactDetailRecord> = {
+    v: COMPACT_SCHEMA_VERSION,
+    i: 'sol-primary',
+    c: 0,
+    d: {},
+  };
+  const structures: ShardedBucketEnvelope<CompactDetailRecord> = {
+    v: COMPACT_SCHEMA_VERSION,
+    i: 'structures',
+    c: 0,
+    d: {},
+  };
+
+  const summarySectorById = new Map<string, string>();
+  const detailSectorById = new Map<string, string>();
+  const referencedSectors = new Set<string>();
 
   for (const sys of input.systems) {
-    const bucketKey = getShardKey(sys.id);
-    const env = summariesByBucket.get(bucketKey);
-    if (!env) continue;
-    env.d[sys.id] = encodeSummaryNode(sys, { omitId: true });
+    const sectorId = sys.sectorId || formatSectorId(sys.x, sys.y, sys.z);
+    let env = summariesBySector.get(sectorId);
+    if (!env) {
+      env = { v: COMPACT_SCHEMA_VERSION, i: sectorId, c: 0, d: {} };
+      summariesBySector.set(sectorId, env);
+    }
+    env.d[sys.id] = encodeSummaryNode(sys, { omitId: true, omitSectorId: true });
     env.c++;
+    summarySectorById.set(sys.id, sectorId);
+    referencedSectors.add(sectorId);
   }
 
   for (const manifest of input.manifests) {
-    const bucketKey = getShardKey(manifest.id);
-    const env = detailsByBucket.get(bucketKey);
-    if (!env) continue;
-    env.d[manifest.id] = { t: 'sys', ...encodeSystemManifest(manifest, { omitId: true }) };
+    const sectorId = manifest.sectorId || formatSectorId(manifest.x, manifest.y, manifest.z);
+    let env = detailSectorsBySector.get(sectorId);
+    if (!env) {
+      env = { v: COMPACT_SCHEMA_VERSION, i: sectorId, c: 0, d: {} };
+      detailSectorsBySector.set(sectorId, env);
+    }
+    env.d[manifest.id] = {
+      t: 'sys',
+      ...encodeSystemManifest(manifest, { omitId: true, omitSectorId: true }),
+    };
     env.c++;
+    detailSectorById.set(manifest.id, sectorId);
+    referencedSectors.add(sectorId);
+  }
+
+  const sectorKeys = Array.from(referencedSectors).sort();
+  const sectorToIdx = new Map<string, number>();
+  sectorKeys.forEach((sid, idx) => {
+    sectorToIdx.set(sid, idx);
+  });
+
+  const routingSummaryMap: Record<string, number> = {};
+  for (const [id, sectorId] of summarySectorById.entries()) {
+    routingSummaryMap[id] = sectorToIdx.get(sectorId)!;
+  }
+
+  const routingDetailMap: Record<string, number> = {};
+  for (const [id, sectorId] of detailSectorById.entries()) {
+    routingDetailMap[id] = sectorToIdx.get(sectorId)!;
+  }
+
+  for (const rawBody of input.primarySolarBodies) {
+    const body =
+      rawBody.reticleType !== undefined && rawBody.targetStarId !== undefined
+        ? rawBody
+        : precalculateSolarSystemBodyFlags(rawBody);
+    const targetId = body.targetStarId ?? body.id;
+    solPrimary.d[targetId] = { t: 'sol', ...encodeSolarSystemBody(body, { omitId: true }) };
+    solPrimary.c++;
+    routingDetailMap[targetId] = -1;
   }
 
   for (const struct of input.structures) {
-    const bucketKey = getShardKey(struct.id);
-    const env = detailsByBucket.get(bucketKey);
-    if (!env) continue;
-    env.d[struct.id] = { t: 'str', ...encodeGalacticStructure(struct, { omitId: true }) };
-    env.c++;
+    structures.d[struct.id] = { t: 'str', ...encodeGalacticStructure(struct, { omitId: true }) };
+    structures.c++;
+    routingDetailMap[struct.id] = -2;
   }
 
-  for (const rawBody of input.solarBodies) {
+  for (const rawBody of input.minorSolarBodies) {
     const body =
       rawBody.reticleType !== undefined && rawBody.targetStarId !== undefined
         ? rawBody
         : precalculateSolarSystemBodyFlags(rawBody);
     const targetId = body.targetStarId ?? body.id;
     const bucketKey = getShardKey(targetId);
-    const env = detailsByBucket.get(bucketKey);
-    if (!env) continue;
+    let env = solMinorByBucket.get(bucketKey);
+    if (!env) {
+      env = { v: COMPACT_SCHEMA_VERSION, i: bucketKey, c: 0, d: {} };
+      solMinorByBucket.set(bucketKey, env);
+    }
     env.d[targetId] = { t: 'sol', ...encodeSolarSystemBody(body, { omitId: true }) };
     env.c++;
+    if (!hasInferredMinorBodyPrefix(targetId)) {
+      routingDetailMap[targetId] = -3;
+    }
   }
 
-  return { summariesByBucket, detailsByBucket };
+  return {
+    summariesBySector,
+    detailSectorsBySector,
+    solPrimary,
+    solMinorByBucket,
+    structures,
+    routing: {
+      v: COMPACT_SCHEMA_VERSION,
+      k: sectorKeys,
+      s: routingSummaryMap,
+      d: routingDetailMap,
+    },
+  };
 }

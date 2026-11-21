@@ -230,6 +230,19 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
     expect(decodedSol.kind).toBe('solar-body');
 
     const mockFetch = vi.fn(async (url: string) => {
+      if (url.includes('/data/details/routing.json')) {
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: async () => ({
+            v: 1,
+            k: ['sector_-025_-025_-025'],
+            s: { 'gaia-2452378776434477184': 0 },
+            d: { 'gaia-2452378776434477184': 0 },
+          }),
+        };
+      }
       if (url.includes('/data/summaries/')) {
         return {
           ok: true,
@@ -237,7 +250,7 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
           statusText: 'OK',
           json: async () => ({
             v: 1,
-            i: '1',
+            i: 'sector_-025_-025_-025',
             c: 1,
             d: {
               'gaia-2452378776434477184': {
@@ -262,7 +275,7 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         statusText: 'OK',
         json: async () => ({
           v: 1,
-          i: '1',
+          i: 'sector_-025_-025_-025',
           c: 1,
           d: {
             'gaia-2452378776434477184': {

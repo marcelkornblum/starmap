@@ -3,6 +3,7 @@ import {
   clearSearchRepositoryCache,
   fetchSearchShard,
   getCachedCorpusForFilter,
+  getCachedSearchEntryById,
   loadSearchCorpusForFilter,
   mergeSearchShards,
   subscribeSearchRepository,
@@ -255,6 +256,28 @@ describe('searchRepository (AUD-090 & DEC-R043)', () => {
 
       const upgraded = getCachedCorpusForFilter('startup');
       expect(upgraded?.map((e) => e.i)).toEqual(['sol', 'faint-star', 'faint-planet']);
+    });
+
+    it('resolves cached search entries in O(1) via getCachedSearchEntryById and invalidates on cache updates', async () => {
+      clearSearchRepositoryCache();
+      expect(getCachedSearchEntryById('entity-stars')).toBeUndefined();
+
+      const mockFetch = vi.fn(async (url: string) => {
+        if (url.includes('stars.json')) {
+          return makeShardResponse('stars') as unknown as Response;
+        }
+        return makeShardResponse('structures') as unknown as Response;
+      });
+
+      await fetchSearchShard('stars', mockFetch as unknown as typeof fetch);
+      expect(getCachedSearchEntryById('entity-stars')?.i).toBe('entity-stars');
+      expect(getCachedSearchEntryById('entity-structures')).toBeUndefined();
+
+      await fetchSearchShard('structures', mockFetch as unknown as typeof fetch);
+      expect(getCachedSearchEntryById('entity-structures')?.i).toBe('entity-structures');
+
+      clearSearchRepositoryCache();
+      expect(getCachedSearchEntryById('entity-stars')).toBeUndefined();
     });
   });
 });

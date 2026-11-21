@@ -3,6 +3,7 @@ import {
   clearDataManifestCache,
   fetchDataManifest,
   getCachedDataManifest,
+  hasManifestDataPath,
   resolveManifestDataUrl,
   seedDataManifest,
   type DataManifest,
@@ -122,5 +123,74 @@ describe('dataManifestRepository', () => {
     await expect(
       resolveManifestDataUrl('search/stars.json', fetch, controller.signal),
     ).rejects.toThrow(/aborted/i);
+  });
+
+  it('reports hasManifestDataPath as undefined before load and boolean once manifest is cached', () => {
+    expect(hasManifestDataPath('summaries/sector_+000_+000_+000.json')).toBeUndefined();
+
+    seedDataManifest(MOCK_MANIFEST);
+
+    expect(hasManifestDataPath('search/startup.json')).toBe(true);
+    expect(hasManifestDataPath('/data/summaries/0.json')).toBe(true);
+    expect(hasManifestDataPath('summaries/sector_+999_+000_+000.json')).toBe(false);
+    expect(hasManifestDataPath('toString')).toBe(false);
+  });
+
+  it('throws loudly in resolveManifestDataUrl on schema mismatch or malformed manifest envelope', async () => {
+    const badVersionFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ v: 99, generatedAt: '2026', files: {} }),
+    }));
+    vi.stubGlobal('fetch', badVersionFetch);
+
+    await expect(resolveManifestDataUrl('search/stars.json')).rejects.toThrow(
+      /unsupported schema version/i,
+    );
+
+    clearDataManifestCache();
+    const malformedFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ v: 1, generatedAt: '2026' }),
+    }));
+    vi.stubGlobal('fetch', malformedFetch);
+
+    await expect(resolveManifestDataUrl('search/stars.json')).rejects.toThrow(
+      /invalid data manifest envelope/i,
+    );
+  });
+
+  it('retries shared pendingManifest cleanly when another concurrent caller aborts', async () => {
+    const controllerA = new AbortController();
+    let attempt = 0;
+
+    const fetchMock = vi.fn((_url: string, init?: RequestInit) => {
+      attempt++;
+      if (attempt === 1) {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('The operation was aborted.', 'AbortError'));
+          });
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => MOCK_MANIFEST,
+      } as unknown as Response);
+    });
+
+    const promiseA = fetchDataManifest(fetchMock as unknown as typeof fetch, controllerA.signal);
+    const promiseB = fetchDataManifest(fetchMock as unknown as typeof fetch);
+
+    controllerA.abort();
+
+    await expect(promiseA).rejects.toThrow(/aborted/i);
+    await expect(promiseB).resolves.toEqual(MOCK_MANIFEST);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

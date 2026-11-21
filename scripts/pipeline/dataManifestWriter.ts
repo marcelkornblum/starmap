@@ -10,11 +10,14 @@ export interface DataManifestFile {
 }
 
 const HASHED_FILENAME_REGEX = /\.[0-9a-f]{8}\.(bin|json)$/;
+const LEGACY_36_BUCKET_REGEX = /^[0-9a-z](?:\.[0-9a-f]{8})?\.json$/;
 
 const SHARD_SUBDIRS: ReadonlyArray<{ readonly relDir: string; readonly ext: '.bin' | '.json' }> = [
   { relDir: 'partitions', ext: '.bin' },
   { relDir: 'summaries', ext: '.json' },
   { relDir: 'details', ext: '.json' },
+  { relDir: 'details/sectors', ext: '.json' },
+  { relDir: 'details/sol-minor', ext: '.json' },
   { relDir: 'search', ext: '.json' },
   { relDir: 'overlays/layers', ext: '.json' },
   { relDir: 'overlays/layers/by-entity', ext: '.json' },
@@ -55,9 +58,13 @@ export function cleanStaleDataArtifacts(dataDir: string): void {
   for (const { relDir, ext } of SHARD_SUBDIRS) {
     const absDir = path.join(resolvedDir, relDir);
     if (!fs.existsSync(absDir)) continue;
+    const isLegacy36Root = relDir === 'summaries' || relDir === 'details';
     for (const entry of fs.readdirSync(absDir, { withFileTypes: true })) {
       if (!entry.isFile()) continue;
-      if (entry.name.endsWith(ext) && HASHED_FILENAME_REGEX.test(entry.name)) {
+      if (
+        (entry.name.endsWith(ext) && HASHED_FILENAME_REGEX.test(entry.name)) ||
+        (isLegacy36Root && LEGACY_36_BUCKET_REGEX.test(entry.name))
+      ) {
         fs.unlinkSync(path.join(absDir, entry.name));
       }
     }
@@ -112,7 +119,9 @@ export function writeHashedDataManifest(
   for (const { relDir, ext } of SHARD_SUBDIRS) {
     const absDir = path.join(resolvedDir, relDir);
     if (!fs.existsSync(absDir)) continue;
-    const entries = fs.readdirSync(absDir, { withFileTypes: true });
+    const entries = fs
+      .readdirSync(absDir, { withFileTypes: true })
+      .sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.endsWith(ext)) continue;
       if (HASHED_FILENAME_REGEX.test(entry.name)) continue;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getShardKey } from './compactDataCodec';
-import { buildShardedSummariesAndDetails } from '../../scripts/pipeline/compactDataEncoder';
+import { decodeDetailBucket, decodeSummaryBucket, getShardKey } from './compactDataCodec';
+import { buildHybridSummariesAndDetails } from '../../scripts/pipeline/compactDataEncoder';
 import { buildSearchIndices } from '../../scripts/pipeline/searchIndexBuilder';
 import type {
   SystemSummaryNode,
@@ -92,7 +92,7 @@ describe('compactDataCodec - Sharding & Search Indices', () => {
       },
     ];
 
-    const solarBodies: SolarSystemBodyRecord[] = [
+    const primarySolarBodies: SolarSystemBodyRecord[] = [
       {
         id: 'earth',
         name: 'Earth',
@@ -100,6 +100,8 @@ describe('compactDataCodec - Sharding & Search Indices', () => {
         parentBodyId: 'sol',
         meanRadiusKm: 6371,
       },
+    ];
+    const minorSolarBodies: SolarSystemBodyRecord[] = [
       {
         id: 'pha-00433',
         name: '(433) Eros',
@@ -108,20 +110,31 @@ describe('compactDataCodec - Sharding & Search Indices', () => {
         meanRadiusKm: 8.42,
       },
     ];
+    const solarBodies = [...primarySolarBodies, ...minorSolarBodies];
 
-    const { summariesByBucket, detailsByBucket } = buildShardedSummariesAndDetails({
+    const hybrid = buildHybridSummariesAndDetails({
       systems,
       manifests,
       structures,
-      solarBodies,
+      primarySolarBodies,
+      minorSolarBodies,
     });
 
-    const tauBucket = getShardKey('gaia-2452378776434477184');
-    expect(summariesByBucket.get(tauBucket)?.d['gaia-2452378776434477184']?.n).toBe('Tau Ceti');
-    expect(detailsByBucket.get(tauBucket)?.d['gaia-2452378776434477184']).toBeDefined();
+    const tauSectorEnv = hybrid.summariesBySector.get('sector_+000_+000_-025');
+    expect(tauSectorEnv?.d['gaia-2452378776434477184']?.n).toBe('Tau Ceti');
+    expect(tauSectorEnv?.d['gaia-2452378776434477184']?.q).toBeUndefined();
+    const decodedSummary = decodeSummaryBucket(tauSectorEnv!);
+    expect(decodedSummary['gaia-2452378776434477184']?.sectorId).toBe('sector_+000_+000_-025');
+
+    const tauDetailEnv = hybrid.detailSectorsBySector.get('sector_+000_+000_-025');
+    expect(tauDetailEnv?.d['gaia-2452378776434477184']).toBeDefined();
+    const decodedDetail = decodeDetailBucket(tauDetailEnv!);
+    expect((decodedDetail['gaia-2452378776434477184'] as SystemManifest).sectorId).toBe('sector_+000_+000_-025');
 
     const erosBucket = getShardKey('pha-00433');
-    expect(detailsByBucket.get(erosBucket)?.d['pha-00433']).toBeDefined();
+    expect(hybrid.solMinorByBucket.get(erosBucket)?.d['pha-00433']).toBeDefined();
+    expect(hybrid.solPrimary.d['earth']).toBeDefined();
+    expect(hybrid.structures.d['cluster-hyades']).toBeDefined();
 
     const layerEntries = [
       {

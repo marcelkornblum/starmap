@@ -256,9 +256,10 @@ export function decodeSummaryBucket(
   envelope: ShardedBucketEnvelope<CompactSummaryNode>,
 ): Record<string, SystemSummaryNode> {
   assertSchemaVersion(envelope, COMPACT_SCHEMA_VERSION, `summary bucket "${envelope.i}"`);
+  const fallbackSectorId = envelope.i?.startsWith('sector_') ? envelope.i : undefined;
   const result: Record<string, SystemSummaryNode> = {};
   for (const [id, node] of Object.entries(envelope.d)) {
-    result[id] = decodeSummaryNode(node, id);
+    result[id] = decodeSummaryNode(node, id, fallbackSectorId);
   }
   return result;
 }
@@ -267,10 +268,11 @@ export function decodeDetailBucket(
   envelope: ShardedBucketEnvelope<CompactDetailRecord>,
 ): Record<string, SystemManifest | GalacticStructureRecord | SolarSystemBodyRecord> {
   assertSchemaVersion(envelope, COMPACT_SCHEMA_VERSION, `detail bucket "${envelope.i}"`);
+  const fallbackSectorId = envelope.i?.startsWith('sector_') ? envelope.i : undefined;
   const result: Record<string, SystemManifest | GalacticStructureRecord | SolarSystemBodyRecord> = {};
   for (const [id, record] of Object.entries(envelope.d)) {
     if (record.t === 'sys') {
-      result[id] = decodeSystemManifest(record, id);
+      result[id] = decodeSystemManifest(record, id, fallbackSectorId);
     } else if (record.t === 'str') {
       result[id] = decodeGalacticStructure(record, id);
     } else if (record.t === 'sol') {

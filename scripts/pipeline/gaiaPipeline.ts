@@ -105,7 +105,14 @@ export async function buildGaiaDataPipeline(
     writeStream.write(`[${JSON.stringify(solNode)}`); totalStars++; totalKinematics++;
 
     const matchedHygIds = new Set<number>();
-    const round3 = (n: number) => Math.round(n * 1000) / 1000; const round2 = (n: number) => Math.round(n * 100) / 100;
+    const round3 = (n: number) => {
+      const r = Math.round(n * 1000) / 1000;
+      return Object.is(r, -0) ? 0 : r;
+    };
+    const round2 = (n: number) => {
+      const r = Math.round(n * 100) / 100;
+      return Object.is(r, -0) ? 0 : r;
+    };
 
     const findOfficialStarName = (h?: HygCrossMatch) => {
       if (!h) return undefined;
@@ -123,7 +130,10 @@ export async function buildGaiaDataPipeline(
       pmra: number, pmdec: number, rv: number | null, gmag: number, bpmag: number, rpmag: number,
       hygMatch: HygCrossMatch | undefined, ePlx?: number,
     ) {
-      const [x, y, z] = equatorialToCartesian(ra / 15, dec, dist);
+      const [rawX, rawY, rawZ] = equatorialToCartesian(ra / 15, dec, dist);
+      const x = round3(rawX);
+      const y = round3(rawY);
+      const z = round3(rawZ);
       const velocity = computeGaiaKinematics(ra, dec, dist, isNaN(pmra) ? 0 : pmra, isNaN(pmdec) ? 0 : pmdec, rv);
       totalKinematics++;
 
@@ -266,7 +276,10 @@ export async function buildGaiaDataPipeline(
 
       for (const recons of RECONS_10PC_SUPPLEMENT) {
         if (cataloguedSummaries.some((s) => s.id === recons.id || s.name.toLowerCase() === recons.name.toLowerCase())) continue;
-        const [rx, ry, rz] = equatorialToCartesian(recons.ra, recons.dec, recons.dist);
+        const [rawRx, rawRy, rawRz] = equatorialToCartesian(recons.ra, recons.dec, recons.dist);
+        const rx = round3(rawRx);
+        const ry = round3(rawRy);
+        const rz = round3(rawRz);
         const rSectorId = formatSectorId(rx, ry, rz);
         const reconsLookup = {
           id: totalStars, name: recons.name, properName: recons.properName, aliases: recons.aliases,
