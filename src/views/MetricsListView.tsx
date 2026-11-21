@@ -3,10 +3,15 @@ import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { Guide3DPreview } from '../components/domain/Guide3DPreview';
 import { GuideSectionNav } from '../components/domain/GuideSectionNav';
 import { Badge, Cluster, Datum, Grid, Heading, Unit } from '../components/interface';
+import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import { METRIC_GUIDE_ENTRIES } from '../content/guide';
+import { useReferenceBaselines } from '../hooks/useGuideData';
+import { formatSlugFallbackTitle } from '../utils/starNaming';
 import styles from './GuideViews.module.css';
 
 export const MetricsListView: React.FC = () => {
+  const baselines = useReferenceBaselines();
+
   return (
     <main data-testid="metrics-list-view-root" className={styles.guideRoot}>
       <Breadcrumbs
@@ -18,39 +23,53 @@ export const MetricsListView: React.FC = () => {
       <GuideSectionNav currentSection="metrics" />
       <Heading as="h1">Telemetry Metrics</Heading>
       <Grid as="ul" minWidth="md" gap="default" data-testid="metrics-guide-list">
-        {METRIC_GUIDE_ENTRIES.map((entry) => (
-          <li
-            key={entry.id}
-            data-testid="metrics-guide-item"
-            data-metric-id={entry.id}
-            className={styles.cardItem}
-          >
-            <a
-              href={entry.href}
-              data-testid="metrics-guide-link"
-              className={styles.cardLink}
+        {METRIC_GUIDE_ENTRIES.map((entry) => {
+          const metricBaseline = baselines?.metrics[entry.id];
+          const baselineName =
+            metricBaseline?.baselineName ??
+            formatSlugFallbackTitle(entry.comparisonBaselineId);
+          const baselineValue = metricBaseline?.value ?? '—';
+          const baselineKind =
+            entry.comparisonBaselineId === SOL_REFERENCE_TARGET.id
+              ? 'star'
+              : 'planet';
+
+          return (
+            <li
+              key={entry.id}
+              data-testid="metrics-guide-item"
+              data-metric-id={entry.id}
+              className={styles.cardItem}
             >
-              <Guide3DPreview
-                kind="metric"
-                metricId={entry.id}
-                unit={entry.unitSymbol}
-                baselineName={entry.comparisonBaselineLabel}
-                baselineValue={entry.comparisonBaselineValue}
-              />
-              <Cluster gap="tight" align="center">
-                <strong>{entry.title}</strong>
-                <Unit inParens>{entry.unitSymbol}</Unit>
-                <Badge status="neutral">{entry.category}</Badge>
-              </Cluster>
-              <Datum
-                data-testid="metric-familiar-conversion"
-                label="Familiar Scale"
-                value={entry.familiarConversion}
-              />
-              <p>{entry.summary}</p>
-            </a>
-          </li>
-        ))}
+              <a
+                href={entry.href}
+                data-testid="metrics-guide-link"
+                className={styles.cardLink}
+              >
+                <Guide3DPreview
+                  kind="metric"
+                  metricId={entry.id}
+                  unit={entry.unitSymbol}
+                  baselineId={entry.comparisonBaselineId}
+                  baselineKind={baselineKind}
+                  baselineName={baselineName}
+                  baselineValue={baselineValue}
+                />
+                <Cluster gap="tight" align="center">
+                  <strong>{entry.title}</strong>
+                  <Unit inParens>{entry.unitSymbol}</Unit>
+                  <Badge status="neutral">{entry.category}</Badge>
+                </Cluster>
+                <Datum
+                  data-testid="metric-familiar-conversion"
+                  label="Familiar Scale"
+                  value={entry.familiarConversion}
+                />
+                <p>{entry.summary}</p>
+              </a>
+            </li>
+          );
+        })}
       </Grid>
     </main>
   );

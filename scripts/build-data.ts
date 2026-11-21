@@ -7,6 +7,7 @@ export * from './pipeline/galacticStructures';
 export * from './pipeline/solarBodies';
 export * from './pipeline/systemNomenclature';
 export * from './pipeline/multiStarConsolidation';
+export * from './pipeline/guideAndBaselinesEmitter';
 export * from './pipeline/gaiaArtifactWriter';
 export * from './pipeline/gaiaPipeline';
 
@@ -17,6 +18,7 @@ const isDirectExecution = process.argv[1]?.endsWith('build-data.ts');
 if (isDirectExecution) {
   const gcnsGz = process.env.GCNS_GZ || 'data/raw/gaia_dr3_gcns.dat.gz';
   const outputJson = process.env.OUTPUT_JSON || 'data/stars.json';
+  const dataDir = process.env.DATA_DIR || 'public/data';
   const catalogsDir = process.env.CATALOGS_DIR || 'public/data/catalogs';
   const partitionsDir = process.env.PARTITIONS_DIR || 'public/data/partitions';
   const systemsDir = process.env.SYSTEMS_DIR || 'public/data/systems';
@@ -30,6 +32,7 @@ if (isDirectExecution) {
   const startTime = Date.now();
 
   buildStarDataPipeline(gcnsGz, outputJson, {
+    dataDir,
     catalogsDir,
     partitionsDir,
     systemsDir,

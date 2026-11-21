@@ -14,7 +14,7 @@ import { enrichPlanetsWithPrecalculatedFields, getPlanetCensus, loadAllExoplanet
 import { writePipelineArtifacts } from './gaiaArtifactWriter';
 import { computeGaiaKinematics, findBestHygMatch, loadHygCrossMatch, loadIauStarNames } from './hygCrossMatch';
 import { consolidateMultiStarSystems } from './multiStarConsolidation';
-import { OFFICIAL_IAU_STAR_NAMES, RECONS_10PC_SUPPLEMENT } from './seedCatalogs';
+import { FULL_SOLAR_SYSTEM_BODIES, OFFICIAL_IAU_STAR_NAMES, RECONS_10PC_SUPPLEMENT } from './seedCatalogs';
 import { buildSolSystemManifest, matchCircumstellarDisksForStar } from './solAndSummary';
 import type { BuildPipelineOptions, HygCrossMatch, PipelineSummary } from './types';
 
@@ -41,20 +41,58 @@ export async function buildGaiaDataPipeline(
     const allSystemManifests: SystemManifest[] = []; const starAliasesById = new Map<string, string[]>();
     const sectorMap = new Map<string, SystemSummaryNode[]>(); const sectorManifestsMap = new Map<string, SystemManifest[]>();
 
+    const solSeed = FULL_SOLAR_SYSTEM_BODIES.find((b) => b.id === 'sol');
     const solManifest = buildSolSystemManifest();
+    const solPrimaryStar = solManifest.stars[0];
+    if (!solPrimaryStar || !solSeed) {
+      throw new Error('Sol manifest or seed entry is missing required primary star attributes');
+    }
+    const solMag = solPrimaryStar.mag ?? solSeed.mag ?? 0;
+    const solAbsMag = solPrimaryStar.absmag ?? solSeed.absmag ?? 0;
+    const solSpect = solPrimaryStar.spectralType;
+    const solCi = solSeed.colorIndex ?? 0;
+    const solLum = solPrimaryStar.luminosityLsun ?? solSeed.luminosityLsun ?? 1;
     const solNode: StarmapNode = {
-      id: 0, name: 'Sol', properName: 'Sol', dist: 0, ra: 0, dec: 0, mag: -26.74, absmag: 4.83, spect: 'G2V', ci: 0.656,
-      x: 0, y: 0, z: 0, lum: 1.0, velocity: { vx: 0, vy: 0, vz: 0, speed: 0, radialVelocity: 0 },
+      id: 0,
+      name: solManifest.name,
+      properName: solManifest.name,
+      dist: solManifest.dist,
+      ra: 0,
+      dec: 0,
+      mag: solMag,
+      absmag: solAbsMag,
+      spect: solSpect,
+      ci: solCi,
+      x: solManifest.x,
+      y: solManifest.y,
+      z: solManifest.z,
+      lum: solLum,
+      velocity: { vx: 0, vy: 0, vz: 0, speed: 0, radialVelocity: 0 },
     };
-    const solClassification = resolveStellarClassificationFromSpectrum('G2V');
+    const solClassification = resolveStellarClassificationFromSpectrum(solSpect);
     const solSummary: SystemSummaryNode = {
-      id: 'sol', name: 'Sol', properName: 'Sun', x: 0, y: 0, z: 0, dist: 0, mag: -26.74, absmag: 4.83, spect: 'G2V',
-      classification: solClassification, reticleType: resolveStellarReticleType(solClassification, false),
-      ci: 0.656, starCount: 1, planetCount: solManifest.planets.length, planetCensus: getPlanetCensus(solManifest.planets),
+      id: solManifest.id,
+      name: solManifest.name,
+      properName: solManifest.properName,
+      x: solManifest.x,
+      y: solManifest.y,
+      z: solManifest.z,
+      dist: solManifest.dist,
+      mag: solMag,
+      absmag: solAbsMag,
+      spect: solSpect,
+      classification: solClassification,
+      reticleType: solPrimaryStar.reticleType ?? resolveStellarReticleType(solClassification, false),
+      ci: solCi,
+      starCount: solManifest.stars.length,
+      planetCount: solManifest.planets.length,
+      planetCensus: getPlanetCensus(solManifest.planets),
       planetCompositionCounts: solManifest.planetCompositionCounts,
       hasHabitableCandidate: Boolean(solManifest.hasHabitableCandidate),
       ...(solManifest.hazardMask && solManifest.hazardMask > 0 ? { hazardMask: solManifest.hazardMask } : {}),
-      sectorId: 'sector_+000_+000_+000', tags: solManifest.tags, velocity: solNode.velocity,
+      sectorId: solManifest.sectorId,
+      tags: solManifest.tags,
+      velocity: solNode.velocity,
     };
 
     local10pcSystems.push(solSummary); referenceBrightSystems.push(solSummary); cataloguedSummaries.push(solSummary);

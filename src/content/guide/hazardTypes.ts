@@ -3,7 +3,7 @@
  * Curated astrophysical environmental hazards for stellar systems and planetary bodies.
  */
 
-import { HAZARDS_GUIDE_PATH, type HazardGuideEntry } from './types';
+import { buildHazardGuideHref, type HazardGuideEntry } from './types';
 
 export const HAZARD_GUIDE_ENTRIES: readonly HazardGuideEntry[] = [
   {
@@ -17,11 +17,7 @@ export const HAZARD_GUIDE_ENTRIES: readonly HazardGuideEntry[] = [
     physicalMechanism: 'Twisting and reconnection of localized magnetic flux tubes in fully convective stellar envelopes drives explosive plasma acceleration.',
     operationalImpact: 'Rapid atmospheric erosion, catastrophic radio blackout, and lethal surface ionizing dosage for unshielded assets.',
     mitigationNotes: 'Deploy sub-surface habitations, active magnetic deflector shields, and orbital flare-warning early intercept arrays.',
-    href: `${HAZARDS_GUIDE_PATH}/flare-star`,
-    examples: [
-      { name: 'Proxima Centauri', href: '/system/proxima-centauri', note: 'Active M5.5Ve flare star host to Proxima b.' },
-      { name: 'TRAPPIST-1', href: '/system/trappist-1', note: 'Ultra-cool M-dwarf with frequent coronal mass ejections.' },
-    ],
+    href: buildHazardGuideHref('flare-star'),
   },
   {
     id: 'ionising-radiation',
@@ -34,11 +30,7 @@ export const HAZARD_GUIDE_ENTRIES: readonly HazardGuideEntry[] = [
     physicalMechanism: 'Extreme photospheric surface temperatures and relativistic particle winds generate severe flux densities of ionizing photons.',
     operationalImpact: 'Destroys atmospheric ozone layers, induces severe electronic single-event upsets, and limits human EVA durations.',
     mitigationNotes: 'Heavy hydrogenous polyethylene radiation shielding, subterranean infrastructure, and standoff orbital margins.',
-    href: `${HAZARDS_GUIDE_PATH}/ionising-radiation`,
-    examples: [
-      { name: 'Sirius B', href: '/system/sirius', note: 'Hot white dwarf with extreme UV luminosity.' },
-      { name: 'Vega', href: '/system/vega', note: 'Luminous A0V star with intense ultraviolet radiation flux.' },
-    ],
+    href: buildHazardGuideHref('ionising-radiation'),
   },
   {
     id: 'variable-flux',
@@ -51,11 +43,7 @@ export const HAZARD_GUIDE_ENTRIES: readonly HazardGuideEntry[] = [
     physicalMechanism: 'Stellar pulsations driven by the kappa-mechanism (opacity gating in partial ionization zones) or giant starspot rotation.',
     operationalImpact: 'Extreme cyclical climate destabilization, severe thermal stresses on surface structures, and fluctuating solar array output.',
     mitigationNotes: 'Thermal inertia buffering systems, modular variable-gain power converters, and planetary insulation domes.',
-    href: `${HAZARDS_GUIDE_PATH}/variable-flux`,
-    examples: [
-      { name: 'Betelgeuse', href: '/system/betelgeuse', note: 'Semiregular pulsating red supergiant with dramatic brightness swings.' },
-      { name: 'Mira (Omicron Ceti)', href: '/system/mira', note: 'Archetypal pulsating variable star with large magnitude swings.' },
-    ],
+    href: buildHazardGuideHref('variable-flux'),
   },
   {
     id: 'extreme-heat',
@@ -68,11 +56,7 @@ export const HAZARD_GUIDE_ENTRIES: readonly HazardGuideEntry[] = [
     physicalMechanism: 'Proximity to the host star drives runaway greenhouse processes or direct solar irradiation exceeding volatile stability limits.',
     operationalImpact: 'Thermal degradation of standard structural alloys, rapid boil-off of volatiles, and extreme heat-rejection requirements.',
     mitigationNotes: 'Active cryogenic cooling loops, reflective sunshades, subterranean cavern installations, and heat-pump rejection networks.',
-    href: `${HAZARDS_GUIDE_PATH}/extreme-heat`,
-    examples: [
-      { name: 'Venus', href: '/system/sol', note: 'Runaway greenhouse world with surface temperature exceeding 735 K.' },
-      { name: 'Mercury', href: '/system/sol', note: 'Airless innermost planet with daytime peak temperatures of 700 K.' },
-    ],
+    href: buildHazardGuideHref('extreme-heat'),
   },
   {
     id: 'cryogenic-cold',
@@ -85,11 +69,7 @@ export const HAZARD_GUIDE_ENTRIES: readonly HazardGuideEntry[] = [
     physicalMechanism: 'Distant orbits receiving low stellar insolation, resulting in radiative equilibrium dominated by deep-space background temperatures.',
     operationalImpact: 'Embrittlement of structural steels and plastics, freezing of hydraulic fluids, and severe power consumption for heating.',
     mitigationNotes: 'Nuclear radioisotope thermoelectric generators (RTGs), thermal insulation aerogels, and heated vacuum-insulated conduits.',
-    href: `${HAZARDS_GUIDE_PATH}/cryogenic-cold`,
-    examples: [
-      { name: 'Titan', href: '/system/sol', note: 'Hydrocarbon lakes and cryogenic 94 K surface temperature.' },
-      { name: 'Pluto', href: '/system/sol', note: 'Nitrogen-ice plains at a frigid 44 K equilibrium temperature.' },
-    ],
+    href: buildHazardGuideHref('cryogenic-cold'),
   },
   {
     id: 'high-gravity',
@@ -102,11 +82,7 @@ export const HAZARD_GUIDE_ENTRIES: readonly HazardGuideEntry[] = [
     physicalMechanism: 'High planetary mass relative to radius (large rocky core or massive super-Earth mantle) yields elevated surface gravity.',
     operationalImpact: 'Excessive hydrostatic strain on biological systems, higher propulsion mass ratios for ascent, and heavier structural foundations.',
     mitigationNotes: 'Exoskeletal mobility assistance, high-thrust chemical or nuclear-thermal launch vehicles, and reinforced stress framing.',
-    href: `${HAZARDS_GUIDE_PATH}/high-gravity`,
-    examples: [
-      { name: 'Tau Ceti e', href: '/system/gaia-2452378776434477184', note: 'Massive super-Earth candidate with surface gravity exceeding 1.4 g.' },
-      { name: 'Proxima Centauri c', href: '/system/proxima-centauri', note: 'Super-Earth with surface acceleration exceeding 2.1 g.' },
-    ],
+    href: buildHazardGuideHref('high-gravity'),
   },
   {
     id: 'tidal-locking',
@@ -119,11 +95,7 @@ export const HAZARD_GUIDE_ENTRIES: readonly HazardGuideEntry[] = [
     physicalMechanism: 'Gravitational tidal torques from the host star dissipate orbital energy, driving planetary spin into a 1:1 spin-orbit resonance.',
     operationalImpact: 'Extreme temperature divergence between hemispheres, supersonic terminator wind currents, and atmospheric collapse on the dark side.',
     mitigationNotes: 'Establish settlements along the temperate twilight terminator band; construct high-capacity atmospheric recirculation ducts.',
-    href: `${HAZARDS_GUIDE_PATH}/tidal-locking`,
-    examples: [
-      { name: 'Proxima Centauri b', href: '/system/proxima-centauri', note: 'Tidally locked in an 11.2-day orbit around its host red dwarf.' },
-      { name: 'TRAPPIST-1 e', href: '/system/trappist-1', note: 'Synchronously rotating Earth-sized world in the habitable zone.' },
-    ],
+    href: buildHazardGuideHref('tidal-locking'),
   },
   {
     id: 'high-eccentricity',
@@ -136,11 +108,7 @@ export const HAZARD_GUIDE_ENTRIES: readonly HazardGuideEntry[] = [
     physicalMechanism: 'Non-circular elliptical orbit causes seasonal solar irradiance variations proportional to 1/r², driving extreme seasonal shifts.',
     operationalImpact: 'Flash climate shifts, violent cyclical seasonal storms, and freeze-thaw cycles that severely challenge long-term surface stability.',
     mitigationNotes: 'Deploy automated climate-regulation reflectors, flexible thermal radiators, and migratory seasonal base habitats.',
-    href: `${HAZARDS_GUIDE_PATH}/high-eccentricity`,
-    examples: [
-      { name: '16 Cygni B b', href: '/system/16-cygni', note: 'Gas giant with an extreme orbital eccentricity of 0.68.' },
-      { name: 'HD 80606 b', href: '/system/hd-80606', note: 'Eccentric hot Jupiter experiencing violent periastron heating.' },
-    ],
+    href: buildHazardGuideHref('high-eccentricity'),
   },
 ];
 

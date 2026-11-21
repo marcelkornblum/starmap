@@ -33,9 +33,9 @@ export const StarTypesListView: React.FC = () => {
               <Guide3DPreview
                 kind="star"
                 spectralClass={entry.spectralClass}
+                spectralLetter={entry.spectralClass === 'L/T/Y' ? 'L' : entry.spectralClass}
                 radiusRsun={entry.canonicalRadiusRsun}
-                tempK={entry.canonicalTempK}
-                chromaticityHex={entry.chromaticityHex}
+                chromaticityToken={entry.chromaticityToken}
               />
               <Cluster gap="tight" align="center">
                 <CelestialSymbol

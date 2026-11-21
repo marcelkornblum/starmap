@@ -37,7 +37,7 @@ describe('metricTypes content module (AUD-071 & DEC-R032)', () => {
         expect(entry.unitSymbol.length).toBeGreaterThan(0);
         expect(entry.summary.length).toBeGreaterThan(0);
         expect(entry.physicalDefinition.length).toBeGreaterThan(0);
-        expect(entry.examples.length).toBeGreaterThan(0);
+        expect(['sol', 'earth']).toContain(entry.comparisonBaselineId);
       }
     });
 

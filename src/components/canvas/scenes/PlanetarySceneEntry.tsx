@@ -7,6 +7,7 @@ import {
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import { PlanetScene } from './PlanetScene';
 import { EARTH_REFERENCE_TARGET } from '../../../config/referenceTargets';
+import { formatSlugFallbackTitle } from '../../../utils/starNaming';
 import { SystemCameraController } from './SystemCameraController';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
 import type {
@@ -25,10 +26,7 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = ({
   onInspectSatellite,
   onSelectEntity,
 }) => {
-  const isEarth = planetId.toLowerCase() === EARTH_REFERENCE_TARGET.id;
-  const planetDisplayName = isEarth
-    ? EARTH_REFERENCE_TARGET.name
-    : planetId.charAt(0).toUpperCase() + planetId.slice(1);
+  const planetDisplayName = planet?.name ?? formatSlugFallbackTitle(planetId);
   const standardCam = useMemo(() => getPlanetaryCamera(), []);
 
   return (

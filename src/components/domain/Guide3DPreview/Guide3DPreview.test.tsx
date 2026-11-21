@@ -12,7 +12,7 @@ describe('<Guide3DPreview />', () => {
         luminosityClass="V"
         radiusRsun={1.0}
         tempK={5778}
-        chromaticityHex="#fff4ea"
+        chromaticityToken="var(--star-chromaticity-g)"
         isDetail
       />
     );
@@ -22,7 +22,7 @@ describe('<Guide3DPreview />', () => {
     expect(preview.getAttribute('data-detail')).toBe('true');
     expect(preview.getAttribute('data-spectral-class')).toBe('G2V');
     expect(preview.getAttribute('data-radius-rsun')).toBe('1');
-    expect(preview.getAttribute('data-chromaticity-hex')).toBe('#fff4ea');
+    expect(preview.getAttribute('data-chromaticity-token')).toBe('var(--star-chromaticity-g)');
   });
 
   it('renders star preview with chromaticityToken attribute and sphere color', () => {

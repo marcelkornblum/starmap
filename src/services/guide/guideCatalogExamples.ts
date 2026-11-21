@@ -7,11 +7,28 @@ import {
   STAR_TYPE_GUIDE_ENTRIES,
   PLANET_TYPE_GUIDE_ENTRIES,
   resolveHazardGuideEntry,
+  type GuideExampleTarget,
   type PlanetTypeGuideEntry,
   type HazardGuideEntry,
 } from '../../content/guide';
+import type { GuideExamplesDataset, GuideSectionKey } from '../../types/guideData';
+import {
+  fetchGuideExamples,
+  getCachedGuideExamplesForEntry,
+} from '../../data/guideExamplesRepository';
 import type { ResolvedStarTypeDetail } from './guideTypes';
 import { getLuminosityLabel } from './guideCombinator';
+
+export function getGuideExamplesForEntry(
+  section: GuideSectionKey,
+  entryId: string,
+): readonly GuideExampleTarget[] {
+  return getCachedGuideExamplesForEntry(section, entryId);
+}
+
+export function hydrateGuideExamples(): Promise<GuideExamplesDataset> {
+  return fetchGuideExamples();
+}
 
 const SPECTRAL_LETTER_TO_ID: Record<string, string> = {
   O: 'o',

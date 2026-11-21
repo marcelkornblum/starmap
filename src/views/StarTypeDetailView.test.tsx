@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { StarTypeDetailView } from './StarTypeDetailView';
+import {
+  clearGuideExamplesCache,
+  seedGuideExamples,
+} from '../data/guideExamplesRepository';
 
 vi.mock('@tanstack/react-router', () => ({
   useParams: vi.fn(() => ({})),
@@ -12,6 +16,7 @@ vi.mock('@tanstack/react-router', () => ({
 describe('<StarTypeDetailView />', () => {
   beforeEach(() => {
     vi.mocked(useParams).mockReturnValue({});
+    clearGuideExamplesCache();
   });
 
   it('renders single star type detail view for G8.5V with combinator and telemetry', () => {
@@ -71,5 +76,32 @@ describe('<StarTypeDetailView />', () => {
     const root = screen.getByTestId('star-type-detail-view-root');
     expect(root.getAttribute('data-star-type')).toBe('M');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Star Type: M');
+  });
+
+  it('renders dataset-driven examples when guideExamplesRepository is hydrated', () => {
+    seedGuideExamples({
+      version: 1,
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      sections: {
+        starTypes: {
+          g: [
+            {
+              id: 'sol',
+              name: 'Sol',
+              href: '/system/sol',
+              note: 'Solar System primary (G2V).',
+              reticleType: 'stellar-system',
+            },
+          ],
+        },
+        planetTypes: {},
+        metricTypes: {},
+        hazardTypes: {},
+      },
+    });
+    render(<StarTypeDetailView starType="G2V" />);
+    const links = screen.getAllByTestId('guide-example-link');
+    expect(links[0]?.textContent).toBe('Sol');
+    expect(links[0]?.getAttribute('href')).toBe('/system/sol');
   });
 });

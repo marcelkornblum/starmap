@@ -11,9 +11,14 @@ import type {
   ShardedBucketEnvelope,
 } from '../../src/utils/compactDataTypes';
 import { ALL_36_BUCKETS } from '../../src/utils/compactDataConstants';
+import type {
+  GuideExamplesDataset,
+  ReferenceBaselinesDataset,
+} from '../../src/types/guideData';
 
 const SUMMARIES_DIR = path.resolve(process.cwd(), 'public/data/summaries');
 const DETAILS_DIR = path.resolve(process.cwd(), 'public/data/details');
+const DATA_DIR = path.resolve(process.cwd(), 'public/data');
 
 describe('Precalculated Shard Contract (H2 / M10)', () => {
   it('decodes every summary shard strictly with valid precalculated fields', () => {
@@ -103,5 +108,41 @@ describe('Precalculated Shard Contract (H2 / M10)', () => {
     expect(systemCount).toBeGreaterThan(0);
     expect(exoplanetCount).toBeGreaterThan(0);
     expect(solarPlanetCount).toBe(8);
+  });
+
+  it('emits valid reference-baselines.json and guide-examples.json datasets', () => {
+    const baselinesPath = path.join(DATA_DIR, 'reference-baselines.json');
+    const examplesPath = path.join(DATA_DIR, 'guide-examples.json');
+    expect(fs.existsSync(baselinesPath)).toBe(true);
+    expect(fs.existsSync(examplesPath)).toBe(true);
+
+    const baselines = JSON.parse(
+      fs.readFileSync(baselinesPath, 'utf8'),
+    ) as ReferenceBaselinesDataset;
+    expect(baselines.targets.sol.id).toBe('sol');
+    expect(baselines.targets.sol.effectiveTempK.unit).toBe('K');
+    expect(baselines.targets.earth.id).toBe('earth');
+    expect(baselines.targets.earth.periodDays.unit).toBe('d');
+    expect(Object.keys(baselines.metrics)).toHaveLength(13);
+
+    const examples = JSON.parse(
+      fs.readFileSync(examplesPath, 'utf8'),
+    ) as GuideExamplesDataset;
+    expect(Object.keys(examples.sections.starTypes)).toHaveLength(9);
+    expect(Object.keys(examples.sections.planetTypes)).toHaveLength(4);
+    expect(Object.keys(examples.sections.metricTypes)).toHaveLength(13);
+    expect(Object.keys(examples.sections.hazardTypes)).toHaveLength(8);
+
+    for (const [section, entries] of Object.entries(examples.sections)) {
+      for (const [entryId, items] of Object.entries(entries)) {
+        expect(items.length, `${section}.${entryId} should have examples`).toBeGreaterThan(0);
+        for (const item of items) {
+          expect(item.id.length).toBeGreaterThan(0);
+          expect(item.name.length).toBeGreaterThan(0);
+          expect(item.href.startsWith('/')).toBe(true);
+          expect(item.note.length).toBeGreaterThan(0);
+        }
+      }
+    }
   });
 });

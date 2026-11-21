@@ -1,8 +1,7 @@
 import type { SpatialEntityDefinition } from '../../types/spatial';
-import {
-  DEFAULT_ORIGIN_TARGETS,
-  SOL_REFERENCE_TARGET,
-} from '../../config/referenceTargets';
+import { DEFAULT_ORIGIN_TARGETS } from '../../config/referenceTargets';
+import { getCachedReferenceBaselines } from '../../data/referenceBaselinesRepository';
+import { formatSlugFallbackTitle } from '../../utils/starNaming';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
 import { toCoordinatesTuple } from './detailsHazards';
 import { resolveEntityMarkerKind } from './minimapMarkerHelpers';
@@ -22,10 +21,13 @@ export const buildGalaxyMinimapOrientation = (
   centerEntity?: SpatialEntityDefinition | null,
 ): MinimapOrientationSummary => {
   const scope: MinimapScope = 'galaxy';
+  const originName =
+    getCachedReferenceBaselines()?.targets.sol.name ??
+    formatSlugFallbackTitle(DEFAULT_ORIGIN_TARGETS.interstellarOriginId);
   let anchorId = DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
-  let anchorName = SOL_REFERENCE_TARGET.name;
+  let anchorName = originName;
   const systemId = focusedDetails?.systemId ?? DEFAULT_ORIGIN_TARGETS.interstellarOriginId;
-  const systemName = focusedDetails?.systemName ?? SOL_REFERENCE_TARGET.name;
+  const systemName = focusedDetails?.systemName ?? originName;
   const sectorName = focusedDetails?.sectorName ?? '0,0,0';
 
   let coordinatesPc: readonly [number, number, number] =
@@ -61,7 +63,7 @@ export const buildGalaxyMinimapOrientation = (
 
   const originMarker: MinimapMarkerItem = {
     id: DEFAULT_ORIGIN_TARGETS.interstellarOriginId,
-    name: SOL_REFERENCE_TARGET.name,
+    name: originName,
     kind: 'star',
     role: 'origin',
     href: `/galaxy?focus=${DEFAULT_ORIGIN_TARGETS.interstellarOriginId}`,

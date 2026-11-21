@@ -13,7 +13,11 @@ import {
 } from '../components/interface';
 import { PLANET_TYPES_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
-import { resolvePlanetTypeGuideEntries } from '../services/guide/guideCatalogExamples';
+import {
+  getGuideExamplesForEntry,
+  resolvePlanetTypeGuideEntries,
+} from '../services/guide/guideCatalogExamples';
+import { useHydratedGuideExamples } from '../hooks/useGuideData';
 import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
@@ -38,6 +42,8 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
   const resolvedPlanetType =
     routeParams?.planetType ?? propPlanetType ?? '';
   const focusedEntityId = extractFocusIdFromSearch(search);
+
+  useHydratedGuideExamples();
 
   const entries = useMemo(
     () => resolvePlanetTypeGuideEntries(resolvedPlanetType),
@@ -120,7 +126,7 @@ export const PlanetTypeDetailView: React.FC<PlanetTypeDetailViewProps> = ({
               </Stack>
 
               <GuideExamplesList
-                examples={entry.examples}
+                examples={getGuideExamplesForEntry('planetTypes', entry.id)}
                 reticleType={entry.composition ?? 'terrestrial'}
               />
             </section>

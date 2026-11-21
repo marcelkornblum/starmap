@@ -1,6 +1,6 @@
 /**
  * DEC-027 / Phase 3.3A-1: Guide Telemetry Metrics & Comparative View-Models
- * Metric resolution and comparative evaluations against standard reference baselines.
+ * Metric resolution and comparative evaluations against dataset-derived reference baselines.
  */
 
 import {
@@ -12,6 +12,10 @@ import {
   getCachedDetailRecord,
   fetchDetailRecord,
 } from '../../data/detailsRepository';
+import {
+  fetchReferenceBaselines,
+  getCachedReferenceBaselines,
+} from '../../data/referenceBaselinesRepository';
 import {
   getCachedCorpusForFilter,
   loadSearchCorpusForFilter,
@@ -25,6 +29,10 @@ import {
   EARTH_REFERENCE_TARGET,
   DEFAULT_GUIDE_BENCHMARKS,
 } from '../../config/referenceTargets';
+import {
+  buildSystemDetailsHref,
+  buildSystemElementFocusHref,
+} from '../details/detailsNavigation';
 import type {
   MetricComparison,
   MetricTargetComparison,
@@ -101,9 +109,11 @@ export async function hydrateMetricComparison(
       ? focusedEntityId.split(',').map((t) => t.trim()).filter(Boolean)
       : [hasOrbital ? DEFAULT_GUIDE_BENCHMARKS.orbitalBenchmarkId : DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId];
 
-  const corpus =
+  const [corpus] = await Promise.all([
     getCachedCorpusForFilter('all') ??
-    (await loadSearchCorpusForFilter('all').catch(() => undefined));
+      loadSearchCorpusForFilter('all').catch(() => undefined),
+    fetchReferenceBaselines().catch(() => undefined),
+  ]);
 
   const fetchPromises: Promise<unknown>[] = [];
   for (const token of tokens) {
@@ -126,6 +136,7 @@ export const resolveMetricComparison = (
   const metric = resolveMetricGuideEntry(rawMetricSlug);
   if (!metric) return null;
 
+  const baselines = getCachedReferenceBaselines();
   const isFromFocusedContext = Boolean(focusedEntityId && focusedEntityId.trim());
   const isOrbitalOrPlanetary = metric.category === 'Orbital & Planetary Telemetry';
   const isStellar = metric.category === 'Stellar Telemetry';
@@ -155,30 +166,44 @@ export const resolveMetricComparison = (
         manifest.planets.length > 0);
 
     if (isSystemLevel && manifest) {
-      const systemHref = `/system/${encodeURIComponent(manifest.id)}`;
+      const systemHref = buildSystemDetailsHref(manifest.id);
       const items = isStellar ? manifest.stars : isOrbitalOrPlanetary ? manifest.planets : null;
       if (items !== null) {
         if (items.length > 0) {
           for (const item of items) {
-            const targetHref = isStellar && items.length === 1 ? systemHref : `${systemHref}?focus=${encodeURIComponent(item.id)}`;
+            const targetHref =
+              isStellar && items.length === 1
+                ? systemHref
+                : buildSystemElementFocusHref(manifest.id, item.id);
             const ctx = isStellar
               ? { targetId: item.id, targetName: item.name, targetHref, manifest, targetStar: item as StellarComponent }
               : { targetId: item.id, targetName: item.name, targetHref, manifest, targetPlanet: item as ExoplanetRecord };
-            targetComparisons.push(evaluateMetricForTarget(metric.id, ctx));
+            targetComparisons.push(evaluateMetricForTarget(metric.id, ctx, baselines));
           }
         } else {
           targetComparisons.push(createUncataloguedComparison(token, manifest.name, systemHref));
         }
       } else {
-        targetComparisons.push(evaluateMetricForTarget(metric.id, { targetId: manifest.id, targetName: manifest.name, targetHref: systemHref, manifest }));
+        targetComparisons.push(
+          evaluateMetricForTarget(metric.id, { targetId: manifest.id, targetName: manifest.name, targetHref: systemHref, manifest }, baselines),
+        );
       }
     } else {
       const star = matchedStar ?? (isStellar ? manifest?.stars[0] : undefined);
       const planet = matchedPlanet ?? (isOrbitalOrPlanetary ? manifest?.planets[0] : undefined);
-      const name = (isOrbitalOrPlanetary ? planet?.name : (star?.name ?? manifest?.name)) ?? formatSlugFallbackTitle(token);
+      const defaultBenchmarkName =
+        token === DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId
+          ? baselines?.targets.stellarBenchmark.name
+          : token === DEFAULT_GUIDE_BENCHMARKS.orbitalBenchmarkId
+            ? baselines?.targets.orbitalBenchmark.name
+            : undefined;
+      const name =
+        (isOrbitalOrPlanetary ? planet?.name : (star?.name ?? manifest?.name)) ??
+        defaultBenchmarkName ??
+        formatSlugFallbackTitle(token);
       const href = isOrbitalOrPlanetary
-        ? `/system/${encodeURIComponent(manifest?.id ?? token)}?focus=${encodeURIComponent(token)}`
-        : `/system/${encodeURIComponent(manifest?.id ?? token)}`;
+        ? buildSystemElementFocusHref(manifest?.id ?? token, token)
+        : buildSystemDetailsHref(manifest?.id ?? token);
 
       targetComparisons.push(
         evaluateMetricForTarget(metric.id, {
@@ -188,34 +213,49 @@ export const resolveMetricComparison = (
           manifest,
           targetStar: star,
           targetPlanet: planet,
-        }),
+        }, baselines),
       );
     }
   }
 
+  const fallbackToken = tokens[0] ?? DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId;
+  const fallbackName =
+    fallbackToken === DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId
+      ? (baselines?.targets.stellarBenchmark.name ?? formatSlugFallbackTitle(fallbackToken))
+      : formatSlugFallbackTitle(fallbackToken);
   const primaryTarget =
     targetComparisons[0] ??
     createUncataloguedComparison(
-      tokens[0] ?? DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId,
-      formatSlugFallbackTitle(tokens[0] ?? DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkName),
-      `/system/${encodeURIComponent(tokens[0] ?? DEFAULT_GUIDE_BENCHMARKS.stellarBenchmarkId)}`,
+      fallbackToken,
+      fallbackName,
+      buildSystemDetailsHref(fallbackToken),
     );
 
-  const baselineName = metric.comparisonBaselineLabel as
-    | typeof SOL_REFERENCE_TARGET.name
-    | typeof EARTH_REFERENCE_TARGET.name;
+  const baselineId = metric.comparisonBaselineId;
+  const baselineMetric = baselines?.metrics[metric.id];
+  const isSolBaseline = baselineId === SOL_REFERENCE_TARGET.id;
+  const baselineName =
+    baselineMetric?.baselineName ??
+    (isSolBaseline ? baselines?.targets.sol.name : baselines?.targets.earth.name) ??
+    formatSlugFallbackTitle(baselineId);
   const baselineHref =
-    baselineName === SOL_REFERENCE_TARGET.name ? SOL_REFERENCE_TARGET.href : EARTH_REFERENCE_TARGET.href;
+    baselineMetric?.baselineHref ??
+    (isSolBaseline ? SOL_REFERENCE_TARGET.href : EARTH_REFERENCE_TARGET.href);
+  const baselineReticleType =
+    baselineMetric?.baselineReticleType ?? (isSolBaseline ? 'star' : 'terrestrial');
 
-  const { baselineValue, baselineFamiliar } = getMetricBaseline(metric.id);
+  const { baselineValue, baselineFamiliar } = getMetricBaseline(metric.id, baselines);
 
   return {
     metricId: metric.id,
+    baselineId,
     baselineName,
     baselineHref,
     baselineValue,
     baselineFamiliar,
-    baselineReticleType: baselineName === SOL_REFERENCE_TARGET.name ? 'star' : 'terrestrial',
+    baselineNumericValue: baselineMetric?.numericValue,
+    baselineUnit: baselineMetric?.unit,
+    baselineReticleType,
     targetId: primaryTarget.targetId,
     targetName: primaryTarget.targetName,
     targetHref: primaryTarget.targetHref,

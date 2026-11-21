@@ -14,7 +14,11 @@ import {
 } from '../components/interface';
 import { STAR_TYPES_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
-import { resolveStarTypeGuideEntries } from '../services/guide/guideCatalogExamples';
+import {
+  getGuideExamplesForEntry,
+  resolveStarTypeGuideEntries,
+} from '../services/guide/guideCatalogExamples';
+import { useHydratedGuideExamples } from '../hooks/useGuideData';
 import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
@@ -38,6 +42,8 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
   );
   const resolvedStarType = routeParams?.starType ?? propStarType ?? '';
   const focusedEntityId = extractFocusIdFromSearch(search);
+
+  useHydratedGuideExamples();
 
   const resolvedDetails = useMemo(
     () => resolveStarTypeGuideEntries(resolvedStarType),
@@ -190,7 +196,7 @@ export const StarTypeDetailView: React.FC<StarTypeDetailViewProps> = ({
               </Stack>
 
               <GuideExamplesList
-                examples={resolvedDetail.entry.examples}
+                examples={getGuideExamplesForEntry('starTypes', resolvedDetail.entry.id)}
                 reticleType="star"
               />
             </section>

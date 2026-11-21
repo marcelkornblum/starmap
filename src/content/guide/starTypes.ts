@@ -3,7 +3,7 @@
  * Curated astronomical guide entries covering the Morgan-Keenan spectral classes.
  */
 
-import { STAR_TYPES_GUIDE_PATH, type StarTypeGuideEntry } from './types';
+import { buildStarTypeGuideHref, type StarTypeGuideEntry } from './types';
 
 export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
   {
@@ -18,23 +18,10 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     luminosityRangeLsun: '> 30,000 L☉',
     habitableZoneAu: '> 400 AU',
     chromaticity: 'Deep Blue',
-    href: `${STAR_TYPES_GUIDE_PATH}/o`,
+    href: buildStarTypeGuideHref('o'),
     canonicalRadiusRsun: 10.0,
-    canonicalTempK: 40000,
-    chromaticityHex: '#9bb0ff',
+    chromaticityToken: 'var(--star-chromaticity-o)',
     interiorLayers: ['Core', 'Radiative Zone', 'Convective Envelope'],
-    examples: [
-      {
-        name: '10 Lacertae',
-        href: '/galaxy?focus=10-lacertae',
-        note: 'Standard O9V main-sequence reference star.',
-      },
-      {
-        name: 'Alnitak',
-        href: '/galaxy?focus=alnitak',
-        note: 'O9.7Ib supergiant in Orion’s Belt.',
-      },
-    ],
   },
   {
     id: 'b',
@@ -48,23 +35,10 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     luminosityRangeLsun: '25–30,000 L☉',
     habitableZoneAu: '5–400 AU',
     chromaticity: 'Blue-White',
-    href: `${STAR_TYPES_GUIDE_PATH}/b`,
+    href: buildStarTypeGuideHref('b'),
     canonicalRadiusRsun: 4.5,
-    canonicalTempK: 20000,
-    chromaticityHex: '#aabfff',
+    chromaticityToken: 'var(--star-chromaticity-b)',
     interiorLayers: ['Core', 'Radiative Zone', 'Convective Envelope'],
-    examples: [
-      {
-        name: 'Rigel',
-        href: '/galaxy?focus=rigel',
-        note: 'B8Ia blue supergiant in Orion.',
-      },
-      {
-        name: 'Regulus',
-        href: '/galaxy?focus=regulus',
-        note: 'Rapidly rotating B7V star in Leo.',
-      },
-    ],
   },
   {
     id: 'a',
@@ -78,23 +52,10 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     luminosityRangeLsun: '5–25 L☉',
     habitableZoneAu: '2.2–5.0 AU',
     chromaticity: 'Light Blue-White',
-    href: `${STAR_TYPES_GUIDE_PATH}/a`,
+    href: buildStarTypeGuideHref('a'),
     canonicalRadiusRsun: 1.8,
-    canonicalTempK: 8500,
-    chromaticityHex: '#cad7ff',
+    chromaticityToken: 'var(--star-chromaticity-a)',
     interiorLayers: ['Core', 'Radiative Zone', 'Convective Envelope'],
-    examples: [
-      {
-        name: 'Sirius A',
-        href: '/galaxy?focus=sirius',
-        note: 'A1V primary of the Sirius binary system at 2.6 pc.',
-      },
-      {
-        name: 'Vega',
-        href: '/galaxy?focus=vega',
-        note: 'A0V standard photometric calibration baseline.',
-      },
-    ],
   },
   {
     id: 'f',
@@ -108,23 +69,10 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     luminosityRangeLsun: '1.5–5.0 L☉',
     habitableZoneAu: '1.2–2.2 AU',
     chromaticity: 'Yellow-White',
-    href: `${STAR_TYPES_GUIDE_PATH}/f`,
+    href: buildStarTypeGuideHref('f'),
     canonicalRadiusRsun: 1.3,
-    canonicalTempK: 6750,
-    chromaticityHex: '#f8f7ff',
+    chromaticityToken: 'var(--star-chromaticity-f)',
     interiorLayers: ['Core', 'Radiative Zone', 'Convective Envelope'],
-    examples: [
-      {
-        name: 'Procyon A',
-        href: '/galaxy?focus=procyon',
-        note: 'F5IV-V subgiant in Canis Minor at 3.5 pc.',
-      },
-      {
-        name: 'Gamma Virginis',
-        href: '/galaxy?focus=gamma-virginis',
-        note: 'Binary F0V stellar pair.',
-      },
-    ],
   },
   {
     id: 'g',
@@ -138,28 +86,10 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     luminosityRangeLsun: '0.6–1.5 L☉',
     habitableZoneAu: '0.95–1.4 AU',
     chromaticity: 'Yellow / Warm White',
-    href: `${STAR_TYPES_GUIDE_PATH}/g`,
+    href: buildStarTypeGuideHref('g'),
     canonicalRadiusRsun: 1.0,
-    canonicalTempK: 5778,
-    chromaticityHex: '#fff4ea',
+    chromaticityToken: 'var(--star-chromaticity-g)',
     interiorLayers: ['Core', 'Radiative Zone', 'Convective Envelope'],
-    examples: [
-      {
-        name: 'Sol', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/system/sol',
-        note: 'The Solar System primary, classification G2V.',
-      },
-      {
-        name: 'Tau Ceti', // guard-disable-line G-literals -- educational reference target (DEC-R032)
-        href: '/galaxy?focus=tau-ceti',
-        note: 'Nearby single G8.5V dwarf with an extensive debris disk and planetary system.',
-      },
-      {
-        name: 'Alpha Centauri A',
-        href: '/galaxy?focus=alpha-centauri-a',
-        note: 'Primary component of the Alpha Centauri triple system, G2V.',
-      },
-    ],
   },
   {
     id: 'k',
@@ -173,23 +103,10 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     luminosityRangeLsun: '0.08–0.6 L☉',
     habitableZoneAu: '0.3–0.95 AU',
     chromaticity: 'Orange / Warm Amber',
-    href: `${STAR_TYPES_GUIDE_PATH}/k`,
+    href: buildStarTypeGuideHref('k'),
     canonicalRadiusRsun: 0.8,
-    canonicalTempK: 4500,
-    chromaticityHex: '#ffd2a1',
+    chromaticityToken: 'var(--star-chromaticity-k)',
     interiorLayers: ['Core', 'Radiative Zone', 'Convective Envelope'],
-    examples: [
-      {
-        name: 'Alpha Centauri B',
-        href: '/galaxy?focus=alpha-centauri-b',
-        note: 'Secondary component of Alpha Centauri, K1V dwarf.',
-      },
-      {
-        name: 'Epsilon Eridani',
-        href: '/galaxy?focus=epsilon-eridani',
-        note: 'Young K2V dwarf with confirmed debris ring and exoplanets.',
-      },
-    ],
   },
   {
     id: 'm',
@@ -203,23 +120,10 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     luminosityRangeLsun: '< 0.08 L☉',
     habitableZoneAu: '0.05–0.3 AU',
     chromaticity: 'Red / Deep Amber',
-    href: `${STAR_TYPES_GUIDE_PATH}/m`,
+    href: buildStarTypeGuideHref('m'),
     canonicalRadiusRsun: 0.35,
-    canonicalTempK: 3200,
-    chromaticityHex: '#ffcc6f',
+    chromaticityToken: 'var(--star-chromaticity-m)',
     interiorLayers: ['Fully Convective Interior'],
-    examples: [
-      {
-        name: 'Proxima Centauri',
-        href: '/galaxy?focus=proxima-centauri',
-        note: 'Nearest star to the Sun (M5.5Ve flare dwarf) hosting terrestrial worlds.',
-      },
-      {
-        name: "Barnard's Star",
-        href: '/galaxy?focus=barnards-star',
-        note: 'High proper motion M4V dwarf in Ophiuchus.',
-      },
-    ],
   },
   {
     id: 'l',
@@ -233,18 +137,10 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     luminosityRangeLsun: '< 0.0001 L☉',
     habitableZoneAu: '0.005–0.05 AU',
     chromaticity: 'Infrared / Deep Magenta',
-    href: `${STAR_TYPES_GUIDE_PATH}/l`,
+    href: buildStarTypeGuideHref('l'),
     canonicalRadiusRsun: 0.1,
-    canonicalTempK: 1800,
-    chromaticityHex: '#ff6b3d',
+    chromaticityToken: 'var(--star-chromaticity-l)',
     interiorLayers: ['Fully Convective Interior'],
-    examples: [
-      {
-        name: 'Luhman 16',
-        href: '/galaxy?focus=luhman-16',
-        note: 'Nearest known brown dwarf binary system (L7.5 / T0.5) at 2.0 pc.',
-      },
-    ],
   },
   {
     id: 'd',
@@ -258,17 +154,9 @@ export const STAR_TYPE_GUIDE_ENTRIES: readonly StarTypeGuideEntry[] = [
     luminosityRangeLsun: '0.0001–100 L☉',
     habitableZoneAu: '0.005–0.03 AU',
     chromaticity: 'White / Ultra-Blue',
-    href: `${STAR_TYPES_GUIDE_PATH}/d`,
+    href: buildStarTypeGuideHref('d'),
     canonicalRadiusRsun: 0.012,
-    canonicalTempK: 15000,
-    chromaticityHex: '#e6f0ff',
+    chromaticityToken: 'var(--star-chromaticity-d)',
     interiorLayers: ['Degenerate Carbon-Oxygen Core'],
-    examples: [
-      {
-        name: 'Sirius B',
-        href: '/galaxy?focus=sirius',
-        note: 'Nearest known white dwarf (DA2) orbiting Sirius A.',
-      },
-    ],
   },
 ];

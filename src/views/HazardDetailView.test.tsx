@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { HazardDetailView } from './HazardDetailView';
+import {
+  clearGuideExamplesCache,
+  seedGuideExamples,
+} from '../data/guideExamplesRepository';
 
 vi.mock('@tanstack/react-router', () => ({
   useParams: vi.fn(() => ({})),
@@ -12,6 +16,7 @@ vi.mock('@tanstack/react-router', () => ({
 describe('<HazardDetailView />', () => {
   beforeEach(() => {
     vi.mocked(useParams).mockReturnValue({});
+    clearGuideExamplesCache();
   });
 
   it('renders single hazard detail view for high-gravity', () => {
@@ -59,5 +64,32 @@ describe('<HazardDetailView />', () => {
     const root = screen.getByTestId('hazard-detail-view-root');
     expect(root.getAttribute('data-hazard-id')).toBe('extreme-heat');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Environmental Hazard: Extreme thermal regime');
+  });
+
+  it('renders dataset-driven examples when guideExamplesRepository is hydrated', () => {
+    seedGuideExamples({
+      version: 1,
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      sections: {
+        starTypes: {},
+        planetTypes: {},
+        metricTypes: {},
+        hazardTypes: {
+          'high-gravity': [
+            {
+              id: 'tau-ceti-e',
+              name: 'Tau Ceti e',
+              href: '/system/tau-ceti?focus=tau-ceti-e',
+              note: 'Super-Earth candidate (1.83 g).',
+              reticleType: 'super-earth',
+            },
+          ],
+        },
+      },
+    });
+    render(<HazardDetailView hazardId="high-gravity" />);
+    const links = screen.getAllByTestId('guide-example-link');
+    expect(links[0]?.textContent).toBe('Tau Ceti e');
+    expect(links[0]?.getAttribute('href')).toBe('/system/tau-ceti?focus=tau-ceti-e');
   });
 });

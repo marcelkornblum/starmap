@@ -63,6 +63,7 @@ describe('<MetricComparativePanel />', () => {
     const entry = resolveMetricGuideEntry('stellar-mass')!;
     const uncataloguedComparison: MetricComparison = {
       metricId: 'stellar-mass',
+      baselineId: 'sol',
       baselineName: 'Sol',
       baselineHref: '/system/sol',
       baselineValue: '1.00 M☉',
@@ -100,6 +101,7 @@ describe('<MetricComparativePanel />', () => {
     const entry = resolveMetricGuideEntry('stellar-mass')!;
     const multiTargetComparison: MetricComparison = {
       metricId: 'stellar-mass',
+      baselineId: 'sol',
       baselineName: 'Sol',
       baselineHref: '/system/sol',
       baselineValue: '1.00 M☉',

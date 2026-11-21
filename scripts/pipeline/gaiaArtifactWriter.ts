@@ -28,6 +28,8 @@ import { DEFAULT_SECTOR_SIZE_PC, getSectorBounds } from '../../src/utils/sectorM
 import { loadAllGalacticStructures } from './galacticStructures';
 import { resolveBuildTimestampIso } from './seedCatalogs';
 import { loadAllSolarSystemBodies } from './solarBodies';
+import { buildSolSystemManifest } from './solAndSummary';
+import { writeGuideAndBaselinesArtifacts } from './guideAndBaselinesEmitter';
 import type { BuildPipelineOptions } from './types';
 
 export interface WritePipelineArtifactsParams {
@@ -240,6 +242,20 @@ export function writePipelineArtifacts(params: WritePipelineArtifactsParams): {
       ['layers.json', indices.layers],
     ];
     for (const [file, val] of indexFiles) fs.writeFileSync(path.join(dir, file), JSON.stringify(val), 'utf-8');
+  }
+
+  // 8. Write reference-baselines.json and guide-examples.json
+  if (options?.dataDir) {
+    const solManifest =
+      allSystemManifests.find((m) => m.id === 'sol') ?? buildSolSystemManifest();
+    writeGuideAndBaselinesArtifacts({
+      outDir: path.resolve(options.dataDir),
+      solManifest,
+      solarBodies: allSolarBodies,
+      allSummaries: cataloguedSummaries,
+      systemManifests: allSystemManifests,
+      generatedAt: nowIso,
+    });
   }
 
   return { galacticCount, solarBodiesCount };

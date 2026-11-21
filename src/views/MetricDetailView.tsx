@@ -14,6 +14,7 @@ import {
 } from '../components/interface';
 import { METRICS_GUIDE_PATH } from '../content/guide';
 import { extractFocusIdFromSearch } from '../services/guide/guideNavigation';
+import { getGuideExamplesForEntry } from '../services/guide/guideCatalogExamples';
 import {
   hydrateMetricComparison,
   resolveMetricComparison,
@@ -23,6 +24,10 @@ import {
   subscribeDetailsRepository,
   getDetailsRepositoryVersion,
 } from '../data/detailsRepository';
+import {
+  useHydratedGuideExamples,
+  useReferenceBaselines,
+} from '../hooks/useGuideData';
 import { useParams } from '@tanstack/react-router';
 import { useSpaLocation } from '../hooks/useSpaLocation';
 import styles from './GuideViews.module.css';
@@ -57,6 +62,8 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
     getDetailsRepositoryVersion,
     getDetailsRepositoryVersion,
   );
+  useReferenceBaselines();
+  useHydratedGuideExamples();
 
   useEffect(() => {
     void hydrateMetricComparison(resolvedMetricId, resolvedFocusId)
@@ -162,7 +169,9 @@ export const MetricDetailView: React.FC<MetricDetailViewProps> = ({
                   </Stack>
                 </section>
 
-                <GuideExamplesList examples={entry.examples} />
+                <GuideExamplesList
+                  examples={getGuideExamplesForEntry('metricTypes', entry.id)}
+                />
               </React.Fragment>
             );
           })}

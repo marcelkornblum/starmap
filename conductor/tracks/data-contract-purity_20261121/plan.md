@@ -19,15 +19,15 @@
 - [x] Task 1.6: Phase 1 Checkpoint commit on `chore/data-contract-purity`.
 
 ## Phase 2: Reference Targets & Guide Content Purity (`H1`, `M17`)
-- [ ] Task 2.1: Author `data/seed/guide-examples.json` (curated example entity IDs + scopes + educational context tags for `starTypes`, `planetTypes`, `metricTypes`, `hazardTypes`) and enrich Sol/Earth seed fields in `data/seed/solar-system-bodies.json` (`mag`, `absmag`, `luminosityLsun`, `effectiveTempK`, `spectralType`, `coordinatesPc`) so all baseline physical telemetry derives from `data/seed/` → build pipeline.
-- [ ] Task 2.2: Extend `scripts/build-data.ts` to emit `public/data/reference-baselines.json` (structured `{ value, unit }` Sol/Earth/Tau Ceti baselines) and `public/data/guide-examples.json` (resolved names, canonical hrefs via URL builders, and structured telemetry from the real pipeline dataset). Rebuild `public/data/`.
-- [ ] Task 2.3: Shrink `src/config/referenceTargets.ts` to structural entity IDs and wire tag only (`SOL_REFERENCE_TARGET`, `EARTH_REFERENCE_TARGET`, `DEFAULT_GUIDE_BENCHMARKS`, `DEFAULT_ORIGIN_TARGETS`, `COMPACT_SOLAR_BODY_TAG` — zero physical values, zero display names, zero formatted display strings). Update all ~30 callers across `src/` to read display names and telemetry from dataset/baseline repositories instead of `referenceTargets.ts`.
-- [ ] Task 2.4: Refactor `src/content/guide/{starTypes,planetTypes,metricTypes,hazardTypes}.ts` and `src/services/guide/{guideCatalogExamples,guideMetricBenchmarks,guideMetrics}.ts`:
+- [x] Task 2.1: Author `data/seed/guide-examples.json` (curated example entity IDs + scopes + educational context tags for `starTypes`, `planetTypes`, `metricTypes`, `hazardTypes`) and enrich Sol/Earth seed fields in `data/seed/solar-system-bodies.json` (`mag`, `absmag`, `luminosityLsun`, `effectiveTempK`, `spectralType`, `coordinatesPc`) so all baseline physical telemetry derives from `data/seed/` → build pipeline.
+- [x] Task 2.2: Extend `scripts/build-data.ts` to emit `public/data/reference-baselines.json` (structured `{ value, unit }` Sol/Earth/Tau Ceti baselines) and `public/data/guide-examples.json` (resolved names, canonical hrefs via URL builders, and structured telemetry from the real pipeline dataset). Rebuild `public/data/`.
+- [x] Task 2.3: Shrink `src/config/referenceTargets.ts` to structural entity IDs and wire tag only (`SOL_REFERENCE_TARGET`, `EARTH_REFERENCE_TARGET`, `DEFAULT_GUIDE_BENCHMARKS`, `DEFAULT_ORIGIN_TARGETS`, `COMPACT_SOLAR_BODY_TAG` — zero physical values, zero display names, zero formatted display strings). Update all ~30 callers across `src/` to read display names and telemetry from dataset/baseline repositories instead of `referenceTargets.ts`.
+- [x] Task 2.4: Refactor `src/content/guide/{starTypes,planetTypes,metricTypes,hazardTypes}.ts` and `src/services/guide/{guideCatalogExamples,guideMetricBenchmarks,guideMetrics}.ts`:
   - Remove all hardcoded entity facts, hand-built entity hrefs, and all 25 `guard-disable-line G-literals` suppressions from `src/content/guide/*`.
   - Deduplicate `chromaticityHex` in `src/content/guide/starTypes.ts` against CSS semantic tokens (`var(--spectral-*)` / `var(--star-chromaticity-*)`, removing raw hex literals from `starTypes.ts` and `Guide3DPreview`).
   - Wire Guide views (`StarTypesListView`, `StarTypeDetailView`, `PlanetTypesListView`, `PlanetTypeDetailView`, `MetricsListView`, `MetricDetailView`, `HazardsListView`, `HazardDetailView`) to consume dataset-driven examples and structured baselines cleanly.
-- [ ] Task 2.5: Quality Check & Visual Review: `npm run check`, `npm run test:coverage`, `npm run build`, and `npm run capture:views` across all 5 viewports for Guide and Details views.
-- [ ] Task 2.6: Phase 2 Checkpoint commit on `chore/data-contract-purity`.
+- [x] Task 2.5: Quality Check & Visual Review: `npm run check`, `npm run test:coverage`, `npm run build`, and `npm run capture:views` across all 5 viewports for Guide and Details views.
+- [x] Task 2.6: Phase 2 Checkpoint commit on `chore/data-contract-purity`.
 
 ## Phase 3: Seed-Backed `G-literals` & Exemption Removal (`H1`, `M2`)
 - [ ] Task 3.1: Refactor `scripts/audit-guards.ts`:
