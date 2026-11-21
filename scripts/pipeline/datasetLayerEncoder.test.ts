@@ -64,8 +64,9 @@ describe('datasetLayerEncoder & datasetLayerSearchBuilder', () => {
     expect(Object.keys(buckets).length).toBeGreaterThan(0);
   });
 
-  it('builds layer index manifest registry envelope', () => {
+  it('builds layer index manifest registry envelope with schema version v', () => {
     const indexManifest = buildLayerIndexManifest([sampleLayer]);
+    expect(indexManifest.v).toBe(1);
     expect(indexManifest.c).toBe(1);
     expect(indexManifest.d[0].layerId).toBe('canon-sample');
     expect(indexManifest.d[0].path).toBe('/data/overlays/layers/canon-sample.json');

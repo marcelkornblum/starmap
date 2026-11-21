@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
+  canonicalizeGlieseCleanKey,
   expandGlieseVariants,
   normalizeCleanKey,
+  pruneDerivableAliases,
 } from './nomenclature';
 import {
   SUPERSCRIPT_DIGIT_MAP,
@@ -36,5 +38,32 @@ describe('nomenclature (DEC-032 / nomenclature decomposition)', () => {
     expect(expandGlieseVariants('Gliese 581')).toEqual(['Gliese 581', 'Gl 581', 'GJ 581']);
     expect(expandGlieseVariants('NN 3622')).toEqual(['NN 3622', 'Gl 3622', 'GJ 3622', 'Gliese 3622']);
     expect(expandGlieseVariants('Sirius')).toEqual([]);
+  });
+
+  it('canonicalizes Gl/GJ/Gliese/NN/Wo keys with numeric suffix to a single gj prefix', () => {
+    expect(canonicalizeGlieseCleanKey('gl581')).toBe('gj581');
+    expect(canonicalizeGlieseCleanKey('gj581')).toBe('gj581');
+    expect(canonicalizeGlieseCleanKey('gliese581')).toBe('gj581');
+    expect(canonicalizeGlieseCleanKey('gl667c')).toBe('gj667c');
+    expect(canonicalizeGlieseCleanKey('nn3622')).toBe('gj3622');
+    expect(canonicalizeGlieseCleanKey('gliese')).toBe('gliese');
+    expect(canonicalizeGlieseCleanKey('tauceti')).toBe('tauceti');
+  });
+
+  it('prunes derivable name, id, gaiadr3, and duplicate Gliese aliases', () => {
+    const gaiaId = 'gaia-2452378776434477184';
+    const prunedGaia = pruneDerivableAliases(
+      gaiaId,
+      'Tau Ceti',
+      `tauceti gaia2452378776434477184 gaiadr3${gaiaId.slice(5)} hd10700 hip8102 gl71 gj71 gliese71`,
+    );
+    expect(prunedGaia).toBe('hd10700 hip8102 gj71');
+
+    const prunedGliese = pruneDerivableAliases(
+      'hip-74995',
+      'Gliese 581',
+      'gl581 gj581 gliese581 hip74995 wolf562',
+    );
+    expect(prunedGliese).toBe('wolf562');
   });
 });

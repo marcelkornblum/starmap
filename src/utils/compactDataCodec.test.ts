@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { COMPACT_SCHEMA_VERSION } from './compactDataConstants';
 import {
+  assertSchemaVersion,
   decodeCircumstellarDisk,
   decodeDetailBucket,
   decodeSectorPartition,
@@ -202,6 +203,17 @@ describe('AUD-048 / AUD-051 / DEC-R029: Wire Format Versioning & Precalculated F
     expect(COMPACT_SCHEMA_VERSION).toBe(1);
   });
 
+  it('assertSchemaVersion rejects null/non-objects, missing version keys, and mismatched versions', () => {
+    expect(() => assertSchemaVersion({ v: 1 }, 1, 'test')).not.toThrow();
+    expect(() => assertSchemaVersion({ version: 1 }, 1, 'test', 'version')).not.toThrow();
+
+    expect(() => assertSchemaVersion(null, 1, 'test')).toThrow(/invalid test envelope/i);
+    expect(() => assertSchemaVersion('bad', 1, 'test')).toThrow(/invalid test envelope/i);
+    expect(() => assertSchemaVersion({}, 1, 'test')).toThrow(/missing required "v"/i);
+    expect(() => assertSchemaVersion({}, 1, 'test', 'version')).toThrow(/missing required "version"/i);
+    expect(() => assertSchemaVersion({ v: 2 }, 1, 'test')).toThrow(/unsupported schema version/i);
+  });
+
   it('validates envelope schema version on decodeSectorPartition', () => {
     const validPartition: CompactSectorPartition = {
       v: 1,
@@ -212,6 +224,16 @@ describe('AUD-048 / AUD-051 / DEC-R029: Wire Format Versioning & Precalculated F
     };
     expect(() => decodeSectorPartition(validPartition)).not.toThrow();
 
+    const missingVersionPartition = {
+      i: 'sector_+000_+000_+000',
+      b: [0, 0, 0, 25, 25, 25],
+      c: 0,
+      d: {},
+    } as CompactSectorPartition;
+    expect(() => decodeSectorPartition(missingVersionPartition)).toThrow(
+      /unsupported schema version/i,
+    );
+
     const invalidPartition: CompactSectorPartition = {
       ...validPartition,
       v: 2,
@@ -221,7 +243,10 @@ describe('AUD-048 / AUD-051 / DEC-R029: Wire Format Versioning & Precalculated F
     );
   });
 
-  it('validates envelope schema version on decodeSummaryBucket and decodeDetailBucket', () => {
+  it('validates envelope schema version unconditionally on decodeSummaryBucket and decodeDetailBucket', () => {
+    const missingSummaryVersion = { i: '0', c: 0, d: {} } as ShardedBucketEnvelope<CompactSummaryNode>;
+    expect(() => decodeSummaryBucket(missingSummaryVersion)).toThrow(/unsupported schema version/i);
+
     const invalidSummaryBucket: ShardedBucketEnvelope<CompactSummaryNode> = {
       v: 99,
       i: '0',
@@ -231,6 +256,9 @@ describe('AUD-048 / AUD-051 / DEC-R029: Wire Format Versioning & Precalculated F
     expect(() => decodeSummaryBucket(invalidSummaryBucket)).toThrow(
       /unsupported schema version/i,
     );
+
+    const missingDetailVersion = { i: '0', c: 0, d: {} } as ShardedBucketEnvelope<CompactDetailRecord>;
+    expect(() => decodeDetailBucket(missingDetailVersion)).toThrow(/unsupported schema version/i);
 
     const invalidDetailBucket: ShardedBucketEnvelope<CompactDetailRecord> = {
       v: 99,

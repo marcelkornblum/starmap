@@ -15,7 +15,7 @@ import {
 import { computePlanetHazardMask } from '../../src/utils/astroHazards';
 import {
   buildCleanKeys,
-  expandGlieseVariants,
+  pruneDerivableAliases,
 } from '../../src/utils/nomenclature';
 import {
   isCoreSearchStarSystem,
@@ -29,7 +29,6 @@ export function indexStarSystems(
   systems: SystemSummaryNode[],
   starAliasesById: Map<string, string[]> | undefined,
   coreEntries: CompactSearchEntry[],
-  fullEntries: CompactSearchEntry[],
   starsEntries: CompactSearchEntry[],
 ): void {
   for (const sys of systems) {
@@ -39,7 +38,7 @@ export function indexStarSystems(
       sys.name,
       ...(sys.properName ? [sys.properName] : []),
     ];
-    const cleanKeys = buildCleanKeys(rawAliases);
+    const cleanKeys = pruneDerivableAliases(sys.id, sys.name, buildCleanKeys(rawAliases));
 
     const summaryTuple: SearchSummaryTuple = sys.hasHabitableCandidate
       ? [sys.mag, sys.spect || 'Unknown', sys.planetCount, 1]
@@ -71,7 +70,6 @@ export function indexStarSystems(
     if (cleanKeys) entry.a = cleanKeys;
 
     starsEntries.push(entry);
-    fullEntries.push(entry);
     if (isCoreSearchStarSystem(sys)) coreEntries.push(entry);
   }
 }
@@ -93,7 +91,6 @@ export function indexExoplanets(
   manifests: SystemManifest[],
   starAliasesById: Map<string, string[]> | undefined,
   coreEntries: CompactSearchEntry[],
-  fullEntries: CompactSearchEntry[],
   planetsEntries: CompactSearchEntry[],
 ): void {
   for (const manifest of manifests) {
@@ -108,13 +105,16 @@ export function indexExoplanets(
     });
 
     for (const planet of manifest.planets) {
-      const cleanKeys = buildCleanKeys([
+      const cleanKeys = pruneDerivableAliases(
+        planet.id,
         planet.name,
-        ...expandGlieseVariants(planet.name),
-        `${manifest.name} ${planet.letter}`,
-        ...(manifest.properName ? [`${manifest.properName} ${planet.letter}`] : []),
-        ...hostAliases.map((alias) => `${alias} ${planet.letter}`),
-      ]);
+        buildCleanKeys([
+          planet.name,
+          `${manifest.name} ${planet.letter}`,
+          ...(manifest.properName ? [`${manifest.properName} ${planet.letter}`] : []),
+          ...hostAliases.map((alias) => `${alias} ${planet.letter}`),
+        ]),
+      );
 
       const comp = planet.composition ?? classifyPlanetPhysical(planet);
       const isHz =
@@ -134,7 +134,7 @@ export function indexExoplanets(
         n: planet.name,
         s: manifest.id,
         p: [manifest.x, manifest.y, manifest.z],
-        a: cleanKeys,
+        ...(cleanKeys ? { a: cleanKeys } : {}),
       };
       if (exoplanetRankMap.has(planet.id)) planetEntry.r = exoplanetRankMap.get(planet.id);
       if (planet.orbit?.semiMajorAxis !== undefined && Number.isFinite(planet.orbit.semiMajorAxis)) {
@@ -163,7 +163,6 @@ export function indexExoplanets(
 
       planetsEntries.push(planetEntry);
       coreEntries.push(planetEntry);
-      fullEntries.push(planetEntry);
     }
   }
 }
@@ -171,11 +170,14 @@ export function indexExoplanets(
 export function indexStructures(
   structures: GalacticStructureRecord[],
   coreEntries: CompactSearchEntry[],
-  fullEntries: CompactSearchEntry[],
   structuresEntries: CompactSearchEntry[],
 ): void {
   for (const struct of structures) {
-    const cleanKeys = buildCleanKeys([struct.name, ...struct.designations]);
+    const cleanKeys = pruneDerivableAliases(
+      struct.id,
+      struct.name,
+      buildCleanKeys([struct.name, ...struct.designations]),
+    );
     const entry: CompactSearchEntry = {
       i: struct.id,
       k: 5,
@@ -185,12 +187,11 @@ export function indexStructures(
         Math.round(struct.y * 100) / 100,
         Math.round(struct.z * 100) / 100,
       ],
-      a: cleanKeys,
+      ...(cleanKeys ? { a: cleanKeys } : {}),
       u: struct.type === 'Pulsar' || struct.type === 'SupernovaRemnant' ? 'hazard' : 'stellar-cluster',
     };
 
     structuresEntries.push(entry);
-    fullEntries.push(entry);
     if (isCoreSearchStructure(struct)) coreEntries.push(entry);
   }
 }

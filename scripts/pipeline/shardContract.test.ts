@@ -2,31 +2,60 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  assertSchemaVersion,
   decodeDetailBucket,
   decodeSummaryBucket,
 } from '../../src/utils/compactDataCodec';
+import { COMPACT_SCHEMA_VERSION, ALL_36_BUCKETS } from '../../src/utils/compactDataConstants';
 import type {
   CompactDetailRecord,
   CompactSummaryNode,
   ShardedBucketEnvelope,
 } from '../../src/utils/compactDataTypes';
-import { ALL_36_BUCKETS } from '../../src/utils/compactDataConstants';
 import type {
   GuideExamplesDataset,
   ReferenceBaselinesDataset,
 } from '../../src/types/guideData';
+import { computeContentHash8, type DataManifestFile } from './dataManifestWriter';
 
-const SUMMARIES_DIR = path.resolve(process.cwd(), 'public/data/summaries');
-const DETAILS_DIR = path.resolve(process.cwd(), 'public/data/details');
 const DATA_DIR = path.resolve(process.cwd(), 'public/data');
+const MANIFEST_PATH = path.join(DATA_DIR, 'manifest.json');
 
-describe('Precalculated Shard Contract (H2 / M10)', () => {
+function loadDataManifest(): DataManifestFile {
+  expect(fs.existsSync(MANIFEST_PATH)).toBe(true);
+  const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8')) as DataManifestFile;
+  assertSchemaVersion(manifest, COMPACT_SCHEMA_VERSION, 'data manifest');
+  return manifest;
+}
+
+function resolveManifestDiskPath(manifest: DataManifestFile, logicalRel: string): string {
+  const mapped = manifest.files[logicalRel];
+  expect(mapped, `Missing manifest entry for "${logicalRel}"`).toBeDefined();
+  return path.join(DATA_DIR, mapped!);
+}
+
+describe('Precalculated Shard Contract (H2 / M10 / M16)', () => {
+  it('validates manifest.json and verifies every shard exists on disk with matching SHA-256 filename hash', () => {
+    const manifest = loadDataManifest();
+    const entries = Object.entries(manifest.files);
+    expect(entries.length).toBeGreaterThan(0);
+
+    for (const [logical, hashed] of entries) {
+      const fullPath = path.join(DATA_DIR, hashed);
+      expect(fs.existsSync(fullPath), `Manifest file missing on disk: ${hashed} (for ${logical})`).toBe(true);
+      const hashMatch = /\.([0-9a-f]{8})\.(bin|json)$/.exec(hashed);
+      expect(hashMatch, `Manifest target "${hashed}" must contain 8-char hex content hash`).not.toBeNull();
+      const actualHash = computeContentHash8(fs.readFileSync(fullPath));
+      expect(hashMatch![1]).toBe(actualHash);
+    }
+  });
+
   it('decodes every summary shard strictly with valid precalculated fields', () => {
-    expect(fs.existsSync(SUMMARIES_DIR)).toBe(true);
+    const manifest = loadDataManifest();
     let summaryCount = 0;
 
     for (const bucket of ALL_36_BUCKETS) {
-      const filePath = path.join(SUMMARIES_DIR, `${bucket}.json`);
+      const filePath = resolveManifestDiskPath(manifest, `summaries/${bucket}.json`);
       expect(fs.existsSync(filePath)).toBe(true);
       const raw = JSON.parse(
         fs.readFileSync(filePath, 'utf8'),
@@ -47,13 +76,13 @@ describe('Precalculated Shard Contract (H2 / M10)', () => {
   });
 
   it('decodes every detail shard strictly with required composition, reticleType, and counts', () => {
-    expect(fs.existsSync(DETAILS_DIR)).toBe(true);
+    const manifest = loadDataManifest();
     let systemCount = 0;
     let exoplanetCount = 0;
     let solarPlanetCount = 0;
 
     for (const bucket of ALL_36_BUCKETS) {
-      const filePath = path.join(DETAILS_DIR, `${bucket}.json`);
+      const filePath = resolveManifestDiskPath(manifest, `details/${bucket}.json`);
       expect(fs.existsSync(filePath)).toBe(true);
       const raw = JSON.parse(
         fs.readFileSync(filePath, 'utf8'),
@@ -111,8 +140,9 @@ describe('Precalculated Shard Contract (H2 / M10)', () => {
   });
 
   it('emits valid reference-baselines.json and guide-examples.json datasets', () => {
-    const baselinesPath = path.join(DATA_DIR, 'reference-baselines.json');
-    const examplesPath = path.join(DATA_DIR, 'guide-examples.json');
+    const manifest = loadDataManifest();
+    const baselinesPath = resolveManifestDiskPath(manifest, 'reference-baselines.json');
+    const examplesPath = resolveManifestDiskPath(manifest, 'guide-examples.json');
     expect(fs.existsSync(baselinesPath)).toBe(true);
     expect(fs.existsSync(examplesPath)).toBe(true);
 

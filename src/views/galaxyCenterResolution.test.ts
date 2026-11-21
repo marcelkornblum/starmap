@@ -7,6 +7,8 @@ import {
 } from './galaxyCenterResolution';
 import type { SpatialEntityDefinition } from '../types/spatial';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
+import type { SystemSummaryNode } from '../types/astro';
+import { mergeActiveStarsIntoCorpus } from '../services/details/activeStarsCorpus';
 
 describe('galaxyCenterResolution (unit:node)', () => {
   describe('getCorpusSystemFirstChildMap', () => {
@@ -195,6 +197,31 @@ describe('galaxyCenterResolution (unit:node)', () => {
         center: 'unknown-object',
       });
       expect(result).toBeUndefined();
+    });
+
+    it('reuses base getCorpusSystemFirstChildMap in O(1) when layered corpus extras have no parent system s', () => {
+      const baseCorpus: CompactSearchEntry[] = [
+        { i: 'tau-ceti', n: 'Tau Ceti', p: [3.15, 1.54, -1.0] },
+        { i: 'tau-ceti-e', n: 'Tau Ceti e', s: 'tau-ceti' },
+      ];
+      const baseMap = getCorpusSystemFirstChildMap(baseCorpus);
+      const extraStar: SystemSummaryNode = {
+        id: 'new-star',
+        name: 'New Star',
+        x: 5,
+        y: 5,
+        z: 5,
+        dist: 8.66,
+        mag: 6,
+        absmag: 6,
+        spect: 'K0V',
+        starCount: 1,
+        planetCount: 0,
+        hasHabitableCandidate: false,
+        sectorId: 'sector_+000_+000_+000',
+      };
+      const layered = mergeActiveStarsIntoCorpus(baseCorpus, [extraStar]);
+      expect(getCorpusSystemFirstChildMap(layered)).toBe(baseMap);
     });
   });
 });

@@ -140,4 +140,26 @@ describe('referenceBaselinesRepository', () => {
     const data = await fetchReferenceBaselines(fetchOk as unknown as typeof fetch);
     expect(data.targets.sol.id).toBe('sol');
   });
+
+  it('rejects reference-baselines.json with missing or mismatched version', async () => {
+    const missingFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ generatedAt: '2026-01-01T00:00:00.000Z', targets: MOCK_BASELINES.targets, metrics: MOCK_BASELINES.metrics }),
+    }));
+    await expect(
+      fetchReferenceBaselines(missingFetch as unknown as typeof fetch),
+    ).rejects.toThrow(/unsupported schema version/i);
+
+    const wrongFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ ...MOCK_BASELINES, version: 2 }),
+    }));
+    await expect(
+      fetchReferenceBaselines(wrongFetch as unknown as typeof fetch),
+    ).rejects.toThrow(/unsupported schema version/i);
+  });
 });

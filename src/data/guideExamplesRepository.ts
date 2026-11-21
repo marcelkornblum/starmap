@@ -3,7 +3,9 @@ import type {
   GuideSectionKey,
   ResolvedGuideExampleItem,
 } from '../types/guideData';
-import { resolveDataUrl } from '../utils/url';
+import { assertSchemaVersion } from '../utils/compactDataCodec';
+import { COMPACT_SCHEMA_VERSION } from '../utils/compactDataConstants';
+import { resolveManifestDataUrl } from './dataManifestRepository';
 
 const EMPTY_EXAMPLES: readonly ResolvedGuideExampleItem[] = [];
 
@@ -61,7 +63,11 @@ export const fetchGuideExamples = async (
 
     pendingRequest = (async () => {
       try {
-        const url = resolveDataUrl('/data/guide-examples.json');
+        const url = await resolveManifestDataUrl(
+          'guide-examples.json',
+          fetchImpl,
+          signal,
+        );
         const response = signal
           ? await fetchImpl(url, { signal })
           : await fetchImpl(url);
@@ -71,6 +77,7 @@ export const fetchGuideExamples = async (
           );
         }
         const data = (await response.json()) as GuideExamplesDataset;
+        assertSchemaVersion(data, COMPACT_SCHEMA_VERSION, 'guide-examples.json', 'version');
         cachedExamples = data;
         notifyListeners();
         return data;

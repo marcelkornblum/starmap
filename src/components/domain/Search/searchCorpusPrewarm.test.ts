@@ -94,4 +94,29 @@ describe('searchCorpusPrewarm', () => {
     expect(fetchShardSpy).toHaveBeenCalled();
     expect(result).toBeDefined();
   });
+
+  it('loads only startup shard on passive mount with empty query and non-search route', async () => {
+    const loadSpy = vi
+      .spyOn(searchRepo, 'loadSearchCorpusForFilter')
+      .mockResolvedValue(SAMPLE_ENTRIES);
+
+    const store = createSpatialEntityStore();
+    await runSearchCorpusPrewarm({
+      initialFilter: 'all',
+      activeSearch: '',
+      initialQuery: '',
+      syncUrl: true,
+      isSearchRoute: false,
+      store,
+      layerIndex: [],
+      loadedLayers: [],
+      resolveCurrentFocusSlug: () => null,
+      updateResultsAndSelection: vi.fn(),
+      setStatus: vi.fn(),
+      fallbackFocusIdRef: { current: null },
+      isCancelled: () => false,
+    });
+
+    expect(loadSpy).toHaveBeenCalledWith('startup');
+  });
 });

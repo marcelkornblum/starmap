@@ -168,4 +168,21 @@ describe('GalaxyScene - Streamed Stars Deduplication & Classification Derivation
     expect(capturedEntities).toBe(firstCapture);
     expect(capturedEntities[0]?.planets).toBe(firstPlanets);
   });
+
+  it('coalesces hydration state updates and skips re-render when summary IDs and focus point are unchanged', () => {
+    const summary = makeStreamedSummary('hip-8102', 'Tau Ceti', 3.156, 1.54, -1.003, 1);
+    render(<GalaxyScene additionalEntities={[]} />);
+
+    act(() => {
+      triggerHydration?.([summary]);
+    });
+    const firstCapture = capturedEntities;
+
+    // Re-trigger with new array containing identical summary ID
+    act(() => {
+      triggerHydration?.([{ ...summary }]);
+    });
+
+    expect(capturedEntities).toBe(firstCapture);
+  });
 });

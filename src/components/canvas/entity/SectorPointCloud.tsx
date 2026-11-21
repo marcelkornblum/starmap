@@ -124,6 +124,7 @@ export function SectorPointCloud({
   const lastHydratedRadiusRef = useRef(Number.NaN);
   const hydratingRef = useRef(false);
   const pendingHydrationRef = useRef(false);
+  const hasNotifiedHydrationRef = useRef(false);
   const prevFrameXRef = useRef(Number.NaN);
   const prevFrameYRef = useRef(Number.NaN);
   const prevFrameZRef = useRef(Number.NaN);
@@ -165,7 +166,10 @@ export function SectorPointCloud({
         .then((state) => {
           if (hydrationBridgeRef.current !== bridge) return;
           hydratingRef.current = false;
-          onSummariesRef.current?.(state.activeSummaries, [fx, fy, fz]);
+          if (!hasNotifiedHydrationRef.current || state.hasActiveSummariesChanged) {
+            hasNotifiedHydrationRef.current = true;
+            onSummariesRef.current?.(state.activeSummaries, [fx, fy, fz]);
+          }
           invalidate();
           if (pendingHydrationRef.current) {
             pendingHydrationRef.current = false;
@@ -223,6 +227,7 @@ export function SectorPointCloud({
       lastHydratedRadiusRef.current = Number.NaN;
       hydratingRef.current = false;
       pendingHydrationRef.current = false;
+      hasNotifiedHydrationRef.current = false;
     };
   }, [manager, scratchPosRef, invalidate]);
 

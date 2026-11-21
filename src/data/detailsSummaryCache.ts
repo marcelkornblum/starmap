@@ -1,9 +1,14 @@
 import type { SystemSummaryNode } from '../types/astro';
-import { decodeSummaryNode, getShardKey } from '../utils/compactDataCodec';
+import {
+  assertSchemaVersion,
+  decodeSummaryNode,
+  getShardKey,
+} from '../utils/compactDataCodec';
+import { COMPACT_SCHEMA_VERSION } from '../utils/compactDataConstants';
 import type { CompactSummaryNode, ShardedBucketEnvelope } from '../utils/compactDataTypes';
 import { fnv1a32, getShardKeyFromHash } from '../utils/binarySectorCodec';
-import { resolveDataUrl } from '../utils/url';
 import { BoundedLruCache } from '../utils/lruCache';
+import { resolveManifestDataUrl } from './dataManifestRepository';
 import {
   SUMMARY_BUCKET_CACHE_LIMIT,
   SUMMARY_NODE_CACHE_LIMIT,
@@ -113,7 +118,11 @@ export const loadSummaryBucket = (
 
     pending = (async () => {
       try {
-        const url = resolveDataUrl(`/data/summaries/${bucketKey}.json`);
+        const url = await resolveManifestDataUrl(
+          `summaries/${bucketKey}.json`,
+          fetchImpl,
+          signal,
+        );
         const response = signal
           ? await fetchImpl(url, { signal })
           : await fetchImpl(url);
@@ -124,6 +133,7 @@ export const loadSummaryBucket = (
         }
         const envelope =
           (await response.json()) as ShardedBucketEnvelope<CompactSummaryNode>;
+        assertSchemaVersion(envelope, COMPACT_SCHEMA_VERSION, `summary shard "${bucketKey}"`);
         const data = envelope.d ?? {};
         RESOLVED_SUMMARY_BUCKET_CACHE.set(bucketKey, data);
         onLoaded?.();

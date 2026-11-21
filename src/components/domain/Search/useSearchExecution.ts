@@ -1,5 +1,6 @@
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 import { getCachedCorpusForFilter } from '../../../data/searchRepository';
+import { escalateSearchBackgroundWarmup } from '../../../data/searchBackgroundWarmup';
 import type { GroupedSearchResults, SearchResultItem } from '../../../services/search/searchTypes';
 import type { SearchCategoryFilter } from '../../../types/search';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
@@ -193,6 +194,9 @@ export const useSearchExecution = ({
       setQueryState(nextQuery);
       if (nextQuery.trim().length > 0) {
         setIsFocused(true);
+        if (!initialCorpus) {
+          escalateSearchBackgroundWarmup();
+        }
       }
 
       if (deferredSearchTimerRef.current !== null) {
@@ -216,7 +220,7 @@ export const useSearchExecution = ({
         void submitSearch(searchQuery, filter);
       }, effectiveDebounceMs);
     },
-    [effectiveDebounceMs, filter, isSync, setIsFocused, submitSearch, syncUrl],
+    [effectiveDebounceMs, filter, initialCorpus, isSync, setIsFocused, submitSearch, syncUrl],
   );
 
   const setFilter = useCallback(
@@ -225,11 +229,16 @@ export const useSearchExecution = ({
         clearTimeout(deferredSearchTimerRef.current);
         deferredSearchTimerRef.current = null;
       }
+      if (!initialCorpus) {
+        escalateSearchBackgroundWarmup({
+          includeMinorBodies: nextFilter === 'all' || nextFilter === 'minor-bodies',
+        });
+      }
       setFilterState(nextFilter);
       if (syncUrl) syncSearchUrlParams(query, nextFilter);
       void submitSearch(query, nextFilter);
     },
-    [query, submitSearch, syncUrl],
+    [initialCorpus, query, submitSearch, syncUrl],
   );
 
   const dismissSearch = useCallback(

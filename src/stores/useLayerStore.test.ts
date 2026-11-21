@@ -25,7 +25,7 @@ describe('useLayerStore', () => {
           ok: true,
           status: 200,
           statusText: 'OK',
-          json: async () => ({ d: LAYER_INDEX_ENTRIES }),
+          json: async () => ({ v: 1, d: LAYER_INDEX_ENTRIES }),
         }) as unknown as Response,
     );
 

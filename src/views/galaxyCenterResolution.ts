@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { SpatialEntityDefinition } from '../types/spatial';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import { findFocusedEntryInCorpus } from '../services/search/searchCorpusHelpers';
+import { getMergedCorpusParts } from '../services/details/activeStarsCorpus';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
@@ -15,6 +16,29 @@ export function getCorpusSystemFirstChildMap(
 ): Map<string, CompactSearchEntry> {
   let map = corpusSystemFirstChildCache.get(corpus);
   if (!map) {
+    const parts = getMergedCorpusParts(corpus);
+    if (parts) {
+      const baseMap = getCorpusSystemFirstChildMap(parts.base);
+      if (parts.extras.every((e) => !e.s)) {
+        corpusSystemFirstChildCache.set(corpus, baseMap);
+        return baseMap;
+      }
+      map = new Map<string, CompactSearchEntry>(baseMap);
+      for (const entry of parts.extras) {
+        if (!entry.s) continue;
+        const rawS = entry.s;
+        const slugS = toUrlSlug(rawS);
+        if (!map.has(slugS)) {
+          map.set(slugS, entry);
+        }
+        if (rawS !== slugS && !map.has(rawS)) {
+          map.set(rawS, entry);
+        }
+      }
+      corpusSystemFirstChildCache.set(corpus, map);
+      return map;
+    }
+
     map = new Map<string, CompactSearchEntry>();
     for (const entry of corpus) {
       if (!entry.s) continue;

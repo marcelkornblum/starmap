@@ -47,10 +47,10 @@ export interface InstrumentProximityQueryResult {
 }
 
 export interface HydratedInstrumentState {
-  readonly hydratedByHash: ReadonlyMap<number, SystemSummaryNode>;
   readonly activeSummaries: readonly SystemSummaryNode[];
   readonly leadBufferSummaries: readonly SystemSummaryNode[];
   readonly evictedMetadataCount: number;
+  readonly hasActiveSummariesChanged: boolean;
 }
 
 export interface InstrumentHydrationOptions {
@@ -116,6 +116,7 @@ export class InstrumentHydrationBridge {
   private readonly inFlightMap = new Map<number, Promise<SystemSummaryNode | undefined>>();
   private readonly unresolvableHashes = new Set<number>();
   private currentPerimeterHashes: ReadonlySet<number> = new Set();
+  private prevActiveSummaries: readonly SystemSummaryNode[] | null = null;
   private evictedMetadataCount = 0;
   private isDisposed = false;
 
@@ -135,10 +136,10 @@ export class InstrumentHydrationBridge {
   ): Promise<HydratedInstrumentState> {
     if (this.isDisposed) {
       return {
-        hydratedByHash: new Map(),
         activeSummaries: [],
         leadBufferSummaries: [],
         evictedMetadataCount: this.evictedMetadataCount,
+        hasActiveSummariesChanged: false,
       };
     }
 
@@ -187,14 +188,24 @@ export class InstrumentHydrationBridge {
 
     await Promise.allSettled(hydrationPromises);
 
-    const activeSummaries = resolveHitsSummaries(query.activeStars, this.hydratedMap);
+    const nextActiveSummaries = resolveHitsSummaries(query.activeStars, this.hydratedMap);
+    const prevActive = this.prevActiveSummaries;
+    const hasActiveSummariesChanged =
+      prevActive === null ||
+      prevActive.length !== nextActiveSummaries.length ||
+      nextActiveSummaries.some((s, idx) => s.id !== prevActive[idx]?.id);
+
+    const activeSummaries = hasActiveSummariesChanged
+      ? (this.prevActiveSummaries = nextActiveSummaries)
+      : prevActive;
+
     const leadBufferSummaries = resolveHitsSummaries(query.leadBufferStars, this.hydratedMap);
 
     return {
-      hydratedByHash: new Map(this.hydratedMap),
       activeSummaries,
       leadBufferSummaries,
       evictedMetadataCount: this.evictedMetadataCount,
+      hasActiveSummariesChanged,
     };
   }
 
@@ -213,5 +224,6 @@ export class InstrumentHydrationBridge {
     this.inFlightMap.clear();
     this.unresolvableHashes.clear();
     this.currentPerimeterHashes = new Set();
+    this.prevActiveSummaries = null;
   }
 }

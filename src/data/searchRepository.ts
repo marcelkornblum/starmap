@@ -1,27 +1,31 @@
 import type { SearchCategoryFilter } from '../types/search';
+import { assertSchemaVersion } from '../utils/compactDataCodec';
+import { COMPACT_SCHEMA_VERSION } from '../utils/compactDataConstants';
 import type { CompactSearchEntry, SearchIndexEnvelope } from '../utils/compactDataTypes';
-import { resolveDataUrl } from '../utils/url';
 import { BoundedLruCache } from '../utils/lruCache';
 import { SEARCH_SHARD_CACHE_LIMIT } from '../config/cacheConfig';
+import { resolveManifestDataUrl } from './dataManifestRepository';
+import { fetchAndParseJson, JsonHttpError } from './workerJsonParser';
 
 export type SearchShardName =
+  | 'startup'
   | 'core'
-  | 'full'
   | 'stars'
   | 'planets'
   | 'structures'
   | 'minor-bodies'
   | 'layers';
 
+export type SearchCorpusScope = SearchCategoryFilter | 'startup';
 
-const SHARD_URLS: Record<SearchShardName, string> = {
-  core: resolveDataUrl('/data/search/core.json'),
-  full: resolveDataUrl('/data/search/full.json'),
-  stars: resolveDataUrl('/data/search/stars.json'),
-  planets: resolveDataUrl('/data/search/planets.json'),
-  structures: resolveDataUrl('/data/search/structures.json'),
-  'minor-bodies': resolveDataUrl('/data/search/minor-bodies.json'),
-  layers: resolveDataUrl('/data/search/layers.json'),
+const SHARD_LOGICAL_PATHS: Record<SearchShardName, string> = {
+  startup: 'search/startup.json',
+  core: 'search/core.json',
+  stars: 'search/stars.json',
+  planets: 'search/planets.json',
+  structures: 'search/structures.json',
+  'minor-bodies': 'search/minor-bodies.json',
+  layers: 'search/layers.json',
 };
 
 const shardCache = new BoundedLruCache<SearchShardName, Promise<readonly CompactSearchEntry[]>>(
@@ -30,12 +34,23 @@ const shardCache = new BoundedLruCache<SearchShardName, Promise<readonly Compact
 const resolvedShardCache = new BoundedLruCache<SearchShardName, readonly CompactSearchEntry[]>(
   SEARCH_SHARD_CACHE_LIMIT,
 );
-const resolvedFilterCache = new BoundedLruCache<SearchCategoryFilter, readonly CompactSearchEntry[]>(
+const resolvedFilterCache = new BoundedLruCache<SearchCorpusScope, readonly CompactSearchEntry[]>(
   SEARCH_SHARD_CACHE_LIMIT,
 );
 
 const searchListeners = new Set<() => void>();
+const clearCacheListeners = new Set<() => void>();
 let searchRepoVersion = 0;
+
+/**
+ * Registers a listener invoked when `clearSearchRepositoryCache()` runs (e.g. test cleanup).
+ */
+export const registerSearchCacheClearListener = (listener: () => void): (() => void) => {
+  clearCacheListeners.add(listener);
+  return () => {
+    clearCacheListeners.delete(listener);
+  };
+};
 
 /**
  * Returns the current version counter of the search repository cache.
@@ -77,11 +92,15 @@ export const clearSearchRepositoryCache = (): void => {
   shardCache.clear();
   resolvedShardCache.clear();
   resolvedFilterCache.clear();
+  for (const listener of clearCacheListeners) {
+    listener();
+  }
   notifySearchListeners();
 };
 
 /**
- * Fetches, validates, and caches a single search index shard (`public/data/search/<shard>.json`).
+ * Fetches, validates, and caches a single search index shard (`public/data/search/<shard>.json`)
+ * using the background Web Worker JSON parser when available.
  */
 export const fetchSearchShard = async (
   shard: SearchShardName,
@@ -96,17 +115,27 @@ export const fetchSearchShard = async (
   let loadPromise = shardCache.get(shard);
   if (!loadPromise) {
     loadPromise = (async (): Promise<readonly CompactSearchEntry[]> => {
-      const response = signal
-        ? await fetcher(SHARD_URLS[shard], { signal })
-        : await fetcher(SHARD_URLS[shard]);
-      if (!response.ok) {
-        throw new Error(`Failed to load search shard "${shard}" (${response.status})`);
+      const url = await resolveManifestDataUrl(
+        SHARD_LOGICAL_PATHS[shard],
+        fetcher,
+        signal,
+      );
+      let payload: unknown;
+      try {
+        payload = await fetchAndParseJson(url, fetcher, signal);
+      } catch (err: unknown) {
+        if (err instanceof JsonHttpError) {
+          throw new Error(`Failed to load search shard "${shard}" (${err.status})`);
+        }
+        throw err;
       }
-      const payload: unknown = await response.json();
       if (!isSearchIndexEnvelope(payload)) {
         throw new Error(`Invalid search index envelope in shard "${shard}"`);
       }
+      assertSchemaVersion(payload, COMPACT_SCHEMA_VERSION, `search shard "${shard}"`);
       resolvedShardCache.set(shard, payload.d);
+      resolvedFilterCache.delete('startup');
+      resolvedFilterCache.delete('all');
       notifySearchListeners();
       return payload.d;
     })().catch((err: unknown) => {
@@ -161,11 +190,41 @@ export const mergeSearchShards = (
  * Enables zero-latency keystroke search without async state transitions on every key press.
  */
 export const getCachedCorpusForFilter = (
-  filter: SearchCategoryFilter,
+  filter: SearchCorpusScope,
 ): readonly CompactSearchEntry[] | undefined => {
   const cachedFilterCorpus = resolvedFilterCache.get(filter);
   if (cachedFilterCorpus) {
     return cachedFilterCorpus;
+  }
+
+  if (filter === 'startup') {
+    const startup = resolvedShardCache.get('startup');
+    const stars = resolvedShardCache.get('stars');
+    const planets = resolvedShardCache.get('planets');
+    const minorBodies = resolvedShardCache.get('minor-bodies');
+    const core = resolvedShardCache.get('core');
+    const structures = resolvedShardCache.get('structures');
+
+    if (stars || planets || minorBodies || (core && structures)) {
+      const layersToMerge: (readonly CompactSearchEntry[])[] = [];
+      if (startup) layersToMerge.push(startup);
+      if (core) layersToMerge.push(core);
+      if (structures) layersToMerge.push(structures);
+      if (stars) layersToMerge.push(stars);
+      if (planets) layersToMerge.push(planets);
+      if (minorBodies) layersToMerge.push(minorBodies);
+      if (layersToMerge.length > 0) {
+        const upgraded =
+          layersToMerge.length === 1 ? layersToMerge[0]! : mergeSearchShards(layersToMerge);
+        resolvedFilterCache.set('startup', upgraded);
+        return upgraded;
+      }
+    }
+
+    if (startup) {
+      resolvedFilterCache.set('startup', startup);
+    }
+    return startup;
   }
 
   if (filter !== 'all') {
@@ -185,17 +244,26 @@ export const getCachedCorpusForFilter = (
     return merged;
   }
 
+  const stars = resolvedShardCache.get('stars');
+  const planets = resolvedShardCache.get('planets');
+  const layers = resolvedShardCache.get('layers');
+  if (stars && planets && structures && layers && minorBodies) {
+    const merged = mergeSearchShards([stars, planets, structures, layers, minorBodies]);
+    resolvedFilterCache.set('all', merged);
+    return merged;
+  }
+
   return undefined;
 };
 
 /**
- * Loads the appropriate search corpus for the requested category filter.
+ * Loads the appropriate search corpus for the requested category filter or `'startup'` tier.
+ * - `'startup'` loads ONLY `search/startup` (~lean focus/layers/Sol/structures corpus).
  * - Specific category filters load only their dedicated category shard.
- * - `'all'` loads `core.json` + `structures.json` + `minor-bodies.json` in parallel for
- *   complete coverage across all 5 categories without waiting for the 10.7 MB faint-star tail.
+ * - `'all'` loads `core` + `structures` + `minor-bodies` in parallel.
  */
 export const loadSearchCorpusForFilter = async (
-  filter: SearchCategoryFilter,
+  filter: SearchCorpusScope,
   fetcher: typeof fetch = fetch,
   signal?: AbortSignal,
 ): Promise<readonly CompactSearchEntry[]> => {
@@ -204,6 +272,15 @@ export const loadSearchCorpusForFilter = async (
     if (cached) {
       return cached;
     }
+  }
+
+  if (filter === 'startup') {
+    const shard = await fetchSearchShard('startup', fetcher, signal);
+    if (fetcher === fetch) {
+      resolvedFilterCache.set('startup', shard);
+      notifySearchListeners();
+    }
+    return shard;
   }
 
   if (filter !== 'all') {

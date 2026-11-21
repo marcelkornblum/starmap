@@ -6,6 +6,10 @@ import {
 import type { SpatialEntityDefinition } from '../types/spatial';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import type { DecodedDetailRecord } from '../data/detailsRepository';
+import {
+  escalateSearchBackgroundWarmup,
+  scheduleSearchBackgroundWarmup,
+} from '../data/searchBackgroundWarmup';
 import { useSystemData } from '../hooks/useSystemData';
 import { useSearchCorpus } from '../hooks/useSearchCorpus';
 import { buildFocusedEntityDetails } from '../services/details/focusedEntityDetails';
@@ -73,7 +77,7 @@ export function useResolvedSystemDetails(
   const urlFocusSlug = focusParam ? toUrlSlug(focusParam) || null : null;
   const hasExplicitFocus = Boolean(focusParam && urlFocusSlug && urlFocusSlug.length > 0);
 
-  const { corpus } = useSearchCorpus('all', initialCorpus);
+  const { corpus } = useSearchCorpus('startup', initialCorpus);
   const activeCorpus = corpus ?? EMPTY_CORPUS;
 
   const urlSystemEntry = useMemo(
@@ -83,6 +87,15 @@ export function useResolvedSystemDetails(
         : undefined,
     [urlSystemSlug, activeCorpus],
   );
+
+  useEffect(() => {
+    if (initialCorpus || !corpus) return;
+    if (urlSystemSlug && !urlSystemEntry) {
+      escalateSearchBackgroundWarmup();
+    } else {
+      scheduleSearchBackgroundWarmup();
+    }
+  }, [initialCorpus, corpus, urlSystemSlug, urlSystemEntry]);
   const targetSystemId = useMemo(
     () =>
       urlSystemEntry?.s ??

@@ -1,5 +1,8 @@
 import type { CompactSearchEntry } from '../../utils/compactDataTypes';
-import { normalizeCleanKey } from '../../utils/nomenclature';
+import {
+  canonicalizeGlieseCleanKey,
+  normalizeCleanKey,
+} from '../../utils/nomenclature';
 import { expandGouldOrConstellationSuffix } from '../../utils/starNaming';
 import type { NormalizedSearchQuery, SearchResultItem } from './searchTypes';
 
@@ -16,6 +19,7 @@ export const normaliseSearchQuery = (rawQuery: string): NormalizedSearchQuery =>
       expandedLower: '',
       rawCleanKey: '',
       cleanKey: '',
+      canonicalGlieseKey: '',
       tokens: [],
     };
   }
@@ -25,6 +29,7 @@ export const normaliseSearchQuery = (rawQuery: string): NormalizedSearchQuery =>
   const expandedLower = expanded.toLowerCase();
   const rawCleanKey = normalizeCleanKey(rawTrimmed);
   const cleanKey = normalizeCleanKey(expanded);
+  const canonicalGlieseKey = canonicalizeGlieseCleanKey(cleanKey);
 
   const tokens = expandedLower
     .split(/\s+/)
@@ -37,6 +42,7 @@ export const normaliseSearchQuery = (rawQuery: string): NormalizedSearchQuery =>
     expandedLower,
     rawCleanKey,
     cleanKey,
+    canonicalGlieseKey,
     tokens,
   };
 };
@@ -45,6 +51,8 @@ export interface PreparedSearchEntry {
   readonly idLower: string;
   readonly nameLower: string;
   readonly nameClean: string;
+  readonly nameCanonicalGliese: string;
+  readonly gaiaAlias: string;
   readonly nameSegments: readonly string[];
   readonly aliasKeys: readonly string[];
   readonly canonLower: string;
@@ -68,10 +76,18 @@ export const getPreparedSearchEntry = (
         .filter((s) => s.length > 0)
     : [];
 
+  const nameClean = normalizeCleanKey(entry.n);
+  const nameCanonicalGliese = canonicalizeGlieseCleanKey(nameClean);
+  const gaiaAlias = entry.i.startsWith('gaia-')
+    ? `gaiadr3${normalizeCleanKey(entry.i.slice(5))}`
+    : '';
+
   const prepared: PreparedSearchEntry = {
     idLower: entry.i.toLowerCase(),
     nameLower: entry.n.toLowerCase(),
-    nameClean: normalizeCleanKey(entry.n),
+    nameClean,
+    nameCanonicalGliese,
+    gaiaAlias,
     nameSegments,
     aliasKeys: entry.a ? entry.a.split(' ') : [],
     canonLower: entry.c ? entry.c.toLowerCase() : '',
@@ -121,10 +137,17 @@ export const scoreSearchEntry = (
     return 925;
   }
 
-  // 3. Exact match on one of the space-delimited clean alias keys
+  // 3. Exact match on stored alias keys, canonicalized Gliese name, or derived Gaia DR3 alias
   if (
+    prepared.nameCanonicalGliese === query.canonicalGlieseKey ||
+    (prepared.gaiaAlias.length > 0 &&
+      (prepared.gaiaAlias === query.cleanKey ||
+        prepared.gaiaAlias === query.rawCleanKey)) ||
     prepared.aliasKeys.some(
-      (alias) => alias === query.cleanKey || alias === query.rawCleanKey,
+      (alias) =>
+        alias === query.cleanKey ||
+        alias === query.rawCleanKey ||
+        alias === query.canonicalGlieseKey,
     )
   ) {
     return 900;
@@ -153,11 +176,17 @@ export const scoreSearchEntry = (
     return 750;
   }
 
-  // 7. Alias key prefix match
+  // 7. Alias key prefix match (including Gliese canonical & derived Gaia DR3 alias)
   if (
+    prepared.nameCanonicalGliese.startsWith(query.canonicalGlieseKey) ||
+    (prepared.gaiaAlias.length > 0 &&
+      (prepared.gaiaAlias.startsWith(query.cleanKey) ||
+        prepared.gaiaAlias.startsWith(query.rawCleanKey))) ||
     prepared.aliasKeys.some(
       (alias) =>
-        alias.startsWith(query.cleanKey) || alias.startsWith(query.rawCleanKey),
+        alias.startsWith(query.cleanKey) ||
+        alias.startsWith(query.rawCleanKey) ||
+        alias.startsWith(query.canonicalGlieseKey),
     )
   ) {
     return 700;
@@ -167,11 +196,17 @@ export const scoreSearchEntry = (
   if (
     prepared.nameClean.includes(query.cleanKey) ||
     prepared.nameClean.includes(query.rawCleanKey) ||
+    prepared.nameCanonicalGliese.includes(query.canonicalGlieseKey) ||
+    (prepared.gaiaAlias.length > 0 &&
+      (prepared.gaiaAlias.includes(query.cleanKey) ||
+        prepared.gaiaAlias.includes(query.rawCleanKey))) ||
     (prepared.canonClean.length > 0 &&
       prepared.canonClean.includes(query.cleanKey)) ||
     prepared.aliasKeys.some(
       (alias) =>
-        alias.includes(query.cleanKey) || alias.includes(query.rawCleanKey),
+        alias.includes(query.cleanKey) ||
+        alias.includes(query.rawCleanKey) ||
+        alias.includes(query.canonicalGlieseKey),
     )
   ) {
     return 550;
@@ -179,7 +214,7 @@ export const scoreSearchEntry = (
 
   // 9. Multi-token conjunction match across combined searchable text
   if (query.tokens.length > 1) {
-    const combined = `${prepared.nameClean} ${entry.a ?? ''} ${prepared.canonClean}`;
+    const combined = `${prepared.nameClean} ${prepared.nameCanonicalGliese} ${prepared.gaiaAlias} ${entry.a ?? ''} ${prepared.canonClean}`;
     if (query.tokens.every((token) => combined.includes(token))) {
       return 450;
     }

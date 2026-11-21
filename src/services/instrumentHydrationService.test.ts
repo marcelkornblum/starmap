@@ -93,6 +93,7 @@ describe('instrumentHydrationService', () => {
         if (urlStr.includes('/data/summaries/')) {
           // Sharded bucket format: { d: { id: compactRecord } }
           const payload = {
+            v: 1,
             d: {
               'tau-ceti': {
                 i: 'tau-ceti',
@@ -279,11 +280,18 @@ describe('instrumentHydrationService', () => {
       const state = await bridge.updateInstrumentPerimeter([sector], [0, 0, 0], 5.0, 2.0);
 
       expect(hydrateByHash).toHaveBeenCalledTimes(2);
+      expect(state.hasActiveSummariesChanged).toBe(true);
       expect(state.activeSummaries.length).toBe(1);
       expect(state.activeSummaries[0]?.id).toBe('star-active');
       expect(state.leadBufferSummaries.length).toBe(1);
       expect(state.leadBufferSummaries[0]?.id).toBe('star-lead');
-      expect(state.hydratedByHash.size).toBe(2);
+      expect(bridge.getHydratedSummary(fnv1a32('star-active'))?.id).toBe('star-active');
+      expect(bridge.getHydratedSummary(fnv1a32('star-lead'))?.id).toBe('star-lead');
+
+      // Re-running at identical position reports hasActiveSummariesChanged: false and preserves array reference
+      const stateSame = await bridge.updateInstrumentPerimeter([sector], [0, 0, 0], 5.0, 2.0);
+      expect(stateSame.hasActiveSummariesChanged).toBe(false);
+      expect(stateSame.activeSummaries).toBe(state.activeSummaries);
 
       bridge.dispose();
     });

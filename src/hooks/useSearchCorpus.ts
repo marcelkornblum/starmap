@@ -4,8 +4,8 @@ import {
   getSearchRepositoryVersion,
   loadSearchCorpusForFilter,
   subscribeSearchRepository,
+  type SearchCorpusScope,
 } from '../data/searchRepository';
-import type { SearchCategoryFilter } from '../types/search';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 
 export interface UseSearchCorpusResult {
@@ -14,13 +14,13 @@ export interface UseSearchCorpusResult {
 }
 
 /**
- * Reactive hook providing the compact search corpus for a category filter (AUD-087 & DEC-R042).
+ * Reactive hook providing the compact search corpus for a category filter or `'startup'` tier.
  * Resolves synchronously on initial render if already cached in memory.
  * Subscribes to cache updates via useSyncExternalStore and automatically cancels
  * in-flight AbortSignal on unmount or filter change.
  */
 export function useSearchCorpus(
-  filter: SearchCategoryFilter = 'all',
+  filter: SearchCorpusScope = 'startup',
   initialCorpus?: readonly CompactSearchEntry[],
 ): UseSearchCorpusResult {
   useSyncExternalStore(
@@ -29,7 +29,7 @@ export function useSearchCorpus(
     getSearchRepositoryVersion,
   );
 
-  const [completedFilter, setCompletedFilter] = useState<SearchCategoryFilter | null>(null);
+  const [completedFilter, setCompletedFilter] = useState<SearchCorpusScope | null>(null);
 
   const cachedCorpus = getCachedCorpusForFilter(filter);
   const activeCorpus = initialCorpus ?? cachedCorpus;

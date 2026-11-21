@@ -84,6 +84,7 @@ describe('useEntityDetails (AUD-087 & DEC-R042)', () => {
           status: 200,
           statusText: 'OK',
           json: async () => ({
+            v: 1,
             d: {
               'sys-1': {
                 n: 'Star sys-1',
@@ -102,6 +103,7 @@ describe('useEntityDetails (AUD-087 & DEC-R042)', () => {
         status: 200,
         statusText: 'OK',
         json: async () => ({
+          v: 1,
           d: {
             'sys-1': {
               t: 'sys',

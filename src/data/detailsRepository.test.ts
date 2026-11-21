@@ -20,11 +20,12 @@ import {
 import { fnv1a32 } from '../utils/binarySectorCodec';
 import type { SystemSummaryNode } from '../types/astro';
 
-const makeSummaryResponse = (id: string) => ({
+const makeSummaryResponse = (id: string, version: unknown = 1) => ({
   ok: true,
   status: 200,
   statusText: 'OK',
   json: async () => ({
+    ...(version !== undefined ? { v: version } : {}),
     d: {
       [id]: {
         n: `Star ${id}`,
@@ -38,11 +39,12 @@ const makeSummaryResponse = (id: string) => ({
   }),
 });
 
-const makeDetailResponse = (id: string) => ({
+const makeDetailResponse = (id: string, version: unknown = 1) => ({
   ok: true,
   status: 200,
   statusText: 'OK',
   json: async () => ({
+    ...(version !== undefined ? { v: version } : {}),
     d: {
       [id]: {
         t: 'sys',
@@ -311,6 +313,42 @@ describe('detailsRepository (AUD-090 & DEC-R043)', () => {
       expect(decoded.kind).toBe('solar-body');
       expect(decoded.record.id).toBe('mars');
       expect(decoded.record.name).toBe('Mars');
+    });
+  });
+
+  describe('Schema version enforcement (M16)', () => {
+    it('rejects summary shards with missing or mismatched v', async () => {
+      const missingFetch = vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({ d: {} }),
+      }) as unknown as Response);
+      await expect(
+        fetchSummaryNode('bad-sum-1', missingFetch as unknown as typeof fetch),
+      ).rejects.toThrow(/unsupported schema version/i);
+
+      const wrongFetch = vi.fn(async () => makeSummaryResponse('bad-sum-2', 99) as unknown as Response);
+      await expect(
+        fetchSummaryNode('bad-sum-2', wrongFetch as unknown as typeof fetch),
+      ).rejects.toThrow(/unsupported schema version/i);
+    });
+
+    it('rejects detail shards with missing or mismatched v', async () => {
+      const missingFetch = vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({ d: {} }),
+      }) as unknown as Response);
+      await expect(
+        fetchDetailRecord('bad-det-1', missingFetch as unknown as typeof fetch),
+      ).rejects.toThrow(/unsupported schema version/i);
+
+      const wrongFetch = vi.fn(async () => makeDetailResponse('bad-det-2', 99) as unknown as Response);
+      await expect(
+        fetchDetailRecord('bad-det-2', wrongFetch as unknown as typeof fetch),
+      ).rejects.toThrow(/unsupported schema version/i);
     });
   });
 });

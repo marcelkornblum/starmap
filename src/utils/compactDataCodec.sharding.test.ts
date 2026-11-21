@@ -149,18 +149,19 @@ describe('compactDataCodec - Sharding & Search Indices', () => {
     expect(indices.core.d.some((e) => e.i === 'tau-ceti-e')).toBe(true);
     expect(indices.core.d.some((e) => e.i === 'earth' && e.h === 1)).toBe(true);
     expect(indices.core.d.some((e) => e.i === 'phm-erid')).toBe(true);
-    expect(indices.full.d.some((e) => e.i === 'phm-erid')).toBe(true);
+    expect(indices.startup.d.some((e) => e.i === 'phm-erid')).toBe(true);
     expect(indices.layers.d.some((e) => e.i === 'phm-erid')).toBe(true);
     expect(indices.core.d.some((e) => e.i === 'pha-00433')).toBe(false);
-    expect(indices.full.d.some((e) => e.i === 'pha-00433')).toBe(true);
+    expect(indices.startup.d.some((e) => e.i === 'pha-00433')).toBe(false);
     expect(indices.minorBodies.d.some((e) => e.i === 'pha-00433')).toBe(true);
     expect(indices.stars.d.some((e) => e.i === 'gaia-2452378776434477184')).toBe(true);
     expect(indices.planets.d.some((e) => e.i === 'tau-ceti-e')).toBe(true);
     expect(indices.structures.d.some((e) => e.i === 'cluster-hyades')).toBe(true);
 
     const tauEntry = indices.stars.d.find((e) => e.i === 'gaia-2452378776434477184');
-    expect(tauEntry?.a).toContain('tauceti');
-    expect(tauEntry?.a).not.toContain('taucet ');
+    expect(tauEntry?.a).not.toContain('tauceti');
+    expect(tauEntry?.a).not.toContain('gl71');
+    expect(tauEntry?.a).toContain('gj71');
     expect(tauEntry?.a).toContain('hd10700');
     expect(tauEntry?.m).toEqual([3.5, 'G8V', 7, 1]);
   });

@@ -34,6 +34,7 @@ describe('useSearchCorpus (AUD-087 & DEC-R042)', () => {
       status: 200,
       statusText: 'OK',
       json: async () => ({
+        v: 1,
         d: [makeEntry('star-1', 'Star 1')],
       }),
     } as unknown as Response));
@@ -53,6 +54,7 @@ describe('useSearchCorpus (AUD-087 & DEC-R042)', () => {
       status: 200,
       statusText: 'OK',
       json: async () => ({
+        v: 1,
         d: [makeEntry('planet-1', 'Planet 1')],
       }),
     } as unknown as Response));

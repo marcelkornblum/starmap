@@ -6,7 +6,6 @@ import zlib from 'node:zlib';
 import type { StarmapNode } from '../../src/types/astro';
 import { decodeBinarySector, BINARY_SECTOR_MAGIC } from '../../src/utils/binarySectorCodec';
 import { buildStarDataPipeline } from './gaiaPipeline';
-import type { CatalogPayload } from './types';
 
 function makeGcnsLine(f: {
   sourceId: string;
@@ -39,12 +38,16 @@ function makeGcnsLine(f: {
   return chars.join('');
 }
 
-describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
+describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', () => {
   let tempRoot: string;
   let tempGcnsGzPath: string;
   let tempJsonPath: string;
-  let tempCatalogsDir: string;
+  let tempDataDir: string;
   let tempPartitionsDir: string;
+  let tempSummariesDir: string;
+  let tempDetailsDir: string;
+  let tempSearchDir: string;
+  let tempOverlaysDir: string;
 
   const line1 = makeGcnsLine({
     sourceId: '123456789012345678',
@@ -78,8 +81,12 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'starmap-gaia-pipeline-'));
     tempGcnsGzPath = path.join(tempRoot, 'sample_gcns.dat.gz');
     tempJsonPath = path.join(tempRoot, 'sample_output.json');
-    tempCatalogsDir = path.join(tempRoot, 'catalogs');
-    tempPartitionsDir = path.join(tempRoot, 'partitions');
+    tempDataDir = path.join(tempRoot, 'data');
+    tempPartitionsDir = path.join(tempDataDir, 'partitions');
+    tempSummariesDir = path.join(tempDataDir, 'summaries');
+    tempDetailsDir = path.join(tempDataDir, 'details');
+    tempSearchDir = path.join(tempDataDir, 'search');
+    tempOverlaysDir = path.join(tempDataDir, 'overlays');
     fs.writeFileSync(tempGcnsGzPath, zlib.gzipSync(`${line1}\n${line2}\n`));
   });
 
@@ -90,12 +97,15 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
     }
   });
 
-  it('ingests gzipped GCNS fixture and produces stars.json, binary sector, and deterministic catalogs', async () => {
+  it('ingests gzipped GCNS fixture and produces active shards without unreferenced legacy outputs', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const summary = await buildStarDataPipeline(tempGcnsGzPath, tempJsonPath, {
-        catalogsDir: tempCatalogsDir,
         partitionsDir: tempPartitionsDir,
+        summariesDir: tempSummariesDir,
+        detailsDir: tempDetailsDir,
+        searchDir: tempSearchDir,
+        overlaysDir: tempOverlaysDir,
         maxPartitionDistancePc: 100,
       });
 
@@ -117,17 +127,30 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Catalogs)', () => {
       expect(decoded.header.version).toBe(1);
       expect(decoded.header.count).toBeGreaterThan(0);
 
-      const cat10pcPath = path.join(tempCatalogsDir, 'solar-neighborhood-10pc.json');
-      const firstRunContent = fs.readFileSync(cat10pcPath, 'utf-8');
-      const firstRunData: CatalogPayload = JSON.parse(firstRunContent);
-      expect(firstRunData.header.timestamp).toBe('2026-01-01T00:00:00.000Z');
+      // Unreferenced legacy outputs must NOT be emitted
+      expect(fs.existsSync(path.join(tempDataDir, 'catalogs'))).toBe(false);
+      expect(fs.existsSync(path.join(tempDataDir, 'systems'))).toBe(false);
+      expect(fs.existsSync(path.join(tempDataDir, 'sol'))).toBe(false);
+      expect(fs.existsSync(path.join(tempSearchDir, 'full.json'))).toBe(false);
+      expect(fs.existsSync(path.join(tempOverlaysDir, 'exoplanetary-systems.json'))).toBe(false);
+      expect(fs.existsSync(path.join(tempOverlaysDir, 'galactic-structures.json'))).toBe(false);
+
+      // Active outputs are emitted deterministically
+      const coreSearchPath = path.join(tempSearchDir, 'core.json');
+      const firstRunContent = fs.readFileSync(coreSearchPath, 'utf-8');
+      const firstRunData = JSON.parse(firstRunContent) as { t: string; v: number };
+      expect(firstRunData.v).toBe(1);
+      expect(firstRunData.t).toBe('2026-01-01T00:00:00.000Z');
 
       await buildStarDataPipeline(tempGcnsGzPath, tempJsonPath, {
-        catalogsDir: tempCatalogsDir,
         partitionsDir: tempPartitionsDir,
+        summariesDir: tempSummariesDir,
+        detailsDir: tempDetailsDir,
+        searchDir: tempSearchDir,
+        overlaysDir: tempOverlaysDir,
         maxPartitionDistancePc: 100,
       });
-      const secondRunContent = fs.readFileSync(cat10pcPath, 'utf-8');
+      const secondRunContent = fs.readFileSync(coreSearchPath, 'utf-8');
       expect(secondRunContent).toBe(firstRunContent);
     } finally {
       warnSpy.mockRestore();

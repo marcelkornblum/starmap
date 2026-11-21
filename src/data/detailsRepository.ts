@@ -7,11 +7,16 @@ import type {
   GalacticStructureRecord,
   SolarSystemBodyRecord,
 } from '../types/astroStructures';
-import { decodeSystemManifest, getShardKey } from '../utils/compactDataCodec';
+import {
+  assertSchemaVersion,
+  decodeSystemManifest,
+  getShardKey,
+} from '../utils/compactDataCodec';
+import { COMPACT_SCHEMA_VERSION } from '../utils/compactDataConstants';
 import { decodeGalacticStructure, decodeSolarSystemBody } from '../utils/compactEntityDecoder';
 import type { CompactDetailRecord, ShardedBucketEnvelope } from '../utils/compactDataTypes';
-import { resolveDataUrl } from '../utils/url';
 import { BoundedLruCache } from '../utils/lruCache';
+import { resolveManifestDataUrl } from './dataManifestRepository';
 import {
   DETAIL_BUCKET_CACHE_LIMIT,
   DETAIL_RECORD_CACHE_LIMIT,
@@ -183,7 +188,11 @@ const loadDetailBucket = (
 
     pending = (async () => {
       try {
-        const url = resolveDataUrl(`/data/details/${bucketKey}.json`);
+        const url = await resolveManifestDataUrl(
+          `details/${bucketKey}.json`,
+          fetchImpl,
+          signal,
+        );
         const response = signal
           ? await fetchImpl(url, { signal })
           : await fetchImpl(url);
@@ -194,6 +203,7 @@ const loadDetailBucket = (
         }
         const envelope =
           (await response.json()) as ShardedBucketEnvelope<CompactDetailRecord>;
+        assertSchemaVersion(envelope, COMPACT_SCHEMA_VERSION, `detail shard "${bucketKey}"`);
         const data = envelope.d ?? {};
         RESOLVED_DETAIL_BUCKET_CACHE.set(bucketKey, data);
         notifyDetailsListeners();

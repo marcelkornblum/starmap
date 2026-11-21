@@ -1,5 +1,7 @@
 import type { ReferenceBaselinesDataset } from '../types/guideData';
-import { resolveDataUrl } from '../utils/url';
+import { assertSchemaVersion } from '../utils/compactDataCodec';
+import { COMPACT_SCHEMA_VERSION } from '../utils/compactDataConstants';
+import { resolveManifestDataUrl } from './dataManifestRepository';
 
 let cachedBaselines: ReferenceBaselinesDataset | undefined;
 let pendingRequest: Promise<ReferenceBaselinesDataset> | undefined;
@@ -45,7 +47,11 @@ export const fetchReferenceBaselines = async (
 
     pendingRequest = (async () => {
       try {
-        const url = resolveDataUrl('/data/reference-baselines.json');
+        const url = await resolveManifestDataUrl(
+          'reference-baselines.json',
+          fetchImpl,
+          signal,
+        );
         const response = signal
           ? await fetchImpl(url, { signal })
           : await fetchImpl(url);
@@ -55,6 +61,7 @@ export const fetchReferenceBaselines = async (
           );
         }
         const data = (await response.json()) as ReferenceBaselinesDataset;
+        assertSchemaVersion(data, COMPACT_SCHEMA_VERSION, 'reference-baselines.json', 'version');
         cachedBaselines = data;
         notifyListeners();
         return data;

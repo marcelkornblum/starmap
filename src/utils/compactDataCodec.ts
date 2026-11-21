@@ -35,6 +35,31 @@ import {
   decodeSolarSystemBody,
 } from './compactEntityDecoder';
 
+export function assertSchemaVersion(
+  envelope: unknown,
+  expectedVersion: number,
+  label: string,
+  versionKey: 'v' | 'version' = 'v',
+): void {
+  if (typeof envelope !== 'object' || envelope === null) {
+    throw new Error(
+      `Invalid ${label} envelope: expected object, got ${envelope === null ? 'null' : typeof envelope}`,
+    );
+  }
+  const rec = envelope as Record<string, unknown>;
+  const actual = rec[versionKey];
+  if (actual === undefined) {
+    throw new Error(
+      `Unsupported schema version in ${label}: missing required "${versionKey}" field (expected ${expectedVersion})`,
+    );
+  }
+  if (actual !== expectedVersion) {
+    throw new Error(
+      `Unsupported schema version in ${label}: expected ${expectedVersion}, got ${String(actual)}`,
+    );
+  }
+}
+
 export function getShardKey(id: string): string {
   return getShardKeyFromHash(fnv1a32(id));
 }
@@ -125,9 +150,7 @@ export function decodeSectorPartition(
 ): SectorPartitionManifest {
   if ('systems' in raw && Array.isArray(raw.systems)) return raw;
   const compact = raw as CompactSectorPartition;
-  if (compact.v !== undefined && compact.v !== COMPACT_SCHEMA_VERSION) {
-    throw new Error(`Unsupported schema version: expected ${COMPACT_SCHEMA_VERSION}, got ${compact.v}`);
-  }
+  assertSchemaVersion(compact, COMPACT_SCHEMA_VERSION, `sector partition "${compact.i}"`);
   const systems: SystemSummaryNode[] = [];
   for (const [id, node] of Object.entries(compact.d)) {
     systems.push(decodeSummaryNode(node, id, compact.i));
@@ -232,9 +255,7 @@ export function decodeSystemManifest(
 export function decodeSummaryBucket(
   envelope: ShardedBucketEnvelope<CompactSummaryNode>,
 ): Record<string, SystemSummaryNode> {
-  if (envelope.v !== undefined && envelope.v !== COMPACT_SCHEMA_VERSION) {
-    throw new Error(`Unsupported schema version: expected ${COMPACT_SCHEMA_VERSION}, got ${envelope.v}`);
-  }
+  assertSchemaVersion(envelope, COMPACT_SCHEMA_VERSION, `summary bucket "${envelope.i}"`);
   const result: Record<string, SystemSummaryNode> = {};
   for (const [id, node] of Object.entries(envelope.d)) {
     result[id] = decodeSummaryNode(node, id);
@@ -245,9 +266,7 @@ export function decodeSummaryBucket(
 export function decodeDetailBucket(
   envelope: ShardedBucketEnvelope<CompactDetailRecord>,
 ): Record<string, SystemManifest | GalacticStructureRecord | SolarSystemBodyRecord> {
-  if (envelope.v !== undefined && envelope.v !== COMPACT_SCHEMA_VERSION) {
-    throw new Error(`Unsupported schema version: expected ${COMPACT_SCHEMA_VERSION}, got ${envelope.v}`);
-  }
+  assertSchemaVersion(envelope, COMPACT_SCHEMA_VERSION, `detail bucket "${envelope.i}"`);
   const result: Record<string, SystemManifest | GalacticStructureRecord | SolarSystemBodyRecord> = {};
   for (const [id, record] of Object.entries(envelope.d)) {
     if (record.t === 'sys') {

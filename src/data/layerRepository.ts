@@ -2,7 +2,8 @@ import type {
   DatasetLayerIndexEntry,
   DatasetLayerManifest,
 } from '../types/datasetLayers';
-import { getShardKey } from '../utils/compactDataCodec';
+import { assertSchemaVersion, getShardKey } from '../utils/compactDataCodec';
+import { COMPACT_SCHEMA_VERSION } from '../utils/compactDataConstants';
 import type { ShardedBucketEnvelope } from '../utils/compactDataTypes';
 import { decodeEntityAnnotation, decodeLayerManifest } from '../utils/datasetLayerCodec';
 import type {
@@ -10,14 +11,15 @@ import type {
   CompactLayerManifest,
   DecodedEntityAnnotation,
 } from '../utils/datasetLayerTypes';
-import { resolveDataUrl } from '../utils/url';
 import { BoundedLruCache } from '../utils/lruCache';
+import { resolveManifestDataUrl } from './dataManifestRepository';
 import {
   LAYER_ENTITY_BUCKET_CACHE_LIMIT,
   LAYER_MANIFEST_CACHE_LIMIT,
 } from '../config/cacheConfig';
 
 interface LayerIndexEnvelope {
+  readonly v?: number;
   readonly d: readonly DatasetLayerIndexEntry[];
 }
 
@@ -112,7 +114,11 @@ export const fetchLayerIndex = (
 
     layerIndexPromise = (async () => {
       try {
-        const url = resolveDataUrl('/data/overlays/layers/index.json');
+        const url = await resolveManifestDataUrl(
+          'overlays/layers/index.json',
+          fetchImpl,
+          signal,
+        );
         const response = signal
           ? await fetchImpl(url, { signal })
           : await fetchImpl(url);
@@ -122,6 +128,7 @@ export const fetchLayerIndex = (
           );
         }
         const envelope = (await response.json()) as LayerIndexEnvelope;
+        assertSchemaVersion(envelope, COMPACT_SCHEMA_VERSION, 'layer index');
         return envelope.d ?? [];
       } finally {
         if (signal && onAbort) {
@@ -160,7 +167,11 @@ export const fetchLayerManifest = (
 
     pending = (async () => {
       try {
-        const url = resolveDataUrl(`/data/overlays/layers/${layerId}.json`);
+        const url = await resolveManifestDataUrl(
+          `overlays/layers/${layerId}.json`,
+          fetchImpl,
+          signal,
+        );
         const response = signal
           ? await fetchImpl(url, { signal })
           : await fetchImpl(url);
@@ -208,7 +219,11 @@ const fetchEntityBucket = (
 
     pending = (async () => {
       try {
-        const url = resolveDataUrl(`/data/overlays/layers/by-entity/${bucketKey}.json`);
+        const url = await resolveManifestDataUrl(
+          `overlays/layers/by-entity/${bucketKey}.json`,
+          fetchImpl,
+          signal,
+        );
         const response = signal
           ? await fetchImpl(url, { signal })
           : await fetchImpl(url);
@@ -220,6 +235,11 @@ const fetchEntityBucket = (
         const envelope = (await response.json()) as ShardedBucketEnvelope<
           CompactEntityAnnotation[]
         >;
+        assertSchemaVersion(
+          envelope,
+          COMPACT_SCHEMA_VERSION,
+          `by-entity layer shard "${bucketKey}"`,
+        );
         const data = envelope.d ?? {};
         RESOLVED_ENTITY_BUCKET_CACHE.set(bucketKey, data);
         return data;

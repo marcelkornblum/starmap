@@ -236,6 +236,7 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
           status: 200,
           statusText: 'OK',
           json: async () => ({
+            v: 1,
             i: '1',
             c: 1,
             d: {
@@ -260,6 +261,7 @@ describe('Journey 1: Reader Flow - Details Service & Panel Decomposition', () =>
         status: 200,
         statusText: 'OK',
         json: async () => ({
+          v: 1,
           i: '1',
           c: 1,
           d: {

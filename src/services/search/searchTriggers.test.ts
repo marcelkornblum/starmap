@@ -6,8 +6,19 @@ import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 
 describe('searchTriggers - Archetype 1 Search Trigger Coverage (GAP-01 through GAP-08)', () => {
   it('resolves every single evidence-based search trigger across all 5 categories in core.json', () => {
+    const dataDir = path.resolve('public/data');
+    const manifestPath = path.join(dataDir, 'manifest.json');
+    let coreRel = 'search/core.json';
+    if (fs.existsSync(manifestPath)) {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as {
+        files?: Record<string, string>;
+      };
+      if (manifest.files?.['search/core.json']) {
+        coreRel = manifest.files['search/core.json'];
+      }
+    }
     const coreEnvelope = JSON.parse(
-      fs.readFileSync(path.resolve('public/data/search/core.json'), 'utf-8'),
+      fs.readFileSync(path.join(dataDir, coreRel), 'utf-8'),
     );
     const coreCorpus: readonly CompactSearchEntry[] = coreEnvelope.d;
 

@@ -93,6 +93,7 @@ export const useSearchUrlSyncEffect = ({
       initialCorpus ??
       getCachedCorpusForFilter('all') ??
       getCachedCorpusForFilter(initialFilter) ??
+      getCachedCorpusForFilter('startup') ??
       [];
     syncSelectedSystemsToStore(
       store,
@@ -160,6 +161,7 @@ export const useSearchUrlSyncEffect = ({
       activeSearch,
       initialQuery,
       syncUrl,
+      isSearchRoute: activePathname === '/search',
       limitPerCategory,
       store,
       layerIndex,
@@ -212,6 +214,7 @@ export const useSearchUrlSyncEffect = ({
       prewarmedCorpusRef.current ??
       getCachedCorpusForFilter('all') ??
       getCachedCorpusForFilter(filter) ??
+      getCachedCorpusForFilter('startup') ??
       [];
     const availableCorpus = mergeActiveStarsIntoCorpus(
       baseCorpus,

@@ -113,6 +113,14 @@ describe('Step 3: Dataset Layering System Data Layer (FS-001 & FS-002 — DEC-00
     expect(decoded).toEqual(sampleCanonLayer);
   });
 
+  it('rejects layer manifests with missing or mismatched schema version v', () => {
+    const valid = encodeLayerManifest(sampleCanonLayer);
+    const missingV = { ...valid } as unknown as Record<string, unknown>;
+    delete missingV.v;
+    expect(() => decodeLayerManifest(missingV as never)).toThrow(/unsupported schema version/i);
+    expect(() => decodeLayerManifest({ ...valid, v: 99 })).toThrow(/unsupported schema version/i);
+  });
+
   it('encodes and decodes optional subtitle (t) and space-delimited aliases (a) at parent and entry level, omitting absent fields', () => {
     const layer: DatasetLayerManifest = {
       layerId: 'canon-three-body',

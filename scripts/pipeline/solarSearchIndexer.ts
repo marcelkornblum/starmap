@@ -1,6 +1,9 @@
 import type { SolarSystemBodyRecord } from '../../src/types/astroStructures';
 import type { CompactSearchEntry } from '../../src/utils/compactDataTypes';
-import { buildCleanKeys } from '../../src/utils/nomenclature';
+import {
+  buildCleanKeys,
+  pruneDerivableAliases,
+} from '../../src/utils/nomenclature';
 import {
   isCoreSearchMinorBody,
   precalculateSolarSystemBodyFlags,
@@ -10,7 +13,6 @@ import { comparePlanetsByOrbit } from './searchEntryIndexers';
 export function indexSolarBodies(
   solarBodies: SolarSystemBodyRecord[],
   coreEntries: CompactSearchEntry[],
-  fullEntries: CompactSearchEntry[],
   planetsEntries: CompactSearchEntry[],
   minorBodiesEntries: CompactSearchEntry[],
 ): void {
@@ -49,7 +51,11 @@ export function indexSolarBodies(
         ? rawBody
         : precalculateSolarSystemBodyFlags(rawBody);
 
-    const cleanKeys = buildCleanKeys([body.name, body.id, ...(body.tags ?? [])]);
+    const cleanKeys = pruneDerivableAliases(
+      body.id,
+      body.name,
+      buildCleanKeys([body.name, body.id, ...(body.tags ?? [])]),
+    );
 
     if (
       body.classification === 'Planet' ||
@@ -63,7 +69,7 @@ export function indexSolarBodies(
         n: body.name,
         s: 'sol',
         h: 1,
-        a: cleanKeys,
+        ...(cleanKeys ? { a: cleanKeys } : {}),
       };
       if (body.parentBodyId && body.parentBodyId !== 'sol') entry.o = body.parentBodyId;
       if (orbitRankMap.has(body.id)) entry.r = orbitRankMap.get(body.id);
@@ -84,7 +90,6 @@ export function indexSolarBodies(
       }
       planetsEntries.push(entry);
       coreEntries.push(entry);
-      fullEntries.push(entry);
     } else {
       const entry: CompactSearchEntry = {
         i: body.id,
@@ -92,7 +97,7 @@ export function indexSolarBodies(
         n: body.name,
         s: 'sol',
         h: 1,
-        a: cleanKeys,
+        ...(cleanKeys ? { a: cleanKeys } : {}),
       };
       if (body.parentBodyId && body.parentBodyId !== 'sol') entry.o = body.parentBodyId;
       if (orbitRankMap.has(body.id)) entry.r = orbitRankMap.get(body.id);
@@ -107,7 +112,6 @@ export function indexSolarBodies(
       entry.u = body.tags?.includes('Spacecraft') ? 'construct' : 'terrestrial';
 
       minorBodiesEntries.push(entry);
-      fullEntries.push(entry);
       if (body.isCoreSearch ?? isCoreSearchMinorBody(body)) coreEntries.push(entry);
     }
   }
