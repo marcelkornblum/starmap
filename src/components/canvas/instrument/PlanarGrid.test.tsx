@@ -70,7 +70,7 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
     await renderer.unmount();
   });
 
-  it('calls .dispose() on the geometry when PlanarFootprintItem is unmounted', async () => {
+  it('does NOT dispose shared cached reticle geometry when PlanarFootprintItem is unmounted', async () => {
     const fp: PlanarFootprintItemType = {
       id: 'test-star-2',
       position: [0, 0, 0],
@@ -86,10 +86,10 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
 
     await renderer.unmount();
 
-    expect(disposeSpy).toHaveBeenCalledTimes(1);
+    expect(disposeSpy).not.toHaveBeenCalled();
   });
 
-  it('disposes previous geometry and re-allocates when geometry-defining props change', async () => {
+  it('re-queries createReticleGeometry without disposing shared cache when geometry-defining props change', async () => {
     const fp1: PlanarFootprintItemType = {
       id: 'test-star-3',
       position: [0, 0, 0],
@@ -119,14 +119,15 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
     );
 
     expect(createReticleSpy).toHaveBeenCalledTimes(2);
-    // Old geometry should be disposed
-    expect(disposeSpy).toHaveBeenCalledTimes(1);
+    // Shared cached reticle geometry must not be disposed by individual consumers
+    expect(disposeSpy).not.toHaveBeenCalled();
     expect(newDisposeSpy).not.toHaveBeenCalled();
 
     await renderer.unmount();
+    expect(newDisposeSpy).not.toHaveBeenCalled();
   });
 
-  it('renders footprints inside PlanarGrid without crashing and cleans up on unmount', async () => {
+  it('renders footprints inside PlanarGrid without crashing and preserves shared reticle cache on unmount', async () => {
     const footprints: PlanarFootprintItemType[] = [
       { id: 'alpha', position: [5, 5, 0], classification: 'star' },
       { id: 'beta', position: [-5, -5, 0], classification: 'terrestrial' },
@@ -143,8 +144,8 @@ describe('AUD-021: PlanarGrid PlanarFootprintItem BufferGeometry Lifecycle', () 
     expect(createReticleSpy).toHaveBeenCalledTimes(3);
 
     await renderer.unmount();
-    // Primary footprint geom + both footprint geometries disposed
-    expect(disposeSpy).toHaveBeenCalledTimes(3);
+    // Shared cached reticle geometries must remain intact across unmounts
+    expect(disposeSpy).not.toHaveBeenCalled();
   });
 
   it('attaches NOOP_RAYCAST to PlanarFootprintItem and PlanarGrid elements', async () => {

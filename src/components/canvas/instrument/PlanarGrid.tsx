@@ -22,7 +22,6 @@ export type { PlanarGridProps, PlanarFootprintComponentProps };
 export const PlanarFootprintItem: React.FC<PlanarFootprintComponentProps> = ({ footprint, defaultSize = DEFAULT_RETICLE_SIZE, defaultColor, defaultAlpha = 1.0, ...rest }) => {
   const fp = footprint ?? rest;
   const geom = useMemo(() => createReticleGeometry(fp.classification ?? 'star', fp.size ?? defaultSize, { multiplicity: fp.multiplicity, planets: fp.planets }), [fp.classification, fp.size, defaultSize, fp.multiplicity, fp.planets]);
-  useEffect(() => () => { geom.dispose(); }, [geom]);
   const fpX = Array.isArray(fp.position) ? (fp.position[0] ?? 0) : (fp.position?.x ?? 0);
   const fpY = Array.isArray(fp.position) ? (fp.position[1] ?? 0) : (fp.position?.y ?? 0);
   return (
@@ -70,7 +69,6 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
   useEffect(() => () => { boundaryGeom.dispose(); fillCircleGeom.dispose(); bearingCoreGeom.dispose(); diskOrbitalGeom.dispose(); }, [boundaryGeom, fillCircleGeom, bearingCoreGeom, diskOrbitalGeom]);
 
   const primaryFootprintGeom = useMemo(() => createReticleGeometry(footprintClassification, footprintSize), [footprintClassification, footprintSize]);
-  useEffect(() => () => { primaryFootprintGeom.dispose(); }, [primaryFootprintGeom]);
 
   const gridGeom = useMemo(() => {
     if (!isPlaneEnabled || !isGridEnabled) return null;

@@ -1,7 +1,10 @@
 import type React from 'react';
+import { useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { AdaptiveQualityMonitor } from '../AdaptiveQualityMonitor';
 import { SceneTokenBridge } from '../SceneTokenBridge';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
+import { getInitialCanvasDpr } from '../../../services/deviceTierService';
 import {
   SpatialEntityStoreContext,
   useOptionalSpatialEntityStoreApi,
@@ -26,6 +29,7 @@ export const StandaloneSceneShell: React.FC<StandaloneSceneShellProps> = ({
   children,
 }) => {
   const outerStore = useOptionalSpatialEntityStoreApi();
+  const initialDpr = useMemo(() => getInitialCanvasDpr(), []);
   const containerClass = className
     ? `${styles.viewportContainer} ${className}`
     : styles.viewportContainer;
@@ -35,13 +39,14 @@ export const StandaloneSceneShell: React.FC<StandaloneSceneShellProps> = ({
       <div className={styles.canvasWrapper}>
         <Canvas
           flat
-          dpr={1}
+          dpr={initialDpr}
           frameloop="demand"
           camera={camera}
           gl={{ antialias: true, alpha: true }}
         >
           <SpatialEntityStoreContext.Provider value={outerStore}>
             <SceneTokenBridge />
+            <AdaptiveQualityMonitor />
             {children}
           </SpatialEntityStoreContext.Provider>
         </Canvas>

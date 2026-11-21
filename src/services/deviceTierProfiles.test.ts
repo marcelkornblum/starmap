@@ -9,6 +9,8 @@ import {
   isConstrainedGpuRenderer,
   isHighPerformanceGpuRenderer,
   classifyHardwareTier,
+  extractWebGLGpuTelemetry,
+  resolveInitialDprForTier,
 } from './deviceTierProfiles';
 
 describe('deviceTierProfiles', () => {
@@ -117,6 +119,150 @@ describe('deviceTierProfiles', () => {
         maxTextureSize: 4096,
       });
       expect(tier).toBe('tier2');
+    });
+
+    it('keeps undefined deviceMemory with >= 8 cores at tier2 without positive GPU evidence', () => {
+      expect(
+        classifyHardwareTier({
+          deviceMemory: undefined,
+          hardwareConcurrency: 8,
+        }),
+      ).toBe('tier2');
+      expect(
+        classifyHardwareTier({
+          deviceMemory: undefined,
+          hardwareConcurrency: 16,
+          maxTextureSize: 8192,
+        }),
+      ).toBe('tier2');
+    });
+
+    it('promotes undefined deviceMemory with >= 8 cores to tier3 when maxTextureSize >= 16384 or high-performance GPU is detected', () => {
+      expect(
+        classifyHardwareTier({
+          deviceMemory: undefined,
+          hardwareConcurrency: 8,
+          maxTextureSize: 16384,
+        }),
+      ).toBe('tier3');
+      expect(
+        classifyHardwareTier(
+          {
+            deviceMemory: undefined,
+            hardwareConcurrency: 8,
+          },
+          'Apple M2 Max',
+        ),
+      ).toBe('tier3');
+    });
+
+    it('promotes high-performance GPU renderer to tier3 unless tier1 disqualifier or maxTextureSize < 8192 applies', () => {
+      expect(
+        classifyHardwareTier(
+          { deviceMemory: 8, hardwareConcurrency: 6 },
+          'NVIDIA GeForce RTX 4090',
+        ),
+      ).toBe('tier3');
+      expect(
+        classifyHardwareTier(
+          { deviceMemory: 8, hardwareConcurrency: 6, maxTextureSize: 4096 },
+          'NVIDIA GeForce RTX 4090',
+        ),
+      ).toBe('tier2');
+      expect(
+        classifyHardwareTier(
+          { deviceMemory: 4, hardwareConcurrency: 16 },
+          'NVIDIA GeForce RTX 4090',
+        ),
+      ).toBe('tier1');
+    });
+  });
+
+  describe('extractWebGLGpuTelemetry', () => {
+    it('returns empty telemetry for null/undefined or minimal mock contexts', () => {
+      expect(extractWebGLGpuTelemetry(null)).toEqual({});
+      expect(extractWebGLGpuTelemetry(undefined)).toEqual({});
+      expect(extractWebGLGpuTelemetry({} as WebGLRenderingContext)).toEqual({});
+    });
+
+    it('extracts UNMASKED_RENDERER_WEBGL, MAX_TEXTURE_SIZE, and MAX_VERTEX_ATTRIBS safely', () => {
+      const UNMASKED_RENDERER_WEBGL = 0x9246;
+      const mockGl = {
+        MAX_TEXTURE_SIZE: 0x0d33,
+        MAX_VERTEX_ATTRIBS: 0x8869,
+        RENDERER: 0x1f01,
+        getExtension: vi.fn((name: string) =>
+          name === 'WEBGL_debug_renderer_info' ? { UNMASKED_RENDERER_WEBGL } : null,
+        ),
+        getParameter: vi.fn((param: number) => {
+          if (param === 0x0d33) return 16384;
+          if (param === 0x8869) return 16;
+          if (param === UNMASKED_RENDERER_WEBGL) return 'ANGLE (Apple, Apple M2 Max, OpenGL 4.1)';
+          return 'WebKit WebGL';
+        }),
+      } as unknown as WebGLRenderingContext;
+
+      expect(extractWebGLGpuTelemetry(mockGl)).toEqual({
+        gpuRenderer: 'ANGLE (Apple, Apple M2 Max, OpenGL 4.1)',
+        maxTextureSize: 16384,
+        maxVertexAttribs: 16,
+      });
+    });
+
+    it('falls back to gl.RENDERER when WEBGL_debug_renderer_info is unavailable', () => {
+      const mockGl = {
+        MAX_TEXTURE_SIZE: 0x0d33,
+        MAX_VERTEX_ATTRIBS: 0x8869,
+        RENDERER: 0x1f01,
+        getExtension: vi.fn(() => null),
+        getParameter: vi.fn((param: number) => {
+          if (param === 0x0d33) return 8192;
+          if (param === 0x8869) return 16;
+          if (param === 0x1f01) return 'Google SwiftShader';
+          return null;
+        }),
+      } as unknown as WebGLRenderingContext;
+
+      expect(extractWebGLGpuTelemetry(mockGl)).toEqual({
+        gpuRenderer: 'Google SwiftShader',
+        maxTextureSize: 8192,
+        maxVertexAttribs: 16,
+      });
+    });
+
+    it('swallows WebGL probe errors safely via try/catch', () => {
+      const throwingGl = {
+        MAX_TEXTURE_SIZE: 0x0d33,
+        MAX_VERTEX_ATTRIBS: 0x8869,
+        RENDERER: 0x1f01,
+        getExtension: vi.fn(() => {
+          throw new Error('extension blocked');
+        }),
+        getParameter: vi.fn(() => {
+          throw new Error('context lost');
+        }),
+      } as unknown as WebGLRenderingContext;
+
+      expect(extractWebGLGpuTelemetry(throwingGl)).toEqual({});
+    });
+  });
+
+  describe('resolveInitialDprForTier', () => {
+    it('forces DPR 1 for tier1 or constrained GPU renderers', () => {
+      expect(resolveInitialDprForTier('tier1', undefined, 3)).toBe(1);
+      expect(resolveInitialDprForTier('tier3', 'Google SwiftShader', 2)).toBe(1);
+    });
+
+    it('caps tier2 DPR to [1, 1.5]', () => {
+      expect(resolveInitialDprForTier('tier2', undefined, 1)).toBe(1);
+      expect(resolveInitialDprForTier('tier2', undefined, 1.25)).toBe(1.25);
+      expect(resolveInitialDprForTier('tier2', undefined, 2)).toBe(1.5);
+    });
+
+    it('caps tier3 DPR to [1, 2]', () => {
+      expect(resolveInitialDprForTier('tier3', 'Apple M2 Max', 1)).toBe(1);
+      expect(resolveInitialDprForTier('tier3', 'Apple M2 Max', 2)).toBe(2);
+      expect(resolveInitialDprForTier('tier3', 'Apple M2 Max', 3)).toBe(2);
     });
   });
 });

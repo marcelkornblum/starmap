@@ -6,6 +6,8 @@ export * from './SpatialEntityProvider';
 export * from './ApertureEvaluator';
 export * from './interactionActions';
 export * from './BodyMarker';
+export * from './entityDotsBatchContext';
+export * from './EntityDotsBatch';
 export * from './Reticle';
 export * from './DropStalk';
 export * from './KinematicVector';

@@ -152,12 +152,6 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
 
   useEffect(() => {
     return () => {
-      footprintGeom.dispose();
-    };
-  }, [footprintGeom]);
-
-  useEffect(() => {
-    return () => {
       lineMaterial.dispose();
     };
   }, [lineMaterial]);

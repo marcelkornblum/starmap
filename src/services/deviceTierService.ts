@@ -10,6 +10,8 @@ import {
   resolveApertureCutoffForViewportWidth,
   probeNavigatorHardwareCapabilities,
   classifyHardwareTier,
+  resolveInitialDprForTier,
+  type WebGLGpuTelemetry,
 } from './deviceTierProfiles';
 
 export type DevicePerformanceTier = 'tier1' | 'tier2' | 'tier3';
@@ -19,6 +21,7 @@ export interface DeviceCapabilitiesInput {
   readonly hardwareConcurrency?: number;
   readonly maxVertexAttribs?: number;
   readonly maxTextureSize?: number;
+  readonly gpuRenderer?: string;
   readonly saveData?: boolean;
 }
 
@@ -64,8 +67,86 @@ export const APERTURE_ACTIVE_CUTOFF_MOBILE = 40;
 export const APERTURE_ACTIVE_CUTOFF_TABLET = 60;
 export const APERTURE_ACTIVE_CUTOFF_DESKTOP = 96;
 
+const MIN_RUNTIME_CUTOFF_MULTIPLIER = 0.5;
+const MAX_RUNTIME_CUTOFF_MULTIPLIER = 1.0;
+const MIN_SCALED_APERTURE_CUTOFF = 20;
+
+let registeredWebGLGpuTelemetry: WebGLGpuTelemetry | null = null;
+let runtimeCutoffMultiplier = 1.0;
+const deviceTierListeners = new Set<() => void>();
+
+function notifyDeviceTierListeners(): void {
+  for (const listener of deviceTierListeners) {
+    try {
+      listener();
+    } catch {
+      // Prevent listener failure from disrupting runtime updates
+    }
+  }
+}
+
+export function registerWebGLGpuTelemetry(telemetry: WebGLGpuTelemetry): void {
+  const prev = registeredWebGLGpuTelemetry;
+  const next: WebGLGpuTelemetry = {
+    ...(prev?.gpuRenderer !== undefined ? { gpuRenderer: prev.gpuRenderer } : {}),
+    ...(prev?.maxTextureSize !== undefined ? { maxTextureSize: prev.maxTextureSize } : {}),
+    ...(prev?.maxVertexAttribs !== undefined ? { maxVertexAttribs: prev.maxVertexAttribs } : {}),
+    ...(telemetry.gpuRenderer !== undefined ? { gpuRenderer: telemetry.gpuRenderer } : {}),
+    ...(telemetry.maxTextureSize !== undefined ? { maxTextureSize: telemetry.maxTextureSize } : {}),
+    ...(telemetry.maxVertexAttribs !== undefined ? { maxVertexAttribs: telemetry.maxVertexAttribs } : {}),
+  };
+
+  if (
+    prev !== null &&
+    prev.gpuRenderer === next.gpuRenderer &&
+    prev.maxTextureSize === next.maxTextureSize &&
+    prev.maxVertexAttribs === next.maxVertexAttribs
+  ) {
+    return;
+  }
+
+  registeredWebGLGpuTelemetry = next;
+  notifyDeviceTierListeners();
+}
+
+export function getRegisteredWebGLGpuTelemetry(): WebGLGpuTelemetry | null {
+  return registeredWebGLGpuTelemetry;
+}
+
+export function subscribeDeviceTier(listener: () => void): () => void {
+  deviceTierListeners.add(listener);
+  return () => {
+    deviceTierListeners.delete(listener);
+  };
+}
+
+export function getRuntimeCutoffMultiplier(): number {
+  return runtimeCutoffMultiplier;
+}
+
+export function setRuntimeCutoffMultiplier(multiplier: number): void {
+  if (!Number.isFinite(multiplier)) return;
+  const clamped = Math.min(
+    MAX_RUNTIME_CUTOFF_MULTIPLIER,
+    Math.max(MIN_RUNTIME_CUTOFF_MULTIPLIER, multiplier),
+  );
+  if (clamped === runtimeCutoffMultiplier) return;
+  runtimeCutoffMultiplier = clamped;
+  notifyDeviceTierListeners();
+}
+
+export function resetDeviceTierRuntimeState(): void {
+  registeredWebGLGpuTelemetry = null;
+  runtimeCutoffMultiplier = 1.0;
+  deviceTierListeners.clear();
+}
+
 export function getApertureActiveCutoffForViewportWidth(widthPx?: number): number {
-  return resolveApertureCutoffForViewportWidth(widthPx);
+  const baseCutoff = resolveApertureCutoffForViewportWidth(widthPx);
+  if (runtimeCutoffMultiplier >= 1.0) {
+    return baseCutoff;
+  }
+  return Math.max(MIN_SCALED_APERTURE_CUTOFF, Math.round(baseCutoff * runtimeCutoffMultiplier));
 }
 
 export const DEVICE_TIER_BUDGETS: Readonly<Record<DevicePerformanceTier, DeviceTierBudget>> = {
@@ -75,11 +156,33 @@ export const DEVICE_TIER_BUDGETS: Readonly<Record<DevicePerformanceTier, DeviceT
 } as const;
 
 export function probeBrowserDeviceCapabilities(): DeviceCapabilitiesInput {
-  return probeNavigatorHardwareCapabilities();
+  const navCaps = probeNavigatorHardwareCapabilities();
+  if (!registeredWebGLGpuTelemetry) {
+    return navCaps;
+  }
+  return {
+    ...navCaps,
+    ...(registeredWebGLGpuTelemetry.gpuRenderer !== undefined
+      ? { gpuRenderer: registeredWebGLGpuTelemetry.gpuRenderer }
+      : {}),
+    ...(registeredWebGLGpuTelemetry.maxTextureSize !== undefined
+      ? { maxTextureSize: registeredWebGLGpuTelemetry.maxTextureSize }
+      : {}),
+    ...(registeredWebGLGpuTelemetry.maxVertexAttribs !== undefined
+      ? { maxVertexAttribs: registeredWebGLGpuTelemetry.maxVertexAttribs }
+      : {}),
+  };
 }
 
 export function classifyDeviceTier(input?: DeviceCapabilitiesInput): DevicePerformanceTier {
-  return classifyHardwareTier(input ?? probeBrowserDeviceCapabilities());
+  const resolved = input ?? probeBrowserDeviceCapabilities();
+  return classifyHardwareTier(resolved, resolved.gpuRenderer);
+}
+
+export function getInitialCanvasDpr(nativeDpr?: number): number {
+  const caps = probeBrowserDeviceCapabilities();
+  const tier = classifyDeviceTier(caps);
+  return resolveInitialDprForTier(tier, caps.gpuRenderer, nativeDpr);
 }
 
 export function getDeviceTierBudget(

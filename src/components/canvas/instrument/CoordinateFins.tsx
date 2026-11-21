@@ -1,16 +1,21 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useSpatialFrame } from './spatialFrameContext';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
-import { QUADRANTS } from '../cartography/cartographyFinsAndTicks';
 import { populateZoomAdaptiveRings, type ScaledRingInfo } from '../math';
 import {
   PLANES,
   DEFAULT_FIXED_RINGS,
+  DEFAULT_FIN_RING_POOL,
+  MAX_FIN_RING_POOL,
+  clampFinPoolSize,
   buildAllFinGeometries,
   disposeAllFinGeometries,
+  createAllFinMaterials,
+  disposeAllFinMaterials,
   updateCoordinateFinsFrame,
+  type FinPlane,
 } from './coordinateFinsGeometry';
 import { NOOP_RAYCAST } from '../engineConfig';
 
@@ -21,17 +26,22 @@ export interface CoordinateFinsProps {
   rings?: number[];
   /** Major ring index */
   majorRingIndex?: number;
-  /** Pool capacity for dynamic range arcs (default: 8) */
+  /** Pool capacity for dynamic range arcs (default: 8, clamped to 1..16) */
   poolSize?: number;
 }
+
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export const CoordinateFins: React.FC<CoordinateFinsProps> = React.memo(({
   enabled,
   rings: explicitRings,
   majorRingIndex,
-  poolSize = 8,
+  poolSize = DEFAULT_FIN_RING_POOL,
 }) => {
   const { frame, frameRef } = useSpatialFrame();
+  const invalidate = useThree((s) => s.invalidate);
+
   const gridSecondaryColor = useThreeTokenStore((s) => s.tokens.gridSecondaryColor);
   const finPerimeterAlpha = useThreeTokenStore((s) => s.tokens.finPerimeterAlpha);
   const tickAlpha = useThreeTokenStore((s) => s.tokens.tickAlpha);
@@ -40,30 +50,49 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = React.memo(({
   const ringMinorAlpha = useThreeTokenStore((s) => s.tokens.ringMinorAlpha);
 
   const isEnabled = enabled ?? frame.coordinateFins.enabled;
+  const clampedPoolSize = clampFinPoolSize(poolSize);
   const rootGroupRef = useRef<THREE.Group>(null);
 
-  const finGeoms = useMemo(() => buildAllFinGeometries(), []);
+  const finGeoms = useMemo(() => buildAllFinGeometries(clampedPoolSize), [clampedPoolSize]);
+  const finMaterials = useMemo(() => createAllFinMaterials(), []);
+
   useEffect(() => () => disposeAllFinGeometries(finGeoms), [finGeoms]);
+  useEffect(() => () => disposeAllFinMaterials(finMaterials), [finMaterials]);
 
-  const perimeterLinesRef = useRef<Record<string, (THREE.LineSegments | null)[]>>({ xy: [null, null, null, null], xz: [null, null, null, null], yz: [null, null, null, null] });
-  const perimeterMatsRef = useRef<Record<string, (THREE.LineBasicMaterial | null)[]>>({ xy: [null, null, null, null], xz: [null, null, null, null], yz: [null, null, null, null] });
-  const baselineLinesRef = useRef<Record<string, (THREE.LineSegments | null)[]>>({ xy: [null, null, null, null], xz: [null, null, null, null], yz: [null, null, null, null] });
-  const baselineMatsRef = useRef<Record<string, (THREE.LineBasicMaterial | null)[]>>({ xy: [null, null, null, null], xz: [null, null, null, null], yz: [null, null, null, null] });
-  const tickLinesRef = useRef<Record<string, (THREE.LineSegments | null)[]>>({ xy: [null, null, null, null], xz: [null, null, null, null], yz: [null, null, null, null] });
-  const tickMatsRef = useRef<Record<string, (THREE.LineBasicMaterial | null)[]>>({ xy: [null, null, null, null], xz: [null, null, null, null], yz: [null, null, null, null] });
-  const quadLinesRef = useRef<Record<string, (THREE.LineSegments | null)[][]>>({
-    xy: Array.from({ length: poolSize }, () => [null, null, null, null]),
-    xz: Array.from({ length: poolSize }, () => [null, null, null, null]),
-    yz: Array.from({ length: poolSize }, () => [null, null, null, null]),
-  });
-  const quadMatsRef = useRef<Record<string, (THREE.LineBasicMaterial | null)[][]>>({
-    xy: Array.from({ length: poolSize }, () => [null, null, null, null]),
-    xz: Array.from({ length: poolSize }, () => [null, null, null, null]),
-    yz: Array.from({ length: poolSize }, () => [null, null, null, null]),
-  });
+  const perimeterLinesRef = useRef<Record<FinPlane, THREE.LineSegments | null>>({ xy: null, xz: null, yz: null });
+  const tickLinesRef = useRef<Record<FinPlane, THREE.LineSegments | null>>({ xy: null, xz: null, yz: null });
+  const arcLinesRef = useRef<Record<FinPlane, THREE.LineSegments | null>>({ xy: null, xz: null, yz: null });
 
-  const activeRingsPoolRef = useRef<ScaledRingInfo[]>(Array.from({ length: poolSize }, () => ({ radius: 0, isMajor: false, fade: 0 })));
-  const ringPoolIndices = useMemo(() => Array.from({ length: poolSize }, (_, i) => i), [poolSize]);
+  const activeRingsPoolRef = useRef<ScaledRingInfo[]>(
+    Array.from({ length: MAX_FIN_RING_POOL }, () => ({ radius: 0, isMajor: false, fade: 0 })),
+  );
+
+  useIsomorphicLayoutEffect(() => {
+    for (let i = 0; i < PLANES.length; i++) {
+      const planeMats = finMaterials[PLANES[i]];
+      planeMats.perimeter.uniforms.uColor.value.set(gridSecondaryColor);
+      planeMats.perimeter.uniforms.uBaseAlpha.value = finPerimeterAlpha;
+      planeMats.perimeter.uniforms.uApertureRadius.value = frame.radius;
+
+      planeMats.ticks.uniforms.uColor.value.set(rangeTickColor);
+      planeMats.ticks.uniforms.uBaseAlpha.value = tickAlpha;
+      planeMats.ticks.uniforms.uApertureRadius.value = frame.radius;
+
+      planeMats.arcs.uniforms.uColor.value.set(gridSecondaryColor);
+    }
+  }, [finMaterials, gridSecondaryColor, finPerimeterAlpha, rangeTickColor, tickAlpha, frame.radius]);
+
+  useEffect(() => {
+    for (let i = 0; i < PLANES.length; i++) {
+      const planeMats = finMaterials[PLANES[i]];
+      planeMats.perimeter.uniforms.uColor.value.set(gridSecondaryColor);
+      planeMats.perimeter.uniforms.uBaseAlpha.value = finPerimeterAlpha;
+      planeMats.ticks.uniforms.uColor.value.set(rangeTickColor);
+      planeMats.ticks.uniforms.uBaseAlpha.value = tickAlpha;
+      planeMats.arcs.uniforms.uColor.value.set(gridSecondaryColor);
+    }
+    invalidate();
+  }, [finMaterials, gridSecondaryColor, finPerimeterAlpha, rangeTickColor, tickAlpha, invalidate]);
 
   useFrame(() => {
     if (!isEnabled || !rootGroupRef.current?.position) return;
@@ -73,11 +102,11 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = React.memo(({
 
     let numActive = 0;
     if (frame.screenConstant && !explicitRings) {
-      numActive = populateZoomAdaptiveRings(apertureRadius, activeRingsPoolRef.current, poolSize);
+      numActive = populateZoomAdaptiveRings(apertureRadius, activeRingsPoolRef.current, clampedPoolSize);
     } else {
       const list = explicitRings ?? frame.rangeRings.fixedRings ?? DEFAULT_FIXED_RINGS;
-      numActive = list.length;
-      for (let i = 0; i < list.length; i++) {
+      numActive = Math.min(list.length, clampedPoolSize);
+      for (let i = 0; i < numActive; i++) {
         const item = activeRingsPoolRef.current[i];
         item.radius = list[i];
         item.isMajor = majorRingIndex !== undefined ? i === majorRingIndex : i === list.length - 1;
@@ -87,142 +116,56 @@ export const CoordinateFins: React.FC<CoordinateFinsProps> = React.memo(({
 
     updateCoordinateFinsFrame(
       perimeterLinesRef.current,
-      perimeterMatsRef.current,
-      baselineLinesRef.current,
-      baselineMatsRef.current,
       tickLinesRef.current,
-      tickMatsRef.current,
-      quadLinesRef.current,
-      quadMatsRef.current,
+      arcLinesRef.current,
+      finMaterials,
       apertureRadius,
       planeWeights,
-      finPerimeterAlpha,
-      tickAlpha,
       ringMajorAlpha,
       ringMinorAlpha,
       activeRingsPoolRef.current,
       numActive,
-      poolSize,
+      clampedPoolSize,
     );
   });
 
-  useEffect(() => {
-    for (const plane of PLANES) {
-      for (let q = 0; q < 4; q++) {
-        perimeterMatsRef.current[plane]?.[q]?.color.set(gridSecondaryColor);
-        baselineMatsRef.current[plane]?.[q]?.color.set(gridSecondaryColor);
-        tickMatsRef.current[plane]?.[q]?.color.set(rangeTickColor);
-      }
-      for (let rIdx = 0; rIdx < poolSize; rIdx++) {
-        for (let q = 0; q < 4; q++) {
-          quadMatsRef.current[plane]?.[rIdx]?.[q]?.color.set(gridSecondaryColor);
-        }
-      }
-    }
-  }, [gridSecondaryColor, rangeTickColor, poolSize]);
-
   if (!isEnabled) return null;
-  const initialRings = explicitRings ?? frame.rangeRings.fixedRings ?? DEFAULT_FIXED_RINGS;
 
   return (
     <group ref={rootGroupRef} name="travelling-fins">
       {PLANES.map((plane) => (
-        <group key={`fin-${plane}`} name={`fin-${plane}`}>
-          {QUADRANTS.map((quad, qIdx) => (
+        <group key={`fin-${plane}`} name={`fin-${plane}`} matrixAutoUpdate={false}>
+          <lineSegments
+            ref={(el) => { perimeterLinesRef.current[plane] = el; }}
+            name={`${plane}-perimeter`}
+            geometry={finGeoms.perimeterGeoms[plane]}
+            material={finMaterials[plane].perimeter}
+            matrixAutoUpdate={false}
+            frustumCulled={false}
+            raycast={NOOP_RAYCAST}
+          />
+          {frame.coordinateFins.ticks && (
             <lineSegments
-              key={`${plane}-perimeter-q${qIdx}`}
-              ref={(el) => { perimeterLinesRef.current[plane][qIdx] = el; }}
-              name={`${plane}-perimeter-q${qIdx}`}
-              visible={quad.qx === 1 && quad.qy === 1}
-              scale={[frame.radius, frame.radius, frame.radius]}
+              ref={(el) => { tickLinesRef.current[plane] = el; }}
+              name={`${plane}-ticks`}
+              geometry={finGeoms.tickGeoms[plane]}
+              material={finMaterials[plane].ticks}
+              matrixAutoUpdate={false}
               frustumCulled={false}
               raycast={NOOP_RAYCAST}
-            >
-              <primitive object={finGeoms.quadrantGeoms[plane][qIdx]} attach="geometry" />
-              <lineBasicMaterial
-                ref={(el) => { perimeterMatsRef.current[plane][qIdx] = el; }}
-                color={gridSecondaryColor}
-                opacity={finPerimeterAlpha}
-                transparent
-                depthWrite={false}
-              />
-            </lineSegments>
-          ))}
-
-          {QUADRANTS.map((quad, qIdx) => (
+            />
+          )}
+          {frame.coordinateFins.rangeArcs && (
             <lineSegments
-              key={`${plane}-baseline-q${qIdx}`}
-              ref={(el) => { baselineLinesRef.current[plane][qIdx] = el; }}
-              name={`${plane}-baseline-q${qIdx}`}
-              visible={quad.qx === 1 && quad.qy === 1}
-              scale={[frame.radius, frame.radius, frame.radius]}
+              ref={(el) => { arcLinesRef.current[plane] = el; }}
+              name={`${plane}-arcs`}
+              geometry={finGeoms.arcGeoms[plane]}
+              material={finMaterials[plane].arcs}
+              matrixAutoUpdate={false}
               frustumCulled={false}
               raycast={NOOP_RAYCAST}
-            >
-              <primitive object={finGeoms.baselineGeoms[plane][qIdx]} attach="geometry" />
-              <lineBasicMaterial
-                ref={(el) => { baselineMatsRef.current[plane][qIdx] = el; }}
-                color={gridSecondaryColor}
-                opacity={finPerimeterAlpha}
-                transparent
-                depthWrite={false}
-              />
-            </lineSegments>
-          ))}
-
-          {frame.coordinateFins.ticks &&
-            QUADRANTS.map((quad, qIdx) => (
-              <lineSegments
-                key={`${plane}-ticks-q${qIdx}`}
-                ref={(el) => { tickLinesRef.current[plane][qIdx] = el; }}
-                name={`${plane}-ticks-q${qIdx}`}
-                visible={quad.qx === 1 && quad.qy === 1}
-                scale={[frame.radius, frame.radius, frame.radius]}
-                frustumCulled={false}
-                raycast={NOOP_RAYCAST}
-              >
-                <primitive object={finGeoms.tickGeoms[plane][qIdx]} attach="geometry" />
-                <lineBasicMaterial
-                  ref={(el) => { tickMatsRef.current[plane][qIdx] = el; }}
-                  color={rangeTickColor}
-                  opacity={tickAlpha}
-                  transparent
-                  depthWrite={false}
-                />
-              </lineSegments>
-            ))}
-
-          {frame.coordinateFins.rangeArcs &&
-            ringPoolIndices.map((rIdx) => (
-              <group key={`${plane}-arc-group-${rIdx}`} name={rIdx < initialRings.length ? `arc-tier-${initialRings[rIdx]}` : `arc-pool-${rIdx}`}>
-                {QUADRANTS.map((quad, qIdx) => (
-                  <lineSegments
-                    key={`${plane}-ring-${rIdx}-q${qIdx}`}
-                    ref={(el) => {
-                      if (!quadLinesRef.current[plane][rIdx]) quadLinesRef.current[plane][rIdx] = [null, null, null, null];
-                      quadLinesRef.current[plane][rIdx][qIdx] = el;
-                    }}
-                    name={`${plane}-q${qIdx}-r${rIdx}`}
-                    visible={rIdx < initialRings.length && quad.qx === 1 && quad.qy === 1}
-                    scale={[rIdx < initialRings.length ? initialRings[rIdx] : 1.0, rIdx < initialRings.length ? initialRings[rIdx] : 1.0, rIdx < initialRings.length ? initialRings[rIdx] : 1.0]}
-                    frustumCulled={false}
-                    raycast={NOOP_RAYCAST}
-                  >
-                    <primitive object={finGeoms.quadrantGeoms[plane][qIdx]} attach="geometry" />
-                    <lineBasicMaterial
-                      ref={(el) => {
-                        if (!quadMatsRef.current[plane][rIdx]) quadMatsRef.current[plane][rIdx] = [null, null, null, null];
-                        quadMatsRef.current[plane][rIdx][qIdx] = el;
-                      }}
-                      color={gridSecondaryColor}
-                      opacity={ringMinorAlpha}
-                      transparent
-                      depthWrite={false}
-                    />
-                  </lineSegments>
-                ))}
-              </group>
-            ))}
+            />
+          )}
         </group>
       ))}
     </group>

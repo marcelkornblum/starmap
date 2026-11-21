@@ -9,7 +9,6 @@ import type { DisposableGpuResource } from '../../../services/sectorSelection';
 export function createDefaultSectorGeometry(decoded: DecodedBinarySector): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(decoded.positions, 3));
-  geometry.setAttribute('starId', new THREE.BufferAttribute(decoded.ids, 1));
 
   const size = decoded.header.sectorSize;
   const halfSize = size * 0.5;

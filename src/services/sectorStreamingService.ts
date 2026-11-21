@@ -33,6 +33,7 @@ export class SectorStreamingManager {
   private activeSet = new Set<string>();
   private prefetchSet = new Set<string>();
   private pendingUploadQueue: string[] = [];
+  private isUploadQueueDirty = false;
   private tick = 0;
   private isDisposed = false;
 
@@ -67,6 +68,7 @@ export class SectorStreamingManager {
     const onNewlyCached = (sectorId: string) => {
       if (this.activeSet.has(sectorId) && !this.pendingUploadQueue.includes(sectorId)) {
         this.pendingUploadQueue.push(sectorId);
+        this.isUploadQueueDirty = true;
       }
       const evicted = this.bufferCache.enforceLruCapacity(this.budget.lruCacheMaxSectors, this.activeSet);
       for (const ev of evicted) {
@@ -106,6 +108,7 @@ export class SectorStreamingManager {
 
     processRing(plan.activeSectorIds, 'high');
     processRing(plan.prefetchSectorIds, 'low');
+    this.isUploadQueueDirty = true;
 
     await Promise.allSettled(fetchPromises);
     if (!this.isDisposed) this.notifyListeners();
@@ -117,11 +120,14 @@ export class SectorStreamingManager {
       return EMPTY_UPLOADS as string[];
     }
 
-    this.pendingUploadQueue.sort((a, b) => {
-      const distA = this.bufferCache.get(a)?.distanceSq ?? Infinity;
-      const distB = this.bufferCache.get(b)?.distanceSq ?? Infinity;
-      return distA - distB;
-    });
+    if (this.isUploadQueueDirty) {
+      this.pendingUploadQueue.sort((a, b) => {
+        const distA = this.bufferCache.get(a)?.distanceSq ?? Infinity;
+        const distB = this.bufferCache.get(b)?.distanceSq ?? Infinity;
+        return distA - distB;
+      });
+      this.isUploadQueueDirty = false;
+    }
 
     const uploadedThisFrame: string[] = [];
     const remainingQueue: string[] = [];
@@ -221,5 +227,6 @@ export class SectorStreamingManager {
     this.activeSet.clear();
     this.prefetchSet.clear();
     this.pendingUploadQueue = [];
+    this.isUploadQueueDirty = false;
   }
 }
