@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { SystemSummaryNode, SystemManifest } from '../../types/astro';
-import {
-  consolidateMultiStarSystems,
-} from '../../../scripts/build-data';
+import type { SystemSummaryNode, SystemManifest } from '../../src/types/astro';
+import { consolidateMultiStarSystems } from './multiStarConsolidation';
 
 const makeSummary = (
   id: string,

@@ -6,7 +6,7 @@ import {
   generateMarkdownGallery,
   parseCaptureArgs,
   slugifyRoute,
-} from '../../../scripts/capture-views';
+} from './capture-views';
 
 describe('capture-views utilities', () => {
   it('defines all 5 ratified standard viewports (Mobile, Tablet Portrait/Landscape, Desktop Standard/Ultrawide)', () => {

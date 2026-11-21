@@ -1,8 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 import {
   auditSourceFile,
   auditFile,
   runR3fAudit,
+  runR3FAudit,
 } from './audit-r3f';
 
 describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
@@ -296,7 +300,17 @@ describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
     });
   });
 
-  describe('Pure Function Exports auditFile and runR3fAudit', () => {
+  describe('Pure Function Exports auditFile, runR3fAudit, and CLI Runner runR3FAudit', () => {
+    const tempDirs: string[] = [];
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      while (tempDirs.length > 0) {
+        const dir = tempDirs.pop();
+        if (dir) fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
     it('auditFile returns structured diagnostics array', () => {
       const diags = auditFile('test.tsx', 'export const X = 1;');
       expect(Array.isArray(diags)).toBe(true);
@@ -306,6 +320,20 @@ describe('WebGL & R3F Performance Audit (scripts/audit-r3f.ts)', () => {
     it('runR3fAudit accepts target dir and returns structured diagnostics', () => {
       const diags = runR3fAudit(['src/components/canvas']);
       expect(Array.isArray(diags)).toBe(true);
+    });
+
+    it('runR3FAudit returns exit code 0 when clean and 1 when errors are present', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'r3f-cli-test-'));
+      tempDirs.push(tempDir);
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      expect(runR3FAudit([tempDir])).toBe(0);
+
+      fs.writeFileSync(
+        path.join(tempDir, 'Bad.tsx'),
+        "import { useFrame } from '@react-three/fiber';\nexport const Bad = () => { useFrame(() => { const a = []; }); return null; };\n"
+      );
+      expect(runR3FAudit([tempDir])).toBe(1);
     });
   });
 });

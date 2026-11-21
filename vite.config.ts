@@ -8,6 +8,14 @@ import { defineConfig } from 'vitest/config';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import { playwright } from '@vitest/browser-playwright';
 const dirname = import.meta.dirname ?? path.dirname(fileURLToPath(import.meta.url));
+const TEST_INLINE_DEPS = [
+  /three/,
+  /@react-three/,
+  '@monogrid/gainmap-js',
+  'camera-controls',
+  'meshline',
+  'maath',
+];
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig(({ mode }) => {
@@ -19,41 +27,14 @@ export default defineConfig(({ mode }) => {
 
   return {
     resolve: {
-      dedupe: ['three', '@react-three/fiber', '@react-three/drei', 'maath'],
+      // Exact-boundary ESM alias prevents CJS require('three') ([THREE_CJS_DEPRECATED]) in Vitest.
       alias: [
         {
           find: /^three$/,
           replacement: path.resolve(dirname, 'node_modules/three/build/three.module.js'),
         },
-        {
-          find: /^@react-three\/fiber$/,
-          replacement: path.resolve(dirname, 'node_modules/@react-three/fiber/dist/react-three-fiber.esm.js'),
-        },
-        {
-          find: /^@react-three\/drei$/,
-          replacement: path.resolve(dirname, 'node_modules/@react-three/drei/index.js'),
-        },
-        {
-          find: /^maath$/,
-          replacement: path.resolve(dirname, 'node_modules/maath/dist/maath.esm.js'),
-        },
-        {
-          find: /^troika-three-text$/,
-          replacement: path.resolve(dirname, 'node_modules/troika-three-text/dist/troika-three-text.esm.js'),
-        },
-        {
-          find: /^troika-three-utils$/,
-          replacement: path.resolve(dirname, 'node_modules/troika-three-utils/dist/troika-three-utils.esm.js'),
-        },
-        {
-          find: /^meshline$/,
-          replacement: path.resolve(dirname, 'node_modules/meshline/dist/index.js'),
-        },
-        {
-          find: /^three-mesh-bvh$/,
-          replacement: path.resolve(dirname, 'node_modules/three-mesh-bvh/src/index.js'),
-        },
       ],
+      dedupe: ['three', '@react-three/fiber', '@react-three/drei', 'maath'],
       mainFields: ['module', 'main'],
     },
     plugins: [
@@ -108,17 +89,10 @@ export default defineConfig(({ mode }) => {
             environment: 'node',
             include: ['**/*.test.ts'],
             exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
-            setupFiles: ['./tests/setup.ts'],
+            setupFiles: ['./tests/setup.node.ts'],
             server: {
               deps: {
-                inline: [
-                  /three/,
-                  /@react-three/,
-                  '@monogrid/gainmap-js',
-                  'camera-controls',
-                  'meshline',
-                  'maath',
-                ],
+                inline: TEST_INLINE_DEPS,
               },
             },
           },
@@ -134,14 +108,7 @@ export default defineConfig(({ mode }) => {
             setupFiles: ['./tests/setup.ts'],
             server: {
               deps: {
-                inline: [
-                  /three/,
-                  /@react-three/,
-                  '@monogrid/gainmap-js',
-                  'camera-controls',
-                  'meshline',
-                  'maath',
-                ],
+                inline: TEST_INLINE_DEPS,
               },
             },
           },

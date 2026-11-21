@@ -621,57 +621,15 @@ export function runR3fAudit(targetDirs: string[] = R3F_FILES_GLOB): AuditDiagnos
   return diagnostics;
 }
 
-export interface BaselineData {
-  version: number;
-  entries: Record<string, { count: number; audId: string }>;
-}
-
-export function isBaselineData(val: unknown): val is BaselineData {
-  if (!val || typeof val !== 'object') return false;
-  const obj = val as Record<string, unknown>;
-  if (typeof obj.version !== 'number') return false;
-  if (!obj.entries || typeof obj.entries !== 'object' || Array.isArray(obj.entries)) return false;
-  const entries = obj.entries as Record<string, unknown>;
-  for (const [k, v] of Object.entries(entries)) {
-    if (typeof k !== 'string') return false;
-    if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
-    const entry = v as Record<string, unknown>;
-    if (typeof entry.count !== 'number' || typeof entry.audId !== 'string') return false;
-  }
-  return true;
-}
-
-function loadBaseline(baselinePath: string): BaselineData | null {
-  if (!fs.existsSync(baselinePath)) return null;
-  try {
-    const parsed: unknown = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
-    return isBaselineData(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Main CLI entry point.
  */
-export function runR3FAudit(): number {
+export function runR3FAudit(targetDirs: string[] = R3F_FILES_GLOB): number {
   console.log('\n--- Running WebGL & React Three Fiber (R3F) Performance Audit ---');
 
-  const diagnostics = runR3fAudit();
-  const baselinePath = path.resolve('scripts/guards/baseline.json');
-  const baseline = loadBaseline(baselinePath);
-
-  // Group violations by ruleId::relPath
-  const violationCounts = new Map<string, number>();
-  for (const diag of diagnostics) {
-    const rel = path.relative(process.cwd(), path.resolve(diag.filePath)).replace(/\\/g, '/');
-    const key = `${diag.ruleId}::${rel}`;
-    violationCounts.set(key, (violationCounts.get(key) || 0) + 1);
-  }
+  const diagnostics = runR3fAudit(targetDirs);
 
   let totalErrors = 0;
-  let totalWarnings = 0;
-  let unbaselinedErrors = 0;
 
   if (diagnostics.length > 0) {
     const byFile = new Map<string, AuditDiagnostic[]>();
@@ -684,48 +642,29 @@ export function runR3FAudit(): number {
     for (const [file, diags] of byFile) {
       console.log(`\n📄 ${file}:`);
       for (const diag of diags) {
-        const rel = path.relative(process.cwd(), path.resolve(diag.filePath)).replace(/\\/g, '/');
-        const key = `${diag.ruleId}::${rel}`;
-        const baselineEntry = baseline?.entries[key];
-        const isBaselined = baselineEntry !== undefined;
-
-        const icon = isBaselined ? '⏳' : (diag.severity === 'error' ? '❌' : '⚠️');
-        console.log(`  ${icon} Line ${diag.line}:${diag.column} [${diag.ruleId}]${isBaselined ? ` (Baselined: ${baselineEntry.audId})` : ''}`);
+        const icon = diag.severity === 'error' ? '❌' : '⚠️';
+        console.log(`  ${icon} Line ${diag.line}:${diag.column} [${diag.ruleId}]`);
         console.log(`     Issue: ${diag.message}`);
         console.log(`     Code:  ${diag.snippet}`);
         console.log(`     Fix:   ${diag.remediation}`);
 
         if (diag.severity === 'error') {
           totalErrors++;
-          if (!isBaselined) unbaselinedErrors++;
-        } else {
-          totalWarnings++;
         }
       }
     }
   }
 
-  // Check if any baselined violation increased count
-  if (baseline) {
-    for (const [key, count] of violationCounts) {
-      const baseEntry = baseline.entries[key];
-      if (baseEntry && count > baseEntry.count) {
-        console.log(`\n❌ Violation count regression: ${key} increased from ${baseEntry.count} to ${count}`);
-        unbaselinedErrors++;
-      }
-    }
-  }
-
   console.log('\n--- Audit Summary ---');
-  console.log(`Total Violations:      ${diagnostics.length}`);
-  console.log(`Unbaselined Errors:    ${unbaselinedErrors}`);
+  console.log(`Total Violations: ${diagnostics.length}`);
+  console.log(`Errors:           ${totalErrors}`);
 
-  if (unbaselinedErrors > 0) {
-    console.log('\n❌ WebGL / R3F audit found unbaselined infractions. Resolve them or add `// r3f-audit-disable-next-line <rule-id>` if an exception is justified.\n');
+  if (totalErrors > 0) {
+    console.log('\n❌ WebGL / R3F audit found infractions. Resolve them or add `// r3f-audit-disable-next-line <rule-id> -- <reason>` if an exception is justified.\n');
     return 1;
   }
 
-  console.log('\n✨ All WebGL & React Three Fiber invariants passed cleanly (within baseline).\n');
+  console.log('\n✨ All WebGL & React Three Fiber invariants passed cleanly.\n');
   return 0;
 }
 
