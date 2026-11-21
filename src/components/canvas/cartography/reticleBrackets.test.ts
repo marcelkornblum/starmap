@@ -1,53 +1,52 @@
 import { describe, it, expect } from 'vitest';
-import * as THREE from 'three';
 import { appendReticleBracketPoints } from './reticleBrackets';
 
 describe('reticleBrackets', () => {
-  it('generates 8 points for diamond star reticle', () => {
-    const points: THREE.Vector3[] = [];
-    appendReticleBracketPoints(points, 'star', 1.0);
-    expect(points.length).toBe(8);
+  it('generates 8 vertices (24 flat coords) for diamond star reticle', () => {
+    const coords: number[] = [];
+    appendReticleBracketPoints(coords, 'star', 1.0);
+    expect(coords.length).toBe(8 * 3);
   });
 
-  it('generates 8 points for broken-diamond brown dwarf reticle', () => {
-    const points: THREE.Vector3[] = [];
-    appendReticleBracketPoints(points, 'brown-dwarf', 1.0);
-    expect(points.length).toBe(8);
+  it('generates 8 vertices (24 flat coords) for broken-diamond brown dwarf reticle', () => {
+    const coords: number[] = [];
+    appendReticleBracketPoints(coords, 'brown-dwarf', 1.0);
+    expect(coords.length).toBe(8 * 3);
   });
 
   it('generates fractured diamond corner brackets for white dwarf', () => {
-    const points: THREE.Vector3[] = [];
-    appendReticleBracketPoints(points, 'white-dwarf', 1.0);
-    expect(points.length).toBe(16);
+    const coords: number[] = [];
+    appendReticleBracketPoints(coords, 'white-dwarf', 1.0);
+    expect(coords.length).toBe(16 * 3);
   });
 
   it('generates divergent beam hazard geometry for neutron star', () => {
-    const points: THREE.Vector3[] = [];
-    appendReticleBracketPoints(points, 'neutron-star', 1.0);
-    expect(points.length).toBe(24);
+    const coords: number[] = [];
+    appendReticleBracketPoints(coords, 'neutron-star', 1.0);
+    expect(coords.length).toBe(24 * 3);
   });
 
   it('generates convergent spines targeting empty centre for black hole', () => {
-    const points: THREE.Vector3[] = [];
-    appendReticleBracketPoints(points, 'black-hole', 1.0);
-    expect(points.length).toBe(24);
+    const coords: number[] = [];
+    appendReticleBracketPoints(coords, 'black-hole', 1.0);
+    expect(coords.length).toBe(24 * 3);
   });
 
   it('generates circle geometry for planetary classifications', () => {
-    const pointsTerr: THREE.Vector3[] = [];
-    appendReticleBracketPoints(pointsTerr, 'terrestrial', 1.0);
-    expect(pointsTerr.length).toBe(64);
+    const coordsTerr: number[] = [];
+    appendReticleBracketPoints(coordsTerr, 'terrestrial', 1.0);
+    expect(coordsTerr.length).toBe(64 * 3);
 
-    const pointsSuper: THREE.Vector3[] = [];
-    appendReticleBracketPoints(pointsSuper, 'super-earth', 1.0);
-    expect(pointsSuper.length).toBe(128);
+    const coordsSuper: number[] = [];
+    appendReticleBracketPoints(coordsSuper, 'super-earth', 1.0);
+    expect(coordsSuper.length).toBe(128 * 3);
 
-    const pointsGas: THREE.Vector3[] = [];
-    appendReticleBracketPoints(pointsGas, 'gas-giant', 1.0);
-    expect(pointsGas.length).toBe(68);
+    const coordsGas: number[] = [];
+    appendReticleBracketPoints(coordsGas, 'gas-giant', 1.0);
+    expect(coordsGas.length).toBe(68 * 3);
 
-    const pointsIce: THREE.Vector3[] = [];
-    appendReticleBracketPoints(pointsIce, 'ice-giant', 1.0);
-    expect(pointsIce.length).toBe(68);
+    const coordsIce: number[] = [];
+    appendReticleBracketPoints(coordsIce, 'ice-giant', 1.0);
+    expect(coordsIce.length).toBe(68 * 3);
   });
 });

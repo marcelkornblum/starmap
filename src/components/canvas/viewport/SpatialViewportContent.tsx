@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useThree } from '@react-three/fiber';
 import {
@@ -7,6 +7,9 @@ import {
   CelestialEntity,
   OcclusionPass,
   ApertureEvaluator,
+  EntityDotsBatch,
+  EntityDotsBatchContext,
+  createEntityDotsBatchRegistry,
   JourneyChord,
   type SpatialEntityStore,
 } from '../entity';
@@ -54,6 +57,7 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
   const { transitionTo } = useCameraTransition();
   const prevEntityIdsRef = useRef<Set<string>>(new Set());
   const frameCtx = useSpatialFrameSafe();
+  const dotsBatchRegistry = useMemo(() => createEntityDotsBatchRegistry(), []);
 
   useIsomorphicLayoutEffect(() => {
     const nextIds = new Set<string>();
@@ -130,39 +134,42 @@ export const SpatialViewportContent: React.FC<SpatialViewportContentProps> = Rea
   });
 
   return (
-    <group
-      name="spatial-viewport"
-      userData={{ mode }}
-      onPointerMissed={handlePointerMissed}
-    >
-      <OcclusionPass enabled={true} />
-      <ApertureEvaluator />
+    <EntityDotsBatchContext.Provider value={dotsBatchRegistry}>
+      <group
+        name="spatial-viewport"
+        userData={{ mode }}
+        onPointerMissed={handlePointerMissed}
+      >
+        <OcclusionPass enabled={true} />
+        <ApertureEvaluator />
+        <EntityDotsBatch />
 
-      <CameraRig />
-      {lighting !== false && (
-        <CartographicLighting
-          lightingOverride={typeof lighting === 'object' ? lighting : undefined}
-        />
-      )}
+        <CameraRig />
+        {lighting !== false && (
+          <CartographicLighting
+            lightingOverride={typeof lighting === 'object' ? lighting : undefined}
+          />
+        )}
 
-      {showInstrument && <CartographicInstrument showPlanarFootprint={showPlanarFootprint} />}
+        {showInstrument && <CartographicInstrument showPlanarFootprint={showPlanarFootprint} />}
 
-      {entities.map((entity) => (
-        <CelestialEntity
-          key={entity.id}
-          {...entity}
-          debugHitarea={debugHitarea}
-          onClick={handleEntityClick}
-          onDoubleClick={handleEntityDoubleClick}
-        />
-      ))}
+        {entities.map((entity) => (
+          <CelestialEntity
+            key={entity.id}
+            {...entity}
+            debugHitarea={debugHitarea}
+            onClick={handleEntityClick}
+            onDoubleClick={handleEntityDoubleClick}
+          />
+        ))}
 
-      {journeyLegs && journeyLegs.length > 0 ? (
-        <JourneyChord legs={journeyLegs} activeMethodId={activeJourneyMethod} />
-      ) : null}
+        {journeyLegs && journeyLegs.length > 0 ? (
+          <JourneyChord legs={journeyLegs} activeMethodId={activeJourneyMethod} />
+        ) : null}
 
-      {children}
-    </group>
+        {children}
+      </group>
+    </EntityDotsBatchContext.Provider>
   );
 });
 

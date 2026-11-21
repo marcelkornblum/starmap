@@ -1,22 +1,25 @@
 # Implementation Plan: Scene Draw-Call Reduction & Adaptive GPU Tiering
 
-> **Phase skeleton — to be detailed at track kick-off via `conductor-new-track`.** The phases below only name the work packages from [spec.md](./spec.md); task breakdown, TDD steps, and ratified decisions are written when the track is kicked off. Do not start implementation from this skeleton.
+> **Ratified Decisions (2026-11-21):**
+> - **G1 (`P-07`):** Viewport-level `EntityDotsBatch` (`Points` shader inside `SpatialViewport` with standalone `BodyMarker` fallback for Storybook/tests), `visible={debugHitarea}` + shared module-level hitarea material on `celestial-hitarea`, and direct `Float32Array` + bounded cached `createReticleGeometry` (callers stop disposing cached buffers).
+> - **G2 (`P-08`):** Custom `ShaderMaterial` `CoordinateFins` consolidation (`aQuadrant` + `aRingIndex` attributes, uniform arrays for quadrant weights, grazing fade, and ring radii/alphas), collapsing 132 `LineSegments` / 132 materials to ≤ 9 `LineSegments` with `matrixAutoUpdate = false` on static children.
+> - **G3 (`P-12`):** Probe `WEBGL_debug_renderer_info`, `MAX_TEXTURE_SIZE`, and `MAX_VERTEX_ATTRIBS` inside the existing `webglSupport.ts` probe context (zero extra WebGL contexts, plus `<Canvas onCreated>` fallback) wired into a reactive `deviceTierService`, runtime frame-time-driven adaptive DPR (`[1, 2]` on `tier3`/HiDPI, capped at `1` on `tier1`/SwiftShader) + cutoff downgrade controller, and recalibrated `scripts/guards/frame-time-baseline.json` with an absolute p95 ceiling.
+> - **G4 (`P-15`):** Include sector buffer & shader hygiene — drop unused `starId` GPU attribute (25 % smaller starfield VBOs) and switch `SectorStreamingManager.pendingUploadQueue` to dirty-flag sorting.
 
 ## Phase 1: Entity Draw-Call Batching & Reticle Cache (`P-07`)
-- [ ] Task: To be detailed at track kick-off via `conductor-new-track`.
-- [ ] Task: Quality Check: `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:r3f`, `npm run test:coverage`.
-- [ ] Task: Visual Review: `npm run capture:views` across all 5 standard viewports.
-- [ ] Task: Phase Verification & Checkpoint (Refer to `conductor/workflow.md`).
+- [x] Task 1.1: **Reticle geometry cache & zero-Vector3 builder:** Rewrite `src/components/canvas/cartography/reticleGeometry.ts` and `reticleBrackets.ts` to emit line-segment vertices directly into `Float32Array` without `new THREE.Vector3` allocations; cache `BufferGeometry` by canonical shape key `(classification, size, annotated ? cappedMultiplicity : 1, annotated ? categoryBitmask : 0)` with `clearReticleGeometryCache()` for tests; remove `.dispose()` calls on cached geometries in `Reticle.tsx`, `DropStalk.tsx`, and `PlanarGrid.tsx`.
+- [x] Task 1.2: **Zero-draw hitareas:** Update `src/components/canvas/entity/BodyMarker.tsx` to set `visible={debugHitarea}` on `celestial-hitarea` (skipping WebGL draw calls while preserving R3F/Three.js pointer raycasting) and share a module-level invisible hitarea material.
+- [x] Task 1.3: **Viewport-level `EntityDotsBatch`:** Implement `EntityDotsBatch.tsx` + registry context (`entityDotsBatchContext.ts`) mounted inside `SpatialViewportContent.tsx` rendering all viewport entity dots in a single `<points raycast={NOOP_RAYCAST}>` draw call (custom crisp-circle `ShaderMaterial` supporting per-entity position, pixelSize, colour, and `nodeAlphaRef` crossfade, zero `useFrame` allocations, `setDrawRange`); wire `BodyMarker` to register into the batch when inside a viewport and retain its standalone dot fallback outside `SpatialViewport`.
+- [x] Task 1.4: Unit tests (`reticleGeometry.test.ts`, `EntityDotsBatch.test.tsx`, `BodyMarker.test.tsx`, `Reticle.test.tsx`), `npm run check`, `npx vitest run`, `npm run build`, and Phase 1 checkpoint commit.
 
 ## Phase 2: CoordinateFins Rig Consolidation (`P-08`)
-- [ ] Task: To be detailed at track kick-off via `conductor-new-track`.
-- [ ] Task: Quality Check: `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:r3f`, `npm run test:coverage`.
-- [ ] Task: Visual Review: `npm run capture:views` across all 5 standard viewports.
-- [ ] Task: Phase Verification & Checkpoint (Refer to `conductor/workflow.md`).
+- [ ] Task 2.1: **Shader-backed fin geometry & materials:** Replace the 132 per-quadrant/per-ring `LineSegments` + `LineBasicMaterial` instances in `CoordinateFins.tsx` / `coordinateFinsGeometry.ts` with consolidated per-plane/layer `BufferGeometry` carrying `aQuadrant` (and `aRingIndex` for pooled arcs) attributes and custom `ShaderMaterial` uniforms (`uColor`, `uQuadWeights[4]`, `uGrazingFade`, `uApertureRadius`, `uRingRadii[8]`, `uRingAlphas[8]`), reducing the rig to ≤ 9 `LineSegments` / materials while preserving exact cartographic visuals and `orientation-instruments` plane extensibility.
+- [ ] Task 2.2: **Static matrices & zero-alloc updates:** Set `matrixAutoUpdate = false` on all static child meshes/groups in `CoordinateFins.tsx`; ensure `updateCoordinateFinsFrame` updates only uniform arrays with zero allocations.
+- [ ] Task 2.3: Update `CoordinateFins.test.tsx` and geometry tests, verify `npm run check`, `npx vitest run`, `npm run build`, and Phase 2 checkpoint commit.
 
-## Phase 3: Real GPU Tier Probing, Adaptive Quality & Optional Sector Hygiene (`P-12`, optional `P-15`)
-- [ ] Task: To be detailed at track kick-off via `conductor-new-track`.
-- [ ] Task: Quality Check: `standards` cleanup, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:r3f`, `npm run test:coverage`, and Playwright FPS baseline check.
-- [ ] Task: Visual Review: `npm run capture:views` across all 5 standard viewports.
-- [ ] Task: Update `CHANGELOG.md`.
-- [ ] Task: Phase Verification & Checkpoint (Refer to `conductor/workflow.md`).
+## Phase 3: Live WebGL GPU Tiering, Adaptive Quality & Sector Hygiene (`P-12`, `P-15`)
+- [ ] Task 3.1: **Live WebGL GPU probe & reactive `deviceTierService` (`P-12`):** Extend `src/utils/webglSupport.ts` to capture `gpuRenderer`, `maxTextureSize`, and `maxVertexAttribs` once on its existing probe context (cached, zero extra contexts) and feed them into `deviceTierService` (plus `CanvasWebGLHost` `onCreated` fallback); activate `isConstrainedGpuRenderer` and `isHighPerformanceGpuRenderer` in `deviceTierProfiles.ts` and fix Safari/Firefox `deviceMemory === undefined` handling so constrained/software GPUs never land in `tier3`.
+- [ ] Task 3.2: **Adaptive DPR & runtime quality monitor (`P-12`):** Add a lightweight zero-alloc `AdaptiveQualityMonitor` inside `CanvasWebGLHost.tsx` / `StandaloneSceneShell.tsx` (tier-aware initial DPR: up to `Math.min(window.devicePixelRatio, 2)` on `tier3` / high-perf GPU, `Math.min(dpr, 1.5)` on `tier2`, pinned `1` on `tier1`/SwiftShader) that tracks EWMA active frame time in `useFrame` and steps down DPR / notifies `deviceTierService` runtime cutoff multiplier under sustained spikes (`audit:r3f`-clean, zero `setState` in `useFrame`).
+- [ ] Task 3.3: **Sector buffer & queue sort hygiene (`P-15`):** Remove unused `starId` GPU attribute from `src/components/canvas/entity/sectorPointCloudGeometry.ts` (25 % GPU VBO reduction, keeping CPU `decoded.ids` intact for `scanSectorWithinSphere`) and add a dirty flag to `SectorStreamingManager.pendingUploadQueue` (`src/services/sectorStreamingService.ts`) to skip redundant per-frame sorts.
+- [ ] Task 3.4: **Frame-time baseline & absolute budget (`P-12`):** Update `e2e/frame-time-baseline.spec.ts` to enforce an absolute p95 frame-time ceiling alongside the regression check and recalibrate `scripts/guards/frame-time-baseline.json` from measured post-Track-6 SwiftShader runs.
+- [ ] Task 3.5: Full QA gate (`npm run check`, `npm run test:coverage`, `npm run build`, `npm run build-storybook`, full Playwright E2E including selection + FPS baseline specs, 5-viewport `capture:views`), update `CHANGELOG.md`, archive Track 6 into `conductor/archive/tracks/scene-draw-calls-and-gpu-tiering_20261121/`, and deliver via PR.

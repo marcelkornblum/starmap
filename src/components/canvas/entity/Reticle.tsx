@@ -73,12 +73,6 @@ export const Reticle: React.FC<ReticleProps> = React.memo(({
     });
   }, [classification, size, isAnnotated, multiplicity, planets]);
 
-  useEffect(() => {
-    return () => {
-      reticleGeom.dispose();
-    };
-  }, [reticleGeom]);
-
   const resolvedColor = useMemo(() => {
     if (explicitColor) {
       return explicitColor instanceof THREE.Color

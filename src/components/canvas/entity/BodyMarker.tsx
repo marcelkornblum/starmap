@@ -1,10 +1,11 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 
 import { useOcclusionManager } from './SpatialEntityContext';
+import { useEntityDotsBatchRegistry } from './entityDotsBatchContext';
 import { useSpatialFrameSafe } from '../instrument/spatialFrameContext';
 import { DEFAULT_RETICLE_SIZE } from '../cartography/reticleGeometry';
 import { NOOP_RAYCAST, resolveEntityScreenInvariantScale, reticleSizeToScreenPx } from '../engineConfig';
@@ -30,6 +31,21 @@ export interface BodyMarkerProps {
 
 const SHARED_DOT_GEOMETRY = new THREE.SphereGeometry(0.5, 16, 16);
 const SHARED_HITAREA_GEOMETRY = new THREE.CircleGeometry(1.0, 32);
+const SHARED_HITAREA_INVISIBLE_MATERIAL = new THREE.MeshBasicMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+});
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+function getPointerCoord(e: ThreeEvent<PointerEvent>): { x: number; y: number } {
+  const n = e.nativeEvent as (PointerEvent | MouseEvent | undefined);
+  return {
+    x: typeof e.clientX === 'number' ? e.clientX : (typeof n?.clientX === 'number' ? n.clientX : 0),
+    y: typeof e.clientY === 'number' ? e.clientY : (typeof n?.clientY === 'number' ? n.clientY : 0),
+  };
+}
 
 /**
  * BodyMarker (Layer 1: Physical System Node):
@@ -58,10 +74,10 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
 
   const [posX, posY, posZ] = position instanceof THREE.Vector3 ? [position.x, position.y, position.z] : position;
 
-  const markerRef = useLazyRef<THREE.Mesh | null>(() => new THREE.Mesh());
+  const markerRef = useRef<THREE.Mesh | null>(null);
   const markerMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
-  const hitareaRef = useLazyRef<THREE.Mesh | null>(() => new THREE.Mesh());
-  const billboardRef = useLazyRef<THREE.Group | null>(() => new THREE.Group());
+  const hitareaRef = useRef<THREE.Mesh | null>(null);
+  const billboardRef = useRef<THREE.Group | null>(null);
   const groupRef = useLazyRef<THREE.Group | null>(() => {
     const g = new THREE.Group();
     g.position.set(posX, posY, posZ);
@@ -69,17 +85,19 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
   });
   const worldPosRef = useLazyRef(() => new THREE.Vector3());
   const occlusionManager = useOcclusionManager();
+  const batchRegistry = useEntityDotsBatchRegistry();
+  const isBatched = batchRegistry !== null;
   const frameCtx = useSpatialFrameSafe();
 
   const setMarkerRef = useCallback((node: THREE.Mesh | null) => {
     if (node === null || 'isMesh' in node) markerRef.current = node;
-  }, [markerRef]);
+  }, []);
   const setHitareaRef = useCallback((node: THREE.Mesh | null) => {
     if (node === null || 'isMesh' in node) hitareaRef.current = node;
-  }, [hitareaRef]);
+  }, []);
   const setBillboardRef = useCallback((node: THREE.Group | null) => {
     if (node === null || 'isGroup' in node) billboardRef.current = node;
-  }, [billboardRef]);
+  }, []);
   const setGroupRef = useCallback((node: THREE.Group | null) => {
     if (node === null || 'isGroup' in node) groupRef.current = node;
   }, [groupRef]);
@@ -88,28 +106,33 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
   const hasSyncedFrameRef = useRef(false);
   const lastAlphaRef = useRef(Number.NaN);
   const lastBillboardSyncRef = useRef({
-    qx: Number.NaN,
-    qy: Number.NaN,
-    qz: Number.NaN,
-    qw: Number.NaN,
-    scale: Number.NaN,
-    hx: Number.NaN,
-    hy: Number.NaN,
+    qx: Number.NaN, qy: Number.NaN, qz: Number.NaN, qw: Number.NaN,
+    scale: Number.NaN, hx: Number.NaN, hy: Number.NaN,
   });
+
+  useIsomorphicLayoutEffect(() => {
+    if (!batchRegistry) return;
+    if (groupRef.current) {
+      groupRef.current.position.set(posX, posY, posZ);
+    }
+    batchRegistry.register({
+      id,
+      groupRef,
+      worldPosition,
+      pixelSize,
+      color,
+      nodeAlphaRef,
+    });
+    return () => {
+      batchRegistry.unregister(id);
+    };
+  }, [batchRegistry, id, posX, posY, posZ, worldPosition, pixelSize, color, nodeAlphaRef, groupRef]);
 
   useEffect(() => {
     lastBillboardSyncRef.current.qx = Number.NaN;
     hasSyncedFrameRef.current = false;
     invalidate();
-  }, [id, posX, posY, posZ, worldPosition, pixelSize, hitRadius, reticleSize, interactive, invalidate]);
-
-  const getPointerCoord = (e: ThreeEvent<PointerEvent>): { x: number; y: number } => {
-    const n = e.nativeEvent as (PointerEvent | MouseEvent | undefined);
-    return {
-      x: typeof e.clientX === 'number' ? e.clientX : (typeof n?.clientX === 'number' ? n.clientX : 0),
-      y: typeof e.clientY === 'number' ? e.clientY : (typeof n?.clientY === 'number' ? n.clientY : 0),
-    };
-  };
+  }, [id, posX, posY, posZ, worldPosition, pixelSize, hitRadius, reticleSize, interactive, debugHitarea, invalidate]);
 
   const triggerClick = useCallback(
     (e: ThreeEvent<MouseEvent | PointerEvent>) => {
@@ -146,9 +169,10 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
   }, []);
 
   useFrame(({ camera, size }) => {
-    if (!markerRef.current || !groupRef.current) return;
+    if (!groupRef.current) return;
+    if (isBatched && !interactive) return;
 
-    if (nodeAlphaRef && markerMaterialRef.current) {
+    if (!isBatched && nodeAlphaRef && markerMaterialRef.current) {
       const nextAlpha = nodeAlphaRef.current;
       if (lastAlphaRef.current !== nextAlpha) {
         markerMaterialRef.current.opacity = nextAlpha;
@@ -177,16 +201,17 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
       groupRef.current.getWorldPosition(worldPosRef.current);
     }
     const camDist = Math.max(camera.position.distanceTo(worldPosRef.current), 1e-4);
-    let worldScale = (pixelSize / Math.max(size.height, 1)) * 2;
 
-    if (camera instanceof THREE.PerspectiveCamera) {
-      const vFovRad = (camera.fov * Math.PI) / 180;
-      worldScale *= (Math.tan(vFovRad / 2) * camDist) / Math.max(camera.zoom, 1e-4);
-    } else if (camera instanceof THREE.OrthographicCamera) {
-      worldScale *= (camera.top - camera.bottom) / (2 * Math.max(camera.zoom, 1e-4));
+    if (!isBatched && markerRef.current) {
+      let worldScale = (pixelSize / Math.max(size.height, 1)) * 2;
+      if (camera instanceof THREE.PerspectiveCamera) {
+        const vFovRad = (camera.fov * Math.PI) / 180;
+        worldScale *= (Math.tan(vFovRad / 2) * camDist) / Math.max(camera.zoom, 1e-4);
+      } else if (camera instanceof THREE.OrthographicCamera) {
+        worldScale *= (camera.top - camera.bottom) / (2 * Math.max(camera.zoom, 1e-4));
+      }
+      markerRef.current.scale.set(worldScale, worldScale, worldScale);
     }
-
-    markerRef.current.scale.set(worldScale, worldScale, worldScale);
 
     // 2. Align invisible hitarea to face camera directly with invariant screen footprint matching reticle
     if (interactive && billboardRef.current && hitareaRef.current) {
@@ -241,15 +266,17 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
 
   return (
     <group ref={setGroupRef} position={[posX, posY, posZ]} name={`body-marker-${id}`}>
-      {/* Physical System Dot (Invariant Screen Size, Monochrome) */}
-      <mesh ref={setMarkerRef} name="celestial-point-dot" geometry={SHARED_DOT_GEOMETRY} raycast={NOOP_RAYCAST}>
-        <meshBasicMaterial
-          ref={markerMaterialRef}
-          color={color ?? reticleBracketColor}
-          transparent
-          depthWrite={false}
-        />
-      </mesh>
+      {/* Standalone Fallback Dot when rendered outside EntityDotsBatch */}
+      {!isBatched && (
+        <mesh ref={setMarkerRef} name="celestial-point-dot" geometry={SHARED_DOT_GEOMETRY} raycast={NOOP_RAYCAST}>
+          <meshBasicMaterial
+            ref={markerMaterialRef}
+            color={color ?? reticleBracketColor}
+            transparent
+            depthWrite={false}
+          />
+        </mesh>
+      )}
 
       {/* Camera-Facing Invisible Hitarea (Billboarded with Screen-Space Fan-Out) */}
       {interactive && (
@@ -258,6 +285,8 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
             ref={setHitareaRef}
             name="celestial-hitarea"
             geometry={SHARED_HITAREA_GEOMETRY}
+            material={debugHitarea ? undefined : SHARED_HITAREA_INVISIBLE_MATERIAL}
+            visible={debugHitarea}
             scale={0}
             onPointerDown={onClick ? handlePointerDown : undefined}
             onPointerUp={onClick ? handlePointerUp : undefined}
@@ -278,19 +307,12 @@ export const BodyMarker: React.FC<BodyMarkerProps> = React.memo(({
               onPointerOut(id, e);
             } : undefined}
           >
-            {debugHitarea ? (
+            {debugHitarea && (
               <meshBasicMaterial
                 color={stateFocus}
                 transparent
                 opacity={0.35}
                 wireframe
-                depthWrite={false}
-                side={THREE.DoubleSide}
-              />
-            ) : (
-              <meshBasicMaterial
-                transparent
-                opacity={0}
                 depthWrite={false}
                 side={THREE.DoubleSide}
               />
