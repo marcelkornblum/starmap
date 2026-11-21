@@ -14,7 +14,7 @@ Act as a critical friend reviewing completed track work per [`conductor/workflow
 1. Read the track's `spec.md` and `plan.md`; verify every acceptance criterion and `[x]` task. If `initiative` is set, confirm decisions are recorded in the initiative's `decision-log.md`.
 2. Inspect changes with `git status -s` and `git diff main...HEAD --stat`.
 3. Run, one command per call: `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run test:coverage` (plus `npm run audit:ui` for UI work, `npm run audit:r3f` for canvas work).
-4. **UI changes:** `npm run capture:views`; present `<LAN_HOST>` links and screenshots per [`conductor/local-review-and-screenshots.md`](../../../conductor/local-review-and-screenshots.md).
+4. **Live smoke test & visual review:** on every track review (including non-UI tracks), start/reuse the dev server (and Storybook where relevant) and present clickable `<LAN_HOST>` smoke-test links per [`conductor/local-review-and-screenshots.md`](../../../conductor/local-review-and-screenshots.md). For UI changes, also run `npm run capture:views` and present the 5-viewport screenshots.
 5. **Dual review:** run the `code-review` skill and `architecture-review` (layering, persistent canvas, router SSOT, data pipeline boundaries). Record fixes as a `Review Fixes` phase in `plan.md` and apply them.
 
 ## 2. Registry and changelog

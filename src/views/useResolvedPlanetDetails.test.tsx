@@ -2,6 +2,12 @@ import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useResolvedPlanetDetails } from './useResolvedPlanetDetails';
+
+vi.mock('@tanstack/react-router', () => ({
+  useParams: vi.fn(() => ({})),
+  useSearch: vi.fn(() => ({})),
+  useRouter: vi.fn(() => undefined),
+}));
 import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
 import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
 import {

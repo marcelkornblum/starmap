@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22 <23"
+  },
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173 --strictPort",
     "build": "vite build",
@@ -12,6 +15,7 @@
     "audit:guards": "tsx scripts/audit-guards.ts",
     "audit:r3f": "tsx scripts/audit-r3f.ts",
     "audit:ui": "tsx scripts/audit-ui.ts",
+    "check": "npm run lint && npm run typecheck && npm run audit:guards && npm run audit:ui && npm run audit:r3f",
     "preview": "vite preview --host 0.0.0.0 --port 4173 --strictPort",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -19,7 +23,6 @@
     "test:storybook": "STORYBOOK_TEST=1 vitest run --project=storybook",
     "test:e2e": "playwright test --workers=1",
     "coverage:comment": "tsx scripts/coverage-comment.ts",
-    "build:data": "tsx scripts/build-data.ts",
     "data:fetch": "tsx scripts/fetch-sources.ts",
     "data:build": "tsx scripts/build-data.ts",
     "data:refresh": "tsx scripts/fetch-sources.ts --force --refresh-epoch && tsx scripts/build-data.ts",
@@ -39,6 +42,7 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
+    "@babel/parser": "^7.29.14",
     "@chromatic-com/storybook": "^5.6.0",
     "@react-three/test-renderer": "^9.1.1",
     "@storybook/addon-a11y": "^10.6.6",
@@ -46,6 +50,7 @@
     "@storybook/addon-mcp": "^10.6.5",
     "@storybook/addon-vitest": "^10.6.6",
     "@storybook/react-vite": "^10.6.5",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",
     "@types/react": "^19.2.18",

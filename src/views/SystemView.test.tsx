@@ -1,6 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { SystemView } from './SystemView';
+
+vi.mock('@tanstack/react-router', () => ({
+  useParams: vi.fn(() => ({})),
+  useSearch: vi.fn(() => ({})),
+  useRouter: vi.fn(() => undefined),
+}));
 import { SpatialEntityProvider } from '../components/canvas/entity/SpatialEntityProvider';
 import {
   clearDetailsRepositoryCache,

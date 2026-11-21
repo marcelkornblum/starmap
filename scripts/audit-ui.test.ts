@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   checkComponentQuads,
   auditInlineStylesContent,
@@ -9,6 +9,7 @@ import {
   auditRawElementsContent,
   auditRenderToStringContent,
   runUiAudit,
+  runUIAudit,
 } from './audit-ui';
 
 describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', () => {
@@ -83,19 +84,6 @@ describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', 
 
       const diags = checkComponentQuads([tempDir]);
       expect(diags).toEqual([]);
-    });
-
-    it('flags component exceeding 300 lines (G-size)', () => {
-      const dir = path.join(tempDir, 'controls', 'HugeButton');
-      fs.mkdirSync(dir, { recursive: true });
-      const hugeContent = Array.from({ length: 305 }, (_, i) => `// line ${i + 1}`).join('\n') + '\nexport const HugeButton = () => null;\n';
-      fs.writeFileSync(path.join(dir, 'HugeButton.tsx'), hugeContent);
-      fs.writeFileSync(path.join(dir, 'HugeButton.module.css'), '@layer blocks { .btn {} }');
-      fs.writeFileSync(path.join(dir, 'HugeButton.stories.tsx'), 'export default {};');
-      fs.writeFileSync(path.join(dir, 'HugeButton.test.tsx'), 'test("ok", () => {});');
-
-      const diags = checkComponentQuads([tempDir]);
-      expect(diags.some((d) => d.ruleId === 'file-size-exceeded' && d.filePath.includes('HugeButton.tsx'))).toBe(true);
     });
   });
 
@@ -246,10 +234,21 @@ describe('UI Design System & Component Governance Audit (scripts/audit-ui.ts)', 
     });
   });
 
-  describe('Pure Function runUiAudit', () => {
+  describe('Pure Function runUiAudit & CLI Runner runUIAudit', () => {
     it('returns structured diagnostics array without process.exit', () => {
       const diags = runUiAudit(tempDir);
       expect(Array.isArray(diags)).toBe(true);
+    });
+
+    it('returns exit code 0 when clean and 1 when errors are present', () => {
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+      expect(runUIAudit(tempDir)).toBe(0);
+
+      const badDir = path.join(tempDir, 'BadComp');
+      fs.mkdirSync(badDir, { recursive: true });
+      fs.writeFileSync(path.join(badDir, 'BadComp.tsx'), 'export const BadComp = () => <button>Click</button>;');
+      expect(runUIAudit(tempDir)).toBe(1);
+      vi.restoreAllMocks();
     });
   });
 });

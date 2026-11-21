@@ -2,6 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { MetricDetailView } from './MetricDetailView';
+
+vi.mock('@tanstack/react-router', () => ({
+  useParams: vi.fn(() => ({})),
+  useSearch: vi.fn(() => ({})),
+  useRouter: vi.fn(() => undefined),
+}));
 import { clearDetailsRepositoryCache, seedDetailRecord } from '../data/detailsRepository';
 import type { SystemManifest } from '../types/astro';
 

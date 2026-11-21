@@ -28,8 +28,8 @@ Covers Architecture Review findings `H3`, `L6`, `M8`, `M7`, `M13`, `M14`, `M15`,
    - Declare `@babel/parser` and `@testing-library/jest-dom` explicitly as `devDependencies` (or migrate AST guards to the existing TypeScript compiler API); audit and remove the 8 hard-coded `vite.config.ts` `node_modules` aliases unless a concrete duplication failure reproduces; deduplicate `vite.config.ts` shared test config.
    - Replace the hard-coded LAN IP (`192.168.1.124`) in `.storybook/main.ts` with an environment variable; remove tracked `scratch/migration-tracker.md`.
 4. **CI Workflow Streamlining (`M15`)**:
-   - Enable `cache: 'npm'` across CI jobs; merge `lint` and `typecheck` into a single fast job; align Node version between `.tool-versions` and CI.
-   - Add a scheduled/nightly `data:build` reproducibility verification job (and evaluate/wire `test:storybook` in CI).
+   - Enable `cache: 'npm'` across CI jobs; merge `lint` and `typecheck` into a single fast job running `npm run check`; align Node version between `.tool-versions` (`nodejs 22`) and CI.
+   - Add a scheduled/nightly `data:build` reproducibility verification workflow; keep `test:storybook` local-only for now.
 
 ## Out of Scope
 - Runtime bundle splitting and heavy barrel removal inside `src/`: [`startup-code-splitting-and-fonts_20261121`](../startup-code-splitting-and-fonts_20261121/spec.md).

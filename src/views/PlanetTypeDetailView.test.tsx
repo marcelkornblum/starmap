@@ -3,6 +3,12 @@ import { render, screen } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { PlanetTypeDetailView } from './PlanetTypeDetailView';
 
+vi.mock('@tanstack/react-router', () => ({
+  useParams: vi.fn(() => ({})),
+  useSearch: vi.fn(() => ({})),
+  useRouter: vi.fn(() => undefined),
+}));
+
 describe('<PlanetTypeDetailView />', () => {
   beforeEach(() => {
     vi.mocked(useParams).mockReturnValue({});

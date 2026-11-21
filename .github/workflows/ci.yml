@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
 
 jobs:
-  lint:
-    name: Lint
+  check:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -27,30 +27,11 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: 'npm'
       - name: Install dependencies
         run: npm ci
-      - name: Lint
-        run: npm run lint
-      - name: Audit R3F
-        run: npm run audit:r3f
-      - name: Audit UI Design System
-        run: npm run audit:ui
-      - name: Audit Architecture Guards
-        run: npm run audit:guards
-
-  typecheck:
-    name: Type Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-      - name: Install dependencies
-        run: npm ci
-      - name: Type check
-        run: npm run typecheck
+      - name: Run quality checks
+        run: npm run check
 
   test:
     name: Test
@@ -61,6 +42,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: 'npm'
       - name: Install dependencies
         run: npm ci
       - name: Test with Coverage
@@ -82,6 +64,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: 'npm'
       - name: Install dependencies
         run: npm ci
       - name: Install Playwright browsers
@@ -100,6 +83,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: 'npm'
       - name: Install dependencies
         run: npm ci
       - name: Build
@@ -130,7 +114,7 @@ jobs:
 
   ci-complete:
     name: CI Complete
-    needs: [lint, typecheck, test, build, e2e]
+    needs: [check, test, build, e2e]
     runs-on: ubuntu-latest
     if: always()
     steps:

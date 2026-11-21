@@ -3,6 +3,12 @@ import { render, screen } from '@testing-library/react';
 import { useParams } from '@tanstack/react-router';
 import { HazardDetailView } from './HazardDetailView';
 
+vi.mock('@tanstack/react-router', () => ({
+  useParams: vi.fn(() => ({})),
+  useSearch: vi.fn(() => ({})),
+  useRouter: vi.fn(() => undefined),
+}));
+
 describe('<HazardDetailView />', () => {
   beforeEach(() => {
     vi.mocked(useParams).mockReturnValue({});
