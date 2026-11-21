@@ -40,8 +40,9 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const canvas = rootHost.locator('canvas');
     await expect(canvas).toBeVisible({ timeout: 15_000 });
 
-    // Wait until initial camera position telemetry is populated
-    await expect(rootHost).toHaveAttribute('data-camera-pos', /.+/);
+    // Wait until GalacticCameraController mounts and syncs the initial galactic pose
+    await expect(rootHost).not.toHaveAttribute('data-camera-pos', '0.00,0.00,10.00', { timeout: 15_000 });
+    await expect(rootHost).toHaveAttribute('data-camera-dist', '28.00', { timeout: 15_000 });
     const initialPos = await rootHost.getAttribute('data-camera-pos');
     expect(initialPos).toBeTruthy();
 
@@ -68,6 +69,8 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const canvas = rootHost.locator('canvas');
     await expect(canvas).toBeVisible({ timeout: 15_000 });
 
+    await expect(rootHost).not.toHaveAttribute('data-camera-pos', '0.00,0.00,10.00', { timeout: 15_000 });
+    await expect(rootHost).toHaveAttribute('data-camera-dist', '28.00', { timeout: 15_000 });
     await expect(rootHost).toHaveAttribute('data-camera-target', /.+/);
     const initialTarget = await rootHost.getAttribute('data-camera-target');
     expect(initialTarget).toBeTruthy();
@@ -95,7 +98,8 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const canvas = rootHost.locator('canvas');
     await expect(canvas).toBeVisible({ timeout: 15_000 });
 
-    await expect(rootHost).toHaveAttribute('data-camera-dist', /.+/);
+    await expect(rootHost).not.toHaveAttribute('data-camera-pos', '0.00,0.00,10.00', { timeout: 15_000 });
+    await expect(rootHost).toHaveAttribute('data-camera-dist', '28.00', { timeout: 15_000 });
     const initialDistStr = await rootHost.getAttribute('data-camera-dist');
     expect(initialDistStr).toBeTruthy();
     const initialDist = parseFloat(initialDistStr!);
@@ -132,25 +136,28 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const canvas = rootHost.locator('canvas');
     await expect(canvas).toBeVisible({ timeout: 15_000 });
 
-    // Ensure camera telemetry has settled
-    await expect(rootHost).toHaveAttribute('data-camera-pos', /.+/);
+    // Ensure GalacticCameraController and nearby star hydration have settled before raycast click
+    await expect(rootHost).not.toHaveAttribute('data-camera-pos', '0.00,0.00,10.00', { timeout: 15_000 });
+    await expect(
+      page.getByRole('region', { name: 'Galactic Systems' }).getByRole('link', { name: 'Sol' }),
+    ).toBeVisible({ timeout: 15_000 });
 
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
     const cx = box!.x + box!.width / 2;
     const cy = box!.y + box!.height / 2;
 
-    // Wait for R3F frame pass so scene matrices and reticle hit areas are initialized
-    await page.evaluate(() => {
-      return new Promise<void>((resolve) => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            resolve();
-          });
-        });
-      });
-    });
-    await page.waitForTimeout(250);
+    // Wait until Sol's 3D hit-area responds to pointer hover before clicking
+    await expect
+      .poll(
+        async () => {
+          await page.mouse.move(cx + 1, cy + 1);
+          await page.mouse.move(cx, cy);
+          return page.evaluate(() => document.body.style.cursor);
+        },
+        { timeout: 10_000 },
+      )
+      .toBe('pointer');
 
     // Click at the exact canvas center where Sol [0, 0, 0] is projected
     await page.mouse.click(cx, cy);
@@ -317,17 +324,17 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     const cx = box!.x + box!.width / 2;
     const cy = box!.y + box!.height / 2;
 
-    // Wait for R3F frame pass so scene matrices and reticle hit areas are initialized
-    await page.evaluate(() => {
-      return new Promise<void>((resolve) => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            resolve();
-          });
-        });
-      });
-    });
-    await page.waitForTimeout(250);
+    // Wait until SystemScene mounts Tau Ceti's 3D hit-area and responds to pointer hover
+    await expect
+      .poll(
+        async () => {
+          await page.mouse.move(cx + 1, cy + 1);
+          await page.mouse.move(cx, cy);
+          return page.evaluate(() => document.body.style.cursor);
+        },
+        { timeout: 10_000 },
+      )
+      .toBe('pointer');
 
     // Click the centre of the 3D canvas on /system/tau-ceti to raycast-select the central star in SystemScene
     await page.mouse.click(cx, cy);
@@ -446,7 +453,16 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     };
 
     const solPt = projectPoint([0, 0, 0]);
-    await page.mouse.move(solPt.x, solPt.y);
+    await expect
+      .poll(
+        async () => {
+          await page.mouse.move(solPt.x + 1, solPt.y + 1);
+          await page.mouse.move(solPt.x, solPt.y);
+          return page.evaluate(() => document.body.style.cursor);
+        },
+        { timeout: 10_000 },
+      )
+      .toBe('pointer');
     await page.mouse.click(solPt.x, solPt.y);
 
     // Clicking Sol on the canvas after searching Sirius focuses Sol without jumping/recentering camera
@@ -1098,7 +1114,17 @@ test.describe('3D Canvas Interaction & FPS Telemetry', () => {
     await expect(page).toHaveURL(/\/galaxy/, { timeout: 10_000 });
     await expect(rootHost).not.toHaveAttribute('data-stage-inactive', 'true', { timeout: 10_000 });
 
-    await page.waitForTimeout(800);
+    // Wait until Sol's 3D hit-area re-hydrates and responds to pointer hover
+    await expect
+      .poll(
+        async () => {
+          await page.mouse.move(cx + 1, cy + 1);
+          await page.mouse.move(cx, cy);
+          return page.evaluate(() => document.body.style.cursor);
+        },
+        { timeout: 10_000 },
+      )
+      .toBe('pointer');
 
     // Clicking Sol at canvas center must still select Sol and open Details panel
     await page.mouse.click(cx, cy);
