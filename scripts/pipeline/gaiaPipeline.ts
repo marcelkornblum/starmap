@@ -23,6 +23,7 @@ import { computeGaiaKinematics, findBestHygMatch, loadHygCrossMatch, loadIauStar
 import { consolidateMultiStarSystems } from './multiStarConsolidation';
 import { matchCircumstellarDisksForStar } from './solAndSummary';
 import {
+  attachPlanetsToCataloguedSystem,
   emitStandaloneExoplanetHosts,
   findOfficialStarName,
   hasHygExoplanetMatch,
@@ -219,9 +220,10 @@ export async function buildGaiaDataPipeline(
         ingestStarEntry(sysId, sourceId, hyg.ra * 15, hyg.dec, hyg.dist, hyg.pmra ?? 0, hyg.pmdec ?? 0, hyg.rv ?? 0, hyg.mag ?? 6.5, NaN, NaN, hyg);
       }
 
+      const includeDetails = Boolean(options?.detailsDir || options?.searchDir || options?.dataDir);
       const reconsCounts = ingestReconsSupplement({
         maxPartitionDist,
-        includeDetails: Boolean(options?.detailsDir || options?.searchDir || options?.dataDir),
+        includeDetails,
         exoplanetHostMap, matchedExoplanetIds, cataloguedSummaries, starAliasesById,
         local10pcSystems, exoplanetHostSummaries, sectorMap, sectorManifestsMap, allSystemManifests,
         getTotalStars: () => totalStars,
@@ -230,6 +232,7 @@ export async function buildGaiaDataPipeline(
       local10pcCount += reconsCounts.addedLocal10pc;
       totalExoplanets += reconsCounts.addedExoplanets;
 
+      let manifestById: Map<string, SystemManifest> | null = null;
       emitStandaloneExoplanetHosts({
         canonicalHosts, matchedExoplanetIds, cataloguedSummaries, starAliasesById,
         emitHost: (sysId, group, planets) => {
@@ -237,6 +240,15 @@ export async function buildGaiaDataPipeline(
           ingestStarEntry(sysId, sysId, host.raDeg, host.decDeg, host.distPc, 0, 0, null, host.mag ?? 14.0, NaN, NaN, undefined, undefined, {
             hostName: host.hostName, spect: host.spect, teffK: host.teffK, mag: host.mag,
             radiusRsun: host.radiusRsun, massMsun: host.massMsun, lumLsun: host.lumLsun, planets, aliases,
+          });
+        },
+        attachPlanetsToExisting: (existingSummary, group, planets) => {
+          if (!manifestById) {
+            manifestById = new Map(allSystemManifests.map((m) => [m.id, m]));
+          }
+          totalExoplanets += attachPlanetsToCataloguedSystem({
+            existingSummary, group, planets, includeDetails, allSystemManifests, manifestById,
+            sectorManifestsMap, exoplanetHostSummaries, starAliasesById, matchedExoplanetIds,
           });
         },
       });

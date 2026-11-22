@@ -107,6 +107,11 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
         searchDir: tempSearchDir,
         overlaysDir: tempOverlaysDir,
         maxPartitionDistancePc: 100,
+        hygCsvPath: '',
+        iauCsvPath: '',
+        oecCsvPath: '',
+        nasaCsvPath: '',
+        euCsvPath: '',
       });
 
       expect(summary.validStars).toBeGreaterThanOrEqual(3);
@@ -149,6 +154,11 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
         searchDir: tempSearchDir,
         overlaysDir: tempOverlaysDir,
         maxPartitionDistancePc: 100,
+        hygCsvPath: '',
+        iauCsvPath: '',
+        oecCsvPath: '',
+        nasaCsvPath: '',
+        euCsvPath: '',
       });
       const secondRunContent = fs.readFileSync(coreSearchPath, 'utf-8');
       expect(secondRunContent).toBe(firstRunContent);
@@ -193,6 +203,11 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
         searchDir: path.join(dataDir, 'search'),
         overlaysDir: path.join(dataDir, 'overlays'),
         maxPartitionDistancePc: 100,
+        hygCsvPath: '',
+        iauCsvPath: '',
+        oecCsvPath: '',
+        nasaCsvPath: '',
+        euCsvPath: '',
       });
 
       const posBinPath = path.join(partitionsDir, 'sector_+025_+000_+000.bin');
@@ -413,4 +428,91 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
       fs.rmSync(hygRoot, { recursive: true, force: true });
     }
   }, 60000);
+
+  it('prevents standalone exoplanet host emission from duplicating or hijacking existing HYG stars at matching coordinates', async () => {
+    const dedupRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'starmap-gaia-exo-dedup-'));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const gcnsPath = path.join(dedupRoot, 'empty_gcns.dat.gz');
+      fs.writeFileSync(gcnsPath, zlib.gzipSync(''));
+
+      const hygPath = path.join(dedupRoot, 'hyg_aldebaran.csv');
+      fs.writeFileSync(
+        hygPath,
+        [
+          'id,hip,hd,hr,gl,bf,proper,ra,dec,dist,pmra,pmdec,rv,mag,absmag,spect,ci,x,y,z,vx,vy,vz,rarad,decrad,pmrarad,pmdecrad,bayer,flam,con,comp,comp_primary,base,lum,var,var_min,var_max',
+          // Aldebaran (hip-21421) at ~20.4332 pc, mag 0.87, bayer=Alp con=Tau
+          '21368,21421,29139,1457,,,Aldebaran,4.598677,16.509301,20.4332,62.78,-189.36,54.3,0.87,-0.68,K5III,1.538,7.027,18.287,5.806,0,0,0,0,0,0,0,Alp,87,Tau,1,21368,,439,,,',
+          // Distant bright star (hip-99901) at 250 pc, mag 5.2
+          '99901,99901,,,,,Distant Anchor,18.0,35.0,250.0,0,0,0,5.2,-1.8,G8III,0.95,0,0,0,0,0,0,0,0,0,0,,,,1,99901,,45,,,',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const nasaPath = path.join(dedupRoot, 'nasa_bayer.csv');
+      fs.writeFileSync(
+        nasaPath,
+        [
+          'pl_name,hostname,sy_snum,sy_pnum,discoverymethod,disc_year,pl_orbper,pl_orbsmax,pl_bmasse,pl_rade,pl_eqt,pl_insol,sy_dist,ra,dec,st_spectype,st_teff,st_rad,st_mass,st_lum,sy_vmag',
+          // NASA uses Bayer abbreviation 'alf Tau' with brighter sy_vmag 0.85 that would hijack hip-21421 if emitted
+          'alf Tau b,alf Tau,1,1,Radial Velocity,2015,628.96,1.46,2056.0,,1300,,20.4332,68.98016,16.50930,K5III,4055,45.1,1.13,2.6,0.85',
+          // Distant NASA host within < 0.05 deg and <= 5% distance of hip-99901 (250 pc vs 255 pc, 0.01 deg offset)
+          'Distant Alias b,Distant Alias,1,1,Transit,2023,20.0,0.15,5.0,2.1,500,8.0,255.0,270.01,35.0,G8III,4900,8.0,1.2,1.6,5.1',
+          // Distant NASA host outside spatial match tolerance -> MUST still emit as exo-unmatched-distant
+          'Unmatched Distant b,Unmatched Distant,1,1,Transit,2023,15.0,0.12,3.0,1.6,550,12.0,250.0,275.0,35.0,G2V,5800,1.0,1.0,0.0,13.5',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const jsonPath = path.join(dedupRoot, 'stars.json');
+      const dataDir = path.join(dedupRoot, 'data');
+
+      const summary = await buildStarDataPipeline(gcnsPath, jsonPath, {
+        partitionsDir: path.join(dataDir, 'partitions'),
+        summariesDir: path.join(dataDir, 'summaries'),
+        detailsDir: path.join(dataDir, 'details'),
+        searchDir: path.join(dataDir, 'search'),
+        overlaysDir: path.join(dataDir, 'overlays'),
+        maxPartitionDistancePc: 100,
+        hygCsvPath: hygPath,
+        oecCsvPath: '',
+        nasaCsvPath: nasaPath,
+        euCsvPath: '',
+        iauCsvPath: '',
+      });
+
+      const starsSearch = JSON.parse(
+        fs.readFileSync(path.join(dataDir, 'search/stars.json'), 'utf8'),
+      ) as { d: Array<{ i: string; n: string }> };
+
+      expect(starsSearch.d.some((e) => e.i === 'hip-21421')).toBe(true);
+      expect(starsSearch.d.some((e) => e.i === 'exo-alf-tau')).toBe(false);
+      expect(starsSearch.d.some((e) => e.i === 'hip-99901')).toBe(true);
+      expect(starsSearch.d.some((e) => e.i === 'exo-distant-alias')).toBe(false);
+      expect(starsSearch.d.some((e) => e.i === 'exo-unmatched-distant')).toBe(true);
+
+      // Verify planets were attached to existing hip-21421 and hip-99901 manifests
+      const routing = JSON.parse(
+        fs.readFileSync(path.join(dataDir, 'details/routing.json'), 'utf8'),
+      ) as { k: string[]; d: Record<string, number> };
+      const aldebaranSector = routing.k[routing.d['hip-21421']!];
+      const distantSector = routing.k[routing.d['hip-99901']!];
+      expect(aldebaranSector).toBeDefined();
+      expect(distantSector).toBeDefined();
+
+      const aldebaranDetails = JSON.parse(
+        fs.readFileSync(path.join(dataDir, `details/sectors/${aldebaranSector}.json`), 'utf8'),
+      ) as { d: Record<string, { E?: Array<{ n: string }> }> };
+      expect(aldebaranDetails.d['hip-21421']?.E?.map((p) => p.n)).toEqual(['alf Tauri b']);
+
+      const distantDetails = JSON.parse(
+        fs.readFileSync(path.join(dataDir, `details/sectors/${distantSector}.json`), 'utf8'),
+      ) as { d: Record<string, { E?: Array<{ n: string }> }> };
+      expect(distantDetails.d['hip-99901']?.E?.map((p) => p.n)).toEqual(['Distant Alias b']);
+      expect(summary.totalExoplanetsAttached).toBeGreaterThanOrEqual(3);
+    } finally {
+      warnSpy.mockRestore();
+      fs.rmSync(dedupRoot, { recursive: true, force: true });
+    }
+  }, 10000);
 });

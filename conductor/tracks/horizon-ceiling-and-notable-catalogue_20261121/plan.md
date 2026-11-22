@@ -42,7 +42,7 @@ Follow strict Red-Green-Refactor TDD per [`conductor/workflow.md`](../../workflo
   - **Green:** Update `buildSearchIndices` in `scripts/pipeline/searchIndexBuilder.ts` to remove the broad `coreEntries` and `structuresEntries` copy loops into `startupEntries`; confirm `searchBackgroundWarmup.ts` continues to hydrate `stars`, `planets`, and `minor-bodies` on idle/interaction.
   - **Refactor:** Verify `npm run audit:budgets` passes with substantial headroom under `maxStartupSearchBytes` (`1.5 MB`).
 
-- [~] **Phase 2 Checkpoint:** Run `standards` cleanup, `npm run data:build`, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:budgets`, and `npm run test:coverage`.
+- [x] **Phase 2 Checkpoint:** Run `standards` cleanup, `npm run data:build`, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:budgets`, and `npm run test:coverage`. *(All 5 gates passed: 339/339 test files, 2,062/2,062 tests; `search/startup` = 95.9 KB; `data.maxTotalBytes` raised to 50 MiB; generated `public/data/` intentionally left uncommitted ahead of Phase 3 untracking)*
 
 ---
 
