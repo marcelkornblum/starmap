@@ -1,5 +1,10 @@
 @layer blocks {
   .spatialShell {
+    --spatial-shell-retract-duration: var(--motion-duration-feedback);
+    --spatial-shell-retract-ease: var(--motion-ease-default);
+    --spatial-shell-retract-opacity: 0.18;
+    --spatial-shell-retract-shift-x: var(--space-fib-4);
+    --spatial-shell-retract-shift-y: var(--space-fib-4);
     display: flex;
     flex-direction: row;
     inline-size: 100vw;
@@ -120,6 +125,9 @@
     gap: var(--space-fib-3);
     overflow-y: auto;
     pointer-events: none;
+    transition:
+      opacity var(--spatial-shell-retract-duration) var(--spatial-shell-retract-ease),
+      transform var(--spatial-shell-retract-duration) var(--spatial-shell-retract-ease);
   }
 
   .floatingLeft > * {
@@ -164,6 +172,9 @@
     border-radius: var(--radius-container);
     pointer-events: auto;
     transform: translateZ(0);
+    transition:
+      opacity var(--spatial-shell-retract-duration) var(--spatial-shell-retract-ease),
+      transform var(--spatial-shell-retract-duration) var(--spatial-shell-retract-ease);
   }
 
   .minimapRegion:empty {
@@ -192,6 +203,22 @@
 }
 
 @layer exceptions {
+  .spatialShell[data-camera-in-flight="true"] .floatingLeft {
+    opacity: var(--spatial-shell-retract-opacity);
+    transform: translateX(calc(-1 * var(--spatial-shell-retract-shift-x)));
+    pointer-events: none;
+  }
+
+  .spatialShell[data-camera-in-flight="true"] .floatingLeft > * {
+    pointer-events: none;
+  }
+
+  .spatialShell[data-camera-in-flight="true"] .minimapRegion {
+    opacity: var(--spatial-shell-retract-opacity);
+    transform: translateX(var(--spatial-shell-retract-shift-x));
+    pointer-events: none;
+  }
+
   /* Tablet and Desktop (>= 768px) */
   @media (min-width: 768px) {
     .floatingLeft {
@@ -339,6 +366,33 @@
 
     .minimapRegion {
       display: none;
+    }
+
+    .spatialShell[data-camera-in-flight="true"] .floatingLeft {
+      transform: translateY(var(--spatial-shell-retract-shift-y));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .floatingLeft,
+    .minimapRegion {
+      transition: none;
+    }
+
+    .spatialShell[data-camera-in-flight="true"] .floatingLeft {
+      opacity: var(--opacity-full);
+      transform: none;
+      pointer-events: none;
+    }
+
+    .spatialShell[data-camera-in-flight="true"] .floatingLeft > * {
+      pointer-events: auto;
+    }
+
+    .spatialShell[data-camera-in-flight="true"] .minimapRegion {
+      opacity: var(--opacity-full);
+      transform: none;
+      pointer-events: auto;
     }
   }
 }

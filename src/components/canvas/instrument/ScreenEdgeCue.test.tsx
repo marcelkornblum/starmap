@@ -1,0 +1,106 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import ReactThreeTest from '@react-three/test-renderer';
+import { render } from '@testing-library/react';
+import { ScreenEdgeCue } from './ScreenEdgeCue';
+import { SpatialFrameProvider, GALACTIC_FRAME } from './index';
+import { SafeHtmlPortalOutlet } from '../SafeHtml';
+import { useUIStore } from '../../../stores/useUIStore';
+
+function parseTranslate3d(transform: string): { x: number; y: number } {
+  const match = /translate3d\(\s*([-\d.]+)px,\s*([-\d.]+)px,\s*0(?:px)?\s*\)/.exec(transform);
+  if (!match) {
+    throw new Error(`Unexpected transform string: "${transform}"`);
+  }
+  return { x: Number(match[1]), y: Number(match[2]) };
+}
+
+describe('ScreenEdgeCue safe-rect alignment', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    document.body.innerHTML = '';
+    useUIStore.getState().resetUI();
+  });
+
+  it('clamps bearing indicator inside measured viewportSafeRect insets rather than overlapping HUD panels', async () => {
+    const coreBearing = GALACTIC_FRAME.bearings[0];
+    const orbitalBearing = GALACTIC_FRAME.bearings[1];
+
+    useUIStore.getState().setViewportSafeRect({
+      top: 64,
+      right: 320,
+      bottom: 120,
+      left: 280,
+      width: 840,
+      height: 716,
+      bypass: false,
+    });
+
+    const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <ScreenEdgeCue bearing={coreBearing} margin={28} />
+        <ScreenEdgeCue bearing={orbitalBearing} margin={28} />
+      </SpatialFrameProvider>,
+      { width: 1440, height: 900 },
+    );
+
+    await renderer.advanceFrames(1, 0.016);
+
+    const coreEl = document.querySelector('[data-name="bearing-indicator-core"]') as HTMLElement | null;
+    const orbitalEl = document.querySelector('[data-name="bearing-indicator-orbital"]') as HTMLElement | null;
+    expect(coreEl).not.toBeNull();
+    expect(orbitalEl).not.toBeNull();
+
+    const corePos = parseTranslate3d(coreEl!.style.transform);
+    const orbitalPos = parseTranslate3d(orbitalEl!.style.transform);
+
+    // Core (+X) clamps at width - right - margin = 1440 - 320 - 28 = 1092
+    expect(corePos.x).toBeLessThanOrEqual(1440 - 320 - 28 + 0.1);
+    expect(corePos.x).toBeGreaterThanOrEqual(280 + 28 - 0.1);
+    expect(corePos.y).toBeGreaterThanOrEqual(64 + 28 - 0.1);
+    expect(corePos.y).toBeLessThanOrEqual(900 - 120 - 28 + 0.1);
+
+    // Orbital (+Y) clamps at top + margin = 64 + 28 = 92
+    expect(orbitalPos.y).toBeGreaterThanOrEqual(64 + 28 - 0.1);
+    expect(orbitalPos.y).toBeLessThanOrEqual(900 - 120 - 28 + 0.1);
+    expect(orbitalPos.x).toBeGreaterThanOrEqual(280 + 28 - 0.1);
+    expect(orbitalPos.x).toBeLessThanOrEqual(1440 - 320 - 28 + 0.1);
+
+    await renderer.unmount();
+    unmountOutlet();
+  });
+
+  it('ignores safe-rect insets and uses full viewport margins when bypass is true', async () => {
+    const coreBearing = GALACTIC_FRAME.bearings[0];
+
+    useUIStore.getState().setViewportSafeRect({
+      top: 64,
+      right: 320,
+      bottom: 120,
+      left: 280,
+      width: 840,
+      height: 716,
+      bypass: true,
+    });
+
+    const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <ScreenEdgeCue bearing={coreBearing} margin={28} />
+      </SpatialFrameProvider>,
+      { width: 1440, height: 900 },
+    );
+
+    await renderer.advanceFrames(1, 0.016);
+
+    const coreEl = document.querySelector('[data-name="bearing-indicator-core"]') as HTMLElement | null;
+    expect(coreEl).not.toBeNull();
+    const corePos = parseTranslate3d(coreEl!.style.transform);
+
+    // Full-viewport right edge: 1440 - 28 = 1412
+    expect(corePos.x).toBeCloseTo(1412, 0);
+
+    await renderer.unmount();
+    unmountOutlet();
+  });
+});

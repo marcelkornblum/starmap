@@ -9,6 +9,7 @@ import {
 } from './cameraRigZoomAndPan';
 import { useCameraRigProjection } from './useCameraRigProjection';
 import { useCameraRigStoreSync } from './useCameraRigStoreSync';
+import { useCameraRigViewOffset } from './useCameraRigViewOffset';
 
 const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
 
@@ -34,6 +35,7 @@ export const CameraRig: React.FC<CameraRigProps> = ({
   const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
   const sizeWidth = useThree((s) => s.size?.width);
   const sizeHeight = useThree((s) => s.size?.height);
+  const invalidate = useThree((s) => s.invalidate);
   const get = useThree((s) => s.get);
   const { frame } = useSpatialFrame();
 
@@ -65,6 +67,14 @@ export const CameraRig: React.FC<CameraRigProps> = ({
     lockToOrthographic: projection.lockToOrthographic,
     unlockFromOrthographic: projection.unlockFromOrthographic,
     glideToCardinal: projection.glideToCardinal,
+  });
+
+  useCameraRigViewOffset({
+    perspCamRef: projection.perspCamRef,
+    orthoCamRef: projection.orthoCamRef,
+    sizeWidth,
+    sizeHeight,
+    invalidate,
   });
 
   useEffect(() => {

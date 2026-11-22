@@ -12,6 +12,13 @@ export interface ScreenEdgeBearingResult {
   visible: boolean;
 }
 
+export interface ScreenSafeInsets {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
 const scratchPA = new THREE.Vector3();
 const scratchPB = new THREE.Vector3();
 const scratchLocalPoint = new THREE.Vector3();
@@ -63,6 +70,7 @@ export function calculateScreenEdgeBearing(
   out?: ScreenEdgeBearingResult,
   minLineLength = 40,
   orientation?: THREE.Quaternion,
+  safeInsets?: ScreenSafeInsets,
 ): ScreenEdgeBearingResult {
   const result = out ?? {
     x: 0,
@@ -76,12 +84,33 @@ export function calculateScreenEdgeBearing(
   const width = Math.max(1, screenSize.width);
   const height = Math.max(1, screenSize.height);
   const safeMargin = Math.min(margin, Math.min(width, height) * 0.45);
-  const xMin = safeMargin;
-  const xMax = width - safeMargin;
-  const yMin = safeMargin;
-  const yMax = height - safeMargin;
-  const cx = width * 0.5;
-  const cy = height * 0.5;
+  const insetLeft = Math.max(0, safeInsets?.left ?? 0);
+  const insetRight = Math.max(0, safeInsets?.right ?? 0);
+  const insetTop = Math.max(0, safeInsets?.top ?? 0);
+  const insetBottom = Math.max(0, safeInsets?.bottom ?? 0);
+
+  const rawXMin = insetLeft + safeMargin;
+  const rawXMax = width - insetRight - safeMargin;
+  let xMin = rawXMin;
+  let xMax = rawXMax;
+  if (xMin > xMax) {
+    const midX = Math.max(0, Math.min(width, (rawXMin + rawXMax) * 0.5));
+    xMin = midX;
+    xMax = midX;
+  }
+
+  const rawYMin = insetTop + safeMargin;
+  const rawYMax = height - insetBottom - safeMargin;
+  let yMin = rawYMin;
+  let yMax = rawYMax;
+  if (yMin > yMax) {
+    const midY = Math.max(0, Math.min(height, (rawYMin + rawYMax) * 0.5));
+    yMin = midY;
+    yMax = midY;
+  }
+
+  const cx = (xMin + xMax) * 0.5;
+  const cy = (yMin + yMax) * 0.5;
 
   const numSteps = 40;
   const stepSize = extent / numSteps;

@@ -11,6 +11,7 @@ import {
 } from '../cartography/cartographyMath';
 import { useSpatialFrame } from './spatialFrameContext';
 import type { BearingDefinition } from '../../../types/spatial';
+import { useUIStore } from '../../../stores/useUIStore';
 import {
   DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
   DEFAULT_VIEWPORT_WIDTH_PX,
@@ -36,6 +37,13 @@ const pinToViewportOrigin = (_el: THREE.Object3D, _camera: THREE.Camera, _size: 
   }
 };
 
+function clampWithinBounds(value: number, rawMin: number, rawMax: number): number {
+  if (rawMin <= rawMax) {
+    return Math.min(rawMax, Math.max(rawMin, value));
+  }
+  return (rawMin + rawMax) * 0.5;
+}
+
 export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
   bearing,
   origin: explicitOrigin,
@@ -52,6 +60,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
 
   const scratchOrigin = useLazyRef(() => new THREE.Vector3());
   const scratchScreenSize = useRef({ width: 0, height: 0 });
+  const scratchSafeInsets = useRef({ top: 0, right: 0, bottom: 0, left: 0 });
   const scratchResult = useRef<ScreenEdgeBearingResult>({
     x: 0,
     y: 0,
@@ -95,6 +104,20 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
     const bType: ScreenEdgeBearingType = bearing.id === 'orbital' ? 'orbital' : 'core';
     const effectiveCenterDistance = centerDistance ?? frameRef?.current?.frame?.centerDistance ?? DEFAULT_GALACTIC_CENTER_DISTANCE_PC;
 
+    const safeRect = useUIStore.getState().viewportSafeRect;
+    const safeInsets = scratchSafeInsets.current;
+    if (safeRect && !safeRect.bypass) {
+      safeInsets.top = safeRect.top;
+      safeInsets.right = safeRect.right;
+      safeInsets.bottom = safeRect.bottom;
+      safeInsets.left = safeRect.left;
+    } else {
+      safeInsets.top = 0;
+      safeInsets.right = 0;
+      safeInsets.bottom = 0;
+      safeInsets.left = 0;
+    }
+
     calculateScreenEdgeBearing(
       activeCamera,
       screenSize,
@@ -106,6 +129,7 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
       scratchResult.current,
       minLineLength,
       frameRef?.current?.orientation,
+      safeInsets,
     );
 
     const res = scratchResult.current;
@@ -184,9 +208,17 @@ export const ScreenEdgeCue: React.FC<ScreenEdgeCueProps> = ({
       }
     }
 
-    // Clamp label to viewport screen edges
-    const clampedLabelX = Math.min(width - safeMargin - hw, Math.max(safeMargin + hw, res.x + labelOffsetX));
-    const clampedLabelY = Math.min(height - safeMargin - hh, Math.max(safeMargin + hh, res.y + labelOffsetY));
+    // Clamp label to safe viewport screen edges
+    const clampedLabelX = clampWithinBounds(
+      res.x + labelOffsetX,
+      safeInsets.left + safeMargin + hw,
+      width - safeInsets.right - safeMargin - hw,
+    );
+    const clampedLabelY = clampWithinBounds(
+      res.y + labelOffsetY,
+      safeInsets.top + safeMargin + hh,
+      height - safeInsets.bottom - safeMargin - hh,
+    );
 
     const finalOffsetX = Math.round((clampedLabelX - res.x) * 10) / 10;
     const finalOffsetY = Math.round((clampedLabelY - res.y) * 10) / 10;

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { areViewportSafeRectsEqual, type ViewportSafeRect } from '../utils/viewportSafeRect';
 
 export type ActivePanel = 'details' | 'search' | 'settings' | 'filters' | null;
 
@@ -28,6 +29,7 @@ export interface EphemeralUIState {
   dualPanelPolicy: DualPanelPolicy;
   activeDrawer: ActiveDrawer;
   isLayerCardOpen: boolean;
+  viewportSafeRect: ViewportSafeRect | null;
 }
 
 export interface EphemeralUIActions {
@@ -46,6 +48,7 @@ export interface EphemeralUIActions {
   setActiveDrawer: (drawer: ActiveDrawer) => void;
   toggleDrawer: (drawer: Exclude<ActiveDrawer, null>) => void;
   setLayerCardOpen: (isOpen: boolean) => void;
+  setViewportSafeRect: (rect: ViewportSafeRect | null) => void;
   resetUI: () => void;
 }
 
@@ -65,6 +68,7 @@ export const INITIAL_UI_STATE: EphemeralUIState = {
   dualPanelPolicy: 'auto',
   activeDrawer: null,
   isLayerCardOpen: true,
+  viewportSafeRect: null,
 };
 
 export const useUIStore = create<UIStore>()((set) => ({
@@ -85,6 +89,12 @@ export const useUIStore = create<UIStore>()((set) => ({
   toggleDrawer: (drawer: Exclude<ActiveDrawer, null>) =>
     set((state) => ({ activeDrawer: state.activeDrawer === drawer ? null : drawer })),
   setLayerCardOpen: (isLayerCardOpen: boolean) => set({ isLayerCardOpen }),
+  setViewportSafeRect: (viewportSafeRect: ViewportSafeRect | null) =>
+    set((state) =>
+      areViewportSafeRectsEqual(state.viewportSafeRect, viewportSafeRect)
+        ? state
+        : { viewportSafeRect },
+    ),
   resetUI: () => set({ ...INITIAL_UI_STATE }),
 }));
 

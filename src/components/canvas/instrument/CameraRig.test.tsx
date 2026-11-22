@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement, useLayoutEffect } from 'react';
 import { render, act } from '@testing-library/react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 import { CameraRig } from './CameraRig';
 import { SpatialFrameProvider } from './SpatialFrameProvider';
 import { CameraTransitionProvider, useCameraTransition } from './useCameraTransition';
@@ -11,9 +12,11 @@ import { computeAllPlaneQuadrantWeights } from '../math/cardinal';
 import { CARDINAL_CONFIG } from '../math/cameraMath';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
+import * as reducedMotion from '../../../utils/reducedMotion';
 
 let sharedMockCamera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
 let sharedMockControls: OrbitControlsLike | undefined;
+let sharedMockSize = { width: 1920, height: 1080 };
 const mockInvalidate = vi.fn();
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
@@ -25,7 +28,7 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
       const state = {
         camera: sharedMockCamera,
         controls: sharedMockControls,
-        size: { width: 1920, height: 1080 },
+        size: sharedMockSize,
         invalidate: mockInvalidate,
         get: () => ({ camera: sharedMockCamera, controls: sharedMockControls }),
       };
@@ -50,8 +53,11 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
   let mockControls: MockControls;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(reducedMotion, 'prefersReducedMotion').mockReturnValue(false);
     useCameraStore.getState().reset();
     useUIStore.getState().resetUI();
+    sharedMockSize = { width: 1920, height: 1080 };
     camera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
     camera.position.set(20, 20, 20);
     camera.up.set(0, 0, 1);
@@ -78,6 +84,10 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
 
     sharedMockCamera = camera;
     sharedMockControls = mockControls;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('Camera Presets Navigation & Execution', () => {
@@ -203,6 +213,159 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       expect(onCancel).not.toHaveBeenCalled();
       expect(transitionApiRef.current?.isTransitioning()).toBe(true);
       expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+    });
+  });
+
+  describe('Dual-Camera Optical Center View Offset', () => {
+    function getRigFrameCallbacks(): Array<(state: unknown, delta: number) => void> {
+      return vi
+        .mocked(useFrame)
+        .mock.calls.filter(([, priority]) => priority === -0.25)
+        .map(([cb]) => cb as unknown as (state: unknown, delta: number) => void);
+    }
+
+    it('applies setViewOffset(w, h, offsetX, offsetY, w, h) to both perspective and orthographic cameras', () => {
+      const perspSetSpy = vi.spyOn(camera, 'setViewOffset');
+      const orthoSetSpy = vi.spyOn(THREE.OrthographicCamera.prototype, 'setViewOffset');
+
+      render(
+        createElement(
+          CameraTransitionProvider,
+          null,
+          createElement(SpatialFrameProvider, null, createElement(CameraRig)),
+        ),
+      );
+
+      act(() => {
+        useUIStore.getState().setViewportSafeRect({
+          top: 64,
+          right: 0,
+          bottom: 120,
+          left: 320,
+          width: 1600,
+          height: 896,
+          bypass: false,
+        });
+      });
+
+      const frameCbs = getRigFrameCallbacks();
+      act(() => {
+        frameCbs.forEach((cb) => cb({ camera, controls: mockControls }, 0.35));
+      });
+
+      // offsetX = (0 - 320) / 2 = -160, offsetY = (120 - 64) / 2 = 28
+      expect(perspSetSpy).toHaveBeenCalledWith(1920, 1080, -160, 28, 1920, 1080);
+      expect(orthoSetSpy).toHaveBeenCalledWith(1920, 1080, -160, 28, 1920, 1080);
+    });
+
+    it('clears view offset on both cameras when viewportSafeRect becomes bypass or null', () => {
+      vi.spyOn(reducedMotion, 'prefersReducedMotion').mockReturnValue(true);
+      const perspClearSpy = vi.spyOn(camera, 'clearViewOffset');
+      const orthoClearSpy = vi.spyOn(THREE.OrthographicCamera.prototype, 'clearViewOffset');
+
+      render(
+        createElement(
+          CameraTransitionProvider,
+          null,
+          createElement(SpatialFrameProvider, null, createElement(CameraRig)),
+        ),
+      );
+
+      act(() => {
+        useUIStore.getState().setViewportSafeRect({
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 300,
+          width: 1620,
+          height: 1080,
+          bypass: false,
+        });
+      });
+      expect(camera.view?.enabled).toBe(true);
+
+      act(() => {
+        useUIStore.getState().setViewportSafeRect({
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 300,
+          width: 1620,
+          height: 1080,
+          bypass: true,
+        });
+      });
+
+      expect(perspClearSpy).toHaveBeenCalled();
+      expect(orthoClearSpy).toHaveBeenCalled();
+      expect(camera.view?.enabled).toBe(false);
+
+      perspClearSpy.mockClear();
+      orthoClearSpy.mockClear();
+
+      act(() => {
+        useUIStore.getState().setViewportSafeRect({
+          top: 0,
+          right: 200,
+          bottom: 0,
+          left: 0,
+          width: 1720,
+          height: 1080,
+          bypass: false,
+        });
+      });
+      expect(camera.view?.enabled).toBe(true);
+
+      act(() => {
+        useUIStore.getState().setViewportSafeRect(null);
+      });
+
+      expect(perspClearSpy).toHaveBeenCalled();
+      expect(orthoClearSpy).toHaveBeenCalled();
+      expect(camera.view?.enabled).toBe(false);
+    });
+
+    it('re-applies setViewOffset with updated (w, h) when the viewport resizes', () => {
+      vi.spyOn(reducedMotion, 'prefersReducedMotion').mockReturnValue(true);
+      const perspSetSpy = vi.spyOn(camera, 'setViewOffset');
+      const orthoSetSpy = vi.spyOn(THREE.OrthographicCamera.prototype, 'setViewOffset');
+
+      const { rerender } = render(
+        createElement(
+          CameraTransitionProvider,
+          null,
+          createElement(SpatialFrameProvider, null, createElement(CameraRig)),
+        ),
+      );
+
+      act(() => {
+        useUIStore.getState().setViewportSafeRect({
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 280,
+          width: 1640,
+          height: 1080,
+          bypass: false,
+        });
+      });
+
+      perspSetSpy.mockClear();
+      orthoSetSpy.mockClear();
+
+      sharedMockSize = { width: 1280, height: 720 };
+      act(() => {
+        rerender(
+          createElement(
+            CameraTransitionProvider,
+            null,
+            createElement(SpatialFrameProvider, null, createElement(CameraRig)),
+          ),
+        );
+      });
+
+      expect(perspSetSpy).toHaveBeenCalledWith(1280, 720, -140, 0, 1280, 720);
+      expect(orthoSetSpy).toHaveBeenCalledWith(1280, 720, -140, 0, 1280, 720);
     });
   });
 });

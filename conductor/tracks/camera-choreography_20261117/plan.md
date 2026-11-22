@@ -84,20 +84,19 @@
 ## Phase 3: HUD Retraction & Viewport Compensation
 **Goal:** Retract floating HUD panels smoothly during camera flight and offset the 3D camera optical centre so the focused target stays centred in the visible (non-occluded) canvas area across desktop, tablet, and mobile `DetentSheet` detents.
 
-- [ ] **Task 3.0: Phase 3 Tune / Scope Check**
-  - Confirm retraction feel (slide/fade vs. subtle dim) before wiring CSS/state.
-- [ ] **Task 3.1 (Red/Green/Refactor): Scoped HUD Panel Retraction**
+- [x] **Task 3.0: Phase 3 Tune / Scope Check** *(ratified: subtle slide + fade outward for `.floatingLeft`, `.minimapRegion`, and mobile `DetentSheet`; `.topBar` & `.controlsRegion` stay anchored)*
+- [x] **Task 3.1 (Red/Green/Refactor): Scoped HUD Panel Retraction**
   - Drive a CUBE `data-camera-in-flight="true|false"` attribute on `SpatialShell` from `useUIStore.isCameraTransitioning` (never set when `prefersReducedMotion()` is active).
   - Retract `.floatingLeft`, `.minimapRegion`, and mobile `DetentSheet` during flight and snap back on settle via CSS Modules + semantic motion tokens—keeping `.topBar` (breadcrumbs, search, `<LayerCard />`) and `.controlsRegion` anchored so controls never dodge the pointer mid-click.
-- [ ] **Task 3.2 (Red/Green/Refactor): Visible Safe-Rect Measurement**
+- [x] **Task 3.2 (Red/Green/Refactor): Visible Safe-Rect Measurement**
   - Measure individual active HUD panel rects (`.topBar`, `.floatingLeft > *`, open `.bodiesRegion`, `.controlsRegion`, and non-`full` mobile `DetentSheet`) via `ResizeObserver` into a deduplicated safe-rect store slice—explicitly NOT measuring the full-height `.leftColumn` container.
   - Bypass/clamp compensation when mobile `DetentSheet` is in `full` detent (`visibleHeight <= minSafeHeight`).
-- [ ] **Task 3.3 (Red/Green/Refactor): Dual-Camera Optical Offset & `ScreenEdgeCue` Alignment**
+- [x] **Task 3.3 (Red/Green/Refactor): Dual-Camera Optical Offset & `ScreenEdgeCue` Alignment**
   - Apply `setViewOffset(w, h, offsetX, offsetY, w, h)` (optical-centre shift only, preserving full frustum height so `BodyMarker` / `CartoLineMaterial` pixel sizing stays exact) inside `CameraRig` to **both** perspective and orthographic cameras on every sync/resize, interpolated with the shared easing curve.
   - Pass the measured safe rect into `calculateScreenEdgeBearing` (`ScreenEdgeCue.tsx`) so edge cues clamp to the visible canvas rather than hiding under HUD panels.
-- [ ] **Task 3.4: Quality Gate & Standards Cleanup**
+- [x] **Task 3.4: Quality Gate & Standards Cleanup**
   - Run `standards` cleanup; pass `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, `npm run audit:r3f`, `npm run test:coverage`.
-- [ ] **Task 3.5: Phase 3 Verification, Multi-Viewport Screenshots, Demo Link & Checkpoint**
+- [x] **Task 3.5: Phase 3 Verification, Multi-Viewport Screenshots, Demo Link & Checkpoint**
   - Commit checkpoint; run `npm run capture:views` across all 5 viewports; present clickable `<LAN_HOST>:5173` links, embedded screenshots, and **"What to see & try"** guide; HALT for review.
 
 ---

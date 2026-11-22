@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '../../interface';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { useUIStore } from '../../../stores/useUIStore';
 import { resolvePrimaryPanels, useIsWideViewport } from './spatialShellHelpers';
+import { useViewportSafeRectObserver } from './useViewportSafeRectObserver';
 import styles from './SpatialShell.module.css';
 
 export type { ResolvePrimaryPanelsOptions } from './spatialShellHelpers';
@@ -53,7 +55,10 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
   const isDirectionsOpen = useUIStore((s) => s.isDirectionsOpen);
   const primaryPanelPriority = useUIStore((s) => s.primaryPanelPriority);
   const dualPanelPolicy = useUIStore((s) => s.dualPanelPolicy);
+  const isCameraTransitioning = useUIStore((s) => s.isCameraTransitioning);
+  const prefersReducedMotion = useReducedMotion();
   const isWideViewport = useIsWideViewport();
+  const shellRef = useRef<HTMLElement>(null);
 
   const [isLocallyOverridden, setIsLocallyOverridden] = useState(false);
   const [initialStoreDrawer] = useState(activeDrawer);
@@ -71,6 +76,8 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
       : initialBodiesDrawerOpen !== undefined && !isLocallyOverridden && activeDrawer === initialStoreDrawer
         ? initialBodiesDrawerOpen
         : isStoreBodiesOpen;
+
+  useViewportSafeRectObserver(shellRef, isBodiesDrawerOpen);
 
   const setDrawerState = (next: boolean) => {
     setIsLocallyOverridden(true);
@@ -116,10 +123,12 @@ export const SpatialShell: React.FC<SpatialShellProps> = ({
 
   return (
     <main
+      ref={shellRef}
       className={combinedClassName}
       data-spatial-shell
       data-testid={testId}
       data-bodies-drawer-open={isBodiesDrawerOpen ? 'true' : 'false'}
+      data-camera-in-flight={isCameraTransitioning && !prefersReducedMotion ? 'true' : 'false'}
     >
       <div className={styles.stage}>
         <div className={styles.canvasRegion} data-spatial-region="canvas">
