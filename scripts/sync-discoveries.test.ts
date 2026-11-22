@@ -11,10 +11,11 @@ import type { CompactSearchEntry } from '../src/utils/compactDataTypes';
 import type { DatasetLayerManifest } from '../src/types/datasetLayers';
 
 describe('DEC-040: sync-discoveries pipeline helpers', () => {
-  it('buildTapRecentDiscoveriesQuery creates a valid NASA Exoplanet Archive TAP query URL for sy_dist <= 100', () => {
+  it('buildTapRecentDiscoveriesQuery omits distance limit by default and supports explicit maxDistancePc', () => {
     const defaultUrl = buildTapRecentDiscoveriesQuery();
     expect(defaultUrl).toContain('https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=');
-    expect(defaultUrl).toContain('sy_dist<=100');
+    expect(defaultUrl).not.toContain('sy_dist<=');
+    expect(defaultUrl).toContain('disc_year>=2024');
     expect(defaultUrl).toContain('pscomppars');
     expect(defaultUrl).toContain('format=csv');
 
@@ -118,7 +119,8 @@ describe('DEC-040: sync-discoveries pipeline helpers', () => {
       missingHostStars: [{ pl_name: 'Unknown Star b', hostname: 'Unknown Star 1234', sy_dist: 45 }],
     });
 
-    expect(report).toContain('### Recent Exoplanet Discoveries (< 100 pc) Sync Audit');
+    expect(report).toContain('### Recent Exoplanet Discoveries Sync Audit');
+    expect(report).not.toContain('(< 100 pc)');
     expect(report).toContain('**Total Inspected:** 3');
     expect(report).toContain('**Already in Layer:** 1');
     expect(report).toContain('**Ready to Curate:** 1');
@@ -141,8 +143,8 @@ describe('DEC-040: sync-discoveries pipeline helpers', () => {
       expect(all[0].discoverymethod).toBe('Radial Velocity, Transit');
 
       const filtered = parseTapDiscoveriesCsv(csv, true);
-      expect(filtered).toHaveLength(1);
-      expect(filtered[0].pl_name).toBe('TOI-1234 b');
+      expect(filtered).toHaveLength(2);
+      expect(filtered.map((d) => d.pl_name)).toEqual(['TOI-1234 b', 'Distant World c']);
     });
   });
 

@@ -79,8 +79,9 @@ export function computeGaiaKinematics(
 
 export function loadIauStarNames(csvPath: string): Map<number, string> {
   const hipMap = new Map<number, string>();
+  if (!csvPath) return hipMap;
   const resolved = path.resolve(csvPath);
-  if (!fs.existsSync(resolved)) return hipMap;
+  if (!fs.existsSync(resolved) || fs.statSync(resolved).isDirectory()) return hipMap;
 
   const content = fs.readFileSync(resolved, 'utf-8');
   const rows = parseCsvRowsSync(content);
@@ -106,8 +107,9 @@ export function loadHygCrossMatch(csvPath: string): {
   const byCoord = new Map<string, HygCrossMatch>();
   const byCoordCandidates = new Map<string, HygCrossMatch[]>();
   const allItems: HygCrossMatch[] = [];
+  if (!csvPath) return { byHip, byCoord, byCoordCandidates, allItems };
   const resolved = path.resolve(csvPath);
-  if (!fs.existsSync(resolved)) return { byHip, byCoord, byCoordCandidates, allItems };
+  if (!fs.existsSync(resolved) || fs.statSync(resolved).isDirectory()) return { byHip, byCoord, byCoordCandidates, allItems };
 
   const content = fs.readFileSync(resolved, 'utf-8');
   const rows = parseCsvRowsSync(content);

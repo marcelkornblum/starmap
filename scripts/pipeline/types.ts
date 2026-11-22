@@ -41,6 +41,11 @@ export interface BuildPipelineOptions {
   searchDir?: string;
   compactFormat?: boolean;
   exoplanetsCsvPath?: string;
+  hygCsvPath?: string;
+  iauCsvPath?: string;
+  oecCsvPath?: string;
+  nasaCsvPath?: string;
+  euCsvPath?: string;
   maxPartitionDistancePc?: number;
 }
 

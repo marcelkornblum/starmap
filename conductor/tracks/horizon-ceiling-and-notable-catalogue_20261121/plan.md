@@ -27,12 +27,12 @@ Follow strict Red-Green-Refactor TDD per [`conductor/workflow.md`](../../workflo
 
 ## Phase 2: Notable Catalogue Expansion & `startup.json` Scoping Fix
 
-- [~] **Task 2.1: Unlock all confirmed exoplanet hosts beyond 100 pc**
+- [x] **Task 2.1: Unlock all confirmed exoplanet hosts beyond 100 pc** *(Shipped: updated NASA TAP query + `sync-discoveries.ts`, header-keyed `exoplanetHosts.ts`/`exoplanetCatalogParsers.ts` with `NASA > OEC > EU` precedence, and `standaloneExoHostIngest.ts` emitting `exo-<slug>` host systems)*
   - **Red:** Add unit tests in `scripts/pipeline/exoplanets.test.ts` and `scripts/pipeline/gaiaPipeline.test.ts` verifying parsing of `ra`, `dec`, and `sy_dist` for exoplanet hosts absent from GCNS/HYG and standalone host-star emission beyond 100 pc.
   - **Green:** Remove `WHERE sy_dist<=100` from `scripts/sources.config.ts` and `scripts/sync-discoveries.ts`; parse host coordinates/distances in `scripts/pipeline/exoplanets.ts` and emit standalone host systems in `scripts/pipeline/gaiaPipeline.ts`.
   - **Refactor:** Ensure deterministic ID generation, precalculated reticle/classification/hazard masks, and zero hardcoded entity literals.
 
-- [~] **Task 2.2: Unlock valid HYG v3 stars beyond 100 pc & filter `100,000 pc` sentinels**
+- [x] **Task 2.2: Unlock valid HYG v3 stars beyond 100 pc & filter `100,000 pc` sentinels** *(Shipped: explicit `dist > 0 && dist < 10000` sentinel filter on HYG loop, removed `maxPartitionDist` cap for valid distant notable/bright + exoplanet-host HYG stars, and `gaiaPipeline.test.ts` coverage)*
   - **Red:** Add unit tests in `scripts/pipeline/gaiaPipeline.test.ts` verifying that HYG rows with `dist >= 10000` (the 10,215 `100,000 pc` sentinel rows) are excluded while valid distant HYG/Hipparcos stars are ingested.
   - **Green:** Relax `maxPartitionDistancePc` clipping for valid HYG/Hipparcos stars in `scripts/pipeline/gaiaPipeline.ts` with explicit sentinel filtering (`dist > 0 && dist < 10000`).
   - **Refactor:** Verify `multiStarConsolidation.ts` and `compactDataEncoder.ts` handle sparse outer sectors cleanly without performance regressions.
@@ -42,7 +42,7 @@ Follow strict Red-Green-Refactor TDD per [`conductor/workflow.md`](../../workflo
   - **Green:** Update `buildSearchIndices` in `scripts/pipeline/searchIndexBuilder.ts` to remove the broad `coreEntries` and `structuresEntries` copy loops into `startupEntries`; confirm `searchBackgroundWarmup.ts` continues to hydrate `stars`, `planets`, and `minor-bodies` on idle/interaction.
   - **Refactor:** Verify `npm run audit:budgets` passes with substantial headroom under `maxStartupSearchBytes` (`1.5 MB`).
 
-- [ ] **Phase 2 Checkpoint:** Run `standards` cleanup, `npm run data:build`, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:budgets`, and `npm run test:coverage`.
+- [~] **Phase 2 Checkpoint:** Run `standards` cleanup, `npm run data:build`, `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:budgets`, and `npm run test:coverage`.
 
 ---
 

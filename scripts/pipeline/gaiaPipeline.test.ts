@@ -221,4 +221,196 @@ describe('Data Pipeline - buildStarDataPipeline (Streaming & Active Shards)', ()
       fs.rmSync(boundaryRoot, { recursive: true, force: true });
     }
   }, 60000);
+
+  it('Task 2.1: emits standalone distant confirmed exoplanet hosts (>100 pc) without duplicating matched hosts or unconfirmed candidates', async () => {
+    const exoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'starmap-gaia-exo-hosts-'));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      // GCNS has one star within 100 pc matching HD 154857 via HYG
+      const gcnsLine = makeGcnsLine({
+        sourceId: '555555555555555555',
+        ra: 256.5,
+        dec: -56.6,
+        plx: 15.57, // ~64.2 pc
+        ePlx: 0.05,
+        gmag: 7.25,
+      });
+      const gcnsPath = path.join(exoRoot, 'gcns.dat.gz');
+      fs.writeFileSync(gcnsPath, zlib.gzipSync(`${gcnsLine}\n`));
+
+      const hygPath = path.join(exoRoot, 'hyg.csv');
+      fs.writeFileSync(
+        hygPath,
+        [
+          'id,hip,hd,hr,gl,bf,proper,ra,dec,dist,pmra,pmdec,rv,mag,absmag,spect,ci,x,y,z,vx,vy,vz,rarad,decrad,pmrarad,pmdecrad,bayer,flam,con,comp,comp_primary,base,lum,var,var_min,var_max',
+          '84069,84069,154857,,,,,17.1,-56.6,64.2,0,0,0,7.25,3.2,G5V,0.68,20,40,-30,0,0,0,0,0,0,0,,,Ara,1,84069,,1.5,,,',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const nasaPath = path.join(exoRoot, 'nasa.csv');
+      fs.writeFileSync(
+        nasaPath,
+        [
+          'pl_name,hostname,sy_snum,sy_pnum,discoverymethod,disc_year,pl_orbper,pl_orbsmax,pl_bmasse,pl_rade,pl_eqt,pl_insol,sy_dist,ra,dec,st_spectype,st_teff,st_rad,st_mass,st_lum,sy_vmag',
+          'HD 154857 b,HD 154857,1,1,Radial Velocity,2004,408.6,1.291,712,12.0,336,1.0,64.2,256.5,-56.6,G5V,5600,1.5,1.1,0.2,7.25',
+          'Kepler-186 f,Kepler-186,1,5,Transit,2014,129.944,0.432,1.4,1.17,250,0.29,178.5,298.6527,43.955,M1V,3755,0.52,0.54,-1.26,14.62',
+          'Kepler-62 f,Kepler-62,1,5,Transit,2013,267.291,0.718,2.8,1.41,250,0.41,300.5,283.2127,45.3498,K2V,4925,0.64,0.69,-0.68,13.97',
+          'Teff Fallback Host b,Teff Fallback Host,1,1,Transit,2022,12.0,0.08,3.2,1.3,600,20,310.0,120.0,15.0,,5800,1.0,1.0,0.0,',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const euPath = path.join(exoRoot, 'eu.csv');
+      fs.writeFileSync(
+        euPath,
+        [
+          'name,planet_status,mass,radius,orbital_period,semi_major_axis,eccentricity,inclination,discovered,detection_type,ra,dec,star_distance,mag_v,star_sp_type,star_teff,star_name',
+          'Unconfirmed Distant b,Candidate,1.0,1.0,10.0,0.1,0.0,89,2024,Primary Transit,110.0,20.0,450.0,13.5,G2V,5800,Unconfirmed Distant',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const jsonPath = path.join(exoRoot, 'stars.json');
+      const dataDir = path.join(exoRoot, 'data');
+
+      await buildStarDataPipeline(gcnsPath, jsonPath, {
+        partitionsDir: path.join(dataDir, 'partitions'),
+        summariesDir: path.join(dataDir, 'summaries'),
+        detailsDir: path.join(dataDir, 'details'),
+        searchDir: path.join(dataDir, 'search'),
+        overlaysDir: path.join(dataDir, 'overlays'),
+        maxPartitionDistancePc: 100,
+        hygCsvPath: hygPath,
+        oecCsvPath: '',
+        nasaCsvPath: nasaPath,
+        euCsvPath: euPath,
+        iauCsvPath: '',
+      });
+
+      const starsSearch = JSON.parse(
+        fs.readFileSync(path.join(dataDir, 'search/stars.json'), 'utf8'),
+      ) as { d: Array<{ i: string; n: string; p?: [number, number, number] }> };
+
+      // Kepler-62 (absent from GCNS/HYG/RECONS) emitted as deterministic exo-kepler-62
+      const kepler62Entry = starsSearch.d.find((e) => e.i === 'exo-kepler-62');
+      expect(kepler62Entry).toBeDefined();
+      expect(kepler62Entry?.n).toBe('Kepler-62');
+
+      // Teff Fallback Host emitted with mag fallback 14.0 and Teff-derived spectral class
+      const teffEntry = starsSearch.d.find((e) => e.i === 'exo-teff-fallback-host');
+      expect(teffEntry).toBeDefined();
+
+      // Matched HD 154857 and RECONS Kepler-186 must NOT be duplicated as exo-*
+      expect(starsSearch.d.find((e) => e.i === 'exo-hd-154857')).toBeUndefined();
+      expect(starsSearch.d.find((e) => e.i === 'exo-kepler-186')).toBeUndefined();
+
+      // Unconfirmed candidate host must NOT be emitted
+      expect(starsSearch.d.find((e) => e.i === 'exo-unconfirmed-distant')).toBeUndefined();
+
+      // Verify full SystemManifest written into details routing + sector shard for exo-kepler-62
+      const routing = JSON.parse(
+        fs.readFileSync(path.join(dataDir, 'details/routing.json'), 'utf8'),
+      ) as { k: string[]; d: Record<string, number> };
+      const keplerSectorIdx = routing.d['exo-kepler-62'];
+      expect(keplerSectorIdx).toBeDefined();
+      const keplerSector = keplerSectorIdx !== undefined ? routing.k[keplerSectorIdx] : undefined;
+      expect(keplerSector).toBeDefined();
+
+      const sectorDetails = JSON.parse(
+        fs.readFileSync(path.join(dataDir, `details/sectors/${keplerSector}.json`), 'utf8'),
+      ) as { d: Record<string, { n: string; S: Array<{ s: string; m: number }>; E: unknown[]; h?: number; b?: number[] }> };
+      const keplerManifest = sectorDetails.d['exo-kepler-62'];
+      expect(keplerManifest).toBeDefined();
+      expect(keplerManifest?.S[0]?.s).toBe('K2V');
+      expect(keplerManifest?.S[0]?.m).toBeCloseTo(13.97, 2);
+      expect(keplerManifest?.E).toHaveLength(1);
+      expect(keplerManifest?.h).toBe(1);
+      expect(keplerManifest?.b).toEqual([0, 1, 0, 0]);
+
+      // Verify Teff Fallback Host manifest uses mag fallback 14.0 and Teff-derived spectral class 'G'
+      const teffSectorIdx = routing.d['exo-teff-fallback-host'];
+      const teffSector = teffSectorIdx !== undefined ? routing.k[teffSectorIdx] : undefined;
+      expect(teffSector).toBeDefined();
+      const teffSectorDetails = JSON.parse(
+        fs.readFileSync(path.join(dataDir, `details/sectors/${teffSector}.json`), 'utf8'),
+      ) as { d: Record<string, { S: Array<{ s: string; m: number }> }> };
+      expect(teffSectorDetails.d['exo-teff-fallback-host']?.S[0]?.s).toBe('G');
+      expect(teffSectorDetails.d['exo-teff-fallback-host']?.S[0]?.m).toBeCloseTo(14.0, 2);
+    } finally {
+      warnSpy.mockRestore();
+      fs.rmSync(exoRoot, { recursive: true, force: true });
+    }
+  }, 60000);
+
+  it('Task 2.2: rejects HYG >= 10000 pc sentinels (even with official IAU match) while ingesting valid distant notable HYG stars and faint HYG exoplanet hosts', async () => {
+    const hygRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'starmap-gaia-hyg-distant-'));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const gcnsPath = path.join(hygRoot, 'empty_gcns.dat.gz');
+      fs.writeFileSync(gcnsPath, zlib.gzipSync(''));
+
+      const hygPath = path.join(hygRoot, 'hyg_distant.csv');
+      fs.writeFileSync(
+        hygPath,
+        [
+          'id,hip,hd,hr,gl,bf,proper,ra,dec,dist,pmra,pmdec,rv,mag,absmag,spect,ci,x,y,z,vx,vy,vz,rarad,decrad,pmrarad,pmdecrad,bayer,flam,con,comp,comp_primary,base,lum,var,var_min,var_max',
+          // Sentinel 100000 pc row WITH official IAU match (hip-32349 = Sirius) -> MUST be rejected
+          '90001,32349,,,,,,6.75,-16.7,100000,0,0,0,1.5,-10.0,A1V,0.0,0,0,0,0,0,0,0,0,0,0,,,CMa,1,90001,,100,,,',
+          // Valid distant bright/notable HYG star at 250 pc, mag 3.2 -> MUST be ingested
+          '90002,88888,,,,,Distant Beacon,10.0,20.0,250,0,0,0,3.2,-3.8,B8V,-0.1,0,0,0,0,0,0,0,0,0,0,,,Leo,1,90002,,50,,,',
+          // Faint distant HYG star at 180 pc, mag 11.2 that IS an exoplanet host (HIP 77777) -> MUST be ingested
+          '90003,77777,,,,,,12.0,30.0,180,0,0,0,11.2,4.9,K0V,0.8,0,0,0,0,0,0,0,0,0,0,,,,1,90003,,0.6,,,',
+          // Faint distant HYG star at 180 pc, mag 11.2 WITHOUT exoplanets/notable flags -> MUST be skipped
+          '90004,66666,,,,,,14.0,-20.0,180,0,0,0,11.2,4.9,G2V,0.65,0,0,0,0,0,0,0,0,0,0,,,,1,90004,,1.0,,,',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const nasaPath = path.join(hygRoot, 'nasa.csv');
+      fs.writeFileSync(
+        nasaPath,
+        [
+          'pl_name,hostname,sy_snum,sy_pnum,discoverymethod,disc_year,pl_orbper,pl_orbsmax,pl_bmasse,pl_rade,pl_eqt,pl_insol,sy_dist,ra,dec,st_spectype,st_teff,st_rad,st_mass,st_lum,sy_vmag',
+          'HIP 77777 b,HIP 77777,1,1,Radial Velocity,2021,50.0,0.25,15.0,3.5,450,5.0,180.0,180.0,30.0,K0V,5100,0.85,0.85,-0.22,11.2',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const jsonPath = path.join(hygRoot, 'stars.json');
+      const dataDir = path.join(hygRoot, 'data');
+
+      await buildStarDataPipeline(gcnsPath, jsonPath, {
+        partitionsDir: path.join(dataDir, 'partitions'),
+        summariesDir: path.join(dataDir, 'summaries'),
+        detailsDir: path.join(dataDir, 'details'),
+        searchDir: path.join(dataDir, 'search'),
+        overlaysDir: path.join(dataDir, 'overlays'),
+        maxPartitionDistancePc: 100,
+        hygCsvPath: hygPath,
+        oecCsvPath: '',
+        nasaCsvPath: nasaPath,
+        euCsvPath: '',
+        iauCsvPath: '',
+      });
+
+      const starsJson = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')) as StarmapNode[];
+      expect(starsJson.some((s) => s.dist >= 10000)).toBe(false);
+      expect(starsJson.some((s) => s.name === 'Distant Beacon')).toBe(true);
+      expect(starsJson.some((s) => s.hip === 77777)).toBe(true);
+      expect(starsJson.some((s) => s.hip === 66666)).toBe(false);
+
+      const starsSearch = JSON.parse(
+        fs.readFileSync(path.join(dataDir, 'search/stars.json'), 'utf8'),
+      ) as { d: Array<{ i: string; n: string }> };
+      expect(starsSearch.d.some((e) => e.i === 'hip-32349')).toBe(false);
+      expect(starsSearch.d.some((e) => e.i === 'hip-88888')).toBe(true);
+      expect(starsSearch.d.some((e) => e.i === 'hip-77777')).toBe(true);
+      // Faint HYG exoplanet host must NOT be duplicated as exo-hip-77777
+      expect(starsSearch.d.some((e) => e.i === 'exo-hip-77777')).toBe(false);
+    } finally {
+      warnSpy.mockRestore();
+      fs.rmSync(hygRoot, { recursive: true, force: true });
+    }
+  }, 60000);
 });

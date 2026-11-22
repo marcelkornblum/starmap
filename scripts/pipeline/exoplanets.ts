@@ -1,11 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type {
-  ExoplanetRecord,
-  KeplerianOrbit,
-  PlanetComposition,
-  StarmapNode,
-} from '../../src/types/astro';
+import type { ExoplanetRecord, PlanetComposition, StarmapNode } from '../../src/types/astro';
 import {
   classifyPlanetPhysical,
   computePlanetSurfaceGravityG,
@@ -15,40 +10,27 @@ import {
 import { computePlanetHazardMask } from '../../src/utils/astroHazards';
 import { resolvePlanetReticleType } from '../../src/utils/astroPrecalculation';
 import { collectStarLookupKeys } from '../../src/utils/nomenclature';
-import { expandGouldOrConstellationSuffix } from '../../src/utils/starNaming';
 import { parseCsvRowsSync } from './csvParser';
 import { IAU_NAME_EXOWORLDS } from './seedCatalogs';
+import {
+  createExoplanetHostRegistry,
+  inferSpectralClassFromTeff,
+  parseSexagesimalDecDeg,
+  parseSexagesimalRaDeg,
+  type ExoplanetHostGroup,
+  type ExoplanetHostMetadata,
+} from './exoplanetHosts';
+import {
+  computeEsi,
+  makeOrbit,
+  parseEuCatalog,
+  parseNasaCatalog,
+  parseOecCatalog,
+  splitPlanetName,
+} from './exoplanetCatalogParsers';
 
-export function computeEsi(rEarth?: number, temperature?: number): number | undefined {
-  if (rEarth !== undefined && temperature !== undefined && !isNaN(rEarth) && !isNaN(temperature)) {
-    const rTerm = 1 - Math.abs((rEarth - 1) / (rEarth + 1));
-    const tTerm = 1 - Math.abs((temperature - 288) / (temperature + 288));
-    return Math.max(0, Math.min(1, Math.sqrt(Math.max(0, rTerm * tTerm))));
-  }
-  return undefined;
-}
-
-function splitPlanetName(name?: string): { hostName: string; letter: string } | null {
-  const clean = name?.trim();
-  if (!clean) return null;
-  const lastSpace = clean.lastIndexOf(' ');
-  if (lastSpace === -1) return null;
-  return { hostName: clean.substring(0, lastSpace).trim(), letter: clean.substring(lastSpace + 1).trim() };
-}
-
-function makeOrbit(
-  semiMajorAxis = 0, eccentricity = 0, inclination = 0, ascendingNode = 0, argumentOfPeriapsis = 0, periodDays = 0,
-): KeplerianOrbit {
-  return {
-    semiMajorAxis: isNaN(semiMajorAxis) ? 0 : semiMajorAxis,
-    eccentricity: isNaN(eccentricity) ? 0 : eccentricity,
-    inclination: isNaN(inclination) ? 0 : inclination,
-    ascendingNode: isNaN(ascendingNode) ? 0 : ascendingNode,
-    argumentOfPeriapsis: isNaN(argumentOfPeriapsis) ? 0 : argumentOfPeriapsis,
-    meanAnomaly: 0,
-    periodDays: isNaN(periodDays) ? 0 : periodDays,
-  };
-}
+export type { ExoplanetHostGroup, ExoplanetHostMetadata };
+export { computeEsi, inferSpectralClassFromTeff, parseSexagesimalDecDeg, parseSexagesimalRaDeg };
 
 export function mergeExoplanetRecords(existing: ExoplanetRecord, incoming: ExoplanetRecord): ExoplanetRecord {
   let flags = (existing.theoreticalFlags ?? 0) | (incoming.theoreticalFlags ?? 0);
@@ -70,120 +52,28 @@ export function mergeExoplanetRecords(existing: ExoplanetRecord, incoming: Exopl
   };
 }
 
+export function loadAllExoplanetCatalogsWithHosts(
+  oecCsv: string,
+  nasaCsv: string,
+  euCsv: string,
+): { hostMap: Map<string, ExoplanetRecord[]>; canonicalHosts: ExoplanetHostGroup[] } {
+  const hostMap = new Map<string, ExoplanetRecord[]>();
+  const { registerEntry, buildCanonicalHosts } = createExoplanetHostRegistry(hostMap, mergeExoplanetRecords);
+  const hasNasaCatalog = Boolean(nasaCsv) && fs.existsSync(nasaCsv);
+
+  parseOecCatalog(oecCsv, hasNasaCatalog, registerEntry);
+  parseNasaCatalog(nasaCsv, registerEntry);
+  parseEuCatalog(euCsv, hasNasaCatalog, registerEntry);
+
+  return { hostMap, canonicalHosts: buildCanonicalHosts() };
+}
+
 export function loadAllExoplanetCatalogs(
   oecCsv: string,
   nasaCsv: string,
   euCsv: string,
 ): Map<string, ExoplanetRecord[]> {
-  const hostMap = new Map<string, ExoplanetRecord[]>();
-  const hasNasaCatalog = fs.existsSync(nasaCsv);
-
-  function addPlanet(hostKey: string, planet: ExoplanetRecord) {
-    const key = hostKey.toLowerCase().replace(/[^a-z0-9]/g, '');
-    let bucket = hostMap.get(key);
-    if (!bucket) hostMap.set(key, (bucket = []));
-    const idx = bucket.findIndex((p) => p.letter === planet.letter || p.id === planet.id);
-    const existing = idx >= 0 ? bucket[idx] : undefined;
-    if (!existing) bucket.push(planet);
-    else bucket[idx] = mergeExoplanetRecords(existing, planet);
-  }
-
-  function addIauExo(rawName: string, expName: string, record: ExoplanetRecord, host: string) {
-    const iau = IAU_NAME_EXOWORLDS[rawName] ?? IAU_NAME_EXOWORLDS[expName];
-    if (iau && !record.name.includes(iau.planetName)) record.name = `${expName} (${iau.planetName})`;
-    addPlanet(host, record);
-    if (iau) addPlanet(iau.starName, record);
-  }
-
-  if (fs.existsSync(oecCsv)) {
-    const rows = parseCsvRowsSync(fs.readFileSync(oecCsv, 'utf-8'));
-    for (let i = 1; i < rows.length; i++) {
-      const parts = rows[i];
-      if (!parts) continue;
-      const rawName = parts[0];
-      const parsed = splitPlanetName(rawName);
-      if (!parsed || !rawName) continue;
-      const planetName = rawName.trim();
-      const [mass, radius, period, semimajoraxis, eccentricity] = [
-        parseFloat(parts[2] ?? ''), parseFloat(parts[3] ?? ''), parseFloat(parts[4] ?? ''), parseFloat(parts[5] ?? ''), parseFloat(parts[6] ?? ''),
-      ];
-      let temperature = parseFloat(parts[11] ?? '');
-      const [hostRadiusRsun, hostTempK] = [parseFloat(parts[20] ?? ''), parseFloat(parts[22] ?? '')];
-
-      let derivedTemp = false;
-      if (isNaN(temperature) && hostTempK > 0 && hostRadiusRsun > 0 && semimajoraxis > 0) {
-        temperature = Math.round(hostTempK * Math.pow(0.7, 0.25) * Math.sqrt((hostRadiusRsun * 0.00465047) / (2 * semimajoraxis)) * 100) / 100;
-        derivedTemp = true;
-      }
-
-      const mEarth = !isNaN(mass) ? Math.round(mass * 317.828 * 100) / 100 : undefined;
-      const rEarth = !isNaN(radius) ? Math.round(radius * 11.209 * 100) / 100 : undefined;
-      const esi = computeEsi(rEarth, temperature);
-      const theoreticalFlags = derivedTemp ? 1 | (esi !== undefined ? 8 : 0) : 0;
-      const expName = expandGouldOrConstellationSuffix(planetName);
-
-      addIauExo(planetName, expName, {
-        id: expName.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: expName, letter: parsed.letter,
-        discoveryYear: parseInt(parts[14] ?? '', 10) || undefined, discoveryMethod: parts[13]?.trim() || undefined,
-        massMjup: !isNaN(mass) ? mass : undefined, massMearth: mEarth,
-        radiusRjup: !isNaN(radius) ? radius : undefined, radiusRearth: rEarth,
-        equilibriumTempK: !isNaN(temperature) ? temperature : undefined, esi,
-        orbit: makeOrbit(semimajoraxis, eccentricity, parseFloat(parts[10] ?? ''), parseFloat(parts[9] ?? ''), parseFloat(parts[7] ?? ''), period),
-        confidence: hasNasaCatalog ? 'candidate' : 'confirmed',
-        ...(theoreticalFlags > 0 ? { theoreticalFlags } : {}),
-      }, parsed.hostName);
-    }
-  }
-
-  if (hasNasaCatalog) {
-    const rows = parseCsvRowsSync(fs.readFileSync(nasaCsv, 'utf-8'));
-    for (let i = 1; i < rows.length; i++) {
-      const parts = rows[i];
-      if (!parts) continue;
-      const [planetName, hostName] = [parts[0]?.trim(), parts[1]?.trim()];
-      if (!planetName || !hostName) continue;
-
-      const [period, semimajoraxis, massEarth, radiusEarth, temperature] = [
-        parseFloat(parts[6] ?? ''), parseFloat(parts[7] ?? ''), parseFloat(parts[8] ?? ''), parseFloat(parts[9] ?? ''), parseFloat(parts[10] ?? ''),
-      ];
-      const expName = expandGouldOrConstellationSuffix(planetName);
-      addIauExo(planetName, expName, {
-        id: expName.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: expName, letter: planetName.split(' ').pop() || 'b',
-        discoveryYear: parseInt(parts[5] ?? '', 10) || undefined, discoveryMethod: parts[4]?.trim() || undefined,
-        massMearth: !isNaN(massEarth) ? massEarth : undefined, massMjup: !isNaN(massEarth) ? massEarth / 317.828 : undefined,
-        radiusRearth: !isNaN(radiusEarth) ? radiusEarth : undefined, radiusRjup: !isNaN(radiusEarth) ? radiusEarth / 11.209 : undefined,
-        equilibriumTempK: !isNaN(temperature) ? temperature : undefined,
-        esi: computeEsi(!isNaN(radiusEarth) ? radiusEarth : undefined, !isNaN(temperature) ? temperature : undefined),
-        orbit: makeOrbit(semimajoraxis, 0, 0, 0, 0, period), confidence: 'confirmed',
-      }, hostName);
-    }
-  }
-
-  if (fs.existsSync(euCsv)) {
-    const rows = parseCsvRowsSync(fs.readFileSync(euCsv, 'utf-8'));
-    for (let i = 1; i < rows.length; i++) {
-      const parts = rows[i];
-      if (!parts) continue;
-      const rawName = parts[0];
-      const parsed = splitPlanetName(rawName);
-      if (!parsed || !rawName) continue;
-      const [mass, radius, period, semimajoraxis, eccentricity, inclination] = [
-        parseFloat(parts[2] ?? ''), parseFloat(parts[8] ?? ''), parseFloat(parts[11] ?? ''), parseFloat(parts[14] ?? ''), parseFloat(parts[17] ?? ''), parseFloat(parts[20] ?? ''),
-      ];
-      const trimmedName = rawName.trim();
-      const expName = expandGouldOrConstellationSuffix(trimmedName);
-      addIauExo(trimmedName, expName, {
-        id: expName.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: expName, letter: parsed.letter,
-        discoveryYear: parseInt(parts[24] ?? '', 10) || undefined, discoveryMethod: parts[63]?.trim() || undefined,
-        massMjup: !isNaN(mass) ? mass : undefined, massMearth: !isNaN(mass) ? Math.round(mass * 317.828 * 100) / 100 : undefined,
-        radiusRjup: !isNaN(radius) ? radius : undefined, radiusRearth: !isNaN(radius) ? Math.round(radius * 11.209 * 100) / 100 : undefined,
-        orbit: makeOrbit(semimajoraxis, eccentricity, inclination, 0, 0, period),
-        confidence: hasNasaCatalog ? 'candidate' : 'confirmed',
-      }, parsed.hostName);
-    }
-  }
-
-  return hostMap;
+  return loadAllExoplanetCatalogsWithHosts(oecCsv, nasaCsv, euCsv).hostMap;
 }
 
 export function loadExoplanetCatalog(csvPath: string): Map<string, ExoplanetRecord[]> {
@@ -191,8 +81,7 @@ export function loadExoplanetCatalog(csvPath: string): Map<string, ExoplanetReco
   const resolved = path.resolve(csvPath);
   if (!fs.existsSync(resolved)) return hostMap;
 
-  const content = fs.readFileSync(resolved, 'utf-8');
-  const rows = parseCsvRowsSync(content);
+  const rows = parseCsvRowsSync(fs.readFileSync(resolved, 'utf-8'));
   if (rows.length <= 1) return hostMap;
 
   for (let i = 1; i < rows.length; i++) {
@@ -215,17 +104,14 @@ export function loadExoplanetCatalog(csvPath: string): Map<string, ExoplanetReco
       equilibriumTempK: !isNaN(temperature) ? temperature : undefined,
       orbit: makeOrbit(semimajoraxis, eccentricity, inclination, ascendingnode, periastron, period),
     };
-
     const keys = [parsed.hostName.toLowerCase().replace(/[^a-z0-9]/g, '')];
     if (iauMatch) keys.push(iauMatch.starName.toLowerCase().replace(/[^a-z0-9]/g, ''));
-
     for (const key of keys) {
       let bucket = hostMap.get(key);
       if (!bucket) hostMap.set(key, (bucket = []));
       if (!bucket.some((p) => p.id === planetRecord.id)) bucket.push(planetRecord);
     }
   }
-
   return hostMap;
 }
 
@@ -234,12 +120,8 @@ export function matchExoplanetsForStar(
   hostMap: Map<string, ExoplanetRecord[]>,
 ): ExoplanetRecord[] {
   if (hostMap.size === 0) return [];
-
   const candidateKeys = new Set<string>(collectStarLookupKeys(star));
-  if (star.aliases) {
-    for (const alias of star.aliases) candidateKeys.add(alias.toLowerCase().replace(/[^a-z0-9]/g, ''));
-  }
-
+  if (star.aliases) for (const alias of star.aliases) candidateKeys.add(alias.toLowerCase().replace(/[^a-z0-9]/g, ''));
   const mergedByLetter = new Map<string, ExoplanetRecord>();
   for (const key of candidateKeys) {
     for (const planet of hostMap.get(key) ?? []) {
@@ -248,7 +130,6 @@ export function matchExoplanetsForStar(
       mergedByLetter.set(dedupKey, existing ? mergeExoplanetRecords(existing, planet) : planet);
     }
   }
-
   return Array.from(mergedByLetter.values());
 }
 
@@ -265,39 +146,20 @@ export function classifyExoplanet(planet: ExoplanetRecord): PlanetComposition {
   return planet.composition ?? classifyPlanetPhysical(planet);
 }
 
-export function enrichPlanetsWithPrecalculatedFields(
-  planets: ExoplanetRecord[],
-  starLum?: number,
-): ExoplanetRecord[] {
+export function enrichPlanetsWithPrecalculatedFields(planets: ExoplanetRecord[], starLum?: number): ExoplanetRecord[] {
   return planets.map((p) => {
     const composition = p.composition ?? classifyPlanetPhysical(p);
     const surfaceGravityG = p.surfaceGravityG ?? computePlanetSurfaceGravityG(p);
-    const isTidallyLocked =
-      p.isTidallyLocked ??
-      isPlanetTidallyLocked({
-        periodDays: p.orbit?.periodDays,
-        semiMajorAxisAu: p.orbit?.semiMajorAxis,
-      });
+    const isTidallyLocked = p.isTidallyLocked ?? isPlanetTidallyLocked({ periodDays: p.orbit?.periodDays, semiMajorAxisAu: p.orbit?.semiMajorAxis });
     const esi = p.esi ?? computeEsi(p.radiusRearth, p.equilibriumTempK);
-    const hazardMask =
-      p.hazardMask ??
-      computePlanetHazardMask({
-        equilibriumTempK: p.equilibriumTempK, surfaceGravityG, periodDays: p.orbit?.periodDays, semiMajorAxisAu: p.orbit?.semiMajorAxis, eccentricity: p.orbit?.eccentricity,
-      });
-
+    const hazardMask = p.hazardMask ?? computePlanetHazardMask({
+      equilibriumTempK: p.equilibriumTempK, surfaceGravityG, periodDays: p.orbit?.periodDays, semiMajorAxisAu: p.orbit?.semiMajorAxis, eccentricity: p.orbit?.eccentricity,
+    });
     return {
-      ...p,
-      composition,
-      reticleType: p.reticleType ?? resolvePlanetReticleType(composition),
-      isHabitableCandidate:
-        p.isHabitableCandidate ??
-        isPlanetHabitableCandidate(
-          { equilibriumTempK: p.equilibriumTempK, esi, semiMajorAxis: p.orbit?.semiMajorAxis }, starLum,
-        ),
+      ...p, composition, reticleType: p.reticleType ?? resolvePlanetReticleType(composition),
+      isHabitableCandidate: p.isHabitableCandidate ?? isPlanetHabitableCandidate({ equilibriumTempK: p.equilibriumTempK, esi, semiMajorAxis: p.orbit?.semiMajorAxis }, starLum),
       isTidallyLocked,
-      ...(esi !== undefined ? { esi } : {}),
-      ...(surfaceGravityG !== undefined ? { surfaceGravityG } : {}),
-      ...(hazardMask > 0 ? { hazardMask } : {}),
+      ...(esi !== undefined ? { esi } : {}), ...(surfaceGravityG !== undefined ? { surfaceGravityG } : {}), ...(hazardMask > 0 ? { hazardMask } : {}),
     };
   });
 }
@@ -305,7 +167,7 @@ export function enrichPlanetsWithPrecalculatedFields(
 export function getPlanetCensus(planets: ExoplanetRecord[]): PlanetComposition[] | undefined {
   if (planets.length === 0) return undefined;
   const present = (['terrestrial', 'super-earth', 'gas-giant', 'ice-giant'] as const).filter((cat) =>
-    planets.some((p) => classifyExoplanet(p) === cat)
+    planets.some((p) => classifyExoplanet(p) === cat),
   );
   return present.length > 0 ? present : undefined;
 }
