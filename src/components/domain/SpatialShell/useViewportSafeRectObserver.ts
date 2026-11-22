@@ -101,9 +101,26 @@ export function useViewportSafeRectObserver(
         bodiesEl !== null &&
         (isBodiesDrawerOpen || viewportWidth >= DESKTOP_DOCK_BREAKPOINT_PX) &&
         isElementVisible(bodiesEl);
-      const bodiesRegion = isBodiesVisible
-        ? toPanelRectLike(bodiesEl.getBoundingClientRect())
-        : null;
+      let bodiesRegion: PanelRectLike | null = null;
+      if (isBodiesVisible) {
+        const rawBodiesRect = toPanelRectLike(bodiesEl.getBoundingClientRect());
+        const resolvedWidth =
+          rawBodiesRect.width > 0 ? rawBodiesRect.width : bodiesEl.offsetWidth;
+        if (resolvedWidth > 0) {
+          // Account for in-flight slide-in CSS transforms (translateX(100%) -> 0) on <= 1023px drawers
+          // so optical-centre compensation glides immediately in sync with the opening drawer.
+          const resolvedLeft = Math.min(
+            rawBodiesRect.left,
+            Math.max(0, viewportWidth - resolvedWidth),
+          );
+          bodiesRegion = {
+            ...rawBodiesRect,
+            left: resolvedLeft,
+            right: resolvedLeft + resolvedWidth,
+            width: resolvedWidth,
+          };
+        }
+      }
 
       const controlsRegion =
         controlsEl && isElementVisible(controlsEl)
@@ -168,6 +185,10 @@ export function useViewportSafeRectObserver(
       attributeFilter: ['data-detent', 'data-bodies-drawer-open'],
     });
 
+    const handleTransitionEnd = () => scheduleMeasure();
+    const { bodiesEl: initialBodiesEl } = queryHudRegions(shellEl);
+    initialBodiesEl?.addEventListener('transitionend', handleTransitionEnd);
+
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', scheduleMeasure);
     }
@@ -179,6 +200,7 @@ export function useViewportSafeRectObserver(
       if (rafId !== null && typeof cancelAnimationFrame === 'function') {
         cancelAnimationFrame(rafId);
       }
+      initialBodiesEl?.removeEventListener('transitionend', handleTransitionEnd);
       resizeObserver?.disconnect();
       mutationObserver?.disconnect();
       if (typeof window !== 'undefined') {

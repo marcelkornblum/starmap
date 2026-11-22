@@ -524,5 +524,44 @@ describe('SpatialShell Domain Component', () => {
         bypass: false,
       });
     });
+
+    it('immediately accounts for opening Bodies drawer width on tablet even while CSS translateX(100%) is still sliding in', () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1000 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, writable: true, value: 800 });
+
+      render(
+        <SpatialShell
+          isBodiesDrawerOpen={true}
+          bodies={<div data-testid="sliding-bodies">Bodies</div>}
+        />,
+      );
+
+      const root = screen.getByTestId('spatial-shell-root');
+      const bodiesEl = root.querySelector('[data-spatial-region="bodies"]');
+
+      setRect(root, { left: 0, top: 0, width: 1000, height: 800 });
+      // Mid-transition translateX(100%): left is still 1000 (off-screen), width is 384
+      setRect(bodiesEl, { left: 1000, top: 0, width: 384, height: 800 });
+
+      vi.useFakeTimers();
+      try {
+        act(() => {
+          window.dispatchEvent(new Event('resize'));
+          vi.runAllTimers();
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
+      expect(useUIStore.getState().viewportSafeRect).toEqual({
+        top: 0,
+        right: 384,
+        bottom: 0,
+        left: 0,
+        width: 1000 - 384,
+        height: 800,
+        bypass: false,
+      });
+    });
   });
 });
