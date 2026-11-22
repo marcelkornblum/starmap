@@ -8,10 +8,8 @@ import {
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { SpatialEntityDefinition } from '../entity';
 import { SystemCameraController } from './SystemCameraController';
-import {
-  resolveTargetCoordsFromEntities,
-  useResolvedSystemEntitiesAndTarget,
-} from './sceneTargetHelpers';
+import { resolveTargetCoordsFromEntities } from './planetaryEntityResolver';
+import { useResolvedSystemEntitiesAndTarget } from './sceneTargetHelpers';
 
 export interface StarDossierData {
   id: string;

@@ -3,7 +3,7 @@ import ReactThreeTest from '@react-three/test-renderer';
 import * as THREE from 'three';
 import { SystemScene, type StarDossierData } from './SystemScene';
 import { resolveSystemPlanetEntity, resolveCorpusPlanetEntity } from './systemPlanetResolver';
-import { resolveTargetCoordsFromEntities } from './sceneTargetHelpers';
+import { resolveTargetCoordsFromEntities } from './planetaryEntityResolver';
 import { SYSTEM_FRAME } from '../../../config/referenceFrames';
 import * as useSearchCorpusHook from '../../../hooks/useSearchCorpus';
 import * as useSystemDataHook from '../../../hooks/useSystemData';
@@ -291,6 +291,106 @@ describe('SystemScene orbital element resolution (AUD-024 / DEC-R019)', () => {
       expect(entity.orbit?.lineStyle).toBe('dotted');
       expect(entity.classification).toBe('terrestrial');
       expect(entity.orbit?.meanAnomaly).toBe(60); // (1 * 60) % 360
+    });
+  });
+
+  describe('corpus dwarf planets and selected minor bodies in SystemScene', () => {
+    it('includes system dwarf planets and selected minor bodies or fictional stations alongside sysManifest planets', async () => {
+      const { SpatialEntityProvider, createSpatialEntityStore } = await import('../entity');
+
+      const outerStore = createSpatialEntityStore({
+        selectedIds: ['1p-halley', 'orbital-beacon'],
+      });
+
+      const corpusSpy = vi.spyOn(useSearchCorpusHook, 'useSearchCorpus').mockReturnValue({
+        corpus: [
+          {
+            i: 'sol',
+            n: 'Sol',
+            k: 1,
+            h: 1,
+          },
+          {
+            i: '1-ceres',
+            n: 'Ceres',
+            k: 4,
+            s: 'sol',
+            A: 2.77,
+          },
+          {
+            i: '1p-halley',
+            n: 'Halley',
+            k: 6,
+            s: 'sol',
+            A: 17.8,
+          },
+          {
+            i: 'unselected-asteroid',
+            n: 'Unselected Asteroid',
+            k: 6,
+            s: 'sol',
+            A: 2.4,
+          },
+          {
+            i: 'orbital-beacon',
+            n: 'Orbital Beacon',
+            k: 7,
+            w: 'canon-layer',
+            s: 'sol',
+            A: 1.5,
+          },
+        ],
+        isLoading: false,
+      });
+
+      const systemDataSpy = vi.spyOn(useSystemDataHook, 'useSystemData').mockReturnValue({
+        systemSummary: undefined,
+        systemDetail: {
+          kind: 'system',
+          record: {
+            id: 'sol',
+            name: 'Sol',
+            x: 0,
+            y: 0,
+            z: 0,
+            dist: 0,
+            sectorId: 'sector_0_0_0',
+            stars: [
+              {
+                id: 'sol-a',
+                name: 'Sol',
+                componentDesignation: 'A',
+                spectralType: 'G2V',
+                mag: -26.74,
+                absmag: 4.83,
+                luminosityLsun: 1,
+                massMsun: 1,
+              },
+            ],
+            planets: mockSolSystem.planets!,
+          },
+        },
+        focusedDetail: undefined,
+        isLoading: false,
+      });
+
+      const renderer = await ReactThreeTest.create(
+        <SpatialEntityProvider store={outerStore}>
+          <SystemScene systemId="sol" />
+        </SpatialEntityProvider>,
+      );
+
+      expect(renderer.scene.findByProps({ name: 'celestial-entity-earth' })).toBeDefined();
+      expect(renderer.scene.findByProps({ name: 'celestial-entity-1-ceres' })).toBeDefined();
+      expect(renderer.scene.findByProps({ name: 'celestial-entity-1p-halley' })).toBeDefined();
+      expect(renderer.scene.findByProps({ name: 'celestial-entity-orbital-beacon' })).toBeDefined();
+      expect(
+        renderer.scene.findAllByProps({ name: 'celestial-entity-unselected-asteroid' }),
+      ).toHaveLength(0);
+
+      corpusSpy.mockRestore();
+      systemDataSpy.mockRestore();
+      await renderer.unmount();
     });
   });
 });

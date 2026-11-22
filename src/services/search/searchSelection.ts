@@ -110,6 +110,16 @@ export const resolveSelectedSystemsFromSearchResults = (
   results: GroupedSearchResults,
 ): readonly SpatialEntityDefinition[] => {
   const systemsById = new Map<string, SpatialEntityDefinition>();
+  const seenSlugs = new Set<string>();
+
+  const recordSlugs = (id: string, name?: string): void => {
+    const idSlug = toUrlSlug(id);
+    if (idSlug) seenSlugs.add(idSlug);
+    if (name) {
+      const nameSlug = toUrlSlug(name);
+      if (nameSlug) seenSlugs.add(nameSlug);
+    }
+  };
 
   for (const meta of SEARCH_CATEGORIES) {
     const group = results.groups[meta.key];
@@ -124,7 +134,28 @@ export const resolveSelectedSystemsFromSearchResults = (
           classification: item.reticleType,
           ...(item.spectralType ? { spectralType: item.spectralType } : {}),
         });
-      } else if (item.systemId && !systemsById.has(item.systemId)) {
+        recordSlugs(item.id, item.name);
+      } else if (
+        item.category === 'structures' ||
+        (item.entityKind === 'fictional-entry' && !item.systemId && item.position !== undefined)
+      ) {
+        if (!systemsById.has(item.id)) {
+          systemsById.set(item.id, {
+            id: item.id,
+            name: item.name,
+            position: item.position
+              ? [item.position[0], item.position[1], item.position[2]]
+              : [0, 0, 0],
+            classification: item.reticleType,
+          });
+          recordSlugs(item.id, item.name);
+        }
+      } else if (
+        item.systemId &&
+        !systemsById.has(item.systemId) &&
+        !seenSlugs.has(toUrlSlug(item.systemId)) &&
+        !(item.systemName && seenSlugs.has(toUrlSlug(item.systemName)))
+      ) {
         const resolvedSystemName = item.systemName ?? item.systemId;
         systemsById.set(item.systemId, {
           id: item.systemId,
@@ -134,6 +165,7 @@ export const resolveSelectedSystemsFromSearchResults = (
             : [0, 0, 0],
           classification: 'stellar-system',
         });
+        recordSlugs(item.systemId, resolvedSystemName);
       }
     }
   }
@@ -155,9 +187,6 @@ export const resolveSelectedEntitiesForScope = (
 
   const ids = new Set<string>();
   for (const meta of SEARCH_CATEGORIES) {
-    if (meta.key === 'layers') {
-      continue;
-    }
     const group = results.groups[meta.key];
     for (const item of group.items) {
       if (item.entityKind === 'layer') {

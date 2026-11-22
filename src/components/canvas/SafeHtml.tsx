@@ -125,6 +125,7 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
   }, []);
 
   const gl = useThree((s) => s.gl);
+  const invalidate = useThree((s) => s.invalidate);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const portalId = useId();
 
@@ -155,8 +156,9 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
       if (div.parentNode) {
         div.parentNode.removeChild(div);
       }
+      invalidate();
     };
-  }, [gl, portalId]);
+  }, [gl, invalidate, portalId]);
 
   useLayoutEffect(() => {
     const div = containerRef.current;
@@ -174,7 +176,8 @@ const SafeHtmlClient: React.FC<SafeHtmlProps> = ({
         portalId,
       ),
     );
-  }, [gl, portalId, children, className, dataTestId, pointerEvents, wrapperClass]);
+    invalidate();
+  }, [gl, invalidate, portalId, children, className, dataTestId, pointerEvents, wrapperClass]);
 
   useFrame(({ camera, size }) => {
     const activeContainer = containerRef.current;

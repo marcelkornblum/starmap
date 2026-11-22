@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import type { SpatialEntityDefinition } from '../../../types/spatial';
 import type { SpatialEntityStore } from '../entity';
 
 export interface ViewportStoreSyncOptions {
@@ -12,39 +13,38 @@ export function useViewportStoreSync({
   outerStore,
   initialSelectedId,
 }: ViewportStoreSyncOptions): void {
-  // Initialize selection on mount if initialSelectedId is provided
-  useEffect(() => {
-    if (initialSelectedId) {
-      storeApi.getState().setSelected(initialSelectedId);
-    }
-  }, [initialSelectedId, storeApi]);
+  const isApplyingFromOuterRef = useRef(false);
 
-  // Synchronise outer store selectedIds inward to local spatial entity store.
-  useEffect(() => {
-    if (!outerStore || outerStore === storeApi) return;
-    const applyOuterSelection = (ids: ReadonlySet<string>): void => {
-      storeApi.getState().setSelectedIds(ids);
-    };
-    const initialOuterSelected = outerStore.getState().selectedIds;
-    if (initialOuterSelected.size > 0 || !initialSelectedId) {
-      applyOuterSelection(initialOuterSelected);
-    }
-
-    return outerStore.subscribe((state, prevState) => {
-      if (state.selectedIds !== prevState.selectedIds) {
-        applyOuterSelection(state.selectedIds);
+  const applyOuterSelection = useCallback(
+    (ids: ReadonlySet<string>): void => {
+      if (!outerStore || outerStore === storeApi) return;
+      const localState = storeApi.getState();
+      const outerState = outerStore.getState();
+      const resolvedIds: string[] = [];
+      for (const id of ids) {
+        const outerEntity = outerState.entities[id];
+        const resolved =
+          localState.resolveEntityId(id) ??
+          (outerEntity?.name ? localState.resolveEntityId(outerEntity.name) : null) ??
+          id;
+        resolvedIds.push(resolved);
       }
-    });
-  }, [outerStore, storeApi, initialSelectedId]);
+      isApplyingFromOuterRef.current = true;
+      try {
+        storeApi.getState().setSelectedIds(resolvedIds);
+      } finally {
+        isApplyingFromOuterRef.current = false;
+      }
+    },
+    [outerStore, storeApi],
+  );
 
-  // Synchronise outer store focusedId inward to local spatial entity store
-  useEffect(() => {
-    if (!outerStore || outerStore === storeApi) return;
-    const applyOuterFocus = (focusedId: string | null): void => {
-      const curFocused = storeApi.getState().focusedId;
-      if (curFocused === focusedId) return;
+  const applyOuterFocus = useCallback(
+    (focusedId: string | null): void => {
+      if (!outerStore || outerStore === storeApi) return;
 
       let resolvedLocalId = focusedId;
+      let entityToRegister: SpatialEntityDefinition | undefined;
       if (focusedId) {
         const localState = storeApi.getState();
         const outerEntity = outerStore.getState().entities[focusedId];
@@ -55,13 +55,51 @@ export function useViewportStoreSync({
         if (resolved) {
           resolvedLocalId = resolved;
         } else if (outerEntity && !localState.entities[outerEntity.id]) {
-          storeApi.getState().registerEntity(outerEntity);
+          entityToRegister = outerEntity;
         }
       }
-      if (storeApi.getState().focusedId !== resolvedLocalId) {
-        storeApi.getState().setFocused(resolvedLocalId);
+
+      if (storeApi.getState().focusedId === resolvedLocalId && !entityToRegister) {
+        return;
       }
-    };
+
+      isApplyingFromOuterRef.current = true;
+      try {
+        if (entityToRegister) {
+          storeApi.getState().registerEntity(entityToRegister);
+        }
+        if (storeApi.getState().focusedId !== resolvedLocalId) {
+          storeApi.getState().setFocused(resolvedLocalId);
+        }
+      } finally {
+        isApplyingFromOuterRef.current = false;
+      }
+    },
+    [outerStore, storeApi],
+  );
+
+  useEffect(() => {
+    if (initialSelectedId) {
+      storeApi.getState().setSelected(initialSelectedId);
+    }
+  }, [initialSelectedId, storeApi]);
+
+  useEffect(() => {
+    if (!outerStore || outerStore === storeApi) return;
+    const initialOuterSelected = outerStore.getState().selectedIds;
+    if (initialOuterSelected.size > 0 || !initialSelectedId) {
+      applyOuterSelection(initialOuterSelected);
+    }
+
+    return outerStore.subscribe((state, prevState) => {
+      if (state.selectedIds !== prevState.selectedIds) {
+        applyOuterSelection(state.selectedIds);
+      }
+    });
+  }, [outerStore, storeApi, initialSelectedId, applyOuterSelection]);
+
+  useEffect(() => {
+    if (!outerStore || outerStore === storeApi) return;
     applyOuterFocus(outerStore.getState().focusedId);
 
     return outerStore.subscribe((state, prevState) => {
@@ -69,9 +107,8 @@ export function useViewportStoreSync({
         applyOuterFocus(state.focusedId);
       }
     });
-  }, [outerStore, storeApi]);
+  }, [outerStore, storeApi, applyOuterFocus]);
 
-  // Synchronise outer store hoveredId inward to local spatial entity store
   useEffect(() => {
     if (!outerStore || outerStore === storeApi) return;
     const applyOuterHover = (hoveredId: string | null): void => {
@@ -85,7 +122,12 @@ export function useViewportStoreSync({
           hoveredId;
       }
       if (storeApi.getState().hoveredId !== resolvedLocalId) {
-        storeApi.getState().setHovered(resolvedLocalId);
+        isApplyingFromOuterRef.current = true;
+        try {
+          storeApi.getState().setHovered(resolvedLocalId);
+        } finally {
+          isApplyingFromOuterRef.current = false;
+        }
       }
     };
     applyOuterHover(outerStore.getState().hoveredId);
@@ -97,7 +139,6 @@ export function useViewportStoreSync({
     });
   }, [outerStore, storeApi]);
 
-  // Initial outerStore aperture synchronization
   useEffect(() => {
     if (!outerStore || outerStore === storeApi) return;
     const initialLocal = storeApi.getState();
@@ -109,10 +150,24 @@ export function useViewportStoreSync({
     }
   }, [outerStore, storeApi]);
 
-  // Synchronise local store selection & focus changes outward to outer spatial store
   useEffect(() => {
     return storeApi.subscribe((state, prevState) => {
-      if (state.hoveredId !== prevState.hoveredId) {
+      if (
+        !isApplyingFromOuterRef.current &&
+        outerStore &&
+        outerStore !== storeApi &&
+        state.entityIdBySlug !== prevState.entityIdBySlug
+      ) {
+        const outerState = outerStore.getState();
+        if (outerState.selectedIds.size > 0) {
+          applyOuterSelection(outerState.selectedIds);
+        }
+        if (outerState.focusedId !== null) {
+          applyOuterFocus(outerState.focusedId);
+        }
+      }
+
+      if (!isApplyingFromOuterRef.current && state.hoveredId !== prevState.hoveredId) {
         if (outerStore && outerStore !== storeApi) {
           if (outerStore.getState().hoveredId !== state.hoveredId) {
             outerStore.getState().setHovered(state.hoveredId);
@@ -150,7 +205,7 @@ export function useViewportStoreSync({
         }
       }
 
-      if (state.selectedId !== prevState.selectedId) {
+      if (!isApplyingFromOuterRef.current && state.selectedId !== prevState.selectedId) {
         if (outerStore && outerStore !== storeApi) {
           if (state.selectedId) {
             const entity = state.entities[state.selectedId];
@@ -164,7 +219,7 @@ export function useViewportStoreSync({
         }
       }
 
-      if (state.focusedId !== prevState.focusedId) {
+      if (!isApplyingFromOuterRef.current && state.focusedId !== prevState.focusedId) {
         if (outerStore && outerStore !== storeApi) {
           if (state.focusedId) {
             const entity = state.entities[state.focusedId];
@@ -178,5 +233,5 @@ export function useViewportStoreSync({
         }
       }
     });
-  }, [storeApi, outerStore]);
+  }, [storeApi, outerStore, applyOuterSelection, applyOuterFocus]);
 }

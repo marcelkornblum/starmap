@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useLazyRef } from '../../../hooks/useLazyRef';
@@ -29,6 +29,8 @@ export interface EntityLabelProps {
   offset?: [number, number];
   footprintRef?: React.RefObject<CelestialFootprint>;
 }
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 /**
  * EntityLabel (Layer 3: Typographic Label):
@@ -167,9 +169,13 @@ export const EntityLabel: React.FC<EntityLabelProps> = React.memo(({
     return () => observer.disconnect();
   }, [name, spectralType, isAnnotated]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     propsDirtyRef.current = true;
-  }, [id, name, spectralType, resolvedPos, worldPosition, offset, isOccluded]);
+    if ((state === 'selected' || state === 'focused') && !isOccluded) {
+      lastOccludedRef.current = false;
+      labelRef.current?.setAttribute('data-occluded', 'false');
+    }
+  }, [id, name, spectralType, state, resolvedPos, worldPosition, offset, isOccluded]);
 
   useFrame(({ camera }) => {
     if (

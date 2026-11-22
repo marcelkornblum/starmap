@@ -17,7 +17,7 @@ import { InteractiveNavigator } from './InteractiveNavigator';
 import { GALAXY_SCENE_MAX_STREAMED_ENTITIES } from './GalaxyScene';
 import { SYSTEM_FRAME, PLANETARY_FRAME } from '../../../config/referenceFrames';
 import * as galacticCameraHelpers from './galacticCameraHelpers';
-import * as sceneTargetHelpers from './sceneTargetHelpers';
+import * as planetaryEntityResolver from './planetaryEntityResolver';
 import type { SpatialEntityDefinition } from '../entity';
 import type { StarDossierData } from './SystemScene';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
@@ -237,7 +237,7 @@ describe('SpatialScenes Storybook Suite', () => {
     it('aligns PlanetarySceneContent fov to PLANETARY_FRAME.camera.baseFov (30) and resolves planetary entities once', async () => {
       const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
       const applyPoseSpy = vi.spyOn(galacticCameraHelpers, 'applyImmediateCameraPose');
-      const resolveSpy = vi.spyOn(sceneTargetHelpers, 'resolvePlanetaryEntitiesAndTarget');
+      const resolveSpy = vi.spyOn(planetaryEntityResolver, 'resolvePlanetaryEntitiesAndTarget');
 
       const renderer = await ReactThreeTest.create(
         <PlanetarySceneContent planetId="earth" />,

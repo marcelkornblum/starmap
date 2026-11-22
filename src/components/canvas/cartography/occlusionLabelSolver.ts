@@ -29,6 +29,19 @@ export function evaluateLabelVisibility(
   return { visible: true, behindCanvas: true };
 }
 
+function statePriority(state: CelestialFootprint['state']): number {
+  switch (state) {
+    case 'focused':
+      return 3;
+    case 'selected':
+      return 2;
+    case 'active':
+      return 1;
+    default:
+      return 0;
+  }
+}
+
 /**
  * Comprehensive Label Occlusion, Displacement & Proximity Culling:
  * 1. Screen-space displacement along radial leader stems.
@@ -54,13 +67,6 @@ export function solveLabelOcclusion(
     return result;
   }
 
-  // Significant nodes (focused or selected) have Target Immunity
-  if (target.state === 'selected' || target.state === 'focused') {
-    result.visible = true;
-    result.behindCanvas = true;
-    return result;
-  }
-
   const box = labelBox ?? target.labelBox;
   if (!box) {
     result.visible = true;
@@ -68,6 +74,7 @@ export function solveLabelOcclusion(
   }
 
   const r = target.reticleRadius;
+  const targetPrio = statePriority(target.state);
 
   for (let cIdx = 0; cIdx < CANDIDATE_MULTIPLIERS.length; cIdx++) {
     const mult = CANDIDATE_MULTIPLIERS[cIdx];
@@ -95,12 +102,15 @@ export function solveLabelOcclusion(
       }
 
       if (other.id !== target.id && other.labelBox && boxesIntersect(cBox, other.labelBox)) {
-        if (other.state === 'selected' || other.state === 'focused') {
+        const otherPrio = statePriority(other.state);
+        if (otherPrio === 0) return;
+
+        if (otherPrio > targetPrio) {
           collidesWithHigherPriorityLabel = true;
           return false;
         }
 
-        if (other.state === 'active') {
+        if (otherPrio === targetPrio) {
           const otherDist = other.camDist ?? 0;
           const targetDist = target.camDist ?? 0;
           if (otherDist < targetDist) {
@@ -126,7 +136,7 @@ export function solveLabelOcclusion(
     return result;
   }
 
-  result.visible = false;
+  result.visible = target.state === 'selected' || target.state === 'focused';
   result.behindCanvas = true;
   result.displacementX = 0;
   result.displacementY = 0;

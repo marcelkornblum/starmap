@@ -12,7 +12,7 @@ import { formatSlugFallbackTitle } from '../../../utils/starNaming';
 import { SystemCameraController } from './SystemCameraController';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
 import { resolveCenterCoords } from './useGalaxyViewCamera';
-import { resolvePlanetaryEntitiesAndTarget } from './sceneTargetHelpers';
+import { useResolvedPlanetaryEntitiesAndTarget } from './sceneTargetHelpers';
 import type {
   PlanetarySceneContentProps,
   PlanetaryViewSceneProps,
@@ -27,17 +27,13 @@ export const PlanetarySceneContent: React.FC<PlanetarySceneContentProps> = React
   onSelectEntity,
 }) => {
   const planetDisplayName = planet?.name ?? formatSlugFallbackTitle(planetId);
-  const { resolvedName, allEntities, targetCoords } = useMemo(
-    () =>
-      resolvePlanetaryEntitiesAndTarget({
-        planetId,
-        planetName: planetDisplayName,
-        planet,
-        centerId,
-        centerCoordinates,
-      }),
-    [planetId, planetDisplayName, planet, centerId, centerCoordinates],
-  );
+  const { resolvedName, allEntities, targetCoords } = useResolvedPlanetaryEntitiesAndTarget({
+    planetId,
+    planetName: planetDisplayName,
+    planet,
+    centerId,
+    centerCoordinates,
+  });
   const hasExplicitCenter = Boolean(centerCoordinates || centerId);
   const standardCam = useMemo(
     () =>
