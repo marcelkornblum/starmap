@@ -28,6 +28,7 @@ import {
   DEFAULT_CAMERA_THRESHOLD_END,
   DEFAULT_GALACTIC_CENTER_DISTANCE_PC,
 } from './instrumentDefaults';
+import { getCrossScaleInstrumentFade } from './crossScaleFadeState';
 
 export type { SpatialFrameState, SpatialFrameContextValue };
 
@@ -61,6 +62,7 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
     screenHeightReferenceScale: SCREEN_HEIGHT_REFERENCE_SCALE,
     fovFactor: 1.0,
     screenScale: 1.0,
+    instrumentFade: 1.0,
   }));
 
   const scratchCamDir = useLazyRef(() => new THREE.Vector3());
@@ -86,6 +88,7 @@ export const SpatialFrameProvider: React.FC<SpatialFrameProviderProps> = ({
   useFrame((state) => {
     const s = stateRef.current;
     s.frame = frame;
+    s.instrumentFade = getCrossScaleInstrumentFade();
     const camera = state.camera;
     const controls = (state as unknown as { controls?: { target?: THREE.Vector3 } }).controls;
 

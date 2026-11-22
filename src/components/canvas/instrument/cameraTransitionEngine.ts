@@ -5,14 +5,18 @@ import {
 } from '../../../utils/cameraEasing';
 import { prefersReducedMotion } from '../../../utils/reducedMotion';
 import {
+  applyOrientationTransitionValues,
+  createTransitionOrientationState,
+  initOrientationTransitionState,
+} from './cameraTransitionOrientationMath';
+import {
   applyOpticalTransitionValues,
   copyVec3Input,
-  computeAngleAndAxis,
-  evaluateTransitionEasing,
+  evaluateWindowedTransitionEasing,
   initOpticalTransitionState,
   resolveEndPoseDirectionAndPos,
-  resolveStartTarget,
   resolveStartDirection,
+  resolveStartTarget,
   resolveTransitionDuration,
   type CameraTransitionOptions,
   type CameraTransitionPose,
@@ -45,19 +49,11 @@ export class CameraTransitionController {
   private startTarget = new THREE.Vector3();
   private endTarget = new THREE.Vector3();
   private endCamPos = new THREE.Vector3();
-  private startDir = new THREE.Vector3(0, 0, 1);
-  private endDir = new THREE.Vector3(0, 0, 1);
-  private dirAxis = new THREE.Vector3(0, 1, 0);
-  private dirAngle = 0;
   private startDist = 0;
   private endDist = 0;
   private useLogDist = false;
 
-  private animateUp = false;
-  private startUp = new THREE.Vector3(0, 0, 1);
-  private endUp = new THREE.Vector3(0, 0, 1);
-  private upAxis = new THREE.Vector3(1, 0, 0);
-  private upAngle = 0;
+  private orientation = createTransitionOrientationState();
 
   private optics: TransitionOpticsState = {
     animateFov: false,
@@ -121,7 +117,7 @@ export class CameraTransitionController {
     const { startDist, hasStartDir } = resolveStartDirection(
       camera,
       this.startTarget,
-      this.startDir,
+      this.orientation.startDir,
       this.scratchOffset,
     );
     this.startDist = startDist;
@@ -129,22 +125,23 @@ export class CameraTransitionController {
     this.endDist = resolveEndPoseDirectionAndPos(
       endPose,
       options,
-      this.startDir,
+      this.orientation.startDir,
       this.startDist,
       hasStartDir,
       this.endTarget,
-      this.endDir,
+      this.orientation.endDir,
       this.endCamPos,
       this.scratchOffset,
     );
-    this.initUpAndOptics(camera, endPose);
-    this.dirAngle = computeAngleAndAxis(
-      this.startDir,
-      this.endDir,
-      this.startUp,
-      this.endUp,
-      this.dirAxis,
+    initOrientationTransitionState(
+      camera,
+      endPose,
+      this.endTarget,
+      this.endDist,
+      this.endCamPos,
+      this.orientation,
     );
+    initOpticalTransitionState(camera, endPose, this.optics);
     this.useLogDist = options?.logarithmicDistance ?? true;
 
     const duration = this.resolveDuration(options?.duration);
@@ -173,26 +170,29 @@ export class CameraTransitionController {
 
     const elapsed = Math.max(0, (now - this.startTime) / 1000);
     const progress = Math.min(elapsed / Math.max(this.duration, 0.001), 1.0);
-    const t = evaluateTransitionEasing(this.options?.easing, progress);
+    const easing = this.options?.easing;
+    const tOrient = evaluateWindowedTransitionEasing(
+      easing,
+      progress,
+      this.options?.orientationWindow,
+    );
+    const tTrans = evaluateWindowedTransitionEasing(
+      easing,
+      progress,
+      this.options?.translationWindow,
+    );
 
-    this.scratchCurrentTarget.lerpVectors(this.startTarget, this.endTarget, t);
-    const d = interpolateCameraDistance(this.startDist, this.endDist, t, this.useLogDist);
-    if (this.dirAngle > 1e-4) {
-      this.scratchDir.copy(this.startDir).applyAxisAngle(this.dirAxis, this.dirAngle * t).normalize();
-    } else {
-      this.scratchDir.copy(this.endDir);
-    }
+    this.scratchCurrentTarget.lerpVectors(this.startTarget, this.endTarget, tTrans);
+    const d = interpolateCameraDistance(this.startDist, this.endDist, tTrans, this.useLogDist);
+    applyOrientationTransitionValues(
+      camera,
+      tOrient,
+      this.orientation,
+      this.scratchDir,
+      this.scratchCurrentUp,
+    );
     this.scratchCurrentCamPos.copy(this.scratchCurrentTarget).addScaledVector(this.scratchDir, d);
-
-    if (this.animateUp) {
-      if (this.upAngle > 1e-4) {
-        this.scratchCurrentUp.copy(this.startUp).applyAxisAngle(this.upAxis, this.upAngle * t).normalize();
-      } else {
-        this.scratchCurrentUp.copy(this.endUp);
-      }
-      camera.up.copy(this.scratchCurrentUp);
-    }
-    applyOpticalTransitionValues(camera, t, this.optics);
+    applyOpticalTransitionValues(camera, tTrans, this.optics);
 
     const activeCtrl = controls ?? this.activeControls;
     if (activeCtrl?.target instanceof THREE.Vector3) {
@@ -201,7 +201,9 @@ export class CameraTransitionController {
     camera.position.copy(this.scratchCurrentCamPos);
     camera.lookAt(this.scratchCurrentTarget);
 
-    if (progress >= 1.0) {
+    this.options?.onProgress?.(progress);
+
+    if (progress >= 1.0 && this.isTransitioningState) {
       if (activeCtrl?.target instanceof THREE.Vector3) activeCtrl.target.copy(this.endTarget);
       this.applyFinalPose(camera);
       this.isTransitioningState = false;
@@ -211,30 +213,6 @@ export class CameraTransitionController {
       onComplete?.();
     }
     return true;
-  }
-
-  private initUpAndOptics(camera: THREE.Camera, endPose: CameraTransitionPose): void {
-    this.startUp.copy(camera.up);
-    if (this.startUp.lengthSq() > 1e-8) this.startUp.normalize();
-    else this.startUp.set(0, 0, 1);
-
-    if (endPose.up !== undefined) {
-      this.animateUp = true;
-      copyVec3Input(this.endUp, endPose.up);
-      if (this.endUp.lengthSq() > 1e-8) this.endUp.normalize();
-      else this.endUp.set(0, 0, 1);
-      this.upAngle = computeAngleAndAxis(
-        this.startUp,
-        this.endUp,
-        this.startDir,
-        this.endDir,
-        this.upAxis,
-      );
-    } else {
-      this.animateUp = false;
-    }
-
-    initOpticalTransitionState(camera, endPose, this.optics);
   }
 
   private beginFlight(
@@ -284,7 +262,7 @@ export class CameraTransitionController {
 
   private applyFinalPose(camera: THREE.Camera): void {
     camera.position.copy(this.endCamPos);
-    if (this.animateUp) camera.up.copy(this.endUp);
+    if (this.orientation.animateUp) camera.up.copy(this.orientation.endUp);
     applyOpticalTransitionValues(camera, 1.0, this.optics);
     camera.lookAt(this.endTarget);
     camera.updateMatrixWorld();

@@ -6,6 +6,7 @@ import {
   computePerpAxis,
   copyVec3Input,
   evaluateTransitionEasing,
+  evaluateWindowedTransitionEasing,
   initOpticalTransitionState,
   resolveEndPoseDirectionAndPos,
   resolveStartDirection,
@@ -105,6 +106,14 @@ describe('cameraTransitionPoseMath', () => {
       const custom = vi.fn((t: number) => t * t);
       expect(evaluateTransitionEasing(custom, 0.5)).toBe(0.25);
       expect(custom).toHaveBeenCalledWith(0.5);
+    });
+
+    it('evaluates windowed transition easing over optional [start, end] windows', () => {
+      const linear = (t: number) => t;
+      expect(evaluateWindowedTransitionEasing(linear, 0.1, [0.2, 1.0])).toBe(0);
+      expect(evaluateWindowedTransitionEasing(linear, 0.6, [0.2, 1.0])).toBeCloseTo(0.5, 6);
+      expect(evaluateWindowedTransitionEasing(undefined, 0.25, [0, 0.5])).toBeCloseTo(0.875, 5);
+      expect(evaluateWindowedTransitionEasing(linear, 0.4, undefined)).toBeCloseTo(0.4, 6);
     });
   });
 

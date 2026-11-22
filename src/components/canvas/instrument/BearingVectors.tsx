@@ -89,7 +89,7 @@ export const BearingVectors: React.FC<BearingVectorsProps> = React.memo(({
   const hasOrbital = frame.bearings.some((b) => b.id === 'orbital');
 
   useFrame(({ camera }) => {
-    const { apertureRadius, focusPoint, planeWeights, orientation, screenScale } = frameRef.current;
+    const { apertureRadius, focusPoint, planeWeights, orientation, screenScale, instrumentFade } = frameRef.current;
     if (rootGroupRef.current) {
       rootGroupRef.current.position.copy(focusPoint);
       rootGroupRef.current.quaternion.copy(orientation);
@@ -100,13 +100,13 @@ export const BearingVectors: React.FC<BearingVectorsProps> = React.memo(({
       const { qwXY, qwXZ, qwYZ, fadeXY, fadeXZ, fadeYZ } = planeWeights;
       if (spokeMatsRef.current.negX) spokeMatsRef.current.negX.opacity = 0;
 
-      const alphaNegY = axisLineAlpha * Math.min(Math.max(qwXY[2], qwXY[3]) * fadeXY, Math.max(qwYZ[1], qwYZ[2]) * fadeYZ);
+      const alphaNegY = axisLineAlpha * Math.min(Math.max(qwXY[2], qwXY[3]) * fadeXY, Math.max(qwYZ[1], qwYZ[2]) * fadeYZ) * instrumentFade;
       if (spokeMatsRef.current.negY) spokeMatsRef.current.negY.opacity = alphaNegY;
 
-      const alphaPosZ = axisLineAlpha * Math.min(Math.max(qwXZ[0], qwXZ[1]) * fadeXZ, Math.max(qwYZ[0], qwYZ[1]) * fadeYZ);
+      const alphaPosZ = axisLineAlpha * Math.min(Math.max(qwXZ[0], qwXZ[1]) * fadeXZ, Math.max(qwYZ[0], qwYZ[1]) * fadeYZ) * instrumentFade;
       if (spokeMatsRef.current.posZ) spokeMatsRef.current.posZ.opacity = alphaPosZ;
 
-      const alphaNegZ = axisLineAlpha * Math.min(Math.max(qwXZ[2], qwXZ[3]) * fadeXZ, Math.max(qwYZ[2], qwYZ[3]) * fadeYZ);
+      const alphaNegZ = axisLineAlpha * Math.min(Math.max(qwXZ[2], qwXZ[3]) * fadeXZ, Math.max(qwYZ[2], qwYZ[3]) * fadeYZ) * instrumentFade;
       if (spokeMatsRef.current.negZ) spokeMatsRef.current.negZ.opacity = alphaNegZ;
     }
 
@@ -116,15 +116,15 @@ export const BearingVectors: React.FC<BearingVectorsProps> = React.memo(({
 
     if (bearingCoreRef.current) {
       bearingCoreRef.current.scale.set(extent, extent, 1);
-      bearingCoreRef.current.visible = hasCore && coreProximityFade > 1e-3;
+      bearingCoreRef.current.visible = hasCore && coreProximityFade * instrumentFade > 1e-3;
     }
     if (bearingCoreMatRef.current) {
-      bearingCoreMatRef.current.opacity = bearingCoreAlpha * coreProximityFade;
+      bearingCoreMatRef.current.opacity = bearingCoreAlpha * coreProximityFade * instrumentFade;
     }
 
     const invScale = screenScale;
     if (bearingOrbitalRef.current && orbitalGeom) {
-      const showOrbital = hasOrbital && orbitalProximityFade > 1e-3;
+      const showOrbital = hasOrbital && orbitalProximityFade * instrumentFade > 1e-3;
       bearingOrbitalRef.current.visible = showOrbital;
       if (showOrbital) {
         const prevDash = lastOrbitalDashRef.current;
@@ -143,7 +143,7 @@ export const BearingVectors: React.FC<BearingVectorsProps> = React.memo(({
       }
     }
     if (bearingOrbitalMatRef.current) {
-      bearingOrbitalMatRef.current.opacity = bearingOrbitalAlpha * orbitalProximityFade;
+      bearingOrbitalMatRef.current.opacity = bearingOrbitalAlpha * orbitalProximityFade * instrumentFade;
     }
   });
 

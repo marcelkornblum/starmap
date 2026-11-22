@@ -57,7 +57,11 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
 
   const groupRef = useRef<THREE.Group>(null);
   const directionMatRef = useRef<THREE.MeshBasicMaterial>(null);
+  const periapsisMatRef = useRef<THREE.LineBasicMaterial>(null);
   const arrowBillboardRef = useRef<THREE.Group>(null);
+  const lastLineOpacityRef = useRef<number>(Number.NaN);
+  const lastDirectionOpacityRef = useRef<number>(Number.NaN);
+  const lastPeriapsisOpacityRef = useRef<number>(Number.NaN);
   const frameCtx = useSpatialFrameSafe();
 
   const scratchWorldTangent = useLazyRef(() => new THREE.Vector3());
@@ -114,26 +118,59 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
   }, [orbitGeometry, tickGeometry, directionGeometry, lineMat]);
 
   useEffect(() => {
+    const instrumentFade = frameCtx?.frameRef?.current?.instrumentFade ?? 1;
+    const initialAlpha = resolvedAlpha * instrumentFade;
     lineMat.setColor(resolvedColor);
-    lineMat.setOpacity(resolvedAlpha);
+    lineMat.setOpacity(initialAlpha);
+    lastLineOpacityRef.current = initialAlpha;
     if (directionMatRef.current?.color) {
       if (resolvedColor instanceof THREE.Color) {
         directionMatRef.current.color.copy(resolvedColor);
       } else {
         directionMatRef.current.color.set(resolvedColor);
       }
-      directionMatRef.current.opacity = resolvedAlpha;
+      directionMatRef.current.opacity = initialAlpha;
+      lastDirectionOpacityRef.current = initialAlpha;
+    } else {
+      lastDirectionOpacityRef.current = Number.NaN;
     }
-  }, [lineMat, resolvedColor, resolvedAlpha]);
+    if (periapsisMatRef.current) {
+      periapsisMatRef.current.opacity = initialAlpha;
+      lastPeriapsisOpacityRef.current = initialAlpha;
+    } else {
+      lastPeriapsisOpacityRef.current = Number.NaN;
+    }
+  }, [lineMat, resolvedColor, resolvedAlpha, frameCtx]);
 
   useFrame(({ camera, size }) => {
     if (!shouldRender) return;
     lineMat.updateResolution(camera, size.width, size.height);
 
+    const frameState = frameCtx?.frameRef?.current;
+    const instrumentFade = frameState?.instrumentFade ?? 1;
+    const nextAlpha = resolvedAlpha * instrumentFade;
+    if (Number.isNaN(lastLineOpacityRef.current) || Math.abs(nextAlpha - lastLineOpacityRef.current) > 1e-4) {
+      lineMat.setOpacity(nextAlpha);
+      lastLineOpacityRef.current = nextAlpha;
+    }
+    if (
+      directionMatRef.current &&
+      (Number.isNaN(lastDirectionOpacityRef.current) || Math.abs(nextAlpha - lastDirectionOpacityRef.current) > 1e-4)
+    ) {
+      directionMatRef.current.opacity = nextAlpha;
+      lastDirectionOpacityRef.current = nextAlpha;
+    }
+    if (
+      periapsisMatRef.current &&
+      (Number.isNaN(lastPeriapsisOpacityRef.current) || Math.abs(nextAlpha - lastPeriapsisOpacityRef.current) > 1e-4)
+    ) {
+      periapsisMatRef.current.opacity = nextAlpha;
+      lastPeriapsisOpacityRef.current = nextAlpha;
+    }
+
     if (arrowBillboardRef.current && showDirectionIndicator) {
       arrowBillboardRef.current.getWorldPosition(scratchArrowWorldPos.current);
       const camDist = Math.max(camera.position.distanceTo(scratchArrowWorldPos.current), 1e-4);
-      const frameState = frameCtx?.frameRef?.current;
       const invScale = frameState ? frameState.screenScale : calculateScreenInvariantScale(camDist, camera);
       arrowBillboardRef.current.scale.set(invScale, invScale, invScale);
 
@@ -162,6 +199,7 @@ export const OrbitPath: React.FC<OrbitPathProps> = ({
         <lineSegments name="orbit-periapsis-tick" raycast={NOOP_RAYCAST}>
           <primitive object={tickGeometry} attach="geometry" />
           <lineBasicMaterial
+            ref={periapsisMatRef}
             color={resolvedColor}
             opacity={resolvedAlpha}
             transparent

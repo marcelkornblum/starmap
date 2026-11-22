@@ -52,7 +52,7 @@ describe('layerCardNavigation', () => {
       );
     });
 
-    it('resolves moon targets staying on current view scale (galaxy by default, planet when on planet view)', () => {
+    it('routes moon targets to /planet/<parentPlanetSlug> regardless of current view scale', () => {
       const entry: DatasetLayerEntry = {
         targetId: 'europa',
         targetType: 'moon',
@@ -61,10 +61,10 @@ describe('layerCardNavigation', () => {
         inUniverseName: 'Europa',
         text: 'Subsurface ocean world',
       };
-      const resGalaxy = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS);
-      expect(resGalaxy.targetView).toBe('galaxy');
+      const resGalaxy = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS, '/galaxy');
+      expect(resGalaxy.targetView).toBe('planet');
       expect(resGalaxy.href).toBe(
-        '/galaxy?center=sol&focus=europa&select=layer:recent-discoveries&layer=recent-discoveries:europa',
+        '/planet/jupiter?center=europa&focus=europa&select=layer:recent-discoveries&layer=recent-discoveries:europa',
       );
 
       const resPlanet = resolveLayerItemTargetHref(
@@ -79,7 +79,7 @@ describe('layerCardNavigation', () => {
       );
     });
 
-    it('resolves planet/minor-body targets staying on current view scale', () => {
+    it('routes planet targets to /system/<sysSlug> even when stepping from /galaxy or /planet/earth', () => {
       const entry: DatasetLayerEntry = {
         targetId: 'lhs-1140-b',
         targetType: 'planet',
@@ -87,10 +87,16 @@ describe('layerCardNavigation', () => {
         inUniverseName: 'LHS 1140 b',
         text: 'Temperate rocky super-Earth',
       };
-      const resGalaxy = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS);
-      expect(resGalaxy.targetView).toBe('galaxy');
+      const resGalaxy = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS, '/galaxy');
+      expect(resGalaxy.targetView).toBe('system');
       expect(resGalaxy.href).toBe(
-        '/galaxy?center=lhs-1140&focus=lhs-1140-b&select=layer:recent-discoveries&layer=recent-discoveries:lhs-1140-b',
+        '/system/lhs-1140?center=lhs-1140-b&focus=lhs-1140-b&select=layer:recent-discoveries&layer=recent-discoveries:lhs-1140-b',
+      );
+
+      const resPlanet = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS, '/planet/earth');
+      expect(resPlanet.targetView).toBe('system');
+      expect(resPlanet.href).toBe(
+        '/system/lhs-1140?center=lhs-1140-b&focus=lhs-1140-b&select=layer:recent-discoveries&layer=recent-discoveries:lhs-1140-b',
       );
 
       const resSystem = resolveLayerItemTargetHref(
@@ -102,6 +108,37 @@ describe('layerCardNavigation', () => {
       expect(resSystem.targetView).toBe('system');
       expect(resSystem.href).toBe(
         '/system/lhs-1140?center=lhs-1140-b&focus=lhs-1140-b&select=layer:recent-discoveries&layer=recent-discoveries:lhs-1140-b',
+      );
+    });
+
+    it('routes star system targets to /galaxy when stepping from /planet/earth instead of pinning to /planet/earth', () => {
+      const entry: DatasetLayerEntry = {
+        targetId: 'gaia-2452378776434477184',
+        targetType: 'system',
+        systemId: 'gaia-2452378776434477184',
+        inUniverseName: 'Tau Ceti',
+        text: 'Host star system',
+      };
+      const res = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS, '/planet/earth');
+      expect(res.targetView).toBe('galaxy');
+      expect(res.href).toBe(
+        '/galaxy?center=tau-ceti&focus=gaia-2452378776434477184&select=layer:recent-discoveries&layer=recent-discoveries:gaia-2452378776434477184',
+      );
+    });
+
+    it('routes entries with parentBodyId distinct from systemId to /planet/<parentPlanetSlug>', () => {
+      const entry: DatasetLayerEntry = {
+        targetId: 'gateway-station',
+        targetType: 'structure',
+        systemId: 'sol',
+        parentBodyId: 'earth',
+        inUniverseName: 'Gateway Station',
+        text: 'Orbital station',
+      };
+      const res = resolveLayerItemTargetHref(mockLayer, entry, SAMPLE_CORPUS, '/galaxy');
+      expect(res.targetView).toBe('planet');
+      expect(res.href).toBe(
+        '/planet/earth?center=gateway-station&focus=gateway-station&select=layer:recent-discoveries&layer=recent-discoveries:gateway-station',
       );
     });
   });

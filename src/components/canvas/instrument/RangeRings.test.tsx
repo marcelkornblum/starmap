@@ -1,13 +1,23 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import ReactThreeTest from '@react-three/test-renderer';
 import { RangeRings } from './RangeRings';
 import { SpatialFrameProvider, GALACTIC_FRAME } from './index';
+import {
+  setCrossScaleInstrumentFade,
+  resetCrossScaleInstrumentFade,
+} from './crossScaleFadeState';
 import { NOOP_RAYCAST } from '../engineConfig';
+import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
 
 describe('RangeRings Primitive', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetCrossScaleInstrumentFade();
+  });
+
+  afterEach(() => {
+    resetCrossScaleInstrumentFade();
   });
 
   it('renders concentric range rings cleanly', async () => {
@@ -73,6 +83,38 @@ describe('RangeRings Primitive', () => {
     );
     const ring5 = renderer.scene.findByProps({ name: 'full-ring-5' });
     expect(ring5.props.raycast).toBe(NOOP_RAYCAST);
+    await renderer.unmount();
+  });
+
+  it('dissolves ring opacities to 0 when instrumentFade is 0 and restores normal opacity when 1', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialFrameProvider frame={GALACTIC_FRAME}>
+        <RangeRings rings={[2.5, 5]} />
+      </SpatialFrameProvider>,
+    );
+
+    const tokens = useThreeTokenStore.getState().tokens;
+    const ringMinor = renderer.scene.findByProps({ name: 'full-ring-2.5' }).instance as THREE.LineLoop;
+    const ringMajor = renderer.scene.findByProps({ name: 'full-ring-5' }).instance as THREE.LineLoop;
+    const minorMat = ringMinor.material as THREE.LineBasicMaterial;
+    const majorMat = ringMajor.material as THREE.LineBasicMaterial;
+
+    setCrossScaleInstrumentFade(0);
+    await renderer.advanceFrames(1, 0.016);
+
+    expect(ringMinor.visible).toBe(false);
+    expect(ringMajor.visible).toBe(false);
+    expect(minorMat.opacity).toBe(0);
+    expect(majorMat.opacity).toBe(0);
+
+    setCrossScaleInstrumentFade(1);
+    await renderer.advanceFrames(1, 0.016);
+
+    expect(ringMinor.visible).toBe(true);
+    expect(ringMajor.visible).toBe(true);
+    expect(minorMat.opacity).toBeCloseTo(tokens.ringMinorAlpha);
+    expect(majorMat.opacity).toBeCloseTo(tokens.ringMajorAlpha);
+
     await renderer.unmount();
   });
 });

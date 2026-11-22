@@ -1,3 +1,4 @@
+import { DEFAULT_ORIGIN_TARGETS } from '../config/referenceTargets';
 import type { ObservationalConfidence } from '../types/astro';
 import type {
   DatasetLayerEntry,
@@ -119,16 +120,27 @@ export function resolveLayerItemTargetHref(
   let targetPathname = '/galaxy';
   const params = new URLSearchParams();
 
-  if (currentPathname?.startsWith('/system/')) {
-    targetView = 'system';
-    targetPathname = `/system/${encodeURIComponent(sysSlug)}`;
+  const isMoonTarget =
+    entry.targetType === 'moon' ||
+    (Boolean(entry.parentBodyId) && entry.parentBodyId !== entry.systemId);
+  const isStarOrPlanetTarget =
+    entry.targetType === 'planet' ||
+    (entry.targetType as string) === 'star' ||
+    (Boolean(currentPathname?.startsWith('/system/')) && Boolean(entry.systemId));
+
+  if (isMoonTarget) {
+    const parentPlanetSlug = toUrlSlug(
+      entry.parentBodyId ?? DEFAULT_ORIGIN_TARGETS.intraSystemOriginId,
+    );
+    targetView = 'planet';
+    targetPathname = `/planet/${encodeURIComponent(parentPlanetSlug)}`;
     params.set('center', itemSlug);
     params.set('focus', itemSlug);
     params.set('select', `layer:${layerSlug}`);
     params.set('layer', `${layerSlug}:${itemSlug}`);
-  } else if (currentPathname?.startsWith('/planet/')) {
-    targetView = 'planet';
-    targetPathname = currentPathname.split('?')[0]?.split('#')[0] ?? '';
+  } else if (isStarOrPlanetTarget) {
+    targetView = 'system';
+    targetPathname = `/system/${encodeURIComponent(sysSlug)}`;
     params.set('center', itemSlug);
     params.set('focus', itemSlug);
     params.set('select', `layer:${layerSlug}`);

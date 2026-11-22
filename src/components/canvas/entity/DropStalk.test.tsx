@@ -1,10 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
 import * as THREE from 'three';
 import { DropStalk } from './DropStalk';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
+import {
+  setCrossScaleInstrumentFade,
+  resetCrossScaleInstrumentFade,
+} from '../instrument/crossScaleFadeState';
 import { NOOP_RAYCAST } from '../engineConfig';
+import { useThreeTokenStore } from '../../../stores/useThreeTokenStore';
+import { CartoHairlineMaterial } from '../materials/CartoLineMaterial';
 
 const { mockInvalidate, wrappedInvalidateCache } = vi.hoisted(() => ({
   mockInvalidate: vi.fn(),
@@ -42,24 +48,20 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
 describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
   beforeEach(() => {
     mockInvalidate.mockClear();
+    resetCrossScaleInstrumentFade();
+  });
+  afterEach(() => {
+    resetCrossScaleInstrumentFade();
   });
   it('does NOT render drop stalk in passive or active states (Single-Stalk Rule)', async () => {
     const passiveRenderer = await ReactThreeTest.create(
-      <SpatialEntityProvider>
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <DropStalk id="stalk-node" position={[0, 0, 5]} state="passive" />
-        </SpatialFrameProvider>
-      </SpatialEntityProvider>,
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="stalk-node" position={[0, 0, 5]} state="passive" /></SpatialFrameProvider></SpatialEntityProvider>,
     );
     expect(passiveRenderer.scene.findAll((node) => node.props.name === 'drop-stalk-stalk-node')).toHaveLength(0);
     await passiveRenderer.unmount();
 
     const activeRenderer = await ReactThreeTest.create(
-      <SpatialEntityProvider>
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <DropStalk id="stalk-node" position={[0, 0, 5]} state="active" />
-        </SpatialFrameProvider>
-      </SpatialEntityProvider>,
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="stalk-node" position={[0, 0, 5]} state="active" /></SpatialFrameProvider></SpatialEntityProvider>,
     );
     expect(activeRenderer.scene.findAll((node) => node.props.name === 'drop-stalk-stalk-node')).toHaveLength(0);
     await activeRenderer.unmount();
@@ -67,11 +69,7 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
 
   it('renders drop stalk and ground footprint on datum in selected and focused states', async () => {
     const selectedRenderer = await ReactThreeTest.create(
-      <SpatialEntityProvider>
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <DropStalk id="stalk-node" position={[1, 2, 5]} state="selected" />
-        </SpatialFrameProvider>
-      </SpatialEntityProvider>,
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="stalk-node" position={[1, 2, 5]} state="selected" /></SpatialFrameProvider></SpatialEntityProvider>,
     );
     expect(selectedRenderer.scene.findAll((node) => node.props.name === 'drop-stalk-stalk-node')).toHaveLength(1);
     const stalkLine = selectedRenderer.scene.find((node) => node.props.name === 'stalk-line');
@@ -83,11 +81,7 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
     await selectedRenderer.unmount();
 
     const focusedRenderer = await ReactThreeTest.create(
-      <SpatialEntityProvider>
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <DropStalk id="stalk-node" position={[1, 2, 5]} state="focused" />
-        </SpatialFrameProvider>
-      </SpatialEntityProvider>,
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="stalk-node" position={[1, 2, 5]} state="focused" /></SpatialFrameProvider></SpatialEntityProvider>,
     );
     expect(focusedRenderer.scene.findAll((node) => node.props.name === 'drop-stalk-stalk-node')).toHaveLength(1);
     await focusedRenderer.unmount();
@@ -95,21 +89,13 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
 
   it('renders solid stalk for +Z (North) and dashed stalk for -Z (South)', async () => {
     const northRenderer = await ReactThreeTest.create(
-      <SpatialEntityProvider>
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <DropStalk id="north-stalk" position={[0, 0, 5]} state="selected" />
-        </SpatialFrameProvider>
-      </SpatialEntityProvider>,
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="north-stalk" position={[0, 0, 5]} state="selected" /></SpatialFrameProvider></SpatialEntityProvider>,
     );
     expect(northRenderer.scene.findAll((node) => node.props.name === 'drop-stalk-north-stalk')).toHaveLength(1);
     await northRenderer.unmount();
 
     const southRenderer = await ReactThreeTest.create(
-      <SpatialEntityProvider>
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <DropStalk id="south-stalk" position={[0, 0, -5]} state="selected" />
-        </SpatialFrameProvider>
-      </SpatialEntityProvider>,
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="south-stalk" position={[0, 0, -5]} state="selected" /></SpatialFrameProvider></SpatialEntityProvider>,
     );
     expect(southRenderer.scene.findAll((node) => node.props.name === 'drop-stalk-south-stalk')).toHaveLength(1);
     await southRenderer.unmount();
@@ -117,17 +103,7 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
 
   it('positions drop stalk and footprint in entity-local coordinates when entityZ is provided', async () => {
     const localRenderer = await ReactThreeTest.create(
-      <SpatialEntityProvider>
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <DropStalk
-            id="local-stalk"
-            position={[0, 0, 0]}
-            entityZ={2.5}
-            state="selected"
-            datumZ={0}
-          />
-        </SpatialFrameProvider>
-      </SpatialEntityProvider>,
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="local-stalk" position={[0, 0, 0]} entityZ={2.5} state="selected" datumZ={0} /></SpatialFrameProvider></SpatialEntityProvider>,
     );
     expect(localRenderer.scene.findAll((node) => node.props.name === 'drop-stalk-local-stalk')).toHaveLength(1);
     expect(localRenderer.scene.findAll((node) => node.props.name === 'stalk-line')).toHaveLength(1);
@@ -213,11 +189,7 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
 
   it('clamps large idle delta so frame 0 under demand frameloop does not snap progress to 1', async () => {
     const renderer = await ReactThreeTest.create(
-      <SpatialEntityProvider>
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <DropStalk id="idle-clamp-stalk" position={[0, 0, 5]} state="selected" />
-        </SpatialFrameProvider>
-      </SpatialEntityProvider>,
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="idle-clamp-stalk" position={[0, 0, 5]} state="selected" /></SpatialFrameProvider></SpatialEntityProvider>,
     );
 
     // Simulate a 1.0s idle gap on frame 0: clamped to 0.1s (< 0.15s extend duration),
@@ -231,11 +203,7 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
 
   it('preserves +0.002 datum z-fighting offset on stalk-footprint after useFrame runs', async () => {
     const renderer = await ReactThreeTest.create(
-      <SpatialEntityProvider>
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <DropStalk id="offset-stalk" position={[1, 2, 5]} datumZ={0} state="selected" />
-        </SpatialFrameProvider>
-      </SpatialEntityProvider>,
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="offset-stalk" position={[1, 2, 5]} datumZ={0} state="selected" /></SpatialFrameProvider></SpatialEntityProvider>,
     );
 
     await renderer.advanceFrames(1, 1.0);
@@ -248,11 +216,7 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
 
   it('skips invalidate() animation when coplanar with datum (Math.abs(deltaZ) <= 1e-4)', async () => {
     const renderer = await ReactThreeTest.create(
-      <SpatialEntityProvider>
-        <SpatialFrameProvider frame={GALACTIC_FRAME}>
-          <DropStalk id="coplanar-stalk" position={[1, 2, 0]} datumZ={0} state="selected" />
-        </SpatialFrameProvider>
-      </SpatialEntityProvider>,
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="coplanar-stalk" position={[1, 2, 0]} datumZ={0} state="selected" /></SpatialFrameProvider></SpatialEntityProvider>,
     );
 
     mockInvalidate.mockClear();
@@ -292,6 +256,40 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
     // Progress is < 1.0 (~0.33), so with delta=0 the new lineGeom tip Z must be interpolated, not stuck at full -4
     expect(posAttr.array[5]).toBeGreaterThan(-4);
 
+    await renderer.unmount();
+  });
+
+  it('dissolves stalk and footprint opacities to 0 when instrumentFade is 0 and restores when 1', async () => {
+    const setOpacitySpy = vi.spyOn(CartoHairlineMaterial.prototype, 'setOpacity');
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider><SpatialFrameProvider frame={GALACTIC_FRAME}><DropStalk id="fade-stalk" position={[1, 2, 5]} state="selected" /></SpatialFrameProvider></SpatialEntityProvider>,
+    );
+    const tokens = useThreeTokenStore.getState().tokens;
+    const stalkMat = (renderer.scene.find((node) => node.props.name === 'stalk-line').instance as THREE.LineSegments).material as CartoHairlineMaterial;
+    const fpGroup = renderer.scene.find((node) => node.props.name === 'stalk-footprint');
+    const fpMat = (fpGroup.children[0].instance as THREE.LineSegments).material as THREE.LineBasicMaterial;
+
+    await renderer.advanceFrames(2, 0.1);
+    expect(stalkMat.uniforms.uOpacity.value).toBeCloseTo(tokens.stalkSelectedAlpha);
+    expect(fpMat.opacity).toBeCloseTo(tokens.footprintSelectedAlpha);
+
+    setOpacitySpy.mockClear();
+    setCrossScaleInstrumentFade(0);
+    await renderer.advanceFrames(1, 0.016);
+    expect(stalkMat.uniforms.uOpacity.value).toBe(0);
+    expect(fpMat.opacity).toBe(0);
+    expect(setOpacitySpy).toHaveBeenCalledTimes(1);
+
+    // Subsequent frame with unchanged fade does not redundantly invoke setOpacity
+    await renderer.advanceFrames(1, 0.016);
+    expect(setOpacitySpy).toHaveBeenCalledTimes(1);
+
+    setCrossScaleInstrumentFade(1);
+    await renderer.advanceFrames(1, 0.016);
+    expect(stalkMat.uniforms.uOpacity.value).toBeCloseTo(tokens.stalkSelectedAlpha);
+    expect(fpMat.opacity).toBeCloseTo(tokens.footprintSelectedAlpha);
+
+    setOpacitySpy.mockRestore();
     await renderer.unmount();
   });
 });

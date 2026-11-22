@@ -79,14 +79,14 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
 
   useEffect(() => () => { gridGeom?.dispose(); }, [gridGeom]);
 
-  const { fillUniforms, primaryFootprintMatRef, updateFillAlpha } = usePlanarGridMaterials({
+  const { fillUniforms, fillMatRef, primaryFootprintMatRef, updateFillAlpha } = usePlanarGridMaterials({
     datumPlaneFillColor, datumPlaneFillAlpha, datumPlaneFillGradientInner, datumPlaneFillGradientExponent, stateFocus,
   });
 
   useFrame(({ camera }) => {
-    const { apertureRadius, focusPoint, cardinalAlignment, planeWeights, orientation, screenScale } = frameRef.current;
+    const { apertureRadius, focusPoint, cardinalAlignment, planeWeights, orientation, screenScale, instrumentFade } = frameRef.current;
     const maxAlpha = planeWeights?.maxAlpha ?? Math.max(cardinalAlignment.alphaX, cardinalAlignment.alphaY, cardinalAlignment.alphaZ);
-    const fadePlanar = Math.max(0, 1.0 - maxAlpha);
+    const fadePlanar = Math.max(0, 1.0 - maxAlpha) * instrumentFade;
 
     if (groupRef.current) { groupRef.current.position.copy(focusPoint); groupRef.current.quaternion.copy(orientation); }
     if (staticPlanarGridRef.current) {
@@ -161,7 +161,7 @@ export const PlanarGrid: React.FC<PlanarGridProps> = React.memo(({
       {isFillEnabled && (
         <mesh ref={fillMeshRef} name="datum-plane-fill" frustumCulled={false} raycast={NOOP_RAYCAST}>
           <primitive object={fillCircleGeom} attach="geometry" />
-          <shaderMaterial vertexShader={DATUM_FILL_VERTEX_SHADER} fragmentShader={DATUM_FILL_FRAGMENT_SHADER} uniforms={fillUniforms} transparent depthWrite={false} side={THREE.DoubleSide} />
+          <shaderMaterial ref={fillMatRef} vertexShader={DATUM_FILL_VERTEX_SHADER} fragmentShader={DATUM_FILL_FRAGMENT_SHADER} uniforms={fillUniforms} transparent depthWrite={false} side={THREE.DoubleSide} />
         </mesh>
       )}
       <lineLoop ref={boundaryLineRef} name="datum-plane-boundary" frustumCulled={false} raycast={NOOP_RAYCAST}>

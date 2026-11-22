@@ -5,6 +5,7 @@ import {
   DEFAULT_CAMERA_EASING_CURVE,
   type CameraEasingCurveId,
 } from '../../../utils/cameraEasing';
+import { normaliseWindowProgress } from '../../../utils/referenceFrameOrientation';
 import { criticallyDamped } from '../math/cameraFrustumMath';
 
 export type Vector3Input = THREE.Vector3 | readonly [number, number, number];
@@ -19,6 +20,12 @@ export interface CameraTransitionOptions {
   targetDistance?: number;
   easing?: CameraTransitionEasing;
   logarithmicDistance?: boolean;
+  /** Normalised progress window `[start, end]` driving orientation/up/tilt (default `[0, 1]`). */
+  orientationWindow?: readonly [number, number];
+  /** Normalised progress window `[start, end]` driving target/distance/optics (default `[0, 1]`). */
+  translationWindow?: readonly [number, number];
+  /** Invoked each active transition frame with raw normalised progress in `[0, 1]`. */
+  onProgress?: (progress: number) => void;
   onComplete?: () => void;
   onCancel?: () => void;
 }
@@ -31,6 +38,8 @@ export interface CameraTransitionPose {
   up?: Vector3Input;
   fov?: number;
   orthoZoom?: number;
+  /** Rigid-body tilt angle in radians applied simultaneously to `startDir` and `startUp`. */
+  frameTiltRad?: number;
 }
 
 export interface TransitionControlsLike {
@@ -119,6 +128,17 @@ export function evaluateTransitionEasing(
   if (typeof resolved === 'function') return resolved(progress);
   if (resolved === 'criticallyDamped') return criticallyDamped(progress);
   return evaluateCameraEasing(resolved, progress);
+}
+
+/**
+ * Evaluates transition easing over an optional `[start, end]` progress window.
+ */
+export function evaluateWindowedTransitionEasing(
+  easing: CameraTransitionEasing | undefined,
+  progress: number,
+  window?: readonly [number, number],
+): number {
+  return evaluateTransitionEasing(easing, normaliseWindowProgress(progress, window));
 }
 
 export function resolveEndPoseDirectionAndPos(

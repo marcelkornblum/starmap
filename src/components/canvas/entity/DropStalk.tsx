@@ -81,6 +81,7 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   );
   const lastProgressRef = useRef<number>(Number.NaN);
   const lastFootprintOpacityRef = useRef<number>(Number.NaN);
+  const lastStalkOpacityRef = useRef<number>(Number.NaN);
   const lineMeshRef = useRef<THREE.LineSegments>(null);
   const footprintRef = useLazyRef(() => {
     const g = new THREE.Group();
@@ -138,8 +139,11 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
 
   useEffect(() => {
     lineMaterial.setColor(stalkColor);
-    lineMaterial.setOpacity(stalkOpacity);
-  }, [lineMaterial, stalkColor, stalkOpacity]);
+    const initialFade = frameCtx?.frameRef?.current?.instrumentFade ?? 1.0;
+    const initialOpacity = stalkOpacity * initialFade;
+    lineMaterial.setOpacity(initialOpacity);
+    lastStalkOpacityRef.current = initialOpacity;
+  }, [lineMaterial, stalkColor, stalkOpacity, frameCtx]);
 
   useEffect(() => {
     lastProgressRef.current = Number.NaN;
@@ -210,12 +214,13 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
 
     const frameState = frameCtx?.frameRef?.current;
     const planeWeights = frameState?.planeWeights;
+    const instrumentFade = frameState?.instrumentFade ?? 1.0;
     const fadePlanar = planeWeights ? Math.max(0, 1.0 - planeWeights.maxAlpha) : 1.0;
 
     // Footprint visibility & invariant screen-space scaling (stamps as stalk reaches datum)
     if (footprintRef.current) {
       footprintRef.current.position.set(x, y, targetZ + 0.002);
-      footprintRef.current.visible = (p > 0.85) && (fadePlanar > 1e-4) && Math.abs(deltaZ) > 1e-4;
+      footprintRef.current.visible = (p > 0.85) && (fadePlanar * instrumentFade > 1e-4) && Math.abs(deltaZ) > 1e-4;
       if (footprintRef.current.visible) {
         footprintRef.current.getWorldPosition(scratchWorldPos.current);
         const camDist = Math.max(camera.position.distanceTo(scratchWorldPos.current), 1e-4);
@@ -228,10 +233,19 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
       }
     }
 
-    const nextOpacity = resolvedFootprintAlpha * fadePlanar;
-    if (footprintMatRef.current && Math.abs(nextOpacity - lastFootprintOpacityRef.current) > 1e-4) {
+    const nextOpacity = resolvedFootprintAlpha * fadePlanar * instrumentFade;
+    if (
+      footprintMatRef.current &&
+      (Number.isNaN(lastFootprintOpacityRef.current) || Math.abs(nextOpacity - lastFootprintOpacityRef.current) > 1e-4)
+    ) {
       footprintMatRef.current.opacity = nextOpacity;
       lastFootprintOpacityRef.current = nextOpacity;
+    }
+
+    const nextStalkOpacity = stalkOpacity * instrumentFade;
+    if (Number.isNaN(lastStalkOpacityRef.current) || Math.abs(nextStalkOpacity - lastStalkOpacityRef.current) > 1e-4) {
+      lineMaterial.setOpacity(nextStalkOpacity);
+      lastStalkOpacityRef.current = nextStalkOpacity;
     }
 
     lineMaterial.updateResolution(camera, size.height);
