@@ -1,8 +1,9 @@
 import type React from 'react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
+import { useOptionalSpatialEntityStoreApi } from '../entity/SpatialEntityContext';
 import { consumePendingCrossScaleArrival } from '../instrument/crossScaleArrivalState';
 import { useCameraTransition } from '../instrument/useCameraTransition';
 import {
@@ -15,6 +16,9 @@ import {
   computeCameraPoseSnapshot,
 } from './galacticCameraHelpers';
 import { startCrossScaleArrivalGlide } from './crossScaleArrivalHelpers';
+
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export interface SystemCameraControllerProps {
   readonly scope?: 'system' | 'planet';
@@ -37,6 +41,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
   const invalidate = useThree((s) => s.invalidate);
   const rawControls = useThree((s) => s.controls);
   const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
+  const outerStore = useOptionalSpatialEntityStoreApi();
   const { transitionTo, transitionToPose } = useCameraTransition();
   const recenterTick = useCameraStore((s) => s.recenterTick);
 
@@ -80,7 +85,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     };
   }, [controls, syncPoseToStore]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const prevTarget = prevTargetRef.current;
     const isInitialMount = Number.isNaN(prevTarget[0]);
     const isTargetSame =
@@ -130,6 +135,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
         landingZoom: 1,
         landingFov: fov,
         arrival,
+        outerStore,
         transitionToPose,
         invalidate,
         onComplete: () => {
@@ -200,6 +206,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     recenterTick,
     camera,
     controls,
+    outerStore,
     invalidate,
     syncPoseToStore,
     transitionTo,

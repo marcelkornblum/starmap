@@ -86,7 +86,18 @@ export function initOrientationTransitionState(
 
   if (hasFrameTilt) {
     state.frameTiltRad = rawTilt;
-    computeRigidBodyTiltAxis(state.startUp, state.startDir, state.tiltAxis);
+    let usedExplicitAxis = false;
+    if (endPose.frameTiltAxis !== undefined) {
+      copyVec3Input(state.tiltAxis, endPose.frameTiltAxis);
+      const lenSq = state.tiltAxis.lengthSq();
+      if (Number.isFinite(lenSq) && lenSq > 1e-8) {
+        state.tiltAxis.normalize();
+        usedExplicitAxis = true;
+      }
+    }
+    if (!usedExplicitAxis) {
+      computeRigidBodyTiltAxis(state.startUp, state.startDir, state.tiltAxis);
+    }
     state.endDir.copy(state.startDir).applyAxisAngle(state.tiltAxis, rawTilt).normalize();
     state.endUp.copy(state.startUp).applyAxisAngle(state.tiltAxis, rawTilt).normalize();
     endCamPos.copy(endTarget).addScaledVector(state.endDir, endDist);

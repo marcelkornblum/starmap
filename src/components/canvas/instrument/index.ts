@@ -4,6 +4,8 @@ export * from './spatialFrameContext';
 export * from './SpatialFrameProvider';
 export * from './crossScaleFadeState';
 export * from './crossScaleArrivalState';
+export * from './crossScaleVisualState';
+export * from './TargetReferencePlanePreview';
 export * from './PlanarGrid';
 export * from './planarGridGeometry';
 export * from './usePlanarGridMaterials';

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createElement } from 'react';
+import { createElement, useEffect } from 'react';
 import { render, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { GalacticCameraController } from './GalacticCameraController';
@@ -7,6 +7,7 @@ import { GALACTIC_FRAME } from '../../../config/referenceFrames';
 import {
   clearPendingCrossScaleArrival,
   computeCrossScaleArrivalEntryPosition,
+  computeTiltedArrivalEntryPose,
   hasPendingCrossScaleArrival,
   setPendingCrossScaleArrival,
 } from '../instrument/crossScaleArrivalState';
@@ -14,7 +15,19 @@ import {
   getCrossScaleInstrumentFade,
   resetCrossScaleInstrumentFade,
 } from '../instrument/crossScaleFadeState';
-import { computeCrossScaleArrivalFade } from '../../../utils/referenceFrameOrientation';
+import {
+  clearCrossScalePlanePreview,
+  getCrossScalePlanePreviewState,
+  getCrossScaleSceneScale,
+  resetCrossScaleSceneScale,
+} from '../instrument/crossScaleVisualState';
+import { SpatialEntityStoreContext } from '../entity/SpatialEntityContext';
+import { createSpatialEntityStore } from '../entity/SpatialEntityStore';
+import {
+  DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
+  computeCrossScaleArrivalFade,
+  computeCrossScaleStageDurations,
+} from '../../../utils/referenceFrameOrientation';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import { useOptionalRouter, type StarmapSearchParams } from '../../../hooks/useSpaLocation';
@@ -81,6 +94,8 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     setMockReducedMotion(false);
     clearPendingCrossScaleArrival();
     resetCrossScaleInstrumentFade();
+    clearCrossScalePlanePreview();
+    resetCrossScaleSceneScale();
     useCameraStore.getState().reset();
     useUIStore.getState().resetUI();
     mockCamera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
@@ -107,6 +122,8 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     vi.restoreAllMocks();
     clearPendingCrossScaleArrival();
     resetCrossScaleInstrumentFade();
+    clearCrossScalePlanePreview();
+    resetCrossScaleSceneScale();
     setMockReducedMotion(false);
   });
 
@@ -399,5 +416,147 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     mockControls.target.set(7, 8, 9);
     unmount();
     expect(useCameraStore.getState().savedGalaxyCamera?.target).toEqual([0, 0, 0]);
+  });
+
+  it('applies pre-tilted close entry pose before passive useEffect paint, holds child preview disc from outerStore, tilts last, and contracts preview on complete', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(6000);
+    const savedPos: [number, number, number] = [0, -35, 20];
+    const savedTarget: [number, number, number] = [0, 0, 0];
+    const savedUp: [number, number, number] = [0, 0, 1];
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: savedPos,
+      target: savedTarget,
+      up: savedUp,
+      zoom: 1,
+      focalDistance: Math.hypot(0, -35, 20),
+      centerKey: '0,0,0',
+    });
+
+    const outerStore = createSpatialEntityStore();
+    outerStore.getState().registerEntity({
+      id: 'alpha-centauri',
+      name: 'Alpha Centauri',
+      position: [1.3, 0.2, -0.1],
+      classification: 'star',
+    });
+
+    const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
+    const durations = computeCrossScaleStageDurations(config);
+    const frameTiltRad = -Math.PI / 3;
+    const tiltAxis: readonly [number, number, number] = [Math.cos(0.4), Math.sin(0.4), 0];
+
+    setPendingCrossScaleArrival({
+      direction: 'out',
+      targetScope: 'galaxy',
+      durationSec: durations.arrivalSec,
+      frameTiltRad,
+      tiltAxis,
+      planePreviewTargetId: 'alpha-centauri',
+      planePreviewInclinationRad: Math.abs(frameTiltRad),
+      planePreviewAscendingNodeRad: 0.4,
+      config,
+    });
+
+    let cameraPosAtPassiveEffect: [number, number, number] | null = null;
+    const PassiveProbe = () => {
+      useEffect(() => {
+        cameraPosAtPassiveEffect = [
+          mockCamera.position.x,
+          mockCamera.position.y,
+          mockCamera.position.z,
+        ];
+      }, []);
+      return null;
+    };
+
+    render(
+      createElement(
+        SpatialEntityStoreContext.Provider,
+        { value: outerStore },
+        createElement(PassiveProbe),
+        createElement(GalacticCameraController, {
+          target: [0, 0, 0],
+          hasExplicitCenter: false,
+        }),
+      ),
+    );
+
+    const expectedEntry = computeTiltedArrivalEntryPose(
+      savedPos,
+      savedTarget,
+      savedUp,
+      'out',
+      -frameTiltRad,
+      tiltAxis,
+      config,
+    );
+
+    // Pre-paint useLayoutEffect applied entry pose before passive useEffect ran
+    expect(cameraPosAtPassiveEffect).not.toBeNull();
+    expect(cameraPosAtPassiveEffect![0]).toBeCloseTo(expectedEntry.position[0], 4);
+    expect(cameraPosAtPassiveEffect![1]).toBeCloseTo(expectedEntry.position[1], 4);
+    expect(cameraPosAtPassiveEffect![2]).toBeCloseTo(expectedEntry.position[2], 4);
+    expect(getCrossScaleSceneScale()).toBe(1);
+
+    const landingDist = Math.hypot(savedPos[0], savedPos[1], savedPos[2]);
+    const preview = getCrossScalePlanePreviewState();
+    expect(preview.active).toBe(true);
+    expect(preview.mode).toBe('holding');
+    expect(preview.position).toEqual([1.3, 0.2, -0.1]);
+    expect(preview.inclinationRad).toBeCloseTo(Math.abs(frameTiltRad), 6);
+    expect(preview.ascendingNodeRad).toBeCloseTo(0.4, 6);
+    expect(preview.maxRadius).toBeCloseTo(Math.max(0.6, landingDist * 0.16), 5);
+    expect(preview.radiusProgress).toBe(1);
+    expect(preview.opacity).toBe(1);
+
+    // Early frame (0.2 of arrivalSec): zoomOutMoveWindow=[0,0.85] moves distance while zoomOutTiltWindow=[0.35,1] holds tilt
+    act(() => {
+      advanceTransitionFrames([6000, 6000 + durations.arrivalSec * 200], nowSpy);
+    });
+    expect(mockCamera.up.x).toBeCloseTo(expectedEntry.up[0], 4);
+    expect(mockCamera.up.y).toBeCloseTo(expectedEntry.up[1], 4);
+    expect(mockCamera.up.z).toBeCloseTo(expectedEntry.up[2], 4);
+
+    // Complete arrival -> preview disc begins contracting for durations.previewSec
+    act(() => {
+      advanceTransitionFrames([6000 + durations.arrivalSec * 1000], nowSpy);
+    });
+    expect(getCrossScaleInstrumentFade()).toBe(1);
+    expect(getCrossScalePlanePreviewState().mode).toBe('contracting');
+    expect(getCrossScalePlanePreviewState().durationSec).toBeCloseTo(durations.previewSec, 6);
+  });
+
+  it('clears preview disc when zoom-out galaxy arrival is cancelled via OrbitControls start', () => {
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(7000);
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: [0, -35, 20],
+      target: [0, 0, 0],
+      up: [0, 0, 1],
+      zoom: 1,
+      focalDistance: Math.hypot(0, -35, 20),
+      centerKey: '0,0,0',
+    });
+
+    setPendingCrossScaleArrival({
+      direction: 'out',
+      targetScope: 'galaxy',
+      durationSec: 1.0,
+      frameTiltRad: -Math.PI / 3,
+      tiltAxis: [1, 0, 0],
+      planePreviewInclinationRad: Math.PI / 3,
+      planePreviewAscendingNodeRad: 0,
+      config: DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
+    });
+
+    render(createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }));
+    expect(getCrossScalePlanePreviewState().active).toBe(true);
+
+    act(() => {
+      advanceTransitionFrames([7000, 7250], nowSpy);
+      for (const cb of mockControls.listeners['start'] ?? []) cb();
+    });
+
+    expect(getCrossScalePlanePreviewState().active).toBe(false);
+    expect(getCrossScaleInstrumentFade()).toBe(1);
   });
 });

@@ -138,3 +138,21 @@ export function navigatePanCenterToRouter(
     replace: true,
   });
 }
+
+/**
+ * Snapshots the live camera/controls pose and commits it immediately to `useCameraStore`.
+ */
+export function syncCameraPoseSnapshotToStore(
+  camera: THREE.Camera,
+  controls: OrbitControlsLike | undefined,
+  fallbackTarget: readonly [number, number, number],
+): void {
+  const snapshot = computeCameraPoseSnapshot(camera, controls, fallbackTarget);
+  useCameraStore.getState().setCameraPose({
+    position: snapshot.position,
+    target: snapshot.target,
+    up: snapshot.up,
+    zoom: snapshot.zoom,
+    focalDistance: snapshot.focalDistance,
+  });
+}

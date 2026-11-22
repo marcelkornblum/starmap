@@ -78,5 +78,56 @@ describe('cameraTransitionOrientationMath', () => {
       expect(Math.abs(outDir.dot(outUp))).toBeCloseTo(0, 6);
       expect(Math.abs(outDir.dot(camera.up))).toBeCloseTo(0, 6);
     });
+
+    it('uses and normalises explicit non-zero frameTiltAxis when provided', () => {
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+      camera.up.set(0, 0, 1);
+
+      const state = createTransitionOrientationState();
+      state.startDir.set(0, -1, 0);
+      state.endDir.set(0, -1, 0);
+
+      const endTarget = new THREE.Vector3(0, 0, 0);
+      const endCamPos = new THREE.Vector3(0, -20, 0);
+      const tiltRad = Math.PI / 2;
+
+      initOrientationTransitionState(
+        camera,
+        { target: [0, 0, 0], frameTiltRad: tiltRad, frameTiltAxis: [0, 3, 0] },
+        endTarget,
+        20,
+        endCamPos,
+        state,
+      );
+
+      expect(state.tiltAxis.x).toBeCloseTo(0, 6);
+      expect(state.tiltAxis.y).toBeCloseTo(1, 6);
+      expect(state.tiltAxis.z).toBeCloseTo(0, 6);
+      expect(state.endUp.x).toBeCloseTo(1, 6);
+      expect(state.endUp.z).toBeCloseTo(0, 6);
+    });
+
+    it('falls back to computeRigidBodyTiltAxis when frameTiltAxis is zero', () => {
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+      camera.up.set(0, 1, 0);
+
+      const state = createTransitionOrientationState();
+      state.startDir.set(0, 0, 1);
+      state.endDir.set(0, 0, 1);
+
+      const endTarget = new THREE.Vector3(0, 0, 0);
+      const endCamPos = new THREE.Vector3(0, 0, 20);
+
+      initOrientationTransitionState(
+        camera,
+        { target: [0, 0, 0], frameTiltRad: Math.PI / 2, frameTiltAxis: [0, 0, 0] },
+        endTarget,
+        20,
+        endCamPos,
+        state,
+      );
+
+      expect(state.tiltAxis.toArray()).toEqual([1, 0, 0]);
+    });
   });
 });

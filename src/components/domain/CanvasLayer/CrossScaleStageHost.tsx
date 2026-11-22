@@ -1,63 +1,39 @@
 /* ui-audit-disable-next-line missing-component-quad -- Internal R3F scene stage host extracted from CanvasWebGLHost; tested via CrossScaleStageHost.test.tsx */
-import React, { Suspense, createElement, useEffect, useRef, useState } from 'react';
-import { useThree } from '@react-three/fiber';
-import type { SpatialEntityDefinition } from '../../canvas/entity/types';
-import { useOptionalSpatialEntityStoreApi } from '../../canvas/entity/SpatialEntityContext';
-import { isOrbitControlsLike } from '../../canvas/scenes/cameraControllerUtils';
-import {
-  clearPendingCrossScaleArrival,
-  setPendingCrossScaleArrival,
-} from '../../canvas/instrument/crossScaleArrivalState';
-import {
-  resetCrossScaleInstrumentFade,
-  setCrossScaleInstrumentFade,
-} from '../../canvas/instrument/crossScaleFadeState';
-import { useCameraTransition } from '../../canvas/instrument/useCameraTransition';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
+import type * as THREE from 'three';
+import { useFrame, useThree } from '@react-three/fiber';
+import { useOptionalRouter, useSpaLocation } from '../../../hooks/useSpaLocation';
 import { prefersReducedMotion } from '../../../utils/reducedMotion';
-import {
-  CROSS_SCALE_STAGE_DURATION_SEC,
-  computeCrossScaleDepartureFade,
-  getCrossScaleTiltRad,
-  getScaleRank,
-  type SpatialScale,
-} from '../../../utils/referenceFrameOrientation';
+import type { SpatialScale } from '../../../utils/referenceFrameOrientation';
+import { parseSpatialRouteTarget } from '../../../utils/spatialRoute';
+import { useOptionalSpatialEntityStoreApi } from '../../canvas/entity/SpatialEntityContext';
+import { ORBIT_CONTROLS_PRIORITY } from '../../canvas/engineConfig';
+import { TargetReferencePlanePreview } from '../../canvas/instrument/TargetReferencePlanePreview';
+import { getCrossScaleSceneScale } from '../../canvas/instrument/crossScaleVisualState';
+import { useCameraTransition } from '../../canvas/instrument/useCameraTransition';
+import { isOrbitControlsLike } from '../../canvas/scenes/cameraControllerUtils';
+import { launchCrossScaleDeparture } from './crossScaleChoreography';
 import {
   isMatchingSceneTarget,
-  resolveDepartureTarget,
+  preloadTargetScaleEntry,
+  renderCommittedSpatialScene,
+  resetAllCrossScaleVisualState,
+  resolveStageSwapProps,
   snapshotPreDiveGalaxyCamera,
+  type SpatialStageSceneProps,
 } from './crossScaleStageHelpers';
-import {
-  getLoadedGalacticScene,
-  getLoadedPlanetaryScene,
-  getLoadedSystemScene,
-  LazyGalacticSceneContent,
-  LazyPlanetarySceneContent,
-  LazySystemSceneContent,
-  preloadSceneEntry,
-} from './sceneEntryLoader';
 
-export interface CrossScaleStageHostProps {
-  readonly scope: SpatialScale;
-  readonly targetId?: string;
-  readonly centerId?: string;
-  readonly centerCoordinates?: readonly [number, number, number];
-  readonly selectedEntities?: readonly SpatialEntityDefinition[];
-  readonly cameraDistance?: number;
-  readonly isSpatialSceneMounted: boolean;
-  readonly onInspect?: (id: string) => void;
-  readonly onSelect?: (id: string | null) => void;
-  readonly onFocusChange?: (id: string | null) => void;
-}
+export type CrossScaleStageHostProps = SpatialStageSceneProps;
 
 interface InFlightCrossScaleTarget {
   readonly scope: SpatialScale;
   readonly targetId?: string;
-  latestProps: CrossScaleStageHostProps;
+  latestProps?: CrossScaleStageHostProps;
 }
 
 /**
- * Coordinates sequential two-stage cross-scale choreography (Stage 1 departure tilt/zoom/fade
- * while preloading the target scene chunk, then atomic scene swap handing off Stage 2 arrival).
+ * Coordinates zero-lag route-driven 3-beat cross-scale choreography (plane preview expand,
+ * Stage 1 departure tilt/zoom/fade while preloading target chunk & data, and atomic swap).
  */
 export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.memo((props) => {
   const [committedProps, setCommittedProps] = useState<CrossScaleStageHostProps>(props);
@@ -65,8 +41,11 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
   const transitionTokenRef = useRef<number>(0);
   const isDepartingRef = useRef<boolean>(false);
   const inFlightTargetRef = useRef<InFlightCrossScaleTarget | null>(null);
-  const lastObservedTargetRef = useRef<{ scope: SpatialScale; targetId?: string } | null>(null);
+  const beat1CleanupRef = useRef<(() => void) | null>(null);
+  const sceneScaleGroupRef = useRef<THREE.Group>(null);
 
+  const router = useOptionalRouter();
+  const location = useSpaLocation();
   const camera = useThree((s) => s.camera);
   const rawControls = useThree((s) => s.controls);
   const invalidate = useThree((s) => s.invalidate);
@@ -74,47 +53,80 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
   const outerStore = useOptionalSpatialEntityStoreApi();
   const { transitionToPose, cancelTransition } = useCameraTransition();
 
+  const routeTarget =
+    router && props.isSpatialSceneMounted ? parseSpatialRouteTarget(location.pathname) : null;
+  const requestedScope = routeTarget?.scope ?? props.scope;
+  const requestedTargetId = routeTarget ? routeTarget.targetId : props.targetId;
+
   const isUnmountedBoundary = !props.isSpatialSceneMounted || !committedProps.isSpatialSceneMounted;
   const isSameAsCommitted = isMatchingSceneTarget(
-    props.scope,
-    props.targetId,
+    requestedScope,
+    requestedTargetId,
     committedProps.scope,
     committedProps.targetId,
+  );
+  const doPropsMatchRequested = isMatchingSceneTarget(
+    props.scope,
+    props.targetId,
+    requestedScope,
+    requestedTargetId,
   );
 
   if (
     committedProps !== props &&
     !isDeparting &&
-    (isUnmountedBoundary || isSameAsCommitted || prefersReducedMotion())
+    (isUnmountedBoundary || (isSameAsCommitted && doPropsMatchRequested))
   ) {
     setCommittedProps(props);
   }
 
+  useFrame(() => {
+    const group = sceneScaleGroupRef.current;
+    if (!group?.scale) return;
+    const s = getCrossScaleSceneScale();
+    if (Math.abs(group.scale.x - s) > 1e-4) {
+      group.scale.setScalar(s);
+    }
+  }, ORBIT_CONTROLS_PRIORITY);
+
   useEffect(() => {
     return () => {
       transitionTokenRef.current += 1;
+      beat1CleanupRef.current?.();
+      beat1CleanupRef.current = null;
       isDepartingRef.current = false;
       inFlightTargetRef.current = null;
-      clearPendingCrossScaleArrival();
-      resetCrossScaleInstrumentFade();
+      resetAllCrossScaleVisualState();
     };
   }, []);
 
   useEffect(() => {
+    const detachBeat1Listener = () => {
+      beat1CleanupRef.current?.();
+      beat1CleanupRef.current = null;
+    };
+
     const abortPendingDeparture = () => {
       transitionTokenRef.current += 1;
+      detachBeat1Listener();
       isDepartingRef.current = false;
       setIsDeparting(false);
       inFlightTargetRef.current = null;
-      clearPendingCrossScaleArrival();
-      resetCrossScaleInstrumentFade();
       cancelTransition();
+      resetAllCrossScaleVisualState();
     };
 
+    const resolveFinalProps = (): CrossScaleStageHostProps =>
+      resolveStageSwapProps(
+        inFlightTargetRef.current?.latestProps,
+        props,
+        committedProps,
+        doPropsMatchRequested,
+        requestedScope,
+        requestedTargetId,
+      );
+
     if (isUnmountedBoundary) {
-      lastObservedTargetRef.current = props.isSpatialSceneMounted
-        ? { scope: props.scope, targetId: props.targetId }
-        : null;
       if (isDepartingRef.current) {
         abortPendingDeparture();
         setCommittedProps(props);
@@ -122,25 +134,10 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
       return;
     }
 
-    const prevObserved = lastObservedTargetRef.current;
-    const isTargetTransition =
-      prevObserved !== null &&
-      !isMatchingSceneTarget(
-        props.scope,
-        props.targetId,
-        prevObserved.scope,
-        prevObserved.targetId,
-      );
-    lastObservedTargetRef.current = { scope: props.scope, targetId: props.targetId };
-
-    if (isTargetTransition && prefersReducedMotion()) {
-      void preloadSceneEntry(props.scope);
-    }
-
     if (isSameAsCommitted) {
       if (isDepartingRef.current) {
         abortPendingDeparture();
-        setCommittedProps(props);
+        if (doPropsMatchRequested) setCommittedProps(props);
       }
       return;
     }
@@ -149,23 +146,28 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
       isDepartingRef.current &&
       inFlightTargetRef.current &&
       isMatchingSceneTarget(
-        props.scope,
-        props.targetId,
+        requestedScope,
+        requestedTargetId,
         inFlightTargetRef.current.scope,
         inFlightTargetRef.current.targetId,
       )
     ) {
-      inFlightTargetRef.current.latestProps = props;
+      if (doPropsMatchRequested) {
+        inFlightTargetRef.current.latestProps = props;
+      }
       return;
     }
 
-    const preloadPromise = preloadSceneEntry(props.scope);
+    const preloadPromise = preloadTargetScaleEntry(requestedScope, requestedTargetId);
 
     if (prefersReducedMotion()) {
+      const nextProps = resolveFinalProps();
       if (isDepartingRef.current) {
         abortPendingDeparture();
-        setCommittedProps(props);
+      } else {
+        resetAllCrossScaleVisualState();
       }
+      setCommittedProps(nextProps);
       return;
     }
 
@@ -175,14 +177,20 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
     const activeControls = isOrbitControlsLike(rawLiveControls) ? rawLiveControls : undefined;
 
     if (!activeCamera?.position) {
+      const nextProps = resolveFinalProps();
       abortPendingDeparture();
-      setCommittedProps(props);
+      setCommittedProps(nextProps);
       return;
     }
 
+    const wasDeparting = isDepartingRef.current;
     const token = (transitionTokenRef.current += 1);
+    detachBeat1Listener();
+    if (wasDeparting) {
+      cancelTransition();
+    }
 
-    if (committedProps.scope === 'galaxy' && !isDepartingRef.current) {
+    if (committedProps.scope === 'galaxy' && !wasDeparting) {
       snapshotPreDiveGalaxyCamera(
         activeCamera,
         activeControls,
@@ -193,79 +201,57 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
     isDepartingRef.current = true;
     setIsDeparting(true);
     inFlightTargetRef.current = {
-      scope: props.scope,
-      targetId: props.targetId,
-      latestProps: props,
+      scope: requestedScope,
+      targetId: requestedTargetId,
+      latestProps: doPropsMatchRequested ? props : undefined,
     };
 
-    const direction: 'in' | 'out' =
-      getScaleRank(props.scope) > getScaleRank(committedProps.scope) ? 'in' : 'out';
-    const frameTiltRad = getCrossScaleTiltRad(committedProps.scope, props.scope);
-    const departureTarget = resolveDepartureTarget(
-      direction,
-      outerStore,
-      props.targetId,
-      committedProps.centerCoordinates,
-      activeControls,
-    );
-    const currentDist = Math.hypot(
-      activeCamera.position.x - departureTarget[0],
-      activeCamera.position.y - departureTarget[1],
-      activeCamera.position.z - departureTarget[2],
-    );
-    const targetDistance =
-      direction === 'in'
-        ? Math.max(0.8, currentDist * 0.22)
-        : Math.max(4, currentDist * 2.2);
+    const clearDepartureRefs = () => {
+      isDepartingRef.current = false;
+      setIsDeparting(false);
+    };
 
-    transitionToPose(
-      {
-        target: departureTarget,
-        distance: targetDistance,
-        frameTiltRad,
+    launchCrossScaleDeparture({
+      committedScope: committedProps.scope,
+      committedTargetId: committedProps.targetId,
+      committedCenterCoordinates: committedProps.centerCoordinates,
+      requestedScope,
+      requestedTargetId,
+      activeCamera,
+      activeControls,
+      outerStore,
+      preloadPromise,
+      transitionToPose,
+      invalidate,
+      isTokenCurrent: () => token === transitionTokenRef.current,
+      detachBeat1Listener,
+      setBeat1Cleanup: (cleanup) => {
+        beat1CleanupRef.current = cleanup;
       },
-      {
-        duration: CROSS_SCALE_STAGE_DURATION_SEC,
-        orientationWindow: [0, 1],
-        translationWindow: [0.4, 1],
-        onProgress: (p) => {
-          if (token !== transitionTokenRef.current) return;
-          setCrossScaleInstrumentFade(computeCrossScaleDepartureFade(p));
-          invalidate?.();
-        },
-        onComplete: () => {
-          void preloadPromise.finally(() => {
-            if (token !== transitionTokenRef.current) return;
-            const finalProps = inFlightTargetRef.current?.latestProps ?? props;
-            isDepartingRef.current = false;
-            setIsDeparting(false);
-            inFlightTargetRef.current = null;
-            setCrossScaleInstrumentFade(0);
-            setPendingCrossScaleArrival({
-              direction,
-              targetScope: finalProps.scope,
-              durationSec: CROSS_SCALE_STAGE_DURATION_SEC,
-            });
-            setCommittedProps(finalProps);
-            invalidate?.();
-          });
-        },
-        onCancel: () => {
-          if (token !== transitionTokenRef.current) return;
-          const finalProps = inFlightTargetRef.current?.latestProps ?? props;
-          isDepartingRef.current = false;
-          setIsDeparting(false);
-          inFlightTargetRef.current = null;
-          clearPendingCrossScaleArrival();
-          resetCrossScaleInstrumentFade();
-          setCommittedProps(finalProps);
-          invalidate?.();
-        },
+      resolveFinalScope: () => resolveFinalProps().scope,
+      onBeforeSwap: clearDepartureRefs,
+      onCommitFinal: () => {
+        const finalProps = resolveFinalProps();
+        inFlightTargetRef.current = null;
+        setCommittedProps(finalProps);
       },
-    );
+      onAbortAndCommit: () => {
+        if (token !== transitionTokenRef.current) return;
+        detachBeat1Listener();
+        const finalProps = resolveFinalProps();
+        clearDepartureRefs();
+        inFlightTargetRef.current = null;
+        resetAllCrossScaleVisualState();
+        setCommittedProps(finalProps);
+        invalidate?.();
+      },
+    });
   }, [
     props,
     committedProps,
+    requestedScope,
+    requestedTargetId,
+    doPropsMatchRequested,
     isUnmountedBoundary,
     isSameAsCommitted,
     camera,
@@ -277,47 +263,13 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
     cancelTransition,
   ]);
 
-  const GalacticSceneComponent = getLoadedGalacticScene() ?? LazyGalacticSceneContent;
-  const SystemSceneComponent = getLoadedSystemScene() ?? LazySystemSceneContent;
-  const PlanetarySceneComponent = getLoadedPlanetaryScene() ?? LazyPlanetarySceneContent;
-
   return (
-    <Suspense fallback={null}>
-      {committedProps.isSpatialSceneMounted &&
-        committedProps.scope === 'galaxy' &&
-        createElement(GalacticSceneComponent, {
-          initialSelectedId: committedProps.centerId ?? null,
-          centerCoordinates: committedProps.centerCoordinates,
-          centerId: committedProps.centerId,
-          cameraDistance: committedProps.cameraDistance,
-          additionalEntities: committedProps.selectedEntities,
-          onInspectSystem: committedProps.onInspect,
-          onSelectSystem: committedProps.onSelect,
-          onFocusChange: committedProps.onFocusChange,
-        })}
-      {committedProps.isSpatialSceneMounted &&
-        committedProps.scope === 'system' &&
-        committedProps.targetId &&
-        createElement(SystemSceneComponent, {
-          key: committedProps.targetId,
-          systemId: committedProps.targetId,
-          centerId: committedProps.centerId,
-          centerCoordinates: committedProps.centerCoordinates,
-          onInspectPlanet: committedProps.onInspect,
-          onSelectEntity: committedProps.onSelect,
-        })}
-      {committedProps.isSpatialSceneMounted &&
-        committedProps.scope === 'planet' &&
-        committedProps.targetId &&
-        createElement(PlanetarySceneComponent, {
-          key: committedProps.targetId,
-          planetId: committedProps.targetId,
-          centerId: committedProps.centerId,
-          centerCoordinates: committedProps.centerCoordinates,
-          onInspectSatellite: committedProps.onInspect,
-          onSelectEntity: committedProps.onSelect,
-        })}
-    </Suspense>
+    <>
+      <TargetReferencePlanePreview />
+      <group ref={sceneScaleGroupRef} name="cross-scale-scene-scale-group">
+        <Suspense fallback={null}>{renderCommittedSpatialScene(committedProps)}</Suspense>
+      </group>
+    </>
   );
 });
 

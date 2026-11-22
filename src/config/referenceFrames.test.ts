@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { EARTH_OBLIQUITY_DEG } from '../utils/astroCoordinates';
 import {
   GALACTIC_FRAME,
   SYSTEM_FRAME,
@@ -17,6 +18,8 @@ describe('referenceFrames config', () => {
     expect(GALACTIC_FRAME.screenConstant).toBe(true);
     expect(GALACTIC_FRAME.referenceDistanceMultiplier).toBe(3.49);
     expect(GALACTIC_FRAME.bearings.length).toBe(2);
+    expect(GALACTIC_FRAME.planeInclinationDeg).toBe(0);
+    expect(GALACTIC_FRAME.planeAscendingNodeDeg).toBe(0);
   });
 
   it('defines SYSTEM_FRAME with correct id, unit, radius, and camera bounds', () => {
@@ -30,6 +33,8 @@ describe('referenceFrames config', () => {
     expect(SYSTEM_FRAME.screenConstant).toBe(true);
     expect(SYSTEM_FRAME.referenceDistanceMultiplier).toBe(3.49);
     expect(SYSTEM_FRAME.bearings.length).toBe(1);
+    expect(SYSTEM_FRAME.planeInclinationDeg).toBe(60.19);
+    expect(SYSTEM_FRAME.planeAscendingNodeDeg).toBe(0);
   });
 
   it('defines PLANETARY_FRAME with correct id, unit, radius, and camera bounds', () => {
@@ -43,5 +48,7 @@ describe('referenceFrames config', () => {
     expect(PLANETARY_FRAME.screenConstant).toBe(true);
     expect(PLANETARY_FRAME.referenceDistanceMultiplier).toBe(3.49);
     expect(PLANETARY_FRAME.bearings.length).toBe(0);
+    expect(PLANETARY_FRAME.planeInclinationDeg).toBe(EARTH_OBLIQUITY_DEG);
+    expect(PLANETARY_FRAME.planeAscendingNodeDeg).toBe(0);
   });
 });

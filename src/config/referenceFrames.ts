@@ -1,4 +1,5 @@
 import type { ReferenceFrame } from '../types/spatial';
+import { EARTH_OBLIQUITY_DEG } from '../utils/astroCoordinates';
 
 export const GALACTIC_FRAME: ReferenceFrame = {
   id: 'galactic',
@@ -65,6 +66,8 @@ export const GALACTIC_FRAME: ReferenceFrame = {
   },
   centerDistance: 2000,
   extent: 1200,
+  planeInclinationDeg: 0,
+  planeAscendingNodeDeg: 0,
 };
 
 export const SYSTEM_FRAME: ReferenceFrame = {
@@ -123,6 +126,8 @@ export const SYSTEM_FRAME: ReferenceFrame = {
   centerDistance: 1200,
   extent: 1200,
   orientation: [0, 0, 0],
+  planeInclinationDeg: 60.19,
+  planeAscendingNodeDeg: 0,
 };
 
 export const PLANETARY_FRAME: ReferenceFrame = {
@@ -169,4 +174,6 @@ export const PLANETARY_FRAME: ReferenceFrame = {
   centerDistance: 600,
   extent: 1200,
   orientation: [0, 0, 0],
+  planeInclinationDeg: EARTH_OBLIQUITY_DEG,
+  planeAscendingNodeDeg: 0,
 };

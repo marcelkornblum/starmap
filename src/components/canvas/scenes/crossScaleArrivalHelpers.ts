@@ -1,203 +1,36 @@
 import * as THREE from 'three';
-import { GALACTIC_FRAME } from '../../../config/referenceFrames';
-import { useCameraStore, type SavedGalaxyCameraPose } from '../../../stores/useCameraStore';
-import { computeCrossScaleArrivalFade } from '../../../utils/referenceFrameOrientation';
 import {
-  getStandardInitialCamera,
-  STANDARD_CAMERA_DISTANCES,
-} from '../cartography';
+  DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
+  computeCrossScaleArrivalFade,
+  computeCrossScaleSceneScale,
+  computeCrossScaleStageDurations,
+} from '../../../utils/referenceFrameOrientation';
+import type { SpatialEntityStore } from '../entity/SpatialEntityStore';
 import {
-  computeCrossScaleArrivalEntryPosition,
+  computeTiltedArrivalEntryPose,
   type CrossScaleArrivalDescriptor,
 } from '../instrument/crossScaleArrivalState';
 import {
   resetCrossScaleInstrumentFade,
   setCrossScaleInstrumentFade,
 } from '../instrument/crossScaleFadeState';
+import {
+  clearCrossScalePlanePreview,
+  resetCrossScaleSceneScale,
+  setCrossScalePlanePreview,
+  setCrossScaleSceneScale,
+  startCrossScalePlanePreviewContract,
+} from '../instrument/crossScaleVisualState';
 import type { CameraTransitionApi } from '../instrument/useCameraTransition';
-import { type OrbitControlsLike, getCameraZoom } from './cameraControllerUtils';
+import type { OrbitControlsLike } from './cameraControllerUtils';
 import { applyImmediateCameraPose } from './galacticCameraHelpers';
 
-export interface GalacticLandingPose {
-  readonly position: readonly [number, number, number];
-  readonly target: readonly [number, number, number];
-  readonly up: readonly [number, number, number];
-  readonly zoom: number;
-  readonly fov: number;
-  readonly isTransientZero: boolean;
-}
-
-/**
- * Resolves the target landing pose for a GalacticCameraController arrival or mount.
- */
-export function resolveGalacticLandingPose(
-  saved: SavedGalaxyCameraPose | null,
-  targetX: number,
-  targetY: number,
-  targetZ: number,
-  distance: number | undefined,
-  hasExplicitCenter: boolean,
-): GalacticLandingPose {
-  if (saved && distance === undefined) {
-    const isMatch =
-      Math.hypot(
-        saved.target[0] - targetX,
-        saved.target[1] - targetY,
-        saved.target[2] - targetZ,
-      ) < 0.05;
-    const isTransientZero =
-      !hasExplicitCenter &&
-      targetX === 0 &&
-      targetY === 0 &&
-      targetZ === 0 &&
-      (saved.target[0] !== 0 || saved.target[1] !== 0 || saved.target[2] !== 0);
-
-    if (isMatch || isTransientZero) {
-      return {
-        position: saved.position,
-        target: saved.target,
-        up: saved.up,
-        zoom: saved.zoom,
-        fov: GALACTIC_FRAME.camera.baseFov,
-        isTransientZero,
-      };
-    }
-  }
-
-  const initialDistSetting =
-    typeof distance === 'number' && Number.isFinite(distance) && distance > 0
-      ? distance
-      : STANDARD_CAMERA_DISTANCES.galactic;
-  const initialCam = getStandardInitialCamera(
-    initialDistSetting,
-    [targetX, targetY, targetZ],
-    GALACTIC_FRAME.camera.baseFov,
-  );
-  return {
-    position: initialCam.position,
-    target: [targetX, targetY, targetZ],
-    up: initialCam.up,
-    zoom: 1,
-    fov: GALACTIC_FRAME.camera.baseFov,
-    isTransientZero: false,
-  };
-}
-
-/**
- * Restores a saved galactic camera pose immediately when target matches or during transient zero.
- * Returns `null` when no saved pose applies.
- */
-export function tryRestoreSavedGalaxyPose(params: {
-  camera: THREE.Camera;
-  controls: OrbitControlsLike | undefined;
-  saved: SavedGalaxyCameraPose;
-  targetX: number;
-  targetY: number;
-  targetZ: number;
-  hasExplicitCenter: boolean;
-  saveCurrentGalaxyPose: (force?: boolean) => void;
-}): { appliedControls: boolean; resolvedTarget: [number, number, number] } | null {
-  const {
-    camera,
-    controls,
-    saved,
-    targetX,
-    targetY,
-    targetZ,
-    hasExplicitCenter,
-    saveCurrentGalaxyPose,
-  } = params;
-
-  const isMatch =
-    Math.hypot(
-      saved.target[0] - targetX,
-      saved.target[1] - targetY,
-      saved.target[2] - targetZ,
-    ) < 0.05;
-  const isTransientZero =
-    !hasExplicitCenter &&
-    targetX === 0 &&
-    targetY === 0 &&
-    targetZ === 0 &&
-    (saved.target[0] !== 0 || saved.target[1] !== 0 || saved.target[2] !== 0);
-
-  if (!isMatch && !isTransientZero) return null;
-
-  const appliedControls = applyImmediateCameraPose(
-    camera,
-    controls,
-    saved.position,
-    saved.target,
-    saved.up,
-    saved.zoom,
-    GALACTIC_FRAME.camera.baseFov,
-  );
-
-  useCameraStore.getState().setCameraPose({
-    position: saved.position,
-    target: saved.target,
-    up: saved.up,
-    zoom: getCameraZoom(camera),
-    focalDistance: saved.focalDistance,
-  });
-
-  if (controls && isMatch) saveCurrentGalaxyPose(true);
-  return {
-    appliedControls,
-    resolvedTarget: isTransientZero
-      ? [saved.target[0], saved.target[1], saved.target[2]]
-      : [targetX, targetY, targetZ],
-  };
-}
-
-/**
- * Applies the default initial galactic camera pose when no saved pose is present.
- */
-export function applyDefaultInitialGalacticPose(params: {
-  camera: THREE.Camera;
-  controls: OrbitControlsLike | undefined;
-  targetX: number;
-  targetY: number;
-  targetZ: number;
-  distance: number | undefined;
-  saveCurrentGalaxyPose: (force?: boolean) => void;
-}): boolean {
-  const { camera, controls, targetX, targetY, targetZ, distance, saveCurrentGalaxyPose } = params;
-  const initialDistSetting =
-    typeof distance === 'number' && Number.isFinite(distance) && distance > 0
-      ? distance
-      : STANDARD_CAMERA_DISTANCES.galactic;
-  const initialCam = getStandardInitialCamera(
-    initialDistSetting,
-    [targetX, targetY, targetZ],
-    GALACTIC_FRAME.camera.baseFov,
-  );
-  const appliedControls = applyImmediateCameraPose(
-    camera,
-    controls,
-    initialCam.position,
-    [targetX, targetY, targetZ],
-    initialCam.up,
-    1,
-    GALACTIC_FRAME.camera.baseFov,
-  );
-
-  const initialDist = Math.hypot(
-    camera.position.x - targetX,
-    camera.position.y - targetY,
-    camera.position.z - targetZ,
-  );
-  useCameraStore.getState().setCameraPose({
-    position: [camera.position.x, camera.position.y, camera.position.z],
-    target: [targetX, targetY, targetZ],
-    up: [initialCam.up[0], initialCam.up[1], initialCam.up[2]],
-    zoom: 1,
-    focalDistance: initialDist,
-  });
-
-  if (controls) saveCurrentGalaxyPose(true);
-  return appliedControls;
-}
+export {
+  applyDefaultInitialGalacticPose,
+  resolveGalacticLandingPose,
+  tryRestoreSavedGalaxyPose,
+  type GalacticLandingPose,
+} from './galacticLandingHelpers';
 
 export interface CrossScaleArrivalGlideParams {
   readonly camera: THREE.Camera;
@@ -208,14 +41,35 @@ export interface CrossScaleArrivalGlideParams {
   readonly landingZoom: number;
   readonly landingFov?: number;
   readonly arrival: CrossScaleArrivalDescriptor;
+  readonly outerStore?: SpatialEntityStore | null;
   readonly transitionToPose: CameraTransitionApi['transitionToPose'];
   readonly invalidate?: () => void;
   readonly onComplete: () => void;
 }
 
+function resolveArrivalPreviewPosition(
+  arrival: CrossScaleArrivalDescriptor,
+  outerStore: SpatialEntityStore | null | undefined,
+  fallbackTarget: readonly [number, number, number],
+): readonly [number, number, number] {
+  if (arrival.planePreviewPosition) return arrival.planePreviewPosition;
+  if (outerStore && arrival.planePreviewTargetId) {
+    const state = outerStore.getState();
+    const resolvedId =
+      state.resolveEntityId(arrival.planePreviewTargetId) ?? arrival.planePreviewTargetId;
+    const entity = state.entities[resolvedId];
+    if (entity?.position) {
+      return entity.position instanceof THREE.Vector3
+        ? [entity.position.x, entity.position.y, entity.position.z]
+        : [entity.position[0], entity.position[1], entity.position[2]];
+    }
+  }
+  return fallbackTarget;
+}
+
 /**
- * Places the camera at the Stage 2 entry position along the landing view ray with
- * target-scale FOV/zoom applied, fades instruments in, and glides to the landing pose.
+ * Places the camera at the Stage 2 entry pose (pre-tilted on zoom-out, tiny scene scale on zoom-in),
+ * coordinates instrument fade and preview disc contraction, and glides to the landing pose.
  */
 export function startCrossScaleArrivalGlide(params: CrossScaleArrivalGlideParams): void {
   const {
@@ -227,50 +81,133 @@ export function startCrossScaleArrivalGlide(params: CrossScaleArrivalGlideParams
     landingZoom,
     landingFov,
     arrival,
+    outerStore,
     transitionToPose,
     invalidate,
     onComplete,
   } = params;
 
-  const entryPos = computeCrossScaleArrivalEntryPosition(
-    landingPosition,
-    landingTarget,
-    arrival.direction,
-  );
-  applyImmediateCameraPose(
-    camera,
-    controls,
-    entryPos,
-    landingTarget,
-    landingUp,
-    landingZoom,
-    landingFov,
-  );
-  setCrossScaleInstrumentFade(0);
+  const config = arrival.config ?? DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
+  const durations = computeCrossScaleStageDurations(config);
+  const landingPose = {
+    position: landingPosition,
+    target: landingTarget,
+    up: landingUp,
+    orthoZoom: landingZoom,
+    ...(landingFov !== undefined ? { fov: landingFov } : {}),
+  };
 
-  transitionToPose(
-    {
-      position: landingPosition,
-      target: landingTarget,
-      up: landingUp,
-      orthoZoom: landingZoom,
-      ...(landingFov !== undefined ? { fov: landingFov } : {}),
-    },
-    {
+  if (arrival.direction === 'in') {
+    const entryPose = computeTiltedArrivalEntryPose(
+      landingPosition,
+      landingTarget,
+      landingUp,
+      'in',
+      0,
+      arrival.tiltAxis,
+      config,
+    );
+    applyImmediateCameraPose(
+      camera,
+      controls,
+      entryPose.position,
+      landingTarget,
+      entryPose.up,
+      landingZoom,
+      landingFov,
+    );
+    setCrossScaleInstrumentFade(0);
+    setCrossScaleSceneScale(config.minSceneScale);
+
+    transitionToPose(landingPose, {
       duration: arrival.durationSec,
       onProgress: (p) => {
-        setCrossScaleInstrumentFade(computeCrossScaleArrivalFade(p));
+        setCrossScaleSceneScale(computeCrossScaleSceneScale(p, 'in', config.minSceneScale));
+        setCrossScaleInstrumentFade(computeCrossScaleArrivalFade(p, config));
         invalidate?.();
       },
       onComplete: () => {
+        resetCrossScaleSceneScale();
         resetCrossScaleInstrumentFade();
         onComplete();
         invalidate?.();
       },
       onCancel: () => {
+        resetCrossScaleSceneScale();
         resetCrossScaleInstrumentFade();
         invalidate?.();
       },
-    },
+    });
+    return;
+  }
+
+  const entryTiltRad = -(arrival.frameTiltRad ?? 0);
+  const entryPose = computeTiltedArrivalEntryPose(
+    landingPosition,
+    landingTarget,
+    landingUp,
+    'out',
+    entryTiltRad,
+    arrival.tiltAxis,
+    config,
   );
+  applyImmediateCameraPose(
+    camera,
+    controls,
+    entryPose.position,
+    landingTarget,
+    entryPose.up,
+    landingZoom,
+    landingFov,
+  );
+  setCrossScaleInstrumentFade(0);
+  resetCrossScaleSceneScale();
+
+  if (
+    typeof arrival.planePreviewInclinationRad === 'number' &&
+    Number.isFinite(arrival.planePreviewInclinationRad) &&
+    arrival.planePreviewInclinationRad > 1e-4
+  ) {
+    const landingDist = Math.hypot(
+      landingPosition[0] - landingTarget[0],
+      landingPosition[1] - landingTarget[1],
+      landingPosition[2] - landingTarget[2],
+    );
+    const previewMaxRadius =
+      typeof arrival.planePreviewMaxRadius === 'number' &&
+      Number.isFinite(arrival.planePreviewMaxRadius) &&
+      arrival.planePreviewMaxRadius > 0
+        ? arrival.planePreviewMaxRadius
+        : Math.max(0.6, landingDist * 0.16);
+    setCrossScalePlanePreview({
+      position: resolveArrivalPreviewPosition(arrival, outerStore, landingTarget),
+      inclinationRad: arrival.planePreviewInclinationRad,
+      ascendingNodeRad: arrival.planePreviewAscendingNodeRad ?? 0,
+      maxRadius: previewMaxRadius,
+      radiusProgress: 1,
+      opacity: 1,
+      mode: 'holding',
+    });
+  }
+
+  transitionToPose(landingPose, {
+    duration: arrival.durationSec,
+    translationWindow: config.zoomOutMoveWindow,
+    orientationWindow: config.zoomOutTiltWindow,
+    onProgress: (p) => {
+      setCrossScaleInstrumentFade(computeCrossScaleArrivalFade(p, config));
+      invalidate?.();
+    },
+    onComplete: () => {
+      resetCrossScaleInstrumentFade();
+      startCrossScalePlanePreviewContract(durations.previewSec);
+      onComplete();
+      invalidate?.();
+    },
+    onCancel: () => {
+      resetCrossScaleInstrumentFade();
+      clearCrossScalePlanePreview();
+      invalidate?.();
+    },
+  });
 }

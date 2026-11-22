@@ -1,9 +1,10 @@
 import type React from 'react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import { useOptionalRouter } from '../../../hooks/useSpaLocation';
+import { useOptionalSpatialEntityStoreApi } from '../entity/SpatialEntityContext';
 import {
   consumePendingCrossScaleArrival,
   hasPendingCrossScaleArrival,
@@ -18,6 +19,7 @@ import {
   formatCenterCoordString,
   navigatePanCenterToRouter,
   persistCameraPoseToStore,
+  syncCameraPoseSnapshotToStore,
 } from './galacticCameraHelpers';
 import {
   applyDefaultInitialGalacticPose,
@@ -25,6 +27,9 @@ import {
   startCrossScaleArrivalGlide,
   tryRestoreSavedGalaxyPose,
 } from './crossScaleArrivalHelpers';
+
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export interface GalacticCameraControllerProps {
   readonly target: [number, number, number];
@@ -44,6 +49,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
   const rawControls = useThree((s) => s.controls);
   const controls = isOrbitControlsLike(rawControls) ? rawControls : undefined;
   const router = useOptionalRouter();
+  const outerStore = useOptionalSpatialEntityStoreApi();
   const { transitionTo, transitionToPose } = useCameraTransition();
   const recenterTick = useCameraStore((s) => s.recenterTick);
 
@@ -101,7 +107,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     };
   }, [controls, persistGalaxyPose, router, saveCurrentGalaxyPose]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const prev = prevTargetRef.current;
     const prevDist = prevDistanceRef.current;
     const prevTick = prevRecenterTickRef.current;
@@ -175,18 +181,12 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
         landingZoom: landing.zoom,
         landingFov: landing.fov,
         arrival,
+        outerStore,
         transitionToPose,
         invalidate,
         onComplete: () => {
           hasRestoredRef.current = Boolean(controls);
-          const snapshot = computeCameraPoseSnapshot(camera, controls, landing.target);
-          useCameraStore.getState().setCameraPose({
-            position: snapshot.position,
-            target: snapshot.target,
-            up: snapshot.up,
-            zoom: snapshot.zoom,
-            focalDistance: snapshot.focalDistance,
-          });
+          syncCameraPoseSnapshotToStore(camera, controls, landing.target);
           if (controls) saveCurrentGalaxyPose(true);
         },
       });
@@ -264,14 +264,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
       ...(resolvedDistance !== undefined ? { targetDistance: resolvedDistance } : {}),
       onComplete: () => {
         hasRestoredRef.current = true;
-        const snapshot = computeCameraPoseSnapshot(camera, controls, [targetX, targetY, targetZ]);
-        useCameraStore.getState().setCameraPose({
-          position: snapshot.position,
-          target: snapshot.target,
-          up: snapshot.up,
-          zoom: snapshot.zoom,
-          focalDistance: snapshot.focalDistance,
-        });
+        syncCameraPoseSnapshotToStore(camera, controls, [targetX, targetY, targetZ]);
         saveCurrentGalaxyPose(true);
         invalidate?.();
       },
@@ -291,6 +284,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     recenterTick,
     camera,
     controls,
+    outerStore,
     invalidate,
     saveCurrentGalaxyPose,
     transitionTo,

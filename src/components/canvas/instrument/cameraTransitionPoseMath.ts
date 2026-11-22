@@ -40,6 +40,8 @@ export interface CameraTransitionPose {
   orthoZoom?: number;
   /** Rigid-body tilt angle in radians applied simultaneously to `startDir` and `startUp`. */
   frameTiltRad?: number;
+  /** Optional explicit axis around which `frameTiltRad` rotates (normalised internally). */
+  readonly frameTiltAxis?: Vector3Input;
 }
 
 export interface TransitionControlsLike {

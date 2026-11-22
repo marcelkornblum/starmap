@@ -63,14 +63,16 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
   const syncPoseToStore = useCallback(() => {
     const currentCam = get().camera ?? camera;
     if (!currentCam) return;
-    const targetVec = controls?.target ?? persistentTargetRef.current ?? FALLBACK_TARGET;
+    const targetVec = controls?.target;
     const store = useCameraStore.getState();
     const currentPos: [number, number, number] = [
       currentCam.position.x,
       currentCam.position.y,
       currentCam.position.z,
     ];
-    const currentTarget: [number, number, number] = [targetVec.x, targetVec.y, targetVec.z];
+    const currentTarget: [number, number, number] = targetVec
+      ? [targetVec.x, targetVec.y, targetVec.z]
+      : [store.target[0], store.target[1], store.target[2]];
     const currentZoom = getCameraZoom(currentCam);
 
     const posDiff = Math.hypot(
@@ -88,7 +90,7 @@ export function useCameraRigStoreSync(options: UseCameraRigStoreSyncOptions) {
     if (posDiff > 1e-3 || targetDiff > 1e-3 || zoomDiff > 1e-3) {
       store.setCameraTransform(currentPos, currentTarget, currentZoom);
     }
-  }, [camera, controls, get, persistentTargetRef]);
+  }, [camera, controls, get]);
 
   useEffect(() => {
     if (!pendingAxisRequest) return;
