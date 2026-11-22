@@ -245,7 +245,7 @@
       display: block;
       position: fixed;
       inset: 0;
-      background-color: var(--surface-scrim-bg);
+      background-color: transparent;
       z-index: var(--layer-panel);
       pointer-events: auto;
     }

@@ -223,22 +223,22 @@ describe('viewportSafeRect', () => {
       });
     });
 
-    it('clamps extreme offsets to MAX_OPTICAL_OFFSET_FRACTION of visible safe dimensions', () => {
+    it('clamps extreme offsets to MAX_OPTICAL_OFFSET_FRACTION of full viewport dimensions', () => {
       const safeRect: ViewportSafeRect = {
         top: 0,
         right: 0,
-        bottom: 400,
+        bottom: 500,
         left: 600,
         width: 400,
-        height: 400,
+        height: 300,
         bypass: false,
       };
 
-      // rawX = -300 -> clamped to -400 * 0.25 = -100
-      // rawY = +200 -> clamped to +400 * 0.25 = +100
+      // fullWidth = 1000 -> clamp [-250, +250]; rawX = -300 -> -250
+      // fullHeight = 800 -> clamp [-200, +200]; rawY = +250 -> +200
       expect(computeOpticalCenterOffsetPx(safeRect)).toEqual({
-        offsetX: -100,
-        offsetY: 100,
+        offsetX: -250,
+        offsetY: 200,
       });
     });
 

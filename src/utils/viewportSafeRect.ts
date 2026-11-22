@@ -135,8 +135,10 @@ export function computeOpticalCenterOffsetPx(
     return { offsetX: 0, offsetY: 0 };
   }
 
-  const maxOffsetX = Math.max(0, safeRect.width * MAX_OPTICAL_OFFSET_FRACTION);
-  const maxOffsetY = Math.max(0, safeRect.height * MAX_OPTICAL_OFFSET_FRACTION);
+  const fullWidth = safeRect.width + safeRect.left + safeRect.right;
+  const fullHeight = safeRect.height + safeRect.top + safeRect.bottom;
+  const maxOffsetX = Math.max(0, fullWidth * MAX_OPTICAL_OFFSET_FRACTION);
+  const maxOffsetY = Math.max(0, fullHeight * MAX_OPTICAL_OFFSET_FRACTION);
   const rawX = (safeRect.right - safeRect.left) / 2;
   const rawY = (safeRect.bottom - safeRect.top) / 2;
 
