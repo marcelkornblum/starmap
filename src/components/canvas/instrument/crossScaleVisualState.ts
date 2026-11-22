@@ -198,6 +198,11 @@ export function updateCrossScalePlanePreviewProgress(
   planePreviewState.opacity = clampUnit(opacity);
 }
 
+/** Updates only `maxRadius` of the plane preview in-place with zero allocations. */
+export function setCrossScalePlanePreviewRadius(radius: number): void {
+  planePreviewState.maxRadius = Number.isFinite(radius) && radius > 0 ? radius : 0.001;
+}
+
 /** Deactivates and resets the plane preview state in-place. */
 export function clearCrossScalePlanePreview(): void {
   planePreviewState.active = false;

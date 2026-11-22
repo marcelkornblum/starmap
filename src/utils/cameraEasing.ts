@@ -42,6 +42,14 @@ export function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - clamped, 3);
 }
 
+/**
+ * Quadratic ease-in curve (`t^2`), accelerating smoothly into a mid-flight seam.
+ */
+export function easeInQuad(t: number): number {
+  const clamped = clampUnit(t);
+  return clamped * clamped;
+}
+
 export function evaluateCameraEasing(_curve: CameraEasingCurveId, t: number): number {
   return easeOutCubic(t);
 }

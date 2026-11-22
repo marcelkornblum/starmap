@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_CAMERA_EASING_CURVE,
   DEFAULT_CAMERA_TRANSITION_DURATION_SEC,
+  easeInQuad,
   easeOutCubic,
   evaluateCameraEasing,
   interpolateCameraDistance,
@@ -24,6 +25,22 @@ describe('cameraEasing', () => {
     let prev = 0;
     for (let i = 1; i <= 20; i += 1) {
       const val = evaluateCameraEasing('easeOutCubic', i / 20);
+      expect(val).toBeGreaterThanOrEqual(prev);
+      prev = val;
+    }
+  });
+
+  it('exposes easeInQuad with quadratic acceleration and unit clamping', () => {
+    expect(easeInQuad(0)).toBe(0);
+    expect(easeInQuad(0.5)).toBe(0.25);
+    expect(easeInQuad(1)).toBe(1);
+    expect(easeInQuad(-0.5)).toBe(0);
+    expect(easeInQuad(1.5)).toBe(1);
+    expect(easeInQuad(Number.NaN)).toBe(0);
+
+    let prev = 0;
+    for (let i = 1; i <= 20; i += 1) {
+      const val = easeInQuad(i / 20);
       expect(val).toBeGreaterThanOrEqual(prev);
       prev = val;
     }

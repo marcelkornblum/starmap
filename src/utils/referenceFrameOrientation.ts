@@ -36,6 +36,7 @@ export interface CrossScaleChoreographyConfig {
   readonly zoomOutTiltWindow: readonly [number, number];
   readonly departureFadeWindow: readonly [number, number];
   readonly arrivalFadeWindow: readonly [number, number];
+  readonly arrivalPreviewFadeWindow: readonly [number, number];
   readonly minSceneScale: number;
   readonly departureInDistanceMultiplier: number;
   readonly departureOutDistanceMultiplier: number;
@@ -53,8 +54,9 @@ export const DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG: CrossScaleChoreographyConf
   zoomInMoveWindow: [0.15, 1.0],
   zoomOutMoveWindow: [0.0, 0.85],
   zoomOutTiltWindow: [0.35, 1.0],
-  departureFadeWindow: [0.25, 1.0],
-  arrivalFadeWindow: [0.0, 0.75],
+  departureFadeWindow: [0.15, 0.95],
+  arrivalFadeWindow: [0.0, 0.55],
+  arrivalPreviewFadeWindow: [0.0, 0.45],
   minSceneScale: 0.04,
   departureInDistanceMultiplier: 0.22,
   departureOutDistanceMultiplier: 2.2,
@@ -116,6 +118,11 @@ export function computeCrossScaleStageDurations(
     departureSec: totalSec * Math.max(0, config.departureFraction),
     arrivalSec: totalSec * Math.max(0, config.arrivalFraction),
   };
+}
+
+/** Returns the authoritative reference frame radius for `scope` from `ReferenceFrame` configs. */
+export function getReferenceFrameRadius(scope: SpatialScale): number {
+  return FRAME_BY_SCALE[scope].radius;
 }
 
 /**
@@ -276,4 +283,15 @@ export function computeCrossScaleArrivalFade(
   config: CrossScaleChoreographyConfig = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
 ): number {
   return evaluateWindowedProgress(stageProgress, config.arrivalFadeWindow);
+}
+
+/**
+ * Computes the handed-off preview plane opacity across Stage 2 arrival progress `[0, 1]`.
+ * Cross-dissolves `1 -> 0` over `config.arrivalPreviewFadeWindow`.
+ */
+export function computeCrossScalePreviewHandoffOpacity(
+  stageProgress: number,
+  config: CrossScaleChoreographyConfig = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
+): number {
+  return 1 - evaluateWindowedProgress(stageProgress, config.arrivalPreviewFadeWindow);
 }

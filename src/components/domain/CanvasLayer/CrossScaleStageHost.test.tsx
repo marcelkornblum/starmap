@@ -47,8 +47,10 @@ import {
   computeCrossScaleDepartureFade,
   computeCrossScaleSceneScale,
   computeCrossScaleStageDurations,
+  getReferenceFrameRadius,
   resolveTargetReferencePlane,
 } from '../../../utils/referenceFrameOrientation';
+import { easeInQuad } from '../../../utils/cameraEasing';
 import * as sceneEntryLoader from './sceneEntryLoader';
 
 let mockCamera: THREE.PerspectiveCamera;
@@ -305,6 +307,9 @@ describe('CrossScaleStageHost', () => {
     expect(getCrossScalePlanePreviewState().mode).toBe('holding');
 
     // Advance halfway through Beat 2 (departureSec = 1000ms)
+    const cameraStartDistIn = Math.hypot(0, -35, 20);
+    const startDistIn = Math.hypot(0 - 1.3, -35 - 0.2, 20 + 0.1);
+    const endDistIn = Math.max(0.8, startDistIn * config.departureInDistanceMultiplier);
     act(() => {
       t = advanceDuration(t, durations.departureSec * 500, nowSpy);
     });
@@ -312,8 +317,13 @@ describe('CrossScaleStageHost', () => {
       computeCrossScaleDepartureFade(0.5, config),
       3,
     );
-    expect(getCrossScalePlanePreviewState().opacity).toBeLessThan(1);
-    expect(mockControls.target.x).toBeGreaterThan(0);
+    // Preview plane stays at full opacity through Beat 2; camera follows easeInQuad acceleration
+    expect(getCrossScalePlanePreviewState().opacity).toBe(1);
+    expect(mockControls.target.x).toBeCloseTo(1.3 * easeInQuad((0.5 - 0.15) / 0.85), 2);
+    expect(mockCamera.position.distanceTo(mockControls.target)).toBeCloseTo(
+      cameraStartDistIn * Math.pow(endDistIn / cameraStartDistIn, easeInQuad((0.5 - 0.15) / 0.85)),
+      2,
+    );
 
     // Complete Beat 2 and flush preload promise
     await act(async () => {
@@ -321,7 +331,18 @@ describe('CrossScaleStageHost', () => {
       await Promise.resolve();
     });
 
-    expect(getCrossScalePlanePreviewState().active).toBe(false);
+    const handoffPreview = getCrossScalePlanePreviewState();
+    expect(handoffPreview.active).toBe(true);
+    expect(handoffPreview.mode).toBe('holding');
+    expect(handoffPreview.position).toEqual([0, 0, 0]);
+    expect(handoffPreview.inclinationRad).toBe(0);
+    expect(handoffPreview.ascendingNodeRad).toBe(0);
+    expect(handoffPreview.maxRadius).toBeCloseTo(
+      getReferenceFrameRadius('system') * config.minSceneScale,
+      6,
+    );
+    expect(handoffPreview.radiusProgress).toBe(1);
+    expect(handoffPreview.opacity).toBe(1);
     expect(getCrossScaleInstrumentFade()).toBe(0);
     expect(getCrossScaleSceneScale()).toBeCloseTo(config.minSceneScale, 6);
     expect(mockControls.target.x).toBeCloseTo(1.3, 4);
@@ -377,7 +398,9 @@ describe('CrossScaleStageHost', () => {
 
     expect(screen.getByTestId('mock-system-scene')).toBeInTheDocument();
 
-    // Advance halfway through Beat 1 departureSec: scene shrinks, NO tilt yet
+    // Advance halfway through Beat 1 departureSec: scene shrinks, NO tilt yet, easeInQuad pull-out
+    const startDistOut = Math.hypot(0, -10, 6);
+    const endDistOut = Math.max(4, startDistOut * config.departureOutDistanceMultiplier);
     let t = 2000;
     act(() => {
       t = advanceDuration(t, durations.departureSec * 500, nowSpy);
@@ -385,6 +408,10 @@ describe('CrossScaleStageHost', () => {
     expect(getCrossScaleSceneScale()).toBeCloseTo(
       computeCrossScaleSceneScale(0.5, 'out', config.minSceneScale),
       3,
+    );
+    expect(mockCamera.position.length()).toBeCloseTo(
+      startDistOut * Math.pow(endDistOut / startDistOut, easeInQuad(0.5)),
+      2,
     );
     expect(mockCamera.up.toArray()).toEqual([0, 0, 1]);
 
@@ -641,7 +668,9 @@ describe('CrossScaleStageHost', () => {
     expect(screen.getByTestId('mock-system-scene').getAttribute('data-center-id')).toBe(
       'alpha-centauri-a',
     );
-    expect(getCrossScalePlanePreviewState().active).toBe(false);
+    expect(getCrossScalePlanePreviewState().active).toBe(true);
+    expect(getCrossScalePlanePreviewState().mode).toBe('holding');
+    expect(getCrossScalePlanePreviewState().position).toEqual([0, 0, 0]);
   });
 
   it('extracts target plane metadata from outerStore and preloads system data in parallel', async () => {

@@ -19,12 +19,15 @@ import {
   getCrossScalePlanePreviewState,
   getCrossScaleSceneScale,
   resetCrossScaleSceneScale,
+  setCrossScalePlanePreview,
 } from '../instrument/crossScaleVisualState';
 import {
   DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
   computeCrossScaleArrivalFade,
+  computeCrossScalePreviewHandoffOpacity,
   computeCrossScaleSceneScale,
   computeCrossScaleStageDurations,
+  getReferenceFrameRadius,
 } from '../../../utils/referenceFrameOrientation';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
@@ -278,6 +281,15 @@ describe('SystemCameraController Component', () => {
     const landingTarget: [number, number, number] = [0, 0, 0];
     const landingUp: [number, number, number] = [0, 0, 1];
     const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
+    setCrossScalePlanePreview({
+      position: [0, 0, 0],
+      inclinationRad: 0,
+      ascendingNodeRad: 0,
+      maxRadius: getReferenceFrameRadius('system') * config.minSceneScale,
+      radiusProgress: 1,
+      opacity: 1,
+      mode: 'holding',
+    });
     setPendingCrossScaleArrival({
       direction: 'in',
       targetScope: 'system',
@@ -334,17 +346,36 @@ describe('SystemCameraController Component', () => {
     expect(cameraPosAtPassiveEffect![2]).toBeCloseTo(expectedEntry.position[2], 4);
 
     act(() => {
-      advanceTransitionFrames([3000, 3450], nowSpy);
+      advanceTransitionFrames([3000, 3180], nowSpy);
+    });
+    expect(getCrossScalePlanePreviewState().active).toBe(true);
+    expect(getCrossScalePlanePreviewState().opacity).toBeCloseTo(
+      computeCrossScalePreviewHandoffOpacity(0.2, config),
+      4,
+    );
+    expect(getCrossScalePlanePreviewState().maxRadius).toBeCloseTo(
+      getReferenceFrameRadius('system') * computeCrossScaleSceneScale(0.2, 'in', config.minSceneScale),
+      4,
+    );
+
+    act(() => {
+      advanceTransitionFrames([3450], nowSpy);
     });
     expect(getCrossScaleInstrumentFade()).toBeCloseTo(computeCrossScaleArrivalFade(0.5, config), 4);
     expect(getCrossScaleSceneScale()).toBeCloseTo(
       computeCrossScaleSceneScale(0.5, 'in', config.minSceneScale),
       4,
     );
+    expect(getCrossScalePlanePreviewState().opacity).toBe(0);
+    expect(getCrossScalePlanePreviewState().maxRadius).toBeCloseTo(
+      getReferenceFrameRadius('system') * computeCrossScaleSceneScale(0.5, 'in', config.minSceneScale),
+      4,
+    );
 
     act(() => {
       advanceTransitionFrames([3900], nowSpy);
     });
+    expect(getCrossScalePlanePreviewState().active).toBe(false);
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     expect(getCrossScaleInstrumentFade()).toBe(1);
     expect(getCrossScaleSceneScale()).toBe(1);
@@ -378,7 +409,16 @@ describe('SystemCameraController Component', () => {
     expect(getCrossScaleInstrumentFade()).toBe(1);
     unmount();
 
-    // scope="planet" consumes it and resets fade & scene scale if interrupted via OrbitControls start
+    // scope="planet" consumes it and resets fade, preview & scene scale if interrupted via OrbitControls start
+    setCrossScalePlanePreview({
+      position: [0, 0, 0],
+      inclinationRad: 0,
+      ascendingNodeRad: 0,
+      maxRadius: getReferenceFrameRadius('planet') * config.minSceneScale,
+      radiusProgress: 1,
+      opacity: 1,
+      mode: 'holding',
+    });
     render(
       createElement(SystemCameraController, {
         scope: 'planet',
@@ -406,6 +446,7 @@ describe('SystemCameraController Component', () => {
     });
     expect(getCrossScaleInstrumentFade()).toBe(1);
     expect(getCrossScaleSceneScale()).toBe(1);
+    expect(getCrossScalePlanePreviewState().active).toBe(false);
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
   });
 

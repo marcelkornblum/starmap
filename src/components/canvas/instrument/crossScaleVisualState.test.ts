@@ -5,6 +5,7 @@ import {
   getCrossScaleSceneScale,
   resetCrossScaleSceneScale,
   setCrossScalePlanePreview,
+  setCrossScalePlanePreviewRadius,
   setCrossScaleSceneScale,
   startCrossScalePlanePreviewContract,
   startCrossScalePlanePreviewExpand,
@@ -76,6 +77,14 @@ describe('crossScaleVisualState', () => {
     updateCrossScalePlanePreviewProgress(0.6, 0.75);
     expect(refAfter.radiusProgress).toBeCloseTo(0.6, 8);
     expect(refAfter.opacity).toBeCloseTo(0.75, 8);
+
+    setCrossScalePlanePreviewRadius(14.5);
+    expect(refAfter.maxRadius).toBe(14.5);
+    setCrossScalePlanePreviewRadius(-2);
+    expect(refAfter.maxRadius).toBe(0.001);
+    setCrossScalePlanePreviewRadius(Number.NaN);
+    expect(refAfter.maxRadius).toBe(0.001);
+    expect(getCrossScalePlanePreviewState()).toBe(refBefore);
 
     clearCrossScalePlanePreview();
     expect(refAfter).toBe(refBefore);

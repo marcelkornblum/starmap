@@ -1,11 +1,12 @@
 import type * as THREE from 'three';
 import { useUIStore } from '../../../stores/useUIStore';
-import { easeOutCubic } from '../../../utils/cameraEasing';
+import { easeInQuad } from '../../../utils/cameraEasing';
 import {
   DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
   computeCrossScaleDepartureFade,
   computeCrossScaleSceneScale,
   computeCrossScaleStageDurations,
+  getReferenceFrameRadius,
   getScaleRank,
   resolveTargetReferencePlane,
   type SpatialScale,
@@ -14,11 +15,10 @@ import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore'
 import { setPendingCrossScaleArrival } from '../../canvas/instrument/crossScaleArrivalState';
 import { setCrossScaleInstrumentFade } from '../../canvas/instrument/crossScaleFadeState';
 import {
-  clearCrossScalePlanePreview,
   resetCrossScaleSceneScale,
+  setCrossScalePlanePreview,
   setCrossScaleSceneScale,
   startCrossScalePlanePreviewExpand,
-  updateCrossScalePlanePreviewProgress,
 } from '../../canvas/instrument/crossScaleVisualState';
 import type { CameraTransitionApi } from '../../canvas/instrument/useCameraTransition';
 import type { OrbitControlsLike } from '../../canvas/scenes/cameraControllerUtils';
@@ -108,7 +108,16 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
     const finalScope = resolveFinalScope();
     onBeforeSwap();
     if (direction === 'in') {
-      clearCrossScalePlanePreview();
+      // Hand off the preview plane directly into the incoming scene's aligned local datum plane.
+      setCrossScalePlanePreview({
+        position: [0, 0, 0],
+        inclinationRad: 0,
+        ascendingNodeRad: 0,
+        maxRadius: getReferenceFrameRadius(finalScope) * config.minSceneScale,
+        radiusProgress: 1,
+        opacity: 1,
+        mode: 'holding',
+      });
       setCrossScaleInstrumentFade(0);
       setCrossScaleSceneScale(config.minSceneScale);
       setPendingCrossScaleArrival({
@@ -162,12 +171,12 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
         },
         {
           duration: durations.departureSec,
+          easing: easeInQuad,
           orientationWindow: config.zoomInTiltWindow,
           translationWindow: config.zoomInMoveWindow,
           onProgress: (p) => {
             if (!isTokenCurrent()) return;
             setCrossScaleInstrumentFade(computeCrossScaleDepartureFade(p, config));
-            updateCrossScalePlanePreviewProgress(1, 1 - easeOutCubic(p));
             invalidate?.();
           },
           onComplete: finishSwap,
@@ -201,6 +210,7 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
     { target: departureTarget, distance: targetDistance },
     {
       duration: durations.departureSec,
+      easing: easeInQuad,
       onProgress: (p) => {
         if (!isTokenCurrent()) return;
         setCrossScaleSceneScale(computeCrossScaleSceneScale(p, 'out', config.minSceneScale));

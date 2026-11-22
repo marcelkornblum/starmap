@@ -1,9 +1,12 @@
 import * as THREE from 'three';
+import { easeOutCubic } from '../../../utils/cameraEasing';
 import {
   DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
   computeCrossScaleArrivalFade,
+  computeCrossScalePreviewHandoffOpacity,
   computeCrossScaleSceneScale,
   computeCrossScaleStageDurations,
+  getReferenceFrameRadius,
 } from '../../../utils/referenceFrameOrientation';
 import type { SpatialEntityStore } from '../entity/SpatialEntityStore';
 import {
@@ -18,8 +21,10 @@ import {
   clearCrossScalePlanePreview,
   resetCrossScaleSceneScale,
   setCrossScalePlanePreview,
+  setCrossScalePlanePreviewRadius,
   setCrossScaleSceneScale,
   startCrossScalePlanePreviewContract,
+  updateCrossScalePlanePreviewProgress,
 } from '../instrument/crossScaleVisualState';
 import type { CameraTransitionApi } from '../instrument/useCameraTransition';
 import type { OrbitControlsLike } from './cameraControllerUtils';
@@ -120,21 +125,31 @@ export function startCrossScaleArrivalGlide(params: CrossScaleArrivalGlideParams
     );
     setCrossScaleInstrumentFade(0);
     setCrossScaleSceneScale(config.minSceneScale);
+    const targetFrameRadius = getReferenceFrameRadius(arrival.targetScope);
 
     transitionToPose(landingPose, {
       duration: arrival.durationSec,
+      easing: easeOutCubic,
       onProgress: (p) => {
-        setCrossScaleSceneScale(computeCrossScaleSceneScale(p, 'in', config.minSceneScale));
+        const sceneScale = computeCrossScaleSceneScale(p, 'in', config.minSceneScale);
+        setCrossScaleSceneScale(sceneScale);
         setCrossScaleInstrumentFade(computeCrossScaleArrivalFade(p, config));
+        setCrossScalePlanePreviewRadius(targetFrameRadius * sceneScale);
+        updateCrossScalePlanePreviewProgress(
+          1,
+          computeCrossScalePreviewHandoffOpacity(p, config),
+        );
         invalidate?.();
       },
       onComplete: () => {
+        clearCrossScalePlanePreview();
         resetCrossScaleSceneScale();
         resetCrossScaleInstrumentFade();
         onComplete();
         invalidate?.();
       },
       onCancel: () => {
+        clearCrossScalePlanePreview();
         resetCrossScaleSceneScale();
         resetCrossScaleInstrumentFade();
         onCancel?.();
@@ -195,6 +210,7 @@ export function startCrossScaleArrivalGlide(params: CrossScaleArrivalGlideParams
 
   transitionToPose(landingPose, {
     duration: arrival.durationSec,
+    easing: easeOutCubic,
     translationWindow: config.zoomOutMoveWindow,
     orientationWindow: config.zoomOutTiltWindow,
     onProgress: (p) => {

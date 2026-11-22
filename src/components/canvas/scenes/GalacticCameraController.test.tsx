@@ -519,6 +519,13 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
     expect(mockCamera.up.x).toBeCloseTo(expectedEntry.up[0], 4);
     expect(mockCamera.up.y).toBeCloseTo(expectedEntry.up[1], 4);
     expect(mockCamera.up.z).toBeCloseTo(expectedEntry.up[2], 4);
+    expect(getCrossScalePlanePreviewState().opacity).toBe(1);
+
+    // Mid-arrival (0.5 of arrivalSec): preview stays at full opacity while pulling back and tilting
+    act(() => {
+      advanceTransitionFrames([6000 + durations.arrivalSec * 500], nowSpy);
+    });
+    expect(getCrossScalePlanePreviewState().opacity).toBe(1);
 
     // Complete arrival -> preview disc begins contracting for durations.previewSec
     act(() => {

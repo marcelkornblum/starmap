@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { GALACTIC_FRAME, PLANETARY_FRAME, SYSTEM_FRAME } from '../config/referenceFrames';
 import { DEG_TO_RADIANS, EARTH_OBLIQUITY_DEG } from './astroCoordinates';
 import { easeOutCubic } from './cameraEasing';
 import {
@@ -11,10 +12,12 @@ import {
   GALACTIC_TO_ECLIPTIC_TILT_DEG,
   computeCrossScaleArrivalFade,
   computeCrossScaleDepartureFade,
+  computeCrossScalePreviewHandoffOpacity,
   computeCrossScaleSceneScale,
   computeCrossScaleStageDurations,
   evaluateWindowedProgress,
   getCrossScaleTiltRad,
+  getReferenceFrameRadius,
   getScaleRank,
   normaliseWindowProgress,
   resolveTargetReferencePlane,
@@ -80,11 +83,12 @@ describe('referenceFrameOrientation', () => {
     expect(evaluateWindowedProgress(0.8, [0, 0.5])).toBe(1);
   });
 
-  it('computes cross-scale departure fade with default [0.25, 1.0] window and supports custom config', () => {
+  it('computes cross-scale departure fade with default [0.15, 0.95] window and supports custom config', () => {
     expect(computeCrossScaleDepartureFade(-0.2)).toBe(1);
     expect(computeCrossScaleDepartureFade(0)).toBe(1);
-    expect(computeCrossScaleDepartureFade(0.25)).toBe(1);
-    expect(computeCrossScaleDepartureFade(0.625)).toBeCloseTo(1 - easeOutCubic(0.5), 8);
+    expect(computeCrossScaleDepartureFade(0.15)).toBe(1);
+    expect(computeCrossScaleDepartureFade(0.55)).toBeCloseTo(1 - easeOutCubic(0.5), 8);
+    expect(computeCrossScaleDepartureFade(0.95)).toBe(0);
     expect(computeCrossScaleDepartureFade(1.0)).toBe(0);
     expect(computeCrossScaleDepartureFade(1.2)).toBe(0);
 
@@ -99,11 +103,11 @@ describe('referenceFrameOrientation', () => {
     );
   });
 
-  it('computes cross-scale arrival fade with default [0.0, 0.75] window and supports custom config', () => {
+  it('computes cross-scale arrival fade with default [0.0, 0.55] window and supports custom config', () => {
     expect(computeCrossScaleArrivalFade(-0.1)).toBe(0);
     expect(computeCrossScaleArrivalFade(0)).toBe(0);
-    expect(computeCrossScaleArrivalFade(0.375)).toBeCloseTo(easeOutCubic(0.5), 8);
-    expect(computeCrossScaleArrivalFade(0.75)).toBe(1);
+    expect(computeCrossScaleArrivalFade(0.275)).toBeCloseTo(easeOutCubic(0.5), 8);
+    expect(computeCrossScaleArrivalFade(0.55)).toBe(1);
     expect(computeCrossScaleArrivalFade(1.0)).toBe(1);
 
     const customConfig: CrossScaleChoreographyConfig = {
@@ -115,6 +119,31 @@ describe('referenceFrameOrientation', () => {
     expect(computeCrossScaleArrivalFade(0.8, customConfig)).toBe(1);
   });
 
+  it('computes cross-scale preview handoff opacity with default [0.0, 0.45] window and supports custom config', () => {
+    expect(computeCrossScalePreviewHandoffOpacity(-0.1)).toBe(1);
+    expect(computeCrossScalePreviewHandoffOpacity(0)).toBe(1);
+    expect(computeCrossScalePreviewHandoffOpacity(0.225)).toBeCloseTo(1 - easeOutCubic(0.5), 8);
+    expect(computeCrossScalePreviewHandoffOpacity(0.45)).toBe(0);
+    expect(computeCrossScalePreviewHandoffOpacity(1.0)).toBe(0);
+
+    const customConfig: CrossScaleChoreographyConfig = {
+      ...DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
+      arrivalPreviewFadeWindow: [0.1, 0.7],
+    };
+    expect(computeCrossScalePreviewHandoffOpacity(0.05, customConfig)).toBe(1);
+    expect(computeCrossScalePreviewHandoffOpacity(0.4, customConfig)).toBeCloseTo(
+      1 - easeOutCubic(0.5),
+      8,
+    );
+    expect(computeCrossScalePreviewHandoffOpacity(0.7, customConfig)).toBe(0);
+  });
+
+  it('returns each SpatialScale reference frame radius from ReferenceFrame config', () => {
+    expect(getReferenceFrameRadius('galaxy')).toBe(GALACTIC_FRAME.radius);
+    expect(getReferenceFrameRadius('system')).toBe(SYSTEM_FRAME.radius);
+    expect(getReferenceFrameRadius('planet')).toBe(PLANETARY_FRAME.radius);
+  });
+
   it('exports default CrossScaleChoreographyConfig and computes stage durations', () => {
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.totalDurationSec).toBe(2.4);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.planePreviewFraction).toBeCloseTo(0.4 / 2.4, 8);
@@ -124,8 +153,9 @@ describe('referenceFrameOrientation', () => {
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.zoomInMoveWindow).toEqual([0.15, 1.0]);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.zoomOutMoveWindow).toEqual([0.0, 0.85]);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.zoomOutTiltWindow).toEqual([0.35, 1.0]);
-    expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.departureFadeWindow).toEqual([0.25, 1.0]);
-    expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.arrivalFadeWindow).toEqual([0.0, 0.75]);
+    expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.departureFadeWindow).toEqual([0.15, 0.95]);
+    expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.arrivalFadeWindow).toEqual([0.0, 0.55]);
+    expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.arrivalPreviewFadeWindow).toEqual([0.0, 0.45]);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.minSceneScale).toBe(0.04);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.departureInDistanceMultiplier).toBe(0.22);
     expect(DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.departureOutDistanceMultiplier).toBe(2.2);
