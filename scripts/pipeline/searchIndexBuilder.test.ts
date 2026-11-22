@@ -51,6 +51,38 @@ describe('searchIndexBuilder', () => {
         hasHabitableCandidate: true,
         sectorId: 'sector_+000_+000_+000',
       },
+      {
+        id: 'sirius',
+        name: 'Sirius',
+        properName: 'Sirius',
+        x: -1.61,
+        y: 2.08,
+        z: -0.25,
+        dist: 2.64,
+        mag: -1.46,
+        absmag: 1.42,
+        spect: 'A1V',
+        starCount: 2,
+        planetCount: 0,
+        hasHabitableCandidate: false,
+        sectorId: 'sector_-001_+001_-001',
+      },
+      {
+        id: 'tau-ceti',
+        name: 'Tau Ceti',
+        properName: 'Tau Ceti',
+        x: 3.156,
+        y: 1.54,
+        z: -1.003,
+        dist: 3.652,
+        mag: 3.5,
+        absmag: 5.69,
+        spect: 'G8V',
+        starCount: 1,
+        planetCount: 2,
+        hasHabitableCandidate: true,
+        sectorId: 'sector_+000_+000_-025',
+      },
     ];
 
     const manifests: SystemManifest[] = [
@@ -93,6 +125,17 @@ describe('searchIndexBuilder', () => {
         dist: 2000,
         designations: ['M1', 'NGC 1952'],
         description: 'Supernova remnant',
+      },
+      {
+        id: 'orion-nebula',
+        name: 'Orion Nebula',
+        type: 'EmissionNebula',
+        x: -350,
+        y: -150,
+        z: -120,
+        dist: 412,
+        designations: ['M42', 'NGC 1976'],
+        description: 'Diffuse nebula',
       },
     ];
 
@@ -149,26 +192,52 @@ describe('searchIndexBuilder', () => {
           tags: ['Spacecraft'],
           isCoreSearch: true,
         },
+        {
+          id: 'halley',
+          name: "Halley's Comet",
+          classification: 'Comet',
+          parentBodyId: 'sol',
+          meanRadiusKm: 5.5,
+          orbit: dummyOrbit(17.834),
+          isCoreSearch: false,
+        },
       ],
-      referencedLayerIds: new Set(['tau-ceti']),
+      layerEntries: [
+        {
+          i: 'canon-sol-prime',
+          k: 7,
+          n: 'Sol Prime',
+          a: 'sol-prime',
+        },
+      ],
+      referencedLayerIds: new Set(['tau-ceti', 'tau-ceti-e', 'orion-nebula', 'halley']),
     });
 
     expect(indices.startup.v).toBe(1);
     expect(indices.startup.c).toBeGreaterThan(0);
     expect(indices.startup.d.every((e) => e.a === undefined)).toBe(true);
+    // Sol system star & primary bodies + constructs + layers + layer-referenced items
+    expect(indices.startup.d.some((e) => e.i === 'sol')).toBe(true);
     expect(indices.startup.d.some((e) => e.i === 'earth')).toBe(true);
     expect(indices.startup.d.some((e) => e.i === 'moon' && e.o === 'earth')).toBe(true);
-    expect(indices.startup.d.some((e) => e.i === 'crab-nebula')).toBe(true);
     expect(indices.startup.d.some((e) => e.i === 'voyager-1')).toBe(true);
-    // Bulk minor bodies (without o / not construct / not layer-referenced) are excluded from startup
+    expect(indices.startup.d.some((e) => e.i === 'canon-sol-prime')).toBe(true);
+    expect(indices.startup.d.some((e) => e.i === 'tau-ceti')).toBe(true);
+    expect(indices.startup.d.some((e) => e.i === 'tau-ceti-e')).toBe(true);
+    expect(indices.startup.d.some((e) => e.i === 'orion-nebula')).toBe(true);
+    expect(indices.startup.d.some((e) => e.i === 'halley')).toBe(true);
+    // Unreferenced stars, exoplanets, structures, and bulk minor bodies are excluded from startup
+    expect(indices.startup.d.some((e) => e.i === 'sirius')).toBe(false);
+    expect(indices.startup.d.some((e) => e.i === 'tau-ceti-f')).toBe(false);
+    expect(indices.startup.d.some((e) => e.i === 'crab-nebula')).toBe(false);
     expect(indices.startup.d.some((e) => e.i === 'vesta')).toBe(false);
     expect(indices.startup.d.some((e) => e.i === 'pha-99942')).toBe(false);
 
     expect(indices.core.c).toBeGreaterThan(0);
-    expect(indices.stars.c).toBe(1);
+    expect(indices.stars.c).toBe(3); // sol, sirius, tau-ceti
     expect(indices.planets.c).toBe(4); // tau-ceti-e, tau-ceti-f, earth, moon
-    expect(indices.structures.c).toBe(1);
-    expect(indices.minorBodies.c).toBe(3); // vesta, pha-99942, voyager-1
+    expect(indices.structures.c).toBe(2); // crab-nebula, orion-nebula
+    expect(indices.minorBodies.c).toBe(4); // vesta, pha-99942, voyager-1, halley
 
     const earth = indices.planets.d.find((e) => e.i === 'earth');
     expect(earth?.z).toBe(1);

@@ -87,33 +87,31 @@ export function buildSearchIndices(
     startupEntries.push(stripSearchAliases(entry));
   };
 
-  for (const entry of coreEntries) {
-    if (entry.k !== 6 || Boolean(entry.o) || entry.u === 'construct') {
+  for (const entry of starsEntries) {
+    if (entry.h === 1 || input.referencedLayerIds?.has(entry.i)) {
       addStartupEntry(entry);
     }
   }
-  for (const entry of structuresEntries) {
-    addStartupEntry(entry);
-  }
-  for (const entry of layerEntries) {
-    addStartupEntry(entry);
+  for (const entry of planetsEntries) {
+    if (entry.h === 1 || input.referencedLayerIds?.has(entry.i)) {
+      addStartupEntry(entry);
+    }
   }
   for (const entry of minorBodiesEntries) {
     if (
-      Boolean(entry.o) ||
-      entry.u === 'construct' ||
+      (entry.h === 1 && (Boolean(entry.o) || entry.u === 'construct')) ||
       input.referencedLayerIds?.has(entry.i)
     ) {
       addStartupEntry(entry);
     }
   }
-  if (input.referencedLayerIds && input.referencedLayerIds.size > 0) {
-    for (const entry of starsEntries) {
-      if (input.referencedLayerIds.has(entry.i)) addStartupEntry(entry);
+  for (const entry of structuresEntries) {
+    if (input.referencedLayerIds?.has(entry.i)) {
+      addStartupEntry(entry);
     }
-    for (const entry of planetsEntries) {
-      if (input.referencedLayerIds.has(entry.i)) addStartupEntry(entry);
-    }
+  }
+  for (const entry of layerEntries) {
+    addStartupEntry(entry);
   }
 
   return {

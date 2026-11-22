@@ -33,6 +33,7 @@ async function runWarmup(includeMinorBodies: boolean): Promise<void> {
     await Promise.allSettled([
       fetchSearchShard('stars'),
       fetchSearchShard('planets'),
+      fetchSearchShard('structures'),
     ]);
   }
   if (includeMinorBodies && !hasStartedMinorBodiesWarmup) {
@@ -42,7 +43,7 @@ async function runWarmup(includeMinorBodies: boolean): Promise<void> {
 }
 
 /**
- * Schedules post-idle background loading of `stars`, `planets`, and (unless
+ * Schedules post-idle background loading of `stars`, `planets`, `structures`, and (unless
  * `navigator.connection.saveData` is true) `minor-bodies` after initial hydration settles.
  */
 export function scheduleSearchBackgroundWarmup(delayMs = 8000): void {
@@ -69,7 +70,7 @@ export function scheduleSearchBackgroundWarmup(delayMs = 8000): void {
 
 /**
  * Cancels any pending idle delay and immediately starts background warming
- * (`stars`, `planets`, and optionally `minor-bodies`) when the user interacts with Search.
+ * (`stars`, `planets`, `structures`, and optionally `minor-bodies`) when the user interacts with Search.
  */
 export function escalateSearchBackgroundWarmup(options?: {
   readonly includeMinorBodies?: boolean;

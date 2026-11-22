@@ -11,6 +11,7 @@ Candidate features and ideas awaiting formal track planning. This is the **singl
 - **First-Visit Introductory Message:** Concise, dismissible first-visit onboarding overlay introducing Starmap, its spatial scales (`Galaxy` / `System` / `Planet`), primary controls, and quick entry points; dismissal persisted in `useSettingsStore`.
 - **Local Night-Sky View to 3D Third-Person Projection (`FS-004`):** Enter an Earth location (lat/long or place) and optional time (defaults to "now") to view the local 2D night-sky dome rotated to that orientation, highlight/select visible stars in the sky view, and pull the camera out to a third-person 3D galactic projection to inspect the true 3D spatial distribution and depth of those stars.
 - **Celestial Command Palette (`Cmd+K` / `/`):** Fast search-and-jump modal palette to locate stars, exoplanets, constellations, or toggle visual rendering layers. Not started — no prototype exists (the `Cmd+K` binding itself is part of the [`interaction-controls`](./tracks/interaction-controls_20261010/spec.md) shortcut registry). Natural home alongside the search surfaces ("Search scope & filters" below).
+- **Zoom Ceiling & Boundary Clamp HUD Indicator:** Subtle, non-intrusive spatial HUD feedback when the camera reaches the active zoom ceiling (dense-catalogue horizon limit or device-tier cap) or any future spatial pan clamp, communicating why further zoom-out is bounded (e.g. dense survey horizon vs hardware ceiling) without blocking navigation.
 
 ---
 

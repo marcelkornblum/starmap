@@ -258,6 +258,31 @@ describe('searchRepository (AUD-090 & DEC-R043)', () => {
       expect(upgraded?.map((e) => e.i)).toEqual(['sol', 'faint-star', 'faint-planet']);
     });
 
+    it('upgrades startup corpus as soon as structures shard is cached alone', async () => {
+      clearSearchRepositoryCache();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => ({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          v: 1,
+          i: url,
+          n: url,
+          c: 1,
+          t: '2026-10-17T00:00:00Z',
+          d: url.includes('startup')
+            ? [{ i: 'sol', n: 'Sol' }]
+            : [{ i: 'crab-nebula', n: 'Crab Nebula' }],
+        }),
+      }));
+
+      await loadSearchCorpusForFilter('startup', mockFetch as unknown as typeof fetch);
+      await fetchSearchShard('structures', mockFetch as unknown as typeof fetch);
+
+      const upgraded = getCachedCorpusForFilter('startup');
+      expect(upgraded?.map((e) => e.i)).toEqual(['sol', 'crab-nebula']);
+    });
+
     it('resolves cached search entries in O(1) via getCachedSearchEntryById and invalidates on cache updates', async () => {
       clearSearchRepositoryCache();
       expect(getCachedSearchEntryById('entity-stars')).toBeUndefined();
