@@ -3,6 +3,7 @@ import React from 'react';
 import { render, act } from '@testing-library/react';
 import type { SpatialEntityDefinition } from '../entity';
 import type { SystemSummaryNode } from '../../../types/astro';
+import { getDeviceTierBudget } from '../../../services/deviceTierService';
 
 let capturedEntities: SpatialEntityDefinition[] = [];
 let triggerHydration: ((summaries: readonly SystemSummaryNode[]) => void) | undefined;
@@ -184,5 +185,63 @@ describe('GalaxyScene - Streamed Stars Deduplication & Classification Derivation
     });
 
     expect(capturedEntities).toBe(firstCapture);
+  });
+
+  it('retains all explicitly selected additionalEntities beyond ceilingRadiusSq when hasReachedCeiling is true', () => {
+    const budget = getDeviceTierBudget();
+    const maxActive = Math.min(budget.maxActiveEntities, GALAXY_SCENE_MAX_STREAMED_ENTITIES);
+    const hydratedSummaries = Array.from({ length: maxActive }, (_, idx) => {
+      const dist = idx === maxActive - 1 ? 10 : (idx / maxActive) * 9.5;
+      return makeStreamedSummary(`star-${idx}`, `Star ${idx}`, dist, 0, 0);
+    });
+
+    const selectedNear: SpatialEntityDefinition = {
+      id: 'selected-near',
+      name: 'Selected Near',
+      classification: 'stellar-system',
+      position: [2, 0, 0],
+    };
+    const selectedFar: SpatialEntityDefinition = {
+      id: 'selected-far',
+      name: 'Selected Far',
+      classification: 'stellar-system',
+      position: [50, 0, 0],
+    };
+
+    render(<GalaxyScene additionalEntities={[selectedNear, selectedFar]} />);
+
+    act(() => {
+      triggerHydration?.(hydratedSummaries);
+    });
+
+    const ids = new Set(capturedEntities.map((e) => e.id));
+    expect(ids.has('selected-near')).toBe(true);
+    expect(ids.has('selected-far')).toBe(true);
+  });
+
+  it('culls bulk overlay additionalEntities (> 24) beyond ceilingRadiusSq when hasReachedCeiling is true', () => {
+    const budget = getDeviceTierBudget();
+    const maxActive = Math.min(budget.maxActiveEntities, GALAXY_SCENE_MAX_STREAMED_ENTITIES);
+    const hydratedSummaries = Array.from({ length: maxActive }, (_, idx) => {
+      const dist = idx === maxActive - 1 ? 10 : (idx / maxActive) * 9.5;
+      return makeStreamedSummary(`star-${idx}`, `Star ${idx}`, dist, 0, 0);
+    });
+
+    const bulkOverlay: SpatialEntityDefinition[] = Array.from({ length: 25 }, (_, idx) => ({
+      id: `bulk-${idx}`,
+      name: `Bulk ${idx}`,
+      classification: 'stellar-system',
+      position: idx === 24 ? [50, 0, 0] : [2, 0, 0],
+    }));
+
+    render(<GalaxyScene additionalEntities={bulkOverlay} />);
+
+    act(() => {
+      triggerHydration?.(hydratedSummaries);
+    });
+
+    const ids = new Set(capturedEntities.map((e) => e.id));
+    expect(ids.has('bulk-0')).toBe(true);
+    expect(ids.has('bulk-24')).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildResultTargetLink,
   resolveFocusedEntityFromCorpus,
+  resolveSelectedEntitiesForScope,
   resolveSelectedSystemsFromSearchResults,
   toSearchResultItem,
 } from './searchSelection';
@@ -32,6 +33,17 @@ describe('searchSelection', () => {
     expect(item.targetView).toBe('galaxy');
     expect(item.href).toBe('/galaxy?focus=tau-ceti&select=tag:habitable-candidate');
     expect(item.hasHabitableCandidate).toBe(true);
+
+    const moonEntry: CompactSearchEntry = {
+      i: 'titan',
+      k: 3,
+      n: 'Titan',
+      s: 'sol',
+      o: 'saturn',
+      h: 1,
+    };
+    const moonItem = toSearchResultItem(moonEntry, 900, 'Sol');
+    expect(moonItem.parentBodyId).toBe('saturn');
   });
 
   it('resolves selected systems from search results', () => {
@@ -85,5 +97,57 @@ describe('searchSelection', () => {
       position: [0, 0, 0],
       classification: 'stellar-system',
     });
+  });
+
+  it('resolves scope-aware entity IDs across galaxy, system, and planet scopes', () => {
+    const scopeCorpus: readonly CompactSearchEntry[] = [
+      ...SAMPLE_CORPUS,
+      {
+        i: 'titan',
+        n: 'Titan',
+        s: 'sol',
+        o: 'saturn',
+        k: 3,
+        h: 1,
+        a: 'titan',
+      },
+      {
+        i: 'titania',
+        n: 'Titania',
+        s: 'sol',
+        o: 'uranus',
+        k: 3,
+        h: 1,
+        a: 'titania',
+      },
+      {
+        i: 'canon-test',
+        n: 'Titan Canon Layer',
+        k: 7,
+        w: 'canon-test',
+        a: 'titan',
+      },
+    ];
+
+    const titanResults = executeCatalogSearch(scopeCorpus, {
+      query: 'titan',
+      filter: 'all',
+    });
+
+    expect(resolveSelectedEntitiesForScope(titanResults, 'galaxy')).toEqual(['sol']);
+    expect(resolveSelectedEntitiesForScope(titanResults, 'system')).toEqual([
+      'saturn',
+      'uranus',
+    ]);
+    expect(resolveSelectedEntitiesForScope(titanResults, 'planet')).toEqual([
+      'titan',
+      'titania',
+    ]);
+
+    const earthResults = executeCatalogSearch(scopeCorpus, {
+      query: 'Earth',
+      filter: 'all',
+    });
+    expect(resolveSelectedEntitiesForScope(earthResults, 'system')).toEqual(['earth']);
   });
 });

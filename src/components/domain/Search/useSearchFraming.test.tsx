@@ -12,8 +12,13 @@ import type { AppRouterAdapter } from '../../../hooks/useSpaLocation';
 import { searchCatalog } from './searchHelpers';
 import {
   consumeSearchFocusForViewTransition,
+  getPreSearchOrigin,
   resetSearchFocusContinuity,
 } from './searchFocusContinuity';
+import {
+  getPendingSpatialRouteTarget,
+  setPendingSpatialNavigationHref,
+} from '../../../utils/spatialRoute';
 import {
   appendSearchParamsToHref,
   useSearchFraming,
@@ -88,6 +93,7 @@ describe('useSearchFraming', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     resetSearchFocusContinuity();
+    setPendingSpatialNavigationHref(null);
     useCameraStore.getState().reset();
     useUIStore.getState().resetUI();
   });
@@ -865,5 +871,177 @@ describe('useSearchFraming', () => {
       vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
     });
     expect(useCameraStore.getState().pendingSearchFrame).not.toBeNull();
+  });
+
+  it('preserves preSearchOrigin across view unmount/remount and returns to saved pathname and camera pose when search is cleared', () => {
+    const multiSolCorpus: readonly CompactSearchEntry[] = [
+      ...FRAMING_CORPUS,
+      {
+        i: 'titan',
+        n: 'Titan',
+        s: SOL_REFERENCE_TARGET.id,
+        o: 'saturn',
+        k: 3,
+        u: 'terrestrial',
+        h: 1,
+        a: 'titan',
+      },
+      {
+        i: 'titania',
+        n: 'Titania',
+        s: SOL_REFERENCE_TARGET.id,
+        o: 'uranus',
+        k: 3,
+        u: 'terrestrial',
+        h: 1,
+        a: 'titania',
+      },
+    ];
+    const { router: galaxyRouter, navigate: galaxyNavigate } = createMockRouter('/galaxy', '');
+    useCameraStore.getState().setCameraPose({
+      position: [5, -2, 45],
+      target: [5, -2, 3],
+      focalDistance: 42,
+    });
+
+    const titanResults = searchCatalog(multiSolCorpus, {
+      query: 'titan',
+      filter: 'all',
+    });
+
+    const galaxyHook = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: '/galaxy',
+          activeSearch: '',
+          query: '',
+          filter: 'all',
+          status: 'idle',
+          results: searchCatalog([], { query: '', filter: 'all' }),
+          initialCorpus: multiSolCorpus,
+          router: galaxyRouter,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    act(() => {
+      galaxyHook.result.current.markUserSearchActivity();
+    });
+    galaxyHook.rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=titan',
+      query: 'titan',
+      filter: 'all',
+      status: 'ready',
+      results: titanResults,
+      initialCorpus: multiSolCorpus,
+      router: galaxyRouter,
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+
+    expect(galaxyNavigate).toHaveBeenCalledWith({
+      href: `${SOL_REFERENCE_TARGET.href}?q=titan`,
+    });
+    expect(getPreSearchOrigin()).toEqual({
+      pathname: '/galaxy',
+      search: '?q=titan',
+      target: [5, -2, 3],
+      distance: 42,
+    });
+
+    // Unmount Galaxy SearchRoot and mount System SearchRoot (cross-scale transition)
+    galaxyHook.unmount();
+    useCameraStore.getState().clearSearchFrame();
+    setPendingSpatialNavigationHref(null);
+
+    const { router: solRouter, navigate: solNavigate } = createMockRouter(
+      SOL_REFERENCE_TARGET.href,
+      '?q=titan',
+    );
+    const solHook = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: SOL_REFERENCE_TARGET.href,
+          activeSearch: '?q=titan',
+          query: 'titan',
+          filter: 'all',
+          status: 'ready',
+          results: titanResults,
+          initialCorpus: multiSolCorpus,
+          router: solRouter,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    // Clear search in /system/sol -> must restore saved preSearchOrigin target/distance and navigate back to /galaxy
+    solHook.rerender({
+      enabled: true,
+      activePathname: SOL_REFERENCE_TARGET.href,
+      activeSearch: '',
+      query: '',
+      filter: 'all',
+      status: 'idle',
+      results: searchCatalog([], { query: '', filter: 'all' }),
+      initialCorpus: multiSolCorpus,
+      router: solRouter,
+    });
+
+    expect(getPreSearchOrigin()).toBeNull();
+    expect(useCameraStore.getState().pendingSearchFrame).toMatchObject({
+      target: [5, -2, 3],
+      distance: 42,
+    });
+    expect(getPendingSpatialRouteTarget()).toEqual({ scope: 'galaxy' });
+    expect(solNavigate).toHaveBeenCalledWith({ href: '/galaxy' });
+
+    // Also verify discardPreSearchPose clears cross-scale preSearchOrigin
+    act(() => {
+      useCameraStore.getState().clearSearchFrame();
+      setPendingSpatialNavigationHref(null);
+      solHook.result.current.markUserSearchActivity();
+    });
+    solHook.rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=titan',
+      query: 'titan',
+      filter: 'all',
+      status: 'ready',
+      results: titanResults,
+      initialCorpus: multiSolCorpus,
+      router: galaxyRouter,
+    });
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+    expect(getPreSearchOrigin()).not.toBeNull();
+
+    act(() => {
+      solHook.result.current.discardPreSearchPose();
+      useCameraStore.getState().clearSearchFrame();
+    });
+    expect(getPreSearchOrigin()).toBeNull();
+    solNavigate.mockClear();
+    solHook.rerender({
+      enabled: true,
+      activePathname: SOL_REFERENCE_TARGET.href,
+      activeSearch: '',
+      query: '',
+      filter: 'all',
+      status: 'idle',
+      results: searchCatalog([], { query: '', filter: 'all' }),
+      initialCorpus: multiSolCorpus,
+      router: solRouter,
+    });
+    expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+    expect(solNavigate).not.toHaveBeenCalled();
   });
 });

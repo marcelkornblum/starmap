@@ -25,7 +25,12 @@ import {
 } from '../../../utils/spatialRoute';
 import { resolveAppHref } from '../../../utils/url';
 import type { SearchExecutionStatus } from './SearchContext';
-import { markSearchFocusForViewTransition } from './searchFocusContinuity';
+import {
+  clearPreSearchOrigin,
+  getPreSearchOrigin,
+  markSearchFocusForViewTransition,
+  setPreSearchOrigin,
+} from './searchFocusContinuity';
 import {
   appendSearchParamsToHref,
   collectSpatialItems,
@@ -39,6 +44,22 @@ export { appendSearchParamsToHref };
 
 const FALLBACK_VIEWPORT_WIDTH = 1440;
 const FALLBACK_VIEWPORT_HEIGHT = 900;
+
+function buildPreSearchReturnHref(pathname: string, search: string): string {
+  const normalizedSearch =
+    search.length > 0 && !search.startsWith('?') ? `?${search}` : search;
+  if (!normalizedSearch || normalizedSearch === '?') {
+    return pathname;
+  }
+  const params = new URLSearchParams(normalizedSearch);
+  params.delete('q');
+  params.delete('searchCategory');
+  if (params.get('select') === 'search') {
+    params.delete('select');
+  }
+  const qs = params.toString();
+  return qs.length > 0 ? `${pathname}?${qs}` : pathname;
+}
 
 export interface UseSearchFramingOptions {
   readonly enabled: boolean;
@@ -76,8 +97,6 @@ export const useSearchFraming = ({
   const hasUserTypedRef = useRef<boolean>(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const locationRef = useRef({ activePathname, activeSearch, router });
-  const preSearchPoseRef = useRef<FramedBounds | null>(null);
-  const hasFramedCurrentSearchRef = useRef<boolean>(false);
   const lastFramedBoundsRef = useRef<FramedBounds | null>(null);
 
   useEffect(() => {
@@ -101,8 +120,7 @@ export const useSearchFraming = ({
   }, [clearPendingTimer]);
 
   const discardPreSearchPose = useCallback((): void => {
-    preSearchPoseRef.current = null;
-    hasFramedCurrentSearchRef.current = false;
+    clearPreSearchOrigin();
     lastFramedBoundsRef.current = null;
   }, []);
 
@@ -115,17 +133,23 @@ export const useSearchFraming = ({
       query.trim().length === 0
     ) {
       lastFramedBoundsRef.current = null;
-      if (hasFramedCurrentSearchRef.current) {
-        if (preSearchPoseRef.current !== null) {
-          useCameraStore
-            .getState()
-            .requestSearchFrame(
-              preSearchPoseRef.current.target,
-              preSearchPoseRef.current.distance,
-            );
+      const origin = getPreSearchOrigin();
+      if (origin !== null) {
+        clearPreSearchOrigin();
+        useCameraStore
+          .getState()
+          .requestSearchFrame(origin.target, origin.distance);
+        if (origin.pathname !== activePathname) {
+          const returnHref = buildPreSearchReturnHref(
+            origin.pathname,
+            origin.search,
+          );
+          const resolvedReturnHref = resolveAppHref(returnHref) ?? returnHref;
+          setPendingSpatialNavigationHref(resolvedReturnHref);
+          void locationRef.current.router?.navigate?.({
+            href: resolvedReturnHref,
+          });
         }
-        preSearchPoseRef.current = null;
-        hasFramedCurrentSearchRef.current = false;
       }
       return;
     }
@@ -176,31 +200,34 @@ export const useSearchFraming = ({
       const viewportHeight =
         typeof window !== 'undefined' ? window.innerHeight : FALLBACK_VIEWPORT_HEIGHT;
 
-      const action = resolveSearchFramingAction(framedItems, {
-        viewportWidth,
-        viewportHeight,
-        safeRect,
-        maxDistance,
-      });
-
       const {
         activePathname: currentPathname,
         activeSearch: currentSearch,
         router: currentRouter,
       } = locationRef.current;
+      const currentScope = parseSpatialRouteTarget(currentPathname)?.scope;
+
+      const action = resolveSearchFramingAction(framedItems, {
+        viewportWidth,
+        viewportHeight,
+        safeRect,
+        maxDistance,
+        currentScope,
+      });
 
       const snapshotPreSearchPose = (): void => {
-        if (preSearchPoseRef.current === null) {
+        if (getPreSearchOrigin() === null) {
           const cam = useCameraStore.getState();
-          preSearchPoseRef.current = {
+          setPreSearchOrigin({
+            pathname: currentPathname,
+            search: currentSearch,
             target: [cam.target[0], cam.target[1], cam.target[2]],
             distance: Math.max(cam.focalDistance, MIN_SEARCH_FRAMING_DISTANCE_PC),
-          };
+          });
         }
-        hasFramedCurrentSearchRef.current = true;
       };
 
-      if (action.kind === 'enter-sol-system') {
+      if (action.kind === 'enter-scale') {
         lastFramedBoundsRef.current = null;
         if (!isAlreadyAtTarget(currentPathname, currentSearch, action.href)) {
           snapshotPreSearchPose();
@@ -215,7 +242,6 @@ export const useSearchFraming = ({
 
       if (action.kind === 'frame-galaxy') {
         snapshotPreSearchPose();
-        const currentScope = parseSpatialRouteTarget(currentPathname)?.scope;
         const shouldFrame =
           currentScope !== 'galaxy' ||
           !isWithinFramedBounds(lastFramedBoundsRef.current, action.target, action.distance);

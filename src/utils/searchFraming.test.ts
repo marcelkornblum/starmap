@@ -237,17 +237,19 @@ describe('searchFraming utility', () => {
       });
     });
 
-    it('returns enter-sol-system for a single Solar System planet or moon match', () => {
+    it('returns enter-scale for a single Solar System planet or moon match', () => {
       const solPlanet: SearchFramingItem = {
         id: 'sol-planet-1',
         category: 'planets',
         entityKind: 'planet',
         href: `${SOL_REFERENCE_TARGET.href}?focus=sol-planet-1`,
         isSolarSystem: true,
+        systemId: SOL_REFERENCE_TARGET.id,
         position: [0, 0, 0],
       };
       expect(resolveSearchFramingAction([solPlanet])).toEqual({
-        kind: 'enter-sol-system',
+        kind: 'enter-scale',
+        targetScope: 'system',
         targetId: 'sol-planet-1',
         href: `${SOL_REFERENCE_TARGET.href}?focus=sol-planet-1`,
       });
@@ -258,9 +260,12 @@ describe('searchFraming utility', () => {
         entityKind: 'moon',
         href: '/planet/sol-planet-1?focus=sol-moon-1',
         isSolarSystem: true,
+        systemId: SOL_REFERENCE_TARGET.id,
+        parentBodyId: 'sol-planet-1',
       };
       expect(resolveSearchFramingAction([solMoon])).toEqual({
-        kind: 'enter-sol-system',
+        kind: 'enter-scale',
+        targetScope: 'planet',
         targetId: 'sol-moon-1',
         href: '/planet/sol-planet-1?focus=sol-moon-1',
       });
@@ -341,7 +346,7 @@ describe('searchFraming utility', () => {
       });
     });
 
-    it('returns enter-sol-system targeting Sol root without arbitrary body focus when multiple matches are all Solar System non-star bodies', () => {
+    it('returns enter-scale targeting Sol root without arbitrary body focus when multiple matches are all Solar System non-star bodies', () => {
       const matches: readonly SearchFramingItem[] = [
         {
           id: 'sol-moon-a',
@@ -349,6 +354,8 @@ describe('searchFraming utility', () => {
           entityKind: 'moon',
           href: '/planet/sol-planet-a?focus=sol-moon-a',
           isSolarSystem: true,
+          systemId: SOL_REFERENCE_TARGET.id,
+          parentBodyId: 'sol-planet-a',
         },
         {
           id: 'sol-minor-b',
@@ -356,13 +363,110 @@ describe('searchFraming utility', () => {
           entityKind: 'minor-body',
           href: `${SOL_REFERENCE_TARGET.href}?focus=sol-minor-b`,
           isSolarSystem: true,
+          systemId: SOL_REFERENCE_TARGET.id,
         },
       ];
 
       expect(resolveSearchFramingAction(matches)).toEqual({
-        kind: 'enter-sol-system',
+        kind: 'enter-scale',
+        targetScope: 'system',
         targetId: SOL_REFERENCE_TARGET.id,
         href: SOL_REFERENCE_TARGET.href,
+      });
+    });
+
+    it('returns enter-scale targeting shared parent planet when multiple moons share parentBodyId', () => {
+      const galileanMatches: readonly SearchFramingItem[] = [
+        {
+          id: 'io',
+          category: 'planets',
+          entityKind: 'moon',
+          href: '/planet/jupiter?focus=io',
+          isSolarSystem: true,
+          systemId: SOL_REFERENCE_TARGET.id,
+          parentBodyId: 'jupiter',
+        },
+        {
+          id: 'europa',
+          category: 'planets',
+          entityKind: 'moon',
+          href: '/planet/jupiter?focus=europa',
+          isSolarSystem: true,
+          systemId: SOL_REFERENCE_TARGET.id,
+          parentBodyId: 'jupiter',
+        },
+      ];
+
+      expect(resolveSearchFramingAction(galileanMatches, { currentScope: 'galaxy' })).toEqual({
+        kind: 'enter-scale',
+        targetScope: 'planet',
+        targetId: 'jupiter',
+        href: '/planet/jupiter',
+      });
+    });
+
+    it('enters shared exoplanet or system based on currentScope for non-Solar-System matches', () => {
+      const exoMoons: readonly SearchFramingItem[] = [
+        {
+          id: 'exo-moon-1',
+          category: 'planets',
+          entityKind: 'moon',
+          href: '/planet/exo-planet-a?focus=exo-moon-1',
+          systemId: 'exo-sys-1',
+          parentBodyId: 'exo-planet-a',
+          position: [15, 0, 0],
+        },
+        {
+          id: 'exo-moon-2',
+          category: 'planets',
+          entityKind: 'moon',
+          href: '/planet/exo-planet-a?focus=exo-moon-2',
+          systemId: 'exo-sys-1',
+          parentBodyId: 'exo-planet-a',
+          position: [15, 0, 0],
+        },
+      ];
+
+      // From galaxy, non-Solar-System bodies frame the host star system in galaxy view
+      expect(resolveSearchFramingAction(exoMoons, { currentScope: 'galaxy' })).toEqual({
+        kind: 'frame-galaxy',
+        target: [15, 0, 0],
+        distance: DEFAULT_SINGLE_RESULT_DISTANCE_PC,
+        matchCount: 1,
+      });
+
+      // From system view, moons sharing an exoplanet enter /planet/<parentBodyId>
+      expect(resolveSearchFramingAction(exoMoons, { currentScope: 'system' })).toEqual({
+        kind: 'enter-scale',
+        targetScope: 'planet',
+        targetId: 'exo-planet-a',
+        href: '/planet/exo-planet-a',
+      });
+
+      // From planet view, bodies sharing a systemId across different planets enter /system/<systemId>
+      const exoPlanets: readonly SearchFramingItem[] = [
+        {
+          id: 'exo-planet-a',
+          category: 'planets',
+          entityKind: 'planet',
+          href: '/system/exo-sys-1?focus=exo-planet-a',
+          systemId: 'exo-sys-1',
+          position: [15, 0, 0],
+        },
+        {
+          id: 'exo-planet-b',
+          category: 'planets',
+          entityKind: 'planet',
+          href: '/system/exo-sys-1?focus=exo-planet-b',
+          systemId: 'exo-sys-1',
+          position: [15, 0, 0],
+        },
+      ];
+      expect(resolveSearchFramingAction(exoPlanets, { currentScope: 'planet' })).toEqual({
+        kind: 'enter-scale',
+        targetScope: 'system',
+        targetId: 'exo-sys-1',
+        href: '/system/exo-sys-1',
       });
     });
   });

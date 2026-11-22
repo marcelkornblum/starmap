@@ -249,7 +249,7 @@ export const GalaxyScene: React.FC<GalaxySceneProps> = React.memo(({
           ? ([matchedSummary.x, matchedSummary.y, matchedSummary.z] as [number, number, number])
           : ent.position;
 
-        if (hasReachedCeiling && additionalEntities.length > 1 && Array.isArray(effectivePos)) {
+        if (hasReachedCeiling && additionalEntities.length > 24 && Array.isArray(effectivePos)) {
           const dx = effectivePos[0] - focusPointPc[0];
           const dy = effectivePos[1] - focusPointPc[1];
           const dz = effectivePos[2] - focusPointPc[2];

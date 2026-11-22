@@ -12,6 +12,7 @@ import { expandStarsShardIfEmpty, fetchAndComputeAsyncSearch } from './asyncSear
 import type { UseSearchExecutionOptions, UseSearchExecutionReturn } from './searchExecutionTypes';
 import { prefetchEntitySelection } from '../../../services/details/prefetchEntitySelection';
 import { useOptionalRouter } from '../../../hooks/useSpaLocation';
+import { parseSpatialRouteTarget } from '../../../utils/spatialRoute';
 
 export const useSearchExecution = ({
   initialQuery,
@@ -21,6 +22,7 @@ export const useSearchExecution = ({
   syncUrl,
   isSync,
   effectiveDebounceMs,
+  activePathname,
   activeSearch,
   store,
   layerIndex,
@@ -30,6 +32,7 @@ export const useSearchExecution = ({
   setIsFocused,
 }: UseSearchExecutionOptions): UseSearchExecutionReturn => {
   const router = useOptionalRouter();
+  const activeScope = parseSpatialRouteTarget(activePathname ?? '')?.scope ?? 'galaxy';
   const [query, setQueryState] = useState<string>(initialQuery);
   const [filter, setFilterState] = useState<SearchCategoryFilter>(initialFilter);
 
@@ -102,10 +105,11 @@ export const useSearchExecution = ({
           effectiveCorpus,
           layerDataRef.current.layerIndex,
           layerDataRef.current.loadedLayers,
+          activeScope,
         );
       });
     },
-    [activeSearch, initialCorpus, store],
+    [activeScope, activeSearch, initialCorpus, store],
   );
 
   const submitSearch = useCallback(

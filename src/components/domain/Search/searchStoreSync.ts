@@ -5,11 +5,13 @@ import type {
 import { findFocusedEntryInCorpus } from '../../../services/search/searchCorpusHelpers';
 import {
   resolveFocusedEntityFromCorpus,
+  resolveSelectedEntitiesForScope,
   resolveSelectedSystemsFromSearchResults,
 } from '../../../services/search/searchSelection';
 import { resolveSelectedSystemsFromUrlSelect } from '../../../services/search/searchUrlSelectionResolvers';
 import type { GroupedSearchResults } from '../../../services/search/searchTypes';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
+import type { SpatialScale } from '../../../utils/referenceFrameOrientation';
 import { extractUrlRouteStops } from '../../../services/journey/journeyProfilesAndUrls';
 import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
@@ -21,6 +23,7 @@ export const syncSelectedSystemsToStore = (
   corpus: readonly CompactSearchEntry[],
   layerIndex: readonly DatasetLayerIndexEntry[],
   loadedLayers: readonly DatasetLayerManifest[],
+  activeScope: SpatialScale = 'galaxy',
 ): void => {
   const urlSelected =
     results.query.trim().length === 0
@@ -31,11 +34,22 @@ export const syncSelectedSystemsToStore = (
           loadedLayers,
         )
       : [];
+  const state = store.getState();
+
+  if (activeScope !== 'galaxy') {
+    const candidateIds =
+      urlSelected.length > 0
+        ? urlSelected.map((s) => s.id)
+        : resolveSelectedEntitiesForScope(results, activeScope);
+    const resolvedIds = candidateIds.map((id) => state.resolveEntityId(id) ?? id);
+    state.setSelectedIds(resolvedIds);
+    return;
+  }
+
   const selectedSystems =
     urlSelected.length > 0
       ? urlSelected
       : resolveSelectedSystemsFromSearchResults(results);
-  const state = store.getState();
   for (const system of selectedSystems) {
     state.registerEntity(system);
   }

@@ -4,6 +4,7 @@ import type { CompactSearchEntry } from '../../utils/compactDataTypes';
 import { computeDistance3D } from '../../utils/spatialMath';
 import { formatSlugFallbackTitle } from '../../utils/starNaming';
 import { toUrlSlug } from '../../utils/datasetLayerSlugs';
+import type { SpatialScale } from '../../utils/referenceFrameOrientation';
 import { buildEntityOrbitTargetHref } from '../details/detailsNavigation';
 import {
   findFocusedEntryInCorpus,
@@ -84,6 +85,7 @@ export const toSearchResultItem = (
     href,
     ...(entry.s ? { systemId: entry.s } : {}),
     ...(systemName ? { systemName } : {}),
+    ...(entry.o ? { parentBodyId: entry.o } : {}),
     ...(position ? { position } : {}),
     ...(distancePc !== undefined ? { distancePc } : {}),
     ...(magnitude !== undefined ? { magnitude } : {}),
@@ -137,6 +139,42 @@ export const resolveSelectedSystemsFromSearchResults = (
   }
 
   return Array.from(systemsById.values());
+};
+
+/**
+ * Resolves deduplicated entity IDs/slugs that should be marked `selected` in
+ * `SpatialEntityStore` for the active spatial scale (`galaxy`, `system`, or `planet`).
+ */
+export const resolveSelectedEntitiesForScope = (
+  results: GroupedSearchResults,
+  scope: SpatialScale,
+): readonly string[] => {
+  if (scope === 'galaxy') {
+    return resolveSelectedSystemsFromSearchResults(results).map((s) => s.id);
+  }
+
+  const ids = new Set<string>();
+  for (const meta of SEARCH_CATEGORIES) {
+    if (meta.key === 'layers') {
+      continue;
+    }
+    const group = results.groups[meta.key];
+    for (const item of group.items) {
+      if (item.entityKind === 'layer') {
+        continue;
+      }
+      const rawId =
+        scope === 'system' && item.parentBodyId && item.parentBodyId !== item.systemId
+          ? item.parentBodyId
+          : item.id;
+      const slug = toUrlSlug(rawId) || rawId;
+      if (slug) {
+        ids.add(slug);
+      }
+    }
+  }
+
+  return Array.from(ids);
 };
 
 /**

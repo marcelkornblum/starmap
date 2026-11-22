@@ -20,6 +20,7 @@ export interface UseSearchExecutionOptions {
   readonly syncUrl: boolean;
   readonly isSync: boolean;
   readonly effectiveDebounceMs: number;
+  readonly activePathname?: string;
   readonly activeSearch: string;
   readonly store: SpatialEntityStore;
   readonly layerIndex: readonly DatasetLayerIndexEntry[];

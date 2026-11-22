@@ -1,9 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+  clearPreSearchOrigin,
   consumeSearchFocusForViewTransition,
+  getPreSearchOrigin,
   markSearchFocusForViewTransition,
   peekSearchFocusForViewTransition,
   resetSearchFocusContinuity,
+  setPreSearchOrigin,
+  type PreSearchOrigin,
 } from './searchFocusContinuity';
 
 describe('searchFocusContinuity', () => {
@@ -31,5 +35,25 @@ describe('searchFocusContinuity', () => {
     resetSearchFocusContinuity();
 
     expect(consumeSearchFocusForViewTransition()).toBe(false);
+  });
+
+  it('stores, reads, and clears module-scoped PreSearchOrigin', () => {
+    expect(getPreSearchOrigin()).toBeNull();
+
+    const origin: PreSearchOrigin = {
+      pathname: '/galaxy',
+      search: '?layer=canon-project-hail-mary',
+      target: [1, -2, 3],
+      distance: 42,
+    };
+    setPreSearchOrigin(origin);
+    expect(getPreSearchOrigin()).toEqual(origin);
+
+    clearPreSearchOrigin();
+    expect(getPreSearchOrigin()).toBeNull();
+
+    setPreSearchOrigin(origin);
+    resetSearchFocusContinuity();
+    expect(getPreSearchOrigin()).toBeNull();
   });
 });

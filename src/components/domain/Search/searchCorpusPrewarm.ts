@@ -15,6 +15,7 @@ import type { SearchCategoryFilter } from '../../../types/search';
 import { mergeActiveStarsIntoCorpus } from '../../../services/details/activeStarsCorpus';
 import { useActiveStarsStore } from '../../../stores/useActiveStarsStore';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
+import type { SpatialScale } from '../../../utils/referenceFrameOrientation';
 import type { SpatialEntityStore } from '../../canvas/entity/SpatialEntityStore';
 import type { SearchExecutionStatus } from './SearchContext';
 import {
@@ -33,6 +34,7 @@ export interface PrewarmCorpusParams {
   readonly initialQuery: string;
   readonly syncUrl: boolean;
   readonly isSearchRoute?: boolean;
+  readonly activeScope?: SpatialScale;
   readonly limitPerCategory?: number;
   readonly store: SpatialEntityStore;
   readonly layerIndex: readonly DatasetLayerIndexEntry[];
@@ -50,6 +52,7 @@ export const runSearchCorpusPrewarm = async ({
   initialQuery,
   syncUrl,
   isSearchRoute = false,
+  activeScope = 'galaxy',
   limitPerCategory,
   store,
   layerIndex,
@@ -126,6 +129,7 @@ export const runSearchCorpusPrewarm = async ({
       focusCorpus,
       layerIndex,
       loadedLayers,
+      activeScope,
     );
   }
 

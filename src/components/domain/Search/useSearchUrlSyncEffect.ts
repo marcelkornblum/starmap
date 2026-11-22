@@ -13,6 +13,7 @@ import type { SearchExecutionStatus } from './SearchContext';
 import { resolveInitialFilter, resolveInitialQuery } from './searchUrlSync';
 import { syncSelectedSystemsToStore, syncUrlFocusToStore } from './searchStoreSync';
 import { runSearchCorpusPrewarm } from './searchCorpusPrewarm';
+import { parseSpatialRouteTarget } from '../../../utils/spatialRoute';
 
 export const getSearchRelevantUrlKey = (pathname: string, search: string): string => {
   const params = new URLSearchParams(search);
@@ -76,6 +77,7 @@ export const useSearchUrlSyncEffect = ({
   const prewarmedCorpusRef = useRef<readonly CompactSearchEntry[] | null>(null);
   const initialPrewarmFiredRef = useRef<boolean>(false);
   const prevFocusSlugRef = useRef<string | null>(null);
+  const activeScope = parseSpatialRouteTarget(activePathname)?.scope ?? 'galaxy';
 
   const resolveCurrentFocusSlug = useCallback(
     (searchStr: string): string | null => {
@@ -102,6 +104,7 @@ export const useSearchUrlSyncEffect = ({
       focusCorpus,
       layerIndex,
       loadedLayers,
+      activeScope,
     );
 
     if (
@@ -162,6 +165,7 @@ export const useSearchUrlSyncEffect = ({
       initialQuery,
       syncUrl,
       isSearchRoute: activePathname === '/search',
+      activeScope,
       limitPerCategory,
       store,
       layerIndex,
@@ -182,6 +186,7 @@ export const useSearchUrlSyncEffect = ({
     };
   }, [
     activePathname,
+    activeScope,
     activeSearch,
     initialCorpus,
     initialFilter,
@@ -236,6 +241,7 @@ export const useSearchUrlSyncEffect = ({
     );
   }, [
     activePathname,
+    activeScope,
     activeSearch,
     filter,
     initialCorpus,

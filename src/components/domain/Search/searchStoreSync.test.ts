@@ -114,6 +114,103 @@ describe('searchStoreSync', () => {
       const state = store.getState();
       expect(state.selectedIds.has('sol')).toBe(true);
     });
+
+    it('resolves host planet IDs in system scope and body IDs in planet scope without overwriting existing entities', () => {
+      const corpusWithMoons: readonly CompactSearchEntry[] = [
+        ...TEST_CORPUS,
+        {
+          i: 'saturn',
+          n: 'Saturn',
+          s: 'sol',
+          k: 2,
+          u: 'gas-giant',
+          h: 1,
+        },
+        {
+          i: 'titan',
+          n: 'Titan',
+          s: 'sol',
+          o: 'saturn',
+          k: 3,
+          u: 'terrestrial',
+          h: 1,
+        },
+        {
+          i: 'uranus',
+          n: 'Uranus',
+          s: 'sol',
+          k: 2,
+          u: 'ice-giant',
+          h: 1,
+        },
+        {
+          i: 'titania',
+          n: 'Titania',
+          s: 'sol',
+          o: 'uranus',
+          k: 3,
+          u: 'terrestrial',
+          h: 1,
+        },
+      ];
+      const results = executeCatalogSearch(corpusWithMoons, {
+        query: 'titan',
+        filter: 'all',
+      });
+
+      // System scope: highlights host planets Saturn and Uranus and preserves existing 3D coordinates
+      const systemStore = createSpatialEntityStore();
+      systemStore.getState().registerEntity({
+        id: 'Saturn',
+        name: 'Saturn',
+        position: [10, 0, 5],
+        classification: 'gas-giant',
+      });
+      systemStore.getState().registerEntity({
+        id: 'uranus',
+        name: 'Uranus',
+        position: [-18, 0, 2],
+        classification: 'ice-giant',
+      });
+
+      syncSelectedSystemsToStore(
+        systemStore,
+        results,
+        '',
+        corpusWithMoons,
+        LAYER_INDEX,
+        LOADED_LAYERS,
+        'system',
+      );
+
+      const sysState = systemStore.getState();
+      expect(sysState.selectedIds).toEqual(new Set(['Saturn', 'uranus']));
+      expect(sysState.entities['Saturn']?.position).toEqual([10, 0, 5]);
+      expect(sysState.entities['titan']).toBeUndefined();
+
+      // Planet scope: highlights moon Titan itself without overwriting its orbital position
+      const planetStore = createSpatialEntityStore();
+      planetStore.getState().registerEntity({
+        id: 'titan',
+        name: 'Titan',
+        position: [3.2, 0.1, -1.4],
+        classification: 'terrestrial',
+      });
+
+      syncSelectedSystemsToStore(
+        planetStore,
+        results,
+        '',
+        corpusWithMoons,
+        LAYER_INDEX,
+        LOADED_LAYERS,
+        'planet',
+      );
+
+      const planetState = planetStore.getState();
+      expect(planetState.selectedIds).toEqual(new Set(['titan', 'titania']));
+      expect(planetState.entities['titan']?.position).toEqual([3.2, 0.1, -1.4]);
+    });
   });
 
   describe('syncUrlFocusToStore', () => {

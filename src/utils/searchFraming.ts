@@ -1,6 +1,8 @@
 import { GALACTIC_FRAME } from '../config/referenceFrames';
 import { SOL_REFERENCE_TARGET } from '../config/referenceTargets';
 import type { SearchCategoryKey } from '../types/search';
+import { toUrlSlug } from './datasetLayerSlugs';
+import type { SpatialScale } from './referenceFrameOrientation';
 import type { ViewportSafeRect } from './viewportSafeRect';
 
 export const SEARCH_FRAMING_SETTLE_MS = 600;
@@ -21,6 +23,7 @@ export interface SearchFramingBoundsOptions {
   readonly padding?: number;
   readonly minDistance?: number;
   readonly maxDistance?: number;
+  readonly currentScope?: SpatialScale;
 }
 
 export interface SearchFramingBounds {
@@ -31,7 +34,12 @@ export interface SearchFramingBounds {
 
 export type SearchFramingAction =
   | { readonly kind: 'none' }
-  | { readonly kind: 'enter-sol-system'; readonly targetId: string; readonly href: string }
+  | {
+      readonly kind: 'enter-scale';
+      readonly targetScope: 'system' | 'planet';
+      readonly targetId: string;
+      readonly href: string;
+    }
   | {
       readonly kind: 'frame-galaxy';
       readonly target: [number, number, number];
@@ -46,6 +54,8 @@ export interface SearchFramingItem {
   readonly href: string;
   readonly position?: readonly [number, number, number];
   readonly isSolarSystem?: boolean;
+  readonly systemId?: string;
+  readonly parentBodyId?: string;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -185,34 +195,105 @@ export function computeBoundingSphereFraming(
   };
 }
 
+function resolveHierarchicalScaleAction(
+  spatialMatches: readonly SearchFramingItem[],
+  currentScope?: SpatialScale,
+): SearchFramingAction | null {
+  const firstSpatialMatch = spatialMatches[0];
+  if (!firstSpatialMatch) {
+    return null;
+  }
+
+  const allSolarSystem = spatialMatches.every((item) => item.isSolarSystem === true);
+  const parentPlanetSlugs = spatialMatches.map((item) =>
+    item.parentBodyId ? toUrlSlug(item.parentBodyId) : '',
+  );
+  const firstParentPlanet = parentPlanetSlugs[0];
+  const sharesPlanet =
+    Boolean(firstParentPlanet) &&
+    parentPlanetSlugs.every((slug) => slug === firstParentPlanet);
+
+  if (
+    sharesPlanet &&
+    firstParentPlanet &&
+    (allSolarSystem || currentScope === 'system' || currentScope === 'planet')
+  ) {
+    if (spatialMatches.length === 1) {
+      return {
+        kind: 'enter-scale',
+        targetScope: 'planet',
+        targetId: firstSpatialMatch.id,
+        href: firstSpatialMatch.href,
+      };
+    }
+    return {
+      kind: 'enter-scale',
+      targetScope: 'planet',
+      targetId: firstParentPlanet,
+      href: `/planet/${encodeURIComponent(firstParentPlanet)}`,
+    };
+  }
+
+  const allNonStarBodies = spatialMatches.every(
+    (item) => item.entityKind !== 'star-system',
+  );
+  const defaultSolSlug = toUrlSlug(SOL_REFERENCE_TARGET.id);
+  const systemSlugs = spatialMatches.map((item) => {
+    if (item.systemId) {
+      return toUrlSlug(item.systemId);
+    }
+    return item.isSolarSystem === true ? defaultSolSlug : '';
+  });
+  const firstSystemSlug = systemSlugs[0];
+  const sharesSystem =
+    Boolean(firstSystemSlug) &&
+    systemSlugs.every((slug) => slug === firstSystemSlug);
+
+  if (
+    allNonStarBodies &&
+    sharesSystem &&
+    firstSystemSlug &&
+    (allSolarSystem || currentScope === 'planet')
+  ) {
+    if (spatialMatches.length === 1) {
+      const targetScope: 'system' | 'planet' =
+        firstSpatialMatch.href.startsWith('/planet/') ||
+        firstSpatialMatch.entityKind === 'moon'
+          ? 'planet'
+          : 'system';
+      return {
+        kind: 'enter-scale',
+        targetScope,
+        targetId: firstSpatialMatch.id,
+        href: firstSpatialMatch.href,
+      };
+    }
+    return {
+      kind: 'enter-scale',
+      targetScope: 'system',
+      targetId: firstSystemSlug,
+      href: `/system/${encodeURIComponent(firstSystemSlug)}`,
+    };
+  }
+
+  return null;
+}
+
 /**
  * Resolves the settled-typing camera/navigation framing action for an untruncated search
- * match list, including the single-result Solar System body exception (`FS-003`).
+ * match list, using Lowest-Common-Container scale resolution or galactic bounding sphere (`FS-003`).
  */
 export function resolveSearchFramingAction(
   fullMatches: readonly SearchFramingItem[],
   options?: SearchFramingBoundsOptions,
 ): SearchFramingAction {
   const spatialMatches = fullMatches.filter((item) => item.category !== 'layers');
-  const firstSpatialMatch = spatialMatches[0];
-  if (
-    firstSpatialMatch &&
-    spatialMatches.every(
-      (item) => item.isSolarSystem === true && item.entityKind !== 'star-system',
-    )
-  ) {
-    if (spatialMatches.length === 1) {
-      return {
-        kind: 'enter-sol-system',
-        targetId: firstSpatialMatch.id,
-        href: firstSpatialMatch.href,
-      };
-    }
-    return {
-      kind: 'enter-sol-system',
-      targetId: SOL_REFERENCE_TARGET.id,
-      href: SOL_REFERENCE_TARGET.href,
-    };
+  const hierarchicalAction = resolveHierarchicalScaleAction(
+    spatialMatches,
+    options?.currentScope,
+  );
+  if (hierarchicalAction) {
+    return hierarchicalAction;
   }
 
   const uniquePositions: [number, number, number][] = [];

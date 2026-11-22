@@ -133,6 +133,7 @@ export const SearchRoot = ({
     syncUrl,
     isSync,
     effectiveDebounceMs,
+    activePathname,
     activeSearch,
     store,
     layerIndex,
