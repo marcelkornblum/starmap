@@ -201,10 +201,17 @@ export function resolveSearchFramingAction(
       (item) => item.isSolarSystem === true && item.entityKind !== 'star-system',
     )
   ) {
+    if (spatialMatches.length === 1) {
+      return {
+        kind: 'enter-sol-system',
+        targetId: firstSpatialMatch.id,
+        href: firstSpatialMatch.href,
+      };
+    }
     return {
       kind: 'enter-sol-system',
-      targetId: firstSpatialMatch.id,
-      href: firstSpatialMatch.href,
+      targetId: SOL_REFERENCE_TARGET.id,
+      href: SOL_REFERENCE_TARGET.href,
     };
   }
 

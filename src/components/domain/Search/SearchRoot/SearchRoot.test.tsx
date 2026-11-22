@@ -6,6 +6,12 @@ import { SearchInput } from '../SearchInput';
 import { SearchResults } from '../SearchResults';
 import { SEARCH_DEBOUNCE_MS } from '../searchHelpers';
 import { SEARCH_FRAMING_SETTLE_MS } from '../../../../utils/searchFraming';
+import { SOL_REFERENCE_TARGET } from '../../../../config/referenceTargets';
+import {
+  consumeSearchFocusForViewTransition,
+  markSearchFocusForViewTransition,
+  resetSearchFocusContinuity,
+} from '../searchFocusContinuity';
 import { useCameraStore } from '../../../../stores/useCameraStore';
 import { SpatialEntityProvider } from '../../../canvas/entity/SpatialEntityProvider';
 import { createSpatialEntityStore } from '../../../canvas/entity/SpatialEntityStore';
@@ -43,6 +49,7 @@ const TEST_CORPUS: readonly CompactSearchEntry[] = [
 describe('<SearchRoot />', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    resetSearchFocusContinuity();
   });
 
   afterEach(() => {
@@ -294,5 +301,62 @@ describe('<SearchRoot />', () => {
     const link = screen.getAllByRole('link')[0];
     fireEvent.click(link);
     expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+  });
+
+  it('restores search focus, opens SearchResults, and focuses the query input at end of text when mounted after a cross-scale transition', () => {
+    const store = createSpatialEntityStore();
+    markSearchFocusForViewTransition();
+
+    const { unmount } = render(
+      <SpatialEntityProvider store={store}>
+        <SearchRoot
+          initialCorpus={TEST_CORPUS}
+          syncUrl={true}
+          syncMode={true}
+          locationPathname={SOL_REFERENCE_TARGET.href}
+          locationSearch="?focus=earth&q=Earth"
+        >
+          <SearchPanel>
+            <SearchInput />
+          </SearchPanel>
+          <SearchResults />
+        </SearchRoot>
+      </SpatialEntityProvider>,
+    );
+
+    const root = screen.getByTestId('search-root');
+    const resultsPanel = screen.getByTestId('search-results-panel');
+    const input = screen.getByRole('searchbox') as HTMLInputElement;
+
+    expect(root.getAttribute('data-search-focused')).toBe('true');
+    expect(resultsPanel.getAttribute('data-open')).toBe('true');
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe('Earth');
+    expect(input.selectionStart).toBe('Earth'.length);
+    expect(input.selectionEnd).toBe('Earth'.length);
+    expect(consumeSearchFocusForViewTransition()).toBe(false);
+
+    unmount();
+
+    // Subsequent mount without a pending transition starts unfocused
+    render(
+      <SpatialEntityProvider store={store}>
+        <SearchRoot
+          initialCorpus={TEST_CORPUS}
+          syncUrl={true}
+          syncMode={true}
+          locationPathname="/galaxy"
+          locationSearch="?q=Earth"
+        >
+          <SearchPanel>
+            <SearchInput />
+          </SearchPanel>
+          <SearchResults />
+        </SearchRoot>
+      </SpatialEntityProvider>,
+    );
+
+    expect(screen.getByTestId('search-root').getAttribute('data-search-focused')).toBe('false');
+    expect(screen.getByTestId('search-results-panel').getAttribute('data-open')).toBe('false');
   });
 });

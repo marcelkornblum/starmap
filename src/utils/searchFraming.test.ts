@@ -341,7 +341,7 @@ describe('searchFraming utility', () => {
       });
     });
 
-    it('returns enter-sol-system when multiple matches are all Solar System non-star bodies', () => {
+    it('returns enter-sol-system targeting Sol root without arbitrary body focus when multiple matches are all Solar System non-star bodies', () => {
       const matches: readonly SearchFramingItem[] = [
         {
           id: 'sol-moon-a',
@@ -361,8 +361,8 @@ describe('searchFraming utility', () => {
 
       expect(resolveSearchFramingAction(matches)).toEqual({
         kind: 'enter-sol-system',
-        targetId: 'sol-moon-a',
-        href: '/planet/sol-planet-a?focus=sol-moon-a',
+        targetId: SOL_REFERENCE_TARGET.id,
+        href: SOL_REFERENCE_TARGET.href,
       });
     });
   });

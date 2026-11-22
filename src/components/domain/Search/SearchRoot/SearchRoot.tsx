@@ -23,6 +23,10 @@ import {
 } from '../SearchContext';
 import { SEARCH_DEBOUNCE_MS } from '../searchHelpers';
 import {
+  consumeSearchFocusForViewTransition,
+  peekSearchFocusForViewTransition,
+} from '../searchFocusContinuity';
+import {
   resolveInitialFilter,
   resolveInitialQuery,
 } from '../searchUrlSync';
@@ -60,7 +64,26 @@ export const SearchRoot = ({
 }: SearchRootProps) => {
   const store = useSpatialEntityStoreApi();
   const searchRootRef = useRef<HTMLDivElement>(null);
-  const [isFocused, setIsFocused] = useState<boolean>(false);
+  const [isFocused, setIsFocused] = useState<boolean>(() =>
+    peekSearchFocusForViewTransition(),
+  );
+
+  useEffect(() => {
+    if (!consumeSearchFocusForViewTransition()) {
+      return;
+    }
+    const input =
+      searchRootRef.current?.querySelector<HTMLInputElement>('input[name="query"]');
+    if (input) {
+      input.focus({ preventScroll: true });
+      const endPos = input.value.length;
+      try {
+        input.setSelectionRange(endPos, endPos);
+      } catch {
+        // Ignore selection range errors on non-selectable input types
+      }
+    }
+  }, []);
 
   const router = useOptionalRouter();
   const spaLocation = useSpaLocation(locationPathname, locationSearch, '/');

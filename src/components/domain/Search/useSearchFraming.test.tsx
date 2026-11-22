@@ -10,7 +10,15 @@ import { useCameraStore } from '../../../stores/useCameraStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import type { AppRouterAdapter } from '../../../hooks/useSpaLocation';
 import { searchCatalog } from './searchHelpers';
-import { useSearchFraming, type UseSearchFramingOptions } from './useSearchFraming';
+import {
+  consumeSearchFocusForViewTransition,
+  resetSearchFocusContinuity,
+} from './searchFocusContinuity';
+import {
+  appendSearchParamsToHref,
+  useSearchFraming,
+  type UseSearchFramingOptions,
+} from './useSearchFraming';
 
 const FRAMING_CORPUS: readonly CompactSearchEntry[] = [
   {
@@ -79,6 +87,7 @@ function createMockRouter(pathname = '/galaxy', searchStr = ''): {
 describe('useSearchFraming', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    resetSearchFocusContinuity();
     useCameraStore.getState().reset();
     useUIStore.getState().resetUI();
   });
@@ -333,8 +342,9 @@ describe('useSearchFraming', () => {
 
     expect(navigate).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith({
-      href: `${SOL_REFERENCE_TARGET.href}?focus=earth`,
+      href: `${SOL_REFERENCE_TARGET.href}?focus=earth&q=Earth`,
     });
+    expect(consumeSearchFocusForViewTransition()).toBe(true);
     expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
 
     // When already on /system/sol?focus=earth, do not redundantly navigate
@@ -408,6 +418,7 @@ describe('useSearchFraming', () => {
     expect(navigate).toHaveBeenCalledWith({
       href: '/galaxy?q=Kepler&searchCategory=stars',
     });
+    expect(consumeSearchFocusForViewTransition()).toBe(true);
   });
 
   it('restores pre-search camera pose via requestSearchFrame when search is cleared after framing', () => {
@@ -640,5 +651,219 @@ describe('useSearchFraming', () => {
     });
 
     expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+  });
+
+  it('appendSearchParamsToHref preserves q and searchCategory without clobbering existing params', () => {
+    expect(appendSearchParamsToHref('/system/sol?focus=earth', 'Earth', 'all')).toBe(
+      '/system/sol?focus=earth&q=Earth',
+    );
+    expect(
+      appendSearchParamsToHref('/system/sol?layer=canon-x', '  titan  ', 'planets'),
+    ).toBe('/system/sol?layer=canon-x&q=titan&searchCategory=planets');
+    expect(appendSearchParamsToHref('/system/sol?focus=earth', '   ', 'all')).toBe(
+      '/system/sol?focus=earth',
+    );
+    expect(appendSearchParamsToHref('/galaxy', 'Kepler', 'stars')).toBe(
+      '/galaxy?q=Kepler&searchCategory=stars',
+    );
+  });
+
+  it('navigates to /system/sol root with preserved query and marks focus continuity on multi-match Solar System query', () => {
+    const multiSolCorpus: readonly CompactSearchEntry[] = [
+      ...FRAMING_CORPUS,
+      {
+        i: 'titan',
+        n: 'Titan',
+        s: SOL_REFERENCE_TARGET.id,
+        k: 3,
+        u: 'terrestrial',
+        h: 1,
+        a: 'titan',
+      },
+      {
+        i: 'titania',
+        n: 'Titania',
+        s: SOL_REFERENCE_TARGET.id,
+        k: 3,
+        u: 'terrestrial',
+        h: 1,
+        a: 'titania',
+      },
+    ];
+    const { router, navigate } = createMockRouter('/galaxy', '');
+    const titanResults = searchCatalog(multiSolCorpus, {
+      query: 'titan',
+      filter: 'planets',
+    });
+
+    const { result, rerender } = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: '/galaxy',
+          activeSearch: '',
+          query: '',
+          filter: 'planets',
+          status: 'idle',
+          results: searchCatalog([], { query: '', filter: 'planets' }),
+          initialCorpus: multiSolCorpus,
+          router,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    act(() => {
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=titan&searchCategory=planets',
+      query: 'titan',
+      filter: 'planets',
+      status: 'ready',
+      results: titanResults,
+      initialCorpus: multiSolCorpus,
+      router,
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith({
+      href: `${SOL_REFERENCE_TARGET.href}?q=titan&searchCategory=planets`,
+    });
+    expect(consumeSearchFocusForViewTransition()).toBe(true);
+  });
+
+  it('skips redundant requestSearchFrame when typing extra characters yields identical framed bounds (epsi -> epsil)', () => {
+    const epsiCorpus: readonly CompactSearchEntry[] = [
+      {
+        i: 'epsilon-alpha',
+        n: 'Epsilon Alpha',
+        p: [4, 2, -1],
+        m: [3.5, 'K2V', 1],
+        a: 'epsilon alpha',
+      },
+      {
+        i: 'epsilon-beta',
+        n: 'Epsilon Beta',
+        p: [-4, 2, -1],
+        m: [4.2, 'K5V', 1],
+        a: 'epsilon beta',
+      },
+    ];
+    const { router } = createMockRouter('/galaxy', '');
+    const epsiResults = searchCatalog(epsiCorpus, {
+      query: 'epsi',
+      filter: 'all',
+    });
+    const epsilResults = searchCatalog(epsiCorpus, {
+      query: 'epsil',
+      filter: 'all',
+    });
+
+    const { result, rerender } = renderHook(
+      (props: UseSearchFramingOptions) => useSearchFraming(props),
+      {
+        initialProps: {
+          enabled: true,
+          activePathname: '/galaxy',
+          activeSearch: '',
+          query: '',
+          filter: 'all',
+          status: 'idle',
+          results: searchCatalog([], { query: '', filter: 'all' }),
+          initialCorpus: epsiCorpus,
+          router,
+        } as UseSearchFramingOptions,
+      },
+    );
+
+    // 1. Type "epsi" and settle -> frames once
+    act(() => {
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=epsi',
+      query: 'epsi',
+      filter: 'all',
+      status: 'ready',
+      results: epsiResults,
+      initialCorpus: epsiCorpus,
+      router,
+    });
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+    expect(useCameraStore.getState().pendingSearchFrame).not.toBeNull();
+
+    // Clear store flag (simulating camera controller starting glide)
+    act(() => {
+      useCameraStore.getState().clearSearchFrame();
+    });
+
+    // 2. Type "epsil" (same matches, identical bounds) and settle -> skips redundant glide
+    act(() => {
+      result.current.cancelSearchFraming();
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=epsil',
+      query: 'epsil',
+      filter: 'all',
+      status: 'ready',
+      results: epsilResults,
+      initialCorpus: epsiCorpus,
+      router,
+    });
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+    expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
+
+    // 3. Clearing search restores pre-search pose and resets lastFramedBoundsRef so a new search frames again
+    act(() => {
+      result.current.cancelSearchFraming();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '',
+      query: '',
+      filter: 'all',
+      status: 'idle',
+      results: searchCatalog([], { query: '', filter: 'all' }),
+      initialCorpus: epsiCorpus,
+      router,
+    });
+    expect(useCameraStore.getState().pendingSearchFrame).not.toBeNull();
+
+    act(() => {
+      useCameraStore.getState().clearSearchFrame();
+      result.current.markUserSearchActivity();
+    });
+    rerender({
+      enabled: true,
+      activePathname: '/galaxy',
+      activeSearch: '?q=epsi',
+      query: 'epsi',
+      filter: 'all',
+      status: 'ready',
+      results: epsiResults,
+      initialCorpus: epsiCorpus,
+      router,
+    });
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_FRAMING_SETTLE_MS);
+    });
+    expect(useCameraStore.getState().pendingSearchFrame).not.toBeNull();
   });
 });
