@@ -1,4 +1,4 @@
-import type React from 'react';
+import React, { useState } from 'react';
 import { BodiesPanel } from '../components/domain/BodiesPanel';
 import { Breadcrumbs } from '../components/domain/Breadcrumbs';
 import { CanvasLayer } from '../components/domain/CanvasLayer';
@@ -11,6 +11,7 @@ import { PreviewPanel } from '../components/domain/PreviewPanel';
 import { Search } from '../components/domain/Search';
 import { SearchResultItem } from '../components/domain/SearchResultItem';
 import { SpatialShell } from '../components/domain/SpatialShell';
+import { useUIStore } from '../stores/useUIStore';
 import type { CompactSearchEntry } from '../utils/compactDataTypes';
 import { useSystemViewModel } from './useSystemViewModel';
 
@@ -23,6 +24,11 @@ export interface SystemViewProps {
 
 export const SystemView: React.FC<SystemViewProps> = (props) => {
   const { initialCorpus } = props;
+  const isCameraTransitioning = useUIStore((s) => s.isCameraTransitioning);
+  const [panelsReady, setPanelsReady] = useState(() => !isCameraTransitioning);
+  if (!isCameraTransitioning && !panelsReady) {
+    setPanelsReady(true);
+  }
   const {
     pathname,
     search,
@@ -82,7 +88,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
       }
       layerCard={<LayerCard card={activeLayerCard} />}
       detailsPanel={
-        focusedDetails ? (
+        panelsReady && focusedDetails ? (
           <DetailsPanel
             details={focusedDetails}
             schematic={orbitalSchematic}
@@ -97,7 +103,7 @@ export const SystemView: React.FC<SystemViewProps> = (props) => {
       }
       preview={activeJourney ? <PreviewPanel preview={focusedPreview} /> : null}
       minimap={<Minimap orientation={minimapOrientation} />}
-      bodies={<BodiesPanel elements={systemBodies} schematic={orbitalSchematic} />}
+      bodies={panelsReady ? <BodiesPanel elements={systemBodies} schematic={orbitalSchematic} /> : undefined}
     />
   );
 };

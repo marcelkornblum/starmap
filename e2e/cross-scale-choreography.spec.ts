@@ -90,7 +90,13 @@ test.describe('Cross-Scale Choreography Diagnostic & Regression Guard', () => {
         s.rootScope !== zoomInTrace[i - 1]?.rootScope ||
         s.slotScope !== zoomInTrace[i - 1]?.slotScope,
     );
+    const bigGaps = zoomInTrace
+      .map((s, i) =>
+        i > 0 ? { t: s.t, gapMs: s.t - (zoomInTrace[i - 1]?.t ?? s.t), slotScope: s.slotScope } : null,
+      )
+      .filter((g): g is { t: number; gapMs: number; slotScope: string | null } => g !== null && g.gapMs > 180);
     console.log(`[Zoom-In Key Events (${zoomInKeyEvents.length})]`, JSON.stringify(zoomInKeyEvents));
+    console.log(`[Zoom-In Frame Gaps >180ms]`, JSON.stringify(bigGaps));
 
     await expect(page.getByTestId('system-view-root')).toBeVisible({ timeout: 10_000 });
     await expect(rootHost).toHaveAttribute('data-camera-dist', '22.00', { timeout: 10_000 });
@@ -147,6 +153,7 @@ test.describe('Cross-Scale Choreography Diagnostic & Regression Guard', () => {
     );
     console.log(`[Zoom-Out Key Events (${zoomOutKeyEvents.length})]`, JSON.stringify(zoomOutKeyEvents));
 
+    await expect(rootHost).toHaveAttribute('data-camera-pos', preDivePos ?? '', { timeout: 5_000 });
     const postReturnPos = await rootHost.getAttribute('data-camera-pos');
     console.log(`[Post-Return Pose] pos=${postReturnPos} expected=${preDivePos}`);
 
