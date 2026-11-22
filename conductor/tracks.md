@@ -5,7 +5,7 @@
 ### Product & Spatial Feature Tracks
 - [ ] **Track: Orientation Instruments** *Link: [conductor/tracks/orientation-instruments_20261117/index.md](./tracks/orientation-instruments_20261117/index.md)* *(Compass / attitude widget and datum-plane tilt indicators; coordinate with `scene-draw-calls-and-gpu-tiering_20261121` `P-08`)*
 - [ ] **Track: Interaction Controls** *Link: [conductor/tracks/interaction-controls_20261010/index.md](./tracks/interaction-controls_20261010/index.md)* *(Input-capability detection, shortcut registry + keyboard help modal, navigation modes)*
-- [ ] **Track: Horizon Ceiling, Notable Catalogue Expansion & CI Data Artefacts** *Link: [conductor/tracks/horizon-ceiling-and-notable-catalogue_20261121/index.md](./tracks/horizon-ceiling-and-notable-catalogue_20261121/index.md)* *(2-ring active sector streaming, horizon-aware dense-catalogue edge clamp, Orthographic/GPU-tier ceiling sync, distant exoplanet & HYG v3 ingestion, `startup.json` scoping fix, untracking `public/data/` into CI-built `.br` artefacts, and `stars.json` GitHub Release asset)*
+- [~] **Track: Horizon Ceiling, Notable Catalogue Expansion & CI Data Artefacts** *Link: [conductor/tracks/horizon-ceiling-and-notable-catalogue_20261121/index.md](./tracks/horizon-ceiling-and-notable-catalogue_20261121/index.md)* *(2-ring active sector streaming, horizon-aware dense-catalogue edge clamp, Orthographic/GPU-tier ceiling sync, distant exoplanet & HYG v3 ingestion, `startup.json` scoping fix, untracking `public/data/` into CI-built `.br` artefacts, and `stars.json` GitHub Release asset)*
 
 ## Backlog
 Single backlog list: see [conductor/backlog.md](./backlog.md).

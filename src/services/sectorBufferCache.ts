@@ -6,14 +6,28 @@
  */
 
 import { decodeBinarySector, type DecodedBinarySector } from '../utils/binarySectorCodec';
-import { resolveManifestDataUrl } from '../data/dataManifestRepository';
+import {
+  fetchDataManifest,
+  getCachedDataManifest,
+  hasManifestDataPath,
+  resolveManifestDataUrl,
+} from '../data/dataManifestRepository';
+import { resolveDataUrl } from '../utils/url';
 import type { CachedSectorEntry } from './sectorSelection';
 
 export async function fetchSectorBinaryBuffer(
   sectorId: string,
   priority: 'high' | 'low' = 'low',
 ): Promise<ArrayBuffer | null> {
-  const url = await resolveManifestDataUrl(`partitions/${sectorId}.bin`);
+  const logicalPath = `partitions/${sectorId}.bin`;
+  const manifest = getCachedDataManifest() ?? (await fetchDataManifest().catch(() => null));
+  if (hasManifestDataPath(logicalPath) === false) {
+    return null;
+  }
+
+  const url = manifest
+    ? await resolveManifestDataUrl(logicalPath)
+    : resolveDataUrl(`/data/${logicalPath}`);
   try {
     const response = await fetch(url, { priority } as RequestInit);
     return response.ok ? await response.arrayBuffer() : null;

@@ -6,7 +6,7 @@ Follow strict Red-Green-Refactor TDD per [`conductor/workflow.md`](../../workflo
 
 ## Phase 1: Horizon Ceiling, 2-Ring Streaming & Camera Bounds
 
-- [ ] **Task 1.1: Expand `computeSectorRings` to 2-ring active selection**
+- [x] **Task 1.1: Expand `computeSectorRings` to 2-ring active selection** *(Shipped: unified 2-ring nearest-first `computeSectorRings` unlocking 64 active sectors on `tier3`, distant-focus clip bypass beyond 125 pc, and manifest-gated `fetchSectorBinaryBuffer` short-circuit)*
   - **Red:** Add unit tests in `src/services/sectorSelection.test.ts` and `src/services/sectorStreamingService.test.ts` verifying `activeSectorIds` expands beyond `3×3×3` (27 sectors) up to `budget.maxActiveSectors` (64 on `tier3`) sorted nearest-first, while keeping `prefetchSectorIds` disjoint.
   - **Green:** Update `computeSectorRings` in `src/services/sectorSelection.ts` to populate `activeSectorIds` across a 2-ring radius up to `budget.maxActiveSectors` and ensure `SectorStreamingManager` queues them for rate-limited GPU upload.
   - **Refactor:** Verify `tier1` (12), `tier2` (27), and `tier3` (64) memory/point budgets stay within limits.

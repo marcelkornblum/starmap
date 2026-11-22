@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SectorBufferCache } from './sectorBufferCache';
+import { SectorBufferCache, fetchSectorBinaryBuffer } from './sectorBufferCache';
 import { encodeBinarySector } from '../utils/binarySectorCodec';
 import type { SectorPartitionManifest } from '../types/astroCoordinates';
+import { seedDataManifest, clearDataManifestCache } from '../data/dataManifestRepository';
+import { COMPACT_SCHEMA_VERSION } from '../utils/compactDataConstants';
 
 function createMockSectorBuffer(sectorId: string, origin: [number, number, number] = [0, 0, 0], starCount = 5): ArrayBuffer {
   const manifest: SectorPartitionManifest = {
@@ -39,11 +41,13 @@ describe('SectorBufferCache', () => {
   let fetchCalls: Array<{ sectorId: string; priority: 'high' | 'low' }>;
 
   beforeEach(() => {
+    clearDataManifestCache();
     mockBuffers = new Map();
     fetchCalls = [];
   });
 
   afterEach(() => {
+    clearDataManifestCache();
     vi.restoreAllMocks();
   });
 
@@ -188,5 +192,49 @@ describe('SectorBufferCache', () => {
     cache.dispose();
     expect(disposed).toBe(true);
     expect(cache.size).toBe(0);
+  });
+
+  it('short-circuits fetchSectorBinaryBuffer when seeded manifest omits partitions/<sectorId>.bin', async () => {
+    const mockBuf = createMockSectorBuffer('sector_+000_+000_+000');
+    seedDataManifest({
+      v: COMPACT_SCHEMA_VERSION,
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      files: {
+        'partitions/sector_+000_+000_+000.bin': 'partitions/sector_+000_+000_+000.abc123.bin',
+      },
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => mockBuf,
+    } as Response);
+
+    const missingResult = await fetchSectorBinaryBuffer('sector_+025_+000_+000');
+    expect(missingResult).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    const presentResult = await fetchSectorBinaryBuffer('sector_+000_+000_+000');
+    expect(presentResult).toBe(mockBuf);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy.mock.calls[0]?.[0]).toContain('partitions/sector_+000_+000_+000.abc123.bin');
+  });
+
+  it('falls back to unhashed sector fetch when manifest.json is unavailable', async () => {
+    const mockBuf = createMockSectorBuffer('sector_+000_+000_+000');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes('manifest.json')) {
+        return { ok: false, status: 404 } as Response;
+      }
+      return {
+        ok: true,
+        arrayBuffer: async () => mockBuf,
+      } as Response;
+    });
+
+    const result = await fetchSectorBinaryBuffer('sector_+000_+000_+000', 'high');
+    expect(result).toBe(mockBuf);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(String(fetchSpy.mock.calls[1]?.[0])).toContain('partitions/sector_+000_+000_+000.bin');
   });
 });

@@ -389,4 +389,47 @@ describe('SectorStreamingManager', () => {
       expect(disposedGeometriesCount).toBe(createdGeometriesCount);
     });
   });
+
+  it('streams 64 active + 16 prefetch sectors on tier3 with rate-limited uploads within budget', async () => {
+    const fetcher = createMockFetcher();
+    const tier3Budget = DEVICE_TIER_BUDGETS.tier3;
+    const manager = new SectorStreamingManager({
+      budget: tier3Budget,
+      fetcher,
+      gpuResourceFactory: createTrackingGpuFactory(),
+    });
+
+    const plan = await manager.updateCameraPosition([0, 0, 0]);
+    expect(plan.activeSectorIds.length).toBe(64);
+    expect(plan.prefetchSectorIds.length).toBe(16);
+
+    const highCalls = fetchCalls.filter((c) => c.priority === 'high');
+    const lowCalls = fetchCalls.filter((c) => c.priority === 'low');
+    expect(highCalls.length).toBe(64);
+    expect(lowCalls.length).toBe(16);
+
+    const initialTelemetry = manager.getTelemetry();
+    expect(initialTelemetry.cachedSectorCount).toBe(80);
+    expect(initialTelemetry.pendingUploadCount).toBe(64);
+    expect(initialTelemetry.uploadedSectorCount).toBe(0);
+
+    let frames = 0;
+    while (manager.hasPendingUploads()) {
+      const uploadedThisFrame = manager.processFrameUploads();
+      expect(uploadedThisFrame.length).toBeLessThanOrEqual(tier3Budget.maxGpuUploadsPerFrame);
+      const telemetry = manager.getTelemetry();
+      expect(telemetry.uploadedSectorCount).toBeLessThanOrEqual(64);
+      expect(telemetry.allocatedGpuBytes).toBeLessThanOrEqual(tier3Budget.maxBufferBytes);
+      expect(telemetry.activePointCount).toBeLessThanOrEqual(tier3Budget.maxActivePoints);
+      frames++;
+    }
+
+    expect(frames).toBe(32);
+    const finalTelemetry = manager.getTelemetry();
+    expect(finalTelemetry.uploadedSectorCount).toBe(64);
+    expect(finalTelemetry.cachedSectorCount).toBe(80);
+    expect(finalTelemetry.pendingUploadCount).toBe(0);
+
+    manager.dispose();
+  });
 });
