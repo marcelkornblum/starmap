@@ -50,7 +50,7 @@ describe('useViewportPointerHandlers hook', () => {
     expect(mockInvalidate).toHaveBeenCalledTimes(1);
   });
 
-  it('transitions camera and triggers inspect on entity double click and invalidates canvas', () => {
+  it('transitions camera using adaptive duration when focusTransitionDuration is omitted and triggers inspect on double click', () => {
     const { result } = renderHook(() =>
       useViewportPointerHandlers({
         storeApi: mockStore,
@@ -69,12 +69,63 @@ describe('useViewportPointerHandlers hook', () => {
       result.current.handleEntityDoubleClick('star-1', mockEvent);
     });
 
-    expect(transitionTo).toHaveBeenCalledWith([10, 20, 30], { duration: 0.8 });
+    expect(transitionTo).toHaveBeenCalledWith([10, 20, 30], undefined);
     expect(onInspect).toHaveBeenCalledWith('star-1');
     expect(onDoubleClick).toHaveBeenCalledWith('star-1', mockEvent);
     expect(onSelect).not.toHaveBeenCalled();
     expect(onFocusChange).not.toHaveBeenCalled();
     expect(mockInvalidate).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards explicit focusTransitionDuration when provided', () => {
+    const { result } = renderHook(() =>
+      useViewportPointerHandlers({
+        storeApi: mockStore,
+        occlusionManager: mockOcclusionManager,
+        transitionTo,
+        invalidate: mockInvalidate,
+        focusTransitionDuration: 0.6,
+        onInspect,
+      }),
+    );
+
+    const mockEvent = {} as ThreeEvent<MouseEvent>;
+    act(() => {
+      result.current.handleEntityDoubleClick('star-1', mockEvent);
+    });
+
+    expect(transitionTo).toHaveBeenCalledWith([10, 20, 30], { duration: 0.6 });
+  });
+
+  it('skips toggling focus off on click #2 (detail >= 2) so double-click glides cleanly without unmounting details', () => {
+    mockStore.getState().setFocused('star-1');
+    const { result } = renderHook(() =>
+      useViewportPointerHandlers({
+        storeApi: mockStore,
+        occlusionManager: mockOcclusionManager,
+        transitionTo,
+        invalidate: mockInvalidate,
+        onInspect,
+        onSelect,
+        onFocusChange,
+      }),
+    );
+
+    act(() => {
+      result.current.handleEntityClick('star-1', { detail: 2 } as unknown as ThreeEvent<MouseEvent>);
+    });
+    expect(mockStore.getState().focusedId).toBe('star-1');
+    expect(onFocusChange).not.toHaveBeenCalled();
+    expect(mockInvalidate).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.handleEntityClick('star-1', {
+        nativeEvent: { detail: 2 },
+      } as unknown as ThreeEvent<MouseEvent>);
+    });
+    expect(mockStore.getState().focusedId).toBe('star-1');
+    expect(onFocusChange).not.toHaveBeenCalled();
+    expect(mockInvalidate).not.toHaveBeenCalled();
   });
 
   it('falls back to onFocusChange or onSelect on double click only when onInspect is absent', () => {

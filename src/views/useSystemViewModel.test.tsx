@@ -8,7 +8,7 @@ vi.mock('@tanstack/react-router', () => ({
   useSearch: vi.fn(() => ({})),
   useRouter: vi.fn(() => undefined),
 }));
-import { useRouter } from '@tanstack/react-router';
+import { useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
 import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
 import {
@@ -217,5 +217,32 @@ describe('useSystemViewModel', () => {
     });
 
     expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+  });
+
+  it('does not allow live router state to override explicit locationPathname and locationSearch props', async () => {
+    vi.mocked(useParams).mockReturnValue({ systemId: 'sirius' });
+    vi.mocked(useSearch).mockReturnValue({ focus: 'sirius-b', center: 'sirius', route: 'sirius,vega' });
+    const store = createSpatialEntityStore();
+    try {
+      let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useSystemViewModel>, unknown>>;
+      await act(async () => {
+        hookResult = renderHook(
+          () =>
+            useSystemViewModel({
+              systemId: 'sol',
+              locationPathname: '/system/sol',
+              locationSearch: '?focus=earth&center=earth',
+            }),
+          { wrapper: createWrapper(store) },
+        );
+      });
+
+      expect(hookResult.result.current.targetId).toBe('sol');
+      expect(hookResult.result.current.effectiveCenterId).toBe('earth');
+      expect(hookResult.result.current.routeStops).toBeNull();
+    } finally {
+      vi.mocked(useParams).mockReturnValue({});
+      vi.mocked(useSearch).mockReturnValue({});
+    }
   });
 });

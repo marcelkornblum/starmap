@@ -57,6 +57,51 @@ describe('handleSpaNavigation', () => {
     expect(recenterSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('ignores empty or whitespace-only center query params when triggering recenter', () => {
+    const recenterSpy = vi.spyOn(useCameraStore.getState(), 'triggerRecenter');
+
+    handleSpaNavigation(createMockEvent(), '/galaxy?center=&focus=sol', mockRouter);
+    handleSpaNavigation(createMockEvent(), '/galaxy?center=%20%20&focus=sol', mockRouter);
+    expect(recenterSpy).not.toHaveBeenCalled();
+  });
+
+  it('defers triggerRecenter until async router.navigate resolves when navigating to a different center', async () => {
+    const recenterSpy = vi.spyOn(useCameraStore.getState(), 'triggerRecenter');
+    let resolveNav!: () => void;
+    const asyncNavigate = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveNav = resolve;
+        }),
+    );
+    const asyncRouter: AppRouterAdapter = {
+      navigate: asyncNavigate as unknown as AppRouterAdapter['navigate'],
+      state: { location: { pathname: '/galaxy', searchStr: '?center=sol', search: { center: 'sol' } } },
+    };
+
+    handleSpaNavigation(createMockEvent(), '/galaxy?center=alpha-centauri', asyncRouter);
+    expect(asyncNavigate).toHaveBeenCalledWith({ href: '/galaxy?center=alpha-centauri' });
+    expect(recenterSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveNav();
+      await Promise.resolve();
+    });
+    expect(recenterSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('triggers recenter synchronously when async router.navigate targets the same center', () => {
+    const recenterSpy = vi.spyOn(useCameraStore.getState(), 'triggerRecenter');
+    const asyncNavigate = vi.fn(() => new Promise<void>(() => {}));
+    const asyncRouter: AppRouterAdapter = {
+      navigate: asyncNavigate as unknown as AppRouterAdapter['navigate'],
+      state: { location: { pathname: '/galaxy', searchStr: '?center=sol', search: { center: 'sol' } } },
+    };
+
+    handleSpaNavigation(createMockEvent(), '/galaxy?center=sol', asyncRouter);
+    expect(recenterSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('ignores external URLs, anchors, mailto, and tel', () => {
     const event = createMockEvent();
 

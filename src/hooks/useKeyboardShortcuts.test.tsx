@@ -205,4 +205,32 @@ describe('useKeyboardShortcuts', () => {
     expect(replaceStateSpy).not.toHaveBeenCalled();
     mockRouter = undefined;
   });
+
+  it('does not treat another param containing substring "focus" in searchStr as an active focus on Escape', () => {
+    const navigate = vi.fn().mockResolvedValue(undefined);
+    mockRouter = {
+      navigate,
+      state: { location: { pathname: '/galaxy', searchStr: '?q=focus-star', search: { q: 'focus-star' } } },
+    } as unknown as typeof mockRouter;
+
+    renderHook(() => useKeyboardShortcuts());
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(navigate).not.toHaveBeenCalled();
+    mockRouter = undefined;
+  });
+
+  it('detects focus param from searchStr via URLSearchParams when typed search.focus is absent', () => {
+    const navigate = vi.fn().mockResolvedValue(undefined);
+    mockRouter = {
+      navigate,
+      state: { location: { pathname: '/galaxy', searchStr: '?focus=sol', search: {} } },
+    } as unknown as typeof mockRouter;
+
+    renderHook(() => useKeyboardShortcuts());
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    mockRouter = undefined;
+  });
 });

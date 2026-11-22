@@ -60,7 +60,12 @@ const SystemSceneViewport: React.FC<SystemSceneViewportProps> = ({
   debugHitarea,
 }) => {
   const standardCam = useMemo(
-    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.system, targetCoords),
+    () =>
+      getStandardInitialCamera(
+        STANDARD_CAMERA_DISTANCES.system,
+        targetCoords,
+        SYSTEM_FRAME.camera.baseFov,
+      ),
     [targetCoords],
   );
 
@@ -82,6 +87,7 @@ const SystemSceneViewport: React.FC<SystemSceneViewportProps> = ({
         position={standardCam.position}
         target={standardCam.target}
         up={standardCam.up}
+        fov={standardCam.fov}
         hasExplicitCenter={hasExplicitCenter}
       />
     </SpatialViewport>

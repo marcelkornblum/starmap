@@ -2,23 +2,44 @@ import { toUrlSlug } from '../../utils/datasetLayerSlugs';
 import { parseCenterCoordinatesString } from '../../utils/url';
 import type { SceneCameraUrlState } from './detailsNavigationTypes';
 
+const CENTER_HREF_PRESERVED_PARAMS = new Set(['layer', 'select', 'route', 'q']);
+
 export const buildCenterEntityHref = (
   viewScope: 'galaxy' | 'system' | 'planet',
   scopeTargetId?: string,
   focusId?: string,
+  currentSearch?: string,
 ): string | undefined => {
   if (!focusId) {
     return undefined;
   }
-  const encFocus = encodeURIComponent(focusId);
-  if (viewScope === 'galaxy' || !scopeTargetId) {
-    return `/galaxy?center=${encFocus}&focus=${encFocus}`;
+  const basePath =
+    viewScope === 'galaxy' || !scopeTargetId
+      ? '/galaxy'
+      : viewScope === 'system'
+        ? `/system/${encodeURIComponent(scopeTargetId)}`
+        : `/planet/${encodeURIComponent(scopeTargetId)}`;
+
+  const outParams = new URLSearchParams();
+  outParams.set('center', focusId);
+  outParams.set('focus', focusId);
+
+  if (currentSearch) {
+    const cleanSearch = currentSearch.startsWith('?')
+      ? currentSearch.slice(1)
+      : currentSearch;
+    if (cleanSearch) {
+      const inParams = new URLSearchParams(cleanSearch);
+      for (const [key, val] of inParams.entries()) {
+        if (CENTER_HREF_PRESERVED_PARAMS.has(key) && val.length > 0) {
+          outParams.append(key, val);
+        }
+      }
+    }
   }
-  const encTarget = encodeURIComponent(scopeTargetId);
-  if (viewScope === 'system') {
-    return `/system/${encTarget}?center=${encFocus}&focus=${encFocus}`;
-  }
-  return `/planet/${encTarget}?center=${encFocus}&focus=${encFocus}`;
+
+  const qs = outParams.toString().replace(/%3A/gi, ':').replace(/%2C/gi, ',');
+  return `${basePath}?${qs}`;
 };
 
 const EMPTY_SCENE_CAMERA_URL_STATE: SceneCameraUrlState = Object.freeze({});

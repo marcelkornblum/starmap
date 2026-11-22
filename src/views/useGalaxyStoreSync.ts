@@ -37,7 +37,7 @@ export function useGalaxyStoreSync({
 
   useEffect(() => {
     const pending = useCameraStore.getState().pendingCenterSlug;
-    if (actualUrlFocusSlug && pending === actualUrlFocusSlug) {
+    if (pending && (!actualUrlFocusSlug || pending === actualUrlFocusSlug)) {
       useCameraStore.getState().setPendingCenterSlug(null);
     }
   }, [actualUrlFocusSlug]);

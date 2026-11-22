@@ -3,24 +3,24 @@ import * as THREE from 'three';
 import { useLazyRef } from '../../../hooks/useLazyRef';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
-import type { CardinalDirection } from '../../../types/spatial';
-import { getCardinalDirectionFromVector } from '../math/cameraMath';
-import { synchronizePerspectiveWithOrtho } from '../math/cameraFrustumMath';
+import type { CardinalDirection, ReferenceFrame } from '../../../types/spatial';
+import { DEFAULT_CAMERA_EASING_CURVE } from '../../../utils/cameraEasing';
+import { CARDINAL_CONFIG, getCardinalDirectionFromVector } from '../math/cameraMath';
 import {
   applyOrthographicLock,
+  isOrbitControlsLike,
   releaseOrthographicLock,
   syncControlsDistance,
   type OrbitControlsLike,
 } from './cameraRigZoomAndPan';
-import { CardinalTransitionController } from './cameraRigControls';
-import type { ReferenceFrame } from '../../../types/spatial';
+import { useCameraTransition } from './useCameraTransition';
 import {
   DEFAULT_BASE_FOV_DEG,
   DEFAULT_VIEWPORT_WIDTH_PX,
   DEFAULT_VIEWPORT_HEIGHT_PX,
 } from './instrumentDefaults';
 
-const FALLBACK_TARGET = new THREE.Vector3(0, 0, 0);
+const _scratchCamDir = new THREE.Vector3();
 
 export interface CameraRigThreeState {
   camera: THREE.Camera;
@@ -55,9 +55,9 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
     snapDuration = 0.35,
   } = options;
 
+  const { transitionToPose } = useCameraTransition();
   const configuredBaseFov = explicitBaseFov ?? frame.camera.baseFov ?? DEFAULT_BASE_FOV_DEG;
   const snapThresholdRad = (snapThresholdDeg * Math.PI) / 180;
-  const controllerRef = useLazyRef(() => new CardinalTransitionController());
 
   const perspCamRef = useRef<THREE.PerspectiveCamera | null>(
     camera instanceof THREE.PerspectiveCamera ? camera : null,
@@ -107,7 +107,7 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
       const orthoCam = orthoCamRef.current;
       if (!perspCam || !orthoCam) return;
 
-      const currentControls = (state as { controls?: OrbitControlsLike }).controls;
+      const currentControls = isOrbitControlsLike(state.controls) ? state.controls : undefined;
       const target = currentControls?.target ? persistentTargetRef.current.copy(currentControls.target) : persistentTargetRef.current;
       const width = state.size?.width ?? DEFAULT_VIEWPORT_WIDTH_PX;
       const height = state.size?.height ?? DEFAULT_VIEWPORT_HEIGHT_PX;
@@ -118,8 +118,8 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
       useCameraStore.getState().setLocked(true);
       useCameraStore.getState().setMode('orthographic');
 
-      const camDir = new THREE.Vector3().copy(perspCam.position).sub(target).normalize();
-      const effectiveCardinal = cardinal ?? getCardinalDirectionFromVector(camDir);
+      _scratchCamDir.copy(perspCam.position).sub(target).normalize();
+      const effectiveCardinal = cardinal ?? getCardinalDirectionFromVector(_scratchCamDir);
       useCameraStore.getState().setActiveCardinal(effectiveCardinal);
       state.invalidate?.();
     },
@@ -132,7 +132,7 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
     const orthoCam = orthoCamRef.current;
     if (!perspCam || !orthoCam) return;
 
-    const currentControls = (state as { controls?: OrbitControlsLike }).controls;
+    const currentControls = isOrbitControlsLike(state.controls) ? state.controls : undefined;
     const target = currentControls?.target ? persistentTargetRef.current.copy(currentControls.target) : persistentTargetRef.current;
 
     releaseOrthographicLock(orthoCam, perspCam, target, configuredBaseFov, currentControls);
@@ -156,30 +156,38 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
       const perspCam = perspCamRef.current ?? (currentCamera instanceof THREE.PerspectiveCamera ? currentCamera : null);
       if (!perspCam) return;
 
-      const currentControls = (state as { controls?: OrbitControlsLike }).controls;
-      const target = currentControls?.target ?? FALLBACK_TARGET;
+      const currentControls = isOrbitControlsLike(state.controls) ? state.controls : undefined;
+      const target = currentControls?.target ?? persistentTargetRef.current;
 
       if (currentCamera instanceof THREE.OrthographicCamera && orthoCamRef.current) {
-        synchronizePerspectiveWithOrtho(orthoCamRef.current, perspCam, target, configuredBaseFov);
+        releaseOrthographicLock(orthoCamRef.current, perspCam, target, configuredBaseFov, currentControls);
         state.set?.({ camera: perspCam });
         useCameraStore.getState().setLocked(false);
+        useCameraStore.getState().setActiveCardinal(null);
         useCameraStore.getState().setMode('perspective');
+        justUnlockedRef.current = false;
       }
 
-      controllerRef.current.start(
-        perspCam,
-        target,
-        cardinal,
-        snapDuration,
-        () => {
-          if (isOrthoAllowed()) lockToOrthographic(cardinal);
+      const distance = Math.max(perspCam.position.distanceTo(target), 1e-3);
+      const { normal, up } = CARDINAL_CONFIG[cardinal];
+
+      transitionToPose(
+        {
+          target: [target.x, target.y, target.z],
+          direction: normal,
+          distance,
+          up,
         },
-        performance.now(),
-        currentControls,
+        {
+          duration: snapDuration,
+          easing: DEFAULT_CAMERA_EASING_CURVE,
+          onComplete: () => {
+            if (isOrthoAllowed()) lockToOrthographic(cardinal);
+          },
+        },
       );
-      state.invalidate?.();
     },
-    [get, snapDuration, configuredBaseFov, controllerRef, isOrthoAllowed, lockToOrthographic, orthoCamRef],
+    [get, snapDuration, configuredBaseFov, isOrthoAllowed, lockToOrthographic, orthoCamRef, transitionToPose],
   );
 
   useEffect(() => {
@@ -200,7 +208,6 @@ export function useCameraRigProjection(options: UseCameraRigProjectionOptions) {
   return {
     configuredBaseFov,
     snapThresholdRad,
-    controllerRef,
     perspCamRef,
     orthoCamRef,
     persistentTargetRef,

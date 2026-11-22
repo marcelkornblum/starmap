@@ -45,7 +45,7 @@ export function useOptionalRouter(): AppRouterAdapter | undefined {
 }
 
 /**
- * Pure function normalizing a raw location pathname against the application's basepath.
+ * Pure function normalising a raw location pathname against the application's basepath.
  * Strips subpath base prefix (e.g. '/starmap/galaxy' -> '/galaxy', '/starmap/' -> '/').
  */
 export function resolveSpaLocation(

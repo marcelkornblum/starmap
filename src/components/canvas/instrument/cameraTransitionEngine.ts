@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import {
   DEFAULT_CAMERA_TRANSITION_DURATION_SEC,
   interpolateCameraDistance,
-  easeInOutCubic,
 } from '../../../utils/cameraEasing';
 import { prefersReducedMotion } from '../../../utils/reducedMotion';
 import {
@@ -21,7 +20,6 @@ import {
   type TransitionOpticsState,
 } from './cameraTransitionPoseMath';
 
-export { easeInOutCubic };
 export type {
   Vector3Input,
   CameraTransitionEasing,
@@ -33,7 +31,7 @@ export type {
 
 /**
  * Pure Three.js camera transition controller.
- * Operates zero-allocation frame updates for smooth camera & instrument centering.
+ * Operates zero-allocation frame updates for smooth camera & instrument centring.
  */
 export class CameraTransitionController {
   private isTransitioningState = false;
@@ -96,32 +94,11 @@ export class CameraTransitionController {
     controlsTarget?: THREE.Vector3,
     options?: CameraTransitionOptions,
     now?: number,
+    controls?: TransitionControlsLike,
   ): void {
-    if (this.isTransitioningState) this.cancel();
-
-    copyVec3Input(this.endTarget, target);
-    resolveStartTarget(camera, controlsTarget, this.startTarget, this.scratchDir);
-    const { startDist } = resolveStartDirection(camera, this.startTarget, this.startDir, this.scratchOffset);
-    this.startDist = startDist;
-
-    this.endDir.copy(this.startDir);
-    this.dirAngle = 0;
-    this.endDist = options?.targetDistance ?? this.startDist;
-    this.endCamPos.copy(this.endTarget).addScaledVector(this.endDir, this.endDist);
-    this.animateUp = false;
-    this.optics.animateFov = false;
-    this.optics.animateOrthoZoom = false;
-    this.useLogDist = options?.logarithmicDistance ?? true;
-
-    const duration = this.resolveDuration(options?.duration);
-    if (prefersReducedMotion() || duration <= 0) {
-      if (controlsTarget instanceof THREE.Vector3) controlsTarget.copy(this.endTarget);
-      this.applyFinalPose(camera);
-      options?.onComplete?.();
-      return;
-    }
-
-    this.beginFlight(duration, options, undefined, now);
+    const effectiveControls =
+      controls ?? (controlsTarget ? { target: controlsTarget } : undefined);
+    this.startPose(camera, { target }, effectiveControls, options, now);
   }
 
   public startPose(
@@ -133,9 +110,20 @@ export class CameraTransitionController {
   ): void {
     if (this.isTransitioningState) this.cancel();
 
+    // Pause damping and drain residual OrbitControls inertia before capturing start pose.
+    if (controls) {
+      this.pauseControlsDamping(controls);
+      controls.update?.();
+    }
+
     copyVec3Input(this.endTarget, endPose.target);
     resolveStartTarget(camera, controls?.target, this.startTarget, this.scratchDir);
-    const { startDist, hasStartDir } = resolveStartDirection(camera, this.startTarget, this.startDir, this.scratchOffset);
+    const { startDist, hasStartDir } = resolveStartDirection(
+      camera,
+      this.startTarget,
+      this.startDir,
+      this.scratchOffset,
+    );
     this.startDist = startDist;
 
     this.endDist = resolveEndPoseDirectionAndPos(
@@ -150,14 +138,20 @@ export class CameraTransitionController {
       this.scratchOffset,
     );
     this.initUpAndOptics(camera, endPose);
-    this.dirAngle = computeAngleAndAxis(this.startDir, this.endDir, this.startUp, this.endUp, this.dirAxis);
+    this.dirAngle = computeAngleAndAxis(
+      this.startDir,
+      this.endDir,
+      this.startUp,
+      this.endUp,
+      this.dirAxis,
+    );
     this.useLogDist = options?.logarithmicDistance ?? true;
 
     const duration = this.resolveDuration(options?.duration);
     if (prefersReducedMotion() || duration <= 0) {
       if (controls?.target instanceof THREE.Vector3) controls.target.copy(this.endTarget);
       this.applyFinalPose(camera);
-      controls?.update?.();
+      this.restoreAndSettleControls(controls);
       options?.onComplete?.();
       return;
     }
@@ -229,7 +223,13 @@ export class CameraTransitionController {
       copyVec3Input(this.endUp, endPose.up);
       if (this.endUp.lengthSq() > 1e-8) this.endUp.normalize();
       else this.endUp.set(0, 0, 1);
-      this.upAngle = computeAngleAndAxis(this.startUp, this.endUp, this.startDir, this.endDir, this.upAxis);
+      this.upAngle = computeAngleAndAxis(
+        this.startUp,
+        this.endUp,
+        this.startDir,
+        this.endDir,
+        this.upAxis,
+      );
     } else {
       this.animateUp = false;
     }
@@ -253,8 +253,8 @@ export class CameraTransitionController {
 
   private pauseControlsDamping(controls: TransitionControlsLike): void {
     this.activeControls = controls;
-    if (this.prevEnableDamping === undefined && controls.enableDamping === true) {
-      this.prevEnableDamping = true;
+    if (this.prevEnableDamping === undefined && controls.enableDamping !== undefined) {
+      this.prevEnableDamping = controls.enableDamping;
       controls.enableDamping = false;
     }
   }
@@ -262,10 +262,11 @@ export class CameraTransitionController {
   private restoreAndSettleControls(controls?: TransitionControlsLike): void {
     const targetControls = controls ?? this.activeControls;
     if (targetControls) {
+      // Commit settled pose while damping is paused, then restore enableDamping.
+      targetControls.update?.();
       if (this.prevEnableDamping !== undefined) {
         targetControls.enableDamping = this.prevEnableDamping;
       }
-      targetControls.update?.();
     }
     this.activeControls = undefined;
     this.prevEnableDamping = undefined;

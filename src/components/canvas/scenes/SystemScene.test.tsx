@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
+import * as THREE from 'three';
 import { SystemScene, type StarDossierData } from './SystemScene';
-import {
-  resolveSystemPlanetEntity,
-  resolveCorpusPlanetEntity,
-} from './systemPlanetResolver';
+import { resolveSystemPlanetEntity, resolveCorpusPlanetEntity } from './systemPlanetResolver';
 import { resolveTargetCoordsFromEntities } from './sceneTargetHelpers';
+import { SYSTEM_FRAME } from '../../../config/referenceFrames';
 import * as useSearchCorpusHook from '../../../hooks/useSearchCorpus';
 import * as useSystemDataHook from '../../../hooks/useSystemData';
+import * as galacticCameraHelpers from './galacticCameraHelpers';
 import { useCameraStore } from '../../../stores/useCameraStore';
 import type { ExoplanetRecord } from '../../../types/astro';
 import type { CompactSearchEntry } from '../../../utils/compactDataTypes';
@@ -115,6 +115,17 @@ describe('SystemScene Component Rendering', () => {
 
     searchCorpusSpy.mockRestore();
     systemDataSpy.mockRestore();
+    await renderer.unmount();
+  });
+
+  it('passes SYSTEM_FRAME.camera.baseFov (35) to SystemCameraController so perspective camera fov aligns on mount', async () => {
+    const applyPoseSpy = vi.spyOn(galacticCameraHelpers, 'applyImmediateCameraPose');
+    const renderer = await ReactThreeTest.create(<SystemScene systemId="sol" system={mockSolSystem} />);
+    const lastCall = applyPoseSpy.mock.calls.at(-1);
+    expect(lastCall?.[6]).toBe(SYSTEM_FRAME.camera.baseFov);
+    const cam = lastCall?.[0];
+    if (cam instanceof THREE.PerspectiveCamera) expect(cam.fov).toBe(SYSTEM_FRAME.camera.baseFov);
+    applyPoseSpy.mockRestore();
     await renderer.unmount();
   });
 });

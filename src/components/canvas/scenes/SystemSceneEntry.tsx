@@ -6,6 +6,7 @@ import {
 } from '../cartography';
 import { CONTROLS_DAMPING_FACTOR } from '../engineConfig';
 import { SystemScene } from './SystemScene';
+import { SYSTEM_FRAME } from '../../../config/referenceFrames';
 import { SOL_REFERENCE_TARGET } from '../../../config/referenceTargets';
 import { StandaloneSceneShell } from './StandaloneSceneShell';
 import { resolveCenterCoords } from './useGalaxyViewCamera';
@@ -30,7 +31,7 @@ export const SystemSceneContent: React.FC<SystemSceneContentProps> = React.memo(
       enableDamping
       dampingFactor={CONTROLS_DAMPING_FACTOR}
       minDistance={2.0}
-      maxDistance={45}
+      maxDistance={SYSTEM_FRAME.camera.maxDistance}
     />
 
     <SystemScene
@@ -47,7 +48,12 @@ export const SystemSceneContent: React.FC<SystemSceneContentProps> = React.memo(
 export const SystemViewScene: React.FC<SystemViewSceneProps> = (props) => {
   const targetCoords = useMemo(() => resolveCenterCoords(props.centerCoordinates), [props.centerCoordinates]);
   const standardCam = useMemo(
-    () => getStandardInitialCamera(STANDARD_CAMERA_DISTANCES.system, targetCoords),
+    () =>
+      getStandardInitialCamera(
+        STANDARD_CAMERA_DISTANCES.system,
+        targetCoords,
+        SYSTEM_FRAME.camera.baseFov,
+      ),
     [targetCoords],
   );
 

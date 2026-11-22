@@ -66,14 +66,19 @@ export function useResolvedSystemDetails(
   const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
   const routeSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
-  const rawSystemId = routeParams?.systemId ?? propSystemId;
+  const isExplicitLocation = locationPathname !== undefined || locationSearch !== undefined;
+  const rawSystemId = isExplicitLocation
+    ? propSystemId
+    : (routeParams?.systemId ?? propSystemId);
   const fallbackSlug = pathname.startsWith('/system/')
     ? toUrlSlug(pathname.slice('/system/'.length).split('/')[0])
     : null;
   const urlSystemSlug = toUrlSlug(rawSystemId ?? '') || fallbackSlug || null;
 
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
-  const focusParam = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
+  const focusParam = isExplicitLocation
+    ? (searchParams.get('focus') ?? undefined)
+    : (routeSearch?.focus ?? searchParams.get('focus') ?? undefined);
   const urlFocusSlug = focusParam ? toUrlSlug(focusParam) || null : null;
   const hasExplicitFocus = Boolean(focusParam && urlFocusSlug && urlFocusSlug.length > 0);
 

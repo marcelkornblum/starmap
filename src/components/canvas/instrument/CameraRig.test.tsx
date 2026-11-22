@@ -1,10 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
-import {
-  CardinalTransitionController,
-} from './cameraRigControls';
+import { CameraTransitionController } from './cameraTransitionEngine';
 import { type OrbitControlsLike } from './cameraRigZoomAndPan';
 import { computeAllPlaneQuadrantWeights } from '../math/cardinal';
+import { CARDINAL_CONFIG } from '../math/cameraMath';
 import { useCameraStore } from '../../../stores/useCameraStore';
 
 interface MockControls extends OrbitControlsLike {
@@ -14,7 +13,7 @@ interface MockControls extends OrbitControlsLike {
   mouseButtons: { LEFT: number; MIDDLE: number; RIGHT: number };
   touches: { ONE: number; TWO: number };
   screenSpacePanning?: boolean;
-  update: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn<() => void>>;
 }
 
 describe('Camera Rig & Controls: CameraRig.tsx', () => {
@@ -35,6 +34,7 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       object: camera,
       target,
       enableRotate: true,
+      enableDamping: true,
       mouseButtons: {
         LEFT: THREE.MOUSE.ROTATE,
         MIDDLE: THREE.MOUSE.DOLLY,
@@ -44,14 +44,21 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
         ONE: THREE.TOUCH.ROTATE,
         TWO: THREE.TOUCH.DOLLY_PAN,
       },
-      update: vi.fn(),
+      update: vi.fn<() => void>(),
     };
   });
 
   describe('Camera Presets Navigation & Execution', () => {
-    it('executes top-down preset transitioning to top cardinal view', () => {
-      const controller = new CardinalTransitionController();
-      controller.start(camera, target, 'top', 0.35, undefined, 0);
+    it('executes top-down preset transitioning to top cardinal view via CameraTransitionController', () => {
+      const controller = new CameraTransitionController();
+      const { normal, up } = CARDINAL_CONFIG.top;
+      controller.startPose(
+        camera,
+        { target: [0, 0, 0], direction: normal, up },
+        mockControls,
+        { duration: 0.35 },
+        0,
+      );
       controller.update(camera, mockControls, 350);
 
       expect(controller.isTransitioning()).toBe(false);
@@ -79,9 +86,16 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
       expect(mockControls.target.z).toBe(0);
     });
 
-    it('executes orbital-lock preset transitioning to equatorial/front view', () => {
-      const controller = new CardinalTransitionController();
-      controller.start(camera, target, 'front', 0.35, undefined, 0);
+    it('executes orbital-lock preset transitioning to equatorial/front view via CameraTransitionController', () => {
+      const controller = new CameraTransitionController();
+      const { normal, up } = CARDINAL_CONFIG.front;
+      controller.startPose(
+        camera,
+        { target: [0, 0, 0], direction: normal, up },
+        mockControls,
+        { duration: 0.35 },
+        0,
+      );
       controller.update(camera, mockControls, 350);
 
       expect(controller.isTransitioning()).toBe(false);
@@ -93,14 +107,12 @@ describe('Camera Rig & Controls: CameraRig.tsx', () => {
 
   describe('enableOrthographicProjection & Cardinal Polar Dial Gating', () => {
     it('disables 360-degree polar dial expansion and planar fade when thresholds are out of range', () => {
-      // Near top cardinal axis (|z| ~ 0.99)
       const camDir = new THREE.Vector3(0.1, 0.1, 0.9899).normalize();
       const standardWeights = computeAllPlaneQuadrantWeights(camDir);
       expect(standardWeights.maxAlpha).toBeGreaterThan(0.9);
       expect(standardWeights.fadeXZ).toBeLessThan(0.1);
       expect(standardWeights.fadeYZ).toBeLessThan(0.1);
 
-      // With allowPolarDial = false passing (2.0, 3.0)
       const gatedWeights = computeAllPlaneQuadrantWeights(camDir, 2.0, 3.0);
       expect(gatedWeights.maxAlpha).toBe(0);
       expect(gatedWeights.fadeXY).toBe(1);

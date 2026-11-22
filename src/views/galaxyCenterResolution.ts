@@ -81,6 +81,18 @@ function extractPositionCoords(
   return p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [p[0], p[1], p[2]];
 }
 
+function hasNonOriginOrSolCoords(
+  slug: string | undefined,
+  coords: readonly [number, number, number],
+): boolean {
+  return (
+    slug === SOL_REFERENCE_TARGET.id ||
+    coords[0] !== 0 ||
+    coords[1] !== 0 ||
+    coords[2] !== 0
+  );
+}
+
 export function resolveGalaxyCenterCoordinates({
   cameraState,
   urlFocusSlug,
@@ -131,24 +143,14 @@ export function resolveGalaxyCenterCoordinates({
       toUrlSlug(focusedEntity.name) === effectiveCenterSlug)
   ) {
     const coords = extractPositionCoords(focusedEntity.position);
-    if (
-      effectiveCenterSlug === SOL_REFERENCE_TARGET.id ||
-      coords[0] !== 0 ||
-      coords[1] !== 0 ||
-      coords[2] !== 0
-    ) {
+    if (hasNonOriginOrSolCoords(effectiveCenterSlug, coords)) {
       return coords;
     }
   }
 
   if (centerEntity?.position) {
     const coords = extractPositionCoords(centerEntity.position);
-    if (
-      effectiveCenterSlug === SOL_REFERENCE_TARGET.id ||
-      coords[0] !== 0 ||
-      coords[1] !== 0 ||
-      coords[2] !== 0
-    ) {
+    if (hasNonOriginOrSolCoords(effectiveCenterSlug, coords)) {
       return coords;
     }
   }
@@ -164,36 +166,19 @@ export function resolveGalaxyCenterCoordinates({
     );
     if (selectedMatch?.position) {
       const coords = extractPositionCoords(selectedMatch.position);
-      if (
-        centerSlug === SOL_REFERENCE_TARGET.id ||
-        coords[0] !== 0 ||
-        coords[1] !== 0 ||
-        coords[2] !== 0
-      ) {
+      if (hasNonOriginOrSolCoords(centerSlug, coords)) {
         return coords;
       }
     }
 
     const directCorpusMatch = findFocusedEntryInCorpus(centerSlug, apertureCorpus);
     if (directCorpusMatch) {
-      if (
-        directCorpusMatch.p &&
-        (centerSlug === SOL_REFERENCE_TARGET.id ||
-          directCorpusMatch.p[0] !== 0 ||
-          directCorpusMatch.p[1] !== 0 ||
-          directCorpusMatch.p[2] !== 0)
-      ) {
+      if (directCorpusMatch.p && hasNonOriginOrSolCoords(centerSlug, directCorpusMatch.p)) {
         return [directCorpusMatch.p[0], directCorpusMatch.p[1], directCorpusMatch.p[2]];
       }
       if (directCorpusMatch.s) {
         const host = findFocusedEntryInCorpus(directCorpusMatch.s, apertureCorpus);
-        if (
-          host?.p &&
-          (centerSlug === SOL_REFERENCE_TARGET.id ||
-            host.p[0] !== 0 ||
-            host.p[1] !== 0 ||
-            host.p[2] !== 0)
-        ) {
+        if (host?.p && hasNonOriginOrSolCoords(centerSlug, host.p)) {
           return [host.p[0], host.p[1], host.p[2]];
         }
       }
@@ -202,13 +187,7 @@ export function resolveGalaxyCenterCoordinates({
     const childCorpusMatch = getCorpusSystemFirstChildMap(apertureCorpus).get(centerSlug);
     if (childCorpusMatch?.s) {
       const host = findFocusedEntryInCorpus(childCorpusMatch.s, apertureCorpus);
-      if (
-        host?.p &&
-        (centerSlug === SOL_REFERENCE_TARGET.id ||
-          host.p[0] !== 0 ||
-          host.p[1] !== 0 ||
-          host.p[2] !== 0)
-      ) {
+      if (host?.p && hasNonOriginOrSolCoords(centerSlug, host.p)) {
         return [host.p[0], host.p[1], host.p[2]];
       }
     }

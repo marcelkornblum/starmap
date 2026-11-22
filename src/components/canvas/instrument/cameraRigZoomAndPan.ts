@@ -1,15 +1,13 @@
 import * as THREE from 'three';
 import {
-  calculateAdaptiveProjectionFov,
   synchronizeOrthoWithPerspective,
   synchronizePerspectiveWithOrtho,
 } from '../math/cameraFrustumMath';
 import { DEFAULT_BASE_FOV_DEG } from './instrumentDefaults';
+import type { TransitionControlsLike } from './cameraTransitionPoseMath';
 
-export interface OrbitControlsLike {
+export interface OrbitControlsLike extends TransitionControlsLike {
   object?: THREE.Camera;
-  target?: THREE.Vector3;
-  enabled?: boolean;
   enableRotate?: boolean;
   enablePan?: boolean;
   screenSpacePanning?: boolean;
@@ -17,7 +15,10 @@ export interface OrbitControlsLike {
   touches?: { ONE: number; TWO?: number };
   minDistance?: number;
   maxDistance?: number;
-  update?: (() => void) | Function;
+}
+
+export function isOrbitControlsLike(value: unknown): value is OrbitControlsLike {
+  return typeof value === 'object' && value !== null;
 }
 
 /**
@@ -49,51 +50,18 @@ export function applyOrthographicLock(
   target: THREE.Vector3,
   aspect: number,
   controls?: OrbitControlsLike,
-): void;
-export function applyOrthographicLock(camera: THREE.Camera, controls?: OrbitControlsLike, baseFov?: number): void;
-export function applyOrthographicLock(
-  perspOrCam: THREE.PerspectiveCamera | THREE.Camera,
-  orthoOrControls?: THREE.OrthographicCamera | OrbitControlsLike,
-  targetOrFov?: THREE.Vector3 | number,
-  aspect?: number,
-  controls?: OrbitControlsLike,
 ): void {
-  if (orthoOrControls instanceof THREE.OrthographicCamera && targetOrFov instanceof THREE.Vector3) {
-    const perspCam = perspOrCam as THREE.PerspectiveCamera;
-    const orthoCam = orthoOrControls;
-    const target = targetOrFov;
-    synchronizeOrthoWithPerspective(perspCam, orthoCam, target, aspect ?? 1.0);
+  synchronizeOrthoWithPerspective(perspCam, orthoCam, target, aspect);
 
-    if (controls) {
-      if ('object' in controls) controls.object = orthoCam;
-      if ('enableRotate' in controls) controls.enableRotate = false;
-      controls.enablePan = true;
-      controls.screenSpacePanning = true;
-      if (controls.mouseButtons) controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
-      if (controls.touches) controls.touches.ONE = THREE.TOUCH.PAN;
-      if ('enabled' in controls) controls.enabled = true;
-      controls.update?.();
-    }
-  } else {
-    const camera = perspOrCam;
-    const legacyControls = orthoOrControls as OrbitControlsLike | undefined;
-    const baseFov = typeof targetOrFov === 'number' ? targetOrFov : DEFAULT_BASE_FOV_DEG;
-
-    if (legacyControls) {
-      if ('enableRotate' in legacyControls) legacyControls.enableRotate = false;
-      legacyControls.enablePan = true;
-      legacyControls.screenSpacePanning = true;
-      if (legacyControls.mouseButtons) legacyControls.mouseButtons.LEFT = THREE.MOUSE.PAN;
-      if (legacyControls.touches) legacyControls.touches.ONE = THREE.TOUCH.PAN;
-      if ('enabled' in legacyControls) legacyControls.enabled = true;
-      legacyControls.update?.();
-    }
-    if (camera instanceof THREE.PerspectiveCamera) {
-      const { fov, zoom } = calculateAdaptiveProjectionFov(baseFov, 1.0, 3.6);
-      camera.fov = fov;
-      camera.zoom = zoom;
-      camera.updateProjectionMatrix();
-    }
+  if (controls) {
+    if ('object' in controls) controls.object = orthoCam;
+    if ('enableRotate' in controls) controls.enableRotate = false;
+    controls.enablePan = true;
+    controls.screenSpacePanning = true;
+    if (controls.mouseButtons) controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+    if (controls.touches) controls.touches.ONE = THREE.TOUCH.PAN;
+    if ('enabled' in controls) controls.enabled = true;
+    controls.update?.();
   }
 }
 
@@ -107,54 +75,21 @@ export function releaseOrthographicLock(
   orthoCam: THREE.OrthographicCamera,
   perspCam: THREE.PerspectiveCamera,
   target: THREE.Vector3,
-  baseFov?: number,
-  controls?: OrbitControlsLike,
-): void;
-export function releaseOrthographicLock(camera: THREE.Camera, controls?: OrbitControlsLike, baseFov?: number): void;
-export function releaseOrthographicLock(
-  orthoOrCam: THREE.OrthographicCamera | THREE.Camera,
-  perspOrControls?: THREE.PerspectiveCamera | OrbitControlsLike,
-  targetOrFov?: THREE.Vector3 | number,
   baseFov: number = DEFAULT_BASE_FOV_DEG,
   controls?: OrbitControlsLike,
 ): void {
-  if (
-    orthoOrCam instanceof THREE.OrthographicCamera &&
-    perspOrControls instanceof THREE.PerspectiveCamera &&
-    targetOrFov instanceof THREE.Vector3
-  ) {
-    synchronizePerspectiveWithOrtho(orthoOrCam, perspOrControls, targetOrFov, baseFov);
+  synchronizePerspectiveWithOrtho(orthoCam, perspCam, target, baseFov);
 
-    if (controls) {
-      if ('object' in controls) controls.object = perspOrControls;
-      if ('target' in controls && controls.target) controls.target.copy(targetOrFov);
-      if ('enableRotate' in controls) controls.enableRotate = true;
-      controls.enablePan = true;
-      controls.screenSpacePanning = true;
-      if (controls.mouseButtons) controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
-      if (controls.touches) controls.touches.ONE = THREE.TOUCH.ROTATE;
-      if ('enabled' in controls) controls.enabled = true;
-      controls.update?.();
-    }
-  } else {
-    const camera = orthoOrCam;
-    const legacyControls = perspOrControls as OrbitControlsLike | undefined;
-    const effectiveBaseFov = typeof targetOrFov === 'number' ? targetOrFov : baseFov;
-
-    if (legacyControls) {
-      if ('enableRotate' in legacyControls) legacyControls.enableRotate = true;
-      legacyControls.enablePan = true;
-      legacyControls.screenSpacePanning = true;
-      if (legacyControls.mouseButtons) legacyControls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
-      if (legacyControls.touches) legacyControls.touches.ONE = THREE.TOUCH.ROTATE;
-      if ('enabled' in legacyControls) legacyControls.enabled = true;
-      legacyControls.update?.();
-    }
-    if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = effectiveBaseFov;
-      camera.zoom = 1.0;
-      camera.updateProjectionMatrix();
-    }
+  if (controls) {
+    if ('object' in controls) controls.object = perspCam;
+    if ('target' in controls && controls.target) controls.target.copy(target);
+    if ('enableRotate' in controls) controls.enableRotate = true;
+    controls.enablePan = true;
+    controls.screenSpacePanning = true;
+    if (controls.mouseButtons) controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+    if (controls.touches) controls.touches.ONE = THREE.TOUCH.ROTATE;
+    if ('enabled' in controls) controls.enabled = true;
+    controls.update?.();
   }
 }
 

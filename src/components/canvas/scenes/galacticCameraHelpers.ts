@@ -1,4 +1,4 @@
-import type * as THREE from 'three';
+import * as THREE from 'three';
 import { useCameraStore, type SavedGalaxyCameraPose } from '../../../stores/useCameraStore';
 import type { AppRouterAdapter, StarmapSearchParams } from '../../../hooks/useSpaLocation';
 import {
@@ -86,9 +86,13 @@ export function applyImmediateCameraPose(
   target: readonly [number, number, number],
   up: readonly [number, number, number],
   zoom = 1,
+  fov?: number,
 ): boolean {
   camera.position.set(position[0], position[1], position[2]);
   camera.up.set(up[0], up[1], up[2]);
+  if (fov !== undefined && camera instanceof THREE.PerspectiveCamera) {
+    camera.fov = fov;
+  }
   applyCameraSavedZoom(camera, zoom);
 
   if (controls) {

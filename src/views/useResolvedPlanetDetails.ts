@@ -71,16 +71,19 @@ export function useResolvedPlanetDetails(
   const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
   const routeSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
-  const rawPlanetId = routeParams?.planetId ?? propPlanetId;
+  const isExplicitLocation = locationPathname !== undefined || locationSearch !== undefined;
+  const rawPlanetId = isExplicitLocation
+    ? propPlanetId
+    : (routeParams?.planetId ?? propPlanetId);
   const fallbackPlanetSlug = pathname.startsWith('/planet/')
     ? toUrlSlug(pathname.slice('/planet/'.length).split('/')[0])
     : null;
   const urlPlanetSlug = toUrlSlug(rawPlanetId ?? '') || fallbackPlanetSlug || null;
 
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
-  const focusParam = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
-  const selectParam = routeSearch?.select ?? searchParams.get('select') ?? undefined;
-  const centerParam = routeSearch?.center ?? searchParams.get('center') ?? undefined;
+  const param = (key: keyof StarmapSearchParams) =>
+    (isExplicitLocation ? searchParams.get(key) : (routeSearch?.[key] ?? searchParams.get(key))) ?? undefined;
+  const [focusParam, selectParam, centerParam] = (['focus', 'select', 'center'] as const).map(param);
   const urlFocusSlug = focusParam ? toUrlSlug(focusParam) || null : null;
   const hasExplicitFocus = Boolean(focusParam && urlFocusSlug && urlFocusSlug.length > 0);
 

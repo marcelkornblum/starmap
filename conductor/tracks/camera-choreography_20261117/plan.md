@@ -40,14 +40,30 @@
 - [x] **Task 1.5: Quality Gate & Standards Cleanup** *(lint 0, typecheck, audit:guards, audit:ui, audit:r3f, 344 test files green)*
   - Run `standards` cleanup; verify `max-lines: 300` and `DEC-R012` boundaries.
   - Run `npm run lint`, `npm run typecheck`, `npm run audit:guards`, `npm run audit:ui`, `npm run audit:r3f`, `npm run test:coverage`.
-- [~] **Task 1.6: Phase 1 Verification, Demo Link & Checkpoint**
-  - Commit checkpoint on `feat/camera-choreography`.
-  - Present clickable `<LAN_HOST>:5173` links (`/galaxy`, `/system/sol`, `/planet/earth`), **"What to see & try"** walkthrough (Motion Lab curve switcher + short/medium/long journeys, clicking `Centre`, stepping `<LayerCard />`, picking search results, presets, panning away from focus), and HALT for user feedback & curve tuning.
+- [x] **Task 1.6: Phase 1 Verification, Demo Link & Checkpoint** *(live review + `/standards`, `/code-review`, `/architecture-review` completed)*
+
+### Phase 1.5: Review Remediation (All Critical, High, Medium & Low Findings)
+- [x] **Task 1.5A (Red/Green/Refactor): Unified Single Context Camera Engine & `OrbitControls` Handshake** *(shipped `CameraTransitionProvider`, deleted `CardinalTransitionController` + `poseControllerRef`, fixed pre-flight inertia drain & post-flight settle order, pruned shims/unused curves + 94 tests green)*
+  - Collapse all 4 camera controllers (`CameraTransitionController`, `CardinalTransitionController`, `poseControllerRef`, module singletons) into one R3F-context-provided `CameraTransitionProvider` at `FRAME_PRIORITY.cameraTransition = -2`.
+  - Fix frame-0 `OrbitControls` inertia jolt & post-glide damping leak (drain deltas before start, call `controls.update()` *before* restoring `enableDamping = true` on settle, call `controls.update()` on reduced-motion snap).
+  - Prune dead shims/curves (`easeInOutCubic` re-export, unused curves, `legacyControls` overloads) and fix ortho-unlock + reduced-motion `reset` target restore.
+- [x] **Task 1.5B (Red/Green/Refactor): Scene Controllers, FOV/Distance Alignment, Double-Click & `DropStalk` Fixes** *(shipped `SYSTEM_FRAME`/`PLANETARY_FRAME` FOV + `maxDistance=150`, `SystemCameraController` `false->true` guard, `GalacticCameraController` `isTransientZero` + mid-flight unmount guard, planetary single-pass entities, double-click click-#2 fix, `DropStalk` `+0.002`/coplanar fixes + 59 tests green)*
+  - Align `SystemSceneEntry` `maxDistance = 150` and apply `SYSTEM_FRAME.baseFov (35°)` / `PLANETARY_FRAME.baseFov (30°)` + `zoom = 1` on scene entry.
+  - Fix `SystemCameraController` `false -> true` `hasExplicitCenter`, `GalacticCameraController` `isTransientZero` + unmount mid-flight save, planetary double target resolution, double-click click-#2 unfocus race, and `DropStalk` `+0.002` offset / coplanar invalidation.
+- [x] **Task 1.5C (Red/Green/Refactor): Search, `spaNavigation`, Router SSOT & ViewModel Fixes** *(shipped modified-click guard, slugified search focus, intra-system search recenter, deferred `spaNavigation` recenter, `useSystemOutOfScopeGuard` disks/satellites/coords, `useColdLoadCenter` latch + 131 tests green)*
+  - Fix `SearchResultItem` modified-click mutation, raw slug, stale `pendingCenterSlug`, and intra-system search centring; fix `spaNavigation` empty `?center=` & deferred `triggerRecenter()`; fix `useSystemOutOfScopeGuard`, `buildCenterEntityHref`, `useColdLoadCenter`, `useKeyboardShortcuts`, `SearchPanel`, and missing unit tests.
+- [x] **Task 1.5D: Quality Gate, Frame-Time Baseline & Checkpoint** *(all 6 QA gates + 346 test files + `e2e/frame-time-baseline.spec.ts` pass)*
+  - Pass `lint`, `typecheck`, `audit:guards`, `audit:ui`, `audit:r3f`, `test:coverage`, and `e2e/frame-time-baseline.spec.ts`; commit checkpoint before starting Phase 2.
 
 ---
 
 ## Phase 2: Cross-Scale Choreography (`Galaxy` ↔ `System` ↔ `Planet`)
-**Goal:** Eliminate hard scene cuts and `<Suspense>` canvas flashes when moving between `Galaxy`, `System`, and `Planet` (including `<LayerCard />` cross-scale waypoint stepping) via a sequential two-stage handoff on the persistent `RootCanvasHost` canvas.
+**Goal:** Eliminate hard scene cuts and `<Suspense>` canvas flashes when moving between `Galaxy`, `System`, and `Planet` (including `<LayerCard />` cross-scale waypoint stepping) via a sequential two-stage handoff on the persistent `RootCanvasHost` canvas, making the **difference in orbital planes** between reference frames visually unmistakable.
+
+**Ratified Phase 2 Choreography Shape (Tunable):**
+- **Duration:** ~`1.5×` intra-view duration (~`1.5–2.0s` total).
+- **Plane-tilt orientation (0% → 50%):** During the first half of the transition, rotate/tilt the camera orientation from the **source reference frame** (its z-axis footprint / orbital plane) to the **target reference frame** (e.g., Galactic plane ↔ Sol Ecliptic ~60.2°, Ecliptic ↔ planetary axial tilt) so the orbital-plane difference is unmistakably visible.
+- **Translation onset (~20%):** Start the actual camera move toward the target after ~`20%` of the transition duration, easing cleanly along the single shared `easeOutCubic` curve.
 
 - [ ] **Task 2.0: Phase 2 Tune / Scope Check**
   - Apply any easing/duration/log-distance tweaks from the Phase 1 demo.

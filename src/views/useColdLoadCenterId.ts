@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { toUrlSlug } from '../utils/datasetLayerSlugs';
 import { parseCenterCoordinatesString } from '../utils/url';
 import type { SceneCameraUrlState } from '../services/details/detailsNavigationTypes';
@@ -8,20 +8,55 @@ export interface UseColdLoadCenterResult {
   readonly resolvedCenterCoordinates: readonly [number, number, number] | undefined;
 }
 
+interface ColdLoadLatch {
+  readonly subscribe: (listener: () => void) => () => void;
+  readonly getSnapshot: () => string | null;
+  readonly clear: () => void;
+}
+
+function createColdLoadLatch(initialFocus: string | null): ColdLoadLatch {
+  let current = initialFocus;
+  const listeners = new Set<() => void>();
+  return {
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    getSnapshot: () => current,
+    clear: () => {
+      if (current !== null) {
+        current = null;
+        for (const listener of listeners) {
+          listener();
+        }
+      }
+    },
+  };
+}
+
 export function useColdLoadFocusActive(
   hasExplicitCenterParam: boolean,
   urlFocusSlug: string | null,
 ): boolean {
-  const [coldLoadFocus, setColdLoadFocus] = useState<string | null>(() =>
-    !hasExplicitCenterParam ? urlFocusSlug : null,
+  const [latch] = useState(() =>
+    createColdLoadLatch(!hasExplicitCenterParam ? urlFocusSlug : null),
+  );
+  const coldLoadFocus = useSyncExternalStore(
+    latch.subscribe,
+    latch.getSnapshot,
+    latch.getSnapshot,
   );
 
-  if (
-    coldLoadFocus !== null &&
-    (hasExplicitCenterParam || urlFocusSlug !== coldLoadFocus)
-  ) {
-    setColdLoadFocus(null);
-  }
+  useEffect(() => {
+    if (
+      coldLoadFocus !== null &&
+      (hasExplicitCenterParam || urlFocusSlug !== coldLoadFocus)
+    ) {
+      latch.clear();
+    }
+  }, [latch, coldLoadFocus, hasExplicitCenterParam, urlFocusSlug]);
 
   return (
     coldLoadFocus !== null &&
@@ -35,7 +70,12 @@ export function useColdLoadCenter(
   cameraState: SceneCameraUrlState,
   urlFocusSlug: string | null,
 ): UseColdLoadCenterResult {
-  const hasExplicitCenterParam = Boolean(center ?? cameraState.center);
+  const hasExplicitCenterParam = Boolean(
+    (center ?? cameraState.center) ||
+      (cameraState.x !== undefined &&
+        cameraState.y !== undefined &&
+        cameraState.z !== undefined),
+  );
   const isColdLoadFocus = useColdLoadFocusActive(hasExplicitCenterParam, urlFocusSlug);
   const coldFocus = isColdLoadFocus && urlFocusSlug ? urlFocusSlug : undefined;
 

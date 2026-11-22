@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
 import { PlanetScene } from './PlanetScene';
+import * as sceneTargetHelpers from './sceneTargetHelpers';
+import type { SpatialEntityDefinition } from '../entity';
 
 describe('PlanetScene Primitive', () => {
   it('renders PlanetScene with Planetary instrument frame, PlanetBody, and natural satellites', async () => {
@@ -49,5 +51,33 @@ describe('PlanetScene Primitive', () => {
     expect((PlanetScene as unknown as { $$typeof?: symbol }).$$typeof).toBe(
       Symbol.for('react.memo'),
     );
+  });
+
+  it('skips resolvePlanetaryEntitiesAndTarget when resolvedEntities is provided', async () => {
+    const resolveSpy = vi.spyOn(sceneTargetHelpers, 'resolvePlanetaryEntitiesAndTarget');
+    const preResolved: SpatialEntityDefinition[] = [
+      {
+        id: 'earth',
+        name: 'Earth',
+        classification: 'terrestrial',
+        position: [0, 0, 0],
+        bodyRadius: 1,
+      },
+    ];
+
+    const renderer = await ReactThreeTest.create(
+      <PlanetScene
+        planetId="earth"
+        planetName="Earth"
+        resolvedEntities={preResolved}
+        centerCoordinates={[0, 0, 0]}
+      />,
+    );
+
+    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(renderer.scene.findByProps({ name: 'celestial-entity-earth' })).toBeDefined();
+
+    resolveSpy.mockRestore();
+    await renderer.unmount();
   });
 });

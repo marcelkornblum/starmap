@@ -1,18 +1,47 @@
 import { useCallback } from 'react';
 import type React from 'react';
 import { useCameraStore } from '../stores/useCameraStore';
-import { resolveAppHref } from '../utils/url';
+import { toUrlSlug } from '../utils/datasetLayerSlugs';
+import { parseCenterCoordinatesString, resolveAppHref } from '../utils/url';
 import { useOptionalRouter, type AppRouterAdapter } from './useSpaLocation';
 
-function hasCenterSearchParam(href: string): boolean {
+function normalizeCenterValue(raw: string | null | undefined): string | null {
+  const trimmed = raw?.trim() ?? '';
+  if (!trimmed) return null;
+  return parseCenterCoordinatesString(trimmed) ? trimmed : toUrlSlug(trimmed) || trimmed;
+}
+
+function getCenterSearchParam(href: string): string | null {
+  let rawCenter: string | null = null;
   try {
     const parsedUrl = new URL(href, 'http://localhost');
-    return parsedUrl.searchParams.has('center');
+    rawCenter = parsedUrl.searchParams.get('center');
   } catch {
     const queryIndex = href.indexOf('?');
-    if (queryIndex === -1) return false;
-    return new URLSearchParams(href.slice(queryIndex + 1)).has('center');
+    if (queryIndex === -1) return null;
+    rawCenter = new URLSearchParams(href.slice(queryIndex + 1)).get('center');
   }
+  return normalizeCenterValue(rawCenter);
+}
+
+function getCurrentCenterParam(router?: AppRouterAdapter | null): string | null {
+  const routerCenter = router?.state?.location?.search?.center;
+  if (typeof routerCenter === 'string') {
+    return normalizeCenterValue(routerCenter);
+  }
+  const searchStr =
+    router?.state?.location?.searchStr ??
+    (typeof window !== 'undefined' ? window.location.search : '');
+  if (!searchStr) return null;
+  return normalizeCenterValue(new URLSearchParams(searchStr).get('center'));
+}
+
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return (
+    value !== null &&
+    (typeof value === 'object' || typeof value === 'function') &&
+    typeof (value as PromiseLike<unknown>).then === 'function'
+  );
 }
 
 /**
@@ -50,13 +79,28 @@ export function handleSpaNavigation(
 
   event.preventDefault();
   const resolved = resolveAppHref(rawHref) ?? rawHref;
-  if (hasCenterSearchParam(resolved)) {
-    useCameraStore.getState().triggerRecenter();
-  }
+  const targetCenter = getCenterSearchParam(resolved);
+  const currentCenter = targetCenter !== null ? getCurrentCenterParam(router) : null;
+  const isSameCenter = targetCenter !== null && currentCenter === targetCenter;
+
+  let navResult: unknown;
   if (router && typeof router.navigate === 'function') {
-    void router.navigate({ href: resolved });
+    navResult = router.navigate({ href: resolved });
   } else if (router?.history?.push) {
     router.history.push(resolved);
+  }
+
+  if (targetCenter !== null) {
+    if (isSameCenter || !isThenable(navResult)) {
+      useCameraStore.getState().triggerRecenter();
+    } else {
+      void navResult.then(
+        () => {
+          useCameraStore.getState().triggerRecenter();
+        },
+        () => {},
+      );
+    }
   }
   return true;
 }

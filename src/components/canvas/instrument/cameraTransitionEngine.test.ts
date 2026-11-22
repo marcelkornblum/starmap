@@ -10,12 +10,11 @@ interface MockControls extends TransitionControlsLike {
   target: THREE.Vector3;
   enabled: boolean;
   enableDamping: boolean;
-  update: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn<() => void>>;
 }
 
-function mockMatchMedia(reduced: boolean) {
-  vi.spyOn(reducedMotion, 'prefersReducedMotion').mockReturnValue(reduced);
-}
+const linearEasing = (t: number) => t;
+const mockMatchMedia = (reduced: boolean) => vi.spyOn(reducedMotion, 'prefersReducedMotion').mockReturnValue(reduced);
 
 describe('cameraTransitionEngine', () => {
   let perspCam: THREE.PerspectiveCamera;
@@ -37,7 +36,7 @@ describe('cameraTransitionEngine', () => {
       target: new THREE.Vector3(0, 0, 0),
       enabled: true,
       enableDamping: true,
-      update: vi.fn(),
+      update: vi.fn<() => void>(),
     };
   });
 
@@ -49,126 +48,129 @@ describe('cameraTransitionEngine', () => {
   it('uses DEFAULT_CAMERA_EASING_CURVE (easeOutCubic) by default', () => {
     const controller = new CameraTransitionController();
     controller.start(perspCam, [100, 0, 0], mockControls.target, { duration: 1.0 }, 1000);
-
-    // At progress = 0.25, easeOutCubic(0.25) = 1 - (0.75)^3 = 0.578125
     controller.update(perspCam, mockControls, 1250);
     expect(mockControls.target.x).toBeCloseTo(57.8125, 4);
   });
 
-  it('keeps OrbitControls.enabled true, pauses enableDamping during flight, and restores on settle', () => {
+  it('drains residual inertia pre-flight, keeps damping paused in flight, and settles update() BEFORE restoring enableDamping', () => {
     const controller = new CameraTransitionController();
     const onComplete = vi.fn();
+    const dampingAtUpdateCalls: boolean[] = [];
+
+    mockControls.update = vi.fn<() => void>(() => {
+      dampingAtUpdateCalls.push(mockControls.enableDamping);
+      if (dampingAtUpdateCalls.length === 1) mockControls.target.set(2, 0, 0);
+    });
 
     controller.startPose(
       perspCam,
       { target: [10, 0, 0], position: [10, 0, 20] },
       mockControls,
-      { duration: 1.0, onComplete },
+      { duration: 1.0, easing: linearEasing, onComplete },
       1000,
     );
 
     expect(mockControls.enabled).toBe(true);
     expect(mockControls.enableDamping).toBe(false);
-    expect(mockControls.update).not.toHaveBeenCalled();
+    expect(dampingAtUpdateCalls).toEqual([false]);
 
-    // Intermediate frame: controls stay enabled, damping stays paused, controls.update is NOT called
     controller.update(perspCam, mockControls, 1500);
-    expect(mockControls.enabled).toBe(true);
+    expect(mockControls.target.x).toBeCloseTo(6, 4);
     expect(mockControls.enableDamping).toBe(false);
-    expect(mockControls.update).not.toHaveBeenCalled();
+    expect(dampingAtUpdateCalls).toEqual([false]);
 
-    // Completion frame: enableDamping restored and controls.update called exactly once
     controller.update(perspCam, mockControls, 2000);
     expect(controller.isTransitioning()).toBe(false);
     expect(mockControls.enabled).toBe(true);
     expect(mockControls.enableDamping).toBe(true);
-    expect(mockControls.update).toHaveBeenCalledTimes(1);
+    expect(dampingAtUpdateCalls).toEqual([false, false]);
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps OrbitControls.enabled true, restores enableDamping, and calls controls.update() once on cancel', () => {
+  it('performs identical pre-flight drain and post-flight settle when start() receives controls', () => {
+    const controller = new CameraTransitionController();
+    const dampingAtUpdateCalls: boolean[] = [];
+    mockControls.update = vi.fn<() => void>(() => {
+      dampingAtUpdateCalls.push(mockControls.enableDamping);
+    });
+
+    controller.start(perspCam, [20, 0, 0], mockControls.target, { duration: 1.0 }, 1000, mockControls);
+    expect(dampingAtUpdateCalls).toEqual([false]);
+    expect(mockControls.enableDamping).toBe(false);
+
+    controller.update(perspCam, mockControls, 2000);
+    expect(dampingAtUpdateCalls).toEqual([false, false]);
+    expect(mockControls.enableDamping).toBe(true);
+    expect(mockControls.target.x).toBeCloseTo(20, 4);
+  });
+
+  it('restores enableDamping AFTER calling controls.update() on cancel', () => {
     const controller = new CameraTransitionController();
     const onCancel = vi.fn();
+    const dampingAtUpdateCalls: boolean[] = [];
+    mockControls.update = vi.fn<() => void>(() => {
+      dampingAtUpdateCalls.push(mockControls.enableDamping);
+    });
 
-    controller.startPose(
-      perspCam,
-      { target: [10, 0, 0], position: [10, 0, 20] },
-      mockControls,
-      { duration: 1.0, onCancel },
-      1000,
-    );
-
+    controller.startPose(perspCam, { target: [10, 0, 0], position: [10, 0, 20] }, mockControls, { duration: 1.0, onCancel }, 1000);
     expect(mockControls.enabled).toBe(true);
     expect(mockControls.enableDamping).toBe(false);
     controller.update(perspCam, mockControls, 1250);
-    expect(mockControls.update).not.toHaveBeenCalled();
+    expect(dampingAtUpdateCalls).toEqual([false]);
 
     controller.cancel();
     expect(controller.isTransitioning()).toBe(false);
     expect(mockControls.enabled).toBe(true);
     expect(mockControls.enableDamping).toBe(true);
-    expect(mockControls.update).toHaveBeenCalledTimes(1);
+    expect(dampingAtUpdateCalls).toEqual([false, false]);
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   it('does not overwrite enableDamping when already disabled before flight', () => {
     mockControls.enableDamping = false;
     const controller = new CameraTransitionController();
-
-    controller.startPose(
-      perspCam,
-      { target: [10, 0, 0], position: [10, 0, 20] },
-      mockControls,
-      { duration: 1.0 },
-      1000,
-    );
+    controller.startPose(perspCam, { target: [10, 0, 0], position: [10, 0, 20] }, mockControls, { duration: 1.0 }, 1000);
     expect(mockControls.enableDamping).toBe(false);
-
     controller.update(perspCam, mockControls, 2000);
     expect(mockControls.enableDamping).toBe(false);
   });
 
   it('anchors startTime on first update when now is omitted (pendingStart frame-0 stall guard)', () => {
     const controller = new CameraTransitionController();
-    controller.start(perspCam, [100, 0, 0], mockControls.target, { duration: 1.0, easing: 'linear' });
-
-    // Simulate a 5-second shader-compile stall before frame 0 update arrives
-    const firstTick = controller.update(perspCam, mockControls, 5000);
-    expect(firstTick).toBe(true);
+    controller.start(perspCam, [100, 0, 0], mockControls.target, { duration: 1.0, easing: linearEasing });
+    expect(controller.update(perspCam, mockControls, 5000)).toBe(true);
     expect(mockControls.target.x).toBeCloseTo(0, 4);
     expect(controller.isTransitioning()).toBe(true);
 
-    // 0.5s after frame 0 -> halfway through glide
     controller.update(perspCam, mockControls, 5500);
     expect(mockControls.target.x).toBeCloseTo(50, 3);
     expect(controller.isTransitioning()).toBe(true);
 
-    // 1.0s after frame 0 -> settled
     controller.update(perspCam, mockControls, 6000);
     expect(mockControls.target.x).toBeCloseTo(100, 4);
     expect(controller.isTransitioning()).toBe(false);
   });
 
-  it('snaps immediately on start and startPose when prefersReducedMotion is active', () => {
+  it('snaps immediately, calls controls.update() after snap while damping is paused, and restores damping under prefersReducedMotion', () => {
     mockMatchMedia(true);
     const controller = new CameraTransitionController();
     const onComplete = vi.fn();
+    const dampingAtUpdateCalls: boolean[] = [];
+    mockControls.update = vi.fn<() => void>(() => {
+      dampingAtUpdateCalls.push(mockControls.enableDamping);
+    });
 
     controller.startPose(
       perspCam,
-      {
-        target: [10, 20, 30],
-        position: [10, 20, 50],
-        up: [0, 0, 1],
-        fov: 60,
-      },
+      { target: [10, 20, 30], position: [10, 20, 50], up: [0, 0, 1], fov: 60 },
       mockControls,
       { duration: 0.8, onComplete },
     );
 
     expect(controller.isTransitioning()).toBe(false);
     expect(mockControls.enabled).toBe(true);
-    expect(mockControls.update).toHaveBeenCalledTimes(1);
+    expect(mockControls.enableDamping).toBe(true);
+    expect(dampingAtUpdateCalls).toEqual([false, false]);
     expect(mockControls.target.toArray()).toEqual([10, 20, 30]);
     expect(perspCam.position.toArray()).toEqual([10, 20, 50]);
     expect(perspCam.up.toArray()).toEqual([0, 0, 1]);
@@ -176,18 +178,13 @@ describe('cameraTransitionEngine', () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it('snaps immediately when duration <= 0', () => {
+  it('snaps immediately and calls controls.update() when duration <= 0', () => {
     const controller = new CameraTransitionController();
     const onComplete = vi.fn();
-
-    controller.start(
-      perspCam,
-      [5, 6, 7],
-      mockControls.target,
-      { duration: 0, onComplete },
-    );
-
+    controller.start(perspCam, [5, 6, 7], mockControls.target, { duration: 0, onComplete }, undefined, mockControls);
     expect(controller.isTransitioning()).toBe(false);
+    expect(mockControls.enableDamping).toBe(true);
+    expect(mockControls.update).toHaveBeenCalledTimes(2);
     expect(mockControls.target.toArray()).toEqual([5, 6, 7]);
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
@@ -200,19 +197,12 @@ describe('cameraTransitionEngine', () => {
 
     controller.startPose(
       perspCam,
-      {
-        target: [0, 0, 0],
-        direction: [1, 0, 0],
-        distance: 1,
-        up: [0, 0, 1],
-        fov: 60,
-      },
+      { target: [0, 0, 0], direction: [1, 0, 0], distance: 1, up: [0, 0, 1], fov: 60 },
       mockControls,
-      { duration: 1.0, logarithmicDistance: true, easing: 'linear' },
+      { duration: 1.0, logarithmicDistance: true, easing: linearEasing },
       1000,
     );
 
-    // At t = 0.5: direction rotated 45 deg in XZ plane, log distance = 10, fov = 50
     controller.update(perspCam, mockControls, 1500);
     expect(perspCam.position.length()).toBeCloseTo(10, 2);
     expect(perspCam.position.x).toBeCloseTo(10 * Math.SQRT1_2, 2);
@@ -231,18 +221,9 @@ describe('cameraTransitionEngine', () => {
   it('interpolates OrthographicCamera orthoZoom cleanly', () => {
     const controller = new CameraTransitionController();
     orthoCam.zoom = 1.0;
-
-    controller.startPose(
-      orthoCam,
-      { target: [0, 0, 0], orthoZoom: 3.0 },
-      mockControls,
-      { duration: 1.0, easing: 'linear' },
-      1000,
-    );
-
+    controller.startPose(orthoCam, { target: [0, 0, 0], orthoZoom: 3.0 }, mockControls, { duration: 1.0, easing: linearEasing }, 1000);
     controller.update(orthoCam, mockControls, 1500);
     expect(orthoCam.zoom).toBeCloseTo(2.0, 4);
-
     controller.update(orthoCam, mockControls, 2000);
     expect(orthoCam.zoom).toBeCloseTo(3.0, 4);
     expect(controller.isTransitioning()).toBe(false);
@@ -252,23 +233,11 @@ describe('cameraTransitionEngine', () => {
     const controller = new CameraTransitionController();
     const firstCancel = vi.fn();
 
-    controller.startPose(
-      perspCam,
-      { target: [10, 0, 0], position: [10, 0, 20] },
-      mockControls,
-      { duration: 1.0, onCancel: firstCancel },
-      1000,
-    );
+    controller.startPose(perspCam, { target: [10, 0, 0], position: [10, 0, 20] }, mockControls, { duration: 1.0, onCancel: firstCancel }, 1000);
     expect(mockControls.enabled).toBe(true);
     expect(mockControls.enableDamping).toBe(false);
 
-    controller.startPose(
-      perspCam,
-      { target: [20, 0, 0], position: [20, 0, 20] },
-      mockControls,
-      { duration: 1.0 },
-      1200,
-    );
+    controller.startPose(perspCam, { target: [20, 0, 0], position: [20, 0, 20] }, mockControls, { duration: 1.0 }, 1200);
     expect(firstCancel).toHaveBeenCalledTimes(1);
     expect(mockControls.enabled).toBe(true);
     expect(mockControls.enableDamping).toBe(false);

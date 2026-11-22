@@ -100,9 +100,10 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions): voi
           } else {
             useCameraStore.getState().clearCanvasFocus();
             useCameraStore.getState().setPendingCenterSlug(null);
+            const searchStr = router?.state?.location?.searchStr;
             const hasRouterFocus = Boolean(
               router?.state?.location?.search?.focus ||
-                router?.state?.location?.searchStr?.includes('focus'),
+                (searchStr && new URLSearchParams(searchStr).has('focus')),
             );
             if (router && typeof router.navigate === 'function' && hasRouterFocus) {
               useCameraStore.getState().setInFlightFocusSlug(null);

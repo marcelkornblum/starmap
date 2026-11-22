@@ -18,6 +18,7 @@ export interface SystemCameraControllerProps {
   readonly position: readonly [number, number, number];
   readonly target: readonly [number, number, number];
   readonly up: readonly [number, number, number];
+  readonly fov?: number;
   readonly hasExplicitCenter?: boolean;
 }
 
@@ -25,6 +26,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
   position,
   target,
   up,
+  fov,
   hasExplicitCenter = true,
 }) => {
   const camera = useThree((s) => s.camera);
@@ -37,6 +39,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
   const prevTargetRef = useRef<[number, number, number]>([Number.NaN, Number.NaN, Number.NaN]);
   const prevTickRef = useRef<number>(-1);
   const prevControlsRef = useRef<OrbitControlsLike | undefined>(undefined);
+  const prevHasExplicitCenterRef = useRef<boolean>(hasExplicitCenter);
   const hasAppliedControlsRef = useRef(false);
 
   const [posX, posY, posZ] = position;
@@ -82,18 +85,23 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
       prevTarget[2] === tgtZ;
     const isTickSame = recenterTick === prevTickRef.current;
     const isControlsSame = controls === prevControlsRef.current;
+    const didExplicitCenterBecomeTrue =
+      !isInitialMount && !prevHasExplicitCenterRef.current && hasExplicitCenter;
 
-    if (isTargetSame && isTickSame && isControlsSame) {
+    if (isTargetSame && isTickSame && isControlsSame && !didExplicitCenterBecomeTrue) {
+      prevHasExplicitCenterRef.current = hasExplicitCenter;
       return;
     }
 
     if (!isInitialMount && !hasExplicitCenter && isControlsSame) {
+      prevTickRef.current = recenterTick;
+      prevHasExplicitCenterRef.current = hasExplicitCenter;
       return;
     }
 
     if (
       !isInitialMount &&
-      isTargetSame &&
+      (isTargetSame || didExplicitCenterBecomeTrue) &&
       isControlsSame &&
       controls?.target &&
       Math.hypot(
@@ -103,6 +111,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
       ) < 1e-3
     ) {
       prevTickRef.current = recenterTick;
+      prevHasExplicitCenterRef.current = hasExplicitCenter;
       return;
     }
 
@@ -116,20 +125,21 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
         [posX, posY, posZ],
         [tgtX, tgtY, tgtZ],
         [upX, upY, upZ],
-        getCameraZoom(camera),
+        isInitialMount ? 1 : getCameraZoom(camera),
+        fov,
       );
       if (applied) hasAppliedControlsRef.current = true;
       syncPoseToStore([tgtX, tgtY, tgtZ]);
       prevTargetRef.current = [tgtX, tgtY, tgtZ];
       prevTickRef.current = recenterTick;
       prevControlsRef.current = controls;
+      prevHasExplicitCenterRef.current = hasExplicitCenter;
       invalidate?.();
       return;
     }
 
     transitionTo([tgtX, tgtY, tgtZ], {
       onComplete: () => {
-        controls?.update?.();
         hasAppliedControlsRef.current = Boolean(controls);
         syncPoseToStore([tgtX, tgtY, tgtZ]);
         invalidate?.();
@@ -139,6 +149,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     prevTargetRef.current = [tgtX, tgtY, tgtZ];
     prevTickRef.current = recenterTick;
     prevControlsRef.current = controls;
+    prevHasExplicitCenterRef.current = hasExplicitCenter;
   }, [
     posX,
     posY,
@@ -149,6 +160,7 @@ export const SystemCameraController: React.FC<SystemCameraControllerProps> = ({
     upX,
     upY,
     upZ,
+    fov,
     hasExplicitCenter,
     recenterTick,
     camera,

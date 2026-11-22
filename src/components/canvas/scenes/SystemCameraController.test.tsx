@@ -24,13 +24,8 @@ function setMockReducedMotion(reduced: boolean) {
     configurable: true,
     value: vi.fn().mockImplementation((query: string) => ({
       matches: reduced && query === '(prefers-reduced-motion: reduce)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
+      media: query, onchange: null, addListener: vi.fn(), removeListener: vi.fn(),
+      addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
     })),
   });
 }
@@ -39,16 +34,9 @@ vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {
     ...actual,
-    useFrame: (cb: (state: unknown, delta: number) => void) => {
-      frameCallbacks.push(cb);
-    },
+    useFrame: (cb: (state: unknown, delta: number) => void) => { frameCallbacks.push(cb); },
     useThree: (selector?: (s: unknown) => unknown) => {
-      const state = {
-        camera: mockCamera,
-        controls: mockControls,
-        size: { width: 1920, height: 1080 },
-        invalidate: mockInvalidate,
-      };
+      const state = { camera: mockCamera, controls: mockControls, size: { width: 1920, height: 1080 }, invalidate: mockInvalidate };
       return selector ? selector(state) : state;
     },
   };
@@ -209,6 +197,45 @@ describe('SystemCameraController Component', () => {
 
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     expect(mockControls.target.x).toBe(1);
+    expect(mockInvalidate).not.toHaveBeenCalled();
+  });
+
+  it('applies explicit fov, resets zoom to 1, and updates projection matrix on initial mount', () => {
+    mockCamera.fov = 45;
+    mockCamera.zoom = 2.5;
+    const updateProjSpy = vi.spyOn(mockCamera, 'updateProjectionMatrix');
+    render(createElement(SystemCameraController, { position: [10, 20, 30], target: [0, 0, 0], up: [0, 0, 1], fov: 35 }));
+    expect(mockCamera.fov).toBe(35);
+    expect(mockCamera.zoom).toBe(1);
+    expect(updateProjSpy).toHaveBeenCalled();
+  });
+
+  it('glides when hasExplicitCenter transitions false -> true after panning away, and skips if already within 1e-3', () => {
+    const { rerender } = render(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: false }));
+    mockControls.target.set(5, 5, 0);
+    mockInvalidate.mockClear();
+
+    rerender(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: true }));
+    expect(useUIStore.getState().isCameraTransitioning).toBe(true);
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
+
+    act(() => { useUIStore.getState().setCameraTransitioning(false); });
+    rerender(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: false }));
+    mockControls.target.set(0, 0, 0);
+    mockInvalidate.mockClear();
+
+    rerender(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: true }));
+    expect(mockInvalidate).not.toHaveBeenCalled();
+  });
+
+  it('updates prevTickRef during !hasExplicitCenter early return so stale tick does not trigger later', () => {
+    const { rerender } = render(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: false }));
+    act(() => { useCameraStore.getState().focusFromSearch('earth'); });
+    mockControls.target.set(0, 0, 0);
+    mockInvalidate.mockClear();
+
+    rerender(createElement(SystemCameraController, { position: [0, -20, 10], target: [0, 0, 0], up: [0, 0, 1], hasExplicitCenter: true }));
+    expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     expect(mockInvalidate).not.toHaveBeenCalled();
   });
 });

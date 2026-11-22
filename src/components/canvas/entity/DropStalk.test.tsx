@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ReactThreeTest from '@react-three/test-renderer';
+import * as THREE from 'three';
 import { DropStalk } from './DropStalk';
 import { SpatialEntityProvider } from './SpatialEntityProvider';
 import { SpatialFrameProvider, GALACTIC_FRAME } from '../instrument';
@@ -224,6 +225,72 @@ describe('DropStalk Primitive (§2.4: State-Driven Drop Stalks)', () => {
     mockInvalidate.mockClear();
     await renderer.advanceFrames(1, 1.0);
     expect(mockInvalidate).toHaveBeenCalledTimes(1);
+
+    await renderer.unmount();
+  });
+
+  it('preserves +0.002 datum z-fighting offset on stalk-footprint after useFrame runs', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <DropStalk id="offset-stalk" position={[1, 2, 5]} datumZ={0} state="selected" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    await renderer.advanceFrames(1, 1.0);
+    const footprint = renderer.scene.find((node) => node.props.name === 'stalk-footprint');
+    const instance = footprint.instance as { position: { z: number } };
+    expect(instance.position.z).toBeCloseTo(0.002, 5);
+
+    await renderer.unmount();
+  });
+
+  it('skips invalidate() animation when coplanar with datum (Math.abs(deltaZ) <= 1e-4)', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <DropStalk id="coplanar-stalk" position={[1, 2, 0]} datumZ={0} state="selected" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    mockInvalidate.mockClear();
+    await renderer.advanceFrames(2, 0.05);
+    expect(mockInvalidate).not.toHaveBeenCalled();
+
+    await renderer.unmount();
+  });
+
+  it('resets lastProgressRef when lineGeom changes and memoises userData', async () => {
+    const renderer = await ReactThreeTest.create(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <DropStalk id="geom-reset-stalk" position={[0, 0, 0]} entityZ={2} datumZ={0} state="selected" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    await renderer.advanceFrames(1, 0.05);
+    const groupBefore = renderer.scene.find((node) => node.props.name === 'drop-stalk-geom-reset-stalk');
+    const userDataBefore = groupBefore.props.userData;
+
+    await renderer.update(
+      <SpatialEntityProvider>
+        <SpatialFrameProvider frame={GALACTIC_FRAME}>
+          <DropStalk id="geom-reset-stalk" position={[0, 0, 0]} entityZ={4} datumZ={0} state="selected" />
+        </SpatialFrameProvider>
+      </SpatialEntityProvider>,
+    );
+
+    const groupAfter = renderer.scene.find((node) => node.props.name === 'drop-stalk-geom-reset-stalk');
+    expect(groupAfter.props.userData).toBe(userDataBefore);
+
+    await renderer.advanceFrames(1, 0.0);
+    const stalkLine = renderer.scene.find((node) => node.props.name === 'stalk-line');
+    const posAttr = (stalkLine.instance as THREE.LineSegments).geometry.getAttribute('position');
+    // Progress is < 1.0 (~0.33), so with delta=0 the new lineGeom tip Z must be interpolated, not stuck at full -4
+    expect(posAttr.array[5]).toBeGreaterThan(-4);
 
     await renderer.unmount();
   });

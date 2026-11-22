@@ -73,9 +73,9 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   const isDashed = deltaZ < 0;
   const hemisphere = isDashed ? 'south' : 'north';
 
-  // Animation progress: 0 (retracted) -> 1 (fully extended)
-  // In SSR / node tests without useFrame, initialize directly to 1.0 for stalk tiers so renderToString succeeds.
-  // In browser, initialize to 0.0 so extension animates smoothly upon selection.
+  // Animation progress: 0 (retracted) -> 1 (fully extended).
+  // In headless environments without window, initialise directly to 1.0 for stalk tiers.
+  // In browser, initialise to 0.0 so extension animates smoothly upon selection.
   const progressRef = useRef(
     typeof window === 'undefined' ? (isStalkTier ? 1.0 : 0.0) : 0.0,
   );
@@ -84,7 +84,7 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   const lineMeshRef = useRef<THREE.LineSegments>(null);
   const footprintRef = useLazyRef(() => {
     const g = new THREE.Group();
-    g.position.set(x, y, targetZ);
+    g.position.set(x, y, targetZ + 0.002);
     return g;
   });
   const footprintMatRef = useRef<THREE.LineBasicMaterial>(null);
@@ -93,7 +93,7 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   const frameCtx = useSpatialFrameSafe();
   const invalidate = useThree((s) => s.invalidate);
 
-  // Stalk vertical line remains neutral / monochrome; datum reticle adopts state color
+  // Stalk vertical line remains neutral / monochrome; datum reticle adopts state colour
   const stalkColor = state === 'focused' ? stalkFocusedColor : stalkSelectedColor;
   const stalkOpacity = state === 'focused' ? stalkFocusedAlpha : stalkSelectedAlpha;
 
@@ -127,16 +127,13 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
     return createReticleGeometry(classification, footprintSize);
   }, [classification, footprintSize]);
 
+  // Keep material instance stable; mutate colour/opacity in useEffect below
   const lineMaterial = useMemo(() => {
     return new CartoHairlineMaterial({
-      color: stalkColor,
-      opacity: stalkOpacity,
       lineStyle: isDashed ? 'dashed' : 'solid',
       transparent: true,
       depthWrite: false,
     });
-    // Keep material instance stable; mutate color/opacity in useEffect below
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDashed]);
 
   useEffect(() => {
@@ -145,6 +142,7 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   }, [lineMaterial, stalkColor, stalkOpacity]);
 
   useEffect(() => {
+    lastProgressRef.current = Number.NaN;
     return () => {
       lineGeom.dispose();
     };
@@ -163,8 +161,9 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
   }, [resolvedFootprintColor]);
 
   useEffect(() => {
+    if (Math.abs(deltaZ) <= 1e-4) return;
     invalidate();
-  }, [invalidate, isStalkTier, stalkColor, stalkOpacity, resolvedFootprintColor, resolvedFootprintAlpha]);
+  }, [invalidate, isStalkTier, deltaZ, stalkColor, stalkOpacity, resolvedFootprintColor, resolvedFootprintAlpha]);
 
   useFrame(({ camera, size }, delta) => {
     const clampedDelta = Math.min(delta, 0.1);
@@ -186,7 +185,10 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
 
     // Mutate stalk line vertex 2 in-place: current tip Z = startZ + p * (targetZ - startZ)
     const geom = lineMeshRef.current?.geometry as THREE.BufferGeometry | undefined;
-    if (geom && Math.abs(p - lastProgressRef.current) > 1e-5) {
+    if (
+      geom &&
+      (Number.isNaN(lastProgressRef.current) || Math.abs(p - lastProgressRef.current) > 1e-5)
+    ) {
       lastProgressRef.current = p;
       const posAttr = geom.getAttribute('position') as THREE.BufferAttribute;
       const arr = posAttr.array as Float32Array;
@@ -212,7 +214,7 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
 
     // Footprint visibility & invariant screen-space scaling (stamps as stalk reaches datum)
     if (footprintRef.current) {
-      footprintRef.current.position.set(x, y, targetZ);
+      footprintRef.current.position.set(x, y, targetZ + 0.002);
       footprintRef.current.visible = (p > 0.85) && (fadePlanar > 1e-4) && Math.abs(deltaZ) > 1e-4;
       if (footprintRef.current.visible) {
         footprintRef.current.getWorldPosition(scratchWorldPos.current);
@@ -234,15 +236,17 @@ export const DropStalk: React.FC<DropStalkProps> = React.memo(({
 
     lineMaterial.updateResolution(camera, size.height);
 
-    if (Math.abs(target - p) > 1e-4) {
+    if (Math.abs(deltaZ) > 1e-4 && Math.abs(target - p) > 1e-4) {
       invalidate();
     }
   });
 
+  const groupUserData = useMemo(() => ({ hemisphere }), [hemisphere]);
+
   if (!isStalkTier && progressRef.current <= 0.001) return null;
 
   return (
-    <group name={`drop-stalk-${id}`} userData={{ hemisphere }}>
+    <group name={`drop-stalk-${id}`} userData={groupUserData}>
       {/* Vertical Stalk Line */}
       <lineSegments ref={lineMeshRef} name="stalk-line" material={lineMaterial} frustumCulled={false} raycast={NOOP_RAYCAST}>
         <primitive object={lineGeom} attach="geometry" />

@@ -15,6 +15,9 @@ import PlanetarySceneEntryDefault, {
 } from './PlanetarySceneEntry';
 import { InteractiveNavigator } from './InteractiveNavigator';
 import { GALAXY_SCENE_MAX_STREAMED_ENTITIES } from './GalaxyScene';
+import { SYSTEM_FRAME, PLANETARY_FRAME } from '../../../config/referenceFrames';
+import * as galacticCameraHelpers from './galacticCameraHelpers';
+import * as sceneTargetHelpers from './sceneTargetHelpers';
 import type { SpatialEntityDefinition } from '../entity';
 import type { StarDossierData } from './SystemScene';
 import { SafeHtmlPortalOutlet } from '../SafeHtml';
@@ -214,6 +217,40 @@ describe('SpatialScenes Storybook Suite', () => {
       expect((PlanetarySceneContent as unknown as { $$typeof?: symbol }).$$typeof).toBe(
         Symbol.for('react.memo'),
       );
+    });
+
+    it('aligns SystemSceneContent OrbitControls maxDistance to SYSTEM_FRAME.camera.maxDistance (150)', async () => {
+      const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+      const renderer = await ReactThreeTest.create(
+        <SystemSceneContent system={mockSolSystem} />,
+      );
+
+      const controlsNode = renderer.scene.find(
+        (node) => typeof node.props.maxDistance === 'number',
+      );
+      expect(controlsNode.props.maxDistance).toBe(SYSTEM_FRAME.camera.maxDistance);
+
+      await renderer.unmount();
+      unmountOutlet();
+    });
+
+    it('aligns PlanetarySceneContent fov to PLANETARY_FRAME.camera.baseFov (30) and resolves planetary entities once', async () => {
+      const { unmount: unmountOutlet } = render(<SafeHtmlPortalOutlet />);
+      const applyPoseSpy = vi.spyOn(galacticCameraHelpers, 'applyImmediateCameraPose');
+      const resolveSpy = vi.spyOn(sceneTargetHelpers, 'resolvePlanetaryEntitiesAndTarget');
+
+      const renderer = await ReactThreeTest.create(
+        <PlanetarySceneContent planetId="earth" />,
+      );
+
+      expect(resolveSpy).toHaveBeenCalledTimes(1);
+      const lastCall = applyPoseSpy.mock.calls.at(-1);
+      expect(lastCall?.[6]).toBe(PLANETARY_FRAME.camera.baseFov);
+
+      resolveSpy.mockRestore();
+      applyPoseSpy.mockRestore();
+      await renderer.unmount();
+      unmountOutlet();
     });
   });
 });

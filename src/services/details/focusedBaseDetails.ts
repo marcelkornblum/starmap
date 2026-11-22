@@ -131,7 +131,7 @@ export function buildFocusedBaseDetails(
   const viewScope: 'galaxy' | 'system' | 'planet' =
     inputViewScope ?? (urlPlanetSlug ? 'planet' : urlSystemSlug ? 'system' : 'galaxy');
   const scopeTargetId = urlPlanetSlug ?? urlSystemSlug ?? resolvedTargetId;
-  const centerHref = buildCenterEntityHref(viewScope, scopeTargetId, resolvedTargetId);
+  const centerHref = buildCenterEntityHref(viewScope, scopeTargetId, resolvedTargetId, currentSearch);
 
   let systemDetailsHref: string | undefined;
   if ((focusedKind === 'system' || focusedKind === 'star') && viewScope === 'galaxy') {

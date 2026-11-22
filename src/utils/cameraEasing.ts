@@ -1,9 +1,4 @@
-export type CameraEasingCurveId =
-  | 'easeInOutQuad'
-  | 'easeOutQuad'
-  | 'easeInOutCubic'
-  | 'easeOutCubic'
-  | 'linear';
+export type CameraEasingCurveId = 'easeOutCubic';
 
 export const DEFAULT_CAMERA_EASING_CURVE: CameraEasingCurveId = 'easeOutCubic';
 
@@ -30,17 +25,6 @@ export function computeCameraTransitionDuration(
   return Math.min(1.5, Math.max(0.75, raw));
 }
 
-export const CAMERA_EASING_CURVES: readonly {
-  readonly id: CameraEasingCurveId;
-  readonly label: string;
-}[] = [
-  { id: 'easeInOutQuad', label: 'Quadratic Ease In-Out' },
-  { id: 'easeOutQuad', label: 'Quadratic Ease Out' },
-  { id: 'easeInOutCubic', label: 'Cubic Ease In-Out' },
-  { id: 'easeOutCubic', label: 'Cubic Ease Out' },
-  { id: 'linear', label: 'Linear' },
-] as const;
-
 const LOG_DISTANCE_THRESHOLD_DECADES = 0.05;
 
 function clampUnit(t: number): number {
@@ -53,45 +37,13 @@ function clampUnit(t: number): number {
   return t;
 }
 
-export function linear(t: number): number {
-  return clampUnit(t);
-}
-
-export function easeInOutQuad(t: number): number {
-  const clamped = clampUnit(t);
-  return clamped < 0.5
-    ? 2 * clamped * clamped
-    : 1 - Math.pow(-2 * clamped + 2, 2) / 2;
-}
-
-export function easeOutQuad(t: number): number {
-  const clamped = clampUnit(t);
-  const inv = 1 - clamped;
-  return 1 - inv * inv;
-}
-
-export function easeInOutCubic(t: number): number {
-  const clamped = clampUnit(t);
-  return clamped < 0.5
-    ? 4 * clamped * clamped * clamped
-    : 1 - Math.pow(-2 * clamped + 2, 3) / 2;
-}
-
 export function easeOutCubic(t: number): number {
   const clamped = clampUnit(t);
   return 1 - Math.pow(1 - clamped, 3);
 }
 
-const CURVE_EVALUATORS: Readonly<Record<CameraEasingCurveId, (t: number) => number>> = {
-  easeInOutQuad,
-  easeOutQuad,
-  easeInOutCubic,
-  easeOutCubic,
-  linear,
-};
-
-export function evaluateCameraEasing(curve: CameraEasingCurveId, t: number): number {
-  return CURVE_EVALUATORS[curve](clampUnit(t));
+export function evaluateCameraEasing(_curve: CameraEasingCurveId, t: number): number {
+  return easeOutCubic(t);
 }
 
 export function interpolateCameraDistance(

@@ -9,6 +9,7 @@ import type { SpatialEntityDefinition } from '../../canvas/entity/types';
 import { AdaptiveQualityMonitor } from '../../canvas/AdaptiveQualityMonitor';
 import { SceneTokenBridge } from '../../canvas/SceneTokenBridge';
 import { SafeHtmlPortalOutlet } from '../../canvas/SafeHtml';
+import { CameraTransitionProvider } from '../../canvas/instrument/useCameraTransition';
 import { getInitialCanvasDpr } from '../../../services/deviceTierService';
 import {
   SpatialEntityStoreContext,
@@ -103,40 +104,42 @@ export const CanvasWebGLHost: React.FC<CanvasWebGLHostProps> = React.memo(({
       >
         <CanvasRouterBridgeContext.Provider value={outerRouter}>
           <SpatialEntityStoreContext.Provider value={outerStore}>
-            <SceneTokenBridge />
-            <AdaptiveQualityMonitor />
-            <Suspense fallback={null}>
-              {isSpatialSceneMounted && scope === 'galaxy' && (
-                <GalacticSceneComponent
-                  initialSelectedId={centerId ?? null}
-                  centerCoordinates={centerCoordinates}
-                  centerId={centerId}
-                  cameraDistance={cameraDistance}
-                  additionalEntities={selectedEntities}
-                  onInspectSystem={onInspect}
-                  onSelectSystem={onSelect}
-                  onFocusChange={onFocusChange}
-                />
-              )}
-              {isSpatialSceneMounted && scope === 'system' && targetId && (
-                <SystemSceneComponent
-                  systemId={targetId}
-                  centerId={centerId}
-                  centerCoordinates={centerCoordinates}
-                  onInspectPlanet={onInspect}
-                  onSelectEntity={onSelect}
-                />
-              )}
-              {isSpatialSceneMounted && scope === 'planet' && targetId && (
-                <PlanetarySceneComponent
-                  planetId={targetId}
-                  centerId={centerId}
-                  centerCoordinates={centerCoordinates}
-                  onInspectSatellite={onInspect}
-                  onSelectEntity={onSelect}
-                />
-              )}
-            </Suspense>
+            <CameraTransitionProvider>
+              <SceneTokenBridge />
+              <AdaptiveQualityMonitor />
+              <Suspense fallback={null}>
+                {isSpatialSceneMounted && scope === 'galaxy' && (
+                  <GalacticSceneComponent
+                    initialSelectedId={centerId ?? null}
+                    centerCoordinates={centerCoordinates}
+                    centerId={centerId}
+                    cameraDistance={cameraDistance}
+                    additionalEntities={selectedEntities}
+                    onInspectSystem={onInspect}
+                    onSelectSystem={onSelect}
+                    onFocusChange={onFocusChange}
+                  />
+                )}
+                {isSpatialSceneMounted && scope === 'system' && targetId && (
+                  <SystemSceneComponent
+                    systemId={targetId}
+                    centerId={centerId}
+                    centerCoordinates={centerCoordinates}
+                    onInspectPlanet={onInspect}
+                    onSelectEntity={onSelect}
+                  />
+                )}
+                {isSpatialSceneMounted && scope === 'planet' && targetId && (
+                  <PlanetarySceneComponent
+                    planetId={targetId}
+                    centerId={centerId}
+                    centerCoordinates={centerCoordinates}
+                    onInspectSatellite={onInspect}
+                    onSelectEntity={onSelect}
+                  />
+                )}
+              </Suspense>
+            </CameraTransitionProvider>
           </SpatialEntityStoreContext.Provider>
         </CanvasRouterBridgeContext.Provider>
       </Canvas>

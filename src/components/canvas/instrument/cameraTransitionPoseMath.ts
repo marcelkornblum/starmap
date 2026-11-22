@@ -37,7 +37,13 @@ export interface TransitionControlsLike {
   target?: THREE.Vector3;
   enabled?: boolean;
   enableDamping?: boolean;
-  update?: (() => void) | Function;
+  update?: () => void;
+  addEventListener?: (type: string, listener: () => void) => void;
+  removeEventListener?: (type: string, listener: () => void) => void;
+}
+
+export function isTransitionControlsLike(value: unknown): value is TransitionControlsLike {
+  return typeof value === 'object' && value !== null;
 }
 
 export interface CameraTransitionApi {
@@ -46,6 +52,8 @@ export interface CameraTransitionApi {
   cancelTransition: () => void;
   isTransitioning: () => boolean;
 }
+
+const _scratchHint = new THREE.Vector3();
 
 export function copyVec3Input(dest: THREE.Vector3, src: Vector3Input): void {
   if (src instanceof THREE.Vector3) {
@@ -61,11 +69,23 @@ export function computePerpAxis(
   hintB: THREE.Vector3,
   out: THREE.Vector3,
 ): void {
-  if (Math.abs(hintA.dot(dir)) < 0.9 && hintA.lengthSq() > 1e-6) {
-    out.crossVectors(dir, hintA).normalize();
-  } else if (Math.abs(hintB.dot(dir)) < 0.9 && hintB.lengthSq() > 1e-6) {
-    out.crossVectors(dir, hintB).normalize();
-  } else if (Math.abs(dir.z) < 0.9) {
+  const lenSqA = hintA.lengthSq();
+  if (lenSqA > 1e-6) {
+    _scratchHint.copy(hintA).divideScalar(Math.sqrt(lenSqA));
+    if (Math.abs(_scratchHint.dot(dir)) < 0.9) {
+      out.crossVectors(dir, _scratchHint).normalize();
+      return;
+    }
+  }
+  const lenSqB = hintB.lengthSq();
+  if (lenSqB > 1e-6) {
+    _scratchHint.copy(hintB).divideScalar(Math.sqrt(lenSqB));
+    if (Math.abs(_scratchHint.dot(dir)) < 0.9) {
+      out.crossVectors(dir, _scratchHint).normalize();
+      return;
+    }
+  }
+  if (Math.abs(dir.z) < 0.9) {
     out.set(-dir.y, dir.x, 0).normalize();
   } else {
     out.set(0, -dir.z, dir.y).normalize();

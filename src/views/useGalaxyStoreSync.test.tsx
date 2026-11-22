@@ -158,4 +158,38 @@ describe('useGalaxyStoreSync', () => {
 
     expect(store.getState().apertureIds).toEqual(apertureIds);
   });
+
+  it('clears pendingCenterSlug when actualUrlFocusSlug becomes falsy or matches pending', () => {
+    const store = createSpatialEntityStore();
+    useCameraStore.setState({ pendingCenterSlug: 'sirius' });
+
+    const { rerender } = renderHook<void, UseGalaxyStoreSyncParams>(
+      (props) => useGalaxyStoreSync(props),
+      {
+        initialProps: {
+          ...createParams(store),
+          actualUrlFocusSlug: 'vega',
+        },
+      },
+    );
+
+    expect(useCameraStore.getState().pendingCenterSlug).toBe('sirius');
+
+    act(() => {
+      rerender({
+        ...createParams(store),
+        actualUrlFocusSlug: 'sirius',
+      });
+    });
+    expect(useCameraStore.getState().pendingCenterSlug).toBeNull();
+
+    useCameraStore.setState({ pendingCenterSlug: 'tau-ceti' });
+    act(() => {
+      rerender({
+        ...createParams(store),
+        actualUrlFocusSlug: null,
+      });
+    });
+    expect(useCameraStore.getState().pendingCenterSlug).toBeNull();
+  });
 });

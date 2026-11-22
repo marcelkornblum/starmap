@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import type { ReactNode } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SearchResultItem } from './SearchResultItem';
 import { formatPlanetCountSummary } from './searchResultFormatting';
-import { SearchContext } from '../Search/SearchContext';
+import { SearchContext, type SearchContextValue } from '../Search/SearchContext';
 import { executeCatalogSearch } from '../../../services/search/searchExecution';
 import type { SearchResultItem as SearchResultItemModel } from '../../../services/search/searchTypes';
 import { useCameraStore } from '../../../stores/useCameraStore';
@@ -10,7 +11,57 @@ import { createSpatialEntityStore } from '../../canvas/entity/SpatialEntityStore
 import { SpatialEntityStoreContext } from '../../canvas/entity/SpatialEntityContext';
 import * as prefetchModule from '../../../services/details/prefetchEntitySelection';
 
+function makeResult(overrides: Partial<SearchResultItemModel>): SearchResultItemModel {
+  return {
+    id: 'sirius',
+    name: 'Sirius',
+    category: 'stars',
+    entityKind: 'star-system',
+    reticleType: 'stellar-system',
+    targetView: 'galaxy',
+    href: '/galaxy?focus=sirius',
+    score: 1.0,
+    ...overrides,
+  };
+}
+
+function renderWithSearchContext(
+  ui: ReactNode,
+  overrides: Partial<SearchContextValue> = {},
+  spatialStore?: ReturnType<typeof createSpatialEntityStore>,
+) {
+  const value: SearchContextValue = {
+    query: 'sol',
+    filter: 'all',
+    status: 'ready',
+    errorMessage: null,
+    results: executeCatalogSearch([], { query: 'sol', filter: 'all' }),
+    setQuery: vi.fn(),
+    setFilter: vi.fn(),
+    submitSearch: vi.fn(),
+    isFocused: true,
+    setIsFocused: vi.fn(),
+    dismissSearch: vi.fn(),
+    ...overrides,
+  };
+  const tree = <SearchContext.Provider value={value}>{ui}</SearchContext.Provider>;
+  return render(
+    spatialStore ? (
+      <SpatialEntityStoreContext.Provider value={spatialStore}>
+        {tree}
+      </SpatialEntityStoreContext.Provider>
+    ) : (
+      tree
+    ),
+  );
+}
+
 describe('<SearchResultItem />', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    useCameraStore.getState().reset();
+    window.history.pushState({}, '', '/');
+  });
   describe('formatPlanetCountSummary', () => {
     it('returns null for undefined or non-positive values', () => {
       expect(formatPlanetCountSummary(undefined)).toBeNull();
@@ -82,17 +133,7 @@ describe('<SearchResultItem />', () => {
   });
 
   it('renders a bare star without spectral badge when spectral type is missing or unknown', () => {
-    const bareStar: SearchResultItemModel = {
-      id: 'bare-star',
-      name: 'Bare Star',
-      category: 'stars',
-      entityKind: 'star-system',
-      reticleType: 'stellar-system',
-      targetView: 'galaxy',
-      href: '/galaxy?focus=bare-star',
-      score: 1.0,
-    };
-    render(<SearchResultItem result={bareStar} />);
+    render(<SearchResultItem result={makeResult({ id: 'bare-star', name: 'Bare Star', href: '/galaxy?focus=bare-star' })} />);
 
     expect(screen.getByText('Bare Star')).toBeInTheDocument();
     expect(screen.queryByTestId('result-spectral-badge')).toBeNull();
@@ -102,29 +143,12 @@ describe('<SearchResultItem />', () => {
     const onSelect = vi.fn();
     const dismissSearch = vi.fn();
 
-    render(
-      <SearchContext.Provider
-        value={{
-          query: 'sol',
-          filter: 'all',
-          status: 'ready',
-          errorMessage: null,
-          results: executeCatalogSearch([], { query: 'sol', filter: 'all' }),
-          setQuery: vi.fn(),
-          setFilter: vi.fn(),
-          submitSearch: vi.fn(),
-          isFocused: true,
-          setIsFocused: vi.fn(),
-          dismissSearch,
-        }}
-      >
-        <SearchResultItem result={mockStarResult} onSelect={onSelect} />
-      </SearchContext.Provider>,
+    renderWithSearchContext(
+      <SearchResultItem result={mockStarResult} onSelect={onSelect} />,
+      { dismissSearch },
     );
 
-    const link = screen.getByRole('link', { name: /sol system/i });
-    fireEvent.click(link);
-
+    fireEvent.click(screen.getByRole('link', { name: /sol system/i }));
     expect(dismissSearch).toHaveBeenCalledWith(mockStarResult);
     expect(onSelect).toHaveBeenCalledWith(mockStarResult);
   });
@@ -135,39 +159,8 @@ describe('<SearchResultItem />', () => {
       focusFromSearch: focusFromSearchSpy,
     } as unknown as ReturnType<typeof useCameraStore.getState>);
 
-    const galaxyResult: SearchResultItemModel = {
-      id: 'sirius',
-      name: 'Sirius',
-      category: 'stars',
-      entityKind: 'star-system',
-      reticleType: 'stellar-system',
-      targetView: 'galaxy',
-      href: '/galaxy?focus=sirius',
-      score: 1.0,
-    };
-
-    render(
-      <SearchContext.Provider
-        value={{
-          query: 'sirius',
-          filter: 'all',
-          status: 'ready',
-          errorMessage: null,
-          results: executeCatalogSearch([], { query: 'sirius', filter: 'all' }),
-          setQuery: vi.fn(),
-          setFilter: vi.fn(),
-          submitSearch: vi.fn(),
-          isFocused: true,
-          setIsFocused: vi.fn(),
-          dismissSearch: vi.fn(),
-        }}
-      >
-        <SearchResultItem result={galaxyResult} />
-      </SearchContext.Provider>,
-    );
-
-    const link = screen.getByRole('link', { name: /sirius/i });
-    fireEvent.click(link);
+    renderWithSearchContext(<SearchResultItem result={makeResult({})} />);
+    fireEvent.click(screen.getByRole('link', { name: /sirius/i }));
 
     expect(focusFromSearchSpy).toHaveBeenCalledWith('sirius');
   });
@@ -181,16 +174,12 @@ describe('<SearchResultItem />', () => {
     const link = screen.getByRole('link', { name: /sol system/i });
     fireEvent.mouseEnter(link);
     expect(scheduleSpy).toHaveBeenCalledWith('sol', 'sol');
-
     fireEvent.mouseLeave(link);
     expect(cancelSpy).toHaveBeenCalled();
-
     fireEvent.focus(link);
     expect(scheduleSpy).toHaveBeenCalledWith('sol', 'sol');
-
     fireEvent.blur(link);
     expect(cancelSpy).toHaveBeenCalled();
-
     fireEvent.click(link);
     expect(cancelSpy).toHaveBeenCalled();
   });
@@ -210,52 +199,95 @@ describe('<SearchResultItem />', () => {
     });
     spatialStore.getState().setSelectedIds(['sirius']);
 
-    const galaxyResult: SearchResultItemModel = {
-      id: 'sirius',
-      name: 'Sirius',
-      category: 'stars',
-      entityKind: 'star-system',
-      reticleType: 'stellar-system',
-      targetView: 'galaxy',
-      href: '/galaxy?focus=sirius',
-      position: [-1.61, 2.09, -0.45],
-      spectralType: 'A1V',
-      score: 1.0,
-    };
-
+    const galaxyResult = makeResult({ position: [-1.61, 2.09, -0.45], spectralType: 'A1V' });
     const dismissSearch = vi.fn(() => {
       spatialStore.getState().setSelectedIds([]);
       spatialStore.getState().setFocused(null);
     });
 
-    render(
-      <SpatialEntityStoreContext.Provider value={spatialStore}>
-        <SearchContext.Provider
-          value={{
-            query: 'sirius',
-            filter: 'all',
-            status: 'ready',
-            errorMessage: null,
-            results: executeCatalogSearch([], { query: 'sirius', filter: 'all' }),
-            setQuery: vi.fn(),
-            setFilter: vi.fn(),
-            submitSearch: vi.fn(),
-            isFocused: true,
-            setIsFocused: vi.fn(),
-            dismissSearch,
-          }}
-        >
-          <SearchResultItem result={galaxyResult} />
-        </SearchContext.Provider>
-      </SpatialEntityStoreContext.Provider>,
+    renderWithSearchContext(
+      <SearchResultItem result={galaxyResult} />,
+      { query: 'sirius', dismissSearch },
+      spatialStore,
     );
 
-    const link = screen.getByRole('link', { name: /sirius/i });
-    fireEvent.click(link);
-
+    fireEvent.click(screen.getByRole('link', { name: /sirius/i }));
     expect(focusFromSearchSpy).toHaveBeenCalledWith('sirius');
     expect(dismissSearch).toHaveBeenCalledWith(galaxyResult);
     expect(spatialStore.getState().entities['sirius']?.position).toEqual([-1.61, 2.09, -0.45]);
     expect(spatialStore.getState().focusedId).toBe('sirius');
+  });
+
+  it('ignores modified or non-primary clicks before mutating stores or dismissing search', () => {
+    const focusFromSearchSpy = vi.fn();
+    vi.spyOn(useCameraStore, 'getState').mockReturnValue({
+      focusFromSearch: focusFromSearchSpy,
+    } as unknown as ReturnType<typeof useCameraStore.getState>);
+    const spatialStore = createSpatialEntityStore();
+    const dismissSearch = vi.fn();
+    const onSelect = vi.fn();
+    const galaxyResult = makeResult({ position: [-1.61, 2.09, -0.45] });
+
+    renderWithSearchContext(
+      <SearchResultItem result={galaxyResult} onSelect={onSelect} />,
+      { query: 'sirius', dismissSearch },
+      spatialStore,
+    );
+
+    const link = screen.getByRole('link', { name: /sirius/i });
+    fireEvent.click(link, { ctrlKey: true });
+    fireEvent.click(link, { metaKey: true });
+    fireEvent.click(link, { button: 1 });
+
+    expect(focusFromSearchSpy).not.toHaveBeenCalled();
+    expect(dismissSearch).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(spatialStore.getState().entities['sirius']).toBeUndefined();
+    expect(spatialStore.getState().focusedId).toBeNull();
+  });
+
+  it('normalises non-slug focusParam with toUrlSlug before calling focusFromSearch', () => {
+    const focusFromSearchSpy = vi.fn();
+    vi.spyOn(useCameraStore, 'getState').mockReturnValue({
+      focusFromSearch: focusFromSearchSpy,
+    } as unknown as ReturnType<typeof useCameraStore.getState>);
+
+    renderWithSearchContext(
+      <SearchResultItem
+        result={makeResult({ id: 'alpha-centauri', name: 'Alpha Centauri', href: '/galaxy?focus=Alpha%20Centauri' })}
+      />,
+    );
+    fireEvent.click(screen.getByRole('link', { name: /alpha centauri/i }));
+    expect(focusFromSearchSpy).toHaveBeenCalledWith('alpha-centauri');
+  });
+
+  it('triggers focusFromSearch or triggerRecenter on intra-view system and planet search clicks', () => {
+    const focusFromSearchSpy = vi.fn();
+    const triggerRecenterSpy = vi.fn();
+    vi.spyOn(useCameraStore, 'getState').mockReturnValue({
+      focusFromSearch: focusFromSearchSpy,
+      triggerRecenter: triggerRecenterSpy,
+    } as unknown as ReturnType<typeof useCameraStore.getState>);
+
+    window.history.pushState({}, '', '/system/sol');
+    const planetInSol = makeResult({
+      id: 'earth',
+      name: 'Earth',
+      category: 'planets',
+      entityKind: 'planet',
+      reticleType: 'terrestrial',
+      targetView: 'system',
+      href: '/system/sol?focus=Earth',
+      systemId: 'sol',
+    });
+    const { unmount } = renderWithSearchContext(<SearchResultItem result={planetInSol} />);
+    fireEvent.click(screen.getByRole('link', { name: /earth/i }));
+    expect(focusFromSearchSpy).toHaveBeenCalledWith('earth');
+    unmount();
+
+    window.history.pushState({}, '', '/system/sol');
+    renderWithSearchContext(<SearchResultItem result={mockStarResult} />);
+    fireEvent.click(screen.getByRole('link', { name: /sol system/i }));
+    expect(triggerRecenterSpy).toHaveBeenCalledTimes(1);
   });
 });

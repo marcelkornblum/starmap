@@ -8,7 +8,7 @@ vi.mock('@tanstack/react-router', () => ({
   useSearch: vi.fn(() => ({})),
   useRouter: vi.fn(() => undefined),
 }));
-import { useRouter } from '@tanstack/react-router';
+import { useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { createSpatialEntityStore } from '../components/canvas/entity/SpatialEntityStore';
 import { SpatialEntityStoreContext } from '../components/canvas/entity/SpatialEntityContext';
 import {
@@ -220,5 +220,32 @@ describe('usePlanetViewModel', () => {
     });
 
     expect(hookResult.result.current.effectiveCenterId).toBeUndefined();
+  });
+
+  it('does not allow live router state to override explicit locationPathname and locationSearch props', async () => {
+    vi.mocked(useParams).mockReturnValue({ planetId: 'jupiter' });
+    vi.mocked(useSearch).mockReturnValue({ focus: 'europa', center: 'europa', route: 'earth,jupiter' });
+    const store = createSpatialEntityStore();
+    try {
+      let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof usePlanetViewModel>, unknown>>;
+      await act(async () => {
+        hookResult = renderHook(
+          () =>
+            usePlanetViewModel({
+              planetId: 'earth',
+              locationPathname: '/planet/earth',
+              locationSearch: '?focus=moon&center=moon',
+            }),
+          { wrapper: createWrapper(store) },
+        );
+      });
+
+      expect(hookResult.result.current.targetId).toBe('earth');
+      expect(hookResult.result.current.effectiveCenterId).toBe('moon');
+      expect(hookResult.result.current.routeStops).toBeNull();
+    } finally {
+      vi.mocked(useParams).mockReturnValue({});
+      vi.mocked(useSearch).mockReturnValue({});
+    }
   });
 });

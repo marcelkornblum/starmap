@@ -22,8 +22,6 @@ import {
   persistCameraPoseToStore,
 } from './galacticCameraHelpers';
 
-export type { OrbitControlsLike };
-
 export interface GalacticCameraControllerProps {
   readonly target: [number, number, number];
   readonly distance?: number;
@@ -88,7 +86,9 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     controls.addEventListener('change', handleChange);
     controls.addEventListener('end', handleEnd);
     return () => {
-      saveCurrentGalaxyPose(true);
+      if (!useUIStore.getState().isCameraTransitioning) {
+        saveCurrentGalaxyPose(true);
+      }
       controls.removeEventListener?.('change', handleChange);
       controls.removeEventListener?.('end', handleEnd);
     };
@@ -157,6 +157,7 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
           saved.target[2] - targetZ,
         ) < 0.05;
       const isTransientZero =
+        !hasExplicitCenter &&
         targetX === 0 &&
         targetY === 0 &&
         targetZ === 0 &&
@@ -251,7 +252,6 @@ export const GalacticCameraController: React.FC<GalacticCameraControllerProps> =
     transitionTo([targetX, targetY, targetZ], {
       ...(resolvedDistance !== undefined ? { targetDistance: resolvedDistance } : {}),
       onComplete: () => {
-        controls?.update?.();
         hasRestoredRef.current = true;
         const snapshot = computeCameraPoseSnapshot(camera, controls, [targetX, targetY, targetZ]);
         useCameraStore.getState().setCameraPose({

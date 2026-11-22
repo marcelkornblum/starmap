@@ -6,6 +6,8 @@ import {
 } from './cameraTransitionEngine';
 import * as reducedMotion from '../../../utils/reducedMotion';
 
+const linearEasing = (t: number) => t;
+
 describe('cameraTransitionEngine dynamic duration', () => {
   let perspCam: THREE.PerspectiveCamera;
   let mockControls: TransitionControlsLike & { target: THREE.Vector3 };
@@ -30,22 +32,20 @@ describe('cameraTransitionEngine dynamic duration', () => {
   it('computes distance-dependent duration for long hops and pure rotation when duration is omitted', () => {
     const controller = new CameraTransitionController();
 
-    // Long hop: travelDistance = 100, referenceScale = 20 -> ratio = 5 >= 2.5 -> duration = 1.5s
-    controller.start(perspCam, [100, 0, 0], mockControls.target, { easing: 'linear' }, 1000);
+    controller.start(perspCam, [100, 0, 0], mockControls.target, { easing: linearEasing }, 1000);
     controller.update(perspCam, mockControls, 1750);
     expect(controller.isTransitioning()).toBe(true);
     expect(mockControls.target.x).toBeCloseTo(50, 3);
     controller.update(perspCam, mockControls, 2500);
     expect(controller.isTransitioning()).toBe(false);
 
-    // Pure rotation (zero target travel) -> 0.8s
     perspCam.position.set(100, 0, 20);
     mockControls.target.set(100, 0, 0);
     controller.startPose(
       perspCam,
       { target: [100, 0, 0], direction: [1, 0, 0], distance: 20 },
       mockControls,
-      { easing: 'linear' },
+      { easing: linearEasing },
       3000,
     );
     controller.update(perspCam, mockControls, 3400);

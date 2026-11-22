@@ -70,15 +70,16 @@ export function useSystemViewModel(props: UseResolvedSystemDetailsProps) {
   const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
   const routeSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
+  const isExplicitLocation = locationPathname !== undefined || locationSearch !== undefined;
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
-  const focus = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
-  const select = routeSearch?.select ?? searchParams.get('select') ?? undefined;
-  const layer = routeSearch?.layer ?? searchParams.get('layer') ?? undefined;
-  const route = routeSearch?.route ?? searchParams.get('route') ?? undefined;
-  const center = routeSearch?.center ?? searchParams.get('center') ?? undefined;
+  const param = (key: keyof StarmapSearchParams) =>
+    (isExplicitLocation ? searchParams.get(key) : (routeSearch?.[key] ?? searchParams.get(key))) ?? undefined;
+  const [focus, select, layer, route, center] = (['focus', 'select', 'layer', 'route', 'center'] as const).map(param);
 
-  const rawSystemId = routeParams?.systemId ?? propSystemId;
-  const targetId = toUrlSlug(rawSystemId ?? '') || SOL_REFERENCE_TARGET.id;
+  const rawSystemId = isExplicitLocation
+    ? propSystemId
+    : (routeParams?.systemId ?? propSystemId);
+  const targetId = toUrlSlug(rawSystemId ?? '') || urlSystemSlug || SOL_REFERENCE_TARGET.id;
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
   const { effectiveCenterId, resolvedCenterCoordinates } = useColdLoadCenter(

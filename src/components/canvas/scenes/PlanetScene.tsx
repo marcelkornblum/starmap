@@ -7,7 +7,10 @@ import type { SpatialEntityDefinition } from '../entity';
 import type { CelestialClassification } from '../../../types/spatial';
 import type { ExoplanetRecord } from '../../../types/astro';
 import { EARTH_REFERENCE_TARGET } from '../../../config/referenceTargets';
-import { resolvePlanetaryEntitiesAndTarget } from './sceneTargetHelpers';
+import {
+  resolvePlanetaryEntitiesAndTarget,
+  resolveTargetCoordsFromEntities,
+} from './sceneTargetHelpers';
 
 export interface PlanetSceneProps {
   planetId?: string;
@@ -18,6 +21,7 @@ export interface PlanetSceneProps {
   fadeRange?: number;
   planet?: ExoplanetRecord;
   satellites?: SpatialEntityDefinition[];
+  resolvedEntities?: SpatialEntityDefinition[];
   centerId?: string;
   centerCoordinates?: readonly [number, number, number] | [number, number, number];
   onInspectSatellite?: (satelliteId: string) => void;
@@ -39,27 +43,26 @@ export const PlanetScene: React.FC<PlanetSceneProps> = React.memo(({
   fadeRange = 16,
   planet,
   satellites: explicitSatellites,
+  resolvedEntities,
   centerId,
   centerCoordinates,
   onInspectSatellite,
   onSelectEntity,
   debugHitarea = false,
 }) => {
-  const { resolvedName, allEntities, targetCoords } = useMemo(
-    () =>
-      resolvePlanetaryEntitiesAndTarget({
-        planetId,
-        planetName,
-        classification,
-        radius,
-        minPixelSize,
-        fadeRange,
-        planet,
-        explicitSatellites,
-        centerId,
-        centerCoordinates,
-      }),
-    [
+  const { resolvedName, allEntities, targetCoords } = useMemo(() => {
+    if (resolvedEntities) {
+      return {
+        resolvedName: planetName ?? (planetId.charAt(0).toUpperCase() + planetId.slice(1)),
+        allEntities: resolvedEntities,
+        targetCoords: resolveTargetCoordsFromEntities(
+          resolvedEntities,
+          centerId,
+          centerCoordinates,
+        ),
+      };
+    }
+    return resolvePlanetaryEntitiesAndTarget({
       planetId,
       planetName,
       classification,
@@ -70,8 +73,20 @@ export const PlanetScene: React.FC<PlanetSceneProps> = React.memo(({
       explicitSatellites,
       centerId,
       centerCoordinates,
-    ],
-  );
+    });
+  }, [
+    resolvedEntities,
+    planetId,
+    planetName,
+    classification,
+    radius,
+    minPixelSize,
+    fadeRange,
+    planet,
+    explicitSatellites,
+    centerId,
+    centerCoordinates,
+  ]);
 
   return (
     <SpatialViewport

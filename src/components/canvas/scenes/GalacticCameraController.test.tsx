@@ -29,39 +29,24 @@ function setMockReducedMotion(reduced: boolean) {
     configurable: true,
     value: vi.fn().mockImplementation((query: string) => ({
       matches: reduced && query === '(prefers-reduced-motion: reduce)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
+      media: query, onchange: null, addListener: vi.fn(), removeListener: vi.fn(),
+      addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
     })),
   });
 }
 
 vi.mock('../../../hooks/useSpaLocation', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../hooks/useSpaLocation')>();
-  return {
-    ...actual,
-    useOptionalRouter: () => mockRouter,
-  };
+  return { ...actual, useOptionalRouter: () => mockRouter };
 });
 
 vi.mock('@react-three/fiber', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@react-three/fiber')>();
   return {
     ...actual,
-    useFrame: (cb: (state: unknown, delta: number) => void) => {
-      frameCallbacks.push(cb);
-    },
+    useFrame: (cb: (state: unknown, delta: number) => void) => { frameCallbacks.push(cb); },
     useThree: (selector?: (s: unknown) => unknown) => {
-      const state = {
-        camera: mockCamera,
-        controls: mockControls,
-        size: { width: 1920, height: 1080 },
-        invalidate: mockInvalidate,
-      };
+      const state = { camera: mockCamera, controls: mockControls, size: { width: 1920, height: 1080 }, invalidate: mockInvalidate };
       return selector ? selector(state) : state;
     },
   };
@@ -275,20 +260,33 @@ describe('GalacticCameraController Camera Ownership & Choreography', () => {
   });
 
   it('does not glide to [0, 0, 0] when hasExplicitCenter is false and recenterTick increments', () => {
-    const { rerender } = render(
-      createElement(GalacticCameraController, { target: [12, 4, -3], hasExplicitCenter: true }),
-    );
+    const { rerender } = render(createElement(GalacticCameraController, { target: [12, 4, -3], hasExplicitCenter: true }));
     expect(mockControls.target.toArray()).toEqual([12, 4, -3]);
-
-    // Canvas-click focus clears explicit center (target falls back to [0,0,0], hasExplicitCenter=false)
     rerender(createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }));
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
-
-    // Incrementing recenterTick while hasExplicitCenter is false must not glide to [0, 0, 0]
-    act(() => {
-      useCameraStore.getState().focusFromSearch('sirius');
-    });
+    act(() => { useCameraStore.getState().focusFromSearch('sirius'); });
     expect(useUIStore.getState().isCameraTransitioning).toBe(false);
     expect(mockControls.target.toArray()).toEqual([12, 4, -3]);
+  });
+
+  it('restricts isTransientZero to !hasExplicitCenter so explicit [0,0,0] navigation is not hijacked by savedGalaxyCamera', () => {
+    useCameraStore.getState().setSavedGalaxyCamera({
+      position: [10, -25, 15], target: [10, 5, 0], up: [0, 0, 1], zoom: 1.4, focalDistance: 30, centerKey: '10,5,0',
+    });
+    render(createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: true }));
+    expect(mockControls.target.toArray()).toEqual([0, 0, 0]);
+  });
+
+  it('does not overwrite savedGalaxyCamera on unmount when isCameraTransitioning is true', () => {
+    const initialSaved = {
+      position: [0, -35, 20] as [number, number, number], target: [0, 0, 0] as [number, number, number],
+      up: [0, 0, 1] as [number, number, number], zoom: 1, focalDistance: 40, centerKey: '0,0,0',
+    };
+    useCameraStore.getState().setSavedGalaxyCamera(initialSaved);
+    const { unmount } = render(createElement(GalacticCameraController, { target: [0, 0, 0], hasExplicitCenter: false }));
+    useUIStore.getState().setCameraTransitioning(true);
+    mockControls.target.set(7, 8, 9);
+    unmount();
+    expect(useCameraStore.getState().savedGalaxyCamera?.target).toEqual([0, 0, 0]);
   });
 });

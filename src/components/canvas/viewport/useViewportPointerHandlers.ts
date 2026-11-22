@@ -9,8 +9,6 @@ import {
   clearInteraction,
 } from '../entity';
 
-export const DEFAULT_FOCUS_TRANSITION_DURATION = 0.8;
-
 export interface ViewportPointerHandlerOptions {
   readonly storeApi: SpatialEntityStore;
   readonly occlusionManager: ReturnType<typeof useOcclusionManager>;
@@ -33,7 +31,7 @@ export function useViewportPointerHandlers({
   transitionTo,
   invalidate,
   enableFocusTransition = true,
-  focusTransitionDuration = DEFAULT_FOCUS_TRANSITION_DURATION,
+  focusTransitionDuration,
   onInspect,
   onSelect,
   onFocusChange,
@@ -43,7 +41,16 @@ export function useViewportPointerHandlers({
 
   // Single click: select, or advance cyclic selection when re-clicking the selected entity
   const handleEntityClick = useCallback(
-    (id: string) => {
+    (id: string, e?: ThreeEvent<MouseEvent>) => {
+      const directDetail = (e as { detail?: number } | undefined)?.detail;
+      const nativeDetail = (e?.nativeEvent as { detail?: number } | undefined)?.detail;
+      if (
+        (directDetail !== undefined && directDetail >= 2) ||
+        (nativeDetail !== undefined && nativeDetail >= 2)
+      ) {
+        return;
+      }
+
       activateEntity(storeApi, id, (targetId) =>
         occlusionManager.getCyclicSelectionTarget(targetId),
       );
@@ -64,7 +71,10 @@ export function useViewportPointerHandlers({
     (id: string, e: ThreeEvent<MouseEvent>) => {
       const entity = storeApi.getState().entities[id];
       if (entity?.position && enableFocusTransition) {
-        transitionTo(entity.position, { duration: focusTransitionDuration });
+        transitionTo(
+          entity.position,
+          focusTransitionDuration !== undefined ? { duration: focusTransitionDuration } : undefined,
+        );
       }
 
       focusEntity(storeApi, id);

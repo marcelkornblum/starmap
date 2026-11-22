@@ -55,14 +55,16 @@ export function usePlanetViewModel(props: UseResolvedPlanetDetailsProps) {
   const routeParams = useParams({ strict: false }) as Record<string, string | undefined> | undefined;
   const routeSearch = useSearch({ strict: false }) as StarmapSearchParams | undefined;
 
+  const isExplicitLocation = locationPathname !== undefined || locationSearch !== undefined;
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
-  const focus = routeSearch?.focus ?? searchParams.get('focus') ?? undefined;
-  const layer = routeSearch?.layer ?? searchParams.get('layer') ?? undefined;
-  const route = routeSearch?.route ?? searchParams.get('route') ?? undefined;
-  const center = routeSearch?.center ?? searchParams.get('center') ?? undefined;
+  const param = (key: keyof StarmapSearchParams) =>
+    (isExplicitLocation ? searchParams.get(key) : (routeSearch?.[key] ?? searchParams.get(key))) ?? undefined;
+  const [focus, layer, route, center] = (['focus', 'layer', 'route', 'center'] as const).map(param);
 
-  const rawPlanetId = routeParams?.planetId ?? propPlanetId;
-  const targetId = toUrlSlug(rawPlanetId ?? '') || EARTH_REFERENCE_TARGET.id;
+  const rawPlanetId = isExplicitLocation
+    ? propPlanetId
+    : (routeParams?.planetId ?? propPlanetId);
+  const targetId = toUrlSlug(rawPlanetId ?? '') || urlPlanetSlug || EARTH_REFERENCE_TARGET.id;
   const urlFocusSlug = focus ? toUrlSlug(focus) || null : null;
   const cameraState = useMemo(() => extractUrlSceneCameraState(search), [search]);
   const { effectiveCenterId, resolvedCenterCoordinates } = useColdLoadCenter(
