@@ -340,5 +340,30 @@ describe('searchFraming utility', () => {
         matchCount: 1,
       });
     });
+
+    it('returns enter-sol-system when multiple matches are all Solar System non-star bodies', () => {
+      const matches: readonly SearchFramingItem[] = [
+        {
+          id: 'sol-moon-a',
+          category: 'planets',
+          entityKind: 'moon',
+          href: '/planet/sol-planet-a?focus=sol-moon-a',
+          isSolarSystem: true,
+        },
+        {
+          id: 'sol-minor-b',
+          category: 'minor-bodies',
+          entityKind: 'minor-body',
+          href: `${SOL_REFERENCE_TARGET.href}?focus=sol-minor-b`,
+          isSolarSystem: true,
+        },
+      ];
+
+      expect(resolveSearchFramingAction(matches)).toEqual({
+        kind: 'enter-sol-system',
+        targetId: 'sol-moon-a',
+        href: '/planet/sol-planet-a?focus=sol-moon-a',
+      });
+    });
   });
 });

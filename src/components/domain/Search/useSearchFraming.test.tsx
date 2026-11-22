@@ -227,7 +227,7 @@ describe('useSearchFraming', () => {
     });
     expect(useCameraStore.getState().pendingSearchFrame).toBeNull();
 
-    // At 600ms, framing fires using all 4 Kepler stars (y up to +-20, so radius = 20)
+    // At 600ms, framing fires using the displayed/highlighted Kepler stars (radius = 10)
     act(() => {
       vi.advanceTimersByTime(50);
     });
@@ -235,8 +235,9 @@ describe('useSearchFraming', () => {
     const frame = useCameraStore.getState().pendingSearchFrame;
     expect(frame).not.toBeNull();
     expect(frame?.target).toEqual([0, 0, 0]);
-    // With radius=20 (only possible if untruncated kepler-3/4 were included) + safeRect inset, distance > 50
-    expect(frame?.distance).toBeGreaterThan(50);
+    // Tight framing around the highlighted matches (radius=10) + safeRect inset, without distant unhighlighted tail
+    expect(frame?.distance).toBeGreaterThan(20);
+    expect(frame?.distance).toBeLessThan(50);
     expect(navigate).not.toHaveBeenCalled();
   });
 

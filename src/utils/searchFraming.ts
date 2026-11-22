@@ -193,17 +193,18 @@ export function resolveSearchFramingAction(
   fullMatches: readonly SearchFramingItem[],
   options?: SearchFramingBoundsOptions,
 ): SearchFramingAction {
-  const singleMatch = fullMatches.length === 1 ? fullMatches[0] : undefined;
+  const spatialMatches = fullMatches.filter((item) => item.category !== 'layers');
+  const firstSpatialMatch = spatialMatches[0];
   if (
-    singleMatch &&
-    singleMatch.category !== 'layers' &&
-    singleMatch.isSolarSystem === true &&
-    singleMatch.entityKind !== 'star-system'
+    firstSpatialMatch &&
+    spatialMatches.every(
+      (item) => item.isSolarSystem === true && item.entityKind !== 'star-system',
+    )
   ) {
     return {
       kind: 'enter-sol-system',
-      targetId: singleMatch.id,
-      href: singleMatch.href,
+      targetId: firstSpatialMatch.id,
+      href: firstSpatialMatch.href,
     };
   }
 

@@ -191,32 +191,29 @@ export const useSearchFraming = ({
       timerRef.current = null;
       hasUserTypedRef.current = false;
 
-      const cachedAllCorpus = getCachedCorpusForFilter('all');
-      const cachedFilterCorpus = getCachedCorpusForFilter(filter);
-      const cachedStars =
-        filter === 'all' ? getCachedCorpusForFilter('stars') : undefined;
-      const baseCorpus =
-        initialCorpus ??
-        cachedFilterCorpus ??
-        cachedAllCorpus ??
-        getCachedCorpusForFilter('startup');
-      const effectiveCorpus =
-        baseCorpus && cachedStars && !initialCorpus
-          ? mergeSearchShards([baseCorpus, cachedStars])
-          : baseCorpus;
-
-      const untruncatedResults = effectiveCorpus
-        ? searchCatalog(effectiveCorpus, {
+      let framedItems = collectSpatialItems(results);
+      if (framedItems.length === 0 && results.totalMatches > 0) {
+        const cachedAllCorpus = getCachedCorpusForFilter('all');
+        const cachedFilterCorpus = getCachedCorpusForFilter(filter);
+        const cachedStars =
+          filter === 'all' ? getCachedCorpusForFilter('stars') : undefined;
+        const baseCorpus =
+          initialCorpus ??
+          cachedFilterCorpus ??
+          cachedAllCorpus ??
+          getCachedCorpusForFilter('startup');
+        const effectiveCorpus =
+          baseCorpus && cachedStars && !initialCorpus
+            ? mergeSearchShards([baseCorpus, cachedStars])
+            : baseCorpus;
+        if (effectiveCorpus) {
+          const fallbackResults = searchCatalog(effectiveCorpus, {
             query,
             filter,
-            limitPerCategory: Number.POSITIVE_INFINITY,
             systemEntries: cachedAllCorpus,
-          })
-        : results;
-
-      let fullItems = collectSpatialItems(untruncatedResults);
-      if (fullItems.length === 0 && results.totalMatches > 0) {
-        fullItems = collectSpatialItems(results);
+          });
+          framedItems = collectSpatialItems(fallbackResults);
+        }
       }
 
       const safeRect = useUIStore.getState().viewportSafeRect;
@@ -226,7 +223,7 @@ export const useSearchFraming = ({
       const viewportHeight =
         typeof window !== 'undefined' ? window.innerHeight : FALLBACK_VIEWPORT_HEIGHT;
 
-      const action = resolveSearchFramingAction(fullItems, {
+      const action = resolveSearchFramingAction(framedItems, {
         viewportWidth,
         viewportHeight,
         safeRect,
