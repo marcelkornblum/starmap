@@ -11,7 +11,7 @@ Follow strict Red-Green-Refactor TDD per [`conductor/workflow.md`](../../workflo
   - **Green:** Update `computeSectorRings` in `src/services/sectorSelection.ts` to populate `activeSectorIds` across a 2-ring radius up to `budget.maxActiveSectors` and ensure `SectorStreamingManager` queues them for rate-limited GPU upload.
   - **Refactor:** Verify `tier1` (12), `tier2` (27), and `tier3` (64) memory/point budgets stay within limits.
 
-- [ ] **Task 1.2: Horizon-aware dense-catalogue edge clamp & distant-target bypass**
+- [x] **Task 1.2: Horizon-aware dense-catalogue edge clamp & distant-target bypass** *(Shipped: pure `deviceTierHorizonMath.ts` helpers + `computeCeilingMaxCameraDistancePc` dense-volume & active-sector horizon clamp with distant-target bypass)*
   - **Red:** Add unit tests in `src/services/deviceTierService.test.ts` covering: (a) horizon-aware clamping against `denseCatalogRadiusPc - targetDistFromSol - edgeMarginPc` inside the dense volume (including wide-aspect FOV margin), and (b) bypassing the edge clamp (reverting to hardware ceiling) when `targetDistFromSol >= denseCatalogRadiusPc - edgeMarginPc`.
   - **Green:** Extend `computeCeilingMaxCameraDistancePc` in `src/services/deviceTierService.ts` with `denseCatalogRadiusPc`, `targetDistFromSolPc`, and `edgeMarginPc` inputs; preserve the `0.45` `radialFalloff` shader floor untouched.
   - **Refactor:** Extract pure horizon-to-camera-distance math helpers with zero frame-loop allocations.

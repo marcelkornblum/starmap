@@ -13,6 +13,27 @@ import {
   resolveInitialDprForTier,
   type WebGLGpuTelemetry,
 } from './deviceTierProfiles';
+import {
+  DEFAULT_REFERENCE_APERTURE_RADIUS_PC,
+  DEFAULT_REFERENCE_CAMERA_DISTANCE_PC,
+  clampDenseVolumeCeilingDistancePc,
+  type DenseHorizonCeilingClampOptions,
+} from './deviceTierHorizonMath';
+
+export {
+  DEFAULT_REFERENCE_APERTURE_RADIUS_PC,
+  DEFAULT_REFERENCE_CAMERA_DISTANCE_PC,
+  DEFAULT_DENSE_CATALOG_RADIUS_PC,
+  DEFAULT_DENSE_EDGE_MARGIN_PC,
+  DEFAULT_HORIZON_APERTURE_RATIO,
+  DEFAULT_GALACTIC_FOV_DEG,
+  computeHorizonReachPerCameraDist,
+  computeActiveSectorHorizonCoverPc,
+  clampDenseVolumeCeilingDistancePc,
+  type HorizonReachOptions,
+  type ActiveSectorHorizonCoverOptions,
+  type DenseHorizonCeilingClampOptions,
+} from './deviceTierHorizonMath';
 
 export type DevicePerformanceTier = 'tier1' | 'tier2' | 'tier3';
 
@@ -48,10 +69,8 @@ export interface ClampCameraDistanceOptions extends CameraDistanceBudgetOptions 
   readonly currentDistancePc?: number;
 }
 
-export interface CeilingCameraDistanceOptions {
+export interface CeilingCameraDistanceOptions extends DenseHorizonCeilingClampOptions {
   readonly ceilingApertureRadiusPc?: number | null;
-  readonly referenceApertureRadiusPc?: number;
-  readonly referenceCameraDistancePc?: number;
   readonly zoomOutMultiplier?: number;
   readonly minDistancePc?: number;
 }
@@ -59,8 +78,6 @@ export interface CeilingCameraDistanceOptions {
 export const ACTIVE_CEILING_ZOOM_OUT_MULTIPLIER = 2.25;
 export const MEAN_CATALOG_STARS_PER_CUBIC_PC = 751.5 / (25 * 25 * 25);
 
-export const DEFAULT_REFERENCE_APERTURE_RADIUS_PC = 10;
-export const DEFAULT_REFERENCE_CAMERA_DISTANCE_PC = 34.9;
 export const DEFAULT_MIN_CAMERA_DISTANCE_PC = 1;
 
 export const APERTURE_ACTIVE_CUTOFF_MOBILE = 40;
@@ -267,7 +284,9 @@ export function computeCeilingMaxCameraDistancePc(
 
   const ceilingCameraDist = effectiveCeilingRadiusPc * (refCameraDist / refApertureRadius);
   const cappedDist = ceilingCameraDist * zoomMultiplier;
-  return Math.min(maxSafe, Math.max(minDistancePc, cappedDist));
+  const hardwareCeilingDistPc = Math.min(maxSafe, Math.max(minDistancePc, cappedDist));
+
+  return clampDenseVolumeCeilingDistancePc(budget, hardwareCeilingDistPc, minDistancePc, options);
 }
 
 export function clampCameraDistanceToMemoryBudget(
