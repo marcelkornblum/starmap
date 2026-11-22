@@ -252,6 +252,9 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
       setIsDeparting(false);
     };
 
+    const isTargetPropsReady = () =>
+      !router || inFlightTargetRef.current?.latestProps !== undefined;
+
     launchCrossScaleDeparture({
       committedScope: committedProps.scope,
       committedTargetId: committedProps.targetId,
@@ -271,10 +274,11 @@ export const CrossScaleStageHost: React.FC<CrossScaleStageHostProps> = React.mem
       },
       resolveFinalScope: () => resolveFinalProps().scope,
       onBeforeSwap: clearDepartureRefs,
+      isTargetPropsReady,
       scheduleReadySwap: (commitSwap) =>
         scheduleReadySwap(
           commitSwap,
-          () => Boolean(router) && inFlightTargetRef.current?.latestProps === undefined,
+          () => !isTargetPropsReady(),
           () => token === transitionTokenRef.current,
         ),
       onCommitFinal: () => {

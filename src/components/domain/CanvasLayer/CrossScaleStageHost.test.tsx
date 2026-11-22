@@ -14,6 +14,7 @@ import {
   setPendingSpatialNavigationHref,
 } from '../../../utils/spatialRoute';
 import { CameraTransitionProvider } from '../../canvas/instrument/useCameraTransition';
+import { CameraTransitionController } from '../../canvas/instrument/cameraTransitionEngine';
 import {
   clearPendingCrossScaleArrival,
   consumePendingCrossScaleArrival,
@@ -325,10 +326,10 @@ describe('CrossScaleStageHost', () => {
       2,
     );
 
-    // Complete Beat 2 and flush preload promise
+    // Complete Beat 2 after flushing preload microtask
     await act(async () => {
-      advanceDuration(t, durations.departureSec * 500, nowSpy);
       await Promise.resolve();
+      advanceDuration(t, durations.departureSec * 500, nowSpy);
     });
 
     const handoffPreview = getCrossScalePlanePreviewState();
@@ -416,8 +417,8 @@ describe('CrossScaleStageHost', () => {
     expect(mockCamera.up.toArray()).toEqual([0, 0, 1]);
 
     await act(async () => {
-      advanceDuration(t, durations.departureSec * 500, nowSpy);
       await Promise.resolve();
+      advanceDuration(t, durations.departureSec * 500, nowSpy);
     });
 
     expect(getCrossScaleSceneScale()).toBe(1);
@@ -464,8 +465,8 @@ describe('CrossScaleStageHost', () => {
     expect(screen.getByTestId('mock-system-scene').getAttribute('data-system-id')).toBe('sol');
 
     await act(async () => {
-      advanceDuration(3000, durations.departureSec * 1000, nowSpy);
       await Promise.resolve();
+      advanceDuration(3000, durations.departureSec * 1000, nowSpy);
     });
 
     const tauScene = await screen.findByTestId('mock-system-scene');
@@ -640,11 +641,12 @@ describe('CrossScaleStageHost', () => {
     expect(getCrossScalePlanePreviewState().mode).toBe('expanding');
     expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
 
-    // Complete Beat 1 + Beat 2 BEFORE props catch up -> synthesizes swap without stalling
+    // Complete Beat 1 + Beat 2 (plus preloadMaxHoldSec safety ceiling) BEFORE props catch up -> synthesizes swap without stalling
+    const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
     let t = 6000;
     await act(async () => {
       t = advanceDuration(t, durations.previewSec * 1000, nowSpy);
-      advanceDuration(t, durations.departureSec * 1000, nowSpy);
+      advanceDuration(t, (config.preloadMaxHoldSec + durations.departureSec) * 1000, nowSpy);
       await Promise.resolve();
     });
 
@@ -766,9 +768,9 @@ describe('CrossScaleStageHost', () => {
     expect(getCrossScalePlanePreviewState().position).toEqual([3.2, 1.5, -1.0]);
 
     await act(async () => {
+      await Promise.resolve();
       t = advanceDuration(t, durations.previewSec * 1000, nowSpy);
       advanceDuration(t, durations.departureSec * 1000, nowSpy);
-      await Promise.resolve();
     });
 
     const tauScene = await screen.findByTestId('mock-system-scene');
@@ -894,19 +896,20 @@ describe('CrossScaleStageHost', () => {
       for (const listener of historyListeners) listener();
     });
 
-    // Complete Stage 1 while props still have scope="galaxy"
+    // Complete Stage 1 initial duration while props still have scope="galaxy": still creeping, not swapped
+    const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
     let t = 8000;
     await act(async () => {
       t = advanceDuration(t, durations.previewSec * 1000, nowSpy);
-      advanceDuration(t, durations.departureSec * 1000, nowSpy);
+      t = advanceDuration(t, durations.departureSec * 1000, nowSpy);
       await Promise.resolve();
     });
 
-    // Must NOT swap yet to synthesized props while waiting (<= 800ms) for matching props
+    // Must NOT swap yet while waiting for matching props
     expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
     expect(screen.queryByTestId('mock-system-scene')).toBeNull();
 
-    // Matching props arrive 120ms later -> swaps atomically with real centerId
+    // Matching props arrive 120ms later -> Stage 1 finishes seamlessly and swaps atomically with real centerId
     act(() => {
       vi.advanceTimersByTime(120);
       rerender(
@@ -922,13 +925,16 @@ describe('CrossScaleStageHost', () => {
         </CanvasRouterBridgeContext.Provider>,
       );
     });
+    act(() => {
+      t = advanceDuration(t, durations.departureSec * 1000, nowSpy);
+    });
 
     const sysScene = screen.getByTestId('mock-system-scene');
     expect(sysScene.getAttribute('data-system-id')).toBe('alpha-centauri');
     expect(sysScene.getAttribute('data-center-id')).toBe('alpha-centauri-b');
     unmount();
 
-    // Subcase 2: falls back after 800ms if matching props never arrive
+    // Subcase 2: exceeds preloadMaxHoldSec safety ceiling, then falls back after 800ms if matching props never arrive
     currentPathname = '/galaxy';
     const second = render(
       <CanvasRouterBridgeContext.Provider value={mockRouter}>
@@ -944,10 +950,10 @@ describe('CrossScaleStageHost', () => {
       for (const listener of historyListeners) listener();
     });
 
-    t = 9000;
+    t = 12000;
     await act(async () => {
       t = advanceDuration(t, durations.previewSec * 1000, nowSpy);
-      advanceDuration(t, durations.departureSec * 1000, nowSpy);
+      advanceDuration(t, (config.preloadMaxHoldSec + durations.departureSec) * 1000, nowSpy);
       await Promise.resolve();
     });
 
@@ -963,5 +969,97 @@ describe('CrossScaleStageHost', () => {
     });
     expect(screen.getByTestId('mock-system-scene').getAttribute('data-system-id')).toBe('tau-ceti');
     second.unmount();
+  });
+
+  it('passes dynamic preload readiness and config hold parameters to Stage 1 for zoom-in and zoom-out, holding until preload resolves or preloadMaxHoldSec elapses', async () => {
+    const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
+    const durations = computeCrossScaleStageDurations(config);
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(10000);
+    const startPoseSpy = vi.spyOn(CameraTransitionController.prototype, 'startPose');
+
+    let resolveInPreload: (() => void) | undefined;
+    const inPreloadPromise = new Promise<void>((resolve) => {
+      resolveInPreload = resolve;
+    });
+    const preloadSpy = vi
+      .spyOn(sceneEntryLoader, 'preloadSceneEntry')
+      .mockReturnValueOnce(inPreloadPromise);
+
+    const { rerender, unmount } = render(
+      <CameraTransitionProvider>
+        <CrossScaleStageHost scope="galaxy" centerId="sol" isSpatialSceneMounted />
+      </CameraTransitionProvider>,
+    );
+    await screen.findByTestId('mock-galactic-scene');
+
+    rerender(
+      <CameraTransitionProvider>
+        <CrossScaleStageHost scope="system" targetId="alpha-centauri" isSpatialSceneMounted />
+      </CameraTransitionProvider>,
+    );
+
+    let t = 10000;
+    act(() => {
+      t = advanceDuration(t, durations.previewSec * 1000, nowSpy);
+    });
+
+    expect(startPoseSpy).toHaveBeenCalledTimes(1);
+    const beat2Options = startPoseSpy.mock.calls[0][3];
+    expect(typeof beat2Options?.isReadyToComplete).toBe('function');
+    expect(beat2Options?.holdThreshold).toBe(config.preloadHoldThreshold);
+    expect(beat2Options?.holdCeiling).toBe(config.preloadHoldCeiling);
+    expect(beat2Options?.holdCreepTimeConstantSec).toBe(config.preloadCreepTimeConstantSec);
+    expect(beat2Options?.isReadyToComplete?.()).toBe(false);
+
+    // Advance past departureSec while preload is still pending -> Stage 1 creeps, does NOT swap
+    act(() => {
+      t = advanceDuration(t, (durations.departureSec + 0.5) * 1000, nowSpy);
+    });
+    expect(screen.getByTestId('mock-galactic-scene')).toBeInTheDocument();
+    expect(screen.queryByTestId('mock-system-scene')).toBeNull();
+
+    // Resolve preload -> isReadyToComplete flips to true -> Stage 1 finishes seamlessly and swaps
+    await act(async () => {
+      resolveInPreload?.();
+      await Promise.resolve();
+    });
+    expect(beat2Options?.isReadyToComplete?.()).toBe(true);
+
+    act(() => {
+      t = advanceDuration(t, durations.departureSec * 1000, nowSpy);
+    });
+    expect(await screen.findByTestId('mock-system-scene')).toBeInTheDocument();
+
+    // Zoom-out Stage 1 also passes hold parameters and respects preloadMaxHoldSec safety ceiling
+    const neverSettlingPreload = new Promise<void>(() => {});
+    preloadSpy.mockReturnValueOnce(neverSettlingPreload);
+    startPoseSpy.mockClear();
+
+    rerender(
+      <CameraTransitionProvider>
+        <CrossScaleStageHost scope="galaxy" centerId="sol" isSpatialSceneMounted />
+      </CameraTransitionProvider>,
+    );
+
+    expect(startPoseSpy).toHaveBeenCalledTimes(1);
+    const zoomOutOptions = startPoseSpy.mock.calls[0][3];
+    expect(typeof zoomOutOptions?.isReadyToComplete).toBe('function');
+    expect(zoomOutOptions?.holdThreshold).toBe(config.preloadHoldThreshold);
+    expect(zoomOutOptions?.holdCeiling).toBe(config.preloadHoldCeiling);
+    expect(zoomOutOptions?.holdCreepTimeConstantSec).toBe(config.preloadCreepTimeConstantSec);
+    expect(zoomOutOptions?.isReadyToComplete?.()).toBe(false);
+
+    // Still held at 1.5s
+    act(() => {
+      t = advanceDuration(t, (durations.departureSec + 0.5) * 1000, nowSpy);
+    });
+    expect(screen.queryByTestId('mock-galactic-scene')).toBeNull();
+
+    // Safety ceiling preloadMaxHoldSec trips even though preload never settled
+    act(() => {
+      advanceDuration(t, config.preloadMaxHoldSec * 1000, nowSpy);
+    });
+    expect(await screen.findByTestId('mock-galactic-scene')).toBeInTheDocument();
+    unmount();
   });
 });

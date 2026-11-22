@@ -46,8 +46,11 @@ export interface LaunchCrossScaleDepartureParams {
   readonly onBeforeSwap: () => void;
   readonly onCommitFinal: () => void;
   readonly onAbortAndCommit: () => void;
+  readonly isTargetPropsReady?: () => boolean;
   readonly scheduleReadySwap?: (commitSwap: () => void) => void;
 }
+
+const MS_PER_SECOND = 1000;
 
 /**
  * Launches symmetrical Stage 1 cross-scale choreography (3-beat zoom-in with preview disc expand
@@ -73,8 +76,17 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
     onBeforeSwap,
     onCommitFinal,
     onAbortAndCommit,
+    isTargetPropsReady,
     scheduleReadySwap,
   } = params;
+
+  let preloadDone = false;
+  let holdStartedAt: number | null = null;
+  const markPreloadDone = () => {
+    preloadDone = true;
+    invalidate?.();
+  };
+  void preloadPromise.then(markPreloadDone, markPreloadDone);
 
   const config = DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG;
   const durations = computeCrossScaleStageDurations(config);
@@ -147,15 +159,25 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
     invalidate?.();
   };
 
+  const propsReady = isTargetPropsReady ?? (() => true);
+  const isReadyToComplete = (): boolean => {
+    if (preloadDone && propsReady()) {
+      return true;
+    }
+    const now = performance.now();
+    if (holdStartedAt === null) {
+      holdStartedAt = now;
+    }
+    return (now - holdStartedAt) / MS_PER_SECOND >= config.preloadMaxHoldSec;
+  };
+
   const finishSwap = () => {
-    void preloadPromise.finally(() => {
-      if (!isTokenCurrent()) return;
-      if (scheduleReadySwap) {
-        scheduleReadySwap(commitSwap);
-      } else {
-        commitSwap();
-      }
-    });
+    if (!isTokenCurrent()) return;
+    if (scheduleReadySwap) {
+      scheduleReadySwap(commitSwap);
+    } else {
+      commitSwap();
+    }
   };
 
   if (direction === 'in') {
@@ -174,6 +196,10 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
           easing: easeInQuad,
           orientationWindow: config.zoomInTiltWindow,
           translationWindow: config.zoomInMoveWindow,
+          isReadyToComplete,
+          holdThreshold: config.preloadHoldThreshold,
+          holdCeiling: config.preloadHoldCeiling,
+          holdCreepTimeConstantSec: config.preloadCreepTimeConstantSec,
           onProgress: (p) => {
             if (!isTokenCurrent()) return;
             setCrossScaleInstrumentFade(computeCrossScaleDepartureFade(p, config));
@@ -211,6 +237,10 @@ export function launchCrossScaleDeparture(params: LaunchCrossScaleDepartureParam
     {
       duration: durations.departureSec,
       easing: easeInQuad,
+      isReadyToComplete,
+      holdThreshold: config.preloadHoldThreshold,
+      holdCeiling: config.preloadHoldCeiling,
+      holdCreepTimeConstantSec: config.preloadCreepTimeConstantSec,
       onProgress: (p) => {
         if (!isTokenCurrent()) return;
         setCrossScaleSceneScale(computeCrossScaleSceneScale(p, 'out', config.minSceneScale));

@@ -267,8 +267,8 @@ describe('TargetReferencePlanePreview', () => {
     startCrossScalePlanePreviewContract(0.1);
     await renderer.advanceFrames(1, 0.05);
     expect(group.visible).toBe(true);
-    expect(group.scale.x).toBeCloseTo(easeOutCubic(0.5) * 10, 4);
-    expect(discMat.opacity).toBeCloseTo(tokens.datumPlaneFillAlpha * 0.5, 5);
+    expect(group.scale.x).toBeCloseTo(10, 4);
+    expect(discMat.opacity).toBeCloseTo(tokens.datumPlaneFillAlpha * (1 - easeOutCubic(0.5)), 5);
 
     await renderer.advanceFrames(1, 0.05);
     expect(getCrossScalePlanePreviewState().active).toBe(false);

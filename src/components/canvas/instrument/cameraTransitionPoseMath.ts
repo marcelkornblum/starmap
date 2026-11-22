@@ -5,7 +5,10 @@ import {
   DEFAULT_CAMERA_EASING_CURVE,
   type CameraEasingCurveId,
 } from '../../../utils/cameraEasing';
-import { normaliseWindowProgress } from '../../../utils/referenceFrameOrientation';
+import {
+  DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG,
+  normaliseWindowProgress,
+} from '../../../utils/referenceFrameOrientation';
 import { criticallyDamped } from '../math/cameraFrustumMath';
 
 export type Vector3Input = THREE.Vector3 | readonly [number, number, number];
@@ -26,6 +29,14 @@ export interface CameraTransitionOptions {
   translationWindow?: readonly [number, number];
   /** Invoked each active transition frame with raw normalised progress in `[0, 1]`. */
   onProgress?: (progress: number) => void;
+  /** Optional readiness gate; when provided, Stage 1 creeps asymptotically past `holdThreshold` until ready. */
+  readonly isReadyToComplete?: () => boolean;
+  /** Normalised progress threshold `[0, 1]` where readiness gating begins. */
+  readonly holdThreshold?: number;
+  /** Asymptotic progress ceiling `< 1` approached while waiting for readiness. */
+  readonly holdCeiling?: number;
+  /** Exponential creep time constant in seconds while holding. */
+  readonly holdCreepTimeConstantSec?: number;
   onComplete?: () => void;
   onCancel?: () => void;
 }
@@ -261,6 +272,35 @@ export function initOpticalTransitionState(
     optics.startOrthoZoom = camera.zoom;
     optics.endOrthoZoom = endPose.orthoZoom;
   }
+}
+
+const MIN_FLIGHT_DURATION_SEC = 0.001;
+const MIN_CREEP_TAU_SEC = 0.1;
+
+/**
+ * Advances normalised transition progress `[0, 1]` with asymptotic preload creep past `holdThreshold`
+ * while `isReadyToComplete()` returns `false`.
+ */
+export function advanceDynamicTransitionProgress(
+  currentProgress: number,
+  dtSec: number,
+  durationSec: number,
+  options: CameraTransitionOptions,
+  isReadyToComplete: () => boolean,
+): number {
+  const dp = dtSec / Math.max(durationSec, MIN_FLIGHT_DURATION_SEC);
+  const threshold = options.holdThreshold ?? DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.preloadHoldThreshold;
+  const ceiling = options.holdCeiling ?? DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.preloadHoldCeiling;
+  const tau = Math.max(
+    MIN_CREEP_TAU_SEC,
+    options.holdCreepTimeConstantSec ??
+      DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG.preloadCreepTimeConstantSec,
+  );
+  if (currentProgress + dp < threshold || isReadyToComplete()) {
+    return Math.min(1.0, currentProgress + dp);
+  }
+  const headroom = Math.max(0, ceiling - currentProgress);
+  return Math.min(ceiling, currentProgress + headroom * (1 - Math.exp(-dtSec / tau)));
 }
 
 export function applyOpticalTransitionValues(

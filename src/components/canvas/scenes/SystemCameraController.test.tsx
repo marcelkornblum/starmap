@@ -366,7 +366,10 @@ describe('SystemCameraController Component', () => {
       computeCrossScaleSceneScale(0.5, 'in', config.minSceneScale),
       4,
     );
-    expect(getCrossScalePlanePreviewState().opacity).toBe(0);
+    expect(getCrossScalePlanePreviewState().opacity).toBeCloseTo(
+      computeCrossScalePreviewHandoffOpacity(0.5, config),
+      4,
+    );
     expect(getCrossScalePlanePreviewState().maxRadius).toBeCloseTo(
       getReferenceFrameRadius('system') * computeCrossScaleSceneScale(0.5, 'in', config.minSceneScale),
       4,

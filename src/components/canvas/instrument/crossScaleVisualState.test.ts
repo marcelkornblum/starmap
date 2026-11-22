@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { easeOutCubic } from '../../../utils/cameraEasing';
 import {
   clearCrossScalePlanePreview,
   getCrossScalePlanePreviewState,
@@ -155,8 +156,8 @@ describe('crossScaleVisualState', () => {
     expect(state.durationSec).toBe(0.1);
 
     expect(stepCrossScalePlanePreview(0.05)).toBe(true);
-    expect(state.radiusProgress).toBeCloseTo(0.5, 8);
-    expect(state.opacity).toBeCloseTo(0.5, 8);
+    expect(state.radiusProgress).toBe(1);
+    expect(state.opacity).toBeCloseTo(1 - easeOutCubic(0.5), 8);
     expect(state.active).toBe(true);
 
     // Completes contract -> clears state

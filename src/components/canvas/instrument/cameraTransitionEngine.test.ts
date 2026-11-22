@@ -286,4 +286,102 @@ describe('cameraTransitionEngine', () => {
     expect(progressValues).toEqual([0.25, 0.6, 1.0]);
     expect(progressValues.every((p) => p >= 0 && p <= 1)).toBe(true);
   });
+
+  it('creeps asymptotically toward holdCeiling past holdThreshold while isReadyToComplete is false, then completes seamlessly when ready', () => {
+    const controller = new CameraTransitionController();
+    const onComplete = vi.fn();
+    const progressValues: number[] = [];
+    let ready = false;
+
+    controller.startPose(
+      perspCam,
+      { target: [100, 0, 0], position: [100, 0, 20] },
+      mockControls,
+      {
+        duration: 1.0,
+        easing: linearEasing,
+        isReadyToComplete: () => ready,
+        holdThreshold: 0.78,
+        holdCeiling: 0.94,
+        holdCreepTimeConstantSec: 1.8,
+        onProgress: (p) => progressValues.push(p),
+        onComplete,
+      },
+      1000,
+    );
+
+    // Advance 1.25s in 50ms steps while ready = false
+    let now = 1000;
+    for (let i = 0; i < 25; i++) {
+      now += 50;
+      controller.update(perspCam, mockControls, now);
+    }
+
+    expect(controller.isTransitioning()).toBe(true);
+    expect(onComplete).not.toHaveBeenCalled();
+    const pAt1250 = progressValues[progressValues.length - 1];
+    expect(pAt1250).toBeGreaterThan(0.78);
+    expect(pAt1250).toBeLessThan(0.94);
+
+    // Continue advancing for another 1.0s: never freezes (strictly increasing), stays below ceiling
+    for (let i = 0; i < 20; i++) {
+      now += 50;
+      const prev = progressValues[progressValues.length - 1];
+      controller.update(perspCam, mockControls, now);
+      const next = progressValues[progressValues.length - 1];
+      expect(next).toBeGreaterThan(prev);
+      expect(next).toBeLessThan(0.94);
+    }
+
+    expect(controller.isTransitioning()).toBe(true);
+    expect(onComplete).not.toHaveBeenCalled();
+
+    // Flip readiness to true: resumes seamlessly from crept value to 1.0
+    const creptBeforeReady = progressValues[progressValues.length - 1];
+    ready = true;
+    now += 50;
+    controller.update(perspCam, mockControls, now);
+    const firstResumed = progressValues[progressValues.length - 1];
+    expect(firstResumed).toBeGreaterThan(creptBeforeReady);
+
+    for (let i = 0; i < 10 && controller.isTransitioning(); i++) {
+      now += 50;
+      controller.update(perspCam, mockControls, now);
+    }
+
+    expect(controller.isTransitioning()).toBe(false);
+    expect(progressValues[progressValues.length - 1]).toBe(1);
+    expect(mockControls.target.x).toBeCloseTo(100, 4);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('anchors lastUpdateTime on first update when now is omitted with isReadyToComplete', () => {
+    const controller = new CameraTransitionController();
+    const onComplete = vi.fn();
+    const progressValues: number[] = [];
+
+    controller.startPose(
+      perspCam,
+      { target: [100, 0, 0], position: [100, 0, 20] },
+      mockControls,
+      {
+        duration: 0.2,
+        easing: linearEasing,
+        isReadyToComplete: () => true,
+        onProgress: (p) => progressValues.push(p),
+        onComplete,
+      },
+    );
+
+    controller.update(perspCam, mockControls, 5000);
+    expect(progressValues[0]).toBe(0);
+    expect(controller.isTransitioning()).toBe(true);
+
+    for (let i = 1; i <= 4; i++) {
+      controller.update(perspCam, mockControls, 5000 + i * 50);
+    }
+    expect(controller.isTransitioning()).toBe(false);
+    expect(progressValues[progressValues.length - 1]).toBe(1);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
 });

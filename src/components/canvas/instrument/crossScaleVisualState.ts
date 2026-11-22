@@ -1,3 +1,5 @@
+import { easeOutCubic } from '../../../utils/cameraEasing';
+
 /**
  * Mutable module-level visual state for cross-scale choreography.
  *
@@ -181,8 +183,8 @@ export function stepCrossScalePlanePreview(deltaSec: number): boolean {
     return true;
   }
 
-  planePreviewState.radiusProgress = 1 - p;
-  planePreviewState.opacity = 1 - p;
+  planePreviewState.radiusProgress = 1;
+  planePreviewState.opacity = 1 - easeOutCubic(p);
   if (p >= 1) {
     clearCrossScalePlanePreview();
   }

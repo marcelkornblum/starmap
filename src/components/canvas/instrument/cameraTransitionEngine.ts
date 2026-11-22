@@ -10,6 +10,7 @@ import {
   initOrientationTransitionState,
 } from './cameraTransitionOrientationMath';
 import {
+  advanceDynamicTransitionProgress,
   applyOpticalTransitionValues,
   copyVec3Input,
   evaluateWindowedTransitionEasing,
@@ -33,6 +34,10 @@ export type {
   CameraTransitionApi,
 } from './cameraTransitionPoseMath';
 
+const MAX_FRAME_DELTA_SEC = 0.05;
+const MIN_FLIGHT_DURATION_SEC = 0.001;
+const MS_PER_SECOND = 1000;
+
 /**
  * Pure Three.js camera transition controller.
  * Operates zero-allocation frame updates for smooth camera & instrument centring.
@@ -41,6 +46,8 @@ export class CameraTransitionController {
   private isTransitioningState = false;
   private pendingStart = false;
   private startTime = 0;
+  private lastUpdateTime = 0;
+  private currentProgress = 0;
   private duration = DEFAULT_CAMERA_TRANSITION_DURATION_SEC;
   private options?: CameraTransitionOptions;
   private activeControls?: TransitionControlsLike;
@@ -78,6 +85,7 @@ export class CameraTransitionController {
     if (!this.isTransitioningState) return;
     this.isTransitioningState = false;
     this.pendingStart = false;
+    this.currentProgress = 0;
     this.restoreAndSettleControls();
     const onCancel = this.options?.onCancel;
     this.options = undefined;
@@ -172,11 +180,31 @@ export class CameraTransitionController {
     }
     if (this.pendingStart) {
       this.startTime = now;
+      this.lastUpdateTime = now;
+      this.currentProgress = 0;
       this.pendingStart = false;
     }
 
-    const elapsed = Math.max(0, (now - this.startTime) / 1000);
-    const progress = Math.min(elapsed / Math.max(this.duration, 0.001), 1.0);
+    let progress: number;
+    const isReadyToComplete = this.options?.isReadyToComplete;
+    if (isReadyToComplete && this.options) {
+      const dt = Math.min(
+        Math.max(0, (now - this.lastUpdateTime) / MS_PER_SECOND),
+        MAX_FRAME_DELTA_SEC,
+      );
+      this.lastUpdateTime = now;
+      this.currentProgress = advanceDynamicTransitionProgress(
+        this.currentProgress,
+        dt,
+        this.duration,
+        this.options,
+        isReadyToComplete,
+      );
+      progress = this.currentProgress;
+    } else {
+      const elapsed = Math.max(0, (now - this.startTime) / MS_PER_SECOND);
+      progress = Math.min(elapsed / Math.max(this.duration, MIN_FLIGHT_DURATION_SEC), 1.0);
+    }
     const easing = this.options?.easing;
     const tOrient = evaluateWindowedTransitionEasing(
       easing,
@@ -233,6 +261,8 @@ export class CameraTransitionController {
     this.options = options;
     this.pendingStart = now === undefined;
     this.startTime = now ?? 0;
+    this.lastUpdateTime = now ?? 0;
+    this.currentProgress = 0;
     this.isTransitioningState = true;
   }
 

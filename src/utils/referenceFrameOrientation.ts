@@ -42,6 +42,10 @@ export interface CrossScaleChoreographyConfig {
   readonly departureOutDistanceMultiplier: number;
   readonly arrivalInDistanceMultiplier: number;
   readonly arrivalOutDistanceMultiplier: number;
+  readonly preloadHoldThreshold: number;
+  readonly preloadHoldCeiling: number;
+  readonly preloadCreepTimeConstantSec: number;
+  readonly preloadMaxHoldSec: number;
 }
 
 /** Default cross-scale choreography configuration (2.4s total: 0.4s preview + 1.0s out + 1.0s in). */
@@ -56,12 +60,16 @@ export const DEFAULT_CROSS_SCALE_CHOREOGRAPHY_CONFIG: CrossScaleChoreographyConf
   zoomOutTiltWindow: [0.35, 1.0],
   departureFadeWindow: [0.15, 0.95],
   arrivalFadeWindow: [0.0, 0.55],
-  arrivalPreviewFadeWindow: [0.0, 0.45],
+  arrivalPreviewFadeWindow: [0.15, 0.85],
   minSceneScale: 0.04,
   departureInDistanceMultiplier: 0.22,
   departureOutDistanceMultiplier: 2.2,
   arrivalInDistanceMultiplier: 1.85,
   arrivalOutDistanceMultiplier: 0.45,
+  preloadHoldThreshold: 0.78,
+  preloadHoldCeiling: 0.94,
+  preloadCreepTimeConstantSec: 1.8,
+  preloadMaxHoldSec: 4.0,
 };
 
 /** Resolved stage durations in seconds for a cross-scale transition. */
@@ -172,11 +180,7 @@ export function resolveTargetReferencePlane(
   targetMetadata?: TargetPlaneMetadata,
 ): ReferencePlaneDescriptor {
   if (fromScope === toScope) {
-    return {
-      inclinationRad: 0,
-      ascendingNodeRad: 0,
-      tiltAxis: [1, 0, 0],
-    };
+    return { inclinationRad: 0, ascendingNodeRad: 0, tiltAxis: [1, 0, 0] };
   }
 
   const overrideDeg = pickNonZeroOverrideDeg(targetMetadata);
@@ -223,18 +227,12 @@ export function normaliseWindowProgress(
   window?: readonly [number, number],
 ): number {
   if (!window) {
-    if (Number.isNaN(progress) || progress <= 0) {
-      return 0;
-    }
+    if (Number.isNaN(progress) || progress <= 0) return 0;
     return progress >= 1 ? 1 : progress;
   }
   const [start, end] = window;
-  if (Number.isNaN(progress) || progress <= start) {
-    return 0;
-  }
-  if (progress >= end || end <= start) {
-    return 1;
-  }
+  if (Number.isNaN(progress) || progress <= start) return 0;
+  if (progress >= end || end <= start) return 1;
   return (progress - start) / (end - start);
 }
 
